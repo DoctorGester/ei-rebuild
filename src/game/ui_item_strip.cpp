@@ -5,12 +5,11 @@
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
-#include "lib/mfc.h"
-
 #include <cstdint>
-#include <cmath>
 #include <cstring>
 #include <string>
+
+#include <cmath>
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"

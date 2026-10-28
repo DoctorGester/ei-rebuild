@@ -7,8 +7,6 @@
 
 #include "core_refcount.h"
 
-#include "lib/mfc.h"
-
 #include <cstdint>
 #include <list>
 

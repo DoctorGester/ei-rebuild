@@ -6,7 +6,6 @@
 #include "../lib/crt.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
-#include "lib/crt.h"
 #include "win_registry.h"
 #include "lib/str.h"
 

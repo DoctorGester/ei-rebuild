@@ -11,11 +11,11 @@
 
 #include "ei/x87.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
 
-#include <string>
 #include <vector>
 
 namespace {

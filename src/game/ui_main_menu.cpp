@@ -19,7 +19,8 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "world_glue.h"
 #include "bink_video.h"
 #include "game_data.h"
@@ -28,8 +29,6 @@
 #include "model.h"
 #include "figure_manager.h"
 
-#include <cstdint>
-#include <string>
 
 namespace {
 

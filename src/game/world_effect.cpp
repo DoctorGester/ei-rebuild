@@ -5,11 +5,11 @@
 #include "sound.h"
 #include "world_effect_internal.h"
 
-#include "lib/mfc.h"
-#include "game_singletons.h"
-
+#include <cstdint>
 #include <cstring>
 #include <string>
+#include "game_singletons.h"
+
 
 using namespace effect;
 

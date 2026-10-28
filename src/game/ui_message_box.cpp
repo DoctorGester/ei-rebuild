@@ -6,11 +6,12 @@
 #include "world_glue.h"
 #include "game_strings.h"
 
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <string>
 #include "bink_video.h"
 
 #include <cstring>
-#include <string>
 
 namespace {
 

@@ -9,15 +9,15 @@
 #include "terrain.h"  // Terrain::MoveLight (the light manager)
 #include "unit.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
-#include <cstring>
-#include <string>
 
 // The light's distance test and position must round like the original's.
 

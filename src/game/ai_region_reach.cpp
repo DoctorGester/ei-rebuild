@@ -5,13 +5,13 @@
 #include "core_streams.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include "game_data.h"
 #include "lib/static_object.h"
 
-#include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <initializer_list>
 
 namespace {

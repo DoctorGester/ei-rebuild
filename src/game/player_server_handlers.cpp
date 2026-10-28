@@ -24,7 +24,10 @@
 #include "asset_text.h"
 #include "lib/crt.h"
 #include "lib/str.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <new>
+#include <string>
 #include "lib/text_case.h"
 
 #include "ei/x87.h"
@@ -38,7 +41,6 @@
 #include <cstring>
 #include <list>
 #include <memory>
-#include <string>
 #include <vector>
 
 namespace {

@@ -12,12 +12,11 @@
 #include "party_storage.h"
 #include "ui.h"
 
-#include "lib/mfc.h"
-
 #include <cstddef>
 #include <cstdint>
-#include <map>
 #include <string>
+
+#include <map>
 #include <vector>
 
 class CItemInfoPanel;

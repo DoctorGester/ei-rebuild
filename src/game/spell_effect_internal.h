@@ -10,7 +10,9 @@
 #include "ai_map.h"
 #include "combat.h"
 #include "console.h"
-#include "lib/mfc.h"
+#include "lib/crt.h"
+#include <cstdint>
+#include <cstring>
 #include "lib/static_object.h"
 #include "map_object.h"
 #include "unit.h"
@@ -23,8 +25,6 @@
 #include "lib/vecmath.h"
 #include "game_data.h"
 
-#include <cstdint>
-#include <cstring>
 #include <list>
 
 namespace spellfx {

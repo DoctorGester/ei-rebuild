@@ -9,7 +9,6 @@
 #include "world.h"     // ClientArrayManager
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>

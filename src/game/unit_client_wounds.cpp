@@ -16,16 +16,17 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <string>
 
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
 #include <cstdio>
-#include <cstring>
 #include <new>
-#include <string>
 
 // windows.h (through texture.h) renames CEngineObject's GetClassName.
 #undef GetClassName

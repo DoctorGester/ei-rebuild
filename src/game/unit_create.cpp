@@ -9,12 +9,13 @@
 #include "map_object.h"
 #include "unit.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 
 #include "ei/x87.h"
 
 #include <bit>
-#include <cstring>
 #include <list>
 
 namespace {

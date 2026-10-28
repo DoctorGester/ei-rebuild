@@ -6,14 +6,13 @@
 #include "game_data.h"
 #include "game_strings.h"
 #include "../lib/gdi.h"
-#include "../lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <string>
 #include "../lib/str.h"
 #include "../lib/static_object.h"
 
-#include <cstddef>
-#include <cstdint>
 #include <map>
-#include <string>
 #include <string_view>
 #include <vector>
 

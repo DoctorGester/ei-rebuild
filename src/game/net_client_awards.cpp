@@ -7,15 +7,15 @@
 #include "party.h"
 #include "player_messages.h"
 
-#include "lib/mfc.h"
+#include "lib/crt.h"
+#include <cstdint>
+#include <cstring>
 
 #include "world.h"
-#include "lib/crt.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
-#include <cstring>
 #include <list>
 
 namespace net {

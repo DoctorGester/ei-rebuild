@@ -3,17 +3,18 @@
 
 #include "core_streams.h"
 
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "lib/text_case.h"
 
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
-#include <cstring>
 #include <memory>
 #include <new>
-#include <string>
 
 int TextKeyFromName(const char* name) {
     std::uint32_t h = 0;

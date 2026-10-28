@@ -4,6 +4,7 @@
 // verify_unit_hit_location.cpp). Reached
 // by every scenario with units (the panel, the AI's attack options, hits and healing).
 #include "stats_vectors.h"
+#include "../verify/exe_objects.h"
 #include "../verify/harness_original.h"
 #include "vectors.h"
 
@@ -21,6 +22,7 @@ namespace {
 
 using namespace ei::vectors;
 using namespace ei::vectors::stats;
+namespace exe = ei::verify::exe;
 
 constexpr std::uint32_t kCap = 256;
 constexpr std::size_t kOriginalWeaponSkillBonus = 0x7B;   // game.exe's WeaponRecord::skillBonus
@@ -225,22 +227,22 @@ struct OriginalVector {
     T& operator[](std::size_t i) const { return start[i]; }
 };
 
-// game.exe's skill records: their names are CStrings (a char pointer each) where ours are std::strings (larger), so
+// game.exe's skill records: their names are CStrings (exe_objects.h: a char pointer each) where ours are std::strings (larger), so
 // the recorders read them through game.exe's layout, not unit_db.h's.
 struct OriginalSkillRecord {
-    mfc::CString name;
-    mfc::CString field1;
+    exe::CString name;
+    exe::CString field1;
     std::uint32_t field2;
-    OriginalVector<mfc::CString> statNames;
+    OriginalVector<exe::CString> statNames;
 };
 static_assert(offsetof(OriginalSkillRecord, statNames) == 0x0C && sizeof(OriginalSkillRecord) == 0x18);
 struct OriginalSkillLevelRecord {
-    mfc::CString field0;
-    mfc::CString name;
+    exe::CString field0;
+    exe::CString name;
     std::uint32_t field2;
-    mfc::CString requiredLevelName;
+    exe::CString requiredLevelName;
     std::uint32_t exclusionGroup;
-    mfc::CString requiredSkillName;
+    exe::CString requiredSkillName;
     std::uint32_t values[10];
     std::uint8_t learnable;
     std::uint8_t padding[3];

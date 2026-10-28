@@ -15,10 +15,11 @@
 
 #include "lib/crt.h"
 #include "lib/containers.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "lib/text_case.h"
 
-#include <cstring>
 #include <list>
 #include <vector>
 #include "ei/x87.h"

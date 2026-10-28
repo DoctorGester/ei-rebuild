@@ -14,14 +14,13 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
-#include "lib/mfc.h"
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
 #include <cstdint>
-#include <string>
 
 namespace {
 

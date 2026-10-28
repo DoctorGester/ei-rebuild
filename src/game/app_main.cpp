@@ -33,7 +33,10 @@
 #include "lib/text_case.h"
 #include "text_split.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "lib/static_object.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
@@ -49,11 +52,8 @@
 #include <ddraw.h>
 
 #include <bit>
-#include <cstdint>
 #include <cstdio>
-#include <cstring>
 #include <io.h>
-#include <string>
 
 using options::GameOptions;
 

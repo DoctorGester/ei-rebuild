@@ -16,7 +16,6 @@
 #include <cstring>
 #include <list>
 #include <new>
-#include "lib/mfc.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 

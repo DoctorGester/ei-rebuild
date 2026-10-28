@@ -6,13 +6,13 @@
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
-#include "lib/text_case.h"
-
-#include <cstdio>
+#include <cstdint>
 #include <cstring>
 #include <new>
 #include <string>
+#include "lib/text_case.h"
+
+#include <cstdio>
 
 int CResourceBase::FindEntry(const char* name) const {
     std::uint32_t count = header_.count;

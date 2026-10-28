@@ -4,12 +4,13 @@
 
 #include "core_maths.h"
 #include "lib/file_io.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
-#include <cstring>
 
 CTransformObject* CTransformObject::CopyTransform(const CTransformObject& other) {
     std::memmove(&localPosition_, &other.localPosition_, sizeof(CTransformObject) - offsetof(CTransformObject, localPosition_));

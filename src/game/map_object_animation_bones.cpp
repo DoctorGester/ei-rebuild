@@ -11,12 +11,12 @@
 #include "figure_mesh.h"
 #include "world.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "game_data.h"
 #include "lib/str.h"
 
-#include <cstdint>
-#include <cstring>
 #include <vector>
 
 namespace {

@@ -8,11 +8,10 @@
 #include "ui_screens.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
-
-#include <bit>
 #include <cstdint>
 #include <string>
+
+#include <bit>
 
 namespace {
 

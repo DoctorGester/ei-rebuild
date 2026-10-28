@@ -10,12 +10,13 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <string>
 
 #include <bit>
 #include <cstring>
 #include <memory>
-#include <string>
 
 namespace {
 constexpr std::uint32_t kFlag800000 = 0x800000;     // flags_, cleared by Load

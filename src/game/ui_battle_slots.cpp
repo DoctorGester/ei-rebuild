@@ -14,13 +14,13 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "world_data.h"
 
-#include <cstring>
 #include <list>
 
 namespace {

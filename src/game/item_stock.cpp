@@ -10,7 +10,10 @@
 #include "spell.h"
 
 #include "../lib/crt.h"
-#include "../lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "../lib/text_case.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -20,10 +23,8 @@
 #include "lib/str.h"
 
 #include <algorithm>
-#include <cstring>
 #include <iterator>
 #include <memory>
-#include <string>
 #include <vector>
 
 namespace {

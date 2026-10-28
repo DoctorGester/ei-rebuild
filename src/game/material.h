@@ -3,14 +3,13 @@
 #include "engine_object.h"
 #include "resource_manager.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "lib/vecmath.h"
 #include "game_data.h"
 
 #include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <string>
 #include <vector>
 #include <unordered_map>
 

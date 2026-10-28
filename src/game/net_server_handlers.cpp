@@ -15,13 +15,12 @@
 #include "world.h"             // TheGameFlow
 
 #include "ei/rebirth.h"
-#include "lib/mfc.h"
-#include "lib/str.h"
-
 #include <cstdint>
 #include <cstring>
-#include <new>
 #include <string>
+#include "lib/str.h"
+
+#include <new>
 
 namespace net {
 

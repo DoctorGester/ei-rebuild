@@ -6,16 +6,15 @@
 #include "game_strings.h"
 
 #include "ei/x87.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "unit.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
-#include <cstdint>
-#include <cstring>
-#include <string>
 #include <vector>
 
 namespace {

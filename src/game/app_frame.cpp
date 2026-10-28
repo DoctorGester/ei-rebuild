@@ -11,7 +11,8 @@
 #include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "lib/static_object.h"
 #include "ui.h"
 #include "ui_cursor.h"
@@ -20,11 +21,9 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
-#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <memory>
-#include <string>
 
 namespace app {
 

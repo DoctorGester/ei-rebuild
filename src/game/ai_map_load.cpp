@@ -12,19 +12,19 @@
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <new>
+#include <string>
 #include "lib/static_object.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 
 #include <bit>
 #include <cmath>
-#include <cstddef>
-#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
-#include <string>
 #include <vector>
 
 namespace {

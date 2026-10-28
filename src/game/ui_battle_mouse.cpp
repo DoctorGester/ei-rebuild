@@ -12,10 +12,9 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "lib/mfc.h"
+#include <string>
 #include "game_singletons.h"
 
-#include <string>
 
 namespace {
 constexpr int kCursorArrow = 0;

@@ -14,15 +14,16 @@
 
 #include "console.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
+#include <utility>
 
 #include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
 
-#include <cstring>
 #include <list>
-#include <string>
 
 namespace {
 

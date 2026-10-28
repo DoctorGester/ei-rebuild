@@ -15,17 +15,17 @@
 
 #include "render/render_state.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <new>
+#include <string>
 #include "game_data.h"
 #include "world_glue.h"
 #include "game_singletons.h"
 
-#include <cstdint>
 #include <cstring>
 #include <iterator>
 #include <list>
 #include <memory>
-#include <string>
 
 // The screens CreateScreen builds inline (screens 1 and 3; 2 and 7 have only the container's).
 CBattleScreen::CBattleScreen(CInterface3D* ui) : CUiContainer(ui) {

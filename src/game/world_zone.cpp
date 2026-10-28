@@ -13,7 +13,10 @@
 #include "world_map_files.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <new>
+#include <string>
 #include "lib/text_case.h"
 
 #include "ei/rebirth.h"
@@ -23,10 +26,7 @@
 #include "unit.h"
 #include "unit_db.h"
 
-#include <cstring>
 #include <list>
-#include <new>
-#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"

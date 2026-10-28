@@ -9,13 +9,12 @@
 #include "map_spec.h"   // LeverSetup
 #include "unit.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstddef>
-#include <cstdint>
-#include <string>
 #include <vector>
 #include <unordered_map>
 

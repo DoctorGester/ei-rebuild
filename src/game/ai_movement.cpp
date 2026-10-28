@@ -10,9 +10,10 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
-
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
+
 #include <list>
 #include "game_data.h"
 

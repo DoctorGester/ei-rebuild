@@ -4,9 +4,9 @@
 #include "ai_map.h"
 #include "ai_motion.h"
 
-#include "lib/mfc.h"
-
+#include <cstdint>
 #include <cstring>
+
 
 
 PathCell* PathCell::Step(PathCell* out, int direction) const {

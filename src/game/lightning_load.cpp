@@ -8,10 +8,9 @@
 #include "resource_local.h"
 #include "world_data.h"
 
-#include "lib/mfc.h"
-
 #include <cstdint>
 #include <string>
+
 
 // Opens <text folder>gfx.res and reads lightning.dat into the noise table, row by row through a memory stream
 // (a short file leaves the rest zero-filled, as the stream's Read does). Returns 0 when the archive does not

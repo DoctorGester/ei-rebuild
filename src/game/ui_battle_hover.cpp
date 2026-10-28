@@ -11,12 +11,11 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc.h"
-#include "lib/text_case.h"
-
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include "lib/text_case.h"
+
 #include "world.h"
 #include "game_data.h"
 #include "game_singletons.h"

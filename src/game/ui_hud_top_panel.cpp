@@ -7,15 +7,14 @@
 #include "item_db_text.h"
 #include "maths.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 
 #include <concepts>
-#include <cstdint>
-#include <cstring>
-#include <string>
 
 namespace {
 

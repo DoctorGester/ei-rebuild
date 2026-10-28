@@ -6,17 +6,16 @@
 
 #include "console.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "lib/str.h"
 
 #include "ei/rebirth.h"
 #include "net_classes.h"
 
-#include <cstdint>
-#include <cstring>
 #include <iterator>
 #include <list>
-#include <string>
 #include <vector>
 #include "ui_cursor.h"
 #include "world.h"

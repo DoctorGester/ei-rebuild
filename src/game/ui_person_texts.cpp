@@ -7,11 +7,10 @@
 #include "object_tables.h"
 
 #include "console.h"
-#include "lib/mfc.h"
+#include <string>
 #include "lib/str.h"
 #include "game_singletons.h"
 
-#include <string>
 
 namespace {
 

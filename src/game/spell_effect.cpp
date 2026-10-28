@@ -9,9 +9,9 @@
 #include "world.h"
 
 #include "ei/x87.h"
-#include "lib/mfc.h"
-
+#include <cstdint>
 #include <cstring>
+
 #include <list>
 #include "game_data.h"
 #include "lib/nan_audit.h"

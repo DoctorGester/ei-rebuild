@@ -5,8 +5,6 @@
 // PathOrder) is in ai_map.h; ai_motion.h has the rest of the motion code. Kept apart so unit.h can hold the
 // motion as a member (ai_map.h includes unit.h).
 
-#include "lib/mfc.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <vector>

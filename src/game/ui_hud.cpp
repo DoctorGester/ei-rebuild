@@ -24,16 +24,15 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "unit.h"
 #include "world.h"
 
 #include <cmath>
 #include <cstddef>
-#include <cstdint>
 #include <cstdio>
-#include <cstring>
-#include <string>
 #include <vector>
 #include "game_data.h"
 #include "game_singletons.h"

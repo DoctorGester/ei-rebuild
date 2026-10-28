@@ -4,12 +4,11 @@
 // the strip of the renderer's line lists.
 
 #include "lib/containers.h"
-#include "lib/mfc.h"
+#include <cstdint>
 #include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <vector>
 
 class CTextureDevice;

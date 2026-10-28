@@ -9,7 +9,8 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
@@ -18,10 +19,8 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <list>
-#include <string>
 
 namespace {
 constexpr float kNoiseRadius = 50.0f;   // the units asked for around a noise

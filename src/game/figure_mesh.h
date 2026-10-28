@@ -10,11 +10,10 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
+
 #include <vector>
 
 #undef GetClassName   // CEngineObject::GetClassName

@@ -20,17 +20,16 @@
 #include "lib/compiled_vtable.h"
 #include "lib/containers.h"
 #include "lib/gdi.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <string>
 #include "lib/static_object.h"
 #include "lib/str.h"
 
-#include <cstddef>
-#include <cstdint>
 
 #include <list>
 #include <map>
 #include <memory>
-#include <string>
 #include <vector>
 #include <windows.h>
 

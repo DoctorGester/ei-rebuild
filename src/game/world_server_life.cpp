@@ -12,12 +12,11 @@
 #include "server_specific_manager.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
-
 #include <cstdint>
 #include <cstring>
-#include <memory>
 #include <string>
+
+#include <memory>
 #include "game_data.h"
 
 namespace {

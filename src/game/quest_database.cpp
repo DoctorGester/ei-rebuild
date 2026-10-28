@@ -8,7 +8,7 @@
 #include "game_strings.h"
 #include "registry.h"
 
-#include "../lib/mfc.h"
+#include <string>
 #include "lib/static_object.h"
 #include "lib/str.h"
 #include "text_split.h"
@@ -18,7 +18,6 @@
 #include <cstring>
 #include <memory>
 #include <new>
-#include <string>
 #include <vector>
 
 namespace {

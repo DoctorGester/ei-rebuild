@@ -10,12 +10,11 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
-#include <cstdint>
 #include <vector>
 
 namespace {

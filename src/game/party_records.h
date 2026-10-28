@@ -6,11 +6,10 @@
 #include "core_refcount.h"
 #include "party_storage.h"
 
-#include "lib/mfc.h"
+#include <string>
 
 #include <cstddef>
 #include <cstdint>
-#include <string>
 #include <vector>
 
 class CPlayer;

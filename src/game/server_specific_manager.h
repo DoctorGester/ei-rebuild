@@ -9,11 +9,10 @@
 #include "base_manager.h"
 #include "engine_object.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
+
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 

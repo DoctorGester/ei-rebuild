@@ -7,9 +7,10 @@
 #include "database_file.h"
 #include "lib/crt.h"
 
-#include "lib/mfc.h"
-
+#include <cstddef>
+#include <cstdint>
 #include <string>
+
 
 namespace {
 

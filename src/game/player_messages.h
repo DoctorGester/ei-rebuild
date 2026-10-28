@@ -12,11 +12,10 @@
 #include "script.h"
 
 #include "lib/containers.h"
-#include "lib/mfc.h"
-#include "lib/hash_map.h"
-
 #include <cstddef>
 #include <cstdint>
+#include "lib/hash_map.h"
+
 #include <list>
 #include <vector>
 

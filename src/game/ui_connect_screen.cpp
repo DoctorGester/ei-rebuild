@@ -25,18 +25,17 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/intro_sort.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
-#include <cstdint>
-#include <cstring>
 #include <memory>
 #include <new>
-#include <string>
 
 namespace net {
 int MasterLinkTick(net::MasterLink*);

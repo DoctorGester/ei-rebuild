@@ -15,14 +15,14 @@
 #include "world_data.h"
 
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
 #include "lib/crt.h"
+#include <cstdint>
+#include <string>
 #include "lib/str.h"
 
 #include <iterator>
 #include <list>
 #include <memory>
-#include <string>
 
 namespace {
 constexpr std::uint32_t kDelayed = 8;

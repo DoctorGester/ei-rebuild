@@ -14,14 +14,13 @@
 
 #include "ei/x87.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 
-#include <cstdint>
-#include <string>
 
 namespace {
 

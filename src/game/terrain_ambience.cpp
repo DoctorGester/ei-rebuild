@@ -10,18 +10,17 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
-#include <cstdint>
 #include <cstdio>
 #include <memory>
 #include <new>
-#include <string>
 
 namespace {
 

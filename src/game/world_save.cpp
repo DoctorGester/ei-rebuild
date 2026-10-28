@@ -32,12 +32,12 @@
 
 #include "lib/crt.h"
 #include "lib/file_io.h"
-#include "lib/mfc.h"
-
+#include <cstdint>
 #include <cstring>
+#include <string>
+
 #include <list>
 #include <memory>
-#include <string>
 #include <vector>
 
 namespace {

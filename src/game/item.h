@@ -9,11 +9,12 @@
 #include "item_db.h"
 #include "lock_key.h"
 #include "resource_manager.h"
-#include "../lib/mfc.h"
-#include "game_data.h"
-
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <string>
+#include "game_data.h"
+
 #include <vector>
 
 #undef GetClassName

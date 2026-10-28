@@ -14,17 +14,17 @@
 
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
-#include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <list>
-#include <string>
 #include <vector>
 
 namespace {

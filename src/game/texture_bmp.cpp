@@ -15,12 +15,11 @@
 #include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
 #include "game_data.h"
 #include "game_singletons.h"
 
-#include <cstddef>
-#include <cstdint>
 #include <cstring>
 
 namespace {

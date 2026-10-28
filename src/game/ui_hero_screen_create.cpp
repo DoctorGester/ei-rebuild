@@ -17,7 +17,9 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
@@ -25,10 +27,7 @@
 #include "game_singletons.h"
 
 #include <cstddef>
-#include <cstdint>
-#include <cstring>
 #include <new>
-#include <string>
 
 namespace {
 

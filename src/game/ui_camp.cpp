@@ -22,7 +22,9 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -32,10 +34,7 @@
 #include <cmath>
 #include <d3d.h>
 
-#include <cstdint>
-#include <cstring>
 #include <initializer_list>
-#include <string>
 
 namespace {
 

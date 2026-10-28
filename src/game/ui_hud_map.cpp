@@ -15,15 +15,14 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "camera.h"
 #include "lib/text_case.h"
 
-#include <cstdint>
-#include <cstring>
 #include <list>
 #include <new>
 

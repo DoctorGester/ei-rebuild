@@ -10,14 +10,15 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstring>
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
 #include "lib/str.h"
 
 #include <cstdint>
-#include <cstring>
 #include <new>
 
 // --- Helpers -----------------------------------------------------------------------------------

@@ -11,7 +11,7 @@
 #include <new>
 #include <string>
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"

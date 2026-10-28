@@ -5,9 +5,8 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
-
 #include <cstring>
+
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 

@@ -8,13 +8,12 @@
 #include "base_manager.h"
 #include "engine_object.h"
 #include "lib/containers.h"
-#include "lib/mfc.h"
+#include <cstdint>
 #include "maths.h"
 #include "model.h"   // ClipBounds
 #include "game_data.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <list>
 #include <vector>
 

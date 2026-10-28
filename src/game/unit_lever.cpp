@@ -12,11 +12,10 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
-
-#include <cmath>
 #include <cstdint>
 #include <cstring>
+
+#include <cmath>
 #include <list>
 #include "game_data.h"
 

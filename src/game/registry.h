@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "../lib/containers.h"
-#include "../lib/mfc.h"
 #include "resource.h"
 
 // The int / float arrays the registry fills.

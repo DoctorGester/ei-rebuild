@@ -10,14 +10,15 @@
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
-
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
-#include <map>
 #include <new>
+#include <string>
+
+#include <map>
 #include <set>
 
-#include <string>
 #include <windows.h>
 
 namespace modfolders {

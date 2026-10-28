@@ -6,7 +6,6 @@
 #include "net_link.h"
 
 #include "../lib/crt.h"
-#include "../lib/mfc.h"
 #include "game_data.h"
 
 #include <new>

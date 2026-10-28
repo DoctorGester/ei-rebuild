@@ -9,10 +9,9 @@
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <string>
 
 #include <cstdlib>
-#include <string>
 
 namespace {
 

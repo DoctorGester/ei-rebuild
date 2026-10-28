@@ -4,10 +4,9 @@
 #include "console.h"
 
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <string>
 
 #include <cstring>
-#include <string>
 #include <string_view>
 #include <vector>
 

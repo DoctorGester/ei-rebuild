@@ -11,10 +11,10 @@
 #include "resource.h"
 #include "lib/static_object.h"
 
-#include "lib/mfc.h"
-
 #include <cstdint>
+#include <new>
 #include <string>
+
 
 namespace dbfile {
 

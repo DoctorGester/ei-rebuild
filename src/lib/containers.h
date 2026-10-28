@@ -1,8 +1,8 @@
 #pragma once
 
 // Helpers for the std::vector the game's containers are (the former engine arrays in 32-byte aligned blocks are
-// vectors). MFC's CArray / CList / CTypedPtrList are in mfc.h. Which original instantiation each address belongs
-// to: docs/notes/core.md, "Shared containers".
+// vectors). Which original instantiation each address belongs to:
+// docs/notes/core.md, "Shared containers".
 
 #include <algorithm>
 #include <cstddef>

@@ -2,9 +2,8 @@
 
 // Small text helpers of the engine base. See docs/notes/core.md.
 
-#include "lib/mfc.h"
-
 #include <string>
+
 
 // Splits a CString at a separator string. The credits screen is the only user: it walks
 // the lines of the titles text.

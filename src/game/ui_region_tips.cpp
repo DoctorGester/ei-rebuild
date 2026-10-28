@@ -8,11 +8,10 @@
 #include "text_reader.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <string>
 #include "game_singletons.h"
 #include "lib/str.h"
 
-#include <string>
 
 namespace {
 

@@ -5,7 +5,6 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
 #include "game_data.h"
 
 CHudWeaponBar::~CHudWeaponBar() = default;

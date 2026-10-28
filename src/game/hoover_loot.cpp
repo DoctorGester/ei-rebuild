@@ -19,7 +19,8 @@
 #include <cstring>
 #include <list>
 #include <vector>
-#include "lib/mfc.h"
+#include <cstddef>
+#include <string>
 #include "game_data.h"
 #include "lib/nan_audit.h"
 

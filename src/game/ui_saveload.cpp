@@ -24,7 +24,9 @@
 #include "lib/file_io.h"
 #include "lib/gameapi.h"
 #include "lib/intro_sort.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "render/render.h"
 #include "game_flow_data.h"
 #include "world_glue.h"
@@ -33,12 +35,9 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
-#include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <memory>
 #include <new>
-#include <string>
 
 namespace {
 

@@ -7,14 +7,14 @@
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <memory>
+#include <string>
 #include "lib/thread.h"
 #include "game_singletons.h"
 #include "game_data.h"
 
 #include <cstdlib>
-#include <memory>
-#include <string>
 
 namespace {
 

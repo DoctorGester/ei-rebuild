@@ -9,9 +9,8 @@
 #include "texture.h"
 
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
-
 #include <cstdint>
+
 #include <memory>
 #include "game_data.h"
 #include "game_singletons.h"

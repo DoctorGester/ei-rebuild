@@ -8,7 +8,8 @@
 
 #include "lib/file_io.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstring>
+#include <string>
 #include "lib/text_case.h"
 #include "text_split.h"
 #include "ui.h"
@@ -17,9 +18,7 @@
 #include "lib/str.h"
 
 #include <cstdint>
-#include <cstring>
 #include <memory>
-#include <string>
 
 // The keys (object_tables.h's UiKeyName): scan code, the bindings file's name and Windows' text
 // (LoadKeyBindings fills it). The actions' table (kActionDefinitions) follows it in memory.

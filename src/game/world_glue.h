@@ -4,7 +4,8 @@
 // and the console call instead of the worlds. None reads `this`, so they are plain functions here. world.h
 // declares the others (GameTime, LocalPlayerData, ...).
 
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 
 // The data folder CString / the base folder CString.
 const std::string* GameDataPathString();
@@ -38,8 +39,6 @@ void PlayerZeroVariables(const char* prefix, NamedFloatTable* out);
 void StoreStartFolder();
 
 // ---- The rest of the glue. `this` is never read. ---------------------
-#include <cstdint>
-#include <string>
 #include <vector>
 
 class CPlayerClient;

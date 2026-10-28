@@ -7,7 +7,7 @@
 #include "item_db.h"
 #include "lib/crt.h"
 #include "text_split.h"
-#include "lib/mfc.h"
+#include <string>
 #include "lib/str.h"
 #include "game_data.h"
 

@@ -3,13 +3,13 @@
 #include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "game_data.h"
 
 #include <bit>
 #include <intrin.h>
-#include <cstring>
-#include <string>
 
 // The game's generator: unseeded (the static initialiser zeroes seeded_; Init seeds it on first use).
 IsaacRandom g_random = /*007A9D40*/ {};

@@ -16,7 +16,7 @@
 #include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
@@ -24,7 +24,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <string>
 #include <utility>
 
 namespace {

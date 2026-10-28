@@ -12,13 +12,13 @@
 #include "game_singletons.h"
 
 #include "ei/x87.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "lib/str.h"
 
 #include <bit>
 #include <cmath>
-#include <cstring>
-#include <string>
 
 namespace {
 constexpr int kOrderAnimation = 7;

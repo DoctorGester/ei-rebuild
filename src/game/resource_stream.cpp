@@ -6,14 +6,15 @@
 #include "resource.h"
 #include "resource_stream.h"
 #include "mod_folders.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 
 #include "lib/crt.h"
 #include "lib/file_io.h"
 #include "lib/gameapi.h"
 
 #include <cstdlib>
-#include <cstring>
 #include <new>
 
 namespace {

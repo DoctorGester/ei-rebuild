@@ -34,7 +34,10 @@
 
 #include "lib/static_object.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "lib/text_case.h"
 
 #include "ei/rebirth.h"
@@ -44,8 +47,6 @@
 #include "lib/str.h"
 
 #include <bit>
-#include <cstring>
-#include <string>
 #include <type_traits>
 #include <vector>
 

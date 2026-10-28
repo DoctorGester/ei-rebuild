@@ -3,7 +3,6 @@
 #include "lever.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
 #include "game_data.h"
 
 #include <cstdlib>

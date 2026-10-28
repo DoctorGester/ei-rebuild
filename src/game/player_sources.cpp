@@ -8,8 +8,6 @@
 #include "core_refcount.h"
 #include "net_link.h"
 
-#include "lib/mfc.h"
-
 namespace {
 
 // AddTail of a counted link as both slots inline it: a new node after the tail (its element

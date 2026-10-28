@@ -4,13 +4,13 @@
 #include "game_data.h"
 
 #include "ei/x87.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 #include "sector_map.h"
 
-#include <cstring>
 
 // --- Helpers -------------------------------------------------------------------------------------
 

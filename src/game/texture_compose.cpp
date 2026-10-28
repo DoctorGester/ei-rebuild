@@ -12,11 +12,11 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
-
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <string>
+
 #include <vector>
 #include "game_data.h"
 #include "game_singletons.h"

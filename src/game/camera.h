@@ -10,14 +10,13 @@
 
 #include "ei/hook.h"
 #include "lib/containers.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <string>
 #include "game_singletons.h"
 #include "options.h"
 
-#include <cstddef>
-#include <cstdint>
 #include <list>
-#include <string>
 #include <vector>
 
 class CObject3D;

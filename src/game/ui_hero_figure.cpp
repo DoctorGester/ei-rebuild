@@ -9,12 +9,11 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "game_data.h"
 #include "lib/text_case.h"
 
-#include <cstdint>
-#include <string>
 #include <vector>
 
 namespace {

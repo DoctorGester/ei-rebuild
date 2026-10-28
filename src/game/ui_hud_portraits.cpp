@@ -12,13 +12,12 @@
 #include "unit.h"
 
 #include "ei/x87.h"
-#include "lib/mfc.h"
-
-#include <concepts>
+#include "lib/crt.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "lib/crt.h"
+
+#include <concepts>
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "camera.h"
