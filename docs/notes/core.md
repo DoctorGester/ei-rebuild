@@ -235,9 +235,9 @@ to which template:
   ConstructElements / DestructElements: `PlainElements` (zero-filled, nothing destroyed) by default, `RawElements`
   (nothing), or its own pair (terrain records 006C4F10 / 006C4EE0, flag arrays 006C4F90 / 006C4F60, tile lists 006C5050 /
   006C5010; the bone's morph frames 00452E20 / 00452DF0; the scene loader's `OriginalElements<T, Make, Unmake>`). The
-  vtable is a field: each instantiation keeps its own constant. CByteArray / CWordArray / CDWordArray / CUIntArray share
-  the layout (`CArray<uint8_t / uint16_t / uint32_t>`); their SetSize stays MFC's own code (006FF64A, 006FEEFA, 006FF993,
-  006FF29A via originals_library.h). `mfc::impl::CStringArray` (mfc_coll.h): CArray's layout over CStrings,
+  vtable is a field: each instantiation keeps its own constant. CByteArray / CWordArray / CDWordArray share
+  the layout (`CArray<uint8_t / uint16_t / uint32_t>`); their SetSize stays MFC's own code (006FF64A, 006FEEFA,
+  006FF29A via originals_library.h). CUIntArray went in C20o (only an unused ini_file helper made one). `mfc::impl::CStringArray` (mfc_coll.h): CArray's layout over CStrings,
   registered at MFC's addresses (Construct 006FE925, Destruct 006FE958, SetSize 006FE9B8, ...); nothing in src/game
   uses it since C14a batch 14 (the public `mfc::CStringArray` and `console::CStringArray` went).
   Aliases and registrations: `RecordPtrArray` (world.h) = `CArray<uint8_t*>` (vtable 0073FAA4; SetSize 005719B0 /
@@ -294,10 +294,9 @@ to which template:
   game CRT's vsprintf, `crt_format.cpp`: "1.#INF" and three-digit exponents, C26), `MakeLower`, `Remove`, the trims
   (multibyte stepping, `_ismbcspace`), `Buffer` / `CutAtNull` / `SetLength` for GetBuffer / ReleaseBuffer(-1) /
   GetBufferSetLength.
-- `tools/c14_strings.py` does the rewrite: it retypes `mfc::CString` declarations and fixes what the verify build then
-  reports, one rule per diagnostic shape (the rules: its docstring); a variable no rule carries stays a CString, and
-  the next round starts from the original files without it (`build/c14_strings/excluded.json`, `manual.txt` for the
-  rest). Batch 1 (scope `locals`): 550 of 845 local variables in src/game; the others stay CStrings because their
+- The rewrite was a tool (tools/c14_strings.py, deleted in C20o: nothing is left to retype; the git history has it):
+  it retyped `mfc::CString` declarations and fixed what the verify build then reported, one rule per diagnostic
+  shape; a variable no rule carried stayed a CString. Batch 1 (scope `locals`): 550 of 845 local variables in src/game; the others stay CStrings because their
   address is taken (passed to a `mfc::CString*` or `void*` parameter, cast) or a non-const reference goes to a
   function taking `mfc::CString&` (they move with those signatures). The 49 the tool could still try after batch 1
   all stay for now (42 address or reference, the rest CFigureStrip::Draw's kept `name`).
@@ -310,7 +309,7 @@ to which template:
   passes `.GetString()` (a std::string copy of its text; the game's text has no embedded zero bytes), the seam the
   members' retyping removes.
 - CStrings built and destroyed by hand in place (the records' own Construct / Destruct, the element policies) are
-  `std::construct_at(&field, ...)` / `std::destroy_at(&field)` (`c14_strings.py lifetimes`): the type comes from the
+  `std::construct_at(&field, ...)` / `std::destroy_at(&field)`: the type comes from the
   field, so retyping a member changes them with it. A placement new of `mfc::CString` on a std::string compiles
   silently; the forms left are typed by an explicit cast (`reinterpret_cast<mfc::CString*>(p)->~CString()`,
   src/lib's element policies at byte offsets, `new (this)` in the CString view classes), the placement news on raw storage (a `void*` out parameter or a
@@ -392,7 +391,7 @@ to which template:
   static_assert equal node sizes (ArrayAs already did). LocalPlayerName (00578A90) is `std::string LocalPlayerZone()`
   (it is the party's zone; `BriefingPlayerName` went). The text manager's out parameters are `std::string*`:
   ReadLine, ReadToHash, PeekWord, GetString, GetItemTexts, FormatItemName, text::ReplaceChar, and their callers'
-  locals (c14_strings.py --string-out), CHudQuickItems::ItemTip, the trade panel's PerkBaseName, the options'
+  locals, CHudQuickItems::ItemTip, the trade panel's PerkBaseName, the options'
   ReadTip; Split collects into a std::string word.
   Batch 10: ScriptStrings (the variables' names and string values, the commands' string arguments) is a
   `mfc::CArray<std::string>`: mfc.h's `PlainElements<std::string>` builds, destroys and relocates the elements (the
@@ -476,7 +475,7 @@ to which template:
   the declaration once console.h stopped coming first in text_reader.cpp.
 - The whole-tree pass (batches 15-18 at once): no `mfc::CString` is left in src/game but CStdioFile::ReadString's
   local (MFC's ReadLine fills a CString of src/lib). A one-off script, kept out of the repository, retyped every
-  declaration and then ran c14_strings.py's diagnostic rules over the verify build; its shapes: `kUnset` storage
+  declaration and then the tool's diagnostic rules over the verify build; its shapes: `kUnset` storage
   becomes a plain `std::string` (the callee assigns), `std::construct_at(out, a)` / `new (out) mfc::CString(a)` in a
   function taking `mfc::CString* out` (or a `void* out` it built a CString in) becomes `*out = a`, raw
   `alignas` storage a local whose address the call takes (its `std::destroy_at` goes), by-value parameters
@@ -555,30 +554,10 @@ to which template:
   temporary CString built by the bridge constructor: world_game.cpp's `RecordMob` / `RecordMap` (forwarders of
   MapRecord's members) handed LoadZoneScripts a dead path (CFileException in every zone with scripts). They went;
   before retyping, grep `mfc::CString& Name(...) { return ...member; }` for the members.
-- c14_strings.py has no rule for an overload set that took the CString through its conversion (`gamecrt::mbscmp`'s
-  C2665): it keeps the member. Retype such a member by hand and add the `.c_str()`s, then run the tool with it (a
-  member already declared std::string gets the rules).
 - A class held by value grows with its member: CParty (zone_) sits in CPlayer, ClassTemplate, PartyRecord,
   CItemInfoPanel, ClientSession, TradeRecord and MpHeroRecord (all through `lib::InPlace<CParty>`, so their
   sizes follow), and their layout asserts after it went too. Grep the class's embedders (`InPlace<T>`, members of
   type T) as well as its own sizes.
-- c14_strings.py's locals scope skips a variable whose address is taken (`&x`); `--string-out F G ...` names
-  functions whose pointer parameters are typed `std::string*`, so `&x` handed to one of them does not keep `x` (a
-  CString* there is a compile error, which the rounds then fix by keeping the variable). Retype the function by
-  hand first, then run the scope on its callers' files with it listed.
-- c14_strings.py keys a kept member by its name and remembers it in build/c14_strings/excluded.json across runs: a
-  later run with another `X::name_` keeps that one too ("1 excluded"). Run with `--fresh` after retyping the kept one
-  by hand. It has no rule for a std::string streamed into the console's ostream (`<<`, C2679: add `.c_str()`) or for
-  the console.h `Ops(x)` cast views (retype by hand: `str::Mid(x, ...)`, `x += c`), and a `const mfc::CString& r =
-  member;` local binds a bridge temporary silently (harness_utf8_image.cpp read the console input so).
-- c14_strings.py sometimes applies a `.c_str()` fix one line late (a one-line function after one already fixed:
-  manual.txt says "already converted"; the next line gets a stray `.c_str()`, e.g. `return "CFigure".c_str();`
-  under `GetName() { return name_; }`, which stays unfixed). Read the diff of every run. A failing static_assert in
-  a header stops that translation unit, so the diagnostics behind it only show in the next run: drop the broken
-  layout asserts, then run the tool again with the same members.
-- The tool keys a kept member by its bare name across classes: one `name` it cannot carry (an address handed to a
-  `mfc::CString*`, e.g. world_units.cpp's NameString or ScriptStringLoad) keeps every listed `X::name`. Fix that
-  site by hand (assign the member, a local loader helper), clear build/c14_strings/excluded.json and run again.
 - ei_vectors links only some of src/game (CMakeLists.txt's ei_vectors sources): a replayed function that calls a
   helper defined elsewhere (CStream::ReadInto in exit_area.cpp) fails to link there; use a local helper.
 - Checked by: the build (every changed call shape is a compile error or a /W4 warning first), the function vectors

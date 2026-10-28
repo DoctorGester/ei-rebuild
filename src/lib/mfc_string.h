@@ -2,9 +2,7 @@
 
 // MFC 4.2's CString (strcore.cpp, strex.cpp) and the fixed-size block allocator its buffers come
 // from, written out for the standalone exe (docs/notes/standalone.md section 2). Same
-// layout and allocator as the copy linked into game.exe: every body is registered at its library
-// address (mfc_string.cpp).
-// The library's helpers (AllocBuffer, ConcatCopy, ...) are public here so they can be registered.
+// layout and allocator as the copy linked into game.exe (mfc_string.cpp).
 
 #include "mfc.h"
 #include "static_object.h"
@@ -28,7 +26,6 @@ public:
     void* Alloc();
     void Free(void* block);
 
-    unsigned AllocSize() const { return allocSize_; }
     unsigned BlockSize() const { return blockSize_; }
 
 private:
@@ -87,7 +84,6 @@ public:
     CString(const char* text, int length);
     ~CString();
 
-    const CString& operator=(const CString& source);
     const CString& operator=(const char* text);
     const CString& operator=(char c);
     const CString& operator+=(const CString& text);
@@ -105,45 +101,25 @@ public:
     char* GetBuffer(int minLength);
     void ReleaseBuffer(int newLength);              // (-1: up to the terminator)
     char* GetBufferSetLength(int length);
-    char* LockBuffer();
-    void UnlockBuffer();
 
     int Find(char c) const;
     int Find(char c, int start) const;
     int Find(const char* sub) const;
     int Find(const char* sub, int start) const;
-    int ReverseFind(char c) const;
-    int FindOneOf(const char* set) const;
-
-    CString Mid(int first) const;
-    CString Mid(int first, int count) const;
-    CString Left(int count) const;
-    CString Right(int count) const;
 
     void MakeLower();
-    int Remove(char c);
-    void TrimRight();
     void TrimRight(char target);
     void TrimRight(const char* targets);
-    void TrimLeft();
-    void TrimLeft(char target);
-
-    void Format(const char* format, ...);   // (`this` is the first stack argument)
-    void FormatV(const char* format, va_list arguments);
 
     // The library's helpers.
     CStringData* GetData() const { return reinterpret_cast<CStringData*>(data_) - 1; }
     void Init() { data_ = PchNil(); }
     void AllocBuffer(int length);
-    void AllocCopy(CString& dest, int copyLength, int copyIndex, int extraLength) const;
     void AssignCopy(int length, const char* text);
     void ConcatCopy(int length1, const char* text1, int length2, const char* text2);
     void ConcatInPlace(int length, const char* text);
     void CopyBeforeWrite();
     void AllocBeforeWrite(int length);
-    // The constructor from text in place and operator=(LPCWSTR) as
-    // members, so they register by name; both return this.
-    CString* ConstructText(const char* text);
     CString* AssignWide(const wchar_t* text);
     void Release();
     static void Release(CStringData* data);
@@ -154,15 +130,9 @@ private:
 };
 static_assert(sizeof(CString) == 4);
 
-CString operator+(const CString& a, const CString& b);
 CString operator+(const CString& a, const char* b);
 CString operator+(const char* a, const CString& b);
 CString operator+(const CString& a, char b);
 CString operator+(char a, const CString& b);
-
-// ConstructElements / DestructElements<CString> (AFXTEMPL.H, out of line): new elements point at
-// the empty string; destroying releases each.
-void ConstructStrings(CString* elements, int count);
-void DestructStrings(CString* elements, int count);
 
 } // namespace mfc::impl

@@ -4,8 +4,7 @@
 // 2). The bodies are mfc::CArray's (mfc.h); the instantiations differ in the element: its size, how
 // ConstructElements builds new ones (MFC's memset, then the element's constructor if it has one: inlined, or an
 // out-of-line helper) and how DestructElements destroys them: the element policies below. ArrayAbi turns the
-// members into the instantiations' calling conventions; mfc_array.cpp registers each instantiation at its
-// library address.
+// members into the instantiations' calling conventions.
 
 #include "containers.h"
 #include "mfc.h"
@@ -95,8 +94,6 @@ struct ArrayAbi : CArray<T, E> {
     // (ARG_TYPE a reference: the element's address), Copy(const CArray&), RemoveAt(nIndex, nCount)
     // ElementAt(nIndex) and the by-value GetAt(nIndex) are CArray's own members
     // (mfc.h), reached through this type (Abi::SetSize ...).
-    // SetAtGrow for the dword instantiations: ARG_TYPE the value.
-    void SetAtGrowByValue(int index, T value) { Array::SetAtGrow(index, value); }
     static void ConstructElements(T* elements, int count) { E::Construct(elements, count); }
     static void DestructElements(T* elements, int count) { E::Destruct(elements, count); }
 
@@ -369,14 +366,6 @@ using OwnedBoneLinkArrays = ArrayAbi<BoneLinkElement, EachElements<BoneLinkEleme
 using ByteArrayElement = WithArray<0x14, 0, ByteArrayClass>;
 using ByteArrays = ArrayAbi<ByteArrayElement, EachElements<ByteArrayElement, InitWithArray<0x14, 0, ByteArrayClass>,
                                                           DeleteThroughObject<ByteArrayElement>>>;
-
-// Elements that are the engine's aligned arrays (lib/containers.h AlignedArray, 16 bytes; the terrain
-// sectors' lists): zero filled; destroyed by freeing the block, the fields left.
-inline void FreeAlignedData(Bytes<16>* p) {
-    void* data = *reinterpret_cast<void**>(p->bytes);
-    if (data) lib::FreeAligned32(data);
-}
-using AlignedArrays = ArrayAbi<Bytes<16>, EachElements<Bytes<16>, nullptr, FreeAlignedData>>;
 
 // The script's string arrays (game.exe's CArray<CString>): std::string elements.
 using Strings = ArrayAbi<std::string>;

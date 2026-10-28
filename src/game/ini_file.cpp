@@ -6,7 +6,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc_coll.h"
 #include "game_data.h"
 #include "lib/mfc_string.h"
 #include "lib/str.h"
@@ -20,64 +19,10 @@
 
 namespace {
 
-const char* const kDoubleFormat = "%g";
-const char* const kIntFormat = "%d";
-const char* const kUIntFormat = "%u";
-const char* const kFloatFormat = "%f";
-const char* const kLongFloatFormat = "%lf";
 constexpr char kListSeparator = ',';
-
-// MFC's afxcoll array of dwords, through its own code: the constructor, destructor and SetSize.
-using MfcDWords = mfc::impl::CUIntArray;
 
 std::string ReadString(const CIniFile* ini, const char* section, const char* key, const char* defaultValue) {
     return const_cast<CIniFile*>(ini)->GetString(section, key, defaultValue);
-}
-
-// --- Aligned arrays -------------------------------------------------------------------------------
-
-// The list as integers in a temporary aligned int array (an atoi loop).
-// Returns 0 when the value is empty (the temporary then stays empty).
-BOOL ReadIntTemp(CIniFile* ini, const char* section, const char* key, DwordArray& temp) {
-    std::vector<std::string> codes;
-    if (!ini->GetList(section, key, &codes, kListSeparator)) return 0;
-    temp.resize(static_cast<int>(codes.size()));
-    for (int i = 0; i < std::ssize(temp); ++i) temp[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
-    return 1;
-}
-
-template <typename T> BOOL ReadAlignedVia(CIniFile* ini, const char* section, const char* key, std::vector<T>* out) {
-    DwordArray temp{nullptr, 0, 0, 0};
-    BOOL ok = ReadIntTemp(ini, section, key, temp);
-    if (ok) {
-        int count = temp.size;
-        out->SetSize(count);
-        for (int i = 0; i < count; ++i) out->data[i] = static_cast<T>(temp.data[i]);
-    }
-    lib::FreeStorage(temp);
-    return ok;
-}
-
-// The list as integers in a temporary CDWordArray, then copied as T into `out`.
-template <typename T>
-BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray<T>* out) {
-    MfcDWords temp;
-    temp.Construct();
-    BOOL ok;
-    {
-        std::vector<std::string> codes;
-        ok = ini->GetList(section, key, &codes, kListSeparator);
-        if (ok) {
-            temp.SetSize(static_cast<int>(codes.size()), -1);
-            for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
-        }
-    }
-    if (ok) {
-        out->SetSize(temp.size, -1);
-        for (int i = 0; i < temp.size; ++i) out->data[i] = static_cast<T>(temp.data[i]);
-    }
-    temp.Destruct();
-    return ok;
 }
 
 } // namespace

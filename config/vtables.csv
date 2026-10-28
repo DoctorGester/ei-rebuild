@@ -585,7 +585,6 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 007466E0,31,.?AVCWinThread@@,lib,0070C259 0070C2B9 0070E132,0070C328,WinThread,src/lib/mfc_thread.h,"CWinThread (the sound stream's, the MIDI player's and the cursor's threads)"
 00746760,1,.?AV_AFX_CTL3D_STATE@@,lib,0070C328 0070D43F,0070C389,_AFX_CTL3D_STATE,-,"an MFC state object: stored only by game.exe's MFC state code, which no code of ours calls (mfc_state.cpp makes no state objects)"
 00746768,1,.?AV_AFX_CTL3D_THREAD@@,lib,0070C328 0070D480,0070C3A4,_AFX_CTL3D_THREAD,-,"an MFC state object: stored only by game.exe's MFC state code, which no code of ours calls"
-007467A0,3,.?AVCUIntArray@@,lib,006FF933 006FF966,0070C3BF,UIntArrayTable,src/lib/mfc_coll.cpp,CUIntArray (slot 2 CObject's empty Serialize)
 007467B0,1,.?AUCThreadData@@,lib,0070C77C,0070C866,CThreadData,-,"MFC's thread slot data: stored only by game.exe's 0070C77C, which no code of ours calls"
 007467B8,1,.?AV_AFX_THREAD_STATE@@,lib,0070CB56 0070CB88,0070CB6D,_AFX_THREAD_STATE,-,"an MFC state object: stored only by game.exe's 0070CB56 / 0070CB88, which no code of ours calls"
 007467C0,1,.?AVAFX_MODULE_STATE@@,lib,0070CC32 0070CCB0,0070CC95,AFX_MODULE_STATE,-,"stored only by game.exe's 0070CC32 / 0070CCB0, which no code of ours calls (mfc_state.cpp ImageModuleState is a plain record)"
@@ -597,14 +596,11 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 007469A0,4,.?AVCCmdUI@@,lib,007041D4,007041FA,CCmdUI,-,"stored only by game.exe's 007041D4, which no code of ours calls"
 00746DA8,46,.?AVCWnd@@,lib,00704508 00704546 00704FE3,0070D35D,CWnd,src/lib/mfc_window.h,"CWnd (MFC's four static windows wndTop, wndBottom, wndTopMost, wndNoTopMost)"
 00746E88,4,.?AVCTestCmdUI@@,lib,00705EA0,00705EB9,CTestCmdUI,-,"stored only by game.exe's 00705EA0, which no code of ours calls"
-00746EC4,46,.?AVCTempWnd@@,lib,0070D35D,0070D3C8,CTempWnd,src/lib/mfc_window.cpp,CTempWnd
 00746FB0,3,.?AVCPtrArray@@,lib,006FFC8E 006FFCC1,0070D624,CPtrArray,-,"stored only by game.exe's MFC constructor / destructor 006FFC8E / 006FFCC1, which no code of ours calls"
 00746FE8,3,.?AVCPtrList@@,lib,006FFED9 00700048,0070D62A,CPtrList,-,"stored only by game.exe's MFC constructor / destructor 006FFED9 / 00700048, which no code of ours calls"
 007470BC,1,.?AV_AFX_WIN_STATE@@,lib,0070D630 0070E18B,0070D639,_AFX_WIN_STATE,-,"an MFC state object: stored only by game.exe's 0070D630 / 0070E18B, which no code of ours calls"
 007470C4,39,.?AVCWinApp@@,lib,0070D654 0070DA85,0070DC21,CWinApp,-,"stored only by game.exe's constructor / destructor 0070D654 / 0070DA85, which no code of ours calls (the game has no CWinApp)"
 00747164,4,.?AVCCommandLineInfo@@,lib,0070D79A 0070D8C8,007005E3,CCommandLineInfo,-,"stored only by game.exe's 0070D73E / 0070D8C8, which no code of ours calls"
-007471FC,5,.?AVCMenu@@,lib,006E716C 0070DC4D 0070DCDC,0070DC9A,CMenu,src/lib/mfc_window.h,CMenu
-00747214,5,.?AVCTempMenu@@,lib,0070DC9A,0070DD05,CTempMenu,src/lib/mfc_window.cpp,CTempMenu
 00747240,6,.?AVCRecentFileList@@,lib,00707DE3 00707F02,00707FD0,CRecentFileList,-,"stored only by game.exe's 00707DE3 / 00707F02, which no code of ours calls"
 00747290,2,.?AVexception@@,lib,006E7CD5 006E7CE6 006E7D3F 006E7DA8,006E7CE6,std::exception,-,std::exception (MSVC 6; stored only by game.exe's code: our ports never throw it)
 007472B0,1,.?AVtype_info@@,lib,006E7DCB 006E7DF4,006E7DF4,-,-,"type_info (game.exe CRT; stored only by its destructors 006E7DCB / 006E7DF4): the RTTI type descriptors vtable field, never dispatched through in the image"

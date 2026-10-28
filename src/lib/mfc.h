@@ -20,7 +20,8 @@ using BOOL = int;
 // CString: game.exe's CString in the layouts the function vectors read and replay (tests/vectors' Original* views of
 // game.exe's objects): a single pointer to the character data; the reference count, length and capacity live in a
 // header just before it. An empty string points at the shared afxEmptyString data. The game's text is std::string
-// (str.h); src/lib's MFC has its own CString (mfc_string.h, the same layout), which these members run.
+// (str.h); only ei_vectors defines these members (tests/vectors/replay_mfc.cpp); src/lib's MFC has its own CString
+// (mfc_string.h, the same layout).
 class CString {
 public:
     CString();
@@ -328,12 +329,6 @@ struct CArray {
 
     T& ElementAt(int index) { return data[index]; }
 
-    // GetAt(nIndex) returning the element by value (the result pointer first; returns it).
-    T* GetAt(T* result, int index) const {
-        *result = data[index];
-        return result;
-    }
-
     // InsertAt: grows by `count`, moves the tail up (Relocate; the slots it vacates are
     // destroyed and constructed again), then assigns `value` to each new slot.
     void InsertAt(int index, const T& value, int count = 1) {
@@ -476,26 +471,6 @@ struct CList {
         return value;
     }
 
-    Node* InsertBefore(Node* position, const T& value) {
-        if (!position) return AddHead(value);
-        Node* node = NewNode(position->prev, position);
-        node->data = value;
-        if (position->prev) position->prev->next = node;
-        else head = node;
-        position->prev = node;
-        return node;
-    }
-
-    Node* InsertAfter(Node* position, const T& value) {
-        if (!position) return AddTail(value);
-        Node* node = NewNode(position, position->next);
-        node->data = value;
-        if (position->next) position->next->prev = node;
-        else tail = node;
-        position->next = node;
-        return node;
-    }
-
     void RemoveAt(Node* node) {
         if (node == head) head = node->next;
         else node->prev->next = node->next;
@@ -513,12 +488,6 @@ struct CList {
         return nullptr;
     }
 
-    Node* FindIndex(int index) const {
-        if (index >= count || index < 0) return nullptr;
-        Node* n = head;
-        while (index--) n = n->next;
-        return n;
-    }
 };
 static_assert(sizeof(CList<int>) == 0x1C);
 

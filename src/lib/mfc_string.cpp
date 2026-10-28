@@ -1,4 +1,4 @@
-// MFC 4.2's CString and CFixedAlloc, registered at their library addresses (mfc_string.h).
+// MFC 4.2's CString and CFixedAlloc (mfc_string.h).
 #include "mfc_string.h"
 
 #include "crt.h"
@@ -40,9 +40,6 @@ uchar* U(char* p) { return reinterpret_cast<uchar*>(p); }
 char* Inc(const char* p) { return const_cast<char*>(gamecrt::mbsinc(p)); }
 // _tcschr with a char the library sign-extends (movsx) before the call.
 bool Contains(const char* set, char c) { return _mbschr(U(set), static_cast<unsigned>(static_cast<int>(c))) != nullptr; }
-// _istspace / _istdigit (_ismbcspace / _ismbcdigit, the host CRT's) of the sign-extended char.
-bool IsSpace(char c) { return _ismbcspace(static_cast<unsigned>(static_cast<int>(c))) != 0; }
-bool IsDigit(char c) { return _ismbcdigit(static_cast<unsigned>(static_cast<int>(c))) != 0; }
 
 // The reference count updates and lstrlen, the Windows functions (no route takes their import slots).
 LONG Increment(long* refs) { return ::InterlockedIncrement(refs); }
@@ -284,36 +281,12 @@ void CString::AllocBeforeWrite(int length) {
     }
 }
 
-void CString::AllocCopy(CString& dest, int copyLength, int copyIndex, int extraLength) const {
-    int length = copyLength + extraLength;
-    if (length == 0) {
-        dest.Init();
-    } else {
-        dest.AllocBuffer(length);
-        std::memcpy(dest.data_, data_ + copyIndex, static_cast<std::size_t>(copyLength));
-    }
-}
-
 // The source may lie inside this string's own buffer (MFC's memcpy is a memmove).
 void CString::AssignCopy(int length, const char* text) {
     AllocBeforeWrite(length);
     std::memmove(data_, text, static_cast<std::size_t>(length));
     GetData()->dataLength = length;
     data_[length] = '\0';
-}
-
-const CString& CString::operator=(const CString& source) {
-    if (data_ != source.data_) {
-        if ((GetData()->refs < 0 && GetData() != DataNil()) || source.GetData()->refs < 0) {
-            // One of them is locked: copy the characters.
-            AssignCopy(source.GetData()->dataLength, source.data_);
-        } else {
-            Release();
-            data_ = source.data_;
-            Increment(&GetData()->refs);
-        }
-    }
-    return *this;
 }
 
 const CString& CString::operator=(const char* text) {
@@ -333,12 +306,6 @@ void CString::ConcatCopy(int length1, const char* text1, int length2, const char
     AllocBuffer(length);
     std::memcpy(data_, text1, static_cast<std::size_t>(length1));
     std::memcpy(data_ + length1, text2, static_cast<std::size_t>(length2));
-}
-
-CString operator+(const CString& a, const CString& b) {
-    CString s;
-    s.ConcatCopy(a.GetData()->dataLength, a, b.GetData()->dataLength, b);
-    return s;
 }
 
 CString operator+(const CString& a, const char* b) {
@@ -421,16 +388,6 @@ char* CString::GetBufferSetLength(int length) {
     return data_;
 }
 
-char* CString::LockBuffer() {
-    char* buffer = GetBuffer(0);
-    GetData()->refs = -1;
-    return buffer;
-}
-
-void CString::UnlockBuffer() {
-    if (GetData() != DataNil()) GetData()->refs = 1;
-}
-
 // ---- CString: searching and extracting ----------------------------------------------------------
 
 int CString::Find(char c) const { return Find(c, 0); }
@@ -449,88 +406,11 @@ int CString::Find(const char* sub, int start) const {
     return found ? static_cast<int>(found - U(data_)) : -1;
 }
 
-int CString::ReverseFind(char c) const {
-    const uchar* found = _mbsrchr(U(data_), static_cast<uchar>(c));
-    return found ? static_cast<int>(found - U(data_)) : -1;
-}
-
-int CString::FindOneOf(const char* set) const {
-    const uchar* found = _mbspbrk(U(data_), U(set));
-    return found ? static_cast<int>(found - U(data_)) : -1;
-}
-
-CString CString::Mid(int first) const { return Mid(first, GetData()->dataLength - first); }
-
-CString CString::Mid(int first, int count) const {
-    if (first < 0) first = 0;
-    if (count < 0) count = 0;
-    int length = GetData()->dataLength;
-    if (first + count > length) count = length - first;
-    if (first > length) count = 0;
-    if (first == 0 && count == length) return *this;
-    CString dest;
-    AllocCopy(dest, count, first, 0);
-    return dest;
-}
-
-CString CString::Right(int count) const {
-    if (count < 0) count = 0;
-    int length = GetData()->dataLength;
-    if (count >= length) return *this;
-    CString dest;
-    AllocCopy(dest, count, length - count, 0);
-    return dest;
-}
-
-CString CString::Left(int count) const {
-    if (count < 0) count = 0;
-    if (count >= GetData()->dataLength) return *this;
-    CString dest;
-    AllocCopy(dest, count, 0, 0);
-    return dest;
-}
-
 // ---- CString: editing ---------------------------------------------------------------------------
 
 void CString::MakeLower() {
     CopyBeforeWrite();
     libcrt::Mbslwr(U(data_));
-}
-
-// The destination steps by _mbsinc over the byte just copied (MFC's own way).
-int CString::Remove(char c) {
-    CopyBeforeWrite();
-    char* source = data_;
-    char* dest = data_;
-    char* end = data_ + GetData()->dataLength;
-    while (source < end) {
-        if (*source != c) {
-            *dest = *source;
-            dest = Inc(dest);
-        }
-        source = Inc(source);
-    }
-    *dest = '\0';
-    int count = static_cast<int>(source - dest);
-    GetData()->dataLength -= count;
-    return count;
-}
-
-// TrimRight: cut at the start of the last run of characters that match.
-void CString::TrimRight() {
-    CopyBeforeWrite();
-    char* last = nullptr;
-    for (char* p = data_; *p != '\0'; p = Inc(p)) {
-        if (IsSpace(*p)) {
-            if (!last) last = p;
-        } else {
-            last = nullptr;
-        }
-    }
-    if (last) {
-        *last = '\0';
-        GetData()->dataLength = static_cast<int>(last - data_);
-    }
 }
 
 void CString::TrimRight(char target) {
@@ -564,193 +444,5 @@ void CString::TrimRight(const char* targets) {
         GetData()->dataLength = static_cast<int>(last - data_);
     }
 }
-
-void CString::TrimLeft() {
-    CopyBeforeWrite();
-    const char* p = data_;
-    while (IsSpace(*p)) p = Inc(p);
-    if (p != data_) {
-        int length = GetData()->dataLength - static_cast<int>(p - data_);
-        std::memmove(data_, p, static_cast<std::size_t>(length) + 1);
-        GetData()->dataLength = length;
-    }
-}
-
-void CString::TrimLeft(char target) {
-    CopyBeforeWrite();
-    const char* p = data_;
-    while (target == *p) p = Inc(p);
-    if (p != data_) {
-        int length = GetData()->dataLength - static_cast<int>(p - data_);
-        std::memmove(data_, p, static_cast<std::size_t>(length) + 1);
-        GetData()->dataLength = length;
-    }
-}
-
-// ---- CString: formatting ------------------------------------------------------------------------
-
-// FormatV first walks the format to estimate the longest result (the buffer it allocates, so its
-// allocLength), then prints with the CRT's vsprintf.
-void CString::FormatV(const char* format, va_list arguments) {
-    constexpr int kForceAnsi = 0x10000;
-    constexpr int kForceUnicode = 0x20000;
-    constexpr int kForceInt64 = 0x40000;
-    va_list saved = arguments;
-    int maxLength = 0;
-    for (const char* p = format; *p != '\0'; p = Inc(p)) {
-        // A '%' and a "%%" count as text.
-        if (*p != '%' || *(p = Inc(p)) == '%') {
-            maxLength += static_cast<int>(libcrt::Mbclen(U(p)));
-            continue;
-        }
-        int itemLength = 0;
-        int width = 0;
-        for (; *p != '\0'; p = Inc(p)) {
-            if (*p == '#') maxLength += 2;   // "0x"
-            else if (*p == '*') width = va_arg(arguments, int);
-            else if (*p == '-' || *p == '+' || *p == '0' || *p == ' ') continue;
-            else break;
-        }
-        if (width == 0) {
-            width = std::atoi(p);
-            for (; *p != '\0' && IsDigit(*p); p = Inc(p)) {}
-        }
-        int precision = 0;
-        if (*p == '.') {
-            p = Inc(p);
-            if (*p == '*') {
-                precision = va_arg(arguments, int);
-                p = Inc(p);
-            } else {
-                precision = std::atoi(p);
-                for (; *p != '\0' && IsDigit(*p); p = Inc(p)) {}
-            }
-        }
-        int modifier = 0;
-        if (libcrt::Mbsncmp(U(p), U("I64"), 3) == 0) {
-            p += 3;
-            modifier = kForceInt64;
-        } else {
-            switch (*p) {
-            case 'h': modifier = kForceAnsi; p = Inc(p); break;
-            case 'l': modifier = kForceUnicode; p = Inc(p); break;
-            case 'F':
-            case 'N':
-            case 'L': p = Inc(p); break;
-            default: break;
-            }
-        }
-        switch (*p | modifier) {
-        case 'c':
-        case 'C':
-        case 'c' | kForceAnsi:
-        case 'C' | kForceAnsi:
-        case 'c' | kForceUnicode:
-        case 'C' | kForceUnicode:
-            itemLength = 2;
-            (void)va_arg(arguments, int);
-            break;
-        case 's':
-        case 's' | kForceAnsi:
-        case 'S' | kForceAnsi: {
-            const char* text = va_arg(arguments, const char*);
-            if (!text) {
-                itemLength = 6;   // "(null)"
-            } else {
-                itemLength = StrLen(text);
-                if (itemLength < 1) itemLength = 1;
-            }
-            break;
-        }
-        case 'S':
-        case 's' | kForceUnicode:
-        case 'S' | kForceUnicode: {
-            const wchar_t* text = va_arg(arguments, const wchar_t*);
-            if (!text) {
-                itemLength = 6;
-            } else {
-                itemLength = static_cast<int>(std::wcslen(text));
-                if (itemLength < 1) itemLength = 1;
-            }
-            break;
-        }
-        default: break;
-        }
-        if (itemLength != 0) {
-            if (precision != 0 && precision < itemLength) itemLength = precision;
-            if (itemLength < width) itemLength = width;
-        } else {
-            switch (*p) {
-            case 'd':
-            case 'i':
-            case 'u':
-            case 'x':
-            case 'X':
-            case 'o':
-                if (modifier & kForceInt64) (void)va_arg(arguments, long long);
-                else (void)va_arg(arguments, int);
-                itemLength = 32;
-                if (itemLength < width + precision) itemLength = width + precision;
-                break;
-            case 'e':
-            case 'g':
-            case 'G':
-                (void)va_arg(arguments, double);
-                itemLength = 128;
-                if (itemLength < width + precision) itemLength = width + precision;
-                break;
-            case 'f': {
-                // 312 == strlen("-1+(309 zeroes).") and 6 for the default precision.
-                int size = precision + 318;
-                if (width > size) size = width;
-                std::vector<char> temp(static_cast<std::size_t>(size));
-                double value = va_arg(arguments, double);
-                gamecrt::sprintf(temp.data(), "%*.*f", width, precision + 6, value);
-                itemLength = static_cast<int>(std::strlen(temp.data()));
-                break;
-            }
-            case 'p':
-                (void)va_arg(arguments, void*);
-                itemLength = 32;
-                if (itemLength < width + precision) itemLength = width + precision;
-                break;
-            case 'n':
-                (void)va_arg(arguments, int*);
-                break;
-            default: break;
-            }
-        }
-        maxLength += itemLength;
-    }
-    GetBuffer(maxLength);
-    libcrt::Vsprintf(data_, format, saved);
-    ReleaseBuffer(-1);
-}
-
-void CString::Format(const char* format, ...) {
-    va_list arguments;
-    va_start(arguments, format);
-    FormatV(format, arguments);
-    va_end(arguments);
-}
-
-// ---- Elements -----------------------------------------------------------------------------------
-
-void ConstructStrings(CString* elements, int count) {
-    for (; count--; ++elements) ::new (elements) CString;
-}
-
-void DestructStrings(CString* elements, int count) {
-    for (; count--; ++elements) elements->~CString();
-}
-
-// ---- Registrations ------------------------------------------------------------------------------
-// Constructors and the destructor are registered through shims (a member pointer cannot name them).
-
-CString* CString::ConstructText(const char* text) { return ::new (this) CString(text); }
-
-namespace shim {
-void Destruct(CString* self) { self->~CString(); }
-} // namespace shim
 
 } // namespace mfc::impl
