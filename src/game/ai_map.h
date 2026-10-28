@@ -321,11 +321,7 @@ struct LocalSearch {
     SearchGrid<SearchNode> nodes;       // 34 x 34
     SearchGrid<std::uint8_t> levels;    // saved cell levels
     CAIMap* map;
-    void* cellRowsVtable;               // CArray<AIMapCell*>: the window's map rows
-    AIMapCell** cellRows;               // cellRows[i] = &map cell (originX, originY + i)
-    int cellRowCount;
-    int cellRowMax;
-    int cellRowGrowBy;
+    std::vector<AIMapCell*> cellRows;   // cellRows[i] = &map cell (originX, originY + i): the window's map rows
     SearchNode* settledList;            // linked through `next`
     SearchNode* buckets[4];             // open nodes by x & 3, sorted by cost
     SearchNode* current;                // the cheapest open node
@@ -337,11 +333,6 @@ struct LocalSearch {
     std::uint8_t level;                 // standing level
     std::uint8_t unused_7E[2];
 };
-static_assert(offsetof(LocalSearch, map) == 0x24);
-static_assert(offsetof(LocalSearch, settledList) == 0x3C);
-static_assert(offsetof(LocalSearch, costs) == 0x60);
-static_assert(offsetof(LocalSearch, backward) == 0x7C);
-static_assert(sizeof(LocalSearch) == 0x80);
 
 // The standing height of each of the 8 levels (size classes): the occluders' refresh and the
 // movement's speed costs scale it to the cells' height units.
@@ -456,11 +447,6 @@ struct CRegionMap {
     SearchGrid<std::uint8_t> cells[8];          // representative cell (x | y << 4)
     SearchGrid<std::uint16_t> regions[8];       // region per block
 };
-static_assert(offsetof(CRegionMap, local) == 0x98);
-static_assert(offsetof(CRegionMap, progress) == 0x118);
-static_assert(offsetof(CRegionMap, edges) == 0x11C);
-static_assert(offsetof(CRegionMap, regions) == 0x21C);
-static_assert(sizeof(CRegionMap) == 0x29C);
 CRegionMap* ConstructRegionMap(CRegionMap* self);
 
 // The path smoother's trellis: per path cell nine states, one per direction the unit leaves the cell in (index

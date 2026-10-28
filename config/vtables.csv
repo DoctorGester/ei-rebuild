@@ -226,7 +226,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073DCD8,26,,game,005125E0 00512650,00512630,CMapObjectManager,src/game/unit_create.h,
 0073DD6C,21,,game,00515610 00515720,00515700,CMapObjectServer,src/game/unit.h,the map objects' server companion
 0073DDD4,5,,game,00515BD0 00515D70,00515D50,CObject3D,src/game/map_object_figures.h,"CObject3D's own table (Construct / DestructBody; 27 slots, 11 / 12 _purecall: slots 5-26 are gen_image_cells.py's NOT_CODE)"
-0073DE40,3,,game,00515BD0 00515D70 00519B30,007005E3,FrameArrayClass,src/lib/mfc_slots.h,CArray (a 3D object's frames)
+0073DE40,3,,game,00515BD0 00515D70 00519B30,007005E3,FrameArrayClass,-,CArray (a 3D object's frames); stored only by game.exe (ours is a std::vector)
 0073DE4C,3,,game,00515BD0 00515D70 00519870,007005E3,Object3DListClass,-,CList (a 3D object's effect sources); stored only by game.exe (ours is a std::list)
 0073DE90,27,,game,0051AB00 0051AD90,0051AD70,CObject3DClientSpecific,src/game/map_object_shadow.h,a 3D object's client half
 0073DEFC,27,,game,0051AB00 0051AD00 0051AD90 0051F300,0051ACE0,CObject3DSpecific,src/game/map_object_figures.h,a 3D object's half: the base
@@ -313,7 +313,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F9E0,3,,game,0058A450 005997A0 005B3C30,007005E3,AreaListClass,-,CArray (the AI map's area lists; after CSectorMap's one-slot table 0073F9DC); stored only by game.exe (ours is a std::list)
 0073F9EC,3,,game,0058A700 00599330 005BD1C0 005C02E0,007005E3,SectorArrayClass,src/game/record_arrays.h,CArray (the AI map's sectors)
 0073F9F8,3,,game,0058A8A0 0058A900 005995E0 005B4110,007005E3,NodeListClass,-,CList (the AI map's node lists); stored only by game.exe (ours is a std::list)
-0073FA04,3,,game,0058A960 0058AA60 00599180 005AF3D0 005B3FF0 005BD1E0,007005E3,CellRowArrayClass,src/lib/mfc_slots.h,CArray (the AI map's cell rows)
+0073FA04,3,,game,0058A960 0058AA60 00599180 005AF3D0 005B3FF0 005BD1E0,007005E3,CellRowArrayClass,-,CArray (the AI map's cell rows); stored only by game.exe (ours is a std::vector)
 0073FA10,3,,game,0058AAD0 0059A340 0059A3C0,007005E3,SharedObjectListClass,-,CList (the world server's shared objects); stored only by game.exe (ours is a std::list)
 0073FA4C,3,,game,0058DAF0 00598F40,007005E3,RefListAClass,-,CList (the world server's new connections; 00598F40); stored only by game.exe (ours is a std::list)
 0073FA58,12,,game,0058ECE0,0046AB20,ObjectSpec,src/game/map_spec.h,"the quick item effect's object record (UseQuickItem): a twin of 0073C5F0 with the same slots (slot 10 0058EDD0, the same body as 0046A6F0)"

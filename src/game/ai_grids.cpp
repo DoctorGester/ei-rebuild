@@ -134,19 +134,12 @@ LocalSearch* LocalSearch::Construct(CAIMap* owner) {
     levels.width = 1;
     levels.height = 1;
     AllocateGrid(levels);
-    cellRowsVtable = mfc::impl::CellRowArrayClass::Vtable();
-    cellRows = nullptr;
-    cellRowGrowBy = 0;
-    cellRowMax = 0;
-    cellRowCount = 0;
     map = nullptr;
     if (owner) Attach(owner, false);
     return this;
 }
 
 void LocalSearch::Destruct() {
-    cellRowsVtable = mfc::impl::CellRowArrayClass::Vtable();
-    if (cellRows) gamecrt::operator_delete(cellRows);
     FreeGrid(levels);
     FreeGrid(nodes);
 }

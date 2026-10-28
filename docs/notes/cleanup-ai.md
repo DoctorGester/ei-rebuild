@@ -41,7 +41,7 @@ disassembly diff: the only differences were virtual calls replacing the VCall he
   it needs those doubles to implement CStream's pure slots.
 - `AIBrain` placeholders: `memory[8]` (the perception memory has no struct of its own; its methods are AIBrain members called on +0xD0) and
   `unknown_0F4` (the nearby list; renaming it touches `player_sync.cpp`).
-- Hand-laid fields that remain: LocalSearch's `cellRows` CArray, the water grid fields, `bridgeHeights` as bytes, the `__fastcall` layer Set / Merge
+- Hand-laid fields that remain: the water grid fields, `bridgeHeights` as bytes, the `__fastcall` layer Set / Merge
   shims in `ai_unit_layer.h`, `SmoothPath`'s fraction passed as raw bits (it is stored to memory before the octant's x87 work; a float parameter
   would change when it is stored and pushed), and the `CStringArray` layouts in `CMapObjectServer` and `CObject3D` (other areas).
 - Counted object references are `AIRefTo<T>` fields (engine_object.h; AIRef is `AIRefTo<CEngineObject>`): `PlayerMode::leader` is an
