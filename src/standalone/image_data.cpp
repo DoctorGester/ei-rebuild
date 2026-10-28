@@ -112,7 +112,7 @@ struct DataMover {
 void StrayGameAddress(std::uintptr_t address) {
     char code[160], what[320];
     DescribeCode(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), code, sizeof(code));
-    const char* part = address < 0x00401000 ? "headers" : address < kMovedBegin ? "code" : ".rsrc";
+    const char* part = address < kGameTextBegin ? "headers" : address < kMovedBegin ? "code" : ".rsrc";
     std::snprintf(what, sizeof(what),
                   "the data seam was asked for game.exe's %s at %08X (by %s): the image has nothing of game.exe there",
                   part, static_cast<unsigned>(address), code);

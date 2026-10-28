@@ -6,8 +6,7 @@
 // definition's initialiser takes their place) or that nothing reads (config/unread_data.csv) are left out ("n left
 // out"; docs/notes/standalone.md, "Named data (C18)").
 // The standalone image runs them before WinMain (Run in static_init.h). A call or atexit of a ported function names
-// it (d.Call, d.AtExit); one by address goes to CodeAddress's code for it (a registration, or the stub of a function
-// with no port yet).
+// it (d.Call, d.AtExit).
 // tools/gen_static_init.py writes this file from game.exe's initialisers.
 #include "static_init.h"
 
@@ -24,16 +23,27 @@ void __cdecl BuildSectorSpiralStatic();
 void __cdecl BuildSmoothTables();
 void __cdecl BuildWeatherNoise();
 void __cdecl ConstructAckDatabase();
+void __cdecl ConstructAiLogBuf();
+void __cdecl ConstructAiLogOut();
+void __cdecl ConstructAllLogBuf();
+void __cdecl ConstructAllLogOut();
 void __cdecl ConstructCamera();
+void __cdecl ConstructCheatCommands();
 void __cdecl ConstructClassRegistry();
 void __cdecl ConstructClientWorld();
+void __cdecl ConstructConsoleBuf();
+void __cdecl ConstructConsoleOut();
 void __cdecl ConstructDataFolder();
 void __cdecl ConstructDeviceLock();
 void __cdecl ConstructDiscFolder();
 void __cdecl ConstructDrawOrder();
+void __cdecl ConstructEventLogBuf();
+void __cdecl ConstructEventLogOut();
 void __cdecl ConstructEventPool();
 void __cdecl ConstructGameCursor();
 void __cdecl ConstructGameFlow();
+void __cdecl ConstructGraphicsLogBuf();
+void __cdecl ConstructGraphicsLogOut();
 void __cdecl ConstructInterface();
 void __cdecl ConstructItemDatabase();
 void __cdecl ConstructLastQuest();
@@ -41,16 +51,23 @@ void __cdecl ConstructLeverTable();
 void __cdecl ConstructLineOutcodes();
 void __cdecl ConstructLogicSettings();
 void __cdecl ConstructMapDatabase();
+void __cdecl ConstructNetLogBuf();
+void __cdecl ConstructNetLogOut();
 void __cdecl ConstructPartyIdSet();
 void __cdecl ConstructPartyManager();
 void __cdecl ConstructPrintsDatabase();
+void __cdecl ConstructPublicCommands();
 void __cdecl ConstructQuestDatabase();
 void __cdecl ConstructReceiveBuffer();
 void __cdecl ConstructReceivedMessages();
 void __cdecl ConstructRegistryRoot();
+void __cdecl ConstructRpgLogBuf();
+void __cdecl ConstructRpgLogOut();
 void __cdecl ConstructSaveStream();
 void __cdecl ConstructSavedParties();
 void __cdecl ConstructSceneRenderer();
+void __cdecl ConstructScriptQuestName();
+void __cdecl ConstructScriptQuestObjectives();
 void __cdecl ConstructSendBuffer();
 void __cdecl ConstructServerWorld();
 void __cdecl ConstructSmoothPool();
@@ -62,6 +79,8 @@ void __cdecl ConstructSpiralOffsets();
 void __cdecl ConstructSpiralRadii();
 void __cdecl ConstructStartFolder();
 void __cdecl ConstructTextFolder();
+void __cdecl ConstructUnitAcksLogBuf();
+void __cdecl ConstructUnitAcksLogOut();
 void __cdecl ConstructUnitShapes();
 void __cdecl ConstructUnreadSet();
 void __cdecl ConstructWorkWords();
@@ -147,6 +166,14 @@ void __cdecl ConstructAfxData();
 void __cdecl ConstructSimpleMemoryException();
 void __cdecl ConstructSimpleNotSupportedException();
 void __cdecl ConstructSimpleResourceException();
+void __cdecl ConstructStringAlloc128();
+void __cdecl ConstructStringAlloc256();
+void __cdecl ConstructStringAlloc512();
+void __cdecl ConstructStringAlloc64();
+void __cdecl LinkByteArrayClass();
+void __cdecl LinkDWordArrayClass();
+void __cdecl LinkStringArrayClass();
+void __cdecl LinkWordArrayClass();
 void __cdecl RegisterDragListMessage();
 } // namespace mfc::impl
 
@@ -164,6 +191,10 @@ void __cdecl ConstructDriversList();
 void __cdecl ConstructProtectionChecksList();
 } // namespace static_lists
 
+namespace strmap {
+void __cdecl ConstructDebugPanel();
+} // namespace strmap
+
 namespace terrain {
 void __cdecl ConstructProjectionOutcodes();
 void __cdecl FreeProjectionInput();
@@ -180,16 +211,16 @@ template <class Do>
 void StaticInitialisers(Do& d) {
     // 00700718: registered
     d.Begin(0x00700718);
-    d.Cdecl(0x00700718);
+    d.Call(mfc::impl::ConstructStringAlloc64);
     // 00700747: registered
     d.Begin(0x00700747);
-    d.Cdecl(0x00700747);
+    d.Call(mfc::impl::ConstructStringAlloc128);
     // 00700779: registered
     d.Begin(0x00700779);
-    d.Cdecl(0x00700779);
+    d.Call(mfc::impl::ConstructStringAlloc256);
     // 007007AB: registered
     d.Begin(0x007007AB);
-    d.Cdecl(0x007007AB);
+    d.Call(mfc::impl::ConstructStringAlloc512);
     // 0070C093: constructor + atexit (inlined 0070C09D, 0070C0AC)
     d.Begin(0x0070C093);
     d.Call(&mfc::impl::CFixedAlloc::Construct, &mfc::impl::g_tempDCAlloc, 0x10, 0x40);
@@ -361,7 +392,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00444630);
     // 00444660: registered
     d.Begin(0x00444660);
-    d.Cdecl(0x00444660);
+    d.Call(strmap::ConstructDebugPanel);
     // 00445BB0: guarded atexit
     d.Begin(0x00445BB0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
@@ -691,10 +722,10 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004B1770);
     // 004B1790: registered
     d.Begin(0x004B1790);
-    d.Cdecl(0x004B1790);
+    d.Call(ConstructScriptQuestName);
     // 004B17C0: registered
     d.Begin(0x004B17C0);
-    d.Cdecl(0x004B17C0);
+    d.Call(ConstructScriptQuestObjectives);
     // 004CE1C0: guarded atexit
     d.Begin(0x004CE1C0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
@@ -1456,58 +1487,58 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005DC030);
     // 005DC050: registered
     d.Begin(0x005DC050);
-    d.Cdecl(0x005DC050);
+    d.Call(ConstructCheatCommands);
     // 005DC120: registered
     d.Begin(0x005DC120);
-    d.Cdecl(0x005DC120);
+    d.Call(ConstructPublicCommands);
     // 005DC1E0: registered
     d.Begin(0x005DC1E0);
-    d.Cdecl(0x005DC1E0);
+    d.Call(ConstructAiLogBuf);
     // 005DC2D0: registered
     d.Begin(0x005DC2D0);
-    d.Cdecl(0x005DC2D0);
+    d.Call(ConstructEventLogBuf);
     // 005DC300: registered
     d.Begin(0x005DC300);
-    d.Cdecl(0x005DC300);
+    d.Call(ConstructGraphicsLogBuf);
     // 005DC330: registered
     d.Begin(0x005DC330);
-    d.Cdecl(0x005DC330);
+    d.Call(ConstructRpgLogBuf);
     // 005DC360: registered
     d.Begin(0x005DC360);
-    d.Cdecl(0x005DC360);
+    d.Call(ConstructUnitAcksLogBuf);
     // 005DC390: registered
     d.Begin(0x005DC390);
-    d.Cdecl(0x005DC390);
+    d.Call(ConstructNetLogBuf);
     // 005DC3C0: registered
     d.Begin(0x005DC3C0);
-    d.Cdecl(0x005DC3C0);
+    d.Call(ConstructAllLogBuf);
     // 005DC3F0: registered
     d.Begin(0x005DC3F0);
-    d.Cdecl(0x005DC3F0);
+    d.Call(ConstructConsoleBuf);
     // 005DC420: registered
     d.Begin(0x005DC420);
-    d.Cdecl(0x005DC420);
+    d.Call(ConstructAiLogOut);
     // 005DC460: registered
     d.Begin(0x005DC460);
-    d.Cdecl(0x005DC460);
+    d.Call(ConstructEventLogOut);
     // 005DC4A0: registered
     d.Begin(0x005DC4A0);
-    d.Cdecl(0x005DC4A0);
+    d.Call(ConstructGraphicsLogOut);
     // 005DC4E0: registered
     d.Begin(0x005DC4E0);
-    d.Cdecl(0x005DC4E0);
+    d.Call(ConstructRpgLogOut);
     // 005DC520: registered
     d.Begin(0x005DC520);
-    d.Cdecl(0x005DC520);
+    d.Call(ConstructNetLogOut);
     // 005DC560: registered
     d.Begin(0x005DC560);
-    d.Cdecl(0x005DC560);
+    d.Call(ConstructUnitAcksLogOut);
     // 005DC5A0: registered
     d.Begin(0x005DC5A0);
-    d.Cdecl(0x005DC5A0);
+    d.Call(ConstructAllLogOut);
     // 005DC5E0: registered
     d.Begin(0x005DC5E0);
-    d.Cdecl(0x005DC5E0);
+    d.Call(ConstructConsoleOut);
     // 005E1540: guarded atexit
     d.Begin(0x005E1540);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
@@ -2312,10 +2343,10 @@ void StaticInitialisers(Do& d) {
     d.AtExit(ei::short_functions::Ret);
     // 0070BE81: registered
     d.Begin(0x0070BE81);
-    d.Cdecl(0x0070BE81);
+    d.Call(mfc::impl::LinkStringArrayClass);
     // 0070BEC9: registered
     d.Begin(0x0070BEC9);
-    d.Cdecl(0x0070BEC9);
+    d.Call(mfc::impl::LinkWordArrayClass);
     // 0070BEFA: registered
     d.Begin(0x0070BEFA);
     d.Call(mfc::impl::ConstructSimpleResourceException);
@@ -2328,10 +2359,10 @@ void StaticInitialisers(Do& d) {
     d.Call(mfc::impl::AfxWingdixTermInit);
     // 0070C130: registered
     d.Begin(0x0070C130);
-    d.Cdecl(0x0070C130);
+    d.Call(mfc::impl::LinkDWordArrayClass);
     // 0070C17E: registered
     d.Begin(0x0070C17E);
-    d.Cdecl(0x0070C17E);
+    d.Call(mfc::impl::LinkByteArrayClass);
     // 0070C1B5: registered
     d.Begin(0x0070C1B5);
     d.Call(mfc::impl::ConstructSimpleMemoryException);
@@ -2367,6 +2398,5 @@ void StaticInitialisers(Do& d) {
 
 template void StaticInitialisers<Run>(Run&);
 template void StaticInitialisers<Check>(Check&);
-template void StaticInitialisers<Targets>(Targets&);
 
 } // namespace ei::static_init

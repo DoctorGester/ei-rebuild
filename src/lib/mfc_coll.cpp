@@ -285,13 +285,13 @@ struct DWordArrayTable final : ArrayTable<DWordArrayTable, CDWordArray, &g_class
 struct ByteArrayTable final : ArrayTable<ByteArrayTable, CByteArray, &g_classCByteArray> {};
 struct UIntArrayTable final : ArrayTable<UIntArrayTable, CUIntArray, &kClassCUIntArray, false> {};
 
+} // namespace
+
 // The static initialisers (the exe's list holds the first instruction of each: a jump to the body).
 void __cdecl LinkStringArrayClass() { AfxClassInit(&g_classCStringArray); }
 void __cdecl LinkWordArrayClass() { AfxClassInit(&g_classCWordArray); }
 void __cdecl LinkDWordArrayClass() { AfxClassInit(&g_classCDWordArray); }
 void __cdecl LinkByteArrayClass() { AfxClassInit(&g_classCByteArray); }
-
-} // namespace
 
 void* CStringArray::Vtable() { return StringArrayTable::Vtable(); }
 void* WordArrayClass::Vtable() { return WordArrayTable::Vtable(); }
@@ -301,14 +301,14 @@ void* UIntArrayClass::Vtable() { return UIntArrayTable::Vtable(); }
 
 // ---- Registrations ------------------------------------------------------------------------------
 
-EI_REPLACE(0x0070BE64, CreateCStringArray);
-EI_REPLACE(0x0070BEAC, CreateCWordArray);
-EI_REPLACE(0x0070C113, CreateCDWordArray);
-EI_REPLACE(0x0070C161, CreateCByteArray);
-EI_REPLACE(0x0070BE81, LinkStringArrayClass);
-EI_REPLACE(0x0070BEC9, LinkWordArrayClass);
-EI_REPLACE(0x0070C130, LinkDWordArrayClass);
-EI_REPLACE(0x0070C17E, LinkByteArrayClass);
+EI_REWRITTEN(0x0070BE64, CreateCStringArray);
+EI_REWRITTEN(0x0070BEAC, CreateCWordArray);
+EI_REWRITTEN(0x0070C113, CreateCDWordArray);
+EI_REWRITTEN(0x0070C161, CreateCByteArray);
+EI_REWRITTEN(0x0070BE81, LinkStringArrayClass);
+EI_REWRITTEN(0x0070BEC9, LinkWordArrayClass);
+EI_REWRITTEN(0x0070C130, LinkDWordArrayClass);
+EI_REWRITTEN(0x0070C17E, LinkByteArrayClass);
 
 EI_REWRITTEN(0x006FEE9A, CWordArray::Construct);
 EI_REWRITTEN(0x006FEEB1, CWordArray::DeletingDestructor);

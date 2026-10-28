@@ -151,7 +151,7 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
   (`atexit400::DestroyGlobalVector`, `ei::static_init::Exit...`, `ei::short_functions::Ret`); the eh-vector iterators take
   `void*` and the functions themselves.
 - **Left raw**: no `constexpr uintptr_t kX = 0x00...` in src (tools/progress.py 0, C11 batch 33). game.exe's text
-  bounds, WinMain and CRT atexit are `ei::kGameTextBegin / kGameTextEnd / kGameWinMain / kGameAtExit` (include/ei/hook.h);
+  bounds, WinMain and CRT atexit are `ei::kGameTextBegin / kGameTextEnd / kGameWinMain` (include/ei/hook.h);
   `game::EmptyText()` returns the named `game::kEmptyText` (0079B298, C18).
 - **Library forwarder wrappers.** One-line file-local wrappers over the `originals_library.h` forwarders were inlined; kept:
   wrappers with a typed result (`(Node*)ListNewNode...Original`), integer-to-pointer casts, `const_cast` / `static_cast`
