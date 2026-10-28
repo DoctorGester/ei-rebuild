@@ -2,13 +2,13 @@
 
 // The game's text as std::string: what MFC's CString did that std::string has no member for, with
 // CString's answers (the game's code was written against them).
-//   - Find / ReverseFind / FindOneOf return an int position, -1 when absent (the multibyte CRT's _mbschr,
-//     _mbsstr, _mbsrchr, _mbspbrk, as CString searched).
+//   - Find / ReverseFind / FindOneOf return an int position, -1 when absent (strchr, strstr, strrchr, strpbrk on the
+//     text up to its first zero byte: CString's _mbschr ... on UTF-8, which has no lead bytes).
 //   - Mid / Left / Right clamp a start or count outside the text instead of throwing.
 //   - Format prints with the game CRT's printf (crt_format.cpp: VC6's float digits, "1.#INF", three-digit
 //     exponents; the rest the host's) and keeps the text up to the first zero byte.
-//   - MakeLower, Remove and the trims step through the text as the multibyte CRT does; the white space of
-//     TrimLeft / TrimRight is _ismbcspace's.
+//   - MakeLower, Remove and the trims step through the text a byte at a time; the white space of TrimLeft /
+//     TrimRight is ASCII's (text::IsSpace, what _ismbcspace answered).
 //   - Buffer / CutAtNull / SetLength stand for GetBuffer / ReleaseBuffer(-1) / GetBufferSetLength: the
 //     characters written into the buffer, then the length up to the terminator.
 // The usual operations are std::string's own: size(), empty(), clear(), c_str(), +, +=, ==.
