@@ -156,7 +156,7 @@ constexpr float kLargeLimit = 40.0f;        // degrees
 constexpr float kSmallLimit = 60.0f;
 // These are divided and multiplied on the FPU as the original goes, at the thread's precision; they are read at
 // run time so the compiler does not fold them at its own.
-const volatile double kPi = 3.141592653589793;
+const volatile double kPiVolatile = 3.141592653589793;
 const volatile double kHalfTurn = 180.0;
 const volatile double kPerDegree = 1.0 / 180.0;
 
@@ -168,8 +168,8 @@ void BuildClimbTables(CAIMap& map) {
     map.climbSmall.resize(kClimbSteps);
     for (int i = 0; i < kClimbSteps; ++i) {
         const float rise = std::fabs(static_cast<float>(static_cast<float>(i - kLevelStep) / map.heightScale));
-        const float slope = std::fabs(static_cast<float>(Atan2(rise, kCellSize) * (kHalfTurn / kPi)));
-        const double sine = x87::fsin(kPi * kPerDegree * slope);
+        const float slope = std::fabs(static_cast<float>(Atan2(rise, kCellSize) * (kHalfTurn / kPiVolatile)));
+        const double sine = x87::fsin(kPiVolatile * kPerDegree * slope);
         double effort = sine * sine + 1.0;
         effort *= effort;
         if (i < kLevelStep) effort = 1.0 / std::sqrt(effort);

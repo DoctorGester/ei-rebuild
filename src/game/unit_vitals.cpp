@@ -12,6 +12,7 @@
 #include "lib/crt.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
@@ -82,7 +83,6 @@ double LevelValueOf(const UnitStats* stats, int skill) {
 double RecordValue(const SkillLevelRecord* record) { return record->Value(); }
 
 // Branch-free selects as the original's: `ifLess` when a < b or unordered.
-float SelectLess(float a, float b, float ifLess, float otherwise) { return a >= b ? otherwise : ifLess; }
 
 MapEffect EffectAt(const CUnit* unit, int index) { return unit->effects[index]; }
 float EffectValueField(const MapEffect& effect) {
@@ -224,7 +224,7 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
 // --- Body slots ------------------------------------------------------------------------------
 
 bool UnitStats::HealSlots(float scale, float amount) {
-    float magnitude = std::bit_cast<float>(std::bit_cast<std::uint32_t>(amount) & 0x7FFFFFFFu);
+    float magnitude = AbsBits(amount);
     // Kept as the game's test: a NaN amount heals nothing. It occurs in every run: LearnSkill's heal (the
     // default NaN) while a new unit's stats are being set up (the NaN audit).
     if (!(magnitude > kMinHeal)) return true;

@@ -59,7 +59,6 @@ constexpr float kFarAway = 1e30f;                     // the nearest-unit search
 // The AI map's cell size factors: a half-cell coordinate times both is world units.
 
 CUnit* FindUnit(int id) { return g_serverWorld->FindUnit(id); }
-const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // Appends `object` to `list` with a counted reference (as the brain's lists do).
 void AddCounted(std::list<CUnit*>& list, CUnit* object) {
@@ -286,7 +285,7 @@ int CPlayerServer::OnUseOrder() {
             CUnit* nearest = nullptr;
             int nearestIndex = 0;
             for (int i = 0; i < std::ssize(units); ++i) {
-                double distance = UseOrderDistanceSquared(&aim, PositionOf(units[i]));
+                double distance = UseOrderDistanceSquared(&aim, &units[i]->localPosition_);
                 EI_NAN_AUDIT(distance, best);
                 if (distance < best) {
                     best = static_cast<float>(distance);
@@ -307,7 +306,7 @@ int CPlayerServer::OnUseOrder() {
                 Vector3 end;
                 from = *path.TargetPoint(&end);
             } else {
-                from = *PositionOf(nearest);
+                from = nearest->localPosition_;
             }
             if (controller->CanReachAndPlanFrom(&order, &from)) {
                 chosen = nearest;
@@ -345,7 +344,7 @@ void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* of
     float sumX = 0.0f;
     float sumY = 0.0f;
     for (int i = 0; i < count; ++i) {
-        const Vector3* at = PositionOf((*units)[i]);
+        const Vector3* at = &(*units)[i]->localPosition_;
         sumX = static_cast<float>(static_cast<double>(sumX) + at->x);
         sumY = static_cast<float>(static_cast<double>(sumY) + at->y);
     }
@@ -354,7 +353,7 @@ void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* of
     float centreY = static_cast<float>(static_cast<double>(sumY) / n);
     offsets->resize(count);
     for (int i = 0; i < std::ssize(*units); ++i) {
-        const Vector3* at = PositionOf((*units)[i]);
+        const Vector3* at = &(*units)[i]->localPosition_;
         float dx = static_cast<float>(static_cast<double>(at->x) - centreX);
         float dy = static_cast<float>(static_cast<double>(at->y) - centreY);
         double length = std::sqrt(LengthSquared2DUnrounded<double>(dx, dy));

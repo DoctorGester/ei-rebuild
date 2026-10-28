@@ -14,6 +14,7 @@
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "game_singletons.h"
+#include "lib/float_select.h"
 
 #include <cstdint>
 #include <cstring>
@@ -48,7 +49,6 @@ inline double Range(float min, float max) { return g_random.Range(min, max); }
 inline double GroundHeight(float x, float y) { return g_clientWorld->RawSurfaceHeightAt(x, y); }
 
 // Branch-free selects in the original: `a` when a < b or unordered.
-inline float PickIfLess(float a, float b) { return a >= b ? b : a; }
 
 // The game's debug message (one argument; compiled out, other mods may hook it).
 inline void DebugMessage(const char* a0) { game::DebugLog(a0); }

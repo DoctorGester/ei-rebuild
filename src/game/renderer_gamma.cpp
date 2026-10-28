@@ -6,6 +6,7 @@
 
 #include "render/render.h"
 #include "lib/nan_audit.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cmath>
@@ -19,15 +20,7 @@ constexpr float kRampScale = 65280.0f;
 constexpr int kLevels = 256;
 
 // A branchless minimum / maximum (the comparison's bit as a mask): `limit` when it is below / above `v`.
-float AtMost(float v, float limit) {
-    EI_NAN_AUDIT(v);
-    return limit < v ? limit : v;
-}
-float AtLeast(float v, float limit) {
-    EI_NAN_AUDIT(v);
-    return limit < v ? v : limit;
-}
-float Clamp(float v, float lo, float hi) { return AtLeast(AtMost(v, hi), lo); }
+float Clamp(float v, float lo, float hi) { return MaxKeepA(lo, MinKeepB(hi, v)); }
 
 // The ramp of the clamped, halved settings (one table: every channel the same).
 void BuildRamp(std::uint16_t (&ramp)[kLevels], float brightness, float contrast, float gamma) {

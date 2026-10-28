@@ -14,6 +14,7 @@
 #include "world.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
@@ -192,14 +193,6 @@ const char* NoCarrierMessage() { return "Particle effect Modifier without carrie
 
 void DebugMessage(const char* a0) { game::DebugLog(a0); }
 
-float AbsBits(float f) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(f);
-    bits &= 0x7FFFFFFF;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
-
 void SetBits(void* dst, std::uint32_t bits) { lib::StoreBytes(dst, bits); }
 
 // The axis the points are spread around (their offsets are perpendicular to it); some types also
@@ -316,9 +309,6 @@ constexpr float kGlowAlpha[16] = /*0078AA78*/ {0.0f, 0.15f, 0.3f, 0.45f, 0.6f, 0
 constexpr std::int32_t kDustAlpha[16] = /*0078AAD8*/ {0, 64, 144, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64};
 
 // Branch-free select: `a` when a < b (or unordered), else `b`.
-float SelectLess(float a, float b, float ifLess, float otherwise) {
-    return a >= b ? otherwise : ifLess;
-}
 
 // One random draw in [-1, 1) through the ISAAC results: Next() * ~2^-31 - 1.
 double Signed(std::uint32_t roll) { return Unsigned(roll) * EI_SCALE_2 - D(EI_ONE); }

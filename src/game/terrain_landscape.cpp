@@ -15,6 +15,8 @@
 #include "world.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
+#include "lib/vecmath.h"
+#include "lib/float_select.h"
 
 #include <cstdint>
 #include <cstring>
@@ -45,10 +47,6 @@ void AddTile(terrain::VertexTiles& entry, int x, int y) {
     if (x >= 0 && y >= 0 && x < kSectorTiles && y < kSectorTiles) entry.tiles[entry.count++] = y * kSectorTiles + x;
 }
 
-constexpr int kRow = 33;                  // vertices per sector row
-constexpr int kVertices = kRow * kRow;
-constexpr float kPi = 3.14159274f;
-constexpr double kPiDouble = 3.141592653589793;
 constexpr double kSineStep = 1.0 / 256;
 constexpr float kWaveStepTurn = 0.500250161f;
 constexpr int kRipples = 40;
@@ -112,7 +110,6 @@ constexpr double kByteScale = 255.0;
 constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
 
 // 1 is kept when 1 is below the value, or the two are unordered.
-float CappedAtOne(float value) { return value <= 1.0f ? value : 1.0f; }
 
 } // namespace
 
@@ -179,14 +176,13 @@ void Terrain::SetVisibleSectors(float x, float y, float radius) {
 // ---- Create, Destroy, Reset and the waves --------------------------------------------------------
 
 void Terrain::BuildVertexTiles() {
-    constexpr int kSide = 33;   // vertices per sector row
-    vertexTiles.resize(kSide * kSide);
+    vertexTiles.resize(terrain::kSectorVertices);
     // One stack record per vertex is filled without clearing it: the tiles after `count` keep earlier
     // vertices' values (here they start from zero).
     terrain::VertexTiles entry{};
     terrain::VertexTiles* out = vertexTiles.data();
-    for (int y = 0; y < kSide; ++y) {
-        for (int x = 0; x < kSide; ++x) {
+    for (int y = 0; y < terrain::kSectorRow; ++y) {
+        for (int x = 0; x < terrain::kSectorRow; ++x) {
             entry.count = 0;
             int tx = x / 2;
             int ty = y / 2;
@@ -316,19 +312,19 @@ void Terrain::Reset() {
 }
 
 void Terrain::BuildWavePhases() {
-    wavePhases.resize(kVertices);
+    wavePhases.resize(terrain::kSectorVertices);
     float* phases = wavePhases.data();
-    std::memset(phases, 0, kVertices * sizeof(float));
+    std::memset(phases, 0, terrain::kSectorVertices * sizeof(float));
     for (int ripple = 0; ripple < kRipples; ++ripple) {
-        float centreX = static_cast<float>(libcrt::Rand() % kRow);
-        float centreY = static_cast<float>(libcrt::Rand() % kRow);
+        float centreX = static_cast<float>(libcrt::Rand() % terrain::kSectorRow);
+        float centreY = static_cast<float>(libcrt::Rand() % terrain::kSectorRow);
         int radius = libcrt::Rand() % 5 + 1;
         double radiusSquared = static_cast<double>(radius) * radius;
         float* phase = phases;
-        for (int row = 0; row < kRow; ++row) {
+        for (int row = 0; row < terrain::kSectorRow; ++row) {
             double dy = row - centreY;
             double dySquared = dy * dy;
-            for (int column = 0; column < kRow; ++column, ++phase) {
+            for (int column = 0; column < terrain::kSectorRow; ++column, ++phase) {
                 double dx = column - centreX;
                 double distanceSquared = dx * dx + dySquared;
                 if (distanceSquared < radiusSquared)
@@ -338,21 +334,21 @@ void Terrain::BuildWavePhases() {
     }
     // The first and last rows, then the first and last columns, averaged pairwise; the four corners
     // get the average of all four.
-    constexpr int kLastRow = kRow * (kRow - 1);
-    for (int i = 1; i < kRow - 1; ++i) {
+    constexpr int kLastRow = terrain::kSectorRow * (terrain::kSectorRow - 1);
+    for (int i = 1; i < terrain::kSectorRow - 1; ++i) {
         float average = (phases[kLastRow + i] + phases[i]) * 0.5f;
         phases[i] = average;
         phases[kLastRow + i] = average;
     }
-    for (int i = kRow; i < kLastRow; i += kRow) {
-        float average = (phases[i + kRow - 1] + phases[i]) * 0.5f;
+    for (int i = terrain::kSectorRow; i < kLastRow; i += terrain::kSectorRow) {
+        float average = (phases[i + terrain::kSectorRow - 1] + phases[i]) * 0.5f;
         phases[i] = average;
-        phases[i + kRow - 1] = average;
+        phases[i + terrain::kSectorRow - 1] = average;
     }
-    float corners = (((phases[kLastRow] + phases[kVertices - 1]) + phases[kRow - 1]) + phases[0]) * 0.25f;
+    float corners = (((phases[kLastRow] + phases[terrain::kSectorVertices - 1]) + phases[terrain::kSectorRow - 1]) + phases[0]) * 0.25f;
     phases[0] = corners;
-    phases[kRow - 1] = corners;
-    phases[kVertices - 1] = corners;
+    phases[terrain::kSectorRow - 1] = corners;
+    phases[terrain::kSectorVertices - 1] = corners;
     phases[kLastRow] = corners;
 }
 
@@ -470,9 +466,9 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, char dungeon)
         material.opacity = source.opacity;
         material.absorption = static_cast<float>(1.0 / static_cast<float>(1.0 - source.opacity));
         material.opacityByte = static_cast<std::uint8_t>(libcrt::Ftol(static_cast<float>(material.opacity * kByteScale)));
-        material.colour.x = CappedAtOne(static_cast<float>(static_cast<double>(source.light) * material.waveColour.x));
-        material.colour.y = CappedAtOne(static_cast<float>(static_cast<double>(material.waveColour.y) * source.light));
-        material.colour.z = CappedAtOne(static_cast<float>(static_cast<double>(source.light) * material.waveColour.z));
+        material.colour.x = MinKeepA(1.0f, static_cast<float>(static_cast<double>(source.light) * material.waveColour.x));
+        material.colour.y = MinKeepA(1.0f, static_cast<float>(static_cast<double>(material.waveColour.y) * source.light));
+        material.colour.z = MinKeepA(1.0f, static_cast<float>(static_cast<double>(source.light) * material.waveColour.z));
         material.priority = source.priority;
         material.warpSpeed = source.warpSpeed;
         material.level = 0.0f;

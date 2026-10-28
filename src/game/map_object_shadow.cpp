@@ -32,6 +32,7 @@
 #include <vector>
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/float_select.h"
 
 // The original keeps intermediate values on the FPU stack (double locals here) and rounds where it stores to a
 // float (float locals); the order of every operation is the original's.
@@ -147,7 +148,7 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
         direction->z = static_cast<float>(inverse * direction->z);
     }
     float horizontal = static_cast<float>(std::sqrt(LengthSquared2DUnrounded<double>(direction->y, direction->x)));
-    float height = std::bit_cast<float>(std::bit_cast<std::uint32_t>(direction->z) & 0x7FFFFFFFu);
+    float height = AbsBits(direction->z);
     double elevation = x87::fpatan(height, horizontal);
     double minimum = g_pi * g_perDegree * g_minimumTilt;
     if (elevation >= minimum) return;   // NaN tilts

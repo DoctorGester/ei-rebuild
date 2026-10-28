@@ -8,6 +8,7 @@
 
 #include "ei/x87.h"
 #include "lib/vecmath.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstdint>
@@ -15,7 +16,6 @@
 
 namespace {
 
-constexpr int kRow = 33;            // vertices per sector row
 constexpr int kLastCell = 31;       // the column / row a ray enters a sector at from above
 
 // The width of the fade at the map's edges (the interface's screens set it).
@@ -25,10 +25,8 @@ std::uint32_t Bits(float value) {
     bits = std::bit_cast<std::uint32_t>(value);
     return bits;
 }
-bool SignSet(float value) { return (Bits(value) & 0x80000000u) != 0; }
 
 // Select idiom: 0 for a positive or unordered value.
-float AtMostZero(float value) { return 0.0f >= value ? value : 0.0f; }
 
 } // namespace
 
@@ -38,7 +36,7 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
     int row = lightingY;
     int sx = sector->sx;
     int sy = sector->sy;
-    const terrain::SectorPosition* vertex = sector->vertices.data() + (row * kRow + column);
+    const terrain::SectorPosition* vertex = sector->vertices.data() + (row * terrain::kSectorRow + column);
 
     // The line's steps and the height gained per step, turned to run upwards in both directions.
     int stepX = sunStepX;
@@ -47,18 +45,18 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
     float slopeY = sunSlopeY;
     int directionX = 1;
     int directionY = 1;
-    if (stepX < 0 || (stepX == 0 && SignSet(slopeX))) {
+    if (stepX < 0 || (stepX == 0 && SignBit(slopeX))) {
         slopeX = -slopeX;
         directionX = -1;
         stepX = -stepX;
     }
-    if (stepY < 0 || (stepY == 0 && SignSet(slopeY))) {
+    if (stepY < 0 || (stepY == 0 && SignBit(slopeY))) {
         slopeY = -slopeY;
         directionY = -1;
         stepY = -stepY;
     }
     // A ray that does not rise: lit when the sun's direction points down.
-    if (SignSet(slopeX) || SignSet(slopeY)) return static_cast<int>(Bits(sun->direction_.z) & 0x80000000u);
+    if (SignBit(slopeX) || SignBit(slopeY)) return static_cast<int>(Bits(sun->direction_.z) & 0x80000000u);
 
     const int length = stepY > stepX ? stepY : stepX;
     float rayHeight = position->z;
@@ -75,7 +73,7 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
                 column = kLastCell;
                 --sx;
                 crossed = true;
-            } else if (column == kRow) {
+            } else if (column == terrain::kSectorRow) {
                 column = 1;
                 ++sx;
                 crossed = true;
@@ -92,18 +90,18 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
                 row = kLastCell;
                 --sy;
                 crossed = true;
-            } else if (row == kRow) {
+            } else if (row == terrain::kSectorRow) {
                 row = 1;
                 ++sy;
                 crossed = true;
             } else {
-                vertex += directionY * kRow;
+                vertex += directionY * terrain::kSectorRow;
             }
         }
         if (crossed) {
             auto* next = SectorAt(sx, sy, kSectorLoaded, 1);
             if (!next) return 1;
-            vertex = next->vertices.data() + (row * kRow + column);
+            vertex = next->vertices.data() + (row * terrain::kSectorRow + column);
         }
     }
     return 1;
@@ -117,11 +115,11 @@ std::uint8_t Terrain::EdgeFade(const Vector3* point) {
     float bottom = static_cast<float>(point->y - fade - 1.0f);
     float right = static_cast<float>(width - fade - point->x - 1.0f);
     float top = static_cast<float>(height - fade - point->y - 1.0f);
-    if (!(SignSet(left) || SignSet(bottom) || SignSet(right) || SignSet(top))) return 0xFF;
-    left = AtMostZero(left);
-    bottom = AtMostZero(bottom);
-    right = AtMostZero(right);
-    top = AtMostZero(top);
+    if (!(SignBit(left) || SignBit(bottom) || SignBit(right) || SignBit(top))) return 0xFF;
+    left = MinKeepA(0.0f, left);
+    bottom = MinKeepA(0.0f, bottom);
+    right = MinKeepA(0.0f, right);
+    top = MinKeepA(0.0f, top);
     // ((top^2 + right^2) + bottom^2) + left^2, the partial sums rounded to float (as at 24 bits).
     float sum = static_cast<float>(top * top + right * right);
     sum = static_cast<float>(sum + bottom * bottom);

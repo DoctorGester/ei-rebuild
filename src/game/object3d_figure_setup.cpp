@@ -17,6 +17,7 @@
 #include <cstring>
 #include <string>
 #include "lib/text_case.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cfloat>
@@ -40,8 +41,6 @@ constexpr std::uint32_t kBoxEmpty = 0x890;       // "EMPTY..."
 
 // The game's branch-free selects: the stored candidate replaces the bound when the comparison
 // sets C0 (it lies beyond the bound, or one of them is NaN).
-float Higher(float bound, float v) { return bound >= v ? bound : v; }
-float Lower(float bound, float v) { return v >= bound ? bound : v; }
 
 constexpr std::uint32_t kFlagDetached = 0x1000;   // flags_: passed to the figure manager
 constexpr std::uint32_t kBoxEmptyMark = 0x800;
@@ -90,12 +89,12 @@ void CObject3D::SetUpAnimatedFigure(std::string_view model) {
             partNames[index] = bone->GetName();
 
             box = &partBoxes[index];
-            high.x = Higher(high.x, static_cast<float>(box->pivot.x + box->bounds.boxMax.x + box->bounds.center.x));
-            high.y = Higher(high.y, static_cast<float>(box->pivot.y + box->bounds.boxMax.y + box->bounds.center.y));
-            high.z = Higher(high.z, static_cast<float>(box->pivot.z + box->bounds.boxMax.z + box->bounds.center.z));
-            low.x = Lower(low.x, static_cast<float>(box->pivot.x + box->bounds.boxMin.x + box->bounds.center.x));
-            low.y = Lower(low.y, static_cast<float>(box->pivot.y + box->bounds.boxMin.y + box->bounds.center.y));
-            low.z = Lower(low.z, static_cast<float>(box->pivot.z + box->bounds.boxMin.z + box->bounds.center.z));
+            high.x = MaxKeepB(high.x, static_cast<float>(box->pivot.x + box->bounds.boxMax.x + box->bounds.center.x));
+            high.y = MaxKeepB(high.y, static_cast<float>(box->pivot.y + box->bounds.boxMax.y + box->bounds.center.y));
+            high.z = MaxKeepB(high.z, static_cast<float>(box->pivot.z + box->bounds.boxMax.z + box->bounds.center.z));
+            low.x = MinKeepA(static_cast<float>(box->pivot.x + box->bounds.boxMin.x + box->bounds.center.x), low.x);
+            low.y = MinKeepA(static_cast<float>(box->pivot.y + box->bounds.boxMin.y + box->bounds.center.y), low.y);
+            low.z = MinKeepA(static_cast<float>(box->pivot.z + box->bounds.boxMin.z + box->bounds.center.z), low.z);
 
             const std::string_view partName = bone->GetName();
             if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) box->bounds.flags |= kBoxBase;

@@ -5,6 +5,7 @@
 
 #include "../game/model.h"
 #include "../game/terrain_sector.h"
+#include "../lib/float_select.h"
 #include "../hook/log.h"
 
 #include <vector>
@@ -98,14 +99,13 @@ static_assert(sizeof(PageVertex) == 36);
 // 1 / the water depth scale (terrain_lighting.cpp's kWaterFalloff).
 constexpr float kWaterFalloff = 0.06666667f;
 
-bool SignClear(float v) { return !std::signbit(v); }
 
 // The ground record `index` lies under the sector's water (as ShadeSun and LightVertex test it): its
 // water record, else null.
 const SectorVertex* WaterAbove(const SectorData* s, int index) {
     if (!s->hasWater || index >= kWaterRecords || index + kWaterRecords >= std::ssize(s->records)) return nullptr;
     const SectorVertex& water = s->records[index + kWaterRecords];
-    if (water.waterMaterial == 0xFFFF || !SignClear(s->records[index].depth)) return nullptr;
+    if (water.waterMaterial == 0xFFFF || SignBit(s->records[index].depth)) return nullptr;
     return &water;
 }
 

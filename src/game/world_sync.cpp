@@ -84,7 +84,6 @@ void InitStatic(std::uint8_t bit, std::vector<CEngineObject*>& array, AtExitFunc
     std::atexit(destructor);
 }
 
-const float* PositionOf(CMapObject* object) { return &object->localPosition_.x; }
 
 // Whether (x, y) lies outside the camera's view range around (cx, cy); NaN counts as inside. The squared distance
 // and the squared range stay on the FPU (dy^2 + dx^2, in that order).
@@ -105,7 +104,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         for (auto node = world->mapObjects_.map.begin(); node != world->mapObjects_.map.end() && node->second; ++node) {
             CMapObject* object = node->second;
             if (object->type_ == kTypeNoSync) continue;
-            if (!OutOfView(PositionOf(object), state)) {
+            if (!OutOfView(&object->localPosition_.x, state)) {
                 *out++ = object;
                 continue;
             }
@@ -123,7 +122,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
     } else {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
             CMapObject* object = node->second;
-            if (object->type_ != kTypeNoSync && !OutOfView(PositionOf(object), state)) *out++ = object;
+            if (object->type_ != kTypeNoSync && !OutOfView(&object->localPosition_.x, state)) *out++ = object;
         }
     }
     if (world->sessionKind_ != kKindSinglePlayer) return out;
@@ -266,7 +265,7 @@ int CWorldServer::SendZone(CPlayer* player) {
             result = 1;
             if (player->units_.size() != 0) {
                 // The player starts at its first unit, on the ground there.
-                const float* at = PositionOf(player->units_.begin()->second);
+                const float* at = &player->units_.begin()->second->localPosition_.x;
                 Vector3 start;
                 lib::LoadBytes(start, at);
                 start.z = static_cast<float>(RawSurfaceHeightAt(start.x, start.y));

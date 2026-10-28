@@ -65,7 +65,6 @@ bool Same(float a, float b) {
 }
 
 
-Vector3& PositionOf(CMapObject* object) { return object->localPosition_; }
 
 } // namespace
 
@@ -129,7 +128,7 @@ void CEffectMoshka::Update(float now) {
     if (bird_ == nullptr) return;
     CMapObject* followedObject = g_clientWorld->ObjectWithId(followedId_);
     if (followedObject == nullptr) return;
-    const Vector3& followed = PositionOf(followedObject);
+    const Vector3& followed = followedObject->localPosition_;
     CObject3D* bird = bird_;
     Vector3 birdAt;
     birdAt = bird->localPosition_;
@@ -240,7 +239,7 @@ void CEffectMoshka::Follow(int objectId) {
     CObject3D* bird = bird_;
     CObject3DClientSpecific* attached = bird->ClientSpecific();
     Vector3 perch;
-    FindPerch(&perch, &PositionOf(followed));
+    FindPerch(&perch, &followed->localPosition_);
     bird->localPosition_ = perch;
     std::vector<std::string> parts;
     bird->MakeFigure(model, &parts, 1);

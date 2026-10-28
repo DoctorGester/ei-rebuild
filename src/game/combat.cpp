@@ -25,6 +25,7 @@
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "logic_settings.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
@@ -107,7 +108,6 @@ int IsDead(CMapObject* object) { return object->IsDead(); }
 void AttackParamsOf(CUnitServer* controller, AttackParams* out) { controller->GetAttackParams(out); }
 
 // The original's branch-free max(0, v): v when 0 < v or v is NaN, else +0.
-float MaxZero(float v) { return v <= 0.0f ? 0.0f : v; }
 
 // A zero-extended dword converted as a 64-bit integer (exact; a plain uint32 conversion would add 2^32 in a step
 // the precision control rounds).
@@ -453,7 +453,7 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     }
     roll = (roll + theirs.attack) - penalty;
     if (!backstab) roll = roll + speedRatio;
-    return MaxZero(static_cast<float>(roll));
+    return MaxKeepB(0.0f, static_cast<float>(roll));
 }
 
 BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
@@ -465,8 +465,8 @@ BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
             roll = AttackRoll(attacker->ServerController(), backstab);
         }
         if (hit->calledShot) {
-            if (hit->location == 0) roll = MaxZero(roll - kCalledShotHead);
-            else if (hit->location != 1) roll = MaxZero(roll - kTen);
+            if (hit->location == 0) roll = MaxKeepB(0.0f, roll - kCalledShotHead);
+            else if (hit->location != 1) roll = MaxKeepB(0.0f, roll - kTen);
         }
     }
     AttackParams mine;

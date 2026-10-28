@@ -62,7 +62,6 @@ constexpr float kSamePointSq = 0.01f;
 // how close a follower stays and how far its goal may drift before it walks
 // again (set at startup).
 
-Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 
 // The list the sector map fills.
 void InitUnitList(std::list<CUnit*>& list) {
@@ -146,7 +145,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(out, &units, self->standingHeight * kAllySpace);
     for (auto node = units.begin(); node != units.end(); ++node) {
         auto* other = *node;
-        if (g_serverWorld->diplomacy_.allied_[other->side] & (1u << (self->side & 31))) {
+        if (g_serverWorld->diplomacy_.IsAllied(other->side, self->side)) {
             units.clear();
             return false;
         }
@@ -201,18 +200,18 @@ void AIBrain::UpdateFollow() {
             return;
         }
         Vector3 goal;
-        if (!owner->GetMovePoint(&goal.x)) goal = *PositionOf(self);
+        if (!owner->GetMovePoint(&goal.x)) goal = self->localPosition_;
         double gx = goal.x - leader->localPosition_.x;
         double gy = goal.y - leader->localPosition_.y;
         if (LengthSquared2DUnrounded(gx, gy) > farSq) {
-            owner->OrderMove(PositionOf(leader), 0, 0, walkTime);
+            owner->OrderMove(&leader->localPosition_, 0, 0, walkTime);
             followTimer = 0;
         }
         return;
     }
 
     // The leader walks: where it will be in a moment.
-    Vector3 goal = *PositionOf(self);
+    Vector3 goal = self->localPosition_;
     owner->GetMovePoint(&goal.x);
     Vector3 soon;
     leader->PositionAt(&soon, now + kLeaderAhead);
@@ -299,7 +298,7 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     double dy = from->y - to->y;
     double dz = from->z - to->z;
     CUnit* unit = brain->owner->unit;
-    Vector3 saved = *PositionOf(unit);
+    Vector3 saved = unit->localPosition_;
     float range = static_cast<float>(2.0 * std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
     g_serverWorld->aiMap_.sectorMap.Move(unit, from);
     bool found = g_serverWorld->aiMap_.FindPath(unit, to, &local.path, range, 0.0f);

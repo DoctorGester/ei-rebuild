@@ -18,6 +18,7 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "game_singletons.h"
+#include "lib/vecmath.h"
 
 #include <cstdio>
 #include <cstring>
@@ -42,7 +43,6 @@ constexpr float kSpinDegrees = 30.0f;
 constexpr float kHalfPi = /*007C899C*/ 1.5707964f;
 constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
 // pi and 1 / 180 (doubles; their product is rounded at the FPU's precision, as in the game).
-constexpr double kPi = 3.141592653589793;
 constexpr double kPerDegree = 0.005555555555555556;
 bool BloodPrintsOn() { return options::g_options->enableBloodprints_ != 0; }
 bool FootprintsOn() { return options::g_options->enableFootprints_ != 0; }
@@ -300,7 +300,7 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     kind_ = high;
     fresh_ = fresh;
     float degrees = static_cast<float>(kSpinDegrees / static_cast<double>(life));
-    float radiansPerDegree = static_cast<float>(kPi * kPerDegree);
+    float radiansPerDegree = static_cast<float>(kPiDouble * kPerDegree);
     spin_ = degrees * radiansPerDegree;
     growth_ = static_cast<float>((fullSize - halfWidth_) / static_cast<double>(spreadTicks_));
 }

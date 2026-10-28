@@ -11,6 +11,7 @@
 #include "game_singletons.h"
 #include "sector_map.h"
 #include "world.h"
+#include "lib/float_select.h"
 
 
 // --- Helpers -------------------------------------------------------------------------------------
@@ -21,18 +22,9 @@ bool BeginLocalSearch(LocalSearch* search, CUnit* unit, int x0, int y0, int x1, 
     return search->Begin(unit, x0, y0, x1, y1);
 }
 
-const Vector3& PositionOf(const CUnit* unit) { return *&unit->localPosition_; }
 
 bool IsCellPassable(CAIMap* map, CUnit* unit, int x, int y) {
     return ((map->cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;
-}
-
-float Abs(float f) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(f);
-    bits &= 0x7FFFFFFF;
-    f = std::bit_cast<float>(bits);
-    return f;
 }
 
 constexpr float kDiagonal = 0.707f;
@@ -50,7 +42,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     }
 
     Vector3 from;
-    from = PositionOf(unit);
+    from = unit->localPosition_;
     int ux = WorldToCell(from.x), uy = WorldToCell(from.y);
     int sizeClass = unit->sizeClass;
     int region = 0;
@@ -90,7 +82,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     float q = (sy + sx) * kDiagonal;
     // No audit: p and q are NaN together (sx or sy is 0 / 0 when the unit stands on the target cell, which the
     // suite does), and then both choices are NaN.
-    float scale = 1.0f / (Abs(q) < Abs(p) ? Abs(p) : Abs(q));
+    float scale = 1.0f / (AbsBits(q) < AbsBits(p) ? AbsBits(p) : AbsBits(q));
     // Kept as the original's test: a NaN scale (the case above) scales the step too, which makes the finite one
     // of sx / sy NaN as well; the plain scale < 1 would leave it.
     if (!(scale >= 1.0f)) {
@@ -143,7 +135,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     Vector3 facing;
     unit->localRotation_.AxisY(&facing);
     Vector3 backwards = {-facing.x, -facing.y, -facing.z};
-    path->Start(&PositionOf(unit), &backwards, count - 1);
+    path->Start(&unit->localPosition_, &backwards, count - 1);
 
     PathCells& pathCells = path->cells;
     PathCells& steps = path->steps;
@@ -171,7 +163,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
 
 bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float range, float minDistance) {
     Vector3 from, goal;
-    from = PositionOf(unit);
+    from = unit->localPosition_;
     goal = *target;
     path->goal = *target;
     if (LengthSquared2DUnrounded(target->x, target->y) > 100000000.0) return false;   // NaN goes on
@@ -268,9 +260,9 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         float bx = -facing.x, by = -facing.y;
         float px;
         px = path->targetX;
-        float a = Abs(px - static_cast<float>(x87::fistp(px)));
+        float a = AbsBits(px - static_cast<float>(x87::fistp(px)));
         px = path->targetX;    // targetX twice (not targetY), like the original
-        float b = Abs(px - static_cast<float>(x87::fistp(px)));
+        float b = AbsBits(px - static_cast<float>(x87::fistp(px)));
         float b2 = b + b, a2 = a + a;
         float fraction = b2 < a2 ? b2 : a2;   // a and b are the same value (see above)
         int octant = x87::fistp(static_cast<float>(x87::fpatan(by, bx) * 1.273239605931458));

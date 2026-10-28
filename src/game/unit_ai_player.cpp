@@ -28,7 +28,6 @@ constexpr float kStandingSlack = 1.4f;
 static_assert(std::bit_cast<std::uint32_t>(kStandingSlack) == 0x3FB33333u);
 constexpr float kNoRadius = -1.0f;
 
-const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // A list on the stack.
 void InitList(CountedUnits& list) {
@@ -121,7 +120,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     }
     AddPartyTargets(brain, &candidates);
     unit->flags_ |= kChoosingFlag;
-    brain->ChooseTarget(&best, &candidates, PositionOf(unit), 0, 0);
+    brain->ChooseTarget(&best, &candidates, &unit->localPosition_, 0, 0);
     unit->flags_ &= ~kChoosingFlag;
 
     CUnit* chosen = best.object;
@@ -162,7 +161,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, CountedUnits* targets) {
     CountedUnits nearby;
     InitList(nearby);
     CUnit* unit = brain->owner->unit;
-    g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(PositionOf(unit), &nearby,
+    g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(&unit->localPosition_, &nearby,
                                g_logicSettings.playerCallForHelp);
     for (auto node = nearby.begin(); node != nearby.end();) {
         auto* other = *node;

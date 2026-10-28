@@ -37,7 +37,6 @@ constexpr double kNormalScale = 0.0010000000474974513;  // 0.001
 constexpr double kNormalBias = 1000.0;
 
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
-constexpr int kVertices = 33 * 33;      // per layer
 
 // Texture page of a tile texture: the first `pages` pages hold `perPage` textures each, the
 // last ones 8 each.
@@ -75,7 +74,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
     s.maxZ = 0.0f;
     for (int layer = 0; layer < (s.hasWater ? 2 : 1); ++layer) {
         if (layer == 1) tiles += 0x2208;
-        for (int vi = 0; vi < kVertices; ++vi, ++rec, ++vin, src += 8) {
+        for (int vi = 0; vi < kSectorVertices; ++vi, ++rec, ++vin, src += 8) {
             // Branch-free selects on the comparison: the minimum keeps its value when it is
             // below z, the maximum when z is below it (and both when z is NaN).
             float z = vin->z;
@@ -97,7 +96,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
                     rec->materialColour = mat.colour;
                 }
                 std::memcpy(&rec->position, vin, 12);
-                (rec - kVertices)->depth = static_cast<float>(static_cast<double>(vin->z) - (vin - kVertices)->z);
+                (rec - kSectorVertices)->depth = static_cast<float>(static_cast<double>(vin->z) - (vin - kSectorVertices)->z);
             }
             std::uint32_t n;
             lib::LoadBytes(n, src + 4);
@@ -169,7 +168,7 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
     for (int layer = 0; layer < (s.hasWaterTiles ? 2 : 1); ++layer) {
         if (layer == 1) {
             pageAdd = s.pages + 2;
-            base = kVertices;
+            base = kSectorVertices;
             water = s.waterTiles.data();
         }
         for (int row = 0; row < 16; ++row) {
@@ -184,7 +183,7 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                     src += 2;
                     continue;
                 }
-                int vi = base + 2 * (col + 33 * row);
+                int vi = base + 2 * (col + kSectorRow * row);
                 int texture = word & 0x3FFF;
                 int page = PageOf(texture, s.perPage, s.pages) + pageAdd;
                 int quarter = (2 * row) / 16 * 2 + (2 * col) / 16;
@@ -210,7 +209,7 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                         uv = owner->TileUv(rotation, a.frame + index, 0);
                     }
                 }
-                for (int r3 = 0; r3 < 3; ++r3, rec += 33) {
+                for (int r3 = 0; r3 < 3; ++r3, rec += kSectorRow) {
                     for (int c3 = 0; c3 < 3; ++c3, ++entry) {
                         entry->u = uv[r3 * 3 + c3];
                         entry->vertex = rec + c3;
@@ -289,7 +288,6 @@ void DestroyProjectionOutcodes() {
 constexpr int kProjectionVertices = 0x330;
 
 constexpr int kQuarterCells = 16;
-constexpr int kRow = 33;
 
 } // namespace
 
@@ -348,7 +346,7 @@ int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pag
     }
 
     // Vertex positions: one or two layers of 33x33 (resized, zeroing new ones).
-    vertices.resize(hasWater ? 2 * kVertices : kVertices);
+    vertices.resize(hasWater ? 2 * kSectorVertices : kSectorVertices);
 
     // Each vertex is 8 bytes: x and y displacement (signed bytes), height (u16), packed normal.
     const std::uint8_t* src = data;
@@ -399,7 +397,7 @@ int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pag
 // Building
 
 void SectorData::Build() {
-    records.resize(hasWater ? 2 * kVertices : kVertices);
+    records.resize(hasWater ? 2 * kSectorVertices : kSectorVertices);
     const std::uint8_t* tileWords = BuildRecords(*this);
 
     int pageCount = pages * 2 + 4;
@@ -426,8 +424,8 @@ void SectorData::Build() {
 
     if (hasWater) {
         // The water materials present in the sector, then their levels.
-        for (int i = 0; i < kVertices; ++i) {
-            unsigned id = records[kVertices + i].waterMaterial;
+        for (int i = 0; i < kSectorVertices; ++i) {
+            unsigned id = records[kSectorVertices + i].waterMaterial;
             if (id == 0xFFFF) continue;
             int k = 0;
             while (k < std::ssize(waterMaterials) && waterMaterials[k] != id) ++k;
@@ -458,9 +456,9 @@ void SectorData::ApplyWaterLevels() {
         if (k == std::ssize(waterMaterials)) return;
         unsigned id = waterMaterials[k];
         double level = levels[id];
-        SectorVertex* rec = records.data() + kVertices;
-        float* z = &vertices[kVertices].z;
-        for (int i = 0; i < kVertices; ++i, ++rec, z += 3) {
+        SectorVertex* rec = records.data() + kSectorVertices;
+        float* z = &vertices[kSectorVertices].z;
+        for (int i = 0; i < kSectorVertices; ++i, ++rec, z += 3) {
             if (rec->waterMaterial == id) {
                 rec->position.z = static_cast<float>(level + rec->position.z);
                 *z = static_cast<float>(level + *z);
@@ -565,13 +563,13 @@ int SectorData::Project(CTransformPipeline* pipeline) {
     const int rowStep = detail >= 2 ? 2 : 1;
     for (int q = 0; q < 4; ++q) {
         if (quarterMode[q] == kCulled) continue;
-        const int corner = ((q / 2) * kRow + q % 2) * kQuarterCells;
+        const int corner = ((q / 2) * kSectorRow + q % 2) * kQuarterCells;
         const int layers = hasWater != 0 ? 2 : 1;
         Vector4* in = g_projectionInput.data();
         for (int layer = 0; layer < layers; ++layer)
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {
-                    const SectorPosition& p = vertices[layer * kVertices + corner + row * kRow + column];
+                    const SectorPosition& p = vertices[layer * kSectorVertices + corner + row * kSectorRow + column];
                     std::memcpy(in, &p, sizeof(Vector3));
                     ++in;
                 }
@@ -588,7 +586,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
         for (int layer = 0; layer < layers; ++layer)
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {
-                    SectorVertex& record = records[layer * kVertices + corner + row * kRow + column];
+                    SectorVertex& record = records[layer * kSectorVertices + corner + row * kSectorRow + column];
                     record.projected = *out;
                     record.outcode = mode == kCrossing ? *outcode++ : 0;
                     ++out;

@@ -16,6 +16,7 @@
 #include "render/render.h"
 #include "game_singletons.h"
 #include "world.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <algorithm>
@@ -28,10 +29,7 @@
 namespace terrain {
 namespace {
 
-constexpr int kRow = 33;
-constexpr int kVertices = kRow * kRow;   // per layer
 
-constexpr float kPi = 3.14159274f;                         // float pi
 // Table entries per radian: 256 / pi (doubles) as the division leaves it at 24-bit precision (not the folded
 // double).
 constexpr float kSineIndex = static_cast<float>(256.0 / 3.141592653589793);
@@ -46,11 +44,6 @@ constexpr float kMinComponent = 0.01f;
 // The sun's ray step scale (1 * 95, a static initialiser), and the cell size.
 constexpr float kSunStepScale = /*007C8964*/ 95.0f;
 
-inline bool SignClear(float v) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(v);
-    return (bits & 0x80000000u) == 0;
-}
 
 // The sine table entry at `phase` radians: (phase * 256 / pi) stored as a float and rounded to nearest, mod 512.
 inline float Sine(const Terrain* owner, double phase) {
@@ -63,7 +56,7 @@ inline std::uint32_t Byte(double v) { return static_cast<std::uint32_t>(x87::fis
 // time and looks both up per vertex; the same expressions run once per call.
 void CircleSines(const Terrain* owner, float* sines) {
     float time = static_cast<float>((g_clientWorld->tick_ + g_clientWorld->tickFraction_) * kTimeScale);
-    for (int i = 0; i < kRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
+    for (int i = 0; i < kSectorRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
 }
 
 // The relight order, (sy, sx) of the sectors. The game's comparator meant this, but qsort hands it the
@@ -145,8 +138,8 @@ void SectorData::Animate(Terrain* landscape, int frame) {
     }
     if (!hasWater || (landscape->landscapeFlags & kLandscapeWaves) == 0) return;
 
-    SectorPosition* positions = &vertices[kVertices];
-    SectorVertex* water = &records[kVertices];
+    SectorPosition* positions = &vertices[kSectorVertices];
+    SectorVertex* water = &records[kSectorVertices];
     const float* phaseOffset = landscape->wavePhases.data();
     Vector2 direction = {landscape->waveDirection.x, landscape->waveDirection.y};
     float stepX = static_cast<float>(direction.x);   // the vertex spacing
@@ -162,13 +155,13 @@ void SectorData::Animate(Terrain* landscape, int frame) {
     float amplitude = 0.0f;
     int kind = 0;
     Vector3 crest = {0.0f, 0.0f, 0.0f};
-    float circle[kRow];
+    float circle[kSectorRow];
     bool circling = false;
-    for (int row = 0; row < kRow; ++row) {
+    for (int row = 0; row < kSectorRow; ++row) {
         float along = rowStart;
-        for (int column = 0; column < kRow; ++column, ++phaseOffset) {
-            SectorVertex& record = water[row * kRow + column];
-            SectorPosition& position = positions[row * kRow + column];
+        for (int column = 0; column < kSectorRow; ++column, ++phaseOffset) {
+            SectorVertex& record = water[row * kSectorRow + column];
+            SectorPosition& position = positions[row * kSectorRow + column];
             int material = record.waterMaterial;
             if (material != 0xFFFF) {
                 if (material != lastMaterial) {
@@ -186,7 +179,7 @@ void SectorData::Animate(Terrain* landscape, int frame) {
                     lastMaterial = material;
                 }
                 float s = Sine(landscape, along + *phaseOffset);
-                if (SignClear(s)) {
+                if (!SignBit(s)) {
                     std::uint32_t r = Byte(s * crest.x);
                     std::uint32_t g = Byte(s * crest.y);
                     std::uint32_t b = Byte(s * crest.z);
@@ -196,7 +189,7 @@ void SectorData::Animate(Terrain* landscape, int frame) {
                 }
                 double lift = s * amplitude;
                 if (kind == 4) {
-                    if (!SignClear(record.depth)) {
+                    if (SignBit(record.depth)) {
                         position.x = static_cast<float>(lift + record.position.x);
                         position.y = static_cast<float>(lift + record.position.y);
                     }

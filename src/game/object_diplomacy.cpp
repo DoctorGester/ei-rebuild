@@ -53,9 +53,8 @@ void CDiplomacy::SetRelation(int player, int other, int relation, BOOL applyToUn
 }
 
 int CDiplomacy::GetRelation(int player, int other) const {
-    std::uint32_t bit = Bit(other);
-    if (allied_[player] & bit) return kRelationAllied;
-    return (hostile_[player] & bit) != 0 ? kRelationHostile : kRelationNeutral;
+    if (IsAllied(player, other)) return kRelationAllied;
+    return (hostile_[player] & Bit(other)) != 0 ? kRelationHostile : kRelationNeutral;
 }
 
 int CDiplomacy::GetHostileMask(int player) const {
@@ -75,7 +74,7 @@ void CDiplomacy::WriteTo(CStream* stream) {
 
 void CDiplomacy::OnAttack(CUnit* attacker, CUnit* victim) {
     if (!attacker || !victim) return;
-    if (allied_[victim->side] & Bit(attacker->side)) return;
+    if (IsAllied(victim->side, attacker->side)) return;
     victim->AddHostileMask(victim->relationsA | Bit(attacker->side));
     victim->flags_ |= 0x80000;
     // The victim's party: the player's units, walked in iterator order.

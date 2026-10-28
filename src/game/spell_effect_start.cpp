@@ -46,7 +46,7 @@ Next StartLightning(CSpellEffect* e, int type, const Vector3& from) {
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
     Vector3 scratch;
-    e->CreatePointLight(PositionOf(e->target, &scratch), &color, range, &kZeroVector);   // no null check
+    e->CreatePointLight(EyePointOf(e->target, &scratch), &color, range, &kZeroVector);   // no null check
     DamageInfo hit;
     e->GetDamage(&hit);
     if (IsUnit(e->target)) e->HitUnit(&hit, e->target);
@@ -251,7 +251,7 @@ Next StartClairvoyance(CSpellEffect* e) {
 Next StartPossession(CSpellEffect* e) {
     if (!e->target) return Next::Done;
     Vector3 scratch;
-    e->CreateSound(0, "magic\\Possession\\start.wav", PositionOf(e->target, &scratch), &kZeroVector, kVolume, kHearing);
+    e->CreateSound(0, "magic\\Possession\\start.wav", EyePointOf(e->target, &scratch), &kZeroVector, kVolume, kHearing);
     return Next::Set;
 }
 
@@ -265,7 +265,7 @@ Next StartVisionFog(CSpellEffect* e) {
     SetPosition(shown, &kZeroVector);
     e->SetVisual(shown);
     Vector3 scratch;
-    e->CreateSound(0, "magic\\VisionFog\\start.wav", PositionOf(e->target, &scratch), &kZeroVector, kVolume, kHearing);
+    e->CreateSound(0, "magic\\VisionFog\\start.wav", EyePointOf(e->target, &scratch), &kZeroVector, kVolume, kHearing);
     return Next::Set;
 }
 
@@ -301,12 +301,12 @@ Next StartLink(CSpellEffect* e) {
         return Next::Done;
     }
     Vector3 scratch;
-    const Vector3* casterAt = PositionOf(e->caster, &scratch);
+    const Vector3* casterAt = EyePointOf(e->caster, &scratch);
     Vector3 from = *casterAt;
     e->position = *casterAt;
     e->CreateParticle(1, 0x2014, &from, 1.0f, 1.0f, &kZeroVector, nullptr);
     if (e->visual) {
-        const Vector3* to = PositionOf(e->target, &scratch);
+        const Vector3* to = EyePointOf(e->target, &scratch);
         Vector3 direction;
         direction.x = to->x - from.x;
         direction.y = to->y - from.y;
@@ -370,7 +370,7 @@ void CSpellEffect::Start(int type) {
     Vector3 from;
     if (caster) {
         Vector3 scratch;
-        from = *PositionOf(caster, &scratch);
+        from = *EyePointOf(caster, &scratch);
     } else {
         from = position;
     }

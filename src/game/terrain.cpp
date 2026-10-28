@@ -23,9 +23,9 @@ const Vector3* Terrain::VertexAt(int ix, int iy, int layer) {
     int layerOffset = 0;
     if (layer) {
         if (!sector->hasWater) return nullptr;
-        layerOffset = 33 * 33;
+        layerOffset = terrain::kSectorVertices;
     }
-    return &sector->vertices[lx + ly * 33 + layerOffset];
+    return &sector->vertices[lx + ly * terrain::kSectorRow + layerOffset];
 }
 
 float PlaneHeight(const Vector3* v0, const Vector3* v1, float x, float y, const Vector3* v2) {

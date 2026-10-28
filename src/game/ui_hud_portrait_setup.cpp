@@ -18,6 +18,7 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
+#include "lib/vecmath.h"
 
 #include <cstdint>
 
@@ -25,7 +26,6 @@ namespace {
 
 constexpr float kTexel = 0.00390625f;           // 1 / 256
 constexpr float kSeventh = 0.14285715f;         // 1 / 7
-constexpr float kPi = 3.1415927f;
 constexpr float kThin = 0.2f;
 constexpr float kFat = 0.8f;
 

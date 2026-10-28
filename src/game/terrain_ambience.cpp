@@ -77,7 +77,6 @@ constexpr float kSectorCells = 32.0f;
 constexpr float kSpotCells = 16.0f;         // a one-shot lands within +-16 cells of its sector's offset
 constexpr float kMinWeight = 0.001f;
 constexpr float kPercent = 100.0f;
-constexpr float kPi = 3.14159274f;
 constexpr double kTwoToMinus32 = 2.3283064370807974e-10;
 
 // pi / 2 (a static initialiser: the constant * 0.5).

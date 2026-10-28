@@ -19,6 +19,7 @@
 #include <cstring>
 #include "lib/nan_audit.h"
 #include "logic_settings.h"
+#include "lib/float_select.h"
 
 namespace {
 constexpr float kOverkill = -5.0f;
@@ -55,7 +56,6 @@ const char* const kDead = " HL is dead";
 // location, (first piece, second piece of a limb) at the inner layer, then at the outer one.
 constexpr int kArmourPieces[24] = /*0073E09C*/ {7, 7, 0, 7, 3, 7, 1, 7, 3, 6, 1, 7, 3, 6, 1, 7, 4, 5, 2, 7, 4, 5, 2, 7};
 
-float Max0(float value) { return value <= 0.0f ? 0.0f : value; }   // select idiom
 
 // The hit log: the rpg stream (its static initialiser stores the address).
 constexpr console::Stream* kHitLog = /*007AF284*/ {&console::g_rpgLogOut};
@@ -120,12 +120,12 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         for (int layer = keyed ? 2 : -1; layer >= 0; --layer) {
             if (slot.layers[layer].state < 2) continue;
             typeDamage = typeDamage - hit->multiplier * slot.layers[layer].absorb[type];
-            WearArmour(unit, hit->location, layer, Max0(typeDamage));
+            WearArmour(unit, hit->location, layer, MaxKeepB(0.0f, typeDamage));
             EI_NAN_AUDIT(typeDamage);
             if (typeDamage <= 0.0f) break;
         }
         if (weapon) {
-            float passed = Max0(typeDamage);
+            float passed = MaxKeepB(0.0f, typeDamage);
             WearItem(weapon, unit, hit->typeWeights[type] * hit->amount - passed, kRemarkWeaponBroken,
                      kRemarkWeaponWorn);
         }
@@ -175,11 +175,11 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     for (int type = 0; type < kDamageTypes; ++type) {
         float typeDamage = copy.amount * copy.typeWeights[type] -
                                     copy.multiplier * vitals->protection[type].current * difficulty;
-        float passed = Max0(typeDamage);
+        float passed = MaxKeepB(0.0f, typeDamage);
         total = passed + total;
         copy.typeWeights[type] = passed / copy.amount;
         if (weapon) {
-            WearItem(weapon, unit, hit->typeWeights[type] * hit->amount - Max0(passed), kRemarkWeaponBroken,
+            WearItem(weapon, unit, hit->typeWeights[type] * hit->amount - MaxKeepB(0.0f, passed), kRemarkWeaponBroken,
                      kRemarkWeaponWorn);
         }
     }

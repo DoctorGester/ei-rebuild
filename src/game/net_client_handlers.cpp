@@ -52,11 +52,6 @@ void RemoveRaw(List& list, Message* message) {
 void AddRef(CRefObject* object) {
     if (object) ++object->refs_;
 }
-void ReleaseRef(CRefObject* object) {
-    if (!object) return;
-    --object->refs_;
-    if (object->refs_ == 0 && object) delete object;
-}
 template <typename T>
 struct SlotOf {
     using Type = T;
@@ -89,7 +84,7 @@ void RemoveCounted(List& list, Message* message) {
     CRefObject* object = message;
     AddRef(object);
     RemoveValue(list, object);
-    ReleaseRef(object);
+    ReleaseCounted(object);
 }
 
 // Every request for `file` erased (the sentinel read once, the next node taken first).

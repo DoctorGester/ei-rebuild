@@ -5,6 +5,7 @@
 #include "ei/x87.h"
 #include "ground_decal.h"
 
+#include "lib/float_select.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -19,11 +20,7 @@ constexpr int kEmitStage = 5;
 DecalVertex s_stageBuffers[kEmitStage][3];
 
 // Sign bit clear: the clipper's "inside" test (NOT; SHR 31 on the distance's bits).
-int Inside(float d) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(d);
-    return static_cast<int>((bits >> 31) ^ 1);
-}
+int Inside(float d) { return SignBit(d) ? 0 : 1; }
 
 void CopyVertex(DecalVertex* to, const DecalVertex* from) { std::memcpy(to, from, sizeof(DecalVertex)); }
 

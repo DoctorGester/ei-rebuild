@@ -17,6 +17,8 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/vecmath.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
@@ -37,8 +39,6 @@ constexpr float kRangeSlack = 1.05f;
 static_assert(std::bit_cast<std::uint32_t>(kRangeSlack) == 0x3F866666u);
 constexpr float kMeleeReach = 3.0f;
 constexpr float kFifteen = 15.0f;
-constexpr float kPi = 3.1415927f;
-static_assert(std::bit_cast<std::uint32_t>(kPi) == 0x40490FDBu);
 constexpr float kPercent = 0.01f;
 static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
 constexpr float kNearSq = 10.0f;
@@ -396,7 +396,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             int turnTicks = -1;
             if (!facingIt) {
                 float turn = static_cast<float>(x87::fpatan(delta.y, delta.x) - heading);
-                turn = std::bit_cast<float>(Bits(turn) & 0x7FFFFFFFu);
+                turn = AbsBits(turn);
                 double angle = turn;
                 if (Greater(turn, kPi)) angle = static_cast<double>(kPi) + kPi - turn;
                 if (!Greater(angle, kPercent)) {

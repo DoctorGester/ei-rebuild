@@ -24,6 +24,16 @@
 #include "crt.h"
 #include "ei/x87.h"
 
+#include <bit>
+#include <cstdint>
+
+// ---- Constants -----------------------------------------------------------------------------------
+
+// Pi as the game's float and as a double (the game uses both; the bits are 0x40490FDB).
+constexpr float kPi = 3.14159274f;
+constexpr double kPiDouble = 3.141592653589793;
+static_assert(std::bit_cast<std::uint32_t>(kPi) == 0x40490FDBu);
+
 // ---- Types ---------------------------------------------------------------------------------------
 
 struct Vector2 {

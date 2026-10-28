@@ -22,7 +22,6 @@ namespace {
 const float kFar = 1e30f;
 
 bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
-bool Allied(int side, int other) { return (g_serverWorld->diplomacy_.allied_[side] & (1u << (other & 31))) != 0; }
 
 // (a - b) squared in 3D, summed z, then x, then y.
 double Distance2(const CUnit* a, const float* b) {
@@ -72,7 +71,7 @@ void AIMemory::FindEnemiesNear(CUnit* self, CountedUnits* out, const Vector3* po
             auto* mode = static_cast<AggressionMode*>(theirs->FindMode(kModeAggression));
             if (!mode || (mode->fixed && !mode->enemy)) continue;
             CUnit* enemy = UnitOrNull(theirs->AggressionEnemy());
-            if (enemy && !Allied(self->side, enemy->side)) continue;
+            if (enemy && !g_serverWorld->diplomacy_.IsAllied(self->side, enemy->side)) continue;
             if (!theirs->memory.seesEnemy) continue;
         }
         out->push_back(other);
@@ -119,7 +118,7 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     if (IsDead(object)) {
         console::EndLine(*kAiLog << "Unit " << self->id_ << " sees corpse of unit " << other->id_);
         seenCorpses.AddCountedTail(object);
-        if (Allied(self->side, other->side)) corpses.AddCountedTail(object);
+        if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) corpses.AddCountedTail(object);
     } else {
         visible.push_front(object);
         ++object->refCount_;
@@ -131,7 +130,7 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
 void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
     console::EndLine(*kAiLog << "Unit " << self->id_ << " sees corpse of unit " << corpse->id_);
     seenCorpses.AddCountedTail(corpse);
-    if (Allied(self->side, corpse->side)) corpses.AddCountedTail(corpse);
+    if (g_serverWorld->diplomacy_.IsAllied(self->side, corpse->side)) corpses.AddCountedTail(corpse);
 }
 
 void AIMemory::MeasureExposure(CUnitServer* self, float* out) {

@@ -45,6 +45,7 @@
 #include "lib/nan_audit.h"
 #include "game_data.h"
 #include "lib/str.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <type_traits>
@@ -362,11 +363,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         // |ground height + z| below 0.7 (a NaN counts as below).
         float height = flame->offset.z + base.position.z;
         float sum = height;
-        std::uint32_t bits;
-        bits = std::bit_cast<std::uint32_t>(sum);
-        bits &= 0x7FFFFFFFu;
-        float level;
-        level = std::bit_cast<float>(bits);
+        float level = AbsBits(sum);
         EI_NAN_AUDIT(level);
         if (level < worlddata::kCampfireHeight) {
             Vector3 at;

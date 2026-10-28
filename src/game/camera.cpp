@@ -17,6 +17,7 @@
 #include "game_singletons.h"
 #include "lib/crt.h"
 #include "render/render.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
@@ -34,14 +35,6 @@ constexpr float kShakeRange = 20.0f;
 constexpr float kShakeFull = 8.0f;
 constexpr float kShakeTicks = 30.0f;
 constexpr float kAxisTiny = 1e-8f;
-
-float AbsBits(float f) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(f);
-    bits &= 0x7FFFFFFF;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
 
 
 // Branch-free clamp of a map coordinate to [0, last - 1]: NaN becomes 0, and a NaN limit wins.

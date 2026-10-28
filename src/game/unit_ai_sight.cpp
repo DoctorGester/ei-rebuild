@@ -15,6 +15,7 @@
 #include "lib/crt.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cmath>
@@ -39,7 +40,6 @@ constexpr std::uint32_t kFlagSeeAll = 0x2000000;    // CUnit::flags_: sees every
 constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 
 bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
-bool Allied(int side, int other) { return (g_serverWorld->diplomacy_.allied_[side] & (1u << (other & 31))) != 0; }
 
 bool IsZero(double v) {
     EI_NAN_AUDIT(v);
@@ -142,7 +142,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         bool alive = !dead;
         if (!seen) {
             float behind = DotZYX(d, facing);
-            if ((std::bit_cast<std::uint32_t>(behind) & 0x80000000u) == 0 && ours->stats.peripheralRange > distance) {
+            if (!SignBit(behind) && ours->stats.peripheralRange > distance) {
                 console::EndLine(LogPair(self, " sees unit ", other) << " with peripheral vision");
                 seen = true;
             } else {
@@ -156,7 +156,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         if (seen && dead) {
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
             memory->seenCorpses.AddCountedTail(other);
-            if (Allied(self->side, other->side)) memory->corpses.AddCountedTail(other);
+            if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) memory->corpses.AddCountedTail(other);
             continue;
         }
         if (alive) {
@@ -191,7 +191,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
                   static_cast<float>(static_cast<double>(other->localPosition_.z) - self->localPosition_.z)};
         float distance = LengthZYX(d);
         if (IsDead(other)) {
-            if (Allied(self->side, other->side)) {
+            if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) {
                 // AddTail (a second copy follows below).
                 memory->seenCorpses.push_back(other);
                 ++other->refCount_;
@@ -199,7 +199,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
             }
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
             memory->seenCorpses.AddCountedTail(other);
-            if (Allied(self->side, other->side)) memory->corpses.AddCountedTail(other);
+            if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) memory->corpses.AddCountedTail(other);
         } else {
             if (self->IsHostileTo(other) && !hasPlayer) continue;
             CUnitServer* theirs = other->ServerController();

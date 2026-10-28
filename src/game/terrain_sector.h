@@ -20,6 +20,9 @@ class CTransformPipeline;
 
 namespace terrain {
 
+constexpr int kSectorRow = 33;                         // vertices per sector row
+constexpr int kSectorVertices = kSectorRow * kSectorRow;   // per layer
+
 struct LightRefBlock;
 
 // One entry per lit vertex: the point lights that reach it (pooled 16-byte nodes).
