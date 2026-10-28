@@ -1,5 +1,5 @@
 // The window surface's constructors and destructor (CUiSurface). The holder has no DirectDraw surface, only the new
-// renderer's memory (dx_surface.cpp): the surface is already zero, so the original's colour fill is left out. Making a
+// renderer's memory (surface.cpp): the surface is already zero, so the original's colour fill is left out. Making a
 // window asks DirectDraw for nothing. The picture constructor has no caller (config/dead_code.csv). See docs/notes/ui.md,
 // "Surface construction".
 #include "app.h"
@@ -7,7 +7,7 @@
 #include "ui_native.h"
 
 #include "base_manager.h"
-#include "dx_surface.h"
+#include "surface.h"
 #include "texture.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -22,7 +22,7 @@ namespace {
 
 // height * pitch of the surface's memory (DirectPixels: window and picture holders alike; the
 // original's GetSurfaceDesc); 0 without memory.
-std::uint32_t SurfaceBytes(CDXSurface* holder) {
+std::uint32_t SurfaceBytes(Surface* holder) {
     SurfacePixels pixels;
     DirectPixels(holder, &pixels, true);
     return static_cast<std::uint32_t>(pixels.height) * static_cast<std::uint32_t>(pixels.pitch);
@@ -30,8 +30,8 @@ std::uint32_t SurfaceBytes(CDXSurface* holder) {
 
 // Puts `made` (counted once more, may be null) into the surface's holder and drops the previous one's
 // reference through the body of the reference release (the deleting destructor at zero).
-void ReplaceHolder(CUiSurface* self, CDXSurface* made) {
-    CDXSurface* previous = self->holder_;
+void ReplaceHolder(CUiSurface* self, Surface* made) {
+    Surface* previous = self->holder_;
     self->holder_ = made;
     if (made) ++made->refs_;
     if (previous) previous->Release();
@@ -44,7 +44,7 @@ CUiSurface* Finish(CUiSurface* self, bool scale) {
     self->width_ = rect->right - rect->left;
     self->height_ = rect->bottom - rect->top;
     // (The interface's renderer is the device object.)
-    CDXSurface* made = new CDXSurface(self->interface_->renderer_, self->width_, self->height_);
+    Surface* made = new Surface(self->interface_->renderer_, self->width_, self->height_);
     ReplaceHolder(self, made);
     g_uiSurfaceBytes += SurfaceBytes(self->holder_);
     self->kept_ = nullptr;
@@ -74,8 +74,8 @@ CUiSurface::~CUiSurface() {
         kept_ = nullptr;
         g_uiSurfaceKeptBytes -= keptSize_;
     }
-    if (CDXSurface* holder = holder_) g_uiSurfaceBytes -= SurfaceBytes(holder);
-    CDXSurface* holder = holder_;
+    if (Surface* holder = holder_) g_uiSurfaceBytes -= SurfaceBytes(holder);
+    Surface* holder = holder_;
     holder_ = nullptr;
     if (holder) holder->Release();
     gameapi::SetRectEmpty(&rect_);

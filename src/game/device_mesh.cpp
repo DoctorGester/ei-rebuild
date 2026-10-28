@@ -41,8 +41,8 @@ struct MeshArgs {
 };
 
 struct Textures {
-    CDXSurface* first;
-    CDXSurface* second;
+    Surface* first;
+    Surface* second;
 };
 
 // --- The buffers ---------------------------------------------------------------------------------
@@ -196,7 +196,7 @@ int CTextureDevice::DrawMeshBlocks(const VertexPacket* positions, int blocks, co
     return DrawMesh(this, a, nullptr);
 }
 
-int CTextureDevice::DrawMeshBlocks2(CDXSurface* firstTexture, CDXSurface* secondTexture,
+int CTextureDevice::DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture,
                                const VertexPacket* positions, int blocks, const NormalPacket* normals, int colourCount,
                                std::uint32_t* colours, std::uint32_t* speculars, const TexCoord* uvs, int unused10,
                                const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,

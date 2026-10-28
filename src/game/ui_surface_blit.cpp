@@ -13,7 +13,7 @@
 
 void CUiSurface::Blit() {
     CUiSurface* surface = this;
-    CDXSurface* holder = surface->holder_;
+    Surface* holder = surface->holder_;
     std::uint32_t flags = surface->flags_;
     if (!holder || !(flags & 4)) return;
     const CInterface3D* screen = surface->interface_;

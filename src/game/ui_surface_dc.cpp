@@ -1,11 +1,11 @@
 // A window surface's device context (CUiSurface; one function gets it, one releases it): the device lock is
 // held from one to the other and the HDC kept in the surface's dc_. The surface's pixels are in the new
-// renderer's memory (dx_surface.cpp, a DIB section; the holder has no DirectDraw surface), drawn through a
+// renderer's memory (surface.cpp, a DIB section; the holder has no DirectDraw surface), drawn through a
 // memory DC on it instead of DirectDraw's GetDC. GDI keeps the bounds of what is drawn through the DC; its
 // release marks them written for the new renderer (render::SurfaceWritten). See docs/notes/renderer.md
 // ("Interface windows", section 6).
 #include "app.h"
-#include "dx_surface.h"
+#include "surface.h"
 
 #include "texture.h"
 #include "ui.h"
@@ -25,7 +25,7 @@ std::unordered_map<HDC, HGDIOBJ> g_memoryDcs;
 
 // Marks what GDI drew through `dc` into the memory of `holder` written: the DC's bounds, a few pixels
 // wider (text's overhang); all of it when the bounds cannot be read.
-void MarkDrawn(const CDXSurface* holder, HDC dc) {
+void MarkDrawn(const Surface* holder, HDC dc) {
     RECT bounds{};
     UINT state = GetBoundsRect(dc, &bounds, 0);
     if (state & DCB_SET) {
@@ -46,7 +46,7 @@ bool IsSurfaceMemoryDc(HDC dc) { return g_memoryDcs.count(dc) != 0; }
 // the DC failed (also: no memory) and the report said stop (the device lock then stays held, as in
 // the original).
 HDC UiSurfaceGetDC(CUiSurface* surface) {
-    CDXSurface* holder = surface->holder_;
+    Surface* holder = surface->holder_;
     if (!holder) return nullptr;
     HDC& dc = surface->dc_;
     dc = nullptr;
@@ -58,14 +58,13 @@ HDC UiSurfaceGetDC(CUiSurface* surface) {
         g_memoryDcs[dc] = gameapi::SelectObject(dc, bitmap);
         SetBoundsRect(dc, nullptr, DCB_ENABLE | DCB_RESET);   // the bounds of what is drawn from now on
     }
-    holder->result = dc ? 0 : -1;
     if (!dc && !app::FatalErrorCode(-1, "Can't get surface's DC.\n")) return nullptr;   // "Can't get surface's DC"
     return dc;
 }
 
 // Leaves the device lock and releases the DC (nothing for a DC the getter did not make).
 void UiSurfaceReleaseDC(CUiSurface* surface) {
-    CDXSurface* holder = surface->holder_;
+    Surface* holder = surface->holder_;
     if (holder) {
         HDC dc = surface->dc_;
         gameapi::LeaveCriticalSection(&g_deviceLock);
@@ -76,7 +75,6 @@ void UiSurfaceReleaseDC(CUiSurface* surface) {
             gameapi::SelectObject(dc, it->second);
             DeleteDC(dc);
             g_memoryDcs.erase(it);
-            holder->result = 0;
         }
     }
     surface->dc_ = nullptr;

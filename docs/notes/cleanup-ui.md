@@ -12,7 +12,7 @@ The screens themselves are in `ui.md`. Calls to rewritten code still go through 
 - `CItemInfoPanel`'s text arrays are `std::vector<std::string>`; the descriptions read `itemdb` records (item heads, materials, weapons, armour,
   spells) and `UnitStats` slots.
 - Sprites are `CUiMesh` (derived from `CFigureMesh`; `texture_`, `plainColour_`, `flags_`, `position_`, `orientation_`, `tint_`, `uOffset_`,
-  `vOffset_`, `visible_`); window vtables are `CUiWindow::vtable_` / `inputVtable_`; texture memory is `CTexture::surface_` (`CDXSurface`)
+  `vOffset_`, `visible_`); window vtables are `CUiWindow::vtable_` / `inputVtable_`; texture memory is `CTexture::surface_` (`Surface`, surface.h)
   locked through `IDirectDrawSurface7`. Surfaces are `CUiSurface` (`flags_`, `holder_`, `kept_`, `keptSize_`, `width_`, `height_`).
 - `CInterface3D` names `pollTop_` (+0x81), `disconnected_` (+0x88), its backdrops (`backdrop_`, `secondBackdrop_`, `backdropMode_`),
   `serverFlag_`, the modifier flags (`ctrlDown_`, `shiftDown_`, `altDown_`, `doubleClick_`, `rightDown_`), `messages_`, `helpTopics_`

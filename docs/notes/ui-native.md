@@ -414,7 +414,7 @@ screen copy) and RunCanvasesNow. The offline check tools/ui_check plays that par
 The interface's 2D canvases (docs/notes/ui-native.md, section 3): a window surface's pixels kept on the GPU in a
 render target, drawn into by the commands GDI draws with today (fills, frames, lines, pixels, glyph runs) and by
 the surface pixel code (the screen copy, greying), read back into the surface's memory for the readers, and blitted
-onto the frame as SurfaceBlit draws a surface. No GDI here. A canvas belongs to a surface holder (the CDXSurface of
+onto the frame as SurfaceBlit draws a surface. No GDI here. A canvas belongs to a surface holder (the `Surface` of
 a CUiSurface) and holds what the surface's memory would: every channel cut to the format's bits and widened again
 (render_textures.cpp's Expand), so 16-bit surfaces quantise as GDI does and the colour key compares exactly.
 Commands are queued in call order and drawn on the GPU before the frame's next pass (drawing before a canvas's

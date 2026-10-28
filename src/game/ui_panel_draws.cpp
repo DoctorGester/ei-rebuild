@@ -23,7 +23,6 @@ namespace {
 
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr std::uint32_t kClearZBuffer = 2;       // D3DCLEAR_ZBUFFER
-constexpr std::uint32_t kClearStencil = 4;       // D3DCLEAR_STENCIL
 
 const char* NumberFormat() { return "%d"; }
 const char* CostFormat() { return "%s %d (%d)"; }
@@ -33,10 +32,10 @@ const char* CostFormat() { return "%s %d (%d)"; }
 void DrawItem(CItemScreen* owner, CSceneRenderer* pass, ItemCell* cell) { owner->DrawItem(pass, cell); }
 
 
-// The depth buffer (and the stencil when the device has one) cleared over `rect` (null: all of it) to
+// The depth buffer cleared over `rect` (null: all of it) to
 // `z` under the device lock; the new renderer gets the clear too.
 void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
-    std::uint32_t flags = uidevice::HasStencil(renderer) ? kClearZBuffer | kClearStencil : kClearZBuffer;
+    std::uint32_t flags = kClearZBuffer;
     gameapi::EnterCriticalSection(&g_deviceLock);
     renderer->lastLoadResult_ = uidevice::Clear(renderer, rect ? 1 : 0, rect, flags, 0, z, 0);
     gameapi::LeaveCriticalSection(&g_deviceLock);

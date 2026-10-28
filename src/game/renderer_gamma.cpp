@@ -3,7 +3,7 @@
 // the window). Called by WinMain at start-up and with zeros at exit, and by the options screen when a value
 // changes; no caller reads the result. See docs/notes/renderer.md.
 #include "model.h"     // CSceneRenderer
-#include "texture.h"   // CTextureDevice, CDXSurface
+#include "texture.h"   // CTextureDevice, Surface
 
 #include "render/render.h"
 #include "lib/nan_audit.h"

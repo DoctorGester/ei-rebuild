@@ -995,7 +995,7 @@ CTextureDevice* DeviceObject() { return game::Where().renderer->device_; }
 // The size of the game's render target (in the switch-over a holder without a surface that has the screen's size).
 bool GameTargetSize(int* width, int* height) {
     CTextureDevice* device = DeviceObject();
-    const CDXSurface* target = device ? device->renderTarget_ : nullptr;
+    const Surface* target = device ? device->renderTarget_ : nullptr;
     if (!target) return false;
     *width = target->width;
     *height = target->height;

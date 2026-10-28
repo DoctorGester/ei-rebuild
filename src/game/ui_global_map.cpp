@@ -15,7 +15,7 @@
 
 #include "console.h"
 #include "core_maths.h"
-#include "dx_surface.h"
+#include "surface.h"
 #include "item_db_text.h"
 #include "maths.h"
 #include "model.h"
@@ -556,7 +556,7 @@ void CGlobalMap::Update() {
     // The weather is drawn straight into texture 4's pixels: only the new renderer's memory
     // drawn into directly (DirectDraw: between a Lock and an Unlock).
     if (std::ssize(objects_) > 4) {
-        CDXSurface* holder = objects_[4]->surface_;
+        Surface* holder = objects_[4]->surface_;
         auto* lock = &g_deviceLock;
         gameapi::EnterCriticalSection(lock);
         SurfacePixels pixels;

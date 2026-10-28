@@ -11,7 +11,7 @@
 #include "game_strings.h"
 
 #include "console.h"
-#include "dx_surface.h"
+#include "surface.h"
 #include "item_db_text.h"
 #include "text_reader.h"
 #include "net_link.h"
@@ -69,20 +69,20 @@ struct LocalFileStream {
     }
 };
 
-CDXSurface* HolderOf(CTexture* texture) { return texture->surface_; }
+Surface* HolderOf(CTexture* texture) { return texture->surface_; }
 
 // The pixels of a picture texture for one fill or read: the holder's memory (the original: a Lock
 // with flags 0 and the Unlock after).
 class PicturePixels {
 public:
-    explicit PicturePixels(CDXSurface* holder) : holder_(holder) {}
+    explicit PicturePixels(Surface* holder) : holder_(holder) {}
 
     // False without memory (the textures always have it; the original's failed Lock whose report said stop).
     bool Begin() { return DirectPixels(holder_, &pixels_); }
     std::uint8_t* Bits() const { return pixels_.bits; }
 
 private:
-    CDXSurface* holder_;
+    Surface* holder_;
     SurfacePixels pixels_;
 };
 
@@ -160,7 +160,7 @@ void CSaveLoadWindow::ShowPicture() {
         found = find.FindFile(path);
     }
     if (!found) return;
-    CDXSurface* holder = HolderOf(objects_[1]);
+    Surface* holder = HolderOf(objects_[1]);
     gameapi::EnterCriticalSection(&g_deviceLock);
     PicturePixels pixels(holder);
     if (!pixels.Begin()) return;   // (the device lock stays held, as in the original)
@@ -246,7 +246,7 @@ void CSaveLoadWindow::SaveGame() {
 
     // shot.sav: the game's picture.
     if (dialog_) {
-        CDXSurface* holder = HolderOf(dialog_);
+        Surface* holder = HolderOf(dialog_);
         gameapi::EnterCriticalSection(&g_deviceLock);
         PicturePixels pixels(holder);
         if (!pixels.Begin()) {
@@ -346,7 +346,7 @@ void CSaveLoadWindow::FillEntries() {
             dialog_ = shot;
             ++shot->refCount_;
             RemoveObjectAt(std::ssize(objects_) - 1);
-            CDXSurface* holder = HolderOf(dialog_);
+            Surface* holder = HolderOf(dialog_);
             gameapi::EnterCriticalSection(&g_deviceLock);
             PicturePixels pixels(holder);
             // A failed Lock whose report says stop leaves with the device lock held and the scroll bar as it was (the

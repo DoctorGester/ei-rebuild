@@ -70,7 +70,6 @@ Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
 // of the three screen rectangles set to `z` under the device lock.
 void ClearDepthRects(CTextureDevice* renderer, RECT* rects, float z) {
     DWORD flags = D3DCLEAR_ZBUFFER;
-    if (uidevice::HasStencil(renderer)) flags = D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL;
     gameapi::EnterCriticalSection(&g_deviceLock);
     D3DRECT cleared[kClearedRects];
     for (DWORD i = 0; i < kClearedRects; ++i) cleared[i] = {rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};

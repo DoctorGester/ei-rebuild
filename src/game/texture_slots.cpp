@@ -48,7 +48,7 @@ void MmpHeader::SetFormat8888() {
 namespace {
 // The counted surface pointer set to null: the holder loses a reference (deleted at 0).
 void DropSurface(CTexture* texture) {
-    CDXSurface* held = texture->surface_;
+    Surface* held = texture->surface_;
     texture->surface_ = nullptr;
     if (held) held->Release();
 }
@@ -67,8 +67,7 @@ int CTexture::Create() {
     height_ = 0;
     width_ = 0;
     uploadResult_ = 0;
-    std::memset(&format_, 0, sizeof(format_));
-    format_.words[0] = sizeof(PixelFormat);   // DDPIXELFORMAT dwSize
+    format_ = 0;
     extra_.clear();
     return 1;
 }
@@ -86,8 +85,7 @@ CTexture::CTexture() {
     height_ = 0;
     width_ = 0;
     uploadResult_ = 0;
-    std::memset(&format_, 0, sizeof(format_));
-    format_.words[0] = sizeof(PixelFormat);   // DDPIXELFORMAT dwSize
+    format_ = 0;
     extra_.clear();
 }
 

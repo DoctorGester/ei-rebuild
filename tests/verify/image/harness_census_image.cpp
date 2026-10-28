@@ -2,7 +2,7 @@
 #include "image_side.h"
 
 #include "game/console.h"
-#include "game/dx_surface.h"
+#include "game/surface.h"
 #include "game/game_singletons.h"
 #include "game/texture.h"
 #include "game/ui.h"
@@ -38,7 +38,11 @@ void ReadSurfaceFields(const void* copy, SurfaceFields* fields) {
     fields->width = surface->width_;
     fields->height = surface->height_;
 }
-const void* HolderSurfaceField(void* holder) { return &static_cast<CDXSurface*>(holder)->surface; }
+// Our holders have no DirectDraw surface: the field reads as null.
+const void* HolderSurfaceField(void*) {
+    static void* const kNoSurface = nullptr;
+    return &kNoSurface;
+}
 void WindowSurfaces(const void* window, const void* const** data, int* size) {
     const auto* w = static_cast<const CUiWindow*>(window);
     *data = reinterpret_cast<const void* const*>(w->surfaces_.data());

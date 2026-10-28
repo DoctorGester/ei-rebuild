@@ -210,7 +210,7 @@ void EndShadowBuildTime();
 
 // Off-screen surfaces (interface windows, the software cursor, movies), system-memory pictures and some
 // texture holders (save / load pictures, shadow and .bmp textures) keep their pixels in memory the renderer
-// owns, with no DirectDraw surface; the renderer reads a holder's (CDXSurface) pixels there wherever it
+// owns, with no DirectDraw surface; the renderer reads a holder's (Surface) pixels there wherever it
 // draws it, a texture again whenever the memory changed.
 // The memory: a zeroed top-down DIB section (GDI can draw into it through a memory DC), 16 or 32 bits a
 // pixel, channels at the masks (`alphaMask` 0 without alpha).

@@ -42,7 +42,7 @@ class CUiWindow;
 class CChatOverlay;
 struct UiInputSide;
 class CUiMesh;
-struct CDXSurface;
+struct Surface;
 class CTexture;
 class CTextureDevice;
 class CPixelConverter;
@@ -375,7 +375,7 @@ public:
     CInterface3D* interface_;
     HDC dc_;                         // while the DC is held
     std::uint32_t flags_;            // the constructors store the format here, then set kShown
-    CDXSurface* holder_;             // the DirectDraw surface's holder (null while swapped out)
+    Surface* holder_;             // the DirectDraw surface's holder (null while swapped out)
     int width_;
     int height_;
     std::uint8_t* kept_;             // the contents kept in memory while swapped out
@@ -661,8 +661,6 @@ class CUiScrollText;
 // The interface code's calls on the device's IDirect3DDevice7 (ui_d3d_device.cpp).
 namespace uidevice {
 long Clear(CTextureDevice* device, DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil);
-// Whether the device's depth buffer has a stencil.
-bool HasStencil(const CTextureDevice* device);
 } // namespace uidevice
 
 // Weapon bar (four 40x80 slots at (80..240, 520..600)).

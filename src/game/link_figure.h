@@ -65,7 +65,7 @@ struct FigureMeshDrawer : FigureDrawerBase {
 
 class CTextureDevice;
 
-struct CDXSurface;
+struct Surface;
 
 // A part's header in the mesh's header map (map<string, LinkPartHeader>; 0x50 bytes, zeroed when the
 // map inserts it).
@@ -133,11 +133,11 @@ public:
                               std::uint32_t u, std::uint32_t v) = 0;
     virtual int DrawPart(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
                          std::vector<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) = 0;
-    virtual int DrawPartMovedTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
+    virtual int DrawPartMovedTextured(const std::string* name, int flags, Surface* first, Surface* second,
                                       std::vector<std::uint32_t>* colours,
                                       std::vector<std::uint32_t>* speculars,
                                       std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) = 0;
-    virtual int DrawPartTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
+    virtual int DrawPartTextured(const std::string* name, int flags, Surface* first, Surface* second,
                                  std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                                  std::uint32_t u, std::uint32_t v) = 0;
     // The shadow of part `name`: its points projected with `matrix` (the part's per-vertex offsets added)
@@ -179,10 +179,10 @@ public:
                       std::uint32_t u, std::uint32_t v) override;
     int DrawPart(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
                  std::vector<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) override;
-    int DrawPartMovedTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
+    int DrawPartMovedTextured(const std::string* name, int flags, Surface* first, Surface* second,
                               std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                               std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) override;
-    int DrawPartTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
+    int DrawPartTextured(const std::string* name, int flags, Surface* first, Surface* second,
                          std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                          std::uint32_t u, std::uint32_t v) override;
     int ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const float* matrix,

@@ -21,16 +21,16 @@ constexpr LONG kLargeSize = 0x20;
 constexpr LONG kSmallSize = 0x10;
 
 // A surface holder pointer set to `holder` (one reference more), the old one released.
-void AssignHolder(CDXSurface*& slot, CDXSurface* holder) {
-    CDXSurface* old = slot;
+void AssignHolder(Surface*& slot, Surface* holder) {
+    Surface* old = slot;
     slot = holder;
     if (holder) ++holder->refs_;
     if (old) old->Release();
 }
 
 // A new off-screen surface of the screen's format; null when the allocation fails.
-CDXSurface* NewSurface(CTextureDevice* device, LONG width, LONG height) {
-    return new CDXSurface(device, width, height);
+Surface* NewSurface(CTextureDevice* device, LONG width, LONG height) {
+    return new Surface(device, width, height);
 }
 
 constexpr int kThreadPriority = 2;          // THREAD_PRIORITY_HIGHEST
@@ -39,8 +39,8 @@ constexpr int kModeLocked = 2;              // the thread draws to the primary: 
 constexpr DWORD kFramePeriod = 125;         // ms per frame of an animated cursor
 
 // A holder pointer emptied, then its old holder released.
-void ReleaseHolder(CDXSurface*& slot) {
-    CDXSurface* old = slot;
+void ReleaseHolder(Surface*& slot) {
+    Surface* old = slot;
     slot = nullptr;
     if (old) old->Release();
 }

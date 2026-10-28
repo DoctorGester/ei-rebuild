@@ -5,7 +5,7 @@
 #include "dib.h"
 #include "game_strings.h"
 #include "model.h"
-#include "texture.h"   // CTextureDevice, CDXSurface
+#include "texture.h"   // CTextureDevice, Surface
 
 #include "ei/main_loop.h"
 #include "lib/file_io.h"
@@ -87,7 +87,7 @@ void FrameStep(bool draw, bool cursor) {
     CTextureDevice* device = g_sceneRenderer->device_;
     std::uint32_t width = rect[4], height = rect[4];
     if (device->primary_) {
-        CDXSurface* target = device->renderTarget_;
+        Surface* target = device->renderTarget_;
         width = static_cast<std::uint32_t>(target->width);
         height = static_cast<std::uint32_t>(target->height);
     }

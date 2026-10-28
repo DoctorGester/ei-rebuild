@@ -9,7 +9,7 @@
 #include "ui_item_info.h"
 #include "plugin_fixes.h"
 
-#include "dx_surface.h"
+#include "surface.h"
 #include "item.h"
 #include "random.h"
 #include "spell.h"
@@ -180,7 +180,7 @@ constexpr std::uint32_t kPnt3 = kMmpFormatPnt3;
 // The texture's pixels for one fill: the texture manager's textures have only the new renderer's
 // memory, written directly (DirectPixels; the original: a Lock with flags 0 and the Unlock after). 0,
 // or the error the original's report gets when there is no memory (none is made without it).
-long LockTexture(CDXSurface* holder, SurfacePixels* pixels) {
+long LockTexture(Surface* holder, SurfacePixels* pixels) {
     return DirectPixels(holder, pixels) ? 0 : E_FAIL;
 }
 
@@ -411,7 +411,7 @@ CTexture* ItemFigureTexture(std::string_view name) {
     CTexture* texture = manager->NewTexture(0x100, 0x100, 0x20);
     if (!texture) return nullptr;
     ++texture->refCount_;
-    CDXSurface* holder = texture->surface_;
+    Surface* holder = texture->surface_;
     const MmpHeader* image;
     {
         std::string file = std::string(name) + ".mmp";
@@ -469,7 +469,7 @@ CTexture* ItemFigureTexture(std::string_view name) {
 
 int CUiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width,
                          int height, int x, int y, int, int) {
-    CDXSurface* holder = texture->surface_;
+    Surface* holder = texture->surface_;
     const MmpHeader* image;
     {
         std::string base(name);

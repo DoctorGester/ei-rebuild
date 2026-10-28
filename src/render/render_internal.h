@@ -579,7 +579,7 @@ void CountImage(ImageUse use, bool made);
 void CountImageRequest(ImageUse use);
 void LogImageCounts(const char* when);
 
-// A CTexture or a surface holder (CDXSurface) as a texture view with its mip levels: from its SurfaceMemory
+// A CTexture or a surface holder (Surface) as a texture view with its mip levels: from its SurfaceMemory
 // (again when changed), else what was decoded for it; white when there is none. Valid until the next Present.
 sg_view TextureView(const void* texture);
 sg_view SurfaceView(const void* holder);

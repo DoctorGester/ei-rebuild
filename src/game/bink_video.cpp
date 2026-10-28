@@ -48,7 +48,7 @@ unsigned g_loadingSurfaceType = /*007C5554*/ {};
 
 // The movie's surface holder: null at the start; the exit function its static initialiser registers releases
 // it once.
-CDXSurface* g_loadingHolder = /*007C551C*/ {nullptr};
+Surface* g_loadingHolder = /*007C551C*/ {nullptr};
 std::uint8_t g_loadingHolderReleased = /*007C5518*/ 0;
 
 // Cleared while a timed movie plays.
@@ -66,8 +66,8 @@ render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.righ
 // The movie's surface holder for a w x h frame: the system-memory kind (the new renderer's memory). The game
 // asked for a video-memory surface while a flag set from GetAvailableVidMem was 0, falling back to system
 // memory when that threw.
-CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
-    CDXSurface* holder = new CDXSurface(device, width, height);
+Surface* NewMovieHolder(CTextureDevice* device, int width, int height) {
+    Surface* holder = new Surface(device, width, height);
     if (holder) ++holder->refs_;
     return holder;
 }
@@ -97,8 +97,8 @@ unsigned CBinkVideo::Frame(char toPrimary) {
         render::MovieFrame(this, frame.data(), static_cast<int>(binkHandle->width), static_cast<int>(binkHandle->height));
         gameapi::BinkNextFrame(binkHandle);
     }
-    CDXSurface* surfaceHolder = this->holder;
-    CDXSurface* target = toPrimary ? surfaceHolder->device->primary_ : surfaceHolder->device->renderTarget_;
+    Surface* surfaceHolder = this->holder;
+    Surface* target = toPrimary ? surfaceHolder->device->primary_ : surfaceHolder->device->renderTarget_;
     if (!device::SameSurface(target, surfaceHolder)) render::MovieBlit(this, ToRender(to));
     const BinkHeader* header = this->bink;
     return static_cast<int>(header->lastFrame) < static_cast<int>(header->frames) ? 1u : 0u;
@@ -128,7 +128,7 @@ char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char s
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
     gameapi::CopyRect(&screen, &g_sceneRenderer->device_->screen_);
-    CDXSurface* holder = NewMovieHolder(g_sceneRenderer->device_, width, height);
+    Surface* holder = NewMovieHolder(g_sceneRenderer->device_, width, height);
     // The frame's rectangle: mode 2 stretched to the screen's width (aspect kept), otherwise
     // centred at its size; both centred vertically (divisions round towards zero).
     RECT to;
@@ -180,7 +180,7 @@ char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char s
         gameapi::BinkDoFrame(bink);
         CopyFrame(bink, &frame);
         render::MovieFrame(&g_movieKey, frame.data(), width, height);
-        CDXSurface* primary = holder->device->primary_;
+        Surface* primary = holder->device->primary_;
         if (!device::SameSurface(primary, holder)) {
             if (clearScreen) render::Fill(ToRender(screen), 0);
             render::MovieBlit(&g_movieKey, ToRender(to));
@@ -218,9 +218,9 @@ void ShowLoadingMovie(int progress) {
         }
         RECT screen;
         gameapi::CopyRect(&screen, &g_sceneRenderer->device_->screen_);
-        CDXSurface* holder =
+        Surface* holder =
             NewMovieHolder(g_sceneRenderer->device_, static_cast<int>(g_loadingBink->width), static_cast<int>(g_loadingBink->height));
-        CDXSurface* old = g_loadingHolder;
+        Surface* old = g_loadingHolder;
         g_loadingHolder = holder;
         if (old) old->Release();
         g_loadingSurfaceType = kBinkSurface32R;
@@ -246,9 +246,9 @@ void ShowLoadingMovie(int progress) {
     }
     g_cursor->TakeLock();
     bink = g_loadingBink;
-    CDXSurface* holder = g_loadingHolder;
+    Surface* holder = g_loadingHolder;
     RECT source{0, 0, static_cast<LONG>(bink->width), static_cast<LONG>(bink->height)};
-    CDXSurface* primary = holder->device->primary_;
+    Surface* primary = holder->device->primary_;
     if (!device::SameSurface(primary, holder)) {
         const void* key = &g_loadingScreen;   // the loading movie in the new renderer
         if (decoded) render::MovieFrame(key, frame.data(), source.right, source.bottom);
@@ -279,8 +279,8 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
     gameapi::CopyRect(&screen, &g_sceneRenderer->device_->screen_);
-    CDXSurface* made = NewMovieHolder(g_sceneRenderer->device_, width, height);
-    CDXSurface* previous = holder;
+    Surface* made = NewMovieHolder(g_sceneRenderer->device_, width, height);
+    Surface* previous = holder;
     holder = made;
     if (previous) previous->Release();
     surfaceType = kBinkSurface32R;
@@ -303,7 +303,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
 
 void CloseLoadingMovie() {
     gameapi::BinkClose(g_loadingBink);
-    CDXSurface* holder = g_loadingHolder;
+    Surface* holder = g_loadingHolder;
     g_loadingBink = nullptr;
     g_loadingHolder = nullptr;
     if (holder) holder->Release();
@@ -321,7 +321,7 @@ void CBinkVideo::Close() {
         gameapi::BinkClose(bink);
         bink = nullptr;
     }
-    CDXSurface* old = holder;
+    Surface* old = holder;
     holder = nullptr;
     if (old) old->Release();
     g_cursor->SaveBackground(1);

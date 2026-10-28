@@ -12,8 +12,6 @@
 #include "../hook/log.h"
 #include "../render/render.h"
 
-#include <ddraw.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -35,9 +33,9 @@ int BytesPerPixel(int bits) {
 } // namespace
 
 // The bitmap is made from the new renderer's last frame (render::ReadFrame), in the depth and
-// channel masks the surface would have had (device::ScreenFormat), rows bottom-up, the part of the
+// channel masks the surface would have had (ScreenFormat), rows bottom-up, the part of the
 // rectangle outside the frame black. Null (logged) when the new renderer has no frame.
-CDib* CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
+CDib* CaptureSurfaceRect(Surface* self, const RECT* rect) {
     int frameWidth = 0, frameHeight = 0;
     std::vector<std::uint8_t> frame;
     if (!render::ReadFrame(&frameWidth, &frameHeight, &frame)) {
@@ -46,10 +44,9 @@ CDib* CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
         logged = true;
         return nullptr;
     }
-    DDPIXELFORMAT format;
-    device::ScreenFormat(self->bitsPerPixel == 16 ? 16 : 32, &format);
+    const PixelFormat format = ScreenFormat(self->bitsPerPixel);
     const int width = rect->right - rect->left, height = rect->bottom - rect->top;
-    auto* dib = new CDib(width, height, self->bitsPerPixel, format.dwRBitMask, format.dwGBitMask, format.dwBBitMask);
+    auto* dib = new CDib(width, height, self->bitsPerPixel, format.redMask, format.greenMask, format.blueMask);
     std::uint8_t* out = dib->AllocateBits();
     const int pixelBytes = BytesPerPixel(self->bitsPerPixel);
     if (!out || (pixelBytes != 2 && pixelBytes != 4) || width <= 0 || height <= 0) return dib;
@@ -74,7 +71,7 @@ CDib* CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
     return dib;
 }
 
-CDib* CaptureSurface(CDXSurface* self) {
+CDib* CaptureSurface(Surface* self) {
     const RECT whole = {0, 0, self->width, self->height};
     return CaptureSurfaceRect(self, &whole);
 }

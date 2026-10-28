@@ -17,7 +17,7 @@ class CTextureDevice;
 // The cursor's size in pixels: 32, or 16 for the small cursors (static initialisers set 32).
 inline LONG g_cursorWidth = /*007C7C90*/ 32;
 inline LONG g_cursorHeight = /*007C7C94*/ 32;
-struct CDXSurface;
+struct Surface;
 
 struct IDirectInput7A;
 struct IDirectInputDevice7A;
@@ -65,7 +65,7 @@ struct CursorImage {
     CursorImage(const CursorImage&) = delete;
     CursorImage& operator=(const CursorImage&) = delete;
 
-    CDXSurface* holder;
+    Surface* holder;
     LONG width;                      // a frame's width
     LONG height;
     int frames;                      // frames side by side (the picture's width / height)
@@ -121,8 +121,8 @@ public:
     RECT rect_;                      // the cursor's screen rectangle
     RECT from_;                      // the part of the image shown
     RECT bounds_;
-    CDXSurface* under_;              // the background under the cursor
-    CDXSurface* target_;             // where the cursor is drawn
+    Surface* under_;              // the background under the cursor
+    Surface* target_;             // where the cursor is drawn
     std::vector<CursorImage*> images_;   // the shapes (AddShape)
     POINT position_;                 // the position drawn last
     POINT heldPosition_;             // the position kept while held

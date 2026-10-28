@@ -250,7 +250,7 @@ struct SurfaceFields {
     int width = 0, height = 0;
 };
 void ReadSurfaceFields(const void* copy, SurfaceFields* fields);   // of a CUiSurface's copy
-const void* HolderSurfaceField(void* holder);    // &CDXSurface::surface
+const void* HolderSurfaceField(void* holder);    // a null DirectDraw surface pointer (ours have none)
 void WindowSurfaces(const void* window, const void* const** data, int* size);   // the window's surfaces_ array
 // The interface's own surfaces, and where its console keeps its surface (null without a console).
 struct InterfaceSurfaces {

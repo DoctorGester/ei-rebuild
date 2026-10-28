@@ -10,7 +10,7 @@
 #include "game_strings.h"
 
 #include "dib.h"
-#include "dx_surface.h"
+#include "surface.h"
 
 #include "lib/file_io.h"
 #include "lib/crt.h"
@@ -59,7 +59,7 @@ void WritePixels(std::uint8_t* out, int pitch, int rows, int perRow, int maxRows
 int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath) {
     if (flags_ & kTextureLoaded) return 1;
     ChannelLayout layout;
-    layout.Split(&format_);
+    layout.Split(TextureFormat(format_));
     lib::File file;
     lib::File alphaFile;
     CDib colour;
@@ -88,9 +88,9 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     const std::uint8_t* alphaBits = withAlpha ? alpha.bits : nullptr;
 
     // The new renderer's memory is the texture.
-    CDXSurface* memory = NewMemoryTextureHolder(device, width, height, format_.words);
-    if (!memory) ThrowSurfaceNotMade(device, 0, 0);
-    CDXSurface* previous = surface_;
+    Surface* memory = NewMemoryTextureHolder(device, width, height, TextureFormat(format_));
+    if (!memory) ThrowSurfaceNotMade(0, 0);
+    Surface* previous = surface_;
     surface_ = memory;
     ++memory->refs_;
     if (previous) previous->Release();

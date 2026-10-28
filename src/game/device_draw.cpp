@@ -21,7 +21,7 @@
 namespace {
 
 CDeviceMaterial* CurrentMaterial(CTextureDevice* device) { return device->material_; }
-CDXSurface* TextureSurface(CTexture* texture) { return texture->surface_; }
+Surface* TextureSurface(CTexture* texture) { return texture->surface_; }
 
 // The material's blend: blending on with its factors.
 void SetMaterialBlend(const CDeviceMaterial* material) {
@@ -63,7 +63,7 @@ void SetSinglePassStage(CTextureDevice* device, int stage, MaterialStage& s) {
         device->BindSurface(stage, s.texture ? TextureSurface(s.texture) : nullptr);
         return;
     }
-    CDXSurface*& bound = device->stageSurfaces_[stage];
+    Surface*& bound = device->stageSurfaces_[stage];
     if (bound) {
         bound = nullptr;
         device->lastLoadResult_ = device::SetTexture(device::D3D(device), static_cast<DWORD>(stage), nullptr);
@@ -85,7 +85,7 @@ void SetFirstPassStage(CTextureDevice* device, int stage, MaterialStage& s) {
 
 // A further pass: its stage record on stage 0.
 void SetLaterPassStage(CTextureDevice* device, MaterialStage& s) {
-    CDXSurface* surface = nullptr;
+    Surface* surface = nullptr;
     if (s.texture) {
         surface = TextureSurface(s.texture);
     } else if (!s.name.empty()) {
@@ -117,7 +117,7 @@ void DrawPasses(CTextureDevice* device, CRenderPreset* preset, int vertexCount, 
 
 // Stage 0's surface, as the surface bind does it: when it changes, the stage's texture set (null: no holder has a
 // DirectDraw surface; the new renderer draws with the holder in stageSurfaces_), and the change counted.
-void BindStage0(CTextureDevice* device, CDXSurface* holder) {
+void BindStage0(CTextureDevice* device, Surface* holder) {
     if (device->stageSurfaces_[0] == holder) return;
     device->stageSurfaces_[0] = holder;
     device->lastLoadResult_ = device::SetTexture(device::D3D(device), 0, nullptr);
@@ -147,7 +147,7 @@ int CTextureDevice::DrawIndexed(int vertexCount, unsigned indexCount) {
 
 // Draws the indexed primitives with `first` on stage 0, then again blended (source
 // alpha / inverse source alpha, blending on) with `second` and texture coordinates 0. Returns 1.
-int CTextureDevice::DrawTwoTextures(CDXSurface* first, CDXSurface* second, int vertexCount, unsigned indexCount) {
+int CTextureDevice::DrawTwoTextures(Surface* first, Surface* second, int vertexCount, unsigned indexCount) {
     BindStage0(this, first);
     unsigned triangles = indexCount / 3;
     Draw(this, vertexCount, triangles);

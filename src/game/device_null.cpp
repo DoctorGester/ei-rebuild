@@ -38,29 +38,6 @@ DDPIXELFORMAT RgbFormat(DWORD flags, DWORD bits, DWORD red, DWORD green, DWORD b
     return f;
 }
 
-DDPIXELFORMAT FourCCFormat(DWORD code) {
-    DDPIXELFORMAT f{};
-    f.dwSize = sizeof(f);
-    f.dwFlags = DDPF_FOURCC;
-    f.dwFourCC = code;
-    return f;
-}
-
-const DDPIXELFORMAT kTextureFormats[] = {
-    RgbFormat(DDPF_RGB, 16, 0xF800, 0x07E0, 0x001F, 0),                                     // 5:6:5
-    RgbFormat(DDPF_RGB | DDPF_ALPHAPIXELS, 16, 0x7C00, 0x03E0, 0x001F, 0x8000),             // 1:5:5:5
-    RgbFormat(DDPF_RGB | DDPF_ALPHAPIXELS, 16, 0x0F00, 0x00F0, 0x000F, 0xF000),             // 4:4:4:4
-    RgbFormat(DDPF_RGB | DDPF_ALPHAPIXELS, 32, 0xFF0000, 0xFF00, 0xFF, 0xFF000000u),        // 8:8:8:8
-    FourCCFormat(MAKEFOURCC('D', 'X', 'T', '1')),
-    FourCCFormat(MAKEFOURCC('D', 'X', 'T', '2')),
-    FourCCFormat(MAKEFOURCC('D', 'X', 'T', '3')),
-    FourCCFormat(MAKEFOURCC('D', 'X', 'T', '4')),
-    // Rebirth's battle screen texture (battle00, 1536x1536) and footprints are DXT5: without it ParseMmpHeader finds no
-    // format, LoadTexture fails (Rebirth's DisableExitOnCrashReport goes on), the battle screen misses a texture and
-    // its sprites bind garbage.
-    FourCCFormat(MAKEFOURCC('D', 'X', 'T', '5')),
-};
-
 // The capabilities the game reads: the texture stages (CRenderHelper's presets, the renderer's
 // filters), the operations (the presets' check), the raster capabilities (the camp's antialiasing),
 // the largest texture (the texture manager's 512 limit), the render bit depths.
@@ -179,7 +156,8 @@ public:
         mode.dwHeight = static_cast<DWORD>(height_);
         mode.lPitch = width_ * (bits_ == 16 ? 2 : 4);
         mode.dwRefreshRate = kRefreshRate;
-        device::ScreenFormat(bits_, &mode.ddpfPixelFormat);
+        mode.ddpfPixelFormat = bits_ == 16 ? RgbFormat(DDPF_RGB, 16, 0xF800, 0x07E0, 0x001F, 0)
+                                            : RgbFormat(DDPF_RGB, 32, 0xFF0000, 0xFF00, 0xFF, 0);
         return mode;
     }
 
@@ -196,16 +174,6 @@ HRESULT EnumMode(LPVOID context, LPDDENUMMODESCALLBACK2 callback) {
     DDSURFACEDESC2 mode = g_switchOver.Mode();
     if (callback) callback(&mode, context);
     return DD_OK;
-}
-
-HRESULT EnumFormats(LPD3DENUMPIXELFORMATSCALLBACK callback, LPVOID context) {
-    int count = 0;
-    const DDPIXELFORMAT* formats = device::SwitchOverTextureFormats(&count);
-    for (int i = 0; i < count && callback; ++i) {
-        DDPIXELFORMAT copy = formats[i];
-        if (callback(&copy, context) != D3DENUMRET_OK) break;
-    }
-    return D3D_OK;
 }
 
 HRESULT FillDeviceCaps(LPD3DDEVICEDESC7 desc) {
@@ -284,16 +252,6 @@ IDirect3DDevice7* Direct3DDeviceToken() {
     return reinterpret_cast<IDirect3DDevice7*>(&g_device);
 }
 
-void ScreenFormat(int bitsPerPixel, DDPIXELFORMAT* format) {
-    *format = bitsPerPixel == 16 ? RgbFormat(DDPF_RGB, 16, 0xF800, 0x07E0, 0x001F, 0)
-                                 : RgbFormat(DDPF_RGB, 32, 0xFF0000, 0xFF00, 0xFF, 0);
-}
-
-const DDPIXELFORMAT* SwitchOverTextureFormats(int* count) {
-    *count = static_cast<int>(sizeof(kTextureFormats) / sizeof(kTextureFormats[0]));
-    return kTextureFormats;
-}
-
 // ---- The device calls of the rewritten code ----------------------------------------------
 
 void AddRef(IDirect3DDevice7*) {}
@@ -301,9 +259,6 @@ void Release(IDirect3DDevice7*) {}
 void Release(IDirectDraw7*) {}
 
 HRESULT GetCaps(IDirect3DDevice7*, D3DDEVICEDESC7* desc) { return FillDeviceCaps(desc); }
-HRESULT EnumTextureFormats(IDirect3DDevice7*, LPD3DENUMPIXELFORMATSCALLBACK callback, void* context) {
-    return EnumFormats(callback, context);
-}
 HRESULT BeginScene(IDirect3DDevice7*) { return g_switchOver.BeginScene(); }
 HRESULT EndScene(IDirect3DDevice7*) { return g_switchOver.EndScene(); }
 HRESULT Clear(IDirect3DDevice7*, DWORD, D3DRECT*, DWORD, D3DCOLOR, D3DVALUE, DWORD) { return D3D_OK; }
@@ -316,11 +271,6 @@ HRESULT SetTexture(IDirect3DDevice7*, DWORD stage, IDirectDrawSurface7* texture)
 }
 
 HRESULT GetCaps(IDirectDraw7*, DDCAPS* driver, DDCAPS* emulated) { return FillDirectDrawCaps(driver, emulated); }
-HRESULT GetDisplayMode(IDirectDraw7*, DDSURFACEDESC2* desc) {
-    if (!desc) return DDERR_INVALIDPARAMS;
-    *desc = g_switchOver.Mode();
-    return DD_OK;
-}
 HRESULT EnumDisplayModes(IDirectDraw7*, DWORD, DDSURFACEDESC2*, void* context, LPDDENUMMODESCALLBACK2 callback) {
     return EnumMode(context, callback);
 }

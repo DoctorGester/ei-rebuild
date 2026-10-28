@@ -1,18 +1,11 @@
-// Textures the game fills on the CPU: the texture manager's new texture (the save / load
-// screen's pictures, the global map's weather, the item pictures and the other interface textures)
-// and the blank surface it gets (also used by the
-// shadow textures).
-// The blank surface is no DirectDraw texture: its holder
-// has only the new renderer's memory (NewMemoryTextureHolder, dx_surface.cpp), which the writers
-// fill through DirectPixels (ui_item_view.cpp, ui_global_map.cpp, ui_saveload.cpp,
-// texture_shadow.cpp) and the new renderer reads. The binders' SetTexture gets the holder's null
-// surface. See docs/notes/renderer.md (section 7).
+// Textures the game fills on the CPU: the texture manager's new texture (the save / load screen's pictures, the global
+// map's weather, the item pictures and the other interface textures) and the blank surface it gets. Its holder has
+// only the new renderer's memory (NewMemoryTextureHolder, surface.cpp), which the writers fill through DirectPixels
+// (ui_item_view.cpp, ui_global_map.cpp, ui_saveload.cpp) and the new renderer reads. See docs/notes/renderer.md
+// (section 7).
 #include "texture.h"
 
-#include "dx_surface.h"
-#include "game_strings.h"
-
-#include "lib/crt.h"
+#include "surface.h"
 
 #include <cstdint>
 #include <cstring>
@@ -21,14 +14,14 @@ namespace {
 
 constexpr std::uint32_t kMmpMagic = 0x504D4D;   // "MMP"
 
-// The formats of the texture kinds: the device's format id and the channels it writes into the
-// header (mask, shift, bits; the header's other fields stay zero).
+// The formats of the texture kinds: the texture format and the channels it writes into the header (mask, shift,
+// bits; the header's other fields stay zero).
 struct Channel {
     std::uint32_t mask, shift, bits;
 };
 struct BlankFormat {
     int kind;
-    int id;
+    std::uint32_t id;
     Channel alpha, red, green, blue;
 };
 constexpr BlankFormat kBlankFormats[] = {
@@ -47,22 +40,18 @@ const BlankFormat* FormatOfKind(int kind) {
 
 
 int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
-    // A square of header->width (the height is not read). The holder: only the new renderer's memory,
-    // one level (the mipCount levels and caps by the kind flags are not made), which throws, with the
-    // holder's sizes zero, when it cannot be made).
+    // A square of header->width (the height is not read), one level. Without the memory (another kind's texture has no
+    // format) the error for a surface that cannot be made ends the game.
     const std::uint32_t size = header->width;
-    CDXSurface* surface = NewMemoryTextureHolder(device, static_cast<int>(size), static_cast<int>(size), format_.words);
-    if (!surface) ThrowSurfaceNotMade(device, 0, 0);
-    CDXSurface* previous = surface_;
+    Surface* surface =
+        NewMemoryTextureHolder(device, static_cast<int>(size), static_cast<int>(size), TextureFormat(format_));
+    if (!surface) ThrowSurfaceNotMade(0, 0);
+    Surface* previous = surface_;
     surface_ = surface;
-    if (surface) ++surface->refs_;
+    ++surface->refs_;
     if (previous) previous->Release();
-
-    // The byte size is meant to be bits * width * height / 8, but the bits are taken from
-    // the channel split's first field, which is never written: it is always 0.
-    ChannelLayout layout;
-    layout.Split(&format_);
-    uploadResult_ = static_cast<int>((layout.bitCount * size * size) >> 3);
+    // The original meant bits * width * height / 8 but took the bits from a field its channel split never writes.
+    uploadResult_ = 0;
     return 1;
 }
 
@@ -73,13 +62,7 @@ CTexture* CTextureManager::NewTexture(int width, int height, int kind) {
     texture->width_ = static_cast<std::uint32_t>(width);
     texture->height_ = static_cast<std::uint32_t>(height);
     if (const BlankFormat* f = FormatOfKind(kind)) {
-        PixelFormat format;
-        // A missing format: the report's result is returned as the texture (the new texture stays
-        // registered with the manager).
-        if (!device_->FindFormat(f->id, &format))
-            return reinterpret_cast<CTexture*>(
-                static_cast<std::uintptr_t>(game::FatalError(game::CantFindTextureFormatText(), kind)));
-        texture->format_ = format;
+        texture->format_ = f->id;
         header.alphaMask = f->alpha.mask;
         header.alphaShift = f->alpha.shift;
         header.alphaKind = f->alpha.bits;
@@ -93,7 +76,7 @@ CTexture* CTextureManager::NewTexture(int width, int height, int kind) {
         header.blueShift = f->blue.shift;
         header.blueBits = f->blue.bits;
         header.bitsPerPixel = 16;
-        header.format = static_cast<std::uint32_t>(f->id);
+        header.format = f->id;
     }
     header.magic = kMmpMagic;
     header.width = static_cast<std::uint32_t>(width);

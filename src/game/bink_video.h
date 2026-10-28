@@ -8,7 +8,7 @@
 
 #include <windows.h>
 
-struct CDXSurface;
+struct Surface;
 
 // Set while a .mob file loads: the loading screen's movie stays as it is.
 extern std::uint8_t g_loadingMovieOff;
@@ -44,7 +44,7 @@ struct CBinkVideo {
     void Close();
     void Destruct();
 
-    CDXSurface* holder;
+    Surface* holder;
     std::uint32_t surfaceType;  // BinkDDSurfaceType of the holder's surface
     RECT to;
     BinkHeader* bink;

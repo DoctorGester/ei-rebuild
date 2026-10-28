@@ -58,8 +58,8 @@ Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
     return out;
 }
 
-// D3DCLEAR_ZBUFFER, with D3DCLEAR_STENCIL when the device has a stencil buffer.
-unsigned long ClearFlags(const CTextureDevice* renderer) { return uidevice::HasStencil(renderer) ? 6 : 2; }
+// D3DCLEAR_ZBUFFER (the device has no stencil buffer).
+unsigned long ClearFlags(const CTextureDevice*) { return 2; }
 
 void ClearDepth(CTextureDevice* renderer, unsigned long count, RECT* rects, float z) {
     unsigned long flags = ClearFlags(renderer);
