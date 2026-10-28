@@ -132,16 +132,6 @@ constexpr int kNoSwitch = 4;   // RequestStream's "switch at the current positio
 constexpr int kEmitterCount = 16;
 constexpr int kSequenceCount = 8;
 
-template <typename T, typename E> void ConstructList(mfc::CList<T, E>& list, void* vtable) {
-    list.vtable = vtable;
-    list.head = nullptr;
-    list.tail = nullptr;
-    list.count = 0;
-    list.free = nullptr;
-    list.blocks = nullptr;
-    list.blockSize = kListBlockSize;
-}
-
 void ConstructFader(SoundFader& fader) {
     fader.volume = kFullVolume;
     fader.Recalc();
@@ -163,7 +153,6 @@ CSoundManager::CSoundManager() {
     gameapi::InitializeCriticalSection(&streamLock);
     ConstructFader(midiFader);
     gameapi::InitializeCriticalSection(&midiLock);
-    ConstructList(cacheList, gameslots::WaveListClass::Vtable());
     gameapi::AIL_startup();
     Reset();
 }
@@ -173,9 +162,7 @@ CSoundManager::CSoundManager() {
 CSoundManager::~CSoundManager() {
     Close();
     gameapi::AIL_shutdown();
-    cacheList.vtable = gameslots::WaveListClass::Vtable();
-    for (WaveNode* node = cacheList.head; node; node = node->next) recordarrays::Waves::DestructElements(&node->data, 1);
-    cacheList.RemoveAll();
+    cacheList.clear();
     gameapi::DeleteCriticalSection(&midiLock);
     gameapi::DeleteCriticalSection(&streamLock);
     gameapi::DeleteCriticalSection(&nameLock);
@@ -570,11 +557,9 @@ void CSoundManager::Close() {
         gamecrt::operator_delete(block);
     }
     DeleteDeferred();
-    // The game takes each record out by value (RemoveHead copies its name) and destroys the copy; here the
-    // node's own name is freed.
-    while (cacheList.count != 0) {
-        gameapi::AIL_mem_free_lock(cacheList.head->data.data);
-        cacheList.RemoveHead();   // the copy taken out is destroyed at once
+    while (!cacheList.empty()) {
+        gameapi::AIL_mem_free_lock(cacheList.front().data);
+        cacheList.pop_front();
     }
     cache.clear();
     if (midiSequence != nullptr) {

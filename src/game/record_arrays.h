@@ -25,31 +25,6 @@ using mfc::impl::ArrayAbi;
 using mfc::impl::Bytes;
 using mfc::impl::EachElements;
 
-// Network delta fields (DeltaState's array; net_delta.h has the element policy).
-using DeltaFields = ArrayAbi<DeltaField, DeltaFieldElements>;
-
-// Music themes: the names empty, both name arrays constructed; destroyed from the last member to the first.
-void InitTheme(MusicTheme* p);
-void DestroyTheme(MusicTheme* p);
-struct ThemeElements : EachElements<MusicTheme, InitTheme, DestroyTheme> {
-    // Moves themes within or between storages: the names moved (std::string), the name arrays as bytes.
-    static void Relocate(MusicTheme* to, MusicTheme* from, int count);
-};
-using Themes = ArrayAbi<MusicTheme, ThemeElements>;
-// CArray<MusicTheme>.
-struct ThemeArrayClass final
-    : mfc::impl::CompiledCollection<ThemeArrayClass, &Themes::Destruct<ThemeArrayClass>, &Themes::Serialize> {};
-
-using Waves = ArrayAbi<WaveRecord, EachElements<WaveRecord, gamelists::InitWave, gamelists::DestroyWave>>;
-
-// A unit's behaviour records: built by the constructor, destroyed by
-// the destructor body (also inlined elsewhere).
-inline void InitBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourConstruct(p); }
-inline void DestroyBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourDestruct(p); }
-using Behaviours = ArrayAbi<mapspec::Behaviour, EachElements<mapspec::Behaviour, InitBehaviour, DestroyBehaviour>>;
-// CArray<Behaviour> (the server unit's brain).
-struct BehaviourArrayClass final
-    : mfc::impl::CompiledCollection<BehaviourArrayClass, &Behaviours::Destruct<BehaviourArrayClass>, &Behaviours::Serialize> {};
 
 // ---- The script's command arrays ------------------------------------------------------------------
 
@@ -85,9 +60,6 @@ struct SubCallBaseClass
 struct SubCallArrayClass final : SubCallBaseClass {
     static void* Vtable() { return mfc::impl::CompiledVtable<SubCallArrayClass>(); }
 };
-// CArray<DeltaField>.
-struct DeltaFieldArrayClass final
-    : mfc::impl::CompiledCollection<DeltaFieldArrayClass, &DeltaFields::Destruct<DeltaFieldArrayClass>, &DeltaFields::Serialize> {};
 using TerrainTileLists = ArrayAbi<terrain::TileList, terrain::TileListElements>;
 // The terrain sectors' tile lists (one vector per texture page).
 struct TerrainTileListsClass final

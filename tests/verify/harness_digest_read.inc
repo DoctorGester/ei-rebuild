@@ -46,7 +46,7 @@ void ReadWorld(CWorldServer* w, Builder& b) {
     b.Int("cave", w->cave_);
     b.Int("weather", w->weather_);
     b.Float("weatherStrength", w->weatherStrength_);
-    b.Int("exits", w->exits_.size);
+    b.Int("exits", static_cast<int>(std::ssize(w->exits_)));
     b.Int("gameResult", w->gameResult_);
     b.Unsigned("lastRainBoltTick", w->lastRainBoltTick_);
     b.Int("zoneLoaded", w->zoneLoaded_);
@@ -61,7 +61,7 @@ void ReadWorld(CWorldServer* w, Builder& b) {
     b.Unsigned("updateMap", static_cast<std::uint32_t>(w->updateMap_.map.size()));
     b.Int("projectiles", std::ssize(w->projectiles_));
     b.Int("counted", std::ssize(w->counted_));
-    b.Int("sharedObjects", w->sharedObjects_.GetCount());
+    b.Int("sharedObjects", static_cast<int>(std::ssize(w->sharedObjects_)));
     for (int i = 0; i < 32; ++i) {
         b.Bits("allied#", w->diplomacy_.allied_[i], i);
         b.Bits("hostile#", w->diplomacy_.hostile_[i], i);
@@ -93,9 +93,9 @@ void ReadPlayer(CPlayer* p, Builder& b) {
 }
 
 void ReadEffects(CMapObject* m, Builder& b) {
-    b.Int("effects", m->effects.size);
-    for (int i = 0; i < m->effects.size; ++i) {
-        const auto& e = m->effects.data[i];
+    b.Int("effects", static_cast<int>(std::ssize(m->effects)));
+    for (int i = 0; i < std::ssize(m->effects); ++i) {
+        const auto& e = m->effects[i];
         b.Unsigned("effect#.type", e.type, i);
         b.Unsigned("effect#.power", e.power, i);
         b.Int("effect#.ticksLeft", e.ticksLeft, i);
@@ -107,7 +107,7 @@ void ReadEffects(CMapObject* m, Builder& b) {
 void ReadBrain(AIBrain& brain, Builder& b) {
     b.Int("ai.action", brain.action);
     b.Vector("ai.point.x", "ai.point.y", "ai.point.z", brain.move.point);
-    b.Int("ai.looks", brain.move.looks.GetSize());
+    b.Int("ai.looks", static_cast<int>(brain.move.looks.size()));
     b.Int("ai.actionTime", brain.actionTime);
     b.Int("ai.target", IdOf(brain.target));
     b.Int("ai.seen", IdOf(brain.seen));
@@ -129,8 +129,8 @@ void ReadBrain(AIBrain& brain, Builder& b) {
     b.Int("ai.nearby", std::ssize(brain.memory.nearby));
     b.Int("ai.visible", std::ssize(brain.memory.visible));
     b.Int("ai.corpses", std::ssize(brain.memory.corpses));
-    b.Int("ai.reports", brain.memory.reports.GetSize());
-    b.Int("ai.calls", brain.memory.calls.GetSize());
+    b.Int("ai.reports", static_cast<int>(brain.memory.reports.size()));
+    b.Int("ai.calls", static_cast<int>(brain.memory.calls.size()));
     b.Unsigned("ai.seesEnemy", brain.memory.seesEnemy);
     // The modes by their kinds' ids (ModeId: game.exe's vtable addresses; the writer names the known ones).
     b.Mode("ai.mode", ModeId(brain.current));
@@ -521,7 +521,7 @@ void ReadClientUnit(CUnit* u, Builder& b) {
     b.Int("maxHp", v.maxHitPoints);
     b.Unsigned("mana", v.mana);
     b.Unsigned("maxMana", v.maxMana);
-    b.Int("effects", u->effects.size);
+    b.Int("effects", static_cast<int>(std::ssize(u->effects)));
     b.Int("controller", u->controller ? u->controller->GetClassId() : -1);
 }
 

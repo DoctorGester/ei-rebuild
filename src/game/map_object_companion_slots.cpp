@@ -44,11 +44,12 @@ const char* CMapObjectClientSpecific::GetClassName() { return kClientClassName; 
 int CMapObjectClientSpecific::GetClassId() { return kClientClassId; }
 
 // Class name and id.
+EffectParticle::EffectParticle(EffectParticle&&) noexcept = default;
+EffectParticle& EffectParticle::operator=(EffectParticle&&) noexcept = default;
+EffectParticle::~EffectParticle() = default;
+
 const char* CMapObjectServer::GetClassName() { return kServerClassName; }
 int CMapObjectServer::GetClassId() { return kServerClassId; }
 
 // --- The client companion's particle records and the network records ---------------------------------
 
-void EffectParticle::ReleaseSource() {
-    if (source) source->Release();
-}

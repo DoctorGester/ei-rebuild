@@ -75,7 +75,7 @@ struct UnitMotion {
 
     std::vector<MotionPoint> points;
     std::vector<MotionWaypoint> waypoints;
-    mfc::CArray<float> stepSpeeds;            // per step: AIPath step speed (1/512 units)
+    std::vector<float> stepSpeeds;            // per step: AIPath step speed (1/512 units)
     float speedScale;
     float baseTurnRate;                     // radians per tick
     float turnRate;

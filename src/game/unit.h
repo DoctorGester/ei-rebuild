@@ -919,26 +919,26 @@ class CParticleSource;
 
 // One effect particle record of the client companion.
 struct EffectParticle {
-    void ReleaseSource();
+    // Out of line (map_object_companion_slots.cpp): releasing the source needs the complete CParticleSource.
+    EffectParticle() = default;
+    EffectParticle(EffectParticle&&) noexcept;
+    EffectParticle& operator=(EffectParticle&&) noexcept;
+    ~EffectParticle();
 
-    int type;                   // the effect type
-    int power;                  // the effect's power byte
-    CParticleSource* source;    // counted; null when the effect has no lasting source
-    std::uint8_t present;       // set while the effect list is compared
-    std::uint8_t unused_0D[3];
+    int type = 0;                       // the effect type
+    int power = 0x10;                   // the effect's power byte
+    HeldPtr<CParticleSource> source;    // null when the effect has no lasting source
+    std::uint8_t present = 0;           // set while the effect list is compared
 };
-static_assert(sizeof(EffectParticle) == 0x10);
 
 // One looping effect sound record.
 struct EffectSoundRecord {
-    int kind;                   // the effect type
-    int spareHandle;                    // -1 when made; nothing reads it
-    int handle;                 // feeble mind's sound sequence, -1 none
-    std::uint32_t timer;        // ticks to the next stench sound
-    std::uint8_t present;       // set while the effect list is compared
-    std::uint8_t unused_11[3];
+    int kind = 0;               // the effect type
+    int spareHandle = -1;       // nothing reads it
+    int handle = -1;            // feeble mind's sound sequence, -1 none
+    std::uint32_t timer = 0;    // ticks to the next stench sound
+    std::uint8_t present = 0;   // set while the effect list is compared
 };
-static_assert(sizeof(EffectSoundRecord) == 0x14);
 
 // An effect's sound at `position`: "<folder of kind><suffix>" when `play` (types with a folder); stench
 // (0x13) only clears the record's timer; feeble mind (0x20) starts its sound sequence into the record (and
@@ -946,7 +946,7 @@ static_assert(sizeof(EffectSoundRecord) == 0x14);
 void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
                                 const char* suffix);
 
-using EffectParticleArray = mfc::CArray<EffectParticle>;
+using EffectParticleArray = std::vector<EffectParticle>;
 
 // The client-side companion of a map object (GetClassName "CMapObjectClientSpecific"); its owner is a unit for IsDead
 // / IsOverkilled.
@@ -1002,12 +1002,9 @@ public:
     std::uint32_t lightStateA;          // cleared by Construct, Create and Destroy; nothing reads it
     std::uint32_t lightStateB;          // the same
     EffectParticleArray particles;  // the effect particles
-    mfc::CArray<EffectSoundRecord> sounds;        // the looping effect sounds
+    std::vector<EffectSoundRecord> sounds;        // the looping effect sounds
     HeldObject<CLight> light;       // counted
     int endSound;           // the end sound's handle (-1 none)
 };
-static_assert(offsetof(CMapObjectClientSpecific, endSound) == 0x54);
-static_assert(offsetof(CMapObjectClientSpecific, sounds) == 0x3C);
-static_assert(offsetof(CMapObjectClientSpecific, light) == 0x50);
 inline CMapObjectClientSpecific* CMapObject::ClientCompanion() const { return static_cast<CMapObjectClientSpecific*>(companion); }
 

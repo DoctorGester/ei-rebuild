@@ -13,40 +13,6 @@ namespace recordarrays {
 
 // ---- Scene records -------------------------------------------------------------------------------
 
-void InitTheme(MusicTheme* p) {
-    std::construct_at(&p->name);
-    std::construct_at(&p->briefing);
-    std::construct_at(&p->constructor);
-    std::construct_at(&p->calm);
-    std::construct_at(&p->combat);
-}
-void DestroyTheme(MusicTheme* p) {
-    std::destroy_at(&p->combat);
-    std::destroy_at(&p->calm);
-    std::destroy_at(&p->constructor);
-    std::destroy_at(&p->briefing);
-    std::destroy_at(&p->name);
-}
-void ThemeElements::Relocate(MusicTheme* to, MusicTheme* from, int count) {
-    auto move = [](MusicTheme* target, MusicTheme* source) {
-        std::memcpy(static_cast<void*>(target), source, sizeof(MusicTheme));
-        std::construct_at(&target->name, std::move(source->name));
-        std::construct_at(&target->briefing, std::move(source->briefing));
-        std::construct_at(&target->constructor, std::move(source->constructor));
-        std::construct_at(&target->calm, std::move(source->calm));
-        std::construct_at(&target->combat, std::move(source->combat));
-        std::destroy_at(&source->combat);
-        std::destroy_at(&source->calm);
-        std::destroy_at(&source->constructor);
-        std::destroy_at(&source->briefing);
-        std::destroy_at(&source->name);
-    };
-    if (to < from) {
-        for (int i = 0; i < count; ++i) move(to + i, from + i);
-    } else {
-        for (int i = count; i-- > 0;) move(to + i, from + i);
-    }
-}
 
 // ---- The script's command arrays ------------------------------------------------------------------
 
@@ -127,35 +93,4 @@ ScriptSubCalls* ScriptSubCalls::CopyConstruct(const ScriptSubCalls& source) {
     return this;
 }
 
-// The position and the waypoints are copied as the dwords they are.
-mapspec::Patrol* mapspec::Patrols::CopyAt(Patrol* result, int index) const {
-    const mapspec::Patrol& from = data[index];
-    std::memcpy(&result->position, &from.position, sizeof(from.position));
-    mfc::CArray<mapspec::Waypoint>& to = result->waypoints;
-    to.Construct(mfc::impl::WaypointArrayClass::Vtable());
-    int n = from.waypoints.size;
-    if (n) {
-        to.data = gamecrt::operator_new_array<mapspec::Waypoint>(static_cast<std::size_t>(n));
-        mfc::PlainElements<mapspec::Waypoint>::Construct(to.data, n);
-    }
-    to.maxSize = n;
-    to.size = n;
-    for (int i = 0; i < from.waypoints.size; ++i) std::memcpy(&to.data[i], &from.waypoints.data[i], sizeof(mapspec::Waypoint));
-    return result;
-}
 
-// The first ten floats, the target copy-constructed, then the rest (the flag as a byte).
-ZoneExit* ZoneExits::CopyAt(ZoneExit* result, int index) const {
-    const ZoneExit& from = data[index];
-    result->CopyAreaFields(from);
-    std::construct_at(&result->target, from.target);
-    result->entrance = from.entrance;
-    result->view = from.view;
-    result->hasDeployAngle = from.hasDeployAngle;
-    result->deployAngle = from.deployAngle;
-    return result;
-}
-
-void DeltaState::SetFieldCount(int count) {
-    fields_.SetSize(count, -1);
-}

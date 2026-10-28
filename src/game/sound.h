@@ -128,20 +128,17 @@ struct SoundSequence {
 using DeferredMap = lib::HashMap<std::int32_t, DeferredSound*>;
 
 // The wave cache: a list of loaded waves, most recently used first, and a hash_map from the wave name to its
-// list node. A copy of a record copies its name (RemoveHead returns one by value).
+// list node.
 struct WaveRecord {
     void* data = nullptr;       // Miles memory (AIL_mem_alloc_lock), or the decompressed MP3
     std::string name;
     std::uint32_t lastUsed = 0; // GetTickCount()
     std::int32_t size = 0;      // bytes
     std::int32_t uses = 0;      // voices playing it
-
-    WaveRecord* Assign(const WaveRecord* from);
 };
-// Its NewNode / FreeNode copy and destroy the record themselves.
-using WaveList = mfc::CList<WaveRecord, mfc::RawElements<WaveRecord>>;
-using WaveNode = WaveList::Node;
-using WaveCache = std::unordered_map<std::string, WaveNode*>;
+using WaveList = std::list<WaveRecord>;
+using WaveNode = WaveList::iterator;
+using WaveCache = std::unordered_map<std::string, WaveNode>;
 // Miles' ASISTAGE (mss.h): the ASI codec's stream functions and the handles of the attributes it reports.
 struct AsiStage {
     void*(__stdcall* open)(void* user, void* read, int size);       // ASI_stream_open
@@ -350,9 +347,8 @@ static_assert(offsetof(CSoundManager, streamReader) == 0x24 && offsetof(CSoundMa
 
 // A music theme from music.reg: one per allod, open land or dungeon.
 struct MusicTheme {
-
     std::string name;          // allod
-    std::int32_t dungeon;       // 0 open land, 1 dungeon
+    std::int32_t dungeon = 0;   // 0 open land, 1 dungeon
     std::string briefing;
     std::string constructor;
     SoundNameArray calm;        // CalmOpen / CalmDungeon
@@ -370,11 +366,7 @@ struct CMusicSystem : CEngineObject {
     const char* GetClassName() override;
     int GetClassId() override;
 
-    void* themesVtable;                 // CArray<MusicTheme>
-    MusicTheme* themes;
-    std::int32_t themeCount;
-    std::int32_t themeMax;
-    std::int32_t themeGrow;
+    std::vector<MusicTheme> themes;
     std::string credits;               // Common\Credits
     std::string mainMenu;              // Common\MainMenu
     std::int32_t state;                 // 0 off, 1 zone, 2 briefing, 3 constructor, 4 main menu, 5 credits
@@ -402,7 +394,6 @@ struct CMusicSystem : CEngineObject {
     void FadeOut();
     void FadeIn();
 };
-static_assert(offsetof(CMusicSystem, credits) == 0x30);
 // The ASI decoder's read callback on the stream thread: seeks to `offset` unless it is negative. Returns the
 // byte count (0 when the read fails).
 int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, int offset);

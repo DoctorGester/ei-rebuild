@@ -40,25 +40,23 @@ bool IsZero(double v) {
 // Patrol points from the record's patrols: each start on its half-cell's middle (z 0) and its
 // waypoints as looks of that point (the direction from the start, the wait and the turning time).
 void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
-    mode->points.SetSize(0, -1);
-    for (int i = 0; i < record->patrols.size; ++i) {
-        const mapspec::Patrol& patrol = record->patrols.data[i];
+    mode->points.clear();
+    for (int i = 0; i < std::ssize(record->patrols); ++i) {
+        const mapspec::Patrol& patrol = record->patrols[i];
         double cell = static_cast<double>(kOne) * kHalf;
         long cellX = x87::RoundToInt(static_cast<float>(kOne / cell * patrol.position.x));
         long cellY = x87::RoundToInt(static_cast<float>(kOne / cell * patrol.position.y));
         PatrolPoint point{};
-        point.looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
         point.position.y = static_cast<float>((static_cast<double>(cellY) + kHalf) * cell);
         point.position.x = static_cast<float>((static_cast<double>(cellX) + kHalf) * cell);
         point.position.z = 0.0f;
-        mode->points.Add(point);
-        LooksDestroyAt(&point.looks);
+        mode->points.push_back(point);
 
-        if (patrol.waypoints.size == 0) continue;
-        PatrolPoint* last = mode->points.size ? &mode->points.data[mode->points.size - 1] : nullptr;
-        for (int j = 0; j < record->patrols.data[i].waypoints.size; ++j) {
-            const mapspec::Waypoint& waypoint = record->patrols.data[i].waypoints.data[j];
-            const Vector3& from = record->patrols.data[i].position;
+        if (std::ssize(patrol.waypoints) == 0) continue;
+        PatrolPoint* last = std::ssize(mode->points) ? &mode->points[std::ssize(mode->points) - 1] : nullptr;
+        for (int j = 0; j < std::ssize(record->patrols[i].waypoints); ++j) {
+            const mapspec::Waypoint& waypoint = record->patrols[i].waypoints[j];
+            const Vector3& from = record->patrols[i].position;
             float angle = 0.0f;
             double dx = static_cast<double>(waypoint.position.x) - from.x;
             double dy = static_cast<double>(waypoint.position.y) - from.y;
@@ -66,26 +64,16 @@ void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
             AILook look;
             look.ScriptAILookConstruct(angle, static_cast<float>(waypoint.lookWait), waypoint.time,
                                        waypoint.stopFirst & 1);
-            last->looks.SetAtGrow(last->looks.size, look);
+            last->looks.push_back(look);
         }
     }
     if (record->loop != 0) return;
-    // Not a loop: the points again in reverse order (room for them made first).
-    int count = mode->points.size;
-    mode->points.SetSize(count * 2, -1);
-    mode->points.SetSize(count, -1);
-    for (int i = count - 1; i >= 0; --i) mode->points.SetAtGrow(mode->points.size, mode->points.data[i]);
+    // Not a loop: the points again in reverse order.
+    int count = std::ssize(mode->points);
+    mode->points.reserve(count * 2);
+    for (int i = count - 1; i >= 0; --i) mode->points.push_back(mode->points[i]);
 }
 } // namespace
-
-void AIAlarmRecordElements::Construct(AIAlarmRecord* records, int count) {
-    std::memset(static_cast<void*>(records), 0, sizeof(AIAlarmRecord) * static_cast<unsigned>(count));
-    for (int i = 0; i < count; ++i) mapspec::BehaviourConstruct(&records[i]);
-}
-
-void AIAlarmRecordElements::Destruct(AIAlarmRecord* records, int count) {
-    for (int i = 0; i < count; ++i) mapspec::BehaviourDestruct(&records[i]);
-}
 
 void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     // and RefPtr::Assign(0) on the mode in charge, the near point and the decay: ClearModes.
@@ -156,21 +144,14 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
 }
 
 void AIBrain::SetAlarmRecords(const AIAlarmRecord* records, int count) {
-    alarmRecords.SetSize(count, -1);
-    for (int i = 0; i < count; ++i) {
-        AIAlarmRecord& to = alarmRecords.data[i];
-        const AIAlarmRecord& from = records[i];
-        to.type = from.type;
-        to.patrols.CopyFrom(from.patrols);
-        std::memcpy(&to.guard, &from.guard, sizeof(AIAlarmRecord) - offsetof(AIAlarmRecord, guard));
-    }
-    ApplyBehaviour(alarmRecords.data, 0);
+    alarmRecords.assign(records, records + count);
+    ApplyBehaviour(alarmRecords.data(), 0);
 }
 
 void AIBrain::HearAlarm(int slot) {
     constexpr int kAlarmHeard = 7;   // the remark level ("to Alarm!")
-    if (slot < 0 || slot >= alarmRecords.size) return;
-    const AIAlarmRecord* record = &alarmRecords.data[slot];
+    if (slot < 0 || slot >= std::ssize(alarmRecords)) return;
+    const AIAlarmRecord* record = &alarmRecords[slot];
     if (record->enabled != 0 || slot == 0) ApplyBehaviour(record, slot);
     owner->voice.Raise(kAlarmHeard);
 }
@@ -178,5 +159,5 @@ void AIBrain::HearAlarm(int slot) {
 void AIBrain::ResetBehaviour() {
     memory.Reset();
     int slot = alarmSlot;
-    ApplyBehaviour(&alarmRecords.data[slot], slot);
+    ApplyBehaviour(&alarmRecords[slot], slot);
 }

@@ -41,8 +41,8 @@ using PtrNode = PtrList::iterator;
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside (FCOMPP; TEST AH,0x41).
 bool StaysInside(MagicTrap* trap, CMapObject* unit) {
-    int count = trap->area.size;
-    const TrapCircle* circle = trap->area.data;
+    int count = std::ssize(trap->area);
+    const TrapCircle* circle = trap->area.data();
     float x = unit->localPosition_.x;
     float y = unit->localPosition_.y;
     for (int i = 0; i < count; ++i, ++circle) {
@@ -100,8 +100,8 @@ void FindTrapVictims(CWorldServer* context, const TrapArea* area, std::uint32_t 
     out->clear();
     CSectorMap* sectors = context->Sectors();
     UnitList found{};
-    for (int i = 0; i < area->size; ++i) {
-        const TrapCircle& circle = area->data[i];
+    for (int i = 0; i < std::ssize(*area); ++i) {
+        const TrapCircle& circle = (*area)[i];
         Vector3 point = {circle.x, circle.y, 0.0f};
         sectors->FindUnitsInRadius(&point, &found, circle.radius);
         for (auto node = found.begin(); node != found.end();) {
@@ -127,9 +127,9 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
     Vector3 from = {origin.x, origin.y, origin.z};
     auto* world = ObjectWorld(this);
     from.z = static_cast<float>(world->RawSurfaceHeightAt(from.x, from.y) + from.z);
-    if (!(spell->targetFlags_ & kSpellAtUnits) && points.size != 0) {
-        for (int i = 0; i < points.size; ++i) {
-            const TrapPoint& point = points.data[i];
+    if (!(spell->targetFlags_ & kSpellAtUnits) && std::ssize(points) != 0) {
+        for (int i = 0; i < std::ssize(points); ++i) {
+            const TrapPoint& point = points[i];
             Vector3 at = {point.x, point.y, 0.0f};
             TheServerWorld()->CastSpell(spell, nullptr, &from, nullptr, &at, 0);
         }
@@ -186,13 +186,8 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     if (old) old->Release();
     std::memcpy(&localPosition_.x, &record->position, sizeof(record->position));   // copied as dwords
 
-    // The loop bounds are read again on every pass, as in the game.
-    area.SetSize(record->area.size, -1);
-    for (int i = 0; i < record->area.size; ++i)
-        std::memcpy(&area.data[i], &record->area.data[i], sizeof(TrapCircle));
-    points.SetSize(record->points.size, -1);
-    for (int i = 0; i < record->points.size; ++i)
-        std::memcpy(&points.data[i], &record->points.data[i], sizeof(TrapPoint));
+    area = record->area;
+    points = record->points;
 
     ClearVictims(this);
 
@@ -214,14 +209,6 @@ void* TailFields(MagicTrap* trap, int i) {
 }
 constexpr int kTailFieldCount = 4;
 
-// An empty MFC CArray's four fields after its vtable (data, grow by, capacity, count; in the game's order).
-template <typename T>
-void EmptyArray(mfc::CArray<T>& array) {
-    array.data = nullptr;
-    array.growBy = 0;
-    array.maxSize = 0;
-    array.size = 0;
-}
 
 // The spell, a counted reference: the new one's count raised before the old one is released.
 void SetSpell(MagicTrap* trap, CSpell* spell) {
@@ -234,17 +221,13 @@ void SetSpell(MagicTrap* trap, CSpell* spell) {
 
 MagicTrap::MagicTrap() {
     spell = nullptr;
-    EmptyArray(area);
-    area.vtable = mfc::impl::TrapAreasArrayClass::Vtable();   // while constructed
-    EmptyArray(points);
-    points.vtable = mfc::impl::TrapTargetsArrayClass::Vtable();
 
     CreateMapObject();
     sides = 0xFFFFFFFFu;
     flags_ |= kTrapFlags;
     SetSpell(this, nullptr);
-    area.SetSize(0, -1);
-    points.SetSize(0, -1);
+    area.clear();
+    points.clear();
     ClearVictims(this);
     countdown = 0;
     singleTarget = 0;
@@ -254,16 +237,11 @@ MagicTrap::MagicTrap() {
 MagicTrap::~MagicTrap() {
     DestroyMapObject();
     SetSpell(this, nullptr);
-    area.SetSize(0, -1);
-    points.SetSize(0, -1);
+    area.clear();
+    points.clear();
     ClearVictims(this);        // RemoveAll (each element released)
     // CList's destructor: its vtable, then RemoveAll again.
     ClearVictims(this);
-    // The arrays' destructors (no element destructors; SetSize has already freed the storage).
-    points.vtable = mfc::impl::TrapPointArrayClass::Vtable();
-    if (points.data) gamecrt::operator_delete(points.data);
-    area.vtable = mfc::impl::TrapCircleArrayClass::Vtable();
-    if (area.data) gamecrt::operator_delete(area.data);
     if (spell) spell->Release();
 }
 
@@ -274,9 +252,9 @@ void MagicTrap::SaveTrap(CStream* stream) {
     SaveMapObject(stream);
     std::int32_t value = spell ? spell->id_ : -1;
     stream->Write(&value, 4);
-    value = area.size;
+    value = std::ssize(area);
     stream->Write(&value, 4);
-    for (int i = 0; i < area.size; ++i) stream->Write(&area.data[i], sizeof(TrapCircle));
+    for (int i = 0; i < std::ssize(area); ++i) stream->Write(&area[i], sizeof(TrapCircle));
     value = std::ssize(inside);
     stream->Write(&value, 4);
     for (auto node = inside.begin(); node != inside.end();) {
@@ -284,9 +262,9 @@ void MagicTrap::SaveTrap(CStream* stream) {
         AIRefTo<CUnit>::Of(&*node)->Save(stream);
         node = next;
     }
-    value = points.size;
+    value = std::ssize(points);
     stream->Write(&value, 4);
-    for (int i = 0; i < points.size; ++i) stream->Write(&points.data[i], sizeof(TrapPoint));
+    for (int i = 0; i < std::ssize(points); ++i) stream->Write(&points[i], sizeof(TrapPoint));
     for (int i = 0; i < kTailFieldCount; ++i) {
         std::memcpy(&value, TailFields(this, i), 4);
         stream->Write(&value, 4);
@@ -301,12 +279,12 @@ void MagicTrap::LoadTrap(CStream* stream) {
     stream->Read(&value, 4);
     SetSpell(this, value == -1 ? nullptr : manager->FindObjectAs<CSpell>(value));
     stream->Read(&value, 4);
-    area.SetSize(value, -1);
-    for (int i = 0; i < area.size; ++i) stream->Read(&area.data[i], sizeof(TrapCircle));
+    area.resize(value);
+    for (int i = 0; i < std::ssize(area); ++i) stream->Read(&area[i], sizeof(TrapCircle));
     CountedListLoad(&inside, stream, WorldContext());
     stream->Read(&value, 4);
-    points.SetSize(value, -1);
-    for (int i = 0; i < points.size; ++i) stream->Read(&points.data[i], sizeof(TrapPoint));
+    points.resize(value);
+    for (int i = 0; i < std::ssize(points); ++i) stream->Read(&points[i], sizeof(TrapPoint));
     for (int i = 0; i < kTailFieldCount; ++i) stream->Read(TailFields(this, i), 4);
 }
 
@@ -314,16 +292,6 @@ void MagicTrap::LoadTrap(CStream* stream) {
 
 namespace {
 
-// The circles' SetSize(0, -1), inlined by Create and Destroy: the storage freed, count and
-// capacity 0 (in the game's order).
-void FreeCircles(TrapArea& area) {
-    if (area.data) {
-        gamecrt::operator_delete(area.data);
-        area.data = nullptr;
-    }
-    area.maxSize = 0;
-    area.size = 0;
-}
 
 } // namespace
 
@@ -332,8 +300,8 @@ int MagicTrap::CreateTrap() {
     sides = 0xFFFFFFFFu;
     flags_ |= kTrapFlags;
     SetSpell(this, nullptr);
-    FreeCircles(area);
-    points.SetSize(0, -1);
+    area = {};
+    points.clear();
     ClearVictims(this);
     period = kDefaultPeriod;
     countdown = 0;
@@ -344,8 +312,8 @@ int MagicTrap::CreateTrap() {
 void MagicTrap::DestroyTrap() {
     DestroyMapObject();
     SetSpell(this, nullptr);
-    FreeCircles(area);
-    points.SetSize(0, -1);
+    area = {};
+    points.clear();
     ClearVictims(this);
 }
 

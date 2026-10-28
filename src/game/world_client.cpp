@@ -180,7 +180,7 @@ bool CWorldClient::IsLocalPlayerIdle() {
 // ---- Exits ---------------------------------------------------------------------------------------
 
 BOOL CWorldClient::FindExitAt(const float* point, int* index) {
-    for (int i = 0; i < exits_.size; ++i) {
+    for (int i = 0; i < std::ssize(exits_); ++i) {
         if (!exits_[i].Contains(point[0], point[1])) continue;
         if (str::Compare(exits_[i].target, "none") == 0) continue;
         if (index) *index = i;
@@ -197,32 +197,18 @@ constexpr float kOneHalf = 0.5f;
 const char* DotText() { return "."; }
 const char* QuestPrefixText() { return "q."; }
 
-// Library: counted pointer assignment: references `object`, then releases the slot's old one.
-template <class T>
-void AssignCounted(T** slot, T* object) {
-    T* old = *slot;
-    *slot = object;
-    if (object) ++object->refCount_;
-    if (old) old->Release();
-}
-
 } // namespace
 
 void CWorldClient::CreateExitMarkers() {
-    if (countedA0_.data) {
-        for (int i = 0; i < countedA0_.size; ++i) {
-            if (countedA0_[i]) countedA0_[i]->Release();
-        }
-    }
-    countedA0_.SetSize(0);
-    countedA0_.SetSize(exits_.size);
-    for (int i = 0; i < exits_.size; ++i) {
+    countedA0_.clear();
+    countedA0_.resize(exits_.size());
+    for (int i = 0; i < std::ssize(exits_); ++i) {
         if (text::CompareIgnoringCase(exits_[i].target,
                             game::NoneText()) == 0) {
             continue;
         }
         auto* source = TheParticleManager()->CreateSource(kExitParticles);
-        AssignCounted(&countedA0_[i], source);
+        countedA0_[i] = source;
         const ZoneExit& exit = exits_[i];
         source->localPosition_ = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
         source->alpha = (exit.x2 - exit.x1) * kOneHalf;   // half extents, read by EmitZoneExit

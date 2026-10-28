@@ -161,10 +161,10 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
 }
 
 const AIAttackOption* AIAttention::FindOption(int part) const {
-    for (int i = 0; i < weapons.size; ++i)
-        if (weapons.data[i].part == part) return &weapons.data[i];
-    for (int i = 0; i < spells.size; ++i)
-        if (spells.data[i].part == part) return &spells.data[i];
+    for (int i = 0; i < std::ssize(weapons); ++i)
+        if (weapons[i].part == part) return &weapons[i];
+    for (int i = 0; i < std::ssize(spells); ++i)
+        if (spells[i].part == part) return &spells[i];
     return nullptr;
 }
 
@@ -274,7 +274,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
 
 void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* candidates, const Vector3* from, bool alliesOnly,
                          int reachArg) {
-    if (spells.size == 0 && (candidates->empty() || weapons.size == 0)) {
+    if (std::ssize(spells) == 0 && (candidates->empty() || std::ssize(weapons) == 0)) {
         choice->object = nullptr;
         return;
     }
@@ -285,7 +285,7 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* c
     float best = kFloorScore;
     CUnit* self = brain->owner->unit;
     if (held) {
-        if (std::ssize(*candidates) == 1 && spells.size == 0) {
+        if (std::ssize(*candidates) == 1 && std::ssize(spells) == 0) {
             *choice = current;
             return;
         }
@@ -307,13 +307,13 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* c
     if (!alliesOnly) {
         for (auto node = candidates->begin(); node != candidates->end(); ++node) {
             auto* candidate = *node;
-            for (int i = 0; i < weapons.size; ++i) {
-                double s = Score(from, self, candidates, held, candidate, best, &weapons.data[i]);
-                if (s > best) scored.push_back({weapons.data[i].part, candidate, static_cast<float>(s)});
+            for (int i = 0; i < std::ssize(weapons); ++i) {
+                double s = Score(from, self, candidates, held, candidate, best, &weapons[i]);
+                if (s > best) scored.push_back({weapons[i].part, candidate, static_cast<float>(s)});
             }
         }
     }
-    if (spells.size != 0) {
+    if (std::ssize(spells) != 0) {
         // The unit and its allies in sight that are alive and not reported.
         AIObjectList allies{};
         allies.push_back(self);
@@ -324,8 +324,8 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* c
         }
         for (auto node = allies.begin(); node != allies.end(); ++node) {
             auto* ally = *node;
-            for (int i = 0; i < spells.size; ++i) {
-                const AIAttackOption* option = &spells.data[i];
+            for (int i = 0; i < std::ssize(spells); ++i) {
+                const AIAttackOption* option = &spells[i];
                 if (alliesOnly && option->kind == 6) continue;
                 double s = Score(from, self, &allies, held, ally, best, option);
                 if (s > best) scored.push_back({option->part, ally, static_cast<float>(s)});

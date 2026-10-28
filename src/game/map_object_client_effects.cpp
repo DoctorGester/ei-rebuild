@@ -131,16 +131,13 @@ float RingSize(int type, int power) {
     return value;
 }
 
-void AddReference(CParticleSource* source) { ++source->refCount_; }
-void ReleaseSource(CParticleSource* source) { source->Release(); }
-
 // The feeble mind sequence's chooser: the first name once, then the second.
 int FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
 
 // Is there a record of `type` other than `index`?
 bool OtherRecordOfType(const EffectParticleArray& particles, int index, int type) {
-    for (int i = 0; i < particles.size; ++i)
-        if (i != index && particles.data[i].type == type) return true;
+    for (int i = 0; i < std::ssize(particles); ++i)
+        if (i != index && particles[i].type == type) return true;
     return false;
 }
 
@@ -215,9 +212,9 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
     // The effects, those of the merging types once each with the highest power.
     MapEffect* wanted = nullptr;
     int wantedCount = 0;
-    if (mapObject->effects.size > 0) {
-        wanted = gamecrt::operator_new_array<MapEffect>(mapObject->effects.size);
-        for (int i = 0; i < mapObject->effects.size; ++i) {
+    if (std::ssize(mapObject->effects) > 0) {
+        wanted = gamecrt::operator_new_array<MapEffect>(std::ssize(mapObject->effects));
+        for (int i = 0; i < std::ssize(mapObject->effects); ++i) {
             const MapEffect& effect = mapObject->effects[i];
             bool merged = false;
             if (MergesParticles(effect.type)) {
@@ -233,15 +230,15 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         }
     }
 
-    for (int i = 0; i < particles.size; ++i) particles.data[i].present = 0;
+    for (int i = 0; i < std::ssize(particles); ++i) particles[i].present = 0;
 
     for (int w = 0; w < wantedCount; ++w) {
         int type = wanted[w].type;
         int power = wanted[w].power;
         // The same effect at the same power keeps its record.
         bool kept = false;
-        for (int i = 0; i < particles.size && !kept; ++i) {
-            EffectParticle& record = particles.data[i];
+        for (int i = 0; i < std::ssize(particles) && !kept; ++i) {
+            EffectParticle& record = particles[i];
             if (!record.present && record.type == type && record.power == power) {
                 record.present = 1;
                 kept = true;
@@ -249,13 +246,13 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         }
         if (kept) continue;
         // A source of the same type takes the new power.
-        for (int i = 0; i < particles.size && !kept; ++i) {
-            EffectParticle& record = particles.data[i];
+        for (int i = 0; i < std::ssize(particles) && !kept; ++i) {
+            EffectParticle& record = particles[i];
             if (!record.present && record.type == type && record.source) {
                 record.power = power;
-                CParticleSource* source = particles.data[i].source;
+                CParticleSource* source = particles[i].source;
                 source->ScaleSize(static_cast<float>(power) * kPowerScale / source->baseSize);
-                particles.data[i].present = 1;
+                particles[i].present = 1;
                 kept = true;
             }
         }
@@ -283,7 +280,6 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
             break;
         default: {
             CParticleSource* source = TheParticleManager()->CreateSource(ParticleSourceType(type));
-            if (source) AddReference(source);
             added.source = source;
             source->Attach(CompanionOwner(this));
             source->ScaleSize(static_cast<float>(power) * kPowerScale / source->baseSize);
@@ -292,23 +288,11 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
             break;
         }
         }
-        // SetSize(size + 1), then the element assigned from the local record (the source referenced), then the local
-        // record's reference released.
-        int index = particles.size;
-        mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(index + 1, -1);
-        EffectParticle& record = particles.data[index];
-        record.type = added.type;
-        record.power = added.power;
-        CParticleSource* old = record.source;
-        record.source = added.source;
-        if (added.source) AddReference(added.source);
-        if (old) ReleaseSource(old);
-        record.present = added.present;
-        if (added.source) ReleaseSource(added.source);
+        particles.push_back(std::move(added));
     }
 
-    for (int i = 0; i < particles.size; ++i) {
-        EffectParticle* record = &particles.data[i];
+    for (int i = 0; i < std::ssize(particles); ++i) {
+        EffectParticle* record = &particles[i];
         if (record->present) continue;
         switch (record->type) {
         case kStun:
@@ -330,13 +314,9 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         default:
             break;
         }
-        record = &particles.data[i];
+        record = &particles[i];
         if (record->source) record->source->Stop();
-        // RemoveAt(i): the element's reference released, the tail moved down.
-        if (particles.data[i].source) ReleaseSource(particles.data[i].source);
-        int tail = particles.size - i - 1;
-        if (tail != 0) std::memmove(&particles.data[i], &particles.data[i + 1], tail * sizeof(EffectParticle));
-        --particles.size;
+        particles.erase(particles.begin() + i);
         --i;
     }
 
@@ -348,7 +328,7 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
     // The effect types, once each.
     std::uint8_t types[256];
     int typeCount = 0;
-    for (int i = 0; i < mapObject->effects.size; ++i) {
+    for (int i = 0; i < std::ssize(mapObject->effects); ++i) {
         std::uint8_t type = mapObject->effects[i].type;
         bool known = false;
         for (int j = 0; j < typeCount && !known; ++j) known = types[j] == type;
@@ -356,13 +336,13 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
         mapObject = CompanionOwner(this);
     }
 
-    for (int i = 0; i < sounds.size; ++i) sounds.data[i].present = 0;
+    for (int i = 0; i < std::ssize(sounds); ++i) sounds[i].present = 0;
 
     for (int t = 0; t < typeCount; ++t) {
         bool kept = false;
-        for (int i = 0; i < sounds.size && !kept; ++i) {
-            if (!sounds.data[i].present && sounds.data[i].kind == types[t]) {
-                sounds.data[i].present = 1;
+        for (int i = 0; i < std::ssize(sounds) && !kept; ++i) {
+            if (!sounds[i].present && sounds[i].kind == types[t]) {
+                sounds[i].present = 1;
                 kept = true;
             }
         }
@@ -374,20 +354,16 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
         added.timer = 0;
         added.present = 1;
         PlayEffectSound(!first, &added, &CompanionOwner(this)->localPosition_.x, added.kind, "\\start.wav");
-        int index = sounds.size;
-        mfc::impl::ArrayAs<mfc::impl::SoundRecords>(sounds).SetSize(index + 1, -1);
-        std::memcpy(&sounds.data[index], &added, sizeof(added));
+        sounds.push_back(added);
     }
 
-    for (int i = 0; i < sounds.size; ++i) {
-        EffectSoundRecord* record = &sounds.data[i];
+    for (int i = 0; i < std::ssize(sounds); ++i) {
+        EffectSoundRecord* record = &sounds[i];
         if (record->present) continue;
         CMapObject* target = CompanionOwner(this);
         bool alive = !target->IsDead();
         PlayEffectSound(alive, record, &target->localPosition_.x, record->kind, "\\end.wav");
-        int tail = sounds.size - i - 1;
-        if (tail != 0) std::memmove(&sounds.data[i], &sounds.data[i + 1], tail * sizeof(EffectSoundRecord));
-        --sounds.size;
+        sounds.erase(sounds.begin() + i);
         --i;
     }
 }
@@ -461,7 +437,7 @@ void CMapObjectClientSpecific::SetLightMode(int mode) {
 void CMapObjectClientSpecific::Destroy() {
     lightStateA = 0;
     lightStateB = 0;
-    mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(0, -1);
+    particles.clear();
     if (light) DropLight(this);
     owner = nullptr;
 }

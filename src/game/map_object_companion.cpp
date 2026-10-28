@@ -49,14 +49,12 @@ bool IsScaleEffect(int type) {
 
 
 int CMapObjectServer::RunTick() {
-    if (owner->effects.size <= 0) return 0;
+    if (std::ssize(owner->effects) <= 0) return 0;
     int i = 0;
     do {
         if (!owner->effects[i].Tick()) {
             int type = owner->effects[i].type;
-            int tail = owner->effects.size - i - 1;
-            if (tail != 0) std::memmove(&owner->effects[i], &owner->effects[i + 1], tail * sizeof(MapEffect));
-            --owner->effects.size;
+            owner->effects.erase(owner->effects.begin() + i);
             bool scaleEffect = IsScaleEffect(type);
             if (scaleEffect) owner->RecomputeScale();
             owner->MarkChanged(3);
@@ -67,7 +65,7 @@ int CMapObjectServer::RunTick() {
                 owner->SetStunned(0);
         }
         ++i;
-    } while (i < owner->effects.size);
+    } while (i < std::ssize(owner->effects));
     return 0;
 }
 
@@ -89,8 +87,8 @@ BOOL CMapObjectServer::TakeHit(const DamageInfo* hit) {
 int CMapObjectClientSpecific::RunTick() {
     // Effects count down here too (the server's list arrives over the network); an effect about
     // to end plays the end sound for text-key objects, unless it is still playing.
-    if (OwnerOf(this)->effects.size > 0) {
-        for (int i = 0; i < OwnerOf(this)->effects.size; ++i) {
+    if (std::ssize(OwnerOf(this)->effects) > 0) {
+        for (int i = 0; i < std::ssize(OwnerOf(this)->effects); ++i) {
             MapEffect& effect = OwnerOf(this)->effects[i];
             if (effect.ticksLeft <= 0) continue;
             int left = --effect.ticksLeft;
@@ -108,7 +106,7 @@ int CMapObjectClientSpecific::RunTick() {
 
     // Looping effect sounds: stench every 16 ticks (one of three, picked at random), feeble mind
     // follows the object.
-    for (int i = 0; i < sounds.size; ++i) {
+    for (int i = 0; i < std::ssize(sounds); ++i) {
         EffectSoundRecord* sound = &sounds[i];
         if (sound->kind == kSoundStench) {
             std::uint32_t timer = sound->timer - 1;

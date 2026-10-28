@@ -17,10 +17,9 @@ void AIPath::LoadPath(CStream* stream) {
     for (int i = 0; i < count; ++i) {
         // The cell's second dword is uninitialised in the original; it is read over below.
         PathCell cell{0, 0, 0, 0};
-        cells.AddTail(cell);
+        cells.push_back(cell);
     }
-    for (PathCellList::Node* position = cells.head; position;)
-        stream->Read(&cells.GetNext(position), 8);
+    for (PathCell& cell : cells) stream->Read(&cell, 8);
     LoadOrder(stream);
     stream->Read(&targetX, 8);
     stream->Read(&goal, 0xC);
@@ -39,10 +38,9 @@ void AIPath::LoadPath(CStream* stream) {
 }
 
 void AIPath::SavePath(CStream* stream) {
-    int count = cells.count;
+    int count = std::ssize(cells);
     stream->Write(&count, 4);
-    for (PathCellList::Node* position = cells.head; position;)
-        stream->Write(&cells.GetNext(position), 8);
+    for (const PathCell& cell : cells) stream->Write(&cell, 8);
     SaveOrder(stream);
     stream->Write(&targetX, 8);
     stream->Write(&goal, 0xC);
@@ -75,10 +73,10 @@ void PathOrder::LoadOrder(CStream* stream) {
     int count = 0;   // left as it was when the read fails
     stream->Read(&count, 4);
     // The new step is {0, 0} and an uninitialised dword; every step is read over below.
-    for (int i = 0; i < count; ++i) steps.AddTail(PathCell{0, 0, 0, 0});
-    for (PathCellList::Node* node = steps.head; node;) {
-        PathCellList::Node* next = node->next;
-        stream->Read(&node->data, 8);
+    for (int i = 0; i < count; ++i) steps.push_back(PathCell{0, 0, 0, 0});
+    for (auto node = steps.begin(); node != steps.end();) {
+        auto next = std::next(node);
+        stream->Read(&*node, 8);
         node = next;
     }
 }
@@ -90,11 +88,11 @@ void PathOrder::SaveOrder(CStream* stream) {
     stream->Write(&order->angle, 4);
     stream->Write(&order->startTime, 4);
     stream->Write(&order->arg5, 0xC);
-    int count = steps.count;
+    int count = std::ssize(steps);
     stream->Write(&count, 4);
-    for (PathCellList::Node* node = steps.head; node;) {
-        PathCellList::Node* next = node->next;
-        stream->Write(&node->data, 8);
+    for (auto node = steps.begin(); node != steps.end();) {
+        auto next = std::next(node);
+        stream->Write(&*node, 8);
         node = next;
     }
 }

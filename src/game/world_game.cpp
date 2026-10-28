@@ -84,8 +84,8 @@ bool& ToMainMenu() { return TheInterface()->closeAll_; }
 // BeginMultiplayerGame sets it, a missing zone clears it.
 bool& SessionsOpen() { return TheInterface()->disconnected_; }
 
-MapRecord* ZoneRecords() { return TheMapDatabase()->maps.data; }
-int ZoneRecordCount() { return TheMapDatabase()->maps.size; }
+MapRecord* ZoneRecords() { return TheMapDatabase()->maps.data(); }
+int ZoneRecordCount() { return static_cast<int>(TheMapDatabase()->maps.size()); }
 MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
 MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
 
@@ -263,7 +263,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
     file.Close();
 
     int entrance = records->entrance_;
-    if (entrance >= 0 && entrance < zoneRecord->exits.size) {
+    if (entrance >= 0 && entrance < std::ssize(zoneRecord->exits)) {
         float now = static_cast<float>(VariableGet(variables, kGTime));
         float left;
         {
@@ -275,7 +275,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
         else if (ticks <= 0) return result;
         // The centre of the exit's deploy rectangle.
-        const ZoneExit* exit = zoneRecord->exits.data + entrance;
+        const ZoneExit* exit = &zoneRecord->exits[entrance];
         Vector3 point;
         point.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * 0.5f /*0073B86C*/);
         point.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * 0.5f /*0073B86C*/);
@@ -430,18 +430,8 @@ int StartNetworkZone(const char* zone) {
     }
 
     // The zone's exits, all leading to "MPGame1".
-    ZoneExits exits;
-    mfc::impl::ConstructArrayOf<mfc::impl::ExitArrayClass>(exits);
-    exits.vtable = mfc::impl::MapRecordItemsClass::Vtable();
-    const ZoneExits* source = &zoneRecord->exits;
-    exits.SetSize(source->size);
-    for (int i = 0; i < source->size; ++i) {
-        lib::InPlace<ZoneExit> copy;
-        ZoneExit* exit = source->CopyAt(copy.Get(), i);
-        exits.data[i].Assign(exit);
-        std::destroy_at(&exit->target);
-    }
-    for (int i = 0; i < exits.size; ++i) exits.data[i].target = kNetworkExitTarget;
+    ZoneExits exits = zoneRecord->exits;
+    for (ZoneExit& exit : exits) exit.target = kNetworkExitTarget;
     TheServerWorld()->SetZoneExits(&exits);
     TheServerWorld()->SetClimate(zoneRecord->setting2C);
     TheServerWorld()->SetCave(zoneRecord->setting30);
@@ -454,12 +444,6 @@ int StartNetworkZone(const char* zone) {
         std::string name = zone;
         std::string mob = name + kMobExtension;
         TheServerWorld()->LoadMobFile(mob.c_str());
-    }
-
-    exits.vtable = mfc::impl::ExitArrayClass::Vtable();
-    if (exits.data) {
-        for (int i = 0; i < exits.size; ++i) std::destroy_at(&exits.data[i].target);
-        gamecrt::operator_delete(exits.data);
     }
     return 1;
 }

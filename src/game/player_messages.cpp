@@ -283,7 +283,7 @@ void CPlayerServer::ClearServerState() {
     possessedId_ = 0xFFFFFFFFu;
     refreshPending_ = 0;
     flag70_ = 0;
-    mfc::impl::ArrayAs<mfc::impl::Placements>(placements_).SetSize(0, -1);
+    placements_.clear();
     compressor_.Reset();
     decompressor_.Reset();
     refreshTimer_ = static_cast<int>(IsaacRandom::Global().Next() % 0x385u + 0x384u);
@@ -319,11 +319,6 @@ constexpr int kPathKindNoPath = 3;
 
 // The stream is a member (constructed before the body; the original builds it after the handler table).
 CPlayerServer::CPlayerServer() {
-    placements_.vtable = mfc::impl::PartySlotArrayClass::Vtable();
-    placements_.data = nullptr;
-    placements_.size = 0;
-    placements_.maxSize = 0;
-    placements_.growBy = 0;
     compressor_.Construct();
     decompressor_.Construct();
     ConstructGroup(group50F8_);
@@ -339,8 +334,6 @@ CPlayerServer::~CPlayerServer() {
     group50F8_.DestructBody();
     decompressor_.out.End();
     compressor_.out.End();
-    placements_.vtable = mfc::impl::PartySlotArrayClass::Vtable();
-    if (placements_.data) gamecrt::operator_delete(placements_.data);
 }
 
 const char* CPlayerServer::GetClassName() { return "CPlayerServer"; }

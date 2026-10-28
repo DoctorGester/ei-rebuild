@@ -37,9 +37,9 @@ void PathOrder::WriteState(DeltaField* field) {
     MotionOrder* order = OrderOf(this);
     std::uint8_t byte = static_cast<std::uint8_t>(order->kind);
     field->WriteDelta(&byte, 1);
-    byte = static_cast<std::uint8_t>(steps.count >> 8);
+    byte = static_cast<std::uint8_t>(std::ssize(steps) >> 8);
     field->WriteDelta(&byte, 1);
-    byte = static_cast<std::uint8_t>(steps.count);
+    byte = static_cast<std::uint8_t>(std::ssize(steps));
     field->WriteDelta(&byte, 1);
     field->WritePosition2D(&order->x);
     const float limit = kOrderAngleLimit;
@@ -51,8 +51,8 @@ void PathOrder::WriteState(DeltaField* field) {
     // Each step: a 16-bit header (bits 0-1 x code, 2-3 y code, 4-5 the low bits of unknown_6, 6-15
     // the flags up to 0x3FF), then the coordinates the codes say are written out.
     std::int16_t previousX = 0, previousY = 0;
-    for (PathCellList::Node* node = steps.head; node; node = node->next) {
-        PathCell& cell = node->data;
+    for (auto node = steps.begin(); node != steps.end(); ++node) {
+        PathCell& cell = *node;
         std::uint16_t flags = cell.flags > kMaxStepFlags ? kMaxStepFlags : cell.flags;
         std::uint16_t xCode = StepCodeFor(cell.x, previousX);
         std::uint16_t yCode = StepCodeFor(cell.y, previousY);
@@ -81,10 +81,10 @@ void PathOrder::ReadState(DeltaField* field) {
     field->ReadDelta(&order->arg5, 4);
     field->ReadDelta(&order->arg6, 4);
     field->ReadDelta(&order->arg7, 4);
-    steps.RemoveAll();
+    steps.clear();
     std::int16_t previousX = 0, previousY = 0;
     for (int i = 0; i < count; ++i) {
-        PathCell& cell = steps.AddTail(PathCell{})->data;
+        PathCell& cell = steps.emplace_back();
         std::uint16_t header = 0;
         field->ReadRaw(&header, 2);
         cell.terrainBits = static_cast<std::uint16_t>((header >> 4) & 3);

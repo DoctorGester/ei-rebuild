@@ -102,18 +102,11 @@ struct PathCell {
 };
 static_assert(sizeof(PathCell) == 8);
 
-inline void* PathCellListVtable() { return mfc::impl::CellListClass::Vtable(); }
-
-struct PathCellElements {
-    static void Construct(PathCell* cells, int count);
-    static void Destruct(PathCell*, int) {}
-};
-struct PathCells : mfc::CList<PathCell, PathCellElements> {
+struct PathCells : std::list<PathCell> {
     void Append(const PathCells* other);
     // `out` constructed (blocks of 0x80) with the cells in reverse order.
     PathCells* Reversed(PathCells* out) const;
 };
-static_assert(sizeof(PathCells) == 0x1C && sizeof(PathCells::Node) == 0x10);
 using PathCellList = PathCells;
 
 // The speed word and terrain bits a path builder gives its cells: the plain step speed, no terrain bits. The
@@ -125,7 +118,7 @@ inline void SetPlainCellWords(PathCell* cell) {
     cell->terrainBits = 0;
 }
 inline void SetPlainCellWords(PathCellList* list) {
-    for (PathCellList::Node* node = list->head; node; node = node->next) SetPlainCellWords(&node->data);
+    for (PathCell& cell : *list) SetPlainCellWords(&cell);
 }
 
 // Removes each cell equal (x, y) to the one before it (the first is compared with (-1, -1)); an emptied list
@@ -136,13 +129,7 @@ void PathCellsRemoveRepeats(PathCellList* list);
 struct BlockCost {
     int x, y, cost;
 };
-struct BlockCostElements {
-    static void Construct(BlockCost* elements, int count);
-    static void Destruct(BlockCost*, int) {}
-};
-using BlockCostList = mfc::CList<BlockCost, BlockCostElements>;
-inline void* BlockCostListVtable() { return mfc::impl::BlockCostListClass::Vtable(); }
-static_assert(sizeof(BlockCostList::Node) == 0x14);
+using BlockCostList = std::list<BlockCost>;
 
 struct CRegionMap;
 
@@ -211,7 +198,6 @@ struct PathOrder {
     MotionOrder motionOrder;
     PathCellList steps;         // the next cells to walk (at most 32)
 };
-static_assert(sizeof(PathOrder) == 0x3C);
 
 // A unit's path: its order and next steps (PathOrder), the rest of the cells and the search's state.
 struct AIPath : PathOrder {
@@ -242,9 +228,6 @@ struct AIPath : PathOrder {
     int smoothing;              // set by the smoother (how much longer the path is than the way)
 };
 static_assert(offsetof(AIPath, steps) == 0x20);
-static_assert(offsetof(AIPath, excludedBlocks) == 0x70);
-static_assert(offsetof(AIPath, cells) == 0x3C);
-static_assert(offsetof(AIPath, goal) == 0x60);
 
 class CAIMap;
 class CSectorMap;

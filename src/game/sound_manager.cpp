@@ -66,7 +66,7 @@ float StopFadeStep() { return 0.010416667f /*007440E8*/; }
 miles::SampleCallback EndOfSampleCallback() { return SoundEndOfSample; }
 
 // The slot of the wave's cache list node (its record's uses counts the voices playing it).
-WaveNode*& CacheEntry(WaveCache& cache, const SoundSlot* slot) { return cache[slot->name]; }
+WaveNode& CacheEntry(WaveCache& cache, const SoundSlot* slot) { return cache[slot->name]; }
 // May rehash first.
 void SetDeferred(DeferredMap& deferred, std::int32_t handle, DeferredSound* rec) {
     deferred[handle] = rec;
@@ -112,7 +112,7 @@ void CSoundManager::ApplyVolumePan(SoundSlot* slot) const {
 
 // Ends a voice: releases its cached wave, stops the sample and frees the slot.
 void CSoundManager::EndSlot(SoundSlot* slot) {
-    --CacheEntry(cache, slot)->data.uses;
+    --CacheEntry(cache, slot)->uses;
     gameapi::AIL_end_sample(slot->sample);
     slot->playing = 0;
     slot->finished = 0;
@@ -576,7 +576,7 @@ void CSoundManager::Tick() {
     for (int i = 0; i < 15; ++i) {
         SoundSlot* slot = &slots[i];
         if (slot->finished == 0 || slot->playing == 0) continue;
-        --CacheEntry(cache, slot)->data.uses;
+        --CacheEntry(cache, slot)->uses;
         gameapi::AIL_end_sample(slot->sample);
         slot->handle = -1;
         slot->playing = 0;
@@ -1123,37 +1123,12 @@ const char* Mp3Suffix() { return ".mp3"; }
 constexpr std::uint32_t kCacheBudget = 0x800000;   // bytes kept unless a wave is still in use
 constexpr std::uint32_t kCacheKeep = 60000;        // ms a wave stays cached after its last use
 
-void Unlink(WaveList& list, WaveNode* node) {
-    if (node == list.head) list.head = node->next;
-    else node->prev->next = node->next;
-    if (node == list.tail) list.tail = node->prev;
-    else node->next->prev = node->prev;
-}
-void PushFront(WaveList& list, const WaveRecord* record) {
-    WaveNode* node = mfc::impl::NewNodeAs<gamelists::Waves>(&list, nullptr, list.head);
-    node->data.Assign(record);
-    if (list.head) list.head->prev = node;
-    else list.tail = node;
-    list.head = node;
-}
-void PushBack(WaveList& list, const WaveRecord* record) {
-    WaveNode* node = mfc::impl::NewNodeAs<gamelists::Waves>(&list, list.tail, nullptr);
-    node->data.Assign(record);
-    if (list.tail) list.tail->next = node;
-    else list.head = node;
-    list.tail = node;
-}
-void CacheSet(CSoundManager* m, const std::string* key, WaveNode* node) { m->cache[*key] = node; }
-
 // A cached wave: moved to the front with one more use and the time of now, then given to the voice.
-void UseCached(CSoundManager* m, SoundSlot* slot, const std::string* key, const char* name, WaveNode* node) {
-    WaveRecord record = node->data;
-    Unlink(m->cacheList, node);
-    mfc::impl::FreeNodeAs<gamelists::Waves>(&m->cacheList, node);
+void UseCached(CSoundManager* m, SoundSlot* slot, const char* name, WaveNode node) {
+    m->cacheList.splice(m->cacheList.begin(), m->cacheList, node);
+    WaveRecord& record = *node;
     record.lastUsed = gameapi::GetTickCount();
     record.uses = record.uses + 1;
-    PushFront(m->cacheList, &record);
-    CacheSet(m, key, m->cacheList.head);
     slot->length = static_cast<float>(m->WaveLength(record.data, record.size));
     gameapi::AIL_set_named_sample_file(slot->sample, name, record.data, record.size, 0);
 }
@@ -1161,18 +1136,19 @@ void UseCached(CSoundManager* m, SoundSlot* slot, const std::string* key, const 
 // Drops unused waves from the least recently used end until the new one fits the budget or the
 // next one was used within the last minute.
 void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
-    for (WaveNode* node = m->cacheList.tail; node != nullptr;) {
-        WaveNode* prev = node->prev;
-        WaveRecord record = node->data;
+    WaveList& list = m->cacheList;
+    for (auto after = list.end(); after != list.begin();) {
+        auto node = std::prev(after);
+        const WaveRecord& record = *node;
         if (static_cast<std::uint32_t>(incoming + m->cacheBytes) < kCacheBudget && now - record.lastUsed < kCacheKeep) return;
-        if (record.uses <= 0) {
-            gameapi::AIL_mem_free_lock(record.data);
-            m->cacheBytes -= record.size;
-            m->cache.erase(record.name);
-            Unlink(m->cacheList, node);
-            mfc::impl::FreeNodeAs<gamelists::Waves>(&m->cacheList, node);
+        if (record.uses > 0) {
+            after = node;
+            continue;
         }
-        node = prev;
+        gameapi::AIL_mem_free_lock(record.data);
+        m->cacheBytes -= record.size;
+        m->cache.erase(record.name);
+        list.erase(node);
     }
 }
 } // namespace
@@ -1186,7 +1162,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
     std::string key(name);    // freed on each return
     auto cached = cache.find(key);
     if (cached != cache.end()) {
-        if (compressed == 0) UseCached(this, slot, &key, name, cached->second);
+        if (compressed == 0) UseCached(this, slot, name, cached->second);
     } else {
         CMappedResource* source = nullptr;
         void* data = nullptr;
@@ -1223,13 +1199,13 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
             record.data = memory;
             std::memcpy(memory, data, static_cast<std::size_t>(size));
             source->CloseFile(data);
-            PushFront(cacheList, &record);
-            CacheSet(this, &key, cacheList.head);
+            cacheList.push_front(record);
+            cache[key] = cacheList.begin();
             gameapi::AIL_set_named_sample_file(slot->sample, name, memory, size, 0);
         } else {
             record.data = data;
-            PushBack(cacheList, &record);
-            CacheSet(this, &key, cacheList.tail);
+            cacheList.push_back(record);
+            cache[key] = std::prev(cacheList.end());
             gameapi::AIL_set_sample_file(slot->sample, data, size);
         }
         slot->length = static_cast<float>(WaveLength(record.data, record.size));
@@ -1242,15 +1218,6 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
 }
 
 void CSoundManager::StreamNotify(int /*mode*/) {}
-
-WaveRecord* WaveRecord::Assign(const WaveRecord* from) {
-    data = from->data;
-    if (&from->name != &name) name = from->name;
-    lastUsed = from->lastUsed;
-    size = from->size;
-    uses = from->uses;
-    return this;
-}
 
 int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set) {
     if (state == 1) {

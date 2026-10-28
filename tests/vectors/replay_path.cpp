@@ -349,11 +349,11 @@ bool LoadCallMap(Reader& r, char* d, std::size_t n) {
 
 void ReadCells(Reader& r, PathCellList& list) {
     const std::uint32_t count = r.Get<std::uint32_t>();
-    for (std::uint32_t i = 0; i < count && r.ok(); ++i) list.AddTail(r.Get<PathCell>());
+    for (std::uint32_t i = 0; i < count && r.ok(); ++i) list.push_back(r.Get<PathCell>());
 }
 
 void EmptyList(PathCellList& list) {
-    list = PathCellList{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 0x80};
+    list = PathCellList{};
 }
 
 void ReadPath(Reader& r, AIPath& path) {
@@ -414,7 +414,7 @@ std::string DescribePath(const std::vector<std::uint8_t>& bytes) {
     ReadPath(r, p);
     char text[256];
     std::snprintf(text, sizeof(text), "order %d (%g,%g) steps %d cells %d target (%g,%g) flags %d%d%d%d excluded %d smoothing %d",
-                  p.motionOrder.kind, p.motionOrder.x, p.motionOrder.y, p.steps.count, p.cells.count, p.targetX,
+                  p.motionOrder.kind, p.motionOrder.x, p.motionOrder.y, std::ssize(p.steps), std::ssize(p.cells), p.targetX,
                   p.targetY, p.reached, p.failed, p.flag6E, p.flag6F, std::ssize(p.excludedBlocks), p.smoothing);
     return text;
 }
@@ -554,24 +554,24 @@ bool CheckSmooth(Reader& r, char* d, std::size_t n) {
     std::vector<std::int16_t> cells;
     for (std::uint32_t i = 0; i < count * 2 && r.ok(); ++i) cells.push_back(r.Get<std::int16_t>());
     if (!r.ok()) return true;
-    const int before = list.count;
+    const int before = std::ssize(list);
     CUnit* u = MakeUnit(unit);
     int actual = 0;
     auto call = [&] { actual = g_map->smoother.Smooth(u, g_map, &list, startDirection, fraction); };
     if (!Guarded(call, d, n, "Smooth")) return false;
     std::vector<std::int16_t> ours;
     bool plain = true;
-    for (const PathCellList::Node* node = list.head; node; node = node->next) {
-        ours.push_back(node->data.x);
-        ours.push_back(node->data.y);
+    for (auto node = list.begin(); node != list.end(); ++node) {
+        ours.push_back(node->x);
+        ours.push_back(node->y);
     }
     // Rebuilt cells carry the plain words (SV7d2); a path left alone keeps its own.
-    if (actual != 0 && list.count != before)
-        for (const PathCellList::Node* node = list.head; node; node = node->next)
-            plain = plain && node->data.flags == kPlainStepSpeed && node->data.terrainBits == 0;
+    if (actual != 0 && std::ssize(list) != before)
+        for (auto node = list.begin(); node != list.end(); ++node)
+            plain = plain && node->flags == kPlainStepSpeed && node->terrainBits == 0;
     if (actual != expected || ours != cells) {
         std::snprintf(d, n, "%d cells, direction %d, fraction %g: ours %d with %d cells, original %d with %u cells", before,
-                      startDirection, fraction, actual, list.count, expected, count);
+                      startDirection, fraction, actual, std::ssize(list), expected, count);
         return false;
     }
     (void)plain;

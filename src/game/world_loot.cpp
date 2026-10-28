@@ -54,24 +54,16 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
     if (unit->flags_ & kFlagSharedLoot) {
         // The shared-object list's entry for the object (SharedObject: its unknown_08 is the gold).
         SharedObjectList& list = sharedObjects_;
-        SharedObjectList::Node* node = list.head;
-        while (node && node->data.objectId != unit->id_) node = node->next;
-        if (!node) {
+        auto node = std::ranges::find(list, unit->id_, &SharedObject::objectId);
+        if (node == list.end()) {
             abandon();
             return false;
         }
-        for (int i = 0; i < node->data.objects.size; ++i) {
-            CItem* item = node->data.objects.data[i];
-            auto entry = items.emplace(items.end());
-            *entry = item;
-        }
-        player->Party()->Money() += static_cast<int>(node->data.money);
+        // The entry's references go with the items (the original frees the node without releasing them).
+        for (HeldPtr<CItem>& item : node->objects) items.push_back(item.release());
+        player->Party()->Money() += static_cast<int>(node->money);
         player->GiveItems(&items, 0);
-        if (node == list.head) list.head = node->next;
-        else node->prev->next = node->next;
-        if (node == list.tail) list.tail = node->prev;
-        else node->next->prev = node->prev;
-        mfc::impl::FreeNodeAs<gamelists::SharedObjects>(&list, node);
+        list.erase(node);
         abandon();
         return true;
     }

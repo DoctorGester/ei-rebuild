@@ -16,6 +16,7 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -27,40 +28,21 @@ constexpr float kNoiseRadius = 50.0f;   // the units asked for around a noise
 constexpr int kAlertedLevel = 900;      // a unit noticing something at this level or above hears nothing
 const char* const kHeardFormat = "Unit %i heard unit %i from %fm distance";
 
-// The inlined Add: SetSize, then the record assigned (the text shared).
-void AppendCall(AIHeardCalls* calls, const Vector3& point, int kind, std::uint32_t mask, const std::string& text) {
-    int index = calls->size;
-    calls->SetSize(index + 1, -1);
-    AICallRecord& added = calls->data[index];
-    added.point = point;
-    added.kind = kind;
-    added.hostileMask = static_cast<int>(mask);
-    added.text = text;
-}
-
 } // namespace
 
 void AIHeardCalls::Hear(const Vector3* point, int kind, const char* text) {
-    for (int i = 0; i < size; ++i) {
-        const AICallRecord& call = data[i];
-        if (call.hostileMask == 0 && call.kind >= kind) RemoveAt(i--);
-    }
-    const Vector3 at = *point;
-    std::string copy = text;
-    AppendCall(this, at, kind, 0, copy);
+    std::erase_if(*this, [kind](const AICallRecord& call) { return call.hostileMask == 0 && call.kind >= kind; });
+    push_back({*point, kind, 0, text});
 }
 
 void AIHeardCalls::AddClaim(std::uint32_t mask, int kind, const char* text) {
-    std::string copy;
-    copy = text;
     // The point is left as the stack held it (saved as memory.callN.point); 0,0,0 is the
     // canonical value, which the harness gives game.exe too (harness_save_leftovers.cpp).
-    AppendCall(this, Vector3{0.0f, 0.0f, 0.0f}, kind, mask, copy);
+    push_back({Vector3{0.0f, 0.0f, 0.0f}, kind, static_cast<int>(mask), text});
 }
 
 void AIHeardCalls::RemoveClaims() {
-    for (int i = 0; i < size; ++i)
-        if (data[i].hostileMask != 0) RemoveAt(i--);
+    std::erase_if(*this, [](const AICallRecord& call) { return call.hostileMask != 0; });
 }
 
 void AIMemory::HearCall(const Vector3* point, int kind, const char* text) { calls.Hear(point, kind, text); }

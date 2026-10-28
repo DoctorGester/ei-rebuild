@@ -17,8 +17,6 @@
 
 namespace {
 
-using FogNode = mfc::CList<CEngineObject*>::Node;
-
 
 constexpr int kFogTextureKind = 6;
 const char* FogTextureName() { return "VisionFog"; }
@@ -53,22 +51,19 @@ void VisFogManagerDestroy(ClientArrayManager* self) {
     CTexture* texture = self->texture;
     self->texture = nullptr;
     if (texture) texture->Release();
-    for (FogNode* node = self->list.head; node;) {
-        CEngineObject* fog = node->data;
-        node = node->next;
-        fog->Release();
-    }
-    self->list.RemoveAll();
+    for (CEngineObject* fog : self->list) fog->Release();
+    self->list.clear();
 }
 
 // Every fog's tick; one that returns 0 (no cells left) leaves the list and is released. Returns 0.
 int VisFogManagerTick(ClientArrayManager* self) {
-    for (FogNode* node = self->list.head; node;) {
-        FogNode* current = node;
-        node = node->next;
-        CEngineObject* fog = current->data;
-        if (fog->RunTick() != 0) continue;
-        self->list.RemoveAt(current);
+    for (auto node = self->list.begin(); node != self->list.end();) {
+        CEngineObject* fog = *node;
+        if (fog->RunTick() != 0) {
+            ++node;
+            continue;
+        }
+        node = self->list.erase(node);
         fog->Release();
     }
     return 0;
@@ -82,20 +77,16 @@ int ClientArrayManager::RunTick() { return VisFogManagerTick(this); }
 CEngineObject* VisFogManagerAdd(ClientArrayManager* self) {
     CEngineObject* fog = self->CreateObject(0, -1);
     ++fog->refCount_;
-    self->list.AddTail(fog);
+    self->list.push_back(fog);
     return fog;
 }
 
 // Draw (called by the world's draw). Nothing listed: 1. Otherwise the texture is made sure of and bound to
 // stage 0 (a failed bind: 0), then every fog draws; 1.
 int ClientArrayManager::Draw(CSceneRenderer* renderer) {
-    if (list.count == 0) return 1;
+    if (list.empty()) return 1;
     TextureHolderEnsureLoaded(&texture);
     if (!renderer->SetTexture(0, texture.texture)) return 0;
-    for (FogNode* node = list.head; node;) {
-        CEngineObject* fog = node->data;
-        node = node->next;
-        static_cast<CVisibilityFog*>(fog)->Draw(renderer);   // its result not read
-    }
+    for (CEngineObject* fog : list) static_cast<CVisibilityFog*>(fog)->Draw(renderer);   // its result not read
     return 1;
 }

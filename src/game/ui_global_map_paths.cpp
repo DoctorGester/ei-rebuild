@@ -66,14 +66,14 @@ bool MayTravelTo(CGlobalMap* map) {
 
 void CGlobalMap::FindPaths(MapRecord* from) {
     std::string variable;   // one string for every "z.<zone>" name
-    for (int i = 0; i < from->exits.size; ++i) {
+    for (int i = 0; i < std::ssize(from->exits); ++i) {
         bool goesBeyond = false;
-        MapRecord* zone = TheMapDatabase()->FindMap(from->exits.data[i].target.c_str());
+        MapRecord* zone = TheMapDatabase()->FindMap(from->exits[i].target.c_str());
         if (!zone) continue;
-        float passTime = from->exits.data[i].passTime;
+        float passTime = from->exits[i].passTime;
         if (SameName(zone->name, target_)) {
             found_ = true;
-            int exit = from->exits.data[i].entrance;
+            int exit = from->exits[i].entrance;
             float time = path_.size() == 0 ? -1.0f : pathTime_;
             if (arrivals_.find(exit) == arrivals_.end()) {
                 arrivals_[exit] = time;

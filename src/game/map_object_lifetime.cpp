@@ -48,7 +48,6 @@ void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); 
 
 void BrainObject8CDestroy(void* a0) { static_cast<CRefObject*>(a0)->Release(); }
 void BrainArrayDestroy(void* a0) { static_cast<AIRef*>(a0)->Reset(); }
-void Brain14Destroy(void* a0) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(a0); }
 
 // The engine object fields every constructor here sets (the base constructor inlined).
 void InitEngineObject(CEngineObject* object) {
@@ -122,18 +121,13 @@ void CObject3D::TearDownObject3D() {
 
 CMapObject::CMapObject() { SetUpMapObject(); }
 
-DeltaState::DeltaState() {
-    fields_.Construct(recordarrays::DeltaFieldArrayClass::Vtable());
-    Reset();
-}
+DeltaState::DeltaState() { Reset(); }
 
-DeltaState::~DeltaState() {
-    fields_.vtable = const_cast<void*>(recordarrays::DeltaFieldArrayClass::Vtable());
-    fields_.FreeData();
-}
+DeltaState::~DeltaState() = default;
+
+void DeltaState::SetFieldCount(int count) { fields_.resize(count); }
 
 void CMapObject::SetUpMapObject() {
-    effects.Construct(mfc::impl::EffectArrayClass::Vtable());
     companion = nullptr;
     PackedVitals()->Reset();
     sectorCellX = -1;
@@ -141,17 +135,11 @@ void CMapObject::SetUpMapObject() {
     SetBits(animationSpeed, kOne);
 }
 
-// The second name is destroyed after the body (before the effects in the original), then the 3D object.
-CMapObject::~CMapObject() {
-    effects.vtable = const_cast<void*>(mfc::impl::EffectArrayClass::Vtable());
-    effects.FreeData();
-}
+CMapObject::~CMapObject() = default;
 
 CUnit::CUnit() {
     // The unit's motion: two arrays, then the step speeds and the segment part.
     UnitMotion* m = Motion();
-    mfc::impl::ConstructArrayOf<mfc::impl::FloatArrayClass>(m->stepSpeeds);
-    SetVtable(&m->stepSpeeds, mfc::impl::ArgFloatArrayClass::Vtable());
     // (The segment part's constructor only returns it.)
     std::memset(&m->curveX, 0, sizeof(m->curveX));
     std::memset(&m->curveY, 0, sizeof(m->curveY));
@@ -221,8 +209,6 @@ CUnit::~CUnit() {
     Reset();
     carriedVtable = mfc::impl::CarriedArrayClass::Vtable();
     if (carried) gamecrt::operator_delete(carried);
-    UnitMotion* m = Motion();
-    DestroyArray(m->stepSpeeds, mfc::impl::FloatArrayClass::Vtable());
 }
 
 CMapObjectServer::CMapObjectServer() {
@@ -236,17 +222,6 @@ CMapObjectServer::~CMapObjectServer() {
 }
 
 CMapObjectClientSpecific::CMapObjectClientSpecific() {
-    // The effect particles (0x10 each) and looping sounds (0x14 each), MFC CArrays.
-    SetVtable(&particles, gameslots::EffectObjectArrayClass::Vtable());
-    particles.data = nullptr;
-    particles.growBy = 0;
-    particles.maxSize = 0;
-    particles.size = 0;
-    SetVtable(&sounds, mfc::impl::EffectSoundArrayClass::Vtable());
-    sounds.data = nullptr;
-    sounds.growBy = 0;
-    sounds.maxSize = 0;
-    sounds.size = 0;
     light = nullptr;
     lightStateA = 0;
     lightStateB = 0;
@@ -255,7 +230,7 @@ CMapObjectClientSpecific::CMapObjectClientSpecific() {
 CMapObjectClientSpecific::~CMapObjectClientSpecific() {
     lightStateA = 0;
     lightStateB = 0;
-    mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(0, -1);
+    particles.clear();
     if (light) {
         light->flags_ &= ~0x200u;
         if (CLight* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {
@@ -271,13 +246,6 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
     }
     owner = nullptr;
     if (light) light->Release();
-    DestroyArray(sounds, mfc::impl::EffectSoundArrayClass::Vtable());
-    SetVtable(&particles, gameslots::EffectObjectArrayClass::Vtable());
-    if (EffectParticle* data = particles.data) {
-        for (int i = 0; i < particles.size; ++i)
-            if (data[i].source) data[i].source->Release();
-        gamecrt::operator_delete(particles.data);
-    }
 }
 
 // --- The server unit controller ---------------------------------------------------------------
@@ -287,15 +255,11 @@ CUnitServer::~CUnitServer() {
     AIBrain* b = Brain();
     b->Init();
     b->memory.Destruct();
-    mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.spells);
-    mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.weapons);
-    mfc::impl::DestructArrayOf<recordarrays::BehaviourArrayClass>(mfc::impl::ArrayAs<recordarrays::Behaviours>(b->alarmRecords));
     if (AIMode* current = b->current) BrainObject8CDestroy(current);
     for (AIMode*& mode : b->modes) DestroyOwned(mode);   // the owned modes released
     b->modes.clear();
     BrainArrayDestroy(&b->seen);
     BrainArrayDestroy(&b->target);
-    Brain14Destroy(&b->move.looks);
     idleAnimation.DestructSteps();
     moveAnimation.DestructSteps();
     for (ArmourSpell& spell : armourSpells)
@@ -309,7 +273,5 @@ CUnitServer::~CUnitServer() {
     if (CEngineObject* effect = effectObject) effect->Release();
     DestroyArray(savedQueue, mfc::impl::AnimationStepsClass::Vtable());
     DestroyArray(currentPlan.animation, mfc::impl::AnimationStepsClass::Vtable());
-    mfc::impl::DestructList<mfc::impl::CellListClass>(motion.cells);
-    mfc::impl::DestructList<mfc::impl::CellListClass>(motion.steps);
     DestroyArray(queue, mfc::impl::AnimationStepsClass::Vtable());
 }

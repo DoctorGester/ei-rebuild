@@ -30,18 +30,6 @@ constexpr std::uint32_t kClientFlags = 0x3DC0;
 constexpr std::uint32_t kClientDebugFlags = 0xB;
 constexpr int kClientConstant228 = 10;
 
-// CList's constructor as inlined: the instantiation's vtable, empty, no blocks.
-template <typename T>
-void ConstructList(mfc::CList<T>& list, void* vtable) {
-    list.vtable = vtable;
-    list.head = nullptr;
-    list.tail = nullptr;
-    list.count = 0;
-    list.free = nullptr;
-    list.blocks = nullptr;
-    list.blockSize = kListBlockSize;
-}
-
 } // namespace
 
 PlatformSet::PlatformSet() {
@@ -49,18 +37,14 @@ PlatformSet::PlatformSet() {
 }
 
 CWorldServer::CWorldServer() {
-    exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
     Messages()->Construct();
     MainScript()->Construct();
     SecondScript()->Construct();
     diplomacy_.Reset();
-    ConstructList(sharedObjects_, gameslots::SharedObjectListClass::Vtable());
     ResetState();
 }
 
 CWorldClient::CWorldClient() {
-    exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
-    countedA0_.Construct(gameslots::ClientObjectPtrArrayClass::Vtable());
     dynamicMaxId_ = 0;
     lastLineListKey_ = 0;
     // Both sector grids at 1 x 1 (Create makes them 4 x 4).

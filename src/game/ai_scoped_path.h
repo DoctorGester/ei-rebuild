@@ -27,11 +27,8 @@ public:
 private:
     static void InitList(PathCellList& list) {
         list = {};
-        list.vtable = PathCellListVtable();
-        list.blockSize = 0x80;
     }
     static void FreeList(PathCellList& list) {
-        list.vtable = PathCellListVtable();
-        list.RemoveAll();
+        list.clear();
     }
 };

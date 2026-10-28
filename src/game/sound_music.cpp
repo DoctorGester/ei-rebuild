@@ -58,36 +58,6 @@ void WaitAndEndAfter(CSoundManager* snd) {
 // The themes' registry (registry.cpp).
 using Registry = CFileRegistry;
 
-// The theme array (CArray<MusicTheme>): SetSize [size, grow by (-1 keeps it)] and the element
-// assignment (MFC template instantiations; the second SetSize and the first assignment are inlined
-// identically).
-void ThemesSetSize(void* themes, int size) {
-    static_cast<recordarrays::Themes::Array*>(themes)->SetSize(size, -1);
-}
-
-// The theme being read: MusicTheme's members with constructed arrays.
-struct LocalTheme {
-    std::string name;
-    std::int32_t dungeon = 0;
-    std::string briefing;
-    std::string constructor;
-    std::vector<std::string> calm;
-    std::vector<std::string> combat;
-};
-
-// Appends a copy of `theme` to the music system's themes.
-void AppendTheme(CMusicSystem* music, const LocalTheme& theme) {
-    int n = music->themeCount;
-    ThemesSetSize(&music->themesVtable, n + 1);
-    MusicTheme& to = music->themes[n];
-    to.name = theme.name;
-    to.dungeon = theme.dungeon;
-    to.briefing = theme.briefing;
-    to.constructor = theme.constructor;
-    to.calm = theme.calm;
-    to.combat = theme.combat;
-}
-
 const std::string& TextPath() { return TheTextFolder(); }
 
 } // namespace
@@ -123,17 +93,17 @@ int CMusicSystem::LoadThemes() {
         for (const std::string& name : sections) {
             const char* section = name.c_str();
             if (text::CompareIgnoringCase(section, "common") == 0) continue;
-            LocalTheme read;
+            MusicTheme read;
             read.name = name;
             read.dungeon = 0;
             read.briefing = reg.GetString(section, "Briefing", std::string(game::EmptyText()));
             read.constructor = reg.GetString(section, "Constructor", std::string(game::EmptyText()));
             reg.GetStringArray(section, "CalmOpen", &read.calm);
             reg.GetStringArray(section, "Combat", &read.combat);
-            AppendTheme(this, read);
+            themes.push_back(read);
             read.dungeon = 1;
             reg.GetStringArray(section, "CalmDungeon", &read.calm);
-            AppendTheme(this, read);
+            themes.push_back(read);
         }
     }
     reg.Destroy();
@@ -146,7 +116,7 @@ void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
     TheSoundManager()->StreamNotify(4);
     TheSoundManager()->StopStream(4);
     holding = 1;
-    for (int i = 0; i < themeCount; ++i) {
+    for (int i = 0; i < std::ssize(themes); ++i) {
         if (text::CompareIgnoringCase(themes[i].name, allod) == 0 && themes[i].dungeon == dungeon) {
             theme = i;
             state = 1;
@@ -171,16 +141,11 @@ void CMusicSystem::Stop() {
 namespace {
 // PlayBriefing / PlayConstructor: the allod's file at `offset` in its theme, if the allod has one.
 void PlayThemeFile(CMusicSystem* music, const char* allod, std::string MusicTheme::*file) {
-    std::string name;
-    int i = 0;
-    for (; i < music->themeCount; ++i) {
-        if (text::CompareIgnoringCase(music->themes[i].name, allod) == 0) {
-            name = music->themes[i].*file;
-            break;
-        }
-    }
-    if (i == music->themeCount) return;
-    std::string path = name + kMp3;
+    auto theme = std::ranges::find_if(music->themes, [allod](const MusicTheme& t) {
+        return text::CompareIgnoringCase(t.name, allod) == 0;
+    });
+    if (theme == music->themes.end()) return;
+    std::string path = (*theme).*file + kMp3;
     TheSoundManager()->RequestStream(path.c_str(), 4);
 }
 } // namespace
@@ -270,10 +235,6 @@ int CMusicSystem::UpdateMusic() {
 // ---- Lifetime and the engine object's virtuals ----
 
 namespace {
-// The theme array's destructor (CArray<MusicTheme>::~CArray, a template instantiation).
-void ThemesDestruct(void* themes) {
-    recordarrays::Themes::Destruct<recordarrays::ThemeArrayClass>(static_cast<recordarrays::Themes::Array*>(themes));
-}
 constexpr int kMusicClassId = 0xE;
 // "CMusicSystem".
 const char* MusicClassNameText() { return "CMusicSystem"; }
@@ -281,17 +242,12 @@ const char* MusicClassNameText() { return "CMusicSystem"; }
 
 CMusicSystem::CMusicSystem() {
     ClearFields();
-    themesVtable = recordarrays::ThemeArrayClass::Vtable();
-    themes = nullptr;
-    themeGrow = 0;
-    themeMax = 0;
-    themeCount = 0;
     ResetThemes();
 }
 
 void CMusicSystem::ResetThemes() {
     state = 0;
-    ThemesSetSize(&themesVtable, 0);
+    themes.clear();
     jingle = game::NoneText();
     mainMenu = jingle;
     credits = mainMenu;
@@ -306,7 +262,6 @@ void CMusicSystem::ResetThemes() {
 // array's destructor).
 CMusicSystem::~CMusicSystem() {
     ResetThemes();
-    ThemesDestruct(&themesVtable);
 }
 
 void CMusicSystem::FadeOut() { TheSoundManager()->FadeOutStream(); }

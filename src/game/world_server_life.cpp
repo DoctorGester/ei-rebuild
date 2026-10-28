@@ -56,7 +56,7 @@ int CWorldServer::Create() {
     windStrength_ = kWindStrength;
     sessionKind_ = 0;
     scriptsActive_ = 0;
-    exits_.SetSize(0);
+    exits_.clear();
     climate_ = 1;
     cave_ = 0;
     sendsStartPosition_ = 0;
@@ -96,12 +96,6 @@ void CWorldServer::Destroy() {
     ResetState();
     Messages()->Close();
 
-    if (exits_.data) {
-        for (int i = 0; i < exits_.size; ++i) std::destroy_at(&exits_[i].target);
-        gamecrt::operator_delete(exits_.data);
-        exits_.data = nullptr;
-    }
-    exits_.maxSize = 0;
-    exits_.size = 0;
+    exits_ = {};
     CWorld::Destroy();
 }

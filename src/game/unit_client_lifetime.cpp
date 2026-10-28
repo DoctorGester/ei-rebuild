@@ -71,18 +71,10 @@ CUnitClientSpecific::~CUnitClientSpecific() {
     }
     ReleaseFace(this);   // with null; the release test after it finds null
     blinks = 0;
-    motion.steps.vtable = mfc::impl::CellListClass::Vtable();
-    motion.steps.RemoveAll();
+    motion.steps.clear();
 }
 
 CUnitClientSpecific::CUnitClientSpecific() {
-    motion.steps.vtable = mfc::impl::CellListClass::Vtable();
-    motion.steps.count = 0;
-    motion.steps.free = nullptr;
-    motion.steps.tail = nullptr;
-    motion.steps.head = nullptr;
-    motion.steps.blocks = nullptr;
-    motion.steps.blockSize = kStepBlockSize;
     faceTexture = nullptr;
     fadeIn = 1.0f;
 }

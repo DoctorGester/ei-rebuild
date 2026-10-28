@@ -349,13 +349,7 @@ struct CMapObject : CObject3D {
     int updateCountdown;                    // +0x174
     float animationSpeed;                   // +0x178
     UnitVitalsPacked packedVitals;          // +0x17C
-    struct {                                // the CArray<MapEffect> (map_object.h's effects)
-        void* vtable;                       // +0x194
-        MapEffect* data;                    // +0x198
-        int size;                           // +0x19C
-        int maxSize;
-        int growBy;
-    } effects;
+    Vector<MapEffect> effects;              // +0x194 (map_object.h's effects)
     std::uint8_t unknown1A8[0x10];
     int sectorCellX;                        // +0x1B8
     int sectorCellY;                        // +0x1BC
@@ -464,7 +458,7 @@ static_assert(sizeof(UnitStats) == 0x704);
 // The AI's move target.
 struct AIMoveOrder {
     Vector3 point;                          // +0x00
-    Array<AILook> looks;                    // +0x0C
+    Vector<AILook> looks;                   // +0x0C
 };
 static_assert(sizeof(AIMoveOrder) == 0x20);
 
@@ -480,8 +474,8 @@ struct AIMemory {
     List<CUnit*> visible;                   // +0x40
     std::uint8_t unknown5C[0x1C];
     List<CUnit*> corpses;                   // +0x78
-    Array<AIReport> reports;                // +0x94
-    Array<AIHeardCall> calls;               // +0xA8
+    Vector<AIReport> reports;               // +0x94
+    Vector<AIHeardCall> calls;              // +0xA8
     std::uint8_t seesEnemy;                 // +0xBC
     std::uint8_t unknownBD[0x3];
 };
@@ -867,7 +861,7 @@ struct CWorldServer : CWorld {
     int cave_;                              // +0xE0
     int weather_;                           // +0xE4
     float weatherStrength_;                 // +0xE8
-    Array<ZoneExit> exits_;                 // +0xEC
+    Vector<ZoneExit> exits_;                // +0xEC
     std::uint8_t unknown100[0x4];
     ObjectIdMap updateMap_;                 // +0x104
     std::uint8_t unknown11C[0x4];

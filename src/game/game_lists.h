@@ -23,17 +23,8 @@ using mfc::impl::Bytes;
 using mfc::impl::EachElements;
 using mfc::impl::ListAbi;
 
-// The world's shared objects: their objects' array destroyed (each released).
-void DestroySharedObject(SharedObject* p);
-// The sound manager's wave records: the name an empty string with room for 8 bytes (after the zero fill);
-// its buffer freed.
-inline void InitWave(WaveRecord* p) { std::construct_at(&p->name); }
-inline void DestroyWave(WaveRecord* p) { std::destroy_at(&p->name); }
-
 using ObjectRefElements = EachElements<ScriptObjectRef, nullptr, gamearrays::ReleaseAndClear>;
 using ObjectRefs = ListAbi<ScriptObjectRef, ObjectRefElements>;
-using SharedObjects = ListAbi<SharedObject, EachElements<SharedObject, nullptr, DestroySharedObject>>;
-using Waves = ListAbi<WaveRecord, EachElements<WaveRecord, InitWave, DestroyWave>>;
 
 // The script's effects (each leaves the world's timed objects and is released; the sound's name
 // destroyed after), its tokens (the text destroyed), its definitions and runs.

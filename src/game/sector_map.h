@@ -76,11 +76,10 @@ struct RadiusTree {
     // value, the last one). The bottom level holds the values themselves.
     void Build(const float* values, int count);
 
-    mfc::CArray<float> keys;
+    std::vector<float> keys;
     int depth;
     int mask;
 };
-static_assert(sizeof(RadiusTree) == 0x1C);
 
 // A sector offset of the spiral.
 struct SpiralOffset {

@@ -1,7 +1,7 @@
 // The CArray members the script loader calls out of line (MFC template code the game compiled for its
 // own element types): Add for bindings, nested calls, commands and definitions, SetAtGrow for
 // commands, the nested call's destructor body, the per-type variable name lookups and two array
-// constructors; also the parameter names' and the look queue's SetAtGrow and a string GetAt copy.
+// constructors; also the parameter names' SetAtGrow and a string GetAt copy.
 // Each Add / SetAtGrow inlines CArray::SetSize(n, -1) (scriptarray::InlineSetSize with the
 // instantiation's element helpers) and the element's assignment operator. See script.h.
 #include "script.h"
@@ -32,7 +32,6 @@ constexpr RangeFn DestroyDefinitions = DestroyEach<ScriptDefinition, ScriptDefin
 const ElementKind kBindings{ConstructAs<mfc::impl::Plain12>, nullptr, nullptr};
 const ElementKind kSubCalls{ConstructAs<recordarrays::SubCalls>, DestroySubCalls, DestroySubCalls};
 const ElementKind kDefinitions{ConstructAs<mfc::impl::ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>>, DestroyDefinitions, DestroyDefinitions};
-const ElementKind kLooks{ConstructAs<mfc::impl::Plain16>, nullptr, nullptr};
 
 // Grows `array` by one element and returns the old size (the new element's index).
 template <typename T>
@@ -107,7 +106,3 @@ void ScriptStrings::CopyTo(int index, std::string* out) const {
     *out = copy;
 }
 
-void AILooks::SetAtGrow(int index, const AILook& look) {
-    if (index >= size) InlineSetSize(this, index + 1, kLooks);
-    data[index] = look;
-}

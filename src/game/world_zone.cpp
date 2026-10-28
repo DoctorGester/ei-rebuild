@@ -64,27 +64,12 @@ struct UnitRecordBuilder {
 // ---- Zone exits -------------------------------------------------------------------------------
 
 void CWorldServer::SetZoneExits(const ZoneExits* source) {
-    ZoneExits* exits = &exits_;
-    if (exits->data) {
-        ZoneExit* exit = exits->data;
-        for (int n = exits->size; n != 0; --n, ++exit) zone::ExitDestruct(exit);
-        gamecrt::operator_delete(exits->data);
-        exits->data = nullptr;
-    }
-    exits->maxSize = 0;
-    exits->size = 0;
-    for (int i = 0; i < source->size; ++i) {
-        const ZoneExit* from = &source->data[i];
-        if (str::Compare(from->target,
-                            game::EmptyText()) == 0)
-            continue;   // leads nowhere
-        if (from->entrance < 0 && str::Compare(from->target,
-                                                  kNoExit) != 0)
+    exits_ = {};
+    for (const ZoneExit& from : *source) {
+        if (str::Compare(from.target, game::EmptyText()) == 0) continue;   // leads nowhere
+        if (from.entrance < 0 && str::Compare(from.target, kNoExit) != 0)
             game::FatalError(game::zonetexts::WrongEntrance());
-        int index = exits->size;
-        exits->SetSize(index + 1);
-        ZoneExit* to = &exits->data[index];
-        to->Assign(from);
+        exits_.push_back(from);
     }
 }
 

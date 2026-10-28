@@ -38,10 +38,7 @@ namespace {
     { Unlinked(what); }
 
 // game_arrays.cpp's other element types.
-void EffectParticle::ReleaseSource() EI_UNLINKED("EffectParticle::ReleaseSource")
 void ScriptQuestObjectiveDestruct(ScriptQuestObjective*) EI_UNLINKED("ScriptQuestObjectiveDestruct")
-void zone::ExitDestruct(ZoneExit*) EI_UNLINKED("zone::ExitDestruct")
-void zone::ZoneRecordDestruct(MapRecord*) EI_UNLINKED("zone::ZoneRecordDestruct")
 
 // game_arrays.cpp's and game_lists.cpp's script effects (script_effects.cpp needs the world).
 void ScriptPointLight::ScriptPointLightDestruct() EI_UNLINKED("ScriptPointLight::ScriptPointLightDestruct")
@@ -50,13 +47,9 @@ void ScriptFxSource::ScriptFxSourceDestruct() EI_UNLINKED("ScriptFxSource::Scrip
 void ScriptLightning::ScriptLightningDestruct() EI_UNLINKED("ScriptLightning::ScriptLightningDestruct")
 
 // record_arrays.cpp's other element types.
-void DeltaFieldElements::Construct(DeltaField*, int) EI_UNLINKED("DeltaFieldElements::Construct")
-void DeltaFieldElements::Destruct(DeltaField*, int) EI_UNLINKED("DeltaFieldElements::Destruct")
 void SectorElements::Construct(Sector*, int) EI_UNLINKED("SectorElements::Construct")
 void terrain::RecordElements::Construct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Construct")
 void terrain::RecordElements::Destruct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Destruct")
-mapspec::Behaviour* mapspec::BehaviourConstruct(mapspec::Behaviour*) EI_UNLINKED("mapspec::BehaviourConstruct")
-void mapspec::BehaviourDestruct(mapspec::Behaviour*) EI_UNLINKED("mapspec::BehaviourDestruct")
 
 // script_runtime_helpers.cpp's AI map and console helpers (CSectorMap::Add and Remove: replay_path.cpp).
 void CSectorMap::FindUnitsInRadius(const Vector3*, std::list<CUnit*>*, float)

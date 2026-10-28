@@ -27,14 +27,14 @@ BOOL IsTextKey(int id) {
 }
 
 MapRecord* CMapDatabase::FindMap(const char* name) {
-    for (int i = 0; i < maps.size; ++i)
-        if (text::CompareIgnoringCase(maps.data[i].name, name) == 0) return &maps.data[i];
+    for (MapRecord& map : maps)
+        if (text::CompareIgnoringCase(map.name, name) == 0) return &map;
     return nullptr;
 }
 
 AllodRecord* CMapDatabase::FindAllod(const char* name) {
-    for (int i = 0; i < allods.size; ++i)
-        if (text::CompareIgnoringCase(allods.data[i].name, name) == 0) return &allods.data[i];
+    for (AllodRecord& allod : allods)
+        if (text::CompareIgnoringCase(allod.name, name) == 0) return &allod;
     return nullptr;
 }
 

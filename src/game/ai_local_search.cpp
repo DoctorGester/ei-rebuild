@@ -28,14 +28,6 @@ void ResetNode(SearchNode* node) {
     node->usable = true;
 }
 
-void AddHead(PathCellList* list, const PathCell& cell) {
-    PathCellList::Node* node = list->NewNode(nullptr, list->head);
-    node->data = cell;
-    if (list->head) list->head->prev = node;
-    else list->tail = node;
-    list->head = node;
-}
-
 // |v| as CDQ / XOR / SUB computes it (INT_MIN stays negative).
 int CdqAbs(int v) {
     auto u = static_cast<std::uint32_t>(v);
@@ -218,12 +210,7 @@ bool LocalSearch::ExpandUntil(int x, int y) {
 }
 
 void LocalSearch::PathTo(int x, int y, PathCellList* out) {
-    out->count = 0;
-    out->free = nullptr;
-    out->tail = nullptr;
-    out->head = nullptr;
-    mfc::PlexFreeDataChain(out->blocks);
-    out->blocks = nullptr;
+    out->clear();
     int wx = x - originX;
     int wy = y - originY;
     if (wx < 0 || wx >= kWindow || wy < 0 || wy >= kWindow) return;
@@ -237,7 +224,7 @@ void LocalSearch::PathTo(int x, int y, PathCellList* out) {
     for (;;) {
         std::int8_t direction = NodeAt(this, wx, wy)->direction;
         if (!direction) break;
-        AddHead(out, cellAt(wx, wy));
+        out->push_front(cellAt(wx, wy));
         switch (direction) {
         case 1: --wy; break;
         case 2: --wy; --wx; break;
@@ -250,7 +237,7 @@ void LocalSearch::PathTo(int x, int y, PathCellList* out) {
         default: break;
         }
     }
-    AddHead(out, cellAt(wx, wy));
+    out->push_front(cellAt(wx, wy));
 }
 
 bool LocalSearch::PlaceWindow(int x0, int y0, int x1, int y1) {

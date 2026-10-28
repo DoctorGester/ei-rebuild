@@ -277,7 +277,7 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
         world->AIMap()->StampWaterPatch(position, 1);
         world->Sectors()->Add(UnitOf(c));
     }
-    MotionPathOf(c)->cells.RemoveAll();
+    MotionPathOf(c)->cells.clear();
 
     float range = MotionPathOf(c)->goal.z;
     std::uint32_t saved = UnitOf(c)->altPassCosts;

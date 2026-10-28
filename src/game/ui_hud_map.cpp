@@ -241,7 +241,7 @@ void CHudMap::BuildMarkers() {
     CLightFactory* markers = TheLightFactory();
     const std::list<int>& marked = markers->litIds_;
     const int markedCount = static_cast<int>(marked.size());
-    int exitCount = TheClientWorld()->exits_.size;
+    int exitCount = static_cast<int>(std::ssize(TheClientWorld()->exits_));
     int playerCount = IsMultiplayerClient() ? std::ssize(view->otherUnitIds_) : 0;
 
     int quads = markedCount + playerCount + exitCount;   // six indices each

@@ -78,12 +78,7 @@ void InitUnitList(std::list<CUnit*>& list) {
 
 void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wander, bool farGoal) {
     AILookArray& planned = order->looks;
-    if (planned.data) {
-        gamecrt::operator_delete(planned.data);
-        planned.data = nullptr;
-    }
-    planned.maxSize = 0;
-    planned.size = 0;
+    planned = {};
 
     IsaacRandom* random = (&IsaacRandom::Global());
     int count = static_cast<int>(random->Next() & 3) + 1;
@@ -123,7 +118,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
         look.time = 0.0f;
         look.wait = wait;
         look.stopFirst = farGoal;
-        planned.SetAtGrow(planned.size, look);
+        lib::SetAtGrow(planned, std::ssize(planned), look);
     }
 }
 

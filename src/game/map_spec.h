@@ -39,13 +39,11 @@ struct TrapPoint {
 };
 static_assert(sizeof(TrapPoint) == 8);
 
-// A trap's area: an MFC CArray of circles.
-using TrapArea = mfc::CArray<TrapCircle>;
-static_assert(sizeof(TrapArea) == 0x14);
+// A trap's area: its circles.
+using TrapArea = std::vector<TrapCircle>;
 
-// A trap's points: an MFC CArray of {x, y} pairs.
-using TrapPoints = mfc::CArray<TrapPoint>;
-static_assert(sizeof(TrapPoints) == 0x14);
+// A trap's points: {x, y} pairs.
+using TrapPoints = std::vector<TrapPoint>;
 
 // The MagicTrap part of a zone object record (mapspec::TrapSpec::trap; passed to MagicTrap::SetUp).
 struct MagicTrapRecord {
@@ -84,43 +82,33 @@ struct Waypoint {
 };
 static_assert(sizeof(Waypoint) == 0x14);
 
-// A patrol: where it starts and its waypoints (CArray).
+// A patrol: where it starts and its waypoints.
 struct Patrol {
     Vector3 position;
-    mfc::CArray<Waypoint> waypoints;
+    std::vector<Waypoint> waypoints;
 };
-static_assert(sizeof(Patrol) == 0x20);
 
-struct Patrols : mfc::CArray<Patrol> {
-    // The patrols become a copy of `from` (each patrol copied through a temporary returned by value).
-    void CopyFrom(const Patrols& from);
-    // By-value GetAt: element `index` copy-constructed into `result`.
-    Patrol* CopyAt(Patrol* result, int index) const;
-};
+using Patrols = std::vector<Patrol>;
 
 // A unit's behaviour (alarm) record; the brain applies one.
 struct Behaviour {
     void Read(CStream* stream);
     void Write(CStream* stream) const;
-    std::int32_t type;           // (3) 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
+    std::int32_t type = 3;       // 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
     Patrols patrols;
-    Vector3 guard;               // the unit's position when saved
-    std::uint32_t loop;          // (1) a patrol loops; 0: its points are walked back too
-    std::uint32_t flags;         // bit 3: the unit is always updated
-    float guardRadius;
-    float field0A;               // (-1) chunk BBBC000A, only read and written with the record
-    std::uint32_t alarmKind;     // the alarm raised when the countdown ends (low byte)
-    std::uint32_t enabled;       // (1 for the first record) HearAlarm applies a record other than the
+    Vector3 guard{};             // the unit's position when saved
+    std::uint32_t loop = 1;      // a patrol loops; 0: its points are walked back too
+    std::uint32_t flags = 0;     // bit 3: the unit is always updated
+    float guardRadius = 10.0f;
+    float field0A = -1.0f;       // chunk BBBC000A, only read and written with the record
+    std::uint32_t alarmKind = 0; // the alarm raised when the countdown ends (low byte)
+    std::uint32_t enabled = 0;   // (1 for the first record) HearAlarm applies a record other than the
                                  // first only when set
-    std::uint32_t callRadius;    // float bits
-    std::uint32_t alertMode;
-    std::uint32_t alarmDelay;    // (75) the alarm countdown (at least 1)
-    std::uint32_t alarm;         // the reaction modes 0..3 (4 while reading: unset)
+    std::uint32_t callRadius = 0x41200000u;   // float bits (10.0)
+    std::uint32_t alertMode = 0;
+    std::uint32_t alarmDelay = 75;   // the alarm countdown (at least 1)
+    std::uint32_t alarm = 0;     // the reaction modes 0..3 (4 while reading: unset)
 };
-static_assert(offsetof(Behaviour, guard) == 0x18);
-static_assert(sizeof(Behaviour) == 0x4C);
-Behaviour* BehaviourConstruct(Behaviour* self);
-void BehaviourDestruct(Behaviour* self);
 
 // The base record. The records are read and written chunk by chunk (no record is a block of file bytes).
 class Spec : public Chunk {

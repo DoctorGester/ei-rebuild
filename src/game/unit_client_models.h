@@ -68,13 +68,13 @@ inline constexpr char kArmourPartNames[3][7][4] = /*0073EC24*/ {
 // One layer of a composed skin: what it is (0x32 the unit's own skin, 0x3005 armour, 0x3004 a weapon; 0
 // none), the packed item id or prototype index, and the armour slot / weapon type.
 struct SkinLayer {
-    int kind;
-    std::uint32_t id;
-    int slot;
+    int kind = 0;
+    std::uint32_t id = 0xFFFFFFFFu;
+    int slot = -1;
 };
 static_assert(sizeof(SkinLayer) == 0xC);
 
-using SkinLayerArray = mfc::CArray<SkinLayer>;
+using SkinLayerArray = std::vector<SkinLayer>;
 
 // What the texture manager composes a skin from: the layers as bytes in 32-byte aligned storage, the layer
 // texture names, and a flag (0x100 detailed, 0x80 simple).
@@ -290,12 +290,7 @@ public:
 static_assert(offsetof(CUnitClientSpecific, lastAnimationTime) == 0x2C);
 static_assert(offsetof(CUnitClientSpecific, lastAnimation) == 0x30);
 static_assert(offsetof(CUnitClientSpecific, lastTime) == 0x34);
-static_assert(offsetof(CUnitClientSpecific, footprint) == 0x80);
 static_assert(offsetof(CUnitClientSpecific, motion) == 0x38);
-static_assert(offsetof(CUnitClientSpecific, weaponHidden) == 0x74);
-static_assert(offsetof(CUnitClientSpecific, fadeIn) == 0x78);
-static_assert(offsetof(CUnitClientSpecific, speechSound) == 0x90);
-static_assert(offsetof(CUnitClientSpecific, speech) == 0x9C);
 
 // The figure part names a unit of prototype `prototype` shows with the armour pieces `armourIds` (appended to
 // `names`: "<part>.armor<number>", the hair as "hr.<hair>.armor<number>" unless the prototype has no hair,

@@ -16,6 +16,7 @@
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -116,7 +117,7 @@ void AIBrain::Reset() {
     action = kActionNone;
     memory.Reset();
     move.point = Vector3{0.0f, 0.0f, 0.0f};
-    move.looks.SetSize(0, -1);
+    move.looks.clear();
     if (target) {
         target->Release();
         target = nullptr;
@@ -136,7 +137,7 @@ void AIBrain::Init() {
     action = kActionNone;
     memory.Reset();
     move.point = Vector3{0.0f, 0.0f, 0.0f};
-    move.looks.SetSize(0, -1);
+    move.looks.clear();
     if (target) target.Reset();
     if (seen) seen.Reset();
     owner = nullptr;
@@ -146,7 +147,7 @@ void AIBrain::Init() {
     alarmSlot = 0;
     actionTime = kNoTime;
     memory.seesEnemy = 0;
-    alarmRecords.SetSize(0, -1);
+    alarmRecords.clear();
     callRadius = InitialCallRadius();
     position = Vector3{0.0f, 0.0f, 0.0f};
     alertMode = 0;
@@ -165,8 +166,8 @@ void AIMemory::Reset() {
     noticedY = 0.0f;
     noticedLevel = 0;
     nearbyCountdown = 0;
-    reports.SetSize(0, -1);
-    calls.SetSize(0, -1);
+    reports.clear();
+    calls.clear();
     noticedKind = 0;
 }
 
@@ -307,78 +308,45 @@ void AIMemory::Forget(CEngineObject* object) {
     RemoveAllOf(visible, held.object);
     RemoveAllOf(seenCorpses, held.object);
     RemoveAllOf(corpses, held.object);
-    for (int i = 0; i < reports.size; ++i) {
-        if (reports.data[i].object == object) reports.RemoveAt(i--, 1);
-    }
+    std::erase_if(reports, [object](const AIReport& entry) { return entry.object == object; });
     held.Reset();
-}
-
-void AICallRecord::Destruct() { std::destroy_at(&text); }
-
-void AICallElements::Construct(AICallRecord* calls, int count) {
-    std::memset(static_cast<void*>(calls), 0, sizeof(AICallRecord) * static_cast<unsigned>(count));
-    for (int i = 0; i < count; ++i) std::construct_at(&calls[i].text);
-}
-
-void AICallElements::Destruct(AICallRecord* calls, int count) {
-    for (int i = 0; i < count; ++i) calls[i].Destruct();
-}
-
-void AIReportElements::Construct(AIReport* reports, int count) {
-    std::memset(static_cast<void*>(reports), 0, sizeof(AIReport) * static_cast<unsigned>(count));
-    for (int i = 0; i < count; ++i) reports[i].object = nullptr;
-}
-
-void AIReportElements::Destruct(AIReport* reports, int count) {
-    for (int i = 0; i < count; ++i) {
-        if (CEngineObject* object = reports[i].object) object->Release();
-        reports[i].object = nullptr;
-    }
 }
 
 void CUnitServer::AddHostileMask(std::uint32_t mask) { unit->AddHostileMask(mask); }
 
 void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
-    for (int i = 0; i < size; ++i) {
-        AICallRecord& call = data[i];
-        if (--call.kind >= 0) continue;
-        if (call.hostileMask != 0) {
-            console::EndLine(AiLog() << "Unit " << unit->id_ << " hear delayed sound: " << call.text.c_str());
-            unit->ServerController()->AddHostileMask(static_cast<std::uint32_t>(call.hostileMask));
+    for (auto call = begin(); call != end();) {
+        if (--call->kind >= 0) {
+            ++call;
+            continue;
+        }
+        if (call->hostileMask != 0) {
+            console::EndLine(AiLog() << "Unit " << unit->id_ << " hear delayed sound: " << call->text.c_str());
+            unit->ServerController()->AddHostileMask(static_cast<std::uint32_t>(call->hostileMask));
         } else if (memory->noticedLevel < 900) {
             // The inlined Notice of level 900: logged when the level rises by more than 100 or the point is
             // more than sqrt(10) away (NaN is near).
             bool changed = true;
             if (900 - memory->noticedLevel <= 100) {
-                float dx = call.point.x - memory->noticedX;
-                float dy = call.point.y - memory->noticedY;
-                float dz = call.point.z - 0.0f;
+                float dx = call->point.x - memory->noticedX;
+                float dy = call->point.y - memory->noticedY;
+                float dz = call->point.z - 0.0f;
                 changed = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 10.0f;
             }
             float copy[2];
-            const float* point = CopyPoint2(copy, &call.point.x);
+            const float* point = CopyPoint2(copy, &call->point.x);
             memory->noticedX = point[0];
             memory->noticedLevel = 900;
             memory->noticedY = point[1];
             memory->noticedKind = -3;
-            if (changed) console::EndLine(AiLog() << "Delayed sound: " << call.text.c_str());
+            if (changed) console::EndLine(AiLog() << "Delayed sound: " << call->text.c_str());
         }
-        RemoveAt(i--);
+        call = erase(call);
     }
 }
 
 void AIMemory::Update(CUnitServer* who) {
-    for (int i = 0; i < reports.size; ++i) {
-        AIReport* entry = &reports.data[i];
-        if (--entry->what >= 0) continue;
-        int after = reports.size - i - 1;
-        // The element's destructor: release the object.
-        if (entry->object) entry->object->Release();
-        entry->object = nullptr;
-        if (after != 0) std::memmove(entry, entry + 1, static_cast<std::size_t>(after) * sizeof(AIReport));
-        --reports.size;
-        --i;
-    }
+    std::erase_if(reports, [](AIReport& entry) { return --entry.what < 0; });
     calls.Update(who->unit, this);
     TheServerWorld()->AIEvents()->Update(who, this);
     noticedLevel += noticedKind;
@@ -392,30 +360,17 @@ int AIMemory::IsEnemy(CUnit* self, CEngineObject* other) {
 
 void AIReports::Report(CMapObject* object, int what) {
     if (!object) return;
-    for (int i = 0; i < size; ++i) {
-        if (data[i].object == object) {
-            if (data[i].what <= what) data[i].what = what;
+    for (AIReport& entry : *this) {
+        if (entry.object == object) {
+            if (entry.what <= what) entry.what = what;
             return;
         }
     }
-    ++object->refCount_;    // the temporary counted reference
-    int index = size;
-    SetSize(index + 1, -1);
-    AIReport& entry = data[index];
-    if (entry.object != object) {
-        if (entry.object) entry.object->Release();
-        entry.object = nullptr;
-        ++object->refCount_;
-        entry.object = object;
-    }
-    entry.what = what;
-    object->Release();
+    push_back({object, what});
 }
 
 bool AIReports::Contains(CEngineObject* object) const {
-    for (int i = 0; i < size; ++i)
-        if (data[i].object == object) return true;
-    return false;
+    return std::ranges::any_of(*this, [object](const AIReport& entry) { return entry.object == object; });
 }
 
 // --- Save games -----------------------------------------------------------------------------------
@@ -490,8 +445,8 @@ void AIBrain::Load(CStream* stream) {
     stream->Read(&alerted, 1);
     stream->Read(&alarm, 1);
     stream->Read(&count, 4);
-    alarmRecords.SetSize(count, -1);
-    for (int i = 0; i < alarmRecords.size; ++i) alarmRecords.data[i].Read(stream);
+    alarmRecords.resize(count);
+    for (int i = 0; i < std::ssize(alarmRecords); ++i) alarmRecords[i].Read(stream);
     stream->Read(&alarmCountdown, 4);
     // A radius saved as the default one becomes the configured one.
     LogicSettings& settings = GameLogicSettings();
@@ -540,14 +495,14 @@ void AIBrain::Save(CStream* stream) {
     memory.Save(stream);
     WriteCopy(stream, alerted);
     WriteCopy(stream, alarm);
-    WriteCopy(stream, alarmRecords.size);
-    for (int i = 0; i < alarmRecords.size; ++i) alarmRecords.data[i].Write(stream);
+    WriteCopy(stream, std::ssize(alarmRecords));
+    for (int i = 0; i < std::ssize(alarmRecords); ++i) alarmRecords[i].Write(stream);
     WriteCopy(stream, alarmCountdown);
     WriteCopy(stream, alwaysUpdated);
-    WriteCopy(stream, attention.weapons.size);
-    for (int i = 0; i < attention.weapons.size; ++i) attention.weapons.data[i].Save(stream);
-    WriteCopy(stream, attention.spells.size);
-    for (int i = 0; i < attention.spells.size; ++i) attention.spells.data[i].Save(stream);
+    WriteCopy(stream, std::ssize(attention.weapons));
+    for (int i = 0; i < std::ssize(attention.weapons); ++i) attention.weapons[i].Save(stream);
+    WriteCopy(stream, std::ssize(attention.spells));
+    for (int i = 0; i < std::ssize(attention.spells); ++i) attention.spells[i].Save(stream);
     WriteCopy(stream, attention.healWeight);
     WriteCopy(stream, alarmSlot);
 }

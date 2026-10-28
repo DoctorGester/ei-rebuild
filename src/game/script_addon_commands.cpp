@@ -149,8 +149,8 @@ bool ResetTarget(Call* call) {
     AIBrain* brain = unit->ServerController()->Brain();
     int index = brain->alarmSlot;
     brain->memory.Reset();
-    if (index >= brain->alarmRecords.size) return Report("ResetTarget", "Failed to reset unit %d", unit->id_);
-    brain->ApplyBehaviour(&brain->alarmRecords.data[index], index);
+    if (index >= std::ssize(brain->alarmRecords)) return Report("ResetTarget", "Failed to reset unit %d", unit->id_);
+    brain->ApplyBehaviour(&brain->alarmRecords[index], index);
     return true;
 }
 

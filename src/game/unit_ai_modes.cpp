@@ -76,16 +76,6 @@ void MaybeRemark(AIBrain* brain, int what) {
     if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(what);
 }
 
-void ConstructOrder(AIMoveOrder* order) {
-    LooksInit(&order->looks);
-    order->looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
-}
-
-void DestroyLooks(AIMoveOrder* order) {
-    order->looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
-    if (order->looks.data) gamecrt::operator_delete(order->looks.data);
-}
-
 void StartMove(AIBrain* brain, AIMoveOrder* order) {
     if (brain->target) {
         brain->target.Reset();
@@ -94,7 +84,7 @@ void StartMove(AIBrain* brain, AIMoveOrder* order) {
     brain->action = AIBrain::kActionMove;
     brain->actionTime = AIBrain::kNoTime;
     std::memcpy(&brain->move.point, &order->point, sizeof(Vector3));
-    brain->move.looks.Copy(order->looks);
+    brain->move.looks = order->looks;
     brain->owner->OrderMove(&brain->move.point, 0, 0, kMoveTime);
 }
 
@@ -160,15 +150,12 @@ void GuardMode::Execute(AIBrain* brain) {
     SetPositions(brain, &point, nearX, nearY);
 
     AIMoveOrder order;
-    ConstructOrder(&order);
     order.Clear();
     if (!brain->FindStandPoint(&point, radius, &order.point)) {
         if (++failures <= 100) {
-            DestroyLooks(&order);
             return;
         }
         if (!brain->FindStandPoint(&brain->owner->unit->localPosition_, radius, &order.point)) {
-            LooksDestroyAt(&order.looks);
             return;
         }
     }
@@ -191,7 +178,6 @@ void GuardMode::Execute(AIBrain* brain) {
     bool farLook = IsaacRandom::Global().Next() % 11 == 0;
     brain->PlanLooks(&order, &direction, wander, farLook);
     StartMove(brain, &order);
-    DestroyLooks(&order);
 }
 
 void GuardMode::Load(CStream* stream) {
@@ -213,7 +199,7 @@ void GuardMode::Save(CStream* stream) {
 void PatrolMode::AddPoint(const Vector3* a0) { AppendPoint(a0); }
 
 int PatrolMode::Evaluate(AIBrain* brain) {
-    if (points.size != 0) return kPriority;
+    if (std::ssize(points) != 0) return kPriority;
     game::FatalError("Unit %i has no patrol points, switching to guard", brain->owner->unit->id_);
     AddPoint(&brain->owner->unit->localPosition_);
     return kNoPriority;
@@ -222,44 +208,37 @@ int PatrolMode::Evaluate(AIBrain* brain) {
 void PatrolMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, kRemarkIdle);
     brain->attention.LookAround(brain, 0);
-    if (points.size == 0 || brain->action != AIBrain::kActionNone) return;
-    if (++current >= points.size) current = 0;
-    PatrolPoint* next = points.data + current;
+    if (std::ssize(points) == 0 || brain->action != AIBrain::kActionNone) return;
+    if (++current >= std::ssize(points)) current = 0;
+    PatrolPoint* next = points.data() + current;
     AIMoveOrder order;
     std::memcpy(&order.point, &next->position, sizeof(Vector3));
-    ConstructOrder(&order);
-    order.looks.SetSize(next->looks.size, -1);
-    for (int i = 0; i < next->looks.size; ++i) {
-        AILook look;
-        next->looks.CopyAt(&look, i);
-        std::memcpy(&order.looks.data[i], &look, sizeof(AILook));
-    }
-    if (order.looks.size <= 0) {
+    order.looks = next->looks;
+    if (order.looks.empty()) {
         Vector3 none{0.0f, 0.0f, 0.0f};
         brain->PlanLooks(&order, &none, kNoWander, false);
     }
     StartMove(brain, &order);
     SetPositions(brain, &order.point, kNearX, kNearY);
-    DestroyLooks(&order);
 }
 
 PatrolPoint* PatrolMode::LastPoint() {
-    if (points.size == 0) return nullptr;
-    return points.data + (points.size - 1);
+    if (std::ssize(points) == 0) return nullptr;
+    return points.data() + (std::ssize(points) - 1);
 }
 
 void PatrolMode::Load(CStream* stream) {
     int count;
     ReadField(stream, &count);
-    points.SetSize(count, -1);
-    for (int i = 0; i < points.size; ++i) {
-        PatrolPoint& point = points.data[i];
+    points.resize(count);
+    for (int i = 0; i < std::ssize(points); ++i) {
+        PatrolPoint& point = points[i];
         ReadField(stream, &point.position);
         int lookCount;
         ReadField(stream, &lookCount);
-        point.looks.SetSize(lookCount, -1);
-        for (int j = 0; j < point.looks.size; ++j) {
-            AILook& look = point.looks.data[j];
+        point.looks.resize(lookCount);
+        for (int j = 0; j < std::ssize(point.looks); ++j) {
+            AILook& look = point.looks[j];
             ReadField(stream, &look.angle);
             ReadField(stream, &look.time);
             ReadField(stream, &look.wait);
@@ -270,13 +249,13 @@ void PatrolMode::Load(CStream* stream) {
 }
 
 void PatrolMode::Save(CStream* stream) {
-    WriteCopy(stream, points.size);
-    for (int i = 0; i < points.size; ++i) {
-        PatrolPoint& point = points.data[i];
+    WriteCopy(stream, std::ssize(points));
+    for (int i = 0; i < std::ssize(points); ++i) {
+        PatrolPoint& point = points[i];
         stream->Write(&point.position, sizeof(Vector3));
-        WriteCopy(stream, point.looks.size);
-        for (int j = 0; j < point.looks.size; ++j) {
-            const AILook& look = point.looks.data[j];
+        WriteCopy(stream, std::ssize(point.looks));
+        for (int j = 0; j < std::ssize(point.looks); ++j) {
+            const AILook& look = point.looks[j];
             // Each float goes through a stack copy as a dword (integer moves).
             WriteCopy(stream, std::bit_cast<std::uint32_t>(look.angle));
             WriteCopy(stream, std::bit_cast<std::uint32_t>(look.time));
@@ -296,8 +275,7 @@ void SentryMode::Execute(AIBrain* brain) {
     brain->attention.LookAround(brain, 0);
     if (brain->action != AIBrain::kActionNone) return;
     AIMoveOrder order;
-    ConstructOrder(&order);
-    order.looks.SetSize(0, -1);
+    order.looks.clear();
     std::memcpy(&order.point, &point, sizeof(Vector3));
     bool farLook = IsaacRandom::Global().Next() % 11 == 0;
     Vector3 none{0.0f, 0.0f, 0.0f};
@@ -306,7 +284,6 @@ void SentryMode::Execute(AIBrain* brain) {
     brain->PlanLooks(&order, &none, wanderRadius, farLook);
     StartMove(brain, &order);
     SetPositions(brain, &order.point, kNearX, kNearY);
-    DestroyLooks(&order);
 }
 
 void SentryMode::Load(CStream* stream) { stream->Read(&point, sizeof(Vector3)); }
@@ -383,13 +360,11 @@ void SuspectionMode::Execute(AIBrain* brain) {
         }
     }
     AIMoveOrder order;
-    ConstructOrder(&order);
     order.Clear();
     if (brain->action == AIBrain::kActionNone) {
         if (brain->owner->orderStopped) level -= 50;
         if (!brain->FindStandPoint(&point, kStandRadius, &order.point)) {
             level -= 5;
-            LooksDestroyAt(&order.looks);
             return;
         }
     } else {
@@ -401,24 +376,21 @@ void SuspectionMode::Execute(AIBrain* brain) {
     brain->action = AIBrain::kActionMove;
     brain->actionTime = AIBrain::kNoTime;
     std::memcpy(&brain->move.point, &order.point, sizeof(Vector3));
-    brain->move.looks.Copy(order.looks);
+    brain->move.looks = order.looks;
     brain->owner->OrderMove(&brain->move.point, 0, 0, kMoveTime);
     level = brain->memory.noticedLevel;
-    DestroyLooks(&order);
 }
 
 void SuspectionMode::Enter(AIBrain* brain) {
     brain->owner->SetBusy(1);
     AIMoveOrder order;
-    ConstructOrder(&order);
     order.point = Vector3{0.0f, 0.0f, 0.0f};
-    order.looks.SetSize(0, -1);
+    order.looks.clear();
     std::memcpy(&order.point, &point, sizeof(Vector3));
     Vector3 none{0.0f, 0.0f, 0.0f};
     brain->PlanLooks(&order, &none, kNoWander, false);
     StartMove(brain, &order);
     brain->owner->voice.Raise(5);
-    DestroyLooks(&order);
 }
 
 void SuspectionMode::Leave(AIBrain* brain) {

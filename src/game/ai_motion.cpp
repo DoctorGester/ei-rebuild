@@ -59,15 +59,6 @@ int DirectionDelta(int a, int b) {
     return d;
 }
 
-void ClearList(PathCellList& list) {
-    list.count = 0;
-    list.free = nullptr;
-    list.tail = nullptr;
-    list.head = nullptr;
-    mfc::PlexFreeDataChain(list.blocks);
-    list.blocks = nullptr;
-}
-
 void FaceAngle(float angle, float* direction) {
     direction[0] = static_cast<float>(x87::fcos(angle));
     direction[1] = static_cast<float>(x87::fsin(angle));
@@ -101,7 +92,7 @@ int PathOrder::Reset() {
     order->arg7 = 0;
     order->angle = 0.0f;
     order->startTime = 0;
-    ClearList(steps);
+    steps.clear();
     return 0;
 }
 
@@ -120,7 +111,7 @@ bool PathOrder::Start(const Vector3* position, const Vector3* direction, int tim
     order->kind = 0;
     order->y = y;
     order->startTime = time;
-    ClearList(steps);
+    steps.clear();
     return !same;
 }
 
@@ -171,7 +162,7 @@ void PathOrder::ShiftTime(int delta) {
 }
 
 int PathOrder::SetStepSpeeds(std::uint16_t speed) {
-    for (PathCellList::Node* node = steps.head; node; node = node->next) node->data.flags = speed;
+    for (auto node = steps.begin(); node != steps.end(); ++node) node->flags = speed;
     return 0;
 }
 
@@ -191,7 +182,7 @@ Vector3* PathOrder::Destination(Vector3* out) {
 }
 
 void AIPath::Clear() {
-    ClearList(cells);
+    cells.clear();
     Reset();
     targetX = 0.0f;
     targetY = 0.0f;
@@ -230,7 +221,7 @@ int UnitMotion::Clear() {
     segment = -1;
     points.clear();
     waypoints.clear();
-    stepSpeeds.size = 0;
+    stepSpeeds.clear();
     return 0;
 }
 
@@ -434,7 +425,7 @@ void UnitMotion::Build(PathOrder* path) {
     segment = -1;
     points.clear();
     waypoints.clear();
-    stepSpeeds.size = 0;
+    stepSpeeds.clear();
     CopyBits(&startAngle, &order->angle);
 
     switch (static_cast<unsigned>(order->kind)) {
@@ -483,15 +474,15 @@ void UnitMotion::Build(PathOrder* path) {
     first.cells = 0;
     lib::SetAtGrow(waypoints, std::ssize(waypoints), first);
     int previous = 0;
-    for (PathCellList::Node* node = path->steps.head; node;) {
-        PathCellList::Node* next = node->next;
+    for (auto node = path->steps.begin(); node != path->steps.end();) {
+        auto next = std::next(node);
         ++waypoints[std::ssize(waypoints) - 1].cells;
-        stepSpeeds.SetAtGrow(stepSpeeds.size, static_cast<float>(static_cast<double>(node->data.flags)));
-        if (!next) break;
-        PathCellList::Node* afterNext = next->next;
-        const PathCell& cell = node->data;
+        stepSpeeds.push_back(static_cast<float>(static_cast<double>(node->flags)));
+        if (next == path->steps.end()) break;
+        auto afterNext = std::next(next);
+        const PathCell& cell = *node;
         double cx = cell.x, cy = cell.y;
-        int dir = Direction(cell, next->data);
+        int dir = Direction(cell, *next);
         MotionWaypoint w;
         switch (dir) {
         case 2:
@@ -515,7 +506,7 @@ void UnitMotion::Build(PathOrder* path) {
         }
 
         bool corner = previous != 0 && DirectionDelta(dir, previous) > 1;
-        if (!corner && afterNext) corner = DirectionDelta(dir, Direction(next->data, afterNext->data)) > 1;
+        if (!corner && afterNext != path->steps.end()) corner = DirectionDelta(dir, Direction(*next, *afterNext)) > 1;
         if (corner) {
             switch (dir) {
             case 1:
@@ -572,20 +563,18 @@ void UnitMotion::Build(PathOrder* path) {
 }
 
 void UnitMotion::AssignCells(PathOrder* path) {
-    PathCellList::Node* head = path->steps.head;
+    auto head = path->steps.begin();
     int i = 0;
-    for (PathCellList::Node* node = head; node;) {
-        PathCellList::Node* next = node->next;
+    for (auto node = head; node != path->steps.end(); ++node) {
         if (i >= std::ssize(points)) break;
-        points[i].cellX = node->data.x;
-        points[i].cellY = node->data.y;
+        points[i].cellX = node->x;
+        points[i].cellY = node->y;
         ++i;
-        node = next;
     }
-    if (path->steps.count == 1) {
+    if (std::ssize(path->steps) == 1) {
         MotionPoint& last = points[std::ssize(points) - 1];
-        last.cellX = head->data.x;
-        last.cellY = head->data.y;
+        last.cellX = head->x;
+        last.cellY = head->y;
     }
 }
 
@@ -617,7 +606,7 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
         CopyBits(&p.x, &a->x);
         CopyBits(&p.y, &a->y);
         int size = std::ssize(points);
-        p.speed = static_cast<float>(static_cast<double>(stepSpeeds.data[*stepIndex]) * speedScale * kSpeedUnit);
+        p.speed = static_cast<float>(static_cast<double>(stepSpeeds[*stepIndex]) * speedScale * kSpeedUnit);
         points.resize(size + 1);
         points[size] = p;
         size = std::ssize(points);
@@ -635,7 +624,7 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
         double g = 1.0f - f;
         p.x = static_cast<float>(f * b->x + g * a->x);
         p.y = static_cast<float>(g * a->y + f * b->y);
-        p.speed = static_cast<float>(static_cast<double>(stepSpeeds.data[*stepIndex]) * speedScale * kSpeedUnit);
+        p.speed = static_cast<float>(static_cast<double>(stepSpeeds[*stepIndex]) * speedScale * kSpeedUnit);
         int size = std::ssize(points);
         points.resize(size + 1);
         points[size] = p;
@@ -674,8 +663,8 @@ void UnitMotion::LoadState(CStream* stream) {
     waypoints.resize(count);
     for (int i = 0; i < std::ssize(waypoints); ++i) stream->Read(&waypoints[i], sizeof(MotionWaypoint));
     stream->Read(&count, 4);
-    stepSpeeds.SetSize(count, -1);
-    for (int i = 0; i < stepSpeeds.size; ++i) stream->Read(&stepSpeeds[i], 4);
+    stepSpeeds.resize(count);
+    for (float& step : stepSpeeds) stream->Read(&step, 4);
     stream->Read(&speedScale, 4);
     stream->Read(&baseTurnRate, 4);
     stream->Read(&turnRate, 4);
@@ -690,9 +679,9 @@ void UnitMotion::SaveState(CStream* stream) {
     count = std::ssize(waypoints);
     stream->Write(&count, 4);
     for (int i = 0; i < std::ssize(waypoints); ++i) stream->Write(&waypoints[i], sizeof(MotionWaypoint));
-    count = stepSpeeds.size;
+    count = std::ssize(stepSpeeds);
     stream->Write(&count, 4);
-    for (int i = 0; i < stepSpeeds.size; ++i) stream->Write(&stepSpeeds[i], 4);
+    for (const float& step : stepSpeeds) stream->Write(&step, 4);
     // Copied through a local as dwords.
     const float* const fields[] = {&speedScale, &baseTurnRate, &turnRate, &startAngle, &turn};
     for (const float* field : fields) {

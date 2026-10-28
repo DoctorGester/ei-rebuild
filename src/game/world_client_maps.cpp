@@ -671,7 +671,7 @@ void CWorldClient::Destroy() {
     }
     DeleteOwned(bird_);
     ReleaseItemsAndSpells();
-    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);
+    countedA0_.clear();
     bloodPrints_.clear();
     footprints_.clear();
     scorchMarks_.clear();
@@ -713,7 +713,7 @@ void CWorldClient::Destroy() {
 }
 
 void CWorldClient::ResetZoneObjects() {
-    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);
+    countedA0_.clear();
     // The second grid's cells emptied (each object released).
     SectorGrid& second = secondGrid_;
     for (int x = 0; x < static_cast<int>(second.width_); ++x)
@@ -1046,15 +1046,10 @@ CLightningManager::~CLightningManager() {
     newBolts_.clear();
 }
 
-ClientArrayManager::ClientArrayManager() {
-    texture = nullptr;
-    mfc::impl::ConstructListHeader<mfc::impl::ClientList3Class>(&list, 10);
-}
+ClientArrayManager::ClientArrayManager() { texture = nullptr; }
 
 ClientArrayManager::~ClientArrayManager() {
     VisFogManagerDestroy(this);
-    list.vtable = mfc::impl::ClientList3Class::Vtable();
-    list.RemoveAll();
     if (CTexture* held = texture) held->Release();
 }
 
@@ -1112,8 +1107,8 @@ int CWorldClient::LoadZone(CStream* block) {
     block->ReadInto(&mob);
     int exitCount;
     block->Read(&exitCount, 4);
-    exits_.SetSize(exitCount);
-    for (int i = 0; i < exits_.size; ++i) exits_[i].Read(block);
+    exits_.resize(exitCount);
+    for (ZoneExit& exit : exits_) exit.Read(block);
     int cave;
     block->Read(&cave, 4);
     UnitLooks looks;

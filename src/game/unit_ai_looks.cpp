@@ -6,8 +6,6 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/mfc_array.h"
-#include "lib/mfc_slots.h"
 
 #include <cmath>
 #include <cstring>
@@ -16,40 +14,11 @@ namespace {
 constexpr float kOne = 1.0f;
 constexpr float kHalf = 0.5f;
 
-// CArray growth when the capacity is exceeded: the step (0: an eighth of the size, 4..1024) added
-// to the capacity, or the new size when that is more.
-int GrownCapacity(int size, int max, int growBy, int wanted) {
-    int step = growBy;
-    if (step == 0) {
-        step = size / 8;
-        if (step < 4) {
-            step = 4;
-        } else if (step > 1024) {
-            step = 1024;
-        }
-    }
-    int capacity = max + step;
-    return capacity <= wanted ? wanted : capacity;
-}
 } // namespace
-
-AILookArray* LooksInit(AILookArray* looks) {
-    looks->vtable = mfc::impl::AiLookArrayClass::Vtable();
-    looks->data = nullptr;
-    looks->growBy = 0;
-    looks->maxSize = 0;
-    looks->size = 0;
-    return looks;
-}
-
-AILook* AILooks::CopyAt(AILook* out, int index) const {
-    *out = data[index];
-    return out;
-}
 
 void AIMoveOrder::Clear() {
     point = Vector3{0.0f, 0.0f, 0.0f};
-    looks.RemoveAll();
+    looks.clear();
 }
 
 void PatrolMode::AppendPoint(const Vector3* position) {
@@ -59,31 +28,11 @@ void PatrolMode::AppendPoint(const Vector3* position) {
     long iy = x87::RoundToInt(static_cast<float>(kOne / cell * position->y));
     float x = static_cast<float>((static_cast<float>(ix) + kHalf) * cell);
     float y = static_cast<float>((static_cast<float>(iy) + kHalf) * cell);
-    int index = points.size;
-    points.SetSize(index + 1, -1);
+    int index = std::ssize(points);
+    points.resize(index + 1);
     PatrolPoint& added = points[index];
     added.position = Vector3{x, y, 0.0f};
     // An empty temporary look array is copied into the new point.
-    added.looks.SetSize(0, -1);
+    added.looks.clear();
 }
 
-// --- The patrol point array (CArray<PatrolPoint>) ---------------------------------------------------
-
-void PatrolPointElements::Construct(PatrolPoint* points, int count) {
-    std::memset(static_cast<void*>(points), 0, sizeof(PatrolPoint) * static_cast<unsigned>(count));
-    for (int i = 0; i < count; ++i) points[i].looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
-}
-
-void PatrolPointElements::Destruct(PatrolPoint* points, int count) {
-    for (int i = 0; i < count; ++i) {
-        AILookArray& looks = points[i].looks;
-        looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
-        if (looks.data) gamecrt::operator_delete(looks.data);
-    }
-}
-
-PatrolPoint& PatrolPoint::operator=(const PatrolPoint& other) {
-    std::memcpy(&position, &other.position, sizeof(Vector3));
-    looks.Copy(other.looks);
-    return *this;
-}

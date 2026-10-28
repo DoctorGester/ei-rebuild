@@ -23,6 +23,7 @@
 #include <cstring>
 #include <list>
 #include <string>
+#include <vector>
 
 template <typename T>
 struct AIRefTo;
@@ -74,14 +75,7 @@ struct AILook {
 };
 static_assert(sizeof(AILook) == 0x10);
 
-struct AILooks : mfc::CArray<AILook> {
-    // Grown to index + 1 when needed (new looks zeroed).
-    void SetAtGrow(int index, const AILook& look);
-    AILook* CopyAt(AILook* out, int index) const;
-};
-using AILookArray = AILooks;
-void LooksDestroyAt(AILookArray* looks);
-AILookArray* LooksInit(AILookArray* looks);
+using AILookArray = std::vector<AILook>;
 // The looks from / to a save: the count, then angle, time and wait of each and (from version 0x44) the stop
 // flag.
 void LoadLooks(AILookArray* looks, CStream* stream);
@@ -94,7 +88,6 @@ struct AIMoveOrder {
     Vector3 point;
     AILookArray looks;
 };
-static_assert(sizeof(AIMoveOrder) == 0x20);
 
 // Mode types, as the brain names them in its "new motivation" message.
 enum AIModeType {
@@ -169,26 +162,11 @@ public:
 static_assert(sizeof(GuardMode) == 0x20);
 
 struct PatrolPoint {
-    // The position, then the looks sized to the source's count and each look copied.
-    PatrolPoint& operator=(const PatrolPoint& other);
-
     Vector3 position;
     AILookArray looks;
 };
-static_assert(sizeof(PatrolPoint) == 0x20);
 
-// The point array's ConstructElements (zeroed, each look array given) and DestructElements (each look array freed).
-struct PatrolPointElements {
-    static void Construct(PatrolPoint* points, int count);
-    static void Destruct(PatrolPoint* points, int count);
-};
-
-struct PatrolPoints : mfc::CArray<PatrolPoint, PatrolPointElements> {
-    void Destruct();
-    PatrolPoints* DeletingDestruct(int flags);
-    PatrolPoint* CopyAt(PatrolPoint* out, int index) const;
-};
-using PatrolPointArray = PatrolPoints;
+using PatrolPointArray = std::vector<PatrolPoint>;
 
 // Patrol: walk a list of points.
 class PatrolMode : public AIMode {
@@ -216,7 +194,6 @@ public:
     PatrolPointArray points;
     int current;
 };
-static_assert(sizeof(PatrolMode) == 0x20);
 
 // Sentry: stand at a point.
 class SentryMode : public AIMode {
@@ -478,25 +455,11 @@ struct AICallRecord {
     int kind;
     int hostileMask;                    // sides the hearer turns hostile to (0 for a plain call)
     std::string text;
-
-    void Destruct();
 };
-static_assert(offsetof(AICallRecord, text) == 0x14);
-
-struct AICallElements {
-    static void Construct(AICallRecord* calls, int count);
-    static void Destruct(AICallRecord* calls, int count);
-    static void Relocate(AICallRecord* to, AICallRecord* from, int count) { mfc::MoveElements(to, from, count); }
-};
-using AICallRecords = mfc::impl::ArrayAbi<AICallRecord, AICallElements>;
-// A unit memory's calls (AIHeardCalls).
-struct MemoryRecordArrayClass final
-    : mfc::impl::CompiledCollection<MemoryRecordArrayClass, &AICallRecords::Destruct<MemoryRecordArrayClass>,
-                                    &AICallRecords::Serialize> {};
 
 struct AIMemory;
 
-struct AIHeardCalls : mfc::CArray<AICallRecord, AICallElements> {
+struct AIHeardCalls : std::vector<AICallRecord> {
     // Counts every call down; one that runs out is dropped after it is heard: with a hostility mask the
     // unit's controller takes the mask (logged "hear delayed sound"), else, when the memory's noticed level
     // is below 900, the call's point becomes the noticed point (900, kind -3; logged when the level rose by
@@ -513,25 +476,14 @@ struct AIHeardCalls : mfc::CArray<AICallRecord, AICallElements> {
 
 // A unit's alarm / assembly record: the map spec's behaviour record (read and written).
 using AIAlarmRecord = mapspec::Behaviour;
-struct AIAlarmRecordElements {
-    static void Construct(AIAlarmRecord* records, int count);
-    static void Destruct(AIAlarmRecord* records, int count);
-};
-using AIAlarmRecordArray = mfc::CArray<AIAlarmRecord, AIAlarmRecordElements>;
+using AIAlarmRecordArray = std::vector<AIAlarmRecord>;
 // An object the memory reported (the object is a counted reference).
 struct AIReport {
-    AIRefTo<CMapObject> object;
+    HeldPtr<CMapObject> object;
     int what;
 };
-static_assert(sizeof(AIReport) == 8);
 
-// The reports' ConstructElements (zeroed, each object null) and DestructElements (each object released).
-struct AIReportElements {
-    static void Construct(AIReport* reports, int count);
-    static void Destruct(AIReport* reports, int count);
-};
-
-struct AIReports : mfc::CArray<AIReport, AIReportElements> {
+struct AIReports : std::vector<AIReport> {
     // Keeps the larger `what` of a listed object, else appends it (with a reference).
     void Report(CMapObject* object, int what);
     bool Contains(CEngineObject* object) const;
@@ -556,9 +508,7 @@ struct AIAttackOption {
 };
 static_assert(sizeof(AIAttackOption) == 0x28);
 
-// Elements are zero-filled.
-using AIAttackOptions = mfc::CArray<AIAttackOption>;
-static_assert(sizeof(AIAttackOptions) == 0x14);
+using AIAttackOptions = std::vector<AIAttackOption>;
 // The count, the array sized to it, then each option.
 void LoadAttackOptions(AIAttackOptions* options, CStream* stream);
 
@@ -612,7 +562,6 @@ struct AIAttention {
     AIAttackOptions spells;
     float healWeight;               // the largest Weight of the weapons (Build); kind 7 scores with it
 };
-static_assert(sizeof(AIAttention) == 0x2C);
 
 double AIDistance2(const Vector3* a, const Vector3* b);
 
@@ -816,10 +765,4 @@ struct AIBrain {
     AIMemory memory;                // perception memory
 };
 static_assert(offsetof(AIBrain, move) == 0x08);
-static_assert(offsetof(AIBrain, actionTime) == 0x28);
-static_assert(offsetof(AIBrain, alwaysUpdated) == 0x37 && offsetof(AIBrain, alertMode) == 0x3C);
-static_assert(offsetof(AIBrain, decay) == 0x4C);
-static_assert(offsetof(AIBrain, previousPosition) == 0x50);
-static_assert(offsetof(AIBrain, position) == 0x5C);
-static_assert(offsetof(AIBrain, modes) == 0x70);
 

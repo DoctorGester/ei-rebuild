@@ -137,7 +137,7 @@ void CWorldServer::RestorePlayerItems(CPlayer* player) {
     taken.clear();
 }
 
-void CWorldServer::Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placements, char runScripts) {
+void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placements, char runScripts) {
     if (!player) return;
     RestorePlayerItems(player);
     if (!(sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
@@ -167,8 +167,8 @@ void CWorldServer::Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placeme
     const ZoneExit* exit = nullptr;
     const MapRecord* zone = FindZone(party->zone_);
     int entrance = static_cast<int>(party->entrance_);
-    if (zone && entrance >= 0 && entrance < zone->exits.size) {
-        exit = &zone->exits.data[entrance];
+    if (zone && entrance >= 0 && entrance < std::ssize(zone->exits)) {
+        exit = &zone->exits[entrance];
         start.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * Half());
         start.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * Half());
         start.z = 0.0f;
@@ -181,8 +181,7 @@ void CWorldServer::Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placeme
     rotation.FromAxisAngle(up, angle);
 
     CreateUnits(player, &records, &start, rotation, placements);
-    if (placements)
-        mfc::impl::ArrayAs<mfc::impl::Placements>(*placements).SetSize(0, -1);
+    if (placements) placements->clear();
     CPlayerServer* state = player->Server();
     std::uint32_t lastZ;
     std::memcpy(&lastZ, &state->lastPosition_.z, 4);

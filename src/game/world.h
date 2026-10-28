@@ -245,37 +245,18 @@ using ProjectileList = std::list<CSpellEffect*>;
 
 using WorldStream = CStream;
 
-// CArray<T*> of counted references to engine objects of class T.
-template <class T>
-struct CountedPtrs : mfc::CArray<T*> {
-    // SetSize to the source's size, then each pointer replaced by the source's (a counted temporary from
-    // CopyAt; the new one referenced before the old one is released).
-    void CopyFrom(const CountedPtrs& source);
-    // By-value GetAt: element `index` into `out` with one more reference. Returns out.
-    T** CopyAt(T** out, int index) const;
-    // The destructor's body: each pointer released, then the storage freed.
-    void ReleaseAll() {
-        if (!this->data) return;
-        for (int i = 0; i < this->size; ++i)
-            if (T* object = this->data[i]) object->Release();
-        gamecrt::operator_delete(this->data);
-    }
-};
-
 // An entry of the world server's shared-object list: the loot a unit left.
 struct SharedObject {
-    int objectId;
-    int player;
-    std::uint32_t money;                    // gold the loot adds to the finder's party
-    CountedPtrs<CItem> objects;
+    int objectId = 0;
+    int player = 0;
+    std::uint32_t money = 0;                // gold the loot adds to the finder's party
+    std::vector<HeldPtr<CItem>> objects;    // counted
 
-    SharedObject* CopyFrom(const SharedObject* from);
-    SharedObject* DeletingDestruct(unsigned flags);
     // Reads the entry: id, player, value, then object ids resolved by the item manager; each found
     // object is appended with a reference.
     void Load(WorldStream* stream);
 };
-using SharedObjectList = mfc::CList<SharedObject>;
+using SharedObjectList = std::list<SharedObject>;
 
 using RecordPtrArray = std::vector<PartyUnitRecord*>;
 
@@ -490,10 +471,10 @@ public:
     void SyncPartyRecords(CPlayer* player);
     // Before a zone change: every record of `records` notes its unit's leader, gets a placement (if `placements`), is
     // rebuilt from its unit, and the unit is removed (a dead one just loses its owner).
-    void StoreParty(RecordPtrArray* records, CParty* partyRecords, mfc::CArray<UnitPlacement>* placements);
+    void StoreParty(RecordPtrArray* records, CParty* partyRecords, std::vector<UnitPlacement>* placements);
     // The player's party leaves the zone: gtime, its items, then (single player and kind 3, with
     // zoneLoaded_) its records without a unit are dropped and the rest stored (StoreParty).
-    void CollectParty(CPlayer* player, mfc::CArray<UnitPlacement>* placements);
+    void CollectParty(CPlayer* player, std::vector<UnitPlacement>* placements);
 
     // Moves quest items (class 0x14) from `items` to `list`: in single player only those whose description
     // names this zone or whose id an object of the zone asks for; otherwise all.
@@ -504,7 +485,7 @@ public:
     // The party arrives in the zone (single player and kind 3, with zoneLoaded_): its units are created at the
     // entrance's centre, facing away from the map centre or along the exit's heading; `runScripts` runs the script
     // command queue five times.
-    void Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placements, char runScripts);
+    void Redeploy(CPlayer* player, std::vector<UnitPlacement>* placements, char runScripts);
     // A new item like `item`, made by the item factory and filled by the item's fill virtual (the second one for
     // spells), with its count; one below its maximum goes on counted_ once.
     CItem* CopyItem(CItem* item);
@@ -517,7 +498,7 @@ public:
     // control, with its items, spells and AI; heroes get their figure parts, followers their leaders, and with a
     // player the units join the "Heroes" script group.
     void CreateUnits(CPlayer* player, RecordPtrArray* records, const Vector3* position, Quaternion rotation,
-                     mfc::CArray<UnitPlacement>* placements);
+                     std::vector<UnitPlacement>* placements);
     // A quick item (potion) is used by `unit`: the effect object "st.tr.130" (model "unhuma", type 9, flags 0x3010)
     // is created at the unit's position and flagged new (flags_ |= 0x180000). `item` is not used.
     void UseQuickItem(CItem* item, CUnit* unit);
@@ -770,7 +751,7 @@ struct ClientArrayManager : CBaseManager {
     int Draw(CSceneRenderer* renderer);
 
     HeldTexture texture;                  // the fog texture (counted)
-    mfc::CList<CEngineObject*> list;      // counted
+    std::list<CEngineObject*> list;       // counted
 };
 // The manager's Clear (its object and every listed one released, the list emptied); a new fog object,
 // counted, at the list end.
@@ -1019,7 +1000,7 @@ public:
     std::uint32_t debugFlags_;            // the debug display's switches (bits 0-3: ShowFps ...)
     ZoneExits exits_;
     // The exits' particle markers, one per exit or null (counted; CreateExitMarkers / UpdateExitMarkers).
-    CountedPtrs<CParticleSource> countedA0_;
+    std::vector<HeldPtr<CParticleSource>> countedA0_;
     SectorList heroes_;                   // heroes with a text-key id (counted)
     MapObjectList objects_;               // every filed object (one reference each)
     // The objects answering IsSynchronised, with their nodes by id in dynamicNodes_ and the highest id
