@@ -159,48 +159,10 @@ EI_REWRITTEN(0x005593D0, UnitSet::Add);
 
 namespace unitset {
 
-DressedUnitRecord* __fastcall ConstructHead(DressedUnitRecord* self) {
-    self->items.ConstructEmpty();
-    self->extraWeapons.ConstructEmpty();
-    return self;
-}
-
-void __fastcall DestroyHead(DressedUnitRecord* self) { DressedUnitElement::Destroy(self); }
-
-} // namespace unitset
-
-FiguredUnitRecord* FiguredUnitRecord::CopyConstruct(const FiguredUnitRecord* from) {
-    FiguredUnitElement::Construct(this, *from);
-    return this;
-}
-
-DressedUnitRecord* DressedUnitRecord::CopyConstruct(const DressedUnitRecord* from) {
-    DressedUnitElement::Construct(this, *from);
-    return this;
-}
-
-namespace unitset {
-
-bool __fastcall EqualIds(const std::uint32_t* first, const std::uint32_t* last, const std::uint32_t* other) {
-    for (; first != last; ++first, ++other)
-        if (*first != *other) return false;
-    return true;
-}
-
 void __fastcall DestructName(mfc::CString* name) { std::destroy_at(name); }
 
 } // namespace unitset
 
-// The records: the head's constructor and destructor, the copies, equal() of two id ranges.
-EI_REWRITTEN(0x00559DB0, unitset::ConstructHead);
-EI_REWRITTEN(0x00559DE0, unitset::DestroyHead);
-EI_REWRITTEN(0x0055A860, FiguredUnitRecord::CopyConstruct);
-EI_REWRITTEN(0x0055A9F0, DressedUnitRecord::CopyConstruct);
-EI_REWRITTEN(0x0055D020, unitset::EqualIds);
-
-// The tables: a group's pair, hash_map(), its copy and destructor; the groups' find_or_insert and
-// resize; the multimaps' equal_range, resize, insert_equal_noresize and the iterator's step.
-EI_REWRITTEN(0x0055ABB0, gamehash::FiguredGroupPair::Construct);
 EI_REWRITTEN(0x0055AC40, gamehash::FiguredAbi::ConstructDefault);
 EI_REWRITTEN(0x0055AEB0, gamehash::FiguredAbi::CopyConstruct);
 EI_REWRITTEN(0x0055AD10, gamehash::FiguredAbi::Destroy);

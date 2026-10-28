@@ -21,12 +21,6 @@ PartyInPlace* PartyTable::At(const int* key) {
     return result;
 }
 
-FiguredGroupPair* FiguredGroupPair::Construct(const std::uint32_t* from, const FiguredTable* table) {
-    key = *from;
-    mapped.CopyConstruct(*table);
-    return this;
-}
-
 } // namespace gamehash
 
 RefPtr* ShapeTable::At(const ShapeCacheHandle* handle) {

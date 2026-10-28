@@ -46,8 +46,6 @@ public:
     int Receive(int update, BitStream* reader);
     // Flags bit 1 (changed) and the change stamp (global).
     void MarkChanged();
-    // moving_ = the velocity is not zero. No callers.
-    void UpdateMoving();
     // Sets the velocity (moving_ as in UpdateMoving) and marks the effect changed.
     void SetVelocity(const Vector3* velocity);
 

@@ -170,8 +170,6 @@ EI_REWRITTEN(0x00482D80, stlp::TreeAllocProxy::Construct);
 EI_REWRITTEN(0x005F9C50, stlp::TreeAllocProxy::Construct);
 EI_REWRITTEN(0x005F9D50, stlp::TreeAllocProxy::Construct);
 EI_REWRITTEN(0x0060A100, stlp::TreeAllocProxy::Construct);
-EI_REWRITTEN(0x005F3CD0, stlp::DwordPair::Construct);
-EI_REWRITTEN(0x005F3CF0, stlp::DwordPair::Construct);
 // --- The console's command maps (map<CString, handler>) -------------------------------------------
 EI_REWRITTEN(0x005E0A90, Commands::Construct);
 EI_REWRITTEN(0x005DC080, Commands::Destroy);

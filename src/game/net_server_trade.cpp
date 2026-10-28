@@ -61,16 +61,8 @@ EI_REWRITTEN(0x004263B0, RefPtr::CopyPlain);
 EI_REWRITTEN(0x00429910, RefPtr::CopyPlain);
 EI_REWRITTEN(0x00609960, RefPtr::CopyPlain);
 EI_REWRITTEN(0x005BEF50, RefPtr::CopyPlain);
-// The counted pointer's assignment from another holder (the chat window's player list
-// RefPtr::Assign of the other's object (a reference added, the old one released, even
-// for the same object; no copy-on-share handling). Returns the holder.
-RefPtr* RefPtr::AssignCounted(const RefPtr* other) {
-    Assign(other->ptr);
-    return this;
-}
 
 namespace net {
-EI_REWRITTEN(0x00609D40, RefPtr::AssignCounted);
 
 // The trade between the two offers (in either order), or null.
 TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMessage* other) {

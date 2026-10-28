@@ -274,55 +274,6 @@ EI_REWRITTEN(0x00478140, LoopbackLink::Disconnect);
 
 // ReplayLink
 
-ReplayLink::ReplayLink() {}
-ReplayLink::ReplayLink(const ReplayLink& other) : NetLink(other) {}
-
-// modeRead; the stream's ok tells whether it opened. Without memory the original crashes (on the
-// reference count's write before the null check); so does this.
-ReplayLink* __stdcall ReplayLink::Create(const char* path) {
-    auto* self = net::NewCounted<ReplayLink>();
-    self->replay_.Open(path, FileStream::kOpenRead, 1);
-    return self;
-}
-EI_REWRITTEN(0x00478960, ReplayLink::Create);
-
-ReplayLink::~ReplayLink() {}
-EI_REWRITTEN_SPECIAL(0x00478CC0, ReplayLink::~ReplayLink);
-EI_REWRITTEN_SPECIAL(0x00478CA0, ReplayLink::~ReplayLink);
-
-// Destroyed and built again in place (the reference count and +9 kept): two closed files, not recording.
-int ReplayLink::OnShutdown() {
-    net::Rebuild(this);
-    return 0;
-}
-EI_REWRITTEN(0x00478B10, ReplayLink::OnShutdown);
-
-// Null when the allocation fails.
-ReplayLink* ReplayLink::Clone() { return net::NewCounted<ReplayLink>(*this); }
-EI_REWRITTEN(0x00478A50, ReplayLink::Clone);
-
-// Whether the recording has more to read (position, then size, through the file stream's slots).
-bool ReplayLink::Alive() {
-    CStream* replay = &replay_;
-    std::uint32_t position = replay->Position();
-    std::uint32_t size = replay->Size();
-    return position < size;
-}
-EI_REWRITTEN(0x00478C30, ReplayLink::Alive);
-
-bool ReplayLink::HasIncoming() { return ReplayLink::Alive(); }
-EI_REWRITTEN(0x00478C50, ReplayLink::HasIncoming);
-
-// The next recorded message into `stream`; the replay stream's ok.
-bool ReplayLink::Receive(CMemoryStream* stream) {
-    replay_.ReadSized(stream);
-    return replay_.ok_ != 0;
-}
-EI_REWRITTEN(0x00478C70, ReplayLink::Receive);
-
-void ReplayLink::Disconnect() { replay_.Close(); }
-EI_REWRITTEN(0x00478C90, ReplayLink::Disconnect);
-
 // FramedLink
 
 FramedLink::FramedLink() {}

@@ -22,7 +22,6 @@ using ProtectionCheckList = stlp::list<std::uint8_t>;
 inline ProtectionCheckList& ProtectionChecks() { return *g_protectionChecks; }
 
 double __fastcall DiskFreeSpace(const char* path);
-void __fastcall SetQuitAllowed(std::uint8_t allowed);
 bool __fastcall QuitGame(int exitCode);
 std::uint8_t __cdecl MovieMode();
 void __cdecl ScrambleObjects();

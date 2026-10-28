@@ -277,7 +277,6 @@ static_assert(sizeof(ScriptAreaParts) == sizeof(mfc::CArray<ScriptAreaPart>));
 
 // A point light slot (CScript::pointLights_, 256 slots).
 struct ScriptPointLight {
-    ScriptPointLight* DeleteScalar(unsigned flags);
     // The effect object leaves the world's timed objects and is released.
     void ScriptPointLightDestruct();
     // The effect object's id (-1: none), then the fields in order.

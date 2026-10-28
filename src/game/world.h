@@ -89,8 +89,6 @@ struct ObjectIdMap {
     int maxId;
 
     void Set(const unsigned& key, CEngineObject* const& value);
-    // Releases every object up to the first empty entry, frees the nodes (the buckets stay) and clears maxId.
-    void ReleaseAll();
     // 100 buckets (193), maxId 0.
     void Construct();
 };
@@ -128,8 +126,6 @@ struct ObjectMapIterator {
     ObjectIdMap* table;
     ObjectIdMap* map;
 
-    CEngineObject* First(ObjectIdMap* objects);
-    CEngineObject* Next();
 };
 static_assert(sizeof(ObjectMapIterator) == 12);
 
@@ -388,9 +384,6 @@ public:
     void StorePlayerItems(CPlayer* player, class CParty* party);
     void ClearPlayerItems(CPlayer* player);
     void SetWaterLevel(int key, float target, int steps);
-    // (No caller in the exe; Rebirth's binaries refer to it.) Every unit (class 0x50) of the object map
-    // removed (RemoveObject by id; the walk steps on before each removal).
-    void RemoveAllUnits();
 
     // Replaces the zone exits with copies of `source`'s records that lead somewhere (target not "");
     // an exit without an entrance must lead to "none".
@@ -704,9 +697,6 @@ static_assert(offsetof(UnitSet, dressed) == 0x14);
 static_assert(sizeof(UnitSet) == 0x28);
 
 namespace unitset {
-DressedUnitRecord* __fastcall ConstructHead(DressedUnitRecord* self);
-void __fastcall DestroyHead(DressedUnitRecord* self);
-bool __fastcall EqualIds(const std::uint32_t* first, const std::uint32_t* last, const std::uint32_t* other);
 void __fastcall DestructName(mfc::CString* name);
 } // namespace unitset
 
@@ -1019,7 +1009,6 @@ public:
     // `path`, or a driver for the game client's first connection (false without an active client or connection). Each
     // empties the maps and reconnects the session.
     void SetPlayer(CWorldHandle* player);
-    void PlayRecording(const char* path);
     bool JoinGameClient(const char* unused);
     // The player sources and the network session pumped, then the local player's link (when it is
     // active) asked HasIncoming / IncomingCount; false / 0 without one.
@@ -1544,9 +1533,6 @@ struct ModelUseLess {
 // (NewObject), loaded (Load) and referenced. 1 at the end mark, 0 when a mark is read from a failed
 // stream.
 int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream);
-// Writes what LoadManagerObjects reads: per listed object a 1, its id, type and field, then its own
-// Save; a 0 at the end.
-void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* stream);
 // The parts of it a list of a class derived from CEngineObject walks itself: one object's entry, and the end
 // mark.
 void SaveListedObject(CEngineObject* object, CStream* stream);

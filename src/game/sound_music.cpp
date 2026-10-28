@@ -208,14 +208,6 @@ void CMusicSystem::PlayConstructor(const char* allod) {
 }
 EI_REWRITTEN(0x006B5080, CMusicSystem::PlayConstructor);
 
-void CMusicSystem::PlayCredits() {
-    state = 5;
-    TheSoundManager()->StopStream(4);
-    std::string path = credits + kMp3;
-    TheSoundManager()->RequestStream(path.c_str(), 4);
-}
-EI_REWRITTEN(0x006B5170, CMusicSystem::PlayCredits);
-
 void CMusicSystem::PlayMainMenu() {
     state = 4;
     TheSoundManager()->StopStream(4);
@@ -339,16 +331,6 @@ void CMusicSystem::FadeOut() { TheSoundManager()->FadeOutStream(); }
 void CMusicSystem::FadeIn() { TheSoundManager()->FadeInStream(); }
 EI_REWRITTEN(0x006B4E10, CMusicSystem::FadeOut);
 EI_REWRITTEN(0x006B4E20, CMusicSystem::FadeIn);
-
-void MusicTheme::Assign(const MusicTheme* from) {
-    name = from->name;
-    dungeon = from->dungeon;
-    briefing = from->briefing;
-    constructor = from->constructor;
-    calm.Copy(from->calm);
-    combat.Copy(from->combat);
-}
-EI_REWRITTEN(0x006B4D40, MusicTheme::Assign);
 
 // GetClassName and GetClassId.
 const char* CMusicSystem::GetClassName() { return MusicClassNameText(); }

@@ -326,8 +326,6 @@ public:
     BOOL HasActiveTip() const;
     // Also enables the region.
     void SetRect(int left, int top, int right, int bottom);
-    // Drops the shape and disables the region.
-    void ClearShape();
     // Adds a polygon vertex, growing the bounds; three vertices enable the region.
     void AddPoint(int x, int y);
     void OnMouseMove(int x, int y);
@@ -362,8 +360,6 @@ public:
     CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag);
     // Over the layout rectangle `rect` (always scaled) with format `format`.
     CUiSurface(CInterface3D* ui, const RECT* rect, int format);
-    // The texture manager's picture "<name>.mmp" at its own size.
-    CUiSurface(CInterface3D* ui, mfc::CString name);
     // Releases the kept bytes and the DirectDraw surface. Not virtual (a window's surface list destroys a
     // scrolling surface as a plain one).
     ~CUiSurface();
@@ -587,7 +583,6 @@ public:
     void ClearRegions();
 
     CUiModel* AddModel();
-    void ClearModels();
 
     UiInputSide* Input() { return this; }
     // Takes the mouse for the next button-up (what every button-down handler does).

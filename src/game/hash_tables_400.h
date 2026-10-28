@@ -48,6 +48,5 @@ typename Map::mapped_type* Find(Map& map, typename Map::key_type key) {
 
 void* __fastcall ClassRegistryConstruct(ChunkArchive::ClassRegistry* registry);
 void __fastcall ClassRegistryDestruct(ChunkArchive::ClassRegistry* registry);
-void __fastcall TypeRegistryDestruct(net::TypeRegistry* registry);
 
 } // namespace hash400

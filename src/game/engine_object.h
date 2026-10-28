@@ -17,8 +17,6 @@ class CWorldServer;
 // Base of the engine's objects and managers. No constructor: the derived classes' constructors call ClearFields.
 class CEngineObject {
 public:
-    void SetFlagBits(std::uint32_t bits);
-    void ClearFlagBits(std::uint32_t bits);
 
     virtual ~CEngineObject();
     virtual void CopyFrom(const CEngineObject& other); // flags_, type_, prototypeId_
@@ -42,7 +40,6 @@ public:
     template <class World = CWorldClient> World* ClientWorld() const { return WorldContext<World>(); }
     // The world the object belongs to, or null without a context.
     CWorld* World() const;
-    void ReleaseAndDelete();
     CBaseManager* SetOwner(CBaseManager* owner);
     void ClearFields();
 
