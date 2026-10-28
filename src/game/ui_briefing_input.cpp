@@ -120,7 +120,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
     }
     case 1: {
         int region = RegionAt(x, y);
-        if (region < 0 || region >= kTopicRows || region + topicTop_ >= topics_.size) return;
+        if (region < 0 || region >= kTopicRows || region + topicTop_ >= TopicCount()) return;
         interface_->PlaySound(ClickSound(), 0);
         topic_ = topics_[region + topicTop_];
         ClearRegions();
@@ -152,7 +152,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (state_ == 1) {
         int region = RegionAt(x, y);
         int hovered = -1;
-        if (region >= 0 && region < kTopicRows && region + topicTop_ < topics_.size) hovered = region + topicTop_;
+        if (region >= 0 && region < kTopicRows && region + topicTop_ < TopicCount()) hovered = region + topicTop_;
         if (hovered != hoveredTopic_) {
             hoveredTopic_ = hovered;
             DrawTopics();
@@ -171,7 +171,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         if (IsMultiplayerClient() && leader_ && leader_->id_ == id) return;
         if (!CanTalk(object)) return;
         FindTopics(id);
-        if (topics_.size > 0) TheCursor()->SetShape(kCursorTalk);
+        if (!topics_.empty()) TheCursor()->SetShape(kCursorTalk);
         const PersonTextNode* node = personTexts_.find(id);
         if (node == personTexts_.end()) return;
         CUiSurface* label = surfaces_.data[1];
@@ -225,7 +225,7 @@ void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
 
 void CBriefingScreen::OpenTopics(CEngineObject* person) {
     FindTopics(person->id_);
-    if (topics_.size <= 0) {
+    if (topics_.empty()) {
         state_ = 0;
         return;
     }
@@ -235,8 +235,8 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
     }
     for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)
         AddRegion()->SetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
-    topics_.SetAtGrow(topics_.size, GoodbyeTopic());
-    topicBar_->SetMaximum(topics_.size > kTopicRows ? topics_.size - kTopicRows : 0);
+    topics_.push_back(GoodbyeTopic());
+    topicBar_->SetMaximum(TopicCount() > kTopicRows ? TopicCount() - kTopicRows : 0);
     topicBar_->SetPosition(0);
     topicTop_ = 0;
     hoveredTopic_ = -1;
@@ -253,11 +253,11 @@ void CBriefingScreen::DrawTopics() {
     surface->Clear();
     int row = topicTop_;
     for (int bottom = kRowTextFirstBottom; bottom < kRowTextEnd; bottom += kRowHeight, ++row) {
-        if (row >= topics_.size) break;
+        if (row >= TopicCount()) break;
         RECT rect{kRowTextLeft, bottom - kRowTextHeight, kRowTextRight, bottom};
         std::uint32_t colour = row != hoveredTopic_ ? kTopicColour : kHoveredTopicColour;
         mfc::CString title;
-        TopicTitle(&title, topics_[row]);
+        TopicTitle(&title, topics_[row].c_str());
         std::string text = prefix;
         text += TopicSeparator();
         text += title;

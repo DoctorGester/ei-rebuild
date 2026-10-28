@@ -6,7 +6,6 @@
 // rewards). See docs/notes/ui.md, "Briefing / base screen". Dialogue states: 0 walking, 1 choosing a topic,
 // 2 the dialogue starting (people still walking to their places), 3 phrases, 4 rewards.
 
-#include "console.h"
 #include "maths.h"
 #include "object_tables.h"
 #include "ui.h"
@@ -19,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 // A person walking to the place a dialogue gives them.
 struct BriefingMover {
@@ -226,7 +226,8 @@ public:
     bool exitPending_;
     std::uint8_t unused_169[3];
     int state_;                      // dialogue state (above)
-    console::CStringArray topics_;   // "goodbye" last
+    std::vector<std::string> topics_;   // "goodbye" last
+    int TopicCount() const { return static_cast<int>(topics_.size()); }
     std::string topic_;              // the dialogue running
     int hoveredTopic_;               // or -1
     bool briefingStarted_;           // a dialogue started by itself
@@ -275,4 +276,3 @@ void __fastcall SpeakerAnimationDone(CUnit* serverUnit);
 static_assert(offsetof(CBriefingScreen, exit_) == 0x164);
 static_assert(offsetof(CBriefingScreen, state_) == 0x16C);
 static_assert(offsetof(CBriefingScreen, topics_) == 0x170);
-static_assert(offsetof(CBriefingScreen, topic_) == 0x184);

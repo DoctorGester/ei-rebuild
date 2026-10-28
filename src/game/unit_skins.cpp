@@ -3,7 +3,6 @@
 // "<model><item>.mmp"), registered as "mo<n>p" / "prot<n>p", then the head and weapon textures ("mo<n>s" /
 // "prot<n>s"); for every other unit (second list) the list of its textures goes to the figure maker. See
 // docs/notes/world.md.
-#include "console.h"
 #include "game_strings.h"
 #include "item.h"
 #include "item_db.h"
@@ -108,7 +107,7 @@ void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t i
         ArmorModelName(&name, id >> 16, id & 0xFFFF);
         AppendName(model, name.GetString(), buffer);
     }
-    set.textures.SetAtGrow(set.textures.GetSize(), buffer);
+    set.textures.push_back(buffer);
 }
 
 // The weapons (items 1 and 2): the one whose armour layer is lower first when both exist.
@@ -145,7 +144,7 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
         WeaponRecordModelName(&name, weapon, material);
         AppendName(model, name.GetString(), buffer);
     }
-    set.textures.SetAtGrow(set.textures.GetSize(), buffer);
+    set.textures.push_back(buffer);
 }
 
 // The texture cache is the client world's texture manager.
@@ -161,10 +160,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     lib::InPlace<RecordList> listStorage;
     RecordList& list = *listStorage.Get();
     list.ConstructEmpty();
-    lib::InPlace<SkinComposition> setStorage;
-    SkinComposition& set = *setStorage.Get();
-    set.layers.Construct();
-    new (&set.textures) console::CStringArray;
+    SkinComposition set{};
 
     const std::uint32_t* items = record->items.Start();
     if (ByteSpan(record->items) & ~std::uintptr_t{3}) {
@@ -172,13 +168,13 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         UnitTextureRecords(1, record, &list);
         CopyRecords(set, list);
         std::string skin;
-        set.textures.SetSize(0, -1);
+        set.textures.clear();
         if (prototype) {
             skin = str::Format("%sskin_%.2d.mmp", ModelPrefix(model), prototype->skin);
         } else {
             skin = str::Format("%sskin_00.mmp", ModelPrefix(model));
         }
-        set.textures.SetAtGrow(set.textures.GetSize(), skin);
+        set.textures.push_back(skin);
         for (int slot = 3; slot <= 6; ++slot) {
             if (items[slot] != kNone) AddItem(set, model, items[slot]);
         }
@@ -194,7 +190,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 
         UnitTextureRecords(0, record, &list);
         CopyRecords(set, list);
-        set.textures.SetSize(0, -1);
+        set.textures.clear();
         if (items[0] != kNone) AddItem(set, model, items[0]);
         AddExtraWeapon(set, model, record);
         if (record->modelNumber != -1) {
@@ -205,7 +201,6 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         Compose(self, built, set, name, 0x80, 2);
     }
 
-    set.textures.~CStringArray();
     set.layers.FreeData();
     list.FreeStorage();
 }

@@ -107,26 +107,23 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
     {
         mfc::CString name;
         mfc::CString out;
-        // The request lives in raw storage so that its parts are destroyed in order.
-        alignas(SkinRequest) unsigned char storage[sizeof(SkinRequest)];
-        auto* request = new (storage) SkinRequest{{}, {}, 0};
+        SkinRequest request{};
         // Six level bytes in 32-byte aligned storage (the block kept before them).
-        request->layers.SetSize(kBodyParts);
-        if (WoundLevels(&request->layers.data)) {
+        request.layers.SetSize(kBodyParts);
+        if (WoundLevels(&request.layers.data)) {
             bool hero = unit->type_ == kTypeHero;
-            request->flags = hero ? kHeroTextureSize : kTextureSize;
+            request.flags = hero ? kHeroTextureSize : kTextureSize;
             for (int i = 0; i < kBodyParts; ++i) {
-                std::uint8_t level = request->layers.data[i];
+                std::uint8_t level = request.layers.data[i];
                 if (!level) continue;
                 name.Format(kWoundTexture, unit->name.c_str(), unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
                             static_cast<int>(level));
-                request->textures.SetAtGrow(request->textures.GetSize(), name);
+                request.textures.push_back(name.GetString());
             }
             name.Format(kWoundCacheName, unit->id_);
-            result = TheTextureManager()->Compose(&out, request, &name, &name, kMipCount, 0, kFormat);
+            result = TheTextureManager()->Compose(&out, &request, &name, &name, kMipCount, 0, kFormat);
         }
-        request->textures.~CStringArray();
-        lib::FreeAligned32(request->layers.data);
+        lib::FreeAligned32(request.layers.data);
     }
     return result;
 }

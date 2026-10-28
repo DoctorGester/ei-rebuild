@@ -5,7 +5,6 @@
 // docs/notes/units.md ("Creation, databases, save").
 
 #include "ai_map.h"
-#include "console.h"
 #include "engine_object.h"
 #include "unit.h"
 
@@ -16,6 +15,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 class CParticleSource;
 class CTexture;
@@ -86,11 +87,9 @@ using SkinLayerArray = mfc::CArray<SkinLayer>;
 // texture names, and a flag (0x100 detailed, 0x80 simple).
 struct SkinRequest {
     lib::AlignedArray<std::uint8_t> layers;
-    console::CStringArray textures;
+    std::vector<std::string> textures;
     int flags;
 };
-static_assert(offsetof(SkinRequest, textures) == 0x10);
-static_assert(offsetof(SkinRequest, flags) == 0x24 && sizeof(SkinRequest) == 0x28);
 
 
 struct AttackParams;

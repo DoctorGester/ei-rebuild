@@ -83,9 +83,9 @@ void CBriefingScreen::FindTopics(int personId) {
         stl_sorts::TopicIntroSort(list.begin(), list.end(), 0, depth * 2, personId);
         stl_sorts::TopicFinalSort(list.begin(), list.end(), personId);
     }
-    topics_.SetSize(0, -1);
-    for (stlp::string* topic = list.begin(); topic != list.end(); ++topic) topics_.SetAtGrow(topics_.size, topic->data());
-    if (constructor.size() != 0) topics_.SetAtGrow(topics_.size, constructor);
+    topics_.clear();
+    for (stlp::string* topic = list.begin(); topic != list.end(); ++topic) topics_.push_back(topic->data());
+    if (constructor.size() != 0) topics_.push_back(constructor);
 }
 EI_REWRITTEN(0x00607360, CBriefingScreen::FindTopics);
 

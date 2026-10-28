@@ -105,7 +105,6 @@ void CObject3D::SetUpObject3D() {
     std::memset(&parts, 0, sizeof(parts));
     std::memset(&pendingParts, 0, sizeof(pendingParts));
     figure = nullptr;
-    partNames.Construct();
     ClearBounds();
     partBoxArrayVtable = mfc::impl::FrameArrayClass::Vtable();
     partBoxes = nullptr;
@@ -131,7 +130,6 @@ void CObject3D::TearDownObject3D() {
     Destroy3D();
     partBoxArrayVtable = mfc::impl::FrameArrayClass::Vtable();
     if (partBoxes) gamecrt::operator_delete(partBoxes);
-    partNames.Destruct();
     if (CLinkMesh* current = figure) {
         if (--current->refCount_ == 0) delete current;
     }
@@ -280,16 +278,14 @@ EI_REWRITTEN_SPECIAL(0x0052E2A0, CUnit::~CUnit);   // deleting
 
 
 CMapObjectServer::CMapObjectServer() {
-    strings.Construct();
     vitals.Reset();
 }
 EI_REWRITTEN_SPECIAL(0x00515610, CMapObjectServer::CMapObjectServer);
 
 CMapObjectServer::~CMapObjectServer() {
     vitals.Reset();
-    strings.SetSize(0, -1);
+    strings.clear();
     owner = nullptr;
-    strings.Destruct();
 }
 EI_REWRITTEN_SPECIAL(0x00515720, CMapObjectServer::~CMapObjectServer);
 EI_REWRITTEN_SPECIAL(0x00515700, CMapObjectServer::~CMapObjectServer);

@@ -130,11 +130,8 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
 }
 
 int CWorldServer::LoadMobFile(const char* file) {
-    for (int i = 0; i < mobFiles_.size; ++i) {
-        if (gamecrt::mbscmp(mobFiles_[i].GetString(),
-                            file) == 0)
-            return 1;
-    }
+    for (const std::string& loaded : mobFiles_)
+        if (gamecrt::mbscmp(loaded.c_str(), file) == 0) return 1;
     g_loadingMovieOff = 1;
     if (file) {
         int loaded = LoadMapObjects(file, 0);
@@ -145,7 +142,7 @@ int CWorldServer::LoadMobFile(const char* file) {
         }
     }
     g_loadingMovieOff = 0;
-    mobFiles_.SetAtGrow(mobFiles_.size, file);
+    mobFiles_.push_back(file);
     return 1;
 }
 

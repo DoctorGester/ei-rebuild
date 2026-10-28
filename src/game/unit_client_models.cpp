@@ -187,7 +187,7 @@ std::uint32_t WeaponIdOf(const CUnitClientSpecific* self, std::uint32_t slot) {
 int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     std::uint32_t previous = WeaponIdOf(this, unit->activeWeapon);
     std::uint32_t next = WeaponIdOf(this, slot);
-    console::CStringArray names;
+    std::vector<std::string> names;
     FigureModel* model;
     {
         stlp::string name(unit->name.c_str());
@@ -195,14 +195,14 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     }
     if (previous != kNone) {
         WeaponModelParts(previous >> 16, &names);
-        for (int i = 0; i < names.GetSize(); ++i) unit->RemovePartNamed(names[i]);
+        for (const std::string& name : names) unit->RemovePartNamed(name.c_str());
     }
     unit->activeWeapon = slot;
     weaponHidden = 0;
     if (next != kNone) {
         WeaponModelParts(next >> 16, &names);
-        for (int i = 0; i < names.GetSize(); ++i) {
-            CEngineObject* part = unit->LoadPart(names[i], model, FiguresFlag(unit));
+        for (const std::string& name : names) {
+            CEngineObject* part = unit->LoadPart(name.c_str(), model, FiguresFlag(unit));
             if (part) unit->AttachPartMesh(part);
         }
         arrowHidden = 0;
@@ -225,10 +225,10 @@ EI_REWRITTEN(0x00535590, CUnitClientSpecific::ShowWeapon);
 void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
     if (weaponHidden == static_cast<std::uint8_t>(hidden)) return;
     std::uint32_t hand = WeaponIdOf(this, unit->activeWeapon);
-    console::CStringArray names;
+    std::vector<std::string> names;
     if (hand != kNone) WeaponModelParts(hand >> 16, &names);
-    for (int i = 0; i < names.GetSize(); ++i) {
-        if (CEngineObject* part = unit->FindPart(names[i])) {
+    for (const std::string& name : names) {
+        if (CEngineObject* part = unit->FindPart(name.c_str())) {
             if (hidden) part->flags_ |= kArrowPartFlag;
             else part->flags_ &= ~kArrowPartFlag;
         }
@@ -378,7 +378,7 @@ void AddPrototypePrefix(const CUnit* unit, mfc::CString& texture) {
 }
 
 void AddTexture(SkinRequest& request, const std::string& texture) {
-    request.textures.SetAtGrow(request.textures.size, texture);
+    request.textures.push_back(texture);
 }
 
 void AddArmourTexture(SkinRequest& request, const CUnit* unit, mfc::CString& texture, std::uint32_t id) {
@@ -446,19 +446,15 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
         mfc::CString unitKey;
         mfc::CString prototypeKey;
         mfc::CString texture;   // the work string
-        // The request lives in raw storage so that its string array is destroyed before its
-        // layer bytes are freed and before the strings.
-        alignas(SkinRequest) unsigned char storage[sizeof(SkinRequest)];
-        auto* request = new (storage) SkinRequest{{}, {}, 0};
+        SkinRequest request{};
         BuildSkinLayers(detailed, &layers);
         int bytes = layers.size * static_cast<int>(sizeof(SkinLayer));
-        request->layers.SetSize(bytes);
-        std::memcpy(request->layers.data, layers.data, static_cast<std::size_t>(bytes));
-        NameSkinTextures(this, detailed, *request, unitKey, prototypeKey, texture);
+        request.layers.SetSize(bytes);
+        std::memcpy(request.layers.data, layers.data, static_cast<std::size_t>(bytes));
+        NameSkinTextures(this, detailed, request, unitKey, prototypeKey, texture);
         result = reinterpret_cast<void*>(
-            textureManager->Compose(static_cast<mfc::CString*>(target), request, &unitKey, &prototypeKey, 3, 0, 0x5551));
-        request->textures.~CStringArray();
-        request->layers.FreeData();
+            textureManager->Compose(static_cast<mfc::CString*>(target), &request, &unitKey, &prototypeKey, 3, 0, 0x5551));
+        request.layers.FreeData();
     }
     if (layers.data) gamecrt::operator_delete(layers.data);
     return result;

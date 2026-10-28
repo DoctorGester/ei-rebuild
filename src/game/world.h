@@ -564,7 +564,7 @@ public:
     std::uint8_t keepsState_;
     std::uint8_t unused_11F;
     std::string zoneName_;               // the zone's map database name
-    mfc::CStringArray mobFiles_;           // .mob files loaded in this zone (LoadMobFile)
+    std::vector<std::string> mobFiles_;    // .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // 0 while the game runs
     std::uint32_t lastRainBoltTick_;      // the tick of the last bolt in the rain (one per 20 ticks); saved
     CHoover* hoover_;                     // counted; made by Setup, deleted by Teardown

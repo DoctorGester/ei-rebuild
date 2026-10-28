@@ -65,7 +65,7 @@ int CWorldServer::Create() {
     keepsState_ = 1;
     zoneName_ = game::EmptyText();
     gameResult_ = 0;
-    mobFiles_.SetSize(0, -1);
+    mobFiles_.clear();
     return 1;
 }
 

@@ -64,7 +64,6 @@ PlatformSet::PlatformSet() {
 CWorldServer::CWorldServer() {
     exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
     updateMap_.Construct();
-    mobFiles_.Construct();
     Messages()->Construct();
     MainScript()->Construct();
     SecondScript()->Construct();

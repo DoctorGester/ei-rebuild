@@ -21,6 +21,8 @@
 #include <new>
 #include <string>
 
+#undef GetClassName   // CEngineObject::GetClassName (console.h brings windows.h after item.h)
+
 using namespace itemdb;
 
 namespace {

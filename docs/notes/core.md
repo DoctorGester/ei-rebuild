@@ -424,12 +424,16 @@ to which template:
   SerializeStrings`; `records::ElementOf<std::string>` is ObjectElement, so Memberwise copies them as strings).
   tests/vectors/record_stats.cpp's OriginalSkillRecord keeps game.exe's `stlp::vector<mfc::CString>`; replay_stats.cpp's
   stand-in skill records point their stat name vectors at std::strings. PartyForScript takes a `std::string*`.
+  Batch 12: the map objects' part names are `std::vector<std::string>`: CMapObjectServer::strings (the companion
+  takes ObjectSpec::parts by assignment), CObject3D::partNames, LoadParts / MakeFigure / CollectBoneNames and the
+  MakeFigure callers' locals (the network's new objects, the party units, the UI model, the arrow and the moshka); the
+  footprint reads the names directly (its by-value StringArrayGetAt went). Also SceneSkin::names, ParseMaterial's
+  parts, CWorldServer::mobFiles_, the item records' list20 / list50 (nothing fills them), CBriefingScreen::topics_
+  (`TopicCount()`) and SkinRequest::textures (CTextureManager::DrawLayers takes the vector; the requests are plain
+  locals, `SkinRequest request{}`, not raw storage destroyed by hand), WeaponModelParts' out parameter. CBriefingScreen and SkinRequest lost the
+  layout asserts after the new members.
 - Members that must stay CStrings for now: the console's (console::CStringArray history, lines and command arguments),
-  Split / SplitWords / Join's CStringArrays and the locals their callers fill, the registry's and resources' list out
-  parameters (GetStringArray, GetSectionNames, ListFiles), CMapObjectServer::strings together with CObject3D::partNames
-  and the figure loader's part lists (LoadParts / MakeFigure, PartNames, CollectBoneNames; world_units.cpp copies
-  ObjectSpec::parts into the companion's strings), the scene loader's names, CWorldServer::mobFiles_, the item
-  database's list20 / list50, CBriefingScreen::topics_ and the skin requests' textures.
+  Split / SplitWords / Join's CStringArrays and the locals their callers fill, the registry's and resources' list out parameters (GetStringArray, GetSectionNames, ListFiles).
   To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
   (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride. Record such a
   change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it, `vectors.py merge <runs>

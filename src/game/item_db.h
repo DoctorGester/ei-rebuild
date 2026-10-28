@@ -6,7 +6,6 @@
 // field of the record without checking for null, so an index out of range reads near address 0 and crashes.
 // Field() keeps that behaviour (a real read through the null record) rather than inventing a default.
 
-#include "console.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
 #include "lib/static_object.h"
@@ -16,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class CStream;
 class ChunkArchive;
@@ -145,7 +145,7 @@ public:
     std::uint32_t field4;               // archive field 4 (nothing reads it)
     int number;                         // the number in the item's text keys and names ("item%04d")
     int variant;                        // the model variant
-    console::CStringArray list20;       // the first list name (FirstListName)
+    std::vector<std::string> list20;    // the first list name (FirstListName)
     float price;                        // CItem::price_ (plus materialUnits times the material's unitPrice)
     // CItem::weight_, times the material's factor38; also what WeaponAttack returns, which the unit's attack
     // info shows as the weapon's speed.
@@ -155,7 +155,7 @@ public:
     std::uint32_t magicLevel;           // CItem::magicLevel_ (plus the material's)
     float condition;                    // item condition and maximum (times the material's conditionFactor)
     std::uint32_t materialUnits;        // units of material (the price; the trader stock takes them)
-    console::CStringArray list50;
+    std::vector<std::string> list50;
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
     // archive field 15, 1 after construction: 0 keeps the item out of the camp's item
     // constructor (UiItemKinds::IsBuildable).

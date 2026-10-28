@@ -28,14 +28,13 @@ bool DropRoot(SceneSkin* skin) {
 
 SceneSkin::SceneSkin() {
     bones = {};
-    names.Construct();
     spareArray = {};
     clock[0] = 0;
     owner = 0;
     root = nullptr;
     clock[1] = kClockUnsetHigh;
     name.clear();
-    names.SetSize(0, -1);
+    names.clear();
     spare38 = 0;
     if (spareArray.data) {
         lib::FreeAligned32(spareArray.data);
@@ -49,9 +48,8 @@ EI_REWRITTEN_SPECIAL(0x00508700, SceneSkin::SceneSkin);
 SceneSkin::~SceneSkin() {
     if (DropRoot(this)) bones.SetSize(0, -1);
     owner = 0;
-    names.SetSize(0, -1);
+    names.clear();
     if (spareArray.data) lib::FreeAligned32(spareArray.data);
-    names.Destruct();
     if (bones.data) lib::FreeAligned32(bones.data);
 }
 
@@ -69,7 +67,7 @@ int SceneSkin::Create() {
     clock[0] = 0;
     clock[1] = 0;
     name = kNoneText;
-    names.SetSize(0, -1);
+    names.clear();
     spare4C = 0;
     return 1;
 }
@@ -78,7 +76,7 @@ EI_REWRITTEN(0x00508870, SceneSkin::Create);
 void SceneSkin::Clear() {
     if (DropRoot(this)) bones.SetSize(0, -1);
     owner = 0;
-    names.SetSize(0, -1);
+    names.clear();
 }
 EI_REWRITTEN(0x005088E0, SceneSkin::Clear);
 

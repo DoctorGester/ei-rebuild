@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include <windows.h>   // RECT (dirtyRect)
 
@@ -262,8 +263,8 @@ public:
     // The morph becomes (s, t, u) on every bone, whose manager reloads its key frames from the owner's model,
     // and on the state (`changed` cleared); then the root places the skeleton as PlaceIfChanged does.
     void Rescale(float s, float t, float u);
-    // Every bone's name appended to `out` (SetAtGrow at its size).
-    void CollectBoneNames(mfc::CStringArray* out);
+    // Every bone's name appended to `out`.
+    void CollectBoneNames(std::vector<std::string>* out);
     // The figure manager's SetAnimation without an animation. Every bone's placing track forgets its animation and
     // key frames (DestroyTrack's reset, the bone kept). `changed` set. Returns 1.
     int ClearBoneTracks();
@@ -394,16 +395,16 @@ public:
     // and null when missing). With a figure the part must be one of its pieces (else null, the part leaked)
     // and takes its box; box flags by name prefix as SetUpAnimatedFigure. It joins the parts as AddPart does.
     CFigureMesh* LoadPart(const char* partName, FigureModel* model, std::uint32_t arg);
-    // The object's figure becomes `model` and each name of the CStringArray `partNames` is loaded by LoadPart
+    // The object's figure becomes `model` and each name of `partList` is loaded by LoadPart
     // (with the cached model; failures logged). Without a figure manager: FatalError. Returns 1.
-    int LoadParts(const char* model, const mfc::CStringArray* partList, std::uint32_t arg);
+    int LoadParts(const char* model, const std::vector<std::string>* partList, std::uint32_t arg);
     // When a unit becomes the controlled one (world client): with the figure loaded (flags_ 0x80) the parts'
     // world transforms are updated and the bounds recomputed from their world boxes.
     void UpdatePartBounds();
-    // Builds the figure of the model for the part names `partList` (a CStringArray; none: the animation
+    // Builds the figure of the model for the part names `partList` (none: the animation
     // state's parts and the whole figure), then LoadParts and the bounds; flags_ 0x80 set unless both `arg`
     // and the figure are 0. Returns 1.
-    int MakeFigure(const char* model, mfc::CStringArray* partList, std::uint32_t arg);
+    int MakeFigure(const char* model, std::vector<std::string>* partList, std::uint32_t arg);
     // The index of the part name equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(const char* partName);
     // The box (CFigureMesh::bounds_) of part `index` of the parts followed by the pending parts.
@@ -473,7 +474,7 @@ public:
     CountedRef<CLinkMesh> figure;
     Vector3 defaultScale;           // kDefaultFigureScale (constructor, Create3D)
     tagRECT dirtyRect;              // the screen area the last DrawCollectDirty covered
-    mfc::CStringArray partNames;    // the figure's part names, in the order of the part boxes
+    std::vector<std::string> partNames;    // the figure's part names, in the order of the part boxes
     ClipBounds bounds;              // flags 1 and 2: the sphere and the box are valid; the box is relative to the centre
     std::uint8_t unused_150[0x158 - 0x150];    // cleared with the bounds
     // Cleared with the bounds; a part's piece record sets it (LoadPart). The AI adds it to a unit's eye height.

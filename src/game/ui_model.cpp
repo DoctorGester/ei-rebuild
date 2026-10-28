@@ -5,7 +5,6 @@
 #include "ui.h"
 
 #include "base_manager.h"
-#include "console.h"
 #include "map_object_figures.h"
 #include "unit_create.h"
 #include "world.h"
@@ -105,7 +104,7 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     object->localPosition_.y = 0.0f;
     object->localPosition_.z = 3.0f;
     CObject3DClientSpecific* specific = object->ClientSpecific();
-    console::CStringArray parts;
+    std::vector<std::string> parts;
     object->MakeFigure(name, &parts, 1);
     specific->RegisterPartMaterials();
     object->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)

@@ -51,7 +51,7 @@ EI_REWRITTEN(0x005157C0, CMapObjectServer::Create);
 
 void CMapObjectServer::Destroy() {
     vitals.Reset();
-    strings.SetSize(0, -1);
+    strings.clear();
     owner = nullptr;
 }
 EI_REWRITTEN(0x005157E0, CMapObjectServer::Destroy);

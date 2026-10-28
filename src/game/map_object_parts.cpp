@@ -146,10 +146,8 @@ double CObject3D::AnimationFactor(float time) {
 EI_REWRITTEN(0x00518D30, CObject3D::AnimationFactor);
 
 int CObject3D::FindPartIndex(const char* partName) {
-    for (int i = 0; i < partNames.size; ++i)
-        if (gamecrt::mbscmp(partNames[i].GetString(),
-                            partName) == 0)
-            return i;
+    for (std::size_t i = 0; i < partNames.size(); ++i)
+        if (gamecrt::mbscmp(partNames[i].c_str(), partName) == 0) return static_cast<int>(i);
     return -1;
 }
 EI_REWRITTEN(0x00517990, CObject3D::FindPartIndex);

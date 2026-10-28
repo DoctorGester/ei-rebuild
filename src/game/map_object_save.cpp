@@ -85,7 +85,7 @@ void CMapObjectServer::Load(CStream* stream) {
     stream->Read(&count, sizeof(count));
     for (int i = 0; i < count; ++i) {
         ReadText text(stream);
-        strings.SetAtGrow(strings.size, *text.text);
+        strings.push_back(text.text->GetString());
     }
 }
 EI_REWRITTEN(0x005159D0, CMapObjectServer::Load);
@@ -94,8 +94,8 @@ void CMapObjectServer::Save(CStream* stream) {
     stream->Write(&vitals, sizeof(vitals));
     WriteText(stream, name78);
     WriteText(stream, name7C);
-    int count = strings.size;
+    int count = static_cast<int>(strings.size());
     stream->Write(&count, sizeof(count));
-    for (int i = 0; i < strings.size; ++i) WriteText(stream, strings[i]);
+    for (const std::string& text : strings) WriteText(stream, text);
 }
 EI_REWRITTEN(0x00515AC0, CMapObjectServer::Save);

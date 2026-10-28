@@ -332,9 +332,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     auto companionTexts = [spec](CMapObjectServer* companion) {
         companion->name78 = spec->parentIname;
         companion->name7C = spec->skinTexture;
-        mfc::CStringArray& strings = companion->strings;
-        strings.SetSize(0, -1);
-        for (const std::string& part : spec->parts) strings.SetAtGrow(strings.GetSize(), part);
+        companion->strings = spec->parts;
     };
     auto race = [spec](CMapObject* object) {
         ++object->refCount_;

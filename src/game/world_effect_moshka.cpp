@@ -10,7 +10,6 @@
 #include "ai_map.h"
 #include "base_manager.h"
 #include "camera.h"
-#include "console.h"
 #include "game_strings.h"
 #include "map_object_figures.h"
 #include "random.h"
@@ -26,6 +25,7 @@
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <vector>
 
 
 namespace {
@@ -247,7 +247,7 @@ void CEffectMoshka::Follow(int objectId) {
     Vector3 perch;
     FindPerch(&perch, &PositionOf(followed));
     std::memcpy(&bird->localPosition_, &perch, sizeof(bird->localPosition_));
-    console::CStringArray parts;
+    std::vector<std::string> parts;
     bird->MakeFigure(model.c_str(), &parts, 1);
     attached->RegisterPartMaterials();
     bird->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)

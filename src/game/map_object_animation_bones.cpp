@@ -290,8 +290,8 @@ void CFigureAnimationState::Rescale(float s, float t, float u) {
 }
 EI_REWRITTEN(0x0050D7C0, CFigureAnimationState::Rescale);
 
-void CFigureAnimationState::CollectBoneNames(mfc::CStringArray* out) {
-    for (auto* node = bones.head; node; node = node->next) out->SetAtGrow(out->size, node->data->name);
+void CFigureAnimationState::CollectBoneNames(std::vector<std::string>* out) {
+    for (auto* node = bones.head; node; node = node->next) out->push_back(node->data->name);
 }
 EI_REWRITTEN(0x0050D920, CFigureAnimationState::CollectBoneNames);
 
