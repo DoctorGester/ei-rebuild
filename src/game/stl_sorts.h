@@ -1,7 +1,6 @@
 #pragma once
 
-// STLport sort instantiations over game elements, registered at their library addresses
-// (stl_sorts.cpp, the template in lib/stlp_algo.h). First and
+// STLport sort instantiations over game elements (stl_sorts.cpp, the template in lib/stlp_algo.h). First and
 // last come in ECX / EDX, then the null value-type tag, the depth limit (twice the size's log2) and
 // the comparison object by value. Each is fastcall with the game's stack cleanup.
 

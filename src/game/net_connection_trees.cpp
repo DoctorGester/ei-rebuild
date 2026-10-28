@@ -1,5 +1,4 @@
-// The connection's five STLport maps (net_connection.h), their members registered at the library addresses
-// (stlp_tree.h, stlp_tree_abi.h) so the standalone image has them.
+// The connection's five STLport maps (net_connection.h; stlp_tree.h, stlp_tree_abi.h).
 // More: docs/notes/comments-c22i.md, "net_connection_trees.cpp".
 #include "net_connection_trees.h"
 

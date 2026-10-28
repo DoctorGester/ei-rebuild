@@ -1,5 +1,4 @@
-// Library code over game types (library_containers.h), registered at the exe's
-// addresses so the standalone image has it.
+// Library code over game types (library_containers.h).
 #include "library_containers.h"
 
 #include "core_refcount.h"

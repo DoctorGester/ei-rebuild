@@ -59,8 +59,8 @@ public:
 };
 
 // The body of a compiled table's slot whose game.exe body at `address` is not in our source: the image never reaches it
-// (config/standalone_unreachable.csv lists the address with the reason: the class is never made, or never called
-// through that slot). Reached anyway, it is reported as missing code at `address`.
+// (the comment at the class gives the reason: the class is never made, or never called through that slot). Reached
+// anyway, it is reported as missing code at `address`.
 [[noreturn]] __declspec(noinline) inline void UnportedSlot(std::uintptr_t address) {
     ReportNoCode(address, reinterpret_cast<std::uintptr_t>(_ReturnAddress()));
 }

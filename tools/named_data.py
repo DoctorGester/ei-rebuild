@@ -20,9 +20,9 @@ C25d, the proof of each definition when it was made, `--emit` runs it in reverse
   * a pointer element (TYPES 'P': `const char* const kX[] = /*addr*/ {"a", "b"};`, a struct's pointer field, or
     one pointer `constexpr const char* kX = /*addr*/ "text";`) names a string literal, another named range (qualified
     or not; or `NAME + k` its element k: _pctype's `kCtypeC + 1`, written by hand), a function of ours with a
-    registration (EI_REPLACE*, EI_REWRITTEN, or a stub of ours reporting it: ei::UnportedSlot), or nullptr;
+    line in the function-to-original map (EI_REWRITTEN, or a stub of ours reporting it: ei::UnportedSlot), or nullptr;
   * no address literal of src/ or tests/ (.cpp, .h, .inc; comments blanked) lies inside a named range, a retired vtable
-    (config/retired_vtables.csv) or an unread object (config/unread_data.csv). What the image's code does not name,
+    (config/vtables.csv) or an unread object (config/unread_data.csv). What the image's code does not name,
     nothing reads: the zero bytes are never seen.
 
 The bytes a definition replaces are game.exe's as its static initialisers leave them (C18j): their stores,
@@ -137,9 +137,6 @@ TAGGED = re.compile(r'=\s*/\*[0-9A-F]{8}\*/\s*(?:[{"]|-?[\d.])')   # a file with
 # element `NAME + k` (C18q: _pctype's `kCtypeC + 1`).
 TOKEN = re.compile(r'"((?:\\.|[^"\\\n])*)"|(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)'
                    r'([fFuUlL]*)|&?\s*((?:::)?[A-Za-z_]\w*(?:::\w+)*)(?:\s*\+\s*(\d+))?')
-# Registrations of our functions at game.exe's addresses (ei/hook.h): what a code pointer element may name.
-REGISTRATION = re.compile(r'\bEI_REPLACE(?:_STANDALONE|_SHORT|_METHOD|_DISPATCH)?\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*,'
-                          r'\s*&?\s*((?:::)?[A-Za-z_][\w:]*)\s*\)')
 # The original of a function our code calls by name (EI_REWRITTEN, C20d), and a function of ours whose body only
 # reports game.exe's unported function (ei::UnportedSlot).
 REWRITTEN = re.compile(r'\bEI_REWRITTEN\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*,\s*&?\s*((?:::)?[A-Za-z_][\w:]*)\s*\)')
@@ -293,8 +290,8 @@ Definition.pack_names = _pack_names
 
 
 class Targets:
-    """What a pointer element may name: the named ranges (name -> address) and our functions with a registration at
-    game.exe's address (name -> addresses; ei/hook.h's EI_REPLACE*)."""
+    """What a pointer element may name: the named ranges (name -> address) and our functions with game.exe's address
+    in the function-to-original map (name -> addresses; ei/hook.h's EI_REWRITTEN, ei::UnportedSlot)."""
     def __init__(self, defs, sources):
         self.ranges = {d.name: d.address for d in defs}
         self.element_sizes = {}   # a named range's element size, for `NAME + k`
@@ -304,8 +301,6 @@ class Targets:
                 self.element_sizes[d.name] = sum(code_size(c) for c in codes_of(fmt))
         self.functions = collections.defaultdict(set)
         for s in sources:
-            for m in REGISTRATION.finditer(s.code):
-                self.functions[m.group(2).lstrip(':')].add(int(m.group(1), 16))
             for m in REWRITTEN.finditer(s.code):   # also unqualified: the table names it inside its namespace
                 name = m.group(2).lstrip(':')
                 self.functions[name].add(int(m.group(1), 16))
@@ -354,7 +349,7 @@ def _pack_pointers(self, fmt, img, targets):
     """A type with pointer elements ('P'). A pointer element is not compared as a number: it names what game.exe's
     pointer at that place points at, and the check compares that: a string literal the text at the target (game.exe's
     string literals, in .data), a name of another named range its address, a name of a function of ours the address
-    of its registration (EI_REPLACE*: the code game.exe's pointer called), nullptr a zero. The packed bytes are then
+    of its original (EI_REWRITTEN: the code game.exe's pointer called), nullptr a zero. The packed bytes are then
     game.exe's pointer; its offset is in `pointers` (the cells of game.exe's data the range may hold)."""
     values = tokens(self.body)
     if len(values) % len(fmt):
@@ -404,7 +399,7 @@ def _pack_pointers(self, fmt, img, targets):
             if not (kind == 'text' or kind == 'name' and (v == 'nullptr' or v in targets.ranges or v in targets.functions)
                     or kind == 'number' and v == 0 or kind == 'element' and v[0] in targets.element_sizes):
                 self.problem = (f'the pointer at {at:08X} names {v!r}: no string literal, named range, function of '
-                                'ours with a registration (EI_REPLACE*, EI_REWRITTEN, UnportedSlot) or nullptr')
+                                'ours with an original (EI_REWRITTEN, UnportedSlot) or nullptr')
                 return
             self.pointers.add(len(out))
             out += bytes(4)
@@ -439,7 +434,7 @@ def _pack_pointers(self, fmt, img, targets):
                 return
         else:
             self.problem = (f'the pointer at {at:08X} names {v!r}: no string literal, named range, function of '
-                            'ours with a registration (EI_REPLACE*, EI_REWRITTEN, UnportedSlot) or nullptr')
+                            'ours with an original (EI_REWRITTEN, UnportedSlot) or nullptr')
             return
         self.pointers.add(len(out))
         out += struct.pack('<I', cell)
@@ -456,7 +451,7 @@ class Retired:
         self.address, self.size, self.name, self.path = vtable, 4 * slots, f"{cls}'s retired vtable", path
 
     def where(self):
-        return 'config/retired_vtables.csv'
+        return 'config/vtables.csv'
 
 
 def definitions(sources=None):
@@ -695,7 +690,7 @@ def check(update):
         if y.address < x.address + x.size:
             problems.append(f'{y.where()}: {y.name} overlaps {x.name} ({x.where()})')
 
-    # The retired vtables (config/retired_vtables.csv, C19): no definition, the same proof that nothing reaches them.
+    # The retired vtables (config/vtables.csv, C19): no definition, the same proof that nothing reaches them.
     import gen_image_cells
     retired = [Retired(v, n, cls, path) for v, n, cls, path in gen_image_cells.retired_vtables()]
     # addon.dll's sites are game.exe's: addon only runs in game.exe (harness_addon.cpp at WinMain), never in the
@@ -817,8 +812,8 @@ def short_float(value, code):
 
 
 class Namer:
-    """What a pointer of game.exe's data names in an initialiser: a named range (its start), a function of ours with a
-    registration (EI_REPLACE*), a string literal (the zero-terminated text at a string's start), nullptr."""
+    """What a pointer of game.exe's data names in an initialiser: a named range (its start), a function of ours with an
+    original (EI_REWRITTEN), a string literal (the zero-terminated text at a string's start), nullptr."""
     def __init__(self, img, sources):
         defs = definitions(sources)
         targets = Targets(defs, sources)
@@ -854,7 +849,7 @@ class Namer:
             names = self.functions.get(cell)
             if names:
                 return names[0], None if len(names) == 1 else f'{cell:08X} has the registrations {", ".join(names)}'
-            return f'/*?{cell:08X}*/ nullptr', f'{cell:08X} is code with no registration (EI_REPLACE*)'
+            return f'/*?{cell:08X}*/ nullptr', f'{cell:08X} is code with no EI_REWRITTEN line'
         text = self.string_at(cell)
         if text is not None:
             return c_literal(text), None
@@ -1126,7 +1121,7 @@ def refs(img, begin, end):
     sources = srcscan.load_sources()
     registered = collections.defaultdict(list)
     for s in sources:
-        for m in REGISTRATION.finditer(s.code):
+        for m in REWRITTEN.finditer(s.code):
             registered[int(m.group(1), 16)].append(f'{m.group(2)} ({s.path})')
     with open(os.path.join(ROOT, 'config', 'functions.csv'), newline='') as f:
         starts = sorted({int(r['address'], 16) for r in csv.DictReader(f)} | set(registered))

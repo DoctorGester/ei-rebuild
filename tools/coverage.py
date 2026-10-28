@@ -81,10 +81,10 @@ def sources(pattern):
 
 
 def rewrites():
-    """address -> (name, file) of every EI_REPLACE / _METHOD / _DISPATCH and EI_REWRITTEN (a rewrite without a
+    """address -> (name, file) of every EI_REWRITTEN (a rewrite without a
     registration, C20d) with a literal address."""
     found = {}
-    rx = re.compile(r'\b(?:EI_REPLACE(?:_METHOD|_DISPATCH)?|EI_REWRITTEN(?:_SPECIAL)?)\(\s*0x([0-9A-Fa-f]{8})\s*,\s*&?\s*([^)\s]+)\s*\)')
+    rx = re.compile(r'\bEI_REWRITTEN(?:_SPECIAL)?\(\s*0x([0-9A-Fa-f]{8})\s*,\s*&?\s*([^)\s]+)\s*\)')
     for path, text in sources('src/**/*.cpp'):
         for m in rx.finditer(text):
             found.setdefault(int(m.group(1), 16), (m.group(2), path))

@@ -506,7 +506,7 @@ def kind_of(kinds, registered_self):
 def registered_addresses():
     """Addresses registered anywhere in src/ but in the exit functions this tool writes (static_exit.cpp)."""
     regs = short.ported_elsewhere(skip=(OUT_EXIT,))
-    pat = re.compile(r'\b(?:EI_REPLACE_SHORT|EI_REWRITTEN)\(\s*0x([0-9A-Fa-f]+)')
+    pat = re.compile(r'\bEI_REWRITTEN\(\s*0x([0-9A-Fa-f]+)')
     text = open(os.path.join(ROOT, 'src', 'game', 'short_functions.cpp'), encoding='utf-8').read()
     return regs | {int(a, 16) for a in pat.findall(text)}
 
@@ -946,7 +946,7 @@ def leave_out(decoded, ranges, exits=None):
                 problems.append(f'{a:08X}: {line.strip()} writes across the end of a named or unread range')
             elif m and CALL.match(m.group(3)):
                 problems.append(f'{a:08X}: {line.strip()} stores a call\'s result into a named range: port the '
-                                'initialiser by hand on the name (EI_REPLACE at its address)')
+                                'initialiser by hand on the name (EI_REWRITTEN at its address)')
             LEFT_OUT[a] = LEFT_OUT.get(a, 0) + 1
         out.append((a, kind, kept, targets, inlined, spans))
     return out, problems
@@ -1130,7 +1130,7 @@ def decode_exits(img, decoded):
 # (C20 batch 3). Statements stay in address form until render, so the analyses above (unread
 # objects, stored values, named_data.py) read them unchanged.
 
-MAP_LINE = re.compile(r'^[ \t]*(EI_REPLACE(?:_METHOD|_DISPATCH|_STANDALONE)?|EI_REWRITTEN(?:_SPECIAL)?)\s*\(\s*'
+MAP_LINE = re.compile(r'^[ \t]*(EI_REWRITTEN(?:_SPECIAL)?)\s*\(\s*'
                       r'0[xX]([0-9A-Fa-f]+)\s*,\s*&?\s*([\w:~]+)\s*\)\s*;', re.M)
 SHORT_FUNCTIONS = os.path.join(ROOT, 'src', 'game', 'short_functions.cpp')
 RET = 'ei::short_functions::Ret'   # the exit functions that do nothing (static_exit.cpp's 'nothing')
@@ -1309,7 +1309,7 @@ def load_sizes():
 
 def write_sizes(exits):
     """Adds the exit functions' sizes to config/extra_function_sizes.csv and src/hook/function_sizes.inc
-    (InstallHooks compares a body with game.exe on disk, and the image needs room for the jump)."""
+    (the tools' function sizes: tools/check_signatures.py, coverage.py, gen_short_functions.py)."""
     sizes = load_sizes()
     rows = open(EXTRA_SIZES, encoding='utf-8').read().splitlines()
     listed = {int(r.split(',')[0], 16) for r in rows[1:] if r}

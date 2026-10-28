@@ -1,4 +1,4 @@
-// The CArray<T> instantiations of game records (record_arrays.h), registered at their library addresses.
+// The CArray<T> instantiations of game records (record_arrays.h).
 #include "game/record_arrays.h"
 
 #include "ei/hook.h"

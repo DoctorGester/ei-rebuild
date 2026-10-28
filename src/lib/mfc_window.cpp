@@ -60,6 +60,8 @@ void __cdecl RegisterDragListMessage() { g_dragListMessage = gameapi::RegisterWi
 const CRuntimeClass* CWnd::GetRuntimeClass() const { return &kClassCWnd; }
 const CRuntimeClass* CMenu::GetRuntimeClass() const { return &kClassCMenu; }
 
+// Unported: CMenu and CTempMenu are never made (no CWinApp, no menus; only their create functions, which nothing
+// calls, store the tables).
 #pragma warning(suppress : 4722)   // the unported body does not return
 CMenu::~CMenu() { ei::UnportedSlot(0x006E7150); }
 

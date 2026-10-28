@@ -1,7 +1,7 @@
 // The resource databases that are globals of the game: the spells, the items, the quests
 // the ground prints and the speeches. Each is built empty by a static initialiser in
 // the list's order and destroyed by the exit function the initialiser registers with the game's atexit; both are defined
-// under the names and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects"). The
+// under the names (docs/notes/standalone.md, "The static initialisers' objects"). The
 // constructors (database_construct.cpp) and destructors (database_destruct.cpp, item_db_load.cpp) are the objects' own.
 #include "acks_db.h"
 #include "item_db.h"

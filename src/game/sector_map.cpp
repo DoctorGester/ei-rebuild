@@ -214,8 +214,7 @@ void RadiusTree::Build(const float* values, int count) {
 EI_REWRITTEN(0x005BF5F0, RadiusTree::Build);
 
 // ---- The spiral's tables ------------------------------------------------------------------------
-// Built by a static initialiser at start-up; the builder is also registered at its
-// addresses, but a running game never calls it.
+// Built by a static initialiser at start-up; a running game never calls the builder.
 
 namespace {
 
