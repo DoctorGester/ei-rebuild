@@ -363,10 +363,10 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         float height = flame->offset.z + base.position.z;
         float sum = height;
         std::uint32_t bits;
-        std::memcpy(&bits, &sum, 4);
+        bits = std::bit_cast<std::uint32_t>(sum);
         bits &= 0x7FFFFFFFu;
         float level;
-        std::memcpy(&level, &bits, 4);
+        level = std::bit_cast<float>(bits);
         EI_NAN_AUDIT(level);
         if (level < worlddata::kCampfireHeight) {
             Vector3 at;

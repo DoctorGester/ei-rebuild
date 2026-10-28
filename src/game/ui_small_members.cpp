@@ -7,6 +7,7 @@
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -65,7 +66,7 @@ std::uint8_t CTradePanel::Bought() const { return records_[recordIndex_].bought;
 
 CItem* CItemInfoPanel::FirstItem() { return std::ssize(itemParty_->items_) ? itemParty_->items_[0] : nullptr; }
 
-void CUiMesh::SetScaleYBits(std::uint32_t bits) { std::memcpy(&scaleMatrix_.m[5], &bits, sizeof(bits)); }
+void CUiMesh::SetScaleYBits(std::uint32_t bits) { scaleMatrix_.m[5] = std::bit_cast<float>(bits); }
 
 
 // --- Member constructors and destructors -----------------------------------------------------------------

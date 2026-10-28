@@ -6,6 +6,7 @@
 #include "item_db_text.h"
 #include "maths.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -21,7 +22,7 @@ constexpr float kPi = 3.1415927f;
 
 float FloatFromBits(std::uint32_t bits) {
     float f;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.

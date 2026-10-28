@@ -20,6 +20,7 @@
 #include "game_singletons.h"
 #include "lib/text_case.h"
 
+#include <bit>
 #include <string>
 
 namespace {
@@ -125,7 +126,7 @@ void CUiItemStrip::SetFilter(int filter) {
     default: return;
     }
     for (int i = 2; i < 8; ++i) {
-        std::memcpy(&SceneMesh(i)->textureOffsetU_, &column, sizeof(column));
+        SceneMesh(i)->textureOffsetU_ = std::bit_cast<float>(column);
         regions_[i]->SetTip(tipBase + i, 1, 0);
     }
 }

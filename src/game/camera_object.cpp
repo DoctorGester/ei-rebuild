@@ -8,6 +8,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -104,9 +105,9 @@ int CCamera::Init(options::GameOptions* settings, std::uint32_t nearBits, std::u
     focus_.x = settings->cameraDefaultXDeploy_;
     focus_.y = settings->cameraDefaultYDeploy_;
     focus_.z = settings->cameraDefaultHeight_;
-    std::memcpy(&nearDistance_, &nearBits, 4);
-    std::memcpy(&farDistance_, &farBits, 4);
-    std::memcpy(&fieldOfView_, &fovBits, 4);
+    nearDistance_ = std::bit_cast<float>(nearBits);
+    farDistance_ = std::bit_cast<float>(farBits);
+    fieldOfView_ = std::bit_cast<float>(fovBits);
     flags_ |= kFree;
     views_[7].distance = settings->cameraDefaultDistance_;
     pitch_ = DefaultPitch();
@@ -175,7 +176,7 @@ int CCamera::RecordFrame(std::uint32_t time) {
     if (!(flags_ & CCamera::kRecording)) return 0;
     if (!file.Open(fileName_, lib::File::modeNoTruncate | lib::File::modeWrite)) return 0;   // (an existing file only)
     file.Seek(0, FILE_END);
-    std::memcpy(&record.time, &time, sizeof(record.time));
+    record.time = std::bit_cast<float>(time);
     record.reserved = 0;
     record.position = localPosition_;
     record.rotation = localRotation_;

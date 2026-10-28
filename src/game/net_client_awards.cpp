@@ -8,6 +8,7 @@
 #include "player_messages.h"
 
 #include "lib/crt.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -42,7 +43,7 @@ void ClientSession::ApplyAwards() {
         switch (award->kind_) {
         case 0: {
             std::uint32_t bits;
-            std::memcpy(&bits, &award->value_, 4);
+            bits = std::bit_cast<std::uint32_t>(award->value_);
             g_serverWorld->AwardExperience(nullptr, std::bit_cast<float>(bits));
             break;
         }

@@ -48,12 +48,6 @@ constexpr float kDefaultChargeRate = 0.001f;
 // destroys it again. The prototype and material records are read without a null check where the game reads them
 // without one (a missing record faults there).
 
-// A dword copied bit for bit, so float bit patterns pass unchanged.
-template <typename T> void CopyBits(T& to, const T& from) {
-    static_assert(sizeof(T) == 4);
-    to = from;
-}
-
 // The temporary record for an item of class `classId` (the base record's construction inline in
 // Build); null for other classes (and when the allocation fails).
 ItemRecordHead* NewRecord(int classId) {
@@ -83,13 +77,13 @@ std::uint32_t IndexIn(const NamedRecordTable<Record>& table, const ItemRecordHea
 // Build's common part: price, values and charge of the record, from the prototype alone or scaled by the material.
 void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const MaterialRecordHead* material) {
     if (!material) {
-        CopyBits(record->price, prototype->price);
-        CopyBits(record->weight, prototype->weight);
-        CopyBits(record->unreadValue, prototype->unreadValue);
-        CopyBits(record->charge, prototype->charge);
-        CopyBits(record->condition, prototype->condition);
-        CopyBits(record->magicLevel, prototype->magicLevel);
-        CopyBits(record->materialUnits, prototype->materialUnits);
+        record->price = prototype->price;
+        record->weight = prototype->weight;
+        record->unreadValue = prototype->unreadValue;
+        record->charge = prototype->charge;
+        record->condition = prototype->condition;
+        record->magicLevel = prototype->magicLevel;
+        record->materialUnits = prototype->materialUnits;
         return;
     }
     // Price: the prototype's material units (unsigned, through a double) times the material's unit price, plus
@@ -99,13 +93,13 @@ void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const M
     record->price = static_cast<float>(units * unitPrice + price);
     float weight = prototype->weight, weightFactor = material->weightFactor;
     record->weight = weight * weightFactor;
-    CopyBits(record->unreadValue, prototype->unreadValue);
+    record->unreadValue = prototype->unreadValue;
     float charge = prototype->charge, extraCharge = material->magicPower;
     record->charge = charge + extraCharge;
     float condition = prototype->condition, conditionFactor = material->conditionFactor;
     record->condition = condition * conditionFactor;
     record->magicLevel = prototype->magicLevel + material->magicLevel;
-    CopyBits(record->materialUnits, prototype->materialUnits);
+    record->materialUnits = prototype->materialUnits;
 }
 
 // Build's per-class part; returns the prototype's index in its table.
@@ -115,7 +109,7 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
     case kClassWeapon: {
         auto* to = RecordAs<WeaponRecord>(record);
         auto* from = RecordAs<WeaponRecord>(prototype);
-        CopyBits(to->reach, from->reach);
+        to->reach = from->reach;
         float damage = from->damage, factor = material->damageFactor;
         to->damage = damage * factor;
         float spread = from->damageSpread, factor2 = material->damageFactor;
@@ -139,21 +133,21 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
     }
     case kClassQuick:
     case kClassSpell:
-        CopyBits(RecordAs<QuickItemRecord>(record)->actionValue, RecordAs<QuickItemRecord>(prototype)->actionValue);
+        RecordAs<QuickItemRecord>(record)->actionValue = RecordAs<QuickItemRecord>(prototype)->actionValue;
         return IndexIn(g_itemDatabase->quickItems, prototype);
     case kClassQuest:
-        CopyBits(record->category, prototype->category);
+        record->category = prototype->category;
         return IndexIn(g_itemDatabase->questItems, prototype);
     case kClassLoot: {
         auto* to = RecordAs<LootItemRecord>(record);
         auto* from = RecordAs<LootItemRecord>(prototype);
-        CopyBits(to->category, from->category);
-        CopyBits(to->recordType, from->recordType);
+        to->category = from->category;
+        to->recordType = from->recordType;
         // Kind 1 (a material) takes the material's index when one is given.
         if (from->category == 1 && material)
-            CopyBits(to->index, material->number);
+            to->index = material->number;
         else
-            CopyBits(to->index, from->index);
+            to->index = from->index;
         return IndexIn(g_itemDatabase->loot, prototype);
     }
     default:
@@ -220,7 +214,7 @@ void CItem::InitFromRecord(const ItemRecordHead* head) {
     chargeRate_ = kDefaultChargeRate;
     chargeMax_ = head->charge;
     charge_ = head->charge;
-    std::memcpy(&weight_, &head->weight, 4);
+    weight_ = std::bit_cast<std::uint32_t>(head->weight);
     price_ = head->price;
     unreadValue_ = head->unreadValue;
     magicLevel_ = head->magicLevel;

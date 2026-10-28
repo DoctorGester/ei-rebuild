@@ -50,9 +50,9 @@ void ClearButtons(CUiWindow* column, int count, int* selected) {
 
 void CUiMesh::SetScale(float scale) {
     std::uint32_t bits = std::bit_cast<std::uint32_t>(scale);
-    std::memcpy(&ScaleX(), &bits, sizeof(bits));
-    std::memcpy(&ScaleY(), &bits, sizeof(bits));
-    std::memcpy(&ScaleZ(), &bits, sizeof(bits));
+    ScaleX() = std::bit_cast<float>(bits);
+    ScaleY() = std::bit_cast<float>(bits);
+    ScaleZ() = std::bit_cast<float>(bits);
 }
 
 // --- A quick item slot ---------------------------------------------------------------

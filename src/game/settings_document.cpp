@@ -2,6 +2,7 @@
 // lines, JoinPath, ImportTrees. See settings_file.h; tests/vectors/replay_settings.cpp checks them without the game.
 #include "settings_file.h"
 
+#include <bit>
 #include <string>
 #include <windows.h>
 
@@ -41,14 +42,14 @@ bool FloatText(const std::string& data, std::string* out) {
     std::memcpy(&bits, data.data(), 4);
     if ((bits & 0x7F800000u) == 0x7F800000u) return false;
     float value;
-    std::memcpy(&value, &bits, 4);
+    value = std::bit_cast<float>(bits);
     std::array<char, 32> text;
     const auto written = std::to_chars(text.data(), text.data() + text.size(), value);
     if (written.ec != std::errc()) return false;
     float back = 0;
     const auto read = std::from_chars(text.data(), written.ptr, back);
     std::uint32_t backBits;
-    std::memcpy(&backBits, &back, 4);
+    backBits = std::bit_cast<std::uint32_t>(back);
     if (read.ec != std::errc() || read.ptr != written.ptr || backBits != bits) return false;
     *out = "float:" + std::string(text.data(), written.ptr);
     return true;

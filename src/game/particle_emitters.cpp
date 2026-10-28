@@ -193,9 +193,9 @@ void DebugMessage(const char* a0) { game::DebugLog(a0); }
 
 float AbsBits(float f) {
     std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(f);
     bits &= 0x7FFFFFFF;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 
@@ -208,16 +208,16 @@ Vector3 ModifierAxis(CParticleSource* s, float twiceRadius) {
     axis = {};
     switch (s->type_ - 0x201B) {
     case 0:
-        SetBits(&axis.z, 0x3F800000);
+        axis.z = 1.0f;
         break;
     case 1:
     case 2:
         s->spreadMin.x = static_cast<float>(D(twiceRadius) * D(EI_POINT_FOUR) + D(s->spreadMin.x));
-        SetBits(&axis.z, 0x3F800000);
+        axis.z = 1.0f;
         break;
     case 3:
         s->spreadMin.x = static_cast<float>(D(s->spreadMin.x) - D(twiceRadius) * D(EI_POINT_FOUR));
-        SetBits(&axis.z, 0x3F800000);
+        axis.z = 1.0f;
         break;
     case 4:
     case 5:
@@ -366,7 +366,7 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
         if (kind <= 11) p->frame = static_cast<int>(kind);
         p->state = index;
         p->pos = points[index].pos;
-        SetBits(&p->size, 0x3F800000);
+        p->size = 1.0f;
         SetBits(&p->size, size >= EI_ZERO ? 0x3E000000u : 0x3E4CCCCDu);   // 0.125 / 0.2
         p->life = 25;
         return 1;
@@ -399,7 +399,7 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
     p->aux1 = jy;
     p->aux2 = jz;
     p->pos = elements[pick].ring.start;
-    SetBits(&p->size, 0x3D75C28F);   // 0.06
+    p->size = 0.06f;   // 0.06
     return 1;
 }
 
@@ -588,7 +588,7 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
     const ParticleElement& e = elements[foot];
     if (e.foot.countdown >= 0) p->pos = e.pos;
     else p->pos = origin;
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     p->size = 0.0f;
     float x, y;
     for (int tries = 10;;) {
@@ -611,7 +611,7 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
     p->aux0 = 0.0f;
     p->aux1 = 0.0f;
     p->aux2 = 0.0f;
-    SetBits(&p->velocity.y, 0x3F800000);
+    p->velocity.y = 1.0f;
     p->life = 10;
     p->velocity.x = static_cast<float>(D(size) * D(e.foot.radius) * D(EI_POINT_FOUR));
     p->pos.z = static_cast<float>(D(p->velocity.x) * D(EI_FEET_RISE) + D(p->pos.z));

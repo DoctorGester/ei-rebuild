@@ -10,6 +10,7 @@
 #include "ei/x87.h"
 #include "lib/str.h"
 
+#include <bit>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -175,11 +176,11 @@ Vector3* Chunk::ReadVector3(Vector3* out) {
     ReadCounted(this, &v[2], 4);
     std::uint32_t x;
     x = v[0];
-    std::memcpy(&out->x, &x, 4);
+    out->x = std::bit_cast<float>(x);
     std::uint32_t z;
     z = v[2];
-    std::memcpy(&out->z, &z, 4);
-    std::memcpy(&out->y, &v[1], 4);
+    out->z = std::bit_cast<float>(z);
+    out->y = std::bit_cast<float>(v[1]);
     return out;
 }
 

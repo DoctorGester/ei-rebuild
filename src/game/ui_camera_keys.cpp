@@ -13,6 +13,7 @@
 
 #include "game_singletons.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -25,7 +26,7 @@ bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;
-    std::memcpy(&b, &f, 4);
+    b = std::bit_cast<std::uint32_t>(f);
     return b;
 }
 

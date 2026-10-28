@@ -8,6 +8,7 @@
 // Square roots are plain std::sqrt (FSQRT at the precision control on this target; docs/notes/cleanup-tooling.md, "SSE2 build").
 // fistp stays an instruction, inlined (R16c4): the CRT's lrint is a FISTP too, but reads the FP environment on every call (SV10j).
 
+#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -27,14 +28,12 @@ inline double FromUnsigned(std::uint32_t value) {
 // Under /fp:fast MSVC folds `v != v` to false (found in the sort verify of world_client), and the
 // standalone's compiler flags may change again; comparisons themselves are plain C++.
 inline bool IsNaN(float v) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &v, sizeof(bits));
+    const std::uint32_t bits = std::bit_cast<std::uint32_t>(v);
     return (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0;
 }
 
 inline bool IsNaN(double v) {
-    std::uint64_t bits;
-    std::memcpy(&bits, &v, sizeof(bits));
+    const std::uint64_t bits = std::bit_cast<std::uint64_t>(v);
     return (bits & 0x7FF0000000000000ull) == 0x7FF0000000000000ull && (bits & 0x000FFFFFFFFFFFFFull) != 0;
 }
 

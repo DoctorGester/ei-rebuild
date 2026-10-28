@@ -128,7 +128,7 @@ void SetupExplosion(CParticleSource* s) {
         fragment.velocity.y = static_cast<float>(D(vy) * D(EI_POINT_EIGHT));
         fragment.velocity.z = static_cast<float>(vz * D(EI_POINT_EIGHT));
         fragment.age = 0;
-        SetBits(&fragment.radius, 0);
+        fragment.radius = 0.0f;
         fragment.growth = 0.4f;
         fragment.decay = 0.7f;
         fragment.frame = static_cast<float>(Unsigned(g_random.Next() % 6));
@@ -179,9 +179,9 @@ void SetupTornado(CParticleSource* s) {
     color |= libcrt::Ftol(D(light[2]) * D(EI_COLOR_SCALE));
     SetBits(&s->frameDelay, color);
     SetupTornadoRings(s);
-    SetBits(&s->elements[0].funnel.height, 0x41400000);  // 12.0
+    s->elements[0].funnel.height = 12.0f;  // 12.0
     s->elements[0].funnel.bend = 0.5f;
-    SetBits(&s->elements[0].funnel.damping, 0x3F7D70A4);     // 0.99
+    s->elements[0].funnel.damping = 0.99f;     // 0.99
     SetCallbacks(s, &CParticleSource::EmitTornado, &CParticleSource::UpdateTornado, &CParticleSource::TickTornado);
 }
 
@@ -195,8 +195,8 @@ void SetupCurseHolder(CParticleSource* s) {
     SetBits(&s->frameDelay, 0x19000000);
     SetupTornadoRings(s);
     s->elements[0].funnel.height = static_cast<float>(D(EI_TWELVE) * D(EI_POINT_FOUR));
-    SetBits(&s->elements[0].funnel.bend, 0);
-    SetBits(&s->elements[0].funnel.damping, 0x3F7F3B64);     // 0.997
+    s->elements[0].funnel.bend = 0.0f;
+    s->elements[0].funnel.damping = 0.997f;     // 0.997
     SetCallbacks(s, &CParticleSource::EmitTornado, &CParticleSource::UpdateTornado, &CParticleSource::TickTornado);
 }
 
@@ -259,7 +259,7 @@ void SetupClayRing(CParticleSource* s) {
         float* direction = &s->elements[i].clay.direction.x;
         direction[0] = static_cast<float>(x87::fsin(angle));
         direction[1] = static_cast<float>(x87::fcos(angle));
-        SetBits(&direction[2], 0);
+        direction[2] = 0.0f;
         s->elements[i].pos = s->localPosition_;
         s->elements[i].clay.previous = s->localPosition_;
         s->elements[i].ticks = 14;
@@ -338,7 +338,7 @@ void SetupFeetCloud(CParticleSource* s) {
         s->elements[i].foot.countdown = -1;
         s->elements[i].ticks = i;
         s->elements[i].pos = {};
-        SetBits(&s->elements[i].foot.radius, 0);
+        s->elements[i].foot.radius = 0.0f;
     }
     SetCallbacks(s, &CParticleSource::EmitFeetCloud, &CParticleSource::UpdateFeetCloud, &CParticleSource::TickFeetCloud);
     if (s->type_ == 0x204A) s->lifetime = 0xFF;
@@ -354,7 +354,7 @@ void SetupStartTrans(CParticleSource* s) {
     SetCallbacks(s, &CParticleSource::EmitStartTrans, &CParticleSource::UpdateStartTrans, &CParticleSource::TickStartTrans);
     s->elements.resize(1);
     s->elements[0].ticks = 30;
-    SetBits(&s->elements[0].trans.scale, 0);
+    s->elements[0].trans.scale = 0.0f;
     s->elements[0].trans.count = 1.0f;
 }
 
@@ -454,7 +454,7 @@ const char* SetupType(CParticleSource* s) {
         s->frameDelay = 1;
         s->size = 0.3f;
         s->growth = 1.03f;
-        SetBits(&s->emitState, 0);
+        s->emitState = 0.0f;
         SetCallbacks(s, &CParticleSource::EmitArrowSmoke, &CParticleSource::UpdateArrowSmoke, nullptr);
         return type == 0x204E ? "RikArrowSmoke" : "FireArrowSmoke";
     case 0x2012:
@@ -733,8 +733,8 @@ void CParticleSource::Reset() {
     emitFn = nullptr;
     updateFn = nullptr;
     elementFn = nullptr;
-    SetBits(&windStrength, 0);
-    SetBits(&additiveBlend, 0);
+    windStrength = 0.0f;
+    additiveBlend = 0.0f;
     lib::FreeStorage(elements);
     alpha = 1.0f;
     typeParam = 1.0f;
@@ -742,13 +742,13 @@ void CParticleSource::Reset() {
     baseSize = 1.0f;
     spreadMin = {};
     spreadMax = {};
-    SetBits(&emitState, 0);
-    SetBits(&height, 0);
-    SetBits(&growth, 0);
+    emitState = 0.0f;
+    height = 0.0f;
+    growth = 0.0f;
     attachPoint = 0;
     hiddenTicks = 0;
-    SetBits(&turnCos, 0);
-    SetBits(&turnSin, 0);
+    turnCos = 0.0f;
+    turnSin = 0.0f;
     emitSpacing = 1000.0f;
 }
 
@@ -767,10 +767,10 @@ void CParticleSource::Clear() {
 // Create. Sets the source up for its type; 1, or for an unknown type the fatal error report's result.
 int CParticleSource::Create() {
     Reset();
-    std::uint32_t farBound = 0x47C35000;     // 100000.0f
-    SetBits(&boundsMin.x, farBound);
-    SetBits(&boundsMin.y, farBound);
-    SetBits(&boundsMin.z, farBound);
+    float farBound = 100000.0f;     // 100000.0f
+    boundsMin.x = farBound;
+    boundsMin.y = farBound;
+    boundsMin.z = farBound;
     Vector3 nearBound;
     nearBound.Construct(-100000.0f, -100000.0f, -100000.0f);
     boundsMax = nearBound;

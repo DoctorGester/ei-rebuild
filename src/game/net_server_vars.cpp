@@ -8,6 +8,7 @@
 
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cstring>
 
 namespace net {
@@ -56,11 +57,11 @@ void ServerSession::RaiseVariable(const std::string* name, float value) {
     VariableMessage* variable = found->Get();
     float current = variable->value_;
     std::uint32_t currentBits, valueBits;
-    std::memcpy(&currentBits, &current, 4);
-    std::memcpy(&valueBits, &value, 4);
+    currentBits = std::bit_cast<std::uint32_t>(current);
+    valueBits = std::bit_cast<std::uint32_t>(value);
     std::uint32_t bits = current >= value ? currentBits : valueBits;
     float selected;
-    std::memcpy(&selected, &bits, 4);
+    selected = std::bit_cast<float>(bits);
     volatile double loaded = selected;   // reloaded through memory, as the original does
     found->Get()->value_ = static_cast<float>(loaded);
     found->Get()->serial_ = g_variableSerial;

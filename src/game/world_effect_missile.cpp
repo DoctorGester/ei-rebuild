@@ -18,6 +18,7 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cmath>
 #include <cstring>
 #include <new>
@@ -38,7 +39,7 @@ CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 
 std::uint32_t Bits(const float& f) {
     std::uint32_t u;
-    std::memcpy(&u, &f, 4);
+    u = std::bit_cast<std::uint32_t>(f);
     return u;
 }
 
@@ -230,10 +231,10 @@ void CEffectArrow::Save(CStream* s) {
     s->Write(&copy, 4);
     s->WriteString(soundName_);
     s->Write(&lightColor_, 12);
-    std::memcpy(&copy, &lightRange_, 4);
+    copy = std::bit_cast<std::uint32_t>(lightRange_);
     s->Write(&copy, 4);
     s->Write(&particleType_, 4);
-    std::memcpy(&copy, &particleSize_, 4);
+    copy = std::bit_cast<std::uint32_t>(particleSize_);
     s->Write(&copy, 4);
     std::memcpy(&copy, &casterId_, 4);
     s->Write(&copy, 4);

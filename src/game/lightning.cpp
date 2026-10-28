@@ -11,6 +11,7 @@
 #include "world.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <concepts>
 #include <cstring>
 #include <initializer_list>
@@ -42,7 +43,7 @@ constexpr float kOffsetFactor = 0.05f;
 
 float FromBits(std::uint32_t bits) {
     float f;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.

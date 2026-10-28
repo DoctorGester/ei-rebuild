@@ -11,6 +11,7 @@
 #include "camera.h"
 #include "lib/static_object.h"
 
+#include <bit>
 #include <cstdlib>
 #include <cstring>
 
@@ -99,12 +100,12 @@ int CParticleManager::DrawAll(CSceneRenderer* renderer) {
         if (s->flags_ & 0x40) continue;
         if (AttachedToHiddenUnit(s)) continue;
         int blend;
-        std::memcpy(&blend, &s->additiveBlend, sizeof(blend));
+        blend = std::bit_cast<std::int32_t>(s->additiveBlend);
         if (blend == 1 && !additive) {
             SetRenderState(renderer, 5, 2);
             additive = true;
         }
-        std::memcpy(&blend, &s->additiveBlend, sizeof(blend));
+        blend = std::bit_cast<std::int32_t>(s->additiveBlend);
         if (blend == 0 && additive) {
             SetRenderState(renderer, 5, 6);
             additive = false;

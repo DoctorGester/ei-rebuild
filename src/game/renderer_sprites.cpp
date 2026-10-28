@@ -10,6 +10,7 @@
 #include "ei/x87.h"
 #include "device_buffers.h"
 #include "lib/containers.h"
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -181,7 +182,7 @@ int SortBackToFront() {
     int kept = 0;
     for (int i = 0; i < sprites; ++i, corners += 4) {
         SpriteSortRecord* record = g_records.data() + kept;
-        std::memcpy(&record->key, &corners->z, 4);       // written for dropped sprites too
+        record->key = std::bit_cast<std::int32_t>(corners->z);       // written for dropped sprites too
         if (record->key < 0) continue;
         record->corners = corners;
         record->outcodes = outcodes[i];

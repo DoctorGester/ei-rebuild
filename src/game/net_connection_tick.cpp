@@ -6,6 +6,7 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cstring>
 #include <iterator>
 #include <vector>
@@ -47,13 +48,12 @@ bool Connection::Tick(double dt) {
     Set(&clock_, dt + Get(&clock_));
     float spread = static_cast<float>(D(roundTrip_) * D(roundTrip_) - D(roundTripSquare_));
     std::uint32_t bits;
-    std::memcpy(&bits, &spread, 4);
+    bits = std::bit_cast<std::uint32_t>(spread);
     bits &= 0x7FFFFFFF;
-    std::memcpy(&spread, &bits, 4);
+    spread = std::bit_cast<float>(bits);
     float loss = static_cast<float>(std::sqrt(spread) * D(3.0f) + D(roundTrip_));
     float tenth;
-    const std::uint32_t tenthBits = 0x3DCCCCCD;   // 0.1f
-    std::memcpy(&tenth, &tenthBits, 4);
+    tenth = 0.1f;
     loss = loss >= tenth ? loss : tenth;
     float longest = static_cast<float>(static_cast<double>(g_currentSession->maxRoundTrip_));
     loss = longest >= loss ? loss : longest;

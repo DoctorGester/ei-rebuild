@@ -78,13 +78,13 @@ bool SetUpCasting(CParticleSource* s) {
     e->ticks = 6;
     e->cast.radius = extent;
     if (s->type_ == 0x202A) {
-        SetBits(&e->cast.size, 0x3D8F5C29);     // 0.07
-        SetBits(&e->cast.growth, 0x3F866666);     // 1.05
+        e->cast.size = 0.07f;     // 0.07
+        e->cast.growth = 1.05f;     // 1.05
     } else {
-        SetBits(&e->cast.size, 0x3DA3D70A);     // 0.08
-        SetBits(&e->cast.growth, 0x3F88F5C3);     // 1.07
+        e->cast.size = 0.08f;     // 0.08
+        e->cast.growth = 1.07f;     // 1.07
     }
-    SetBits(&e->pos.x, 0x3F800000);
+    e->pos.x = 1.0f;
     for (int i = 1; i <= s->lifetime; ++i) {
         float x, y, z;
         RandomInBall(x, y, z);
@@ -101,7 +101,7 @@ bool SetUpCasting(CParticleSource* s) {
         drift[0] = static_cast<float>(D(b.x) * D(EI_TENTH));
         drift[1] = static_cast<float>(D(b.y) * D(EI_TENTH));
         drift[2] = static_cast<float>(D(b.z) * D(EI_TENTH));
-        SetBits(&s->elements[i].pos.x, 0);
+        s->elements[i].pos.x = 0.0f;
     }
     return true;
 }
@@ -178,7 +178,7 @@ bool FollowCarrier(CParticleSource* s) {
     float* speed = &s->elements[0].sphere.speed;
     *speed = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(m)));
     EI_NAN_AUDIT(*speed);
-    if (D(s->elements[0].sphere.speed) < EI_STILL_SPEED) SetBits(&s->elements[0].sphere.speed, 0);
+    if (D(s->elements[0].sphere.speed) < EI_STILL_SPEED) s->elements[0].sphere.speed = 0.0f;
     return true;
 }
 
@@ -233,13 +233,13 @@ void PlaceRings(CParticleSource* s, int countdown) {
             std::memcpy(start, &offset, sizeof(Vector3));
             start[2] = static_cast<float>(lift + D(start[2]));
             std::memcpy(&e->pos, start, sizeof(Vector3));
-            SetBits(&e->flames.radius, 0);
+            e->flames.radius = 0.0f;
             e->flames.angle = angle;
             e->flames.rise = static_cast<float>((D(diameter) - lift) * D(EI_PER_36));
             angle = static_cast<float>(D(angle) + D(step));
         }
     }
-    SetBits(&s->emitState, 0);
+    s->emitState = 0.0f;
 }
 
 // The flame phase: one flame per ring (state = the ring), then one call that only ends the phase
@@ -384,7 +384,7 @@ int AddOrbiter(CParticleSource* s, Particle* p) {
     p->frameTimer = 1;
     p->state = -1 - k;
     p->pos = e->pos;
-    SetBits(&p->size, 0);
+    p->size = 0.0f;
     return 1;
 }
 
@@ -397,7 +397,7 @@ int AddOrbiter(CParticleSource* s, Particle* p) {
 
 inline float F(std::uint32_t bits) {
     float f;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
@@ -625,10 +625,10 @@ bool SetUpColumn(CParticleSource* s) {
     ParticleElement* e = s->elements.data();
     e->word[9] = 0;
     e->column.radius = radius;
-    SetBits(&e->value[4], 0);
+    e->value[4] = 0.0f;
     e->column.height = height;
-    SetBits(&e->value[6], 0);
-    SetBits(&e->value[7], 0);
+    e->value[6] = 0.0f;
+    e->value[7] = 0.0f;
     e->column.foot = foot;
     e->ticks = 1;
     return true;
@@ -928,7 +928,7 @@ int CParticleSource::EmitCasting(Particle* p, int) {
             p->frame = 0;
             p->state = 1;
             p->pos = origin;
-            SetBits(&p->size, 0);
+            p->size = 0.0f;
             return 1;
         }
     }
@@ -977,7 +977,7 @@ int CParticleSource::EmitCasting(Particle* p, int) {
     double px = D(ox) + D(origin.x);
     float py = static_cast<float>(D(oy) + D(origin.y));
     float pz = static_cast<float>(oz + D(origin.z));
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     p->pos.y = py;
     p->pos.x = static_cast<float>(px);
     p->pos.z = pz;
@@ -994,7 +994,7 @@ int CParticleSource::UpdateCasting(Particle* p) {
     if (state->cast.alpha == 0) return 0;
     if (p->state) {
         p->pos = origin;
-        SetBits(&p->size, 0x3F800000);
+        p->size = 1.0f;
         p->size = static_cast<float>((Unsigned(Next()) * EI_SCALE_SIZE + D(EI_SIZE_BASE)) * D(elements[0].cast.radius) *
                         D(EI_POINT_THREE));
         p->color = (static_cast<std::uint32_t>(elements[0].cast.alpha) << 24) | 0xFFFFFF;
@@ -1099,7 +1099,7 @@ int CParticleSource::EmitOrbit(Particle* p, int index) {
     double cx = D(origin.x) + D(centre.x);
     float cy = static_cast<float>(D(origin.y) + D(centre.y));
     float cz = static_cast<float>(D(origin.z) + D(centre.z));
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     double px = cx + D(offset.x);
     float py = static_cast<float>(D(offset.y) + D(cy));
     float pz = static_cast<float>(D(offset.z) + D(cz));
@@ -1134,7 +1134,7 @@ int CParticleSource::EmitCastRing(Particle* p, int) {
         }
         emitCount = 3;
         elements.resize(3);
-        SetBits(&growth, 0);
+        growth = 0.0f;
         PlaceRings(this, 45);
         emitCount *= 9;
     }
@@ -1314,7 +1314,7 @@ int CParticleSource::EmitCastSwirl(Particle* p, int) {
     float t = static_cast<float>(Unsigned(r) * EI_P_SCALE_1);
     p->aux2 = static_cast<float>((Unsigned(Next()) * EI_SWIRL_SIZE_SCALE + D(EI_SWIRL_SIZE_BASE)) *
                                     D(e->orbiter.scale) * D(EI_SWIRL_GROW));
-    SetBits(&p->aux1, 0x3F83D70A);     // 1.03
+    p->aux1 = 1.03f;     // 1.03
     float* v = &p->velocity.x;
     const float* low = &spreadMin.x;
     const float* high = &spreadMax.x;
@@ -1323,7 +1323,7 @@ int CParticleSource::EmitCastSwirl(Particle* p, int) {
     double px = D(previous[0]) + D(v[0]);
     float py = static_cast<float>(D(v[1]) + D(previous[1]));
     float pz = static_cast<float>(D(v[2]) + D(previous[2]));
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     p->pos.y = py;
     p->pos.z = pz;
     p->pos.x = static_cast<float>(px);
@@ -1353,7 +1353,7 @@ int CParticleSource::UpdateCastSwirl(Particle* p) {
     if (state < 0) {
         const ParticleElement& e = elements[-(state + 1)];
         p->pos = e.pos;
-        SetBits(&p->size, 0x3F800000);
+        p->size = 1.0f;
         p->size = static_cast<float>((Unsigned(Next()) * EI_MARKER_SIZE_SCALE + D(EI_MARKER_SIZE_BASE)) * D(size) *
                         D(EI_POINT_FOUR_C));
         if ((flags_ & 1) && attachedTo) return 1;
@@ -1427,7 +1427,7 @@ int CParticleSource::EmitLink(Particle* p, int) {
         factor = Range(F(0x3CF5C28F), F(0x3D4CCCCD));                           // 0.03 .. 0.05
     }
     p->drift.z = static_cast<float>(factor * D(size));
-    SetBits(&p->drift.x, 0);
+    p->drift.x = 0.0f;
     p->size = p->drift.z;
     p->frame = static_cast<int>(Next() % static_cast<std::uint32_t>(frameCount + 1));
     return 1;
@@ -1477,13 +1477,13 @@ int CParticleSource::UpdateLink(Particle* p) {
     p->pos = p3;
 
     double h = D(along) - D(EI_LINK_HALF);
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     p->size = p->drift.z;
     p->pos.z = static_cast<float>((D(EI_LINK_QUARTER) - h * h) * D(elements[0].link.length) * D(EI_LINK_BULGE) + D(p3.z));
     float hr = static_cast<float>(h);
     std::uint32_t absBits = Bits(&hr) & 0x7FFFFFFFu;
     float offCentre;
-    std::memcpy(&offCentre, &absBits, sizeof(float));
+    offCentre = std::bit_cast<float>(absBits);
     std::uint32_t fade = libcrt::Ftol((D(EI_LINK_HALF) - D(offCentre)) * D(EI_LINK_ALPHA));
     std::uint32_t cap = static_cast<std::uint32_t>(elements[0].ticks);
     if (cap < fade) fade = cap;
@@ -1514,7 +1514,7 @@ int CParticleSource::EmitBlast(Particle* p, int) {
         p->state = kBlastCore;
         p->pos = origin;
         p->frame = 15;
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
         return 1;
     }
     if (kind < 0) {
@@ -1536,13 +1536,13 @@ int CParticleSource::EmitBlast(Particle* p, int) {
         double px = D(ax) + D(origin.x);
         float py = static_cast<float>(D(ay) + D(origin.y));
         float pz = static_cast<float>(az + D(origin.z));
-        SetBits(&p->size, 0x3F800000);
+        p->size = 1.0f;
         p->pos.y = py;
         p->pos.x = static_cast<float>(px);
         p->pos.z = pz;
         double spreadRate = D(elements[0].fragment.growth);
         p->velocity.x = static_cast<float>(D(v.x) * spreadRate);
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
         p->velocity.y = static_cast<float>(D(v.y) * spreadRate);
         p->velocity.z = static_cast<float>(D(v.z) * spreadRate);
         int age = fragments->fragment.age;
@@ -1580,7 +1580,7 @@ int CParticleSource::EmitBlast(Particle* p, int) {
     Vector3 start;
     start.Construct(static_cast<float>(D(px) - sx), static_cast<float>(D(py) - sy), static_cast<float>(D(origin.z) + D(e->pos.z) - sz));
     p->pos = start;
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     double g = Unsigned(Next()) * EI_BLAST_DEBRIS_SCALE + D(EI_BLAST_POINT_SEVEN);
     double sized = g * (D(EI_BLAST_POINT_THREE) - D(u) * D(EI_BLAST_POINT_15)) *
                    (D(e->fragment.radius) * D(EI_BLAST_SEVENTH) + D(EI_BLAST_POINT_THREE));
@@ -1616,7 +1616,7 @@ int CParticleSource::UpdateBlast(Particle* p) {
         if (state != kBlastCore) return 0;
         EI_NAN_AUDIT(p->size);
         if (p->size == 0.0f) p->size = static_cast<float>(D(size) * D(EI_BLAST_CORE_SIZE));
-        else SetBits(&p->size, 0);
+        else p->size = 0.0f;
         return fragments->fragment.age < 3;
     }
     p->pos.x = static_cast<float>(D(p->pos.x) + D(p->velocity.x));
@@ -1731,7 +1731,7 @@ int CParticleSource::EmitGeyser(Particle* p, int) {
     p->color = 0xFFFFFFFF;
     p->pos = origin;
     if (particles.empty()) {
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
         p->state = 1;
         p->frame = 15;
         return 1;
@@ -1755,7 +1755,7 @@ int CParticleSource::EmitGeyser(Particle* p, int) {
         p->pos.x = SpreadAround(p->pos.x, spreadMin.x, spreadMax.x);
         p->pos.y = SpreadAround(p->pos.y, spreadMin.y, spreadMax.y);
         float z = SpreadAround(p->pos.z, spreadMin.z, spreadMax.z);
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
         p->velocity.x = drop;
         p->pos.z = z;
         return 1;
@@ -1778,7 +1778,7 @@ int CParticleSource::EmitGeyser(Particle* p, int) {
 int CParticleSource::UpdateGeyser(Particle* p) {
     if (p->state != 0) {
         if (!(flags_ & 1)) {
-            SetBits(&p->size, 0);
+            p->size = 0.0f;
             return 0;
         }
         p->size = static_cast<float>((Unsigned(Next()) * EI_GEYSER_MARK_SCALE + D(EI_GEYSER_MARK_BASE)) * D(size));
@@ -1844,8 +1844,8 @@ int CParticleSource::EmitShower(Particle* p, int) {
     float speed = static_cast<float>(D(EI_P_ONE) / std::sqrt(D(c) * D(c) + D(b) * D(b) + D(a) * D(a)) * D(size) * D(EI_SHOWER_SPEED));
     if ((Next() & 7) == 0) speed = static_cast<float>(D(speed) * D(EI_SHOWER_FAST));
     p->drift.x = static_cast<float>(D(speed) * D(a));
-    SetBits(&p->velocity.x, 0x3F666666);     // 0.9: the speed kept per tick
-    SetBits(&p->velocity.y, 0x3F4CCCCD);     // 0.8: the size kept per tick
+    p->velocity.x = 0.9f;     // 0.9: the speed kept per tick
+    p->velocity.y = 0.8f;     // 0.8: the size kept per tick
     p->drift.y = static_cast<float>(D(speed) * D(b));
     p->drift.z = static_cast<float>(D(speed) * D(c));
     double t = Unsigned(Next()) * EI_P_SCALE_1;
@@ -1904,7 +1904,7 @@ int CParticleSource::EmitBag(Particle* p, int index) {
         p->life = 15;
         p->frame = static_cast<int>(r & 3);
         p->pos = origin;
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
         return 1;
     }
     const ParticleElement& ball = elements[Next() % 80];
@@ -1923,7 +1923,7 @@ int CParticleSource::EmitBag(Particle* p, int index) {
     double px = D(ax) + D(ball.pos.x);
     float py = static_cast<float>(D(ay) + D(ball.pos.y));
     float pz = static_cast<float>(az + D(ball.pos.z));
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     p->pos.y = py;
     p->pos.x = static_cast<float>(px);
     p->pos.z = pz;
@@ -1947,7 +1947,7 @@ int CParticleSource::UpdateBag(Particle* p) {
     if (ball->ticks == kBagGone) return 0;
     p->frame = (p->frame + 1) & 3;
     p->pos = ball->pos;
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     int age = ball->ball.age;
     p->size = static_cast<float>(D(g_bagSizes[age]) * D(size) * D(EI_BAG_BALL_SIZE));
     int fade = p->life > 9 ? 9 : p->life;
@@ -2048,7 +2048,7 @@ int CParticleSource::EmitColumn(Particle* p, int) {
     double px = D(origin.x) + D(p->velocity.x);
     float py = static_cast<float>(D(p->velocity.y) + D(origin.y));
     float pz = static_cast<float>(D(p->velocity.z) + D(origin.z));
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     p->pos.y = py;
     p->pos.z = pz;
     p->pos.x = static_cast<float>(px);
@@ -2089,7 +2089,7 @@ int CParticleSource::EmitMushroom(Particle* p, int) {
         ParticleElement* e = elements.data();
         e->ticks = 0;
         e->pos.x = static_cast<float>(x87::flog(EI_MUSHROOM_ONE) * EI_MUSHROOM_SPREAD * D(size));
-        SetBits(&elements[0].pos.z, 0);
+        elements[0].pos.z = 0.0f;
         elements[0].mushroom.stem = origin;
     }
     float spread = static_cast<float>((Unsigned(Next()) * EI_MUSHROOM_W_SCALE + D(EI_MUSHROOM_W_BASE)) * D(elements[0].pos.x));
@@ -2273,7 +2273,7 @@ int CParticleSource::EmitTornado(Particle* p, int) {
     float high = static_cast<float>(EI_FUNNEL_PI);
     float low = static_cast<float>(-EI_FUNNEL_PI);
     std::uint32_t r = Next();
-    SetBits(&p->aux1, 0x3DCCCCCD);     // 0.1
+    p->aux1 = 0.1f;     // 0.1
     p->aux0 = height01;
     float angle = static_cast<float>(Unsigned(r) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low));
     double w = D(EI_P_ONE) - D(height01);
@@ -2287,7 +2287,7 @@ int CParticleSource::EmitTornado(Particle* p, int) {
     float turnLow = static_cast<float>(EI_FUNNEL_PI * EI_FUNNEL_TURN_LOW);
     double turn = Unsigned(Next()) * (D(turnHigh) - D(turnLow)) * EI_P_SCALE_1 + D(turnLow);
     p->drift.x = static_cast<float>(turn * (D(EI_FUNNEL_TURN_TOP) - D(wRounded) * D(wRounded)) * D(EI_FUNNEL_TURN_SCALE));
-    SetBits(&p->drift.z, 0);
+    p->drift.z = 0.0f;
     p->drift.y = elements[0].funnel.damping;
     p->pos.x = static_cast<float>(x87::fsin(D(angle)) * D(radius) + D(p->pos.x) + D(cx));
     p->pos.y = static_cast<float>(x87::fcos(D(angle)) * D(radius) + D(cy) + D(p->pos.y));
@@ -2350,7 +2350,7 @@ void CParticleSource::TickTornado(ParticleElement* e) {
         sway.Construct(static_cast<float>(D(bottom->pos.x) - D(motion.x)), static_cast<float>(D(bottom->pos.y) - D(motion.y)),
                        static_cast<float>(D(bottom->pos.z) - D(motion.z)));
         sway.x = static_cast<float>(D(sway.x) * D(EI_FUNNEL_SWAY));
-        SetBits(&sway.z, 0);
+        sway.z = 0.0f;
         sway.y = static_cast<float>(D(sway.y) * D(EI_FUNNEL_SWAY));
         for (int i = 0; i < std::ssize(elements); ++i) {
             double c = x87::fcos(static_cast<double>(i) / static_cast<double>(std::ssize(elements) - 1) * EI_FUNNEL_PI *
@@ -2419,7 +2419,7 @@ int CParticleSource::EmitPortalStar(Particle* p, int) {
     p->life = 15;
     p->frame = 0;
     p->pos = origin;
-    SetBits(&p->size, 0);
+    p->size = 0.0f;
     return 1;
 }
 
@@ -2449,7 +2449,7 @@ int CParticleSource::EmitCylinder(Particle* p, int) {
         p->pos.x = static_cast<float>(D(e.pos.x) + D(origin.x));
         p->pos.y = static_cast<float>(D(e.pos.y) + D(origin.y));
         p->pos.z = static_cast<float>(D(e.pos.z) + D(origin.z));
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
         return 1;
     }
     int j = static_cast<int>(Next() % static_cast<std::uint32_t>(stars));
@@ -2477,7 +2477,7 @@ int CParticleSource::EmitCylinder(Particle* p, int) {
     double px = D(p->velocity.x) + D(origin.x);
     float py = static_cast<float>(D(origin.y) + D(p->velocity.y));
     float pz = static_cast<float>(D(origin.z) + D(p->velocity.z));
-    SetBits(&p->size, 0x3DCCCCCD);     // 0.1
+    p->size = 0.1f;     // 0.1
     p->pos.y = py;
     p->pos.x = static_cast<float>(px);
     p->pos.z = pz;
@@ -2490,7 +2490,7 @@ int CParticleSource::UpdateCylinder(Particle* p) {
     int state = p->state;
     if (state >= 0) {
         if (!(flags_ & 1)) {
-            SetBits(&p->size, 0);
+            p->size = 0.0f;
             p->color = 0xFFFFFF;
             return 0;
         }
@@ -2499,7 +2499,7 @@ int CParticleSource::UpdateCylinder(Particle* p) {
         double px = D(origin.x) + D(e.pos.x);
         float py = static_cast<float>(D(origin.y) + D(e.pos.y));
         float pz = static_cast<float>(D(origin.z) + D(e.pos.z));
-        SetBits(&p->size, 0x3E99999A);     // 0.3
+        p->size = 0.3f;     // 0.3
         p->pos.y = py;
         p->pos.x = static_cast<float>(px);
         p->pos.z = pz;
@@ -2582,7 +2582,7 @@ int CParticleSource::EmitFireBall(Particle* p, int index) {
     p->life = lifetime;
     p->frameTimer = frameDelay;
     p->pos = origin;
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     double half = D(size) * D(EI_TRAIL_HALF);
     float halfRounded = static_cast<float>(half);
     double t;
@@ -2654,12 +2654,12 @@ int CParticleSource::EmitArrowSmoke(Particle* p, int index) {
     p->life = lifetime;
     p->frameTimer = frameDelay;
     p->pos = origin;
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     float t;
     if (index == 0 && Bits(&emitState) == 0) {
         p->size = static_cast<float>(D(size) * D(EI_ARROW_HEAD));
         SetBits(&emitState, 1);
-        SetBits(&t, 0);
+        t = 0.0f;
         p->state = 2;
         p->frame = 0;
     } else {
@@ -2745,7 +2745,7 @@ int CParticleSource::EmitBanshee(Particle* p, int) {
         height = static_cast<float>(widen + widen);
         elements[0].ticks = 8;
         elements[0].pos.z = static_cast<float>(tall * D(EI_BANSHEE_HALF));
-        SetBits(&elements[0].banshee.radius, 0);
+        elements[0].banshee.radius = 0.0f;
         emitCount = 72;
         return 0;
     }
@@ -2803,7 +2803,7 @@ void CParticleSource::TickBanshee(ParticleElement* e) {
 int CParticleSource::EmitPortal(Particle* p, int) {
     if (particles.empty()) {
         p->pos = origin;
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
         p->pos.z = static_cast<float>(D(EI_PORTAL_HEIGHT) * D(0.8f) + D(p->pos.z));
         p->color = 0x60FFFFFF;
         p->state = 1;
@@ -2824,7 +2824,7 @@ int CParticleSource::EmitPortal(Particle* p, int) {
     p->pos.x = static_cast<float>(x + D(origin.x));
     p->pos.y = static_cast<float>(D(y) + D(origin.y));
     p->pos.z = static_cast<float>(D(origin.z));
-    SetBits(&p->size, 0);
+    p->size = 0.0f;
     p->aux1 = y;
     p->aux2 = static_cast<float>((D(EI_PORTAL_TWO) - D(spread)) * D(EI_PORTAL_SHRINK));
     p->aux0 = static_cast<float>(x);
@@ -2851,7 +2851,7 @@ int CParticleSource::EmitAcidRay(Particle* p, int) {
     p->life = lifetime;
     p->frameTimer = frameDelay;
     p->pos = origin;
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     std::uint32_t r = Next();
     p->state = 0;
     float t = static_cast<float>(Unsigned(r) * EI_P_SCALE_1 - D(EI_P_ONE));
@@ -2908,7 +2908,7 @@ int CParticleSource::UpdateAcidRay(Particle* p) {
     float py = static_cast<float>(D(ay) + D(p->drift.y));
     float pz = static_cast<float>(az + D(p->drift.z));
     p->pos.y = py;
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     p->pos.x = static_cast<float>(px);
     p->pos.z = pz;
     p->size = static_cast<float>(D(kAcidSize[lifetime - life]) * D(size));
@@ -2928,7 +2928,7 @@ int CParticleSource::EmitSparks(Particle* p, int) {
     if (particles.empty()) {
         p->color = 0xFFFFFFFF;
         p->pos = origin;
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
         p->frame = 0;
         p->state = 1;
         return 1;
@@ -2963,7 +2963,7 @@ int CParticleSource::EmitSparks(Particle* p, int) {
     double px = D(a) + D(origin.x);
     float py = static_cast<float>(D(b) + D(origin.y));
     float pz = static_cast<float>(c + D(origin.z));
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     p->pos.y = py;
     p->pos.x = static_cast<float>(px);
     p->pos.z = pz;
@@ -2987,7 +2987,7 @@ int CParticleSource::EmitClayRing(Particle* p, int index) {
     if (elements[0].ticks == 13 && index < std::ssize(elements)) {
         p->velocity = {};
         p->pos = elements[index].pos;
-        SetBits(&p->size, 0x3E4CCCCD);     // 0.2
+        p->size = 0.2f;     // 0.2
         p->frame = 0;
         p->state = index;
         return 1;
@@ -3014,7 +3014,7 @@ int CParticleSource::EmitClayRing(Particle* p, int index) {
     p->aux1 = sx;
     p->aux2 = sz;
     std::memcpy(&p->pos, previous, sizeof(Vector3));
-    SetBits(&p->size, 0x3DCCCCCD);     // 0.1
+    p->size = 0.1f;     // 0.1
     return 1;
 }
 
@@ -3025,7 +3025,7 @@ int CParticleSource::UpdateClayRing(Particle* p) {
     if (p->frame == 0) {
         p->color = (static_cast<std::uint32_t>(ByLife(kClayAlpha, elements[0].ticks, kClayBefore)) << 24) | 0xFFFFFF;
         p->pos = elements[p->state].pos;
-        SetBits(&p->size, 0x3E4CCCCD);     // 0.2
+        p->size = 0.2f;     // 0.2
         return 1;
     }
     if (--p->frameTimer == 0) {
@@ -3101,11 +3101,11 @@ int CParticleSource::EmitFalling(Particle* p, int) {
     float x = static_cast<float>(Unsigned(Next()) * (D(reach) - D(lowReach)) * EI_P_SCALE_1 + D(gust.wind.reach) + D(lowReach));
     float lowTurn = static_cast<float>(-D(turn));
     double angle = Unsigned(Next()) * (D(turn) - D(lowTurn)) * EI_P_SCALE_1 + D(gust.wind.direction) + D(lowTurn);
-    SetBits(&p->velocity.x, 0x3F800000);
-    SetBits(&p->velocity.z, 0xBDF5C28F);     // -0.12
+    p->velocity.x = 1.0f;
+    p->velocity.z = -0.12f;     // -0.12
     p->drift.x = static_cast<float>(x87::fsin(angle) * D(x));
     p->drift.y = static_cast<float>(x87::fcos(angle) * D(x));
-    SetBits(&p->drift.z, 0);
+    p->drift.z = 0.0f;
     p->velocity.z = static_cast<float>(Unsigned(Next()) * EI_FALL_DROP_SCALE + D(p->velocity.z) - D(EI_FALL_DROP));
     p->velocity.y = static_cast<float>(Unsigned(Next()) * EI_FALL_SPIN_SCALE - D(EI_FALL_SPIN));
     return 1;
@@ -3146,11 +3146,11 @@ int CParticleSource::EmitVulkan(Particle* p, int) {
         p->pos.z = static_cast<float>(Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(spreadMax.y) + D(origin.z) + D(low));
         p->size = size;
         p->velocity.x = growth;
-        SetBits(&p->velocity.y, 0x3F770A3D);     // 0.965
+        p->velocity.y = 0.965f;     // 0.965
         float reach = spreadMin.x;
         float span = static_cast<float>(radian);
         std::uint32_t r = Next();
-        SetBits(&p->drift.z, 0);
+        p->drift.z = 0.0f;
         double angle = Unsigned(r) * D(span) * EI_P_SCALE_1;
         p->drift.x = static_cast<float>(x87::fsin(angle) * D(reach));
         p->drift.y = static_cast<float>(x87::fcos(angle) * D(reach));
@@ -3166,10 +3166,10 @@ int CParticleSource::EmitVulkan(Particle* p, int) {
     p->pos.y = static_cast<float>(x87::fcos(angle) * D(reach) + D(origin.y));
     p->pos.z = origin.z;
     p->size = static_cast<float>(D(size) * D(EI_VULKAN_SMOKE));
-    SetBits(&p->velocity.x, 0x3F828F5C);     // 1.02
-    SetBits(&p->velocity.y, 0x3F800000);
-    SetBits(&p->drift.x, 0);
-    SetBits(&p->drift.y, 0);
+    p->velocity.x = 1.02f;     // 1.02
+    p->velocity.y = 1.0f;
+    p->drift.x = 0.0f;
+    p->drift.y = 0.0f;
     p->drift.z = height;
     return 1;
 }
@@ -3203,7 +3203,7 @@ int CParticleSource::EmitFireStar(Particle* p, int) {
     p->life = 3;
     p->frame = lifetime;
     p->pos = origin;
-    SetBits(&p->size, 0);
+    p->size = 0.0f;
     p->velocity.x = size;
     return 1;
 }
@@ -3212,7 +3212,7 @@ int CParticleSource::EmitFireStar(Particle* p, int) {
 int CParticleSource::UpdateFireStar(Particle* p) {
     if (--p->life <= 0) {
         p->color = 0xFFFFFF;
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
         return 0;
     }
     double shrunk = D(p->velocity.x) * D(0.9f);
@@ -3229,7 +3229,7 @@ int CParticleSource::EmitRegeneration(Particle* p, int) {
     p->color = 0xFFFFFF;
     p->frame = 3;
     p->pos = origin;
-    SetBits(&p->size, 0);
+    p->size = 0.0f;
     p->velocity.x = static_cast<float>(!particles.empty() ? 1 : -1);
     return 1;
 }
@@ -3244,7 +3244,7 @@ int CParticleSource::UpdateRegeneration(Particle* p) {
         size = static_cast<float>(shrunk);
         EI_NAN_AUDIT(shrunk);
         if (shrunk < D(0.02f)) {
-            SetBits(&p->size, 0);
+            p->size = 0.0f;
             p->color = 0xFFFFFF;
             return 0;
         }
@@ -3287,17 +3287,17 @@ int CParticleSource::EmitVisionStar(Particle* p, int) {
     p->color = 0xFFFFFF;
     p->frame = lifetime;
     p->pos = origin;
-    SetBits(&p->size, 0);
+    p->size = 0.0f;
     if (lifetime != 1) return 1;
     if (count == 0) {
         p->velocity.x = static_cast<float>(x87::fcos(0.0));
         p->velocity.y = static_cast<float>(x87::fsin(0.0));
-        SetBits(&p->velocity.z, 0);
+        p->velocity.z = 0.0f;
     } else {
         double angle = D(static_cast<float>(kSpinAngle * SpinRate(count)));   // the product at the main thread's 24 bits
         p->velocity.x = static_cast<float>(x87::fcos(angle));
         p->velocity.y = static_cast<float>(x87::fsin(angle));
-        SetBits(&p->velocity.z, 0);
+        p->velocity.z = 0.0f;
     }
     double half = 0.5;
     p->velocity.x = static_cast<float>(D(p->velocity.x) * half);
@@ -3317,12 +3317,12 @@ int CParticleSource::UpdateVisionStar(Particle* p) {
     float oldSize = p->size;
     p->color = 0xFFFFFFFF;
     p->pos = origin;
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     float flicker;
-    SetBits(&flicker, 0x3E99999A);     // 0.3
+    flicker = 0.3f;     // 0.3
     if (lifetime == 1) {
         double c = x87::fcos(0.07000000029802322);
-        SetBits(&flicker, 0x3E2E147B);     // 0.17
+        flicker = 0.17f;     // 0.17
         double s = x87::fsin(0.07000000029802322);
         float turnedY = static_cast<float>(D(p->velocity.y) * c - D(p->velocity.x) * s);
         double turnedX = c * D(p->velocity.x) + D(p->velocity.y) * s;
@@ -3339,10 +3339,10 @@ int CParticleSource::UpdateVisionStar(Particle* p) {
     p->size = static_cast<float>(eased);
     if ((flags_ & 1) && attachedTo) return 1;
     p->size = static_cast<float>(eased * D(0.95f));
-    SetBits(&size, 0);
+    size = 0.0f;
     EI_NAN_AUDIT(p->size);
     if (p->size < 0.03f) {
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
         p->color = 0xFFFFFF;
         return 0;
     }
@@ -3476,13 +3476,13 @@ int CParticleSource::EmitSilence(Particle* p, int) {
         p->color = 0xFFFFFF;
         p->frame = 6;
         p->pos = origin;
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
         float start = !particles.empty() ? 0.0f : 3.1416f;    // 0 / pi
         p->velocity.x = start;
         p->aux0 = start;
-        SetBits(&p->velocity.y, 0x3DCCCCCD);     // 0.1
-        SetBits(&p->aux1, 0x3DF5C28F);     // 0.12
-        SetBits(&p->aux2, 0x3F800000);
+        p->velocity.y = 0.1f;     // 0.1
+        p->aux1 = 0.12f;     // 0.12
+        p->aux2 = 1.0f;
         p->state = 1;
         return 1;
     }
@@ -3508,7 +3508,7 @@ int CParticleSource::EmitSilence(Particle* p, int) {
     float a = static_cast<float>(D(v.x) * s);
     float b = static_cast<float>(D(v.y) * s);
     double c = s * D(v.z);
-    SetBits(&p->size, 0);
+    p->size = 0.0f;
     double k = D(0.8f);
     float a8 = static_cast<float>(D(a) * k);
     float b8 = static_cast<float>(D(b) * k);
@@ -3535,14 +3535,14 @@ int CParticleSource::UpdateSilence(Particle* p) {
         if (p->state) size = static_cast<float>(D(size) * D(0.85f));
         EI_NAN_AUDIT(size);
         if (size < 0.02f) {
-            SetBits(&p->size, 0);
+            p->size = 0.0f;
             p->color = 0xFFFFFF;
             return 0;
         }
     }
     if (!p->state) {
         if (--p->life <= 0) {
-            SetBits(&p->size, 0);
+            p->size = 0.0f;
             return 0;
         }
         double shrunk = D(p->velocity.x) * D(0.8f);
@@ -3574,7 +3574,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
     float ny = static_cast<float>(D(sy) + D(origin.y));
     double nz = D(sz) + D(origin.z);
     double z = radius * 0.5 + nz;
-    SetBits(&p->size, 0x3F800000);
+    p->size = 1.0f;
     p->drift.x = static_cast<float>(D(nx) - D(p->pos.x));
     p->pos.x = nx;
     p->drift.y = static_cast<float>(D(ny) - D(p->pos.y));
@@ -3600,7 +3600,7 @@ int CParticleSource::UpdateModifier(Particle* p) {
         double oldSize = D(p->size);
         const ParticleElement& e = elements[p->state];
         p->pos = e.pos;
-        SetBits(&p->size, 0x3F800000);
+        p->size = 1.0f;
         EI_NAN_AUDIT(size);
         if (size < EI_P_ZERO) {
             p->size = static_cast<float>(oldSize * D(0.9345794f));    // 1 / 1.07
@@ -3667,7 +3667,7 @@ int CParticleSource::UpdateLightning(Particle* p) {
                 p->size = p->aux0;
                 return 1;
             }
-            SetBits(&p->size, 0);
+            p->size = 0.0f;
             return 0;
         }
         p->pos = elements[p->state - 1].pos;
@@ -3732,7 +3732,7 @@ int CParticleSource::EmitTeleport(Particle* p, int) {
     p->pos.y = static_cast<float>(cy + D(origin.y));
     p->pos.x = static_cast<float>(D(sx) + D(origin.x));
     p->pos.z = origin.z;
-    SetBits(&p->size, 0);
+    p->size = 0.0f;
     p->pos.z = static_cast<float>((Unsigned(Next()) * 4.656612943550534e-11 - D(0.4f)) * D(magnitude) +
                      D(p->pos.z));    // [-0.4, -0.2) * |size|
     p->aux0 = static_cast<float>((2.0 - D(spread)) * D(0.2f));    // (2 - spread) / 5
@@ -3743,12 +3743,12 @@ int CParticleSource::EmitTeleport(Particle* p, int) {
     }
     double rise = D(EI_P_ONE) - D(spread) + D(3.0f);
     if (size > EI_P_ZERO) {
-        SetBits(&p->velocity.x, 0x3F99999A);     // 1.2
+        p->velocity.x = 1.2f;     // 1.2
         p->state = -19;
         p->velocity.z = static_cast<float>(rise * D(magnitude) * D(0.15f));
     } else {
         p->color = 0xFFFFFF;
-        SetBits(&p->velocity.x, 0x3F555555);     // 1 / 1.2
+        p->velocity.x = 0.8333333f;     // 1 / 1.2
         p->state = 19;
         p->velocity.z = static_cast<float>(rise * D(magnitude) * D(2.25f));
     }
@@ -3772,7 +3772,7 @@ int CParticleSource::UpdateTeleport(Particle* p) {
     p->velocity.z = static_cast<float>(step);
     p->pos.z = static_cast<float>(step + D(p->pos.z));
     if (life == 1) {
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
     } else {
         p->size = p->aux0;
     }
@@ -3805,7 +3805,7 @@ int CParticleSource::EmitCurseStars(Particle* p, int) {
     double px = D(a) + D(origin.x);
     float py = static_cast<float>(D(b) + D(origin.y));
     float pz = static_cast<float>(c + D(origin.z));
-    SetBits(&p->size, 0);
+    p->size = 0.0f;
     p->pos.y = py;
     p->pos.x = static_cast<float>(px);
     p->pos.z = pz;
@@ -3833,7 +3833,7 @@ int CParticleSource::UpdateCurseStars(Particle* p) {
     int life = --p->life;
     if (life < 0) {
         p->color = 0xFFFFFF;
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
         return 0;
     }
     p->color = (static_cast<std::uint32_t>(kCurseAlpha[life]) << 24) | 0xFFFFFF;
@@ -3898,7 +3898,7 @@ int CParticleSource::EmitStartTrans(Particle* p, int) {
         p->aux0 = static_cast<float>(D(size) * D(0.05f));
     }
     p->color = 0xFFFFFF;
-    SetBits(&p->size, 0);
+    p->size = 0.0f;
     return 1;
 }
 
@@ -4001,15 +4001,15 @@ int CParticleSource::EmitGroundDust(Particle* p, int index) {
         b = static_cast<float>(x87::fcos(D(f)) * 0.10000000149011612);
     }
     p->pos = origin;
-    SetBits(&p->size, 0);
+    p->size = 0.0f;
     p->life = 6;
     p->velocity.x = a;
     p->frame = 15;
     p->velocity.y = b;
-    SetBits(&p->velocity.z, 0);
-    SetBits(&p->aux0, 0x3D8F5C29);     // 0.07
+    p->velocity.z = 0.0f;
+    p->aux0 = 0.07f;     // 0.07
     p->color = elements[0].plane.color;
-    SetBits(&p->aux1, 0x3F800000);
+    p->aux1 = 1.0f;
     return 1;
 }
 
@@ -4024,9 +4024,9 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     if (std::ssize(elements) == 0) {
         elements.resize(1);
         float* mark = &elements[0].glow.mark.x;
-        SetBits(&mark[0], 0xBF800000);
-        SetBits(&mark[1], 0xBF800000);
-        SetBits(&mark[2], 0xBF800000);
+        mark[0] = -1.0f;
+        mark[1] = -1.0f;
+        mark[2] = -1.0f;
         EI_NAN_AUDIT(alpha);
         if (alpha == 0.0f) {
             elements[0].glow.color = 0xB0B0B0;
@@ -4046,11 +4046,11 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     Vector3 under;
     under.x = point.x;
     under.y = point.y;
-    SetBits(&under.z, 0);
+    under.z = 0.0f;
     float ground = static_cast<float>(TerrainHeight(point.x, point.y));
     double top = PlatformHeight(&under, ground);
     p->pos.y = point.y;
-    SetBits(&p->size, 0x3D8F5C29);     // 0.07
+    p->size = 0.07f;     // 0.07
     p->pos.x = point.x;
     p->frame = 15;
     p->life = -10;
@@ -4094,7 +4094,7 @@ int CParticleSource::EmitStun(Particle* p, int) {
     double px = D(a) + D(origin.x);
     float py = static_cast<float>(D(b) + D(origin.y));
     double pz = c + D(origin.z);
-    SetBits(&p->size, 0);
+    p->size = 0.0f;
     p->pos.y = py;
     p->pos.z = static_cast<float>(pz);
     p->pos.x = static_cast<float>(px);
@@ -4124,7 +4124,7 @@ int CParticleSource::EmitStun(Particle* p, int) {
 int CParticleSource::UpdateStun(Particle* p) {
     if (--p->life < 0) {
         p->color = 0xFFFFFF;
-        SetBits(&p->size, 0);
+        p->size = 0.0f;
         return 0;
     }
     p->color = 0xFFFFFFFF;

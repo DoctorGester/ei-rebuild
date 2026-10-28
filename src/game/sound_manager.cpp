@@ -27,7 +27,7 @@ inline double I(std::int32_t v) { return v; }
 
 float FloatBits(std::uint32_t bits) {
     float f;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
@@ -35,9 +35,9 @@ template <std::floating_point T> float FloatBits(T) = delete;
 
 float AbsBits(float f) {
     std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(f);
     bits &= 0x7FFFFFFF;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 

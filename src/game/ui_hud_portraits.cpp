@@ -13,6 +13,7 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -28,7 +29,7 @@ inline double D(float f) { return f; }
 
 float FloatFromBits(std::uint32_t bits) {
     float f;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.

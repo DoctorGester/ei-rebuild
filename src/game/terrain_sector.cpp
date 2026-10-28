@@ -70,7 +70,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
     const std::uint8_t* src = s.data;
     SectorVertex* rec = s.records.data();
     const SectorPosition* vin = s.vertices.data();
-    std::memcpy(&s.minZ, "\xca\xf2\x49\x71", 4);    // 1e30
+    s.minZ = 1e30f;
     s.maxZ = 0.0f;
     for (int layer = 0; layer < (s.hasWater ? 2 : 1); ++layer) {
         if (layer == 1) tiles += 0x2208;

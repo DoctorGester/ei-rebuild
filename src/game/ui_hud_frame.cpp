@@ -12,6 +12,7 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cmath>
 #include <concepts>
 #include <cstdint>
@@ -26,7 +27,7 @@ inline double D(float f) { return f; }
 
 float FloatFromBits(std::uint32_t bits) {
     float f;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
@@ -78,7 +79,7 @@ void Turn(CEngineObject* object, float axisZ, float angle) {
 
 std::uint32_t Bits(float f) {
     std::uint32_t u;
-    std::memcpy(&u, &f, sizeof(u));
+    u = std::bit_cast<std::uint32_t>(f);
     return u;
 }
 

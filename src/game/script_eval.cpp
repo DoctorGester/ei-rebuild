@@ -71,9 +71,6 @@ int RoundTimeOffset(int time, float extra) {
 // of the 64-bit result.
 int Ftol(float value) { return static_cast<int>(libcrt::Ftol(value)); }
 
-// Copies a float's bits (no FPU round trip, so a signalling NaN is kept).
-void CopyFloat(float* dst, const float* src) { x87::CopyBits(*dst, *src); }
-
 constexpr float kMinusOne = -1.0f;
 constexpr float kFar = 1e30f;     // the distance when an object is missing
 static_assert(std::bit_cast<std::uint32_t>(kFar) == 0x7149F2CA);
@@ -206,7 +203,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
                                : id == 0x50 ? &vitals.maxHitPoints
                                : id == 0x51 ? &vitals.mana
                                             : &vitals.maxMana;
-            CopyFloat(result, value);
+            x87::CopyBits(*result, *value);
         } else {
             *result = 0.0f;
         }
@@ -215,7 +212,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x55:   // GetX
     case 0x56: { // GetY
         CEngineObject* o = objectArgs[0]->object;
-        if (o) CopyFloat(result, id == 0x55 ? &ObjectSlots(o)->localPosition_.x : &ObjectSlots(o)->localPosition_.y);
+        if (o) x87::CopyBits(*result, id == 0x55 ? ObjectSlots(o)->localPosition_.x : ObjectSlots(o)->localPosition_.y);
         else *result = 0.0f;
         return;
     }
@@ -440,7 +437,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = static_cast<float>(static_cast<int>(GameCameraPathPlaying()));
         return;
     case 0xAA:   // IsNight (the world's day-time value, copied as a float)
-        CopyFloat(result, &g_serverWorld->nightLevel_);
+        x87::CopyBits(*result, g_serverWorld->nightLevel_);
         return;
     case 0xB5:   // GetWorldTime
         *result = WorldTimeOfDay();

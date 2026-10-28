@@ -103,9 +103,8 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
 }
 
 const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
-    std::uint32_t tenth = 0x3DCCCCCD;   // 0.1f
-    std::memcpy(&out->forwardSpeed, &tenth, sizeof(tenth));
-    std::memcpy(&out->backwardSpeed, &tenth, sizeof(tenth));
+    out->forwardSpeed = 0.1f;
+    out->backwardSpeed = 0.1f;
     out->turnScale = 10.0f;
     out->shift = sizeClass * 4;
     const std::vector<int>& climb = out->shift == 0 ? climbSmall : climbLarge;

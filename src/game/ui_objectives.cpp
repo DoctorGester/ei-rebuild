@@ -23,6 +23,7 @@
 #include "text_split.h"
 #include "lib/gameapi.h"
 #include "lib/intro_sort.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <new>
@@ -50,9 +51,9 @@ template <std::floating_point T> float Bits(T) = delete;
 
 float AbsBits(float f) {
     std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(f);
     bits &= 0x7FFFFFFF;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 
@@ -584,7 +585,7 @@ void CObjectivesWindow::CreateScreen() {
                                 parts[2]) == 0)
                 current = parts[1];
             std::uint32_t one;
-            std::memcpy(&one, &node->second, 4);
+            one = std::bit_cast<std::uint32_t>(node->second);
             if (one != 0x3F800000) continue;
             MapRecord* zone = FindZone(parts[1]);
             if (!zone) continue;

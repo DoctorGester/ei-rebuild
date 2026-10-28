@@ -11,6 +11,7 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <iterator>
@@ -97,9 +98,9 @@ void CCamera::AlignToTarget() {
     float angle = static_cast<float>(libcrt::CiAcos(cosine));
     float magnitude = angle;
     std::uint32_t bits;
-    std::memcpy(&bits, &magnitude, 4);
+    bits = std::bit_cast<std::uint32_t>(magnitude);
     bits &= 0x7FFFFFFF;
-    std::memcpy(&magnitude, &bits, 4);
+    magnitude = std::bit_cast<float>(bits);
     if (CAM_DEGREE > D(magnitude)) return;
     float cx = static_cast<float>(D(xAxis.y) * hz - D(xAxis.z) * hy);
     float cy = static_cast<float>(D(xAxis.z) * hx - D(hz) * xAxis.x);

@@ -10,6 +10,7 @@
 
 #include "lib/crt.h"
 
+#include <bit>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -29,7 +30,7 @@ namespace {
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;
-    std::memcpy(&b, &f, 4);
+    b = std::bit_cast<std::uint32_t>(f);
     return b;
 }
 
@@ -216,8 +217,7 @@ std::string* ObjectSpec::TypeName(std::string* out) {
 FlameSpec::FlameSpec() {
     offset = {0.0f, 0.0f, 0.0f};
     kind = 6;
-    std::uint32_t volumeBits = 0x3F333333;   // 0.7f
-    std::memcpy(&volume, &volumeBits, 4);
+    volume = 0.7f;
     sound = "nature\\fire\\small.wav";
 }
 

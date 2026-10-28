@@ -88,7 +88,7 @@ float SelectLess(float a, float b, float ifLess, float otherwise) { return a >= 
 MapEffect EffectAt(const CUnit* unit, int index) { return unit->effects[index]; }
 float EffectValueField(const MapEffect& effect) {
     float value;
-    std::memcpy(&value, &effect.value, sizeof(value));
+    value = std::bit_cast<float>(effect.value);
     return value;
 }
 

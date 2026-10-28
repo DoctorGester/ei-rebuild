@@ -31,6 +31,7 @@
 #include "ei/x87.h"
 #include "game_singletons.h"
 
+#include <bit>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>

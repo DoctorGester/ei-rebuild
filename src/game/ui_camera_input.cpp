@@ -15,6 +15,7 @@
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 
+#include <bit>
 #include <cstring>
 
 namespace {
@@ -31,7 +32,7 @@ constexpr float kWheelStep = -0.008333334f;
 
 std::uint32_t Bits(float value) {
     std::uint32_t bits;
-    std::memcpy(&bits, &value, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(value);
     return bits;
 }
 

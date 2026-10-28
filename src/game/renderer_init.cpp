@@ -91,9 +91,9 @@ void Transpose(float* m) {
     static constexpr int kPairs[6][2] = {{1, 4}, {2, 8}, {3, 12}, {6, 9}, {7, 13}, {11, 14}};
     for (const auto& p : kPairs) {
         std::uint32_t lower;
-        std::memcpy(&lower, &m[p[1]], 4);
+        lower = std::bit_cast<std::uint32_t>(m[p[1]]);
         m[p[1]] = m[p[0]];
-        std::memcpy(&m[p[0]], &lower, 4);
+        m[p[0]] = std::bit_cast<float>(lower);
     }
 }
 
@@ -191,9 +191,9 @@ void AddDefaultLight(CSceneRenderer* renderer) {
     Vector3 position = {5.0f, 5.0f, -8.0f};
     light->SetDirectional(&colour, &position);
     const std::uint32_t range = 0x49742400, rangeSquared = 0x5368D4A5, inverseRangeSquared = 0x2B8CBCCC;
-    std::memcpy(&light->range_, &range, 4);
-    std::memcpy(&light->rangeSquared_, &rangeSquared, 4);
-    std::memcpy(&light->inverseRangeSquared_, &inverseRangeSquared, 4);
+    light->range_ = std::bit_cast<float>(range);
+    light->rangeSquared_ = std::bit_cast<float>(rangeSquared);
+    light->inverseRangeSquared_ = std::bit_cast<float>(inverseRangeSquared);
     renderer->SetSun(light);
 }
 

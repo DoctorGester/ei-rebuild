@@ -81,6 +81,12 @@ PATTERNS = {
     # for what it holds, or unused_XXX when no code reads or writes it (tickets F1-F5).
     'unknown field': re.compile(r'^[ \t]*(?!return\b)(?:const\s+|volatile\s+|mutable\s+)?[\w:]+(?:\s*<[^;()\n]*>)?'
                                 r'[\s*&]+unknown\w*\s*(?:\[[^\]\n]*\]\s*)*(?:\{[^}\n]*\}|=[^;\n]*)?;', re.M),
+    # A float, a Vector3 or a Quaternion copied or cleared through memcpy / memset (C43): a float is
+    # `a = b` or `f = 0.0f`, a vector `a = b`, a float and its bits `std::bit_cast`, and a float that
+    # arrives from a file or a message and must keep a signalling NaN's bits `x87::CopyBits`. The
+    # byte reads of streams and buffers (a size that is a variable) are not this.
+    'raw float / vector copy (memcpy, memset)': re.compile(
+        r'\b(?:std::)?mem(?:cpy|set)\s*\([^;]*?,\s*(?:4u?|sizeof\s*\(\s*(?:float|Vector3|Quaternion)\s*\))\s*\)'),
     # An unused_XXX member that some code does touch after all: it needs a real name.
     'unused field accessed': re.compile(r'(?:\.|->)\s*unused\w*\b(?!\s*\()'),
 }

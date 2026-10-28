@@ -390,7 +390,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
         out->damageMax = weapon->damageSpread_ + weapon->damage_;
         out->weaponType = weapon->GetType();
         out->damageType = WeaponDamageType(weapon->prototypeId_);
-        std::memcpy(&out->speed, &weapon->weight_, sizeof(float));
+        out->speed = std::bit_cast<float>(weapon->weight_);
         float base = WeaponAttackBonus(weapon->prototypeId_);
         double bonus = stats.WeaponSkillBonus(out->weaponType, self);
         out->attack = static_cast<int>(libcrt::Ftol(bonus + base));
@@ -474,7 +474,7 @@ BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     AttackParamsOf(this, &mine);
     if (hit->backstabFactor > 1.0f) mine.defence = 0;
     float result = static_cast<double>(mine.defence) > roll ? kMissMark : kHitMark;
-    std::memcpy(&hit->attackRoll, &result, sizeof(result));
+    hit->attackRoll = std::bit_cast<std::uint32_t>(result);
     return result > 0.0f ? 1 : 0;
 }
 
@@ -493,14 +493,14 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
         int face = ((drawn * sides) / 0x7FFF) % sides;
         int value = face + face + 2;
         float roll = static_cast<float>(static_cast<double>(value) - (static_cast<double>(kFive) + 1.0f));
-        std::memcpy(&out->attackRoll, &roll, sizeof(roll));
+        out->attackRoll = std::bit_cast<std::uint32_t>(roll);
         out->amount = static_cast<float>(weapon->RollDamage());   // stored as a float, as the original
     } else {
         std::memcpy(out->typeWeights, stats.damageWeights, sizeof(out->typeWeights));
         out->weaponValue = 0;
         double factor = keyed ? 1.0f : DifficultyAttackFactor();
         float roll = static_cast<float>(factor * stats.combat[UnitStats::kAttack]);
-        std::memcpy(&out->attackRoll, &roll, sizeof(roll));
+        out->attackRoll = std::bit_cast<std::uint32_t>(roll);
         double extra = 0.0;
         float spread = stats.damageSpread;
         EI_NAN_AUDIT(spread);

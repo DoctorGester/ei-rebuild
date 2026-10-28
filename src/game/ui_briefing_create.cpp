@@ -30,6 +30,7 @@
 #include "lib/str.h"
 #include "game_singletons.h"
 
+#include <bit>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -339,7 +340,7 @@ void CBriefingScreen::MarkPeople() {
     std::vector<int> open;
     for (auto node = variables.begin(); node != variables.end(); ++node) {
         std::uint32_t bits;
-        std::memcpy(&bits, &node->second, 4);
+        bits = std::bit_cast<std::uint32_t>(node->second);
         if (bits != kOneBits) continue;
         text::Split(node->first, &parts, '.');
         if (parts.size() != kTopicNameParts) continue;

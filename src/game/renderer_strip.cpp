@@ -222,7 +222,7 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
     int count = 0;
     TLVertex* ribbon = g_ribbon.data();
     std::uint32_t widthBits;
-    std::memcpy(&widthBits, &width, 4);
+    widthBits = std::bit_cast<std::uint32_t>(width);
     if (clipped == 0) {
         bool started = false;
         for (int i = 1; i < std::ssize(g_strip); ++i) {

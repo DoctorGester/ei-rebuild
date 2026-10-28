@@ -225,7 +225,6 @@ void MorphOldBounds(ClipBounds& bounds, const float* p, float s, float t, float 
 // The vertices of a FIG mesh: FIG8 files hold 8 versions of each of the three blocks (0x80 bytes
 // each), morphed; other versions hold the three blocks once. The fourth block is set to 1.0.
 void LoadVertices(std::vector<VertexPacket>& vertices, char** cursor, std::uint32_t magic, float s, float t, float u) {
-    const std::uint32_t one = 0x3F800000;
     if (magic == kFig8Magic) {
         for (int i = 0; i < std::ssize(vertices); ++i) {
             VertexPacket& v = vertices[i];
@@ -233,7 +232,7 @@ void LoadVertices(std::vector<VertexPacket>& vertices, char** cursor, std::uint3
                 MorphBlock(v.block[b], FloatsAt(*cursor), s, t, u);
                 *cursor += 0x80;
             }
-            for (int k = 3; k >= 0; --k) std::memcpy(&v.block[3][k], &one, 4);
+            for (int k = 3; k >= 0; --k) v.block[3][k] = 1.0f;
         }
         return;
     }
@@ -243,7 +242,7 @@ void LoadVertices(std::vector<VertexPacket>& vertices, char** cursor, std::uint3
             std::memcpy(v.block[b], *cursor, 16);
             *cursor += 0x10;
         }
-        for (int k = 3; k >= 0; --k) std::memcpy(&v.block[3][k], &one, 4);
+        for (int k = 3; k >= 0; --k) v.block[3][k] = 1.0f;
     }
 }
 
@@ -282,8 +281,7 @@ void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, 
             MorphBlock6(v.block[b], FloatsAt(*cursor), s, t, u);
             *cursor += 0x60;
         }
-        const std::uint32_t one = 0x3F800000;
-        for (int k = 3; k >= 0; --k) std::memcpy(&v.block[3][k], &one, 4);
+        for (int k = 3; k >= 0; --k) v.block[3][k] = 1.0f;
     }
     if (!mesh->vertices_.empty()) FitBounds(&mesh->box_.bounds, mesh->vertices_.data(), std::ssize(mesh->vertices_));
 

@@ -55,12 +55,6 @@ void CopyDword(To& to, const From& from) {
     to = std::bit_cast<To>(from);
 }
 
-// A float copied through the FPU to two places.
-void FpuCopy2(float* a, float* b, const float* src) {
-    *a = *src;
-    *b = *src;
-}
-
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
 
 const UnitPrototypeRecord* FindPrototype(std::string_view name) { return g_unitDatabase->prototypes.FindByName(name); }
@@ -309,16 +303,21 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     vitals->Reset();
     stats->Reset();
 
-    FpuCopy2(&vitals->maxHitPoints, &vitals->hitPoints, &prototype->hitPoints);
+    vitals->maxHitPoints = prototype->hitPoints;
+    vitals->hitPoints = prototype->hitPoints;
     CopyDword(vitals->hitPointRegen, model->hitPointRegen);
-    FpuCopy2(&vitals->maxMana, &vitals->mana, &prototype->mana);
+    vitals->maxMana = prototype->mana;
+    vitals->mana = prototype->mana;
     CopyDword(vitals->manaRegen, model->manaRegen);
     stats->fixedMaxHitPoints = vitals->maxHitPoints;
 
     if (npc) {
-        FpuCopy2(&stats->strengthBase, &stats->strength, &npc->stats[0]);
-        FpuCopy2(&stats->dexterityBase, &stats->dexterity, &npc->stats[1]);
-        FpuCopy2(&stats->intelligenceBase, &stats->intelligence, &npc->stats[2]);
+        stats->strengthBase = npc->stats[0];
+        stats->strength = npc->stats[0];
+        stats->dexterityBase = npc->stats[1];
+        stats->dexterity = npc->stats[1];
+        stats->intelligenceBase = npc->stats[2];
+        stats->intelligence = npc->stats[2];
         float rate = static_cast<float>(static_cast<double>(stats->dexterity) * 0.5f);
         CopyDword(stats->speedBase, prototype->speed);
         stats->rateBase = rate;
@@ -372,10 +371,14 @@ int BuildNpcStats(UnitStats* stats, const char* name) {
 
     const float* speed = &prototype->speed;
     if (npc) {
-        FpuCopy2(&stats->strengthBase, &stats->strength, &npc->stats[0]);
-        FpuCopy2(&stats->dexterityBase, &stats->dexterity, &npc->stats[1]);
-        FpuCopy2(&stats->intelligenceBase, &stats->intelligence, &npc->stats[2]);
-        FpuCopy2(&stats->speedBase, &stats->speed, speed);
+        stats->strengthBase = npc->stats[0];
+        stats->strength = npc->stats[0];
+        stats->dexterityBase = npc->stats[1];
+        stats->dexterity = npc->stats[1];
+        stats->intelligenceBase = npc->stats[2];
+        stats->intelligence = npc->stats[2];
+        stats->speedBase = *speed;
+        stats->speed = *speed;
         float rate = static_cast<float>(static_cast<double>(stats->dexterity) * 0.5f);
         stats->rateBase = rate;
         stats->rate = rate;
@@ -388,15 +391,18 @@ int BuildNpcStats(UnitStats* stats, const char* name) {
         stats->dexterity = dexterity;
         stats->intelligenceBase = kStat25;
         stats->intelligence = kStat25;
-        FpuCopy2(&stats->speedBase, &stats->speed, speed);
+        stats->speedBase = *speed;
+        stats->speed = *speed;
         stats->rateBase = kRate15;
         stats->rate = kRate15;
     }
     CopyDword(stats->attackCategory, prototype->attackCategory);
     std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
-        FpuCopy2(&stats->perception[i].base, &stats->perception[i].current, &prototype->perception[i]);
-        FpuCopy2(&stats->conspicuity[i].base, &stats->conspicuity[i].current, &prototype->conspicuity[i]);
+        stats->perception[i].base = prototype->perception[i];
+        stats->perception[i].current = prototype->perception[i];
+        stats->conspicuity[i].base = prototype->conspicuity[i];
+        stats->conspicuity[i].current = prototype->conspicuity[i];
     }
     stats->sightCone = HalfAngleCosine(model);
     CopyDword(stats->peripheralRange, prototype->peripheralRange);

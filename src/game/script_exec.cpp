@@ -558,7 +558,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             Lever* lever = LeverArg(cmd);
             if (!lever) break;
             float time;
-            if (cmd->id == 0x91) std::memcpy(&time, "\x00\x00\x20\xC1", 4);   // -10.0f
+            if (cmd->id == 0x91) time = -10.0f;
             else time = f[1];
             lever->SetState(Ftol(f[0]), time);
             break;
@@ -806,7 +806,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             Vector3 point = {f[0], f[1], 0.0f};
             float radius = f[2];
             float radius2;
-            if (cmd->id == 0x26) std::memcpy(&radius2, "\x00\x00\x80\xBF", 4);   // -1.0f
+            if (cmd->id == 0x26) radius2 = -1.0f;
             else radius2 = f[3];
             BrainOf(state)->AddMode(new GuardMode(&point, radius, radius2));
             break;

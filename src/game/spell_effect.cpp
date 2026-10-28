@@ -9,6 +9,7 @@
 #include "world.h"
 
 #include "ei/x87.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -79,9 +80,9 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
         double dx = at->localPosition_.x - position.x;
         float distance = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(dx, dy, dz, normalX, normalY, normalZ));
         std::uint32_t bits;
-        std::memcpy(&bits, &distance, sizeof(bits));
+        bits = std::bit_cast<std::uint32_t>(distance);
         bits &= 0x7FFFFFFF;
-        std::memcpy(&distance, &bits, sizeof(bits));
+        distance = std::bit_cast<float>(bits);
         if (distance > kWallHalfWidth) continue;
         if (!AcceptsAreaSpells(unit)) continue;
         Deliver(this, &hit, unit);

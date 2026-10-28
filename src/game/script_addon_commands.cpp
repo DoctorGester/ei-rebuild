@@ -24,6 +24,7 @@
 #include "system_text.h"
 #include "lib/str.h"
 
+#include <bit>
 #include <windows.h>
 
 #include <cstdint>
@@ -45,7 +46,7 @@ CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]->o
 // The float bits of `value` as the dword the player messages take.
 std::uint32_t Bits(float value) {
     std::uint32_t bits;
-    std::memcpy(&bits, &value, 4);
+    bits = std::bit_cast<std::uint32_t>(value);
     return bits;
 }
 
@@ -242,7 +243,7 @@ bool GiveUnitWeapon(Call* call) {
         float sum = prototype->combat[3] + weapon->defenceBonus;
         Store(&stats.combat[UnitStats::kDefence], sum);
         float reach;
-        std::memcpy(&reach, &weapon->reach, 4);
+        reach = std::bit_cast<float>(weapon->reach);
         Store(&stats.combat[UnitStats::kReach], reach);
         sum = prototype->combat[1] + weapon->attackBonus;
         Store(&stats.combat[UnitStats::kAttack], sum);

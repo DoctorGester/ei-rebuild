@@ -88,7 +88,7 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
     brain->previousPosition = brain->position;
     brain->position = *where;
     std::uint32_t previous;
-    std::memcpy(&previous, &brain->previousPosition.x, 4);
+    previous = std::bit_cast<std::uint32_t>(brain->previousPosition.x);
     if (previous == kUnsetBits) brain->previousPosition = *where;
 }
 
@@ -624,7 +624,7 @@ void PlayerMode::Execute(AIBrain* brain) {
     case kStateMoveTo: {
         constexpr std::uint32_t kOneBits = 0x3F800000u;
         std::uint32_t walking;
-        std::memcpy(&walking, &point.z, 4);
+        walking = std::bit_cast<std::uint32_t>(point.z);
         if (walking == kOneBits) {
             if (brain->action == AIBrain::kActionNone) {
                 state = kStateFollow;
@@ -637,11 +637,11 @@ void PlayerMode::Execute(AIBrain* brain) {
                 brain->action = AIBrain::kActionNone;
             }
         } else if (direct || StaysWithParty(brain, false)) {
-            std::memcpy(&point.z, &kOneBits, 4);
+            point.z = std::bit_cast<float>(kOneBits);
             Vector3 to;
             to.x = point.x;
             to.y = point.y;
-            std::memcpy(&to.z, &kUnsetBits, 4);
+            to.z = std::bit_cast<float>(kUnsetBits);
             brain->action = AIBrain::kActionWalk;
             brain->owner->OrderMove(&to, 0, 0, kMoveTime);
         }
@@ -672,7 +672,7 @@ void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int
         return;
     }
     constexpr std::uint32_t kOneBits = 0x3F800000u;
-    std::memcpy(&point.z, &kOneBits, 4);
+    point.z = std::bit_cast<float>(kOneBits);
     brain->action = AIBrain::kActionWalk;
     brain->owner->OrderMove(&point, run, unknown, kMoveTime);
 }

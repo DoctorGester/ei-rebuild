@@ -66,8 +66,7 @@ void ServerSession::SetMap(const std::string* name) {
     for (const std::string* it = quests.data(); it != quests.data() + quests.size(); ++it) {
         std::string resourceName(*it);
         auto* record = FindOrAddVariable(&resourceName)->Get();
-        const std::uint32_t one = 0x3F800000;   // 1.0f
-        std::memcpy(&record->value_, &one, 4);
+        record->value_ = 1.0f;
         record->serial_ = g_variableSerial;
         ++g_variableSerial;
         ++record->version_;

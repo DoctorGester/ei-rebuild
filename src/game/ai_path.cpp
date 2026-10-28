@@ -3,6 +3,7 @@
 #include "ai_map.h"
 
 #include "ei/x87.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include "lib/nan_audit.h"
@@ -28,9 +29,9 @@ bool IsCellPassable(CAIMap* map, CUnit* unit, int x, int y) {
 
 float Abs(float f) {
     std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(f);
     bits &= 0x7FFFFFFF;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 

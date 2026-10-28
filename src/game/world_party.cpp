@@ -15,6 +15,7 @@
 
 #include "lib/crt.h"
 #include "lib/containers.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -164,7 +165,7 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
         start.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * 0.5f);
         start.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * 0.5f);
         start.z = 0.0f;
-        std::memcpy(&startValue, &exit->view, 4);
+        startValue = std::bit_cast<std::uint32_t>(exit->view);
     }
     float angle = static_cast<float>(x87::fpatan(static_cast<double>(start.y) - centreY,
                                                        static_cast<double>(start.x) - centreX) - kFacingOffset);
@@ -176,7 +177,7 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
     if (placements) placements->clear();
     CPlayerServer* state = player->Server();
     std::uint32_t lastZ;
-    std::memcpy(&lastZ, &state->lastPosition_.z, 4);
+    lastZ = std::bit_cast<std::uint32_t>(state->lastPosition_.z);
     if (lastZ != kNoStart) {
         state->lastPosition_ = start;
         state->SendPosition04(&start, startValue, sessionKind_);

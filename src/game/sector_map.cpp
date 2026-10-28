@@ -7,6 +7,7 @@
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cstring>
 #include <list>
 #include <vector>
@@ -163,11 +164,11 @@ bool CSectorMap::Remove(CMapObject* object) {
 
 int RadiusTree::Find(float radius) const {
     std::int32_t key;
-    std::memcpy(&key, &radius, sizeof(key));
+    key = std::bit_cast<std::int32_t>(radius);
     int node = 1;
     for (int level = depth; level > 0; --level) {
         std::int32_t nodeKey;
-        std::memcpy(&nodeKey, &keys[node], sizeof(nodeKey));
+        nodeKey = std::bit_cast<std::int32_t>(keys[node]);
         node = node * 2 + (key > nodeKey ? 1 : 0);
     }
     return node & mask;

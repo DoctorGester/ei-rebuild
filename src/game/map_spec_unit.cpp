@@ -11,6 +11,7 @@
 
 #include "lib/static_object.h"
 
+#include <bit>
 #include <cstring>
 #include <initializer_list>
 #include <new>
@@ -52,7 +53,7 @@ namespace {
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;
-    std::memcpy(&b, &f, 4);
+    b = std::bit_cast<std::uint32_t>(f);
     return b;
 }
 
@@ -133,7 +134,7 @@ void BehaviourChunk::OnChunk() {
     case 0xBBBC000B: b->alertMode = c.ReadByte(); break;
     case 0xBBBC000C: {
         float f = c.ReadFloat();
-        std::memcpy(&b->callRadius, &f, 4);
+        b->callRadius = std::bit_cast<std::uint32_t>(f);
         break;
     }
     case 0xBBBC000D:

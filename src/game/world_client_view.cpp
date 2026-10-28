@@ -172,12 +172,10 @@ int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Mat
                 matrix[3] = o3d->localPosition_.x;
                 matrix[7] = o3d->localPosition_.y;
                 matrix[11] = o3d->localPosition_.z;
-                const std::uint32_t zero = 0;
-                const std::uint32_t one = 0x3F800000;   // 1.0f
-                std::memcpy(&matrix[14], &zero, 4);
-                std::memcpy(&matrix[13], &zero, 4);
-                std::memcpy(&matrix[12], &zero, 4);
-                std::memcpy(&matrix[15], &one, 4);
+                matrix[14] = 0.0f;
+                matrix[13] = 0.0f;
+                matrix[12] = 0.0f;
+                matrix[15] = 1.0f;
                 PushStackMatrix(device, CTransformPipeline::kClipStack, matrix);
                 int where = g_sceneRenderer->pipeline_->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->bounds.flags));
                 device->PopMatrix(CTransformPipeline::kClipStack);

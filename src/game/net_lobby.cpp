@@ -18,6 +18,7 @@
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
@@ -45,7 +46,7 @@ void LogAddressLine(const char* text, const NetAddress* address) {
     console::EndLine(*g_netLog << text << s.data());
 }
 
-void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, 4); }
+void SetBits(float& f, std::uint32_t bits) { f = std::bit_cast<float>(bits); }
 
 bool SameAddress(const NetAddress* a, const NetAddress* b) { return std::memcmp(a, b, sizeof(NetAddress)) == 0; }
 
@@ -254,7 +255,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
         SetBits(e->timeout_, kNever);
     }
     float echoed;
-    std::memcpy(&echoed, &echo, 4);
+    echoed = std::bit_cast<float>(echo);
     e->ping_ = static_cast<float>(time_ - echoed);
     if (node == servers_.end()) {
         AppendServer(this, entry);

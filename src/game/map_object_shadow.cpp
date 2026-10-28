@@ -230,10 +230,10 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
     turn.z = -turn.z;
     self->object->localRotation_ = kept;
     view = self->object->worldMatrix;
-    std::memcpy(&self->bounds[0], &kFloatMax, 4);
-    std::memcpy(&self->bounds[2], &kFloatLowest, 4);
-    std::memcpy(&self->bounds[1], &kFloatMax, 4);
-    std::memcpy(&self->bounds[3], &kFloatLowest, 4);
+    self->bounds[0] = std::bit_cast<float>(kFloatMax);
+    self->bounds[2] = std::bit_cast<float>(kFloatLowest);
+    self->bounds[1] = std::bit_cast<float>(kFloatMax);
+    self->bounds[3] = std::bit_cast<float>(kFloatLowest);
     view.m[11] = 0.0f;
     view.m[7] = 0.0f;
     view.m[3] = 0.0f;

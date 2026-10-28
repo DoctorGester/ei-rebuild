@@ -16,6 +16,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/str.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include "game_singletons.h"
@@ -32,9 +33,9 @@ inline double D(float f) { return f; }
 
 float AbsBits(float f) {
     std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(f);
     bits &= 0x7FFFFFFF;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 
@@ -232,13 +233,13 @@ void PutArrow(VertexPacket& b, const CUnit* unit, float x, float y) {
 const CTransformObject* Camera() { return g_clientWorld->camera_; }
 std::uint32_t Bits(const float& f) {
     std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(f);
     return bits;
 }
 std::uint32_t CameraTargetXBits() { return Bits(g_camera->focus_.x); }
 std::uint32_t CameraTargetYBits() { return Bits(g_camera->focus_.y); }
 
-void SetBits(float* f, std::uint32_t bits) { std::memcpy(f, &bits, sizeof(bits)); }
+void SetBits(float* f, std::uint32_t bits) { *f = std::bit_cast<float>(bits); }
 
 // Whether the edge from `prev` to `cur` crosses the line v = edge (coordinate values of the two points).
 bool Crosses(float prev, float cur, float edge) {

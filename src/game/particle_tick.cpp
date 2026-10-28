@@ -12,6 +12,7 @@
 #include "lib/nan_audit.h"
 #include "world.h"
 
+#include <bit>
 #include <cstring>
 #include <list>
 
@@ -29,7 +30,7 @@ inline double D(float f) { return f; }
 constexpr float kFarBits = 100000.0f;
 constexpr float kNearBits = -100000.0f;
 
-void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, sizeof(f)); }
+void SetBits(float& f, std::uint32_t bits) { f = std::bit_cast<float>(bits); }
 
 // sqrt((x*x + y*y) + z*z), all on the FPU.
 double LengthDouble(const Vector3& v) { return std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(v)); }
@@ -236,7 +237,7 @@ int CParticleSource::RunTick() {
     if (hiddenTicks > 0x38 && (flags_ & 0x20)) return 1;
     const CWorldClient* world = &g_clientWorld.Get();
     std::memcpy(&windDirection, world->windDirection_, sizeof(windDirection));
-    std::memcpy(&windStrength, &world->windStrength_, sizeof(windStrength));
+    windStrength = std::bit_cast<float>(world->windStrength_);
     boundsMin.x = kFarBits;
     boundsMin.y = kFarBits;
     boundsMin.z = kFarBits;

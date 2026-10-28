@@ -13,6 +13,7 @@
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -48,7 +49,7 @@ constexpr float kSlingY = 20.0f;
 
 float FromBits(std::uint32_t bits) {
     float value;
-    std::memcpy(&value, &bits, sizeof(value));
+    value = std::bit_cast<float>(bits);
     return value;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.

@@ -120,11 +120,11 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
                 double dx = static_cast<double>(to->x) - unit->localPosition_.x;
                 double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
                 float bestDistance;
-                std::memcpy(&bestDistance, &bestBits, 4);
+                bestDistance = std::bit_cast<float>(bestBits);
                 EI_NAN_AUDIT(distance, bestDistance);
                 if (distance < bestDistance) {
                     float stored = static_cast<float>(distance);
-                    std::memcpy(&bestBits, &stored, 4);
+                    bestBits = std::bit_cast<std::uint32_t>(stored);
                     best = unit;
                     bestNode = node;
                 }

@@ -10,6 +10,7 @@
 #include "spell.h"
 
 #include "../lib/crt.h"
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -85,9 +86,9 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
         if (quality >= low && quality <= fifth) {
             float t = static_cast<float>(((quality - seventh) / (seventh - fifth)) * 100.0f);
             std::uint32_t bits;
-            std::memcpy(&bits, &t, 4);
+            bits = std::bit_cast<std::uint32_t>(t);
             bits &= 0x7FFFFFFFu;
-            std::memcpy(&t, &bits, 4);
+            t = std::bit_cast<float>(bits);
             chance = static_cast<int>(110.0f - t);
         }
         int roll = libcrt::Rand() * 100 / 0x7FFF % 100 + 1;

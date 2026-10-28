@@ -8,6 +8,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 
+#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -19,9 +20,9 @@ namespace {
 
 float Absolute(float f) {
     std::uint32_t bits;
-    std::memcpy(&bits, &f, 4);
+    bits = std::bit_cast<std::uint32_t>(f);
     bits &= 0x7FFFFFFFu;
-    std::memcpy(&f, &bits, 4);
+    f = std::bit_cast<float>(bits);
     return f;
 }
 

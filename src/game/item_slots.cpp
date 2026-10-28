@@ -5,6 +5,7 @@
 
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cstring>
 
 using namespace itemdb;
@@ -13,7 +14,7 @@ namespace {
 
 float FloatOf(std::uint32_t bits) {
     float f;
-    std::memcpy(&f, &bits, 4);
+    f = std::bit_cast<float>(bits);
     return f;
 }
 
@@ -73,7 +74,7 @@ BOOL CItemLoot::IsSameAs(CItem* item) {
 void CItemWeapon::InitFromRecord(const ItemRecordHead* record) {
     CItem::InitFromRecord(record);
     auto* r = RecordAs<WeaponRecord>(record);
-    std::memcpy(&reach_, &r->reach, 4);
+    reach_ = std::bit_cast<float>(r->reach);
     damage_ = r->damage;
     damageSpread_ = r->damageSpread;
 }

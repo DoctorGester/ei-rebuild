@@ -18,6 +18,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <bit>
 #include <windows.h>
 
 #include <cstring>
@@ -192,7 +193,7 @@ int CPlayerServer::OnFightAtWill() {
 int CPlayerServer::OnLastPosition() {
     std::uint32_t xy[2];   // bit for bit
     g_receivedMessages->Read(xy, 8);
-    std::memcpy(&lastPosition_.x, &xy[0], 4);
-    std::memcpy(&lastPosition_.y, &xy[1], 4);
+    lastPosition_.x = std::bit_cast<float>(xy[0]);
+    lastPosition_.y = std::bit_cast<float>(xy[1]);
     return 1;
 }

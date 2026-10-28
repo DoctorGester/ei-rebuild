@@ -11,6 +11,7 @@
 #include "text_split.h"
 #include "game_singletons.h"
 
+#include <bit>
 #include <cstring>
 
 namespace {
@@ -30,7 +31,7 @@ constexpr int kQuestNameParts = 3;               // "q", zone, quest
 
 std::uint32_t Bits(float value) {
     std::uint32_t bits;
-    std::memcpy(&bits, &value, 4);
+    bits = std::bit_cast<std::uint32_t>(value);
     return bits;
 }
 

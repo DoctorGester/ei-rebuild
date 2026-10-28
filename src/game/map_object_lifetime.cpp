@@ -18,6 +18,7 @@
 #include "unit_ai.h"       // AIBrain
 
 #include "lib/crt.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -35,7 +36,7 @@ constexpr float kThreeQuarters = 0.75f;
 constexpr float kHalf = 0.5f;
 
 // A float stored as the dword the original moves.
-void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
+void SetBits(float& field, std::uint32_t bits) { field = std::bit_cast<float>(bits); }
 
 void BrainObject8CDestroy(void* a0) { static_cast<CRefObject*>(a0)->Release(); }
 void BrainArrayDestroy(void* a0) { static_cast<AIRef*>(a0)->Reset(); }

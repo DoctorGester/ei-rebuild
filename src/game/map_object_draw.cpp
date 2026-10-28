@@ -72,7 +72,7 @@ void ObjectWorldMatrix(const Quaternion* orientation, const Vector3* position, M
     out->m[3] = position->x;
     out->m[7] = position->y;
     std::memset(&out->m[12], 0, 3 * sizeof(float));
-    std::memcpy(&out->m[15], &kOne, 4);
+    out->m[15] = std::bit_cast<float>(kOne);
 }
 
 int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
@@ -117,7 +117,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
         m.m[0] = extraScale.x;
         m.m[5] = extraScale.y;
         m.m[10] = extraScale.z;
-        std::memcpy(&m.m[15], &kOne, 4);
+        m.m[15] = std::bit_cast<float>(kOne);
         pipeline->PushMatrix(m.m, kStackView);
         pipeline->PushMatrix(m.m, kStackWorld);
         if (!(object->flags_ & kObjectStatic)) pipeline->PushMatrixProduct(m, kStackObject);

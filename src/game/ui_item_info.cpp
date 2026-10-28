@@ -21,6 +21,7 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <new>
@@ -41,7 +42,7 @@ inline double D(float f) { return f; }
 // A float the item database keeps as its bits (a dword field).
 float FloatOf(std::uint32_t bits) {
     float v;
-    std::memcpy(&v, &bits, sizeof(v));
+    v = std::bit_cast<float>(bits);
     return v;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.

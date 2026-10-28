@@ -23,6 +23,7 @@
 #include "lib/crt.h"
 #include "lib/text_case.h"
 #include "text_split.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -133,8 +134,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         if (!controller) continue;
         auto node = list.emplace(list.end());
         (*node).controller = controller;
-        std::uint32_t zero = 0;
-        std::memcpy(&(*node).share, &zero, 4);
+        (*node).share = 0.0f;
         total = static_cast<float>(Weight((*node).controller) + total);
         float stored = total;   // stored into the float total
         total = stored;
@@ -284,9 +284,9 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CU
         CItem* entry = PartyCopy(party, item);
         std::uint32_t amount = item->count_;
         std::uint32_t maximum;
-        std::memcpy(&maximum, &entry->chargeMax_, sizeof(maximum));   // before the null test
+        maximum = std::bit_cast<std::uint32_t>(entry->chargeMax_);   // before the null test
         entry->count_ = amount;
-        std::memcpy(&entry->charge_, &maximum, sizeof(maximum));
+        entry->charge_ = std::bit_cast<float>(maximum);
         if (entry) ++entry->refCount_;
         record->AddQuickItem(entry);
         if (entry) entry->Release();

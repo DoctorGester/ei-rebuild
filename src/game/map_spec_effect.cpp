@@ -9,6 +9,7 @@
 #include "world.h"
 #include "world_effect.h"
 
+#include <bit>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -22,7 +23,7 @@ namespace {
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;
-    std::memcpy(&b, &f, 4);
+    b = std::bit_cast<std::uint32_t>(f);
     return b;
 }
 void ReadInto(Chunk& c, std::string& field) {

@@ -49,7 +49,7 @@ inline double D(float f) { return f; }
 
 float Bits(std::uint32_t bits) {
     float f;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
@@ -283,7 +283,7 @@ void CGlobalMap::CreateScreen() {
         const NamedFloatTable& table = vars.table_;
         for (auto node = table.begin(); node != table.end(); ++node) {
             std::uint32_t value;
-            std::memcpy(&value, &node->second, 4);
+            value = std::bit_cast<std::uint32_t>(node->second);
             if (value == 0x3F800000) {
                 text::Split(node->first, &parts, '.');
                 if (parts.size() == 3) {

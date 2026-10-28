@@ -19,6 +19,7 @@
 #include "game_singletons.h"
 #include "world.h"
 
+#include <bit>
 #include <d3d.h>
 
 #include <cstdint>
@@ -183,7 +184,7 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
             // bottom.
             const float barScale = static_cast<float>(kBarHeight / size);
             std::uint32_t bits;
-            std::memcpy(&bits, &barScale, sizeof(bits));
+            bits = std::bit_cast<std::uint32_t>(barScale);
             Sprite(this, kHeightBar)->SetScaleYBits(bits);
             const float barY = static_cast<float>(kPanelHeight - barScale * kPanelHeight);
             SceneMesh(kHeightBar)->PlaceBody(static_cast<float>(20 - offset_), barY, 4.0f);

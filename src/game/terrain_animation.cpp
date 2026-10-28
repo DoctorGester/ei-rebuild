@@ -17,6 +17,7 @@
 #include "game_singletons.h"
 #include "world.h"
 
+#include <bit>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -48,7 +49,7 @@ constexpr float kSunStepScale = /*007C8964*/ 95.0f;
 
 inline bool SignClear(float v) {
     std::uint32_t bits;
-    std::memcpy(&bits, &v, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(v);
     return (bits & 0x80000000u) == 0;
 }
 

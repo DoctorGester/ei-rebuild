@@ -26,7 +26,7 @@ std::uint32_t ClampToZero(float v) {
     return 0.0f >= v ? 0u : std::bit_cast<std::uint32_t>(v);
 }
 
-void StoreBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, sizeof(bits)); }
+void StoreBits(float& field, std::uint32_t bits) { field = std::bit_cast<float>(bits); }
 
 // The world's GridHeightAt: the height at (x, y), unrounded.
 double GroundHeight(CWorld* world, float x, float y) { return world->GridHeightAt(x, y); }

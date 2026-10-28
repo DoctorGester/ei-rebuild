@@ -9,6 +9,7 @@
 #include "ei/x87.h"
 #include "lib/vecmath.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -22,7 +23,7 @@ constexpr int kLoaded = 1;          // SectorAt's stage: the vertex positions
 
 std::uint32_t Bits(float value) {
     std::uint32_t bits;
-    std::memcpy(&bits, &value, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(value);
     return bits;
 }
 bool SignSet(float value) { return (Bits(value) & 0x80000000u) != 0; }

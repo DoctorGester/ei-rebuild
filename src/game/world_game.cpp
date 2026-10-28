@@ -319,7 +319,7 @@ void VariableSetBits(NamedFloatTable* table, std::string_view name, std::uint32_
 // The value's bits, moved as the dword that is pushed (no FPU load).
 std::uint32_t ValueBits(const net::VariableMessage* record) {
     std::uint32_t bits;
-    std::memcpy(&bits, &record->value_, 4);
+    bits = std::bit_cast<std::uint32_t>(record->value_);
     return bits;
 }
 
@@ -1444,7 +1444,7 @@ void GameFlow::UpdateFromServer() {
         float value = static_cast<float>(VariableGet(variables, (*name)));
         // The larger of the value and 1.0 (a NaN is kept).
         std::uint32_t bits;
-        std::memcpy(&bits, &value, 4);
+        bits = std::bit_cast<std::uint32_t>(value);
         bool keep = (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x7FFFFFu) != 0 ? true : 1.0f < value;
         VariableSet(variables, (*name), keep ? value : 1.0f);
     }

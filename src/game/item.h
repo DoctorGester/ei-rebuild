@@ -9,6 +9,7 @@
 #include "item_db.h"
 #include "lock_key.h"
 #include "resource_manager.h"
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -91,7 +92,7 @@ public:
     void Repair() { condition_ = conditionMax_; }
     float Weight() const {
         float weight;
-        std::memcpy(&weight, &weight_, sizeof(weight));
+        weight = std::bit_cast<float>(weight_);
         return weight;
     }
 

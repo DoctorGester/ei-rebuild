@@ -7,6 +7,7 @@
 
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cmath>
 #include <cstring>
 #include <vector>
@@ -20,7 +21,7 @@ DecalVertex s_stageBuffers[kEmitStage][3];
 // Sign bit clear: the clipper's "inside" test (NOT; SHR 31 on the distance's bits).
 int Inside(float d) {
     std::uint32_t bits;
-    std::memcpy(&bits, &d, 4);
+    bits = std::bit_cast<std::uint32_t>(d);
     return static_cast<int>((bits >> 31) ^ 1);
 }
 

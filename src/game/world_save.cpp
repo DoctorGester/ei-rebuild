@@ -32,6 +32,7 @@
 
 #include "lib/crt.h"
 #include "lib/file_io.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -467,7 +468,7 @@ void CWorldServer::SaveWorld(CStream* stream) {
     WriteCopy(stream, tick_);
     stream->Write(&weather_, 4);
     std::uint32_t e8;
-    std::memcpy(&e8, &weatherStrength_, 4);
+    e8 = std::bit_cast<std::uint32_t>(weatherStrength_);
     WriteCopy(stream, e8);
     // Stored by the callee as floats; written on as their bytes (WriteCopy takes a reference).
     float time;

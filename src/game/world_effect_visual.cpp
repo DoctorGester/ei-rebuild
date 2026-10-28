@@ -456,7 +456,7 @@ int CEffectParticle::RunTick() {
             std::uint32_t zBits = z >= floor ? Bits(z) : Bits(floor);
             localPosition_.x = x;
             localPosition_.y = y;
-            std::memcpy(&localPosition_.z, &zBits, 4);
+            localPosition_.z = std::bit_cast<float>(zBits);
             if (source_ != nullptr) source_->localPosition_ = localPosition_;
         }
     }

@@ -8,6 +8,7 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include "map_object.h"
@@ -20,21 +21,20 @@ namespace {
 
 float AbsBits(float f) {
     std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(f);
     bits &= 0x7FFFFFFF;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 
 float AsFloat(std::uint32_t bits) {
     float f;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float AsFloat(T) = delete;
 
-void CopyBits(float* dst, const void* src) { std::memcpy(dst, src, sizeof(float)); }
 
 // The turn direction factors (-1, 0, 1). Read through volatile so the compiler cannot fold 0 * x to 0 (the
 // multiplication keeps NaN and -0).
@@ -145,7 +145,7 @@ void PathOrder::SetTurn(const Vector3* direction, std::uint32_t rateBits) {
     order->kind = 1;
     float angle = static_cast<float>(x87::fpatan(direction->y, direction->x));
     order->arg6 = rateBits;
-    std::memcpy(&order->arg5, &angle, sizeof(angle));
+    order->arg5 = std::bit_cast<std::uint32_t>(angle);
 }
 
 void PathOrder::SetTrack(int id, int from, int to) {
@@ -162,14 +162,14 @@ void PathOrder::SetTurnUntil(const Vector3* direction, int arg6, int arg7) {
     order->arg7 = static_cast<std::uint32_t>(arg7);
     float angle = static_cast<float>(x87::fpatan(direction->y, direction->x));
     order->arg6 = static_cast<std::uint32_t>(arg6);
-    std::memcpy(&order->arg5, &angle, sizeof(angle));
+    order->arg5 = std::bit_cast<std::uint32_t>(angle);
 }
 
 void PathOrder::SetTarget(float x, float y) {
     MotionOrder* order = OrderOf(this);
     order->kind = 2;
-    std::memcpy(&order->arg5, &x, sizeof(x));
-    std::memcpy(&order->arg6, &y, sizeof(y));
+    order->arg5 = std::bit_cast<std::uint32_t>(x);
+    order->arg6 = std::bit_cast<std::uint32_t>(y);
 }
 
 void PathOrder::ForgetObject(int id) {
@@ -226,8 +226,8 @@ double MotionCubic::Value(float u) { return ((u * c3 + c2) * u + c1) * u + c0; }
 
 void MotionCubic::Fit(float p0, float d0, float p1, float d1, float length) {
     double inverse = 1.0f / length;
-    CopyBits(&c0, &p0);
-    CopyBits(&c1, &d0);
+    x87::CopyBits(c0, p0);
+    x87::CopyBits(c1, d0);
     double half = ((static_cast<double>(p1) - p0) - static_cast<double>(d0) * length) * inverse;
     half = half + half;
     double cubic = ((static_cast<double>(d1) - d0) - half) * inverse * inverse;
@@ -254,14 +254,13 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
                         float* direction, float* speedOut, int* cellX, int* cellY) {
     *cellX = -1;
     *cellY = -1;
-    const std::uint32_t kDefaultSpeed = 0x3DCCCCCD;    // 0.1f
-    std::memcpy(speedOut, &kDefaultSpeed, sizeof(kDefaultSpeed));
+    *speedOut = 0.1f;
     direction[2] = 0.0f;
     *turning = false;
     double start = order->startTime;
     time = time >= start ? time : static_cast<float>(start);
-    CopyBits(&position[0], &order->x);
-    CopyBits(&position[1], &order->y);
+    x87::CopyBits(position[0], order->x);
+    x87::CopyBits(position[1], order->y);
 
     switch (static_cast<unsigned>(order->kind)) {
     case 0:
@@ -379,7 +378,7 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
             double dy = static_cast<double>(fromY) - toY;
             double distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
             length = static_cast<float>(distance);
-            CopyBits(&speed, &from.speed);
+            x87::CopyBits(speed, from.speed);
             end = end + distance / speed;
             EI_NAN_AUDIT(end);
             if (time <= end) {
@@ -391,11 +390,11 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
             segmentStart = saved;
             *speedOut = 0.0f;
             const MotionPoint& last = points[std::ssize(points) - 1];
-            CopyBits(&position[0], &last.x);
-            CopyBits(&position[1], &last.y);
-            CopyBits(&direction[0], &last.dirX);
+            x87::CopyBits(position[0], last.x);
+            x87::CopyBits(position[1], last.y);
+            x87::CopyBits(direction[0], last.dirX);
             direction[2] = 0.0f;
-            CopyBits(&direction[1], &last.dirY);
+            x87::CopyBits(direction[1], last.dirY);
             *cellX = last.cellX;
             *cellY = last.cellY;
             return false;
@@ -407,7 +406,7 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
     }
 
     *turning = false;
-    CopyBits(speedOut, &speed);
+    x87::CopyBits(*speedOut, speed);
     float u = static_cast<float>((time - static_cast<double>(segmentStart)) * speed);
     position[0] = static_cast<float>(curveX.Value(u));
     direction[0] = static_cast<float>(curveX.Slope(u));
@@ -424,7 +423,7 @@ void UnitMotion::Build(PathOrder* path) {
     points.clear();
     waypoints.clear();
     stepSpeeds.clear();
-    CopyBits(&startAngle, &order->angle);
+    x87::CopyBits(startAngle, order->angle);
 
     switch (static_cast<unsigned>(order->kind)) {
     case 0:
@@ -467,8 +466,8 @@ void UnitMotion::Build(PathOrder* path) {
     // Kind 2 (and anything else): waypoints at the start, at each corner of the steps and at the
     // target, then one trajectory point per path cell.
     MotionWaypoint first;
-    CopyBits(&first.x, &order->x);
-    CopyBits(&first.y, &order->y);
+    x87::CopyBits(first.x, order->x);
+    x87::CopyBits(first.y, order->y);
     first.cells = 0;
     lib::SetAtGrow(waypoints, std::ssize(waypoints), first);
     int previous = 0;
@@ -532,8 +531,8 @@ void UnitMotion::Build(PathOrder* path) {
     }
 
     MotionWaypoint last;
-    std::memcpy(&last.x, &order->arg5, sizeof(float));
-    std::memcpy(&last.y, &order->arg6, sizeof(float));
+    last.x = std::bit_cast<float>(order->arg5);
+    last.y = std::bit_cast<float>(order->arg6);
     last.cells = 0;
     waypoints.push_back(last);
     Subdivide();
@@ -601,15 +600,15 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
 
     EI_NAN_AUDIT(startOffset, endOffset);
     if (startOffset != 0.0f && endOffset != 0.0f && cells == 1) {
-        CopyBits(&p.x, &a->x);
-        CopyBits(&p.y, &a->y);
+        x87::CopyBits(p.x, a->x);
+        x87::CopyBits(p.y, a->y);
         int size = std::ssize(points);
         p.speed = static_cast<float>(static_cast<double>(stepSpeeds[*stepIndex]) * speedScale * kSpeedUnit);
         points.resize(size + 1);
         points[size] = p;
         size = std::ssize(points);
-        CopyBits(&p.x, &b->x);
-        CopyBits(&p.y, &b->y);
+        x87::CopyBits(p.x, b->x);
+        x87::CopyBits(p.y, b->y);
         points.resize(size + 1);
         points[size] = p;
         ++*stepIndex;
@@ -684,7 +683,7 @@ void UnitMotion::SaveState(CStream* stream) {
     const float* const fields[] = {&speedScale, &baseTurnRate, &turnRate, &startAngle, &turn};
     for (const float* field : fields) {
         std::uint32_t value;
-        std::memcpy(&value, field, 4);
+        value = std::bit_cast<std::uint32_t>(*field);
         stream->Write(&value, 4);
     }
 }
