@@ -3703,6 +3703,13 @@ model = "opus"
 note = "Left by C14t: stlp::Sort (stl_sorts.cpp, world_client_view.cpp, tests/verify/harness_address_order.cpp) is the last stlp in the game code. C35h moved the sorts with unique keys to std::sort; for each remaining one show whether equal keys can occur (and whether their order is visible). Unique keys: std::sort. Ties that matter: keep the original's order with our own small sort in src/lib under a plain name (not stlp), shared with libcrt's Qsort if that fits. Then delete stlp_algo.h and the word stlp from src (tests' game.exe views may keep the name)."
 
 [[ticket]]
+id = "C35m"
+title = "C35 heap wrappers, the rest: gamecrt::operator_new_as / operator_new_array / operator_delete in the script's MFC records and the tagged record arrays to new / delete, then crt.h's gamecrt heap deleted"
+group = "cleanup"
+depends = ["C14z"]
+note = "Left by C35g (2026-10-28, 88 lines): script.h / script_*.cpp / script_array.h (~45), record_arrays.cpp (3), mfc.h (5), mfc_array.h (1), mfc_slots.h (2), mfc_coll.cpp (PlainArray data, CreateCWordArray / CDWordArray / CByteArray Construct, the deleting destructor: 4), the vtable-tagged arrays freed or grown by hand outside them (unit_items.cpp / unit_save.cpp / unit_controller.cpp / map_object_lifetime.cpp carried items, player_sync.cpp, world_update.cpp: 17), the hand-built deleting destructors (deleting_destructors_400.cpp, world_deleting_destructors.cpp, world_destructors.cpp: 3) and tests/vectors/replay_script_load.cpp (1). Most go with C14z's std containers; then delete gamecrt::operator_new / operator_new_as / operator_new_array / operator_delete from src/lib/crt.h."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
