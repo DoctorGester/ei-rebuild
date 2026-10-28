@@ -453,6 +453,73 @@ void DrawComposed(const ComposeRecipe& recipe, sg_image image, const ComposeStep
     DrawSteps(recipe, image, steps, count, false);
 }
 
+#if defined(EI_RENDER_VALIDATION)
+bool ReadImageLevel(sg_image image, int level, int width, int height, std::vector<std::uint8_t>* rgba) {
+    if (!image.id || width <= 0 || height <= 0 || !EnsurePipelines()) return false;
+    sg_view_desc v{};
+    v.texture.image = image;
+    v.texture.mip_levels.base = level;
+    v.texture.mip_levels.count = 1;
+    sg_view source = sg_make_view(&v);
+    sg_image_desc d{};
+    d.usage.color_attachment = true;
+    d.width = width;
+    d.height = height;
+    d.pixel_format = SG_PIXELFORMAT_RGBA8;
+    d.label = "ei-texture-level-read";
+    sg_image target = sg_make_image(&d);
+    sg_view_desc a{};
+    a.color_attachment.image = target;
+    sg_view attachment = sg_make_view(&a);
+    bool read = false;
+    if (sg_query_view_state(source) == SG_RESOURCESTATE_VALID && sg_query_view_state(attachment) == SG_RESOURCESTATE_VALID) {
+        sg_pass pass{};
+        pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
+        pass.action.colors[0].store_action = SG_STOREACTION_STORE;
+        pass.attachments.colors[0] = attachment;
+        pass.label = "ei-texture-level-read";
+        sg_begin_pass(&pass);
+        sg_apply_pipeline(g_replace);
+        sg_bindings b{};
+        b.views[0] = source;
+        b.samplers[0] = g_nearest;
+        sg_apply_bindings(&b);
+        ApplyRect(Rect{0, 0, width, height}, width, height);
+        FsParams fs{{0, 0, 0, static_cast<int>(BlankAlpha::Full)}, {1.0f, 1.0f, 1.0f, 1.0f}};
+        sg_range range{&fs, sizeof(fs)};
+        sg_apply_uniforms(1, &range);
+        sg_draw(0, 6, 1);
+        sg_end_pass();
+        auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(sg_d3d11_query_image_info(target).tex2d));
+        D3D11_TEXTURE2D_DESC desc{};
+        if (texture) texture->GetDesc(&desc);
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        desc.MiscFlags = 0;
+        ID3D11Texture2D* staging = nullptr;
+        if (texture && SUCCEEDED(D3DDevice()->CreateTexture2D(&desc, nullptr, &staging))) {
+            D3DContext()->CopyResource(staging, texture);
+            D3D11_MAPPED_SUBRESOURCE mapped{};
+            if (SUCCEEDED(D3DContext()->Map(staging, 0, D3D11_MAP_READ, 0, &mapped))) {
+                rgba->resize(static_cast<std::size_t>(width) * height * 4);
+                for (int y = 0; y < height; ++y)
+                    std::memcpy(rgba->data() + static_cast<std::size_t>(y) * width * 4,
+                                static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch,
+                                static_cast<std::size_t>(width) * 4);
+                D3DContext()->Unmap(staging, 0);
+                read = true;
+            }
+            staging->Release();
+        }
+    }
+    sg_destroy_view(attachment);
+    sg_destroy_image(target);
+    sg_destroy_view(source);
+    return read;
+}
+#endif
+
 void DestroyCompose() {
     for (CloudFrameTexture& f : g_cloudFrames) {
         sg_destroy_view(f.texture);

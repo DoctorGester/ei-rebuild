@@ -105,7 +105,8 @@ Conventions taken over: Direct3D clip space (the game's projection already produ
 (3D draws shift their clip positions by half a pixel, `Frame::pixelShift`, because sokol truncates its float viewport
 to whole pixels; a clip -0.5..0.5 square covers pixels 16..47 of 64, a screen-pixel mesh from 8 to 24 covers 8..23),
 D3DCOLOR vertex colours (B, G, R, A bytes), vertex fog in the specular alpha (255 = no fog), specular added after
-texturing. Textures use the .mmp file's own mip levels (not a box filter of level 0).
+texturing. Textures use the .mmp file's own mip levels (not a box filter of level 0): a DXT file's are all its texture
+has, as the original's (section 7, R28c); an RGB file's missing ones are box-filtered from its last.
 
 ## 3. What the renderer feeds back into game logic
 
@@ -284,7 +285,8 @@ offered; DXT5 must stay: Rebirth's battle00 and footprints are DXT5) and `Textur
 `PixelFormat` (bits and channel masks, surface.h, what `render::NewSurfaceMemory` takes). An .mmp file is held in its
 own format, a DXT code outside the list in the RGB format its channel bit counts name (`MmpHeader::HeldFormat`; none:
 the original's "Can't find texture format" error); a .bmp texture by its kind (1:5:5:5, 4:4:4:4 or 5:6:5). The file
-formats (MMP, BMP, shot.sav's 5:6:5 picture) are read and written as before and decoded to RGBA8 by the renderer;
+formats (MMP, BMP, shot.sav's 5:6:5 picture) are read and written as before; the renderer uploads a DXT .mmp file's
+blocks as they are (BC1 / BC2 / BC3, R28c) and decodes the others to RGBA8;
 no game code writes a texture's pixels (R28b). The 16-bit table `Lookup16` (render_textures.cpp) is left for the
 window surfaces at a 16-bit colour depth (5:6:5, the options' default `VideoColorDepthInBits` 16).
 
@@ -298,7 +300,7 @@ holder's decoded or GPU-drawn texture only (white for none). The shadow textures
 | 0068F6C0 `CTexture::CreateBlank` (`texture_blank.cpp`, RET 8, EAX 1) | texture square from header->width (height not read): `TakeBlankHolder`, a `NewDecodedTextureHolder` with `render::BlankTexture` (R28, R28b), the alpha as the format keeps it (5:6:5 opaque, 1:5:5:5 one bit, 4:4:4:4 all); the 1:5:5:5 atlases one level, the others their levels made after each draw (as the memory textures had; the original: 004EFA60's texture with mipCount levels, caps by the kind flags); +0x28 = bits x size x size / 8 |
 | 00691D80 `CTextureManager::NewTexture` (RET 0xC) | kinds 0x1E / 0x20 / 0x21 get the texture formats 5650 / 5551 / 4444 (always there: the original's "Can't find texture format %d." is gone); another kind gets none and 0068F6C0 throws; its texture through 0068F6C0 |
 | 00692010 `NewShadowTexture`, 00692140 `ShadowRenderSurface`, 00690FC0 `LockPixels`, 00691030 `UnlockPixels` | not ported (R26): only the 64x64 shadow texture used them, which the shadow map replaced (section 13) |
-| 00690430 `CTexture::CreateFromMmp` (`texture_mmp.cpp`) | no staging surface, fill (0068FA10), Load or priority; `render::TextureFromMmp` decodes the file's levels (DXT1 / DXT3, 8888, 4444, 5551, 5650 by the header's channel masks; keyed by the holder); +0x28 = `MmpHeader::FilledBytes`; an undecodable format keeps the holder and shows nothing (logged once) |
+| 00690430 `CTexture::CreateFromMmp` (`texture_mmp.cpp`) | no staging surface, fill (0068FA10), Load or priority; `render::TextureFromMmp` takes the file's levels (DXT1..DXT5 as their blocks; 8888, 4444, 5551, 5650 decoded by the header's channel masks; keyed by the holder); +0x28 = `MmpHeader::FilledBytes`; an undecodable format keeps the holder and shows nothing (logged once) |
 | 0068FBF0 `LoadBmpFiles` (`texture_bmp.cpp`, RET 0xC) | loose textures\<name>.bmp (from 00690260) via the game's DIB reader (006D4AA0 / 006D5910 / 006D4D10 / 006D4CD0), drawn into a blank texture (`TakeBlankHolder`, `DrawIntoTexture`; R28b: 8-bit colours instead of the format's 16 bits); reached only by render_loose_bmp (no .bmp in the installs); loops over the width then the height (a non-square .bmp overran the surface; the pixels past it are left out) |
 | 00691B00 `ReleaseObject` (slot 24), 00691BF0 `TakeFromCache`, 00693C60 `FindTexture` (`texture_cache.cpp`) | cache list +0xBC, bytes +0xD8; no SetPriority (no surface); 00693C60 does not lower +0xD8 for a texture it takes from the cache (00691BF0 does) |
 
@@ -307,7 +309,20 @@ each next one right after the last, bits per pixel x width x height / 8 bytes (s
 00690970 steps. 006908E0's 32-bit product overflows from level 6 of a 1024 x 1024 DXT1 and level 5 of a 2048 x 2048
 DXT3: taken for every level, the decoder read zone1's tree crowns' small levels from the wrong bytes (opaque bright
 green texels, drawn as thin strips where a leaf card is seen edge-on). A DXT level under 4 x 4 gets only those bytes
-(the start of its block) and zeros for the rest.
+(the start of its block) and zeros for the rest of the block it is uploaded as.
+
+**DXT textures as blocks (R28c).** A DXT .mmp texture is a BC1 (DXT1), BC2 (DXT2 / DXT3) or BC3 (DXT4 / DXT5) image of
+the file's blocks (`BlockFormat`, `ReadMmp`); there is no CPU DXT decoder. It has the file's levels only: Direct3D 11
+cannot box-filter a block-compressed level, and the original's texture had those levels too (1035 of the installs'
+1792 DXT files stop early, 229 of them at level 0: the menus' backdrops, tree03, the decals). Its top level must be a
+multiple of 4 wide and high (Direct3D 11's rule): every DXT file is, at the levels the texture quality option starts
+at (0..2). The software cursor's pictures (`PictureFromMmp`) are 8888 files; a DXT one is not decoded (logged). Measured
+(verify build, the log's `render: .mmp textures at exit` line; vanilla, zone1, 60-68 textures): uploaded 176 / 28 MB,
+held at most 129 / 19.6 MB (6.6x less), CPU time making them 296-344 / 110-116 ms (before / after). Frames against the
+CPU decoder (render_scene, units, models, render_device_lost, render_terrain_seams; 4K): 0.13% of the pixels over 8, at
+most 79, all on interface sprites drawn smaller than their DXT texture that has one level (the portrait's health and
+mana bars, the minimap's frame: sharper now, the CPU path had box-filtered levels the original lacked); the main
+menu 0.031%; the world the same; the camp frame the same pixel for pixel.
 
 Users of the CPU-written textures: 005FF0B0 (`CUiWindow::CreateTexture`, from the battle screen 00635250, options
 006503C0, save / load, global map 0062D350, tutorial 00658E10, 00605DE0, 00608F90, 00640060) and 005EC020 (item screens'
@@ -576,7 +591,7 @@ is what to read it for.
   the game's memory) and the composed and drawn-into textures (their recipes drawn again, `RemakeComposed`). A movie shows again from its next frame. No new device: the game ends (section 1, "When the
   renderer fails").
 - The decoded textures keep what they were decoded from (`TextureSource`, render_textures.cpp):
-  the header and the file's bytes of the levels decoded (DXT stays compressed);
+  the header and the file's bytes of the levels it holds;
   `SurfaceView` makes the image again from it at
   its next use (`Remake`, once a frame). game.exe is not large address aware: this is address space the switch-over
   freed by dropping the DirectDraw textures.
@@ -744,7 +759,7 @@ resolution must have the machine to themselves and serialised the suites.
   steps.
 
 - Check (R12b, same scenario): `mmplevels <most>` (`render::CheckMmpLevels`, verify build): every held .mmp texture's
-  levels, decoded as drawn, against its level 0, both box-filtered to 4 x 4: the largest mean difference per
+  levels, decoded as drawn (a DXT texture's read back from the GPU: `ReadImageLevel`, render_compose.cpp), against its level 0, both box-filtered to 4 x 4: the largest mean difference per
   channel. The file's own mips reach 52 (1-bit alpha small levels); the overflowing offsets gave 128 / 149 (vanilla /
   Rebirth); limit 80. Against the harness original's `far` frame, the tree crowns (2750, 550)-(3250, 950) at
   3840 x 2160: 1.30% of the pixels differed (tolerance 8, shift 1; largest 150) before, 0.24% after (leaf edges).

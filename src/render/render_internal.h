@@ -637,6 +637,11 @@ bool MakeComposed(const ComposeRecipe& recipe, sg_image* image, sg_view* view);
 void DrawComposed(const ComposeRecipe& recipe, sg_image image, const ComposeStep* steps, std::size_t count);
 // The device is lost: the pipelines and the clouds' frames go (made again at the next use).
 void DestroyCompose();
+#if defined(EI_RENDER_VALIDATION)
+// Level `level` (`width` x `height`) of a texture image as RGBA8 rows from the top, as the GPU reads it (drawn texel
+// for texel into a target and read back): render::CheckMmpLevels's block-compressed levels. No pass in progress.
+bool ReadImageLevel(sg_image image, int level, int width, int height, std::vector<std::uint8_t>* rgba);
+#endif
 // render::ComposeTexture's entry for `holder` (render_textures.cpp); RemakeComposed draws every composed texture
 // again on a new device (no pass in progress).
 bool StoreComposed(const void* holder, std::shared_ptr<ComposeRecipe> recipe);
