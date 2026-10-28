@@ -7,7 +7,7 @@
 
 #include "figure_mesh.h"   // VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
 #include "model.h"         // ClipBounds, TriangleIndexArray, CLinkFigureLoader
-#include "texture.h"       // RasterTarget
+#include "texture.h"
 
 #include <map>
 #include <vector>

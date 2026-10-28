@@ -78,8 +78,6 @@ std::uint8_t Worse(std::uint8_t a, std::uint8_t b) { return a > b ? a : b; }
 
 constexpr int kWoundsTextureKind = 6;
 constexpr unsigned kWoundsPreset = 4;
-constexpr int kSourceAlpha = 5;          // D3DBLEND_SRCALPHA
-constexpr int kInverseSourceAlpha = 6;   // D3DBLEND_INVSRCALPHA
 constexpr const char* kNoWoundsTexture = "Can't create wounds texture for object \"%s\" ID = %d\n";
 
 // *slot = texture with counted references; the old one released.
@@ -164,8 +162,8 @@ void CObject3DClientSpecific::HideWounds() {
 // The constructor: no references, then its own fields; the stages vector is constructed empty.
 WoundsMaterial::WoundsMaterial() {
     blend = 1;
-    sourceBlend = kSourceAlpha;
-    destBlend = kInverseSourceAlpha;
+    sourceBlend = render::Blend::SourceAlpha;
+    destBlend = render::Blend::InvSourceAlpha;
     preset = nullptr;
 }
 

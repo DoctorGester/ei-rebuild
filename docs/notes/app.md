@@ -6,7 +6,7 @@ every scenario.
 
 - `app_frame.cpp`: WinMain's frame step `FrameStep` 00458010 (see "Frame capture"), intro movies 00458270 (list from the .ini, each
   played, the screen cleared by a Blt colour fill). `app_registry.cpp`: type registration with a factory (vtable <-> id <-> factory) and
-  COM releases (00458570, 00458540, 00458550, 004586E0). `app_dxversion.cpp`: DirectX version probe 0045E310. `app_device_list.cpp`:
+  COM releases (00458570, 00458540, 00458550, 004586E0). `app_device_list.cpp`:
   device record list archiving (00463030-00465BC0).
 - `map_spec_unit.cpp`: waypoint lists and behaviour records read / written as stream chunks (0045DE30 is a stream reader, not a
   CArray::SetSize; 0045DFB0, 0045D610, 0045D760). `zone_records.cpp`: zone exit destructors and the map database's zone record destructor

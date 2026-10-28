@@ -4,7 +4,7 @@
 // colour key) in the windows' draw order, between the sprites and 3D previews of the same windows. The new
 // renderer reads such a surface when its contents changed (render_textures.cpp) and draws it as a screen
 // rectangle that copies texels one to one (a stretch when the sizes differ), keyed texels left out. Also
-// here: the depth clear the old path does in the middle of the frame.
+// here: the depth clear the game does in the middle of the frame.
 #include "render.h"
 #include "render_internal.h"
 

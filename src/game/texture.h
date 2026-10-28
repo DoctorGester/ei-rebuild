@@ -5,7 +5,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/static_object.h"
-#include "raster_target.h"
 #include "renderer_base.h"
 #include "surface.h"
 #include "render/render_state.h"
@@ -122,16 +121,12 @@ public:
     virtual void Unused6();
     // A square image; `width` is the new width.
     virtual void Halve(std::uint32_t* out, const std::uint32_t* in, unsigned width);
-    // `target` starts with the triangle's three corners (a screen and a texture point each, pairs of ints)
-    // and goes on with the surface.
-    virtual void RasteriseTriangle(RasterTarget* target);
-    // The DLL's call for a keyed texture's texels (RasterTriangle::keyTexels); nothing builds one, never called.
-    virtual void RasteriseKeyedTriangle(RasterTarget* target);
+    // The DLL's two triangle rasterisers (the former shadow rasteriser; no caller since the new renderer draws the
+    // shadows), kept so DecodeDxt is slot 10.
+    virtual void Unused8();
+    virtual void Unused9();
     // Into 16-bit pixels.
     virtual void DecodeDxt(void* target, const void* source, int mode, std::uint32_t width, std::uint32_t height);
-    // The two passes of the shadow's blur over a 16-bit image (shadow mode 2 runs both).
-    virtual void BlurShadow(void* pixels, int width, int height);
-    virtual void BlurShadow2(void* pixels, int width, int height);
 };
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
 

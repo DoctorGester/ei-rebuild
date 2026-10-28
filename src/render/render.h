@@ -158,7 +158,7 @@ struct FrameStats {
     enum Upload { Mmp, MemoryTexture, WindowSurface, Movie, Small, UploadKinds };
     std::uint32_t frames = 0;
     int width = 0, height = 0;   // the last frame's size
-// Hand-over: meshes are BeginMesh with corners built; stateReads are the old device's state reads.
+// Hand-over: meshes are BeginMesh with corners built; stateReads are the passes' reads of the render state (ReadPassState).
     std::uint64_t terrainPages = 0, terrainBatches = 0, meshes = 0, meshPasses = 0, transformedDraws = 0;
     std::uint64_t blits = 0, depthClears = 0, stateReads = 0, matrices = 0;
 // Of the meshes: the flat geometry (object shadows, ground prints, selection markers, light decals).
@@ -179,7 +179,7 @@ struct FrameStats {
 // hand-over and uploads) are left out of the others.
     double terrainMs = 0.0;
     double handOverMs = 0.0, textureMs = 0.0, windowMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
-// The old device path's mesh draws (DeviceMeshTimer), the hand-over in them left out.
+// The game device's mesh draws (device_mesh.cpp's DrawMesh, the BeginDeviceMeshTime timer), the hand-over in them left out.
     double deviceMeshMs = 0.0;
 // ProjectDecal for object shadows and ground prints; the device's flat draws (hand-over left out);
 // RenderShadow.
@@ -294,7 +294,7 @@ struct ScreenVertex {
 };
 void ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount);
 
-// The game's two layouts of pre-transformed vertices (its Direct3D 7 vertex format codes): x, y, z, rhw, colour,
+// The game's two layouts of pre-transformed vertices (the vertex format codes the game's draws pass): x, y, z, rhw, colour,
 // specular, and in the textured one u, v.
 inline constexpr int kFvfTextured = 0x1C4;
 inline constexpr int kFvfUntextured = 0xC4;
@@ -352,7 +352,7 @@ CursorPresentInfo CursorPresents();
 // top. False when there is none.
 bool ReadCursorPresent(int* width, int* height, std::vector<std::uint8_t>* bgr);
 
-// The old path clears the depth buffer mid-frame (before the interface's panels and 3D previews); `rects`
+// The game clears the depth buffer mid-frame (before the interface's panels and 3D previews); `rects`
 // null: all of it.
 void ClearDepth(float z, const Rect* rects, int count);
 

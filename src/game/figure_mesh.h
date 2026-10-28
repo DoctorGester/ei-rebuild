@@ -6,7 +6,6 @@
 #include "core_transform.h"
 #include "maths.h"
 #include "model.h"
-#include "raster_target.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

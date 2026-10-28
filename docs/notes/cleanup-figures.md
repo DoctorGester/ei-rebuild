@@ -18,7 +18,6 @@ How the figure meshes (`figure_*.cpp / .h`), the link figures (`link_*.cpp`) and
   `MirrorXImpl`, `MirrorYImpl`, 0059F3D0 `SetObject`; the CObject3D pointer at +0x98 is `object_`; the +0x94 drawer is `FigureMeshDrawer`, not
   CLinkMesh, though both have the screen RECT at +0x20. `using FigurePart = CFigureMesh` stays only for ui_model.cpp, player_client.cpp and
   verify_ui_model.cpp. Mesh file slots take `lib::File*` (`Read` 13, `Write` 14).
-- `RasterTriangle` and `CPixelConverter` slot 9 `RasteriseKeyedTriangle` are in texture.h; link_mesh_draw.cpp uses the same struct.
 - `FigureModel` (model.h; the cached model, 0x20 bytes) holds the three archives (`mesh`, `bones`, `animations`, each a
   `CMappedResource`) and the animation cache. Models go through `GetFile` / `CloseFile` / `OpenFromMemory` / `CloseResource` and `delete`;
   the manager's own files through `CFigureManager::GetFile` / `CloseFile` (slots 19 / 20). The figure factory builds the part meshes as

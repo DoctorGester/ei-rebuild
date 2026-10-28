@@ -55,7 +55,6 @@
 using options::GameOptions;
 
 namespace app {
-std::uint32_t GetDxVersion();
 
 // ---- The application's globals that the static initialisers set ------------------------------------
 
@@ -109,8 +108,9 @@ float g_clientSpeed = /*00784758*/ 1.0f;
 
 constexpr int kExitDeclined = 0xDEAD;   // WinMain's result when the player gives up at a warning
 constexpr UINT kWarningBox = 0x31;      // MB_OKCANCEL | MB_ICONEXCLAMATION
-constexpr UINT kCriticalBox = 0x30;     // MB_ICONEXCLAMATION
-enum MessageLine { kNeedsDirectX7, kLittleDiskSpace, kInsertDisc };
+// The lines of sysmsg.txt: line 0 was the "requires DX7" text of the DirectX version check (gone: the game needs
+// no DirectDraw), kept so the other lines keep their places.
+enum MessageLine { kUnusedDirectX7, kLittleDiskSpace, kInsertDisc };
 constexpr int kMessageLines = 3;
 
 void AppendDefaultMessages(std::vector<std::string>& messages) {
@@ -636,10 +636,6 @@ const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";
 int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     std::vector<std::string> messages;
     LoadSystemMessages(messages);
-    if (GetDxVersion() < 0x700) {
-        gameapi::MessageBoxA(nullptr, messages[kNeedsDirectX7].c_str(), "CRITICAL ERROR", kCriticalBox);
-        return kExitDeclined;
-    }
     // The classes the chunk archives can hold: 1 the class template, 2 the party record.
     app::TypeRegistryRegister(&g_classRegistry.Get(), 1, CreateClassTemplate);
     app::TypeRegistryRegister(&g_classRegistry.Get(), 2, CreatePartyRecord);

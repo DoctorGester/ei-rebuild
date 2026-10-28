@@ -48,5 +48,3 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
   `CompanionNothing`, `CompanionQuery`, `CompanionHit`).
 - Forwarders that could become direct calls: `LightViewMatrix` / `LightRotation` (004F1440 / 004F15C0) in the shadow; `CallCreate3D` is kept
   deliberately so the verify wrapper runs.
-- The shadow's key texels: `RasterTriangle::keyTexels` is the DLL's pointer, always null since C14h (CTexture::block_ was never allocated; models.md, Layouts). The shadow callees take typed
-  points, pixels and a `RasterTarget*` (C9d).

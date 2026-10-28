@@ -151,7 +151,6 @@ src/game/link_loader.cpp
 src/game/link_loader_create.cpp
 src/game/link_mesh_draw.cpp
 src/game/pixel_formats.cpp
-src/game/raster_target.h
 src/game/ui_help_page.cpp
 src/game/ui_help_window.cpp
 src/game/ui_hero_figure.cpp
@@ -565,7 +564,6 @@ src/hook/standalone.cpp
 src/game/app.cpp
 src/game/app.h
 src/game/app_device_list.cpp
-src/game/app_dxversion.cpp
 src/game/app_frame.cpp
 src/game/app_helpers.cpp
 src/game/app_helpers.h
@@ -960,7 +958,6 @@ src/game/animation_track_lifetime.cpp
 src/game/app.cpp
 src/game/app.h
 src/game/app_device_list.cpp
-src/game/app_dxversion.cpp
 src/game/app_frame.cpp
 src/game/app_helpers.cpp
 src/game/app_helpers.h
@@ -1316,7 +1313,6 @@ src/game/quest_records.cpp
 src/game/quest_records.h
 src/game/random.cpp
 src/game/random.h
-src/game/raster_target.h
 src/game/refptr_copies.cpp
 src/game/registry.cpp
 src/game/registry.h
