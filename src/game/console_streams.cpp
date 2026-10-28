@@ -60,9 +60,6 @@ void DestroyStream(OStreamObject& stream) {
 
 void __cdecl DestroyCheatCommands() { lib_trees::Commands::Destroy(&console::g_cheatCommands.Get()); }
 void __cdecl DestroyPublicCommands() { lib_trees::Commands::Destroy(&console::g_publicCommands.Get()); }
-void __cdecl ConstructCheatCommands() { BuildCommands(console::g_cheatCommands, DestroyCheatCommands); }
-void __cdecl ConstructPublicCommands() { BuildCommands(console::g_publicCommands, DestroyPublicCommands); }
-
 void __cdecl DestroyAiLogBuf() { console::g_aiLogBuf.Destroy(); }
 void __cdecl DestroyEventLogBuf() { console::g_eventLogBuf.Destroy(); }
 void __cdecl DestroyGraphicsLogBuf() { console::g_graphicsLogBuf.Destroy(); }
@@ -71,6 +68,19 @@ void __cdecl DestroyUnitAcksLogBuf() { console::g_unitAcksLogBuf.Destroy(); }
 void __cdecl DestroyNetLogBuf() { console::g_netLogBuf.Destroy(); }
 void __cdecl DestroyAllLogBuf() { console::g_allLogBuf.Destroy(); }
 void __cdecl DestroyConsoleBuf() { console::g_consoleBuf.Destroy(); }
+void __cdecl DestroyAiLogOut() { DestroyStream(console::g_aiLogOut); }
+void __cdecl DestroyEventLogOut() { DestroyStream(console::g_eventLogOut); }
+void __cdecl DestroyGraphicsLogOut() { DestroyStream(console::g_graphicsLogOut); }
+void __cdecl DestroyRpgLogOut() { DestroyStream(console::g_rpgLogOut); }
+void __cdecl DestroyNetLogOut() { DestroyStream(console::g_netLogOut); }
+void __cdecl DestroyUnitAcksLogOut() { DestroyStream(console::g_unitAcksLogOut); }
+void __cdecl DestroyAllLogOut() { DestroyStream(console::g_allLogOut); }
+void __cdecl DestroyConsoleOut() { DestroyStream(console::g_consoleOut); }
+} // namespace
+
+void __cdecl ConstructCheatCommands() { BuildCommands(console::g_cheatCommands, DestroyCheatCommands); }
+void __cdecl ConstructPublicCommands() { BuildCommands(console::g_publicCommands, DestroyPublicCommands); }
+
 void __cdecl ConstructAiLogBuf() { BuildStreambuf(console::g_aiLogBuf, 1, DestroyAiLogBuf); }
 void __cdecl ConstructEventLogBuf() { BuildStreambuf(console::g_eventLogBuf, 2, DestroyEventLogBuf); }
 void __cdecl ConstructGraphicsLogBuf() { BuildStreambuf(console::g_graphicsLogBuf, 4, DestroyGraphicsLogBuf); }
@@ -80,14 +90,6 @@ void __cdecl ConstructNetLogBuf() { BuildStreambuf(console::g_netLogBuf, 0x20, D
 void __cdecl ConstructAllLogBuf() { BuildStreambuf(console::g_allLogBuf, 0xFFFFFFFF, DestroyAllLogBuf); }
 void __cdecl ConstructConsoleBuf() { BuildStreambuf(console::g_consoleBuf, 0, DestroyConsoleBuf); }
 
-void __cdecl DestroyAiLogOut() { DestroyStream(console::g_aiLogOut); }
-void __cdecl DestroyEventLogOut() { DestroyStream(console::g_eventLogOut); }
-void __cdecl DestroyGraphicsLogOut() { DestroyStream(console::g_graphicsLogOut); }
-void __cdecl DestroyRpgLogOut() { DestroyStream(console::g_rpgLogOut); }
-void __cdecl DestroyNetLogOut() { DestroyStream(console::g_netLogOut); }
-void __cdecl DestroyUnitAcksLogOut() { DestroyStream(console::g_unitAcksLogOut); }
-void __cdecl DestroyAllLogOut() { DestroyStream(console::g_allLogOut); }
-void __cdecl DestroyConsoleOut() { DestroyStream(console::g_consoleOut); }
 void __cdecl ConstructAiLogOut() { BuildStream(console::g_aiLogOut, console::g_aiLogBuf, DestroyAiLogOut); }
 void __cdecl ConstructEventLogOut() { BuildStream(console::g_eventLogOut, console::g_eventLogBuf, DestroyEventLogOut); }
 void __cdecl ConstructGraphicsLogOut() {
@@ -101,41 +103,39 @@ void __cdecl ConstructUnitAcksLogOut() {
 void __cdecl ConstructAllLogOut() { BuildStream(console::g_allLogOut, console::g_allLogBuf, DestroyAllLogOut); }
 void __cdecl ConstructConsoleOut() { BuildStream(console::g_consoleOut, console::g_consoleBuf, DestroyConsoleOut); }
 
-} // namespace
-
-EI_REPLACE(0x005DC050, ConstructCheatCommands);
-EI_REPLACE(0x005DC070, DestroyCheatCommands);
-EI_REPLACE(0x005DC120, ConstructPublicCommands);
-EI_REPLACE(0x005DC140, DestroyPublicCommands);
-EI_REPLACE(0x005DC1E0, ConstructAiLogBuf);
-EI_REPLACE(0x005DC2C0, DestroyAiLogBuf);
-EI_REPLACE(0x005DC2D0, ConstructEventLogBuf);
-EI_REPLACE(0x005DC2F0, DestroyEventLogBuf);
-EI_REPLACE(0x005DC300, ConstructGraphicsLogBuf);
-EI_REPLACE(0x005DC320, DestroyGraphicsLogBuf);
-EI_REPLACE(0x005DC330, ConstructRpgLogBuf);
-EI_REPLACE(0x005DC350, DestroyRpgLogBuf);
-EI_REPLACE(0x005DC360, ConstructUnitAcksLogBuf);
-EI_REPLACE(0x005DC380, DestroyUnitAcksLogBuf);
-EI_REPLACE(0x005DC390, ConstructNetLogBuf);
-EI_REPLACE(0x005DC3B0, DestroyNetLogBuf);
-EI_REPLACE(0x005DC3C0, ConstructAllLogBuf);
-EI_REPLACE(0x005DC3E0, DestroyAllLogBuf);
-EI_REPLACE(0x005DC3F0, ConstructConsoleBuf);
-EI_REPLACE(0x005DC410, DestroyConsoleBuf);
-EI_REPLACE(0x005DC420, ConstructAiLogOut);
-EI_REPLACE(0x005DC440, DestroyAiLogOut);
-EI_REPLACE(0x005DC460, ConstructEventLogOut);
-EI_REPLACE(0x005DC480, DestroyEventLogOut);
-EI_REPLACE(0x005DC4A0, ConstructGraphicsLogOut);
-EI_REPLACE(0x005DC4C0, DestroyGraphicsLogOut);
-EI_REPLACE(0x005DC4E0, ConstructRpgLogOut);
-EI_REPLACE(0x005DC500, DestroyRpgLogOut);
-EI_REPLACE(0x005DC520, ConstructNetLogOut);
-EI_REPLACE(0x005DC540, DestroyNetLogOut);
-EI_REPLACE(0x005DC560, ConstructUnitAcksLogOut);
-EI_REPLACE(0x005DC580, DestroyUnitAcksLogOut);
-EI_REPLACE(0x005DC5A0, ConstructAllLogOut);
-EI_REPLACE(0x005DC5C0, DestroyAllLogOut);
-EI_REPLACE(0x005DC5E0, ConstructConsoleOut);
-EI_REPLACE(0x005DC600, DestroyConsoleOut);
+EI_REWRITTEN(0x005DC050, ConstructCheatCommands);
+EI_REWRITTEN(0x005DC070, DestroyCheatCommands);
+EI_REWRITTEN(0x005DC120, ConstructPublicCommands);
+EI_REWRITTEN(0x005DC140, DestroyPublicCommands);
+EI_REWRITTEN(0x005DC1E0, ConstructAiLogBuf);
+EI_REWRITTEN(0x005DC2C0, DestroyAiLogBuf);
+EI_REWRITTEN(0x005DC2D0, ConstructEventLogBuf);
+EI_REWRITTEN(0x005DC2F0, DestroyEventLogBuf);
+EI_REWRITTEN(0x005DC300, ConstructGraphicsLogBuf);
+EI_REWRITTEN(0x005DC320, DestroyGraphicsLogBuf);
+EI_REWRITTEN(0x005DC330, ConstructRpgLogBuf);
+EI_REWRITTEN(0x005DC350, DestroyRpgLogBuf);
+EI_REWRITTEN(0x005DC360, ConstructUnitAcksLogBuf);
+EI_REWRITTEN(0x005DC380, DestroyUnitAcksLogBuf);
+EI_REWRITTEN(0x005DC390, ConstructNetLogBuf);
+EI_REWRITTEN(0x005DC3B0, DestroyNetLogBuf);
+EI_REWRITTEN(0x005DC3C0, ConstructAllLogBuf);
+EI_REWRITTEN(0x005DC3E0, DestroyAllLogBuf);
+EI_REWRITTEN(0x005DC3F0, ConstructConsoleBuf);
+EI_REWRITTEN(0x005DC410, DestroyConsoleBuf);
+EI_REWRITTEN(0x005DC420, ConstructAiLogOut);
+EI_REWRITTEN(0x005DC440, DestroyAiLogOut);
+EI_REWRITTEN(0x005DC460, ConstructEventLogOut);
+EI_REWRITTEN(0x005DC480, DestroyEventLogOut);
+EI_REWRITTEN(0x005DC4A0, ConstructGraphicsLogOut);
+EI_REWRITTEN(0x005DC4C0, DestroyGraphicsLogOut);
+EI_REWRITTEN(0x005DC4E0, ConstructRpgLogOut);
+EI_REWRITTEN(0x005DC500, DestroyRpgLogOut);
+EI_REWRITTEN(0x005DC520, ConstructNetLogOut);
+EI_REWRITTEN(0x005DC540, DestroyNetLogOut);
+EI_REWRITTEN(0x005DC560, ConstructUnitAcksLogOut);
+EI_REWRITTEN(0x005DC580, DestroyUnitAcksLogOut);
+EI_REWRITTEN(0x005DC5A0, ConstructAllLogOut);
+EI_REWRITTEN(0x005DC5C0, DestroyAllLogOut);
+EI_REWRITTEN(0x005DC5E0, ConstructConsoleOut);
+EI_REWRITTEN(0x005DC600, DestroyConsoleOut);

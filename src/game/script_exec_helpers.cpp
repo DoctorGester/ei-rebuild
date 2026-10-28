@@ -321,18 +321,19 @@ void __cdecl DestroyScriptQuestObjectives() {
     gamearrays::Objectives::Destruct<gamearrays::ObjectiveArrayClass>(
         reinterpret_cast<gamearrays::Objectives::Array*>(&*g_scriptQuestObjectives));
 }
+void __cdecl DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }
+} // namespace
+
 void __cdecl ConstructScriptQuestObjectives() {
     mfc::impl::ConstructArrayOf<gamearrays::ObjectiveArrayClass>(*g_scriptQuestObjectives);
     libcrt::AtExit(DestroyScriptQuestObjectives);
 }
-void __cdecl DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }
 void __cdecl ConstructScriptQuestName() {
     g_scriptQuestName.Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x004B17B0));
+    libcrt::AtExit(DestroyScriptQuestName);
 }
-} // namespace
 
-EI_REPLACE(0x004B1790, ConstructScriptQuestName);
-EI_REPLACE(0x004B17B0, DestroyScriptQuestName);
-EI_REPLACE(0x004B17C0, ConstructScriptQuestObjectives);
-EI_REPLACE(0x004B17E0, DestroyScriptQuestObjectives);
+EI_REWRITTEN(0x004B1790, ConstructScriptQuestName);
+EI_REWRITTEN(0x004B17B0, DestroyScriptQuestName);
+EI_REWRITTEN(0x004B17C0, ConstructScriptQuestObjectives);
+EI_REWRITTEN(0x004B17E0, DestroyScriptQuestObjectives);

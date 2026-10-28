@@ -108,7 +108,7 @@ EI_REWRITTEN(0x004BA580, FollowMode::GetType);
 
 
 SuspectionMode* SuspectionMode::Construct() { return new (this) SuspectionMode(); }
-EI_REPLACE_METHOD(0x004BA610, SuspectionMode::Construct);
+EI_REWRITTEN(0x004BA610, SuspectionMode::Construct);
 
 SuspectionMode::~SuspectionMode() {}
 EI_REWRITTEN_SPECIAL(0x004BA700, SuspectionMode::~SuspectionMode);
