@@ -198,7 +198,7 @@ void UseCached(CSoundManager* m, SoundSlot* slot, const std::string& name, std::
     WaveRecord& record = *node;
     record.lastUsed = gameapi::GetTickCount();
     record.uses = record.uses + 1;
-    slot->length = static_cast<float>(m->WaveLength(record.data, record.size));
+    slot->length = static_cast<float>(m->WaveLength(record.data));
     gameapi::AIL_set_named_sample_file(slot->sample, name.c_str(), record.data, record.size, 0);
 }
 
@@ -688,7 +688,7 @@ void CSoundManager::Tick() {
         // A flat sound's level is recomputed from its saved Miles level as if that were 0..100.
         if (slot->flat != 0) slot->volume = FlatVolume(slot->volume, slot->heightFade, slot->speech);
         else UpdatePositional(slot);
-        if (LoadSample(slot, i, rec->name.data(), 0) != 0) {
+        if (LoadSample(slot, rec->name.data(), 0) != 0) {
             slot->handle = rec->handle;
             gameapi::AIL_set_sample_loop_count(slot->sample, 0);
             ApplyVolumePan(slot);
@@ -947,7 +947,7 @@ struct miles::SoundInfo {
 };
 static_assert(sizeof(miles::SoundInfo) == 0x24);
 
-double CSoundManager::WaveLength(const void* data, int /*size*/) {
+double CSoundManager::WaveLength(const void* data) {
     miles::SoundInfo info;
     gameapi::AIL_WAV_info(data, &info);
     std::uint32_t samples;
@@ -1084,7 +1084,7 @@ int CSoundManager::Play2D(std::string_view name, int priority, int volume, int p
     slot->speech = speech;
     slot->volume = NewFlatLevel(this, volume, heightFade, speech);
     if (volume == 0 && loop == 0) return -1;
-    if (LoadSample(slot, index, name, compressed) == 0) return -1;
+    if (LoadSample(slot, name, compressed) == 0) return -1;
     return StartLoaded(this, slot, loop);
 }
 
@@ -1124,7 +1124,7 @@ int CSoundManager::Play3D(std::string_view name, int priority, const float* posi
     slot->priority = priority;
     UpdatePositional(slot);
     if (slot->volume == 0 && loop == 0) return -1;
-    if (LoadSample(slot, index, name, 0) == 0) return -1;
+    if (LoadSample(slot, name, 0) == 0) return -1;
     return StartLoaded(this, slot, loop);
 }
 
@@ -1133,7 +1133,7 @@ int CSoundManager::Play3D(std::string_view name, int priority, const float* posi
 // from MP3 when `compressed` (kept at the cache's old end), else copied into Miles memory after
 // making room (kept at its front). Sets the voice's length, name, playing flag and a new handle.
 // Returns 0 when no archive has the file or the decompression fails.
-int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, std::string_view name, int compressed) {
+int CSoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compressed) {
     std::string key(name);    // freed on each return
     auto cached = cache.find(key);
     if (cached != cache.end()) {
@@ -1183,7 +1183,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, std::string_view n
             cache[key] = std::prev(cacheList.end());
             gameapi::AIL_set_sample_file(slot->sample, data, size);
         }
-        slot->length = static_cast<float>(WaveLength(record.data, record.size));
+        slot->length = static_cast<float>(WaveLength(record.data));
     }
     slot->name = key;
     slot->playing = 1;
@@ -1192,7 +1192,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, std::string_view n
     return 1;
 }
 
-void CSoundManager::StreamNotify(int /*mode*/) {}
+void CSoundManager::StreamNotify() {}
 
 int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set) {
     if (state == 1) {

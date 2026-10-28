@@ -268,7 +268,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
         auto q = FindQuery(v, from);
         if (q != v.list.end()) {
             BufferCursor c;
-            c.Reset(nullptr, 0, 0);
+            c.Reset(nullptr);
             c.sink = nullptr;
             GameBuffer& r = q->reply;
             r.high = r.begin;
@@ -331,7 +331,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
         if (r.cur > r.high) r.high = r.cur;
         if (r.PositionOf(r.high) != 0) {
             BufferCursor c;
-            c.Reset(nullptr, 0, 0);
+            c.Reset(nullptr);
             c.sink = nullptr;
             r.Seek(0);
             BufferUpdateHigh(&r);

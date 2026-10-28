@@ -166,13 +166,13 @@ void CMainMenu::OnMessageResult(int result) {
     if (result == 0x10001) {
         {
             std::string path = *g_discFolder + kExitMovie;
-            PlayMovie(path, 0, 0, 0, 1, 1, 1);
+            PlayMovie(path, 0, 0, 0, 1, 1);
         }
         app::QuitGame(0);
     } else if (result == 0x20001) {
         {
             std::string path = *g_discFolder + kIntroMovie;
-            PlayMovie(path, 0, 1, 1, 1, 1, 1);
+            PlayMovie(path, 0, 1, 1, 1, 1);
         }
         app::g_interfaceHasScreen = 0;
         g_gameFlow->RequestState3();
@@ -194,7 +194,7 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
                 animation = stones->FindSkillAnimation(kStoneAnimation[region]);
             else
                 animation = g_clientWorld->objectManager_->FindAnimation(&name, kRestPoseKind);
-            stones->PlayAnimation(animation, 1);
+            stones->PlayAnimation(animation);
             interface_->PlaySound(kStoneSound, 0);
         }
         hovered_ = region;

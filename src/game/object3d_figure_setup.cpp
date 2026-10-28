@@ -175,10 +175,9 @@ void CObject3D::CollectPartsByPrefix(std::string_view prefix, std::vector<CFigur
 
 // --- Loading single parts ---------------------------------------------------------------------
 
-CFigureMesh* CObject3D::LoadPart(std::string_view partName, FigureModel* model, std::uint32_t arg) {
+CFigureMesh* CObject3D::LoadPart(std::string_view partName) {
     CFigureManager* manager = FigureManagerOf(this);
-    CFigureMesh* part = manager->NewPart(name, partName, model, std::bit_cast<std::uint32_t>(scale.x),
-        std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z), arg, flags_ & kFlagDetached);
+    CFigureMesh* part = manager->NewPart(name, partName, flags_ & kFlagDetached);
     if (!part) {
         game::DebugLog(kCantLoadPart, std::string(partName), name);
         return nullptr;
@@ -220,17 +219,16 @@ CFigureMesh* CObject3D::LoadPart(std::string_view partName, FigureModel* model, 
     return part;
 }
 
-int CObject3D::LoadParts(std::string_view model, const std::vector<std::string>* names, std::uint32_t arg) {
+int CObject3D::LoadParts(std::string_view model, const std::vector<std::string>* names) {
     CFigureManager* manager = FigureManagerOf(this);
-    FigureModel* cached;
     {
         std::string key(model);
-        cached = manager->FindModel(&key);
+        manager->FindModel(&key);   // loads and caches the model
     }
     name = model;
     if (!manager) return game::FatalError(kNoFigureManager);
     for (const std::string& part : *names) {
-        if (!LoadPart(part, cached, arg)) game::DebugLog(kCantCreatePart, name, part);
+        if (!LoadPart(part)) game::DebugLog(kCantCreatePart, name, part);
     }
     return 1;
 }
@@ -261,7 +259,7 @@ int CObject3D::MakeFigure(std::string_view model, std::vector<std::string>* name
             if (old && --old->refCount_ == 0) delete old;
         }
     }
-    LoadParts(model, names, arg);
+    LoadParts(model, names);
     int classId = GetClassId();
     if ((classId == kClassUnit54 || GetClassId() == kClassUnit50) && animation) {
         animation->Play(nullptr);

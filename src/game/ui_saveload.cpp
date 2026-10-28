@@ -176,7 +176,7 @@ void CSaveLoadWindow::ShowPicture() {
     SceneMesh(3)->texture_ = objects_[1];
 }
 
-void SaveEntry::MakeTitle(int) {
+void SaveEntry::MakeTitle() {
     std::string quick;
     std::string autoEnter;
     std::string autoExit;
@@ -311,7 +311,7 @@ void CSaveLoadWindow::FillEntries() {
                 if (static_cast<int>(info.s.version_) > 2) info.s.ReadInto(&entry->title_);
             }
             info.Close();
-            if (entry->title_.size() == 0) entry->MakeTitle(1);
+            if (entry->title_.size() == 0) entry->MakeTitle();
             entry->broken_ = false;
         }
         infoFind.Close();
@@ -335,7 +335,7 @@ void CSaveLoadWindow::FillEntries() {
         entry->zone_ = LocalPlayerZone();
         if (MapRecord* record = g_mapDatabase->FindMap(entry->zone_))
             entry->map_ = record->allod;
-        entry->MakeTitle(1);
+        entry->MakeTitle();
         entry->broken_ = false;
 
         // The game's picture: a new texture filled from the escape menu's copy of the screen.

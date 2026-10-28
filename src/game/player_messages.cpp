@@ -222,14 +222,14 @@ void CPlayerServer::SendObject0B(const CEngineObject* object, std::uint32_t valu
     Write(&out_, payload, 8);
 }
 
-void CPlayerServer::SendValue12(std::uint32_t, std::uint32_t value) {
+void CPlayerServer::SendValue12(std::uint32_t value) {
     std::uint8_t payload[1 + sizeof(value)] = {};
     std::memcpy(payload + 1, &value, sizeof(value));
     WriteByte(&out_, 0x12);
     Write(&out_, payload, sizeof(payload));
 }
 
-void CPlayerServer::SendText13(std::uint32_t, std::string_view text) {
+void CPlayerServer::SendText13(std::string_view text) {
     WriteByte(&out_, 0x13);
     out_.WriteString(text);
 }

@@ -440,7 +440,7 @@ int EnterZone(CParty* records) {
                             kMovieZone) != 0) {
             {
                 std::string movie = *g_discFolder + kMovieFile;
-                PlayMovie(movie, 0, 1, 1, 1, 1, 1);
+                PlayMovie(movie, 0, 1, 1, 1, 1);
             }
             variables->Remove(kMovieVariable);
         }
@@ -1204,11 +1204,10 @@ void GameFlow::ProcessRequest() {
         StartZone(requestTarget_, 0);
         break;
     case kStatePartyZone: {
-        const char* zone = requestTarget_.c_str();
         CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
         player->AssignParty(RequestParty());
         g_serverWorld->TeardownZone();
-        if (!clientWorld->JoinGameClient(zone)) {
+        if (!clientWorld->JoinGameClient()) {
             if (Active(net::g_gameClient)) {
                 BeginMultiplayerGame();
             } else {

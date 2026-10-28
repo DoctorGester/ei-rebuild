@@ -321,7 +321,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     case 2: {
         {
             std::string path = *g_discFolder + "Movies\\Exit.bik";
-            PlayMovie(path, 0, 0, 0, 1, 1, 1);
+            PlayMovie(path, 0, 0, 0, 1, 1);
         }
         app::QuitGame(0);
         break;
@@ -488,7 +488,7 @@ void CCreditsScreen::CreateScreen() {
         g_clientWorld->music_->Stop();
     }
     g_cursor->ShowImage(0);
-    app::PlayMovies((name + "fin"), true, false, 0, 0);
+    app::PlayMovies((name + "fin"), true, false, 0);
     nextLineAt_ = 0.0f;
     // (Like the original: the field's address goes in as uiParam, so it is never written; then font
     // smoothing is switched off.)

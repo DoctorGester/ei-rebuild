@@ -69,13 +69,8 @@ LRESULT OnActivate(WPARAM wParam) {
         g_sceneRenderer->RestoreSurfaces();
         device = g_sceneRenderer->device_;
         if (device) {
-            // ResetCursors after the device was restored. The last argument is pushed from EAX after only AL
-            // was loaded, so its upper bytes are those of the device pointer; the value below rebuilds them.
-            // The context is the mouse.
-            std::uint32_t flags = (reinterpret_cast<std::uintptr_t>(device) & 0xFFFFFF00u) |
-                                  (g_deviceNamed == 0 ? 1u : 0u);
-            ResetCursors(options::g_options->fpsIndependentCursor_ != 0, g_mouse, 0,
-                         static_cast<int>(flags));
+            // ResetCursors after the device was restored. The context is the mouse.
+            ResetCursors(options::g_options->fpsIndependentCursor_ != 0, g_mouse, 0);
         }
     }
     g_cursor->ShowImage(1);

@@ -60,10 +60,9 @@ public:
     // `part`'s data from the model's mesh archive or "<directory><name>.fig" at the morph (s, t, u); returns 1.
     // Missing data: FatalError's result. The data is not closed.
     int LoadPart(CFigureMesh* part, FigureModel* model, float s, float t, float u);
-    // CObject3D::LoadPart. A new figure part (class 0x42 when `attached`, else 0x41) named `partName`. The model,
-    // the scale and `arg` are not read; a null part faults, as in the original.
-    CFigureMesh* NewPart(const std::string& modelName, std::string_view partName, FigureModel* model, std::uint32_t scaleX,
-                         std::uint32_t scaleY, std::uint32_t scaleZ, std::uint32_t arg, std::uint32_t attached);
+    // CObject3D::LoadPart. A new figure part (class 0x42 when `attached`, else 0x41) named
+    // `partName`; a null part faults, as in the original.
+    CFigureMesh* NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached);
     // The bone's animation from "<model><bone><animation>.ast" into `animator`; 0 without an animation or the
     // file. The path is built in a 0x200-byte buffer without a bounds check; the data is not closed.
     int LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation);

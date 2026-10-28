@@ -61,7 +61,7 @@ BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
     }
     if (!player_.Frame(app::g_movieMode != 1) && finished_) {
         player_.Close();
-        app::PlayMovies((name_ + kOutroSuffix), false, false, 0, 0);
+        app::PlayMovies((name_ + kOutroSuffix), false, false, 0);
         app::g_interfaceHasScreen = 0;
         Close();
         return 1;

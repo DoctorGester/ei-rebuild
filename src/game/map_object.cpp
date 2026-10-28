@@ -173,7 +173,7 @@ void CMapObject::RecomputeScale() {
 
 void CMapObject::ResetScale() { scale = baseScale; }
 
-float* CMapObject::GetPosition(float* out, int) {
+float* CMapObject::GetPosition(float* out) {
     std::memcpy(out, &localPosition_.x, 3 * sizeof(float));
     return out;
 }

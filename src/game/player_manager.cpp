@@ -71,12 +71,12 @@ void CPlayerManager::ChangeId(CEngineObject* object, int id) {
     objects_[static_cast<unsigned>(id)] = object;
 }
 
-void CPlayerManager::SendValueToAll(int unused, int value) {
-    ForEachPlayer(this, [&](CPlayer* player) { player->Server()->SendValue12(unused, value); });
+void CPlayerManager::SendValueToAll(int value) {
+    ForEachPlayer(this, [&](CPlayer* player) { player->Server()->SendValue12(value); });
 }
 
-void CPlayerManager::SendTextToAll(int unused, const char* text) {
+void CPlayerManager::SendTextToAll(const char* text) {
     ForEachPlayer(this, [&](CPlayer* player) {
-        player->Server()->SendText13(static_cast<std::uint32_t>(unused), text);
+        player->Server()->SendText13(text);
     });
 }

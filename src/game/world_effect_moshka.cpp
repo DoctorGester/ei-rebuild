@@ -245,7 +245,7 @@ void CEffectMoshka::Follow(int objectId) {
     std::vector<std::string> parts;
     bird->MakeFigure(model, &parts, 1);
     attached->RegisterPartMaterials();
-    bird->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
+    bird->PlayAnimationSecond(nullptr);
     bird->RestartPose();
     attached->SetSkins(texture, game::kEmptyText);
     g_clientWorld->AddObject(bird_);

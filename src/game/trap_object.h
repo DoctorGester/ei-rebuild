@@ -40,7 +40,7 @@ public:
     // and the trap disarms; with none, flags_ 0x100000 is cleared. Returns 0.
     int UpdateTrap();
     // An armed trap disarms when `key` accepts (always); returns true. The second argument is not read.
-    bool Disarm(const LockKey* key, int unused);
+    bool Disarm(const LockKey* key);
     // The check's result (1).
     int KeyFits(const LockKey* key);
     // Load / Save. The map object part, then

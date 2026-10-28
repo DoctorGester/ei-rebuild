@@ -216,7 +216,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
         int y = kPlaceY[places[i]];
         if (fresh) {
             picture = str::Format("spell%04d", icons[i]);
-            CopyImage(objects_[1], picture, kIconSize, kIconSize, kIconSize, kIconSize, x, y, 0, 0);
+            CopyImage(objects_[1], picture, kIconSize, kIconSize, kIconSize, kIconSize, x, y);
             effectIcons_[free] = icons[i];
         }
         CUiMesh* icon = Sprite(this, kFirstIcon + i);

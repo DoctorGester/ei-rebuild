@@ -136,7 +136,7 @@ int CPlayerClient::OnFreeCamera() {
     in_.Read(&to, 12);
     std::uint8_t free = 0;
     in_.Read(&free, 1);
-    g_camera->LookFrom(&from, &to, 0);
+    g_camera->LookFrom(&from, &to);
     g_camera->SetFree(free != 0);
     return 1;
 }

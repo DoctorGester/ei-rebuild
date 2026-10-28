@@ -140,7 +140,7 @@ void CBriefingScreen::OnUnitLeft(CUnit* unit) {
     party_.pop_back();
 }
 
-void CBriefingScreen::OnGameOver(int) {
+void CBriefingScreen::OnGameOver() {
     interface_->PlaySound("buttons\\gameover.wav", 0);
     CMessageBox* box = new CMessageBox(interface_, "game_over", "game_over_msg", kGameOverResult, 3, 1);
     interface_->PushWindow(box, 1, 1);

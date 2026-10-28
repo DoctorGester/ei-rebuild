@@ -246,7 +246,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
             int damage = static_cast<int>(static_cast<std::int64_t>(lost * maxHp));   // _ftol
             unit->companion->Hit(damage, kind);
             if (kind & 4) {
-                unit->Controller()->Wound(lost);
+                unit->Controller()->Wound();
             }
         }
         complete &= SnapshotConsumed();

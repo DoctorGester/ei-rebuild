@@ -107,11 +107,10 @@ unsigned CBinkVideo::Frame(char toPrimary) {
 // --- The movie players outside the frame -----------------------------------
 
 // `frameTime`: ms per frame, or 0 for the movie's own rate. Esc / Space end it (`keysEnd`), Space jumps to the
-// next frame when it does not; the screen is filled black first, a loading screen step first; the last
-// argument is never read. Plays the movie in a message loop of its own, each frame into its letterboxed
-// rectangle. Returns 0 when Esc ended it.
+// next frame when it does not; the screen is filled black first, a loading screen step first.
+// Plays the movie in a message loop of its own, each frame into its letterboxed rectangle. Returns 0 when Esc ended it.
 char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
-                          char loadingStep, int /*unused*/) {
+               char loadingStep) {
     if (!options::g_options->video_) return 1;
     const char* file = name.c_str();
     if (loadingStep) g_clientWorld->sounds_->StopAll(1);
@@ -192,7 +191,6 @@ char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char s
     gameapi::BinkClose(bink);
     if (holder) holder->Release();
     SetQuitAllowed(1);
-    g_cursor->SaveBackground(1);
     g_cursor->ShowImage(1);
     return escaped ? 0 : 1;
 }
@@ -225,7 +223,6 @@ void ShowLoadingMovie(int progress) {
         if (old) old->Release();
         g_loadingSurfaceType = kBinkSurface32R;
         g_loadingScreen = screen;
-        g_cursor->SaveBackground(1);
     }
     BinkHeader* bink = g_loadingBink;
     int last = static_cast<int>(bink->frames) - 1;
@@ -255,7 +252,6 @@ void ShowLoadingMovie(int progress) {
         render::MovieBlit(key, ToRender(g_loadingScreen));
         PresentMovieFrame();
     }
-    g_cursor->SaveBackground(1);
     g_cursor->ReleaseLock();
 }
 
@@ -324,7 +320,6 @@ void CBinkVideo::Close() {
     Surface* old = holder;
     holder = nullptr;
     if (old) old->Release();
-    g_cursor->SaveBackground(1);
     g_cursor->ShowImage(1);
 }
 

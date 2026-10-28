@@ -31,7 +31,6 @@ namespace {
 // The item prototypes' head (type: an armour's slot, 0 helmet, 1 body, 2 trousers, ..., or a
 // weapon's type; number: the number in "armor<nn>") and the unit prototypes (hair, -1 none; skin).
 constexpr std::uint32_t kNone = 0xFFFFFFFFu;
-constexpr std::uint32_t kFiguresDetached = 0x80;   // the unit's flags_, passed
 
 constexpr int kLayerSkin = 0x32;
 constexpr int kLayerArmour = 0x3005;
@@ -58,8 +57,6 @@ int RowOfSlot(int slot) {
 bool SameName(std::string_view a, std::string_view b) { return a == b; }
 
 const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::ArmorAt(type); }
-
-std::uint32_t FiguresFlag(const CUnit* unit) { return unit->flags_ & kFiguresDetached; }
 
 
 constexpr int kWeaponBow = 5;
@@ -187,18 +184,18 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
         CFigureMesh* current = unit->FindPartByPrefix(part);
         armourPart = str::Format("%s.armor%.2d", part, armour->number);
         if (model->mesh->FindEntry(armourPart) != -1) {
-            unit->LoadPart(armourPart, model, FiguresFlag(unit));
+            unit->LoadPart(armourPart);
             if (!SameName(plain, kHead)) unit->RemovePart(current);
         } else if (current) {
             if (SameName(plain, kHair)) {
                 unit->RemovePart(current);
             } else if (str::Compare(part,
                                        current->GetName()) != 0) {
-                unit->LoadPart(part, model, FiguresFlag(unit));
+                unit->LoadPart(part);
                 unit->RemovePart(current);
             }
         } else {
-            unit->LoadPart(part, model, FiguresFlag(unit));
+            unit->LoadPart(part);
         }
     }
     return true;
@@ -235,11 +232,11 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
             // One part of that name: replaced only when it is not the plain part already.
             if (str::Compare(part, parts[0]->GetName()) != 0) {
                 unit->RemovePart(parts[0]);
-                unit->LoadPart(part, model, FiguresFlag(unit));
+                unit->LoadPart(part);
             }
         } else {
             for (int k = 0; k < std::ssize(parts); ++k) unit->RemovePart(parts[k]);
-            unit->LoadPart(part, model, FiguresFlag(unit));
+            unit->LoadPart(part);
         }
         lib::FreeStorage(parts);
     }
@@ -250,10 +247,9 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     std::uint32_t previous = WeaponIdOf(this, unit->activeWeapon);
     std::uint32_t next = WeaponIdOf(this, slot);
     std::vector<std::string> names;
-    FigureModel* model;
     {
         std::string name = unit->name;
-        model = g_clientWorld->figureManager_->FindModel(&name);
+        g_clientWorld->figureManager_->FindModel(&name);   // loads and caches the model
     }
     if (previous != kNone) {
         WeaponModelParts(previous >> 16, &names);
@@ -264,7 +260,7 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     if (next != kNone) {
         WeaponModelParts(next >> 16, &names);
         for (const std::string& name : names) {
-            CEngineObject* part = unit->LoadPart(name, model, FiguresFlag(unit));
+            CEngineObject* part = unit->LoadPart(name);
             if (part) unit->AttachPartMesh(part);
         }
         arrowHidden = 0;

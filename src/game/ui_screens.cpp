@@ -375,7 +375,7 @@ void CCampPages::BestPartySkill(int school, int* skill, int* mana) {
     *mana = bestMana;
 }
 
-void CCampPages::ShowPageTabs(int page, int) {
+void CCampPages::ShowPageTabs(int page) {
     switch (page) {
     case 1: case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9: case 10: case 16:
         itemStrip_->SelectTab(2);

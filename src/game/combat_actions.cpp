@@ -94,7 +94,7 @@ void CUnitServer::DropQueuedOrder() {
     action2.modifier = 0;
 }
 
-void CUnitServer::FinishAction(int location, char) {
+void CUnitServer::FinishAction(int location) {
     switch (action.kind) {
     case 3: {
         DeliverAttack(action.target, &pendingHit);
@@ -121,7 +121,7 @@ void CUnitServer::FinishAction(int location, char) {
         if (item && item->GetCategory() == kQuickItemConsumable) {
             ++item->refCount_;
             unit->RemoveQuickItem(slot);
-            g_serverWorld->UseQuickItem(item, unit);
+            g_serverWorld->UseQuickItem(unit);
             item->Release();
         }
         action.kind = 9;
@@ -269,7 +269,7 @@ void CUnitServer::WitnessMurder(std::list<CUnit*>* witnesses, CUnit* victim, CUn
             console::EndLine(*kCombatLog << "Unit " << static_cast<long>(other->id_)
                                        << " has seen murder and is forced to see unit " << static_cast<long>(murderer->id_));
         }
-        DiplomacyOf(world)->OnAttack(murderer, other, 10);
+        DiplomacyOf(world)->OnAttack(murderer, other);
     } while (node != witnesses->end());
 }
 
@@ -314,7 +314,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     }
     if (CompanionSlots(ServerObjectOf(unit))->IsDead() == 0) {
         TriggerItemSpells(0);
-        if (attacker && attacker->GetClassId() == kClassUnit) DiplomacyOf(world)->OnAttack(attacker, unit, 10);
+        if (attacker && attacker->GetClassId() == kClassUnit) DiplomacyOf(world)->OnAttack(attacker, unit);
         brain.SetSeen(attacker);
         unit->flags_ |= 0x80000;
         PropagateHostility();
@@ -385,7 +385,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
 
     skill = action.source;
     if (skill != 0 && theirs >= mine) {
-        DiplomacyOf(world)->OnAttack(unit, other, 10);
+        DiplomacyOf(world)->OnAttack(unit, other);
         return;
     }
     int message;

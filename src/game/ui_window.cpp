@@ -151,7 +151,7 @@ BOOL CUiWindow::ContainsPoint(int x, int y) const {
     return gameapi::PtInRect(&rect_, point);
 }
 
-void CUiWindow::UpdateRegionTips(CSceneRenderer*) {
+void CUiWindow::UpdateRegionTips() {
     POINT mouse{interface_->mouseX_, interface_->mouseY_};
     interface_->ScalePointFromScreenEntry(&mouse);
     // Inlines CUiRegion::OnMouseMove for every region with a tooltip.

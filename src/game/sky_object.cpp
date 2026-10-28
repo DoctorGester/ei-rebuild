@@ -54,7 +54,7 @@ CSkyObject::~CSkyObject() {  }
 const char* CSkyObject::GetClassName() { return kClassName; }
 int CSkyObject::GetClassId() { return kClassId; }
 
-void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour) {
+void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour light) {
     const std::uint32_t r = Truncate(ambient.r * kColourScale);
     const std::uint32_t g = Truncate(ambient.g * kColourScale);
     const std::uint32_t b = Truncate(ambient.b * kColourScale);
@@ -91,8 +91,8 @@ void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour ligh
     render::MeshChanged(this, render::MeshChange::Colours);   // the colours the new renderer keeps
 }
 
-void CSky::Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour unused) {
-    if (object) object->Light(direction, ambient, light, unused);
+void CSky::Light(const float* direction, SkyColour ambient, SkyColour light) {
+    if (object) object->Light(direction, ambient, light);
 }
 
 CSky::CSky() {

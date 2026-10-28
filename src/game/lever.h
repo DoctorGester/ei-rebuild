@@ -115,7 +115,7 @@ public:
     std::uint32_t KeyId() override;
     // When `key` opens the lock (Rebirth's FixLeversActivate): the next state at the model's default
     // speed, then disabled; true. Else false.
-    bool ApplyKey(const LockKey* key, int unused);
+    bool ApplyKey(const LockKey* key);
     BOOL KeyOpens(const LockKey* key);
 
     int state;

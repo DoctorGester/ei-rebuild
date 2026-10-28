@@ -36,7 +36,7 @@ void MaskRow(const std::uint8_t* row, T* mask, std::uint32_t count, T colourBits
 
 } // namespace
 
-CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY, int /*flag*/) {
+CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     holder = nullptr;
     frame = 0;
     CTextureManager* manager = g_clientWorld->textureManager_;

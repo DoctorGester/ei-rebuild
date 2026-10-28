@@ -365,8 +365,8 @@ public:
     // Adds the time each player missed since its last update (plus `offset`) to its "gtime" variable.
     void UpdatePlayerTimes(float offset);
     // Puts a new entry at the head of the shared-object list: `id`, the session player's field for that id in a
-    // multiplayer game (else -1), `value`, and references to the objects of `objects`. `unused` is ignored.
-    void AddSharedObject(int id, int unused, std::uint32_t value, const std::list<CItem*>* objects);
+    // multiplayer game (else -1), `value`, and references to the objects of `objects`.
+    void AddSharedObject(int id, std::uint32_t value, const std::list<CItem*>* objects);
     // Before a save: every living unit refills its controller's slots and runs the controller's matching
     // virtual with 0.
     void PrepareSave();
@@ -483,7 +483,7 @@ public:
                      std::vector<UnitPlacement>* placements);
     // A quick item (potion) is used by `unit`: the effect object "st.tr.130" (model "unhuma", type 9, flags 0x3010)
     // is created at the unit's position and flagged new (flags_ |= 0x180000). `item` is not used.
-    void UseQuickItem(CItem* item, CUnit* unit);
+    void UseQuickItem(CUnit* unit);
 
     // Brings `player`'s view up to date (once per world update): the zone when it changed, weather, time, wind and
     // countdowns when dirty, then the map objects and timed objects it should see. Returns what the player state's
@@ -870,7 +870,7 @@ public:
     // `path`, or a driver for the game client's first connection (false without an active client or connection). Each
     // empties the maps and reconnects the session.
     void SetPlayer(CWorldHandle* player);
-    bool JoinGameClient(const char* unused);
+    bool JoinGameClient();
     // The player sources and the network session pumped, then the local player's link (when it is
     // active) asked HasIncoming / IncomingCount; false / 0 without one.
     bool PumpHasIncoming();

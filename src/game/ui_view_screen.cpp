@@ -63,7 +63,7 @@ void CViewScreen::CreateScreen() {
     camera->localRotation_.PreMultiply(turn);
 }
 
-BOOL CViewScreen::DrawView(CSceneRenderer*) {
+BOOL CViewScreen::DrawView() {
     GameRender();
     return TRUE;
 }

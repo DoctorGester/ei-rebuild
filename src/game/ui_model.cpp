@@ -54,14 +54,14 @@ CUiModel::~CUiModel() {
 // Skill animation `animation` + 1 of the object played.
 void CUiModel::Play(int animation) {
     CObject3D* object = object_;
-    object->PlayAnimation(object->FindSkillAnimation(animation + 1), 1);
+    object->PlayAnimation(object->FindSkillAnimation(animation + 1));
 }
 
 // The rest pose: the object named like the figure of kind 0x80590000 from the object manager, played.
 void CUiModel::Stop() {
     CObject3D* object = object_;
     std::string name(object->name);
-    object->PlayAnimation(g_clientWorld->objectManager_->FindAnimation(&name, kRestPoseKind), 1);
+    object->PlayAnimation(g_clientWorld->objectManager_->FindAnimation(&name, kRestPoseKind));
 }
 
 // The part named `name` shown or hidden (`show`'s low byte).
@@ -101,7 +101,7 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     std::vector<std::string> parts;
     object->MakeFigure(name, &parts, 1);
     specific->RegisterPartMaterials();
-    object->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
+    object->PlayAnimationSecond(nullptr);
     object->RestartPose();
     specific->SetSkins(from, to);
 }

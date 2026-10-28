@@ -145,7 +145,7 @@ void CHudWeaponBar::AddWeapon(std::string_view model, std::string_view image) {
     // half. (Left unset for a count over 3, which SetUnit never reaches.)
     const int x = count_ >= 2 ? kWeaponWidth : 0;
     const int y = (count_ & 1) ? kWeaponHeight : 0;
-    CopyImage(objects_[0], image, 0x80, 0x80, kWeaponWidth, kWeaponHeight, x, y, 0, 0);
+    CopyImage(objects_[0], image, 0x80, 0x80, kWeaponWidth, kWeaponHeight, x, y);
     CUiMesh* sprite = AddSprite(model);
     if (sprite) {
         // Turned about z, then y, then z again: pi * -0.05, pi * -1/3 and pi * 0.75.
@@ -199,7 +199,7 @@ CHudQuickItems::CHudQuickItems(CInterface3D* ui, CBattleScreen* owner) : CUiWind
 void CHudQuickItems::AddItem(std::string_view model, std::string_view image) {
     if (shownCount_ >= kMaxQuickItems) return;
     const IconPlace at = IconAt(shownCount_, 0x80);
-    CopyImage(objects_[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y, 0, 0);
+    CopyImage(objects_[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y);
     CUiMesh* sprite = AddSprite(model);
     if (sprite) {
         Quaternion turn;
@@ -241,7 +241,7 @@ void CHudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
         Sprite(this, i)->Place(780.0f, y, 40.0f);
     }
     const IconPlace at = IconAt(count_, 0x80);
-    CopyImage(objects_[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y, 0, 0);
+    CopyImage(objects_[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y);
     CUiMesh* sprite = AddSprite(model);
     SetOffsets(sprite, at.x, at.y + kIconSize);
     Quaternion turn;
@@ -279,7 +279,7 @@ CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUi
 
 void CHudActionColumn::AddAction(std::string_view model, std::string_view image, int action) {
     const IconPlace at = IconAt(count_, 0);
-    CopyImage(objects_[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y, 0, 0);
+    CopyImage(objects_[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y);
     CUiMesh* sprite = AddSprite(model);
     SetOffsets(sprite, at.x, at.y + kIconSize);
     Quaternion turn;

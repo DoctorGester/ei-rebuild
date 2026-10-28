@@ -300,9 +300,9 @@ void* UnitStats::RestoreSlots() {
     return &end->kind;   // where the loop pointer stops
 }
 
-float UnitStats::LegsFactor(int) { return RatioFactor(LowestSlotRatio(this, kSlotLegs)); }
+float UnitStats::LegsFactor() { return RatioFactor(LowestSlotRatio(this, kSlotLegs)); }
 
-float UnitStats::ArmsFactor(int) { return RatioFactor(LowestSlotRatio(this, kSlotArms)); }
+float UnitStats::ArmsFactor() { return RatioFactor(LowestSlotRatio(this, kSlotArms)); }
 
 int UnitStats::MovementState(char checkLoad) {
     float lowest = LowestSlotRatio(this, kSlotLegs);
@@ -330,7 +330,7 @@ double UnitStats::ManaCurve() {
 double UnitStats::RateValue() {
     float base = dexterity * kPointTwo + kTen;
     float level = static_cast<float>(LevelValueOf(this, kSkillRate));
-    float arms = ArmsFactor(1);
+    float arms = ArmsFactor();
     return (level * kPercentB + 1.0f) * arms * base;
 }
 
@@ -441,10 +441,9 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
         capacity = kNoCapacity;
     }
     load = static_cast<float>(unit->TotalItemWeight());
-    int unusedArg = keyed ? 1 : 0;   // the text-key byte is passed (upper bytes garbage)
-    loadFactor = movementKind == 1 ? LegsFactor(unusedArg) : 1.0f;
+    loadFactor = movementKind == 1 ? LegsFactor() : 1.0f;
     speed = speedBase * loadFactor;
-    float arms = ArmsFactor(unusedArg);
+    float arms = ArmsFactor();
     armsFactor = arms;
     rateBase = keyed ? dexterity * kPointTwo + kTen : kUnkeyedRateBase;
     double value = (LevelValueOf(this, kSkillRate) * kPercentB + 1.0f) * arms * rateBase;

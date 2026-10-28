@@ -499,7 +499,7 @@ void CUnitServer::TickAction() {
         unit->TurnUpTowards(direction, 0);
         return;
     }
-    FinishAction(plan.hitLocation, plan.notSkill);
+    FinishAction(plan.hitLocation);
     plan.animation = {};
     plan.targetId = -1;
     plan.endTime = 0;

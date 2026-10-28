@@ -236,7 +236,7 @@ void CHelpWindow::ShowPage() {
                     {
                         std::string name = std::string(kPicturePrefix) + entry.picture.data();
                         CopyImage(objects_[1], name, kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
-                                  cellY, 0, 0);
+                                  cellY);
                     }
                     CUiMesh* picture = AddBlankSprite();
                     picture->SetRectangle(3.0f, 100.0f, 0.0f, 0.0f, 64.0f, 64.0f, 0, 0, kPictureSize, kPictureSize);

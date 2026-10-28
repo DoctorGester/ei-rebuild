@@ -102,7 +102,7 @@ struct ItemStock {
     // Scrolls ("spell container", kind 0x3008) of the spells the stock offers: the recipe maps for scrolls, then
     // up to 10 tries at a spell list (GenerateSpells with scrollLevels and threshold 50) until it holds at least
     // as many spells as `spells`; a scroll per spell of the last try into `out`. The counts are not used.
-    void GenerateScrolls(int minCount, int maxCount, std::list<CItem*>* out);
+    void GenerateScrolls(std::list<CItem*>* out);
 
     // Up to a random count in [minCount, maxCount] of the prototypes (all of them when there are not more;
     // otherwise the vector is shuffled in place and its first ones taken), each built as an item into `out`:

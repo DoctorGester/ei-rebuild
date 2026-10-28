@@ -24,11 +24,11 @@ void AIAttention::CurrentAttack(AIBrain* brain, AITargetChoice* choice) {
     choice->object = UnitOrNull(brain->target);
 }
 
-void AIAttention::LookAround(AIBrain* brain, int unused) {
+void AIAttention::LookAround(AIBrain* brain, int reachArg) {
     CountedUnits candidates{};
     AITargetChoice best{-1, nullptr};
     Vector3 from = *&brain->owner->unit->localPosition_;
-    brain->ChooseTarget(&best, &candidates, &from, 1, unused);
+    brain->ChooseTarget(&best, &candidates, &from, 1, reachArg);
     CUnit* chosen = best.object;
     if (chosen) {
         AITargetChoice now{-1, nullptr};

@@ -114,15 +114,14 @@ public:
     void Close(CStream* stream);
 
     // Database arrays. Each is a vector of records serialised as chunk `id` holding one chunk 1 per record
-    // (`occurrence` selects the record); loading replaces the vector's contents. The third argument (the
-    // callers pass the database file's data) is unused.
+    // (`occurrence` selects the record); loading replaces the vector's contents.
     void SerializePrints(int id, std::vector<PrintRecord>* records);
     void SerializePrints2(int id, std::vector<PrintRecord2>* records);
     void SerializeAcks(int id, std::vector<acks::UnitAcks>* records);
     void SerializeAcks2(int id, std::vector<acks::ModelAcks>* records);
     void SerializeAcks3(int id, std::vector<acks::ExtraAcks>* records);
 
-    // The party manager's chunks. The third argument is unused but popped. Loading empties the container
+    // The party manager's chunks. Loading empties the container
     // first and takes one record per chunk 1. The parties by key (party_manager.h, PartyMap): per party a chunk
     // 1 (field 1: the key) and a chunk 2 (CParty::ArchiveParty); loading inserts each key (PartyAt).
     void SerializeParties(int id, lib::HashMap<int, CParty>* parties);
@@ -133,14 +132,14 @@ public:
     void SerializeClassTemplates(int id, TemplateTable* templates);
     void IntField(int id, int* value);
 
-    // As chunk `id`; the third argument (the archive again) is unused.
+    // As chunk `id`.
     void SerializeSpeechList(int id, acks::Speeches* list);
     void SerializeEnvironmentSpeeches(int id, acks::EnvironmentSpeeches* list);
     // The lever records as chunk `id`, one chunk 1 per
-    // record (emptied and resized to the number of chunks when loading). The last argument is not read.
+    // record (emptied and resized to the number of chunks when loading).
     void SerializeLevers(int id, std::vector<LeverRecord>* list);
 
-    // The item database's vectors, one chunk 1 per record (the third argument unused).
+    // The item database's vectors, one chunk 1 per record.
     void SerializeQuickItems(int id, std::vector<itemdb::QuickItemRecord>* records);
     void SerializeLoot(int id, std::vector<itemdb::QuestItemRecord>* records);
     void SerializeQuestItems(int id, std::vector<itemdb::LootItemRecord>* records);

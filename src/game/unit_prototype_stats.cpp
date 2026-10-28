@@ -14,5 +14,5 @@ void CUnit::TakePrototype(std::string_view prototype) {
     stats.Reset();
     MapObjectManagerOf(this)->BuildFromPrototype(&vitals, &stats, prototype);
     vitals.Pack(&packedVitals);
-    stats.Pack(nullptr, &params);
+    stats.Pack(&params);
 }

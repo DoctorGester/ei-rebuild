@@ -43,8 +43,7 @@ public:
     int SetActive(char active);
     // Reads the device state (DIMOUSESTATE: lX, lY, lZ, buttons; zeroed when the read fails) into the object
     // and returns it. The argument is not read.
-    const LONG* Poll(int unused);
-    const LONG* PollThroughHook(int unused) { return Poll(unused); }
+    const LONG* Poll();
     // The mouse data format Setup gives the device (dinput.lib's c_dfDIMouse, as a DIDATAFORMAT), our own
     // copy; the objects name the game's GUID_XAxis / YAxis / ZAxis.
     static const void* MouseDataFormat();
@@ -58,9 +57,9 @@ public:
 // The cursor's image (one per cursor shape): its surface holder (the picture: `frames` square frames side by
 // side), a frame's size, the frame shown, the hot spot and the mask.
 struct CursorImage {
-    // The image of the picture "<name>.mmp" (from the texture manager; loaded into a holder with `flag`), the
+    // The image of the picture "<name>.mmp" (from the texture manager), the
     // hot spot given in the 32-pixel layout.
-    CursorImage(const char* name, int hotSpotX, int hotSpotY, int flag);
+    CursorImage(const char* name, int hotSpotX, int hotSpotY);
     ~CursorImage();
     CursorImage(const CursorImage&) = delete;
     CursorImage& operator=(const CursorImage&) = delete;
@@ -77,7 +76,6 @@ struct CursorImage {
 
 class CCursor {
 public:
-    void SaveBackground(char fromPrimary);
     int SetShape(int shape) { return ChangeShape(shape); }
 
     CCursor* Construct();
@@ -107,7 +105,7 @@ public:
     // render target's size when there is a primary surface) and the background and composition surfaces
     // (cursor size and twice that).
     void Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, int smallCursors);
-    void AddShape(const char* name, int hotX, int hotY, int flag);
+    void AddShape(const char* name, int hotX, int hotY);
 
     int mode_;                       // 2: the background is saved from the primary without an image
     CTextureDevice* device_;         // referenced
@@ -139,5 +137,5 @@ void CursorDrawFrame(CCursor* self);
 
 extern lib::StaticObject<CCursor> g_cursor;
 
-void SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags);
-void ResetCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags);
+void SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors);
+void ResetCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors);

@@ -65,7 +65,7 @@ int CTrapObject::UpdateTrap() {
     return 0;
 }
 
-bool CTrapObject::Disarm(const LockKey* key, int) {
+bool CTrapObject::Disarm(const LockKey* key) {
     if (!(flags_ & kArmed) || !key->AcceptedByTrap()) return false;
     flags_ &= ~kArmed;
     return true;
@@ -86,7 +86,7 @@ void CTrapObject::SaveTrapObject(CStream* stream) {
 
 void CTrapObject::Load(CStream* stream) { LoadTrapObject(stream); }
 void CTrapObject::Save(CStream* stream) { SaveTrapObject(stream); }
-bool CTrapObject::ApplyScience(const LockKey* key, CEngineObject*) { return Disarm(key, 0); }
+bool CTrapObject::ApplyScience(const LockKey* key, CEngineObject*) { return Disarm(key); }
 
 bool CTrapObject::Slot29True() { return true; }
 

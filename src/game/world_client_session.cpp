@@ -34,7 +34,7 @@ void CWorldClient::SetPlayer(CWorldHandle* player) {
     session_->Connect(link);
 }
 
-bool CWorldClient::JoinGameClient(const char*) {
+bool CWorldClient::JoinGameClient() {
     net::ClientSession* client = net::g_gameClient;
     if (!client || (client->flags7_ & CRefCounted::kDetached)) return false;
     if (client->clients_.empty()) return false;

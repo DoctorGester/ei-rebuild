@@ -20,10 +20,10 @@ constexpr std::uint32_t kStateUnsent = 2;       // flags_: the network state has
 // --- Empty slots -------------------------------------------------------------------------------------
 
 // No key is accepted.
-int CMapObject::AcceptsNoKey(const void* /*key*/) { return 0; }
+int CMapObject::AcceptsNoKey() { return 0; }
 
 // A scaling effect came or went; 1.
-int CMapObject::ScaleEffectChangedDefault(int /*scaleEffect*/) { return 1; }
+int CMapObject::ScaleEffectChangedDefault() { return 1; }
 
 // --- Slots that read the object ------------------------------------------------------------------------
 
@@ -83,27 +83,27 @@ void CMapObject::EffectsChanged() {}
 bool CMapObject::IsSynchronised() { return Flag20000() != 0; }
 void CMapObject::ApplyBaseScale() { ResetScale(); }
 void CMapObject::ReceiveHit(DamageInfo*, CUnit*, CUnit*) {
-    CompanionQuery(0, 0, 0);
+    CompanionQuery(0, 0);
 }
 int CMapObject::StatsChanged() { return PackVitals(); }
-void CMapObject::ScaleEffectChanged(int scaleEffect) {
-    ScaleEffectChangedDefault(scaleEffect);
+void CMapObject::ScaleEffectChanged(int) {
+    ScaleEffectChangedDefault();
 }
 void CMapObject::SetStats(const UnitStats*) {}
 void CMapObject::UpdateSizeClasses() {}
 int CMapObject::IsUsable() { return 0; }
 int CMapObject::IsDirectUseBlocked() { return 0; }
 std::uint32_t CMapObject::KeyId() { return static_cast<std::uint32_t>(kNoKey); }
-int CMapObject::AcceptsKey(const LockKey* key) { return AcceptsNoKey(key); }
+int CMapObject::AcceptsKey(const LockKey*) { return AcceptsNoKey(); }
 bool CMapObject::KeepsMapFlag() { return true; }
-void CMapObject::UseSpots(std::vector<Vector3>* out, float) { FreeArray(out, 0); }
+void CMapObject::UseSpots(std::vector<Vector3>* out, float) { FreeArray(out); }
 std::uint32_t CMapObject::SetStunned(int) { return 0; }
 Vector3* CMapObject::EyePoint(Vector3* out) {
     GroundPoint(&out->x);
     return out;
 }
-Vector3* CMapObject::PositionAt(Vector3* out, int time) {
-    GetPosition(&out->x, time);
+Vector3* CMapObject::PositionAt(Vector3* out, int) {
+    GetPosition(&out->x);
     return out;
 }
 Vector3* CMapObject::AimPoint(Vector3* out) {

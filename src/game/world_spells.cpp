@@ -61,7 +61,7 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
     if (victim && caster) {
         if (IsHostileType(SpellType(spell))) {
             victim->ServerController()->brain.SetSeen(caster);
-            diplomacy_.OnAttack(caster, victim, 10);
+            diplomacy_.OnAttack(caster, victim);
             target->flags_ |= kFlagFought;
             caster->flags_ |= kFlagFought;
         }

@@ -164,7 +164,7 @@ public:
     PathOrder* Path() override { return &motion; }
     void Unused17() override {}
     int ShowWeapon(std::uint32_t slot) override { return TakeUpWeapon(static_cast<int>(slot)); }
-    bool ArmourTakenOff(std::uint32_t unused) override { return RebuildArmourLayers(static_cast<int>(unused)); }
+    bool ArmourTakenOff(std::uint32_t) override { return RebuildArmourLayers(); }
     void ObjectDeleted(CEngineObject* object) override { OnObjectDeleted(object); }
 
     // The active weapon's reach, else the natural reach.
@@ -230,7 +230,7 @@ public:
     // --- The end of an action, missiles, item spells, death, healing, skills.
     // When the current order's animation reaches its moment: an attack delivers pendingHit, a cast finishes, a
     // skill or use is applied, a quick item of category 2 is used up; all but attacks then clear the order.
-    void FinishAction(int location, char unused);
+    void FinishAction(int location);
     // A missile (world object 0x5B carrying the hit) for a bow or crossbow, else the target's TakeHit
     // directly; then the weapon's spell, and noise when the hit was not a backstab.
     void DeliverAttack(CMapObject* target, DamageInfo* hit);
@@ -327,7 +327,7 @@ public:
     bool ArmourPutOn(std::uint32_t key) override;
     // The armour layers rebuilt (the argument unread; returns true) / the outer layers cleared (returns
     // UnitStats::ClearOuterLayers's 0).
-    bool RebuildArmourLayers(int unused);
+    bool RebuildArmourLayers();
     int ClearOuterArmourLayers() override;
     BOOL RefreshEquipment() override;
     // The claims dropped (claimedHostile) and the calls heard with a hostility mask.

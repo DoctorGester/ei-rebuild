@@ -704,7 +704,7 @@ void PlayerMode::CommandUse(AIBrain* brain, CMapObject* object, int kind, int a,
     brain->UseOn(object, kind, a, b);
 }
 
-void PlayerMode::CommandCast(AIBrain* brain, int spell, CMapObject* object, int) {
+void PlayerMode::CommandCast(AIBrain* brain, int spell, CMapObject* object) {
     std::uint8_t running = run;
     state = kStateFollow;
     if (!brain->owner->IsScrollSource(spell)) brain->action = AIBrain::kActionCast;
@@ -718,7 +718,7 @@ void PlayerMode::CommandCast(AIBrain* brain, int spell, CMapObject* object, int)
     brain->owner->OrderCast(spell, object, running);
 }
 
-void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3* at, int) {
+void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3* at) {
     std::uint8_t running = run;
     state = kStateFollow;
     if (!brain->owner->IsScrollSource(spell)) brain->action = AIBrain::kActionCast;

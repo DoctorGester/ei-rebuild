@@ -591,7 +591,7 @@ void CCamera::SetFree(bool on) {
         flags_ &= ~kFree;
 }
 
-void CCamera::LookFrom(const Vector3* from, const Vector3* to, int) {
+void CCamera::LookFrom(const Vector3* from, const Vector3* to) {
     flags_ |= kFree;
     localPosition_ = *from;
     float dx = static_cast<float>(D(to->x) - from->x);

@@ -50,11 +50,11 @@ void CObject3D::SetAnimationState(CFigureAnimationState* state) {
     }
 }
 
-void CObject3D::PlayAnimation(FigureAnimation* figureAnimation, int) {
+void CObject3D::PlayAnimation(FigureAnimation* figureAnimation) {
     if (animation) animation->Play(figureAnimation);
 }
 
-int CObject3D::PlayAnimationSecond(int, FigureAnimation* figureAnimation) {
+int CObject3D::PlayAnimationSecond(FigureAnimation* figureAnimation) {
     if (animation) animation->Play(figureAnimation);
     return 1;
 }

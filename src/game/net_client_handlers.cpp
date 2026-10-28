@@ -200,7 +200,7 @@ void ClientOnPlayerGone(ClientSession* self, Message* message) {
 // The chat lines, each shown with its number.
 void ClientOnLine(ClientSession* self, LineMessage* message) {
     Append(self->lines_, message);
-    g_interface->OnChatLine(message->text_.data(), message->number_);
+    g_interface->OnChatLine(message->text_.data());
 }
 void ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }
 // The host message kept.

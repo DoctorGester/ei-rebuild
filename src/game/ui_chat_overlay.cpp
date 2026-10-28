@@ -76,7 +76,7 @@ constexpr COLORREF kTypedColour = 0xFFFFFF;
 
 // --- a chat line added ---------------------------------------------------------------------------
 
-void CChatOverlay::AddLine(const char* text, std::uint32_t) {
+void CChatOverlay::AddLine(const char* text) {
     const int before = static_cast<int>(lines_.size());
     std::vector<std::string> plain;       // the lines without colour codes
     std::vector<std::string> formatted;   // the same lines with them

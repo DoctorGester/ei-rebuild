@@ -121,8 +121,6 @@ double UnitStats::BackstabFactor() {
     return 0.0f * kPercent + base;
 }
 
-double UnitStats::BackstabFactorArg(int) { return BackstabFactor(); }
-
 double UnitStats::Reduce(float value) {
     double taken = 0.0;   // accumulated on the FPU stack
     for (const UnitStatSlot& slot : slots) {

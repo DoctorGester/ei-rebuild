@@ -186,16 +186,14 @@ void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
     for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
-        Vector3 position;   // the target's position, passed to the (unused) argument of the checks
-        position = target->localPosition_;
         int refused;
         if (quick == 0) {
             LocalView(&g_clientWorld.Get())->SendCastOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
-            refused = unitAt(i)->CanCastSpell(pendingSlot_, &position.x);
+            refused = unitAt(i)->CanCastSpell(pendingSlot_);
         } else {
             LocalView(&g_clientWorld.Get())->SendItemOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
             quickItems_->SetUnit(unitAt(i));
-            refused = unitAt(i)->CanUseQuickItem(pendingSlot_, &position.x);
+            refused = unitAt(i)->CanUseQuickItem(pendingSlot_);
         }
         if (refused == 0) NodPortrait(this, i);
     }
@@ -222,10 +220,10 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
         if (quick != 0) {
             LocalView(&g_clientWorld.Get())->SendItemAtPoint(pendingSlot_, unitAt(i), &point, 0);
             quickItems_->SetUnit(unitAt(i));
-            refused = unitAt(i)->CanUseQuickItem(pendingSlot_, &point.x);
+            refused = unitAt(i)->CanUseQuickItem(pendingSlot_);
         } else {
             LocalView(&g_clientWorld.Get())->SendCastAtPoint(pendingSlot_, unitAt(i), &point, 0);
-            refused = unitAt(i)->CanCastSpell(pendingSlot_, &point.x);
+            refused = unitAt(i)->CanCastSpell(pendingSlot_);
         }
         if (refused == 0) NodPortrait(this, i);
     }

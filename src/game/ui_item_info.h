@@ -125,7 +125,7 @@ public:
     // camp, the exchange and the hero screen override them.
     virtual void TakeItem(CItem*, int) {}
     virtual bool CanEquip(CItem* item, int mode);
-    virtual void TopicClicked(int, int) {}
+    virtual void TopicClicked(int) {}
     virtual void BestPartySkill(int school, int* skill, int* mana);
     virtual void RefreshWeapons() {}
     virtual void RefreshStats() {}
@@ -170,7 +170,7 @@ protected:
 };
 
 inline void CUiItemPanel::OwnerTakeItem(CItem* item) { owner_->TakeItem(item, mode_); }
-inline void CUiItemPanel::OwnerTopicClicked(int topic) { owner_->TopicClicked(topic, mode_); }
+inline void CUiItemPanel::OwnerTopicClicked(int topic) { owner_->TopicClicked(topic); }
 
 // What the statistics under the mouse are (filled by the stats panel and the trade panel, read by
 // DescribeStats).

@@ -123,7 +123,7 @@ void CUnit::PlaceOnGround(float offset) {
 }
 
 void CUnit::SetFromStats(UnitStats* stats) {
-    stats->Pack(this, &params);
+    stats->Pack(&params);
     float curve = static_cast<float>(stats->HitPointCurve());
     float limit = ScaleHitPointsByEffects(this, curve);
     packedVitals.maxHitPoints = static_cast<std::int16_t>(libcrt::Ftol(limit));

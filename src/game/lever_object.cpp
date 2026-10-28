@@ -107,7 +107,7 @@ void Lever::SaveLever(CStream* stream) {
 
 void Lever::Load(CStream* stream) { LoadLever(stream); }
 void Lever::Save(CStream* stream) { SaveLever(stream); }
-bool Lever::ApplyScience(const LockKey* key, CEngineObject*) { return ApplyKey(key, 0); }
+bool Lever::ApplyScience(const LockKey* key, CEngineObject*) { return ApplyKey(key); }
 void Lever::UseSpots(std::vector<Vector3>* out, float userRadius) { CollectUseSpots(out, userRadius); }
 
 void LockKey::ReadFrom(CStream* stream) {
@@ -198,7 +198,7 @@ int Lever::NeedsKey() {
 
 std::uint32_t Lever::KeyId() { return (lock.mask & kKeyById) ? lock.id : 0; }
 
-bool Lever::ApplyKey(const LockKey* key, int) {
+bool Lever::ApplyKey(const LockKey* key) {
     if (!key->Opens(&lock)) return false;
     SetState(-1, kNextStateDuration);
     flags_ |= kDisabled;

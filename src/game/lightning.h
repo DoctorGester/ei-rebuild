@@ -75,7 +75,7 @@ public:
     const char* GetClassName() override;
     int GetClassId() override;
 
-    void DrawGlow(CSceneRenderer* device, const Vector3* position, int /*frame: not used*/, float size);
+    void DrawGlow(CSceneRenderer* device, const Vector3* position, float size);
     // Draws the bolt (render device virtuals, glow sprites); lightning_draw.cpp.
     int Draw(CSceneRenderer* device);
     // Grows the bounding box by the points of one segment.

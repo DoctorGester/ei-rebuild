@@ -154,7 +154,7 @@ int CWorldClient::UpdateLighting() {
         display->SetFogColour(sky.r, sky.g, sky.b);
         if (skyDome_) {
             const SkyColour black = {0.0f, 0.0f, 0.0f, 1.0f};
-            skyDome_->Light(&kCaveSun.x, black, black, black);
+            skyDome_->Light(&kCaveSun.x, black, black);
         }
         EI_NAN_AUDIT(hour, g_lastLitHour);
         if (hour - g_lastLitHour < 1.0f) return 0;
@@ -215,8 +215,7 @@ int CWorldClient::UpdateLighting() {
     if (skyDome_) {
         const SkyColour ambient = {skyAmbient_.r, skyAmbient_.g, skyAmbient_.b, skyAmbient_.a};
         const SkyColour sunlight = {frameSun_.r, frameSun_.g, frameSun_.b, frameSun_.a};
-        const SkyColour skyColour = {sky.r, sky.g, sky.b, 0.0f};   // the fourth float is stack garbage in the original
-        skyDome_->Light(&direction.x, ambient, sunlight, skyColour);
+        skyDome_->Light(&direction.x, ambient, sunlight);
     }
     EI_NAN_AUDIT(hour, g_lastLitHour);
     if (hour - g_lastLitHour < 1.0f) return 0;

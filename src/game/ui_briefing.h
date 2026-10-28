@@ -103,7 +103,7 @@ public:
     void MessageResult(int result) override { OnMessageResult(static_cast<std::uint32_t>(result)); }
     void UnitJoined(CUnit* unit) override { OnUnitJoined(unit); }
     void UnitLeft(CUnit* unit) override { OnUnitLeft(unit); }
-    void GameOver(int won) override { OnGameOver(won); }
+    void GameOver(int) override { OnGameOver(); }
     void ShowBriefing(std::string_view name) override { OnBriefing(name); }
     bool ReadyToStopPolling() override { return true; }
     void PlayersChanged(int show) override { ShowChat(static_cast<char>(show)); }
@@ -123,7 +123,7 @@ public:
     // or last without one. The first record's unit becomes the leader, and the first "b.<zone>..." variable
     // equal to 1 with three parts starts its topic (the third part) at once.
     void OnUnitJoined(CUnit* unit);
-    void OnGameOver(int unused);
+    void OnGameOver();
     // The interface command "briefing <name>": dialogue `name` starts at once.
     void OnBriefing(std::string_view name);
     void ShowChat(char show);
@@ -198,7 +198,7 @@ public:
                     int run);
     // "#show <name>": a person joins the speakers (the leader's server unit gets flag 0x40000000). Anything
     // else with `index` >= 0 is a loot item. See docs/notes/ui.md, "Behaviour moved out of header comments".
-    void ShowItem(std::string_view name, int index, int unused);
+    void ShowItem(std::string_view name, int index);
     void ClearShownItems();
     ~CBriefingScreen() override;
     void SetChatActive(int mode);

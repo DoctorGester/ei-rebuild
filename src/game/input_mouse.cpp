@@ -106,7 +106,7 @@ int CDirectInputMouse::SetActive(char active) {
     return 1;
 }
 
-const LONG* CDirectInputMouse::Poll(int /*unused*/) {
+const LONG* CDirectInputMouse::Poll() {
     static_assert(sizeof(state_) == sizeof(DIMOUSESTATE));
     if (device_->GetDeviceState(sizeof(state_), state_) < 0) std::memset(state_, 0, sizeof(state_));
     return state_;

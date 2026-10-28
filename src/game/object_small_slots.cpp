@@ -17,7 +17,7 @@ bool CMapObject::ApplyScience(const LockKey*, CEngineObject*) {
     return false;
 }
 
-void CMapObject::FreeArray(std::vector<Vector3>* array, int) {
+void CMapObject::FreeArray(std::vector<Vector3>* array) {
     lib::FreeStorage(*array);
 }
 
@@ -42,7 +42,7 @@ void CMapObjectServer::Destroy() {
     owner = nullptr;
 }
 
-int CMapObject::CompanionQuery(int first, int second, int) {
+int CMapObject::CompanionQuery(int first, int second) {
     return companion->Query(first, second);
 }
 

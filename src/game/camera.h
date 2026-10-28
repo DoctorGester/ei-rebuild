@@ -113,8 +113,8 @@ public:
     // View rotation = `angle` radians about Z, then ApplyView.
     void SetHeading(float angle);
     void SetFree(bool on);
-    // Free placement at `from` looking at `to`. Third argument unused.
-    void LookFrom(const Vector3* from, const Vector3* to, int unused);
+    // Free placement at `from` looking at `to`.
+    void LookFrom(const Vector3* from, const Vector3* to);
     void SetBounds(const Vector3* center, float radius);
     // Starts a shake from an event at `source` (ignored 20 or more away).
     void Shake(const Vector3* source, float duration, float amplitude, float decay);

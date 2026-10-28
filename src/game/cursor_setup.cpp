@@ -9,11 +9,6 @@
 namespace {
 // The cursor object and its methods.
 // The device the cursor is drawn on.
-// The set-up function through its address (the verify build's wrapper sees the call from the reset).
-void SetUpCursorsAt(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags) {
-    SetUpCursors(modeTwo, context, smallCursors, flags);
-}
-
 struct CursorShape {
     const char* name;
     const char* smallName;
@@ -50,17 +45,17 @@ const CursorShape kShapes[] = {
 } // namespace
 
 // Set-up. `modeTwo` picks the cursor's mode 2 (else 1); `context` and
-// `smallCursors` (low byte tested) go to the cursor's Init, `flags` to every shape.
-void SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags) {
+// `smallCursors` (low byte tested) go to the cursor's Init.
+void SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors) {
     g_cursor->Init(g_sceneRenderer->device_, modeTwo ? 2 : 1,
                                                 context, smallCursors);
     bool useSmall = static_cast<std::uint8_t>(smallCursors) != 0;
     for (const CursorShape& shape : kShapes)
-        g_cursor->AddShape(useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY, flags);
+        g_cursor->AddShape(useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY);
     g_cursor->Start();
 }
 
-void ResetCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags) {
+void ResetCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors) {
     g_cursor->Shutdown();   // the drawing thread stopped, the shapes released
-    SetUpCursorsAt(modeTwo, context, smallCursors, flags);
+    SetUpCursors(modeTwo, context, smallCursors);
 }

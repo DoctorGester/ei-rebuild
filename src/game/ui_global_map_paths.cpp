@@ -56,7 +56,7 @@ void SearchWays(CGlobalMap* map, const std::string& target) {
 }
 
 bool MayTravelTo(CGlobalMap* map) {
-    return map->MayTravel(0);
+    return map->MayTravel();
 }
 
 } // namespace

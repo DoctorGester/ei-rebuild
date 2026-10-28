@@ -556,7 +556,7 @@ void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, std::li
 }
 
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced.
-void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, std::list<CItem*>* out) {
+void ItemStock::GenerateScrolls(std::list<CItem*>* out) {
     CItemConstructor* ctor = ConstructorOf(this);
     CItemManager* manager = PartyOf(this)->ItemFactory();
     PartyOf(this)->SpellManager();   // (fetched and not used)

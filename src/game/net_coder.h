@@ -131,8 +131,8 @@ struct BufferCursor {
     void WriteBytes(const void* from, std::uint32_t size);
     // Copies `size` bytes from `p`.
     void ReadBytes(void* to, std::uint32_t size);
-    // Starts reading at `at` (the other two arguments are not used).
-    void Reset(std::uint8_t* at, std::uint32_t unused1, std::uint32_t unused2);
+    // Starts reading at `at`.
+    void Reset(std::uint8_t* at);
     // Stores the pending bits in the reserved byte.
     void FlushBits();
     // FlushBits, then commits `p` to the sink (which must exist) and drops it. Returns the commit's result.

@@ -55,8 +55,7 @@ int CFigureManager::CreateWithArchives() {
     return 1;
 }
 
-CFigureMesh* CFigureManager::NewPart(const std::string& modelName, std::string_view partName, FigureModel*, std::uint32_t,
-                                     std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t attached) {
+CFigureMesh* CFigureManager::NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached) {
     auto* part = CreateObjectAs<CFigureMesh>(kSharedPartClass + (attached != 0), -1);
     part->name_ = partName;
     part->directory_ = modelName;

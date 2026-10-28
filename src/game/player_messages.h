@@ -112,10 +112,10 @@ public:
     void SendPair18(std::uint32_t a, std::uint32_t b);
     void SendObject43(const CEngineObject* object);                 // id, nothing without an object
     void SendObject0B(const CEngineObject* object, std::uint32_t value);   // id, value
-    // Message 0x12, a byte and `value` (the 2nd argument; the first is not read). The original never writes
+    // Message 0x12, a byte and `value` . The original never writes
     // the byte: whatever its stack holds goes out. Ours sends 0; the client's handler skips the byte.
-    void SendValue12(std::uint32_t unused, std::uint32_t value);
-    void SendText13(std::uint32_t unused, std::string_view text);        // the text is the 2nd argument
+    void SendValue12(std::uint32_t value);
+    void SendText13(std::string_view text);
     void WriteTo(CStream* target);                                  // target->CopyFrom(out_)
     void SetDisconnect();                                           // state 4
     void SetPartyDeployed(std::uint8_t value);

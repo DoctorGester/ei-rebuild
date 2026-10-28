@@ -592,7 +592,7 @@ int CPlayerClient::OnNewObject() {
     CObject3DClientSpecific* attached = figure->ClientSpecific();
     attached->RegisterPartMaterials();
     // (The client world's two functions around the texture swap are empty.)
-    figure->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
+    figure->PlayAnimationSecond(nullptr);
     figure->RestartPose();
     std::optional<std::string_view> to = std::string_view(textureTo);
     if (created->type_ == kTypeHumanoid) {

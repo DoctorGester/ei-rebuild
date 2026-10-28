@@ -362,10 +362,10 @@ public:
     // A part object for the figure part `partName` (the figure manager's LoadPart; "Can't load figure" logged
     // and null when missing). With a figure the part must be one of its pieces (else null, the part leaked)
     // and takes its box; box flags by name prefix as SetUpAnimatedFigure. It joins the parts as LoadFigures' new parts do.
-    CFigureMesh* LoadPart(std::string_view partName, FigureModel* model, std::uint32_t arg);
+    CFigureMesh* LoadPart(std::string_view partName);
     // The object's figure becomes `model` and each name of `partList` is loaded by LoadPart
-    // (with the cached model; failures logged). Without a figure manager: FatalError. Returns 1.
-    int LoadParts(std::string_view model, const std::vector<std::string>* partList, std::uint32_t arg);
+    // (failures logged). Without a figure manager: FatalError. Returns 1.
+    int LoadParts(std::string_view model, const std::vector<std::string>* partList);
     // When a unit becomes the controlled one (world client): with the figure loaded (flags_ 0x80) the parts'
     // world transforms are updated and the bounds recomputed from their world boxes.
     void UpdatePartBounds();
@@ -407,10 +407,10 @@ public:
     // `state` (or null) replaces the animation state: the old one loses its owner and is released, the new
     // one gains a reference and this owner.
     void SetAnimationState(CFigureAnimationState* state);
-    // The animation state (if any) plays `animation`; `unused` is not read.
-    void PlayAnimation(FigureAnimation* animation, int unused);
-    // The same with the arguments the other way round. Returns 1.
-    int PlayAnimationSecond(int unused, FigureAnimation* animation);
+    // The animation state (if any) plays `animation`.
+    void PlayAnimation(FigureAnimation* animation);
+    // The same, returning 1.
+    int PlayAnimationSecond(FigureAnimation* animation);
     // The animation state's bone named as `part` carries it (AttachMesh); 0 without a state.
     int AttachPartMesh(CEngineObject* part);
     // The animation state (if any) goes to frame 0 and places the skeleton.

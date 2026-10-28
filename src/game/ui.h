@@ -168,7 +168,7 @@ public:
     void OnPlayersChanged(int added);
     void OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC);
     void SaveWindowState();
-    void OnChatLine(const char* text, std::uint32_t number);
+    void OnChatLine(const char* text);
     // The save / load window's status text, drawn in green on a cleared surface over (0, 280)-(800, 320)
     // for one frame, then the surface freed.
     void ShowStatusText(std::string_view text);
@@ -490,7 +490,7 @@ public:
     virtual void Build() {}
     virtual void Show(int show) { ShowSurfaces(show); }
     virtual BOOL Draw(CSceneRenderer* pass) { return DrawBase(pass); }
-    virtual void DrawChild(CSceneRenderer* pass) { UpdateRegionTips(pass); }
+    virtual void DrawChild(CSceneRenderer*) { UpdateRegionTips(); }
     virtual void Redraw() { RedrawBase(); }
     virtual void RedrawTips() { RedrawRegionTips(); }
     virtual void Update() {}
@@ -498,7 +498,7 @@ public:
     // The first region containing the screen point, or -1.
     int RegionAt(int x, int y) const;
     BOOL ContainsPoint(int x, int y) const;
-    void UpdateRegionTips(CSceneRenderer* unused);
+    void UpdateRegionTips();
 
     void SetEnabled(int enabled, int notify);
 
@@ -544,7 +544,7 @@ public:
     // `texture`'s 256-wide 1:5:5:5 surface at (x, y), or white without such an image. Returns whether the
     // image exists (0 also when the lock fails).
     int CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width, int height,
-                  int x, int y, int unused1, int unused2);
+                  int x, int y);
     // The texture manager's texture `name` of `kind` (found or made), loaded and appended to the
     // referenced objects with one more reference; null when either step fails (a texture made but not
     // loaded is kept by the manager).
@@ -1584,7 +1584,7 @@ public:
 // A saved game in the save/load list; the fields after the folder come from the save's info.sav.
 struct SaveEntry {
     // "save_quick", "save_auto_enter" / "save_auto_exit" for "saveq", "savea" / "saveb", else the zone's name.
-    void MakeTitle(int unused);
+    void MakeTitle();
     // Text "zone " + zone_ (its first line), else "save_camp"; text "allod " + map_, else "Unknown".
     std::string ZoneTitle() const;
     std::string AllodTitle() const;
@@ -2039,9 +2039,9 @@ public:
     // Rebirth-patched.
     explicit CChatOverlay(CInterface3D* ui);
     ~CChatOverlay() override;
-    // `number` is unused. Lines narrower than 780 pixels, "^<digit>" switching the colour (bits 0 / 1 / 2
+    // Lines narrower than 780 pixels, "^<digit>" switching the colour (bits 0 / 1 / 2
     // blue / green / red; a missing digit is 7); at most 12 lines remain.
-    void AddLine(const char* text, std::uint32_t number);
+    void AddLine(const char* text);
     // Opening empties the typed line.
     void SetOpen(bool open);
     void ClearLines();

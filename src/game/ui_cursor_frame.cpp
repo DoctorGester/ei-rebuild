@@ -82,8 +82,3 @@ unsigned __stdcall CursorThreadEntry(void* cursor) {
     return 0;
 }
 
-// The part of the drawn rectangle inside `bounds_` is
-// copied from the primary (`fromPrimary`) or the render target into the background surface, as the
-// screen under the cursor changed (the movie players after their blits to the primary). Nothing
-// draws from the background here (the thread and the frame draw's blits are left out): nothing.
-void CCursor::SaveBackground(char /*fromPrimary*/) {}

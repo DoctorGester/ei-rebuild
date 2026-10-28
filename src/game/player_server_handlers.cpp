@@ -166,7 +166,7 @@ void CPlayerServer::OnLeaderDied() {
         newId = oldId;
         if (newId < kRevivedIdBase) newId += kRevivedIdStep;
         while (g_serverWorld->FindObject(static_cast<unsigned>(newId))) ++newId;
-        g_serverWorld->AddSharedObject(oldId, oldId, static_cast<std::uint32_t>(lost), &player->items_);
+        g_serverWorld->AddSharedObject(oldId, static_cast<std::uint32_t>(lost), &player->items_);
         player->TakeAllItems();
     }
     if (partyDeployed_) {
@@ -568,8 +568,7 @@ int CPlayerServer::OnLogin() {
         break;
     case 2:
     case 3:
-        // The two strings are passed but not read.
-        if (!g_partyManager->LoadParty(login.name, login.password, &player->partyId_, party))
+        if (!g_partyManager->LoadParty(&player->partyId_, party))
             return 0;
         break;
     case 4:

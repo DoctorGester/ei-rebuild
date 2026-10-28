@@ -231,7 +231,7 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
 void PlayMovie(const SSCCmd* cmd) {
     std::string path = *g_discFolder + MoviesFolder();
     std::string file = path + cmd->stringArgs[0];
-    ::PlayMovie(file, 0, 1, 1, 1, 1, 1);
+    ::PlayMovie(file, 0, 1, 1, 1, 1);
 }
 
 void CastSpell(const SSCCmd* cmd, bool atUnit) {
@@ -446,10 +446,10 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
 
         case 0x39:   // SendEvent(type, value)
-            g_serverWorld->players_->SendValueToAll(Ftol(f[0]), Ftol(f[1]));
+            g_serverWorld->players_->SendValueToAll(Ftol(f[1]));
             break;
         case 0x3A:   // SendStringEvent(type, text)
-            g_serverWorld->players_->SendTextToAll(Ftol(f[0]), Text(cmd, 0));
+            g_serverWorld->players_->SendTextToAll(Text(cmd, 0));
             break;
         case 0x97: {   // GodMode(player, on)
             CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));

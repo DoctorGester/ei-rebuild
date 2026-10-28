@@ -16,7 +16,7 @@ void CUiContainer::DrawChild(CSceneRenderer* pass) {
     render::RenderState& state = render::g_renderState;
     const std::uint8_t savedRef = state.alphaReference;
     state.alphaReference = 1;
-    UpdateRegionTips(pass);
+    UpdateRegionTips();
     const std::vector<CUiWindow*>& children = children_;
     for (int i = 0; i < std::ssize(children); ++i) {
         CUiWindow* child = children[i];

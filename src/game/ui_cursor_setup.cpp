@@ -89,9 +89,9 @@ void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, i
     AssignHolder(target_, NewSurface(device_, g_cursorWidth * 2, g_cursorHeight * 2));
 }
 
-void CCursor::AddShape(const char* name, int hotX, int hotY, int flag) {
+void CCursor::AddShape(const char* name, int hotX, int hotY) {
     const std::string file = std::string(name) + ".mmp";
-    images_.push_back(new CursorImage(file.c_str(), hotX, hotY, flag));
+    images_.push_back(new CursorImage(file.c_str(), hotX, hotY));
 }
 
 // --- The cursor's life cycle and state ---------------------------------------
@@ -212,7 +212,7 @@ char CCursor::UpdatePosition() {
     frameTime_ += steps * kFramePeriod;
     char moved = steps != 0;
 
-    const LONG* state = mouse_->PollThroughHook(2);
+    const LONG* state = mouse_->Poll();
     motion_.x += state[0];
     motion_.y += state[1];
     POINT point;

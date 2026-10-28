@@ -121,7 +121,7 @@ int CMusicSystem::LoadThemes() {
 // Entering a zone: picks the allod's open land or dungeon theme; a missing theme is
 // fatal. The calm music is due at once (calmDue 1) after the first world frame clears `holding`.
 void CMusicSystem::SetZoneMode(std::string_view allod, int dungeon) {
-    g_clientWorld->sounds_->StreamNotify(4);
+    g_clientWorld->sounds_->StreamNotify();
     g_clientWorld->sounds_->StopStream(4);
     holding = 1;
     for (int i = 0; i < std::ssize(themes); ++i) {

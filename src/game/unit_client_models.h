@@ -178,7 +178,7 @@ public:
     void StatChanged(int location, float amount, std::uint32_t flags) override;
     // Sparks (particles 0x2043, 10 alpha) attach to the unit, sized by its radius; the parts flash unless
     // they are already, and the flash lasts at least 4 more ticks.
-    void Wound(float unused) override;
+    void Wound() override;
     // The companion's light goes out; blood kinds 1..4 leave a decal under the body part "bd" (or the unit,
     // sized 0.75 x its smaller extent).
     void Died() override;

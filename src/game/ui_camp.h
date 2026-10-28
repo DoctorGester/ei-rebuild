@@ -137,7 +137,7 @@ public:
     // Ends a turn by a turn button.
     int OnLButtonUp(int buttons, int x, int y);
     // Always true; neither the map nor the argument is read.
-    bool MayTravel(int unused);
+    bool MayTravel();
     void Close();
     // Zones, then quests, then links, then the three layers.
     CUiMesh* Marker(int index) const { return SceneMesh(3 + index); }
@@ -285,7 +285,7 @@ public:
     void CloseScreen() override { Close(); }
     void MessageResult(int result) override { OnMessageResult(result); }
     void TakeItem(CItem* item, int mode) override { MoveItem(item, mode); }
-    void TopicClicked(int page, int unused) override { ShowPageTabs(page, unused); }
+    void TopicClicked(int page) override { ShowPageTabs(page); }
     CUnit* HeroUnit(int index) override { return HeroAt(index); }
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
     int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }
@@ -295,7 +295,7 @@ public:
     // mana units (maximum mana / period, truncated).
     void BestPartySkill(int school, int* skill, int* mana) override;
     // Camp page `page` (1-21).
-    void ShowPageTabs(int page, int unused);
+    void ShowPageTabs(int page);
     // Rebirth-patched: BuildPages, then with WideScreen the two curtains over the screen's margins.
     void CreateScreen() override;
     // Create's body. Without the player's "constr.current" class template: back to the world, nothing built.

@@ -38,6 +38,6 @@ public:
     void ChangeId(CEngineObject* object, int id);
     // Every player's connection (a CPlayerServer) gets message
     // 0x12 (SendValue12 through its address: a byte, then `value`) / 0x13 (SendText13, `text`).
-    void SendValueToAll(int unused, int value);
-    void SendTextToAll(int unused, const char* text);
+    void SendValueToAll(int value);
+    void SendTextToAll(const char* text);
 };

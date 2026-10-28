@@ -471,10 +471,10 @@ void UnitStats::ResetToBase(float newLoad) {
     load = newLoad;   // a dword copy
     float strengthCapacity = static_cast<float>(static_cast<double>(strength) * kTwelve);
     capacity = static_cast<float>((LevelOrZero(this, kSkillCapacity) * kPercent + kOneF) * strengthCapacity);
-    float legs = LegsFactor(1);
+    float legs = LegsFactor();
     loadFactor = legs;
     speed = static_cast<float>(static_cast<double>(legs) * speedBase);
-    armsFactor = ArmsFactor(1);
+    armsFactor = ArmsFactor();
     rateBase = static_cast<float>(static_cast<double>(dexterity) * kPointTwo + kTenF);
     rate = static_cast<float>((LevelOrZero(this, kSkillRate) * kPercent + kOneF) * armsFactor * rateBase);
 }

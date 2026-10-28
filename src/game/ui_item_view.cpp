@@ -465,7 +465,7 @@ CTexture* ItemFigureTexture(std::string_view name) {
 // --- An image into part of a texture -------------------------------------------------------
 
 int CUiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width,
-                         int height, int x, int y, int, int) {
+                         int height, int x, int y) {
     Surface* holder = texture->surface_;
     const MmpHeader* image;
     {

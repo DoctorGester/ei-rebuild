@@ -348,7 +348,7 @@ std::uintptr_t OpenSound() {
     std::string textFolder = *g_textFolder;
     std::string dataFolder = *g_dataFolder;
     std::string discFolder = *g_discFolder;
-    g_clientWorld->sounds_->Open(g_mainWindow, 1, -1, 44100, 16);
+    g_clientWorld->sounds_->Open(g_mainWindow, 1, -1, 44100);
     {
         std::string registry = textFolder + "streamsn.reg";
         std::string folder = dataFolder + "stream\\";
@@ -719,17 +719,14 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     std::uintptr_t reusedSlot = CreateRenderer();
     if (options->audio_) reusedSlot = OpenSound();
 
-    PlayMovies("Start", true, true, 1, 1);
+    PlayMovies("Start", true, true, 1);
     g_loadingMovieName = "Progres.bik";
     ShowLoadingMovie(0);
     CloseLoadingMovie();
     LoadDatabases();
     g_mouse->Setup(g_mainWindow, instance);
     g_clientWorld->SetUpGraphics(g_sceneRenderer->device_);
-    // The last argument's upper three bytes are whatever the call before left behind; only the low
-    // byte is a value (the shapes' flag: no device named).
-    SetUpCursors(options->fpsIndependentCursor_ != 0, g_mouse, 0,
-                 g_deviceNamed == 0);
+    SetUpCursors(options->fpsIndependentCursor_ != 0, g_mouse, 0);
     g_interface->Create(g_sceneRenderer->device_);
     g_mapDatabase->LoadAll();
     StartFirstMap();

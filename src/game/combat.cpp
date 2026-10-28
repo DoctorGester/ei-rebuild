@@ -515,7 +515,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     out->amount = ScaleDamageByEffects(self, out->amount);
     out->location = location;
     out->hitKind = 0;
-    if (backstab) out->backstabFactor = static_cast<float>(stats.BackstabFactorArg(0));
+    if (backstab) out->backstabFactor = static_cast<float>(stats.BackstabFactor());
     else out->backstabFactor = 1.0f;
     if (self->player && PlayerGodMode(self->player) >= 2) ResetDamageInfo(out);
     out->calledShot = static_cast<std::uint8_t>(calledShot);
@@ -596,7 +596,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     }
     if (attacker && attacker->GetClassId() == kClassUnit) {
         auto* diplomacy = &ServerWorld()->diplomacy_;
-        diplomacy->OnAttack(attacker, unit, 10);
+        diplomacy->OnAttack(attacker, unit);
     }
     brain.SetSeen(attacker);
     return 0;

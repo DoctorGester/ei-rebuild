@@ -92,7 +92,7 @@ void CChatWindow::AddPortrait(const std::string& model, std::string_view texture
     case 3: u = 0x80; v = 0x80; break;
     default: break;   // a negative count: u is unset and `texture` is used as v
     }
-    CopyImage(objects_[std::ssize(objects_) - 1], texture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
+    CopyImage(objects_[std::ssize(objects_) - 1], texture, 0x80, 0x80, 0x80, 0x80, u, v);
 
     CUiMesh* sprite = AddSprite(model);
     int left = kFirstFaceLeft - portraits_ * kFaceWidth;

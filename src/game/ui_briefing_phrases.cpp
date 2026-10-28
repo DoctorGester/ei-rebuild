@@ -119,11 +119,11 @@ void CBriefingScreen::NextPhrase(bool skip) {
         if (count < 2) continue;
         if (text::CompareIgnoringCase(words[0], ShowCommand()) == 0) {
             if (count > 3 && text::CompareIgnoringCase(words[3], WeaponWord()) == 0)
-                ShowItem(words[1], str::ToInt(words[2]) - 1, 0);
+                ShowItem(words[1], str::ToInt(words[2]) - 1);
             if (count > 2)
-                ShowItem(words[1], str::ToInt(words[2]) - 1, 1);
+                ShowItem(words[1], str::ToInt(words[2]) - 1);
             else
-                ShowItem(words[1], -1, 1);
+                ShowItem(words[1], -1);
         } else if (text::CompareIgnoringCase(words[0], HideCommand()) == 0) {
             HideSpeaker(words[1], skip, count > 2 ? 1 : 0);
         } else if (text::CompareIgnoringCase(words[0], AnimationCommand()) == 0) {

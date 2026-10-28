@@ -72,8 +72,8 @@ struct LockKey;
 // The virtuals' names and their evidence: docs/notes/map_objects.md ("Virtual slot names").
 class CMapObject : public CObject3D {
 public:
-    int ScaleEffectChangedDefault(int /*scaleEffect*/);
-    int AcceptsNoKey(const void* /*key*/);
+    int ScaleEffectChangedDefault();
+    int AcceptsNoKey();
 
     ~CMapObject() override;
     int Create() override { return CreateMapObject(); }
@@ -179,7 +179,7 @@ public:
     void ResetScale();
 
     // The position into `out`.
-    float* GetPosition(float* out, int unused);
+    float* GetPosition(float* out);
     float* GetPosition2(float* out);
 
     // The point at the object's offset, moved to the ground height there plus the offset's z.
@@ -211,9 +211,9 @@ public:
     void SaveMapObject(CStream* stream);
 
     // The companion's Query with the first two arguments (both companions return 0).
-    int CompanionQuery(int first, int second, int unused);
+    int CompanionQuery(int first, int second);
     // Frees the data of `array` and empties it.
-    void FreeArray(std::vector<Vector3>* array, int unused);
+    void FreeArray(std::vector<Vector3>* array);
 
     // SetVisibilityMode with mode 0 for `level` 0 (or NaN), 1 for 1, else 2.
     int SetVisibilityLevel(float level);

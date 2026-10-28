@@ -50,7 +50,7 @@ float RandomOffset() {
 
 // `position` the glow's centre, `size` its radius; the frame argument the caller computes is not
 // used (the frame comes from the position and the world's counter).
-void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /*frame: not used*/, float size) {
+void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, float size) {
     if (!(g_glowGuards & 1)) {
         g_glowGuards |= 1;
         g_sprites.Construct();
@@ -131,17 +131,15 @@ int CLightning::Draw(CSceneRenderer* device) {
     Vector3 start = main_.start;
     Vector3 run{count * main_.step.x, count * main_.step.y, count * main_.step.z};
     Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};
-    int frameCounter = ObjectWorld(this)->tick_;
     float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
     float size = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f);
-    int phase = (frameCounter / 2) % 15;
     if (power_ > zero) {
         // Clamped to [0.5, 1.2] with selects (NaN keeps the size).
         float low = 0.5f, high = 1.2f;
         size = low >= size ? low : size;
         size = size >= high ? high : size;
     }
-    if (power_ >= zero) DrawGlow(device, &end, phase, size);
-    if (power_ == zero) DrawGlow(device, &start, phase, size);
+    if (power_ >= zero) DrawGlow(device, &end, size);
+    if (power_ == zero) DrawGlow(device, &start, size);
     return 1;
 }

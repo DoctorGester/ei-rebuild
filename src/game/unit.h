@@ -183,8 +183,8 @@ public:
     // A body part's condition changed by `change` (a fraction of its maximum) for stat `stat` (0..5); `flags`
     // is the unit's Params->flags byte (bit 3 skips it). The client shows text and a particle effect.
     virtual void StatChanged(int, float, std::uint32_t) {}
-    // The hit took `lost` (a fraction of the hit points) with the wound flag; the client does not read it.
-    virtual void Wound(float) {}
+    // The hit had the wound flag.
+    virtual void Wound() {}
     virtual void Died() {}                       // the client: the light goes out, blood
     virtual void EffectsChanged() {}
     virtual void GetAttackParams(struct AttackParams* out) = 0;
@@ -261,9 +261,9 @@ public:
     void GetEquipmentIds(std::uint32_t* out);
 
     // 0 yes, 1 not enough mana, 3 no spell in slot `slot` (0..7), 4 an effect of type 0x20 prevents it.
-    int CanCastSpell(std::uint32_t slot, const float* unused);
+    int CanCastSpell(std::uint32_t slot);
     // 3 none or not a spell carrier, 1 a category 5 item with too little charge, else 0.
-    int CanUseQuickItem(std::uint32_t slot, const float* unused);
+    int CanUseQuickItem(std::uint32_t slot);
 
     // Movement speeds for the current movement mode; `backward` scaled by the global.
     void GetMoveSpeeds(float* forward, float* backward);
@@ -599,7 +599,6 @@ struct UnitStats {
     double ScaledStrength();
     // Global + 0.01 * the level value of skill level 22.
     double BackstabFactor();
-    double BackstabFactorArg(int unused);
     // `value` minus what the six slots take from it (by their kind, current, maximum and factor).
     double Reduce(float value);
     // `value` minus value * factor of each slot record of kind 1.
@@ -628,8 +627,8 @@ struct UnitStats {
     void* RestoreSlots();
     // The lowest current / maximum ratio of the used leg (type 3) / arm (type 2) slots mapped to a factor.
     // The argument is not used.
-    float LegsFactor(int unused);
-    float ArmsFactor(int unused);
+    float LegsFactor();
+    float ArmsFactor();
     // 2 when `checkLoad` and the load exceeds the capacity, 1 when a leg is below the damageLevelRunLimit
     // share of its maximum, else 0.
     int MovementState(char checkLoad);
@@ -698,8 +697,8 @@ struct UnitStats {
     // IsaacRandom draw), else 1.
     int PickLocation(int location);
 
-    // The rounded values into `params`. The first argument is not used.
-    void Pack(CUnit* unused, UnitParams* params);
+    // The rounded values into `params`.
+    void Pack(UnitParams* params);
     int Reset();
     // Clears layers 1 and 2 of every slot.
     int ClearOuterLayers();

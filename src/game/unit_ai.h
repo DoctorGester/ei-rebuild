@@ -363,8 +363,8 @@ public:
     void CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int run, const Vector3* offset);
     void CommandAttack(AIBrain* brain, CMapObject* object, int how, int unknown);
     void CommandUse(AIBrain* brain, CMapObject* object, int kind, int a, int b);
-    void CommandCast(AIBrain* brain, int spell, CMapObject* object, int unused);
-    void CommandCastAt(AIBrain* brain, int spell, const Vector3* point, int unused);
+    void CommandCast(AIBrain* brain, int spell, CMapObject* object);
+    void CommandCastAt(AIBrain* brain, int spell, const Vector3* point);
 
     // Follow `leader` (counted): none when it is the unit itself. When the chain of leaders from `leader`
     // (each unit's first Player mode) comes back to this unit, this unit's own Player mode stops following
@@ -512,7 +512,7 @@ struct AIAttention {
     // Chooses the best target in sight (Choose from the unit's position) and, when it differs from the
     // current attack, attacks it (action 3; the player's order check may lift the flags to -1) or casts spell
     // `part` at it (action 4 when the spell cannot be cast now).
-    void LookAround(AIBrain* brain, int unused);
+    void LookAround(AIBrain* brain, int reachArg);
     // The brain's current attack as {part, object}: action 3 {-1, target}, action 4 {spell, target}, the
     // object only when it is a unit; otherwise only the object is cleared.
     void CurrentAttack(AIBrain* brain, AITargetChoice* choice);

@@ -64,8 +64,8 @@ void CHudPortraits::ShowFace(int index, int state) {
     else if (state == 3)
         name += "b";
     const int texture = index / 4 + 1;
-    if (static_cast<char>(CopyImage(objects_[texture], name, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0)) == 0)
-        CopyImage(objects_[texture], slots_[index].faceName_, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
+    if (static_cast<char>(CopyImage(objects_[texture], name, 0x80, 0x80, 0x80, 0x80, u, v)) == 0)
+        CopyImage(objects_[texture], slots_[index].faceName_, 0x80, 0x80, 0x80, 0x80, u, v);
 }
 
 void CHudPortraits::AddPortrait(const std::string& model, std::string_view picture, int wide, int hasPlayer) {
@@ -84,7 +84,7 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
     case 3: u = 0x80; v = 0x80; break;
     default: break;   // a negative count (not reached; the original leaves u, v uninitialised)
     }
-    CopyImage(objects_[std::ssize(objects_) - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
+    CopyImage(objects_[std::ssize(objects_) - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v);
     slots_.emplace_back();   // identity orientations, empty strings
     slots_[count_].hasPlayer_ = player;
     CUiMesh* face = AddSprite(model);

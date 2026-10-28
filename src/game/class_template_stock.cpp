@@ -85,7 +85,7 @@ void ClassTemplateGenerateMagic(ClassTemplate* t) {
     t->SpellsParty()->Clear(1, 0);
     ItemStock& stock = t->magic;
     stock.classIndex = t->type - 1;
-    stock.GenerateScrolls(40, 50, &list);
+    stock.GenerateScrolls(&list);
     stock.GenerateSpellInstructions(1, 3, &list);
     stock.GenerateModifierInstructions(20, 50, &list);
     HandOver(list, t->SpellsParty());

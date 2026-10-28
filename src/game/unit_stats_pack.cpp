@@ -78,7 +78,7 @@ int UnitParams::Reset() {
     return 0;
 }
 
-void UnitStats::Pack(CUnit*, UnitParams* params) {
+void UnitStats::Pack(UnitParams* params) {
     params->experience = RoundStored(experience);
     float unspent = pendingExperience + experience - spentExperience;
     params->unspentExperience = RoundStored(unspent);

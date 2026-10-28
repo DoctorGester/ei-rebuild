@@ -37,8 +37,8 @@ struct CDiplomacy {
 
     // `attacker` attacked `victim`: unless the victim's player is allied with the
     // attacker's, the victim, then the members of the victim's party up to the first empty entry,
-    // become hostile to the attacker's player. The third argument is unused.
-    void OnAttack(CUnit* attacker, CUnit* victim, int unused);
+    // become hostile to the attacker's player.
+    void OnAttack(CUnit* attacker, CUnit* victim);
 
     std::uint32_t allied_[32];    // bit q of row p: p is allied with q
     std::uint32_t hostile_[32];   // bit q of row p: p is hostile to q

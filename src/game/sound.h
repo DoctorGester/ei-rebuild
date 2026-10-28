@@ -261,8 +261,8 @@ struct CSoundManager : CEngineObject {
     // Handles restart at 0; with `stopStream` the stream stops too.
     void StopAll(bool stopStream);
     // In seconds: the IMA ADPCM sample count, else data bytes * 8 / (bits * channels), divided by the rate. 0
-    // when bits * channels is 0. `this` and `size` are unused.
-    double WaveLength(const void* data, int size);
+    // when bits * channels is 0. `this` is unused.
+    double WaveLength(const void* data);
 
     // Reset, then 1.
     int CreateBody();
@@ -296,7 +296,7 @@ struct CSoundManager : CEngineObject {
     // Rebirth-patched. Fills the spare buffer: silence when idle; else the playing file up to its loop point
     // or the switch point, and the rest from the next file. No next file (or it does not open): silence, the
     // stream idle. Details: docs/notes/sound.md, "Header comments moved from sound.h".
-    void ReadStreamVanilla(void* stream);
+    void ReadStreamVanilla();
 
     // The first free voice; else the lowest priority one (the first of equals) when `priority` is above it (a
     // looping sound there is deferred). -1 when no voice can be had.
@@ -304,22 +304,22 @@ struct CSoundManager : CEngineObject {
 
     // The DirectSound device `deviceIndex` (DirectSoundEnumerateA's order; the default device when out of
     // range or negative; the wave mapper when the sound option is 2), 16-bit stereo at `rate` (at most
-    // 44100). 0 when the driver cannot be opened. `bits` is not read.
-    int Open(void* window, int useReverb, int deviceIndex, unsigned rate, int bits);
+    // 44100). 0 when the driver cannot be opened.
+    int Open(void* window, int useReverb, int deviceIndex, unsigned rate);
     // Waits for the threads to quit and frees everything Open made, then Reset.
     void Close();
     // Volumes 100, sound off.
     void Reset();
     void DeleteDeferred();
 
-    void StreamNotify(int mode);                                                          // empty
+    void StreamNotify();                                                          // empty
     int Play3D(std::string_view name, int priority, const float* position, float nearDist, float farDist, int loop,
                int speech);
     int Play2D(std::string_view name, int priority, int volume, int pan, int loop, int heightFade, int speech,
                int compressed);
     // From the cache, or read from the archives (with `compressed` an MP3 decompressed through the ASI codec);
     // a new handle. 0 when the wave is nowhere.
-    int LoadSample(SoundSlot* slot, int index, std::string_view name, int compressed);
+    int LoadSample(SoundSlot* slot, std::string_view name, int compressed);
 };
 
 // A music theme from music.reg: one per allod, open land or dungeon.

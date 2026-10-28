@@ -84,8 +84,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     controller->brain.Walk(&target, run, 0);
 }
 
-void CBriefingScreen::ShowItem(std::string_view name, int index, int unused) {
-    (void)unused;
+void CBriefingScreen::ShowItem(std::string_view name, int index) {
     auto* unit = GameFindClientUnit(TextKeyFromName(name));
     if (unit) {
         // A person joins the speakers (at the end, once).
@@ -146,7 +145,7 @@ void CBriefingScreen::ShowItem(std::string_view name, int index, int unused) {
     std::string image;
     image = str::Format(ItemImageFormat(), record->number);
     CTexture* texture = CreateTexture(0x100, 0x100, 0x20);
-    CopyImage(texture, image, 0x40, 0x40, 0x40, 0x40, 0, 0xC0, 0, 0);
+    CopyImage(texture, image, 0x40, 0x40, 0x40, 0x40, 0, 0xC0);
     item->texture_ = texture;
     item->Place(x, y, kItemDepth);
     Quaternion turn;

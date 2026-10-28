@@ -103,8 +103,8 @@ void CInterface3D::OnPlayersChanged(int added) {
     if (!stack_.empty()) ScreenOf(stack_.back())->PlayersChanged(added);
 }
 
-void CInterface3D::OnChatLine(const char* text, std::uint32_t number) {
-    root_->AddLine(text, number);
+void CInterface3D::OnChatLine(const char* text) {
+    root_->AddLine(text);
 }
 
 void CInterface3D::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {

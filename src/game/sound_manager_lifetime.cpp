@@ -369,7 +369,7 @@ void CSoundManager::StreamThread() {
             playing = buffer;
             streamPosition += streamBufferFrames;
             gameapi::AIL_load_sample_buffer(streamSample, half, streamBuffers[buffer], streamBufferSize);
-            ReadStreamVanilla(nullptr);
+            ReadStreamVanilla();
         }
         gameapi::LeaveCriticalSection(&streamLock);
     }
@@ -395,7 +395,7 @@ int __stdcall AddSoundDevice(void* guid, const char*, const char*, std::vector<i
 // The game leaves "from the beginning again" (a local) unwritten when neither a loop point nor a switch
 // point is in the buffer, and reads it in one such case: a switch at the file's end (mode 1) when the file
 // ends in this buffer. Here that case is the switch, which is what the mode asks for.
-void CSoundManager::ReadStreamVanilla(void* /*stream*/) {
+void CSoundManager::ReadStreamVanilla() {
     auto* const buffer = static_cast<std::uint8_t*>(streamBuffers[streamSpareBuffer]);
     const std::int32_t state = streamState;
     if (state == 0) {
@@ -457,7 +457,7 @@ void __stdcall SoundEndOfSample(miles::Sample* sample) {
     reinterpret_cast<SoundSlot*>(gameapi::AIL_sample_user_data(sample, 1))->finished = 1;
 }
 
-int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate, int /*bits*/) {
+int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate) {
     Destroy();   // Close
     const bool waveOut = options::g_options->audio_ == kWaveOutMode;
     int device = waveOut ? kWaveMapper : 0;

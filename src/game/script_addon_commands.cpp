@@ -177,14 +177,14 @@ bool Loot(Call* call) {
 
 // GameOver / GameOverMSG(title, text): the "gameover" string event to player 0's client.
 bool GameOver(Call*) {
-    if (CPlayerServer* state = FirstPlayerState()) state->SendText13(0, "gameover");
+    if (CPlayerServer* state = FirstPlayerState()) state->SendText13("gameover");
     return true;
 }
 
 bool GameOverMsg(Call* call) {
     if (CPlayerServer* state = FirstPlayerState()) {
         std::string text = std::string("gameover ") + Text(call, 0) + " " + Text(call, 1);
-        state->SendText13(0, text);
+        state->SendText13(text);
     }
     return true;
 }

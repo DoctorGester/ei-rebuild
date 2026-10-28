@@ -617,7 +617,7 @@ public:
         OnExchangeDone(partyB, partyA, partyC);
     }
     void TakeItem(CItem* item, int mode) override { MoveOffered(item, mode); }
-    bool CanEquip(CItem* item, int mode) override { return CanMove(item, mode); }
+    bool CanEquip(CItem*, int) override { return CanMove(); }
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
     // Builds the window (texture "campinfo", regions 0 accept, 1 take back, 2 leave): see docs/notes/ui.md,
@@ -652,8 +652,8 @@ public:
     // (the grid), only for an item of our offer: the put_off sound, the item moves back to the local party,
     // the strip scrolls to what the party now holds and the offer is published. Other modes nothing.
     void MoveOffered(CItem* item, int mode);
-    // Whether `item` may move with `mode`: always.
-    bool CanMove(CItem* item, int mode);
+    // Whether an item may move: always.
+    bool CanMove();
 
     CParty* scratch_;                // a party of the screen's own (made by Create, deleted by Close)
     CParty* partnerOffer_;           // the client's parties_[1]

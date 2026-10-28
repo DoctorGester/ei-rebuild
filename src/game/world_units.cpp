@@ -288,7 +288,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
     if (player) MainScript()->Load(&script, 1);
 }
 
-void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
+void CWorldServer::UseQuickItem(CUnit* unit) {
     // An object record (a class of its own with the same virtuals).
     ObjectSpec message;
     message.kind = kQuickEffectType;

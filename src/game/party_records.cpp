@@ -110,7 +110,7 @@ int PartyNextId(int* out) {
     return ++g_nextPartyId;
 }
 
-bool PartyManager::LoadParty(const char*, const char*, const int* key, CParty* target) const {
+bool PartyManager::LoadParty(const int* key, CParty* target) const {
     if (*key == 0) {
         target->Clear(1, 0);
         return true;

@@ -187,7 +187,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     g_clientWorld->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
 }
 
-void CUnitClientSpecific::Wound(float) {
+void CUnitClientSpecific::Wound() {
     auto* source = g_clientWorld->particleManager_->CreateSource(kSparks);
     source->localPosition_ = {0.0f, 0.0f, 0.0f};
     source->ScaleSize(unit->bounds.radius);

@@ -253,7 +253,7 @@ double CUnit::TotalItemWeight() {
     return total;   // unrounded
 }
 
-int CUnit::CanCastSpell(std::uint32_t slot, const float*) {
+int CUnit::CanCastSpell(std::uint32_t slot) {
     if (slot >= 8) return 3;
     if (HasEffect(0x20)) return 4;
     CSpell* spell = GetSpellObject(slot);
@@ -265,7 +265,7 @@ int CUnit::CanCastSpell(std::uint32_t slot, const float*) {
     return available < needed ? 1 : 0;
 }
 
-int CUnit::CanUseQuickItem(std::uint32_t slot, const float*) {
+int CUnit::CanUseQuickItem(std::uint32_t slot) {
     CItem* object = GetQuickItem(slot);
     if (!object || object->GetClassId() != kClassQuickItem) return 3;
     CItem* item = object;

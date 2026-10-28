@@ -53,7 +53,7 @@ void CUnitServer::UpdateProtection() {
 void CUnitServer::RepackStats() {
     std::uint8_t speedsBefore[sizeof(unit->params.modeSpeeds)];
     std::memcpy(speedsBefore, unit->params.modeSpeeds, sizeof(speedsBefore));
-    stats.Pack(unit, &unit->params);
+    stats.Pack(&unit->params);
     stats.flags = 0;
     UpdateProtection();
     unit->MarkChanged(4);
@@ -67,7 +67,7 @@ bool CUnitServer::ArmourPutOn(std::uint32_t key) {
     return false;
 }
 
-bool CUnitServer::RebuildArmourLayers(int) {
+bool CUnitServer::RebuildArmourLayers() {
     stats.RebuildArmourLayers(unit);
     return true;
 }

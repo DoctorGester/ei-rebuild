@@ -295,7 +295,7 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
 
 // --- an item clicked in the strip or the grid ------------------------------------------------------
 
-bool CExchangeScreen::CanMove(CItem*, int) { return true; }
+bool CExchangeScreen::CanMove() { return true; }
 
 void CExchangeScreen::MoveOffered(CItem* item, int mode) {
     if (!CanEquip(item, mode)) {   // CanMove here

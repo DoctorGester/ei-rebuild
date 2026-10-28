@@ -156,8 +156,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             shape = kCursorCantCast;
             break;
         }
-        Vector3 at = unitPosition(unit);
-        if (!first || first->CanCastSpell(pendingSlot_, &at.x) != 0) {
+        if (!first || first->CanCastSpell(pendingSlot_) != 0) {
             shape = kCursorCantCast;
             break;
         }
@@ -171,16 +170,15 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             shape = kCursorCantCast;
             break;
         }
-        int refused = pendingAction_ == 2 ? first->CanCastSpell(pendingSlot_, &at.x)
-                                          : first->CanUseQuickItem(pendingSlot_, &at.x);
+        int refused = pendingAction_ == 2 ? first->CanCastSpell(pendingSlot_)
+                                          : first->CanUseQuickItem(pendingSlot_);
         shape = refused ? kCursorCantCast : kCursorCast;
         break;
     }
     case 3: {   // a quick item on a unit (a wand not on the user itself)
         shape = kCursorCantCast;
         if (!unit || unitDead(unit)) break;
-        Vector3 at = unitPosition(unit);
-        if (!first || first->CanUseQuickItem(pendingSlot_, &at.x) != 0) break;
+        if (!first || first->CanUseQuickItem(pendingSlot_) != 0) break;
         CItem* item = first->GetQuickItem(pendingSlot_);
         if (item && item->GetCategory() == kCategoryWand && unit != first) break;
         shape = kCursorCast;

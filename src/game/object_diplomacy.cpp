@@ -73,7 +73,7 @@ void CDiplomacy::WriteTo(CStream* stream) {
     stream->Write(hostile_, sizeof(hostile_));
 }
 
-void CDiplomacy::OnAttack(CUnit* attacker, CUnit* victim, int) {
+void CDiplomacy::OnAttack(CUnit* attacker, CUnit* victim) {
     if (!attacker || !victim) return;
     if (allied_[victim->side] & Bit(attacker->side)) return;
     victim->AddHostileMask(victim->relationsA | Bit(attacker->side));
