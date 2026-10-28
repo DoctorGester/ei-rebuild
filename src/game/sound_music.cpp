@@ -144,7 +144,7 @@ void PlayThemeFile(CMusicSystem* music, const char* allod, std::string MusicThem
     });
     if (theme == music->themes.end()) return;
     std::string path = (*theme).*file + kMp3;
-    TheSoundManager()->RequestStream(path.c_str(), 4);
+    TheSoundManager()->RequestStream(path, 4);
 }
 } // namespace
 
@@ -164,7 +164,7 @@ void CMusicSystem::PlayMainMenu() {
     state = 4;
     TheSoundManager()->StopStream(4);
     std::string path = mainMenu + kMp3;
-    TheSoundManager()->RequestStream(path.c_str(), 4);
+    TheSoundManager()->RequestStream(path, 4);
 }
 
 // A one-off piece in a zone (the PlayMusic script command); the calm/combat choice
@@ -176,7 +176,7 @@ void CMusicSystem::PlayJingle(const char* name) {
         std::string path = stem + kMp3;
         jingle = path;
     }
-    TheSoundManager()->RequestStream(jingle.c_str(), 4);
+    TheSoundManager()->RequestStream(jingle, 4);
     WaitAndEndAfter(TheSoundManager());
     jinglePlaying = 1;
 }
@@ -207,7 +207,7 @@ int CMusicSystem::UpdateMusic() {
             combatTrack = PickName(themes[theme].combat);
             combatTrack += kMp3;
         }
-        snd->RequestStream(combatTrack.c_str(), 3);
+        snd->RequestStream(combatTrack, 3);
     } else if (str::Compare(current, game::EmptyText()) == 0) {
         combatTrack = game::EmptyText();
         if (calmDue == 0) {
@@ -221,7 +221,7 @@ int CMusicSystem::UpdateMusic() {
                 std::string track;
                 track = PickName(t.calm);
                 track += kMp3;
-                snd->RequestStream(track.c_str(), 4);
+                snd->RequestStream(track, 4);
                 WaitAndEndAfter(snd);
             }
         }

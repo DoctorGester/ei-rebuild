@@ -74,7 +74,7 @@ void CTorchObject::WriteTorchNetState() {
     field->WriteDelta(&spec->values_[2], 0x10);
     field->WriteDelta(spec->colours_[0], 0xC);
     field->WriteDelta(spec->colours_[1], 0xC);
-    field->WriteStringBoth(spec->name_.c_str());
+    field->WriteStringBoth(spec->name_);
     field->EndField();
 }
 

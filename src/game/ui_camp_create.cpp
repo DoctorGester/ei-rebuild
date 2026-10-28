@@ -368,7 +368,7 @@ void CCampPages::BuildPages() {
     }
 
     // The music of the allod the party's zone is on.
-    const MapRecord* zone = TheMapDatabase()->FindMap(LocalPlayerZone().c_str());
+    const MapRecord* zone = TheMapDatabase()->FindMap(LocalPlayerZone());
     TheMusicSystem()->PlayConstructor(zone ? zone->allod.c_str() : "gipat");
 
     // Antialiasing while the camp shows, when the device does it without sorting (Close turns it off).

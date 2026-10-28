@@ -249,7 +249,7 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
 void PlayMovie(const SSCCmd* cmd) {
     std::string path = *GameBasePathString() + MoviesFolder();
     std::string file = path + cmd->stringArgs[0];
-    ::PlayMovie(file.c_str(), 0, 1, 1, 1, 1, 1);
+    ::PlayMovie(file, 0, 1, 1, 1, 1, 1);
 }
 
 void CastSpell(const SSCCmd* cmd, bool atUnit) {
@@ -968,7 +968,7 @@ BOOL ScriptRun::Execute(CScript* script) {
                 if (cmd->id == 0x86)
                     records->AddMember(name.c_str(), Text(cmd, 1), game::EmptyText());
                 else
-                    records->RemoveMember(static_cast<unsigned>(TextKeyFromName(name.c_str())));
+                    records->RemoveMember(static_cast<unsigned>(TextKeyFromName(name)));
             }
             break;
         }
@@ -980,8 +980,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             std::string to = cmd->stringArgs[1];
             CParty* fromRecords = PartyForScript(player, &from);
             CParty* toRecords = PartyForScript(player, &to);
-            PartyUnitRecord* source = fromRecords->Find(TextKeyFromName(from.c_str()));
-            PartyUnitRecord* target = toRecords->Find(TextKeyFromName(to.c_str()));
+            PartyUnitRecord* source = fromRecords->Find(TextKeyFromName(from));
+            PartyUnitRecord* target = toRecords->Find(TextKeyFromName(to));
             if (source && target) {
                 if (cmd->id == 0xD4) {
                     target->CopyItemsFrom(source, toRecords);

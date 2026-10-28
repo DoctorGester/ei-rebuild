@@ -199,7 +199,7 @@ void CChatOverlay::DrawTyped() {
     surface->Clear();
     RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};
     surface->DrawTextIn(typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
-    int width = TextWidth(interface_, str::Left(typed_, caret_).c_str(), kTypedFont);
+    int width = TextWidth(interface_, str::Left(typed_, caret_), kTypedFont);
     if (width < kMaxTypedWidth) {
         gdi::Pen pen(gameapi::CreatePen(PS_SOLID, 1, kTypedColour));
         HGDIOBJ oldPen = gameapi::SelectObject(dc, pen.get());

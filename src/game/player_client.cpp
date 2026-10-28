@@ -188,11 +188,11 @@ int CPlayerClient::OnSetVariable() {
     std::uint32_t value;
     in_.Read(&value, 4);
     NamedFloatTable& variables = Owner()->Party()->variables_;
-    variables.Get(name.c_str());
-    variables.Set(name.c_str(), std::bit_cast<float>(value));
+    variables.Get(name);
+    variables.Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
-        TheInterface()->OnQuestVariable(name.c_str(), std::bit_cast<float>(value));
-        TheClientWorld()->OnQuestVariable(name.c_str(), std::bit_cast<float>(value));
+        TheInterface()->OnQuestVariable(name, std::bit_cast<float>(value));
+        TheClientWorld()->OnQuestVariable(name, std::bit_cast<float>(value));
     }
     return 1;
 }
@@ -200,10 +200,10 @@ int CPlayerClient::OnSetVariable() {
 int CPlayerClient::OnDeleteVariable() {
     std::string name;
     in_.ReadString(&name);
-    Owner()->Party()->variables_.Remove(name.c_str());
+    Owner()->Party()->variables_.Remove(name);
     if (IsQuestVariable(name)) {
-        TheInterface()->OnQuestVariable(name.c_str(), 0.0f);
-        TheClientWorld()->OnQuestVariable(name.c_str(), 0.0f);
+        TheInterface()->OnQuestVariable(name, 0.0f);
+        TheClientWorld()->OnQuestVariable(name, 0.0f);
     }
     return 1;
 }
@@ -540,7 +540,7 @@ int CPlayerClient::OnNewObject() {
     if (created->type_ == kTypeHumanoid && (Same(model, TextHuman()) || Same(model, TextHumanFemale()))) {
         // The head part takes the prototype's hair, or goes without one.
         for (std::size_t i = 0; i < parts.size(); ++i) {
-            if (std::strcmp(parts[i].c_str(), TextHairPart()) != 0) continue;
+            if (str::Compare(parts[i], TextHairPart()) != 0) continue;
             int hair = PrototypeRecord(header.prototype)->hair;
             if (hair == -1) parts.erase(parts.begin() + static_cast<std::ptrdiff_t>(i));
             else parts[i] = str::Format(TextHairFormat(), hair);
@@ -594,7 +594,7 @@ int CPlayerClient::OnNewObject() {
     TheClientWorld()->AddObject(object);
     if (object->name2[0] != 0) {
         const std::string variable = TheClientWorld()->ObjectVariableName(object->name2.c_str());
-        object->SetVisibilityLevel(player->Party()->variables_.Get(variable.c_str()));
+        object->SetVisibilityLevel(player->Party()->variables_.Get(variable));
     }
     if (player->sessionKind100_ == kSessionClient) {
         if (CUnit* unit = UnitOrNull(created)) unit->ClientController()->LoadFaceTexture();

@@ -113,7 +113,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     leader_ = unit;
     TheClientWorld()->Select(unit);
     TheCamera()->SetTarget(unit);
-    MapRecord* zone = TheMapDatabase()->FindMap(LocalPlayerZone().c_str());
+    MapRecord* zone = TheMapDatabase()->FindMap(LocalPlayerZone());
     std::string prefix;
     prefix = str::Format(ZoneTopicFormat(), zone->name.c_str());
     BriefingVariables variables(prefix.c_str());
@@ -122,7 +122,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         std::uint32_t bits;
         std::memcpy(&bits, &node->second, 4);
         if (bits != kOneBits) continue;
-        text::Split(node->first.c_str(), &parts, '.');
+        text::Split(node->first, &parts, '.');
         if (parts.size() != kTopicNameParts) continue;
         topic_ = parts[2];
         briefingStarted_ = true;

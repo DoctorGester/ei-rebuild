@@ -31,7 +31,7 @@ struct UnitPrototypeTable {
     using NameIndex = lib::HashMap<std::string, UnitPrototypeRecord*, lib::TextHash>;
 
     // The record named `name` (an unknown name gets a null entry), or null.
-    UnitPrototypeRecord* FindByName(const char* name);
+    UnitPrototypeRecord* FindByName(std::string_view name);
 
     std::vector<UnitPrototypeRecord> records;
     NameIndex byName;
@@ -42,7 +42,7 @@ static_assert(offsetof(UnitPrototypeTable, byName) == 0x0C);
 struct NpcPrototypeTable {
     using NameIndex = std::unordered_map<std::string, UnitNpcRecord*>;
 
-    UnitNpcRecord* FindByName(const char* name);
+    UnitNpcRecord* FindByName(std::string_view name);
 
     std::vector<UnitNpcRecord> records;
     NameIndex byName;

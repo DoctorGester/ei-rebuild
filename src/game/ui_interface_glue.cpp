@@ -64,7 +64,7 @@ void CInterface3D::ShowFps(int on) {
     ui_native::Adopt(fpsSurface_, "fps");
 }
 
-void CInterface3D::OnQuestVariable(const char* name, float value) {
+void CInterface3D::OnQuestVariable(std::string_view name, float value) {
     if (!stack_.empty()) ScreenOf(stack_.back())->QuestVariable(name, value);
     std::vector<std::string> parts;
     EI_NAN_AUDIT(value);
@@ -117,7 +117,7 @@ void CInterface3D::SaveWindowState() {
     if (!stack_.empty()) ScreenOf(stack_[0])->SaveState();
 }
 
-void CInterface3D::ShowStatusText(const char* text) {
+void CInterface3D::ShowStatusText(std::string_view text) {
     statusSurface_ = new CUiSurface(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, kStatusFormat, 1);
     if (!statusSurface_) return;
     ui_native::Adopt(statusSurface_, "status");

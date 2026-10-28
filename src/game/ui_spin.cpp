@@ -29,7 +29,7 @@ CUiSpin::CUiSpin(CInterface3D* ui, RECT rect, const char* text) : CUiWindow(ui) 
     SetValue(0);
 }
 
-void CUiSpin::AddText(const char* text) { texts_.push_back(text ? text : game::EmptyText()); }
+void CUiSpin::AddText(std::string_view text) { texts_.emplace_back(text); }
 
 bool CUiSpin::GetValue(int* value) {
     *value = value_;

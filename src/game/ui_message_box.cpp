@@ -32,7 +32,7 @@ constexpr std::uint32_t kAnswerCancel = 2;
 void PlayExitMovieAndQuit() {
     {
         std::string path = *GameBasePathString() + ExitMovie();
-        PlayMovie(path.c_str(), 0, 0, 0, 1, 1, 1);
+        PlayMovie(path, 0, 0, 0, 1, 1, 1);
     }
     app::QuitGame(0);
 }

@@ -55,8 +55,8 @@ void CBriefingScreen::FindTopics(int personId) {
     TopicList found;
     for (auto node = variables.begin(); node != variables.end(); ++node) {
         if (Bits(node->second) != kOneBits) continue;
-        text::Split(node->first.c_str(), &parts, '.');
-        if (parts.size() != kTopicNameParts || TextKeyFromName(parts[1].c_str()) != personId) continue;
+        text::Split(node->first, &parts, '.');
+        if (parts.size() != kTopicNameParts || TextKeyFromName(parts[1]) != personId) continue;
         name = parts[2];
         bool isConstructor;
         {

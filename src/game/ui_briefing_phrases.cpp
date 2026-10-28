@@ -120,23 +120,23 @@ void CBriefingScreen::NextPhrase(bool skip) {
         if (count < 2) continue;
         if (text::CompareIgnoringCase(words[0], ShowCommand()) == 0) {
             if (count > 3 && text::CompareIgnoringCase(words[3], WeaponWord()) == 0)
-                ShowItem(words[1].c_str(), std::atoi(words[2].c_str()) - 1, 0);
+                ShowItem(words[1].c_str(), str::ToInt(words[2]) - 1, 0);
             if (count > 2)
-                ShowItem(words[1].c_str(), std::atoi(words[2].c_str()) - 1, 1);
+                ShowItem(words[1].c_str(), str::ToInt(words[2]) - 1, 1);
             else
                 ShowItem(words[1].c_str(), -1, 1);
         } else if (text::CompareIgnoringCase(words[0], HideCommand()) == 0) {
             HideSpeaker(words[1].c_str(), skip, count > 2 ? 1 : 0);
         } else if (text::CompareIgnoringCase(words[0], AnimationCommand()) == 0) {
-            animation = std::atoi(words[1].c_str());
+            animation = str::ToInt(words[1]);
         } else if (text::CompareIgnoringCase(words[0], CameraCommand()) == 0) {
             if (count >= 5) {
-                angle = static_cast<float>(kRadiansPerDegree * std::atof(words[2].c_str()));
-                distance = static_cast<float>(std::atof(words[3].c_str()));
-                height = static_cast<float>(std::atof(words[4].c_str()));
+                angle = static_cast<float>(kRadiansPerDegree * str::ToDouble(words[2]));
+                distance = static_cast<float>(str::ToDouble(words[3]));
+                height = static_cast<float>(str::ToDouble(words[4]));
                 view = true;
             }
-            preset = std::atoi(words[1].c_str());
+            preset = str::ToInt(words[1]);
         } else if (text::CompareIgnoringCase(words[0], PhraseCommand()) == 0) {
             spoke = true;
             break;
@@ -146,7 +146,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     if (spoke) {
         // "#phrase <speaker> [voice]": the speaker's name (its unit's name, else its "pers" text,
         // else the word itself), then the text up to the next '#'.
-        auto* unit = GameFindClientUnit(TextKeyFromName(words[1].c_str()));
+        auto* unit = GameFindClientUnit(TextKeyFromName(words[1]));
         if (!unit) {
             speaker = words[1];
         } else {
@@ -166,7 +166,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         voice_ = -1;
         if (!skip) {
             int number;
-            if (words.size() > 2 && (number = std::atoi(words[2].c_str())) > 0) {
+            if (words.size() > 2 && (number = str::ToInt(words[2])) > 0) {
                 std::string file;
                 int folder = gamecrt::rand() * 2 / 0x7FFF % 2;
                 file = str::Format(VoiceFormat(), VoiceFolders()[folder], topic_.c_str(), number);
@@ -175,10 +175,10 @@ void CBriefingScreen::NextPhrase(bool skip) {
             phraseTime_ = static_cast<float>(text::CharacterCount(std::string_view(phrase))) *
                           kSecondsPerCharacter;
             if (firstPhrase_) phraseTime_ += 1.0f;
-            text_->AddText(phrase.c_str());
+            text_->AddText(phrase);
         }
     } else if (!skip) {
-        text_->AddText(phrase.c_str());
+        text_->AddText(phrase);
     }
 
     if (last) {
@@ -196,7 +196,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             std::string label;
             auto add = [&] {
                 dialogueText_ += line;
-                if (!skip) text_->AddText(line.c_str());
+                if (!skip) text_->AddText(line);
             };
             auto addItems = [&](const std::vector<std::string>& list) {
                 for (const std::string* it = list.data(); it != list.data() + list.size(); ++it) {

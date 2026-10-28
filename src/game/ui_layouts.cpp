@@ -308,7 +308,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     case 2: {
         {
             std::string path = *GameBasePathString() + "Movies\\Exit.bik";
-            PlayMovie(path.c_str(), 0, 0, 0, 1, 1, 1);
+            PlayMovie(path, 0, 0, 0, 1, 1, 1);
         }
         app::QuitGame(0);
         break;
@@ -333,7 +333,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         std::string text;
         GameClientTexts()->CTextManager::GetString("reserved_04", &text);
-        TheInterface()->ShowStatusText(text.c_str());
+        TheInterface()->ShowStatusText(text);
         GameSetServerPaused(1);
         ui->PlaySound(okSound, 0);
         ui->PushWindow(new CMpHeroScreen(ui), 1, 1);
@@ -531,7 +531,7 @@ void CCreditsScreen::CreateScreen() {
                                 0;
             }
             words.Next();
-            record.speed = static_cast<float>(std::atof(words.word.c_str()));
+            record.speed = static_cast<float>(str::ToDouble(words.word));
             words.Next();
             record.style = words.WordOrEmpty();
             words.Next();

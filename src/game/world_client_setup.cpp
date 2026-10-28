@@ -51,7 +51,7 @@ void ReadTable(CIniFile& ini, std::vector<std::string>& keys, std::string& hour,
     int previous = 0;
     for (const std::string& key : keys) {
         hour = str::Mid(key, 4, 2);
-        int index = std::atoi(hour.c_str());
+        int index = str::ToInt(hour);
         values.clear();      // the sky section frees the block inline (the same state)
         ini.GetIntArray(section, key.c_str(), &values);
         LightColour& to = table[index];

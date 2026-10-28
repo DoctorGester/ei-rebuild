@@ -346,7 +346,7 @@ constexpr int kMapTravel = 180;
 constexpr int kOutlinePoints = 16;
 
 const MapRecord* LocalZone() {
-    return TheMapDatabase()->FindMap(LocalPlayerZone().c_str());
+    return TheMapDatabase()->FindMap(LocalPlayerZone());
 }
 
 void SetPlain(CUiMesh* sprite, std::uint32_t colour) {

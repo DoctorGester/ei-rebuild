@@ -478,7 +478,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             objectManager->ApplyPrototype(object, unitSpec->prototype.c_str());
             objectManager->GiveStartingEquipment(unit, unitSpec->prototype.c_str());
             for (const std::string& name : unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems])
-                unit->AddQuickItem(ItemFactory()->CreateItem(name.c_str()));
+                unit->AddQuickItem(ItemFactory()->CreateItem(name));
             unitSpec->record.ApplyTo(unit);
             // The model's six values (UnitModelRecord) go to the unit.
             const char* prototypeName = unitSpec->prototype.c_str();

@@ -88,8 +88,8 @@ MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
 
 using netlink::FileStream;
 
-double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
-void VariableSet(NamedFloatTable* table, const char* name, float value) { table->Set(name, value); }
+double VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
+void VariableSet(NamedFloatTable* table, std::string_view name, float value) { table->Set(name, value); }
 void ScriptsReset(CMemoryStream* scripts) { scripts->Resize(0); }
 
 struct LocalRecords {
@@ -113,7 +113,7 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
         {
             std::string prefix = kVisitedPrefix;
             std::string variable = prefix + name;
-            double value = VariableGet(variables, variable.c_str());
+            double value = VariableGet(variables, variable);
             EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
@@ -138,7 +138,7 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
         }
         std::string prefix = kVisitedPrefix;
         std::string variable = prefix + record->name;
-        VariableSet(variables, variable.c_str(), 0.0f);
+        VariableSet(variables, variable, 0.0f);
     }
 }
 
@@ -168,7 +168,7 @@ int GameFlow::SaveGame(const char* slot) {
     TheCursor()->SetShape(3);
     slotFolder = str::Format(kSlotFolder, DataFolderText(), slot);
     currentFolder = str::Format(kCurrentFolder, DataFolderText());
-    ClearSaveFolder(slotFolder.c_str());
+    ClearSaveFolder(slotFolder);
     if (TheServerWorld()->sessionKind_ == 4) {
         if (CPlayer* player = TheServerWorld()->GetPlayer(0))
             ThePartyManager()->BeginRedeploy(player->Party());
@@ -266,7 +266,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
         {
             std::string prefix = kLeftPrefix;
             std::string variable = prefix + zone;
-            left = static_cast<float>(VariableGet(variables, variable.c_str()));
+            left = static_cast<float>(VariableGet(variables, variable));
         }
         int ticks = static_cast<int>(gamecrt::Ftol((static_cast<double>(now) - left) * 100.0f /*0073BAB0*/));
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
@@ -300,11 +300,11 @@ int EnterZone(CParty* records) {
 
     NamedFloatTable* variables = &records->variables_;
     if (static_cast<int>(gamecrt::Ftol(VariableGet(variables, kMovieVariable))) == 1) {
-        if (std::strcmp(zone.c_str(),
+        if (str::Compare(zone,
                             kMovieZone) != 0) {
             {
                 std::string movie = MoviesFolder() + kMovieFile;
-                PlayMovie(movie.c_str(), 0, 1, 1, 1, 1, 1);
+                PlayMovie(movie, 0, 1, 1, 1, 1, 1);
             }
             variables->Remove(kMovieVariable);
         }
@@ -315,7 +315,7 @@ int EnterZone(CParty* records) {
     if (str::Compare(zoneRecord->map,
                         game::EmptyText()) != 0) {
         const char* mapOverride = nullptr;
-        if (text::CompareIgnoringCase(zone.c_str(),
+        if (text::CompareIgnoringCase(zone,
                             kFrozenZone) == 0) {
             double frozen = VariableGet(variables, kFrozenVariable);
             mapOverride = kFrozenMap;
@@ -326,7 +326,7 @@ int EnterZone(CParty* records) {
         {
             std::string prefix = kVisitedPrefix;
             std::string variable = prefix + zone;
-            double value = VariableGet(variables, variable.c_str());
+            double value = VariableGet(variables, variable);
             EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
@@ -482,13 +482,13 @@ int LeaveZone(CParty* records) {
     {
         std::string prefix = kVisitedPrefix;
         std::string variable = prefix + zone.c_str();
-        VariableSet(variables, variable.c_str(), 1.0f);
+        VariableSet(variables, variable, 1.0f);
     }
     float now = static_cast<float>(VariableGet(variables, kGTime));
     {
         std::string prefix = kLeftPrefix;
         std::string variable = prefix + zone;
-        VariableSet(variables, variable.c_str(), now);
+        VariableSet(variables, variable, now);
     }
     return 1;
 }
@@ -1004,13 +1004,12 @@ int LoadMission(CStream* file) {
     return TheServerWorld()->LoadSave(&mission, nullptr);
 }
 
-void ClearSaveFolder(const char* path) {
-    gameapi::CreateDirectoryA(path, nullptr);
+void ClearSaveFolder(const std::string& path) {
+    gameapi::CreateDirectoryA(path.c_str(), nullptr);
     lib::FileFind finder;
     int found;
     {
-        std::string folder(path);
-        std::string pattern = folder + kAllFiles;
+        std::string pattern = path + kAllFiles;
         found = finder.FindFile(pattern);
     }
     while (found) {
@@ -1131,7 +1130,7 @@ void GameFlow::StartNewGame() {
     PartyManagerNewGame(ThePartyManager());
     std::string folder;
     folder = str::Format(kCurrentFolder, DataFolderText());
-    ClearSaveFolder(folder.c_str());
+    ClearSaveFolder(folder);
     LocalRecords records;
     ThePartyManager()->EndRedeploy(records.Party());
     StartZone(records.Party()->zone_.c_str(), 0);
@@ -1298,7 +1297,7 @@ int GameFlow::LoadGame(const char* slot) {
     std::string currentFolder;
     slotFolder = str::Format(kSlotFolder, DataFolderText(), slot);
     currentFolder = str::Format(kCurrentFolder, DataFolderText());
-    ClearSaveFolder(currentFolder.c_str());
+    ClearSaveFolder(currentFolder);
     bool opened;
     {
         std::string path = slotFolder + kScenarioFile;
@@ -1342,7 +1341,7 @@ int GameFlow::LoadGame(const char* slot) {
         {
             std::string prefix = kVisitedPrefix;
             std::string variable = prefix + record->name;
-            double value = VariableGet(variables, variable.c_str());
+            double value = VariableGet(variables, variable);
             EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
@@ -1364,7 +1363,7 @@ int GameFlow::LoadGame(const char* slot) {
         }
         std::string prefix = kVisitedPrefix;
         std::string variable = prefix + record->name;
-        VariableSet(variables, variable.c_str(), 0.0f);
+        VariableSet(variables, variable, 0.0f);
     }
     ThePartyManager()->BeginRedeploy(records.Party());
 
@@ -1418,7 +1417,7 @@ void ConstructGameFlow() {
 void GameFlow::SetNetworkZone(const char* zone) {
     std::string folder;
     folder = str::Format(kCurrentFolder, DataFolderText());
-    ClearSaveFolder(folder.c_str());
+    ClearSaveFolder(folder);
     zone7C_ = zone ? zone : "";   // null (LeaveZone): no zone
     if (Active(net::GameServer()) && !Active(net::GameClient()) && zone) StartNetworkZone(zone);
 }
@@ -1468,7 +1467,7 @@ unsigned g_appliedStamp = /*007AFED4*/ {};
 unsigned& AppliedStamp() { return g_appliedStamp; }  // the stamp applied up to
 
 // The variable setter with the value as the raw dword that is pushed (no FPU load on the way).
-void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
+void VariableSetBits(NamedFloatTable* table, std::string_view name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
 // The client's variables (ClientSession::variables_), each with its stamp (VariableMessage::serial_).
 std::list<CountedRefTo<net::VariableMessage>>& Variables() { return net::GameClient()->variables_; }
 // The value's bits, moved as the dword that is pushed (no FPU load).
@@ -1516,12 +1515,12 @@ void GameFlow::UpdateFromServer() {
     BriefingVariableInto(&kVariable, (briefing + kBriefingSuffixK).c_str());
     std::string* const names[2] = {&questVariable, &kVariable};
     for (std::string* name : names) {
-        float value = static_cast<float>(VariableGet(variables, (*name).c_str()));
+        float value = static_cast<float>(VariableGet(variables, (*name)));
         // The larger of the value and 1.0 (a NaN is kept).
         std::uint32_t bits;
         std::memcpy(&bits, &value, 4);
         bool keep = (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x7FFFFFu) != 0 ? true : 1.0f < value;
-        VariableSet(variables, (*name).c_str(), keep ? value : 1.0f);
+        VariableSet(variables, (*name), keep ? value : 1.0f);
     }
 
     // The briefings the server says were seen.

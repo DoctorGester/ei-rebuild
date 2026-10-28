@@ -81,9 +81,9 @@ bool CGlobalMap::ReadMapPosition(Vector3* out, const char* format, const char* n
         TextNextLine(texts);
         if (texts->Split(&words, 1)) {
             while (words.size() < 3) words.push_back(kMissingNumber);
-            out->x = static_cast<float>(std::atof(words[0].c_str()));
-            out->y = static_cast<float>(std::atof(words[1].c_str()));
-            out->z = static_cast<float>(std::atof(words[2].c_str()));
+            out->x = static_cast<float>(str::ToDouble(words[0]));
+            out->y = static_cast<float>(str::ToDouble(words[1]));
+            out->z = static_cast<float>(str::ToDouble(words[2]));
             found = true;
         }
     }

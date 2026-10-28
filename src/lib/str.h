@@ -14,6 +14,7 @@
 // The usual operations are std::string's own: size(), empty(), clear(), c_str(), +, +=, ==.
 
 #include <cstdarg>
+#include <cstdlib>
 #include <string>
 #include <string_view>
 
@@ -27,6 +28,10 @@ int Compare(std::string_view a, std::string_view b);
 struct MbsLess {
     bool operator()(const std::string& a, const std::string& b) const;
 };
+
+// std::atoi / std::atof of a std::string.
+inline int ToInt(const std::string& s) { return std::atoi(s.c_str()); }
+inline double ToDouble(const std::string& s) { return std::atof(s.c_str()); }
 
 std::string Format(const char* format, ...);
 std::string FormatV(const char* format, va_list arguments);

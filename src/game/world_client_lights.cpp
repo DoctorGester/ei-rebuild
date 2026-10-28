@@ -235,7 +235,7 @@ void CWorldClient::UpdateExitMarkers() {
         if (!marker) continue;
         std::string name("z.");
         name += exits_[i].target;
-        const float visited = variables->Get(name.c_str());
+        const float visited = variables->Get(name);
         EI_NAN_AUDIT(visited);
         marker->extent = {visited == 1.0f ? 1.0f : 0.0f, 0.0f, 0.0f};
     }

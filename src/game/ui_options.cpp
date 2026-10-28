@@ -266,7 +266,7 @@ void COptionsWindow::BuildSettings() {
             text = TextOnDefault();
             TheTextManager()->GetString(TextOptionOn(), &text);
             if (i == kDifficultySetting) TheTextManager()->GetString(TextDifficultyEasy(), &text);
-            setting.spin_->AddText(text.c_str());
+            setting.spin_->AddText(text);
             AddChild(setting.spin_);
             setting.bar_ = nullptr;
         }

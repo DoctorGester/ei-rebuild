@@ -81,7 +81,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
             // The caret, unless the save keeps its name (the quick and the automatic saves).
             if (isSave_ && !SameFolder(entry.folder_, kQuickFolder) && !SameFolder(entry.folder_, kAutoFolderA) &&
                 !SameFolder(entry.folder_, kAutoFolderB)) {
-                const int width = TextWidth(interface_, str::Left(name, cursor_).c_str(), kFont);
+                const int width = TextWidth(interface_, str::Left(name, cursor_), kFont);
                 if (width < titleRect.right - titleRect.left) {
                     gdi::Pen pen(gameapi::CreatePen(PS_SOLID, 1, kCaretColour));
                     HGDIOBJ oldPen = gameapi::SelectObject(dc, pen.get());

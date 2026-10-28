@@ -25,8 +25,8 @@
 namespace {
 
 // The variables table (object_tables.cpp).
-void VariableSet(NamedFloatTable* table, const char* name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
-double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
+void VariableSet(NamedFloatTable* table, std::string_view name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
+double VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
 
 void Write(BitStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
 void WriteByte(BitStream* out, std::uint8_t value) { Write(out, &value, 1); }
@@ -46,14 +46,14 @@ NamedFloatTable* Variables(CPlayer* player) { return &player->Party()->variables
 
 // --- Variables and state -------------------------------------------------------------------------
 
-void CPlayerServer::SetVariable(const char* name, std::uint32_t value) {
+void CPlayerServer::SetVariable(std::string_view name, std::uint32_t value) {
     VariableSet(Variables(Owner()), name, value);
     WriteByte(&out_, 0x81);
     out_.WriteString(name);
     WriteDword(&out_, value);
 }
 
-void CPlayerServer::SetVariableMax(const char* name, float value) {
+void CPlayerServer::SetVariableMax(std::string_view name, float value) {
     // Rounded to float (FST) before any comparison.
     float stored = static_cast<float>(VariableGet(Variables(Owner()), name));
     float current = stored;

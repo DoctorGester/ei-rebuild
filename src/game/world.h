@@ -848,7 +848,7 @@ public:
     // A quest variable "q.<quest>.<name>" changed to `value`: every filed object whose name is <name>
     // (the text after the second dot) gets the visibility level `value`; a value of 2 (or NaN) with a
     // <name> without a dot summons the bird (as SummonBird).
-    void OnQuestVariable(const char* name, float value);
+    void OnQuestVariable(std::string_view name, float value);
     // The party variable of an object's name: "q.<the local player's zone>.<name>".
     std::string ObjectVariableName(const char* name);
     // Every filed object with a name gets the visibility level of its variable (ObjectVariableName) in the
@@ -1095,10 +1095,10 @@ float GameTime();
 class CParty* LocalPlayerData();
 // The local player's party's zone (a copy).
 std::string LocalPlayerZone();
-float LocalPlayerVariable(const char* name);
+float LocalPlayerVariable(std::string_view name);
 // Float variable `name` of the local player: the client's view in multiplayer, player 0
 // of the server otherwise (0 without that player).
-float PlayerZeroVariable(const char* name);
+float PlayerZeroVariable(std::string_view name);
 
 struct GameFlow {
     // Saves the game into saves\<slot>\ (single player only): empties the folder, copies the visited zones' files
@@ -1285,7 +1285,7 @@ bool LoadZoneQuests(const char* zone);
 
 bool NameInList(const char* const* list, const char* name);
 
-void ClearSaveFolder(const char* path);
+void ClearSaveFolder(const std::string& path);
 
 // For the zone table entries with `id`, grouped by their second name in order of first appearance: one
 // random entry per group (never the one whose first name is `exclude` when there is a choice; one

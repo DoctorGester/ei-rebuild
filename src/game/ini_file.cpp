@@ -94,6 +94,6 @@ BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out
     if (!GetList(section, key, &codes, kListSeparator)) return 0;
     int count = static_cast<int>(codes.size());
     out->resize(count);
-    for (int i = 0; i < count; ++i) (*out)[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
+    for (int i = 0; i < count; ++i) (*out)[i] = static_cast<std::uint32_t>(str::ToInt(codes[i]));
     return 1;
 }

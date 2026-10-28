@@ -206,7 +206,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     std::string name = cmd->stringArgs[0].c_str();
     const ScriptParticleType* type = nullptr;
     for (int i = 0; i < kScriptParticleTypeCount; ++i) {
-        if (text::CompareIgnoringCase(kScriptParticleTypes[i].name, name.c_str()) == 0) {
+        if (text::CompareIgnoringCase(kScriptParticleTypes[i].name, name) == 0) {
             type = &kScriptParticleTypes[i];
             break;
         }

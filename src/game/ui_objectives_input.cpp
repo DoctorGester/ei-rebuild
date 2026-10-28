@@ -69,12 +69,12 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
     case kRegionPreviousZone:
         if (listZones_ == 0 || zoneCount <= 1) return;
         if (--zoneIndex_ < 0) zoneIndex_ = static_cast<int>(zoneCount) - 1;
-        ShowZone(zones_[zoneIndex_].c_str());
+        ShowZone(zones_[zoneIndex_]);
         return;
     case kRegionNextZone:
         if (listZones_ == 0 || zoneCount <= 1) return;
         if (static_cast<std::uint32_t>(++zoneIndex_) >= zoneCount) zoneIndex_ = 0;
-        ShowZone(zones_[zoneIndex_].c_str());
+        ShowZone(zones_[zoneIndex_]);
         return;
     default:
         break;
@@ -166,8 +166,8 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
         if (texts->Split(&words, 1) && words.size() > 1) {
             for (std::size_t i = 1; i < words.size(); i += 2) {
                 UiPointF place;
-                place.x = static_cast<float>(std::atof(words[i - 1].c_str()));
-                place.y = static_cast<float>(std::atof(words[i].c_str()));
+                place.x = static_cast<float>(str::ToDouble(words[i - 1]));
+                place.y = static_cast<float>(str::ToDouble(words[i]));
                 places.push_back(place);
             }
         }

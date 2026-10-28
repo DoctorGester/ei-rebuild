@@ -251,9 +251,9 @@ void CWorldClient::SummonBird() {
     bird_->Follow(static_cast<int>(leader->unitId));
 }
 
-void CWorldClient::OnQuestVariable(const char* variable, float value) {
+void CWorldClient::OnQuestVariable(std::string_view variable, float value) {
     const char* dot = DotText();
-    std::string name = variable;
+    std::string name(variable);
     const int length = name.size();
     const int second = str::Find(name, dot, str::Find(name, dot) + 1);
     name = str::Right(name, length - second - 1);
@@ -278,7 +278,7 @@ void CWorldClient::ApplyObjectVariables() {
     for (CMapObject* object : objects_) {
         const char* name = object->name2.c_str();
         if (!name || !*name) continue;
-        object->SetVisibilityLevel(variables->Get(ObjectVariableName(name).c_str()));
+        object->SetVisibilityLevel(variables->Get(ObjectVariableName(name)));
     }
 }
 

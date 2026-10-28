@@ -4,6 +4,7 @@
 #include "map_object_figures.h"
 
 #include "base_manager.h"
+#include "lib/str.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -132,6 +133,6 @@ double CObject3D::AnimationFactor(float time) {
 
 int CObject3D::FindPartIndex(const char* partName) {
     for (std::size_t i = 0; i < partNames.size(); ++i)
-        if (std::strcmp(partNames[i].c_str(), partName) == 0) return static_cast<int>(i);
+        if (str::Compare(partNames[i], partName) == 0) return static_cast<int>(i);
     return -1;
 }

@@ -9,22 +9,22 @@
 
 namespace {
 
-int FindName(const std::vector<std::string>& names, const char* name) {
+int FindName(const std::vector<std::string>& names, std::string_view name) {
     for (std::size_t i = 0; i < names.size(); ++i)
-        if (std::strcmp(names[i].c_str(), name) == 0) return static_cast<int>(i);
+        if (names[i] == name) return static_cast<int>(i);
     return -1;
 }
 
 } // namespace
 
 template <typename T>
-int ScriptNamedValues<T>::FindName(const char* name) const {
+int ScriptNamedValues<T>::FindName(std::string_view name) const {
     return ::FindName(names, name);
 }
-template int ScriptNamedValues<float>::FindName(const char*) const;
-template int ScriptNamedValues<std::string>::FindName(const char*) const;
-template int ScriptNamedValues<ScriptObjectRef>::FindName(const char*) const;
-template int ScriptNamedValues<ScriptGroup>::FindName(const char*) const;
+template int ScriptNamedValues<float>::FindName(std::string_view) const;
+template int ScriptNamedValues<std::string>::FindName(std::string_view) const;
+template int ScriptNamedValues<ScriptObjectRef>::FindName(std::string_view) const;
+template int ScriptNamedValues<ScriptGroup>::FindName(std::string_view) const;
 
 // The values grow by the other set's value count, the names to the old value count plus the other set's name
 // count; then, for every one of the other set's names, the name and the value with the same index go into the

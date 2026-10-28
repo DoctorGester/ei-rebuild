@@ -145,12 +145,12 @@ void CHelpWindow::ShowPage() {
     if (texts->FindLine(kPositionLine)) {
         texts->Split(&words, 1);
         if (words.size() > 3) {
-            page.left = std::atoi(words[1].c_str());
-            page.top = std::atoi(words[2].c_str());
-            page.right = std::atoi(words[3].c_str());
+            page.left = str::ToInt(words[1]);
+            page.top = str::ToInt(words[2]);
+            page.right = str::ToInt(words[3]);
             int rows = 1;
             if (words.size() > 4) {
-                rows = std::atoi(words[4].c_str());
+                rows = str::ToInt(words[4]);
                 rowsGiven = true;
             }
             if (page.right - page.left < 300) page.right = page.left + 300;
@@ -184,7 +184,7 @@ void CHelpWindow::ShowPage() {
     header->DrawTextIn(lines_[page_], &line, 2, kTitleColour, DT_CENTER, 1);
     line = RECT{0, 30, width, 50};
     text = str::Format(kTitleFormat, title_.c_str(), page_ + 1, static_cast<int>(lines_.size()));
-    header->DrawTextIn(text.c_str(), &line, 1, kTitleColour, DT_CENTER, 1);
+    header->DrawTextIn(text, &line, 1, kTitleColour, DT_CENTER, 1);
     UiSurfaceReleaseDC(header);
 
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
@@ -193,11 +193,11 @@ void CHelpWindow::ShowPage() {
         texts->Split(&words, 1);
         if (Same(words[0], kScreenLine)) break;
         if (Same(words[0], kRectangleLine) && words.size() > 4) {
-            const int top = std::atoi(words[2].c_str());
-            const int bottom = std::atoi(words[4].c_str());
+            const int top = str::ToInt(words[2]);
+            const int bottom = str::ToInt(words[4]);
             const int shift = TutorialFrameShift(this);
-            const int left = std::atoi(words[1].c_str()) + shift;
-            const int right = std::atoi(words[3].c_str()) + shift;
+            const int left = str::ToInt(words[1]) + shift;
+            const int right = str::ToInt(words[3]) + shift;
             CUiMesh* mark = AddSprite(nullptr);
             mark->SetFrame(3.0f, 100.0f, static_cast<float>(left), static_cast<float>(top), static_cast<float>(right),
                            static_cast<float>(bottom), 5.0f, 0, 0, 256, 256);
@@ -238,7 +238,7 @@ void CHelpWindow::ShowPage() {
                     const int cellY = pictures % 4 * kPictureSize;
                     {
                         std::string name = std::string(kPicturePrefix) + entry.picture.data();
-                        CopyImage(objects_[1], name.c_str(), kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
+                        CopyImage(objects_[1], name, kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
                                   cellY, 0, 0);
                     }
                     CUiMesh* picture = AddSprite(nullptr);
@@ -266,7 +266,7 @@ void CHelpWindow::ShowPage() {
             }
             if (open) texts->ReadToHash(&text, 1);
             str::TrimRight(text, kLineEnds);
-            int height = body->DrawWrappedText(text.c_str(), &row, 100, 1, kTextColour, kWrapFormat, 1) * kRowHeight;
+            int height = body->DrawWrappedText(text, &row, 100, 1, kTextColour, kWrapFormat, 1) * kRowHeight;
             // A text with a picture is at least as high as the picture's place.
             if (withPicture && height <= 80) height = 80;
             y += height;
@@ -314,7 +314,7 @@ void CHelpWindow::ShowPage() {
         hint += kSpace;
         hint += key;
         RECT label{width / 3, 5, 2 * width / 3, 25};
-        footer->DrawTextIn(hint.c_str(), &label, 0, kTitleColour, DT_CENTER, 1);
+        footer->DrawTextIn(hint, &label, 0, kTitleColour, DT_CENTER, 1);
     }
     if (page_ < static_cast<int>(lines_.size()) - 1) {
         RECT label{2 * width / 3, 5, width, 25};

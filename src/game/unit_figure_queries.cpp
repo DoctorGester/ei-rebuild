@@ -8,6 +8,7 @@
 #include "world.h"
 
 #include "lib/crt.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <cstdint>
@@ -90,7 +91,7 @@ double CUnit::BodyExtent() {
         if (part < 0) return kNoExtent;
     }
     float extentScale = kExtentScale;
-    if (type_ == kTypeOtherUnit && std::strcmp(name.c_str(), kMosquito) == 0) extentScale = kMosquitoExtentScale;
+    if (type_ == kTypeOtherUnit && str::Compare(name, kMosquito) == 0) extentScale = kMosquitoExtentScale;
     const Vector3& corner = partBoxes[part].bounds.boxMax;
     double y = corner.y;
     double x = corner.x;

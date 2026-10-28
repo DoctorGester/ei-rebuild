@@ -43,7 +43,7 @@ constexpr int kCampScreen = 5;
 
 // The zone the local player is in.
 MapRecord* PlayerZone() {
-    return TheMapDatabase()->FindMap(LocalPlayerZone().c_str());
+    return TheMapDatabase()->FindMap(LocalPlayerZone());
 }
 
 // The ways from the player's zone to `target`, the earlier results dropped.
@@ -66,7 +66,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
     std::string variable;   // one string for every "z.<zone>" name
     for (int i = 0; i < std::ssize(from->exits); ++i) {
         bool goesBeyond = false;
-        MapRecord* zone = TheMapDatabase()->FindMap(from->exits[i].target.c_str());
+        MapRecord* zone = TheMapDatabase()->FindMap(from->exits[i].target);
         if (!zone) continue;
         float passTime = from->exits[i].passTime;
         if (SameName(zone->name, target_)) {
@@ -96,7 +96,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
         bool passable = false;
         if (zone->kind == 0 || zone->kind == 1 || zone->kind == 2) {
             variable = str::Format(kZoneVariable, zone->name.c_str());
-            int state = static_cast<int>(LocalPlayerVariable(variable.c_str()));   // truncated
+            int state = static_cast<int>(LocalPlayerVariable(variable));   // truncated
             passable = zone->kind == 0 ? state == 2 : zone->kind == 1 ? state != 1 : state != 0;
         }
         if (passable) {

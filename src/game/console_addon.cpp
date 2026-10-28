@@ -84,7 +84,7 @@ void Help(Arguments* args) {
 
 void AddonDebug(Arguments* args) {
     std::string type = !args->empty() ? (*args)[0] : "";
-    int level = args->size() >= 2 ? std::atoi((*args)[1].c_str()) : -1;
+    int level = args->size() >= 2 ? str::ToInt((*args)[1]) : -1;
     if (type.empty() || type == "help") {
         SayFormat("Usage:\n\taddon debug {type} [level]\n\nSet debug level for type of addon's debugging settings\n"
                   "or show current value if level is not specified\n\nTypes:\n* log      - addon log file (current: %d)\n"
@@ -107,13 +107,13 @@ void AddonDebug(Arguments* args) {
 }
 
 void Addon(Arguments* args) {
-    if (args->empty() || std::strcmp((*args)[0].c_str(), "help") == 0) {
+    if (args->empty() || str::Compare((*args)[0], "help") == 0) {
         Say("Welcome to Evil Islands Addon Engine v0.12.4.2\n\nAvailable commands:\n"
             "* addon info          - show detailed information about addon\n"
             "* addon debug [args]  - set addon's debug settings");
-    } else if (std::strcmp((*args)[0].c_str(), "info") == 0) {
+    } else if (str::Compare((*args)[0], "info") == 0) {
         SayFormat("Addon core version: 0.12.4.2\nCurrent mod: %s", "No mod is used");
-    } else if (std::strcmp((*args)[0].c_str(), "debug") == 0) {
+    } else if (str::Compare((*args)[0], "debug") == 0) {
         args->erase(args->begin());
         AddonDebug(args);
     } else {
@@ -151,12 +151,12 @@ void ListGlobals(Arguments*) {
 // drawall n: the draw-all flag becomes (n == 0).
 void DrawAll(Arguments* args) {
     if (args->size() < 1) return;
-    *kSpectator = std::atoi((*args)[0].c_str()) == 0 ? 1 : 0;
+    *kSpectator = str::ToInt((*args)[0]) == 0 ? 1 : 0;
 }
 
 // nogui 0|1|2: GUI and cursor shown / GUI hidden / both hidden.
 void NoGui(Arguments* args) {
-    int mode = args->size() == 1 ? std::atoi((*args)[0].c_str()) : -1;
+    int mode = args->size() == 1 ? str::ToInt((*args)[0]) : -1;
     if (static_cast<unsigned>(mode) > 2) {
         Say("Hide or show GUI in game missions\n\nnogui 0 - show all (default)\nnogui 1 - hide GUI but show cursor\n"
             "nogui 2 - hide GUI and cursor");

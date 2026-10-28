@@ -82,7 +82,7 @@ bool FloatToStr(Call* call) {
 }
 
 bool StrToFloat(Call* call) {
-    Store(call->FloatResult(), static_cast<float>(std::atof(Arg(call, 0).c_str())));
+    Store(call->FloatResult(), static_cast<float>(str::ToDouble(Arg(call, 0))));
     return true;
 }
 

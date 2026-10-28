@@ -146,7 +146,7 @@ int CCamera::OpenFile(const char* name) {
                     std::string tail = str::Right(title, 4);
                     title = tail;
                 }
-                int number = std::atoi(title.c_str());
+                int number = str::ToInt(title);
                 if (number > last) last = number;
             } while (more);
         }

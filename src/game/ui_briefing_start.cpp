@@ -109,7 +109,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
         return;
     }
     if (text::CompareIgnoringCase(str::Left(topic_, kConstructorPrefix), ConstructorTopic()) == 0) {
-        int constructor = std::atoi(str::Mid(topic_, kConstructorNumber).c_str());
+        int constructor = str::ToInt(str::Mid(topic_, kConstructorNumber));
         if (ClassTemplates()->Find(constructor)) {
             GameSetConstructionVariable(std::bit_cast<std::uint32_t>(static_cast<float>(constructor)));
             GameSendLeave04(kCampScreen);
@@ -130,7 +130,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     while (texts->FindLine(ShowLine())) {
         texts->Split(&words, 1);
         if (words.size() < 2) continue;
-        int id = TextKeyFromName(words[1].c_str());
+        int id = TextKeyFromName(words[1]);
         if (id == leader_->id_) continue;
         auto* unit = GameFindClientUnit(id);
         if (!unit) continue;
@@ -259,7 +259,7 @@ void CBriefingScreen::FinishDialogue() {
     BriefingVariables variables(TopicPrefix());
     std::vector<std::string> parts;
     for (auto node = variables.begin(); node != variables.end(); ++node) {
-        text::Split(node->first.c_str(), &parts, '.');
+        text::Split(node->first, &parts, '.');
         if (parts.size() != kTopicNameParts || text::CompareIgnoringCase(topic_, parts[2]) != 0) continue;
         TheServerWorld()->CompleteBriefing(0, node->first.c_str());
         break;

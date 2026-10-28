@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "lib/hash_map.h"
@@ -18,7 +19,7 @@ class CStream;
 
 // Text key of a name: h = 5 h + toupper(c) over the bytes (unsigned arithmetic), then
 // h % 1000000000 + 1000000000. __fastcall (name in ECX).
-int TextKeyFromName(const char* name);
+int TextKeyFromName(std::string_view name);
 
 // Text keys are 1000000000..1999999999. __fastcall (id in ECX).
 BOOL IsTextKey(int id);
@@ -81,9 +82,9 @@ struct MapRecord {
 // The map database loaded from map.txt / map_LMP.txt (a global).
 struct CMapDatabase {
     // Map named `name` (_mbsicmp), or null.
-    MapRecord* FindMap(const char* name);
+    MapRecord* FindMap(std::string_view name);
     // Allod named `name` (_mbsicmp), or null.
-    AllodRecord* FindAllod(const char* name);
+    AllodRecord* FindAllod(std::string_view name);
     // Adds the allods and maps of a map.txt-style text file. Returns false if the file is not found.
     bool Load(const char* fileName);
     // Loads "map.txt", then "map-LMP.txt"; returns the second Load's result (WinMain does not read it).
@@ -99,12 +100,12 @@ struct CMapDatabase {
 struct NamedFloatTable : lib::HashMap<std::string, float, lib::TextHash> {
 
     // Value stored under `name`, 0 if absent. Builds a string of the name first, as the game does.
-    float Get(const char* name);
+    float Get(std::string_view name);
     // Stores `value` under `name`; a zero value (or NaN: the game's FCOMP
     // test) removes the entry instead. Nothing for an empty name.
-    void Set(const char* name, float value);
+    void Set(std::string_view name, float value);
     // Removes the entry stored under `name`.
-    void Remove(const char* name);
+    void Remove(std::string_view name);
     // Empties `out`, then copies into it every entry whose name starts with
     // `prefix` (strncmp over the prefix's length).
     void CopyPrefixed(const char* prefix, NamedFloatTable* out);

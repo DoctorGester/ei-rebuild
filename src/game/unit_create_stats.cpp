@@ -155,7 +155,7 @@ void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
 
 // --- Name lookups -----------------------------------------------------------------------------
 
-UnitNpcRecord* NpcPrototypeTable::FindByName(const char* name) {
+UnitNpcRecord* NpcPrototypeTable::FindByName(std::string_view name) {
     std::string key(name);
     std::string pairKey(key);
     UnitNpcRecord* record = byName[pairKey];

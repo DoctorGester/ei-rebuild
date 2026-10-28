@@ -95,7 +95,7 @@ void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     line += "\n";   // "\n"
     name = line;
     pageTexts_[0] += name;
-    if (page_ == 0) owner_->MessageLog()->AddText(name.c_str());
+    if (page_ == 0) owner_->MessageLog()->AddText(name);
 }
 
 void CHudTopPanel::AddMoney(int money) {
@@ -112,5 +112,5 @@ void CHudTopPanel::AddMoney(int money) {
     line += "\n";   // "\n"
     text = line;
     pageTexts_[0] += text;
-    if (page_ == 0) owner_->MessageLog()->AddText(text.c_str());
+    if (page_ == 0) owner_->MessageLog()->AddText(text);
 }

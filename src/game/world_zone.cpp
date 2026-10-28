@@ -108,7 +108,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
 
 int CWorldServer::LoadMobFile(const char* file) {
     for (const std::string& loaded : mobFiles_)
-        if (std::strcmp(loaded.c_str(), file) == 0) return 1;
+        if (str::Compare(loaded, file) == 0) return 1;
     g_loadingMovieOff = 1;
     if (file) {
         int loaded = LoadMapObjects(file, 0);

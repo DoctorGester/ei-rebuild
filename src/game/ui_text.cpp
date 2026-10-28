@@ -21,12 +21,12 @@ SIZE TextExtent(CInterface3D* ui, std::string_view text, int font) {
 
 } // namespace
 
-int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines, int font, COLORREF colour,
+int CUiSurface::DrawWrappedText(std::string_view text, const RECT* rect, int maxLines, int font, COLORREF colour,
                                 int format, int flag) {
     if (!holder_) return 0;
     int width = rect->right - rect->left;
     std::string ch, word, line;
-    std::string source = text;
+    std::string source(text);
     source += game::NewLineText();
     std::vector<std::string> lines;
     // Words collect characters up to a space or newline; a word that would make the line wider

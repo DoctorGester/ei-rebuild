@@ -118,7 +118,7 @@ void PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, in
     for (const std::string& movie : list) {
         {
             const std::string full = TheDiscFolder().c_str() + std::string("Movies\\") + movie;
-            PlayMovie(full.c_str(), 0, 1, 0, 0, static_cast<char>(a), b);
+            PlayMovie(full, 0, 1, 0, 0, static_cast<char>(a), b);
         }
         if (clearAfter) ClearScreen();
     }

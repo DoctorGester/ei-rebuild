@@ -231,7 +231,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         return;
     case 13: {   // Enter
         bool repeated = ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole) && !commands_.empty() &&
-                        std::strcmp(input_.c_str(), commands_[0].c_str()) == 0;
+                        str::Compare(input_, commands_[0]) == 0;
         if (!repeated) {
             commands_.insert(commands_.begin(), input_);
             if (commands_.size() > kHistoryDepth) commands_.pop_back();
@@ -241,7 +241,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         caret_ = 0;
         anchor_ = 0;
         DrawInput();
-        AddText((game::consoletexts::Prompt() + commands_[0] + game::NewLineText()).c_str());
+        AddText((game::consoletexts::Prompt() + commands_[0] + game::NewLineText()));
         Execute(commands_[0].c_str());
         return;
     }

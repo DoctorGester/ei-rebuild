@@ -55,7 +55,7 @@ CItem* FirstOf(const std::vector<CItem*>& list) { return !list.empty() ? list[0]
 void BackToMainMenu(CInterface3D* ui) {
     std::string text;
     GameClientTexts()->CTextManager::GetString("reserved_04", &text);
-    TheInterface()->ShowStatusText(text.c_str());
+    TheInterface()->ShowStatusText(text);
     uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
     TheGameFlow()->EndSession();
     ui->SetPendingValue(0);
@@ -564,7 +564,7 @@ int HighestFileNumber(std::string_view pattern) {
             more = find.FindNext();
             if (!find.IsDots()) {
                 std::string title = find.GetTitle();
-                int number = std::atoi(title.c_str());
+                int number = str::ToInt(title);
                 if (!(highest > number)) highest = number;
             }
         } while (more);

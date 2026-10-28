@@ -42,7 +42,7 @@ void Drop(CItem* item) {
     if (item) item->Release();
 }
 
-CItem* MakeItem(CParty* party, const char* name) {
+CItem* MakeItem(CParty* party, std::string_view name) {
     return party->ItemManager()->CreateItem(name);
 }
 
@@ -92,7 +92,7 @@ PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, cons
 }
 
 BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
-    auto* prototype = unitdb::PrototypeTable().FindByName(record->texts[5].c_str());
+    auto* prototype = unitdb::PrototypeTable().FindByName(record->texts[5]);
     auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     record->texts[2] = model->figureName;
     BuildNpcStats(&record->stats, record->texts[5].c_str());
@@ -103,14 +103,14 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     // What the prototype lookup copies out of the prototype: armour names, the two weapon names, spell names.
     const std::vector<std::string>& armour = prototype->armourNames;
     for (int i = 0; i < static_cast<int>(armour.size()); ++i) {
-        CItem* item = MakeItem(this, armour.begin()[i].c_str());
+        CItem* item = MakeItem(this, armour.begin()[i]);
         CItem* copy = CountedClone(item);
         lib::SetAtGrow(record->armor, std::ssize(record->armor), copy);
         Drop(item);
     }
     for (const auto* weapon : {&prototype->weaponName, &prototype->secondWeaponName}) {
         if (!Named((*weapon))) continue;
-        CItem* item = MakeItem(this, (*weapon).c_str());
+        CItem* item = MakeItem(this, (*weapon));
         CItem* copy = CountedClone(item);
         lib::SetAtGrow(record->weapons, std::ssize(record->weapons), copy);
         Drop(item);
@@ -150,14 +150,14 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     }
     const std::vector<std::string>& quickNames = npc->startQuickItems;
     for (unsigned i = 0; i < static_cast<unsigned>(quickNames.size()); ++i) {
-        CItem* item = MakeItem(this, quickNames.begin()[i].c_str());
+        CItem* item = MakeItem(this, quickNames.begin()[i]);
         CItem* copy = CountedClone(item);
         lib::SetAtGrow(record->quickItems, std::ssize(record->quickItems), copy);
         Drop(item);
     }
     const std::vector<std::string>& weaponNames = npc->startWeapons;
     for (unsigned i = 0; i < static_cast<unsigned>(weaponNames.size()); ++i) {
-        CItem* item = MakeItem(this, weaponNames.begin()[i].c_str());
+        CItem* item = MakeItem(this, weaponNames.begin()[i]);
         CItem* copy = CountedClone(item);
         lib::SetAtGrow(record->weapons, std::ssize(record->weapons), copy);
         Drop(item);
@@ -186,15 +186,15 @@ constexpr float kOpened = 1.0f;
 
 void CParty::OpenEdgeExits() {
     std::string variable;
-    MapRecord* zone = TheMapDatabase()->FindMap(zone_.c_str());
+    MapRecord* zone = TheMapDatabase()->FindMap(zone_);
     if (zone == nullptr || zone->kind != kZoneKindEdge) return;
     NamedFloatTable& variables = variables_;
     for (int i = 0; i < std::ssize(zone->exits); ++i) {
-        MapRecord* target = TheMapDatabase()->FindMap(zone->exits[i].target.c_str());
+        MapRecord* target = TheMapDatabase()->FindMap(zone->exits[i].target);
         if (target == nullptr || target->kind != kZoneKindGame) continue;
         variable = str::Format(ZoneVariableFormat(), target->name.c_str());
-        float value = variables.Get(variable.c_str());
+        float value = variables.Get(variable);
         EI_NAN_AUDIT(value);
-        if (value == 0.0f) variables.Set(variable.c_str(), kOpened);
+        if (value == 0.0f) variables.Set(variable, kOpened);
     }
 }

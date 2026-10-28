@@ -409,7 +409,7 @@ bool Equal(float a, float b) {
 
 } // namespace
 
-void CBattleScreen::OnQuestVariable(const char* name, float value) {
+void CBattleScreen::OnQuestVariable(std::string_view name, float value) {
     CTextManager* texts = GameClientTexts();
     std::vector<std::string> parts;
     std::string text;
@@ -443,7 +443,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
         if (!IsMultiplayerClient()) {
             const char* dot = ".";
             std::string variable = parts[0] + dot + parts[1] + dot + parts[2];
-            double current = LocalPlayerVariable(variable.c_str());
+            double current = LocalPlayerVariable(variable);
             // FCOMP of the unrounded result with 0; TEST AH,0x40.
             EI_NAN_AUDIT(current);
             if (current == static_cast<double>(0.0f /*0073B858*/)) return;

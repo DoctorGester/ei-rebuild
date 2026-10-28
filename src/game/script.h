@@ -92,7 +92,7 @@ struct ScriptNamedValues {
     // The other set's values appended, and for each of its names the name and the value with its index.
     void Append(const ScriptNamedValues<T>& other);
     // -1 if absent.
-    int FindName(const char* name) const;
+    int FindName(std::string_view name) const;
 
     std::vector<T> values;
     std::vector<std::string> names;

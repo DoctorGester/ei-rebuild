@@ -202,10 +202,10 @@ int CEffectSoundSeq::RunTick() {
 void CEffectSoundSeq::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
     field->WritePosition(&position);
-    field->WriteStringBoth(name_.c_str());
+    field->WriteStringBoth(name_);
     int count = static_cast<int>(names_.size());
     field->WriteDelta(&count, 4);
-    for (const std::string& name : names_) field->WriteStringBoth(name.c_str());
+    for (const std::string& name : names_) field->WriteStringBoth(name);
     field->WriteFloat16(Bits(volume_));
     field->WriteFloat16(Bits(radius_));
     field->WriteFloat16x3(&velocity_.x);
@@ -285,7 +285,7 @@ void CEffectAmbientSound::Pack(DeltaField* field) {
     field->WritePosition(&position);
     std::uint8_t count = static_cast<std::uint8_t>(names_.size());
     field->WriteDelta(&count, 1);
-    for (const std::string& name : names_) field->WriteStringBoth(name.c_str());
+    for (const std::string& name : names_) field->WriteStringBoth(name);
     field->WriteFloat16(Bits(volume_));
     field->WriteFloat16(Bits(radius_));
     int value = minInterval_;

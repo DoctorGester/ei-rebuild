@@ -143,7 +143,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             if (text::CompareIgnoringCase(name,
                                 game::NoneText()) != 0) {
                 name = std::string("z.") + name;
-                double value = LocalPlayerVariable(name.c_str());
+                double value = LocalPlayerVariable(name);
                 const float one = 1.0f /*0073B84C*/;
                 // FCOMP; TEST AH,0x40; JNZ: equal skips.
                 EI_NAN_AUDIT(value);

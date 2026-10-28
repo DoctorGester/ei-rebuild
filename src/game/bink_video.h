@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #include <windows.h>
 
@@ -15,7 +16,7 @@ extern std::uint8_t g_loadingMovieOff;
 void ShowLoadingMovie(int progress);
 // Plays a movie in a message loop of its own (name, the time per frame or 0, Esc / Space end it, Space skips
 // frames, the screen cleared first, a loading screen step first, unused). Returns 0 when Esc ended it.
-char PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
+char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
                           char loadingStep, int unused);
 // Closes the loading screen's movie once loading is over (game start and zone load): the handle and the holder
 // let go, the cursor shown again.
