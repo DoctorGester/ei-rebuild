@@ -119,18 +119,6 @@ namespace {
 CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
 } // namespace
 
-void LoadStepList(AnimationSteps* steps, CStream* stream) {
-    int count = 0;
-    stream->Read(&count, 4);
-    steps->SetSize(count, -1);
-    for (int i = 0; i < steps->size; ++i) stream->Read(&steps->data[i], sizeof(AnimationStep));
-}
-
-void SaveStepList(const AnimationSteps* steps, CStream* stream) {
-    WriteCopy(stream, steps->size);
-    for (int i = 0; i < steps->size; ++i) stream->Write(&steps->data[i], sizeof(AnimationStep));
-}
-
 void ArmourSpell::Save(CStream* stream) const {
     WriteCopy(stream, IdOrNone(item));
     WriteCopy(stream, countdown);
@@ -160,8 +148,7 @@ void CUnitServer::Load(CStream* stream) {
     aiPresence = nullptr;
     stream->Read(&frozen, 1);
     stream->Read(&animationHeld, 1);
-    LoadStepList(&queue, stream);
-    stream->Read(&queue.extra, 4);
+    queue.Load(stream);
     motion.LoadPath(stream);
     currentPlan.animation.Load(stream);
     LoadPlanFields(stream, &currentPlan);
@@ -169,8 +156,7 @@ void CUnitServer::Load(CStream* stream) {
     stream->Read(&stoodBlocked, 1);
     stream->Read(&motionChanged, 1);
     stream->Read(&movingAnimation, 1);
-    LoadStepList(&savedQueue, stream);
-    stream->Read(&savedQueue.extra, 4);
+    savedQueue.Load(stream);
     stream->Read(&hitDirection, 4);
     stream->Read(&state, 4);
     stream->Read(&moveMode, 8);
@@ -221,8 +207,7 @@ void CUnitServer::Load(CStream* stream) {
 void CUnitServer::Save(CStream* stream) {
     WriteCopy(stream, frozen);
     WriteCopy(stream, animationHeld);
-    SaveStepList(&queue, stream);
-    WriteCopy(stream, queue.extra);
+    queue.Save(stream);
     motion.SavePath(stream);
     currentPlan.animation.Save(stream);
     SavePlanFields(stream, &currentPlan);
@@ -230,8 +215,7 @@ void CUnitServer::Save(CStream* stream) {
     WriteCopy(stream, stoodBlocked);
     WriteCopy(stream, motionChanged);
     WriteCopy(stream, movingAnimation);
-    SaveStepList(&savedQueue, stream);
-    WriteCopy(stream, savedQueue.extra);
+    savedQueue.Save(stream);
     WriteCopy(stream, hitDirection);
     stream->Write(&state, 4);
     stream->Write(&moveMode, 8);

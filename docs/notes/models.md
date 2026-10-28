@@ -336,8 +336,8 @@ every tile, and with "whole page" for one row of the last pages' tables); +0x100
 (+0xAE0: "Dungeon", or "Ingos" / "Suslanger" by `zone`, else "Gipat"); for each of the sixteen sound classes with its own
 vote (table 007969D0, +0x0C negative) the one-shot count +0x04 = how many of `ambient\<set>\<class>\day\<n>.wav`
 (n from 1) the wave sources have (`terrain::CountAmbientVariants`, terrain_ambience.cpp; each probe takes a reference on
-the wave file that is never given back); flags |= 0xFFFF; a water level per sector and material, zeroed (the outer
-CArray's elements are CArray<float>, vtable 0073D3E8: `terrain::LevelArrayElements` for 00575690 / 005755A0).
+the wave file that is never given back); flags |= 0xFFFF; a water level per sector and material, zeroed (ours `std::vector<std::vector<float>>`; game.exe's outer
+CArray's elements are CArray<float>, vtable 0073D3E8, built and destroyed by 00575690 / 005755A0).
 Float note (rule 7): the quotients and products are rounded to float where the original's FPU does at 24-bit precision
 
 textures load twice per zone in the verify build. Scenario: every one that enters a zone.

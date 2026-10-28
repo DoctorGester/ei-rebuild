@@ -282,11 +282,11 @@ void Give(Arguments* args) {
         return state->SendParty();
     }
     if (ArgIs(args, 1, "exp") && args->size() > 2) {
-        int count = player->Party()->members_.size;
+        int count = std::ssize(player->Party()->members_);
         // Rounded to float once.
         float share = static_cast<float>(std::atof((*args)[2].c_str()) / count);
         for (int i = 0; i < count; ++i)
-            player->Party()->members_.data[i].stats.AddScaledExperience(share);
+            player->Party()->members_[i].stats.AddScaledExperience(share);
         return state->SendParty();
     }
     if (ArgIs(args, 1, "assortment")) {

@@ -539,7 +539,7 @@ std::string* GameFlow::MultiplayerZoneInto(std::string* out) {
 
 void GameFlow::BeginMultiplayerGame() {
     PartyManagerNewGameFour(ThePartyManager());
-    if (GlobalParty()->members_.size == 1) GlobalParty()->members_.data->unitId = kMultiplayerHeroId;
+    if (std::ssize(GlobalParty()->members_) == 1) GlobalParty()->members_.data()->unitId = kMultiplayerHeroId;
     {
         std::string zone;
         GlobalParty()->zone_ = *MultiplayerZoneInto(&zone);
@@ -1452,8 +1452,8 @@ void GameFlow::AfterServerStart() {
         variables->clear();
     GlobalParty()->RemoveQuestItems();
     // The client's player record gets the hero's and the party's names (or the defaults).
-    if (GlobalParty()->members_.size == 1) {
-        const std::string* names = GlobalParty()->members_.data->texts;
+    if (std::ssize(GlobalParty()->members_) == 1) {
+        const std::string* names = GlobalParty()->members_.data()->texts;
         LocalLogin()->text_.assign(names[5].c_str());
         LocalLogin()->name_.assign(names[0].c_str());
     } else {
@@ -1612,7 +1612,7 @@ void SavedParties::Reload() {
             } else {
                 variables->clear();
             }
-            if (entry->Party()->members_.size == 1) {
+            if (std::ssize(entry->Party()->members_) == 1) {
                 ReserveOne();
                 entries_.push_back(read);
             }

@@ -59,21 +59,6 @@ void InitEngineObject(CEngineObject* object) {
     object->owner_ = nullptr;
 }
 
-// A plain CArray member: its vtable, then its data freed.
-template <typename Array>
-void DestroyArray(Array& array, std::uintptr_t vtable) {
-    SetVtable(&array, vtable);
-    if (array.data) gamecrt::operator_delete(array.data);
-}
-template <typename Array>
-void DestroyArray(Array& array, void* vtable) {
-    SetVtable(&array, vtable);
-    if (array.data) gamecrt::operator_delete(array.data);
-}
-void DestroyArray(AnimationSteps& array, void* vtable) {
-    SetVtable(&array, vtable);
-    if (array.data) gamecrt::operator_delete(array.data);
-}
 } // namespace
 
 void CObject3D::ClearBounds() {
@@ -253,8 +238,6 @@ CUnitServer::~CUnitServer() {
     b->modes.clear();
     BrainArrayDestroy(&b->seen);
     BrainArrayDestroy(&b->target);
-    idleAnimation.DestructSteps();
-    moveAnimation.DestructSteps();
     for (ArmourSpell& spell : armourSpells)
         if (spell.item) spell.item->Release();
     armourSpells.clear();
@@ -264,7 +247,4 @@ CUnitServer::~CUnitServer() {
     if (CMapObject* target = action.target) target->Release();
     action.target = nullptr;
     if (CEngineObject* effect = effectObject) effect->Release();
-    DestroyArray(savedQueue, mfc::impl::AnimationStepsClass::Vtable());
-    DestroyArray(currentPlan.animation, mfc::impl::AnimationStepsClass::Vtable());
-    DestroyArray(queue, mfc::impl::AnimationStepsClass::Vtable());
 }

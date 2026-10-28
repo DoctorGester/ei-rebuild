@@ -758,15 +758,15 @@ void CCampPages::Close() {
     // The local player's unit records, their keys raised meanwhile.
     RecordPtrArray records = {};
     auto* player = LocalPlayerData();
-    for (int i = 0; i < player->members_.size; ++i) {
-        PartyUnitRecord* record = &player->members_.data[i];
+    for (int i = 0; i < std::ssize(player->members_); ++i) {
+        PartyUnitRecord* record = &player->members_[i];
         record->unitId += kRecordBias;
         int index = std::ssize(records);
         records.resize(index + 1);
-        records[index] = &player->members_.data[i];
+        records[index] = &player->members_[i];
     }
     GameRemoveUnitsOf(&records);
-    for (int i = 0; i < player->members_.size; ++i) player->members_.data[i].unitId -= kRecordBias;
+    for (int i = 0; i < std::ssize(player->members_); ++i) player->members_[i].unitId -= kRecordBias;
 
     lib::FreeStorage(heroes_);
     if (spellMade_) spellMade_->Release();
@@ -1105,14 +1105,14 @@ int FindHero(int start, Step step) {
     CParty* party = PlayerParty();
     int i = start;
     for (int tries = 0;;) {
-        int count = party->members_.size;
+        int count = std::ssize(party->members_);
         if (tries > count) {
             game::FatalError("ERROR: no human personages in the party.\n");
             break;
         }
         i = step(i, count);
         ++tries;
-        PartyUnitRecord* record = &party->members_.data[i];
+        PartyUnitRecord* record = &party->members_[i];
         if (PrototypeObjectClass(record->texts[5].c_str()) == kHeroClass) break;
     }
     return i;

@@ -103,14 +103,14 @@ bool SignClear(float v) { return !std::signbit(v); }
 // The ground record `index` lies under the sector's water (as ShadeSun and LightVertex test it): its
 // water record, else null.
 const SectorVertex* WaterAbove(const SectorData* s, int index) {
-    if (!s->hasWater || index >= kWaterRecords || index + kWaterRecords >= s->records.size) return nullptr;
-    const SectorVertex& water = s->records.data[index + kWaterRecords];
-    if (water.waterMaterial == 0xFFFF || !SignClear(s->records.data[index].depth)) return nullptr;
+    if (!s->hasWater || index >= kWaterRecords || index + kWaterRecords >= std::ssize(s->records)) return nullptr;
+    const SectorVertex& water = s->records[index + kWaterRecords];
+    if (water.waterMaterial == 0xFFFF || !SignClear(s->records[index].depth)) return nullptr;
     return &water;
 }
 
 PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e) {
-    const SectorVertex& record = s->records.data[index];
+    const SectorVertex& record = s->records[index];
     PageVertex v{s->vertices[index], e.u, e.v, record.normal, -1.0f};
     if (index < kWaterRecords) {
         v.loss = 0.0f;
@@ -134,7 +134,7 @@ std::uint32_t Byte(float v) {
 // colour ShadeSun starts from (on the ground the water's above it, else the record's own), alpha the
 // material byte (the water's opacity).
 std::uint32_t ColourWord(const SectorData* s, int index) {
-    const SectorVertex& record = s->records.data[index];
+    const SectorVertex& record = s->records[index];
     Vector3 m = record.materialColour;
     if (const SectorVertex* water = WaterAbove(s, index)) {
         m.x = (std::max)(water->materialColour.x, m.x);
@@ -169,16 +169,16 @@ struct PageSource {
 
 PageSource SourceOf(const SectorData* s, int page) {
     PageSource src;
-    src.records = s->records.data;
-    src.recordCount = s->records.size;
+    src.records = s->records.data();
+    src.recordCount = std::ssize(s->records);
     src.positions = s->vertices.data();
     src.positionCount = std::ssize(s->vertices);
     for (int q = 0; q < 4; ++q) {
-        if (s->tiles[q].data && page < s->tiles[q].size) {
-            src.lists[q] = s->tiles[q].data[page].data();
-            src.listSizes[q] = std::ssize(s->tiles[q].data[page]);
+        if (page < std::ssize(s->tiles[q])) {
+            src.lists[q] = s->tiles[q][page].data();
+            src.listSizes[q] = std::ssize(s->tiles[q][page]);
         }
-        if (s->tileFlags[q].data && page < s->tileFlags[q].size) src.edges[q] = s->tileFlags[q].data[page].data();
+        if (page < std::ssize(s->tileFlags[q])) src.edges[q] = s->tileFlags[q][page].data();
     }
     src.animated = s->animated.data();
     src.animatedCount = std::ssize(s->animated);
@@ -241,12 +241,12 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
         range.firstVertex = static_cast<std::uint32_t>(out.vertices.size());
         range.firstIndex = static_cast<std::uint32_t>(out.indices.size());
         const auto& lists = s->tiles[quarter];
-        if (lists.data && page < lists.size && !lists.data[page].empty()) {
-            const terrain::TileList& list = lists.data[page];
+        if (page < std::ssize(lists) && !lists[page].empty()) {
+            const terrain::TileList& list = lists[page];
             int tiles = std::ssize(list) / 9;
             const std::uint8_t* edges = nullptr;
-            if (seams && s->tileFlags[quarter].data && page < s->tileFlags[quarter].size)
-                edges = s->tileFlags[quarter].data[page].data();
+            if (seams && page < std::ssize(s->tileFlags[quarter]))
+                edges = s->tileFlags[quarter][page].data();
             for (int t = 0; t < tiles; ++t) {
                 const TileVertex* tile = list.data() + t * 9;
                 if (std::binary_search(animated.begin(), animated.end(), tile)) out.animatedTiles = true;
@@ -254,8 +254,8 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
                 bool ok = true;
                 for (int k = 0; k < perTile; ++k) {
                     const TileVertex& e = tile[entries[k]];
-                    std::ptrdiff_t index = e.vertex - s->records.data;
-                    if (index < 0 || index >= s->records.size || index >= std::ssize(s->vertices)) {
+                    std::ptrdiff_t index = e.vertex - s->records.data();
+                    if (index < 0 || index >= std::ssize(s->records) || index >= std::ssize(s->vertices)) {
                         ok = false;
                         break;
                     }
@@ -303,7 +303,7 @@ bool ReadColours(const SectorData* s, CachedPage& p, std::uint32_t from, std::ui
     for (std::uint32_t i = from; i < to; ++i) {
         // The colour word (the material) is the one the page was built with; the game writes the
         // specular word (the edge fade; on the water its specular lights and wave crests).
-        const SectorVertex& record = s->records.data[p.records[i]];
+        const SectorVertex& record = s->records[p.records[i]];
         std::uint32_t* kept = &p.colours[2 * static_cast<std::size_t>(i)];
         std::uint32_t colour = kept[0], specular = record.specular;
         if (kept[0] == colour && kept[1] == specular) continue;
@@ -773,8 +773,8 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     bool inView = false;
     for (int q = 0; q < 4 && !inView; ++q) {
         const auto& lists = s->tiles[q];
-        inView = s->quarterMode[q] != 2 && lists.data && page < lists.size && !lists.data[page].empty() &&
-                 std::ssize(lists.data[page]) >= 9;
+        inView = s->quarterMode[q] != 2 && page < std::ssize(lists) && !lists[page].empty() &&
+                 std::ssize(lists[page]) >= 9;
     }
     if (!inView) return;
 
@@ -813,7 +813,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
         p.colours.resize(2 * p.vertices.size());
         for (std::size_t i = 0; i < p.vertices.size(); ++i) {
             p.colours[2 * i] = ColourWord(s, p.records[i]);
-            p.colours[2 * i + 1] = s->records.data[p.records[i]].specular;
+            p.colours[2 * i + 1] = s->records[p.records[i]].specular;
         }
         p.colourFrom = p.colourTo = 0;
     }

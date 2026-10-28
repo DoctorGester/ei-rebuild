@@ -5,7 +5,6 @@
 
 #include "lib/containers.h"
 #include "lib/vecmath.h"
-#include "lib/mfc.h"
 #include "lib/hash_map.h"
 
 #include <cstddef>
@@ -31,11 +30,6 @@ struct VertexTiles {
     int tiles[4];
 };
 static_assert(sizeof(VertexTiles) == 0x14);
-
-struct LevelArrayElements {
-    static void Construct(mfc::CArray<float>* arrays, int count);
-    static void Destruct(mfc::CArray<float>* arrays, int count);
-};
 
 // For every sound class with its own vote, how many of ambient\<set>\<class>\day\1.wav, 2.wav, ... the wave
 // sources have, counted until the first one missing.
@@ -245,7 +239,7 @@ public:
     int ambientClasses[3];          // their sound classes, -1 none
     std::string textAE0;           // the ambient sound set (ambient\<set>\...)
     int extraPages;                 // texture pages loaded after the map's own
-    mfc::CArray<mfc::CArray<float>, terrain::LevelArrayElements> waterLevels;   // per sector, per material
+    std::vector<std::vector<float>> waterLevels;   // per sector, per material
 };
 static_assert(offsetof(Terrain, drawMatrix) == 0x54 && offsetof(Terrain, worldMatrix) == 0x98);
 static_assert(offsetof(Terrain, landscapeFlags) == 0x94);

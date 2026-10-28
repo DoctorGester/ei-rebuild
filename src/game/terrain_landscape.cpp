@@ -10,8 +10,6 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/mfc_slots.h"
-#include "game/record_arrays.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -209,15 +207,12 @@ Terrain::Terrain() {
     worldRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     // archive: a C++ member, constructed before this body (CMMIOResource())
     maxLightId = 0;
-    mfc::impl::ConstructHeader<mfc::impl::ClientMapArrayClass>(&waterLevels);
     Reset();
 }
 
 // The members last to first (the texts, members, go after the others).
 Terrain::~Terrain() {
     Terrain::Destroy();
-    waterLevels.vtable = mfc::impl::ClientMapArrayClass::Vtable();
-    waterLevels.FreeData();
     sectorCache.clear();
     // archive: destroyed after this body (~CMMIOResource())
 }
@@ -435,17 +430,6 @@ float CappedAtOne(float value) { return value <= 1.0f ? value : 1.0f; }
 
 } // namespace
 
-void terrain::LevelArrayElements::Construct(mfc::CArray<float>* arrays, int count) {
-    std::memset(static_cast<void*>(arrays), 0, static_cast<std::size_t>(count) * sizeof(*arrays));
-    for (int i = 0; i < count; ++i) arrays[i].Construct(mfc::impl::FloatArrayClass::Vtable());
-}
-void terrain::LevelArrayElements::Destruct(mfc::CArray<float>* arrays, int count) {
-    for (int i = 0; i < count; ++i) {
-        arrays[i].vtable = mfc::impl::FloatArrayClass::Vtable();
-        if (arrays[i].data) gamecrt::operator_delete(arrays[i].data);
-    }
-}
-
 // Float notes (rule 7): the game works on the FPU stack at the main thread's 24-bit precision, so every
 // quotient and product below is rounded to float where it is made.
 int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
@@ -565,11 +549,9 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
 
     const int sectors = sectorsY * sectorsX;
     landscapeFlags |= kLowFlags;
-    waterLevels.SetSize(sectors);
+    waterLevels.resize(sectors);
     for (int i = 0; i < sectorsY * sectorsX; ++i) {
-        mfc::CArray<float>& levels = waterLevels[i];
-        levels.SetSize(std::ssize(materials));
-        std::memset(levels.data, 0, static_cast<std::size_t>(levels.size) * sizeof(float));
+        waterLevels[i].assign(materials.size(), 0.0f);
     }
     return 1;
 }

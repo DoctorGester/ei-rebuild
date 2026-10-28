@@ -798,8 +798,16 @@ static_assert(sizeof(UnitStats) == 0x704);
 // The record the player keeps for each unit of the party (found by unit id through a party's record array).
 // Each item list is an aligned pointer array of the record's own copies of the items.
 struct PartyUnitRecord {
-    PartyUnitRecord* Construct();
-    void Destruct();
+    // Empty texts and lists and the defaults below; value-initialised (in the party's array) the rest is zeroed.
+    PartyUnitRecord() = default;
+    PartyUnitRecord(PartyUnitRecord&&) noexcept = default;
+    // This record's items released first (the array's erase moves the records after a removed one down).
+    PartyUnitRecord& operator=(PartyUnitRecord&& from) noexcept;
+    PartyUnitRecord(const PartyUnitRecord&) = delete;
+    PartyUnitRecord& operator=(const PartyUnitRecord&) = delete;
+    // Releases the items.
+    ~PartyUnitRecord() { ClearItems(); }
+
     // Releases every item of the four lists, then empties them.
     void ClearItems();
 
@@ -818,9 +826,6 @@ struct PartyUnitRecord {
     // ClearItems, then each of the four lists sized to `source`'s and filled with `party`'s copies of its items, each
     // with the source item's count and a reference.
     void CopyItemsFrom(const PartyUnitRecord* source, CParty* party);
-    // Operator=: the strings assigned, everything else copied (the item lists' pointers too: the lists are
-    // shared, not copied). Returns this.
-    PartyUnitRecord* Assign(const PartyUnitRecord* source);
     // The weights of the entries of the four lists added up (empty entries skipped).
     float CarriedWeight() const;
 
@@ -833,21 +838,21 @@ struct PartyUnitRecord {
     void Save(CStream* stream);
 
     std::string texts[7];          // names (empty when constructed)
-    std::uint32_t unitId;               // the unit's id (saved and loaded)
+    std::uint32_t unitId = 0;           // the unit's id (saved and loaded)
     UnitStats stats;                    // the unit's statistics
-    float scaleX;                       // the figure's scale: x (0.8 when constructed) ...
-    float scaleY;                       // ... y (0.2 when constructed); height is z
-    float height;                   // the hero's height (1.0 when constructed; the hero screen shows it * 100)
+    float scaleX = 0.8f;                // the figure's scale: x ...
+    float scaleY = 0.2f;                // ... y; height is z
+    float height = 1.0f;            // the hero's height (the hero screen shows it * 100)
     std::vector<CItem*> weapons;
     std::vector<CItem*> quickItems;   // (an entry counts only with count_ > 0)
     std::vector<CItem*> armor;
     std::vector<CItem*> spells;
-    int moveMode2;                      // the unit's moveMode2 (2 when constructed)
-    std::uint32_t weaponIndex;      // the weapon shown in the camp (0 when constructed)
-    std::uint8_t selected;              // the unit is selected (flags_ bit 4; 0 when constructed)
+    int moveMode2 = 2;                  // the unit's moveMode2
+    std::uint32_t weaponIndex = 0;  // the weapon shown in the camp
+    std::uint8_t selected = 0;          // the unit is selected (flags_ bit 4)
     std::uint8_t unused_779[3];
-    int leaderId;                       // the unit it follows (-1 none, when constructed)
-    int fightAtWill;                    // the unit's fightAtWill (1 when constructed)
+    int leaderId = -1;                  // the unit it follows (-1 none)
+    int fightAtWill = 1;                // the unit's fightAtWill
 };
 
 // Wears `item` by `amount` (shared by its count_ pieces); the owner says `brokenRemark` when its condition

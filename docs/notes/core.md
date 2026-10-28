@@ -517,8 +517,7 @@ to which template:
   lexer reads): without that folder ei_vectors loops forever at full CPU (batch 10). Replay a scratch folder
   with a timeout.
 - `mfc::CArray` moves elements with `Relocate`: bytes, or the element policy's `Relocate` when it has one. An element
-  holding a std::string needs one (PartyUnitRecordElements: move-construct, destroy, in the direction the overlap
-  needs; `mfc::MoveElements` does it for any element type): bytes are fine for MSVC's std::string at
+  holding a std::string needs one (`mfc::MoveElements`: move-construct, destroy, in the direction the overlap needs): bytes are fine for MSVC's std::string at
   _ITERATOR_DEBUG_LEVEL 0, but the /MTd build's level 2 keeps a proxy pointing back at the string.
 - The harness digest reads our std::string members through `Text(const std::string&)` in
   tests/verify/image/harness_digest_image.cpp (the shared .inc reads game.exe's CStrings as const char*).
@@ -725,10 +724,14 @@ to which template:
   reports, alarm records and attack options, the path cell and block cost lists, the map spec's traps / patrols /
   behaviours, the map database (allods, maps, zone exits), the shared objects, unit placements, the wave cache
   (std::list, the name map holds iterators), music themes, delta fields, step speeds, the spiral's radius tree, the
-  client companion's effect particles and sounds, map effects, skin layers, the fog manager's list. Still mfc
-  (follow-up tickets): the script's records, the terrain sectors and water levels, the sector map's sectors, the
-  terrain's byte arrays, the camp's global map records, PartyMembers, AnimationSteps; then
-  CompiledCollection, ArrayHeader, ConstructHeader and mfc.h's CArray / CList.
+  client companion's effect particles and sounds, map effects, skin layers, the fog manager's list.
+- Batch 4 (C14za): the terrain sector's vertex records (SectorVertex: its move takes the light list, its destructor
+  returns the list to the pool), tile flags and tile lists, the terrain's water levels, the sector map's sectors (Sector
+  movable), the global map's zones, links and quests, the party's records (PartyUnitRecord: member initializers for its
+  defaults, the destructor releases its items, the move assignment releases first, so erase drops a record as the
+  original's Destruct + relocate did) and AnimationSteps (combat.md). Scripts: scratch c14za (g1.py, g2_party.py,
+  g3_steps.py, g5_includes.py; checks.py runs the guards and the memset check together). Still mfc: the script's records
+  (C14z); then CompiledCollection, ArrayHeader, ConstructHeader and mfc.h's CArray / CList.
 - A record that hands its references on without releasing them (the shared objects' items given at loot: the
   original frees the node and leaks the references) uses `HeldPtr::release()`.
 - An element whose destructor needs a complete type its header only declares (EffectParticle's CParticleSource)

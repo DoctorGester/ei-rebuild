@@ -16,7 +16,6 @@
 #include "lib/vecmath.h"
 
 #include "lib/containers.h"
-#include "lib/mfc.h"
 
 class CLight;
 class CTransformPipeline;
@@ -54,6 +53,14 @@ void FreeLightRef(LightRef* ref);
 #pragma pack(push, 1)
 // Per-vertex record (packed).
 struct SectorVertex {
+    SectorVertex() = default;
+    // Takes `from`'s light list.
+    SectorVertex(SectorVertex&& from) noexcept;
+    SectorVertex(const SectorVertex&) = delete;
+    SectorVertex& operator=(const SectorVertex&) = delete;
+    // Returns the light list's nodes to the pool.
+    ~SectorVertex() { ReleaseLights(); }
+
     Vector4 projected;                  // screen position (Project)
     std::uint8_t outcode;               // clip flags when the quarter crosses the view, else 0
     std::uint32_t colour;               // A (materialByte) R G B, the lighting stage
@@ -65,7 +72,7 @@ struct SectorVertex {
     Vector3 lit;                        // ambient and sun light
     Vector3 materialColour;             // the water material's colour
     std::uint8_t materialByte;          // the water material's opacityByte, 0xFF none
-    LightRef* lights;
+    LightRef* lights = nullptr;
 
     // Returns every node of `lights` to the pool.
     void ReleaseLights();
@@ -106,29 +113,13 @@ constexpr int kCulled = 2;
 struct SectorPosition : Vector3 {};
 static_assert(sizeof(SectorPosition) == 12);
 
-void DestroyRecords(SectorVertex* records, int count);
-
 // `light` is removed from a vertex's list when `remove` is set or the vertex is not nearer than its range to
 // `position`; otherwise it is added at the list's head when missing.
 void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area,
                                   int remove);
 
-struct RecordElements {
-    static void Construct(SectorVertex* records, int count);
-    static void Destruct(SectorVertex* records, int count);
-};
 using FlagArray = std::vector<std::uint8_t>;
-struct FlagArrayElements {
-    static void Construct(FlagArray* arrays, int count);
-    static void Destruct(FlagArray* arrays, int count);
-    static void Relocate(FlagArray* to, FlagArray* from, int count);
-};
 using TileList = std::vector<TileVertex>;
-struct TileListElements {
-    static void Construct(TileList* lists, int count);
-    static void Destruct(TileList* lists, int count);
-    static void Relocate(TileList* to, TileList* from, int count);
-};
 
 struct SectorData {
     int DrawPage(void* context, void* /*unused*/, int page, int /*unused*/);
@@ -153,12 +144,12 @@ struct SectorData {
     // towards the sectors before / after it.
     int detail, seamBefore, seamAfter;
     std::vector<SectorPosition> vertices;
-    mfc::CArray<SectorVertex, RecordElements> records;
+    std::vector<SectorVertex> records;   // ground, then water (zeroed when made)
     std::vector<int> tileTextures;      // per tile, ground then water tiles
     std::uint8_t tileRotation[0x100];
     std::vector<int> waterTiles;        // water material per tile, -1 none
-    mfc::CArray<FlagArray, FlagArrayElements> tileFlags[4];  // per quarter, per page
-    mfc::CArray<TileList, TileListElements> tiles[4];        // per quarter, per page (9 per tile)
+    std::vector<FlagArray> tileFlags[4];  // per quarter, per page
+    std::vector<TileList> tiles[4];       // per quarter, per page (9 per tile)
     std::vector<AnimatedTile> animated;
     std::vector<int> classCounts;       // 16 texture classes
     int lastUsed;                       // owner frame of the last use

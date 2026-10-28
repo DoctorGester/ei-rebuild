@@ -167,7 +167,7 @@ void CHeroStatsPanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
 // --- the column's hero ---------------------------------------------------------------------------
 
 void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
-    bool party = LocalPlayerData()->members_.size > 1;
+    bool party = std::ssize(LocalPlayerData()->members_) > 1;
     SceneMesh(0)->visible_ = party ? 1 : 0;
     SceneMesh(1)->visible_ = party ? 1 : 0;
     regions_[0]->SetTip(party ? kTipPreviousHero : 0, 1, 0);
@@ -181,5 +181,5 @@ void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
 // --- the camp's hero record ----------------------------------------------------------------------
 
 PartyUnitRecord* CCampPages::HeroRecord() {
-    return &LocalPlayerData()->members_.data[hero_];
+    return &LocalPlayerData()->members_[hero_];
 }

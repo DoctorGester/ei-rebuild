@@ -82,8 +82,8 @@ void ReadPlayer(CPlayer* p, Builder& b) {
     CParty* party = p->Party();
     b.Unsigned("money", party->money_);
     b.Int("partyItems", PartyItemCount(party));
-    b.Int("members", party->members_.GetSize());
-    for (int i = 0; i < party->members_.GetSize(); ++i) b.Unsigned("member#.unit", party->members_[i].unitId, i);
+    b.Int("members", static_cast<int>(std::ssize(party->members_)));
+    for (int i = 0; i < std::ssize(party->members_); ++i) b.Unsigned("member#.unit", party->members_[i].unitId, i);
     b.Unsigned("entrance", party->entrance_);
     std::vector<std::pair<std::string, float>> variables;
     for (auto n = party->variables_.begin(); n != party->variables_.end(); ++n)
@@ -539,7 +539,7 @@ void ReadWater(State& state) {
     b.Float("phase", t->wavePhase);
     constexpr int kVertices = 33 * 33;
     for (const auto* sector : t->sectorCache) {
-        if (!sector || !sector->hasWater || std::ssize(sector->vertices) < 2 * kVertices || sector->records.size < 2 * kVertices)
+        if (!sector || !sector->hasWater || std::ssize(sector->vertices) < 2 * kVertices || std::ssize(sector->records) < 2 * kVertices)
             continue;
         Hash positions, speculars;
         int water = 0;
@@ -669,7 +669,7 @@ int LocalLeader(void* server, unsigned* money) {
         if (p->playerId_ != 0) continue;
         CParty* party = p->Party();
         if (money) *money = party->money_;
-        return party->members_.GetSize() > 0 ? static_cast<int>(party->members_[0].unitId) : -1;
+        return !party->members_.empty() ? static_cast<int>(party->members_[0].unitId) : -1;
     }
     return -1;
 }

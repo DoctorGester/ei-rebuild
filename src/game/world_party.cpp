@@ -144,10 +144,10 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
 
     CParty* party = player->Party();
     RecordArray records{};
-    for (int i = 0; i < party->members_.size; ++i) {
+    for (int i = 0; i < std::ssize(party->members_); ++i) {
         int index = std::ssize(records);
         records.resize(index + 1);
-        records[index] = &party->members_.data[i];
+        records[index] = &party->members_[i];
     }
     // A lost game sends the party back to this zone's first exit.
     if (gameResult_ == kGameResultLost) {

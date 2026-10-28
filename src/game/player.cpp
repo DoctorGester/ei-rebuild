@@ -13,26 +13,10 @@
 
 #include "game_data.h"
 #include "world.h"
-#include "lib/mfc_slots.h"
 #include "lib/str.h"
 
 #include <list>
 #include <string>
-
-namespace {
-
-template <typename T>
-void InitList(mfc::CList<T>& list, void* vtable) {
-    list.vtable = vtable;
-    list.tail = nullptr;
-    list.count = 0;
-    list.head = nullptr;
-    list.free = nullptr;
-    list.blocks = nullptr;
-    list.blockSize = 10;
-}
-
-} // namespace
 
 CPlayer::CPlayer() {
     ClearFields();
@@ -184,9 +168,9 @@ void CPlayer::ForgetKnownObjects() {
 }
 
 BOOL CPlayer::IsLeader(const CEngineObject* unit) {
-    const PartyMemberArray& members = Party()->members_;
-    if (members.size == 0 || unit == nullptr) return 0;
-    return static_cast<std::uint32_t>(unit->id_) == members.data[0].unitId;
+    const std::vector<PartyUnitRecord>& members = Party()->members_;
+    if (std::ssize(members) == 0 || unit == nullptr) return 0;
+    return static_cast<std::uint32_t>(unit->id_) == members[0].unitId;
 }
 
 void CPlayer::GiveItems(const std::list<CItem*>* items, int flag) {

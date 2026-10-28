@@ -75,7 +75,7 @@ constexpr int kModeStats = 11;
 // data pointer).
 std::string& MpHeroName(int index) {
     auto* hero = SavedHero(index);
-    return hero->Party()->members_.data->texts[0];
+    return hero->Party()->members_.data()->texts[0];
 }
 
 } // namespace

@@ -271,8 +271,8 @@ void CBattleScreen::Update() {
         std::vector<PartyUnitRecord*> records = {};
         std::vector<PartyUnitRecord*> second = {};
         CParty* data = LocalPlayerData();
-        for (int i = 0; i < data->members_.size; ++i)
-            lib::SetAtGrow(records, std::ssize(records), &data->members_.data[i]);
+        for (int i = 0; i < std::ssize(data->members_); ++i)
+            lib::SetAtGrow(records, std::ssize(records), &data->members_[i]);
         if (GamePartyInExit(&records, pendingExit_, &second)) {
             CMessageBox* box = new CMessageBox(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
             interface_->PushWindow(box, 1, 1);

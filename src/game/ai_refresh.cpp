@@ -217,7 +217,7 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
     std::uint32_t word = *occluder;
     if (!(word & 0x100)) {
         if (word & 0x80) {
-            const Sector& sector = sectorMap.sectors.data[(y / 32) * sectorMap.width + x / 32];
+            const Sector& sector = sectorMap.sectors[(y / 32) * sectorMap.width + x / 32];
             int index = static_cast<int>((word >> 9) & 0xFFFFF);
             do {
                 const SectorOccluder& record = sector.occluders[index];

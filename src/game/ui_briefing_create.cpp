@@ -362,7 +362,7 @@ void CBriefingScreen::MarkPeople() {
 
 void CBriefingScreen::LeaveIfExitOpen() {
     CParty* party = LocalPlayerData();
-    if (!exitPending_ || party->members_.size <= 0) return;
+    if (!exitPending_ || std::ssize(party->members_) <= 0) return;
     std::string zone = GameExitTarget(exit_);
     if (text::CompareIgnoringCase(zone, NoZone()) == 0) return;
     std::string variable = ZoneVariablePrefix();
@@ -373,7 +373,7 @@ void CBriefingScreen::LeaveIfExitOpen() {
     std::vector<PartyUnitRecord*> records{};
     std::vector<PartyUnitRecord*> second{};
     records.resize(1);
-    records[0] = party->members_.data;
+    records[0] = party->members_.data();
     if (GamePartyInExit(&records, exit_, &second)) {
         app::g_interfaceHasScreen = 0;
         GameLeaveThroughExit(exit_);

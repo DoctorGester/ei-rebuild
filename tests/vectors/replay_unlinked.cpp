@@ -46,11 +46,6 @@ void ScriptParticleSource::ScriptParticleSourceDestruct() EI_UNLINKED("ScriptPar
 void ScriptFxSource::ScriptFxSourceDestruct() EI_UNLINKED("ScriptFxSource::ScriptFxSourceDestruct")
 void ScriptLightning::ScriptLightningDestruct() EI_UNLINKED("ScriptLightning::ScriptLightningDestruct")
 
-// record_arrays.cpp's other element types.
-void SectorElements::Construct(Sector*, int) EI_UNLINKED("SectorElements::Construct")
-void terrain::RecordElements::Construct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Construct")
-void terrain::RecordElements::Destruct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Destruct")
-
 // script_runtime_helpers.cpp's AI map and console helpers (CSectorMap::Add and Remove: replay_path.cpp).
 void CSectorMap::FindUnitsInRadius(const Vector3*, std::list<CUnit*>*, float)
     EI_UNLINKED("CSectorMap::FindUnitsInRadius")

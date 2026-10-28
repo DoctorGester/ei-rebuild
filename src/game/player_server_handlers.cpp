@@ -104,7 +104,7 @@ void CPlayerServer::OnLeaderDied() {
     if (!IsMultiplayerClient()) {
         std::uint8_t type = kMessageGameOver;
         out_.Write(&type, 1);
-        CUnit* hero = FindUnit(static_cast<int>(party->members_.data[0].unitId));
+        CUnit* hero = FindUnit(static_cast<int>(party->members_[0].unitId));
         if (hero) SendObject0B(hero, kLeaderDiedValue);
         return;
     }
@@ -113,10 +113,10 @@ void CPlayerServer::OnLeaderDied() {
     // here they are -1, which no object has.
     int oldId = kNoId;
     int newId = kNoId;
-    if (party->members_.size == 1) {
+    if (std::ssize(party->members_) == 1) {
         int lost = x87::RoundToInt(static_cast<float>(static_cast<float>(party->Money()) * MoneyPenalty()));
         party->Money() -= lost;
-        oldId = static_cast<int>(party->members_.data[0].unitId);
+        oldId = static_cast<int>(party->members_[0].unitId);
         CUnit* hero = FindUnit(oldId);
         if (hero) SendObject0B(hero, kLeaderDiedValue);
         newId = oldId;
@@ -129,8 +129,8 @@ void CPlayerServer::OnLeaderDied() {
         TheServerWorld()->CollectParty(player, nullptr);
         flag70_ = 0;
     }
-    if (party->members_.size == 1) {
-        PartyUnitRecord& record = party->members_.data[0];
+    if (std::ssize(party->members_) == 1) {
+        PartyUnitRecord& record = party->members_[0];
         record.unitId = static_cast<std::uint32_t>(newId);
         auto* stats = &record.stats;
         stats->RestoreSlots();
@@ -316,12 +316,6 @@ void ReadUnits(CMemoryStream& in, UnitArray* units) {
         if (unit && !(unit->flags_ & kFlagBlocked)) lib::SetAtGrow(*units, std::ssize(*units), unit);
     }
 }
-// The arrays' inlined destructors: the vtable back, the storage freed.
-template <typename T>
-void FreeArray(mfc::CArray<T>* array, void* vtable) {
-    array->vtable = vtable;
-    if (array->data) gamecrt::operator_delete(array->data);
-}
 
 using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, const Vector3*);
 int MoveUnits(MoveCommand command) {
@@ -383,7 +377,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     CParty* party = player->Party();
     int campaign = TheServerWorld()->sessionKind_;
     if (campaign == 1 || campaign == 3) {
-        CUnit* leader = FindUnit(static_cast<int>(party->members_.data[0].unitId));
+        CUnit* leader = FindUnit(static_cast<int>(party->members_[0].unitId));
         if (leader == nullptr || leader->IsDead() != 0) {
             LeaderDied();
             if (!IsMultiplayerClient()) return;
@@ -400,7 +394,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     if (mode == 1) {
         ThePartyManager()->BeginRedeploy(party);
     } else if (mode == 2) {
-        if (party->members_.size == 1) party->members_.data[0].unitId = kLoneHeroRecordId;
+        if (std::ssize(party->members_) == 1) party->members_[0].unitId = kLoneHeroRecordId;
         SendParty();
     }
     std::uint8_t type = kMessageZone;
@@ -480,12 +474,12 @@ int CPlayerServer::OnNewParty() {
     CParty local;
     CParty* party = &local;
     party->LoadParty(&ReceivedMessages(), 1);
-    if (party->members_.size != 1) return 0;
+    if (std::ssize(party->members_) != 1) return 0;
     int* key = &Owner()->partyId_;
     PartyNextId(key);
     int& next = g_nextRecordObjectId;
     while (TheServerWorld()->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
-    party->members_.data[0].unitId = static_cast<std::uint32_t>(next);
+    party->members_[0].unitId = static_cast<std::uint32_t>(next);
     ++next;
     ThePartyManager()->StoreParty(key, party);
     return 1;

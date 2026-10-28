@@ -305,8 +305,8 @@ int CPlayerServer::SendPartyState() {
     ScriptGroup shared;
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&shared);
     shared.vtable = mfc::impl::ScriptGroupClass::Vtable();
-    if (IsMultiplayerClient() && player->Party()->members_.size == 1)
-        TheServerWorld()->CollectSharedObjects(static_cast<int>(player->Party()->members_.data[0].unitId), &shared);
+    if (IsMultiplayerClient() && std::ssize(player->Party()->members_) == 1)
+        TheServerWorld()->CollectSharedObjects(static_cast<int>(player->Party()->members_[0].unitId), &shared);
     int sharedCount = shared.size;
     WriteDword(&out_, static_cast<std::uint32_t>(sharedCount));
     for (int i = 0; i < sharedCount; ++i) WriteDword(&out_, static_cast<std::uint32_t>(shared.data[i].AsUnit()->id_));

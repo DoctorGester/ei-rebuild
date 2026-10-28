@@ -257,10 +257,10 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073EDB0,3,,game,00533AD0 00533E20 00533EA0 00539890 00545750 00545780 00546100 0054E600 0054EAC0 0054EB30 00554830 00556D10 005AF5F0 005B9690 005B9C90 005C5E60 005CF3C0 005D37E0 005D7F80 006706A0,007005E3,CellListClass,-,CList (the units' path cell lists); stored only by game.exe (ours is a std::list)
 0073EDBC,54,,game,00533AD0 00533DB0 00533EA0 00545580 00546230,00533D90,CUnitController,src/game/unit.h,the unit controllers' abstract base
 0073EEA0,3,,game,00536670 005396C0,007005E3,SkinLayerArrayClass,-,CArray (a unit's skin layers (ComposeSkin)); stored only by game.exe (ours is a std::vector)
-0073EF2C,3,,game,005450F0 005461C0 00546210 00546230 00547100 00548700 00548DE0 00548FA0 0054A150 0054C6B0 0054CA40 00550100 00551400 00553AC0 00556C20 00557B60 00557E70,007005E3,AnimationStepsClass,src/lib/mfc_slots.h,CArray (a unit's animation steps)
+0073EF2C,3,,game,005450F0 005461C0 00546210 00546230 00547100 00548700 00548DE0 00548FA0 0054A150 0054C6B0 0054CA40 00550100 00551400 00553AC0 00556C20 00557B60 00557E70,007005E3,AnimationStepsClass,-,CArray (a unit's animation steps); stored only by game.exe (ours is a std::vector)
 0073EF38,54,,game,00545580 00546230,005460E0,CUnitServer,src/game/combat.h,the server's unit controller
 0073F010,3,,game,00545580 00546230 00558070,007005E3,ArmourSpellListClass,-,CList (the armour spells); stored only by game.exe (ours is a std::list)
-0073F01C,3,,game,00545580 00545FF0 00546060 00547100 00548700 0054A150 0054B260 0054C6B0 00550100 00551400 00553AC0 00556850 00556870,007005E3,AnimationStepsCopyClass,src/lib/mfc_slots.h,CArray (the animation steps a motion copies; derived from AnimationStepsClass)
+0073F01C,3,,game,00545580 00545FF0 00546060 00547100 00548700 0054A150 0054B260 0054C6B0 00550100 00551400 00553AC0 00556850 00556870,007005E3,AnimationStepsCopyClass,-,CArray (the animation steps a motion copies; derived from AnimationStepsClass); stored only by game.exe (ours is a std::vector)
 0073F028,3,,game,005457E0 00545990 005575F0,007005E3,OwnedRefListClass,-,CList (a map object controller's counted pointers); stored only by game.exe (ours is a std::list)
 0073F034,3,,game,005457E0 00545BA0 00557890,007005E3,BehaviourArrayClass,-,CArray<Behaviour> (the server unit's brain); stored only by game.exe (ours is a std::vector)
 0073F040,3,,game,005457E0 00545990 00545C70 00557410,007005E3,AttackOptionArrayClass,-,CArray (a unit's attack options); stored only by game.exe (ours is a std::vector)
@@ -297,7 +297,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F6E8,2,,lib,006E81C2,00401510,Terrain,src/game/terrain.h,the tail of 0073F6A8 (a byte match in 006E81C2)
 0073F6F0,13,,game,00561E50 005629B0,00562990,CTextManager,src/game/item_db_text.h,the client's text manager
 0073F724,3,,game,00562B80 00570EA0 00570ED0,007005E3,ClientList2Class,-,CList (00570EA0's list); stored only by game.exe (ours is a std::list)
-0073F730,3,,game,00562B80 005711C0 005711E0,007005E3,ClientMapArrayClass,src/game/record_arrays.h,CArray (the client world's water levels)
+0073F730,3,,game,00562B80 005711C0 005711E0,007005E3,ClientMapArrayClass,-,CArray (the client world's water levels); stored only by game.exe (ours is a std::vector)
 0073F73C,3,,game,00562DF0 005715D0 00571600,007005E3,ClientList3Class,-,CList (005715D0's list); stored only by game.exe (ours is a std::list)
 0073F754,3,,game,0056F880 006CF660,006CFA20,BloodPrint,src/game/ground_print.h,
 0073F760,3,,game,0056F940 006CFBA0,006CECD0,Footprint,src/game/ground_print.h,
@@ -311,7 +311,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F9D0,3,,game,00589ED0 0058AAD0 00599D60,007005E3,RefListBClass,-,CList (the world server's counted pointers); stored only by game.exe (ours is a std::list)
 0073F9DC,1,,game,0058A450 0058A700 005B3C30 005B5E10 005C02E0,0058A780,CSectorMap,src/game/sector_map.h,the sector map
 0073F9E0,3,,game,0058A450 005997A0 005B3C30,007005E3,AreaListClass,-,CArray (the AI map's area lists; after CSectorMap's one-slot table 0073F9DC); stored only by game.exe (ours is a std::list)
-0073F9EC,3,,game,0058A700 00599330 005BD1C0 005C02E0,007005E3,SectorArrayClass,src/game/record_arrays.h,CArray (the AI map's sectors)
+0073F9EC,3,,game,0058A700 00599330 005BD1C0 005C02E0,007005E3,SectorArrayClass,-,CArray (the AI map's sectors); stored only by game.exe (ours is a std::vector)
 0073F9F8,3,,game,0058A8A0 0058A900 005995E0 005B4110,007005E3,NodeListClass,-,CList (the AI map's node lists); stored only by game.exe (ours is a std::list)
 0073FA04,3,,game,0058A960 0058AA60 00599180 005AF3D0 005B3FF0 005BD1E0,007005E3,CellRowArrayClass,-,CArray (the AI map's cell rows); stored only by game.exe (ours is a std::vector)
 0073FA10,3,,game,0058AAD0 0059A340 0059A3C0,007005E3,SharedObjectListClass,-,CList (the world server's shared objects); stored only by game.exe (ours is a std::list)
@@ -324,7 +324,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073FAC8,3,,game,005947E0 005985C0 0059A4A0 0059E330,007005E3,ObjectPtrArrayClass,-,CArray (a save's shared object pointers; derived from ObjectPtrArrayBaseClass); stored only by game.exe (ours is a std::vector)
 0073FAD4,2,,game,00596030,0042BEE0,RootChunk,src/game/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
 0073FADC,1,,game,0059DF90 005BFCD0 005C0600,0059E080,Sector,src/game/sector_map.h,a world sector
-0073FAE0,3,,game,0059DF90 0059E0A0 005BFCD0 005C0600,007005E3,SectorOccluderArrayClass,src/lib/mfc_slots.h,CArray (a sector's occluders; after the sector's one-slot table 0073FADC)
+0073FAE0,3,,game,0059DF90 0059E0A0 005BFCD0 005C0600,007005E3,SectorOccluderArrayClass,-,CArray (a sector's occluders; after the sector's one-slot table 0073FADC); stored only by game.exe (ours is a std::vector)
 0073FB10,13,,game,005A7010,005A7060,FigureMeshDrawer,src/game/link_figure.h,class 0x36 CFigureClientSpecific (the client-specific factory 0042D700)
 0073FB44,13,,game,005A7080 005A70C0,005A70A0,FigureDrawerBase,src/game/link_figure.h,the drawer's base (stored by its destructors 005A7080 / 005A70C0)
 0073FB88,26,,game,005AA070 005AA1C0,005AA1A0,CFigureManager,src/game/figure_manager.h,
@@ -341,7 +341,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073FDE0,3,,game,005BF8F0 005C1A90,007005E3,SpiralCellArrayClass,-,CArray (the sector spiral's cells); stored only by game.exe (ours is a std::vector)
 0073FDEC,3,,game,005C18C0 005C18E0,007005E3,SpiralOffsetArrayClass,-,CArray (the sector spiral's offsets 007C2FF8); stored only by game.exe (ours is a std::vector)
 0073FE10,3,,game,005C4050 005C4250 005C58D0,007005E3,SmoothCopyArrayClass,-,CArray (the path smoothing tables' copies); stored only by game.exe (ours is a std::vector)
-0073FE1C,3,,game,005C4050 005C4250 005C5910,007005E3,SmoothStepArrayClass,src/lib/mfc_slots.h,CArray (the path smoothing tables' steps)
+0073FE1C,3,,game,005C4050 005C4250 005C5910,007005E3,SmoothStepArrayClass,-,CArray (the path smoothing tables' steps); stored only by game.exe (ours is a std::vector)
 0073FE28,3,,game,005C42B0 005C4440 005C5890,007005E3,SmoothEdgeArrayClass,-,CArray (the path smoothing tables' edges); stored only by game.exe (ours is a std::vector)
 0073FE34,3,,game,005C4440 005C44B0 005C5850,007005E3,SmoothNodeArrayClass,-,CArray (the path smoother's node pool 007C3038); stored only by game.exe (ours is a std::vector)
 0073FEB4,3,,game,005CDAD0 005CDBA0,007005E3,StaticListClass,-,CList (the list a static initialiser builds (005CDAD0)); stored only by game.exe (ours is a std::list)
@@ -378,9 +378,9 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00740A2C,55,,game,005F6240 00617050 00618060 00632D70,005F6450,CItemScreen,src/game/ui_item_info.h,the plain item screen (CItemScreen)
 00740B08,13,,game,005F67A0,005FC130,CGlobalMap,src/game/ui_camp.h,the island map's input side
 00740B3C,42,,game,005F67A0,005F6900,CGlobalMap,src/game/ui_camp.h,the island map (CGlobalMap)
-00740BE4,3,,game,005F67A0 005F6920 005FB560,007005E3,GlobalMapPathArrayClass,src/game/ui_camp.h,CArray (the global map's quests)
-00740BF0,3,,game,005F67A0 005F6920 005FB2F0,007005E3,GlobalMapPointArrayClass,src/game/ui_camp.h,CArray (the global map's links)
-00740BFC,3,,game,005F67A0 005F6920 005FB090,007005E3,GlobalMapZoneArrayClass,src/game/ui_camp.h,CArray (the global map's zones)
+00740BE4,3,,game,005F67A0 005F6920 005FB560,007005E3,GlobalMapPathArrayClass,-,CArray (the global map's quests); stored only by game.exe (ours is a std::vector)
+00740BF0,3,,game,005F67A0 005F6920 005FB2F0,007005E3,GlobalMapPointArrayClass,-,CArray (the global map's links); stored only by game.exe (ours is a std::vector)
+00740BFC,3,,game,005F67A0 005F6920 005FB090,007005E3,GlobalMapZoneArrayClass,-,CArray (the global map's zones); stored only by game.exe (ours is a std::vector)
 00740C08,13,,game,005F6D50 00632D70,005FC0F0,CCreditsScreen,src/game/ui_screens.h,the titles' input side
 00740C3C,42,,game,005F6D50 00632D70,005F6E20,CCreditsScreen,src/game/ui_screens.h,the titles (CCreditsScreen)
 00740CE4,13,,game,005F6F30,005FC110,CExchangeScreen,src/game/ui_screens.h,the exchange's input side
@@ -482,7 +482,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00742F30,13,,game,0065E320,0065EAC0,CUiTooltip,src/game/ui.h,a region tooltip's input side
 00742F64,25,,game,0065E320,0065E4D0,CUiTooltip,src/game/ui.h,a region's tooltip (CUiTooltip)
 00742FD8,2,,game,0065ED30 0065EDE0,0065F170,CUiScrollingSurface,src/game/ui_screens.h,the scrolling RichEdit surface (CUiScrollingSurface)
-00742FF4,3,,game,0065F2D0 00661050 006611D0 006613C0 00663410 00664160,007005E3,PartyMemberArrayClass,src/game/party_lifetime.cpp,CArray (a party's unit records)
+00742FF4,3,,game,0065F2D0 00661050 006611D0 006613C0 00663410 00664160,007005E3,PartyMemberArrayClass,-,CArray (a party's unit records); stored only by game.exe (ours is a std::vector)
 00743000,27,,game,0065F2D0 00661050 006611D0 006613C0 00662FB0 00663410,00661190,CParty,src/game/party.h,the party (CParty)
 0074306C,27,,game,00661050 006613C0,006611B0,CManagerContext,src/game/manager_context.h,CParty's base (the manager context's getters null)
 00743104,13,,game,00664BF0 00664E20,00664E00,CPlayer,src/game/player_messages.h,a world player (CPlayer)
@@ -550,9 +550,9 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 007440F0,13,,game,006B6040 006B65D0,006B62B0,CSoundManager,src/game/sound.h,
 00744124,3,,game,006B6040 006B65D0 006BC870,007005E3,WaveListClass,-,CList (the sound cache's wave records); stored only by game.exe (ours is a std::list)
 00744130,3,,game,006B6040 006B65D0 006BC570,007005E3,SoundListClass,-,CList (the sound manager's list); stored only by game.exe (ours is a std::list)
-00744184,3,,game,006BF5F0 006BF8A0 006C4690,007005E3,SectorVertexArrayClass,src/game/record_arrays.h,CArray (a terrain sector's vertex records)
-007441A8,3,,game,006C4790 006C49D0,007005E3,TerrainByteArraysClass,src/lib/mfc_slots.h,CArray (a terrain sector's CByteArray elements)
-007441B4,3,,game,006C4A40 006C4C40,007005E3,TerrainTileListsClass,src/game/record_arrays.h,CArray (a terrain sector's tile lists; 16-byte records, a point vector each)
+00744184,3,,game,006BF5F0 006BF8A0 006C4690,007005E3,SectorVertexArrayClass,-,CArray (a terrain sector's vertex records); stored only by game.exe (ours is a std::vector)
+007441A8,3,,game,006C4790 006C49D0,007005E3,TerrainByteArraysClass,-,CArray (a terrain sector's CByteArray elements); stored only by game.exe (ours is a std::vector)
+007441B4,3,,game,006C4A40 006C4C40,007005E3,TerrainTileListsClass,-,CArray (a terrain sector's tile lists; 16-byte records with a point vector each); stored only by game.exe (ours is a std::vector)
 00744210,3,,game,006CBE60 006CD6D0,007005E3,TerrainArrayAClass,-,CArray (the terrain builder's arrays; 006CBE60); stored only by game.exe (ours is a std::vector)
 0074421C,3,,game,006CC2A0 006CC3E0 006CD880,007005E3,TerrainArrayBClass,-,CArray (the terrain builder's arrays; 006CC2A0 / 006CC3E0); stored only by game.exe (ours is a std::vector)
 00744228,3,,game,006CC530 006CDA20,007005E3,TerrainArrayCClass,-,CArray (the terrain builder's arrays; 006CC530); stored only by game.exe (ours is a std::vector)

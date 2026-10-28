@@ -20,8 +20,6 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 
 #include "ei/x87.h"
 #include "world_effect.h"
@@ -355,24 +353,17 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     console::EndLine(GameLog() << "Unit " << static_cast<long>(unit->id_) << " damaged to death");
 
     AnimationSteps animation;
-    animation.ConstructBase();
-    animation.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
     std::uint32_t direction = HitDirection(attacker, hitKind);
     BuildDeathAnimation(&animation, direction, 1, 0);
     animationHeld = 0;
     frozen = 0;
-    AnimationSteps copy;
-    copy.CopyConstructSteps(animation);
-    copy.extra = animation.extra;
-    PlayAnimationOrder(copy);
+    PlayAnimationOrder(animation);
     AIEventsOf(world)->ForgetUnit(this);
     if (CPlayer* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(player, unit))
             member->ServerController()->brain.memory.SeeCorpse(member, unit);   // `member` sees the dead unit
         if (IsMultiplayerClient() & 0xFF) unit->flags_ |= 0x20000000;
     }
-    animation.vtable = mfc::impl::AnimationStepsClass::Vtable();
-    if (animation.data) gamecrt::operator_delete(animation.data);
 }
 
 void CUnitServer::UseSkill(CMapObject* target) {

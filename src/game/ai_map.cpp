@@ -164,7 +164,7 @@ constexpr std::uint32_t kOccluderChain = 0x80;
 // 12-21 of a single-occluder word, `bottom` bits 22-31, `kind` bits 9-11, `transparency` bits 5-6.
 const SectorOccluder* OccluderRecords(const CAIMap* map, int x, int y) {
     const CSectorMap& sectors = map->sectorMap;
-    return sectors.sectors.data[(y / 32) * sectors.width + x / 32].occluders.data();
+    return sectors.sectors[(y / 32) * sectors.width + x / 32].occluders.data();
 }
 } // namespace
 

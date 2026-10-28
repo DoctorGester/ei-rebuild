@@ -218,9 +218,9 @@ void CPlayerServer::SetFlag70(std::uint8_t value) { flag70_ = value; }
 
 // --- Party records -------------------------------------------------------------------------------
 
-PartyUnitRecord* CParty::Find(int unitId) const {
-    for (int i = 0; i < members_.size; ++i)
-        if (members_.data[i].unitId == static_cast<std::uint32_t>(unitId)) return &members_.data[i];
+PartyUnitRecord* CParty::Find(int unitId) {
+    for (int i = 0; i < std::ssize(members_); ++i)
+        if (members_[i].unitId == static_cast<std::uint32_t>(unitId)) return &members_[i];
     return nullptr;
 }
 

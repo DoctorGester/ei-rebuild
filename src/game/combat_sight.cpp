@@ -16,7 +16,6 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cstring>
@@ -237,16 +236,6 @@ bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time)
 // --- The planner -----------------------------------------------------------------------------
 
 namespace {
-void InitSteps(AnimationSteps* steps) {
-    std::memset(steps, 0, sizeof(*steps));
-    steps->vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
-}
-
-void DestroySteps(AnimationSteps* steps) {
-    steps->vtable = mfc::impl::AnimationStepsClass::Vtable();
-    if (steps->data) gamecrt::operator_delete(steps->data);
-}
-
 // The quick item or spell value the cast animation is built with: the spell's prototypeField14_ scaled by
 // 15 / stats.rate (unscaled when that is 0), rounded.
 int CastValue(CUnitServer* self, CSpell* spell) {
@@ -273,7 +262,6 @@ void FillCastKind(OrderPlan* plan, CSpell* spell) {
 
 bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     AnimationSteps steps;
-    InitSteps(&steps);
     Vector3 origin;
     std::memcpy(&origin, &unit->localPosition_.x, sizeof(origin));
     int now = ObjectWorld(this)->tick_;
@@ -284,15 +272,11 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
         double limitSq = distance * distance;
         double apartSq = DistanceSquaredXYUnrounded<double>(order->point, unit->localPosition_);
         EI_NAN_AUDIT(limitSq, apartSq);
-        if (limitSq < apartSq) {
-            DestroySteps(&steps);
-            return false;
-        }
+        if (limitSq < apartSq) return false;
     }
 
-    plan->animation.SetSize(0, -1);
+    plan->animation = {};
     plan->hitLocation = 1;
-    plan->animation.extra = -1;
     plan->targetId = -1;
     plan->rangeSq = std::bit_cast<float>(kFarBits);
     plan->endTime = 0;
@@ -430,32 +414,25 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
                 plan->targetId = order->target ? order->target->id_ : -1;
                 plan->startTime = tick + now;
                 plan->endTime = tick + now + duration;
-                plan->animation.SetSize(steps.size, -1);
-                for (int i = 0; i < steps.size; ++i) plan->animation.data[i] = steps.data[i];
-                plan->animation.extra = steps.extra;
+                plan->animation = steps;
                 plan->notSkill = order->source != kSkillSource;
                 plan->direction.x = delta.x;
                 plan->direction.y = delta.y;
                 plan->direction.z = delta.z;
                 if (order->kind == kOrderCast || order->kind == kOrderCastAt) FillCastKind(plan, spell);
-                DestroySteps(&steps);
                 return true;
             }
         }
         best = stored;
     }
-    DestroySteps(&steps);
     return false;
 }
 
 bool CUnitServer::CanPlanAction(const AIOrder* order) {
-    OrderPlan plan;
-    std::memset(&plan, 0, sizeof(plan));
-    plan.animation.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
+    OrderPlan plan{};
     CMapObject* target = order->target;
     if (IsUnit(target)) target->flags_ |= kFlagPlanned;
     bool result = PlanAction(order, &plan);
     if (IsUnit(target)) target->flags_ &= ~kFlagPlanned;
-    DestroySteps(&plan.animation);
     return result;
 }

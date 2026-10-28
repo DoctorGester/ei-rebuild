@@ -76,41 +76,13 @@ void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, CParty* party
     CopyList(spells, source->spells, party);
 }
 
-PartyUnitRecord* PartyUnitRecord::Assign(const PartyUnitRecord* source) {
-    for (int i = 0; i < 7; ++i) texts[i] = source->texts[i];
-    unitId = source->unitId;
-    std::memcpy(&stats, &source->stats, sizeof(stats));
-    // +0x724..+0x780 member by member (the padding after +0x778 is not copied).
-    std::memcpy(&scaleX, &source->scaleX, offsetof(PartyUnitRecord, selected) - offsetof(PartyUnitRecord, scaleX));
-    selected = source->selected;
-    leaderId = source->leaderId;
-    fightAtWill = source->fightAtWill;
-    return this;
-}
-
-namespace {
-// The stack record: zeroed storage the record is constructed and destroyed in by hand.
-union StackRecord {
-    StackRecord() : record{} {}
-    ~StackRecord() {}
-    PartyUnitRecord record;
-};
-} // namespace
-
 PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, const char* extra) {
     if (!itemManager_) Create();
-    // A stack record: constructed, assigned to the new entry, destroyed. It starts zeroed: the constructor
-    // leaves the statistics, and BuildNpcStats' reset leaves some of theirs (the layers' spare values, ...),
+    // The game assigned a constructed stack record to the new entry. Ours is value-initialised: the record's
+    // defaults leave the statistics, and BuildNpcStats' reset leaves some of theirs (the layers' spare values, ...),
     // which the game took from its stack and saved with the party (a determinism fix; the harness zeroes the
     // game's too, harness_leftovers.h).
-    StackRecord temporary;
-    temporary.record.Construct();
-    int index = members_.size;
-    members_.SetSize(index + 1, -1);
-    members_.data[index].Assign(&temporary.record);
-    temporary.record.Destruct();
-
-    PartyUnitRecord* record = &members_.data[members_.size - 1];
+    PartyUnitRecord* record = &members_.emplace_back();
     record->texts[1] = name;
     record->unitId = *name == '\0' ? 0xFFFFFFFFu : static_cast<std::uint32_t>(TextKeyFromName(name));
     record->texts[5] = prototype;
@@ -197,13 +169,9 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
 }
 
 BOOL CParty::RemoveMember(int key) {
-    for (int i = 0; i < members_.size; ++i) {
-        PartyUnitRecord* record = &members_.data[i];
-        if (static_cast<int>(record->unitId) != key) continue;
-        record->Destruct();
-        int after = members_.size - i - 1;
-        PartyUnitRecordElements::Relocate(record, record + 1, after);
-        --members_.size;
+    for (int i = 0; i < std::ssize(members_); ++i) {
+        if (static_cast<int>(members_[i].unitId) != key) continue;
+        members_.erase(members_.begin() + i);
         return 1;
     }
     return 0;

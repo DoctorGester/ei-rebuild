@@ -559,10 +559,10 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         CPlayer* player = TheServerWorld()->GetPlayer(Ftol(floatArgs.data[0]));
         CEngineObject* o = nullptr;
         if (player) {
-            const PartyMemberArray& members = player->Party()->members_;
+            const std::vector<PartyUnitRecord>& members = player->Party()->members_;
             int index = x87::fistp(floatArgs.data[1]);
-            if (index >= 0 && index < members.size)
-                o = TheServerWorld()->FindUnit(static_cast<int>(members.data[index].unitId));
+            if (index >= 0 && index < std::ssize(members))
+                o = TheServerWorld()->FindUnit(static_cast<int>(members[index].unitId));
         }
         Store(*result, o);
         return;
@@ -590,8 +590,8 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         } else {
             unitId = 0x3B9AF5CE;
             CPlayer* player = TheServerWorld()->GetPlayer(0);
-            if (player && player->Party()->members_.size > 0)
-                unitId = static_cast<int>(player->Party()->members_.data[0].unitId);
+            if (player && std::ssize(player->Party()->members_) > 0)
+                unitId = static_cast<int>(player->Party()->members_[0].unitId);
         }
         Store(*result, TheServerWorld()->FindObject(unitId));
         return;

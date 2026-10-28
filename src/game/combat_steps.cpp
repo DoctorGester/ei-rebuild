@@ -15,7 +15,6 @@
 #include "unit.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cstring>
@@ -91,13 +90,6 @@ bool HasRangedWeapon(CUnit* unit) {
     return weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
 }
 
-AnimationStep BlankStep() {
-    AnimationStep step{};
-    step.animation = 0xFF;
-    step.variant = 0xFF;
-    step.duration = -1;
-    return step;
-}
 } // namespace
 
 namespace {
@@ -120,23 +112,6 @@ int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::
     return FtolQuotient(frameCount, speed);
 }
 
-void AppendFirst(AnimationSteps* out, const AnimationSteps* steps) {
-    int index = out->size;
-    out->SetSize(index + 1, -1);
-    out->data[index] = steps->data[0];
-}
-
-struct ScratchSteps {
-    AnimationSteps steps;
-    ScratchSteps() {
-        std::memset(&steps, 0, sizeof(steps));
-        steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
-    }
-    ~ScratchSteps() {
-        steps.vtable = mfc::impl::AnimationStepsClass::Vtable();
-        if (steps.data) gamecrt::operator_delete(steps.data);
-    }
-};
 } // namespace
 
 // --- Durations ---------------------------------------------------------------------------------
@@ -171,8 +146,7 @@ std::uint32_t EnterBits(const MoveModeState* to, const CUnit* unit) {
 } // namespace
 
 bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to) {
-    steps->SetSize(0, -1);
-    steps->extra = -1;
+    *steps = {};
     if (unit->type_ != kUnitTypeHeroes && to->mode != 4 && from->mode != 4) return false;
     if (from->mode == to->mode && (from->mode != 2 || from->flag4 == to->flag4)) return false;
 
@@ -182,12 +156,7 @@ bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* fr
     if (!animation) return false;
     std::uint8_t index = animation->index;
     int duration = EntryTicks(unit, index, &FigureAnimation::frameCount);
-    int last = steps->size;
-    steps->SetSize(last + 1, -1);
-    AnimationStep step = BlankStep();
-    step.kind = 0;
-    steps->data[last] = step;
-    AnimationStep& added = steps->data[steps->size - 1];
+    AnimationStep& added = steps->emplace_back();
     added.animation = index;
     added.duration = duration;
     return true;
@@ -238,8 +207,7 @@ std::uint32_t OrderKey(CUnitServer* self, int kind, std::uint32_t source, const 
 } // namespace
 
 void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind, std::uint32_t source) {
-    steps->SetSize(0, -1);
-    steps->extra = -1;
+    *steps = {};
     std::uint32_t weaponBit;
     bool frame;
     std::uint32_t key = OrderKey(this, kind, source, steps, &weaponBit, &frame);
@@ -257,27 +225,25 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
 
     if (frame) {
         // Step out of the movement mode into standing (mode 1) first.
-        ScratchSteps out;
+        AnimationSteps out;
         MoveModeState to{};
         to.mode = 1;
-        if (BuildTransition(&out.steps, &moveMode, &to)) {
-            AppendFirst(steps, &out.steps);
-            *duration += out.steps.data[0].duration;
+        if (BuildTransition(&out, &moveMode, &to)) {
+            steps->push_back(out[0]);
+            *duration += out[0].duration;
         }
     }
     std::uint8_t index = animation->index;
     int length = EntryTicks(unit, index, &FigureAnimation::frameCount);
-    AnimationStep blank = BlankStep();
-    steps->Add(blank);
-    AnimationStep& added = steps->data[steps->size - 1];
+    AnimationStep& added = steps->emplace_back();
     added.animation = animation->index;
     added.duration = length;
     *duration += EntryTicks(unit, animation->index, &FigureAnimation::moment);
     if (frame) {
-        ScratchSteps back;
+        AnimationSteps back;
         MoveModeState from{};
         from.mode = 1;
-        if (BuildTransition(&back.steps, &from, &moveMode)) AppendFirst(steps, &back.steps);
+        if (BuildTransition(&back, &from, &moveMode)) steps->push_back(back[0]);
     }
 }
 
@@ -285,8 +251,7 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
 
 void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind, int value) {
     (void)kind;
-    steps->SetSize(0, -1);
-    steps->extra = -1;
+    *steps = {};
     std::uint32_t key;
     if (unit->type_ == kUnitTypeHeroes) {
         key = WeaponBit(this) | kKeyCast;
@@ -310,19 +275,15 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
         return;
     }
 
-    AnimationStep blank = BlankStep();
     if (stats.movementKind == kNoSizeClasses) {
         // A pause for the extra time, then the animation; the action at its moment.
         *duration = EntryTicks(unit, index, &FigureAnimation::moment);
         int pause = value - EntryTicks(unit, index, &FigureAnimation::frameCount);
-        steps->SetAtGrow(steps->size, blank);
-        AnimationStep& first = steps->data[steps->size - 1];
+        AnimationStep& first = steps->emplace_back();
         first.animation = 0xFF;
         first.duration = pause;
         int length = EntryTicks(unit, index, &FigureAnimation::frameCount);
-        blank = BlankStep();
-        steps->Add(blank);
-        AnimationStep& second = steps->data[steps->size - 1];
+        AnimationStep& second = steps->emplace_back();
         second.animation = index;
         second.duration = length;
         *duration = *duration + pause;
@@ -333,23 +294,18 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     int moment = EntryTicks(unit, index, &FigureAnimation::moment);
     *duration = moment;
     int pause = value - EntryTicks(unit, index, &FigureAnimation::frameCount);
-    steps->Add(blank);
-    AnimationStep& first = steps->data[steps->size - 1];
+    AnimationStep& first = steps->emplace_back();
     first.animation = index;
     first.duration = moment;
-    blank = BlankStep();
-    steps->Add(blank);
-    AnimationStep& second = steps->data[steps->size - 1];
+    AnimationStep& second = steps->emplace_back();
     second.animation = 0xFF;
     second.duration = pause;
     int rest = EntryTicks(unit, index, &FigureAnimation::frameCount) - *duration;
-    blank = BlankStep();
-    steps->Add(blank);
-    AnimationStep& third = steps->data[steps->size - 1];
+    AnimationStep& third = steps->emplace_back();
     third.animation = 0xFF;
     third.duration = rest;
     steps->SetStepFlags(0);
-    steps->data[1].kind = 1;
+    (*steps)[1].kind = 1;
     *duration = *duration + pause;
 }
 
@@ -552,8 +508,7 @@ std::uint32_t RandomSide(std::uint32_t key) {
 void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direction, int dying, int fall) {
     bool isDying = static_cast<std::uint8_t>(dying) != 0;
     bool isFall = static_cast<std::uint8_t>(fall) != 0;
-    steps->SetSize(0, -1);
-    steps->extra = -1;
+    *steps = {};
     std::uint32_t key = WeaponBit(this) | LeaveBits(&moveMode, unit);
     int mode = moveMode.mode;
 
@@ -591,15 +546,10 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
     if (add) {
         std::uint8_t index = animation->index;
         int duration = EntryTicks(unit, index, &FigureAnimation::frameCount);
-        int last = steps->size;
-        steps->SetSize(last + 1, -1);
-        AnimationStep step = BlankStep();
-        step.kind = 0;
-        steps->data[last] = step;
-        AnimationStep& added = steps->data[steps->size - 1];
+        AnimationStep& added = steps->emplace_back();
         added.animation = animation->index;
         added.duration = duration;
     }
     if (isFall)
-        for (int i = 0; i < steps->size; ++i) steps->data[i].kind = kStepLying;
+        for (AnimationStep& step : *steps) step.kind = kStepLying;
 }
