@@ -103,7 +103,7 @@ Connection* Connection::Clone() { return NewCounted<Connection>(*this); }
 // order).
 Connection::Connection(const Connection& other)
     : CRefObject(), freedIds_(other.freedIds_), bySentId_(other.bySentId_), byObject_(other.byObject_),
-      priorities_(other.priorities_), history_(other.history_), acknowledged_(other.acknowledged_),
+      priorities_(other.priorities_), entriesTracked_(other.entriesTracked_), history_(other.history_), acknowledged_(other.acknowledged_),
       records_(other.records_), attached_(other.attached_), headers_(other.headers_), incoming_(other.incoming_),
       reliableOut_(other.reliableOut_), reliableIn_(other.reliableIn_) {
     sendSequence_ = other.sendSequence_;
@@ -136,7 +136,7 @@ ReplicaEntry::ReplicaEntry() {
 
 ReplicaEntry::ReplicaEntry(const ReplicaEntry& other)
     : CRefObject(), version_(other.version_), id_(other.id_), type_(other.type_),
-      flags_(other.flags_) {   // the original merges bit 0 and then the other bits: all of them
+      flags_(other.flags_), serial_(other.serial_) {   // the original merges bit 0 and then the other bits: all of them
     object_.ptr = other.object_.ptr;
     if (object_.ptr) ++object_.ptr->refs_;
 }

@@ -251,8 +251,13 @@ dropped, true), 9 Receive / record, 10 pump (00478010, empty), 11 disconnect, 12
 ## Original bugs kept (rest)
 
 `SendUpdate`: an entry that overflows the budget stays in the packet uncounted, the rest of that priority waits,
-lower priorities are still tried. Within a priority the entries go in the order of their addresses (`priorities_` is
-keyed by `ReplicaEntry*`), so which object the client reads first follows the server's heap. The client's player
+lower priorities are still tried. Within a priority the original's entries go in the order of their addresses
+(`priorities_` keyed by `ReplicaEntry*`, and `CollectChanges` tracks new objects in their address order), so which
+object the client reads first, and which net id an object gets, follows the server's heap. Ours (SV7b5) keys the
+priority maps by the entry's serial, handed out as `CollectChanges` tracks the session's list in its order (players,
+variables, the binding, chat lines, files, ...), so the send order and the ids follow the session's lists;
+`byObject_` / `attached_` are lookup-only hash maps. The original's runs keep their address order (no harness patch:
+the goldens hold no net ids or send order, and UB1 below takes the one order the game state read). The client's player
 list (`CChatWindow::ShowPlayers`) lists nobody while the binding is missing and the original's binding handler
 0041E430 does not refresh it: players read before the binding left the base screen without faces and statuses
 (UB1). Ours (address_order.h) refreshes the list at the binding when players are
