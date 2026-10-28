@@ -93,7 +93,6 @@ constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
 constexpr std::uint32_t kScaleLarge = 0x3F59999A;   // 0.85: quick slots 4..7
 constexpr std::uint32_t kScaleSmall = 0x3F0CCCCD;   // 0.55: quick slots 0..3
 constexpr float kScaleOne = 1.0f;
-constexpr int kOrderEventFollow = 7;                // the speech event of a follow order
 
 // A unit's position, copied as three dwords.
 Vector3 PositionOf(const CUnit* unit) {
@@ -797,7 +796,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             CUnit* member = party_[i];
             if (!member || !(member->flags_ & kFlagSelected)) continue;
             LocalView()->SendFollow(member, unit);
-            Speech(party_[i]->id_, kOrderEventFollow, nullptr);
+            Speech(party_[i]->id_, AckKind::Follow, nullptr);
             NodPortrait(this, i);
         }
         CHudQuickItems* quick = quickItems_;

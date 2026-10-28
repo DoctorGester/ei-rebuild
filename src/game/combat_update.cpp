@@ -50,7 +50,6 @@ constexpr float kNoRange = 1e38f;   // 1e38: OrderPlan.rangeSq of no plan
 static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
 constexpr int kBoredTicks = 500;                      // updates before a bored remark may come
 constexpr std::uint32_t kBoredChance = 0x3E9;         // one in 1001
-constexpr int kRemarkBored = 0x29;
 
 // --- Helpers --------------------------------------------------------------------------------------
 
@@ -165,7 +164,7 @@ int CUnitServer::RunTick() {
                 if (!player || player->Server()->refreshPending_ != 0) {
                     bored = 0;
                 } else {
-                    PlayerMessage(player->Server(), unit, kRemarkBored);
+                    PlayerMessage(player->Server(), unit, AckKind::Bored);
                     bored = 400;
                 }
             }

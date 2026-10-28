@@ -27,16 +27,17 @@ namespace {
 int Roll() { return libcrt::Rand() * 100 / 0x7FFF % 100; }
 
 // The ack kinds a party (text-key) unit says differently while it walks slowly (move mode 0 or 1):
-// 0..5 and 7..10 become 0x27, 0x0B..0x13 and 0x1D become 0x28.
-std::uint32_t PartyKind(std::uint32_t kind) {
+// 0..5 and 7..10 become ShopYes, 0x0B..0x13 and OutOfStamina become ShopNo.
+AckKind PartyKind(AckKind kind) {
     static const std::uint8_t kGroup[0x1E] = {0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 1, 1, 1,
                                               1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1};
-    if (kind > 0x1D) return kind;
-    return kGroup[kind] == 0 ? 0x27 : kGroup[kind] == 1 ? 0x28 : kind;
+    if (kind > AckKind::OutOfStamina) return kind;
+    std::uint8_t group = kGroup[static_cast<std::size_t>(kind)];
+    return group == 0 ? AckKind::ShopYes : group == 1 ? AckKind::ShopNo : kind;
 }
 
 // The speech list a record keeps for `kind`, or null.
-Speeches* ListFor(const AckRecordHead& record, std::uint32_t kind) {
+Speeches* ListFor(const AckRecordHead& record, AckKind kind) {
     auto node = record.speeches.find(static_cast<int>(kind));
     return node != record.speeches.end() ? node->second : nullptr;
 }
@@ -107,16 +108,15 @@ const SpeechRecord* EnvironmentSpeeches::Pick(std::uint32_t environment, int rol
         if (eligible(*s) && chosen-- == 0) return &s->speech;
 }
 
-// 0xFF stops the unit's speech. A party unit walking slowly says its own kinds (PartyKind). 0x25 /
-// 0x26 only play weapons\timecrash.wav at the unit; 0x23 / 0x24 play weapons\crash.wav and go on.
-// Kinds up to 0x29 come from the unit's prototype record in table 0 (0x29: its environment
-// speeches, only while the unit's animation is of kind 0x100000 / 0x140000 / 0x180000), 0x2A..0x2D
-// from table 2, 0x2E..0x32 from table 1 by the prototype's name, else by its model's name; others
-// say nothing. The speech is picked at random among those whose chance reaches a roll of 0..99.
-const SpeechRecord* SayAck(CUnit* unit, int kindArg) {
+// StopSpeech stops the unit's speech. A party unit walking slowly says its own kinds (PartyKind).
+// ArmourWorn / WeaponWorn only play weapons\timecrash.wav at the unit; ArmourBroken / WeaponBroken play
+// weapons\crash.wav and go on. Kinds up to Bored come from the unit's prototype record in table 0 (Bored:
+// its environment speeches, only while the unit's animation is of kind 0x100000 / 0x140000 / 0x180000),
+// Scenario..Extra2 from table 2, Aggression..FightingRest from table 1 by the prototype's name, else by its
+// model's name; others say nothing. The speech is picked at random among those whose chance reaches a roll of 0..99.
+const SpeechRecord* SayAck(CUnit* unit, AckKind kind) {
     if (!unit) return nullptr;
-    auto kind = static_cast<std::uint32_t>(kindArg);
-    if (kind == 0xFF) {
+    if (kind == AckKind::StopSpeech) {
         unit->Controller()->StopSpeech();
         return nullptr;
     }
@@ -124,30 +124,30 @@ const SpeechRecord* SayAck(CUnit* unit, int kindArg) {
     auto* prototype = unit->GetSecondPrototype();
     if (!prototype) return nullptr;
 
-    if (kind == 0x25 || kind == 0x26) {
+    if (kind == AckKind::ArmourWorn || kind == AckKind::WeaponWorn) {
         g_clientWorld->sounds_->Play3D("weapons\\timecrash.wav", 0, &unit->localPosition_.x, 8.0f, 20.0f, 0, 0);
         return nullptr;
     }
     AckDatabase& db = *g_ackDatabase;
     const Speeches* list = nullptr;
     const EnvironmentSpeeches* environmentList = nullptr;
-    if (kind <= 0x29) {
-        if (kind == 0x23 || kind == 0x24)
+    if (kind <= AckKind::Bored) {
+        if (kind == AckKind::ArmourBroken || kind == AckKind::WeaponBroken)
             g_clientWorld->sounds_->Play3D("weapons\\crash.wav", 0, &unit->localPosition_.x, 8.0f, 20.0f, 0, 0);
         UnitAcks* record = db.units.Find(prototype->name);
         if (!record) return nullptr;
-        if (kind == 0x29) {
+        if (kind == AckKind::Bored) {
             environmentList = &record->environmentSpeeches;
         } else {
             list = ListFor(record->head, kind);
             if (!list) return nullptr;
         }
-    } else if (kind <= 0x2D) {
+    } else if (kind <= AckKind::Extra2) {
         ExtraAcks* record = db.extras.Find(prototype->name);
         if (!record) return nullptr;
         list = ListFor(record->head, kind);
         if (!list) return nullptr;
-    } else if (kind <= 0x32) {
+    } else if (kind <= AckKind::FightingRest) {
         ModelAcks* record = db.models.Find(prototype->name);
         if (!record) {
             auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
@@ -171,7 +171,7 @@ const SpeechRecord* SayAck(CUnit* unit, int kindArg) {
     } else {
         speech = list->Pick(Roll());
     }
-    if (speech) unit->Controller()->Say(speech, static_cast<int>(kind));
+    if (speech) unit->Controller()->Say(speech, kind);
     return speech;
 }
 
@@ -184,7 +184,7 @@ const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate) {
     std::size_t length = std::strlen(name);
     for (const SpeechRecord& s : record->namedSpeeches) {
         if (s.name.size() == length && std::memcmp(s.name.data(), name, length) == 0) {
-            unit->Controller()->Say(&s, alternate ? 0x2B : 0x2A);
+            unit->Controller()->Say(&s, alternate ? AckKind::ScenarioTalking : AckKind::Scenario);
             return &s;
         }
     }

@@ -12,6 +12,7 @@
 #include <vector>
 #include <unordered_map>
 
+#include "ack_kind.h"
 #include "lib/static_object.h"
 #include "unit_client_models.h"
 
@@ -107,7 +108,7 @@ extern lib::StaticObject<acks::AckDatabase> g_ackDatabase;
 namespace acks {
 
 // The unit says ack `kind` (see acks_db.cpp). Returns the speech given to the controller's Say, or null.
-const SpeechRecord* SayAck(CUnit* unit, int kind);
+const SpeechRecord* SayAck(CUnit* unit, AckKind kind);
 // The unit says its named speech `name` as kind 0x2A (0x2B with `alternate`). Returns it, or null.
 const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate);
 } // namespace acks

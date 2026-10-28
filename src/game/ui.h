@@ -5,6 +5,7 @@
 // size and scales between the two; windows keep their regions in layout coordinates and convert the mouse
 // position before hit testing.
 
+#include "ack_kind.h"
 #include "app.h"   // app::g_interfaceHasScreen
 #include "core_transform.h"
 #include "options.h"
@@ -163,7 +164,7 @@ public:
     void OnUnitJoined(CUnit* unit);
     void OnUnitLeft(CUnit* unit);
     void OnGameLost();
-    void OnUnitSpeech(int id, unsigned event);
+    void OnUnitSpeech(int id, AckKind kind);
     void OnPlayersChanged(int added);
     void OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC);
     void SaveWindowState();
@@ -1202,7 +1203,7 @@ public:
     virtual void UnitJoined(CUnit*) {}
     virtual void UnitLeft(CUnit*) {}
     virtual void GameOver(int) {}
-    virtual void Speech(int, unsigned, char*) {}                       // a unit speaks
+    virtual void Speech(int, AckKind, char*) {}                        // a unit speaks
     virtual void QuestVariable(std::string_view, float) {}                  // a quest variable changed
     virtual void ShowBriefing(std::string_view) {}                          // a "briefing <name>" string event
     virtual bool ReadyToStopPolling() { return false; }                // whether the interface may stop asking (pollTop_)
@@ -1322,9 +1323,9 @@ public:
     // The same at the point. For the member that is `unit` itself the point first moves 0.1 behind it, for
     // it and the members after it.
     void UseAtPoint(float x, float y, float z, CUnit* unit, char quick);
-    // The unit's speech line goes to the top panel's text and the message log; event 0x30 shows its timed
-    // face, events 0xB..0x15 shake its portrait.
-    void OnUnitSpeech(int id, unsigned event, char* extra);
+    // The unit's speech line goes to the top panel's text and the message log; the kind Kill shows its timed
+    // face, the kinds NoWayToAttack..Injured shake its portrait.
+    void OnUnitSpeech(int id, AckKind kind, char* extra);
 
     void Close();
     // Polled every frame by the interface until it answers true. After a new game (hasHero_): the camera
@@ -1360,7 +1361,7 @@ public:
     void UnitJoined(CUnit* unit) override { OnUnitJoined(unit); }
     void UnitLeft(CUnit* unit) override { OnUnitLeft(unit); }
     void GameOver(int won) override { OnGameOver(static_cast<char>(won)); }
-    void Speech(int id, unsigned event, char* extra) override { OnUnitSpeech(id, event, extra); }
+    void Speech(int id, AckKind kind, char* extra) override { OnUnitSpeech(id, kind, extra); }
     void QuestVariable(std::string_view name, float value) override { OnQuestVariable(name, value); }
     bool ReadyToStopPolling() override { return PollShown(); }
     void PlayerList(int mode) override { SetPortraitMode(mode); }

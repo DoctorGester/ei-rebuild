@@ -15,32 +15,31 @@
 
 namespace {
 constexpr std::uint32_t kFlagTalking = 0x800000;      // the server unit's flags_ while it speaks
-constexpr int kKindTalking = 0x2B;
-constexpr int kSpeechAfterSpeech = 2;                 // kinds that wait for the last speech sound
-constexpr int kSpeechAfterSpeech2 = 0x1C;
 constexpr int kQueuedDelay = 3;
 constexpr std::uint32_t kRepeatAfter = 5000;          // ms before the same speech plays again
 constexpr int kSpeechPriority = 1;
 constexpr int kSpeechVolume = 100;
 
 // The kinds a queued speech gives way to: (new kind, queued kind).
-bool Replaces(int kind, int queued) {
-    return (kind == 0xD && queued == 9) || (kind == 0xE && queued == 1) || (kind == 0xF && queued == 3) ||
-           (kind == 0x10 && queued == 3) || (kind == 0x11 && (queued == 5 || queued == 6)) ||
-           (kind == 0x13 && queued == 3);
+bool Replaces(AckKind kind, AckKind queued) {
+    return (kind == AckKind::CantChangePosition && queued == AckKind::ChangePosition) ||
+           (kind == AckKind::NoPath && queued == AckKind::Move) || (kind == AckKind::NoMana && queued == AckKind::Cast) ||
+           (kind == AckKind::CantTeleport && queued == AckKind::Cast) ||
+           (kind == AckKind::ScienceFailed && (queued == AckKind::UseObject || queued == AckKind::Steal)) ||
+           (kind == AckKind::SpellTooComplex && queued == AckKind::Cast);
 }
 
 // Kinds that queue behind speeches already waiting.
-bool Important(int kind) {
+bool Important(AckKind kind) {
     switch (kind) {
-    case 0x1D:
-    case 0x1E:
-    case 0x1F:
-    case 0x23:
-    case 0x24:
-    case 0x25:
-    case 0x26:
-    case 0x2A: return true;
+    case AckKind::OutOfStamina:
+    case AckKind::ArmCrippled:
+    case AckKind::LegCrippled:
+    case AckKind::ArmourBroken:
+    case AckKind::WeaponBroken:
+    case AckKind::ArmourWorn:
+    case AckKind::WeaponWorn:
+    case AckKind::Scenario: return true;
     default: return false;
     }
 }
@@ -75,11 +74,11 @@ bool SpeechFilter::Finished(const ClientSpeech* queued) const {
     return true;
 }
 
-void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
+void CUnitClientSpecific::Say(const SpeechRecord* record, AckKind kind) {
     if (!record) return;
     SpeechFilter replacing{0, kind};
     EraseWhere(speech, [&](const ClientSpeech* queued) { return replacing.Replaced(queued) & 0xFF; });
-    SpeechFilter finishing{unit->id_, 0};
+    SpeechFilter finishing{unit->id_, AckKind::Selected};
     EraseWhere(speech, [&](const ClientSpeech* queued) { return finishing.Finished(queued); });
     bool empty = speech.empty();
     if (!empty && !Important(kind)) return;
@@ -88,11 +87,11 @@ void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
     said.kind = kind;
     said.delay = kQueuedDelay;
     said.sound = -1;
-    said.talking = kind == kKindTalking;
+    said.talking = kind == AckKind::ScenarioTalking;
     if (empty) {
         if (said.talking) SetTalking(unit->id_, true);
         said.delay = 0;
-        if (kind != kSpeechAfterSpeech && kind != kSpeechAfterSpeech2) {
+        if (kind != AckKind::Attack && kind != AckKind::DecidedToAttack) {
             Speak(&said);
         } else if (!SoundBusy(speechSound) && Speak(&said)) {
             speechSound = said.sound;

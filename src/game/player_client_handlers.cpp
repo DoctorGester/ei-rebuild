@@ -110,7 +110,7 @@ int CPlayerClient::OnGameLost() {
 int CPlayerClient::OnUnitSpeech() {
     int values[2];
     in_.Read(values, 8);
-    g_interface->OnUnitSpeech(values[0], static_cast<unsigned>(values[1]));
+    g_interface->OnUnitSpeech(values[0], static_cast<AckKind>(values[1]));
     return 1;
 }
 

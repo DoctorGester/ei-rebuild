@@ -322,7 +322,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             MarkPortrait(i);
             if (CUnit* unit = hud->party_[i]) g_clientWorld->Select(unit);
         }
-        if (!hud->party_.empty() && hud->party_[0]) hud->Speech(hud->party_[0]->id_, 0, nullptr);
+        if (!hud->party_.empty() && hud->party_[0]) hud->Speech(hud->party_[0]->id_, AckKind::Selected, nullptr);
         RefreshSelection();
         return;
     case kActionMessage:

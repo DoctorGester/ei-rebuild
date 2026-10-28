@@ -147,9 +147,9 @@ void CInterface3D::OnStringEvent(std::string_view event) {
         // "say" / "say_block" text [key]: the top window shows the text.
         if (words.size() < 2) return;
         int number = words.size() > 2 ? TextKeyFromName(words[2]) : 0;
-        int kind = Compare(words[0], "say_block") != 0 ? 0x2A : 0x2B;
+        AckKind kind = Compare(words[0], "say_block") != 0 ? AckKind::Scenario : AckKind::ScenarioTalking;
         if (!stack_.empty())
-            ScreenOf(top())->Speech(number, static_cast<unsigned>(kind), const_cast<char*>(words[1].c_str()));
+            ScreenOf(top())->Speech(number, kind, const_cast<char*>(words[1].c_str()));
     } else if (Compare(words[0], "tutorial") == 0) {   // queued
         if (words.size() < 2) return;
         messages_.insert(messages_.end(), words[1]);

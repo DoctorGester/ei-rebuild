@@ -41,11 +41,6 @@ constexpr std::uint32_t kSpellOnWeapon = 0x10000;       // CSpell::targetFlags_:
 constexpr std::uint32_t kSpellNotOnHit = 0x180000;      // fires when not hit
 constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
 
-constexpr int kMessageKilled = 0x30;
-constexpr int kMessageScienceFailed = 0x11;
-constexpr int kMessageStealFailed = 0x22;
-constexpr int kMessageTameFailed = 0x16;
-
 CDiplomacy* DiplomacyOf(CWorldServer* world) { return &world->diplomacy_; }
 
 AIEventTable* AIEventsOf(CWorldServer* world) { return &world->aiMap_.events; }
@@ -73,8 +68,8 @@ CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
 } // namespace
 
 // Player messages: message `code` about `unit`.
-void PlayerMessage(CPlayerServer* messages, CUnit* unit, int code) {
-    messages->SendObject0B(unit, code);
+void PlayerMessage(CPlayerServer* messages, CUnit* unit, AckKind kind) {
+    messages->SendObject0B(unit, kind);
 }
 
 void CUnitServer::DropQueuedOrder() {
@@ -325,7 +320,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         if (attacker->player) {
             CUnit* killer = attacker->ServerController()->unit;
             if (killer->player)
-                PlayerMessage(killer->player->Server(), killer, kMessageKilled);
+                PlayerMessage(killer->player->Server(), killer, AckKind::Kill);
         } else if (unit->player) {
             attacker->ServerController()->voice.Raise(kRemarkKill);
         }
@@ -386,7 +381,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         DiplomacyOf(world)->OnAttack(unit, other);
         return;
     }
-    int message;
+    AckKind message;
     switch (skill) {
     case kSourceUse: {
         LockKey record = {1, 0, 0};
@@ -397,7 +392,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         record.level += x87::fistp(mine);
         if (target->ApplyScience(&record, unit)) return;
         if (!unit->player) return;
-        message = kMessageScienceFailed;
+        message = AckKind::ScienceFailed;
         break;
     }
     case kSourceSteal: {
@@ -418,7 +413,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         CPlayer* player = unit->player;
         if (player && world->Loot(other, player)) return;
         if (!unit->player) return;
-        message = kMessageStealFailed;
+        message = AckKind::StealFailed;
         break;
     }
     case kSourceTame: {
@@ -426,7 +421,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         if (!other) return;
         if (other->ServerController()->TryTame(unit, mine) != 0) return;
         if (!unit->player) return;
-        message = kMessageTameFailed;
+        message = AckKind::TameFailed;
         break;
     }
     default:

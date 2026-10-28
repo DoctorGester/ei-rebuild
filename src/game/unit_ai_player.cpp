@@ -18,7 +18,6 @@
 namespace {
 constexpr int kStandby = 1;                                     // CUnit::fightAtWill: may fight
 constexpr int kAttackHow = 6;
-constexpr int kAttackFlags = 0x1C;
 constexpr int kDirectControl = 2;                               // CPlayerServer::refreshPending_
 constexpr std::uint32_t kChoosingFlag = 0x4000000;              // CEngineObject::flags_ while choosing
 constexpr float kReachScale = 1.1f;
@@ -50,10 +49,10 @@ CUnit* LeaderOf(const CUnit* unit) {
     return static_cast<CUnit*>(leader);
 }
 
-// The player's attack check: -1 (no restrictions) when the player's order check accepts an attack
-// on `object`, else the AI's flags.
-int AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
-    int flags = kAttackFlags;
+// The player's attack check: None (the planner says nothing) when the player's order check accepts an attack
+// on `object`, else the AI's DecidedToAttack.
+AckKind AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
+    AckKind flags = AckKind::DecidedToAttack;
     if (!brain->owner->unit->player) return flags;
     AIOrder order;
     order.target = nullptr;
@@ -67,7 +66,7 @@ int AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
     } else {
         order.MakeAttack(object);
     }
-    if (brain->owner->CanReachAndPlan(&order)) flags = -1;
+    if (brain->owner->CanReachAndPlan(&order)) flags = AckKind::None;
     order.target.Reset();
     return flags;
 }
@@ -75,7 +74,7 @@ int AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
 void Attack(AIBrain* brain, CMapObject* object, bool clearTwice) {
     brain->action = AIBrain::kActionAttack;
     brain->target.Assign(object);
-    int flags = AttackFlags(brain, object, clearTwice);
+    AckKind flags = AttackFlags(brain, object, clearTwice);
     brain->owner->OrderAttack(brain->target, kAttackHow, 0, flags);
 }
 } // namespace

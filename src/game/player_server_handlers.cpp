@@ -45,7 +45,6 @@
 namespace {
 
 constexpr std::uint8_t kMessageGameOver = 0x09;
-constexpr std::uint32_t kLeaderDiedValue = 0xFF;      // message 0x0B's value for the dead leader
 constexpr int kRevivedIdBase = 1001000000;            // OnLeaderDied: ids below it are moved up
 constexpr int kRevivedIdStep = 1000000;
 constexpr int kNoId = -1;                             // see OnLeaderDied: the original's uninitialised ids
@@ -148,7 +147,7 @@ void CPlayerServer::OnLeaderDied() {
         std::uint8_t type = kMessageGameOver;
         out_.WriteValue(type);
         CUnit* hero = FindUnit(static_cast<int>(party->members_[0].unitId));
-        if (hero) SendObject0B(hero, kLeaderDiedValue);
+        if (hero) SendObject0B(hero, AckKind::StopSpeech);
         return;
     }
 
@@ -161,7 +160,7 @@ void CPlayerServer::OnLeaderDied() {
         party->money_ -= lost;
         oldId = static_cast<int>(party->members_[0].unitId);
         CUnit* hero = FindUnit(oldId);
-        if (hero) SendObject0B(hero, kLeaderDiedValue);
+        if (hero) SendObject0B(hero, AckKind::StopSpeech);
         newId = oldId;
         if (newId < kRevivedIdBase) newId += kRevivedIdStep;
         while (g_serverWorld->FindObject(static_cast<unsigned>(newId))) ++newId;

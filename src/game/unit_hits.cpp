@@ -29,13 +29,7 @@ constexpr int kDamageTypes = 7;
 constexpr float kHalfBack = -0.5f;
 
 // Remarks (party messages through CUnitServer) when an item wears out or breaks.
-constexpr int kRemarkArmourBroken = 0x23;
-constexpr int kRemarkArmourWorn = 0x25;
-constexpr int kRemarkWeaponBroken = 0x24;
-constexpr int kRemarkWeaponWorn = 0x26;
 // ... and when an arm (slot type 2) or a leg (type 3) is lost.
-constexpr int kRemarkArmLost = 0x1E;
-constexpr int kRemarkLegLost = 0x1F;
 
 // The damage type names of the slot log.
 const char* const kTypeNames[kDamageTypes] = {
@@ -60,13 +54,13 @@ float Max0(float value) { return value <= 0.0f ? 0.0f : value; }   // select idi
 // The hit log: the rpg stream (its static initialiser stores the address).
 constexpr console::Stream* kHitLog = /*007AF284*/ {&console::g_rpgLogOut};
 
-void Remark(CUnit* unit, int code) {
-    if (unit->controller->GetClassId() == kClassUnitServer) unit->ServerController()->Shout(code);
+void Remark(CUnit* unit, AckKind kind) {
+    if (unit->controller->GetClassId() == kClassUnitServer) unit->ServerController()->Shout(kind);
 }
 
 } // namespace
 
-void WearItem(CItem* item, CUnit* unit, float amount, int brokenRemark, int wornRemark) {
+void WearItem(CItem* item, CUnit* unit, float amount, AckKind brokenRemark, AckKind wornRemark) {
     EI_NAN_AUDIT(amount);
     if (!item || !unit || amount <= 0.0f) return;
     float before = item->condition_;
@@ -95,17 +89,17 @@ void WearArmour(CUnit* unit, int location, int layer, float amount) {
     if (location <= 1) {
         int slot = kArmourPieces[location * 4 + outer * 2];
         if (slot == 7) return;
-        WearItem(unit->armor[slot], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
+        WearItem(unit->armor[slot], unit, amount, AckKind::ArmourBroken, AckKind::ArmourWorn);
         return;
     }
     if (outer == 1) {
         int slot = kArmourPieces[location * 4 + 2];
-        WearItem(unit->armor[slot], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
+        WearItem(unit->armor[slot], unit, amount, AckKind::ArmourBroken, AckKind::ArmourWorn);
         return;
     }
     int row = location * 4 + outer * 2;
-    WearItem(unit->armor[kArmourPieces[row]], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
-    WearItem(unit->armor[kArmourPieces[row + 1]], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
+    WearItem(unit->armor[kArmourPieces[row]], unit, amount, AckKind::ArmourBroken, AckKind::ArmourWorn);
+    WearItem(unit->armor[kArmourPieces[row + 1]], unit, amount, AckKind::ArmourBroken, AckKind::ArmourWorn);
 }
 
 int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CItem* weapon) {
@@ -126,8 +120,8 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         }
         if (weapon) {
             float passed = Max0(typeDamage);
-            WearItem(weapon, unit, hit->typeWeights[type] * hit->amount - passed, kRemarkWeaponBroken,
-                     kRemarkWeaponWorn);
+            WearItem(weapon, unit, hit->typeWeights[type] * hit->amount - passed, AckKind::WeaponBroken,
+                     AckKind::WeaponWorn);
         }
         EI_NAN_AUDIT(typeDamage);
         if (typeDamage <= 0.0f) continue;
@@ -141,8 +135,8 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
                        current < slot.maximum * kOverkill;
         if (severed) {
             if (slot.kind > 1) {
-                int remark = slot.type == 2 ? kRemarkArmLost : slot.type == 3 ? kRemarkLegLost : 0;
-                if (remark != 0) Remark(unit, remark);
+                AckKind remark = slot.type == 2 ? AckKind::ArmCrippled : slot.type == 3 ? AckKind::LegCrippled : AckKind::None;
+                if (remark != AckKind::None) Remark(unit, remark);
             }
             slot.kind = 1;
             slot.current = slot.maximum * kOverkill;
@@ -179,8 +173,8 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
         total = passed + total;
         copy.typeWeights[type] = passed / copy.amount;
         if (weapon) {
-            WearItem(weapon, unit, hit->typeWeights[type] * hit->amount - Max0(passed), kRemarkWeaponBroken,
-                     kRemarkWeaponWorn);
+            WearItem(weapon, unit, hit->typeWeights[type] * hit->amount - Max0(passed), AckKind::WeaponBroken,
+                     AckKind::WeaponWorn);
         }
     }
     EI_NAN_AUDIT(total);

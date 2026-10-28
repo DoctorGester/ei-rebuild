@@ -117,7 +117,7 @@ void CBattleScreen::ToggleMember(int index) {
         CUnit* member = unitAt(i);
         if (member && chosen[i] != 0) {
             g_clientWorld->Select(member);
-            if (index == i) Speech(unitAt(i)->id_, 0, nullptr);
+            if (index == i) Speech(unitAt(i)->id_, AckKind::Selected, nullptr);
         }
     }
 
@@ -157,7 +157,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         portraits_->slots_[i].wobbleKind_ = 1;
         int targetLevel = target->Level();
         int memberLevel = unitAt(i)->Level();
-        if (targetLevel - memberLevel > 5) Speech(unitAt(i)->id_, 10, nullptr);
+        if (targetLevel - memberLevel > 5) Speech(unitAt(i)->id_, AckKind::BigAttack, nullptr);
     }
     if (!units.empty()) LocalView(&g_clientWorld.Get())->SendAttack(&units, target, kind, ctrl & 0xFF);
 }
@@ -232,11 +232,12 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
 
 // --- a unit's speech event -----------------------------------------------------------------------
 
-void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
+void CBattleScreen::OnUnitSpeech(int id, AckKind kind, char* extra) {
     CUnit* unit = UnitWithId(g_clientWorld->objectManager_, id);
     if (!unit) return;
-    const SpeechRecord* phrase = (event == 0x2A || event == 0x2B) ? acks::SayNamedAck(unit, extra, event == 0x2B)
-                                                                  : acks::SayAck(unit, static_cast<int>(event));
+    const SpeechRecord* phrase = (kind == AckKind::Scenario || kind == AckKind::ScenarioTalking)
+                                     ? acks::SayNamedAck(unit, extra, kind == AckKind::ScenarioTalking)
+                                     : acks::SayAck(unit, kind);
     if (phrase) {
         // The phrase's text.
         std::string text;
@@ -268,7 +269,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
 
     auto* party = &party_;
     auto unitAt = [party](int i) { return (*party)[i]; };
-    if (event == 0x30) {
+    if (kind == AckKind::Kill) {
         // The member's timed face (no null test).
         for (int i = 0; i < std::ssize(*party); ++i) {
             if (unitAt(i)->id_ != id) continue;
@@ -276,7 +277,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
             slots[i].faceTimer_ = 0.0f;
             portraits_->slots_[i].faceMode_ = 1;
         }
-    } else if (event - 0xB <= 0x15 - 0xB) {
+    } else if (kind >= AckKind::NoWayToAttack && kind <= AckKind::Injured) {
         for (int i = 0; i < std::ssize(*party); ++i) {
             if (unitAt(i)->id_ != id) continue;
             portraits_->slots_[i].wobbleTime_ = PortraitDelay(g_random.Next());

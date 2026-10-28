@@ -34,7 +34,7 @@ struct SpeechRecord {
 
 struct ClientSpeech {
     const SpeechRecord* id;         // (compared with lastSpeech)
-    int kind;                       // 2 / 0x1C: not over a speech that still plays
+    AckKind kind;                   // Attack / DecidedToAttack: not over a speech that still plays
     int delay;                      // ticks until it plays; negative: playing
     int sound;                      // its sound handle (-1 none)
     std::uint8_t talking;           // the server unit has flag 0x800000 while it plays
@@ -46,7 +46,7 @@ struct SpeechFilter {
     // Has `queued`'s sound ended (it had one)? A talking speech then clears the server unit's flag 0x800000.
     bool Finished(const ClientSpeech* queued) const;
     int unitId;                     // SpeechFinished: the unit whose talking flag ends
-    int kind;                       // SpeechReplaced: the new speech's kind
+    AckKind kind;                   // SpeechReplaced: the new speech's kind
 };
 
 // The figure part names of the three armour groups: a body armour covers "bd" and the arm pieces, trousers
@@ -191,7 +191,7 @@ public:
     // 0x23-0x26, 0x2A nothing more happens. The speech (delay 3; `talking` for kind 0x2B) joins the queue's
     // end; into an empty queue it plays at once (delay 0; a talking one sets the server unit's flag 0x800000;
     // kinds 2 / 0x1C only when the last waiting speech sound has ended, and their sound becomes speechSound).
-    void Say(const SpeechRecord* speech, int kind) override;
+    void Say(const SpeechRecord* speech, AckKind kind) override;
     // Every queued speech's sound stops (talking ones clear the server unit's flag 0x800000) and the queue is
     // emptied.
     void StopSpeech() override;

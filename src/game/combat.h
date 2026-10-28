@@ -3,6 +3,7 @@
 // Combat: the server-side unit controller (CUnitServer, class id 0x3E). Every creature on the server has one;
 // it keeps the unit's computed statistics, its current orders, and the attack / hit code.
 
+#include "ack_kind.h"
 #include "ai_map.h"
 #include "spell.h"
 #include "unit.h"
@@ -220,7 +221,7 @@ public:
     // Part 4 changed; the server companion's hit points and mana set to their maxima.
     void SetStats(const UnitStats* stats);
     // Remark `code` (below 0x2A, or 0x30) to the unit's player (message 0x0B); nothing without a player.
-    void Shout(std::uint32_t code);
+    void Shout(AckKind kind);
     // The three size classes from the unit's load and size (times the model's factor; heroes capped at 1.89).
     void UpdateSizeClasses() override;
     // The movement factors from the movement mode, the world's factors and the spell being cast, and the speed
@@ -275,7 +276,7 @@ public:
     void OrderMove(const Vector3* point, int run, int walk, float range);
     // Kind 3 at body part `location` (6, all, unless the target's part kind is 3); modifier = `calledShot`.
     // Dropped when the target is out of reach (message 0x0C) or the planner refuses.
-    void OrderAttack(CMapObject* target, int location, int calledShot, int planArg);
+    void OrderAttack(CMapObject* target, int location, int calledShot, AckKind planArg);
     // Kind 4 (cast at a point). A scroll (quick item of category 8) is cast at once. A party unit needs the
     // spell's skill for a spell of its own; message 0x13 if not, or while flags_ has 0x10000000.
     void OrderCastAt(std::uint32_t source, const Vector3* point, int run);
@@ -489,7 +490,7 @@ public:
     // The use spot, the path (target lifted off the sector map) and whether the unit can act from its end,
     // with the player's path message; the unit shouts `shout` when it can, 0x0B / 0x0E when not. Units without
     // a player plan only use orders.
-    bool PlanOrderRoute(UnitAction* order, std::uint32_t shout);
+    bool PlanOrderRoute(UnitAction* order, AckKind shout);
     // A party unit's move: the units in the way lifted (LiftNearby), a runner planning as walking where it can,
     // FindPath within `range` (the order's z bits), the units put back and the result reported.
     void PlanMove(const Vector3* point, int moving, int run, float range);

@@ -30,15 +30,15 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
             *kAlarmLog << "Unit " << static_cast<long>(unit->id_) << " acknowledges with ";
             const char* what;
             switch (state->active) {
-            case kRemarkIdle: world->TellParties(server->unit, 0x31); what = "idleSound = AAn4XyU"; break;
-            case kRemarkFightingIdle: world->TellParties(server->unit, 0x32); what = "idleSound = AAn4XyU"; break;
+            case kRemarkIdle: world->TellParties(server->unit, AckKind::Rest); what = "idleSound = AAn4XyU"; break;
+            case kRemarkFightingIdle: world->TellParties(server->unit, AckKind::FightingRest); what = "idleSound = AAn4XyU"; break;
             case kRemarkCalmFromSuspicion: what = "back from Suspection"; break;
             case kRemarkCalmFromAggression: what = "back from Aggression"; break;
-            case kRemarkSuspicion: world->TellParties(server->unit, 0x2F); what = "to Suspection"; break;
-            case kRemarkAggression: world->TellParties(server->unit, 0x2E); what = "to Aggression"; break;
+            case kRemarkSuspicion: world->TellParties(server->unit, AckKind::Suspicion); what = "to Suspection"; break;
+            case kRemarkAggression: world->TellParties(server->unit, AckKind::Aggression); what = "to Aggression"; break;
             case kRemarkToAlarm: what = "to Alarm!"; break;
             case kRemarkAlarm: what = "ALARM ALARM ALARM"; break;
-            case kRemarkKill: world->TellParties(server->unit, 0x30); what = "poluchi gadina"; break;
+            case kRemarkKill: world->TellParties(server->unit, AckKind::Kill); what = "poluchi gadina"; break;
             default: what = "error... :)"; break;
             }
             console::EndLine(*kAlarmLog << what);

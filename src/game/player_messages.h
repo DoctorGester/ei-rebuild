@@ -5,6 +5,7 @@
 // The single-player game runs the same server / client pair, so the per-tick player state, script variables
 // and unit events all go through them. See docs/notes/objects.md.
 
+#include "ack_kind.h"
 #include "engine_object.h"
 #include "maths.h"
 #include "net_delta.h"
@@ -111,7 +112,7 @@ public:
     void SendValue15(std::uint32_t value);
     void SendPair18(std::uint32_t a, std::uint32_t b);
     void SendObject43(const CEngineObject* object);                 // id, nothing without an object
-    void SendObject0B(const CEngineObject* object, std::uint32_t value);   // id, value
+    void SendObject0B(const CEngineObject* object, AckKind kind);   // id, the ack kind (message 0x0B)
     // Message 0x12, a byte and `value` . The original never writes
     // the byte: whatever its stack holds goes out. Ours sends 0; the client's handler skips the byte.
     void SendValue12(std::uint32_t value);

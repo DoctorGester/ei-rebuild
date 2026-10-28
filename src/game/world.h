@@ -324,8 +324,8 @@ public:
     // Records how the game ended (only the first time); results 2 and 3 also replace the network session
     // and query it (Query).
     void SetGameResult(int result);
-    // Sends the unit's message 0x0B with `value` to every player with `unit` among its party units.
-    void TellParties(CEngineObject* unit, std::uint32_t value);
+    // Sends the unit's message 0x0B (the ack `kind`) to every player with `unit` among its party units.
+    void TellParties(CEngineObject* unit, AckKind kind);
     void TellPartiesGone(CEngineObject* unit);
     // The items the player holds put into `party` and released. Nothing without a player.
     void StorePlayerItems(CPlayer* player, class CParty* party);

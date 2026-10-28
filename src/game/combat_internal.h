@@ -16,5 +16,5 @@ inline UnitVitals* ServerStatsOf(CUnit* unit) { return &unit->ServerCompanion()-
 
 // Defined in combat_actions.cpp.
 // Player messages (player + 0x20 points at it): message `code` about `unit`.
-void PlayerMessage(CPlayerServer* messages, CUnit* unit, int code);
+void PlayerMessage(CPlayerServer* messages, CUnit* unit, AckKind kind);
 

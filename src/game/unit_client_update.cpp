@@ -29,8 +29,6 @@ constexpr std::uint32_t kKeyMovementStill = 0x30000;
 constexpr std::uint32_t kKeyKind = 0x3C0000;
 constexpr std::uint32_t kKeyTransition = 0x240000;
 constexpr float kFadeStep = 0.06666667f;              // 1/15
-constexpr int kSpeechAfterSpeech = 2;                 // ClientSpeech::kind values that wait
-constexpr int kSpeechAfterSpeech2 = 0x1C;
 constexpr std::int8_t kModeSpecialIdle = -2;          // the unit's +0x255
 constexpr int kIdleRestartBelow = 3;                  // CFigureAnimationState::queue.count
 
@@ -114,7 +112,7 @@ int CUnitClientSpecific::RunTick() {
         int delay = --first->delay;
         if (delay == 0) {
             if (first->talking) SetTalking(unit, true);
-            if (first->kind == kSpeechAfterSpeech || first->kind == kSpeechAfterSpeech2) {
+            if (first->kind == AckKind::Attack || first->kind == AckKind::DecidedToAttack) {
                 if (!SoundBusy(speechSound) && Speak(first)) speechSound = first->sound;
             } else {
                 Speak(first);

@@ -387,7 +387,7 @@ void AIBrain::StopAction() {
 void AIBrain::AttackTarget(CMapObject* object) {
     action = kActionAttack;
     target.Assign(object);
-    int flags = 0x1C;
+    AckKind flags = AckKind::DecidedToAttack;
     if (owner->unit->player) {
         AIOrder order{};
         order.kind = kOrderAttack;
@@ -398,7 +398,7 @@ void AIBrain::AttackTarget(CMapObject* object) {
             order.target = object;
             ++object->refCount_;
         }
-        if (owner->CanReachAndPlan(&order)) flags = -1;
+        if (owner->CanReachAndPlan(&order)) flags = AckKind::None;
         if (order.target) order.target->Release();
         order.target = nullptr;
     }

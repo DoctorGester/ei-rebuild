@@ -27,8 +27,6 @@ constexpr std::uint32_t kNoPointZ = 0xC4A42000u;    // -1313.0f: "no point"
 constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 constexpr float kReachHeight = 1.5f;
 
-constexpr int kMessageOutOfReach = 0x0C;
-constexpr int kMessageCannotCast = 0x13;
 
 AIEventTable* AIEventsOf(CWorldServer* world) { return &world->aiMap_.events; }
 
@@ -61,8 +59,8 @@ void SetTarget(UnitAction* order, CMapObject* target) {
     order->target = target;
 }
 
-void TellParty(CUnit* unit, int message) {
-    if (unit->player) PlayerMessage(unit->player->Server(), unit, message);
+void TellParty(CUnit* unit, AckKind kind) {
+    if (unit->player) PlayerMessage(unit->player->Server(), unit, kind);
 }
 
 // The spell checks OrderCastAt and OrderCast share: the spell behind `source`; for a party unit's own spell
@@ -168,7 +166,7 @@ void CUnitServer::OrderMove(const Vector3* point, int run, int walk, float range
     PlanMove(point, walk, run, range);
 }
 
-void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, int planArg) {
+void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, AckKind planArg) {
     if (!target || target == unit) return;
     CUnit* victim = UnitOrNull(target);
     if (victim && location < 6) {
@@ -193,7 +191,7 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
                 double height =
                     static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(other)->height)) + other->localPosition_.z;
                 if (height >= kReachHeight) {
-                    TellParty(unit, kMessageOutOfReach);
+                    TellParty(unit, AckKind::OutOfReach);
                     action2.kind = kOrderNone;
                     ReleaseTarget(&action2);
                     action2.pointIsUseSpot = 0;
@@ -227,7 +225,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int ru
         }
     }
     if (!MayCast(this, source)) {
-        TellParty(unit, kMessageCannotCast);
+        TellParty(unit, AckKind::SpellTooComplex);
         return;
     }
     action2.kind = kOrderNone;
@@ -240,7 +238,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int ru
     action2.source = source;
     action2.point = at;
     action2.modifier = static_cast<std::uint8_t>(run);
-    if (!PlanOrderRoute(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
+    if (!PlanOrderRoute(&action2, CanCast(&action2) ? AckKind::Cast : AckKind::None)) ResetOrder(&action2);
 }
 
 void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
@@ -261,7 +259,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
         }
     }
     if (!MayCast(this, source)) {
-        TellParty(unit, kMessageCannotCast);
+        TellParty(unit, AckKind::SpellTooComplex);
         return;
     }
     ResetOrder(&action2);
@@ -270,7 +268,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
     action2.source = source;
     action2.point = {};
     action2.modifier = static_cast<std::uint8_t>(run);
-    if (!PlanOrderRoute(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
+    if (!PlanOrderRoute(&action2, CanCast(&action2) ? AckKind::Cast : AckKind::None)) ResetOrder(&action2);
 }
 
 void CUnitServer::StopQueued() {

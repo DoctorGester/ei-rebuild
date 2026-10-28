@@ -37,8 +37,6 @@ constexpr float kFarBits = 1000000.0f;   // 1e6
 constexpr float kFar = kFarBits;
 constexpr float kNoZBits = -1.0f;   // -1.0: an order point without height
 constexpr int kNoSpot = 0x7FFFFFFF;
-constexpr int kShoutTargetLost = 0x0B;
-constexpr int kShoutCannotDo = 0x0E;
 
 // --- Helpers --------------------------------------------------------------------------------------
 
@@ -204,7 +202,7 @@ double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder
 
 // --- Planning an order's way ---------------------------------------------------------------------
 
-bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
+bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
     CPlayer* player = unit->player;
     if (order->kind != kOrderUse && !player) return true;
     float best = kFar;
@@ -221,8 +219,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         if (CanReachTarget(order) && CanPlanAction(order)) {
             // The action can be done from here.
             PathMessage(unit, &route, &point.x, 3, 0, kFar);
-            if ((shout <= 0x29 || shout == 0x30) && shout != 0xFFFFFFFFu && unit->player)
-                PlayerMessage(PlayerConnection(unit->player), unit, static_cast<int>(shout));
+            if (IsShoutable(shout) && unit->player) PlayerMessage(PlayerConnection(unit->player), unit, shout);
             return true;
         }
         int kind = order->kind == kOrderAttack ? 2 : 1;
@@ -286,7 +283,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             return true;
         }
     }
-    Shout(order->kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
+    Shout(order->kind == kOrderAttack ? AckKind::NoWayToAttack : AckKind::NoPath);
     return ok;
 }
 

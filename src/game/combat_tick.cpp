@@ -60,15 +60,6 @@ constexpr int kChaseMaxTicks = 0x40;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 
-constexpr int kMessageCannotReach = 0x0C;
-constexpr int kMessageTargetLost = 0x0B;
-constexpr int kMessageCannotDo = 0x0E;
-constexpr int kMessageNoMana = 0x0F;
-constexpr int kMessageNoCharge = 0x11;
-constexpr int kMessageUnseen = 0x12;
-constexpr int kMessageStopped = 0x1B;
-constexpr int kShoutTargetLost = 0x0B;
-constexpr int kShoutCannotDo = 0x0E;
 
 constexpr int kPartMoveModes = 6;           // MarkChanged part of the movement modes
 
@@ -85,8 +76,8 @@ CPlayerServer* PlayerMessages(CPlayer* player) { return player->Server(); }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 
-void TellParty(CUnit* unit, int message) {
-    if (unit->player) PlayerMessages(unit->player)->SendObject0B(unit, message);
+void TellParty(CUnit* unit, AckKind kind) {
+    if (unit->player) PlayerMessages(unit->player)->SendObject0B(unit, kind);
 }
 
 // UnitAction::Clear followed by the reset of its two extra fields, as callers inline it.
@@ -400,7 +391,7 @@ bool CUnitServer::StartQueuedOrder() {
             moveMode2.mode = kModeStop;
             unit->moveMode2 = kModeStop;
             if (ChangeMoveMode()) return true;
-            TellParty(unit, kMessageStopped);
+            TellParty(unit, AckKind::Stopped);
             action.Reset();
             if (action2.kind == kOrderNone) Idle();
             return false;
@@ -430,7 +421,7 @@ void CUnitServer::UpdateOrders() {
         if (state != kStateChasing) return;
         if (stoodBlocked) {
             orderStopped = 1;
-            if (!brain.LeaderOrFollowed() && unit->player) TellParty(unit, kMessageCannotDo);
+            if (!brain.LeaderOrFollowed() && unit->player) TellParty(unit, AckKind::NoPath);
         }
         if (action.kind != kOrderIdle && action2.kind != kOrderAnimation && action2.kind != kOrderEmote)
             DropQueuedOrder();
@@ -485,11 +476,11 @@ void CUnitServer::ContinueAction() {
     }
     if (failed) {
         orderStopped = 1;
-        TellParty(unit, action.kind == kOrderAttack ? kMessageTargetLost : kMessageCannotDo);
+        TellParty(unit, action.kind == kOrderAttack ? AckKind::NoWayToAttack : AckKind::NoPath);
     }
     if (!seen) {
         orderStopped = 1;
-        TellParty(unit, kMessageUnseen);
+        TellParty(unit, AckKind::NoTarget);
     }
     action.kind = kOrderNone;
     if (action.target) action.target->Release();
@@ -558,7 +549,7 @@ void CUnitServer::ExecuteOrder() {
 
     if (!clear && !stop) {
         if (OutOfReachUp(this, &action)) {
-            TellParty(unit, kMessageCannotReach);
+            TellParty(unit, AckKind::OutOfReach);
             clear = true;
         }
     }
@@ -576,7 +567,7 @@ void CUnitServer::ExecuteOrder() {
             nextAttack = next;
         }
         if (IsCastKind(action.kind) && !CanCast(&action)) {
-            TellParty(unit, (action.source & kQuickItemSource) ? kMessageNoCharge : kMessageNoMana);
+            TellParty(unit, (action.source & kQuickItemSource) ? AckKind::ScienceFailed : AckKind::NoMana);
             stop = true;
         } else {
             bool fresh = true;
@@ -639,7 +630,7 @@ void CUnitServer::ApproachTarget() {
                 if (ok) return;
             }
         }
-        Shout(action.kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
+        Shout(action.kind == kOrderAttack ? AckKind::NoWayToAttack : AckKind::NoPath);
         action.Reset();
         if (action2.kind == kOrderNone) Idle();
         orderStopped = 1;

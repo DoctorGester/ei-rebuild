@@ -382,7 +382,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 world->Select(unitAt(static_cast<int>((*node))));
             }
             int id = unitAt(first)->id_;
-            Speech(id, 0, nullptr);
+            Speech(id, AckKind::Selected, nullptr);
         }
     }
     RefreshSelection();

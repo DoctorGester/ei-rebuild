@@ -571,7 +571,7 @@ void PlayerMode::Execute(AIBrain* brain) {
     CUnit* unit = brain->owner->unit;
     bool direct = false;
     if (unit->player) direct = PlayerServerOf(unit->player)->refreshPending_ == 2;
-    if (brain->seen && unit->fightAtWill != 1) brain->owner->Shout(0x20);
+    if (brain->seen && unit->fightAtWill != 1) brain->owner->Shout(AckKind::AttackedInDefence);
 
     switch (state) {
     case kStateFollow: {
@@ -621,7 +621,7 @@ void PlayerMode::Execute(AIBrain* brain) {
                 brain->target.Reset();
                 brain->action = AIBrain::kActionNone;
             } else if (!direct && !StaysWithParty(brain, true)) {
-                brain->owner->Shout(0x21);
+                brain->owner->Shout(AckKind::WaitForFollowers);
                 point.z = 0.0f;
                 brain->target.Reset();
                 brain->action = AIBrain::kActionNone;
@@ -686,7 +686,7 @@ void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int 
         if (object) ++object->refCount_;
         brain->target = object;
     }
-    brain->owner->OrderAttack(brain->target, how, unknown, 2);
+    brain->owner->OrderAttack(brain->target, how, unknown, AckKind::Attack);
 }
 
 void PlayerMode::CommandUse(AIBrain* brain, CMapObject* object, int kind, int a, int b) {
