@@ -12,7 +12,6 @@ namespace mfc::impl {
 // of the class from operator new (or its fixed allocator), constructed; null when out of memory.
 void* __stdcall CreateCGdiObject();     // CGdiObject: no handle (mfc_gdi.cpp)
 void* __stdcall CreateCDC();            // CDC (mfc_gdi.cpp)
-void* __stdcall CreateCWnd();           // CWnd: operator new, the default constructor
 
 inline constexpr CRuntimeClass kClassCObject = /*00745D20*/ {"CObject", 0x4, 0xFFFF, nullptr, nullptr, nullptr};
 inline constexpr CRuntimeClass kClassCException = /*007465D0*/ {"CException", 0x8, 0xFFFF, nullptr, &kClassCObject, nullptr};
@@ -28,7 +27,6 @@ inline constexpr CRuntimeClass kClassCPen = /*00746078*/ {"CPen", 0x8, 0xFFFF, n
 inline constexpr CRuntimeClass kClassCResourceException = /*00746180*/ {"CResourceException", 0x98, 0xFFFF, nullptr, &kClassCException, nullptr};
 inline constexpr CRuntimeClass kClassCTempDC = /*00745FB0*/ {"CTempDC", 0x10, 0xFFFF, &CreateTempDC, &kClassCDC, nullptr};
 inline constexpr CRuntimeClass kClassCTempGdiObject = /*00745F88*/ {"CTempGdiObject", 0x8, 0xFFFF, &CreateTempGdiObject, &kClassCGdiObject, nullptr};
-inline constexpr CRuntimeClass kClassCWnd = /*007469D8*/ {"CWnd", 0x3c, 0xFFFF, &CreateCWnd, &kClassCCmdTarget, nullptr};
 inline constexpr CRuntimeClass kClassCUserException = /*00746158*/ {"CUserException", 0x98, 0xFFFF, nullptr, &kClassCException, nullptr};
 inline constexpr CRuntimeClass kClassCWinThread = /*007466B8*/ {"CWinThread", 0x68, 0xFFFF, nullptr, &kClassCCmdTarget, nullptr};
 

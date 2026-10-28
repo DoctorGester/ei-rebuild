@@ -4,7 +4,6 @@
 #include "gameapi.h"
 #include "mfc_resource.h"
 #include "mfc_runtime_class.h"
-#include "mfc_window.h"
 #include "static_object.h"
 #include "game/game_data.h"
 
@@ -23,6 +22,27 @@ constinit lib::StaticObject<CMemoryException> g_simpleMemoryException = /*007C8D
 
 // ReportError's message buffer.
 constexpr unsigned kReportLength = 512;
+
+// AfxMessageBox(LPCTSTR, UINT type, UINT helpId): MessageBoxA's answer. The game has no CWinApp, so the box has no
+// owner and no help context and the module's file name as its title. MB_ICONEXCLAMATION is added to an OK, OK / Cancel,
+// Yes / No / Cancel or Yes / No box that names no icon.
+int MessageBoxText(const char* text, unsigned type, unsigned) {
+    if (!(type & MB_ICONMASK)) {
+        const unsigned buttons = type & MB_TYPEMASK;
+        if (buttons == MB_OK || buttons == MB_OKCANCEL || buttons == MB_YESNOCANCEL || buttons == MB_YESNO) type |= MB_ICONEXCLAMATION;
+    }
+    char title[MAX_PATH];
+    gameapi::GetModuleFileNameA(nullptr, title, MAX_PATH);
+    return gameapi::MessageBoxA(nullptr, text, title, type);
+}
+
+// AfxMessageBox(UINT id, UINT type, UINT helpId): the box with string `id` of game.exe's table (empty when it is
+// missing; MFC only traces that). A help id of -1 means `id`.
+int MessageBoxId(unsigned promptId, unsigned type, unsigned helpId) {
+    const std::string prompt = LoadResourceString(promptId);
+    if (helpId == static_cast<unsigned>(-1)) helpId = promptId;
+    return MessageBoxText(prompt.c_str(), type, helpId);
+}
 
 } // namespace
 

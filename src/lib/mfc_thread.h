@@ -5,7 +5,9 @@
 // no MFC thread state: the procedures never pump messages or open dialogs, so AfxInitThread's message filter
 // hook and AfxTermThread's temporary maps are left out.
 
-#include "mfc_window.h"
+#include "compiled_vtable.h"
+#include "mfc.h"
+#include "mfc_object.h"
 #include "game/game_data.h"
 
 #include <windows.h>
@@ -15,6 +17,60 @@
 namespace mfc::impl {
 
 using ThreadProc = UINT(*)(void* parameter);
+
+// COleDispatchImpl's virtual slots (IDispatch's seven, then Disconnect); declared only.
+class __declspec(novtable) COleDispatchImpl {
+public:
+    virtual void QueryInterface();
+    virtual void AddRef();
+    virtual void Release();
+    virtual void GetTypeInfoCount();
+    virtual void GetTypeInfo();
+    virtual void GetIDsOfNames();
+    virtual void Invoke();
+    virtual void Disconnect();
+};
+
+// CCmdTarget (0x1C bytes): CObject's three slots, then MFC 4.2's CCmdTarget virtuals (3-19: the command
+// routing and OLE automation slots, unported: only MFC's own message routing and IDispatch call them, none of
+// which the image has). Only CWinThread derives from it.
+class CCmdTarget : public CObject {
+public:
+    // One reference, no outer unknown or dispatch, a result expected.
+    CCmdTarget()
+        : refCount(1), outerUnknown(nullptr), innerUnknownVtable(nullptr), dispatchVtable(nullptr),
+          resultExpected(TRUE), connectionPoints(nullptr) {}
+    // An enabled dispatch disconnected (COleDispatchImpl::Disconnect).
+    ~CCmdTarget() override {
+        if (dispatchVtable) reinterpret_cast<COleDispatchImpl*>(&dispatchVtable)->Disconnect();
+    }
+
+    virtual BOOL OnCmdMsg(UINT, int, void*, void*) { ei::UnportedSlot(0x00703FFA); }
+    virtual void OnFinalRelease() = 0;
+    virtual BOOL IsInvokeAllowed(long) { ei::UnportedSlot(0x00704109); }
+    virtual BOOL GetDispatchIID(IID*) { ei::UnportedSlot(0x0070410F); }
+    virtual UINT GetTypeInfoCount() { ei::UnportedSlot(0x00704114); }
+    virtual void* GetTypeLibCache() { ei::UnportedSlot(0x00704117); }
+    virtual HRESULT GetTypeLib(LCID, void**) { ei::UnportedSlot(0x0070411A); }
+    virtual const void* GetMessageMap() const = 0;
+    virtual const void* GetCommandMap() const { ei::UnportedSlot(0x007041C4); }
+    virtual const void* GetDispatchMap() const { ei::UnportedSlot(0x00704167); }
+    virtual const void* GetConnectionMap() const { ei::UnportedSlot(0x007041B4); }
+    virtual const void* GetInterfaceMap() const { ei::UnportedSlot(0x00704173); }
+    virtual const void* GetEventSinkMap() const { ei::UnportedSlot(0x0070416D); }
+    virtual BOOL OnCreateAggregates() { ei::UnportedSlot(0x007041AB); }
+    virtual void* GetInterfaceHook(const void*) { ei::UnportedSlot(0x007041AF); }
+    virtual BOOL GetExtraConnectionPoints(void*) { ei::UnportedSlot(0x007041BF); }
+    virtual void* GetConnectionHook(const IID&) { ei::UnportedSlot(0x007041BA); }
+
+    long refCount;
+    void* outerUnknown;
+    void* innerUnknownVtable;
+    void* dispatchVtable;
+    BOOL resultExpected;
+    void* connectionPoints;
+};
+static_assert(sizeof(CCmdTarget) == 0x1C);
 
 // CWinThread (0x68 bytes; CCmdTarget's 20 slots, then the thread's; the destructor and
 // Delete are here, the message loop is not: the game's threads only run their procedure on a host thread
@@ -38,7 +94,7 @@ struct WinThread : CCmdTarget {
     virtual int ExitInstance() { ei::UnportedSlot(0x00702683); }                                 // 26
     virtual LRESULT ProcessWndProcException(void*, const MSG*) { ei::UnportedSlot(0x00702876); } // 27
     virtual BOOL ProcessMessageFilter(int, MSG*) { ei::UnportedSlot(0x00702969); }               // 28
-    virtual CWnd* GetMainWnd() { ei::UnportedSlot(0x00702AB3); }                                 // 29
+    virtual void* GetMainWnd() { ei::UnportedSlot(0x00702AB3); }                                 // 29
     // Deleted when autoDelete is set.
     virtual void Delete();
 

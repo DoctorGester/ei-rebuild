@@ -553,18 +553,13 @@ GENERATED_NAMES = {
     0x007C8BC0: ('mfc::impl::g_simpleUserException', 'lib/mfc_static_objects.h'),
     0x007C90BC: ('mfc::impl::g_baseModuleStateLocal', 'lib/mfc_static_objects.h'),
     0x007C90C0: ('mfc::impl::g_threadStateLocal', 'lib/mfc_static_objects.h'),
-    0x007CAA24: ('mfc::impl::g_staticWindowsExitGuards', 'lib/mfc_static_objects.h'),
     0x007CAA84: ('mfc::impl::g_ctl3dThreadLocal', 'lib/mfc_static_objects.h'),
     0x007CAA88: ('mfc::impl::g_ctl3dStateLocal', 'lib/mfc_static_objects.h'),
     0x007CAA8C: ('mfc::impl::g_winStateLocal', 'lib/mfc_static_objects.h'),
     0x007CAA98: ('mfc::impl::g_afxDbcs', 'lib/mfc_static_objects.h'),
-    # C18r: MFC's fixed allocators and static windows, which hand code reads too (mfc_gdi.cpp, mfc_window.cpp).
+    # C18r: MFC's fixed allocators, which hand code reads too (mfc_gdi.cpp).
     0x007C8CF0: ('mfc::impl::g_tempGdiObjectAlloc', 'lib/mfc_gdi.h'),
     0x007C8D18: ('mfc::impl::g_tempDCAlloc', 'lib/mfc_gdi.h'),
-    0x007CA968: ('mfc::impl::g_wndNoTopMost', 'lib/mfc_window.h'),
-    0x007CA9A8: ('mfc::impl::g_wndTopMost', 'lib/mfc_window.h'),
-    0x007CA9E8: ('mfc::impl::g_wndBottom', 'lib/mfc_window.h'),
-    0x007CAA28: ('mfc::impl::g_wndTop', 'lib/mfc_window.h'),
 }
 NAMED_ONCE = re.compile(r'\bd\.Once\((0x[0-9A-F]{8}),')
 NAMED_THIS = re.compile(r'(\bd\.Thiscall\(0x[0-9A-F]{8}, )(0x[0-9A-F]{8})\b')
@@ -799,6 +794,11 @@ UNUSED_INITIALISERS = {
                 "C14zb)",
     0x0070C1ED: "MFC's _simpleNotSupportedException 007C8D50 (only CStdioFile threw it; the game's text files are "
                 "lib::TextFile since C14d)",
+    0x00704410: "MFC's static window wndTop 007CAA28 (a CWnd nothing reads; the class went in C14zh; guard bit 1 of "
+                "007CAA24)",
+    0x0070444E: "MFC's static window wndBottom 007CA9E8 (guard bit 2 of 007CAA24)",
+    0x0070448C: "MFC's static window wndTopMost 007CA9A8 (guard bit 4 of 007CAA24)",
+    0x007044CA: "MFC's static window wndNoTopMost 007CA968 (guard bit 8 of 007CAA24)",
 }
 
 

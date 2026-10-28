@@ -15,7 +15,6 @@
 #include "lib/mfc_gdi.h"
 #include "lib/mfc_state.h"
 #include "lib/mfc_static_objects.h"
-#include "lib/mfc_window.h"
 #include "lib/static_object.h"
 
 void BuildSectorSpiralStatic();
@@ -140,10 +139,6 @@ void FreeVertices();
 } // namespace devicebuffers
 
 namespace ei::static_init {
-void Exit00704433();
-void Exit00704471();
-void Exit007044AF();
-void Exit007044ED();
 void Exit0070BF5A();
 void Exit0070C0B8();
 void Exit0070C0F8();
@@ -2171,22 +2166,14 @@ void StaticInitialisers(Do& d) {
     // 007043FA: ported by hand
     d.Begin(0x007043FA);
     d.Call(mfc::impl::RegisterDragListMessage);
-    // 00704410: constructor + atexit (inlined 0070441A, 00704427)
+    // 00704410: constructor + atexit (inlined 0070441A, 00704427); 2 left out
     d.Begin(0x00704410);
-    d.Call(&mfc::impl::CWnd::Construct, &mfc::impl::g_wndTop, 0);
-    d.AtExit(Exit00704433);
-    // 0070444E: constructor + atexit (inlined 00704458, 00704465)
+    // 0070444E: constructor + atexit (inlined 00704458, 00704465); 2 left out
     d.Begin(0x0070444E);
-    d.Call(&mfc::impl::CWnd::Construct, &mfc::impl::g_wndBottom, 1);
-    d.AtExit(Exit00704471);
-    // 0070448C: constructor + atexit (inlined 00704496, 007044A3)
+    // 0070448C: constructor + atexit (inlined 00704496, 007044A3); 2 left out
     d.Begin(0x0070448C);
-    d.Call(&mfc::impl::CWnd::Construct, &mfc::impl::g_wndTopMost, 0xFFFFFFFF);
-    d.AtExit(Exit007044AF);
-    // 007044CA: constructor + atexit (inlined 007044D4, 007044E1)
+    // 007044CA: constructor + atexit (inlined 007044D4, 007044E1); 2 left out
     d.Begin(0x007044CA);
-    d.Call(&mfc::impl::CWnd::Construct, &mfc::impl::g_wndNoTopMost, 0xFFFFFFFE);
-    d.AtExit(Exit007044ED);
     // 0070DC70: other (inlined 0070DC75)
     d.Begin(0x0070DC70);
     d.Store(mfc::impl::g_afxDbcs, d.Call(mfc::impl::AfxInitDbcs));
