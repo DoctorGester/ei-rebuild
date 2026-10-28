@@ -90,9 +90,6 @@ void CObject3D::SetUpObject3D() {
     InitEngineObject(this);
     localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
-    // The part list (an MFC CPtrList: head, tail, count, free list, blocks, block size 10).
-    std::memset(&parts, 0, sizeof(parts));
-    std::memset(&pendingParts, 0, sizeof(pendingParts));
     figure = nullptr;
     ClearBounds();
     partBoxArrayVtable = mfc::impl::FrameArrayClass::Vtable();

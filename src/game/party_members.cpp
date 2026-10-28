@@ -91,10 +91,9 @@ PartyUnitRecord* PartyUnitRecord::Assign(const PartyUnitRecord* source) {
 namespace {
 // The stack record: zeroed storage the record is constructed and destroyed in by hand.
 union StackRecord {
-    StackRecord() : bytes{} {}
+    StackRecord() : record{} {}
     ~StackRecord() {}
     PartyUnitRecord record;
-    unsigned char bytes[sizeof(PartyUnitRecord)];
 };
 } // namespace
 
@@ -203,7 +202,7 @@ BOOL CParty::RemoveMember(int key) {
         if (static_cast<int>(record->unitId) != key) continue;
         record->Destruct();
         int after = members_.size - i - 1;
-        if (after != 0) std::memmove(record, record + 1, static_cast<std::size_t>(after) * sizeof(PartyUnitRecord));
+        PartyUnitRecordElements::Relocate(record, record + 1, after);
         --members_.size;
         return 1;
     }

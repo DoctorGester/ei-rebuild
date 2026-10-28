@@ -63,6 +63,17 @@ struct ZoneExit {
     // (zone::ExitDelete in game_arrays.h: the scalar deleting destructor.) The compiler's operator=:
     // +0x00..+0x24 as dwords, the target, +0x2C, +0x30, the byte +0x34 and +0x38; returns this.
     ZoneExit* Assign(const ZoneExit* from);
+    // The plain fields before the target (the time, the deploy rectangle, the area, the angle) from `from`; the
+    // target and what follows are the caller's.
+    void CopyAreaFields(const ZoneExit& from) {
+        passTime = from.passTime;
+        for (int i = 0; i < 4; ++i) deploy[i] = from.deploy[i];
+        x1 = from.x1;
+        y1 = from.y1;
+        x2 = from.x2;
+        y2 = from.y2;
+        angle = from.angle;
+    }
 };
 static_assert(offsetof(ZoneExit, x1) == 0x14 && offsetof(ZoneExit, target) == 0x28);
 

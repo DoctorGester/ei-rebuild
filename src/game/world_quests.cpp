@@ -576,8 +576,7 @@ void CWorldServer::CollectParty(CPlayer* player, PlacementArray* placements) {
         if (unit && (!unit->IsDead() || IsMultiplayerClient())) continue;
         int following = player->Party()->members_.size - i - 1;
         MercRecord(player, i).Destruct();
-        if (following)
-            std::memmove(&MercRecord(player, i), &MercRecord(player, i + 1), following * sizeof(PartyUnitRecord));
+        PartyUnitRecordElements::Relocate(&MercRecord(player, i), &MercRecord(player, i + 1), following);
         --player->Party()->members_.size;
         --i;
     }
