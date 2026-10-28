@@ -322,7 +322,8 @@ Hazards and facts:
   spin about z by +0x1FC times a tilt of 0.8 pi about x, inlined with its own operand order: `TurnProduct`); markers come from the
   player's variables ("z.<zone>", "q.<zone>.<quest>" = 1 by bit compare with 1.0f, ways out whose "z.<way>" equals 2 by FCOMP:
   unordered counts as equal); arriving from anything but the camp autosaves to "saveb" when 0079BE7C is set; Update draws the
-  weather (00499F10) into texture 4's locked surface under the critical section 007AEE78. Create calls SelectZone before it creates
+  weather (00499F10) into texture 4 (the original: its locked surface under the critical section 007AEE78; ours on the GPU,
+  `render::DrawClouds`, renderer.md section 7). Create calls SelectZone before it creates
   the weather object (+0x214 still heap garbage): a wrapper snapshot through it crashed ui_camp.
 - **Camp**: an unoffered page shows the current one again (recursively: the tail runs twice, as in the original); constructor pages
   need +0x195 (spell) / +0x196 (item), their second pages also `!+0x254` ("i.noconstr"); money below the cost disables an action
@@ -866,14 +867,13 @@ original's order.
 ## Save / load window pictures
 
 The save / load window's saving, its entry list and the selected save's picture. See ui.h
-(CSaveLoadWindow) and docs/notes/renderer.md (section 11). The window shows two 256x256 5:6:5 textures (a
-CTexture with its holder): objects_[1], into which ShowPicture reads the selected save's shot.sav (256x192
-pixels), and dialog_, which FillEntries fills from the escape menu's 256x192 copy of the
-screen for the new save of a save window and SaveGame writes to the new save's shot.sav. Like the original,
-the 0x18000 bytes are one block from the start of the pixels (a pitch of 512 bytes is taken for granted).
-Both textures keep their pixels only in memory the new renderer owns and reads (a DIB section per holder,
-given by the texture manager; surface.cpp, render::SurfaceMemory): written into and read from that memory
-with no Lock (DirectPixels).
+(CSaveLoadWindow) and docs/notes/renderer.md (sections 6 and 7). The window shows two 256x256 5:6:5 textures (a
+CTexture with its holder): objects_[1], into which ShowPicture draws the selected save's shot.sav (256x192
+pixels), and dialog_, which FillEntries draws from the escape menu's 256x192 copy of the
+screen for the new save of a save window. Both are drawn into on the GPU (render::DrawIntoTexture, the 0x18000
+bytes as stored: 5:6:5 rows of 512 bytes, at the texture's top; the rows a short shot.sav lacks keep the last
+picture's). The window keeps the copy (newPicture_), which SaveGame writes to the new save's shot.sav, so the
+file's bytes are the original's.
 
 ## Surface blit
 

@@ -267,7 +267,7 @@ copy of CubicSegment::Evaluate 0040E440, AllocateBlocks32 004E5710 / 8 004F65B0)
 ReplaceChar, Join; Join has no scenario: loose .bmp only), `text_sources.cpp` (archive list and CTextManager sources;
 briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every frame with shadows), `mob_reader.cpp`,
 `class_template_stock.cpp` (trader_stock, every new game), `script_runtime_helpers.cpp` / `party_script.cpp`,
-`global_map_clouds.cpp` (CCloudNoise; ui_camp, frames_basic), `face_normal.cpp` / `model_names.cpp`, `particle_attach.cpp`
+`global_map_clouds.cpp` (CGlobalMapClouds; ui_camp, frames_basic), `face_normal.cpp` / `model_names.cpp`, `particle_attach.cpp`
 (particles, spells_cast), `link_figure.cpp` / `link_loader.cpp` (newgame via 00568800, models, ui_hero_screen),
 `sky_object.cpp` (render_scene), `server_specific_manager.cpp`, `model.cpp` (ProjectBlocks 004F2650, ProjectTerrain
 004F29F0: `ITransformPipeline` slots 9 / 14 / 18 / 19), `party_manager.cpp`, `effects_weather.cpp`, `dx_errors.cpp`.

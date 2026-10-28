@@ -1,14 +1,8 @@
-# The save / load screen's pictures in the switch-over ("render new,present": cpuwindows on;
-# docs/notes/renderer.md section 11): after the new game's autosave (savea, with info.sav and
-# shot.sav), the escape menu's Save window (the new save's picture, made by FillEntries from the
-# escape menu's copy of the screen, read from game memory by the new renderer), a save into it
-# (SaveGame writes shot.sav from that memory), then the Load window (ShowPicture reads a shot.sav
-# into the picture texture's memory). Captures are the new frames: the picture frame (right
-# upper box) must show the greyed world, not black. Verify wrappers: ShowPicture / FillEntries
-# against the original, SaveGame ours only (files read back). Since R8 (section 7) the picture
-# textures have no DirectDraw texture in this mode, only the new renderer's memory: the originals
-# run on a DirectDraw texture lent for the call (tests/verify/memory_texture.h). For the side-by-side check of the
-# old and new frames use "render new,cpuwindows" instead (the old path then draws the textures).
+# The save / load screen's pictures (docs/notes/renderer.md sections 6 and 7): after the new game's autosave
+# (savea, with info.sav and shot.sav), the escape menu's Save window (the new save's picture, drawn by FillEntries
+# into its texture on the GPU from the escape menu's copy of the screen), a save into it (SaveGame writes shot.sav
+# from the copy the window kept), then the Load window (ShowPicture draws a shot.sav into the picture texture). Captures
+# are the new frames: the picture frame (right upper box) must show the greyed world, not black.
 render new,present
 reject Script error
 waitmenu

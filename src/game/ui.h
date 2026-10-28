@@ -1631,14 +1631,14 @@ public:
 
     void RefreshListVanilla();
 
-    // Saves into the selected entry's folder, then info.sav and shot.sav (from dialog_'s pixels); a message
+    // Saves into the selected entry's folder, then info.sav and shot.sav (newPicture_); a message
     // box when the disc is full.
     void SaveGame();
-    // The selected save's shot.sav (read into objects_[1]), or dialog_ for a save window's new save; hidden
+    // The selected save's shot.sav (drawn into objects_[1]), or dialog_ for a save window's new save; hidden
     // for none or a broken save.
     void ShowPicture();
-    // Reads saves\save*\info.sav and sorts the list; a save window's new save goes first (dialog_ made from
-    // the escape menu's 256x192 copy of the screen).
+    // Reads saves\save*\info.sav and sorts the list; a save window's new save goes first (dialog_ drawn from
+    // the escape menu's 256x192 copy of the screen, kept in newPicture_).
     void FillEntries();
 
     void CreateScreen() override;
@@ -1665,6 +1665,7 @@ public:
     float slide_;                    // 0..1
     CUiScrollbar* scrollbar_;
     CTexture* dialog_;               // the save window's picture of the game for the new save
+    std::vector<std::uint8_t> newPicture_;   // dialog_'s pixels (256x192 5:6:5), written to the new save's shot.sav
     std::string name_;              // the save name being edited
     bool nameTyped_;
     int cursor_;                     // caret position in name_ (bytes, at a character's start: U4)

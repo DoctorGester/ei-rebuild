@@ -1,7 +1,7 @@
 // The save / load window's saving, its entry list and the selected save's picture (ui.h, CSaveLoadWindow). The window shows
-// two 256x256 5:6:5 textures; the 0x18000 bytes of a 256x192 picture are one block from the start of the pixels (a pitch
-// of 512 bytes is taken for granted). The pixels live only in the new renderer's memory, written and read with no Lock
-// (DirectPixels). See docs/notes/ui.md, "Save / load window pictures", and docs/notes/renderer.md, section 11.
+// two 256x256 5:6:5 textures; a 256x192 picture (0x18000 bytes, 5:6:5) is drawn into the top of one on the GPU
+// (render::DrawIntoTexture), from shot.sav or the escape menu's copy of the screen, which the window keeps for the
+// save's shot.sav. See docs/notes/ui.md, "Save / load window pictures", and docs/notes/renderer.md, section 6.
 #include "app.h"
 #include "app_helpers.h"
 #include "lib/calendar.h"
@@ -11,7 +11,6 @@
 #include "game_strings.h"
 
 #include "console.h"
-#include "surface.h"
 #include "item_db_text.h"
 #include "text_reader.h"
 #include "net_link.h"
@@ -37,10 +36,12 @@
 #include <cstdlib>
 #include <memory>
 #include <new>
+#include <vector>
 
 namespace {
 
 constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bits
+constexpr int kShotWidth = 256, kShotHeight = 192;
 constexpr unsigned kInfoMagic = 0x111;
 constexpr unsigned kInfoVersion = 3;
 constexpr unsigned kOpenWrite = lib::File::modeCreate | lib::File::modeWrite;
@@ -69,22 +70,12 @@ struct LocalFileStream {
     }
 };
 
-Surface* HolderOf(CTexture* texture) { return texture->surface_; }
-
-// The pixels of a picture texture for one fill or read: the holder's memory (the original: a Lock
-// with flags 0 and the Unlock after).
-class PicturePixels {
-public:
-    explicit PicturePixels(Surface* holder) : holder_(holder) {}
-
-    // False without memory (the textures always have it; the original's failed Lock whose report said stop).
-    bool Begin() { return DirectPixels(holder_, &pixels_); }
-    std::uint8_t* Bits() const { return pixels_.bits; }
-
-private:
-    Surface* holder_;
-    SurfacePixels pixels_;
-};
+// The 256x192 5:6:5 picture `pixels` (`bytes` of it: whole rows) drawn into the top of `texture`.
+void DrawPicture(CTexture* texture, const void* pixels, std::uint32_t bytes) {
+    const int rows = static_cast<int>(bytes / (kShotWidth * 2));
+    const render::TextureImage picture{nullptr, pixels, bytes, kShotWidth, rows, render::ImageLayout::Rgb565};
+    if (rows > 0) render::DrawIntoTexture(texture->surface_, &picture, 0, 0, kShotWidth, rows);
+}
 
 // The escape menu's 256x192 5:6:5 copy of the screen, or null.
 const void* SavePicture(CInterface3D* ui) { return ui->screenCopy_; }
@@ -103,7 +94,6 @@ bool SameFolder(std::string_view folder, std::string_view name) {
 
 constexpr const char* kNotifyLoading = "notify_loading";
 constexpr int kScreenWidth = 800, kScreenHeight = 600;   // the copy's layout rectangle (immediates)
-constexpr int kShotWidth = 256, kShotHeight = 192;
 
 
 // The save folder saves\<slot>\ under the game's folder.
@@ -160,18 +150,16 @@ void CSaveLoadWindow::ShowPicture() {
         found = find.FindFile(path);
     }
     if (!found) return;
-    Surface* holder = HolderOf(objects_[1]);
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    PicturePixels pixels(holder);
-    if (!pixels.Begin()) return;   // (the device lock stays held, as in the original)
+    // The file's picture (the rows a short file has; the rest keeps the last picture's, as the original's read).
+    std::vector<std::uint8_t> picture(kShotBytes);
     lib::File file;
     {
         std::string path = folder + game::savewords::ShotFile();
         file.Open(path, lib::File::modeRead);
     }
-    file.Read(pixels.Bits(), kShotBytes);
+    const unsigned read = file.Read(picture.data(), kShotBytes);
     file.Close();
-    gameapi::LeaveCriticalSection(&g_deviceLock);
+    DrawPicture(objects_[1], picture.data(), read);
     SceneMesh(3)->visible_ = 1;
     SceneMesh(3)->texture_ = objects_[1];
 }
@@ -246,22 +234,13 @@ void CSaveLoadWindow::SaveGame() {
 
     // shot.sav: the game's picture.
     if (dialog_) {
-        Surface* holder = HolderOf(dialog_);
-        gameapi::EnterCriticalSection(&g_deviceLock);
-        PicturePixels pixels(holder);
-        if (!pixels.Begin()) {
-            // (The device lock stays held and the cursor busy, as in the original.)
-            interface_->SetPendingValue(kClosed);
-            return;
-        }
         lib::File shot;
         {
             std::string path = folder + game::savewords::ShotFile();
             shot.Open(path, kOpenWrite);
         }
-        shot.Write(pixels.Bits(), kShotBytes);
+        shot.Write(newPicture_.data(), kShotBytes);
         shot.Close();
-        gameapi::LeaveCriticalSection(&g_deviceLock);
     }
     g_cursor->ChangeShape(0);
     interface_->SetPendingValue(kClosed);
@@ -338,22 +317,16 @@ void CSaveLoadWindow::FillEntries() {
         entry->MakeTitle();
         entry->broken_ = false;
 
-        // The game's picture: a new texture filled from the escape menu's copy of the screen.
+        // The game's picture: a new texture drawn from the escape menu's copy of the screen, the copy kept for shot.sav.
         if (dialog_) dialog_->Release();
         dialog_ = nullptr;
-        if (SavePicture(interface_)) {
+        if (const auto* copy = static_cast<const std::uint8_t*>(SavePicture(interface_))) {
             CTexture* shot = CreateTexture(0x100, 0x100, 0x1E);
             dialog_ = shot;
             ++shot->refCount_;
             RemoveObjectAt(std::ssize(objects_) - 1);
-            Surface* holder = HolderOf(dialog_);
-            gameapi::EnterCriticalSection(&g_deviceLock);
-            PicturePixels pixels(holder);
-            // A failed Lock whose report says stop leaves with the device lock held and the scroll bar as it was (the
-            // original's tail of the entry list).
-            if (!pixels.Begin()) return;
-            std::memcpy(pixels.Bits(), SavePicture(interface_), kShotBytes);
-            gameapi::LeaveCriticalSection(&g_deviceLock);
+            newPicture_.assign(copy, copy + kShotBytes);
+            DrawPicture(dialog_, newPicture_.data(), kShotBytes);
         }
     }
 
