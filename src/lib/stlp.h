@@ -47,7 +47,7 @@ struct StringHash {
 // Next STLport bucket count >= n (__stl_prime_list).
 std::size_t NextPrime(std::size_t n);
 // Lower_bound over [first, last) of dwords (stlp.cpp).
-const std::uint32_t* __fastcall LowerBoundDwords(const std::uint32_t* first, const std::uint32_t* last,
+const std::uint32_t* LowerBoundDwords(const std::uint32_t* first, const std::uint32_t* last,
                                                  const std::uint32_t* value, int tag);
 
 // hashtable<pair<const Key, Value>, ...> as used by hash_map. 0x14 bytes:

@@ -10,7 +10,7 @@
 
 using namespace itemdb;
 
-void __fastcall ArmorModelName(std::string* out, std::uint32_t armorIndex, std::uint32_t materialIndex) {
+void ArmorModelName(std::string* out, std::uint32_t armorIndex, std::uint32_t materialIndex) {
     const MaterialRecordHead* material = MaterialAt(materialIndex);
     const ArmorRecord* armor = ArmorAt(armorIndex);
     out->clear();
@@ -23,7 +23,7 @@ void __fastcall ArmorModelName(std::string* out, std::uint32_t armorIndex, std::
     *out = str::Format("%s_%.2d.%s.%d", code, armor->number, material->name.c_str(), armor->variant);
 }
 
-void __fastcall WeaponModelName(std::string* out, std::uint32_t weaponIndex, std::uint32_t materialIndex) {
+void WeaponModelName(std::string* out, std::uint32_t weaponIndex, std::uint32_t materialIndex) {
     const MaterialRecordHead* material = MaterialAt(materialIndex);
     const WeaponRecord* weapon = WeaponAt(weaponIndex);
     out->clear();
@@ -35,7 +35,7 @@ void __fastcall WeaponModelName(std::string* out, std::uint32_t weaponIndex, std
     *out = str::Format("%s_%.2d.%s.%d", code, weapon->number, material->name.c_str(), weapon->variant);
 }
 
-void __fastcall WeaponRecordModelName(std::string* out, const WeaponRecord* weapon, const MaterialRecordHead* material) {
+void WeaponRecordModelName(std::string* out, const WeaponRecord* weapon, const MaterialRecordHead* material) {
     // The code's four bytes are the stack slot `out` was saved in.
     char code[4];
     std::memcpy(code, &out, sizeof(code));

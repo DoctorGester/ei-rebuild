@@ -5,7 +5,7 @@
 #include "item.h"
 
 // The loop runs once when the item has a spell.
-void __fastcall GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* item) {
+void GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* item) {
     if (!item) return;
     items->AddTail(item);
     CSpell* spell = item->spell_;

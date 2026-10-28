@@ -75,7 +75,7 @@ int ScriptDefinitions::Add(const ScriptDefinition& definition) {
     return index;
 }
 
-void __fastcall ScriptSubCallDestruct(ScriptSubCall* call) {
+void ScriptSubCallDestruct(ScriptSubCall* call) {
     SSCCmd* cmd = call->cmd;
     if (cmd) {
         ScriptCmdDestruct(cmd);

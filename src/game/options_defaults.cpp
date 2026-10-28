@@ -5,7 +5,7 @@
 
 namespace options {
 
-void __fastcall OptionsResetDefaults(GameOptions* self) {
+void OptionsResetDefaults(GameOptions* self) {
     self->keyStatistics_ = "Statistics Output Settings";
     self->keyGame_ = "Game Specific Settings";
     self->keyTerrain_ = "Terrain Settings";

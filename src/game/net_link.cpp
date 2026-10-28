@@ -19,7 +19,7 @@ namespace netlink {
 namespace {
 
 using QueueElement = recordlist::QueueStreamElement;
-void __fastcall NodeFree(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
+void NodeFree(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
 // The counted pointer release the classes inline: the count dropped, the object deleted at zero.
 void ReleaseCounted(CRefObject* object) {
     if (!object) return;
@@ -161,7 +161,7 @@ void LoopbackLink::DestroyQueue() {
 // The first goes to the player's pending link; null for a null player. Without memory for the
 // second the original crashes; so does this. (The original rereads the pending link for the peers:
 // releasing the previous one does not touch it, so it is `first`.)
-LoopbackLink* __stdcall LoopbackLink::CreatePair(CWorldHandle* player) {
+LoopbackLink* LoopbackLink::CreatePair(CWorldHandle* player) {
     if (!player) return nullptr;
     LoopbackLink* first = net::NewCounted<LoopbackLink>();
     NetLink* previous = player->pendingLink_;

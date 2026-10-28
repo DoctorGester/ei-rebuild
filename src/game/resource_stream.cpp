@@ -162,7 +162,7 @@ long CResourceStream::Seek(long offset, int origin) {
 
 // --- Archive listing -----------------------------------------------------------------------------
 
-int __fastcall WildcardMatch(const char* name, const char* pattern, int emptyPatternResult) {
+int WildcardMatch(const char* name, const char* pattern, int emptyPatternResult) {
     if (*pattern == '\0') return *name == '\0' ? 1 : emptyPatternResult;
     while (*name != '\0' && *pattern != '\0') {
         if (*pattern == '*') return 1;

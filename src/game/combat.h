@@ -42,7 +42,7 @@ static_assert(sizeof(UnitAction) == 0x24);
 // duration -1, kind 0. The padding byte is never set: the original's steps carried a stack byte there, ours
 // carry 0, and so does the original in harness runs (harness_save_leftovers.cpp).
 using AnimationStep = mfc::impl::AnimationStep12;
-AnimationStep* __fastcall ConstructAnimationStep(AnimationStep* step);
+AnimationStep* ConstructAnimationStep(AnimationStep* step);
 
 // An MFC CArray of AnimationStep and a dword after it (extra, copied along with the steps).
 struct AnimationSteps : mfc::impl::AnimationStepListAbi {
@@ -79,8 +79,8 @@ static_assert(sizeof(AnimationSteps) == 0x18);
 
 // A step list in a save: the count (Load: SetSize to it, growth step kept; a count the stream did not deliver
 // is the original's stack garbage, ours 0), then each step's 12 bytes. `extra` is not part of it.
-void __fastcall LoadStepList(AnimationSteps* steps, CStream* stream);
-void __fastcall SaveStepList(const AnimationSteps* steps, CStream* stream);
+void LoadStepList(AnimationSteps* steps, CStream* stream);
+void SaveStepList(const AnimationSteps* steps, CStream* stream);
 
 // The plan of an order: its animation, when it starts and ends, and what it aims at.
 struct OrderPlan {
@@ -105,14 +105,14 @@ struct OrderPlan {
 static_assert(offsetof(OrderPlan, startTime) == 0x18);
 static_assert(offsetof(OrderPlan, direction) == 0x38);
 
-void __fastcall OrderPlanReset(OrderPlan* plan);
+void OrderPlanReset(OrderPlan* plan);
 static_assert(sizeof(OrderPlan) == 0x44);
 
 class CWorldServer;
 // Whether the spell may hit: spells whose prototype has needsSight need a line of sight of at least 0.1 from
 // `from` (z = the caster's ground + BaseSpeed, a height) to the target (z = its ground + ModeSpeed), or to `at`
 // one unit above the water surface when there is no target.
-bool __fastcall SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* from,
+bool SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* from,
                                     CUnit* target, const Vector3* at);
 
 struct MoveModeState {
@@ -163,12 +163,12 @@ struct ArmourSpell {
 static_assert(sizeof(ArmourSpell) == 0xC);
 using ArmourSpellList = mfc::CList<ArmourSpell>;
 
-bool __fastcall SpellLineOfSight(CWorldServer* world, CSpell* spell, CUnit* fromUnit, const Vector3* from,
+bool SpellLineOfSight(CWorldServer* world, CSpell* spell, CUnit* fromUnit, const Vector3* from,
                                  CUnit* toUnit, const Vector3* to);
 
 // `count` entries appended (no item, countdown 0; the original's `worn` byte was stack garbage, ours 0), then
 // each entry from the head takes its item (the item manager's object of the id read, referenced) and countdown.
-void __fastcall LoadArmourSpells(ArmourSpellList* list, CStream* stream);
+void LoadArmourSpells(ArmourSpellList* list, CStream* stream);
 
 class CUnitServer : public CUnitController {
 public:
@@ -594,7 +594,7 @@ public:
     AnimationSteps moveAnimation;   // the movement animation (NextAnimation)
     std::uint32_t idleKey;          // 0x666DEAD: none yet
     AnimationSteps idleAnimation;   // extra: its time
-    void(__fastcall* actionDone)(CUnit*);   // run when state 3 ends; cleared by the reset
+    void(*actionDone)(CUnit*);   // run when state 3 ends; cleared by the reset
     std::uint32_t claimedHostile;   // players the unit has claimed as enemies
     AIBrain brain;
     AIAlarm voice;                  // the voice / alarm

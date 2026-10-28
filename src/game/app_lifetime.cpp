@@ -37,7 +37,7 @@ void ReleaseCounted(CRefCounted* object) {
 // ---- The registry's creators ----------------------------------------------------------------------
 
 // The count dword is cleared only after the allocation has been tested.
-CRefCounted* __cdecl CreatePartyRecord() {
+CRefCounted* CreatePartyRecord() {
     auto* record = new PartyRecord();
     if (!record) return nullptr;
     record->refs_ = 0;
@@ -46,7 +46,7 @@ CRefCounted* __cdecl CreatePartyRecord() {
     return record;
 }
 
-CRefCounted* __cdecl CreateClassTemplate() {
+CRefCounted* CreateClassTemplate() {
     auto* created = new ClassTemplate();
     if (!created) return nullptr;
     created->refs_ = 0;
@@ -110,10 +110,10 @@ constinit lib::StaticObject<PartyManager> g_partyManager = /*007AA5A0*/ {};
 PartyManager* ThePartyManager() { return &*g_partyManager; }
 
 namespace {
-void __cdecl DestroyPartyManager() { g_partyManager->Destruct(); }
+void DestroyPartyManager() { g_partyManager->Destruct(); }
 } // namespace
 
-void __cdecl ConstructPartyManager() {
+void ConstructPartyManager() {
     g_partyManager->Construct();
     libcrt::AtExit(DestroyPartyManager);
 }

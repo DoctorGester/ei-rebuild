@@ -108,7 +108,7 @@ std::string CItemArmor::PictureName() {
 
 // The number is formatted into a 4-byte buffer just before the name buffer; a number above 999 would overrun it
 // (none in the database; the overlapping strcat that would follow is not reproduced).
-bool __fastcall WeaponBaseFigure(std::uint32_t index, std::string* out) {
+bool WeaponBaseFigure(std::uint32_t index, std::string* out) {
     out->clear();
     if (index == 0xFFFFFFFFu) return false;
     const WeaponRecord* prototype = WeaponAt(index);

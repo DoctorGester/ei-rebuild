@@ -130,7 +130,7 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
 } // namespace
 
 // `node` is the scene node, the low word of `frames` the animation's frame count.
-void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames) {
+void BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames) {
     CAnimationNode* added = bone;
     skin->bones.SetAtGrowRef(skin->bones.size, &added);
     bone = added;

@@ -71,7 +71,7 @@ static_assert(sizeof(ViewStack) == 0x28);
 // Average, lowest and highest surface height on a grid of `step` spacing over
 // [p.x - halfX, p.x + halfX] x [p.y - halfY, p.y + halfY] (points off the map skipped; the centre
 // counts once more). The two unused pointers are always the zero vector.
-void __stdcall SampleTerrain(const Vector3* p, const Vector3* unused1, const Vector3* unused2, float step,
+void SampleTerrain(const Vector3* p, const Vector3* unused1, const Vector3* unused2, float step,
                              float halfX, float halfY, float* average, float* minimum, float* maximum);
 
 // The camera ("CCamera"). flags_: 0x8 following the target, 0x10 a camera file is open, 0x20 playing a
@@ -221,7 +221,7 @@ using NearbyList = stlp::list<CObject3D*>;
 using NearbyNode = NearbyList::Node;
 
 // The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
-const Vector3* __fastcall CameraAnchor(const CCamera* self);
+const Vector3* CameraAnchor(const CCamera* self);
 
 // Names for the game's globals and constants the camera code uses. The floating-point constants
 // are read from the exe at run time (volatile): the game multiplies them at run time and the
@@ -261,4 +261,4 @@ void NoteTargetTick(const CCamera* camera);
 
 } // namespace camera
 
-int __fastcall CameraCloseFile(CCamera* self);
+int CameraCloseFile(CCamera* self);

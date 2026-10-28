@@ -90,7 +90,7 @@ constexpr float kHalfPi = /*007C8930*/ 1.5707964f;   // a static initialiser: pi
 int SectorOf(float v) { return x87::fistp(static_cast<float>(v / CellSize())) / 32; }
 
 // By weight, highest first (an unordered pair sorts "after").
-int __cdecl ByWeight(const void* a, const void* b) {
+int ByWeight(const void* a, const void* b) {
     float wa = static_cast<const ClassVotes*>(a)->weightSum;
     float wb = static_cast<const ClassVotes*>(b)->weightSum;
     if (wa > wb) return -1;

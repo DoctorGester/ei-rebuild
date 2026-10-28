@@ -55,7 +55,7 @@ PathCells* PathCells::Reversed(PathCells* out) const {
     return out;
 }
 
-void __fastcall PathCellsRemoveRepeats(PathCellList* list) {
+void PathCellsRemoveRepeats(PathCellList* list) {
     using Node = PathCellList::Node;
     std::int16_t lastX = -1, lastY = -1;
     for (Node* n = list->head; n;) {

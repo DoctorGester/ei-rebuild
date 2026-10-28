@@ -35,7 +35,7 @@ bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(s
 // Disconnects a player (its connection and units).
 // Script groups: constructor (base vtable), destructor, assignment, union; the global group / name / element
 // getters by value; a release of an element range (__stdcall), one element's destructor, SetSize.
-void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(a0, a1); }
+void RefsRelease(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(a0, a1); }
 
 // A player that lost its connection leaves the game.
 void DropPlayer(CWorldServer* world, CPlayer* player) {

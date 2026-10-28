@@ -26,7 +26,7 @@ constinit lib::StaticObject<BlockPointArray> g_blocks = /*007C2EE0*/ {};
 PointArray& Blocks() { return *g_blocks; }
 std::uint8_t g_blocksGuard = /*007C2EF4*/ {};
 std::uint8_t& BlocksGuard() { return g_blocksGuard; }
-void __cdecl DestroyBlocks() { DestroyPoints(*g_blocks); }
+void DestroyBlocks() { DestroyPoints(*g_blocks); }
 
 // LabelRegions' function-local statics: the flood queue (guard bit 0 of g_floodGuard) and its second list (bit 1).
 constinit lib::StaticObject<BlockPointArray> g_floodSecond = /*007C2EF8*/ {};
@@ -35,8 +35,8 @@ PointArray& FloodQueue() { return *g_floodQueue; }
 PointArray& FloodSecond() { return *g_floodSecond; }
 std::uint8_t g_floodGuard = /*007C2F24*/ {};
 std::uint8_t& FloodGuard() { return g_floodGuard; }
-void __cdecl DestroyFloodQueue() { DestroyPoints(*g_floodQueue); }
-void __cdecl DestroyFloodSecond() { DestroyPoints(*g_floodSecond); }
+void DestroyFloodQueue() { DestroyPoints(*g_floodQueue); }
+void DestroyFloodSecond() { DestroyPoints(*g_floodSecond); }
 
 
 constexpr int kUnreached = 0x7FFFFFFF;
@@ -57,7 +57,7 @@ void BlockCostElements::Construct(BlockCost* elements, int count) { mfc::PlainEl
 namespace {
 // A per size class grid of the region map reallocated for the map's size.
 template <typename T>
-void Fit(SearchGrid<T>& grid, int width, int height, void (__fastcall* allocate)(SearchGrid<T>*)) {
+void Fit(SearchGrid<T>& grid, int width, int height, void (*allocate)(SearchGrid<T>*)) {
     if (grid.width == width && grid.height == height) return;
     gamecrt::operator_delete(grid.data);
     gamecrt::operator_delete(grid.rows);
@@ -538,7 +538,7 @@ void CRegionMap::Attach(CAIMap* map) {
     backward.Attach(this, true);
 }
 
-CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self) {
+CRegionMap* ConstructRegionMap(CRegionMap* self) {
     for (BlockSearch* search : {&self->forward, &self->backward}) {
         SearchGrid<BlockRecord>& records = search->records;
         records.width = 1;

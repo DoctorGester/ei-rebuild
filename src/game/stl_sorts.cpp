@@ -100,72 +100,72 @@ using NameSort = stlp::Sort<std::string, ByName>;
 
 } // namespace
 
-void __fastcall ChunkIntroSort(net::FileChunkMessage** first, net::FileChunkMessage** last, void*, int depth, int) {
+void ChunkIntroSort(net::FileChunkMessage** first, net::FileChunkMessage** last, void*, int depth, int) {
     ChunkSort::IntroLoop(first, last, depth, ByChunkIndex());
 }
-void __fastcall ChunkFinalSort(net::FileChunkMessage** first, net::FileChunkMessage** last, int) {
+void ChunkFinalSort(net::FileChunkMessage** first, net::FileChunkMessage** last, int) {
     ChunkSort::FinalInsertionSort(first, last, ByChunkIndex());
 }
 
-void __fastcall ReplicatedIntroSort(net::Replicated* first, net::Replicated* last, void*, int depth, void*) {
+void ReplicatedIntroSort(net::Replicated* first, net::Replicated* last, void*, int depth, void*) {
     ReplicatedSort::IntroLoop(first, last, depth, ByObjectAddress());
 }
-void __fastcall ReplicatedFinalSort(net::Replicated* first, net::Replicated* last, void*) {
+void ReplicatedFinalSort(net::Replicated* first, net::Replicated* last, void*) {
     ReplicatedSort::FinalInsertionSort(first, last, ByObjectAddress());
 }
 
-void __fastcall ScreenIntroSort(ScreenEntry* first, ScreenEntry* last, void*, int depth, const float* plane, CMapObjectManager* manager) {
+void ScreenIntroSort(ScreenEntry* first, ScreenEntry* last, void*, int depth, const float* plane, CMapObjectManager* manager) {
     ScreenSort::IntroLoop(first, last, depth, DepthOrder(plane, manager));
 }
-void __fastcall ScreenInsertionSort(ScreenEntry* first, ScreenEntry* last, const float* plane, CMapObjectManager* manager) {
+void ScreenInsertionSort(ScreenEntry* first, ScreenEntry* last, const float* plane, CMapObjectManager* manager) {
     ScreenSort::InsertionSort(first, last, DepthOrder(plane, manager));
 }
-void __fastcall ScreenUnguardedInsertionSort(ScreenEntry* first, ScreenEntry* last, void*, const float* plane,
+void ScreenUnguardedInsertionSort(ScreenEntry* first, ScreenEntry* last, void*, const float* plane,
                                              CMapObjectManager* manager) {
     ScreenSort::UnguardedInsertionSort(first, last, DepthOrder(plane, manager));
 }
 
-void __fastcall IdIntroSort(int* first, int* last, const int*, int depth) { IdSort::IntroLoop(first, last, depth, IntLess()); }
-void __fastcall IdFinalSort(int* first, int* last) { IdSort::FinalInsertionSort(first, last, IntLess()); }
+void IdIntroSort(int* first, int* last, const int*, int depth) { IdSort::IntroLoop(first, last, depth, IntLess()); }
+void IdFinalSort(int* first, int* last) { IdSort::FinalInsertionSort(first, last, IntLess()); }
 
-void __fastcall ServerIntroSort(MpAddressEntry* first, MpAddressEntry* last, MpAddressEntry*, int depth, int key) {
+void ServerIntroSort(MpAddressEntry* first, MpAddressEntry* last, MpAddressEntry*, int depth, int key) {
     ServerSort::IntroLoop(first, last, depth, ByColumn{key});
 }
-void __fastcall ServerInsertionSort(MpAddressEntry* first, MpAddressEntry* last, int key) {
+void ServerInsertionSort(MpAddressEntry* first, MpAddressEntry* last, int key) {
     ServerSort::InsertionSort(first, last, ByColumn{key});
 }
-void __fastcall ServerUnguardedInsertionSort(MpAddressEntry* first, MpAddressEntry* last, MpAddressEntry*, int key) {
+void ServerUnguardedInsertionSort(MpAddressEntry* first, MpAddressEntry* last, MpAddressEntry*, int key) {
     ServerSort::UnguardedInsertionSort(first, last, ByColumn{key});
 }
 
-void __fastcall QuestIntroSort(std::string* first, std::string* last, void*, int depth, int) {
+void QuestIntroSort(std::string* first, std::string* last, void*, int depth, int) {
     QuestSort::IntroLoop(first, last, depth, ByQuestOrder());
 }
-void __fastcall QuestInsertionSort(std::string* first, std::string* last, int) {
+void QuestInsertionSort(std::string* first, std::string* last, int) {
     QuestSort::InsertionSort(first, last, ByQuestOrder());
 }
-void __fastcall QuestUnguardedInsertionSort(std::string* first, std::string* last, void*, int) {
+void QuestUnguardedInsertionSort(std::string* first, std::string* last, void*, int) {
     QuestSort::UnguardedInsertionSort(first, last, ByQuestOrder());
 }
 
-void __fastcall SaveIntroSort(SaveEntry* first, SaveEntry* last, void*, int depth, int) {
+void SaveIntroSort(SaveEntry* first, SaveEntry* last, void*, int depth, int) {
     SaveSort::IntroLoop(first, last, depth, NotOlder());
 }
-void __fastcall SaveFinalSort(SaveEntry* first, SaveEntry* last, int) { SaveSort::FinalInsertionSort(first, last, NotOlder()); }
-SaveEntry* __fastcall SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEntry* result) {
+void SaveFinalSort(SaveEntry* first, SaveEntry* last, int) { SaveSort::FinalInsertionSort(first, last, NotOlder()); }
+SaveEntry* SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEntry* result) {
     return stlp::CopyBackward<SaveEntry, SaveEntryOps>(first, last, result);
 }
 
-void __fastcall TopicIntroSort(std::string* first, std::string* last, int, int depth, int) {
+void TopicIntroSort(std::string* first, std::string* last, int, int depth, int) {
     TopicSort::IntroLoop(first, last, depth, ByTextIgnoringCase());
 }
-void __fastcall TopicFinalSort(std::string* first, std::string* last, int) {
+void TopicFinalSort(std::string* first, std::string* last, int) {
     TopicSort::FinalInsertionSort(first, last, ByTextIgnoringCase());
 }
 
-void __fastcall NameIntroSort(std::string* first, std::string* last, std::string*, int depth) {
+void NameIntroSort(std::string* first, std::string* last, std::string*, int depth) {
     NameSort::IntroLoop(first, last, depth, ByName());
 }
-void __fastcall NameFinalSort(std::string* first, std::string* last) { NameSort::FinalInsertionSort(first, last, ByName()); }
+void NameFinalSort(std::string* first, std::string* last) { NameSort::FinalInsertionSort(first, last, ByName()); }
 
 } // namespace stl_sorts

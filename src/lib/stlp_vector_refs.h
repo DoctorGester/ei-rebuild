@@ -7,7 +7,7 @@
 
 #include "game/core_refcount.h"
 
-void __fastcall RefPtrRelease(RefPtr* self);
+void RefPtrRelease(RefPtr* self);
 
 namespace stlp {
 

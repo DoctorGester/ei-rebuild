@@ -32,7 +32,7 @@ void XorRange(UnitStats* stats, std::uint32_t key) {
 
 } // namespace
 
-void __fastcall GuardPlayers(CPlayerManager* players, char units, std::uint32_t key) {
+void GuardPlayers(CPlayerManager* players, char units, std::uint32_t key) {
     if (!players) return;
     PlayerIterator it;
     for (CPlayer* player = it.First(players); player; player = it.Next()) {
@@ -49,7 +49,7 @@ void __fastcall GuardPlayers(CPlayerManager* players, char units, std::uint32_t 
     }
 }
 
-void __stdcall GuardPlayerData(char plain) {
+void GuardPlayerData(char plain) {
     if (plain == g_guardPlain) return;
     if (!plain) g_guardKey = IsaacRandom::Global().Next();   // a new key each time the data is hidden
     GuardPlayers(TheClientWorld()->players_, 0, g_guardKey);

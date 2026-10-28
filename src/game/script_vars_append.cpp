@@ -101,7 +101,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
 namespace {
 
 // A group's destructor body (references released, array freed).
-void __fastcall GroupDestruct(ScriptGroup* a0) { a0->DestructBody(); }
+void GroupDestruct(ScriptGroup* a0) { a0->DestructBody(); }
 
 // The value array's storage freed after `destroy` ran on its elements (CArray::SetSize(0) as the
 // game inlines it), then the names emptied.
@@ -123,27 +123,27 @@ void DestroyGroups(ScriptGroup* groups, int count) {
 
 } // namespace
 
-void __fastcall ScriptFloatsClear(ScriptNamedValues<float>* vars) {
+void ScriptFloatsClear(ScriptNamedValues<float>* vars) {
     FreeValues(vars, [](float*, int) {});
 }
 
-void __fastcall ScriptStringsClear(ScriptNamedValues<std::string>* vars) {
+void ScriptStringsClear(ScriptNamedValues<std::string>* vars) {
     FreeValues(vars, mfc::PlainElements<std::string>::Destruct);
 }
 
-void __fastcall ScriptObjectsClear(ScriptNamedValues<ScriptObjectRef>* vars) {
+void ScriptObjectsClear(ScriptNamedValues<ScriptObjectRef>* vars) {
     FreeValues(vars, [](ScriptObjectRef* refs, int count) {
         for (int i = 0; i < count; ++i) refs[i].Reset();
     });
 }
 
-void __fastcall ScriptGroupsClear(ScriptNamedValues<ScriptGroup>* vars) {
+void ScriptGroupsClear(ScriptNamedValues<ScriptGroup>* vars) {
     FreeValues(vars, DestroyGroups);
 }
 
 // ScriptVars::RemoveAll: the out-of-line SetSize(0) of each array except the groups, whose
 // storage is freed inline (each group destroyed first).
-void __fastcall ScriptVarsClear(ScriptVars* vars) {
+void ScriptVarsClear(ScriptVars* vars) {
     vars->floats.values.SetSize(0, -1);
     vars->floats.names.SetSize(0, -1);
     vars->strings.values.SetSize(0, -1);

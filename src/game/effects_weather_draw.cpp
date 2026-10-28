@@ -35,10 +35,10 @@ struct FogSprite {
 // free the records and the points.
 constinit std::vector<ParticleVertex> g_points = /*007ABA30*/ {};
 std::vector<ParticleVertex>& Points() { return g_points; }
-void __cdecl FreePoints() { lib::FreeStorage(g_points); }
+void FreePoints() { lib::FreeStorage(g_points); }
 constinit lib::StaticObject<mfc::CArray<FogSprite>> g_sprites = /*007ABA40*/ {};
 mfc::CArray<FogSprite>& Sprites() { return *g_sprites; }
-void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
+void DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
 std::uint8_t g_workArrayGuards = /*007ABA54*/ {};
 constexpr std::uint8_t kSpritesConstructed = 1;
 constexpr std::uint8_t kPointsConstructed = 2;

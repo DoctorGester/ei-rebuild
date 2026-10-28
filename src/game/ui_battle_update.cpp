@@ -148,7 +148,7 @@ using PartyIds = CBattleScreen::PartyIds;
 using List = stlp::list<std::uintptr_t>;
 using ListNode = List::Node;
 using UnitList = stlp::list<CMapObject*>;
-void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
+void NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
 
 
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.

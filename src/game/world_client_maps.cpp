@@ -231,7 +231,7 @@ struct CellOps {
 using DynamicList = mfc::CList<CMapObject*>;
 using DynamicNode = DynamicList::Node;
 
-void __fastcall SessionPlayerClear(CPlayer* session) { session->Clear(); }
+void SessionPlayerClear(CPlayer* session) { session->Clear(); }
 
 constexpr int kClassPlatform54 = 0x54;
 constexpr int kClassPlatform5D = 0x5D;
@@ -1052,7 +1052,7 @@ SectorList* SectorList::VectorDelete(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-void __fastcall SectorListDestruct(stlp::list<CMapObject*>* list) { DestroySectorList(list); }
+void SectorListDestruct(stlp::list<CMapObject*>* list) { DestroySectorList(list); }
 
 void SectorGrid::Allocate() {
     const int count = unknown08_ * unknown0C_;
@@ -1230,7 +1230,7 @@ int CWorldClient::LoadItemsAndSpells(CStream* block) {
     return 1;
 }
 
-int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream) {
+int LoadManagerObjects(CBaseManager* manager, CStream* stream) {
     for (;;) {
         std::uint8_t more;
         stream->Read(&more, 1);

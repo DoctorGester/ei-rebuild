@@ -70,7 +70,7 @@ unsigned SurfaceType() { return kBinkSurface32R; }
 
 } // namespace
 
-void __cdecl ReleaseLoadingHolder() {
+void ReleaseLoadingHolder() {
     if (g_loadingHolderReleased & 1) return;
     g_loadingHolderReleased = static_cast<std::uint8_t>(g_loadingHolderReleased | 1);
     if (g_loadingHolder) g_loadingHolder->Release();
@@ -119,7 +119,7 @@ int g_movieKey;   // the blocking player's movie in the new renderer
 // next frame when it does not; the screen is filled black first, a loading screen step first; the last
 // argument is never read. Plays the movie in a message loop of its own, each frame into its letterboxed
 // rectangle. Returns 0 when Esc ended it.
-char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
+char PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
                           char loadingStep, int /*unused*/) {
     if (!MoviesMode()) return 1;
     const char* file = name ? name : "";   // copies it into a CString
@@ -208,7 +208,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
 
 // `progress` is a frame number. The loading screen's movie (the file named by a global, opened once) is decoded
 // up to that frame and stretched over the screen. Nothing when the off switch is set.
-void __fastcall ShowLoadingMovie(int progress) {
+void ShowLoadingMovie(int progress) {
     net::Pump();
     if (g_loadingMovieOff) return;
     TheCursor()->ShowImage(0);

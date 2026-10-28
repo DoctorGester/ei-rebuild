@@ -75,7 +75,7 @@ constinit lib::StaticObject<std::string> g_lastQuest = /*007C8178*/ {};
 constinit std::uint8_t g_lastQuestDestroyed = /*007C8174*/ 0;
 std::string& LastQuest() { return *g_lastQuest; }
 
-void __cdecl DestroyLastQuest() {
+void DestroyLastQuest() {
     if (g_lastQuestDestroyed & 1) return;
     g_lastQuestDestroyed = static_cast<std::uint8_t>(g_lastQuestDestroyed | 1);
     g_lastQuest.Destroy();
@@ -167,7 +167,7 @@ constexpr float kExitTurnDown = 3.1415927f;
 
 } // namespace
 
-void __cdecl ConstructLastQuest() {
+void ConstructLastQuest() {
     g_lastQuest.Construct();
     libcrt::AtExit(DestroyLastQuest);
 }

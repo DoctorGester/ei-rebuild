@@ -13,11 +13,11 @@
 #include <string>
 
 // An objective's destructor (its text).
-void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective) { std::destroy_at(&objective->text); }
+void ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective) { std::destroy_at(&objective->text); }
 
 // QStart (the name comes in ECX). The old objectives are destroyed and freed, the
 // array emptied, and the quest named.
-void __fastcall ScriptQuestStart(const char* name) {
+void ScriptQuestStart(const char* name) {
     mfc::CArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
     if (objectives.data) {
         ScriptQuestObjective* objective = objectives.data;
@@ -32,7 +32,7 @@ void __fastcall ScriptQuestStart(const char* name) {
 
 // The QObj* commands (type, text, with the value on the stack). Appends
 // {type, text, value}; the text goes through a temporary copy.
-void __fastcall ScriptQuestAddObjective(int type, const std::string& text, float value) {
+void ScriptQuestAddObjective(int type, const std::string& text, float value) {
     std::string copy = text;
     mfc::CArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
     int at = objectives.size;

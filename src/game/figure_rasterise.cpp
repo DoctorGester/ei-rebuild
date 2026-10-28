@@ -23,7 +23,7 @@ using IntPoint = RasterTriangle::Point;
 using PointArray = std::vector<IntPoint>;
 constinit std::vector<RasterTriangle::Point> g_texturePoints = /*007C2E00*/ {};
 std::vector<RasterTriangle::Point>& TexturePoints() { return g_texturePoints; }
-void __cdecl FreeTexturePoints() { lib::FreeStorage(g_texturePoints); }
+void FreeTexturePoints() { lib::FreeStorage(g_texturePoints); }
 std::uint8_t g_texturePointsGuard = /*007C2E10*/ {};
 
 

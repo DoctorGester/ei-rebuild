@@ -14,24 +14,24 @@
 
 namespace scriptarray {
 
-using RangeFn = void(__stdcall*)(void* first, int count);
+using RangeFn = void(*)(void* first, int count);
 
 // An instantiation's ConstructElements as a RangeFn (the library's ArrayAbi member, called directly).
 template <typename Abi>
-void __stdcall ConstructAs(void* first, int count) {
+void ConstructAs(void* first, int count) {
     Abi::ConstructElements(static_cast<typename Abi::Element*>(first), count);
 }
 
 // An instantiation's DestructElements as a RangeFn.
 template <typename Abi>
-void __stdcall DestructAs(void* first, int count) {
+void DestructAs(void* first, int count) {
     Abi::DestructElements(static_cast<typename Abi::Element*>(first), count);
 }
 
 // Destroys `count` elements T from `first` one by one with `Destroy`: a member taking the flags
 // (called with 0, destroy in place) or a function of T* (an element destructor of the game's).
 template <typename T, auto Destroy>
-void __stdcall DestroyEach(void* first, int count) {
+void DestroyEach(void* first, int count) {
     T* element = static_cast<T*>(first);
     for (; count > 0; --count, ++element) {
         if constexpr (std::is_member_function_pointer_v<decltype(Destroy)>) (element->*Destroy)(0);

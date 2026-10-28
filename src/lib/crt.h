@@ -12,7 +12,7 @@
 
 namespace gamecrt {
 
-void* __cdecl operator_new(std::size_t size);
+void* operator_new(std::size_t size);
 // operator_new with the block zeroed, for the objects whose constructors leave fields unset (server
 // and map objects, AI modes): a determinism fix the standalone keeps, the harness zeroes the
 // original's at the same calls (tests/verify/harness_leftovers.h).
@@ -29,25 +29,25 @@ template <class T> T* operator_new_zeroed_as() { return static_cast<T*>(operator
 template <class T> T* operator_new_bytes_as(std::size_t bytes) { return static_cast<T*>(operator_new(bytes)); }
 // operator_new for `count` T (nothing constructed; null when it fails); the size is count * sizeof(T) in 32 bits.
 template <class T> T* operator_new_array(std::size_t count) { return static_cast<T*>(operator_new(count * sizeof(T))); }
-void __cdecl operator_delete(void* p);
-void* __cdecl malloc(std::size_t size);
-void __cdecl free(void* p);
+void operator_delete(void* p);
+void* malloc(std::size_t size);
+void free(void* p);
 
-int __cdecl rand();
+int rand();
 // The harness's random trace (tests/verify) sees every rand() draw: the value and rand's return address. Null: none.
 using RandObserver = void (*)(int value, const void* caller);
 void SetRandObserver(RandObserver observer);
-void __cdecl srand(unsigned seed);
-int __cdecl tolower(int c);
-int __cdecl strnicmp(const char* a, const char* b, std::size_t n);
-char* __cdecl strncpy(char* dst, const char* src, std::size_t n);
-int __cdecl strncmp(const char* a, const char* b, std::size_t n);
-int __cdecl isdigit(int c);
-int __cdecl isspace(int c);
-int __cdecl sprintf(char* buffer, const char* format, ...);
-int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);
+void srand(unsigned seed);
+int tolower(int c);
+int strnicmp(const char* a, const char* b, std::size_t n);
+char* strncpy(char* dst, const char* src, std::size_t n);
+int strncmp(const char* a, const char* b, std::size_t n);
+int isdigit(int c);
+int isspace(int c);
+int sprintf(char* buffer, const char* format, ...);
+int mbscmp(const unsigned char* a, const unsigned char* b);
 // The same on char strings (the single-byte code page makes them the same bytes).
-inline int __cdecl mbscmp(const char* a, const char* b) {
+inline int mbscmp(const char* a, const char* b) {
     return mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
@@ -80,7 +80,7 @@ private:
 };
 // The same on two std::string_view texts: the same bytes and rules (the CRT's _mbscmp under the game's code
 // page; a text ends at its first NUL), so callers need no .c_str().
-inline int __cdecl mbscmp(std::string_view a, std::string_view b) {
+inline int mbscmp(std::string_view a, std::string_view b) {
     const TerminatedText first(a), second(b);
     return mbscmp(first.c_str(), second.c_str());
 }
@@ -102,15 +102,15 @@ inline bool SameIgnoringCase(const int* fold, const char* a, const char* b, int 
 }
 
 // acos: the C entry of the body behind _CIacos; the result is left unrounded.
-double __cdecl acos(double c);
+double acos(double c);
 // The game's _ftol for a value computed in C++: the low 32 bits of the 64-bit
 // truncation (NaN and values out of the 64-bit range give 0), unlike a C++ cast to int.
 inline std::uint32_t Ftol(double value) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(value)); }
 
-int __cdecl write(int fd, const void* buffer, unsigned count);
+int write(int fd, const void* buffer, unsigned count);
 
 struct CrtFile;
-std::size_t __cdecl fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file);
+std::size_t fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file);
 // The _fileno macro (the host CRT's, libcrt::Fileno).
 int fileno(const CrtFile* file);
 
@@ -148,72 +148,72 @@ void SetReplayCtype(const ReplayCtype& ctype);
 // EI_UTF8 the case and class functions answer for UTF-8 (text_case.h).
 namespace libcrt {
 
-int __cdecl Strncmp(const char* a, const char* b, std::size_t n);
-char* __cdecl Strncpy(char* to, const char* from, std::size_t n);
-int __cdecl Stricmp(const char* a, const char* b);
-int __cdecl Strnicmp(const char* a, const char* b, std::size_t n);
-int __cdecl Memicmp(const void* a, const void* b, std::size_t n);
-int __cdecl Mbscmp(const unsigned char* a, const unsigned char* b);
-int __cdecl Mbsicmp(const unsigned char* a, const unsigned char* b);
-unsigned char* __cdecl Mbsinc(const unsigned char* p);
-int __cdecl Ismbblead(unsigned c);
-int __cdecl Isleadbyte(int c);
-int __cdecl Tolower(int c);
-int __cdecl Toupper(int c);
-int __cdecl Isalpha(int c);
-int __cdecl Isdigit(int c);
-int __cdecl Isspace(int c);
-int __cdecl Isprint(int c);
+int Strncmp(const char* a, const char* b, std::size_t n);
+char* Strncpy(char* to, const char* from, std::size_t n);
+int Stricmp(const char* a, const char* b);
+int Strnicmp(const char* a, const char* b, std::size_t n);
+int Memicmp(const void* a, const void* b, std::size_t n);
+int Mbscmp(const unsigned char* a, const unsigned char* b);
+int Mbsicmp(const unsigned char* a, const unsigned char* b);
+unsigned char* Mbsinc(const unsigned char* p);
+int Ismbblead(unsigned c);
+int Isleadbyte(int c);
+int Tolower(int c);
+int Toupper(int c);
+int Isalpha(int c);
+int Isdigit(int c);
+int Isspace(int c);
+int Isprint(int c);
 // MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part first):
 // equal elements end up in the same order as in the game (the host's qsort changed 105 image goldens).
-void __cdecl Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*));
+void Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*));
 
 // memmove, memcpy, memset, strstr, wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, atoi, _itoa and _splitpath
 // are the host CRT's, called by their names.
-int __cdecl Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n);
-std::size_t __cdecl Mbclen(const unsigned char* c);
-unsigned char* __cdecl Mbslwr(unsigned char* text);
+int Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n);
+std::size_t Mbclen(const unsigned char* c);
+unsigned char* Mbslwr(unsigned char* text);
 
 // rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread (the game CRT's _tiddata::_holdrand),
 // a thread_local starting at 1.
-int __cdecl Rand();
-void __cdecl Srand(unsigned seed);
+int Rand();
+void Srand(unsigned seed);
 // The calling thread's seed itself (the harness's digest and random trace read it).
 unsigned& RandState();
 
 // floor, ceil, modf, fmod / _CIfmod are the host CRT's; acos asin are CiAcos and CiAsin below.
 // _controlfp on the x87 control word only (the SSE one is not the game's): returns the new word.
-unsigned __cdecl Controlfp(unsigned value, unsigned mask);
+unsigned Controlfp(unsigned value, unsigned mask);
 
 // The compiler's array helpers, `eh vector constructor / destructor iterator`: the element's constructor
 // or destructor on each of `count` elements of `size` bytes, construction from the first, destruction from
 // the last; when one throws, the elements done so far (construction) or still left (destruction) are
 // destroyed and the exception goes on.
-using ElementFunction = void(__fastcall*)(void* element, void* unused);
-void __stdcall ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
+using ElementFunction = void(*)(void* element, void* unused);
+void ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
                                  ElementFunction destroy);
-void __stdcall DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy);
+void DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy);
 // A constructor or destructor of T as an ElementFunction: libcrt::Element<&Destruct>.
 template <typename F>
 struct ElementOf;
 template <typename R, typename T>
-struct ElementOf<R(__fastcall*)(T*)> {
+struct ElementOf<R(*)(T*)> {
     using Type = T;
 };
 template <auto Function>
-void __fastcall Element(void* element, void*) {
+void Element(void* element, void*) {
     Function(static_cast<typename ElementOf<decltype(Function)>::Type*>(element));
 }
 
 // The STLport node allocator (__node_alloc<true, 0>); its pool is the exe's data.
-void* __fastcall NodeAllocate(std::size_t bytes);
-void __fastcall NodeDeallocate(void* p, std::size_t bytes);
-void* __fastcall NodeRefill(std::size_t bytes);
-char* __fastcall NodeChunkAlloc(std::size_t size, int* count);
+void* NodeAllocate(std::size_t bytes);
+void NodeDeallocate(void* p, std::size_t bytes);
+void* NodeRefill(std::size_t bytes);
+char* NodeChunkAlloc(std::size_t size, int* count);
 
-gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler);
+gamecrt::NewHandler SetNewHandler(gamecrt::NewHandler handler);
 
-int __cdecl Vsprintf(char* buffer, const char* format, va_list args);
+int Vsprintf(char* buffer, const char* format, va_list args);
 // The game's stdin, stdout and stderr (index 0..2). In the image a CrtFile* is the host's FILE*: these three
 // stand for the host's own streams (crt_file.cpp's HostFile), nothing reads their bytes.
 gamecrt::CrtFile* GameStream(int index);
@@ -221,25 +221,25 @@ gamecrt::CrtFile* GameStream(int index);
 // The maths as the CRT computes it, under its control word (rounding to nearest, the caller's precision):
 // acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 / FSCALE. Out of the domain: the
 // x87 indefinite. CiAcos and CiAsin are also acos asin themselves (the stack-argument entries).
-double __cdecl CiAcos(double x);
-double __cdecl CiAsin(double x);
-double __cdecl CiPow(double x, double y);
+double CiAcos(double x);
+double CiAsin(double x);
+double CiPow(double x, double y);
 // _hypot (the camera, the strips, the client maps): the larger size m of |x| and |y| times the root of
 // (x / m)^2 + (y / m)^2, each step at 64 bits then stored to a double, as _hypothlp computes it under its
 // control word 133F (to nearest) whatever the caller's; an overflow as the caller's rounding direction has
 // it, a NaN argument as x87 addition propagates it, an infinity otherwise +infinity.
-double __cdecl Hypot(double x, double y);
+double Hypot(double x, double y);
 
 // The runtime the image owns: the heap (the modern CRT's), operator
 // new's handler loop, the atexit list and exit.
-void* __cdecl OperatorNew(std::size_t size);
-void __cdecl OperatorDelete(void* p);
-void* __cdecl Malloc(std::size_t size);
-void __cdecl Free(void* p);
+void* OperatorNew(std::size_t size);
+void OperatorDelete(void* p);
+void* Malloc(std::size_t size);
+void Free(void* p);
 using ExitFunction = void(__cdecl*)();
-ExitFunction __cdecl OnExit(ExitFunction function);
-int __cdecl AtExit(ExitFunction function);
-void __cdecl Exit(int code);
+ExitFunction OnExit(ExitFunction function);
+int AtExit(ExitFunction function);
+void Exit(int code);
 
 // Files (src/lib/crt_file.cpp; image only, like the heap). A file is opened as VC6's _sopen opens it, through
 // the game's import slots (CreateFileA, GetFileType: a mod's or the harness's redirection applies), then
@@ -247,36 +247,36 @@ void __cdecl Exit(int code);
 // is the host's FILE*, and reads, writes, seeks and text-mode translation are the host CRT's (the same as
 // VC6's for the ANSI text mode). A bad descriptor or stream fails with -1 / 0 as in VC6's release CRT. errno
 // is the host's (nothing in the game reads it).
-int __cdecl Open(const char* path, int flags, ...);
-int __cdecl Read(int fd, void* buffer, unsigned count);
-int __cdecl Write(int fd, const void* buffer, unsigned count);
-long __cdecl Lseek(int fd, long offset, int origin);
-int __cdecl Close(int fd);
-long __cdecl Filelength(int fd);
-int __cdecl Access(const char* path, int mode);
-long __cdecl Findfirst(const char* pattern, gamecrt::FindData* data);
-gamecrt::CrtFile* __cdecl Fopen(const char* path, const char* mode);
-int __cdecl Fclose(gamecrt::CrtFile* file);
-int __cdecl Fseek(gamecrt::CrtFile* file, long offset, int origin);
-long __cdecl Ftell(gamecrt::CrtFile* file);
-std::size_t __cdecl Fread(void* to, std::size_t size, std::size_t count, gamecrt::CrtFile* file);
-std::size_t __cdecl Fwrite(const void* from, std::size_t size, std::size_t count, gamecrt::CrtFile* file);
-int __cdecl Fflush(gamecrt::CrtFile* file);
+int Open(const char* path, int flags, ...);
+int Read(int fd, void* buffer, unsigned count);
+int Write(int fd, const void* buffer, unsigned count);
+long Lseek(int fd, long offset, int origin);
+int Close(int fd);
+long Filelength(int fd);
+int Access(const char* path, int mode);
+long Findfirst(const char* pattern, gamecrt::FindData* data);
+gamecrt::CrtFile* Fopen(const char* path, const char* mode);
+int Fclose(gamecrt::CrtFile* file);
+int Fseek(gamecrt::CrtFile* file, long offset, int origin);
+long Ftell(gamecrt::CrtFile* file);
+std::size_t Fread(void* to, std::size_t size, std::size_t count, gamecrt::CrtFile* file);
+std::size_t Fwrite(const void* from, std::size_t size, std::size_t count, gamecrt::CrtFile* file);
+int Fflush(gamecrt::CrtFile* file);
 int Fileno(const gamecrt::CrtFile* file);
 
 } // namespace libcrt
 
 namespace gamecrt {
 // _mbsicmp and _mbsinc on char strings (the single-byte code page makes them the same bytes).
-inline int __cdecl mbsicmp(const char* a, const char* b) {
+inline int mbsicmp(const char* a, const char* b) {
     return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 // The same on two std::string_view texts (the CRT's rules; a text ends at its first NUL).
-inline int __cdecl mbsicmp(std::string_view a, std::string_view b) {
+inline int mbsicmp(std::string_view a, std::string_view b) {
     const TerminatedText first(a), second(b);
     return mbsicmp(first.c_str(), second.c_str());
 }
-inline const char* __cdecl mbsinc(const char* p) {
+inline const char* mbsinc(const char* p) {
     return reinterpret_cast<const char*>(libcrt::Mbsinc(reinterpret_cast<const unsigned char*>(p)));
 }
 } // namespace gamecrt
@@ -285,33 +285,33 @@ inline const char* __cdecl mbsinc(const char* p) {
 // import slot.
 namespace libcrt::imports {
 
-std::uint16_t __stdcall Htons(std::uint16_t v);
-void* __stdcall GetHostByName(const char* name);
-std::uint32_t __stdcall InetAddr(const char* text);
-std::uint16_t __stdcall Ntohs(std::uint16_t v);
-void* __stdcall GetHostByAddr(const void* address, int length, int type);
-int __stdcall GetHostName(char* name, int length);
-int __stdcall WsaStartup(std::uint16_t version, void* data);
-int __stdcall WsaCleanup();
-int __stdcall CloseSocket(std::uint32_t s);
-int __stdcall SetSockOpt(std::uint32_t s, int level, int option, const void* value, int length);
-int __stdcall IoctlSocket(std::uint32_t s, long command, std::uint32_t* argument);
-int __stdcall Bind(std::uint32_t s, const void* address, int length);
-std::uint32_t __stdcall Socket(int family, int type, int protocol);
-int __stdcall SendTo(std::uint32_t s, const void* data, int length, int flags, const void* to, int toLength);
-int __stdcall RecvFrom(std::uint32_t s, void* data, int length, int flags, void* from, int* fromLength);
-int __stdcall Connect(std::uint32_t s, const void* address, int length);
-int __stdcall Recv(std::uint32_t s, void* data, int length, int flags);
-int __stdcall Send(std::uint32_t s, const void* data, int length, int flags);
-int __stdcall Select(int count, void* read, void* write, void* except, const void* timeout);
-long __stdcall DirectInputCreateEx(void* instance, unsigned long version, const void* iid, void** out, void* outer);
+std::uint16_t Htons(std::uint16_t v);
+void* GetHostByName(const char* name);
+std::uint32_t InetAddr(const char* text);
+std::uint16_t Ntohs(std::uint16_t v);
+void* GetHostByAddr(const void* address, int length, int type);
+int GetHostName(char* name, int length);
+int WsaStartup(std::uint16_t version, void* data);
+int WsaCleanup();
+int CloseSocket(std::uint32_t s);
+int SetSockOpt(std::uint32_t s, int level, int option, const void* value, int length);
+int IoctlSocket(std::uint32_t s, long command, std::uint32_t* argument);
+int Bind(std::uint32_t s, const void* address, int length);
+std::uint32_t Socket(int family, int type, int protocol);
+int SendTo(std::uint32_t s, const void* data, int length, int flags, const void* to, int toLength);
+int RecvFrom(std::uint32_t s, void* data, int length, int flags, void* from, int* fromLength);
+int Connect(std::uint32_t s, const void* address, int length);
+int Recv(std::uint32_t s, void* data, int length, int flags);
+int Send(std::uint32_t s, const void* data, int length, int flags);
+int Select(int count, void* read, void* write, void* except, const void* timeout);
+long DirectInputCreateEx(void* instance, unsigned long version, const void* iid, void** out, void* outer);
 
 } // namespace libcrt::imports
 
 namespace game {
 
 // Reports a fatal error (printf-style) and normally exits the game.
-int __cdecl FatalError(const char* format, ...);
+int FatalError(const char* format, ...);
 // FatalError's result as a pointer (it returns what the report returns, when it returns at all).
 template <class T, class... Args>
 T* FatalErrorAs(const char* format, Args... args) {
@@ -319,6 +319,6 @@ T* FatalErrorAs(const char* format, Args... args) {
 }
 // Debug log; compiled out (empty) in the release build, but other mods may hook it. It leaves the caller's
 // result register unchanged (bink_video.cpp's error message masks it, so it returns a value).
-unsigned __cdecl DebugLog(const char* format, ...);
+unsigned DebugLog(const char* format, ...);
 
 } // namespace game

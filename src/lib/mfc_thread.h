@@ -14,7 +14,7 @@
 
 namespace mfc::impl {
 
-using ThreadProc = UINT(__cdecl*)(void* parameter);
+using ThreadProc = UINT(*)(void* parameter);
 
 // CWinThread (0x68 bytes; CCmdTarget's 20 slots, then the thread's; the destructor and
 // Delete are here, the message loop is not: the game's threads only run their procedure on a host thread
@@ -54,7 +54,7 @@ struct WinThread : CCmdTarget {
     MSG msgCur;
     void* threadParams;
     ThreadProc threadProc;
-    void(__cdecl* oleTermOrFreeLib)(BOOL, BOOL);
+    void(*oleTermOrFreeLib)(BOOL, BOOL);
     void* messageFilter;
     POINT cursorLast;
     UINT msgLast;
@@ -66,10 +66,10 @@ static_assert(offsetof(WinThread, cursorLast) == 0x5C && offsetof(WinThread, msg
 // AfxBeginThread: a new CWinThread for `procedure`, its thread created suspended
 // (CreateThread: started, then held until the creator has its handle), the priority set,
 // then resumed unless `flags` has CREATE_SUSPENDED. Null when the thread cannot be created. Image only.
-WinThread* __stdcall AfxBeginThread(ThreadProc procedure, void* parameter, int priority, UINT stackSize,
+WinThread* AfxBeginThread(ThreadProc procedure, void* parameter, int priority, UINT stackSize,
                                     DWORD flags, LPSECURITY_ATTRIBUTES security);
 // AfxEndThread (does not return): the current thread's OLE hook, then its object
 // deleted when `deleteThread` (and autoDelete) is set, then _endthreadex(exitCode). Image only.
-void __stdcall AfxEndThread(UINT exitCode, BOOL deleteThread);
+void AfxEndThread(UINT exitCode, BOOL deleteThread);
 
 } // namespace mfc::impl

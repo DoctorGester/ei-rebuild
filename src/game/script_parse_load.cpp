@@ -34,7 +34,7 @@
 using namespace scriptparse;
 
 #ifndef EI_VECTORS_REPLAY   // ei_vectors has its own (tests/vectors/replay_script.cpp)
-int __cdecl CScript::Error(CScript* script, int line, int code, const char* format, ...) {
+int CScript::Error(CScript* script, int line, int code, const char* format, ...) {
     va_list args;
     va_start(args, format);
     const int result = ScriptErrorV(script, line, code, format, args);

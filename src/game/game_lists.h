@@ -14,8 +14,8 @@
 #include <memory>
 #include <type_traits>
 
-void __fastcall RefPtrRelease(RefPtr* self);
-void __fastcall ObjectHolderRelease(CEngineObject** self);
+void RefPtrRelease(RefPtr* self);
+void ObjectHolderRelease(CEngineObject** self);
 
 // The armour spells' 12-byte records: an engine object, a dword and a byte the
 // assignment copies (the three bytes after it are left).

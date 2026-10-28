@@ -128,7 +128,7 @@ inline void SetPlainCellWords(PathCellList* list) {
 
 // Removes each cell equal (x, y) to the one before it (the first is compared with (-1, -1)); an emptied list
 // frees its blocks.
-void __fastcall PathCellsRemoveRepeats(PathCellList* list);
+void PathCellsRemoveRepeats(PathCellList* list);
 
 // A block a search reaches.
 struct BlockCost {
@@ -464,7 +464,7 @@ struct CRegionMap {
     bool SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y);
 
     // A progress report (stdcall, 0..1) during UpdateBlocks; cleared by it.
-    using ProgressFn = void(__stdcall*)(float);
+    using ProgressFn = void(*)(float);
 
     BlockSearch forward;
     BlockSearch backward;
@@ -479,7 +479,7 @@ static_assert(offsetof(CRegionMap, progress) == 0x118);
 static_assert(offsetof(CRegionMap, edges) == 0x11C);
 static_assert(offsetof(CRegionMap, regions) == 0x21C);
 static_assert(sizeof(CRegionMap) == 0x29C);
-CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self);
+CRegionMap* ConstructRegionMap(CRegionMap* self);
 
 // The path smoother's trellis: per path cell nine states, one per direction the unit leaves the cell in (index
 // direction - 1; index 8 unused), each the cheapest cost so far and its back-pointer chain.
@@ -876,9 +876,9 @@ struct SpiralCache {
 // then to the nearest integer.
 int WorldToCell(float world);
 
-void __fastcall InitCostTables(CAIMap* map);
+void InitCostTables(CAIMap* map);
 // Standing level of size class `sizeClass` (0..7): (2 - height) * 16, at least 0. Outside 0..7 the original
 // returns only the low byte 0 (the rest of the result is the argument), reproduced here.
-int __stdcall LevelForSizeClass(int sizeClass);
+int LevelForSizeClass(int sizeClass);
 // Standing level of `unit`: (2 - standingHeight) * 16, at least 0.
-int __stdcall StandingLevel(const CUnit* unit);
+int StandingLevel(const CUnit* unit);

@@ -21,14 +21,14 @@ extern std::uint8_t g_movieMode;   // app_helpers.cpp
 using ProtectionCheckList = stlp::list<std::uint8_t>;
 inline ProtectionCheckList& ProtectionChecks() { return *g_protectionChecks; }
 
-double __fastcall DiskFreeSpace(const char* path);
-bool __fastcall QuitGame(int exitCode);
-std::uint8_t __cdecl MovieMode();
-void __cdecl ScrambleObjects();
-void __cdecl DelayedProtectionCheck();
-void __stdcall ConstructProtectionChecks();
+double DiskFreeSpace(const char* path);
+bool QuitGame(int exitCode);
+std::uint8_t MovieMode();
+void ScrambleObjects();
+void DelayedProtectionCheck();
+void ConstructProtectionChecks();
 
 // (app_registry.cpp): a class the chunk archives can hold, by id and factory.
-void __fastcall TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, void*, std::uint32_t id,
+void TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, void*, std::uint32_t id,
                                      ChunkArchive::Factory factory);
 } // namespace app

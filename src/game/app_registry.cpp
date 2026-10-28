@@ -13,7 +13,7 @@
 
 namespace app {
 
-void __fastcall TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, void*, std::uint32_t id,
+void TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, void*, std::uint32_t id,
                                      ChunkArchive::Factory factory) {
     CRefCounted* prototype = factory();
     if (prototype) ++prototype->refs_;

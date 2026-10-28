@@ -59,7 +59,7 @@ template void AIRefTo<CUnit>::Save(CStream*);
 
 // Reads a count, then that many counted references added at the tail of the list, each loaded in
 // `context` (the trap's units, the brain's lists).
-void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, CWorld* context) {
+void CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, CWorld* context) {
     int count;
     stream->Read(&count, 4);
     while (count-- > 0) {

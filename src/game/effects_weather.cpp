@@ -57,7 +57,7 @@ void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32
 
 constinit stlp::vector<std::uint32_t> g_deadCells = /*007ABB58*/ {};
 std::uint8_t g_deadCellsGuard = /*007ABB64*/ {};
-void __cdecl DestroyDeadCells() { stlp::VectorAbi<std::uint32_t>::DestroyBase(&g_deadCells); }
+void DestroyDeadCells() { stlp::VectorAbi<std::uint32_t>::DestroyBase(&g_deadCells); }
 
 } // namespace
 

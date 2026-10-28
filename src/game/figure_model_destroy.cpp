@@ -22,9 +22,9 @@ stlp::vector<typename Map::Node*>& Buckets(Map& table) {
 }
 
 // STLport deallocate(p, bytes), and the node allocator's deallocate(p, n).
-void __fastcall Deallocate(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
+void Deallocate(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
 // Deallocates `count` pointers (the buckets).
-void __fastcall DeallocatePointers(void* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * sizeof(void*)); }
+void DeallocatePointers(void* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * sizeof(void*)); }
 
 // The figure manager's helpers: the model destructor (through its original address), the pair destructor, the
 // node allocator's deallocate, the base destructor.
@@ -49,7 +49,7 @@ void ForEachNode(Map& table, F visit) {
 
 } // namespace
 
-void __fastcall DestroyFigureModel(FigureModel* model) {
+void DestroyFigureModel(FigureModel* model) {
     using Node = FigureModel::AnimationMap::Node;
     FigureModel::AnimationMap& table = model->animationCache;
     // Every value, in iteration order.

@@ -455,7 +455,7 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
 
 // Returns the sequence id (generation << 8 | slot) or -1.
 int CSoundManager::AddSequence(const SoundNameArray* names, int priority, const float* position, float nearDist,
-                               float farDist, int randomOrder, int count, int(__fastcall* chooser)(int, int)) {
+                               float farDist, int randomOrder, int count, int(*chooser)(int, int)) {
     if (enabled == 0 || names->empty()) return -1;
     int i = 0;
     while (i < 8 && sequences[i].active != 0) ++i;

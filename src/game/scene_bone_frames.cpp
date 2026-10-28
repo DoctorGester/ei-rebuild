@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <cstring>
 
-Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a, const Quaternion& b);   // quaternion.cpp
+Quaternion* MultiplyByConjugate(Quaternion* out, const Quaternion& a, const Quaternion& b);   // quaternion.cpp
 
 namespace scene {
 namespace {
@@ -51,7 +51,7 @@ RotationKey* Keys(CAnimationNode* bone) { return bone->rotationKeys_.data(); }
 
 } // namespace
 
-void __fastcall MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, int frame) {
+void MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, int frame) {
     for (int i = 0; i < std::ssize(bone->children_); ++i) MakeFrameRelative(bone, bone->children_[i], frame);
 
     RotationKey& key = Keys(bone)[frame];

@@ -45,7 +45,7 @@ public:
     QuietInvalidParameters& operator=(const QuietInvalidParameters&) = delete;
 
 private:
-    static void __cdecl Ignore(const wchar_t*, const wchar_t*, const wchar_t*, unsigned, std::uintptr_t) {}
+    static void Ignore(const wchar_t*, const wchar_t*, const wchar_t*, unsigned, std::uintptr_t) {}
     _invalid_parameter_handler previous_;
 };
 
@@ -144,7 +144,7 @@ std::int32_t LocalTime(const FILETIME& time) {
 
 } // namespace
 
-int __cdecl Open(const char* path, int flags, ...) {
+int Open(const char* path, int flags, ...) {
     int permissions = 0;
     if (flags & _O_CREAT) {
         va_list args;
@@ -155,33 +155,33 @@ int __cdecl Open(const char* path, int flags, ...) {
     return Sopen(path, flags, _SH_DENYNO, permissions);
 }
 
-int __cdecl Read(int fd, void* buffer, unsigned count) {
+int Read(int fd, void* buffer, unsigned count) {
     QuietInvalidParameters quiet;
     return _read(fd, buffer, count);
 }
 
-int __cdecl Write(int fd, const void* buffer, unsigned count) {
+int Write(int fd, const void* buffer, unsigned count) {
     QuietInvalidParameters quiet;
     return _write(fd, buffer, count);
 }
 
-long __cdecl Lseek(int fd, long offset, int origin) {
+long Lseek(int fd, long offset, int origin) {
     QuietInvalidParameters quiet;
     return _lseek(fd, offset, origin);
 }
 
-int __cdecl Close(int fd) {
+int Close(int fd) {
     QuietInvalidParameters quiet;
     return _close(fd);
 }
 
-long __cdecl Filelength(int fd) {
+long Filelength(int fd) {
     QuietInvalidParameters quiet;
     return _filelength(fd);
 }
 
 // Only the write bit of the mode is tested: a read-only file fails it.
-int __cdecl Access(const char* path, int mode) {
+int Access(const char* path, int mode) {
     constexpr int kWrite = 2;
     const DWORD attributes = gameapi::GetFileAttributesA(path);
     if (attributes == INVALID_FILE_ATTRIBUTES) return -1;
@@ -189,7 +189,7 @@ int __cdecl Access(const char* path, int mode) {
     return 0;
 }
 
-long __cdecl Findfirst(const char* pattern, gamecrt::FindData* data) {
+long Findfirst(const char* pattern, gamecrt::FindData* data) {
     WIN32_FIND_DATAA found;
     const HANDLE handle = gameapi::FindFirstFileA(pattern, &found);
     if (handle == INVALID_HANDLE_VALUE) return -1;
@@ -204,7 +204,7 @@ long __cdecl Findfirst(const char* pattern, gamecrt::FindData* data) {
 
 // _openfile: the first letter is required (r, w or a); the letters after it are read up to
 // one that is unknown or repeats its group, which ends the mode without failing it.
-gamecrt::CrtFile* __cdecl Fopen(const char* path, const char* mode) {
+gamecrt::CrtFile* Fopen(const char* path, const char* mode) {
     int flags;
     switch (mode[0]) {
     case 'r': flags = _O_RDONLY; break;
@@ -269,33 +269,33 @@ gamecrt::CrtFile* __cdecl Fopen(const char* path, const char* mode) {
     return reinterpret_cast<gamecrt::CrtFile*>(file);
 }
 
-int __cdecl Fclose(gamecrt::CrtFile* file) {
+int Fclose(gamecrt::CrtFile* file) {
     QuietInvalidParameters quiet;
     return std::fclose(HostFile(file));
 }
 
-int __cdecl Fseek(gamecrt::CrtFile* file, long offset, int origin) {
+int Fseek(gamecrt::CrtFile* file, long offset, int origin) {
     QuietInvalidParameters quiet;
     return std::fseek(HostFile(file), offset, origin);
 }
 
-long __cdecl Ftell(gamecrt::CrtFile* file) {
+long Ftell(gamecrt::CrtFile* file) {
     QuietInvalidParameters quiet;
     return std::ftell(HostFile(file));
 }
 
-std::size_t __cdecl Fread(void* to, std::size_t size, std::size_t count, gamecrt::CrtFile* file) {
+std::size_t Fread(void* to, std::size_t size, std::size_t count, gamecrt::CrtFile* file) {
     QuietInvalidParameters quiet;
     return std::fread(to, size, count, HostFile(file));
 }
 
-std::size_t __cdecl Fwrite(const void* from, std::size_t size, std::size_t count, gamecrt::CrtFile* file) {
+std::size_t Fwrite(const void* from, std::size_t size, std::size_t count, gamecrt::CrtFile* file) {
     QuietInvalidParameters quiet;
     return std::fwrite(from, size, count, HostFile(file));
 }
 
 // A null stream flushes every stream (VC6's flsall: 0, or EOF when one fails), as the host's does.
-int __cdecl Fflush(gamecrt::CrtFile* file) {
+int Fflush(gamecrt::CrtFile* file) {
     QuietInvalidParameters quiet;
     return std::fflush(file ? HostFile(file) : nullptr);
 }

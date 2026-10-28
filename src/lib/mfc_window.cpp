@@ -54,7 +54,7 @@ public:
 } // namespace
 
 // a static initialiser (cdecl; the list holds a jump to its body).
-void __cdecl RegisterDragListMessage() { g_dragListMessage = gameapi::RegisterWindowMessageA("commctrl_DragListMsg"); }
+void RegisterDragListMessage() { g_dragListMessage = gameapi::RegisterWindowMessageA("commctrl_DragListMsg"); }
 
 const CRuntimeClass* CWnd::GetRuntimeClass() const { return &kClassCWnd; }
 const CRuntimeClass* CMenu::GetRuntimeClass() const { return &kClassCMenu; }
@@ -81,7 +81,7 @@ CWnd::~CWnd() {
     if (controlSite && controlSite->windowControl == this) controlSite->windowControl = nullptr;
 }
 
-void __fastcall DestroyStaticWindow(CWnd* window) { window->~CWnd(); }
+void DestroyStaticWindow(CWnd* window) { window->~CWnd(); }
 
 void* __stdcall CreateCWnd() { return new CWnd(); }
 
@@ -91,7 +91,7 @@ void* __stdcall CreateCMenu() { return new CMenu(); }
 
 void* __stdcall CreateCTempMenu() { return new CTempMenu(); }
 
-int __stdcall MessageBoxText(const char* text, unsigned type, unsigned) {
+int MessageBoxText(const char* text, unsigned type, unsigned) {
     if (!(type & MB_ICONMASK)) {
         const unsigned buttons = type & MB_TYPEMASK;
         if (buttons == MB_OK || buttons == MB_OKCANCEL || buttons == MB_YESNOCANCEL || buttons == MB_YESNO) type |= MB_ICONEXCLAMATION;
@@ -101,7 +101,7 @@ int __stdcall MessageBoxText(const char* text, unsigned type, unsigned) {
     return gameapi::MessageBoxA(nullptr, text, title, type);
 }
 
-int __stdcall MessageBoxId(unsigned promptId, unsigned type, unsigned helpId) {
+int MessageBoxId(unsigned promptId, unsigned type, unsigned helpId) {
     CString prompt;
     prompt.LoadResourceString(promptId);
     if (helpId == static_cast<unsigned>(-1)) helpId = promptId;

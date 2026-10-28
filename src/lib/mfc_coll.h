@@ -75,9 +75,9 @@ struct CStringArray {
     void Serialize(CArchive* ar);                       // (vtable slot 2)
 
     // array_s.cpp's element helpers (cdecl).
-    static void __cdecl ConstructElements(CString* elements, int count);
-    static void __cdecl DestructElements(CString* elements, int count);
-    static void __cdecl CopyElements(CString* dest, const CString* source, int count);
+    static void ConstructElements(CString* elements, int count);
+    static void DestructElements(CString* elements, int count);
+    static void CopyElements(CString* dest, const CString* source, int count);
 };
 static_assert(sizeof(CStringArray) == 0x14);
 

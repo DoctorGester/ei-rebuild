@@ -57,7 +57,7 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 // --- Helpers -------------------------------------------------------------------------------------
 
 // The storage of `a1` strings back to the pool.
-void __fastcall StringsFree(std::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * sizeof(std::string)); }
+void StringsFree(std::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * sizeof(std::string)); }
 
 // --- The dressed units ---------------------------------------------------------------------------
 
@@ -77,7 +77,7 @@ using RecordList = stlp::vector<TextureRecord>;
 
 } // namespace
 
-void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list);
+void UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list);
 
 namespace {
 
@@ -281,7 +281,7 @@ void CWorldClient::BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp:
 // armour's type; item i goes to record i + 1). The head list two: [0] the helmet row items[0] (0x3005) and
 // [1] the shown extra weapon (0x3004, the weapon's type) when its index is within the list. items[1..6] are
 // read whatever the item list's size; an id past its table reads through a null record (it faults).
-void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list) {
+void UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list) {
     constexpr std::uint32_t kBody = 0x32, kArmourPiece = 0x3005, kWeapon = 0x3004;
     list->clear();
     auto& items = const_cast<IdList&>(record->items);

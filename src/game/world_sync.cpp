@@ -25,7 +25,7 @@
 #include <memory>
 #include <vector>
 
-void __fastcall DiffObjectSets(std::vector<CEngineObject*>* sent, std::vector<CEngineObject*>* current,
+void DiffObjectSets(std::vector<CEngineObject*>* sent, std::vector<CEngineObject*>* current,
                                std::vector<CEngineObject*>* added, std::vector<CEngineObject*>* gone,
                                std::vector<CEngineObject*>* same);
 
@@ -72,10 +72,10 @@ StaticPtrArray& Added() { return g_added; }
 StaticPtrArray& Kept() { return g_kept; }
 StaticPtrArray& Removed() { return g_removed; }
 // The exit functions: each frees its array's block (the fields stay).
-void __cdecl FreeCollected() { lib::FreeStorage(g_collected); }
-void __cdecl FreeAdded() { lib::FreeStorage(g_added); }
-void __cdecl FreeKept() { lib::FreeStorage(g_kept); }
-void __cdecl FreeRemoved() { lib::FreeStorage(g_removed); }
+void FreeCollected() { lib::FreeStorage(g_collected); }
+void FreeAdded() { lib::FreeStorage(g_added); }
+void FreeKept() { lib::FreeStorage(g_kept); }
+void FreeRemoved() { lib::FreeStorage(g_removed); }
 std::uint8_t g_staticsGuard = /*007AFF58*/ {};
 std::uint8_t& StaticsGuard() { return g_staticsGuard; }
 using AtExitFunction = void(__cdecl*)();

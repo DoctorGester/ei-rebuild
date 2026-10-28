@@ -30,7 +30,7 @@ public:
 };
 // A new unnamed record with no references (operator new and the constructor: the party constructed and
 // created, an empty name). The application's start registers it with the class registry as class 2.
-CRefCounted* __cdecl CreatePartyRecord();
+CRefCounted* CreatePartyRecord();
 
 // The named records: an STLport vector of counted pointers, then two strings.
 struct NamedPartyRecords {
@@ -60,16 +60,16 @@ struct NamedPartyRecords {
 
 // New game: releases every record, empties the two strings, adds one unnamed record and gives its party the
 // member "Hero" ("Human Hero"), the zone text "gz1g" and the variable gtime = 6.
-void __fastcall PartyRecordsReset(NamedPartyRecords* list);
+void PartyRecordsReset(NamedPartyRecords* list);
 
 // The party manager (party_manager.h). __thiscall. New game: the records reset, then five / four templates.
 struct PartyManager;
-void __fastcall PartyManagerNewGame(PartyManager* manager);
-void __fastcall PartyManagerNewGameFour(PartyManager* manager);
+void PartyManagerNewGame(PartyManager* manager);
+void PartyManagerNewGameFour(PartyManager* manager);
 // *out = the global counter, then the counter is raised; returns it.
-int __stdcall PartyNextId(int* out);
+int PartyNextId(int* out);
 
 // The party a script's "owner::name" text refers to: `name` loses its "owner::" prefix; an owner (empty
 // without "::") equal to the manager's current name (NamedPartyRecords::text10) gives the player's own
 // party, any other the records' party of that owner (PartyRecordsFind). Null without a player.
-CParty* __fastcall PartyForScript(CPlayer* player, std::string* name);
+CParty* PartyForScript(CPlayer* player, std::string* name);

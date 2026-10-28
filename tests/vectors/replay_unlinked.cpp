@@ -39,10 +39,10 @@ namespace {
 
 // game_arrays.cpp's other element types.
 void EffectParticle::ReleaseSource() EI_UNLINKED("EffectParticle::ReleaseSource")
-void __fastcall aligned::ArrayAt8Free(void*) EI_UNLINKED("aligned::ArrayAt8Free")
-void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective*) EI_UNLINKED("ScriptQuestObjectiveDestruct")
-void __fastcall zone::ExitDestruct(ZoneExit*) EI_UNLINKED("zone::ExitDestruct")
-void __fastcall zone::ZoneRecordDestruct(MapRecord*) EI_UNLINKED("zone::ZoneRecordDestruct")
+void aligned::ArrayAt8Free(void*) EI_UNLINKED("aligned::ArrayAt8Free")
+void ScriptQuestObjectiveDestruct(ScriptQuestObjective*) EI_UNLINKED("ScriptQuestObjectiveDestruct")
+void zone::ExitDestruct(ZoneExit*) EI_UNLINKED("zone::ExitDestruct")
+void zone::ZoneRecordDestruct(MapRecord*) EI_UNLINKED("zone::ZoneRecordDestruct")
 
 // game_arrays.cpp's and game_lists.cpp's script effects (script_effects.cpp needs the world).
 void ScriptPointLight::ScriptPointLightDestruct() EI_UNLINKED("ScriptPointLight::ScriptPointLightDestruct")
@@ -58,14 +58,14 @@ void DeltaFieldElements::Destruct(DeltaField*, int) EI_UNLINKED("DeltaFieldEleme
 void SectorElements::Construct(Sector*, int) EI_UNLINKED("SectorElements::Construct")
 void terrain::RecordElements::Construct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Construct")
 void terrain::RecordElements::Destruct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Destruct")
-void __stdcall scene::FaceGroup::ConstructElements(scene::FaceGroup*, int) EI_UNLINKED("scene::FaceGroup::ConstructElements")
+void scene::FaceGroup::ConstructElements(scene::FaceGroup*, int) EI_UNLINKED("scene::FaceGroup::ConstructElements")
 void scene::FaceGroup::Destruct() EI_UNLINKED("scene::FaceGroup::Destruct")
-void __fastcall scene::FaceGroupArrayDestruct(scene::FaceGroupArray*) EI_UNLINKED("scene::FaceGroupArrayDestruct")
+void scene::FaceGroupArrayDestruct(scene::FaceGroupArray*) EI_UNLINKED("scene::FaceGroupArrayDestruct")
 void scene::InitSceneMesh(scene::SceneMesh*) EI_UNLINKED("scene::InitSceneMesh")
 void scene::SceneNode::Construct() EI_UNLINKED("scene::SceneNode::Construct")
 void scene::SceneNode::Destruct() EI_UNLINKED("scene::SceneNode::Destruct")
-mapspec::Behaviour* __fastcall mapspec::BehaviourConstruct(mapspec::Behaviour*) EI_UNLINKED("mapspec::BehaviourConstruct")
-void __fastcall mapspec::BehaviourDestruct(mapspec::Behaviour*) EI_UNLINKED("mapspec::BehaviourDestruct")
+mapspec::Behaviour* mapspec::BehaviourConstruct(mapspec::Behaviour*) EI_UNLINKED("mapspec::BehaviourConstruct")
+void mapspec::BehaviourDestruct(mapspec::Behaviour*) EI_UNLINKED("mapspec::BehaviourDestruct")
 
 // script_runtime_helpers.cpp's AI map and console helpers (CSectorMap::Add and Remove: replay_path.cpp).
 void CSectorMap::FindUnitsInRadius(const Vector3*, mfc::CTypedPtrList<CUnit>*, float)
@@ -83,19 +83,19 @@ std::string* CStream::ReadString(std::string*) EI_UNLINKED("CStream::ReadString"
 void CWorldServer::RemoveTimedObject(unsigned) EI_UNLINKED("CWorldServer::RemoveTimedObject")
 void ScriptPointLight::ScriptPointLightLoad(ScriptStream*) EI_UNLINKED("ScriptPointLight::ScriptPointLightLoad")
 void ScriptFxSource::ScriptFxSourceLoad(ScriptStream*) EI_UNLINKED("ScriptFxSource::ScriptFxSourceLoad")
-void __stdcall ScriptLightningElementsDestruct(ScriptLightning*, int) EI_UNLINKED("ScriptLightningElementsDestruct")
+void ScriptLightningElementsDestruct(ScriptLightning*, int) EI_UNLINKED("ScriptLightningElementsDestruct")
 
 // The game CRT's ports (crt.cpp, crt_file.cpp, crt_x87.cpp read the game CRT's data)
 // that no replay reaches: the node allocator (stlp.cpp), the multibyte string functions CString uses
 // (mfc_string.cpp), qsort (script_group.cpp), srand (random.cpp), acos (quaternion.cpp),
 // fwrite (crt_format.cpp); replay_crt.cpp has the ones the replays call.
-void* __fastcall libcrt::NodeAllocate(std::size_t) EI_UNLINKED("libcrt::NodeAllocate")
-void __fastcall libcrt::NodeDeallocate(void*, std::size_t) EI_UNLINKED("libcrt::NodeDeallocate")
-unsigned char* __cdecl libcrt::Mbslwr(unsigned char*) EI_UNLINKED("libcrt::Mbslwr")
-void __cdecl libcrt::Qsort(void*, std::size_t, std::size_t, int(__cdecl*)(const void*, const void*)) EI_UNLINKED("libcrt::Qsort")
-void __cdecl libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
-double __cdecl libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
-std::size_t __cdecl libcrt::Fwrite(const void*, std::size_t, std::size_t, gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fwrite")
+void* libcrt::NodeAllocate(std::size_t) EI_UNLINKED("libcrt::NodeAllocate")
+void libcrt::NodeDeallocate(void*, std::size_t) EI_UNLINKED("libcrt::NodeDeallocate")
+unsigned char* libcrt::Mbslwr(unsigned char*) EI_UNLINKED("libcrt::Mbslwr")
+void libcrt::Qsort(void*, std::size_t, std::size_t, int(__cdecl*)(const void*, const void*)) EI_UNLINKED("libcrt::Qsort")
+void libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
+double libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
+std::size_t libcrt::Fwrite(const void*, std::size_t, std::size_t, gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fwrite")
 
 // The library's exceptions and resources (mfc_archive.cpp, mfc_string.cpp, mfc.cpp's
 // TRY link, mfc_file.cpp).
@@ -103,21 +103,21 @@ mfc::impl::CFileException::~CFileException() {}   // the stack exceptions of mfc
 const mfc::impl::CRuntimeClass* mfc::impl::CFileException::GetRuntimeClass() const EI_UNLINKED("mfc::impl::CFileException::GetRuntimeClass")
 BOOL mfc::impl::CFileException::GetErrorMessage(char*, unsigned, unsigned*) EI_UNLINKED("mfc::impl::CFileException::GetErrorMessage")
 int mfc::impl::CException::ReportError(unsigned, unsigned) EI_UNLINKED("mfc::impl::CException::ReportError")
-void __stdcall mfc::impl::ThrowArchiveException(int, const char*) EI_UNLINKED("mfc::impl::ThrowArchiveException")
-void __stdcall mfc::impl::AfxClassInit(mfc::impl::CRuntimeClass*) EI_UNLINKED("mfc::impl::AfxClassInit")
-int __stdcall mfc::impl::AfxLoadString(unsigned, char*, unsigned) EI_UNLINKED("mfc::impl::AfxLoadString")
-mfc::ExceptionLink* __fastcall mfc::ConstructExceptionLink(mfc::ExceptionLink*) EI_UNLINKED("mfc::ConstructExceptionLink")
-void __cdecl mfc::TryCleanup() EI_UNLINKED("mfc::TryCleanup")
-int __stdcall mfc::impl::OsErrorToException(long) EI_UNLINKED("mfc::impl::OsErrorToException")
-void __stdcall mfc::impl::ThrowFileException(int, long, const char*) EI_UNLINKED("mfc::impl::ThrowFileException")
-void __stdcall mfc::impl::ThrowOsError(long, const char*) EI_UNLINKED("mfc::impl::ThrowOsError")
-void __stdcall mfc::impl::ThrowNotSupported() EI_UNLINKED("mfc::impl::ThrowNotSupported")
+void mfc::impl::ThrowArchiveException(int, const char*) EI_UNLINKED("mfc::impl::ThrowArchiveException")
+void mfc::impl::AfxClassInit(mfc::impl::CRuntimeClass*) EI_UNLINKED("mfc::impl::AfxClassInit")
+int mfc::impl::AfxLoadString(unsigned, char*, unsigned) EI_UNLINKED("mfc::impl::AfxLoadString")
+mfc::ExceptionLink* mfc::ConstructExceptionLink(mfc::ExceptionLink*) EI_UNLINKED("mfc::ConstructExceptionLink")
+void mfc::TryCleanup() EI_UNLINKED("mfc::TryCleanup")
+int mfc::impl::OsErrorToException(long) EI_UNLINKED("mfc::impl::OsErrorToException")
+void mfc::impl::ThrowFileException(int, long, const char*) EI_UNLINKED("mfc::impl::ThrowFileException")
+void mfc::impl::ThrowOsError(long, const char*) EI_UNLINKED("mfc::impl::ThrowOsError")
+void mfc::impl::ThrowNotSupported() EI_UNLINKED("mfc::impl::ThrowNotSupported")
 // mfc_file.cpp's CFileFind times (mfc_time.cpp) and CStdioFile streams (crt_file.cpp).
 mfc::impl::CTime* mfc::impl::CTime::ConstructFileTime(const FILETIME&, int) EI_UNLINKED("mfc::impl::CTime::ConstructFileTime")
-int __cdecl libcrt::Fclose(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fclose")
-int __cdecl libcrt::Fseek(gamecrt::CrtFile*, long, int) EI_UNLINKED("libcrt::Fseek")
-long __cdecl libcrt::Ftell(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Ftell")
-std::size_t __cdecl libcrt::Fread(void*, std::size_t, std::size_t, gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fread")
+int libcrt::Fclose(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fclose")
+int libcrt::Fseek(gamecrt::CrtFile*, long, int) EI_UNLINKED("libcrt::Fseek")
+long libcrt::Ftell(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Ftell")
+std::size_t libcrt::Fread(void*, std::size_t, std::size_t, gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fread")
 
 // world_construct.cpp (the server world, g_serverWorld) is not linked: the scripts' replays see a zero world, as they
 // saw the stand-in's zero bytes before C18t named it (no fixture fills it).
@@ -127,8 +127,8 @@ CWorldServer* TheServerWorld() {
 }
 
 // The game CRT's rand (crt.cpp's port reads the image's per-thread seed) and the fatal error report (app.cpp).
-int __cdecl libcrt::Rand() EI_UNLINKED("libcrt::Rand")
-int __cdecl game::FatalError(const char*, ...) EI_UNLINKED("game::FatalError")
+int libcrt::Rand() EI_UNLINKED("libcrt::Rand")
+int game::FatalError(const char*, ...) EI_UNLINKED("game::FatalError")
 
 // The object lookup (world_server.cpp) and the sector map's Move (sector_map.cpp).
 CMapObject* CWorldServer::FindObject(unsigned) EI_UNLINKED("CWorldServer::FindObject")
@@ -136,4 +136,4 @@ bool CSectorMap::Move(CMapObject*, const Vector3*) EI_UNLINKED("CSectorMap::Move
 
 // The game CRT's atexit (crt.cpp): the static initialisers of the linked game sources register their exit
 // functions; the replay runs none of them.
-int __cdecl libcrt::AtExit(libcrt::ExitFunction) { return 0; }
+int libcrt::AtExit(libcrt::ExitFunction) { return 0; }

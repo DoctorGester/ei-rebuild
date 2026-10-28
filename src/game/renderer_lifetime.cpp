@@ -109,7 +109,7 @@ void CVisualizator::SetSunAndAmbient(CLight* light, float r, float g, float b) {
 // --- The renderer -----------------------------------
 
 // The renderer.
-CSceneRenderer* __cdecl SceneRenderer() { return TheSceneRenderer(); }
+CSceneRenderer* SceneRenderer() { return TheSceneRenderer(); }
 
 CSceneRenderer::CSceneRenderer() {
     device_ = nullptr;
@@ -134,15 +134,15 @@ constinit CRITICAL_SECTION g_deviceLock = /*007AEE78*/ {};
 _RTL_CRITICAL_SECTION* TheDeviceLock() { return &g_deviceLock; }
 
 namespace {
-void __cdecl DestroySceneRenderer() { g_sceneRenderer.Destroy(); }
-void __cdecl DestroyDeviceLock() { gameapi::DeleteCriticalSection(&g_deviceLock); }
+void DestroySceneRenderer() { g_sceneRenderer.Destroy(); }
+void DestroyDeviceLock() { gameapi::DeleteCriticalSection(&g_deviceLock); }
 } // namespace
 
-void __cdecl ConstructSceneRenderer() {
+void ConstructSceneRenderer() {
     g_sceneRenderer.Construct();
     libcrt::AtExit(DestroySceneRenderer);
 }
-void __cdecl ConstructDeviceLock() {
+void ConstructDeviceLock() {
     gameapi::InitializeCriticalSection(&g_deviceLock);
     libcrt::AtExit(DestroyDeviceLock);
 }
@@ -223,7 +223,7 @@ void HeldDevice::Assign(CTextureDevice* value) {
 
 // --- Texture holders -----------------------------------------------------------------------------
 
-int __fastcall TextureHolderEnsureLoaded(HeldTexture* holder) {
+int TextureHolderEnsureLoaded(HeldTexture* holder) {
     CTexture* texture = *holder;
     if (!texture) return game::FatalError(NullTextureText());
     if (texture->flags_ & kTextureIsLoaded) return 1;

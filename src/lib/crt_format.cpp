@@ -909,7 +909,7 @@ struct VectorSink {
 
 } // namespace
 
-int __cdecl Vsprintf(char* buffer, const char* format, va_list args) {
+int Vsprintf(char* buffer, const char* format, va_list args) {
     UnboundedSink sink{buffer};
     const int written = Output<UnboundedSink>(sink).Run(format, args);
     *sink.next = '\0';

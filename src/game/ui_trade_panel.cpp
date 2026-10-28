@@ -294,7 +294,7 @@ void CTradePanel::DrawLists() {
 }
 
 namespace {
-void __fastcall TradeSnapshotRecord(CTradePanel*);
+void TradeSnapshotRecord(CTradePanel*);
 
 int PartyRecordCount() { return LocalPlayerData()->members_.size; }
 
@@ -396,7 +396,7 @@ void CTradePanel::SnapshotRecord() {
     record.bought = 0;
 }
 namespace {
-void __fastcall TradeSnapshotRecord(CTradePanel* self) { self->SnapshotRecord(); }
+void TradeSnapshotRecord(CTradePanel* self) { self->SnapshotRecord(); }
 } // namespace
 
 // --- The hero's statistics back from the record -------------------------------------------------------
@@ -424,7 +424,7 @@ void CTradePanel::RestoreRecord() {
     stats->HealSlots(newMaximum, static_cast<float>(oldHitPoints / oldMaximum * newMaximum - hitPoints));
 }
 namespace {
-void __fastcall TradeRestoreRecord(CTradePanel* self) { self->RestoreRecord(); }
+void TradeRestoreRecord(CTradePanel* self) { self->RestoreRecord(); }
 } // namespace
 
 // --- Settling and choosing the hero ------------------------------------------------------------------

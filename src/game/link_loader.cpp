@@ -14,7 +14,7 @@
 #include <cstring>
 #include <new>
 
-void __fastcall ReadLinkString(std::string* out, const char** cursor) {
+void ReadLinkString(std::string* out, const char** cursor) {
     std::uint32_t length;
     std::memcpy(&length, *cursor, 4);
     *cursor += 4;

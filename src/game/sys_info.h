@@ -86,7 +86,7 @@ extern lib::StaticObject<CSysInfo> g_sysInfo;   // sys_info.cpp: constructed by 
 // The translation unit's static initialisers (they run before WinMain). The four
 // constants: 2 pi, pi / 2, pi / 4 and
 // 1 / pi (copies of a header's constants; nothing found reading these).
-void __cdecl SysInfoInitTwoPi();
-void __cdecl SysInfoInitHalfPi();
-void __cdecl SysInfoInitQuarterPi();
-void __cdecl SysInfoInitInversePi();
+void SysInfoInitTwoPi();
+void SysInfoInitHalfPi();
+void SysInfoInitQuarterPi();
+void SysInfoInitInversePi();

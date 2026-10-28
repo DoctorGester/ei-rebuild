@@ -45,7 +45,7 @@ using PixelPair = RasterTriangle::Point;
 // A part's texture coordinates in 0..255 (a function-local static; its exit handler frees its block).
 constinit std::vector<RasterTriangle::Point> g_texturePixels = /*007AEEB8*/ {};
 std::uint8_t g_texturePixelsGuard = /*007AEEC8*/ {};
-void __cdecl FreeTexturePixels() { lib::FreeStorage(g_texturePixels); }
+void FreeTexturePixels() { lib::FreeStorage(g_texturePixels); }
 std::vector<PixelPair>& TexturePixels() {
     auto& constructed = g_texturePixelsGuard;
     auto& pixels = g_texturePixels;
@@ -161,7 +161,7 @@ int DrawPartCommon(CLinkMesh* mesh, const std::string* name, int flags, CDXSurfa
 
 } // namespace
 
-void __cdecl FreeMovedPackets() { lib::FreeStorage(g_movedPackets); }
+void FreeMovedPackets() { lib::FreeStorage(g_movedPackets); }
 
 // ---- 7 / 8: the colours ----------------------------------------------------------------------------
 

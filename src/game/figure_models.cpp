@@ -82,7 +82,7 @@ constexpr std::uint32_t kPrimes[kPrimeCount] = /*0073B914*/ {
 // inlines it: empty functors (the original copies an uninitialised stack byte into them; ours 0), no
 // elements, buckets for the first prime of the list (kPrimes) not below 100, all null. Then the three
 // archives are new 0x6C-byte objects, null when the allocation fails.
-FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
+FigureModel* ConstructFigureModel(FigureModel* model) {
     AnimationMap& table = model->animationCache;
     std::uint8_t* functors = table.Functors();
     functors[0] = 0;

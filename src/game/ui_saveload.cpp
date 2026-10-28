@@ -397,7 +397,7 @@ std::string SlotFolder(const char* slot) {
 }
 } // namespace
 
-void __fastcall QuickSave(const char* slot, char stepFrame) {
+void QuickSave(const char* slot, char stepFrame) {
     if (IsMultiplayerClient()) return;
     double space = app::DiskFreeSpace(DataFolderText());
     // 0 means unknown: no check.
@@ -447,7 +447,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     TheCursor()->ChangeShape(0);
 }
 
-void __fastcall QuickLoad(const char* slot) {
+void QuickLoad(const char* slot) {
     if (IsMultiplayerClient()) return;
     std::string folder = SlotFolder(slot);
     if (libcrt::Access(folder.c_str(), 0) == -1) return;

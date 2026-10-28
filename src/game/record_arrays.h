@@ -50,7 +50,7 @@ using DeltaFields = ArrayAbi<DeltaField, DeltaFieldElements>;
 
 // Music themes: the names empty, both name arrays constructed; destroyed from the last member to the first.
 void InitTheme(MusicTheme* p);
-void __fastcall DestroyTheme(MusicTheme* p);
+void DestroyTheme(MusicTheme* p);
 struct ThemeElements : EachElements<MusicTheme, InitTheme, DestroyTheme> {
     // Moves themes within or between storages: the names moved (std::string), the name arrays as bytes.
     static void Relocate(MusicTheme* to, MusicTheme* from, int count);

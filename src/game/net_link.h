@@ -115,7 +115,7 @@ public:
     void Disconnect() override;
 
     // Two links joined to each other; the first goes to the player's link, the second is returned.
-    static LoopbackLink* __stdcall CreatePair(CWorldHandle* player);
+    static LoopbackLink* CreatePair(CWorldHandle* player);
 
     StreamQueue queue_;
     LoopbackLink* peer_;         // counted

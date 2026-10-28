@@ -25,9 +25,9 @@
 
 namespace scriptparse {
 
-int __cdecl IsDigit(int c) { return gamecrt::isdigit(c); }
-int __cdecl IsSpace(int c) { return gamecrt::isspace(c); }
-int __cdecl Mbscmp(std::string_view a0, std::string_view a1) { return gamecrt::mbscmp(a0, a1); }
+int IsDigit(int c) { return gamecrt::isdigit(c); }
+int IsSpace(int c) { return gamecrt::isspace(c); }
+int Mbscmp(std::string_view a0, std::string_view a1) { return gamecrt::mbscmp(a0, a1); }
 
 } // namespace scriptparse
 
@@ -381,7 +381,7 @@ ScriptToken* ScriptToken::CopyConstruct(const ScriptToken& other) {
     return this;
 }
 
-void __stdcall ConstructTokens(ScriptToken* tokens, int count) {
+void ConstructTokens(ScriptToken* tokens, int count) {
     std::memset(tokens, 0, static_cast<unsigned>(count) * sizeof(ScriptToken));
     for (; count != 0; --count, ++tokens)
         if (tokens) tokens->Construct();
@@ -509,7 +509,7 @@ int CScript::FindScript(const char* name) {
 
 // ---- #define ------------------------------------------------------------------------------------
 
-void __fastcall AddDefine(ScriptDefineList* defines, const ScriptDefine* define) {
+void AddDefine(ScriptDefineList* defines, const ScriptDefine* define) {
     using Node = ScriptDefineList::Node;
     if (defines->head) {
         // Before the first define with a shorter name; when there is none, before the last one.

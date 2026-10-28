@@ -20,7 +20,7 @@
 
 namespace mapspec {
 
-void __stdcall EffectNotify(const std::string& kind, const std::string& family);
+void EffectNotify(const std::string& kind, const std::string& family);
 namespace {
 
 CBaseManager* Effects() { return TheServerWorld()->manager48_; }
@@ -82,7 +82,7 @@ void EffectSpec::Move(float dx, float dy, float dz) {
 }
 
 // Takes the two strings by value and only destroys them (the callee destroys its by-value parameters).
-void __stdcall EffectNotify(const std::string&, const std::string&) {}
+void EffectNotify(const std::string&, const std::string&) {}
 
 // ---- Particle sources ------------------------------------------------------------------
 

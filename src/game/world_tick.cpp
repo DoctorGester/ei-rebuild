@@ -211,8 +211,8 @@ constinit std::vector<unsigned> g_sleepingIds = /*007AFEE0*/ {};   // leave the 
 IdArray& RemovedIds() { return g_removedIds; }
 IdArray& SleepingIds() { return g_sleepingIds; }
 // The exit functions: each frees its array's block (the fields stay).
-void __cdecl FreeRemovedIds() { lib::FreeStorage(g_removedIds); }
-void __cdecl FreeSleepingIds() { lib::FreeStorage(g_sleepingIds); }
+void FreeRemovedIds() { lib::FreeStorage(g_removedIds); }
+void FreeSleepingIds() { lib::FreeStorage(g_sleepingIds); }
 std::uint8_t g_updateListGuards = /*007AFF00*/ {};
 std::uint8_t& UpdateListGuards() { return g_updateListGuards; }
 } // namespace

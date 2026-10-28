@@ -39,11 +39,11 @@ namespace {
 // The hero screen's own methods (on the window): the mode (Rebirth-patched), create the hero, the
 // statistics page's next, continue to the connection screen, rename, the voice's sound.
 void SetMode(CMpHeroScreen* screen, void*, int mode) { screen->SetModeVanilla(mode); }
-void __fastcall MpHeroCreate(CMpHeroScreen*);
-void __fastcall MpHeroAddNew(CMpHeroScreen*);
-void __fastcall MpHeroContinue(CMpHeroScreen*);
-void __fastcall MpHeroRename(CMpHeroScreen*);
-void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
+void MpHeroCreate(CMpHeroScreen*);
+void MpHeroAddNew(CMpHeroScreen*);
+void MpHeroContinue(CMpHeroScreen*);
+void MpHeroRename(CMpHeroScreen*);
+void MpHeroPlayVoice(CMpHeroScreen*);
 
 
 int HeroCount() {
@@ -361,7 +361,7 @@ void CMpHeroScreen::Rename() {
     surface->ReleaseDC();
 }
 namespace {
-void __fastcall MpHeroRename(CMpHeroScreen* self) { self->Rename(); }
+void MpHeroRename(CMpHeroScreen* self) { self->Rename(); }
 } // namespace
 
 // --- The voice's sound ----------------------------------------------------------------
@@ -411,7 +411,7 @@ void CMpHeroScreen::PlayVoice() {
     }
 }
 namespace {
-void __fastcall MpHeroPlayVoice(CMpHeroScreen* self) { self->PlayVoice(); }
+void MpHeroPlayVoice(CMpHeroScreen* self) { self->PlayVoice(); }
 } // namespace
 
 // --- Continue -------------------------------------------------------------------------
@@ -434,7 +434,7 @@ void CMpHeroScreen::Continue() {
     ui->PushWindow(box, 1, 1);
 }
 namespace {
-void __fastcall MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
+void MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
 } // namespace
 
 // --- The new hero's statistics and its creation --------------------------------------
@@ -485,7 +485,7 @@ void CMpHeroScreen::CreateHero() {
     SetMode(this, nullptr, kModeStats);
 }
 namespace {
-void __fastcall MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
+void MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
 } // namespace
 // --- A hero deleted, the message box's answer ------------------------------------------
 
@@ -514,7 +514,7 @@ MpHeroRecord* MpHeroRecord::DeletingDestruct(unsigned flags) {
     return this;
 }
 
-MpHeroRecord* __fastcall MpHeroRecord::CopyRange(const MpHeroRecord* first, const MpHeroRecord* last,
+MpHeroRecord* MpHeroRecord::CopyRange(const MpHeroRecord* first, const MpHeroRecord* last,
                                                  MpHeroRecord* dest) {
     for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++dest) dest->Assign(first);
     return dest;
@@ -559,7 +559,7 @@ void CMpHeroScreen::RefreshHeroScroll() {
     }
 }
 namespace {
-void __fastcall MpHeroDelete(CMpHeroScreen* self) { self->DeleteHero(); }
+void MpHeroDelete(CMpHeroScreen* self) { self->DeleteHero(); }
 } // namespace
 
 void CMpHeroScreen::OnMessageResult(int result) {
@@ -653,5 +653,5 @@ void CMpHeroScreen::AddNewHero() {
     SetMode(this, nullptr, kModeList);
 }
 namespace {
-void __fastcall MpHeroAddNew(CMpHeroScreen* self) { self->AddNewHero(); }
+void MpHeroAddNew(CMpHeroScreen* self) { self->AddNewHero(); }
 } // namespace

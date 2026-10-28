@@ -214,7 +214,7 @@ int EmitSpark(CParticleSource* s, Particle* p) {
 constexpr std::int32_t kFadeAlpha[35] = /*0078A774*/ {0, 32, 64, 128, 255, 207, 159, 111, 63, 15};
 const char* NoCarrierMessage() { return "Particle effect Modifier without carrier\n"; }
 
-void __cdecl DebugMessage(const char* a0) { game::DebugLog(a0); }
+void DebugMessage(const char* a0) { game::DebugLog(a0); }
 
 float AbsBits(float f) {
     std::uint32_t bits;
@@ -313,7 +313,7 @@ void PlaceModifierPoints(CParticleSource* s) {
 
 // Room for `count` 0x38-byte elements, 32-byte aligned; the block's own address is kept
 // just below the returned pointer (for operator_delete).
-ParticleElement* __fastcall AllocateElements(int count) {
+ParticleElement* AllocateElements(int count) {
     return lib::AlignedArray<ParticleElement>::Allocate(count);
 }
 

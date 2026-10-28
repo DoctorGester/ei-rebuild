@@ -58,14 +58,14 @@ static_assert(sizeof(CArchive) == 0x44);
 
 // AfxReadStringLength: a BYTE below 0xFF, else a WORD (0xFFFE: -1, a wide string follows; 0xFFFF:
 // a DWORD follows).
-unsigned __stdcall ReadStringLength(CArchive& ar);
+unsigned ReadStringLength(CArchive& ar);
 // operator<<(CArchive&, const CString&): the length so encoded, then the characters.
-CArchive& __stdcall StoreText(CArchive& ar, const CString& text);
+CArchive& StoreText(CArchive& ar, const CString& text);
 // operator>>(CArchive&, CString&): a wide string is converted to the ANSI code page.
-CArchive& __stdcall LoadText(CArchive& ar, CString& text);
+CArchive& LoadText(CArchive& ar, CString& text);
 
 // CString::operator=(LPCWSTR) is CString::AssignWide (mfc_string.h). _wcstombsz: WideCharToMultiByte into
 // `count` bytes, terminated; the bytes written with the terminator (0 for no room).
-int __cdecl WideToMultiByte(char* to, const wchar_t* from, unsigned count);
+int WideToMultiByte(char* to, const wchar_t* from, unsigned count);
 
 } // namespace mfc::impl

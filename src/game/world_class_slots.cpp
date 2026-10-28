@@ -74,15 +74,15 @@ const char* CFigureManager::GetClassName() { return kFigureManagerName; }
 int CFigureManager::GetClassId() { return kFigureManagerId; }
 const char* CFigureManager::GetFolderName() { return kFiguresFolderName; }
 
-const char* __fastcall I3DFigureClassName(CEngineObject*) { return kI3DFigureName; }
-int __fastcall I3DFigureClassId(CEngineObject*) { return kI3DFigureId; }
+const char* I3DFigureClassName(CEngineObject*) { return kI3DFigureName; }
+int I3DFigureClassId(CEngineObject*) { return kI3DFigureId; }
 
-const char* __fastcall FigureClientSpecificClassName(CEngineObject*) { return kFigureClientSpecificName; }
-int __fastcall FigureClientSpecificClassId(CEngineObject*) { return kFigureClientSpecificId; }
+const char* FigureClientSpecificClassName(CEngineObject*) { return kFigureClientSpecificName; }
+int FigureClientSpecificClassId(CEngineObject*) { return kFigureClientSpecificId; }
 
-int __fastcall UiObjectCreate(CEngineObject*) { return 1; }
-const char* __fastcall UiObjectClassName(CEngineObject*) { return kUiObjectName; }
-int __fastcall UiObjectClassId(CEngineObject*) { return kUiObjectId; }
+int UiObjectCreate(CEngineObject*) { return 1; }
+const char* UiObjectClassName(CEngineObject*) { return kUiObjectName; }
+int UiObjectClassId(CEngineObject*) { return kUiObjectId; }
 
 int CWorldServer::IsServer() { return 1; }
 

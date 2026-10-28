@@ -275,7 +275,7 @@ void CUnitClientSpecific::UpdateArrow() {
     }
 }
 
-void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
+void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,
                                        stlp::vector<std::string>* names, stlp::vector<std::string>* plainNames) {
     char text[0x401];

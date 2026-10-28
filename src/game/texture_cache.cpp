@@ -29,7 +29,7 @@ const char* ComposedTexturePattern() { return "textures\\*.mmp"; }
 const char* CantDeleteText() { return "Can't delete file \"%s\" due to %d.\n"; }
 } // namespace
 
-void __cdecl DeleteComposedTextures() {
+void DeleteComposedTextures() {
     mfc::CFileFind find;
     std::string pattern = std::string(TheDataFolder()) + ComposedTexturePattern();
     if (!find.FindFile(pattern, 0)) return;

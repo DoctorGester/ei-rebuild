@@ -135,7 +135,7 @@ void AddReference(CParticleSource* source) { ++source->refCount_; }
 void ReleaseSource(CParticleSource* source) { source->Release(); }
 
 // The feeble mind sequence's chooser: the first name once, then the second.
-int __fastcall FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
+int FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
 
 // Is there a record of `type` other than `index`?
 bool OtherRecordOfType(const EffectParticleArray& particles, int index, int type) {
@@ -175,7 +175,7 @@ void DropLight(CMapObjectClientSpecific* self) {
 
 } // namespace
 
-void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
+void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
                                 const char* suffix) {
     CSoundManager* sounds = TheSoundManager();
     if (kind == kStench) {

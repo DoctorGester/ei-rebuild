@@ -31,9 +31,9 @@ const char* TextTokenizer::Start() {
     return Next();
 }
 
-int __fastcall RemoveCarriageReturns(std::string* text) { return str::Remove(*text, '\r'); }
+int RemoveCarriageReturns(std::string* text) { return str::Remove(*text, '\r'); }
 
-std::string* __fastcall FindListedName(std::string* out, const std::vector<std::string>* names, const std::string& name) {
+std::string* FindListedName(std::string* out, const std::vector<std::string>* names, const std::string& name) {
     for (const std::string& listed : *names) {
         if (gamecrt::mbsicmp(listed.c_str(), name.c_str()) == 0) {
             *out = listed.c_str();

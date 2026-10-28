@@ -32,7 +32,7 @@ ItemStock* MagicList(ClassTemplate* t) { return &t->magic; }
 
 } // namespace
 
-void __fastcall ClassTemplateFill(ClassTemplate* t) {
+void ClassTemplateFill(ClassTemplate* t) {
     std::vector<std::string> names;
     CItemManager* items = t->ItemsParty()->ItemManager();
     CSpellManager* spells = t->SpellsParty()->SpellManager();
@@ -144,7 +144,7 @@ ClassTemplate* TemplateTable::Find(int type) const {
     return nullptr;
 }
 
-unsigned __fastcall ClassTemplatesQuestCompleted(PartyManager* manager) {
+unsigned ClassTemplatesQuestCompleted(PartyManager* manager) {
     ClassTemplateVector* v = &manager->templates;
     unsigned i = 0;
     while (i < static_cast<unsigned>(v->size())) {

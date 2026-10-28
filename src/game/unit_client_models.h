@@ -25,7 +25,7 @@ struct UnitPrototypeRecord;
 
 // Blits rectangle `from` of `source` to `at` (x, y) of `target`, then the same halved on each next level of
 // both mip chains until either ends (DirectDraw surfaces; nothing without them).
-void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, const tagRECT* from);
+void BlitMipChain(CTexture* target, const int* at, CTexture* source, const tagRECT* from);
 
 // What a unit says: an acks.db entry with its sound file name.
 struct SpeechRecord {
@@ -312,7 +312,7 @@ static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 // -1), the parts of the weapons `weaponIds` (also into `names`), and every plain part of the three rows (into
 // `plainNames`, the hair as "hr.<hair>"; the empty names of the helmet row too).
 
-void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
+void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,
                                        stlp::vector<std::string>* names, stlp::vector<std::string>* plainNames);
 

@@ -35,7 +35,7 @@ using ObjectList = mfc::CTypedPtrList<CUnit>;
 
 } // namespace
 
-void __cdecl InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6 /*0073FD50*/)); }
+void InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6 /*0073FD50*/)); }
 
 void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (x0 > x1 || y0 > y1) return;

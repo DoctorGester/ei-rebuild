@@ -35,7 +35,7 @@ struct ShapePair {
 };
 static_assert(sizeof(ShapePair) == 0x14);
 // Destroyed, the value released as its owner (RefPtr::Destroy), then the handle's reference dropped.
-void __fastcall DestroyShapePair(ShapePair* pair);
+void DestroyShapePair(ShapePair* pair);
 
 // The unit shapes' cache's map (stlp_hash.h's hashtable on these traits): pair<const handle, RefPtr>, 0x18-byte
 // nodes. A key lands in bucket handle.key % count; two handles are equal when their heights compare equal.

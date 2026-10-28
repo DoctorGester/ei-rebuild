@@ -23,7 +23,7 @@ namespace {
 
 // The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4). The game flow at 0x7AFE20
 // (world_briefing.cpp, world_game.cpp): loading a zone's quests. vector<string> (library): the block free.
-void __fastcall NamesFree(std::string* a0, std::size_t a1) { stlp::deallocate(a0, a1 * sizeof(std::string)); }
+void NamesFree(std::string* a0, std::size_t a1) { stlp::deallocate(a0, a1 * sizeof(std::string)); }
 
 
 

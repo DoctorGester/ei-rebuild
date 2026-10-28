@@ -127,10 +127,10 @@ long& MouseDragX() { return g_cursor->motion_.x; }
 long& MouseDragY() { return g_cursor->motion_.y; }
 
 namespace {
-void __cdecl DestroyGameCursor() { g_cursor->DestroyBody(); }
+void DestroyGameCursor() { g_cursor->DestroyBody(); }
 } // namespace
 
-void __cdecl ConstructGameCursor() {
+void ConstructGameCursor() {
     g_cursor->Construct();
     libcrt::AtExit(DestroyGameCursor);
 }

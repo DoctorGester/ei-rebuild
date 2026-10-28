@@ -29,34 +29,34 @@ namespace {
 using AtExitFunction = void(__cdecl*)();
 void RegisterExit(AtExitFunction exitFunction) { libcrt::AtExit(exitFunction); }
 
-void __cdecl DestroySpellDatabase() { g_spellDatabase->Destruct(); }
-void __cdecl DestroyItemDatabase() { g_itemDatabase->DestructBody(); }
-void __cdecl DestroyQuestDatabase() { g_questDatabase->Destruct(); }
-void __cdecl DestroyPrintsDatabase() { g_printsDatabase->Destruct(); }
-void __cdecl DestroyAckDatabase() { g_ackDatabase->Destruct(); }
+void DestroySpellDatabase() { g_spellDatabase->Destruct(); }
+void DestroyItemDatabase() { g_itemDatabase->DestructBody(); }
+void DestroyQuestDatabase() { g_questDatabase->Destruct(); }
+void DestroyPrintsDatabase() { g_printsDatabase->Destruct(); }
+void DestroyAckDatabase() { g_ackDatabase->Destruct(); }
 } // namespace
 
-void __cdecl ConstructSpellDatabase() {
+void ConstructSpellDatabase() {
     g_spellDatabase->Construct();
     RegisterExit(DestroySpellDatabase);
 }
 
-void __cdecl ConstructItemDatabase() {
+void ConstructItemDatabase() {
     g_itemDatabase->Construct();
     RegisterExit(DestroyItemDatabase);
 }
 
-void __cdecl ConstructQuestDatabase() {
+void ConstructQuestDatabase() {
     g_questDatabase->Construct();
     RegisterExit(DestroyQuestDatabase);
 }
 
-void __cdecl ConstructPrintsDatabase() {
+void ConstructPrintsDatabase() {
     g_printsDatabase->Construct();
     RegisterExit(DestroyPrintsDatabase);
 }
 
-void __cdecl ConstructAckDatabase() {
+void ConstructAckDatabase() {
     g_ackDatabase->Construct();
     RegisterExit(DestroyAckDatabase);
 }

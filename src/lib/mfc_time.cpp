@@ -80,7 +80,7 @@ CTime* CTime::ConstructFileTime(const FILETIME& at, int dst) {
     return this;
 }
 
-CTime* __stdcall CTime::CurrentTime(CTime* out) {
+CTime* CTime::CurrentTime(CTime* out) {
     out->time = Now();
     return out;
 }

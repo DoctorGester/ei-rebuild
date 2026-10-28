@@ -181,7 +181,7 @@ public:
 };
 // A console command's arguments (lower case).
 using Arguments = std::vector<std::string>;
-using CommandHandler = void(__fastcall*)(Arguments* args);
+using CommandHandler = void(*)(Arguments* args);
 
 // Keys compared by _mbscmp.
 using CommandMap = stlp::map<std::string, CommandHandler, stlp::MbsLess>;
@@ -204,7 +204,7 @@ struct CommandRegistration {
 };
 extern const CommandRegistration kCommandRegistrations[27];
 
-void __fastcall Execute(const char* text);
+void Execute(const char* text);
 // Rebirth's console additions. AddNewConsoleCommands: the executor registers
 // addon's commands on every call; the battle screen's drawing applies "nogui" to its panels.
 // AutoExec: the "Console AutoExec" lines, run before three of the game's console executions.
@@ -222,35 +222,35 @@ int Tokenize(const char* text, std::vector<std::string>* out);
 void RunScriptLine(const std::string& text, const Arguments& args, const char* prefix, const char* suffix);
 
 namespace commands {
-void __fastcall Help(Arguments* args);
-void __fastcall DebugInfo(Arguments* args);
-void __fastcall ConsolePos(Arguments* args);    // console
-void __fastcall History(Arguments* args);
-void __fastcall Filter(Arguments* args);
-void __fastcall Show(Arguments* args);
-void __fastcall ListVar(Arguments* args);
-void __fastcall LoadVar(Arguments* args);
-void __fastcall LastFps(Arguments* args);
-void __fastcall Exec(Arguments* args);          // exec, execute
-void __fastcall Give(Arguments* args);
-void __fastcall LootAll(Arguments* args);
-void __fastcall Join(Arguments* args);
-void __fastcall HostServer(Arguments* args);    // server
-void __fastcall MemUsage(Arguments* args);
-void __fastcall Disconnect(Arguments* args);
-void __fastcall FadeOut(Arguments* args);
-void __fastcall Net(Arguments* args);
-void __fastcall GenerateAcks(Arguments* args);
-void __fastcall Days(Arguments* args);
-void __fastcall PartyResend(Arguments* args);
-void __fastcall Kick(Arguments* args);
-void __fastcall Ban(Arguments* args);
-void __fastcall Fps(Arguments* args);
-void __fastcall Rate(Arguments* args);
-void __fastcall LocalRate(Arguments* args);
+void Help(Arguments* args);
+void DebugInfo(Arguments* args);
+void ConsolePos(Arguments* args);    // console
+void History(Arguments* args);
+void Filter(Arguments* args);
+void Show(Arguments* args);
+void ListVar(Arguments* args);
+void LoadVar(Arguments* args);
+void LastFps(Arguments* args);
+void Exec(Arguments* args);          // exec, execute
+void Give(Arguments* args);
+void LootAll(Arguments* args);
+void Join(Arguments* args);
+void HostServer(Arguments* args);    // server
+void MemUsage(Arguments* args);
+void Disconnect(Arguments* args);
+void FadeOut(Arguments* args);
+void Net(Arguments* args);
+void GenerateAcks(Arguments* args);
+void Days(Arguments* args);
+void PartyResend(Arguments* args);
+void Kick(Arguments* args);
+void Ban(Arguments* args);
+void Fps(Arguments* args);
+void Rate(Arguments* args);
+void LocalRate(Arguments* args);
 // generateacks' lines for a speech list / an environment speech list (a null list writes nothing).
-void __fastcall WriteSpeechLines(CStdioFile* file, const acks::Speeches* list);
-void __fastcall WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeeches* list);
+void WriteSpeechLines(CStdioFile* file, const acks::Speeches* list);
+void WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeeches* list);
 } // namespace commands
 
 } // namespace console

@@ -75,10 +75,10 @@ constinit lib::StaticObject<CDebugPanel> g_debugPanel = /*0079B930*/ {};
 static_assert(sizeof(CDebugPanel) == 0x44);
 
 namespace {
-void __cdecl DestroyDebugPanel() { g_debugPanel.Destroy(); }
+void DestroyDebugPanel() { g_debugPanel.Destroy(); }
 } // namespace
 
-void __cdecl ConstructDebugPanel() {
+void ConstructDebugPanel() {
     g_debugPanel.Construct();
     libcrt::AtExit(DestroyDebugPanel);
 }

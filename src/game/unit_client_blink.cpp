@@ -62,7 +62,7 @@ EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord
 // (DDSCAPS_TEXTURE | DDSCAPS_MIPMAP attachments, whose references are never released) with each of
 // the eight edges halved (SAR), until either has no further level. Ours hands the first level's
 // rectangles to the new renderer, which shows them over the skin in its shader on every level.
-void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, const RECT* from) {
+void BlitMipChain(CTexture* target, const int* at, CTexture* source, const RECT* from) {
     const int to[4] = {at[0], at[1], at[0] + (from->right - from->left), at[1] + (from->bottom - from->top)};
     const int rectangle[4] = {from->left, from->top, from->right, from->bottom};
     render::TexturePatch(target->surface_, to, source->surface_, rectangle);

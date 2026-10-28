@@ -18,7 +18,7 @@ constexpr int kTexels = 0x80;
 
 // The model manager's object `name`, else a new interface sprite standing in for it; one reference
 // taken for the caller. A failed sprite is not checked (neither is it in the original).
-CUiMesh* __fastcall ItemModel(const char* name) {
+CUiMesh* ItemModel(const char* name) {
     CFigureManager* manager = TheFigureManager();
     // The interface's model manager makes class 0x43 objects: interface sprites.
     CUiMesh* model = AsUiMesh(manager->NewFigure(name));

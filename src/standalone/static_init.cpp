@@ -19,125 +19,125 @@
 #include "lib/mfc_window.h"
 #include "lib/static_object.h"
 
-void __cdecl BuildSectorSpiralStatic();
-void __cdecl BuildSmoothTables();
-void __cdecl BuildWeatherNoise();
-void __cdecl ConstructAckDatabase();
-void __cdecl ConstructAiLogBuf();
-void __cdecl ConstructAiLogOut();
-void __cdecl ConstructAllLogBuf();
-void __cdecl ConstructAllLogOut();
-void __cdecl ConstructCamera();
-void __cdecl ConstructCheatCommands();
-void __cdecl ConstructClassRegistry();
-void __cdecl ConstructClientWorld();
-void __cdecl ConstructConsoleBuf();
-void __cdecl ConstructConsoleOut();
-void __cdecl ConstructDataFolder();
-void __cdecl ConstructDeviceLock();
-void __cdecl ConstructDiscFolder();
-void __cdecl ConstructDrawOrder();
-void __cdecl ConstructEventLogBuf();
-void __cdecl ConstructEventLogOut();
-void __cdecl ConstructEventPool();
-void __cdecl ConstructGameCursor();
-void __cdecl ConstructGameFlow();
-void __cdecl ConstructGraphicsLogBuf();
-void __cdecl ConstructGraphicsLogOut();
-void __cdecl ConstructInterface();
-void __cdecl ConstructItemDatabase();
-void __cdecl ConstructLastQuest();
-void __cdecl ConstructLeverTable();
-void __cdecl ConstructLineOutcodes();
-void __cdecl ConstructLogicSettings();
-void __cdecl ConstructMapDatabase();
-void __cdecl ConstructNetLogBuf();
-void __cdecl ConstructNetLogOut();
-void __cdecl ConstructPartyIdSet();
-void __cdecl ConstructPartyManager();
-void __cdecl ConstructPrintsDatabase();
-void __cdecl ConstructPublicCommands();
-void __cdecl ConstructQuestDatabase();
-void __cdecl ConstructReceiveBuffer();
-void __cdecl ConstructReceivedMessages();
-void __cdecl ConstructRegistryRoot();
-void __cdecl ConstructRpgLogBuf();
-void __cdecl ConstructRpgLogOut();
-void __cdecl ConstructSaveStream();
-void __cdecl ConstructSavedParties();
-void __cdecl ConstructSceneRenderer();
-void __cdecl ConstructScriptQuestName();
-void __cdecl ConstructScriptQuestObjectives();
-void __cdecl ConstructSendBuffer();
-void __cdecl ConstructServerWorld();
-void __cdecl ConstructSmoothPool();
-void __cdecl ConstructSmoothTables();
-void __cdecl ConstructSpellDatabase();
-void __cdecl ConstructSpellFootprint();
-void __cdecl ConstructSpiralLengths();
-void __cdecl ConstructSpiralOffsets();
-void __cdecl ConstructSpiralRadii();
-void __cdecl ConstructStartFolder();
-void __cdecl ConstructTextFolder();
-void __cdecl ConstructUnitAcksLogBuf();
-void __cdecl ConstructUnitAcksLogOut();
-void __cdecl ConstructUnitShapes();
-void __cdecl ConstructUnreadSet();
-void __cdecl ConstructWorkWords();
-void __cdecl DestroyQuestFiles();
-void __cdecl DestroyQuestFolders();
-void __cdecl DestroyZoneTable();
-void __cdecl FreeCandidates();
-void __cdecl FreeLineProjected();
-void __cdecl FreeLineVertices();
-void __cdecl FreeMovedPackets();
-void __cdecl FreeOffsetVertices();
-void __cdecl FreePixels();
-void __cdecl FreePoints();
-void __cdecl FreeQuads();
-void __cdecl FreeShadow52();
-void __cdecl FreeShadow54();
-void __cdecl FreeShadow5D();
-void __cdecl FreeShadowOther();
-void __cdecl FreeShadowUnits();
-void __cdecl FreeTakenMaterials();
-void __cdecl FreeTakenModifiers();
-void __cdecl FreeTakenPrototypes();
-void __cdecl FreeTakenSpells();
-void __cdecl FreeTouchedModels();
-void __cdecl FreeVisible52();
-void __cdecl FreeVisible54();
-void __cdecl FreeVisible5D();
-void __cdecl FreeVisibleOther();
-void __cdecl FreeVisibleUnits();
-void __cdecl InitCodeTables();
-void __cdecl InitDampScale();
-void __cdecl InitGameClientPointer();
-void __cdecl InitGameServerPointer();
-void __cdecl LinkDibClass();
-void __cdecl ReleaseLoadingHolder();
-void __cdecl SysInfoStaticGuard();
-void __cdecl SysInfoStaticHalfPi();
-void __cdecl SysInfoStaticInit();
-void __cdecl SysInfoStaticInversePi();
-void __cdecl SysInfoStaticQuarterPi();
-void __cdecl SysInfoStaticTwoPi();
+void BuildSectorSpiralStatic();
+void BuildSmoothTables();
+void BuildWeatherNoise();
+void ConstructAckDatabase();
+void ConstructAiLogBuf();
+void ConstructAiLogOut();
+void ConstructAllLogBuf();
+void ConstructAllLogOut();
+void ConstructCamera();
+void ConstructCheatCommands();
+void ConstructClassRegistry();
+void ConstructClientWorld();
+void ConstructConsoleBuf();
+void ConstructConsoleOut();
+void ConstructDataFolder();
+void ConstructDeviceLock();
+void ConstructDiscFolder();
+void ConstructDrawOrder();
+void ConstructEventLogBuf();
+void ConstructEventLogOut();
+void ConstructEventPool();
+void ConstructGameCursor();
+void ConstructGameFlow();
+void ConstructGraphicsLogBuf();
+void ConstructGraphicsLogOut();
+void ConstructInterface();
+void ConstructItemDatabase();
+void ConstructLastQuest();
+void ConstructLeverTable();
+void ConstructLineOutcodes();
+void ConstructLogicSettings();
+void ConstructMapDatabase();
+void ConstructNetLogBuf();
+void ConstructNetLogOut();
+void ConstructPartyIdSet();
+void ConstructPartyManager();
+void ConstructPrintsDatabase();
+void ConstructPublicCommands();
+void ConstructQuestDatabase();
+void ConstructReceiveBuffer();
+void ConstructReceivedMessages();
+void ConstructRegistryRoot();
+void ConstructRpgLogBuf();
+void ConstructRpgLogOut();
+void ConstructSaveStream();
+void ConstructSavedParties();
+void ConstructSceneRenderer();
+void ConstructScriptQuestName();
+void ConstructScriptQuestObjectives();
+void ConstructSendBuffer();
+void ConstructServerWorld();
+void ConstructSmoothPool();
+void ConstructSmoothTables();
+void ConstructSpellDatabase();
+void ConstructSpellFootprint();
+void ConstructSpiralLengths();
+void ConstructSpiralOffsets();
+void ConstructSpiralRadii();
+void ConstructStartFolder();
+void ConstructTextFolder();
+void ConstructUnitAcksLogBuf();
+void ConstructUnitAcksLogOut();
+void ConstructUnitShapes();
+void ConstructUnreadSet();
+void ConstructWorkWords();
+void DestroyQuestFiles();
+void DestroyQuestFolders();
+void DestroyZoneTable();
+void FreeCandidates();
+void FreeLineProjected();
+void FreeLineVertices();
+void FreeMovedPackets();
+void FreeOffsetVertices();
+void FreePixels();
+void FreePoints();
+void FreeQuads();
+void FreeShadow52();
+void FreeShadow54();
+void FreeShadow5D();
+void FreeShadowOther();
+void FreeShadowUnits();
+void FreeTakenMaterials();
+void FreeTakenModifiers();
+void FreeTakenPrototypes();
+void FreeTakenSpells();
+void FreeTouchedModels();
+void FreeVisible52();
+void FreeVisible54();
+void FreeVisible5D();
+void FreeVisibleOther();
+void FreeVisibleUnits();
+void InitCodeTables();
+void InitDampScale();
+void InitGameClientPointer();
+void InitGameServerPointer();
+void LinkDibClass();
+void ReleaseLoadingHolder();
+void SysInfoStaticGuard();
+void SysInfoStaticHalfPi();
+void SysInfoStaticInit();
+void SysInfoStaticInversePi();
+void SysInfoStaticQuarterPi();
+void SysInfoStaticTwoPi();
 
 namespace app {
-void __cdecl ConstructCameraFile();
-void __cdecl ConstructCommandLineMap();
-void __cdecl ConstructCommandLineMob();
-void __cdecl ConstructCommandLineScript();
-void __cdecl ConstructMovieFolder();
-void __cdecl ReleaseMouseAtExit();
+void ConstructCameraFile();
+void ConstructCommandLineMap();
+void ConstructCommandLineMob();
+void ConstructCommandLineScript();
+void ConstructMovieFolder();
+void ReleaseMouseAtExit();
 } // namespace app
 
 namespace devicebuffers {
-void __cdecl FreeClipIndices();
-void __cdecl FreeCornerOutcodes();
-void __cdecl FreeOutcodes();
-void __cdecl FreeProjected();
-void __cdecl FreeVertices();
+void FreeClipIndices();
+void FreeCornerOutcodes();
+void FreeOutcodes();
+void FreeProjected();
+void FreeVertices();
 } // namespace devicebuffers
 
 namespace ei::short_functions {
@@ -145,65 +145,65 @@ void Ret();
 } // namespace ei::short_functions
 
 namespace ei::static_init {
-void __cdecl Exit00704433();
-void __cdecl Exit00704471();
-void __cdecl Exit007044AF();
-void __cdecl Exit007044ED();
-void __cdecl Exit0070BF5A();
-void __cdecl Exit0070C0B8();
-void __cdecl Exit0070C0F8();
-void __cdecl Exit0070CC23();
-void __cdecl Exit0070CE6D();
-void __cdecl Exit0070D3F3();
-void __cdecl Exit0070D5EF();
-void __cdecl Exit0070D615();
-void __cdecl Exit0070DC3E();
-void __cdecl Exit0070DD30();
+void Exit00704433();
+void Exit00704471();
+void Exit007044AF();
+void Exit007044ED();
+void Exit0070BF5A();
+void Exit0070C0B8();
+void Exit0070C0F8();
+void Exit0070CC23();
+void Exit0070CE6D();
+void Exit0070D3F3();
+void Exit0070D5EF();
+void Exit0070D615();
+void Exit0070DC3E();
+void Exit0070DD30();
 } // namespace ei::static_init
 
 namespace mfc::impl {
-void __cdecl ConstructAfxData();
-void __cdecl ConstructSimpleMemoryException();
-void __cdecl ConstructSimpleNotSupportedException();
-void __cdecl ConstructSimpleResourceException();
-void __cdecl ConstructStringAlloc128();
-void __cdecl ConstructStringAlloc256();
-void __cdecl ConstructStringAlloc512();
-void __cdecl ConstructStringAlloc64();
-void __cdecl LinkByteArrayClass();
-void __cdecl LinkDWordArrayClass();
-void __cdecl LinkStringArrayClass();
-void __cdecl LinkWordArrayClass();
-void __cdecl RegisterDragListMessage();
+void ConstructAfxData();
+void ConstructSimpleMemoryException();
+void ConstructSimpleNotSupportedException();
+void ConstructSimpleResourceException();
+void ConstructStringAlloc128();
+void ConstructStringAlloc256();
+void ConstructStringAlloc512();
+void ConstructStringAlloc64();
+void LinkByteArrayClass();
+void LinkDWordArrayClass();
+void LinkStringArrayClass();
+void LinkWordArrayClass();
+void RegisterDragListMessage();
 } // namespace mfc::impl
 
 namespace net {
-void __cdecl CleanUpWinsock();
+void CleanUpWinsock();
 } // namespace net
 
 namespace options {
-void __cdecl ConstructGameOptions();
+void ConstructGameOptions();
 } // namespace options
 
 namespace static_lists {
-void __cdecl ConstructDeferredUnitsList();
-void __cdecl ConstructDriversList();
-void __cdecl ConstructProtectionChecksList();
+void ConstructDeferredUnitsList();
+void ConstructDriversList();
+void ConstructProtectionChecksList();
 } // namespace static_lists
 
 namespace strmap {
-void __cdecl ConstructDebugPanel();
+void ConstructDebugPanel();
 } // namespace strmap
 
 namespace terrain {
-void __cdecl ConstructProjectionOutcodes();
-void __cdecl FreeProjectionInput();
-void __cdecl FreeProjectionOutput();
+void ConstructProjectionOutcodes();
+void FreeProjectionInput();
+void FreeProjectionOutput();
 } // namespace terrain
 
 namespace unitdb {
-void __cdecl ConstructSkillDatabaseGlobal();
-void __cdecl ConstructUnitDatabaseGlobal();
+void ConstructSkillDatabaseGlobal();
+void ConstructUnitDatabaseGlobal();
 } // namespace unitdb
 namespace ei::static_init {
 

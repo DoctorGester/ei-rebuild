@@ -329,7 +329,7 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
 
 namespace {
 
-void __fastcall SessionDisconnect(CPlayer* session) { session->Disconnect(); }
+void SessionDisconnect(CPlayer* session) { session->Disconnect(); }
 
 // `ifLess` when a < b or unordered, else `otherwise`.
 float SelectLess(float a, float b, float ifLess, float otherwise) {
@@ -338,7 +338,7 @@ float SelectLess(float a, float b, float ifLess, float otherwise) {
 
 // One effect list: the records whose tick returns 0 are erased (through the list's own erase).
 template <typename T>
-using EraseFn = void**(__fastcall*)(stlp::list<T>*, void*, void**, typename stlp::list<T>::Node*);
+using EraseFn = void**(*)(stlp::list<T>*, void*, void**, typename stlp::list<T>::Node*);
 template <typename T>
 void RunEffects(stlp::list<T>& list, EraseFn<T> erase) {
     auto* head = list.head;

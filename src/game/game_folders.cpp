@@ -24,31 +24,31 @@ void DestroyOnce(lib::StaticObject<std::string>& folder, std::uint8_t bit) {
     folder.Destroy();
 }
 
-void __cdecl DestroyRegistryRoot() { DestroyOnce(g_registryRoot, 1); }
-void __cdecl DestroyStartFolder() { DestroyOnce(g_startFolder, 2); }
-void __cdecl DestroyDataFolder() { DestroyOnce(g_dataFolder, 4); }
-void __cdecl DestroyTextFolder() { DestroyOnce(g_textFolder, 8); }
-void __cdecl DestroyDiscFolder() { DestroyOnce(g_discFolder, 0x10); }
+void DestroyRegistryRoot() { DestroyOnce(g_registryRoot, 1); }
+void DestroyStartFolder() { DestroyOnce(g_startFolder, 2); }
+void DestroyDataFolder() { DestroyOnce(g_dataFolder, 4); }
+void DestroyTextFolder() { DestroyOnce(g_textFolder, 8); }
+void DestroyDiscFolder() { DestroyOnce(g_discFolder, 0x10); }
 
 } // namespace
 
-void __cdecl ConstructRegistryRoot() {
+void ConstructRegistryRoot() {
     g_registryRoot.Construct();
     libcrt::AtExit(DestroyRegistryRoot);
 }
-void __cdecl ConstructStartFolder() {
+void ConstructStartFolder() {
     g_startFolder.Construct();
     libcrt::AtExit(DestroyStartFolder);
 }
-void __cdecl ConstructDataFolder() {
+void ConstructDataFolder() {
     g_dataFolder.Construct();
     libcrt::AtExit(DestroyDataFolder);
 }
-void __cdecl ConstructTextFolder() {
+void ConstructTextFolder() {
     g_textFolder.Construct();
     libcrt::AtExit(DestroyTextFolder);
 }
-void __cdecl ConstructDiscFolder() {
+void ConstructDiscFolder() {
     g_discFolder.Construct();
     libcrt::AtExit(DestroyDiscFolder);
 }

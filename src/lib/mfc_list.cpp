@@ -10,14 +10,14 @@
 namespace mfc::impl {
 
 
-CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize) {
+CPlex* CreatePlex(CPlex*& head, unsigned count, unsigned elementSize) {
     auto* block = gamecrt::operator_new_bytes_as<CPlex>(sizeof(CPlex) + count * elementSize);
     block->next = head;
     head = block;
     return block;
 }
 
-int __fastcall FreePlexChain(CPlex* head) {
+int FreePlexChain(CPlex* head) {
     while (head) {
         CPlex* next = head->next;
         gamecrt::operator_delete(head);

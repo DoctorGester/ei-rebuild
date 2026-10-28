@@ -30,19 +30,19 @@ using devicebuffers::ProjectedVertex;
 // The strip's work buffers.
 constinit std::vector<TLVertex> g_strip = /*007AF000*/ {};
 std::vector<TLVertex>& Strip() { return g_strip; }      // TL vertices of the points
-void __cdecl FreeStrip() { lib::FreeStorage(g_strip); }
+void FreeStrip() { lib::FreeStorage(g_strip); }
 constinit std::vector<TLVertex> g_ribbon = /*007AF010*/ {};
 std::vector<TLVertex>& Ribbon() { return g_ribbon; }     // TL vertices, two per point
-void __cdecl FreeRibbon() { lib::FreeStorage(g_ribbon); }
+void FreeRibbon() { lib::FreeStorage(g_ribbon); }
 constinit std::vector<ProjectedVertex> g_projected = /*007AF020*/ {};
 std::vector<ProjectedVertex>& Projected() { return g_projected; }
-void __cdecl FreeProjected() { lib::FreeStorage(g_projected); }
+void FreeProjected() { lib::FreeStorage(g_projected); }
 constinit std::vector<std::uint16_t> g_indices = /*007AF030*/ {};
 std::vector<std::uint16_t>& Indices() { return g_indices; }
-void __cdecl FreeIndices() { lib::FreeStorage(g_indices); }
+void FreeIndices() { lib::FreeStorage(g_indices); }
 constinit std::vector<std::uint8_t> g_clipped = /*007AF040*/ {};
 std::vector<std::uint8_t>& Clipped() { return g_clipped; }    // a flag byte per point
-void __cdecl FreeClipped() { lib::FreeStorage(g_clipped); }
+void FreeClipped() { lib::FreeStorage(g_clipped); }
 std::uint8_t g_guards = /*007AF050*/ {};   // the function-local arrays constructed
 // The texture coordinates of the next cross section: u and the two v values.
 float g_bottomV = /*007AF054*/ {};
@@ -128,7 +128,7 @@ TLVertex* StripAt(int i) { return Strip().data() + i; }
 // The cross section at `src` across `direction`: k = (width * rhw * 15, rounded) / hypot(dx, dy) unrounded;
 // vertex 1 = src moved by (k*dy, -k*dx) with v at the top, vertex 2 moved by (-k*dy, k*dx) with v at the
 // bottom, both with the current u. Appends both to `*array` at `*count`.
-void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVertex** array, int* count, float width) {
+void EmitSection(const TLVertex* src, const float* direction, TLVertex** array, int* count, float width) {
     TLVertex* top = *array + (*count)++;
     const float scale = static_cast<float>(static_cast<double>(width) * src->rhw * kWidthScale);
     const double k = scale / libcrt::Hypot(direction[0], direction[1]);
@@ -147,7 +147,7 @@ void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVerte
 // The screen direction at point `index` of `points` (TL vertices): mode 1 the segment from
 // the previous point, mode 2 from the previous to the next point (the last point: the segment from
 // the previous one), else (1, 0). Returns out.
-float* __fastcall StripDirection(float* out, int index, int mode, const void* array) {
+float* StripDirection(float* out, int index, int mode, const void* array) {
     const auto* points = static_cast<const std::vector<TLVertex>*>(array);
     const TLVertex* v = points->data();
     if (mode == 1 || (mode == 2 && !(index < std::ssize(*points) - 1))) {

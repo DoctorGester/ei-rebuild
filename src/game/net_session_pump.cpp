@@ -19,7 +19,7 @@ namespace netlink {
 namespace {
 
 using RefList = stlp::list<RefPtr>;
-void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
+void NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
 
 // A new driver for `player`, put at the end of the owning list.
 DriverLink* NewDriver(DriverSession* self, CRefObject* player) {

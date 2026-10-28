@@ -80,6 +80,6 @@ static_assert(sizeof(Arrivals::Node) == 0x18);
 // The hero screen's item caches (ItemObjectCache, ui_item_info.h). Their constructors:
 // Map() (the header from the pool, empty), then the limit 50.
 template <typename Object>
-ItemObjectCache<Object>* __fastcall ConstructHeroItemCache(ItemObjectCache<Object>* self);
+ItemObjectCache<Object>* ConstructHeroItemCache(ItemObjectCache<Object>* self);
 
 } // namespace lib_trees

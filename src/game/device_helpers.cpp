@@ -35,7 +35,7 @@ void CRendererBase::operator delete(void* block) { gamecrt::operator_delete(bloc
 // The axis swap of the projection: x, -y, z, w on the diagonal. Returns the matrix. With Rebirth's WideScreen
 // x is scaled by width43 / width, so the 4:3 picture keeps its proportions on the wide screen
 // (widescreen::AxisScale); renderer_init.cpp calls it through its address (rule 9).
-Matrix4* __stdcall AxisSwapMatrix(Matrix4* out) {
+Matrix4* AxisSwapMatrix(Matrix4* out) {
     std::memset(out, 0, sizeof(*out));
     out->m[15] = 1.0f;
     out->m[10] = 1.0f;

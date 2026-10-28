@@ -207,19 +207,19 @@ const CString& CString::operator+=(const char* s) {
     return *this;
 }
 
-CString __stdcall operator+(const CString& a, const char* b) {
+CString operator+(const CString& a, const char* b) {
     CString s;
     StringCore::ConcatCopy(s, a.GetLength(), a, SafeLength(b), b);
     return s;
 }
 
-CString __stdcall operator+(const char* a, const CString& b) {
+CString operator+(const char* a, const CString& b) {
     CString s;
     StringCore::ConcatCopy(s, SafeLength(a), a, b.GetLength(), b);
     return s;
 }
 
-CString __stdcall operator+(const CString& a, const CString& b) {
+CString operator+(const CString& a, const CString& b) {
     CString s;
     StringCore::ConcatCopy(s, a.GetLength(), a, b.GetLength(), b);
     return s;

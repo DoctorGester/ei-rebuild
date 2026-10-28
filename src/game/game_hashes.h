@@ -35,7 +35,7 @@ struct FiguredGroupPair : FiguredGroupsTable::Value {
 
 
 // A handle that has resolved nothing: no reference, no cache, key -1 (the height is left as it is).
-inline ShapeCacheHandle* __fastcall InitShapeHandle(ShapeCacheHandle* self) {
+inline ShapeCacheHandle* InitShapeHandle(ShapeCacheHandle* self) {
     self->ref = nullptr;
     self->cache = nullptr;
     self->key = 0xFFFFFFFFu;

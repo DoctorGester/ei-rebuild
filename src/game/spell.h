@@ -217,7 +217,7 @@ static_assert(sizeof(CSpellEffect) == 0xA8);
 
 // Whether area spells hit `unit`: units with a size class, and those whose prototype's height is below 0.5
 // (or NaN).
-int __fastcall IsSpellTarget(CUnit* unit);
+int IsSpellTarget(CUnit* unit);
 
 using SpellModifierList = stlp::list<itemdb::SpellModifierRecord*>;
 using SpellModifierNode = SpellModifierList::Node;
@@ -421,5 +421,5 @@ static_assert(offsetof(CLightFactory, held_) == 0xC0 && offsetof(CLightFactory, 
               sizeof(CLightFactory) == 0xD8);
 
 // Case-insensitive; null if none.
-char* __stdcall SpellCodeByName(const char* name);
-char* __stdcall SpellModifierCodeByName(const char* name);
+char* SpellCodeByName(const char* name);
+char* SpellModifierCodeByName(const char* name);

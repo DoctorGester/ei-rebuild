@@ -15,10 +15,10 @@ constinit std::vector<std::uint8_t> g_cornerOutcodes = /*007AEE20*/ {};
 constinit std::vector<std::uint8_t> g_outcodes = /*007AEE30*/ {};
 
 // The exit functions: each frees its array's block (the fields stay).
-void __cdecl FreeOutcodes() { lib::FreeStorage(g_outcodes); }
-void __cdecl FreeCornerOutcodes() { lib::FreeStorage(g_cornerOutcodes); }
-void __cdecl FreeProjected() { lib::FreeStorage(g_projected); }
-void __cdecl FreeVertices() { lib::FreeStorage(g_vertices); }
-void __cdecl FreeClipIndices() { lib::FreeStorage(g_clipIndices); }
+void FreeOutcodes() { lib::FreeStorage(g_outcodes); }
+void FreeCornerOutcodes() { lib::FreeStorage(g_cornerOutcodes); }
+void FreeProjected() { lib::FreeStorage(g_projected); }
+void FreeVertices() { lib::FreeStorage(g_vertices); }
+void FreeClipIndices() { lib::FreeStorage(g_clipIndices); }
 
 } // namespace devicebuffers

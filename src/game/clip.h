@@ -27,24 +27,24 @@ inline float g_lastRatio = /*0079B664*/ {};
 
 // `out` = a + (b - a) * t for position, rhw and texture coordinates; colour and specular per byte, each step
 // rounded through a float, then to the nearest integer.
-void __fastcall LerpVertex(const TLVertex* a, const TLVertex* b, float t, TLVertex* out);
+void LerpVertex(const TLVertex* a, const TLVertex* b, float t, TLVertex* out);
 
 // The six plane clippers. Each clips the polygon `indices[0..*count)` against one plane, writing the result back
 // to `indices` and `*count`; intersection vertices are appended at `vertices[*vertexCount]`. Returns the new
 // count. The first argument (the triangle's combined outcode) is not used. KeepBelow keeps coordinates <= limit,
 // KeepAbove > limit.
-int __fastcall ClipXBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
-int __fastcall ClipXAbove(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
-int __fastcall ClipYBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
-int __fastcall ClipYAbove(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
-int __fastcall ClipZBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
-int __fastcall ClipZAbove(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
+int ClipXBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
+int ClipXAbove(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
+int ClipYBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
+int ClipYAbove(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
+int ClipZBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
+int ClipZAbove(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
 
 // Clips the triangle `tri[0..2]` to 0 <= x <= xMax, 0 <= y <= yMax, 0 <= z <= 1.
 // `outcodes[i]` holds vertex i's six outside bits. Returns -1 (all three outside one plane:
 // *indexCount = 0), 0 (all inside: *indexCount = 3) or 1 (clipped: `tri` holds *indexCount
 // indices, a fan of triangles).
-int __fastcall ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, std::uint16_t* tri,
+int ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, std::uint16_t* tri,
                             int* vertexCount, int* indexCount, float xMax, float yMax);
 
 } // namespace clip

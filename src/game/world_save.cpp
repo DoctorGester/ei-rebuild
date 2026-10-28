@@ -90,7 +90,7 @@ void WriteCopy(WorldStream* stream, const T& value) {
     stream->Write(&copy, sizeof(T));
 }
 
-void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
+void ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 
 } // namespace
 

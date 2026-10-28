@@ -200,8 +200,8 @@ static_assert(sizeof(ChunkArchive::ClassRegistry) == 0x28);
 
 // Whole chunks of a stream (the archive's top-level chunks). Reads one chunk header and its bytes into `to` (at
 // most 10,000,000). True when all of it was read.
-bool __fastcall ReadStreamChunk(CStream* in, char* id, CMemoryStream* to);
+bool ReadStreamChunk(CStream* in, char* id, CMemoryStream* to);
 // From the start of the stream, the `occurrence`-th chunk `id` into `to`; on a read error or the end, `to` is
 // cleared and false.
-bool __fastcall FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence);
-bool __fastcall WriteStreamChunk(CStream* out, int id, CMemoryStream* from);
+bool FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence);
+bool WriteStreamChunk(CStream* out, int id, CMemoryStream* from);

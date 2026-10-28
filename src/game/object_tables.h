@@ -18,10 +18,10 @@ class CStream;
 
 // Text key of a name: h = 5 h + toupper(c) over the bytes (unsigned arithmetic), then
 // h % 1000000000 + 1000000000. __fastcall (name in ECX).
-int __fastcall TextKeyFromName(const char* name);
+int TextKeyFromName(const char* name);
 
 // Text keys are 1000000000..1999999999. __fastcall (id in ECX).
-BOOL __fastcall IsTextKey(int id);
+BOOL IsTextKey(int id);
 
 // One "#allod" entry of map.txt.
 struct AllodRecord {
@@ -66,7 +66,7 @@ struct ZoneExit {
 static_assert(offsetof(ZoneExit, x1) == 0x14 && offsetof(ZoneExit, target) == 0x28);
 
 namespace zone {
-void __fastcall ExitDestruct(ZoneExit* self);   // zone_records.cpp
+void ExitDestruct(ZoneExit* self);   // zone_records.cpp
 } // namespace zone
 
 // The exits' ConstructElements (zero filled, the target the empty string) and
@@ -196,4 +196,4 @@ extern UiKeyName g_keyNames[kUiKeyNameCount];
 
 // The command bound to `key`: the text of the first key of g_keyNames whose scan code i (0..0x1FF)
 // has `key` in g_keyActions, or null. __fastcall (key in ECX).
-void* __fastcall FindCommandByKey(int key);
+void* FindCommandByKey(int key);

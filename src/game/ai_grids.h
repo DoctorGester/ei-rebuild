@@ -26,27 +26,27 @@ void FreeGrid(SearchGrid<T>& grid) {
     gamecrt::operator_delete(grid.rows);
 }
 
-void __fastcall AllocateNodeGrid(SearchGrid<SearchNode>* grid);
-void __fastcall AllocateByteGrid(SearchGrid<std::uint8_t>* grid);
+void AllocateNodeGrid(SearchGrid<SearchNode>* grid);
+void AllocateByteGrid(SearchGrid<std::uint8_t>* grid);
 // The region map's edge words, eight per block, all -1.
-void __fastcall AllocateEdgeGrid(SearchGrid<std::int16_t>* grid);
+void AllocateEdgeGrid(SearchGrid<std::int16_t>* grid);
 // The region map's representative cells, zeroed.
-void __fastcall AllocateZeroedByteGrid(SearchGrid<std::uint8_t>* grid);
-void __fastcall AllocateRegionGrid(SearchGrid<std::uint16_t>* grid);
+void AllocateZeroedByteGrid(SearchGrid<std::uint8_t>* grid);
+void AllocateRegionGrid(SearchGrid<std::uint16_t>* grid);
 // The map's cells: not passable, ground level 0, nothing on them, level 0 (unused_7 left as allocated).
-void __fastcall AllocateCellGrid(SearchGrid<AIMapCell>* grid);
+void AllocateCellGrid(SearchGrid<AIMapCell>* grid);
 // The map's occluder words: no occluder (bit 8), material 0, bit 7 clear; the other
 // bits are left as allocated.
-void __fastcall AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid);
+void AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid);
 
 // The event table's cells (Rebirth patches the resize that calls it).
 // The edge and representative-cell grids' default constructors (1 x 1, then the allocator; the region map's
 // constructor hands them to the vector constructor iterator).
-void __fastcall ConstructEdgeGrid(SearchGrid<std::int16_t>* grid);
-void __fastcall ConstructRepresentativeGrid(SearchGrid<std::uint8_t>* grid);
+void ConstructEdgeGrid(SearchGrid<std::int16_t>* grid);
+void ConstructRepresentativeGrid(SearchGrid<std::uint8_t>* grid);
 // The region grids' default constructor (1 x 1; the region map's constructor hands it
 // to the vector constructor iterator).
-void __fastcall ConstructRegionGrid(SearchGrid<std::uint16_t>* grid);
+void ConstructRegionGrid(SearchGrid<std::uint16_t>* grid);
 
-void __fastcall FillAreaLists(CAIMap* map);
+void FillAreaLists(CAIMap* map);
 

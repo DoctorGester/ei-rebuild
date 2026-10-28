@@ -31,7 +31,7 @@ namespace {
 // The positions with the offsets added (a lib::AlignedArray; a function-local static, freed at exit).
 constinit std::vector<VertexPacket> g_movedPositions = /*007C2E48*/ {};
 std::vector<VertexPacket>& MovedPositions() { return g_movedPositions; }
-void __cdecl FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
+void FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
 std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
 // The scale the lights' colours are set with and the "crown" option.
 float LightingCoefficient() { return options::TheOptions()->objectsLightingCoeff_; }

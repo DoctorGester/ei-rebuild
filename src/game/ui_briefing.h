@@ -270,7 +270,7 @@ public:
     int chatActive_;                 // the chat window takes the input
 };
 // What a speaker's controller calls when its dialogue animation has finished (its actionDone).
-void __fastcall SpeakerAnimationDone(CUnit* serverUnit);
+void SpeakerAnimationDone(CUnit* serverUnit);
 static_assert(offsetof(CBriefingScreen, exit_) == 0x164);
 static_assert(offsetof(CBriefingScreen, state_) == 0x16C);
 static_assert(offsetof(CBriefingScreen, topics_) == 0x170);

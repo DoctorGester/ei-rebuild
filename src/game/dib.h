@@ -74,5 +74,5 @@ struct CDXSurface;
 
 // A new bitmap of the surface's pixels inside `rect`, in the surface's depth (16 and 32 bits with its channel
 // masks), rows bottom-up. The surface is locked for reading meanwhile.
-CDib* __fastcall CaptureSurfaceRect(CDXSurface* surface, const RECT* rect);
-CDib* __fastcall CaptureSurface(CDXSurface* surface);
+CDib* CaptureSurfaceRect(CDXSurface* surface, const RECT* rect);
+CDib* CaptureSurface(CDXSurface* surface);

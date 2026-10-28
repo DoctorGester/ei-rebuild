@@ -208,7 +208,7 @@ namespace {
 // addresses of the array slots: it reads +0xC / +0x8 of those, the pointers three and two slots further on
 // (past the end for the last ones), so its order follows the heap. Here the sectors themselves are compared
 // (address_order.h).
-int __cdecl CompareSectors(const void* a, const void* b) {
+int CompareSectors(const void* a, const void* b) {
     const auto* x = *static_cast<const SectorData* const*>(a);
     const auto* y = *static_cast<const SectorData* const*>(b);
     if (x->sy < y->sy) return -1;
@@ -220,7 +220,7 @@ int __cdecl CompareSectors(const void* a, const void* b) {
 // SetSun's function-local static (guard bit 1, freed at exit).
 constinit std::vector<SectorData*> g_sortedSectors = /*007C8938*/ {};
 std::vector<SectorData*>& SortedSectors() { return g_sortedSectors; }
-void __cdecl FreeSortedSectors() { lib::FreeStorage(g_sortedSectors); }
+void FreeSortedSectors() { lib::FreeStorage(g_sortedSectors); }
 std::uint8_t g_sortedSectorsGuard = /*007C8948*/ {};
 
 // A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01

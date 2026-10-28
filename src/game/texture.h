@@ -176,7 +176,7 @@ static_assert(offsetof(CTextureDevice, stageSurfaces_) == 0x12C && offsetof(CTex
 static_assert(offsetof(CTextureDevice, depthFormats_) == 0xB4 && offsetof(CTextureDevice, formats_) == 0xBC);
 
 // Once a frame; returns the DirectDraw result (0).
-long __fastcall DevicePresent(CTextureDevice* device);
+long DevicePresent(CTextureDevice* device);
 static_assert(offsetof(CTextureDevice, ddraw_) == 0x0C);
 static_assert(offsetof(CTextureDevice, converter_) == 0x4C);
 static_assert(offsetof(CTextureDevice, primary_) == 0x14);
@@ -364,12 +364,12 @@ public:
 };
 
 // A null texture is a fatal error (its result returned); a loaded one gives 1.
-int __fastcall TextureHolderEnsureLoaded(struct HeldTexture* holder);
+int TextureHolderEnsureLoaded(struct HeldTexture* holder);
 
 constexpr std::uint32_t kTextureLoaded = 0x08;    // CEngineObject::flags_
 
 // Deletes every composed-skin cache file (<data path>textures\*.mmp).
-void __cdecl DeleteComposedTextures();
+void DeleteComposedTextures();
 
 // Class id 0x26.
 class CTextureManager : public CResourceManager {

@@ -16,10 +16,10 @@
 
 namespace net {
 
-IdPool* __fastcall IdPoolConstruct(IdPool* self);   // below
+IdPool* IdPoolConstruct(IdPool* self);   // below
 namespace {
 // An id pool's destructor: its vector of free ids freed.
-void __fastcall IdPoolDestruct(IdPool* pool) { pool->free.FreeStorage(); }
+void IdPoolDestruct(IdPool* pool) { pool->free.FreeStorage(); }
 // The CRT's eh vector constructor / destructor iterators take them as libcrt::Element<...>.
 using libcrt::Element;
 
@@ -27,7 +27,7 @@ using libcrt::Element;
 using netlists::ChunkElement;
 using netlists::FreedIdsElement;
 using netlists::PacketRecordElement;
-inline void* __fastcall NodeAllocate(std::size_t a0) { return libcrt::NodeAllocate(a0); }
+inline void* NodeAllocate(std::size_t a0) { return libcrt::NodeAllocate(a0); }
 
 void Put32(void* object, std::size_t offset, std::uint32_t v) { std::memcpy(static_cast<std::uint8_t*>(object) + offset, &v, 4); }
 
@@ -246,7 +246,7 @@ ReplicaEntry::~ReplicaEntry() { ReleaseEntryObject(this); }
 
 // An empty id pool (no free ids, next 0); the connection's constructor passes it to the vector constructor
 // iterator.
-IdPool* __fastcall IdPoolConstruct(IdPool* self) {
+IdPool* IdPoolConstruct(IdPool* self) {
     self->free.ConstructEmpty();
     self->next = 0;
     return self;

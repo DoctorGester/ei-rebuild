@@ -27,7 +27,7 @@ namespace {
 // Base vtables the inlined destructors write.
 
 // Out-of-line CArray destructors: object references.
-inline void __fastcall RefArrayDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
+inline void RefArrayDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
 template <typename T>
 void SetBaseVtable(mfc::CArray<T>* a, void* vtable) {
@@ -52,7 +52,7 @@ void FreeStrings(mfc::CArray<std::string>* a) {
 } // namespace
 
 // Members from the last to the first.
-void __fastcall ScriptVarsDestruct(ScriptVars* vars) {
+void ScriptVarsDestruct(ScriptVars* vars) {
     FreeStrings(&vars->groups.names);
     SetBaseVtable(&vars->groups.values, gamearrays::GroupArrayClass::Vtable());
     if (ScriptGroup* groups = vars->groups.values.data) {
@@ -71,7 +71,7 @@ void __fastcall ScriptVarsDestruct(ScriptVars* vars) {
     FreePlain(&vars->floats.values, mfc::impl::ScriptFloatsClass::Vtable());
 }
 
-void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition) {
+void ScriptDefinitionDestruct(ScriptDefinition* definition) {
     ScriptVars& vars = definition->vars;
     ScriptNamesDestruct(&vars.groups.names);
     SetBaseVtable(&vars.groups.values, gamearrays::GroupArrayClass::Vtable());
@@ -90,7 +90,7 @@ void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition) {
     std::destroy_at(&definition->name);
 }
 
-void __fastcall ScriptCmdDestruct(SSCCmd* cmd) {
+void ScriptCmdDestruct(SSCCmd* cmd) {
     SetBaseVtable(&cmd->subCalls, recordarrays::SubCallBaseClass::Vtable());
     if (ScriptSubCall* calls = cmd->subCalls.data) {
         for (int i = 0; i < cmd->subCalls.size; ++i) calls[i].DestroyElement(0);

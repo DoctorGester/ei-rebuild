@@ -27,7 +27,7 @@ DecalBuilder g_builder = /*007AF488*/ {};   // the function-local static of the 
 DecalBuilder& Builder() { return g_builder; }
 constinit std::vector<Vector4> g_partPoints = /*007AF478*/ {};
 std::vector<Vector4>& PartPoints() { return g_partPoints; }
-void __cdecl FreePartPoints() { lib::FreeStorage(g_partPoints); }
+void FreePartPoints() { lib::FreeStorage(g_partPoints); }
 std::uint8_t g_guards = /*007AF504*/ {};
 std::uint8_t& Guards() { return g_guards; }
 

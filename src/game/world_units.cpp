@@ -299,7 +299,7 @@ void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
 
 namespace {
 
-void __fastcall UnitSetDiplomacy(CUnit* a0, void*, int a2) { a0->SetHostileMask((std::uint32_t)a2); }
+void UnitSetDiplomacy(CUnit* a0, void*, int a2) { a0->SetHostileMask((std::uint32_t)a2); }
 
 // The timed objects' types (world_effect.h).
 constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B, kTimedParticle = 0x4A;

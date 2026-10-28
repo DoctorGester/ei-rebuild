@@ -115,7 +115,7 @@ static_assert(sizeof(AIObjectList) == 0x1C);
 constinit lib::StaticObject<AIObjectList> g_candidates = /*007C54C8*/ {};
 AIObjectList& Candidates() { return *g_candidates; }
 std::uint8_t g_candidatesGuard = /*007C54E4*/ {};
-void __cdecl DestroyCandidates() { mfc::impl::DestructList<mfc::impl::PtrListClass>(*g_candidates); }
+void DestroyCandidates() { mfc::impl::DestructList<mfc::impl::PtrListClass>(*g_candidates); }
 
 } // namespace
 

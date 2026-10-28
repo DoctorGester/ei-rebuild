@@ -64,7 +64,7 @@ void SetConsoleRect(int left, int top, int right, int bottom) {
 
 } // namespace
 
-void __fastcall Help(Arguments*) {
+void Help(Arguments*) {
     static constexpr const char* kLines[] = {
         "Commands are:",
         "HELP",
@@ -92,7 +92,7 @@ void __fastcall Help(Arguments*) {
 }
 
 // Debuginfo l<eft>|r<ight>|lt|lefttop|rt|righttop.
-void __fastcall DebugInfo(Arguments* args) {
+void DebugInfo(Arguments* args) {
     if (!args->empty()) {
         if (ArgIs(args, 0, "left") || ArgIs(args, 0, "l"))
             return SetDebugInfoRect(10, 10, 0x122, 0x24E);
@@ -107,7 +107,7 @@ void __fastcall DebugInfo(Arguments* args) {
 }
 
 // Console l<eft>|r<ight>|t<op>|b<ottom>|c<enter>|f<ullscreen> (800x600 coordinates).
-void __fastcall ConsolePos(Arguments* args) {
+void ConsolePos(Arguments* args) {
     if (!args->empty()) {
         if (ArgIs(args, 0, "left") || ArgIs(args, 0, "l"))
             return SetConsoleRect(0, 0, 0xC8, 0x258);
@@ -126,13 +126,13 @@ void __fastcall ConsolePos(Arguments* args) {
 }
 
 // History <lines>.
-void __fastcall History(Arguments* args) {
+void History(Arguments* args) {
     if (args->empty()) return PrintLine("Invalid parameters");
     TheInterface()->SetConsoleHistory(std::atoi((*args)[0].c_str()));
 }
 
 // Filter (prints the shown categories), filter <type> (shows only that one), filter <type> 1|on|0|off.
-void __fastcall Filter(Arguments* args) {
+void Filter(Arguments* args) {
     if (args->empty()) {
         static constexpr const char* kLabels[] = {"AI: ", "\nEVENT: ", "\nGRAPHICS: ", "\nRPG: ", "\nUNITACKS: ", "\nNET: "};
         GameOStream& os = Out();
@@ -162,7 +162,7 @@ void __fastcall Filter(Arguments* args) {
 }
 
 // Show fps|managers|render_info|world_data 1|on|0|off (anything else: nothing).
-void __fastcall Show(Arguments* args) {
+void Show(Arguments* args) {
     if (args->size() < 2) return PrintLine("Invalid number of parameters for command \"show\"");
     void (CWorldClient::*on)();
     void (CWorldClient::*off)();
@@ -187,7 +187,7 @@ void __fastcall Show(Arguments* args) {
 
 // Listvar <player> [file]: prints the player's global variables ("name = value") and
 // writes them to the file ("%s %g") when one is given. In a network game the local player is used.
-void __fastcall ListVar(Arguments* args) {
+void ListVar(Arguments* args) {
     if (args->empty()) return PrintLine("usage: listvar [Nplayer] <[output file name]>");
     CPlayer* player;
     if (IsMultiplayerClient())
@@ -217,7 +217,7 @@ void __fastcall ListVar(Arguments* args) {
 }
 
 // Loadvar <player> <file>: sets the variables of each "name value" line.
-void __fastcall LoadVar(Arguments* args) {
+void LoadVar(Arguments* args) {
     if (args->size() < 2) return PrintLine("usage: loadvar [N player] [input file name]");
     CPlayer* player = GetPlayer(std::atoi((*args)[0].c_str()));
     if (!player) return PrintLine("Wrong player number");
@@ -243,7 +243,7 @@ void __fastcall LoadVar(Arguments* args) {
 }
 
 // "Current FPS: " 1000 / last frame time (printed as float).
-void __fastcall LastFps(Arguments*) {
+void LastFps(Arguments*) {
     auto* timer = SceneRenderer();
     GameOStream& os = Out() << "Current FPS: ";
     unsigned ms = timer->FrameTime();
@@ -253,7 +253,7 @@ void __fastcall LastFps(Arguments*) {
 
 // Exec <file>: runs each line of the file as a console command. Quotes around the name
 // are trimmed (the message names the argument as given).
-void __fastcall Exec(Arguments* args) {
+void Exec(Arguments* args) {
     std::string line;
     if (args->empty()) return PrintLine("usage: exec<ute> [input file name]");
     std::string name = (*args)[0];
@@ -269,7 +269,7 @@ void __fastcall Exec(Arguments* args) {
 }
 
 // Give <player> money <n> | exp <n> (shared by the party) | assortment.
-void __fastcall Give(Arguments* args) {
+void Give(Arguments* args) {
     std::string unused1;
     std::string unused2;
     if (args->size() < 2) {
@@ -314,37 +314,37 @@ void RequestWithParty(Arguments* args, const char* extra) {
 } // namespace
 
 // join <map>: the flow's request 5 with a party of one ("Hercules").
-void __fastcall Join(Arguments* args) {
+void Join(Arguments* args) {
     if (args->size() != 1) return PrintLine("Join has 1 parameter, server name");
     RequestWithParty<&GameFlow::RequestPartyZone5>(args, "Hercules");
 }
 
 // server <map>: "Starting up a server", then the flow's request 6 with a party of one ("Serv").
-void __fastcall HostServer(Arguments* args) {
+void HostServer(Arguments* args) {
     if (args->size() != 1) return PrintLine("Join has 1 parameter, map name");
     PrintLine("Starting up a server");
     RequestWithParty<&GameFlow::RequestPartyZone6>(args, "Serv");
 }
 
-void __fastcall MemUsage(Arguments*) {}
+void MemUsage(Arguments*) {}
 
 // disconnect, any arguments: the client world's local player disconnects.
-void __fastcall Disconnect(Arguments*) { TheGameFlow()->DisconnectClient(); }
+void Disconnect(Arguments*) { TheGameFlow()->DisconnectClient(); }
 
-void __fastcall LootAll(Arguments*) {
+void LootAll(Arguments*) {
     PrintLine("Looting...");
     TheServerWorld()->LootDeadUnits();
 }
 
 // Fadeout <milliseconds>.
-void __fastcall FadeOut(Arguments* args) {
+void FadeOut(Arguments* args) {
     if (args->empty()) return PrintLine("FADEOUT nMillSec");
     TheInterface()->fade_->Start(std::atoi((*args)[0].c_str()));
     PrintLine("Ok");
 }
 
 // Net client|server|time 0/1 (traffic and timing output), net zone <name>.
-void __fastcall Net(Arguments* args) {
+void Net(Arguments* args) {
     if (args->size() != 2) {
         PrintLine("net client 0/1 - show client traffic");
         PrintLine("net server 0/1 - show server traffic");
@@ -377,13 +377,13 @@ void WriteSpeech(CStdioFile* file, std::string& line, const SpeechRecord& speech
 }
 } // namespace
 
-void __fastcall WriteSpeechLines(CStdioFile* file, const acks::SpeechList* list) {
+void WriteSpeechLines(CStdioFile* file, const acks::SpeechList* list) {
     if (!list) return;
     std::string line;
     for (const SpeechRecord& speech : *list) WriteSpeech(file, line, speech);
 }
 
-void __fastcall WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeeches* list) {
+void WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeeches* list) {
     if (!list) return;
     std::string line;
     for (const acks::EnvironmentSpeech& entry : *list) WriteSpeech(file, line, entry.speech);
@@ -392,7 +392,7 @@ void __fastcall WriteEnvironmentSpeechLines(CStdioFile* file, const acks::Enviro
 // Generateacks. Writes <data folder>scenack.txt: for every record of the three ack
 // tables, each speech list its kind map names (in the map's order; a list that serves several
 // kinds is written once per kind), and after a unit record's lists its environment speeches.
-void __fastcall GenerateAcks(Arguments*) {
+void GenerateAcks(Arguments*) {
     CStdioFile file;
     {
         std::string path = *GameDataPathString() + "scenack.txt";
@@ -412,7 +412,7 @@ void __fastcall GenerateAcks(Arguments*) {
 }
 
 // Days ddmmyyyy DDMMYYYY: the days between two dates (06:00:00 and 07:01:01 local time).
-void __fastcall Days(Arguments* args) {
+void Days(Arguments* args) {
     auto digits = [&](int i) {
         for (int k = 0; k < 8; ++k) {
             signed char c = (*args)[i].c_str()[k];
@@ -459,7 +459,7 @@ void __fastcall Days(Arguments* args) {
     for (const char* line : kUsage) PrintLine(line);
 }
 
-void __fastcall PartyResend(Arguments*) {
+void PartyResend(Arguments*) {
     if (CPlayer* player = GetPlayer(0)) player->Server()->ResendParty();
 }
 
@@ -487,13 +487,13 @@ void KickOrBan(Arguments* args, int windowMode, int command) {
 } // namespace
 
 // Kick [name].
-void __fastcall Kick(Arguments* args) { KickOrBan(args, 1, 2); }
+void Kick(Arguments* args) { KickOrBan(args, 1, 2); }
 
 // Ban [name].
-void __fastcall Ban(Arguments* args) { KickOrBan(args, 2, 3); }
+void Ban(Arguments* args) { KickOrBan(args, 2, 3); }
 
 // Fps 1|on|0|off (anything else: nothing).
-void __fastcall Fps(Arguments* args) {
+void Fps(Arguments* args) {
     if (args->size() < 1) return PrintLine("Invalid number of parameters for command \"FPS\"");
     if (ArgOn(args, 0)) TheInterface()->ShowFps(1);
     else if (ArgOff(args, 0)) TheInterface()->ShowFps(0);
@@ -511,9 +511,9 @@ void SetRate(Arguments* args, int* rate, const char* usage) {
 } // namespace
 
 // Rate <bytes per second>.
-void __fastcall Rate(Arguments* args) { SetRate(args, &net::g_remoteRate, "Rate has one parameter - connection rate in bytes per second"); }
+void Rate(Arguments* args) { SetRate(args, &net::g_remoteRate, "Rate has one parameter - connection rate in bytes per second"); }
 
 // Localrate <bytes per second>.
-void __fastcall LocalRate(Arguments* args) { SetRate(args, &net::g_localRate, "LocalRate has one parameter - connection rate in bytes per second"); }
+void LocalRate(Arguments* args) { SetRate(args, &net::g_localRate, "LocalRate has one parameter - connection rate in bytes per second"); }
 
 } // namespace console::commands

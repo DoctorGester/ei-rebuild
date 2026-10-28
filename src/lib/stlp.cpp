@@ -29,7 +29,7 @@ std::size_t NextPrime(std::size_t n) {
 
 // lower_bound<unsigned*> (the last argument is the distance tag): STLport's binary
 // search, halving the length, unsigned comparisons (the hashtable constructors' prime lookup).
-const std::uint32_t* __fastcall LowerBoundDwords(const std::uint32_t* first, const std::uint32_t* last,
+const std::uint32_t* LowerBoundDwords(const std::uint32_t* first, const std::uint32_t* last,
                                                  const std::uint32_t* value, int) {
     int length = static_cast<int>(last - first);
     while (length > 0) {

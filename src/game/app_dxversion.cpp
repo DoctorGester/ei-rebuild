@@ -64,7 +64,7 @@ bool DirectXIsGiven() {
 
 } // namespace
 
-std::uint32_t __cdecl GetDxVersion() {
+std::uint32_t GetDxVersion() {
     if (DirectXIsGiven()) return 0x800;
     void* ddraw = nullptr;     // IDirectDraw
     void* ddraw2 = nullptr;

@@ -6,7 +6,7 @@
 #include <cstring>
 #include <string>
 
-void __fastcall ReadPrefixedName(std::string* out, const std::uint8_t** cursor) {
+void ReadPrefixedName(std::string* out, const std::uint8_t** cursor) {
     std::int32_t length;
     std::memcpy(&length, *cursor, 4);
     *cursor += 4;

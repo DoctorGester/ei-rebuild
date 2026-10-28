@@ -302,19 +302,19 @@ struct ByModelUse {
 
 } // namespace
 
-void __fastcall IntroSortByModel(CMapObject** first, CMapObject** last, void*, int depthLimit, int) {
+void IntroSortByModel(CMapObject** first, CMapObject** last, void*, int depthLimit, int) {
     PtrSort<ByModel>::IntroLoop(first, last, depthLimit, ByModel());
 }
 
-void __fastcall FinalSortByModel(CMapObject** first, CMapObject** last, int) {
+void FinalSortByModel(CMapObject** first, CMapObject** last, int) {
     PtrSort<ByModel>::FinalInsertionSort(first, last, ByModel());
 }
 
-void __fastcall IntroSortByModelUse(CMapObject** first, CMapObject** last, void*, int depthLimit, int) {
+void IntroSortByModelUse(CMapObject** first, CMapObject** last, void*, int depthLimit, int) {
     PtrSort<ByModelUse>::IntroLoop(first, last, depthLimit, ByModelUse());
 }
 
-void __fastcall FinalSortByModelUse(CMapObject** first, CMapObject** last, int) {
+void FinalSortByModelUse(CMapObject** first, CMapObject** last, int) {
     PtrSort<ByModelUse>::FinalInsertionSort(first, last, ByModelUse());
 }
 
@@ -339,14 +339,14 @@ constinit stlp::vector<CMapObject*> g_visible5D = /*007AF588*/ {};
 constinit stlp::vector<CMapObject*> g_visibleOther = /*007AF598*/ {};
 constinit stlp::vector<CMapObject*> g_visible54 = /*007AF5A8*/ {};
 
-void __cdecl FreeTouchedModels() { g_touchedModels.FreeStorage(); }
-void __cdecl FreeShadow52() { g_shadow52.FreeStorage(); }
-void __cdecl FreeShadowUnits() { g_shadowUnits.FreeStorage(); }
-void __cdecl FreeShadow5D() { g_shadow5D.FreeStorage(); }
-void __cdecl FreeShadowOther() { g_shadowOther.FreeStorage(); }
-void __cdecl FreeShadow54() { g_shadow54.FreeStorage(); }
-void __cdecl FreeVisible52() { g_visible52.FreeStorage(); }
-void __cdecl FreeVisibleUnits() { g_visibleUnits.FreeStorage(); }
-void __cdecl FreeVisible5D() { g_visible5D.FreeStorage(); }
-void __cdecl FreeVisibleOther() { g_visibleOther.FreeStorage(); }
-void __cdecl FreeVisible54() { g_visible54.FreeStorage(); }
+void FreeTouchedModels() { g_touchedModels.FreeStorage(); }
+void FreeShadow52() { g_shadow52.FreeStorage(); }
+void FreeShadowUnits() { g_shadowUnits.FreeStorage(); }
+void FreeShadow5D() { g_shadow5D.FreeStorage(); }
+void FreeShadowOther() { g_shadowOther.FreeStorage(); }
+void FreeShadow54() { g_shadow54.FreeStorage(); }
+void FreeVisible52() { g_visible52.FreeStorage(); }
+void FreeVisibleUnits() { g_visibleUnits.FreeStorage(); }
+void FreeVisible5D() { g_visible5D.FreeStorage(); }
+void FreeVisibleOther() { g_visibleOther.FreeStorage(); }
+void FreeVisible54() { g_visible54.FreeStorage(); }

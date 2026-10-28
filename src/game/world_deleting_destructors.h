@@ -12,4 +12,4 @@ namespace mapspec {
 
 // The deleting destructors of a holder of an engine object, released through Release
 // (ObjectHolderRelease, refptr_copies.cpp) before it is freed.
-void __fastcall ObjectHolderRelease(CEngineObject** self);
+void ObjectHolderRelease(CEngineObject** self);

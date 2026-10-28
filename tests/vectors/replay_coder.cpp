@@ -12,7 +12,7 @@
 #include <memory>
 #include <vector>
 
-void __cdecl InitCodeTables();   // net_coder.cpp
+void InitCodeTables();   // net_coder.cpp
 
 namespace {
 

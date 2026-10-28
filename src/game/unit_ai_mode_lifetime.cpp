@@ -21,7 +21,7 @@ constexpr int kTypeFear = 7;
 // The patrol points' tables as compiled collections (mfc_slots.h) in place (the constructors store it; the
 // destructors store the base's), which have the same virtuals: the destructor
 // (PatrolPointArray::DeletingDestruct and its copy) and the 0x20-byte records' Serialize.
-void __fastcall DestructPatrolPoints(PatrolPointArray* points) { points->Destruct(); }
+void DestructPatrolPoints(PatrolPointArray* points) { points->Destruct(); }
 struct PatrolPointsBaseClass : mfc::impl::CompiledCollection<PatrolPointsBaseClass, &DestructPatrolPoints,
                                                              &mfc::impl::AiLookRecords::Serialize> {};
 struct PatrolPointsClass final : PatrolPointsBaseClass {

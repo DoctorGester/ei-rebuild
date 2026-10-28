@@ -22,13 +22,13 @@ bool ModMaps() { return modfolders::Active(ei::rebirth::Patch::Maps); }
 
 } // namespace
 
-std::string* __stdcall MapsFolder(std::string* out) {
+std::string* MapsFolder(std::string* out) {
     // Rebirth's Maps: the folder the last site selected.
     std::string folder(ModMaps() ? modfolders::MapsRoot(TheDataFolder()) : TheDataFolder());
     *out = folder + MapsFolderName(); return out;
 }
 
-std::string* __stdcall MapPath(std::string* out, const char* name) {
+std::string* MapPath(std::string* out, const char* name) {
     std::string path;
     if (name[1] == ':') {
         path = name;
@@ -41,7 +41,7 @@ std::string* __stdcall MapPath(std::string* out, const char* name) {
     *out = path; return out;
 }
 
-bool __stdcall MapFileExists(const char* name) {
+bool MapFileExists(const char* name) {
     mfc::CFileFind find;
     std::string folder;
     modfolders::SelectMaps(name, modfolders::MapsSite::FileExists);
@@ -50,7 +50,7 @@ bool __stdcall MapFileExists(const char* name) {
     return find.FindFile(path, 0) != 0;
 }
 
-void __stdcall WriteMapFile(const char* name, GameBuffer* buffer) {
+void WriteMapFile(const char* name, GameBuffer* buffer) {
     netlink::FileStream file;
     {
         std::string folder;

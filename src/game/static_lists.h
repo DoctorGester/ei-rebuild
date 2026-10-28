@@ -7,7 +7,7 @@
 
 namespace static_lists {
 
-void __stdcall ConstructDirectDrawDrivers();   // the driver list (0x38-byte nodes)
-void __stdcall ConstructDeferredUnits();       // the deferred unit list (12-byte nodes)
+void ConstructDirectDrawDrivers();   // the driver list (0x38-byte nodes)
+void ConstructDeferredUnits();       // the deferred unit list (12-byte nodes)
 
 } // namespace static_lists

@@ -205,7 +205,7 @@ void ScriptSubCall::Load(ScriptStream* stream) {
     cmd->Load(stream);
 }
 
-void __fastcall ScriptStringLoad(std::string* out, ScriptStream* stream) {
+void ScriptStringLoad(std::string* out, ScriptStream* stream) {
     std::string temporary;
     *out = stream->ReadString(&temporary)->c_str();
 }
@@ -213,7 +213,7 @@ void __fastcall ScriptStringLoad(std::string* out, ScriptStream* stream) {
 // ---- Command blocks and if-then pairs --------------------------------------------------------------
 
 // The commands of a block (its id is read by the caller): count, then each SSCCmd.
-void __fastcall ScriptDeclCommandsLoad(ScriptDecl* block, ScriptStream* stream) {
+void ScriptDeclCommandsLoad(ScriptDecl* block, ScriptStream* stream) {
     int count = ReadInt(stream);
     InlineSetSize(&block->commands, count, kCmds);
     for (int i = 0; i < block->commands.size; ++i) block->commands.data[i].Load(stream);
@@ -221,7 +221,7 @@ void __fastcall ScriptDeclCommandsLoad(ScriptDecl* block, ScriptStream* stream) 
 
 // A definition's if-then pairs: the ids of the condition and command blocks, resolved in the
 // saved script's block lists (FindBlock). The first id defaults to -1 when the read leaves it.
-void __fastcall ScriptIfThenLoad(mfc::CArray<ScriptIfThen>* pairs, ScriptStream* stream) {
+void ScriptIfThenLoad(mfc::CArray<ScriptIfThen>* pairs, ScriptStream* stream) {
     int count = ReadInt(stream);
     InlineSetSize(pairs, count, kIfThen);
     for (int i = 0; i < pairs->size; ++i) {
@@ -313,7 +313,7 @@ void ScriptVars::Load(ScriptStream* stream) {
 // list from the head (a list that was not empty would have its old nodes read again).
 
 // Particle sources: source object, id, flags, moving, steps, step (12 bytes), lifetime.
-void __fastcall ScriptParticlesLoad(mfc::CList<ScriptParticleSource>* list, ScriptStream* stream) {
+void ScriptParticlesLoad(mfc::CList<ScriptParticleSource>* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
         AppendNode<mfc::impl::ParticleSourceList>(list, [](ScriptParticleSource* source) {
@@ -334,7 +334,7 @@ void __fastcall ScriptParticlesLoad(mfc::CList<ScriptParticleSource>* list, Scri
 }
 
 // FX sources: each node is filled by the FX source loader.
-void __fastcall ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStream* stream) {
+void ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
         // A temporary element (effect 0, empty name, the rest unset) is copied
@@ -355,7 +355,7 @@ void __fastcall ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStre
 }
 
 // Lightning: object, id.
-void __fastcall ScriptLightningLoad(mfc::CList<ScriptLightning>* list, ScriptStream* stream) {
+void ScriptLightningLoad(mfc::CList<ScriptLightning>* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
         AppendNode<mfc::impl::LightningList>(list, [](ScriptLightning* bolt) {
@@ -372,7 +372,7 @@ void __fastcall ScriptLightningLoad(mfc::CList<ScriptLightning>* list, ScriptStr
 }
 
 // WorldScript blocks: id, count, each SSCCmd.
-void __fastcall ScriptWorldBlocksLoad(ScriptDecls* list, ScriptStream* stream) {
+void ScriptWorldBlocksLoad(ScriptDecls* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
         // A temporary empty block (id unset) is copied into the node.
@@ -395,7 +395,7 @@ void __fastcall ScriptWorldBlocksLoad(ScriptDecls* list, ScriptStream* stream) {
 }
 
 // Script instances: killed flag, name, parameter types, if-then pairs, variables.
-void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream) {
+void ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
         // A temporary empty definition is copied into the node, then destroyed (frees nothing).
@@ -433,7 +433,7 @@ void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream)
 
 // Runs: block id, index, ticks, sleep start, the index of its instance in the loading script's instance list
 // (-1 or out of range: none), vars.
-void __fastcall ScriptRunsLoad(ScriptRuns* list, ScriptStream* stream) {
+void ScriptRunsLoad(ScriptRuns* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
         // A temporary run (sleep start unset) is copied into the node, then destroyed.

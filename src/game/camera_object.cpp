@@ -74,10 +74,10 @@ constinit lib::StaticObject<CCamera> g_camera = /*0079B2A8*/ {};
 CCamera* TheCamera() { return &*g_camera; }
 
 namespace {
-void __cdecl DestroyCamera() { g_camera.Destroy(); }
+void DestroyCamera() { g_camera.Destroy(); }
 } // namespace
 
-void __cdecl ConstructCamera() {
+void ConstructCamera() {
     g_camera.Construct();
     libcrt::AtExit(DestroyCamera);
 }
@@ -118,7 +118,7 @@ int CCamera::Init(options::GameOptions* settings, std::uint32_t nearBits, std::u
 }
 
 // The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
-const Vector3* __fastcall CameraAnchor(const CCamera* self) {
+const Vector3* CameraAnchor(const CCamera* self) {
     return (self->flags_ & CCamera::kPlaced) ? &self->localPosition_ : &self->focus_;
 }
 
@@ -194,7 +194,7 @@ int CCamera::RecordFrame(std::uint32_t time) {
 }
 
 // Closes the camera file: flag 0x10 off, the file name emptied. Returns 1.
-int __fastcall CameraCloseFile(CCamera* self) {
+int CameraCloseFile(CCamera* self) {
     self->flags_ &= ~CCamera::kRecording;
     self->fileName_.clear();
     return 1;

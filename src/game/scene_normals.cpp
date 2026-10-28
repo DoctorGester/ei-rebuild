@@ -24,7 +24,7 @@ double WeldDistance() { return 0.00001 /*0073B860*/; }
 
 } // namespace
 
-void __fastcall ComputeMeshNormals(MeshArray* meshes) {
+void ComputeMeshNormals(MeshArray* meshes) {
     DwordBuffer facesOfVertex{};
     const double weld = WeldDistance();
     for (int m = 0; m < meshes->size; ++m) {
@@ -108,7 +108,7 @@ void __fastcall ComputeMeshNormals(MeshArray* meshes) {
 // PlaceMeshes (`unit` is the fake unit, meshes): every mesh's positions packed four at a time
 // into 64-byte blocks (x[4], y[4], z[4], w[4] = 1); every lane starts as the first position, so
 // the unused lanes of the last block keep it.
-void __fastcall PackMeshPositions(FakeUnitScene* unit) {
+void PackMeshPositions(FakeUnitScene* unit) {
     MeshArray& meshes = unit->meshes;
     for (int m = 0; m < meshes.size; ++m) {
         SceneMesh* mesh = &meshes.data[m];
@@ -147,7 +147,7 @@ float SelectBelow(float a, float b) { return a >= b ? a : b; }
 // Bounds of a mesh: the bounding box of the positions (+0x168 min, +0x174 max, both made relative to the
 // centre), its centre (+0x15C, half the sum) and the radius (+0x180, half the box's diagonal). The running
 // maximum of x starts at -FLT_MAX, the others at +/-FLT_MAX. Plain float maths (rule 7).
-void __fastcall ComputeMeshBounds(SceneMesh* mesh) {
+void ComputeMeshBounds(SceneMesh* mesh) {
     const PointBuffer& positions = mesh->positions;
     float maxX = (-3.4028235e38f /*0073C1A8*/);
     std::uint32_t lowest = 0xFF7FFFFFu, highest = 0x7F7FFFFFu;

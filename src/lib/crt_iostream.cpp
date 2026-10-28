@@ -350,7 +350,7 @@ Ostream* Ostream::Construct(Streambuf* buffer, int mostDerived) {
     return this;
 }
 
-Ostream* Ostream::Apply(Ostream*(__cdecl* manipulator)(Ostream*)) {
+Ostream* Ostream::Apply(Ostream*(*manipulator)(Ostream*)) {
     manipulator(this);
     return this;
 }
@@ -442,8 +442,8 @@ Ostream* Ostream::Flush() {
     return this;
 }
 
-Ostream* __cdecl FlushManipulator(Ostream* stream) { return stream->Flush(); }
+Ostream* FlushManipulator(Ostream* stream) { return stream->Flush(); }
 
-Ostream* __cdecl EndlManipulator(Ostream* stream) { return stream->PutChar('\n')->Flush(); }
+Ostream* EndlManipulator(Ostream* stream) { return stream->PutChar('\n')->Flush(); }
 
 } // namespace libcrt

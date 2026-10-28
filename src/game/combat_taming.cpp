@@ -22,8 +22,8 @@ constexpr int kOrderNone = 9;
 constexpr int kStatTaming = 2;
 
 template <typename T>
-void __fastcall ReferenceRelease(T** a0) { static_cast<AIRef*>((void*)a0)->Reset(); }
-inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
+void ReferenceRelease(T** a0) { static_cast<AIRef*>((void*)a0)->Reset(); }
+inline void PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
 int& Stage(CUnitServer* self) { return self->tameStage; }
 

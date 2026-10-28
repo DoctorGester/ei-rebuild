@@ -41,7 +41,7 @@ int SplitWords(const char* text, std::vector<std::string>* array, char separator
     return SplitAt(text, array, separator, true);
 }
 
-int __fastcall ReplaceChar(std::string* string, char from, char to) {
+int ReplaceChar(std::string* string, char from, char to) {
     std::string result;
     int start = 0;
     int at = str::Find(*string, from);

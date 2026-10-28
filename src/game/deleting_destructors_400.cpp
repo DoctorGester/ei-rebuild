@@ -19,7 +19,7 @@ namespace destructors400 {
 template <class T, class R>
 void RunBody(R (T::*body)(), void* self) { (static_cast<T*>(self)->*body)(); }
 template <class T, class R>
-void RunBody(R(__fastcall* body)(T*), void* self) { body(static_cast<T*>(self)); }
+void RunBody(R(*body)(T*), void* self) { body(static_cast<T*>(self)); }
 
 // The scalar deleting destructor of Body: `this` is the object (RET 4); returns it.
 template <auto Body>

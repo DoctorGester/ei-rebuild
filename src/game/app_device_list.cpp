@@ -29,7 +29,7 @@ void CopyPlain(LeverRecord* to, const LeverRecord* from) {
 }
 } // namespace
 
-void __fastcall RecordDestruct(LeverRecord* self) {
+void RecordDestruct(LeverRecord* self) {
     std::destroy_at(&self->text28);
     std::destroy_at(&self->sound);
     std::destroy_at(&self->text20);
@@ -62,7 +62,7 @@ namespace app {
 
 // STLport's copy for the records: each record of [first, last) assigned to the next of `result`,
 // first to last (the assignment inline); returns the end of the copy.
-LeverRecord* __fastcall RecordsCopyForward(LeverRecord* first, LeverRecord* last, LeverRecord* result, const void*, int) {
+LeverRecord* RecordsCopyForward(LeverRecord* first, LeverRecord* last, LeverRecord* result, const void*, int) {
     for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++result) result->Assign(first);
     return result;
 }

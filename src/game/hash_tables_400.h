@@ -46,7 +46,7 @@ typename Map::mapped_type* Find(Map& map, typename Map::key_type key) {
     return node ? &node->value : nullptr;
 }
 
-void* __fastcall ClassRegistryConstruct(ChunkArchive::ClassRegistry* registry);
-void __fastcall ClassRegistryDestruct(ChunkArchive::ClassRegistry* registry);
+void* ClassRegistryConstruct(ChunkArchive::ClassRegistry* registry);
+void ClassRegistryDestruct(ChunkArchive::ClassRegistry* registry);
 
 } // namespace hash400

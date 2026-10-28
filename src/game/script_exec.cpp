@@ -72,7 +72,7 @@ int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
 using ParticleList = mfc::CList<ScriptParticleSource>;
 using FxSourceList = mfc::CList<ScriptFxSource>;
 using LightningList = mfc::CList<ScriptLightning>;
-void* __cdecl Renderer() { return SceneRenderer(); }
+void* Renderer() { return SceneRenderer(); }
 
 CWorldServer* TheWorld() { return TheServerWorld(); }
 

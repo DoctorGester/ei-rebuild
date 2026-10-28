@@ -117,7 +117,7 @@ inline float g_lightningNoise[kLightningNoiseRows][kLightningNoiseRowLength] = /
 inline float* LightningNoiseTable() { return g_lightningNoise[0]; }
 // (cdecl; lightning_load.cpp; Rebirth-patched: callers use LoadLightningNoiseOriginal).
 // Fills the noise table from the archive; 0 when gfx.res does not open, else 1.
-int __cdecl LoadLightningNoise();
+int LoadLightningNoise();
 
 // The client world's lightning manager. Built by the client world's Setup (world_client_maps.cpp,
 // the constructor inlined there), which also holds its lifetime and slots.

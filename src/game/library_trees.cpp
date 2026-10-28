@@ -9,12 +9,12 @@
 namespace lib_trees {
 
 template <typename Object>
-ItemObjectCache<Object>* __fastcall ConstructHeroItemCache(ItemObjectCache<Object>* self) {
+ItemObjectCache<Object>* ConstructHeroItemCache(ItemObjectCache<Object>* self) {
     ItemCacheOf<Object>::Construct(&self->map);
     self->limit = 50;
     return self;
 }
-template ItemModelCache* __fastcall ConstructHeroItemCache<CUiMesh>(ItemModelCache*);
-template ItemTextureCache* __fastcall ConstructHeroItemCache<CTexture>(ItemTextureCache*);
+template ItemModelCache* ConstructHeroItemCache<CUiMesh>(ItemModelCache*);
+template ItemTextureCache* ConstructHeroItemCache<CTexture>(ItemTextureCache*);
 
 } // namespace lib_trees

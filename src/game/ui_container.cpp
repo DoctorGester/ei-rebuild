@@ -36,7 +36,7 @@ CUiContainer::~CUiContainer() {
     if (children_.data) lib::FreeAligned32(children_.data);
 }
 
-extern "C" int __cdecl _purecall();
+extern "C" int _purecall();
 
 // Pure: a screen that does not override CreateScreen never gets on the screen.
 void CUiContainer::CreateScreen() { _purecall(); }

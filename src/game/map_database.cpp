@@ -255,10 +255,10 @@ constinit lib::StaticObject<CMapDatabase> g_mapDatabase = /*0079BF00*/ {};
 CMapDatabase* TheMapDatabase() { return &*g_mapDatabase; }
 
 namespace {
-void __cdecl DestroyMapDatabase() { g_mapDatabase->Destruct(); }
+void DestroyMapDatabase() { g_mapDatabase->Destruct(); }
 } // namespace
 
-void __cdecl ConstructMapDatabase() {
+void ConstructMapDatabase() {
     g_mapDatabase->Construct();
     libcrt::AtExit(DestroyMapDatabase);
 }

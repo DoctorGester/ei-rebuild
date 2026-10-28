@@ -146,7 +146,7 @@ public:
 };
 // T's constructor on `memory`, as the map object factory takes it.
 template <typename T>
-void* __fastcall ConstructOn(void* memory) {
+void* ConstructOn(void* memory) {
     return new (memory) T();
 }
 

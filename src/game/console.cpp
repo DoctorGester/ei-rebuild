@@ -143,7 +143,7 @@ const CommandRegistration kCommandRegistrations[27] = {
 // "$" lines (cheat word given, not in a network game) become WorldScript lines. Other commands and
 // their arguments are lower-cased; "quit"/"exit" quit; otherwise the public map is tried, then the
 // cheat word, then (after it) the cheat map. Looking a command up inserts it (original behaviour).
-void __fastcall Execute(const char* text) {
+void Execute(const char* text) {
     for (const CommandRegistration& r : kCommandRegistrations) {
         std::string name = r.name;
         Command(r.cheat ? CheatCommands() : PublicCommands(), name) = r.handler;

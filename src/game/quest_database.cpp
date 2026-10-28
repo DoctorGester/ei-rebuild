@@ -176,7 +176,7 @@ bool QuestDatabase::LoadRegistry(const void* image) {
 }
 
 // The game inlines the vector's erase, reserve and push_back; the same template members are called here.
-void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, stlp::vector<std::string>* list) {
+void ReadStringList(CFileRegistry* registry, const char* section, const char* key, stlp::vector<std::string>* list) {
     std::vector<std::string> strings;
     registry->GetStringArray(section, key, &strings);
     list->EraseRange<ListElement>(list->begin(), list->end());

@@ -9,7 +9,7 @@
 
 // `out` = a x b. __fastcall (out in ECX, a in EDX, b on the stack); returns out. All three
 // components are computed before the first store.
-Vector3* __fastcall CrossProduct(Vector3* out, const Vector3& a, const Vector3& b);
+Vector3* CrossProduct(Vector3* out, const Vector3& a, const Vector3& b);
 
 // `out` = a - b; same convention.
-Vector3* __fastcall SubtractVectors(Vector3* out, const Vector3& a, const Vector3& b);
+Vector3* SubtractVectors(Vector3* out, const Vector3& a, const Vector3& b);

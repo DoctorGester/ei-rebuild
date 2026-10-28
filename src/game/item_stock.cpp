@@ -713,8 +713,8 @@ constinit stlp::vector<itemdb::SpellRecord*> g_takenSpells = /*007C8670*/ {};
 constinit stlp::vector<itemdb::SpellModifierRecord*> g_takenModifiers = /*007C8660*/ {};
 } // namespace stock
 
-void __cdecl FreeTakenPrototypes() { stock::g_takenPrototypes.FreeStorage(); }
-void __cdecl FreeTakenSpells() { stock::g_takenSpells.FreeStorage(); }
-void __cdecl FreeTakenModifiers() { stock::g_takenModifiers.FreeStorage(); }
-void __cdecl FreeCandidates() { stock::g_candidates.FreeStorage(); }
-void __cdecl FreeTakenMaterials() { stock::g_takenMaterials.FreeStorage(); }
+void FreeTakenPrototypes() { stock::g_takenPrototypes.FreeStorage(); }
+void FreeTakenSpells() { stock::g_takenSpells.FreeStorage(); }
+void FreeTakenModifiers() { stock::g_takenModifiers.FreeStorage(); }
+void FreeCandidates() { stock::g_candidates.FreeStorage(); }
+void FreeTakenMaterials() { stock::g_takenMaterials.FreeStorage(); }

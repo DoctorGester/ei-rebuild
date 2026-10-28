@@ -17,6 +17,6 @@ void FreeAt(void* self, std::size_t offset) {
 }
 } // namespace
 // A record holding such a block at +8 / +4.
-void __fastcall ArrayAt8Free(void* self) { FreeAt(self, 8); }
+void ArrayAt8Free(void* self) { FreeAt(self, 8); }
 
 } // namespace aligned

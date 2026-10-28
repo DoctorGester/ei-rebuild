@@ -70,10 +70,10 @@ constinit lib::StaticObject<ChunkArchive::ClassRegistry> g_classRegistry = /*007
 ChunkArchive::ClassRegistry& ChunkArchive::Registry() { return *g_classRegistry; }
 
 namespace {
-void __cdecl DestroyClassRegistry() { hash400::ClassRegistryDestruct(&*g_classRegistry); }
+void DestroyClassRegistry() { hash400::ClassRegistryDestruct(&*g_classRegistry); }
 } // namespace
 
-void __cdecl ConstructClassRegistry() {
+void ConstructClassRegistry() {
     hash400::ClassRegistryConstruct(&*g_classRegistry);
     libcrt::AtExit(DestroyClassRegistry);
 }
@@ -280,7 +280,7 @@ ChunkArchive::~ChunkArchive() {
 
 // ---- Whole archives over a CStream ---------------------------------------------------------------
 
-bool __fastcall ReadStreamChunk(CStream* in, char* id, CMemoryStream* to) {
+bool ReadStreamChunk(CStream* in, char* id, CMemoryStream* to) {
     std::uint32_t length = 0;
     in->Read(id, 1);
     in->Read(&length, 1);
@@ -293,7 +293,7 @@ bool __fastcall ReadStreamChunk(CStream* in, char* id, CMemoryStream* to) {
 }
 
 // ReadStreamChunk is inlined here; Open inlines all of this for the index and the records.
-bool __fastcall FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence) {
+bool FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence) {
     in->Rewind();
     char readId;
     while (ReadStreamChunk(in, &readId, to)) {
@@ -306,7 +306,7 @@ bool __fastcall FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occu
     return false;
 }
 
-bool __fastcall WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
+bool WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
     char tag = static_cast<char>(id);
     out->Write(&tag, 1);
     std::uint32_t length = from->Size() * 2;
