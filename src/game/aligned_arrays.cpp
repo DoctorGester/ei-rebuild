@@ -1,7 +1,7 @@
 // The engine's arrays of plain elements in 32-byte aligned blocks (the block operator new returned
 // is kept just before the data and freed through it), as instantiated around the animation and
-// figure loaders: {data, size, capacity, growBy}. One template per operation;
-// each instantiation is registered under its own name with its element size. The growth step is
+// figure loaders: {data, size, capacity, growBy}. One template per operation,
+// instantiated per element size. The growth step is
 // MFC's (growBy, else size / 8 clamped to 4 .. 1024). See docs/notes/objects.md ("Rewritten").
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -30,8 +30,7 @@ void FreeAt(void* self, std::size_t offset) {
     if (data) lib::FreeAligned32(data);
 }
 } // namespace
-// A record holding such an array at +8 / +4.
+// A record holding such an array at +8.
 void __fastcall ArrayAt8Free(void* self) { FreeAt(self, 8); }
-void __fastcall ArrayAt4Free(void* self) { FreeAt(self, 4); }
 
 } // namespace aligned

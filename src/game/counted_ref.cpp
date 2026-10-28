@@ -1,7 +1,6 @@
 // A counted reference to an engine object (AIRefTo<T>, unit_ai.h; the map objects, the AI, the traps,
 // the effects and the unit controller keep these): reset, assign, and load / save by object id.
-// The bodies are one template, instantiated below for the classes the fields hold; AIRef's
-// (CEngineObject) are the registered ones.
+// The bodies are one template, instantiated below for the classes the fields hold.
 #include "unit_ai.h"
 
 #include "base_manager.h"

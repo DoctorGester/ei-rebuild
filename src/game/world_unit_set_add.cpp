@@ -151,11 +151,3 @@ void UnitSet::Add(CUnit* unit) {
     DressedUnitElement::Destroy(&entry.mapped);                      // called twice
     FiguredUnitElement::Destroy(&record);
 }
-
-// ---- The helpers UnitSet::Add was compiled with ---------------------------------------------------
-
-namespace unitset {
-
-void __fastcall DestructName(mfc::CString* name) { std::destroy_at(name); }
-
-} // namespace unitset

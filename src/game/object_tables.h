@@ -146,7 +146,7 @@ static_assert(offsetof(CMapDatabase, maps) == 0x14);
 static_assert(sizeof(CMapDatabase) == 0x28);
 
 // The game's hash_map<CString, float> (the party's and players' variables, the briefing's copies):
-// STLport's hashtable over pair<CString, float> (stlp_hash.h; its members are registered in
+// STLport's hashtable over pair<CString, float> (stlp_hash.h; its members are in
 // stlp_hash.cpp), nodes {next, key, value}, with the named-variable members the game adds.
 struct NamedFloatTable : stlp::hashtable<stlp::CStringFloatTraits> {
     // hash_map(): 100 buckets.

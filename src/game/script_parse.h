@@ -27,7 +27,6 @@ int __cdecl Mbscmp(std::string_view a, std::string_view b);
 // Formats the error message into the CScript's error text and sets code and line;
 // returns 0. (CScript::Error is the same.)
 int ScriptErrorV(CScript* script, int line, int code, const char* format, char* args);
-int __cdecl ScriptError(CScript* script, int line, int code, const char* format, ...);
 
 // script_text_file.cpp: a text file's lines joined into
 // *text (emptied first). 0 when the file cannot be opened or read (MFC's CFileException, caught).

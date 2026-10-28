@@ -1,7 +1,7 @@
 #pragma once
 
-// STLport pair<T1, T2> constructors and destructors as the exe instantiates them, registered at
-// their addresses by stlp_pair.cpp. Thiscalls are __fastcall with an unused EDX; each constructor
+// STLport pair<T1, T2> constructors and destructors as the exe instantiates them
+// (stlp_pair.cpp). Thiscalls are __fastcall with an unused EDX; each constructor
 // returns this. Several bodies exist more than once (one per object file); one body serves each.
 
 #include "stlp.h"

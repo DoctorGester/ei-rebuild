@@ -271,7 +271,6 @@ struct CountedPtrs : mfc::CArray<T*> {
         gamecrt::operator_delete(this->data);
     }
 };
-using EngineObjectPtrs = CountedPtrs<CEngineObject>;
 
 // An entry of the world server's shared-object list: the loot a unit left.
 struct SharedObject {
@@ -694,10 +693,6 @@ struct UnitSet {
 };
 static_assert(offsetof(UnitSet, dressed) == 0x14);
 static_assert(sizeof(UnitSet) == 0x28);
-
-namespace unitset {
-void __fastcall DestructName(mfc::CString* name);
-} // namespace unitset
 
 // Reads the zone's two unit look lists from `stream`: a count, then per figured record a 16-bit
 // prototype, two counted dword arrays, a byte, a dword, the three morph coefficients and a counted list

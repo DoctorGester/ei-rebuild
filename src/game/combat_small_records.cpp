@@ -29,8 +29,6 @@ static_assert(offsetof(MotionSegment, curveX) == offsetof(UnitMotion, curveX) - 
 static_assert(offsetof(MotionSegment, segment) == offsetof(UnitMotion, segment) - offsetof(UnitMotion, fromX));
 } // namespace
 
-int __fastcall WorldTick(CWorld* world) { return world->tick_; }
-
 ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {
     CEngineObject* old = item;
     item = other->item;

@@ -195,7 +195,6 @@ struct DirectDrawDriver {
     HMONITOR monitor;
 };
 extern lib::StaticObject<stlp::list<DirectDrawDriver>> g_directDrawDrivers;
-inline stlp::list<DirectDrawDriver>& DirectDrawDrivers() { return *g_directDrawDrivers; }
 
 // A DirectDraw surface wrapper. The surface pointer is always null: the pixels are the new renderer's memory
 // (dx_surface.h).

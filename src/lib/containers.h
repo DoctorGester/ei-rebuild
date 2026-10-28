@@ -55,7 +55,7 @@ struct AlignedArray {
 
     // SetSize(count, growBy): 0 frees the block; the first allocation is exact; growing past the
     // capacity reallocates to max(count, capacity + step) and copies the old elements with memcpy.
-    // growBy -1 keeps the step. The out-of-line copies are registered on this member.
+    // growBy -1 keeps the step.
     void SetSize(int count, int newGrowBy = -1) {
         if (newGrowBy != -1) growBy = newGrowBy;
         if (count == 0) {
@@ -115,8 +115,7 @@ struct AlignedArray {
         SetSizeDiscard(count);
     }
 
-    // SetAtGrow / Add take the element by value, as the out-of-line copies do,
-    // so they can be registered on these members.
+    // SetAtGrow / Add take the element by value, as the out-of-line copies do.
     void SetAtGrow(int index, T value) {
         if (index >= size) SetSize(index + 1);
         data[index] = value;

@@ -69,8 +69,8 @@ MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
 int FindText(const char* key) { return TheTextManager()->Open(key); }
 
 // The quest the window last selected (a global CString): built empty by its static initialiser in the list's
-// order, destroyed once by the exit function it registers. Both are defined on the names and
-// registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+// order, destroyed once by the exit function it registers. Both are defined on their names
+// (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<mfc::CString> g_lastQuest = /*007C8178*/ {};
 constinit std::uint8_t g_lastQuestDestroyed = /*007C8174*/ 0;
 mfc::CString& LastQuest() { return *g_lastQuest; }

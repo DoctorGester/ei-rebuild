@@ -162,11 +162,6 @@ ScriptSubCall* ScriptSubCalls::CopyAt(ScriptSubCall* out, int index) const {
     return out;
 }
 
-// The by-value GetAt, constructed at `out`.
-std::string* ScriptStrings::CopyAt(std::string* out, int index) const {
-    return std::construct_at(out, data[index]);
-}
-
 void ScriptStrings::CopyFrom(const ScriptStrings& source) {
     SetSize(source.size, -1);
     for (int i = 0; i < source.size; ++i) data[i] = source.data[i];

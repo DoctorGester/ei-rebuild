@@ -48,9 +48,6 @@ void CTradePanel::ClampScroll() {
     Arrow(this, 3)->visible_ = learnableTop_ < static_cast<int>(learnable_.size()) - kLearnableRows ? 1 : 0;
     DrawLists();
 }
-namespace {
-void __fastcall TradeClampScroll(CTradePanel* self) { self->ClampScroll(); }
-} // namespace
 
 // --- The left button (input click) ---------------------------------------------------------------------
 

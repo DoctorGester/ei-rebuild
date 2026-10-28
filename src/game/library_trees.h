@@ -37,7 +37,6 @@ struct TintListValue {
     }
     static void Destroy(TintList* p) { p->Release(); }
 };
-using TintLists = PairTree<std::string, TintListValue>;
 
 // A link mesh's part headers (LinkHeaderMap): copied as bytes, zeroed by
 // the pair's destructor before the key goes.
@@ -55,7 +54,6 @@ static_assert(std::is_same_v<LinkHeaders, stlp::TreeAbi<LinkHeaderMap, LinkHeade
 // Find(key) on a link mesh's part headers (LinkHeaders' instantiation): the node, or the header for none.
 inline LinkHeaderMap::Node* FindLinkHeader(LinkHeaderMap* map, const std::string* key) { return map->find(*key); }
 // A link mesh's part ranges (LinkRangeMap; plain values).
-using LinkRanges = stlp::TreeAbi<LinkRangeMap>;
 
 // The link loader's mesh cache (a multimap<string, CLinkMesh*> of counted references): one more reference per copy, released by the pair's destructor.
 struct CountedMesh : stlp::CountedRef {

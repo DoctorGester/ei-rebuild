@@ -1,4 +1,4 @@
-// MFC 4.2's CDC and GDI objects, registered at their library addresses (mfc_gdi.h).
+// MFC 4.2's CDC and GDI objects (mfc_gdi.h).
 #include "mfc_gdi.h"
 
 #include "crt.h"

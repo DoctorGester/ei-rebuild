@@ -80,8 +80,6 @@ FollowMode* FollowMode::Clone() { return new FollowMode(leader.object); }
 
 int FollowMode::GetType() { return kTypeFollow; }
 
-SuspectionMode* SuspectionMode::Construct() { return new (this) SuspectionMode(); }
-
 SuspectionMode::~SuspectionMode() {}
 
 int SuspectionMode::OnShutdown() { return 0; }

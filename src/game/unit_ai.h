@@ -257,7 +257,6 @@ static_assert(sizeof(FollowMode) == 0x0C);
 class SuspectionMode : public AIActionMode {
 public:
     SuspectionMode() { ClearFields(); }
-    SuspectionMode* Construct();
     ~SuspectionMode() override;
     int OnShutdown() override;
     SuspectionMode* Clone() override;
@@ -730,9 +729,6 @@ struct AIBrain {
     void Init();
     // Empty containers, the move order cleared, both sight caches {0, -1}, then Init. Returns this.
     AIBrain* Construct();
-    // Init, the memory destroyed, then the attention arrays, alarm records, the mode in charge, the mode
-    // list, target / seen and the looks.
-    void Destruct();
     // The brain from / to a save: the action, its point, looks and time, target and seen object, the scalars,
     // the modes (count, the index of the one in charge, then each mode's type and its own data), the
     // perception memory, the alarm records, and (by file version) the attack options. Load empties the mode

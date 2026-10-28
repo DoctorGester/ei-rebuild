@@ -1,4 +1,4 @@
-// MFC 4.2's CArchive buffer and string operators, registered at their library addresses (mfc_archive.h).
+// MFC 4.2's CArchive buffer and string operators (mfc_archive.h).
 #include "mfc_archive.h"
 
 #include "gameapi.h"

@@ -1,6 +1,6 @@
 // Out-of-line copies of the RefPtr helpers (core_refcount.h):
 // the compiler emitted one per template instantiation of the owning pointer, with
-// byte-identical code. They are registered with the core implementation.
+// byte-identical code; here each is one function.
 #include "core_refcount.h"
 #include "engine_object.h"
 

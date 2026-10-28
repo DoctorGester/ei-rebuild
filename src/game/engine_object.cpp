@@ -1,5 +1,4 @@
-// CEngineObject: the default slots of its vtable and its non-virtual members. See
-// And 10 are shorter than a hook's jump and stay unregistered.
+// CEngineObject: the default slots of its vtable and its non-virtual members.
 #include "engine_object.h"
 
 #include "base_manager.h"

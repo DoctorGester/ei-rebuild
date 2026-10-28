@@ -1,4 +1,4 @@
-// MFC 4.2's CFile, CStdioFile and CFileFind, registered at their library addresses (mfc_file.h).
+// MFC 4.2's CFile, CStdioFile and CFileFind (mfc_file.h).
 #include "compiled_vtable.h"
 #include "crt.h"
 #include "mfc_file.h"

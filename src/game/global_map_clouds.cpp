@@ -141,7 +141,3 @@ void CGlobalMapClouds::Generate(std::uint8_t* out, int step) {
         }
     }
 }
-
-namespace {
-// The virtual slots are registered through shims (rewrite-guide rule 4).
-} // namespace

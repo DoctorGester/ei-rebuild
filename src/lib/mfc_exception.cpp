@@ -1,4 +1,4 @@
-// MFC 4.2's exception classes and AFX_EXCEPTION_LINK, registered at their library addresses
+// MFC 4.2's exception classes and AFX_EXCEPTION_LINK
 // (mfc_exception.h).
 #include "mfc_exception.h"
 

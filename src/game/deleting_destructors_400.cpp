@@ -21,7 +21,7 @@ void RunBody(R (T::*body)(), void* self) { (static_cast<T*>(self)->*body)(); }
 template <class T, class R>
 void RunBody(R(__fastcall* body)(T*), void* self) { body(static_cast<T*>(self)); }
 
-// Registered as DeletingDestructor<Body>::Delete::Delete: `this` is the object (RET 4); returns it.
+// The scalar deleting destructor of Body: `this` is the object (RET 4); returns it.
 template <auto Body>
 struct DeletingDestructor {
     void* Delete(unsigned flags) {
@@ -31,11 +31,5 @@ struct DeletingDestructor {
         return self;
     }
 };
-
-// Exception cleanup steps (reached by a jump from the unwind funclets): the dword at +8 of ECX cleared.
-void __fastcall CleanupClear8(void* object) {
-    std::uint32_t zero = 0;
-    std::memcpy(static_cast<std::uint8_t*>(object) + 8, &zero, 4);
-}
 
 } // namespace destructors400

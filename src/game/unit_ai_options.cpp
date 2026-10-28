@@ -1,6 +1,6 @@
 // The unit AI's attack options (AIAttention, unit_ai.h): listing them from the unit's weapon and
 // spells, the option helpers and the
-// options array's SetSize (registered on mfc::CArray).
+// options array's SetSize (mfc::CArray's).
 #include "unit_ai.h"
 
 #include "combat.h"

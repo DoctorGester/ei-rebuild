@@ -1,7 +1,7 @@
 // The interface windows' scalar deleting destructors (the destructor body, then the memory freed when bit 0
 // of the flags is set; they return the object), the input sides' copies of them (`this` moved back from the
 // input side to the window, then a jump to the window's), and the short destructor bodies only they call.
-// Bodies that only jump to the window's or container's destructor are registered as those. docs/notes/ui.md,
+// Bodies that only jump to the window's or container's destructor are those destructors themselves. docs/notes/ui.md,
 // section 2 "Deleting destructors".
 #include "global_map_clouds.h"
 #include "library_trees.h"

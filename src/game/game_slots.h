@@ -156,7 +156,6 @@ using ArmourSpells = ListAbi<ArmourSpellRecord>;
 // ConstructElements).
 using FxSourceElements = EachElements<ScriptFxSource, InitFxSource, nullptr>;
 using FxSourceNodes = ListAbi<ScriptFxSource, FxSourceElements>;
-using FxSourceArray = ArrayAbi<ScriptFxSource, FxSourceElements>;
 using LightningNodes = ListAbi<ScriptLightning, EachElements<ScriptLightning, InitLightning, nullptr>>;
 using DeclNodes = ListAbi<ScriptDecl, EachElements<ScriptDecl, InitDecl, nullptr>>;
 using TokenNodes = ListAbi<ScriptToken, mfc::impl::HelperElements<ScriptToken, ConstructTokens, nullptr>>;
@@ -251,7 +250,6 @@ struct ScriptCommandsClass final : gameslots::CommandArrayClass {
 using CommandBlock = WithArray<0x18, 0, ScriptCommandsClass>;
 using CommandBlocks = InitElements<CommandBlock, InitWithArray<0x18, 0, ScriptCommandsClass>>;
 using CommandBlockList = ListAbi<CommandBlock, CommandBlocks>;
-using CommandBlockArray = ArrayAbi<CommandBlock, CommandBlocks>;
 } // namespace mfc::impl
 
 namespace gameslots {

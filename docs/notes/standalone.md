@@ -1352,7 +1352,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     ArrayTable) and CMapPtrToPtr (mfc_handle_map.cpp), slot 0 returning our CRuntimeClass record; the simple
     exceptions (CResourceException, CUserException, CMemoryException, CNotSupportedException) and
     CArchiveException (mfc_exception.cpp); the old iostream's streambuf, ios and ostream-for-ios tables
-    (crt_iostream.cpp; ostream's virtual base table is data and stays); std::exception (crt_except.cpp). CPtrArray,
+    (crt_iostream.cpp; ostream's virtual base table is data and stays); std::exception (file `-`: no class of ours). CPtrArray,
     CPtrList and ostream_withassign are retired with no class of ours (file `-`): only game.exe's constructors and
     destructors store them, and no code of ours calls those.
   - **Left**: the camp's panels (ui_camp_create.cpp, C15's area), the map spec chunk readers (C21), STLport's
@@ -1784,8 +1784,8 @@ the `--no-hooks` suite) keeps the registry.
   control word in 437k of 4.9M calls, never in the return value or MXCSR (probably start words whose reserved bits the
   round trip changes, which the UCRT version skipped setting: the original always loads the converted word).
   Mutations (_PC_53 mapped to 24 bits; the FLDCW test ignoring bit 3, the overflow mask) differ in 69M / 2.9M cases.
-- **Exceptions** (crt_except.cpp): _CxxThrowException 006E7819 raises 0xE06D7363 with the thrower's ThrowInfo (only
-  stlp's out_of_range uses it now; the pointer throws are the compiler's, "Named data (C18)"); MSVC 6 std::exception (vtable 00747290, "Unknown exception").
+- **Exceptions**: no file of ours: _CxxThrowException 006E7819 and MSVC 6's std::exception (vtable 00747290) went with
+  crt_except.cpp (C20m), nothing calls them; the pointer throws are the compiler's ("Named data (C18)").
 - **iostreams** (crt_iostream.{h,cpp}): MSVC 6's old streambuf / ios / ostream layouts, the inserters (numbers
   through the game's sprintf with VC6's formats: "%%%s.%.0ug", precision capped at 15), endl 004BA9F0, the streams'
   constructors and destructors. The eight ostreams 007C55A8-007C5810 all write to console streambufs (console.h).

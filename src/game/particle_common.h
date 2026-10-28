@@ -33,9 +33,6 @@ inline double Unsigned(std::uint32_t value) {
 // A float read back from memory (the original stores, then reloads it).
 inline float Load(const float& f) { return *static_cast<const volatile float*>(&f); }
 
-inline std::uint32_t GameDword(std::uintptr_t address) {
-    return *reinterpret_cast<const volatile std::uint32_t*>(address);
-}
 
 inline void SetBits(void* field, std::uint32_t bits) { std::memcpy(field, &bits, sizeof(bits)); }
 inline std::uint32_t Bits(const void* field) {
