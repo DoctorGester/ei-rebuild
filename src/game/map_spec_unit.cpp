@@ -133,8 +133,7 @@ void BehaviourChunk::OnChunk() {
     case 0xBBBC000A: b->unreadChunk = c.ReadFloat(); break;
     case 0xBBBC000B: b->alertMode = c.ReadByte(); break;
     case 0xBBBC000C: {
-        float f = c.ReadFloat();
-        b->callRadius = std::bit_cast<std::uint32_t>(f);
+        b->callRadius = c.ReadFloat();
         break;
     }
     case 0xBBBC000D:
@@ -160,7 +159,7 @@ void BehaviourChunk::Write() {
     Behaviour* b = target;
     c.BeginWrite(0xBBBC0000);
     c.WriteByte(0xBBBC000B, static_cast<std::uint8_t>(b->alertMode));
-    c.WriteFloat(0xBBBC000C, b->callRadius);
+    c.WriteFloat(0xBBBC000C, std::bit_cast<std::uint32_t>(b->callRadius));
     c.WriteByte(0xBBBC0002, static_cast<std::uint8_t>(b->loop));
     c.WriteByte(0xBBBC000E, static_cast<std::uint8_t>(b->alarm));
     c.WriteByte(0xBBBC000D, static_cast<std::uint8_t>((b->flags >> 3) & 1));

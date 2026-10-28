@@ -30,12 +30,6 @@ float ZoomSpeed() { return Option(options::g_options->cameraZoom_.powerMouse) * 
 // The wheel's steps per delta unit (read from the exe, rule 9).
 constexpr float kWheelStep = -0.008333334f;
 
-std::uint32_t Bits(float value) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(value);
-    return bits;
-}
-
 bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_; }
 
 // The mouse options: the drag's pan speed, its turn and tilt speeds with the mouse factors
@@ -122,14 +116,14 @@ void CCameraInput::OnKeyUp(int, int, int flags) {
         Vector3 direction = {static_cast<float>(y_ * speed), static_cast<float>(left * speed), 0.0f};
         camera->Pan(&direction);
         camera->SetTurnRate(0.0f);
-        camera->SetZoomTarget(Bits(ClimbSpeed() * z_));
+        camera->SetZoomTarget(ClimbSpeed() * z_);
         camera->SetTiltRate(0.0f);
         return;
     }
     Vector3 still = {0.0f, 0.0f, 0.0f};
     camera->Pan(&still);
     camera->SetTurnRate(TurnSpeed() * y_);
-    camera->SetZoomTarget(Bits(ClimbSpeed() * z_));
+    camera->SetZoomTarget(ClimbSpeed() * z_);
     camera->SetTiltRate(TiltSpeed() * x_);
 }
 

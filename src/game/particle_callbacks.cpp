@@ -229,10 +229,9 @@ void PlaceRings(CParticleSource* s, int countdown) {
             e->word[9] = 0;
             e->ticks = countdown;
             double lift = Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low);
-            float* start = &e->flames.centre.x;
-            std::memcpy(start, &offset, sizeof(Vector3));
-            start[2] = static_cast<float>(lift + D(start[2]));
-            std::memcpy(&e->pos, start, sizeof(Vector3));
+            e->flames.centre = offset;
+            e->flames.centre.z = static_cast<float>(lift + D(e->flames.centre.z));
+            e->pos = e->flames.centre;
             e->flames.radius = 0.0f;
             e->flames.angle = angle;
             e->flames.rise = static_cast<float>((D(diameter) - lift) * D(EI_PER_36));
@@ -3058,7 +3057,7 @@ void CParticleSource::TickClayRing(ParticleElement* e) {
         return;
     }
     float* previous = &e->clay.previous.x;
-    std::memcpy(previous, &e->pos, sizeof(Vector3));
+    e->clay.previous = e->pos;
     float* direction = &e->clay.direction.x;
     double s = D(size);
     float a = static_cast<float>(s * D(direction[0]));
@@ -3081,7 +3080,7 @@ void CParticleSource::TickClayRing(ParticleElement* e) {
         EI_NAN_AUDIT(f);
         return f == 0.0f;
     };
-    if (isZero(previous[0]) && isZero(previous[1])) std::memcpy(previous, &e->pos, sizeof(Vector3));
+    if (isZero(previous[0]) && isZero(previous[1])) e->clay.previous = e->pos;
 }
 
 // --- Falling (0x2034-0x2037): leaves or flakes drifting down from the carrier -------------------
@@ -4042,7 +4041,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     Vector3 point = *UnitPoint(unit, &scratch, index + g_clientWorld->tick_);
     float* mark = &elements[0].glow.mark.x;
     if (Same(mark[0], point.x) && Same(mark[1], point.y) && Same(mark[2], point.z)) return 0;
-    std::memcpy(mark, &point, sizeof(Vector3));
+    elements[0].glow.mark = point;
     Vector3 under;
     under.x = point.x;
     under.y = point.y;

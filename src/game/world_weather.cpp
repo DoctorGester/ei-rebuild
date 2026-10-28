@@ -14,6 +14,7 @@
 #include "ei/x87.h"
 #include "lib/str.h"
 
+#include <bit>
 #include <cstring>
 #include <string>
 
@@ -41,8 +42,8 @@ constexpr int kTypeLightning = 0x65;
 constexpr std::uint32_t kDirtyWeather = 2;
 constexpr float kRainLight = 20.0f;
 constexpr float kRainHeavy = 40.0f;
-constexpr std::uint32_t kDayFactorRain = 0x3F666666;   // 0.9f
-constexpr std::uint32_t kDayFactorDry = 0x3F800000;    // 1.0f
+constexpr float kDayFactorRain = 0.9f;
+constexpr float kDayFactorDry = 1.0f;
 
 
 float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(g_random.Next()) * scale); }
@@ -138,8 +139,7 @@ void CWorldServer::UpdateWeather() {
         }
         if (weather_ == kRaining && tick_ > static_cast<int>(lastRainBoltTick_) + 20) ShowRainBolt(this);
     }
-    std::uint32_t factor = weather_ == 0 ? kDayFactorDry : kDayFactorRain;
-    weatherFactor_ = factor;
+    weatherFactor_ = std::bit_cast<std::uint32_t>(weather_ == 0 ? kDayFactorDry : kDayFactorRain);
 
     for (auto node = objects_.map.begin(); node != objects_.map.end(); ++node)
         node->second->UpdateMoveFactors();   // the weather changed

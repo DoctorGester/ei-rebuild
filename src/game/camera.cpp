@@ -120,7 +120,7 @@ void ResetMotion(CCamera* c) {
     c->tiltRate_ = zero;
     c->tiltTarget_ = zero;
     c->zoomRate_ = zero;
-    c->zoomTarget_ = 0;
+    c->zoomTarget_ = 0.0f;
 }
 
 } // namespace
@@ -256,7 +256,7 @@ void CCamera::StopMotion() {
     if (std::fabs(tiltRate_) < std::fabs(tiltTarget_)) tiltRate_ = tiltTarget_;
     turnTarget_ = 0.0f;
     if (std::fabs(turnRate_) < std::fabs(turnTarget_)) turnRate_ = turnTarget_;
-    zoomTarget_ = 0;
+    zoomTarget_ = 0.0f;
 }
 
 void CCamera::SetFocus(const Vector3* p) {
@@ -459,8 +459,7 @@ void CCamera::Update(float dt) {
         viewRotation_.x = x;
     }
 
-    float zoomTarget;
-    zoomTarget = std::bit_cast<float>(zoomTarget_);
+    float zoomTarget = zoomTarget_;
     Approach(&zoomRate_, &zoomTarget, zoomResponse_, dt);
     EI_NAN_AUDIT(zoomRate_);
     if (zoomRate_ != 0.0f) distance_ = static_cast<float>(D(dt) * zoomRate_ + distance_);

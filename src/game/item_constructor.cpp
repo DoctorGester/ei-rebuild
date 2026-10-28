@@ -214,7 +214,7 @@ void CItem::InitFromRecord(const ItemRecordHead* head) {
     chargeRate_ = kDefaultChargeRate;
     chargeMax_ = head->charge;
     charge_ = head->charge;
-    weight_ = std::bit_cast<std::uint32_t>(head->weight);
+    weight_ = head->weight;
     price_ = head->price;
     unreadValue_ = head->unreadValue;
     magicLevel_ = head->magicLevel;

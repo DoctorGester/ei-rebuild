@@ -496,7 +496,7 @@ public:
 
     // WorldDayTime's value: the script's IsNight reads it, the units' movement factors scale by it.
     float nightLevel_;
-    std::uint32_t weatherFactor_;         // float bits: 1 dry, 0.9 in rain or snow (the units' fourth movement factor)
+    std::uint32_t weatherFactor_;         // float bits: 1 dry, 0.9 in rain or snow (the units' fourth movement factor); the harness's digest reads it as bits
     WorldAlarm alarms_[5];
     // The zone's weather kind (its record's climate): 3 storms with lightning strikes, 1 light rain,
     // other non-zero values heavier weather; 0 none. Single-player only.

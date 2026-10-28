@@ -243,7 +243,7 @@ bool GiveUnitWeapon(Call* call) {
         float sum = prototype->combat[3] + weapon->defenceBonus;
         Store(&stats.combat[UnitStats::kDefence], sum);
         float reach;
-        reach = std::bit_cast<float>(weapon->reach);
+        reach = weapon->reach;
         Store(&stats.combat[UnitStats::kReach], reach);
         sum = prototype->combat[1] + weapon->attackBonus;
         Store(&stats.combat[UnitStats::kAttack], sum);

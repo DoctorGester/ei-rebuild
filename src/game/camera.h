@@ -140,7 +140,7 @@ public:
     // Set a target rate; the current rate jumps up to it when larger in magnitude.
     void SetTurnRate(float rate);
     void SetTiltRate(float rate);
-    void SetZoomTarget(std::uint32_t value);
+    void SetZoomTarget(float value);
 
     // Follows the object with this id (-1: none); starting to follow resets
     // the two offset vectors to the zero vector.
@@ -158,7 +158,7 @@ public:
     float tiltTarget_;
     float tiltResponse_;
     float zoomRate_;
-    std::uint32_t zoomTarget_;  // the zoom rate target (float bits; SetZoomTarget)
+    float zoomTarget_;          // the zoom rate target (SetZoomTarget)
     float zoomResponse_;
     Vector3 focus_;             // the point looked at
     float focusHeight_;         // above the ground

@@ -132,8 +132,8 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
     }
     device->PopMatrix(CTransformPipeline::kPickStack);
     out->x = outX;
-    std::memcpy(&out->y, &outY, 4);
-    std::memcpy(&out->z, &pz, 4);
+    out->y = outY;
+    out->z = pz;
     return out;
 }
 

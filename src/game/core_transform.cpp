@@ -101,7 +101,7 @@ void CCamera::SetTiltRate(float rate) {
     if (std::fabs(tiltRate_) < std::fabs(rate)) tiltRate_ = tiltTarget_;
 }
 
-void CCamera::SetZoomTarget(std::uint32_t value) { zoomTarget_ = value; }
+void CCamera::SetZoomTarget(float value) { zoomTarget_ = value; }
 
 void CCamera::SetTarget(const CEngineObject* target) {
     if (!target) {

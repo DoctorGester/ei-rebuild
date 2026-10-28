@@ -105,13 +105,10 @@ void RelocateStrandedUnits(CWorldServer* world) {
         CUnit* unit = world->FindUnit(stranded[i]);
         if (unit && unit->id_ > kTextKeyIdMin) {
             world->aiMap_.sectorMap.Remove(unit);
-            float* position = &unit->localPosition_.x;   // x, y, z
-            Vector3 from;
-            Vector3 to;
-            std::memcpy(&from, position, sizeof(Vector3));
-            std::memcpy(&to, position, sizeof(Vector3));
+            Vector3 from = unit->localPosition_;
+            Vector3 to = unit->localPosition_;
             world->aiMap_.FindFreeCellNear(unit, &from, &to);
-            std::memcpy(position, &to, sizeof(Vector3));
+            unit->localPosition_ = to;
             world->aiMap_.sectorMap.Add(unit);
             unit->ServerController()->ResyncWithUnit();
         } else {

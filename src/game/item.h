@@ -90,11 +90,7 @@ public:
     // Attaches `spell` (counted; the previous one released); the price is left alone.
     void SetSpell(CSpell* spell);
     void Repair() { condition_ = conditionMax_; }
-    float Weight() const {
-        float weight;
-        weight = std::bit_cast<float>(weight_);
-        return weight;
-    }
+    float Weight() const { return weight_; }
 
     // a counted link record (a RefPtr slot): the world server's CItemLink (the id the
     // world's save keeps per item, or the party record's item), the HUD's ItemTurn.
@@ -107,9 +103,9 @@ public:
     float charge_;
     float chargeMax_;             // the prototype's charge
     float chargeRate_;            // 0.001 by default
-    std::uint32_t weight_;        // float bits (Weight()); prototype weight
+    float weight_;                // the prototype's weight
     float price_;                 // includes the attached spell's price
-    std::uint32_t unreadValue_;   // the prototype's unreadValue (float bits); only saved, loaded and compared by IsSameAs
+    float unreadValue_;           // the prototype's unreadValue; only saved, loaded and compared by IsSameAs
     // the level of spell the item can hold (the prototype's magicLevel plus the material's;
     // CItemConstructor::MagicCapacity).
     std::uint32_t magicLevel_;

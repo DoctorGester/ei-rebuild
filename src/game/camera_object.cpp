@@ -56,7 +56,7 @@ CCamera::CCamera() {
     tiltTarget_ = 0.0f;
     zoomRate_ = 0.0f;
     focus_.y = 10.0f;
-    zoomTarget_ = 0;
+    zoomTarget_ = 0.0f;
     focusHeight_ = 2.0f;
     focus_.z = 2.0f;
     viewRotation_ = camera::kIdentityRotation;

@@ -390,7 +390,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
         out->damageMax = weapon->damageSpread_ + weapon->damage_;
         out->weaponType = weapon->GetType();
         out->damageType = WeaponDamageType(weapon->prototypeId_);
-        out->speed = std::bit_cast<float>(weapon->weight_);
+        out->speed = weapon->weight_;
         float base = WeaponAttackBonus(weapon->prototypeId_);
         double bonus = stats.WeaponSkillBonus(out->weaponType, self);
         out->attack = static_cast<int>(libcrt::Ftol(bonus + base));

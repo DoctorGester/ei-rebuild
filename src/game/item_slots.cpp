@@ -12,12 +12,6 @@ using namespace itemdb;
 
 namespace {
 
-float FloatOf(std::uint32_t bits) {
-    float f;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
-
 } // namespace
 
 // --- GetUse -----------------------------------------------------------------------------------
@@ -30,11 +24,11 @@ BOOL CItem::IsSameAs(CItem* other) {
     if (other == this) return 1;
     if (type_ != other->type_ || prototypeId_ != other->prototypeId_) return 0;
     EI_NAN_AUDIT(condition_, other->condition_, conditionMax_, other->conditionMax_, charge_,
-                 other->charge_, chargeMax_, other->chargeMax_, FloatOf(weight_), FloatOf(other->weight_), price_, other->price_,
-                 FloatOf(unreadValue_), FloatOf(other->unreadValue_));
+                 other->charge_, chargeMax_, other->chargeMax_, weight_, other->weight_, price_, other->price_,
+                 unreadValue_, other->unreadValue_);
     if (condition_ != other->condition_ || conditionMax_ != other->conditionMax_ ||
-        charge_ != other->charge_ || chargeMax_ != other->chargeMax_ || FloatOf(weight_) != FloatOf(other->weight_) ||
-        price_ != other->price_ || FloatOf(unreadValue_) != FloatOf(other->unreadValue_))
+        charge_ != other->charge_ || chargeMax_ != other->chargeMax_ || weight_ != other->weight_ ||
+        price_ != other->price_ || unreadValue_ != other->unreadValue_)
         return 0;
     if (magicLevel_ != other->magicLevel_) return 0;
     const CSpell* spell = spell_;
@@ -74,7 +68,7 @@ BOOL CItemLoot::IsSameAs(CItem* item) {
 void CItemWeapon::InitFromRecord(const ItemRecordHead* record) {
     CItem::InitFromRecord(record);
     auto* r = RecordAs<WeaponRecord>(record);
-    reach_ = std::bit_cast<float>(r->reach);
+    reach_ = r->reach;
     damage_ = r->damage;
     damageSpread_ = r->damageSpread;
 }
