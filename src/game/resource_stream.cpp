@@ -19,7 +19,7 @@
 
 namespace {
 
-// CRT and MFC routines of the game.
+// CRT and library routines of the game.
 void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) {
 #pragma warning(suppress : 4996)
     _splitpath(path, drive, dir, name, ext);

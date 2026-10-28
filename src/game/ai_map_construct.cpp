@@ -1,5 +1,5 @@
 // The CAIMap constructor, destructor and reset (destroyed, then constructed again in place). The unit layers
-// and the sector map are C++ members; the constructors of the others (CArrays, CLists, the dirty
+// and the sector map are C++ members; the constructors of the others (arrays, lists, the dirty
 // rectangle) are stores. The original's exception frames only matter when a member constructor throws, which
 // ends the game either way. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"

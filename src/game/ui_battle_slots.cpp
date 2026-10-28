@@ -102,7 +102,7 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
 void CBattleScreen::SaveState() {
     CStream* stream = &g_saveStream.Get();
     auto& party = party_;
-    // The ids go through a CDWordArray first; the bytes written are the same.
+    // The ids go through an array first; the bytes written are the same.
     int count = 0;
     for (int i = 0; i < std::ssize(party); ++i)
         if (party[i]->flags_ & kUnitSelected) ++count;

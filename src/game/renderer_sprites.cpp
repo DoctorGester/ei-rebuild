@@ -54,7 +54,7 @@ constinit std::vector<ProjectedVertex> g_unused = /*007AEFA0*/ {};   // sized on
 void FreeUnused() { lib::FreeStorage(g_unused); }
 constinit std::vector<TLVertex> g_corners = /*007AEF90*/ {};   // 4 per sprite
 void FreeCorners() { lib::FreeStorage(g_corners); }
-// A CByteArray of a byte per corner and a CWordArray of indices: constructed on the first draw, destroyed by the exit
+// A byte array of a byte per corner and a word array of indices: constructed on the first draw, destroyed by the exit
 // functions it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<std::vector<std::uint8_t>> g_outcodes = /*007AEF78*/ {};
 constinit lib::StaticObject<std::vector<std::uint16_t>> g_indices = /*007AEF60*/ {};
@@ -71,7 +71,7 @@ constinit std::vector<SpriteSortRecord*> g_spare = /*007AEFB8*/ {};
 void FreeSpare() { lib::FreeStorage(g_spare); }
 std::uint8_t g_sortGuards = /*007AEFF8*/ {};   // the sort's statics constructed (bits 1, 2, 4, 8)
 
-// First use: the two aligned arrays are zeroed, the MFC arrays constructed; each gets its exit handler.
+// First use: the two aligned arrays are zeroed, the two growable arrays constructed; each gets its exit handler.
 void EnsureStatics() {
     if (!(g_guards & 1)) {
         g_guards |= 1;

@@ -92,7 +92,7 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
     if (previous == kUnsetBits) std::memcpy(&brain->previousPosition, where, sizeof(Vector3));
 }
 
-// The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a CPtrList built on
+// The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a list built on
 // first use and destroyed at exit.
 constinit lib::StaticObject<CountedUnits> g_candidates = /*007C54C8*/ {};
 std::uint8_t g_candidatesGuard = /*007C54E4*/ {};

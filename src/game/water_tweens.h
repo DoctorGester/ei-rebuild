@@ -17,8 +17,8 @@ struct TweenEntry {
 };
 static_assert(sizeof(TweenEntry) == 16);
 
-// CArray<TweenEntry> of the world: new entries zero-filled, never constructed. RemoveAll
-// and SetSize are the template's; the rest are members.
+// The world's array of TweenEntry: new entries zero-filled, never constructed. Emptying
+// and resizing are the template's; the rest are members.
 struct WaterTweens : std::vector<TweenEntry> {
     // The entry for `key` (made when there is none) moves to `target` over
     // `steps` updates (at least one).

@@ -574,7 +574,7 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     if (session && !(session->flags7_ & CRefCounted::kDetached))
         if (net::PlayerMessage* record = session->FindPlayer(id)) player = record->serial_;
 
-    // AddHead(SharedObject()): the new head copies an empty local (whose first three dwords the
+    // Pushing SharedObject() at the head: the new head copies an empty local (whose first three dwords the
     // original leaves unset; they are overwritten below).
     SharedObject& entry = sharedObjects_.emplace_front();
     entry.objectId = id;

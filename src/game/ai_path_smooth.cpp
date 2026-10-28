@@ -72,7 +72,7 @@ void DestroySmoothPool() { g_smoothPool.Destroy(); }
 
 } // namespace
 
-// CArray<SmoothNode>::SetSize (new nodes zeroed, nothing destroyed).
+// Resizes the SmoothNode array (new nodes zeroed, nothing destroyed).
 void SmoothPool::SetSize(int size) { nodes.resize(size); }
 
 void PathSmoother::Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to) {

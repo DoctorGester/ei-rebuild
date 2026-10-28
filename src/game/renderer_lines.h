@@ -64,7 +64,7 @@ struct LineBatch {
 };
 
 // The line lists' work arrays: the projected points (x, y, z, rhw each, resized without keeping its contents) and
-// their clip outcodes (an MFC CByteArray built by a static initialiser).
+// their clip outcodes (a byte array built by a static initialiser).
 extern std::vector<ProjectedPoint> g_lineProjected;
 extern lib::StaticObject<std::vector<std::uint8_t>> g_lineOutcodes;
 

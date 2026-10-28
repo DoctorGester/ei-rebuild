@@ -64,7 +64,7 @@ void PlayMovies(const std::string& section, bool clearFirst, bool clearAfter, in
 // flag 1) DirectDraw first flips to the GDI surface (a failure is reported through FatalErrorCode: "Can't
 // flip to GDI surface."); the cursor that was set is put back afterwards. Returns MessageBoxA's answer.
 int ShowMessageBox(const char* text, int flags);
-// The box of the game's library code (MFC's AfxMessageBox): no owner, the module's file name as its title, OK with an
+// The box of the game's library code (AfxMessageBox): no owner, the module's file name as its title, OK with an
 // exclamation icon. Returns MessageBoxA's answer.
 int ShowLibraryMessageBox(const char* text);
 // WinMain: the application's start-up, main loop and shutdown. Rebirth patches

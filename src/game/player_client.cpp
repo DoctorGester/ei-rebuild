@@ -75,7 +75,7 @@ void WriteByte(CMemoryStream* out, std::uint8_t value) { out->Write(&value, 1); 
 
 const char* QuestPrefix() { return "q."; }
 
-// The quest log refreshed with an empty CPtrList built and destroyed on the stack.
+// The quest log refreshed with an empty list built and destroyed on the stack.
 void RefreshQuestLog() {
     std::list<void*> none;
     g_interface->OnItemsPicked(&none, 0, 0);

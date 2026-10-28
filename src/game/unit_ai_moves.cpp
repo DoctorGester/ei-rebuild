@@ -65,7 +65,7 @@ constexpr float kSamePointSq = 0.01f;
 
 Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 
-// The CPtrList the sector map fills (blocks of 10).
+// The list the sector map fills.
 void InitUnitList(std::list<CUnit*>& list) {
     list = {};
 }

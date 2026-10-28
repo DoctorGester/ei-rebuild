@@ -25,7 +25,7 @@ constexpr float kDefaultAttribute = 25.0f;
 constexpr float kDefaultHeight = 0.7f;
 constexpr int kVoiceRows = 11;
 
-// The index of `name` in a vector of CStrings (case-insensitive), or -1.
+// The index of `name` in a vector of strings (case-insensitive), or -1.
 int IndexOf(const std::string* begin, const std::string* end, std::string_view name) {
     int index = 0;
     for (const std::string* entry = begin; entry != end; ++entry, ++index) {

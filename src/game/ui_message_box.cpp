@@ -41,7 +41,7 @@ void PlayExitMovieAndQuit() {
 // --- CMessageBox ---------------------------------------------------------------------------------
 
 void CMessageBox::CopyEditText() {
-    // The text is copied through a temporary CString (strcpy into the caller's buffer).
+    // The text is copied through a temporary string (strcpy into the caller's buffer).
     const char* text = edit_->text_.c_str();
     // The field's 50 characters can take up to 200 bytes in UTF-8; cut to the buffer at a character's end.
     text::CopyFitting(editText_, kEditTextSize, text);

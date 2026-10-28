@@ -36,7 +36,7 @@ struct Sector {
     virtual ~Sector();
 
     // Clear: no free record, the records' storage freed, both lists
-    // emptied (RemoveAll).
+    // emptied.
     void Clear();
     // A free record's index: the head of the free list, else the array grown by one
     // (SetSize; new records zeroed) and its last index.

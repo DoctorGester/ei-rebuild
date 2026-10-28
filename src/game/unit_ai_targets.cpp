@@ -69,7 +69,7 @@ std::uint32_t GroupExcess(const AIAttackOption* option, CountedUnits* group, CUn
     return sum;
 }
 
-// A scored {part, object} the choice keeps (CList nodes).
+// A scored {part, object} the choice keeps (list nodes).
 struct Scored {
     int part;
     CUnit* object;

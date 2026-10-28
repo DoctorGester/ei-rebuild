@@ -28,7 +28,7 @@ constexpr int kSides = 16;
 constexpr int kSideMask = kSides - 1;
 constexpr int kWheelMask = kWheelTicks - 1;
 
-// The records' pool (a CList<AIEvent> whose nodes hold them) and the free list (chained through
+// The records' pool (a list whose nodes hold them) and the free list (chained through
 // AIEvent::next).
 constinit lib::StaticObject<std::list<AIEvent>> g_eventPool = /*007C43A8*/ {};
 

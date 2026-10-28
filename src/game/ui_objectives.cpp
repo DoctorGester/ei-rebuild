@@ -65,7 +65,7 @@ MapRecord* FindZone(std::string_view name) { return g_mapDatabase->FindMap(name)
 
 int FindText(const char* key) { return g_clientWorld->texts_->Open(key); }
 
-// The quest the window last selected (a global CString): built empty by its static initialiser in the list's
+// The quest the window last selected (a global string): built empty by its static initialiser in the list's
 // order, destroyed once by the exit function it registers. Both are defined on their names
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<std::string> g_lastQuest = /*007C8178*/ {};

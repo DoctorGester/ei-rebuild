@@ -25,7 +25,7 @@
 
 namespace {
 
-// CPtrList::NewNode(prev, next) (data cleared). The armour and weapons inline it (with the same effects).
+// A list's NewNode(prev, next) (data cleared). The armour and weapons inline it (with the same effects).
 
 void Append(std::list<CItem*>* list, CItem* object) {
     ++object->refCount_;

@@ -41,7 +41,7 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
 ScriptQuestObjective* QuestObjectives() { return g_scriptQuestObjectives->data(); }
 int QuestObjectiveCount() { return static_cast<int>(g_scriptQuestObjectives->size()); }
 
-// operator+(const CString&, const CString&), constructing the result in `out`.
+// string + string, constructing the result in `out`.
 std::string* ConcatString(std::string* a0, const std::string* a1, const std::string* a2) { *a0 = *a1 + *a2; return a0; }
 
 // operator+'s result, destroyed with the holder.

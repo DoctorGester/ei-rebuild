@@ -20,7 +20,7 @@
 
 namespace {
 
-// The MFC lists' block size (CList(nBlockSize = 10)).
+// The lists' block size (10).
 constexpr int kListBlockSize = 10;
 // The client's flags after construction.
 constexpr std::uint32_t kClientFlags = 0x3DC0;

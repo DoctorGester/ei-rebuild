@@ -37,7 +37,7 @@ std::uint32_t LerpColor(std::uint32_t a, std::uint32_t b, float t) {
     return (c3 << 24) | (c1 << 8) | (c2 << 16) | c0;
 }
 
-// The work buffer: a CWordArray, zero at the start: built by the static initialiser in the list's order and
+// The work buffer: a word array, zero at the start: built by the static initialiser in the list's order and
 // destroyed by the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<std::vector<std::uint16_t>> g_workWords = /*0079B668*/ {};
 void DestroyWorkWords() { g_workWords.Destroy(); }

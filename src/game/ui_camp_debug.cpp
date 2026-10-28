@@ -112,7 +112,7 @@ void CCampPages::DebugFill() {
                 AddNamed(items, InstructionQuickItem(), static_cast<std::uint32_t>(i), kInstructionCount);
         }
 
-        // "Material.<name>" (CString + "." + name, two operator+), twenty each,
+        // "Material.<name>" (string + "." + name, two concatenations), twenty each,
         // the record index left as made.
         g_clientWorld->itemManager_->ListMaterialNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {

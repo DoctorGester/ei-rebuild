@@ -18,7 +18,7 @@ namespace {
 
 constexpr std::uint32_t kDefaultVersion = 2000000000;
 
-// operator+(const CString&, char) (AFXAPI).
+// String + char (the game's AFXAPI operator+).
 
 } // namespace
 

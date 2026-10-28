@@ -112,7 +112,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
             AddItem(model, image);
         }
         finish(item, false);
-        // The same CString serves as the second and third texts.
+        // The same string serves as the second and third texts.
         g_clientWorld->texts_->GetItemTexts(item, &tip, &unused, &unused);
         regions_[slot]->SetTipString(tip, 1, 0);
         place(slot);
@@ -183,7 +183,7 @@ void RebuildClientParty(CBattleScreen* screen) {
             if (!unit) continue;
             if (unitId == ids.camera) {
                 g_clientWorld->Select(unit);
-                // Insert at the front (InsertAt).
+                // Insert at the front.
                 int n = std::ssize(*party);
                 if (n <= 0) {
                     party->resize(1);

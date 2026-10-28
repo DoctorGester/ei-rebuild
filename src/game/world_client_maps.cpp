@@ -1,6 +1,6 @@
 // The client world's object maps (helpers and the CWorldClient methods that keep the maps). See
 // docs/notes/world.md ("Client maps"). The client files every object in a sector grid (STLport lists of
-// counted pointers, one per 16x16 cell) and a second grid; most of the helpers are the STLport and MFC
+// counted pointers, one per 16x16 cell) and a second grid; most of the helpers are the STLport and library
 // instantiations behind those maps (config/library.csv).
 #include "ground_print.h"
 #include "item_db_text.h"
@@ -465,7 +465,7 @@ void CWorldClient::ClearMaps() {
         for (int y = 0; y < static_cast<int>(grid.height_); ++y)
             grid.rows_[y][x].clear();
 
-    // MFC RemoveAll of the platform faces and the dynamic objects (the elements need no destruction).
+    // Both emptied: the platform faces and the dynamic objects (the elements need no destruction).
     platforms_.list.clear();
     dynamicObjects_.clear();
     dynamicNodes_.clear();

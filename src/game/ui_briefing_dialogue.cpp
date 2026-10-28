@@ -104,7 +104,7 @@ void CBriefingScreen::StartPhrases() {
 }
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
-    // (The name is compared through a CString copy.)
+    // (The name is compared through a copy.)
     bool human = str::Compare(unit->name, HumanPrototype()) == 0;
     int number;
     if (talking) {

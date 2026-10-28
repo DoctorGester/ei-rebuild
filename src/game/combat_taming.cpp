@@ -31,7 +31,7 @@ void UndoIfTamedBy(CUnitServer* self, CUnit* tamer) {
     if (side == tamer->side) self->UndoTaming();
 }
 
-// An empty reference list of the brain (CList of one reference per node): each released, then RemoveAll.
+// An empty reference list of the brain (a list of one reference per node): each released, then the list is emptied.
 // `release` picks how the original releases the element.
 template <bool kViaRelease>
 void ClearReferenceList(std::list<CUnit*>& list) {

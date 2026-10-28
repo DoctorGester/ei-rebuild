@@ -91,7 +91,7 @@ void Lever::SetState(int wanted, float duration) {
 }
 
 void Lever::CollectUseSpots(std::vector<Vector3>* out, float userRadius) {
-    // out->RemoveAll().
+    // the array emptied.
     lib::FreeStorage(*out);
     const LeverRecord* record = g_leverTable->Named(name);
     if (!record || record->spotCount == 0) return;

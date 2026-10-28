@@ -1,4 +1,4 @@
-// Path cell list operations (PathCellList, the game's CList<PathCell>) used by the path search:
+// Path cell list operations (PathCellList, the game's list of PathCell) used by the path search:
 // adding cells, appending and reversing lists, dropping repeated cells, and stepping a cell in one
 // of the eight directions. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"

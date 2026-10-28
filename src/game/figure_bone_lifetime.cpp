@@ -52,7 +52,7 @@ void FigureBone::DestroyBone() {
 // The names go after the body (name3, name2, name), then the engine object's part.
 FigureBone::~FigureBone() {
     DestroyBone();   // its reset empties the matrices here, the same SetSize
-    // The child list's destructor: its vtable, RemoveAll again.
+    // The child list's destructor: its vtable, emptied again.
     children.clear();
 }
 

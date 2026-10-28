@@ -274,7 +274,7 @@ inline float LightRiseScaled(CSpellEffect* e, const float& scale) {
 }
 
 // Every unit within the radius of the effect's position that IsSpellTarget accepts gets the
-// effect's damage (a CPtrList of blocks of 10 on the stack, walked node by node).
+// effect's damage (a list on the stack, walked node by node).
 inline void HitAreaTargets(CSpellEffect* e) {
     std::list<CUnit*> units;
     DamageInfo hit;

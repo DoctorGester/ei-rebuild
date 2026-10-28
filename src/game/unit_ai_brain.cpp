@@ -289,7 +289,7 @@ void AIBrain::CallAllies(const Vector3* point) {
         }
         ally->memory.HearCall(point, 0x1A, message.c_str());
     }
-    // The list's RemoveAll: no element destruction.
+    // The list emptied, no element destruction.
     units.clear();
 }
 

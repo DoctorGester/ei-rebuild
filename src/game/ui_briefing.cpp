@@ -89,7 +89,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         if (place < std::ssize(party_) && party_[place]->id_ == id) ++place;
     }
     if (record < count) {
-        // CArray::InsertAt(place, unit) inlined (the slot is zeroed, then written); the
+        // Insert `unit` at `place` (the slot is zeroed, then written); the
         // original then looks the unit up in the server world without using the result.
         int size = std::ssize(party_);
         if (place >= size) {

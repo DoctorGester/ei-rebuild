@@ -38,7 +38,7 @@ void Apply(CFigureAnimationState* state, const FigureAnimation* animation) {
     }
 }
 
-// The queue's RemoveHead (inlined by the original).
+// Takes the head off the queue.
 FigureAnimation* PopQueued(CFigureAnimationState* state) {
     FigureAnimation* animation = state->queue.front();
     state->queue.pop_front();

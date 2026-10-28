@@ -139,7 +139,7 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
         if (Matches(finder, kAttributeDirectory)) {
             int found;
             {
-                // MFC's result-slot calls (GetFilePath, operator+) construct these.
+                // The game's string result calls (GetFilePath, operator+) construct these.
                 std::string path = finder.GetFilePath();
                 std::string sub = path + SubdirectoryPattern();
                 found = FindSeedFile(out, sub.c_str(), target, counter);

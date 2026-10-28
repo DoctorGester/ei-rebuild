@@ -99,7 +99,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
         for (auto node = units->begin(); node != units->end(); ++node) {
             CUnit* other = *node;
             if (other == self) continue;
-            // At the head, holding a reference (AddHead): See walks the list
+            // At the head, holding a reference: See walks the list
             // from the head, so the units of the last sector come first.
             memory->nearby.push_front(other);
             if (other) ++other->refCount_;

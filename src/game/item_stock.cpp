@@ -524,7 +524,7 @@ void ItemStock::SaveLists(CStream* out) {
     WriteInt(out, static_cast<std::uint32_t>(spells.size()));
     for (itemdb::SpellRecord** p = spells.data(); p != spells.data() + spells.size(); ++p) out->WriteString((*p)->code);
 
-    // The modifiers' codes go through a CString made from a stack copy of their first four bytes (the game's
+    // The modifiers' codes go through a string made from a stack copy of their first four bytes (the game's
     // fifth byte is an uninitialised stack byte, its sixth a zero; here the string stops after the four).
     WriteInt(out, static_cast<std::uint32_t>(modifiers.size()));
     for (itemdb::SpellModifierRecord** p = modifiers.data(); p != modifiers.data() + modifiers.size(); ++p) {

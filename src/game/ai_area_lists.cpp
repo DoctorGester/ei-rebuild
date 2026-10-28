@@ -1,4 +1,4 @@
-// Fills the six per-level area lists of CAIMap (CArray<{int, int}>) from their tables in the game's data, each
+// Fills the six per-level area lists of CAIMap (arrays of {int, int}) from their tables in the game's data, each
 // a run of {a, b} pairs ended by a = 100. The last list appends through its Add, the others through SetSize.
 // See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"

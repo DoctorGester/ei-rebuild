@@ -1,5 +1,5 @@
 // Parties and their unit records: the records' constructor and destructor bodies and item clear,
-// the record array (MFC CArray::SetSize and ConstructElements), the party's constructor,
+// the record array (the array's resize and element construction), the party's constructor,
 // destructor, Create / Destroy / Clear, and the constructors of the managers a party makes. The
 // record's item lists are aligned pointer arrays; four more copies of their SetSize are
 // here. See party.h and docs/notes/items_spells.md ("Party").

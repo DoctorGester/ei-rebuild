@@ -50,7 +50,7 @@ void SetStageOps(CTextureDevice* device, DWORD op) {
     render::state::Stage(0, kAlphaOp, op);
 }
 
-void DestroyLineOutcodes() {   // (CByteArray's destructor)
+void DestroyLineOutcodes() {   // (the byte array's destructor)
     g_lineOutcodes.Destroy();
 }
 
@@ -110,7 +110,7 @@ constinit lib::StaticObject<std::vector<std::uint8_t>> g_lineOutcodes = /*007A9C
 
 void FreeLineVertices() { lib::FreeStorage(g_lineVertices); }
 void FreeLineProjected() { lib::FreeStorage(g_lineProjected); }
-void ConstructLineOutcodes() {   // (CByteArray's constructor)
+void ConstructLineOutcodes() {   // (the byte array's constructor)
     g_lineOutcodes.Construct();
     std::atexit(DestroyLineOutcodes);
 }

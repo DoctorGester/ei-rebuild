@@ -565,7 +565,7 @@ struct Platform {
     float sizeU, sizeV;                   // extent along u and v
 };
 
-// The client world's platform set: the engine's CBridgeManager (class 0x34) with the CList of the platform faces
+// The client world's platform set: the engine's CBridgeManager (class 0x34) with the list of the platform faces
 // (AddFace adds at the head).
 class PlatformSet final : public CEngineObject {
 public:
@@ -695,7 +695,7 @@ struct HitCollector {
 };
 
 class CLightningManager;
-// The visibility fog's manager ("CVisFogManager", class id 0x60): a counted object and a CList.
+// The visibility fog's manager ("CVisFogManager", class id 0x60): a counted object and a list.
 struct ClientArrayManager : CBaseManager {
     ClientArrayManager();
     ~ClientArrayManager() override;

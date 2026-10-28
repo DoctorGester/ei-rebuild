@@ -65,7 +65,7 @@ bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
 
 CItem* ItemAt(const std::vector<CItem*>* items, int i) { return (*items)[i]; }
 
-// CTypedPtrList<CRefPtr> AddTail: the list holds a reference.
+// Appends to the list: the list holds a reference.
 void AddCountedTail(std::list<CEngineObject*>* list, CEngineObject* object) {
     HeldObject<CEngineObject>::Of(&list->emplace_back(nullptr))->Assign(object);
 }

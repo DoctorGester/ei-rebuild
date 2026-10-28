@@ -125,7 +125,7 @@ struct BlockCost {
 struct CRegionMap;
 
 // A block of the region map, or a cell: {x, y}. The excluded blocks of a plan (AIPath) and the region map's
-// work lists are CArray<BlockPoint>.
+// work lists are arrays of BlockPoint.
 struct BlockPoint {
     int x, y;
 };

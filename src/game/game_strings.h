@@ -7,7 +7,7 @@
 
 namespace game {
 
-// The exe's empty string (""): the game's text readers, CString assignments and string compares fall back to
+// The exe's empty string (""): the game's text readers, string assignments and string compares fall back to
 // it (they copy or compare its text).
 inline constexpr char kEmptyText[1] = /*0079B298*/ "";
 

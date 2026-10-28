@@ -283,7 +283,7 @@ constinit std::vector<Vector4> g_projectionOutput = /*007C88E8*/ {};
 // The exit functions their static initialisers register: each frees its buffer, once (a guard bit each in
 // g_freed; bit 4 is the outcodes' destructor's).
 std::uint8_t g_freed = /*007C88C9*/ {};
-// The projected vertices' outcodes (a CByteArray): built empty by its static initialiser, destroyed once at
+// The projected vertices' outcodes (a byte array): built empty by its static initialiser, destroyed once at
 // exit.
 constinit lib::StaticObject<std::vector<std::uint8_t>> g_projectionOutcodes = /*007C88D0*/ {};
 void DestroyProjectionOutcodes() {
@@ -352,7 +352,7 @@ int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pag
         waterTiles.clear();
     }
 
-    // Vertex positions: one or two layers of 33x33 (CArray<Vector3>::SetSize, zeroing new ones).
+    // Vertex positions: one or two layers of 33x33 (resized, zeroing new ones).
     vertices.resize(hasWater ? 2 * kVertices : kVertices);
 
     // Each vertex is 8 bytes: x and y displacement (signed bytes), height (u16), packed normal.
@@ -437,7 +437,7 @@ void SectorData::Build() {
             int k = 0;
             while (k < std::ssize(waterMaterials) && waterMaterials[k] != id) ++k;
             if (k == std::ssize(waterMaterials))
-                lib::SetAtGrow(waterMaterials, std::ssize(waterMaterials), static_cast<std::uint8_t>(id));   // CByteArray
+                lib::SetAtGrow(waterMaterials, std::ssize(waterMaterials), static_cast<std::uint8_t>(id));
         }
         if (hasWater) {
             std::vector<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];

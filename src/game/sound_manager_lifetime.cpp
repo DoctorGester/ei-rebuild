@@ -170,7 +170,7 @@ int CSoundManager::CreateBody() {
     return 1;
 }
 
-// The list's RemoveHead (inlined), then the archive's deleting destructor.
+// The head taken off the list, then the archive's deleting destructor.
 void CSoundManager::ClearWaveSources() {
     while (!waveSources.empty()) {
         CMappedResource* source = waveSources.front();

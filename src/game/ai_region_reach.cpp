@@ -333,7 +333,7 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     // The reachable blocks around the cell (NearbyBlocks, through its address).
     std::list<BlockCost> blocks{};
     NearbyBlocks(sizeClass, false, x, y, &blocks);
-    // Count the blocks per region, in first-seen order (the original keeps a CList of {region, count}; at most
+    // Count the blocks per region, in first-seen order (the original keeps a list of {region, count}; at most
     // nine entries).
     std::uint16_t seen[9];
     int counts[9];

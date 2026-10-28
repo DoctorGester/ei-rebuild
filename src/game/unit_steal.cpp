@@ -19,7 +19,7 @@ CItem* CUnit::TakeRandomItem() {
         MarkChanged(kPartItems);
         return item;
     }
-    // The game collects the filled slots in a CArray<int> (grown one by one) and frees it afterwards; a
+    // The game collects the filled slots in an int array (grown one by one) and frees it afterwards; a
     // fixed array does the same.
     int filled[kQuickSlots];
     unsigned count = 0;
