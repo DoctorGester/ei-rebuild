@@ -3350,7 +3350,7 @@ title = "C14 aligned arrays: lib::AlignedArray (372 uses, 92 files) and needless
 group = "cleanup"
 model = "opus"
 depends = ["C14a"]
-note = "User 2026-10-27: seemingly unnecessary aligned data structures. lib::AlignedArray (src/lib/containers.h) is the engine's 32-byte-aligned array with CArray growth and memcpy relocation, new slots uninitialised; replace with std::vector (or a small aligned vector only where the renderer or SIMD really needs the alignment), checking where code depends on garbage-initialised new slots, growth steps or memcpy moves of non-trivial types. Also review the 42 alignas / __declspec(align) and 22 #pragma pack uses: keep only file, save and packet layouts. Checks: verify/release, image suite goldens the same."
+note = "User 2026-10-27: seemingly unnecessary aligned data structures. lib::AlignedArray (src/lib/containers.h) is the engine's 32-byte-aligned array with CArray growth and memcpy relocation, new slots uninitialised; replace with std::vector (or a small aligned vector only where the renderer or SIMD really needs the alignment), checking where code depends on garbage-initialised new slots, growth steps or memcpy moves of non-trivial types. Also review the 42 alignas / __declspec(align) and 22 #pragma pack uses: keep only file, save and packet layouts. Checks: verify/release, image suite goldens the same. Review: lib::AlignedArray in src 306 lines / 80 files -> 74 / 28 (225 declarations retyped to std::vector by a scratchpad script, then hand fixes). Kept for C14g: the declarations C14a's files (scene_loader, ui_item_info) reach and the figure mesh / link figure / party / unit / ui item arrays tied to them, plus the AlignedArray<T>::Allocate raw blocks. No aligned allocator: the build has no SIMD. Quirk fixes: typed CArray elements for tile lists and morph frames, construct_at in raw allocations (CUiRegion, CAnimationNode, SectorData, CCursor, part sets/groups), insert/erase at the memcpy/memmove sites, DrawStrip takes its points typed. named_data formats the 39 vector globals by the aligned arrays they replaced. pragma pack 24 -> 22 lines (PcmFormat's needless pack(2) gone; the rest are file / packet / game.exe layouts or C14a/C14b's; SectorVertex pack(1) left for C14g); alignas 41 kept (raw storage for hand lifetimes, 4-byte scratch, the 4096 image data). verify / release clean, x87 / signatures / stolen 0, image suite 121 the same."
 
 [[ticket]]
 id = "C33"
@@ -3433,6 +3433,14 @@ group = "cleanup"
 model = "sonnet"
 files = ["src/game/script.h", "src/game/script_array.h"]
 note = "From C15 batch 35: script.h's NamedValues() casts (users in game_lists, script_cleanup, script_construct, script_load) and script_array.h's Raw() view go once ScriptVars holds ScriptNamedValues members (~300 uses). Also left on C15's list after the console batch: the ui_briefing_people speakers_ InsertOverflow view and the brain / trap list views (C21 is done; check whether they are still there)."
+
+[[ticket]]
+id = "C14g"
+title = "C14 aligned arrays, the rest: the kept lib::AlignedArray declarations and the dead aligned-block helpers"
+group = "cleanup"
+model = "opus"
+depends = ["C14a", "C14b"]
+note = "C14e left lib::AlignedArray where C14a's files (scene_loader, ui_item_info) reach it: figure.h parts, figure_mesh vertices/normals/colours/packets, link_figure colours/speculars, sky_object packets, the figure part draws' ColourArray, party.h PartyItemArray, unit.h weapons/quickItems/armor/spells, world.h items, ui.h UiPtrArray, ui_camp UiItemList, the ui equip/hero lists, scene_bones/meshes/weld and skin_rewind (74 lines, 28 files in src). After C14a merges, rerun C14e's retype_aligned.py (path in C14e's report) with SKIP / KEEP emptied, hand-fix, then delete the dead helpers: mfc_array.h AlignedArrays / FreeAlignedData, mfc_slots.h AlignedAt8Records / AlignedAt8ArrayClass (after C14b), game_arrays.h BlocksAt8 / BlocksAt4 and aligned_arrays.cpp (tests/vectors/replay_unlinked.cpp references ArrayAt8Free / ArrayAt4Free), and replace the remaining AlignedArray<T>::Allocate raw blocks (renderer_lines, particle_emitters, render_helper matrix stack, texture_compose, link_figure packets) with vectors. Also terrain_sector.h SectorVertex pack(1) if its CArray Serialize writes no file. Checks: verify/release, image suite goldens the same."
 
 [[ticket]]
 id = "S"
