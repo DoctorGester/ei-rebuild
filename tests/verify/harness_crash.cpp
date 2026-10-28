@@ -1,8 +1,10 @@
 // Crash reports and the "diskfull" test step (harness_crash.h; ticket X40).
 #include "harness_crash.h"
 #include "harness_imports.h"
+#include "image/image_side.h"
 
 #include "../../src/hook/log.h"
+#include "ei/hook.h"
 #include "game/game_data.h"
 
 #include <cstdio>
@@ -41,7 +43,9 @@ struct ThrowInfo {
     const CatchableTypes* catchable;
 };
 
-// MFC 4.2's file and archive exceptions (src/lib/mfc_exception.h), thrown as pointers.
+// MFC 4.2's file and archive exceptions as game.exe's copy throws them (pointers; the file name a CString, a
+// pointer to its characters). The image throws only the archive one (its file name a std::string, read by
+// image::ArchiveExceptionFileName); its file errors are a lib::FileError, a std::exception.
 struct FileException {
     const void* vtable;
     BOOL autoDelete;
@@ -137,7 +141,11 @@ bool ReadThrow(const EXCEPTION_RECORD* record, Facts* facts) {
         } else if (facts->kind == Kind::archive) {
             const auto* e = *static_cast<const ArchiveException* const*>(object);
             facts->cause = e->cause;
-            CopyText(facts->text, sizeof(facts->text), e->fileName);
+            if (ei::Standalone()) {
+                image::ArchiveExceptionFileName(e, facts->text, sizeof(facts->text));
+            } else {
+                CopyText(facts->text, sizeof(facts->text), e->fileName);
+            }
         } else if (facts->kind == Kind::standard) {
             CopyText(facts->text, sizeof(facts->text), static_cast<const StdException*>(object)->what);
         }
