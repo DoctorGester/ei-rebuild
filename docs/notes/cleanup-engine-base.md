@@ -9,7 +9,7 @@ the `__declspec(novtable)` classes, `ei::SetVtable` stores and `...Hook` slot sh
 
 - The stream / manager slots (manager Create +8, Destroy +0xC, Release +0x10, Load +0x24, Save +0x28, NewObject +0x38, CreateObject +0x5C,
   ReleaseObject +0x60; stream Read +4, Write +8, Seek +0xC, Size +0x10, Position +0x14, Clear +0x18; Serialize +4) are the original's
-  numbering. `tools/check_thunks.py` and `progress.py` read `class __declspec(x) Name`.
+  numbering. `progress.py` reads `class __declspec(x) Name`.
 - `stlp::hash_map` grew `ClearWith(deleteNode)`, `Functors` / `BucketVector` / `CountProxy` (the pieces the manager's inlined code constructs
   by hand), `Pair`, `Iterator`, `First` / `After` (STLport's begin() and iterator ++); the game's own STLport / MFC instantiations are still
   called, only the raw offsets went.
