@@ -8,20 +8,12 @@
 #include "stlp_list.h"
 
 #include "game/core_refcount.h"
-#include "game/engine_object.h"
 
 #include <cstdint>
 
 void RefPtrRelease(RefPtr* self);
 
 namespace stlp {
-
-// A key and a reference (the server's award, trade and finished lists, the client's timers).
-struct RefEntry {
-    std::uint32_t key;
-    RefPtr ref;
-};
-static_assert(sizeof(RefEntry) == 8);
 
 // RefPtr copied with Share (null for a null or detached object, a clone for a
 // copy-on-share one) and destroyed with the owner's release (RefPtr::Destroy).
@@ -36,8 +28,8 @@ struct CountedRef {
     static void Destroy(RefPtr* p) { RefPtrRelease(p); }
 };
 
-// A key and a reference (RefEntry, or another pair of a dword and a RefPtr with the same member
-// names): the key, then the reference as SharedRef (destroyed the same way).
+// A key and a reference (a pair of a dword and a RefPtr named key and ref: the timed lists' TimedEntry): the
+// key, then the reference as SharedRef (destroyed the same way).
 struct SharedEntry {
     template <typename Entry>
     static void Copy(Entry* to, const Entry& from) {
@@ -57,20 +49,6 @@ struct CountedEntry {
     }
     template <typename Entry>
     static void Destroy(Entry* p) { CountedRef::Destroy(&p->ref); }
-};
-
-// A held engine object copied with one more reference (its dword count) and
-// destroyed with its Release when there is one (clear).
-struct HeldObject {
-    template <typename T>
-    static void Copy(T** to, T* const& from) {
-        *to = from;
-        if (from) ++from->refCount_;
-    }
-    template <typename T>
-    static void Destroy(T** p) {
-        if (*p) (*p)->Release();
-    }
 };
 
 // A list<T> of an instantiation that copies and destroys its elements by the policy E: the members
@@ -122,21 +100,5 @@ list<RefPtr>::Node* AsRefNode(Node* node) { return AsNode<RefPtr>(node); }
 struct SameObject {
     bool operator()(const RefPtr& a, const RefPtr& b) const { return a.ptr == b.ptr; }
 };
-
-// remove(value) of a HeldObject list (the client sector grid's cells): every
-// element that is the same object, erased.
-template <typename T>
-void ListRemoveHeld(list<T*>* self, T* const& value) {
-    self->template Remove<HeldObject>(value, [](T* a, T* b) { return a == b; });
-}
-
-// for_each(first, last, f) over a list of counted objects with a functor that
-// releases each object (when there is one); the nodes stay. Returns the functor (one byte).
-template <typename T>
-char ListForEachRelease(typename list<T*>::Node* first, typename list<T*>::Node* last, char f) {
-    for (; first != last; first = first->next)
-        if (first->data) first->data->Release();
-    return f;
-}
 
 } // namespace stlp

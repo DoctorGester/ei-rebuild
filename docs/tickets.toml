@@ -3658,6 +3658,13 @@ group = "cleanup"
 note = "Found by C14q: after C14s / C14t, stlp.h holds only the node allocator (stlp_alloc.h, PushSmallNode) and stlp_deque.h (CCamera::viewStack_ 0x24-byte entries, camera.h's own layout and ViewStackDestroyRange; the material's 0x10-byte entries). Both are trivially destructible: std::deque (or std::vector where nothing pushes at the front), then stlp_deque.h / .cpp and, with the lists gone, stlp.h / stlp.cpp / stlp_alloc.h go. Also: refptr_copies.cpp's RefPtrNull has no caller left (config/static_init_ports.csv still lists 0041FF50 / 0041FF60; check gen_static_init before removing the rows). net::Connection's destructor clears its maps by hand between the stlp lists; when C14s makes the lists std the clears go (core.md C14q)."
 
 [[ticket]]
+id = "C14y"
+title = "Drop the unused STLport includes: about 100 game files include lib/stlp.h / stlp_list*.h and use nothing of them"
+group = "cleanup"
+depends = ["C14t"]
+note = "Left by C14s. Files that include lib/stlp.h, lib/stlp_list.h or lib/stlp_list_refs.h without any stlp:: use (C14s's scan: acks_db.h, ai_map.*, app_helpers.h, base_manager.h, chunk_archive.h, class_templates.*, effects.h, item_db*.h/.cpp, lever*, model.h, party*.h, player_messages.h, script.h, texture.h, ui*.h/.cpp, unit_db*.h, world_data.h, ... about 100). stlp.h pulls in <string>, <cstring>, <new>, <type_traits> and game_data.h, so the scripted removal needs the missing direct includes added where the build asks. Best after C14t (stlp_list.h goes) and with C14x (stlp_deque, then stlp.h itself)."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"

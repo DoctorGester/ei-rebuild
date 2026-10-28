@@ -3,7 +3,7 @@
 // STLport's list<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md, section 2). One
 // pointer to the sentinel node the constructor allocates (its next is the first element, its prev the last; an
 // empty list's sentinel points at itself). Nodes are next, prev, then the element, from the node allocator. One
-// body for every element type (the ListAbi shims), the element's copy and destruction supplied by an element policy.
+// body for every element type, the element's copy and destruction supplied by an element policy (stlp_list_refs.h).
 
 #include "stlp_alloc.h"
 
@@ -35,21 +35,12 @@ struct list {
     Node* End() const { return head; }
     bool Empty() const { return head->next == head; }
 
-    // For a local list built and dropped in one function (e.g. the id lists of the constructor (a sentinel
-    // from the pool, linked to itself), push_back (insert(end, value): one node from the pool) and the
-    // destructor (clear, then the sentinel back to the pool), allocating in the same order.
+    // The constructor's sentinel (from the pool, linked to itself) and the destructor (clear, then the sentinel
+    // back to the pool).
     void Construct() {
         head = allocate_as<Node>();
         head->next = head;
         head->prev = head;
-    }
-    void PushBack(const T& value) {
-        Node* node = allocate_as<Node>();
-        new (&node->data) T(value);
-        node->next = head;
-        node->prev = head->prev;
-        head->prev->next = node;
-        head->prev = node;
     }
     void Destroy() {
         ClearWith([](T*) {});
@@ -84,17 +75,6 @@ struct list {
         node->prev = pos->prev;
         pos->prev->next = node;
         pos->prev = node;
-        return node;
-    }
-    // insert(pos): insert(pos, T). The default element is made on the stack
-    // (E::Default), copied into the new node as insert(pos, x) copies, then destroyed (E::Destroy).
-    template <typename E = Element<T>>
-    static Node* InsertDefault(Node* pos) {
-        alignas(T) unsigned char storage[sizeof(T)];
-        T* value = reinterpret_cast<T*>(storage);
-        E::Default(value);
-        Node* node = Insert<E>(pos, *value);
-        E::Destroy(value);
         return node;
     }
     // insert(pos, first, last): a copy of each element of [first, last) inserted before `pos`, in order.
@@ -142,83 +122,8 @@ struct list {
     static void Distance(const Node* first, const Node* last, int& n) {
         for (; first != last; first = first->next) ++n;
     }
-    // _List_global::_Transfer(pos, first, last), inlined into the splices: [first, last) unlinked
-    // and linked in before `pos`, unless pos is `last`.
-    static void Transfer(Node* pos, Node* first, Node* last) {
-        if (pos == last) return;
-        last->prev->next = pos;
-        first->prev->next = last;
-        pos->prev->next = first;
-        Node* tmp = pos->prev;
-        pos->prev = last->prev;
-        last->prev = first->prev;
-        first->prev = tmp;
-    }
-    static void SpliceOne(Node* pos, Node* i) {
-        Node* j = i->next;
-        if (pos == i || pos == j) return;
-        Transfer(pos, i, j);
-    }
-    static void SpliceRange(Node* pos, Node* first, Node* last) {
-        if (first != last) Transfer(pos, first, last);
-    }
 };
 static_assert(sizeof(list<int>) == 4 && sizeof(list<int>::Node) == 12);
-
-// Instantiations seen only through their node size (the constructors and the destructors of plain
-// data never touch an element).
-template <std::size_t NodeBytes>
-using OpaqueList = list<Opaque<NodeBytes - 8>>;
-static_assert(sizeof(OpaqueList<16>::Node) == 16);
-
-// The game's instantiations are __thiscall members, declared here as __fastcall functions with the
-// unused EDX second. An iterator (one node pointer) comes back through a hidden pointer the caller
-// passes first; the function returns that pointer in EAX.
-template <typename T, typename E = Element<T>>
-struct ListAbi : list<T> {
-    using List = list<T>;
-    using Node = typename List::Node;
-
-    List* Construct(const void* /*allocator*/) {
-        List::Construct();
-        return this;
-    }
-    static List* ConstructDefault(List* self) {
-        self->Construct();
-        return self;
-    }
-    static void Destruct(List* self) { self->template Release<E>(); }
-    static void Clear(List* self) { self->template Clear<E>(); }
-    // _M_create_node(x): the list is not read; the node's links are left as the pool had them.
-    Node* CreateNode(const T& x) { return List::template CreateNode<E>(x); }
-    // insert(pos, x). The list is not read (it is called with any register value).
-    Node** Insert(Node** out, Node* pos, const T& x) {
-        *out = List::template Insert<E>(pos, x);
-        return out;
-    }
-    Node** InsertDefault(Node** out, Node* pos) {
-        *out = List::template InsertDefault<E>(pos);
-        return out;
-    }
-    // list(const list& x): a sentinel, then insert(end, x.begin, x.end); returns this.
-    List* CopyConstruct(const List* from) {
-        List::Construct();
-        List::template InsertRange<E>(this->head, from->First(), from->End());
-        return this;
-    }
-    void InsertRange(Node* pos, const Node* first, const Node* last) {
-        List::template InsertRange<E>(pos, first, last);
-    }
-    void PushBack(const T& x) { List::template Insert<E>(this->head, x); }
-    static void PushBackDefault(List* self) { List::template InsertDefault<E>(self->head); }
-    static void PopBack(List* self) { List::template Erase<E>(self->head->prev); }
-    Node** Erase(Node** out, Node* pos) {
-        *out = List::template Erase<E>(pos);
-        return out;
-    }
-};
-// The element policies of the instantiations that hold the engine's reference holders are in
-// stlp_list_refs.h.
 
 // A node declared by its own struct with list<T>::Node's layout (next, prev, then the element: the
 // speech queue's, the spell modifiers', the sessions' driver and client nodes) seen as list<T>'s,

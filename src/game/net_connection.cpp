@@ -8,7 +8,6 @@
 #include "core_streams.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/stlp.h"
 
 #include <cstdlib>
 #include <cstring>
