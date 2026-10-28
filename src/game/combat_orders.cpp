@@ -21,7 +21,6 @@ constexpr float kCastNoiseScale = 2.0f;
 constexpr int kNoiseKind = 0x1A;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kNoSource = 0xFFFFFFFFu;
-constexpr int kClassQuickItem = 0x13;
 constexpr int kCategoryCharged = 5;     // wands and the like: pay from the charge
 constexpr int kCategoryScroll = 8;      // scrolls: cast at once
 constexpr int kWeaponBow = 5;
@@ -97,7 +96,7 @@ void CUnitServer::FinishCast() {
     CSpell* spell;
     if (source & kQuickItemSource) {
         auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
-        if (!item || item->GetClassId() != kClassQuickItem) return;
+        if (!item || item->GetClassId() != kClassItemQuick) return;
         if (item->GetCategory() != kCategoryCharged && item->GetCategory() != kCategoryScroll) return;
         carrier = item;
         spell = item->spell_;
@@ -216,7 +215,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int ru
     if (source & kQuickItemSource) {
         std::uint32_t slot = source & ~kQuickItemSource;
         auto* item = unit->GetQuickItem(slot);
-        if (item && item->GetClassId() == kClassQuickItem &&
+        if (item && item->GetClassId() == kClassItemQuick &&
             (item->GetCategory() == kCategoryCharged || item->GetCategory() == kCategoryScroll) &&
             item->GetCategory() == kCategoryScroll) {
             CWorldServer* world = ServerWorld();

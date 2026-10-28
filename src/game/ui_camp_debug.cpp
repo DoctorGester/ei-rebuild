@@ -30,8 +30,6 @@ const char* PrototypeItem() { return "Prototype"; }
 
 // The item and spell managers (their name lists).
 
-constexpr int kWeaponClass = 0x3004;
-constexpr int kArmorClass = 0x3005;
 constexpr std::uint32_t kInstructionCount = 10;
 constexpr std::uint32_t kMaterialCount = 20;
 
@@ -90,7 +88,7 @@ void CCampPages::DebugFill() {
             CResourceManager* manager = items->ItemFactory();
             CItemConstructor* maker = items->ItemConstructor();
             itemdb::ItemRecordHead* weapon = itemdb::WeaponAt(static_cast<std::uint32_t>(i));
-            AddInMaterials(items, manager, maker, weapon, kWeaponClass, materialCount);
+            AddInMaterials(items, manager, maker, weapon, kItemWeapon, materialCount);
         }
 
         g_clientWorld->itemManager_->ListArmorNames(&names);
@@ -100,7 +98,7 @@ void CCampPages::DebugFill() {
             if (NameHas(armor, PrototypeWord())) continue;
             AddNamed(items, InstructionArmor(), static_cast<std::uint32_t>(i), kInstructionCount);
             CItemConstructor* maker = items->ItemConstructor();
-            AddInMaterials(items, manager, maker, armor, kArmorClass, materialCount);
+            AddInMaterials(items, manager, maker, armor, kItemArmor, materialCount);
         }
 
         g_clientWorld->itemManager_->ListQuickItemNames(&names);

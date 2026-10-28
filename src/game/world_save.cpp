@@ -230,7 +230,7 @@ void CWorldServer::LoadSavedMapObjects(CStream* stream) {
         }
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        if (object->GetClassId() != world::kClassUnit)
+        if (object->GetClassId() != kClassUnit)
             otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (!object->name2.empty())
             namedObjects_.Set(static_cast<unsigned>(object->id_), object);

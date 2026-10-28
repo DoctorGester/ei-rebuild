@@ -201,7 +201,7 @@ public:
     void Destroy() override;
     const char* GetName() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     std::string name_;
     std::uint32_t width_;
@@ -229,7 +229,7 @@ public:
     CTextureManager();
     ~CTextureManager() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     const char* GetFolderName() override;    // "textures"
     // Rebirth-patched. Also deletes the composed textures and adds the archives "textures.res", "redress.res"
     // and "menus.res"; 1 only when every one opened.

@@ -16,9 +16,6 @@
 
 namespace {
 
-constexpr int kClassSpell = 0x3002;
-constexpr int kClassSpellContainer = 0x3003;
-
 constexpr const char* kNoSequenceMessage = "Can't find spell sequence to create child spell.\n";
 constexpr const char* kSpellManagerClassName = "CSpellManager";
 constexpr const char* kSpellManagerFolder = "spells";
@@ -43,7 +40,7 @@ SpellSequence::~SpellSequence() {
 }
 
 CSpell* CSpellManager::CreateSpellObject(int id) {
-    auto* spell = CreateObjectAs<CSpell>(kClassSpell, -1);
+    auto* spell = CreateObjectAs<CSpell>(kSpellTypeSpell, -1);
     if (id == -1) return spell;
     const auto packed = static_cast<std::uint32_t>(id);
     const std::uint32_t low = packed & 0xFFFF;
@@ -67,8 +64,8 @@ CSpell* CSpellManager::CreateSpellObject(int id) {
 }
 
 CEngineObject* CSpellManager::NewObject(int type) {
-    if (type == kClassSpell) return new CSpell();
-    if (type == kClassSpellContainer) return new CSpellContainer();
+    if (type == kSpellTypeSpell) return new CSpell();
+    if (type == kSpellTypeContainer) return new CSpellContainer();
     return nullptr;
 }
 
@@ -95,7 +92,7 @@ CSpellManager::~CSpellManager() {
 }
 
 const char* CSpellManager::GetClassName() { return kSpellManagerClassName; }
-int CSpellManager::GetClassId() { return 0x33; }
+ClassId CSpellManager::GetClassId() { return kClassSpellManager; }
 const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
 
 // The array takes the table's count, then element i the name of record i while i is below the count (read
@@ -121,4 +118,4 @@ CSpellContainer::~CSpellContainer() {
 }
 
 const char* CSpellContainer::GetClassName() { return "CSpellContainer"; }
-int CSpellContainer::GetClassId() { return 0x1A; }
+ClassId CSpellContainer::GetClassId() { return kClassSpellContainer; }

@@ -68,7 +68,7 @@ bool SetUpCasting(CParticleSource* s) {
     float radius;
     s->AttachmentOffset(&offset, &radius);
     radius = static_cast<float>(D(radius) * D(EI_POINT_EIGHT));
-    double scale = ClassOf(s->attachedTo) == kUnitClass ? UnitScale(s->attachedTo) : D(radius);
+    double scale = s->attachedTo->GetClassId() == kClassUnit ? UnitScale(s->attachedTo) : D(radius);
     if (s->type_ == 0x202A) scale = scale + scale;
     else scale = scale * D(EI_THREE);
     float extent = static_cast<float>(scale);
@@ -618,7 +618,7 @@ bool SetUpColumn(CParticleSource* s) {
     float height = static_cast<float>(D(radius) + D(radius));
     float foot = static_cast<float>(-D(offset.z) - D(height) * D(EI_COLUMN_FOOT));
     radius = static_cast<float>(D(radius) * D(EI_COLUMN_RADIUS));
-    double ring = ClassOf(s->attachedTo) == kUnitClass ? UnitScale(s->attachedTo) : D(radius);
+    double ring = s->attachedTo->GetClassId() == kClassUnit ? UnitScale(s->attachedTo) : D(radius);
     radius = static_cast<float>(ring + ring);
     s->elements.resize(1);
     ParticleElement* e = s->elements.data();
@@ -3442,7 +3442,7 @@ int CParticleSource::UpdateFeetCloud(Particle* p) {
 // FeetCloud feet: on a unit carrier the element sits on its foot (left when ticks is set, else
 // right), else on its body, else on its position raised by `above.z`; without one on the source.
 void CParticleSource::TickFeetCloud(ParticleElement* e) {
-    if (attachedTo && ClassOf(attachedTo) == kUnitClass) {
+    if (attachedTo && attachedTo->GetClassId() == kClassUnit) {
         CObject3D* unit = attachedTo;
         CFigureMesh* part = FindFigurePart(unit, e->ticks ? kLeftFoot : kRightFoot);
         if (!part) part = FindFigurePart(unit, kBody);

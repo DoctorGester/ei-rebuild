@@ -12,8 +12,6 @@
 #include <cstdint>
 #include <list>
 
-constexpr int kClassUnitServer = 0x3E;
-
 // An order of the unit: an AIOrder and two more fields. The order checks (CanReachAndPlan and the planning
 // under it) take the AIOrder part only: the AI builds just that on the stack.
 struct UnitAction : AIOrder {
@@ -160,7 +158,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     PathOrder* Path() override { return &motion; }
     void Unused17() override {}
     int ShowWeapon(std::uint32_t slot) override { return TakeUpWeapon(static_cast<int>(slot)); }

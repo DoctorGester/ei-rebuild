@@ -93,13 +93,13 @@ struct ItemStock {
     // The "allowed" stock takes the "magic" stock's spells and modifiers.
     void CopyMagic(const ItemStock* other);
 
-    // One instruction item (kind 0x3007, the class-0x15 prototype "prototype" / "rune") per offered spell /
+    // One instruction item (kind kItemLoot, the class-0x15 prototype "prototype" / "rune") per offered spell /
     // modifier, with index_ the record's index in its table (found by code; -1 when missing) and count_ a random
     // count in [minCount, maxCount], into `out`.
     void GenerateSpellInstructions(int minCount, int maxCount, std::list<CItem*>* out);
     void GenerateModifierInstructions(int minCount, int maxCount, std::list<CItem*>* out);
 
-    // Scrolls ("spell container", kind 0x3008) of the spells the stock offers: the recipe maps for scrolls, then
+    // Scrolls ("spell container", kind kItemSpell) of the spells the stock offers: the recipe maps for scrolls, then
     // up to 10 tries at a spell list (GenerateSpells with scrollLevels and threshold 50) until it holds at least
     // as many spells as `spells`; a scroll per spell of the last try into `out`. The counts are not used.
     void GenerateScrolls(std::list<CItem*>* out);
@@ -113,11 +113,11 @@ struct ItemStock {
     void GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, int minCount, int maxCount, std::list<CItem*>* out, int kind);
 
     // A random count in [minCount, maxCount] of the material entries (the
-    // vector shuffled in place when there are more), each as a "material" item (kind 0x3007) of a
+    // vector shuffled in place when there are more), each as a "material" item (kind kItemLoot) of a
     // random stack size in the entry's range, into `out`.
     void GenerateMaterials(int minCount, int maxCount, std::list<CItem*>* out);
 
-    // One instruction item (kind 0x3007, the class-0x15 prototype "instruction weapon" / "instruction armor" /
+    // One instruction item (kind kItemLoot, the class-0x15 prototype "instruction weapon" / "instruction armor" /
     // "instruction quick item") per weapon / armor / quick item record of the stock (quick items named "scroll"
     // skipped), with index_ the record's index in its table and count_ a random count in [minCount, maxCount].
     void GenerateWeaponInstructions(int minCount, int maxCount, std::list<CItem*>* out);

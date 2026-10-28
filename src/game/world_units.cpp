@@ -401,7 +401,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         id = object->id_;
         objects_.Set(static_cast<unsigned>(id), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
+        if (object->GetClassId() != kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
         object->updateCountdown = UpdateCountdown(object);
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         aiMap_.sectorMap.Add(object);
@@ -422,7 +422,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         object->flags_ |= 8;
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
+        if (object->GetClassId() != kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
         object->updateCountdown = UpdateCountdown(object);
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         int result = object->id_;
@@ -509,7 +509,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (CUnit* asUnit = UnitOrNull(object)) asUnit->ServerController()->ResyncWithUnit();
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
+        if (object->GetClassId() != kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
         aiMap_.sectorMap.Add(object);
         int result = object->id_;
         if (object->flags_ & 2) object->WriteChangedState();

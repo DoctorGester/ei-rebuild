@@ -63,7 +63,7 @@ int PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t
 }
 
 const char* CPlayer::GetClassName() { return "CPlayer"; }
-int CPlayer::GetClassId() { return 0xF; }
+ClassId CPlayer::GetClassId() { return kClassPlayer; }
 
 BOOL CPlayer::CreatePlayer() {
     DestroyPlayer();

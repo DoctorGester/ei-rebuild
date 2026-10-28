@@ -148,13 +148,6 @@ public:
     RECT rect_;
 };
 
-constexpr int kWeapon = 0x3004;
-constexpr int kArmor = 0x3005;
-constexpr int kQuick = 0x3006;
-constexpr int kQuest = 0x3007;
-constexpr int kSpellItem = 0x3008;
-constexpr int kLoot = 0x3009;
-
 int KindOf(CItem* item) { return item->type_; }
 std::uint32_t PackedIdOf(CItem* item) { return item->prototypeId_; }
 const CItemLoot* LootOf(CItem* item) { return AsLoot(item); }
@@ -360,7 +353,7 @@ void CItemInfoPanel::DescribeItem() {
     if (!item) return;
 
     int kind = KindOf(item);
-    if (kind == kQuest) {
+    if (kind == kItemLoot) {
         int sort = static_cast<int>(LootOf(item)->kind_);
         int sub = static_cast<int>(LootOf(item)->recordType_);
         if (sort == 1) {
@@ -380,11 +373,11 @@ void CItemInfoPanel::DescribeItem() {
             return;
         }
     }
-    if (kind == kQuick && CategoryOf(item) == 8) {
+    if (kind == kItemQuick && CategoryOf(item) == 8) {
         DescribeQuickItem();
         return;
     }
-    if ((interface_->ctrlDown_ && SpellOf(item)) || kind == kSpellItem) {
+    if ((interface_->ctrlDown_ && SpellOf(item)) || kind == kItemSpell) {
         DescribeCarriedSpell();
         return;
     }
@@ -405,11 +398,11 @@ void CItemInfoPanel::DescribeItem() {
 
     // The material and count, unless a quick item whose prototype's field is "none"; then the price.
     bool materialLine;
-    if (kind == kQuick) {
+    if (kind == kItemQuick) {
         const itemdb::ItemRecordHead* prototype = PrototypeOf(item);
         materialLine = !prototype || text::CompareIgnoringCase(prototype->materialClass, "none") != 0;
     } else {
-        materialLine = kind != kQuest && kind != kLoot;
+        materialLine = kind != kItemLoot && kind != kItemQuest;
     }
     if (materialLine) {
         text = "Unknown";
@@ -421,20 +414,20 @@ void CItemInfoPanel::DescribeItem() {
         w.Text(w.line);
         w.Down();
     }
-    if (kind != kLoot) w.Number(0, FtolOf(item->Weight()));
+    if (kind != kItemQuest) w.Number(0, FtolOf(item->Weight()));
 
-    if (kind == kArmor || kind == kWeapon || (kind == kQuick && CategoryOf(item) == 5)) {
+    if (kind == kItemArmor || kind == kItemWeapon || (kind == kItemQuick && CategoryOf(item) == 5)) {
         CSpell* spell = SpellOf(item);
         int spellValue = spell ? static_cast<int>(spell->skillNeeded_) : 0;
         w.Number(2, FtolOf(item->chargeMax_));
         w.line = str::Format("%s %d/%d", w.T(14), spellValue, static_cast<int>(item->magicLevel_));
         w.Text(w.line);
         w.Down();
-    } else if (kind == kQuick) {
+    } else if (kind == kItemQuick) {
         goto tail;
     }
 
-    if (kind == kArmor || kind == kWeapon) {
+    if (kind == kItemArmor || kind == kItemWeapon) {
         // The condition (current only when positive).
         float current = item->condition_;
         int condition = current > 0.0f ? FtolOf(current) : 0;
@@ -442,7 +435,7 @@ void CItemInfoPanel::DescribeItem() {
         w.line = str::Format("%s %d/%d", w.T(3), condition, maximum);
         w.Text(w.line);
         w.Down();
-        if (kind == kWeapon) {
+        if (kind == kItemWeapon) {
             CItemWeapon* weapon = AsWeapon(item);
             // Damage: min-max and the first damage kind with a weight ("damage_<n>"; the text
             // keeps the material line's otherwise).
@@ -470,7 +463,7 @@ void CItemInfoPanel::DescribeItem() {
             goto tail;
         }
     }
-    if (kind == kArmor) {
+    if (kind == kItemArmor) {
         float values[7];
         std::memcpy(values, AsArmor(item)->absorb_[0], sizeof(values));
         w.DamageLines(values, 25);
@@ -478,7 +471,7 @@ void CItemInfoPanel::DescribeItem() {
 
 tail:
     w.Down();
-    if (kind == kQuest) {
+    if (kind == kItemLoot) {
         texts->GetString("loot_item", &text);
         description += text;
         w.Wrapped(description, 7);
@@ -488,9 +481,9 @@ tail:
         w.Down();
         w.Down();
         w.Down();
-        if (kind != kWeapon) w.Down();
+        if (kind != kItemWeapon) w.Down();
         CSpell* spell;
-        if ((kind == kArmor || kind == kWeapon || (kind == kQuick && CategoryOf(item) == 5)) &&
+        if ((kind == kItemArmor || kind == kItemWeapon || (kind == kItemQuick && CategoryOf(item) == 5)) &&
             (spell = SpellOf(item)) != nullptr) {
             text = "Unknown";
             std::string key("spell ");

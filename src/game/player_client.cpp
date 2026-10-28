@@ -97,7 +97,6 @@ bool IsQuestVariable(const std::string& name) {
     return static_cast<int>(name.size()) > 2 && name.starts_with(std::string_view(QuestPrefix(), 2));
 }
 
-constexpr int kClassScratchUnit = 0x32;            // the object manager's class of the scratch unit
 constexpr int kKindNoPath = 3;               // OnPathMarker: no path to read
 constexpr int kPathParticles = 0x2039;
 constexpr int kMarkerParticles = 0x203A;     // 0x203B with the flag
@@ -109,7 +108,6 @@ constexpr std::uint8_t kRequestRecording = 2;
 bool MarkersShown() { return options::g_options->drawPath_ != 0; }
 const char* TextPartyReceived() { return "party received on client"; }
 
-constexpr int kClassUnitObject = 0x50;      // GetClassId of units
 constexpr int kTypeHumanoid = 0x32;         // type_ of units with heads and the "mo%d" skins
 constexpr std::uint32_t kHeaderFlagHidden = 8;
 constexpr std::uint32_t kFlagNoParts = 0x200;
@@ -454,7 +452,7 @@ int CPlayerClient::OnPathMarker() {
     float value;
     in_.ReadValue(value);
     if (kind != kKindNoPath) {
-        auto* walker = g_clientWorld->objectManager_->CreateObjectAs<CUnit>(kClassScratchUnit, -1);
+        auto* walker = g_clientWorld->objectManager_->CreateObjectAs<CUnit>(kUnitTypeHero, -1);
         ++walker->refCount_;
         PathOrder* path = &walker->ClientController()->motion;
         DeltaField* writing = field.BeginWriteB(0);
@@ -543,7 +541,7 @@ int CPlayerClient::OnNewObject() {
     CMapObject* object = created;
     CObject3D* figure = object;
     object->name = model;
-    bool isUnit = created->GetClassId() == kClassUnitObject;
+    bool isUnit = created->GetClassId() == kClassUnit;
     created->prototypeId_ = header.prototype;
     figure->SetFigureScale(&scale.x);
     object->baseScale = scale;
@@ -684,7 +682,7 @@ CPlayerClient::~CPlayerClient() {
 }
 
 const char* CPlayerClient::GetClassName() { return "CPlayerClient"; }
-int CPlayerClient::GetClassId() { return 0x3C; }
+ClassId CPlayerClient::GetClassId() { return kClassPlayerClient; }
 
 // --- The party state ---------------------------------------------------------------------
 

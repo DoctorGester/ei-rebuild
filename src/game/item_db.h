@@ -22,6 +22,16 @@ class ChunkArchive;
 // 0/1 in all 32 bits: callers test all of them.
 using BOOL = int;
 
+// CEngineObject::type_ of an item: which database its prototype lives in.
+enum ItemKind : int {
+    kItemWeapon = 0x3004,
+    kItemArmor = 0x3005,
+    kItemQuick = 0x3006,
+    kItemLoot = 0x3007,
+    kItemSpell = 0x3008,   // a spell container; prototype in the quick item database
+    kItemQuest = 0x3009,
+};
+
 namespace itemdb {
 
 // A spell prototype: the fields the camp's spell maker reads.
@@ -99,7 +109,7 @@ struct SpellModifierRecord {
 class ItemRecordHead {
 public:
     // The item kind the record makes (CItemConstructor::BeginCreateItem's kind).
-    virtual int Kind() = 0;
+    virtual ItemKind Kind() = 0;
 
     // Not virtual: the records' tables have only Kind.
     ~ItemRecordHead();
@@ -155,7 +165,7 @@ const Record* RecordAs(const ItemRecordHead* record) { return static_cast<const 
 struct WeaponRecord : ItemRecordHead {
     WeaponRecord();
     WeaponRecord(const WeaponRecord& from);
-    int Kind() override;                        // 0x3004
+    ItemKind Kind() override;
     // category..skillBonus and reach..damageTypes: attackBonus and defenceBonus are not copied.
     void CopyOwn(const WeaponRecord* source);
     // The head, then fields 0x15-0x1E.
@@ -176,7 +186,7 @@ struct WeaponRecord : ItemRecordHead {
 struct ArmorRecord : ItemRecordHead {
     ArmorRecord() {}                            // (user-provided: new ArmorRecord() leaves the bytes as they are)
     ArmorRecord(const ArmorRecord& from);
-    int Kind() override;                        // 0x3005
+    ItemKind Kind() override;
     // category..othersFlags; showsWounds and the rest are not copied.
     void CopyOwn(const ArmorRecord* source);
     // The head, then the two rows, showsWounds, layer and unreadFields.
@@ -201,7 +211,7 @@ struct QuickItemRecord : ItemRecordHead {
     QuickItemRecord();
     QuickItemRecord(const QuickItemRecord& from);
     ~QuickItemRecord();
-    int Kind() override;                        // 0x3006
+    ItemKind Kind() override;
     // actionValue and attributeBonus; the category, unreadFields and spellText are not copied (spellText is constructed
     // empty).
     void CopyOwn(const QuickItemRecord* source);
@@ -221,7 +231,7 @@ struct QuestItemRecord : ItemRecordHead {
     QuestItemRecord() {  }
     QuestItemRecord(const QuestItemRecord& from);
     ~QuestItemRecord();
-    int Kind() override;                        // 0x3009
+    ItemKind Kind() override;
     // The category only: the zone list is constructed empty, not copied.
     void CopyOwn(const QuestItemRecord* source);
     // The head, the category, then the zone list as chunk 0x16 (InlineStrings).
@@ -234,7 +244,7 @@ struct QuestItemRecord : ItemRecordHead {
 struct LootItemRecord : ItemRecordHead {
     LootItemRecord() {}
     LootItemRecord(const LootItemRecord& from);
-    int Kind() override;                        // 0x3007
+    ItemKind Kind() override;
     // category, recordType and index.
     void CopyOwn(const LootItemRecord* source);
     // The head, then category, recordType, index.

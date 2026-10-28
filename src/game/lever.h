@@ -59,7 +59,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     bool IsSynchronised() override { return Slot29True(); }
     int IsUsable() override { return NeedsKey(); }
     int IsDirectUseBlocked() override { return directUseBlocked; }

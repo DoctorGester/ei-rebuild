@@ -64,7 +64,7 @@ void CMaterial::Destroy() {
 
 const char* CMaterial::GetName() { return name.c_str(); }
 const char* CMaterial::GetClassName() { return kMaterialClassName; }
-int CMaterial::GetClassId() { return 5; }
+ClassId CMaterial::GetClassId() { return kClassMaterial; }
 
 CMaterialManager::CMaterialManager() {}
 
@@ -118,5 +118,5 @@ int CMaterialManager::FillMaterial(CMaterial* material, unsigned key) {
 }
 
 const char* CMaterialManager::GetClassName() { return kManagerClassName; }
-int CMaterialManager::GetClassId() { return 0x27; }
+ClassId CMaterialManager::GetClassId() { return kClassMaterialManager; }
 const char* CMaterialManager::GetFolderName() { return kManagerFolder; }

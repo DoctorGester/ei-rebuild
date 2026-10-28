@@ -26,10 +26,9 @@ namespace {
 constexpr const char* kFolderName = "map objects";
 constexpr const char* kClassName = "CMapObjectManager";
 constexpr const char* kNoDatabaseText = "Can't find animation database file for \"%s\".\n";
-constexpr int kManagerClassId = 0x2D;
 constexpr int kNoId = -1;
 
-// Classes the managers make: the animation state (the figure manager) and the side halves (the
+// Types the managers make: the animation state (the figure manager) and the side halves (the
 // world's specific manager; the client's are the 3D object's, the map object's and the unit's
 // client halves, the server's theirs).
 constexpr int kAnimationStateClass = 0x300D;
@@ -41,10 +40,10 @@ constexpr int kTorchHalf = 0x4B;
 constexpr std::uint32_t kKeyVariantBits = 0x7FFF;      // an entry must have every one the key asks for
 constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
 
-// The third half an object of class `classId` gets (a switch over a table for classes 0x32-0x3A), or 0 for
+// The third half an object of type `type` gets (a switch over a table for types 0x32-0x3A), or 0 for
 // none.
-int ThirdHalfOf(int classId) {
-    switch (classId) {
+int ThirdHalfOf(int type) {
+    switch (type) {
     case 0x32: case 0x33: case 0x34:
         return kUnitHalf;
     case 0x3A:
@@ -64,9 +63,9 @@ CMapObjectManager::~CMapObjectManager() {}
 
 const char* CMapObjectManager::GetFolderName() { return kFolderName; }
 const char* CMapObjectManager::GetClassName() { return kClassName; }
-int CMapObjectManager::GetClassId() { return kManagerClassId; }
+ClassId CMapObjectManager::GetClassId() { return kClassMapObjectManager; }
 int CMapObjectManager::Create() { return CreateManager(); }
-CEngineObject* CMapObjectManager::CreateObject(int classId, int id) { return CreateMapObject(classId, id); }
+CEngineObject* CMapObjectManager::CreateObject(int type, int id) { return CreateMapObject(type, id); }
 
 int CMapObjectManager::CreateManager() {
     std::string folder = *g_textFolder;
@@ -77,16 +76,16 @@ int CMapObjectManager::CreateManager() {
 
 CMapObject* CMapObjectManager::FindMapObject(unsigned id) const { return FindObjectAs<CMapObject>(id); }
 
-CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
+CEngineObject* CMapObjectManager::CreateMapObject(int type, int id) {
     CResourceManager* manager = this;
     // The base's CreateObject, not the virtual (that one is this function's caller).
-    auto* object = static_cast<CMapObject*>(CBaseManager::CreateObject(classId, id));
+    auto* object = static_cast<CMapObject*>(CBaseManager::CreateObject(type, id));
     if (!object) return nullptr;
     auto* figures = manager->ContextAsWorld()->FigureManager();
     object->SetAnimationState(figures->CreateObjectAs<CFigureAnimationState>(kAnimationStateClass, kNoId));
     object->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kObject3DHalf, kNoId));
     object->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kMapObjectHalf, kNoId));
-    if (int half = ThirdHalfOf(classId))
+    if (int half = ThirdHalfOf(type))
         object->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(half, kNoId));
     return object;
 }

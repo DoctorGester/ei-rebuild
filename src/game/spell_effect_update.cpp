@@ -144,7 +144,7 @@ void LightStrikeEcho(CSpellEffect* e) {
     if (e->timer == 5) {
         Vector3 top = e->position;
         top.z = top.z + ConstAt(worlddata::StrikeHeight());
-        auto* bolt = CreateObject<CEffectLightning>(e, kClassLightning);
+        auto* bolt = CreateObject<CEffectLightning>(e, kClassEffectLightning);
         bolt->SetEnds(&top, &e->position, kStrikeWidthImmediate);
         e->SetVisual(bolt);
     }
@@ -294,7 +294,7 @@ void Possession(CSpellEffect* e) {
         return;
     }
     auto* player = e->caster->player;
-    if (player && e->target->GetClassId() == spellfx::kClassUnit) {   // no null check on the target
+    if (player && e->target->GetClassId() == kClassUnit) {   // no null check on the target
         CMapObject* target = e->target;
         CUnitServer* server = ControllerOf(TargetUnit(e));
         ScriptGroup* group = &ServerOf(player)->possessedGroup_;

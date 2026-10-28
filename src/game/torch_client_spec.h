@@ -31,7 +31,7 @@ public:
     void Destroy() override { DestroyClient(); }
     int RunTick() override;                             // returns 1
     const char* GetClassName() override;                // "CTorchObjectClientSpecific"
-    int GetClassId() override;                          // 0x41
+    ClassId GetClassId() override;
     void ShowEffectsSlot() override { ShowEffects(); }
     void HideEffectsSlot() override { HideEffects(); }
     void WarmUpParticlesSlot() override { WarmUpParticles(); }

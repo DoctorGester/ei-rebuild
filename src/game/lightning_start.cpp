@@ -135,6 +135,6 @@ CLightning::CLightning() {
 CLightning::~CLightning() { CLightning::Destroy(); }
 
 const char* CLightning::GetClassName() { return "CLightning"; }
-int CLightning::GetClassId() { return 0x1E; }
+ClassId CLightning::GetClassId() { return kClassLightning; }
 
 CEngineObject* CLightningManager::NewObject(int /*type*/) { return new CLightning(); }

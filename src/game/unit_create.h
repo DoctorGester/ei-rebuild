@@ -58,20 +58,20 @@ struct CMapObjectManager : CResourceManager {
     ~CMapObjectManager() override;
     int Create() override;
     const char* GetClassName() override;
-    int GetClassId() override;
-    CEngineObject* NewObject(int classId) override;
-    CEngineObject* CreateObject(int classId, int id) override;
+    ClassId GetClassId() override;
+    CEngineObject* NewObject(int type) override;
+    CEngineObject* CreateObject(int type, int id) override;
     const char* GetFolderName() override;                   // "map objects"
 
-    // A new object of class id `classId` (0x32..0x34 units, 0x35..0x3C the other map objects, 0x300D, 0x3010), constructed; null
+    // A new object of type `type` (0x32..0x34 units, 0x35..0x3C the other map objects, 0x300D, 0x3010), constructed; null
     // for other ids. The starting equipment of prototype `name`: see docs/notes/units.md, "Creation helpers".
     int GiveStartingEquipment(CUnit* unit, const std::string& name);
 
     int CreateManager();
-    // The base manager's CreateObject; a new object gets an animation state (the figure manager's class
-    // 0x300D) and its side halves from the world's specific manager: classes 0x46 and 0x47, then 0x48 for the
-    // three unit classes (0x32-0x34) and 0x4B for classes 0x36-0x39. Returns the object or null.
-    CEngineObject* CreateMapObject(int classId, int id);
+    // The base manager's CreateObject; a new object gets an animation state (the figure manager's type
+    // 0x300D) and its side halves from the world's specific manager: types 0x46 and 0x47, then 0x48 for the
+    // three unit types (0x32-0x34) and 0x4B for the torch (0x3A). Returns the object or null.
+    CEngineObject* CreateMapObject(int type, int id);
     // The object registered under `id` (null for none); the manager holds only map objects.
     CMapObject* FindMapObject(unsigned id) const;
     // The entry of the animation database "<figure>.adb" matching `key`: the same bits above 0x7FFF and, of

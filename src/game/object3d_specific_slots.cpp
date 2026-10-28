@@ -34,7 +34,6 @@ void CObject3DClientSpecific::RegisterPartMaterials() {
 namespace {
 constexpr std::uint32_t kObjectShown = 0x20;    // CObject3D::flags_
 constexpr std::uint32_t kPartOwnMesh = 0x40;    // CFigureMesh::flags_: the part is drawn through its drawer
-constexpr int kClientClassId = 0x37;
 // "CObject3DClientSpecific".
 const char* ClientClassName() { return "CObject3DClientSpecific"; }
 
@@ -88,7 +87,7 @@ CFigureMesh* CObject3D::FindPartOfType(int type) {
 
 // The class name and id 0x37.
 const char* CObject3DClientSpecific::GetClassName() { return ClientClassName(); }
-int CObject3DClientSpecific::GetClassId() { return kClientClassId; }
+ClassId CObject3DClientSpecific::GetClassId() { return kClassObject3DClientSpecific; }
 
 // The base half's destructor (deleting form): the object forgotten.
 CObject3DSpecific::~CObject3DSpecific() { object = nullptr; }

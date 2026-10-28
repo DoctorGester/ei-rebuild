@@ -20,7 +20,6 @@
 
 namespace {
 constexpr std::uint32_t kFlag800000 = 0x800000;     // flags_, cleared by Load
-constexpr int kWorldServerClassId = 8;              // the world's GetClassId on a server
 
 constexpr int kVersionFightAtWill = 0x49;
 constexpr int kVersionPrototypeNames = 0x4D;
@@ -72,7 +71,7 @@ void ReadItems(CUnit* unit, CStream* stream, CItemArmor** slots, int count) {
 // The unit's new owner: on a server world, player `id` (null when there is none).
 CPlayer* PlayerById(CUnit* unit, int id) {
     CPlayer* player = nullptr;
-    if (ContextWorld(unit)->GetClassId() == kWorldServerClassId)
+    if (ContextWorld(unit)->GetClassId() == kClassWorldServer)
         player = unit->ServerWorld()->GetPlayer(id);
     return player;
 }

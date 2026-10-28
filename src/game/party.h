@@ -46,7 +46,7 @@ public:
     // (count, delete) the item constructor, spell constructor, item manager and spell manager.
     void Destroy() override;
     const char* GetClassName() override;
-    int GetClassId() override;             // class id 9
+    ClassId GetClassId() override;
 
     CItemConstructor* ItemConstructor() override;
     CSpellConstructor* SpellConstructor() override;

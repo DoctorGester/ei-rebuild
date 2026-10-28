@@ -76,10 +76,6 @@ namespace mapspec { class Spec; }
 
 class CWorldServer;
 
-namespace world {
-constexpr int kClassUnit = 0x50;   // CEngineObject::GetClassId() of units
-}
-
 // A hash map of counted objects emptied as ObjectIdMap::ReleaseAll does: every object up to the first empty entry
 // released, the nodes freed (the buckets stay). The caller clears its highest id.
 template <typename Map>
@@ -257,7 +253,7 @@ public:
     int Update();
     int RunTick() override { return Update(); }
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CItem* DuplicateItem(CItem* item) override { return CopyItem(item); }
     int IsServer() override;
     double GridHeightAt(float x, float y) override { return GridHeight(x, y); }
@@ -573,7 +569,7 @@ public:
     int Create() override;
     void Destroy() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     // Max(height, z of every platform surface whose area contains the point); the point is projected
     // onto each platform plane along z.
@@ -702,7 +698,7 @@ struct ClientArrayManager : CBaseManager {
     void Destroy() override;
     int RunTick() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
 
     int Draw(CSceneRenderer* renderer);
@@ -731,7 +727,7 @@ public:
     int Segment();
     int RunTick() override { return Segment(); }
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     const char* TexturePath() override;
     double GridHeightAt(float x, float y) override { return ClampedGroundHeight(x, y); }
     // The height of whatever surface is on top at (x, y): the ground, or the water when the point is submerged.
@@ -1266,33 +1262,33 @@ std::string* SessionMapNameInto(std::string* out);
 void SelectLoadingMovie(std::optional<std::string_view> zone);
 
 extern std::vector<CMapObject*> g_touchedModels;
-extern std::vector<CMapObject*> g_shadow52;
+extern std::vector<CMapObject*> g_shadowTrees;
 extern std::vector<CMapObject*> g_shadowUnits;
-extern std::vector<CMapObject*> g_shadow5D;
+extern std::vector<CMapObject*> g_shadowLevers;
 extern std::vector<CMapObject*> g_shadowOther;
-extern std::vector<CMapObject*> g_shadow54;
-extern std::vector<CMapObject*> g_visible52;
+extern std::vector<CMapObject*> g_shadowBuildings;
+extern std::vector<CMapObject*> g_visibleTrees;
 extern std::vector<CMapObject*> g_visibleUnits;
-extern std::vector<CMapObject*> g_visible5D;
+extern std::vector<CMapObject*> g_visibleLevers;
 extern std::vector<CMapObject*> g_visibleOther;
-extern std::vector<CMapObject*> g_visible54;
+extern std::vector<CMapObject*> g_visibleBuildings;
 enum class FrameList {
     TouchedModels,   // models to keep loaded (by last use)
-    Shadow52,
+    ShadowTrees,
     ShadowUnits,
-    Shadow5D,
+    ShadowLevers,
     ShadowOther,
-    Shadow54,
-    Visible52,
+    ShadowBuildings,
+    VisibleTrees,
     VisibleUnits,
-    Visible5D,
+    VisibleLevers,
     VisibleOther,
-    Visible54,
+    VisibleBuildings,
 };
 inline std::vector<CMapObject*>& FrameObjects(FrameList list) {
-    static constexpr std::vector<CMapObject*>* kQueues[] = {&g_touchedModels, &g_shadow52,     &g_shadowUnits,  &g_shadow5D,
-                                              &g_shadowOther,   &g_shadow54,     &g_visible52,    &g_visibleUnits,
-                                              &g_visible5D,     &g_visibleOther, &g_visible54};
+    static constexpr std::vector<CMapObject*>* kQueues[] = {&g_touchedModels, &g_shadowTrees,     &g_shadowUnits,  &g_shadowLevers,
+                                              &g_shadowOther,   &g_shadowBuildings,     &g_visibleTrees,    &g_visibleUnits,
+                                              &g_visibleLevers,     &g_visibleOther, &g_visibleBuildings};
     return *kQueues[static_cast<int>(list)];
 }
 extern lib::StaticObject<std::list<HeldPtr<CMapObject>>> g_deferredUnits;

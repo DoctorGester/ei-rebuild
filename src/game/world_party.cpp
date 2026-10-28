@@ -31,7 +31,6 @@ namespace {
 // Values read from the exe's memory (rule 9).
 constexpr float kFacingOffset = /*007AFED8*/ 1.5707964f;   // pi / 2
 
-constexpr int kClassQuestItem = 0x14;
 constexpr int kKindSinglePlayer = 1;
 constexpr int kKindNoRangeTest = 3;
 constexpr int kKindNetwork = 4;
@@ -85,7 +84,7 @@ void CWorldServer::TakeZoneQuestItems(std::vector<CItem*>* items, std::list<CIte
     // Quest items move from the array to the list: in single player only those whose
     // description names this zone or whose id an object asks for; otherwise all of them.
     for (int i = 0; i < std::ssize(*items); ++i) {
-        if (ItemAt(items, i)->GetClassId() != kClassQuestItem) continue;
+        if (ItemAt(items, i)->GetClassId() != kClassItemQuest) continue;
         CItem* item = ItemAt(items, i);
         itemdb::QuestItemRecord* info = itemdb::RecordAs<itemdb::QuestItemRecord>(item->GetPrototype());
         if (sessionKind_ == kKindSinglePlayer && !IsMultiplayerClient()) {

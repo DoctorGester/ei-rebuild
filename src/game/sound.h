@@ -161,7 +161,7 @@ struct CSoundManager : CEngineObject {
     int Create() override { return CreateBody(); }
     void Destroy() override { Close(); }
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     miles::DigitalDriver* waveDriver;
     miles::MidiDriver* midiDriver;      // closed by Close; not opened here
@@ -341,7 +341,7 @@ struct CMusicSystem : CEngineObject {
     void Destroy() override { ResetThemes(); }
     int RunTick() override { return UpdateMusic(); }
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     std::vector<MusicTheme> themes;
     std::string credits;               // Common\Credits

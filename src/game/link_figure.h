@@ -47,7 +47,7 @@ struct FigureMeshDrawer : FigureDrawerBase {
     int Create() override;
     void Destroy() override;
     const char* GetClassName() override;   // "CFigureClientSpecific" (world_class_slots.cpp)
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     // No flags. Returns 1.
     int CreateDrawer();

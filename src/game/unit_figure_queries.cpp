@@ -17,7 +17,6 @@
 namespace {
 constexpr int kTypeOtherUnit = 0x33;            // CEngineObject::type_ (kUnitTypeHero 0x32 .. 0x34: units)
 constexpr int kTypeLastUnit = 0x34;
-constexpr int kClassUnitServer = 0x3E;          // CUnitServer (combat.h)
 constexpr std::uint8_t kMovesOnWater = 2;       // UnitParams::movementKind
 
 // Animation keys (docs/notes/combat.md): the low 15 bits are variant bits, the rest the kind;

@@ -100,8 +100,6 @@ HitCollector* CollectHits(HitCollector* out, std::list<ScreenEntry>::iterator fi
 
 void SessionPlayerClear(CPlayer* session) { session->Clear(); }
 
-constexpr int kClassPlatform54 = 0x54;
-constexpr int kClassPlatform5D = 0x5D;
 constexpr int kTypeHero = 0x32;
 
 std::list<HeldPtr<CMapObject>>* CellFor(SectorGrid& grid, CMapObject* object) {
@@ -137,7 +135,7 @@ CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
 // From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
 // object is gone or is not a unit; null at the end.
 CUnit* FirstUnitHit(CWorldClient* client, CMapObject* object) {
-    while (object->GetClassId() != world::kClassUnit) {
+    while (object->GetClassId() != kClassUnit) {
         do {
             if (++client->hitCursor_ == client->hits_.data() + client->hits_.size()) return nullptr;
             object = client->objectManager_->FindMapObject(client->hitCursor_->objectId);
@@ -306,7 +304,7 @@ int CWorldClient::AddObject(CMapObject* object) {
         hash400::Entry(dynamicNodes_, dynamicMaxId_, key) = node;
     }
     int kind = object->GetClassId();
-    if (kind == kClassPlatform54 || object->GetClassId() == kClassPlatform5D) {
+    if (kind == kClassBuilding || object->GetClassId() == kClassLever) {
         CObject3D* figure = object->Object3D();
         for (int i = 0; i < std::ssize(figure->parts); ++i) {
             if ((figure->PartBox(i)->bounds.flags >> 10) & 1) {
@@ -338,7 +336,7 @@ void CWorldClient::RefreshPlatforms(CMapObject* object) {
         if (node->id == id) platforms.erase(node);
         node = next;
     }
-    if (object->GetClassId() != kClassPlatform54 && object->GetClassId() != kClassPlatform5D) return;
+    if (object->GetClassId() != kClassBuilding && object->GetClassId() != kClassLever) return;
     CObject3D* figure = object->Object3D();
     for (int i = 0; i < std::ssize(figure->parts); ++i) {
         if (!((figure->PartBox(i)->bounds.flags >> 10) & 1)) continue;
@@ -399,7 +397,7 @@ double CWorldClient::SurfaceHeightAt(float x, float y) {
 
 void CWorldClient::ShowNumber(int id, int value, std::uint32_t kind) {
     CEngineObject* object = MapObjectManager()->FindObject(static_cast<unsigned>(id));
-    if (!object || object->GetClassId() != world::kClassUnit) return;
+    if (!object || object->GetClassId() != kClassUnit) return;
     if (numbers_) numbers_->Add(id, value, kind);
 }
 

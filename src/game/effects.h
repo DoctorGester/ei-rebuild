@@ -293,7 +293,7 @@ public:
     CParticleManager();
     ~CParticleManager() override;
     const char* GetClassName() override;
-    int GetClassId() override;                     // class id 0x2C
+    ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
 
     int Create() override;
@@ -339,7 +339,7 @@ public:
     void Destroy() override { Clear(); }
     int RunTick() override;                         // 1 while the source stays alive
     const char* GetClassName() override;
-    int GetClassId() override;                      // class id 12
+    ClassId GetClassId() override;
 
     CParticleManager* Manager() const { return static_cast<CParticleManager*>(owner_); }
     // Fills the shared vertex / sprite arrays and draws through the renderer. 1 when there is
@@ -578,7 +578,7 @@ public:
     int Create() override { return 0; }
     void Destroy() override { Clear(); }
     const char* GetClassName() override;
-    int GetClassId() override;                      // class id 0x1D
+    ClassId GetClassId() override;
 
     int Draw(CSceneRenderer* renderer);
     void UpdateFade(float now);
@@ -669,7 +669,7 @@ public:
     void Destroy() override { ClearCells(); }
     int RunTick() override { return UpdateCells(); }
     const char* GetClassName() override;
-    int GetClassId() override;                      // class id 0x5F
+    ClassId GetClassId() override;
 
     void ComputeBounds();
     int UpdateCells();

@@ -30,58 +30,42 @@ constexpr const char* kFigureClientSpecificName = "CFigureClientSpecific";
 constexpr const char* kUiObjectName = "Sorry, no other way.";
 constexpr const char* kFiguresFolderName = "figures";
 
-constexpr int kWorldClientId = 7;
-constexpr int kWorldServerId = 8;
-constexpr int kBridgeManagerId = 0x34;
-constexpr int kParticleManagerId = 0x2C;
-constexpr int kTextManagerId = 0x2A;
-constexpr int kTerrainId = 0xB;
-constexpr int kLightningManagerId = 0x35;
-constexpr int kVisFogManagerId = 0x60;
-constexpr int kFigureManagerId = 0x28;
-constexpr int kI3DFigureId = 0x46;
-constexpr int kFigureClientSpecificId = 0x36;
-constexpr int kUiObjectId = 0x45;
-
 } // namespace
 
 const char* CWorldClient::GetClassName() { return kWorldClientName; }
-int CWorldClient::GetClassId() { return kWorldClientId; }
+ClassId CWorldClient::GetClassId() { return kClassWorldClient; }
 
 const char* CWorldServer::GetClassName() { return kWorldServerName; }
-int CWorldServer::GetClassId() { return kWorldServerId; }
+ClassId CWorldServer::GetClassId() { return kClassWorldServer; }
 
 const char* PlatformSet::GetClassName() { return kBridgeManagerName; }
-int PlatformSet::GetClassId() { return kBridgeManagerId; }
+ClassId PlatformSet::GetClassId() { return kClassPlatformSet; }
 
 const char* CParticleManager::GetClassName() { return kParticleManagerName; }
-int CParticleManager::GetClassId() { return kParticleManagerId; }
+ClassId CParticleManager::GetClassId() { return kClassParticleManager; }
 
 const char* CTextManager::GetClassName() { return kTextManagerName; }
-int CTextManager::GetClassId() { return kTextManagerId; }
+ClassId CTextManager::GetClassId() { return kClassTextManager; }
 
 const char* Terrain::GetClassName() { return kTerrainName; }
-int Terrain::GetClassId() { return kTerrainId; }
+ClassId Terrain::GetClassId() { return kClassTerrain; }
 
 const char* CLightningManager::GetClassName() { return kLightningManagerName; }
-int CLightningManager::GetClassId() { return kLightningManagerId; }
+ClassId CLightningManager::GetClassId() { return kClassLightningManager; }
 
 const char* ClientArrayManager::GetClassName() { return kVisFogManagerName; }
-int ClientArrayManager::GetClassId() { return kVisFogManagerId; }
+ClassId ClientArrayManager::GetClassId() { return kClassClientArrayManager; }
 
 const char* CFigureManager::GetClassName() { return kFigureManagerName; }
-int CFigureManager::GetClassId() { return kFigureManagerId; }
+ClassId CFigureManager::GetClassId() { return kClassFigureManager; }
 const char* CFigureManager::GetFolderName() { return kFiguresFolderName; }
 
 const char* I3DFigureClassName(CEngineObject*) { return kI3DFigureName; }
-int I3DFigureClassId(CEngineObject*) { return kI3DFigureId; }
 
 const char* FigureClientSpecificClassName(CEngineObject*) { return kFigureClientSpecificName; }
-int FigureClientSpecificClassId(CEngineObject*) { return kFigureClientSpecificId; }
 
 int UiObjectCreate(CEngineObject*) { return 1; }
 const char* UiObjectClassName(CEngineObject*) { return kUiObjectName; }
-int UiObjectClassId(CEngineObject*) { return kUiObjectId; }
 
 int CWorldServer::IsServer() { return 1; }
 

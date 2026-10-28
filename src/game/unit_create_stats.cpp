@@ -203,13 +203,13 @@ bool NamesRequirement(const std::string& text) {
 const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) { return unitdb::SkillLevelAt(index); }
 
 struct FactoryEntry {
-    int classId;
+    int type;
     CEngineObject* (*create)();
 };
 // The class's entry: its id and a new object of it.
 template <class T>
-constexpr FactoryEntry Make(int classId) {
-    return {classId, [] () -> CEngineObject* { return new (kZeroed) T(); }};
+constexpr FactoryEntry Make(int type) {
+    return {type, [] () -> CEngineObject* { return new (kZeroed) T(); }};
 }
 constexpr FactoryEntry kFactory[] = {
     Make<CUnit>(0x32),
@@ -596,9 +596,9 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& nam
 
 // Every object starts zeroed (kZeroed): the units' constructors leave exposure and the
 // motion's turn fields, which the saves write.
-CEngineObject* CMapObjectManager::NewObject(int classId) {
+CEngineObject* CMapObjectManager::NewObject(int type) {
     for (const FactoryEntry& entry : kFactory) {
-        if (entry.classId != classId) continue;
+        if (entry.type != type) continue;
         return entry.create();
     }
     return nullptr;

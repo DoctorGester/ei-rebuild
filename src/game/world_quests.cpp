@@ -53,7 +53,6 @@ CParty* PartyOf(CPlayer* player) { return player->Party(); }
 PartyUnitRecord& MercRecord(CPlayer* player, int index) { return player->Party()->members_[index]; }
 
 constexpr int kKindNoRangeTest = 3;
-constexpr int kClassQuestItem = 0x14;
 
 // The item named `name` (the game builds two unused temporary lists around the creation).
 CItem* CreateNamedItem(std::string_view name) { return g_serverWorld->itemManager_->CreateItem(name); }
@@ -79,7 +78,7 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
         CItem* item = CreateNamedItem(name);
         if (!item) continue;
         ++item->refCount_;
-        if (item->GetClassId() == kClassQuestItem)
+        if (item->GetClassId() == kClassItemQuest)
             player->TakeLoot(static_cast<int>(AsQuest(item)->questItemId_));
         item->Release();
     }

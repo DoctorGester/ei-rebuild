@@ -23,16 +23,6 @@ class CSpell;
 class CSpellManager;
 class CStream;
 
-// CEngineObject::type_ of an item: which database its prototype lives in.
-enum ItemKind : int {
-    kItemWeapon = 0x3004,
-    kItemArmor = 0x3005,
-    kItemQuick = 0x3006,
-    kItemLoot = 0x3007,
-    kItemSpell = 0x3008,   // a spell container; prototype in the quick item database
-    kItemQuest = 0x3009,
-};
-
 inline std::uint32_t PrototypeIndex(std::uint32_t packedId) { return packedId >> 16; }
 inline std::uint32_t MaterialIndex(std::uint32_t packedId) { return packedId & 0xFFFF; }
 
@@ -133,7 +123,7 @@ class CItemWeapon : public CItem {
 public:
     CItemWeapon();
     const char* GetClassName() override;
-    int GetClassId() override;             // 0x11
+    ClassId GetClassId() override;
 
     // The weapon type from the prototype (faults if the index is out of range).
     int GetType();
@@ -170,7 +160,7 @@ class CItemArmor : public CItem {
 public:
     CItemArmor();
     const char* GetClassName() override;
-    int GetClassId() override;             // 0x12
+    ClassId GetClassId() override;
 
     // The armor type from the prototype (faults if the index is out of range).
     int GetType();
@@ -201,7 +191,7 @@ class CItemQuick : public CItem {
 public:
     CItemQuick();
     const char* GetClassName() override;
-    int GetClassId() override;             // 0x13
+    ClassId GetClassId() override;
 
     // "qitem<number>.<material name>" when the prototype's materialClass is not "none" ("uq" for a material
     // out of range), else "qitem<number>" (-1 without a prototype).
@@ -222,7 +212,7 @@ class CItemQuest : public CItem {
 public:
     CItemQuest();
     const char* GetClassName() override;
-    int GetClassId() override;             // 0x14
+    ClassId GetClassId() override;
 
     std::string FigureName() override;    // "quitem<number>"
     std::string PictureName() override;   // "initqu<number>item"
@@ -244,7 +234,7 @@ class CItemSpell : public CItemQuick {
 public:
     CItemSpell();
     const char* GetClassName() override;
-    int GetClassId() override;             // 0x16
+    ClassId GetClassId() override;
 
     // "spell<the carried spell's prototype icon>" (no null checks).
     std::string FigureName() override;
@@ -257,7 +247,7 @@ class CItemLoot : public CItem {
 public:
     CItemLoot();
     const char* GetClassName() override;
-    int GetClassId() override;             // 0x15
+    ClassId GetClassId() override;
 
     // The base price. Depends on what the loot stands for (kind_): itself (price_), a material, or a record
     // of another database (recordType_).
@@ -324,7 +314,7 @@ public:
     CItemConstructor();
     ~CItemConstructor() override;
     const char* GetClassName() override;
-    int GetClassId() override;             // 0x1C
+    ClassId GetClassId() override;
 
     // The reset: the manager forgotten (its count dropped), the item released, the records and spell cleared.
     // Returns 1.
@@ -381,7 +371,7 @@ inline const CItemWeapon* AsWeapon(const CItem* item) { return static_cast<const
 // (CUnit::EquipArmour). The armour's methods are called without a class test.
 inline CItemArmor* AsArmor(CItem* item) { return static_cast<CItemArmor*>(item); }
 inline const CItemArmor* AsArmor(const CItem* item) { return static_cast<const CItemArmor*>(item); }
-// An item known to be loot as the CItemLoot it is: an item of the loot kind (0x3007), one made by name from
+// An item known to be loot as the CItemLoot it is: an item of the loot kind (kItemLoot), one made by name from
 // a loot prototype (runes, materials, instructions), the copy or match of a loot item. Its fields are read
 // without a class test.
 inline CItemLoot* AsLoot(CItem* item) { return static_cast<CItemLoot*>(item); }
@@ -399,12 +389,12 @@ struct CItemManager : CResourceManager {
     CItemManager();
     ~CItemManager() override;
     const char* GetClassName() override;
-    int GetClassId() override;               // class id 0x2F
+    ClassId GetClassId() override;
     const char* GetFolderName() override;    // "items"
 
     int Create() override;
-    // The item factory: a new constructed item for kind 0x3004 weapon, 0x3005 armour, 0x3006 quick, 0x3007
-    // loot, 0x3008 scroll, 0x3009 quest, its type_ set to the kind; null for another kind or without memory.
+    // The item factory: a new constructed item for kind kItemWeapon weapon, kItemArmor armour, kItemQuick quick, kItemLoot
+    // loot, kItemSpell scroll, kItemQuest quest, its type_ set to the kind; null for another kind or without memory.
     CEngineObject* NewObject(int kind) override;
 
     // An item of `kind` built by the context's item constructor (BeginCreateItem with `kind` and `key`)
@@ -421,7 +411,7 @@ struct CItemManager : CResourceManager {
     // FixCreateItem returns null in both cases without FatalError.
     CItem* CreateItem(std::string_view name);
 
-    // A scroll ("spell container", kind 0x3008) holding the spell that `spells` builds from `spellText`;
+    // A scroll ("spell container", kind kItemSpell) holding the spell that `spells` builds from `spellText`;
     // null when the spell or the item cannot be made (the spell is then left as it is).
     CItem* CreateSpellItem(std::string_view spellText, CSpellManager* spells);
 

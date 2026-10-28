@@ -138,7 +138,6 @@ int TotalDuration(const AnimationSteps& steps) {
     return total;
 }
 
-constexpr int kClassWeapon = 0x11;
 constexpr std::uint32_t kSpellPeriodic = 0x20000;   // CSpell::targetFlags_
 
 } // namespace
@@ -592,7 +591,7 @@ void CUnitServer::RefreshItemSpells() {
         std::list<CItem*>::iterator current = node;
         ++node;
         CItem* item = *current;
-        if (item->GetClassId() != kClassWeapon || item == unit->GetWeapon(unit->activeWeapon)) continue;
+        if (item->GetClassId() != kClassItemWeapon || item == unit->GetWeapon(unit->activeWeapon)) continue;
         items.erase(current);
     }
     std::list<ArmourSpell>* list = &armourSpells;

@@ -27,7 +27,7 @@ public:
     // "CServerSpecificManager" (the exe's string).
     const char* GetClassName() override;
     // 0x31.
-    int GetClassId() override;
+    ClassId GetClassId() override;
     // A new object of `type`: 0x46 CObject3DServer,
     // 0x47 CMapObjectServer (0x94), 0x48 CUnitServer (0xB20), 0x49 the player's server
     // object (0x5128), 0x4B CTorchObjectSpec (constructed inline, then its Create);
@@ -47,7 +47,7 @@ public:
     void Save(CStream* stream) override;                // SaveSpec
     // "CTorchObjectSpec". 12: 0x42.
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     // 13-15: empty here; the client half (torch_client_spec.h) shows its
     // effects, hides them and warms its particles up.
     virtual void ShowEffectsSlot() {}

@@ -34,14 +34,8 @@ struct SkillLevelRecord;
 struct SkillDatabase;
 struct DamageInfo;
 
-constexpr int kClassUnit = 0x50;
-
 // CEngineObject::type_ of the player's own units (other kinds: 0x33 ...).
 constexpr int kUnitTypeHero = 0x32;
-
-// Class id of the unit's controller for the units in a player's party (GetClassName "CUnitClientSpecific"); their
-// items live in the player's inventory records.
-constexpr int kClassPartyController = 0x3D;
 
 // Eight damage or protection words (an AI attack option's damage, a combat controller's
 // protection): word 0 apart, words 1..7 per damage type.
@@ -211,7 +205,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     bool IsSynchronised() override;
     void ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster) override;
     Vector3* EyePoint(Vector3* out) override;
@@ -875,7 +869,7 @@ public:
     CMapObjectServer();
     ~CMapObjectServer() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     // Hit points rounded to a 16-bit value are <= 0.
     BOOL IsDead() override;
@@ -943,7 +937,7 @@ public:
     CMapObjectClientSpecific();
     ~CMapObjectClientSpecific() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     BOOL IsDead() override;
     BOOL IsOverkilled() override;

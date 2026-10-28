@@ -18,6 +18,94 @@ inline void operator delete(void* block, ZeroFill) noexcept { ::operator delete(
 // override it undefine it too.
 #undef GetClassName
 
+// CEngineObject::GetClassId: the class of an engine object or manager, named kClass + the class's name here
+// (GetClassName gives the original's). The effect manager creates its effects by it too. Two classes share
+// 0x0E and two 0x21.
+enum ClassId : int {
+    kClassMaterial = 0x05,
+    kClassTexture = 0x06,
+    kClassWorldClient = 0x07,
+    kClassWorldServer = 0x08,
+    kClassParty = 0x09,
+    kClassLight = 0x0A,
+    kClassTerrain = 0x0B,
+    kClassParticleSource = 0x0C,
+    kClassSysInfo = 0x0D,
+    kClassSoundManager = 0x0E,
+    kClassMusicSystem = 0x0E,
+    kClassPlayer = 0x0F,
+    kClassItemWeapon = 0x11,
+    kClassItemArmor = 0x12,
+    kClassItemQuick = 0x13,
+    kClassItemQuest = 0x14,
+    kClassItemLoot = 0x15,
+    kClassItemSpell = 0x16,
+    kClassSpellContainer = 0x1A,
+    kClassSpellConstructor = 0x1B,
+    kClassItemConstructor = 0x1C,
+    kClassRainSnow = 0x1D,
+    kClassLightning = 0x1E,
+    kClassHoover = 0x1F,
+    kClassSkyObject = 0x20,
+    kClassFigureBone = 0x21,
+    kClassFigureAnimationState = 0x21,
+    kClassAnimationTrack = 0x22,
+    kClassTextureManager = 0x26,
+    kClassMaterialManager = 0x27,
+    kClassFigureManager = 0x28,
+    kClassLightFactory = 0x29,
+    kClassTextManager = 0x2A,
+    kClassParticleManager = 0x2C,
+    kClassMapObjectManager = 0x2D,
+    kClassPlayerManager = 0x2E,
+    kClassItemManager = 0x2F,
+    kClassClientSpecificManager = 0x30,
+    kClassServerSpecificManager = 0x31,
+    kClassEffectManager = 0x32,
+    kClassSpellManager = 0x33,
+    kClassPlatformSet = 0x34,
+    kClassLightningManager = 0x35,
+    kClassFigureMeshDrawer = 0x36,
+    kClassObject3DClientSpecific = 0x37,
+    kClassObject3DServer = 0x38,
+    kClassMapObjectServer = 0x39,
+    kClassMapObjectClientSpecific = 0x3A,
+    kClassPlayerServer = 0x3B,
+    kClassPlayerClient = 0x3C,
+    kClassUnitClientSpecific = 0x3D,
+    kClassUnitServer = 0x3E,
+    kClassTorchObjectClientSpec = 0x41,
+    kClassTorchObjectSpec = 0x42,
+    kClassCamera = 0x43,
+    kClassFigureMesh = 0x44,
+    kClassUiWindow = 0x45,
+    kClassUiMesh = 0x46,
+    kClassEffectSound = 0x48,
+    kClassEffectAmbientSound = 0x49,
+    kClassEffectParticle = 0x4A,
+    kClassEffectPointLight = 0x4B,
+    kClassEffectLightning = 0x4D,
+    kClassEffectArrow = 0x4E,
+    kClassSpell = 0x4F,
+    kClassUnit = 0x50,
+    kClassTree = 0x52,
+    kClassStone = 0x53,
+    kClassBuilding = 0x54,
+    kClassTrapObject = 0x55,
+    kClassStuffObject = 0x56,
+    kClassTorchObject = 0x57,
+    kClassEffectWall = 0x5A,
+    kClassEffectArrowFigure = 0x5B,
+    kClassLever = 0x5D,
+    kClassEffectShowVisibility = 0x5E,
+    kClassVisibilityFog = 0x5F,
+    kClassClientArrayManager = 0x60,
+    kClassMagicTrap = 0x61,
+    kClassEffectSoundSeq = 0x63,
+    kClassEffectMoshka = 0x64,
+    kClassEffectTornado = 0x65,
+};
+
 class CBaseManager;
 class CManagerContext;
 class CStream;
@@ -41,7 +129,7 @@ public:
     virtual void Load(CStream* stream);
     virtual void Save(CStream* stream);
     virtual const char* GetClassName() = 0;
-    virtual int GetClassId() = 0;
+    virtual ClassId GetClassId() = 0;
 
     CManagerContext* ManagerContext() const;
     // The manager context as the world, for the world's objects (a party's items have the party instead).

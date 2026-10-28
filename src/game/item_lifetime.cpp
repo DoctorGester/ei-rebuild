@@ -88,17 +88,17 @@ CItemLoot::CItemLoot() = default;
 CItemSpell::CItemSpell() = default;
 
 const char* CItemWeapon::GetClassName() { return "CItemWeapon"; }
-int CItemWeapon::GetClassId() { return 0x11; }
+ClassId CItemWeapon::GetClassId() { return kClassItemWeapon; }
 const char* CItemArmor::GetClassName() { return "CItemArmor"; }
-int CItemArmor::GetClassId() { return 0x12; }
+ClassId CItemArmor::GetClassId() { return kClassItemArmor; }
 const char* CItemQuick::GetClassName() { return "CItemQuick"; }
-int CItemQuick::GetClassId() { return 0x13; }
+ClassId CItemQuick::GetClassId() { return kClassItemQuick; }
 const char* CItemQuest::GetClassName() { return "CItemQuest"; }
-int CItemQuest::GetClassId() { return 0x14; }
+ClassId CItemQuest::GetClassId() { return kClassItemQuest; }
 const char* CItemLoot::GetClassName() { return "CItemLoot"; }
-int CItemLoot::GetClassId() { return 0x15; }
+ClassId CItemLoot::GetClassId() { return kClassItemLoot; }
 const char* CItemSpell::GetClassName() { return "CItemSpell"; }
-int CItemSpell::GetClassId() { return 0x16; }
+ClassId CItemSpell::GetClassId() { return kClassItemSpell; }
 
 // --- The item manager's Create and factory -------------------------------------------------
 
@@ -108,12 +108,12 @@ int CItemManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
 CEngineObject* CItemManager::NewObject(int kind) {
     CEngineObject* object;
     switch (kind) {
-    case 0x3004: object = new CItemWeapon(); break;
-    case 0x3005: object = new CItemArmor(); break;
-    case 0x3006: object = new CItemQuick(); break;
-    case 0x3007: object = new CItemLoot(); break;
-    case 0x3008: object = new CItemSpell(); break;
-    case 0x3009: object = new CItemQuest(); break;
+    case kItemWeapon: object = new CItemWeapon(); break;
+    case kItemArmor: object = new CItemArmor(); break;
+    case kItemQuick: object = new CItemQuick(); break;
+    case kItemLoot: object = new CItemLoot(); break;
+    case kItemSpell: object = new CItemSpell(); break;
+    case kItemQuest: object = new CItemQuest(); break;
     default: return nullptr;
     }
     if (object != nullptr) object->type_ = kind;

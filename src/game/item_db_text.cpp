@@ -197,7 +197,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
         break;
     }
     case kItemQuest: {
-        // 0x3009 is the quest item ("questitem"); its table is Loot in item_db.h.
+        // kItemQuest is the quest item ("questitem"); its table is Loot in item_db.h.
         KeyName(recordName, QuestItemAt(prototypeIndex)->name);
         ReadItemText(this, std::string(kQuestItem) + recordName, name, description);
         kindKey = "item_quest";

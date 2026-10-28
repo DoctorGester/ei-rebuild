@@ -43,7 +43,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     BOOL InitFromPrototype(const itemdb::SpellRecord* prototype);
 
@@ -206,7 +206,7 @@ public:
 // (or NaN).
 int IsSpellTarget(CUnit* unit);
 
-// A spell under construction (created by the spell manager as class 0x3003): a prototype, the modifiers added
+// A spell under construction (created by the spell manager as kSpellTypeContainer): a prototype, the modifiers added
 // so far, and the CSpell that Build computes from them.
 class CSpellContainer : public CEngineObject {
 public:
@@ -219,7 +219,7 @@ public:
     void Destroy() override;
     const char* GetName() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     // Null is a fatal error (its result is returned). Returns 1.
     BOOL AddModifier(itemdb::SpellModifierRecord* modifier);
@@ -253,13 +253,19 @@ struct SpellSequence {
 };
 // One step of a walk over a sequence's containers: the container there, or null at the end.
 
+// The spell manager's object types (CreateObject / type_).
+enum SpellObjectType : int {
+    kSpellTypeSpell = 0x3002,       // CSpell
+    kSpellTypeContainer = 0x3003,   // CSpellContainer
+};
+
 // The spell manager; context_ gives the spell constructor.
 class CSpellManager : public CResourceManager {
 public:
     CSpellManager();
     ~CSpellManager() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     const char* GetFolderName() override;    // "spells"
 
     CSpellContainer* NewContainer();
@@ -303,7 +309,7 @@ public:
     // Also drops the manager's count.
     void Destroy() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     // Counts a reference to `manager` that is never released.
     void SetManager(CSpellManager* manager);
@@ -334,7 +340,7 @@ public:
     int Create() override;                  // returns 1
     void Destroy() override;                // flags_ bit 5 cleared
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     // Kind 1; flags_ bit 3 (changed). Returns 1.
     BOOL SetPoint(const Vector3* color, const Vector3* position);
     // Kind 3; the light also tilts towards `direction`; flags_ bit 3. Returns 1.
@@ -364,7 +370,7 @@ public:
     CLightFactory();
     ~CLightFactory() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
 
     // Other types are logged and give null.
     CEngineObject* NewObject(int type) override;

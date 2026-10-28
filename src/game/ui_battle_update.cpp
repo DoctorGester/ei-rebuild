@@ -92,7 +92,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         place(static_cast<int>(slot));
     }
 
-    // The local player's own unit also shows up to four of the player's 0x3009 items above, from
+    // The local player's own unit also shows up to four of the player's kItemQuest items above, from
     // the last of the player's items backwards (node: +4 previous, +8 item).
     CPlayer* player = GameLocalView()->player_;
     if (!player->IsLeader(unit_)) return;

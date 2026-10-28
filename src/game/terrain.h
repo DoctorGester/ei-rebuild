@@ -65,7 +65,7 @@ public:
     int Create() override;
     void Destroy() override;
     const char* GetClassName() override;    // "CTerrain"
-    int GetClassId() override;
+    ClassId GetClassId() override;
     // The constructor's body: no map, texts "none", frame 1, waves upwards at strength 0, phase 2 pi.
     void Reset();
     // 40 ripples at random centres (rand(), radius 1..5) add (1 - d^2 / r^2) * pi / 2 inside them; each edge

@@ -19,7 +19,7 @@ public:
     void Destroy() override { Clear(); }
     int RunTick() override { return Pump(); }
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     void ForgetSentObjects() override {}
     void UnitChanged(CUnit* unit) override { NotifyUnitChanged(unit); }
     void ResetState() override { Clear(); }

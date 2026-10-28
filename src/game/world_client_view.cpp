@@ -152,7 +152,7 @@ int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Mat
     for (CMapObject* object : *list) {
         if (object && Object3D(object)->attached) {
             bool process = true;
-            if (object->GetClassId() == world::kClassUnit) {
+            if (object->GetClassId() == kClassUnit) {
                 if (object->type_ == kTypeHero && (IsTextKey(object->id_) & 0xFF) && !withScripted) {
                     process = false;
                 } else if (animateUnits) {
@@ -186,21 +186,21 @@ int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Mat
                     // View-space position: x summed ZYX, y and z XYZ, each rounded.
                     o3d->worldPosition_ = TransformColumnNormal<Sum3::ZYX, Sum3::XYZ>(*view, o3d->localPosition_);
                     switch (object->GetClassId()) {
-                    case 0x50:
+                    case kClassUnit:
                         PushBack(g_visibleUnits, entry);
                         PushBack(g_shadowUnits, entry);
                         break;
-                    case 0x52:
-                        PushBack(g_visible52, entry);
-                        PushBack(g_shadow52, entry);
+                    case kClassTree:
+                        PushBack(g_visibleTrees, entry);
+                        PushBack(g_shadowTrees, entry);
                         break;
-                    case 0x54:
-                        PushBack(g_visible54, entry);
-                        PushBack(g_shadow54, entry);
+                    case kClassBuilding:
+                        PushBack(g_visibleBuildings, entry);
+                        PushBack(g_shadowBuildings, entry);
                         break;
-                    case 0x5D:
-                        PushBack(g_visible5D, entry);
-                        PushBack(g_shadow5D, entry);
+                    case kClassLever:
+                        PushBack(g_visibleLevers, entry);
+                        PushBack(g_shadowLevers, entry);
                         break;
                     default:
                         PushBack(g_visibleOther, entry);
@@ -217,10 +217,10 @@ int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Mat
                     if (ModelOf(object)->ShadowInView()) {
                         if (o3d->animation) o3d->animation->UpdatePose();
                         switch (object->GetClassId()) {
-                        case 0x50: PushBack(g_shadowUnits, entry); break;
-                        case 0x52: PushBack(g_shadow52, entry); break;
-                        case 0x54: PushBack(g_shadow54, entry); break;
-                        case 0x5D: PushBack(g_shadow5D, entry); break;
+                        case kClassUnit: PushBack(g_shadowUnits, entry); break;
+                        case kClassTree: PushBack(g_shadowTrees, entry); break;
+                        case kClassBuilding: PushBack(g_shadowBuildings, entry); break;
+                        case kClassLever: PushBack(g_shadowLevers, entry); break;
                         default: PushBack(g_shadowOther, entry); break;
                         }
                     }
@@ -251,25 +251,25 @@ Vector3* CWorldClient::PickSurface(Vector3* out, int x, int y) {
 // first); the exit functions they register free their storage (lib::FreeStorage; docs/notes/standalone.md,
 // "The static initialisers' objects").
 constinit std::vector<CMapObject*> g_touchedModels = /*007AF508*/ {};
-constinit std::vector<CMapObject*> g_shadow52 = /*007AF518*/ {};
+constinit std::vector<CMapObject*> g_shadowTrees = /*007AF518*/ {};
 constinit std::vector<CMapObject*> g_shadowUnits = /*007AF528*/ {};
-constinit std::vector<CMapObject*> g_shadow5D = /*007AF538*/ {};
+constinit std::vector<CMapObject*> g_shadowLevers = /*007AF538*/ {};
 constinit std::vector<CMapObject*> g_shadowOther = /*007AF548*/ {};
-constinit std::vector<CMapObject*> g_shadow54 = /*007AF558*/ {};
-constinit std::vector<CMapObject*> g_visible52 = /*007AF568*/ {};
+constinit std::vector<CMapObject*> g_shadowBuildings = /*007AF558*/ {};
+constinit std::vector<CMapObject*> g_visibleTrees = /*007AF568*/ {};
 constinit std::vector<CMapObject*> g_visibleUnits = /*007AF578*/ {};
-constinit std::vector<CMapObject*> g_visible5D = /*007AF588*/ {};
+constinit std::vector<CMapObject*> g_visibleLevers = /*007AF588*/ {};
 constinit std::vector<CMapObject*> g_visibleOther = /*007AF598*/ {};
-constinit std::vector<CMapObject*> g_visible54 = /*007AF5A8*/ {};
+constinit std::vector<CMapObject*> g_visibleBuildings = /*007AF5A8*/ {};
 
 void FreeTouchedModels() { lib::FreeStorage(g_touchedModels); }
-void FreeShadow52() { lib::FreeStorage(g_shadow52); }
+void FreeShadowTrees() { lib::FreeStorage(g_shadowTrees); }
 void FreeShadowUnits() { lib::FreeStorage(g_shadowUnits); }
-void FreeShadow5D() { lib::FreeStorage(g_shadow5D); }
+void FreeShadowLevers() { lib::FreeStorage(g_shadowLevers); }
 void FreeShadowOther() { lib::FreeStorage(g_shadowOther); }
-void FreeShadow54() { lib::FreeStorage(g_shadow54); }
-void FreeVisible52() { lib::FreeStorage(g_visible52); }
+void FreeShadowBuildings() { lib::FreeStorage(g_shadowBuildings); }
+void FreeVisibleTrees() { lib::FreeStorage(g_visibleTrees); }
 void FreeVisibleUnits() { lib::FreeStorage(g_visibleUnits); }
-void FreeVisible5D() { lib::FreeStorage(g_visible5D); }
+void FreeVisibleLevers() { lib::FreeStorage(g_visibleLevers); }
 void FreeVisibleOther() { lib::FreeStorage(g_visibleOther); }
-void FreeVisible54() { lib::FreeStorage(g_visible54); }
+void FreeVisibleBuildings() { lib::FreeStorage(g_visibleBuildings); }

@@ -24,7 +24,6 @@ const char* const kNoSpellConstructor = "No valid spell constructor\n";
 const char* const kCantBegin = "Can't begin spell construction with prototype \"%s\"\n";
 const char* const kCantEnd = "Can't end spell construction\n";
 
-constexpr int kClassSpellContainer = 0x3003;
 
 
 
@@ -219,7 +218,7 @@ BOOL CSpellContainer::Build() {
 }
 
 CSpellContainer* CSpellManager::NewContainer() {
-    return CreateObjectAs<CSpellContainer>(kClassSpellContainer, -1);
+    return CreateObjectAs<CSpellContainer>(kSpellTypeContainer, -1);
 }
 
 CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const std::list<itemdb::SpellModifierRecord*>* modifiers) {
@@ -246,7 +245,7 @@ CSpellConstructor::~CSpellConstructor() {
 }
 
 const char* CSpellConstructor::GetClassName() { return "CSpellConstructor"; }
-int CSpellConstructor::GetClassId() { return 0x1B; }
+ClassId CSpellConstructor::GetClassId() { return kClassSpellConstructor; }
 
 int CSpellConstructor::Create() {
     CSpellContainer* container = container_;

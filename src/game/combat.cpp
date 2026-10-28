@@ -87,7 +87,6 @@ constexpr float kSpeedFast = kSizeMedium;                           // 1.2
 constexpr float kSpeedSlow = 0.15f;
 static_assert(std::bit_cast<std::uint32_t>(kSpeedSlow) == 0x3E19999Au);
 
-constexpr int kClassQuickItem = 0x13;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kSkillOnTarget = 0x18A95;   // UnitAction::source of a skill used on a target
 constexpr int kNoNaturalWeapon = 0x10;
@@ -212,7 +211,7 @@ void CUnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
 CItem* CUnitServer::SpellCarrier(std::uint32_t source) {
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item) return nullptr;
-    if (item->GetClassId() != kClassQuickItem) return nullptr;
+    if (item->GetClassId() != kClassItemQuick) return nullptr;
     if (item->GetCategory() == 5 || item->GetCategory() == 8) return item;
     return nullptr;
 }
@@ -220,7 +219,7 @@ CItem* CUnitServer::SpellCarrier(std::uint32_t source) {
 bool CUnitServer::IsScrollSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return false;
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
-    if (!item || item->GetClassId() != kClassQuickItem) return false;
+    if (!item || item->GetClassId() != kClassItemQuick) return false;
     if (item->GetCategory() != 5 && item->GetCategory() != 8) return false;
     return item->GetCategory() == 8;
 }
@@ -228,7 +227,7 @@ bool CUnitServer::IsScrollSource(std::uint32_t source) {
 CSpell* CUnitServer::SpellOfSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return unit->GetSpellObject(source);
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
-    if (!item || item->GetClassId() != kClassQuickItem) return nullptr;
+    if (!item || item->GetClassId() != kClassItemQuick) return nullptr;
     if (item->GetCategory() != 5 && item->GetCategory() != 8) return nullptr;
     return item->spell_;
 }
@@ -238,7 +237,7 @@ bool CUnitServer::IsFighting() {
         CSpell* spell = nullptr;
         if (action.source & kQuickItemSource) {
             auto* item = unit->GetQuickItem(action.source & ~kQuickItemSource);
-            if (item && item->GetClassId() == kClassQuickItem && (item->GetCategory() == 5 || item->GetCategory() == 8))
+            if (item && item->GetClassId() == kClassItemQuick && (item->GetCategory() == 5 || item->GetCategory() == 8))
                 spell = item->spell_;
         } else {
             spell = unit->GetSpellObject(action.source);
@@ -258,7 +257,7 @@ bool CUnitServer::CanCast(const AIOrder* order) {
     std::uint32_t source = order->source;
     if (source & kQuickItemSource) {
         auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
-        if (!item || item->GetClassId() != kClassQuickItem) return false;
+        if (!item || item->GetClassId() != kClassItemQuick) return false;
         if (item->GetCategory() != 5 && item->GetCategory() != 8) return false;
         CSpell* spell = item->spell_;
         if (!spell) return false;

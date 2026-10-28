@@ -18,7 +18,7 @@ public:
     ~CPlayerManager() override;
     int Create() override;
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
 
     // CBaseManager's Create, its result made 0 / 1.

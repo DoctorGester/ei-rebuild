@@ -37,9 +37,6 @@ constexpr const char* kPlayerManagerName = "CPlayerManager";
 constexpr const char* kEffectManagerName = "CEffectManager";
 constexpr const char* kItemManagerName = "CItemManager";
 constexpr const char* kItemsFolderName = "items";
-constexpr int kPlayerManagerId = 0x2E;
-constexpr int kEffectManagerId = 0x32;
-constexpr int kItemManagerId = 0x2F;
 
 } // namespace
 
@@ -73,16 +70,16 @@ void CWorld::Destroy() {
 CPlayerManager::CPlayerManager() {}
 CPlayerManager::~CPlayerManager() {}
 const char* CPlayerManager::GetClassName() { return kPlayerManagerName; }
-int CPlayerManager::GetClassId() { return kPlayerManagerId; }
+ClassId CPlayerManager::GetClassId() { return kClassPlayerManager; }
 
 CEffectManager::CEffectManager() {}
 CEffectManager::~CEffectManager() {}
 int CEffectManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
 const char* CEffectManager::GetClassName() { return kEffectManagerName; }
-int CEffectManager::GetClassId() { return kEffectManagerId; }
+ClassId CEffectManager::GetClassId() { return kClassEffectManager; }
 
 CItemManager::CItemManager() {}
 CItemManager::~CItemManager() {}
 const char* CItemManager::GetClassName() { return kItemManagerName; }
-int CItemManager::GetClassId() { return kItemManagerId; }
+ClassId CItemManager::GetClassId() { return kClassItemManager; }
 const char* CItemManager::GetFolderName() { return kItemsFolderName; }

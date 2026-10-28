@@ -62,7 +62,7 @@ void ReadSavedStrings(std::vector<std::string>* array, CStream* stream);
 class CEffectSound final : public CEffect {
 public:
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEffectSound();
     ~CEffectSound() override;
     void Reset() override;
@@ -87,7 +87,7 @@ public:
 class CEffectSoundSeq final : public CEffect {
 public:
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEffectSoundSeq();
     ~CEffectSoundSeq() override;
     void Reset() override;
@@ -111,7 +111,7 @@ public:
 class CEffectAmbientSound final : public CEffect {
 public:
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEffectAmbientSound();
     ~CEffectAmbientSound() override;
     void Reset() override;
@@ -134,7 +134,7 @@ public:
 class CEffectPointLight final : public CEffect {
 public:
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEffectPointLight();
     ~CEffectPointLight() override;
     void Reset() override;
@@ -156,7 +156,7 @@ public:
 class CEffectParticle : public CEffect {
 public:
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEffectParticle();
     ~CEffectParticle() override;
     void Reset() override;
@@ -189,7 +189,7 @@ public:
 class CEffectWall final : public CEffectParticle {
 public:
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEffectWall();
     ~CEffectWall() override;
     void Reset() override;
@@ -206,7 +206,7 @@ public:
 class CEffectLightning final : public CEffect {
 public:
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEffectLightning();
     ~CEffectLightning() override;
     void Reset() override;
@@ -256,7 +256,7 @@ public:
 class CEffectArrow final : public CEffectMissile {
 public:
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEffectArrow();
     ~CEffectArrow() override;
     int RunTick() override;
@@ -287,7 +287,7 @@ public:
 class CEffectArrowFigure final : public CEffectMissile {
 public:
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEffectArrowFigure();
     ~CEffectArrowFigure() override;
     void Reset() override;                                 // figure out of the maps and released
@@ -310,7 +310,7 @@ public:
 class CEffectShowVisibility final : public CEffect {
 public:
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEffectShowVisibility();
     ~CEffectShowVisibility() override;
     void Reset() override;                                 // grid cleared, fog released
@@ -336,7 +336,7 @@ public:
 class CEffectMoshka final : public CEffect {
 public:
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEffectMoshka();
     ~CEffectMoshka() override;
     void Reset() override;                                 // the figure out of the maps, both released
@@ -370,7 +370,7 @@ public:
 class CEffectTornado final : public CEffect {
 public:
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEffectTornado();
     ~CEffectTornado() override;
     void Reset() override;                                 // source cleared and released, sound stopped

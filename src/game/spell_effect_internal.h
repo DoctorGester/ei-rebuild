@@ -27,17 +27,7 @@
 
 namespace spellfx {
 
-// --- Classes and slots ---------------------------------------------------------------------------
-
-constexpr int kClassSound = 0x48;
-constexpr int kClassParticle = 0x4A;
-constexpr int kClassPointLight = 0x4B;
-constexpr int kClassLightning = 0x4D;
-constexpr int kClassArrow = 0x4E;
-constexpr int kClassWall = 0x5A;
-constexpr int kClassShowVisibility = 0x5E;
-constexpr int kClassSoundSequence = 99;
-constexpr int kClassUnit = 0x50;
+// --- Slots ---------------------------------------------------------------------------------------
 
 constexpr double (CWorld::*kGridHeight)(float, float) = &CWorld::GridHeightAt;
 constexpr double (CWorld::*kRawSurfaceHeight)(float, float) = &CWorld::RawSurfaceHeightAt;

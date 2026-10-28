@@ -29,7 +29,7 @@ public:
 
     int Create() override { return CreateWithArchives(); }
     const char* GetClassName() override;
-    int GetClassId() override;
+    ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
     BOOL AddArchive(const std::string& path) override { return AddMmioArchive(path); }
     CEngineObject* CreateObject(int type, int id) override { return CreateFigureObject(type, id); }

@@ -39,10 +39,6 @@ constexpr std::uint32_t kKindOwnPrice = 0;
 constexpr std::uint32_t kRecordWeapon = 0;
 constexpr std::uint32_t kRecordArmor = 1;
 constexpr std::uint32_t kRecordQuickItem = 2;
-constexpr int kLootClass = 0x3007;
-constexpr int kWeaponClass = 0x3004;
-constexpr int kArmorClass = 0x3005;
-constexpr int kQuickItemClass = 0x3006;
 
 CParty* PlayerParty() { return LocalPlayerData(); }
 CItem* ItemAt(CParty* party, int index) { return party->items_[index]; }
@@ -100,16 +96,15 @@ void AddAndRelease(CParty* party, CItemLoot* item) {
 // The instruction (blueprint) items by the item's class: weapon, armour, quick item.
 const char* InstructionName(int itemClass) {
     switch (itemClass) {
-    case kWeaponClass: return "Instruction Weapon";
-    case kArmorClass: return "Instruction Armor";
-    case kQuickItemClass: return "Instruction Quick Item";
+    case kItemWeapon: return "Instruction Weapon";
+    case kItemArmor: return "Instruction Armor";
+    case kItemQuick: return "Instruction Quick Item";
     default: return nullptr;
     }
 }
 const char* MaterialText() { return "material"; }
 const char* SpellContainerText() { return "spell container"; }
 // The quick item prototypes by name: QuickItemTable::Named (inserts a missing name).
-constexpr int kSpellContainerClass = 0x3008;
 
 // A new item named `name` from the results' item manager added to them (when one is made).
 void AddNamed(CParty* results, std::string_view name, std::uint32_t prototypeIndex, bool setIndex) {
@@ -152,14 +147,14 @@ void StockItems(CCampPages* camp, CParty* list) {
         std::uint32_t index = 0;
         if (UiItemKinds::IsBuildable(item)) {
             index = PrototypeIndex(item);
-            if (item->type_ == kWeaponClass) kind = kRecordWeapon;
-            else if (item->type_ == kArmorClass) kind = kRecordArmor;
-            else if (item->type_ == kQuickItemClass) kind = kRecordQuickItem;
+            if (item->type_ == kItemWeapon) kind = kRecordWeapon;
+            else if (item->type_ == kItemArmor) kind = kRecordArmor;
+            else if (item->type_ == kItemQuick) kind = kRecordQuickItem;
         } else if (UiItemKinds::IsPart(item)) {
             auto* loot = AsLoot(item);
             index = loot->index_;
             if (loot->recordType_ <= kRecordQuickItem) kind = static_cast<int>(loot->recordType_);
-        } else if (item->type_ == kLootClass && AsLoot(item)->kind_ == kKindOwnPrice) {
+        } else if (item->type_ == kItemLoot && AsLoot(item)->kind_ == kKindOwnPrice) {
             list->RemoveItem(item, 1);
         }
         if (kind == static_cast<int>(kRecordWeapon))
@@ -223,7 +218,7 @@ bool CCampPages::DeconstructItem() {
         CItemManager* manager = results->ItemFactory();
         itemdb::QuickItemTable& quickItems = g_itemDatabase->quickItems;
         int index = quickItems.IndexOf(quickItems.Named(SpellContainerText()));
-        auto* container = manager->MakeItem(kSpellContainerClass, index, 0, -1);
+        auto* container = manager->MakeItem(kItemSpell, index, 0, -1);
         if (container) {
             ++container->refCount_;
             CSpell* clone = copy->spell_->Clone(results->SpellManager());

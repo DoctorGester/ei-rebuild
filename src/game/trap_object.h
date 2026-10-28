@@ -25,7 +25,7 @@ public:
     void Load(CStream* stream) override;                      // LoadTrapObject
     void Save(CStream* stream) override;                      // SaveTrapObject
     const char* GetClassName() override;                   // "CTrapObject"
-    int GetClassId() override;                             // 0x55
+    ClassId GetClassId() override;
     bool IsSynchronised() override { return Slot29True(); }
     int IsUsable() override { return Slot38One(); }
     // Disarm with the key record.
