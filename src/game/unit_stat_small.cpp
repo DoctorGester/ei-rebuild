@@ -12,7 +12,6 @@
 #include "logic_settings.h"
 
 namespace {
-// The game's settings (globals read at the time of the call).
 } // namespace
 
 void AttackParams::ScaleForDifficulty(int keyed) {

@@ -53,8 +53,6 @@ constexpr int kSurfaceCommands = 1, kSurfaceRename = 3;
 // The menu model's turn about x: pi / 2 times 1.2.
 float MenuTurn() { return kMenuTilt * 1.2f; }
 
-// The saved heroes' reload (Rebirth-patched).
-
 CUiContainer* AsContainer(CMpHeroScreen* screen) { return screen; }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {

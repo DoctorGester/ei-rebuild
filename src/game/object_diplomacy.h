@@ -46,5 +46,3 @@ struct CDiplomacy {
     std::uint32_t allied_[32];    // bit q of row p: p is allied with q
     std::uint32_t hostile_[32];   // bit q of row p: p is hostile to q
 };
-
-// The game's diplomacy table (the server world's; world_singletons.cpp).

@@ -20,8 +20,6 @@
 namespace {
 constexpr int kTypeArmed = 0x32;            // CEngineObject::type_ of the units given armour and weapons
 
-// The game's texts: "none" (a weapon name that gives no weapon) and the FatalError formats.
-
 // Through their game addresses (defined elsewhere; their verify wrappers stay in the path, and Rebirth's patches
 // still run): the prototype table's name lookup (UnitPrototypeTable::FindByName, unit_create.cpp; inserts unknown
 // names); the item manager's item by name (item_constructor.cpp); FatalError (app.cpp); CUnit's EquipArmour /

@@ -4,7 +4,6 @@
 #include "save_versions.h"
 
 namespace {
-// The size the block had in older saves, by format version.
 } // namespace
 
 int UnitStats::LoadFrom(CStream* stream) {

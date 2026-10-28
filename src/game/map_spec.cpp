@@ -25,9 +25,6 @@ namespace mapspec {
 namespace {
 
 
-// The objects manager (0x7AF5F8) look-up by id; the world server: an object removed by id, an object made
-// from a record; the editor's selection and object lists the world object's own updates.
-
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     b = std::bit_cast<std::uint32_t>(f);

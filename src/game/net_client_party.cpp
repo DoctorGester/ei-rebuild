@@ -18,8 +18,6 @@ namespace net {
 
 namespace {
 
-// The received offers: an STLport list of counted PartyMessages.
-
 void WriteDword(CStream* stream, std::uint32_t* scratch, std::uint32_t value) {
     *scratch = value;
     stream->Write(scratch, 4u);

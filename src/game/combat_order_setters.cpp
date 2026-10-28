@@ -28,8 +28,6 @@ constexpr int kStyleRun = 3;
 constexpr std::uint32_t kUntameable = 0x32;
 constexpr int kMessageMoveStyle = 9;    // CPlayerServer::SendObject0B code
 
-// Sources of a kind 6 order (CUnitServer::UseSkill reads them).
-
 // The planner's shout codes per order (its second argument).
 constexpr int kShoutSteal = 6;
 constexpr int kShoutTame = 5;

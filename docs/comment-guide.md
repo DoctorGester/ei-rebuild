@@ -42,6 +42,10 @@ part a tool does, and how a batch is done and checked.
 - **"As the original does"** with nothing after it. Either say what the constraint is ("x87 order:
   the goldens depend on it") or drop it.
 - **Comment blocks that only list callers or callees.** The code shows them; a reader can grep.
+- **Comments of deleted code.** Deleting a function, member, constant or declaration deletes the comment
+  above it in the same edit; a comment that now describes nothing, or the next thing by accident, goes too.
+  `comments.py check` counts the plainest case (a column-0 block followed by a namespace's `}`) as orphan
+  comments, ratcheted at 0.
 
 ## How a comment should read
 

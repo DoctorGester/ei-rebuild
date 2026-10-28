@@ -16,7 +16,6 @@
 namespace {
 
 const char* const kPerkSound = "buttons\\camp\\perk.wav";
-// The skill database (levels by record name).
 
 constexpr int kHeldRows = 10;
 constexpr int kLearnableRows = 23;

@@ -16,8 +16,6 @@
 
 // --- Destructor bodies -------------------------------------------------------------------------
 
-// The input sides' storage: the game's heap.
-
 // The base input side's deleting destructor.
 UiInputSide::~UiInputSide() {}
 

@@ -23,12 +23,6 @@ namespace {
 // 1 / the water depth scale (set by a static initialiser).
 constexpr float kWaterFalloff = /*007C8908*/ 0.06666667f;   // a static initialiser: 1 / 15
 
-// A point light's shading of a colour (r, g, b, a) for a vertex normal is CLight::AddPoint (at `distance` along
-// the unit `direction`): each channel clamped to 1, the alpha copied through.
-
-// Select idiom: `b` when a < b or unordered.
-
-
 // Whether the sun's ray march (Terrain::SunReaches) from vertex (column, row) of `sector` can change
 // nothing of the game's. Its answer feeds only the vertex colours, which the GPU lighting does not read;
 // but each sector it steps into is looked up with SectorAt (loaded when missing, its use and the cache's

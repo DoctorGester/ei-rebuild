@@ -60,8 +60,6 @@ void Shuffle(T* first, T* last) {
     }
 }
 
-// The callers skip a self-assignment.
-
 // Counted by the caller.
 void Output(std::list<CItem*>* out, CItem* item) { out->insert(out->end(), item); }
 

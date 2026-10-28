@@ -10,10 +10,6 @@
 
 namespace {
 
-// The manager's model of a name; FigureModel::FindAnimation: the model's animation of a name.
-// The figure: set an animation (CFigureAnimationState::LoadBoneTracks; the name is the bones' animation).
-// The game's debug message (printf-style).
-
 } // namespace
 
 int CFigureManager::SetFigureAnimation(CFigureAnimationState* figure, const char* modelName,

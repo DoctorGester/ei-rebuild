@@ -18,8 +18,6 @@ namespace {
 
 constexpr std::uint32_t kDefaultVersion = 2000000000;
 
-// String + char (the game's AFXAPI operator+).
-
 } // namespace
 
 // --- CStream -----------------------------------------------------------------------------------

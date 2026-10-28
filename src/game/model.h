@@ -189,8 +189,6 @@ public:
     MatrixStack stacks_[16];    // (models.md: stacks 0-2, 5-10 and 14 are in use)
 };
 
-// The scene renderer's pipeline: stacks 1 and 2 take the scene matrices, 5 the world draw's, 9 the views.
-
 struct tagRECT;
 class CTextureDevice;
 namespace options {

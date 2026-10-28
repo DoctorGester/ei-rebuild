@@ -34,8 +34,6 @@ const SectorOccluder* OccluderRecords(const CAIMap* map, int x, int y) {
 constexpr float kTransparency[4] = /*00791744*/ {0.0f, 0.98f, 0.99f, 1.0f};
 constexpr float kMinVisibility = 0.0001f;
 
-// The game's atexit, for the function-local static in FindFreeCellNear.
-
 // The spiral of cell offsets ordered by distance, built at startup: a binary tree mapping a radius (compared
 // as raw float bits) to the number of offsets within it. (sector_map.h's tables, sector_spiral.cpp).
 std::int32_t SpiralKey(std::uint32_t node) {

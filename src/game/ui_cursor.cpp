@@ -20,8 +20,6 @@
 
 namespace {
 
-// The cursor's size (the hot spots are given for a 32-pixel cursor).
-
 
 // The mask of `count` pixels of a row: all ones where the pixel's colour is 0 (16 bits: the whole
 // pixel; 32 bits: its low 24 bits), else 0.

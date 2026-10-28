@@ -34,8 +34,6 @@ enum CampPage {
     kRepair = 6,
 };
 
-// Loot (CItemLoot) kinds and record types the constructors take.
-
 CParty* PlayerParty() { return LocalPlayerData(); }
 CItem* ItemAt(CParty* party, int index) { return party->items_[index]; }
 int ItemCount(const CParty* party) { return std::ssize(party->items_); }
@@ -100,7 +98,6 @@ const char* InstructionName(int itemClass) {
 }
 const char* MaterialText() { return "material"; }
 const char* SpellContainerText() { return "spell container"; }
-// The quick item prototypes by name: QuickItemTable::Named (inserts a missing name).
 
 // A new item named `name` from the results' item manager added to them (when one is made).
 void AddNamed(CParty* results, std::string_view name, std::uint32_t prototypeIndex, bool setIndex) {

@@ -635,8 +635,6 @@ public:
     CItemScreen* owner_;
 };
 
-// Option 17 of the options window: the numbers flying up from units hit are shown.
-// The console's "debuginfo" rectangle (string_map.cpp).
 namespace strmap {
 extern lib::StaticObject<CDebugPanel> g_debugPanel;
 }
@@ -2085,10 +2083,6 @@ public:
 
     int easy_;                       // 1 easy, 0 hard (the default)
 };
-
-// The cursor's position in screen pixels and the motion a right-button drag accumulates.
-
-// The game's difficulty (1 easy, 0 hard; combat reads it).
 
 // config\keyboard.ini.
 namespace keybind {

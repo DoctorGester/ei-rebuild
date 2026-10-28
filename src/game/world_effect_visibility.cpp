@@ -15,8 +15,6 @@
 
 namespace {
 
-// The fog manager; VisFogManagerAdd makes a fog object, already counted once by the manager's list.
-
 void ReleaseFog(CVisibilityFog*& fog) {
     CVisibilityFog* old = fog;
     fog = nullptr;

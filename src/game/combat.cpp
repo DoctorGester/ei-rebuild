@@ -107,8 +107,6 @@ float Radius(CMapObject* object) { return object->Radius(); }
 int IsDead(CMapObject* object) { return object->IsDead(); }
 void AttackParamsOf(CUnitServer* controller, AttackParams* out) { controller->GetAttackParams(out); }
 
-// The original's branch-free max(0, v): v when 0 < v or v is NaN, else +0.
-
 // A zero-extended dword converted as a 64-bit integer (exact; a plain uint32 conversion would add 2^32 in a step
 // the precision control rounds).
 double Unsigned(std::uint32_t value) {

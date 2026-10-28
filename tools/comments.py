@@ -194,11 +194,37 @@ def banned_count(body, path):
     return n
 
 
+SECTION_RX = re.compile(r'^\s*//\s*(-{2,}|={2,})')
+
+
+def orphan_blocks(text):
+    """Comment blocks at column 0 that describe nothing: the next code line after them closes a namespace (a deleted
+    function's or member's comment left behind). Section headers (// ---- ...) are not counted."""
+    lines = text.split('\n')
+    found, i = [], 0
+    while i < len(lines):
+        s = lines[i].strip()
+        if lines[i].startswith('//') and not SECTION_RX.match(lines[i]) and (i == 0 or '//' not in lines[i - 1]):
+            j = i
+            while j < len(lines) and lines[j].strip().startswith('//'):
+                j += 1
+            k = j
+            while k < len(lines) and not lines[k].strip():
+                k += 1
+            if k < len(lines) and lines[k].startswith('}') and (i == 0 or not lines[i - 1].rstrip().endswith('\\')):
+                found.append(i + 1)
+            i = j
+        else:
+            i += 1
+    return found
+
+
 def count(text, path=None):
     c = {'comment lines': 0, 'addresses': 0, 'ticket ids': 0, 'original / game.exe': 0, 'history words': 0,
-         'banned words': 0}
+         'banned words': 0, 'orphan comments': 0}
     if GENERATED.search(text[:600]):
         return c
+    c['orphan comments'] = len(orphan_blocks(text))
     for s, e in line_comments(text):
         body = text[s:e]
         c['comment lines'] += 1
@@ -350,7 +376,7 @@ def cmd_samecode(rev):
     return 1 if bad else 0
 
 
-RATCHET = ['addresses', 'ticket ids', 'banned words']
+RATCHET = ['addresses', 'ticket ids', 'banned words', 'orphan comments']
 
 
 def cmd_check(update):
@@ -378,7 +404,9 @@ def cmd_check(update):
             if c[k] > limit:
                 problems += 1
                 print(f'{r}: {c[k]} {k} in comments (allowed {limit}); see docs/comment-guide.md'
-                      + ('; `list` shows them' if k != 'banned words' else '; `python tools/comments.py banned` lists them'))
+                      + ('; `python tools/comments.py banned` lists them' if k == 'banned words'
+                         else '; a comment left by deleted code: delete it with the code' if k == 'orphan comments'
+                         else '; `list` shows them'))
     totals = {k: sum(c[k] for c in now.values()) for k in count('')}
     print('comment counts: ' + ', '.join(f'{v:,} {k}' for k, v in totals.items()) + f'; {problems} problem(s)')
     return 1 if problems else 0

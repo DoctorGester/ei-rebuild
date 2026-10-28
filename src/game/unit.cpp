@@ -34,8 +34,6 @@ constexpr int kPartRelations = 11;
 constexpr int kPartEquipment = 5;
 constexpr std::uint32_t kFlagSideChanged = 0x80000;
 
-// Globals read by the formulas.
-
 float ItemWeight(const CItem* item) { return item->Weight(); }
 
 float SpellCost(const CSpell* spell) { return spell->manaCost_; }

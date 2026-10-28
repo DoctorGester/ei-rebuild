@@ -28,8 +28,6 @@ const char* Dot() { return "."; }
 const char* RuneItem() { return "Rune"; }
 const char* PrototypeItem() { return "Prototype"; }
 
-// The item and spell managers (their name lists).
-
 constexpr std::uint32_t kInstructionCount = 10;
 constexpr std::uint32_t kMaterialCount = 20;
 

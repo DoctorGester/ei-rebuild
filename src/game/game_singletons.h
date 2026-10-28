@@ -44,12 +44,7 @@ extern lib::StaticObject<CWorldClient> g_clientWorld;   // world_construct.cpp
 
 extern lib::StaticObject<CWorldServer> g_serverWorld;   // world_construct.cpp
 
-// The client world's managers: the text manager (the game's string tables), the object
-// manager (finds and creates engine objects by id), the figure manager (models and sprites), the texture, material,
-// sound and particle managers, the light factory, the music system and the terrain (also the point lights' manager).
-
-// The scene renderer; its device object; the critical section held around the device's
-// DirectDraw / Direct3D calls.
+// The scene renderer and the critical section held around its device calls.
 extern lib::StaticObject<CSceneRenderer> g_sceneRenderer;   // renderer_lifetime.cpp
 extern _RTL_CRITICAL_SECTION g_deviceLock;   // renderer_lifetime.cpp
 

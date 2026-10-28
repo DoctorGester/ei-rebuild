@@ -40,8 +40,6 @@ constexpr std::uint32_t kEflagsId = 0x00200000;   // EFLAGS.ID: can be flipped w
 // Windows 98's first build; a lower build of the 9x platform is Windows 95.
 constexpr unsigned kFirstWindows98Build = 1998;
 
-// The translation unit's constants and what they are made of (the exe's pi, 2, 4 and 1).
-
 } // namespace
 
 void ReadProcessorInfo() {

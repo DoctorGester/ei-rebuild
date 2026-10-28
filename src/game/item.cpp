@@ -9,7 +9,6 @@
 using namespace itemdb;
 
 namespace {
-// The game's global ISAAC generator.
 
 
 WeaponRecord* WeaponOf(std::uint32_t packedId) { return WeaponAt(PrototypeIndex(packedId)); }

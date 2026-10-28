@@ -29,6 +29,9 @@ never by hand). `work.py start` set yours running.
   drops any status line that came back: the database's status wins).
 
 Rules:
+- Deleting code deletes its comment in the same edit: a function, member, constant or declaration
+  goes with the comment above it (docs/comment-guide.md, "Comments of deleted code"). Scripts that delete
+  definitions must take the comment block too.
 - Never modify anything under F:\games or the registry. Don't install anything. Don't call any
   mcp__hearthbot__ tools.
 - Games only through `python tools/work.py test <ID> [run_all args]` (same arguments as run_all:

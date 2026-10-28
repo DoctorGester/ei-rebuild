@@ -25,9 +25,6 @@ int ReadCount(lib::File* file) {
     return count;
 }
 
-// The original's out-of-line Vector3 helpers (the out pointer first).
-
-
 } // namespace
 
 void CFigureMesh::SaveTransform(lib::File* file) {

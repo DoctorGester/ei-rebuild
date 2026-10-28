@@ -18,15 +18,11 @@ namespace {
 
 constexpr int kLastCell = 31;       // the column / row a ray enters a sector at from above
 
-// The width of the fade at the map's edges (the interface's screens set it).
-
 std::uint32_t Bits(float value) {
     std::uint32_t bits;
     bits = std::bit_cast<std::uint32_t>(value);
     return bits;
 }
-
-// Select idiom: 0 for a positive or unordered value.
 
 } // namespace
 

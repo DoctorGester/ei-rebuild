@@ -1292,8 +1292,6 @@ inline std::vector<CMapObject*>& FrameObjects(FrameList list) {
     return *kQueues[static_cast<int>(list)];
 }
 extern lib::StaticObject<std::list<HeldPtr<CMapObject>>> g_deferredUnits;
-// The id the next object only the client makes gets (client figures such as a bow shot's arrow); each
-// use counts it down.
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a
 // thunder sound, otherwise a point light at the middle, a sound and two bolts.

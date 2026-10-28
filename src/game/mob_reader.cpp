@@ -41,8 +41,6 @@ constexpr int kKindTrap = 7;
 constexpr int kRelationHostile = 2;
 constexpr int kBehaviourCount = 5;
 
-// The limit the .mob wind strength is clamped to (never written: 0).
-
 // A new record for the given chunk id, or null for other ids (or without memory).
 Spec* NewRecord(std::uint32_t id) {
     switch (id) {

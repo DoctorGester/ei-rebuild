@@ -25,15 +25,11 @@ const char* const kWrongStringCount = "Wrong number of script %s string paramete
 const char* const kWrongObjectCount = "Wrong number of script %s object parameters";
 const char* const kWrongGroupCount = "Wrong number of script %s group parameters";
 
-// Class id of the sound object an FX source places (CBaseManager::CreateObject).
-
 // Compared with 0.0 (a NaN counts as zero).
 bool IsZero(float value) {
     EI_NAN_AUDIT(value);
     return value == 0.0f;
 }
-
-// The world's manager of timed objects (spells and effects; CWorld::timedObjectManager_).
 
 // An effect object took a new position.
 void EffectMoved(CEngineObject* object) { static_cast<CEffect*>(object)->MarkChanged(); }

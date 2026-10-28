@@ -36,8 +36,6 @@ namespace scriptaddon {
 namespace {
 
 
-// The "draw all units" flag (the console's spectator mode).
-
 CPlayer* GetPlayer(int number) { return g_serverWorld->GetPlayer(number); }
 const float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
 const char* Text(Call* call, int i) { return call->cmd->stringArgs[i].c_str(); }

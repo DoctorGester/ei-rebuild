@@ -20,9 +20,6 @@ constexpr const char* kNoSequenceMessage = "Can't find spell sequence to create 
 constexpr const char* kSpellManagerClassName = "CSpellManager";
 constexpr const char* kSpellManagerFolder = "spells";
 
-// Every container of a sequence loses a reference, in iterator order; the walk stops at the first entry
-// without a container.
-
 template <typename Record>
 void ListRecordNames(const itemdb::CodeIndexedTable<Record>& table, std::vector<std::string>* names) {
     names->resize(table.Count());

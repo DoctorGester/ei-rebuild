@@ -92,7 +92,6 @@ struct SoundEmitter {
 
 struct SoundSequence;
 unsigned __stdcall StreamThreadEntry(void* manager);
-// Handed to the CRT's eh vector iterators.
 
 // A 3D sound sequence (8): plays its names one after the other (or at random, or as a callback chooses) at one
 // position.

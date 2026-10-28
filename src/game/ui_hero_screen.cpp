@@ -42,7 +42,6 @@ const char* const kSelectVoiceKey = "lmp_select_voice";
 constexpr float kNewHeroPoints = 75.0f;
 // The preview's full turn (2 pi), the modulus of its angle.
 constexpr float kFullTurn = /*007C7F10*/ 6.2831855f;   // a static initialiser: pi + pi
-// The multiplayer heroes (their vector of SavedHero).
 
 constexpr int kModeList = 9;
 constexpr int kModeNewHero = 10;

@@ -469,8 +469,6 @@ void SectorData::ApplyWaterLevels() {
     }
 }
 
-// Point queries
-
 } // namespace terrain
 
 const float* Terrain::TileUv(int rotation, int index, int page) {

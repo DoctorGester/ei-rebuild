@@ -24,9 +24,6 @@ namespace {
 // The world: the player with a number.
 void* GetPlayer(int number) { return g_serverWorld->GetPlayer(number); }
 
-// The sector map: every object within `radius` of `point`, into a pointer
-// list (block size 10).
-
 // A unit's prototype record: its name and, at +4, its model name (the race).
 static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) { return unit->GetPrototype(); }
 // The unit's parameters: the 7-value block filled from the unit's +0x17C (the

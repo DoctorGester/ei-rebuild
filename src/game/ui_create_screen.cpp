@@ -74,8 +74,6 @@ void CInterface3D::CreateScreen(int id) {
 namespace {
 
 
-// The window stack's insert when it is full (vector<CUiWindow*>'s, plain elements).
-
 // The end both PushWindow and Activate share: the window pushed on the stack, the render state the
 // interface draws with (blending by source alpha, the alpha test against 0x80), the window created, the messages
 // pumped, the mouse released.

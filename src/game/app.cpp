@@ -284,11 +284,11 @@ int ShowLibraryMessageBox(const char* text) {
     return gameapi::MessageBoxA(nullptr, text, title, MB_OK | MB_ICONEXCLAMATION);
 }
 
+} // namespace app
+
 // Formats the error (wvsprintfA, 1 KB), shows it in a message box and exits the
 // game (exit(-1); the error counter reaches 1). Rebirth's DisableExitOnCrashReport replaces the message box
 // with a line in addon.log (not reproduced) and removes the exit, so the game carries on. Returns 0.
-} // namespace app
-
 int game::FatalError(const char* format, ...) {
     char text[0x400];
     va_list args;

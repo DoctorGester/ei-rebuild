@@ -91,8 +91,6 @@ constexpr ScriptParticleType kScriptParticleTypes[64] = /*0078B120*/ {
 // Class ids of the effect objects the script makes (CBaseManager::CreateObject).
 constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x18
 
-// The world's manager of timed objects (spells and effects; CWorld::timedObjectManager_).
-
 // The effect object saved under `id` (-1: none), as the slot's effect class.
 template <class T>
 ScriptEffect<T> ReadObject(CStream* stream) {

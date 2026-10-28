@@ -109,8 +109,6 @@ constexpr double kByteScale = 255.0;
 // The map file's extension.
 constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
 
-// 1 is kept when 1 is below the value, or the two are unordered.
-
 } // namespace
 
 SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) {

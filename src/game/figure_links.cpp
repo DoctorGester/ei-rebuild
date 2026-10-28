@@ -15,11 +15,6 @@
 
 namespace {
 
-// The manager's model of a name.
-// The animation state: LinkPiece, FindRoot.
-// Game::FatalError(format, ...).
-
-
 } // namespace
 
 int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, std::string_view name) {

@@ -17,8 +17,6 @@
 
 namespace {
 
-// The id registry.
-
 int ReadInt(CStream* stream) {
     int value = 0;
     stream->ReadValue(value);

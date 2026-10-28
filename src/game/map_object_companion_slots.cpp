@@ -12,7 +12,6 @@ constexpr const char* kClientClassName = "CMapObjectClientSpecific";
 constexpr const char* kServerClassName = "CMapObjectServer";
 constexpr std::uint32_t kShowsNumbers = 0x400000;   // CMapObject::flags_: hits show their number
 
-// A particle source as the counted engine object it is (effects.h declares only its own members).
 } // namespace
 
 // --- The base companion -------------------------------------------------------------------------------

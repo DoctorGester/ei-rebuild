@@ -22,8 +22,6 @@ namespace {
 constexpr float kSectorCells = 32.0f;   // a sector's width in cells
 constexpr int kProjectStack = 1;        // the pipeline stack on-screen vertices are projected with
 
-// The squared-distance limits of the levels of detail 0 and 1.
-
 
 // Calls `visit(sector)` for every visible sector (SetVisibleSectors' rows and columns) that is
 // there once lit; a visit returning false ends the walk (false).

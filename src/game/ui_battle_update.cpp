@@ -135,8 +135,6 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     panel->viewHeight_[0] = std::bit_cast<float>(UnitPrototype(panel->shownUnit_)->height);
 }
 
-// The children's update (CUiContainer::UpdateBase).
-
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
 void PushId(std::vector<int>* ids, const int* value) {
     ids->push_back(*value);

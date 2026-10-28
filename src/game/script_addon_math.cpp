@@ -25,8 +25,6 @@ double CrtSin(double x) { return std::sin(x); }
 double CrtCos(double x) { return std::cos(x); }
 double CrtPow(double x, double y) { return std::pow(x, y); }
 
-// IsaacRandom::Range on the game's generator: the result is left unrounded.
-
 } // namespace
 
 bool Sin(Call* call) {

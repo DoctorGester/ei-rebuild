@@ -81,8 +81,6 @@ constexpr std::uint32_t kFlagPrintsShown = 0x400000;   // the unit's flags_
 constexpr int kStepFrames = 4;
 constexpr int kMaxFootPart = 9;
 
-// The client world's local view (CWorldClient::LocalView) and its player; only the field read here.
-
 // Footprints show for every unit (else only for units with flags_ 0x400000).
 bool AllFootprintsShown() { return options::g_options->drawVisibleOnly_ == 0; }
 

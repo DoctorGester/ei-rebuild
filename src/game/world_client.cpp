@@ -200,8 +200,6 @@ const char* QuestPrefixText() { return "q."; }
 
 void SessionDisconnect(CPlayer* session) { session->Disconnect(); }
 
-// `ifLess` when a < b or unordered, else `otherwise`.
-
 // One print list ticked: the prints whose tick returns 0 are erased.
 template <typename T>
 void RunEffects(std::list<T>& list) {

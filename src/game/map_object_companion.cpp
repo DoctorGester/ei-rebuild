@@ -39,8 +39,6 @@ const char* const kStenchSoundFormat = "magic\\Stench\\%i.wav";
 
 CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
 
-// The light's position (a point light of the light factory, class 0x31).
-
 bool IsScaleEffect(int type) {
     return type == mapeffect::kStrengthen || type == mapeffect::kWeaken || type == mapeffect::kEnlarge ||
            type == mapeffect::kShrink;

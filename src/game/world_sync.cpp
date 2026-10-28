@@ -35,7 +35,6 @@ namespace {
 constexpr float kViewRange = 100.0f;        // objects seen around the camera
 constexpr float kHearingScale = 2.0f;     // unit perception scale
 constexpr float kHearingMargin = 5.0f;    // added to it
-// Non-zero in a multiplayer game seen from a spectator (no camera-range test for map objects).
 
 constexpr int kTypeNoSync = 0x3B;            // CEngineObject::type_ of objects never sent
 constexpr std::uint32_t kFlagHidden = 0x10000;   // flags_: invisible (HideObject)

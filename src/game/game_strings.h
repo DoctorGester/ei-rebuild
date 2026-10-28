@@ -11,11 +11,6 @@ namespace game {
 // it (they copy or compare its text).
 inline constexpr char kEmptyText[1] = /*0079B298*/ "";
 
-// The texture manager's FatalError.
-
-// The window surfaces' FatalDirectX.
-// The picture file name of a window made from a picture.
-
 // The battle screen's (ui_hud.cpp): the sound of a portrait's unit clicked, the console line of a
 // click on the ground ("Terrain Coords", space), a zone exit's player variable prefix.
 inline const char* SoundOnOffText() { return "buttons\\battle\\on_off.wav"; }

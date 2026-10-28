@@ -22,8 +22,6 @@
 namespace {
 
 
-// Nonzero when mipmaps are used (otherwise every texture gets a single level).
-
 constexpr std::uint32_t kDxtTag = 0x545844;          // "DXT" (the format's low three bytes)
 
 bool g_undecodedLogged = false;

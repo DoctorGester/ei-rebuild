@@ -82,8 +82,6 @@ double LevelValueOf(const UnitStats* stats, int skill) {
 
 double RecordValue(const SkillLevelRecord* record) { return record->Value(); }
 
-// Branch-free selects as the original's: `ifLess` when a < b or unordered.
-
 MapEffect EffectAt(const CUnit* unit, int index) { return unit->effects[index]; }
 float EffectValueField(const MapEffect& effect) {
     float value;

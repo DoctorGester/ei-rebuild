@@ -308,8 +308,6 @@ constexpr float kGlowAlpha[16] = /*0078AA78*/ {0.0f, 0.15f, 0.3f, 0.45f, 0.6f, 0
                                             1.0f, 1.0f};
 constexpr std::int32_t kDustAlpha[16] = /*0078AAD8*/ {0, 64, 144, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64};
 
-// Branch-free select: `a` when a < b (or unordered), else `b`.
-
 // One random draw in [-1, 1) through the ISAAC results: Next() * ~2^-31 - 1.
 double Signed(std::uint32_t roll) { return Unsigned(roll) * EI_SCALE_2 - D(EI_ONE); }
 

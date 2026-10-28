@@ -54,10 +54,6 @@ constexpr std::uint32_t kFlagBlocked = 0x800000;      // a unit the use order le
 constexpr float kPathRange = 1000000.0f;              // FindPath's range for the use order
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
 
-// The shares a revived hero loses: of the party's money and of its experience above the
-// NPC record's floor. Set at startup.
-// The AI map's cell size factors: a half-cell coordinate times both is world units.
-
 CUnit* FindUnit(int id) { return g_serverWorld->FindUnit(id); }
 
 // Appends `object` to `list` with a counted reference (as the brain's lists do).

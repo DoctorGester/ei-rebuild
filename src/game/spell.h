@@ -251,7 +251,6 @@ struct SpellSequence {
     std::unordered_map<std::uint32_t, CSpellContainer*> containers;   // only empty entries ever: no order to keep
     std::uint32_t maxLow;
 };
-// One step of a walk over a sequence's containers: the container there, or null at the end.
 
 // The spell manager's object types (CreateObject / type_).
 enum SpellObjectType : int {

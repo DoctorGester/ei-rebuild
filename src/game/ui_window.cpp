@@ -456,5 +456,4 @@ CUiWindow::~CUiWindow() {
     }
     models_.clear();
     flags_ = 0;
-    // The arrays' destructors (their storage is already freed above, so these find nothing).
 }

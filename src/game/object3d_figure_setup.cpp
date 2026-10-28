@@ -39,9 +39,6 @@ constexpr std::uint32_t kBoxBase = 0x400;        // a part named "BASE..."
 constexpr std::uint32_t kBoxCrown = 0x90;        // "CROWN..."
 constexpr std::uint32_t kBoxEmpty = 0x890;       // "EMPTY..."
 
-// The game's branch-free selects: the stored candidate replaces the bound when the comparison
-// sets C0 (it lies beyond the bound, or one of them is NaN).
-
 constexpr std::uint32_t kFlagDetached = 0x1000;   // flags_: passed to the figure manager
 constexpr std::uint32_t kBoxEmptyMark = 0x800;
 constexpr const char* kCantLoadPart = "CObject3D::LoadFigure.\n Can't load figure \"%s\" for object \"%s\".\n";

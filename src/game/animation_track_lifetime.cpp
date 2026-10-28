@@ -11,8 +11,6 @@
 
 namespace {
 
-// The tracks' defaults without key frames (Evaluate).
-
 int ReadCount(std::uint8_t** cursor) {
     int value;
     lib::LoadBytes(value, *cursor);

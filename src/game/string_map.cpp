@@ -19,8 +19,6 @@ namespace strmap {
 
 namespace {
 
-// The interface's panel rectangle (Rebirth-patched), the panel surface's constructor and destructor body.
-
 // The panel's font face.
 const char* FontFace() { return "Courier New"; }
 

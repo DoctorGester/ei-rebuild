@@ -410,9 +410,10 @@ struct ItemDatabase {
     LootItemTable loot;             // (Loot())
 };
 
+} // namespace itemdb
+
 // The databases: built empty by their static initialisers, destroyed by the exit functions
 // those register (docs/notes/standalone.md, "The static initialisers' objects").
-} // namespace itemdb
 extern lib::StaticObject<itemdb::SpellDatabase> g_spellDatabase;
 extern lib::StaticObject<itemdb::ItemDatabase> g_itemDatabase;
 namespace itemdb {

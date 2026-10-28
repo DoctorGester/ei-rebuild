@@ -31,7 +31,6 @@ namespace {
 constinit std::vector<VertexPacket> g_movedPositions = /*007C2E48*/ {};
 void FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
 std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
-// The scale the lights' colours are set with and the "crown" option.
 
 // --- Helpers -------------------------------------------------------------------------------------
 

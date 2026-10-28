@@ -7,8 +7,6 @@
 #include <cstdint>
 #include <string>
 
-// The data folder string / the base folder string.
-
 // The scripts' QuestComplete in a network game. With a live game server: its FinishMap for the map named
 // `name` (the held map message dropped, "name_3" queued), 1 when it did; else 0.
 int FinishQuestMap(const char* name);

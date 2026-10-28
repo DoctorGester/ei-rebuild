@@ -21,8 +21,6 @@ const char* const kCantEnd = "Can't end spell construction\n";
 std::unordered_map<std::string, itemdb::SpellRecord*>& SpellNameMap() { return g_spellDatabase->spells.byCode; }
 std::unordered_map<std::string, itemdb::SpellModifierRecord*>& ModifierNameMap() { return g_spellDatabase->modifiers.byCode; }
 
-// The constructor's entries and CSpell::Clone, called through their game addresses.
-
 // Splits "name{a;b}" into the trimmed name (in `text`) and the modifier names (in `codes`).
 void ParseSpellText(std::string& text, std::vector<std::string>& codes) {
     int brace = str::Find(text, '{');

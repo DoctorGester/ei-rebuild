@@ -72,8 +72,6 @@ const char* const kNoAnimationMessage = "Fucking ShITTT!!! ArtIsTs MuSt diE!!! C
 
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
-// Branch-free selects: `ifLess` when a < b or unordered.
-
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 
 // 1 << the active weapon's type, else of the natural weapon (none from type 7 up).

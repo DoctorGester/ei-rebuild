@@ -31,9 +31,6 @@ void AssignCounted(T*& slot, T* object) {
     if (previous) previous->Release();
 }
 
-// A counted reference by id (load resolves through `context`); CBaseManager::FindObject,
-// through its game address.
-
 // Resolves an id read from the stream in `manager` (-1: none).
 CEngineObject* ReadObject(CStream* stream, const CBaseManager* manager) {
     int id;
@@ -95,8 +92,6 @@ void SavePlanFields(CStream* stream, OrderPlan* plan) {
     stream->WriteValue(plan->castKind);
     stream->WriteValue(plan->direction);
 }
-
-// The item manager (the world server's), which resolves the armour spells' item ids.
 
 } // namespace
 

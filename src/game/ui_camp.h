@@ -34,9 +34,6 @@ inline constexpr float kGlobalMapFullTurn = /*007C8020*/ 6.2831855f;
 // Every text section "pers <name>" gives its first line to the key of <name> (inserted, or replaced).
 void LoadPersonTexts(std::map<int, std::string>* map);
 
-// The pixels the mouse must move with the button down on the view before the battle screen starts a
-// selection box (0 or less: never).
-
 class ClassTemplate;
 
 // The statistics' names, also their text keys.

@@ -147,8 +147,6 @@ CUnit* FirstUnitHit(CWorldClient* client, CMapObject* object) {
 
 bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
-// Branch-free selects (C0 shifted into a mask): `a < b` picks one side.
-
 std::uint32_t Ftol(float v) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(v)); }
 
 constexpr float kSteepest = 0.8f;   // the smallest normal z of a face added

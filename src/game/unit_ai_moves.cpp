@@ -59,9 +59,6 @@ constexpr float kPassTime = 20.0f;
 
 constexpr float kSamePointSq = 0.01f;
 
-// how close a follower stays and how far its goal may drift before it walks
-// again (set at startup).
-
 
 // The list the sector map fills.
 void InitUnitList(std::list<CUnit*>& list) {

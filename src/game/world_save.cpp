@@ -46,8 +46,6 @@ namespace {
 
 constexpr int kTextKeyIdMin = 100000000;                      // ids above this are scripted (text-key) units
 
-// Save format versions (WorldStream::version_) at which fields were added.
-
 // Progress screen stages LoadSave shows.
 constexpr int kProgressStart = 0;
 constexpr int kProgressZone = 1;

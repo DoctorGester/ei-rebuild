@@ -557,8 +557,6 @@ public:
     std::uint32_t nextQuery_;           // the query the refresh pings next
 };
 
-// An embedded CParty. The client keeps two, a trade record three.
-
 // A finished trade of the client's (ClientSession::tradeRecords_): the revisions of the trade and copies of
 // the two parties and the traded one. A copy copies the parties in order (CParty's copy saves and loads the
 // party: it draws object ids), so the client adds a record as the game's insert(end()) did: a blank's copy.

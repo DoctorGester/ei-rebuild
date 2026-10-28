@@ -42,8 +42,6 @@ void PushFront(LightRefBlock* block, LightRefBlock*& head) {
     head = block;
 }
 
-// The cell size (1) the light bounds are divided by.
-
 
 // The vertex range of `area` inside the sector at (sx, sy): the area's first / last vertex in its
 // edge sectors, the whole row or column elsewhere.

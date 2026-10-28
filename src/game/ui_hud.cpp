@@ -121,8 +121,6 @@ bool IsZero(float value) {
     return value == 0.0f;
 }
 
-// The constant 1.0f the zone variable is compared with.
-
 } // namespace
 
 // --- Weapon bar --------------------------------------------------------------------------------

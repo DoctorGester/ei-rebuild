@@ -75,8 +75,6 @@ constexpr unsigned kOpenRead = netlink::FileStream::kOpenRead;
 constexpr unsigned kMagicScenario = 0xDEAD;
 constexpr unsigned kMagicMission = 0x102;
 
-// BeginMultiplayerGame sets it, a missing zone clears it.
-
 MapRecord* ZoneRecords() { return g_mapDatabase->maps.data(); }
 int ZoneRecordCount() { return static_cast<int>(g_mapDatabase->maps.size()); }
 MapRecord* FindZone(std::string_view name) { return g_mapDatabase->FindMap(name); }

@@ -48,8 +48,6 @@ inline double Range(float min, float max) { return g_random.Range(min, max); }
 // CWorldClient::RawSurfaceHeightAt(x, y) on the client world (unrounded).
 inline double GroundHeight(float x, float y) { return g_clientWorld->RawSurfaceHeightAt(x, y); }
 
-// Branch-free selects in the original: `a` when a < b or unordered.
-
 // The game's debug message (one argument; compiled out, other mods may hook it).
 inline void DebugMessage(const char* a0) { game::DebugLog(a0); }
 

@@ -15,9 +15,6 @@ namespace {
 constexpr float kMargin = 1.0f;   // one cell around the quad
 
 
-// Select idioms: the lower of `a` and `b` (a when unordered), and `a` raised to `bound`
-// (bound when unordered).
-
 // A cell bound: (v -/+ the margin) / cell size, stored as a float first and rounded to nearest.
 int CellBound(double v) { return x87::fistp(static_cast<float>(v)); }
 

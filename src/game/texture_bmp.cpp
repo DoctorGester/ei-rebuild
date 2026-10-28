@@ -27,9 +27,6 @@ const char* CantLoadText() { return "CTexture::FillSurface.\n Can't Load texture
 const char* AlphaNot8BitText() { return "Alpha-file %s must be 8bit gray instead of %d"; }
 
 
-// The game's .bmp reader (CDib, dib.h): Read takes an open file (a short or non-"BM" file: a message
-// box, nothing read), Size gives 0 x 0 without a header.
-
 // The .bmp's pixels as written into `out` (`pitch` bytes a row): `rows` rows of
 // `perRow` 16-bit pixels, the colours read on as B, G, R bytes without the .bmp's row padding (and
 // in its row order: a bottom-up .bmp comes out upside down), the alpha the alpha .bmp's byte at the

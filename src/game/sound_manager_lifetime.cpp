@@ -46,8 +46,6 @@ constexpr unsigned kPrefMixerChannels = 1;
 constexpr int kMixerChannels = 0x12;
 constexpr unsigned kPrefUseWaveOut = 0xF;
 
-// The sound option (0 off: startup does not open sound; 2 the wave mapper).
-
 constexpr int kStreamRate = 44100;
 constexpr int kStereo16 = 3;       // DIG_F_STEREO_16
 constexpr int kSignedPcm = 1;      // DIG_PCM_SIGN
