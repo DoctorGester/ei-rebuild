@@ -38,7 +38,7 @@ void CAnimationNode::ResetPose() {
         poseRotation_ = key;
         posePosition_ = TurnByQuaternion(poseRotation_, position_);
     }
-    pointsB_.resize(std::ssize(pointsA_));
+    pointsB_.resize(pointsA_.size());
     std::memcpy(pointsB_.data(), pointsA_.data(), static_cast<std::size_t>(std::ssize(pointsA_)) * sizeof(Vector3));
     translationCursor_ = 0;
     rotationCursor_ = 0;

@@ -16,7 +16,7 @@ namespace {
 // AddTail of a counted link as both slots inline it: a new node after the tail (its element
 // zeroed, so nothing is released), the link stored with one more reference.
 void AppendCounted(JoinedLinks* list, netlink::NetLink* link) {
-    list->AddTail(link);
+    list->push_back(link);
     ++link->refs_;
 }
 

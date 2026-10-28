@@ -11,7 +11,6 @@
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 #include "lib/static_object.h"
 #include "game_data.h"
 
@@ -30,15 +29,14 @@ struct FogSprite {
     const FogTile* tile;
 };
 
-// The draw's work arrays (function-local statics): the sprites' centres and sizes and their records (a CArray of
-// SpriteArrayClass), bit 0 / bit 1 of the guard set once the records / the points are constructed. Exit handlers
-// free the records and the points.
+// The draw's work arrays (function-local statics): the sprites' centres and sizes and their records, bit 0 / bit 1
+// of the guard set once the records / the points are constructed. Exit handlers free the records and the points.
 constinit std::vector<ParticleVertex> g_points = /*007ABA30*/ {};
 std::vector<ParticleVertex>& Points() { return g_points; }
 void FreePoints() { lib::FreeStorage(g_points); }
-constinit lib::StaticObject<mfc::CArray<FogSprite>> g_sprites = /*007ABA40*/ {};
-mfc::CArray<FogSprite>& Sprites() { return *g_sprites; }
-void DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
+constinit lib::StaticObject<std::vector<FogSprite>> g_sprites = /*007ABA40*/ {};
+std::vector<FogSprite>& Sprites() { return *g_sprites; }
+void DestroySprites() { g_sprites.Destroy(); }
 std::uint8_t g_workArrayGuards = /*007ABA54*/ {};
 constexpr std::uint8_t kSpritesConstructed = 1;
 constexpr std::uint8_t kPointsConstructed = 2;
@@ -58,7 +56,7 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
 
     if (!(g_workArrayGuards & kSpritesConstructed)) {
         g_workArrayGuards |= kSpritesConstructed;
-        Sprites().Construct(mfc::impl::SpriteArrayClass::Vtable());
+        g_sprites.Construct();
         libcrt::AtExit(DestroySprites);
     }
     if (!(g_workArrayGuards & kPointsConstructed)) {
@@ -66,14 +64,14 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
         std::construct_at(&Points());
         libcrt::AtExit(FreePoints);
     }
-    Sprites().SetSize(kWorkRecords);
+    Sprites().resize(kWorkRecords);
     Points().resize(kWorkRecords);
-    Sprites().SetSize(static_cast<int>(cells.Size()));
+    Sprites().resize(static_cast<int>(cells.Size()));
     Points().resize(static_cast<int>(cells.Size()));
 
     int remaining = static_cast<int>(cells.Size());
     ParticleVertex* point = Points().data();
-    FogSprite* sprite = Sprites().data;
+    FogSprite* sprite = Sprites().data();
     for (CellMap::Node* node = cells.First(); node; node = cells.After(node)) {
         if (--remaining < 0) break;
         const FogCell& cell = node->value;

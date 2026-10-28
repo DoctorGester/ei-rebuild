@@ -51,7 +51,6 @@ struct NpcPrototypeTable {
 };
 static_assert(offsetof(NpcPrototypeTable, byName) == 0x0C);
 
-
 // The statistics of an NPC of prototype `name` (a fatal error without one; a debug message without its NPC
 // record), then recomputed around a refill of the slots. Returns 1.
 int BuildNpcStats(UnitStats* stats, const char* name);
@@ -107,7 +106,6 @@ struct CMapObjectManager : CResourceManager {
     // ScaleEffectChanged(0), index 0 and a debug message. Returns 1.
     int ApplyPrototype(CMapObject* object, const char* name);
 };
-static_assert(sizeof(CMapObjectManager) == 0xBC);
 
 inline CMapObjectManager* MapObjectManagerOf(const CEngineObject* object) {
     return static_cast<CMapObjectManager*>(object->owner_);

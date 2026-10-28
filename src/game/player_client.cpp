@@ -28,7 +28,6 @@
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "lib/crt.h"
-#include "lib/mfc_slots.h"
 #include "lib/str.h"
 
 #include "ei/x87.h"
@@ -38,9 +37,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <list>
 #include <string>
 #include <vector>
-
 
 namespace {
 
@@ -77,18 +76,10 @@ void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
 
 const char* QuestPrefix() { return "q."; }
 
-void* EmptyListVtable() { return mfc::impl::ItemListClass::Vtable(); }   // the CPtrList passed to it
-constexpr int kListBlockSize = 10;
-
 // The quest log refreshed with an empty CPtrList built and destroyed on the stack.
 void RefreshQuestLog() {
-    mfc::CTypedPtrList<void> none{EmptyListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kListBlockSize};
+    std::list<void*> none;
     TheInterface()->OnItemsPicked(&none, 0, 0);
-    // The list's inlined destructor (RemoveAll; nothing was added).
-    none.head = none.tail = nullptr;
-    none.count = 0;
-    none.free = nullptr;
-    mfc::PlexFreeDataChain(none.blocks);
 }
 
 // The client world shows a number over a unit (id, value, kind).
@@ -307,11 +298,10 @@ constexpr std::uint8_t kRequestRecording = 2;
 bool MarkersShown() { return options::TheOptions()->drawPath_ != 0; }
 const char* TextPartyReceived() { return "party received on client"; }
 
-
 } // namespace
 
 int CPlayerClient::OnItemsReceived() {
-    mfc::CTypedPtrList<CItem> items{EmptyListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kListBlockSize};
+    std::list<CItem*> items;
     int& money = Owner()->Party()->Money();
     int before = money;
     in_.Read(&money, 4);
@@ -327,13 +317,13 @@ int CPlayerClient::OnItemsReceived() {
             break;
         }
         auto* manager = TheClientWorld()->itemManager_;
-        if (CItem* item = FindItem(manager, static_cast<unsigned>(id))) items.AddHead(item);
+        if (CItem* item = FindItem(manager, static_cast<unsigned>(id))) items.push_front(item);
     }
     if (result != 0) {
         Owner()->GiveItems(&items, flag);
         TheInterface()->OnItemsPicked(&items, money - before, flag);
     }
-    items.RemoveAll();   // the list's inlined destructor
+    items.clear();   // the list's inlined destructor
     return result;
 }
 
@@ -347,12 +337,12 @@ int CPlayerClient::OnParty() {
         block.CMemoryStream::Seek(0);
         if (in_.ok_) {
             party->LoadParty(&block, 1);
-            mfc::CList<std::uint32_t>& recharging = Owner()->recharging_;
-            recharging.RemoveAll();
+            std::list<std::uint32_t>& recharging = Owner()->recharging_;
+            recharging.clear();
             ObjectListIteratorOf<CItem> walk{};
             for (CItem* item = walk.First(party->ItemManager()); item != nullptr; item = walk.Next()) {
                 if (item->chargeMax_ > item->charge_)
-                    recharging.AddTail(static_cast<std::uint32_t>(item->id_));
+                    recharging.push_back(static_cast<std::uint32_t>(item->id_));
             }
             if (walk.manager != nullptr) --walk.manager->refCount_;   // the iterator's inlined destructor
         }
@@ -488,7 +478,6 @@ const char* TextSkinTo() { return "mo%ds"; }
 const char* TextNone() { return "none"; }
 
 bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
-
 
 const UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
     return unitdb::PrototypeRecord(index);

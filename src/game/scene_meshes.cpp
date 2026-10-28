@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace scene {
 
@@ -50,7 +51,7 @@ struct CornerRecord {
     std::int32_t vertex, position, texture;
     std::int32_t index;
 };
-using RecordArray = mfc::CArray<CornerRecord>;
+using RecordArray = std::vector<CornerRecord>;
 
 // The game's qsort and the two comparators: records by vertex, position, texture as ints; pairs by
 // their two words, unsigned.
@@ -102,7 +103,7 @@ void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners,
         }
     }
 
-    records.SetSize(0, -1);
+    records.clear();
     if (corners.count != 0) {
         for (Assoc64* a = corners.Next(nullptr); a; a = corners.Next(a)) {
             std::uint64_t key = a->key;
@@ -110,19 +111,19 @@ void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners,
             r.vertex = static_cast<std::int32_t>(static_cast<std::uint32_t>(key >> 32) & 0xFFFF);
             r.position = static_cast<std::int32_t>(static_cast<std::uint32_t>(key >> 16) & 0xFFFF);
             r.texture = static_cast<std::int32_t>(static_cast<std::uint32_t>(key) & 0xFFFF);
-            r.index = records.size;
-            records.SetAtGrow(records.size, r);
+            r.index = std::ssize(records);
+            lib::SetAtGrow(records, std::ssize(records), r);
             Lookup(indices, key) = static_cast<std::uint32_t>(r.index);
         }
     }
-    GameQsort(records.data, static_cast<unsigned>(records.size), sizeof(CornerRecord), CompareCornerRecords);
+    GameQsort(records.data(), static_cast<unsigned>(records.size()), sizeof(CornerRecord), CompareCornerRecords);
 
-    mesh->corners.SetSize(records.size);
-    for (int i = 0; i < records.size; ++i) {
+    mesh->corners.SetSize(std::ssize(records));
+    for (int i = 0; i < std::ssize(records); ++i) {
         Corner* c = mesh->corners.data + i;
-        c->vertex = static_cast<std::uint16_t>(records.data[i].vertex);
-        c->position = static_cast<std::uint16_t>(records.data[i].position);
-        c->texture = static_cast<std::uint16_t>(records.data[i].texture);
+        c->vertex = static_cast<std::uint16_t>(records[i].vertex);
+        c->position = static_cast<std::uint16_t>(records[i].position);
+        c->texture = static_cast<std::uint16_t>(records[i].texture);
     }
 }
 
@@ -186,7 +187,7 @@ void BuildPairs(SceneMesh* mesh) {
 
 // The record list is shared by all meshes and freed at the end.
 void IndexMeshCorners(MeshArray* meshes) {
-    RecordArray records{mfc::impl::MeshCornerArrayClass::Vtable(), nullptr, 0, 0, 0};
+    RecordArray records{};
     for (int m = 0; m < meshes->size; ++m) {
         CornerMap corners = NewMap<CornerMap>(mfc::impl::CornerMapAClass::Vtable());
         IndexMap indices = NewMap<IndexMap>(mfc::impl::CornerMapBClass::Vtable());
@@ -197,8 +198,6 @@ void IndexMeshCorners(MeshArray* meshes) {
         corners.vtable = mfc::impl::CornerMapAClass::Vtable();
         corners.RemoveAll();
     }
-    records.vtable = mfc::impl::MeshCornerArrayClass::Vtable();
-    if (records.data) gamecrt::operator_delete(records.data);
 }
 
 // The two qsort comparators above (kCompareRecords, kComparePairs). 1, -1 or 0 by the first field that

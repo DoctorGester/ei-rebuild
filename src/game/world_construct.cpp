@@ -54,9 +54,7 @@ void ObjectIdMap::Construct() {
 
 PlatformSet::PlatformSet() {
     ClearFields();
-    ConstructList(list, mfc::impl::PlatformListClass::Vtable());
 }
-
 
 CWorldServer::CWorldServer() {
     exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
@@ -68,8 +66,6 @@ CWorldServer::CWorldServer() {
     for (MapObjectIdMap* map : {&objects_, &sentObjects_, &mapObjects_, &otherMapObjects_, &namedObjects_})
         map->Construct();
     timedObjects_.Construct();
-    ConstructList(projectiles_, gameslots::RefListBClass::Vtable());
-    ConstructList(counted_, gameslots::ItemObjectListClass::Vtable());
     ConstructList(sharedObjects_, gameslots::SharedObjectListClass::Vtable());
     ResetState();
 }
@@ -79,7 +75,6 @@ CWorldClient::CWorldClient() {
     countedA0_.Construct(gameslots::ClientObjectPtrArrayClass::Vtable());
     heroes_.Construct();
     objects_.Construct();
-    ConstructList(dynamicObjects_, mfc::impl::ClientObjectListClass::Vtable());
     dynamicNodes_.InitBuckets(100);
     dynamicMaxId_ = 0;
     lineLists_.InitBuckets(100);

@@ -7,30 +7,16 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
-#include "lib/mfc_slots.h"
-
-namespace {
-// The vtables the inlined MFC array destructors write before freeing the storage.
-void* QuickEntriesVtable() { return mfc::impl::QuickEntryArrayClass::Vtable(); }   // CArray<Entry>
-void* DwordArrayVtable() { return mfc::impl::IntArrayClass::Vtable(); }     // CDWordArray
-} // namespace
 
 CHudWeaponBar::~CHudWeaponBar() = default;
 
-CHudQuickItems::~CHudQuickItems() {
-    entries_.vtable = QuickEntriesVtable();
-    if (entries_.data) gamecrt::operator_delete(entries_.data);
-}
+CHudQuickItems::~CHudQuickItems() = default;
 
 CHudSpellColumn::~CHudSpellColumn() = default;
 
-CHudActionColumn::~CHudActionColumn() {
-    actions_.vtable = DwordArrayVtable();
-    if (actions_.data) gamecrt::operator_delete(actions_.data);
-}
+CHudActionColumn::~CHudActionColumn() = default;
 
-CHudMap::~CHudMap() {
-}
+CHudMap::~CHudMap() = default;
 
 CHudUnitPanel::~CHudUnitPanel() = default;
 

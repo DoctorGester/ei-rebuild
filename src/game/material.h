@@ -95,7 +95,6 @@ public:
 
     ColorTable colors_;
 };
-static_assert(offsetof(CMaterialManager, colors_) == 0xBC && sizeof(CMaterialManager) == 0xD0);
 
 // A kind the manager's Create enters and its file (material.cpp's kMaterialKindFiles).
 struct MaterialKindFile {

@@ -544,7 +544,6 @@ public:
     virtual void RedrawTips() { RedrawRegionTips(); }
     virtual void Update() {}
 
-
     // The first region containing the screen point, or -1.
     int RegionAt(int x, int y) const;
     BOOL ContainsPoint(int x, int y) const;
@@ -691,18 +690,15 @@ public:
 static_assert(offsetof(CUiItemPanel, mode_) == 0x148);
 static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);
 
-
 // Option 17 of the options window: the numbers flying up from units hit are shown.
 inline int& ShowHitNumbersOption() { return options::TheOptions()->drawFlyingHp_; }
 // The console's "debuginfo" rectangle.
 strmap::CDebugPanel* DebugInfoPanel();
 
-
 // The in-game key bindings.
 inline const signed char* KeyActions() { return g_keyActions; }
 inline signed char* KeyActionTable() { return g_keyActions; }
 constexpr int kKeyActionCount = 0x200;
-
 
 // --- Battle screen and its HUD panels ---
 // The battle screen owns a row of panel windows and forwards mouse events to the panel whose rectangle
@@ -717,7 +713,7 @@ class CHudUnitPanel;
 class CBattleScreen;
 class CUiScrollText;
 
-using UiDwordArray = mfc::CArray<std::uint32_t>;
+using UiDwordArray = std::vector<std::uint32_t>;
 
 // The interface code's calls on the device's IDirect3DDevice7 (ui_d3d_device.cpp).
 namespace uidevice {
@@ -825,12 +821,11 @@ public:
     int shownCount_;                 // sprites added (the shown entries)
     int selected_;
     CUnit* unit_;
-    mfc::CArray<Entry> entries_;
+    std::vector<Entry> entries_;
     int regionItem_[8];
     std::vector<std::string> labels_;   // the tooltip's labels
 };
 static_assert(offsetof(CHudQuickItems, entries_) == 0x158);
-static_assert(offsetof(CHudQuickItems, regionItem_) == 0x16C);
 static_assert(offsetof(CHudQuickItems, selected_) == 0x150);
 
 // Spell column on the right (760..800 x 190..510).
@@ -1445,7 +1440,7 @@ public:
     // Polled every frame by the interface until it answers true. After a new game (hasHero_): the camera
     // follows the first party unit and the autosave "savea" when the option is on.
     bool PollShown();
-    void OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, int crippled);
+    void OnItemsPicked(std::list<CItem*>* items, int money, int crippled);
     // A network client instead empties the top panel's page-0 text.
     void OnUnitLeft(CUnit* unit);
     // The count and ids of the selected party units, the map's zoom, the server flag (a byte), the local
@@ -1470,7 +1465,7 @@ public:
     void CloseScreen() override { Close(); }
     void MessageResult(int result) override { OnMessageResult(result); }
     void ItemsPicked(void* items, int money, int crippled) override {
-        OnItemsPicked(static_cast<mfc::CTypedPtrList<CItem>*>(items), money, crippled);
+        OnItemsPicked(static_cast<std::list<CItem*>*>(items), money, crippled);
     }
     void UnitJoined(CUnit* unit) override { OnUnitJoined(unit); }
     void UnitLeft(CUnit* unit) override { OnUnitLeft(unit); }
@@ -1500,7 +1495,7 @@ public:
     };
 
     int spare_;                      // nothing reads it
-    mfc::CArray<CUnit*> party_;      // shown as portraits
+    std::vector<CUnit*> party_;      // shown as portraits
     // The pending action: what the next click on the view does (SelectUnit), its spell, quick item
     // or action button, and the player's item id (mode 6) or the action (7, 8).
     int pendingAction_;
@@ -1543,17 +1538,6 @@ public:
     int portraitMode_;               // 1, 2: the next portrait click picks a player for a server command (4, 5)
 };
 static_assert(offsetof(CBattleScreen, spare_) == 0x164 && offsetof(CBattleScreen, party_) == 0x168);
-static_assert(offsetof(CBattleScreen, pendingAction_) == 0x17C && offsetof(CBattleScreen, pendingSlot_) == 0x180);
-static_assert(offsetof(CBattleScreen, pendingItem_) == 0x184 && offsetof(CBattleScreen, pendingExit_) == 0x188);
-static_assert(offsetof(CBattleScreen, exitPending_) == 0x18C && offsetof(CBattleScreen, orderKeys_) == 0x18D);
-static_assert(offsetof(CBattleScreen, weaponBar_) == 0x194 && offsetof(CBattleScreen, quickItems_) == 0x198);
-static_assert(offsetof(CBattleScreen, actionColumn_) == 0x1A0 && offsetof(CBattleScreen, portraits_) == 0x1A4);
-static_assert(offsetof(CBattleScreen, topPanel_) == 0x1BC && offsetof(CBattleScreen, pressX_) == 0x1C4);
-static_assert(offsetof(CBattleScreen, selectionBox_) == 0x1CC && offsetof(CBattleScreen, heroes_) == 0x1DC);
-static_assert(offsetof(CBattleScreen, personTexts_) == 0x1F0 && offsetof(CBattleScreen, hasHero_) == 0x200);
-static_assert(offsetof(CBattleScreen, clientParty_) == 0x204 && sizeof(CBattleScreen::PartyIds) == 0x1C);
-static_assert(offsetof(CBattleScreen, itemUseKey_) == 0x220 && offsetof(CBattleScreen, portraitMode_) == 0x22C);
-static_assert(sizeof(CBattleScreen) == 0x230);
 
 // A scroll bar (the battle screen's message log derives from it). Regions: 0 the up arrow, 1 the down arrow,
 // 2 the track.
@@ -1622,7 +1606,6 @@ static_assert(sizeof(CUiSlider) == 0x18C);
 static_assert(offsetof(CUiScrollbar, state_) == 0x184);
 static_assert(offsetof(CUiScrollbar, accumulated_) == 0x188);
 
-
 // The pieces of a scrolling text: a format change (type 1) or a word (type 2).
 struct UiFormatToken;
 struct UiWordToken;
@@ -1659,7 +1642,7 @@ static_assert(offsetof(UiWordToken, text_) == 0x08);
 inline UiFormatToken* UiTextToken::AsFormat() { return static_cast<UiFormatToken*>(this); }
 inline const UiFormatToken* UiTextToken::AsFormat() const { return static_cast<const UiFormatToken*>(this); }
 inline UiWordToken* UiTextToken::AsWord() { return static_cast<UiWordToken*>(this); }
-using UiTokenArray = mfc::CArray<UiTextToken*>;
+using UiTokenArray = std::vector<UiTextToken*>;
 // A laid out line of a scrolling text: the fields DrawLines reads (the record's size is not known).
 struct UiTextLine {
     int height_;                     // pixels
@@ -1697,7 +1680,7 @@ public:
 
     RECT textRect_;                  // the text's rectangle (surface coordinates)
     UiTokenArray tokens_;
-    mfc::CArray<UiTextLine*> lines_; // the laid out lines
+    std::vector<UiTextLine*> lines_; // the laid out lines
     int align_;                      // 1: left aligned (else justified)
 
 private:
@@ -1710,9 +1693,6 @@ static_assert(offsetof(CUiScrollText, textRect_) == 0x18C);
 // The tenth child window (messageLog_).
 inline CUiScrollText* CBattleScreen::MessageLog() const { return static_cast<CUiScrollText*>(children_.data[9]); }
 static_assert(offsetof(CUiScrollText, tokens_) == 0x19C);
-static_assert(offsetof(CUiScrollText, lines_) == 0x1B0);
-static_assert(offsetof(CUiScrollText, align_) == 0x1C4);
-static_assert(sizeof(CUiScrollText) == 0x1C8);
 
 // A spin control of the options window: a window stepping through its texts (the on / off settings).
 class CUiSpin : public CUiWindow {
@@ -1990,7 +1970,7 @@ public:
     int listZones_;                  // list the zones of the zone's allod with quests
     int zoneIndex_;
     std::string shownZone_;
-    mfc::CArray<ObjectiveExit> exits_;
+    std::vector<ObjectiveExit> exits_;
     int nearestExit_;
     int selectedQuest_;              // row of the quest named by the current-quest global
     int shownQuest_;                 // the row ShowQuest last showed (-1: none)

@@ -30,6 +30,7 @@
 
 #include <bit>
 #include <cstring>
+#include <list>
 
 namespace {
 constexpr float kZero = 0.0f;
@@ -53,8 +54,6 @@ constexpr int kMessageScienceFailed = 0x11;
 constexpr int kMessageStealFailed = 0x22;
 constexpr int kMessageTameFailed = 0x16;
 
-
-
 CDiplomacy* DiplomacyOf(CWorldServer* world) { return &world->diplomacy_; }
 
 AIEventTable* AIEventsOf(CWorldServer* world) { return world->AIEvents(); }
@@ -62,12 +61,12 @@ AIEventTable* AIEventsOf(CWorldServer* world) { return world->AIEvents(); }
 float AbsBits(float v) { return std::bit_cast<float>(std::bit_cast<std::uint32_t>(v) & 0x7FFFFFFFu); }
 
 // An MFC CList of units, as the brain keeps them (CObList layout: vtable, head, tail, count, ...).
-using UnitList = mfc::CTypedPtrList<CUnit>;
-using UnitListNode = UnitList::Node;
+using UnitList = std::list<CUnit*>;
+using UnitListNode = UnitList::iterator;
 
 bool ListContains(const UnitList* list, const CUnit* unit) {
-    for (const UnitListNode* node = list->head; node; node = node->next)
-        if (node->data == unit) return true;
+    for (auto node = list->begin(); node != list->end(); ++node)
+        if (*node == unit) return true;
     return false;
 }
 
@@ -259,12 +258,12 @@ void CUnitServer::WitnessMurder(UnitList* witnesses, CUnit* victim, CUnit* murde
     CWorldServer* world = ServerWorld();
     CDiplomacy* diplomacy = DiplomacyOf(unit->ServerWorld());
     int side = unit->side;
-    UnitListNode* node = witnesses->head;
-    if (!node) return;
+    auto node = witnesses->begin();
+    if (node == witnesses->end()) return;
     std::uint32_t bit = 1u << (static_cast<std::uint32_t>(side) & 31);
     do {
-        CUnit* other = node->data;
-        node = node->next;
+        CUnit* other = *node;
+        ++node;
         if (!(diplomacy->allied_[other->side] & bit)) continue;
         other->flags_ |= 0x2000000;
         CUnitServer* controller = other->ServerController();
@@ -272,16 +271,13 @@ void CUnitServer::WitnessMurder(UnitList* witnesses, CUnit* victim, CUnit* murde
         UnitList* watched = &controller->brain.memory.visible;
         if (!ListContains(watched, victim)) continue;
         if (!ListContains(watched, murderer)) {
-            UnitListNode* added = watched->NewNode(watched->tail, nullptr);
-            if (murderer != added->data) {
-                if (added->data) added->data->Release();
-                added->data = nullptr;
+            auto added = watched->emplace(watched->end());
+            if (murderer != *added) {
+                if (*added) (*added)->Release();
+                *added = nullptr;
                 if (murderer) ++murderer->refCount_;
-                added->data = murderer;
+                *added = murderer;
             }
-            if (watched->tail) watched->tail->next = added;
-            else watched->head = added;
-            watched->tail = added;
             GameLog()
                 ->Put("Unit ")
                 ->Put(static_cast<long>(other->id_))
@@ -291,7 +287,7 @@ void CUnitServer::WitnessMurder(UnitList* witnesses, CUnit* victim, CUnit* murde
                 ->Apply(kLogEndLine);
         }
         DiplomacyOf(world)->OnAttack(murderer, other, 10);
-    } while (node);
+    } while (node != witnesses->end());
 }
 
 void CUnitServer::PropagateHostility() {
@@ -305,10 +301,10 @@ void CUnitServer::PropagateHostility() {
     *limit = static_cast<float>(radius * radius);
     CDiplomacy* diplomacy = DiplomacyOf(world);
     int side = unit->side;
-    UnitListNode* node = brain.memory.nearby.head;
-    while (node) {
-        CUnit* other = node->data;
-        node = node->next;
+    auto node = brain.memory.nearby.begin();
+    while (node != brain.memory.nearby.end()) {
+        CUnit* other = *node;
+        ++node;
         if (!(diplomacy->allied_[side] & (1u << (static_cast<std::uint32_t>(other->side) & 31)))) continue;
         CUnit* self = unit;
         double dx = static_cast<double>(other->localPosition_.x) - self->localPosition_.x;
@@ -443,18 +439,10 @@ void CUnitServer::UseSkill(CMapObject* target) {
         if (item) {
             GameLog()->Put("Item has been stolen from")->PutChar(10)->Apply(kLogEndLine);
             if (CPlayer* player = unit->player) {
-                mfc::CTypedPtrList<CItem> list;
-                list.blocks = nullptr;
-                list.vtable = mfc::impl::ItemListClass::Vtable();
-                list.count = 0;
-                list.tail = nullptr;
-                list.head = nullptr;
-                list.free = nullptr;
-                list.blockSize = 10;
-                list.AddHead(item);
+                std::list<CItem*> list;
+                list.push_front(item);
                 player->GiveItems(&list, 0);
-                list.vtable = mfc::impl::ItemListClass::Vtable();
-                list.RemoveAll();
+                list.clear();
             }
             item->Release();
             return;

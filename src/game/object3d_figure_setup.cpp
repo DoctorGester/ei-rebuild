@@ -100,9 +100,9 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
         animation->SetModel(model);
         animation->Play(nullptr);
         animation->UpdatePose();
-        int count = animation->bones.count;
+        int count = std::ssize(animation->bones);
         SetBoxCount(this, count);
-        partNames.resize(static_cast<std::size_t>(animation->bones.count));
+        partNames.resize(animation->bones.size());
 
         FigureModel* figureModel;
         {
@@ -110,9 +110,9 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
             figureModel = manager->FindModel(&modelName);
         }
         int index = 0;
-        for (auto* node = animation->bones.head; node; ++index) {
-            FigureBone* bone = node->data;
-            node = node->next;
+        for (auto node = animation->bones.begin(); node != animation->bones.end(); ++index) {
+            FigureBone* bone = *node;
+            ++node;
             FootprintPart* box = &partBoxes[index];
             manager->LoadFigureBounds(&box->bounds, figureModel, model, bone->GetName(),
                                             std::bit_cast<std::uint32_t>(scale.x),

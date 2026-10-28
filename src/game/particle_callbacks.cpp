@@ -1088,7 +1088,7 @@ int CParticleSource::EmitBlast(Particle* p, int) {
     int kind = static_cast<int>(Next() % 29) - 14;
     p->color = 0xFFFFFFFF;
     p->state = kind;
-    if (particles.count == 0 && fragments->fragment.age == 1) {
+    if (particles.empty() && fragments->fragment.age == 1) {
         p->state = kBlastCore;
         std::memcpy(&p->pos, &origin, sizeof(Vector3));
         p->frame = 15;
@@ -1258,7 +1258,7 @@ namespace {
 // per grid cell (jittered by a quarter cell) inside the disc of radius `size` around its position,
 // on the ground, straight into its list (from the pool), and grows the bounds. Always 0.
 int CParticleSource::EmitPoisonFog(Particle*, int) {
-    if (particles.count != 0) return 0;
+    if (!particles.empty()) return 0;
     float radius = size;
     int n = static_cast<int>(gamecrt::Ftol((D(size) + D(EI_P_ONE)) / D(EI_FOG_CELL)));
     for (int i = -n; i <= n; ++i) {
@@ -1302,7 +1302,7 @@ int CParticleSource::EmitPoisonFog(Particle*, int) {
             boundsMax.x = boundsMax.x >= q->pos.x ? boundsMax.x : q->pos.x;
             boundsMax.y = boundsMax.y >= q->pos.y ? boundsMax.y : q->pos.y;
             boundsMax.z = boundsMax.z >= q->pos.z ? boundsMax.z : q->pos.z;
-            particles.AddTail(q);
+            particles.push_back(q);
         }
     }
     return 0;
@@ -1346,7 +1346,7 @@ int CParticleSource::EmitGeyser(Particle* p, int) {
     int vent = static_cast<int>(Next() % static_cast<std::uint32_t>(elementCount));
     p->color = 0xFFFFFFFF;
     std::memcpy(&p->pos, &origin, sizeof(Vector3));
-    if (particles.count == 0) {
+    if (particles.empty()) {
         SetBits(&p->size, 0);
         p->state = 1;
         p->frame = 15;
@@ -1597,7 +1597,7 @@ double BagSpread(const CParticleSource* s, float& low, float& high) {
 // Bag: the first 80 particles are the balls (state = their index; the first one fills the size table: 0.93 to
 // the power of the age); later ones are sparks along a random ball's last step, in the ball's colour.
 int CParticleSource::EmitBag(Particle* p, int index) {
-    if (particles.count < 80) {
+    if (std::ssize(particles) < 80) {
         if (index == 0) {
             double t = D(EI_P_ONE);
             for (int k = 0; k < 12; ++k) {
@@ -1606,7 +1606,7 @@ int CParticleSource::EmitBag(Particle* p, int index) {
             }
         }
         std::uint32_t r = Next();
-        p->state = particles.count;
+        p->state = std::ssize(particles);
         p->color = 0xFFFFFF;
         p->life = 15;
         p->frame = static_cast<int>(r & 3);
@@ -2235,7 +2235,7 @@ void CParticleSource::TickTornado(ParticleElement* e) {
         float b;
         std::memcpy(&b, &elements->funnel.bend, sizeof(float));
         EI_NAN_AUDIT(b);
-        if (b == 0.0f && particles.count != 0) {
+        if (b == 0.0f && !particles.empty()) {
             flags_ &= ~5u;
             Attach(nullptr);
         }
@@ -2317,7 +2317,7 @@ void SetUpCylinder(CParticleSource* s) {
 // places them around the carrier); later ones are sparks along a random star's last step.
 int CParticleSource::EmitCylinder(Particle* p, int) {
     p->color = 0xFFFFFF;
-    int count = particles.count;
+    int count = std::ssize(particles);
     int stars = elementCount;
     if (count < stars) {
         if (count == 0) SetUpCylinder(this);
@@ -2737,7 +2737,7 @@ namespace {
 // at a random point of the disc (denser near the edge), spin round it (four in eleven or so the
 // other way, with a different frame range) and rise.
 int CParticleSource::EmitPortal(Particle* p, int) {
-    if (particles.count == 0) {
+    if (particles.empty()) {
         std::memcpy(&p->pos, &origin, sizeof(Vector3));
         SetBits(&p->size, 0);
         p->pos.z = static_cast<float>(D(EI_PORTAL_HEIGHT) * D(0.8f /*0073CCA8*/) + D(p->pos.z));
@@ -2883,7 +2883,7 @@ int CParticleSource::UpdateAcidRay(Particle* p) {
 // emitting and each further one is a spark flying in a random direction (a random point of the
 // unit ball, normalised) with a random speed (squared) and a random part of its first step done.
 int CParticleSource::EmitSparks(Particle* p, int) {
-    if (particles.count == 0) {
+    if (particles.empty()) {
         p->color = 0xFFFFFFFF;
         std::memcpy(&p->pos, &origin, sizeof(Vector3));
         SetBits(&p->size, 0);
@@ -3222,12 +3222,12 @@ int CParticleSource::UpdateFireStar(Particle* p) {
 // Regeneration: two particles at the source, velocity.x -1 for the first and 1 for the
 // second (the sides they circle on).
 int CParticleSource::EmitRegeneration(Particle* p, int) {
-    if (particles.count > 1) return 0;
+    if (std::ssize(particles) > 1) return 0;
     p->color = 0xFFFFFF;
     p->frame = 3;
     std::memcpy(&p->pos, &origin, sizeof(Vector3));
     SetBits(&p->size, 0);
-    p->velocity.x = static_cast<float>(particles.count != 0 ? 1 : -1);
+    p->velocity.x = static_cast<float>(!particles.empty() ? 1 : -1);
     return 1;
 }
 
@@ -3295,7 +3295,7 @@ float SpinRate(int count) {
 // source and four satellites half a unit out, at the angles 2 pi times 0.2, 0.4, 0.6 and 0.8 (the
 // first at angle 0); with another lifetime (used as the frame) just the one particle.
 int CParticleSource::EmitVisionStar(Particle* p, int) {
-    int count = particles.count;
+    int count = std::ssize(particles);
     if (count > 4) return 0;
     if (count > 0 && lifetime != 1) return 0;
     p->color = 0xFFFFFF;
@@ -3519,12 +3519,12 @@ void CParticleSource::TickFeetCloud(ParticleElement* e) {
 // Further ones are wisps (state 0) somewhere along a random orb's last step, thrown out in a
 // random direction (inside the unit ball, normalised) by 0.8 of the orb's size.
 int CParticleSource::EmitSilence(Particle* p, int) {
-    if (particles.count <= 1) {
+    if (std::ssize(particles) <= 1) {
         p->color = 0xFFFFFF;
         p->frame = 6;
         std::memcpy(&p->pos, &origin, sizeof(Vector3));
         SetBits(&p->size, 0);
-        float start = particles.count != 0 ? 0.0f /*0073B858*/ : 3.1416f /*0073CF80*/;    // 0 / pi
+        float start = !particles.empty() ? 0.0f /*0073B858*/ : 3.1416f /*0073CF80*/;    // 0 / pi
         p->velocity.x = start;
         p->aux0 = start;
         SetBits(&p->velocity.y, 0x3DCCCCCD);     // 0.1
@@ -3533,9 +3533,9 @@ int CParticleSource::EmitSilence(Particle* p, int) {
         p->state = 1;
         return 1;
     }
-    auto* node = particles.head;
-    if (Next() & 1) node = node->next;
-    const Particle* orb = node->data;
+    auto node = particles.begin();
+    if (Next() & 1) ++node;
+    const Particle* orb = *node;
     double t = Unsigned(Next()) * EI_P_SCALE_1;
     float startX = static_cast<float>(D(orb->pos.x) - t * D(orb->drift.x));
     float startY = static_cast<float>(D(orb->pos.y) - t * D(orb->drift.y));
@@ -3948,7 +3948,7 @@ int CParticleSource::UpdateCurseStars(Particle* p) {
 // StartTrans: the first particle is the glow (state 1, frame 12, 4 ticks); the others
 // (15 ticks) start in a random direction at the source's size from it and come back in 18 ticks.
 int CParticleSource::EmitStartTrans(Particle* p, int) {
-    if (particles.count == 0) {
+    if (particles.empty()) {
         p->life = 4;
         p->state = 1;
         p->frame = 12;

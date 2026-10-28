@@ -3,7 +3,6 @@
 #include "map_spec.h"
 #include "unit_ai.h"
 
-
 #include "combat.h"
 #include "console.h"
 #include "core_refcount.h"
@@ -16,13 +15,13 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 #include "lib/str.h"
 
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <list>
 #include <memory>
 #include <new>
 #include <string>
@@ -36,7 +35,6 @@ std::uint32_t FearDistanceBits() { return 0x41200000u /*0073FF00*/; }
 
 } // namespace
 
-
 namespace {
 
 const Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
@@ -45,29 +43,25 @@ const Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 // (which may hand out a clone).
 
 // The inlined CList RemoveAll of the mode list, each element released first.
-void ReleaseAllModes(mfc::CTypedPtrList<AIMode>& modes) {
-    for (auto* node = modes.head; node; node = node->next) DestroyOwned(node->data);
-    modes.RemoveAll();
+void ReleaseAllModes(std::list<AIMode*>& modes) {
+    for (auto node = modes.begin(); node != modes.end(); ++node) DestroyOwned(*node);
+    modes.clear();
 }
 
 // The inlined RemoveAt: unlink, release the element, return the node to the free list (the last
 // node frees the blocks).
-void RemoveModeNode(mfc::CTypedPtrList<AIMode>& modes, mfc::CTypedPtrList<AIMode>::Node* node) {
-    if (node == modes.head) modes.head = node->next;
-    else node->prev->next = node->next;
-    if (node == modes.tail) modes.tail = node->prev;
-    else node->next->prev = node->prev;
-    DestroyOwned(node->data);
-    modes.FreeNode(node);
+void RemoveModeNode(std::list<AIMode*>& modes, std::list<AIMode*>::iterator  node) {
+    DestroyOwned(*node);
+    modes.erase(node);
 }
 
 // The inlined release of a counted object pointer of the memory lists, then RemoveAll.
-void ReleaseAllObjects(mfc::CTypedPtrList<CUnit>& list) {
-    for (auto* node = list.head; node; node = node->next) {
-        if (node->data) node->data->Release();
-        node->data = nullptr;
+void ReleaseAllObjects(std::list<CUnit*>& list) {
+    for (auto node = list.begin(); node != list.end(); ++node) {
+        if (*node) (*node)->Release();
+        *node = nullptr;
     }
-    list.RemoveAll();
+    list.clear();
 }
 
 // The mode in charge loses its reference (RefPtr::Assign(nullptr) / the inlined release).
@@ -81,30 +75,27 @@ void DropCurrent(AIMode*& current) {
 void AIBrain::AddMode(AIMode* mode) {
     int type = mode->GetType();
     bool exclusive = mode->Exclusive();
-    for (auto* node = modes.head; node;) {
-        auto* next = node->next;
-        AIMode* old = node->data;
+    for (auto node = modes.begin(); node != modes.end();) {
+        auto next = std::next(node);
+        AIMode* old = *node;
         if (old->GetType() == type || (exclusive && old->Exclusive())) {
-            if (current == node->data) DropCurrent(current);
+            if (current == *node) DropCurrent(current);
             RemoveModeNode(modes, node);
             break;
         }
         node = next;
     }
-    auto* node = modes.NewNode(modes.tail, nullptr);
-    if (mode != node->data) {
-        DestroyOwned(node->data);
-        ShareOwned(node->data, mode);
+    auto node = modes.emplace(modes.end());
+    if (mode != *node) {
+        DestroyOwned(*node);
+        ShareOwned(*node, mode);
     }
-    if (modes.tail) modes.tail->next = node;
-    else modes.head = node;
-    modes.tail = node;
 }
 
 void AIBrain::RemoveModesOfType(int type) {
-    for (auto* node = modes.head; node;) {
-        auto* next = node->next;
-        if (node->data->GetType() == type) RemoveModeNode(modes, node);
+    for (auto node = modes.begin(); node != modes.end();) {
+        auto next = std::next(node);
+        if ((*node)->GetType() == type) RemoveModeNode(modes, node);
         node = next;
     }
 }
@@ -246,14 +237,12 @@ void AIBrain::StandardSentry(const Vector3* point) {
 // --- Calls for help -------------------------------------------------------------------------------
 
 void AIBrain::CallAllies(const Vector3* point) {
-    mfc::CTypedPtrList<CUnit> units{};
-    units.vtable = mfc::impl::PtrListClass::Vtable();
-    units.blockSize = 10;
+    std::list<CUnit*> units{};
     CUnit* self = owner->unit;
     TheServerWorld()->Sectors()->FindUnitsInRadius(PositionOf(self), &units, callRadius);
-    for (auto* node = units.head; node;) {
-        auto* other = node->data;
-        node = node->next;
+    for (auto node = units.begin(); node != units.end();) {
+        auto* other = *node;
+        ++node;
         if (other == self || !(GameDiplomacy()->allied_[self->side] & (1u << (other->side & 31)))) continue;
         std::string message;
         AIBrain* ally = other->ServerController()->Brain();
@@ -267,26 +256,23 @@ void AIBrain::CallAllies(const Vector3* point) {
         ally->memory.HearCall(point, 0x1A, message.c_str());
     }
     // The list's RemoveAll: no element destruction.
-    units.RemoveAll();
+    units.clear();
 }
 
 // --- Perception memory ----------------------------------------------------------------------------
 
 namespace {
 // The inlined RemoveAt of a memory list: unlink, release the element, free the node.
-void RemoveObjectNode(mfc::CTypedPtrList<CUnit>& list, mfc::CTypedPtrList<CUnit>::Node* node) {
-    if (node == list.head) list.head = node->next;
-    else node->prev->next = node->next;
-    if (node == list.tail) list.tail = node->prev;
-    else node->next->prev = node->prev;
-    if (node->data) node->data->Release();
-    node->data = nullptr;
-    list.FreeNode(node);
+void RemoveObjectNode(std::list<CUnit*>& list, std::list<CUnit*>::iterator  node) {
+    if (*node) (*node)->Release();
+    *node = nullptr;
+    list.erase(node);
 }
 
 // Removes every element holding `object` (each time searching again from the head).
-void RemoveAllOf(mfc::CTypedPtrList<CUnit>& list, CEngineObject* object) {
-    while (auto* node = list.Find(object)) RemoveObjectNode(list, node);
+void RemoveAllOf(std::list<CUnit*>& list, CEngineObject* object) {
+    for (auto node = std::ranges::find(list, object); node != list.end(); node = std::ranges::find(list, object))
+        RemoveObjectNode(list, node);
 }
 } // namespace
 
@@ -408,7 +394,7 @@ void AIMemory::Update(CUnitServer* who) {
 int AIMemory::IsEnemy(CUnit* self, CEngineObject* other) {
     auto* unit = static_cast<CUnit*>(other);
     if (self->side == unit->side || self->player == unit->player) return 1;
-    return visible.Find(other) ? 1 : 0;
+    return lib::Contains(visible, other) ? 1 : 0;
 }
 
 void AIReports::Report(CMapObject* object, int what) {
@@ -503,12 +489,9 @@ void AIBrain::Load(CStream* stream) {
         if (!mode) return;      // an unknown type leaves Load at once (the switch's default)
         mode->Load(stream);
         // The inlined AddTail: a node holding the mode (RefPtr::ShareAssign).
-        auto* node = modes.NewNode(modes.tail, nullptr);
-        ShareAssignOwned(node->data, mode);
-        if (modes.tail) modes.tail->next = node;
-        else modes.head = node;
-        modes.tail = node;
-        if (i == currentIndex) AssignCurrent(current, modes.tail->data);
+        auto node = modes.emplace(modes.end());
+        ShareAssignOwned(*node, mode);
+        if (i == currentIndex) AssignCurrent(current, modes.back());
     }
     memory.Load(stream);
     stream->Read(&alerted, 1);
@@ -548,15 +531,15 @@ void AIBrain::Save(CStream* stream) {
     stream->Write(&previousPosition, 12);
     stream->Write(&position, 12);
     stream->Write(&alertMode, 4);
-    WriteCopy(stream, modes.count);
+    WriteCopy(stream, std::ssize(modes));
     int currentIndex = -1;
     int index = 0;
-    for (auto* node = modes.head; node; node = node->next, ++index)
-        if (node->data == current) currentIndex = index;
+    for (auto node = modes.begin(); node != modes.end(); ++node, ++index)
+        if (*node == current) currentIndex = index;
     WriteCopy(stream, currentIndex);
-    for (auto* node = modes.head; node;) {
-        auto* next = node->next;
-        AIMode* mode = node->data;
+    for (auto node = modes.begin(); node != modes.end();) {
+        auto next = std::next(node);
+        AIMode* mode = *node;
         WriteCopy(stream, mode->GetType());
         mode->Save(stream);
         node = next;

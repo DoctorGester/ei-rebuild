@@ -21,8 +21,8 @@
 #include "ei/x87.h"
 
 #include <cstring>
+#include <list>
 #include <vector>
-#include "game_lists.h"
 #include "game_data.h"
 
 namespace {
@@ -36,7 +36,7 @@ std::uint8_t& WakeCacheGuard() { return g_wakeCacheGuard; }
 
 // CSectorMap, inlined here (bounds check and address only). The unit list of sector (x, y), or null outside the
 // map.
-mfc::CTypedPtrList<CUnit>* SectorUnits(CSectorMap* map, int x, int y) {
+std::list<CUnit*>* SectorUnits(CSectorMap* map, int x, int y) {
     if (x < 0 || y < 0 || x >= map->width || y >= map->height) return nullptr;
     return &map->sectors[map->width * y + x].units;
 }
@@ -123,19 +123,11 @@ void CWorldServer::Tick(char force) {
 
     // Missiles: those whose Update returns 0 are unlinked and freed.
     auto& missiles = projectiles_;
-    for (ProjectileList::Node* next = missiles.head; next;) {
-        ProjectileList::Node* current = next;
-        next = current->next;
-        if (current->data->Update() != 0) continue;
-        if (current == missiles.head)
-            missiles.head = current->next;
-        else
-            current->prev->next = current->next;
-        if (current == missiles.tail)
-            missiles.tail = current->prev;
-        else
-            current->next->prev = current->prev;
-        mfc::impl::FreeNodeAs<gamelists::Refs>(&projectiles_, current);   // the missile released
+    for (auto next = missiles.begin(); next != missiles.end();) {
+        auto current = next++;
+        if ((*current)->Update() != 0) continue;
+        ReleaseCounted(*current);   // the missile released
+        missiles.erase(current);
     }
 
     if (scriptsActive_ != 0 || force) ScriptTick(MainScript());
@@ -158,9 +150,9 @@ void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
     for (int i = 0; i < count; ++i, offsets += 2) {
         auto* units = SectorUnits(sectors, offsets[0] + sx, offsets[1] + sy);
         if (!units) continue;
-        for (auto* unitNode = units->head; unitNode;) {
-            CUnit* unit = unitNode->data;
-            unitNode = unitNode->next;
+        for (auto unitNode = units->begin(); unitNode != units->end();) {
+            CUnit* unit = *unitNode;
+            ++unitNode;
             AddToUpdateMap(unit);
         }
     }
@@ -261,12 +253,13 @@ void CWorldServer::UpdateUnits() {
         }
     }
 
-    // The counted objects run too; those whose Update returns 0 leave the list (its RemoveAt also releases the
-    // reference).
-    for (auto* position = counted_.head; position;) {
-        auto* current = position;
-        position = position->next;
-        if (current->data->RunTick() == 0) mfc::impl::RemoveAtAs<gamelists::EngineObjects>(&counted_, current);   // the object released
+    // The counted objects run too; those whose Update returns 0 leave the list (their reference released).
+    for (auto position = counted_.begin(); position != counted_.end();) {
+        auto current = position++;
+        if ((*current)->RunTick() == 0) {
+            (*current)->Release();
+            counted_.erase(current);
+        }
     }
     for (int i = 0; i < std::ssize(SleepingIds()); ++i) {
         if (auto* found = updateMap_.map.Find(SleepingIds()[i])) updateMap_.map.Erase(found);

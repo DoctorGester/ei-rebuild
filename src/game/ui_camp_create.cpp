@@ -32,7 +32,6 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "party_manager.h"
-#include "lib/mfc_slots.h"
 
 #include <d3d.h>
 
@@ -43,8 +42,6 @@
 #include <string>
 
 namespace {
-
-void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }   // CArray<record*>
 
 constexpr int kSurfaceFormat = 5;
 constexpr int kHeroClass = 0x32;        // the prototype class of a party record that becomes a unit
@@ -284,20 +281,20 @@ void CCampPages::BuildPages() {
     // world takes the hero records, and put back after the units were set up.
     heroTurn_ = 0;
     turning_ = 0;
-    RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
+    RecordPtrArray records = {};
     CParty* player = LocalParty();
     const int count = player->members_.size;
     for (int i = 0; i < count; ++i) {
         player->members_.data[i].unitId += kRecordBias;
         if (PrototypeObjectClass(player->members_.data[i].texts[5].c_str()) != kHeroClass) continue;
         PartyUnitRecord* record = &player->members_.data[i];
-        int size = records.size;
-        records.SetSize(size + 1, -1);
-        records.data[size] = record;
+        int size = std::ssize(records);
+        records.resize(size + 1);
+        records[size] = record;
     }
     GameCreatePartyUnits(&records, 1);
 
-    heroes_.SetSize(count);
+    heroes_.resize(count);
     for (int i = 0; i < count; ++i) heroes_[i] = nullptr;
     for (int i = 0; i < count; ++i) {
         if (PrototypeObjectClass(player->members_.data[i].texts[5].c_str()) != kHeroClass) continue;
@@ -385,5 +382,4 @@ void CCampPages::BuildPages() {
         device::SetRenderState(TheRenderDevice()->d3dDevice_, D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
         render::state::Render(D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
     }
-    if (records.data) gamecrt::operator_delete(records.data);
 }

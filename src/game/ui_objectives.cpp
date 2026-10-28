@@ -38,7 +38,6 @@
 #include <string>
 #include <vector>
 
-
 namespace {
 
 inline double D(float f) { return f; }
@@ -202,16 +201,16 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     float nearest = Bits(kFarAway);
     nearestExit_ = -1;
     bool anyKnown = false;
-    mfc::CArray<ObjectiveExit>* exitArray = &exits_;
-    exitArray->SetSize(0, -1);
+    std::vector<ObjectiveExit>* exitArray = &exits_;
+    exitArray->clear();
     for (int i = 0; i < map->exits.size; ++i) {
         const ZoneExit& source = map->exits.data[i];
         if (gamecrt::mbsicmp(source.target,
                             "none") == 0)
             continue;
-        int index = exits_.size;
+        int index = std::ssize(exits_);
         ObjectiveExit blank = {};
-        exitArray->SetAtGrow(index, blank);
+        lib::SetAtGrow(*exitArray, index, blank);
         ObjectiveExit* exit = &exits_[index];
         exit->exit_ = i;
         exit->x_ = static_cast<float>((D(source.deploy[2]) + D(source.deploy[0])) * 0.5f);
@@ -458,8 +457,8 @@ void CObjectivesWindow::ShowQuest() {
     MapRecord* map = FindZone(shownZone_);
     if (!map) return;
     LoadQuestPlaces(quests[selectedQuest_].c_str());
-    while (sceneObjects_.size > exits_.size + 0x15) RemoveSceneObjectAt(exits_.size + 0x15);
-    while (regions_.size > exits_.size + 9) RemoveRegionAt(exits_.size + 9);
+    while (sceneObjects_.size > std::ssize(exits_) + 0x15) RemoveSceneObjectAt(std::ssize(exits_) + 0x15);
+    while (regions_.size > std::ssize(exits_) + 9) RemoveRegionAt(std::ssize(exits_) + 9);
     const float red[3] = {1.0f, 0.0f, 0.0f};
     for (unsigned i = 0; i < static_cast<unsigned>(questPlaces_.end() - questPlaces_.begin()); ++i) {
         float worldWidth = static_cast<float>(static_cast<double>(map->sizeX << 5));

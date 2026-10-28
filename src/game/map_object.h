@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class CMapObjectServer;
 class CMapObjectClientSpecific;
@@ -75,8 +76,7 @@ struct UnitStats;
 struct LockKey;
 
 // The spots a use order may go to (UseSpots' `out`).
-using UseSpotArray = mfc::CArray<Vector3>;
-static_assert(sizeof(UseSpotArray) == 0x14);
+using UseSpotArray = std::vector<Vector3>;
 
 // The virtuals' names and their evidence: docs/notes/map_objects.md ("Virtual slot names").
 class CMapObject : public CObject3D {
@@ -173,7 +173,6 @@ public:
 
     void SetUpMapObject();
 
-
     // The per-tick update: lets the companion update. Returns 1. CUnit's update calls it after its controller's.
     int Update();
 
@@ -246,7 +245,6 @@ public:
     DeltaState* NetState() { return &netState_; }
     // The parts changed since the last send (bit per part: MarkChanged): the network state's mask.
     std::uint16_t& ChangedParts() { return netState_.mask_; }
-
 
     // The world the object lives in (via its owner), or null.
     CWorld* World();

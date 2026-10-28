@@ -13,17 +13,9 @@ public:
     ScopedPath() {
         InitList(path.steps);
         InitList(path.cells);
-        BlockPointArray& excluded = path.excludedBlocks;
-        excluded.vtable = mfc::impl::PointArrayClass::Vtable();
-        excluded.data = nullptr;
-        excluded.size = 0;
-        excluded.maxSize = 0;
-        excluded.growBy = 0;
         path.Clear();
     }
     ~ScopedPath() {
-        path.excludedBlocks.vtable = mfc::impl::PointArrayClass::Vtable();
-        if (path.excludedBlocks.data) gamecrt::operator_delete(path.excludedBlocks.data);
         FreeList(path.cells);
         FreeList(path.steps);
     }

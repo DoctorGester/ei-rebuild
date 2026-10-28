@@ -50,5 +50,3 @@ private:
 public:
     std::vector<ArchiveEntry> archives_;
 };
-static_assert(offsetof(CResourceManager, archives_) == 0xB0);
-static_assert(sizeof(CResourceManager) == 0xBC);

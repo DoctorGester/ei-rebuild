@@ -40,6 +40,7 @@ void StoreStartFolder();
 // ---- The rest of the glue. `this` is never read. ---------------------
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class CPlayerClient;
 class CUnit;
@@ -86,10 +87,10 @@ void GameStartAmbience();
 // The sound manager is asked for the music stream `name` (null: the default), mode 4; RequestStream's result.
 int GamePlayMusic(const char* name);
 CUnit* GameFindClientUnit(int id);
-void GameCreatePartyUnits(const mfc::CArray<PartyUnitRecord*>* party, int allArmour);
-void GameRemoveUnitsOf(const mfc::CArray<PartyUnitRecord*>* records);
+void GameCreatePartyUnits(const std::vector<PartyUnitRecord*>* party, int allArmour);
+void GameRemoveUnitsOf(const std::vector<PartyUnitRecord*>* records);
 int GameFindExitAt(const float* point, int* index);
-int GamePartyInExit(const mfc::CArray<PartyUnitRecord*>* records, int exit, mfc::CArray<PartyUnitRecord*>* inExit);
+int GamePartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit);
 const char* GameExitTarget(int index);
 // Leaves through exit `exit`: with a live client session the flow switches the
 // multiplayer zone, otherwise the local client takes the exit.

@@ -30,7 +30,6 @@ constexpr float kWaterFalloff = /*007C8908*/ 0.06666667f;   // a static initiali
 // direction +0xD4) or AddPoint (a point light at `distance` along the unit `direction`). Both clamp each
 // channel to 1 and copy the alpha through.
 
-
 // Select idiom (FLD a; FCOMP b; FNSTSW; SHL 0x17; SAR 0x1F: C0, "a < b or unordered", picks b).
 float Max(float a, float b) { return a >= b ? a : b; }
 float AtMostOne(float v) { return v <= 1.0f ? v : 1.0f; }
@@ -79,8 +78,8 @@ bool SunMarchTouchesNothing(const Terrain* terrain, const SectorData* sector, in
             if (i == 0 && j == 0) continue;   // its own sector is read directly
             int sx = sector->sx + i * directionX, sy = sector->sy + j * directionY;
             if (sx < 0 || sy < 0 || sx >= terrain->sectorsX || sy >= terrain->sectorsY) continue;   // SectorAt: none
-            const Terrain::SectorCache::Node* node = terrain->sectorGrid[sx][sy];
-            if (!node || node->data->lastUsed < terrain->frame) return false;
+            const Terrain::SectorCache::iterator node = terrain->sectorGrid[sx][sy];
+            if (node == Terrain::SectorCache::iterator{} || (*node)->lastUsed < terrain->frame) return false;
         }
     return true;
 }

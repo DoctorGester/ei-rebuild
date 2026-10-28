@@ -14,7 +14,6 @@
 
 #undef GetClassName
 
-
 void* CreateFigureObject(int classId);
 
 // The menus' button rectangles (menus.reg): the main menu's six (new game, load, exit, options, credits,
@@ -69,7 +68,6 @@ public:
 
     stlp::hash_map<std::string, FigureModel*, stlp::StringHash> models_;    // the cached models by name
 };
-static_assert(offsetof(CFigureManager, models_) == 0xBC && sizeof(CFigureManager) == 0xD0);
 
 // The figure manager of `object`'s world (every world's is a CFigureManager).
 inline CFigureManager* FigureManagerOf(const CEngineObject* object) {

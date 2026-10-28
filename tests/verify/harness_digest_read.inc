@@ -16,7 +16,7 @@ int IdOf(const CEngineObject* object) { return object ? object->id_ : -1; }
 // The players of a player list in its order: a plain walk of its nodes.
 std::vector<CPlayer*> PlayersOf(CPlayerManager* list) {
     std::vector<CPlayer*> players;
-    for (auto* node = list->objectList_.head; node; node = node->next) players.push_back(static_cast<CPlayer*>(node->data));
+    for (auto* object : list->objectList_) players.push_back(static_cast<CPlayer*>(object));
     return players;
 }
 
@@ -58,8 +58,8 @@ void ReadWorld(CWorldServer* w, Builder& b) {
     b.Unsigned("sentObjects", static_cast<std::uint32_t>(w->sentObjects_.map.Size()));
     b.Unsigned("timedObjects", static_cast<std::uint32_t>(w->timedObjects_.map.Size()));
     b.Unsigned("updateMap", static_cast<std::uint32_t>(w->updateMap_.map.Size()));
-    b.Int("projectiles", w->projectiles_.GetCount());
-    b.Int("counted", w->counted_.GetCount());
+    b.Int("projectiles", std::ssize(w->projectiles_));
+    b.Int("counted", std::ssize(w->counted_));
     b.Int("sharedObjects", w->sharedObjects_.GetCount());
     for (int i = 0; i < 32; ++i) {
         b.Bits("allied#", w->diplomacy_.allied_[i], i);
@@ -74,8 +74,8 @@ void ReadPlayer(CPlayer* p, Builder& b) {
     b.Int("lastScreen", p->lastScreen_);
     b.Unsigned("godMode", p->godMode_);
     b.Int("lastTick", p->lastTick_);
-    b.Int("items", p->items_.GetCount());
-    b.Int("ids", p->recharging_.GetCount());
+    b.Int("items", std::ssize(p->items_));
+    b.Int("ids", std::ssize(p->recharging_));
     b.Unsigned("units", static_cast<std::uint32_t>(p->units_.Size()));
     b.Unsigned("objects", static_cast<std::uint32_t>(p->knownObjects_.Size()));
     CParty* party = p->Party();
@@ -125,16 +125,16 @@ void ReadBrain(AIBrain& brain, Builder& b) {
     b.Float("ai.noticed.y", brain.memory.noticedY);
     b.Int("ai.noticedLevel", brain.memory.noticedLevel);
     b.Int("ai.noticedKind", brain.memory.noticedKind);
-    b.Int("ai.nearby", brain.memory.nearby.GetCount());
-    b.Int("ai.visible", brain.memory.visible.GetCount());
-    b.Int("ai.corpses", brain.memory.corpses.GetCount());
+    b.Int("ai.nearby", std::ssize(brain.memory.nearby));
+    b.Int("ai.visible", std::ssize(brain.memory.visible));
+    b.Int("ai.corpses", std::ssize(brain.memory.corpses));
     b.Int("ai.reports", brain.memory.reports.GetSize());
     b.Int("ai.calls", brain.memory.calls.GetSize());
     b.Unsigned("ai.seesEnemy", brain.memory.seesEnemy);
     // The modes by their kinds' ids (ModeId: game.exe's vtable addresses; the writer names the known ones).
     b.Mode("ai.mode", ModeId(brain.current));
     int i = 0;
-    for (auto* n = brain.modes.head; n; n = n->next) b.Mode("ai.modes#", ModeId(n->data), i++);
+    for (auto* mode : brain.modes) b.Mode("ai.modes#", ModeId(mode), i++);
 }
 
 // A unit's controller (a CUnitServer, class 0x3E) and its AI brain.
@@ -179,14 +179,14 @@ void ReadUnit(CUnit* u, const std::map<const void*, int>& players, Builder& b) {
     b.Int("sizeClass", u->sizeClass);
     b.Int("fightAtWill", u->fightAtWill);
     const auto* m = u->Motion();
-    b.Int("motion.points", m->points.GetSize());
-    b.Int("motion.waypoints", m->waypoints.GetSize());
+    b.Int("motion.points", std::ssize(m->points));
+    b.Int("motion.waypoints", std::ssize(m->waypoints));
     b.Int("motion.segment", m->segment);
     // The trajectory only while the unit has one: a unit that never moved keeps the bytes its
     // allocation left there (zero in a run of the original code alone, heap leftovers in the
     // image, whose allocations differ); a path start sets them (assumed: not checked
     // that nothing reads them before).
-    if (m->points.GetSize() == 0 && m->segment < 0) {
+    if (m->points.empty() && m->segment < 0) {
         ReadController(u, b);
         return;
     }
@@ -501,7 +501,7 @@ void ReadClientWorld(CWorldClient* c, Builder& b, std::vector<CUnit*>& units) {
     }
     b.Int("objects", objects);
     b.Int("units", static_cast<int>(units.size()));
-    b.Int("synchronised", c->dynamicObjects_.GetCount());
+    b.Int("synchronised", std::ssize(c->dynamicObjects_));
 }
 
 // A unit of the client world: what the screen shows (place, animation, the packed vitals).
@@ -539,9 +539,8 @@ void ReadWater(State& state) {
     b.Int("frame", t->frame);
     b.Float("phase", t->wavePhase);
     constexpr int kVertices = 33 * 33;
-    for (auto* node = t->sectorCache.head; node; node = node->next) {
-        const auto* sector = node->data;
-        if (!sector || !sector->hasWater || sector->vertices.size < 2 * kVertices || sector->records.size < 2 * kVertices)
+    for (const auto* sector : t->sectorCache) {
+        if (!sector || !sector->hasWater || std::ssize(sector->vertices) < 2 * kVertices || sector->records.size < 2 * kVertices)
             continue;
         Hash positions, speculars;
         int water = 0;
@@ -618,11 +617,12 @@ void Read(void* server, Snapshot& s) {
 
     // The missiles by their place in the list.
     int place = 0;
-    for (auto* n = w->projectiles_.head; n; n = n->next, ++place) {
-        if (!n->data) continue;
-        b.entity = &Slot(s.state, {kMissile, place});
-        b.entity->description = DescribeMissile(n->data);
-        ReadMissile(n->data, b);
+    for (auto* missile : w->projectiles_) {
+        const int at = place++;
+        if (!missile) continue;
+        b.entity = &Slot(s.state, {kMissile, at});
+        b.entity->description = DescribeMissile(missile);
+        ReadMissile(missile, b);
     }
 
     b.entity = &Slot(s.state, {kEvents, 0});
@@ -658,7 +658,7 @@ UnitNow Unit(void* server, int id) {
     CEngineObject* controller = u->controller;
     if (controller && controller->GetClassId() == kClassUnitServer) {
         auto* c = static_cast<CUnitServer*>(controller);
-        now.idle = c->action.kind == 0 && u->Motion()->points.GetSize() == 0;
+        now.idle = c->action.kind == 0 && u->Motion()->points.empty();
         now.experience = c->stats.experience;
     }
     return now;

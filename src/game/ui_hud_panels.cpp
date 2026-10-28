@@ -13,7 +13,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
@@ -22,6 +21,7 @@
 #include "lib/str.h"
 
 #include <cstdint>
+#include <list>
 #include <string>
 
 namespace {
@@ -65,12 +65,10 @@ bool BarRatio(int value, int maximum, float* ratio) {
     return *ratio > 0.0f;
 }
 
-
 // The local view, whose SetUnitFlag438 sets a unit's flag and sends it to the server.
 CPlayerClient* Orders() { return TheClientWorld()->LocalView(); }
 
 } // namespace
-
 
 // --- Unit panel ----------------------------------------------------------------------------------
 
@@ -83,7 +81,7 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
     health = str::Format("%d", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
     DrawPanelText(this, health, RECT{130, 185, 160, 200}, kTextColour, 0, 1);
 
-    for (int i = 0; i < owner_->party_.size; ++i) {
+    for (int i = 0; i < std::ssize(owner_->party_); ++i) {
         if (owner_->party_[i] != unit) continue;
         Sprite(this, 13)->visible_ = 1;
         if (unit->packedVitals.maxMana != 0 && unit->packedVitals.mana != 0 && BarRatio(unit->packedVitals.mana, unit->packedVitals.maxMana, &ratio))
@@ -135,7 +133,7 @@ void CHudMovePanel::ToggleFlag() {
     interface_->PlaySound(kSoundClick, 0);
     // The selected party units' common flag: -1 none selected, -2 mixed.
     int common = -1;
-    for (int i = 0; i < owner_->party_.size; ++i) {
+    for (int i = 0; i < std::ssize(owner_->party_); ++i) {
         CUnit* unit = owner_->party_[i];
         if (!(unit->flags_ & 0x10)) continue;
         if (common == -1)
@@ -143,8 +141,8 @@ void CHudMovePanel::ToggleFlag() {
         else if (common != unit->fightAtWill)
             common = -2;
     }
-    int value = owner_->party_.size > 0 && common == 1 ? 0 : 1;
-    for (int i = 0; i < owner_->party_.size; ++i) {
+    int value = !owner_->party_.empty() && common == 1 ? 0 : 1;
+    for (int i = 0; i < std::ssize(owner_->party_); ++i) {
         CUnit* unit = owner_->party_[i];
         if (unit->flags_ & 0x10) Orders()->SetUnitFlag438(unit, value);
     }
@@ -268,16 +266,16 @@ void CHudTopPanel::ShowPage() {
 void CHudTopPanel::ShowItems() {
     CTextManager* texts = TheTextManager();
     // A local CPtrList (MFC's vtable, blocks of 10) of the world's copies.
-    mfc::CTypedPtrList<CItem> merged{mfc::impl::ItemListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    std::list<CItem*> merged{};
     CPlayer* player = TheClientWorld()->LocalView()->player_;
     std::string line;
     std::string format;
-    for (auto* node = player->items_.head; node;) {
-        CItem* item = node->data;
-        node = node->next;
+    for (auto node = player->items_.begin(); node != player->items_.end();) {
+        CItem* item = *node;
+        ++node;
         CItem* same = nullptr;
-        for (auto* entry = merged.head; entry && !same; entry = entry->next)
-            if (entry->data->IsSameAs(item)) same = entry->data;
+        for (auto entry = merged.begin(); entry != merged.end() && !same; ++entry)
+            if ((*entry)->IsSameAs(item)) same = *entry;
         if (same) {
             same->count_ += item->count_;
             continue;
@@ -285,7 +283,7 @@ void CHudTopPanel::ShowItems() {
         CItem* copy = TheClientWorld()->MakeCopyOf(item);
         copy->count_ = item->count_;
         ++copy->refCount_;
-        merged.AddTail(copy);
+        merged.push_back(copy);
     }
 
     auto& text = pageTexts_[1];
@@ -297,21 +295,21 @@ void CHudTopPanel::ShowItems() {
         text += line;
         text += kNewLine;
     }
-    for (auto* node = merged.head; node;) {
-        CItem* item = node->data;
-        node = node->next;
+    for (auto node = merged.begin(); node != merged.end();) {
+        CItem* item = *node;
+        ++node;
         texts->FormatItemName(item, &line);
         text += line;
         text += kNewLine;
         item->Release();
     }
-    merged.RemoveAll();
+    merged.clear();
     if (page_ == 1) {
         CUiScrollText* log = owner_->MessageLog();
         log->SetText(text.c_str());
         log->SetPosition(0);
     }
-    merged.RemoveAll();
+    merged.clear();
 }
 
 void CHudTopPanel::Layout() {

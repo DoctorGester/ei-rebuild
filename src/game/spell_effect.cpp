@@ -12,34 +12,18 @@
 #include "lib/mfc.h"
 
 #include <cstring>
+#include <list>
 #include "game_data.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 
 namespace {
 constexpr float kTargetThreshold = 0.5f;
 constexpr float kWallHalfWidth = 1.0f;
-constexpr int kPtrListBlockSize = 10;
 
-using UnitList = mfc::CTypedPtrList<CUnit>;
+using UnitList = std::list<CUnit*>;
 
 // CSectorMap::FindUnitsInRadius (sector_map.cpp).
 CSectorMap* SectorMapOf(const CSpellEffect* effect) { return effect->world->Sectors(); }
-
-void InitList(UnitList& list) {
-    list.vtable = mfc::impl::PtrListClass::Vtable();
-    list.count = 0;
-    list.tail = nullptr;
-    list.head = nullptr;
-    list.free = nullptr;
-    list.blocks = nullptr;
-    list.blockSize = kPtrListBlockSize;
-}
-
-void DestroyList(UnitList& list) {
-    list.vtable = mfc::impl::PtrListClass::Vtable();
-    list.RemoveAll();
-}
 
 // The test of IsSpellTarget, inlined in the area loops.
 bool AcceptsAreaSpells(CUnit* unit) {
@@ -57,29 +41,25 @@ void Deliver(CSpellEffect* effect, DamageInfo* hit, CMapObject* unit) {
 }
 } // namespace
 
-
 int IsSpellTarget(CUnit* unit) { return AcceptsAreaSpells(unit) ? 1 : 0; }
 
 void CSpellEffect::HitUnit(DamageInfo* hit, CMapObject* unit) { Deliver(this, hit, unit); }
 
 void CSpellEffect::HitUnitsInRadius() {
     UnitList list;
-    InitList(list);
     DamageInfo hit;
     GetDamage(&hit);
     SectorMapOf(this)->FindUnitsInRadius(&position, &list, Spell()->radius_);
-    for (UnitList::Node* node = list.head; node;) {
-        CUnit* unit = node->data;
-        node = node->next;
+    for (auto node = list.begin(); node != list.end();) {
+        CUnit* unit = *node;
+        ++node;
         if (!AcceptsAreaSpells(unit)) continue;
         Deliver(this, &hit, unit);
     }
-    DestroyList(list);
 }
 
 void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
     UnitList list;
-    InitList(list);
     DamageInfo hit;
     GetDamage(&hit);
 
@@ -93,9 +73,9 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
     float normalZ = 0.0f;
 
     SectorMapOf(this)->FindUnitsInRadius(&position, &list, Spell()->radius_);
-    for (UnitList::Node* node = list.head; node;) {
-        CUnit* unit = node->data;
-        node = node->next;
+    for (auto node = list.begin(); node != list.end();) {
+        CUnit* unit = *node;
+        ++node;
         const CUnit* at = unit;
         double dz = at->localPosition_.z - position.z;
         double dy = at->localPosition_.y - position.y;
@@ -109,5 +89,4 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
         if (!AcceptsAreaSpells(unit)) continue;
         Deliver(this, &hit, unit);
     }
-    DestroyList(list);
 }

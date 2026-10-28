@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <list>
 #include <memory>
 #include <vector>
 #include "model.h"
@@ -34,22 +35,20 @@ double Unsigned(std::uint32_t value) {
 constinit std::vector<ParticleVertex> g_vertices = /*007A9BD0*/ {};
 std::vector<ParticleVertex>& Vertices() { return g_vertices; }
 void FreeVertices() { lib::FreeStorage(g_vertices); }
-static_assert(sizeof(ParticleSpriteArray) == 0x14);
 constinit lib::StaticObject<ParticleSpriteArray> g_sprites = /*007A9BE0*/ {};
 ParticleSpriteArray& Sprites() { return *g_sprites; }
-void DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
+void DestroySprites() { g_sprites.Destroy(); }
 // The guard bits of the arrays below (function-local statics in the original).
 std::uint32_t g_arraysConstructed = /*007A9BF4*/ {};
 
 constexpr int kReserve = 0x1000;
 
-void ConstructSpriteArray(ParticleSpriteArray* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>((void*)a0); }
 // The arrays are function-local statics in the original (guard bits 1 and 2 of g_arraysConstructed, their
 // destructors registered with atexit).
 void ConstructArrays() {
     if (!(g_arraysConstructed & 1)) {
         g_arraysConstructed |= 1;
-        ConstructSpriteArray(&Sprites());
+        g_sprites.Construct();
         libcrt::AtExit(DestroySprites);
     }
     if (!(g_arraysConstructed & 2)) {
@@ -85,7 +84,7 @@ int CSceneRenderer::BindHeldTexture(int stage, HeldTexture* holder) {
 // ticks. Otherwise the arrays are reserved for 0x1000 particles, sized to this source's, filled,
 // and drawn; 0 when the texture cannot be bound.
 int CParticleSource::Draw(CSceneRenderer* renderer) {
-    if (particles.count == 0) return 1;
+    if (particles.empty()) return 1;
     if (renderer->pipeline_->ClipTest(&clip) == 2) {
         ++hiddenTicks;
         return 1;
@@ -93,19 +92,19 @@ int CParticleSource::Draw(CSceneRenderer* renderer) {
     hiddenTicks = 0;
     ConstructArrays();
     float t = Interpolation();
-    Sprites().SetSize(kReserve, -1);
+    Sprites().resize(kReserve);
     Vertices().resize(kReserve);
-    Sprites().SetSize(particles.count, -1);
-    Vertices().resize(particles.count);
+    Sprites().resize(particles.size());
+    Vertices().resize(particles.size());
     if (!renderer->BindHeldTexture(0, &texture)) return 0;
 
-    ParticleSprite* sprite = Sprites().data;
-    mfc::CTypedPtrList<Particle>::Node* cursor = particles.head;
-    if (cursor) {
+    ParticleSprite* sprite = Sprites().data();
+    auto cursor = particles.begin();
+    if (cursor != particles.end()) {
         float u = static_cast<float>(D(EI_ONE) - D(t));
         ParticleVertex* vertex = Vertices().data();
         do {
-            const Particle* p = particles.GetNext(cursor);
+            const Particle* p = *cursor++;
             vertex->x = static_cast<float>(D(u) * D(p->prevPos.x) + D(t) * D(p->pos.x));
             vertex->y = static_cast<float>(D(u) * D(p->prevPos.y) + D(t) * D(p->pos.y));
             vertex->z = static_cast<float>(D(u) * D(p->prevPos.z) + D(t) * D(p->pos.z));
@@ -122,7 +121,7 @@ int CParticleSource::Draw(CSceneRenderer* renderer) {
             sprite->frame = frames.data() + p->prevFrame;
             ++sprite;
             ++vertex;
-        } while (cursor);
+        } while (cursor != particles.end());
     }
     int blend;
     std::memcpy(&blend, &additiveBlend, sizeof(blend));

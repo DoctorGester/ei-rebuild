@@ -30,7 +30,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -47,7 +46,6 @@
 #include <bit>
 #include <string>
 #include <vector>
-
 
 namespace {
 
@@ -254,8 +252,8 @@ void CGlobalMap::CreateScreen() {
     zoneCount_ = 0;
 
     // The game zones of the allod that have a marker, with the player's "z.<zone>" state.
-    for (int i = 0; i < allod->maps.size; ++i) {
-        MapRecord* zone = ZoneAt(allod->maps.data[i]);
+    for (int i = 0; i < std::ssize(allod->maps); ++i) {
+        MapRecord* zone = ZoneAt(allod->maps[i]);
         if (zone->kind != 0 || !NonEmpty(zone->figure.c_str())) continue;
         zones_.SetAtGrowZone(zones_.size, &zoneTemplate);
         variable = str::Format("z.%s", zone->name.c_str());
@@ -482,7 +480,6 @@ void CGlobalMap::CreateScreen() {
 // --- Update -----------------------------------------------------------------------------
 
 namespace {
-
 
 // fmod(a, *divisor), stored as float.
 float FmodStored(float a, const float* divisor) { return static_cast<float>(std::fmod(a, *divisor)); }

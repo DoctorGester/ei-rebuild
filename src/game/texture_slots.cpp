@@ -11,7 +11,6 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-
 void MmpHeader::SetNoFormat() {
     alphaMask = alphaKind = alphaShift = 0;
     redMask = redBits = redShift = 0;
@@ -139,10 +138,10 @@ CTexture* CTextureManager::FindOrLoad(int type, const char* name) {
 void CTextureManager::TrimCache() {
     const auto overLimit = [this] { return cachedBytes_ > static_cast<int>(videoMemoryTenth_); };
     if (!overLimit()) return;
-    for (auto* node = cache_.head; node;) {
-        auto* next = node->next;
-        CTexture* texture = node->data;
-        cache_.RemoveAt(node);
+    for (auto node = cache_.begin(); node != cache_.end();) {
+        auto next = std::next(node);
+        CTexture* texture = *node;
+        cache_.erase(node);
         cachedBytes_ -= texture->uploadResult_;
         if (texture) delete texture;
         if (!overLimit()) return;

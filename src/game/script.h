@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <memory>
 #include <string>
 
@@ -36,7 +37,6 @@ enum ScriptType : int {
 };
 
 using ScriptStream = CStream;
-
 
 // A counted reference to a world object: holding one keeps the object's refCount_ raised. Objects
 // deleted from the world stay allocated while referenced and have bit 0 of flags_ set.
@@ -135,9 +135,9 @@ struct ScriptGroup : ScriptObjectRefs {
     void Insert(CEngineObject* object);
     // Also empty slots.
     void RemoveDeleted();
-    void InsertAll(const mfc::CTypedPtrList<CUnit>* list);
+    void InsertAll(const std::list<CUnit*>* list);
     // Replaces the list's contents, as counted references.
-    void CopyToList(mfc::CTypedPtrList<CUnit>* list) const;
+    void CopyToList(std::list<CUnit*>* list) const;
     BOOL Contains(CEngineObject* object) const;
     // A count and that many object ids, then sorted.
     void Load(ScriptStream* stream);
@@ -601,7 +601,6 @@ struct ScriptKeyword {
 static_assert(sizeof(ScriptKeyword) == 16);
 // 225 keywords and the null entry; the loader reads it through KeywordTable().
 extern const ScriptKeyword kScriptKeywords[226];
-
 
 enum ScriptLexeme : int {
     kLexOpen = 0x6D,          // (

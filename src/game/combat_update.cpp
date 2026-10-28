@@ -9,7 +9,6 @@
 
 #include "base_manager.h"
 #include "core_transform.h"
-#include "game_lists.h"
 #include "item.h"
 #include "map_object.h"
 #include "player_messages.h"
@@ -31,6 +30,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <list>
 
 void UpdateMotion(CUnitServer*);
 namespace {
@@ -599,9 +599,9 @@ bool CUnitServer::ActionInReach() {
 void CUnitServer::TickItemSpells() {
     CWorldServer* world = ServerWorld();
     bool healed = false;
-    for (ArmourSpellList::Node* node = armourSpells.head; node;) {
-        ArmourSpell* current = &node->data;
-        node = node->next;
+    for (auto node = armourSpells.begin(); node != armourSpells.end();) {
+        ArmourSpell* current = &*node;
+        ++node;
         if (current->countdown > 0) {
             --current->countdown;
             continue;
@@ -627,76 +627,61 @@ void CUnitServer::TickItemSpells() {
 
 namespace {
 // The lists RefreshItemSpells uses.
-using UnitItems = mfc::CTypedPtrList<CItem>;
-using SpellEntry = ArmourSpellList::Node;
+using UnitItems = std::list<CItem*>;
 constexpr int kClassWeapon = 0x11;
 constexpr std::uint32_t kSpellPeriodic = 0x20000;   // CSpell::targetFlags_
 } // namespace
 
 void CUnitServer::RefreshItemSpells() {
-    UnitItems items{mfc::impl::ItemListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    mfc::CTypedPtrList<CSpell> others{mfc::impl::LootListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    UnitItems items{};
+    std::list<CSpell*> others{};
     unit->CollectItems(&items, &others);
     // Weapons other than the one in use do not count.
-    for (UnitItems::Node* node = items.head; node;) {
-        UnitItems::Node* current = node;
-        node = node->next;
-        CItem* item = current->data;
+    for (auto node = items.begin(); node != items.end();) {
+        UnitItems::iterator current = node;
+        ++node;
+        CItem* item = *current;
         if (item->GetClassId() != kClassWeapon || item == unit->GetWeapon(unit->activeWeapon)) continue;
-        if (current == items.head) items.head = current->next;
-        else current->prev->next = current->next;
-        if (current == items.tail) items.tail = current->prev;
-        else current->next->prev = current->prev;
-        items.FreeNode(current);
+        items.erase(current);
     }
     ArmourSpellList* list = &armourSpells;
-    SpellEntry*& head = armourSpells.head;
-    SpellEntry*& tail = armourSpells.tail;
-    for (SpellEntry* entry = head; entry; entry = entry->next) entry->data.worn = 0;
+    for (ArmourSpell& entry : armourSpells) entry.worn = 0;
     // Each item with a periodic spell keeps its entry or gets a new one. A missing item reuses the previous
     // item's spell (like the original).
     CSpell* spell = nullptr;
-    for (UnitItems::Node* node = items.head; node;) {
-        CItem* item = node->data;
-        node = node->next;
+    for (auto node = items.begin(); node != items.end();) {
+        CItem* item = *node;
+        ++node;
         if (item) spell = item->spell_;
         if (!spell || (spell->targetFlags_ & kSpellPeriodic) == 0) continue;
-        SpellEntry* found = nullptr;
-        for (SpellEntry* entry = head; entry; entry = entry->next) {
-            if (entry->data.worn == 0 && entry->data.item == item) {
-                found = entry;
+        ArmourSpell* found = nullptr;
+        for (ArmourSpell& entry : armourSpells) {
+            if (entry.worn == 0 && entry.item == item) {
+                found = &entry;
                 break;
             }
         }
         if (found) {
-            found->data.worn = 1;
+            found->worn = 1;
             continue;
         }
         ArmourSpell blank{};
-        SpellEntry* added = list->NewNode(tail, nullptr);
-        added->data.Assign(&blank);
-        if (tail) tail->next = added;
-        else head = added;
-        tail = added;
-        CItem* previous = added->data.item;   // a reference's assignment
-        added->data.item = item;
+        ArmourSpell& added = list->emplace_back();
+        added.Assign(&blank);
+        CItem* previous = added.item;   // a reference's assignment
+        added.item = item;
         if (item) ++item->refCount_;
         if (previous) previous->Release();
-        added->data.worn = 1;
+        added.worn = 1;
     }
     // Entries of items no longer worn go.
-    for (SpellEntry* entry = head; entry;) {
-        SpellEntry* current = entry;
-        entry = entry->next;
-        if (current->data.worn != 0) continue;
-        if (current == head) head = current->next;
-        else current->prev->next = current->next;
-        if (current == tail) tail = current->prev;
-        else current->next->prev = current->prev;
-        mfc::impl::FreeNodeAs<gamelists::Holders>(list, current);
+    for (auto entry = armourSpells.begin(); entry != armourSpells.end();) {
+        auto current = entry;
+        ++entry;
+        if (current->worn != 0) continue;
+        if (current->item) current->item->Release();   // the node's element destroyed
+        armourSpells.erase(current);
     }
-    others.vtable = mfc::impl::LootListClass::Vtable();
-    others.RemoveAll();
-    items.vtable = mfc::impl::ItemListClass::Vtable();
-    items.RemoveAll();
+    others.clear();
+    items.clear();
 }

@@ -13,7 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-
+#include <list>
 
 // "CHoover" (class id 0x1F): no fields of its own seen. object.cpp.
 class CWorld;
@@ -29,6 +29,6 @@ public:
 
     // (hoover_loot.cpp; `this`, the world's hoover, is not read): the loot of the
     // dead `unit` for its taker on `dropList` / `itemList` and `gold`; 0 when there is nothing to take.
-    int CollectLoot(CWorld* world, CUnit* unit, mfc::CTypedPtrList<CItem>* dropList,
-                    mfc::CTypedPtrList<CItem>* itemList, void* unused, int* gold);
+    int CollectLoot(CWorld* world, CUnit* unit, std::list<CItem*>* dropList,
+                    std::list<CItem*>* itemList, void* unused, int* gold);
 };

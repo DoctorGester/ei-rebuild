@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <list>
 
 namespace {
 constexpr int kStopFlagVersion = 0x44;      // looks carry their stop flag from this file version on
@@ -21,11 +22,11 @@ void WriteCopy(CStream* stream, const T& value) {
 }
 
 // Each object's counted reference (its id) of a memory list.
-void SaveObjectList(mfc::CTypedPtrList<CUnit>& list, CStream* stream) {
-    WriteCopy(stream, list.count);
-    for (auto* node = list.head; node;) {
-        auto* next = node->next;
-        AIRefTo<CUnit>::Of(&node->data)->Save(stream);
+void SaveObjectList(std::list<CUnit*>& list, CStream* stream) {
+    WriteCopy(stream, std::ssize(list));
+    for (auto node = list.begin(); node != list.end();) {
+        auto next = std::next(node);
+        AIRefTo<CUnit>::Of(&*node)->Save(stream);
         node = next;
     }
 }

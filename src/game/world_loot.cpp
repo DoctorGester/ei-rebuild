@@ -16,27 +16,15 @@
 #include "game_lists.h"
 #include "game_singletons.h"
 
+#include <list>
+
 namespace {
 
 constexpr std::uint32_t kFlagSharedLoot = 0x20000000;     // flags_: the loot is on the shared list
 constexpr int kClassQuestItem = 0x14;                     // given to player 0 in multiplayer
 
-using ObjectList = mfc::CTypedPtrList<CEngineObject>;
-using GivenItems = mfc::CTypedPtrList<CItem>;
-
-// A byte-identical copy of the particle list's GetNext: the item at `position`, which moves on.
-CItem* NextItem(GivenItems* list, GivenItems::Node** position) { return list->GetNext(*position); }
-
-template <typename T>
-void InitList(mfc::CTypedPtrList<T>& list, void* vtable) {
-    list.vtable = vtable;
-    list.head = nullptr;
-    list.tail = nullptr;
-    list.count = 0;
-    list.free = nullptr;
-    list.blocks = nullptr;
-    list.blockSize = 10;
-}
+using ObjectList = std::list<CEngineObject*>;
+using GivenItems = std::list<CItem*>;
 
 } // namespace
 
@@ -44,23 +32,14 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
     GivenItems items;
     GivenItems second;
     ObjectList third;
-    InitList(items, mfc::impl::ItemListClass::Vtable());
-    InitList(second, mfc::impl::ItemListClass::Vtable());
-    InitList(third, mfc::impl::LootListClass::Vtable());
     int gold;
     // The early returns empty the lists without their destructors' bookkeeping; the others destroy them.
     auto abandon = [&]() {
-        third.vtable = mfc::impl::LootListClass::Vtable();
-        third.RemoveAll();
-        second.vtable = mfc::impl::ItemListClass::Vtable();
-        second.RemoveAll();
-        items.vtable = mfc::impl::ItemListClass::Vtable();
-        items.RemoveAll();
+        third.clear();
+        second.clear();
+        items.clear();
     };
     auto destroy = [&]() {
-        mfc::impl::DestructList<mfc::impl::LootListClass>(third);
-        mfc::impl::DestructList<mfc::impl::ItemListClass>(second);
-        mfc::impl::DestructList<mfc::impl::ItemListClass>(items);
     };
 
     if (!player) {
@@ -83,11 +62,8 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
         }
         for (int i = 0; i < node->data.objects.size; ++i) {
             CItem* item = node->data.objects.data[i];
-            GivenItems::Node* entry = items.NewNode(items.tail, nullptr);
-            entry->data = item;
-            if (items.tail) items.tail->next = entry;
-            else items.head = entry;
-            items.tail = entry;
+            auto entry = items.emplace(items.end());
+            *entry = item;
         }
         player->Party()->Money() += static_cast<int>(node->data.money);
         player->GiveItems(&items, 0);
@@ -118,27 +94,25 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
         }
         if (first) {
             GivenItems quest;
-            mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&quest, 10);
-            for (GivenItems::Node* node = items.head; node;) {
-                GivenItems::Node* next = node->next;
-                CItem* item = node->data;
+            for (auto node = items.begin(); node != items.end();) {
+                auto next = std::next(node);
+                CItem* item = *node;
                 if (item->GetClassId() == kClassQuestItem) {
-                    quest.AddTail(item);
-                    items.RemoveAt(node);
+                    quest.push_back(item);
+                    items.erase(node);
                 }
                 node = next;
             }
-            if (quest.count > 0) first->GiveItems(&quest, 0);
-            for (GivenItems::Node* position = quest.head; position;)
-                NextItem(&quest, &position)->Release();
-            mfc::impl::DestructList<mfc::impl::ItemListClass>(quest);
+            if (!quest.empty()) first->GiveItems(&quest, 0);
+            for (CItem* item : quest)
+                item->Release();
         }
     }
     player->Party()->Money() += gold;
     player->GiveItems(&items, 0);
-    for (GivenItems::Node* position = items.head; position;)
-        NextItem(&items, &position)->Release();
-    bool found = items.count > 0 || gold > 0;
+    for (CItem* item : items)
+        item->Release();
+    bool found = !items.empty() || gold > 0;
     destroy();
     return found;
 }

@@ -31,7 +31,6 @@
 #include "lib/str.h"
 #include "game_data.h"
 #include "game_singletons.h"
-#include "lib/mfc_slots.h"
 
 #include <algorithm>
 #include <cmath>
@@ -43,7 +42,6 @@ namespace {
 
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 bool LoadingGame() { return GameSaveStream()->size_ != 0; }
-void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }
 
 const char* SaveLoadTexture() { return "saveload"; }
 const char* DefaultAllod() { return "gipat"; }
@@ -51,7 +49,6 @@ const char* TopicPrefix() { return "b."; }
 const char* ConstructorTopic() { return "constr"; }
 const char* NoZone() { return "none"; }
 const char* ZoneVariablePrefix() { return "z."; }
-
 
 constexpr int kFromCamp = 5;              // CPlayer::lastScreen_
 constexpr float kEdgeFade = 4.0f;
@@ -176,7 +173,6 @@ bool VoiceEnded(int handle) {
 }
 
 } // namespace
-
 
 void CBriefingScreen::CreateScreen() {
     chatActive_ = 0;
@@ -390,14 +386,12 @@ void CBriefingScreen::LeaveIfExitOpen() {
     float visited = PlayerZeroVariable(variable.c_str());
     EI_NAN_AUDIT(visited);
     if (visited == 1.0f) return;
-    mfc::CArray<PartyUnitRecord*> records{RecordArrayVtable(), nullptr, 0, 0, 0};
-    mfc::CArray<PartyUnitRecord*> second{RecordArrayVtable(), nullptr, 0, 0, 0};
-    records.SetSize(1);
+    std::vector<PartyUnitRecord*> records{};
+    std::vector<PartyUnitRecord*> second{};
+    records.resize(1);
     records[0] = party->members_.data;
     if (GamePartyInExit(&records, exit_, &second)) {
         app::g_interfaceHasScreen = 0;
         GameLeaveThroughExit(exit_);
     }
-    second.FreeData();
-    records.FreeData();
 }

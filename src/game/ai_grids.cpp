@@ -152,26 +152,11 @@ void LocalSearch::Destruct() {
 }
 
 CUnitLayer::CUnitLayer() {
-    nodes.vtable = mfc::impl::NodeListClass::Vtable();
-    nodes.count = 0;
-    nodes.free = nullptr;
-    nodes.tail = nullptr;
-    nodes.head = nullptr;
-    nodes.blocks = nullptr;
-    nodes.blockSize = 0x400;
     for (UnitLayerNode*& bucket : buckets) bucket = nullptr;
     freeNodes = nullptr;
 }
 
-CUnitLayer::~CUnitLayer() {
-    nodes.vtable = mfc::impl::NodeListClass::Vtable();
-    nodes.count = 0;
-    nodes.free = nullptr;
-    nodes.tail = nullptr;
-    nodes.head = nullptr;
-    mfc::PlexFreeDataChain(nodes.blocks);
-    nodes.blocks = nullptr;
-}
+CUnitLayer::~CUnitLayer() = default;
 
 void AIDirtyRect::Reset() {
     minX = 10000;

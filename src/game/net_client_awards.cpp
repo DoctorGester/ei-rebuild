@@ -1,7 +1,6 @@
 // The game client's tick and its award handling: timers count down,
 // and received awards are applied to the local player. See net_classes.h and docs/notes/network.md.
 
-#include "game_lists.h"
 #include "net_messages.h"
 #include "core_refcount.h"
 #include "item.h"
@@ -10,8 +9,6 @@
 
 #include "lib/mfc.h"
 
-#include "lib/mfc_list.h"
-#include "game_slots.h"
 #include "world.h"
 #include "lib/crt.h"
 #include "game_data.h"
@@ -19,28 +16,19 @@
 #include "lib/nan_audit.h"
 
 #include <cstring>
+#include <list>
 
 namespace net {
 
 namespace {
 
-using GivenItems = mfc::CTypedPtrList<CItem>;
+using GivenItems = std::list<CItem*>;
 
 constexpr int kClassQuestItem = 0x14;
 
 CWorldServer* World() { return TheServerWorld(); }
 // Player 0 of the world (the local player), or null.
 CPlayer* LocalPlayer() { return World()->GetPlayer(0); }
-
-void InitList(GivenItems& list, void* vtable) {
-    list.vtable = vtable;
-    list.head = nullptr;
-    list.tail = nullptr;
-    list.count = 0;
-    list.free = nullptr;
-    list.blocks = nullptr;
-    list.blockSize = 10;
-}
 
 } // namespace
 
@@ -64,34 +52,26 @@ void ClientSession::ApplyAwards() {
         }
         case 1: {
             GivenItems none;
-            InitList(none, mfc::impl::ItemListClass::Vtable());
             player->Party()->Money() += static_cast<int>(gamecrt::Ftol(award->value_));
             player->GiveItems(&none, 0);
-            none.vtable = mfc::impl::ItemListClass::Vtable();
-            none.RemoveAll();
+            none.clear();
             break;
         }
         case 2: {
             GivenItems items;
-            InitList(items, gameslots::ItemObjectListClass::Vtable());
             CItem* item = player->Party()->ItemManager()->CreateItem(name);
-            GivenItems::Node* added = items.NewNode(items.tail, nullptr);
-            HeldObject<CItem>::Of(&added->data)->Assign(item);
-            if (items.tail) items.tail->next = added;
-            else items.head = added;
-            items.tail = added;
+            HeldObject<CItem>::Of(&items.emplace_back())->Assign(item);
             player->GiveItems(&items, 0);
-            items.vtable = gameslots::ItemObjectListClass::Vtable();
-            mfc::impl::ListAs<gamelists::EngineObjects>(&items)->RemoveAll();
+            ReleaseAndClear(items);
             break;
         }
         case 3: {
             auto* item = player->Party()->ItemManager()->CreateItem(name);
             if (item) ++item->refCount_;
-            for (GivenItems::Node* position = player->items_.head; position;) {
-                GivenItems::Node* current = position;
-                position = position->next;
-                CItem* owned = current->data;
+            for (auto position = player->items_.begin(); position != player->items_.end();) {
+                GivenItems::iterator  current = position;
+                ++position;
+                CItem* owned = *current;
                 if (!owned->IsSameAs(item)) {
                     std::int32_t id = owned->id_;
                     if (id >= 0) player->TakeItem(id);
@@ -103,10 +83,10 @@ void ClientSession::ApplyAwards() {
         }
         case 4:
             player->Party()->RemoveQuestItems();
-            for (GivenItems::Node* position = player->items_.head; position;) {
-                GivenItems::Node* current = position;
-                position = position->next;
-                CEngineObject* owned = current->data;
+            for (auto position = player->items_.begin(); position != player->items_.end();) {
+                GivenItems::iterator  current = position;
+                ++position;
+                CEngineObject* owned = *current;
                 if (owned->GetClassId() == kClassQuestItem) player->TakeItem(owned->id_);
             }
             break;

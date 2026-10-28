@@ -20,6 +20,7 @@
 
 #include <cmath>
 #include <string>
+#include <vector>
 
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
@@ -183,15 +184,15 @@ int GamePlayMusic(const char* name) {
 
 CUnit* GameFindClientUnit(int id) { return TheClientWorld()->FindUnit(id); }
 
-void GameCreatePartyUnits(const mfc::CArray<PartyUnitRecord*>* party, int allArmour) {
+void GameCreatePartyUnits(const std::vector<PartyUnitRecord*>* party, int allArmour) {
     TheClientWorld()->CreatePartyUnits(party, static_cast<char>(allArmour));
 }
 
-void GameRemoveUnitsOf(const mfc::CArray<PartyUnitRecord*>* records) { TheClientWorld()->RemoveUnitsOf(records); }
+void GameRemoveUnitsOf(const std::vector<PartyUnitRecord*>* records) { TheClientWorld()->RemoveUnitsOf(records); }
 
 int GameFindExitAt(const float* point, int* index) { return TheClientWorld()->FindExitAt(point, index); }
 
-int GamePartyInExit(const mfc::CArray<PartyUnitRecord*>* records, int exit, mfc::CArray<PartyUnitRecord*>* inExit) {
+int GamePartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit) {
     return TheClientWorld()->PartyInExit(records, exit, inExit);
 }
 

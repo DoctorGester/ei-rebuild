@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 
 constexpr int kClassUnitServer = 0x3E;
 
@@ -161,7 +162,7 @@ struct ArmourSpell {
     std::uint8_t unused_9[3];
 };
 static_assert(sizeof(ArmourSpell) == 0xC);
-using ArmourSpellList = mfc::CList<ArmourSpell>;
+using ArmourSpellList = std::list<ArmourSpell>;
 
 bool SpellLineOfSight(CWorldServer* world, CSpell* spell, CUnit* fromUnit, const Vector3* from,
                                  CUnit* toUnit, const Vector3* to);
@@ -274,7 +275,7 @@ public:
     // the AI notification and the party's reaction. Units of types outside 0x32..0x36 only get flags_ bit 1.
     void OnDamaged(CUnit* attacker, int hitKind);
     // The allied witnesses that see `victim` add `murderer` to their visible list and turn hostile to it.
-    void WitnessMurder(mfc::CTypedPtrList<CUnit>* witnesses, CUnit* victim, CUnit* murderer);
+    void WitnessMurder(std::list<CUnit*>* witnesses, CUnit* victim, CUnit* murderer);
     // When the unit's flags_ have 0x80000: clears it, adds its hostile mask to claimedHostile and swaps
     // hostility claims with the allied units nearby.
     void PropagateHostility();
@@ -485,7 +486,7 @@ public:
     // Fills `list` with the units lifted off the sector map for a path: away from `point`, those near it
     // outside the player's group; the party members that move (with `moving`) or follow this unit. Only for a
     // player's units with sessionKind100_ 1.
-    void LiftNearby(mfc::CTypedPtrList<CUnit>* list, const Vector3* point, char moving);
+    void LiftNearby(std::list<CUnit*>* list, const Vector3* point, char moving);
     // Messages 0x0E / 0x01 to a party unit's player, unless the brain's mode is 6.
     void ReportPath(AIPath* path, char partial);
     // Every field to its start value (constructor and Load).
@@ -601,7 +602,6 @@ public:
 
     AIBrain* Brain() { return &brain; }
 
-
     // The movement mode's flag4 is also read by the hit code: while it is set the unit cannot be backstabbed
     // (checked on the target's controller and on the defender).
     std::uint8_t NoBackstab() const { return moveMode2.flag4; }
@@ -612,52 +612,9 @@ public:
     void AddHostileMask(std::uint32_t mask);
 };
 static_assert(offsetof(CUnitServer, unit) == 0x1C);
-static_assert(offsetof(CUnitServer, pendingHit) == 0x108);
-static_assert(offsetof(CUnitServer, currentPlan) == 0xC4);
-static_assert(offsetof(CUnitServer, boredTicks) == 0x938);
-static_assert(offsetof(CUnitServer, motionChanged) == 0x146);
 
 inline CUnitServer* CUnit::ServerController() const { return static_cast<CUnitServer*>(controller); }
-static_assert(offsetof(CUnitServer, nextAttackTime) == 0x184);
-static_assert(offsetof(CUnitServer, searchingTarget) == 0x18E);
-static_assert(offsetof(CUnitServer, tameStage) == 0x908);
-static_assert(offsetof(CUnitServer, protection) == 0x8E4);
-static_assert(offsetof(CUnitServer, followedLeader) == 0x1DC);
-static_assert(offsetof(CUnitServer, moveMode) == 0x168);
-static_assert(offsetof(CUnitServer, moveMode2) == 0x170);
-static_assert(offsetof(CUnitServer, action) == 0x190);
-static_assert(offsetof(CUnitServer, action2) == 0x1B4);
-static_assert(offsetof(CUnitServer, stats) == 0x1E0);
-static_assert(offsetof(CUnitServer, state) == 0x164);
-static_assert(offsetof(CUnitServer, moveFactors) == 0x8F8);
-static_assert(offsetof(CUnitServer, speedClass) == 0x914);
 static_assert(offsetof(CUnitServer, frozen) == 0x20);
-static_assert(offsetof(CUnitServer, keepHitDirection) == 0x144);
-static_assert(offsetof(CUnitServer, hitDirection) == 0x160);
-static_assert(offsetof(CUnitServer, effectObject) == 0x17C);
-static_assert(offsetof(CUnitServer, claimedHostile) == 0x97C);
-static_assert(offsetof(CUnitServer, brain) == 0x980);
 static_assert(offsetof(CUnitServer, queue) == 0x24);
 static_assert(offsetof(CUnitServer, motion) == 0x3C);
-static_assert(offsetof(CUnitServer, stoodBlocked) == 0x145);
-static_assert(offsetof(CUnitServer, movingAnimation) == 0x147);
-static_assert(offsetof(CUnitServer, savedQueue) == 0x148);
-static_assert(offsetof(CUnitServer, sneakWait) == 0x178);
-static_assert(offsetof(CUnitServer, actingCheckTime) == 0x180);
-static_assert(offsetof(CUnitServer, interceptTime) == 0x188);
-static_assert(offsetof(CUnitServer, orderStopped) == 0x18C);
-static_assert(offsetof(CUnitServer, followsLeader) == 0x1D8);
-static_assert(offsetof(CUnitServer, sinkSpeed) == 0x8F4);
-static_assert(offsetof(CUnitServer, ownSide) == 0x90C);
-static_assert(offsetof(CUnitServer, tamerSide) == 0x910);
-static_assert(offsetof(CUnitServer, aiPresence) == 0x918);
-static_assert(offsetof(CUnitServer, armourSpells) == 0x91C);
-static_assert(offsetof(CUnitServer, waitFrame) == 0x93C);
-static_assert(offsetof(CUnitServer, moveAnimationKey) == 0x940);
-static_assert(offsetof(CUnitServer, moveAnimation) == 0x944);
-static_assert(offsetof(CUnitServer, idleKey) == 0x95C);
-static_assert(offsetof(CUnitServer, idleAnimation) == 0x960);
-static_assert(offsetof(CUnitServer, actionDone) == 0x978);
-static_assert(offsetof(CUnitServer, voice) == 0xB10);
-static_assert(sizeof(CUnitServer) == 0xB20);
 

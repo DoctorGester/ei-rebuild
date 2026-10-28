@@ -26,7 +26,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "lib/mfc_slots.h"
 #include "unit.h"
 #include "world.h"
 
@@ -35,6 +34,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "world_data.h"
@@ -243,7 +243,7 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
     if (mode == 0) {
         if (region < 0) return;
         handled_ = true;
-        if (region < owner_->party_.size) CaptureMouse();
+        if (region < std::ssize(owner_->party_)) CaptureMouse();
         return;
     }
     if (region < 0 || region >= count_) return;
@@ -282,7 +282,7 @@ void CHudPortraits::OnMouseUp(int, int x, int y) {
     handled_ = true;
     CBattleScreen* owner = owner_;
     // Rebirth's FixSpellSelfCasting patches SelectUnit.
-    if (region < owner->party_.size) owner->SelectUnit(owner->party_[region], 0, 0);
+    if (region < std::ssize(owner->party_)) owner->SelectUnit(owner->party_[region], 0, 0);
 }
 
 void CHudPortraits::OnMouseMove(int, int x, int y) {
@@ -291,7 +291,7 @@ void CHudPortraits::OnMouseMove(int, int x, int y) {
         if (region < 0) return;
         handled_ = true;
         CBattleScreen* owner = owner_;
-        if (region < owner->party_.size) owner->HoverUnit(owner->party_[region], 0, 0);
+        if (region < std::ssize(owner->party_)) owner->HoverUnit(owner->party_[region], 0, 0);
         return;
     }
     if (region >= 0 && region < count_) TheCursor()->SetShape(0);
@@ -480,7 +480,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
     if (!TheClientWorld()->LocalView()) return;
     if (mode >= 0 && mode < 4) {
         interface_->PlaySound(kSoundClick, 0);
-        for (int i = 0; i < owner_->party_.size; ++i) {
+        for (int i = 0; i < std::ssize(owner_->party_); ++i) {
             CUnit* unit = owner_->party_[i];
             if (unit->flags_ & 0x10) LocalView()->SetMoveMode(unit, mode);
         }
@@ -521,8 +521,8 @@ void CHudMovePanel::Update() {
     // The common value over the selected units: -1 none selected, -2 mixed.
     int mode = -1;
     int flag = -1;
-    int count = owner_->party_.size;
-    CUnit** units = owner_->party_.data;
+    int count = std::ssize(owner_->party_);
+    CUnit** units = owner_->party_.data();
     for (int i = 0; i < count; ++i) {
         CUnit* unit = units[i];
         if (!(unit->flags_ & 0x10)) continue;
@@ -673,7 +673,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     };
 
     CUnit* living = (unit && !unitDead(unit)) ? unit : nullptr;
-    int count = party_.size;
+    int count = std::ssize(party_);
     int firstIndex = -1;
     CUnit* first = nullptr;
     int selected = 0;
@@ -690,11 +690,11 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     if (count <= 0 || selected == 0) {
         // Nobody selected: a click on a portrait's unit selects it (Ctrl: the camera follows it).
         if (count <= 0) return;
-        for (int i = 0; i < party_.size; ++i) {
+        for (int i = 0; i < std::ssize(party_); ++i) {
             if (unit != party_[i]) continue;
             interface_->PlaySound(game::SoundOnOffText(), 0);
             if (interface_->doubleClick_) {
-                if (i < party_.size) TheCamera()->SetTarget(party_[i]);
+                if (i < std::ssize(party_)) TheCamera()->SetTarget(party_[i]);
             } else {
                 ToggleMember(i);
             }
@@ -732,12 +732,12 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 OrderDeadUnit(unit, ctrl());
                 return;
             }
-            int members = party_.size;
+            int members = std::ssize(party_);
             for (int i = 0; i < members; ++i) {
                 if (unit != party_[i]) continue;
                 interface_->PlaySound(game::SoundOnOffText(), 0);
                 if (interface_->doubleClick_) {
-                    if (i < party_.size) TheCamera()->SetTarget(party_[i]);
+                    if (i < std::ssize(party_)) TheCamera()->SetTarget(party_[i]);
                 } else {
                     ToggleMember(i);
                 }
@@ -809,7 +809,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     }
     case 7: {   // follow: every selected member follows the unit
         if (!unit || unitDead(unit)) return;
-        for (int i = 0; i < party_.size; ++i) {
+        for (int i = 0; i < std::ssize(party_); ++i) {
             CUnit* member = party_[i];
             if (!member || !(member->flags_ & kFlagSelected)) continue;
             LocalView()->SendFollow(member, unit);
@@ -846,7 +846,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         CUnit* target = unit ? unit : objectAt();
         if (!target || !first) return;
         if (unit) {
-            for (int i = 0; i < party_.size; ++i)
+            for (int i = 0; i < std::ssize(party_); ++i)
                 if (unit == party_[i]) return;
             order(first, unit, 1, -1);
         } else {
@@ -914,7 +914,7 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
 
 namespace {
 
-using OrderUnits = mfc::CArray<CUnit*>;
+using OrderUnits = std::vector<CUnit*>;
 // The constant 1.0f the zone variable is compared with.
 float GameOne() { return 1.0f /*0073B84C*/; }
 
@@ -924,7 +924,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     // The point is the address of the argument slots, as in the original.
     Vector3 point = {x, y, z};
     int selected = 0;
-    for (int i = 0; i < party_.size; ++i) {
+    for (int i = 0; i < std::ssize(party_); ++i) {
         CUnit* member = party_[i];
         if (member && (member->flags_ & kFlagSelected)) ++selected;
     }
@@ -950,22 +950,20 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     }
 
     // The selected members go; each one's portrait nods after a short random delay.
-    OrderUnits units{mfc::impl::UnitPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
-    for (int i = 0; i < party_.size; ++i) {
+    OrderUnits units{};
+    for (int i = 0; i < std::ssize(party_); ++i) {
         CUnit* member = party_[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;
-        int n = units.size;
-        units.SetSize(n + 1, -1);
-        units.data[n] = member;
+        int n = std::ssize(units);
+        units.resize(n + 1);
+        units[n] = member;
         NodPortrait(this, i);
     }
-    if (units.size != 0) {
+    if (!units.empty()) {
         CPlayerClient* view = LocalView();
         if (static_cast<std::uint8_t>(mode) != 0)
             view->SendGoTo(&units, &point, ctrl & 0xFF);
         else
             view->SendWalk(&units, &point, ctrl & 0xFF);
     }
-    units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
-    units.FreeData();
 }

@@ -40,7 +40,6 @@ constexpr int kCursorOrder = 0x18;
 // The mouse cursor; selects shape `shape`.
 void SetCursor(int shape) { TheCursor()->SetShape(shape); }
 
-
 static const UnitPrototypeRecord* HoverPrototype(CUnit* unit) {
     return unit->GetPrototype();
 }
@@ -86,7 +85,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         panel->hoverUnit_ = nullptr;
     }
 
-    int count = party_.size;
+    int count = std::ssize(party_);
     if (count <= 0) return;
     CUnit* first = nullptr;
     int selected = 0;
@@ -124,7 +123,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
                 shape = kCursorUse;
                 break;
             }
-            if (party_.size == 0 || !party_[0]) return;
+            if (party_.empty() || !party_[0]) return;
             if (!party_[0]->IsHostileTo(unit)) return;
             shape = kCursorAttack;
             break;

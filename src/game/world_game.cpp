@@ -51,7 +51,6 @@
 #include "ei/rebirth.h"
 #include "party_manager.h"
 #include "party_records.h"
-#include "game_lists.h"
 #include "record_vectors.h"
 #include "game_arrays.h"
 #include "library_containers.h"
@@ -63,6 +62,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <list>
 #include <memory>
 #include <new>
 #include <bit>
@@ -370,7 +370,6 @@ constexpr int kServerMessageZone = 8;
 
 int& SpectatorFlag() { return options::TheOptions()->drawVisibleOnly_; }
 
-
 bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
 
 // Tells the clients of the game server where the game is: the host's address and the zone.
@@ -467,11 +466,6 @@ int StartNetworkZone(const char* zone) {
     return 1;
 }
 
-namespace {
-
-
-} // namespace
-
 std::string* CWorldServer::ZoneNameInto(std::string* out) {
     *out = zoneName_;
     return out;
@@ -550,7 +544,6 @@ void GameFlow::UpdateMultiplayerVariable() {
 // ---- Starting a multiplayer game ------------------------------------------------------------------
 
 namespace {
-
 
 CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
 constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's unit id
@@ -636,10 +629,6 @@ void GameFlow::RecreateClientSession() {
     if (session) ++session->refs_;
     ReleaseSession(previous);
 }
-
-namespace {
-
-} // namespace
 
 int GameFlow::SaveGameThunk(const char* slot) { return SaveGame(slot); }
 
@@ -930,22 +919,12 @@ libcrt::Ostream* const kNetLog = &console::g_netLogOut;
 } // namespace
 
 void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
-    mfc::CTypedPtrList<netlink::NetLink> joined;
-    joined.vtable = gameslots::RefListAClass::Vtable();
-    joined.head = nullptr;
-    joined.tail = nullptr;
-    joined.count = 0;
-    joined.free = nullptr;
-    joined.blocks = nullptr;
-    joined.blockSize = 10;
-    if (gameResult_ == 0) {
-        mfc::impl::ListAs<gamelists::Refs>(&joined)->RemoveAll();
-        return;
-    }
+    std::list<netlink::NetLink*> joined;
+    if (gameResult_ == 0) return;
     lobby->TakeNew(&joined);
-    for (auto* node = joined.head; node;) {
-        auto* next = node->next;
-        netlink::NetLink* connection = node->data;
+    for (auto node = joined.begin(); node != joined.end();) {
+        auto next = std::next(node);
+        netlink::NetLink* connection = *node;
         CPlayer* player = players_->CreateSessionPlayer();
         player->Connect(connection);
         player->dirty_ = 0xFFFFFFFFu;
@@ -956,13 +935,8 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
         node = next;
     }
     // The list's inlined destructor: every reference released, then the blocks.
-    joined.vtable = gameslots::RefListAClass::Vtable();
-    for (auto* node = joined.head; node; node = node->next) ReleaseSession(node->data);
-    joined.count = 0;
-    joined.free = nullptr;
-    joined.tail = nullptr;
-    joined.head = nullptr;
-    mfc::PlexFreeDataChain(joined.blocks);
+    for (auto node = joined.begin(); node != joined.end(); ++node) ReleaseSession(*node);
+    joined.clear();
 }
 
 namespace {
@@ -1051,11 +1025,6 @@ int LoadMission(CStream* file) {
     }
     return TheServerWorld()->LoadSave(&mission, nullptr);
 }
-
-namespace {
-
-
-} // namespace
 
 void ClearSaveFolder(const char* path) {
     gameapi::CreateDirectoryA(path, nullptr);
@@ -1175,10 +1144,6 @@ void GameFlow::StartZone(const char* zone, int mode) {
     TheClientWorld()->SetPlayer(TheServerWorld()->shared5C_.Get());
     ClientWorldLocalView(TheClientWorld())->sendParty_ = 0;
 }
-
-namespace {
-
-} // namespace
 
 void GameFlow::StartNewGame() {
     // Rebirth's AutoExec #2 (the call redirected): addon's AutoExec lines first.
@@ -1518,7 +1483,6 @@ void GameFlow::AfterServerStart() {
 }
 
 namespace {
-
 
 unsigned g_serverStamp = /*007AFED0*/ {};
 unsigned& ServerStamp() { return g_serverStamp; }   // the newest variable stamp seen

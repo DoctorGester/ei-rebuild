@@ -33,7 +33,6 @@
 #include "lib/mfc_string.h"
 #include "camera.h"
 
-
 namespace {
 // The game's save stream's version and a game being loaded (the save stream holds its data).
 int SaveVersion() { return static_cast<int>(GameSaveStream()->version_); }
@@ -45,7 +44,6 @@ bool LoadingGame() { return GameSaveStream()->size_ != 0; }
 CHudUnitPanel::CHudUnitPanel(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {}
 
 CHudMap::CHudMap(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {}
-
 
 void CBattleScreen::CreateScreen() {
     float mapZoom = 1.0f;
@@ -61,8 +59,8 @@ void CBattleScreen::CreateScreen() {
         stream->Seek(0);
         int count;
         stream->Read(&count, 4);
-        heroes_.SetSize(count, -1);
-        for (int i = 0; i < heroes_.size; ++i) stream->Read(&heroes_.data[i], 4);
+        heroes_.resize(count);
+        for (int i = 0; i < std::ssize(heroes_); ++i) stream->Read(&heroes_[i], 4);
         stream->Read(&mapZoom, 4);
         std::uint8_t serverFlag;
         stream->Read(&serverFlag, 1);
@@ -83,10 +81,10 @@ void CBattleScreen::CreateScreen() {
         // A new game: the local player's first hero.
         if (LocalPlayerData()->members_.size > 0) {
             CParty* player = LocalPlayerData();
-            int index = heroes_.size;
+            int index = std::ssize(heroes_);
             std::uint32_t hero = player->members_.data[0].unitId;
-            heroes_.SetSize(index + 1, -1);
-            heroes_.data[index] = hero;
+            heroes_.resize(index + 1);
+            heroes_[index] = hero;
             hasHero_ = true;
         }
     }
@@ -170,7 +168,7 @@ void CBattleScreen::CreateScreen() {
     pendingSlot_ = -1;
     GameSetWeather(0, 0.0f);   // clear weather
     GameStartAmbience();
-    party_.SetSize(0, -1);
+    party_.clear();
     viewPressed_ = false;
     boxSelecting_ = false;
     std::memset(orderKeys_, 0, 6);   // dword and +0x191 word
@@ -184,7 +182,6 @@ void CBattleScreen::CreateScreen() {
     }
     clientParty_.camera = -1;
 }
-
 
 namespace {
 

@@ -113,14 +113,13 @@ static_assert(sizeof(MapObjectIdMap) == 0x18);
 
 // Walks the world's player list; the list object is reference counted while an iterator holds it.
 struct PlayerIterator : ObjectListIteratorOf<CPlayer> {
-    PlayerIterator() : ObjectListIteratorOf<CPlayer>{{nullptr, nullptr}} {}
+    PlayerIterator() : ObjectListIteratorOf<CPlayer>{{nullptr, {}}} {}
 
     // Drops the list's count without releasing it.
     ~PlayerIterator() {
         if (manager) --manager->refCount_;
     }
 };
-static_assert(sizeof(PlayerIterator) == 8);
 
 // Walks an object map's values; null at the end.
 struct ObjectMapIterator {
@@ -253,7 +252,7 @@ static_assert(sizeof(WorldAlarm) == 16);
 // The world the missiles find while they load.
 inline CWorldServer* g_loadingProjectileWorld = /*007C84EC*/ {nullptr};
 // The world server's missiles (the spells being applied), counted.
-using ProjectileList = mfc::CTypedPtrList<CSpellEffect>;
+using ProjectileList = std::list<CSpellEffect*>;
 
 using WorldStream = CStream;
 
@@ -287,10 +286,9 @@ struct SharedObject {
     // object is appended with a reference.
     void Load(WorldStream* stream);
 };
-static_assert(sizeof(SharedObject) == 0x20);
 using SharedObjectList = mfc::CList<SharedObject>;
 
-using RecordPtrArray = mfc::CArray<PartyUnitRecord*>;
+using RecordPtrArray = std::vector<PartyUnitRecord*>;
 
 class CWorldServer : public CWorld {
 public:
@@ -416,7 +414,7 @@ public:
     void UpdatePlayerTimes(float offset);
     // Puts a new entry at the head of the shared-object list: `id`, the session player's field for that id in a
     // multiplayer game (else -1), `value`, and references to the objects of `objects`. `unused` is ignored.
-    void AddSharedObject(int id, int unused, std::uint32_t value, const mfc::CTypedPtrList<CItem>* objects);
+    void AddSharedObject(int id, int unused, std::uint32_t value, const std::list<CItem*>* objects);
     // Before a save: every living unit refills its controller's slots and runs the controller's matching
     // virtual with 0.
     void PrepareSave();
@@ -510,7 +508,7 @@ public:
 
     // Moves quest items (class 0x14) from `items` to `list`: in single player only those whose description
     // names this zone or whose id an object of the zone asks for; otherwise all.
-    void TakeZoneQuestItems(lib::AlignedArray<CItem*>* items, mfc::CTypedPtrList<CItem>* list);
+    void TakeZoneQuestItems(lib::AlignedArray<CItem*>* items, std::list<CItem*>* list);
     // Gives the player fresh copies of the items it brings into the zone (all of them on a client, the
     // zone's quest items otherwise; nothing in a network game).
     void RestorePlayerItems(CPlayer* player);
@@ -602,19 +600,10 @@ public:
     // The zone header SendFreshObjects sends to a temporary player.
     CMemoryStream zoneHeader_;
     ProjectileList projectiles_;
-    mfc::CTypedPtrList<CEngineObject> counted_; // counted references (released on clear)
+    std::list<CEngineObject*> counted_; // counted references (released on clear)
     SharedObjectList sharedObjects_;
 };
 static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
-static_assert(offsetof(CWorldServer, nightLevel_) == 0x84);
-static_assert(offsetof(CWorldServer, loaded_) == 0x100);
-static_assert(offsetof(CWorldServer, zoneName_) == 0x120);
-static_assert(offsetof(CWorldServer, loadedFresh_) == 0x11D);
-static_assert(offsetof(CWorldServer, keepsState_) == 0x11E);
-static_assert(offsetof(CWorldServer, alarms_) == 0x8C);
-static_assert(offsetof(CWorldServer, climate_) == 0xDC);
-static_assert(offsetof(CWorldServer, exits_) == 0xEC);
-static_assert(offsetof(CWorldServer, updateMap_) == 0x104);
 
 // One walkable platform (bridge, deck) the client tests positions against.
 struct Platform {
@@ -630,9 +619,8 @@ struct Platform {
 };
 static_assert(sizeof(Platform) == 0x4C);
 
-using PlatformList = mfc::CList<Platform>;
-using PlatformNode = PlatformList::Node;
-static_assert(sizeof(PlatformNode) == 0x54);
+using PlatformList = std::list<Platform>;
+using PlatformNode = PlatformList::iterator;
 
 // The client world's platform set: the engine's CBridgeManager (class 0x34) with the CList of the platform faces
 // (AddFace adds at the head).
@@ -667,7 +655,6 @@ public:
     PlatformList list;                    // the faces, the newest first
 };
 static_assert(offsetof(PlatformSet, list) == 0x1C);
-static_assert(sizeof(PlatformSet) == 0x38);
 
 // The unit set the server's SendZone fills and the client reads back as its unit looks (unit_looks.h): the figured
 // records grouped by prototype (each group an STLport hash_map keyed by three packed 10-bit values), and the dressed
@@ -752,15 +739,14 @@ struct ReleaseIdentified {
     std::uint8_t unused;
 };
 // The client's pending map from an object id to its node in the pending list.
-struct PendingIndex : stlp::hash_map<std::uint32_t, mfc::CList<CMapObject*>::Node*, stlp::IntHash> {
-    int Lookup(const std::uint32_t* key, mfc::CList<CMapObject*>::Node** value) const;
+struct PendingIndex : stlp::hash_map<std::uint32_t, std::list<CMapObject*>::iterator, stlp::IntHash> {
+    int Lookup(const std::uint32_t* key, std::list<CMapObject*>::iterator* value) const;
 };
 using PendingMap = PendingIndex;
 template <std::size_t N>
 struct OpaqueRecord {
     std::uint8_t bytes[N];
 };
-
 
 // The worlds' counted helpers: player sources (player_source.h; Query false, the client's Segment calls Pump every
 // tick). The server's hands its pending link over once (TakeNew).
@@ -812,7 +798,6 @@ struct HitCollector {
     ScreenHits* hits;
 };
 
-
 class CLightningManager;
 // The visibility fog's manager ("CVisFogManager", class id 0x60): a counted object and a CList.
 struct ClientArrayManager : CBaseManager {
@@ -830,7 +815,6 @@ struct ClientArrayManager : CBaseManager {
     HeldTexture texture;                  // the fog texture (counted)
     mfc::CList<CEngineObject*> list;      // counted
 };
-static_assert(sizeof(ClientArrayManager) == 0xD0);
 // The manager's Clear (its object and every listed one released, the list emptied); a new fog object,
 // counted, at the list end.
 void VisFogManagerDestroy(ClientArrayManager* manager);
@@ -1083,7 +1067,7 @@ public:
     MapObjectList objects_;               // every filed object (one reference each)
     // The objects answering IsSynchronised, with their nodes by id in dynamicNodes_ and the highest id
     // in dynamicMaxId_ (Segment drops those whose update returns 0).
-    mfc::CList<CMapObject*> dynamicObjects_;
+    std::list<CMapObject*> dynamicObjects_;
     PendingMap dynamicNodes_;             // id -> its node in dynamicObjects_
     int dynamicMaxId_;
     std::list<ScreenEntry> screenEntries_;   // the window rectangles of the frame
@@ -1168,15 +1152,6 @@ public:
     std::string windowTitle_;
     std::string pausedTitle_;
 };
-static_assert(offsetof(CWorldClient, nextClientObjectId_) == 0x84);
-static_assert(offsetof(CWorldClient, countedA0_) == 0xA0);
-static_assert(offsetof(CWorldClient, heroes_) == 0xB4);
-static_assert(offsetof(CWorldClient, objects_) == 0xB8);
-static_assert(offsetof(CWorldClient, dynamicObjects_) == 0xBC);
-static_assert(offsetof(CWorldClient, dynamicNodes_) == 0xD8);
-static_assert(offsetof(CWorldClient, dynamicMaxId_) == 0xEC);
-static_assert(offsetof(CWorldClient, screenEntries_) == 0xF0);
-static_assert(offsetof(CWorldClient, exits_) == 0x8C);
 
 // Orders screen entries (their objects by objectId) by distance along the view's depth axis; dead and
 // living objects are separated first.
@@ -1473,7 +1448,6 @@ inline stlp::list<CMapObject*>* FrameDeferredUnits() { return &*g_deferredUnits;
 inline int& NextClientObjectId() { return TheClientWorld()->nextClientObjectId_; }
 inline CItemManager* WorldItemManager() { return TheServerWorld()->itemManager_; }
 inline CMapObjectManager* WorldObjectManager() { return TheServerWorld()->manager40_; }
-
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a
 // thunder sound, otherwise a point light at the middle, a sound and two bolts.

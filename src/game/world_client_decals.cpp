@@ -124,9 +124,9 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     CTransformPipeline* pipeline = ScenePipeline();
     if (objects) {
         PartData data;
-        for (PlatformNode* face = platforms_.list.head; face;) {
-            PlatformNode* next = face->next;
-            CObject3D* object = ObjectWithId(face->data.id);
+        for (auto face = platforms_.list.begin(); face != platforms_.list.end();) {
+            auto next = std::next(face);
+            CObject3D* object = ObjectWithId(face->id);
             face = next;
             if (!object) continue;
             // The object's bounding sphere about its origin, then about its centre.

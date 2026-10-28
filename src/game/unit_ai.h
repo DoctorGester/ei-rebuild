@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <list>
 #include <string>
 
 template <typename T>
@@ -30,14 +31,13 @@ struct AIOrder;
 class CUnitServer;
 struct AIEventPresence;
 
-struct CountedUnits : mfc::CTypedPtrList<CUnit> {
-    // Appends `object`, holding a reference; returns the node.
-    Node* AddCountedTail(CUnit* object);
+struct CountedUnits : std::list<CUnit*> {
+    // Appends `object`, holding a reference.
+    void AddCountedTail(CUnit* object);
     // The brain's corpse list's head handed to `out` with a reference (the list's own reference released). Returns `out`.
     AIRefTo<CUnit>* PopHead(AIRefTo<CUnit>* out);
 };
 using AIObjectList = CountedUnits;
-
 
 // An order as the controller's order checks take it (built on the stack).
 struct AIOrder {
@@ -460,9 +460,8 @@ public:
     int GetType() override;
 };
 
-
 // A count read from `stream`, then that many counted references appended to `list`, each loaded in `context`.
-void CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, CWorld* context);
+void CountedListLoad(std::list<CUnit*>* list, CStream* stream, CWorld* context);
 
 class CSpell;
 namespace console {
@@ -563,7 +562,6 @@ static_assert(sizeof(AIAttackOptions) == 0x14);
 // The count, the array sized to it, then each option.
 void LoadAttackOptions(AIAttackOptions* options, CStream* stream);
 
-
 // The brain's attention: the unit's attack options and choosing a target.
 struct AIAttention {
     // The best {part, object} to attack or help into `choice`: the current attack scored first, then (without
@@ -615,7 +613,6 @@ struct AIAttention {
     float healWeight;               // the largest Weight of the weapons (Build); kind 7 scores with it
 };
 static_assert(sizeof(AIAttention) == 0x2C);
-
 
 double AIDistance2(const Vector3* a, const Vector3* b);
 
@@ -677,10 +674,6 @@ struct AIMemory {
 };
 static_assert(offsetof(AIMemory, noticedX) == 0x10);
 static_assert(offsetof(AIMemory, nearby) == 0x24);
-static_assert(offsetof(AIMemory, reports) == 0x94);
-static_assert(offsetof(AIMemory, calls) == 0xA8);
-static_assert(offsetof(AIMemory, seesEnemy) == 0xBC);
-static_assert(sizeof(AIMemory) == 0xC0);
 
 // The brain, embedded in the unit controller.
 struct AIBrain {
@@ -816,7 +809,7 @@ struct AIBrain {
     Vector3 position;
     int standCooldown;              // FindStandPoint fails while above 0 (one off per call)
     int followTimer;                // UpdateFollow acts once it has counted past 8
-    mfc::CTypedPtrList<AIMode> modes;   // (elements are counted references)
+    std::list<AIMode*> modes;   // (elements are counted references)
     AIMode* current;
     AIAlarmRecordArray alarmRecords;
     AIAttention attention;
@@ -829,9 +822,4 @@ static_assert(offsetof(AIBrain, decay) == 0x4C);
 static_assert(offsetof(AIBrain, previousPosition) == 0x50);
 static_assert(offsetof(AIBrain, position) == 0x5C);
 static_assert(offsetof(AIBrain, modes) == 0x70);
-static_assert(offsetof(AIBrain, current) == 0x8C);
-static_assert(offsetof(AIBrain, alarmRecords) == 0x90);
-static_assert(offsetof(AIBrain, memory) == 0xD0);
-static_assert(sizeof(AIBrain) == 0x190);
-static_assert(offsetof(AIBrain, attention) == 0xA4);
 

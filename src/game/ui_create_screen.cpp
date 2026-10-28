@@ -16,8 +16,6 @@
 #include "render/render_state.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "lib/mfc_array.h"
-#include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "world_glue.h"
 #include "library_trees.h"
@@ -46,14 +44,11 @@ Node* EmptyList() {
 
 // The screens CreateScreen builds inline (screens 1 and 3; 2 and 7 have only the container's).
 CBattleScreen::CBattleScreen(CInterface3D* ui) : CUiContainer(ui) {
-    mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&party_);
-    mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(&heroes_);
     personTexts_.Construct();
     itemUseKey_.ConstructItemUseKey();
 }
 
 CBriefingScreen::CBriefingScreen(CInterface3D* ui) : CUiContainer(ui) {
-    mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&party_);
     movers_ = EmptyList<BriefingMover>();
     personTexts_.Construct();
     shown_ = EmptyList<BriefingShownItem>();

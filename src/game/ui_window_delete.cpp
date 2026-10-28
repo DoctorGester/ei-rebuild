@@ -17,18 +17,11 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "game_data.h"
-#include "lib/mfc_slots.h"
 
 #include <memory>
 #include <string>
 
 namespace {
-
-// The vtables the bodies write.
-void* ItemArrayVtable() { return mfc::impl::ItemStripArrayClass::Vtable(); }   // CArray<char*>
-void* PartyArrayVtable() { return mfc::impl::UnitPtrArrayClass::Vtable(); }       // the battle screen's party
-void* DwordArrayVtable() { return mfc::impl::IntArrayClass::Vtable(); }       // CDWordArray
-void* ObjectiveExitsVtable() { return mfc::impl::ObjectiveExitArrayClass::Vtable(); }   // CArray<ObjectiveExit>
 
 // An STLport vector's storage back to the node pool (its elements already destroyed).
 template <typename T>
@@ -78,10 +71,7 @@ CChatWindow::~CChatWindow() {
     players_.FreeStorage();
 }
 
-CForwardingStrip::~CForwardingStrip() {
-    list_.vtable = ItemArrayVtable();
-    list_.FreeData();
-}
+CForwardingStrip::~CForwardingStrip() = default;
 
 CSpellMakerPage::~CSpellMakerPage() = default;
 
@@ -105,10 +95,6 @@ CChatOverlay::~CChatOverlay() { DestroyList(lines_, [](ChatLine* line) { line->D
 
 CBattleScreen::~CBattleScreen() {
     DestroyPersonTexts(personTexts_);
-    heroes_.vtable = DwordArrayVtable();
-    heroes_.FreeData();
-    party_.vtable = PartyArrayVtable();
-    party_.FreeData();
 }
 
 static_assert(sizeof(BriefingMover) == 0x30);
@@ -135,8 +121,6 @@ CBriefingScreen::~CBriefingScreen() {
     movers_->next = movers_;
     movers_->prev = movers_;
     stlp::deallocate(movers_, sizeof(BriefingMover));
-    party_.vtable = PartyArrayVtable();
-    party_.FreeData();
 }
 
 CMpConnectScreen::~CMpConnectScreen() {
@@ -149,10 +133,7 @@ CMpConnectScreen::~CMpConnectScreen() {
 
 CHelpWindow::~CHelpWindow() {}
 
-CObjectivesWindow::~CObjectivesWindow() {
-    exits_.vtable = ObjectiveExitsVtable();
-    if (exits_.data) gamecrt::operator_delete(exits_.data);
-}
+CObjectivesWindow::~CObjectivesWindow() = default;
 
 CSaveLoadWindow::~CSaveLoadWindow() {
     for (SaveEntry* entry = entries_.begin(); entry != entries_.end(); ++entry) {

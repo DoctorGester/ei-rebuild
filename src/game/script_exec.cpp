@@ -45,10 +45,10 @@
 #include <cstdint>
 #include <cstring>
 #include <bit>
+#include <list>
 #include <string>
 
 namespace {
-
 
 // The game's _ftol: truncating conversion, low 32 bits of the 64-bit result.
 int Ftol(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
@@ -59,7 +59,6 @@ bool IsZero(float value) {
 }
 
 int Round(float value) { return x87::fistp(value); }
-
 
 constexpr int kClassLever = 0x5D;
 constexpr int kClassQuestItem = 0x14;
@@ -80,9 +79,7 @@ CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }
 
 NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
 
-
 CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
-
 
 net::ServerSession* ServerPointer() { return net::GameServer(); }
 bool ServerActive() {
@@ -94,9 +91,7 @@ CPlayerManager* TheEvents() { return TheServerWorld()->players_; }
 
 CSpellManager* TheSpellManager() { return TheServerWorld()->manager4C_; }
 
-
-
-using PtrList = mfc::CList<CUnit*>;
+using PtrList = std::list<CUnit*>;
 
 CUnitServer* UnitState(CUnit* unit) { return unit->ServerController(); }
 AIBrain* BrainOf(CUnitServer* state) { return state->Brain(); }
@@ -153,7 +148,6 @@ void SetLoopCounter(const SSCCmd* cmd, int i) {
 
 int& ForDepth(CScript* script) { return script->forDepth_; }
 
-
 void SetCP(const SSCCmd* cmd, bool fast) {
     CMapObject* object = ObjectSlots(Arg(cmd, 0));   // a unit or another map object
     if (!object) return;
@@ -180,18 +174,17 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     // Other objects: the units around the new place are taken off the sector map, moved off cells
     // they cannot stay in, and put back.
     PtrList units;
-    mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(&units, 10);
     float radius = object->bounds.radius + object->bounds.radius;
     map->FindUnitsInRadius(Position(object), &units, radius);
-    for (PtrList::Node* pos = units.head; pos;) {
-        CUnit* unit = pos->data;
-        pos = pos->next;
+    for (auto pos = units.begin(); pos != units.end();) {
+        CUnit* unit = *pos;
+        ++pos;
         map->RemoveFromSectors(unit);
     }
-    for (PtrList::Node* pos = units.head; pos;) {
+    for (auto pos = units.begin(); pos != units.end();) {
         Vector3 free;
-        CUnit* unit = pos->data;
-        pos = pos->next;
+        CUnit* unit = *pos;
+        ++pos;
         if (!map->CanLeaveCell(unit)) {
             free = *Position(unit);
             map->FindFreeCellNear(unit, Position(unit), &free);
@@ -201,7 +194,6 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->AddToSectors(unit);
     }
     object->MarkChanged(2);
-    mfc::impl::DestructList<mfc::impl::PtrListClass>(units);
 }
 
 void GiveSkill(const SSCCmd* cmd) {
@@ -327,7 +319,6 @@ void UnitModes(const SSCCmd* cmd) {
 }
 
 } // namespace
-
 
 BOOL ScriptRun::Execute(CScript* script) {
     ++ticks;
@@ -1053,25 +1044,21 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xA7: {   // GiveMoney(player, amount)
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            mfc::CTypedPtrList<CItem> items;
-            mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&items, 10);
+            std::list<CItem*> items;
             player->Party()->Money() += Ftol(f[1]);
             player->GiveItems(&items, 0);
-            mfc::impl::DestructList<mfc::impl::ItemListClass>(items);
             break;
         }
         case 0x92:     // GiveQuestItem(player, item)
         case 0xA6: {   // GiveItem(player, item)
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            mfc::CTypedPtrList<CItem> items;
-            mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&items, 10);
+            std::list<CItem*> items;
             CItem* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
             if (item) {
-                items.AddTail(item);
+                items.push_back(item);
                 player->GiveItems(&items, 0);
             }
-            mfc::impl::DestructList<mfc::impl::ItemListClass>(items);
             break;
         }
         case 0x93: {   // EraseQuestItem(player, id)

@@ -11,7 +11,8 @@
 #include "lib/mfc_slots.h"
 
 #include <cstring>
-
+#include <list>
+#include <vector>
 
 namespace {
 
@@ -20,12 +21,11 @@ constexpr float kZero = 0.0f;
 
 } // namespace
 
-
 void Sector::Clear() {
     freeOccluder = -1;
-    occluders.SetSize(0, -1);
-    objects.RemoveAll();
-    units.RemoveAll();
+    occluders.clear();
+    objects.clear();
+    units.clear();
 }
 
 int Sector::NewOccluder() {
@@ -34,8 +34,8 @@ int Sector::NewOccluder() {
         freeOccluder = occluders[index].next;
         return index;
     }
-    occluders.SetSize(occluders.size + 1, -1);
-    return occluders.size - 1;
+    occluders.resize(std::ssize(occluders) + 1);
+    return std::ssize(occluders) - 1;
 }
 
 int Sector::RemoveOccluder(int head, int bottom, int top, int kind, int transparency) {
@@ -62,9 +62,6 @@ void Sector::FreeOccluder(int index) {
 }
 
 Sector::Sector() {
-    objects = {mfc::impl::ClientObjectListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    units = {mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    occluders.Construct(mfc::impl::SectorOccluderArrayClass::Vtable());
     Clear();
 }
 
@@ -107,8 +104,8 @@ bool CSectorMap::Add(CMapObject* object) {
     if (sx >= width || sy >= height || sx < 0 || sy < 0) return false;
 
     Sector& sector = sectors[width * sy + sx];
-    if (CUnit* unit = UnitOrNull(object)) sector.units.AddTail(unit);
-    else sector.objects.AddTail(object);
+    if (CUnit* unit = UnitOrNull(object)) sector.units.push_back(unit);
+    else sector.objects.push_back(object);
 
     bool fits = aiMap->MarkFootprint(object, false);
     if (fits) {
@@ -122,14 +119,14 @@ bool CSectorMap::Add(CMapObject* object) {
     // Does not fit: take it out of the list again.
     Sector& again = sectors[width * sy + sx];
     if (CUnit* unit = UnitOrNull(object)) {
-        if (auto* node = again.units.Find(unit)) again.units.RemoveAt(node);
+        if (auto node = std::ranges::find(again.units, unit); node != again.units.end()) again.units.erase(node);
     } else {
-        if (auto* node = again.objects.Find(object)) again.objects.RemoveAt(node);
+        if (auto node = std::ranges::find(again.objects, object); node != again.objects.end()) again.objects.erase(node);
     }
     return false;
 }
 
-mfc::CTypedPtrList<CUnit>* CSectorMap::UnitsAt(int sx, int sy) {
+std::list<CUnit*>* CSectorMap::UnitsAt(int sx, int sy) {
     if (sx < 0 || sy < 0 || sx >= width || sy >= height) return nullptr;
     return &sectors[width * sy + sx].units;
 }
@@ -140,13 +137,13 @@ bool CSectorMap::Remove(CMapObject* object) {
 
     Sector& sector = sectors[width * sy + sx];
     if (CUnit* unit = UnitOrNull(object)) {
-        auto* node = sector.units.Find(unit);
-        if (!node) return false;
-        sector.units.RemoveAt(node);
+        auto node = std::ranges::find(sector.units, unit);
+        if (node == sector.units.end()) return false;
+        sector.units.erase(node);
     } else {
-        auto* node = sector.objects.Find(object);
-        if (!node) return false;
-        sector.objects.RemoveAt(node);
+        auto node = std::ranges::find(sector.objects, object);
+        if (node == sector.objects.end()) return false;
+        sector.objects.erase(node);
     }
 
     bool cleared = aiMap->MarkFootprint(object, true);
@@ -162,8 +159,8 @@ namespace {
 // Spiral of sector offsets ordered by distance, with a radius-to-length table (sector_spiral.cpp);
 // RadiusTree::Find maps a radius to a table index.
 const RadiusTree* Spiral() { return SpiralRadiusTree(); }
-const int* SpiralLengths() { return SpiralLengthArray()->data; }
-const std::int16_t* SpiralOffsets() { return &SpiralOffsetArray()->data->x; }
+const int* SpiralLengths() { return SpiralLengthArray()->data(); }
+const std::int16_t* SpiralOffsets() { return &SpiralOffsetArray()->data()->x; }
 } // namespace
 
 int RadiusTree::Find(float radius) const {
@@ -226,47 +223,45 @@ int Gap(int v) { return v == 0 ? 0 : (v < 0 ? -v : v) - 1; }
 
 } // namespace
 
-void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArray<SpiralOffset>* offsets) {
-    mfc::CArray<SpiralCell> cells;
-    cells.Construct(mfc::impl::SpiralCellArrayClass::Vtable());
-    cells.SetSize(kSpiralCells, -1);
-    offsets->SetSize(kSpiralCells, -1);
+void BuildSectorSpiralAt(std::vector<int>* lengths, RadiusTree* tree, std::vector<SpiralOffset>* offsets) {
+    std::vector<SpiralCell> cells;
+    cells.resize(kSpiralCells);
+    offsets->resize(kSpiralCells);
     int filled = 0;
     for (int y = -kSpiralReach; y <= kSpiralReach; ++y) {
         for (int x = -kSpiralReach; x <= kSpiralReach; ++x) {
             // The squares are summed as integers (FILD, FSQRT, stored as a float); the gaps
             // are 9 at most, so the float sum is the same number.
             const Vector2 gap{static_cast<float>(Gap(x)), static_cast<float>(Gap(y))};
-            SpiralCell& cell = cells.data[filled++];
+            SpiralCell& cell = cells[filled++];
             cell.offset.x = static_cast<std::int16_t>(x);
             cell.offset.y = static_cast<std::int16_t>(y);
             cell.distance = Length2D(gap);
         }
     }
     // The game's own qsort: it decides the order of the sectors at the same distance.
-    libcrt::Qsort(cells.data, static_cast<std::size_t>(cells.size), sizeof(SpiralCell), ByDistance);
-    for (int i = 0; i < cells.size; ++i) offsets->data[i] = cells.data[i].offset;
+    libcrt::Qsort(cells.data(), cells.size(), sizeof(SpiralCell), ByDistance);
+    for (int i = 0; i < std::ssize(cells); ++i) (*offsets)[i] = cells[i].offset;
 
     // A length per distinct distance: the offsets up to and including that distance.
     mfc::CArray<float> radii;
     radii.Construct(mfc::impl::FloatArrayClass::Vtable());
-    lengths->SetSize(0, -1);
+    lengths->clear();
     radii.Add(0.0f);
-    lengths->Add(1);
-    for (int i = 0; i < cells.size; ++i) {
-        const float distance = cells.data[i].distance;
+    lengths->push_back(1);
+    for (int i = 0; i < std::ssize(cells); ++i) {
+        const float distance = cells[i].distance;
         if (distance == radii.data[radii.size - 1]) {
-            lengths->data[lengths->size - 1] = i + 1;
+            (*lengths)[std::ssize(*lengths) - 1] = i + 1;
         } else {
             radii.Add(distance);
-            lengths->Add(i + 1);
+            lengths->push_back(i + 1);
         }
     }
     radii.Add(kBeyondSpiral);
-    lengths->Add(offsets->size);
+    lengths->push_back(std::ssize(*offsets));
     tree->Build(radii.data, radii.size);
     radii.FreeData();
-    cells.FreeData();
 }
 
 // Builds the spiral in the tables (the static initialiser's object has no fields; returns it).
@@ -279,10 +274,10 @@ void* BuildSectorSpiral(void* self) {
 // has no fields and nothing reads it.
 void BuildSectorSpiralStatic() { BuildSectorSpiral(nullptr); }
 
-void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius) {
+void CSectorMap::FindUnitsInRadius(const Vector3* position, std::list<CUnit*>* result, float radius) {
     int length = SpiralLengths()[Spiral()->Find(radius * 0.03125f)];
     const std::int16_t* offset = SpiralOffsets();
-    result->RemoveAll();
+    result->clear();
 
     int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * position->x - 0.5f);
     int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * position->y - 0.5f);
@@ -296,13 +291,13 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<C
         int gx = offset[0] + sx, gy = offset[1] + sy;
         if (gx < 0 || gy < 0 || gx >= grid->width || gy >= grid->height) continue;
         Sector& sector = grid->sectors[grid->width * gy + gx];
-        for (auto* node = sector.units.head; node;) {
-            CUnit* unit = node->data;
-            node = node->next;
+        for (auto node = sector.units.begin(); node != sector.units.end();) {
+            CUnit* unit = *node;
+            ++node;
             float dx = unit->localPosition_.x - px, dy = unit->localPosition_.y - py;
             const auto distance = LengthSquared2DUnrounded(dy, dx);
             EI_NAN_AUDIT(distance);
-            if (distance < radiusSquared) result->AddHead(unit);
+            if (distance < radiusSquared) result->push_front(unit);
         }
     }
 }
@@ -340,11 +335,11 @@ bool CSectorMap::Move(CMapObject* object, const Vector3* position) {
         Sector& from = sectors[width * oldSy + oldSx];
         Sector& to = sectors[width * newSy + newSx];
         if (CUnit* unit = UnitOrNull(object)) {
-            if (auto* node = from.units.Find(unit)) from.units.RemoveAt(node);
-            to.units.AddTail(unit);
+            if (auto node = std::ranges::find(from.units, unit); node != from.units.end()) from.units.erase(node);
+            to.units.push_back(unit);
         } else {
-            if (auto* node = from.objects.Find(object)) from.objects.RemoveAt(node);
-            to.objects.AddTail(object);
+            if (auto node = std::ranges::find(from.objects, object); node != from.objects.end()) from.objects.erase(node);
+            to.objects.push_back(object);
         }
     }
     object->flags_ |= kInSectorMap;

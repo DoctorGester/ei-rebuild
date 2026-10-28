@@ -14,7 +14,6 @@ constexpr int kStoppedTypeA = 0x2001;
 constexpr int kStoppedTypeB = 0x2003;
 constexpr int kStoppedTypeC = 0x2004;
 
-
 // The inlined iterator destructor: the manager's count drops without a release.
 void EndWalk(ObjectListIterator& it) {
     if (it.manager) --it.manager->refCount_;
@@ -35,7 +34,11 @@ void CParticleManager::Destroy() {
         node->value->Release();
     held_.Clear();
     maxHeldId_ = 0;
-    while (freeParticles.count != 0) gamecrt::operator_delete(freeParticles.RemoveHead());
+    while (!freeParticles.empty()) {
+        Particle* p = freeParticles.front();
+        freeParticles.pop_front();
+        gamecrt::operator_delete(p);
+    }
     CBaseManager::Destroy();
     quietStart = 0;
 }
@@ -60,7 +63,7 @@ namespace {
 
 template <typename Pick>
 void ReleaseHeld(CParticleManager* manager, Pick drop) {
-    ObjectListIterator it{nullptr, nullptr};
+    ObjectListIterator it{nullptr, {}};
     CEngineObject* object = it.First(manager);
     std::list<int> ids;
     for (; object; object = it.Next()) {

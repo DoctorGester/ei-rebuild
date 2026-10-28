@@ -2,7 +2,6 @@
 // EnterZone). See world.h and docs/notes/world.md.
 #include "ai_map.h"
 #include "core_refcount.h"
-#include "game_lists.h"
 #include "base_manager.h"
 #include "hash_tables_400.h"
 #include "object_diplomacy.h"
@@ -25,12 +24,11 @@
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 
+#include <list>
 #include <string>
 #include <vector>
 
 namespace {
-
-
 
 // The timed objects are ended (ClearState) and released, then the map is emptied (the walk stops at the
 // first empty entry).
@@ -47,9 +45,9 @@ void EndTimedObjects(CWorldServer* world) {
 
 void ClearMissiles(CWorldServer* world) {
     auto& list = world->projectiles_;
-    for (auto* node = list.head; node; node = node->next)
-        ReleaseCounted(node->data);
-    list.RemoveAll();
+    for (auto node = list.begin(); node != list.end(); ++node)
+        ReleaseCounted(*node);
+    list.clear();
 }
 
 } // namespace
@@ -131,8 +129,8 @@ void CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructEle
 
 void ClearMissilePointers(CWorldServer* world) {
     auto& list = world->projectiles_;
-    for (auto* node = list.head; node; node = node->next) ReleaseCounted(node->data);
-    list.RemoveAll();   // the elements were destroyed above; this frees the blocks
+    for (auto node = list.begin(); node != list.end(); ++node) ReleaseCounted(*node);
+    list.clear();   // the elements were destroyed above; this frees the blocks
 }
 
 } // namespace
@@ -142,13 +140,13 @@ void CWorldServer::ResetZone() {
     for (auto* node = shared.head; node; node = node->next) node->data.DeletingDestruct(0);
     shared.RemoveAll();
     mobFiles_.clear();
-    countdowns_.RemoveAll();
+    countdowns_.clear();
     exits_.SetSize(0);
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
     ClearMissilePointers(this);
-    for (auto* node = counted_.head; node; node = node->next) CountedRangeRelease(&node->data, 1);
-    counted_.RemoveAll();
+    for (auto node = counted_.begin(); node != counted_.end(); ++node) CountedRangeRelease(&*node, 1);
+    counted_.clear();
 
     if (PlayerList()) {
         auto* it = gamecrt::operator_new_as<PlayerIterator>();
@@ -184,10 +182,6 @@ void CWorldServer::ResetZone() {
 
 // ---- TeardownZone -----------------------------------------------------------------------------
 
-namespace {
-
-} // namespace
-
 void CWorldServer::TeardownZone() {
     // Every player leaves (the list is walked from its start again after each one).
     PlayerIterator it;
@@ -215,11 +209,11 @@ void CWorldServer::TeardownZone() {
 
     // The missiles' counted pointers, released inline (16-bit count, deleted at zero).
     auto& missiles = projectiles_;
-    for (auto* node = missiles.head; node; node = node->next) {
-        CSpellEffect* missile = node->data;
+    for (auto node = missiles.begin(); node != missiles.end(); ++node) {
+        CSpellEffect* missile = *node;
         if (missile && --missile->refs_ == 0) delete missile;
     }
-    missiles.RemoveAll();
+    missiles.clear();
 
     EndTimedObjects(this);
     CloseSession();
@@ -229,20 +223,8 @@ void CWorldServer::TeardownZone() {
 
 // ---- SendFreshObjects -------------------------------------------------------------------------
 
-namespace {
-
-
-} // namespace
-
 void CWorldServer::SendFreshObjects() {
-    mfc::CTypedPtrList<CEngineObject> fresh;
-    fresh.vtable = mfc::impl::ClientObjectListClass::Vtable();
-    fresh.head = nullptr;
-    fresh.tail = nullptr;
-    fresh.count = 0;
-    fresh.free = nullptr;
-    fresh.blocks = nullptr;
-    fresh.blockSize = 10;
+    std::list<CEngineObject*> fresh;
     CStream* header = &zoneHeader_;
     header->Clear();
 
@@ -253,20 +235,17 @@ void CWorldServer::SendFreshObjects() {
         if (!mapObjects_.map.Find(id)) continue;
         if (object->IsSynchronised()) continue;
         sentObjects_.Set(static_cast<unsigned>(object->id_), object);
-        auto* entry = fresh.NewNode(fresh.tail, nullptr);
-        entry->data = object;
-        if (fresh.tail) fresh.tail->next = entry;
-        else fresh.head = entry;
-        fresh.tail = entry;
+        auto entry = fresh.emplace(fresh.end());
+        *entry = object;
     }
 
     // They stop being map objects and are sent to a temporary player, which is then dropped.
     CPlayer* temporary = players_->CreateSessionPlayer();
     CPlayerServer* state = temporary->Server();
     std::vector<CEngineObject*> objects;
-    for (auto* node = fresh.head; node;) {
-        auto* next = node->next;
-        CEngineObject* object = node->data;
+    for (auto node = fresh.begin(); node != fresh.end();) {
+        auto next = std::next(node);
+        CEngineObject* object = *node;
         unsigned id = static_cast<unsigned>(object->id_);
         hash400::RemoveKey(mapObjects_.map, id);
         id = static_cast<unsigned>(object->id_);
@@ -281,8 +260,7 @@ void CWorldServer::SendFreshObjects() {
     state->WriteTo(header);
     PlayerList()->ReleasePlayer(temporary);
     lib::FreeStorage(objects);
-    fresh.vtable = mfc::impl::ClientObjectListClass::Vtable();
-    fresh.RemoveAll();
+    fresh.clear();
 }
 
 void CWorldServer::ResetState() {

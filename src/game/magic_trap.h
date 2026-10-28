@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -63,9 +64,9 @@ public:
     // unless the spell has flag 0x10000000 or there are none; otherwise at each unit of `units`, singleTarget
     // first narrowing them to the last one closer than 1e30 (squared; NaN counts). Then countdown = period.
     // Nothing without units or a spell; nothing either (the countdown kept) when singleTarget finds none.
-    void CastAtUnits(mfc::CTypedPtrList<CUnit>* units);
+    void CastAtUnits(std::list<CUnit*>* units);
 
-    using UnitList = mfc::CTypedPtrList<CUnit>;
+    using UnitList = std::list<CUnit*>;
 
     std::uint32_t sides;            // bit per unit side that sets it off
     CSpell* spell;                  // a counted reference; null: none
@@ -80,4 +81,4 @@ public:
 // `out` becomes the living units whose side has its bit in `sides` within each circle of `area` (from the
 // world's sector map); a unit in two circles is appended twice.
 void FindTrapVictims(CWorldServer* context, const TrapArea* area, std::uint32_t sides,
-                                mfc::CTypedPtrList<CUnit>* out);
+                                std::list<CUnit*>* out);

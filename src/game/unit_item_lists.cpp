@@ -4,29 +4,31 @@
 
 #include "item.h"
 
+#include <list>
+
 // The loop runs once when the item has a spell.
-void GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* item) {
+void GatherItem(std::list<CItem*>* items, std::list<CSpell*>* spells, CItem* item) {
     if (!item) return;
-    items->AddTail(item);
+    items->push_back(item);
     CSpell* spell = item->spell_;
-    if (spell) spells->AddTail(spell);
+    if (spell) spells->push_back(spell);
 }
 
 namespace {
 // Empty slots add nothing.
-void AddItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* item) {
+void AddItem(std::list<CItem*>* items, std::list<CSpell*>* spells, CItem* item) {
     GatherItem(items, spells, item);
 }
 
 template <typename Item>
-void AddSlots(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, Item* const* slots, int count) {
+void AddSlots(std::list<CItem*>* items, std::list<CSpell*>* spells, Item* const* slots, int count) {
     for (int i = 0; i < count; ++i) AddItem(items, spells, slots[i]);
 }
 } // namespace
 
-void CUnit::CollectItems(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* itemSpells) {
-    items->RemoveAll();
-    itemSpells->RemoveAll();
+void CUnit::CollectItems(std::list<CItem*>* items, std::list<CSpell*>* itemSpells) {
+    items->clear();
+    itemSpells->clear();
     AddSlots(items, itemSpells, weapons, 4);
     AddSlots(items, itemSpells, armor, 7);
     AddSlots(items, itemSpells, quickItems, 4);

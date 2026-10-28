@@ -54,12 +54,12 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         regions_.data[i]->SetTip(0, 1, 0);
         regionItem_[i] = -1;
     }
-    entries_.SetSize(0, -1);   // (zeroed new entries)
+    entries_.clear();   // (zeroed new entries)
     if (!unit_) return;
 
     // The entry of the sprite just added.
     auto finish = [&](CItem* item, bool own) {
-        entries_.SetSize(shownCount_, -1);
+        entries_.resize(shownCount_);
         Entry& entry = entries_[shownCount_ - 1];
         entry.own = own;
         entry.id = item->id_;
@@ -103,13 +103,13 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
     CPlayer* player = GameLocalView()->player_;
     if (!player->IsLeader(unit_)) return;
     player = GameLocalView()->player_;
-    auto* node = player->items_.tail;
-    if (!node) return;
+    auto node = player->items_.rbegin();
+    if (node == player->items_.rend()) return;
     int slot = 4;
-    while (node) {
+    while (node != player->items_.rend()) {
         if (slot - 4 >= 4) break;
-        CItem* item = node->data;
-        node = node->prev;
+        CItem* item = *node;
+        ++node;
         if (!item || item->type_ != kItemQuest)
             continue;
         {
@@ -152,7 +152,6 @@ using List = std::list<std::uintptr_t>;
 using ListNode = List::iterator;
 using UnitList = stlp::list<CMapObject*>;
 void NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
-
 
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
 void PushId(IdVector* ids, const int* value) {
@@ -199,7 +198,7 @@ void RebuildClientParty(CBattleScreen* screen) {
     SortIds(&ids.without);
     if (!ids.Equals(screen->clientParty_)) {
         auto* party = &screen->party_;
-        party->SetSize(0, -1);
+        party->clear();
         bool cameraFirst = false;
         for (int* id = ids.withUnit.data(); id != ids.withUnit.data() + ids.withUnit.size(); ++id) {
             int unitId = *id;
@@ -208,18 +207,18 @@ void RebuildClientParty(CBattleScreen* screen) {
             if (unitId == ids.camera) {
                 TheClientWorld()->Select(unit);
                 // Insert at the front (InsertAt).
-                int n = party->size;
+                int n = std::ssize(*party);
                 if (n <= 0) {
-                    party->SetSize(1, -1);
+                    party->resize(1);
                 } else {
-                    party->SetSize(n + 1, -1);
-                    std::memmove(party->data + 1, party->data, static_cast<std::size_t>(n) * 4);
-                    mfc::PlainElements<CUnit*>::Construct(party->data, 1);
+                    party->resize(n + 1);
+                    std::memmove(party->data() + 1, party->data(), static_cast<std::size_t>(n) * 4);
+                    mfc::PlainElements<CUnit*>::Construct(party->data(), 1);
                 }
-                party->data[0] = unit;
+                (*party)[0] = unit;
                 cameraFirst = true;
             } else {
-                party->SetAtGrow(party->size, unit);
+                lib::SetAtGrow(*party, std::ssize(*party), unit);
             }
         }
         screen->portraits_->Rebuild(cameraFirst ? 1 : 0);
@@ -254,8 +253,8 @@ void CBattleScreen::Update() {
     auto* party = &party_;
     CUnit* first = nullptr;
     int selected = 0;
-    for (int i = 0; i < party->size; ++i) {
-        auto* unit = party->data[i];
+    for (int i = 0; i < std::ssize(*party); ++i) {
+        auto* unit = (*party)[i];
         if (unit && (unit->flags_ & 0x10)) {
             if (!first) first = unit;
             ++selected;
@@ -284,20 +283,16 @@ void CBattleScreen::Update() {
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.
     if (exitPending_) {
         // The local player's unit records (0x784 bytes each) and the ones in the exit.
-        mfc::CArray<PartyUnitRecord*> records = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
-        mfc::CArray<PartyUnitRecord*> second = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
+        std::vector<PartyUnitRecord*> records = {};
+        std::vector<PartyUnitRecord*> second = {};
         CParty* data = LocalPlayerData();
         for (int i = 0; i < data->members_.size; ++i)
-            records.SetAtGrow(records.size, &data->members_.data[i]);
+            lib::SetAtGrow(records, std::ssize(records), &data->members_.data[i]);
         if (GamePartyInExit(&records, pendingExit_, &second)) {
             CMessageBox* box = new CMessageBox(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
             interface_->PushWindow(box, 1, 1);
             exitPending_ = 0;
         }
-        second.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
-        if (second.data) gamecrt::operator_delete(second.data);
-        records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
-        if (records.data) gamecrt::operator_delete(records.data);
     }
 
     // The selection box: party units inside it are marked (flag 0x100 and their figure's slot 26
@@ -308,14 +303,14 @@ void CBattleScreen::Update() {
         TheClientWorld()->UnitsInBox(&selectionBox_, &units);
         List inside;
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
-            for (int i = 0; i < party->size; ++i) {
-                if (party->data[i] != node->data) continue;
+            for (int i = 0; i < std::ssize(*party); ++i) {
+                if ((*party)[i] != node->data) continue;
                 inside.push_back(static_cast<std::uintptr_t>(i));
             }
         }
         auto mark = [](CUnit* unit, int on) { unit->Object3D()->attached->SetLit(on); };
-        for (int i = 0; i < party->size; ++i) {
-            auto* unit = party->data[i];
+        for (int i = 0; i < std::ssize(*party); ++i) {
+            auto* unit = (*party)[i];
             std::uint32_t flags = unit->flags_;
             if (!(flags & 0x10) && (flags & 0x100)) {
                 unit->flags_ = flags & ~0x100u;
@@ -323,7 +318,7 @@ void CBattleScreen::Update() {
             }
         }
         for (ListNode node = inside.begin(); node != inside.end(); ++node) {
-            auto* unit = party->data[(*node)];
+            auto* unit = (*party)[(*node)];
             std::uint32_t flags = unit->flags_;
             if (!(flags & 0x10) && !(flags & 0x100)) {
                 unit->flags_ = flags | 0x100;
@@ -384,7 +379,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     }
 
     auto* party = &party_;
-    auto unitAt = [&](int i) { return party->data[i]; };
+    auto unitAt = [&](int i) { return (*party)[i]; };
     int first = -1;
     UnitList units;
     units.Construct();
@@ -392,8 +387,8 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     List inside;
     if (units.head->next != units.head) {
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
-            for (int i = 0; i < party->size; ++i) {
-                if (party->data[i] != node->data) continue;
+            for (int i = 0; i < std::ssize(*party); ++i) {
+                if ((*party)[i] != node->data) continue;
                 inside.push_back(static_cast<std::uintptr_t>(i));
                 if (first < 0) first = i;
             }
@@ -403,7 +398,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
             // Portrait i's selection marker (scene object 5 i + 4) and face state.
             auto marker = [&](int i) { return portraits_->SceneMesh(i * 5 + 4); };
             auto slot = [&](int i) -> HudPortraitSlot& { return portraits_->slots_[i]; };
-            for (int i = 0; i < party->size; ++i) {
+            for (int i = 0; i < std::ssize(*party); ++i) {
                 CUnit* unit = unitAt(i);
                 std::uint32_t flags = unit->flags_;
                 if (!(flags & 0x10) && (flags & 0x100)) {
@@ -536,8 +531,8 @@ void CBattleScreen::RefreshSelection() {
     auto* party = &party_;
     CUnit* first = nullptr;
     int selected = 0;
-    for (int i = 0; i < party->size; ++i) {
-        auto* unit = party->data[i];
+    for (int i = 0; i < std::ssize(*party); ++i) {
+        auto* unit = (*party)[i];
         if (!unit || !(unit->flags_ & 0x10)) continue;
         if (!first) first = unit;
         ++selected;

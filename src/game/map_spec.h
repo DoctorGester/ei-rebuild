@@ -72,7 +72,7 @@ static_assert(sizeof(LeverSetup) == 0x18);
 
 namespace mapspec {
 
-using PlainArray = mfc::CArray<std::uint8_t>;
+using PlainArray = std::vector<std::uint8_t>;
 
 // A waypoint of a unit record's patrol.
 struct Waypoint {

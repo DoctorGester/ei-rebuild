@@ -25,9 +25,9 @@
 #include "unit_db.h"
 
 #include <cstring>
+#include <list>
 #include <new>
 #include <string>
-#include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -93,18 +93,11 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
     builder.Construct();
     builder.Fill(game::EmptyText(), prototype, name);
     RecordPtrArray records;
-    records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
-    records.data = nullptr;
-    records.growBy = 0;
-    records.maxSize = 0;
-    records.size = 0;
     PartyUnitRecord* record = builder.Record();
-    records.SetSize(1, -1);
-    records.data[0] = record;
+    records.resize(1);
+    records[0] = record;
     record->unitId = id;
     CreateUnits(nullptr, &records, position, DefaultRotation(), nullptr);
-    records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
-    if (records.data) gamecrt::operator_delete(records.data);
     builder.Destruct();
 }
 
@@ -149,37 +142,29 @@ int CWorldServer::LoadMobFile(const char* file) {
 
 void CWorldServer::ClearMapObjects() {
     // The objects are collected first (an MFC list, block size 10), then removed one by one.
-    mfc::CTypedPtrList<CEngineObject> pending;
-    pending.vtable = mfc::impl::ClientObjectListClass::Vtable();
-    pending.head = nullptr;
-    pending.tail = nullptr;
-    pending.count = 0;
-    pending.free = nullptr;
-    pending.blocks = nullptr;
-    pending.blockSize = 10;
+    std::list<CEngineObject*> pending;
     for (auto* node = mapObjects_.map.First(); node; node = mapObjects_.map.After(node)) {
         CEngineObject* object = node->value;
         if (!object) break;   // the walk stops at the first empty entry
-        pending.AddTail(object);
+        pending.push_back(object);
     }
-    for (auto* node = pending.head; node;) {
-        auto* next = node->next;
-        RemoveObject(node->data->id_);
+    for (auto node = pending.begin(); node != pending.end();) {
+        auto next = std::next(node);
+        RemoveObject((*node)->id_);
         node = next;
     }
 
-    for (auto* node = projectiles_.head; node; node = node->next)
-        if (node->data) reinterpret_cast<CRefObject*>(node->data)->Release();
-    projectiles_.RemoveAll();
+    for (auto node = projectiles_.begin(); node != projectiles_.end(); ++node)
+        if (*node) reinterpret_cast<CRefObject*>(*node)->Release();
+    projectiles_.clear();
 
-    for (auto* node = counted_.head; node; node = node->next)
-        ObjectHolderRelease(&node->data);
-    counted_.RemoveAll();
+    for (auto node = counted_.begin(); node != counted_.end(); ++node)
+        ObjectHolderRelease(&*node);
+    counted_.clear();
 
-    countdowns_.RemoveAll();
+    countdowns_.clear();
 
-    pending.vtable = mfc::impl::ClientObjectListClass::Vtable();
-    pending.RemoveAll();   // the list destructor's body
+    pending.clear();   // the list destructor's body
 }
 
 void CWorldServer::SaveMapObjects(CStream* out) {

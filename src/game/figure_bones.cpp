@@ -48,9 +48,9 @@ void FigureBone::Place(const Vector3* origin) {
         CFigureMesh::OffsetSpan vertices{pose->vertices.data(), std::ssize(pose->vertices)};
         mesh->SetOffsets(&vertices);
     }
-    for (auto* node = children.head; node;) {
-        FigureBone* child = node->data;
-        node = node->next;
+    for (auto node = children.begin(); node != children.end();) {
+        FigureBone* child = *node;
+        ++node;
         child->Place(origin);
     }
 }

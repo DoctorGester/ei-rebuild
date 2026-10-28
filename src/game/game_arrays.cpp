@@ -12,14 +12,13 @@ void AllodRecordElements::Construct(AllodRecord* allods, int count) {
     for (; count > 0; --count, ++allods) {
         std::construct_at(&allods->name);
         for (auto& name : allods->otherNames) std::construct_at(&name);
-        allods->maps.Construct(mfc::impl::IntArrayClass::Vtable());
+        std::construct_at(&allods->maps);
     }
 }
 
 void AllodRecordElements::Destruct(AllodRecord* allods, int count) {
     for (; count > 0; --count, ++allods) {
-        allods->maps.vtable = mfc::impl::IntArrayClass::Vtable();
-        allods->maps.FreeData();
+        std::destroy_at(&allods->maps);
         for (int i = 4; i >= 0; --i) std::destroy_at(&allods->otherNames[i]);
         std::destroy_at(&allods->name);
     }

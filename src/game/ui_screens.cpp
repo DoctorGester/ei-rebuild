@@ -190,25 +190,25 @@ int CUiItemStrip::ArmorTab(const CItem* item) {
 }
 
 void CForwardingStrip::RebuildList() {
-    list_.SetSize(0, -1);
+    list_.clear();
     if (filter_ == 0 && tab_ == 5) {
         for (int i = 0; i < source_->size; ++i) {
-            int index = list_.size;
+            int index = std::ssize(list_);
             CItem* item = source_->data[i];
-            list_.SetSize(index + 1, -1);
-            list_.data[index] = item;
+            list_.resize(index + 1);
+            list_[index] = item;
         }
     } else {
         for (int i = 0; i < source_->size; ++i) {
             CItem* item = source_->data[i];
             if (TabOf(item) == tab_) {
-                int index = list_.size;
-                list_.SetSize(index + 1, -1);
-                list_.data[index] = item;
+                int index = std::ssize(list_);
+                list_.resize(index + 1);
+                list_[index] = item;
             }
         }
     }
-    count_ = list_.size;
+    count_ = std::ssize(list_);
 }
 
 int CUiItemStrip::TabOf(const CItem* item) {
@@ -224,13 +224,13 @@ void CUiItemStrip::ScrollToItem(CItem* item) {
     if (!item) return;
     CItem* wanted = item;
     float found = -1.0f;   // the list index of the last match (stored as float)
-    list_.SetSize(0, -1);
+    list_.clear();
     // The original inlines the array's SetSize in the second loop.
     auto append = [&](CItem* entry) {
-        if (wanted->IsSameAsSlot(entry)) found = static_cast<float>(list_.size);
-        int index = list_.size;
-        list_.SetSize(index + 1, -1);
-        list_.data[index] = entry;
+        if (wanted->IsSameAsSlot(entry)) found = static_cast<float>(list_.size());
+        int index = std::ssize(list_);
+        list_.resize(index + 1);
+        list_[index] = entry;
     };
     if (filter_ == 0 && tab_ == 5) {
         for (int i = 0; i < source_->size; ++i) append(source_->data[i]);
@@ -268,8 +268,8 @@ CItem* CForwardingStrip::ItemAt(int x, int y, int* cursor) {
     constexpr float kSlotsPerPixel = 0.01f;
     int index = static_cast<int>(gamecrt::Ftol(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]));
     RebuildList();
-    if (index < 0 || index >= list_.size) return nullptr;
-    return list_.data[index];
+    if (index < 0 || index >= std::ssize(list_)) return nullptr;
+    return list_[index];
 }
 
 void CUiItemStrip::SettleScroll() {

@@ -15,11 +15,11 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <list>
 #include <string>
 
 namespace {
@@ -45,7 +45,6 @@ void AppendCall(AIHeardCalls* calls, const Vector3& point, int kind, std::uint32
     added.hostileMask = static_cast<int>(mask);
     added.text = text;
 }
-
 
 } // namespace
 
@@ -76,15 +75,13 @@ void AIMemory::HearCall(const Vector3* point, int kind, const char* text) { call
 void AIMemory::AddClaim(std::uint32_t mask, int kind, const char* text) { calls.AddClaim(mask, kind, text); }
 
 void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector3* at) {
-    mfc::CTypedPtrList<CUnit> units{};
-    units.vtable = mfc::impl::PtrListClass::Vtable();
-    units.blockSize = 10;
+    std::list<CUnit*> units{};
     CUnit* unit = source->unit;
     const Vector3* point = at ? at : &unit->localPosition_;
     map->SectorMap()->FindUnitsInRadius(point, &units, kNoiseRadius);
-    for (auto* node = units.head; node;) {
-        auto* other = node->data;
-        node = node->next;
+    for (auto node = units.begin(); node != units.end();) {
+        auto* other = *node;
+        ++node;
         if (!other->IsHostileTo(unit)) continue;
         CUnitServer* control = other->ServerController();
         AIBrain* brain = control->Brain();
@@ -101,7 +98,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
         brain->memory.calls.Hear(&unit->localPosition_, kind, text.c_str());
     }
     // The list's RemoveAll: no element destruction.
-    units.RemoveAll();
+    units.clear();
 }
 
 AIEventPresence* AIViewer::StepNoise(const Vector3* position, CUnitServer* source) {

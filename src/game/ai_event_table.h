@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 
 struct AIEventPresence;
 struct AIMemory;
@@ -75,7 +76,6 @@ struct AIEvent {
 };
 static_assert(sizeof(AIEvent) == 0x30);
 // The pool's destructor (at exit): RemoveAll.
-void AIEventPoolDestruct(mfc::CList<AIEvent>* pool);
 
 // A map cell of the event grid: the newest event of each side (lists through AIEvent::next).
 struct AIEventCell {

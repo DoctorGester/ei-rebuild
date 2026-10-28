@@ -49,7 +49,7 @@ struct Sprite {               // 8 bytes
     const float* uv;          // the texture rectangle: u0, v0, u1, v1
 };
 using PointArray = std::vector<SpritePoint>;
-using SpriteArray = mfc::CArray<Sprite>;
+using SpriteArray = std::vector<Sprite>;
 
 // --- The statics ---------------------------------------------------------------------------------
 
@@ -64,12 +64,12 @@ std::vector<TLVertex>& Corners() { return g_corners; }     // 4 per sprite
 void FreeCorners() { lib::FreeStorage(g_corners); }
 // A CByteArray of a byte per corner and a CWordArray of indices: constructed on the first draw, destroyed by the exit
 // functions it registers (docs/notes/standalone.md, "The static initialisers' objects").
-constinit lib::StaticObject<mfc::CArray<std::uint8_t>> g_outcodes = /*007AEF78*/ {};
-constinit lib::StaticObject<mfc::CArray<std::uint16_t>> g_indices = /*007AEF60*/ {};
-mfc::CArray<std::uint8_t>& Outcodes() { return *g_outcodes; }
-mfc::CArray<std::uint16_t>& Indices() { return *g_indices; }
-void DestroyOutcodes() { mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_outcodes); }
-void DestroyIndices() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_indices); }
+constinit lib::StaticObject<std::vector<std::uint8_t>> g_outcodes = /*007AEF78*/ {};
+constinit lib::StaticObject<std::vector<std::uint16_t>> g_indices = /*007AEF60*/ {};
+std::vector<std::uint8_t>& Outcodes() { return *g_outcodes; }
+std::vector<std::uint16_t>& Indices() { return *g_indices; }
+void DestroyOutcodes() { g_outcodes.Destroy(); }
+void DestroyIndices() { g_indices.Destroy(); }
 std::uint8_t g_guards = /*007AEFB0*/ {};   // the draw's statics constructed (bits 1, 2, 4, 8)
 constinit std::vector<TLVertex> g_cornersCopy = /*007AEFE8*/ {};
 std::vector<TLVertex>& CornersCopy() { return g_cornersCopy; } // the records point here
@@ -99,12 +99,12 @@ void EnsureStatics() {
     }
     if (!(g_guards & 4)) {
         g_guards |= 4;
-        mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_outcodes);
+        g_outcodes.Construct();
         libcrt::AtExit(DestroyOutcodes);
     }
     if (!(g_guards & 8)) {
         g_guards |= 8;
-        mfc::impl::ConstructArrayOf<mfc::impl::WordArrayClass>(*g_indices);
+        g_indices.Construct();
         libcrt::AtExit(DestroyIndices);
     }
 }
@@ -125,7 +125,7 @@ void EnsureSortStatics() {
 }
 
 TLVertex* CornerData() { return Corners().data(); }
-std::uint16_t* IndexData() { return Indices().data; }
+std::uint16_t* IndexData() { return Indices().data(); }
 // --- Device calls --------------------------------------------------------------------------------
 
 IDirect3DDevice7* Device(CSceneRenderer* renderer) { return device::D3D(renderer->device_); }
@@ -189,7 +189,7 @@ int SortBackToFront() {
     EnsureSortStatics();
     CornersCopy().resize(std::ssize(Corners()));
     std::memcpy(CornersCopy().data(), Corners().data(), static_cast<std::size_t>(std::ssize(Corners())) * sizeof(TLVertex));
-    const auto* outcodes = reinterpret_cast<const std::uint32_t*>(Outcodes().data);   // four bytes per sprite
+    const auto* outcodes = reinterpret_cast<const std::uint32_t*>(Outcodes().data());   // four bytes per sprite
     TLVertex* corners = CornersCopy().data();
     int sprites = std::ssize(CornersCopy()) / 4;
     Records().resize(sprites);
@@ -228,7 +228,7 @@ int SortBackToFront() {
 
     Corners().resize(kept * 4);
     TLVertex* out = CornerData();
-    auto* codes = reinterpret_cast<std::uint32_t*>(Outcodes().data);
+    auto* codes = reinterpret_cast<std::uint32_t*>(Outcodes().data());
     for (int i = 0; i < kept; ++i) {
         std::memcpy(out + i * 4, sorted[i]->corners, 4 * sizeof(TLVertex));
         codes[i] = sorted[i]->outcodes;
@@ -282,7 +282,7 @@ bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
     float xMax = static_cast<float>(x87::FromUnsigned(screen.width));
     float yMax = static_cast<float>(x87::FromUnsigned(screen.height));
     TLVertex* vertices = CornerData();
-    const auto* outcodes = Outcodes().data;
+    const auto* outcodes = Outcodes().data();
     std::uint16_t* tri = IndexData();
     int vertexCount = sprites * 4;
     int indexCount = 0;
@@ -302,7 +302,6 @@ bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
 }
 
 } // namespace
-
 
 // One radix sort pass: the records of `src` go to 256 buckets by the key's byte at
 // `shift` (each bucket a list through the records' link, the last one first), then the buckets go
@@ -388,14 +387,14 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
     EnsureStatics();
     Unused().resize(0x200);
     Corners().resize(0x2000);
-    Outcodes().SetSize(0x800, -1);
-    Indices().SetSize(0x3000, -1);
+    Outcodes().resize(0x800);
+    Indices().resize(0x3000);
     std::uint32_t view[16];
     TransposedTop(pipeline, view);
 
     const SpritePoint* point = points->data();
     int remaining = std::ssize(*points);
-    const Sprite* sprite = sprites->data;
+    const Sprite* sprite = sprites->data();
     DWORD savedSource = 0;
     DWORD savedDest = 0;
     if (additive) {
@@ -412,7 +411,7 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
         int count = FillCorners(sprite, remaining);
         Corners().resize(count * 4);
         // 0: all corners on screen, 1: some off screen, else nothing to draw.
-        int visibility = transform->ProjectSprites(view, point, Corners().data(), Outcodes().data, count);
+        int visibility = transform->ProjectSprites(view, point, Corners().data(), Outcodes().data(), count);
         point += count;
         int kept = SortBackToFront();
         if (visibility == 1) {

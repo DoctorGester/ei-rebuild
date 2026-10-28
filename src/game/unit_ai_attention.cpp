@@ -4,7 +4,6 @@
 
 #include "world.h"
 
-#include "lib/mfc_slots.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -30,8 +29,6 @@ void AIAttention::CurrentAttack(AIBrain* brain, AITargetChoice* choice) {
 
 void AIAttention::LookAround(AIBrain* brain, int unused) {
     AIObjectList candidates{};
-    candidates.vtable = mfc::impl::PtrListClass::Vtable();
-    candidates.blockSize = 10;
     AITargetChoice best{-1, nullptr};
     Vector3 from = *&brain->owner->unit->localPosition_;
     brain->ChooseTarget(&best, &candidates, &from, 1, unused);
@@ -64,5 +61,5 @@ void AIAttention::LookAround(AIBrain* brain, int unused) {
         }
     }
     // The list's RemoveAll: no element destruction.
-    candidates.RemoveAll();
+    candidates.clear();
 }

@@ -120,7 +120,7 @@ int CUnitClientSpecific::RunTick() {
             stlp::list<ClientSpeech>::Erase(stlp::AsNode<ClientSpeech>(speech->next));
         }
     }
-    if (unit->secondEntry == kModeSpecialIdle && unit->Object3D()->animation->queue.count < kIdleRestartBelow)
+    if (unit->secondEntry == kModeSpecialIdle && std::ssize(unit->Object3D()->animation->queue) < kIdleRestartBelow)
         StartIdleAnimation(0);
     return 1;
 }

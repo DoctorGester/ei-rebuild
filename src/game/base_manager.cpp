@@ -5,8 +5,6 @@
 #include "core_streams.h"
 
 #include "lib/crt.h"
-#include "lib/mfc_list.h"
-#include "lib/mfc_slots.h"
 
 #include <list>
 #include <type_traits>
@@ -17,7 +15,7 @@ namespace {
 
 using ObjectMap = CBaseManager::ObjectMap;
 using ObjectList = CBaseManager::ObjectList;
-using ObjectNode = ObjectList::Node;
+using ObjectNode = ObjectList::iterator;
 using PositionMap = CBaseManager::PositionMap;
 using SpareMap = CBaseManager::SpareMap;
 using SpareCountMap = CBaseManager::SpareCountMap;
@@ -59,14 +57,10 @@ void ForEachObject(ObjectMap& objects, F f) {
     }
 }
 
-// CPtrList::AddTail as the manager's code inlines it, with the list's own NewNode.
-ObjectNode* AddTail(ObjectList* list, CEngineObject* object) {
-    ObjectNode* node = list->NewNode(list->tail, nullptr);
-    node->data = object;
-    if (list->tail) list->tail->next = node;
-    else list->head = node;
-    list->tail = node;
-    return node;
+// CPtrList::AddTail: the new node.
+ObjectNode AddTail(ObjectList* list, CEngineObject* object) {
+    list->push_back(object);
+    return std::prev(list->end());
 }
 
 // The id of an object registered without one: maxId_ + 1 while that stays inside [idLow_,
@@ -102,32 +96,24 @@ int NextFreeId(CBaseManager* m) {
 void ForgetPosition(CBaseManager* m, int id) {
     PositionMap::Node* found = m->positions_.Find(id);
     if (!found) return;
-    ObjectNode* node = found->value;
+    ObjectNode node = found->value;
     m->positions_.Erase(found);
-    if (node) m->objectList_.RemoveAt(node);
+    if (node != ObjectNode{}) m->objectList_.erase(node);
 }
 
 } // namespace
 
 // --- Construction and destruction ---------------------------------------------------------------
 
-// The containers have no destructors (the destructor frees them), and their default constructors only
-// null the hash maps' bucket vectors, which the constructor builds anyway.
+// The hash maps have no destructors (the destructor frees them), and their default constructors only
+// null the bucket vectors, which the constructor builds anyway.
 static_assert(std::is_trivially_destructible_v<ObjectMap> && std::is_trivially_destructible_v<PositionMap> &&
               std::is_trivially_destructible_v<SpareMap> && std::is_trivially_destructible_v<SpareCountMap>);
-static_assert(std::is_trivially_default_constructible_v<ObjectList> && std::is_trivially_destructible_v<ObjectList>);
 
 CBaseManager::CBaseManager() {
     ClearFields();
     objects_.Construct(100);
     maxId_ = 0;
-    objectList_.vtable = mfc::impl::TempListClass::Vtable();   // CPtrList(10)
-    objectList_.count = 0;
-    objectList_.free = nullptr;
-    objectList_.tail = nullptr;
-    objectList_.head = nullptr;
-    objectList_.blocks = nullptr;
-    objectList_.blockSize = 10;
     BuildTable(positions_, maxPositionId_);
     spares_.Construct(100);
     maxSpareType_ = 0;
@@ -145,8 +131,7 @@ CBaseManager::~CBaseManager() {
     spareCounts_.Destroy();
     spares_.Destroy();
     positions_.Destroy();
-    objectList_.vtable = mfc::impl::TempListClass::Vtable();   // ~CPtrList
-    objectList_.RemoveAll();
+    objectList_.clear();
     objects_.Destroy();
 }
 
@@ -177,7 +162,7 @@ void CBaseManager::Destroy() {
         if (ObjectMap::Node* found = objects_.Find(static_cast<unsigned>(id))) found->value->Release();
     }
     ids.clear();
-    objectList_.RemoveAll();
+    objectList_.clear();
     ForEachObject(objects_, [](CEngineObject* o) { delete o; });
     objects_.Clear();
     maxId_ = 0;
@@ -206,7 +191,7 @@ void CBaseManager::DestroyAll() {
     ForEachObject(objects_, [](CEngineObject* o) { o->Release(); });
     maxId_ = 0;
     objects_.Clear();
-    objectList_.RemoveAll();
+    objectList_.clear();
     maxPositionId_ = 0;
     positions_.Clear();
 }
@@ -228,7 +213,10 @@ CEngineObject* CBaseManager::CreateObject(int type, int id) {
     if (hash400::Entry(spareCounts_, maxSpareCountType_, type) > 0) {
         if (SpareMap::Node* found = spares_.Find(type)) {
             ObjectList* spares = found->value;
-            if (spares->count != 0) object = spares->RemoveHead();
+            if (!spares->empty()) {
+                object = spares->front();
+                spares->pop_front();
+            }
         }
     }
     if (!object) {
@@ -240,16 +228,14 @@ CEngineObject* CBaseManager::CreateObject(int type, int id) {
     if (id == -1) {
         int chosen = NextFreeId(this);
         if (!objects_.Find(static_cast<unsigned>(chosen))) {   // Lookup
-            objectList_.AddTail(object);
-            ObjectNode* tail = objectList_.tail;
-            hash400::Entry(positions_, maxPositionId_, chosen) = tail;
+            hash400::Entry(positions_, maxPositionId_, chosen) = AddTail(&objectList_, object);
         }
         hash400::SetAt(objects_, maxId_, chosen, object);
         object->id_ = chosen;
         lastId_ = chosen;
     } else {
         if (!objects_.Find(static_cast<unsigned>(id))) {
-            ObjectNode* position = AddTail(&objectList_, object);
+            ObjectNode position = AddTail(&objectList_, object);
             hash400::Entry(positions_, maxPositionId_, id) = position;
         }
         if (id > maxId_) maxId_ = id;
@@ -291,7 +277,7 @@ CEngineObject* CBaseManager::Unregister(int id) {
 int CBaseManager::RegisterInstant(CEngineObject* object) {
     int id = NextFreeId(this);
     if (!objects_.Find(static_cast<unsigned>(id))) {
-        ObjectNode* position = AddTail(&objectList_, object);
+        ObjectNode position = AddTail(&objectList_, object);
         if (id > maxPositionId_) maxPositionId_ = id;
         positions_[id] = position;
     }
@@ -310,8 +296,8 @@ int CBaseManager::RemoveObject(CEngineObject* object) {
     if (found && found->value == object) {
         if (objects_.Find(static_cast<unsigned>(id))) {   // Lookup
             hash400::RemoveKey(objects_, static_cast<unsigned>(id));
-            if (auto* position = hash400::RemoveKey(positions_, id))
-                objectList_.RemoveAt(position);
+            if (auto position = hash400::RemoveKey(positions_, id); position != ObjectNode{})
+                objectList_.erase(position);
         }
     }
     if (SpareMap::Node* spare = spares_.Find(type)) {
@@ -322,16 +308,7 @@ int CBaseManager::RemoveObject(CEngineObject* object) {
         spareCounts_[type] = count;
         return 0;
     }
-    auto* list = gamecrt::operator_new_as<ObjectList>();
-    if (list) {
-        list->count = 0;
-        list->free = nullptr;
-        list->tail = nullptr;
-        list->head = nullptr;
-        list->blocks = nullptr;
-        list->vtable = mfc::impl::TempListClass::Vtable();
-        list->blockSize = 10;
-    }
+    auto* list = new ObjectList;
     if (type > maxSpareType_) maxSpareType_ = type;
     spares_[type] = list;
     AddTail(list, object);
@@ -350,13 +327,8 @@ void CBaseManager::FreeSpares() {
     while (node) {
         ObjectList* list = node->value;
         if (!list) break;
-        for (ObjectNode* n = list->head; n;) {
-            ObjectNode* next = n->next;
-            delete n->data;
-            n = next;
-        }
-        list->RemoveAll();
-        reinterpret_cast<mfc::CObjectVirtuals*>(list)->DeletingDestructor(1u);
+        for (CEngineObject* object : *list) delete object;
+        delete list;
         node = spares_.After(node);
     }
     maxSpareType_ = 0;
@@ -383,18 +355,15 @@ void CBaseManager::Load(CStream* in) {
 }
 
 void CBaseManager::Save(CStream* out) {
-    int count = objectList_.count;
+    int count = static_cast<int>(objectList_.size());
     out->Write(&count, 4);
-    for (ObjectNode* node = objectList_.head; node;) {
-        ObjectNode* next = node->next;
-        CEngineObject* object = node->data;
+    for (CEngineObject* object : objectList_) {
         int value = object->id_;
         out->Write(&value, 4);
         value = object->type_;
         out->Write(&value, 4);
         value = static_cast<int>(object->prototypeId_);
         out->Write(&value, 4);
-        node = next;
     }
 }
 
@@ -418,9 +387,7 @@ void CBaseManager::LoadObjects(CStream* in) {
 // {id, [1 byte if the id is the end mark], the object's Save data} per object in list order, then
 // the end mark and a 0 byte.
 void CBaseManager::SaveObjects(CStream* out) {
-    for (ObjectNode* node = objectList_.head; node;) {
-        ObjectNode* next = node->next;
-        CEngineObject* object = node->data;
+    for (CEngineObject* object : objectList_) {
         int id = object->id_;
         out->Write(&id, 4);
         if (object->id_ == kEndOfObjects) {
@@ -428,7 +395,6 @@ void CBaseManager::SaveObjects(CStream* out) {
             out->Write(&one, 1);
         }
         object->Save(out);
-        node = next;
     }
     int mark = kEndOfObjects;
     out->Write(&mark, 4);
@@ -437,9 +403,9 @@ void CBaseManager::SaveObjects(CStream* out) {
 }
 
 void CBaseManager::ReleaseUnused() {
-    for (ObjectNode* node = objectList_.head; node;) {
-        CEngineObject* object = node->data;
-        node = node->next;
+    for (ObjectNode node = objectList_.begin(); node != objectList_.end();) {
+        CEngineObject* object = *node;
+        ++node;
         if (object->refCount_ == 0) {
             object->refCount_ = 1;
             object->Release();
@@ -455,16 +421,11 @@ CEngineObject* ObjectListIterator::First(CBaseManager* list) {
     if (manager) --manager->refCount_;
     manager = list;
     if (list) ++list->refCount_;
-    ObjectNode* node = manager->objectList_.head;
-    position = node;
-    if (!node) return nullptr;
-    position = node->next;
-    return node->data;
+    position = manager->objectList_.begin();
+    return Next();
 }
 
 CEngineObject* ObjectListIterator::Next() {
-    ObjectNode* node = position;
-    if (!node) return nullptr;
-    position = node->next;
-    return node->data;
+    if (!manager || position == manager->objectList_.end()) return nullptr;
+    return *position++;
 }

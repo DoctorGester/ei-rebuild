@@ -16,7 +16,6 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "logic_settings.h"
@@ -25,6 +24,7 @@
 #include <bit>
 #include <cmath>
 #include <cstring>
+#include <list>
 
 namespace {
 constexpr float kEyeHeight = 1.4f;                  // looks are tested from this high
@@ -71,10 +71,8 @@ CAIMap* AIMap() { return TheServerWorld()->AIMap(); }
 Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 
 // The CPtrList the sector map fills (blocks of 10).
-void InitUnitList(mfc::CTypedPtrList<CUnit>& list) {
+void InitUnitList(std::list<CUnit*>& list) {
     list = {};
-    list.vtable = mfc::impl::PtrListClass::Vtable();
-    list.blockSize = 10;
 }
 } // namespace
 
@@ -153,14 +151,14 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     if (map->SlopeAt(out) > kMaxSlope) return false;
 
     // No unit of an allied player may stand near it.
-    mfc::CTypedPtrList<CUnit> units;
+    std::list<CUnit*> units;
     InitUnitList(units);
     CUnit* self = owner->unit;
     TheServerWorld()->Sectors()->FindUnitsInRadius(out, &units, self->standingHeight * kAllySpace);
-    for (auto* node = units.head; node; node = node->next) {
-        auto* other = node->data;
+    for (auto node = units.begin(); node != units.end(); ++node) {
+        auto* other = *node;
         if (GameDiplomacy()->allied_[other->side] & (1u << (self->side & 31))) {
-            units.RemoveAll();
+            units.clear();
             return false;
         }
     }
@@ -182,7 +180,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
             standCooldown = static_cast<int>(std::min<long>(cooldown, kMaxCooldown));
         }
     }
-    units.RemoveAll();
+    units.clear();
     return result;
 }
 

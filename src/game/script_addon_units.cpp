@@ -17,6 +17,7 @@
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <list>
 #include <type_traits>
 
 namespace scriptaddon {
@@ -33,7 +34,6 @@ void* GetPlayer(int number) { return TheServerWorld()->GetPlayer(number); }
 static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) { return unit->GetPrototype(); }
 // The unit's parameters: the 7-value block filled from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).
-
 
 ScriptObjectRef* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]; }
 
@@ -53,13 +53,10 @@ bool PassesFilter(CEngineObject* object, bool units, bool others, bool living) {
 // afterwards.
 template <typename Visit>
 void ForObjectsNear(float x, float y, float radius, Visit visit) {
-    mfc::CTypedPtrList<CUnit> list{};
-    list.vtable = mfc::impl::PtrListClass::Vtable();
-    list.blockSize = 10;
+    std::list<CUnit*> list{};
     Vector3 point = {x, y, 0.0f};
     TheSectorMap()->FindUnitsInRadius(&point, &list, radius);
-    for (auto* node = list.head; node; node = node->next) visit(node->data);
-    mfc::impl::DestructList<mfc::impl::ItemListClass>(list);
+    for (auto node = list.begin(); node != list.end(); ++node) visit(*node);
 }
 
 // A float field of the unit's data object, 0 and invalid arguments without one.

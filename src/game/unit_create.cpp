@@ -15,8 +15,7 @@
 
 #include <bit>
 #include <cstring>
-#include "lib/mfc_list.h"
-#include "lib/mfc_slots.h"
+#include <list>
 
 namespace {
 constexpr int kPartStats = 4;          // MarkChanged parts
@@ -26,9 +25,6 @@ constexpr int kPartWeapons = 6;
 constexpr std::uint32_t kLastPlainRemark = 0x29;
 constexpr std::uint32_t kExtraRemark = 0x30;
 
-// The vtable of the CTypedPtrList<CPtrList, CItem*> the broken pieces are collected in.
-constexpr int kPtrListBlockSize = 10;
-
 CPlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); }
 
 // The item's condition rounds to nothing.
@@ -36,7 +32,7 @@ bool IsBroken(const CItem* item) {
     return x87::fistp(item->condition_) <= 0;
 }
 
-using UnitItems = mfc::CTypedPtrList<CItem>;
+using UnitItems = std::list<CItem*>;
 } // namespace
 
 // --- Prototype names --------------------------------------------------------------------------
@@ -78,14 +74,12 @@ void CUnit::DropBrokenEquipment() {
     CPlayer* owner = player;
     if (!owner) return;   // the empty list's destructor has nothing to free
     UnitItems broken{};
-    broken.vtable = mfc::impl::ItemListClass::Vtable();
-    broken.blockSize = kPtrListBlockSize;
     CPlayerServer* messages = PlayerMessages(owner);
 
     for (CItemArmor*& slot : armor) {
         if (!slot || !IsBroken(slot)) continue;
         ++slot->refCount_;
-        broken.AddTail(slot);
+        broken.push_back(slot);
         CItemArmor* piece = slot;
         slot = nullptr;
         if (piece) {
@@ -102,7 +96,7 @@ void CUnit::DropBrokenEquipment() {
         if (!slot || !IsBroken(slot)) continue;
         messages->SendPair16(static_cast<std::uint32_t>(id_), static_cast<std::uint32_t>(i));
         ++slot->refCount_;
-        broken.AddTail(slot);
+        broken.push_back(slot);
         CEngineObject* weapon = slot;
         slot = nullptr;
         if (weapon) weapon->Release();
@@ -114,14 +108,14 @@ void CUnit::DropBrokenEquipment() {
     }
     if (weaponLost) Controller()->ShowWeapon(0xFFFFFFFFu);   // re-pick the active weapon
 
-    if (broken.count != 0) {
+    if (!broken.empty()) {
         owner->GiveItems(&broken, 1);
-        for (UnitItems::Node* node = broken.head; node;) {
-            UnitItems::Node* next = node->next;
-            node->data->Release();
+        for (auto node = broken.begin(); node != broken.end();) {
+            auto next = std::next(node);
+            (*node)->Release();
             node = next;
         }
         MarkChanged(kPartEquipment);
     }
-    broken.RemoveAll();
+    broken.clear();
 }

@@ -69,6 +69,24 @@ struct Array {
 };
 static_assert(sizeof(Array<int>) == 0x14);
 
+// A CArray<T> the rebuild holds as a std::vector: the same bytes, read through the vector's API (the shared readers
+// name both sides alike).
+template <class T>
+struct Vector {
+    const void* vtable_;
+    T* data_;
+    int size_;
+    int maxSize_;
+    int growBy_;
+    std::size_t size() const { return static_cast<std::size_t>(size_); }
+    bool empty() const { return size_ == 0; }
+    const T* data() const { return data_; }
+    const T* begin() const { return data_; }
+    const T* end() const { return data_ + size_; }
+    const T& operator[](std::size_t i) const { return data_[i]; }
+};
+static_assert(sizeof(Vector<int>) == 0x14);
+
 // MFC's CList<T> (CObject's vtable, head, tail, count, free list, blocks, block size); a node is next, prev, data.
 template <class T>
 struct List {
@@ -85,6 +103,20 @@ struct List {
     void* blocks;
     int blockSize;
     int GetCount() const { return count; }
+    // The std::list API of the lists the rebuild holds as std::list.
+    struct Iterator {
+        const Node* node;
+        const T& operator*() const { return node->data; }
+        Iterator& operator++() {
+            node = node->next;
+            return *this;
+        }
+        bool operator!=(const Iterator& other) const { return node != other.node; }
+    };
+    std::size_t size() const { return static_cast<std::size_t>(count); }
+    bool empty() const { return count == 0; }
+    Iterator begin() const { return {head}; }
+    Iterator end() const { return {nullptr}; }
 };
 static_assert(sizeof(List<int>) == 0x1C);
 
@@ -335,8 +367,8 @@ static_assert(sizeof(CMapObjectServer) == 0x94);
 
 // A unit's path and the segment it walks (unit_motion.h).
 struct UnitMotion {
-    Array<MotionPoint> points;              // +0x00
-    Array<MotionWaypoint> waypoints;        // +0x14
+    Vector<MotionPoint> points;             // +0x00
+    Vector<MotionWaypoint> waypoints;       // +0x14
     std::uint8_t unknown28[0x14];
     float speedScale;                       // +0x3C
     std::uint8_t unknown40[0x4];
@@ -903,7 +935,7 @@ struct SectorData {
     int sy;                                 // +0x0C
     int hasWater;                           // +0x10
     std::uint8_t unknown14[0x168];
-    Array<SectorPosition> vertices;         // +0x17C
+    Vector<SectorPosition> vertices;        // +0x17C
     Array<SectorVertex> records;            // +0x190
     std::uint8_t unknown1A4[0x1F0];
 };
@@ -1198,7 +1230,7 @@ struct CHudSpellColumn;
 // The battle screen (ui.h).
 struct CBattleScreen {
     std::uint8_t unknown0[0x168];
-    Array<CUnit*> party_;                   // +0x168
+    Vector<CUnit*> party_;                  // +0x168
     int pendingAction_;                     // +0x17C
     int pendingSlot_;                       // +0x180
     int pendingItem_;                       // +0x184
@@ -1223,7 +1255,7 @@ struct CHudQuickItems {
     std::uint8_t unknown0[0x150];
     int selected_;                          // +0x150
     CUnit* unit_;                           // +0x154
-    Array<CHudQuickItemsEntry> entries_;    // +0x158
+    Vector<CHudQuickItemsEntry> entries_;   // +0x158
     int regionItem_[8];                     // +0x16C
     std::uint8_t unknown18C[0x14];
     using Entry = CHudQuickItemsEntry;

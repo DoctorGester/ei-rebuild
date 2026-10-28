@@ -224,19 +224,18 @@ PartyUnitRecord* CParty::Find(int unitId) const {
     return nullptr;
 }
 
-
 namespace {
 // Looks an object up by id (base_manager.cpp), through its game address.
 } // namespace
 
 void CPlayer::Tick() {
-    auto* node = recharging_.head;
-    while (node != nullptr) {
-        auto* current = node;
-        node = node->next;
-        int id = static_cast<int>(current->data);
+    auto node = recharging_.begin();
+    while (node != recharging_.end()) {
+        auto current = node;
+        ++node;
+        int id = static_cast<int>(*current);
         CEngineObject* object = Party()->ItemManager()->FindObject(id);
-        if (object == nullptr || object->RunTick() == 0) recharging_.RemoveAt(current);
+        if (object == nullptr || object->RunTick() == 0) recharging_.erase(current);
     }
     connection_->TickDone();
 }

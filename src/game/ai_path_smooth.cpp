@@ -40,11 +40,10 @@ int CdqAbs(int v) {
 // The cost of `turn` eighths of a turn, rounded like the original.
 int TurnCost(int turn, float scale) { return x87::fistp(static_cast<float>(static_cast<float>(turn) * scale * kTurnCost)); }
 
-
 } // namespace
 
-// CArray<SmoothNode>::SetSize (mfc::CArray: new nodes zeroed, nothing destroyed).
-void SmoothPool::SetSize(int size, int growByArg) { nodes.SetSize(size, growByArg); }
+// CArray<SmoothNode>::SetSize (new nodes zeroed, nothing destroyed).
+void SmoothPool::SetSize(int size) { nodes.resize(size); }
 
 void PathSmoother::Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to) {
     if (from->cost == kUnreached) return;
@@ -66,16 +65,16 @@ void PathSmoother::Advance(const SmoothState* from, SmoothState* to, const Smoot
     SmoothPool& pool = SmoothNodePool();
     for (int i = 0; i < kStates; ++i) to[i].cost = kUnreached;
     for (int i = 0; i < kStates; ++i) to[i].node = pool.next++;
-    for (int i = 0; i < table->copies.size; ++i) {
-        const SmoothCopy& copy = table->copies.data[i];
+    for (int i = 0; i < std::ssize(table->copies); ++i) {
+        const SmoothCopy& copy = table->copies[i];
         to[copy.to] = from[copy.from];
     }
-    for (int i = 0; i < table->steps.size; ++i) {
-        const SmoothStep& step = table->steps.data[i];
+    for (int i = 0; i < std::ssize(table->steps); ++i) {
+        const SmoothStep& step = table->steps[i];
         Relax(&step, &from[step.from], &to[step.to]);
     }
-    for (int i = 0; i < table->chained.size; ++i) {
-        const SmoothStep& step = table->chained.data[i];
+    for (int i = 0; i < std::ssize(table->chained); ++i) {
+        const SmoothStep& step = table->chained[i];
         Relax(&step, &to[step.from], &to[step.to]);
     }
 }
@@ -92,10 +91,10 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
     SmoothPool& pool = SmoothNodePool();
     for (;;) {
         SmoothState first[kStates], second[kStates];
-        pool.SetSize((path->count + 5) * 10, -1);
+        pool.SetSize((path->count + 5) * 10);
         pool.zeroed = 0;
         for (SmoothState& s : first) s = SmoothState{0, nullptr};
-        pool.next = pool.nodes.data;
+        pool.next = pool.nodes.data();
         const AIMapCell& head = map->cells[headY][headX];
         for (int d = 1; d <= 8; ++d) {
             SmoothState& state = first[d - 1];
@@ -179,28 +178,28 @@ int Opposite(int direction) { return direction - 4 >= 1 ? direction - 4 : direct
 // step itself, the same step one cell to either side, the diagonal moves into and out of the cell on either
 // side.
 void SmoothEdges::AddStraightEdges(int mx, int my, int sx, int sy) {
-    Add(SmoothEdge{0, 0, mx, my, 0});
-    Add(SmoothEdge{-sx, -sy, mx - sx, my - sy, 0});
-    Add(SmoothEdge{sx, sy, mx + sx, my + sy, 0});
-    Add(SmoothEdge{-sx, -sy, mx, my, 0});
-    Add(SmoothEdge{0, 0, mx + sx, my + sy, 0});
-    Add(SmoothEdge{sx, sy, mx, my, 0});
-    Add(SmoothEdge{0, 0, mx - sx, my - sy, 0});
+    push_back(SmoothEdge{0, 0, mx, my, 0});
+    push_back(SmoothEdge{-sx, -sy, mx - sx, my - sy, 0});
+    push_back(SmoothEdge{sx, sy, mx + sx, my + sy, 0});
+    push_back(SmoothEdge{-sx, -sy, mx, my, 0});
+    push_back(SmoothEdge{0, 0, mx + sx, my + sy, 0});
+    push_back(SmoothEdge{sx, sy, mx, my, 0});
+    push_back(SmoothEdge{0, 0, mx - sx, my - sy, 0});
 }
 
 // The nine states of a cell crossed by the diagonal step (mx, my), with (sx, sy) one of its two straight
 // halves and (ox, oy) the other.
 void SmoothEdges::AddDiagonalEdges(int mx, int my, int sx, int sy) {
     const int ox = mx - sx, oy = my - sy;
-    Add(SmoothEdge{0, 0, mx, my, 0});
-    Add(SmoothEdge{sx, sy, mx + sx, my + sy, 0});
-    Add(SmoothEdge{sx - mx, sy - my, sx, sy, 0});
-    Add(SmoothEdge{ox, oy, mx + ox, my + oy, 0});
-    Add(SmoothEdge{ox - mx, oy - my, ox, oy, 0});
-    Add(SmoothEdge{0, 0, sx, sy, 0});
-    Add(SmoothEdge{0, 0, ox, oy, 0});
-    Add(SmoothEdge{sx, sy, mx, my, 0});
-    Add(SmoothEdge{ox, oy, mx, my, 0});
+    push_back(SmoothEdge{0, 0, mx, my, 0});
+    push_back(SmoothEdge{sx, sy, mx + sx, my + sy, 0});
+    push_back(SmoothEdge{sx - mx, sy - my, sx, sy, 0});
+    push_back(SmoothEdge{ox, oy, mx + ox, my + oy, 0});
+    push_back(SmoothEdge{ox - mx, oy - my, ox, oy, 0});
+    push_back(SmoothEdge{0, 0, sx, sy, 0});
+    push_back(SmoothEdge{0, 0, ox, oy, 0});
+    push_back(SmoothEdge{sx, sy, mx, my, 0});
+    push_back(SmoothEdge{ox, oy, mx, my, 0});
 }
 
 namespace {
@@ -233,14 +232,14 @@ void MakeSmoothStep(SmoothStep* step, const SmoothEdge* from, const SmoothEdge* 
 
 void SmoothEdges::BuildEdges(int direction, bool incoming) {
     SmoothEdges* edges = this;
-    edges->SetSize(0, -1);
+    edges->clear();
     switch (direction) {
     case 0:
         for (int d = 1; d <= 8; ++d) {
             PathCell origin{0, 0, 0, 0}, neighbour{0, 0, 0, 0};
             origin.Step(&neighbour, d);
-            if (incoming) edges->Add(SmoothEdge{-neighbour.x, -neighbour.y, 0, 0, 0});
-            else edges->Add(SmoothEdge{0, 0, neighbour.x, neighbour.y, 0});
+            if (incoming) edges->push_back(SmoothEdge{-neighbour.x, -neighbour.y, 0, 0, 0});
+            else edges->push_back(SmoothEdge{0, 0, neighbour.x, neighbour.y, 0});
         }
         break;
     case 1: edges->AddStraightEdges(0, -1, 1, 0); break;
@@ -253,54 +252,52 @@ void SmoothEdges::BuildEdges(int direction, bool incoming) {
     case 8: edges->AddDiagonalEdges(1, -1, 1, 0); break;
     default: break;
     }
-    for (int i = 0; i < edges->size; ++i) edges->data[i].index = i;
+    for (int i = 0; i < std::ssize(*edges); ++i) (*edges)[i].index = i;
 }
 
+// The tables live in raw storage (a StaticObject, the replay's own): their arrays are built and destroyed here.
 SmoothTable* SmoothTable::Construct() {
-    copies.Construct(mfc::impl::SmoothCopyArrayClass::Vtable());
-    steps.Construct(mfc::impl::SmoothStepArrayClass::Vtable());
-    chained.Construct(mfc::impl::SmoothStepArrayClass::Vtable());
+    std::construct_at(&copies);
+    std::construct_at(&steps);
+    std::construct_at(&chained);
     return this;
 }
 
 void SmoothTable::Destruct() {
-    chained.vtable = mfc::impl::SmoothStepArrayClass::Vtable();
-    chained.FreeData();
-    steps.vtable = mfc::impl::SmoothStepArrayClass::Vtable();
-    steps.FreeData();
-    copies.vtable = mfc::impl::SmoothCopyArrayClass::Vtable();
-    copies.FreeData();
+    std::destroy_at(&chained);
+    std::destroy_at(&steps);
+    std::destroy_at(&copies);
 }
 
 void SmoothTable::Build(const SmoothEdges* from, const SmoothEdges* to) {
-    copies.SetSize(0, -1);
-    steps.SetSize(0, -1);
-    chained.SetSize(0, -1);
-    for (int i = 0; i < from->size; ++i) {
-        for (int j = 0; j < to->size; ++j) {
-            const SmoothEdge& a = from->data[i];
-            const SmoothEdge& b = to->data[j];
-            if (a.x0 == b.x0 && a.y0 == b.y0 && a.x1 == b.x1 && a.y1 == b.y1) copies.Add(SmoothCopy{i, j});
+    copies.clear();
+    steps.clear();
+    chained.clear();
+    for (int i = 0; i < std::ssize(*from); ++i) {
+        for (int j = 0; j < std::ssize(*to); ++j) {
+            const SmoothEdge& a = (*from)[i];
+            const SmoothEdge& b = (*to)[j];
+            if (a.x0 == b.x0 && a.y0 == b.y0 && a.x1 == b.x1 && a.y1 == b.y1) copies.push_back(SmoothCopy{i, j});
         }
     }
-    for (int i = 0; i < from->size; ++i) {
-        for (int j = 0; j < to->size; ++j) {
-            const SmoothEdge& a = from->data[i];
-            const SmoothEdge& b = to->data[j];
+    for (int i = 0; i < std::ssize(*from); ++i) {
+        for (int j = 0; j < std::ssize(*to); ++j) {
+            const SmoothEdge& a = (*from)[i];
+            const SmoothEdge& b = (*to)[j];
             if (a.x1 != b.x0 || a.y1 != b.y0) continue;
             SmoothStep step;
             MakeSmoothStep(&step, &a, &b);
-            steps.Add(step);
+            steps.push_back(step);
         }
     }
-    for (int i = 0; i < to->size; ++i) {
-        for (int j = 0; j < to->size; ++j) {
-            const SmoothEdge& a = to->data[i];
-            const SmoothEdge& b = to->data[j];
+    for (int i = 0; i < std::ssize(*to); ++i) {
+        for (int j = 0; j < std::ssize(*to); ++j) {
+            const SmoothEdge& a = (*to)[i];
+            const SmoothEdge& b = (*to)[j];
             if (a.x1 != b.x0 || a.y1 != b.y0) continue;
             SmoothStep step;
             MakeSmoothStep(&step, &a, &b);
-            chained.Add(step);
+            chained.push_back(step);
         }
     }
 }
@@ -309,16 +306,14 @@ void BuildSmoothTablesAt(SmoothTable* tables) {
     for (int previous = 0; previous < kStates; ++previous) {
         for (int next = 0; next < kStates; ++next) {
             SmoothEdges from, to;
-            from.Construct(mfc::impl::SmoothEdgeArrayClass::Vtable());
-            to.Construct(mfc::impl::SmoothEdgeArrayClass::Vtable());
             from.BuildEdges(previous, false);
             to.BuildEdges(next, true);
             if (previous != 0) {
                 // The previous step's states are relative to the cell it left.
                 PathCell origin{0, 0, 0, 0}, back{0, 0, 0, 0};
                 origin.Step(&back, Opposite(previous));
-                for (int i = 0; i < from.size; ++i) {
-                    SmoothEdge& edge = from.data[i];
+                for (int i = 0; i < std::ssize(from); ++i) {
+                    SmoothEdge& edge = from[i];
                     edge.x0 += back.x;
                     edge.y0 += back.y;
                     edge.x1 += back.x;
@@ -326,8 +321,6 @@ void BuildSmoothTablesAt(SmoothTable* tables) {
                 }
             }
             tables[previous * kStates + next].Build(&from, &to);
-            to.FreeData();
-            from.FreeData();
         }
     }
 }
@@ -338,7 +331,6 @@ void BuildSmoothTables() { BuildSmoothTablesAt(g_smoothTables.Get()); }
 // ---- The pool and the tables ----------------------------------------------------------
 
 // Zero at the start; each is built empty by its static initialiser (the tables first) and destroyed at exit.
-static_assert(sizeof(SmoothTable[81]) == 0x12FC);
 constinit lib::StaticObject<SmoothPool> g_smoothPool = /*007C3038*/ {};
 constinit lib::StaticObject<SmoothTable[81]> g_smoothTables = /*007C3058*/ {};
 
@@ -352,7 +344,7 @@ void DestroySmoothTables() {
     SmoothTable* tables = g_smoothTables.Get();
     for (int i = kStates * kStates; i-- > 0;) tables[i].Destruct();
 }
-void DestroySmoothPool() { mfc::impl::DestructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes); }
+void DestroySmoothPool() { g_smoothPool.Destroy(); }
 } // namespace
 
 void ConstructSmoothTables() {
@@ -361,6 +353,6 @@ void ConstructSmoothTables() {
 }
 
 void ConstructSmoothPool() {
-    mfc::impl::ConstructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes);
+    g_smoothPool.Construct();
     RegisterExit(DestroySmoothPool);
 }

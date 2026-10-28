@@ -1,7 +1,6 @@
 // The camp's page switch and the camp panels' layout code (see docs/notes/ui.md, "Camp,
 // global map, hero screens").
 #include "device.h"   // the old device's calls
-#include "game_lists.h"
 #include "game_strings.h"
 #include "ui.h"
 #include "unit_create.h"
@@ -28,7 +27,6 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 #include "lib/str.h"
 
 #include <cmath>
@@ -40,8 +38,6 @@
 #include <string>
 
 namespace {
-
-
 
 CParty* PlayerParty() { return LocalPlayerData(); }
 
@@ -87,7 +83,6 @@ void DrawLine(CUiSurface* surface, std::string_view text, RECT* rect) {
 }
 
 } // namespace
-
 
 void CCampPages::ShowPage(int page) {
     equipment_->SetEnabled(0, 1);
@@ -419,7 +414,6 @@ namespace {
 int Count(const CItem* item) { return static_cast<int>(item->count_); }
 } // namespace
 
-
 void CCampPages::UpdateAction() {
     std::string action;
     std::string label("camp_current_money");
@@ -636,11 +630,9 @@ BOOL CCampPages::Draw(CSceneRenderer* pass) {
 
 namespace {
 
-
 void ReleaseObject(CEngineObject* object) {
     if (object) object->Release();
 }
-
 
 } // namespace
 
@@ -764,24 +756,19 @@ void CCampPages::Close() {
     device::SetRenderState(TheRenderDevice()->d3dDevice_, D3DRENDERSTATE_ANTIALIAS, 0);
     render::state::Render(D3DRENDERSTATE_ANTIALIAS, 0);
     // The local player's unit records, their keys raised meanwhile.
-    RecordPtrArray records = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
+    RecordPtrArray records = {};
     auto* player = LocalPlayerData();
     for (int i = 0; i < player->members_.size; ++i) {
         PartyUnitRecord* record = &player->members_.data[i];
         record->unitId += kRecordBias;
-        int index = records.size;
-        records.SetSize(index + 1, -1);
-        records.data[index] = &player->members_.data[i];
+        int index = std::ssize(records);
+        records.resize(index + 1);
+        records[index] = &player->members_.data[i];
     }
     GameRemoveUnitsOf(&records);
     for (int i = 0; i < player->members_.size; ++i) player->members_.data[i].unitId -= kRecordBias;
 
-    if (heroes_.data) {
-        gamecrt::operator_delete(heroes_.data);
-        heroes_.data = nullptr;
-    }
-    heroes_.maxSize = 0;
-    heroes_.size = 0;
+    lib::FreeStorage(heroes_);
     if (spellMade_) spellMade_->Release();
     spellMade_ = nullptr;
     if (itemMade_) itemMade_->Release();
@@ -794,8 +781,6 @@ void CCampPages::Close() {
         (*list)->Destroy();
         delete *list;
     }
-    records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
-    if (records.data) gamecrt::operator_delete(records.data);
 }
 
 // --- the trade panel's destructor body -----------------------------------------------------------
@@ -821,7 +806,6 @@ CTradePanel::~CTradePanel() {
 // --- taking an item off the hero -----------------------------------------------------------------
 
 namespace {
-
 
 UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 
@@ -1196,5 +1180,4 @@ CCampPages::CCampPages(CInterface3D* ui, bool fromHeroScreen) : CItemScreen(ui) 
     models_.Construct(compare);
     textures_.Construct(compare);
     fromHeroScreen_ = fromHeroScreen;
-    heroes_.Construct(mfc::impl::UnitPtrArrayClass::Vtable());
 }

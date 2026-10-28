@@ -27,9 +27,9 @@ int LineBatch::AddPoint(const float* point) {
 int LineBatch::Draw(CTransformPipeline* pipeline, CTextureDevice* device) {
     std::vector<ProjectedPoint>& projected = LineProjected();
     projected.resize(std::ssize(packets) * 4);
-    LineOutcodes().SetSize(std::ssize(packets) * 4, -1);
+    LineOutcodes().resize(std::ssize(packets) * 4);
     int visibility = pipeline->transform_->ProjectClipped(pipeline->Top(CTransformPipeline::kClipStack), packets.data(),
-                                                         projected.data(), LineOutcodes().data, std::ssize(packets));
+                                                         projected.data(), LineOutcodes().data(), std::ssize(packets));
     if (visibility == 0) {
         const ProjectedPoints points{projected.data(), std::ssize(projected)};
         DeviceDrawLineStrip(device, &points, colour);

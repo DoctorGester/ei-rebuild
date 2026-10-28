@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <vector>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
@@ -135,6 +136,5 @@ public:
     // Create (class_slots.cpp): loads the noise table on the first call, then the base manager's Create.
     int Create() override;
 
-    mfc::CTypedPtrList<CLightning> newBolts_;   // (each entry holds a reference)
+    std::list<CLightning*> newBolts_;   // (each entry holds a reference)
 };
-static_assert(offsetof(CLightningManager, newBolts_) == 0xB0 && sizeof(CLightningManager) == 0xCC);

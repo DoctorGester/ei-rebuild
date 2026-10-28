@@ -16,6 +16,7 @@
 #include "lib/mfc_slots.h"
 #include "lib/str.h"
 
+#include <list>
 #include <string>
 
 namespace {
@@ -43,13 +44,11 @@ CPlayer::CPlayer() {
     knownTimed_.InitBuckets(100);
     maxTimedId_ = 0;
     new (Party()) CParty();
-    InitList(items_, mfc::impl::ItemListClass::Vtable());
     partyId_ = 0;
-    InitList(recharging_, mfc::impl::PlayerListClass::Vtable());   // an MFC CList instantiation
     connection_ = nullptr;
     logTraffic_ = 0;
     Party()->Create();
-    recharging_.RemoveAll();
+    recharging_.clear();
     Clear();
     Party()->Destroy();
     Party()->Create();
@@ -68,10 +67,8 @@ CPlayer::CPlayer() {
 CPlayer::~CPlayer() {
     DestroyPlayer();
     Party()->Destroy();
-    recharging_.vtable = mfc::impl::PlayerListClass::Vtable();
-    recharging_.RemoveAll();
-    items_.vtable = mfc::impl::ItemListClass::Vtable();
-    items_.RemoveAll();
+    recharging_.clear();
+    items_.clear();
     Party()->~CParty();
     knownTimed_.Destroy();
     units_.Destroy();
@@ -97,7 +94,7 @@ BOOL CPlayer::CreatePlayer() {
 }
 
 void CPlayer::DestroyPlayer() {
-    recharging_.RemoveAll();
+    recharging_.clear();
     Clear();
     Party()->Destroy();
     Party()->Create();
@@ -119,12 +116,12 @@ void CPlayer::DestroyPlayer() {
 }
 
 void CPlayer::Clear() {
-    for (auto* node = items_.head; node != nullptr;) {
-        CEngineObject* item = node->data;
-        node = node->next;
+    for (auto node = items_.begin(); node != items_.end();) {
+        CEngineObject* item = *node;
+        ++node;
         item->Release();
     }
-    items_.RemoveAll();
+    items_.clear();
     ReleaseEach(knownTimed_);
     maxTimedId_ = 0;
     ReleaseEach(knownObjects_);
@@ -135,7 +132,7 @@ void CPlayer::Clear() {
         first->value->SetPlayer(nullptr);
     units_.Clear();
     maxUnitId_ = 0;
-    recharging_.RemoveAll();
+    recharging_.clear();
     if (connection_ != nullptr) connection_->ForgetSentObjects();
 }
 
@@ -199,25 +196,29 @@ BOOL CPlayer::IsLeader(const CEngineObject* unit) {
     return static_cast<std::uint32_t>(unit->id_) == members.data[0].unitId;
 }
 
-void CPlayer::GiveItems(const mfc::CTypedPtrList<CItem>* items, int flag) {
+void CPlayer::GiveItems(const std::list<CItem*>* items, int flag) {
     connection_->ItemsGiven(items, flag);
-    for (auto* node = items->head; node != nullptr;) {
-        CItem* item = node->data;
-        node = node->next;
+    for (auto node = items->begin(); node != items->end();) {
+        CItem* item = *node;
+        ++node;
         ++item->refCount_;
-        items_.AddTail(item);
+        items_.push_back(item);
     }
 }
 
 void CPlayer::TakeAllItems() {
     connection_->ItemsTaken();
-    while (items_.count != 0) items_.RemoveHead()->Release();
-    items_.RemoveAll();
+    while (!items_.empty()) {
+        CItem* item = items_.front();
+        items_.pop_front();
+        item->Release();
+    }
+    items_.clear();
 }
 
 BOOL CPlayer::HasLoot(int kind) {
-    for (auto* node = items_.head; node != nullptr; node = node->next)
-        if (node->data->type_ == kItemQuest && ItemWord4C(node->data) == static_cast<std::uint32_t>(kind)) return 1;
+    for (auto node = items_.begin(); node != items_.end(); ++node)
+        if ((*node)->type_ == kItemQuest && ItemWord4C(*node) == static_cast<std::uint32_t>(kind)) return 1;
     for (UnitMap::Node* node = units_.First(); node != nullptr && node->value != nullptr; node = units_.After(node)) {
         CUnit* unit = node->value;
         for (int i = 0; i < unit->carriedCount; ++i)
@@ -232,12 +233,12 @@ namespace {
 // released. 1, or 0 when there is none.
 template <typename Match>
 BOOL TakeFirst(CPlayer* player, Match match) {
-    auto* node = player->items_.head;
-    while (node != nullptr && !match(node->data)) node = node->next;
-    if (node == nullptr) return 0;
-    CEngineObject* item = node->data;
+    auto node = player->items_.begin();
+    while (node != player->items_.end() && !match(*node)) ++node;
+    if (node == player->items_.end()) return 0;
+    CEngineObject* item = *node;
     player->connection_->ItemTaken(item);
-    player->items_.RemoveAt(node);
+    player->items_.erase(node);
     item->Release();
     return 1;
 }
@@ -275,12 +276,12 @@ void CPlayer::RemoveUnit(CUnit* unit) {
 
 void CPlayer::ItemUsed(CEngineObject* item) {
     std::uint32_t id = static_cast<std::uint32_t>(item->id_);
-    if (recharging_.Find(id) == nullptr) recharging_.AddTail(id);
+    if (!lib::Contains(recharging_, id)) recharging_.push_back(id);
     connection_->ItemUsed(item);
 }
 
 CParty* CPlayer::AssignParty(CParty* source) {
-    recharging_.RemoveAll();
+    recharging_.clear();
     return Party()->Assign(source);
 }
 

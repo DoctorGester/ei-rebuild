@@ -111,7 +111,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
         }
     } else {
         width = 0x38;
-        x = column * 0x38 - owner_->party_.size * 0x38 / 2 + 400;
+        x = column * 0x38 - std::ssize(owner_->party_) * 0x38 / 2 + 400;
     }
     const int right = x + width;
 
@@ -182,7 +182,7 @@ void CHudPortraits::Rebuild(int wide) {
     std::string tip;
     slots_.EraseRange<recordvec::HudPortraitSlotElement>(slots_.begin(), slots_.end());
 
-    for (int i = 0; i < owner_->party_.size; ++i) {
+    for (int i = 0; i < std::ssize(owner_->party_); ++i) {
         CUnit* unit = owner_->party_[i];
         const int skin = unit->GetPrototype()->skin;
         SexOf(unit->name.c_str(), sex);

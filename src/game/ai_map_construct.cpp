@@ -9,6 +9,7 @@
 #include "lib/mfc_array.h"
 
 #include <cstdint>
+#include <vector>
 #include "unit_ai.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
@@ -16,15 +17,12 @@
 #include "record_arrays.h"
 
 CAIMap::CAIMap() {
-    climbLarge.Construct(mfc::impl::IntArrayClass::Vtable());
-    climbSmall.Construct(mfc::impl::IntArrayClass::Vtable());
     bridgeHeights.Construct(100);
     footprint.hashed = true;
     bridges.hashed = true;
     waterDepth.width = 1;
     waterDepth.height = 1;
     AllocateGrid(waterDepth);
-    for (mfc::CArray<AreaOffset>& list : areaLists) list.Construct(mfc::impl::AreaListClass::Vtable());
     unitLayerSmall.map = this;
     unitLayerLarge.map = this;
     ConstructRegionMap(&regionMap);
@@ -66,11 +64,8 @@ CAIMap::~CAIMap() {
     regions.local.Destruct();
     FreeGrid(regions.backward.records);
     FreeGrid(regions.forward.records);
-    for (int list = 5; list >= 0; --list) mfc::impl::DestructArrayOf<mfc::impl::AreaListClass>(areaLists[list]);
     FreeGrid(waterDepth);
     bridgeHeights.Destroy();
-    mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(climbSmall);
-    mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(climbLarge);
 }
 
 void CAIMap::Reset() {

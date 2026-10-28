@@ -6,6 +6,8 @@
 #include "base_manager.h"
 #include "world.h"
 
+#include <list>
+
 namespace {
 constexpr int kNoObject = -1;
 }
@@ -59,11 +61,11 @@ template void AIRefTo<CUnit>::Save(CStream*);
 
 // Reads a count, then that many counted references added at the tail of the list, each loaded in
 // `context` (the trap's units, the brain's lists).
-void CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, CWorld* context) {
+void CountedListLoad(std::list<CUnit*>* list, CStream* stream, CWorld* context) {
     int count;
     stream->Read(&count, 4);
     while (count-- > 0) {
-        auto* node = list->AddTail(nullptr);
-        AIRefTo<CUnit>::Of(&node->data)->Load(stream, context);
+        list->push_back(nullptr);
+        AIRefTo<CUnit>::Of(&list->back())->Load(stream, context);
     }
 }

@@ -12,7 +12,8 @@
 #include "unit_ai.h"
 #include "world_effect.h"
 #include "game_data.h"
-#include "lib/mfc_slots.h"
+
+#include <list>
 
 using namespace spellfx;
 
@@ -22,7 +23,7 @@ constexpr float kExplosionLoudness = 5.0f;             // immediate
 constexpr float kStrikeWidthImmediate = -7.0f;         // immediate in the lasting strike
 constexpr int kEndedTimer = -80;                       // the effects linger this long after ending
 
-using UnitList = mfc::CTypedPtrList<CUnit>;
+using UnitList = std::list<CUnit*>;
 
 // A player's server connection (CPlayer::connection_ on the server is a CPlayerServer).
 CPlayerServer* ServerOf(CPlayer* player) { return player->Server(); }
@@ -245,9 +246,9 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
         float wake = e->Spell()->radius_ + ConstAt(worlddata::ImpactWakeMargin());
         e->world->WakeUnitsAround(&e->position, wake);
         e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
-        for (auto* node = units.head; node;) {
-            CUnit* unit = node->data;
-            node = node->next;
+        for (auto node = units.begin(); node != units.end();) {
+            CUnit* unit = *node;
+            ++node;
             int duration = static_cast<int>(e->Spell()->duration_);
             int level = FrightLevel(&e->timer, &duration);
             ControllerOf(unit)->Brain()->memory.Notice(&e->position, level, -1);
@@ -271,9 +272,9 @@ void Clairvoyance(CSpellEffect* e, UnitList& units) {
         if (player) {
             ScriptGroup* group = &ServerOf(player)->group50F8_;
             e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
-            for (auto* node = units.head; node;) {
-                CUnit* unit = node->data;
-                node = node->next;
+            for (auto node = units.begin(); node != units.end();) {
+                CUnit* unit = *node;
+                ++node;
                 group->Insert(unit);
             }
         }
@@ -373,7 +374,6 @@ void Teleport(CSpellEffect* e) {
 
 } // namespace
 
-
 int CSpellEffect::Update() {
     if (!world) return 0;
     int type = static_cast<int>(Spell()->prototypeId_ >> 16);
@@ -408,13 +408,6 @@ void CSpellEffect::UpdateMissile(int type) {
 
 void CSpellEffect::UpdateLasting(int type) {
     UnitList units;   // the inline CPtrList the fireworks and clairvoyance fill
-    units.vtable = mfc::impl::PtrListClass::Vtable();
-    units.count = 0;
-    units.tail = nullptr;
-    units.head = nullptr;
-    units.free = nullptr;
-    units.blocks = nullptr;
-    units.blockSize = kPtrListBlockSize;
 
     switch (type) {
     case 0x00:
@@ -439,8 +432,7 @@ void CSpellEffect::UpdateLasting(int type) {
     default: break;
     }
 
-    units.vtable = mfc::impl::PtrListClass::Vtable();
-    units.RemoveAll();
+    units.clear();
 }
 
 void CSpellEffect::ReleaseVisual() { Assign<CEffect>(this, &visual, nullptr); }

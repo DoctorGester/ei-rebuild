@@ -34,7 +34,6 @@ constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull
 constexpr float kDecayBase = std::bit_cast<float>(0x3F4CCCCDu);
 const std::uint32_t* Diplomacy() { return GameDiplomacy()->allied_; }
 
-
 // The server side of a unit's player (CPlayer::connection_). Its refreshPending_ == 2 is what the modes take
 // as the player controlling the unit directly.
 inline const CPlayerServer* PlayerServerOf(const CPlayer* player) {
@@ -60,7 +59,6 @@ void WriteCopy(CStream* stream, const T& value, unsigned size = sizeof(T)) {
     T copy = value;
     stream->Write(&copy, size);
 }
-
 
 constexpr float kMoveTime = 1000000.0f;
 constexpr float kNearX = 35.0f;
@@ -111,11 +109,10 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
 
 // The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a CPtrList built on
 // first use and destroyed at exit.
-static_assert(sizeof(AIObjectList) == 0x1C);
 constinit lib::StaticObject<AIObjectList> g_candidates = /*007C54C8*/ {};
 AIObjectList& Candidates() { return *g_candidates; }
 std::uint8_t g_candidatesGuard = /*007C54E4*/ {};
-void DestroyCandidates() { mfc::impl::DestructList<mfc::impl::PtrListClass>(*g_candidates); }
+void DestroyCandidates() { g_candidates.Destroy(); }
 
 } // namespace
 
@@ -463,7 +460,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     std::uint8_t& guard = g_candidatesGuard;
     if (!(guard & 1)) {
         guard |= 1;
-        mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(&Candidates(), 10);
+        g_candidates.Construct();
         libcrt::AtExit(DestroyCandidates);
     }
     CUnit* self = brain->owner->unit;
@@ -550,7 +547,7 @@ void AggressionMode::Save(CStream* stream) {
 // --- CorpseWatcher -------------------------------------------------------------------------------
 
 int CorpseWatcherMode::Evaluate(AIBrain* brain) {
-    if (brain->memory.corpses.count != 0) {
+    if (!brain->memory.corpses.empty()) {
         AIRefTo<CUnit> corpse;
         AIRefTo<CUnit>* popped = brain->PopCorpse(&corpse);
         brain->memory.Notice(&popped->object->localPosition_, 800, -3);

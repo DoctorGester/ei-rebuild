@@ -30,6 +30,7 @@
 #include "lib/nan_audit.h"
 
 #include <cstring>
+#include <list>
 
 namespace {
 
@@ -98,17 +99,11 @@ int WorldUpdateCount(CPlayer* player) { return player->ServerWorld()->updateCoun
 constexpr std::uint8_t kMessageItemStates = 0x05;
 constexpr std::uint8_t kMessageItemsGiven = 0x06;
 constexpr int kStateJoined = 1;
-constexpr int kItemListBlockSize = 10;
-using GivenList = mfc::CTypedPtrList<CItem>;
-void* ItemListVtable() { return mfc::impl::TempListClass::Vtable(); }   // the CPtrList built on the stack
+using GivenList = std::list<CItem*>;
 // SaveListedObjects on a typed list.
 template <typename T>
-void SaveListed(mfc::CTypedPtrList<T>* list, CStream* stream) {
-    for (auto* node = list->head; node;) {
-        T* object = node->data;
-        node = node->next;
-        SaveListedObject(object, stream);
-    }
+void SaveListed(const std::list<T*>* list, CStream* stream) {
+    for (T* object : *list) SaveListedObject(object, stream);
     SaveListedObjectsEnd(stream);
 }
 
@@ -123,10 +118,10 @@ T* NextAs(CEngineObject* const*& next) {
 
 void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
     if (state_ != kStateJoined) return;
-    mfc::CTypedPtrList<CSpell> spells{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
-    mfc::CTypedPtrList<CItem> gathered{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
-    for (GivenList::Node* node = items->head; node != nullptr; node = node->next)
-        GatherItem(&gathered, &spells, node->data);
+    std::list<CSpell*> spells{};
+    std::list<CItem*> gathered{};
+    for (auto node = items->begin(); node != items->end(); ++node)
+        GatherItem(&gathered, &spells, *node);
     CMemoryStream states;
     SaveListed(&spells, &states);
     SaveListed(&gathered, &states);
@@ -135,11 +130,11 @@ void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
     WriteByte(&out_, kMessageItemsGiven);
     WriteDword(&out_, static_cast<std::uint32_t>(Owner()->Party()->Money()));
     WriteByte(&out_, static_cast<std::uint8_t>(flag));
-    for (GivenList::Node* node = items->head; node != nullptr; node = node->next)
-        WriteDword(&out_, static_cast<std::uint32_t>(node->data->id_));
+    for (auto node = items->begin(); node != items->end(); ++node)
+        WriteDword(&out_, static_cast<std::uint32_t>((*node)->id_));
     WriteDword(&out_, 0xFFFFFFFFu);
-    gathered.RemoveAll();   // the lists' inlined destructors
-    spells.RemoveAll();
+    gathered.clear();   // the lists' inlined destructors
+    spells.clear();
 }
 
 int CPlayerServer::Flush() {
@@ -266,11 +261,11 @@ int CPlayerServer::SendTimedRemoved(const PlayerObjectArray* objects) {
 
 // The original calls SendObject14 of this object for each item.
 void CPlayerServer::SendItems() {
-    auto* node = Owner()->recharging_.head;
-    while (node != nullptr) {
-        auto* current = node;
-        node = node->next;
-        unsigned id = current->data;
+    auto node = Owner()->recharging_.begin();
+    while (node != Owner()->recharging_.end()) {
+        auto current = node;
+        ++node;
+        unsigned id = *current;
         CResourceManager* items = Owner()->Party()->ItemManager();
         if (CEngineObject* item = items->FindObject(id)) SendObject14(item);
     }
@@ -298,9 +293,9 @@ int CPlayerServer::SendPartyState() {
         if (refreshPending_ != 2 && !unit->IsDead()) {
             if (unit->ServerController()->IsFighting()) refreshPending_ = 2;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
-            for (auto* node = unit->ServerController()->Brain()->memory.nearby.head; node != nullptr;) {
-                auto* other = node->data;
-                node = node->next;
+            for (auto node = unit->ServerController()->Brain()->memory.nearby.begin(); node != unit->ServerController()->Brain()->memory.nearby.end();) {
+                auto* other = *node;
+                ++node;
                 if ((playerBit & other->relationsB & other->relationsA) == 0) continue;
                 if (other->ServerController()->Brain()->AggressionEnemy() == unit) refreshPending_ = 2;
             }

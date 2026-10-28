@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <string>
 
 #undef GetClassName   // CEngineObject::GetClassName
@@ -26,8 +27,8 @@ public:
     FigureAnimation* FindFigureAnimation(const std::string& figure, const char* name);
 
     using ObjectMap = stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>;
-    using ObjectList = mfc::CTypedPtrList<CEngineObject>;
-    using PositionMap = stlp::hash_map<int, ObjectList::Node*, stlp::IntHash>;
+    using ObjectList = std::list<CEngineObject*>;
+    using PositionMap = stlp::hash_map<int, ObjectList::iterator, stlp::IntHash>;
     using SpareMap = stlp::hash_map<int, ObjectList*, stlp::IntHash>;
     using SpareCountMap = stlp::hash_map<int, int, stlp::IntHash>;
 
@@ -106,25 +107,16 @@ public:
 static_assert(offsetof(CBaseManager, objects_) == 0x1C);
 static_assert(offsetof(CBaseManager, maxId_) == 0x30);
 static_assert(offsetof(CBaseManager, objectList_) == 0x34);
-static_assert(offsetof(CBaseManager, positions_) == 0x50);
-static_assert(offsetof(CBaseManager, maxPositionId_) == 0x64);
-static_assert(offsetof(CBaseManager, spares_) == 0x68);
-static_assert(offsetof(CBaseManager, spareCounts_) == 0x80);
-static_assert(offsetof(CBaseManager, idLow_) == 0x98);
-static_assert(offsetof(CBaseManager, lastId_) == 0xA8);
-static_assert(offsetof(CBaseManager, context_) == 0xAC);
-static_assert(sizeof(CBaseManager) == 0xB0);
 
 // Walks a manager's objectList_. While iterating it holds a reference on the manager (refCount_ + 1); the
 // owner drops it afterwards with `--manager->refCount_` (the inlined destructor).
 struct ObjectListIterator {
     CBaseManager* manager;
-    CBaseManager::ObjectList::Node* position;   // the node Next returns
+    CBaseManager::ObjectList::iterator position;   // the node Next returns (the list's end: none)
 
     CEngineObject* First(CBaseManager* list);
     CEngineObject* Next();
 };
-static_assert(sizeof(ObjectListIterator) == 8);
 
 // The same walk over a manager whose objects are all of class T (the light factory's lights, an
 // item manager's items): First and Next hand them out typed. The user drops the manager's count.

@@ -13,7 +13,6 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 #include "lib/stlp.h"
 #include "game_data.h"
 
@@ -23,7 +22,6 @@
 
 namespace {
 
-constexpr int kListBlockSize = 10;
 constexpr int kBoneClass = 0x300C;   // FigureBone's class id
 
 int CompareNames(std::string_view a, std::string_view b) {
@@ -32,17 +30,6 @@ int CompareNames(std::string_view a, std::string_view b) {
 
 // A bone's mesh is a counted figure part (CFigureMesh, an engine object).
 CFigureMesh* AsMesh(CEngineObject* part) { return static_cast<CFigureMesh*>(part); }
-
-template <typename T>
-void ConstructList(mfc::CTypedPtrList<T>* list, void* vtable) {
-    list->vtable = vtable;
-    list->count = 0;
-    list->free = nullptr;
-    list->tail = nullptr;
-    list->head = nullptr;
-    list->blocks = nullptr;
-    list->blockSize = kListBlockSize;
-}
 
 // The root places the skeleton (through its address) at the owner's time factor at its scale z times its
 // default scale: x and y from the factor stored to a float, z from it unrounded.
@@ -76,18 +63,14 @@ void ClearTrack(AnimationTrack* track) {
 
 CFigureAnimationState::CFigureAnimationState() {
     ClearFields();
-    ConstructList(&bones, mfc::impl::BoneListClass::Vtable());
-    ConstructList(&queue, mfc::impl::AnimationStateListClass::Vtable());
     Reset();
 }
 
 CFigureAnimationState::~CFigureAnimationState() {
     ReleaseBones();
     Reset();
-    queue.vtable = mfc::impl::AnimationStateListClass::Vtable();
-    queue.RemoveAll();
-    bones.vtable = mfc::impl::BoneListClass::Vtable();
-    bones.RemoveAll();
+    queue.clear();
+    bones.clear();
 }
 
 int CFigureAnimationState::Create() { return CreateState(); }
@@ -105,21 +88,21 @@ void CFigureAnimationState::DestroyState() {
 }
 
 void CFigureAnimationState::ReleaseBones() {
-    for (auto* node = bones.head; node;) {
-        FigureBone* bone = node->data;
-        node = node->next;
+    for (auto node = bones.begin(); node != bones.end();) {
+        FigureBone* bone = *node;
+        ++node;
         bone->Release();
     }
-    bones.RemoveAll();
+    bones.clear();
 }
 
 void CFigureAnimationState::Reset() {
     onEnd = nullptr;
     owner = nullptr;
     root = nullptr;
-    bones.RemoveAll();
+    bones.clear();
     current = nullptr;
-    queue.RemoveAll();
+    queue.clear();
     time = 0.0f;
     morphS = 0.0f;
     morphT = 0.0f;
@@ -128,8 +111,8 @@ void CFigureAnimationState::Reset() {
 }
 
 FigureBone* CFigureAnimationState::FindBone(const char* boneName) {
-    for (auto* node = bones.head; node; node = node->next)
-        if (CompareNames(node->data->name, boneName) == 0) return node->data;
+    for (auto node = bones.begin(); node != bones.end(); ++node)
+        if (CompareNames((*node)->name, boneName) == 0) return *node;
     return nullptr;
 }
 
@@ -144,22 +127,22 @@ int CFigureAnimationState::LinkPiece(FigureModel* model, const char* child, cons
 int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     const char* parentName = bone->name2.c_str();
     FigureBone* parent = nullptr;
-    for (auto* node = bones.head; node; node = node->next) {
-        if (CompareNames(node->data->name, parentName) == 0) {
-            parent = node->data;
+    for (auto node = bones.begin(); node != bones.end(); ++node) {
+        if (CompareNames((*node)->name, parentName) == 0) {
+            parent = *node;
             break;
         }
     }
     if (parent) {
         bool known = false;
-        for (auto* node = parent->children.head; node && !known; node = node->next)
-            known = CompareNames(node->data->name, bone->name) == 0;
+        for (auto node = parent->children.begin(); node != parent->children.end() && !known; ++node)
+            known = CompareNames((*node)->name, bone->name) == 0;
         if (!known) {
-            parent->children.AddTail(bone);
+            parent->children.push_back(bone);
             bone->parent = parent;
         }
     }
-    bones.AddTail(bone);
+    bones.push_back(bone);
     ++bone->refCount_;
     bone->name3 = owner->name;
     bone->morphS = morphS;
@@ -173,9 +156,9 @@ int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
 int CFigureAnimationState::AttachMesh(CEngineObject* part) {
     changed = 1;
     FigureBone* bone = nullptr;
-    for (auto* node = bones.head; node; node = node->next) {
-        if (CompareNames(node->data->name, part->GetName()) == 0) {
-            bone = node->data;
+    for (auto node = bones.begin(); node != bones.end(); ++node) {
+        if (CompareNames((*node)->name, part->GetName()) == 0) {
+            bone = *node;
             break;
         }
     }
@@ -193,9 +176,9 @@ int CFigureAnimationState::AttachMesh(CEngineObject* part) {
 
 int CFigureAnimationState::FindRoot() {
     changed = 1;
-    for (auto* node = bones.head; node; node = node->next) {
-        if (node->data->name2.empty()) {
-            root = node->data;
+    for (auto node = bones.begin(); node != bones.end(); ++node) {
+        if ((*node)->name2.empty()) {
+            root = *node;
             return 1;
         }
     }
@@ -209,8 +192,8 @@ int CFigureAnimationState::SetModel(const char* model) {
 
 int CFigureAnimationState::DetachMesh(CEngineObject* part) {
     changed = 1;
-    for (auto* node = bones.head; node; node = node->next) {
-        FigureBone* bone = node->data;
+    for (auto node = bones.begin(); node != bones.end(); ++node) {
+        FigureBone* bone = *node;
         if (bone->mesh && bone->mesh == AsMesh(part)) {
             CFigureMesh* old = bone->mesh;
             bone->mesh = nullptr;
@@ -223,9 +206,9 @@ int CFigureAnimationState::DetachMesh(CEngineObject* part) {
 
 int CFigureAnimationState::DetachMeshes() {
     changed = 1;
-    for (auto* node = bones.head; node;) {
-        FigureBone* bone = node->data;
-        node = node->next;
+    for (auto node = bones.begin(); node != bones.end();) {
+        FigureBone* bone = *node;
+        ++node;
         CFigureMesh* old = bone->mesh;
         bone->mesh = nullptr;
         if (old) old->Release();
@@ -241,9 +224,9 @@ void CFigureAnimationState::PlaceIfChanged() {
 
 void CFigureAnimationState::UpdatePose() {
     if (!changed) return;
-    for (auto* node = bones.head; node;) {
-        FigureBone* bone = node->data;
-        node = node->next;
+    for (auto node = bones.begin(); node != bones.end();) {
+        FigureBone* bone = *node;
+        ++node;
         bone->pose->Evaluate(time);
     }
     PlaceIfChanged();
@@ -256,9 +239,9 @@ void CFigureAnimationState::Rescale(float s, float t, float u) {
         std::string key(name, name + std::strlen(name));
         model = FigureManagerOf(this)->FindModel(&key);
     }
-    for (auto* node = bones.head; node;) {
-        FigureBone* bone = node->data;
-        node = node->next;
+    for (auto node = bones.begin(); node != bones.end();) {
+        FigureBone* bone = *node;
+        ++node;
         bone->morphS = s;
         bone->morphT = t;
         bone->morphU = u;
@@ -272,14 +255,14 @@ void CFigureAnimationState::Rescale(float s, float t, float u) {
 }
 
 void CFigureAnimationState::CollectBoneNames(std::vector<std::string>* out) {
-    for (auto* node = bones.head; node; node = node->next) out->push_back(node->data->name);
+    for (auto node = bones.begin(); node != bones.end(); ++node) out->push_back((*node)->name);
 }
 
 int CFigureAnimationState::ClearBoneTracks() {
     changed = 1;
-    for (auto* node = bones.head; node;) {
-        FigureBone* bone = node->data;
-        node = node->next;
+    for (auto node = bones.begin(); node != bones.end();) {
+        FigureBone* bone = *node;
+        ++node;
         ClearTrack(bone->pose);
         bone->pose->animation = nullptr;
     }
@@ -288,9 +271,9 @@ int CFigureAnimationState::ClearBoneTracks() {
 
 int CFigureAnimationState::LoadBoneTracks(CFigureModelPart* part, const FigureAnimation* animation) {
     changed = 1;
-    for (auto* node = bones.head; node;) {
-        FigureBone* bone = node->data;
-        node = node->next;
+    for (auto node = bones.begin(); node != bones.end();) {
+        FigureBone* bone = *node;
+        ++node;
         auto* data = static_cast<std::uint8_t*>(part->ReadEntry(bone->name.c_str(), nullptr));
         if (!data) ClearTrack(bone->pose);
         else bone->pose->LoadKeyFrames(&data);

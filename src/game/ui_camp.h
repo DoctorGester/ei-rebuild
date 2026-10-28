@@ -34,7 +34,6 @@ inline constexpr int kBodySlotX[7] = /*00741EC4*/ {250, 250, 250, 550, 550, 550,
 inline constexpr int kBodySlotY[7] = /*00741EE0*/ {150, 300, 450, 150, 350, 450, 250};
 inline constexpr float kGlobalMapFullTurn = /*007C8020*/ 6.2831855f;
 
-
 // Every text section "pers <name>" gives its first line to the key of <name> (inserted, or replaced).
 void LoadPersonTexts(PersonTextMap* map);
 
@@ -436,7 +435,6 @@ public:
     // first lists.
     void DebugFill() override;
 
-
     int page_;
     bool fromHeroScreen_;            // opened from the multiplayer hero screen (closes with a pending value)
     bool spellConstructor_;          // the spell constructor's pages are offered
@@ -444,7 +442,7 @@ public:
     std::uint8_t unused_197;
     ClassTemplate* constructor_;     // the constructor's class template ("constr.current"), or null
     // A unit per party record, null for other classes.
-    mfc::CArray<CUnit*> heroes_;
+    std::vector<CUnit*> heroes_;
     int hero_;                       // the hero shown
     // The constructors' parts and what they made.
     CParty* itemParts_[3];
@@ -479,14 +477,7 @@ public:
     int turning_;                    // 1 / 2 while a turn button is held (Update turns the hero)
 };
 static_assert(offsetof(CCampPages, page_) == 0x190);
-static_assert(offsetof(CCampPages, hero_) == 0x1B0);
-static_assert(offsetof(CCampPages, spellResults_) == 0x1D4);
-static_assert(offsetof(CCampPages, statsPanel_) == 0x1D8);
-static_assert(offsetof(CCampPages, trade_) == 0x1F4);
-static_assert(offsetof(CCampPages, itemConstructor3_) == 0x208);
-static_assert(offsetof(CCampPages, pageTitles_) == 0x240);
 static_assert(offsetof(CCampPages, heroes_) == 0x19C);
-static_assert(offsetof(CCampPages, priceWeights_) == 0x21C);
 
 // --- Hero statistics panel ---
 // The statistics column of the camp and the multiplayer hero screen.
