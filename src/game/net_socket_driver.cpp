@@ -6,7 +6,6 @@
 #include "net_coder.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
-#include "lib/stlp_string.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -59,8 +58,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
         }
     }
     if (colon != npos) {
-        std::size_t first = colon + 1;
-        if (first > s.size()) stlp::ThrowOutOfRange();
+        std::size_t first = colon + 1;   // substr's range check (out_of_range) can't fire: the colon is in s
         std::size_t n = s.size() - first;
         if (n >= npos) n = npos;
         {

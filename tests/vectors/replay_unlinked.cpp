@@ -98,7 +98,7 @@ void __cdecl libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
 double __cdecl libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
 std::size_t __cdecl libcrt::Fwrite(const void*, std::size_t, std::size_t, gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fwrite")
 
-// The library's exceptions and resources (stlp_string.cpp, mfc_archive.cpp, mfc_string.cpp, mfc.cpp's
+// The library's exceptions and resources (mfc_archive.cpp, mfc_string.cpp, mfc.cpp's
 // TRY link, mfc_file.cpp).
 libcrt::Exception* libcrt::Exception::Construct() EI_UNLINKED("libcrt::Exception::Construct")
 libcrt::Exception* libcrt::Exception::DeletingDestruct(unsigned) EI_UNLINKED("libcrt::Exception::DeletingDestruct")

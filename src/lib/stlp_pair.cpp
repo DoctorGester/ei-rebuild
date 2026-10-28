@@ -1,8 +1,6 @@
 // STLport pair constructors and destructors at their addresses (stlp_pair.h).
 #include "stlp_pair.h"
 
-#include "crt.h"
-
 #include "ei/hook.h"
 
 #include <memory>
@@ -23,22 +21,9 @@ void StringListPair::Destruct() {
     std::destroy_at(&key);
 }
 
-void StringPair::Destruct() {
-    second.~string();
-    first.~string();
-}
-
-StringPair* StringPair::DeletingDestructor(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-
 } // namespace stlp
 
 using stlp::DwordPair;
-using stlp::StringDwordPair;
-using stlp::StringPair;
 using stlp::StringListPair;
 
 EI_REWRITTEN(0x0069C1C0, StringListPair::Construct);

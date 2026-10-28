@@ -275,7 +275,7 @@ to which template:
   arrays (`PointBuffer`, `UvBuffer`, `FaceBuffer`, `BlockBuffer`, `DwordBuffer`; 00452AF0, 0044FBB0, 0044F410, 0044F1D0,
   0044F1B0), `CUiRegion::points_`, unit_skins' texture set bytes. The animation / figure loader copies (0044F1B0-00454A30)
   are in aligned_arrays.cpp (element types `Blob<K>`).
-- STLport `vector`, `hash_map`, `list`, `map` (and `stlp::string`, used only inside src/lib now): `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
+- STLport `vector`, `hash_map`, `list`, `map` (strings are std::string; stlp::string is gone): `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
   next, prev, `data`); the instantiations keep their own insert / erase / clear, reached as free or static `__fastcall`
   forwarders (world_client_maps `GridOpsA/B`, `PlainOps`, `CellOps`; the text manager's 004E1530 / 004E1550 / 004E1590 /
   004DE930 / 004DEAF0 / 004DEB60). `vector<T>` has `Start` / `Finish` / `EndOfStorage` references for code that inlines
@@ -437,9 +437,10 @@ to which template:
   maps keyed by name (stlp_hash.h's `StringKeyTraits` / `StringListTraits` / `NamedSlot` and `stlp::StringHash` hash a
   std::string the same way: `h = 5 * h + c` over signed chars, so bucket and iteration order are kept; trees order by
   `operator<`, unsigned bytes like STLport's memcmp). Out parameters that built a string in raw storage return it now
-  (`NetAddress::Format` / `ToString`, `CLinkMesh::CopyName`). Left in src/lib only (for the bridge batch):
-  stlp::string itself with StringElement, StringAbi (stlp_string.cpp), stlp_pair.h's StringDwordPair / StringPair
-  (no game user), and StringHash's stlp::string overload. The records that grew lost
+  (`NetAddress::Format` / `ToString`, `CLinkMesh::CopyName`). The bridge batch removed the rest: stlp::string with
+  StringElement, StringAbi and stlp_string.cpp, stlp_pair.h's StringDwordPair / StringPair, StringHash's stlp::string
+  overload, and STLport's out_of_range (NetAddress::Parse's substr check could not fire: the colon is inside the text;
+  game.exe's out_of_range tables are retired with file `-`). The records that grew lost
   their size asserts; every node or block size that was a literal now is a sizeof (the animation caches' and the figure manager's
   hash nodes `deallocate(n, 20)`, the blood prints' list nodes 164, the text sources' nodes 0x18, the string vectors'
   `capacity * 12`): a literal size with a string-holding element frees into the wrong pool list.
