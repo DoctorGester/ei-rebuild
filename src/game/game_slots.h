@@ -49,12 +49,6 @@ using GroupList = ListAbi<ScriptGroup, EachElements<ScriptGroup, nullptr, gamear
 // A command block's commands as SetSize builds them (zeroed, then SSCCmd's constructor).
 inline void InitCommand(SSCCmd* p) { p->Construct(); }
 using BuiltCommands = ArrayAbi<SSCCmd, EachElements<SSCCmd, InitCommand, DestroyCommand>>;
-// The map database's zone records.
-using BuiltZoneRecords = mfc::impl::ArrayAbi<MapRecord, MapRecordElements>;
-// CArray<MapRecord>, the map database's maps.
-struct MapRecordArrayClass final
-    : mfc::impl::CompiledCollection<MapRecordArrayClass, &BuiltZoneRecords::Destruct<MapRecordArrayClass>,
-                                    &BuiltZoneRecords::Serialize> {};
 
 // ---- The lists whose Serialize loads through a temporary -----------------------------------------
 // ListAbi::SerializeThrough's element functions: how each loader builds the temporary (Init), assigns the new
@@ -114,16 +108,6 @@ inline void AssignDefine(ScriptDefine* to, const ScriptDefine* from) {
 }
 inline void DestroyDefine(ScriptDefine* p) { ScriptDefineElements::Destruct(p, 1); }
 
-// The world's shared objects: the three dwords, then the objects' copy (each counted).
-inline void InitSharedObject(SharedObject* p) { mfc::impl::ConstructHeader<mfc::impl::ObjectPtrArrayClass>(&p->objects); }
-inline void AssignSharedObject(SharedObject* to, const SharedObject* from) {
-    to->objectId = from->objectId;
-    to->player = from->player;
-    to->money = from->money;
-    to->objects.CopyFrom(from->objects);
-}
-
-inline void AssignWave(WaveRecord* to, const WaveRecord* from) { to->Assign(from); }
 
 // The FX sources: zero fill, no sound, the name empty (game.exe's CList<ScriptFxSource>::NewNode and its
 // ConstructElements).
@@ -133,7 +117,6 @@ using LightningNodes = ListAbi<ScriptLightning, EachElements<ScriptLightning, In
 using DeclNodes = ListAbi<ScriptDecl, EachElements<ScriptDecl, InitDecl, nullptr>>;
 using TokenNodes = ListAbi<ScriptToken, mfc::impl::HelperElements<ScriptToken, ConstructTokens, nullptr>>;
 using DefineNodes = ListAbi<ScriptDefine, ScriptDefineElements>;
-using SharedObjectNodes = ListAbi<SharedObject, EachElements<SharedObject, InitSharedObject, nullptr>>;
 
 using mfc::impl::ListTemporary;
 using ObjectRefsThrough = ListTemporary<gamelists::ObjectRefs, InitObjectRef, AssignObjectRef, ReleaseObjectRef>;
@@ -148,8 +131,6 @@ using RunsThrough = ListTemporary<gamelists::Runs, InitRunTemporary, AssignRun, 
 using GroupsThrough = ListTemporary<gamelists::Groups, gamearrays::InitGroup, AssignGroup, gamearrays::DestroyGroup>;
 using TokensThrough = ListTemporary<TokenNodes, InitToken, AssignToken, gamelists::DestroyToken>;
 using DefinesThrough = ListTemporary<DefineNodes, InitDefine, AssignDefine, DestroyDefine>;
-using SharedObjectsThrough = ListTemporary<SharedObjectNodes, InitSharedObject, AssignSharedObject, gamelists::DestroySharedObject>;
-using WavesThrough = ListTemporary<gamelists::Waves, gamelists::InitWave, AssignWave, gamelists::DestroyWave>;
 
 // ---- The instantiations' vtables ----------------------------------------------
 // Each tag is a CompiledCollection over the destructor and Serialize of the table it replaces.
@@ -158,10 +139,6 @@ using mfc::impl::CompiledCollection;
 
 struct ObjectRefListClass final
     : CompiledCollection<ObjectRefListClass, &gamelists::ObjectRefs::Destruct<ObjectRefListClass>, &ObjectRefsThrough::Abi::SerializeThrough<ObjectRefsThrough>> {};
-struct SharedObjectListClass final
-    : CompiledCollection<SharedObjectListClass, &gamelists::SharedObjects::Destruct<SharedObjectListClass>, &SharedObjectsThrough::Abi::SerializeThrough<SharedObjectsThrough>> {};
-struct WaveListClass final
-    : CompiledCollection<WaveListClass, &gamelists::Waves::Destruct<WaveListClass>, &WavesThrough::Abi::SerializeThrough<WavesThrough>> {};
 
 struct ParticleSourceListClass final
     : CompiledCollection<ParticleSourceListClass, &gamelists::ParticleSources::Destruct<ParticleSourceListClass>, &ParticleSourcesThrough::Abi::SerializeThrough<ParticleSourcesThrough>> {};
@@ -182,8 +159,6 @@ struct TokenListClass final
 struct DefineListClass final
     : CompiledCollection<DefineListClass, &ScriptDefinesDestruct, &DefinesThrough::Abi::SerializeThrough<DefinesThrough>> {};
 
-struct ClientObjectPtrArrayClass final
-    : CompiledCollection<ClientObjectPtrArrayClass, &gamearrays::ObjectPtrs::Destruct<ClientObjectPtrArrayClass>, &gamearrays::ObjectPtrs::Serialize> {};
 struct EffectObjectArrayClass final
     : CompiledCollection<EffectObjectArrayClass, &EffectObjects::Destruct<EffectObjectArrayClass>, &gamearrays::Particles::Serialize> {};
 struct CommandArrayClass

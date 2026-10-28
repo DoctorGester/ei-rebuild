@@ -126,9 +126,6 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
 
 namespace {
 
-// Releases a range of counted object pointers.
-void CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructElements(static_cast<CEngineObject**>(a0), a1); }
-
 void ClearMissilePointers(CWorldServer* world) {
     auto& list = world->projectiles_;
     for (auto node = list.begin(); node != list.end(); ++node) ReleaseCounted(*node);
@@ -138,16 +135,15 @@ void ClearMissilePointers(CWorldServer* world) {
 } // namespace
 
 void CWorldServer::ResetZone() {
-    SharedObjectList& shared = sharedObjects_;
-    for (auto* node = shared.head; node; node = node->next) node->data.DeletingDestruct(0);
-    shared.RemoveAll();
+    sharedObjects_.clear();
     mobFiles_.clear();
     countdowns_.clear();
-    exits_.SetSize(0);
+    exits_.clear();
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
     ClearMissilePointers(this);
-    for (auto node = counted_.begin(); node != counted_.end(); ++node) CountedRangeRelease(&*node, 1);
+    for (CEngineObject* object : counted_)
+        if (object) object->Release();
     counted_.clear();
 
     if (PlayerList()) {
@@ -200,10 +196,7 @@ void CWorldServer::TeardownZone() {
     it.manager = nullptr;
     zoneLoaded_ = 0;
 
-    SharedObjectList& shared = sharedObjects_;
-    for (auto* node = shared.head; node; node = node->next)
-        mfc::impl::DestructArrayOf<gamearrays::ObjectPtrArrayBaseClass>(mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(node->data.objects));
-    shared.RemoveAll();
+    sharedObjects_.clear();
     mobFiles_.clear();
     AIMap()->refreshUnits = false;   // refreshes off
     ScriptReset(MainScript());

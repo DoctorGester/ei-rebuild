@@ -201,9 +201,6 @@ struct ScriptIfThenArrayClass
 struct ScriptIfThenPairsClass final : ScriptIfThenArrayClass {
     static void* Vtable() { return CompiledVtable<ScriptIfThenPairsClass>(); }
 };
-// The script's party slots
-struct PartySlotArrayClass final
-    : CompiledCollection<PartySlotArrayClass, &ArrayHeader<PartySlotArrayClass>::Destruct, &Placements::Serialize> {};
 // A figure's bone links
 struct BoneLinkArrayClass final
     : CompiledCollection<BoneLinkArrayClass, &ArrayHeader<BoneLinkArrayClass>::Destruct, &KeyFrames::Serialize> {};

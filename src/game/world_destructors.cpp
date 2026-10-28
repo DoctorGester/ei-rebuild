@@ -35,31 +35,6 @@ void FreeGrid(SectorGrid& grid) {
     gamecrt::operator_delete(grid.rows_);
 }
 
-// The server's lists' element destructors (their RemoveAll rows).
-// A shared object: its array of counted objects (the base vtable, every object released through
-// Release, the data freed).
-struct SharedObjectElements {
-    static void Construct(SharedObject*, int) {}
-    static void Destruct(SharedObject* entry, int count) {
-        for (; count > 0; --count, ++entry) {
-            auto& objects = entry->objects;
-            objects.vtable = gamearrays::ObjectPtrArrayBaseClass::Vtable();
-            if (!objects.data) continue;
-            for (int i = 0; i < objects.size; ++i)
-                if (CEngineObject* object = objects.data[i]) object->Release();
-            gamecrt::operator_delete(objects.data);
-        }
-    }
-};
-// A list emptied as its instantiation's destructor does: the vtable back, then RemoveAll with the
-// elements destroyed.
-template <typename Elements, typename T>
-void DestroyList(mfc::CList<T>& list, void* vtable) {
-    auto& typed = reinterpret_cast<mfc::CList<T, Elements>&>(list);
-    typed.vtable = vtable;
-    typed.RemoveAll();
-}
-
 // A script container destroyed by its instantiation's destructor (`Abi` over the element's policy,
 // `Class` the vtable it writes back).
 template <typename Abi, typename Class, typename Container>
@@ -136,14 +111,13 @@ CWorldClient::~CWorldClient() {
     dynamicObjects_.clear();
     objects_.Destroy();
     DestroySectorList(&heroes_);
-    countedA0_.vtable = gameslots::ClientObjectPtrArrayClass::Vtable();
-    countedA0_.ReleaseAll();
-    gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
+    countedA0_.clear();
+    exits_.clear();
 }
 
 CWorldServer::~CWorldServer() {
     CWorldServer::Destroy();
-    DestroyList<SharedObjectElements>(sharedObjects_, gameslots::SharedObjectListClass::Vtable());   // CList<SharedObject>
+    sharedObjects_.clear();
     ReleaseAndClear(counted_);
     for (CSpellEffect* missile : projectiles_) ReleaseCounted(missile);
     projectiles_.clear();
@@ -151,5 +125,5 @@ CWorldServer::~CWorldServer() {
     SecondScript()->Destruct();
     MainScript()->Destruct();
     Messages()->Destroy();
-    gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
+    exits_.clear();
 }

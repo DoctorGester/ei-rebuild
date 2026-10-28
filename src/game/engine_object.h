@@ -112,6 +112,12 @@ public:
     }
 
     T* get() const { return object_; }
+    // The pointer, no longer held here: its reference goes with it.
+    T* release() {
+        T* object = object_;
+        object_ = nullptr;
+        return object;
+    }
     operator T*() const { return object_; }
     T* operator->() const { return object_; }
 

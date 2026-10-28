@@ -71,7 +71,7 @@ constexpr int kAllodIsland = 3;        // the island model
 // kind 0 a game zone and 2 a way between zones here.
 MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
 MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
-MapRecord* ZoneAt(int index) { return TheMapDatabase()->maps.data + index; }
+MapRecord* ZoneAt(int index) { return &TheMapDatabase()->maps[index]; }
 
 bool NonEmpty(const std::string& text) { return text.size() != 0; }
 
@@ -310,8 +310,8 @@ void CGlobalMap::CreateScreen() {
     // The ways out of each zone the player may take ("z.<way>" = 2), with a region each.
     for (int i = 0; i < zoneCount_; ++i) {
         MapRecord* zone = FindZone(zones_.data[i].name);
-        for (int e = 0; e < zone->exits.size; ++e) {
-            MapRecord* way = FindZone(zone->exits.data[e].target);
+        for (int e = 0; e < std::ssize(zone->exits); ++e) {
+            MapRecord* way = FindZone(zone->exits[e].target);
             if (!way) continue;
             variable = str::Format("z.%s", way->name.c_str());
             if (way->kind != 2) continue;

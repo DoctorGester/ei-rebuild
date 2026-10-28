@@ -190,20 +190,6 @@ void InitWithArray(WithArray<Size, ArrayAt, Class>* p) {
     ConstructHeader<Class>(p->bytes + ArrayAt);
 }
 
-// 40-byte placements: a quaternion at +0x10, identity (w first) after the zero fill.
-struct Placement40 {
-    std::uint8_t head[0x10];
-    float w, x, y, z;
-    std::uint8_t tail[8];
-};
-static_assert(sizeof(Placement40) == 0x28);
-inline void InitPlacement40(Placement40* p) {
-    p->w = 1.0f;
-    p->x = 0.0f;
-    p->y = 0.0f;
-    p->z = 0.0f;
-}
-
 // 12-byte path records: 0, then two indices -1.
 struct PathRecord12 {
     int value;
@@ -292,7 +278,6 @@ using Floats = ArrayAbi<float>;
 using KeyFrames = ArrayAbi<KeyFrame40, InitElements<KeyFrame40, InitKeyFrame40>>;
 
 using Particles = ArrayAbi<Particle16, InitElements<Particle16, InitParticle16>>;
-using Placements = ArrayAbi<Placement40, InitElements<Placement40, InitPlacement40>>;
 using PathRecords = ArrayAbi<PathRecord12, InitElements<PathRecord12, InitPathRecord12>>;
 using SoundRecords = ArrayAbi<SoundRecord20, InitElements<SoundRecord20, InitSoundRecord20>>;
 using AnimationSteps = ArrayAbi<AnimationStep12, InitElements<AnimationStep12, InitAnimationStep12>>;

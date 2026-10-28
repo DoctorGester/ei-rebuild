@@ -45,7 +45,7 @@ void ReadWorld(CWorldServer* w, Builder& b) {
     b.Int("cave", w->cave_);
     b.Int("weather", w->weather_);
     b.Float("weatherStrength", w->weatherStrength_);
-    b.Int("exits", w->exits_.size);
+    b.Int("exits", static_cast<int>(std::ssize(w->exits_)));
     b.Int("gameResult", w->gameResult_);
     b.Unsigned("lastRainBoltTick", w->lastRainBoltTick_);
     b.Int("zoneLoaded", w->zoneLoaded_);
@@ -60,7 +60,7 @@ void ReadWorld(CWorldServer* w, Builder& b) {
     b.Unsigned("updateMap", static_cast<std::uint32_t>(w->updateMap_.map.size()));
     b.Int("projectiles", std::ssize(w->projectiles_));
     b.Int("counted", std::ssize(w->counted_));
-    b.Int("sharedObjects", w->sharedObjects_.GetCount());
+    b.Int("sharedObjects", static_cast<int>(std::ssize(w->sharedObjects_)));
     for (int i = 0; i < 32; ++i) {
         b.Bits("allied#", w->diplomacy_.allied_[i], i);
         b.Bits("hostile#", w->diplomacy_.hostile_[i], i);

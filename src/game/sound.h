@@ -128,20 +128,17 @@ struct SoundSequence {
 using DeferredMap = lib::HashMap<std::int32_t, DeferredSound*>;
 
 // The wave cache: a list of loaded waves, most recently used first, and a hash_map from the wave name to its
-// list node. A copy of a record copies its name (RemoveHead returns one by value).
+// list node.
 struct WaveRecord {
     void* data = nullptr;       // Miles memory (AIL_mem_alloc_lock), or the decompressed MP3
     std::string name;
     std::uint32_t lastUsed = 0; // GetTickCount()
     std::int32_t size = 0;      // bytes
     std::int32_t uses = 0;      // voices playing it
-
-    WaveRecord* Assign(const WaveRecord* from);
 };
-// Its NewNode / FreeNode copy and destroy the record themselves.
-using WaveList = mfc::CList<WaveRecord, mfc::RawElements<WaveRecord>>;
-using WaveNode = WaveList::Node;
-using WaveCache = std::unordered_map<std::string, WaveNode*>;
+using WaveList = std::list<WaveRecord>;
+using WaveNode = WaveList::iterator;
+using WaveCache = std::unordered_map<std::string, WaveNode>;
 // Miles' ASISTAGE (mss.h): the ASI codec's stream functions and the handles of the attributes it reports.
 struct AsiStage {
     void*(__stdcall* open)(void* user, void* read, int size);       // ASI_stream_open

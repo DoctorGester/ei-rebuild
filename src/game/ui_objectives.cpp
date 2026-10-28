@@ -200,8 +200,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     bool anyKnown = false;
     std::vector<ObjectiveExit>* exitArray = &exits_;
     exitArray->clear();
-    for (int i = 0; i < map->exits.size; ++i) {
-        const ZoneExit& source = map->exits.data[i];
+    for (int i = 0; i < std::ssize(map->exits); ++i) {
+        const ZoneExit& source = map->exits[i];
         if (text::CompareIgnoringCase(source.target,
                             "none") == 0)
             continue;

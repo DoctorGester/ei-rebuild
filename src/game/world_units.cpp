@@ -60,7 +60,7 @@ constexpr int kKindNoRangeTest = 3;
 constexpr int kGameResultLost = 2;
 
 using Placement = UnitPlacement;
-using PlacementArray = mfc::CArray<Placement>;
+using PlacementArray = std::vector<Placement>;
 
 // The hero's figure parts, "hr" replaced by its numbered style (none when the style is -1).
 void FillHeroParts(UnitSpec* message, const char* prototypeName, std::string& scratch) {
@@ -182,9 +182,9 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
 
         Placement* placement = nullptr;
         if (placements) {
-            for (int p = 0; p < placements->size; ++p) {
-                if (placements->data[p].id == message->id) {
-                    placement = &placements->data[p];
+            for (Placement& entry : *placements) {
+                if (entry.id == message->id) {
+                    placement = &entry;
                     break;
                 }
             }

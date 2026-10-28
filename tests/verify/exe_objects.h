@@ -854,7 +854,7 @@ struct CWorldServer : CWorld {
     int cave_;                              // +0xE0
     int weather_;                           // +0xE4
     float weatherStrength_;                 // +0xE8
-    Array<ZoneExit> exits_;                 // +0xEC
+    Vector<ZoneExit> exits_;                // +0xEC
     std::uint8_t unknown100[0x4];
     ObjectIdMap updateMap_;                 // +0x104
     std::uint8_t unknown11C[0x4];

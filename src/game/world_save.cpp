@@ -64,17 +64,9 @@ constexpr int kProgressManagers = 5;
 constexpr int kProgressObjects = 6;
 constexpr int kProgressDone = 7;
 
-constexpr int kSharedObjectNodeSize = 0x28;
-
 // ---- Local layouts ----------------------------------------------------------------------------
 
 using IdArray = std::vector<int>;
-
-// MFC CArray of counted item pointers (SharedObject::objects, world.h).
-using ObjectPtrArray = CountedPtrs<CItem>;
-
-using SharedObjectNode = SharedObjectList::Node;
-static_assert(sizeof(SharedObjectNode) == kSharedObjectNodeSize);
 
 // A player's MFC list of plain dwords (CPlayer::recharging_) and of objects (CPlayer::items_); only the head and
 // the node layout are read here.
@@ -91,13 +83,6 @@ void ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 
 } // namespace
 
-namespace {
-void ObjectPtrArrayDestruct(ObjectPtrArray* a) { mfc::impl::DestructArrayOf<gamearrays::ObjectPtrArrayBaseClass>(mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(*a)); }
-// The shared-object list's NewNode (the element's array header built).
-SharedObjectNode* SharedObjectsNewNode(SharedObjectList* list, SharedObjectNode* prev, SharedObjectNode* next) {
-    return mfc::impl::NewNodeAs<mfc::impl::SharedObjectNewList>(list, prev, next);
-}
-} // namespace
 
 namespace {
 
@@ -434,26 +419,8 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             if (stream->version_ >= kVersionSharedObjects) {
                 SharedObjectList& shared = sharedObjects_;
                 int count = ReadValue<int>(stream);
-                for (int i = 0; i < count; ++i) {
-                    // The element is copied from a local whose first three dwords are left unset; Load
-                    // overwrites them.
-                    SharedObject empty;
-                    empty.objectId = 0;
-                    empty.player = 0;
-                    empty.money = 0;
-                    mfc::impl::ConstructArrayOf<mfc::impl::ObjectPtrArrayClass>(empty.objects);
-                    SharedObjectNode* node = SharedObjectsNewNode(&shared, shared.tail, nullptr);
-                    node->data.CopyFrom(&empty);
-                    if (shared.tail) shared.tail->next = node;
-                    else shared.head = node;
-                    shared.tail = node;
-                    ObjectPtrArrayDestruct(&empty.objects);
-                }
-                for (SharedObjectNode* node = shared.head; node;) {
-                    SharedObjectNode* next = node->next;
-                    node->data.Load(stream);
-                    node = next;
-                }
+                for (int i = 0; i < count; ++i) shared.emplace_back();
+                for (SharedObject& entry : shared) entry.Load(stream);
             }
 
             manager40_->ReleaseUnused();
@@ -601,55 +568,19 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     WriteCopy(stream, static_cast<int>(mobFiles_.size()));
     for (const std::string& file : mobFiles_) stream->WriteString(file);
 
-    SharedObjectList& shared = sharedObjects_;
-    WriteCopy(stream, shared.count);
-    for (SharedObjectNode* node = shared.head; node;) {
-        SharedObjectNode* next = node->next;
-        WriteCopy(stream, node->data.objectId);
-        WriteCopy(stream, node->data.player);
-        WriteCopy(stream, node->data.money);
-        int count = node->data.objects.size;
-        WriteCopy(stream, count);
-        for (int i = 0; i < count; ++i) WriteCopy(stream, node->data.objects.data[i]->id_);
-        node = next;
+    WriteCopy(stream, static_cast<int>(sharedObjects_.size()));
+    for (const SharedObject& entry : sharedObjects_) {
+        WriteCopy(stream, entry.objectId);
+        WriteCopy(stream, entry.player);
+        WriteCopy(stream, entry.money);
+        WriteCopy(stream, static_cast<int>(entry.objects.size()));
+        for (CItem* object : entry.objects) WriteCopy(stream, object->id_);
     }
 }
 
 namespace {
 
-void ObjectPtrArrayCopy(ObjectPtrArray* to, const ObjectPtrArray* from) {
-    to->CopyFrom(*from);
-}
-void CountedRangeRelease(CItem** items, int count) {
-    for (int i = 0; i < count; ++i)
-        if (items[i]) items[i]->Release();
-}
-
-// SetAtGrow(size, object) on a CArray<CRefPtr>: the new slot holds a reference.
-void Append(ObjectPtrArray& array, CItem* object) {
-    int index = array.size;
-    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(array).SetSize(index + 1, -1);
-    CItem* old = array.data[index];
-    array.data[index] = object;
-    if (object) ++object->refCount_;
-    if (old) old->Release();
-}
-
 } // namespace
-
-SharedObject* SharedObject::CopyFrom(const SharedObject* from) {
-    objectId = from->objectId;
-    player = from->player;
-    money = from->money;
-    ObjectPtrArrayCopy(&objects, &from->objects);
-    return this;
-}
-
-SharedObject* SharedObject::DeletingDestruct(unsigned flags) {
-    mfc::impl::DestructArrayOf<gamearrays::ObjectPtrArrayBaseClass>(mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(objects));
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
 
 void SharedObject::Load(WorldStream* stream) {
     SharedObject* entry = this;
@@ -660,7 +591,7 @@ void SharedObject::Load(WorldStream* stream) {
     for (int i = 0; i < count; ++i) {
         int id = ReadValue<int>(stream);
         CItem* object = FindItem(WorldItemManager(), id);
-        if (object) Append(entry->objects, object);
+        if (object) entry->objects.emplace_back(object);
     }
 }
 
@@ -673,28 +604,11 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
 
     // AddHead(SharedObject()): the new head copies an empty local (whose first three dwords the
     // original leaves unset; they are overwritten below).
-    SharedObjectList& shared = sharedObjects_;
-    ObjectPtrArray empty{mfc::impl::ObjectPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
-    SharedObjectNode* node = SharedObjectsNewNode(&shared, nullptr, shared.head);
-    ObjectPtrArrayCopy(&node->data.objects, &empty);
-    if (shared.head) shared.head->prev = node;
-    else shared.tail = node;
-    shared.head = node;
-    empty.vtable = gamearrays::ObjectPtrArrayBaseClass::Vtable();
-    if (empty.data) {
-        CountedRangeRelease(empty.data, empty.size);
-        gamecrt::operator_delete(empty.data);
-    }
-
-    SharedObject& entry = shared.head->data;
+    SharedObject& entry = sharedObjects_.emplace_front();
     entry.objectId = id;
     entry.player = player;
     entry.money = value;
-    for (auto it = objects->begin(); it != objects->end();) {
-        auto next = std::next(it);
-        Append(entry.objects, *it);
-        it = next;
-    }
+    for (CItem* object : *objects) entry.objects.emplace_back(object);
 }
 
 void CWorldServer::PrepareSave() {

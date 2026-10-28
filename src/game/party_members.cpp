@@ -222,7 +222,7 @@ void CParty::OpenEdgeExits() {
     MapRecord* zone = TheMapDatabase()->FindMap(zone_.c_str());
     if (zone == nullptr || zone->kind != kZoneKindEdge) return;
     NamedFloatTable& variables = variables_;
-    for (int i = 0; i < zone->exits.size; ++i) {
+    for (int i = 0; i < std::ssize(zone->exits); ++i) {
         MapRecord* target = TheMapDatabase()->FindMap(zone->exits[i].target.c_str());
         if (target == nullptr || target->kind != kZoneKindGame) continue;
         variable = str::Format(ZoneVariableFormat(), target->name.c_str());

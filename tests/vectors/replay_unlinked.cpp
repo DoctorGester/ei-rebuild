@@ -42,8 +42,6 @@ namespace {
 void EffectParticle::ReleaseSource() EI_UNLINKED("EffectParticle::ReleaseSource")
 void aligned::ArrayAt8Free(void*) EI_UNLINKED("aligned::ArrayAt8Free")
 void ScriptQuestObjectiveDestruct(ScriptQuestObjective*) EI_UNLINKED("ScriptQuestObjectiveDestruct")
-void zone::ExitDestruct(ZoneExit*) EI_UNLINKED("zone::ExitDestruct")
-void zone::ZoneRecordDestruct(MapRecord*) EI_UNLINKED("zone::ZoneRecordDestruct")
 
 // game_arrays.cpp's and game_lists.cpp's script effects (script_effects.cpp needs the world).
 void ScriptPointLight::ScriptPointLightDestruct() EI_UNLINKED("ScriptPointLight::ScriptPointLightDestruct")

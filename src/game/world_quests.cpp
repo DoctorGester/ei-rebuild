@@ -494,7 +494,7 @@ namespace {
 
 constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
 
-using PlacementArray = mfc::CArray<UnitPlacement>;
+using PlacementArray = std::vector<UnitPlacement>;
 
 // As SyncPartyRecords does, without the items' records.
 void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CUnit* unit) {
@@ -551,8 +551,7 @@ void CWorldServer::StoreParty(RecordPtrArray* list, CParty* party, PlacementArra
             std::memcpy(entry.rotation, &unit->localRotation_, sizeof(entry.rotation));
             entry.value20 = static_cast<std::uint32_t>(unit->moveMode2);
             entry.value24 = unit->activeWeapon;
-            mfc::impl::ArrayAs<mfc::impl::Placements>(*placements)
-                .SetAtGrow(placements->size, reinterpret_cast<const mfc::impl::Placement40&>(entry));
+            placements->push_back(entry);
         }
         if (!unit->IsDead() || IsMultiplayerClient()) StoreRecord(this, party, record, unit);
         if (!unit->IsDead()) RemoveObject(unit->id_);

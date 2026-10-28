@@ -52,7 +52,7 @@ bool Is(const char* word, const char* text) {
 
 class Loader {
 public:
-    Loader(CMapDatabase* db, TextReader* reader) : db_(db), reader_(reader), map_(db->maps.size - 1) {}
+    Loader(CMapDatabase* db, TextReader* reader) : db_(db), reader_(reader), map_(static_cast<int>(db->maps.size()) - 1) {}
 
     void Line();
 
@@ -60,8 +60,8 @@ private:
     void Split() { reader_->Split(&words_, 1); }
     const char* Word(int i) const { return words_[i].c_str(); }
     int Count() const { return static_cast<int>(words_.size()); }
-    MapRecord& Map() { return db_->maps.data[map_]; }
-    ZoneExit& Exit() { return Map().exits.data[exit_]; }
+    MapRecord& Map() { return db_->maps[map_]; }
+    ZoneExit& Exit() { return Map().exits[exit_]; }
 
     void AddAllod();
     void AddMap();
@@ -77,27 +77,24 @@ private:
 };
 
 void Loader::AddAllod() {
-    auto& allods = db_->allods;
-    int index = allods.size;
-    allods.SetSize(index + 1);
-    allods.data[index].name = words_[1];
+    AllodRecord& allod = db_->allods.emplace_back();
+    allod.name = words_[1];
     for (int i = 0; i < 5; ++i) {
         Split();
-        allods.data[index].otherNames[i] = words_[0];
+        allod.otherNames[i] = words_[0];
     }
 }
 
 void Loader::AddMap() {
-    db_->maps.SetSize(db_->maps.size + 1);
+    db_->maps.emplace_back();
     ++map_;
     exit_ = -1;
     Map().name = words_[1];
     Map().allod = words_[2];
     const char* allodName = words_[2].c_str();
-    for (int i = 0; i < db_->allods.size; ++i) {
-        AllodRecord& allod = db_->allods.data[i];
+    for (AllodRecord& allod : db_->allods) {
         if (text::CompareIgnoringCase(allod.name, allodName) != 0) continue;
-        lib::SetAtGrow(allod.maps, std::ssize(allod.maps), map_);
+        allod.maps.push_back(map_);
         break;
     }
     if (Is(Word(3), game::mapwords::Game())) Map().kind = 0;
@@ -110,8 +107,7 @@ void Loader::AddMap() {
 }
 
 void Loader::AddExit() {
-    ZoneExits& exits = Map().exits;
-    exits.SetSize(exits.size + 1);
+    Map().exits.emplace_back();
     ++exit_;
     Exit().view = 0.0f;
     Exit().hasDeployAngle = 0;
@@ -242,22 +238,16 @@ bool CMapDatabase::LoadAll() {
     return Load("map-LMP.txt");
 }
 
-CMapDatabase* CMapDatabase::Construct() {
-    allods.Construct(mfc::impl::AllodArrayClass::Vtable());
-    maps.Construct(gameslots::MapRecordArrayClass::Vtable());
-    return this;
-}
-
 // The map database, zero at the start: built by a static initialiser in the list's order and destroyed by the
 // exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CMapDatabase> g_mapDatabase = /*0079BF00*/ {};
 CMapDatabase* TheMapDatabase() { return &*g_mapDatabase; }
 
 namespace {
-void DestroyMapDatabase() { g_mapDatabase->Destruct(); }
+void DestroyMapDatabase() { g_mapDatabase.Destroy(); }
 } // namespace
 
 void ConstructMapDatabase() {
-    g_mapDatabase->Construct();
+    g_mapDatabase.Construct();
     std::atexit(DestroyMapDatabase);
 }

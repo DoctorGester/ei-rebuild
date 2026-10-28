@@ -60,8 +60,6 @@ using Themes = ArrayAbi<MusicTheme, ThemeElements>;
 struct ThemeArrayClass final
     : mfc::impl::CompiledCollection<ThemeArrayClass, &Themes::Destruct<ThemeArrayClass>, &Themes::Serialize> {};
 
-using Waves = ArrayAbi<WaveRecord, EachElements<WaveRecord, gamelists::InitWave, gamelists::DestroyWave>>;
-
 // A fake unit's figure parts, meshes and materials (FakeUnitScene's constructor).
 struct FakeUnitPartArrayClass final
     : mfc::impl::CompiledCollection<FakeUnitPartArrayClass, &FigureParts::Destruct<FakeUnitPartArrayClass>, &FigureParts::Serialize> {};

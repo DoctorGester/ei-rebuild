@@ -26,13 +26,6 @@ void DestroyTable(std::vector<Record>& records, Index& index) {
 
 } // namespace
 
-void CMapDatabase::Destruct() {
-    maps.vtable = gameslots::MapRecordArrayClass::Vtable();
-    maps.FreeData();
-    allods.vtable = mfc::impl::AllodArrayClass::Vtable();
-    allods.FreeData();
-}
-
 namespace itemdb {
 
 void SpellDatabase::Destruct() {

@@ -6,43 +6,6 @@
 #include "game/item.h"
 #include "game/world.h"
 
-// The map database's element policies (object_tables.h).
-void AllodRecordElements::Construct(AllodRecord* allods, int count) {
-    std::memset(static_cast<void*>(allods), 0, static_cast<std::size_t>(count) * sizeof(AllodRecord));
-    for (; count > 0; --count, ++allods) {
-        std::construct_at(&allods->name);
-        for (auto& name : allods->otherNames) std::construct_at(&name);
-        std::construct_at(&allods->maps);
-    }
-}
-
-void AllodRecordElements::Destruct(AllodRecord* allods, int count) {
-    for (; count > 0; --count, ++allods) {
-        std::destroy_at(&allods->maps);
-        for (int i = 4; i >= 0; --i) std::destroy_at(&allods->otherNames[i]);
-        std::destroy_at(&allods->name);
-    }
-}
-
-void MapRecordElements::Construct(MapRecord* maps, int count) {
-    std::memset(static_cast<void*>(maps), 0, static_cast<std::size_t>(count) * sizeof(MapRecord));
-    for (; count > 0; --count, ++maps) {
-        std::construct_at(&maps->name);
-        std::construct_at(&maps->allod);
-        std::construct_at(&maps->mob);
-        std::construct_at(&maps->map);
-        std::construct_at(&maps->figure);
-        std::construct_at(&maps->picture2);
-        std::construct_at(&maps->picture);
-        std::construct_at(&maps->camera);
-        maps->exits.Construct(mfc::impl::MapRecordItemsClass::Vtable());
-    }
-}
-
-void MapRecordElements::Destruct(MapRecord* maps, int count) {
-    for (; count > 0; --count, ++maps) zone::ZoneRecordDestruct(maps);
-}
-
 // ---- The members of the script / world arrays (script.h, world.h) ----------------------------------
 
 ScriptObjectRef* ScriptObjectRefs::CopyAt(ScriptObjectRef* out, int index) const {
@@ -81,27 +44,3 @@ void ScriptGroups::CopyFrom(const ScriptGroups& source) {
         copy->DestructBody();
     }
 }
-
-template <class T>
-T** CountedPtrs<T>::CopyAt(T** out, int index) const {
-    T* object = this->data[index];
-    *out = object;
-    if (object) ++object->refCount_;
-    return out;
-}
-
-template <class T>
-void CountedPtrs<T>::CopyFrom(const CountedPtrs& source) {
-    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(*this).SetSize(source.size, -1);
-    for (int i = 0; i < source.size; ++i) {
-        T* copy;
-        source.CopyAt(&copy, i);
-        T* old = this->data[i];
-        this->data[i] = copy;
-        if (copy) ++copy->refCount_;
-        if (old) old->Release();
-        if (copy) copy->Release();
-    }
-}
-template struct CountedPtrs<CEngineObject>;
-template struct CountedPtrs<CItem>;   // SharedObject::objects

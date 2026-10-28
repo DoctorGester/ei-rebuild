@@ -48,6 +48,7 @@
 #include <bit>
 #include <list>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -219,19 +220,17 @@ void RedeployParty(const SSCCmd* cmd) {
     CPlayer* player = TheWorld()->GetPlayer(Ftol(cmd->floatArgs.data[0]));
     if (!player) return;
     CPlayerServer* state = player->Server();
-    mfc::CArray<UnitPlacement> slots;
-    mfc::impl::ConstructArrayOf<mfc::impl::PartySlotArrayClass>(slots);
+    std::vector<UnitPlacement> slots;
     TheWorld()->CollectParty(player, &slots);
     CParty* party = player->Party();
     ThePartyManager()->BeginRedeploy(party);
     ThePartyManager()->EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
     const PartyMemberArray& members = player->Party()->members_;
-    if (slots.size == 1 && members.size == 1) slots.data[0].id = static_cast<int>(members.data[0].unitId);
+    if (slots.size() == 1 && members.size == 1) slots[0].id = static_cast<int>(members.data[0].unitId);
     state->SendParty();
     player->Server()->lastPosition_.z = -1313.0f;
     TheWorld()->Redeploy(player, &slots, 0);
-    mfc::impl::DestructArrayOf<mfc::impl::PartySlotArrayClass>(slots);
 }
 
 void CopyLoot(const SSCCmd* cmd, bool replace) {

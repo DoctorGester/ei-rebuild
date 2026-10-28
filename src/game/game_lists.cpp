@@ -90,11 +90,6 @@ void InitDefinition(ScriptDefinition* p) {
 }
 void InitRun(ScriptRun* p) { p->vars.ScriptVarsConstruct(); }
 
-void DestroySharedObject(SharedObject* p) {
-    p->objects.vtable = gamearrays::ObjectPtrArrayBaseClass::Vtable();
-    p->objects.ReleaseAll();
-}
-
 } // namespace gamelists
 
 // ---- Members of the script lists (script.h) -------------------------------------------------------

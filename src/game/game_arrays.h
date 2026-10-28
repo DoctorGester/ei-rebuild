@@ -17,10 +17,6 @@ namespace aligned {
 void ArrayAt8Free(void* self);
 } // namespace aligned
 
-namespace zone {
-void ZoneRecordDestruct(MapRecord* self);
-} // namespace zone
-
 namespace gamearrays {
 
 using mfc::impl::ArrayAbi;
@@ -29,8 +25,6 @@ using mfc::impl::EachElements;
 
 // Records holding an aligned block at +8 (24 bytes): the block freed.
 inline void DestroyBlockAt8(Bytes<24>* p) { aligned::ArrayAt8Free(p); }
-
-inline void DestroyZoneRecord(MapRecord* p) { zone::ZoneRecordDestruct(p); }
 
 inline void InitGroup(ScriptGroup* p);   // defined below the tags
 inline void DestructGroupBody(ScriptGroup* group) { group->DestructBody(); }
@@ -61,13 +55,10 @@ inline void ReleaseOnly(CEngineObject** p) {
 inline void DestroyPointLight(ScriptPointLight* p) { p->ScriptPointLightDestruct(); }
 
 using BlocksAt8 = ArrayAbi<Bytes<24>, EachElements<Bytes<24>, nullptr, DestroyBlockAt8>>;
-using Exits = ArrayAbi<ZoneExit, ZoneExitElements>;
-using ZoneRecords = ArrayAbi<MapRecord, EachElements<MapRecord, nullptr, DestroyZoneRecord>>;
 using Groups = ArrayAbi<ScriptGroup, EachElements<ScriptGroup, InitGroup, DestroyGroup>>;
 using Objectives = ArrayAbi<ScriptQuestObjective, EachElements<ScriptQuestObjective, InitObjective, DestroyObjective>>;
 using Particles = ArrayAbi<EffectParticle, EachElements<EffectParticle, InitParticle, DestroyParticle>>;
 using ObjectRefs = ArrayAbi<ScriptObjectRef, EachElements<ScriptObjectRef, nullptr, ReleaseAndClear>>;
-using ObjectPtrs = ArrayAbi<CEngineObject*, EachElements<CEngineObject*, nullptr, ReleaseOnly>>;
 using PointLights = ArrayAbi<ScriptPointLight, EachElements<ScriptPointLight, nullptr, DestroyPointLight>>;
 
 // The script's areas (each area's parts array: its base vtable back, the storage freed) and definitions.
@@ -80,9 +71,6 @@ using Definitions = ArrayAbi<ScriptDefinition, EachElements<ScriptDefinition, nu
 
 struct PointLightArrayClass final
     : mfc::impl::CompiledCollection<PointLightArrayClass, &PointLights::Destruct<PointLightArrayClass>, &PointLights::Serialize> {};
-
-struct ObjectPtrArrayBaseClass
-    : mfc::impl::CompiledCollection<ObjectPtrArrayBaseClass, &ObjectPtrs::Destruct<ObjectPtrArrayBaseClass>, &ObjectPtrs::Serialize> {};
 
 // The global arrays the static initialisers construct.
 struct ObjectiveArrayClass final
@@ -103,38 +91,17 @@ struct ScriptGroupValuesClass final
 // The tags lib/mfc_array.h only declares (their slots need the game's elements).
 namespace mfc::impl {
 
-// A zone's exits, the table a map record's items and the worlds' exit arrays restore; the destructor frees each
-// exit's target string.
-struct ExitArrayClass
-    : CompiledCollection<ExitArrayClass, &gamearrays::Exits::Destruct<ExitArrayClass>, &gamearrays::Exits::Serialize> {};
-// The array inside a map record: derived from ExitArrayClass.
-struct MapRecordItemsClass final : ExitArrayClass {
-    static void* Vtable() { return CompiledVtable<MapRecordItemsClass>(); }
-};
 // CArray<ScriptObjectRef> as a script group's base: the references released, the storage freed.
 struct ObjectRefArrayClass final
     : CompiledCollection<ObjectRefArrayClass, &gamearrays::DestructGroupBody, &gamearrays::ObjectRefs::Serialize> {};
 // A script group (ScriptGroup): its destructor stores ObjectRefArrayClass' table.
 struct ScriptGroupClass final
     : CompiledCollection<ScriptGroupClass, &ScriptRefArrayDestruct, &gamearrays::ObjectRefs::Serialize> {};
-// A save's shared object pointers: derived from ObjectPtrArrayBaseClass.
-struct ObjectPtrArrayClass final : gamearrays::ObjectPtrArrayBaseClass {
-    static void* Vtable() { return CompiledVtable<ObjectPtrArrayClass>(); }
-};
 
 // The element policies over them (the lib headers cannot name the complete tags).
-// The map database's zone records (eight strings and the exits) and allods (six strings and the map indices).
-using AllodRecords = ArrayAbi<AllodRecord, AllodRecordElements>;
-// The map database's allods.
-struct AllodArrayClass final
-    : CompiledCollection<AllodArrayClass, &AllodRecords::Destruct<AllodArrayClass>, &AllodRecords::Serialize> {};
 // The script's groups (the element is 20 bytes: the group's array at +0).
 using ScriptGroups = ArrayAbi<WithArray<0x14, 0, ScriptGroupClass>,
                               InitElements<WithArray<0x14, 0, ScriptGroupClass>, InitWithArray<0x14, 0, ScriptGroupClass>>>;
-// The world's shared objects (game/world.h SharedObject): the three dwords, then the objects' array at +0xC.
-using SharedObjectElement = WithArray<0x20, 0xC, ObjectPtrArrayClass>;
-using SharedObjectElements = InitElements<SharedObjectElement, InitWithArray<0x20, 0xC, ObjectPtrArrayClass>>;
-using SharedObjectNewList = ListAbi<SharedObjectElement, SharedObjectElements>;
 
 } // namespace mfc::impl
 

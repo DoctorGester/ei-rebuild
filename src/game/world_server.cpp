@@ -94,17 +94,15 @@ int CWorldServer::CountLivingMercs(int id) {
 
 bool CWorldServer::IsObjectShared(int objectId, int playerId) {
     int player = SharedListPlayer(playerId);
-    for (auto* node = sharedObjects_.head; node; node = node->next)
-        if (node->data.objectId == objectId && (node->data.player == player || node->data.player == -1)) return true;
+    for (const SharedObject& entry : sharedObjects_)
+        if (entry.objectId == objectId && (entry.player == player || entry.player == -1)) return true;
     return false;
 }
 
 void CWorldServer::CollectSharedObjects(int playerId, ScriptGroup* group) {
     group->SetSize(0, -1);
     int player = SharedListPlayer(playerId);
-    for (auto* node = sharedObjects_.head; node;) {
-        const SharedObject& current = node->data;
-        node = node->next;
+    for (const SharedObject& current : sharedObjects_) {
         if (current.player != player && current.player != -1) continue;   // -1: every player
         if (CEngineObject* unit = FindUnit(static_cast<int>(current.objectId))) group->Insert(unit);
     }
@@ -143,7 +141,7 @@ void CWorld::SetServerPaused(std::uint8_t value) {
 }
 
 BOOL CWorldServer::GetZoneExit(int index, std::string* target, int* entrance) {
-    if (index < 0 || index >= exits_.size) return 0;
+    if (index < 0 || index >= std::ssize(exits_)) return 0;
     *target = exits_[index].target;
     *entrance = exits_[index].entrance;
     return 1;

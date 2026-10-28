@@ -80,10 +80,10 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073C394,3,,game,0045D8B0 0045E090 0046C290 00545BA0 00557890,007005E3,PatrolArrayClass,-,CArray (patrols; 32 bytes with a waypoint array at +0xC); stored only by game.exe (ours is a std::vector)
 0073C3A0,3,,game,0045E180 0046EFD0,007005E3,WaypointArrayClass,-,CArray (a patrol's waypoints; derived from ArrayBaseClass); stored only by game.exe (ours is a std::vector)
 0073C3D0,3,,game,0045E6F0 0045FBD0 004600D0 00460720 004608D0 005911C0 00596E70 005B3C30 005C1760 005EB8C0 005EB910 005F6130 00635080 006379E0 0063F300 0063F490,007005E3,IntArrayClass,src/lib/mfc_slots.h,CArray (CArray<int> / CDWordArray-like: the zone and quest id lists; the climb tables)
-0073C3DC,3,,game,0045E6F0 0045E820 0045FBD0,007005E3,AllodArrayClass,src/game/game_arrays.h,CArray (the map database's allods)
-0073C3E8,3,,game,0041BC40 0045E6F0 0045E820 00460130,007005E3,MapRecordArrayClass,src/game/game_slots.h,CArray<MapRecord> (the map database's maps)
-0073C3F4,3,,game,00460130 00460490 00460970 00460A80 0056FFE0 0057BDF0 0058AAD0,007005E3,ExitArrayClass,src/game/game_arrays.h,CArray (a zone's exits; the table the exit arrays' destructor 00460490 restores)
-0073C400,3,,game,004607E0 005612F0 0057BDF0 00589ED0,007005E3,MapRecordItemsClass,src/game/game_arrays.h,CArray (the array inside a map record; derived from ExitArrayClass)
+0073C3DC,3,,game,0045E6F0 0045E820 0045FBD0,007005E3,AllodArrayClass,-,CArray (the map database's allods); stored only by game.exe (ours is a std::vector)
+0073C3E8,3,,game,0041BC40 0045E6F0 0045E820 00460130,007005E3,MapRecordArrayClass,-,CArray<MapRecord> (the map database's maps); stored only by game.exe (ours is a std::vector)
+0073C3F4,3,,game,00460130 00460490 00460970 00460A80 0056FFE0 0057BDF0 0058AAD0,007005E3,ExitArrayClass,-,CArray (a zone's exits; the table the exit arrays' destructor 00460490 restores); stored only by game.exe (ours is a std::vector)
+0073C400,3,,game,004607E0 005612F0 0057BDF0 00589ED0,007005E3,MapRecordItemsClass,-,CArray (the array inside a map record; derived from ExitArrayClass); stored only by game.exe (ours is a std::vector)
 0073C434,13,,game,00461C10 00461C80,00461C60,CHoover,src/game/object.h,the loot hoover (CHoover)
 0073C474,22,,game,00462250 00462420,00462400,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
 0073C550,13,,game,00468680 00468810,004687F0,CLightning,src/game/lightning.h,a lightning bolt (CLightning)
@@ -145,7 +145,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073D22C,13,,game,004BA630 004BA730 00551E10 00551F50 005D2880 005D6D10,004BA680,AIActionMode,src/game/unit_ai.h,the acting AI modes' abstract base
 0073D260,13,,game,004BA710 004BA730 004BA7C0 004BA830 004BA8C0 005D63F0 005D8310,004BA8A0,AggressionMode,src/game/unit_ai.h,the Aggression AI mode
 0073D294,13,,game,004BA920 004BA930 004BA950 005D6440 005D8310,004BA990,CorpseWatcherMode,src/game/unit_ai.h,the CorpseWatcher AI mode
-0073D2C8,3,,game,004BB000 004BB020 004CB710 0066C540 0066C770,007005E3,PartySlotArrayClass,src/lib/mfc_slots.h,CArray (the script's party slots)
+0073D2C8,3,,game,004BB000 004BB020 004CB710 0066C540 0066C770,007005E3,PartySlotArrayClass,-,CArray (the script's party slots); stored only by game.exe (ours is a std::vector)
 0073D2D4,3,,game,004BC690 004BC740 004BC870 004BC950 004C00D0 004C1480 004CB7E0 004CBA00 004CBB80 004CBCA0 004CBDB0 004CBEF0 004CCAA0 004CD130 004CE750 004CE920 004CEB80 004CECB0 004D0A50 004D39D0 004D4E80,007005E3,ScriptStringValuesClass,src/game/game_arrays.h,CArray<CString> (the script variables' string values and names; destructor 004BC810)
 0073D2E0,3,,game,004BC690 004C00D0 004C1690 004CB7E0 004CBB80 004CEB80 004CECB0,007005E3,ScriptFloatValuesClass,src/lib/mfc_slots.h,CArray (the script variables' float values; derived from ScriptFloatsClass)
 0073D2EC,3,,game,004BC6C0 004BC980 004BCAE0 004BE090 004BE490 004C29C0 004CBAC0,007005E3,ScriptFloatsClass,src/lib/mfc_slots.h,CArray (the script's float variables)
@@ -286,7 +286,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F4E8,5,,game,0046F1F0,00402CF0,CRainSnow,src/game/effects.h,the rain and snow layer's tail (a byte match in 0046F1F0 split it off)
 0073F4FC,13,,game,005612F0,00561AE0,PlatformSet,src/game/world.h,the client world's platform set (CBridgeManager)
 0073F530,3,,game,005612F0 00561B00 00570510 005951A0 00596C60 0059DF90 005BFCD0 005C0600,007005E3,ClientObjectListClass,-,CList (the client world's and the sectors' object lists); stored only by game.exe (ours is a std::list)
-0073F53C,3,,game,005612F0 00561B00 00570180,007005E3,ClientObjectPtrArrayClass,src/game/game_slots.h,CArray (the client maps' engine object pointers)
+0073F53C,3,,game,005612F0 00561B00 00570180,007005E3,ClientObjectPtrArrayClass,-,CArray (the client maps' engine object pointers); stored only by game.exe (ours is a std::vector)
 0073F548,3,,game,00561A60 0056FD70 0056FE40,007005E3,PlatformListClass,-,CList (the client maps' platform lists); stored only by game.exe (ours is a std::list)
 0073F554,25,,game,00561E50 00562DF0,00562DD0,ClientArrayManager,src/game/world.h,
 0073F5B8,25,,game,00561E50,00562EA0,CLightningManager,src/game/lightning.h,
@@ -314,14 +314,14 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F9EC,3,,game,0058A700 00599330 005BD1C0 005C02E0,007005E3,SectorArrayClass,src/game/record_arrays.h,CArray (the AI map's sectors)
 0073F9F8,3,,game,0058A8A0 0058A900 005995E0 005B4110,007005E3,NodeListClass,-,CList (the AI map's node lists); stored only by game.exe (ours is a std::list)
 0073FA04,3,,game,0058A960 0058AA60 00599180 005AF3D0 005B3FF0 005BD1E0,007005E3,CellRowArrayClass,src/lib/mfc_slots.h,CArray (the AI map's cell rows)
-0073FA10,3,,game,0058AAD0 0059A340 0059A3C0,007005E3,SharedObjectListClass,src/game/game_slots.h,CList (the world server's shared objects)
+0073FA10,3,,game,0058AAD0 0059A340 0059A3C0,007005E3,SharedObjectListClass,-,CList (the world server's shared objects); stored only by game.exe (ours is a std::list)
 0073FA4C,3,,game,0058DAF0 00598F40,007005E3,RefListAClass,-,CList (the world server's new connections; 00598F40); stored only by game.exe (ours is a std::list)
 0073FA58,12,,game,0058ECE0,0046AB20,ObjectSpec,src/game/map_spec.h,"the quick item effect's object record (UseQuickItem): a twin of 0073C5F0 with the same slots (slot 10 0058EDD0, the same body as 0046A6F0)"
 0073FA88,4,,game,0058EF20 0058FB60 0058FB90 0058FBB0 00590C70 00594CE0 00596E70,0058FBC0,CItemLink,src/game/item.h,an item's link record (the world server's)
 0073FAA4,3,,game,00590700 00590A40 00590C70 005910A0 0059B0B0 00604130 0060C870 0060E6B0 00615850 00616910 00616AC0 00616E20 00638280,007005E3,PartyUnitArrayClass,-,CArray (the server's and interface's party unit arrays); stored only by game.exe (ours is a std::vector)
 0073FAB0,3,,game,005911C0 0059B260,007005E3,ExperienceListClass,-,CList (CWorldServer::AwardExperience's list); stored only by game.exe (ours is a std::list)
-0073FABC,3,,game,005947E0 00594950 005989D0 0059A100 0059A3C0 0059A4A0,007005E3,ObjectPtrArrayBaseClass,src/game/game_arrays.h,CArray (an array of object pointers; the base 0059A100 restores)
-0073FAC8,3,,game,005947E0 005985C0 0059A4A0 0059E330,007005E3,ObjectPtrArrayClass,src/game/game_arrays.h,CArray (a save's shared object pointers; derived from ObjectPtrArrayBaseClass)
+0073FABC,3,,game,005947E0 00594950 005989D0 0059A100 0059A3C0 0059A4A0,007005E3,ObjectPtrArrayBaseClass,-,CArray (an array of object pointers; the base 0059A100 restores); stored only by game.exe (ours is a std::vector)
+0073FAC8,3,,game,005947E0 005985C0 0059A4A0 0059E330,007005E3,ObjectPtrArrayClass,-,CArray (a save's shared object pointers; derived from ObjectPtrArrayBaseClass); stored only by game.exe (ours is a std::vector)
 0073FAD4,2,,game,00596030,0042BEE0,RootChunk,src/game/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
 0073FADC,1,,game,0059DF90 005BFCD0 005C0600,0059E080,Sector,src/game/sector_map.h,a world sector
 0073FAE0,3,,game,0059DF90 0059E0A0 005BFCD0 005C0600,007005E3,SectorOccluderArrayClass,src/lib/mfc_slots.h,CArray (a sector's occluders; after the sector's one-slot table 0073FADC)
@@ -548,7 +548,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00744098,13,,game,006B4350 006B44B0,006B4490,CMusicSystem,src/game/sound.h,
 007440CC,3,,game,006B4350 006B44B0 006B56C0,007005E3,ThemeArrayClass,src/game/record_arrays.h,CArray<MusicTheme> (the music system's themes)
 007440F0,13,,game,006B6040 006B65D0,006B62B0,CSoundManager,src/game/sound.h,
-00744124,3,,game,006B6040 006B65D0 006BC870,007005E3,WaveListClass,src/game/game_slots.h,CList (the sound cache's wave records)
+00744124,3,,game,006B6040 006B65D0 006BC870,007005E3,WaveListClass,-,CList (the sound cache's wave records); stored only by game.exe (ours is a std::list)
 00744130,3,,game,006B6040 006B65D0 006BC570,007005E3,SoundListClass,-,CList (the sound manager's list); stored only by game.exe (ours is a std::list)
 00744184,3,,game,006BF5F0 006BF8A0 006C4690,007005E3,SectorVertexArrayClass,src/game/record_arrays.h,CArray (a terrain sector's vertex records)
 007441A8,3,,game,006C4790 006C49D0,007005E3,TerrainByteArraysClass,src/lib/mfc_slots.h,CArray (a terrain sector's CByteArray elements)

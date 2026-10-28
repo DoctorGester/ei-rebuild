@@ -270,7 +270,7 @@ public:
     BitStream out_;                 // messages to the client
     std::uint8_t flag70_;           // OnLeaderDied collects the party when set, redeploys it when clear
     std::uint8_t unused_71[3];
-    mfc::CArray<UnitPlacement> placements_;
+    std::vector<UnitPlacement> placements_;
     CoderState compressor_;         // for the messages sent (Flush)
     CoderState decompressor_;       // for the messages received
     PlayerObjectArray sentObjects_; // map objects the client has (counted)

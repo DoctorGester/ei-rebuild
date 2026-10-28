@@ -41,16 +41,6 @@ bool ZoneExit::Contains(float x, float y) const {
     return turnedY <= y2;
 }
 
-ZoneExit* ZoneExit::Assign(const ZoneExit* from) {
-    std::memcpy(this, from, offsetof(ZoneExit, target));   // ..+0x24 as dwords
-    target = from->target;
-    entrance = from->entrance;
-    view = from->view;
-    hasDeployAngle = from->hasDeployAngle;
-    deployAngle = from->deployAngle;
-    return this;
-}
-
 // ---- Stream form and the string reader ------------------
 
 namespace {

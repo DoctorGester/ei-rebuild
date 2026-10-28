@@ -30,27 +30,18 @@ struct AllodRecord {
     std::string otherNames[5];  // one word on each of the next five lines
     std::vector<int> maps;    // CDWordArray: the indices of its maps
 };
-// The allods' elements (map_database.cpp): zero-filled, the strings empty and the map indices an empty
-// CDWordArray; destroyed the indices first, then the strings from the last.
-struct AllodRecordElements {
-    static void Construct(AllodRecord* allods, int count);
-    static void Destruct(AllodRecord* allods, int count);
-    static void Relocate(AllodRecord* to, AllodRecord* from, int count) { mfc::MoveElements(to, from, count); }
-};
-
 // One "#exit" of a map entry (map_database.cpp loads it): the map database's
 // record, which the world server copies (SetZoneExits) and sends to the client world.
 struct ZoneExit {
-    float passTime;                 // "#passtime": the time the way takes
-    float deploy[4];                // "#deploy": the rectangle the arriving party stands in
-    float x1, y1, x2, y2;           // "#remove" (and "#deploy"): the area that leads out
-    float angle;                    // the area's rotation about its centre (radians)
+    float passTime = 0.0f;          // "#passtime": the time the way takes
+    float deploy[4] = {};           // "#deploy": the rectangle the arriving party stands in
+    float x1 = 0.0f, y1 = 0.0f, x2 = 0.0f, y2 = 0.0f;   // "#remove" (and "#deploy"): the area that leads out
+    float angle = 0.0f;             // the area's rotation about its centre (radians)
     std::string target;            // the zone it leads to ("" = none)
-    int entrance;                   // the target zone's exit the party arrives at
-    float view;                     // "#view" (radians)
-    std::uint8_t hasDeployAngle;    // "#deployangle" given; saved from version 0x68
-    std::uint8_t unused_35[3];
-    float deployAngle;              // saved from version 0x68
+    int entrance = 0;               // the target zone's exit the party arrives at
+    float view = 0.0f;              // "#view" (radians)
+    std::uint8_t hasDeployAngle = 0;   // "#deployangle" given; saved from version 0x68
+    float deployAngle = 0.0f;       // saved from version 0x68
 
     // Whether (x, y) lies inside the exit area (rotated by `angle` about
     // the rectangle's centre when it is not 0).
@@ -60,37 +51,10 @@ struct ZoneExit {
     // angle; Read takes the last three only from version 0x68 on (else 0).
     void Read(CStream* stream);
     void Write(CStream* stream) const;
-    // (zone::ExitDelete in game_arrays.h: the scalar deleting destructor.) The compiler's operator=:
-    // +0x00..+0x24 as dwords, the target, +0x2C, +0x30, the byte +0x34 and +0x38; returns this.
-    ZoneExit* Assign(const ZoneExit* from);
-};
-static_assert(offsetof(ZoneExit, x1) == 0x14 && offsetof(ZoneExit, target) == 0x28);
-
-namespace zone {
-void ExitDestruct(ZoneExit* self);   // zone_records.cpp
-} // namespace zone
-
-// The exits' ConstructElements (zero filled, the target the empty string) and
-// DestructElements (each exit's destructor).
-struct ZoneExitElements {
-    static void Construct(ZoneExit* p, int n) {
-        mfc::PlainElements<ZoneExit>::Construct(p, n);
-        for (; n--; ++p) std::construct_at(&p->target);
-    }
-    static void Destruct(ZoneExit* p, int n) {
-        for (; n--; ++p) zone::ExitDestruct(p);
-    }
-    static void Relocate(ZoneExit* to, ZoneExit* from, int n) { mfc::MoveElements(to, from, n); }
 };
 
-// MFC CArray<ZoneExit> (a map record's +0x48, CWorldServer + 0xEC, CWorldClient + 0x8C). Its SetSize
-// is the instantiation's own (gamearrays::Exits; new records are constructed).
-struct ZoneExits : mfc::CArray<ZoneExit, ZoneExitElements> {
-    // By-value GetAt: element `index` copied into `out`
-    // (the fields, the target string copy-constructed). Returns out.
-    ZoneExit* CopyAt(ZoneExit* out, int index) const;
-};
-static_assert(sizeof(ZoneExits) == 0x14);
+// A map record's exits and the worlds' copies of the current zone's.
+using ZoneExits = std::vector<ZoneExit>;
 
 // One map/zone entry: +0 name, +4 allod name, +8 and +0xC other names.
 struct MapRecord {
@@ -102,26 +66,17 @@ struct MapRecord {
     std::string picture2;  // the "#maps" second line's second word
     std::string picture;   // its first word, the HUD map's texture
     std::string camera;    // the "#camera" line
-    int sizeX;              // "#maps" first line: the zone's size (times 32: the HUD map's world extent)
-    int sizeY;
-    int kind;               // 0 game, 1 edge, 2 brief (2: the zone has a script folder)
-    int setting2C;          // CWorldServer::SetClimate when the zone starts
-    int setting30;          // CWorldServer::SetCave
-    bool restricted;        // "#restrict x y radius": the camera stays in that circle
-    std::uint8_t unused_35[3];
-    float restrictX;
-    float restrictY;
-    float restrictRadius;
-    bool cage;              // "#cage": a base where the party does not walk to the people
-    std::uint8_t unused_45[3];
+    int sizeX = 0;          // "#maps" first line: the zone's size (times 32: the HUD map's world extent)
+    int sizeY = 0;
+    int kind = 0;           // 0 game, 1 edge, 2 brief (2: the zone has a script folder)
+    int setting2C = 0;      // CWorldServer::SetClimate when the zone starts
+    int setting30 = 0;      // CWorldServer::SetCave
+    bool restricted = false;   // "#restrict x y radius": the camera stays in that circle
+    float restrictX = 0.0f;
+    float restrictY = 0.0f;
+    float restrictRadius = 0.0f;
+    bool cage = false;      // "#cage": a base where the party does not walk to the people
     ZoneExits exits;
-};
-// The maps' elements (map_database.cpp): zero-filled, the strings empty and the exits an empty array with the
-// map record items' table; destroyed by the record's destructor (zone::ZoneRecordDestruct).
-struct MapRecordElements {
-    static void Construct(MapRecord* maps, int count);
-    static void Destruct(MapRecord* maps, int count);
-    static void Relocate(MapRecord* to, MapRecord* from, int count) { mfc::MoveElements(to, from, count); }
 };
 
 // The map database loaded from map.txt / map_LMP.txt (a global).
@@ -134,17 +89,10 @@ struct CMapDatabase {
     bool Load(const char* fileName);
     // Loads "map.txt", then "map-LMP.txt"; returns the second Load's result (WinMain does not read it).
     bool LoadAll();
-    // The constructor: the two arrays empty with their vtables (run by a static initialiser). Returns this.
-    CMapDatabase* Construct();
-    // The maps' array (its vtable back, each record's destructor, the storage freed), then the allods' (each
-    // allod's map indices freed, its six strings from the last), as the compiler wrote it.
-    void Destruct();
 
-    mfc::CArray<AllodRecord, AllodRecordElements> allods;
-    mfc::CArray<MapRecord, MapRecordElements> maps;
+    std::vector<AllodRecord> allods;
+    std::vector<MapRecord> maps;
 };
-static_assert(offsetof(CMapDatabase, maps) == 0x14);
-static_assert(sizeof(CMapDatabase) == 0x28);
 
 // The game's hash_map<CString, float> (the party's and players' variables, the briefing's copies) with std::string
 // keys, in game.exe's hash and bucket order (lib::HashMap: the variables are saved and listed in it), with the

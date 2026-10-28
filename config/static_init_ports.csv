@@ -41,7 +41,6 @@ address,name,file
 00458720,options::DestroyGameOptions,src/game/options_construct.cpp
 0045E6C0,ConstructMapDatabase,src/game/map_database.cpp
 0045E6E0,DestroyMapDatabase,src/game/map_database.cpp
-0045E820,CMapDatabase::Construct,src/game/map_database.cpp
 004630F0,ConstructLeverTable,src/game/lever_table.cpp
 00463110,DestroyLeverTable,src/game/lever_table.cpp
 004632A0,LeverRecordTable::LeverRecordTable,src/game/lever_table_load.cpp
