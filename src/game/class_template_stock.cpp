@@ -79,9 +79,6 @@ ClassTemplate::ClassTemplate() : weightsTail{} {
     flag38 = 1;
 }
 
-ClassTemplate* ClassTemplate::Construct() { return new (this) ClassTemplate(); }
-EI_REWRITTEN(0x004A6580, ClassTemplate::Construct);
-
 void ItemStock::Destruct() {
     context = nullptr;
     modifierMap.Destroy();

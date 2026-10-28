@@ -197,22 +197,12 @@ void StartRead(DeltaField* field, int second, BitStream* reader) {
 }
 } // namespace
 
-int DeltaField::BeginWriteA(int channel1Only) {
-    RewindAndEmpty(this);
-    SetKeep(channel1Only);
-    return channel1Only ? channel1Only : 1;
-}
-EI_REWRITTEN(0x0047DB70, DeltaField::BeginWriteA);
-
 DeltaField* DeltaField::BeginWriteB(int channel1Only) {
     RewindAndEmpty(this);
     SetKeep(channel1Only);
     return this;
 }
 EI_REWRITTEN(0x0047FA40, DeltaField::BeginWriteB);
-
-void DeltaField::BeginReadA(int second, BitStream* reader) { StartRead(this, second, reader); }
-EI_REWRITTEN(0x0047DBD0, DeltaField::BeginReadA);
 
 DeltaField* DeltaField::BeginReadB(int second, BitStream* reader) {
     StartRead(this, second, reader);
@@ -314,9 +304,6 @@ EI_REWRITTEN(0x0047E240, DeltaField::ReadStream);
 
 
 namespace delta {
-
-int __fastcall GetBit(BitStream* reader) { return reader->GetBit() ? 1 : 0; }
-EI_REWRITTEN(0x0047EAE0, GetBit);
 
 bool __fastcall ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader) {
     if (reader->GetBit()) {

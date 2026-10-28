@@ -596,14 +596,6 @@ void __fastcall NodeDeallocate(void* p, std::size_t bytes) {
 }
 EI_REWRITTEN(0x00404D70, libcrt::NodeDeallocate);
 
-void __fastcall NodeDeallocateChecked(void* p, std::size_t bytes) {
-    if (p) NodeDeallocate(p, bytes);
-}
-EI_REWRITTEN(0x0043B310, libcrt::NodeDeallocateChecked);
-
-void __stdcall NodeDeallocateCheckedStd(void* p, std::size_t bytes) { NodeDeallocateChecked(p, bytes); }
-EI_REWRITTEN(0x00426450, libcrt::NodeDeallocateCheckedStd);
-
 // The onexit list is the host CRT's: _crt_atexit's table, which std::exit runs last-registered first
 // (functions registered while it runs, too) before the host's own terminators. A function registered at its
 // address in game.exe's code runs as CodeAddress's code for it (ei/hook.h).

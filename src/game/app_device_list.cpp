@@ -52,22 +52,6 @@ void LeverRecord::Archive(ChunkArchive* archive) {
 }
 EI_REWRITTEN(0x00463030, LeverRecord::Archive);
 
-LeverRecord* LeverRecord::DeleteScalar(unsigned flags) {
-    app::RecordDestruct(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004657E0, LeverRecord::DeleteScalar);
-
-LeverRecord* LeverRecord::CopyConstruct(const LeverRecord* from) {
-    std::construct_at(&name, from->name);
-    app::CopyPlain(this, from);
-    std::construct_at(&text20, from->text20);
-    std::construct_at(&sound, from->sound);
-    std::construct_at(&text28, from->text28);
-    return this;
-}
-EI_REWRITTEN(0x00465A70, LeverRecord::CopyConstruct);
 LeverRecord* LeverRecord::Assign(const LeverRecord* from) {
     name = from->name;
     app::CopyPlain(this, from);

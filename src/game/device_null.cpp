@@ -465,7 +465,6 @@ HRESULT SetViewport(IDirect3DDevice7*, D3DVIEWPORT7* viewport) {
     if (viewport) g_switchOver.SetViewport(*viewport);
     return D3D_OK;
 }
-HRESULT SetRenderTarget(IDirect3DDevice7*, IDirectDrawSurface7*, DWORD) { return D3D_OK; }
 HRESULT SetRenderState(IDirect3DDevice7*, D3DRENDERSTATETYPE state, DWORD value) {
     g_switchOver.SetRenderState(static_cast<DWORD>(state), value);
     return D3D_OK;
@@ -510,6 +509,5 @@ HRESULT SetCooperativeLevel(IDirectDraw7*, HWND, DWORD) { return DD_OK; }
 HRESULT GetAvailableVidMem(IDirectDraw7*, DDSCAPS2*, DWORD* total, DWORD* free) { return VideoMemory(total, free); }
 HRESULT RestoreAllSurfaces(IDirectDraw7*) { return DD_OK; }
 HRESULT FlipToGDISurface(IDirectDraw7*) { return DD_OK; }
-HRESULT WaitForVerticalBlank(IDirectDraw7*, DWORD, HANDLE) { return DD_OK; }
 
 } // namespace device

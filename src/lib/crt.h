@@ -208,37 +208,16 @@ void __fastcall Element(void* element, void*) {
 // The STLport node allocator (__node_alloc<true, 0>); its pool is the exe's data.
 void* __fastcall NodeAllocate(std::size_t bytes);
 void __fastcall NodeDeallocate(void* p, std::size_t bytes);
-void __fastcall NodeDeallocateChecked(void* p, std::size_t bytes);
-void __stdcall NodeDeallocateCheckedStd(void* p, std::size_t bytes);
 void* __fastcall NodeRefill(std::size_t bytes);
 char* __fastcall NodeChunkAlloc(std::size_t size, int* count);
 
 gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler);
 
-// Formatted text (src/lib/crt_format.cpp): MSVC 6's _output and its float conversion (17 digits from a
-// 12-byte long double, then rounded half up on the digit string; three-digit exponents; "1#INF" and friends).
-// Byte-exact with game.exe's (the host's printf differs). atof and sscanf are the host CRT's.
-int __cdecl Sprintf(char* buffer, const char* format, ...);
 int __cdecl Vsprintf(char* buffer, const char* format, va_list args);
-int __cdecl Fprintf(gamecrt::CrtFile* file, const char* format, ...);
-int __cdecl Printf(const char* format, ...);
-int __cdecl Vfprintf(gamecrt::CrtFile* file, const char* format, va_list args);
 // The game's stdin, stdout and stderr (index 0..2). In the image a CrtFile* is the host's FILE*: these three
 // stand for the host's own streams (crt_file.cpp's HostFile), nothing reads their bytes.
 gamecrt::CrtFile* GameStream(int index);
-gamecrt::CrtFile* StandardOutput();
-// _output into `room` bytes (a string FILE of that size): the count, or -1 once the room runs out; a
-// terminator when it still fits.
-int FormatInto(char* buffer, std::size_t room, const char* format, va_list args);
 
-// The x87 entry points with register arguments (src/lib/crt_x87.cpp), called from assembly only.
-std::int64_t __cdecl FtolEntry();                                                       // _ftol
-double __cdecl CiAcosEntry();                                                     // _CIacos
-double __cdecl CiAsinEntry();                                                     // _CIasin
-double __cdecl CiPowEntry();                                                      // _CIpow
-// _ftol of an 80-bit value (10 bytes): the 64-bit truncation; NaN, infinity and |value| >= 2^63 give the
-// integer indefinite (0x8000000000000000), as FISTP with the invalid exception masked.
-std::int64_t __cdecl FtolExtended(const unsigned char* value);
 // The maths as the CRT computes it, under its control word (rounding to nearest, the caller's precision):
 // acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 / FSCALE. Out of the domain: the
 // x87 indefinite. CiAcos and CiAsin are also acos asin themselves (the stack-argument entries).
@@ -259,8 +238,6 @@ void __stdcall CxxThrowException(void* object, const void* throwInfo);
 // it. The const char* constructor has no callers.
 struct Exception {
     Exception* Construct();                                   // exception: no text
-    Exception* CopyConstruct(const Exception& source);
-    Exception* Assign(const Exception& source);
     void Destruct();
     Exception* DeletingDestruct(unsigned flags);
     const char* What() const;                                 // "Unknown exception" without text

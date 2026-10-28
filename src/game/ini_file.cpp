@@ -40,11 +40,6 @@ TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 // MFC's afxcoll array of dwords, through its own code: the constructor, destructor and SetSize.
 using MfcDWords = mfc::impl::CUIntArray;
 
-// A copy of `value` handed to WriteString (which takes its string by value).
-BOOL WriteCopy(CIniFile* ini, const char* section, const char* key, const std::string& value) {
-    return ini->WriteString(section, key, mfc::CString(value));
-}
-
 mfc::CString ReadString(const CIniFile* ini, const char* section, const char* key, const char* defaultValue) {
     return const_cast<CIniFile*>(ini)->GetString(section, key, defaultValue);
 }
@@ -111,13 +106,6 @@ CIniFile* CIniFile::Construct() {
 }
 EI_REWRITTEN(0x00695B80, CIniFile::Construct);
 
-CIniFile* CIniFile::ConstructWithPath(const char* path) {
-    std::construct_at(&path_);
-    path_ = path;
-    return this;
-}
-EI_REWRITTEN(0x00695B90, CIniFile::ConstructWithPath);
-
 BOOL CIniFile::SetPath(const char* path) {
     path_ = path;
     return 1;
@@ -154,30 +142,6 @@ BOOL CIniFile::GetKeyNames(const char* section, console::CStringArray* out) {
 }
 EI_REWRITTEN(0x00695D10, CIniFile::GetKeyNames);
 
-unsigned CIniFile::GetInt(const char* section, const char* key, int defaultValue) {
-    return gameapi::GetPrivateProfileIntA(section, key, defaultValue, path_.c_str());
-}
-EI_REWRITTEN(0x00695F00, CIniFile::GetInt);
-
-unsigned CIniFile::GetInt2(const char* section, const char* key, int defaultValue) {
-    return gameapi::GetPrivateProfileIntA(section, key, defaultValue, path_.c_str());
-}
-EI_REWRITTEN(0x00695F20, CIniFile::GetInt2);
-
-double CIniFile::GetFloat(const char* section, const char* key, float defaultValue) {
-    return GetDouble(section, key, defaultValue);
-}
-EI_REWRITTEN(0x00695F60, CIniFile::GetFloat);
-
-double CIniFile::GetDouble(const char* section, const char* key, double defaultValue) {
-    std::string text;
-    text = str::Format(kDoubleFormat, defaultValue);
-    std::string value = ReadString(this, section, key, text.c_str()).GetString();
-    volatile double result = std::atof(value.c_str());   // stored as a double
-    return result;
-}
-EI_REWRITTEN(0x00695F80, CIniFile::GetDouble);
-
 mfc::CString CIniFile::GetString(const char* section, const char* key, const char* defaultValue) {
     char buffer[0x400];
     std::memset(buffer, 0, 4);
@@ -203,21 +167,6 @@ BOOL CIniFile::GetList(const char* section, const char* key, mfc::CStringArray* 
 }
 EI_REWRITTEN(0x00696090, CIniFile::GetList);
 
-BOOL CIniFile::GetIntArrayCopy(const char* section, const char* key, DwordArray* out) {
-    return ReadAlignedVia<std::uint32_t>(this, section, key, out);
-}
-EI_REWRITTEN(0x006961D0, CIniFile::GetIntArrayCopy);
-
-BOOL CIniFile::GetByteArray(const char* section, const char* key, lib::AlignedArray<std::uint8_t>* out) {
-    return ReadAlignedVia(this, section, key, out);
-}
-EI_REWRITTEN(0x006963F0, CIniFile::GetByteArray);
-
-BOOL CIniFile::GetShortArray(const char* section, const char* key, lib::AlignedArray<std::uint16_t>* out) {
-    return ReadAlignedVia(this, section, key, out);
-}
-EI_REWRITTEN(0x00696610, CIniFile::GetShortArray);
-
 BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out) {
     console::CStringArray codes;
     if (!GetList(section, key, &codes, kListSeparator)) return 0;
@@ -228,79 +177,5 @@ BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out
 }
 EI_REWRITTEN(0x00696830, CIniFile::GetIntArray);
 
-BOOL CIniFile::GetMfcByteArray(const char* section, const char* key, mfc::CArray<std::uint8_t>* out) {
-    return ReadMfcVia(this, section, key, out);
-}
-EI_REWRITTEN(0x006969F0, CIniFile::GetMfcByteArray);
-
-BOOL CIniFile::GetMfcWordArray(const char* section, const char* key, mfc::CArray<std::uint16_t>* out) {
-    return ReadMfcVia(this, section, key, out);
-}
-EI_REWRITTEN(0x00696B20, CIniFile::GetMfcWordArray);
-
-BOOL CIniFile::GetMfcUIntArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out) {
-    return ReadMfcVia(this, section, key, out);
-}
-EI_REWRITTEN(0x00696C50, CIniFile::GetMfcUIntArray);
-
-BOOL CIniFile::GetMfcDWordArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out) {
-    console::CStringArray codes;
-    if (!GetList(section, key, &codes, kListSeparator)) return 0;
-    out->SetSize(codes.GetSize(), -1);
-    for (int i = 0; i < codes.GetSize(); ++i)
-        out->data[i] = static_cast<std::uint32_t>(std::atoi(codes[i]));
-    return 1;
-}
-EI_REWRITTEN(0x00696D80, CIniFile::GetMfcDWordArray);
-
 // --- Writers ---------------------------------------------------------------------------------------
 
-BOOL CIniFile::WriteString(const char* section, const char* key, mfc::CString value) {
-    return gameapi::WritePrivateProfileStringA(section, key, value, path_.c_str());
-}
-EI_REWRITTEN(0x00696E60, CIniFile::WriteString);
-
-BOOL CIniFile::WriteIntForward(const char* section, const char* key, int value) {
-    return WriteInt(section, key, value);
-}
-EI_REWRITTEN(0x00696F30, CIniFile::WriteIntForward);
-
-BOOL CIniFile::WriteInt(const char* section, const char* key, int value) {
-    std::string text;
-    text = str::Format(kIntFormat, value);
-    return WriteCopy(this, section, key, text);
-}
-EI_REWRITTEN(0x00696F50, CIniFile::WriteInt);
-
-BOOL CIniFile::WriteUInt(const char* section, const char* key, unsigned value) {
-    std::string text;
-    text = str::Format(kUIntFormat, value);
-    return WriteCopy(this, section, key, text);
-}
-EI_REWRITTEN(0x00696FE0, CIniFile::WriteUInt);
-
-BOOL CIniFile::WriteFloat(const char* section, const char* key, float value) {
-    std::string text;
-    text = str::Format(kFloatFormat, static_cast<double>(value));
-    return WriteCopy(this, section, key, text);
-}
-EI_REWRITTEN(0x00697070, CIniFile::WriteFloat);
-
-BOOL CIniFile::WriteDouble(const char* section, const char* key, double value) {
-    std::string text;
-    text = str::Format(kLongFloatFormat, value);
-    return WriteCopy(this, section, key, text);
-}
-EI_REWRITTEN(0x00697100, CIniFile::WriteDouble);
-
-BOOL CIniFile::WriteList(const char* section, const char* key, const console::CStringArray* items, char separator) {
-    std::string text;
-    if (items->GetSize() == 0) return 0;
-    text = (*items)[0];
-    for (int i = 1; i < items->GetSize(); ++i) {
-        std::string part = (mfc::operator+(separator, (*items)[i])).GetString();
-        text += part;
-    }
-    return WriteCopy(this, section, key, text);
-}
-EI_REWRITTEN(0x00697190, CIniFile::WriteList);

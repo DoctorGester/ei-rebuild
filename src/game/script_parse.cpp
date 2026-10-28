@@ -351,7 +351,7 @@ void __fastcall ClassifyToken(const char* text, int* id, int* rest) {
         if (id) *id = k->id;
     }
 }
-EI_REPLACE(0x004CF600, ClassifyToken);
+EI_REWRITTEN(0x004CF600, ClassifyToken);
 
 const char* __fastcall FunctionSignature(int id, int type) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
@@ -373,14 +373,14 @@ const char* __fastcall FunctionSignature(int id, int type) {
     }
     return nullptr;
 }
-EI_REPLACE(0x004D0B10, FunctionSignature);
+EI_REWRITTEN(0x004D0B10, FunctionSignature);
 
 const char* __fastcall KeywordName(int id) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k)
         if (k->id == id) return k->name;
     return "Unknown command";
 }
-EI_REPLACE(0x004D0BA0, KeywordName);
+EI_REWRITTEN(0x004D0BA0, KeywordName);
 
 
 ScriptToken* ScriptToken::Construct() {
@@ -494,7 +494,7 @@ BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x004CF7A0, CScript::Tokenize);
+EI_REWRITTEN(0x004CF7A0, CScript::Tokenize);
 
 BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id) {
     ScriptPos node = *pos;
@@ -508,7 +508,7 @@ BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id
     if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text.c_str());
     return 1;
 }
-EI_REPLACE_METHOD(0x004CF4D0, CScript::ExpectLexeme);
+EI_REWRITTEN(0x004CF4D0, CScript::ExpectLexeme);
 
 
 mfc::CString* CScript::QualifyName(mfc::CString* out, const std::string& name) {
@@ -586,4 +586,4 @@ void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines
         node = next;
     }
 }
-EI_REPLACE(0x004D33E0, ApplyDefines);
+EI_REWRITTEN(0x004D33E0, ApplyDefines);

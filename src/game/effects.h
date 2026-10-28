@@ -603,7 +603,6 @@ public:
 
     int Draw(CSceneRenderer* renderer);
     void UpdateFade(float now);
-    void FinishFade();
     void SetWind(const Vector3& direction, float strength);
     void Clear();
     // The draw's work arrays sized and their fixed parts filled (the client world's setup).

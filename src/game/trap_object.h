@@ -40,8 +40,6 @@ public:
     // world script above runs (on the mission script, z = the world's slot 28 at x, y)
     // and the trap disarms; with none, flags_ 0x100000 is cleared. Returns 0.
     int UpdateTrap();
-    // Armed: flags_ |= 0x180000.
-    void Arm();
     // An armed trap disarms when `key` accepts (always);
     // AL 1, else 0. The second argument is not read.
     bool Disarm(const LockKey* key, int unused);
@@ -60,7 +58,3 @@ public:
 // Slots 11 / 12: "CTrapObject" and 0x55. The magic trap's
 // "CMagicTrapObject" and 0x61.
 class MagicTrap;
-const char* __fastcall TrapClassName(CTrapObject* self);
-int __fastcall TrapClassId(CTrapObject* self);
-const char* __fastcall MagicTrapClassName(MagicTrap* self);
-int __fastcall MagicTrapClassId(MagicTrap* self);

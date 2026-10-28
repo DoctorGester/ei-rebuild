@@ -15,18 +15,6 @@
 #include <cstring>
 
 
-// Virtual getters shared by CUnit and CFakeUnit. Written as __fastcall
-// functions (this in ECX, no stack arguments) because the classes' virtual interfaces are not declared.
-const char* __fastcall UnitGetName(const CUnit* unit);       // slot 7
-int __fastcall UnitGetFlag278(const CUnit* unit);            // slot 54
-int __fastcall UnitGetFlag274(const CUnit* unit);            // slot 55
-float __fastcall UnitGetValue328(const CUnit* unit);         // slot 60
-
-// Slot 7 (GetName) of the base CFigure table (the figure classes' GetName) and of
-// CFakeFigure: CFigureMesh::name_ / SceneMesh::name.
-const char* __fastcall FigureGetName(const CEngineObject* figure);
-const char* __fastcall FakeFigureGetName(const CEngineObject* figure);
-
 // "CHoover" (class id 0x1F): no fields of its own seen. object.cpp.
 class CWorld;
 class CHoover final : public CEngineObject {

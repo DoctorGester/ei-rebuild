@@ -267,8 +267,6 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     Log("standalone: the game's command line%s routed; arguments: '%s'", routed ? "" : " not",
         g_commandLine.c_str() + g_argumentsAt);
     const int missingImports = ImageImportsMissing();
-    // What the static initialisers call that has no code yet (logged; not a failure of the check).
-    static_init::ReportMissingTargets();
     if (!run) return installed > 0 && bad == 0 && winMain && routed && missingImports == 0 ? 0 : 1;
     if (missingImports != 0) {   // as the system loader: no start without every import (ei_hook.log names them)
         ReportImageFailure("game.exe's imports did not all resolve");

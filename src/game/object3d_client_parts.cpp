@@ -404,5 +404,3 @@ EI_REWRITTEN(0x0051C9F0, CObject3DClientSpecific::SetMaterialsLit);
 void CObject3DClientSpecific::SetLit(int lit) { SetMaterialsLit(lit); }
 EI_REWRITTEN(0x0051C9E0, CObject3DClientSpecific::SetLit);
 
-void CObject3DClientSpecific::EmptySlot25(int) {}
-EI_REWRITTEN(0x0051C9D0, CObject3DClientSpecific::EmptySlot25);

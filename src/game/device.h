@@ -73,7 +73,6 @@ HRESULT EndScene(IDirect3DDevice7* d3d);
 HRESULT Clear(IDirect3DDevice7* d3d, DWORD count, D3DRECT* rects, DWORD flags, D3DCOLOR colour, D3DVALUE z,
               DWORD stencil);
 HRESULT SetViewport(IDirect3DDevice7* d3d, D3DVIEWPORT7* viewport);
-HRESULT SetRenderTarget(IDirect3DDevice7* d3d, IDirectDrawSurface7* target, DWORD flags);
 HRESULT SetRenderState(IDirect3DDevice7* d3d, D3DRENDERSTATETYPE state, DWORD value);
 HRESULT GetRenderState(IDirect3DDevice7* d3d, D3DRENDERSTATETYPE state, DWORD* value);
 HRESULT SetTextureStageState(IDirect3DDevice7* d3d, DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD value);
@@ -96,7 +95,6 @@ HRESULT SetCooperativeLevel(IDirectDraw7* ddraw, HWND window, DWORD flags);
 HRESULT GetAvailableVidMem(IDirectDraw7* ddraw, DDSCAPS2* caps, DWORD* total, DWORD* free);
 HRESULT RestoreAllSurfaces(IDirectDraw7* ddraw);
 HRESULT FlipToGDISurface(IDirectDraw7* ddraw);
-HRESULT WaitForVerticalBlank(IDirectDraw7* ddraw, DWORD flags, HANDLE event);
 void AddRef(IDirect3DDevice7* d3d);
 void Release(IDirect3DDevice7* d3d);
 void Release(IDirectDraw7* ddraw);

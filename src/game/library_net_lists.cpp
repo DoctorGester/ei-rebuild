@@ -31,14 +31,8 @@ ClientsIterator* ClientsIterator::FindByAddress(ClientsNode* first, ClientsNode*
     return this;
 }
 
-net::Connection** __fastcall InitClientRef(net::Connection** ref, net::Connection* connection) {
-    *ref = connection;
-    return ref;
-}
-
 } // namespace netlists
 
 using namespace netlists;
 
 EI_REWRITTEN(0x0043D780, ClientsIterator::FindByAddress);
-EI_REWRITTEN(0x0043D7D0, InitClientRef);

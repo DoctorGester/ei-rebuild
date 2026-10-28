@@ -67,11 +67,6 @@ int CFigureMesh::CreateMesh() {
 }
 EI_REWRITTEN(0x0059F210, CFigureMesh::CreateMesh);
 
-// The figure classes' Create jumps to CreateMesh (through its address, so its check runs).
-int __fastcall CreateMeshJump(CFigureMesh* self) { return self->CreateMesh(); }
-EI_REWRITTEN(0x005A6C70, CreateMeshJump);
-EI_REWRITTEN(0x005A6E00, CreateMeshJump);
-
 // --- Clearing -----------------------------------------------------------------------------------
 
 void CFigureMesh::Clear() {
@@ -186,9 +181,6 @@ void CFigureMesh::SetDrawer(FigureMeshDrawer* drawer) {
     }
 }
 EI_REWRITTEN(0x0059F390, CFigureMesh::SetDrawer);
-
-void CFigureMesh::LoadNothing(char**, float, float, float) { flags_ |= 0x20; }
-EI_REWRITTEN(0x005A2480, CFigureMesh::LoadNothing);
 
 void CFigureMesh::SetObject(CTransformObject* object) { object_ = object; }
 EI_REWRITTEN(0x0059F3D0, CFigureMesh::SetObject);

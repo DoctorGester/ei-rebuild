@@ -222,9 +222,6 @@ FearMode::FearMode(std::uint8_t newFlag) {
     Init(newFlag);
 }
 
-FearMode* FearMode::Construct(std::uint8_t newFlag) { return new (this) FearMode(newFlag); }
-EI_REWRITTEN(0x005D2850, FearMode::Construct);
-
 void AIBrain::AddFearMode(std::uint8_t flag) { AddMode(new FearMode(flag)); }
 EI_REWRITTEN(0x005D6480, AIBrain::AddFearMode);
 
@@ -355,12 +352,6 @@ EI_REWRITTEN(0x005CC020, AIMemory::Forget);
 
 
 void AICallRecord::Destruct() { std::destroy_at(&text); }
-
-AICallRecord& AICallRecord::operator=(const AICallRecord& other) {
-    std::memcpy(static_cast<void*>(this), &other, offsetof(AICallRecord, text));
-    text = other.text;
-    return *this;
-}
 
 void AICallElements::Construct(AICallRecord* calls, int count) {
     std::memset(static_cast<void*>(calls), 0, sizeof(AICallRecord) * static_cast<unsigned>(count));

@@ -48,31 +48,8 @@ CEngineObject* CClientSpecificManager::NewObject(int type) {
     }
 }
 
-namespace misc400 {
-
-// Memory for `count` words / dwords plus 0x24 bytes, the start aligned to 32 bytes with the block's address
-// in the dword before it (vertex and index arrays; freed through that address).
-void* __fastcall AlignedWords(int count) { return lib::AllocAligned32(static_cast<std::size_t>(count * 2)); }
-void* __fastcall AlignedDwords(int count) { return lib::AllocAligned32(static_cast<std::size_t>(count * 4)); }
-
-// An exception cleanup step: the pointer ECX points at is cleared where it points.
-void __fastcall ClearPointee(void** self) { *static_cast<void**>(*self) = nullptr; }
-
-} // namespace misc400
-
-std::uint32_t BufferCursor::Start(std::uint8_t* first, std::uint32_t, std::uint32_t) {
-    p = first;
-    bits = 0;
-    bytePtr = nullptr;
-    return 0;
-}
-
 EI_REWRITTEN_SPECIAL(0x0042D690, CClientSpecificManager::CClientSpecificManager);
 EI_REWRITTEN(0x0042D6F0, misc400::ManagerDestruct);
 EI_REWRITTEN(0x0042D6B0, CClientSpecificManager::GetClassName);
 EI_REWRITTEN(0x0042D6C0, CClientSpecificManager::GetClassId);
 EI_REWRITTEN(0x0042D700, CClientSpecificManager::NewObject);
-EI_REWRITTEN(0x00406B30, misc400::AlignedWords);
-EI_REWRITTEN(0x00406B50, misc400::AlignedDwords);
-EI_REWRITTEN(0x00430FC0, BufferCursor::Start);
-EI_REWRITTEN(0x00433F10, misc400::ClearPointee);

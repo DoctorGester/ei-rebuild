@@ -1636,7 +1636,7 @@ the `--no-hooks` suite) keeps the registry.
   operands as tagged literals, S18e1), calls (cdecl, stdcall, thiscall, through an import slot), `atexit` and the
   once-only guard bit; a single-use decodable
   callee is inlined, everything else is a call. One template, `StaticInitialisers(Do&)`
-  (static_init.h), with visitors `Run` (the image) and `Targets` (logs the call targets by address without code).
+  (static_init.h), with visitors `Run` (the image) and `Check` (the stores, compared with the original's memory).
 - **Calls by name** (C20 batch 2): a call or atexit of a function in the function-to-original map (a registration or
   an EI_REWRITTEN line) is rendered by its name: `d.Call(app::ConstructCameraFile)`, `d.Call(&mfc::impl::CFixedAlloc::
   Construct, &mfc::impl::g_tempDCAlloc, 0x10, 0x40)`, `d.AtExit(Exit0070C0B8)` (gen_static_init's `Names`,
@@ -1646,10 +1646,11 @@ the `--no-hooks` suite) keeps the registry.
   otherwise a `void __cdecl Fn()` initialiser or exit function is declared at the top of the generated file (the
   linker catches a signature that differs: MSVC's names hold the return type and convention). A method is
   `&Class::Method` of the class a header declares. A function in an anonymous namespace has no name another file can
-  reach: while it is registered the generator calls it by address and lists it ("still called by address"); with no
-  registration it stops. Batch 2 moved 92 out of their anonymous namespaces (right after the block, same enclosing
-  namespaces); the 29 left are in the files C14a held (console_streams, script_exec_helpers, string_map, mfc_string,
-  mfc_coll). The statements stay in address form until render, so unread_objects, stored_values and named_data.py read
+  reach, and a function with no port none at all: the generator stops with a problem (move it out of the namespace).
+  Batch 2 moved 92 out of their anonymous namespaces (right after the block, same enclosing namespaces), batch 3
+  the last 29 (console_streams 18, mfc_string 4, mfc_coll 4, script_exec_helpers 2, string_map 1): nothing is
+  called by address any more, so Targets / ReportMissingTargets, Code's Cdecl / Stdcall / Thiscall / Import and
+  AtExit by address went. The statements stay in address form until render, so unread_objects, stored_values and named_data.py read
   them unchanged; `d.Begin(0x...)` is a label (registration_readers skips it).
   When a helper gets registered later the output changes: rerun the generator (check_static_init, removed in
   C25d, re-decoded game.exe and compared).
@@ -1681,21 +1682,21 @@ the `--no-hooks` suite) keeps the registry.
   `libcrt::AtExit(DestroyX)`, the player handler tables hold member pointers (`HandlerEntry<CPlayerClient>`), callbacks `&Fn`),
   287 after C20 batch 2 (gen_static_init calls by name: static_exit.cpp's 26 became EI_REWRITTEN, 121 more dropped), 282
   after C20h (the harness's image side calls by name), 72 after C20e (the 210 short functions EI_REWRITTEN: 63 EI_REPLACE,
-  9 EI_REPLACE_METHOD; 40 of them unread, in C14a's files).
+  9 EI_REPLACE_METHOD; 40 of them unread, in C14a's files), 1 after C20 batch 3 (GameMain).
 - **What still needs a game.exe code address** (C20 batch 1's measurement, 2026-10-27; `registration_readers.py`):
   | reader | registrations | needs game.exe's code addresses? |
   |---|---|---|
   | code cells (gen_image_cells) | 0 (825 cells: static initialiser list 748, MFC message maps 35, CRT tables 35, ThrowInfo 7) | no: none was read at run time; retired, the bytes are zero |
-  | static init / exit (static_init.cpp's calls and d.AtExit by address) | 178; 29 after batch 2 (the anonymous-namespace initialisers of the files C14a held) | yes, until those have a name too; batch 2's generator calls every other port by name |
+  | static init / exit (static_init.cpp's calls and d.AtExit by address) | 0 (178 before C20 batch 2; 29 after it; batch 3 moved those out of their anonymous namespaces) | no: every call and atexit names its port; the generator refuses one by address |
   | exit functions of function-local statics (gen_static_init's runtime atexits) | 0 | no: our ports register them by name (libcrt::AtExit(DestroyX), EnsureStatic); the generator counts EI_REWRITTEN as ported |
-  | code literals in src/ (ei::Code<F>(0x...), handler tables, HasCode, CodeAddress) | 3 (was 129; C20f) | yes: GameMain (the hook's entry, HasCode / kGameWinMain), DestroyScriptQuestName (script_exec_helpers.cpp, C14a holds it); GameInfoRecord::Write is no literal (its address is the text section's first byte, kGameTextBegin) |
+  | code literals in src/ (ei::Code<F>(0x...), handler tables, HasCode, CodeAddress) | 1 (was 129; C20f; batch 3) | yes: GameMain (the hook's entry, HasCode / kGameWinMain). DestroyScriptQuestName names itself now; cover.cpp / image_data.cpp take kGameTextBegin for the text section's first byte, so GameInfoRecord::Write (00401000) is no longer read by a false hit |
   | the harness's image side (ei::Code / CodeAddress / HasCode in tests/verify) | 0 (was 5; C20h) | no: the five calls the harness's hooks end with (FrameStep, CCamera::Update, CWorldClient::Segment, CWorldServer::Update, CCursor::TakeLock) call ours by name in the image (tests/verify/image, image_side.h's ServerUpdate .. CursorLock) and game.exe's by address in its runs (OriginalCode) |
   | the harness's game.exe side (OriginalCode, JumpTo / RedirectCall, address tables), tests/vectors' recorders | 0 | no: they patch / record game.exe's own code; replays call by name |
   | named_data --check, gen_short_functions, check_signatures, coverage, progress, dashboard_data | 0 | no: they read the function-to-original map (EI_REWRITTEN does) |
   | check_registrations, check_thunks, standalone_gaps | 0 | no: they check the registrations themselves; they shrink with them |
   | EI_REPLACE_SHORT nothing reads | 0 (210 before C20e: gen_short_functions.py writes EI_REWRITTEN for them) | no |
-  Left unread on purpose: 40 in the script / console / string / mfc_string / mfc_coll files C14a holds (2026-10-28;
-  batch 2 added CFixedAlloc::Construct / Destruct, now called by name; their part of C20e waits for C14a). The check that the drops change no generator: gen_static_init.py and
+  Batch 3 dropped the 40 that C14a's files held back and the 29 moved initialisers, GameInfoRecord::Write included (72 -> 1:
+  only GameMain is registered). The check that the drops change no generator: gen_static_init.py and
   gen_short_functions.py rerun with the same functions (static_init.cpp / static_exit.cpp byte-identical).
 - **The function-to-original map** (C20d): the registrations plus `EI_REWRITTEN(0x..., Fn);` lines (include/ei/hook.h).
   EI_REWRITTEN registers nothing: it leaves `{address, &Fn, file, line}` in the DLL's `.eiorg` section, which nothing

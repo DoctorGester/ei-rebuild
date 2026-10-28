@@ -85,7 +85,7 @@ int GameInfoRecord::Read(GameBuffer* buffer) {
     return static_cast<int>((~buffer->flags >> 3) & 1);
 }
 
-EI_REPLACE_METHOD(0x00401000, GameInfoRecord::Write);
+EI_REWRITTEN(0x00401000, GameInfoRecord::Write);
 EI_REWRITTEN(0x00401170, GameInfoRecord::Read);
 
 } // namespace net

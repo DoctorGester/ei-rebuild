@@ -621,10 +621,6 @@ struct RecordsByName {
     void* records[3];
     hashtable<StringKeyTraits<4>> byName;
 
-    // hash_map<string, T*>::operator[](const char*) on the map: a string of the
-    // name, a {copy of it, null} value for find_or_insert, both freed after (the copy first); the
-    // mapped record, null when the name was not there (it is inserted).
-    void* Named(const char* name);
 };
 
 // A hash_map<int, T> with a dword after the table (the terrain's light table):
@@ -633,6 +629,5 @@ struct TableWithDword {
     hashtable<DwordKeyTraits<8>> table;
     std::uint32_t extra;
 };
-TableWithDword* __fastcall ConstructTableWithDword(TableWithDword* self);
 
 } // namespace stlp

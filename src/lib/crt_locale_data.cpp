@@ -56,8 +56,6 @@ char DecimalPoint() {
 
 const std::uint8_t* MultibyteFlags() { return __p__mbctype() + 1; }
 
-const std::uint8_t* MultibyteCaseMap() { return __p__mbcasemap(); }
-
 #ifdef EI_VECTORS_REPLAY
 void SetReplayLocale(char decimalPoint, const std::uint16_t* classes) {
     replayDecimalPoint = decimalPoint;

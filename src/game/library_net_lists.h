@@ -93,7 +93,4 @@ struct ClientsIterator {
 };
 static_assert(sizeof(ClientsIterator) == 4);
 
-// The clients' counted pointer made from a raw connection: stored without a reference; returns the pointer.
-net::Connection** __fastcall InitClientRef(net::Connection** ref, net::Connection* connection);
-
 } // namespace netlists

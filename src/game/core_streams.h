@@ -68,10 +68,6 @@ public:
     // From the start (reading_ set), reads blocks until one has tag `id`;
     // when none has, `out` is emptied and the result is false.
     bool FindTagged(std::uint32_t id, CStream* out);
-    // Called only by Rebirth's EI_Plugin.asi. Copies this stream's tagged
-    // blocks, from its position, to `out` (reading_ cleared), the block with tag `id` replaced by all
-    // of `replacement` (sought to 0, read); without one, `replacement` is appended under `id`.
-    void ReplaceTagged(std::uint32_t id, CStream* replacement, CStream* out);
     // Reads bytes into `buffer` until a zero or `capacity` bytes;
     // buffer[capacity - 1] is always set to zero.
     void ReadText(char* buffer, int capacity);
@@ -106,9 +102,6 @@ public:
     void Clear() override;
     void CopyFrom(CStream* source) override;                           // one Read into a resized buffer
 
-    // Empties the stream: ok_ = 1, no buffer, no pending bits. Does not free the old buffer (Clear is the same
-    // with the free).
-    void Reset();
     // Size `size`, position 0; a larger buffer (1.5 x size + 0x10) keeps the contents (the old size's bytes)
     // and gets the pending bits byte (EndBits). Within the capacity the bits state is left alone.
     void Resize(std::uint32_t size);
@@ -154,6 +147,3 @@ CMemoryStream& ReceivedMessages();
 // slots instead.
 extern void (*g_memoryStreamWriteObserver)(CMemoryStream* stream, std::uint32_t size, void* const* frame);
 
-// Allocates room for `count` pointers on a 32-byte boundary; the block returned by
-// operator new is stored just before the aligned pointer (freed through it by a companion function).
-void** __fastcall AlignedPointerArrayAlloc(int count);

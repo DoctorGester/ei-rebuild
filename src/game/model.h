@@ -37,8 +37,6 @@ static_assert(sizeof(ClipBounds) == 0x2C);
 // loaded. A figure mesh has one (CFigureMesh::box_), copied whole from the piece's header into the object's
 // part boxes (CObject3D::partBoxes).
 struct FootprintPart {
-    // Marked ignored (0x800) or not (the "EMPTY" pieces, CObject3D::LoadPart).
-    void SetIgnored(bool ignored);
 
     ClipBounds bounds;      // flags: bits 3-5 kind, 6-9 transparency, 0x400 bridge, 0x800 ignored (bits 0 and 1:
                             // the sphere and the box are valid); the centre is the part's offset

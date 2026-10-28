@@ -88,36 +88,6 @@ CUiSurface::~CUiSurface() {
 }
 EI_REWRITTEN_SPECIAL(0x005FD120, CUiSurface::~CUiSurface);
 
-// (Interface, picture name by value.) A window showing the picture "<name>.mmp" from the texture manager
-// (GetFile, CloseFile), through a picture holder; its size is the picture's, the screen rectangle (0, 0,
-// width, height), flag 1.
-CUiSurface::CUiSurface(CInterface3D* ui, mfc::CString name) {
-    CUiSurface* self = this;
-    ui_native::Forget(self);
-    self->holder_ = nullptr;
-    self->background_ = 0;
-    self->interface_ = ui;
-    CTextureManager* manager = TheTextureManager();
-    MmpHeader* picture;
-    {
-        mfc::CString file = name + game::MmpExtensionText();   // ".mmp"
-        picture = manager->GetFileData(file.GetString());
-    }
-    CDXSurface* made = new CDXSurface(self->interface_->renderer_, picture, 0);
-    CDXSurface* previous = self->holder_;
-    self->holder_ = made;
-    if (made) ++made->refs_;
-    if (previous) previous->Release();
-    manager->CloseFile(picture);
-    CDXSurface* holder = self->holder_;
-    self->width_ = holder->width;
-    self->height_ = holder->height;
-    UiSurfaceBytes() += SurfaceBytes(holder);
-    gameapi::SetRect(&self->rect_, 0, 0, self->holder_->width, self->holder_->height);
-    self->kept_ = nullptr;
-    self->keptSize_ = 0;
-    self->flags_ |= CUiSurface::kFromPicture;
-}
 EI_REWRITTEN_SPECIAL(0x005FCF80, CUiSurface::CUiSurface);
 
 // The scale flag is a byte.

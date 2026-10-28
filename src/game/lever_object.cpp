@@ -241,8 +241,3 @@ EI_REWRITTEN(0x0052B3E0, Lever::RadiusSlot);
 const char* Lever::GetClassName() { return kLeverClassName; }
 int Lever::GetClassId() { return kClassLever; }
 
-const char* __fastcall LeverClassName(Lever* self) { return self->Lever::GetClassName(); }
-EI_REWRITTEN(0x0052B2E0, LeverClassName);
-
-int __fastcall LeverClassId(Lever* self) { return self->Lever::GetClassId(); }
-EI_REWRITTEN(0x0052B2F0, LeverClassId);

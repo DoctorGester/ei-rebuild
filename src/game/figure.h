@@ -59,9 +59,6 @@ public:
     // The mesh loses a reference without being released.
     void DestructBody();
 
-    // Stores the morph coefficients and computes the bone position from `box`.
-    void SetMorph(const BoneMorphBox* box, float s, float t, float u);
-
     // The pose at the animation's start from the parent's pose and the first keys; the morph points become the
     // rest ones and the key cursors 0.
     void ResetPose();

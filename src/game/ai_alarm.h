@@ -11,8 +11,6 @@ class CUnitServer;
 
 struct AIAlarm {
     void Reset();
-    // The same, returning the state (the controller's constructor).
-    AIAlarm* Construct();
     // The pending level becomes at least `level`.
     void Raise(int level);
     // The step: a raised alarm taken up (the unit acknowledges), the level of the owner's group passed on

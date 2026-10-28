@@ -112,14 +112,6 @@ BOOL CFileRegistry::Attach(const void* image) {
 }
 EI_REWRITTEN(0x00694610, CFileRegistry::Attach);
 
-BOOL CFileRegistry::IsValid() {
-    if (U32(data_) == kRegistryMagic) return 1;
-    game::DebugLog(kNotRegistry);
-    Close();
-    return 0;
-}
-EI_REWRITTEN(0x00694660, CFileRegistry::IsValid);
-
 void CFileRegistry::Close() {
     if (!attached_) file_.Close();
     attached_ = 0;

@@ -89,26 +89,7 @@ void CMemoryStream::Clear() {
 }
 EI_REWRITTEN(0x00417350, CMemoryStream::Clear);
 
-void CMemoryStream::Reset() {
-    ok_ = 1;
-    data_ = nullptr;
-    capacity_ = 0;
-    position_ = 0;
-    size_ = 0;
-    bitMask_ = 0x80;
-    bitsIndex_ = -1;
-}
-EI_REWRITTEN(0x00468C20, CMemoryStream::Reset);
-
 // --- Aligned pointer arrays --------------------------------------------------------------------
-
-void** __fastcall AlignedPointerArrayAlloc(int count) {
-    return lib::AlignedArray<void*>::Allocate(count);
-}
-EI_REWRITTEN(0x0047B940, AlignedPointerArrayAlloc);
-EI_REWRITTEN(0x004D9ED0, AlignedPointerArrayAlloc);
-EI_REWRITTEN(0x0066BE00, AlignedPointerArrayAlloc);
-EI_REWRITTEN(0x005A6F80, AlignedPointerArrayAlloc);
 
 // --- Coder state -------------------------------------------------------------------------------
 

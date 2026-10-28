@@ -7,6 +7,10 @@ git branches the open assignments point at, and serves the pages in this folder.
     GET /                      the page (index.html; #tickets and #runs are its two views)
     GET /tickets/              the ticket board (tools/tickets_board/index.html, the published page)
     GET /tickets/tickets.json  its data, live: tickets.py's tickets.json with the database's statuses now
+    GET /dashboard/            the progress dashboard (tools/dashboard/index.html, the published page)
+    GET /dashboard/data.json   its data: build/dashboard/data.json of the main checkout
+    GET /api/dashboard         whether a dashboard_data.py run is going, and how the last one ended
+    POST /api/dashboard/regenerate  runs tools/dashboard_data.py in the main checkout (one at a time)
     GET /api/status            everything below in one request (what the page polls)
     GET /api/tickets           tickets joined with assignment, last notes, last commit, latest batch
     GET /api/runs              queued and running batches with their games, and the history
@@ -43,6 +47,48 @@ def games_of(worktree, scenario):
 STATIC = {'/': ('index.html', 'text/html; charset=utf-8'), '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
           '/board.css': ('board.css', 'text/css; charset=utf-8')}
 TICKET_BOARD = os.path.join(TOOLS, 'tickets_board', 'index.html')    # the published ticket board's page
+DASHBOARD = os.path.join(TOOLS, 'dashboard', 'index.html')              # the published progress dashboard's page
+
+
+class DashboardRun:
+    """One tools/dashboard_data.py run at a time, started from the dashboard page's Regenerate button."""
+
+    def __init__(self, main):
+        self.main = main
+        self.data = os.path.join(main, 'build', 'dashboard', 'data.json')
+        self.lock = threading.Lock()
+        self.running = False
+        self.started = self.finished = None
+        self.code = None
+        self.tail = ''
+
+    def state(self):
+        with self.lock:
+            st = os.stat(self.data) if os.path.exists(self.data) else None
+            return {'running': self.running, 'started': self.started, 'finished': self.finished, 'exit': self.code,
+                    'tail': self.tail,
+                    'data_mtime': st and datetime.datetime.fromtimestamp(st.st_mtime).isoformat(timespec='seconds')}
+
+    def start(self):
+        with self.lock:
+            if self.running:
+                return False
+            self.running, self.code, self.tail = True, None, ''
+            self.started, self.finished = datetime.datetime.now().isoformat(timespec='seconds'), None
+        threading.Thread(target=self.run, daemon=True).start()
+        return True
+
+    def run(self):
+        try:
+            p = subprocess.run([sys.executable, os.path.join(self.main, 'tools', 'dashboard_data.py')], cwd=self.main,
+                               capture_output=True, text=True, encoding='utf-8', errors='replace', creationflags=GIT_FLAGS)
+            code, out = p.returncode, p.stdout + p.stderr
+        except Exception as e:
+            code, out = -1, f'{type(e).__name__}: {e}'
+        with self.lock:
+            self.running, self.code = False, code
+            self.tail = '\n'.join(out.strip().splitlines()[-8:])
+            self.finished = datetime.datetime.now().isoformat(timespec='seconds')
 
 
 def seconds_since(stamp):
@@ -108,6 +154,7 @@ class Board:
     def __init__(self, work):
         self.work = work
         self.main = work.main_checkout()
+        self.dashboard = DashboardRun(self.main)
         self.tickets_py = None
         self.lock = threading.Lock()
         self.toml_cache = (None, None)       # (mtime/size key, (groups, tickets))
@@ -336,9 +383,25 @@ def make_handler(board):
         def json(self, value, code=200):
             self.send(code, json.dumps(value, ensure_ascii=False), 'application/json; charset=utf-8')
 
-        def do_GET(self):
+        def local(self):
             host = (self.headers.get('Host') or '').rsplit(':', 1)[0].strip('[]').lower()
-            if host not in ('127.0.0.1', 'localhost', '::1'):      # DNS rebinding guard: this board is local only
+            return host in ('127.0.0.1', 'localhost', '::1')      # DNS rebinding guard: this board is local only
+
+        def do_POST(self):
+            # Only the board's own pages: a local Host and a custom header, which a cross-site form cannot send.
+            if not self.local() or self.headers.get('X-Work-Board') != '1':
+                return self.json({'error': 'local only'}, 403)
+            path = self.path.split('?', 1)[0]
+            try:
+                if path == '/api/dashboard/regenerate':
+                    started = board.dashboard.start()
+                    return self.json(board.dashboard.state(), 202 if started else 409)
+                self.json({'error': 'not found'}, 404)
+            except (BrokenPipeError, ConnectionError):
+                pass
+
+        def do_GET(self):
+            if not self.local():
                 return self.json({'error': 'local only'}, 403)
             path = self.path.split('?', 1)[0]
             try:
@@ -346,11 +409,21 @@ def make_handler(board):
                     name, ctype = STATIC[path]
                     with open(os.path.join(HERE, name), 'rb') as f:
                         return self.send(200, f.read(), ctype)
-                if path == '/tickets':
+                if path in ('/tickets', '/dashboard'):
                     self.send_response(301)
-                    self.send_header('Location', '/tickets/')
+                    self.send_header('Location', path + '/')
                     self.send_header('Content-Length', '0')
                     return self.end_headers()
+                if path == '/dashboard/':
+                    with open(DASHBOARD, 'rb') as f:
+                        return self.send(200, f.read(), 'text/html; charset=utf-8')
+                if path == '/dashboard/data.json':
+                    if not os.path.exists(board.dashboard.data):
+                        return self.json({'error': 'no data.json yet: press Regenerate'}, 404)
+                    with open(board.dashboard.data, 'rb') as f:
+                        return self.send(200, f.read(), 'application/json; charset=utf-8')
+                if path == '/api/dashboard':
+                    return self.json(board.dashboard.state())
                 if path == '/tickets/':
                     with open(TICKET_BOARD, 'rb') as f:
                         return self.send(200, f.read(), 'text/html; charset=utf-8')

@@ -96,14 +96,6 @@ void AIPath::ToMotionOrder(PathOrder* out) const {
 }
 EI_REWRITTEN(0x005B22C0, AIPath::ToMotionOrder);
 
-PathOrder* PathOrder::ConstructSteps() {
-    steps = {};
-    steps.vtable = PathCellListVtable();
-    steps.blockSize = 0x80;
-    return this;
-}
-EI_REWRITTEN(0x0054EAC0, PathOrder::ConstructSteps);
-
 void CAIMap::ClearMarksAround(const PathCellList* chain) {
     constexpr int kBlock = 8;
     constexpr int kMargin = 4 * kBlock;

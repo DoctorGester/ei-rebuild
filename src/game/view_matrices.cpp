@@ -75,26 +75,10 @@ void __stdcall LightShearMatrix(float* out, const Vector3* direction) {
     out[6] = -(rotated.y / rotated.z);
 }
 
-std::uint8_t* __fastcall AllocateBlocks32(int count) {
-    struct Block32 {
-        std::uint8_t bytes[32];
-    };
-    return reinterpret_cast<std::uint8_t*>(lib::AlignedArray<Block32>::Allocate(count));
-}
-
-std::uint8_t* __fastcall AllocateBlocks8(int count) {
-    struct Block8 {
-        std::uint8_t bytes[8];
-    };
-    return reinterpret_cast<std::uint8_t*>(lib::AlignedArray<Block8>::Allocate(count));
-}
-
 } // namespace view
 
 EI_REWRITTEN(0x004F0EF0, view::CameraViewMatrix);
 EI_REWRITTEN(0x004F15C0, view::LightRotation);
 EI_REWRITTEN(0x004F1440, view::LightShearMatrix);
-EI_REWRITTEN(0x004E5710, view::AllocateBlocks32);
-EI_REWRITTEN(0x004F65B0, view::AllocateBlocks8);
 // A byte-for-byte copy of CubicSegment::Evaluate.
 EI_REWRITTEN(0x004E5660, CubicSegment::Evaluate);

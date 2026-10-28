@@ -899,12 +899,6 @@ struct UnboundedSink {
 struct BoundedSink {
     char* next;
     std::size_t left;
-    bool Put(char c) {
-        if (left == 0) return false;
-        --left;
-        *next++ = c;
-        return true;
-    }
 };
 struct VectorSink {
     std::vector<char>& text;
@@ -924,56 +918,11 @@ int __cdecl Vsprintf(char* buffer, const char* format, va_list args) {
 }
 EI_REWRITTEN(0x006ECC47, libcrt::Vsprintf);
 
-int __cdecl Sprintf(char* buffer, const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    const int written = Vsprintf(buffer, format, args);
-    va_end(args);
-    return written;
-}
-EI_REWRITTEN(0x006E8715, libcrt::Sprintf);
-
-int FormatInto(char* buffer, std::size_t room, const char* format, va_list args) {
-    BoundedSink sink{buffer, room};
-    const int written = Output<BoundedSink>(sink).Run(format, args);
-    sink.Put('\0');
-    return written;
-}
-
-// The text formatted in memory, then written with the game's fwrite (one write, as _stbuf's temporary
-// buffer gives an unbuffered stream).
-int __cdecl Vfprintf(gamecrt::CrtFile* file, const char* format, va_list args) {
-    std::vector<char> text;
-    VectorSink sink{text};
-    const int written = Output<VectorSink>(sink).Run(format, args);
-    if (text.empty()) return written;
-    return gamecrt::fwrite(text.data(), 1, text.size(), file) == text.size() ? written : -1;
-}
-
-int __cdecl Fprintf(gamecrt::CrtFile* file, const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    const int written = Vfprintf(file, format, args);
-    va_end(args);
-    return written;
-}
-EI_REWRITTEN(0x006EAEB0, libcrt::Fprintf);
-
-int __cdecl Printf(const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    const int written = Vfprintf(StandardOutput(), format, args);
-    va_end(args);
-    return written;
-}
-EI_REWRITTEN(0x006E955F, libcrt::Printf);
-
 namespace {
 unsigned char g_gameStreams[3][0x20];   // the size of game.exe's FILE
 } // namespace
 
 gamecrt::CrtFile* GameStream(int index) { return reinterpret_cast<gamecrt::CrtFile*>(g_gameStreams[index]); }
-gamecrt::CrtFile* StandardOutput() { return GameStream(1); }
 
 } // namespace libcrt
 

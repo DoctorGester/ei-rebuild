@@ -208,8 +208,6 @@ struct PathOrder {
     // steps and reads over every step from the head.
     void LoadOrder(CStream* stream);
     void SaveOrder(CStream* stream);
-    // The step list empty (blocks of 0x80); the order itself is left as it is.
-    PathOrder* ConstructSteps();
 
     MotionOrder motionOrder;
     PathCellList steps;         // the next cells to walk (at most 32)
@@ -316,11 +314,9 @@ struct LocalSearch {
     void SetUnit(CUnit* unit);
     // Starts a search for `unit` at (x0, y0) with the window over it and (x1, y1).
     bool Begin(CUnit* unit, int x0, int y0, int x1, int y1);
-    bool BeginForClass(int sizeClass, int x0, int y0, int x1, int y1);
     // Starts a search at (sx, sy) confined to the rectangle (x0, y0)-(x1, y1) (x0 <= x1,
     // y0 <= y1, at most 28 apart): the row below and the column right of it are made unusable.
     bool BeginInRect(int x0, int y0, int x1, int y1, int sx, int sy);
-    bool BeginInRectFor(CUnit* unit, int x0, int y0, int x1, int y1, int sx, int sy);
     bool BeginInRectForClass(int sizeClass, int x0, int y0, int x1, int y1, int sx, int sy);
     // Copies the reached cells' directions into the map's marks (CAIMap::marks) where they are still 0.
     void CommitDirections();
@@ -704,9 +700,6 @@ public:
     // Like CanStandAt, but a cell no worse than the one the unit is on is also accepted.
     bool CanStandAtFromHere(CUnit* unit, int x, int y, int* reason);
 
-    // Can `unit` stand on and enter cell (x, y)? Always true for non-units.
-    bool IsPassable(CUnit* unit, int x, int y);
-
     // IsPassable at the cell of world `position`, with the unit's own footprint lifted
     // (the unit is taken out of the sector map and put back).
     bool IsPassableWithoutSelf(CUnit* unit, const Vector3* position);
@@ -745,15 +738,10 @@ public:
     float LineOfSight(const Vector3* from, const Vector3* to);
 
     float GroundHeight(int x, int y);
-    // Terrain height at world `position` (0 outside the map).
-    float GroundHeightAt(const Vector3* position);
-    // Height of the walkable surface at `position`: the bridge deck where there is one.
-    float SurfaceHeightAt(const Vector3* position);
     // Terrain height plus what stands on it, at `position`.
     float TopHeightAt(const Vector3* position);
     // Largest height step to the 4 neighbours of the cell at `position` (0 at the edge).
     float SlopeAt(const Vector3* position);
-    bool IsBridgeAt(const Vector3* position);
     bool CellFlag80At(const Vector3* position);
     bool HasKind3Occluder(int x, int y);
     bool HasKind3OccluderAt(const Vector3* position);

@@ -85,14 +85,15 @@ static_assert(sizeof(CDebugPanel) == 0x44);
 
 namespace {
 void __cdecl DestroyDebugPanel() { g_debugPanel.Destroy(); }
+} // namespace
+
 void __cdecl ConstructDebugPanel() {
     g_debugPanel.Construct();
     libcrt::AtExit(DestroyDebugPanel);
 }
-} // namespace
 
-EI_REPLACE(0x00444660, ConstructDebugPanel);
-EI_REPLACE(0x00444680, DestroyDebugPanel);
+EI_REWRITTEN(0x00444660, ConstructDebugPanel);
+EI_REWRITTEN(0x00444680, DestroyDebugPanel);
 
 // ---- The panel ---------------------------------------------------------------------------------
 

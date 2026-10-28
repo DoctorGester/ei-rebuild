@@ -37,8 +37,6 @@ public:
     BOOL Open(const char* path);
     // Uses a registry image already in memory. Returns 0 if it is not a registry.
     BOOL Attach(const void* image);
-    // Whether the data starts with the registry magic; closes it when not.
-    BOOL IsValid();
     // Closes the mapped file (when it owns one) and forgets the data.
     void Close();
 

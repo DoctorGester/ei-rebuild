@@ -190,21 +190,6 @@ double PowerOfInfinity(double x, double y) {
 
 } // namespace
 
-std::int64_t __cdecl FtolExtended(const unsigned char* value) {
-    std::uint64_t mantissa;
-    std::uint16_t signAndExponent;
-    std::memcpy(&mantissa, value, sizeof mantissa);
-    std::memcpy(&signAndExponent, value + 8, sizeof signAndExponent);
-    constexpr std::int64_t kIntegerIndefinite = INT64_MIN;
-    const int exponent = signAndExponent & 0x7FFF;
-    if (exponent == 0x7FFF) return kIntegerIndefinite;   // infinity, NaN
-    const int whole = exponent - 16383;                  // the value is mantissa * 2^(whole - 63)
-    if (whole < 0) return 0;
-    if (whole >= 63) return kIntegerIndefinite;          // |value| >= 2^63 (-2^63 has the same bits)
-    const std::int64_t truncated = static_cast<std::int64_t>(mantissa >> (63 - whole));
-    return signAndExponent & 0x8000 ? -truncated : truncated;
-}
-
 double __cdecl CiAcos(double x) { return ArcCosineOrSine(x, false); }
 double __cdecl CiAsin(double x) { return ArcCosineOrSine(x, true); }
 
@@ -310,68 +295,8 @@ double __cdecl Hypot(double x, double y) {
 
 // ---- The register entries ----
 
-__declspec(naked) std::int64_t __cdecl FtolEntry() {
-    __asm {
-        push ecx
-        sub esp, 12
-        fstp tbyte ptr [esp]
-        push esp
-        call FtolExtended
-        add esp, 16
-        pop ecx
-        ret
-    }
-}
-EI_REWRITTEN(0x006E853C, libcrt::FtolEntry);
-
-__declspec(naked) double __cdecl CiAcosEntry() {
-    __asm {
-        push ecx
-        push edx
-        sub esp, 8
-        fstp qword ptr [esp]
-        call CiAcos
-        add esp, 8
-        pop edx
-        pop ecx
-        ret
-    }
-}
-EI_REWRITTEN(0x006E7320, libcrt::CiAcosEntry);
-
-__declspec(naked) double __cdecl CiAsinEntry() {
-    __asm {
-        push ecx
-        push edx
-        sub esp, 8
-        fstp qword ptr [esp]
-        call CiAsin
-        add esp, 8
-        pop edx
-        pop ecx
-        ret
-    }
-}
 EI_REWRITTEN(0x006E7334, libcrt::CiAcos);
 EI_REWRITTEN(0x006E83D4, libcrt::CiAsin);
 EI_REWRITTEN(0x006FD026, libcrt::Hypot);
-EI_REWRITTEN(0x006E83C0, libcrt::CiAsinEntry);
-
-//= x, ST0 = y.
-__declspec(naked) double __cdecl CiPowEntry() {
-    __asm {
-        push ecx
-        push edx
-        sub esp, 16
-        fstp qword ptr [esp + 8]
-        fstp qword ptr [esp]
-        call CiPow
-        add esp, 16
-        pop edx
-        pop ecx
-        ret
-    }
-}
-EI_REWRITTEN(0x006E81A0, libcrt::CiPowEntry);
 
 } // namespace libcrt

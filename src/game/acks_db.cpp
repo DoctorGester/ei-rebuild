@@ -217,15 +217,6 @@ void ListField(ChunkArchive* ar, int id, stlp::vector<T>* list, void (Abi::*resi
 
 using namespace acks;
 
-// The archive's helpers for the records (thiscall on the archive): a speech as chunk `id`, and
-// a speech list / environment speech list as chunk `id` (the
-// third argument is the archive again, unused). The records inline the same code for some lists.
-void ChunkArchive::SerializeSpeech(int id, SpeechRecord* speech) {
-    ChunkArchive* ar = this;
-    if (!ar->EnterChunk(id)) return;
-    SpeechFields(ar, speech);
-    ar->LeaveChunk();
-}
 void ChunkArchive::SerializeSpeechList(int id, Speeches* list, void*) {
     ChunkArchive* ar = this;
     ListField(ar, id, list, &recordvec::SpeechVector::ResizeDefault,
@@ -238,7 +229,6 @@ void ChunkArchive::SerializeEnvironmentSpeeches(int id, EnvironmentSpeeches* lis
         ar->Field(10, &speech->environment, 4);
     });
 }
-EI_REWRITTEN(0x006E4F40, ChunkArchive::SerializeSpeech);
 EI_REWRITTEN(0x006E42F0, ChunkArchive::SerializeSpeechList);
 EI_REWRITTEN(0x006E4410, ChunkArchive::SerializeEnvironmentSpeeches);
 

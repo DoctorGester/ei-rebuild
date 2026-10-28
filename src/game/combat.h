@@ -22,8 +22,6 @@ struct UnitAction : AIOrder {
     std::uint8_t modifier;      // run (move orders) or a called shot (attacks)
     std::uint8_t unused_21[3];
 
-// Kind 9, no target, flag18 0; the rest untouched.
-    UnitAction* Construct();
 // The target is referenced.
     UnitAction* Assign(const UnitAction* from);
 // Kind 9, the target released, flag18, param and modifier cleared.
@@ -196,16 +194,9 @@ public:
 
     // The active weapon's reach, else the natural reach.
     float AttackRange();
-    int WeaponType();
     BOOL HasRangedWeapon();
     // A ranged weapon, or (without a weapon) a natural weapon other than 0x10 with a reach above 1.
     BOOL AttacksFromRange();
-    // The item's action value (unsigned) scaled by 15 / stats.rate (unscaled when that is 0), rounded.
-    // 0 for no item.
-    int ScaledItemValue(const CItem* item);
-    // For `kind` 3: the item prototype's category (or the truncated attackCategory without an item) scaled
-    // like ScaledItemValue; 0 for other kinds.
-    int ScaledAttackValue(int kind, CItem* item);
     // out[1..7]: the weapon's (party units) or the natural attack's damage, scaled, times each weight.
     void GetDamageByType(DamageWords* out);
     // out[0] = 0x7FFF, out[1 + the spell's damage type] = its truncated damage, the rest 0.
@@ -246,15 +237,10 @@ public:
     BOOL ResolveHit(DamageInfo* hit, CUnit* attacker);
     // The hit of a weapon (or natural) attack into `out`. Draws from rand() and the ISAAC generator. Returns 1.
     BOOL BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot);
-    // Builds the hit of an attack on `target` into pendingHit: a backstab when the unit is behind the target,
-    // unless the target's controller has noBackstab or the weapon is ranged. Returns 1.
-    BOOL PrepareAttack(CMapObject* target, int location, char calledShot);
     // `source` (may be null) is whose player gets the experience for a kill. The damage applies when the hit
     // beats the defence, unless the unit's player protects it (returns 1 then); on a miss the victim turns
     // hostile and remembers the attacker.
     BOOL TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) override;
-    AIPath* MotionSlot();
-    void EmptySlot17();
     void MoveFactorsChanged() override;
     AIPath* MotionPath() { return &motion; }
     // Part 4 changed; the server companion's hit points and mana set to their maxima.

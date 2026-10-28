@@ -63,6 +63,3 @@ public:
     CTorchObjectSpec* spec;         // a counted reference
 };
 
-// Slots 11 / 12: "CTorchObject" and 0x57.
-const char* __fastcall TorchClassName(CTorchObject* self);
-int __fastcall TorchClassId(CTorchObject* self);

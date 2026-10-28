@@ -25,8 +25,6 @@ using LeverSpots = UseSpotArray;
 // lever's own frame (along its facing's X and Y axes).
 struct LeverRecord {
     LeverRecord* Assign(const LeverRecord* from);
-    LeverRecord* CopyConstruct(const LeverRecord* from);
-    LeverRecord* DeleteScalar(unsigned flags);
     void Archive(ChunkArchive* archive);
     std::string name;           // field 0
     float spots[2][2];          // field 1: {along, across}
@@ -148,5 +146,3 @@ public:
     std::uint8_t unused_262[2];
 };
 
-const char* __fastcall LeverClassName(Lever* self);
-int __fastcall LeverClassId(Lever* self);

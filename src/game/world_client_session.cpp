@@ -30,15 +30,6 @@ void CWorldClient::SetPlayer(CWorldHandle* player) {
     session_->Connect(link);
 }
 
-void CWorldClient::PlayRecording(const char* path) {
-    session_->Connect(nullptr);
-    netlink::NetLink* link = netlink::ReplayLink::Create(path);
-    ClearMaps();
-    ResetZoneObjects();
-    session_->Connect(nullptr);
-    session_->Connect(link);
-}
-
 bool CWorldClient::JoinGameClient(const char*) {
     net::ClientSession* client = net::GameClient();
     if (!client || (client->flags7_ & CRefCounted::kDetached)) return false;
@@ -81,7 +72,6 @@ void CWorldClient::DisconnectLocalPlayer() {
 }
 
 EI_REWRITTEN(0x00566CE0, CWorldClient::SetPlayer);
-EI_REWRITTEN(0x00566D30, CWorldClient::PlayRecording);
 EI_REWRITTEN(0x00566D80, CWorldClient::JoinGameClient);
 EI_REWRITTEN(0x00566E20, CWorldClient::PumpHasIncoming);
 EI_REWRITTEN(0x00566E70, CWorldClient::PumpIncomingCount);

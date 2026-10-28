@@ -151,13 +151,6 @@ float CUnitServer::AttackRange() {
 }
 EI_REWRITTEN(0x0054B620, CUnitServer::AttackRange);
 
-int CUnitServer::WeaponType() {
-    CItemWeapon* weapon = ActiveWeapon(unit);
-    if (weapon) return weapon->GetType();
-    return stats.naturalWeapon;
-}
-EI_REWRITTEN(0x0054B650, CUnitServer::WeaponType);
-
 BOOL CUnitServer::HasRangedWeapon() {
     CItemWeapon* weapon = ActiveWeapon(unit);
     if (!weapon) return 0;
@@ -174,28 +167,6 @@ BOOL CUnitServer::AttacksFromRange() {
     return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow ? 1 : 0;
 }
 EI_REWRITTEN(0x0054B6C0, CUnitServer::AttacksFromRange);
-
-int CUnitServer::ScaledItemValue(const CItem* item) {
-    if (!item) return 0;
-    double factor = stats.rate;    // stays on the FPU stack
-    if (factor != kZero) factor = kFifteen / factor;   // (15 / NaN is that NaN)
-    // of the item's kind (CItemWeapon::actionValue_ and the others' at the same place).
-    float value = static_cast<float>(Unsigned(AsWeapon(item)->actionValue_) * factor);
-    return x87::fistp(value);
-}
-EI_REWRITTEN(0x0054B760, CUnitServer::ScaledItemValue);
-
-int CUnitServer::ScaledAttackValue(int kind, CItem* item) {
-    float factor = stats.rate;
-    if (factor != kZero) factor = kFifteen / factor;   // (15 / NaN is that NaN)
-    if (kind != 3) return 0;
-    int value;
-    if (item) value = static_cast<int>(item->GetPrototype()->category);
-    else value = static_cast<int>(gamecrt::Ftol(stats.attackCategory));
-    float scaled = static_cast<float>(static_cast<double>(value) * factor);
-    return x87::fistp(scaled);
-}
-EI_REWRITTEN(0x0054B9C0, CUnitServer::ScaledAttackValue);
 
 void CUnitServer::GetDamageByType(DamageWords* out) {
     CUnit* self = unit;
@@ -562,16 +533,6 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     return 1;
 }
 EI_REWRITTEN(0x0054F630, CUnitServer::BuildAttackHit);
-
-BOOL CUnitServer::PrepareAttack(CMapObject* target, int location, char calledShot) {
-    int backstab = unit->IsBehind(target) & 0xFF;
-    if (CUnit* victim = UnitOrNull(target); victim && victim->ServerController()->NoBackstab()) backstab = 0;
-    CItemWeapon* weapon = ActiveWeapon(unit);
-    if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow))
-        return BuildAttackHit(&pendingHit, 0, location, calledShot);
-    return BuildAttackHit(&pendingHit, backstab, location, calledShot);
-}
-EI_REWRITTEN(0x0054F580, CUnitServer::PrepareAttack);
 
 BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     CWorldServer* world = ServerWorld();

@@ -22,10 +22,4 @@ void __stdcall LightRotation(const Vector3* direction, Quaternion* out);
 // (q v q*), identity with elements 2 and 6 = -rotated.x / rotated.z and -rotated.y / rotated.z.
 void __stdcall LightShearMatrix(float* out, const Vector3* direction);
 
-// A 32-byte aligned block for `count` 32-byte elements (the operator_new block
-// pointer stored just before it).
-std::uint8_t* __fastcall AllocateBlocks32(int count);
-// The same for 8-byte elements.
-std::uint8_t* __fastcall AllocateBlocks8(int count);
-
 } // namespace view
