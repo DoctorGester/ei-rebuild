@@ -40,7 +40,7 @@ constexpr const char* kLineEnds = "\n\r";
 constexpr const char* kHelpKeyText = "show_tutorial_key";
 constexpr const char* kSpace = " ";
 // One texel of the 256-pixel picture texture.
-float Texel() { return 0.00390625f; }
+constexpr float kTexel = 0.00390625f;
 
 constexpr char kHelpAction = ';';                  // the help key's action (g_keyActions)
 constexpr std::uint32_t kPlainColour = 0x100;      // CUiMesh::flags_: drawn in flatColour_
@@ -242,8 +242,8 @@ void CHelpWindow::ShowPage() {
                     }
                     CUiMesh* picture = AddBlankSprite();
                     picture->SetRectangle(3.0f, 100.0f, 0.0f, 0.0f, 64.0f, 64.0f, 0, 0, kPictureSize, kPictureSize);
-                    picture->textureOffsetU_ = static_cast<float>(cellX) * Texel();
-                    picture->textureOffsetV_ = static_cast<float>(cellY + kPictureSize) * Texel();
+                    picture->textureOffsetU_ = static_cast<float>(cellX) * kTexel;
+                    picture->textureOffsetV_ = static_cast<float>(cellY + kPictureSize) * kTexel;
                     picture->PlaceBody(static_cast<float>(page.left + 47),
                                         static_cast<float>(y + page.top + 95), 3.0f);
                     picture->texture_ = objects_[1];

@@ -339,7 +339,7 @@ void CWorldServer::UpdateMercBriefings() {
             double left = VariableGet(variables, b.n10);
             EI_NAN_AUDIT(left);
             if (inParty) {
-                if (left != worlddata::Zero()) {
+                if (left != 0.0f) {
                     set(b.n8, 0.0f);
                     set(b.n1, 0.0f);
                     set(b.n2, 0.0f);
@@ -352,7 +352,7 @@ void CWorldServer::UpdateMercBriefings() {
                     set(b.n9, 0.0f);
                     set(b.n2, briefedHere ? 1.0f : 0.0f);
                 }
-            } else if (left != worlddata::Zero()) {
+            } else if (left != 0.0f) {
                 set(b.n8, 0.0f);
                 set(b.n1, 0.0f);
                 set(b.n2, 0.0f);
@@ -366,10 +366,10 @@ void CWorldServer::UpdateMercBriefings() {
                 float hiredStored = hired;
                 double briefed = VariableGet(variables, b.n8);
                 EI_NAN_AUDIT(hiredValue, briefed);
-                if (hiredValue != worlddata::Zero()) {
-                    if (briefed != worlddata::One()) {
+                if (hiredValue != 0.0f) {
+                    if (briefed != 1.0f) {
                         if (otherMercs < 2) {
-                            bool firstTime = hiredStored == worlddata::One();
+                            bool firstTime = hiredStored == 1.0f;
                             set(b.n1, firstTime ? 1.0f : 0.0f);
                             set(b.n3, firstTime ? 0.0f : 1.0f);
                             set(b.n8, 0.0f);
@@ -389,7 +389,7 @@ void CWorldServer::UpdateMercBriefings() {
                         set(b.n9, 0.0f);
                         set(b.n10, 0.0f);
                     }
-                } else if (briefed != worlddata::One()) {
+                } else if (briefed != 1.0f) {
                     set(b.n11, 1.0f);
                 }
             }

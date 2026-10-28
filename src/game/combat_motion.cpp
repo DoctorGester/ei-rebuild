@@ -54,7 +54,7 @@ constexpr int kMessagePartial = 0x01;
 
 // --- Helpers --------------------------------------------------------------------------------------
 
-float HalfCell() { return 1.0f * 0.5f; }
+constexpr float kHalfCell = 0.5f;
 
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 int& QueueTime(CUnitServer* self) { return self->queue.extra; }
@@ -557,7 +557,7 @@ void CUnitServer::ReportPath(AIPath* path, char partial) {
         float dy = self->localPosition_.y - goal[1];
         float dx = self->localPosition_.x - goal[0];
         float reached = LengthSquared2DUnrounded(dx, dy);
-        float half = HalfCell();
+        float half = kHalfCell;
         float ey = half * path->targetY - goal[1];
         float ex = half * path->targetX - goal[0];
         float left = LengthSquared2DUnrounded(ex, ey);

@@ -62,7 +62,7 @@ constexpr int kRemarkBored = 0x29;
 // --- Helpers --------------------------------------------------------------------------------------
 
 // How much faster a dead body sinks every update.
-float SinkAcceleration() { return 0.01f; }
+constexpr float kSinkAcceleration = 0.01f;
 int TickOf(const CWorld* world) { return world->tick_; }
 int WorldTime(const CEngineObject* object) { return TickOf(object->WorldContext()); }
 // A CPlayerServer on the server.
@@ -200,7 +200,7 @@ int CUnitServer::RunTick() {
     CWorldServer* world = ServerWorld();
     if (self->localPosition_.z > 0.0f) {
         float& sinking = sinkSpeed;
-        sinking += SinkAcceleration();
+        sinking += kSinkAcceleration;
         self->localPosition_.z = self->localPosition_.z - sinking;
         float z = unit->localPosition_.z;
         unit->localPosition_.z = z <= 0.0f ? 0.0f : z;   // a NaN z is kept

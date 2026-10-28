@@ -137,7 +137,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     Vector3 across = Scale(CrossStored(v, origin), static_cast<float>(D(q.w) + D(q.w)));
     Vector3 rotated = Sum(Sum(Scale(origin, static_cast<float>(D(ww) - DotCall(v, v))), across), along);
     // Placed by the depth: x from depth * c - 1, y and z fixed offsets.
-    double dx = ((D(depth) * D(0.0025f) - D(1.0f)) * D(0.48157462f)) *
+    double dx = ((D(depth) * D(0.0025f) - 1.0) * D(0.48157462f)) *
                 D(6.0f);
     double dy = static_cast<float>(D(0.48157462f) * D(2.1f));   // rounded to 24 bits as the FPU does (the compiler folds it at 53)
     float px = static_cast<float>(D(rotated.x) + dx);

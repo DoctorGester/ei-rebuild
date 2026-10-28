@@ -16,16 +16,16 @@
 namespace {
 
 // The constants the original reads from the exe's data.
-float Pi() { return 3.1415927f; }
-float Sixth() { return 0.16666667f; }             // the clock's sectors: pi / 6
-float Eighth() { return 0.125f; }            // the movement panel's: pi / 8
-double MiddleRadius() { return 34.0; }
-double InnerRadius() { return 35.0; }
-double OuterRadius() { return 80.0; }
-float SectorRadius() { return 80.0f; }
-float TexelBottom() { return 254.0f; }
-float TexelLeft() { return 2.0f; }
-float LayoutBottom() { return 600.0f; }
+constexpr float kPi = 3.1415927f;
+constexpr float kSixth = 0.16666667f;             // the clock's sectors: pi / 6
+constexpr float kEighth = 0.125f;            // the movement panel's: pi / 8
+constexpr double kMiddleRadius = 34.0;
+constexpr double kInnerRadius = 35.0;
+constexpr double kOuterRadius = 80.0;
+constexpr float kSectorRadius = 80.0f;
+constexpr float kTexelBottom = 254.0f;
+constexpr float kTexelLeft = 2.0f;
+constexpr float kLayoutBottomY = 600.0f;
 const char* ArrowSprite() { return "in25arrow"; }
 
 constexpr int kLayoutRight = 800;
@@ -37,7 +37,7 @@ constexpr float kSectorTint = 0.7f;
 constexpr float kArrowDepth = 8.2060862f;
 
 // The angle of `turn` steps, as the original computes it (each product a float).
-float ArcAngle(int turn, float step) { return static_cast<float>(static_cast<float>(static_cast<float>(turn) * Pi()) * step); }
+float ArcAngle(int turn, float step) { return static_cast<float>(static_cast<float>(static_cast<float>(turn) * kPi) * step); }
 // The cosine / sine as FCOS / FSIN leave them: the precision control does not reach them (only add, subtract,
 // multiply, divide and square root), so they stay unrounded and it is their product with the radius that the
 // FPU rounds to float at its 24-bit precision. That is what makes sin(pi / 2) x radius the whole radius
@@ -84,8 +84,8 @@ void CHudClock::SetupVanilla(int fast) {
     // The pause, normal and fast sectors, each between two radii of the corner.
     for (int i = 0; i < 3; ++i) {
         CUiRegion* sector = AddRegion();
-        const ArcPoint corners[4] = {OnArc(i + 1, Sixth(), InnerRadius()), OnArc(i, Sixth(), InnerRadius()),
-                                     OnArc(i, Sixth(), OuterRadius()), OnArc(i + 1, Sixth(), OuterRadius())};
+        const ArcPoint corners[4] = {OnArc(i + 1, kSixth, kInnerRadius), OnArc(i, kSixth, kInnerRadius),
+                                     OnArc(i, kSixth, kOuterRadius), OnArc(i + 1, kSixth, kOuterRadius)};
         for (const ArcPoint& corner : corners) sector->AddPoint(kLayoutRight - corner.across, kLayoutBottom - corner.up);
     }
     regions_[0]->SetTip(0x28A0, 1, 1);
@@ -97,7 +97,7 @@ void CHudClock::SetupVanilla(int fast) {
     CUiRegion* middle = AddRegion();
     middle->AddPoint(kLayoutRight, kLayoutBottom);
     for (int turn = 0; turn <= 3; ++turn) {
-        const ArcPoint point = OnArc(turn, Sixth(), MiddleRadius());
+        const ArcPoint point = OnArc(turn, kSixth, kMiddleRadius);
         middle->AddPoint(kLayoutRight - point.across, kLayoutBottom - point.up);
     }
     middle->SetTip(0x28A1, 1, 4);
@@ -121,15 +121,15 @@ void CHudMovePanel::SetupVanilla() {
     CUiRegion* middle = AddRegion();
     middle->AddPoint(0, kLayoutBottom);
     for (int turn = 4; turn >= 0; --turn) {
-        const ArcPoint point = OnArc(turn, Eighth(), MiddleRadius());
+        const ArcPoint point = OnArc(turn, kEighth, kMiddleRadius);
         middle->AddPoint(point.across, kLayoutBottom - point.up);
     }
     middle->SetTip(0x2904, 1, 0x1B);
     // The four movement modes' sectors.
     for (int mode = 0; mode < 4; ++mode) {
         CUiRegion* sector = AddRegion();
-        const ArcPoint corners[4] = {OnArc(mode, Eighth(), InnerRadius()), OnArc(mode + 1, Eighth(), InnerRadius()),
-                                     OnArc(mode + 1, Eighth(), OuterRadius()), OnArc(mode, Eighth(), OuterRadius())};
+        const ArcPoint corners[4] = {OnArc(mode, kEighth, kInnerRadius), OnArc(mode + 1, kEighth, kInnerRadius),
+                                     OnArc(mode + 1, kEighth, kOuterRadius), OnArc(mode, kEighth, kOuterRadius)};
         for (const ArcPoint& corner : corners) sector->AddPoint(corner.across, kLayoutBottom - corner.up);
         sector->SetTip(0x2905 + mode, 1, 0x17 + mode);
     }
@@ -138,16 +138,16 @@ void CHudMovePanel::SetupVanilla() {
     // The sectors' pictures: triangles from the corner, the texels following the layout points.
     for (int mode = 0; mode < 4; ++mode) {
         CUiMesh* sector = AddBlankSprite();
-        const float endAngle = ArcAngle(mode + 1, Eighth());
-        const float endUp = static_cast<float>(ArcSin(endAngle) * SectorRadius());
-        const float endAcross = static_cast<float>(ArcCos(endAngle) * SectorRadius());
-        const float startAngle = ArcAngle(mode, Eighth());
-        const float startUp = static_cast<float>(ArcSin(startAngle) * SectorRadius());
-        const float startAcross = static_cast<float>(ArcCos(startAngle) * SectorRadius());
-        sector->SetTriangle(10.0f, 100.0f, 0.0f, 600.0f, startAcross, static_cast<float>(LayoutBottom() - startUp), endAcross,
-                            static_cast<float>(LayoutBottom() - endUp), 2.0f, 254.0f, static_cast<float>(startAcross + TexelLeft()),
-                            static_cast<float>(TexelBottom() - startUp), static_cast<float>(endAcross + TexelLeft()),
-                            static_cast<float>(TexelBottom() - endUp));
+        const float endAngle = ArcAngle(mode + 1, kEighth);
+        const float endUp = static_cast<float>(ArcSin(endAngle) * kSectorRadius);
+        const float endAcross = static_cast<float>(ArcCos(endAngle) * kSectorRadius);
+        const float startAngle = ArcAngle(mode, kEighth);
+        const float startUp = static_cast<float>(ArcSin(startAngle) * kSectorRadius);
+        const float startAcross = static_cast<float>(ArcCos(startAngle) * kSectorRadius);
+        sector->SetTriangle(10.0f, 100.0f, 0.0f, 600.0f, startAcross, static_cast<float>(kLayoutBottomY - startUp), endAcross,
+                            static_cast<float>(kLayoutBottomY - endUp), 2.0f, 254.0f, static_cast<float>(startAcross + kTexelLeft),
+                            static_cast<float>(kTexelBottom - startUp), static_cast<float>(endAcross + kTexelLeft),
+                            static_cast<float>(kTexelBottom - endUp));
         sector->tint_[0] = kSectorTint;
         sector->tint_[1] = kSectorTint;
         sector->tint_[2] = kSectorTint;

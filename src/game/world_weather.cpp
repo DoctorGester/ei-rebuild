@@ -24,16 +24,14 @@ namespace {
 int g_weatherDelay = /*007C2DFC*/ {};
 
 // Constants read from the exe (rule 9).
-double MapScale() { return 1.1920928957853683e-7; }        // 2^-23: a random word to map coordinates
-double OffsetScale() { return 3.259629011913116e-8; }     // a random word to 0..140
-float OffsetCentre() { return 70.0f; }
-float MinDistance2() { return 900.0f; }
-double BoltScale() { return 1.1827796700370451e-7; }
-double BoltSpread() { return 9.31322574832319e-10; }
-float Two() { return 2.0f; }
-float Five() { return 5.0f; }
-float BoltHeight() { return 40.0f; }
-float One() { return 1.0f; }
+constexpr double kMapScale = 1.1920928957853683e-7;        // 2^-23: a random word to map coordinates
+constexpr double kOffsetScale = 3.259629011913116e-8;     // a random word to 0..140
+constexpr float kOffsetCentre = 70.0f;
+constexpr float kMinDistance2 = 900.0f;
+constexpr double kBoltScale = 1.1827796700370451e-7;
+constexpr double kBoltSpread = 9.31322574832319e-10;
+constexpr float kFive = 5.0f;
+constexpr float kBoltHeight = 40.0f;
 
 constexpr int kKindSinglePlayer = 1;
 constexpr int kKindNoRangeTest = 3;
@@ -53,24 +51,24 @@ float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(g_rand
 // away when the ground there is open and the line between them is not fully free.
 void TryLightningStrike(CWorldServer* world) {
     Vector3 ground;
-    ground.x = Uniform(MapScale());
-    ground.y = Uniform(MapScale());
+    ground.x = Uniform(kMapScale);
+    ground.y = Uniform(kMapScale);
     ground.z = 0.0f;
     CAIMap* aiMap = &world->aiMap_;
     int kind = aiMap->MaterialAt(&ground);
     if (kind != 3 && kind != 1) return;
     if (aiMap->CellFlag80At(&ground)) return;
 
-    float dx = static_cast<float>(x87::FromUnsigned(g_random.Next()) * OffsetScale() - OffsetCentre());
-    double dyRaw = x87::FromUnsigned(g_random.Next()) * OffsetScale() - OffsetCentre();
+    float dx = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kOffsetScale - kOffsetCentre);
+    double dyRaw = x87::FromUnsigned(g_random.Next()) * kOffsetScale - kOffsetCentre;
     float dy = static_cast<float>(dyRaw);
-    if (dyRaw * dy + static_cast<double>(dx) * dx <= MinDistance2()) return;   // random: never NaN
+    if (dyRaw * dy + static_cast<double>(dx) * dx <= kMinDistance2) return;   // random: never NaN
 
     Vector3 sky;
     sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
     sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
     sky.z = ground.z;
-    if (aiMap->LargestStepAlong(&ground, &sky) >= One()) return;   // NaN goes on (C0 set)
+    if (aiMap->LargestStepAlong(&ground, &sky) >= 1.0f) return;   // NaN goes on (C0 set)
 
     CBaseManager* manager = world->TimedObjectManager();
     auto* lightning = manager->CreateObjectAs<CEffectTornado>(kTypeLightning, -1);
@@ -111,12 +109,12 @@ void UpdateRain(CWorldServer* world) {
 // A bolt in the sky during rain (every 20 ticks at most): a random ground point and one above it.
 void ShowRainBolt(CWorldServer* world) {
     world->lastRainBoltTick_ = static_cast<std::uint32_t>(world->tick_);
-    float x = static_cast<float>(x87::FromUnsigned(g_random.Next()) * BoltScale() + Two());
-    float y = static_cast<float>(x87::FromUnsigned(g_random.Next()) * BoltScale() + Two());
-    float z = static_cast<float>(world->RawSurfaceHeightAt(x, y) - Five());
-    float fromX = static_cast<float>(x87::FromUnsigned(g_random.Next()) * BoltSpread() + x - Two());
-    float fromY = static_cast<float>(x87::FromUnsigned(g_random.Next()) * BoltSpread() + y - Two());
-    float fromZ = static_cast<float>(static_cast<double>(z) + BoltHeight());
+    float x = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kBoltScale + 2.0f);
+    float y = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kBoltScale + 2.0f);
+    float z = static_cast<float>(world->RawSurfaceHeightAt(x, y) - kFive);
+    float fromX = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kBoltSpread + x - 2.0f);
+    float fromY = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kBoltSpread + y - 2.0f);
+    float fromZ = static_cast<float>(static_cast<double>(z) + kBoltHeight);
     Vector3 to{x, y, z};
     Vector3 from{fromX, fromY, fromZ};
     ShowBolt(from, to);
@@ -127,7 +125,6 @@ void ShowRainBolt(CWorldServer* world) {
 //  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
 CScript& ScriptQueue() { return *g_serverWorld->SecondScript(); }   // a command queue (adds a line)
 
-float Half() { return 0.5f; }
 
 } // namespace
 
@@ -157,9 +154,9 @@ void ShowBolt(Vector3 from, Vector3 to) {
     // The middle: x and y are summed into floats first, z is not.
     float sumY = static_cast<float>(to.y + from.y);
     float sumX = static_cast<float>(to.x + from.x);
-    float midZ = static_cast<float>((static_cast<double>(to.z) + from.z) * Half());
-    float midY = static_cast<float>(sumY * Half());
-    float midX = static_cast<float>(sumX * Half());
+    float midZ = static_cast<float>((static_cast<double>(to.z) + from.z) * 0.5f);
+    float midY = static_cast<float>(sumY * 0.5f);
+    float midX = static_cast<float>(sumX * 0.5f);
     double fx = from.x, fy = from.y, fz = from.z;
     double tx = to.x, ty = to.y, tz = to.z;
     if ((g_random.Next() & 3) == 0) {

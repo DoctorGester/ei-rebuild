@@ -23,12 +23,11 @@
 
 namespace {
 
-float Half() { return 0.5f; }
-float Texel() { return 0.00390625f; }           // 1 / 256
-float Seventh() { return 0.14285715f; }         // 1 / 7
-float Pi() { return 3.1415927f; }
-float Thin() { return 0.2f; }
-float Fat() { return 0.8f; }
+constexpr float kTexel = 0.00390625f;           // 1 / 256
+constexpr float kSeventh = 0.14285715f;         // 1 / 7
+constexpr float kPi = 3.1415927f;
+constexpr float kThin = 0.2f;
+constexpr float kFat = 0.8f;
 
 // True when the two texts are equal (strcmp(a, b) == 0).
 bool SameText(std::string_view a, std::string_view b) { return a == b; }
@@ -107,10 +106,10 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
     const int right = x + width;
 
     if (face) {
-        face->Place(static_cast<float>(static_cast<double>(x + right) * Half()), 548.0f, 7.0f);
+        face->Place(static_cast<float>(static_cast<double>(x + right) * 0.5f), 548.0f, 7.0f);
         face->SetScale(width < 0x32 ? 0.22f : 0.3f);
         Quaternion turn;
-        slots_[count_].restA_ = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, Pi());
+        slots_[count_].restA_ = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kPi);
         face->localRotation_ = slots_[count_].restA_;
     } else {
         face = AddBlankSprite();
@@ -126,8 +125,8 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
         face->tint_[1] = 0.5f;
         face->tint_[2] = 0.5f;
     }
-    face->textureOffsetU_ = static_cast<float>(u) * Texel();
-    face->textureOffsetV_ = static_cast<float>(v + 0x80) * Texel();
+    face->textureOffsetU_ = static_cast<float>(u) * kTexel;
+    face->textureOffsetV_ = static_cast<float>(v + 0x80) * kTexel;
     face->texture_ = objects_[std::ssize(objects_) - 1];
 
     // The health and mana bars (hidden for a player), the frame and the hit flash.
@@ -180,9 +179,9 @@ void CHudPortraits::Rebuild(int wide) {
         const float figureBuild = unit->scale.y;
         build = "me";
         EI_NAN_AUDIT(figureBuild);
-        if (figureBuild < Thin())
+        if (figureBuild < kThin)
             build = "th";
-        else if (figureBuild > Fat())
+        else if (figureBuild > kFat)
             build = "fa";
         const char* figure = unit->name.c_str();
         model = str::Format("infa%s%s%dface", figure, build.c_str(),
@@ -193,7 +192,7 @@ void CHudPortraits::Rebuild(int wide) {
         if (owner_->party_[i]->flags_ & 0x10) {
             Sprite(sceneObjects_[i * 5 + 4])->visible_ = 1;
             Quaternion turn;
-            slots_[i].restB_ = *turn.SetAxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, kHudQuarterTurn * Seventh());
+            slots_[i].restB_ = *turn.SetAxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, kHudQuarterTurn * kSeventh);
         }
         slots_[i].flash_ = 0.0f;
         slots_[i].lastHitPoints_ = owner_->party_[i]->packedVitals.hitPoints;

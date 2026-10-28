@@ -47,8 +47,8 @@ inline const std::vector<itemdb::SpellListRecord>* ScrollSpellRecipes() { return
 inline std::unordered_map<std::string, itemdb::SpellRecord*>& SpellsByName() { return g_spellDatabase->spells.byCode; }
 inline std::unordered_map<std::string, itemdb::SpellModifierRecord*>& ModifiersByName() { return g_spellDatabase->modifiers.byCode; }
 // The material draw's factors of the prototype's price: a seventh and 0.2.
-inline float SeventhFactor() { return 0.14285715f; }
-inline float FifthFactor() { return 0.2f; }
+inline constexpr float kSeventhFactor = 0.14285715f;
+inline constexpr float kFifthFactor = 0.2f;
 } // namespace stock
 
 struct ItemStock {

@@ -22,7 +22,6 @@
 
 namespace {
 constexpr float kDecayScale = 30.0f;
-constexpr float kOne = 1.0f;
 constexpr float kDecayDivisor = std::bit_cast<float>(0x3D042108u);      // (1 / 31)
 constexpr float kArrivedDistanceSq = 1.0f;
 
@@ -98,7 +97,7 @@ void AIBrain::Think() {
             owner->voice.Raise(kVoiceAlarm);
         }
     }
-    decay = (decay * kDecayScale + kOne) * kDecayDivisor;
+    decay = (decay * kDecayScale + 1.0f) * kDecayDivisor;
     memory.Update(owner);
 
     CUnit* unit = owner->unit;

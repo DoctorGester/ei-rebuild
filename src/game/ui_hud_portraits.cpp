@@ -34,7 +34,7 @@ float FloatFromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
-float Pi() { return 3.1415927f; }
+constexpr float kPi = 3.1415927f;
 bool GamePaused() { return g_clientWorld->paused_ != 0; }
 
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
@@ -42,7 +42,6 @@ constexpr float kBarTexels = 64.0f;
 constexpr float kBarStart = 9.0f;
 constexpr float kTexel = 0.00390625f;
 constexpr float kHalfTexel = 0.001953125f;
-constexpr float kHalf = 0.5f;
 constexpr std::uint32_t kHealthV0 = 0x3F768000;   // the bars' v coordinates
 constexpr std::uint32_t kHealthV1 = 0x3F698000;
 constexpr std::uint32_t kManaV0 = 0x3F5C8000;
@@ -55,9 +54,9 @@ constexpr float kThin = 0.2f;
 constexpr float kFat = 0.8f;
 // Doubles the original multiplies random numbers with (about 2^-32, -0.3 * 2^-32 and 2^-31; not
 // exact powers of two), read from the exe.
-double RandomScale32() { return 2.3283064370807974e-10; }
-double RandomDelayScale() { return (-6.984919588798148e-11); }
-double RandomScale31() { return 4.656612874161595e-10; }
+constexpr double kRandomScale32 = 2.3283064370807974e-10;
+constexpr double kRandomDelayScale = -6.984919588798148e-11;
+constexpr double kRandomScale31 = 4.656612874161595e-10;
 constexpr float kWobbleRate = 0.33333334f;    // wobbles per second
 constexpr float kTwelfth = 0.083333336f;
 constexpr float kWobbleSpan = 0.2f;
@@ -77,7 +76,7 @@ Quaternion* RotationOf(CEngineObject* object) {
 void SetBar(CEngineObject* object, double fraction, std::uint32_t v0, std::uint32_t v1) {
     CUiMesh* bar = Sprite(object);
     float u = static_cast<float>(((fraction * kBarTexels + kBarStart) * kTexel) + kHalfTexel);
-    double right = fraction - kHalf;
+    double right = fraction - 0.5f;
     bar->vertices_[0].x()[2] = static_cast<float>(right);
     bar->vertices_[0].x()[3] = static_cast<float>(right);
     bar->texCoords_[2].u = u;
@@ -118,7 +117,7 @@ Quaternion WobbleProduct(const Quaternion& f, const Quaternion& w) {
 }
 
 float RandomTilt(std::uint32_t r) {
-    return static_cast<float>((x87::FromUnsigned(r) * RandomScale31() - 1.0f) * D(kHudQuarterTurn) * kTwelfth);
+    return static_cast<float>((x87::FromUnsigned(r) * kRandomScale31 - 1.0f) * D(kHudQuarterTurn) * kTwelfth);
 }
 
 Quaternion AxisAngle(float x, float y, float z, float angle) {
@@ -224,15 +223,15 @@ void CHudPortraits::Update() {
         Quaternion wobble = {1.0f, 0.0f, 0.0f, 0.0f};
         if (slot.wobbleKind_ == 0 && dt > 0.0f) {
             std::uint32_t roll = g_random.Next();
-            if (D(dt) * kWobbleRate > x87::FromUnsigned(roll) * RandomScale32()) {
-                slot.wobbleTime_ = static_cast<float>(x87::FromUnsigned(g_random.Next()) * RandomDelayScale());
+            if (D(dt) * kWobbleRate > x87::FromUnsigned(roll) * kRandomScale32) {
+                slot.wobbleTime_ = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kRandomDelayScale);
                 slot.wobbleKind_ = 3;
                 std::uint32_t r1 = g_random.Next();
                 std::uint32_t r2 = g_random.Next();
                 Quaternion q1 = AxisAngle(0.0f, 1.0f, 0.0f, RandomTilt(r1));
                 Quaternion q2 = AxisAngle(1.0f, 0.0f, 0.0f, RandomTilt(r2));
                 slot.wobbleTarget_ = TargetProduct(q1, q2);
-                slot.wobbleSpeed_ = static_cast<float>(x87::FromUnsigned(g_random.Next()) * RandomScale31() + 1.0f);
+                slot.wobbleSpeed_ = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kRandomScale31 + 1.0f);
             }
         }
         if (slot.wobbleKind_ != 0) {
@@ -241,7 +240,7 @@ void CHudPortraits::Update() {
                 float t = slot.wobbleTime_;
                 switch (slot.wobbleKind_) {
                 case 1:   // nod
-                    if (static_cast<float>(D(Pi()) * kWobbleSpan) > t)
+                    if (static_cast<float>(D(kPi) * kWobbleSpan) > t)
                         wobble = AxisAngle(1.0f, 0.0f, 0.0f,
                                            static_cast<float>(D(kHudQuarterTurn) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
                     else
@@ -256,7 +255,7 @@ void CHudPortraits::Update() {
                     break;
                 case 3:   // turn towards the target and back
                     if (D(kHudFullTurn) / D(slot.wobbleSpeed_) > D(t)) {
-                        float w = static_cast<float>(kHalf - x87::fcos(D(t) * D(slot.wobbleSpeed_)) * kHalf);
+                        float w = static_cast<float>(0.5f - x87::fcos(D(t) * D(slot.wobbleSpeed_)) * 0.5f);
                         wobble.Slerp(w, kHudRestRotation, slot.wobbleTarget_);
                     } else {
                         slot.wobbleKind_ = 0;
@@ -273,7 +272,7 @@ void CHudPortraits::Update() {
         Quaternion previous = slot.current_;
         Quaternion face;
         EI_NAN_AUDIT(dt);
-        if (dt < kHalf)
+        if (dt < 0.5f)
             face.Slerp(static_cast<float>(D(dt) + D(dt)), previous, rest);
         else
             face = rest;

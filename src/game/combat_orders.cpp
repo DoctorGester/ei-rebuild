@@ -16,7 +16,6 @@
 #include <cstring>
 
 namespace {
-constexpr float kZero = 0.0f;                               // the dword 0 FinishCast compares with
 constexpr float kCastNoiseScale = 2.0f;
 constexpr int kNoiseKind = 0x1A;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
@@ -130,7 +129,7 @@ void CUnitServer::FinishCast() {
         *mana = left;
         // Branch-free clamps: min(left, maximum) (left when unordered), then max(0, that).
         float capped = left >= maximum ? maximum : left;
-        float result = capped <= kZero ? kZero : capped;
+        float result = capped <= 0.0f ? 0.0f : capped;
         std::memcpy(mana, &result, sizeof(float));
         CompanionOwner(ServerObjectOf(unit))->MarkChanged(0);
         unit->MarkChanged(0);

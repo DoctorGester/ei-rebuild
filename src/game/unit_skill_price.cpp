@@ -16,7 +16,6 @@ constexpr double kWorthBase = 1.61;
 constexpr float kTwoDigitsBelow = 4.0f; // a first digit below this keeps two digits
 constexpr float kRoundUpTo = 10.0f;     // ... unless the price is at most this
 constexpr float kTenth = 0.1f;
-constexpr float kHalf = 0.5f;
 constexpr int kKnownLevels = 0x24;      // the skill level bytes summed (UnitStats::skillLevels)
 
 // What a level value is worth (the same curve as RaiseSkill's): the game's settings "Skill Val 1"
@@ -62,12 +61,12 @@ int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
     // The power of ten of the first digit (log10, the CRT's floor and _CIpow).
     float power = static_cast<float>(std::pow(10.0, std::floor(x87::flog10(static_cast<double>(price)))));
     float leading = price / power;
-    if (leading >= kTwoDigitsBelow) return static_cast<int>(std::floor(static_cast<double>(leading + kHalf)) * power);
+    if (leading >= kTwoDigitsBelow) return static_cast<int>(std::floor(static_cast<double>(leading + 0.5f)) * power);
     // Below 4, or NaN: a price of 0 gives power 0 and 0 / 0, which this branch returns as 0 (it
     // occurs; the plain leading < 4 would return the NaN's integer conversion).
     EI_NAN_AUDIT(power);
     if (power <= kRoundUpTo) return static_cast<int>(std::ceil(static_cast<double>(price)));
     power = power * kTenth;
     leading = price / power;
-    return static_cast<int>(std::floor(static_cast<double>(leading + kHalf)) * power);
+    return static_cast<int>(std::floor(static_cast<double>(leading + 0.5f)) * power);
 }

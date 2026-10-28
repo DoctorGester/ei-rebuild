@@ -32,7 +32,7 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
     const float dy = static_cast<float>(static_cast<double>(target[1]) - position[1]);
     const float dz = static_cast<float>(static_cast<double>(target[2]) - position[2]);
     // 1 / steps, rounded to float.
-    const float inverse = static_cast<float>(static_cast<double>(1.0f) / light->steps);
+    const float inverse = static_cast<float>(1.0 / light->steps);
     light->step.x = static_cast<float>(dx * inverse);
     light->step.y = static_cast<float>(static_cast<double>(dy) * inverse);
     light->step.z = static_cast<float>(static_cast<double>(dz) * inverse);

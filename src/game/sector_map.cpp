@@ -13,9 +13,6 @@
 
 namespace {
 
-constexpr float kCellSize = 1.0f;
-constexpr float kZero = 0.0f;
-
 // Spiral of sector offsets ordered by distance, with a radius-to-length table (sector_spiral.cpp);
 // RadiusTree::Find maps a radius to a table index.
 const RadiusTree* Spiral() { return &g_spiralRadii.Get(); }
@@ -107,8 +104,8 @@ CSectorMap::CSectorMap() {
 CSectorMap::~CSectorMap() = default;
 
 bool CSectorMap::Add(CMapObject* object) {
-    int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * object->localPosition_.x - 0.5f);
-    int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * object->localPosition_.y - 0.5f);
+    int cellX = x87::fistp(2.0f * object->localPosition_.x - 0.5f);
+    int cellY = x87::fistp(2.0f * object->localPosition_.y - 0.5f);
     int sx = cellX / 32, sy = cellY / 32;
     if (sx >= width || sy >= height || sx < 0 || sy < 0) return false;
 
@@ -252,8 +249,8 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, std::list<CUnit*>* r
     const std::int16_t* offset = SpiralOffsets();
     result->clear();
 
-    int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * position->x - 0.5f);
-    int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * position->y - 0.5f);
+    int cellX = x87::fistp(2.0f * position->x - 0.5f);
+    int cellY = x87::fistp(2.0f * position->y - 0.5f);
     int sx = cellX / 32, sy = cellY / 32;
     float radiusSquared = radius * radius;
     float px = position->x, py = position->y;
@@ -278,11 +275,11 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, std::list<CUnit*>* r
 bool CSectorMap::Move(CMapObject* object, const Vector3* position) {
     // Rebirth's FixMoveObject runs first: no move to a negative (or NaN) x or y.
     // (It also logs the refusal and failed moves to addon.log; nothing the game shows.)
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position->x >= kZero) || !(position->y >= kZero)))
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position->x >= 0.0f) || !(position->y >= 0.0f)))
         return false;
     Vector3& current = object->localPosition_;
-    int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * position->x - 0.5f);
-    int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * position->y - 0.5f);
+    int cellX = x87::fistp(2.0f * position->x - 0.5f);
+    int cellY = x87::fistp(2.0f * position->y - 0.5f);
     Vector3 saved;
     std::memcpy(&saved, &current, sizeof(saved));   // bitwise (no x87 round trip)
 

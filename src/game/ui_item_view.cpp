@@ -225,7 +225,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
         const Vector3& extents = model->box_.bounds.boxMax;
         EI_NAN_AUDIT(extents.y, extents.x);
         float extent = extents.x < extents.y ? extents.y : extents.x;
-        double half = D(0.5f);
+        double half = 0.5;
         float y = static_cast<float>(D(model->box_.bounds.center.y) * D(cell->size) * half + D(cell->y));
         float x = static_cast<float>(D(cell->x) - D(model->box_.bounds.center.x) * D(cell->size) * half);
         model->Place(x, y, cell->depth);
@@ -309,7 +309,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
                 dx = static_cast<float>(d);
             double dy;
             if (i == 2 || i == 6)
-                dy = D(0.0f);
+                dy = 0.0;
             else if (i == 0 || i == 1 || i == 7)
                 dy = -d;
             else

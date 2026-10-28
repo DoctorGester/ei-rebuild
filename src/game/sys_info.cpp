@@ -41,7 +41,7 @@ constexpr std::uint32_t kEflagsId = 0x00200000;   // EFLAGS.ID: can be flipped w
 constexpr unsigned kFirstWindows98Build = 1998;
 
 // The translation unit's constants and what they are made of (the exe's pi, 2, 4 and 1).
-float Pi() { return 3.1415927f; }
+constexpr float kPi = 3.1415927f;
 
 } // namespace
 
@@ -186,10 +186,10 @@ void SysInfoAtExit() { g_sysInfo.Destroy(); }
 
 // The four constants, each one operation on the exe's
 // pi rounded to a float by the store.
-void SysInfoInitTwoPi() { g_twoPi = static_cast<float>(Pi() + Pi()); }
-void SysInfoInitHalfPi() { g_halfPi = static_cast<float>(Pi() / 2.0f); }
-void SysInfoInitQuarterPi() { g_quarterPi = static_cast<float>(Pi() / 4.0f); }
-void SysInfoInitInversePi() { g_inversePi = static_cast<float>(1.0f / Pi()); }
+void SysInfoInitTwoPi() { g_twoPi = static_cast<float>(kPi + kPi); }
+void SysInfoInitHalfPi() { g_halfPi = static_cast<float>(kPi / 2.0f); }
+void SysInfoInitQuarterPi() { g_quarterPi = static_cast<float>(kPi / 4.0f); }
+void SysInfoInitInversePi() { g_inversePi = static_cast<float>(1.0f / kPi); }
 
 // The table's entries for them.
 void SysInfoStaticTwoPi() { SysInfoInitTwoPi(); }

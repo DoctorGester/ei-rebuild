@@ -23,9 +23,6 @@
 
 namespace {
 
-constexpr float kZero = 0.0f;
-constexpr float kHalf = 0.5f;
-constexpr float kOne = 1.0f;
 constexpr float kQuarter = 0.25f;
 constexpr double kFadePi = std::bit_cast<double>(0x400921F9F01B866Eull);  // 3.14159, sic
 constexpr float kVolumeScale = 100.0f;
@@ -33,7 +30,6 @@ constexpr float kDensityScale = 64.0f;
 constexpr float kFogMinAlpha = std::bit_cast<float>(0x3C23D70Au);      // 0.01
 // Random jitter of a fog cell centre (2^-33 with its last bit set).
 constexpr double kFogJitter = std::bit_cast<double>(0x3DE0000000100000ull);
-constexpr float kFogCellSize = 1.0f;
 constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);              // 1e30
 
 
@@ -65,12 +61,12 @@ const char* RainSoundName() { return "nature\\rain\\circle.wav"; }
 void CRainSnow::UpdateFade(float now) {
     // A NaN duration takes the last branch, which does the same as the first.
     EI_NAN_AUDIT(now, fadeStart);
-    if (fadeDuration == kZero) {   // no fade running
+    if (fadeDuration == 0.0f) {   // no fade running
         mode = targetMode;
         if (targetMode == 1 && sound) g_clientWorld->sounds_->SetSoundVolume(sound, 100, 0);
-    } else if ((now - fadeStart) / fadeDuration <= kOne) {
+    } else if ((now - fadeStart) / fadeDuration <= 1.0f) {
         double c = x87::fcos((now - fadeStart) / fadeDuration * kFadePi);
-        float level = static_cast<float>((targetMode == 0 ? c + kOne : kOne - c) * kHalf);
+        float level = static_cast<float>((targetMode == 0 ? c + 1.0f : 1.0f - c) * 0.5f);
         if (sound) g_clientWorld->sounds_->SetSoundVolume(sound, x87::fistp(level * kVolumeScale), 0);
         density = x87::fistp(level * kDensityScale);
         return;
@@ -161,18 +157,18 @@ void CVisibilityFog::ComputeBounds() {
         bounds.boxMax.y = bounds.boxMax.y >= p.y ? bounds.boxMax.y : p.y;
         bounds.boxMax.z = bounds.boxMax.z >= p.z ? bounds.boxMax.z : p.z;
     }
-    bounds.boxMax.x = LoadFloat(bounds.boxMax.x) + kHalf;
-    bounds.boxMax.y = LoadFloat(bounds.boxMax.y) + kHalf;
-    bounds.boxMax.z = LoadFloat(bounds.boxMax.z) + kHalf;
-    bounds.boxMin.x = LoadFloat(bounds.boxMin.x) - kHalf;
-    bounds.boxMin.y = LoadFloat(bounds.boxMin.y) - kHalf;
-    bounds.boxMin.z = LoadFloat(bounds.boxMin.z) - kHalf;
+    bounds.boxMax.x = LoadFloat(bounds.boxMax.x) + 0.5f;
+    bounds.boxMax.y = LoadFloat(bounds.boxMax.y) + 0.5f;
+    bounds.boxMax.z = LoadFloat(bounds.boxMax.z) + 0.5f;
+    bounds.boxMin.x = LoadFloat(bounds.boxMin.x) - 0.5f;
+    bounds.boxMin.y = LoadFloat(bounds.boxMin.y) - 0.5f;
+    bounds.boxMin.z = LoadFloat(bounds.boxMin.z) - 0.5f;
     // The x sum stays on the FPU stack until it is halved; y and z go through float temporaries.
     float sy = static_cast<float>(LoadFloat(bounds.boxMin.y) + LoadFloat(bounds.boxMax.y));
     float sz = static_cast<float>(LoadFloat(bounds.boxMin.z) + LoadFloat(bounds.boxMax.z));
-    float cx = static_cast<float>((LoadFloat(bounds.boxMax.x) + LoadFloat(bounds.boxMin.x)) * kHalf);
-    float cy = static_cast<float>(sy * kHalf);
-    float cz = static_cast<float>(sz * kHalf);
+    float cx = static_cast<float>((LoadFloat(bounds.boxMax.x) + LoadFloat(bounds.boxMin.x)) * 0.5f);
+    float cy = static_cast<float>(sy * 0.5f);
+    float cz = static_cast<float>(sz * 0.5f);
     bounds.center.x = cx;
     bounds.center.y = cy;
     bounds.center.z = cz;
@@ -204,9 +200,9 @@ int CVisibilityFog::UpdateCells() {
     World();   // called and ignored
     for (auto& [key, cell] : cells) {
         if (cell.visible)
-            cell.alpha = kOne - (kOne - cell.alpha) * kHalf;
+            cell.alpha = 1.0f - (1.0f - cell.alpha) * 0.5f;
         else
-            cell.alpha = cell.alpha * kHalf;
+            cell.alpha = cell.alpha * 0.5f;
         EI_NAN_AUDIT(cell.alpha);
         if (LoadFloat(cell.alpha) < kFogMinAlpha) {
             dead.push_back(key);
@@ -238,13 +234,13 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
             cell->x = static_cast<std::int16_t>(grid->x0 + col);
             cell->y = static_cast<std::int16_t>(grid->y0 + row);
             std::uint32_t r = g_random.Next();
-            cell->pos.x = static_cast<float>((Unsigned(r) * kFogJitter + cell->x - kQuarter) * (kFogCellSize * kHalf));
+            cell->pos.x = static_cast<float>((Unsigned(r) * kFogJitter + cell->x - kQuarter) * 0.5f);
             r = g_random.Next();
-            cell->pos.y = static_cast<float>((Unsigned(r) * kFogJitter + cell->y - kQuarter) * (kFogCellSize * kHalf));
+            cell->pos.y = static_cast<float>((Unsigned(r) * kFogJitter + cell->y - kQuarter) * 0.5f);
             // The water surface height, used unrounded.
             double ground = World()->SurfaceHeightAt(LoadFloat(cell->pos.x), LoadFloat(cell->pos.y));
             cell->alpha = 0.0f;
-            cell->pos.z = static_cast<float>(ground + kHalf);
+            cell->pos.z = static_cast<float>(ground + 0.5f);
             cell->frame = static_cast<std::int8_t>(g_random.Next() % 15);
             boundsValid = 0;
         }

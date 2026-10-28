@@ -183,7 +183,7 @@ inline void WallSpan(const Vector3* direction, const float* radius, Vector3* out
 // The light wall's half extent from its lightning's ends: x keeps the difference unrounded before
 // halving, y and z are rounded first.
 inline void HalfSpan(const CEffectLightning* bolt, Vector3* out) {
-    const double half = 0.5f;
+    const double half = 0.5;
     const double dx = static_cast<double>(bolt->to_.x) - bolt->from_.x;
     out->y = static_cast<float>(static_cast<double>(bolt->to_.y) - bolt->from_.y);
     out->z = static_cast<float>(static_cast<double>(bolt->to_.z) - bolt->from_.z);

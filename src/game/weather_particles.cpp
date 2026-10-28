@@ -52,7 +52,6 @@ constexpr float kRainTop = 0.75f, kRainBottom = 1.0f;               // the rain'
 constexpr float kSnowTop = 0.5f;                                    // the snow's
 constexpr float kSnowBottom = std::bit_cast<float>(0x3F3D70A4u);    // 0.74
 constexpr float kFlakeWidth = std::bit_cast<float>(0x3E4CCCCDu);    // (0.2)
-constexpr float kHalf = 0.5f;
 constexpr float kFlakeAbove = std::bit_cast<float>(0x3E99999Au);    // (0.3)
 constexpr float kFlakeBelow = std::bit_cast<float>(0x3F333333u);    // (0.7)
 constexpr float kSwayShift = 1000.0f;
@@ -286,8 +285,8 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
         TLVertex* triangle = vertices.data() + used;
         for (int corner = 0; corner < 3; ++corner) SetCorner(triangle[corner], projected[flake]);
         // A triangle around the point, in the projection's units.
-        triangle[0].x = triangle[0].x - kFlakeWidth * kHalf;
-        triangle[1].x = triangle[1].x + kFlakeWidth * kHalf;
+        triangle[0].x = triangle[0].x - kFlakeWidth * 0.5f;
+        triangle[1].x = triangle[1].x + kFlakeWidth * 0.5f;
         triangle[0].y = triangle[0].y - static_cast<float>(kFlakeHeight * kFlakeAbove);
         triangle[1].y = triangle[1].y - static_cast<float>(kFlakeHeight * kFlakeAbove);
         triangle[2].y = triangle[2].y + static_cast<float>(kFlakeHeight * kFlakeBelow);

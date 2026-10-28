@@ -67,12 +67,12 @@ constexpr int kMasterPort = 28004;
 
 // The switches' sprite frames: off (0.0), on (-0.08984375); the selected game
 // type tab's frame is an immediate in the code.
-float FrameOff() { return 0.0f; }
-float FrameOn() { return (-0.08984375f); }
-float RefreshPeriod() { return 0.5f; }   // 0.5 s
-float MillisecondsPerSecond() { return 1000.0f; }
-float BarWidth() { return 355.0f; }
-float BarLeft() { return 225.0f; }
+constexpr float kFrameOff = 0.0f;
+constexpr float kFrameOn = -0.08984375f;
+constexpr float kRefreshPeriod = 0.5f;   // 0.5 s
+constexpr float kMillisecondsPerSecond = 1000.0f;
+constexpr float kBarWidth = 355.0f;
+constexpr float kBarLeft = 225.0f;
 constexpr float kTabSelected = 0.08984375f;               // 0x3DB80000
 
 constexpr int kRegionConnect = 0, kRegionBack = 1, kRegionMaster = 2, kRegionAddress = 3, kRegionUnlisted = 4,
@@ -162,7 +162,7 @@ void CMpConnectScreen::Update() {
 
     double elapsed = FrameTime() + refreshTimer_;
     refreshTimer_ = static_cast<float>(elapsed);
-    float period = RefreshPeriod();
+    float period = kRefreshPeriod;
     if (elapsed > period) {
         float timer = refreshTimer_;
         do {
@@ -203,7 +203,7 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
     } else if (result == (kBoxPassword | kAnswerOk) || result == (kBoxPassword | kAnswerCancel)) {
         hostPassword_ = boxText_;
         auto* sprite = SceneMesh(kSpritePassword);
-        sprite->textureOffsetU_ = hostPassword_.size() == 0 ? FrameOff() : FrameOn();
+        sprite->textureOffsetU_ = hostPassword_.size() == 0 ? kFrameOff : kFrameOn;
     } else if (result == (kBoxJoinPassword | kAnswerOk)) {
         g_gameFlow->JoinServer(&entries_[selected_].address, boxText_);
         net::g_gameClient->gameType_ = entries_[selected_].gameType;
@@ -233,7 +233,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
     case kRegionUnlisted: {
         unlisted_ = !unlisted_;
         auto* sprite = SceneMesh(kSpriteUnlisted);
-        sprite->textureOffsetU_ = unlisted_ ? FrameOn() : FrameOff();
+        sprite->textureOffsetU_ = unlisted_ ? kFrameOn : kFrameOff;
         break;
     }
     case kRegionPassword:
@@ -415,7 +415,7 @@ void CMpConnectScreen::RebuildList() {
         entry.description = server->description_.data();
         entry.players = static_cast<signed char>(server->players_);
         entry.maxPlayers = static_cast<signed char>(server->maxPlayers_);
-        entry.ping = x87::fistp(server->ping_ * MillisecondsPerSecond());
+        entry.ping = x87::fistp(server->ping_ * kMillisecondsPerSecond);
         entry.foreign = server->foreign_ != 0;
         entry.state = static_cast<int>(server->state_);
         entry.password = server->password_ != 0;
@@ -648,7 +648,7 @@ CMasterRequestBox::CMasterRequestBox(CInterface3D* ui, const char* titleKey, con
 
 void CMasterRequestBox::Update() {
     double share = net::g_gameClient->BufferRatio(&link_.in);
-    float right = static_cast<float>(share * BarWidth() + BarLeft());
+    float right = static_cast<float>(share * kBarWidth + kBarLeft);
     bar_->SetRectangle(2.5f, 100.0f, 220.0f, 280.0f, right, 300.0f, 0, 0, 0x100, 0x100);
     if (net::MasterLinkTick(&link_) == net::MasterLink::kDone) net::g_gameClient->ReadServerList(&link_.in);
     if (net::MasterLinkTick(&link_) == net::MasterLink::kDone || net::MasterLinkTick(&link_) == net::MasterLink::kClosed)

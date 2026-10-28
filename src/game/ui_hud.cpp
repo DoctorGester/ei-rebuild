@@ -71,10 +71,10 @@ constexpr int kNormalPeriod = 55;
 constexpr int kFastPeriod = 27;
 
 // The constants the movement panel's marker is placed with, read where the game reads them.
-float Pi() { return 3.1415927f; }
-float Sixteenth() { return 0.0625f; }
-float MarkerRadius() { return 73.0f; }
-float MarkerCentreY() { return 600.0f; }
+constexpr float kPi = 3.1415927f;
+constexpr float kSixteenth = 0.0625f;
+constexpr float kMarkerRadius = 73.0f;
+constexpr float kMarkerCentreY = 600.0f;
 constexpr float kMarkerDepth = 8.0f;
 
 // The map's centre in the layout, and the camera flag a click on the map clears.
@@ -118,10 +118,10 @@ void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int qui
 
 constexpr int kCategoryWand = 8;
 // The factor turning a random dword into the portraits' negative start delay.
-double PortraitDelayScale() { return (-6.984919588798148e-11); }
+constexpr double kPortraitDelayScale = -6.984919588798148e-11;
 // A random value times ~-2^-34 * 0.3, stored the way the original does.
 float PortraitDelay(std::uint32_t random) {
-    return static_cast<float>(x87::FromUnsigned(random) * PortraitDelayScale());
+    return static_cast<float>(x87::FromUnsigned(random) * kPortraitDelayScale);
 }
 // Portrait `index` nods (wobble kind 1) after a short random delay.
 void NodPortrait(CBattleScreen* screen, int index) {
@@ -137,7 +137,6 @@ bool IsZero(float value) {
 }
 
 // The constant 1.0f the zone variable is compared with.
-float GameOne() { return 1.0f; }
 
 } // namespace
 
@@ -544,12 +543,12 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
             continue;
         }
         // The marker points at the mode's button: turned about -z and put on its circle.
-        const float angle = static_cast<float>(static_cast<float>(2 * i + 1) * Pi() * Sixteenth());
+        const float angle = static_cast<float>(static_cast<float>(2 * i + 1) * kPi * kSixteenth);
         const Vector3 axis = {0.0f, 0.0f, -1.0f};
         Quaternion turn;
         marker->localRotation_ = *turn.SetAxisAngle(axis, angle);
-        const float y = static_cast<float>(MarkerCentreY() - x87::fsin(angle) * MarkerRadius());
-        const float x = static_cast<float>(x87::fcos(angle) * MarkerRadius());
+        const float y = static_cast<float>(kMarkerCentreY - x87::fsin(angle) * kMarkerRadius);
+        const float x = static_cast<float>(x87::fcos(angle) * kMarkerRadius);
         SceneMesh(0)->PlaceBody(x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }
@@ -923,7 +922,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
                             game::NoneText()) != 0) {
             name = std::string(game::ZoneVariablePrefixText()) + name;   // "z."
             double value = LocalPlayerVariable(name);
-            const float one = GameOne();
+            const float one = 1.0f;
             // Equal skips.
             EI_NAN_AUDIT(value);
             if (value != one) {

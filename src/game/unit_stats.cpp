@@ -13,8 +13,6 @@
 #include <cstring>
 
 namespace {
-constexpr float kZero = 0.0f;
-constexpr float kOne = 1.0f;
 constexpr float kStatBase = 25.0f;
 constexpr float kTwelve = 12.0f;
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
@@ -54,7 +52,7 @@ double UnitStats::AttributeWithBonus(int index) {
     case 0: return (dexterity - kStatBase) + static_cast<float>(attributes[0]);
     case 1: return (dexterity - kStatBase) + static_cast<float>(attributes[1]);
     case 2: return (intelligence - kStatBase) + static_cast<float>(attributes[2]);
-    default: return kZero;
+    default: return 0.0f;
     }
 }
 
@@ -77,7 +75,7 @@ float UnitStats::WeaponSkill(int type) {
     if (type < 5) return static_cast<float>(skills[0]);
     if (type == 5 || type == 6) return static_cast<float>(skills[1]);
     if (type == 8) return static_cast<float>(skills[0]);
-    return kZero;
+    return 0.0f;
 }
 
 ::SkillLevelRecord* UnitStats::SkillLevelRecord(int index) {
@@ -92,7 +90,7 @@ double UnitStats::SkillLevelValue(int index) {
         const ::SkillLevelRecord* record = LevelRecord(static_cast<std::uint32_t>(index * 3 - 1 + level));
         if (record) return record->Value();
     }
-    return kZero;
+    return 0.0f;
 }
 
 double UnitStats::ScaledStrength() {
@@ -101,10 +99,10 @@ double UnitStats::ScaledStrength() {
     if (level != 0) {
         const ::SkillLevelRecord* record = LevelRecord(level + kScaledStrengthLevelBase);
         if (record) {
-            return (record->Value() * kPercent + kOne) * scaledStrength;
+            return (record->Value() * kPercent + 1.0f) * scaledStrength;
         }
     }
-    return (kZero * kPercent + kOne) * scaledStrength;
+    return (0.0f * kPercent + 1.0f) * scaledStrength;
 }
 
 double UnitStats::BackstabFactor() {
@@ -116,16 +114,16 @@ double UnitStats::BackstabFactor() {
             return record->Value() * kPercent + base;
         }
     }
-    return kZero * kPercent + base;
+    return 0.0f * kPercent + base;
 }
 
 double UnitStats::BackstabFactorArg(int) { return BackstabFactor(); }
 
 double UnitStats::Reduce(float value) {
-    double taken = kZero;   // accumulated on the FPU stack
+    double taken = 0.0;   // accumulated on the FPU stack
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind < 1) continue;
-        if (slot.current >= kZero) {
+        if (slot.current >= 0.0f) {
             taken = (slot.maximum - slot.current) / slot.maximum * slot.factor * value + taken;
         } else {
             taken = value * slot.factor + taken;   // also NaN
@@ -135,7 +133,7 @@ double UnitStats::Reduce(float value) {
 }
 
 double UnitStats::ReduceKind1(float value) {
-    double taken = kZero;
+    double taken = 0.0;
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind == 1) taken = value * slot.factor + taken;
     }
@@ -144,7 +142,7 @@ double UnitStats::ReduceKind1(float value) {
 
 void UnitStats::GetFactors(float* a, float* b, int) {
     double x = (strength - kFactorBase) / kFactorStatRange;   // both kept on the FPU stack
-    double y = kOne - (dexterity - kFactorBase) / kFactorStatRange;
+    double y = 1.0f - (dexterity - kFactorBase) / kFactorStatRange;
     *a = static_cast<float>(y * kPointThree + x * kPointSeven);
     *b = static_cast<float>((y * kPointEight + x * kPointTwo) * kPointEight + kPointTwo);
 }
@@ -166,8 +164,8 @@ int LockKey::Opens(const LockKey* lock) const {
 std::uint32_t ResetDamageInfo(DamageInfo* info) {
     constexpr std::uint32_t kLarge = 0x7C23D70A;
     std::memset(info, 0, 0x3C);
-    for (float& weight : info->typeWeights) weight = kOne;
-    info->multiplier = kOne;
+    for (float& weight : info->typeWeights) weight = 1.0f;
+    info->multiplier = 1.0f;
     info->weaponValue = 0;
     info->attackRoll = kLarge;
     std::memcpy(&info->amount, &kLarge, sizeof(kLarge));
@@ -178,7 +176,7 @@ std::uint32_t ResetDamageInfo(DamageInfo* info) {
 
 BOOL HasElementalDamage(const DamageInfo* info) {
     EI_NAN_AUDIT(info->typeWeights[3], info->typeWeights[4], info->typeWeights[5]);
-    if (info->typeWeights[3] == kZero && info->typeWeights[4] == kZero && info->typeWeights[5] == kZero) {
+    if (info->typeWeights[3] == 0.0f && info->typeWeights[4] == 0.0f && info->typeWeights[5] == 0.0f) {
         return 0;
     }
     return 1;

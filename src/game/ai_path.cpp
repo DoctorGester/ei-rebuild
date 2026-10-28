@@ -40,8 +40,8 @@ constexpr float kInset = 0.49f;
 
 bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float minDistance) {
     int tx = WorldToCell(target->x), ty = WorldToCell(target->y);
-    target->x = 1.0f / (1.0f * 0.5f) * target->x;
-    target->y = 1.0f / (1.0f * 0.5f) * target->y;
+    target->x = 2.0f * target->x;
+    target->y = 2.0f * target->y;
     int reason;
     if (!sameRegion) {
         if (unit->GetClassId() != kClassUnit) return true;
@@ -101,7 +101,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     // Directions tried at each distance: the step, then the others round the circle.
     const float directions[8][2] = {{sx, sy}, {p, q}, {q, -p}, {sy, -sx}, {-sy, sx}, {-q, p}, {-p, -q}, {-sx, -sy}};
 
-    int first = x87::fistp(1.0f / (1.0f * 0.5f) * minDistance) - 1;
+    int first = x87::fistp(2.0f * minDistance) - 1;
     if (first < 0) first = 0;
     for (int r = first; r <= steps; ++r) {
         int count = r != 0 ? 8 : 1;
@@ -184,8 +184,8 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     std::memcpy(&path->targetX, &goal.x, 4);
 
     // In half-cell units, like the snapped target.
-    float fx = 1.0f / (1.0f * 0.5f) * from.x;
-    float fy = 1.0f / (1.0f * 0.5f) * from.y;
+    float fx = 2.0f * from.x;
+    float fy = 2.0f * from.y;
     float ddx = fx - goal.x, ddy = fy - goal.y;
     EI_NAN_AUDIT(ddy, ddx);
     if (LengthSquared2DUnrounded(ddy, ddx) < 0.001f) {

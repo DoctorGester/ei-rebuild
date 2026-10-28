@@ -33,7 +33,6 @@ constexpr float kDawnLength = 4.0f, kDuskLength = 4.0f;
 // 30 to 75 over the night (falling from hour 0 to 4, rising from 20 to 24).
 constexpr float kSunrise = 4.0f, kSunset = 20.0f;
 constexpr float kDayLength = 24.0f;
-constexpr float kHalf = 0.5f;
 constexpr float kNightSpan = 45.0f, kBaseElevation = 30.0f;
 constexpr double kPi = 3.141592653589793;
 constexpr double kPerDegree = 1.0 / 180.0;
@@ -96,7 +95,7 @@ double SunElevation(float hour) {
     } else if (hour > kSunset) {
         night = (hour - kSunset) / (kDayLength - kSunset);
     } else {
-        float offset = hour - (kSunset + kSunrise) * kHalf;
+        float offset = hour - (kSunset + kSunrise) * 0.5f;
         const float distance = std::fabs(static_cast<float>(offset));
         const double t = distance / (kSunset - kSunrise);
         return ((1.0f - (t + t)) + 1.0f) * kBaseElevation;

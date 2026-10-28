@@ -39,7 +39,7 @@ const char* const kLabelFormat = "%s %d";
 const char* const kSelectVoiceKey = "lmp_select_voice";
 
 // The points a new hero's three attributes must add up to before it can be created.
-float NewHeroPoints() { return 75.0f; }
+constexpr float kNewHeroPoints = 75.0f;
 // The preview's full turn (2 pi), the modulus of its angle.
 constexpr float kFullTurn = /*007C7F10*/ 6.2831855f;   // a static initialiser: pi + pi
 // The multiplayer heroes (their vector of SavedHero).
@@ -60,7 +60,7 @@ UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 
 const char* const kVoicesKey = "lmp_voices";
 // The voice rows' first y offset of the selection frame.
-float VoiceFrameTop() { return 332.5f; }
+constexpr float kVoiceFrameTop = 332.5f;
 constexpr int kSelectionFrame = 2;           // scene object
 constexpr std::uint32_t kListColour = 0xA7D7E4;
 constexpr int kListFormat = 0x800;
@@ -177,7 +177,7 @@ void CMpHeroScreen::Update() {
     std::string name = nameEdit_->text_;
     const UnitStats* stats = StatsOf(HeroRecord());
     double points = static_cast<double>(stats->intelligenceBase) + stats->dexterityBase + stats->strengthBase;
-    float target = NewHeroPoints();
+    float target = kNewHeroPoints;
     EI_NAN_AUDIT(points, target);
     bool equal = points == target;
     bool ready = equal && static_cast<int>(name.size()) != 0;
@@ -258,7 +258,7 @@ void CMpHeroScreen::DrawVoices() {
         if (index >= static_cast<std::uint32_t>(voices.end() - voices.begin())) break;
         if (static_cast<int>(index) == voiceIndex_) {
             SelectionFrame(*this)->visible_ = 1;
-            float y = static_cast<float>(static_cast<double>(offset) + VoiceFrameTop());
+            float y = static_cast<float>(static_cast<double>(offset) + kVoiceFrameTop);
             SelectionFrame(*this)->Place(97.5f, y, kFrameDepth);
         }
         surface->DrawTextIn(voices.begin()[index].name, &rect, 0, kListColour, kListFormat, 1);

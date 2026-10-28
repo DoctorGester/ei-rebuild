@@ -20,8 +20,6 @@
 // double locals; values stored to a float are float locals.
 
 namespace {
-constexpr float kZero = 0.0f;
-constexpr float kOne = 1.0f;
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
 constexpr float kPercentB = std::bit_cast<float>(0x3C23D70Au);      // 0.01, a second copy
 constexpr float kHitPointEffect = std::bit_cast<float>(0x3BA3D70Au);  // 0.005
@@ -70,9 +68,9 @@ double IntelligenceFactor(const float* intelligence) {
 // The level value of skill `skill` (0 without a level or a record), unsigned and exact.
 double LevelValueOf(const UnitStats* stats, int skill) {
     std::uint8_t level = stats->skillLevels[skill];
-    if (level == 0) return kZero;
+    if (level == 0) return 0.0f;
     const SkillLevelRecord* record = unitdb::SkillLevelAt(static_cast<std::uint32_t>(skill * 3 - 1 + level));
-    if (!record) return kZero;
+    if (!record) return 0.0f;
     return record->Value();
 }
 
@@ -98,21 +96,21 @@ UnitVitals* ServerVitals(CUnit* unit) {
 double EffectScale(CUnit* unit, float k);
 
 double EffectScale(CUnit* unit, float k) {
-    if (!unit) return kOne;
-    float strengthen = static_cast<float>(unit->EffectValue(kEffectStrengthen) * k + kOne);
-    return strengthen / (unit->EffectValue(kEffectWeaken) * k + kOne);
+    if (!unit) return 1.0f;
+    float strengthen = static_cast<float>(unit->EffectValue(kEffectStrengthen) * k + 1.0f);
+    return strengthen / (unit->EffectValue(kEffectWeaken) * k + 1.0f);
 }
 
 float ScaledAtLeastOne(CUnit* unit, float k, float value) {
     double scale = EffectScale(unit, k);
     float scaled = static_cast<float>(scale * value);
-    float one = kOne;
+    float one = 1.0f;
     float s = scaled;
     return SelectLess(one, s, s, one);
 }
 
 float LowestSlotRatio(const UnitStats* stats, int type) {
-    float lowest = kOne;
+    float lowest = 1.0f;
     for (const UnitStatSlot& slot : stats->slots) {
         if (slot.kind == 0 || slot.type != type) continue;
         EI_NAN_AUDIT(slot.current, slot.maximum);
@@ -128,14 +126,14 @@ float RatioFactor(float lowest) {
     EI_NAN_AUDIT(lowest);
     if (lowest <= g_logicSettings.damageLevel2) return g_logicSettings.damageLevel2Value;
     if (lowest <= g_logicSettings.damageLevel1) return g_logicSettings.damageLevel1Value;
-    return kOne;
+    return 1.0f;
 }
 
 void AddPending(UnitStats* stats, double gain) {
     double total = gain + stats->pendingExperience;
     stats->pendingExperience = static_cast<float>(total);
-    if (total > kZero) {
-        stats->pendingExperience = kZero;
+    if (total > 0.0f) {
+        stats->pendingExperience = 0.0f;
         stats->experience = static_cast<float>(total + stats->experience);
     }
 }
@@ -144,13 +142,13 @@ void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
     double curve = ExperienceCurve(&g_logicSettings.hpVal[3], &stats->experience, &g_logicSettings.hpVal[2],
                                    &g_logicSettings.hpVal[4]);
     double scaled = curve * (stats->strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
-    float maxHitPoints = static_cast<float>((LevelValueOf(stats, kSkillHitPoints) * kPercent + kOne) * scaled);
+    float maxHitPoints = static_cast<float>((LevelValueOf(stats, kSkillHitPoints) * kPercent + 1.0f) * scaled);
     float limit = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
     vitals->maxHitPoints = limit;
     curve = ExperienceCurve(&g_logicSettings.mpVal[3], &stats->experience, &g_logicSettings.mpVal[2],
                             &g_logicSettings.mpVal[4]);
     scaled = curve * (stats->dexterity / g_logicSettings.mpVal[0] * g_logicSettings.mpVal[1]);
-    vitals->maxMana = static_cast<float>((LevelValueOf(stats, kSkillMana) * kPercent + kOne) * scaled);
+    vitals->maxMana = static_cast<float>((LevelValueOf(stats, kSkillMana) * kPercent + 1.0f) * scaled);
     stats->ScaleSlotMaxima(limit);
     vitals->hitPoints = static_cast<float>(stats->Reduce(vitals->maxHitPoints));
 }
@@ -173,9 +171,9 @@ bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, C
     int cost = static_cast<int>(libcrt::Ftol(worthNew - worthOld));
     double total = static_cast<double>(cost) + stats->pendingExperience;
     stats->pendingExperience = static_cast<float>(total);
-    if (total > kZero) {
+    if (total > 0.0f) {
         stats->experience = static_cast<float>(total + stats->experience);
-        stats->pendingExperience = kZero;
+        stats->pendingExperience = 0.0f;
         stats->spentExperience = static_cast<float>(total + stats->spentExperience);
     }
     RefreshMaxima(stats, vitals, unit);
@@ -196,7 +194,7 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
     if (inCombat == 0 && mana < maxMana) {
         double regen = manaRegen;
         float raised = static_cast<float>(
-            (LevelValueOf(stats, kSkillManaRegen) * kPercent + kOne) * regen * maxMana + mana);
+            (LevelValueOf(stats, kSkillManaRegen) * kPercent + 1.0f) * regen * maxMana + mana);
         float limit = maxMana;
         float r = raised;
         mana = SelectLess(limit, r, limit, r);
@@ -205,10 +203,10 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
     EI_NAN_AUDIT(hitPoints, maxHitPoints);
     if (hitPoints < maxHitPoints) {
         double regen = hitPointRegen;
-        float rate = static_cast<float>((LevelValueOf(stats, kSkillHitPointRegen) * kPercent + kOne) * regen);
+        float rate = static_cast<float>((LevelValueOf(stats, kSkillHitPointRegen) * kPercent + 1.0f) * regen);
         if (unit) {
             double boost = unit->EffectValue(kEffectRegeneration);
-            if (boost > kZero) rate = static_cast<float>(boost * rate);
+            if (boost > 0.0f) rate = static_cast<float>(boost * rate);
         }
         float scale = maxHitPoints;
         stats->HealSlots(scale, static_cast<float>(scale * rate));
@@ -225,13 +223,13 @@ bool UnitStats::HealSlots(float scale, float amount) {
     // Kept as the game's test: a NaN amount heals nothing. It occurs in every run: LearnSkill's heal (the
     // default NaN) while a new unit's stats are being set up (the NaN audit).
     if (!(magnitude > kMinHeal)) return true;
-    double total = kZero;   // accumulated on the FPU stack
+    double total = 0.0;   // accumulated on the FPU stack
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind > 1) EI_NAN_AUDIT(slot.current, slot.maximum);
         if (slot.kind > 1 && slot.current < slot.maximum) total += slot.factor;
     }
     EI_NAN_AUDIT(total);
-    if (total == kZero) return true;
+    if (total == 0.0f) return true;
     float share = static_cast<float>(amount / (total * scale));
     for (UnitStatSlot& slot : slots) {
         if (slot.kind <= 1 || slot.current >= slot.maximum) continue;
@@ -313,21 +311,21 @@ int UnitStats::MovementState(char checkLoad) {
 double UnitStats::HitPointCurve() {
     double curve = ExperienceCurve(&g_logicSettings.hpVal[3], &experience, &g_logicSettings.hpVal[2], &g_logicSettings.hpVal[4]);
     double scaled = curve * (strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
-    return (LevelValueOf(this, kSkillHitPoints) * kPercent + kOne) * scaled;
+    return (LevelValueOf(this, kSkillHitPoints) * kPercent + 1.0f) * scaled;
 }
 
 double UnitStats::ManaCurve() {
     double curve =
         ExperienceCurve(&g_logicSettings.mpVal[3], &experience, &g_logicSettings.mpVal[2], &g_logicSettings.mpVal[4]);
     double scaled = curve * (dexterity / g_logicSettings.mpVal[0] * g_logicSettings.mpVal[1]);
-    return (LevelValueOf(this, kSkillMana) * kPercent + kOne) * scaled;
+    return (LevelValueOf(this, kSkillMana) * kPercent + 1.0f) * scaled;
 }
 
 double UnitStats::RateValue() {
     float base = dexterity * kPointTwo + kTen;
     float level = static_cast<float>(LevelValueOf(this, kSkillRate));
     float arms = ArmsFactor(1);
-    return (level * kPercentB + kOne) * arms * base;
+    return (level * kPercentB + 1.0f) * arms * base;
 }
 
 float ScaleDamageByEffects(CUnit* unit, float value) { return ScaledAtLeastOne(unit, kDamageEffect, value); }
@@ -349,7 +347,7 @@ void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
     ScaleSlotMaxima(limit);
     double hitPoints = Reduce(vitals->maxHitPoints);
     vitals->hitPoints = static_cast<float>(hitPoints);
-    if (hitPoints > kZero) flags |= 8;
+    if (hitPoints > 0.0f) flags |= 8;
 }
 
 void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
@@ -362,19 +360,19 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
         std::memcpy(&conspicuity[i].current, &conspicuity[i].base, sizeof(float));
     }
 
-    double bonus = kZero;
+    double bonus = 0.0;
     if (const ::SkillLevelRecord* record = SkillLevelRecord(kSkillBodyB0)) {
         double level = RecordValue(record);
         EI_NAN_AUDIT(level);
-        if (level != kZero) bonus = level * perception[1].current * kPercentB;
+        if (level != 0.0f) bonus = level * perception[1].current * kPercentB;
     }
     perception[1].current = static_cast<float>(bonus + perception[1].current);
     const ::SkillLevelRecord* record = SkillLevelRecord(kSkillStat10);
-    strength = static_cast<float>((record ? RecordValue(record) : kZero) + strength);
+    strength = static_cast<float>((record ? RecordValue(record) : 0.0f) + strength);
     record = SkillLevelRecord(kSkillStat18);
-    dexterity = static_cast<float>((record ? RecordValue(record) : kZero) + dexterity);
+    dexterity = static_cast<float>((record ? RecordValue(record) : 0.0f) + dexterity);
     record = SkillLevelRecord(kSkillStat20);
-    intelligence = static_cast<float>((record ? RecordValue(record) : kZero) + intelligence);
+    intelligence = static_cast<float>((record ? RecordValue(record) : 0.0f) + intelligence);
     for (UnitStatPair& protection : vitals->protection) std::memcpy(&protection.current, &protection.base, sizeof(float));
 
     float strongest[kEffectTypes] = {};
@@ -395,13 +393,13 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     perception[2].current = strongest[14] + perception[2].current;
     float lowered = conspicuity[0].current - strongest[15] * kPercentB;
     float l = lowered;
-    conspicuity[0].current = SelectLess(kZero, l, l, kZero);
+    conspicuity[0].current = SelectLess(0.0f, l, l, 0.0f);
     lowered = conspicuity[3].current - strongest[16];
     l = lowered;
-    conspicuity[3].current = SelectLess(kZero, l, l, kZero);
+    conspicuity[3].current = SelectLess(0.0f, l, l, 0.0f);
     lowered = conspicuity[2].current - strongest[17];
     l = lowered;
-    conspicuity[2].current = SelectLess(kZero, l, l, kZero);
+    conspicuity[2].current = SelectLess(0.0f, l, l, 0.0f);
     conspicuity[4].current = strongest[19] + conspicuity[4].current;
     float hasteDelta = strongest[0x21] - strongest[0x22];
 
@@ -409,10 +407,10 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
         double curve =
             ExperienceCurve(&g_logicSettings.hpVal[3], &experience, &g_logicSettings.hpVal[2], &g_logicSettings.hpVal[4]);
         double scaled = curve * (strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
-        vitals->maxHitPoints = static_cast<float>((LevelValueOf(this, kSkillHitPoints) * kPercent + kOne) * scaled);
+        vitals->maxHitPoints = static_cast<float>((LevelValueOf(this, kSkillHitPoints) * kPercent + 1.0f) * scaled);
         curve = ExperienceCurve(&g_logicSettings.mpVal[3], &experience, &g_logicSettings.mpVal[2], &g_logicSettings.mpVal[4]);
         scaled = curve * (dexterity / g_logicSettings.mpVal[0] * g_logicSettings.mpVal[1]);
-        vitals->maxMana = static_cast<float>((LevelValueOf(this, kSkillMana) * kPercent + kOne) * scaled);
+        vitals->maxMana = static_cast<float>((LevelValueOf(this, kSkillMana) * kPercent + 1.0f) * scaled);
     } else {
         std::memcpy(&vitals->maxHitPoints, &fixedMaxHitPoints, sizeof(float));
     }
@@ -432,22 +430,22 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     if (keyed) {
         double scaledStrength = strength * kTwelve;
         std::memcpy(&sightCone, &kKeyedUnknown044, sizeof(float));
-        capacity = static_cast<float>((LevelValueOf(this, kSkillCapacity) * kPercent + kOne) * scaledStrength);
+        capacity = static_cast<float>((LevelValueOf(this, kSkillCapacity) * kPercent + 1.0f) * scaledStrength);
     } else {
         std::memcpy(&capacity, &kNoCapacity, sizeof(float));
     }
     load = static_cast<float>(unit->TotalItemWeight());
     int unusedArg = keyed ? 1 : 0;   // the text-key byte is passed (upper bytes garbage)
-    loadFactor = movementKind == 1 ? LegsFactor(unusedArg) : kOne;
+    loadFactor = movementKind == 1 ? LegsFactor(unusedArg) : 1.0f;
     speed = speedBase * loadFactor;
     float arms = ArmsFactor(unusedArg);
     armsFactor = arms;
     rateBase = keyed ? dexterity * kPointTwo + kTen : kUnkeyedRateBase;
-    double value = (LevelValueOf(this, kSkillRate) * kPercentB + kOne) * arms * rateBase;
+    double value = (LevelValueOf(this, kSkillRate) * kPercentB + 1.0f) * arms * rateBase;
     rate = static_cast<float>(value);
     float hasted = static_cast<float>(value + hasteDelta);
     float h = hasted;
-    rate = SelectLess(kOne, h, h, kOne);
+    rate = SelectLess(1.0f, h, h, 1.0f);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
 }
 
@@ -480,7 +478,7 @@ bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
     float scaled = static_cast<float>(curve * (strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]));
     const ::SkillLevelRecord* record = SkillLevelRecord(kSkillHitPoints);
     float maxHitPoints =
-        static_cast<float>(((record ? RecordValue(record) : kZero) * kPercent + kOne) * scaled);
+        static_cast<float>(((record ? RecordValue(record) : 0.0f) * kPercent + 1.0f) * scaled);
     vitals->maxHitPoints = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
     vitals->maxMana = static_cast<float>(ManaCurve());
     ScaleSlotMaxima(vitals->maxHitPoints);
@@ -500,23 +498,23 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
     double curve = ExperienceCurve(&g_logicSettings.hpVal[3], &experience, &g_logicSettings.hpVal[2], &g_logicSettings.hpVal[4]);
     float scaled = static_cast<float>(curve * (strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]));
     float maxHitPoints =
-        static_cast<float>((SkillLevelValueCopy(kSkillHitPoints) * kPercent + kOne) * scaled);
+        static_cast<float>((SkillLevelValueCopy(kSkillHitPoints) * kPercent + 1.0f) * scaled);
     float boosted = static_cast<float>(HitPointEffectScale(unit) * maxHitPoints);
-    float one = kOne;
+    float one = 1.0f;
     float b = boosted;
     vitals->maxHitPoints = SelectLess(one, b, b, one);
     curve = ExperienceCurve(&g_logicSettings.mpVal[3], &experience, &g_logicSettings.mpVal[2], &g_logicSettings.mpVal[4]);
     scaled = static_cast<float>(curve * (dexterity / g_logicSettings.mpVal[0] * g_logicSettings.mpVal[1]));
     vitals->maxMana =
-        static_cast<float>((SkillLevelValueCopy(kSkillMana) * kPercent + kOne) * scaled);
+        static_cast<float>((SkillLevelValueCopy(kSkillMana) * kPercent + 1.0f) * scaled);
     ScaleSlotMaxima(vitals->maxHitPoints);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     float lowered = unit->baseScale.y - kPointTwo;
     float l = lowered;
-    unit->baseScale.y = SelectLess(kZero, l, l, kZero);
+    unit->baseScale.y = SelectLess(0.0f, l, l, 0.0f);
     lowered = unit->scale.y - kPointTwo;
     l = lowered;
-    unit->scale.y = SelectLess(kZero, l, l, kZero);
+    unit->scale.y = SelectLess(0.0f, l, l, 0.0f);
     unit->MarkChanged(1);
     Recompute(vitals, unit);
     unit->MarkChanged(4);

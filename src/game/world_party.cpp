@@ -28,8 +28,6 @@
 namespace {
 
 // Values read from the exe's memory (rule 9).
-float Half() { return 0.5f; }
-float CellSize() { return 1.0f; }        // the map cell size
 constexpr float kFacingOffset = /*007AFED8*/ 1.5707964f;   // pi / 2
 
 constexpr int kClassQuestItem = 0x14;
@@ -151,9 +149,9 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
 
     // The party arrives at the centre of its entrance's deploy rectangle (the target zone's exit
     // `entrance_`), facing away from the map's centre unless the exit gives a heading.
-    double cell = static_cast<double>(CellSize()) * Half();
-    float centreX = static_cast<float>(aiMap_.cells.width * cell * Half());
-    float centreY = static_cast<float>(aiMap_.cells.height * cell * Half());
+    double cell = 0.5;
+    float centreX = static_cast<float>(aiMap_.cells.width * cell * 0.5f);
+    float centreY = static_cast<float>(aiMap_.cells.height * cell * 0.5f);
     Quaternion rotation;
     std::memcpy(&rotation, &kNewUnitRotation, sizeof(rotation));
     Vector3 start{0.0f, 0.0f, 0.0f};
@@ -163,8 +161,8 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
     int entrance = static_cast<int>(party->entrance_);
     if (zone && entrance >= 0 && entrance < std::ssize(zone->exits)) {
         exit = &zone->exits[entrance];
-        start.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * Half());
-        start.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * Half());
+        start.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * 0.5f);
+        start.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * 0.5f);
         start.z = 0.0f;
         std::memcpy(&startValue, &exit->view, 4);
     }

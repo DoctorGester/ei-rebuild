@@ -50,13 +50,11 @@ constexpr COLORREF kColourText = 0xA7D7E4;
 constexpr COLORREF kColourDim = 0xA0A0A0;
 constexpr COLORREF kColourWaiting = 0x0000FF;   // a binding waiting for its key (red)
 
-float ConstOne() { return 1.0f; }
-float ConstFromStep() { return 50.0f; }   // value = setting * 50
-float ConstToStep() { return 0.02f; }     // setting = value * 0.02
-float ConstScrollFrom() { return 4.0f; } // setting 20's value
-float ConstScrollTo() { return 0.25f; }   // setting 20 from it
-float ConstHalf() { return 0.5f; }       // the slider's centre
-float ConstThumbLift() { return 0.1f; }  // the thumb above the track
+constexpr float kFromStep = 50.0f;   // value = setting * 50
+constexpr float kToStep = 0.02f;     // setting = value * 0.02
+constexpr float kScrollFrom = 4.0f; // setting 20's value
+constexpr float kScrollTo = 0.25f;   // setting 20 from it
+constexpr float kThumbLift = 0.1f;  // the thumb above the track
 constexpr float kQuarterTurn = /*007C8210*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 // Setting 18: help windows (Rebirth's ForceShowTutorial patches its store).
@@ -314,8 +312,8 @@ void COptionsWindow::CommitBinding() {
 void COptionsWindow::LoadSettings() {
     std::memcpy(keyOfScan_, g_keyActions, sizeof(keyOfScan_));
     OptionSetting* s = settings_.data();
-    const double fromStep = ConstFromStep();
-    const float one = ConstOne();
+    const double fromStep = kFromStep;
+    const float one = 1.0f;
     s[0].value_ = options::g_options->audioSfx_;
     s[1].value_ = options::g_options->audioStreaming_;
     s[2].value_ = options::g_options->audioSpeech_;
@@ -331,7 +329,7 @@ void COptionsWindow::LoadSettings() {
     s[23].value_ = sign23 == one ? 0 : 1;
     s[5].value_ = options::g_options->cameraBorderScrollArea_;
     s[6].value_ = options::g_options->cameraFrameSelectionArea_ / 10;
-    s[20].value_ = static_cast<int>(options::g_options->toolTipTime_ * static_cast<double>(ConstScrollFrom()));
+    s[20].value_ = static_cast<int>(options::g_options->toolTipTime_ * static_cast<double>(kScrollFrom));
     s[7].value_ = options::g_options->unitShadow_;
     s[8].value_ = options::g_options->buildingShadow_;
     s[9].value_ = options::g_options->floraShadow_;
@@ -359,8 +357,8 @@ void COptionsWindow::LoadSettings() {
 void COptionsWindow::Apply() {
     std::memcpy(g_keyActions, keyOfScan_, sizeof(keyOfScan_));
     const OptionSetting* s = settings_.data();
-    const double toStep = ConstToStep();
-    const float one = ConstOne();
+    const double toStep = kToStep;
+    const float one = 1.0f;
     options::g_options->audioSfx_ = s[0].value_;
     options::g_options->audioStreaming_ = s[1].value_;
     options::g_options->audioSpeech_ = s[2].value_;
@@ -380,7 +378,7 @@ void COptionsWindow::Apply() {
     options::g_options->cameraFlipY_ = s[23].value_ == 1 ? -1.0f : 1.0f;
     options::g_options->cameraBorderScrollArea_ = s[5].value_;
     options::g_options->cameraFrameSelectionArea_ = s[6].value_ * 10;
-    options::g_options->toolTipTime_ = static_cast<float>(s[20].value_ * static_cast<double>(ConstScrollTo()));
+    options::g_options->toolTipTime_ = static_cast<float>(s[20].value_ * static_cast<double>(kScrollTo));
     options::g_options->unitShadow_ = s[7].value_;
     options::g_options->buildingShadow_ = s[8].value_;
     options::g_options->floraShadow_ = s[9].value_;
@@ -414,12 +412,12 @@ void CUiSlider::SetRect(const RECT* rect) {
     CUiMesh* track = SceneSprite(this, 0);
     track->SetRectangle(depth_, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(rect->right - rect->left - 8), 8, 4, 0x20,
                         0xFC);
-    track->Place(static_cast<float>((rect->right + rect->left) * static_cast<double>(ConstHalf())),
+    track->Place(static_cast<float>((rect->right + rect->left) * 0.5),
                  static_cast<float>(rect->bottom - 5), depth_);
     TurnQuarter(track);
 
     CUiMesh* thumb = SceneSprite(this, 1);
-    thumb->SetRectangle(depth_ - ConstThumbLift(), 100.0f, 0.0f, 0.0f, 10.0f, 30.0f, 0x28, 8, 0x50, 0x78);
+    thumb->SetRectangle(depth_ - kThumbLift, 100.0f, 0.0f, 0.0f, 10.0f, 30.0f, 0x28, 8, 0x50, 0x78);
     TurnQuarter(thumb);
 
     CUiMesh* right = SceneSprite(this, 2);

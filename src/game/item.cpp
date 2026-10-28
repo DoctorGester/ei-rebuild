@@ -11,7 +11,6 @@ using namespace itemdb;
 namespace {
 // The game's global ISAAC generator.
 
-constexpr float kZero = 0.0f;
 
 WeaponRecord* WeaponOf(std::uint32_t packedId) { return WeaponAt(PrototypeIndex(packedId)); }
 MaterialRecordHead* MaterialOf(std::uint32_t packedId) { return MaterialAt(MaterialIndex(packedId)); }
@@ -41,7 +40,7 @@ int CItem::RunTick() {
     EI_NAN_AUDIT(charge_, chargeMax_);
     if (charge_ == chargeMax_) return 0;
     EI_NAN_AUDIT(chargeRate_);
-    if (chargeRate_ <= kZero) {
+    if (chargeRate_ <= 0.0f) {
         std::memcpy(&charge_, &chargeMax_, sizeof(float));
         return 1;
     }
@@ -65,7 +64,7 @@ void CItemWeapon::GetDamageTypes(float* out) {
 
 double CItemWeapon::RollDamage() {
     EI_NAN_AUDIT(damageSpread_);
-    if (damageSpread_ == kZero) return damage_;
+    if (damageSpread_ == 0.0f) return damage_;
     float high = damageSpread_ + damage_;   // stored as float
     float low = damage_;                     // read back from memory for the subtraction and the add
     std::uint32_t roll = g_random.Next();
@@ -138,7 +137,7 @@ int WeaponDamageType(std::uint32_t packedId) {
     for (int i = 0; i < 7; ++i) {
         // Stop at the first weight not equal to zero.
         EI_NAN_AUDIT(weapon->damageTypes[i]);
-        if (weapon->damageTypes[i] != kZero) return i;
+        if (weapon->damageTypes[i] != 0.0f) return i;
     }
     return 6;
 }

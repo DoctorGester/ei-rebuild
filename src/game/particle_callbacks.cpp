@@ -3299,7 +3299,7 @@ int CParticleSource::EmitVisionStar(Particle* p, int) {
         p->velocity.y = static_cast<float>(x87::fsin(angle));
         SetBits(&p->velocity.z, 0);
     }
-    double half = D(0.5f);
+    double half = 0.5;
     p->velocity.x = static_cast<float>(D(p->velocity.x) * half);
     p->velocity.y = static_cast<float>(D(p->velocity.y) * half);
     p->velocity.z = static_cast<float>(D(p->velocity.z) * half);
@@ -3554,7 +3554,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
     float* kept = &p->aux2;
     if (attachedTo) {
         radius = D(attachedTo->bounds.radius) *
-                 D(0.5f);
+                 0.5;
         *kept = static_cast<float>(radius);
     } else {
         radius = D(*kept);
@@ -3573,7 +3573,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
     float nx = static_cast<float>(cx + D(origin.x));
     float ny = static_cast<float>(D(sy) + D(origin.y));
     double nz = D(sz) + D(origin.z);
-    double z = radius * D(0.5f) + nz;
+    double z = radius * 0.5 + nz;
     SetBits(&p->size, 0x3F800000);
     p->drift.x = static_cast<float>(D(nx) - D(p->pos.x));
     p->pos.x = nx;
@@ -3724,7 +3724,7 @@ int CParticleSource::EmitTeleport(Particle* p, int) {
     float magnitude;
     SetBits(&magnitude, Bits(&size) & 0x7FFFFFFFu);
     double t = Unsigned(Next()) * EI_P_SCALE_1;
-    float spread = static_cast<float>((t + D(EI_P_ONE)) * t * D(0.5f));
+    float spread = static_cast<float>((t + D(EI_P_ONE)) * t * 0.5);
     double angle = Unsigned(Next()) * 1.4629214509862508e-9;    // 2 pi * 2^-32
     double reach = D(magnitude) * D(spread);
     float sx = static_cast<float>(x87::fsin(angle) * reach);
@@ -3735,7 +3735,7 @@ int CParticleSource::EmitTeleport(Particle* p, int) {
     SetBits(&p->size, 0);
     p->pos.z = static_cast<float>((Unsigned(Next()) * 4.656612943550534e-11 - D(0.4f)) * D(magnitude) +
                      D(p->pos.z));    // [-0.4, -0.2) * |size|
-    p->aux0 = static_cast<float>((D(2.0f) - D(spread)) * D(0.2f));    // (2 - spread) / 5
+    p->aux0 = static_cast<float>((2.0 - D(spread)) * D(0.2f));    // (2 - spread) / 5
     if (Unsigned(Next()) * EI_P_SCALE_1 > D(spread)) {
         p->frame = static_cast<int>(Next() % 12) + 4;
     } else {

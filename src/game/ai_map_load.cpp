@@ -257,7 +257,6 @@ void ResizeGrid(SearchGrid<T>& grid, int width, int height, void(*allocate)(Sear
 // The grids of plain bytes (the marks; the water depths' is the same code inline) are left as allocated.
 void AllocateBytes(SearchGrid<std::int8_t>* grid) { AllocateGrid(*grid); }
 
-constexpr float kHalf = 0.5f;
 constexpr float kQuarter = 0.25f;
 
 // The heights follow the original's x87 sequence value by value: a float below is one it stores, a double one
@@ -287,11 +286,11 @@ SquareHeights LandHeights(const SectorFileVertex* vertex, float maxZ) {
     const double first = VertexHeight(vertex[0], maxZ);
     const float sides = static_cast<float>((below + next) * kQuarter);
     SquareHeights heights;
-    heights.cell[0] = static_cast<float>(first * kHalf + sides);
+    heights.cell[0] = static_cast<float>(first * 0.5f + sides);
     const double diagonal = (first + opposite) * kQuarter;
-    heights.cell[1] = static_cast<float>(next * kHalf + diagonal);
-    heights.cell[2] = static_cast<float>(below * kHalf + diagonal);
-    heights.cell[3] = static_cast<float>(opposite * kHalf + sides);
+    heights.cell[1] = static_cast<float>(next * 0.5f + diagonal);
+    heights.cell[2] = static_cast<float>(below * 0.5f + diagonal);
+    heights.cell[3] = static_cast<float>(opposite * 0.5f + sides);
     return heights;
 }
 
@@ -304,11 +303,11 @@ SquareHeights WaterDepths(const SectorFileVertex* vertex, float maxZ, const Squa
     const float opposite = static_cast<float>(VertexHeight(vertex[kVertexRow + 1], maxZ));
     const double first = VertexHeight(vertex[0], maxZ);
     const float sides = static_cast<float>((below + next) * kQuarter);
-    const float surface0 = static_cast<float>(first * kHalf + sides);
+    const float surface0 = static_cast<float>(first * 0.5f + sides);
     const double diagonal = (first + opposite) * kQuarter;
-    const float surface1 = static_cast<float>(next * kHalf + diagonal);
-    const double surface2 = below * kHalf + diagonal;
-    const float surface3 = static_cast<float>(opposite * kHalf + sides);
+    const float surface1 = static_cast<float>(next * 0.5f + diagonal);
+    const double surface2 = below * 0.5f + diagonal;
+    const float surface3 = static_cast<float>(opposite * 0.5f + sides);
     SquareHeights depths;
     depths.cell[0] = static_cast<float>(surface0 - land.cell[0]);
     depths.cell[1] = static_cast<float>(surface1 - land.cell[1]);

@@ -112,14 +112,14 @@ float LandscapeDrawRadius() {
 void VectorClear(std::vector<CMapObject*>* v) { v->clear(); }
 
 // The object margin around the camera when collecting what to draw (100.0).
-float ObjectsDrawMargin() { return 100.0f; }
+constexpr float kObjectsDrawMargin = 100.0f;
 float ObjectsDrawRadius() {
     static const float setting = StarterDrawRadius("ObjectsDrawRadius");
-    return ei::rebirth::Enabled(ei::rebirth::Patch::ObjectsDrawRadius) ? setting : ObjectsDrawMargin();
+    return ei::rebirth::Enabled(ei::rebirth::Patch::ObjectsDrawRadius) ? setting : kObjectsDrawMargin;
 }
-float MapEdgeMargin() { return 1.0f; }
+constexpr float kMapEdgeMargin = 1.0f;
 // The length of the shadows' projection along the camera's Z axis.
-float ShadowLength() { return (-0.02f); }
+constexpr float kShadowLength = -0.02f;
 // The light effect settings (the blood print, footprint and scorch mark lists) and the game mode (1
 // single player).
 int LightEffectsSetting(const int& setting) { return setting; }
@@ -371,7 +371,7 @@ int CWorldClient::DrawPass() {
     // The sectors around the camera: the position widened by the margin, clamped to the map
     // (size - 1) and to 0, in 16-unit sectors.
     const float margin = ObjectsDrawRadius();
-    const float edge = MapEdgeMargin();
+    const float edge = kMapEdgeMargin;
     terrain = terrain_;
     float yHi = SelectLess(AddRounded(position[1], margin), SubRounded(terrain->height, edge));
     float xMax = SubRounded(terrain_->width, edge);
@@ -476,7 +476,7 @@ int CWorldClient::DrawPass() {
         matrix.m[0] = 1.0f;
         Vector3 sun;
         g_camera->localRotation_.AxisZ(&sun);
-        const float scale = ShadowLength();
+        const float scale = kShadowLength;
         float product = sun.x * scale;
         matrix.m[3] = product;
         product = sun.y * scale;

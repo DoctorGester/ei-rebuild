@@ -20,11 +20,11 @@
 
 namespace {
 
-float Pi() { return 3.1415927f; }
+constexpr float kPi = 3.1415927f;
 // A texel as a texture offset: 1 / 256.
-float TexelStep() { return 0.00390625f; }
+constexpr float kTexelStep = 0.00390625f;
 // The layout y the columns' bottom button sits at (490).
-float ColumnBottom() { return 490.0f; }
+constexpr float kColumnBottom = 490.0f;
 
 constexpr std::uint32_t kPlainFlag = 0x100;        // CUiMesh::flags_: drawn in flatColour_
 constexpr std::uint32_t kWhite = 0xFFFFFFFF;
@@ -58,8 +58,8 @@ struct IconPlace {
 IconPlace IconAt(int n, int firstColumn) { return {firstColumn + (n / 4) * kIconSize, (n % 4) * kIconSize}; }
 
 void SetOffsets(CUiMesh* sprite, int x, int bottom) {
-    sprite->textureOffsetU_ = static_cast<float>(x) * TexelStep();
-    sprite->textureOffsetV_ = static_cast<float>(bottom) * TexelStep();
+    sprite->textureOffsetU_ = static_cast<float>(x) * kTexelStep;
+    sprite->textureOffsetV_ = static_cast<float>(bottom) * kTexelStep;
 }
 
 void MakePlain(CUiMesh* sprite) {
@@ -150,10 +150,10 @@ void CHudWeaponBar::AddWeapon(std::string_view model, std::string_view image) {
     if (sprite) {
         // Turned about z, then y, then z again: pi * -0.05, pi * -1/3 and pi * 0.75.
         Quaternion first, second, third;
-        first.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * (-0.05f));
-        second.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, Pi() * (-0.33333334f));
+        first.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi * (-0.05f));
+        second.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, kPi * (-0.33333334f));
         Quaternion both = ProductFirst(first, second);
-        third.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * 0.75f);
+        third.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi * 0.75f);
         sprite->localRotation_ = ProductSecond(both, third);
     } else {
         sprite = AddBlankSprite();
@@ -203,7 +203,7 @@ void CHudQuickItems::AddItem(std::string_view model, std::string_view image) {
     CUiMesh* sprite = AddSprite(model);
     if (sprite) {
         Quaternion turn;
-        sprite->localRotation_ = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, Pi());
+        sprite->localRotation_ = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kPi);
     } else {
         sprite = AddBlankSprite();
         const float shift = static_cast<float>(widescreen::EdgeShift());   // WideScreen
@@ -237,7 +237,7 @@ void CHudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
     }
     AddRegion()->SetRect(760, 470, 800, 510);
     for (int i = 0; i < std::ssize(sceneObjects_); ++i) {
-        float y = ColumnBottom() - static_cast<float>((count_ - i) * kStep);
+        float y = kColumnBottom - static_cast<float>((count_ - i) * kStep);
         Sprite(this, i)->Place(780.0f, y, 40.0f);
     }
     const IconPlace at = IconAt(count_, 0x80);
@@ -245,7 +245,7 @@ void CHudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
     CUiMesh* sprite = AddSprite(model);
     SetOffsets(sprite, at.x, at.y + kIconSize);
     Quaternion turn;
-    sprite->localRotation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi());
+    sprite->localRotation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
     sprite->Place(780.0f, 490.0f, 40.0f);
     MakePlain(sprite);
     int index = count_;
@@ -283,8 +283,8 @@ void CHudActionColumn::AddAction(std::string_view model, std::string_view image,
     CUiMesh* sprite = AddSprite(model);
     SetOffsets(sprite, at.x, at.y + kIconSize);
     Quaternion turn;
-    sprite->localRotation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi());
-    float y = ColumnBottom() - static_cast<float>(count_ * kStep);
+    sprite->localRotation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
+    float y = kColumnBottom - static_cast<float>(count_ * kStep);
     sprite->Place(20.0f - static_cast<float>(widescreen::EdgeShift()), y, 40.0f);   // WideScreen
     MakePlain(sprite);
     int place = std::ssize(actions_);

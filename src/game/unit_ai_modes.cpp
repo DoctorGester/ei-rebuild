@@ -23,7 +23,6 @@
 namespace {
 constexpr int kPriority = 50;
 constexpr int kNoPriority = -1000;
-constexpr float kZero = 0.0f;
 // (a double, 0.4 / 2^32) (0.8f): the new alertness decay.
 constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull);
 constexpr float kDecayBase = std::bit_cast<float>(0x3F4CCCCDu);
@@ -58,7 +57,6 @@ void WriteCopy(CStream* stream, const T& value, unsigned size = sizeof(T)) {
 constexpr float kMoveTime = 1000000.0f;
 constexpr float kNearX = 35.0f;
 constexpr float kNearY = 80.0f;
-constexpr float kHalf = 0.5f;
 constexpr float kNoWander = -1.0f;
 constexpr float kStandRadius = 5.0f;
 constexpr float kArrivedSq = std::bit_cast<float>(0x3E4CCCCDu);         // (0.2)
@@ -148,11 +146,11 @@ void AIActionMode::Enter(AIBrain* brain) {
 void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
     std::memcpy(&point, p, sizeof(Vector3));
     failures = 0;
-    if (newRadius >= kZero)
+    if (newRadius >= 0.0f)
         std::memcpy(&radius, &newRadius, 4);
     else
         std::memcpy(&radius, &g_logicSettings.guardRadius, 4);
-    if (newWander >= kZero)
+    if (newWander >= 0.0f)
         std::memcpy(&wander, &newWander, 4);
     else
         std::memcpy(&wander, &g_logicSettings.guardStayTime, 4);
@@ -187,8 +185,8 @@ void GuardMode::Execute(AIBrain* brain) {
     direction.z = dz;
     // A radius of 0 leaves the direction unscaled.
     EI_NAN_AUDIT(radius);
-    if (radius != kZero) {
-        double scale = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz)) / radius * kHalf;
+    if (radius != 0.0f) {
+        double scale = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz)) / radius * 0.5f;
         direction.x = static_cast<float>(dx * scale);
         direction.y = static_cast<float>(direction.y * scale);
         direction.z = static_cast<float>(direction.z * scale);

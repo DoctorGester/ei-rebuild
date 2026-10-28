@@ -24,9 +24,6 @@
 // locals.
 
 namespace {
-constexpr float kZero = 0.0f;
-constexpr float kHalf = 0.5f;
-constexpr float kOne = 1.0f;
 constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0.1
 constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0.3
 constexpr float kMinusPointThree = std::bit_cast<float>(0xBE99999Au); // -0.3
@@ -121,7 +118,7 @@ bool SomeoneInTheWay(CUnitServer* self, const AIOrder* order, const float* point
     float side = static_cast<float>(std::sqrt(negX * negX + static_cast<double>(uy) * uy));
     float vx = static_cast<float>(uy / side);
     float vy = static_cast<float>(negX / side);
-    float vz = static_cast<float>(kZero / side);
+    float vz = static_cast<float>(0.0f / side);
 
     // The units the brain lists as nearby.
     for (auto node = self->brain.memory.nearby.begin(); node != self->brain.memory.nearby.end();) {
@@ -203,7 +200,7 @@ bool CUnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
         }
         std::memcpy(&out->point, &order->point, sizeof(out->point));
         out->point.z = static_cast<float>(
-            world->SurfaceHeightAt(out->point.x, out->point.y) + kOne);
+            world->SurfaceHeightAt(out->point.x, out->point.y) + 1.0f);
         out->eyeHeight = static_cast<float>(unit->BaseSpeed());
         return true;
     }
@@ -343,12 +340,12 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
         if (inFront) {
             // Within reach and in front: the target may walk off for half the turn and the action.
             int wait = ticks / 2 + duration;
-            double outer = speed * (static_cast<double>(wait) * (static_cast<double>(kOne) * kHalf));
+            double outer = speed * (static_cast<double>(wait) * 0.5f);
             outer = outer + range;
-            outer = outer + kHalf;
+            outer = outer + 0.5f;
             outerSq = static_cast<float>(outer * outer);
         } else {
-            double outer = static_cast<double>(range) + kHalf;
+            double outer = static_cast<double>(range) + 0.5f;
             outerSq = static_cast<float>(outer * outer);
             if (targetUnit->IsLargeUnit()) predict = true;   // the planner's "moving"
         }
@@ -360,7 +357,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             if (OrderSpell(this, order->source, &missile) && missile &&
                 (missile->targetFlags_ & kSpellNoTarget)) {
                 float flight = missile->speed_;
-                if (Greater(flight, kZero)) castDelay = CastDelayTicks(distanceSq, flight);
+                if (Greater(flight, 0.0f)) castDelay = CastDelayTicks(distanceSq, flight);
             }
         }
     }

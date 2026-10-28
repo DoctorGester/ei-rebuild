@@ -320,7 +320,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    float distance;                 // how near danger counts (10, FearDefaultDistance)
+    float distance;                 // how near danger counts (10, kFearDefaultDistance)
     float spread;                   // random spread of a flight point (3)
     Vector3 shelter;                // the last place with a kind 3 occluder (x = -1313: unset)
     Vector3 fleePoint;              // a checked flight point (z 1.0 while pending, else 0)
@@ -331,7 +331,7 @@ private:
     void Init(std::uint8_t flag);
 };
 // A new Fear mode's distance, which `distance` returns to.
-inline float FearDefaultDistance() { return 10.0f; }
+inline constexpr float kFearDefaultDistance = 10.0f;
 
 // Player: the party's units.
 class PlayerMode : public AIActionMode {

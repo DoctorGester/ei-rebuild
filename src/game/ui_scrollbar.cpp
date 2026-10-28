@@ -11,8 +11,8 @@ namespace {
 constexpr int kTextureKind = 3;
 
 // The thumb sits slightly in front of the track (0.1) and 5 to the right of the track's left edge.
-float ThumbLift() { return 0.1f; }
-float ThumbInset() { return 5.0f; }
+constexpr float kThumbLift = 0.1f;
+constexpr float kThumbInset = 5.0f;
 
 enum Sprite { kTrack, kThumb, kUpArrow, kDownArrow };
 enum Region { kUpRegion, kDownRegion, kTrackRegion };
@@ -28,7 +28,7 @@ constexpr int kSliderThumbHeight = 10;
 // to int gives 0x80000000).
 int Truncate(double value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 // The wheel's step per unit of delta: 1/120.
-float WheelStep() { return 0.008333334f; }
+constexpr float kWheelStep = 0.008333334f;
 
 } // namespace
 
@@ -61,8 +61,8 @@ void CUiScrollbar::SetPosition(int position) {
     // half, 0, where a C++ cast would give 0x80000000.
     int offset = maximum == 0 ? 0
                               : static_cast<int>(static_cast<double>((track_.bottom - track_.top) * position) / maximum);
-    Sprite(this, kThumb)->Place(static_cast<float>(track_.left + static_cast<double>(ThumbInset())),
-                                static_cast<float>(static_cast<double>(offset) + track_.top), depth_ - ThumbLift());
+    Sprite(this, kThumb)->Place(static_cast<float>(track_.left + static_cast<double>(kThumbInset)),
+                                static_cast<float>(static_cast<double>(offset) + track_.top), depth_ - kThumbLift);
     thumb_.left = track_.left;
     thumb_.right = track_.left + 10;
     int centre = track_.top + offset;
@@ -81,7 +81,7 @@ void CUiScrollbar::SetRect(const RECT* rect) {
     // addresses).
     Sprite(this, kTrack)->SetRectangle(depth_, 100.0f, AsFloat(rect->right - 8), AsFloat(rect->top + 4),
                                        AsFloat(rect->right - 2), AsFloat(rect->bottom - 4), 8, 4, 0x20, 0xFC);
-    Sprite(this, kThumb)->SetRectangle(depth_ - ThumbLift(), 100.0f, AsFloat(rect->right - 10), AsFloat(rect->top),
+    Sprite(this, kThumb)->SetRectangle(depth_ - kThumbLift, 100.0f, AsFloat(rect->right - 10), AsFloat(rect->top),
                                        AsFloat(rect->right), AsFloat(rect->top + 0x1C), 0x28, 8, 0x50, 0x78);
     Sprite(this, kUpArrow)->SetRectangle(depth_, 100.0f, AsFloat(rect->right - 10), AsFloat(rect->top),
                                          AsFloat(rect->right), AsFloat(rect->top + 0xC), 0x28, 0xB0, 0x50, 0x80);
@@ -111,7 +111,7 @@ void CUiScrollbar::OnMouseMove(int, int x, int y) {
 
 int CUiScrollbar::OnWheel(int, int delta, int x, int y) {
     if (RegionAt(x, y) == kTrackRegion) {
-        double step = static_cast<double>(static_cast<short>(delta)) * speed_ * WheelStep();
+        double step = static_cast<double>(static_cast<short>(delta)) * speed_ * kWheelStep;
         accumulated_ = static_cast<float>(accumulated_ - step);
         handled_ = true;
     }
@@ -128,7 +128,7 @@ void CUiSlider::SetPosition(int position) {
     // Truncated by _ftol (a zero maximum: 0 / 0, which _ftol makes 0).
     int offset = Truncate(static_cast<double>((track_.right - track_.left) * position) / maximum);
     Sprite(this, kThumb)->Place(static_cast<float>(track_.left + offset),
-                                static_cast<float>(track_.top + static_cast<double>(ThumbInset())), depth_ - ThumbLift());
+                                static_cast<float>(track_.top + static_cast<double>(kThumbInset)), depth_ - kThumbLift);
     thumb_.top = track_.top;
     thumb_.bottom = track_.top + kSliderThumbHeight;
     int centre = track_.left + offset;

@@ -13,11 +13,8 @@
 
 namespace {
 
-float One() { return 1.0f; }
-float Half() { return 0.5f; }
-float SmoothingWeight() { return 0.3f; }   // 0.3: the share of the sample's own value
-float SampleShare() { return 0.0078125f; }       // 1 / 128
-float Zero() { return 0.0f; }
+constexpr float kSmoothingWeight = 0.3f;   // 0.3: the share of the sample's own value
+constexpr float kSampleShare = 0.0078125f;       // 1 / 128
 
 constexpr int kRandCentre = 0x3FFF;   // rand() gives 0..0x7FFF
 constexpr int kShift = 20;            // the samples dropped from the front after smoothing
@@ -33,8 +30,8 @@ WeatherNoiseCurve g_swayXByHeight = /*007AE398*/ {};
 void WeatherNoiseCurve::Build(float amplitude) {
     for (float& sample : samples) sample = static_cast<float>(libcrt::Rand() - kRandCentre);
 
-    const double weight = SmoothingWeight();
-    const double keep = static_cast<double>(One()) - weight;
+    const double weight = kSmoothingWeight;
+    const double keep = 1.0 - weight;
     for (int i = 1; i < kSamples; ++i) samples[i] = static_cast<float>(keep * samples[i - 1] + weight * samples[i]);
     // Backwards from the last sample to the third. The last one's neighbour is the float after the
     // samples, the first segment's value.
@@ -44,12 +41,12 @@ void WeatherNoiseCurve::Build(float amplitude) {
     }
     std::memmove(samples, samples + kShift, (kSamples - kShift) * sizeof(float));
 
-    double squares = Zero();
+    double squares = 0.0;
     for (const float sample : samples) squares += static_cast<double>(sample) * sample;
-    const double scale = amplitude / std::sqrt(squares * SampleShare());
+    const double scale = amplitude / std::sqrt(squares * kSampleShare);
     for (float& sample : samples) sample = static_cast<float>(scale * sample);
 
-    const double half = Half();
+    const double half = 0.5;
     for (int i = 0; i < kSamples - 1; ++i) {
         const double slopeIn = i == 0 ? static_cast<double>(samples[1]) - samples[0]
                                       : (static_cast<double>(samples[i + 1]) - samples[i - 1]) * half;

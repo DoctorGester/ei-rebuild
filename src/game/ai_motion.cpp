@@ -43,7 +43,7 @@ const volatile float kZero = 0.0f;
 const volatile float kOne = 1.0f;
 
 constexpr float kPi = 3.14159274f;
-constexpr double kHalfCellScale = 2.0;      // 1 / (cell size 1.0 * 0.5)
+constexpr double kHalfCellScale = 2.0;      // 1 / (half a cell)
 constexpr float kSpeedUnit = 0.001953125f;  // 1/512
 constexpr float kMinLength = 9.99999975e-06f;
 
@@ -193,7 +193,7 @@ int PathOrder::SetStepSpeeds(std::uint16_t speed) {
 
 Vector3* PathOrder::Destination(Vector3* out) {
     const MotionOrder* order = OrderOf(this);
-    double scale = 1.0f * 0.5f;     // cell size * 0.5
+    double scale = 0.5;     // half a cell
     if (order->kind != 2) {
         out->x = static_cast<float>(scale * order->x);
         out->z = 0.0f;

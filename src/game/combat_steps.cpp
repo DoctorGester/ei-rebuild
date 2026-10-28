@@ -19,8 +19,6 @@
 #include <cstring>
 
 namespace {
-constexpr float kZero = 0.0f;
-constexpr float kOne = 1.0f;
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
 constexpr float kHundred = 100.0f;
 constexpr float kLowerPart = std::bit_cast<float>(0x3ECCCCCDu);     // 0.4
@@ -475,7 +473,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
         CMapObject* other = order.target;
         float span = static_cast<float>(static_cast<double>(other->Radius()) + myRadius);
         if (CUnit* otherUnit = UnitOrNull(other)) {
-            double scale = (static_cast<double>(std::bit_cast<float>(stats.reachHeightScale)) + kOne) * myRadius;
+            double scale = (static_cast<double>(std::bit_cast<float>(stats.reachHeightScale)) + 1.0f) * myRadius;
             span = static_cast<float>(static_cast<double>(otherUnit->standingHeight) + scale);
         }
         key = static_cast<double>(span) - kReachSlack > distance ? kKeyNonHeroLow : kKeyNonHeroHigh;

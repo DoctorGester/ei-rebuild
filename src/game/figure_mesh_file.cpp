@@ -27,7 +27,6 @@ int ReadCount(lib::File* file) {
 
 // The original's out-of-line Vector3 helpers (the out pointer first).
 
-float One() { return 1.0f; }
 
 } // namespace
 
@@ -166,15 +165,15 @@ void CFigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset)
     float yz = static_cast<float>(static_cast<double>(z2) * qy);
     double zz = static_cast<double>(z2) * qz;
     float zzStored = static_cast<float>(zz);
-    m[0] = static_cast<float>(One() - (zz + yy));
+    m[0] = static_cast<float>(1.0f - (zz + yy));
     m[4] = static_cast<float>(xy - wz);
     m[8] = static_cast<float>(static_cast<double>(wy) + xz);
     m[1] = static_cast<float>(xy + wz);
-    m[5] = static_cast<float>(One() - (static_cast<double>(zzStored) + xx));
+    m[5] = static_cast<float>(1.0f - (static_cast<double>(zzStored) + xx));
     m[9] = static_cast<float>(static_cast<double>(yz) - wx);
     m[2] = static_cast<float>(static_cast<double>(xz) - wy);
     m[6] = static_cast<float>(static_cast<double>(yz) + wx);
-    m[10] = static_cast<float>(One() - (static_cast<double>(yy) + xx));
+    m[10] = static_cast<float>(1.0f - (static_cast<double>(yy) + xx));
     std::memcpy(&m[12], &moved[0], sizeof(float));
     std::memcpy(&m[13], &moved[1], sizeof(float));
     std::memcpy(&m[14], &moved[2], sizeof(float));

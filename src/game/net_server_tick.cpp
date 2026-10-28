@@ -30,7 +30,7 @@ void CountDown(List& list, float dt) {
         float left = seconds - dt;
         seconds = left;
         EI_NAN_AUDIT(left);
-        if (left < worlddata::Zero()) list.erase(current);
+        if (left < 0.0f) list.erase(current);
     }
 }
 
@@ -48,7 +48,7 @@ void ServerSession::Tick(double dt) {
     if (!public_) return;
     announceTimer_ = static_cast<float>(announceTimer_ - dt);
     EI_NAN_AUDIT(announceTimer_);
-    if (announceTimer_ < worlddata::Zero()) {   // run out
+    if (announceTimer_ < 0.0f) {   // run out
         std::memcpy(&announceTimer_, &worlddata::AnnouncePeriodRef(), 4);
         const char* host = MasterHost();
         if (std::strcmp(host, game::kEmptyText) != 0) AnnounceToMaster();

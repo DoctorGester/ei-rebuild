@@ -62,7 +62,7 @@ constexpr int kClassQuestItem = 0x14;
 
 const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
 const char* MoviesFolder() { return "Movies\\"; }
-float ColourScale() { return 0.003921569f; }
+constexpr float kColourScale = 0.003921569f;
 
 
 bool ServerActive() {
@@ -488,7 +488,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x1F: {   // SetBackGroundColor(r, g, b): 0..255 scaled by 1/255
-            const float scale = ColourScale();
+            const float scale = kColourScale;
             float b = f[2] * scale;
             float g = f[1] * scale;
             float r = f[0] * scale;

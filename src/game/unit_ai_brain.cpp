@@ -28,7 +28,7 @@
 namespace {
 constexpr float kNearPointCleared = 100000.0f;
 
-float InitialCallRadius() { return 10.0f; }
+constexpr float kInitialCallRadius = 10.0f;
 // A new fear mode's distance (copied bit for bit).
 std::uint32_t FearDistanceBits() { return 0x41200000u; }
 
@@ -197,7 +197,7 @@ void AIBrain::Init() {
     actionTime = kNoTime;
     memory.seesEnemy = 0;
     alarmRecords.clear();
-    callRadius = InitialCallRadius();
+    callRadius = kInitialCallRadius;
     position = Vector3{0.0f, 0.0f, 0.0f};
     alertMode = 0;
     alwaysUpdated = 0;

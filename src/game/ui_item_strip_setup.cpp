@@ -26,10 +26,8 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
 }
 
 // Layout constants of the strips (the exe's floats).
-constexpr float kZero = 0.0f;
 constexpr float kCell = 100.0f;
 constexpr float kHalfCell = 50.0f;
-constexpr float kOne = 1.0f;
 constexpr float kFrameDepth = 0.9f;
 constexpr float kFaceDepth = 1.5f;
 constexpr float kSlotsPerPixel = 0.01f;
@@ -74,11 +72,11 @@ BOOL CFigureStrip::Draw(CSceneRenderer* pass) {
     const float position = position_[tab_];
     const int first = static_cast<int>(position);   // _ftol
     const float frac = static_cast<float>(position - static_cast<float>(first));
-    Sprite(*this, 0)->textureOffsetU_ = position_[tab_] > kZero ? std::bit_cast<float>(kDimmed) : 0.0f;
+    Sprite(*this, 0)->textureOffsetU_ = position_[tab_] > 0.0f ? std::bit_cast<float>(kDimmed) : 0.0f;
     Sprite(*this, 1)->textureOffsetU_ = static_cast<float>(count_ - 7) > position_[tab_] ? std::bit_cast<float>(kDimmed) : 0.0f;
     Sprite(*this, 9)->Place(kHalfCell - frac * kCell, static_cast<float>(top_), scale_ + scale_);
     for (int i = 0; i < 8; ++i) {
-        Sprite(*this, 10 + i)->Place(((static_cast<float>(i) - frac) + kOne) * kCell, static_cast<float>(top_) + kHalfCell,
+        Sprite(*this, 10 + i)->Place(((static_cast<float>(i) - frac) + 1.0f) * kCell, static_cast<float>(top_) + kHalfCell,
                                       scale_);
     }
     Sprite(*this, 8)->visible_ = 0;
@@ -86,7 +84,7 @@ BOOL CFigureStrip::Draw(CSceneRenderer* pass) {
         int cell = selected_ - first;
         if (cell >= 0 && cell < 8) {
             Sprite(*this, 8)->visible_ = 1;
-            Sprite(*this, 8)->Place(((static_cast<float>(cell) - frac) + kOne) * kCell,
+            Sprite(*this, 8)->Place(((static_cast<float>(cell) - frac) + 1.0f) * kCell,
                                      static_cast<float>(top_) + kHalfCell, scale_ * kFrameDepth);
         }
     }
@@ -98,7 +96,7 @@ BOOL CFigureStrip::Draw(CSceneRenderer* pass) {
         name = figures_->begin()[index];
         HeroFaceCell cell;
         cell.prototype = name.c_str();
-        cell.x = ((static_cast<float>(i) - frac) + kOne) * kCell;
+        cell.x = ((static_cast<float>(i) - frac) + 1.0f) * kCell;
         cell.y = static_cast<float>(top_) + kHalfCell;
         cell.depth = scale_ * kFaceDepth;
         cell.size = kCell;

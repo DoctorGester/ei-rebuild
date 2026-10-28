@@ -46,7 +46,7 @@ double WorldDayTime(CWorld* a0) { return a0->NightLevel(); }
 // unit outside the group, else from the current one.
 double ShownSpeed(CUnit* unit, int outsideGroup) {
     const double speed = outsideGroup ? unit->MoveSpeedFor(3) : unit->MoveSpeed2();
-    return static_cast<double>(1.0f) * speed * 7.5f;
+    return speed * 7.5f;
 }
 
 struct Panel {

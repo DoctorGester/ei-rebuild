@@ -66,8 +66,6 @@ constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
 constexpr float kRed = std::bit_cast<float>(0x3E99999Au);     // 0.3
 constexpr float kGreen = std::bit_cast<float>(0x3F19999Au);   // 0.6
 constexpr float kBlue = std::bit_cast<float>(0x3DCCCCCDu);    // 0.1
-constexpr float kOne = 1.0f;
-constexpr double kOneDouble = 1.0;
 constexpr float kStrongFactor = 10.0f;
 constexpr float kTiltSlope = std::bit_cast<float>(0xBEBA5A47u);  // -tan(20 degrees)
 constexpr float kFarSquared = 1e10f;
@@ -103,7 +101,7 @@ bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
     double dz = static_cast<double>(at.z) - from.z;
     float distanceSquared = static_cast<float>(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
     if (distanceSquared >= light->rangeSquared_) return false;   // NaN counts as in range
-    double falloff = kOne - static_cast<double>(light->inverseRangeSquared_) * distanceSquared;
+    double falloff = 1.0f - static_cast<double>(light->inverseRangeSquared_) * distanceSquared;
     float intensity = static_cast<float>(Brightness(light) * falloff);
     Vector3 towards = {static_cast<float>(static_cast<double>(at.x) - from.x),
                        static_cast<float>(static_cast<double>(at.y) - from.y),
@@ -112,7 +110,7 @@ bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
     if (distanceSquared == 0.0f) {
         towards = kDefaultLight;
     } else {
-        double inverse = kOneDouble / std::sqrt(distanceSquared);
+        double inverse = 1.0 / std::sqrt(distanceSquared);
         towards.x = static_cast<float>(towards.x * inverse);
         towards.y = static_cast<float>(towards.y * inverse);
         towards.z = static_cast<float>(towards.z * inverse);
@@ -139,7 +137,7 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
     std::memcpy(direction, &sum, 12);
     EI_NAN_AUDIT(lengthSquared);
     if (lengthSquared != 0.0) {
-        double inverse = kOneDouble / std::sqrt(lengthSquared);
+        double inverse = 1.0 / std::sqrt(lengthSquared);
         direction->x = static_cast<float>(sum.x * inverse);
         direction->y = static_cast<float>(inverse * direction->y);
         direction->z = static_cast<float>(inverse * direction->z);
@@ -150,7 +148,7 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
     double minimum = g_pi * g_perDegree * g_minimumTilt;
     if (elevation >= minimum) return;   // NaN tilts
     double z = static_cast<double>(horizontal) * kTiltSlope;
-    double inverse = kOne / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(direction->x, direction->y, z));
+    double inverse = 1.0f / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(direction->x, direction->y, z));
     direction->x = static_cast<float>(inverse * direction->x);
     direction->y = static_cast<float>(inverse * direction->y);
     direction->z = static_cast<float>(inverse * z);
@@ -280,15 +278,15 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
     double zzExact = static_cast<double>(z2) * turn.z;
     float zz = static_cast<float>(zzExact);
     float* m = view.m;
-    m[0] = static_cast<float>(kOne - (zzExact + yy));
+    m[0] = static_cast<float>(1.0f - (zzExact + yy));
     m[1] = static_cast<float>(xy - wz);
     m[2] = static_cast<float>(static_cast<double>(xz) + wy);
     m[4] = static_cast<float>(xy + wz);
-    m[5] = static_cast<float>(kOne - (static_cast<double>(zz) + xx));
+    m[5] = static_cast<float>(1.0f - (static_cast<double>(zz) + xx));
     m[6] = static_cast<float>(static_cast<double>(yz) - wx);
     m[8] = static_cast<float>(static_cast<double>(xz) - wy);
     m[9] = static_cast<float>(static_cast<double>(yz) + wx);
-    m[10] = static_cast<float>(kOne - (static_cast<double>(yy) + xx));
+    m[10] = static_cast<float>(1.0f - (static_cast<double>(yy) + xx));
 
     // The bounds' square on the ground: corner 0 at (minimum x, maximum y), then clockwise.
     g_quads.resize(1);   // keeps the contents when growing

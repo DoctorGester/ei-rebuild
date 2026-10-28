@@ -32,8 +32,6 @@
 // locals.
 
 namespace {
-constexpr float kZero = 0.0f;
-constexpr float kOne = 1.0f;
 constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0.1
 constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0.2
 constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0.3
@@ -94,7 +92,7 @@ int IsDead(CMapObject* object) { return object->IsDead(); }
 void AttackParamsOf(CUnitServer* controller, AttackParams* out) { controller->GetAttackParams(out); }
 
 // The original's branch-free max(0, v): v when 0 < v or v is NaN, else +0.
-float MaxZero(float v) { return v <= kZero ? kZero : v; }
+float MaxZero(float v) { return v <= 0.0f ? 0.0f : v; }
 
 // A zero-extended dword converted as a 64-bit integer (exact; a plain uint32 conversion would add 2^32 in a step
 // the precision control rounds).
@@ -153,7 +151,7 @@ BOOL CUnitServer::HasRangedWeapon() {
 
 BOOL CUnitServer::AttacksFromRange() {
     if (!ActiveWeapon(unit)) {
-        return stats.naturalWeapon != kNoNaturalWeapon && stats.combat[UnitStats::kReach] > kOne ? 1 : 0;
+        return stats.naturalWeapon != kNoNaturalWeapon && stats.combat[UnitStats::kReach] > 1.0f ? 1 : 0;
     }
     CItemWeapon* weapon = ActiveWeapon(unit);
     if (!weapon) return 0;
@@ -400,7 +398,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
             for (int i = 0; i < 7; ++i) {
                 float weight = std::bit_cast<float>(model->damageWeights[i]);
                 EI_NAN_AUDIT(weight);
-                if (weight != kZero) {
+                if (weight != 0.0f) {
                     out->damageType = i;
                     break;
                 }
@@ -430,13 +428,13 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     double radius = Radius(unit) * static_cast<double>(kDistanceScale);
     float penalty = static_cast<float>(twice / (radius + radius));
 
-    double roll = kZero;
+    double roll = 0.0;
     float spread = theirs.attackSpread;
-    if (spread > kZero) {
+    if (spread > 0.0f) {
         int sides = x87::fistp(spread);
         std::uint32_t random = g_random.Next();
         double drawn = Unsigned(random % static_cast<std::uint32_t>(sides + 1));
-        roll = (drawn + drawn) - (static_cast<double>(spread) + kOne);
+        roll = (drawn + drawn) - (static_cast<double>(spread) + 1.0f);
     }
     roll = (roll + theirs.attack) - penalty;
     if (!backstab) roll = roll + speedRatio;
@@ -446,9 +444,9 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
 BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     float roll = kHitMark;
     if (!(HasElementalDamage(hit) & 0xFF)) {
-        if (moveMode2.onGuard) hit->backstabFactor = kOne;
+        if (moveMode2.onGuard) hit->backstabFactor = 1.0f;
         if (attacker) {
-            bool backstab = hit->backstabFactor > kOne;
+            bool backstab = hit->backstabFactor > 1.0f;
             roll = AttackRoll(attacker->ServerController(), backstab);
         }
         if (hit->calledShot) {
@@ -458,17 +456,17 @@ BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     }
     AttackParams mine;
     AttackParamsOf(this, &mine);
-    if (hit->backstabFactor > kOne) mine.defence = 0;
+    if (hit->backstabFactor > 1.0f) mine.defence = 0;
     float result = static_cast<double>(mine.defence) > roll ? kMissMark : kHitMark;
     std::memcpy(&hit->attackRoll, &result, sizeof(result));
-    return result > kZero ? 1 : 0;
+    return result > 0.0f ? 1 : 0;
 }
 
 BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot) {
     CUnit* self = unit;
     int keyed = IsTextKey(self->id_) & 0xFF;
     std::memset(out, 0, sizeof(DamageInfo));
-    out->multiplier = kOne;
+    out->multiplier = 1.0f;
     CItemWeapon* weapon = nullptr;
     if (keyed && self->activeWeapon < 4) weapon = AsWeapon(self->weapons[self->activeWeapon]);
     if (weapon) {
@@ -478,19 +476,19 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
         int drawn = libcrt::Rand();
         int face = ((drawn * sides) / 0x7FFF) % sides;
         int value = face + face + 2;
-        float roll = static_cast<float>(static_cast<double>(value) - (static_cast<double>(kFive) + kOne));
+        float roll = static_cast<float>(static_cast<double>(value) - (static_cast<double>(kFive) + 1.0f));
         std::memcpy(&out->attackRoll, &roll, sizeof(roll));
         out->amount = static_cast<float>(weapon->RollDamage());   // stored as a float, as the original
     } else {
         std::memcpy(out->typeWeights, stats.damageWeights, sizeof(out->typeWeights));
         out->weaponValue = 0;
-        double factor = keyed ? kOne : DifficultyAttackFactor();
+        double factor = keyed ? 1.0f : DifficultyAttackFactor();
         float roll = static_cast<float>(factor * stats.combat[UnitStats::kAttack]);
         std::memcpy(&out->attackRoll, &roll, sizeof(roll));
-        double extra = kZero;
+        double extra = 0.0;
         float spread = stats.damageSpread;
         EI_NAN_AUDIT(spread);
-        if (spread != kZero) {
+        if (spread != 0.0f) {
             float scaled = spread * kHundred;
             int sides = x87::fistp(scaled);
             std::uint32_t random = g_random.Next();
@@ -502,7 +500,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     out->location = location;
     out->hitKind = 0;
     if (backstab) out->backstabFactor = static_cast<float>(stats.BackstabFactorArg(0));
-    else out->backstabFactor = kOne;
+    else out->backstabFactor = 1.0f;
     if (self->player && PlayerGodMode(self->player) >= 2) ResetDamageInfo(out);
     out->calledShot = static_cast<std::uint8_t>(calledShot);
     return 1;
@@ -526,7 +524,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         *kCombatLog << " skill=" << std::bit_cast<float>(hit->attackRoll);
         float amount = hit->amount;
         *kCombatLog << " damage=" << amount;
-        if (hit->backstabFactor > kOne) {
+        if (hit->backstabFactor > 1.0f) {
             float power = hit->backstabFactor;
             *kCombatLog << " backstab with power=" << power;
         }
@@ -542,7 +540,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
 
     AttackParams mine;
     AttackParamsOf(this, &mine);
-    if (hit->backstabFactor > kOne) mine.defence = 0;
+    if (hit->backstabFactor > 1.0f) mine.defence = 0;
     EI_NAN_AUDIT(std::bit_cast<float>(hit->attackRoll));
     if (static_cast<double>(mine.defence) <= std::bit_cast<float>(hit->attackRoll)) {
         stats.flags |= 0x10;
@@ -611,10 +609,10 @@ void CUnitServer::UpdateMoveFactors() {
     const CWorldServer* world = ServerWorld();
     double factor = world->nightLevel_;
     double scaled = (factor * stats.perception[1].current) * kWorldFactorScale;
-    moveFactors[0] = kOne;
-    moveFactors[2] = kOne;
-    moveFactors[1] = kOne;
-    double sum = scaled + (kOne - factor);
+    moveFactors[0] = 1.0f;
+    moveFactors[2] = 1.0f;
+    moveFactors[1] = 1.0f;
+    double sum = scaled + (1.0f - factor);
     moveFactors[3] = static_cast<float>(sum);
     moveFactors[3] = static_cast<float>(std::bit_cast<float>(world->weatherFactor_) * sum);
     if (unit->moveMode == 0) {
@@ -631,7 +629,7 @@ void CUnitServer::UpdateMoveFactors() {
             moveFactors[1] = kIdleMode3Factor1;
         }
     } else {
-        moveFactors[0] = kZero;
+        moveFactors[0] = 0.0f;
     }
     if (state == 5 && (action.kind == 4 || action.kind == 5)) {
         CSpell* spell = SpellOfSource(action.source);

@@ -75,7 +75,6 @@ constexpr std::uint32_t kEffectSilence = 0x10;
 constexpr int kViewNoAttackSounds = 3;       // the local view player's sessionKind_
 constexpr double kMinAxisLength = 0.0001;
 constexpr float kPi = 3.14159274f;
-constexpr float kHalf = 0.5f;
 constexpr float kCrawlPrintScale = 0.5f;
 constexpr float kWalkPrintScale = 0.75f;
 constexpr std::uint32_t kFlagPrintsShown = 0x400000;   // the unit's flags_
@@ -287,8 +286,8 @@ void CUnitClientSpecific::PlayStepSounds() {
         float scale = prototype->conspicuity[0];
         if (unit->moveMode == 0) scale *= kCrawlPrintScale;
         else if (unit->moveMode == 1) scale *= kWalkPrintScale;
-        int id = g_clientWorld->AddFootprint(footAt.x - sizeX * facing.x * kHalf,
-                              footAt.y - sizeY * facing.y * kHalf, sizeX, sizeY, turn, (left << 16) | printKind, scale,
+        int id = g_clientWorld->AddFootprint(footAt.x - sizeX * facing.x * 0.5f,
+                              footAt.y - sizeY * facing.y * 0.5f, sizeX, sizeY, turn, (left << 16) | printKind, scale,
                               shown, footprint);
         if (footprintRepeats > 0) --footprintRepeats;
         else footprint = -1;

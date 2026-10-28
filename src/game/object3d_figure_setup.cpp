@@ -28,7 +28,6 @@
 namespace {
 constexpr int kTypeHero = 0x32;                  // type_ of the player's units: a fixed x / y box
 constexpr float kHeroHalfWidth = 0.5f;
-constexpr float kHalf = 0.5f;
 constexpr std::uint32_t kBoundsSphere = 1;       // bounds.flags: radius valid
 constexpr std::uint32_t kBoundsBox = 2;          // bounds.flags: box valid
 constexpr std::uint32_t kFlagFigureLoadedBits = 0x80;   // flags_: the figure is loaded
@@ -113,9 +112,9 @@ void CObject3D::SetUpAnimatedFigure(std::string_view model) {
         low.y = -kHeroHalfWidth;
         low.x = -kHeroHalfWidth;
     }
-    bounds.center.x = static_cast<float>((low.x + high.x) * kHalf);
-    bounds.center.y = static_cast<float>((low.y + high.y) * kHalf);
-    bounds.center.z = static_cast<float>((low.z + high.z) * kHalf);
+    bounds.center.x = static_cast<float>((low.x + high.x) * 0.5f);
+    bounds.center.y = static_cast<float>((low.y + high.y) * 0.5f);
+    bounds.center.z = static_cast<float>((low.z + high.z) * 0.5f);
     bounds.boxMin.x = low.x - bounds.center.x;
     bounds.boxMin.y = low.y - bounds.center.y;
     bounds.boxMin.z = low.z - bounds.center.z;
@@ -139,9 +138,9 @@ void CObject3D::UpdatePartBounds() {
         parts[i]->ExtendWorldBox(&highX, &highY, &highZ, &lowX, &lowY, &lowZ);
     }
     // The x sum stays on the FPU stack; the y and z sums are stored first.
-    float centreX = static_cast<float>((highX + lowX) * kHalf);
-    float centreY = static_cast<float>(static_cast<float>(highY + lowY) * kHalf);
-    float centreZ = static_cast<float>(static_cast<float>(highZ + lowZ) * kHalf);
+    float centreX = static_cast<float>((highX + lowX) * 0.5f);
+    float centreY = static_cast<float>(static_cast<float>(highY + lowY) * 0.5f);
+    float centreZ = static_cast<float>(static_cast<float>(highZ + lowZ) * 0.5f);
     bounds.boxMax.x = highX - centreX;
     bounds.boxMax.y = highY - centreY;
     bounds.boxMax.z = highZ - centreZ;

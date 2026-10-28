@@ -17,7 +17,7 @@
 
 namespace {
 
-float Pi() { return 3.1415927f; }
+constexpr float kPi = 3.1415927f;
 
 float FloatFromBits(std::uint32_t bits) {
     float f;
@@ -68,7 +68,7 @@ void CHudTopPanel::Build(int page, int shown) {
     arrow->textureOffsetU_ = 0.22265625f;
     arrow->textureOffsetV_ = 0.140625f;
     Quaternion turn;
-    arrow->localRotation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi());
+    arrow->localRotation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
     arrow->Place(400.0f, -52.0f, FloatFromBits(0x4101B287));
     arrow->SetScale(0.8f);
 

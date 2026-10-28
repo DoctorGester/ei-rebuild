@@ -18,8 +18,6 @@
 #include <cstring>
 
 namespace {
-constexpr float kOne = 1.0f;
-constexpr float kHalf = 0.5f;
 constexpr float kNoWander = -1.0f;          // pushed as 0xBF800000
 
 enum BehaviourType { kGuard = 1, kPatrol = 2, kSentry = 3, kParty = 4, kGuardAlarm = 5 };
@@ -41,12 +39,12 @@ void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
     mode->points.clear();
     for (int i = 0; i < std::ssize(record->patrols); ++i) {
         const mapspec::Patrol& patrol = record->patrols[i];
-        double cell = static_cast<double>(kOne) * kHalf;
-        long cellX = x87::RoundToInt(static_cast<float>(kOne / cell * patrol.position.x));
-        long cellY = x87::RoundToInt(static_cast<float>(kOne / cell * patrol.position.y));
+        double cell = 0.5;
+        long cellX = x87::RoundToInt(static_cast<float>(1.0f / cell * patrol.position.x));
+        long cellY = x87::RoundToInt(static_cast<float>(1.0f / cell * patrol.position.y));
         PatrolPoint point{};
-        point.position.y = static_cast<float>((static_cast<double>(cellY) + kHalf) * cell);
-        point.position.x = static_cast<float>((static_cast<double>(cellX) + kHalf) * cell);
+        point.position.y = static_cast<float>((static_cast<double>(cellY) + 0.5f) * cell);
+        point.position.x = static_cast<float>((static_cast<double>(cellX) + 0.5f) * cell);
         point.position.z = 0.0f;
         mode->points.push_back(point);
 

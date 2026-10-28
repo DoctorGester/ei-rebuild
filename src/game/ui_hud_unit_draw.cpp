@@ -27,16 +27,15 @@
 namespace {
 
 // The constants read at run time.
-float LayoutUnit() { return 0.0025f; }       // 1 / 400, half the layout's width
-float One() { return 1.0f; }
-float DepthUnit() { return 0.48157462f; }        // the layout's half height at depth 1
-float ModelDepth() { return 9.0f; }       // how far in front of the camera the model stands
-float ModelDrop() { return 0.25f; }        // of the view's half height below the centre
-float TurnAboutZ() { return 0.05f; }
-float TurnAboutX() { return 1.15f; }
-float SecondTurnAboutZ() { return 0.4f; }
-float BarHeight() { return 15.0f; }
-float PanelHeight() { return 220.0f; }
+constexpr float kLayoutUnit = 0.0025f;       // 1 / 400, half the layout's width
+constexpr float kDepthUnit = 0.48157462f;        // the layout's half height at depth 1
+constexpr float kModelDepth = 9.0f;       // how far in front of the camera the model stands
+constexpr float kModelDrop = 0.25f;        // of the view's half height below the centre
+constexpr float kTurnAboutZ = 0.05f;
+constexpr float kTurnAboutX = 1.15f;
+constexpr float kSecondTurnAboutZ = 0.4f;
+constexpr float kBarHeight = 15.0f;
+constexpr float kPanelHeight = 220.0f;
 constexpr int kBackground = 0;        // scene objects
 constexpr int kHeightBar = 8;
 constexpr int kMoreMark = 9;
@@ -100,7 +99,7 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
     const char* name = nullptr;
     float size = 0.0f;     // the original leaves both unset without a unit (never read then)
     float height = 0.0f;
-    if (slide_ < One()) {
+    if (slide_ < 1.0f) {
         const int which = hoverUnit_ ? 1 : 0;
         unit = hoverUnit_ ? hoverUnit_ : shownUnit_;
         name = strings_[which].c_str();
@@ -137,21 +136,21 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
             // that its height (in units of its size) stands a quarter of the view below the centre.
             // WideScreen: 100 - shift.
-            const float x = static_cast<float>((static_cast<float>(100 - widescreen::EdgeShift() - offset_) * LayoutUnit() - One()) *
-                                         DepthUnit() * ModelDepth());
-            const float y = static_cast<float>(height / size - static_cast<float>(DepthUnit() * ModelDepth()) * ModelDrop());
-            model->localPosition_ = Vector3{x, y, ModelDepth()};
+            const float x = static_cast<float>((static_cast<float>(100 - widescreen::EdgeShift() - offset_) * kLayoutUnit - 1.0f) *
+                                         kDepthUnit * kModelDepth);
+            const float y = static_cast<float>(height / size - static_cast<float>(kDepthUnit * kModelDepth) * kModelDrop);
+            model->localPosition_ = Vector3{x, y, kModelDepth};
             // Turned with the sling buttons' angle: about z, about x, about z again.
             const Vector3 axisZ = {0.0f, 0.0f, 1.0f};
             const Vector3 axisX = {1.0f, 0.0f, 0.0f};
             Quaternion first, second, third;
-            Quaternion* q1 = first.SetAxisAngle(axisZ, kHudQuarterTurn * TurnAboutZ());
-            Quaternion* q2 = second.SetAxisAngle(axisX, kHudQuarterTurn * TurnAboutX());
+            Quaternion* q1 = first.SetAxisAngle(axisZ, kHudQuarterTurn * kTurnAboutZ);
+            Quaternion* q2 = second.SetAxisAngle(axisX, kHudQuarterTurn * kTurnAboutX);
             const Quaternion tilted = Product(*q1, *q2, false);
-            Quaternion* q3 = third.SetAxisAngle(axisZ, kHudQuarterTurn * SecondTurnAboutZ());
+            Quaternion* q3 = third.SetAxisAngle(axisZ, kHudQuarterTurn * kSecondTurnAboutZ);
             model->localRotation_ = Product(tilted, *q3, true);
 
-            const float scale = static_cast<float>(One() / size);
+            const float scale = static_cast<float>(1.0f / size);
             unit->Object3D()->ClientSpecific()->figureScale = Vector3{scale, scale, scale};
             // The first page draws the model in full colour, the others at half.
             model->SetPartsFlatColour(bodyPart_ == 0 ? 0xFFFFFFFFu : 0xFF808080u);
@@ -182,11 +181,11 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
             ShowHealth(unit);
             // The height bar (scene object 8): the model's fifteen layout units, from the panel's
             // bottom.
-            const float barScale = static_cast<float>(BarHeight() / size);
+            const float barScale = static_cast<float>(kBarHeight / size);
             std::uint32_t bits;
             std::memcpy(&bits, &barScale, sizeof(bits));
             Sprite(this, kHeightBar)->SetScaleYBits(bits);
-            const float barY = static_cast<float>(PanelHeight() - barScale * PanelHeight());
+            const float barY = static_cast<float>(kPanelHeight - barScale * kPanelHeight);
             SceneMesh(kHeightBar)->PlaceBody(static_cast<float>(20 - offset_), barY, 4.0f);
             Sprite(this, kHeightBar)->visible_ = 1;
             break;

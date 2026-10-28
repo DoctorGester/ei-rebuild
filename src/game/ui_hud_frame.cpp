@@ -32,23 +32,22 @@ float FloatFromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
-float Pi() { return 3.1415927f; }
+constexpr float kPi = 3.1415927f;
 // The constants are read from memory at run time; Rebirth rewrites one of them (the clock's x,
 // widescreen::g_layoutWidth, for its widescreen layout).
-float PausedHand() { return 0.9166667f; }   // hand angle while paused, in pi
-float FastHand() { return 0.5833333f; }   // at fast speed
-float NormalHand() { return 0.75f; }   // at normal speed
-float Half() { return 0.5f; }
-float DialStep() { return 0.16666667f; }   // dial notches, in pi
-float FaceStep() { return 0.083333336f; }   // one hour of the face, in pi
-float FaceOffset() { return 15.0f; }   // 15 hours
-float HandRadius() { return 73.0f; }
-float DialRadius() { return 30.0f; }
-float CentreY() { return 600.0f; }
-float BlinkBase() { return 1.4f; }
-float PulseAmplitude() { return 0.3f; }
-float PulseMiddle() { return 0.7f; }
-float SlideTime() { return 0.3f; }   // 0.3 seconds for a full slide
+constexpr float kPausedHand = 0.9166667f;   // hand angle while paused, in pi
+constexpr float kFastHand = 0.5833333f;   // at fast speed
+constexpr float kNormalHand = 0.75f;   // at normal speed
+constexpr float kDialStep = 0.16666667f;   // dial notches, in pi
+constexpr float kFaceStep = 0.083333336f;   // one hour of the face, in pi
+constexpr float kFaceOffset = 15.0f;   // 15 hours
+constexpr float kHandRadius = 73.0f;
+constexpr float kDialRadius = 30.0f;
+constexpr float kCentreY = 600.0f;
+constexpr float kBlinkBase = 1.4f;
+constexpr float kPulseAmplitude = 0.3f;
+constexpr float kPulseMiddle = 0.7f;
+constexpr float kSlideTime = 0.3f;   // 0.3 seconds for a full slide
 bool GamePaused() { return g_clientWorld->paused_ != 0; }
 
 constexpr std::uint32_t kHandDepth = 0x41000000;   // 8.0f
@@ -107,58 +106,58 @@ void CHudClock::Update() {
             blink_ = static_cast<float>(next);
         } while (next >= 1.0f);
     }
-    float pulse = static_cast<float>(x87::fcos(D(kHudFullTurn) * D(blink_)) * PulseAmplitude() + PulseMiddle());
+    float pulse = static_cast<float>(x87::fcos(D(kHudFullTurn) * D(blink_)) * kPulseAmplitude + kPulseMiddle);
 
     float handAngle;
     if (GamePaused()) {
-        SetTint(face, static_cast<float>(BlinkBase() - D(pulse)));
-        handAngle = static_cast<float>(D(Pi()) * PausedHand());
-        Sprite(objects[1])->visible_ = blink_ > Half() ? 1 : 0;
+        SetTint(face, static_cast<float>(kBlinkBase - D(pulse)));
+        handAngle = static_cast<float>(D(kPi) * kPausedHand);
+        Sprite(objects[1])->visible_ = blink_ > 0.5f ? 1 : 0;
     } else {
         SetTint(face, 1.0f);
         double step;
         if (fast_ != 0) {
-            handAngle = static_cast<float>(D(Pi()) * FastHand());
+            handAngle = static_cast<float>(D(kPi) * kFastHand);
             step = CUiContainer::FrameTime();
         } else {
-            handAngle = static_cast<float>(D(Pi()) * NormalHand());
-            step = CUiContainer::FrameTime() * Half();
+            handAngle = static_cast<float>(D(kPi) * kNormalHand);
+            step = CUiContainer::FrameTime() * 0.5f;
         }
         dial_ = static_cast<float>(step + D(dial_));
         Sprite(objects[1])->visible_ = 1;
     }
 
     // The dial turns by whole notches' worth and wraps.
-    float notch = static_cast<float>(D(Pi()) * DialStep());
+    float notch = static_cast<float>(D(kPi) * kDialStep);
     if (dial_ > notch) {
         double next;
         do {
             next = D(dial_) - D(notch);
             dial_ = static_cast<float>(next);
-            notch = static_cast<float>(D(Pi()) * DialStep());
+            notch = static_cast<float>(D(kPi) * kDialStep);
         } while (next > notch);
     }
 
     // The hand (object 1) about -z, placed on its circle.
     Turn(objects[1], -1.0f, handAngle);
     double handSin = x87::fsin(handAngle);
-    float handY = static_cast<float>(CentreY() - handSin * HandRadius());
-    float handX = static_cast<float>(x87::fcos(handAngle) * HandRadius() + widescreen::g_layoutWidth);
+    float handY = static_cast<float>(kCentreY - handSin * kHandRadius);
+    float handX = static_cast<float>(x87::fcos(handAngle) * kHandRadius + widescreen::g_layoutWidth);
     Sprite(objects[1])->Place(handX, handY, FloatFromBits(kHandDepth));
 
     // The face turns with the time of day.
-    Turn(face, 1.0f, static_cast<float>((D(hours) + FaceOffset()) * D(Pi()) * FaceStep()));
+    Turn(face, 1.0f, static_cast<float>((D(hours) + kFaceOffset) * D(kPi) * kFaceStep));
 
     // The four dial marks (objects 2-5), a notch apart.
-    float angle = static_cast<float>(D(dial_) - D(static_cast<float>(D(Pi()) * FaceStep())));
+    float angle = static_cast<float>(D(dial_) - D(static_cast<float>(D(kPi) * kFaceStep)));
     for (int k = 2; k < 6; ++k) {
         CEngineObject* mark = objects[k];
         Turn(mark, 1.0f, angle);
         double c = x87::fcos(angle);
-        float y = static_cast<float>(CentreY() - c * DialRadius());
-        float x = static_cast<float>(x87::fsin(angle) * DialRadius() + widescreen::g_layoutWidth);
+        float y = static_cast<float>(kCentreY - c * kDialRadius);
+        float x = static_cast<float>(x87::fsin(angle) * kDialRadius + widescreen::g_layoutWidth);
         Sprite(mark)->Place(x, y, FloatFromBits(kSpriteDepth));
-        angle = static_cast<float>(D(angle) - D(static_cast<float>(D(Pi()) * DialStep())));
+        angle = static_cast<float>(D(angle) - D(static_cast<float>(D(kPi) * kDialStep)));
     }
 
     SetTint(objects[6], highlight_ ? pulse : 1.0f);
@@ -168,7 +167,7 @@ void CHudClock::Update() {
 
 void CHudTopPanel::Update() {
     if (sliding_) {
-        double slide = CUiContainer::FrameTime() * D(slideDirection_) / SlideTime() + D(slide_);
+        double slide = CUiContainer::FrameTime() * D(slideDirection_) / kSlideTime + D(slide_);
         slide_ = static_cast<float>(slide);
         if (slide > 1.0f) slide_ = 1.0f;
         slide_ = slide_ >= 0.0f ? slide_ : 0.0f;   // NaN too
@@ -190,7 +189,7 @@ void CHudTopPanel::Update() {
         CEngineObject* sling = sceneObjects_[2];
         float y;
         if (Bits(slideDirection_) == 0xBF800000) {   // -1: sliding out
-            Turn(sling, 1.0f, Pi());
+            Turn(sling, 1.0f, kPi);
             y = kSlingInY;
         } else {
             std::memcpy(&Sprite(sling)->localRotation_, &kHudRestRotation, 16);

@@ -47,7 +47,7 @@ constexpr int kShoutCannotDo = 0x0E;
 
 // The server's AI map's refreshUnits, cleared around path searches, and its sector map.
 CAIMap* MapOf(CWorldServer* world) { return &world->aiMap_; }
-float HalfCell() { return 1.0f * 0.5f; }
+constexpr float kHalfCell = 0.5f;
 
 // An AIPath on the stack: its lists and point array constructed, the order cleared.
 struct LocalPath {
@@ -123,7 +123,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
             path.path.object.Clear();
             if (!map->FindPath(unit, &spot, &path.path.object, kFar, 0.0f)) continue;
             // The path must end within 0.2 of the spot.
-            float half = HalfCell();
+            float half = kHalfCell;
             float ey = half * path.TargetY() - spot.y;
             float ex = half * path.TargetX() - spot.x;
             float limitSquared = static_cast<float>(0.2f * 0.2f);   // rounded to 24 bits
@@ -173,7 +173,7 @@ double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder
                                                              &position.x, &direction.x, &speed, &cellX, &cellY);
         if (position.x == previous.x && position.y == previous.y && position.z == previous.z) break;
         std::memcpy(&previous, &position, sizeof(previous));
-        float half = HalfCell();
+        float half = kHalfCell;
         position.x = half * position.x;
         position.y = half * position.y;
         float dx = position.x - aim.x;

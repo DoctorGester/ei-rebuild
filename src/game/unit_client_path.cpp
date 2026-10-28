@@ -21,8 +21,6 @@
 
 namespace {
 
-constexpr float kCellScale = 1.0f;
-constexpr float kHalf = 0.5f;
 constexpr float kHalfTurn = 3.1416f;
 constexpr float kDecay = -0.3f;
 constexpr float kAnimationRate = 15.0f;
@@ -37,7 +35,7 @@ constexpr float kFullTurn = /*007AF330*/ 6.2831855f;   // a static initialiser: 
 static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     CUnit* unit = self->unit;
     if (unit->flags_ & 0x4000000) return;
-    float toCells = 1.0f / (kCellScale * kHalf);
+    float toCells = 2.0f;
     Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
     position.x = toCells * position.x;
     position.y = toCells * position.y;
@@ -48,7 +46,7 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     CWorld* world = ObjectWorld(self);
     unit->motion.Sample(world, OrderOf(&self->motion), time, &turning, &position.x,
                            &direction.x, &speed, &cellX, &cellY);
-    float toWorld = kCellScale * kHalf;
+    float toWorld = 0.5f;
     position.x = toWorld * position.x;
     position.y = toWorld * position.y;
     position.z = static_cast<float>(unit->GroundHeight(position.x, position.y) + unit->heightOffset);
@@ -110,7 +108,7 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
         frames = ((database->end - database->start) * unit->scale.z + database->start) / span;
     double moved = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(direction.x, direction.y, direction.z));
     double numerator = moved * speed * kAnimationRate;
-    double denominator = (1.0f / (kCellScale * kHalf)) * (static_cast<double>(frames) * length);
+    double denominator = 2.0f * (static_cast<double>(frames) * length);
     unit->animationSpeed = static_cast<float>(numerator / denominator);
 }
 

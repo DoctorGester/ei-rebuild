@@ -14,10 +14,7 @@
 #include <cstring>
 
 namespace {
-constexpr float kZero = 0.0f;
-constexpr float kOne = 1.0f;
 constexpr float kSpeedByteScale = std::bit_cast<float>(0x3D20A0A1u);  // (1 / 25.5)
-constexpr float kTwo = 2.0f;
 constexpr float kByteScale = std::bit_cast<float>(0x3B808081u);       // (1 / 255)
 constexpr float kThree = 3.0f;
 constexpr float kTen = 10.0f;
@@ -79,7 +76,7 @@ double ModeSpeedOf(const CUnit* unit, std::uint32_t mode) {
     case 3: speed = unit->params.modeSpeeds[0]; break;
     default: return base;
     }
-    return base * (static_cast<float>(speed) * kTwo) * kByteScale;
+    return base * (static_cast<float>(speed) * 2.0f) * kByteScale;
 }
 
 } // namespace
@@ -235,7 +232,7 @@ CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
 }
 
 double CUnit::TotalItemWeight() {
-    double total = kZero;   // accumulated on the FPU stack
+    double total = 0.0;   // accumulated on the FPU stack
     for (CItem* item : weapons) {
         if (item) total += ItemWeight(item);
     }
@@ -288,15 +285,15 @@ void CUnit::GetMoveSpeeds(float* forward, float* backward) {
     case 3: speed = params.modeSpeeds[0]; break;
     case 2:
     case 4:
-        *backward = static_cast<float>(params.modeSpeeds[0]) * *forward * kTwo * kByteScale;
-        *forward = static_cast<float>(params.modeSpeeds[1]) * *forward * kTwo * kByteScale;
+        *backward = static_cast<float>(params.modeSpeeds[0]) * *forward * 2.0f * kByteScale;
+        *forward = static_cast<float>(params.modeSpeeds[1]) * *forward * 2.0f * kByteScale;
         *backward = g_logicSettings.rotateSpeedMult * *backward;
         return;
     default:
         *backward = g_logicSettings.rotateSpeedMult * *backward;
         return;
     }
-    float scaled = static_cast<float>(speed) * *forward * kTwo * kByteScale;
+    float scaled = static_cast<float>(speed) * *forward * 2.0f * kByteScale;
     *forward = scaled;
     *backward = scaled;
     *backward = g_logicSettings.rotateSpeedMult * *backward;
@@ -359,7 +356,7 @@ float CUnit::ActionSpeed(const FigureAnimation* entry) {
     case 0x1C0000: return actionSpeeds[3];
     case 0x240000: return type_ == kUnitTypeHero ? g_logicSettings.humanCrossAnimationSpeed : actionSpeeds[4];
     case 0x40000: return actionSpeeds[5];
-    default: return kOne;
+    default: return 1.0f;
     }
 }
 

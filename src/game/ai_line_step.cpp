@@ -14,17 +14,17 @@ double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     float dy = static_cast<float>(to->y - from->y);
     double dz = static_cast<double>(to->z) - from->z;
     double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz));
-    double cell = static_cast<double>(worlddata::CellSize()) * worlddata::Half();
+    double cell = 0.5;
     double steps = length / cell;
     float stepsF = static_cast<float>(steps);
     // A zero or NaN length also returns 1.0.
-    if (steps == static_cast<double>(worlddata::Zero()) || steps != steps) return worlddata::One();
-    float inverse = static_cast<float>(static_cast<double>(worlddata::One()) / stepsF);
+    if (steps == 0.0 || steps != steps) return 1.0f;
+    float inverse = static_cast<float>(1.0 / stepsF);
     int count = x87::fistp(stepsF);
-    double fixed = worlddata::FixedPoint();
+    double fixed = worlddata::kFixedPoint;
     auto toFixed = [&](double value) {
-        return x87::fistp(static_cast<float>(value * fixed / (static_cast<double>(worlddata::CellSize()) *
-                                                                         worlddata::Half())));
+        return x87::fistp(static_cast<float>(value * fixed / (
+                                                                         0.5f)));
     };
     int fx = toFixed(from->x);
     int fy = toFixed(from->y);
@@ -32,9 +32,9 @@ double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     int stepY = toFixed(static_cast<double>(dy) * inverse);
 
     int cx = fx >> 16, cy = fy >> 16;
-    if (cx < 0 || cy < 0 || cx >= cells.width || cy >= cells.height) return worlddata::OutsideDistance();
+    if (cx < 0 || cy < 0 || cx >= cells.width || cy >= cells.height) return worlddata::kOutsideDistance;
     int ex = (stepX * count + fx) >> 16, ey = (stepY * count + fy) >> 16;
-    if (ex < 0 || ey < 0 || ex >= cells.width || ey >= cells.height) return worlddata::OutsideDistance();
+    if (ex < 0 || ey < 0 || ex >= cells.width || ey >= cells.height) return worlddata::kOutsideDistance;
 
     int previous = cells[cy][cx].groundLevel;
     int largest = 0;

@@ -43,7 +43,6 @@ float AbsBits(float f) {
 
 constexpr float kHeightFull = 30.0f;     // 2D height-faded sounds are full below
 constexpr float kHeightSilent = 70.0f;   // ... and silent above
-constexpr float kOne = 1.0f;
 constexpr float kHundred = 100.0f;
 constexpr float kMilesScale = std::bit_cast<float>(0x3C5013A9u);  // 0.0127
 constexpr float kLevelMax = 127.0f;
@@ -52,12 +51,12 @@ constexpr float kEmitterMargin = std::bit_cast<float>(0x3A83126Fu);  // 0.001
 constexpr float kEmitterMaxScale = 255.0f;
 
 // pi and pi / 2 (set by a static initialiser).
-float Pi() { return 3.1415927f; }
+constexpr float kPi = 3.1415927f;
 constexpr float kHalfPi = /*007C8808*/ 1.5707964f;
 // The fade step every fade request uses (1/96).
 std::uint32_t FadeStepBits() { return 0x3C2AAAABu; }
 // StopStream's fade-out step, loaded and tested as a float.
-float StopFadeStep() { return 0.010416667f; }
+constexpr float kStopFadeStep = 0.010416667f;
 
 // The slot of the wave's cache list node (its record's uses counts the voices playing it).
 std::list<WaveRecord>::iterator& CacheEntry(std::unordered_map<std::string, std::list<WaveRecord>::iterator>& cache, const SoundSlot* slot) { return cache[slot->name]; }
@@ -73,7 +72,7 @@ int ClampLevel(int v) { return v < 0 ? 0 : (v > 0x7F ? 0x7F : v); }
 
 // Heights between 30 and 70 fade 2D sounds flagged heightFade.
 double HeightFactor(float h) {
-    return D(kOne) - (D(h) - kHeightFull) / (D(kHeightSilent) - kHeightFull);
+    return 1.0 - (D(h) - kHeightFull) / (D(kHeightSilent) - kHeightFull);
 }
 
 // The voice loop of the volume setters and SetListener.
@@ -313,7 +312,7 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
         return;
     }
     double angle = libcrt::CiAcos(D(ahead) / distF);
-    if (angle > kHalfPi) angle = D(Pi()) - angle;
+    if (angle > kHalfPi) angle = D(kPi) - angle;
     double scale = static_cast<float>(D(kHundred) / kHalfPi);   // the division at the main thread's 24 bits
     int pan = x87::fistp(static_cast<float>(scale * angle));
     slot->pan = pan;
@@ -346,7 +345,7 @@ void CSoundManager::SetListener(const float* position, const float* axis) {
         listenerAxis.y = 0.0f;
         listenerAxis.z = 0.0f;
     } else {
-        double inv = D(kOne) / len;
+        double inv = 1.0 / len;
         listenerAxis.x = static_cast<float>(inv * listenerAxis.x);
         listenerAxis.y = static_cast<float>(inv * listenerAxis.y);
         listenerAxis.z = static_cast<float>(inv * listenerAxis.z);
@@ -888,7 +887,7 @@ void CSoundManager::StopStream(int mode) {
             }
             streamState = 0;
             streamName = game::kEmptyText;
-            float step = StopFadeStep();
+            float step = kStopFadeStep;
             musicFader.mode = 2;
             musicFader.finished = 0;
             musicFader.step = step;
@@ -997,7 +996,7 @@ void SoundFader::Update() {
     case 1: {
         double sum = D(step) + factor;
         factor = static_cast<float>(sum);
-        if (sum >= kOne) {
+        if (sum >= 1.0f) {
             mode = 0;
             factor = 1.0f;
         }
