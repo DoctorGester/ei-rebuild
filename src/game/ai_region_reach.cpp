@@ -514,11 +514,6 @@ CRegionMap* ConstructRegionMap(CRegionMap* self) {
     local.levels.width = 1;
     local.levels.height = 1;
     AllocateByteGrid(&local.levels);
-    local.cellRowsVtable = mfc::impl::CellRowArrayClass::Vtable();
-    local.cellRows = nullptr;
-    local.cellRowGrowBy = 0;
-    local.cellRowMax = 0;
-    local.cellRowCount = 0;
     local.map = nullptr;
     // The CRT's eh vector constructor iterator over each grid array, in order.
     for (SearchGrid<std::int16_t>& grid : self->edges) ConstructEdgeGrid(&grid);

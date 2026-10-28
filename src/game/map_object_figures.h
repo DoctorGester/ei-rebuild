@@ -10,6 +10,7 @@
 #include "figure_mesh.h"            // CFigureMesh (an object's figure parts)
 #include "map_object_animation.h"   // AnimationTrack (a bone's animator)
 #include "maths.h"
+#include "model.h"              // FootprintPart (the part boxes)
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
@@ -36,8 +37,6 @@ struct tagRECT;
 
 // An object's figure parts (CObject3D::parts / pendingParts).
 using FigurePartArray = std::vector<CFigureMesh*>;
-
-struct FootprintPart;
 
 // One animation of a figure's animation database.
 struct FigureAnimation {
@@ -471,11 +470,7 @@ public:
     std::uint8_t unused_150[0x158 - 0x150];    // cleared with the bounds
     // Cleared with the bounds; a part's piece record sets it (LoadPart). The AI adds it to a unit's eye height.
     float eyeHeight;
-    void* partBoxArrayVtable;       // CArray of the part boxes
-    FootprintPart* partBoxes;       // | (ai_map.h)
-    int partBoxCount;               // |
-    int partBoxCapacity;            // |
-    int partBoxGrowBy;              // /
+    std::vector<FootprintPart> partBoxes;   // one box per animated part (SetUpAnimatedFigure); FootprintPart: model.h
 
 protected:
     CObject3D();

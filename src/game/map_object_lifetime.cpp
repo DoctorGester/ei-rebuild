@@ -90,11 +90,6 @@ void CObject3D::SetUpObject3D() {
     worldRotation_.SetIdentity();
     figure = nullptr;
     ClearBounds();
-    partBoxArrayVtable = mfc::impl::FrameArrayClass::Vtable();
-    partBoxes = nullptr;
-    partBoxGrowBy = 0;
-    partBoxCapacity = 0;
-    partBoxCount = 0;
     attached = nullptr;
     animation = nullptr;
     std::memset(&scale, 0, sizeof(scale));
@@ -110,8 +105,6 @@ CObject3D::~CObject3D() { TearDownObject3D(); }
 
 void CObject3D::TearDownObject3D() {
     Destroy3D();
-    partBoxArrayVtable = mfc::impl::FrameArrayClass::Vtable();
-    if (partBoxes) gamecrt::operator_delete(partBoxes);
     if (CLinkMesh* current = figure) {
         if (--current->refCount_ == 0) delete current;
     }

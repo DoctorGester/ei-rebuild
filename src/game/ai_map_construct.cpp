@@ -29,7 +29,6 @@ CAIMap::CAIMap() {
     forwardSearch.levels.width = 1;
     forwardSearch.levels.height = 1;
     AllocateGrid(forwardSearch.levels);
-    mfc::impl::ConstructHeader<mfc::impl::CellRowArrayClass>(&forwardSearch.cellRowsVtable);
     forwardSearch.map = nullptr;
     backwardSearch.Construct(nullptr);
     cells.Construct(1, 1);
@@ -49,10 +48,8 @@ CAIMap::~CAIMap() {
     FreeGrid(marks);
     FreeGrid(occluders);
     FreeGrid(cells);
-    mfc::impl::DestructHeader<mfc::impl::CellRowArrayClass>(&backwardSearch.cellRowsVtable);
     FreeGrid(backwardSearch.levels);
     FreeGrid(backwardSearch.nodes);
-    mfc::impl::DestructHeader<mfc::impl::CellRowArrayClass>(&forwardSearch.cellRowsVtable);
     FreeGrid(forwardSearch.levels);
     FreeGrid(forwardSearch.nodes);
     CRegionMap& regions = regionMap;

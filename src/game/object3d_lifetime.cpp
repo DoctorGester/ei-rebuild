@@ -52,12 +52,7 @@ int CObject3D::Create3D() {
     DropReference(old);
     defaultScale = kDefaultFigureScale;
     ClearBounds();
-    if (partBoxes) {
-        gamecrt::operator_delete(partBoxes);
-        partBoxes = nullptr;
-    }
-    partBoxCapacity = 0;
-    partBoxCount = 0;
+    std::vector<FootprintPart>().swap(partBoxes);
     return 1;
 }
 

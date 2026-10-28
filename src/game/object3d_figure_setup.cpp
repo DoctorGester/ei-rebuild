@@ -39,56 +39,11 @@ constexpr std::uint32_t kBoxBase = 0x400;        // a part named "BASE..."
 constexpr std::uint32_t kBoxCrown = 0x90;        // "CROWN..."
 constexpr std::uint32_t kBoxEmpty = 0x890;       // "EMPTY..."
 
-// The part box array's grow step when none is set: an eighth of the size, 4..1024 (MFC CArray).
-int DefaultGrowBy(int size) {
-    int grow = size / 8;
-    if (grow < 4) return 4;
-    if (grow > 0x400) return 0x400;
-    return grow;
-}
-
-// Zeroing (inlined here): new part boxes are all zero.
-void ClearBoxes(FootprintPart* boxes, int count) {
-    std::memset(boxes, 0, static_cast<std::size_t>(count) * sizeof(FootprintPart));
-}
-
 // The game's branch-free selects: the stored candidate replaces the bound when the comparison
 // sets C0 (it lies beyond the bound, or one of them is NaN).
 float Higher(float bound, float v) { return bound >= v ? bound : v; }
 float Lower(float bound, float v) { return v >= bound ? bound : v; }
 } // namespace
-
-// MFC CArray<FootprintPart>::SetSize(count, -1), inlined.
-static void SetBoxCount(CObject3D* object, int count) {
-    if (count == 0) {
-        if (object->partBoxes) {
-            gamecrt::operator_delete(object->partBoxes);
-            object->partBoxes = nullptr;
-        }
-        object->partBoxCapacity = 0;
-        object->partBoxCount = 0;
-    } else if (!object->partBoxes) {
-        object->partBoxes = gamecrt::operator_new_array<FootprintPart>(count);
-        ClearBoxes(object->partBoxes, count);
-        object->partBoxCapacity = count;
-        object->partBoxCount = count;
-    } else if (count <= object->partBoxCapacity) {
-        if (count > object->partBoxCount)
-            ClearBoxes(object->partBoxes + object->partBoxCount, count - object->partBoxCount);
-        object->partBoxCount = count;
-    } else {
-        int grow = object->partBoxGrowBy ? object->partBoxGrowBy : DefaultGrowBy(object->partBoxCount);
-        int capacity = object->partBoxCapacity + grow;
-        if (count >= capacity) capacity = count;
-        auto* boxes = gamecrt::operator_new_array<FootprintPart>(capacity);
-        std::memcpy(boxes, object->partBoxes, object->partBoxCount * sizeof(FootprintPart));
-        ClearBoxes(boxes + object->partBoxCount, count - object->partBoxCount);
-        gamecrt::operator_delete(object->partBoxes);
-        object->partBoxCount = count;
-        object->partBoxes = boxes;
-        object->partBoxCapacity = capacity;
-    }
-}
 
 void CObject3D::SetUpAnimatedFigure(const char* model) {
     CFigureManager* manager = FigureManagerOf(this);
@@ -100,7 +55,7 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
         animation->Play(nullptr);
         animation->UpdatePose();
         int count = std::ssize(animation->bones);
-        SetBoxCount(this, count);
+        partBoxes.resize(count);   // new boxes are all zero; the old ones are kept
         partNames.resize(animation->bones.size());
 
         FigureModel* figureModel;

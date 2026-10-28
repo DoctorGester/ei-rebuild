@@ -142,7 +142,6 @@ protected:
 };
 
 using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
-using Plain56 = ArrayAbi<Bytes<56>>;   // the frames' footprint parts (zeroes them twice)
 
 // The container instantiations of mfc_array.h and mfc_list.h: their tags are declared there and defined
 // here, one class per vtable. A tag that is a base of another is not final (the base is defined first); the
@@ -185,9 +184,6 @@ struct AnimationStepsClass
 struct AnimationStepsCopyClass final : AnimationStepsClass {
     static void* Vtable() { return CompiledVtable<AnimationStepsCopyClass>(); }
 };
-// The AI map's cell rows
-struct CellRowArrayClass final
-    : CompiledCollection<CellRowArrayClass, &ArrayHeader<CellRowArrayClass>::Destruct, &Plain4::Serialize> {};
 // The script's string arrays (game.exe's CArray<CString>; std::string elements)
 struct StringArrayClass final
     : CompiledCollection<StringArrayClass, &Strings::Destruct<StringArrayClass>, &Strings::Serialize> {};
@@ -223,9 +219,6 @@ struct BindingsBaseClass
     : CompiledCollection<BindingsBaseClass, &ArrayHeader<BindingsBaseClass>::Destruct, &Plain12::Serialize> {};
 // A map object's effects.
 // A map object's effect sounds.
-// A 3D object's frames.
-struct FrameArrayClass final
-    : CompiledCollection<FrameArrayClass, &ArrayHeader<FrameArrayClass>::Destruct, &Plain56::Serialize> {};
 // A unit's carried objects.
 struct CarriedArrayClass final
     : CompiledCollection<CarriedArrayClass, &ArrayHeader<CarriedArrayClass>::Destruct, &Plain4::Serialize> {};

@@ -375,31 +375,7 @@ void LocalSearch::Attach(CAIMap* mapArg, bool backwardArg) {
             node->direction = 0;
         }
     }
-    if (!cellRows) {
-        cellRows = static_cast<AIMapCell**>(gamecrt::operator_new(kWindow * sizeof(AIMapCell*)));
-        for (int i = 0; i < kWindow; ++i) cellRows[i] = nullptr;
-        cellRowMax = kWindow;
-        cellRowCount = kWindow;
-    } else if (cellRowMax >= kWindow) {
-        for (int i = cellRowCount; i < kWindow; ++i) cellRows[i] = nullptr;
-        cellRowCount = kWindow;
-    } else {
-        int grow = cellRowGrowBy;
-        if (grow == 0) {
-            grow = cellRowCount / 8;
-            if (grow < 4) grow = 4;
-            else if (grow > 1024) grow = 1024;
-        }
-        int newMax = cellRowMax + grow;
-        if (newMax < kWindow + 1) newMax = kWindow;
-        auto* rows = static_cast<AIMapCell**>(gamecrt::operator_new(newMax * sizeof(AIMapCell*)));
-        for (int i = 0; i < cellRowCount; ++i) rows[i] = cellRows[i];
-        for (int i = cellRowCount; i < kWindow; ++i) rows[i] = nullptr;
-        gamecrt::operator_delete(cellRows);
-        cellRows = rows;
-        cellRowCount = kWindow;
-        cellRowMax = newMax;
-    }
+    cellRows.resize(kWindow, nullptr);   // new rows empty; the old ones are kept
     settledList = nullptr;
     active = false;
 }
