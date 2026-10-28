@@ -1,4 +1,4 @@
-// MFC 4.2's CStringArray and plain arrays, registered at their library addresses (mfc_coll.h).
+// MFC 4.2's CStringArray and plain arrays (mfc_coll.h).
 #include "mfc_archive.h"
 #include "mfc_coll.h"
 #include "mfc_runtime_class.h"
@@ -103,7 +103,6 @@ void PlainArray<T, Class>::Serialize(CArchive* ar) {
 template struct PlainArray<std::uint16_t, WordArrayClass>;
 template struct PlainArray<std::uint32_t, DWordArrayClass>;
 template struct PlainArray<std::uint8_t, ByteArrayClass>;
-template struct PlainArray<unsigned, UIntArrayClass>;
 
 
 void CStringArray::ConstructElements(CString* elements, int count) {
@@ -112,10 +111,6 @@ void CStringArray::ConstructElements(CString* elements, int count) {
 
 void CStringArray::DestructElements(CString* elements, int count) {
     for (; count--; ++elements) elements->~CString();
-}
-
-void CStringArray::CopyElements(CString* dest, const CString* source, int count) {
-    while (count--) *dest++ = *source++;
 }
 
 CStringArray* CStringArray::Construct() {
@@ -169,55 +164,6 @@ void CStringArray::SetSize(int newSize, int newGrowBy) {
     }
 }
 
-int CStringArray::Append(const CStringArray& source) {
-    int oldSize = size;
-    SetSize(size + source.size, -1);
-    CopyElements(data + oldSize, source.data, source.size);
-    return oldSize;
-}
-
-void CStringArray::Copy(const CStringArray& source) {
-    SetSize(source.size, -1);
-    CopyElements(data, source.data, source.size);
-}
-
-void CStringArray::SetAtGrow(int index, const char* text) {
-    if (index >= size) SetSize(index + 1, -1);
-    data[index] = text;
-}
-
-void CStringArray::SetAtGrow(int index, const CString& value) {
-    if (index >= size) SetSize(index + 1, -1);
-    data[index] = value;
-}
-
-// `count` empty strings at `index` (the tail moved up bytewise).
-void CStringArray::InsertEmpty(int index, int count) {
-    if (index >= size) {
-        SetSize(index + count, -1);
-    } else {
-        int oldSize = size;
-        SetSize(size + count, -1);
-        std::memmove(static_cast<void*>(data + index + count), data + index,
-                     static_cast<std::size_t>(oldSize - index) * sizeof(CString));
-        ConstructElements(data + index, count);
-    }
-}
-
-void CStringArray::InsertAt(int index, const CString& value, int count) {
-    InsertEmpty(index, count);
-    while (count--) data[index++] = value;
-}
-
-void CStringArray::RemoveAt(int index, int count) {
-    int moveCount = size - (index + count);
-    DestructElements(data + index, count);
-    if (moveCount)
-        std::memmove(static_cast<void*>(data + index), data + index + count,
-                     static_cast<std::size_t>(moveCount) * sizeof(CString));
-    size -= count;
-}
-
 void CStringArray::Serialize(CArchive* ar) {
     if (!ar->IsLoading()) {
         ar->WriteCount(static_cast<unsigned long>(size));
@@ -263,17 +209,13 @@ constinit CRuntimeClass g_classCWordArray = /*00796F20*/ {"CWordArray", 0x14, 0,
 constinit CRuntimeClass g_classCDWordArray = /*00797140*/ {"CDWordArray", 0x14, 0, &CreateCDWordArray, &kClassCObject, nullptr};
 constinit CRuntimeClass g_classCByteArray = /*00797198*/ {"CByteArray", 0x14, 0, &CreateCByteArray, &kClassCObject, nullptr};
 
-// The arrays' compiled tables in place (CStringArray, CWordArray,
-// CDWordArray, CByteArray and CUIntArray): 0 GetRuntimeClass (the class's record), 1 the
-// deleting destructor, 2 Serialize (CUIntArray's is CObject's, empty).
-template <typename Self, typename Array, const CRuntimeClass* kClass, bool kSerializes = true>
+// The arrays' compiled tables in place (CStringArray, CWordArray, CDWordArray and CByteArray): 0 GetRuntimeClass
+// (the class's record), 1 the deleting destructor, 2 Serialize.
+template <typename Self, typename Array, const CRuntimeClass* kClass>
 struct ArrayTable : ei::CompiledTag<Self> {
     virtual const CRuntimeClass* GetRuntimeClass() const { return kClass; }                   // 0
     virtual void* DeleteScalar(unsigned flags) { return This()->DeletingDestructor(flags); }  // 1
-    virtual void Serialize(CArchive& archive) {                                               // 2
-        if constexpr (kSerializes) This()->Serialize(&archive);
-        else static_cast<void>(archive);
-    }
+    virtual void Serialize(CArchive& archive) { This()->Serialize(&archive); }                // 2
 
 private:
     Array* This() { return this->template ObjectAs<Array>(); }
@@ -282,7 +224,6 @@ struct StringArrayTable final : ArrayTable<StringArrayTable, CStringArray, &g_cl
 struct WordArrayTable final : ArrayTable<WordArrayTable, CWordArray, &g_classCWordArray> {};
 struct DWordArrayTable final : ArrayTable<DWordArrayTable, CDWordArray, &g_classCDWordArray> {};
 struct ByteArrayTable final : ArrayTable<ByteArrayTable, CByteArray, &g_classCByteArray> {};
-struct UIntArrayTable final : ArrayTable<UIntArrayTable, CUIntArray, &kClassCUIntArray, false> {};
 
 } // namespace
 
@@ -296,6 +237,5 @@ void* CStringArray::Vtable() { return StringArrayTable::Vtable(); }
 void* WordArrayClass::Vtable() { return WordArrayTable::Vtable(); }
 void* DWordArrayClass::Vtable() { return DWordArrayTable::Vtable(); }
 void* ByteArrayClass::Vtable() { return ByteArrayTable::Vtable(); }
-void* UIntArrayClass::Vtable() { return UIntArrayTable::Vtable(); }
 
 } // namespace mfc::impl

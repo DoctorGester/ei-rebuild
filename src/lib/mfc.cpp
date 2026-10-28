@@ -16,26 +16,6 @@
 namespace mfc {
 
 namespace {
-// The classes here share their layouts with the implementations (mfc_string.h, mfc_file.h,
-// mfc_time.h, mfc_coll.h, mfc_archive.h), which are what the registered addresses run.
-impl::CString* Impl(CString* s) { return reinterpret_cast<impl::CString*>(s); }
-const impl::CString* Impl(const CString* s) { return reinterpret_cast<const impl::CString*>(s); }
-} // namespace
-
-// ei_vectors (EI_VECTORS_REPLAY) has its own CString and CPlex core (tests/vectors/replay_mfc.cpp).
-#ifndef EI_VECTORS_REPLAY
-// _afxPchNil: the shared empty-string data pointer.
-CString::CString() : data_(impl::PchNil()) {}
-
-CString::CString(const char* s) { ::new (static_cast<void*>(this)) impl::CString(s); }
-CString::CString(const char* s, int length) { ::new (static_cast<void*>(this)) impl::CString(s, length); }
-CString::CString(const CString& s) { ::new (static_cast<void*>(this)) impl::CString(*Impl(&s)); }
-CString::~CString() { Impl(this)->~CString(); }
-const CString& CString::operator=(const char* s) { *Impl(this) = s; return *this; }
-const CString& CString::operator=(const CString& s) { *Impl(this) = *Impl(&s); return *this; }
-#endif
-
-namespace {
 impl::CFile* Impl(CFile* file) { return reinterpret_cast<impl::CFile*>(file); }
 impl::CFileFind* Impl(CFileFind* find) { return reinterpret_cast<impl::CFileFind*>(find); }
 const impl::CFileFind* Impl(const CFileFind* find) { return reinterpret_cast<const impl::CFileFind*>(find); }

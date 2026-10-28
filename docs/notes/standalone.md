@@ -502,7 +502,7 @@ kinds given.
     base pointer is a named range, game.exe's data holds no pointer into one, and every record derives from CObject
     (whose record the 5 .data ones point at, as do all the others), so the first name needed the whole tree, and each
     create function it points at had to be ours (the check compares the registration): the ten that were unported
-    (CDC, CGdiObject, CMenu, CTempMenu, CWnd, CTempWnd, the four arrays) are small ports registered at their
+    (CDC, CGdiObject, CMenu, CTempMenu, CWnd, CTempWnd, the four arrays; C20o dropped the CMenu, CTempMenu and CTempWnd ones) are small ports registered at their
     addresses with a row in config/extra_function_sizes.csv and src/hook/function_sizes.inc (nothing calls them in
     the game: `unreached` in the coverage); the 5 initialisers that called AfxClassInit with a record's address
     (`push offset; call 00700674`, the list holds the first instruction of each, a jump to the body) are ported on the
@@ -783,7 +783,8 @@ kinds given.
       007CAA88, 007CAA8C (nothing fills them in the image) and _afxDBCS 007CAA98 (its one reader in game.exe,
       _AfxCbtFilterHook 00704BE6, is not ported). C18r added the objects hand code reads too, whose initialisers are
       plain library calls: the temporary objects' fixed allocators (mfc_gdi.h: g_tempDCAlloc 007C8D18,
-      g_tempGdiObjectAlloc 007C8CF0; mfc_window.h: g_tempWndAlloc 007CA940, g_tempMenuAlloc 007CAAA8) and the four
+      g_tempGdiObjectAlloc 007C8CF0; the temporary windows' 007CA940 and menus' 007CAAA8 went in C20o: their classes were
+      never made, tools/gen_static_init.py's UNUSED_INITIALISERS leaves both initialisers and exit functions out) and the four
       static windows (g_wndTop 007CAA28, g_wndBottom 007CA9E8, g_wndTopMost 007CA9A8, g_wndNoTopMost 007CA968).
     - **The MFC and CRT objects (C18r, 41 -> 6)**: the CRT's allocator state is named in crt.cpp: STLport's node
       allocator (`g_nodeFreeLists` 0079B224, 16 lists by 8-byte class, `g_nodeHeapSize` 0079B264, `g_chunkStart` /
@@ -1348,7 +1349,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     are real classes.
     The save trace reads the image's memory stream writes through `g_memoryStreamWriteObserver` (called by slot 2
     with its return address); game.exe's run still takes the Write slots.
-  - **The library kind**: MFC's CStringArray, CWordArray, CDWordArray, CByteArray, CUIntArray (mfc_coll.cpp's
+  - **The library kind**: MFC's CStringArray, CWordArray, CDWordArray, CByteArray (mfc_coll.cpp's
     ArrayTable) and CMapPtrToPtr (mfc_handle_map.cpp), slot 0 returning our CRuntimeClass record; the simple
     exceptions (CResourceException, CUserException, CMemoryException, CNotSupportedException) and
     CArchiveException (mfc_exception.cpp); the old iostream's streambuf, ios and ostream-for-ios tables
@@ -1379,8 +1380,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     CMapPtrToPtr::GetNextAssoc (the image's maps are never destroyed; DeleteTemp deletes each temporary object
     through its slot 1, the CTempDC / CTempGdiObject destructors above).
   - **Windows and threads**: mfc_window.h's CmdTargetTable declares CCmdTarget's 20 slots (3-19 unported; 4 and 10
-    the class's own); WndTable (CWnd, CTempWnd: 46 slots, only the destructors ported), MenuTable (CMenu,
-    CTempMenu: the destructors unported, they need the menu handle map) and WinThreadTable (31 slots: the destructor
+    the class's own); WndTable (CWnd: 46 slots, only the destructor ported; CTempWnd, CMenu and CTempMenu went in C20o, never made) and WinThreadTable (31 slots: the destructor
     and Delete ported; WinThread::Delete now deletes through DeletingDestructor). Retired with no class of ours:
     CWinApp, CCommandLineInfo, CRecentFileList, CCmdUI, CTestCmdUI, _AFX_WIN_STATE and the six state records
     (_AFX_CTL3D_STATE / _THREAD, CThreadData, _AFX_THREAD_STATE, AFX_MODULE_STATE, AFX_MODULE_THREAD_STATE,
@@ -1798,8 +1798,7 @@ the `--no-hooks` suite) keeps the registry.
 The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's constructor 0070D654 has no caller).
 - **CString** (mfc_string, `mfc::impl::CString`, `CFixedAlloc`, the five string pools 007C8B08..007C8B80 and
   007C8D18). 00700EFE is MakeLower (it calls `_mbslwr`); 00700EEC is the real MakeUpper, unreached.
-- **Collections**: mfc_coll (CStringArray, one `PlainArray` for CWordArray / CDWordArray / CByteArray / CUIntArray;
-  ini_file's "DWordArray" 6FF933 is CUIntArray). CArray (mfc_array, `ArrayAbi<T, Policy>`): the element policy is what
+- **Collections**: mfc_coll (CStringArray, one `PlainArray` for CWordArray / CDWordArray / CByteArray). CArray (mfc_array, `ArrayAbi<T, Policy>`): the element policy is what
   the instantiation's ConstructElements does after MFC's memset (nothing, an inlined constructor, or
   `EachElements<T, Init, Destroy>`). CList / CMap / CPlex (mfc_list: `ListAbi`, `MapAbi`, HashKey `key >> 4`); node
   sizes from each NewNode's CPlex::Create. FreeDataChain returns 0: the original leaves the caller's EAX, which

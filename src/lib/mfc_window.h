@@ -77,9 +77,9 @@ public:
     CWnd* windowControl;
 };
 
-// CWnd (0x3C bytes). Game.exe's tables CWnd and CTempWnd (mfc_window.cpp) have 46 slots (MFC 4.2's CWnd
-// virtuals in declaration order), all unported but the destructor: only MFC's four static windows are made, with no
-// handle, and destroyed without a virtual call; CTempWnd is never made.
+// CWnd (0x3C bytes). Game.exe's table CWnd has 46 slots (MFC 4.2's CWnd virtuals in declaration order), all
+// unported but the destructor: only MFC's four static windows are made, with no handle, and destroyed without a
+// virtual call.
 class CWnd : public CCmdTarget {
 public:
     // CWnd(HWND) with no window.
@@ -141,21 +141,6 @@ static_assert(sizeof(CWnd) == 0x3C);
 // ~CWnd as the generated exit functions reach it at its address on MFC's four static windows.
 void DestroyStaticWindow(CWnd* window);
 
-// CMenu (8 bytes): CObject's slots, DrawItem and MeasureItem (empty); m_hMenu. Their create functions are the
-// only makers, and nothing calls those.
-class CMenu : public CObject {
-public:
-    CMenu() = default;
-    // The menu destroyed through MFC's menu handle map, which the image does not have; unported.
-    ~CMenu() override;
-    const CRuntimeClass* GetRuntimeClass() const override;
-    virtual void DrawItem(DRAWITEMSTRUCT*) {}
-    virtual void MeasureItem(MEASUREITEMSTRUCT*) {}
-
-    HMENU menu = nullptr;
-};
-static_assert(sizeof(CMenu) == 8);
-
 // AfxMessageBox(LPCTSTR, UINT type, UINT helpId): MessageBoxA's answer. MB_ICONEXCLAMATION is added
 // to an OK, OK / Cancel, Yes / No / Cancel or Yes / No box that names no icon.
 int MessageBoxText(const char* text, unsigned type, unsigned helpId);
@@ -163,12 +148,9 @@ int MessageBoxText(const char* text, unsigned type, unsigned helpId);
 // when it is missing; MFC only traces that). A help id of -1 means `id`.
 int MessageBoxId(unsigned promptId, unsigned type, unsigned helpId);
 
-// The fixed allocators of the temporary windows (CTempWnd) and menus (CTempMenu), 64 to a block, and MFC's
-// four static windows (placement constants: HWND_TOP 0, HWND_BOTTOM 1, HWND_TOPMOST -1, HWND_NOTOPMOST -2),
+// MFC's four static windows (placement constants: HWND_TOP 0, HWND_BOTTOM 1, HWND_TOPMOST -1, HWND_NOTOPMOST -2),
 // built and destroyed by game.exe's static initialisers and their guarded exit functions (the names are
 // tools/gen_static_init.py's GENERATED_NAMES).
-extern lib::StaticObject<CFixedAlloc> g_tempWndAlloc;
-extern lib::StaticObject<CFixedAlloc> g_tempMenuAlloc;
 extern lib::StaticObject<CWnd> g_wndTop;
 extern lib::StaticObject<CWnd> g_wndBottom;
 extern lib::StaticObject<CWnd> g_wndTopMost;

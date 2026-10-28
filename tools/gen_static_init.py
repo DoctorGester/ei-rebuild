@@ -482,7 +482,7 @@ class Interpreter:
 
 
 KIND_NAMES = [   # what the summary calls an initialiser, by its operations (first match)
-    ('registered', lambda k, n: k == ['cdecl'] and n['self']),
+    ('ported by hand', lambda k, n: k == ['cdecl'] and n['self']),
     ('guarded atexit', lambda k, n: k == ['once', 'atexit']),
     ('stores', lambda k, n: set(k) == {'store'}),
     ('float fold', lambda k, n: set(k) <= {'float', 'store'} and 'float' in k),
@@ -554,18 +554,14 @@ GENERATED_NAMES = {
     0x007C8BC0: ('mfc::impl::g_simpleUserException', 'lib/mfc_static_objects.h'),
     0x007C90BC: ('mfc::impl::g_baseModuleStateLocal', 'lib/mfc_static_objects.h'),
     0x007C90C0: ('mfc::impl::g_threadStateLocal', 'lib/mfc_static_objects.h'),
-    0x007C9138: ('mfc::impl::g_tempWndAllocExitGuard', 'lib/mfc_static_objects.h'),
     0x007CAA24: ('mfc::impl::g_staticWindowsExitGuards', 'lib/mfc_static_objects.h'),
     0x007CAA84: ('mfc::impl::g_ctl3dThreadLocal', 'lib/mfc_static_objects.h'),
     0x007CAA88: ('mfc::impl::g_ctl3dStateLocal', 'lib/mfc_static_objects.h'),
     0x007CAA8C: ('mfc::impl::g_winStateLocal', 'lib/mfc_static_objects.h'),
     0x007CAA98: ('mfc::impl::g_afxDbcs', 'lib/mfc_static_objects.h'),
-    0x007CAAA0: ('mfc::impl::g_tempMenuAllocExitGuard', 'lib/mfc_static_objects.h'),
     # C18r: MFC's fixed allocators and static windows, which hand code reads too (mfc_gdi.cpp, mfc_window.cpp).
     0x007C8CF0: ('mfc::impl::g_tempGdiObjectAlloc', 'lib/mfc_gdi.h'),
     0x007C8D18: ('mfc::impl::g_tempDCAlloc', 'lib/mfc_gdi.h'),
-    0x007CA940: ('mfc::impl::g_tempWndAlloc', 'lib/mfc_window.h'),
-    0x007CAAA8: ('mfc::impl::g_tempMenuAlloc', 'lib/mfc_window.h'),
     0x007CA968: ('mfc::impl::g_wndNoTopMost', 'lib/mfc_window.h'),
     0x007CA9A8: ('mfc::impl::g_wndTopMost', 'lib/mfc_window.h'),
     0x007CA9E8: ('mfc::impl::g_wndBottom', 'lib/mfc_window.h'),
@@ -785,6 +781,15 @@ def hand_literals():
 STALE_REVIEWED = []   # REVIEWED_NEAR entries that no longer fit (unread_objects, then generate)
 UNREAD_EXITS = {}   # initialiser -> the exit function left out with its unread object (C18k)
 
+# Initialisers left out whole, with their exit function: they build and register the destruction of an object
+# no code of ours reaches (C20o: MFC's fixed allocators of the temporary windows and menus, whose classes
+# CTempWnd and CTempMenu are never made). Each is the constructor call and the atexit; the object's range and the
+# exit function's guard byte are in no named range or source, and nothing reads them.
+UNUSED_INITIALISERS = {
+    0x0070D3CE: 'CTempWnd and its allocator 007CA940 (guard byte 007C9138)',
+    0x0070DD0B: 'CTempMenu and its allocator 007CAAA8 (guard byte 007CAAA0)',
+}
+
 
 def unread_objects(img, decoded, exits):
     """[(begin, size, initialiser)] of the objects nothing but their initialiser reaches: each the contiguous stores
@@ -930,6 +935,9 @@ def leave_out(decoded, ranges, exits=None):
             if exits and a in exits and line.strip() == f'd.AtExit({hexa(exits[a])});':
                 LEFT_OUT[a] = LEFT_OUT.get(a, 0) + 1
                 continue
+            if a in UNUSED_INITIALISERS and line.strip().startswith('d.'):
+                LEFT_OUT[a] = LEFT_OUT.get(a, 0) + 1
+                continue
             written = written_cells(line)
             inside = [c for c in written or () if any(b <= c < e for b, e in ranges)]
             if not inside:
@@ -958,6 +966,9 @@ def generate(img):
     if bad:
         return None, None, None, [f'not decoded (port by hand or add a pattern): {b}' for b in bad]
     unread = unread_objects(img, decoded, exits)
+    for fn, _, _, _, initialisers in exits:
+        if len(initialisers) == 1 and initialisers[0] in UNUSED_INITIALISERS:
+            UNREAD_EXITS[initialisers[0]] = fn
     dropped = set(UNREAD_EXITS.values())
     exits = [e for e in exits if e[0] not in dropped]
     ranges = [(b, e) for b, e, _ in named_ranges()] + [(lo, lo + n) for lo, n, _ in unread]
