@@ -5066,3 +5066,11 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C38c"]
 note = "C38c left: free getters whose names clash with a class member or are called qualified (camera::CellSize, Cursor, ItemManager, Map, World, PanelOffset, VolumeSettingA/B, MovieVolumeSetting, LightLevelsSetting/Period, CurrentWorldTick in tests/vectors), and out-of-line member getters of the form T C::Name() { return field_; } (CParty::ItemConstructor / SpellConstructor / ItemFactory / SpellManager, CUnitServer::TamingStage, CWorldClient::TextureManager / ClientParticleManager, CEngineObject::ManagerContext, CUnit::IsDead / Radius ...: make the field public, callers read it; keep the virtual ones). Scripts: C38c/batch2.py as a base (scratchpad C38c)."
+
+[[ticket]]
+id = "C36c"
+title = "Written-only pad members left after C36a (SearchNode, ChunkArchive::Ref, SectorBox, TerrainMaterial and others)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C36a"]
+note = "Found by C36a. Members named unused_* in in-process types that are written and never read (SearchNode::unused_13, Ref::unused_01, SectorBox::unused_2C, TerrainMaterial::unused_28, ...): grep each, drop the written-only ones with their writes; keep any in file / save / packet / chunk records or read by the vectors from game.exe memory, and list them with the reason. Skip the R27 files (device*, dx_surface*, texture*, ui_surface_*, pixel_formats, renderer_gamma, directdraw_holder, src/render). Goldens must stay the same."
