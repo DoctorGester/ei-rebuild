@@ -177,8 +177,8 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     Clear();
     map = aiMap;
     const float scale = (-0.125f /*0073FEB0*/);
-    const int newWidth = 1 - static_cast<int>(gamecrt::Ftol(sizeX * scale));
-    const int newHeight = 1 - static_cast<int>(gamecrt::Ftol(sizeY * scale));
+    const int newWidth = 1 - static_cast<int>(libcrt::Ftol(sizeX * scale));
+    const int newHeight = 1 - static_cast<int>(libcrt::Ftol(sizeY * scale));
     if (width != newWidth || height != newHeight) {
         delete[] cells;
         delete[] rows;

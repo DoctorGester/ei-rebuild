@@ -416,7 +416,7 @@ void ClientBase::AddServer(ServerEntry* entry) {
 void ClientBase::Join(const NetAddress* address, const GrowingBuffer* data) {
     if (joinState_ == kAsking && SameAddress(address, &host_)) return;
     host_ = *address;
-    std::uint32_t id = static_cast<std::uint32_t>(gamecrt::rand()) << 16;
+    std::uint32_t id = static_cast<std::uint32_t>(libcrt::Rand()) << 16;
     id |= gameapi::GetTickCount() & 0xFFFF;
     joinId_ = id;
     joinState_ = kAsking;

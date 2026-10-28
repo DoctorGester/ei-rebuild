@@ -102,7 +102,7 @@ void SetAttributesAndSkills(UnitStats* stats, const Prototype* prototype, const 
     stats->attributes[0] = RoundToByte(prototype->attributes01);
     stats->attributes[1] = RoundToByte(prototype->attributes01);
     stats->attributes[2] = RoundToByte(prototype->attribute2);
-    for (int i = 0; i < 3; ++i) stats->skills[3 + i] = static_cast<std::uint8_t>(gamecrt::Ftol(prototype->skills3to5[i]));
+    for (int i = 0; i < 3; ++i) stats->skills[3 + i] = static_cast<std::uint8_t>(libcrt::Ftol(prototype->skills3to5[i]));
 }
 
 // The body slots from the model: a slot with a share is working, with its type and vital mask

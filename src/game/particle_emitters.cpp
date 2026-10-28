@@ -313,7 +313,7 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
             DebugMessage(NoCarrierMessage());
             return 0;
         }
-        int count = static_cast<int>(gamecrt::Ftol(D(AbsBits(size)) * D(EI_TEN)));
+        int count = static_cast<int>(libcrt::Ftol(D(AbsBits(size)) * D(EI_TEN)));
         if (count < 1) count = 1;
         elements.resize(count);
         PlaceModifierPoints(this);
@@ -527,7 +527,7 @@ int CParticleSource::UpdatePortal(Particle* p) {
 }
 
 // Portal: |size| * 10 tries per tick (truncated by the game's _ftol).
-void CParticleSource::TickPortal(ParticleElement*) { emitCount = static_cast<int>(gamecrt::Ftol(D(size) * D(EI_TEN))); }
+void CParticleSource::TickPortal(ParticleElement*) { emitCount = static_cast<int>(libcrt::Ftol(D(size) * D(EI_TEN))); }
 
 // Sparks: the spare ones (state set) get a random size once and are dropped after; the
 // rest fly along their drift, shrinking and slowing, with the alpha from kSparkAlpha.

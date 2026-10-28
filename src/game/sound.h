@@ -214,10 +214,6 @@ struct CSoundManager : CEngineObject {
     void* midiData1D0;                  // Miles memory (AIL_mem_alloc_lock)
     void* midiData1D4;                  // Miles memory
     miles::Sequence* midiSequence;
-    std::string midiName;
-    std::string midiNextName;
-    std::vector<std::int32_t> midiArray1E4;
-    std::vector<std::int32_t> midiArray1F4;
     SoundFader midiFader;
     CRITICAL_SECTION midiLock;
     HANDLE midiThread;                  // never started

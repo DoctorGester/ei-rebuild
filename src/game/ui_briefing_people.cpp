@@ -91,7 +91,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         // A person joins the speakers (at the end, once).
         auto entry = std::find_if(speakers_.begin(), speakers_.end(), [unit](const BriefingSpeaker& s) { return s.unit == unit; });
         if (entry != speakers_.end()) speakers_.erase(entry);
-        speakers_.push_back(BriefingSpeaker{unit, name, false});
+        speakers_.push_back(BriefingSpeaker{unit, name});
         auto* player = TheServerWorld()->GetPlayer(0);
         if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id_);
         if (auto* serverUnit = TheServerWorld()->FindUnit(unit->id_)) {

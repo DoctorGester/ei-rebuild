@@ -1027,7 +1027,7 @@ int CParticleSource::UpdateLink(Particle* p) {
     std::uint32_t absBits = Bits(&hr) & 0x7FFFFFFFu;
     float offCentre;
     std::memcpy(&offCentre, &absBits, sizeof(float));
-    std::uint32_t fade = gamecrt::Ftol((D(EI_LINK_HALF) - D(offCentre)) * D(EI_LINK_ALPHA));
+    std::uint32_t fade = libcrt::Ftol((D(EI_LINK_HALF) - D(offCentre)) * D(EI_LINK_ALPHA));
     std::uint32_t cap = static_cast<std::uint32_t>(elements[0].ticks);
     if (cap < fade) fade = cap;
     p->color = (fade << 24) | 0xFFFFFF;
@@ -1260,7 +1260,7 @@ namespace {
 int CParticleSource::EmitPoisonFog(Particle*, int) {
     if (!particles.empty()) return 0;
     float radius = size;
-    int n = static_cast<int>(gamecrt::Ftol((D(size) + D(EI_P_ONE)) / D(EI_FOG_CELL)));
+    int n = static_cast<int>(libcrt::Ftol((D(size) + D(EI_P_ONE)) / D(EI_FOG_CELL)));
     for (int i = -n; i <= n; ++i) {
         float row = static_cast<float>(static_cast<double>(i));
         float radiusSquared = static_cast<float>(D(radius) * D(radius));
@@ -1972,7 +1972,7 @@ int CParticleSource::EmitStench(Particle* p, int) {
         std::memcpy(&elements[0].pos, &offset, sizeof(Vector3));
         elements[0].gas.radius = gasRadius;
         elements[0].gas.height = carrierHeight;
-        int rate = static_cast<int>(gamecrt::Ftol(D(size) * D(EI_GAS_RATE) + D(EI_GAS_ROUND)));
+        int rate = static_cast<int>(libcrt::Ftol(D(size) * D(EI_GAS_RATE) + D(EI_GAS_ROUND)));
         emitCount = rate < 1 ? 1 : rate;
     }
     float radius = elements[0].gas.radius;
@@ -2067,7 +2067,7 @@ namespace {
 // The funnel's centre at height h (0..1): between ring k and k+1 (h * 5 rings), with the x and y blends in the
 // original's two orders; y is returned unrounded.
 double FunnelCentre(const CParticleSource* s, double h, float& x) {
-    int k = static_cast<int>(gamecrt::Ftol(h));
+    int k = static_cast<int>(libcrt::Ftol(h));
     if (k >= std::ssize(s->elements) - 2) k = std::ssize(s->elements) - 2;
     float f = static_cast<float>(h - static_cast<double>(k));
     float t = PickIfLess(f, 1.0f);
@@ -3084,7 +3084,7 @@ int CParticleSource::EmitFalling(Particle* p, int) {
     p->size = static_cast<float>(Unsigned(Next()) * EI_FALL_SIZE_SCALE + D(EI_FALL_SIZE_BASE));
     const ParticleElement& gust = elements[Next() % static_cast<std::uint32_t>(std::ssize(elements))];
     float reach = static_cast<float>(D(gust.wind.reach) * D(EI_FALL_HALF));
-    int spread = static_cast<int>(gamecrt::Ftol(static_cast<float>(ei::kRadiansPerDegree * EI_FALL_TEN)));
+    int spread = static_cast<int>(libcrt::Ftol(static_cast<float>(ei::kRadiansPerDegree * EI_FALL_TEN)));
     float turn = static_cast<float>(static_cast<double>(spread) * D(gust.wind.direction));
     float lowReach = static_cast<float>(-D(reach));
     float x = static_cast<float>(Unsigned(Next()) * (D(reach) - D(lowReach)) * EI_P_SCALE_1 + D(gust.wind.reach) + D(lowReach));
@@ -3106,7 +3106,7 @@ void CParticleSource::TickFalling(ParticleElement* e) {
     int age = e->wind.age;
     if (age == 0) {
         e->wind.reach = static_cast<float>(Unsigned(Next()) * EI_FALL_REACH_SCALE + D(EI_FALL_SIZE_BASE));
-        float whole = static_cast<float>(static_cast<double>(static_cast<int>(gamecrt::Ftol(static_cast<float>(ei::kRadiansPerDegree * EI_FALL_TURN)))));
+        float whole = static_cast<float>(static_cast<double>(static_cast<int>(libcrt::Ftol(static_cast<float>(ei::kRadiansPerDegree * EI_FALL_TURN)))));
         e->wind.direction = static_cast<float>(Unsigned(Next()) * D(whole) * EI_P_SCALE_1);
         age = e->wind.age;
     }
@@ -4053,7 +4053,7 @@ int CParticleSource::EmitNuke(Particle* p, int) {
     p->life = rise + 30;
     p->frame = elements[0].ticks / 3;
     std::uint32_t a = static_cast<std::uint32_t>(
-        static_cast<int>(gamecrt::Ftol(PowInline(D(4.0f /*0073CB24*/), elements[0].ticks) * 4.0 /*0073CCE8*/)));
+        static_cast<int>(libcrt::Ftol(PowInline(D(4.0f /*0073CB24*/), elements[0].ticks) * 4.0 /*0073CCE8*/)));
     if (a > 0xFF) a = 0xFF;
     p->state = 0;
     p->color = (a << 24) | 0xFFFFFF;

@@ -54,9 +54,9 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, float* const* corners) {
         if (y1 <= bound) y1 = bound;
         if (x0 < 0) x0 = 0;
         if (y0 < 0) y0 = 0;
-        int last = static_cast<int>(gamecrt::Ftol(width - 1.0f));
+        int last = static_cast<int>(libcrt::Ftol(width - 1.0f));
         if (last < x1) x1 = last;
-        last = static_cast<int>(gamecrt::Ftol(height - 1.0f));
+        last = static_cast<int>(libcrt::Ftol(height - 1.0f));
         if (last < y1) y1 = last;
         previous = lowest;
         if (y0 > y1) break;

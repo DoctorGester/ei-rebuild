@@ -9,22 +9,13 @@
 #include <cstring>
 #include <string>
 
-namespace gamecrt {
-
-int rand();
-// The harness's random trace (tests/verify) sees every rand() draw: the value and rand's return address. Null: none.
-using RandObserver = void (*)(int value, const void* caller);
-void SetRandObserver(RandObserver observer);
+// The game CRT's own functions (docs/notes/standalone.md section 2). Its string, case and class functions are the
+// host CRT's (std::strcmp and so on) or text_case.h's (UTF-8: no lead bytes, no class past ASCII).
+namespace libcrt {
 
 // The game's _ftol for a value computed in C++: the low 32 bits of the 64-bit
 // truncation (NaN and values out of the 64-bit range give 0), unlike a C++ cast to int.
 inline std::uint32_t Ftol(double value) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(value)); }
-
-} // namespace gamecrt
-
-// The game CRT's own functions (docs/notes/standalone.md section 2). Its string, case and class functions are the
-// host CRT's (std::strcmp and so on) or text_case.h's (UTF-8: no lead bytes, no class past ASCII).
-namespace libcrt {
 
 // MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part first):
 // equal elements end up in the same order as in the game (the host's qsort changed 105 image goldens). For the sorts
@@ -33,7 +24,10 @@ namespace libcrt {
 void Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*));
 
 // rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread (the game CRT's _tiddata::_holdrand),
-// a thread_local starting at 1.
+// a thread_local starting at 1. The harness's random trace (tests/verify) sees every draw through the observer: the
+// value and Rand's return address. Null: none.
+using RandObserver = void (*)(int value, const void* caller);
+void SetRandObserver(RandObserver observer);
 int Rand();
 void Srand(unsigned seed);
 // The calling thread's seed itself (the harness's digest and random trace read it).

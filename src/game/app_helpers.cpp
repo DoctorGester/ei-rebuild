@@ -30,7 +30,7 @@ const char* GetDiskFreeSpaceExText() { return "GetDiskFreeSpaceExA"; }
 using GetDiskFreeSpaceExFn = BOOL(__stdcall*)(const char*, ULARGE_INTEGER*, ULARGE_INTEGER*, ULARGE_INTEGER*);
 
 // rand() scaled to 0 .. n (rand() * n / 0x7FFF).
-int Scaled(int n) { return gamecrt::rand() * n / 0x7FFF; }
+int Scaled(int n) { return libcrt::Rand() * n / 0x7FFF; }
 
 } // namespace
 

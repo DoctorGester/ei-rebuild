@@ -134,7 +134,6 @@ public:
     PixelFormat depthFormat_;
     CTransformPipeline* pipeline_;
     std::list<Direct3DDeviceRecord> devices_;
-    std::list<PixelFormat> depthFormats_;   // one is picked
     std::list<PixelFormat> textureFormats_;
     // The values point at textureFormats_'s elements.
     std::unordered_map<int, PixelFormat*> formats_;

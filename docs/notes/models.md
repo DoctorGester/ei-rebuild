@@ -151,7 +151,7 @@ to 0x330), `Project` 006BFC80 (RET 4: the pipeline; the pass 006C6460: per quart
 004F29F0 against the quarter box (a ClipBounds prefix); records +0x00 projected, +0x10 outcode), `DrawSectorPage` 006BFF40
 (`__fastcall` for the thiscall with four stack arguments: context, unused, texture page, unused), `Light` / `ShadeSun` /
 `LightVertex` 006C3A00 / 006C36B0 / 006C31C0 (terrain_lighting.cpp; chop rounding through the game's `_controlfp` 006EBBB4,
-`gamecrt::Ftol`; Ensure lights through 006C3A00's address).
+`libcrt::Ftol`; Ensure lights through 006C3A00's address).
 
 Facts: terrain_sector.cpp is compiled with `float_control(precise, on)` (running x / y, heights in flight and bounding box
 intermediates are doubles; constants read from the exe; HeightAt taken unrounded through a double-returning forwarder to

@@ -51,7 +51,7 @@ void ClientSession::ApplyAwards() {
         }
         case 1: {
             GivenItems none;
-            player->Party()->Money() += static_cast<int>(gamecrt::Ftol(award->value_));
+            player->Party()->Money() += static_cast<int>(libcrt::Ftol(award->value_));
             player->GiveItems(&none, 0);
             none.clear();
             break;

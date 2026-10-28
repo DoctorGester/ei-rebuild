@@ -44,7 +44,7 @@ CItemConstructor* ConstructorOf(const ItemStock* stock) { return PartyOf(stock)-
 int RandomCount(int minCount, int maxCount) {
     if (minCount >= maxCount) return maxCount;
     int range = maxCount + 1 - minCount;
-    return gamecrt::rand() * range / 0x7FFF % range + minCount;
+    return libcrt::Rand() * range / 0x7FFF % range + minCount;
 }
 
 // STLport random_shuffle with the CRT generator: element i swaps with one at rand() % (i + 1).
@@ -52,7 +52,7 @@ template <typename T>
 void Shuffle(T* first, T* last) {
     if (first == last) return;
     for (T* i = first + 1; i != last; ++i) {
-        int r = gamecrt::rand() % (static_cast<int>(i - first) + 1);
+        int r = libcrt::Rand() % (static_cast<int>(i - first) + 1);
         T held = *i;
         *i = first[r];
         first[r] = held;
@@ -91,7 +91,7 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
             std::memcpy(&t, &bits, 4);
             chance = static_cast<int>(110.0f - t);
         }
-        int roll = gamecrt::rand() * 100 / 0x7FFF % 100 + 1;
+        int roll = libcrt::Rand() * 100 / 0x7FFF % 100 + 1;
         if (roll < chance) return *q;
     }
     return nullptr;
@@ -178,7 +178,7 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
         ctor->SetManager(nullptr);
         AddReference(item);
         if (item->type_ == 0x3006 && item->GetCategory() == 8)
-            item->count_ = static_cast<std::uint32_t>(gamecrt::rand() * 30 / 0x7FFF % 30 + 20);
+            item->count_ = static_cast<std::uint32_t>(libcrt::Rand() * 30 / 0x7FFF % 30 + 20);
         Output(out, item);
     }
     candidates.clear();
@@ -212,7 +212,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(e->record);
         int range = e->maxCount - e->minCount + 1;
-        ctor->count_ = gamecrt::rand() * range / 0x7FFF % range + e->minCount;
+        ctor->count_ = libcrt::Rand() * range / 0x7FFF % range + e->minCount;
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         AddReference(item);

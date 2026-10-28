@@ -48,7 +48,7 @@
 namespace {
 
 // The game's _ftol: truncating conversion, low 32 bits of the 64-bit result.
-int Ftol(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
+int Ftol(float value) { return static_cast<int>(libcrt::Ftol(value)); }
 
 bool IsZero(float value) {
     EI_NAN_AUDIT(value);

@@ -174,11 +174,11 @@ void SetupTornado(CParticleSource* s) {
     s->height = 0.2f;
     // The particle colour: 0x19 alpha, then the scene light's r, g, b (the delay field holds it).
     const float* light = SceneLightColor();
-    std::uint32_t color = gamecrt::Ftol(D(light[0]) * D(EI_COLOR_SCALE));
+    std::uint32_t color = libcrt::Ftol(D(light[0]) * D(EI_COLOR_SCALE));
     color = (color | 0x1900) << 8;
-    color |= gamecrt::Ftol(D(light[1]) * D(EI_COLOR_SCALE));
+    color |= libcrt::Ftol(D(light[1]) * D(EI_COLOR_SCALE));
     color <<= 8;
-    color |= gamecrt::Ftol(D(light[2]) * D(EI_COLOR_SCALE));
+    color |= libcrt::Ftol(D(light[2]) * D(EI_COLOR_SCALE));
     SetBits(&s->frameDelay, color);
     SetupTornadoRings(s);
     SetBits(&s->elements[0].funnel.height, 0x41400000 /*0073CB18*/);  // 12.0

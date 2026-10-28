@@ -3,22 +3,6 @@
 #include <cstddef>
 #include <intrin.h>
 
-namespace gamecrt {
-
-namespace {
-RandObserver g_randObserver;
-} // namespace
-
-void SetRandObserver(RandObserver observer) { g_randObserver = observer; }
-
-int rand() {
-    const int value = libcrt::Rand();
-    if (g_randObserver) g_randObserver(value, _ReturnAddress());
-    return value;
-}
-
-} // namespace gamecrt
-
 namespace game {
 
 // The release build's debug log writes nothing (its callers ignore the result).
@@ -112,6 +96,7 @@ void Qsort(void* base, std::size_t count, std::size_t width, Compare compare) {
 }
 
 namespace {
+RandObserver g_randObserver;
 // The seed rand advances: one per thread (the game CRT's _tiddata::_holdrand).
 unsigned& RandSeed() {
     thread_local unsigned seed = 1;
@@ -119,10 +104,14 @@ unsigned& RandSeed() {
 }
 } // namespace
 
+void SetRandObserver(RandObserver observer) { g_randObserver = observer; }
+
 int Rand() {
     unsigned& seed = RandSeed();
     seed = seed * 214013u + 2531011u;
-    return static_cast<int>((seed >> 16) & 0x7FFF);
+    const int value = static_cast<int>((seed >> 16) & 0x7FFF);
+    if (g_randObserver) g_randObserver(value, _ReturnAddress());
+    return value;
 }
 
 void Srand(unsigned seed) { RandSeed() = seed; }

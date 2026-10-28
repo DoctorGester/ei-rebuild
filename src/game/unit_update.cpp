@@ -126,8 +126,8 @@ void CUnit::SetFromStats(UnitStats* stats) {
     stats->Pack(this, Params());
     float curve = static_cast<float>(stats->HitPointCurve());
     float limit = ScaleHitPointsByEffects(this, curve);
-    packedVitals.maxHitPoints = static_cast<std::int16_t>(gamecrt::Ftol(limit));
-    packedVitals.hitPoints = static_cast<std::int16_t>(gamecrt::Ftol(stats->Reduce(limit)));
+    packedVitals.maxHitPoints = static_cast<std::int16_t>(libcrt::Ftol(limit));
+    packedVitals.hitPoints = static_cast<std::int16_t>(libcrt::Ftol(stats->Reduce(limit)));
 }
 
 int CUnit::Level() {

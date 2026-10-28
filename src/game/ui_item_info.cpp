@@ -47,10 +47,10 @@ float FloatOf(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatOf(T) = delete;
 
-int FtolOf(float value) { return static_cast<int>(gamecrt::Ftol(D(value))); }
+int FtolOf(float value) { return static_cast<int>(libcrt::Ftol(D(value))); }
 
 // _ftol of a value kept unrounded (a statistic's result).
-int Ftol(double value) { return static_cast<int>(gamecrt::Ftol(value)); }
+int Ftol(double value) { return static_cast<int>(libcrt::Ftol(value)); }
 
 constexpr float kPercentScale = 100.0f;
 constexpr float kStatBase = 25.0f;        // an attribute's neutral value

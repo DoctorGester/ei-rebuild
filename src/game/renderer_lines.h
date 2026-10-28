@@ -50,11 +50,9 @@ static_assert(sizeof(LinePacket) == 0x40);
 // A line list (line_batch.cpp): the figure parts' debug bounds and the world client's lists. The points sit
 // four to a packet; the unused points of the last packet repeat the last point.
 struct LineBatch {
-    int spare00;                             // -1 (the destructor); nothing reads it
     std::vector<LinePacket> packets;
     int count;                               // points
     std::uint32_t colour;
-    int spare1C;                             // nothing reads it
 
     // Appends the point (x, y, z; w 1), with a new packet when the last one is
     // full, and repeats it through the rest of its packet. Returns the new count.

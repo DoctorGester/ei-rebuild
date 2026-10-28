@@ -165,10 +165,10 @@ void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, i
 void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
     float x, y, depth;
     sprite->GetPlacement(&x, &y, &depth);
-    int bottom = static_cast<int>(gamecrt::Ftol(D(y) + D(10.0f /*0073BAAC*/)));
-    int right = static_cast<int>(gamecrt::Ftol(D(x) + D(20.0f /*0073CCF8*/)));
-    int top = static_cast<int>(gamecrt::Ftol(D(y) - D(25.0f /*0073E124*/)));
-    int left = static_cast<int>(gamecrt::Ftol(D(x) - D(20.0f /*0073CCF8*/)));
+    int bottom = static_cast<int>(libcrt::Ftol(D(y) + D(10.0f /*0073BAAC*/)));
+    int right = static_cast<int>(libcrt::Ftol(D(x) + D(20.0f /*0073CCF8*/)));
+    int top = static_cast<int>(libcrt::Ftol(D(y) - D(25.0f /*0073E124*/)));
+    int left = static_cast<int>(libcrt::Ftol(D(x) - D(20.0f /*0073CCF8*/)));
     map->AddRegion()->SetRect(left, top, right, bottom);
 }
 
@@ -248,7 +248,7 @@ void CGlobalMap::CreateScreen() {
         zones_.push_back(zoneTemplate);
         variable = str::Format("z.%s", zone->name.c_str());
         zones_[zoneCount_].link = -1;
-        zones_[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable.c_str()))));
+        zones_[zoneCount_].state = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable(variable.c_str()))));
         zones_[zoneCount_].name = zone->name;
         {
             std::string title;
@@ -388,7 +388,7 @@ void CGlobalMap::CreateScreen() {
     }
 
     // The clock: "<save_day>  <day>,  <h>:<mm>" under the allod's title.
-    int minutes = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable("gtime")) * D(60.0f /*0073F090*/)));
+    int minutes = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable("gtime")) * D(60.0f /*0073F090*/)));
     int day = minutes / 1440;
     minutes -= day * 1440;
     int hour = minutes / 60;
@@ -413,7 +413,7 @@ void CGlobalMap::CreateScreen() {
         CUiMesh* camp = AddSprite(0);
         camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
         SetTexture(camp, builder.Texture(3));
-        noCamp_ = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable("i.nocamp"))));
+        noCamp_ = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable("i.nocamp"))));
         if (noCamp_ == 1) camp->visible_ = 0;
         CUiMesh* left = AddSprite(0);
         left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
@@ -489,7 +489,7 @@ Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
 // A layer's texture frame: the fractional part of time * rate (stored).
 void SetFrameFraction(CEngineObject* layer, float time, float rate) {
     double v = D(time) * D(rate);
-    int whole = static_cast<int>(gamecrt::Ftol(v));
+    int whole = static_cast<int>(libcrt::Ftol(v));
     float fraction = static_cast<float>(v - static_cast<double>(whole));
     std::memcpy(&AsUiMesh(layer)->textureOffsetU_, &fraction, 4);
 }
@@ -546,10 +546,10 @@ void CGlobalMap::Update() {
             builder.Turn(sprite);
             float x, y, depth;
             sprite->GetPlacement(&x, &y, &depth);
-            int bottom = static_cast<int>(gamecrt::Ftol(D(y) + D(10.0f /*0073BAAC*/)));
-            int right = static_cast<int>(gamecrt::Ftol(D(x) + D(20.0f /*0073CCF8*/)));
-            int top = static_cast<int>(gamecrt::Ftol(D(y) - D(25.0f /*0073E124*/)));
-            int left = static_cast<int>(gamecrt::Ftol(D(x) - D(20.0f /*0073CCF8*/)));
+            int bottom = static_cast<int>(libcrt::Ftol(D(y) + D(10.0f /*0073BAAC*/)));
+            int right = static_cast<int>(libcrt::Ftol(D(x) + D(20.0f /*0073CCF8*/)));
+            int top = static_cast<int>(libcrt::Ftol(D(y) - D(25.0f /*0073E124*/)));
+            int left = static_cast<int>(libcrt::Ftol(D(x) - D(20.0f /*0073CCF8*/)));
             regions_[3 + i]->SetRect(left, top, right, bottom);
         }
     }

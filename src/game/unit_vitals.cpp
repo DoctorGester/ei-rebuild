@@ -450,7 +450,7 @@ bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, C
     float worthNew = static_cast<float>(LevelWorth(raised));
     double worthOld = LevelWorth(old);
     levels[index] = static_cast<std::uint8_t>(old + amount);
-    int cost = static_cast<int>(gamecrt::Ftol(worthNew - worthOld));
+    int cost = static_cast<int>(libcrt::Ftol(worthNew - worthOld));
     double total = static_cast<double>(cost) + stats->pendingExperience;
     stats->pendingExperience = static_cast<float>(total);
     if (total > kZero) {

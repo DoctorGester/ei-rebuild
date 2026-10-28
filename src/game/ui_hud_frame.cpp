@@ -186,7 +186,7 @@ void CHudTopPanel::Update() {
             double r2 = r * r;
             eased = 1.0f - (r2 + r2);
         }
-        offset_ = static_cast<int>(gamecrt::Ftol(static_cast<double>(travel_) * eased));
+        offset_ = static_cast<int>(libcrt::Ftol(static_cast<double>(travel_) * eased));
         EI_NAN_AUDIT(slide_);
         if (Bits(slide_) == 0x3F800000 || slide_ == 0.0f) sliding_ = 0;
         Layout();

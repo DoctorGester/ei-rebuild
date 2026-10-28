@@ -53,8 +53,8 @@ struct ArcPoint {
 };
 ArcPoint OnArc(int turn, float step, double radius) {
     const float angle = ArcAngle(turn, step);
-    return {static_cast<int>(gamecrt::Ftol(static_cast<float>(ArcCos(angle) * radius))),
-            static_cast<int>(gamecrt::Ftol(static_cast<float>(ArcSin(angle) * radius)))};
+    return {static_cast<int>(libcrt::Ftol(static_cast<float>(ArcCos(angle) * radius))),
+            static_cast<int>(libcrt::Ftol(static_cast<float>(ArcSin(angle) * radius)))};
 }
 
 // The hand of both panels: a small triangle pointing along +x from its first corner.

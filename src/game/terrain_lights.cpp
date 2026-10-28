@@ -188,10 +188,10 @@ void SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, Li
 
 void LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY,
                                     LightArea* area) {
-    int lastY = static_cast<int>(gamecrt::Ftol(maxY / CellSize() + 0.5f));
-    int lastX = static_cast<int>(gamecrt::Ftol(maxX / CellSize() + 0.5f));
-    int firstY = static_cast<int>(gamecrt::Ftol(minY / CellSize()));
-    int firstX = static_cast<int>(gamecrt::Ftol(minX / CellSize()));
+    int lastY = static_cast<int>(libcrt::Ftol(maxY / CellSize() + 0.5f));
+    int lastX = static_cast<int>(libcrt::Ftol(maxX / CellSize() + 0.5f));
+    int firstY = static_cast<int>(libcrt::Ftol(minY / CellSize()));
+    int firstX = static_cast<int>(libcrt::Ftol(minX / CellSize()));
     SetLightArea(firstX, firstY, lastX, lastY, sectorsX, sectorsY, area);
 }
 

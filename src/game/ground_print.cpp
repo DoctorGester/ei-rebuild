@@ -66,7 +66,7 @@ void Write(CStream* stream, T value) {
     stream->Write(&value, sizeof(T));
 }
 
-int RandomQuarter() { return gamecrt::rand() * 4 / 0x7FFF % 4; }
+int RandomQuarter() { return libcrt::Rand() * 4 / 0x7FFF % 4; }
 
 // The prints.db entry for the ground at (x, y), or null.
 template <typename Record>
@@ -294,7 +294,7 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     uvOffset_.y = static_cast<float>(index >> 1) * kQuarter + static_cast<float>(high >> 1) * kHalf;
     uvAngle_ = static_cast<float>(RandomQuarter()) * kHalfPi;
     int steps = x87::fistp(static_cast<float>(kTwoPi * kAngleMilli));
-    angle_ = static_cast<float>(gamecrt::rand() * steps / 0x7FFF % steps) * kMilli;
+    angle_ = static_cast<float>(libcrt::Rand() * steps / 0x7FFF % steps) * kMilli;
     SetTexture("bloodprints");
     int spread = life / 2;
     if (spread > kMaxSpreadTicks) spread = kMaxSpreadTicks;

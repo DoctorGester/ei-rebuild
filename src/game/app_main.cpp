@@ -608,12 +608,12 @@ bool RunPass() {
     if (g_recordingFrames) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up.
         const double frame = Step(1000.0f /*0073C34C*/ / static_cast<double>(options::TheOptions()->movieCapturingFps_));
-        elapsed = gamecrt::Ftol(std::ceil(frame));
+        elapsed = libcrt::Ftol(std::ceil(frame));
     }
     g_serverBacklog += elapsed;
     if (!client->IsLocalViewMode2()) g_clientSpeed = 1.0f;
     g_clientBacklog =
-        gamecrt::Ftol(Step(x87::FromUnsigned(elapsed) * g_clientSpeed) + static_cast<double>(static_cast<std::int32_t>(g_clientBacklog)));
+        libcrt::Ftol(Step(x87::FromUnsigned(elapsed) * g_clientSpeed) + static_cast<double>(static_cast<std::int32_t>(g_clientBacklog)));
     if (g_clientBacklog > kBacklogLimit) g_clientBacklog = 0;
 
     if (RunWorlds()) {

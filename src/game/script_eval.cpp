@@ -68,7 +68,7 @@ int RoundTimeOffset(int time, float extra) {
 
 // The game's _ftol: truncating conversion; out-of-range values keep the low 32 bits
 // of the 64-bit result.
-int Ftol(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
+int Ftol(float value) { return static_cast<int>(libcrt::Ftol(value)); }
 
 // Copies a float's bits (no FLD/FSTP round trip, so a signalling NaN is kept).
 void CopyFloat(float* dst, const float* src) { std::memcpy(dst, src, sizeof(float)); }

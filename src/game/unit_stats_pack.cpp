@@ -94,8 +94,8 @@ void UnitStats::Pack(CUnit*, UnitParams* params) {
     params->capacity = static_cast<std::int16_t>(RoundStored(capacity));
     params->movementKind = static_cast<std::uint8_t>(movementKind);
     for (int i = 0; i < 5; ++i) params->combat[i] = static_cast<std::uint8_t>(RoundStored(combat[i]));
-    params->damage = static_cast<std::uint8_t>(gamecrt::Ftol(damage));         // truncated
-    params->damageSpread = static_cast<std::uint8_t>(gamecrt::Ftol(damageSpread));
+    params->damage = static_cast<std::uint8_t>(libcrt::Ftol(damage));         // truncated
+    params->damageSpread = static_cast<std::uint8_t>(libcrt::Ftol(damageSpread));
     params->naturalWeapon = static_cast<std::uint8_t>(naturalWeapon);   // its low byte
     for (int i = 0; i < 6; ++i) {
         params->valuesB0[i] = static_cast<std::uint8_t>(RoundStored(valuesB0[i].current));

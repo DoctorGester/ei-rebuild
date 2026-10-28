@@ -99,7 +99,7 @@ inline void DivideMultiply(const float* a, const float* b, const float* c, float
 // The fireworks' fright level: _ftol(((float)timer / duration) * 250 + 50) with FILD / FIDIV,
 // unrounded until the game's _ftol truncates it.
 inline int FrightLevel(const int* timer, const int* duration) {
-    return static_cast<int>(gamecrt::Ftol(static_cast<double>(*timer) / *duration * 250.0f /*0073BF48*/ + 50.0f /*0074023C*/));
+    return static_cast<int>(libcrt::Ftol(static_cast<double>(*timer) / *duration * 250.0f /*0073BF48*/ + 50.0f /*0074023C*/));
 }
 
 // *out = (float)(*a * *b + *c), unrounded in between.
@@ -108,7 +108,7 @@ inline void MultiplyAdd(const float* a, const float* b, const float* c, float* o
 }
 
 // The game's _ftol of a float constant in memory.
-inline int FtolOf(const float* value) { return static_cast<int>(gamecrt::Ftol(*value)); }
+inline int FtolOf(const float* value) { return static_cast<int>(libcrt::Ftol(*value)); }
 
 // The factor rounded to float.
 inline void PowerToFloat(const float* damage, const float* effect, float* out) {
@@ -122,7 +122,7 @@ inline void PowerScaledToFloat(const float* damage, const float* effect, const f
 
 // The factor times *scale, truncated by the game's _ftol.
 inline int PowerScaledToInt(const float* damage, const float* effect, const float* scale) {
-    return static_cast<int>(gamecrt::Ftol(PowerFactor(damage, effect) * *scale));
+    return static_cast<int>(libcrt::Ftol(PowerFactor(damage, effect) * *scale));
 }
 
 // World virtual `slot` (thiscall on the world; x, y as the floats' bits): a ground height left unrounded in

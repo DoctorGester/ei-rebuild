@@ -72,7 +72,7 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
 src has no `EI_ORIGINAL` forwarder since C29 (from 1,426 at C13b2; the macro is the harness's only, so C29a dropped the
 always-zero counts from progress.py, dashboard_data.py, standalone_gaps.py (gone since C20 batch 6) and check_cleanup): our code calls every game function by name, the type
 puns the forwarders hid are `reinterpret_cast`s at the call, and the harness changes the image's behaviour through named seams
-(`IsaacRandom::SetSeedHook` / `SetDrawObserver`, `gamecrt::SetRandObserver`). The shared headers (`originals_<area>.h`),
+(`IsaacRandom::SetSeedHook` / `SetDrawObserver`, `libcrt::SetRandObserver`). The shared headers (`originals_<area>.h`),
 `gen_originals.py`, `check_forwarders.py`, `direct_calls.py`, `RedirectCode` / `CodeLink` and the vector replay's stand-ins went
 with them. What is left calls game.exe's own code in its runs: tests/verify (`harness_original.h`; each forwarder sits behind
 `ei::Standalone()` with our function on the other side) and record_crt.cpp's recorders. ei_vectors links the callers without
@@ -97,7 +97,7 @@ conversions follow (they keep the goldens and `ei_vectors` unchanged):
   or a float local is the FSTP.
 - Keep `x87::fsin` / `fcos` / `fexp` / `flog` / `fpatan` / `fistp` (their results are 64-bit significands; use them inside
   the expression so the compiler takes ST0 as it is: checked in the object code for `ClampPow`, `CircleScaled`, `WallScorchShape`).
-  `gamecrt::Ftol` is the game's `_ftol`, `libcrt::CiPow` the body of `_CIpow` (`_CIfmod` is std::fmod since C26), `x87::FromUnsigned` the FILD of
+  `libcrt::Ftol` is the game's `_ftol`, `libcrt::CiPow` the body of `_CIpow` (`_CIfmod` is std::fmod since C26), `x87::FromUnsigned` the FILD of
   an unsigned.
 - FCOM status: write the plain comparison the source had (rewrite guide rule 8; the NaN audit in "SSE2 build"); `x87::CompareStatus`
   is gone. An FLD / FSTP copy of a float quiets a signalling NaN; the rebuild's copies are plain (`std::memcpy` of the four bytes,

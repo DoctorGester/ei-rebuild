@@ -67,8 +67,8 @@ int NextFreeId(CBaseManager* m) {
         int range = limit - low;
         id = -1;
         for (int tries = 0; tries < 100000; ++tries) {
-            int r = gamecrt::rand() << 15;
-            r += gamecrt::rand();
+            int r = libcrt::Rand() << 15;
+            r += libcrt::Rand();
             int candidate = r % range + low;
             if (candidate == 0) continue;
             if (!m->objects_.contains(static_cast<unsigned>(candidate))) {

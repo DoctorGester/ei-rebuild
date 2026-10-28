@@ -43,7 +43,7 @@ constexpr int kWeaponCrossbow = 6;
 
 
 // rand() scaled into 0..n-1.
-int RandomBelow(int n) { return gamecrt::rand() * n / 0x7FFF % n; }
+int RandomBelow(int n) { return libcrt::Rand() * n / 0x7FFF % n; }
 
 const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
     return unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));

@@ -98,7 +98,7 @@ namespace {
 namespace {
 // _ftol of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
 // precision a double holds it exactly).
-int FtolQuotient(double a, double b) { return static_cast<int>(gamecrt::Ftol(a / b)); }
+int FtolQuotient(double a, double b) { return static_cast<int>(libcrt::Ftol(a / b)); }
 
 // Ticks of entry `index`'s `frames` (frameCount the whole animation, moment the moment of the action): the
 // zero-extended frame count stored as a float, divided by the unit's speed factor for the entry, truncated.

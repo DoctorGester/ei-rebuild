@@ -68,12 +68,12 @@ CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeap
 
 // _ftol of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
 // precision a double holds it exactly).
-int FtolQuotient(double a, double b) { return static_cast<int>(gamecrt::Ftol(a / b)); }
+int FtolQuotient(double a, double b) { return static_cast<int>(libcrt::Ftol(a / b)); }
 
 // The missile spell's delay in ticks: _ftol(sqrt(distanceSq) * 15.0 / flight - 3.0), on the FPU stack
 // throughout (double constants).
 int CastDelayTicks(double distanceSq, double flight) {
-    return static_cast<int>(gamecrt::Ftol(std::sqrt(distanceSq) * 15.0 / flight - 3.0));
+    return static_cast<int>(libcrt::Ftol(std::sqrt(distanceSq) * 15.0 / flight - 3.0));
 }
 
 // The spell a cast order's source names: a quick item's spell, or the unit's own. The boolean is false when a

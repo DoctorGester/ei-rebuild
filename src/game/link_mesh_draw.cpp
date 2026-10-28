@@ -195,11 +195,11 @@ bool CLinkMesh::LightPart(const std::string* name, const FigureLights* lights, C
 
     const std::uint32_t alphaByte = static_cast<std::uint32_t>(alpha) & 0xFF;
     if (material->flags_ & kMaterialKeepsSpecular) {
-        std::uint32_t packed = gamecrt::Ftol(material->colors.specular.x * kByteScale) | (alphaByte << 8);
+        std::uint32_t packed = libcrt::Ftol(material->colors.specular.x * kByteScale) | (alphaByte << 8);
         packed <<= 8;
-        packed |= gamecrt::Ftol(material->colors.specular.y * kByteScale);
+        packed |= libcrt::Ftol(material->colors.specular.y * kByteScale);
         packed <<= 8;
-        packed |= gamecrt::Ftol(material->colors.specular.z * kByteScale);
+        packed |= libcrt::Ftol(material->colors.specular.z * kByteScale);
         Fill(*speculars, packed);
     } else {
         Fill(*speculars, alphaByte << 24);

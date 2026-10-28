@@ -97,7 +97,7 @@ void LeaveGame() { TheGameFlow()->CloseSessions(); }
 
 void CUiItemStrip::SetTab(int tab) {
     float& position = position_[tab_];
-    position = static_cast<float>(static_cast<int>(gamecrt::Ftol(static_cast<double>(pending_) + position)));
+    position = static_cast<float>(static_cast<int>(libcrt::Ftol(static_cast<double>(pending_) + position)));
     tab_ = tab;
     for (int i = 0; i < 6; ++i) {
         float shade = i == tab ? 1.0f : 0.5f;
@@ -266,7 +266,7 @@ CItem* CForwardingStrip::ItemAt(int x, int y, int* cursor) {
     interface_->ScalePointFromScreenEntry(&point);
     // A hundred pixels per slot from x 50, plus the tab's scroll position.
     constexpr float kSlotsPerPixel = 0.01f;
-    int index = static_cast<int>(gamecrt::Ftol(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]));
+    int index = static_cast<int>(libcrt::Ftol(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]));
     RebuildList();
     if (index < 0 || index >= std::ssize(list_)) return nullptr;
     return list_[index];
@@ -278,11 +278,11 @@ void CUiItemStrip::SettleScroll() {
     float pending = pending_;
     EI_NAN_AUDIT(pending);
     if (pending < 0.0f) {
-        float fraction = static_cast<float>(pending - static_cast<double>(static_cast<int>(gamecrt::Ftol(pending))));
+        float fraction = static_cast<float>(pending - static_cast<double>(static_cast<int>(libcrt::Ftol(pending))));
         pending_ = fraction;
         if (fraction > -0.5f) pending_ = fraction - 1.0f;
     } else if (pending > 0.0f) {
-        float fraction = static_cast<float>(pending - static_cast<double>(static_cast<int>(gamecrt::Ftol(pending))));
+        float fraction = static_cast<float>(pending - static_cast<double>(static_cast<int>(libcrt::Ftol(pending))));
         pending_ = fraction;
         if (fraction < 0.5f) pending_ = fraction + 1.0f;
     }
@@ -347,7 +347,7 @@ int HeroSchoolSkill(UnitStats* stats, int school) {
 int HeroManaUnits(UnitStats* stats) {
     // The maximum is stored as a float before the division; the quotient is not rounded.
     float maximum = static_cast<float>(stats->ManaCurve());
-    return static_cast<int>(gamecrt::Ftol(maximum / stats->Period20()));
+    return static_cast<int>(libcrt::Ftol(maximum / stats->Period20()));
 }
 
 bool HeroCanUseSpell(UnitStats* stats, CSpell* spell) {
@@ -356,7 +356,7 @@ bool HeroCanUseSpell(UnitStats* stats, CSpell* spell) {
     if (HeroSchoolSkill(stats, spell->GetPrototype()->school) < required) ok = false;
     float cost = spell->manaCost_;
     int units = HeroManaUnits(stats);
-    if (units < static_cast<int>(gamecrt::Ftol(cost))) ok = false;
+    if (units < static_cast<int>(libcrt::Ftol(cost))) ok = false;
     return ok;
 }
 

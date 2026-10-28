@@ -497,7 +497,7 @@ int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
     } else {
         double value = self->stats.attackCategory;
         // _ftol, as the original truncates it.
-        base = static_cast<int>(gamecrt::Ftol(value));
+        base = static_cast<int>(libcrt::Ftol(value));
     }
     float scaled = static_cast<float>(static_cast<double>(base) * factor);
     return x87::fistp(scaled);

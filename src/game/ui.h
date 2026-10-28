@@ -1623,7 +1623,6 @@ struct SaveEntry {
     float gameTime_;                 // the "gtime" variable
     std::string map_;               // the map of the zone
     std::string zone_;
-    std::vector<std::string> stringArrays_[2];  // copied with the entry
     bool broken_;                    // no info.sav: titled "Error Save", no picture
 };
 

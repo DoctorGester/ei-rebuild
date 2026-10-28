@@ -49,7 +49,7 @@ shim, stub or workaround lands.
 
 - Strings, collections, files and archives are standard types and `src/lib`'s small classes (file_io.h, gdi.h,
   thread.h, calendar.h, hash_map.h, intro_sort.h): no MFC or STLport class of ours is left (C14a-d).
-- `gamecrt::`: the host CRT, family by family, except where a golden proves the game's differs (C26;
+- `libcrt::`: the host CRT, family by family, except where a golden proves the game's differs (C26;
   those go to C18r as our own CRT).
 
 ## Renderer

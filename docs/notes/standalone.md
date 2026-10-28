@@ -180,7 +180,7 @@ each step green on the goldens and removing a measured tie:
   (`app::GameMain`); the CRT's takers of function pointers (atexit, qsort, the eh vector iterators, ostream's
   manipulators) call what they are given. Until batch 6 `ei::CodeAddress` (src/standalone/image_code.cpp) gave the
   registration for an address, else a stub reporting `no code at`. The harness changes nothing by address in the
-  image (C29: named seams, `IsaacRandom::SetSeedHook` / `SetDrawObserver`, `gamecrt::SetRandObserver`). **No code cells** (C20 batch 1): game.exe's data keeps no code pointer
+  image (C29: named seams, `IsaacRandom::SetSeedHook` / `SetDrawObserver`, `libcrt::SetRandObserver`). **No code cells** (C20 batch 1): game.exe's data keeps no code pointer
   in the image; every dword of .rdata / .data that pointed into its code section is zero there. Until then
   `image_code_cells.inc` listed the ones the image fixed up to the registration of their value
   (21,636 at S18i; 825 at the end: the static initialiser list 748, the original's MFC message maps 35, the CRT's function
@@ -1067,7 +1067,7 @@ the `--no-hooks` suite) keeps the registry.
 - **atexit / exit**: the host CRT's (C26: image goldens the same): atexit 006E727B / _onexit 006E71FD register with
   `_crt_atexit` (the function converted to its code when registered), exit 006E8DA7 is std::exit, which runs that
   table before the host's terminators.
-- **rand / srand** (crt.cpp, kept): `gamecrt::rand` is VC6's LCG (seed * 214013 + 2531011, bits 16-30) on a
+- **rand / srand** (crt.cpp, kept): `libcrt::Rand` is VC6's LCG (seed * 214013 + 2531011, bits 16-30) on a
   thread_local seed (`libcrt::RandState()`; the image has no _getptd 006F00D1), `libcrt::Srand` sets it. It stays
   because the game's draws are the game's: the host's rand is another generator, every golden that draws (AI
   choices, damage, the ambience) would differ, and the harness's digest ("crt.rand") and random trace (the
@@ -1145,7 +1145,7 @@ the `--no-hooks` suite) keeps the registry.
     (std::fmod and so on).
   - _controlfp 006EBBB4 has no port of its own (C20r): its one caller, `SectorData::Light`, sets chop rounding on the x87
     word and restores it (SV10k below).
-  - `gamecrt::Ftol` (crt.h, inline, 146 callers) is no CRT code: _ftol's answer in C++, the low 32 bits of the 64-bit
+  - `libcrt::Ftol` (crt.h, inline, 146 callers) is no CRT code: _ftol's answer in C++, the low 32 bits of the 64-bit
     truncation (the compiler's int64 conversion). A cast to int differs past int's range (MSVC's gives 0x80000000
     where _ftol gives the low bits: 3e9 is 3000000000 as unsigned), and nothing bounds the callers' values (money,
     damage, the clock's elapsed milliseconds); ours equals _ftol 006E853C there and gives 0 for NaN / infinity /
