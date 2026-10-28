@@ -25,6 +25,142 @@ constexpr int kSoundManagerClassId = 0xE;
 constexpr const char* kSoundManagerClassNameAddress = "CSoundManager";
 const char* const kBackslash = "\\";
 
+constexpr int kListBlockSize = 10;
+constexpr int kFullVolume = 100;
+constexpr int kNoSwitch = 4;   // RequestStream's "switch at the current position"
+
+void ConstructFader(SoundFader& fader) {
+    fader.volume = kFullVolume;
+    fader.Recalc();
+    fader.SetHold(0);
+}
+
+constexpr int kVoiceCount = 15;
+constexpr int kWaveOutMode = 2;             // the sound option choosing the wave mapper over DirectSound
+constexpr int kWaveMapper = -1;
+constexpr unsigned kMaxRate = 44100;
+constexpr int kStreamThreadPriority = 15;   // THREAD_PRIORITY_TIME_CRITICAL
+// Miles preferences (AIL_set_preference).
+constexpr unsigned kPrefReverb = 0x28;
+constexpr int kReverbBufferBytes = 0x40000;
+constexpr unsigned kPrefMixerChannels = 1;
+constexpr int kMixerChannels = 0x12;
+constexpr unsigned kPrefUseWaveOut = 0xF;
+
+// The sound option (0 off: startup does not open sound; 2 the wave mapper).
+int SoundOption() { return options::TheOptions()->audio_; }
+
+constexpr int kStreamRate = 44100;
+constexpr int kStereo16 = 3;       // DIG_F_STEREO_16
+constexpr int kSignedPcm = 1;      // DIG_PCM_SIGN
+
+// The stream thread's (StreamThread).
+constexpr std::uint32_t kStreamPeriodMs = 100;
+constexpr int kNoHalfReady = -1;
+
+// PCMWAVEFORMAT, as Open fills it.
+struct PcmFormat {
+    std::uint16_t formatTag;
+    std::uint16_t channels;
+    std::uint32_t samplesPerSecond;
+    std::uint32_t bytesPerSecond;
+    std::uint16_t blockAlign;
+    std::uint16_t bitsPerSample;
+};
+static_assert(sizeof(PcmFormat) == 0x10);
+
+// The thread waited for and its handle closed.
+void EndThread(HANDLE& thread) {
+    gameapi::WaitForSingleObject(thread, INFINITE);
+    gameapi::CloseHandle(thread);
+    thread = nullptr;
+}
+
+constexpr std::uint32_t kSwitchHoldMs = 4000;
+constexpr int kNoLoop = 0x7FFFFFFF;
+constexpr int kNeverSwitch = -1;
+constexpr int kSeekKeep = -1;          // the decoder's "from where the file is"
+constexpr int kFullLevel = 0x7F;
+constexpr int kCentrePan = 0x40;
+constexpr std::uint8_t kSilence8 = 0x7F;
+constexpr int kStateSwitching = 2;
+constexpr int kSwitchAtEnd = 1;        // RequestStream's modes
+constexpr int kSwitchAfterFade = 2;
+const char* const kLoopMarkers = "Markers2";
+const char* const kSwitchMarkers = "Markers1";
+
+int CodecRead(CSoundManager* m, std::uint8_t* to, int bytes) { return m->streamCodec->process(m->streamFile, to, bytes); }
+void CodecSeek(CSoundManager* m, int position) { m->streamCodec->seek(m->streamFile, position); }
+// The codec's attribute `name` (one of its handles) of the open file.
+int CodecAttribute(CSoundManager* m, void* AsiStage::*name) {
+    return m->streamCodec->attribute(m->streamFile, m->streamCodec->*name);
+}
+void CodecClose(CSoundManager* m) {
+    if (m->streamFile == nullptr) return;
+    m->streamCodec->close(m->streamFile);
+    m->streamFile = nullptr;
+}
+void Silence(CSoundManager* m, std::uint8_t* to, int bytes) {
+    std::memset(to, m->streamSilence, static_cast<std::uint32_t>(bytes));
+}
+// `bytes` of the file; what it does not give is silence.
+void ReadOrSilence(CSoundManager* m, std::uint8_t* to, int bytes) {
+    int got = CodecRead(m, to, bytes);
+    if (got < bytes) Silence(m, to + got, bytes - got);
+}
+
+// The next file takes over: `bytes` of it (or silence) to `to`.
+void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
+    m->streamReadPosition = 0;
+    m->streamState = 0;
+    // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
+    const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName.c_str());
+    std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
+    if (str::Compare(m->nextName, game::kEmptyText) == 0 ||
+        m->streamReader.OpenFile(path.c_str(), &m->streamFileSize) == 0) {
+        Silence(m, to, bytes);
+        m->streamState = 0;
+        CodecClose(m);
+        gameapi::EnterCriticalSection(&m->nameLock);
+        m->streamName = game::kEmptyText;
+        gameapi::LeaveCriticalSection(&m->nameLock);
+        return;
+    }
+    m->streamState = 1;
+    gameapi::EnterCriticalSection(&m->nameLock);
+    m->streamName = m->nextName;
+    gameapi::LeaveCriticalSection(&m->nameLock);
+    m->soundRegistry.GetIntArray(m->streamName.c_str(), kSwitchMarkers, &m->markers);
+    m->soundRegistry.GetIntArray(m->streamName.c_str(), kLoopMarkers, &m->markers2);
+    m->streamLoopAt = !m->markers2.empty() ? m->markers2[0] : kNoLoop;
+    m->streamSwitchAt = kNeverSwitch;
+    CodecClose(m);
+    m->streamFile = m->streamCodec->open(m, reinterpret_cast<void*>(SoundStreamRead), 0);
+    int rate = CodecAttribute(m, &AsiStage::outputSampleRate);
+    int channels = CodecAttribute(m, &AsiStage::outputChannels);
+    int bits = CodecAttribute(m, &AsiStage::outputBits);
+    // DIG_F_16BITS_MASK with DIG_PCM_SIGN, or unsigned 8 bits; DIG_F_STEREO_MASK.
+    int format = 0;
+    int flags = 0;
+    if (bits == 16) {
+        format = 1;
+        flags = kSignedPcm;
+        m->streamSilence = 0;
+    } else {
+        m->streamSilence = kSilence8;
+    }
+    if (channels == 2) format |= 2;
+    gameapi::AIL_set_sample_type(m->streamSample, format, flags);
+    gameapi::AIL_set_sample_playback_rate(m->streamSample, rate);
+    gameapi::AIL_set_sample_volume(m->streamSample, kFullLevel);
+    gameapi::AIL_set_sample_pan(m->streamSample, kCentrePan);
+    m->streamFrameBytes = static_cast<std::int32_t>(static_cast<std::uint32_t>(bits * channels) >> 3);
+    m->streamBufferFrames = m->streamBufferSize / m->streamFrameBytes;
+    m->streamPosition = 0;
+    CodecSeek(m, kSeekKeep);
+    ReadOrSilence(m, to, bytes);
+}
+
 } // namespace
 
 const char* CSoundManager::GetClassName() { return kSoundManagerClassNameAddress; }
@@ -120,20 +256,6 @@ int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, in
 
 // --- Constructor, destructor, stream reset ---------------------------------------------------
 
-namespace {
-
-constexpr int kListBlockSize = 10;
-constexpr int kFullVolume = 100;
-constexpr int kNoSwitch = 4;   // RequestStream's "switch at the current position"
-
-void ConstructFader(SoundFader& fader) {
-    fader.volume = kFullVolume;
-    fader.Recalc();
-    fader.SetHold(0);
-}
-
-} // namespace
-
 // The stream reader, the strings and the archive are members the compiler constructs (here before the body;
 // the game constructs the stream reader first and the archive between the registries).
 CSoundManager::CSoundManager() {
@@ -192,51 +314,6 @@ void CSoundManager::ResetStream() {
 }
 
 // --- Open, Close, Reset ------------------------------------------------------------------
-
-namespace {
-
-constexpr int kVoiceCount = 15;
-constexpr int kWaveOutMode = 2;             // the sound option choosing the wave mapper over DirectSound
-constexpr int kWaveMapper = -1;
-constexpr unsigned kMaxRate = 44100;
-constexpr int kStreamThreadPriority = 15;   // THREAD_PRIORITY_TIME_CRITICAL
-// Miles preferences (AIL_set_preference).
-constexpr unsigned kPrefReverb = 0x28;
-constexpr int kReverbBufferBytes = 0x40000;
-constexpr unsigned kPrefMixerChannels = 1;
-constexpr int kMixerChannels = 0x12;
-constexpr unsigned kPrefUseWaveOut = 0xF;
-
-// The sound option (0 off: startup does not open sound; 2 the wave mapper).
-int SoundOption() { return options::TheOptions()->audio_; }
-
-constexpr int kStreamRate = 44100;
-constexpr int kStereo16 = 3;       // DIG_F_STEREO_16
-constexpr int kSignedPcm = 1;      // DIG_PCM_SIGN
-
-// The stream thread's (StreamThread).
-constexpr std::uint32_t kStreamPeriodMs = 100;
-constexpr int kNoHalfReady = -1;
-
-// PCMWAVEFORMAT, as Open fills it.
-struct PcmFormat {
-    std::uint16_t formatTag;
-    std::uint16_t channels;
-    std::uint32_t samplesPerSecond;
-    std::uint32_t bytesPerSecond;
-    std::uint16_t blockAlign;
-    std::uint16_t bitsPerSample;
-};
-static_assert(sizeof(PcmFormat) == 0x10);
-
-// The thread waited for and its handle closed.
-void EndThread(HANDLE& thread) {
-    gameapi::WaitForSingleObject(thread, INFINITE);
-    gameapi::CloseHandle(thread);
-    thread = nullptr;
-}
-
-} // namespace
 
 int CSoundManager::CloseStream() {
     if (streamFile != nullptr && streamCodec != nullptr) streamCodec->close(streamFile);
@@ -319,95 +396,6 @@ int __stdcall AddSoundDevice(void* guid, const char*, const char*, std::vector<i
 }
 
 // --- The stream's reader -----------------------------------------------------------------
-
-namespace {
-
-constexpr std::uint32_t kSwitchHoldMs = 4000;
-constexpr int kNoLoop = 0x7FFFFFFF;
-constexpr int kNeverSwitch = -1;
-constexpr int kSeekKeep = -1;          // the decoder's "from where the file is"
-constexpr int kFullLevel = 0x7F;
-constexpr int kCentrePan = 0x40;
-constexpr std::uint8_t kSilence8 = 0x7F;
-constexpr int kStateSwitching = 2;
-constexpr int kSwitchAtEnd = 1;        // RequestStream's modes
-constexpr int kSwitchAfterFade = 2;
-const char* const kLoopMarkers = "Markers2";
-const char* const kSwitchMarkers = "Markers1";
-
-int CodecRead(CSoundManager* m, std::uint8_t* to, int bytes) { return m->streamCodec->process(m->streamFile, to, bytes); }
-void CodecSeek(CSoundManager* m, int position) { m->streamCodec->seek(m->streamFile, position); }
-// The codec's attribute `name` (one of its handles) of the open file.
-int CodecAttribute(CSoundManager* m, void* AsiStage::*name) {
-    return m->streamCodec->attribute(m->streamFile, m->streamCodec->*name);
-}
-void CodecClose(CSoundManager* m) {
-    if (m->streamFile == nullptr) return;
-    m->streamCodec->close(m->streamFile);
-    m->streamFile = nullptr;
-}
-void Silence(CSoundManager* m, std::uint8_t* to, int bytes) {
-    std::memset(to, m->streamSilence, static_cast<std::uint32_t>(bytes));
-}
-// `bytes` of the file; what it does not give is silence.
-void ReadOrSilence(CSoundManager* m, std::uint8_t* to, int bytes) {
-    int got = CodecRead(m, to, bytes);
-    if (got < bytes) Silence(m, to + got, bytes - got);
-}
-
-// The next file takes over: `bytes` of it (or silence) to `to`.
-void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
-    m->streamReadPosition = 0;
-    m->streamState = 0;
-    // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
-    const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName.c_str());
-    std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
-    if (str::Compare(m->nextName, game::kEmptyText) == 0 ||
-        m->streamReader.OpenFile(path.c_str(), &m->streamFileSize) == 0) {
-        Silence(m, to, bytes);
-        m->streamState = 0;
-        CodecClose(m);
-        gameapi::EnterCriticalSection(&m->nameLock);
-        m->streamName = game::kEmptyText;
-        gameapi::LeaveCriticalSection(&m->nameLock);
-        return;
-    }
-    m->streamState = 1;
-    gameapi::EnterCriticalSection(&m->nameLock);
-    m->streamName = m->nextName;
-    gameapi::LeaveCriticalSection(&m->nameLock);
-    m->soundRegistry.GetIntArray(m->streamName.c_str(), kSwitchMarkers, &m->markers);
-    m->soundRegistry.GetIntArray(m->streamName.c_str(), kLoopMarkers, &m->markers2);
-    m->streamLoopAt = !m->markers2.empty() ? m->markers2[0] : kNoLoop;
-    m->streamSwitchAt = kNeverSwitch;
-    CodecClose(m);
-    m->streamFile = m->streamCodec->open(m, reinterpret_cast<void*>(SoundStreamRead), 0);
-    int rate = CodecAttribute(m, &AsiStage::outputSampleRate);
-    int channels = CodecAttribute(m, &AsiStage::outputChannels);
-    int bits = CodecAttribute(m, &AsiStage::outputBits);
-    // DIG_F_16BITS_MASK with DIG_PCM_SIGN, or unsigned 8 bits; DIG_F_STEREO_MASK.
-    int format = 0;
-    int flags = 0;
-    if (bits == 16) {
-        format = 1;
-        flags = kSignedPcm;
-        m->streamSilence = 0;
-    } else {
-        m->streamSilence = kSilence8;
-    }
-    if (channels == 2) format |= 2;
-    gameapi::AIL_set_sample_type(m->streamSample, format, flags);
-    gameapi::AIL_set_sample_playback_rate(m->streamSample, rate);
-    gameapi::AIL_set_sample_volume(m->streamSample, kFullLevel);
-    gameapi::AIL_set_sample_pan(m->streamSample, kCentrePan);
-    m->streamFrameBytes = static_cast<std::int32_t>(static_cast<std::uint32_t>(bits * channels) >> 3);
-    m->streamBufferFrames = m->streamBufferSize / m->streamFrameBytes;
-    m->streamPosition = 0;
-    CodecSeek(m, kSeekKeep);
-    ReadOrSilence(m, to, bytes);
-}
-
-} // namespace
 
 // The game leaves "from the beginning again" (a local) unwritten when neither a loop point nor a switch
 // point is in the buffer, and reads it in one such case: a switch at the file's end (mode 1) when the file

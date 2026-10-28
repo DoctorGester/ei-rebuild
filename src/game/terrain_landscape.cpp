@@ -36,6 +36,83 @@ int SectorBound(float value, int count) {
 // How many frames an unused sector stays cached before a load may reuse or free it.
 constexpr int kSectorAge = 240;
 
+constexpr int kSectorTiles = 16;          // tiles per sector row (2 x 2 cells each)
+
+// Appends tile (x, y) of the sector when it exists.
+void AddTile(terrain::VertexTiles& entry, int x, int y) {
+    if (x >= 0 && y >= 0 && x < kSectorTiles && y < kSectorTiles) entry.tiles[entry.count++] = y * kSectorTiles + x;
+}
+
+constexpr int kRow = 33;                  // vertices per sector row
+constexpr int kVertices = kRow * kRow;
+constexpr float kPi = 3.14159274f;
+constexpr double kPiDouble = 3.141592653589793;
+constexpr double kSineStep = 1.0 / 256;
+constexpr float kWaveStepTurn = 0.500250161f;
+constexpr int kRipples = 40;
+
+// Static initialisers: the zero position and identity rotation Create gives the landscape, and the waves'
+// scales (computed from other constants at startup, read from memory).
+constexpr Vector3 kZeroPosition = /*007C8988*/ {0.0f, 0.0f, 0.0f};
+constexpr Quaternion kIdentityRotation = /*007C8978*/ {1.0f, 0.0f, 0.0f, 0.0f};
+constexpr float kWaveHeightScale = /*007C8970*/ 0.3f;
+constexpr float kWaveDirectionScale = /*007C896C*/ 0.44879898f;   // pi / 7
+constexpr float kWaveSpeedScale = /*007C8968*/ -0.14959967f;      // that * -1/3
+
+constexpr int kPageTexture = 0xB;     // texture kind of the terrain pages
+constexpr int kPageMaterial = 0x12;   // material kind
+constexpr int kExtraPages = 2;        // <map>L00, <map>L01
+
+// The map file (<map>.MP in the map's archive): this header, the materials, a class per tile
+// texture, then the animated textures.
+#pragma pack(push, 1)
+struct MapHeader {
+    std::uint32_t magic;
+    float heightRange;
+    std::int32_t sectorsX;
+    std::int32_t sectorsY;
+    std::int32_t pages;
+    std::int32_t pageSize;
+    std::int32_t textures;
+    std::int32_t tileSize;
+    std::uint16_t materials;
+    std::uint32_t animated;
+};
+#pragma pack(pop)
+static_assert(sizeof(MapHeader) == 0x26);
+
+struct MapMaterial {
+    int kind;
+    Vector3 colour;
+    float opacity;
+    float light;                    // scales the colour
+    float priority;
+    float warpSpeed;                // (the name modding notes give it); copied, nothing reads it
+    std::uint8_t unused_20[0xC];    // not read
+};
+static_assert(sizeof(MapMaterial) == 0x2C);
+
+struct MapAnimatedTexture {
+    std::uint16_t texture;
+    std::uint16_t frames;
+};
+
+constexpr std::uint32_t kMapMagic = 0xCE4AF672;
+constexpr std::uint32_t kMaterialDwords = sizeof(MapMaterial) / 4;
+constexpr int kSectorCells = 32;
+constexpr int kExtraTextures = 16;      // the two extra pages' textures, after the map's own
+constexpr int kExtraClass = 0xF;
+constexpr int kUvFloats = 18;           // per texture: 9 u, 9 v
+constexpr float kMarginPixels = 8.0f;
+constexpr double kByteScale = 255.0;
+constexpr std::uint32_t kLowFlags = 0xFFFF;
+
+// The map file's extension.
+constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
+
+// 1 is kept when FCOMP finds 1 below the value, or the two unordered.
+float CappedAtOne(float value) { return value <= 1.0f ? value : 1.0f; }
+
 } // namespace
 
 SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) {
@@ -100,17 +177,6 @@ void Terrain::SetVisibleSectors(float x, float y, float radius) {
 
 // ---- Create, Destroy, Reset and the waves --------------------------------------------------------
 
-namespace {
-
-constexpr int kSectorTiles = 16;          // tiles per sector row (2 x 2 cells each)
-
-// Appends tile (x, y) of the sector when it exists.
-void AddTile(terrain::VertexTiles& entry, int x, int y) {
-    if (x >= 0 && y >= 0 && x < kSectorTiles && y < kSectorTiles) entry.tiles[entry.count++] = y * kSectorTiles + x;
-}
-
-} // namespace
-
 void Terrain::BuildVertexTiles() {
     constexpr int kSide = 33;   // vertices per sector row
     vertexTiles.resize(kSide * kSide);
@@ -172,26 +238,6 @@ void Terrain::ClearMap() {
         table = nullptr;
     }
 }
-
-namespace {
-
-constexpr int kRow = 33;                  // vertices per sector row
-constexpr int kVertices = kRow * kRow;
-constexpr float kPi = 3.14159274f;
-constexpr double kPiDouble = 3.141592653589793;
-constexpr double kSineStep = 1.0 / 256;
-constexpr float kWaveStepTurn = 0.500250161f;
-constexpr int kRipples = 40;
-
-// Static initialisers: the zero position and identity rotation Create gives the landscape, and the waves'
-// scales (computed from other constants at startup, read from memory).
-constexpr Vector3 kZeroPosition = /*007C8988*/ {0.0f, 0.0f, 0.0f};
-constexpr Quaternion kIdentityRotation = /*007C8978*/ {1.0f, 0.0f, 0.0f, 0.0f};
-constexpr float kWaveHeightScale = /*007C8970*/ 0.3f;
-constexpr float kWaveDirectionScale = /*007C896C*/ 0.44879898f;   // pi / 7
-constexpr float kWaveSpeedScale = /*007C8968*/ -0.14959967f;      // that * -1/3
-
-} // namespace
 
 Terrain::Terrain() {
     ClearFields();
@@ -327,14 +373,6 @@ void Terrain::SetWaves(const Vector3* direction, float strength) {
     SetWaveStrength(strength);
 }
 
-namespace {
-
-constexpr int kPageTexture = 0xB;     // texture kind of the terrain pages
-constexpr int kPageMaterial = 0x12;   // material kind
-constexpr int kExtraPages = 2;        // <map>L00, <map>L01
-
-} // namespace
-
 int Terrain::SetupPages(int count) {
     pageTextures.resize(count);
     pageMaterials.resize(count);
@@ -368,60 +406,6 @@ int Terrain::SetupPages(int count) {
 }
 
 // --- The map loader ----------------------------------------------------------------------------
-
-namespace {
-
-// The map file (<map>.MP in the map's archive): this header, the materials, a class per tile
-// texture, then the animated textures.
-#pragma pack(push, 1)
-struct MapHeader {
-    std::uint32_t magic;
-    float heightRange;
-    std::int32_t sectorsX;
-    std::int32_t sectorsY;
-    std::int32_t pages;
-    std::int32_t pageSize;
-    std::int32_t textures;
-    std::int32_t tileSize;
-    std::uint16_t materials;
-    std::uint32_t animated;
-};
-#pragma pack(pop)
-static_assert(sizeof(MapHeader) == 0x26);
-
-struct MapMaterial {
-    int kind;
-    Vector3 colour;
-    float opacity;
-    float light;                    // scales the colour
-    float priority;
-    float warpSpeed;                // (the name modding notes give it); copied, nothing reads it
-    std::uint8_t unused_20[0xC];    // not read
-};
-static_assert(sizeof(MapMaterial) == 0x2C);
-
-struct MapAnimatedTexture {
-    std::uint16_t texture;
-    std::uint16_t frames;
-};
-
-constexpr std::uint32_t kMapMagic = 0xCE4AF672;
-constexpr std::uint32_t kMaterialDwords = sizeof(MapMaterial) / 4;
-constexpr int kSectorCells = 32;
-constexpr int kExtraTextures = 16;      // the two extra pages' textures, after the map's own
-constexpr int kExtraClass = 0xF;
-constexpr int kUvFloats = 18;           // per texture: 9 u, 9 v
-constexpr float kMarginPixels = 8.0f;
-constexpr double kByteScale = 255.0;
-constexpr std::uint32_t kLowFlags = 0xFFFF;
-
-// The map file's extension.
-constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
-
-// 1 is kept when FCOMP finds 1 below the value, or the two unordered.
-float CappedAtOne(float value) { return value <= 1.0f ? value : 1.0f; }
-
-} // namespace
 
 // Float notes (rule 7): the game works on the FPU stack at the main thread's 24-bit precision, so every
 // quotient and product below is rounded to float where it is made.

@@ -15,6 +15,15 @@ int FindName(const std::vector<std::string>& names, std::string_view name) {
     return -1;
 }
 
+// A new variable named `name` at the end of `vars` unless the name is taken.
+template <typename T>
+bool AddVariable(ScriptNamedValues<T>& vars, const char* name) {
+    if (::FindName(vars.names, name) >= 0) return false;
+    vars.values.resize(vars.values.size() + 1);
+    vars.names.emplace_back(name);
+    return true;
+}
+
 } // namespace
 
 // The values grow by the other set's value count, the names to the old value count plus the other set's name
@@ -91,19 +100,6 @@ void ScriptVars::RemoveDeletedObjects() {
 }
 
 // ---- ScriptDefinition::AddParameter -------------------------------------------------------------
-
-namespace {
-
-// A new variable named `name` at the end of `vars` unless the name is taken.
-template <typename T>
-bool AddVariable(ScriptNamedValues<T>& vars, const char* name) {
-    if (::FindName(vars.names, name) >= 0) return false;
-    vars.values.resize(vars.values.size() + 1);
-    vars.names.emplace_back(name);
-    return true;
-}
-
-} // namespace
 
 // An unknown type is accepted and adds no letter.
 BOOL ScriptDefinition::AddParameter(const std::string* parameterName, int type) {

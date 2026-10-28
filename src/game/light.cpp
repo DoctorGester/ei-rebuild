@@ -28,6 +28,11 @@ constexpr std::uint32_t kFlagDestroyed = 0x20;   // cleared by Destroy
 
 constexpr const char* kUnknownLightType = "CLightManager::CreateInstant.\n Request for light with unknown type %d.\n";
 
+float Lit(float base, float amount, float color) {
+    const float sum = amount * color + base;
+    return sum > 1.0f ? 1.0f : sum;
+}
+
 } // namespace
 
 // --- CLight --------------------------------------------------------------------------------------
@@ -70,13 +75,6 @@ BOOL CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
     flags_ |= kFlagChanged;
     return 1;
 }
-
-namespace {
-float Lit(float base, float amount, float color) {
-    const float sum = amount * color + base;
-    return sum > 1.0f ? 1.0f : sum;
-}
-} // namespace
 
 void CLight::AddDirectional(Vector4* out, float scale, const Vector4* base, const Vector3* normal) const {
     const float facing = -vecmath::Dot<Sum3::ZYX>(direction_, *normal);

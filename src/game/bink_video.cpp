@@ -66,6 +66,20 @@ void CopyFrame(BinkHeader* bink, std::vector<std::uint8_t>* frame) {
 
 render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
 
+// The movie's surface holder for a w x h frame: the system-memory kind (the new renderer's memory). The game
+// asked for a video-memory surface while a flag set from GetAvailableVidMem was 0, falling back to system
+// memory when that threw.
+CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
+    CDXSurface* holder = new CDXSurface(device, width, height);
+    if (holder) ++holder->refs_;
+    return holder;
+}
+
+// A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the present.
+void PresentMovieFrame() { DevicePresent(TheRenderDevice()); }
+
+int g_movieKey;   // the blocking player's movie in the new renderer
+
 } // namespace
 
 void ReleaseLoadingHolder() {
@@ -94,24 +108,6 @@ unsigned CBinkVideo::Frame(char toPrimary) {
 }
 
 // --- The movie players outside the frame -----------------------------------
-
-namespace {
-
-// The movie's surface holder for a w x h frame: the system-memory kind (the new renderer's memory). The game
-// asked for a video-memory surface while a flag set from GetAvailableVidMem was 0, falling back to system
-// memory when that threw.
-CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
-    CDXSurface* holder = new CDXSurface(device, width, height);
-    if (holder) ++holder->refs_;
-    return holder;
-}
-
-// A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the present.
-void PresentMovieFrame() { DevicePresent(TheRenderDevice()); }
-
-int g_movieKey;   // the blocking player's movie in the new renderer
-
-} // namespace
 
 // `frameTime`: ms per frame, or 0 for the movie's own rate. Esc / Space end it (`keysEnd`), Space jumps to the
 // next frame when it does not; the screen is filled black first, a loading screen step first; the last

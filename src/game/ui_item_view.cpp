@@ -169,6 +169,22 @@ void SetSpecular(int on) {
     device::SetRenderState(device::D3D(TheRenderDevice()), D3DRENDERSTATE_SPECULARENABLE, static_cast<DWORD>(on));
 }
 
+bool SameText(const char* a, const char* b) {
+    for (;; ++a, ++b) {
+        if (*a != *b) return false;
+        if (*a == 0) return true;
+    }
+}
+
+constexpr std::uint32_t kPnt3 = kMmpFormatPnt3;
+
+// The texture's pixels for one fill: the texture manager's textures have only the new renderer's
+// memory, written directly (DirectPixels; the original: a Lock with flags 0 and the Unlock after). 0,
+// or the error the original's report gets when there is no memory (none is made without it).
+long LockTexture(CDXSurface* holder, SurfacePixels* pixels) {
+    return DirectPixels(holder, pixels) ? 0 : E_FAIL;
+}
+
 } // namespace
 
 void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
@@ -336,17 +352,6 @@ BOOL CItemInfoPanel::Draw(CSceneRenderer* pass) {
 // --- A hero's face -----------------------------------------------------------------------------
 
 Quaternion* MultiplyQuaternions(Quaternion*, const Quaternion*, const Quaternion*);
-namespace {
-
-
-bool SameText(const char* a, const char* b) {
-    for (;; ++a, ++b) {
-        if (*a != *b) return false;
-        if (*a == 0) return true;
-    }
-}
-
-} // namespace
 
 void CItemScreen::FaceNames(const char* prototype, std::string* model, std::string* texture) {
     UnitPrototypeRecord* unit;
@@ -401,19 +406,6 @@ void CItemScreen::DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell) {
 }
 
 // --- An item's figure texture -------------------------------------------------------------
-
-namespace {
-
-constexpr std::uint32_t kPnt3 = kMmpFormatPnt3;
-
-// The texture's pixels for one fill: the texture manager's textures have only the new renderer's
-// memory, written directly (DirectPixels; the original: a Lock with flags 0 and the Unlock after). 0,
-// or the error the original's report gets when there is no memory (none is made without it).
-long LockTexture(CDXSurface* holder, SurfacePixels* pixels) {
-    return DirectPixels(holder, pixels) ? 0 : E_FAIL;
-}
-
-} // namespace
 
 CTexture* ItemFigureTexture(const char* name) {
     CTextureManager* manager = TheTextureManager();

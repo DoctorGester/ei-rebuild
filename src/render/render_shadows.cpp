@@ -611,6 +611,46 @@ const Fit& FitMap(Frame& f) {
     return g_fit;
 }
 
+bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
+    FpuGuard fpu;
+    StatsTimer timer(&FrameStats::shadowMs);
+    const Fit& fit = FitMap(CurrentFrame());
+    if (!fit.ok) return false;
+    // A caster's shadow falls on the visible ground below it along the light: the caster stands
+    // above the ground by at most highestTop less the lowest ground, so back towards the sun from it by
+    // at most that height over the tangent of the sun's elevation (d is never flatter than 20 degrees).
+    // The ground's box swept back that far, widened by the widest object's radius.
+    double back = std::max(0.0, static_cast<double>(highestTop) - fit.lowGround.z) / std::fabs(fit.d.z);
+    double towardsX = -fit.d.x * back, towardsY = -fit.d.y * back;
+    double margin = std::max(0.0, static_cast<double>(widest));
+    area->x0 = static_cast<float>(fit.lowGround.x + std::min(0.0, towardsX) - margin);
+    area->y0 = static_cast<float>(fit.lowGround.y + std::min(0.0, towardsY) - margin);
+    area->x1 = static_cast<float>(fit.highGround.x + std::max(0.0, towardsX) + margin);
+    area->y1 = static_cast<float>(fit.highGround.y + std::max(0.0, towardsY) + margin);
+    return true;
+}
+
+std::optional<StatsTimer> g_walkTimer;
+
+// A unit's meshes take only the shadows other objects cast. Each unit's nearest depth in the map
+// (the least over its receiving meshes' boxes, MeshBatch::box, through their light matrices) is kept on
+// its meshes (MeshBatch::front); their receivers compare from there (shaders/shadow_receiver.hlsli), so
+// none of the unit's own depths, all at or behind it, darkens it, and every caster nearer the sun does.
+void FigureFronts(Frame& f) {
+    std::unordered_map<const void*, float> fronts;
+    for (const MeshBatch& b : f.meshBatches) {
+        if (!b.figure || b.light < 0 || !b.caster) continue;
+        const float* row = f.shadow.lights[static_cast<std::size_t>(b.light)].m + 8;   // the map's depth
+        double z = row[3];
+        for (int k = 0; k < 3; ++k) z += row[k] * static_cast<double>(row[k] < 0.0f ? b.box[3 + k] : b.box[k]);
+        auto [it, added] = fronts.emplace(b.caster, static_cast<float>(z));
+        if (!added && z < it->second) it->second = static_cast<float>(z);
+    }
+    if (fronts.empty()) return;
+    for (MeshBatch& b : f.meshBatches)
+        if (b.figure && b.light >= 0 && b.caster) b.front = fronts[b.caster];
+}
+
 } // namespace
 
 // --- The hand-over ----------------------------------------------------------------------------------
@@ -717,29 +757,6 @@ void CastsShadow(const void* object, float strength) {
     CurrentFrame().shadow.casters.emplace_back(object, strength);
 }
 
-namespace {
-
-bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
-    FpuGuard fpu;
-    StatsTimer timer(&FrameStats::shadowMs);
-    const Fit& fit = FitMap(CurrentFrame());
-    if (!fit.ok) return false;
-    // A caster's shadow falls on the visible ground below it along the light: the caster stands
-    // above the ground by at most highestTop less the lowest ground, so back towards the sun from it by
-    // at most that height over the tangent of the sun's elevation (d is never flatter than 20 degrees).
-    // The ground's box swept back that far, widened by the widest object's radius.
-    double back = std::max(0.0, static_cast<double>(highestTop) - fit.lowGround.z) / std::fabs(fit.d.z);
-    double towardsX = -fit.d.x * back, towardsY = -fit.d.y * back;
-    double margin = std::max(0.0, static_cast<double>(widest));
-    area->x0 = static_cast<float>(fit.lowGround.x + std::min(0.0, towardsX) - margin);
-    area->y0 = static_cast<float>(fit.lowGround.y + std::min(0.0, towardsY) - margin);
-    area->x1 = static_cast<float>(fit.highGround.x + std::max(0.0, towardsX) + margin);
-    area->y1 = static_cast<float>(fit.highGround.y + std::max(0.0, towardsY) + margin);
-    return true;
-}
-
-} // namespace
-
 bool ShadowCasterArea(float highestTop, float widest, ShadowCasterRect* area) {
     if (!Active() || !g_outsideOn || !area) return false;
     return CasterArea(highestTop, widest, area);
@@ -815,10 +832,6 @@ void ShadowCasterMesh(const void* object, const ShadowMesh& m) {
     else g_outsideVertices.resize(base);
 }
 
-namespace {
-std::optional<StatsTimer> g_walkTimer;
-} // namespace
-
 void BeginShadowWalk() {
     if (Active() && !g_walkTimer) g_walkTimer.emplace(&FrameStats::shadowMs);
 }
@@ -860,29 +873,6 @@ void SetShadowShift(int texels) {
 bool ClassicShadowSkipped() { return Active(); }
 
 ShadowInfo ShadowState() { return g_lastInfo; }
-
-namespace {
-
-// A unit's meshes take only the shadows other objects cast. Each unit's nearest depth in the map
-// (the least over its receiving meshes' boxes, MeshBatch::box, through their light matrices) is kept on
-// its meshes (MeshBatch::front); their receivers compare from there (shaders/shadow_receiver.hlsli), so
-// none of the unit's own depths, all at or behind it, darkens it, and every caster nearer the sun does.
-void FigureFronts(Frame& f) {
-    std::unordered_map<const void*, float> fronts;
-    for (const MeshBatch& b : f.meshBatches) {
-        if (!b.figure || b.light < 0 || !b.caster) continue;
-        const float* row = f.shadow.lights[static_cast<std::size_t>(b.light)].m + 8;   // the map's depth
-        double z = row[3];
-        for (int k = 0; k < 3; ++k) z += row[k] * static_cast<double>(row[k] < 0.0f ? b.box[3 + k] : b.box[k]);
-        auto [it, added] = fronts.emplace(b.caster, static_cast<float>(z));
-        if (!added && z < it->second) it->second = static_cast<float>(z);
-    }
-    if (fronts.empty()) return;
-    for (MeshBatch& b : f.meshBatches)
-        if (b.figure && b.light >= 0 && b.caster) b.front = fronts[b.caster];
-}
-
-} // namespace
 
 namespace detail {
 

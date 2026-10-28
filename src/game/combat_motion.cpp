@@ -150,20 +150,6 @@ struct LocalMotionOrder : PathOrder {
 // A player's party, walked like the original's hash_map iteration.
 using PartyMap = CPlayer::UnitMap;
 
-} // namespace
-
-// --- Small checks -------------------------------------------------------------------------------
-
-bool CUnitServer::CanReactFor(int ticks) {
-    if (action.kind == kOrderAttack && state == kStateTurning &&
-        TickOf(ObjectWorld(this)) + ticks > nextAttackTime)
-        return false;
-    return true;
-}
-
-// --- Playing an animation ----------------------------------------------------------------------
-
-namespace {
 // The two variants differ only in the state they set.
 void Play(CUnitServer* self, const AnimationSteps& steps, int newState) {
     self->state = newState;
@@ -188,7 +174,29 @@ void Play(CUnitServer* self, const AnimationSteps& steps, int newState) {
         self->unit->MarkChanged(7);
     }
 }
+
+// A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.
+void RecordFromMode(MoveModeState* record, int mode) {
+    record->wasMode3 = 0;
+    record->mode = mode;
+    if (mode == 3) {
+        record->mode = 2;
+        record->wasMode3 = 1;
+    }
+}
+
 } // namespace
+
+// --- Small checks -------------------------------------------------------------------------------
+
+bool CUnitServer::CanReactFor(int ticks) {
+    if (action.kind == kOrderAttack && state == kStateTurning &&
+        TickOf(ObjectWorld(this)) + ticks > nextAttackTime)
+        return false;
+    return true;
+}
+
+// --- Playing an animation ----------------------------------------------------------------------
 
 void CUnitServer::PlayAnimationOrder(const AnimationSteps& steps) { Play(this, steps, kStateAnimation); }
 
@@ -570,18 +578,6 @@ void CUnitServer::ReportPath(AIPath* path, char partial) {
 }
 
 // --- Resync with the unit ---------------------------------------------------------------------
-
-namespace {
-// A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.
-void RecordFromMode(MoveModeState* record, int mode) {
-    record->wasMode3 = 0;
-    record->mode = mode;
-    if (mode == 3) {
-        record->mode = 2;
-        record->wasMode3 = 1;
-    }
-}
-} // namespace
 
 void CUnitServer::ResyncWithUnit() {
     action.kind = kOrderNone;

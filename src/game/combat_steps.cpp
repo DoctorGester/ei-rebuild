@@ -89,13 +89,7 @@ bool HasRangedWeapon(CUnit* unit) {
     return weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
 }
 
-} // namespace
 
-namespace {
-
-} // namespace
-
-namespace {
 // _ftol of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
 // precision a double holds it exactly).
 int FtolQuotient(double a, double b) { return static_cast<int>(libcrt::Ftol(a / b)); }
@@ -111,17 +105,6 @@ int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::
     return FtolQuotient(frameCount, speed);
 }
 
-} // namespace
-
-// --- Durations ---------------------------------------------------------------------------------
-
-int CUnitServer::AnimationDuration(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::frameCount); }
-
-int CUnitServer::AnimationMoment(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::moment); }
-
-// --- Movement mode transitions -------------------------------------------------------------
-
-namespace {
 // Key bits of the mode being left / entered (mode 2 without flag4 is a hero's own walk).
 std::uint32_t LeaveBits(const MoveModeState* from, const CUnit* unit) {
     switch (from->mode) {
@@ -142,28 +125,7 @@ std::uint32_t EnterBits(const MoveModeState* to, const CUnit* unit) {
     default: return 0;
     }
 }
-} // namespace
 
-bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to) {
-    *steps = {};
-    if (unit->type_ != kUnitTypeHeroes && to->mode != 4 && from->mode != 4) return false;
-    if (from->mode == to->mode && (from->mode != 2 || from->flag4 == to->flag4)) return false;
-
-    std::uint32_t key = WeaponBit(this) | (LeaveBits(from, unit) | kKeyTransition);
-    key |= EnterBits(to, unit);
-    FigureAnimation* animation = unit->FindAnimation(key, 1);
-    if (!animation) return false;
-    std::uint8_t index = animation->index;
-    int duration = EntryTicks(unit, index, &FigureAnimation::frameCount);
-    AnimationStep& added = steps->emplace_back();
-    added.animation = index;
-    added.duration = duration;
-    return true;
-}
-
-// --- Orders ----------------------------------------------------------------------------------
-
-namespace {
 // The animation key of an order of `kind` with `source` (`steps` stands in for the source of an unknown
 // skill, as in the original). Sets *frame when the unit steps out of its movement mode for it (skills, unless
 // walking).
@@ -203,7 +165,91 @@ std::uint32_t OrderKey(CUnitServer* self, int kind, std::uint32_t source, const 
         return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(steps)) | kKeyAction;
     }
 }
+
+// The height band (key bits) of a blow at height `h` on the attacker's body: low up to 0.4 of its
+// height, middle up to 0.8, high up to its top; anywhere else the key stays middle.
+std::uint32_t BandAt(double h, float base, float size, float top) {
+    if (h >= base) {
+        double low = static_cast<double>(size) * kLowerPart + base;
+        EI_NAN_AUDIT(low);
+        if (h <= low) return kKeyLow;
+    }
+    double low = static_cast<double>(size) * kLowerPart + base;
+    if (h >= low) {
+        double middle = static_cast<double>(size) * kUpperPart + base;
+        EI_NAN_AUDIT(middle);
+        if (h <= middle) return kKeyMiddle;
+    }
+    double middle = static_cast<double>(size) * kUpperPart + base;
+    EI_NAN_AUDIT(top);
+    if (h >= middle && h <= top) return kKeyHigh;
+    return kKeyMiddle;
+}
+
+// A random height in [from, to) in steps of 0.01 (the span in hundredths, rounded), else in the
+// overlap [high, low), else `high`.
+double RandomHeight(double to, float from, float low, float high) {
+    float span = static_cast<float>((to - from) * kHundred);
+    if (x87::fistp(span) > 0) {
+        std::uint32_t steps = static_cast<std::uint32_t>(x87::fistp(span));
+        volatile std::int64_t pick = g_random.Next() % steps;
+        return static_cast<double>(pick) * kPercent + from;
+    }
+    float span2 = static_cast<float>((static_cast<double>(low) - high) * kHundred);
+    if (x87::fistp(span2) > 0) {
+        std::uint32_t steps = static_cast<std::uint32_t>(x87::fistp(span2));
+        volatile std::int64_t pick = g_random.Next() % steps;
+        return static_cast<double>(pick) * kPercent + high;
+    }
+    return high;
+}
+
+constexpr std::uint32_t kDirectionFront = 0xC00000;   // HitDirection's bits that need no extra key bit
+constexpr std::uint32_t kDirectionBack = 0x1000000;
+constexpr std::uint32_t kKeyDeath = 0x6000000;
+constexpr std::uint32_t kKeyDeathStanding = 0x6030000;
+constexpr std::uint32_t kKeyFallWalking = 0x2010000;
+constexpr std::uint32_t kKeyFall = 0x4000000;
+constexpr std::uint32_t kKeyDying = 0x1C0000;
+constexpr std::uint32_t kKeyNotDying = 0x200000;
+constexpr std::uint32_t kKeySideMask = 0xC03FFFFF;
+constexpr std::uint32_t kKeyNoSide = 0xFE3FFFFF;
+constexpr int kStepLying = 2;   // the kind of every step of a fall
+
+// A random side for a hero's fall (0x400000 or 0x800000).
+std::uint32_t RandomSide(std::uint32_t key) {
+    key &= kKeySideMask;
+    return key | ((g_random.Next() & 1) ? 0x800000u : 0x400000u);
+}
+
 } // namespace
+
+// --- Durations ---------------------------------------------------------------------------------
+
+int CUnitServer::AnimationDuration(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::frameCount); }
+
+int CUnitServer::AnimationMoment(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::moment); }
+
+// --- Movement mode transitions -------------------------------------------------------------
+
+bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to) {
+    *steps = {};
+    if (unit->type_ != kUnitTypeHeroes && to->mode != 4 && from->mode != 4) return false;
+    if (from->mode == to->mode && (from->mode != 2 || from->flag4 == to->flag4)) return false;
+
+    std::uint32_t key = WeaponBit(this) | (LeaveBits(from, unit) | kKeyTransition);
+    key |= EnterBits(to, unit);
+    FigureAnimation* animation = unit->FindAnimation(key, 1);
+    if (!animation) return false;
+    std::uint8_t index = animation->index;
+    int duration = EntryTicks(unit, index, &FigureAnimation::frameCount);
+    AnimationStep& added = steps->emplace_back();
+    added.animation = index;
+    added.duration = duration;
+    return true;
+}
+
+// --- Orders ----------------------------------------------------------------------------------
 
 void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind, std::uint32_t source) {
     *steps = {};
@@ -309,46 +355,6 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
 }
 
 // --- Attacks ---------------------------------------------------------------------------------
-
-namespace {
-// The height band (key bits) of a blow at height `h` on the attacker's body: low up to 0.4 of its
-// height, middle up to 0.8, high up to its top; anywhere else the key stays middle.
-std::uint32_t BandAt(double h, float base, float size, float top) {
-    if (h >= base) {
-        double low = static_cast<double>(size) * kLowerPart + base;
-        EI_NAN_AUDIT(low);
-        if (h <= low) return kKeyLow;
-    }
-    double low = static_cast<double>(size) * kLowerPart + base;
-    if (h >= low) {
-        double middle = static_cast<double>(size) * kUpperPart + base;
-        EI_NAN_AUDIT(middle);
-        if (h <= middle) return kKeyMiddle;
-    }
-    double middle = static_cast<double>(size) * kUpperPart + base;
-    EI_NAN_AUDIT(top);
-    if (h >= middle && h <= top) return kKeyHigh;
-    return kKeyMiddle;
-}
-
-// A random height in [from, to) in steps of 0.01 (the span in hundredths, rounded), else in the
-// overlap [high, low), else `high`.
-double RandomHeight(double to, float from, float low, float high) {
-    float span = static_cast<float>((to - from) * kHundred);
-    if (x87::fistp(span) > 0) {
-        std::uint32_t steps = static_cast<std::uint32_t>(x87::fistp(span));
-        volatile std::int64_t pick = g_random.Next() % steps;
-        return static_cast<double>(pick) * kPercent + from;
-    }
-    float span2 = static_cast<float>((static_cast<double>(low) - high) * kHundred);
-    if (x87::fistp(span2) > 0) {
-        std::uint32_t steps = static_cast<std::uint32_t>(x87::fistp(span2));
-        volatile std::int64_t pick = g_random.Next() % steps;
-        return static_cast<double>(pick) * kPercent + high;
-    }
-    return high;
-}
-} // namespace
 
 bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* duration, CMapObject* target) {
     CUnit* victim = UnitOrNull(target);   // the target is set
@@ -483,26 +489,6 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
 }
 
 // --- Death and falls -------------------------------------------------------------------------
-
-namespace {
-constexpr std::uint32_t kDirectionFront = 0xC00000;   // HitDirection's bits that need no extra key bit
-constexpr std::uint32_t kDirectionBack = 0x1000000;
-constexpr std::uint32_t kKeyDeath = 0x6000000;
-constexpr std::uint32_t kKeyDeathStanding = 0x6030000;
-constexpr std::uint32_t kKeyFallWalking = 0x2010000;
-constexpr std::uint32_t kKeyFall = 0x4000000;
-constexpr std::uint32_t kKeyDying = 0x1C0000;
-constexpr std::uint32_t kKeyNotDying = 0x200000;
-constexpr std::uint32_t kKeySideMask = 0xC03FFFFF;
-constexpr std::uint32_t kKeyNoSide = 0xFE3FFFFF;
-constexpr int kStepLying = 2;   // the kind of every step of a fall
-
-// A random side for a hero's fall (0x400000 or 0x800000).
-std::uint32_t RandomSide(std::uint32_t key) {
-    key &= kKeySideMask;
-    return key | ((g_random.Next() & 1) ? 0x800000u : 0x400000u);
-}
-} // namespace
 
 void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direction, int dying, int fall) {
     bool isDying = static_cast<std::uint8_t>(dying) != 0;

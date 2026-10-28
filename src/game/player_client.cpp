@@ -96,6 +96,99 @@ bool IsQuestVariable(const std::string& name) {
     return static_cast<int>(name.size()) > 2 && std::strncmp(name.c_str(), QuestPrefix(), 2) == 0;
 }
 
+constexpr int kClassScratchUnit = 0x32;            // the object manager's class of the scratch unit
+constexpr int kKindNoPath = 3;               // OnPathMarker: no path to read
+constexpr int kPathParticles = 0x2039;
+constexpr int kMarkerParticles = 0x203A;     // 0x203B with the flag
+constexpr std::uint32_t kMarkerSpeedA = 0x3F000000u;   // 0.5
+constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
+constexpr std::uint8_t kRequestRecording = 2;
+
+// Path markers are shown.
+bool MarkersShown() { return options::TheOptions()->drawPath_ != 0; }
+const char* TextPartyReceived() { return "party received on client"; }
+
+constexpr int kClassUnitObject = 0x50;      // GetClassId of units
+constexpr int kTypeHumanoid = 0x32;         // type_ of units with heads and the "mo%d" skins
+constexpr std::uint32_t kHeaderFlagHidden = 8;
+constexpr std::uint32_t kFlagNoParts = 0x200;
+constexpr std::uint32_t kFlagCow = 0x10000000;
+constexpr std::uint32_t kPartFlagFigure = 8;
+constexpr int kWeaponPike = 5;
+constexpr int kWispParticles = 0x204D;
+constexpr float kWispSize = 0.05f;
+constexpr int kTextSize = 0x100;
+constexpr int kSessionClient = 3;
+
+// The header of message 0x40.
+struct NewObjectHeader {
+    int id;
+    int type;
+    std::uint32_t prototype;   // the object's prototypeId_
+    std::uint32_t flags;
+};
+
+// Model and part names the handler compares with (the exe's strings).
+const char* TextCow1() { return "unmoco1"; }
+const char* TextCow2() { return "unmoco2"; }
+const char* TextHuman() { return "unhuma"; }
+const char* TextHumanFemale() { return "unhufe"; }
+const char* TextHairPart() { return "hr"; }
+const char* TextHairFormat() { return "hr.%.2d"; }
+const char* TextGoblin() { return "unmogo"; }
+const char* TextAxePart() { return "rh3.axeth00"; }
+const char* TextSwordPart() { return "rh3.sword00"; }
+const char* TextPikePart() { return "rh3.pike00"; }
+const char* TextSlingPart() { return "sling"; }
+const char* TextWisp() { return "unmowi"; }
+const char* TextSkinFrom() { return "mo%dp"; }
+const char* TextSkinTo() { return "mo%ds"; }
+const char* TextNone() { return "none"; }
+
+bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
+
+const UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
+    return unitdb::PrototypeRecord(index);
+}
+
+// FindPart, then RemovePart when there is one (the original inlines both calls).
+void RemovePartNamed(CObject3D* object, const char* name) {
+    if (CFigureMesh* part = object->FindPart(name)) object->RemovePart(part);
+}
+
+constexpr int kClientHandlerCount = 0x100;
+
+// The client's message handlers by type.
+constexpr HandlerEntry<CPlayerClient> kClientHandlers[] = {
+    {0x00, &CPlayerClient::OnLoginAccepted}, {0x01, &CPlayerClient::OnDisconnect}, {0x02, &CPlayerClient::OnZone},
+    {0x03, &CPlayerClient::OnWorldBlock3}, {0x04, &CPlayerClient::OnCameraPlacement}, {0x05, &CPlayerClient::OnWorldBlock5},
+    {0x06, &CPlayerClient::OnItemsReceived}, {0x07, &CPlayerClient::OnGameState}, {0x08, &CPlayerClient::OnZoneChange},
+    {0x09, &CPlayerClient::OnGameLost}, {0x0A, &CPlayerClient::OnItemRemoved}, {0x0B, &CPlayerClient::OnUnitSpeech},
+    {0x0C, &CPlayerClient::OnObjectValues}, {0x0D, &CPlayerClient::OnJingle}, {0x0E, &CPlayerClient::OnPathMarker},
+    {0x0F, &CPlayerClient::OnFreeCamera}, {0x12, &CPlayerClient::OnWorldValue}, {0x13, &CPlayerClient::OnStringEvent},
+    {0x14, &CPlayerClient::OnItemValue}, {0x15, &CPlayerClient::OnExperienceAll}, {0x16, &CPlayerClient::OnWeaponRemoved},
+    {0x17, &CPlayerClient::OnQuestItemsChanged}, {0x18, &CPlayerClient::OnExperience}, {0x19, &CPlayerClient::OnUnitControl},
+    {0x40, &CPlayerClient::OnNewObject}, {0x41, &CPlayerClient::OnObjectChanged}, {0x42, &CPlayerClient::OnObjectRemoved},
+    {0x43, &CPlayerClient::OnUnitDied}, {0x50, &CPlayerClient::OnTimedObjectAdded}, {0x51, &CPlayerClient::OnTimedObjectChanged},
+    {0x52, &CPlayerClient::OnTimedObjectRemoved}, {0x60, &CPlayerClient::OnPartyState}, {0x70, &CPlayerClient::OnWeather},
+    {0x71, &CPlayerClient::OnWorldTime}, {0x72, &CPlayerClient::OnWorldPoint}, {0x73, &CPlayerClient::OnWorldStream},
+    {0x80, &CPlayerClient::OnParty}, {0x81, &CPlayerClient::OnSetVariable}, {0x82, &CPlayerClient::OnDeleteVariable},
+    {0x83, &CPlayerClient::OnPartyUpdate},
+};
+
+constexpr std::uint32_t kUnitInClientParty = 0x400000;
+constexpr int kSessionKindSingle = 1;
+
+// Built by the static initialiser and destroyed by the exit function it registers (docs/notes/standalone.md).
+constinit lib::StaticObject<std::unordered_set<int>> g_partyIdSet = /*007C8370*/ {};
+std::unordered_set<int>& PartyIdSet() { return *g_partyIdSet; }
+void DestroyPartyIdSet() { g_partyIdSet.Destroy(); }
+int ReadDword(CMemoryStream* in) {
+    int value;
+    in->Read(&value, 4);
+    return value;
+}
+
 } // namespace
 
 int CPlayerClient::Pump() {
@@ -282,22 +375,6 @@ int CPlayerClient::OnExperience() {
 
 // --- Items, party, path markers, string events, recording ---------------------------------------
 
-namespace {
-
-constexpr int kClassScratchUnit = 0x32;            // the object manager's class of the scratch unit
-constexpr int kKindNoPath = 3;               // OnPathMarker: no path to read
-constexpr int kPathParticles = 0x2039;
-constexpr int kMarkerParticles = 0x203A;     // 0x203B with the flag
-constexpr std::uint32_t kMarkerSpeedA = 0x3F000000u;   // 0.5
-constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
-constexpr std::uint8_t kRequestRecording = 2;
-
-// Path markers are shown.
-bool MarkersShown() { return options::TheOptions()->drawPath_ != 0; }
-const char* TextPartyReceived() { return "party received on client"; }
-
-} // namespace
-
 int CPlayerClient::OnItemsReceived() {
     std::list<CItem*> items;
     int& money = player_->Party()->money_;
@@ -431,58 +508,6 @@ void CPlayerClient::StopRecording() {
 
 // --- A new map object (message 0x40, multiplayer) ------------------------------------------
 
-namespace {
-
-constexpr int kClassUnitObject = 0x50;      // GetClassId of units
-constexpr int kTypeHumanoid = 0x32;         // type_ of units with heads and the "mo%d" skins
-constexpr std::uint32_t kHeaderFlagHidden = 8;
-constexpr std::uint32_t kFlagNoParts = 0x200;
-constexpr std::uint32_t kFlagCow = 0x10000000;
-constexpr std::uint32_t kPartFlagFigure = 8;
-constexpr int kWeaponPike = 5;
-constexpr int kWispParticles = 0x204D;
-constexpr float kWispSize = 0.05f;
-constexpr int kTextSize = 0x100;
-constexpr int kSessionClient = 3;
-
-// The header of message 0x40.
-struct NewObjectHeader {
-    int id;
-    int type;
-    std::uint32_t prototype;   // the object's prototypeId_
-    std::uint32_t flags;
-};
-
-// Model and part names the handler compares with (the exe's strings).
-const char* TextCow1() { return "unmoco1"; }
-const char* TextCow2() { return "unmoco2"; }
-const char* TextHuman() { return "unhuma"; }
-const char* TextHumanFemale() { return "unhufe"; }
-const char* TextHairPart() { return "hr"; }
-const char* TextHairFormat() { return "hr.%.2d"; }
-const char* TextGoblin() { return "unmogo"; }
-const char* TextAxePart() { return "rh3.axeth00"; }
-const char* TextSwordPart() { return "rh3.sword00"; }
-const char* TextPikePart() { return "rh3.pike00"; }
-const char* TextSlingPart() { return "sling"; }
-const char* TextWisp() { return "unmowi"; }
-const char* TextSkinFrom() { return "mo%dp"; }
-const char* TextSkinTo() { return "mo%ds"; }
-const char* TextNone() { return "none"; }
-
-bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
-
-const UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
-    return unitdb::PrototypeRecord(index);
-}
-
-// FindPart, then RemovePart when there is one (the original inlines both calls).
-void RemovePartNamed(CObject3D* object, const char* name) {
-    if (CFigureMesh* part = object->FindPart(name)) object->RemovePart(part);
-}
-
-} // namespace
-
 int CPlayerClient::OnNewObject() {
     app::DelayedProtectionCheck();
     std::vector<std::string> parts;
@@ -608,30 +633,6 @@ void CoderState::Reset() {
     Construct();
 }
 
-namespace {
-
-constexpr int kClientHandlerCount = 0x100;
-
-// The client's message handlers by type.
-constexpr HandlerEntry<CPlayerClient> kClientHandlers[] = {
-    {0x00, &CPlayerClient::OnLoginAccepted}, {0x01, &CPlayerClient::OnDisconnect}, {0x02, &CPlayerClient::OnZone},
-    {0x03, &CPlayerClient::OnWorldBlock3}, {0x04, &CPlayerClient::OnCameraPlacement}, {0x05, &CPlayerClient::OnWorldBlock5},
-    {0x06, &CPlayerClient::OnItemsReceived}, {0x07, &CPlayerClient::OnGameState}, {0x08, &CPlayerClient::OnZoneChange},
-    {0x09, &CPlayerClient::OnGameLost}, {0x0A, &CPlayerClient::OnItemRemoved}, {0x0B, &CPlayerClient::OnUnitSpeech},
-    {0x0C, &CPlayerClient::OnObjectValues}, {0x0D, &CPlayerClient::OnJingle}, {0x0E, &CPlayerClient::OnPathMarker},
-    {0x0F, &CPlayerClient::OnFreeCamera}, {0x12, &CPlayerClient::OnWorldValue}, {0x13, &CPlayerClient::OnStringEvent},
-    {0x14, &CPlayerClient::OnItemValue}, {0x15, &CPlayerClient::OnExperienceAll}, {0x16, &CPlayerClient::OnWeaponRemoved},
-    {0x17, &CPlayerClient::OnQuestItemsChanged}, {0x18, &CPlayerClient::OnExperience}, {0x19, &CPlayerClient::OnUnitControl},
-    {0x40, &CPlayerClient::OnNewObject}, {0x41, &CPlayerClient::OnObjectChanged}, {0x42, &CPlayerClient::OnObjectRemoved},
-    {0x43, &CPlayerClient::OnUnitDied}, {0x50, &CPlayerClient::OnTimedObjectAdded}, {0x51, &CPlayerClient::OnTimedObjectChanged},
-    {0x52, &CPlayerClient::OnTimedObjectRemoved}, {0x60, &CPlayerClient::OnPartyState}, {0x70, &CPlayerClient::OnWeather},
-    {0x71, &CPlayerClient::OnWorldTime}, {0x72, &CPlayerClient::OnWorldPoint}, {0x73, &CPlayerClient::OnWorldStream},
-    {0x80, &CPlayerClient::OnParty}, {0x81, &CPlayerClient::OnSetVariable}, {0x82, &CPlayerClient::OnDeleteVariable},
-    {0x83, &CPlayerClient::OnPartyUpdate},
-};
-
-} // namespace
-
 BOOL CPlayerClient::CreateClient() {
     state_ = 0;
     partyUnitIds_.clear();
@@ -686,23 +687,6 @@ const char* CPlayerClient::GetClassName() { return "CPlayerClient"; }
 int CPlayerClient::GetClassId() { return 0x3C; }
 
 // --- The party state ---------------------------------------------------------------------
-
-namespace {
-
-constexpr std::uint32_t kUnitInClientParty = 0x400000;
-constexpr int kSessionKindSingle = 1;
-
-// Built by the static initialiser and destroyed by the exit function it registers (docs/notes/standalone.md).
-constinit lib::StaticObject<std::unordered_set<int>> g_partyIdSet = /*007C8370*/ {};
-std::unordered_set<int>& PartyIdSet() { return *g_partyIdSet; }
-void DestroyPartyIdSet() { g_partyIdSet.Destroy(); }
-int ReadDword(CMemoryStream* in) {
-    int value;
-    in->Read(&value, 4);
-    return value;
-}
-
-} // namespace
 
 void ConstructPartyIdSet() {
     g_partyIdSet.Construct();

@@ -18,6 +18,16 @@ namespace {
 // The serial the next player record gets.
 std::uint32_t g_playerSerial = /*0079B60C*/ {};
 
+// Every node of `list` holding `value` erased (the next node taken first).
+template <typename List>
+void EraseValue(List& list, const void* value) {
+    for (auto node = list.begin(); node != list.end();) {
+        auto next = std::next(node);
+        if (node->ptr == value) list.erase(node);
+        node = next;
+    }
+}
+
 } // namespace
 
 // A client joined (a LoginMessage). Appends a player record (the login's texts and
@@ -73,18 +83,6 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     std::string* formatted = TheInterface()->MessageText(&announcement, 0, name->data());
     self->Announce(formatted->c_str(), nullptr);
 }
-
-namespace {
-// Every node of `list` holding `value` erased (the next node taken first).
-template <typename List>
-void EraseValue(List& list, const void* value) {
-    for (auto node = list.begin(); node != list.end();) {
-        auto next = std::next(node);
-        if (node->ptr == value) list.erase(node);
-        node = next;
-    }
-}
-} // namespace
 
 // The player record of a login, through its binding.
 PlayerMessage* PlayerOf(LoginMessage* login) {

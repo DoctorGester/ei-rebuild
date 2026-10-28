@@ -27,10 +27,6 @@ constexpr std::uint32_t kFlagVisible = 0x20;
 constexpr std::uint32_t kFlagTouchModel = 0x200;
 constexpr std::uint32_t kFlagAlwaysDrawn = 0x400000;
 
-} // namespace
-
-namespace {
-
 // The scene's transform pipeline: the picking stack, the clip stack an object's matrix is pushed on to classify it,
 // and the view stack.
 CTransformPipeline* Device() { return ScenePipeline(); }
@@ -62,6 +58,84 @@ void PushStackMatrix(CTransformPipeline* device, int index, const float* matrix)
 CObject3D* Object3D(CMapObject* object) { return object; }
 CObject3DClientSpecific* ModelOf(CMapObject* object) {
     return Object3D(object)->ClientSpecific();
+}
+
+// Clamp used by the picking: negative or NaN becomes +0 (a branch-free select).
+__forceinline float NonNegative(float v) { return v >= 0.0f ? v : 0.0f; }
+
+// The two draws share everything but the height function (which returns its result unrounded).
+template <typename Height>
+Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, Height height) {
+    CTransformPipeline* device = Device();
+    if (device->stacks_[CTransformPipeline::kViewStack].count == 0) {
+        std::memcpy(out, &worlddata::kOrigin, 12);
+        return out;
+    }
+    PushStackMatrix(device, CTransformPipeline::kPickStack, StackTop(device, CTransformPipeline::kViewStack));
+    const float* m = StackTop(Device(), CTransformPipeline::kPickStack);
+
+    // The values kept on the FPU stack are doubles here (no rounding to float).
+    double sx = screenX;
+    double sy = screenY;
+    float outX = 0.0f, outY = 0.0f, pz = 0.0f;
+    double det = ((m[4] * m[13] - m[5] * m[12]) * sx + (m[1] * m[12] - m[0] * m[13]) * sy) + (m[0] * m[5] - m[4] * m[1]);
+    // Skipped when zero.
+    EI_NAN_AUDIT(det);
+    if (det != 0.0) {
+        // The screen ray as x = a z + b, y = c z + d.
+        float a = static_cast<float>(
+            (((m[13] * m[2] - m[1] * m[14]) * sy + (m[14] * m[5] - m[13] * m[6]) * sx) + (m[1] * m[6] - m[5] * m[2])) / det);
+        float b = static_cast<float>(
+            (((m[5] * m[15] - m[13] * m[7]) * sx + (m[3] * m[13] - m[1] * m[15]) * sy) + (m[1] * m[7] - m[3] * m[5])) / det);
+        float c = static_cast<float>(
+            -((((m[12] * m[2] - m[0] * m[14]) * sy + (m[4] * m[14] - m[6] * m[12]) * sx) + (m[0] * m[6] - m[4] * m[2])) / det));
+        float d = static_cast<float>(
+            -((((m[4] * m[15] - m[12] * m[7]) * sx + (m[3] * m[12] - m[0] * m[15]) * sy) + (m[0] * m[7] - m[3] * m[4])) / det));
+
+        // Start halfway up the terrain's height range.
+        float half = static_cast<float>(world->terrain_->heightRange * 0.5f);
+        float x = NonNegative(static_cast<float>(a * half + b));
+        float y = NonNegative(static_cast<float>(c * half + d));
+        pz = static_cast<float>((height(x, y) + half) * 0.5f);
+
+        // Fixed-point iteration on the height (up to 100 steps)...
+        float previous;
+        int steps = 0;
+        bool converged = false;
+        for (;;) {
+            previous = pz;
+            outX = NonNegative(static_cast<float>(a * previous + b));
+            outY = NonNegative(static_cast<float>(c * previous + d));
+            pz = static_cast<float>(height(outX, outY));
+            float diff = std::fabs(static_cast<float>(pz - previous));
+            ++steps;
+            EI_NAN_AUDIT(diff);
+            if (diff <= 0.01) {
+                converged = steps < 100;
+                break;
+            }
+            if (steps >= 100) break;
+        }
+        // ...and when it did not settle, bisection between the last two heights.
+        if (!converged) {
+            steps = 0;
+            do {
+                previous = static_cast<float>((pz + previous) * 0.5f);
+                outX = NonNegative(static_cast<float>(a * previous + b));
+                outY = NonNegative(static_cast<float>(c * previous + d));
+                pz = static_cast<float>(height(outX, outY));
+                float diff = std::fabs(static_cast<float>(pz - previous));
+                ++steps;
+                EI_NAN_AUDIT(diff);
+                if (diff <= 0.01) break;
+            } while (steps < 100);
+        }
+    }
+    device->PopMatrix(CTransformPipeline::kPickStack);
+    out->x = outX;
+    std::memcpy(&out->y, &outY, 4);
+    std::memcpy(&out->z, &pz, 4);
+    return out;
 }
 
 } // namespace
@@ -161,88 +235,6 @@ int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Mat
 }
 
 // ---- Cursor picking ------------------------------------------------------------------------------
-
-namespace {
-
-// Clamp used by the picking: negative or NaN becomes +0 (a branch-free select).
-__forceinline float NonNegative(float v) { return v >= 0.0f ? v : 0.0f; }
-
-// The two draws share everything but the height function (which returns its result unrounded).
-template <typename Height>
-Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, Height height) {
-    CTransformPipeline* device = Device();
-    if (device->stacks_[CTransformPipeline::kViewStack].count == 0) {
-        std::memcpy(out, &worlddata::kOrigin, 12);
-        return out;
-    }
-    PushStackMatrix(device, CTransformPipeline::kPickStack, StackTop(device, CTransformPipeline::kViewStack));
-    const float* m = StackTop(Device(), CTransformPipeline::kPickStack);
-
-    // The values kept on the FPU stack are doubles here (no rounding to float).
-    double sx = screenX;
-    double sy = screenY;
-    float outX = 0.0f, outY = 0.0f, pz = 0.0f;
-    double det = ((m[4] * m[13] - m[5] * m[12]) * sx + (m[1] * m[12] - m[0] * m[13]) * sy) + (m[0] * m[5] - m[4] * m[1]);
-    // Skipped when zero.
-    EI_NAN_AUDIT(det);
-    if (det != 0.0) {
-        // The screen ray as x = a z + b, y = c z + d.
-        float a = static_cast<float>(
-            (((m[13] * m[2] - m[1] * m[14]) * sy + (m[14] * m[5] - m[13] * m[6]) * sx) + (m[1] * m[6] - m[5] * m[2])) / det);
-        float b = static_cast<float>(
-            (((m[5] * m[15] - m[13] * m[7]) * sx + (m[3] * m[13] - m[1] * m[15]) * sy) + (m[1] * m[7] - m[3] * m[5])) / det);
-        float c = static_cast<float>(
-            -((((m[12] * m[2] - m[0] * m[14]) * sy + (m[4] * m[14] - m[6] * m[12]) * sx) + (m[0] * m[6] - m[4] * m[2])) / det));
-        float d = static_cast<float>(
-            -((((m[4] * m[15] - m[12] * m[7]) * sx + (m[3] * m[12] - m[0] * m[15]) * sy) + (m[0] * m[7] - m[3] * m[4])) / det));
-
-        // Start halfway up the terrain's height range.
-        float half = static_cast<float>(world->terrain_->heightRange * 0.5f);
-        float x = NonNegative(static_cast<float>(a * half + b));
-        float y = NonNegative(static_cast<float>(c * half + d));
-        pz = static_cast<float>((height(x, y) + half) * 0.5f);
-
-        // Fixed-point iteration on the height (up to 100 steps)...
-        float previous;
-        int steps = 0;
-        bool converged = false;
-        for (;;) {
-            previous = pz;
-            outX = NonNegative(static_cast<float>(a * previous + b));
-            outY = NonNegative(static_cast<float>(c * previous + d));
-            pz = static_cast<float>(height(outX, outY));
-            float diff = std::fabs(static_cast<float>(pz - previous));
-            ++steps;
-            EI_NAN_AUDIT(diff);
-            if (diff <= 0.01) {
-                converged = steps < 100;
-                break;
-            }
-            if (steps >= 100) break;
-        }
-        // ...and when it did not settle, bisection between the last two heights.
-        if (!converged) {
-            steps = 0;
-            do {
-                previous = static_cast<float>((pz + previous) * 0.5f);
-                outX = NonNegative(static_cast<float>(a * previous + b));
-                outY = NonNegative(static_cast<float>(c * previous + d));
-                pz = static_cast<float>(height(outX, outY));
-                float diff = std::fabs(static_cast<float>(pz - previous));
-                ++steps;
-                EI_NAN_AUDIT(diff);
-                if (diff <= 0.01) break;
-            } while (steps < 100);
-        }
-    }
-    device->PopMatrix(CTransformPipeline::kPickStack);
-    out->x = outX;
-    std::memcpy(&out->y, &outY, 4);
-    std::memcpy(&out->z, &pz, 4);
-    return out;
-}
-
-} // namespace
 
 Vector3* CWorldClient::PickGround(Vector3* out, int x, int y) {
     return PickPoint(this, out, x, y, [this](float px, float py) {

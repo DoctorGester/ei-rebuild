@@ -56,6 +56,54 @@ void SetConsoleRect(int left, int top, int right, int bottom) {
     TheInterface()->SetConsoleRect(&rect);
 }
 
+// join / server: a party with one member ("F", "Human Hero", `extra`) on the stack, handed
+// to the game flow's request 5 / 6 with the map name.
+template <void (GameFlow::*Request)(const char*, CParty*)>
+void RequestWithParty(std::vector<std::string>* args, const char* extra) {
+    CParty party;
+    party.AddMember("F", "Human Hero", extra);
+    std::string map = (*args)[0];
+    (TheGameFlow()->*Request)(map.c_str(), &party);
+}
+
+void WriteSpeech(lib::TextFile* file, std::string& line, const SpeechRecord& speech) {
+    if (speech.text.size() == 0) return;
+    line = str::Format("#say %s\n", speech.name.data());
+    file->WriteString(line.c_str());
+    line = str::Format("%s\n", speech.text.data());
+    file->WriteString(line.c_str());
+}
+
+// kick / ban: without arguments the server's player list window (if the server allows it), with a
+// name (quotes stripped) the server command.
+void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
+    int count = static_cast<int>(args->size());
+    if (count == 0) {
+        net::ClientSession* server = net::g_gameClient;
+        if (ServerActive(server)) {
+            // Our binding's player record: only the host gets the window.
+            net::BindingMessage* binding = server->binding_;
+            if (binding->Player()->host_)
+                ScreenOf(TheInterface()->GetActiveWindow())->PlayerList(windowMode);
+            return;
+        }
+    }
+    if (count != 1 || ArgIs(args, 0, "")) return;   // "" does nothing
+    std::string name = (*args)[0];
+    const char* text = name.c_str();
+    if (text[0] == '"' && text[static_cast<int>(name.size()) - 1] == '"') name = str::Mid(name, 1, static_cast<int>(name.size()) - 2);
+    if (ServerActive(net::g_gameClient)) net::g_gameClient->SendCommand(command, name.c_str());
+}
+
+// rate / localrate: bytes per second, clamped to 500..100000.
+void SetRate(std::vector<std::string>* args, int* rate, const char* usage) {
+    if (args->size() != 1) return PrintLine(usage);
+    int value = str::ToInt((*args)[0]);
+    if (value < 500) value = 500;
+    else if (value > 100000) value = 100000;
+    *rate = value;
+}
+
 } // namespace
 
 void Help(std::vector<std::string>*) {
@@ -295,18 +343,6 @@ void Give(std::vector<std::string>* args) {
     PrintLine("Give what?");
 }
 
-namespace {
-// join / server: a party with one member ("F", "Human Hero", `extra`) on the stack, handed
-// to the game flow's request 5 / 6 with the map name.
-template <void (GameFlow::*Request)(const char*, CParty*)>
-void RequestWithParty(std::vector<std::string>* args, const char* extra) {
-    CParty party;
-    party.AddMember("F", "Human Hero", extra);
-    std::string map = (*args)[0];
-    (TheGameFlow()->*Request)(map.c_str(), &party);
-}
-} // namespace
-
 // join <map>: the flow's request 5 with a party of one ("Hercules").
 void Join(std::vector<std::string>* args) {
     if (args->size() != 1) return PrintLine("Join has 1 parameter, server name");
@@ -361,15 +397,6 @@ void Net(std::vector<std::string>* args) {
 
 // Every speech of the list that has a text, as two lines: "#say <name>" and
 // the text. The lines go through the file's WriteString slot.
-namespace {
-void WriteSpeech(lib::TextFile* file, std::string& line, const SpeechRecord& speech) {
-    if (speech.text.size() == 0) return;
-    line = str::Format("#say %s\n", speech.name.data());
-    file->WriteString(line.c_str());
-    line = str::Format("%s\n", speech.text.data());
-    file->WriteString(line.c_str());
-}
-} // namespace
 
 void WriteSpeechLines(lib::TextFile* file, const acks::Speeches* list) {
     if (!list) return;
@@ -455,29 +482,6 @@ void PartyResend(std::vector<std::string>*) {
     if (CPlayer* player = GetPlayer(0)) player->Server()->ResendParty();
 }
 
-namespace {
-// kick / ban: without arguments the server's player list window (if the server allows it), with a
-// name (quotes stripped) the server command.
-void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
-    int count = static_cast<int>(args->size());
-    if (count == 0) {
-        net::ClientSession* server = net::g_gameClient;
-        if (ServerActive(server)) {
-            // Our binding's player record: only the host gets the window.
-            net::BindingMessage* binding = server->binding_;
-            if (binding->Player()->host_)
-                ScreenOf(TheInterface()->GetActiveWindow())->PlayerList(windowMode);
-            return;
-        }
-    }
-    if (count != 1 || ArgIs(args, 0, "")) return;   // "" does nothing
-    std::string name = (*args)[0];
-    const char* text = name.c_str();
-    if (text[0] == '"' && text[static_cast<int>(name.size()) - 1] == '"') name = str::Mid(name, 1, static_cast<int>(name.size()) - 2);
-    if (ServerActive(net::g_gameClient)) net::g_gameClient->SendCommand(command, name.c_str());
-}
-} // namespace
-
 // Kick [name].
 void Kick(std::vector<std::string>* args) { KickOrBan(args, 1, 2); }
 
@@ -490,17 +494,6 @@ void Fps(std::vector<std::string>* args) {
     if (ArgOn(args, 0)) TheInterface()->ShowFps(1);
     else if (ArgOff(args, 0)) TheInterface()->ShowFps(0);
 }
-
-namespace {
-// rate / localrate: bytes per second, clamped to 500..100000.
-void SetRate(std::vector<std::string>* args, int* rate, const char* usage) {
-    if (args->size() != 1) return PrintLine(usage);
-    int value = str::ToInt((*args)[0]);
-    if (value < 500) value = 500;
-    else if (value > 100000) value = 100000;
-    *rate = value;
-}
-} // namespace
 
 // Rate <bytes per second>.
 void Rate(std::vector<std::string>* args) { SetRate(args, &net::g_remoteRate, "Rate has one parameter - connection rate in bytes per second"); }

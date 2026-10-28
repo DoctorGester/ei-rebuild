@@ -77,6 +77,32 @@ double TurnAngle(const UnitMotion* m, float elapsed, bool* final) {
     float sign = m->turn < 0.0f ? kMinusOne : (m->turn > 0.0f ? kOne : kZero);
     return static_cast<double>(sign) * elapsed * m->turnRate + m->startAngle;
 }
+
+// Brings `turn` (stored as float) into [-pi, pi]: the first comparison is on the unrounded difference, the
+// later ones on each unrounded step.
+void NormalizeTurn(UnitMotion* m, double turn) {
+    m->turn = static_cast<float>(turn);
+    const double twoPi = static_cast<double>(kPi) + kPi;
+    if (turn > kPi) {
+        double v;
+        do {
+            v = static_cast<double>(m->turn) - twoPi;
+            m->turn = static_cast<float>(v);
+        } while (v > kPi);
+    }
+    const float negPi = -kPi;
+    if (negPi > m->turn) {
+        double v;
+        do {
+            v = twoPi + m->turn;
+            m->turn = static_cast<float>(v);
+            EI_NAN_AUDIT(v);
+        } while (v < negPi);   // ends on a NaN (the original's did not)
+    }
+}
+
+MotionWaypoint Waypoint(double x, double y) { return {static_cast<float>(x), static_cast<float>(y), 0}; }
+
 } // namespace
 
 // --- The order (AIPath header) --------------------------------------------------------------------
@@ -391,33 +417,6 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
     *cellY = points[segment + 1].cellY;
     return true;
 }
-
-namespace {
-// Brings `turn` (stored as float) into [-pi, pi]: the first comparison is on the unrounded difference, the
-// later ones on each unrounded step.
-void NormalizeTurn(UnitMotion* m, double turn) {
-    m->turn = static_cast<float>(turn);
-    const double twoPi = static_cast<double>(kPi) + kPi;
-    if (turn > kPi) {
-        double v;
-        do {
-            v = static_cast<double>(m->turn) - twoPi;
-            m->turn = static_cast<float>(v);
-        } while (v > kPi);
-    }
-    const float negPi = -kPi;
-    if (negPi > m->turn) {
-        double v;
-        do {
-            v = twoPi + m->turn;
-            m->turn = static_cast<float>(v);
-            EI_NAN_AUDIT(v);
-        } while (v < negPi);   // ends on a NaN (the original's did not)
-    }
-}
-
-MotionWaypoint Waypoint(double x, double y) { return {static_cast<float>(x), static_cast<float>(y), 0}; }
-} // namespace
 
 void UnitMotion::Build(PathOrder* path) {
     MotionOrder* order = OrderOf(path);

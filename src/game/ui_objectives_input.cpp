@@ -40,6 +40,24 @@ constexpr int kRegionFirstExit = 9;
 // The quest database's index (operator[] adds an empty slot for an unknown name).
 std::unordered_map<std::string, QuestRecord*>& QuestIndex() { return TheQuestDatabase().questsByName; }
 
+constexpr int kKeyEnter = 0x0D, kKeyEsc = 0x1B, kKeyPageUp = 0x21, kKeyPageDown = 0x22, kKeyUp = 0x26, kKeyDown = 0x28;
+constexpr int kActionObjectives = 4;   // "obj" in the key table
+
+constexpr int kFirstExitSprite = 21;     // the exits' markers, then the quest places'
+constexpr int kVisibleRows = 5;
+constexpr float kNearestScale = 1.2f;
+constexpr float kOtherExitU = -0.125f;   // 0xBE000000
+constexpr std::uint32_t kPlainColour = 0x100;   // CUiMesh::flags_: drawn in flatColour_
+// The blink: (cos(rate x t) x amplitude + base) x 255 (2.5, 0.3, 0.5;
+// 5.0, 0.4, 0.6; 255).
+constexpr float kSlowRate = 2.5f, kSlowAmplitude = 0.3f, kSlowBase = 0.5f;
+constexpr float kFastRate = 5.0f, kFastAmplitude = 0.4f, kFastBase = 0.6f;
+constexpr float kAlphaScale = 255.0f;
+
+CUiMesh* Sprite(const CObjectivesWindow* window, int index) {
+    return window->SceneMesh(index);
+}
+
 } // namespace
 
 void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
@@ -97,11 +115,6 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
     }
     interface_->PlaySound(CancelSound(), 0);
 }
-
-namespace {
-constexpr int kKeyEnter = 0x0D, kKeyEsc = 0x1B, kKeyPageUp = 0x21, kKeyPageDown = 0x22, kKeyUp = 0x26, kKeyDown = 0x28;
-constexpr int kActionObjectives = 4;   // "obj" in the key table
-} // namespace
 
 void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
@@ -174,23 +187,6 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
 }
 
 // --- Quest list handlers --------------------------------------------------------
-
-namespace {
-constexpr int kFirstExitSprite = 21;     // the exits' markers, then the quest places'
-constexpr int kVisibleRows = 5;
-constexpr float kNearestScale = 1.2f;
-constexpr float kOtherExitU = -0.125f;   // 0xBE000000
-constexpr std::uint32_t kPlainColour = 0x100;   // CUiMesh::flags_: drawn in flatColour_
-// The blink: (cos(rate x t) x amplitude + base) x 255 (2.5, 0.3, 0.5;
-// 5.0, 0.4, 0.6; 255).
-constexpr float kSlowRate = 2.5f, kSlowAmplitude = 0.3f, kSlowBase = 0.5f;
-constexpr float kFastRate = 5.0f, kFastAmplitude = 0.4f, kFastBase = 0.6f;
-constexpr float kAlphaScale = 255.0f;
-
-CUiMesh* Sprite(const CObjectivesWindow* window, int index) {
-    return window->SceneMesh(index);
-}
-} // namespace
 
 void CObjectivesWindow::SelectExit(int index) {
     nearestExit_ = index;

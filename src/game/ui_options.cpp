@@ -140,6 +140,21 @@ void ShownName(std::string* out, const char* prefix, const char* name) {
         *out = name;
 }
 
+void RebuildKeysText(OptionBinding& binding) {
+    binding.keysText_.clear();
+    for (std::size_t k = 0; k < binding.keys_.size(); ++k) {
+        binding.keysText_ += binding.keys_[k]->name_;
+        binding.keysText_ += TextKeySeparator();
+    }
+    str::TrimRight(binding.keysText_, TextKeyTrim());
+}
+
+void TurnQuarter(CUiMesh* sprite) {
+    Vector3 axis = {0.0f, 0.0f, 1.0f};
+    Quaternion turn;
+    sprite->localRotation_ = *turn.SetAxisAngle(axis, kQuarterTurn);
+}
+
 } // namespace
 
 void COptionsWindow::RefreshRows() {
@@ -298,17 +313,6 @@ void COptionsWindow::BuildBindings() {
     }
 }
 
-namespace {
-void RebuildKeysText(OptionBinding& binding) {
-    binding.keysText_.clear();
-    for (std::size_t k = 0; k < binding.keys_.size(); ++k) {
-        binding.keysText_ += binding.keys_[k]->name_;
-        binding.keysText_ += TextKeySeparator();
-    }
-    str::TrimRight(binding.keysText_, TextKeyTrim());
-}
-} // namespace
-
 void COptionsWindow::CommitBinding() {
     if (!pressedKey_) return;
     OptionBinding* binding = rows_[selectedRow_].binding_;
@@ -432,14 +436,6 @@ void COptionsWindow::Apply() {
 }
 
 // --- The slider's virtual ------------------------------------------------------------------
-
-namespace {
-void TurnQuarter(CUiMesh* sprite) {
-    Vector3 axis = {0.0f, 0.0f, 1.0f};
-    Quaternion turn;
-    sprite->localRotation_ = *turn.SetAxisAngle(axis, kQuarterTurn);
-}
-} // namespace
 
 void CUiSlider::SetRect(const RECT* rect) {
     rect_ = *rect;

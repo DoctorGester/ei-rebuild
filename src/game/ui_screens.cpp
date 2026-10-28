@@ -39,16 +39,15 @@ constexpr int kTypeQuick = 0x3007;
 constexpr int kTypeSpellContainer = 0x3008;
 
 bool TabKeysEnabled() { return options::TheOptions()->switchFilters_ != 0; }
-} // namespace
 
-// --- Item predicates -------------------------------------------------------------------------
-
-namespace {
 // The item as loot (type 0x3007), or null.
 const CItemLoot* LootOrNull(const CItem* item) {
     return item->type_ == kTypeQuick ? AsLoot(item) : nullptr;
 }
+
 } // namespace
+
+// --- Item predicates -------------------------------------------------------------------------
 
 // The predicates need no object (the original's read no `this` either): static functions.
 bool UiItemKinds::IsSpell(const CItem* item) {

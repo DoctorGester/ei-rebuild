@@ -20,6 +20,7 @@ namespace {
 constexpr std::uint32_t kFlagSharedLoot = 0x20000000;     // flags_: the loot is on the shared list
 constexpr int kClassQuestItem = 0x14;                     // given to player 0 in multiplayer
 
+
 } // namespace
 
 bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
@@ -104,10 +105,6 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
 }
 
 // ---- LootDeadUnits ----------------------------------------------------------------------------
-
-namespace {
-
-} // namespace
 
 void CWorldServer::LootDeadUnits() {
     // The walk starts before the player is looked up; unlike most walks it does not stop at an empty entry.

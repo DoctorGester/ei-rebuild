@@ -32,10 +32,6 @@ float InitialCallRadius() { return 10.0f /*0073FED8*/; }
 // A new fear mode's distance (copied as a dword).
 std::uint32_t FearDistanceBits() { return 0x41200000u /*0073FF00*/; }
 
-} // namespace
-
-namespace {
-
 const Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 
 // The mode list's elements are owning pointers: released with DestroyOwned, added with ShareOwned
@@ -69,6 +65,60 @@ void DropCurrent(AIMode*& current) {
     current = nullptr;
     if (was) was->Release();
 }
+
+// The tail both standard sets share.
+void AddAlertModes(AIBrain* brain) {
+    brain->AddSuspectionMode();
+    brain->AddAggressionMode();
+    brain->AddCorpseWatcherMode();
+    brain->AddFearMode(0);
+    if (brain->target) {
+        brain->target->Release();
+        brain->target = nullptr;
+    }
+    brain->action = AIBrain::kActionNone;
+}
+
+// The inlined RemoveAt of a memory list: unlink, release the element, free the node.
+void RemoveObjectNode(std::list<CUnit*>& list, std::list<CUnit*>::iterator  node) {
+    if (*node) (*node)->Release();
+    *node = nullptr;
+    list.erase(node);
+}
+
+// Removes every element holding `object` (each time searching again from the head).
+void RemoveAllOf(std::list<CUnit*>& list, CEngineObject* object) {
+    for (auto node = std::ranges::find(list, object); node != list.end(); node = std::ranges::find(list, object))
+        RemoveObjectNode(list, node);
+}
+
+// Each scalar is copied into a stack slot before it is written.
+template <typename T>
+void WriteCopy(CStream* stream, const T& value) {
+    T copy = value;
+    stream->Write(&copy, sizeof(T));
+}
+
+// A new mode of `type` as Load constructs it before reading its data (the fields Load reads stay
+// uninitialised). Null for an unknown type (9, or above 10).
+AIMode* NewModeOfType(int type) {
+    switch (type) {
+    case kModeGuard: return new GuardMode();
+    case kModePatrol: return new PatrolMode();
+    case kModeSentry: return new SentryMode();
+    case kModeSuspection: return new SuspectionMode();
+    case kModeAggression: return new AggressionMode();
+    case kModeCorpseWatcher: return new CorpseWatcherMode();
+    case kModePlayer: return new PlayerMode();
+    case kModeFear: return new FearMode(0);
+    case kModeTamed: return new TamedMode();
+    case kModeFollow: return new FollowMode();
+    default: return nullptr;
+    }
+}
+
+void AssignCurrent(AIMode*& current, AIMode* mode) { AssignCounted(current, mode); }
+
 } // namespace
 
 void AIBrain::AddMode(AIMode* mode) {
@@ -206,21 +256,6 @@ void AIBrain::AddSentryMode(const Vector3* point) {
     AddMode(new SentryMode(point));
 }
 
-namespace {
-// The tail both standard sets share.
-void AddAlertModes(AIBrain* brain) {
-    brain->AddSuspectionMode();
-    brain->AddAggressionMode();
-    brain->AddCorpseWatcherMode();
-    brain->AddFearMode(0);
-    if (brain->target) {
-        brain->target->Release();
-        brain->target = nullptr;
-    }
-    brain->action = AIBrain::kActionNone;
-}
-} // namespace
-
 void AIBrain::StandardGuard(const Vector3* point, float radius) {
     ClearModes();
     AddGuardMode(point, radius, -1.0f);
@@ -259,21 +294,6 @@ void AIBrain::CallAllies(const Vector3* point) {
 }
 
 // --- Perception memory ----------------------------------------------------------------------------
-
-namespace {
-// The inlined RemoveAt of a memory list: unlink, release the element, free the node.
-void RemoveObjectNode(std::list<CUnit*>& list, std::list<CUnit*>::iterator  node) {
-    if (*node) (*node)->Release();
-    *node = nullptr;
-    list.erase(node);
-}
-
-// Removes every element holding `object` (each time searching again from the head).
-void RemoveAllOf(std::list<CUnit*>& list, CEngineObject* object) {
-    for (auto node = std::ranges::find(list, object); node != list.end(); node = std::ranges::find(list, object))
-        RemoveObjectNode(list, node);
-}
-} // namespace
 
 float* CopyPoint2(float* out, const float* point) {
     float x = point[0];
@@ -373,35 +393,6 @@ bool AIReports::Contains(CEngineObject* object) const {
 }
 
 // --- Save games -----------------------------------------------------------------------------------
-
-namespace {
-// Each scalar is copied into a stack slot before it is written.
-template <typename T>
-void WriteCopy(CStream* stream, const T& value) {
-    T copy = value;
-    stream->Write(&copy, sizeof(T));
-}
-
-// A new mode of `type` as Load constructs it before reading its data (the fields Load reads stay
-// uninitialised). Null for an unknown type (9, or above 10).
-AIMode* NewModeOfType(int type) {
-    switch (type) {
-    case kModeGuard: return new GuardMode();
-    case kModePatrol: return new PatrolMode();
-    case kModeSentry: return new SentryMode();
-    case kModeSuspection: return new SuspectionMode();
-    case kModeAggression: return new AggressionMode();
-    case kModeCorpseWatcher: return new CorpseWatcherMode();
-    case kModePlayer: return new PlayerMode();
-    case kModeFear: return new FearMode(0);
-    case kModeTamed: return new TamedMode();
-    case kModeFollow: return new FollowMode();
-    default: return nullptr;
-    }
-}
-
-void AssignCurrent(AIMode*& current, AIMode* mode) { AssignCounted(current, mode); }
-} // namespace
 
 void AIBrain::Load(CStream* stream) {
     ReleaseAllModes(modes);

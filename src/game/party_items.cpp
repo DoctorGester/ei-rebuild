@@ -45,6 +45,15 @@ void RemoveEntry(std::vector<CItem*>& list, CItem* entry) {
     }
 }
 
+constexpr int kQuestItemClassId = 0x14;   // CItemQuest
+
+// One running sum over the lists, in this order.
+void AddListWeight(float& weight, const std::vector<CItem*>& list) {
+    for (int i = 0; i < std::ssize(list); ++i) {
+        if (list[i]) weight += list[i]->Weight();
+    }
+}
+
 } // namespace
 
 
@@ -155,10 +164,6 @@ CItem* CParty::RemoveItem(CItem* item, int all) {
     return nullptr;
 }
 
-namespace {
-constexpr int kQuestItemClassId = 0x14;   // CItemQuest
-} // namespace
-
 void CParty::RemoveQuestItems() {
     for (int i = std::ssize(items_) - 1; i >= 0; --i) {
         CItem* item = items_[i];
@@ -184,15 +189,6 @@ void PartyUnitRecord::RemoveArmor(CItem* entry) { RemoveEntry(armor, entry); }
 void PartyUnitRecord::RemoveSpell(CItem* entry) { RemoveEntry(spells, entry); }
 
 // --- The weight a unit record carries ---------------------------------------------
-
-namespace {
-// One running sum over the lists, in this order.
-void AddListWeight(float& weight, const std::vector<CItem*>& list) {
-    for (int i = 0; i < std::ssize(list); ++i) {
-        if (list[i]) weight += list[i]->Weight();
-    }
-}
-} // namespace
 
 float PartyUnitRecord::CarriedWeight() const {
     float weight = 0.0f;

@@ -75,52 +75,6 @@ void ReadScreenFormat(CTextureDevice* device, PixelFormat* format) {
     app::FatalErrorCode(kSurfaceRefused, "Can't get pixel format from surface.\n");   // "Can't get pixel format from surface"
 }
 
-} // namespace
-
-void ThrowSurfaceNotMade(CTextureDevice* device, int width, int height) {
-    if (device) device->lastLoadResult_ = kSurfaceRefused;
-    ThrowCreateFailed(width, height);
-}
-
-HBITMAP ClientBitmap(const void* holder) {
-    const render::SurfaceMemory* memory = render::SurfaceMemoryOf(holder);
-    return memory ? static_cast<HBITMAP>(memory->bitmap) : nullptr;
-}
-
-PixelFormat SurfacePixels::Format() const {
-    PixelFormat format = {};
-    if (!bitsPerPixel) return format;
-    std::uint32_t* f = format.words;
-    f[kFormatSize] = sizeof(format);
-    f[kFormatFlags] = kRgb | (alphaMask ? kAlphaPixels : 0);
-    f[kBits] = static_cast<std::uint32_t>(bitsPerPixel);
-    f[kRed] = redMask;
-    f[kGreen] = greenMask;
-    f[kBlue] = blueMask;
-    f[kAlpha] = alphaMask;
-    return format;
-}
-
-bool DirectPixels(const void* holder, SurfacePixels* pixels, bool reads) {
-    *pixels = {};
-    const render::SurfaceMemory* m = holder ? render::SurfaceMemoryOf(holder) : nullptr;
-    if (!m) return false;
-    ::GdiFlush();   // GDI may still hold drawing for the memory (not imported by the game)
-    if (!reads) render::SurfaceWritten(holder, nullptr);
-    pixels->width = m->width;
-    pixels->height = m->height;
-    pixels->pitch = m->pitch;
-    pixels->bits = static_cast<std::uint8_t*>(m->bits);
-    pixels->bitsPerPixel = m->bitsPerPixel;
-    pixels->redMask = m->redMask;
-    pixels->greenMask = m->greenMask;
-    pixels->blueMask = m->blueMask;
-    pixels->alphaMask = m->alphaMask;
-    return true;
-}
-
-namespace {
-
 // The holder stands for a texture made as requested: described by the request, the creation
 // counted as done (the device's result 0, the holder count one higher).
 void FinishTextureHolder(CDXSurface* holder, int width, int height, int bitsPerPixel) {
@@ -130,57 +84,6 @@ void FinishTextureHolder(CDXSurface* holder, int width, int height, int bitsPerP
     holder->bitsPerPixel = bitsPerPixel;
     ++device::g_holderCount;
 }
-
-} // namespace
-
-CDXSurface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat) {
-    if (!device) return nullptr;
-    auto* holder = new CDXSurface(device);
-    if (!holder) return nullptr;
-    // (A DDPIXELFORMAT: its bit count, as a surface of that format reports it.)
-    FinishTextureHolder(holder, width, height, static_cast<int>(pixelFormat[kBits]));
-    return holder;
-}
-
-CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat) {
-    if (!device) return nullptr;
-    auto* holder = new CDXSurface(device);
-    if (!holder) return nullptr;
-    if (!AttachClientMemory(holder, width, height, FormatOf(pixelFormat))) {
-        if (g_clientFailures++ < 5)
-            ei::Log("cpuwindows: no memory for a %dx%d texture (format flags %08X, %u bits)", width, height,
-                    pixelFormat[kFormatFlags], pixelFormat[kBits]);
-        ::operator delete(holder);   // not counted in yet: no destructor
-        return nullptr;
-    }
-    FinishTextureHolder(holder, width, height, static_cast<int>(pixelFormat[kBits]));
-    return holder;
-}
-
-CDXSurface::CDXSurface(CTextureDevice* deviceIn) : device(deviceIn) {}
-
-// When the surface cannot be made a C++ exception is thrown (an error object by pointer). The holder gets the new
-// renderer's memory and no DirectDraw surface; without that memory the error ends the game.
-CDXSurface::CDXSurface(CTextureDevice* deviceIn, int widthIn, int heightIn) : device(deviceIn) {
-    PixelFormat format = {};
-    ReadScreenFormat(deviceIn, &format);
-
-    if (!this->device) {
-        // "... Can't create DDSurface - no DXDD." (a report that says go on: the code reads the missing surface's
-        // description and fails there; every caller passes the device object)
-        game::FatalError("CDXDirectDrawSurface::CreateDDSurface.\n Can't create DDSurface - no DXDD.\n");
-        ThrowCreateFailed(widthIn, heightIn);
-    }
-    if (!AttachClientMemory(this, widthIn, heightIn, format)) ThrowSurfaceNotMade(this->device, widthIn, heightIn);
-    // The memory is the surface: described by the request, the creation counted as done.
-    this->device->lastLoadResult_ = 0;
-    width = widthIn;
-    height = heightIn;
-    bitsPerPixel = static_cast<int>(format.words[kBits]);
-    ++device::g_holderCount;
-}
-
-namespace {
 
 constexpr std::uint32_t kFormat8888 = 0x8888;
 
@@ -233,6 +136,95 @@ void FillPicture(CDXSurface* holder, const MmpHeader* picture, const SurfacePixe
 }
 
 } // namespace
+
+void ThrowSurfaceNotMade(CTextureDevice* device, int width, int height) {
+    if (device) device->lastLoadResult_ = kSurfaceRefused;
+    ThrowCreateFailed(width, height);
+}
+
+HBITMAP ClientBitmap(const void* holder) {
+    const render::SurfaceMemory* memory = render::SurfaceMemoryOf(holder);
+    return memory ? static_cast<HBITMAP>(memory->bitmap) : nullptr;
+}
+
+PixelFormat SurfacePixels::Format() const {
+    PixelFormat format = {};
+    if (!bitsPerPixel) return format;
+    std::uint32_t* f = format.words;
+    f[kFormatSize] = sizeof(format);
+    f[kFormatFlags] = kRgb | (alphaMask ? kAlphaPixels : 0);
+    f[kBits] = static_cast<std::uint32_t>(bitsPerPixel);
+    f[kRed] = redMask;
+    f[kGreen] = greenMask;
+    f[kBlue] = blueMask;
+    f[kAlpha] = alphaMask;
+    return format;
+}
+
+bool DirectPixels(const void* holder, SurfacePixels* pixels, bool reads) {
+    *pixels = {};
+    const render::SurfaceMemory* m = holder ? render::SurfaceMemoryOf(holder) : nullptr;
+    if (!m) return false;
+    ::GdiFlush();   // GDI may still hold drawing for the memory (not imported by the game)
+    if (!reads) render::SurfaceWritten(holder, nullptr);
+    pixels->width = m->width;
+    pixels->height = m->height;
+    pixels->pitch = m->pitch;
+    pixels->bits = static_cast<std::uint8_t*>(m->bits);
+    pixels->bitsPerPixel = m->bitsPerPixel;
+    pixels->redMask = m->redMask;
+    pixels->greenMask = m->greenMask;
+    pixels->blueMask = m->blueMask;
+    pixels->alphaMask = m->alphaMask;
+    return true;
+}
+
+CDXSurface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat) {
+    if (!device) return nullptr;
+    auto* holder = new CDXSurface(device);
+    if (!holder) return nullptr;
+    // (A DDPIXELFORMAT: its bit count, as a surface of that format reports it.)
+    FinishTextureHolder(holder, width, height, static_cast<int>(pixelFormat[kBits]));
+    return holder;
+}
+
+CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat) {
+    if (!device) return nullptr;
+    auto* holder = new CDXSurface(device);
+    if (!holder) return nullptr;
+    if (!AttachClientMemory(holder, width, height, FormatOf(pixelFormat))) {
+        if (g_clientFailures++ < 5)
+            ei::Log("cpuwindows: no memory for a %dx%d texture (format flags %08X, %u bits)", width, height,
+                    pixelFormat[kFormatFlags], pixelFormat[kBits]);
+        ::operator delete(holder);   // not counted in yet: no destructor
+        return nullptr;
+    }
+    FinishTextureHolder(holder, width, height, static_cast<int>(pixelFormat[kBits]));
+    return holder;
+}
+
+CDXSurface::CDXSurface(CTextureDevice* deviceIn) : device(deviceIn) {}
+
+// When the surface cannot be made a C++ exception is thrown (an error object by pointer). The holder gets the new
+// renderer's memory and no DirectDraw surface; without that memory the error ends the game.
+CDXSurface::CDXSurface(CTextureDevice* deviceIn, int widthIn, int heightIn) : device(deviceIn) {
+    PixelFormat format = {};
+    ReadScreenFormat(deviceIn, &format);
+
+    if (!this->device) {
+        // "... Can't create DDSurface - no DXDD." (a report that says go on: the code reads the missing surface's
+        // description and fails there; every caller passes the device object)
+        game::FatalError("CDXDirectDrawSurface::CreateDDSurface.\n Can't create DDSurface - no DXDD.\n");
+        ThrowCreateFailed(widthIn, heightIn);
+    }
+    if (!AttachClientMemory(this, widthIn, heightIn, format)) ThrowSurfaceNotMade(this->device, widthIn, heightIn);
+    // The memory is the surface: described by the request, the creation counted as done.
+    this->device->lastLoadResult_ = 0;
+    width = widthIn;
+    height = heightIn;
+    bitsPerPixel = static_cast<int>(format.words[kBits]);
+    ++device::g_holderCount;
+}
 
 // Makes the holder's memory (when it has none yet) of the size of an 8888 .mmp picture with the screen's pixel
 // format (also for a video-memory request) and loads the picture into it, converted row by row through the

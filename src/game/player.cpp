@@ -138,6 +138,20 @@ void DropLink(netlink::NetLink*& link) {
 // The data word every item class keeps (a quest item's id).
 std::uint32_t ItemWord4C(CItem* item) { return AsQuest(item)->questItemId_; }
 
+// The first given item `match` accepts: the connection's slot 19, its node removed, the item
+// released. 1, or 0 when there is none.
+template <typename Match>
+BOOL TakeFirst(CPlayer* player, Match match) {
+    auto node = player->items_.begin();
+    while (node != player->items_.end() && !match(*node)) ++node;
+    if (node == player->items_.end()) return 0;
+    CEngineObject* item = *node;
+    player->connection_->ItemTaken(item);
+    player->items_.erase(node);
+    item->Release();
+    return 1;
+}
+
 } // namespace
 
 void CPlayer::Connect(netlink::NetLink* link) {
@@ -202,24 +216,6 @@ BOOL CPlayer::HasLoot(int kind) {
     }
     return 0;
 }
-
-namespace {
-
-// The first given item `match` accepts: the connection's slot 19, its node removed, the item
-// released. 1, or 0 when there is none.
-template <typename Match>
-BOOL TakeFirst(CPlayer* player, Match match) {
-    auto node = player->items_.begin();
-    while (node != player->items_.end() && !match(*node)) ++node;
-    if (node == player->items_.end()) return 0;
-    CEngineObject* item = *node;
-    player->connection_->ItemTaken(item);
-    player->items_.erase(node);
-    item->Release();
-    return 1;
-}
-
-} // namespace
 
 BOOL CPlayer::TakeLoot(int kind) {
     return TakeFirst(this, [kind](CItem* item) {

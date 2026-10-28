@@ -41,6 +41,70 @@ void ShowFrom(CUiWindow* window, int first, std::uint32_t shown) {
 constexpr std::uint32_t kBright = 0xA7D7E4;
 constexpr std::uint32_t kGrey = 0x828282;
 
+void SetPlainFlag(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
+
+// The 4 x 4 cell grid over 200..600 x 100..500 shared by the trade and repair grids: a picture (textures 0-3 by quarter)
+// and a frame per cell, a region per
+// cell, then the surface. Texels alternate between 0x1C and 0x80 across and down; each row's
+// pictures lie twice as deep as their frames, and half as deep as the row above.
+void BuildCellGrid(CUiWindow* window) {
+    int u = 0x1C;
+    float depth = 32.0f;
+    int v = 0x1C;
+    for (int top = 100; top < 500; top += 100) {
+        float pictureDepth = static_cast<float>(D(depth) + D(depth));
+        int bottom = top + 100;
+        for (int left = 200; left < 600; left += 100) {
+            CTexture** textures = window->objects_.data();
+            CTexture* texture = top <= 200 ? (left <= 300 ? textures[0] : textures[1])
+                                                : (left <= 300 ? textures[2] : textures[3]);
+            int right = left + 100;
+            CUiMesh* picture = window->AddSprite(0);
+            picture->SetRectangle(pictureDepth, 100.0f, static_cast<float>(left), static_cast<float>(top),
+                                  static_cast<float>(right), static_cast<float>(bottom), u, v, u + 100, v + 100);
+            picture->texture_ = texture;
+            CUiMesh* frame = window->AddSprite(0);
+            frame->Framed(depth, 100.0f, static_cast<float>(left), static_cast<float>(top),
+                                   static_cast<float>(right), static_cast<float>(bottom), 15.0f, u, v, u + 100, v + 100);
+            frame->texture_ = texture;
+            AddRect(window, RECT{left, top, right, bottom});
+            u = 0x9C - u;
+        }
+        depth = static_cast<float>(D(depth) * D(0.5f /*0073B86C*/));   // * 0.5
+        v = 0x9C - v;
+    }
+    window->AddSurface(new CUiSurface(window->interface_, 200, 100, 600, 500, 5, 1));
+}
+
+constexpr int kGridCellsPerList = 8;
+constexpr int kGridCells = 16;
+constexpr int kTopicTraderBuy = 0x1C, kTopicTraderSell = 0x1D;   // flag_ set
+constexpr int kTopicItemBuy = 0x0B, kTopicItemSell = 0x0C;       // the item constructor's kinds
+constexpr int kTopicSpellBuy = 0x11, kTopicSpellSell = 0x12;     // the spell constructor's
+constexpr int kTopicRepair = 0x19;
+
+// The pages' common part: the 2 x 4 grid of regions over 400..600 x 100..500 (column by column),
+// the four quarter pictures (textures 0-3) and a hidden highlight frame.
+void BuildMakerPage(CConstructorPage* page) {
+    for (int left = 400; left < 600; left += 100)
+        for (int top = 100; top < 500; top += 100) AddRect(page, RECT{left, top, left + 100, top + 100});
+}
+void AddMakerPictures(CConstructorPage* page) {
+    const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
+    for (int i = 0; i < 4; ++i) {
+        CUiMesh* picture = page->AddSprite(0);
+        picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C, 0x1C,
+                              0xE4, 0xE4);
+        picture->texture_ = page->objects_[i];
+    }
+    CUiMesh* frame = page->AddSprite(0);
+    frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    frame->flatColour_ = 0x96FFFFFF;
+    SetPlainFlag(frame);
+    frame->texture_ = nullptr;
+    frame->visible_ = 0;
+}
+
 } // namespace
 
 // --- Statistics page ----------------------------------------------------------------------------
@@ -247,46 +311,6 @@ void CHeroStatsPanel::DrawStats() {
 
 // --- The equipment panel's Build ---------------------------------------------------------
 
-namespace {
-
-
-void SetPlainFlag(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
-
-// The 4 x 4 cell grid over 200..600 x 100..500 shared by the trade and repair grids: a picture (textures 0-3 by quarter)
-// and a frame per cell, a region per
-// cell, then the surface. Texels alternate between 0x1C and 0x80 across and down; each row's
-// pictures lie twice as deep as their frames, and half as deep as the row above.
-void BuildCellGrid(CUiWindow* window) {
-    int u = 0x1C;
-    float depth = 32.0f;
-    int v = 0x1C;
-    for (int top = 100; top < 500; top += 100) {
-        float pictureDepth = static_cast<float>(D(depth) + D(depth));
-        int bottom = top + 100;
-        for (int left = 200; left < 600; left += 100) {
-            CTexture** textures = window->objects_.data();
-            CTexture* texture = top <= 200 ? (left <= 300 ? textures[0] : textures[1])
-                                                : (left <= 300 ? textures[2] : textures[3]);
-            int right = left + 100;
-            CUiMesh* picture = window->AddSprite(0);
-            picture->SetRectangle(pictureDepth, 100.0f, static_cast<float>(left), static_cast<float>(top),
-                                  static_cast<float>(right), static_cast<float>(bottom), u, v, u + 100, v + 100);
-            picture->texture_ = texture;
-            CUiMesh* frame = window->AddSprite(0);
-            frame->Framed(depth, 100.0f, static_cast<float>(left), static_cast<float>(top),
-                                   static_cast<float>(right), static_cast<float>(bottom), 15.0f, u, v, u + 100, v + 100);
-            frame->texture_ = texture;
-            AddRect(window, RECT{left, top, right, bottom});
-            u = 0x9C - u;
-        }
-        depth = static_cast<float>(D(depth) * D(0.5f /*0073B86C*/));   // * 0.5
-        v = 0x9C - v;
-    }
-    window->AddSurface(new CUiSurface(window->interface_, 200, 100, 600, 500, 5, 1));
-}
-
-} // namespace
-
 void CHeroEquipPanel::Build(bool body) {
     body_ = body;
     rect_ = RECT{0, 0, 800, body ? 500 : 100};
@@ -375,15 +399,6 @@ void CTradeGrid::Build(std::vector<CItem*>* bought, std::vector<CItem*>* sold, c
 
 // --- The item under the mouse ---------------------------------------------------------------
 
-namespace {
-constexpr int kGridCellsPerList = 8;
-constexpr int kGridCells = 16;
-constexpr int kTopicTraderBuy = 0x1C, kTopicTraderSell = 0x1D;   // flag_ set
-constexpr int kTopicItemBuy = 0x0B, kTopicItemSell = 0x0C;       // the item constructor's kinds
-constexpr int kTopicSpellBuy = 0x11, kTopicSpellSell = 0x12;     // the spell constructor's
-constexpr int kTopicRepair = 0x19;
-} // namespace
-
 CItem* CTradeGrid::ItemAt(int x, int y, int* topic) {
     *topic = 0;
     if (!enabled_) return nullptr;
@@ -441,30 +456,6 @@ void CHeroQuickStrip::Build(bool top) {
 }
 
 // --- The constructors' second pages ---------------------------------------------------------------
-
-namespace {
-// The pages' common part: the 2 x 4 grid of regions over 400..600 x 100..500 (column by column),
-// the four quarter pictures (textures 0-3) and a hidden highlight frame.
-void BuildMakerPage(CConstructorPage* page) {
-    for (int left = 400; left < 600; left += 100)
-        for (int top = 100; top < 500; top += 100) AddRect(page, RECT{left, top, left + 100, top + 100});
-}
-void AddMakerPictures(CConstructorPage* page) {
-    const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
-    for (int i = 0; i < 4; ++i) {
-        CUiMesh* picture = page->AddSprite(0);
-        picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C, 0x1C,
-                              0xE4, 0xE4);
-        picture->texture_ = page->objects_[i];
-    }
-    CUiMesh* frame = page->AddSprite(0);
-    frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
-    frame->flatColour_ = 0x96FFFFFF;
-    SetPlainFlag(frame);
-    frame->texture_ = nullptr;
-    frame->visible_ = 0;
-}
-} // namespace
 
 void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};

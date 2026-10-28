@@ -156,34 +156,6 @@ private:
     FontMetrics metrics_;
 };
 
-} // namespace
-
-std::unique_ptr<Font> LoadFont(const std::string& path, int pixels) {
-    if (pixels <= 0) return nullptr;
-    auto file = LoadFontFile(path);
-    if (!file) return nullptr;
-    return std::make_unique<StbFont>(std::move(file), pixels);
-}
-
-void SetFontDirectory(const std::string& directory) { g_fontDirectory = directory; }
-std::string FontDirectory() { return g_fontDirectory; }
-
-const char* FontFileForFace(std::string_view face) {
-    auto same = [face](std::string_view name) {
-        return face.size() == name.size() &&
-               std::equal(face.begin(), face.end(), name.begin(), [](char a, char b) {
-                   return (a | 0x20) == (b | 0x20);
-               });
-    };
-    if (same("Courier New")) return "LiberationMono-Regular.ttf";
-    return "LiberationSerif-Regular.ttf";
-}
-
-int PointSizeToPixels(int tenths, int dpi) { return dpi * tenths / 720; }
-
-// ---- Glyph atlas --------------------------------------------------------------------------------------
-
-namespace {
 constexpr int kAtlasPadding = 1;   // empty pixels between glyphs, so bilinear sampling would not bleed
 int AtlasWidthFor(const Font& font) {
     const int wanted = font.Metrics().height * 16;
@@ -191,126 +163,8 @@ int AtlasWidthFor(const Font& font) {
     while (width < wanted && width < 4096) width *= 2;
     return width;
 }
-} // namespace
 
-GlyphAtlas::GlyphAtlas(const Font& font, bool smoothing)
-    : font_(font), smoothing_(smoothing), width_(AtlasWidthFor(font)) {}
-
-const AtlasGlyph& GlyphAtlas::Get(char32_t ch) {
-    auto found = glyphs_.find(ch);
-    if (found != glyphs_.end()) return found->second;
-    AtlasGlyph& glyph = glyphs_[ch];
-    glyph.metrics = font_.Glyph(ch);
-    Place(glyph, ch);
-    return glyph;
-}
-
-void GlyphAtlas::Place(AtlasGlyph& glyph, char32_t ch) {
-    const int w = glyph.metrics.width, h = glyph.metrics.height;
-    if (w <= 0 || h <= 0) return;
-    if (w + kAtlasPadding > width_) {
-        // Wider than the atlas (not at interface sizes): keep the metrics, draw nothing.
-        glyph.metrics.width = glyph.metrics.height = 0;
-        return;
-    }
-    if (shelfX_ + w + kAtlasPadding > width_) {
-        shelfY_ += shelfHeight_;
-        shelfX_ = 0;
-        shelfHeight_ = 0;
-    }
-    if (shelfY_ + h + kAtlasPadding > height_) {
-        int newHeight = std::max(height_, 64);
-        while (shelfY_ + h + kAtlasPadding > newHeight) newHeight *= 2;
-        pixels_.resize(static_cast<std::size_t>(width_) * static_cast<std::size_t>(newHeight), 0);
-        height_ = newHeight;
-    }
-    glyph.atlasX = shelfX_;
-    glyph.atlasY = shelfY_;
-    std::uint8_t* out = &pixels_[static_cast<std::size_t>(shelfY_) * static_cast<std::size_t>(width_) + static_cast<std::size_t>(shelfX_)];
-    font_.Rasterise(ch, out, width_);
-    if (!smoothing_) {
-        for (int y = 0; y < h; ++y)
-            for (int x = 0; x < w; ++x) {
-                std::uint8_t& value = out[y * width_ + x];
-                value = value >= 128 ? 255 : 0;
-            }
-    }
-    shelfX_ += w + kAtlasPadding;
-    shelfHeight_ = std::max(shelfHeight_, h + kAtlasPadding);
-    ++generation_;
-}
-
-// ---- Fonts with atlases -------------------------------------------------------------------------------
-
-namespace {
 constexpr char32_t kLowCharacters = 0x500;   // Latin, Greek and Cyrillic: advances in a flat table
-}
-
-TextFont::TextFont(std::unique_ptr<Font> font, bool smoothing)
-    : font_(std::move(font)), atlas_(*font_, smoothing), lowAdvances_(kLowCharacters, -1) {}
-
-int TextFont::Kerning(char32_t left, char32_t right) {
-    const std::uint64_t key = (std::uint64_t(left) << 32) | right;
-    auto found = kerning_.find(key);
-    if (found != kerning_.end()) return found->second;
-    const int kern = font_->Kerning(left, right);
-    kerning_.emplace(key, kern);
-    return kern;
-}
-
-int TextFont::Advance(char32_t ch) {
-    if (ch < kLowCharacters) {
-        int& advance = lowAdvances_[ch];
-        if (advance < 0) advance = font_->Glyph(ch).advance;
-        return advance;
-    }
-    auto found = advances_.find(ch);
-    if (found != advances_.end()) return found->second;
-    const int advance = font_->Glyph(ch).advance;
-    advances_.emplace(ch, advance);
-    return advance;
-}
-
-TextFont* GetTextFont(std::string_view face, int pixels, bool smoothing) {
-    static std::map<std::string, std::unique_ptr<TextFont>> fonts;
-    std::string key(face);
-    key += '|' + std::to_string(pixels) + (smoothing ? "|1" : "|0");
-    auto found = fonts.find(key);
-    if (found != fonts.end()) return found->second.get();
-    std::unique_ptr<TextFont>& slot = fonts[key];
-    if (auto font = LoadFont(FontDirectory() + "/" + FontFileForFace(face), pixels))
-        slot = std::make_unique<TextFont>(std::move(font), smoothing);
-    return slot.get();
-}
-
-// ---- Code page ----------------------------------------------------------------------------------------
-
-std::u32string DecodeCp1251(const char* text, int count) {
-    // Windows-1251 0x80..0xBF; 0xC0..0xFF are U+0410..U+044F.
-    static constexpr char16_t kHigh[64] = {
-        0x0402, 0x0403, 0x201A, 0x0453, 0x201E, 0x2026, 0x2020, 0x2021, 0x20AC, 0x2030, 0x0409, 0x2039, 0x040A, 0x040C, 0x040B, 0x040F,
-        0x0452, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x0098, 0x2122, 0x0459, 0x203A, 0x045A, 0x045C, 0x045B, 0x045F,
-        0x00A0, 0x040E, 0x045E, 0x0408, 0x00A4, 0x0490, 0x00A6, 0x00A7, 0x0401, 0x00A9, 0x0404, 0x00AB, 0x00AC, 0x00AD, 0x00AE, 0x0407,
-        0x00B0, 0x00B1, 0x0406, 0x0456, 0x0491, 0x00B5, 0x00B6, 0x00B7, 0x0451, 0x2116, 0x0454, 0x00BB, 0x0458, 0x0405, 0x0455, 0x0457,
-    };
-    if (!text) return {};
-    const std::size_t length = count < 0 ? std::strlen(text) : static_cast<std::size_t>(count);
-    std::u32string out;
-    out.reserve(length);
-    for (std::size_t i = 0; i < length; ++i) {
-        const unsigned char byte = static_cast<unsigned char>(text[i]);
-        if (byte < 0x80) out.push_back(byte);
-        else if (byte < 0xC0) out.push_back(kHigh[byte - 0x80]);
-        else out.push_back(char32_t(0x0410 + (byte - 0xC0)));
-    }
-    return out;
-}
-
-// ---- Layout -------------------------------------------------------------------------------------------
-// DrawText-compatible layout rules (measured against user32's DrawTextA on Windows 10 with fixed-pitch fonts;
-// tools/text_check checks each): docs/notes/ui-native.md, "DrawText layout rules".
-
-namespace {
 
 bool IsLineBreak(char32_t ch) { return ch == U'\r' || ch == U'\n'; }
 bool IsWhite(char32_t ch) { return ch == U' ' || ch == U'\t'; }
@@ -448,6 +302,144 @@ private:
 };
 
 } // namespace
+
+std::unique_ptr<Font> LoadFont(const std::string& path, int pixels) {
+    if (pixels <= 0) return nullptr;
+    auto file = LoadFontFile(path);
+    if (!file) return nullptr;
+    return std::make_unique<StbFont>(std::move(file), pixels);
+}
+
+void SetFontDirectory(const std::string& directory) { g_fontDirectory = directory; }
+std::string FontDirectory() { return g_fontDirectory; }
+
+const char* FontFileForFace(std::string_view face) {
+    auto same = [face](std::string_view name) {
+        return face.size() == name.size() &&
+               std::equal(face.begin(), face.end(), name.begin(), [](char a, char b) {
+                   return (a | 0x20) == (b | 0x20);
+               });
+    };
+    if (same("Courier New")) return "LiberationMono-Regular.ttf";
+    return "LiberationSerif-Regular.ttf";
+}
+
+int PointSizeToPixels(int tenths, int dpi) { return dpi * tenths / 720; }
+
+// ---- Glyph atlas --------------------------------------------------------------------------------------
+
+GlyphAtlas::GlyphAtlas(const Font& font, bool smoothing)
+    : font_(font), smoothing_(smoothing), width_(AtlasWidthFor(font)) {}
+
+const AtlasGlyph& GlyphAtlas::Get(char32_t ch) {
+    auto found = glyphs_.find(ch);
+    if (found != glyphs_.end()) return found->second;
+    AtlasGlyph& glyph = glyphs_[ch];
+    glyph.metrics = font_.Glyph(ch);
+    Place(glyph, ch);
+    return glyph;
+}
+
+void GlyphAtlas::Place(AtlasGlyph& glyph, char32_t ch) {
+    const int w = glyph.metrics.width, h = glyph.metrics.height;
+    if (w <= 0 || h <= 0) return;
+    if (w + kAtlasPadding > width_) {
+        // Wider than the atlas (not at interface sizes): keep the metrics, draw nothing.
+        glyph.metrics.width = glyph.metrics.height = 0;
+        return;
+    }
+    if (shelfX_ + w + kAtlasPadding > width_) {
+        shelfY_ += shelfHeight_;
+        shelfX_ = 0;
+        shelfHeight_ = 0;
+    }
+    if (shelfY_ + h + kAtlasPadding > height_) {
+        int newHeight = std::max(height_, 64);
+        while (shelfY_ + h + kAtlasPadding > newHeight) newHeight *= 2;
+        pixels_.resize(static_cast<std::size_t>(width_) * static_cast<std::size_t>(newHeight), 0);
+        height_ = newHeight;
+    }
+    glyph.atlasX = shelfX_;
+    glyph.atlasY = shelfY_;
+    std::uint8_t* out = &pixels_[static_cast<std::size_t>(shelfY_) * static_cast<std::size_t>(width_) + static_cast<std::size_t>(shelfX_)];
+    font_.Rasterise(ch, out, width_);
+    if (!smoothing_) {
+        for (int y = 0; y < h; ++y)
+            for (int x = 0; x < w; ++x) {
+                std::uint8_t& value = out[y * width_ + x];
+                value = value >= 128 ? 255 : 0;
+            }
+    }
+    shelfX_ += w + kAtlasPadding;
+    shelfHeight_ = std::max(shelfHeight_, h + kAtlasPadding);
+    ++generation_;
+}
+
+// ---- Fonts with atlases -------------------------------------------------------------------------------
+
+TextFont::TextFont(std::unique_ptr<Font> font, bool smoothing)
+    : font_(std::move(font)), atlas_(*font_, smoothing), lowAdvances_(kLowCharacters, -1) {}
+
+int TextFont::Kerning(char32_t left, char32_t right) {
+    const std::uint64_t key = (std::uint64_t(left) << 32) | right;
+    auto found = kerning_.find(key);
+    if (found != kerning_.end()) return found->second;
+    const int kern = font_->Kerning(left, right);
+    kerning_.emplace(key, kern);
+    return kern;
+}
+
+int TextFont::Advance(char32_t ch) {
+    if (ch < kLowCharacters) {
+        int& advance = lowAdvances_[ch];
+        if (advance < 0) advance = font_->Glyph(ch).advance;
+        return advance;
+    }
+    auto found = advances_.find(ch);
+    if (found != advances_.end()) return found->second;
+    const int advance = font_->Glyph(ch).advance;
+    advances_.emplace(ch, advance);
+    return advance;
+}
+
+TextFont* GetTextFont(std::string_view face, int pixels, bool smoothing) {
+    static std::map<std::string, std::unique_ptr<TextFont>> fonts;
+    std::string key(face);
+    key += '|' + std::to_string(pixels) + (smoothing ? "|1" : "|0");
+    auto found = fonts.find(key);
+    if (found != fonts.end()) return found->second.get();
+    std::unique_ptr<TextFont>& slot = fonts[key];
+    if (auto font = LoadFont(FontDirectory() + "/" + FontFileForFace(face), pixels))
+        slot = std::make_unique<TextFont>(std::move(font), smoothing);
+    return slot.get();
+}
+
+// ---- Code page ----------------------------------------------------------------------------------------
+
+std::u32string DecodeCp1251(const char* text, int count) {
+    // Windows-1251 0x80..0xBF; 0xC0..0xFF are U+0410..U+044F.
+    static constexpr char16_t kHigh[64] = {
+        0x0402, 0x0403, 0x201A, 0x0453, 0x201E, 0x2026, 0x2020, 0x2021, 0x20AC, 0x2030, 0x0409, 0x2039, 0x040A, 0x040C, 0x040B, 0x040F,
+        0x0452, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x0098, 0x2122, 0x0459, 0x203A, 0x045A, 0x045C, 0x045B, 0x045F,
+        0x00A0, 0x040E, 0x045E, 0x0408, 0x00A4, 0x0490, 0x00A6, 0x00A7, 0x0401, 0x00A9, 0x0404, 0x00AB, 0x00AC, 0x00AD, 0x00AE, 0x0407,
+        0x00B0, 0x00B1, 0x0406, 0x0456, 0x0491, 0x00B5, 0x00B6, 0x00B7, 0x0451, 0x2116, 0x0454, 0x00BB, 0x0458, 0x0405, 0x0455, 0x0457,
+    };
+    if (!text) return {};
+    const std::size_t length = count < 0 ? std::strlen(text) : static_cast<std::size_t>(count);
+    std::u32string out;
+    out.reserve(length);
+    for (std::size_t i = 0; i < length; ++i) {
+        const unsigned char byte = static_cast<unsigned char>(text[i]);
+        if (byte < 0x80) out.push_back(byte);
+        else if (byte < 0xC0) out.push_back(kHigh[byte - 0x80]);
+        else out.push_back(char32_t(0x0410 + (byte - 0xC0)));
+    }
+    return out;
+}
+
+// ---- Layout -------------------------------------------------------------------------------------------
+// DrawText-compatible layout rules (measured against user32's DrawTextA on Windows 10 with fixed-pitch fonts;
+// tools/text_check checks each): docs/notes/ui-native.md, "DrawText layout rules".
 
 bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned format, TextLayout& out) {
     if (format & ~kSupportedFormats) return false;

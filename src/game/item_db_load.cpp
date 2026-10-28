@@ -32,6 +32,25 @@ void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int f
     }
 }
 
+// A string list as chunk `id`: one string field 1 per entry; loading erases the list and resizes it
+// to the field count first.
+void StringListField(ChunkArchive* ar, int id, std::vector<std::string>* list) {
+    if (!ar->EnterChunk(id)) return;
+    int count;
+    if (ar->loading_) {
+        list->clear();
+        count = ar->CountChunks(1);
+        list->resize(static_cast<unsigned>(count));
+    } else {
+        count = static_cast<int>(list->size());
+    }
+    for (int i = 0; i < count; ++i) {
+        ar->Current()->occurrence = i + 1;
+        ar->StringField(1, &(*list)[i]);
+    }
+    ar->LeaveChunk();
+}
+
 } // namespace
 
 namespace itemdb {
@@ -69,29 +88,6 @@ void ChunkArchive::SerializeArmors(int id, std::vector<itemdb::ArmorRecord>* rec
 }
 
 // --- The spell database's vectors and records ----------------------------------------------
-
-namespace {
-
-// A string list as chunk `id`: one string field 1 per entry; loading erases the list and resizes it
-// to the field count first.
-void StringListField(ChunkArchive* ar, int id, std::vector<std::string>* list) {
-    if (!ar->EnterChunk(id)) return;
-    int count;
-    if (ar->loading_) {
-        list->clear();
-        count = ar->CountChunks(1);
-        list->resize(static_cast<unsigned>(count));
-    } else {
-        count = static_cast<int>(list->size());
-    }
-    for (int i = 0; i < count; ++i) {
-        ar->Current()->occurrence = i + 1;
-        ar->StringField(1, &(*list)[i]);
-    }
-    ar->LeaveChunk();
-}
-
-} // namespace
 
 void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);

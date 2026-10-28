@@ -90,6 +90,54 @@ private:
 // The escape menu's 256x192 5:6:5 copy of the screen, or null.
 const void* SavePicture(CInterface3D* ui) { return ui->block5C_; }
 
+constexpr const char* kQuickFolder = "saveq";
+constexpr const char* kAutoFolderA = "savea";
+constexpr const char* kAutoFolderB = "saveb";
+constexpr const char* kQuickTitle = "save_quick";
+constexpr const char* kAutoEnterTitle = "save_auto_enter";
+constexpr const char* kAutoExitTitle = "save_auto_exit";
+constexpr const char* kPlainFormat = "%s";
+
+bool SameFolder(std::string_view folder, std::string_view name) {
+    return text::CompareIgnoringCase(folder, name) == 0;
+}
+
+constexpr const char* kNotifyLoading = "notify_loading";
+constexpr int kScreenWidth = 800, kScreenHeight = 600;   // the copy's layout rectangle (immediates)
+constexpr int kShotWidth = 256, kShotHeight = 192;
+
+CInterface3D* Interface() { return TheInterface(); }
+GameFlow* Flow() { return TheGameFlow(); }
+
+// The save folder saves\<slot>\ under the game's folder.
+std::string SlotFolder(const char* slot) {
+    std::string folder;
+    folder = str::Format(flowdata::kSlotFolder, DataFolderText(), slot);
+    return folder;
+}
+
+// The first line of the text `prefix` + `suffix`, or empty when there is none.
+std::string FirstLineOf(const char* prefix, const std::string& suffix) {
+    std::string line;
+    CTextManager* texts = TheTextManager();
+    BOOL found = texts->Open((std::string(prefix) + suffix).c_str());
+    if (found) texts->ReadLine(&line, 1);
+    return line;
+}
+
+constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";
+constexpr const char* kSoundDelete = "buttons\\save\\delete.wav";
+constexpr int kAskOverwrite = 0x20000, kAskDelete = 0x10000;            // the boxes' results (high word)
+constexpr const char* kFolderFormat = "%ssaves\\%s";
+constexpr const char* kEveryFile = "\\*.*";
+
+// A message box `name` / `text` on top of the interface (a failed allocation pushes null, as the
+// original does).
+void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
+    CUiWindow* box = new CMessageBox(ui, name, text, result, 3, 1);
+    ui->PushWindow(box, 1, 1);
+}
+
 } // namespace
 
 
@@ -130,20 +178,6 @@ void CSaveLoadWindow::ShowPicture() {
     SceneMesh(3)->visible_ = 1;
     SceneMesh(3)->texture_ = objects_[1];
 }
-
-namespace {
-constexpr const char* kQuickFolder = "saveq";
-constexpr const char* kAutoFolderA = "savea";
-constexpr const char* kAutoFolderB = "saveb";
-constexpr const char* kQuickTitle = "save_quick";
-constexpr const char* kAutoEnterTitle = "save_auto_enter";
-constexpr const char* kAutoExitTitle = "save_auto_exit";
-constexpr const char* kPlainFormat = "%s";
-
-bool SameFolder(std::string_view folder, std::string_view name) {
-    return text::CompareIgnoringCase(folder, name) == 0;
-}
-} // namespace
 
 void SaveEntry::MakeTitle(int) {
     std::string quick;
@@ -339,22 +373,6 @@ void CSaveLoadWindow::FillEntries() {
 
 // --- Quick and automatic saves ------------------------------------------------------------------------
 
-namespace {
-constexpr const char* kNotifyLoading = "notify_loading";
-constexpr int kScreenWidth = 800, kScreenHeight = 600;   // the copy's layout rectangle (immediates)
-constexpr int kShotWidth = 256, kShotHeight = 192;
-
-CInterface3D* Interface() { return TheInterface(); }
-GameFlow* Flow() { return TheGameFlow(); }
-
-// The save folder saves\<slot>\ under the game's folder.
-std::string SlotFolder(const char* slot) {
-    std::string folder;
-    folder = str::Format(flowdata::kSlotFolder, DataFolderText(), slot);
-    return folder;
-}
-} // namespace
-
 void QuickSave(const char* slot, char stepFrame) {
     if (IsMultiplayerClient()) return;
     double space = app::DiskFreeSpace(DataFolderText());
@@ -416,31 +434,6 @@ void QuickLoad(const char* slot) {
 }
 
 // --- Entry titles, OK / Delete / load / delete ----------------------------------------------
-
-namespace {
-
-// The first line of the text `prefix` + `suffix`, or empty when there is none.
-std::string FirstLineOf(const char* prefix, const std::string& suffix) {
-    std::string line;
-    CTextManager* texts = TheTextManager();
-    BOOL found = texts->Open((std::string(prefix) + suffix).c_str());
-    if (found) texts->ReadLine(&line, 1);
-    return line;
-}
-
-constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";
-constexpr const char* kSoundDelete = "buttons\\save\\delete.wav";
-constexpr int kAskOverwrite = 0x20000, kAskDelete = 0x10000;            // the boxes' results (high word)
-constexpr const char* kFolderFormat = "%ssaves\\%s";
-constexpr const char* kEveryFile = "\\*.*";
-
-// A message box `name` / `text` on top of the interface (a failed allocation pushes null, as the
-// original does).
-void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
-    CUiWindow* box = new CMessageBox(ui, name, text, result, 3, 1);
-    ui->PushWindow(box, 1, 1);
-}
-} // namespace
 
 std::string SaveEntry::ZoneTitle() const {
     std::string title = FirstLineOf("zone ", zone_);   // the key has a space

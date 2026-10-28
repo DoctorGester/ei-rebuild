@@ -17,6 +17,13 @@ namespace {
 
 void Dword(ChunkArchive* ar, int id, void* data) { ar->Field(id, data, 4); }
 
+constexpr int kSkillLevelValues = 10;
+constexpr int kFirstValueField = 12;
+
+bool SameName(const std::string& name, const char* other) {
+    return text::CompareIgnoringCase(name, other) == 0;
+}
+
 } // namespace
 
 template <typename Text>
@@ -197,15 +204,6 @@ void ChunkArchive::SerializeUnitLevels(int id, std::vector<UnitLevelRecord>* rec
 }
 
 // --- The skill database --------------------------------------------------------------------------
-
-namespace {
-constexpr int kSkillLevelValues = 10;
-constexpr int kFirstValueField = 12;
-
-bool SameName(const std::string& name, const char* other) {
-    return text::CompareIgnoringCase(name, other) == 0;
-}
-} // namespace
 
 void SkillRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);

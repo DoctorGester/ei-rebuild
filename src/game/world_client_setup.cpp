@@ -75,6 +75,23 @@ void ReadTable(CIniFile& ini, std::vector<std::string>& keys, std::string& hour,
         previous = index;
     }
 }
+
+constexpr int kSkyFigureClass = 0x44;
+constexpr int kSkyObjectId = -666;
+constexpr int kSkyMaterialType = 0x12;
+constexpr std::uint32_t kSkyObjectFlag = 0x10;
+const char* SkyPartName() { return "nask0"; }
+const char* SkyFigureFile() { return "nask0sky.fig"; }
+
+// A counted slot gets `object` (referenced), the old one is released.
+template <typename T>
+void AssignCounted(T*& slot, T* object) {
+    T* old = slot;
+    slot = object;
+    if (object) ++object->refCount_;
+    if (old) old->Release();
+}
+
 } // namespace
 
 int CWorldClient::LoadLights(const char* file) {
@@ -118,24 +135,6 @@ void CWorldClient::SetUpGraphics(CTextureDevice* device) {
 }
 
 // ---- The sky --------------------------------------------------------------------------
-
-namespace {
-constexpr int kSkyFigureClass = 0x44;
-constexpr int kSkyObjectId = -666;
-constexpr int kSkyMaterialType = 0x12;
-constexpr std::uint32_t kSkyObjectFlag = 0x10;
-const char* SkyPartName() { return "nask0"; }
-const char* SkyFigureFile() { return "nask0sky.fig"; }
-
-// A counted slot gets `object` (referenced), the old one is released.
-template <typename T>
-void AssignCounted(T*& slot, T* object) {
-    T* old = slot;
-    slot = object;
-    if (object) ++object->refCount_;
-    if (old) old->Release();
-}
-} // namespace
 
 void CWorldClient::LoadSky() {
     if (skyDome_) return;

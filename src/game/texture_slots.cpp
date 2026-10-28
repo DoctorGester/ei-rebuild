@@ -52,6 +52,9 @@ void DropSurface(CTexture* texture) {
     texture->surface_ = nullptr;
     if (held) held->Release();
 }
+
+// The virtual slots' entry points (rewrite-guide rule 4).
+
 } // namespace
 
 const char* CTexture::GetName() { return name_.c_str(); }
@@ -98,10 +101,6 @@ CTexture::~CTexture() {
     flags_ = 0;
     // The counted surface pointer is null by now; the extra block (its pointer is not cleared).
 }
-
-namespace {
-// The virtual slots' entry points (rewrite-guide rule 4).
-} // namespace
 
 MmpHeader* CTextureManager::GetFileData(const char* name) { return static_cast<MmpHeader*>(GetFile(name, nullptr)); }
 

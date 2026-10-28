@@ -16,6 +16,24 @@ void EndWalk(ObjectListIterator& it) {
     if (it.manager) --it.manager->refCount_;
 }
 
+template <typename Pick>
+void ReleaseHeld(CParticleManager* manager, Pick drop) {
+    ObjectListIterator it{nullptr, {}};
+    CEngineObject* object = it.First(manager);
+    std::list<int> ids;
+    for (; object; object = it.Next()) {
+        if (!drop(object)) continue;
+        int id = object->id_;
+        if (!manager->held_.contains(id)) continue;
+        ids.push_back(id);
+        object->Release();
+    }
+    for (std::list<int>::iterator n = ids.begin(); n != ids.end(); ++n) {
+        if (auto node = manager->held_.find((*n)); node != manager->held_.end()) manager->held_.erase(node);
+    }
+    EndWalk(it);
+}
+
 } // namespace
 
 int CParticleManager::Create() {
@@ -55,27 +73,6 @@ CParticleSource* CParticleManager::CreateSource(int type) {
 
 // The two callers share the walk: the ids of the held sources `drop` picks are listed while the sources are
 // released, then they leave the table.
-namespace {
-
-template <typename Pick>
-void ReleaseHeld(CParticleManager* manager, Pick drop) {
-    ObjectListIterator it{nullptr, {}};
-    CEngineObject* object = it.First(manager);
-    std::list<int> ids;
-    for (; object; object = it.Next()) {
-        if (!drop(object)) continue;
-        int id = object->id_;
-        if (!manager->held_.contains(id)) continue;
-        ids.push_back(id);
-        object->Release();
-    }
-    for (std::list<int>::iterator n = ids.begin(); n != ids.end(); ++n) {
-        if (auto node = manager->held_.find((*n)); node != manager->held_.end()) manager->held_.erase(node);
-    }
-    EndWalk(it);
-}
-
-} // namespace
 
 int CParticleManager::TickSources(char paused) {
     ReleaseHeld(this, [paused](CEngineObject* object) {

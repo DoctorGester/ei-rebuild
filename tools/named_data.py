@@ -457,9 +457,15 @@ def definitions(sources=None):
     for s in sources or srcscan.load_sources():
         if not TAGGED.search(s.raw):
             continue
-        for m in DEF.finditer(s.raw):
-            if not s.code[m.start(1)].strip():   # inside a comment
+        pos = 0
+        while True:
+            m = DEF.search(s.raw, pos)
+            if m is None:
+                break
+            if not s.code[m.start(1)].strip():   # inside a comment: a match must not swallow the code after it
+                pos = m.start(1) + 1
                 continue
+            pos = m.end()
             if m.group(6) == '{':
                 body = braced(s.raw, m.end() - 1)
             else:   # one pointer (its string literal(s)) or one number, up to the `;`

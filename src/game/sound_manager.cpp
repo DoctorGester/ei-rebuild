@@ -76,6 +76,149 @@ double HeightFactor(float h) {
     return D(kOne) - (D(h) - kHeightFull) / (D(kHeightSilent) - kHeightFull);
 }
 
+// The voice loop of the volume setters and SetListener.
+void RefreshVoices(CSoundManager* m) {
+    SoundSlot* slot = m->slots;
+    for (int i = 0; i < 15; ++i, ++slot) {
+        if (slot->playing == 0) continue;
+        if (slot->flat == 0) m->UpdatePositional(slot);
+        else slot->volume = m->FlatVolume(slot->baseVolume, slot->heightFade, slot->speech);
+        m->ApplyVolumePan(slot);
+    }
+}
+
+// Deletes the deferred record of `handle`, if any (StopSound, RemoveSequence).
+void DropDeferred(CSoundManager* m, int handle) {
+    auto node = m->deferred.find(handle);
+    if (node == m->deferred.end()) return;
+    DeferredSound* rec = node->second;
+    if (rec == nullptr) return;
+    m->deferred.erase(rec->handle);
+    FreeDeferred(rec);
+}
+
+// Emitter `index` as the game addresses it: index 16 is accepted (one past the array).
+SoundEmitter* EmitterAt(CSoundManager* m, int index) {
+    return m->emitters + index;
+}
+
+SoundSequence* SequenceForId(CSoundManager* m, std::uint32_t id) {
+    SoundSequence* s = &m->sequences[id & 0xFF];
+    return static_cast<std::uint32_t>(s->id) == id ? s : nullptr;
+}
+
+// Moves a sequence's current sound (MoveSequence / UpdateSequence).
+void MoveSequenceSound(CSoundManager* m, int handle, const float* position, float nearDist, float farDist) {
+    SoundSlot* slot = m->SlotForHandle(handle);
+    if (slot != nullptr) {
+        if (slot->finished != 0) {
+            if (slot->playing != 0) m->EndSlot(slot);
+        } else {
+            std::memcpy(&slot->position, position, sizeof(slot->position));
+            slot->flat = 0;
+            slot->nearDistance = nearDist;
+            slot->farDistance = farDist;
+            m->UpdatePositional(slot);
+            m->ApplyVolumePan(slot);
+            return;
+        }
+    }
+    if (m->enabled == 0) return;
+    auto node = m->deferred.find(handle);
+    if (node == m->deferred.end() || node->second == nullptr) return;
+    DeferredSound* rec = node->second;
+    std::memcpy(&rec->position, position, sizeof(rec->position));
+    rec->flat = 0;
+    rec->nearDistance = nearDist;
+    rec->farDistance = farDist;
+}
+
+constexpr std::int32_t kImaAdpcm = 0x11;
+
+constexpr int kVoiceCount = 15;
+constexpr int kNoVoice = -1;
+
+// The level of a new 2D voice: as FlatVolume, except that a NaN camera height keeps the full level (the
+// test is "below 70 or unordered" first, then "above 30").
+int NewFlatLevel(const CSoundManager* m, int volume, int heightFade, int speech) {
+    double v = volume;
+    if (heightFade != 0) {
+        float h = m->listener.z;
+        if (h >= kHeightSilent) v = 0.0;
+        else if (h > kHeightFull) v = v * HeightFactor(h);
+    }
+    v = v * I(speech != 0 ? m->speechVolume : m->effectsVolume);
+    v = v * kMilesScale;
+    return ClampLevel(x87::fistp(static_cast<float>(v)));
+}
+
+// No voice for a looping sound: it waits in the deferred map (silent, flat) until Tick restarts it.
+int DeferLooping(CSoundManager* m, const char* name, int priority, int volume, int pan, int heightFade, int speech) {
+    auto* rec = new DeferredSound;
+    rec->name.assign(name);
+    rec->baseVolume = volume;
+    rec->pan = pan;
+    rec->priority = priority;
+    rec->speech = speech;
+    rec->flat = 1;
+    rec->volume = 0;
+    rec->length = 0.0f;
+    rec->heightFade = heightFade;
+    rec->handle = m->nextHandle;
+    ++m->nextHandle;
+    rec->samplePosition = 0;
+    SetDeferred(m->deferred, rec->handle, rec);
+    return rec->handle;
+}
+
+// The common end of Play2D and Play3D once the wave is in the voice. Returns the voice's handle.
+int StartLoaded(CSoundManager* m, SoundSlot* slot, int loop) {
+    if (loop != 0) gameapi::AIL_set_sample_loop_count(slot->sample, 0);
+    m->ApplyVolumePan(slot);
+    gameapi::AIL_register_EOS_callback(slot->sample, SoundEndOfSample);
+    if (m->reverbOn != 0) gameapi::AIL_set_sample_reverb(slot->sample, m->reverb[0], m->reverb[1], m->reverb[2]);
+    if (m->randomStart != 0) {
+        std::uint32_t range = static_cast<std::uint32_t>(m->randomStart) + 1;
+        gameapi::AIL_set_sample_ms_position(slot->sample, g_random.Next() % range);
+    }
+    gameapi::AIL_start_sample(slot->sample);
+    return slot->handle;
+}
+
+void* DecompressCallback() { return reinterpret_cast<void*>(SoundDecompressCallback); }
+const char* Mp3Suffix() { return ".mp3"; }
+constexpr std::uint32_t kCacheBudget = 0x800000;   // bytes kept unless a wave is still in use
+constexpr std::uint32_t kCacheKeep = 60000;        // ms a wave stays cached after its last use
+
+// A cached wave: moved to the front with one more use and the time of now, then given to the voice.
+void UseCached(CSoundManager* m, SoundSlot* slot, const char* name, std::list<WaveRecord>::iterator node) {
+    m->cacheList.splice(m->cacheList.begin(), m->cacheList, node);
+    WaveRecord& record = *node;
+    record.lastUsed = gameapi::GetTickCount();
+    record.uses = record.uses + 1;
+    slot->length = static_cast<float>(m->WaveLength(record.data, record.size));
+    gameapi::AIL_set_named_sample_file(slot->sample, name, record.data, record.size, 0);
+}
+
+// Drops unused waves from the least recently used end until the new one fits the budget or the
+// next one was used within the last minute.
+void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
+    std::list<WaveRecord>& list = m->cacheList;
+    for (auto after = list.end(); after != list.begin();) {
+        auto node = std::prev(after);
+        const WaveRecord& record = *node;
+        if (static_cast<std::uint32_t>(incoming + m->cacheBytes) < kCacheBudget && now - record.lastUsed < kCacheKeep) return;
+        if (record.uses > 0) {
+            after = node;
+            continue;
+        }
+        gameapi::AIL_mem_free_lock(record.data);
+        m->cacheBytes -= record.size;
+        m->cache.erase(record.name);
+        list.erase(node);
+    }
+}
+
 } // namespace
 
 // --- Shared pieces ------------------------------------------------------------------------------
@@ -176,19 +319,6 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
     slot->pan = pan;
     if (D(dy) * listenerAxis.x > D(dx) * listenerAxis.y) slot->pan = -pan;
 }
-
-namespace {
-// The voice loop of the volume setters and SetListener.
-void RefreshVoices(CSoundManager* m) {
-    SoundSlot* slot = m->slots;
-    for (int i = 0; i < 15; ++i, ++slot) {
-        if (slot->playing == 0) continue;
-        if (slot->flat == 0) m->UpdatePositional(slot);
-        else slot->volume = m->FlatVolume(slot->baseVolume, slot->heightFade, slot->speech);
-        m->ApplyVolumePan(slot);
-    }
-}
-} // namespace
 
 // Options: effects volume 0..100.
 void CSoundManager::SetEffectsVolume(int volume) {
@@ -340,18 +470,6 @@ int CSoundManager::SetSoundPosition(int handle, const float* position, float nea
     return 0;
 }
 
-namespace {
-// Deletes the deferred record of `handle`, if any (StopSound, RemoveSequence).
-void DropDeferred(CSoundManager* m, int handle) {
-    auto node = m->deferred.find(handle);
-    if (node == m->deferred.end()) return;
-    DeferredSound* rec = node->second;
-    if (rec == nullptr) return;
-    m->deferred.erase(rec->handle);
-    FreeDeferred(rec);
-}
-} // namespace
-
 // Stops a sound (or forgets its deferred record); always -1, the "no sound" handle.
 int CSoundManager::StopSound(int handle) {
     if (enabled != 0) {
@@ -369,13 +487,6 @@ int CSoundManager::StopSound(int handle) {
 }
 
 // --- Ambient emitters -----------------------------------------------------------------------------
-
-namespace {
-// Emitter `index` as the game addresses it: index 16 is accepted (one past the array).
-SoundEmitter* EmitterAt(CSoundManager* m, int index) {
-    return m->emitters + index;
-}
-} // namespace
 
 void CSoundManager::MoveEmitter(int index, const float* position, float inner, float outer, int minInterval,
                                 int maxInterval) {
@@ -476,39 +587,6 @@ int CSoundManager::AddSequence(const std::vector<std::string>* names, int priori
     s->active = 0;
     return -1;
 }
-
-namespace {
-SoundSequence* SequenceForId(CSoundManager* m, std::uint32_t id) {
-    SoundSequence* s = &m->sequences[id & 0xFF];
-    return static_cast<std::uint32_t>(s->id) == id ? s : nullptr;
-}
-
-// Moves a sequence's current sound (MoveSequence / UpdateSequence).
-void MoveSequenceSound(CSoundManager* m, int handle, const float* position, float nearDist, float farDist) {
-    SoundSlot* slot = m->SlotForHandle(handle);
-    if (slot != nullptr) {
-        if (slot->finished != 0) {
-            if (slot->playing != 0) m->EndSlot(slot);
-        } else {
-            std::memcpy(&slot->position, position, sizeof(slot->position));
-            slot->flat = 0;
-            slot->nearDistance = nearDist;
-            slot->farDistance = farDist;
-            m->UpdatePositional(slot);
-            m->ApplyVolumePan(slot);
-            return;
-        }
-    }
-    if (m->enabled == 0) return;
-    auto node = m->deferred.find(handle);
-    if (node == m->deferred.end() || node->second == nullptr) return;
-    DeferredSound* rec = node->second;
-    std::memcpy(&rec->position, position, sizeof(rec->position));
-    rec->flat = 0;
-    rec->nearDistance = nearDist;
-    rec->farDistance = farDist;
-}
-} // namespace
 
 int CSoundManager::MoveSequence(std::uint32_t id, const float* position) {
     if (enabled == 0 || (id & 0xFF) >= 8) return 0;
@@ -867,10 +945,6 @@ struct miles::SoundInfo {
 };
 static_assert(sizeof(miles::SoundInfo) == 0x24);
 
-namespace {
-constexpr std::int32_t kImaAdpcm = 0x11;
-} // namespace
-
 double CSoundManager::WaveLength(const void* data, int /*size*/) {
     miles::SoundInfo info;
     gameapi::AIL_WAV_info(data, &info);
@@ -948,11 +1022,6 @@ void SoundFader::Update() {
 
 // --- A voice for a new sound -----------------------------------------------------
 
-namespace {
-constexpr int kVoiceCount = 15;
-constexpr int kNoVoice = -1;
-} // namespace
-
 int CSoundManager::AllocateVoice(int priority) {
     int lowest = 0x7FFFFFFF;
     int index = 0;
@@ -989,56 +1058,6 @@ int CSoundManager::AllocateVoice(int priority) {
 }
 
 // --- Play2D, Play3D ---------------------------------------------------------
-
-namespace {
-
-// The level of a new 2D voice: as FlatVolume, except that a NaN camera height keeps the full level (the
-// test is "below 70 or unordered" first, then "above 30").
-int NewFlatLevel(const CSoundManager* m, int volume, int heightFade, int speech) {
-    double v = volume;
-    if (heightFade != 0) {
-        float h = m->listener.z;
-        if (h >= kHeightSilent) v = 0.0;
-        else if (h > kHeightFull) v = v * HeightFactor(h);
-    }
-    v = v * I(speech != 0 ? m->speechVolume : m->effectsVolume);
-    v = v * kMilesScale;
-    return ClampLevel(x87::fistp(static_cast<float>(v)));
-}
-
-// No voice for a looping sound: it waits in the deferred map (silent, flat) until Tick restarts it.
-int DeferLooping(CSoundManager* m, const char* name, int priority, int volume, int pan, int heightFade, int speech) {
-    auto* rec = new DeferredSound;
-    rec->name.assign(name);
-    rec->baseVolume = volume;
-    rec->pan = pan;
-    rec->priority = priority;
-    rec->speech = speech;
-    rec->flat = 1;
-    rec->volume = 0;
-    rec->length = 0.0f;
-    rec->heightFade = heightFade;
-    rec->handle = m->nextHandle;
-    ++m->nextHandle;
-    rec->samplePosition = 0;
-    SetDeferred(m->deferred, rec->handle, rec);
-    return rec->handle;
-}
-
-// The common end of Play2D and Play3D once the wave is in the voice. Returns the voice's handle.
-int StartLoaded(CSoundManager* m, SoundSlot* slot, int loop) {
-    if (loop != 0) gameapi::AIL_set_sample_loop_count(slot->sample, 0);
-    m->ApplyVolumePan(slot);
-    gameapi::AIL_register_EOS_callback(slot->sample, SoundEndOfSample);
-    if (m->reverbOn != 0) gameapi::AIL_set_sample_reverb(slot->sample, m->reverb[0], m->reverb[1], m->reverb[2]);
-    if (m->randomStart != 0) {
-        std::uint32_t range = static_cast<std::uint32_t>(m->randomStart) + 1;
-        gameapi::AIL_set_sample_ms_position(slot->sample, g_random.Next() % range);
-    }
-    gameapi::AIL_start_sample(slot->sample);
-    return slot->handle;
-}
-} // namespace
 
 // Plays `name` without position: `volume` 0..100 (scaled by the effects or speech volume,
 // and with `heightFade` by the camera height), `pan` -100..100, `loop` endlessly, `compressed` an
@@ -1106,42 +1125,6 @@ int CSoundManager::Play3D(const char* name, int priority, const float* position,
     if (LoadSample(slot, index, name, 0) == 0) return -1;
     return StartLoaded(this, slot, loop);
 }
-
-namespace {
-void* DecompressCallback() { return reinterpret_cast<void*>(SoundDecompressCallback); }
-const char* Mp3Suffix() { return ".mp3"; }
-constexpr std::uint32_t kCacheBudget = 0x800000;   // bytes kept unless a wave is still in use
-constexpr std::uint32_t kCacheKeep = 60000;        // ms a wave stays cached after its last use
-
-// A cached wave: moved to the front with one more use and the time of now, then given to the voice.
-void UseCached(CSoundManager* m, SoundSlot* slot, const char* name, std::list<WaveRecord>::iterator node) {
-    m->cacheList.splice(m->cacheList.begin(), m->cacheList, node);
-    WaveRecord& record = *node;
-    record.lastUsed = gameapi::GetTickCount();
-    record.uses = record.uses + 1;
-    slot->length = static_cast<float>(m->WaveLength(record.data, record.size));
-    gameapi::AIL_set_named_sample_file(slot->sample, name, record.data, record.size, 0);
-}
-
-// Drops unused waves from the least recently used end until the new one fits the budget or the
-// next one was used within the last minute.
-void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
-    std::list<WaveRecord>& list = m->cacheList;
-    for (auto after = list.end(); after != list.begin();) {
-        auto node = std::prev(after);
-        const WaveRecord& record = *node;
-        if (static_cast<std::uint32_t>(incoming + m->cacheBytes) < kCacheBudget && now - record.lastUsed < kCacheKeep) return;
-        if (record.uses > 0) {
-            after = node;
-            continue;
-        }
-        gameapi::AIL_mem_free_lock(record.data);
-        m->cacheBytes -= record.size;
-        m->cache.erase(record.name);
-        list.erase(node);
-    }
-}
-} // namespace
 
 // Gives the voice wave `name`: a cached copy (unless `compressed`, which then leaves the
 // voice without a new sample file), or the file from the first archive that has it, decompressed

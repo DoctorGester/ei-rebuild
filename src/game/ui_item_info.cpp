@@ -86,39 +86,6 @@ const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
     return spell->GetPrototype();
 }
 
-} // namespace
-
-void ItemDamageLists(const float* values, std::vector<std::string>* out, char integer) {
-    CTextManager* texts = TextManager();
-    out->clear();
-    std::string value, above, below, key, text;
-    float threshold = values[6];
-    // EI_Plugin's Fixes: the jump over the integer format is always taken.
-    if (integer && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes))
-        value = str::Format("%d", FtolOf(threshold));
-    else
-        value = str::Format("%.1f", D(threshold));
-    for (int i = 0; i < 6; ++i) {
-        std::string* list;
-        if (values[i] > threshold)
-            list = &above;
-        else if (values[i] == threshold)
-            continue;
-        else
-            list = &below;   // also NaN
-        key = str::Format("dmg_%d", i);
-        texts->GetString(key.c_str(), &text);
-        *list += text;
-        *list += ", ";
-    }
-    str::TrimRight(above, ", ");
-    str::TrimRight(below, ", ");
-    out->push_back(value);
-    out->push_back(above);
-    out->push_back(below);
-}
-
-namespace {
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr std::uint32_t kText = 0xA7D7E4;
 
@@ -231,7 +198,165 @@ void DurationLine(Writer& w, std::uint32_t ticks) {
     w.Down();
 }
 
+void AttributeLines(Writer& w, UnitStats* stats, int index) {
+    auto line = [&](const char* format, int label, int value) {
+        w.line = str::Format(format, w.Skill(label).c_str(), value);
+        w.Text(w.line);
+        w.Down();
+    };
+    switch (index) {
+    case 0:
+        line("%s %d%%", 0, Ftol(stats->StrengthRatio() * kPercentScale));
+        line("%s %d", 1, Ftol(stats->Value6E8()));
+        w.Down();
+        break;
+    case 1:
+        line("%s %d%%", 2, Ftol(stats->DexterityRatio() * kPercentScale));
+        line("%s %d", 3, Ftol(stats->RateValue()));
+        w.Down();
+        break;
+    case 2:
+        // 1.04 ^ (intelligence - 25) * 100.
+        line("%s %d%%", 4, PowFtol(kIntelligenceGrowth, stats->stat20, kStatBase, kPercentScale));
+        line("%s %d%%", 24, Ftol(stats->Period20() * kPercentScale));
+        w.Down();
+        break;
+    default:
+        break;
+    }
+}
+
+void PerkLines(Writer& w, const ItemHoverInfo* info, std::string& title) {
+    CTextManager* texts = TextManager();
+    std::string name = info->text;
+    str::TrimRight(name, "0");
+    name += "1";
+    int group = SkillDb()->IndexOf(name.c_str()) / 3;
+    for (int i = 0; i < 3; ++i) {
+        const SkillLevelRecord* level = unitdb::SkillLevelAt(static_cast<std::uint32_t>(group * 3 + i));
+        if (!level) continue;
+        std::string key("perk ");
+        key += level->name;
+        if (texts->Open(key.c_str())) texts->ReadLine(&title, 1);
+        w.Text(title);
+        if (info->index > i) w.draw->DrawLine(w.Skill(21), w.Rect(), 0, kText, 2, 1);   // learned
+        w.Down();
+        int value = static_cast<int>(level->values[7]);
+        const char* percent = "     %s %d%%";
+        const char* plain = "     %s %d";
+        bool drawn = true;
+        switch (group) {
+        case 0: case 1: case 2: case 3: case 4: case 5: case 6:
+            w.line = str::Format(plain, w.Skill(10).c_str(), value);
+            break;
+        case 7: case 8: case 9: case 10: case 11: case 12: case 13: case 14:
+            w.line = str::Format(plain, w.Skill(11).c_str(), value);
+            break;
+        case 15:
+            w.line = str::Format(percent, w.Skill(12).c_str(), static_cast<std::uint32_t>(value + 100) >> 1);
+            break;
+        case 16: w.line = str::Format(percent, w.Skill(14).c_str(), value + 100); break;
+        case 17: w.line = str::Format(percent, w.Skill(15).c_str(), value + 100); break;
+        case 18: w.line = str::Format(percent, w.Skill(16).c_str(), value + 100); break;
+        case 19: w.line = str::Format(percent, w.Skill(17).c_str(), value + 100); break;
+        case 20: w.line = str::Format(percent, w.Skill(3).c_str(), value + 100); break;
+        case 21: w.line = str::Format(percent, w.Skill(1).c_str(), value + 100); break;
+        case 22: w.line = str::Format(percent, w.Skill(22).c_str(), value + 300); break;
+        case 23: case 24: case 25:
+            w.line = str::Format(plain, w.Skill(23).c_str(), value);
+            break;
+        default:
+            drawn = false;
+            break;
+        }
+        if (drawn) w.Text(w.line);
+        w.Down();
+        // The cost (negative: 0x7FFFFFFF), on a line 15 pixels wider.
+        w.Rect()->right += 15;
+        int cost = info->stats->SkillPrice(level);
+        if (cost < 0) cost = 0x7FFFFFFF;
+        w.line = str::Format(plain, w.Skill(18).c_str(), cost);
+        w.Text(w.line);
+        w.Rect()->right -= 15;
+        w.Down();
+    }
+}
+
+// Kind 5, the weapon's attack or defence: its four parts and their sum (or, for the defence of a
+// weapon of type 5 or 6, infoitem_34).
+void WeaponLines(Writer& w, const ItemHoverInfo* info) {
+    CItemWeapon* weapon = info->weapon;
+    UnitStats* stats = info->stats;
+    int type = weapon->GetType();
+    if (str::Compare(info->text, "defense") == 0 && (type == 5 || type == 6)) {
+        w.Wrapped(w.T(34), 2);
+        w.Down();
+        return;
+    }
+    auto part = [&](int label, int value) {
+        w.line = str::Format("     %s", w.T(label).c_str());
+        w.Text(w.line);
+        w.line = str::Format("%d", value);
+        w.Value(w.line);
+    };
+    int base = DifferenceFtol(stats->stat18, kStatBase);   // dexterity - 25
+    part(29, base);
+    int sum = base;
+    w.Down();
+    int skill = Ftol(stats->WeaponSkill(type));
+    part(30, skill);
+    sum += skill;
+    w.Down();
+    int level = Ftol(stats->SkillLevelValue(type));
+    part(31, level);
+    sum += level;
+    w.Down();
+    w.line = str::Format("     %s", w.T(32).c_str());
+    w.Text(w.line);
+    int own = Ftol(WeaponPrototypeSkillBonus(PackedIdOf(weapon)));
+    if (str::Compare(info->text, "defense") == 0)
+        own += Ftol(WeaponStat88(PackedIdOf(weapon)));
+    else
+        own += Ftol(WeaponStat84(PackedIdOf(weapon)));
+    w.line = str::Format("%d", own);
+    w.Value(w.line);
+    sum += own;
+    w.Down();
+    w.Down();
+    part(33, sum);
+}
+
 } // namespace
+
+void ItemDamageLists(const float* values, std::vector<std::string>* out, char integer) {
+    CTextManager* texts = TextManager();
+    out->clear();
+    std::string value, above, below, key, text;
+    float threshold = values[6];
+    // EI_Plugin's Fixes: the jump over the integer format is always taken.
+    if (integer && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes))
+        value = str::Format("%d", FtolOf(threshold));
+    else
+        value = str::Format("%.1f", D(threshold));
+    for (int i = 0; i < 6; ++i) {
+        std::string* list;
+        if (values[i] > threshold)
+            list = &above;
+        else if (values[i] == threshold)
+            continue;
+        else
+            list = &below;   // also NaN
+        key = str::Format("dmg_%d", i);
+        texts->GetString(key.c_str(), &text);
+        *list += text;
+        *list += ", ";
+    }
+    str::TrimRight(above, ", ");
+    str::TrimRight(below, ", ");
+    out->push_back(value);
+    out->push_back(above);
+    out->push_back(below);
+}
 
 void CItemInfoPanel::DescribeItem() {
     CItem* item = Item();
@@ -657,138 +782,6 @@ void CItemInfoPanel::DescribeCarriedSpell() {
 }
 
 // --- The statistic under the mouse ----------------------------------------------------------
-
-namespace {
-
-void AttributeLines(Writer& w, UnitStats* stats, int index) {
-    auto line = [&](const char* format, int label, int value) {
-        w.line = str::Format(format, w.Skill(label).c_str(), value);
-        w.Text(w.line);
-        w.Down();
-    };
-    switch (index) {
-    case 0:
-        line("%s %d%%", 0, Ftol(stats->StrengthRatio() * kPercentScale));
-        line("%s %d", 1, Ftol(stats->Value6E8()));
-        w.Down();
-        break;
-    case 1:
-        line("%s %d%%", 2, Ftol(stats->DexterityRatio() * kPercentScale));
-        line("%s %d", 3, Ftol(stats->RateValue()));
-        w.Down();
-        break;
-    case 2:
-        // 1.04 ^ (intelligence - 25) * 100.
-        line("%s %d%%", 4, PowFtol(kIntelligenceGrowth, stats->stat20, kStatBase, kPercentScale));
-        line("%s %d%%", 24, Ftol(stats->Period20() * kPercentScale));
-        w.Down();
-        break;
-    default:
-        break;
-    }
-}
-
-void PerkLines(Writer& w, const ItemHoverInfo* info, std::string& title) {
-    CTextManager* texts = TextManager();
-    std::string name = info->text;
-    str::TrimRight(name, "0");
-    name += "1";
-    int group = SkillDb()->IndexOf(name.c_str()) / 3;
-    for (int i = 0; i < 3; ++i) {
-        const SkillLevelRecord* level = unitdb::SkillLevelAt(static_cast<std::uint32_t>(group * 3 + i));
-        if (!level) continue;
-        std::string key("perk ");
-        key += level->name;
-        if (texts->Open(key.c_str())) texts->ReadLine(&title, 1);
-        w.Text(title);
-        if (info->index > i) w.draw->DrawLine(w.Skill(21), w.Rect(), 0, kText, 2, 1);   // learned
-        w.Down();
-        int value = static_cast<int>(level->values[7]);
-        const char* percent = "     %s %d%%";
-        const char* plain = "     %s %d";
-        bool drawn = true;
-        switch (group) {
-        case 0: case 1: case 2: case 3: case 4: case 5: case 6:
-            w.line = str::Format(plain, w.Skill(10).c_str(), value);
-            break;
-        case 7: case 8: case 9: case 10: case 11: case 12: case 13: case 14:
-            w.line = str::Format(plain, w.Skill(11).c_str(), value);
-            break;
-        case 15:
-            w.line = str::Format(percent, w.Skill(12).c_str(), static_cast<std::uint32_t>(value + 100) >> 1);
-            break;
-        case 16: w.line = str::Format(percent, w.Skill(14).c_str(), value + 100); break;
-        case 17: w.line = str::Format(percent, w.Skill(15).c_str(), value + 100); break;
-        case 18: w.line = str::Format(percent, w.Skill(16).c_str(), value + 100); break;
-        case 19: w.line = str::Format(percent, w.Skill(17).c_str(), value + 100); break;
-        case 20: w.line = str::Format(percent, w.Skill(3).c_str(), value + 100); break;
-        case 21: w.line = str::Format(percent, w.Skill(1).c_str(), value + 100); break;
-        case 22: w.line = str::Format(percent, w.Skill(22).c_str(), value + 300); break;
-        case 23: case 24: case 25:
-            w.line = str::Format(plain, w.Skill(23).c_str(), value);
-            break;
-        default:
-            drawn = false;
-            break;
-        }
-        if (drawn) w.Text(w.line);
-        w.Down();
-        // The cost (negative: 0x7FFFFFFF), on a line 15 pixels wider.
-        w.Rect()->right += 15;
-        int cost = info->stats->SkillPrice(level);
-        if (cost < 0) cost = 0x7FFFFFFF;
-        w.line = str::Format(plain, w.Skill(18).c_str(), cost);
-        w.Text(w.line);
-        w.Rect()->right -= 15;
-        w.Down();
-    }
-}
-
-// Kind 5, the weapon's attack or defence: its four parts and their sum (or, for the defence of a
-// weapon of type 5 or 6, infoitem_34).
-void WeaponLines(Writer& w, const ItemHoverInfo* info) {
-    CItemWeapon* weapon = info->weapon;
-    UnitStats* stats = info->stats;
-    int type = weapon->GetType();
-    if (str::Compare(info->text, "defense") == 0 && (type == 5 || type == 6)) {
-        w.Wrapped(w.T(34), 2);
-        w.Down();
-        return;
-    }
-    auto part = [&](int label, int value) {
-        w.line = str::Format("     %s", w.T(label).c_str());
-        w.Text(w.line);
-        w.line = str::Format("%d", value);
-        w.Value(w.line);
-    };
-    int base = DifferenceFtol(stats->stat18, kStatBase);   // dexterity - 25
-    part(29, base);
-    int sum = base;
-    w.Down();
-    int skill = Ftol(stats->WeaponSkill(type));
-    part(30, skill);
-    sum += skill;
-    w.Down();
-    int level = Ftol(stats->SkillLevelValue(type));
-    part(31, level);
-    sum += level;
-    w.Down();
-    w.line = str::Format("     %s", w.T(32).c_str());
-    w.Text(w.line);
-    int own = Ftol(WeaponPrototypeSkillBonus(PackedIdOf(weapon)));
-    if (str::Compare(info->text, "defense") == 0)
-        own += Ftol(WeaponStat88(PackedIdOf(weapon)));
-    else
-        own += Ftol(WeaponStat84(PackedIdOf(weapon)));
-    w.line = str::Format("%d", own);
-    w.Value(w.line);
-    sum += own;
-    w.Down();
-    w.Down();
-    part(33, sum);
-}
-
-} // namespace
 
 void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     ItemParty()->Clear(1, 0);

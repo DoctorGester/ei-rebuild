@@ -27,6 +27,28 @@ constexpr int kClassServerController = 0x3E;
 void PutByte(DeltaField* field, std::uint8_t value) { field->WriteDelta(&value, 1); }
 void PutWord(DeltaField* field, std::uint32_t value) { field->WriteDelta(&value, 4); }
 
+// Whether the stream read against (delta::g_readSnapshot) is consumed: slot 5 (position) == slot 4 (size).
+std::uint32_t SnapshotConsumed() {
+    CMemoryStream* snapshot = delta::g_readSnapshot;
+    std::uint32_t position = snapshot->Position();
+    std::uint32_t size = delta::g_readSnapshot->Size();
+    return position == size ? 1u : 0u;
+}
+
+constexpr float kStatEpsilon = 1e-4f;
+
+// A body part's condition as current / maximum (signed 16-bit over unsigned 16-bit), as a float.
+float StatFraction(CUnit* unit, int k) {
+    const UnitParamsSlot& part = unit->params.slots[k];   // + k * 0x1C: current, maximum
+    return static_cast<float>(static_cast<double>(part.current) / part.maximum);
+}
+
+// fabs(v) > epsilon (FCOMP + TEST AH,0x41).
+bool Exceeds(float v) {
+    float a = v < 0 ? -v : v;
+    return a > kStatEpsilon;
+}
+
 } // namespace
 
 void CMapObject::WriteNetState() {
@@ -129,19 +151,6 @@ void CUnit::WriteNetState() {
 }
 
 
-namespace {
-
-
-// Whether the stream read against (delta::g_readSnapshot) is consumed: slot 5 (position) == slot 4 (size).
-std::uint32_t SnapshotConsumed() {
-    CMemoryStream* snapshot = delta::g_readSnapshot;
-    std::uint32_t position = snapshot->Position();
-    std::uint32_t size = delta::g_readSnapshot->Size();
-    return position == size ? 1u : 0u;
-}
-
-} // namespace
-
 std::uint32_t CMapObject::ReadNetState(int first) {
     DeltaState* state = NetState();
     std::uint32_t complete = 1;
@@ -195,24 +204,6 @@ std::uint32_t CMapObject::ReadNetState(int first) {
     field->EndField();
     return complete;
 }
-
-namespace {
-
-constexpr float kStatEpsilon = 1e-4f;
-
-// A body part's condition as current / maximum (signed 16-bit over unsigned 16-bit), as a float.
-float StatFraction(CUnit* unit, int k) {
-    const UnitParamsSlot& part = unit->params.slots[k];   // + k * 0x1C: current, maximum
-    return static_cast<float>(static_cast<double>(part.current) / part.maximum);
-}
-
-// fabs(v) > epsilon (FCOMP + TEST AH,0x41).
-bool Exceeds(float v) {
-    float a = v < 0 ? -v : v;
-    return a > kStatEpsilon;
-}
-
-} // namespace
 
 std::uint32_t CUnit::ReadNetState(int first) {
     CUnit* unit = this;

@@ -49,6 +49,8 @@ bool SnapshotReadToEnd() {
     return position == snapshot->Size();
 }
 
+constexpr int kClassFigureObject = 0x38;   // the object manager's class of the drawn arrow
+
 } // namespace
 
 
@@ -247,11 +249,6 @@ CEffectArrow::~CEffectArrow() { Reset(); }
 CEffectMissile::~CEffectMissile() = default;
 
 // --- CEffectArrowFigure --------------------------------------------------------------------------
-
-namespace {
-constexpr int kClassFigureObject = 0x38;   // the object manager's class of the drawn arrow
-}
-
 
 void CEffectArrowFigure::Reset() {
     CEffectMissile::Reset();

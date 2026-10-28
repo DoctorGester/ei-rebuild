@@ -80,6 +80,134 @@ std::uint32_t IndexIn(const NamedRecordTable<Record>& table, const ItemRecordHea
     return static_cast<std::uint32_t>(table.IndexOf(RecordAs<Record>(record)));
 }
 
+// Build's common part: price, values and charge of the record, from the prototype alone or scaled by the material.
+void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const MaterialRecordHead* material) {
+    if (!material) {
+        CopyBits(record->price, prototype->price);
+        CopyBits(record->value38, prototype->value38);
+        CopyBits(record->value3C, prototype->value3C);
+        CopyBits(record->charge, prototype->charge);
+        CopyBits(record->condition, prototype->condition);
+        CopyBits(record->magicLevel, prototype->magicLevel);
+        CopyBits(record->materialUnits, prototype->materialUnits);
+        return;
+    }
+    // Price: the prototype's material units (unsigned, through a double) times the material's unit price, plus
+    // the prototype's price.
+    double units = x87::FromUnsigned(prototype->materialUnits);
+    float unitPrice = material->unitPrice, price = prototype->price;
+    record->price = static_cast<float>(units * unitPrice + price);
+    float value38 = prototype->value38, factor38 = material->factor38;
+    record->value38 = value38 * factor38;
+    CopyBits(record->value3C, prototype->value3C);
+    float charge = prototype->charge, extraCharge = material->magicPower;
+    record->charge = charge + extraCharge;
+    float condition = prototype->condition, conditionFactor = material->conditionFactor;
+    record->condition = condition * conditionFactor;
+    record->magicLevel = prototype->magicLevel + material->magicLevel;
+    CopyBits(record->materialUnits, prototype->materialUnits);
+}
+
+// Build's per-class part; returns the prototype's index in its table.
+std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHead* prototype,
+                        const MaterialRecordHead* material) {
+    switch (classId) {
+    case kClassWeapon: {
+        auto* to = RecordAs<WeaponRecord>(record);
+        auto* from = RecordAs<WeaponRecord>(prototype);
+        CopyBits(to->reach, from->reach);
+        float damage = from->damage, factor = material->damageFactor;
+        to->damage = damage * factor;
+        float spread = from->damageSpread, factor2 = material->damageFactor;
+        to->damageSpread = spread * factor2;
+        return IndexIn(TheItemDatabase().weapons, prototype);
+    }
+    case kClassArmor: {
+        auto* to = RecordAs<ArmorRecord>(record);
+        auto* from = RecordAs<ArmorRecord>(prototype);
+        to->firstFlags = from->firstFlags | material->armourFlags;
+        to->othersFlags = from->othersFlags | material->armourFlags;
+        // Seven absorption values in two rows, each scaled by the material's factor for its
+        // damage type and by the row's factor.
+        for (int k = 0; k < 7; ++k) {
+            float a = from->absorbFirst[k], b = material->absorbFactors[k], c = from->FirstFactor();
+            to->absorbFirst[k] = a * b * c;
+            float d = from->absorbOthers[k], e = material->absorbFactors[k], f = from->othersFactor;
+            to->absorbOthers[k] = d * e * f;
+        }
+        return IndexIn(TheItemDatabase().armors, prototype);
+    }
+    case kClassQuick:
+    case kClassSpell:
+        CopyBits(RecordAs<QuickItemRecord>(record)->value70, RecordAs<QuickItemRecord>(prototype)->value70);
+        return IndexIn(TheItemDatabase().quickItems, prototype);
+    case kClassQuest:
+        CopyBits(record->category, prototype->category);
+        return IndexIn(TheItemDatabase().questItems, prototype);
+    case kClassLoot: {
+        auto* to = RecordAs<LootItemRecord>(record);
+        auto* from = RecordAs<LootItemRecord>(prototype);
+        CopyBits(to->category, from->category);
+        CopyBits(to->recordType, from->recordType);
+        // Kind 1 (a material) takes the material's index when one is given.
+        if (from->category == 1 && material)
+            CopyBits(to->index, material->number);
+        else
+            CopyBits(to->index, from->index);
+        return IndexIn(TheItemDatabase().loot, prototype);
+    }
+    default:
+        return 0;   // not reached: the record of an unknown class is null and faulted above
+    }
+}
+
+constexpr int kKindSpellContainer = 0x3008;
+constexpr int kLootKindTable = 2;             // a loot item (class 0x15) naming a table
+
+const char* const kSpellContainer = "spell container";
+const char* const kMaterialType = "material";
+const char* const kNoPrototype = "Can't find prototype for item \"%s\".\n";
+const char* const kCantCreate = "Can't create item \"%s\".\nCheck shape and material names\n";
+
+// Index of `record` in `table` (signed division of the byte offset), -1 for no record.
+template <typename Table, typename Record>
+int TableIndex(const Table& table, const Record* record) {
+    return record ? table.IndexOf(record) : -1;
+}
+
+// The table index of a loot item's second name part.
+int LootTableIndex(int which, const char* name) {
+    if (which < 0 || which > 4) return 0;
+    std::string key(name);
+    ItemDatabase& items = TheItemDatabase();
+    SpellDatabase& spells = TheSpellDatabase();
+    switch (which) {
+    case 0:
+        return TableIndex(items.weapons, items.weapons.names[key]);
+    case 1:
+        return TableIndex(items.armors, items.armors.names[key]);
+    case 2:
+        return TableIndex(items.quickItems, items.quickItems.names[key]);
+    case 3:
+        return TableIndex(spells.spells, spells.spells.byCode[key]);
+    default:
+        return TableIndex(spells.modifiers, spells.modifiers.byCode[key]);
+    }
+}
+
+// The lists' loop: the array takes the table's count, then every element the name of the record
+// with its index (the count is read again for each; a record out of range would be read at null).
+template <typename Record, typename NameOf>
+void ListRecordNames(const NamedRecordTable<Record>& table, std::vector<std::string>* names, NameOf nameOf) {
+    names->resize(table.Count());
+    for (std::size_t i = 0; i < names->size(); ++i) {
+        const Record* record = table.At(static_cast<std::uint32_t>(i));
+        (*names)[i] = *nameOf(record);
+    }
+}
+
+const std::string* HeadName(const ItemRecordHead* record) { return &record->text04; }
+
 } // namespace
 
 // --- CItem ---------------------------------------------------------------------------------------
@@ -203,91 +331,6 @@ BOOL CItemConstructor::Cancel() {
     return 1;
 }
 
-namespace {
-
-// Build's common part: price, values and charge of the record, from the prototype alone or scaled by the material.
-void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const MaterialRecordHead* material) {
-    if (!material) {
-        CopyBits(record->price, prototype->price);
-        CopyBits(record->value38, prototype->value38);
-        CopyBits(record->value3C, prototype->value3C);
-        CopyBits(record->charge, prototype->charge);
-        CopyBits(record->condition, prototype->condition);
-        CopyBits(record->magicLevel, prototype->magicLevel);
-        CopyBits(record->materialUnits, prototype->materialUnits);
-        return;
-    }
-    // Price: the prototype's material units (unsigned, through a double) times the material's unit price, plus
-    // the prototype's price.
-    double units = x87::FromUnsigned(prototype->materialUnits);
-    float unitPrice = material->unitPrice, price = prototype->price;
-    record->price = static_cast<float>(units * unitPrice + price);
-    float value38 = prototype->value38, factor38 = material->factor38;
-    record->value38 = value38 * factor38;
-    CopyBits(record->value3C, prototype->value3C);
-    float charge = prototype->charge, extraCharge = material->magicPower;
-    record->charge = charge + extraCharge;
-    float condition = prototype->condition, conditionFactor = material->conditionFactor;
-    record->condition = condition * conditionFactor;
-    record->magicLevel = prototype->magicLevel + material->magicLevel;
-    CopyBits(record->materialUnits, prototype->materialUnits);
-}
-
-// Build's per-class part; returns the prototype's index in its table.
-std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHead* prototype,
-                        const MaterialRecordHead* material) {
-    switch (classId) {
-    case kClassWeapon: {
-        auto* to = RecordAs<WeaponRecord>(record);
-        auto* from = RecordAs<WeaponRecord>(prototype);
-        CopyBits(to->reach, from->reach);
-        float damage = from->damage, factor = material->damageFactor;
-        to->damage = damage * factor;
-        float spread = from->damageSpread, factor2 = material->damageFactor;
-        to->damageSpread = spread * factor2;
-        return IndexIn(TheItemDatabase().weapons, prototype);
-    }
-    case kClassArmor: {
-        auto* to = RecordAs<ArmorRecord>(record);
-        auto* from = RecordAs<ArmorRecord>(prototype);
-        to->firstFlags = from->firstFlags | material->armourFlags;
-        to->othersFlags = from->othersFlags | material->armourFlags;
-        // Seven absorption values in two rows, each scaled by the material's factor for its
-        // damage type and by the row's factor.
-        for (int k = 0; k < 7; ++k) {
-            float a = from->absorbFirst[k], b = material->absorbFactors[k], c = from->FirstFactor();
-            to->absorbFirst[k] = a * b * c;
-            float d = from->absorbOthers[k], e = material->absorbFactors[k], f = from->othersFactor;
-            to->absorbOthers[k] = d * e * f;
-        }
-        return IndexIn(TheItemDatabase().armors, prototype);
-    }
-    case kClassQuick:
-    case kClassSpell:
-        CopyBits(RecordAs<QuickItemRecord>(record)->value70, RecordAs<QuickItemRecord>(prototype)->value70);
-        return IndexIn(TheItemDatabase().quickItems, prototype);
-    case kClassQuest:
-        CopyBits(record->category, prototype->category);
-        return IndexIn(TheItemDatabase().questItems, prototype);
-    case kClassLoot: {
-        auto* to = RecordAs<LootItemRecord>(record);
-        auto* from = RecordAs<LootItemRecord>(prototype);
-        CopyBits(to->category, from->category);
-        CopyBits(to->recordType, from->recordType);
-        // Kind 1 (a material) takes the material's index when one is given.
-        if (from->category == 1 && material)
-            CopyBits(to->index, material->number);
-        else
-            CopyBits(to->index, from->index);
-        return IndexIn(TheItemDatabase().loot, prototype);
-    }
-    default:
-        return 0;   // not reached: the record of an unknown class is null and faulted above
-    }
-}
-
-} // namespace
-
 BOOL CItemConstructor::Build() {
     int classId = item_->GetClassId();
     if ((classId == kClassWeapon || item_->GetClassId() == kClassArmor) && !material_) return 0;
@@ -318,44 +361,6 @@ BOOL CItemConstructor::Build() {
 }
 
 // --- The item manager's CreateItem ----------------------------------------------------
-
-namespace {
-
-constexpr int kKindSpellContainer = 0x3008;
-constexpr int kLootKindTable = 2;             // a loot item (class 0x15) naming a table
-
-const char* const kSpellContainer = "spell container";
-const char* const kMaterialType = "material";
-const char* const kNoPrototype = "Can't find prototype for item \"%s\".\n";
-const char* const kCantCreate = "Can't create item \"%s\".\nCheck shape and material names\n";
-
-// Index of `record` in `table` (signed division of the byte offset), -1 for no record.
-template <typename Table, typename Record>
-int TableIndex(const Table& table, const Record* record) {
-    return record ? table.IndexOf(record) : -1;
-}
-
-// The table index of a loot item's second name part.
-int LootTableIndex(int which, const char* name) {
-    if (which < 0 || which > 4) return 0;
-    std::string key(name);
-    ItemDatabase& items = TheItemDatabase();
-    SpellDatabase& spells = TheSpellDatabase();
-    switch (which) {
-    case 0:
-        return TableIndex(items.weapons, items.weapons.names[key]);
-    case 1:
-        return TableIndex(items.armors, items.armors.names[key]);
-    case 2:
-        return TableIndex(items.quickItems, items.quickItems.names[key]);
-    case 3:
-        return TableIndex(spells.spells, spells.spells.byCode[key]);
-    default:
-        return TableIndex(spells.modifiers, spells.modifiers.byCode[key]);
-    }
-}
-
-} // namespace
 
 CItem* CItemManager::CreateItem(std::string_view name) {
     auto* context = context_;
@@ -487,23 +492,6 @@ CItem* CItemManager::CreateSpellItem(const char* spellText, CSpellManager* spell
     if (item) item->AttachSpell(spell);
     return item;
 }
-
-namespace {
-
-// The lists' loop: the array takes the table's count, then every element the name of the record
-// with its index (the count is read again for each; a record out of range would be read at null).
-template <typename Record, typename NameOf>
-void ListRecordNames(const NamedRecordTable<Record>& table, std::vector<std::string>* names, NameOf nameOf) {
-    names->resize(table.Count());
-    for (std::size_t i = 0; i < names->size(); ++i) {
-        const Record* record = table.At(static_cast<std::uint32_t>(i));
-        (*names)[i] = *nameOf(record);
-    }
-}
-
-const std::string* HeadName(const ItemRecordHead* record) { return &record->text04; }
-
-} // namespace
 
 void CItemManager::ListMaterialNames(std::vector<std::string>* names) {
     ListRecordNames(TheItemDatabase().materials, names, [](const MaterialRecordHead* record) { return &record->key; });

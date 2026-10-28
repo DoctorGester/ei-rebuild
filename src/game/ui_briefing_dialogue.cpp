@@ -53,6 +53,19 @@ constexpr int kPersonPlace = 0;
 constexpr int kLeaderPlace = 1;
 constexpr int kThirdPlace = 2;
 
+constexpr float kPi = 3.14159274f;
+constexpr float kSixth = 0.166666672f;
+constexpr float kTwelfth = 0.0833333358f;
+constexpr float kQuarter = 0.25f;
+constexpr float kSunk = -100.0f;
+
+// A speaker who is not in the picture is moved below the ground.
+void Sink(CUnit* unit) {
+    if (unit) GameSetUnitHeight(unit->id_, kSunk);
+}
+
+constexpr int kEventLeaves = 2;
+
 } // namespace
 
 
@@ -184,21 +197,6 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
     LocalServerPlayer()->Server()->SendPosition0F(&at, &eye, 1);
 }
 
-namespace {
-
-constexpr float kPi = 3.14159274f;
-constexpr float kSixth = 0.166666672f;
-constexpr float kTwelfth = 0.0833333358f;
-constexpr float kQuarter = 0.25f;
-constexpr float kSunk = -100.0f;
-
-// A speaker who is not in the picture is moved below the ground.
-void Sink(CUnit* unit) {
-    if (unit) GameSetUnitHeight(unit->id_, kSunk);
-}
-
-} // namespace
-
 void CBriefingScreen::ViewPreset(int preset) {
     double dx = static_cast<double>(places_[kLeaderPlace].x) - places_[kPersonPlace].x;
     double dy = static_cast<double>(places_[kLeaderPlace].y) - places_[kPersonPlace].y;
@@ -253,12 +251,6 @@ void CBriefingScreen::ViewPreset(int preset) {
         break;
     }
 }
-
-namespace {
-
-constexpr int kEventLeaves = 2;
-
-} // namespace
 
 void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
     auto* person = GameFindClientUnit(TextKeyFromName(name));

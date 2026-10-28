@@ -23,6 +23,10 @@ void CloseAll(std::vector<ArchiveEntry>& archives) {
     }
     archives.clear();
 }
+
+CMappedResource* NewMappedResource() { return new CMappedResource(); }
+CMappedResource* NewMmioResource() { return new CMMIOResource(); }
+
 } // namespace
 
 // --- Construction and destruction ---------------------------------------------------------------
@@ -39,11 +43,6 @@ void CResourceManager::Destroy() {
     CBaseManager::Destroy();
 }
 
-
-namespace {
-CMappedResource* NewMappedResource() { return new CMappedResource(); }
-CMappedResource* NewMmioResource() { return new CMMIOResource(); }
-} // namespace
 
 BOOL CResourceManager::AddArchive(const char* path) {
     return AddArchiveOf(path, NewMappedResource);

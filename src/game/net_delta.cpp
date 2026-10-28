@@ -21,26 +21,7 @@ std::uint32_t Word(const std::uint8_t* p) {
     std::memcpy(&w, p, sizeof(w));
     return w;
 }
-} // namespace
 
-void CMemoryStream::PutBit(bool bit) {
-    bitMask_ = static_cast<std::int32_t>(static_cast<std::uint32_t>(bitMask_) << 1);
-    if (bitMask_ > 0x80) StartByte();   // sets bitMask_ to 1
-    if (bit) bits_ |= static_cast<std::uint8_t>(bitMask_);
-}
-
-bool CMemoryStream::GetBit() {
-    bitMask_ = static_cast<std::int32_t>(static_cast<std::uint32_t>(bitMask_) << 1);
-    if (bitMask_ > 0x80) {
-        bitMask_ = 1;
-        Read(&bits_, 1);
-    }
-    return (bitMask_ & static_cast<std::int8_t>(bits_)) != 0;
-}
-
-// --- Whole streams: length-prefixed copies and the message compression ------------------------
-
-namespace {
 // ReadStream refuses longer streams.
 constexpr std::uint32_t kMaxStreamLength = 100000;
 
@@ -64,7 +45,86 @@ void CodeStream(CMemoryStream* self, CoderState* coder, CMemoryStream* out, void
     out->Write(result.begin, length);
     out->Seek(0);
 }
+
+void RewindAndEmpty(DeltaField* field) {
+    field->snapshot[0].Seek(0);
+    field->snapshot[1].Seek(0);
+    field->out[0].Resize(0);
+    field->out[1].Resize(0);
+}
+
+void SetKeep(int channel1Only) {
+    if (!channel1Only) {
+        delta::g_keepSnapshot0 = 1;
+        delta::g_keepSnapshot1 = 1;
+    } else {
+        delta::g_keepSnapshot0 = 0;
+        delta::g_keepSnapshot1 = 1;
+    }
+}
+
+void StartRead(DeltaField* field, int second, CMemoryStream* reader) {
+    field->snapshot[0].Seek(0);
+    field->snapshot[1].Seek(0);
+    delta::g_readSnapshot = second ? &field->snapshot[1] : &field->snapshot[0];
+    delta::g_received = reader;
+}
+
+constexpr float kWriteOffsetXY = -16.0f;
+constexpr float kWriteScaleXY = 120.46875f;
+constexpr float kWriteOffsetZ = -32.0f;
+constexpr float kWriteScaleZ = 341.328125f;
+const float kReadScaleXY = std::bit_cast<float>(0x3C080088u);
+constexpr float kReadOffsetXY = 16.0f;
+const float kReadScaleZ = std::bit_cast<float>(0x3B4000C0u);
+constexpr float kReadOffsetZ = 32.0f;
+constexpr float kWriteOffset2D = -32.0f;
+constexpr float kWriteScale2D = 60.234375f;
+const float kReadScale2D = std::bit_cast<float>(0x3C880088u);
+constexpr float kReadOffset2D = 32.0f;
+
+int Quantize(float v, float offset, float scale) { return x87::fistp(static_cast<float>((v - offset) * scale)); }
+
+float Dequantize(std::uint16_t q, float scale, float offset) { return static_cast<float>(static_cast<int>(q)) * scale - offset; }
+
+constexpr float kRangeSteps = 65535.0f;
+const float kRangeStep = std::bit_cast<float>(0x37800080u);      // (1 / 65535)
+
+void StoreBits(float* out, std::uint32_t bits) { std::memcpy(out, &bits, sizeof(bits)); }
+
+// One channel's header: the mask, then the channel's output of every field in it.
+void RebuildHeader(DeltaState* state, int channel, std::uint16_t mask) {
+    CMemoryStream& header = state->header_[channel];
+    header.Resize(0);
+    header.Write(&mask, 2);
+    for (int i = 0; i < std::ssize(state->fields_); ++i) {
+        if (!(mask & (1 << i))) continue;
+        CMemoryStream& out = state->fields_[i].out[channel];
+        header.EndBits();
+        out.Seek(0);
+        const std::uint8_t* data = out.data_;
+        header.Write(data, out.Size());
+    }
+}
+
 } // namespace
+
+void CMemoryStream::PutBit(bool bit) {
+    bitMask_ = static_cast<std::int32_t>(static_cast<std::uint32_t>(bitMask_) << 1);
+    if (bitMask_ > 0x80) StartByte();   // sets bitMask_ to 1
+    if (bit) bits_ |= static_cast<std::uint8_t>(bitMask_);
+}
+
+bool CMemoryStream::GetBit() {
+    bitMask_ = static_cast<std::int32_t>(static_cast<std::uint32_t>(bitMask_) << 1);
+    if (bitMask_ > 0x80) {
+        bitMask_ = 1;
+        Read(&bits_, 1);
+    }
+    return (bitMask_ & static_cast<std::int8_t>(bits_)) != 0;
+}
+
+// --- Whole streams: length-prefixed copies and the message compression ------------------------
 
 void CMemoryStream::WriteStream(CMemoryStream* from) {
     from->EndBits();
@@ -163,32 +223,6 @@ void WriteDeltaChannel(CMemoryStream* snapshot, const void* data, std::uint32_t 
 
 } // namespace delta
 
-
-namespace {
-void RewindAndEmpty(DeltaField* field) {
-    field->snapshot[0].Seek(0);
-    field->snapshot[1].Seek(0);
-    field->out[0].Resize(0);
-    field->out[1].Resize(0);
-}
-
-void SetKeep(int channel1Only) {
-    if (!channel1Only) {
-        delta::g_keepSnapshot0 = 1;
-        delta::g_keepSnapshot1 = 1;
-    } else {
-        delta::g_keepSnapshot0 = 0;
-        delta::g_keepSnapshot1 = 1;
-    }
-}
-
-void StartRead(DeltaField* field, int second, CMemoryStream* reader) {
-    field->snapshot[0].Seek(0);
-    field->snapshot[1].Seek(0);
-    delta::g_readSnapshot = second ? &field->snapshot[1] : &field->snapshot[0];
-    delta::g_received = reader;
-}
-} // namespace
 
 DeltaField* DeltaField::BeginWriteB(int channel1Only) {
     RewindAndEmpty(this);
@@ -307,25 +341,6 @@ bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, CMemorySt
 } // namespace delta
 
 
-namespace {
-constexpr float kWriteOffsetXY = -16.0f;
-constexpr float kWriteScaleXY = 120.46875f;
-constexpr float kWriteOffsetZ = -32.0f;
-constexpr float kWriteScaleZ = 341.328125f;
-const float kReadScaleXY = std::bit_cast<float>(0x3C080088u);
-constexpr float kReadOffsetXY = 16.0f;
-const float kReadScaleZ = std::bit_cast<float>(0x3B4000C0u);
-constexpr float kReadOffsetZ = 32.0f;
-constexpr float kWriteOffset2D = -32.0f;
-constexpr float kWriteScale2D = 60.234375f;
-const float kReadScale2D = std::bit_cast<float>(0x3C880088u);
-constexpr float kReadOffset2D = 32.0f;
-
-int Quantize(float v, float offset, float scale) { return x87::fistp(static_cast<float>((v - offset) * scale)); }
-
-float Dequantize(std::uint16_t q, float scale, float offset) { return static_cast<float>(static_cast<int>(q)) * scale - offset; }
-} // namespace
-
 void DeltaField::WritePosition(const Vector3* position) {
     int q = Quantize(position->x, kWriteOffsetXY, kWriteScaleXY);
     WriteDelta(&q, 2);
@@ -380,10 +395,6 @@ void DeltaField::ReadPosition2D(float* position) {
 }
 
 // Ranged values.
-namespace {
-constexpr float kRangeSteps = 65535.0f;
-const float kRangeStep = std::bit_cast<float>(0x37800080u);      // (1 / 65535)
-} // namespace
 
 void DeltaField::WriteRanged(float value, float min, float max) {
     int q = x87::fistp(static_cast<float>((value - min) * (kRangeSteps / (max - min))));
@@ -428,10 +439,6 @@ std::uint32_t UnpackFloat16(std::uint16_t q) {
 }
 
 } // namespace delta
-
-namespace {
-void StoreBits(float* out, std::uint32_t bits) { std::memcpy(out, &bits, sizeof(bits)); }
-} // namespace
 
 void DeltaField::WriteFloat16(std::uint32_t floatBits) {
     std::uint16_t h = delta::PackFloat16(floatBits);
@@ -507,23 +514,6 @@ int DeltaState::BeginRead(int second, CMemoryStream* reader) {
     mode_ = second ? kRead1 : kRead0;
     return second;
 }
-
-namespace {
-// One channel's header: the mask, then the channel's output of every field in it.
-void RebuildHeader(DeltaState* state, int channel, std::uint16_t mask) {
-    CMemoryStream& header = state->header_[channel];
-    header.Resize(0);
-    header.Write(&mask, 2);
-    for (int i = 0; i < std::ssize(state->fields_); ++i) {
-        if (!(mask & (1 << i))) continue;
-        CMemoryStream& out = state->fields_[i].out[channel];
-        header.EndBits();
-        out.Seek(0);
-        const std::uint8_t* data = out.data_;
-        header.Write(data, out.Size());
-    }
-}
-} // namespace
 
 void DeltaState::Finish() {
     if (mode_ == kWriteDelta) {

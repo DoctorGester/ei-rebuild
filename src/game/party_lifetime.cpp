@@ -24,6 +24,20 @@ void ReleaseAll(const std::vector<CItem*>& list) {
     for (int i = 0; i < std::ssize(list); ++i) list[i]->Release();
 }
 
+// A counted object the party owns: its count dropped and the object deleted, whatever the count, and the
+// pointer cleared.
+template <typename T>
+void Drop(T*& object) {
+    if (object == nullptr) return;
+    --object->refCount_;
+    delete object;
+    object = nullptr;
+}
+
+void ReleaseItems(const std::vector<CItem*>& items) {
+    for (int i = 0; i < std::ssize(items); ++i) items[i]->Release();
+}
+
 } // namespace
 
 PartyUnitRecord& PartyUnitRecord::operator=(PartyUnitRecord&& from) noexcept {
@@ -57,24 +71,6 @@ CSpellConstructor::CSpellConstructor() {
 CSpellManager::CSpellManager() {
     maxSequenceKey_ = 0;
 }
-
-namespace {
-
-// A counted object the party owns: its count dropped and the object deleted, whatever the count, and the
-// pointer cleared.
-template <typename T>
-void Drop(T*& object) {
-    if (object == nullptr) return;
-    --object->refCount_;
-    delete object;
-    object = nullptr;
-}
-
-void ReleaseItems(const std::vector<CItem*>& items) {
-    for (int i = 0; i < std::ssize(items); ++i) items[i]->Release();
-}
-
-} // namespace
 
 CParty::CParty() {
     ClearFields();

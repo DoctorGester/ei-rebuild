@@ -48,6 +48,47 @@ int PromptWidth(HDC dc, const std::string& input, int count) {
     return size.cx;
 }
 
+constexpr int kHistoryDepth = 30;
+
+std::string MidOf(const std::string& s, int first) { return str::Mid(s, first); }
+// Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted from UTF-8 (addon's helpers convert
+// with the ANSI code page).
+void CopyToClipboard(const char* first, const char* last) {
+    int count = static_cast<int>(last - first);
+    std::wstring wide;
+    if (count > 0) wide = ::text::Wide(std::string_view(first, static_cast<std::size_t>(count)));
+    HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, (wide.size() + 1) * 2);
+    if (!memory) return;
+    void* locked = GlobalLock(memory);
+    if (!locked) {
+        GlobalFree(memory);
+        return;
+    }
+    std::memcpy(locked, wide.c_str(), (wide.size() + 1) * 2);
+    GlobalUnlock(memory);
+    if (!OpenClipboard(nullptr)) {
+        GlobalFree(memory);
+        return;
+    }
+    EmptyClipboard();
+    SetClipboardData(CF_UNICODETEXT, memory);
+    CloseClipboard();
+}
+
+std::string ClipboardText() {
+    std::wstring wide;
+    if (OpenClipboard(nullptr)) {
+        if (HANDLE data = GetClipboardData(CF_UNICODETEXT)) {
+            if (const auto* text = static_cast<const wchar_t*>(GlobalLock(data))) {
+                wide = text;
+                GlobalUnlock(data);
+            }
+        }
+        CloseClipboard();
+    }
+    return ::text::Narrow(wide);
+}
+
 } // namespace
 
 // A shown window gets a surface over its rectangle (format 4) if it has none and is
@@ -152,51 +193,6 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
 }
 
 // ---- Character input ------------------------------------------------------------------
-
-namespace {
-
-constexpr int kHistoryDepth = 30;
-
-std::string MidOf(const std::string& s, int first) { return str::Mid(s, first); }
-// Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted from UTF-8 (addon's helpers convert
-// with the ANSI code page).
-void CopyToClipboard(const char* first, const char* last) {
-    int count = static_cast<int>(last - first);
-    std::wstring wide;
-    if (count > 0) wide = ::text::Wide(std::string_view(first, static_cast<std::size_t>(count)));
-    HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, (wide.size() + 1) * 2);
-    if (!memory) return;
-    void* locked = GlobalLock(memory);
-    if (!locked) {
-        GlobalFree(memory);
-        return;
-    }
-    std::memcpy(locked, wide.c_str(), (wide.size() + 1) * 2);
-    GlobalUnlock(memory);
-    if (!OpenClipboard(nullptr)) {
-        GlobalFree(memory);
-        return;
-    }
-    EmptyClipboard();
-    SetClipboardData(CF_UNICODETEXT, memory);
-    CloseClipboard();
-}
-
-std::string ClipboardText() {
-    std::wstring wide;
-    if (OpenClipboard(nullptr)) {
-        if (HANDLE data = GetClipboardData(CF_UNICODETEXT)) {
-            if (const auto* text = static_cast<const wchar_t*>(GlobalLock(data))) {
-                wide = text;
-                GlobalUnlock(data);
-            }
-        }
-        CloseClipboard();
-    }
-    return ::text::Narrow(wide);
-}
-
-} // namespace
 
 // Typed characters (code points, stored as UTF-8; the caret is a byte offset at a
 // character's start and moves by character). Backspace deletes the selection or the character before the caret,

@@ -56,6 +56,69 @@ void LoadBlockCommands(ScriptDecl* block, CStream* stream) {
     for (SSCCmd& cmd : block->commands) cmd.Load(stream);
 }
 
+// Each list loader reads the count, appends that many default elements, then reads every element of the
+// list from the front (a list that was not empty would have its old elements read again).
+template <typename T, typename Read>
+void LoadList(std::list<T>* list, CStream* stream, Read read) {
+    const int count = ReadInt(stream);
+    for (int i = 0; i < count; ++i) list->emplace_back();
+    for (T& element : *list) read(element);
+}
+
+// Particle sources: source object, id, flags, moving, steps, step (12 bytes), lifetime.
+void LoadParticles(std::list<ScriptParticleSource>* list, CStream* stream) {
+    LoadList(list, stream, [stream](ScriptParticleSource& source) {
+        source.object = ScriptEffect<CEffectParticle>(FindById<CEffectParticle>(ReadInt(stream)));
+        stream->Read(&source.id, 4);
+        stream->Read(&source.deleteAfterMove, 4);
+        stream->Read(&source.moving, 4);
+        stream->Read(&source.steps, 4);
+        stream->Read(&source.step, 0xC);
+        stream->Read(&source.lifetime, 4);
+    });
+}
+
+// Lightning: object, id.
+void LoadLightning(std::list<ScriptLightning>* list, CStream* stream) {
+    LoadList(list, stream, [stream](ScriptLightning& bolt) {
+        bolt.object = ScriptEffect<CEffectLightning>(FindById<CEffectLightning>(ReadInt(stream)));
+        stream->Read(&bolt.id, 4);
+    });
+}
+
+// Script instances: killed flag, name, parameter types, if-then pairs, variables.
+void LoadInstances(std::list<ScriptDefinition>* list, CStream* stream) {
+    LoadList(list, stream, [stream](ScriptDefinition& instance) {
+        stream->Read(&instance.index, 4);
+        ScriptStringLoad(&instance.name, stream);
+        ScriptStringLoad(&instance.params, stream);
+        instance.ifThen.resize(ReadCount(stream));
+        for (ScriptIfThen& pair : instance.ifThen) pair.Load(stream);
+        LoadVariables(&instance.vars, stream);
+    });
+}
+
+// Runs: block id, index, ticks, sleep start, the index of its instance in the loading script's instance list
+// (-1 or out of range: none), vars.
+void LoadRuns(std::list<ScriptRun>* list, CStream* stream) {
+    LoadList(list, stream, [stream](ScriptRun& run) {
+        run.block = FindBlock(ReadInt(stream));
+        stream->Read(&run.index, 4);
+        stream->Read(&run.ticks, 4);
+        stream->Read(&run.sleepStart, 4);
+        const int instanceIndex = ReadInt(stream);
+        run.killFlag = nullptr;
+        int k = 0;
+        for (ScriptDefinition& instance : g_streamedScript->instances_) {
+            if (k++ == instanceIndex) {
+                run.killFlag = &instance.index;   // an instance's index is its killed flag
+                break;
+            }
+        }
+        run.vars.Load(stream);
+    });
+}
+
 } // namespace
 
 template <> void ScriptNamedValues<float>::Load(CStream* stream) {
@@ -165,73 +228,6 @@ ScriptDecl* CScript::FindBlock(int id) const {
 void ScriptVars::Load(CStream* stream) {
     LoadVariables(this, stream);
 }
-
-namespace {
-
-// Each list loader reads the count, appends that many default elements, then reads every element of the
-// list from the front (a list that was not empty would have its old elements read again).
-template <typename T, typename Read>
-void LoadList(std::list<T>* list, CStream* stream, Read read) {
-    const int count = ReadInt(stream);
-    for (int i = 0; i < count; ++i) list->emplace_back();
-    for (T& element : *list) read(element);
-}
-
-// Particle sources: source object, id, flags, moving, steps, step (12 bytes), lifetime.
-void LoadParticles(std::list<ScriptParticleSource>* list, CStream* stream) {
-    LoadList(list, stream, [stream](ScriptParticleSource& source) {
-        source.object = ScriptEffect<CEffectParticle>(FindById<CEffectParticle>(ReadInt(stream)));
-        stream->Read(&source.id, 4);
-        stream->Read(&source.deleteAfterMove, 4);
-        stream->Read(&source.moving, 4);
-        stream->Read(&source.steps, 4);
-        stream->Read(&source.step, 0xC);
-        stream->Read(&source.lifetime, 4);
-    });
-}
-
-// Lightning: object, id.
-void LoadLightning(std::list<ScriptLightning>* list, CStream* stream) {
-    LoadList(list, stream, [stream](ScriptLightning& bolt) {
-        bolt.object = ScriptEffect<CEffectLightning>(FindById<CEffectLightning>(ReadInt(stream)));
-        stream->Read(&bolt.id, 4);
-    });
-}
-
-// Script instances: killed flag, name, parameter types, if-then pairs, variables.
-void LoadInstances(std::list<ScriptDefinition>* list, CStream* stream) {
-    LoadList(list, stream, [stream](ScriptDefinition& instance) {
-        stream->Read(&instance.index, 4);
-        ScriptStringLoad(&instance.name, stream);
-        ScriptStringLoad(&instance.params, stream);
-        instance.ifThen.resize(ReadCount(stream));
-        for (ScriptIfThen& pair : instance.ifThen) pair.Load(stream);
-        LoadVariables(&instance.vars, stream);
-    });
-}
-
-// Runs: block id, index, ticks, sleep start, the index of its instance in the loading script's instance list
-// (-1 or out of range: none), vars.
-void LoadRuns(std::list<ScriptRun>* list, CStream* stream) {
-    LoadList(list, stream, [stream](ScriptRun& run) {
-        run.block = FindBlock(ReadInt(stream));
-        stream->Read(&run.index, 4);
-        stream->Read(&run.ticks, 4);
-        stream->Read(&run.sleepStart, 4);
-        const int instanceIndex = ReadInt(stream);
-        run.killFlag = nullptr;
-        int k = 0;
-        for (ScriptDefinition& instance : g_streamedScript->instances_) {
-            if (k++ == instanceIndex) {
-                run.killFlag = &instance.index;   // an instance's index is its killed flag
-                break;
-            }
-        }
-        run.vars.Load(stream);
-    });
-}
-
-} // namespace
 
 // ---- CScript::LoadState ---------------------------------------------------------------------------
 

@@ -41,6 +41,33 @@ Speeches* ListFor(const AckRecordHead& record, std::uint32_t kind) {
     return node != record.speeches.end() ? node->second : nullptr;
 }
 
+void SpeechFields(SpeechRecord& speech, ChunkArchive* ar) {
+    ar->StringField(1, &speech.sound);
+    ar->Field(2, &speech.chance, 4);
+    ar->StringField(3, &speech.text);
+    ar->StringField(4, &speech.name);
+}
+
+// UnitAcks' chunks in the order they are written: the list index, or one of these two.
+constexpr int kEnvironment = -1;   // environmentSpeeches
+constexpr int kNamed = -2;         // namedSpeeches
+struct ListChunk {
+    std::uint8_t id;
+    std::int8_t list;
+};
+constexpr ListChunk kUnitChunks[] = {
+    {10, 0},  {11, 1},  {12, 2},  {13, 3},  {14, 4},  {15, 5},  {16, 6},  {17, 7},  {18, 8},
+    {19, 9},  {20, 11}, {21, 13}, {22, 14}, {23, 15}, {24, 16}, {25, 17}, {26, 18}, {27, 19},
+    {28, 22}, {29, 23}, {30, 24}, {31, 25}, {32, kEnvironment}, {33, 12}, {34, 20}, {35, 21},
+    {36, 10}, {37, 26}, {38, 27}, {39, 28}, {40, 29}, {41, kNamed}, {42, 30}, {43, 31}, {44, 32},
+};
+
+// The lists of a record as chunks 10, 11, ... in order.
+template <std::size_t N>
+void Lists(ChunkArchive* ar, Speeches (&lists)[N]) {
+    for (std::size_t i = 0; i < N; ++i) ar->SerializeSpeechList(static_cast<int>(10 + i), &lists[i], ar);
+}
+
 } // namespace
 
 template <typename Record>
@@ -166,17 +193,6 @@ const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate) {
 
 // ---- Serialising the records (loaded once at startup) ---------------------------------------------
 
-namespace {
-
-void SpeechFields(SpeechRecord& speech, ChunkArchive* ar) {
-    ar->StringField(1, &speech.sound);
-    ar->Field(2, &speech.chance, 4);
-    ar->StringField(3, &speech.text);
-    ar->StringField(4, &speech.name);
-}
-
-} // namespace
-
 } // namespace acks
 
 using namespace acks;
@@ -194,30 +210,6 @@ void ChunkArchive::SerializeEnvironmentSpeeches(int id, EnvironmentSpeeches* lis
 }
 
 namespace acks {
-
-namespace {
-
-// UnitAcks' chunks in the order they are written: the list index, or one of these two.
-constexpr int kEnvironment = -1;   // environmentSpeeches
-constexpr int kNamed = -2;         // namedSpeeches
-struct ListChunk {
-    std::uint8_t id;
-    std::int8_t list;
-};
-constexpr ListChunk kUnitChunks[] = {
-    {10, 0},  {11, 1},  {12, 2},  {13, 3},  {14, 4},  {15, 5},  {16, 6},  {17, 7},  {18, 8},
-    {19, 9},  {20, 11}, {21, 13}, {22, 14}, {23, 15}, {24, 16}, {25, 17}, {26, 18}, {27, 19},
-    {28, 22}, {29, 23}, {30, 24}, {31, 25}, {32, kEnvironment}, {33, 12}, {34, 20}, {35, 21},
-    {36, 10}, {37, 26}, {38, 27}, {39, 28}, {40, 29}, {41, kNamed}, {42, 30}, {43, 31}, {44, 32},
-};
-
-// The lists of a record as chunks 10, 11, ... in order.
-template <std::size_t N>
-void Lists(ChunkArchive* ar, Speeches (&lists)[N]) {
-    for (std::size_t i = 0; i < N; ++i) ar->SerializeSpeechList(static_cast<int>(10 + i), &lists[i], ar);
-}
-
-} // namespace
 
 void UnitAcks::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &head.name);

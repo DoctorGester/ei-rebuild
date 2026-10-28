@@ -44,6 +44,45 @@ bool IsEmpty(const std::string& s) {
                            game::kEmptyText) == 0;
 }
 
+
+constexpr const char* kQuestFileSuffix = ".mq";
+constexpr const char* kReadBinary = "rb";
+// BufferedFile::Open's flags for a file that is only read.
+constexpr std::uint32_t kReadOnlyFlags = 2;
+
+// Whether a game server runs (bit 31 of its count word marks one shut down).
+bool ServerRuns() {
+    const net::ServerSession* server = net::g_gameServer;
+    return server && !(server->flags7_ & CRefCounted::kDetached);
+}
+
+// The game server lists the file at `path` under `name` for its clients: the whole file, read
+// into a buffer through a buffered file.
+void ShareQuestFile(const char* path, const char* name) {
+    GrowingBuffer local;
+    GameBuffer* data = &local;
+    BufferedFile source;   // constructed and destroyed in place
+    source.Open(path, kReadBinary, kReadOnlyFlags);
+    net::BufferUpdateHigh(&source);
+    const std::int32_t size = static_cast<std::int32_t>(source.high - source.begin) + source.base;
+    data->Seek(0);
+    std::uint8_t* to = data->BeginWrite(size);
+    source.ReadBytes(to, static_cast<unsigned>(size));
+    data->cur = to + size;
+    data->Commit();
+    std::string listed(name);
+    net::g_gameServer->ShareFile(&listed, data);
+}
+
+// The path of the maps folder's file `file` (LoadZoneQuests's).
+std::string MapFilePath(const std::string& file) {
+    std::string folder;
+    modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuestsPath);
+    MapsFolder(&folder);
+    std::string full = folder + file;
+    return std::string(full.c_str());
+}
+
 } // namespace
 
 std::string* BriefingSpeakerInto(std::string* out, const char* briefing) {
@@ -110,10 +149,6 @@ void GameFlow::MarkBriefing(const char* briefing) {
 
 // ---- Forgetting briefings, unloading quest texts --------------------------------------------------
 
-namespace {
-
-} // namespace
-
 // The quest text files (world.h) and the quest folders (g_questFolders, below): empty at the start, as the static
 // initialisers leave them; the exit functions they register destroy them
 // (docs/notes/standalone.md, "The static initialisers' objects").
@@ -140,48 +175,6 @@ void UnloadQuestTexts() {
 }
 
 // ---- The quest file of a zone ---------------------------------------------------
-
-namespace {
-
-constexpr const char* kQuestFileSuffix = ".mq";
-constexpr const char* kReadBinary = "rb";
-// BufferedFile::Open's flags for a file that is only read.
-constexpr std::uint32_t kReadOnlyFlags = 2;
-
-// Whether a game server runs (bit 31 of its count word marks one shut down).
-bool ServerRuns() {
-    const net::ServerSession* server = net::g_gameServer;
-    return server && !(server->flags7_ & CRefCounted::kDetached);
-}
-
-// The game server lists the file at `path` under `name` for its clients: the whole file, read
-// into a buffer through a buffered file.
-void ShareQuestFile(const char* path, const char* name) {
-    GrowingBuffer local;
-    GameBuffer* data = &local;
-    BufferedFile source;   // constructed and destroyed in place
-    source.Open(path, kReadBinary, kReadOnlyFlags);
-    net::BufferUpdateHigh(&source);
-    const std::int32_t size = static_cast<std::int32_t>(source.high - source.begin) + source.base;
-    data->Seek(0);
-    std::uint8_t* to = data->BeginWrite(size);
-    source.ReadBytes(to, static_cast<unsigned>(size));
-    data->cur = to + size;
-    data->Commit();
-    std::string listed(name);
-    net::g_gameServer->ShareFile(&listed, data);
-}
-
-// The path of the maps folder's file `file` (LoadZoneQuests's).
-std::string MapFilePath(const std::string& file) {
-    std::string folder;
-    modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuestsPath);
-    MapsFolder(&folder);
-    std::string full = folder + file;
-    return std::string(full.c_str());
-}
-
-} // namespace
 
 bool LoadZoneQuests(const char* zone) {
     auto* texts = TheTextManager();
@@ -227,6 +220,7 @@ void GameFlow::OnVariableChanged(const net::VariableMessage* record) {
 
 // ---- Quest registration, the session's map name ---------------------------------------------------
 
+// A second block: it uses g_questFolders (defined above).
 namespace {
 
 

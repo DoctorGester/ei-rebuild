@@ -96,9 +96,7 @@ UnitVitals* ServerVitals(CUnit* unit) {
 // strengthen / weaken scale: (1 + v(0x1D) * k) / (1 + v(0x1E) * k), the numerator stored as a
 // float; 1 without a unit. Unrounded.
 double EffectScale(CUnit* unit, float k);
-} // namespace
 
-namespace {
 double EffectScale(CUnit* unit, float k) {
     if (!unit) return kOne;
     float strengthen = static_cast<float>(unit->EffectValue(kEffectStrengthen) * k + kOne);
@@ -132,6 +130,59 @@ float RatioFactor(float lowest) {
     if (lowest <= g_logicSettings.damageLevel1) return g_logicSettings.damageLevel1Value;
     return kOne;
 }
+
+void AddPending(UnitStats* stats, double gain) {
+    double total = gain + stats->pendingExperience;
+    stats->pendingExperience = static_cast<float>(total);
+    if (total > kZero) {
+        stats->pendingExperience = kZero;
+        stats->experience = static_cast<float>(total + stats->experience);
+    }
+}
+
+void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
+    double curve = ExperienceCurve(&g_logicSettings.hpVal[3], &stats->experience, &g_logicSettings.hpVal[2],
+                                   &g_logicSettings.hpVal[4]);
+    double scaled = curve * (stats->stat10 / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
+    float maxHitPoints = static_cast<float>((LevelValueOf(stats, kSkillHitPoints) * kPercent + kOne) * scaled);
+    float limit = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
+    vitals->maxHitPoints = limit;
+    curve = ExperienceCurve(&g_logicSettings.mpVal[3], &stats->experience, &g_logicSettings.mpVal[2],
+                            &g_logicSettings.mpVal[4]);
+    scaled = curve * (stats->stat18 / g_logicSettings.mpVal[0] * g_logicSettings.mpVal[1]);
+    vitals->maxMana = static_cast<float>((LevelValueOf(stats, kSkillMana) * kPercent + kOne) * scaled);
+    stats->ScaleSlotMaxima(limit);
+    vitals->hitPoints = static_cast<float>(stats->Reduce(vitals->maxHitPoints));
+}
+
+// 1.61 (a double) ^ (level / divisor) * factor through _CIpow, unrounded: the experience a skill or
+// attribute level is worth.
+double LevelWorth(int level) {
+    return libcrt::CiPow(1.61 /*0073E140*/, static_cast<double>(level) / g_logicSettings.skillVal[1]) *
+           g_logicSettings.skillVal[0];
+}
+
+bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, CUnit* unit) {
+    UnitVitals* vitals = ServerVitals(unit);
+    if (!vitals) return false;
+    std::uint8_t old = levels[index];
+    int raised = (amount & 0xFF) + old;
+    float worthNew = static_cast<float>(LevelWorth(raised));
+    double worthOld = LevelWorth(old);
+    levels[index] = static_cast<std::uint8_t>(old + amount);
+    int cost = static_cast<int>(libcrt::Ftol(worthNew - worthOld));
+    double total = static_cast<double>(cost) + stats->pendingExperience;
+    stats->pendingExperience = static_cast<float>(total);
+    if (total > kZero) {
+        stats->experience = static_cast<float>(total + stats->experience);
+        stats->pendingExperience = kZero;
+        stats->spentExperience = static_cast<float>(total + stats->spentExperience);
+    }
+    RefreshMaxima(stats, vitals, unit);
+    stats->Recompute(vitals, unit);
+    return true;
+}
+
 } // namespace
 
 // --- Regeneration ----------------------------------------------------------------------------
@@ -402,68 +453,11 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
 
 // --- Experience ------------------------------------------------------------------------------
 
-namespace {
-void AddPending(UnitStats* stats, double gain) {
-    double total = gain + stats->pendingExperience;
-    stats->pendingExperience = static_cast<float>(total);
-    if (total > kZero) {
-        stats->pendingExperience = kZero;
-        stats->experience = static_cast<float>(total + stats->experience);
-    }
-}
-} // namespace
-
 void UnitStats::AddExperience(float amount) { AddPending(this, amount); }
 
 void UnitStats::AddScaledExperience(float amount) { AddPending(this, IntelligenceFactor(&stat20) * amount); }
 
 void UnitStats::TakePendingExperience(float amount) { pendingExperience = pendingExperience - amount; }
-
-namespace {
-void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
-    double curve = ExperienceCurve(&g_logicSettings.hpVal[3], &stats->experience, &g_logicSettings.hpVal[2],
-                                   &g_logicSettings.hpVal[4]);
-    double scaled = curve * (stats->stat10 / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
-    float maxHitPoints = static_cast<float>((LevelValueOf(stats, kSkillHitPoints) * kPercent + kOne) * scaled);
-    float limit = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
-    vitals->maxHitPoints = limit;
-    curve = ExperienceCurve(&g_logicSettings.mpVal[3], &stats->experience, &g_logicSettings.mpVal[2],
-                            &g_logicSettings.mpVal[4]);
-    scaled = curve * (stats->stat18 / g_logicSettings.mpVal[0] * g_logicSettings.mpVal[1]);
-    vitals->maxMana = static_cast<float>((LevelValueOf(stats, kSkillMana) * kPercent + kOne) * scaled);
-    stats->ScaleSlotMaxima(limit);
-    vitals->hitPoints = static_cast<float>(stats->Reduce(vitals->maxHitPoints));
-}
-
-// 1.61 (a double) ^ (level / divisor) * factor through _CIpow, unrounded: the experience a skill or
-// attribute level is worth.
-double LevelWorth(int level) {
-    return libcrt::CiPow(1.61 /*0073E140*/, static_cast<double>(level) / g_logicSettings.skillVal[1]) *
-           g_logicSettings.skillVal[0];
-}
-
-bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, CUnit* unit) {
-    UnitVitals* vitals = ServerVitals(unit);
-    if (!vitals) return false;
-    std::uint8_t old = levels[index];
-    int raised = (amount & 0xFF) + old;
-    float worthNew = static_cast<float>(LevelWorth(raised));
-    double worthOld = LevelWorth(old);
-    levels[index] = static_cast<std::uint8_t>(old + amount);
-    int cost = static_cast<int>(libcrt::Ftol(worthNew - worthOld));
-    double total = static_cast<double>(cost) + stats->pendingExperience;
-    stats->pendingExperience = static_cast<float>(total);
-    if (total > kZero) {
-        stats->experience = static_cast<float>(total + stats->experience);
-        stats->pendingExperience = kZero;
-        stats->spentExperience = static_cast<float>(total + stats->spentExperience);
-    }
-    RefreshMaxima(stats, vitals, unit);
-    stats->Recompute(vitals, unit);
-    return true;
-}
-
-} // namespace
 
 void UnitStats::GainExperience(CUnit* unit, float amount) {
     UnitVitals* vitals = ServerVitals(unit);

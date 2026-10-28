@@ -26,6 +26,12 @@ constexpr const char* kSpellManagerFolder = "spells";
 // Every container of a sequence loses a reference, in iterator order; the walk stops at the first entry
 // without a container.
 
+template <typename Record>
+void ListRecordNames(const itemdb::CodeIndexedTable<Record>& table, std::vector<std::string>* names) {
+    names->resize(table.Count());
+    for (std::uint32_t i = 0; i < table.Count(); ++i) (*names)[i] = table.At(i)->name;
+}
+
 } // namespace
 
 
@@ -94,13 +100,6 @@ const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
 
 // The array takes the table's count, then element i the name of record i while i is below the count (read
 // again each time).
-namespace {
-template <typename Record>
-void ListRecordNames(const itemdb::CodeIndexedTable<Record>& table, std::vector<std::string>* names) {
-    names->resize(table.Count());
-    for (std::uint32_t i = 0; i < table.Count(); ++i) (*names)[i] = table.At(i)->name;
-}
-} // namespace
 void CSpellManager::ListSpellNames(std::vector<std::string>* names) { ListRecordNames(itemdb::TheSpellDatabase().spells, names); }
 void CSpellManager::ListModifierNames(std::vector<std::string>* names) {
     ListRecordNames(itemdb::TheSpellDatabase().modifiers, names);

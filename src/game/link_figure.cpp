@@ -80,6 +80,14 @@ void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t,
     SetW(packet);
 }
 
+// Removes [start, start + count): the elements after it move down (the capacity stays).
+template <typename T>
+void CloseGap(std::vector<T>& array, int start, int count) {
+    array.erase(array.begin() + start, array.begin() + start + count);
+}
+
+constexpr int kNoRect = 2000000000;
+
 } // namespace
 
 
@@ -243,18 +251,6 @@ bool CLinkMesh::SetPartVertices(const std::string* name, const VertexPacket* ver
 }
 
 // ---- CLinkMesh's slots ----------------------------------------------------------------------------
-
-namespace {
-
-// Removes [start, start + count): the elements after it move down (the capacity stays).
-template <typename T>
-void CloseGap(std::vector<T>& array, int start, int count) {
-    array.erase(array.begin() + start, array.begin() + start + count);
-}
-
-constexpr int kNoRect = 2000000000;
-
-} // namespace
 
 void CLinkMesh::SetMorph(float s, float t, float u) {
     morphWeights_[0] = s;

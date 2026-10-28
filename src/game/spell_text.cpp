@@ -23,10 +23,6 @@ std::unordered_map<std::string, itemdb::SpellModifierRecord*>& ModifierNameMap()
 
 // The constructor's entries and CSpell::Clone, called through their game addresses.
 
-} // namespace
-
-namespace {
-
 // Splits "name{a;b}" into the trimmed name (in `text`) and the modifier names (in `codes`).
 void ParseSpellText(std::string& text, std::vector<std::string>& codes) {
     int brace = str::Find(text, '{');

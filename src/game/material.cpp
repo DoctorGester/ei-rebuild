@@ -36,6 +36,15 @@ void ResetFields(CMaterial* m) {
     m->spare98 = 0;
 }
 
+// The table's colours for `key`; an absent key is entered with the default the game builds (its key copied
+// over every dword of the colours).
+MaterialColors& EnterKey(std::unordered_map<unsigned, MaterialColors>& table, unsigned key) {
+    if (auto found = table.find(key); found != table.end()) return found->second;
+    std::uint32_t words[sizeof(MaterialColors) / 4];
+    for (std::uint32_t& w : words) w = key;
+    return table.emplace(key, std::bit_cast<MaterialColors>(words)).first->second;
+}
+
 } // namespace
 
 
@@ -57,19 +66,6 @@ void CMaterial::Destroy() {
 const char* CMaterial::GetName() { return name.c_str(); }
 const char* CMaterial::GetClassName() { return kMaterialClassName; }
 int CMaterial::GetClassId() { return 5; }
-
-namespace {
-
-// The table's colours for `key`; an absent key is entered with the default the game builds (its key copied
-// over every dword of the colours).
-MaterialColors& EnterKey(std::unordered_map<unsigned, MaterialColors>& table, unsigned key) {
-    if (auto found = table.find(key); found != table.end()) return found->second;
-    std::uint32_t words[sizeof(MaterialColors) / 4];
-    for (std::uint32_t& w : words) w = key;
-    return table.emplace(key, std::bit_cast<MaterialColors>(words)).first->second;
-}
-
-} // namespace
 
 CMaterialManager::CMaterialManager() {}
 

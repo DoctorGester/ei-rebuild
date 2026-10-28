@@ -14,7 +14,9 @@ namespace net {
 
 namespace {
 
-
+// A timed entry's message ({seconds, object}).
+template <typename T, typename Entry>
+T* TimedValueOf(const Entry& entry) { return static_cast<T*>(entry.ref.ptr); }
 
 } // namespace
 
@@ -52,14 +54,6 @@ ServerSession::ServerSession(std::uint32_t kind) {
     masterToken_ = 0;
     std::memset(password_, 0, sizeof(password_));
 }
-
-namespace {
-
-// A timed entry's message ({seconds, object}).
-template <typename T, typename Entry>
-T* TimedValueOf(const Entry& entry) { return static_cast<T*>(entry.ref.ptr); }
-
-} // namespace
 
 // What the connection being updated receives: the players and the variables, its own binding (the binding
 // whose connection it is; hosting when its player is the host), the newer chat lines meant for everyone or

@@ -33,6 +33,31 @@ void Append(std::vector<UiTextToken*>& tokens, UiTextToken* token) {
 bool IsFormat(const char* token) {
     return token[0] == '\n' || (token[0] == kEscape && (token[1] == 'C' || token[1] == 'F'));
 }
+
+constexpr int kAlignLeft = 1;
+const char* FontSampleText() { return "W"; }   // measured for each font's height
+constexpr int kMeasuredFonts = 3;
+
+// A word of a line (the surface's text call, Rebirth-patched).
+void DrawWord(CUiSurface* surface, std::string_view text, RECT* rect, int font, COLORREF colour) {
+    surface->DrawTextIn(text, rect, font, colour, 0, 1);
+}
+
+constexpr float kScrollSpeed = 20.0f;        // lines per second while an arrow is held
+constexpr int kBarWidth = 14;                // the text's rectangle stops short of the bar
+constexpr int kSurfaceFormat = 5;
+constexpr int kJustified = 2;
+constexpr int kScrollbarSprites = 4;
+// The layout measures fonts 0-2; a format token may name any digit. The original reads its other
+// stack slots (font 3: its return address) for the others; here they are 0.
+constexpr int kFontSlots = 10;
+
+void TokenizeText(CUiScrollText* self, std::string_view text) {
+    std::string copy(text);
+    self->Tokenize(&copy);
+}
+void LayOut(CUiScrollText* self) { self->Layout(); }
+
 } // namespace
 
 int CUiScrollText::NextToken(const std::string* text, int pos, std::string* out) {
@@ -115,17 +140,6 @@ void CUiScrollText::Tokenize(const std::string* text) {
         }
     } while (pos < static_cast<int>(text->size()));
 }
-
-namespace {
-constexpr int kAlignLeft = 1;
-const char* FontSampleText() { return "W"; }   // measured for each font's height
-constexpr int kMeasuredFonts = 3;
-
-// A word of a line (the surface's text call, Rebirth-patched).
-void DrawWord(CUiSurface* surface, std::string_view text, RECT* rect, int font, COLORREF colour) {
-    surface->DrawTextIn(text, rect, font, colour, 0, 1);
-}
-} // namespace
 
 void CUiScrollText::DrawLines(int scroll) {
     CUiSurface* surface = !surfaces_.empty() ? surfaces_[0] : nullptr;
@@ -215,23 +229,6 @@ void CUiScrollText::DrawLines(int scroll) {
 }
 
 // --- Construction, texts, layout ----------------------------------------------------------
-
-namespace {
-constexpr float kScrollSpeed = 20.0f;        // lines per second while an arrow is held
-constexpr int kBarWidth = 14;                // the text's rectangle stops short of the bar
-constexpr int kSurfaceFormat = 5;
-constexpr int kJustified = 2;
-constexpr int kScrollbarSprites = 4;
-// The layout measures fonts 0-2; a format token may name any digit. The original reads its other
-// stack slots (font 3: its return address) for the others; here they are 0.
-constexpr int kFontSlots = 10;
-
-void TokenizeText(CUiScrollText* self, std::string_view text) {
-    std::string copy(text);
-    self->Tokenize(&copy);
-}
-void LayOut(CUiScrollText* self) { self->Layout(); }
-} // namespace
 
 // The scroll bar's tables with its own drawing and layout.
 CUiScrollText::CUiScrollText(CInterface3D* ui, const char* text, RECT rect, float depth)

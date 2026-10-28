@@ -20,6 +20,16 @@ enum Region { kUpRegion, kDownRegion, kTrackRegion };
 CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 float AsFloat(int value) { return static_cast<float>(value); }
 
+constexpr int kDragging = 1;
+constexpr int kSliderThumbHalfWidth = 14;
+constexpr int kSliderThumbHeight = 10;
+
+// The game's _ftol: the low half of a 64-bit truncation (NaN and overflow give 0, where a C++ cast
+// to int gives 0x80000000).
+int Truncate(double value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
+// The wheel's step per unit of delta: 1/120.
+float WheelStep() { return 0.008333334f /*00742C84*/; }
+
 } // namespace
 
 // The virtuals of the scroll bar and of the slider (the slider's create / update virtuals and the drag along
@@ -88,18 +98,6 @@ void CUiScrollbar::SetRect(const RECT* rect) {
 }
 
 // --- A-H20: dragging, the wheel, the slider's position --------------------------------------------
-
-namespace {
-constexpr int kDragging = 1;
-constexpr int kSliderThumbHalfWidth = 14;
-constexpr int kSliderThumbHeight = 10;
-
-// The game's _ftol: the low half of a 64-bit truncation (NaN and overflow give 0, where a C++ cast
-// to int gives 0x80000000).
-int Truncate(double value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
-// The wheel's step per unit of delta: 1/120.
-float WheelStep() { return 0.008333334f /*00742C84*/; }
-} // namespace
 
 void CUiScrollbar::OnMouseMove(int, int x, int y) {
     if (state_ == kDragging) {

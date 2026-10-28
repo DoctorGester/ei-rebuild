@@ -69,115 +69,6 @@ bool IsAnimated(const Terrain* owner, int texture) {
     return texture < owner->perPage * owner->pages && owner->textureFrames[texture] != 0;
 }
 
-} // namespace
-
-// Loading
-
-int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pageCount, int textures, const char* prefix,
-                     Terrain* terrain) {
-    Clear();
-    owner = terrain;
-    sx = sectorX;
-    pages = pageCount;
-    sy = sectorY;
-    perPage = textures;
-
-    char name[0x100];
-    std::snprintf(name, sizeof(name), "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, kSectorExtension);
-    std::uint32_t size = 0;
-    const std::uint8_t* file = static_cast<const std::uint8_t*>(archive->GetFile(name, &size));
-    data = file;
-
-    const char* unableToLocate = "Unable to locate resource: ";
-    const char* wrongFormat = "Wrong format resource: ";
-    // The message is passed to FatalError as its format string.
-    auto fail = [&](const char* text) {
-        std::string n(name);
-        std::string message = text + n;
-        return game::FatalError(message.c_str());
-    };
-    if (!file) return fail(unableToLocate);
-    if (size < 5) return fail(wrongFormat);
-
-    std::uint32_t magic;
-    std::memcpy(&magic, file, 4);
-    std::uint8_t flags = file[4];
-    data = file + 5;
-    if (magic != kSectorMagic) return fail(wrongFormat);
-
-    std::uint32_t expected = 0x240D;
-    hasWaterTiles = flags & 3;
-    hasWater = flags & 1;
-    if (hasWater) expected = 0x4815;
-    if (hasWaterTiles) expected += 0x200;
-    if (size != expected) return fail(wrongFormat);
-
-    // Water material per tile.
-    if (hasWater) {
-        waterTiles.resize(0x100);
-        const std::uint8_t* src = data + 0x4610 + (hasWaterTiles ? 0x200 : 0);
-        for (int i = 0; i < 0x100; ++i) {
-            std::uint16_t v;
-            std::memcpy(&v, src + i * 2, 2);
-            waterTiles[i] = v == 0xFFFF ? -1 : v;
-        }
-    } else {
-        waterTiles.clear();
-    }
-
-    // Vertex positions: one or two layers of 33x33 (CArray<Vector3>::SetSize, zeroing new ones).
-    vertices.resize(hasWater ? 2 * kVertices : kVertices);
-
-    // Each vertex is 8 bytes: x and y displacement (signed bytes), height (u16), packed normal.
-    const std::uint8_t* src = data;
-    SectorPosition* out = vertices.data();
-    for (int layer = 0; layer < (hasWater ? 2 : 1); ++layer) {
-        double x0 = static_cast<double>(sx) * One() * SectorCells();
-        double y = static_cast<double>(sy) * One() * SectorCells();
-        int vi = 0;
-        for (int row = 0; row < 33; ++row) {
-            double x = x0;
-            for (int col = 0; col < 33; ++col, ++vi, src += 8, ++out) {
-                std::uint16_t h;
-                std::memcpy(&h, src + 2, 2);
-                out->z = static_cast<float>(static_cast<double>(h) * owner->heightRange * HeightUnit());
-                if (layer == 0) {
-                    out->x = static_cast<float>(One() * Half() * static_cast<std::int8_t>(src[0]) * OffsetScale() + x);
-                    out->y = static_cast<float>(One() * Half() * static_cast<std::int8_t>(src[1]) * OffsetScale() + y);
-                } else {
-                    // The water material of the vertex: the lowest priority among its tiles'.
-                    const VertexTiles& around = owner->vertexTiles[vi];
-                    int m = waterTiles[around.tiles[0]];
-                    for (int i = 1; i < around.count; ++i) {
-                        int c = waterTiles[around.tiles[i]];
-                        if (c == -1) continue;
-                        if (m != -1) EI_NAN_AUDIT(owner->materials[c].priority, owner->materials[m].priority);
-                        if (m == -1 || owner->materials[c].priority < owner->materials[m].priority) m = c;
-                    }
-                    if (m == -1) {
-                        out->x = static_cast<float>(x);
-                        std::memset(&out->z, 0, 4);
-                        out->y = static_cast<float>(y);
-                    } else if (owner->materials[m].kind != 4) {
-                        out->x = static_cast<float>(x);
-                        out->y = static_cast<float>(y);
-                    } else {
-                        std::memcpy(out, &vertices[vi].x, 8);
-                    }
-                }
-                x += One();
-            }
-            y += One();
-        }
-    }
-    built |= 1;
-    return 1;
-}
-
-// Building
-
-namespace {
-
 // Vertex records: water material (water layer), normals, height range. Returns the tile words.
 const std::uint8_t* BuildRecords(SectorData& s) {
     const std::uint8_t* tiles = s.data;
@@ -381,7 +272,137 @@ void ComputeBounds(SectorData& s) {
     }
 }
 
+double RawHeight(Terrain* terrain, float x, float y, int layer) {
+    return terrain->HeightAt(x, y, layer);   // ST0 used unrounded
+}
+
+static_assert(sizeof(Vector4) == 16);
+constinit std::vector<Vector4> g_projectionInput = /*007C88F8*/ {};
+constinit std::vector<Vector4> g_projectionOutput = /*007C88E8*/ {};
+
+// The exit functions their static initialisers register: each frees its buffer, once (a guard bit each in
+// g_freed; bit 4 is the outcodes' destructor's).
+std::uint8_t g_freed = /*007C88C9*/ {};
+// The projected vertices' outcodes (a CByteArray): built empty by its static initialiser, destroyed once at
+// exit.
+constinit lib::StaticObject<std::vector<std::uint8_t>> g_projectionOutcodes = /*007C88D0*/ {};
+std::vector<std::uint8_t>& ProjectionOutcodes() { return *g_projectionOutcodes; }
+void DestroyProjectionOutcodes() {
+    if (g_freed & 4) return;
+    g_freed = static_cast<std::uint8_t>(g_freed | 4);
+    g_projectionOutcodes.Destroy();
+}
+constexpr int kProjectionVertices = 0x330;
+
+constexpr int kQuarterCells = 16;
+constexpr int kRow = 33;
+
 } // namespace
+
+// Loading
+
+int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pageCount, int textures, const char* prefix,
+                     Terrain* terrain) {
+    Clear();
+    owner = terrain;
+    sx = sectorX;
+    pages = pageCount;
+    sy = sectorY;
+    perPage = textures;
+
+    char name[0x100];
+    std::snprintf(name, sizeof(name), "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, kSectorExtension);
+    std::uint32_t size = 0;
+    const std::uint8_t* file = static_cast<const std::uint8_t*>(archive->GetFile(name, &size));
+    data = file;
+
+    const char* unableToLocate = "Unable to locate resource: ";
+    const char* wrongFormat = "Wrong format resource: ";
+    // The message is passed to FatalError as its format string.
+    auto fail = [&](const char* text) {
+        std::string n(name);
+        std::string message = text + n;
+        return game::FatalError(message.c_str());
+    };
+    if (!file) return fail(unableToLocate);
+    if (size < 5) return fail(wrongFormat);
+
+    std::uint32_t magic;
+    std::memcpy(&magic, file, 4);
+    std::uint8_t flags = file[4];
+    data = file + 5;
+    if (magic != kSectorMagic) return fail(wrongFormat);
+
+    std::uint32_t expected = 0x240D;
+    hasWaterTiles = flags & 3;
+    hasWater = flags & 1;
+    if (hasWater) expected = 0x4815;
+    if (hasWaterTiles) expected += 0x200;
+    if (size != expected) return fail(wrongFormat);
+
+    // Water material per tile.
+    if (hasWater) {
+        waterTiles.resize(0x100);
+        const std::uint8_t* src = data + 0x4610 + (hasWaterTiles ? 0x200 : 0);
+        for (int i = 0; i < 0x100; ++i) {
+            std::uint16_t v;
+            std::memcpy(&v, src + i * 2, 2);
+            waterTiles[i] = v == 0xFFFF ? -1 : v;
+        }
+    } else {
+        waterTiles.clear();
+    }
+
+    // Vertex positions: one or two layers of 33x33 (CArray<Vector3>::SetSize, zeroing new ones).
+    vertices.resize(hasWater ? 2 * kVertices : kVertices);
+
+    // Each vertex is 8 bytes: x and y displacement (signed bytes), height (u16), packed normal.
+    const std::uint8_t* src = data;
+    SectorPosition* out = vertices.data();
+    for (int layer = 0; layer < (hasWater ? 2 : 1); ++layer) {
+        double x0 = static_cast<double>(sx) * One() * SectorCells();
+        double y = static_cast<double>(sy) * One() * SectorCells();
+        int vi = 0;
+        for (int row = 0; row < 33; ++row) {
+            double x = x0;
+            for (int col = 0; col < 33; ++col, ++vi, src += 8, ++out) {
+                std::uint16_t h;
+                std::memcpy(&h, src + 2, 2);
+                out->z = static_cast<float>(static_cast<double>(h) * owner->heightRange * HeightUnit());
+                if (layer == 0) {
+                    out->x = static_cast<float>(One() * Half() * static_cast<std::int8_t>(src[0]) * OffsetScale() + x);
+                    out->y = static_cast<float>(One() * Half() * static_cast<std::int8_t>(src[1]) * OffsetScale() + y);
+                } else {
+                    // The water material of the vertex: the lowest priority among its tiles'.
+                    const VertexTiles& around = owner->vertexTiles[vi];
+                    int m = waterTiles[around.tiles[0]];
+                    for (int i = 1; i < around.count; ++i) {
+                        int c = waterTiles[around.tiles[i]];
+                        if (c == -1) continue;
+                        if (m != -1) EI_NAN_AUDIT(owner->materials[c].priority, owner->materials[m].priority);
+                        if (m == -1 || owner->materials[c].priority < owner->materials[m].priority) m = c;
+                    }
+                    if (m == -1) {
+                        out->x = static_cast<float>(x);
+                        std::memset(&out->z, 0, 4);
+                        out->y = static_cast<float>(y);
+                    } else if (owner->materials[m].kind != 4) {
+                        out->x = static_cast<float>(x);
+                        out->y = static_cast<float>(y);
+                    } else {
+                        std::memcpy(out, &vertices[vi].x, 8);
+                    }
+                }
+                x += One();
+            }
+            y += One();
+        }
+    }
+    built |= 1;
+    return 1;
+}
+
+// Building
 
 void SectorData::Build() {
     records.resize(hasWater ? 2 * kVertices : kVertices);
@@ -458,12 +479,6 @@ void SectorData::ApplyWaterLevels() {
 
 // Point queries
 
-namespace {
-double RawHeight(Terrain* terrain, float x, float y, int layer) {
-    return terrain->HeightAt(x, y, layer);   // ST0 used unrounded
-}
-} // namespace
-
 } // namespace terrain
 
 const float* Terrain::TileUv(int rotation, int index, int page) {
@@ -508,31 +523,6 @@ std::uint32_t SectorData::Ensure(std::uint32_t wanted, Terrain* terrain) {
 }
 
 // Construction and projection
-
-namespace {
-
-static_assert(sizeof(Vector4) == 16);
-constinit std::vector<Vector4> g_projectionInput = /*007C88F8*/ {};
-constinit std::vector<Vector4> g_projectionOutput = /*007C88E8*/ {};
-
-// The exit functions their static initialisers register: each frees its buffer, once (a guard bit each in
-// g_freed; bit 4 is the outcodes' destructor's).
-std::uint8_t g_freed = /*007C88C9*/ {};
-// The projected vertices' outcodes (a CByteArray): built empty by its static initialiser, destroyed once at
-// exit.
-constinit lib::StaticObject<std::vector<std::uint8_t>> g_projectionOutcodes = /*007C88D0*/ {};
-std::vector<std::uint8_t>& ProjectionOutcodes() { return *g_projectionOutcodes; }
-void DestroyProjectionOutcodes() {
-    if (g_freed & 4) return;
-    g_freed = static_cast<std::uint8_t>(g_freed | 4);
-    g_projectionOutcodes.Destroy();
-}
-constexpr int kProjectionVertices = 0x330;
-
-constexpr int kQuarterCells = 16;
-constexpr int kRow = 33;
-
-} // namespace
 
 void FreeProjectionInput() {
     if (g_freed & 1) return;

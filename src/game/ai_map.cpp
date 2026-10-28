@@ -20,6 +20,36 @@ float CellToWorld(int cell) { return (static_cast<float>(cell) + 0.5f) * (1.0f *
 
 int PositiveOrZero(int v) { return v < 0 ? 0 : v; }
 
+constexpr std::uint32_t kOccluderNone = 0x100;
+constexpr std::uint32_t kOccluderChain = 0x80;
+
+// The occluder records of the sector holding cell (x, y), for cells holding more than one: `top` is bits
+// 12-21 of a single-occluder word, `bottom` bits 22-31, `kind` bits 9-11, `transparency` bits 5-6.
+const SectorOccluder* OccluderRecords(const CAIMap* map, int x, int y) {
+    const CSectorMap& sectors = map->sectorMap;
+    return sectors.sectors[(y / 32) * sectors.width + x / 32].occluders.data();
+}
+
+constexpr float kTransparency[4] = /*00791744*/ {0.0f, 0.98f, 0.99f, 1.0f};
+constexpr float kMinVisibility = 0.0001f;
+
+// The game's atexit, for the function-local static in FindFreeCellNear.
+
+// The spiral of cell offsets ordered by distance, built at startup: a binary tree mapping a radius (compared
+// as raw float bits) to the number of offsets within it. (sector_map.h's tables, sector_spiral.cpp).
+int SpiralDepth() { return SpiralRadiusTree()->depth; }
+std::int32_t SpiralKey(std::uint32_t node) {
+    std::int32_t key;
+    std::memcpy(&key, &SpiralRadiusTree()->keys[node], sizeof(key));
+    return key;
+}
+std::uint32_t SpiralMask() { return static_cast<std::uint32_t>(SpiralRadiusTree()->mask); }
+const int* SpiralLengthTable() { return SpiralLengthArray()->data(); }
+const std::int16_t* SpiralOffsets() { return &SpiralOffsetArray()->data()->x; }
+
+SpiralCache g_findFreeSpiral = /*007C2F48*/ {};   // FindFreeCellNear's function-local static
+std::uint8_t g_findFreeGuard = /*007C2F50*/ {};
+
 } // namespace
 
 int LevelForSizeClass(int sizeClass) {
@@ -155,18 +185,6 @@ bool CAIMap::CellFlag80At(const Vector3* position) {
     return (cells[y][x].flags >> 7) & 1;
 }
 
-namespace {
-constexpr std::uint32_t kOccluderNone = 0x100;
-constexpr std::uint32_t kOccluderChain = 0x80;
-
-// The occluder records of the sector holding cell (x, y), for cells holding more than one: `top` is bits
-// 12-21 of a single-occluder word, `bottom` bits 22-31, `kind` bits 9-11, `transparency` bits 5-6.
-const SectorOccluder* OccluderRecords(const CAIMap* map, int x, int y) {
-    const CSectorMap& sectors = map->sectorMap;
-    return sectors.sectors[(y / 32) * sectors.width + x / 32].occluders.data();
-}
-} // namespace
-
 bool CAIMap::HasKind3Occluder(int x, int y) {
     std::uint32_t word = occluders[y][x];
     if (word & kOccluderNone) return false;
@@ -227,11 +245,6 @@ bool CAIMap::BridgeDeckAt(int x, int y, int* deckHeight) {
 
 // --- Line of sight -------------------------------------------------------------------------------
 
-namespace {
-constexpr float kTransparency[4] = /*00791744*/ {0.0f, 0.98f, 0.99f, 1.0f};
-constexpr float kMinVisibility = 0.0001f;
-} // namespace
-
 float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
     float dx = to->x - from->x, dy = to->y - from->y;
     float dz = to->z - from->z;
@@ -289,25 +302,6 @@ float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
 }
 
 // --- Free cell search ----------------------------------------------------------------------------
-
-namespace {
-// The game's atexit, for the function-local static in FindFreeCellNear.
-
-// The spiral of cell offsets ordered by distance, built at startup: a binary tree mapping a radius (compared
-// as raw float bits) to the number of offsets within it. (sector_map.h's tables, sector_spiral.cpp).
-int SpiralDepth() { return SpiralRadiusTree()->depth; }
-std::int32_t SpiralKey(std::uint32_t node) {
-    std::int32_t key;
-    std::memcpy(&key, &SpiralRadiusTree()->keys[node], sizeof(key));
-    return key;
-}
-std::uint32_t SpiralMask() { return static_cast<std::uint32_t>(SpiralRadiusTree()->mask); }
-const int* SpiralLengthTable() { return SpiralLengthArray()->data(); }
-const std::int16_t* SpiralOffsets() { return &SpiralOffsetArray()->data()->x; }
-
-SpiralCache g_findFreeSpiral = /*007C2F48*/ {};   // FindFreeCellNear's function-local static
-std::uint8_t g_findFreeGuard = /*007C2F50*/ {};
-} // namespace
 
 const std::int16_t* SpiralCache::Get(float r, int* count) {
     EI_NAN_AUDIT(r, radius);

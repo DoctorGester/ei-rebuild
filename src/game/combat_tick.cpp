@@ -95,9 +95,7 @@ float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(unit->GetProtot
 CPlayerServer* PlayerMessages(CPlayer* player) { return player->Server(); }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
-} // namespace
 
-namespace {
 void TellParty(CUnit* unit, int message) {
     if (unit->player) PlayerMessages(unit->player)->SendObject0B(unit, message);
 }
@@ -108,6 +106,91 @@ void ClearAction(UnitAction* order) {
     order->param = 0;
     order->modifier = 0;
 }
+
+// The melee reach test of CanReachTarget as an inlining caller has it: false when the target (a living unit
+// standing on its own) is too high to reach, else whether the action can be planned.
+bool CanStillDo(CUnitServer* self, UnitAction* order) {
+    if (order->kind == kOrderAttack || order->kind == kOrderSkill) {
+        CUnit* other = UnitOrNull(order->target);
+        if (other && !IsDead(other)) {
+            if (other->sizeClass == 0 && !(order->kind == kOrderAttack && self->HasRangedWeapon())) {
+                double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition_.z;
+                if (height >= kHeightLimit) return false;
+            }
+        }
+    }
+    return self->CanPlanAction(order);
+}
+
+// The common start of taking over the queued order: run (mode 2) unless the order can be carried
+// out at once, then the movement records and the frame stamp.
+void LeaveMoveMode(CUnitServer* self) {
+    UnitAction* order = &self->action;
+    if (order->modifier && self->moveMode.mode != kModeRun) {
+        int kind = order->kind;
+        if (!(IsActionKind(kind) && self->CanReachAndPlan(order))) self->SetUnitMoveMode2(kModeRun);
+    }
+    self->SyncMoveModes();
+    self->waitFrame = TheServerWorld()->tick_;
+}
+
+// Stand: the idle animation (restarted at a random phase when nothing plays) and the motion
+// updates. Not while turning (state 2).
+void StandIdle(CUnitServer* self) {
+    AnimationSteps* idle = self->IdleAnimation();
+    if (!self->queue.SameAs(idle)) {
+        if (self->queue.empty() && self->queue.extra == -1) {
+            int now = WorldTick(self);
+            idle->extra = now - static_cast<int>(g_random.Next() % 0x33);
+        }
+        self->PlaySteps(idle);
+    }
+    self->StandStill();
+    self->SetState(2);
+}
+
+// The queued order replaces the current one (copy, then reset of the queued order).
+void TakeOver(CUnitServer* self) {
+    self->action.Assign(&self->action2);
+    self->action2.Reset();
+}
+
+// The unit's attack interval: the weapon's (or the stats' truncated) scaled by 15 / the combat rate (unscaled
+// when that is 0), rounded.
+int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
+    float factor = self->stats.rate;
+    if (factor != 0.0f) factor = kFifteen / factor;   // a NaN stays the same NaN
+    int base;
+    if (weapon) {
+        base = static_cast<int>(weapon->GetPrototype()->category);
+    } else {
+        double value = self->stats.attackCategory;
+        // _ftol, as the original truncates it.
+        base = static_cast<int>(libcrt::Ftol(value));
+    }
+    float scaled = static_cast<float>(static_cast<double>(base) * factor);
+    return x87::fistp(scaled);
+}
+
+// As an inlining caller has it.
+void SetModeInline(CUnit* unit, int mode) {
+    if (unit->moveMode2 == mode) return;
+    unit->moveMode2 = mode;
+    unit->MarkChanged(kPartMoveModes);
+}
+
+bool OutOfReachUp(CUnitServer* self, const AIOrder* order) {
+    if (order->kind != kOrderAttack && order->kind != kOrderSkill) return false;
+    CUnit* other = UnitOrNull(order->target);
+    if (!other || IsDead(other)) return false;
+    if (other->sizeClass != 0) return false;
+    if (order->kind == kOrderAttack && self->HasRangedWeapon()) return false;
+    double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition_.z;
+    return height >= kHeightLimit;
+}
+
+// Where the motion is heading: half its two members (as 1.0 * 0.5, the original's constant product).
+double HalfScale() { return static_cast<double>(kOne) * kHalf; }
 
 } // namespace
 
@@ -164,23 +247,6 @@ void CUnitServer::SyncMoveModes() {
     if (!unit->player && moveMode2.flag4) moveMode2.wasMode3 |= 1;
 }
 
-namespace {
-// The melee reach test of CanReachTarget as an inlining caller has it: false when the target (a living unit
-// standing on its own) is too high to reach, else whether the action can be planned.
-bool CanStillDo(CUnitServer* self, UnitAction* order) {
-    if (order->kind == kOrderAttack || order->kind == kOrderSkill) {
-        CUnit* other = UnitOrNull(order->target);
-        if (other && !IsDead(other)) {
-            if (other->sizeClass == 0 && !(order->kind == kOrderAttack && self->HasRangedWeapon())) {
-                double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition_.z;
-                if (height >= kHeightLimit) return false;
-            }
-        }
-    }
-    return self->CanPlanAction(order);
-}
-} // namespace
-
 void CUnitServer::TakeQueuedOrder() {
     action.kind = action2.kind;
     action.source = action2.source;
@@ -213,42 +279,6 @@ void CUnitServer::TakeQueuedOrder() {
 }
 
 // --- Taking over the queued order ----------------------------------------------------------------
-
-namespace {
-// The common start of taking over the queued order: run (mode 2) unless the order can be carried
-// out at once, then the movement records and the frame stamp.
-void LeaveMoveMode(CUnitServer* self) {
-    UnitAction* order = &self->action;
-    if (order->modifier && self->moveMode.mode != kModeRun) {
-        int kind = order->kind;
-        if (!(IsActionKind(kind) && self->CanReachAndPlan(order))) self->SetUnitMoveMode2(kModeRun);
-    }
-    self->SyncMoveModes();
-    self->waitFrame = TheServerWorld()->tick_;
-}
-
-// Stand: the idle animation (restarted at a random phase when nothing plays) and the motion
-// updates. Not while turning (state 2).
-void StandIdle(CUnitServer* self) {
-    AnimationSteps* idle = self->IdleAnimation();
-    if (!self->queue.SameAs(idle)) {
-        if (self->queue.empty() && self->queue.extra == -1) {
-            int now = WorldTick(self);
-            idle->extra = now - static_cast<int>(g_random.Next() % 0x33);
-        }
-        self->PlaySteps(idle);
-    }
-    self->StandStill();
-    self->SetState(2);
-}
-
-// The queued order replaces the current one (copy, then reset of the queued order).
-void TakeOver(CUnitServer* self) {
-    self->action.Assign(&self->action2);
-    self->action2.Reset();
-}
-
-} // namespace
 
 bool CUnitServer::StartMove() {
     CWorldServer* world = ServerWorld();
@@ -484,42 +514,6 @@ void CUnitServer::ContinueAction() {
 
 // --- Carrying out the current order ----------------------------------------------------------------
 
-namespace {
-// The unit's attack interval: the weapon's (or the stats' truncated) scaled by 15 / the combat rate (unscaled
-// when that is 0), rounded.
-int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
-    float factor = self->stats.rate;
-    if (factor != 0.0f) factor = kFifteen / factor;   // a NaN stays the same NaN
-    int base;
-    if (weapon) {
-        base = static_cast<int>(weapon->GetPrototype()->category);
-    } else {
-        double value = self->stats.attackCategory;
-        // _ftol, as the original truncates it.
-        base = static_cast<int>(libcrt::Ftol(value));
-    }
-    float scaled = static_cast<float>(static_cast<double>(base) * factor);
-    return x87::fistp(scaled);
-}
-
-// As an inlining caller has it.
-void SetModeInline(CUnit* unit, int mode) {
-    if (unit->moveMode2 == mode) return;
-    unit->moveMode2 = mode;
-    unit->MarkChanged(kPartMoveModes);
-}
-
-bool OutOfReachUp(CUnitServer* self, const AIOrder* order) {
-    if (order->kind != kOrderAttack && order->kind != kOrderSkill) return false;
-    CUnit* other = UnitOrNull(order->target);
-    if (!other || IsDead(other)) return false;
-    if (other->sizeClass != 0) return false;
-    if (order->kind == kOrderAttack && self->HasRangedWeapon()) return false;
-    double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition_.z;
-    return height >= kHeightLimit;
-}
-} // namespace
-
 bool CUnitServer::CanReachAndPlan(const AIOrder* order) {
     if (OutOfReachUp(this, order)) return false;
     return CanPlanAction(order);
@@ -624,11 +618,6 @@ void CUnitServer::ExecuteOrder() {
 }
 
 // --- Closing in --------------------------------------------------------------------------------
-
-namespace {
-// Where the motion is heading: half its two members (as 1.0 * 0.5, the original's constant product).
-double HalfScale() { return static_cast<double>(kOne) * kHalf; }
-} // namespace
 
 void CUnitServer::ApproachTarget() {
     int now = WorldTick(this);

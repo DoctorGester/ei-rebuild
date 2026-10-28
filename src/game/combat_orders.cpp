@@ -67,6 +67,27 @@ void SetTarget(UnitAction* order, CMapObject* target) {
 void TellParty(CUnit* unit, int message) {
     if (unit->player) PlayerMessage(unit->player->Server(), unit, message);
 }
+
+// The spell checks OrderCastAt and OrderCast share: the spell behind `source`; for a party unit's own spell
+// (not an item) its skill requirement (+0x50) against the unit's skill. True when the order may be queued.
+bool MayCast(CUnitServer* self, std::uint32_t source) {
+    CSpell* spell;
+    if (source & kQuickItemSource) {
+        CItem* carrier = self->SpellCarrier(source);
+        if (!carrier) return !(self->unit->flags_ & kFlagSpellBlocked);
+        spell = carrier->spell_;
+    } else {
+        spell = self->unit->GetSpellObject(source);
+    }
+    if (spell && self->unit->player && !(source & kQuickItemSource)) {
+        int needed = static_cast<int>(spell->skillNeeded_);
+        float skill = static_cast<float>(
+            self->stats.SpellSchoolSkill(SpellPrototype(spell)->school));
+        if (x87::fistp(skill) < needed) return false;
+    }
+    return !(self->unit->flags_ & kFlagSpellBlocked);
+}
+
 } // namespace
 
 void CUnitServer::FinishCast() {
@@ -188,28 +209,6 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
     }
     if (!PlanOrderRoute(&action2, planArg)) ResetOrder(&action2);
 }
-
-namespace {
-// The spell checks OrderCastAt and OrderCast share: the spell behind `source`; for a party unit's own spell
-// (not an item) its skill requirement (+0x50) against the unit's skill. True when the order may be queued.
-bool MayCast(CUnitServer* self, std::uint32_t source) {
-    CSpell* spell;
-    if (source & kQuickItemSource) {
-        CItem* carrier = self->SpellCarrier(source);
-        if (!carrier) return !(self->unit->flags_ & kFlagSpellBlocked);
-        spell = carrier->spell_;
-    } else {
-        spell = self->unit->GetSpellObject(source);
-    }
-    if (spell && self->unit->player && !(source & kQuickItemSource)) {
-        int needed = static_cast<int>(spell->skillNeeded_);
-        float skill = static_cast<float>(
-            self->stats.SpellSchoolSkill(SpellPrototype(spell)->school));
-        if (x87::fistp(skill) < needed) return false;
-    }
-    return !(self->unit->flags_ & kFlagSpellBlocked);
-}
-} // namespace
 
 void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int run) {
     Vector3 at;

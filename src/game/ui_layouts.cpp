@@ -86,6 +86,31 @@ CUiModel* AddMenuModel(CUiWindow* window, float angle) {
     return model;
 }
 
+constexpr int kOptionGroups = 11;
+const char* OptionGroupName(int index) {
+    static constexpr const char* kNames[13] = /*007947A8*/ {"video",  "sound",  "sens",   "game",    "select",
+                                                            "actions", "camera", "items",  "spells",  "cshots",
+                                                            "windows", "debug1", "debug2"};
+    return kNames[index];
+}
+
+int BoxText(CUiSurface* surface, std::string_view text, RECT* rect, int font, COLORREF colour, int format, int flag) {
+    return surface->DrawTextIn(text, rect, font, colour, format, flag);
+}
+
+SIZE TextExtent(CInterface3D* ui, std::string_view text, int font) {
+    SIZE size;
+    ui->TextExtent(&size, text, font);
+    return size;
+}
+
+CSceneRenderer* TitlesDisplay() { return SceneRenderer(); }
+
+struct TitlesTokenizer : TextTokenizer {
+    // The current word, or "" past the last one (the original assigned null to a CString, which keeps "").
+    const char* WordOrEmpty() const { return position != -1 ? word.c_str() : ""; }
+};
+
 } // namespace
 
 // --- Save/load window -------------------------------------------------------------
@@ -156,16 +181,6 @@ void CSaveLoadWindow::CreateScreen() {
 }
 
 // --- Options window ------------------------------------------------------------------
-
-namespace {
-constexpr int kOptionGroups = 11;
-const char* OptionGroupName(int index) {
-    static constexpr const char* kNames[13] = /*007947A8*/ {"video",  "sound",  "sens",   "game",    "select",
-                                                            "actions", "camera", "items",  "spells",  "cshots",
-                                                            "windows", "debug1", "debug2"};
-    return kNames[index];
-}
-} // namespace
 
 void COptionsWindow::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
@@ -346,18 +361,6 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
 
 // --- Message box -----------------------------------------------------------------------
 
-namespace {
-int BoxText(CUiSurface* surface, std::string_view text, RECT* rect, int font, COLORREF colour, int format, int flag) {
-    return surface->DrawTextIn(text, rect, font, colour, format, flag);
-}
-
-SIZE TextExtent(CInterface3D* ui, std::string_view text, int font) {
-    SIZE size;
-    ui->TextExtent(&size, text, font);
-    return size;
-}
-} // namespace
-
 void CMessageBox::CreateScreen() {
     LoadTexture("saveload", 3, 0);
     CUiSurface* surface = NewSurface(interface_, 200, 50, 600, 500);
@@ -477,16 +480,6 @@ void CDifficultyBox::CreateScreen() {
 }
 
 // --- Titles ----------------------------------------------------------------------------
-
-namespace {
-CSceneRenderer* TitlesDisplay() { return SceneRenderer(); }
-
-struct TitlesTokenizer : TextTokenizer {
-    // The current word, or "" past the last one (the original assigned null to a CString, which keeps "").
-    const char* WordOrEmpty() const { return position != -1 ? word.c_str() : ""; }
-};
-
-} // namespace
 
 void CCreditsScreen::CreateScreen() {
     CInterface3D* ui = interface_;

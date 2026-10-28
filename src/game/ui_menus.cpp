@@ -46,6 +46,15 @@ double Ease(float slide) {
     return 1.0f - e;
 }
 
+constexpr int kSettingVolumeA = 0;     // \ volumes, applied at once
+constexpr int kSettingVolumeB = 1;     //  |
+constexpr int kSettingVolumeC = 2;     // /
+constexpr int kSettingGammaFirst = 14; // the display's three gamma values (settings 14-16)
+constexpr int kSettingGammaLast = 16;
+constexpr int kSettingCount = 26;
+constexpr float kGammaScale = 0.02f;   // value * 0.02 - 1
+constexpr float kSlideSeconds = 0.5f;
+
 } // namespace
 
 // --- Helpers -----------------------------------------------------------------------------------
@@ -255,16 +264,6 @@ const char* COptionsWindow::HelpTopic() {
 }
 
 // The settings the window applies while it is open (their ids, the first int of the definition).
-namespace {
-constexpr int kSettingVolumeA = 0;     // \ volumes, applied at once
-constexpr int kSettingVolumeB = 1;     //  |
-constexpr int kSettingVolumeC = 2;     // /
-constexpr int kSettingGammaFirst = 14; // the display's three gamma values (settings 14-16)
-constexpr int kSettingGammaLast = 16;
-constexpr int kSettingCount = 26;
-constexpr float kGammaScale = 0.02f;   // value * 0.02 - 1
-constexpr float kSlideSeconds = 0.5f;
-} // namespace
 
 void COptionsWindow::Update() {
     UpdateBase();

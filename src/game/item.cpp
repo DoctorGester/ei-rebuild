@@ -13,6 +13,9 @@ namespace {
 
 constexpr float kZero = 0.0f;
 
+WeaponRecord* WeaponOf(std::uint32_t packedId) { return WeaponAt(PrototypeIndex(packedId)); }
+MaterialRecordHead* MaterialOf(std::uint32_t packedId) { return MaterialAt(MaterialIndex(packedId)); }
+
 } // namespace
 
 ItemRecordHead* CItem::GetPrototype() {
@@ -110,11 +113,6 @@ float CItemLoot::GetPrice() {
     default: return -1.0f;
     }
 }
-
-namespace {
-WeaponRecord* WeaponOf(std::uint32_t packedId) { return WeaponAt(PrototypeIndex(packedId)); }
-MaterialRecordHead* MaterialOf(std::uint32_t packedId) { return MaterialAt(MaterialIndex(packedId)); }
-} // namespace
 
 int WeaponType(std::uint32_t packedId) {
     return WeaponOf(packedId)->type;

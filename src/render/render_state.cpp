@@ -36,6 +36,23 @@ constexpr KnownBlock kBlocks[] = {
     {kSceneBlock, {4, 2, 0, 2, 0, 1}},          // texture x diffuse; alpha diffuse
 };
 
+// What a new Direct3D 7 device starts with for the states the game never sets itself (no writer
+// in game.exe; the verify build checks these against the device like any fed state): the z
+// function LESSEQUAL, texture factor opaque white, texture addressing WRAP, stage 1 off.
+void SeedDefaults() {
+    Render(23, 4);             // D3DRENDERSTATE_ZFUNC: D3DCMP_LESSEQUAL
+    Render(60, 0xFFFFFFFFu);   // D3DRENDERSTATE_TEXTUREFACTOR
+    for (std::uint32_t stage = 0; stage < kStages; ++stage) {
+        Stage(stage, 13, 1);   // D3DTSS_ADDRESSU: D3DTADDRESS_WRAP
+        Stage(stage, 14, 1);   // D3DTSS_ADDRESSV
+    }
+    Stage(1, 1, 1);            // stage 1 D3DTSS_COLOROP: D3DTOP_DISABLE
+    Stage(1, 4, 1);            // stage 1 D3DTSS_ALPHAOP
+}
+struct Seed {
+    Seed() { SeedDefaults(); }
+} g_seed;
+
 } // namespace
 
 void Render(std::uint32_t state, std::uint32_t value) {
@@ -59,25 +76,6 @@ void Block(std::uint32_t handle) {
     // Not one of the four: the stage states may have changed.
     std::memset(g_stageKnown, 0, sizeof(g_stageKnown));
 }
-
-namespace {
-// What a new Direct3D 7 device starts with for the states the game never sets itself (no writer
-// in game.exe; the verify build checks these against the device like any fed state): the z
-// function LESSEQUAL, texture factor opaque white, texture addressing WRAP, stage 1 off.
-void SeedDefaults() {
-    Render(23, 4);             // D3DRENDERSTATE_ZFUNC: D3DCMP_LESSEQUAL
-    Render(60, 0xFFFFFFFFu);   // D3DRENDERSTATE_TEXTUREFACTOR
-    for (std::uint32_t stage = 0; stage < kStages; ++stage) {
-        Stage(stage, 13, 1);   // D3DTSS_ADDRESSU: D3DTADDRESS_WRAP
-        Stage(stage, 14, 1);   // D3DTSS_ADDRESSV
-    }
-    Stage(1, 1, 1);            // stage 1 D3DTSS_COLOROP: D3DTOP_DISABLE
-    Stage(1, 4, 1);            // stage 1 D3DTSS_ALPHAOP
-}
-struct Seed {
-    Seed() { SeedDefaults(); }
-} g_seed;
-} // namespace
 
 void Reset() {
     std::memset(g_renderKnown, 0, sizeof(g_renderKnown));

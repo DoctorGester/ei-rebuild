@@ -66,6 +66,9 @@ void ReadVector(Chunk& c, Vector3& to) {
 }
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
+void StreamRead(CStream* stream, void* data, unsigned size) { stream->Read(data, size); }
+void StreamWrite(CStream* stream, const void* data, unsigned size) { stream->Write(data, size); }
+
 } // namespace
 
 // ---- Behaviour records -------------------------------------------------------------------------
@@ -267,11 +270,6 @@ void UnitSpec::OnChunk() {
 }
 
 // ---- Behaviour records in a stream (saved games) -----------------------------------------------
-
-namespace {
-void StreamRead(CStream* stream, void* data, unsigned size) { stream->Read(data, size); }
-void StreamWrite(CStream* stream, const void* data, unsigned size) { stream->Write(data, size); }
-} // namespace
 
 // The count, the array sized to it, then the raw waypoints.
 void WaypointsRead(std::vector<Waypoint>* a, CStream* stream) {

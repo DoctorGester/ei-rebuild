@@ -21,20 +21,6 @@ template <typename F> void ForEachPlayer(CPlayerManager* manager, F f) {
     for (CPlayer* player = it.First(manager); player; player = it.Next()) f(player);
 }
 
-} // namespace
-
-BOOL CPlayerManager::CreatePlayers() { return CBaseManager::Create() != 0 ? 1 : 0; }
-int CPlayerManager::Create() { return CreatePlayers(); }
-CEngineObject* CPlayerManager::NewObject(int type) { return NewPlayer(type); }
-
-CEngineObject* CPlayerManager::NewPlayer(int type) {
-    CPlayer* player = new CPlayer();
-    if (!player) return nullptr;
-    player->type_ = type;
-    return player;
-}
-
-namespace {
 // Rebirth's PlayerNumbers (addon's 10021B4A in place of the call of CPlayer::SetPlayerId):
 // the player gets the highest number of the server world's other players + 1 (signed), or `id` when
 // there is no player list, no other player or none numbered 0 or more. Written straight into +0x24.
@@ -49,7 +35,19 @@ int NextPlayerNumber(CPlayer* self, int id) {
     });
     return highest >= 0 ? highest + 1 : id;
 }
+
 } // namespace
+
+BOOL CPlayerManager::CreatePlayers() { return CBaseManager::Create() != 0 ? 1 : 0; }
+int CPlayerManager::Create() { return CreatePlayers(); }
+CEngineObject* CPlayerManager::NewObject(int type) { return NewPlayer(type); }
+
+CEngineObject* CPlayerManager::NewPlayer(int type) {
+    CPlayer* player = new CPlayer();
+    if (!player) return nullptr;
+    player->type_ = type;
+    return player;
+}
 
 CPlayer* CPlayerManager::CreateSessionPlayer() {
     auto* player = static_cast<CPlayer*>(CBaseManager::CreateObject(kPlayerType, -1));

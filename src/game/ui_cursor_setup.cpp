@@ -33,6 +33,29 @@ CDXSurface* NewSurface(CTextureDevice* device, LONG width, LONG height) {
     return new CDXSurface(device, width, height);
 }
 
+constexpr int kThreadPriority = 2;          // THREAD_PRIORITY_HIGHEST
+constexpr int kModeNoThread = 1;
+constexpr int kModeLocked = 2;              // the thread draws to the primary: the lock is used
+constexpr DWORD kFramePeriod = 125;         // ms per frame of an animated cursor
+
+// A holder pointer emptied, then its old holder released.
+void ReleaseHolder(CDXSurface*& slot) {
+    CDXSurface* old = slot;
+    slot = nullptr;
+    if (old) old->Release();
+}
+
+void DestroyGameCursor() { g_cursor->DestroyBody(); }
+
+// The current image's current frame as the part shown.
+void ShowFrame(CCursor* cursor) {
+    const CursorImage* image = cursor->image_;
+    cursor->from_.left = image->frame * image->width;
+    cursor->from_.top = 0;
+    cursor->from_.right = cursor->from_.left + image->width;
+    cursor->from_.bottom = image->height;
+}
+
 } // namespace
 
 void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, int smallCursors) {
@@ -73,22 +96,6 @@ void CCursor::AddShape(const char* name, int hotX, int hotY, int flag) {
 
 // --- The cursor's life cycle and state ---------------------------------------
 
-namespace {
-
-constexpr int kThreadPriority = 2;          // THREAD_PRIORITY_HIGHEST
-constexpr int kModeNoThread = 1;
-constexpr int kModeLocked = 2;              // the thread draws to the primary: the lock is used
-constexpr DWORD kFramePeriod = 125;         // ms per frame of an animated cursor
-
-// A holder pointer emptied, then its old holder released.
-void ReleaseHolder(CDXSurface*& slot) {
-    CDXSurface* old = slot;
-    slot = nullptr;
-    if (old) old->Release();
-}
-
-} // namespace
-
 CursorImage::~CursorImage() {
     delete[] saved;
     if (holder) holder->Release();
@@ -122,25 +129,10 @@ long& MouseScreenY() { return g_cursor->position_.y; }
 long& MouseDragX() { return g_cursor->motion_.x; }
 long& MouseDragY() { return g_cursor->motion_.y; }
 
-namespace {
-void DestroyGameCursor() { g_cursor->DestroyBody(); }
-} // namespace
-
 void ConstructGameCursor() {
     g_cursor->Construct();
     std::atexit(DestroyGameCursor);
 }
-
-namespace {
-// The current image's current frame as the part shown.
-void ShowFrame(CCursor* cursor) {
-    const CursorImage* image = cursor->image_;
-    cursor->from_.left = image->frame * image->width;
-    cursor->from_.top = 0;
-    cursor->from_.right = cursor->from_.left + image->width;
-    cursor->from_.bottom = image->height;
-}
-} // namespace
 
 int CCursor::ChangeShape(int shape) {
     const int previous = shape_;

@@ -65,6 +65,11 @@ void CopyList(std::vector<CItem*>& list, const std::vector<CItem*>& source, CPar
     }
 }
 
+const char* ZoneVariableFormat() { return "z.%s"; }
+constexpr int kZoneKindGame = 0;
+constexpr int kZoneKindEdge = 1;
+constexpr float kOpened = 1.0f;
+
 } // namespace
 
 
@@ -176,13 +181,6 @@ BOOL CParty::RemoveMember(int key) {
     }
     return 0;
 }
-
-namespace {
-const char* ZoneVariableFormat() { return "z.%s"; }
-constexpr int kZoneKindGame = 0;
-constexpr int kZoneKindEdge = 1;
-constexpr float kOpened = 1.0f;
-} // namespace
 
 void CParty::OpenEdgeExits() {
     std::string variable;

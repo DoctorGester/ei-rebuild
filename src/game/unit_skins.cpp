@@ -59,6 +59,7 @@ struct TextureRecord {
 
 void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<TextureRecord>* list);
 
+// A second block: it uses UnitTextureRecords (defined above).
 namespace {
 
 // The texture records copied into the set's byte array (SetSize inlined: kept contents, 0 frees).

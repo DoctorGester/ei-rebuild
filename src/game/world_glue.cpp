@@ -43,6 +43,20 @@ int FinishQuestMap(const char* name) {
 
 namespace {
 CScript* CommandScript() { return TheServerWorld()->SecondScript(); }
+
+std::string& StartFolder() { return TheStartFolder(); }
+constexpr unsigned kFolderBufferSize = 0x400;
+
+constexpr double kHoursPerDay = 24.0;
+const char kConstructionVariable[] = "constr.current";
+// Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
+bool& CloseAllRequested() { return TheInterface()->closeAll_; }
+float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
+const char* DefaultMusic() { return options::TheOptions()->defaultStreamingSound_.c_str(); }
+constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
+constexpr std::uint32_t kTerrainAmbience = 8;            // Terrain landscapeFlags
+CPlayerClient* LocalClient() { return TheClientWorld()->LocalView(); }
+
 } // namespace
 
 int RunScriptText(const std::string& text, char run, ScriptErrorInfo* error) {
@@ -73,11 +87,6 @@ void PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
     player->Party()->variables_.CopyPrefixed(prefix, out);
 }
 
-namespace {
-std::string& StartFolder() { return TheStartFolder(); }
-constexpr unsigned kFolderBufferSize = 0x400;
-} // namespace
-
 void StoreStartFolder() {
     char folder[kFolderBufferSize];
     gameapi::GetCurrentDirectoryA(kFolderBufferSize, folder);
@@ -86,18 +95,6 @@ void StoreStartFolder() {
 }
 
 // ---- A-W13: the rest of the glue -----------------------------------------------------------------
-
-namespace {
-constexpr double kHoursPerDay = 24.0;
-const char kConstructionVariable[] = "constr.current";
-// Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
-bool& CloseAllRequested() { return TheInterface()->closeAll_; }
-float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
-const char* DefaultMusic() { return options::TheOptions()->defaultStreamingSound_.c_str(); }
-constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
-constexpr std::uint32_t kTerrainAmbience = 8;            // Terrain landscapeFlags
-CPlayerClient* LocalClient() { return TheClientWorld()->LocalView(); }
-} // namespace
 
 void GameSetConstructionVariable(std::uint32_t value) {
     CPlayer* player = TheServerWorld()->GetPlayer(0);

@@ -17,11 +17,6 @@ namespace {
 constexpr int kUnitNetFields = 14;
 constexpr int kTorchNetFields = 5;
 
-} // namespace
-
-// --- CMapObject's Create / Destroy (A-U) ---------------------------------------------------------
-
-namespace {
 constexpr int kMapObjectNetFields = 4;
 constexpr int kInitialCountdown = 5;      // CMapObject::updateCountdown
 
@@ -32,7 +27,10 @@ void DetachCompanion(CMapObject* object) {
     }
     object->companion = nullptr;
 }
+
 } // namespace
+
+// --- CMapObject's Create / Destroy (A-U) ---------------------------------------------------------
 
 int CMapObject::CreateMapObject() {
     Create3D();

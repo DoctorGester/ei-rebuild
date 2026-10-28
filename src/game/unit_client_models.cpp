@@ -60,6 +60,95 @@ bool SameName(std::string_view a, std::string_view b) { return a == b; }
 const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::ArmorAt(type); }
 
 std::uint32_t FiguresFlag(const CUnit* unit) { return unit->flags_ & kFiguresDetached; }
+
+
+constexpr int kWeaponBow = 5;
+constexpr std::uint32_t kArrowPartFlag = 0x80;  // set in the arrow part's flags_
+const char* const kBowArrow = "rh3.arrow00";
+
+std::uint32_t WeaponIdOf(const CUnitClientSpecific* self, std::uint32_t slot) {
+    return slot < 4 ? self->weaponIds[slot] : kNone;
+}
+
+// The bow's arrow part of a hero holding a bow, or null.
+CEngineObject* BowArrow(CUnitClientSpecific* self) {
+    std::uint32_t hand = WeaponIdOf(self, self->unit->activeWeapon);
+    if (hand == kNone || ::WeaponType(hand) != kWeaponBow) return nullptr;
+    return self->unit->FindPart(kBowArrow);
+}
+
+// Whether `frame` was passed between the last update and now.
+bool Passed(std::uint32_t frame, float last, float now) {
+    double at = x87::FromUnsigned(frame);
+    EI_NAN_AUDIT(now);
+    return at > last && at <= now;
+}
+
+// "<prototype name><texture>.mmp" into `texture`.
+void AddPrototypePrefix(const CUnit* unit, std::string& texture) {
+    std::string named = unit->name.c_str() + std::string(texture.c_str());
+    std::string withExtension = named + ".mmp";
+    texture = withExtension;
+}
+
+void AddTexture(SkinRequest& request, const std::string& texture) {
+    request.textures.push_back(texture);
+}
+
+void AddArmourTexture(SkinRequest& request, const CUnit* unit, std::string& texture, std::uint32_t id) {
+    ArmorModelName(&texture, id >> 16, id & 0xFFFF);
+    AddPrototypePrefix(unit, texture);
+    AddTexture(request, texture.c_str());
+}
+
+// The layer texture names and the two keys of a skin.
+void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest& request, std::string& unitKey,
+                      std::string& prototypeKey, std::string& texture) {
+    const CUnit* unit = self->unit;
+    int id = unit->id_;
+    if (!detailed) {
+        unitKey = str::Format("mo%ds", id);
+        prototypeKey = str::Format("prot%ds", unit->prototypeId_);
+        request.flags = kFlagSimple;
+        if (self->armourIds[0] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[0]);
+        std::uint32_t hand = unit->activeWeapon;
+        if (hand < 4 && self->weaponIds[hand] != kNone) {
+            WeaponModelName(&texture, self->weaponIds[hand] >> 16, self->weaponIds[hand] & 0xFFFF);
+            AddPrototypePrefix(unit, texture);
+            AddTexture(request, texture.c_str());
+        }
+        return;
+    }
+    unitKey = str::Format("mo%dp", id);
+    prototypeKey = str::Format("prot%dp", unit->prototypeId_);
+    request.flags = kFlagDetailed;
+    const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
+    if (prototype)
+        texture = str::Format("%sskin_%.2d.mmp", unit->name.c_str(), prototype->skin);
+    else
+        texture = str::Format("%sskin_00.mmp", unit->name.c_str());
+    AddTexture(request, texture.c_str());
+    for (int k = 3; k < 7; ++k)
+        if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);
+    // Body armour and trousers, in the armours' drawing order (ArmorFieldB8).
+    std::uint32_t body = self->armourIds[1];
+    std::uint32_t legs = self->armourIds[2];
+    if (body == kNone || legs == kNone) {
+        std::uint32_t only = body != kNone ? body : legs;
+        if (only != kNone) AddArmourTexture(request, unit, texture, only);
+        return;
+    }
+    std::uint32_t bodyOrder = static_cast<std::uint32_t>(ArmorFieldB8(body >> 16));
+    std::uint32_t legsOrder = static_cast<std::uint32_t>(ArmorFieldB8(legs >> 16));
+    if (legsOrder < bodyOrder) {
+        AddArmourTexture(request, unit, texture, legs);
+        AddArmourTexture(request, unit, texture, body);
+    } else {
+        AddArmourTexture(request, unit, texture, body);
+        AddArmourTexture(request, unit, texture, legs);
+    }
+}
+
 } // namespace
 
 // --- Armour figure parts ----------------------------------------------------------------------
@@ -115,10 +204,6 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
     return true;
 }
 
-namespace {
-
-} // namespace
-
 bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
     if (slot >= 7) return false;
     std::uint32_t itemId = armourIds[slot];
@@ -160,17 +245,6 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
     }
     return true;
 }
-
-namespace {
-
-constexpr int kWeaponBow = 5;
-constexpr std::uint32_t kArrowPartFlag = 0x80;  // set in the arrow part's flags_
-const char* const kBowArrow = "rh3.arrow00";
-
-std::uint32_t WeaponIdOf(const CUnitClientSpecific* self, std::uint32_t slot) {
-    return slot < 4 ? self->weaponIds[slot] : kNone;
-}
-} // namespace
 
 int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     std::uint32_t previous = WeaponIdOf(this, unit->activeWeapon);
@@ -223,22 +297,6 @@ void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
     weaponHidden = hidden;
     arrowHidden = hidden;
 }
-
-namespace {
-// The bow's arrow part of a hero holding a bow, or null.
-CEngineObject* BowArrow(CUnitClientSpecific* self) {
-    std::uint32_t hand = WeaponIdOf(self, self->unit->activeWeapon);
-    if (hand == kNone || ::WeaponType(hand) != kWeaponBow) return nullptr;
-    return self->unit->FindPart(kBowArrow);
-}
-
-// Whether `frame` was passed between the last update and now.
-bool Passed(std::uint32_t frame, float last, float now) {
-    double at = x87::FromUnsigned(frame);
-    EI_NAN_AUDIT(now);
-    return at > last && at <= now;
-}
-} // namespace
 
 void CUnitClientSpecific::UpdateArrow() {
     if (unit->type_ != kUnitTypeHero) return;
@@ -347,76 +405,6 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, std::vector<SkinLayer>* 
         (*out)[k + 1].slot = armour->type;
     }
 }
-
-namespace {
-
-// "<prototype name><texture>.mmp" into `texture`.
-void AddPrototypePrefix(const CUnit* unit, std::string& texture) {
-    std::string named = unit->name.c_str() + std::string(texture.c_str());
-    std::string withExtension = named + ".mmp";
-    texture = withExtension;
-}
-
-void AddTexture(SkinRequest& request, const std::string& texture) {
-    request.textures.push_back(texture);
-}
-
-void AddArmourTexture(SkinRequest& request, const CUnit* unit, std::string& texture, std::uint32_t id) {
-    ArmorModelName(&texture, id >> 16, id & 0xFFFF);
-    AddPrototypePrefix(unit, texture);
-    AddTexture(request, texture.c_str());
-}
-} // namespace
-
-namespace {
-// The layer texture names and the two keys of a skin.
-void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest& request, std::string& unitKey,
-                      std::string& prototypeKey, std::string& texture) {
-    const CUnit* unit = self->unit;
-    int id = unit->id_;
-    if (!detailed) {
-        unitKey = str::Format("mo%ds", id);
-        prototypeKey = str::Format("prot%ds", unit->prototypeId_);
-        request.flags = kFlagSimple;
-        if (self->armourIds[0] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[0]);
-        std::uint32_t hand = unit->activeWeapon;
-        if (hand < 4 && self->weaponIds[hand] != kNone) {
-            WeaponModelName(&texture, self->weaponIds[hand] >> 16, self->weaponIds[hand] & 0xFFFF);
-            AddPrototypePrefix(unit, texture);
-            AddTexture(request, texture.c_str());
-        }
-        return;
-    }
-    unitKey = str::Format("mo%dp", id);
-    prototypeKey = str::Format("prot%dp", unit->prototypeId_);
-    request.flags = kFlagDetailed;
-    const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
-    if (prototype)
-        texture = str::Format("%sskin_%.2d.mmp", unit->name.c_str(), prototype->skin);
-    else
-        texture = str::Format("%sskin_00.mmp", unit->name.c_str());
-    AddTexture(request, texture.c_str());
-    for (int k = 3; k < 7; ++k)
-        if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);
-    // Body armour and trousers, in the armours' drawing order (ArmorFieldB8).
-    std::uint32_t body = self->armourIds[1];
-    std::uint32_t legs = self->armourIds[2];
-    if (body == kNone || legs == kNone) {
-        std::uint32_t only = body != kNone ? body : legs;
-        if (only != kNone) AddArmourTexture(request, unit, texture, only);
-        return;
-    }
-    std::uint32_t bodyOrder = static_cast<std::uint32_t>(ArmorFieldB8(body >> 16));
-    std::uint32_t legsOrder = static_cast<std::uint32_t>(ArmorFieldB8(legs >> 16));
-    if (legsOrder < bodyOrder) {
-        AddArmourTexture(request, unit, texture, legs);
-        AddArmourTexture(request, unit, texture, body);
-    } else {
-        AddArmourTexture(request, unit, texture, body);
-        AddArmourTexture(request, unit, texture, legs);
-    }
-}
-} // namespace
 
 void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
     CTextureManager* textureManager = TheTextureManager();

@@ -97,6 +97,14 @@ int MulDiv64(int a, int b, int divisor) {
     return static_cast<int>(static_cast<std::int64_t>(a) * b / divisor);
 }
 
+constexpr int kHeroScreenSprites = 21;   // the hero screen's 19 and the two curtains
+constexpr int kHeroListMode = 9;
+
+void SetCurtainLook(CUiMesh* curtain, int visible) {
+    curtain->tint_[0] = curtain->tint_[1] = curtain->tint_[2] = 0.3f;
+    curtain->visible_ = visible;
+}
+
 } // namespace
 
 float g_layoutWidth = /*00742B08*/ 800.0f;
@@ -180,16 +188,6 @@ float AxisScale() { return Active() ? Get().axisScale : 1.0f; }
 float FontScale() { return Active() ? Get().fontScale : 0.01f /*0073D09C*/; }
 
 int PickShift() { return Active() ? Get().margin / 2 : 0; }
-
-namespace {
-constexpr int kHeroScreenSprites = 21;   // the hero screen's 19 and the two curtains
-constexpr int kHeroListMode = 9;
-
-void SetCurtainLook(CUiMesh* curtain, int visible) {
-    curtain->tint_[0] = curtain->tint_[1] = curtain->tint_[2] = 0.3f;
-    curtain->visible_ = visible;
-}
-} // namespace
 
 // addon's 100234AB / 100235BA (the right edge's margin + 800.0 summed as a double).
 void AddCurtains(CUiWindow* window, int visible) {

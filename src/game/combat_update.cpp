@@ -137,6 +137,9 @@ int TotalDuration(const AnimationSteps& steps) {
     return total;
 }
 
+constexpr int kClassWeapon = 0x11;
+constexpr std::uint32_t kSpellPeriodic = 0x20000;   // CSpell::targetFlags_
+
 } // namespace
 
 // --- The update ---------------------------------------------------------------------------------
@@ -578,11 +581,6 @@ void CUnitServer::TickItemSpells() {
         if (countdown <= 0) current->countdown = 8;
     }
 }
-
-namespace {
-constexpr int kClassWeapon = 0x11;
-constexpr std::uint32_t kSpellPeriodic = 0x20000;   // CSpell::targetFlags_
-} // namespace
 
 void CUnitServer::RefreshItemSpells() {
     std::list<CItem*> items{};

@@ -129,6 +129,7 @@ CSceneRenderer* TheSceneRenderer() { return &*g_sceneRenderer; }
 constinit CRITICAL_SECTION g_deviceLock = /*007AEE78*/ {};
 _RTL_CRITICAL_SECTION* TheDeviceLock() { return &g_deviceLock; }
 
+// A second block: it uses g_sceneRenderer and g_deviceLock (defined above).
 namespace {
 void DestroySceneRenderer() { g_sceneRenderer.Destroy(); }
 void DestroyDeviceLock() { gameapi::DeleteCriticalSection(&g_deviceLock); }

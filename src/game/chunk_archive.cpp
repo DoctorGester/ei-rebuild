@@ -66,6 +66,7 @@ void ChunkArchive::Ref::Reset() {
 constinit lib::StaticObject<ChunkArchive::ClassRegistry> g_classRegistry = /*0079B270*/ {};
 ChunkArchive::ClassRegistry& ChunkArchive::Registry() { return *g_classRegistry; }
 
+// A second block: it uses g_classRegistry (defined above).
 namespace {
 void DestroyClassRegistry() { g_classRegistry.Destroy(); }
 } // namespace

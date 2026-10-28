@@ -35,6 +35,13 @@ PartyRecord* NewRecord() {
 
 const char* NameOf(const PartyRecord* record) { return record->name.c_str(); }
 
+// The party stored under `key` (find, inlined), null if none. Not const: the parties' copies read their source
+// non-const.
+CParty* FindParty(const PartyMap& parties, int key) {
+    auto found = parties.find(key);
+    return found != parties.end() ? const_cast<CParty*>(&found->second) : nullptr;
+}
+
 } // namespace
 
 void PartyRecordsReset(NamedPartyRecords* list) {
@@ -75,17 +82,6 @@ void NamedPartyRecords::Remove(const char* name) {
 }
 
 // ---- The party manager -----------------------------------------------------------------
-
-namespace {
-
-// The party stored under `key` (find, inlined), null if none. Not const: the parties' copies read their source
-// non-const.
-CParty* FindParty(const PartyMap& parties, int key) {
-    auto found = parties.find(key);
-    return found != parties.end() ? const_cast<CParty*>(&found->second) : nullptr;
-}
-
-} // namespace
 
 CParty* PartyAt(PartyMap& parties, int key) {
     CParty made;

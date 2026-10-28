@@ -25,6 +25,8 @@ double OptionWeight(const AIAttackOption*);
 
 int SpellType(const CSpell* spell) { return static_cast<int>(spell->prototypeId_ >> 16); }
 
+double OptionWeight(const AIAttackOption* option) { return option->Weight(); }
+
 } // namespace
 
 double AIAttackOption::Weight() const {
@@ -192,7 +194,3 @@ void LoadAttackOptions(std::vector<AIAttackOption>* options, CStream* stream) {
     options->resize(count);
     for (int i = 0; i < std::ssize(*options); ++i) (*options)[i].Load(stream);
 }
-
-namespace {
-double OptionWeight(const AIAttackOption* option) { return option->Weight(); }
-} // namespace

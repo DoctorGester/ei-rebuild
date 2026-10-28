@@ -22,6 +22,11 @@ namespace {
 void Send(const CInterface3D* ui, int slot, int buttons, int x, int y) {
     if (UiInputSide* target = ui->MouseTarget()) target->Event(slot, buttons, x, y);
 }
+
+constexpr int kScanMask = 0x1FF;
+constexpr int kScanConsoleKey = 0x29;   // the key under Esc (the console's)
+constexpr int kCursorWait = 3;
+
 } // namespace
 
 void CInterface3D::OnLeftDown(int buttons, int x, int y) {
@@ -62,12 +67,6 @@ int CInterface3D::OnWheel(int flags, int delta, int x, int y) {
 }
 
 // --- Keys ------------------------------------------------------------------
-
-namespace {
-constexpr int kScanMask = 0x1FF;
-constexpr int kScanConsoleKey = 0x29;   // the key under Esc (the console's)
-constexpr int kCursorWait = 3;
-} // namespace
 
 void CInterface3D::OnChar(int key, int repeat, int flags) {
     if ((flags & kScanMask) == kScanConsoleKey) return;

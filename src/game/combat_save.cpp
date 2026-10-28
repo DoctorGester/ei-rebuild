@@ -43,9 +43,7 @@ void AssignCounted(T*& slot, T* object) {
     if (object) ++object->refCount_;
     if (previous) previous->Release();
 }
-} // namespace
 
-namespace {
 // A counted reference by id (load resolves through `context`); CBaseManager::FindObject,
 // through its game address.
 
@@ -110,14 +108,13 @@ void SavePlanFields(CStream* stream, OrderPlan* plan) {
     stream->Write(&plan->castKind, 4);
     stream->Write(&plan->direction, 0xC);
 }
+
+// The item manager (the world server's), which resolves the armour spells' item ids.
+CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
+
 } // namespace
 
 // --- Step lists and the armour spell list ----------------------------------------------------
-
-namespace {
-// The item manager (the world server's), which resolves the armour spells' item ids.
-CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
-} // namespace
 
 void ArmourSpell::Save(CStream* stream) const {
     WriteCopy(stream, IdOrNone(item));

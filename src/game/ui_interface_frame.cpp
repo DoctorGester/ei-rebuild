@@ -35,6 +35,11 @@ void ReleaseBackdrop(CUiSurface* surface) {
     delete surface;
 }
 
+int Compare(const std::string& word, const char* text) {
+    return str::Compare(word,
+                           text);
+}
+
 } // namespace
 
 void CInterface3D::Update() {
@@ -117,15 +122,6 @@ void CInterface3D::Update() {
     root_->Update();
 }
 // ---- String events ------------------------------------------------------------------
-
-namespace {
-
-int Compare(const std::string& word, const char* text) {
-    return str::Compare(word,
-                           text);
-}
-
-} // namespace
 
 void CInterface3D::OnStringEvent(const char* event) {
     if (!event) return;

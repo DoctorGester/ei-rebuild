@@ -27,6 +27,28 @@ bool Allowed(const ClassTemplate* t, std::uint32_t classMask) {
 ItemStock* AllList(ClassTemplate* t) { return &t->allowed; }
 ItemStock* MagicList(ClassTemplate* t) { return &t->magic; }
 
+// The weights (bit patterns as stored).
+constexpr std::uint32_t kOne = 0x3F800000, kHalf = 0x3F000000, kFifth = 0x3E4CCCCD, kTenth = 0x3DCCCCCD;
+constexpr std::uint32_t kDefaultWeights[9] = {kOne, kHalf, kFifth, kTenth, kOne, kHalf, kFifth, kTenth, kFifth};
+constexpr std::uint32_t kZeroWeights[9] = {};
+
+// One template, appended to the vector through a temporary counted pointer.
+void AddTemplate(TemplateTable* v, int type, std::uint8_t flag0C, std::uint8_t flag0D,
+                 const std::uint32_t (&weights)[9]) {
+    // The count dword is cleared before the allocation is tested; ours tests first.
+    auto* t = new ClassTemplate();
+    t->refs_ = 0;
+    t->flags6_ = 0;
+    t->flags7_ = 0;
+    t->type = type;
+    t->flag0C = flag0C;
+    t->flag0D = flag0D;
+    std::memcpy(t->weights, weights, sizeof(t->weights));
+    ClassTemplateFill(t);
+
+    v->emplace_back(t);
+}
+
 } // namespace
 
 void ClassTemplateFill(ClassTemplate* t) {
@@ -80,32 +102,6 @@ void ClassTemplateFill(ClassTemplate* t) {
 }
 
 // ---- Building the templates ------------------------------------------------------------------
-
-namespace {
-
-// The weights (bit patterns as stored).
-constexpr std::uint32_t kOne = 0x3F800000, kHalf = 0x3F000000, kFifth = 0x3E4CCCCD, kTenth = 0x3DCCCCCD;
-constexpr std::uint32_t kDefaultWeights[9] = {kOne, kHalf, kFifth, kTenth, kOne, kHalf, kFifth, kTenth, kFifth};
-constexpr std::uint32_t kZeroWeights[9] = {};
-
-// One template, appended to the vector through a temporary counted pointer.
-void AddTemplate(TemplateTable* v, int type, std::uint8_t flag0C, std::uint8_t flag0D,
-                 const std::uint32_t (&weights)[9]) {
-    // The count dword is cleared before the allocation is tested; ours tests first.
-    auto* t = new ClassTemplate();
-    t->refs_ = 0;
-    t->flags6_ = 0;
-    t->flags7_ = 0;
-    t->type = type;
-    t->flag0C = flag0C;
-    t->flag0D = flag0D;
-    std::memcpy(t->weights, weights, sizeof(t->weights));
-    ClassTemplateFill(t);
-
-    v->emplace_back(t);
-}
-
-} // namespace
 
 void TemplateTable::Build(unsigned fourClasses) {
     TemplateTable* v = this;

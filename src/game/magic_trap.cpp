@@ -47,6 +47,41 @@ void Append(std::list<CUnit*>* list, CUnit* unit) {
     *node = unit;
 }
 
+constexpr std::uint32_t kSpellAtUnits = 0x10000000;  // targetFlags_: cast at the units
+constexpr float kFar = 1e30f;                        // a squared distance
+
+CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager(); }
+
+// The units inside: CList::RemoveAll inlined, as SetUp, the constructor and the destructor all have it (each
+// element's reference released and cleared, the list emptied, its blocks freed).
+void ClearVictims(MagicTrap* trap) {
+    std::list<CUnit*>& inside = trap->inside;
+    for (auto node = inside.begin(); node != inside.end(); ++node) {
+        if (*node) (*node)->Release();
+        *node = nullptr;
+    }
+    inside.clear();
+}
+
+constexpr std::uint32_t kTrapFlags = 0x80040;
+constexpr std::uint32_t kDefaultPeriod = 10;
+// The fields saved after the points: period, countdown, single target, sides.
+void* TailFields(MagicTrap* trap, int i) {
+    void* fields[] = {&trap->period, &trap->countdown, &trap->singleTarget, &trap->sides};
+    return fields[i];
+}
+constexpr int kTailFieldCount = 4;
+
+
+// The spell, a counted reference: the new one's count raised before the old one is released.
+void SetSpell(MagicTrap* trap, CSpell* spell) {
+    CSpell* old = trap->spell;
+    trap->spell = spell;
+    if (spell) ++spell->refCount_;
+    if (old) old->Release();
+}
+
+
 } // namespace
 
 void MagicTrap::UpdateVictims() {
@@ -103,11 +138,6 @@ void FindTrapVictims(CWorldServer* context, const std::vector<TrapCircle>* area,
     found.clear();
 }
 
-namespace {
-constexpr std::uint32_t kSpellAtUnits = 0x10000000;  // targetFlags_: cast at the units
-constexpr float kFar = 1e30f;                        // a squared distance
-} // namespace
-
 void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
     if (units->empty() || !spell) return;
     const Vector3& origin = localPosition_;
@@ -147,21 +177,6 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
     countdown = period;
 }
 
-namespace {
-CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager(); }
-
-// The units inside: CList::RemoveAll inlined, as SetUp, the constructor and the destructor all have it (each
-// element's reference released and cleared, the list emptied, its blocks freed).
-void ClearVictims(MagicTrap* trap) {
-    std::list<CUnit*>& inside = trap->inside;
-    for (auto node = inside.begin(); node != inside.end(); ++node) {
-        if (*node) (*node)->Release();
-        *node = nullptr;
-    }
-    inside.clear();
-}
-} // namespace
-
 void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
     const char* text = record->spell.c_str();
@@ -184,27 +199,6 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
 }
 
 // --- Construction, destruction, Save / Load ------------------------------------------
-
-namespace {
-
-constexpr std::uint32_t kTrapFlags = 0x80040;
-constexpr std::uint32_t kDefaultPeriod = 10;
-// The fields saved after the points: period, countdown, single target, sides.
-void* TailFields(MagicTrap* trap, int i) {
-    void* fields[] = {&trap->period, &trap->countdown, &trap->singleTarget, &trap->sides};
-    return fields[i];
-}
-constexpr int kTailFieldCount = 4;
-
-
-// The spell, a counted reference: the new one's count raised before the old one is released.
-void SetSpell(MagicTrap* trap, CSpell* spell) {
-    CSpell* old = trap->spell;
-    trap->spell = spell;
-    if (spell) ++spell->refCount_;
-    if (old) old->Release();
-}
-} // namespace
 
 MagicTrap::MagicTrap() {
     spell = nullptr;
@@ -276,11 +270,6 @@ void MagicTrap::LoadTrap(CStream* stream) {
 }
 
 // --- Create, Destroy, the update, firing, forgetting a removed object -------------
-
-namespace {
-
-
-} // namespace
 
 int MagicTrap::CreateTrap() {
     int result = CreateMapObject();

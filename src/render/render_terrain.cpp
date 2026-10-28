@@ -192,6 +192,61 @@ struct QuarterRange {
     std::uint32_t firstVertex = 0, vertexCount = 0, firstIndex = 0, indexCount = 0;
 };
 
+// A sector's ground layer as a caster: its 33 x 33 vertices with normals from their neighbours, kept while
+// the sector holds the same vertices (the same array, place and builds).
+struct SectorCaster {
+    const void* positions = nullptr;
+    int sx = -1, sy = -1;
+    std::uint32_t rebuilt = 0;
+    std::vector<TerrainCasterVertex> vertices;
+    ShadowCasterSphere sphere{};
+    PoolPlace place;
+    bool dirty = true;
+    std::uint32_t seen = 0;
+    bool cast = false;
+};
+std::unordered_map<const SectorData*, SectorCaster> g_sectorCasters;
+std::vector<SectorCaster*> g_frameCasters;
+std::vector<std::uint32_t> g_gridIndices;
+GpuPool g_casterPool(sizeof(TerrainCasterVertex), 1u << 15, 3u << 16, "ei-terrain-casters");
+
+void BuildCaster(const SectorData* s, SectorCaster& c) {
+    const Vector3* v = s->vertices.data();
+    c.vertices.resize(static_cast<std::size_t>(kWaterRecords));
+    double lo[3] = {1e30, 1e30, 1e30}, hi[3] = {-1e30, -1e30, -1e30};
+    auto at = [&](int x, int y) { return v[std::clamp(y, 0, 32) * 33 + std::clamp(x, 0, 32)]; };
+    for (int y = 0; y < 33; ++y)
+        for (int x = 0; x < 33; ++x) {
+            Vector3 p = at(x, y);
+            Vector3 a = at(x + 1, y), b = at(x - 1, y), e = at(x, y + 1), g = at(x, y - 1);
+            Vector3 dx{a.x - b.x, a.y - b.y, a.z - b.z}, dy{e.x - g.x, e.y - g.y, e.z - g.z};
+            Vector3 n = Cross(dx, dy);
+            float length = Length<Sum3::XYZ>(n);
+            if (length > 1e-12f) {
+                float k = (n.z < 0.0f ? -1.0f : 1.0f) / length;   // turned up
+                n = Vector3{n.x * k, n.y * k, n.z * k};
+            } else {
+                n = Vector3{0.0f, 0.0f, 1.0f};
+            }
+            c.vertices[static_cast<std::size_t>(y * 33 + x)] = TerrainCasterVertex{p, n};
+            const double q[3] = {p.x, p.y, p.z};
+            for (int k = 0; k < 3; ++k) {
+                lo[k] = (std::min)(lo[k], q[k]);
+                hi[k] = (std::max)(hi[k], q[k]);
+            }
+        }
+    double r2 = 0.0;
+    for (int k = 0; k < 3; ++k) r2 += (hi[k] - lo[k]) * (hi[k] - lo[k]) * 0.25;
+    c.sphere = ShadowCasterSphere{(lo[0] + hi[0]) * 0.5, (lo[1] + hi[1]) * 0.5, (lo[2] + hi[2]) * 0.5, std::sqrt(r2)};
+    if (g_gridIndices.empty()) {
+        for (int y = 0; y < 32; ++y)
+            for (int x = 0; x < 32; ++x) {
+                std::uint32_t a = static_cast<std::uint32_t>(y * 33 + x), b = a + 1, d = a + 33, e = d + 1;
+                for (std::uint32_t i : {a, b, e, a, e, d}) g_gridIndices.push_back(i);
+            }
+    }
+}
+
 } // namespace
 
 namespace detail {
@@ -218,6 +273,7 @@ struct CachedPage {
 
 } // namespace detail
 
+// A second block: it uses CachedPage (defined above).
 namespace {
 
 // The tiles of `page` at level of detail `lod` (with the seams' variants when `seams`), every quarter's
@@ -857,65 +913,6 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
 }
 
 // --- The ground's casters into the shadow map ------------------------------------------------------
-
-namespace {
-
-// A sector's ground layer as a caster: its 33 x 33 vertices with normals from their neighbours, kept while
-// the sector holds the same vertices (the same array, place and builds).
-struct SectorCaster {
-    const void* positions = nullptr;
-    int sx = -1, sy = -1;
-    std::uint32_t rebuilt = 0;
-    std::vector<TerrainCasterVertex> vertices;
-    ShadowCasterSphere sphere{};
-    PoolPlace place;
-    bool dirty = true;
-    std::uint32_t seen = 0;
-    bool cast = false;
-};
-std::unordered_map<const SectorData*, SectorCaster> g_sectorCasters;
-std::vector<SectorCaster*> g_frameCasters;
-std::vector<std::uint32_t> g_gridIndices;
-GpuPool g_casterPool(sizeof(TerrainCasterVertex), 1u << 15, 3u << 16, "ei-terrain-casters");
-
-void BuildCaster(const SectorData* s, SectorCaster& c) {
-    const Vector3* v = s->vertices.data();
-    c.vertices.resize(static_cast<std::size_t>(kWaterRecords));
-    double lo[3] = {1e30, 1e30, 1e30}, hi[3] = {-1e30, -1e30, -1e30};
-    auto at = [&](int x, int y) { return v[std::clamp(y, 0, 32) * 33 + std::clamp(x, 0, 32)]; };
-    for (int y = 0; y < 33; ++y)
-        for (int x = 0; x < 33; ++x) {
-            Vector3 p = at(x, y);
-            Vector3 a = at(x + 1, y), b = at(x - 1, y), e = at(x, y + 1), g = at(x, y - 1);
-            Vector3 dx{a.x - b.x, a.y - b.y, a.z - b.z}, dy{e.x - g.x, e.y - g.y, e.z - g.z};
-            Vector3 n = Cross(dx, dy);
-            float length = Length<Sum3::XYZ>(n);
-            if (length > 1e-12f) {
-                float k = (n.z < 0.0f ? -1.0f : 1.0f) / length;   // turned up
-                n = Vector3{n.x * k, n.y * k, n.z * k};
-            } else {
-                n = Vector3{0.0f, 0.0f, 1.0f};
-            }
-            c.vertices[static_cast<std::size_t>(y * 33 + x)] = TerrainCasterVertex{p, n};
-            const double q[3] = {p.x, p.y, p.z};
-            for (int k = 0; k < 3; ++k) {
-                lo[k] = (std::min)(lo[k], q[k]);
-                hi[k] = (std::max)(hi[k], q[k]);
-            }
-        }
-    double r2 = 0.0;
-    for (int k = 0; k < 3; ++k) r2 += (hi[k] - lo[k]) * (hi[k] - lo[k]) * 0.25;
-    c.sphere = ShadowCasterSphere{(lo[0] + hi[0]) * 0.5, (lo[1] + hi[1]) * 0.5, (lo[2] + hi[2]) * 0.5, std::sqrt(r2)};
-    if (g_gridIndices.empty()) {
-        for (int y = 0; y < 32; ++y)
-            for (int x = 0; x < 32; ++x) {
-                std::uint32_t a = static_cast<std::uint32_t>(y * 33 + x), b = a + 1, d = a + 33, e = d + 1;
-                for (std::uint32_t i : {a, b, e, a, e, d}) g_gridIndices.push_back(i);
-            }
-    }
-}
-
-} // namespace
 
 void ShadowTerrainSector(const SectorData* s) {
     if (!s || !Active() || !(s->built & 1) || s->vertices.empty() || std::ssize(s->vertices) < kWaterRecords) return;

@@ -51,103 +51,6 @@ struct Briefing {
 CParty* PartyOf(CPlayer* player) { return player->Party(); }
 PartyUnitRecord& MercRecord(CPlayer* player, int index) { return player->Party()->members_[index]; }
 
-} // namespace
-
-void CWorldServer::UpdateMercBriefings() {
-    PlayerIterator it;
-    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        CPlayerServer* state = player->Server();
-        int otherMercs = CountLivingMercs(player->playerId_);
-        auto set = [&](const std::string& name, float value) { state->SetVariable(name, std::bit_cast<std::uint32_t>(value)); };
-
-        for (int slot = 1; slot <= kMercSlots; ++slot) {
-            std::string merc;
-            merc = str::Format(worlddata::MercNameFormat(), slot);
-            unsigned key = TextKeyFromName(merc);
-            bool briefedHere = text::CompareIgnoringCase(zoneName_,
-                                               worlddata::MercZoneName(slot - 1)) == 0;
-            Briefing b;
-            b.n8 = str::Format(worlddata::MercVariableN8Format(), merc.c_str(), slot);
-            b.n1 = str::Format(worlddata::MercVariableN1Format(), merc.c_str(), slot);
-            b.n2 = str::Format(worlddata::MercVariableN2Format(), merc.c_str(), slot);
-            b.n3 = str::Format(worlddata::MercVariableN3Format(), merc.c_str(), slot);
-            b.n9 = str::Format(worlddata::MercVariableN9Format(), merc.c_str(), slot);
-            b.n10 = str::Format(worlddata::MercVariableN10Format(), merc.c_str(), slot);
-            b.n11 = str::Format(worlddata::MercVariableN11Format(), merc.c_str(), slot);
-            b.hired = str::Format(worlddata::MercHiredFormat(), slot);
-            set(b.n11, 0.0f);
-
-            bool inParty = false;
-            for (int i = 0; i < std::ssize(player->Party()->members_); ++i) {
-                if (MercRecord(player, i).unitId == key) {
-                    inParty = true;
-                    break;
-                }
-            }
-            NamedFloatTable* variables = &player->Party()->variables_;
-            double left = VariableGet(variables, b.n10);
-            EI_NAN_AUDIT(left);
-            if (inParty) {
-                if (left != worlddata::Zero()) {
-                    set(b.n8, 0.0f);
-                    set(b.n1, 0.0f);
-                    set(b.n2, 0.0f);
-                    set(b.n3, 0.0f);
-                    set(b.n9, 0.0f);
-                } else {
-                    set(b.n8, 0.0f);
-                    set(b.n1, 0.0f);
-                    set(b.n3, 0.0f);
-                    set(b.n9, 0.0f);
-                    set(b.n2, briefedHere ? 1.0f : 0.0f);
-                }
-            } else if (left != worlddata::Zero()) {
-                set(b.n8, 0.0f);
-                set(b.n1, 0.0f);
-                set(b.n2, 0.0f);
-                set(b.n3, 0.0f);
-                set(b.n9, 0.0f);
-                set(b.n10, 0.0f);
-                set(b.hired, 0.0f);
-            } else {
-                double hiredValue = VariableGet(variables, b.hired);
-                float hired = static_cast<float>(hiredValue);   // FST: stored as float, compared unrounded
-                float hiredStored = hired;
-                double briefed = VariableGet(variables, b.n8);
-                EI_NAN_AUDIT(hiredValue, briefed);
-                if (hiredValue != worlddata::Zero()) {
-                    if (briefed != worlddata::One()) {
-                        if (otherMercs < 2) {
-                            bool firstTime = hiredStored == worlddata::One();
-                            set(b.n1, firstTime ? 1.0f : 0.0f);
-                            set(b.n3, firstTime ? 0.0f : 1.0f);
-                            set(b.n8, 0.0f);
-                            set(b.n2, 0.0f);
-                            set(b.n9, 0.0f);
-                        } else {
-                            set(b.n1, 0.0f);
-                            set(b.n3, 0.0f);
-                            set(b.n8, 0.0f);
-                            set(b.n2, 0.0f);
-                            set(b.n9, 1.0f);
-                        }
-                    } else {
-                        set(b.n1, 0.0f);
-                        set(b.n2, 0.0f);
-                        set(b.n3, 0.0f);
-                        set(b.n9, 0.0f);
-                        set(b.n10, 0.0f);
-                    }
-                } else if (briefed != worlddata::One()) {
-                    set(b.n11, 1.0f);
-                }
-            }
-        }
-    }
-}
-
-namespace {
-
 constexpr int kKindNoRangeTest = 3;
 constexpr int kClassQuestItem = 0x14;
 
@@ -193,100 +96,11 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
     items.clear();
 }
 
-} // namespace
-
-void CWorldServer::CompleteBriefing(int playerId, const char* name) {
-    if (IsMultiplayerClient()) {
-        std::vector<std::string> parts;
-        text::Split(name, &parts, '.');
-        if (parts.size() == 3) TheGameFlow()->RequestBriefing(parts[2].c_str());
-        // EI_Plugin's Briefings (the array's destruction moved to the end): the client queues the
-        // completion script as well. The plugin formats it with the caller's EBX as the name; the client's
-        // only caller holds the name there.
-        if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginBriefings)) QueueBriefingScript(playerId, name);
-        return;
-    }
-    std::vector<std::string> parts;
-    text::Split(name, &parts, '.');
-    QuestBriefingRecord* record = nullptr;
-    if (parts.size() == 3) {
-        std::string key(parts[2]);
-        record = worlddata::QuestBriefings()[key];
-    }
-    CPlayer* player = nullptr;
-    {
-        PlayerIterator it;
-        for (CPlayer* p = it.First(PlayerList()); p; p = it.Next()) {
-            if (p->playerId_ == playerId) {
-                player = p;
-                break;
-            }
-        }
-    }
-    if (player) {
-        ApplyMercBriefing(player, name);
-        if (record) GiveBriefingRewards(this, player, record);
-    }
-
-    QueueBriefingScript(playerId, name);
-}
-
-void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
-    std::string script;
-    script = str::Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
-    MainScript()->Load(&script, 1);
-    if (sessionKind_ == kKindNoRangeTest)
-        for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
-}
-
-namespace {
-
 // One slot's names, declared so that they are destroyed in the game's order: amerc, n10, n2, n8, n9, n3,
 // n1, merc.
 struct MercNames {
     std::string merc, n1, n3, n9, n8, n2, n10, hired;
 };
-
-} // namespace
-
-void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
-    CPlayerServer* state = player->Server();
-    CParty* party = PartyOf(player);
-    auto is = [name](const std::string& variable) {
-        return text::CompareIgnoringCase(variable,
-                               name) == 0;
-    };
-    for (int slot = 1; slot <= kMercSlots; ++slot) {
-        MercNames v;
-        v.merc = str::Format(worlddata::MercNameFormat(), slot);
-        unsigned key = TextKeyFromName(v.merc);
-        v.n8 = str::Format(worlddata::MercVariableN8Format(), v.merc.c_str(), slot);
-        v.n1 = str::Format(worlddata::MercVariableN1Format(), v.merc.c_str(), slot);
-        v.n2 = str::Format(worlddata::MercVariableN2Format(), v.merc.c_str(), slot);
-        v.n3 = str::Format(worlddata::MercVariableN3Format(), v.merc.c_str(), slot);
-        v.n9 = str::Format(worlddata::MercVariableN9Format(), v.merc.c_str(), slot);
-        v.n10 = str::Format(worlddata::MercVariableN10Format(), v.merc.c_str(), slot);
-        v.hired = str::Format(worlddata::MercHiredFormat(), slot);
-        CUnit* unit = FindUnit(key);
-
-        if (is(v.n8)) state->SetVariable(v.n8, std::bit_cast<std::uint32_t>(0.0f));
-        // n10: the mercenary leaves the party and the world; n2: the party.
-        if (is(v.n10)) {
-            party->RemoveMember(key);
-            RemoveObject(key);
-        }
-        if (is(v.n2)) party->RemoveMember(key);
-        // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
-        if (is(v.n1) || is(v.n3)) {
-            state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
-            const char* prototype = unit ? unit->GetPrototype()->name.c_str() : worlddata::HumanHeroText();
-            party->AddMember(v.merc.c_str(), prototype, game::kEmptyText);
-        }
-    }
-    UpdateMercBriefings();
-}
-
-namespace {
 
 constexpr std::uint32_t kMinimumWeight = 0x3C23D70A;      // 0.01f
 
@@ -385,17 +199,6 @@ void ShareAmongHeroes(CWorldServer* world, CPlayer* player, float amount) {
     }
 }
 
-} // namespace
-
-void CWorldServer::AwardExperience(CPlayer* player, float amount) {
-    EI_NAN_AUDIT(amount);
-    if (amount == 0.0f) return;
-    if (!player) ShareAmongSoloPlayers(this, amount);
-    else ShareAmongHeroes(this, player, amount);
-}
-
-namespace {
-
 constexpr int kQuickSlots = 4;
 constexpr int kWornSlots = 7;
 constexpr int kBeltSlots = 4;
@@ -465,27 +268,6 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
     controller->CopyStats(&record->stats);
 }
 
-} // namespace
-
-void CWorldServer::SyncPartyRecords(CPlayer* player) {
-    CParty* party = PartyOf(player);
-    for (auto node = player->items_.begin(); node != player->items_.end();) {
-        auto next = std::next(node);
-        party->AddItem(*node, 1, 1);
-        node = next;
-    }
-    std::vector<PartyUnitRecord*> list{};
-    for (int i = 0; i < std::ssize(player->Party()->members_); ++i) lib::SetAtGrow(list, std::ssize(list), &MercRecord(player, i));
-    for (int i = 0; i < std::ssize(list); ++i) {
-        auto* record = list[i];
-        CUnit* unit = FindUnit(static_cast<int>(record->unitId));
-        if (!unit || unit->IsDead() != 0) continue;
-        SyncRecord(party, record, unit);
-    }
-}
-
-namespace {
-
 constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
 
 // As SyncPartyRecords does, without the items' records.
@@ -521,6 +303,204 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CU
 }
 
 } // namespace
+
+void CWorldServer::UpdateMercBriefings() {
+    PlayerIterator it;
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        CPlayerServer* state = player->Server();
+        int otherMercs = CountLivingMercs(player->playerId_);
+        auto set = [&](const std::string& name, float value) { state->SetVariable(name, std::bit_cast<std::uint32_t>(value)); };
+
+        for (int slot = 1; slot <= kMercSlots; ++slot) {
+            std::string merc;
+            merc = str::Format(worlddata::MercNameFormat(), slot);
+            unsigned key = TextKeyFromName(merc);
+            bool briefedHere = text::CompareIgnoringCase(zoneName_,
+                                               worlddata::MercZoneName(slot - 1)) == 0;
+            Briefing b;
+            b.n8 = str::Format(worlddata::MercVariableN8Format(), merc.c_str(), slot);
+            b.n1 = str::Format(worlddata::MercVariableN1Format(), merc.c_str(), slot);
+            b.n2 = str::Format(worlddata::MercVariableN2Format(), merc.c_str(), slot);
+            b.n3 = str::Format(worlddata::MercVariableN3Format(), merc.c_str(), slot);
+            b.n9 = str::Format(worlddata::MercVariableN9Format(), merc.c_str(), slot);
+            b.n10 = str::Format(worlddata::MercVariableN10Format(), merc.c_str(), slot);
+            b.n11 = str::Format(worlddata::MercVariableN11Format(), merc.c_str(), slot);
+            b.hired = str::Format(worlddata::MercHiredFormat(), slot);
+            set(b.n11, 0.0f);
+
+            bool inParty = false;
+            for (int i = 0; i < std::ssize(player->Party()->members_); ++i) {
+                if (MercRecord(player, i).unitId == key) {
+                    inParty = true;
+                    break;
+                }
+            }
+            NamedFloatTable* variables = &player->Party()->variables_;
+            double left = VariableGet(variables, b.n10);
+            EI_NAN_AUDIT(left);
+            if (inParty) {
+                if (left != worlddata::Zero()) {
+                    set(b.n8, 0.0f);
+                    set(b.n1, 0.0f);
+                    set(b.n2, 0.0f);
+                    set(b.n3, 0.0f);
+                    set(b.n9, 0.0f);
+                } else {
+                    set(b.n8, 0.0f);
+                    set(b.n1, 0.0f);
+                    set(b.n3, 0.0f);
+                    set(b.n9, 0.0f);
+                    set(b.n2, briefedHere ? 1.0f : 0.0f);
+                }
+            } else if (left != worlddata::Zero()) {
+                set(b.n8, 0.0f);
+                set(b.n1, 0.0f);
+                set(b.n2, 0.0f);
+                set(b.n3, 0.0f);
+                set(b.n9, 0.0f);
+                set(b.n10, 0.0f);
+                set(b.hired, 0.0f);
+            } else {
+                double hiredValue = VariableGet(variables, b.hired);
+                float hired = static_cast<float>(hiredValue);   // FST: stored as float, compared unrounded
+                float hiredStored = hired;
+                double briefed = VariableGet(variables, b.n8);
+                EI_NAN_AUDIT(hiredValue, briefed);
+                if (hiredValue != worlddata::Zero()) {
+                    if (briefed != worlddata::One()) {
+                        if (otherMercs < 2) {
+                            bool firstTime = hiredStored == worlddata::One();
+                            set(b.n1, firstTime ? 1.0f : 0.0f);
+                            set(b.n3, firstTime ? 0.0f : 1.0f);
+                            set(b.n8, 0.0f);
+                            set(b.n2, 0.0f);
+                            set(b.n9, 0.0f);
+                        } else {
+                            set(b.n1, 0.0f);
+                            set(b.n3, 0.0f);
+                            set(b.n8, 0.0f);
+                            set(b.n2, 0.0f);
+                            set(b.n9, 1.0f);
+                        }
+                    } else {
+                        set(b.n1, 0.0f);
+                        set(b.n2, 0.0f);
+                        set(b.n3, 0.0f);
+                        set(b.n9, 0.0f);
+                        set(b.n10, 0.0f);
+                    }
+                } else if (briefed != worlddata::One()) {
+                    set(b.n11, 1.0f);
+                }
+            }
+        }
+    }
+}
+
+void CWorldServer::CompleteBriefing(int playerId, const char* name) {
+    if (IsMultiplayerClient()) {
+        std::vector<std::string> parts;
+        text::Split(name, &parts, '.');
+        if (parts.size() == 3) TheGameFlow()->RequestBriefing(parts[2].c_str());
+        // EI_Plugin's Briefings (the array's destruction moved to the end): the client queues the
+        // completion script as well. The plugin formats it with the caller's EBX as the name; the client's
+        // only caller holds the name there.
+        if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginBriefings)) QueueBriefingScript(playerId, name);
+        return;
+    }
+    std::vector<std::string> parts;
+    text::Split(name, &parts, '.');
+    QuestBriefingRecord* record = nullptr;
+    if (parts.size() == 3) {
+        std::string key(parts[2]);
+        record = worlddata::QuestBriefings()[key];
+    }
+    CPlayer* player = nullptr;
+    {
+        PlayerIterator it;
+        for (CPlayer* p = it.First(PlayerList()); p; p = it.Next()) {
+            if (p->playerId_ == playerId) {
+                player = p;
+                break;
+            }
+        }
+    }
+    if (player) {
+        ApplyMercBriefing(player, name);
+        if (record) GiveBriefingRewards(this, player, record);
+    }
+
+    QueueBriefingScript(playerId, name);
+}
+
+void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
+    std::string script;
+    script = str::Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
+    MainScript()->Load(&script, 1);
+    if (sessionKind_ == kKindNoRangeTest)
+        for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
+}
+
+void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
+    CPlayerServer* state = player->Server();
+    CParty* party = PartyOf(player);
+    auto is = [name](const std::string& variable) {
+        return text::CompareIgnoringCase(variable,
+                               name) == 0;
+    };
+    for (int slot = 1; slot <= kMercSlots; ++slot) {
+        MercNames v;
+        v.merc = str::Format(worlddata::MercNameFormat(), slot);
+        unsigned key = TextKeyFromName(v.merc);
+        v.n8 = str::Format(worlddata::MercVariableN8Format(), v.merc.c_str(), slot);
+        v.n1 = str::Format(worlddata::MercVariableN1Format(), v.merc.c_str(), slot);
+        v.n2 = str::Format(worlddata::MercVariableN2Format(), v.merc.c_str(), slot);
+        v.n3 = str::Format(worlddata::MercVariableN3Format(), v.merc.c_str(), slot);
+        v.n9 = str::Format(worlddata::MercVariableN9Format(), v.merc.c_str(), slot);
+        v.n10 = str::Format(worlddata::MercVariableN10Format(), v.merc.c_str(), slot);
+        v.hired = str::Format(worlddata::MercHiredFormat(), slot);
+        CUnit* unit = FindUnit(key);
+
+        if (is(v.n8)) state->SetVariable(v.n8, std::bit_cast<std::uint32_t>(0.0f));
+        // n10: the mercenary leaves the party and the world; n2: the party.
+        if (is(v.n10)) {
+            party->RemoveMember(key);
+            RemoveObject(key);
+        }
+        if (is(v.n2)) party->RemoveMember(key);
+        // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
+        if (is(v.n1) || is(v.n3)) {
+            state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
+            const char* prototype = unit ? unit->GetPrototype()->name.c_str() : worlddata::HumanHeroText();
+            party->AddMember(v.merc.c_str(), prototype, game::kEmptyText);
+        }
+    }
+    UpdateMercBriefings();
+}
+
+void CWorldServer::AwardExperience(CPlayer* player, float amount) {
+    EI_NAN_AUDIT(amount);
+    if (amount == 0.0f) return;
+    if (!player) ShareAmongSoloPlayers(this, amount);
+    else ShareAmongHeroes(this, player, amount);
+}
+
+void CWorldServer::SyncPartyRecords(CPlayer* player) {
+    CParty* party = PartyOf(player);
+    for (auto node = player->items_.begin(); node != player->items_.end();) {
+        auto next = std::next(node);
+        party->AddItem(*node, 1, 1);
+        node = next;
+    }
+    std::vector<PartyUnitRecord*> list{};
+    for (int i = 0; i < std::ssize(player->Party()->members_); ++i) lib::SetAtGrow(list, std::ssize(list), &MercRecord(player, i));
+    for (int i = 0; i < std::ssize(list); ++i) {
+        auto* record = list[i];
+        CUnit* unit = FindUnit(static_cast<int>(record->unitId));
+        if (!unit || unit->IsDead() != 0) continue;
+        SyncRecord(party, record, unit);
+    }
+}
 
 void CWorldServer::StoreParty(std::vector<PartyUnitRecord*>* list, CParty* party, std::vector<UnitPlacement>* placements) {
     if (sessionKind_ == 1) {

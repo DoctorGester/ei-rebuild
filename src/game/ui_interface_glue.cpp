@@ -26,6 +26,10 @@ constexpr int kQuestPart = 2;   // "q.<zone>.<quest>": the quest's name
 constexpr int kStatusTop = 280, kStatusBottom = 320, kStatusFormat = 5;
 constexpr int kStatusTextFormat = 2, kStatusTextHeight = 40;
 constexpr std::uint32_t kStatusColour = 0xFF00;
+
+// A unit's speech without an extra argument.
+constexpr char* kNoExtra = nullptr;
+
 } // namespace
 
 int CInterface3D::PlaySound(const char* name, int loop) {
@@ -73,11 +77,6 @@ void CInterface3D::OnQuestVariable(std::string_view name, float value) {
 }
 
 // --- News for the top window -------------------------------------
-
-namespace {
-// A unit's speech without an extra argument.
-constexpr char* kNoExtra = nullptr;
-} // namespace
 
 void CInterface3D::OnItemsPicked(void* items, int money, int crippled) {
     if (!stack_.empty()) ScreenOf(stack_.back())->ItemsPicked(items, money, crippled);

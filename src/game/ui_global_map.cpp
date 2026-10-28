@@ -97,12 +97,6 @@ void SetWhite(CUiMesh* sprite) {
 }
 CUiMesh* AddFigure(CUiWindow* window, const std::string& name) { return window->AddSprite(name.c_str()); }
 
-} // namespace
-
-// --- Create ---------------------------------------------------------------------------
-
-namespace {
-
 // The window's helpers bound to its fields.
 class MapBuilder {
 public:
@@ -172,7 +166,34 @@ void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
     map->AddRegion()->SetRect(left, top, right, bottom);
 }
 
+// fmod(a, *divisor), stored as float.
+float FmodStored(float a, const float* divisor) { return static_cast<float>(std::fmod(a, *divisor)); }
+
+// The product (r = b * a in this operand order), each component stored.
+Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
+    Quaternion r;
+    float z = static_cast<float>(((D(b.x) * D(a.y) - D(a.x) * D(b.y)) + D(b.z) * D(a.w)) + D(a.z) * D(b.w));
+    float y = static_cast<float>(((D(a.x) * D(b.z) - D(b.x) * D(a.z)) + D(b.y) * D(a.w)) + D(b.w) * D(a.y));
+    float x = static_cast<float>(((D(a.z) * D(b.y) - D(b.z) * D(a.y)) + D(b.x) * D(a.w)) + D(a.x) * D(b.w));
+    float w = static_cast<float>(D(b.w) * D(a.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
+    r.w = w;
+    r.x = x;
+    r.y = y;
+    r.z = z;
+    return r;
+}
+
+// A layer's texture frame: the fractional part of time * rate (stored).
+void SetFrameFraction(CEngineObject* layer, float time, float rate) {
+    double v = D(time) * D(rate);
+    int whole = static_cast<int>(libcrt::Ftol(v));
+    float fraction = static_cast<float>(v - static_cast<double>(whole));
+    std::memcpy(&AsUiMesh(layer)->textureOffsetU_, &fraction, 4);
+}
+
 } // namespace
+
+// --- Create ---------------------------------------------------------------------------
 
 void CGlobalMap::CreateScreen() {
     autosave_ = false;
@@ -466,35 +487,6 @@ void CGlobalMap::CreateScreen() {
 }
 
 // --- Update -----------------------------------------------------------------------------
-
-namespace {
-
-// fmod(a, *divisor), stored as float.
-float FmodStored(float a, const float* divisor) { return static_cast<float>(std::fmod(a, *divisor)); }
-
-// The product (r = b * a in this operand order), each component stored.
-Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
-    Quaternion r;
-    float z = static_cast<float>(((D(b.x) * D(a.y) - D(a.x) * D(b.y)) + D(b.z) * D(a.w)) + D(a.z) * D(b.w));
-    float y = static_cast<float>(((D(a.x) * D(b.z) - D(b.x) * D(a.z)) + D(b.y) * D(a.w)) + D(b.w) * D(a.y));
-    float x = static_cast<float>(((D(a.z) * D(b.y) - D(b.z) * D(a.y)) + D(b.x) * D(a.w)) + D(a.x) * D(b.w));
-    float w = static_cast<float>(D(b.w) * D(a.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
-    r.w = w;
-    r.x = x;
-    r.y = y;
-    r.z = z;
-    return r;
-}
-
-// A layer's texture frame: the fractional part of time * rate (stored).
-void SetFrameFraction(CEngineObject* layer, float time, float rate) {
-    double v = D(time) * D(rate);
-    int whole = static_cast<int>(libcrt::Ftol(v));
-    float fraction = static_cast<float>(v - static_cast<double>(whole));
-    std::memcpy(&AsUiMesh(layer)->textureOffsetU_, &fraction, 4);
-}
-
-} // namespace
 
 void CGlobalMap::Update() {
     UpdateBase();

@@ -71,31 +71,6 @@ void RestorePrevious(Particle* p) {
     p->color = p->prevColor;
 }
 
-} // namespace
-
-// --- Particle pool --------------------------------------------------------------------------------
-
-// The head of the free list, or a fresh 0x64-byte particle when it is empty.
-Particle* CParticleManager::AcquireParticle() {
-    if (freeParticles.empty()) return new Particle;
-    Particle* p = freeParticles.front();
-    freeParticles.pop_front();
-    return p;
-}
-
-void CParticleManager::ReleaseParticle(Particle* p) { freeParticles.push_back(p); }
-
-// A newly emitted particle: alive, its "prev" fields equal to the current ones, inside
-// the bounds, appended to the list.
-void CParticleSource::AddParticle(Particle* p) {
-    p->dead = 0;
-    SavePrevious(p);
-    GrowBounds(boundsMin, boundsMax, p->pos);
-    particles.push_back(p);
-}
-
-namespace {
-
 // The tick's steps, as helpers on the source.
 struct TickSteps {
     CParticleSource* s;
@@ -233,6 +208,27 @@ struct TickSteps {
 };
 
 } // namespace
+
+// --- Particle pool --------------------------------------------------------------------------------
+
+// The head of the free list, or a fresh 0x64-byte particle when it is empty.
+Particle* CParticleManager::AcquireParticle() {
+    if (freeParticles.empty()) return new Particle;
+    Particle* p = freeParticles.front();
+    freeParticles.pop_front();
+    return p;
+}
+
+void CParticleManager::ReleaseParticle(Particle* p) { freeParticles.push_back(p); }
+
+// A newly emitted particle: alive, its "prev" fields equal to the current ones, inside
+// the bounds, appended to the list.
+void CParticleSource::AddParticle(Particle* p) {
+    p->dead = 0;
+    SavePrevious(p);
+    GrowBounds(boundsMin, boundsMax, p->pos);
+    particles.push_back(p);
+}
 
 // Returns 1 while the source is still needed: a free source while it keeps
 // alive (flag 4) or has particles, an attached one while it emits or has particles.

@@ -26,6 +26,34 @@ int Mul(int a, int b) {
     return static_cast<int>(static_cast<std::uint32_t>(a) * static_cast<std::uint32_t>(b));
 }
 
+// A surface of the window's list, destroyed as a plain surface whatever its class, as the original does (a scrolling
+// surface's own destructor does not run: CUiSurface's is not virtual); the block is freed unsized, since it may be a
+// derived class's.
+void DestroySurface(CUiSurface* surface) {
+    surface->~CUiSurface();
+    ::operator delete(surface);
+}
+
+// A new object of the model manager by name, or null.
+CFigureMesh* NewModelObject(const char* name) {
+    return TheFigureManager()->NewFigure(name);
+}
+
+constexpr Quaternion kIdentityRotation = /*007C7E58*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
+
+void PrepareMaterial(CMaterial* material, float value) {
+    material->colors.emissive.x = value;
+    material->colors.emissive.y = value;
+    material->colors.emissive.z = value;
+    ++material->refCount_;
+}
+
+// The constructor's empty pointer array (data, growth step, capacity, size in its order).
+template <typename T>
+void ClearArray(std::vector<T*>& array) {
+    std::construct_at(&array);
+}
+
 } // namespace
 
 // --- CUiTooltip ------------------------------------------------------------------------------
@@ -223,18 +251,6 @@ CUiSurface* CUiWindow::AddSurface(CUiSurface* surface) {
     return surface;
 }
 
-namespace {
-
-// A surface of the window's list, destroyed as a plain surface whatever its class, as the original does (a scrolling
-// surface's own destructor does not run: CUiSurface's is not virtual); the block is freed unsized, since it may be a
-// derived class's.
-void DestroySurface(CUiSurface* surface) {
-    surface->~CUiSurface();
-    ::operator delete(surface);
-}
-
-} // namespace
-
 void CUiWindow::RemoveSurfaceAt(int index) {
     if (CUiSurface* surface = surfaces_[index]) {
         if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, false);
@@ -320,14 +336,6 @@ CUiModel* CUiWindow::AddModel() {
 
 // --- ReplaceSceneObject ----------------------------------------------------------------------------
 
-namespace {
-// A new object of the model manager by name, or null.
-CFigureMesh* NewModelObject(const char* name) {
-    return TheFigureManager()->NewFigure(name);
-}
-
-} // namespace
-
 CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* name) {
     for (int i = 0; i < std::ssize(sceneObjects_); ++i) {
         if (sceneObjects_[i] != object) continue;
@@ -374,26 +382,6 @@ CUiMesh* CUiWindow::AddSprite(const char* name) {
 }
 
 // --- The constructor ---------------------------------------------------------------------------------
-
-namespace {
-constexpr Quaternion kIdentityRotation = /*007C7E58*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
-} // namespace
-
-namespace {
-
-void PrepareMaterial(CMaterial* material, float value) {
-    material->colors.emissive.x = value;
-    material->colors.emissive.y = value;
-    material->colors.emissive.z = value;
-    ++material->refCount_;
-}
-
-// The constructor's empty pointer array (data, growth step, capacity, size in its order).
-template <typename T>
-void ClearArray(std::vector<T*>& array) {
-    std::construct_at(&array);
-}
-} // namespace
 
 CUiWindow::CUiWindow(CInterface3D* ui) : UiInputSide(ui) {
     ClearFields();

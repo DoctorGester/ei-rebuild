@@ -26,6 +26,18 @@ bool AnyLevel(const UnitLayerNode* node) {
     std::memcpy(rows, node->levels, sizeof(rows));
     return (rows[3] | rows[2] | rows[1] | rows[0]) != 0;
 }
+
+// The block's 4x4 cells when the block lies in the map (keys are signed 16-bit halves; the
+// comparisons are unsigned, so negative blocks are outside).
+bool BlockInMap(const CAIMap* map, const UnitLayerNode* block, int* x, int* y) {
+    std::int16_t halves[2];
+    std::memcpy(halves, &block->key, sizeof(halves));
+    *x = halves[0] * 4;
+    *y = halves[1] * 4;
+    return static_cast<unsigned>(*y) < static_cast<unsigned>(map->cells.height) &&
+           static_cast<unsigned>(*x) < static_cast<unsigned>(map->cells.width);
+}
+
 } // namespace
 
 void CUnitLayer::Add(CUnit* unit, const CUnitShape* shape, int x, int y) {
@@ -85,19 +97,6 @@ void CUnitLayer::Remove(CUnit* unit, int x, int y) {
         }
     }
 }
-
-namespace {
-// The block's 4x4 cells when the block lies in the map (keys are signed 16-bit halves; the
-// comparisons are unsigned, so negative blocks are outside).
-bool BlockInMap(const CAIMap* map, const UnitLayerNode* block, int* x, int* y) {
-    std::int16_t halves[2];
-    std::memcpy(halves, &block->key, sizeof(halves));
-    *x = halves[0] * 4;
-    *y = halves[1] * 4;
-    return static_cast<unsigned>(*y) < static_cast<unsigned>(map->cells.height) &&
-           static_cast<unsigned>(*x) < static_cast<unsigned>(map->cells.width);
-}
-} // namespace
 
 void CSmallUnitLayer::Set(const UnitLayerNode* block) {
     int x, y;

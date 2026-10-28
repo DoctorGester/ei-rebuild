@@ -99,6 +99,31 @@ CountedUnits& Candidates() { return *g_candidates; }
 std::uint8_t g_candidatesGuard = /*007C54E4*/ {};
 void DestroyCandidates() { g_candidates.Destroy(); }
 
+bool DirectControl(const AIBrain* brain) {
+    const CPlayer* player = brain->owner->unit->player;
+    return player && PlayerServerOf(player)->refreshPending_ == 2;
+}
+
+// Common start of CommandWalk / CommandGoTo: the point (moved by `offset` when the way is clear),
+// the run flag, and the references dropped.
+void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3* to, int run, const Vector3* offset) {
+    std::memcpy(&self->point, to, sizeof(Vector3));
+    Vector3 shifted;
+    shifted.x = to->x + offset->x;
+    shifted.y = to->y + offset->y;
+    shifted.z = to->z + offset->z;
+    if (self->PathClear(brain, to, &shifted)) {
+        self->point.x = offset->x + self->point.x;
+        self->point.y = offset->y + self->point.y;
+        self->point.z = offset->z + self->point.z;
+    }
+    self->run = static_cast<std::uint8_t>(run);
+    if (!DirectControl(brain)) ReleaseRef(self->leader);
+    self->target.Reset();
+}
+
+PlayerMode* PlayerModeOf(CUnit* unit) { return unit->ServerController()->Brain()->FindPlayerMode(); }
+
 } // namespace
 
 // --- Shared slots --------------------------------------------------------------------------------
@@ -632,31 +657,6 @@ void PlayerMode::Execute(AIBrain* brain) {
     brain->action = AIBrain::kActionNone;
 }
 
-namespace {
-bool DirectControl(const AIBrain* brain) {
-    const CPlayer* player = brain->owner->unit->player;
-    return player && PlayerServerOf(player)->refreshPending_ == 2;
-}
-
-// Common start of CommandWalk / CommandGoTo: the point (moved by `offset` when the way is clear),
-// the run flag, and the references dropped.
-void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3* to, int run, const Vector3* offset) {
-    std::memcpy(&self->point, to, sizeof(Vector3));
-    Vector3 shifted;
-    shifted.x = to->x + offset->x;
-    shifted.y = to->y + offset->y;
-    shifted.z = to->z + offset->z;
-    if (self->PathClear(brain, to, &shifted)) {
-        self->point.x = offset->x + self->point.x;
-        self->point.y = offset->y + self->point.y;
-        self->point.z = offset->z + self->point.z;
-    }
-    self->run = static_cast<std::uint8_t>(run);
-    if (!DirectControl(brain)) ReleaseRef(self->leader);
-    self->target.Reset();
-}
-} // namespace
-
 void PlayerMode::CommandWalk(AIBrain* brain, const Vector3* to, int unknown, int runArg, const Vector3* offset) {
     state = kStateCommand;
     PrepareWalk(this, brain, to, runArg, offset);
@@ -726,10 +726,6 @@ void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3* at, int
     brain->actionTime = spell;
     brain->owner->OrderCastAt(spell, at, running);
 }
-
-namespace {
-PlayerMode* PlayerModeOf(CUnit* unit) { return unit->ServerController()->Brain()->FindPlayerMode(); }
-} // namespace
 
 void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
     CUnit* self = brain->owner->unit;

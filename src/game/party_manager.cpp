@@ -38,6 +38,33 @@ void ObjectRefFields(ChunkArchive* ar, int id, std::vector<CountedPtr<T>>* objec
     ar->LeaveChunk();
 }
 
+// `to` becomes a copy of `from` (with variables) through a memory stream, as CParty::Assign without its Clear
+// inlines it.
+void CopyParty(CParty* to, CParty* from) {
+    CMemoryStream local;
+    from->SaveParty(&local, 1);
+    local.CMemoryStream::Seek(0);
+    to->LoadParty(&local, 1);
+}
+
+CParty* RecordParty(PartyRecord* record) { return record->Party(); }
+
+// The archive's contents, the same calls for both directions. The containers' serialisers get an unused third
+// argument (a stack leftover).
+void ArchiveManager(PartyManager* manager, ChunkArchive* ar) {
+    ar->SerializeParties(1, &manager->parties, nullptr);
+    ar->SerializePartyEntries(2, &manager->entries, nullptr);
+    ar->Field(3, &manager->field3, 4);
+    if (ar->EnterChunk(4)) {
+        ar->SerializeClassTemplates(1, &manager->templates, nullptr);
+        ar->LeaveChunk();
+    }
+    if (ar->EnterChunk(5)) {
+        manager->records.Serialize(ar);
+        ar->LeaveChunk();
+    }
+}
+
 } // namespace
 
 // ---- Archive chunks -------------------------------------------------------------------------------
@@ -155,21 +182,6 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     ar->Field(6, &flag38, 1);
 }
 
-namespace {
-
-// `to` becomes a copy of `from` (with variables) through a memory stream, as CParty::Assign without its Clear
-// inlines it.
-void CopyParty(CParty* to, CParty* from) {
-    CMemoryStream local;
-    from->SaveParty(&local, 1);
-    local.CMemoryStream::Seek(0);
-    to->LoadParty(&local, 1);
-}
-
-CParty* RecordParty(PartyRecord* record) { return record->Party(); }
-
-} // namespace
-
 void NamedPartyRecords::BeginRedeploy(CParty* party) {
     if (CParty* found = Find(text10.c_str())) CopyParty(found, party);
     NamedFloatTable variables(party->variables_);
@@ -189,26 +201,6 @@ void NamedPartyRecords::EndRedeploy(CParty* party) {
 }
 
 // ---- Load and save --------------------------------------------------------------------------------
-
-namespace {
-
-// The archive's contents, the same calls for both directions. The containers' serialisers get an unused third
-// argument (a stack leftover).
-void ArchiveManager(PartyManager* manager, ChunkArchive* ar) {
-    ar->SerializeParties(1, &manager->parties, nullptr);
-    ar->SerializePartyEntries(2, &manager->entries, nullptr);
-    ar->Field(3, &manager->field3, 4);
-    if (ar->EnterChunk(4)) {
-        ar->SerializeClassTemplates(1, &manager->templates, nullptr);
-        ar->LeaveChunk();
-    }
-    if (ar->EnterChunk(5)) {
-        manager->records.Serialize(ar);
-        ar->LeaveChunk();
-    }
-}
-
-} // namespace
 
 void PartyManager::Load(CMemoryStream* from) {
     CMemoryStream local;

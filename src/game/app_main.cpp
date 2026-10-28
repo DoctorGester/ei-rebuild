@@ -83,51 +83,6 @@ void DestroyCommandLineScript() { g_commandLineScript.Destroy(); }
 void DestroyCommandLineMob() { g_commandLineMob.Destroy(); }
 void DestroyCommandLineMap() { g_commandLineMap.Destroy(); }
 void DestroyMovieFolder() { g_movieFolder.Destroy(); }
-} // namespace
-
-// The initialisers: each string empty (".\capture\" for the movie folder), its exit function registered.
-void ConstructCameraFile() {
-    g_cameraFile.Construct();
-    std::atexit(DestroyCameraFile);
-}
-void ConstructCommandLineScript() {
-    g_commandLineScript.Construct();
-    std::atexit(DestroyCommandLineScript);
-}
-void ConstructCommandLineMob() {
-    g_commandLineMob.Construct();
-    std::atexit(DestroyCommandLineMob);
-}
-void ConstructCommandLineMap() {
-    g_commandLineMap.Construct();
-    std::atexit(DestroyCommandLineMap);
-}
-void ConstructMovieFolder() {
-    g_movieFolder.Construct(".\\capture\\");
-    std::atexit(DestroyMovieFolder);
-}
-
-// The mouse's reference dropped (ShutDown has already taken it: null at exit).
-void ReleaseMouseAtExit() {
-    if (CDirectInputMouse* mouse = g_mouse)
-        if (--mouse->references_ == 0) delete mouse;
-}
-
-char g_windowTitle[256] = /*0079BB24*/ {""};
-HINSTANCE g_instance = /*0079BC24*/ {};
-HWND g_mainWindow = /*0079BC28*/ {};
-std::uint8_t g_active = /*0079BC5C*/ {};
-std::uint8_t g_activationChanged = /*0079BC5D*/ {};
-std::uint8_t g_interfaceHasScreen = /*00784750*/ 1;
-std::uint8_t g_quitAllowed = /*00784751*/ 1;
-std::uint8_t g_recordingFrames = /*0079BC54*/ {};
-int g_showClientSpeed = /*0079BC60*/ {};
-std::uint8_t g_littleOtherMemory = /*00784753*/ 1;
-std::uint8_t g_littleTextureMemory = /*00784754*/ 1;
-std::uint8_t g_deviceNamed = /*00784756*/ 1;
-const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";
-
-namespace {
 
 // Constants of the exe, read when they are used (a literal could be folded at another precision).
 // A step of a float expression kept apart from the next: the value passes through a double, which
@@ -690,6 +645,48 @@ void ShutDown() {
 }
 
 } // namespace
+
+// The initialisers: each string empty (".\capture\" for the movie folder), its exit function registered.
+void ConstructCameraFile() {
+    g_cameraFile.Construct();
+    std::atexit(DestroyCameraFile);
+}
+void ConstructCommandLineScript() {
+    g_commandLineScript.Construct();
+    std::atexit(DestroyCommandLineScript);
+}
+void ConstructCommandLineMob() {
+    g_commandLineMob.Construct();
+    std::atexit(DestroyCommandLineMob);
+}
+void ConstructCommandLineMap() {
+    g_commandLineMap.Construct();
+    std::atexit(DestroyCommandLineMap);
+}
+void ConstructMovieFolder() {
+    g_movieFolder.Construct(".\\capture\\");
+    std::atexit(DestroyMovieFolder);
+}
+
+// The mouse's reference dropped (ShutDown has already taken it: null at exit).
+void ReleaseMouseAtExit() {
+    if (CDirectInputMouse* mouse = g_mouse)
+        if (--mouse->references_ == 0) delete mouse;
+}
+
+char g_windowTitle[256] = /*0079BB24*/ {""};
+HINSTANCE g_instance = /*0079BC24*/ {};
+HWND g_mainWindow = /*0079BC28*/ {};
+std::uint8_t g_active = /*0079BC5C*/ {};
+std::uint8_t g_activationChanged = /*0079BC5D*/ {};
+std::uint8_t g_interfaceHasScreen = /*00784750*/ 1;
+std::uint8_t g_quitAllowed = /*00784751*/ 1;
+std::uint8_t g_recordingFrames = /*0079BC54*/ {};
+int g_showClientSpeed = /*0079BC60*/ {};
+std::uint8_t g_littleOtherMemory = /*00784753*/ 1;
+std::uint8_t g_littleTextureMemory = /*00784754*/ 1;
+std::uint8_t g_deviceNamed = /*00784756*/ 1;
+const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";
 
 int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     std::vector<std::string> messages;

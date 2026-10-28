@@ -197,6 +197,26 @@ constexpr float kOneHalf = 0.5f;
 const char* DotText() { return "."; }
 const char* QuestPrefixText() { return "q."; }
 
+void SessionDisconnect(CPlayer* session) { session->Disconnect(); }
+
+// `ifLess` when a < b or unordered, else `otherwise`.
+float SelectLess(float a, float b, float ifLess, float otherwise) {
+    return a >= b ? otherwise : ifLess;
+}
+
+// One print list ticked: the prints whose tick returns 0 are erased.
+template <typename T>
+void RunEffects(std::list<T>& list) {
+    for (auto it = list.begin(); it != list.end();) it = it->Tick() == 0 ? list.erase(it) : std::next(it);
+}
+
+void EndWalk(ObjectListIterator& it) {
+    if (it.manager) {
+        --it.manager->refCount_;
+        it.manager = nullptr;
+    }
+}
+
 } // namespace
 
 void CWorldClient::CreateExitMarkers() {
@@ -311,30 +331,6 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
 }
 
 // ---- Segment --------------------------------------------------------------------------
-
-namespace {
-
-void SessionDisconnect(CPlayer* session) { session->Disconnect(); }
-
-// `ifLess` when a < b or unordered, else `otherwise`.
-float SelectLess(float a, float b, float ifLess, float otherwise) {
-    return a >= b ? otherwise : ifLess;
-}
-
-// One print list ticked: the prints whose tick returns 0 are erased.
-template <typename T>
-void RunEffects(std::list<T>& list) {
-    for (auto it = list.begin(); it != list.end();) it = it->Tick() == 0 ? list.erase(it) : std::next(it);
-}
-
-void EndWalk(ObjectListIterator& it) {
-    if (it.manager) {
-        --it.manager->refCount_;
-        it.manager = nullptr;
-    }
-}
-
-} // namespace
 
 int CWorldClient::Segment() {
     ObjectListIterator objectsIt{nullptr, {}};

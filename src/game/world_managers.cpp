@@ -32,6 +32,15 @@ void DropShared(RefPtr* slot) {
     slot->Destroy();
     slot->Share(nullptr);
 }
+
+constexpr const char* kPlayerManagerName = "CPlayerManager";
+constexpr const char* kEffectManagerName = "CEffectManager";
+constexpr const char* kItemManagerName = "CItemManager";
+constexpr const char* kItemsFolderName = "items";
+constexpr int kPlayerManagerId = 0x2E;
+constexpr int kEffectManagerId = 0x32;
+constexpr int kItemManagerId = 0x2F;
+
 } // namespace
 
 void CWorld::Destroy() {
@@ -60,16 +69,6 @@ void CWorld::Destroy() {
 // ---- The managers' own small virtuals -------------------------------------
 // GetClassName / GetClassId and the destructors of the player manager, the effect manager and the item manager
 // (the item manager's folder name "items" is in world_class_slots.cpp). The deleting destructor adds the delete.
-
-namespace {
-constexpr const char* kPlayerManagerName = "CPlayerManager";
-constexpr const char* kEffectManagerName = "CEffectManager";
-constexpr const char* kItemManagerName = "CItemManager";
-constexpr const char* kItemsFolderName = "items";
-constexpr int kPlayerManagerId = 0x2E;
-constexpr int kEffectManagerId = 0x32;
-constexpr int kItemManagerId = 0x2F;
-} // namespace
 
 CPlayerManager::CPlayerManager() {}
 CPlayerManager::~CPlayerManager() {}

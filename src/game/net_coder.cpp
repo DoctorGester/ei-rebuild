@@ -14,6 +14,88 @@ constexpr std::int32_t kMaxDistance = 0x31E;
 constexpr std::int32_t kMaxMatchLength = 0xE1;
 constexpr std::uint32_t kWindowMask = 0x3FF;
 
+// The match in progress stopped matching at the newest byte: walks the hash chain of the match's start (`a`,
+// a distance back from the match's start `t`) in step with the chain of the newest position (`e`, a distance
+// back from `cur`) and takes the first earlier string that repeats the match plus the newest byte.
+bool ExtendMatch(CoderState& c, std::uint32_t cur, std::int32_t e) {
+    std::uint32_t t = c.pos - static_cast<std::uint32_t>(c.matchLen);
+    std::int32_t a = c.chain[c.matchPos] + static_cast<std::int32_t>((t - static_cast<std::uint32_t>(c.matchPos)) & kWindowMask);
+    const std::uint8_t* target = c.window + (t & kWindowMask);
+    while (a < kMaxDistance) {
+        while (a > e) e += c.chain[(cur - static_cast<std::uint32_t>(e)) & kWindowMask];
+        if (a < e) {
+            a += c.chain[(t - static_cast<std::uint32_t>(a)) & kWindowMask];
+            continue;
+        }
+        std::uint32_t q = (t - static_cast<std::uint32_t>(a)) & kWindowMask;
+        if (std::memcmp(c.window + q, target, static_cast<std::size_t>(c.matchLen + 1)) == 0) {
+            c.matchPos = static_cast<std::int32_t>(q);
+            ++c.matchLen;
+            return true;
+        }
+        a += c.chain[q];
+        e += c.chain[(cur - static_cast<std::uint32_t>(e)) & kWindowMask];
+    }
+    return false;
+}
+
+// Starts a match at the byte before the newest one: the first position along the newest byte's
+// hash chain (distance `d` back from `cur`) whose two bytes equal them.
+bool StartMatch(CoderState& c, std::uint32_t cur, std::int32_t d, const std::uint8_t* at) {
+    std::uint16_t pair;
+    std::memcpy(&pair, at - 1, 2);
+    c.matchPos = static_cast<std::int32_t>(cur);
+    while (d < kMaxDistance) {
+        std::uint32_t q = (cur - static_cast<std::uint32_t>(d)) & kWindowMask;
+        std::uint16_t seen;
+        std::memcpy(&seen, c.window + q, 2);
+        if (seen == pair) {
+            c.matchPos = static_cast<std::int32_t>(q);
+            c.matchLen = 2;
+            return true;
+        }
+        d += c.chain[q];
+    }
+    c.matchPos = -1;
+    return false;
+}
+
+std::int32_t DecodeLength(BufferCursor& r) {
+    if (!r.GetBit()) return r.GetBit() ? 4 : 2;
+    if (!r.GetBit()) {
+        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(2)) + 7;
+        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(3)) + 0xB;
+        return 3;
+    }
+    if (!r.GetBit()) {
+        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(6)) + 0x23;
+        return 5;
+    }
+    if (!r.GetBit()) return 6;
+    if (!r.GetBit()) return static_cast<std::int32_t>(r.GetBits(4)) + 0x13;
+    return static_cast<std::int32_t>(r.GetBits(7)) + 0x63;
+}
+
+std::int32_t DecodeOffset(BufferCursor& r) {
+    if (r.GetBit()) {
+        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(10)) + 0x162;
+        return static_cast<std::int32_t>(r.GetBits(12)) + 0x562;
+    }
+    if (r.GetBit()) {
+        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(8)) + 0x62;
+        return static_cast<std::int32_t>(r.GetBits(6)) + 0x22;
+    }
+    if (r.GetBit()) {
+        if (r.GetBit()) {
+            if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(1));
+            return static_cast<std::int32_t>(r.GetBits(4)) + 0x12;
+        }
+        return static_cast<std::int32_t>(r.GetBits(2)) + 6;
+    }
+    if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(2)) + 2;
+    return static_cast<std::int32_t>(r.GetBits(3)) + 0xA;
+}
+
 } // namespace
 
 // The code tables (net_coder.h), zero until InitCodeTables.
@@ -199,56 +281,6 @@ void CoderState::EncodeMatch(std::int32_t at) {
     }
 }
 
-namespace {
-
-// The match in progress stopped matching at the newest byte: walks the hash chain of the match's start (`a`,
-// a distance back from the match's start `t`) in step with the chain of the newest position (`e`, a distance
-// back from `cur`) and takes the first earlier string that repeats the match plus the newest byte.
-bool ExtendMatch(CoderState& c, std::uint32_t cur, std::int32_t e) {
-    std::uint32_t t = c.pos - static_cast<std::uint32_t>(c.matchLen);
-    std::int32_t a = c.chain[c.matchPos] + static_cast<std::int32_t>((t - static_cast<std::uint32_t>(c.matchPos)) & kWindowMask);
-    const std::uint8_t* target = c.window + (t & kWindowMask);
-    while (a < kMaxDistance) {
-        while (a > e) e += c.chain[(cur - static_cast<std::uint32_t>(e)) & kWindowMask];
-        if (a < e) {
-            a += c.chain[(t - static_cast<std::uint32_t>(a)) & kWindowMask];
-            continue;
-        }
-        std::uint32_t q = (t - static_cast<std::uint32_t>(a)) & kWindowMask;
-        if (std::memcmp(c.window + q, target, static_cast<std::size_t>(c.matchLen + 1)) == 0) {
-            c.matchPos = static_cast<std::int32_t>(q);
-            ++c.matchLen;
-            return true;
-        }
-        a += c.chain[q];
-        e += c.chain[(cur - static_cast<std::uint32_t>(e)) & kWindowMask];
-    }
-    return false;
-}
-
-// Starts a match at the byte before the newest one: the first position along the newest byte's
-// hash chain (distance `d` back from `cur`) whose two bytes equal them.
-bool StartMatch(CoderState& c, std::uint32_t cur, std::int32_t d, const std::uint8_t* at) {
-    std::uint16_t pair;
-    std::memcpy(&pair, at - 1, 2);
-    c.matchPos = static_cast<std::int32_t>(cur);
-    while (d < kMaxDistance) {
-        std::uint32_t q = (cur - static_cast<std::uint32_t>(d)) & kWindowMask;
-        std::uint16_t seen;
-        std::memcpy(&seen, c.window + q, 2);
-        if (seen == pair) {
-            c.matchPos = static_cast<std::int32_t>(q);
-            c.matchLen = 2;
-            return true;
-        }
-        d += c.chain[q];
-    }
-    c.matchPos = -1;
-    return false;
-}
-
-} // namespace
-
 void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
     BufferCursor reader;
     reader.p = nullptr;
@@ -309,46 +341,6 @@ void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
     out.EndWrite();
     reader.End();
 }
-
-namespace {
-
-std::int32_t DecodeLength(BufferCursor& r) {
-    if (!r.GetBit()) return r.GetBit() ? 4 : 2;
-    if (!r.GetBit()) {
-        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(2)) + 7;
-        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(3)) + 0xB;
-        return 3;
-    }
-    if (!r.GetBit()) {
-        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(6)) + 0x23;
-        return 5;
-    }
-    if (!r.GetBit()) return 6;
-    if (!r.GetBit()) return static_cast<std::int32_t>(r.GetBits(4)) + 0x13;
-    return static_cast<std::int32_t>(r.GetBits(7)) + 0x63;
-}
-
-std::int32_t DecodeOffset(BufferCursor& r) {
-    if (r.GetBit()) {
-        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(10)) + 0x162;
-        return static_cast<std::int32_t>(r.GetBits(12)) + 0x562;
-    }
-    if (r.GetBit()) {
-        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(8)) + 0x62;
-        return static_cast<std::int32_t>(r.GetBits(6)) + 0x22;
-    }
-    if (r.GetBit()) {
-        if (r.GetBit()) {
-            if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(1));
-            return static_cast<std::int32_t>(r.GetBits(4)) + 0x12;
-        }
-        return static_cast<std::int32_t>(r.GetBits(2)) + 6;
-    }
-    if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(2)) + 2;
-    return static_cast<std::int32_t>(r.GetBits(3)) + 0xA;
-}
-
-} // namespace
 
 void CoderState::Decompress(GameBuffer* in, GameBuffer* outBuffer) {
     BufferCursor reader;

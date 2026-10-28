@@ -17,6 +17,12 @@ netlink::NetLink* ActiveLink(CPlayer* session) {
     return nullptr;
 }
 
+void PumpSources(CWorldClient* world) {
+    if (CWorldHandle* source = world->shared5C_.Get()) source->Pump();
+    if (CClientHandle* source = world->handle_.Get()) source->Pump();
+    if (netlink::DriverSession* session = world->netSession_.Get()) session->PumpDrivers(net::g_gameClient);
+}
+
 } // namespace
 
 void CWorldClient::SetPlayer(CWorldHandle* player) {
@@ -40,16 +46,6 @@ bool CWorldClient::JoinGameClient(const char*) {
     session_->Connect(link);
     return true;
 }
-
-namespace {
-
-void PumpSources(CWorldClient* world) {
-    if (CWorldHandle* source = world->shared5C_.Get()) source->Pump();
-    if (CClientHandle* source = world->handle_.Get()) source->Pump();
-    if (netlink::DriverSession* session = world->netSession_.Get()) session->PumpDrivers(net::g_gameClient);
-}
-
-} // namespace
 
 bool CWorldClient::PumpHasIncoming() {
     PumpSources(this);

@@ -151,6 +151,17 @@ void AllocateEventCells(AIEventTable* table) {
     table->rows = new AIEventCell*[static_cast<std::size_t>(table->height)];
     for (int i = 0; i < table->height; ++i) table->rows[i] = table->cells + i * table->width;
 }
+
+// The mark table's rows are 16 wide; column 10 is the open-cell mark of a cost band.
+int OpenMark(int band) { return static_cast<int>(worlddata::kMarkTable[band * 16 + 10]); }
+
+// The cost bands: 0 or 1, 2, 3..9, 10..34, 35..70 (above: no mark).
+int CostBand(int cost) {
+    if (cost >= 10) return cost >= 35 ? 4 : 3;
+    if (cost >= 3) return 2;
+    return cost >= 2 ? 1 : 0;
+}
+
 } // namespace
 
 AIEventTable* AIEventTable::Construct() {
@@ -188,18 +199,6 @@ void AIEventTable::Destroy() {
 }
 
 // ---- Terrain types --------------------------------------------------------------------------------
-
-namespace {
-// The mark table's rows are 16 wide; column 10 is the open-cell mark of a cost band.
-int OpenMark(int band) { return static_cast<int>(worlddata::kMarkTable[band * 16 + 10]); }
-
-// The cost bands: 0 or 1, 2, 3..9, 10..34, 35..70 (above: no mark).
-int CostBand(int cost) {
-    if (cost >= 10) return cost >= 35 ? 4 : 3;
-    if (cost >= 3) return 2;
-    return cost >= 2 ? 1 : 0;
-}
-} // namespace
 
 void CAIMap::BuildOpenMarks() {
     for (int i = 0; i < std::ssize(materials); ++i) {

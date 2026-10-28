@@ -63,6 +63,48 @@ const char* SkillSound(std::uint32_t number) {
     default: return nullptr;
     }
 }
+
+constexpr std::uint32_t kKindWalk = 0x100000;
+constexpr std::uint32_t kKindRun = 0x140000;
+constexpr int kPriorityAction = 1000;
+constexpr float kSoundNear = 8.0f;
+constexpr float kSoundFar = 40.0f;
+constexpr float kShakeDuration = 5.0f;
+constexpr float kShakeDecay = 0.25f;
+constexpr std::uint32_t kEffectSilence = 0x10;
+constexpr int kViewNoAttackSounds = 3;       // the local view player's sessionKind100_
+constexpr double kMinAxisLength = 0.0001;
+constexpr float kPi = 3.14159274f;
+constexpr float kHalf = 0.5f;
+constexpr float kCrawlPrintScale = 0.5f;
+constexpr float kWalkPrintScale = 0.75f;
+constexpr std::uint32_t kFlagPrintsShown = 0x400000;   // the unit's flags_
+constexpr int kStepFrames = 4;
+constexpr int kMaxFootPart = 9;
+
+// The client world's local view (CWorldClient::LocalView) and its player; only the field read here.
+
+// Footprints show for every unit (else only for units with flags_ 0x400000).
+bool AllFootprintsShown() { return options::TheOptions()->drawVisibleOnly_ == 0; }
+
+// The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; the
+// callers have returned on a NaN `now`).
+bool PassedFrame(double frame, float last, float now) { return frame > last && frame <= now; }
+
+void Shake(CUnit* unit) {
+    const auto* prototype = unit->GetPrototype();
+    float strength = prototype->shake;
+    if (strength > 0.0f)
+        TheCamera()->Shake(&unit->localPosition_, kShakeDuration, strength,
+                                   kShakeDecay);
+}
+
+bool SoundBusy(int handle) {
+    if (handle == -1) return false;
+    CSoundManager* sounds = TheSoundManager();
+    return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
+}
+
 } // namespace
 
 int CUnitClientSpecific::FootstepSound(int terrain, std::string* out) {
@@ -139,49 +181,6 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
 }
 
 // --- Playing them --------------------------------------------------------------------------------
-
-namespace {
-constexpr std::uint32_t kKindWalk = 0x100000;
-constexpr std::uint32_t kKindRun = 0x140000;
-constexpr int kPriorityAction = 1000;
-constexpr float kSoundNear = 8.0f;
-constexpr float kSoundFar = 40.0f;
-constexpr float kShakeDuration = 5.0f;
-constexpr float kShakeDecay = 0.25f;
-constexpr std::uint32_t kEffectSilence = 0x10;
-constexpr int kViewNoAttackSounds = 3;       // the local view player's sessionKind100_
-constexpr double kMinAxisLength = 0.0001;
-constexpr float kPi = 3.14159274f;
-constexpr float kHalf = 0.5f;
-constexpr float kCrawlPrintScale = 0.5f;
-constexpr float kWalkPrintScale = 0.75f;
-constexpr std::uint32_t kFlagPrintsShown = 0x400000;   // the unit's flags_
-constexpr int kStepFrames = 4;
-constexpr int kMaxFootPart = 9;
-
-// The client world's local view (CWorldClient::LocalView) and its player; only the field read here.
-
-// Footprints show for every unit (else only for units with flags_ 0x400000).
-bool AllFootprintsShown() { return options::TheOptions()->drawVisibleOnly_ == 0; }
-
-// The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; the
-// callers have returned on a NaN `now`).
-bool PassedFrame(double frame, float last, float now) { return frame > last && frame <= now; }
-
-void Shake(CUnit* unit) {
-    const auto* prototype = unit->GetPrototype();
-    float strength = prototype->shake;
-    if (strength > 0.0f)
-        TheCamera()->Shake(&unit->localPosition_, kShakeDuration, strength,
-                                   kShakeDecay);
-}
-
-bool SoundBusy(int handle) {
-    if (handle == -1) return false;
-    CSoundManager* sounds = TheSoundManager();
-    return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
-}
-} // namespace
 
 void CUnitClientSpecific::PlayStepSounds() {
     const CFigureAnimationState* state = unit->Object3D()->animation;

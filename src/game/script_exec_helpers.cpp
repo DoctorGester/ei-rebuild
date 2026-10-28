@@ -39,6 +39,28 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
     light->step.z = static_cast<float>(static_cast<double>(dz) * inverse);
 }
 
+ScriptQuestObjective* QuestObjectives() { return ScriptQuestObjectives().data(); }
+int QuestObjectiveCount() { return static_cast<int>(ScriptQuestObjectives().size()); }
+std::string& QuestName() { return ScriptQuestName(); }   // QStart's name
+
+// operator+(const CString&, const CString&), constructing the result in `out`.
+std::string* ConcatString(std::string* a0, const std::string* a1, const std::string* a2) { *a0 = *a1 + *a2; return a0; }
+
+// operator+'s result, destroyed with the holder.
+class Sum {
+public:
+    Sum(const std::string& a, const std::string& b) { ConcatString(Get(), &a, &b); }
+    Sum(const Sum&) = delete;
+    Sum& operator=(const Sum&) = delete;
+    std::string* Get() { return &value_; }
+
+private:
+    std::string value_;   // constructed by ConcatString
+};
+
+void DestroyScriptQuestObjectives() { g_scriptQuestObjectives.Destroy(); }
+void DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }
+
 } // namespace
 
 
@@ -129,29 +151,6 @@ void CScript::DeletePointLight(const SSCCmd* cmd) {
     }
 }
 
-namespace {
-
-ScriptQuestObjective* QuestObjectives() { return ScriptQuestObjectives().data(); }
-int QuestObjectiveCount() { return static_cast<int>(ScriptQuestObjectives().size()); }
-std::string& QuestName() { return ScriptQuestName(); }   // QStart's name
-
-// operator+(const CString&, const CString&), constructing the result in `out`.
-std::string* ConcatString(std::string* a0, const std::string* a1, const std::string* a2) { *a0 = *a1 + *a2; return a0; }
-
-// operator+'s result, destroyed with the holder.
-class Sum {
-public:
-    Sum(const std::string& a, const std::string& b) { ConcatString(Get(), &a, &b); }
-    Sum(const Sum&) = delete;
-    Sum& operator=(const Sum&) = delete;
-    std::string* Get() { return &value_; }
-
-private:
-    std::string value_;   // constructed by ConcatString
-};
-
-} // namespace
-
 // The text, per objective i (0-based; the quest name is q, N objectives):
 //   DeclareScript Su0() .. SuN()                      (one line each)
 //   Script Sui(if(\n<condition>\n)then(\nKillScript()\nSu<i+1>()\nGSSetVar(0,"q.q.q.<i+1>",2)\n
@@ -231,11 +230,6 @@ void ScriptQuestFinish(CScript* script) {
 // initialisers' objects").
 constinit lib::StaticObject<std::vector<ScriptQuestObjective>> g_scriptQuestObjectives = /*007AA608*/ {};
 constinit lib::StaticObject<std::string> g_scriptQuestName = /*007AA61C*/ {};
-
-namespace {
-void DestroyScriptQuestObjectives() { g_scriptQuestObjectives.Destroy(); }
-void DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }
-} // namespace
 
 void ConstructScriptQuestObjectives() {
     g_scriptQuestObjectives.Construct();

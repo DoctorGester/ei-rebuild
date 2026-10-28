@@ -86,11 +86,6 @@ void ReturnResults(CCampPages* camp, CParty* results, CParty* constructorList, C
     }
 }
 
-} // namespace
-
-// --- a spell container taken apart ---------------------------------------------------------------
-
-namespace {
 // A new item named `name` from the results' item manager, counted.
 CItemLoot* NewLoot(CParty* party, const char* name) {
     auto* item = AsLoot(party->ItemManager()->CreateItem(name));
@@ -101,31 +96,7 @@ void AddAndRelease(CParty* party, CItemLoot* item) {
     party->AddItem(item, 0, 0);
     item->Release();
 }
-} // namespace
 
-bool CCampPages::DeconstructSpell() {
-    CParty* results = spellResults_;
-    CItem* copy = results->CopyItem(ItemAt(results, 0));
-    spellMade_ = copy;
-    ++copy->refCount_;
-    results->RemoveItem(ItemAt(results, 0), 0);
-    auto* spell = copy->spell_;
-
-    CItemLoot* prototype = NewLoot(results, kPrototypeItem);
-    prototype->index_ = PrototypeIndex(spell);
-    AddAndRelease(results, prototype);
-    for (int i = 0; i < spell->GetModifierCount(); ++i) {
-        CItemLoot* rune = NewLoot(results, kRuneItem);
-        rune->index_ = spell->modifiers_[i] - 1;
-        AddAndRelease(results, rune);
-    }
-    spellMade_->Release();
-    spellMade_ = nullptr;
-    return true;
-}
-// --- an item taken apart -------------------------------------------------------------------------
-
-namespace {
 // The instruction (blueprint) items by the item's class: weapon, armour, quick item.
 const char* InstructionName(int itemClass) {
     switch (itemClass) {
@@ -148,47 +119,6 @@ void AddNamed(CParty* results, const char* name, std::uint32_t prototypeIndex, b
     if (setIndex) item->index_ = prototypeIndex;
     AddAndRelease(results, item);
 }
-} // namespace
-
-bool CCampPages::DeconstructItem() {
-    CParty* results = itemResults_;
-    CItem* copy = results->CopyItem(ItemAt(results, 0));
-    itemMade_ = copy;
-    ++copy->refCount_;
-    results->RemoveItem(ItemAt(results, 0), 0);
-
-    if (const char* instruction = InstructionName(copy->type_))
-        AddNamed(results, instruction, PrototypeIndex(copy), true);
-    // A material per one the prototype needs; a material index out of range reads its key through null.
-    for (std::uint32_t i = 0; i < copy->GetPrototype()->materialUnits; ++i) {
-        const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(MaterialIndex(copy->prototypeId_));
-        // The text is CString("material") + '.' + key (operator+ twice).
-        std::string name = MaterialText();
-        name += ".";
-        name += material->key;
-        AddNamed(results, name.c_str(), 0, false);
-    }
-    if (copy->spell_) {
-        CItemManager* manager = results->ItemManager();
-        itemdb::QuickItemTable& quickItems = itemdb::TheItemDatabase().quickItems;
-        int index = quickItems.IndexOf(quickItems.Named(SpellContainerText()));
-        auto* container = manager->MakeItem(kSpellContainerClass, index, 0, -1);
-        if (container) {
-            ++container->refCount_;
-            CSpell* clone = copy->spell_->Clone(results->SpellManager());
-            container->AttachSpell(clone);
-            results->AddItem(container, 0, 0);
-            container->Release();
-        }
-    }
-    itemMade_->Release();
-    itemMade_ = nullptr;
-    return true;
-}
-
-// --- the first action button ---------------------------------------------------------------------
-
-namespace {
 
 // The spell constructor's third list: each item repaired, its spell's (container), spell's or
 // modifier's record added to the template's spell stock.
@@ -246,6 +176,68 @@ void RepairAll(CParty* list) {
 }
 
 } // namespace
+
+// --- a spell container taken apart ---------------------------------------------------------------
+
+bool CCampPages::DeconstructSpell() {
+    CParty* results = spellResults_;
+    CItem* copy = results->CopyItem(ItemAt(results, 0));
+    spellMade_ = copy;
+    ++copy->refCount_;
+    results->RemoveItem(ItemAt(results, 0), 0);
+    auto* spell = copy->spell_;
+
+    CItemLoot* prototype = NewLoot(results, kPrototypeItem);
+    prototype->index_ = PrototypeIndex(spell);
+    AddAndRelease(results, prototype);
+    for (int i = 0; i < spell->GetModifierCount(); ++i) {
+        CItemLoot* rune = NewLoot(results, kRuneItem);
+        rune->index_ = spell->modifiers_[i] - 1;
+        AddAndRelease(results, rune);
+    }
+    spellMade_->Release();
+    spellMade_ = nullptr;
+    return true;
+}
+// --- an item taken apart -------------------------------------------------------------------------
+
+bool CCampPages::DeconstructItem() {
+    CParty* results = itemResults_;
+    CItem* copy = results->CopyItem(ItemAt(results, 0));
+    itemMade_ = copy;
+    ++copy->refCount_;
+    results->RemoveItem(ItemAt(results, 0), 0);
+
+    if (const char* instruction = InstructionName(copy->type_))
+        AddNamed(results, instruction, PrototypeIndex(copy), true);
+    // A material per one the prototype needs; a material index out of range reads its key through null.
+    for (std::uint32_t i = 0; i < copy->GetPrototype()->materialUnits; ++i) {
+        const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(MaterialIndex(copy->prototypeId_));
+        // The text is CString("material") + '.' + key (operator+ twice).
+        std::string name = MaterialText();
+        name += ".";
+        name += material->key;
+        AddNamed(results, name.c_str(), 0, false);
+    }
+    if (copy->spell_) {
+        CItemManager* manager = results->ItemManager();
+        itemdb::QuickItemTable& quickItems = itemdb::TheItemDatabase().quickItems;
+        int index = quickItems.IndexOf(quickItems.Named(SpellContainerText()));
+        auto* container = manager->MakeItem(kSpellContainerClass, index, 0, -1);
+        if (container) {
+            ++container->refCount_;
+            CSpell* clone = copy->spell_->Clone(results->SpellManager());
+            container->AttachSpell(clone);
+            results->AddItem(container, 0, 0);
+            container->Release();
+        }
+    }
+    itemMade_->Release();
+    itemMade_ = nullptr;
+    return true;
+}
+
+// --- the first action button ---------------------------------------------------------------------
 
 void CCampPages::DoAction() {
     interface_->PlaySound(kBuySound, 0);

@@ -24,6 +24,33 @@ constexpr int kKeyHome = 0x24;
 constexpr int kKeyLeft = 0x25;
 constexpr int kKeyRight = 0x27;
 constexpr int kKeyDelete = 0x2E;
+
+constexpr int kSurfaceFormat = 5;
+constexpr int kKeyTab = 0x09;
+constexpr int kKeyEnter = 0x0D;
+constexpr int kKeyEscape = 0x1B;
+constexpr std::uint32_t kClassDigit = 1;
+constexpr std::uint32_t kClassLetter = 2;      // letters and the space
+constexpr std::uint32_t kClassOther = 4;
+constexpr std::uint32_t kClassSeparator = 8;   // '.' and ':'
+
+int TextWidth(CInterface3D* ui, const std::string& text, int font) {
+    SIZE size;
+    ui->TextExtent(&size, text, font);
+    return size.cx;
+}
+
+// The class of typed character `key` that charClasses_ admits or not. A character past ASCII is a code point: a
+// letter when Windows calls it one.
+std::uint32_t CharClass(int key) {
+    if (key >= 0x80) return key <= 0xFFFF && IsCharAlphaW(static_cast<WCHAR>(key)) ? kClassLetter : kClassOther;
+    const char c = static_cast<char>(key);
+    if (text::IsDigit(key) != 0) return kClassDigit;
+    if (text::IsAlpha(key) != 0 || c == ' ') return kClassLetter;
+    if (c == '.' || c == ':') return kClassSeparator;
+    return kClassOther;
+}
+
 } // namespace
 
 void CUiEditField::OnKeyDown(int key, int, int) {
@@ -80,34 +107,6 @@ void CUiEditField::OnKeyDown(int key, int, int) {
     DrawContentsVanilla();
     handled_ = true;
 }
-
-namespace {
-constexpr int kSurfaceFormat = 5;
-constexpr int kKeyTab = 0x09;
-constexpr int kKeyEnter = 0x0D;
-constexpr int kKeyEscape = 0x1B;
-constexpr std::uint32_t kClassDigit = 1;
-constexpr std::uint32_t kClassLetter = 2;      // letters and the space
-constexpr std::uint32_t kClassOther = 4;
-constexpr std::uint32_t kClassSeparator = 8;   // '.' and ':'
-
-int TextWidth(CInterface3D* ui, const std::string& text, int font) {
-    SIZE size;
-    ui->TextExtent(&size, text, font);
-    return size.cx;
-}
-
-// The class of typed character `key` that charClasses_ admits or not. A character past ASCII is a code point: a
-// letter when Windows calls it one.
-std::uint32_t CharClass(int key) {
-    if (key >= 0x80) return key <= 0xFFFF && IsCharAlphaW(static_cast<WCHAR>(key)) ? kClassLetter : kClassOther;
-    const char c = static_cast<char>(key);
-    if (text::IsDigit(key) != 0) return kClassDigit;
-    if (text::IsAlpha(key) != 0 || c == ' ') return kClassLetter;
-    if (c == '.' || c == ':') return kClassSeparator;
-    return kClassOther;
-}
-} // namespace
 
 // The window's slots; the input side's keys and characters.
 CUiEditField::CUiEditField(CInterface3D* ui, RECT rect) : CUiWindow(ui) {

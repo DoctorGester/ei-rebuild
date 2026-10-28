@@ -68,6 +68,22 @@ void RemoveFromSlots(CUnit* unit, CItem** slots, std::uint32_t slot) {
     if (item) item->Release();
     unit->MarkChanged(kPartEquipment);
 }
+
+// Speed byte of movement mode `mode` (0..4) times the base speed; the base speed for others.
+double ModeSpeedOf(const CUnit* unit, std::uint32_t mode) {
+    double base = static_cast<float>(unit->params.baseSpeed) * kSpeedByteScale;   // kept on the FPU stack
+    std::uint8_t speed;
+    switch (mode) {
+    case 0: speed = unit->params.modeSpeeds[3]; break;
+    case 1: speed = unit->params.modeSpeeds[2]; break;
+    case 2:
+    case 4: speed = unit->params.modeSpeeds[1]; break;
+    case 3: speed = unit->params.modeSpeeds[0]; break;
+    default: return base;
+    }
+    return base * (static_cast<float>(speed) * kTwo) * kByteScale;
+}
+
 } // namespace
 
 // --- Sides -----------------------------------------------------------------------------------
@@ -287,23 +303,6 @@ void CUnit::GetMoveSpeeds(float* forward, float* backward) {
     *backward = scaled;
     *backward = BackwardSpeedScale() * *backward;
 }
-
-namespace {
-// Speed byte of movement mode `mode` (0..4) times the base speed; the base speed for others.
-double ModeSpeedOf(const CUnit* unit, std::uint32_t mode) {
-    double base = static_cast<float>(unit->params.baseSpeed) * kSpeedByteScale;   // kept on the FPU stack
-    std::uint8_t speed;
-    switch (mode) {
-    case 0: speed = unit->params.modeSpeeds[3]; break;
-    case 1: speed = unit->params.modeSpeeds[2]; break;
-    case 2:
-    case 4: speed = unit->params.modeSpeeds[1]; break;
-    case 3: speed = unit->params.modeSpeeds[0]; break;
-    default: return base;
-    }
-    return base * (static_cast<float>(speed) * kTwo) * kByteScale;
-}
-} // namespace
 
 double CUnit::MoveSpeed2() { return ModeSpeedOf(this, static_cast<std::uint32_t>(moveMode2)); }
 

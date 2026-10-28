@@ -174,6 +174,15 @@ double PowerOfInfinity(double x, double y) {
     return odd ? negativeZero : 0.0;
 }
 
+// x + y of two doubles on the x87 (FLD, FADD: a NaN's propagation as the CRT's _handle_qnan2 has it).
+__declspec(naked) double AddOnX87(double /*x*/, double /*y*/) {
+    __asm {
+        fld qword ptr [esp + 4]
+        fadd qword ptr [esp + 12]
+        ret
+    }
+}
+
 } // namespace
 
 double CiAcos(double x) { return ArcCosineOrSine(x, false); }
@@ -225,19 +234,6 @@ double CiPow(double x, double y) {
     if (IsInfinite(Bits(power))) return control.Overflow(negate);
     return negate ? -power : power;
 }
-
-namespace {
-
-// x + y of two doubles on the x87 (FLD, FADD: a NaN's propagation as the CRT's _handle_qnan2 has it).
-__declspec(naked) double AddOnX87(double /*x*/, double /*y*/) {
-    __asm {
-        fld qword ptr [esp + 4]
-        fadd qword ptr [esp + 12]
-        ret
-    }
-}
-
-} // namespace
 
 // _hypothlp's steps under its control word 133F (64 bits, to nearest), each result stored to a double as
 // the x87 code stores it (so rounded twice: volatile keeps the stores): |x| and |y| over the larger, the

@@ -122,6 +122,13 @@ void ShowRainBolt(CWorldServer* world) {
     ShowBolt(from, to);
 }
 
+// "WorldScript(CreateFX( %f,%f,%f,60,150,"nature\thunder\%i.wav" ) )"
+// "WorldScript(CreatePointLight(1,%f,%f,%f,...) CreateFX( %f,%f,%f,...,"nature\lightning\%i.wav" )
+//  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
+CScript& ScriptQueue() { return *TheServerWorld()->SecondScript(); }   // a command queue (adds a line)
+
+float Half() { return 0.5f /*0073B86C*/; }
+
 } // namespace
 
 void CWorldServer::UpdateWeather() {
@@ -143,17 +150,6 @@ void CWorldServer::UpdateWeather() {
 }
 
 // ---- ShowBolt ---------------------------------------------------------------------------------
-
-namespace {
-
-// "WorldScript(CreateFX( %f,%f,%f,60,150,"nature\thunder\%i.wav" ) )"
-// "WorldScript(CreatePointLight(1,%f,%f,%f,...) CreateFX( %f,%f,%f,...,"nature\lightning\%i.wav" )
-//  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
-CScript& ScriptQueue() { return *TheServerWorld()->SecondScript(); }   // a command queue (adds a line)
-
-float Half() { return 0.5f /*0073B86C*/; }
-
-} // namespace
 
 void ShowBolt(Vector3 from, Vector3 to) {
     std::string prefix;   // stays empty

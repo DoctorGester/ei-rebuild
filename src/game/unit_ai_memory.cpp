@@ -33,6 +33,19 @@ double Distance2(const CUnit* a, const float* b) {
     return LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
 }
 
+constexpr float kMaxExposure = 3.0f;
+
+// distance / range, at most 3 (NaN kept); 3 for a zero range.
+float Exposure(float distance, double range) {
+    EI_NAN_AUDIT(range);
+    if (range == 0.0) return kMaxExposure;
+    float ratio = static_cast<float>(distance / range);
+    return ratio >= kMaxExposure ? kMaxExposure : ratio;
+}
+
+// The smaller of the two; NaN `value` wins.
+void KeepLower(float& slot, float value) { slot = value >= slot ? slot : value; }
+
 } // namespace
 
 void CountedUnits::AddCountedTail(CUnit* object) {
@@ -121,21 +134,6 @@ void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
     seenCorpses.AddCountedTail(corpse);
     if (Allied(self->side, corpse->side)) corpses.AddCountedTail(corpse);
 }
-
-namespace {
-constexpr float kMaxExposure = 3.0f;
-
-// distance / range, at most 3 (NaN kept); 3 for a zero range.
-float Exposure(float distance, double range) {
-    EI_NAN_AUDIT(range);
-    if (range == 0.0) return kMaxExposure;
-    float ratio = static_cast<float>(distance / range);
-    return ratio >= kMaxExposure ? kMaxExposure : ratio;
-}
-
-// The smaller of the two; NaN `value` wins.
-void KeepLower(float& slot, float value) { slot = value >= slot ? slot : value; }
-} // namespace
 
 void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
     for (int i = 0; i < 5; ++i) out[i] = kMaxExposure;

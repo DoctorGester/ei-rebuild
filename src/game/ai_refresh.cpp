@@ -32,6 +32,64 @@ std::uint32_t& CellWord(CAIMap* map, int x, int y) {
     return map->cells[y][x].passable;
 }
 
+// The scratch state CellMark builds (0x18 bytes used).
+struct MarkState {
+    int bottom;
+    int top;
+    int passage;         // 0x400 open, damped by occluders; negative: blocked
+    int cost;
+    int ceiling;                        // the room above the bottom (0x7F8 on open ground)
+    std::uint8_t doubled;   // the cost counts twice (occluder type 3)
+};
+
+// passage * e^(table * a * b) as the original's x87 sequence computes it, stored to a float and rounded.
+int Damp(int table, float a, float b, int passage) {
+    const float damped = static_cast<float>(x87::fexp(static_cast<double>(table) * a * b) * passage);
+    return x87::fistp(damped);
+}
+
+int TableInt(const int* table, int i) { return table[i]; }
+
+// One occluder of type `type` spanning heights [lowest, highest] against the cell's column.
+// `sectorOrder`: the order of the two factors of the exponent (the two callers differ).
+void Occlude(MarkState* s, int type, int lowest, int highest, bool sectorOrder) {
+    switch (type) {
+    case 2:
+    case 4:
+        return;
+    case 3:
+        s->doubled = 1;
+        return;
+    default:
+        break;
+    }
+    if (s->passage < 0 || lowest > s->top || highest < s->bottom) return;
+    int lo = lowest > s->bottom ? lowest : s->bottom;
+    int hi = highest < s->top ? highest : s->top;
+    float frac = static_cast<float>(static_cast<double>(hi - lo) / (s->top - s->bottom));
+    float added = static_cast<float>(static_cast<double>(TableInt(worlddata::kOccluderCosts, type)) * frac);
+    s->cost += x87::fistp(added);
+    float scale = g_dampScale;
+    s->passage = sectorOrder ? Damp(TableInt(worlddata::kOccluderDamping, type), scale, frac, s->passage)
+                             : Damp(TableInt(worlddata::kOccluderDamping, type), frac, scale, s->passage);
+}
+
+// 17 cell offsets {dy, dx}; the first 4 the direct neighbours, the other 13 the cells
+// whose nibble 7 a steep cell clears.
+struct CellOffset {
+    int dy, dx;
+};
+constexpr int kSteepOffsets[34] = /*007916BC*/ {
+    0, 1, 0, -1, 1, 0, -1, 0, 0, 2, -1, 1, 0, 1, 1, 1, -2, 0, -1, 0, 0, 0, 1, 0, 2, 0, -1, -1, 0, -1, 1, -1, 0, -2};
+const CellOffset* SteepOffsets() { return reinterpret_cast<const CellOffset*>(kSteepOffsets); }
+
+// The largest climbable step of a climb table: the run of non-negative costs from the middle, less one.
+int MaxStep(const std::vector<int>& table) {
+    int n = 0;
+    while (table[std::ssize(table) / 2 + n] > -1) ++n;
+    return n - 1;
+}
+
 } // namespace
 
 void InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6 /*0073FD50*/)); }
@@ -124,52 +182,6 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
 
 // ---- CellMark ---------------------------------------------------------------------------------
 
-namespace {
-
-// The scratch state CellMark builds (0x18 bytes used).
-struct MarkState {
-    int bottom;
-    int top;
-    int passage;         // 0x400 open, damped by occluders; negative: blocked
-    int cost;
-    int ceiling;                        // the room above the bottom (0x7F8 on open ground)
-    std::uint8_t doubled;   // the cost counts twice (occluder type 3)
-};
-
-// passage * e^(table * a * b) as the original's x87 sequence computes it, stored to a float and rounded.
-int Damp(int table, float a, float b, int passage) {
-    const float damped = static_cast<float>(x87::fexp(static_cast<double>(table) * a * b) * passage);
-    return x87::fistp(damped);
-}
-
-int TableInt(const int* table, int i) { return table[i]; }
-
-// One occluder of type `type` spanning heights [lowest, highest] against the cell's column.
-// `sectorOrder`: the order of the two factors of the exponent (the two callers differ).
-void Occlude(MarkState* s, int type, int lowest, int highest, bool sectorOrder) {
-    switch (type) {
-    case 2:
-    case 4:
-        return;
-    case 3:
-        s->doubled = 1;
-        return;
-    default:
-        break;
-    }
-    if (s->passage < 0 || lowest > s->top || highest < s->bottom) return;
-    int lo = lowest > s->bottom ? lowest : s->bottom;
-    int hi = highest < s->top ? highest : s->top;
-    float frac = static_cast<float>(static_cast<double>(hi - lo) / (s->top - s->bottom));
-    float added = static_cast<float>(static_cast<double>(TableInt(worlddata::kOccluderCosts, type)) * frac);
-    s->cost += x87::fistp(added);
-    float scale = g_dampScale;
-    s->passage = sectorOrder ? Damp(TableInt(worlddata::kOccluderDamping, type), scale, frac, s->passage)
-                             : Damp(TableInt(worlddata::kOccluderDamping, type), frac, scale, s->passage);
-}
-
-} // namespace
-
 std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x, int y) {
     auto* s = static_cast<MarkState*>(scratch);
     AIMapCell* cell = &cells[y][x];
@@ -244,24 +256,6 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
     else row = cost >= 2 ? 1 : 0;
     return worlddata::kMarkTable[row * 16 + column];
 }
-
-namespace {
-// 17 cell offsets {dy, dx}; the first 4 the direct neighbours, the other 13 the cells
-// whose nibble 7 a steep cell clears.
-struct CellOffset {
-    int dy, dx;
-};
-constexpr int kSteepOffsets[34] = /*007916BC*/ {
-    0, 1, 0, -1, 1, 0, -1, 0, 0, 2, -1, 1, 0, 1, 1, 1, -2, 0, -1, 0, 0, 0, 1, 0, 2, 0, -1, -1, 0, -1, 1, -1, 0, -2};
-const CellOffset* SteepOffsets() { return reinterpret_cast<const CellOffset*>(kSteepOffsets); }
-
-// The largest climbable step of a climb table: the run of non-negative costs from the middle, less one.
-int MaxStep(const std::vector<int>& table) {
-    int n = 0;
-    while (table[std::ssize(table) / 2 + n] > -1) ++n;
-    return n - 1;
-}
-} // namespace
 
 void CAIMap::LimitSteepCells(int x0, int x1, int y0, int y1) {
     if (x0 < 2) x0 = 2;

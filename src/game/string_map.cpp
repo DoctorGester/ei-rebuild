@@ -19,6 +19,15 @@ namespace strmap {
 
 namespace {
 
+// The interface's panel rectangle (Rebirth-patched), the panel surface's constructor and destructor body.
+
+// The panel's font face.
+const char* FontFace() { return "Courier New"; }
+
+void DrawString(HDC dc, const std::string& s, RECT* rect) {
+    gameapi::DrawTextA(dc, s.data(), static_cast<int>(s.size()), rect, 0x800u);
+}
+
 } // namespace
 
 // Table[key] = value (a missing key is inserted at its lower bound with an
@@ -44,6 +53,7 @@ CDebugPanel::CDebugPanel() {}
 // it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CDebugPanel> g_debugPanel = /*0079B930*/ {};
 
+// A second block: it uses g_debugPanel (defined above).
 namespace {
 void DestroyDebugPanel() { g_debugPanel.Destroy(); }
 } // namespace
@@ -54,19 +64,6 @@ void ConstructDebugPanel() {
 }
 
 // ---- The panel ---------------------------------------------------------------------------------
-
-namespace {
-
-// The interface's panel rectangle (Rebirth-patched), the panel surface's constructor and destructor body.
-
-// The panel's font face.
-const char* FontFace() { return "Courier New"; }
-
-void DrawString(HDC dc, const std::string& s, RECT* rect) {
-    gameapi::DrawTextA(dc, s.data(), static_cast<int>(s.size()), rect, 0x800u);
-}
-
-} // namespace
 
 // Binds the panel to the interface: an 8-point font, the rectangle (10, 10, 290, 290).
 void CDebugPanel::Init(CInterface3D* ui) {

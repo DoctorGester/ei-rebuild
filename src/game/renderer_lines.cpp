@@ -50,6 +50,10 @@ void SetStageOps(CTextureDevice* device, DWORD op) {
     render::state::Stage(0, kAlphaOp, op);
 }
 
+void DestroyLineOutcodes() {   // (CByteArray's destructor)
+    g_lineOutcodes.Destroy();
+}
+
 } // namespace
 
 // Fewer than two points: 0. Else the strip in
@@ -103,12 +107,6 @@ long DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, 
 constinit std::vector<LineVertex> g_lineVertices = /*007A9CE0*/ {};
 constinit std::vector<ProjectedPoint> g_lineProjected = /*007A9CB8*/ {};
 constinit lib::StaticObject<std::vector<std::uint8_t>> g_lineOutcodes = /*007A9CC8*/ {};
-
-namespace {
-void DestroyLineOutcodes() {   // (CByteArray's destructor)
-    g_lineOutcodes.Destroy();
-}
-} // namespace
 
 void FreeLineVertices() { lib::FreeStorage(g_lineVertices); }
 void FreeLineProjected() { lib::FreeStorage(g_lineProjected); }

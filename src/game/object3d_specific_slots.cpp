@@ -40,6 +40,9 @@ const char* ClientClassName() { return "CObject3DClientSpecific"; }
 
 POINT AsPoint(const long* point) { return POINT{point[0], point[1]}; }
 const RECT* PartRect(const CFigureMesh* part) { return &part->drawer_->screen_; }
+
+constexpr float kNoScale = 1.0f;
+
 } // namespace
 
 int CObject3DClientSpecific::BoundsContainPoint(const long* point) {
@@ -89,10 +92,6 @@ int CObject3DClientSpecific::GetClassId() { return kClientClassId; }
 
 // The base half's destructor (deleting form): the object forgotten.
 CObject3DSpecific::~CObject3DSpecific() { object = nullptr; }
-
-namespace {
-constexpr float kNoScale = 1.0f;
-} // namespace
 
 void CObject3DSpecific::GetScale(float* x, float* y, float* z) {
     *x = kNoScale;

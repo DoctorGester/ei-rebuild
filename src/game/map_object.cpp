@@ -32,6 +32,35 @@ double GroundHeight(CWorld* world, float x, float y) { return world->GridHeightA
 
 // The change stamp: the world's update count.
 int UpdateCount(const CWorld* world) { return world->updateCount_; }
+
+constexpr int kRebirthMaxEffects = 20;
+constexpr double kRebirthSameStrength = 0.001;   // addon.dll's constant (a double)
+
+float FloatBits(std::uint32_t bits) { return std::bit_cast<float>(bits); }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> float FloatBits(T) = delete;
+
+// Rebirth fix (FixSpellEffectsOverflow): after adding `effect`, older effects (not the new last one) of the
+// same type and end flag whose second float is within 0.001 of the new one's, that last no longer and whose
+// value is not above it, are removed. The loop steps on after a removal (the next record, moved into the gap,
+// is not looked at) and reads the count each time.
+void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
+    for (int i = 0; i < std::ssize(object->effects) - 1; ++i) {
+        MapEffect* e = &object->effects[i];
+        if (e->type != effect->type || e->ticksLeft > effect->ticksLeft) continue;
+        EI_NAN_AUDIT(FloatBits(effect->value), FloatBits(e->value));
+        if (FloatBits(effect->value) < FloatBits(e->value)) continue;   // FCOMPP; TEST AH,1
+        if (e->ending != effect->ending) continue;
+        float difference = FloatBits(e->strength) - FloatBits(effect->strength);
+        float distance = difference < 0.0f ? -difference : difference;     // CRT fabs: exact
+        if (static_cast<double>(distance) < kRebirthSameStrength) {          // TEST AH,5; JP: IEEE
+            object->effects.erase(object->effects.begin() + i);
+        }
+    }
+}
+
+constexpr int kTypeMapCompanion = 0x47;   // CEngineObject::type_ of the companions AttachCompanion accepts
+
 } // namespace
 
 CWorld* CMapObject::World() { return ObjectWorld(this); }
@@ -59,35 +88,6 @@ int CMapObject::Update() {
     if (companion) companion->RunTick();
     return 1;
 }
-
-namespace {
-
-constexpr int kRebirthMaxEffects = 20;
-constexpr double kRebirthSameStrength = 0.001;   // addon.dll's constant (a double)
-
-float FloatBits(std::uint32_t bits) { return std::bit_cast<float>(bits); }
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> float FloatBits(T) = delete;
-
-// Rebirth fix (FixSpellEffectsOverflow): after adding `effect`, older effects (not the new last one) of the
-// same type and end flag whose second float is within 0.001 of the new one's, that last no longer and whose
-// value is not above it, are removed. The loop steps on after a removal (the next record, moved into the gap,
-// is not looked at) and reads the count each time.
-void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
-    for (int i = 0; i < std::ssize(object->effects) - 1; ++i) {
-        MapEffect* e = &object->effects[i];
-        if (e->type != effect->type || e->ticksLeft > effect->ticksLeft) continue;
-        EI_NAN_AUDIT(FloatBits(effect->value), FloatBits(e->value));
-        if (FloatBits(effect->value) < FloatBits(e->value)) continue;   // FCOMPP; TEST AH,1
-        if (e->ending != effect->ending) continue;
-        float difference = FloatBits(e->strength) - FloatBits(effect->strength);
-        float distance = difference < 0.0f ? -difference : difference;     // CRT fabs: exact
-        if (static_cast<double>(distance) < kRebirthSameStrength) {          // TEST AH,5; JP: IEEE
-            object->effects.erase(object->effects.begin() + i);
-        }
-    }
-}
-} // namespace
 
 void CMapObject::SetEffectCount(int count) {
     effects.resize(count);
@@ -215,11 +215,6 @@ void CMapObject::AttachCompanion(CEngineObject* object) {
         ++companion->refCount_;
     }
 }
-
-namespace {
-constexpr int kTypeMapCompanion = 0x47;   // CEngineObject::type_ of the companions AttachCompanion accepts
-
-} // namespace
 
 void CMapObject::AttachObject(CEngineObject* object) {
     if (!object || object->type_ != kTypeMapCompanion) {

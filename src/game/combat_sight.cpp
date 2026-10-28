@@ -89,48 +89,6 @@ bool OrderSpell(CUnitServer* self, std::uint32_t source, CSpell** spell) {
     return true;
 }
 
-} // namespace
-
-// --- What must be seen -----------------------------------------------------------------------
-
-bool CUnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
-    if (order->flag18) return false;
-    CWorldServer* world = ServerWorld();
-    CMapObject* target = order->target;
-
-    if (order->kind == kOrderCast || order->kind == kOrderCastAt) {
-        CSpell* spell;
-        if (!OrderSpell(this, order->source, &spell) || !spell) return false;
-        if (spell->GetPrototype()->needsSight == 0) return false;
-        out->point.x = out->point.y = out->point.z = 0.0f;
-        std::memset(&out->minDistanceSq, 0, sizeof(float));
-        out->unit = nullptr;
-        if (CUnit* other = UnitOrNull(target)) {
-            out->unit = other;
-            double reach = static_cast<double>(unit->standingHeight) + other->standingHeight + kPointThree;
-            out->minDistanceSq = static_cast<float>(reach * reach);
-            out->eyeHeight = static_cast<float>(unit->BaseSpeed());
-            return true;
-        }
-        std::memcpy(&out->point, &order->point, sizeof(out->point));
-        out->point.z = static_cast<float>(
-            world->SurfaceHeightAt(out->point.x, out->point.y) + kOne);
-        out->eyeHeight = static_cast<float>(unit->BaseSpeed());
-        return true;
-    }
-
-    CUnit* targetUnit = UnitOrNull(target);
-    if (!targetUnit) return false;
-    out->point.x = out->point.y = out->point.z = 0.0f;
-    out->minDistanceSq = kNearSq;
-    out->unit = targetUnit;
-    out->eyeHeight = static_cast<float>(unit->BaseSpeed());
-    return true;
-}
-
-// --- Can the order be carried out from here ----------------------------------------------------
-
-namespace {
 // AI units only act on a target within 1.05 times their sight range: the smaller of two stats values (the
 // movement factor times the sight); the original's select picks the first for a NaN product.
 bool OutOfSightRange(CUnitServer* self, const float* point) {
@@ -196,7 +154,70 @@ bool NeedsClearWay(CUnitServer* self, const AIOrder* order) {
     EI_NAN_AUDIT(reach);
     return reach < kMeleeReach;
 }
+
+// The quick item or spell value the cast animation is built with: the spell's prototypeField14_ scaled by
+// 15 / stats.rate (unscaled when that is 0), rounded.
+int CastValue(CUnitServer* self, CSpell* spell) {
+    double scale = self->stats.rate;
+    if (scale != 0.0) scale = kFifteen / scale;   // a NaN stays the same NaN
+    volatile std::int64_t wide = spell->prototypeField14_;
+    float value = static_cast<float>(static_cast<double>(wide) * scale);
+    return x87::fistp(value);
+}
+
+void FillCastKind(OrderPlan* plan, CSpell* spell) {
+    plan->isCast = 1;
+    if (!spell) {
+        plan->castKind = kCastKindNone;
+        return;
+    }
+    if (spell->targetFlags_ & kSpellNoTarget) plan->targetId = -1;
+    std::uint32_t kind = spell->prototypeId_ >> 16;
+    if (kind == kSpellKindStrike) plan->castKind = 1;
+    else if (kind == kSpellKindCurse) plan->castKind = 0;
+    else plan->castKind = spell->GetPrototype()->school;
+}
+
 } // namespace
+
+// --- What must be seen -----------------------------------------------------------------------
+
+bool CUnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
+    if (order->flag18) return false;
+    CWorldServer* world = ServerWorld();
+    CMapObject* target = order->target;
+
+    if (order->kind == kOrderCast || order->kind == kOrderCastAt) {
+        CSpell* spell;
+        if (!OrderSpell(this, order->source, &spell) || !spell) return false;
+        if (spell->GetPrototype()->needsSight == 0) return false;
+        out->point.x = out->point.y = out->point.z = 0.0f;
+        std::memset(&out->minDistanceSq, 0, sizeof(float));
+        out->unit = nullptr;
+        if (CUnit* other = UnitOrNull(target)) {
+            out->unit = other;
+            double reach = static_cast<double>(unit->standingHeight) + other->standingHeight + kPointThree;
+            out->minDistanceSq = static_cast<float>(reach * reach);
+            out->eyeHeight = static_cast<float>(unit->BaseSpeed());
+            return true;
+        }
+        std::memcpy(&out->point, &order->point, sizeof(out->point));
+        out->point.z = static_cast<float>(
+            world->SurfaceHeightAt(out->point.x, out->point.y) + kOne);
+        out->eyeHeight = static_cast<float>(unit->BaseSpeed());
+        return true;
+    }
+
+    CUnit* targetUnit = UnitOrNull(target);
+    if (!targetUnit) return false;
+    out->point.x = out->point.y = out->point.z = 0.0f;
+    out->minDistanceSq = kNearSq;
+    out->unit = targetUnit;
+    out->eyeHeight = static_cast<float>(unit->BaseSpeed());
+    return true;
+}
+
+// --- Can the order be carried out from here ----------------------------------------------------
 
 bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time) {
     if (order->target == unit) return true;
@@ -234,31 +255,6 @@ bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time)
 }
 
 // --- The planner -----------------------------------------------------------------------------
-
-namespace {
-// The quick item or spell value the cast animation is built with: the spell's prototypeField14_ scaled by
-// 15 / stats.rate (unscaled when that is 0), rounded.
-int CastValue(CUnitServer* self, CSpell* spell) {
-    double scale = self->stats.rate;
-    if (scale != 0.0) scale = kFifteen / scale;   // a NaN stays the same NaN
-    volatile std::int64_t wide = spell->prototypeField14_;
-    float value = static_cast<float>(static_cast<double>(wide) * scale);
-    return x87::fistp(value);
-}
-
-void FillCastKind(OrderPlan* plan, CSpell* spell) {
-    plan->isCast = 1;
-    if (!spell) {
-        plan->castKind = kCastKindNone;
-        return;
-    }
-    if (spell->targetFlags_ & kSpellNoTarget) plan->targetId = -1;
-    std::uint32_t kind = spell->prototypeId_ >> 16;
-    if (kind == kSpellKindStrike) plan->castKind = 1;
-    else if (kind == kSpellKindCurse) plan->castKind = 0;
-    else plan->castKind = spell->GetPrototype()->school;
-}
-} // namespace
 
 bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     AnimationSteps steps;

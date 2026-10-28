@@ -74,6 +74,29 @@ bool ShowsWounds(std::uint32_t id) {
 }
 
 std::uint8_t Worse(std::uint8_t a, std::uint8_t b) { return a > b ? a : b; }
+
+constexpr int kWoundsTextureKind = 6;
+constexpr unsigned kWoundsPreset = 4;
+constexpr int kSourceAlpha = 5;          // D3DBLEND_SRCALPHA
+constexpr int kInverseSourceAlpha = 6;   // D3DBLEND_INVSRCALPHA
+constexpr const char* kNoWoundsTexture = "Can't create wounds texture for object \"%s\" ID = %d\n";
+
+// *slot = texture with counted references; the old one released (its slot 4).
+void AssignTexture(CTexture** slot, CTexture* value) {
+    CTexture* old = *slot;
+    *slot = value;
+    if (value) ++value->refCount_;
+    if (old) old->Release();
+}
+
+constexpr int kFaceTextureKind = 0x3D;
+constexpr const char* kHeroFace = "%smouth_%.2d";
+constexpr const char* kFace = "%smouth";
+
+constexpr std::uint32_t kWeaponSlots = 4;
+constexpr std::uint32_t kNoWeapon = 0xFFFFFFFF;
+constexpr const char* kHandNode = "baserh3";
+
 } // namespace
 
 bool CUnitClientSpecific::WoundLevels(std::uint8_t** levels) {
@@ -137,22 +160,6 @@ void CObject3DClientSpecific::HideWounds() {
     ClearWoundsMaterial();
 }
 
-namespace {
-constexpr int kWoundsTextureKind = 6;
-constexpr unsigned kWoundsPreset = 4;
-constexpr int kSourceAlpha = 5;          // D3DBLEND_SRCALPHA
-constexpr int kInverseSourceAlpha = 6;   // D3DBLEND_INVSRCALPHA
-constexpr const char* kNoWoundsTexture = "Can't create wounds texture for object \"%s\" ID = %d\n";
-
-// *slot = texture with counted references; the old one released (its slot 4).
-void AssignTexture(CTexture** slot, CTexture* value) {
-    CTexture* old = *slot;
-    *slot = value;
-    if (value) ++value->refCount_;
-    if (old) old->Release();
-}
-} // namespace
-
 // The constructor: no references, then its own fields; the stages vector is constructed empty.
 WoundsMaterial::WoundsMaterial() {
     blend = 1;
@@ -198,12 +205,6 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
 
 // --- The face texture -------------------------------------------------------------------------
 
-namespace {
-constexpr int kFaceTextureKind = 0x3D;
-constexpr const char* kHeroFace = "%smouth_%.2d";
-constexpr const char* kFace = "%smouth";
-} // namespace
-
 bool CUnitClientSpecific::LoadFaceTexture() {
     if (faceTexture) return true;
     const auto* prototype = unit->GetPrototype();
@@ -226,12 +227,6 @@ bool CUnitClientSpecific::LoadFaceTexture() {
 }
 
 // --- The weapon point -------------------------------------------------------------------------
-
-namespace {
-constexpr std::uint32_t kWeaponSlots = 4;
-constexpr std::uint32_t kNoWeapon = 0xFFFFFFFF;
-constexpr const char* kHandNode = "baserh3";
-} // namespace
 
 bool CUnitClientSpecific::WeaponPoint(Vector3* out) {
     std::string node;

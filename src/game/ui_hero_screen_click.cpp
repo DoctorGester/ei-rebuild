@@ -75,6 +75,65 @@ std::string& MpHeroName(int index) {
     return hero->Party()->members_.data()->texts[0];
 }
 
+// The rename's title on surface 3: 130 x 16 pixels.
+constexpr RECT kRenameTitle = {0, 0, 0x82, 0x10};
+constexpr std::uint32_t kBright = 0xA7D7E4;
+
+void MpHeroRename(CMpHeroScreen* self) { self->Rename(); }
+
+constexpr std::uint32_t kVoiceFlags = 0x2282;
+
+// A voice: an environment speech whose flags include kVoiceFlags, with a chance.
+bool IsVoice(const acks::EnvironmentSpeech& entry) {
+    return (entry.environment & kVoiceFlags) == kVoiceFlags && entry.speech.chance != 0;
+}
+
+void MpHeroPlayVoice(CMpHeroScreen* self) { self->PlayVoice(); }
+
+const char* SoundOk() { return "buttons\\messbox\\ok.wav"; }
+SavedParties* MpHeroesObject() { return &TheSavedParties(); }
+
+void MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
+
+const char* SoundCancel() { return game::CancelSoundText(); }
+// The points the three attributes must add up to (a float in the exe's data).
+float AttributePoints() { return 75.0f /*00741C98*/; }
+
+void MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
+
+// The heroes' folder and the records.
+const std::string& MpHeroesFolder() { return TheSavedParties().folder_; }
+std::vector<MpHeroRecord>& MpHeroes() { return TheSavedParties().entries_; }
+std::uint32_t MpHeroCount() { return static_cast<std::uint32_t>(MpHeroes().size()); }
+constexpr std::uint32_t kListRows = 10;
+constexpr int kAnswerOk = 0x10001;
+
+void MpHeroDelete(CMpHeroScreen* self) { self->DeleteHero(); }
+
+const char* HeroFilePattern() { return "%s*.mp"; }
+const char* HeroFileFormat() { return "%d.mp"; }
+
+// The highest number among the titles of the files matching `pattern` (atoi; 0 without any).
+int HighestFileNumber(std::string_view pattern) {
+    int highest = 0;
+    lib::FileFind find;
+    if (find.FindFile(pattern)) {
+        int more;
+        do {
+            more = find.FindNext();
+            if (!find.IsDots()) {
+                std::string title = find.GetTitle();
+                int number = str::ToInt(title);
+                if (!(highest > number)) highest = number;
+            }
+        } while (more);
+    }
+    find.Close();
+    return highest;
+}
+
+void MpHeroAddNew(CMpHeroScreen* self) { self->AddNewHero(); }
+
 } // namespace
 
 void CMpHeroScreen::CloseRenameEdit() {
@@ -328,12 +387,6 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
 
 // --- Rename ---------------------------------------------------------------------------
 
-namespace {
-// The rename's title on surface 3: 130 x 16 pixels.
-constexpr RECT kRenameTitle = {0, 0, 0x82, 0x10};
-constexpr std::uint32_t kBright = 0xA7D7E4;
-} // namespace
-
 void CMpHeroScreen::Rename() {
     if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
     renameEdit_->SetEnabled(1, 1);
@@ -357,20 +410,8 @@ void CMpHeroScreen::Rename() {
     surface->DrawTextIn((name + RenameSeparator()), &rect, 1, kBright, 2, 1);
     surface->ReleaseDC();
 }
-namespace {
-void MpHeroRename(CMpHeroScreen* self) { self->Rename(); }
-} // namespace
 
 // --- The voice's sound ----------------------------------------------------------------
-
-namespace {
-constexpr std::uint32_t kVoiceFlags = 0x2282;
-
-// A voice: an environment speech whose flags include kVoiceFlags, with a chance.
-bool IsVoice(const acks::EnvironmentSpeech& entry) {
-    return (entry.environment & kVoiceFlags) == kVoiceFlags && entry.speech.chance != 0;
-}
-} // namespace
 
 void CMpHeroScreen::PlayVoice() {
     interface_->StopSound(voiceSound_);
@@ -407,17 +448,8 @@ void CMpHeroScreen::PlayVoice() {
         index = (index + 1) % count;
     }
 }
-namespace {
-void MpHeroPlayVoice(CMpHeroScreen* self) { self->PlayVoice(); }
-} // namespace
 
 // --- Continue -------------------------------------------------------------------------
-
-namespace {
-const char* SoundOk() { return "buttons\\messbox\\ok.wav"; }
-SavedParties* MpHeroesObject() { return &TheSavedParties(); }
-
-} // namespace
 
 void CMpHeroScreen::Continue() {
     CInterface3D* ui = interface_;
@@ -430,17 +462,8 @@ void CMpHeroScreen::Continue() {
     CUiWindow* box = new CMessageBox(ui, "lmp_no_pers", "lmp_no_pers_msg", 0x20000, 1, 1);
     ui->PushWindow(box, 1, 1);
 }
-namespace {
-void MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
-} // namespace
 
 // --- The new hero's statistics and its creation --------------------------------------
-
-namespace {
-const char* SoundCancel() { return game::CancelSoundText(); }
-// The points the three attributes must add up to (a float in the exe's data).
-float AttributePoints() { return 75.0f /*00741C98*/; }
-} // namespace
 
 void CMpHeroScreen::RefreshHero() {
     if (previewModel_) {
@@ -481,9 +504,6 @@ void CMpHeroScreen::CreateHero() {
     RefreshStats();
     SetMode(this, nullptr, kModeStats);
 }
-namespace {
-void MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
-} // namespace
 // --- A hero deleted, the message box's answer ------------------------------------------
 
 MpHeroRecord::MpHeroRecord() { new (Party()) CParty(); }
@@ -498,15 +518,6 @@ MpHeroRecord& MpHeroRecord::operator=(const MpHeroRecord& other) {
 MpHeroRecord::~MpHeroRecord() { Party()->~CParty(); }
 
 void SavedParties::Select(const MpHeroRecord* hero) { outsideGame_ = *hero; }
-
-namespace {
-// The heroes' folder and the records.
-const std::string& MpHeroesFolder() { return TheSavedParties().folder_; }
-std::vector<MpHeroRecord>& MpHeroes() { return TheSavedParties().entries_; }
-std::uint32_t MpHeroCount() { return static_cast<std::uint32_t>(MpHeroes().size()); }
-constexpr std::uint32_t kListRows = 10;
-constexpr int kAnswerOk = 0x10001;
-} // namespace
 
 void CMpHeroScreen::DeleteHero() {
     if (heroIndex_ < 0 || static_cast<std::uint32_t>(heroIndex_) >= MpHeroCount()) return;
@@ -533,9 +544,6 @@ void CMpHeroScreen::RefreshHeroScroll() {
         heroTop_ = 0;
     }
 }
-namespace {
-void MpHeroDelete(CMpHeroScreen* self) { self->DeleteHero(); }
-} // namespace
 
 void CMpHeroScreen::OnMessageResult(int result) {
     if (result == kAnswerOk) MpHeroDelete(this);
@@ -548,30 +556,6 @@ void CMpHeroScreen::OnMessageResult(int result) {
 }
 
 // --- The new hero added to the list --------------------------------------------------
-
-namespace {
-const char* HeroFilePattern() { return "%s*.mp"; }
-const char* HeroFileFormat() { return "%d.mp"; }
-
-// The highest number among the titles of the files matching `pattern` (atoi; 0 without any).
-int HighestFileNumber(std::string_view pattern) {
-    int highest = 0;
-    lib::FileFind find;
-    if (find.FindFile(pattern)) {
-        int more;
-        do {
-            more = find.FindNext();
-            if (!find.IsDots()) {
-                std::string title = find.GetTitle();
-                int number = str::ToInt(title);
-                if (!(highest > number)) highest = number;
-            }
-        } while (more);
-    }
-    find.Close();
-    return highest;
-}
-} // namespace
 
 void CMpHeroScreen::AddNewHero() {
     interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
@@ -618,6 +602,3 @@ void CMpHeroScreen::AddNewHero() {
     DrawHeroList();
     SetMode(this, nullptr, kModeList);
 }
-namespace {
-void MpHeroAddNew(CMpHeroScreen* self) { self->AddNewHero(); }
-} // namespace

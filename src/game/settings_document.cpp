@@ -157,6 +157,17 @@ constexpr const char* kHeader =
     "; escaped), float:<number> (a 4-byte REG_BINARY float), hex:<bytes> (REG_BINARY), hex(<type>):<bytes>.\r\n"
     "; @ is a key's default value. The game rewrites this file when it saves its options.\r\n";
 
+int ImportTree(Document& document, RegistrySource& source, const std::string& path) {
+    std::vector<Value> values;
+    std::vector<std::string> subkeys;
+    if (!source.ReadKey(path, &values, &subkeys)) return 0;
+    document.AddKey(path);
+    int count = static_cast<int>(values.size());
+    for (Value& value : values) document.Set(path, value.name, value.type, std::move(value.data));
+    for (const std::string& sub : subkeys) count += ImportTree(document, source, path + "\\" + sub);
+    return count;
+}
+
 } // namespace
 
 
@@ -281,21 +292,6 @@ bool DocumentSource::ReadKey(const std::string& path, std::vector<Value>* values
     }
     return exists;
 }
-
-namespace {
-
-int ImportTree(Document& document, RegistrySource& source, const std::string& path) {
-    std::vector<Value> values;
-    std::vector<std::string> subkeys;
-    if (!source.ReadKey(path, &values, &subkeys)) return 0;
-    document.AddKey(path);
-    int count = static_cast<int>(values.size());
-    for (Value& value : values) document.Set(path, value.name, value.type, std::move(value.data));
-    for (const std::string& sub : subkeys) count += ImportTree(document, source, path + "\\" + sub);
-    return count;
-}
-
-} // namespace
 
 int ImportTrees(Document& document, RegistrySource& source) {
     int count = 0;

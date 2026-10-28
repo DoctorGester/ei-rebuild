@@ -31,16 +31,7 @@ using spellfx::g_spellFootprint;
 
 namespace {
 void FreeSpellFootprint() { lib::FreeStorage(g_spellFootprint->cells); }
-} // namespace
 
-void ConstructSpellFootprint() {
-    g_spellFootprint->Construct();
-    std::atexit(FreeSpellFootprint);
-}
-
-void FootprintCellSet::SetSize(int size) { cells.resize(static_cast<std::size_t>(size)); }
-
-namespace {
 FootprintCell* FindCell(FootprintCellSet* set, int x, int y) {
     for (int i = set->buckets[(x + y) & 15]; i >= 0; i = set->cells[i].next) {
         if (set->cells[i].x == x && set->cells[i].y == y) return &set->cells[i];
@@ -56,7 +47,24 @@ void AppendCell(FootprintCellSet* set, const FootprintCell& cell) {
     set->cells[std::ssize(set->cells) - 1].next = set->buckets[bucket];
     set->buckets[bucket] = std::ssize(set->cells) - 1;
 }
+
+const char* PartNotFoundFormat() { return "Bodypart \"%s\" for object \"%s\" not found\n"; }
+
+void ResetCellSet(FootprintCellSet* set) {
+    set->SetSize(0);
+    if (set->hashed) {
+        for (int& b : set->buckets) b = -1;
+    }
+}
+
 } // namespace
+
+void ConstructSpellFootprint() {
+    g_spellFootprint->Construct();
+    std::atexit(FreeSpellFootprint);
+}
+
+void FootprintCellSet::SetSize(int size) { cells.resize(static_cast<std::size_t>(size)); }
 
 void FootprintCellSet::AddTop(int x, int y, int height, std::int8_t kind, std::int8_t transparency) {
     hashed = true;
@@ -95,17 +103,6 @@ void FootprintCellSet::GetBounds(int* bounds) const {
 }
 
 // --- Footprints ----------------------------------------------------------------------------------
-
-namespace {
-const char* PartNotFoundFormat() { return "Bodypart \"%s\" for object \"%s\" not found\n"; }
-
-void ResetCellSet(FootprintCellSet* set) {
-    set->SetSize(0);
-    if (set->hashed) {
-        for (int& b : set->buckets) b = -1;
-    }
-}
-} // namespace
 
 bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet, FootprintCellSet* bridgeSet) {
     // The object's transform: rotation from its orientation, translation from its position.

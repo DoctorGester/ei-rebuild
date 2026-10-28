@@ -20,11 +20,11 @@ namespace {
 // Texture flags that make a released texture cacheable (8: loaded).
 constexpr std::uint32_t kCacheable = 0x38;
 
-} // namespace
-
-namespace {
 const char* ComposedTexturePattern() { return "textures\\*.mmp"; }
 const char* CantDeleteText() { return "Can't delete file \"%s\" due to %d.\n"; }
+
+// The virtual slot's entry point (rewrite-guide rule 4).
+
 } // namespace
 
 void DeleteComposedTextures() {
@@ -59,10 +59,6 @@ int CTextureManager::ReleaseObject(CEngineObject* object) {
     object->SetOwner(nullptr);
     return RemoveObject(object);
 }
-
-namespace {
-// The virtual slot's entry point (rewrite-guide rule 4).
-} // namespace
 
 CTexture* CTextureManager::TakeFromCache(int type, const char* name) {
     for (auto node = cache_.begin(); node != cache_.end();) {

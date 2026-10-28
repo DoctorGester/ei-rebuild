@@ -43,6 +43,21 @@ constexpr std::uint32_t kBoxEmpty = 0x890;       // "EMPTY..."
 // sets C0 (it lies beyond the bound, or one of them is NaN).
 float Higher(float bound, float v) { return bound >= v ? bound : v; }
 float Lower(float bound, float v) { return v >= bound ? bound : v; }
+
+constexpr std::uint32_t kFlagDetached = 0x1000;   // flags_: passed to the figure manager
+constexpr std::uint32_t kBoxEmptyMark = 0x800;
+constexpr const char* kCantLoadPart = "CObject3D::LoadFigure.\n Can't load figure \"%s\" for object \"%s\".\n";
+constexpr const char* kNoFigureManager = "CObject3D::LoadFigures.\n No valid figure manager.\n";
+constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create object \"%s\" with bodypart \"%s\".\n";
+
+constexpr int kClassUnit50 = 0x50;
+constexpr int kClassUnit54 = 0x54;
+constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
+
+CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
+    return object->WorldContext()->FigureLoader();
+}
+
 } // namespace
 
 void CObject3D::SetUpAnimatedFigure(const char* model) {
@@ -161,15 +176,6 @@ void CObject3D::CollectPartsByPrefix(const char* prefix, std::vector<CFigureMesh
 
 // --- Loading single parts ---------------------------------------------------------------------
 
-namespace {
-constexpr std::uint32_t kFlagDetached = 0x1000;   // flags_: passed to the figure manager
-constexpr std::uint32_t kBoxEmptyMark = 0x800;
-constexpr const char* kCantLoadPart = "CObject3D::LoadFigure.\n Can't load figure \"%s\" for object \"%s\".\n";
-constexpr const char* kNoFigureManager = "CObject3D::LoadFigures.\n No valid figure manager.\n";
-constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create object \"%s\" with bodypart \"%s\".\n";
-
-} // namespace
-
 CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::uint32_t arg) {
     CFigureManager* manager = FigureManagerOf(this);
     CFigureMesh* part = manager->NewPart(name.c_str(), partName, model, std::bit_cast<std::uint32_t>(scale.x),
@@ -231,16 +237,6 @@ int CObject3D::LoadParts(const char* model, const std::vector<std::string>* name
 }
 
 // --- Building the figure ----------------------------------------------------------------------
-
-namespace {
-constexpr int kClassUnit50 = 0x50;
-constexpr int kClassUnit54 = 0x54;
-constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
-
-CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
-    return object->WorldContext()->FigureLoader();
-}
-} // namespace
 
 int CObject3D::MakeFigure(const char* model, std::vector<std::string>* names, std::uint32_t arg) {
     name = model;

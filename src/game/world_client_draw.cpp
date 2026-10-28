@@ -181,6 +181,13 @@ void DrawLightEffects(std::list<T>& list) {
     for (GroundPrint& print : list) print.Draw();
 }
 
+constexpr std::uint32_t kShowFps = 1;
+constexpr std::uint32_t kShowRenderInfo = 2;
+constexpr std::uint32_t kShowManagers = 4;
+constexpr std::uint32_t kShowWorldData = 8;
+
+void RemoveDebugLine(const char* key) { DebugInfoPanel()->Remove(key); }
+
 } // namespace
 
 const Matrix4* worlddata::SceneCamera() { return g_haveSceneCamera ? &g_sceneCamera : nullptr; }
@@ -309,15 +316,6 @@ int CWorldClient::DrawLineLists() {
 }
 
 // ---- The debug display's switches -------------------------------------------------------------------
-
-namespace {
-constexpr std::uint32_t kShowFps = 1;
-constexpr std::uint32_t kShowRenderInfo = 2;
-constexpr std::uint32_t kShowManagers = 4;
-constexpr std::uint32_t kShowWorldData = 8;
-
-void RemoveDebugLine(const char* key) { DebugInfoPanel()->Remove(key); }
-} // namespace
 
 void CWorldClient::ShowFps() { debugFlags_ |= kShowFps; }
 

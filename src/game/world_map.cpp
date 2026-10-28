@@ -48,6 +48,12 @@ void ClearMissiles(CWorldServer* world) {
     list.clear();
 }
 
+void ClearMissilePointers(CWorldServer* world) {
+    auto& list = world->projectiles_;
+    for (auto node = list.begin(); node != list.end(); ++node) ReleaseCounted(*node);
+    list.clear();   // the elements were destroyed above; this frees the blocks
+}
+
 } // namespace
 
 int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char fromSave) {
@@ -119,16 +125,6 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
 }
 
 // ---- ResetZone --------------------------------------------------------------------------------
-
-namespace {
-
-void ClearMissilePointers(CWorldServer* world) {
-    auto& list = world->projectiles_;
-    for (auto node = list.begin(); node != list.end(); ++node) ReleaseCounted(*node);
-    list.clear();   // the elements were destroyed above; this frees the blocks
-}
-
-} // namespace
 
 void CWorldServer::ResetZone() {
     sharedObjects_.clear();

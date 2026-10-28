@@ -59,18 +59,15 @@ const char* const kDead = " HL is dead";
 constexpr int kArmourPieces[24] = /*0073E09C*/ {7, 7, 0, 7, 3, 7, 1, 7, 3, 6, 1, 7, 3, 6, 1, 7, 4, 5, 2, 7, 4, 5, 2, 7};
 
 float Max0(float value) { return value <= kZero ? kZero : value; }   // select idiom
-} // namespace
 
-namespace {
 // The hit log: the rpg stream (its static initialiser stores the address).
 constexpr console::Stream* kHitLog = /*007AF284*/ {&console::g_rpgLogOut};
 console::Stream& HitLog() { return *kHitLog; }
-} // namespace
 
-namespace {
 void Remark(CUnit* unit, int code) {
     if (unit->controller->GetClassId() == kClassUnitServer) unit->ServerController()->Shout(code);
 }
+
 } // namespace
 
 void WearItem(CItem* item, CUnit* unit, float amount, int brokenRemark, int wornRemark) {

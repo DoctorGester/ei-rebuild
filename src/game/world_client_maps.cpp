@@ -76,25 +76,6 @@ void RemoveHeld(std::list<HeldPtr<CMapObject>>& list, CMapObject* object) {
     std::erase_if(list, [object](const HeldPtr<CMapObject>& held) { return held.get() == object; });
 }
 
-} // namespace
-
-void SectorGrid::Move(CMapObject* object, const float* position) {
-    float* stored = &object->localPosition_.x;   // x, y, z
-    std::uint32_t oldX = CellOf(stored[0]);
-    std::uint32_t oldY = CellOf(stored[1]);
-    std::uint32_t newX = CellOf(position[0]);
-    std::uint32_t newY = CellOf(position[1]);
-    if (oldX == newX && oldY == newY) {
-        std::memcpy(stored, position, 12);
-        return;
-    }
-    if (oldX < width_ && oldY < height_) RemoveHeld(rows_[oldY][oldX], object);
-    std::memcpy(stored, position, 12);
-    if (newX < width_ && newY < height_) rows_[newY][newX].emplace_back(object);
-}
-
-namespace {
-
 // The hit test of the object's side half for the point: CollectBounds or CollectParts.
 using HitTest = int (CObject3DSpecific::*)(const long* point);
 
@@ -117,7 +98,180 @@ HitCollector* CollectHits(HitCollector* out, std::list<ScreenEntry>::iterator fi
     return out;
 }
 
+void SessionPlayerClear(CPlayer* session) { session->Clear(); }
+
+constexpr int kClassPlatform54 = 0x54;
+constexpr int kClassPlatform5D = 0x5D;
+constexpr int kTypeHero = 0x32;
+
+std::list<HeldPtr<CMapObject>>* CellFor(SectorGrid& grid, CMapObject* object) {
+    std::uint32_t x = CellOf(object->localPosition_.x);
+    std::uint32_t y = CellOf(object->localPosition_.y);
+    if (x >= grid.width_ || y >= grid.height_) return nullptr;
+    return &grid.rows_[y][x];
+}
+
+using Collect = HitCollector* (HitCollector::*)(std::list<ScreenEntry>::iterator, std::list<ScreenEntry>::iterator, std::vector<ScreenEntry>*, long, long,
+                                                CMapObjectManager*);
+CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
+    std::vector<ScreenEntry>& hits = client->hits_;
+    hits.clear();
+    CMapObjectManager* manager = client->MapObjectManager();
+    std::list<ScreenEntry>& screen = client->screenEntries_;
+    HitCollector functor;
+    (functor.*collect)(screen.begin(), screen.end(), &hits, point->x, point->y, manager);
+    if (hits.empty()) return nullptr;
+
+    // Front to back (DepthLess with the top of the view stack); hits at the same depth keep the game's sort's
+    // order, and the first that takes the click wins.
+    DepthLess depth{ScenePipeline()->Top(CTransformPipeline::kViewStack)->m, client->MapObjectManager()};
+    lib::IntroSort(hits.data(), hits.data() + hits.size(),
+                   [depth](const ScreenEntry& a, const ScreenEntry& b) { return depth.Less(&a, &b); });
+    ScreenEntry*& cursor = client->hitCursor_;
+    for (cursor = hits.data(); cursor != hits.data() + hits.size(); ++cursor) {
+        if (CMapObject* object = manager->FindMapObject(cursor->objectId)) return object;
+    }
+    return nullptr;
+}
+
+// From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
+// object is gone or is not a unit; null at the end.
+CUnit* FirstUnitHit(CWorldClient* client, CMapObject* object) {
+    while (object->GetClassId() != world::kClassUnit) {
+        do {
+            if (++client->hitCursor_ == client->hits_.data() + client->hits_.size()) return nullptr;
+            object = client->manager40_->FindMapObject(client->hitCursor_->objectId);
+        } while (!object);
+    }
+    return static_cast<CUnit*>(object);
+}
+
+bool SameText(std::string_view a, std::string_view b) { return a == b; }
+
+// Branch-free selects (C0 shifted into a mask): `a < b` picks one side.
+float MaxZero(float b) {
+    EI_NAN_AUDIT(b);
+    return 0.0f < b ? b : 0.0f;
+}
+float MinOf(float a, float b) {
+    EI_NAN_AUDIT(a, b);
+    return a < b ? a : b;
+}
+
+std::uint32_t Ftol(float v) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(v)); }
+
+constexpr float kSteepest = 0.8f;   // the smallest normal z of a face added
+
+template <typename T>
+void DeleteOwned(T*& slot) {
+    if (CEngineObject* object = slot) {
+        delete object;
+        slot = nullptr;
+    }
+}
+
+// A counted engine object: its count dropped (without a release), then deleted the same way.
+template <typename T>
+void DropAndDelete(T*& slot) {
+    if (slot) {
+        --slot->refCount_;
+        CEngineObject* object = slot;
+        if (object) delete object;
+        slot = nullptr;
+    }
+}
+
+// The selection highlight off: flags 0x10 and 0x100 cleared, the side half's empty virtual and SetLit
+// with 0 (its light goes off).
+void Unhighlight(CMapObject* object) {
+    object->flags_ &= ~0x110u;
+    CObject3DSpecific* half = object->attached;
+    half->Unused25(0);
+    half = object->attached;
+    half->SetLit(0);
+}
+
+// A new object (its class's operator new and constructor), stored and referenced.
+template <typename T>
+T* NewCounted() {
+    T* object = new T();
+    ++object->refCount_;
+    return object;
+}
+
+// The grid set to 4 x 4 cells, reallocated unless its storage already has that size (the second
+// resize inlined).
+void GridToFour(SectorGrid& grid) {
+    grid.Resize(1, 1);
+    grid.width_ = 4;
+    grid.height_ = 4;
+    grid.Resize(4, 4);
+}
+
+void ReferenceEveryObject(CBaseManager* manager) {
+    ObjectListIterator walk{};
+    for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) ++object->refCount_;
+    if (CBaseManager* held = walk.manager) --held->refCount_;
+}
+
+void ReleaseEveryObject(CBaseManager* manager) {
+    ObjectListIterator walk{};
+    for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) object->Release();
+    if (CBaseManager* held = walk.manager) --held->refCount_;
+}
+
+constexpr int kSkyTextureKind = 0x3D;
+// The loading movie's progress steps of the zone load.
+constexpr int kProgressBlockRead = 8;
+constexpr int kProgressZoneCleared = 9;
+constexpr int kProgressMapFreed = 10;
+constexpr int kProgressZoneReady = 11;
+// A cave's reverb: room type, level and reflection time.
+constexpr float kCaveReverbRoom = 0.3f;
+constexpr float kCaveReverbLevel = 1.0f;
+constexpr float kCaveReverbTime = 3.0f;
+// The LightingFreq option counts milliseconds; the terrain counts frames of this many.
+constexpr int kFrameMilliseconds = 66;
+// Terrain flags the options and the cave decide.
+constexpr std::uint32_t kLandscapeWaves = 0x01;
+constexpr std::uint32_t kLandscapeSelfShadowing = 0x10;
+constexpr int kCave = 1;
+
+// A sector grid sized for the terrain, in cells of 16: emptied to one cell first, the new size
+// stored, then allocated.
+void FitGrid(SectorGrid& grid, const Terrain* terrain) {
+    const std::uint32_t height = static_cast<std::uint32_t>(x87::fistp(terrain->height));
+    const std::uint32_t width = static_cast<std::uint32_t>(x87::fistp(terrain->width));
+    grid.Resize(1, 1);
+    grid.height_ = height >> 4;
+    grid.width_ = width >> 4;
+    grid.Resize(static_cast<int>(width >> 4), static_cast<int>(height >> 4));
+}
+
+MapRecord* LocalZoneRecord() {
+    return TheMapDatabase()->FindMap(LocalPlayerZone());
+}
+
+bool InFinalZone() {
+    return str::Compare(LocalPlayerZone(), worlddata::FinalZoneText()) == 0;
+}
+
 } // namespace
+
+void SectorGrid::Move(CMapObject* object, const float* position) {
+    float* stored = &object->localPosition_.x;   // x, y, z
+    std::uint32_t oldX = CellOf(stored[0]);
+    std::uint32_t oldY = CellOf(stored[1]);
+    std::uint32_t newX = CellOf(position[0]);
+    std::uint32_t newY = CellOf(position[1]);
+    if (oldX == newX && oldY == newY) {
+        std::memcpy(stored, position, 12);
+        return;
+    }
+    if (oldX < width_ && oldY < height_) RemoveHeld(rows_[oldY][oldX], object);
+    std::memcpy(stored, position, 12);
+    if (newX < width_ && newY < height_) rows_[newY][newX].emplace_back(object);
+}
 
 HitCollector* HitCollector::CollectBounds(std::list<ScreenEntry>::iterator first, std::list<ScreenEntry>::iterator last, std::vector<ScreenEntry>* found, LONG x,
                                           LONG y, CMapObjectManager* manager) {
@@ -135,23 +289,6 @@ int PendingIndex::Lookup(const std::uint32_t* key, std::list<CMapObject*>::itera
     *value = node->second;
     return 1;
 }
-
-namespace {
-
-void SessionPlayerClear(CPlayer* session) { session->Clear(); }
-
-constexpr int kClassPlatform54 = 0x54;
-constexpr int kClassPlatform5D = 0x5D;
-constexpr int kTypeHero = 0x32;
-
-std::list<HeldPtr<CMapObject>>* CellFor(SectorGrid& grid, CMapObject* object) {
-    std::uint32_t x = CellOf(object->localPosition_.x);
-    std::uint32_t y = CellOf(object->localPosition_.y);
-    if (x >= grid.width_ || y >= grid.height_) return nullptr;
-    return &grid.rows_[y][x];
-}
-
-} // namespace
 
 int CWorldClient::AddObject(CMapObject* object) {
     for (CMapObject* filed : objects_) {
@@ -350,49 +487,8 @@ void CWorldClient::ClearMaps() {
     manager44_->FreeSpares();
 }
 
-namespace {
-
-using Collect = HitCollector* (HitCollector::*)(std::list<ScreenEntry>::iterator, std::list<ScreenEntry>::iterator, std::vector<ScreenEntry>*, long, long,
-                                                CMapObjectManager*);
-CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
-    std::vector<ScreenEntry>& hits = client->hits_;
-    hits.clear();
-    CMapObjectManager* manager = client->MapObjectManager();
-    std::list<ScreenEntry>& screen = client->screenEntries_;
-    HitCollector functor;
-    (functor.*collect)(screen.begin(), screen.end(), &hits, point->x, point->y, manager);
-    if (hits.empty()) return nullptr;
-
-    // Front to back (DepthLess with the top of the view stack); hits at the same depth keep the game's sort's
-    // order, and the first that takes the click wins.
-    DepthLess depth{ScenePipeline()->Top(CTransformPipeline::kViewStack)->m, client->MapObjectManager()};
-    lib::IntroSort(hits.data(), hits.data() + hits.size(),
-                   [depth](const ScreenEntry& a, const ScreenEntry& b) { return depth.Less(&a, &b); });
-    ScreenEntry*& cursor = client->hitCursor_;
-    for (cursor = hits.data(); cursor != hits.data() + hits.size(); ++cursor) {
-        if (CMapObject* object = manager->FindMapObject(cursor->objectId)) return object;
-    }
-    return nullptr;
-}
-
-} // namespace
-
 CMapObject* CWorldClient::PickAt(const POINT* point) { return Pick(this, point, &HitCollector::CollectBounds); }
 CMapObject* CWorldClient::PickAt2(const POINT* point) { return Pick(this, point, &HitCollector::CollectParts); }
-
-namespace {
-// From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
-// object is gone or is not a unit; null at the end.
-CUnit* FirstUnitHit(CWorldClient* client, CMapObject* object) {
-    while (object->GetClassId() != world::kClassUnit) {
-        do {
-            if (++client->hitCursor_ == client->hits_.data() + client->hits_.size()) return nullptr;
-            object = client->manager40_->FindMapObject(client->hitCursor_->objectId);
-        } while (!object);
-    }
-    return static_cast<CUnit*>(object);
-}
-} // namespace
 
 CUnit* CWorldClient::UnitAt(const POINT* point) {
     if (CMapObject* picked = PickAt2(point)) {
@@ -415,12 +511,6 @@ void CWorldClient::UnitsInBox(const tagRECT* rect, std::list<CMapObject*>* out) 
         out->push_back(object);
     }
 }
-
-namespace {
-
-bool SameText(std::string_view a, std::string_view b) { return a == b; }
-
-} // namespace
 
 // The figure's part names (worlddata::HeroPartText): "hd", "bd", "hp", "hr" (the hair: "hr.%.2d"
 // with the prototype's number, or left out at -1), "lh1".."rl3".
@@ -480,22 +570,6 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
     }
 }
 
-namespace {
-
-// Branch-free selects (C0 shifted into a mask): `a < b` picks one side.
-float MaxZero(float b) {
-    EI_NAN_AUDIT(b);
-    return 0.0f < b ? b : 0.0f;
-}
-float MinOf(float a, float b) {
-    EI_NAN_AUDIT(a, b);
-    return a < b ? a : b;
-}
-
-std::uint32_t Ftol(float v) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(v)); }
-
-} // namespace
-
 void CWorldClient::ObjectsInRange(const Vector3* point, float radius, std::list<CObject3D*>* out) {
     float maxX = terrain_->width - 1.0f;
     float maxY = terrain_->height - 1.0f;
@@ -538,10 +612,6 @@ void CWorldClient::ObjectsInRange(const Vector3* point, float radius, std::list<
         cell = &grid.rows_[y][x];
     }
 }
-
-namespace {
-constexpr float kSteepest = 0.8f;   // the smallest normal z of a face added
-} // namespace
 
 int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, const Vector3* normal, Platform** out) {
     *out = nullptr;
@@ -611,29 +681,6 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
     }
 }
 
-namespace {
-
-template <typename T>
-void DeleteOwned(T*& slot) {
-    if (CEngineObject* object = slot) {
-        delete object;
-        slot = nullptr;
-    }
-}
-
-// A counted engine object: its count dropped (without a release), then deleted the same way.
-template <typename T>
-void DropAndDelete(T*& slot) {
-    if (slot) {
-        --slot->refCount_;
-        CEngineObject* object = slot;
-        if (object) delete object;
-        slot = nullptr;
-    }
-}
-
-} // namespace
-
 void CWorldClient::Destroy() {
     TheCamera()->SetTarget(nullptr);
     delete numbers_;
@@ -696,18 +743,6 @@ void CWorldClient::ResetZoneObjects() {
     if (it.manager) --it.manager->refCount_;
 }
 
-namespace {
-// The selection highlight off: flags 0x10 and 0x100 cleared, the side half's empty virtual and SetLit
-// with 0 (its light goes off).
-void Unhighlight(CMapObject* object) {
-    object->flags_ &= ~0x110u;
-    CObject3DSpecific* half = object->attached;
-    half->Unused25(0);
-    half = object->attached;
-    half->SetLit(0);
-}
-} // namespace
-
 void CWorldClient::Deselect(CMapObject* object) {
     std::list<int>& selected = list7BC_;
     auto* objects = manager40_;
@@ -742,33 +777,6 @@ void CWorldClient::Select(CMapObject* object) {
     if (node != selected.end()) return;
     selected.insert(selected.end(), id);
 }
-
-namespace {
-
-// A new object (its class's operator new and constructor), stored and referenced.
-template <typename T>
-T* NewCounted() {
-    T* object = new T();
-    ++object->refCount_;
-    return object;
-}
-
-// The grid set to 4 x 4 cells, reallocated unless its storage already has that size (the second
-// resize inlined).
-void GridToFour(SectorGrid& grid) {
-    grid.Resize(1, 1);
-    grid.width_ = 4;
-    grid.height_ = 4;
-    grid.Resize(4, 4);
-}
-
-void ReferenceEveryObject(CBaseManager* manager) {
-    ObjectListIterator walk{};
-    for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) ++object->refCount_;
-    if (CBaseManager* held = walk.manager) --held->refCount_;
-}
-
-} // namespace
 
 void SectorGrid::Allocate() {
     cells_ = std::make_unique<std::list<HeldPtr<CMapObject>>[]>(static_cast<std::size_t>(unknown08_) * unknown0C_);
@@ -885,14 +893,6 @@ void CWorldClient::ReferenceItemsAndSpells() {
     if (ItemFactory()) ReferenceEveryObject(SpellManager());
 }
 
-namespace {
-void ReleaseEveryObject(CBaseManager* manager) {
-    ObjectListIterator walk{};
-    for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) object->Release();
-    if (CBaseManager* held = walk.manager) --held->refCount_;
-}
-} // namespace
-
 void CWorldClient::ReleaseItemsAndSpells() {
     if (ItemFactory()) {
         ReleaseEveryObject(ItemFactory());
@@ -991,46 +991,6 @@ ClientArrayManager::~ClientArrayManager() {
     VisFogManagerDestroy(this);
     if (CTexture* held = texture) held->Release();
 }
-
-namespace {
-
-constexpr int kSkyTextureKind = 0x3D;
-// The loading movie's progress steps of the zone load.
-constexpr int kProgressBlockRead = 8;
-constexpr int kProgressZoneCleared = 9;
-constexpr int kProgressMapFreed = 10;
-constexpr int kProgressZoneReady = 11;
-// A cave's reverb: room type, level and reflection time.
-constexpr float kCaveReverbRoom = 0.3f;
-constexpr float kCaveReverbLevel = 1.0f;
-constexpr float kCaveReverbTime = 3.0f;
-// The LightingFreq option counts milliseconds; the terrain counts frames of this many.
-constexpr int kFrameMilliseconds = 66;
-// Terrain flags the options and the cave decide.
-constexpr std::uint32_t kLandscapeWaves = 0x01;
-constexpr std::uint32_t kLandscapeSelfShadowing = 0x10;
-constexpr int kCave = 1;
-
-// A sector grid sized for the terrain, in cells of 16: emptied to one cell first, the new size
-// stored, then allocated.
-void FitGrid(SectorGrid& grid, const Terrain* terrain) {
-    const std::uint32_t height = static_cast<std::uint32_t>(x87::fistp(terrain->height));
-    const std::uint32_t width = static_cast<std::uint32_t>(x87::fistp(terrain->width));
-    grid.Resize(1, 1);
-    grid.height_ = height >> 4;
-    grid.width_ = width >> 4;
-    grid.Resize(static_cast<int>(width >> 4), static_cast<int>(height >> 4));
-}
-
-MapRecord* LocalZoneRecord() {
-    return TheMapDatabase()->FindMap(LocalPlayerZone());
-}
-
-bool InFinalZone() {
-    return str::Compare(LocalPlayerZone(), worlddata::FinalZoneText()) == 0;
-}
-
-} // namespace
 
 int CWorldClient::LoadZone(CStream* block) {
     TheGameFlow()->UpdateAndAcknowledge();

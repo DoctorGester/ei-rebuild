@@ -100,6 +100,7 @@ PartyManager* PartyManager::Construct() {
 constinit lib::StaticObject<PartyManager> g_partyManager = /*007AA5A0*/ {};
 PartyManager* ThePartyManager() { return &*g_partyManager; }
 
+// A second block: it uses g_partyManager (defined above).
 namespace {
 void DestroyPartyManager() { g_partyManager->Destruct(); }
 } // namespace

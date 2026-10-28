@@ -18,14 +18,14 @@ int Mul(int a, int b) {
 
 // The low dword the compiler's division by 600 (a multiply by a magic constant) leaves as the result.
 int DivideBy600Residue(int dividend) { return Mul(0x1B4E81B5, dividend); }
+
+const CInterface3D* WithoutMargin(const CInterface3D* ui) { return widescreen::Active() ? nullptr : ui; }
+
 } // namespace
 
 // --- CInterface3D ----------------------------------------------------------------------------
 
 // The same three with the interface given: none for Rebirth's WideScreen sites (ui.h).
-namespace {
-const CInterface3D* WithoutMargin(const CInterface3D* ui) { return widescreen::Active() ? nullptr : ui; }
-} // namespace
 
 int CInterface3D::CallScaleRectToScreenNoMargin(RECT* rect) const {
     return WithoutMargin(this)->ScaleRectToScreenEntry(rect);

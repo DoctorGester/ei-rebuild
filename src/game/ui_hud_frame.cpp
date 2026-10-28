@@ -84,6 +84,10 @@ std::uint32_t Bits(float f) {
     return u;
 }
 
+constexpr float kSlingX = 400.0f;               // the sling button's place: x
+constexpr float kSlingInY = -52.0f;             // y while the panel slides out (turned over)
+constexpr float kSlingOutY = 83.0f;             // y otherwise
+
 } // namespace
 
 void CUiMesh::Place(float a0, float a1, float a2) { PlaceBody(a0, a1, a2); }
@@ -162,12 +166,6 @@ void CHudClock::Update() {
 }
 
 // --- Top panel ---------------------------------------------------------------------------------
-
-namespace {
-constexpr float kSlingX = 400.0f;               // the sling button's place: x
-constexpr float kSlingInY = -52.0f;             // y while the panel slides out (turned over)
-constexpr float kSlingOutY = 83.0f;             // y otherwise
-} // namespace
 
 void CHudTopPanel::Update() {
     if (sliding_) {

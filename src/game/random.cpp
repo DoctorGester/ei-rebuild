@@ -16,6 +16,62 @@ IsaacRandom g_random = /*007A9D40*/ {};
 namespace {
 IsaacRandom::SeedHook g_seedHook;
 IsaacRandom::DrawObserver g_drawObserver;
+
+// The 2^-32 scale of Range; its last bit is set (sic).
+constexpr double kRangeScale = std::bit_cast<double>(0x3DF0000000100000ull);
+
+// A zero-extended dword loaded with FILD qword (exact).
+double Unsigned(std::uint32_t value) {
+    volatile std::int64_t wide = value;
+    return static_cast<double>(wide);
+}
+
+// The search strings: the drive's files and the sub-directory suffix.
+constexpr const char* kSeedSearchPattern = /*0073D080*/ "C:\\*.*";
+const char* SubdirectoryPattern() { return "\\*.*"; }
+
+constexpr unsigned long kAttributeHidden = 0x02;      // FILE_ATTRIBUTE_HIDDEN
+constexpr unsigned long kAttributeSystem = 0x04;      // FILE_ATTRIBUTE_SYSTEM
+constexpr unsigned long kAttributeDirectory = 0x10;   // FILE_ATTRIBUTE_DIRECTORY
+constexpr unsigned long kMinimumFileSize = 0x800;
+constexpr unsigned kOpenReadShared = lib::File::modeRead | lib::File::shareDenyNone;
+constexpr int kSeedBytes = 0x400;
+
+// The game's 284-byte path buffer on its stack.
+constexpr int kPathBuffer = 0x11C;
+
+// rand() % 512 as the game computes it (rand() is never negative).
+int RandomBelow512() { return libcrt::Rand() & 0x1FF; }
+
+BOOL Matches(const lib::FileFind& finder, unsigned long mask) { return finder.MatchesMask(mask); }
+
+// The reference ISAAC mix of the eight randinit words.
+struct InitMix {
+    std::uint32_t a, b, c, d, e, f, g, h;
+
+    void Mix() {
+        a ^= b << 11; d += a; b += c;
+        b ^= c >> 2;  e += b; c += d;
+        c ^= d << 8;  f += c; d += e;
+        d ^= e >> 16; g += d; e += f;
+        e ^= f << 10; h += e; f += g;
+        f ^= g >> 4;  a += f; g += h;
+        g ^= h << 8;  b += g; h += a;
+        h ^= a >> 9;  c += h; a += b;
+    }
+
+    // One pass over memory: add eight words of `source`, mix, store into memory.
+    void Pass(const std::uint32_t* source, std::uint32_t* memory) {
+        for (int i = 0; i < 256; i += 8) {
+            a += source[i]; b += source[i + 1]; c += source[i + 2]; d += source[i + 3];
+            e += source[i + 4]; f += source[i + 5]; g += source[i + 6]; h += source[i + 7];
+            Mix();
+            memory[i] = a; memory[i + 1] = b; memory[i + 2] = c; memory[i + 3] = d;
+            memory[i + 4] = e; memory[i + 5] = f; memory[i + 6] = g; memory[i + 7] = h;
+        }
+    }
+};
+
 } // namespace
 
 void IsaacRandom::SetSeedHook(SeedHook hook) { g_seedHook = hook; }
@@ -30,17 +86,6 @@ std::uint32_t IsaacRandom::Next() {
     if (g_drawObserver) g_drawObserver(*this, value, _ReturnAddress());
     return value;
 }
-
-namespace {
-// The 2^-32 scale of Range; its last bit is set (sic).
-constexpr double kRangeScale = std::bit_cast<double>(0x3DF0000000100000ull);
-
-// A zero-extended dword loaded with FILD qword (exact).
-double Unsigned(std::uint32_t value) {
-    volatile std::int64_t wide = value;
-    return static_cast<double>(wide);
-}
-} // namespace
 
 // Defined here so that the function vectors link it.
 float IsaacRandom::Range(float min, float max) {
@@ -83,29 +128,6 @@ void IsaacRandom::Refill() {
     b_ = b;
     a_ = a;
 }
-
-namespace {
-
-// The search strings: the drive's files and the sub-directory suffix.
-constexpr const char* kSeedSearchPattern = /*0073D080*/ "C:\\*.*";
-const char* SubdirectoryPattern() { return "\\*.*"; }
-
-constexpr unsigned long kAttributeHidden = 0x02;      // FILE_ATTRIBUTE_HIDDEN
-constexpr unsigned long kAttributeSystem = 0x04;      // FILE_ATTRIBUTE_SYSTEM
-constexpr unsigned long kAttributeDirectory = 0x10;   // FILE_ATTRIBUTE_DIRECTORY
-constexpr unsigned long kMinimumFileSize = 0x800;
-constexpr unsigned kOpenReadShared = lib::File::modeRead | lib::File::shareDenyNone;
-constexpr int kSeedBytes = 0x400;
-
-// The game's 284-byte path buffer on its stack.
-constexpr int kPathBuffer = 0x11C;
-
-// rand() % 512 as the game computes it (rand() is never negative).
-int RandomBelow512() { return libcrt::Rand() & 0x1FF; }
-
-BOOL Matches(const lib::FileFind& finder, unsigned long mask) { return finder.MatchesMask(mask); }
-
-} // namespace
 
 int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* counter) {
     lib::FileFind finder;
@@ -184,37 +206,6 @@ void IsaacRandom::Seed() {
         for (std::uint32_t& word : results_) word ^= static_cast<std::uint32_t>(libcrt::Rand());
     }
 }
-
-namespace {
-
-// The reference ISAAC mix of the eight randinit words.
-struct InitMix {
-    std::uint32_t a, b, c, d, e, f, g, h;
-
-    void Mix() {
-        a ^= b << 11; d += a; b += c;
-        b ^= c >> 2;  e += b; c += d;
-        c ^= d << 8;  f += c; d += e;
-        d ^= e >> 16; g += d; e += f;
-        e ^= f << 10; h += e; f += g;
-        f ^= g >> 4;  a += f; g += h;
-        g ^= h << 8;  b += g; h += a;
-        h ^= a >> 9;  c += h; a += b;
-    }
-
-    // One pass over memory: add eight words of `source`, mix, store into memory.
-    void Pass(const std::uint32_t* source, std::uint32_t* memory) {
-        for (int i = 0; i < 256; i += 8) {
-            a += source[i]; b += source[i + 1]; c += source[i + 2]; d += source[i + 3];
-            e += source[i + 4]; f += source[i + 5]; g += source[i + 6]; h += source[i + 7];
-            Mix();
-            memory[i] = a; memory[i + 1] = b; memory[i + 2] = c; memory[i + 3] = d;
-            memory[i + 4] = e; memory[i + 5] = f; memory[i + 6] = g; memory[i + 7] = h;
-        }
-    }
-};
-
-} // namespace
 
 void IsaacRandom::Init() {
     if (seeded_ != 0) return;

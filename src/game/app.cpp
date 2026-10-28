@@ -136,6 +136,12 @@ int TypedCharacter(WPARAM unit) {
 
 void MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
 
+const char* FlipFailedText() { return "Can't flip to GDI surface.\n"; }
+
+constexpr int kErrorBoxFlags = 0x10;   // MB_ICONHAND
+int g_fatalErrorCount = /*007A9B9C*/ {};
+
+const char* CodeReportFormat() { return "%s (0x%.8X) %s"; }
 
 } // namespace
 
@@ -275,10 +281,6 @@ int StartFirstMap() {
 
 // ---- FatalError ---------------------------------------------------------------------
 
-namespace {
-const char* FlipFailedText() { return "Can't flip to GDI surface.\n"; }
-} // namespace
-
 int ShowMessageBox(const char* text, int flags) {
     HCURSOR cursor = gameapi::GetCursor();
     CTextureDevice* device = TheRenderDevice();
@@ -298,13 +300,6 @@ int ShowLibraryMessageBox(const char* text) {
     gameapi::GetModuleFileNameA(nullptr, title, MAX_PATH);
     return gameapi::MessageBoxA(nullptr, text, title, MB_OK | MB_ICONEXCLAMATION);
 }
-
-namespace {
-
-constexpr int kErrorBoxFlags = 0x10;   // MB_ICONHAND
-int g_fatalErrorCount = /*007A9B9C*/ {};
-
-} // namespace
 
 // Formats the error (wvsprintfA, 1 KB), shows it in a message box and exits the
 // game (exit(-1); the error counter reaches 1). Rebirth's DisableExitOnCrashReport replaces the message box
@@ -326,10 +321,6 @@ int game::FatalError(const char* format, ...) {
 namespace app {
 
 // ---- FatalErrorCode -----------------------------------------------------------------
-
-namespace {
-const char* CodeReportFormat() { return "%s (0x%.8X) %s"; }
-} // namespace
 
 int FatalErrorCodeV(long result, const char* format, va_list args) {
     char text[0x400];

@@ -63,6 +63,51 @@ constexpr std::uint32_t kBright = 0xA7D7E4;
 constexpr std::uint32_t kGrey = 0x828282;
 std::uint32_t PriceColour(int price, int experience) { return price > experience ? kGrey : kBright; }
 
+// The coin sprite after a price: texels (0x7C, 0x8A)-(0xA4, 0x99) between x `left` and `right`,
+// the row's height lower by 100 (the panel's layout offset).
+void PriceSprite(CTradePanel* panel, const RECT& row, float left, float right) {
+    CUiMesh* sprite = panel->AddSprite(0);
+    sprite->SetRectangle(6.0f, 100.0f, left, static_cast<float>(row.top + 100), right,
+                         static_cast<float>(row.bottom + 100), 0x7C, 0x8A, 0xA4, 0x99);
+}
+
+void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, TradeRow* school, std::string* value) {
+    draw->DrawLine(school->name, row, 0, kBright, 0, 1);
+    *value = str::Format("%d", school->level);
+    RECT shifted = *row;
+    gameapi::OffsetRect(&shifted, -40, 0);
+    RECT levelRect = shifted;
+    draw->DrawLine(*value, &levelRect, 0, kBright, 2, 1);
+    if (school->level < 100) {
+        panel->FormatPrice(school->price, value);
+        draw->DrawLine(*value, row, 0, PriceColour(school->price, panel->experience_), 2, 1);
+        PriceSprite(panel, *row, 350.0f, 390.0f);
+    }
+}
+
+void TradeSnapshotRecord(CTradePanel*);
+
+int PartyRecordCount() { return std::ssize(LocalPlayerData()->members_); }
+
+CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
+    CUiRegion* region = window->AddRegion();
+    region->SetRect(left, top, right, bottom);
+    return region;
+}
+CUiRegion* AddRect(CUiWindow* window, const RECT& rect) {
+    RECT copy = rect;
+    return AddRect(window, copy.left, copy.top, copy.right, copy.bottom);
+}
+
+UnitStats* PartyMemberStats(int index) {
+    CParty* party = LocalPlayerData();
+    return &party->members_[index].stats;
+}
+
+void TradeSnapshotRecord(CTradePanel* self) { self->SnapshotRecord(); }
+
+void TradeRestoreRecord(CTradePanel* self) { self->RestoreRecord(); }
+
 } // namespace
 
 void CTradePanel::BuildLists() {
@@ -159,32 +204,6 @@ void CTradePanel::BuildLists() {
     DrawLists();
 }
 
-namespace {
-
-// The coin sprite after a price: texels (0x7C, 0x8A)-(0xA4, 0x99) between x `left` and `right`,
-// the row's height lower by 100 (the panel's layout offset).
-void PriceSprite(CTradePanel* panel, const RECT& row, float left, float right) {
-    CUiMesh* sprite = panel->AddSprite(0);
-    sprite->SetRectangle(6.0f, 100.0f, left, static_cast<float>(row.top + 100), right,
-                         static_cast<float>(row.bottom + 100), 0x7C, 0x8A, 0xA4, 0x99);
-}
-
-void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, TradeRow* school, std::string* value) {
-    draw->DrawLine(school->name, row, 0, kBright, 0, 1);
-    *value = str::Format("%d", school->level);
-    RECT shifted = *row;
-    gameapi::OffsetRect(&shifted, -40, 0);
-    RECT levelRect = shifted;
-    draw->DrawLine(*value, &levelRect, 0, kBright, 2, 1);
-    if (school->level < 100) {
-        panel->FormatPrice(school->price, value);
-        draw->DrawLine(*value, row, 0, PriceColour(school->price, panel->experience_), 2, 1);
-        PriceSprite(panel, *row, 350.0f, 390.0f);
-    }
-}
-
-} // namespace
-
 void CTradePanel::DrawLists() {
     CUiSurface* draw = surfaces_[0];
     draw->GetDC();
@@ -246,22 +265,6 @@ void CTradePanel::DrawLists() {
     }
     draw->ReleaseDC();
 }
-
-namespace {
-void TradeSnapshotRecord(CTradePanel*);
-
-int PartyRecordCount() { return std::ssize(LocalPlayerData()->members_); }
-
-CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
-    CUiRegion* region = window->AddRegion();
-    region->SetRect(left, top, right, bottom);
-    return region;
-}
-CUiRegion* AddRect(CUiWindow* window, const RECT& rect) {
-    RECT copy = rect;
-    return AddRect(window, copy.left, copy.top, copy.right, copy.bottom);
-}
-} // namespace
 
 void CTradePanel::Build() {
     rect_ = RECT{200, 100, 600, 500};
@@ -327,14 +330,6 @@ void CTradePanel::ResetRecords() {
 
 // --- The record from the hero ------------------------------------------------------------------------
 
-namespace {
-
-UnitStats* PartyMemberStats(int index) {
-    CParty* party = LocalPlayerData();
-    return &party->members_[index].stats;
-}
-} // namespace
-
 void CTradePanel::SnapshotRecord() {
     if (recordIndex_ < 0) return;
     TradeRecord& record = records_[recordIndex_];
@@ -348,9 +343,6 @@ void CTradePanel::SnapshotRecord() {
     std::memcpy(&record.spentExperience, &stats->spentExperience, sizeof(float));
     record.bought = 0;
 }
-namespace {
-void TradeSnapshotRecord(CTradePanel* self) { self->SnapshotRecord(); }
-} // namespace
 
 // --- The hero's statistics back from the record -------------------------------------------------------
 
@@ -376,9 +368,6 @@ void CTradePanel::RestoreRecord() {
     const double hitPoints = stats->Reduce(newMaximum);
     stats->HealSlots(newMaximum, static_cast<float>(oldHitPoints / oldMaximum * newMaximum - hitPoints));
 }
-namespace {
-void TradeRestoreRecord(CTradePanel* self) { self->RestoreRecord(); }
-} // namespace
 
 // --- Settling and choosing the hero ------------------------------------------------------------------
 

@@ -26,6 +26,30 @@ int CellOf(float world) { return x87::fistp(static_cast<float>(2.0 * world - 0.5
 
 constexpr float kShapeMinHeight = 0.2f;
 constexpr int kExpensive = 12000;           // cost above which a step is flagged 2
+
+void AllocateGrid(SearchGrid<std::uint8_t>* grid) {
+    grid->data = new std::uint8_t[grid->width * grid->height];
+    grid->rows = new std::uint8_t*[grid->height];
+    for (int i = 0; i < grid->height; ++i) grid->rows[i] = grid->data + i * grid->width;
+}
+// A square grid of `size`: reallocated when the size differs, then cleared.
+void ResizeCleared(SearchGrid<std::uint8_t>* grid, int size) {
+    if (grid->width != size || grid->height != size) {
+        FreeGrid(*grid);
+        grid->width = size;
+        grid->height = size;
+        AllocateGrid(grid);
+    }
+    std::memset(grid->data, 0, static_cast<std::size_t>(grid->width * grid->height));
+}
+
+// The handle's reference dropped (the object deleted with the last).
+void ReleaseHandle(ShapeCacheHandle* handle) {
+    if (CRefObject* ref = handle->ref) {
+        if (--ref->refs_ == 0) delete ref;     // delete tests ref again, as the original does
+    }
+}
+
 } // namespace
 
 CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
@@ -140,24 +164,6 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
     return cost > 0 && cost < kExpensive;
 }
 
-namespace {
-void AllocateGrid(SearchGrid<std::uint8_t>* grid) {
-    grid->data = new std::uint8_t[grid->width * grid->height];
-    grid->rows = new std::uint8_t*[grid->height];
-    for (int i = 0; i < grid->height; ++i) grid->rows[i] = grid->data + i * grid->width;
-}
-// A square grid of `size`: reallocated when the size differs, then cleared.
-void ResizeCleared(SearchGrid<std::uint8_t>* grid, int size) {
-    if (grid->width != size || grid->height != size) {
-        FreeGrid(*grid);
-        grid->width = size;
-        grid->height = size;
-        AllocateGrid(grid);
-    }
-    std::memset(grid->data, 0, static_cast<std::size_t>(grid->width * grid->height));
-}
-} // namespace
-
 void FogGrid::Grow(int x, int y, int n) {
     int left = x - n, right = x + n, top = y - n, bottom = y + n;
     if (x0 == 0x7FFFFFFF) {
@@ -228,15 +234,6 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
         }
     }
 }
-
-namespace {
-// The handle's reference dropped (the object deleted with the last).
-void ReleaseHandle(ShapeCacheHandle* handle) {
-    if (CRefObject* ref = handle->ref) {
-        if (--ref->refs_ == 0) delete ref;     // delete tests ref again, as the original does
-    }
-}
-} // namespace
 
 void* CAIMap::UnitShape(float standingHeight) {
     ShapeCacheHandle handle;

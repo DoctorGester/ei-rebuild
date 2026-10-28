@@ -15,6 +15,8 @@ constexpr int kSurfaceFormat = 5;
 constexpr int kTextFormat = 1;
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
+const char* const kOkSound = "buttons\\messbox\\ok.wav";
+
 } // namespace
 
 // The window's virtuals; the input side's click and a left double click that does nothing.
@@ -50,10 +52,6 @@ void CUiSpin::SetValue(int value) {
 }
 
 // --- A click steps the value ------------------------------------------------------------------------
-
-namespace {
-const char* const kOkSound = "buttons\\messbox\\ok.wav";
-} // namespace
 
 void CUiSpin::OnLButtonDown(int, int, int) {
     interface_->PlaySound(kOkSound, 0);

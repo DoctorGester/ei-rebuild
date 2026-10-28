@@ -486,98 +486,6 @@ bool RecreateDevice() {
     return true;
 }
 
-} // namespace
-
-namespace detail {
-
-void ReportDeviceLost(long result, long reason) {
-    if (!g_deviceLost) {
-        g_lastLossResult = result;
-        g_lastLossReason = reason;
-        g_lastLossSimulated = g_simulationTaken;
-    }
-    g_simulationTaken = false;
-    g_deviceLost = true;
-}
-bool DeviceIsLost() { return g_deviceLost; }
-
-bool TakeSimulatedLoss() {
-    if (!g_simulateLoss) return false;
-    g_simulateLoss = false;
-    g_simulationTaken = true;
-    ei::Log("render: the device's loss asked for (render::LoseDevice): taken as DXGI_ERROR_DEVICE_REMOVED");
-    return true;
-}
-
-void DeviceLossCounts(WindowPresentInfo* info) {
-    info->deviceLosses = g_losses;
-    info->deviceRecoveries = g_recoveries;
-    info->lastLossResult = g_lastLossResult;
-    info->lastLossReason = g_lastLossReason;
-    info->lastLossSimulated = g_lastLossSimulated;
-#if defined(EI_RENDER_VALIDATION)
-    info->removable = g_d3d12 != nullptr;
-    info->removals = g_removals;
-#endif
-}
-
-} // namespace detail
-
-void LoseDevice() {
-    if (!Active() || !g_started) return;
-    g_simulateLoss = true;
-}
-
-#if defined(EI_RENDER_VALIDATION)
-bool RemoveDevice() {
-    if (!Active() || !g_started || !g_d3d12) return false;
-    ID3D12Device5* device5 = nullptr;
-    if (FAILED(g_d3d12->QueryInterface(IID_PPV_ARGS(&device5)))) {
-        ei::Log("render: RemoveDevice: no ID3D12Device5 (Windows 10 1809 or later)");
-        return false;
-    }
-    device5->Release();
-    g_removeAsked = true;
-    return true;
-}
-
-namespace detail {
-
-void RemoveIfAsked() {
-    if (!g_removeAsked || !g_d3d12) return;
-    g_removeAsked = false;
-    ID3D12Device5* device5 = nullptr;
-    if (FAILED(g_d3d12->QueryInterface(IID_PPV_ARGS(&device5)))) return;
-    FpuGuard fpu;
-    // The GPU finishes what it was given first. Removed with work in flight, the old device's teardown
-    // (RecreateDevice) crashed in a thread of D3D11On12 / DXGI / the driver, also in a small program that
-    // presented on its own window; with the GPU idle it never did (renderer.md).
-    int waited = 0;
-    D3D11_QUERY_DESC desc{D3D11_QUERY_EVENT, 0};
-    ID3D11Query* idle = nullptr;
-    if (SUCCEEDED(g_device->CreateQuery(&desc, &idle))) {
-        g_context->End(idle);
-        g_context->Flush();
-        BOOL done = FALSE;
-        while (g_context->GetData(idle, &done, sizeof(done), 0) == S_FALSE && waited < 2000) {
-            Sleep(1);
-            ++waited;
-        }
-        idle->Release();
-    }
-    device5->RemoveDevice();
-    device5->Release();
-    ++g_removals;
-    ei::Log("render: the removable device removed (ID3D12Device5::RemoveDevice, the GPU idle after %d ms); its "
-            "GetDeviceRemovedReason now %08lX",
-            waited, static_cast<unsigned long>(g_device->GetDeviceRemovedReason()));
-}
-
-} // namespace detail
-#endif
-
-namespace {
-
 // The end of a presented frame (nothing of it holds sokol resources any more): a loss reported
 // during the frame, asked for, or found by GetDeviceRemovedReason (a loss nothing reported, e.g.
 // while minimised) makes everything again.
@@ -596,127 +504,13 @@ void CheckDevice() {
     if (g_deviceLost) RecreateDevice();
 }
 
-} // namespace
-
-namespace detail {
-
-// The game's main-thread x87 state is part of its behaviour (docs/notes/rebirth.md, "FPU precision");
-// drivers are not expected to change it, but the control word is put back after every call into them anyway
-// (loaded only when it changed).
-FpuGuard::FpuGuard() : saved_(x87::ControlWord()) {}
-FpuGuard::~FpuGuard() {
-    if (x87::ControlWord() != saved_) x87::SetControlWord(saved_);
-}
-
-Frame& CurrentFrame() { return g_frame; }
-std::uint32_t FrameNumber() { return g_frameNumber; }
-std::uint32_t CommitNumber() { return g_commits; }
-bool Started() { return EnsureStarted(); }
-
-ID3D11Device* D3DDevice() { return g_device; }
-ID3D11DeviceContext* D3DContext() { return g_context; }
-sg_image FrameImage() { return g_colour; }
-sg_view FrameTexture() { return g_colourTexture; }
-bool FrameSize(int* width, int* height) {
-    *width = g_width;
-    *height = g_height;
-    return g_colour.id != 0;
-}
-
-CTextureDevice* DeviceObject() { return game::Where().renderer->device_; }
-
-// The size of the game's render target (in the switch-over a holder without a surface that has the screen's size).
-bool GameTargetSize(int* width, int* height) {
-    CTextureDevice* device = DeviceObject();
-    const CDXSurface* target = device ? device->renderTarget_ : nullptr;
-    if (!target) return false;
-    *width = target->width;
-    *height = target->height;
-    return *width > 0 && *height > 0 && *width <= 16384 && *height <= 16384;
-}
-
-int AddMatrix(const Matrix4& m) {
-    if (!g_frame.matrices.empty() && std::memcmp(&g_frame.matrices.back(), &m, sizeof(Matrix4)) == 0)
-        return static_cast<int>(g_frame.matrices.size()) - 1;
-    g_frame.matrices.push_back(m);
-    return static_cast<int>(g_frame.matrices.size()) - 1;
-}
-
-// The switch-over device's states: what the game last set, Direct3D 7's defaults before that.
-void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int count) {
-    for (int i = 0; i < count; ++i) values[i] = device::SwitchOverRenderState(states[i]);
-}
-
-void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* values, int count) {
-    for (int i = 0; i < count; ++i) values[i] = device::SwitchOverStageState(static_cast<std::uint32_t>(stage), states[i]);
-}
-
-// The fog the old path draws with: FOGENABLE (28) and FOGCOLOR (34), once per frame.
-void ReadFog(Frame& f) {
-    const std::uint32_t states[2] = {28, 34};
-    std::uint32_t values[2];
-    RenderValues(states, values, 2);
-    f.haveFog = true;
-    f.fogEnabled = values[0] != 0;
-    f.fogColour = values[1];
-}
-
-} // namespace detail
-
-namespace game {
-Addresses& Where() {
-    static Addresses addresses = {&app::g_mainWindow, TheSceneRenderer()};
-    return addresses;
-}
-} // namespace game
-
-#if defined(EI_RENDER_VALIDATION)
-namespace detail {
-bool ReadBackDue(long count) { return g_checkAll || count < kReadBackAlways || count % 16 == 0; }
-} // namespace detail
-#endif
-
-void Configure(const char* spec) {
-    std::string combined = spec ? spec : "";
-    std::string environment = EnvironmentSpec();
-    if (!environment.empty()) combined += (combined.empty() ? "" : ",") + environment;
-    ParseSpec(combined.c_str());
-}
-
-void PrepareDevice() {
-    EnsureConfigured();
-    if (!Active() || g_started || g_prepared.thread) return;
-#if defined(EI_RENDER_VALIDATION)
-    if (g_removable) return;   // made at the first use (CreateRemovableDevice)
-#endif
-    g_prepared.thread = CreateThread(nullptr, 0, &PrepareDeviceThread, nullptr, 0, nullptr);
-}
-
-bool Active() { return !g_failed; }
-
-namespace {
 bool g_meshCornersFull = false;
 #if defined(EI_RENDER_VALIDATION)
 // The timer of the device mesh draw running (at most one), made in place so no static destructor comes with it.
 alignas(detail::StatsTimer) unsigned char g_deviceMeshTimer[sizeof(detail::StatsTimer)];
 bool g_deviceMeshTiming = false;
 #endif
-} // namespace
-void BeginDeviceMeshTime() {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_deviceMeshTiming) return;
-    new (g_deviceMeshTimer) detail::StatsTimer(&FrameStats::deviceMeshMs);
-    g_deviceMeshTiming = true;
-#endif
-}
-void EndDeviceMeshTime() {
-#if defined(EI_RENDER_VALIDATION)
-    if (!g_deviceMeshTiming) return;
-    std::launder(reinterpret_cast<detail::StatsTimer*>(g_deviceMeshTimer))->~StatsTimer();
-    g_deviceMeshTiming = false;
-#endif
-}
-namespace {
+
 #if defined(EI_RENDER_VALIDATION)
 struct GameTimer {
     alignas(detail::StatsTimer) unsigned char storage[sizeof(detail::StatsTimer)];
@@ -735,129 +529,7 @@ struct GameTimer {
 };
 GameTimer g_decalTimer, g_flatDrawTimer, g_shadowBuildTimer;
 #endif
-} // namespace
-void BeginDecalTime(bool shadow) {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_decalTimer.running) return;
-    ++(shadow ? detail::Stats().decalShadows : detail::Stats().decalPrints);
-    g_decalTimer.Begin(shadow ? &FrameStats::decalShadowMs : &FrameStats::decalPrintMs);
-#else
-    (void)shadow;
-#endif
-}
-void EndDecalTime(int vertices) {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_decalTimer.End()) detail::Stats().decalVertices += static_cast<std::uint64_t>(vertices);
-#else
-    (void)vertices;
-#endif
-}
-void BeginFlatDrawTime(int vertices) {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_flatDrawTimer.running) return;
-    ++detail::Stats().flatDraws;
-    detail::Stats().flatDrawVertices += static_cast<std::uint64_t>(vertices);
-    g_flatDrawTimer.Begin(&FrameStats::flatMs);
-#else
-    (void)vertices;
-#endif
-}
-void EndFlatDrawTime() {
-#if defined(EI_RENDER_VALIDATION)
-    g_flatDrawTimer.End();
-#endif
-}
-void BeginShadowBuildTime() {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_shadowBuildTimer.running) return;
-    ++detail::Stats().shadowBuilds;
-    g_shadowBuildTimer.Begin(&FrameStats::shadowBuildMs);
-#endif
-}
-void EndShadowBuildTime() {
-#if defined(EI_RENDER_VALIDATION)
-    g_shadowBuildTimer.End();
-#endif
-}
-bool MeshCornersSkipped() { return Active() && !g_meshCornersFull; }
-void SetMeshCornersFull(bool full) {
-#if defined(EI_RENDER_VALIDATION)
-    if (full != g_meshCornersFull)
-        ei::Log("render: the device's mesh draws do %s per-corner work", full ? "all the old" : "only the read");
-    g_meshCornersFull = full;
-#else
-    (void)full;
-#endif
-}
 
-bool StartPresenting() {
-    if (g_presentsItself) return true;
-    if (!Active() || !EnsureStarted()) return false;
-    g_presentsItself = true;
-    ei::Log("render: the switch-over without DirectDraw: the new renderer presents the frames itself");
-    return true;
-}
-
-bool PresentsItself() { return g_presentsItself; }
-
-void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
-                   std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
-    if (!holder || !pixels || !Active() || !EnsureStarted()) return;
-    FpuGuard fpu;
-    StatsTimer timer(&FrameStats::textureMs);
-    TextureFromPixels(holder, pixels, width, height, pitch, bitsPerPixel, redMask, greenMask, blueMask, alphaMask);
-}
-
-void SetSmooth(bool on) {
-    EnsureConfigured();
-    if (on != g_smooth) ei::Log("render: the smooth option turned %s", on ? "on" : "off");
-    g_smooth = on;
-}
-
-bool Smooth() {
-    EnsureConfigured();
-    return g_smooth;
-}
-
-void SetSmoothCamera(bool on) {
-    EnsureConfigured();
-    if (on != g_smoothCamera) ei::Log("render: the smooth camera turned %s", on ? "on" : "off");
-    g_smoothCamera = on;
-}
-
-bool SmoothCamera() {
-    EnsureConfigured();
-    return g_smoothCamera;
-}
-
-void BeginWorld() {
-    std::vector<Frame::Range>& ranges = g_frame.worldRanges;
-    if (!Active() || (!ranges.empty() && ranges.back().end == SIZE_MAX)) return;
-    ranges.push_back(Frame::Range{g_frame.commands.size(), SIZE_MAX});
-}
-
-void EndWorld() {
-    std::vector<Frame::Range>& ranges = g_frame.worldRanges;
-    if (!ranges.empty() && ranges.back().end == SIZE_MAX) ranges.back().end = g_frame.commands.size();
-}
-
-void ClearDepth(float z, const Rect* rects, int count) {
-    if (!Active()) return;
-    Stats().depthClears += rects ? static_cast<std::uint64_t>(count > 0 ? count : 0) : 1;
-    if (!rects) {
-        g_frame.clears.push_back(ClearBatch{z, Rect{0, 0, 0, 0}});
-        g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
-        return;
-    }
-    for (int i = 0; i < count; ++i) {
-        g_frame.clears.push_back(ClearBatch{z, rects[i]});
-        g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
-    }
-}
-
-// --- Frame statistics ----------------------------------------------------------------------------
-
-namespace {
 FrameStats g_stats;         // the frame being built
 FrameStats g_statsSum;      // the presented frames since the last TakeFrameStats
 std::uint32_t g_lastPipeline = 0, g_lastTexture = 0;   // ids applied last in this frame
@@ -941,90 +613,6 @@ void AddFrameStats() {
     g_frameGeometry.clear();
 #endif
 }
-} // namespace
-
-namespace detail {
-
-FrameStats& Stats() { return g_stats; }
-
-StatsTimer::StatsTimer(double FrameStats::* field) : field_(field), start_(0), outer_(nullptr) {
-#if defined(EI_RENDER_VALIDATION)
-    start_ = Ticks();
-    outer_ = g_innerTimer;
-    g_innerTimer = this;
-#endif
-}
-
-StatsTimer::~StatsTimer() {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_msPerTick == 0.0) {
-        LARGE_INTEGER frequency{};
-        QueryPerformanceFrequency(&frequency);
-        g_msPerTick = frequency.QuadPart > 0 ? 1000.0 / static_cast<double>(frequency.QuadPart) : 0.0;
-    }
-    double ms = static_cast<double>(Ticks() - start_) * g_msPerTick;
-    g_stats.*field_ += ms;
-    if (outer_) g_stats.*(outer_->field_) -= ms;   // the outer timer counts its own work only
-    g_innerTimer = outer_;
-#endif
-}
-
-void CountPipeline(sg_pipeline pipeline) {
-    ++g_stats.pipelineApplies;
-    if (pipeline.id != g_lastPipeline) ++g_stats.pipelineChanges;
-    g_lastPipeline = pipeline.id;
-}
-
-void CountBindings(const sg_bindings& b) {
-    ++g_stats.bindings;
-    if (b.views[0].id != g_lastTexture) ++g_stats.textureChanges;
-    g_lastTexture = b.views[0].id;
-}
-
-void CountDraw(std::size_t uniformBytes) {
-    ++g_stats.draws;
-    g_stats.uniformBytes += uniformBytes;
-}
-
-void CountReuse([[maybe_unused]] bool terrain, [[maybe_unused]] const void* key, [[maybe_unused]] int page,
-                [[maybe_unused]] const Vertex* vertices, [[maybe_unused]] std::size_t count) {
-#if defined(EI_RENDER_VALIDATION)
-    StatsTimer timer(&FrameStats::statsMs);
-    VertexHashes h{0xCBF29CE484222325ull, 0xCBF29CE484222325ull};
-    for (std::size_t i = 0; i < count; ++i) {
-        const Vertex& v = vertices[i];
-        h.geometry = Fnv(h.geometry, &v.position, sizeof(v.position));
-        h.geometry = Fnv(h.geometry, &v.u, 2 * sizeof(float));
-        h.colours = Fnv(h.colours, &v.colour, 2 * sizeof(std::uint32_t));
-    }
-    std::uint64_t id = (static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(key)) << 8) ^
-                       static_cast<std::uint64_t>(page) ^ (terrain ? 1ull << 63 : 0);
-    auto last = g_lastHashes.find(id);
-    FrameStats::Reuse r = last == g_lastHashes.end()            ? FrameStats::New
-                          : last->second.geometry != h.geometry ? FrameStats::Moved
-                          : last->second.colours != h.colours   ? FrameStats::Relit
-                                                                : FrameStats::Same;
-    ++(terrain ? g_stats.terrainReuse : g_stats.meshReuse)[r];
-    g_hashes[id] = h;
-    if (!terrain && !g_frameGeometry.insert(h.geometry ^ count).second) ++g_stats.sharedMeshes;
-#endif
-}
-
-void CountUpload(FrameStats::Upload kind, std::size_t bytes) {
-    ++g_stats.uploads[kind];
-    g_stats.uploadBytes[kind] += bytes;
-    if (bytes > g_stats.largestUpload[kind]) g_stats.largestUpload[kind] = bytes;
-}
-
-} // namespace detail
-
-FrameStats TakeFrameStats() {
-    FrameStats s = g_statsSum;
-    g_statsSum = FrameStats{};
-    return s;
-}
-
-namespace {
 
 std::size_t g_drawnCommands = 0;   // commands of this frame already drawn into the target
 int g_passes = 0;                  // passes drawn this frame
@@ -1272,6 +860,406 @@ struct ChannelPack {
 bool BetweenFrames() { return g_haveFrame && g_passes == 0 && g_frame.commands.empty(); }
 
 } // namespace
+
+namespace detail {
+
+void ReportDeviceLost(long result, long reason) {
+    if (!g_deviceLost) {
+        g_lastLossResult = result;
+        g_lastLossReason = reason;
+        g_lastLossSimulated = g_simulationTaken;
+    }
+    g_simulationTaken = false;
+    g_deviceLost = true;
+}
+bool DeviceIsLost() { return g_deviceLost; }
+
+bool TakeSimulatedLoss() {
+    if (!g_simulateLoss) return false;
+    g_simulateLoss = false;
+    g_simulationTaken = true;
+    ei::Log("render: the device's loss asked for (render::LoseDevice): taken as DXGI_ERROR_DEVICE_REMOVED");
+    return true;
+}
+
+void DeviceLossCounts(WindowPresentInfo* info) {
+    info->deviceLosses = g_losses;
+    info->deviceRecoveries = g_recoveries;
+    info->lastLossResult = g_lastLossResult;
+    info->lastLossReason = g_lastLossReason;
+    info->lastLossSimulated = g_lastLossSimulated;
+#if defined(EI_RENDER_VALIDATION)
+    info->removable = g_d3d12 != nullptr;
+    info->removals = g_removals;
+#endif
+}
+
+} // namespace detail
+
+void LoseDevice() {
+    if (!Active() || !g_started) return;
+    g_simulateLoss = true;
+}
+
+#if defined(EI_RENDER_VALIDATION)
+bool RemoveDevice() {
+    if (!Active() || !g_started || !g_d3d12) return false;
+    ID3D12Device5* device5 = nullptr;
+    if (FAILED(g_d3d12->QueryInterface(IID_PPV_ARGS(&device5)))) {
+        ei::Log("render: RemoveDevice: no ID3D12Device5 (Windows 10 1809 or later)");
+        return false;
+    }
+    device5->Release();
+    g_removeAsked = true;
+    return true;
+}
+
+namespace detail {
+
+void RemoveIfAsked() {
+    if (!g_removeAsked || !g_d3d12) return;
+    g_removeAsked = false;
+    ID3D12Device5* device5 = nullptr;
+    if (FAILED(g_d3d12->QueryInterface(IID_PPV_ARGS(&device5)))) return;
+    FpuGuard fpu;
+    // The GPU finishes what it was given first. Removed with work in flight, the old device's teardown
+    // (RecreateDevice) crashed in a thread of D3D11On12 / DXGI / the driver, also in a small program that
+    // presented on its own window; with the GPU idle it never did (renderer.md).
+    int waited = 0;
+    D3D11_QUERY_DESC desc{D3D11_QUERY_EVENT, 0};
+    ID3D11Query* idle = nullptr;
+    if (SUCCEEDED(g_device->CreateQuery(&desc, &idle))) {
+        g_context->End(idle);
+        g_context->Flush();
+        BOOL done = FALSE;
+        while (g_context->GetData(idle, &done, sizeof(done), 0) == S_FALSE && waited < 2000) {
+            Sleep(1);
+            ++waited;
+        }
+        idle->Release();
+    }
+    device5->RemoveDevice();
+    device5->Release();
+    ++g_removals;
+    ei::Log("render: the removable device removed (ID3D12Device5::RemoveDevice, the GPU idle after %d ms); its "
+            "GetDeviceRemovedReason now %08lX",
+            waited, static_cast<unsigned long>(g_device->GetDeviceRemovedReason()));
+}
+
+} // namespace detail
+#endif
+
+namespace detail {
+
+// The game's main-thread x87 state is part of its behaviour (docs/notes/rebirth.md, "FPU precision");
+// drivers are not expected to change it, but the control word is put back after every call into them anyway
+// (loaded only when it changed).
+FpuGuard::FpuGuard() : saved_(x87::ControlWord()) {}
+FpuGuard::~FpuGuard() {
+    if (x87::ControlWord() != saved_) x87::SetControlWord(saved_);
+}
+
+Frame& CurrentFrame() { return g_frame; }
+std::uint32_t FrameNumber() { return g_frameNumber; }
+std::uint32_t CommitNumber() { return g_commits; }
+bool Started() { return EnsureStarted(); }
+
+ID3D11Device* D3DDevice() { return g_device; }
+ID3D11DeviceContext* D3DContext() { return g_context; }
+sg_image FrameImage() { return g_colour; }
+sg_view FrameTexture() { return g_colourTexture; }
+bool FrameSize(int* width, int* height) {
+    *width = g_width;
+    *height = g_height;
+    return g_colour.id != 0;
+}
+
+CTextureDevice* DeviceObject() { return game::Where().renderer->device_; }
+
+// The size of the game's render target (in the switch-over a holder without a surface that has the screen's size).
+bool GameTargetSize(int* width, int* height) {
+    CTextureDevice* device = DeviceObject();
+    const CDXSurface* target = device ? device->renderTarget_ : nullptr;
+    if (!target) return false;
+    *width = target->width;
+    *height = target->height;
+    return *width > 0 && *height > 0 && *width <= 16384 && *height <= 16384;
+}
+
+int AddMatrix(const Matrix4& m) {
+    if (!g_frame.matrices.empty() && std::memcmp(&g_frame.matrices.back(), &m, sizeof(Matrix4)) == 0)
+        return static_cast<int>(g_frame.matrices.size()) - 1;
+    g_frame.matrices.push_back(m);
+    return static_cast<int>(g_frame.matrices.size()) - 1;
+}
+
+// The switch-over device's states: what the game last set, Direct3D 7's defaults before that.
+void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int count) {
+    for (int i = 0; i < count; ++i) values[i] = device::SwitchOverRenderState(states[i]);
+}
+
+void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* values, int count) {
+    for (int i = 0; i < count; ++i) values[i] = device::SwitchOverStageState(static_cast<std::uint32_t>(stage), states[i]);
+}
+
+// The fog the old path draws with: FOGENABLE (28) and FOGCOLOR (34), once per frame.
+void ReadFog(Frame& f) {
+    const std::uint32_t states[2] = {28, 34};
+    std::uint32_t values[2];
+    RenderValues(states, values, 2);
+    f.haveFog = true;
+    f.fogEnabled = values[0] != 0;
+    f.fogColour = values[1];
+}
+
+} // namespace detail
+
+namespace game {
+Addresses& Where() {
+    static Addresses addresses = {&app::g_mainWindow, TheSceneRenderer()};
+    return addresses;
+}
+} // namespace game
+
+#if defined(EI_RENDER_VALIDATION)
+namespace detail {
+bool ReadBackDue(long count) { return g_checkAll || count < kReadBackAlways || count % 16 == 0; }
+} // namespace detail
+#endif
+
+void Configure(const char* spec) {
+    std::string combined = spec ? spec : "";
+    std::string environment = EnvironmentSpec();
+    if (!environment.empty()) combined += (combined.empty() ? "" : ",") + environment;
+    ParseSpec(combined.c_str());
+}
+
+void PrepareDevice() {
+    EnsureConfigured();
+    if (!Active() || g_started || g_prepared.thread) return;
+#if defined(EI_RENDER_VALIDATION)
+    if (g_removable) return;   // made at the first use (CreateRemovableDevice)
+#endif
+    g_prepared.thread = CreateThread(nullptr, 0, &PrepareDeviceThread, nullptr, 0, nullptr);
+}
+
+bool Active() { return !g_failed; }
+
+void BeginDeviceMeshTime() {
+#if defined(EI_RENDER_VALIDATION)
+    if (g_deviceMeshTiming) return;
+    new (g_deviceMeshTimer) detail::StatsTimer(&FrameStats::deviceMeshMs);
+    g_deviceMeshTiming = true;
+#endif
+}
+void EndDeviceMeshTime() {
+#if defined(EI_RENDER_VALIDATION)
+    if (!g_deviceMeshTiming) return;
+    std::launder(reinterpret_cast<detail::StatsTimer*>(g_deviceMeshTimer))->~StatsTimer();
+    g_deviceMeshTiming = false;
+#endif
+}
+void BeginDecalTime(bool shadow) {
+#if defined(EI_RENDER_VALIDATION)
+    if (g_decalTimer.running) return;
+    ++(shadow ? detail::Stats().decalShadows : detail::Stats().decalPrints);
+    g_decalTimer.Begin(shadow ? &FrameStats::decalShadowMs : &FrameStats::decalPrintMs);
+#else
+    (void)shadow;
+#endif
+}
+void EndDecalTime(int vertices) {
+#if defined(EI_RENDER_VALIDATION)
+    if (g_decalTimer.End()) detail::Stats().decalVertices += static_cast<std::uint64_t>(vertices);
+#else
+    (void)vertices;
+#endif
+}
+void BeginFlatDrawTime(int vertices) {
+#if defined(EI_RENDER_VALIDATION)
+    if (g_flatDrawTimer.running) return;
+    ++detail::Stats().flatDraws;
+    detail::Stats().flatDrawVertices += static_cast<std::uint64_t>(vertices);
+    g_flatDrawTimer.Begin(&FrameStats::flatMs);
+#else
+    (void)vertices;
+#endif
+}
+void EndFlatDrawTime() {
+#if defined(EI_RENDER_VALIDATION)
+    g_flatDrawTimer.End();
+#endif
+}
+void BeginShadowBuildTime() {
+#if defined(EI_RENDER_VALIDATION)
+    if (g_shadowBuildTimer.running) return;
+    ++detail::Stats().shadowBuilds;
+    g_shadowBuildTimer.Begin(&FrameStats::shadowBuildMs);
+#endif
+}
+void EndShadowBuildTime() {
+#if defined(EI_RENDER_VALIDATION)
+    g_shadowBuildTimer.End();
+#endif
+}
+bool MeshCornersSkipped() { return Active() && !g_meshCornersFull; }
+void SetMeshCornersFull(bool full) {
+#if defined(EI_RENDER_VALIDATION)
+    if (full != g_meshCornersFull)
+        ei::Log("render: the device's mesh draws do %s per-corner work", full ? "all the old" : "only the read");
+    g_meshCornersFull = full;
+#else
+    (void)full;
+#endif
+}
+
+bool StartPresenting() {
+    if (g_presentsItself) return true;
+    if (!Active() || !EnsureStarted()) return false;
+    g_presentsItself = true;
+    ei::Log("render: the switch-over without DirectDraw: the new renderer presents the frames itself");
+    return true;
+}
+
+bool PresentsItself() { return g_presentsItself; }
+
+void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
+                   std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
+    if (!holder || !pixels || !Active() || !EnsureStarted()) return;
+    FpuGuard fpu;
+    StatsTimer timer(&FrameStats::textureMs);
+    TextureFromPixels(holder, pixels, width, height, pitch, bitsPerPixel, redMask, greenMask, blueMask, alphaMask);
+}
+
+void SetSmooth(bool on) {
+    EnsureConfigured();
+    if (on != g_smooth) ei::Log("render: the smooth option turned %s", on ? "on" : "off");
+    g_smooth = on;
+}
+
+bool Smooth() {
+    EnsureConfigured();
+    return g_smooth;
+}
+
+void SetSmoothCamera(bool on) {
+    EnsureConfigured();
+    if (on != g_smoothCamera) ei::Log("render: the smooth camera turned %s", on ? "on" : "off");
+    g_smoothCamera = on;
+}
+
+bool SmoothCamera() {
+    EnsureConfigured();
+    return g_smoothCamera;
+}
+
+void BeginWorld() {
+    std::vector<Frame::Range>& ranges = g_frame.worldRanges;
+    if (!Active() || (!ranges.empty() && ranges.back().end == SIZE_MAX)) return;
+    ranges.push_back(Frame::Range{g_frame.commands.size(), SIZE_MAX});
+}
+
+void EndWorld() {
+    std::vector<Frame::Range>& ranges = g_frame.worldRanges;
+    if (!ranges.empty() && ranges.back().end == SIZE_MAX) ranges.back().end = g_frame.commands.size();
+}
+
+void ClearDepth(float z, const Rect* rects, int count) {
+    if (!Active()) return;
+    Stats().depthClears += rects ? static_cast<std::uint64_t>(count > 0 ? count : 0) : 1;
+    if (!rects) {
+        g_frame.clears.push_back(ClearBatch{z, Rect{0, 0, 0, 0}});
+        g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
+        return;
+    }
+    for (int i = 0; i < count; ++i) {
+        g_frame.clears.push_back(ClearBatch{z, rects[i]});
+        g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
+    }
+}
+
+// --- Frame statistics ----------------------------------------------------------------------------
+
+namespace detail {
+
+FrameStats& Stats() { return g_stats; }
+
+StatsTimer::StatsTimer(double FrameStats::* field) : field_(field), start_(0), outer_(nullptr) {
+#if defined(EI_RENDER_VALIDATION)
+    start_ = Ticks();
+    outer_ = g_innerTimer;
+    g_innerTimer = this;
+#endif
+}
+
+StatsTimer::~StatsTimer() {
+#if defined(EI_RENDER_VALIDATION)
+    if (g_msPerTick == 0.0) {
+        LARGE_INTEGER frequency{};
+        QueryPerformanceFrequency(&frequency);
+        g_msPerTick = frequency.QuadPart > 0 ? 1000.0 / static_cast<double>(frequency.QuadPart) : 0.0;
+    }
+    double ms = static_cast<double>(Ticks() - start_) * g_msPerTick;
+    g_stats.*field_ += ms;
+    if (outer_) g_stats.*(outer_->field_) -= ms;   // the outer timer counts its own work only
+    g_innerTimer = outer_;
+#endif
+}
+
+void CountPipeline(sg_pipeline pipeline) {
+    ++g_stats.pipelineApplies;
+    if (pipeline.id != g_lastPipeline) ++g_stats.pipelineChanges;
+    g_lastPipeline = pipeline.id;
+}
+
+void CountBindings(const sg_bindings& b) {
+    ++g_stats.bindings;
+    if (b.views[0].id != g_lastTexture) ++g_stats.textureChanges;
+    g_lastTexture = b.views[0].id;
+}
+
+void CountDraw(std::size_t uniformBytes) {
+    ++g_stats.draws;
+    g_stats.uniformBytes += uniformBytes;
+}
+
+void CountReuse([[maybe_unused]] bool terrain, [[maybe_unused]] const void* key, [[maybe_unused]] int page,
+                [[maybe_unused]] const Vertex* vertices, [[maybe_unused]] std::size_t count) {
+#if defined(EI_RENDER_VALIDATION)
+    StatsTimer timer(&FrameStats::statsMs);
+    VertexHashes h{0xCBF29CE484222325ull, 0xCBF29CE484222325ull};
+    for (std::size_t i = 0; i < count; ++i) {
+        const Vertex& v = vertices[i];
+        h.geometry = Fnv(h.geometry, &v.position, sizeof(v.position));
+        h.geometry = Fnv(h.geometry, &v.u, 2 * sizeof(float));
+        h.colours = Fnv(h.colours, &v.colour, 2 * sizeof(std::uint32_t));
+    }
+    std::uint64_t id = (static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(key)) << 8) ^
+                       static_cast<std::uint64_t>(page) ^ (terrain ? 1ull << 63 : 0);
+    auto last = g_lastHashes.find(id);
+    FrameStats::Reuse r = last == g_lastHashes.end()            ? FrameStats::New
+                          : last->second.geometry != h.geometry ? FrameStats::Moved
+                          : last->second.colours != h.colours   ? FrameStats::Relit
+                                                                : FrameStats::Same;
+    ++(terrain ? g_stats.terrainReuse : g_stats.meshReuse)[r];
+    g_hashes[id] = h;
+    if (!terrain && !g_frameGeometry.insert(h.geometry ^ count).second) ++g_stats.sharedMeshes;
+#endif
+}
+
+void CountUpload(FrameStats::Upload kind, std::size_t bytes) {
+    ++g_stats.uploads[kind];
+    g_stats.uploadBytes[kind] += bytes;
+    if (bytes > g_stats.largestUpload[kind]) g_stats.largestUpload[kind] = bytes;
+}
+
+} // namespace detail
+
+FrameStats TakeFrameStats() {
+    FrameStats s = g_statsSum;
+    g_statsSum = FrameStats{};
+    return s;
+}
 
 namespace detail {
 

@@ -25,6 +25,10 @@ namespace {
 float DefaultPitch() { return static_cast<float>(CAM_DEGREE * CAM_FORTY_FIVE); }
 float DefaultAngle() { return static_cast<float>(CAM_PI * CAM_TWO_SEVENTHS); }
 
+const char kCurrentRecord[] = ".\\camera\\camera.cam";
+const char kNumberedRecords[] = ".\\camera\\camera0*.cam";
+const char kNumberedRecord[] = ".\\camera\\camera%.4d.cam";
+const char kRecordFolder[] = ".\\camera\\";
 
 } // namespace
 
@@ -69,6 +73,7 @@ CCamera::~CCamera() {
 constinit lib::StaticObject<CCamera> g_camera = /*0079B2A8*/ {};
 CCamera* TheCamera() { return &*g_camera; }
 
+// A second block: it uses g_camera (defined above).
 namespace {
 void DestroyCamera() { g_camera.Destroy(); }
 } // namespace
@@ -117,15 +122,6 @@ int CCamera::Init(options::GameOptions* settings, std::uint32_t nearBits, std::u
 const Vector3* CameraAnchor(const CCamera* self) {
     return (self->flags_ & CCamera::kPlaced) ? &self->localPosition_ : &self->focus_;
 }
-
-namespace {
-
-const char kCurrentRecord[] = ".\\camera\\camera.cam";
-const char kNumberedRecords[] = ".\\camera\\camera0*.cam";
-const char kNumberedRecord[] = ".\\camera\\camera%.4d.cam";
-const char kRecordFolder[] = ".\\camera\\";
-
-} // namespace
 
 // Starts recording into ".\camera\" + `name`. When ".\camera\camera.cam" exists it is
 // first renamed to the next numbered file: the number after the highest found, where each found

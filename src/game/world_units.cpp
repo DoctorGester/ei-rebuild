@@ -134,6 +134,22 @@ CItem* MakeItem(CWorldServer* world, CItem* itemRecord) {
     return item;
 }
 
+constexpr int kQuickEffectType = 9;
+constexpr std::uint32_t kQuickEffectFlags = 0x3010;
+constexpr std::uint32_t kFlagsNewEffect = 0x180000;
+
+void UnitSetDiplomacy(CUnit* a0, void*, int a2) { a0->SetHostileMask((std::uint32_t)a2); }
+
+// The timed objects' types (world_effect.h).
+constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B, kTimedParticle = 0x4A;
+constexpr std::uint32_t kGrey = 0x3F4CCCCD, kOne = 0x3F800000;
+constexpr std::uint32_t kTorchLightKind = 0x2001;   // the torch's smoke particles
+
+int UpdateCountdown(const CEngineObject* object) { return CWorldServer::UpdateCountdownFor(object); }
+
+// Copies dwords (floats are not loaded on the FPU).
+void Copy(void* to, const void* from, std::size_t n) { std::memcpy(to, from, n); }
+
 } // namespace
 
 void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* records, const Vector3* position, Quaternion rotation,
@@ -272,14 +288,6 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
     if (player) MainScript()->Load(&script, 1);
 }
 
-namespace {
-
-constexpr int kQuickEffectType = 9;
-constexpr std::uint32_t kQuickEffectFlags = 0x3010;
-constexpr std::uint32_t kFlagsNewEffect = 0x180000;
-
-} // namespace
-
 void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
     // An object record (a class of its own with the same virtuals).
     ObjectSpec message;
@@ -296,22 +304,6 @@ void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
     CEngineObject* effect = ObjectWithId(id);
     effect->flags_ |= kFlagsNewEffect;
 }
-
-namespace {
-
-void UnitSetDiplomacy(CUnit* a0, void*, int a2) { a0->SetHostileMask((std::uint32_t)a2); }
-
-// The timed objects' types (world_effect.h).
-constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B, kTimedParticle = 0x4A;
-constexpr std::uint32_t kGrey = 0x3F4CCCCD, kOne = 0x3F800000;
-constexpr std::uint32_t kTorchLightKind = 0x2001;   // the torch's smoke particles
-
-int UpdateCountdown(const CEngineObject* object) { return CWorldServer::UpdateCountdownFor(object); }
-
-// Copies dwords (floats are not loaded on the FPU).
-void Copy(void* to, const void* from, std::size_t n) { std::memcpy(to, from, n); }
-
-} // namespace
 
 int CWorldServer::CreateObject(mapspec::Spec* message) {
     // Every kind starts with the base record (Spec); kinds 1, 5-9 are object records (ObjectSpec), 5 a unit

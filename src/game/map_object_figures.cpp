@@ -49,9 +49,6 @@ std::uint32_t KeepHigher(std::uint32_t bound, float v) { return Float(bound) >= 
 // a + b + c in that order, stored to a float.
 float Sum3(float a, float b, float c) { return static_cast<float>((static_cast<double>(a) + b) + c); }
 
-} // namespace
-
-namespace {
 // The box being grown, as float bits (the original selects bits, never loading them twice).
 struct BoxBits {
     std::uint32_t low[3] = {kFloatMax, kFloatMax, kFloatMax};
@@ -80,6 +77,7 @@ void AddPendingPart(BoxBits& box, const CFigureMesh* p) {
     box.low[2] = KeepLower(box.low[2], Sum3(p->box_.bounds.boxMin.z, p->localPosition_.z, p->box_.bounds.center.z));
     box.high[2] = KeepHigher(box.high[2], Sum3(p->box_.bounds.boxMax.z, p->localPosition_.z, p->box_.bounds.center.z));
 }
+
 } // namespace
 
 void CObject3D::ComputeBounds() {

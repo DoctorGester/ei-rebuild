@@ -105,6 +105,43 @@ void PlaceSling(CEngineObject* sling, float angle, float x) {
     AsUiMesh(sling)->PlaceBody(x, kSlingY, FromBits(kSlingDepthBits));
 }
 
+constexpr const char* kArrowSprite = "in25arrow";
+constexpr const char* kInfoTextFormat = "infounit_%d";
+constexpr const char* kPartLabelKeys[4] = {"hl_skull", "hl_torso", "hl_leg", "hl_arm"};
+float StripScale() { return static_cast<float>(100.0f /*0073BAB0*/ / 0.48157462f /*007423FC*/); }
+constexpr int kUnitTravel = 180;
+constexpr int kWideUnitLeft = -133;   // WideScreen's rectangle (addon's constants, whatever the margin)
+constexpr int kWideUnitRight = 52;
+constexpr int kInfoTexts = 18;
+constexpr std::uint32_t kPlainColour = 0x100;             // CUiMesh::flags_: drawn in flatColour_
+
+constexpr const char* kDefaultPicture = "battle00";
+float ZoneUnit() { return 32.0f /*0073CA90*/; }            // world units per unit of a zone's size
+float MapSide() { return 2.0f /*0073CDB8*/; }             // the map's side in map units
+float ZoomRange() { return 0.05f /*0074134C*/; }           // the largest zoom per world unit
+float Pi() { return 3.1415927f /*007423F8*/; }
+float OutlineStep() { return 0.125f /*0073C520*/; }         // sixteen points round the map
+double OutlineRadius() { return 65.0 /*00742A98*/; }
+double OutlineCentreX() { return 700.0 /*00742A88*/; }
+double OutlineCentreY() { return 80.0 /*00742A90*/; }
+float DepthUnit() { return 0.48157462f /*007423FC*/; }           // the layout's half height at depth 1
+float BoundsScale() { return 0.045f /*00742A80*/; }
+float MarkersScale() { return 0.03f /*00742A7C*/; }
+float SlingQuarter() { return (-0.5f /*0073CDC8*/); }        // the sling starts a quarter turn back
+constexpr int kMapTextureKind = 3;
+constexpr int kMapTravel = 180;
+constexpr int kOutlinePoints = 16;
+
+const MapRecord* LocalZone() {
+    return TheMapDatabase()->FindMap(LocalPlayerZone());
+}
+
+void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
+    sprite->texture_ = nullptr;
+    sprite->flags_ |= kPlainColour;
+    sprite->flatColour_ = colour;
+}
+
 } // namespace
 
 // --- The map -------------------------------------------------------------------------------------
@@ -207,18 +244,6 @@ void CHudUnitPanel::UpdateVanilla() {
 }
 
 // --- The unit panel's setup ----------------------------------------------------------------
-
-namespace {
-constexpr const char* kArrowSprite = "in25arrow";
-constexpr const char* kInfoTextFormat = "infounit_%d";
-constexpr const char* kPartLabelKeys[4] = {"hl_skull", "hl_torso", "hl_leg", "hl_arm"};
-float StripScale() { return static_cast<float>(100.0f /*0073BAB0*/ / 0.48157462f /*007423FC*/); }
-constexpr int kUnitTravel = 180;
-constexpr int kWideUnitLeft = -133;   // WideScreen's rectangle (addon's constants, whatever the margin)
-constexpr int kWideUnitRight = 52;
-constexpr int kInfoTexts = 18;
-constexpr std::uint32_t kPlainColour = 0x100;             // CUiMesh::flags_: drawn in flatColour_
-} // namespace
 
 void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     offset_ = slid ? kUnitTravel : 0;
@@ -323,35 +348,6 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
 }
 
 // --- The map's setup ----------------------------------------------------------------------
-
-namespace {
-constexpr const char* kDefaultPicture = "battle00";
-float ZoneUnit() { return 32.0f /*0073CA90*/; }            // world units per unit of a zone's size
-float MapSide() { return 2.0f /*0073CDB8*/; }             // the map's side in map units
-float ZoomRange() { return 0.05f /*0074134C*/; }           // the largest zoom per world unit
-float Pi() { return 3.1415927f /*007423F8*/; }
-float OutlineStep() { return 0.125f /*0073C520*/; }         // sixteen points round the map
-double OutlineRadius() { return 65.0 /*00742A98*/; }
-double OutlineCentreX() { return 700.0 /*00742A88*/; }
-double OutlineCentreY() { return 80.0 /*00742A90*/; }
-float DepthUnit() { return 0.48157462f /*007423FC*/; }           // the layout's half height at depth 1
-float BoundsScale() { return 0.045f /*00742A80*/; }
-float MarkersScale() { return 0.03f /*00742A7C*/; }
-float SlingQuarter() { return (-0.5f /*0073CDC8*/); }        // the sling starts a quarter turn back
-constexpr int kMapTextureKind = 3;
-constexpr int kMapTravel = 180;
-constexpr int kOutlinePoints = 16;
-
-const MapRecord* LocalZone() {
-    return TheMapDatabase()->FindMap(LocalPlayerZone());
-}
-
-void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
-    sprite->texture_ = nullptr;
-    sprite->flags_ |= kPlainColour;
-    sprite->flatColour_ = colour;
-}
-} // namespace
 
 void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     widescreen::EnterRightPanel();   // addon's 10023344

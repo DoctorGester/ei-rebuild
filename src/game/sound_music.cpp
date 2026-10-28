@@ -54,6 +54,20 @@ void WaitAndEndAfter(CSoundManager* snd) {
 
 const std::string& TextPath() { return TheTextFolder(); }
 
+// PlayBriefing / PlayConstructor: the allod's file at `offset` in its theme, if the allod has one.
+void PlayThemeFile(CMusicSystem* music, const char* allod, std::string MusicTheme::*file) {
+    auto theme = std::ranges::find_if(music->themes, [allod](const MusicTheme& t) {
+        return text::CompareIgnoringCase(t.name, allod) == 0;
+    });
+    if (theme == music->themes.end()) return;
+    std::string path = (*theme).*file + kMp3;
+    TheSoundManager()->RequestStream(path, 4);
+}
+
+constexpr int kMusicClassId = 0xE;
+// "CMusicSystem".
+const char* MusicClassNameText() { return "CMusicSystem"; }
+
 } // namespace
 
 // The error message names the file without its path, and its text is FatalError's
@@ -131,18 +145,6 @@ void CMusicSystem::Stop() {
     state = 0;
     TheSoundManager()->StopStream(4);
 }
-
-namespace {
-// PlayBriefing / PlayConstructor: the allod's file at `offset` in its theme, if the allod has one.
-void PlayThemeFile(CMusicSystem* music, const char* allod, std::string MusicTheme::*file) {
-    auto theme = std::ranges::find_if(music->themes, [allod](const MusicTheme& t) {
-        return text::CompareIgnoringCase(t.name, allod) == 0;
-    });
-    if (theme == music->themes.end()) return;
-    std::string path = (*theme).*file + kMp3;
-    TheSoundManager()->RequestStream(path, 4);
-}
-} // namespace
 
 void CMusicSystem::PlayBriefing(const char* allod) {
     state = 2;
@@ -227,12 +229,6 @@ int CMusicSystem::UpdateMusic() {
 }
 
 // ---- Lifetime and the engine object's virtuals ----
-
-namespace {
-constexpr int kMusicClassId = 0xE;
-// "CMusicSystem".
-const char* MusicClassNameText() { return "CMusicSystem"; }
-} // namespace
 
 CMusicSystem::CMusicSystem() {
     ClearFields();

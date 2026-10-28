@@ -36,6 +36,13 @@ void DestroyForReset(Connection* c) {
     FreeReceived(c);
 }
 
+// The entry's counted object pointer released as the original inlines it (16-bit count; slot 0
+// deletes at zero).
+void ReleaseEntryObject(ReplicaEntry* e) {
+    CRefObject* object = e->object_.ptr;
+    if (object && --object->refs_ == 0) delete object;
+}
+
 } // namespace
 
 // The constructor (id). The containers are members, built before the body (the original builds the reliable
@@ -120,15 +127,6 @@ Connection::Connection(const Connection& other)
 // ---- Id pools and replica entries ---------------------------------------------------------------------
 
 namespace net {
-
-namespace {
-// The entry's counted object pointer released as the original inlines it (16-bit count; slot 0
-// deletes at zero).
-void ReleaseEntryObject(ReplicaEntry* e) {
-    CRefObject* object = e->object_.ptr;
-    if (object && --object->refs_ == 0) delete object;
-}
-} // namespace
 
 ReplicaEntry::ReplicaEntry() {
     object_.FromRawCounted(nullptr);

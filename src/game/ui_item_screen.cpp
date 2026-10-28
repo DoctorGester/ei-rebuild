@@ -23,6 +23,17 @@ namespace {
 
 inline double D(float f) { return f; }
 
+// A cache's objects released (Release), in key order; the map goes with the screen.
+template <typename Object>
+void DestroyCache(ItemObjectCache<Object>& cache) {
+    ReleaseCachedObjects(&cache);
+}
+
+CItem* AddItemAt(CParty* list, CItem* item, int keepCount, int merge) {
+    return list->AddItem(item, keepCount, merge);
+}
+void RemoveItemAt(CParty* list, CItem* item, int all) { list->RemoveItem(item, all); }
+
 } // namespace
 
 // While the cache holds more than its limit: the least recently used entry (used before now) has
@@ -114,14 +125,6 @@ void CItemScreen::CreateBase() {
 
 // --- The item screens' destructor bodies -----------------------------------
 
-namespace {
-// A cache's objects released (Release), in key order; the map goes with the screen.
-template <typename Object>
-void DestroyCache(ItemObjectCache<Object>& cache) {
-    ReleaseCachedObjects(&cache);
-}
-} // namespace
-
 CItemScreen::~CItemScreen() {
     DestroyCache(textures_);
     DestroyCache(models_);
@@ -135,13 +138,6 @@ CCampPages::~CCampPages() = default;
 CExchangeScreen::~CExchangeScreen() {}
 
 // --- Moving items between lists ----------------------------------------------
-
-namespace {
-CItem* AddItemAt(CParty* list, CItem* item, int keepCount, int merge) {
-    return list->AddItem(item, keepCount, merge);
-}
-void RemoveItemAt(CParty* list, CItem* item, int all) { list->RemoveItem(item, all); }
-} // namespace
 
 // --- The turning state's Clone and deleting destructor -----------------------
 

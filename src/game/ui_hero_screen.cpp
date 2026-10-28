@@ -58,6 +58,27 @@ constexpr int kTextFormat = 1;
 
 UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 
+const char* const kVoicesKey = "lmp_voices";
+// The voice rows' first y offset of the selection frame.
+float VoiceFrameTop() { return 332.5f /*00741C94*/; }
+constexpr int kSelectionFrame = 2;           // scene object
+constexpr std::uint32_t kListColour = 0xA7D7E4;
+constexpr int kListFormat = 0x800;
+constexpr float kFrameDepth = 3.0f;
+
+CUiMesh* SelectionFrame(CUiWindow& w) {
+    return w.SceneMesh(kSelectionFrame);
+}
+// A multiplayer hero record (a party) and its name: its first member's text 0.
+CParty* MpHero(std::uint32_t index) { return SavedHero(static_cast<int>(index))->Party(); }
+std::uint32_t MpHeroCount() {
+    return static_cast<std::uint32_t>(SavedHeroCount());
+}
+
+const char* const kHeroName = "Hero";
+const char* const kHumanHero = "Human Hero";
+constexpr int kPreviewAnimation = 0x21;      // the skill animation the preview plays
+
 } // namespace
 
 // --- The trade panel's experience figures ------------------------------------
@@ -201,25 +222,6 @@ CMpHeroScreen::~CMpHeroScreen() {}
 
 // --- The hero list and the voices drawn -----------------------------------------------------
 
-namespace {
-const char* const kVoicesKey = "lmp_voices";
-// The voice rows' first y offset of the selection frame.
-float VoiceFrameTop() { return 332.5f /*00741C94*/; }
-constexpr int kSelectionFrame = 2;           // scene object
-constexpr std::uint32_t kListColour = 0xA7D7E4;
-constexpr int kListFormat = 0x800;
-constexpr float kFrameDepth = 3.0f;
-
-CUiMesh* SelectionFrame(CUiWindow& w) {
-    return w.SceneMesh(kSelectionFrame);
-}
-// A multiplayer hero record (a party) and its name: its first member's text 0.
-CParty* MpHero(std::uint32_t index) { return SavedHero(static_cast<int>(index))->Party(); }
-std::uint32_t MpHeroCount() {
-    return static_cast<std::uint32_t>(SavedHeroCount());
-}
-} // namespace
-
 void CMpHeroScreen::DrawHeroList() {
     CUiSurface* surface = surfaces_[0];
     UiSurfaceGetDC(surface);
@@ -266,12 +268,6 @@ void CMpHeroScreen::DrawVoices() {
 }
 
 // --- The preview's unit -------------------------------------------------------------------
-
-namespace {
-const char* const kHeroName = "Hero";
-const char* const kHumanHero = "Human Hero";
-constexpr int kPreviewAnimation = 0x21;      // the skill animation the preview plays
-} // namespace
 
 void CMpHeroScreen::MakePreview(int flag) {
     previewModel_ = nullptr;

@@ -73,6 +73,7 @@ address,size,name,file
 0078A9F8,64,kLightningAlpha,src/game/particle_callbacks.cpp
 0078AA38,64,kZoneExitAlpha,src/game/particle_callbacks.cpp
 0078AA78,64,kGlowAlpha,src/game/particle_emitters.cpp
+0078AAB8,16,kDustAxisX,src/game/particle_callbacks.cpp
 0078AAC8,16,kDustAxisY,src/game/particle_callbacks.cpp
 0078AAD8,64,kDustAlpha,src/game/particle_emitters.cpp
 0078AB18,128,kCylinderAlpha,src/game/particle_callbacks.cpp

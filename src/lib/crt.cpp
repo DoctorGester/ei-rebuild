@@ -37,6 +37,13 @@ void ShortSort(char* lo, char* hi, std::size_t width, Compare compare) {
     }
 }
 
+RandObserver g_randObserver;
+// The seed rand advances: one per thread (the game CRT's _tiddata::_holdrand).
+unsigned& RandSeed() {
+    thread_local unsigned seed = 1;
+    return seed;
+}
+
 } // namespace
 
 void Qsort(void* base, std::size_t count, std::size_t width, Compare compare) {
@@ -94,15 +101,6 @@ void Qsort(void* base, std::size_t count, std::size_t width, Compare compare) {
         hi = hiStack[stacked];
     }
 }
-
-namespace {
-RandObserver g_randObserver;
-// The seed rand advances: one per thread (the game CRT's _tiddata::_holdrand).
-unsigned& RandSeed() {
-    thread_local unsigned seed = 1;
-    return seed;
-}
-} // namespace
 
 void SetRandObserver(RandObserver observer) { g_randObserver = observer; }
 

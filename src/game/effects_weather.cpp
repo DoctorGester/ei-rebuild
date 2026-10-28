@@ -50,6 +50,12 @@ constinit std::vector<std::uint32_t> g_deadCells = /*007ABB58*/ {};
 std::uint8_t g_deadCellsGuard = /*007ABB64*/ {};
 void DestroyDeadCells() { lib::FreeStorage(g_deadCells); }
 
+constexpr int kWeatherTextureKind = 6;
+constexpr int kRainPriority = 1000;
+constexpr int kFullDensity = 64;
+const char* WeatherTextureName() { return "RainSnow"; }
+const char* RainSoundName() { return "nature\\rain\\circle.wav"; }
+
 } // namespace
 
 // --- Rain and snow ------------------------------------------------------------------------------
@@ -88,14 +94,6 @@ void CRainSnow::SetWind(const Vector3& direction, float strength) {
     wind.y = y;
     wind.z = z;
 }
-
-namespace {
-constexpr int kWeatherTextureKind = 6;
-constexpr int kRainPriority = 1000;
-constexpr int kFullDensity = 64;
-const char* WeatherTextureName() { return "RainSnow"; }
-const char* RainSoundName() { return "nature\\rain\\circle.wav"; }
-} // namespace
 
 void CRainSnow::Clear() {
     if (sound) {

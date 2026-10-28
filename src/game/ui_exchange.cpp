@@ -31,6 +31,36 @@ net::PartyMessage* LiveOffer() {
     return IsLive(offer) ? offer : nullptr;
 }
 CParty* LocalParty() { return LocalPlayerData(); }
+
+constexpr int kSurfaceFormat = 5;
+constexpr int kStripActionTake = 1;
+constexpr int kGridMode = 5;
+
+CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
+    return new CUiSurface(ui, 0, top, 200, bottom, kSurfaceFormat, 1);
+}
+
+CUiContainer* AsContainer(CExchangeScreen* screen) { return screen; }
+
+constexpr std::uint32_t kWhite = 0xFFFFFF;
+constexpr std::uint32_t kGrey = 0xA7D7E4;
+constexpr int kAlignLeft = 1;     // DrawText's format here
+constexpr int kWrapLines = 2;
+
+void SetTint(CUiMesh* sprite, float value) {
+    sprite->tint_[0] = value;
+    sprite->tint_[1] = value;
+    sprite->tint_[2] = value;
+}
+CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
+bool LiveAccepted(const net::PartyMessage* offer) {
+    return offer && !(offer->flags7_ & CRefObject::kDetached) && offer->accepted_;
+}
+
+const char* const kPutOnSound = "buttons\\camp\\put_on.wav";
+const char* const kPutOffSound = "buttons\\camp\\put_off.wav";
+constexpr int kOfferLimit = 8;
+
 } // namespace
 
 // --- closing, message box answers ----------------------------------------------------------------
@@ -104,20 +134,6 @@ void CExchangeScreen::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* par
 
 // --- Create --------------------------------------------------------------------------------------
 
-namespace {
-
-constexpr int kSurfaceFormat = 5;
-constexpr int kStripActionTake = 1;
-constexpr int kGridMode = 5;
-
-CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
-    return new CUiSurface(ui, 0, top, 200, bottom, kSurfaceFormat, 1);
-}
-
-CUiContainer* AsContainer(CExchangeScreen* screen) { return screen; }
-
-} // namespace
-
 void CExchangeScreen::CreateScreen() {
     LoadTexture("campinfo", 3, nullptr);
     CUiRegion* region = AddRegion();
@@ -189,23 +205,6 @@ void CExchangeScreen::CreateScreen() {
 }
 
 // --- Draw ----------------------------------------------------------------------------------------
-
-namespace {
-constexpr std::uint32_t kWhite = 0xFFFFFF;
-constexpr std::uint32_t kGrey = 0xA7D7E4;
-constexpr int kAlignLeft = 1;     // DrawText's format here
-constexpr int kWrapLines = 2;
-
-void SetTint(CUiMesh* sprite, float value) {
-    sprite->tint_[0] = value;
-    sprite->tint_[1] = value;
-    sprite->tint_[2] = value;
-}
-CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
-bool LiveAccepted(const net::PartyMessage* offer) {
-    return offer && !(offer->flags7_ & CRefObject::kDetached) && offer->accepted_;
-}
-} // namespace
 
 BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     // What is under the mouse: an item of the strip or else of the grid, or a help topic.
@@ -294,12 +293,6 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
 }
 
 // --- an item clicked in the strip or the grid ------------------------------------------------------
-
-namespace {
-const char* const kPutOnSound = "buttons\\camp\\put_on.wav";
-const char* const kPutOffSound = "buttons\\camp\\put_off.wav";
-constexpr int kOfferLimit = 8;
-} // namespace
 
 bool CExchangeScreen::CanMove(CItem*, int) { return true; }
 

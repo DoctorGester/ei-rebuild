@@ -33,11 +33,7 @@
 
 namespace {
 constexpr console::Stream* kCombatLog = /*007AF3E8*/ {&console::g_aiLogOut};
-} // namespace
 
-console::Stream& GameLog() { return *kCombatLog; }
-
-namespace {
 constexpr float kZero = 0.0f;
 constexpr float kOne = 1.0f;
 constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0.1
@@ -114,10 +110,6 @@ float SpellRange(const CSpell* spell) { return spell->range_; }
 float SpellCost(const CSpell* spell) { return spell->manaCost_; }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
-} // namespace
-
-
-namespace {
 
 const char* HitLocationName(int location) {
     switch (static_cast<std::uint32_t>(location)) {
@@ -135,7 +127,20 @@ const char* HitLocationName(int location) {
 // What last damaged the unit: a weapon type, 0x10 + the attacker's prototype index, or 7 (elemental or no
 // attacker).
 std::int16_t& LastDamageSource(CUnit* unit) { return unit->Params()->lastHitSource; }
+
+// One size class of the size computation: by the load first, then by `size`.
+std::int16_t SizeClassOf(double size, float load) {
+    if (load > kLoadOverloaded) return 7;
+    if (load > kLoadHeavy) return size > kSizeHeavy ? 6 : 5;
+    if (size >= kSizeLarge) return 4;
+    if (size >= kSizeMedium) return 3;
+    return size >= kSizeSmall ? 2 : 1;   // also for a NaN size
+}
+
 } // namespace
+
+console::Stream& GameLog() { return *kCombatLog; }
+
 
 float CUnitServer::AttackRange() {
     CItemWeapon* weapon = ActiveWeapon(unit);
@@ -585,17 +590,6 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     brain.SetSeen(attacker);
     return 0;
 }
-
-namespace {
-// One size class of the size computation: by the load first, then by `size`.
-std::int16_t SizeClassOf(double size, float load) {
-    if (load > kLoadOverloaded) return 7;
-    if (load > kLoadHeavy) return size > kSizeHeavy ? 6 : 5;
-    if (size >= kSizeLarge) return 4;
-    if (size >= kSizeMedium) return 3;
-    return size >= kSizeSmall ? 2 : 1;   // also for a NaN size
-}
-} // namespace
 
 void CUnitServer::UpdateSizeClasses() {
     UnitStats& combat = stats;

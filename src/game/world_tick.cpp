@@ -42,6 +42,13 @@ std::list<CUnit*>* SectorUnits(CSectorMap* map, int x, int y) {
 // Sector of a world coordinate: the AI map cell (half units, rounded through a float), / 32.
 int SectorOf(float world) { return x87::fistp(static_cast<float>(2.0f * world - 0.5f)) / 32; }
 
+constinit std::vector<unsigned> g_removedIds = /*007AFEF0*/ {};    // flagged for removal
+constinit std::vector<unsigned> g_sleepingIds = /*007AFEE0*/ {};   // leave the update map
+// The exit functions: each frees its array's block (the fields stay).
+void FreeRemovedIds() { lib::FreeStorage(g_removedIds); }
+void FreeSleepingIds() { lib::FreeStorage(g_sleepingIds); }
+std::uint8_t g_updateListGuards = /*007AFF00*/ {};
+
 } // namespace
 
 void CWorldServer::Tick(char force) {
@@ -136,15 +143,6 @@ void CWorldServer::SetGameResult(int result) {
         netSession_.Get()->Query();   // the new session's Query (result unused)
     }
 }
-
-namespace {
-constinit std::vector<unsigned> g_removedIds = /*007AFEF0*/ {};    // flagged for removal
-constinit std::vector<unsigned> g_sleepingIds = /*007AFEE0*/ {};   // leave the update map
-// The exit functions: each frees its array's block (the fields stay).
-void FreeRemovedIds() { lib::FreeStorage(g_removedIds); }
-void FreeSleepingIds() { lib::FreeStorage(g_sleepingIds); }
-std::uint8_t g_updateListGuards = /*007AFF00*/ {};
-} // namespace
 
 void CWorldServer::UpdateUnits() {
     if (!(g_updateListGuards & 1)) {

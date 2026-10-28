@@ -174,19 +174,6 @@ constexpr ErrorText kErrorTexts[] = {
 
 constexpr const char* kUnrecognized = "Unrecognized error value.\n";
 
-} // namespace
-
-const char* DirectXErrorText(long result) {
-    const std::uint32_t key = static_cast<std::uint32_t>(result);
-    const ErrorText* found = std::lower_bound(std::begin(kErrorTexts), std::end(kErrorTexts), key,
-                                              [](const ErrorText& e, std::uint32_t k) { return e.result < k; });
-    return found != std::end(kErrorTexts) && found->result == key ? found->text : kUnrecognized;
-}
-
-// ---- The thrown error object ---------------------------------------------------
-
-namespace {
-
 // "%s (0x%.8X) %s".
 const char* ResultFormat() { return "%s (0x%.8X) %s"; }
 
@@ -203,6 +190,15 @@ char* CopyMessage(const char* text) {
 }
 
 } // namespace
+
+const char* DirectXErrorText(long result) {
+    const std::uint32_t key = static_cast<std::uint32_t>(result);
+    const ErrorText* found = std::lower_bound(std::begin(kErrorTexts), std::end(kErrorTexts), key,
+                                              [](const ErrorText& e, std::uint32_t k) { return e.result < k; });
+    return found != std::end(kErrorTexts) && found->result == key ? found->text : kUnrecognized;
+}
+
+// ---- The thrown error object ---------------------------------------------------
 
 
 CGameException::~CGameException() {

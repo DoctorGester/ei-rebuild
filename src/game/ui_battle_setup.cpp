@@ -36,6 +36,9 @@ namespace {
 int SaveVersion() { return static_cast<int>(GameSaveStream()->version_); }
 bool LoadingGame() { return GameSaveStream()->size_ != 0; }
 
+constexpr DWORD kClearTarget = 2;         // D3DCLEAR_ZBUFFER
+constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
+
 } // namespace
 
 // The panels Create builds inline (they have no constructors of their own).
@@ -180,13 +183,6 @@ void CBattleScreen::CreateScreen() {
     }
     clientParty_.camera = -1;
 }
-
-namespace {
-
-constexpr DWORD kClearTarget = 2;         // D3DCLEAR_ZBUFFER
-constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
-
-} // namespace
 
 BOOL CBattleScreen::Draw(CSceneRenderer* pass) {
     GameRender();

@@ -95,6 +95,15 @@ void AppendServer(ClientBase* self, RefPtr& entry) {
     self->servers_.emplace_back(raw);
 }
 
+// "Accepted" (packet 6) with the join's id, to `to`.
+void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
+    GrowingBuffer b;
+    std::uint8_t kind = 6;
+    b.BufferWrite(&kind, 1);
+    b.BufferWrite(&id, 4);
+    self->Send(to, &b);
+}
+
 } // namespace
 
 // ---- Small members --------------------------------------------------------------------------------
@@ -544,17 +553,6 @@ void ServerBase::Tick(double dt) {
     }
     SessionBase::Tick(dt);
 }
-
-namespace {
-// "Accepted" (packet 6) with the join's id, to `to`.
-void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
-    GrowingBuffer b;
-    std::uint8_t kind = 6;
-    b.BufferWrite(&kind, 1);
-    b.BufferWrite(&id, 4);
-    self->Send(to, &b);
-}
-} // namespace
 
 // Packet 4: a login. The magic must be the session's; the id and the rate follow (the rate is cut to what the
 // session allows for the address, compared signed). A peer that is connected already is ignored. One that was

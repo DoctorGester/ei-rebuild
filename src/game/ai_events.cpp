@@ -38,11 +38,16 @@ void PushFree(AIEvent* event) {
     g_freeEvents = event;
 }
 
-} // namespace
-
-namespace {
 // The pool's static initialiser (0x400 nodes a block) and the exit function it registers.
 void DestroyEventPool() { g_eventPool.Destroy(); }
+
+constexpr const char* kAiInfoArchive = "aiinfo.res";
+constexpr const char* kCantReadAiInfo = "Unable to read file aiinfo.res";
+constexpr const char* kNormalFile = "normal.dat";
+constexpr const char* kCantOpenNormal = "CAIMap::Load.\n Can't open file \"normal.dat\"";
+constexpr std::size_t kNormalTableSize = 0x1000;
+std::uint8_t g_normalTable[kNormalTableSize] = /*007C43C4*/ {};   // the 4096 bytes of normal.dat
+
 } // namespace
 
 void ConstructEventPool() {
@@ -160,17 +165,6 @@ void AIEventTable::Save(CStream* stream) {
 }
 
 // ---- Setup for a map ----------------------------------------------------------------------------------
-
-namespace {
-
-constexpr const char* kAiInfoArchive = "aiinfo.res";
-constexpr const char* kCantReadAiInfo = "Unable to read file aiinfo.res";
-constexpr const char* kNormalFile = "normal.dat";
-constexpr const char* kCantOpenNormal = "CAIMap::Load.\n Can't open file \"normal.dat\"";
-constexpr std::size_t kNormalTableSize = 0x1000;
-std::uint8_t g_normalTable[kNormalTableSize] = /*007C43C4*/ {};   // the 4096 bytes of normal.dat
-
-} // namespace
 
 int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     Clear();

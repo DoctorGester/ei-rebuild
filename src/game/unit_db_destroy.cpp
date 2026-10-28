@@ -29,6 +29,13 @@ void ConstructTable(Table& table) {
     std::construct_at(&table.byName);
 }
 
+void DestroyUnitDatabaseGlobal() {
+    DestroyUnitDatabase(&g_unitDatabase.Get());
+}
+void DestroySkillDatabaseGlobal() {
+    DestroySkillDatabase(&g_skillDatabase.Get());
+}
+
 } // namespace
 
 // The tables are destroyed last to first.
@@ -62,16 +69,6 @@ UnitDatabase* ConstructUnitDatabase(UnitDatabase* self) {
 // Built empty by static initialisers in the list's order and destroyed by the exit functions those register
 // (docs/notes/standalone.md, "The static initialisers' objects").
 namespace unitdb {
-
-namespace {
-
-void DestroyUnitDatabaseGlobal() {
-    DestroyUnitDatabase(&g_unitDatabase.Get());
-}
-void DestroySkillDatabaseGlobal() {
-    DestroySkillDatabase(&g_skillDatabase.Get());
-}
-} // namespace
 
 void ConstructUnitDatabaseGlobal() {
     ConstructUnitDatabase(&g_unitDatabase.Get());

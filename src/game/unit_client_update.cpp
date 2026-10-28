@@ -47,6 +47,12 @@ void SetTalking(const CUnit* unit, bool talking) {
     if (talking) serverUnit->flags_ |= kFlagTalking;
     else serverUnit->flags_ &= ~kFlagTalking;
 }
+
+// The drawn parts take `alpha`.
+void SetPartsAlpha(CObject3DClientSpecific* half, float alpha) {
+    for (CMaterial* part = half->FirstMaterial(); part; part = half->NextMaterial()) part->colors.diffuse.w = alpha;
+}
+
 } // namespace
 
 CMaterial* CObject3DClientSpecific::FirstMaterial() {
@@ -124,14 +130,6 @@ int CUnitClientSpecific::RunTick() {
 }
 
 // --- Fade-in, level and wounds slots ----------------------------------------------------------
-
-namespace {
-
-// The drawn parts take `alpha`.
-void SetPartsAlpha(CObject3DClientSpecific* half, float alpha) {
-    for (CMaterial* part = half->FirstMaterial(); part; part = half->NextMaterial()) part->colors.diffuse.w = alpha;
-}
-} // namespace
 
 int CUnitClientSpecific::FiguresLoaded() {
     SetPartsAlpha(unit->ClientSpecific(), fadeIn);

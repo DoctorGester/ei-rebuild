@@ -73,11 +73,6 @@ void WriteCopy(CStream* stream, const T& value) {
 
 void ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 
-} // namespace
-
-
-namespace {
-
 // Reads a string and assigns it to `target` (the temporary is destroyed at once).
 void ReadStringInto(CStream* stream, std::string& target) {
     std::string storage;
@@ -91,75 +86,6 @@ T ReadValue(CStream* stream) {
     stream->Read(&value, sizeof(T));
     return value;
 }
-
-} // namespace
-
-// The sum in the game's order ((elapsed * secondsPerTick + offset) + gtime); plain C++ maths, compared with
-// CheckNear.
-void CWorldServer::UpdatePlayerTimes(float offset) {
-    const char* name = game::GTimeText();
-    int now = tick_;
-    PlayerIterator it;
-    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
-        int elapsed = static_cast<int>(static_cast<unsigned>(now) - static_cast<unsigned>(player->lastTick_));
-        player->lastTick_ = now;
-        if (elapsed < 0) elapsed = 0;
-        double current = player->Party()->variables_.Get(name);
-        float value = static_cast<float>(static_cast<double>(elapsed) * secondsPerTick_ + offset + current);
-        player->Server()->SetVariable(name, std::bit_cast<std::uint32_t>(value));
-    }
-}
-
-void CWorldServer::LoadSavedMapObjects(CStream* stream) {
-    for (;;) {
-        int id = ReadValue<int>(stream);
-        if (id == -1) return;
-        CMapObject* object = manager40_->FindMapObject(id);
-        if (stream->version_ >= kVersionMapObjectName) {
-            std::string name;
-            ReadStringInto(stream, name);
-            object->TakePrototype(name.c_str());
-        }
-        object->WriteFullState();
-        object->Load(stream);
-        int changed = ReadValue<int>(stream);
-        if (!object) continue;   // (the object was already used above)
-
-        ++object->refCount_;
-        object->MarkChanged(-1);
-        if (object->type_ != 0x3B) {
-            object->SetUpAnimatedFigure(object->name.c_str());
-            Sectors()->Add(object);
-        }
-        objects_.Set(static_cast<unsigned>(object->id_), object);
-        mapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        if (object->GetClassId() != world::kClassUnit)
-            otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        if (!object->name2.empty())
-            namedObjects_.Set(static_cast<unsigned>(object->id_), object);
-
-        if (CUnit* unit = UnitOrNull(object)) {
-            // The unit's six dwords come from its prototype's model record. A prototype or model out of range is
-            // read through null.
-            auto* prototype = unitdb::PrototypeRecord(unit->prototypeId_);
-            auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
-            std::memcpy(unit->actionSpeeds, model->actionSpeeds, 24);
-        }
-
-        // Every part is marked changed when any change was saved (the part's bit 1 << i is tested itself, never
-        // `changed & bit`).
-        int parts = static_cast<int>(std::ssize(object->NetState()->fields_));
-        for (int i = 0; i < parts; ++i)
-            if (changed != 0 && (1u << (i & 31)) != 0) object->MarkChanged(i);
-
-        CUnit* unit = UnitOrNull(object);
-        if (unit && unit->ServerController()->Brain()->alwaysUpdated == 0)
-            continue;   // a unit whose controller does not ask for updates
-        AddToUpdateMap(object);
-    }
-}
-
-namespace {
 
 // The units saved standing where they cannot move (a cell they cannot leave) are put on a free
 // cell nearby when they are scripted units (text-key ids), otherwise removed.
@@ -232,7 +158,112 @@ void LoadPlayers(CWorldServer* world, CStream* stream) {
     }
 }
 
+// The players' part of the save (what LoadPlayers reads).
+void SavePlayers(CWorldServer* world, CStream* stream) {
+    PlayerIterator it;
+    for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
+        stream->Write(&player->partyId_, 4);
+        player->Party()->SaveParty(stream, 1);
+        stream->Write(&player->sessionKind100_, 4);
+        for (auto node = player->items_.begin(); node != player->items_.end();) {
+            auto next = std::next(node);
+            WriteCopy(stream, (*node)->id_);
+            node = next;
+        }
+        WriteCopy(stream, -1);
+        WriteCopy(stream, player->godMode_);
+        std::list<std::uint32_t>& ids = player->recharging_;
+        WriteCopy(stream, std::ssize(ids));
+        for (auto node = ids.begin(); node != ids.end();) {
+            auto next = std::next(node);
+            stream->Write(&*node, 4);
+            node = next;
+        }
+    }
+}
+
+
+constexpr const char* kCantLoadGraph = "CWorldServer::LoadMap.\n Can't load AIGraph.\n";
+constexpr const char* kCantLoadMap = "CWorldServer::NewZone()\n Can't load map.\n";
+
+// Whether the file `name` is neither there as named nor in the maps folder (Rebirth's Maps names it
+// first: `site`).
+bool MapFileMissing(const char* name, modfolders::MapsSite site) {
+    if (lib::FileExists(name)) return false;
+    std::string folder;
+    modfolders::SelectMaps(name, site);
+    MapsFolder(&folder);
+    std::string path = folder + name;
+    return !lib::FileExists(path.c_str());
+}
+
 } // namespace
+
+
+// The sum in the game's order ((elapsed * secondsPerTick + offset) + gtime); plain C++ maths, compared with
+// CheckNear.
+void CWorldServer::UpdatePlayerTimes(float offset) {
+    const char* name = game::GTimeText();
+    int now = tick_;
+    PlayerIterator it;
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        int elapsed = static_cast<int>(static_cast<unsigned>(now) - static_cast<unsigned>(player->lastTick_));
+        player->lastTick_ = now;
+        if (elapsed < 0) elapsed = 0;
+        double current = player->Party()->variables_.Get(name);
+        float value = static_cast<float>(static_cast<double>(elapsed) * secondsPerTick_ + offset + current);
+        player->Server()->SetVariable(name, std::bit_cast<std::uint32_t>(value));
+    }
+}
+
+void CWorldServer::LoadSavedMapObjects(CStream* stream) {
+    for (;;) {
+        int id = ReadValue<int>(stream);
+        if (id == -1) return;
+        CMapObject* object = manager40_->FindMapObject(id);
+        if (stream->version_ >= kVersionMapObjectName) {
+            std::string name;
+            ReadStringInto(stream, name);
+            object->TakePrototype(name.c_str());
+        }
+        object->WriteFullState();
+        object->Load(stream);
+        int changed = ReadValue<int>(stream);
+        if (!object) continue;   // (the object was already used above)
+
+        ++object->refCount_;
+        object->MarkChanged(-1);
+        if (object->type_ != 0x3B) {
+            object->SetUpAnimatedFigure(object->name.c_str());
+            Sectors()->Add(object);
+        }
+        objects_.Set(static_cast<unsigned>(object->id_), object);
+        mapObjects_.Set(static_cast<unsigned>(object->id_), object);
+        if (object->GetClassId() != world::kClassUnit)
+            otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
+        if (!object->name2.empty())
+            namedObjects_.Set(static_cast<unsigned>(object->id_), object);
+
+        if (CUnit* unit = UnitOrNull(object)) {
+            // The unit's six dwords come from its prototype's model record. A prototype or model out of range is
+            // read through null.
+            auto* prototype = unitdb::PrototypeRecord(unit->prototypeId_);
+            auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
+            std::memcpy(unit->actionSpeeds, model->actionSpeeds, 24);
+        }
+
+        // Every part is marked changed when any change was saved (the part's bit 1 << i is tested itself, never
+        // `changed & bit`).
+        int parts = static_cast<int>(std::ssize(object->NetState()->fields_));
+        for (int i = 0; i < parts; ++i)
+            if (changed != 0 && (1u << (i & 31)) != 0) object->MarkChanged(i);
+
+        CUnit* unit = UnitOrNull(object);
+        if (unit && unit->ServerController()->Brain()->alwaysUpdated == 0)
+            continue;   // a unit whose controller does not ask for updates
+        AddToUpdateMap(object);
+    }
+}
 
 int CWorldServer::LoadSave(CStream* stream, const char* map) {
     CMemoryStream savedGraph;   // the AI graph state as the zone files have it
@@ -414,34 +445,6 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
     return result;
 }
 
-namespace {
-
-// The players' part of the save (what LoadPlayers reads).
-void SavePlayers(CWorldServer* world, CStream* stream) {
-    PlayerIterator it;
-    for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
-        stream->Write(&player->partyId_, 4);
-        player->Party()->SaveParty(stream, 1);
-        stream->Write(&player->sessionKind100_, 4);
-        for (auto node = player->items_.begin(); node != player->items_.end();) {
-            auto next = std::next(node);
-            WriteCopy(stream, (*node)->id_);
-            node = next;
-        }
-        WriteCopy(stream, -1);
-        WriteCopy(stream, player->godMode_);
-        std::list<std::uint32_t>& ids = player->recharging_;
-        WriteCopy(stream, std::ssize(ids));
-        for (auto node = ids.begin(); node != ids.end();) {
-            auto next = std::next(node);
-            stream->Write(&*node, 4);
-            node = next;
-        }
-    }
-}
-
-} // namespace
-
 void CWorldServer::SaveWorld(CStream* stream) {
     // The AI graph state as the zone files have it (`base`) and as it is now (`current`); only
     // their differences are saved.
@@ -551,10 +554,6 @@ void CWorldServer::SaveWorld(CStream* stream) {
     }
 }
 
-namespace {
-
-} // namespace
-
 void SharedObject::Load(CStream* stream) {
     SharedObject* entry = this;
     stream->Read(&entry->objectId, 4);
@@ -593,24 +592,6 @@ void CWorldServer::PrepareSave() {
         controller->RefreshVitals(0);
     }
 }
-
-namespace {
-
-constexpr const char* kCantLoadGraph = "CWorldServer::LoadMap.\n Can't load AIGraph.\n";
-constexpr const char* kCantLoadMap = "CWorldServer::NewZone()\n Can't load map.\n";
-
-// Whether the file `name` is neither there as named nor in the maps folder (Rebirth's Maps names it
-// first: `site`).
-bool MapFileMissing(const char* name, modfolders::MapsSite site) {
-    if (lib::FileExists(name)) return false;
-    std::string folder;
-    modfolders::SelectMaps(name, site);
-    MapsFolder(&folder);
-    std::string path = folder + name;
-    return !lib::FileExists(path.c_str());
-}
-
-} // namespace
 
 int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     cave_ = 0;

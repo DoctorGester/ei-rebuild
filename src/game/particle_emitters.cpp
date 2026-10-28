@@ -282,6 +282,44 @@ void PlaceModifierPoints(CParticleSource* s) {
     }
 }
 
+#define EI_ZONE_EXIT_SPREAD 1.9f /*0073CF2C*/
+#define EI_SCALE_0_03 1.3969837789817515e-10 /*0073CE10*/       // ~0.03 * 2^-32
+#define EI_POINT_SEVEN 0.7f /*0073C538*/
+#define EI_TWENTIETH 0.05f /*0073C52C*/
+#define EI_SCALE_0_4 9.313226580990458e-11 /*0073CCB0*/        // ~0.4 * 2^-32
+#define EI_ONE_AND_HALF 1.5f /*0073C51C*/
+#define EI_ONE_POINT_TWO 1.2f /*0073CF5C*/
+#define EI_PORTAL_GROWTH 1.03f /*0073CDE8*/
+#define EI_EIGHT 8.0f /*0073CC7C*/
+#define EI_TWO_HUNDRED 200.0f /*0073CF58*/
+#define EI_POINT_EIGHT 0.8f /*0073CCA8*/
+#define EI_SPARK_SCALE 0.55f /*0073CF60*/
+#define EI_POINT_SIX 0.6f /*0073CDE0*/
+#define EI_POINT_NINE 0.9f /*0073CD70*/
+#define EI_PI 3.1415927f /*0073CAF0*/
+#define EI_FEEBLE_SPEED 0.05000000074505806 /*0073CF90*/     // 0.05
+#define EI_SCALE_0_2 4.6566139843846196e-11 /*0073CED8*/        // ~0.2 * 2^-32
+#define EI_FEEBLE_SIZE 0.035f /*0073CF8C*/
+#define EI_FEET_DENSITY 8.0f /*0073CE50*/
+#define EI_FEET_RISE 1.2f /*0073CDF4*/
+#define EI_BYTE 255.0f /*0073C370*/
+#define EI_DUST_GROWTH 1.05f /*0073CEE0*/
+#define EI_TRANS_GROWTH 0.02f /*0073CCD8*/
+
+// Alpha tables indexed by the ticks left.
+constexpr std::int32_t kSparkAlpha[8] = /*0078AB98*/ {0, 64, 128, 255, 255, 255, 255, 255};
+constexpr float kGlowAlpha[16] = /*0078AA78*/ {0.0f, 0.15f, 0.3f, 0.45f, 0.6f, 0.75f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                            1.0f, 1.0f};
+constexpr std::int32_t kDustAlpha[16] = /*0078AAD8*/ {0, 64, 144, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64};
+
+// x87 select through FCOMP; SHL/SAR of the status word: `a` when a < b (or unordered), else `b`.
+float SelectLess(float a, float b, float ifLess, float otherwise) {
+    return a >= b ? otherwise : ifLess;
+}
+
+// One random draw in [-1, 1) through the ISAAC results: Next() * ~2^-31 - 1.
+double Signed(std::uint32_t roll) { return Unsigned(roll) * EI_SCALE_2 - D(EI_ONE); }
+
 } // namespace
 
 // LightningBlast: on the first emission the bolt's ten points are placed; then the
@@ -364,48 +402,6 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
 }
 
 // --- Smaller callbacks ----------------------------------------------------------------------------
-
-namespace {
-
-#define EI_ZONE_EXIT_SPREAD 1.9f /*0073CF2C*/
-#define EI_SCALE_0_03 1.3969837789817515e-10 /*0073CE10*/       // ~0.03 * 2^-32
-#define EI_POINT_SEVEN 0.7f /*0073C538*/
-#define EI_TWENTIETH 0.05f /*0073C52C*/
-#define EI_SCALE_0_4 9.313226580990458e-11 /*0073CCB0*/        // ~0.4 * 2^-32
-#define EI_ONE_AND_HALF 1.5f /*0073C51C*/
-#define EI_ONE_POINT_TWO 1.2f /*0073CF5C*/
-#define EI_PORTAL_GROWTH 1.03f /*0073CDE8*/
-#define EI_EIGHT 8.0f /*0073CC7C*/
-#define EI_TWO_HUNDRED 200.0f /*0073CF58*/
-#define EI_POINT_EIGHT 0.8f /*0073CCA8*/
-#define EI_SPARK_SCALE 0.55f /*0073CF60*/
-#define EI_POINT_SIX 0.6f /*0073CDE0*/
-#define EI_POINT_NINE 0.9f /*0073CD70*/
-#define EI_PI 3.1415927f /*0073CAF0*/
-#define EI_FEEBLE_SPEED 0.05000000074505806 /*0073CF90*/     // 0.05
-#define EI_SCALE_0_2 4.6566139843846196e-11 /*0073CED8*/        // ~0.2 * 2^-32
-#define EI_FEEBLE_SIZE 0.035f /*0073CF8C*/
-#define EI_FEET_DENSITY 8.0f /*0073CE50*/
-#define EI_FEET_RISE 1.2f /*0073CDF4*/
-#define EI_BYTE 255.0f /*0073C370*/
-#define EI_DUST_GROWTH 1.05f /*0073CEE0*/
-#define EI_TRANS_GROWTH 0.02f /*0073CCD8*/
-
-// Alpha tables indexed by the ticks left.
-constexpr std::int32_t kSparkAlpha[8] = /*0078AB98*/ {0, 64, 128, 255, 255, 255, 255, 255};
-constexpr float kGlowAlpha[16] = /*0078AA78*/ {0.0f, 0.15f, 0.3f, 0.45f, 0.6f, 0.75f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                                            1.0f, 1.0f};
-constexpr std::int32_t kDustAlpha[16] = /*0078AAD8*/ {0, 64, 144, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64};
-
-// x87 select through FCOMP; SHL/SAR of the status word: `a` when a < b (or unordered), else `b`.
-float SelectLess(float a, float b, float ifLess, float otherwise) {
-    return a >= b ? otherwise : ifLess;
-}
-
-// One random draw in [-1, 1) through the ISAAC results: Next() * ~2^-31 - 1.
-double Signed(std::uint32_t roll) { return Unsigned(roll) * EI_SCALE_2 - D(EI_ONE); }
-
-} // namespace
 
 // ZoneExit: the density follows alpha * typeParam (at most 40 a tick); particles start at a random point of a
 // turned ellipse (radii alpha and typeParam) around the source on the ground, red-tinted when extent.x is set,

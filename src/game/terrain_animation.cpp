@@ -66,6 +66,25 @@ void CircleSines(const Terrain* owner, float* sines) {
     for (int i = 0; i < kRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
 }
 
+// The relight order, (sy, sx) of the sectors. The game's comparator meant this, but qsort hands it the
+// addresses of the array slots: it reads +0xC / +0x8 of those, the pointers three and two slots further on
+// (past the end for the last ones), so its order follows the heap. Here the sectors themselves are compared
+// (address_order.h). The cache holds one sector per grid cell (Terrain::SectorAt), so no two are equal and any sort
+// gives the order the game's qsort gives.
+bool SectorBefore(const SectorData* x, const SectorData* y) {
+    if (x->sy != y->sy) return x->sy < y->sy;
+    return x->sx < y->sx;
+}
+
+// SetSun's function-local static (guard bit 1, freed at exit).
+constinit std::vector<SectorData*> g_sortedSectors = /*007C8938*/ {};
+void FreeSortedSectors() { lib::FreeStorage(g_sortedSectors); }
+std::uint8_t g_sortedSectorsGuard = /*007C8948*/ {};
+
+// A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01
+// with its sign (_copysign of the double 0.01f).
+float AwayFromZero(float v) { return std::fabs(v) >= kMinComponent ? v : std::copysign(kMinComponent, v); }
+
 } // namespace
 
 void SectorData::ResetFields() {
@@ -199,29 +218,6 @@ void SectorData::Animate(Terrain* landscape, int frame) {
     }
     render::TerrainChanged(this, render::TerrainChange::WaterMoved);
 }
-
-namespace {
-
-// The relight order, (sy, sx) of the sectors. The game's comparator meant this, but qsort hands it the
-// addresses of the array slots: it reads +0xC / +0x8 of those, the pointers three and two slots further on
-// (past the end for the last ones), so its order follows the heap. Here the sectors themselves are compared
-// (address_order.h). The cache holds one sector per grid cell (Terrain::SectorAt), so no two are equal and any sort
-// gives the order the game's qsort gives.
-bool SectorBefore(const SectorData* x, const SectorData* y) {
-    if (x->sy != y->sy) return x->sy < y->sy;
-    return x->sx < y->sx;
-}
-
-// SetSun's function-local static (guard bit 1, freed at exit).
-constinit std::vector<SectorData*> g_sortedSectors = /*007C8938*/ {};
-void FreeSortedSectors() { lib::FreeStorage(g_sortedSectors); }
-std::uint8_t g_sortedSectorsGuard = /*007C8948*/ {};
-
-// A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01
-// with its sign (_copysign of the double 0.01f).
-float AwayFromZero(float v) { return std::fabs(v) >= kMinComponent ? v : std::copysign(kMinComponent, v); }
-
-} // namespace
 
 } // namespace terrain
 

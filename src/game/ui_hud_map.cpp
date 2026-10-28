@@ -229,6 +229,59 @@ void PutArrow(VertexPacket& b, const CUnit* unit, float x, float y) {
     b.y()[3] = static_cast<float>(D(rightY) * kArrowWing + D(y));
 }
 
+const CTransformObject* Camera() { return TheClientWorld()->camera_; }
+std::uint32_t Bits(const float& f) {
+    std::uint32_t bits;
+    std::memcpy(&bits, &f, sizeof(bits));
+    return bits;
+}
+std::uint32_t CameraTargetXBits() { return Bits(TheCamera()->focus_.x); }
+std::uint32_t CameraTargetYBits() { return Bits(TheCamera()->focus_.y); }
+
+void SetBits(float* f, std::uint32_t bits) { std::memcpy(f, &bits, sizeof(bits)); }
+
+// Whether the edge from `prev` to `cur` crosses the line v = edge (coordinate values of the two points).
+bool Crosses(float prev, float cur, float edge) {
+    EI_NAN_AUDIT(prev, cur, edge);
+    return (prev < edge && cur > edge) || (prev > edge && cur < edge);
+}
+
+// One Sutherland-Hodgman step in place: walking the polygon, the point where an edge crosses the line is
+// inserted before the edge's end (which is then skipped); afterwards the points outside are removed.
+template <typename Cut, typename Outside>
+void ClipPass(std::vector<UiPointF>& points, Cut cut, Outside outside) {
+    int count = std::ssize(points);
+    for (int i = 0; i < count; ++i) {
+        UiPointF cur = points[i];
+        UiPointF prev = points[i == 0 ? count - 1 : i - 1];
+        UiPointF cross;
+        if (!cut(prev, cur, &cross)) continue;
+        int size = std::ssize(points);
+        if (i < size) {
+            points.resize(size + 1);
+            std::memmove(&points[i + 1], &points[i], (size - i) * sizeof(UiPointF));
+        } else {
+            points.resize(i + 1);
+        }
+        points[i] = cross;
+        ++i;
+        ++count;
+    }
+    for (int i = 0; i < count; ++i) {
+        if (!outside(points[i])) continue;
+        int tail = std::ssize(points) - i - 1;
+        if (tail != 0) std::memmove(&points[i], &points[i + 1], tail * sizeof(UiPointF));
+        points.pop_back();
+        --i;
+        --count;
+    }
+}
+
+// 2.5^(delta / 1200): _CIpow of a double constant and delta * 0.00083333335f, left unrounded.
+double WheelZoomFactor(int delta) {
+    return libcrt::CiPow(2.5 /*00742AD0*/, static_cast<double>(delta) * 0.00083333335f /*00742AC8*/);
+}
+
 } // namespace
 
 void CHudMap::BuildMarkers() {
@@ -327,58 +380,6 @@ void CHudMap::BuildMarkers() {
 }
 
 // --- The map's polygon clipping ----------------------------------------------------------------------------------
-
-namespace {
-
-const CTransformObject* Camera() { return TheClientWorld()->camera_; }
-std::uint32_t Bits(const float& f) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
-    return bits;
-}
-std::uint32_t CameraTargetXBits() { return Bits(TheCamera()->focus_.x); }
-std::uint32_t CameraTargetYBits() { return Bits(TheCamera()->focus_.y); }
-
-void SetBits(float* f, std::uint32_t bits) { std::memcpy(f, &bits, sizeof(bits)); }
-
-// Whether the edge from `prev` to `cur` crosses the line v = edge (coordinate values of the two points).
-bool Crosses(float prev, float cur, float edge) {
-    EI_NAN_AUDIT(prev, cur, edge);
-    return (prev < edge && cur > edge) || (prev > edge && cur < edge);
-}
-
-// One Sutherland-Hodgman step in place: walking the polygon, the point where an edge crosses the line is
-// inserted before the edge's end (which is then skipped); afterwards the points outside are removed.
-template <typename Cut, typename Outside>
-void ClipPass(std::vector<UiPointF>& points, Cut cut, Outside outside) {
-    int count = std::ssize(points);
-    for (int i = 0; i < count; ++i) {
-        UiPointF cur = points[i];
-        UiPointF prev = points[i == 0 ? count - 1 : i - 1];
-        UiPointF cross;
-        if (!cut(prev, cur, &cross)) continue;
-        int size = std::ssize(points);
-        if (i < size) {
-            points.resize(size + 1);
-            std::memmove(&points[i + 1], &points[i], (size - i) * sizeof(UiPointF));
-        } else {
-            points.resize(i + 1);
-        }
-        points[i] = cross;
-        ++i;
-        ++count;
-    }
-    for (int i = 0; i < count; ++i) {
-        if (!outside(points[i])) continue;
-        int tail = std::ssize(points) - i - 1;
-        if (tail != 0) std::memmove(&points[i], &points[i + 1], tail * sizeof(UiPointF));
-        points.pop_back();
-        --i;
-        --count;
-    }
-}
-
-} // namespace
 
 void CHudMap::UpdateView() {
     if (const CTransformObject* camera = Camera()) {
@@ -545,13 +546,6 @@ void CHudMap::UpdateView() {
 }
 
 // --- The zoom factor ----------------------------------------------------------------------------------
-
-namespace {
-// 2.5^(delta / 1200): _CIpow of a double constant and delta * 0.00083333335f, left unrounded.
-double WheelZoomFactor(int delta) {
-    return libcrt::CiPow(2.5 /*00742AD0*/, static_cast<double>(delta) * 0.00083333335f /*00742AC8*/);
-}
-} // namespace
 
 BOOL CHudMap::OnWheel(int, int delta, int x, int y) {
     int region = RegionAt(x, y);

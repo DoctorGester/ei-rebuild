@@ -31,6 +31,9 @@ std::int32_t ReliableSize(GameBuffer* b) {
     return b->PositionOf(b->high);
 }
 
+float RttKeep() { return 0.93f /*0073BF30*/; }   // the share of the old average kept per sample
+float One() { return 1.0f /*0073B84C*/; }
+
 } // namespace
 
 // Advances the idle time and the clock by `dt`. Packets older than the loss timeout (3 standard deviations
@@ -117,11 +120,6 @@ bool Connection::Tick(double dt) {
 } // namespace net
 
 namespace net {
-
-namespace {
-float RttKeep() { return 0.93f /*0073BF30*/; }   // the share of the old average kept per sample
-float One() { return 1.0f /*0073B84C*/; }
-} // namespace
 
 void Connection::Delivered(SentPacket* packet) {
     double sample = Get(&clock_) - Get(&packet->time);

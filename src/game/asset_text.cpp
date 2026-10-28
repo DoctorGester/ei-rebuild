@@ -58,6 +58,29 @@ std::size_t NextEscape(std::string_view text, std::size_t from) {
     return text.size();
 }
 
+// The UTF-8 bytes of code point `character` (U+FFFD for one that is not a character's).
+std::string Utf8Of(int character) {
+    std::uint32_t c = static_cast<std::uint32_t>(character);
+    if (c > 0x10FFFF || (c >= 0xD800 && c <= 0xDFFF)) c = 0xFFFD;
+    std::string bytes;
+    if (c < 0x80) {
+        bytes += static_cast<char>(c);
+    } else if (c < 0x800) {
+        bytes += static_cast<char>(0xC0 | (c >> 6));
+        bytes += static_cast<char>(0x80 | (c & 0x3F));
+    } else if (c < 0x10000) {
+        bytes += static_cast<char>(0xE0 | (c >> 12));
+        bytes += static_cast<char>(0x80 | ((c >> 6) & 0x3F));
+        bytes += static_cast<char>(0x80 | (c & 0x3F));
+    } else {
+        bytes += static_cast<char>(0xF0 | (c >> 18));
+        bytes += static_cast<char>(0x80 | ((c >> 12) & 0x3F));
+        bytes += static_cast<char>(0x80 | ((c >> 6) & 0x3F));
+        bytes += static_cast<char>(0x80 | (c & 0x3F));
+    }
+    return bytes;
+}
+
 } // namespace
 
 // A colour escape's three bytes are raw (the game builds them), so they are copied as they are, and only the text
@@ -173,33 +196,6 @@ void CopyFitting(char* to, std::size_t size, const char* from) {
 }
 
 // ---- Typing ---------------------------------------------------------------------------------------
-
-namespace {
-
-// The UTF-8 bytes of code point `character` (U+FFFD for one that is not a character's).
-std::string Utf8Of(int character) {
-    std::uint32_t c = static_cast<std::uint32_t>(character);
-    if (c > 0x10FFFF || (c >= 0xD800 && c <= 0xDFFF)) c = 0xFFFD;
-    std::string bytes;
-    if (c < 0x80) {
-        bytes += static_cast<char>(c);
-    } else if (c < 0x800) {
-        bytes += static_cast<char>(0xC0 | (c >> 6));
-        bytes += static_cast<char>(0x80 | (c & 0x3F));
-    } else if (c < 0x10000) {
-        bytes += static_cast<char>(0xE0 | (c >> 12));
-        bytes += static_cast<char>(0x80 | ((c >> 6) & 0x3F));
-        bytes += static_cast<char>(0x80 | (c & 0x3F));
-    } else {
-        bytes += static_cast<char>(0xF0 | (c >> 18));
-        bytes += static_cast<char>(0x80 | ((c >> 12) & 0x3F));
-        bytes += static_cast<char>(0x80 | ((c >> 6) & 0x3F));
-        bytes += static_cast<char>(0x80 | (c & 0x3F));
-    }
-    return bytes;
-}
-
-} // namespace
 
 std::string Typed(const std::string& head, int character) { return head + Utf8Of(character).c_str(); }
 

@@ -37,6 +37,12 @@ constexpr int kOptionRows = 14;
 // The end of the key name table (88 entries of 0x48 bytes).
 const UiKeyName* KeyNamesEnd() { return g_keyNames + kUiKeyNameCount; }
 
+int TextWidth(CInterface3D* ui, const std::string& text, int font) {
+    SIZE size;
+    ui->TextExtent(&size, text, font);
+    return size.cx;
+}
+
 } // namespace
 
 // --- Save/load window ----------------------------------------------------------------------------
@@ -142,14 +148,6 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     RefreshListVanilla();
     handled_ = true;
 }
-
-namespace {
-int TextWidth(CInterface3D* ui, const std::string& text, int font) {
-    SIZE size;
-    ui->TextExtent(&size, text, font);
-    return size.cx;
-}
-} // namespace
 
 void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
     if (!isSave_) return;

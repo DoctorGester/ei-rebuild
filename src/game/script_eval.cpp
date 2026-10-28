@@ -113,6 +113,16 @@ float WorldTimeOfDay() {
     return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
+// What a unit sees: the AI brain's visible list.
+void InsertSeen(ScriptGroup* group, CUnitServer* controller) {
+    const auto& visible = controller->Brain()->memory.visible;
+    for (auto node = visible.begin(); node != visible.end();) {
+        auto current = node;
+        node = std::next(current);
+        group->Insert(*current);
+    }
+}
+
 } // namespace
 
 void SSCCmd::PrepareArguments(CScript* script, ScriptVars* vars) {
@@ -565,20 +575,6 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         return;
     }
 }
-
-namespace {
-
-// What a unit sees: the AI brain's visible list.
-void InsertSeen(ScriptGroup* group, CUnitServer* controller) {
-    const auto& visible = controller->Brain()->memory.visible;
-    for (auto node = visible.begin(); node != visible.end();) {
-        auto current = node;
-        node = std::next(current);
-        group->Insert(*current);
-    }
-}
-
-} // namespace
 
 void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) {
     ObjectListIterator objects;

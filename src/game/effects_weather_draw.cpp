@@ -44,6 +44,18 @@ constexpr float kFogSpriteSize = 0.4f;
 constexpr float kColourScale = 255.0f;
 constexpr int kOutOfView = 2;
 
+constexpr int kDrops = 0x8000;            // drops (flakes) at most; each is a triangle
+constexpr int kDropVertices = kDrops * 3;
+constexpr int kRings = 40;                // the offsets below: 40, -40, 39, -39, ..., 1, -1, 0
+
+// A drop's triangle on the 4 x 4 "RainSnow" texture's first tile: the three corners inside the
+// tile (u from the left, v from the top of the tile, which is the texture's bottom row upwards).
+struct Corner {
+    float u, v;
+};
+constexpr Corner kCorners[3] = {{0.02f, 0.02f}, {0.98f, 0.02f}, {0.5f, 0.98f}};
+constexpr float kTile = 0.25f;
+
 } // namespace
 
 int CVisibilityFog::Draw(CSceneRenderer* renderer) {
@@ -84,22 +96,6 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
 }
 
 // ---- Rain and snow ----------------------------------------------------------------------------------------
-
-namespace {
-
-constexpr int kDrops = 0x8000;            // drops (flakes) at most; each is a triangle
-constexpr int kDropVertices = kDrops * 3;
-constexpr int kRings = 40;                // the offsets below: 40, -40, 39, -39, ..., 1, -1, 0
-
-// A drop's triangle on the 4 x 4 "RainSnow" texture's first tile: the three corners inside the
-// tile (u from the left, v from the top of the tile, which is the texture's bottom row upwards).
-struct Corner {
-    float u, v;
-};
-constexpr Corner kCorners[3] = {{0.02f, 0.02f}, {0.98f, 0.02f}, {0.5f, 0.98f}};
-constexpr float kTile = 0.25f;
-
-} // namespace
 
 void CRainSnow::PrepareBuffers() {
     positions.resize(kDrops);

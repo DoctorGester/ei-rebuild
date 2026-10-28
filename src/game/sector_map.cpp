@@ -15,6 +15,34 @@ namespace {
 
 constexpr float kCellSize = 1.0f;
 constexpr float kZero = 0.0f;
+
+// Spiral of sector offsets ordered by distance, with a radius-to-length table (sector_spiral.cpp);
+// RadiusTree::Find maps a radius to a table index.
+const RadiusTree* Spiral() { return SpiralRadiusTree(); }
+const int* SpiralLengths() { return SpiralLengthArray()->data(); }
+const std::int16_t* SpiralOffsets() { return &SpiralOffsetArray()->data()->x; }
+
+constexpr int kSpiralReach = 10;                                    // sectors either way
+constexpr int kSpiralCells = (kSpiralReach * 2 + 1) * (kSpiralReach * 2 + 1);
+constexpr float kBeyondSpiral = 1.0e30f;                            // 7149F2CA: the last radius
+
+// A sector of the square and how far it is: the gap between the sectors, in sectors.
+struct SpiralCell {
+    SpiralOffset offset;
+    float distance;
+};
+
+// The sort's comparison: by distance, ascending.
+int ByDistance(const void* a, const void* b) {
+    const float da = static_cast<const SpiralCell*>(a)->distance;
+    const float db = static_cast<const SpiralCell*>(b)->distance;
+    if (da > db) return 1;
+    return da == db ? 0 : -1;
+}
+
+// |v| - 1, 0 for 0: the whole sectors between two sectors `v` apart.
+int Gap(int v) { return v == 0 ? 0 : (v < 0 ? -v : v) - 1; }
+
 } // namespace
 
 void Sector::Clear() {
@@ -136,14 +164,6 @@ bool CSectorMap::Remove(CMapObject* object) {
     return cleared;
 }
 
-namespace {
-// Spiral of sector offsets ordered by distance, with a radius-to-length table (sector_spiral.cpp);
-// RadiusTree::Find maps a radius to a table index.
-const RadiusTree* Spiral() { return SpiralRadiusTree(); }
-const int* SpiralLengths() { return SpiralLengthArray()->data(); }
-const std::int16_t* SpiralOffsets() { return &SpiralOffsetArray()->data()->x; }
-} // namespace
-
 int RadiusTree::Find(float radius) const {
     std::int32_t key;
     std::memcpy(&key, &radius, sizeof(key));
@@ -177,30 +197,6 @@ void RadiusTree::Build(const float* values, int count) {
 
 // ---- The spiral's tables ------------------------------------------------------------------------
 // Built by a static initialiser at start-up; a running game never calls the builder.
-
-namespace {
-
-constexpr int kSpiralReach = 10;                                    // sectors either way
-constexpr int kSpiralCells = (kSpiralReach * 2 + 1) * (kSpiralReach * 2 + 1);
-constexpr float kBeyondSpiral = 1.0e30f;                            // 7149F2CA: the last radius
-
-// A sector of the square and how far it is: the gap between the sectors, in sectors.
-struct SpiralCell {
-    SpiralOffset offset;
-    float distance;
-};
-
-// The sort's comparison: by distance, ascending.
-int ByDistance(const void* a, const void* b) {
-    const float da = static_cast<const SpiralCell*>(a)->distance;
-    const float db = static_cast<const SpiralCell*>(b)->distance;
-    if (da > db) return 1;
-    return da == db ? 0 : -1;
-}
-
-// |v| - 1, 0 for 0: the whole sectors between two sectors `v` apart.
-int Gap(int v) { return v == 0 ? 0 : (v < 0 ? -v : v) - 1; }
-} // namespace
 
 void BuildSectorSpiralAt(std::vector<int>* lengths, RadiusTree* tree, std::vector<SpiralOffset>* offsets) {
     std::vector<SpiralCell> cells;

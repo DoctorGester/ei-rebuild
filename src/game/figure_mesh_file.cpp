@@ -25,6 +25,10 @@ int ReadCount(lib::File* file) {
     return count;
 }
 
+// The original's out-of-line Vector3 helpers (the out pointer first).
+
+float One() { return 1.0f /*0073B84C*/; }
+
 } // namespace
 
 void CFigureMesh::SaveTransform(lib::File* file) {
@@ -85,14 +89,6 @@ void CPlainFigureMesh::LoadTransform(lib::File* file) {
 }
 
 // ---- Copy and pose --------------------------------------------------------------------------------
-
-namespace {
-
-// The original's out-of-line Vector3 helpers (the out pointer first).
-
-float One() { return 1.0f /*0073B84C*/; }
-
-} // namespace
 
 void CFigureMesh::CopyFigure(const CFigureMesh* other) {
     BuffersChanged();

@@ -27,23 +27,6 @@
 namespace {
 constexpr std::uint32_t kDelayed = 8;
 constexpr std::uint32_t kDelay = 500;   // ms
-} // namespace
-
-CFlyingHitPoints::CFlyingHitPoints() : texture_(nullptr) {}
-
-CFlyingHitPoints::~CFlyingHitPoints() {
-    if (texture_) texture_->Release();
-}
-
-void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
-    if (!target || amount < 0) return;
-    std::uint32_t time = (flags & kDelayed) ? gameapi::timeGetTime() + kDelay : gameapi::timeGetTime();
-    points_.push_back(FlyingHitPoint{target, amount, flags, time});
-}
-
-// --- drawing -------------------------------------------------------------------------------------
-
-namespace {
 
 constexpr int kLifetime = 3000;                        // ms
 constexpr float kPerMillisecond = 0x1.5d867cp-12f;     // 1/3000
@@ -112,6 +95,20 @@ const RECT* UnitScreenRect(CUnit* unit) {
 }
 
 } // namespace
+
+CFlyingHitPoints::CFlyingHitPoints() : texture_(nullptr) {}
+
+CFlyingHitPoints::~CFlyingHitPoints() {
+    if (texture_) texture_->Release();
+}
+
+void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
+    if (!target || amount < 0) return;
+    std::uint32_t time = (flags & kDelayed) ? gameapi::timeGetTime() + kDelay : gameapi::timeGetTime();
+    points_.push_back(FlyingHitPoint{target, amount, flags, time});
+}
+
+// --- drawing -------------------------------------------------------------------------------------
 
 int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     std::string text;

@@ -40,13 +40,6 @@ T* InFile(char** cursor, int count) {
     return at;
 }
 
-} // namespace
-
-// Each value the original stores to a float is rounded with static_cast<float>; everything else
-// stays on the FPU.
-
-namespace {
-
 // Inline Vector3 arithmetic of the original: every component of every operation is rounded to a
 // float (each result goes through a Vector3 temporary).
 Vector3 Load(const float* p) { return {p[0], p[1], p[2]}; }
@@ -157,7 +150,195 @@ float MorphScalar(const float* r, float s, float t, float u, bool storeLower) {
     return static_cast<float>((upper - lower) * u + lower);
 }
 
+// One 16-byte block of a FIG8 vertex: `v` holds the block's 8 corner versions (8 x 4 floats).
+// The x component stays on the FPU through every blend; y, z and w are stored after each one.
+__declspec(noinline) void MorphBlock(float* out, const float* v, float s, float t, float u) {
+    // Lower half (versions 0-3), written to `out`.
+    {
+        double ax = (static_cast<double>(v[4]) - v[0]) * s + v[0];
+        float ay = static_cast<float>((static_cast<double>(v[5]) - v[1]) * s + v[1]);
+        float az = static_cast<float>((static_cast<double>(v[6]) - v[2]) * s + v[2]);
+        float aw = static_cast<float>((static_cast<double>(v[7]) - v[3]) * s + v[3]);
+        double bx = (static_cast<double>(v[12]) - v[8]) * s + v[8];
+        float by = static_cast<float>((static_cast<double>(v[13]) - v[9]) * s + v[9]);
+        float bz = static_cast<float>((static_cast<double>(v[14]) - v[10]) * s + v[10]);
+        float bw = static_cast<float>((static_cast<double>(v[15]) - v[11]) * s + v[11]);
+        out[0] = static_cast<float>((bx - ax) * t + ax);
+        out[1] = static_cast<float>((static_cast<double>(by) - ay) * t + ay);
+        out[2] = static_cast<float>((static_cast<double>(bz) - az) * t + az);
+        out[3] = static_cast<float>((static_cast<double>(bw) - aw) * t + aw);
+    }
+    // Upper half (versions 4-7), blended into `out` by u.
+    {
+        double ax = (static_cast<double>(v[20]) - v[16]) * s + v[16];
+        float ay = static_cast<float>((static_cast<double>(v[21]) - v[17]) * s + v[17]);
+        float az = static_cast<float>((static_cast<double>(v[22]) - v[18]) * s + v[18]);
+        float aw = static_cast<float>((static_cast<double>(v[23]) - v[19]) * s + v[19]);
+        double bx = (static_cast<double>(v[28]) - v[24]) * s + v[24];
+        float by = static_cast<float>((static_cast<double>(v[29]) - v[25]) * s + v[25]);
+        float bz = static_cast<float>((static_cast<double>(v[30]) - v[26]) * s + v[26]);
+        float bw = static_cast<float>((static_cast<double>(v[31]) - v[27]) * s + v[27]);
+        double cx = (bx - ax) * t + ax;
+        float cy = static_cast<float>((static_cast<double>(by) - ay) * t + ay);
+        float cz = static_cast<float>((static_cast<double>(bz) - az) * t + az);
+        float cw = static_cast<float>((static_cast<double>(bw) - aw) * t + aw);
+        out[0] = static_cast<float>((cx - out[0]) * u + out[0]);
+        out[1] = static_cast<float>((static_cast<double>(cy) - out[1]) * u + out[1]);
+        out[2] = static_cast<float>((static_cast<double>(cz) - out[2]) * u + out[2]);
+        out[3] = static_cast<float>((static_cast<double>(cw) - out[3]) * u + out[3]);
+    }
+}
+
+// One 16-byte block of an old-format vertex: 6 corner versions (6 x 4 floats), every blend on the FPU.
+__declspec(noinline) void MorphBlock6(float* out, const float* v, float s, float t, float u) {
+    for (int k = 0; k < 4; ++k) {
+        double a = (static_cast<double>(v[4 + k]) - v[k]) * s + v[k];
+        double lower = (v[8 + k] - a) * t + a;
+        double b = (static_cast<double>(v[16 + k]) - v[12 + k]) * s + v[12 + k];
+        double upper = (v[20 + k] - b) * t + b;
+        out[k] = static_cast<float>((upper - lower) * u + lower);
+    }
+}
+
+using CornerFn = float (*)(const float*, float, float, float);
+
+// The old-format bounding volume (centre, box minimum, box maximum: 6 corners of 3 floats each;
+// radius: 6 floats), written straight into `bounds`. The two loaders round the x component and
+// the box minimum differently.
+void MorphOldBounds(ClipBounds& bounds, const float* p, float s, float t, float u, CornerFn minX, CornerFn minYZ) {
+    Vector3 c = {CornerKept(p, s, t, u), CornerPerOp(p + 1, s, t, u), CornerPerOp(p + 2, s, t, u)};
+    const float* q = p + 0x12;
+    Vector3 mn = {minX(q, s, t, u), minYZ(q + 1, s, t, u), minYZ(q + 2, s, t, u)};
+    q = p + 0x24;
+    Vector3 mx = {CornerPerOpKeptSum(q, s, t, u), CornerPerOpKeptSum(q + 1, s, t, u), CornerPerOpKeptSum(q + 2, s, t, u)};
+    float radius = MorphScalar6(p + 0x36, s, t, u);
+    std::memcpy(&bounds.center, &c, 12);
+    bounds.flags |= 1;
+    bounds.radius = radius;
+    std::memcpy(&bounds.boxMin, &mn, 12);
+    std::memcpy(&bounds.boxMax, &mx, 12);
+    bounds.flags |= 2;
+}
+
+// The vertices of a FIG mesh: FIG8 files hold 8 versions of each of the three blocks (0x80 bytes
+// each), morphed; other versions hold the three blocks once. The fourth block is set to 1.0.
+void LoadVertices(std::vector<VertexPacket>& vertices, char** cursor, std::uint32_t magic, float s, float t, float u) {
+    const std::uint32_t one = 0x3F800000;
+    if (magic == kFig8Magic) {
+        for (int i = 0; i < std::ssize(vertices); ++i) {
+            VertexPacket& v = vertices[i];
+            for (int b = 0; b < 3; ++b) {
+                MorphBlock(v.block[b], FloatsAt(*cursor), s, t, u);
+                *cursor += 0x80;
+            }
+            for (int k = 3; k >= 0; --k) std::memcpy(&v.block[3][k], &one, 4);
+        }
+        return;
+    }
+    for (int i = 0; i < std::ssize(vertices); ++i) {
+        VertexPacket& v = vertices[i];
+        for (int b = 0; b < 3; ++b) {
+            std::memcpy(v.block[b], *cursor, 16);
+            *cursor += 0x10;
+        }
+        for (int k = 3; k >= 0; --k) std::memcpy(&v.block[3][k], &one, 4);
+    }
+}
+
+template <typename T>
+void LoadArray(std::vector<T>& array, char** cursor, int count) {
+    array.resize(static_cast<std::size_t>(count));
+    if (count != 0) {
+        std::memcpy(array.data(), *cursor, static_cast<std::size_t>(count) * sizeof(T));
+        *cursor += count * static_cast<int>(sizeof(T));
+    }
+}
+
+int ReadCount(char** cursor) {
+    int n;
+    std::memcpy(&n, *cursor, 4);
+    *cursor += 4;
+    return n;
+}
+
+// The part both old-format loaders share: header words, bounds, vertices and records (the
+// records' second colour array is set to opaque black).
+void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, bool shared) {
+    mesh->materialValue_ = Read<std::uint32_t>(*cursor);
+    mesh->meshType_ = Read<std::uint32_t>(*cursor);
+    if (shared)
+        MorphOldBounds(mesh->box_.bounds, FloatsAt(*cursor), s, t, u, CornerKept, CornerPerOp);
+    else
+        MorphOldBounds(mesh->box_.bounds, FloatsAt(*cursor), s, t, u, CornerStoredLower, CornerPerOpKeptUpper);
+    *cursor += 0xF0;
+
+    int count = ReadCount(cursor);
+    mesh->vertices_.resize(count);
+    for (int i = 0; i < count; ++i) {
+        VertexPacket& v = mesh->vertices_[i];
+        for (int b = 0; b < 3; ++b) {
+            MorphBlock6(v.block[b], FloatsAt(*cursor), s, t, u);
+            *cursor += 0x60;
+        }
+        const std::uint32_t one = 0x3F800000;
+        for (int k = 3; k >= 0; --k) std::memcpy(&v.block[3][k], &one, 4);
+    }
+    if (!mesh->vertices_.empty()) FitBounds(&mesh->box_.bounds, mesh->vertices_.data(), std::ssize(mesh->vertices_));
+
+    count = ReadCount(cursor);
+    mesh->normals_.resize(count);
+    mesh->colorsA_.resize(count * 4);
+    mesh->colorsB_.resize(count * 4);
+    if (count != 0) {
+        std::memcpy(mesh->normals_.data(), *cursor, static_cast<std::size_t>(count) * sizeof(NormalPacket));
+        *cursor += count * 0x40;
+        for (int i = 0; i < std::ssize(mesh->colorsB_); ++i) mesh->colorsB_[i] = 0xFF000000;
+    }
+}
+
+// A block of 0x34-byte records the loaders skip.
+void SkipRecords34(char** cursor) {
+    int n = ReadCount(cursor);
+    *cursor += n * 0x34;
+}
+
+// The limit on the squared distance of the position from the origin (the float 1e8).
+inline float FarLimit() { return 100000000.0f /*0073FAFC*/; }
+
+// Grows [min, max] by one transformed point. The original selects with the FCOMP status bit C0
+// as a mask on the float bits, so a NaN on either side takes the point.
+void Extend(float& max, float& min, float v) {
+    max = max >= v ? max : v;
+    min = v >= min ? min : v;
+}
+
+// Negates one component block of every packet.
+template <typename Packet>
+void NegateBlock(std::vector<Packet>& packets, int block) {
+    for (int i = 0; i < std::ssize(packets); ++i) {
+        float* v = packets[i].block[block];
+        for (int k = 0; k < 4; ++k) v[k] = -v[k];
+    }
+}
+
+// Swaps the first two corners of every triangle (reverses the winding after a mirror).
+void ReverseWinding(std::vector<std::uint16_t>& indices) {
+    std::uint16_t* p = indices.data();
+    for (int i = 0; i < std::ssize(indices); i += 3, p += 3) {
+        std::uint16_t first = p[0];
+        p[0] = p[1];
+        p[1] = first;
+    }
+}
+
+// The shared buffer DrawOffset moves the vertices into, and the exit function its static initialiser
+// registers: it frees the block.
+constinit std::vector<VertexPacket> g_offsetVertices = /*007C2E18*/ {};
+
 } // namespace
+
+// Each value the original stores to a float is rounded with static_cast<float>; everything else
+// stays on the FPU.
 
 void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint32_t magic) {
     if (magic == kFig8Magic) {
@@ -236,118 +417,6 @@ void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, fl
     Vector3 boxMax{mx.x, mx.y, mx.z};
     out->SetBox(&boxMin.x, &boxMax.x);
 }
-
-namespace {
-
-// One 16-byte block of a FIG8 vertex: `v` holds the block's 8 corner versions (8 x 4 floats).
-// The x component stays on the FPU through every blend; y, z and w are stored after each one.
-__declspec(noinline) void MorphBlock(float* out, const float* v, float s, float t, float u) {
-    // Lower half (versions 0-3), written to `out`.
-    {
-        double ax = (static_cast<double>(v[4]) - v[0]) * s + v[0];
-        float ay = static_cast<float>((static_cast<double>(v[5]) - v[1]) * s + v[1]);
-        float az = static_cast<float>((static_cast<double>(v[6]) - v[2]) * s + v[2]);
-        float aw = static_cast<float>((static_cast<double>(v[7]) - v[3]) * s + v[3]);
-        double bx = (static_cast<double>(v[12]) - v[8]) * s + v[8];
-        float by = static_cast<float>((static_cast<double>(v[13]) - v[9]) * s + v[9]);
-        float bz = static_cast<float>((static_cast<double>(v[14]) - v[10]) * s + v[10]);
-        float bw = static_cast<float>((static_cast<double>(v[15]) - v[11]) * s + v[11]);
-        out[0] = static_cast<float>((bx - ax) * t + ax);
-        out[1] = static_cast<float>((static_cast<double>(by) - ay) * t + ay);
-        out[2] = static_cast<float>((static_cast<double>(bz) - az) * t + az);
-        out[3] = static_cast<float>((static_cast<double>(bw) - aw) * t + aw);
-    }
-    // Upper half (versions 4-7), blended into `out` by u.
-    {
-        double ax = (static_cast<double>(v[20]) - v[16]) * s + v[16];
-        float ay = static_cast<float>((static_cast<double>(v[21]) - v[17]) * s + v[17]);
-        float az = static_cast<float>((static_cast<double>(v[22]) - v[18]) * s + v[18]);
-        float aw = static_cast<float>((static_cast<double>(v[23]) - v[19]) * s + v[19]);
-        double bx = (static_cast<double>(v[28]) - v[24]) * s + v[24];
-        float by = static_cast<float>((static_cast<double>(v[29]) - v[25]) * s + v[25]);
-        float bz = static_cast<float>((static_cast<double>(v[30]) - v[26]) * s + v[26]);
-        float bw = static_cast<float>((static_cast<double>(v[31]) - v[27]) * s + v[27]);
-        double cx = (bx - ax) * t + ax;
-        float cy = static_cast<float>((static_cast<double>(by) - ay) * t + ay);
-        float cz = static_cast<float>((static_cast<double>(bz) - az) * t + az);
-        float cw = static_cast<float>((static_cast<double>(bw) - aw) * t + aw);
-        out[0] = static_cast<float>((cx - out[0]) * u + out[0]);
-        out[1] = static_cast<float>((static_cast<double>(cy) - out[1]) * u + out[1]);
-        out[2] = static_cast<float>((static_cast<double>(cz) - out[2]) * u + out[2]);
-        out[3] = static_cast<float>((static_cast<double>(cw) - out[3]) * u + out[3]);
-    }
-}
-
-// One 16-byte block of an old-format vertex: 6 corner versions (6 x 4 floats), every blend on the FPU.
-__declspec(noinline) void MorphBlock6(float* out, const float* v, float s, float t, float u) {
-    for (int k = 0; k < 4; ++k) {
-        double a = (static_cast<double>(v[4 + k]) - v[k]) * s + v[k];
-        double lower = (v[8 + k] - a) * t + a;
-        double b = (static_cast<double>(v[16 + k]) - v[12 + k]) * s + v[12 + k];
-        double upper = (v[20 + k] - b) * t + b;
-        out[k] = static_cast<float>((upper - lower) * u + lower);
-    }
-}
-
-using CornerFn = float (*)(const float*, float, float, float);
-
-// The old-format bounding volume (centre, box minimum, box maximum: 6 corners of 3 floats each;
-// radius: 6 floats), written straight into `bounds`. The two loaders round the x component and
-// the box minimum differently.
-void MorphOldBounds(ClipBounds& bounds, const float* p, float s, float t, float u, CornerFn minX, CornerFn minYZ) {
-    Vector3 c = {CornerKept(p, s, t, u), CornerPerOp(p + 1, s, t, u), CornerPerOp(p + 2, s, t, u)};
-    const float* q = p + 0x12;
-    Vector3 mn = {minX(q, s, t, u), minYZ(q + 1, s, t, u), minYZ(q + 2, s, t, u)};
-    q = p + 0x24;
-    Vector3 mx = {CornerPerOpKeptSum(q, s, t, u), CornerPerOpKeptSum(q + 1, s, t, u), CornerPerOpKeptSum(q + 2, s, t, u)};
-    float radius = MorphScalar6(p + 0x36, s, t, u);
-    std::memcpy(&bounds.center, &c, 12);
-    bounds.flags |= 1;
-    bounds.radius = radius;
-    std::memcpy(&bounds.boxMin, &mn, 12);
-    std::memcpy(&bounds.boxMax, &mx, 12);
-    bounds.flags |= 2;
-}
-
-} // namespace
-
-namespace {
-
-// The vertices of a FIG mesh: FIG8 files hold 8 versions of each of the three blocks (0x80 bytes
-// each), morphed; other versions hold the three blocks once. The fourth block is set to 1.0.
-void LoadVertices(std::vector<VertexPacket>& vertices, char** cursor, std::uint32_t magic, float s, float t, float u) {
-    const std::uint32_t one = 0x3F800000;
-    if (magic == kFig8Magic) {
-        for (int i = 0; i < std::ssize(vertices); ++i) {
-            VertexPacket& v = vertices[i];
-            for (int b = 0; b < 3; ++b) {
-                MorphBlock(v.block[b], FloatsAt(*cursor), s, t, u);
-                *cursor += 0x80;
-            }
-            for (int k = 3; k >= 0; --k) std::memcpy(&v.block[3][k], &one, 4);
-        }
-        return;
-    }
-    for (int i = 0; i < std::ssize(vertices); ++i) {
-        VertexPacket& v = vertices[i];
-        for (int b = 0; b < 3; ++b) {
-            std::memcpy(v.block[b], *cursor, 16);
-            *cursor += 0x10;
-        }
-        for (int k = 3; k >= 0; --k) std::memcpy(&v.block[3][k], &one, 4);
-    }
-}
-
-template <typename T>
-void LoadArray(std::vector<T>& array, char** cursor, int count) {
-    array.resize(static_cast<std::size_t>(count));
-    if (count != 0) {
-        std::memcpy(array.data(), *cursor, static_cast<std::size_t>(count) * sizeof(T));
-        *cursor += count * static_cast<int>(sizeof(T));
-    }
-}
-
-} // namespace
 
 void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
@@ -434,58 +503,6 @@ void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
 
 // ---- Old (non-FIG) format -----------------------------------------------------------------------
 
-namespace {
-
-int ReadCount(char** cursor) {
-    int n;
-    std::memcpy(&n, *cursor, 4);
-    *cursor += 4;
-    return n;
-}
-
-// The part both old-format loaders share: header words, bounds, vertices and records (the
-// records' second colour array is set to opaque black).
-void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, bool shared) {
-    mesh->materialValue_ = Read<std::uint32_t>(*cursor);
-    mesh->meshType_ = Read<std::uint32_t>(*cursor);
-    if (shared)
-        MorphOldBounds(mesh->box_.bounds, FloatsAt(*cursor), s, t, u, CornerKept, CornerPerOp);
-    else
-        MorphOldBounds(mesh->box_.bounds, FloatsAt(*cursor), s, t, u, CornerStoredLower, CornerPerOpKeptUpper);
-    *cursor += 0xF0;
-
-    int count = ReadCount(cursor);
-    mesh->vertices_.resize(count);
-    for (int i = 0; i < count; ++i) {
-        VertexPacket& v = mesh->vertices_[i];
-        for (int b = 0; b < 3; ++b) {
-            MorphBlock6(v.block[b], FloatsAt(*cursor), s, t, u);
-            *cursor += 0x60;
-        }
-        const std::uint32_t one = 0x3F800000;
-        for (int k = 3; k >= 0; --k) std::memcpy(&v.block[3][k], &one, 4);
-    }
-    if (!mesh->vertices_.empty()) FitBounds(&mesh->box_.bounds, mesh->vertices_.data(), std::ssize(mesh->vertices_));
-
-    count = ReadCount(cursor);
-    mesh->normals_.resize(count);
-    mesh->colorsA_.resize(count * 4);
-    mesh->colorsB_.resize(count * 4);
-    if (count != 0) {
-        std::memcpy(mesh->normals_.data(), *cursor, static_cast<std::size_t>(count) * sizeof(NormalPacket));
-        *cursor += count * 0x40;
-        for (int i = 0; i < std::ssize(mesh->colorsB_); ++i) mesh->colorsB_[i] = 0xFF000000;
-    }
-}
-
-// A block of 0x34-byte records the loaders skip.
-void SkipRecords34(char** cursor) {
-    int n = ReadCount(cursor);
-    *cursor += n * 0x34;
-}
-
-} // namespace
-
 void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
     LoadOldCommon(this, cursor, s, t, u, false);
@@ -539,21 +556,6 @@ void CSharedFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
 
 // ---- World-space box ----------------------------------------------------------------------------
 
-namespace {
-
-// The limit on the squared distance of the position from the origin (the float 1e8).
-inline float FarLimit() { return 100000000.0f /*0073FAFC*/; }
-} // namespace
-
-namespace {
-// Grows [min, max] by one transformed point. The original selects with the FCOMP status bit C0
-// as a mask on the float bits, so a NaN on either side takes the point.
-void Extend(float& max, float& min, float v) {
-    max = max >= v ? max : v;
-    min = v >= min ? min : v;
-}
-} // namespace
-
 void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const {
     // ((x*x + y*y) + z*z) of the position, on the FPU; NaN passes.
     double distance = LengthSquaredXYZ(localPosition_);
@@ -578,31 +580,6 @@ void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* m
 }
 
 // ---- Mirroring, buffers, vertex offsets ---------------------------------------------------------
-
-namespace {
-// Negates one component block of every packet.
-template <typename Packet>
-void NegateBlock(std::vector<Packet>& packets, int block) {
-    for (int i = 0; i < std::ssize(packets); ++i) {
-        float* v = packets[i].block[block];
-        for (int k = 0; k < 4; ++k) v[k] = -v[k];
-    }
-}
-
-// Swaps the first two corners of every triangle (reverses the winding after a mirror).
-void ReverseWinding(std::vector<std::uint16_t>& indices) {
-    std::uint16_t* p = indices.data();
-    for (int i = 0; i < std::ssize(indices); i += 3, p += 3) {
-        std::uint16_t first = p[0];
-        p[0] = p[1];
-        p[1] = first;
-    }
-}
-
-// The shared buffer DrawOffset moves the vertices into, and the exit function its static initialiser
-// registers: it frees the block.
-constinit std::vector<VertexPacket> g_offsetVertices = /*007C2E18*/ {};
-} // namespace
 
 void FreeOffsetVertices() { lib::FreeStorage(g_offsetVertices); }
 

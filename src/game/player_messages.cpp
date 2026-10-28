@@ -40,6 +40,34 @@ std::uint32_t ItemCharge(const CEngineObject* object) {
 // The world player's party variables (a NamedFloatTable, object_tables.h).
 NamedFloatTable* Variables(CPlayer* player) { return &player->Party()->variables_; }
 
+// Looks an object up by id (base_manager.cpp), through its game address.
+
+constexpr int kServerHandlerCount = 0x100;
+
+// The server's message handlers by type.
+constexpr HandlerEntry<CPlayerServer> kServerHandlers[] = {
+    {0x00, &CPlayerServer::OnLogin}, {0x01, &CPlayerServer::OnLeave}, {0x02, &CPlayerServer::OnRefreshParty},
+    {0x03, &CPlayerServer::OnTakeExit}, {0x04, &CPlayerServer::OnGameStateRequest}, {0x05, &CPlayerServer::OnJoined},
+    {0x06, &CPlayerServer::OnLeaveToZone}, {0x07, &CPlayerServer::OnBriefingDone}, {0x08, &CPlayerServer::OnNewParty},
+    {0x09, &CPlayerServer::OnResume}, {0x10, &CPlayerServer::OnPause}, {0x30, &CPlayerServer::OnWalk},
+    {0x31, &CPlayerServer::OnAttack}, {0x32, &CPlayerServer::OnCastAtPoint}, {0x33, &CPlayerServer::OnCastAtObject},
+    {0x34, &CPlayerServer::OnWantedWeapon}, {0x35, &CPlayerServer::OnMoveStyle}, {0x36, &CPlayerServer::OnUseOrder},
+    {0x37, &CPlayerServer::OnMessage37}, {0x38, &CPlayerServer::OnUnitLookup}, {0x39, &CPlayerServer::OnFollow},
+    {0x3A, &CPlayerServer::OnGoTo}, {0x3B, &CPlayerServer::OnUnitFlag438}, {0x40, &CPlayerServer::OnLastPosition},
+    {0x50, &CPlayerServer::OnPartyUpdate},
+};
+
+// The sent-object arrays emptied: every object released, the block freed.
+void ReleaseAll(std::vector<CEngineObject*>& objects) {
+    // The data pointer is read once, the size after every release.
+    CEngineObject** element = objects.data();
+    for (int i = 0; i < std::ssize(objects); ++i) (*element++)->Release();
+    objects.clear();
+}
+
+constexpr std::uint8_t kPathMessage = 0x0E;
+constexpr int kPathKindNoPath = 3;
+
 } // namespace
 
 // --- Variables and state -------------------------------------------------------------------------
@@ -219,10 +247,6 @@ PartyUnitRecord* CParty::Find(int unitId) {
     return nullptr;
 }
 
-namespace {
-// Looks an object up by id (base_manager.cpp), through its game address.
-} // namespace
-
 void CPlayer::Tick() {
     auto node = recharging_.begin();
     while (node != recharging_.end()) {
@@ -236,33 +260,6 @@ void CPlayer::Tick() {
 }
 
 // --- The server's Create ---------------------------------------------------------------
-
-namespace {
-
-constexpr int kServerHandlerCount = 0x100;
-
-// The server's message handlers by type.
-constexpr HandlerEntry<CPlayerServer> kServerHandlers[] = {
-    {0x00, &CPlayerServer::OnLogin}, {0x01, &CPlayerServer::OnLeave}, {0x02, &CPlayerServer::OnRefreshParty},
-    {0x03, &CPlayerServer::OnTakeExit}, {0x04, &CPlayerServer::OnGameStateRequest}, {0x05, &CPlayerServer::OnJoined},
-    {0x06, &CPlayerServer::OnLeaveToZone}, {0x07, &CPlayerServer::OnBriefingDone}, {0x08, &CPlayerServer::OnNewParty},
-    {0x09, &CPlayerServer::OnResume}, {0x10, &CPlayerServer::OnPause}, {0x30, &CPlayerServer::OnWalk},
-    {0x31, &CPlayerServer::OnAttack}, {0x32, &CPlayerServer::OnCastAtPoint}, {0x33, &CPlayerServer::OnCastAtObject},
-    {0x34, &CPlayerServer::OnWantedWeapon}, {0x35, &CPlayerServer::OnMoveStyle}, {0x36, &CPlayerServer::OnUseOrder},
-    {0x37, &CPlayerServer::OnMessage37}, {0x38, &CPlayerServer::OnUnitLookup}, {0x39, &CPlayerServer::OnFollow},
-    {0x3A, &CPlayerServer::OnGoTo}, {0x3B, &CPlayerServer::OnUnitFlag438}, {0x40, &CPlayerServer::OnLastPosition},
-    {0x50, &CPlayerServer::OnPartyUpdate},
-};
-
-// The sent-object arrays emptied: every object released, the block freed.
-void ReleaseAll(std::vector<CEngineObject*>& objects) {
-    // The data pointer is read once, the size after every release.
-    CEngineObject** element = objects.data();
-    for (int i = 0; i < std::ssize(objects); ++i) (*element++)->Release();
-    objects.clear();
-}
-
-} // namespace
 
 void CPlayerServer::ClearServerState() {
     out_.Resize(0);
@@ -296,13 +293,6 @@ BOOL CPlayerServer::CreateServer() {
 int CPlayerServer::OnMessage37() { return 0; }
 
 // --- The server's lifetime and virtuals ------------------------------------------------------
-
-namespace {
-
-constexpr std::uint8_t kPathMessage = 0x0E;
-constexpr int kPathKindNoPath = 3;
-
-} // namespace
 
 // The stream is a member (constructed before the body; the original builds it after the handler table).
 CPlayerServer::CPlayerServer() {

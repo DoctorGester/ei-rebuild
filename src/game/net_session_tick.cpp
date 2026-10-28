@@ -21,6 +21,20 @@ namespace {
 // "<text><address>\n" and a flush to the network log.
 void LogAddress(const char* text, const char* address) { console::EndLine(*g_netLog << text << address); }
 
+// "<text>\n" and a flush, when there is a network log.
+void LogText(const char* text) {
+    if (console::Stream* log = g_netLog) console::EndLine(*log << text);
+}
+
+// The address string of a connection, logged as "<before><address><after>\n", then freed.
+void LogConnection(const char* before, Connection* connection, const char* after) {
+    std::string peer = connection->address_.ToString();
+    const char* text = peer.data();
+    console::Stream& log = *g_netLog << before << text;
+    if (after) log << after;
+    console::EndLine(log);
+}
+
 } // namespace
 
 // The buffer's highest written position follows the current one upwards.
@@ -90,25 +104,6 @@ void SessionBase::Tick(double dt) {
 // ---- Session vtable slots ---------------------------------------------------------------
 
 namespace net {
-
-namespace {
-
-
-// "<text>\n" and a flush, when there is a network log.
-void LogText(const char* text) {
-    if (console::Stream* log = g_netLog) console::EndLine(*log << text);
-}
-
-// The address string of a connection, logged as "<before><address><after>\n", then freed.
-void LogConnection(const char* before, Connection* connection, const char* after) {
-    std::string peer = connection->address_.ToString();
-    const char* text = peer.data();
-    console::Stream& log = *g_netLog << before << text;
-    if (after) log << after;
-    console::EndLine(log);
-}
-
-} // namespace
 
 std::list<SharedRefTo<Connection>>::iterator SessionBase::FindClient(const NetAddress* address) {
     auto node = clients_.begin();

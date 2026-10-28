@@ -32,6 +32,8 @@ void WriteInteger(ConsoleStreambuf* buffer, T value) {
     buffer->Write(std::string_view(text, std::to_chars(text, text + sizeof(text), value).ptr - text));
 }
 
+bool NetworkGame() { return IsMultiplayerClient(); }
+
 } // namespace
 
 Stream& Stream::operator<<(const char* text) {
@@ -66,12 +68,6 @@ Stream& Stream::Flush() {
 // ---- Helpers ------------------------------------------------------------------------------------
 
 CommandHandler& Command(CommandMap* map, const std::string& name) { return (*map)[name]; }
-
-namespace {
-
-bool NetworkGame() { return IsMultiplayerClient(); }
-
-} // namespace
 
 void EndLine(Stream& os) { (os << '\n').Flush(); }
 

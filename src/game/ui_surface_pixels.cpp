@@ -71,16 +71,17 @@ std::uint32_t Grey32(std::uint32_t pixel) {
     return ((grey << 8 | grey) << 8) | grey;
 }
 
-} // namespace
-
-void (*g_uiSurfacePixelObserver)(const CUiSurface* surface, const char* what, bool writes, void* const* caller) = nullptr;
-
-namespace {
 // `caller`: the observed helper's _AddressOfReturnAddress().
 void ObservePixels(const CUiSurface* surface, const char* what, bool writes, void* caller) {
     if (g_uiSurfacePixelObserver) g_uiSurfacePixelObserver(surface, what, writes, static_cast<void* const*>(caller));
 }
+
+// Drops a holder reference.
+void ReleaseHolder(CDXSurface* holder) { holder->Release(); }
+
 } // namespace
+
+void (*g_uiSurfacePixelObserver)(const CUiSurface* surface, const char* what, bool writes, void* const* caller) = nullptr;
 
 void CUiSurface::CaptureScreen() {
     ObservePixels(this, "CaptureScreen", true, _AddressOfReturnAddress());
@@ -194,14 +195,6 @@ void CUiSurface::Greyscale() {
     }
     gameapi::LeaveCriticalSection(TheDeviceLock());
 }
-
-namespace {
-
-// Drops a holder reference.
-void ReleaseHolder(CDXSurface* holder) { holder->Release(); }
-
-
-} // namespace
 
 void CUiSurface::SwapContents(int restore) {
     ObservePixels(this, restore ? "SwapContents(restore)" : "SwapContents(save)", restore != 0,

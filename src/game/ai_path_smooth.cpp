@@ -37,6 +37,39 @@ int CdqAbs(int v) {
 // The cost of `turn` eighths of a turn, rounded like the original.
 int TurnCost(int turn, float scale) { return x87::fistp(static_cast<float>(static_cast<float>(turn) * scale * kTurnCost)); }
 
+int Opposite(int direction) { return direction - 4 >= 1 ? direction - 4 : direction + 4; }
+
+// The step from the state `from` to the state `to` that starts where it ends: the move `to` makes, the turn
+// between the two moves less one eighth, the cost factor of that turn, and the way back along `to`.
+void MakeSmoothStep(SmoothStep* step, const SmoothEdge* from, const SmoothEdge* to) {
+    const int fromDirection = DirectionSteps()[(from->y1 - from->y0) * 3 + from->x1 - from->x0];
+    const int toDirection = DirectionSteps()[(to->y1 - to->y0) * 3 - to->x0 + to->x1];
+    step->from = from->index;
+    step->to = to->index;
+    step->stepX = to->x1 - to->x0;
+    step->stepY = to->y1 - to->y0;
+    step->dx = to->x0;
+    step->dy = to->y0;
+    int turn = CdqAbs(fromDirection - toDirection);
+    if (turn > 4) turn = 8 - turn;
+    step->turn = turn - 1 < 0 ? 0 : turn - 1;
+    switch (turn) {
+    case 0: step->factor = IsDiagonal(fromDirection) ? kDiagonalFactor : kStraightFactor; break;
+    case 1: step->factor = kEighthTurnFactor; break;
+    case 2: step->factor = IsDiagonal(fromDirection) ? kDiagonalQuarterTurnFactor : kQuarterTurnFactor; break;
+    case 3: step->factor = kWideTurnFactor; break;
+    default: step->factor = 0; break;
+    }
+    step->direction = toDirection == 0 ? 0 : Opposite(toDirection);
+}
+
+// The tables destroyed, the last one first (the `eh vector destructor iterator`).
+void DestroySmoothTables() {
+    SmoothTable* tables = g_smoothTables.Get();
+    for (int i = kStates * kStates; i-- > 0;) tables[i].Destruct();
+}
+void DestroySmoothPool() { g_smoothPool.Destroy(); }
+
 } // namespace
 
 // CArray<SmoothNode>::SetSize (new nodes zeroed, nothing destroyed).
@@ -165,12 +198,6 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCells* path, int start
 
 // ---- The transition tables ----------------------------------------------------------------------
 
-namespace {
-
-int Opposite(int direction) { return direction - 4 >= 1 ? direction - 4 : direction + 4; }
-
-} // namespace
-
 // The seven states of a cell crossed by the straight step (mx, my), with (sx, sy) the step to its side: the
 // step itself, the same step one cell to either side, the diagonal moves into and out of the cell on either
 // side.
@@ -198,34 +225,6 @@ void SmoothEdges::AddDiagonalEdges(int mx, int my, int sx, int sy) {
     push_back(SmoothEdge{sx, sy, mx, my, 0});
     push_back(SmoothEdge{ox, oy, mx, my, 0});
 }
-
-namespace {
-
-// The step from the state `from` to the state `to` that starts where it ends: the move `to` makes, the turn
-// between the two moves less one eighth, the cost factor of that turn, and the way back along `to`.
-void MakeSmoothStep(SmoothStep* step, const SmoothEdge* from, const SmoothEdge* to) {
-    const int fromDirection = DirectionSteps()[(from->y1 - from->y0) * 3 + from->x1 - from->x0];
-    const int toDirection = DirectionSteps()[(to->y1 - to->y0) * 3 - to->x0 + to->x1];
-    step->from = from->index;
-    step->to = to->index;
-    step->stepX = to->x1 - to->x0;
-    step->stepY = to->y1 - to->y0;
-    step->dx = to->x0;
-    step->dy = to->y0;
-    int turn = CdqAbs(fromDirection - toDirection);
-    if (turn > 4) turn = 8 - turn;
-    step->turn = turn - 1 < 0 ? 0 : turn - 1;
-    switch (turn) {
-    case 0: step->factor = IsDiagonal(fromDirection) ? kDiagonalFactor : kStraightFactor; break;
-    case 1: step->factor = kEighthTurnFactor; break;
-    case 2: step->factor = IsDiagonal(fromDirection) ? kDiagonalQuarterTurnFactor : kQuarterTurnFactor; break;
-    case 3: step->factor = kWideTurnFactor; break;
-    default: step->factor = 0; break;
-    }
-    step->direction = toDirection == 0 ? 0 : Opposite(toDirection);
-}
-
-} // namespace
 
 void SmoothEdges::BuildEdges(int direction, bool incoming) {
     SmoothEdges* edges = this;
@@ -330,16 +329,6 @@ void BuildSmoothTables() { BuildSmoothTablesAt(g_smoothTables.Get()); }
 // Zero at the start; each is built empty by its static initialiser (the tables first) and destroyed at exit.
 constinit lib::StaticObject<SmoothPool> g_smoothPool = /*007C3038*/ {};
 constinit lib::StaticObject<SmoothTable[81]> g_smoothTables = /*007C3058*/ {};
-
-namespace {
-
-// The tables destroyed, the last one first (the `eh vector destructor iterator`).
-void DestroySmoothTables() {
-    SmoothTable* tables = g_smoothTables.Get();
-    for (int i = kStates * kStates; i-- > 0;) tables[i].Destruct();
-}
-void DestroySmoothPool() { g_smoothPool.Destroy(); }
-} // namespace
 
 void ConstructSmoothTables() {
     for (SmoothTable& table : g_smoothTables.Get()) table.Construct();

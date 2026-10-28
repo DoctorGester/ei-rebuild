@@ -47,14 +47,6 @@ void DropPreset(RenderPresetRecord* record) { Release(record->preset); }
 // What a failed Direct3D call leaves as its result: the fatal error's (0 when it comes back).
 CRenderPreset* Failed(int errorResult) { return reinterpret_cast<CRenderPreset*>(static_cast<std::uintptr_t>(errorResult)); }
 
-
-
-} // namespace
-
-// ---- The built-in presets' states -------------------------------------------------------------------
-
-namespace {
-
 // A texture stage: the colour is `operation` of `argument` and the stage before, the alpha is switched off.
 // The new elements are filled from an uninitialised local with only the two flags cleared and then writes the
 // fields below, so what a list does not set (stage 0's operations everywhere, the alpha arguments of presets
@@ -81,7 +73,19 @@ RenderPresetRecord::State Blended(RenderPresetRecord::State state, D3DBLEND sour
     return state;
 }
 
+const char* TransformLibraryName() { return "3DfpFPU.dll"; }
+const char* TransformFunctionName() { return "GetTLPipeline"; }
+// The debug messages ("FPU Transform release library loaded." and "Acquiring geometry processor
+// from transform library.") and the errors' texts ("Can't load 3D transform library." and "Loaded
+// 3D transform library have no function "GetTLPipeline"."), each with a newline.
+const char* LibraryLoadedText() { return "FPU Transform release library loaded.\n"; }
+const char* AcquiringText() { return "Acquiring geometry processor from transform library.\n"; }
+const char* NoLibraryText() { return "Can't load 3D transform library.\n"; }
+const char* NoFunctionText() { return "Loaded 3D transform library have no function \"GetTLPipeline\".\n"; }
+
 } // namespace
+
+// ---- The built-in presets' states -------------------------------------------------------------------
 
 // The state list of built-in preset `index` into `states`
 // (emptied first); false beyond the nine. Presets 0 and 8 have no states.
@@ -306,20 +310,6 @@ CRenderPreset::~CRenderPreset() {  }
 // which no object reaches, are not modelled.
 
 // ---- The transform pipeline (CTransformPipeline) -------------------------------------------------------------
-
-namespace {
-
-const char* TransformLibraryName() { return "3DfpFPU.dll"; }
-const char* TransformFunctionName() { return "GetTLPipeline"; }
-// The debug messages ("FPU Transform release library loaded." and "Acquiring geometry processor
-// from transform library.") and the errors' texts ("Can't load 3D transform library." and "Loaded
-// 3D transform library have no function "GetTLPipeline"."), each with a newline.
-const char* LibraryLoadedText() { return "FPU Transform release library loaded.\n"; }
-const char* AcquiringText() { return "Acquiring geometry processor from transform library.\n"; }
-const char* NoLibraryText() { return "Can't load 3D transform library.\n"; }
-const char* NoFunctionText() { return "Loaded 3D transform library have no function \"GetTLPipeline\".\n"; }
-
-} // namespace
 
 // The processor's CPUID function 1 into the globals (as the renderer does again). A throw unwinds the
 // folder's string, the stacks (from the last) and the base, and `new` frees the memory.

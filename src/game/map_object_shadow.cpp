@@ -187,23 +187,7 @@ double CornerX(const float* m, float a, float b) {
 float CornerY(const float* m, float a, float b) {
     return static_cast<float>(static_cast<double>(a) * m[5] + static_cast<double>(m[4]) * b);
 }
-} // namespace
 
-void FreeQuads() { lib::FreeStorage(g_quads); }
-void FreePoints() {
-    if (g_freed & 1) return;
-    g_freed = static_cast<std::uint8_t>(g_freed | 1);
-    lib::FreeStorage(g_points);
-}
-void FreePixels() {
-    if (g_freed & 2) return;
-    g_freed = static_cast<std::uint8_t>(g_freed | 2);
-    lib::FreeStorage(g_pixels);
-}
-
-// --- The shadow -------------------------------------------------------------------------------
-
-namespace {
 // Whether any of the object's parts (but those too far, hidden or not) has keyed texels: the decal then skips
 // the platforms (the original reads it in the raster's loop; the raster changes no flag).
 int KeyedParts(const CObject3D* object) {
@@ -455,7 +439,22 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     if (lights.manager) --lights.manager->refCount_;
     return true;
 }
+
 } // namespace
+
+void FreeQuads() { lib::FreeStorage(g_quads); }
+void FreePoints() {
+    if (g_freed & 1) return;
+    g_freed = static_cast<std::uint8_t>(g_freed | 1);
+    lib::FreeStorage(g_points);
+}
+void FreePixels() {
+    if (g_freed & 2) return;
+    g_freed = static_cast<std::uint8_t>(g_freed | 2);
+    lib::FreeStorage(g_pixels);
+}
+
+// --- The shadow -------------------------------------------------------------------------------
 
 bool ShadowCastStrength(CObject3D* object, float* strength) {
     if (ShadowMode() <= 0) return false;

@@ -633,70 +633,6 @@ bool CheckTextureMark(const void* holder, const SurfaceMemory& m) {
 
 void Remake(Texture& t);
 
-} // namespace
-
-sg_view SurfaceView(const void* holder) {
-    StatsTimer timer(&FrameStats::textureMs);
-    auto memory = g_memory.find(holder);
-    std::uint32_t frame = FrameNumber();
-    if (memory == g_memory.end()) {
-        // Nothing to read: what was decoded for the holder (its .mmp file), if anything.
-        auto decoded = holder ? g_textures.find(holder) : g_textures.end();
-        if (decoded != g_textures.end() && !decoded->second.view.id && decoded->second.owned &&
-            decoded->second.checkedFrame != frame) {
-            // Lost with the old device (DropTextures): made again from what it was decoded from, once a frame.
-            decoded->second.checkedFrame = frame;
-            Remake(decoded->second);
-        }
-        if (decoded == g_textures.end() || !decoded->second.view.id) return White().view;
-        decoded->second.usedFrame = frame;
-        return decoded->second.view;
-    }
-    Texture& t = g_textures[holder];
-    t.usedFrame = frame;
-    if (t.checkedFrame == frame) return t.view.id ? t.view : White().view;
-    // Textures in the renderer's memory are checked once a frame: read again when the game marked their memory
-    // written since (render::SurfaceWritten) and it differs from what they were made from.
-    const SurfaceMemory& m = memory->second;
-    t.checkedFrame = frame;
-    bool marked = g_textureMarks.erase(holder) != 0;
-    // (No snapshot: the memory was made again since, NewSurfaceMemory.)
-    auto snapshot = g_textureSnapshots.find(holder);
-    bool reread = !t.view.id || t.width != m.width || t.height != m.height || snapshot == g_textureSnapshots.end() ||
-                  snapshot->second.size() != MemoryBytes(m);
-    if (!reread && marked) reread = MemoryChanged(g_textureSnapshots, holder, m);
-#if defined(EI_RENDER_VALIDATION)
-    if (!reread && !marked) reread = CheckTextureMark(holder, m);
-#endif
-    if (reread) ReadClientTexture(t, holder, m);
-    return t.view.id ? t.view : White().view;
-}
-
-// The entry of `holder` from decoded levels: the texture until the holder goes, `source` kept to make it
-// again on a new device. Not for a holder with memory of the renderer's: that memory is what the texture shows.
-bool StoreDecoded(const void* holder, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
-                  const char* label, TextureSource source) {
-    FrameStats::Upload kind = source.kind == TextureSource::Rgba ? FrameStats::CpuPixels : FrameStats::Mmp;
-    if (!holder || g_memory.count(holder)) return false;
-    Texture& t = g_textures[holder];
-    t.usedFrame = FrameNumber();
-    Retire(t);
-    t.image = MakeImage(width, height, std::move(levels), label, kind);
-    t.view = MakeTextureView(t.image);
-    if (!t.view.id) {
-        if (t.image.id) sg_destroy_image(t.image);
-        t.image = sg_image{};
-    }
-    t.checkedFrame = FrameNumber();
-    t.owned = true;
-    t.width = width;
-    t.height = height;
-    t.source = std::move(source);
-    return t.view.id != 0;
-}
-
-namespace {
-
 struct Patch {
     const void* source = nullptr;
     int to[4] = {};
@@ -722,69 +658,6 @@ bool HolderSize(const void* holder, int* width, int* height) {
 bool Inside(const int r[4], int width, int height) {
     return r[0] >= 0 && r[1] >= 0 && r[0] < r[2] && r[1] < r[3] && r[2] <= width && r[3] <= height;
 }
-
-} // namespace
-
-StagePatch PatchOf(const void* holder) {
-    StagePatch p;
-    if (g_patches.empty() || !holder) return p;
-    auto it = g_patches.find(holder);
-    if (it == g_patches.end()) return p;
-    const Patch& patch = it->second;
-    int tw = 0, th = 0, sw = 0, sh = 0;
-    if (!HolderSize(holder, &tw, &th) || !HolderSize(patch.source, &sw, &sh)) return p;
-    // Texture coordinates: the target's rectangle; a texel of it at (x, y) takes the source's texel
-    // at (x - to + from) scaled by the rectangles' sizes (the same size from the blink).
-    float kx = static_cast<float>(patch.from[2] - patch.from[0]) / static_cast<float>(patch.to[2] - patch.to[0]);
-    float ky = static_cast<float>(patch.from[3] - patch.from[1]) / static_cast<float>(patch.to[3] - patch.to[1]);
-    p.to[0] = static_cast<float>(patch.to[0]) / static_cast<float>(tw);
-    p.to[1] = static_cast<float>(patch.to[1]) / static_cast<float>(th);
-    p.to[2] = static_cast<float>(patch.to[2]) / static_cast<float>(tw);
-    p.to[3] = static_cast<float>(patch.to[3]) / static_cast<float>(th);
-    p.map[0] = kx * static_cast<float>(tw) / static_cast<float>(sw);
-    p.map[1] = ky * static_cast<float>(th) / static_cast<float>(sh);
-    p.map[2] = (static_cast<float>(patch.from[0]) - kx * static_cast<float>(patch.to[0])) / static_cast<float>(sw);
-    p.map[3] = (static_cast<float>(patch.from[1]) - ky * static_cast<float>(patch.to[1])) / static_cast<float>(sh);
-    // Half a texel in from the source rectangle's edges: no texel next to it filtered in (the face's
-    // open and closed rectangles touch).
-    p.inside[0] = (static_cast<float>(patch.from[0]) + 0.5f) / static_cast<float>(sw);
-    p.inside[1] = (static_cast<float>(patch.from[1]) + 0.5f) / static_cast<float>(sh);
-    p.inside[2] = (static_cast<float>(patch.from[2]) - 0.5f) / static_cast<float>(sw);
-    p.inside[3] = (static_cast<float>(patch.from[3]) - 0.5f) / static_cast<float>(sh);
-    p.texture = SurfaceView(patch.source);
-    return p;
-}
-
-bool TextureFromPixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
-                       std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
-    int bytes = bitsPerPixel / 8;
-    if (width <= 0 || height <= 0 || (bytes != 2 && bytes != 4) || pitch < width * bytes) return false;
-    if (g_memory.count(holder)) return false;   // read from its memory (SurfaceView)
-    Channel r = MakeChannel(redMask), g = MakeChannel(greenMask), b = MakeChannel(blueMask), a = MakeChannel(alphaMask);
-    std::vector<std::uint8_t> rgba(static_cast<std::size_t>(width) * height * 4);
-    for (int y = 0; y < height; ++y) {
-        const auto* row = static_cast<const std::uint8_t*>(pixels) + static_cast<std::size_t>(y) * pitch;
-        for (int x = 0; x < width; ++x) {
-            std::uint32_t pixel = 0;
-            std::memcpy(&pixel, row + static_cast<std::size_t>(x) * bytes, static_cast<std::size_t>(bytes));
-            std::uint8_t* o = &rgba[(static_cast<std::size_t>(y) * width + x) * 4];
-            o[0] = Expand(pixel, r, 0);
-            o[1] = Expand(pixel, g, 0);
-            o[2] = Expand(pixel, b, 0);
-            o[3] = Expand(pixel, a, 255);
-        }
-    }
-    TextureSource source;
-    source.kind = TextureSource::Rgba;
-    source.bytes = rgba;
-    source.width = width;
-    source.height = height;
-    std::vector<std::vector<std::uint8_t>> levels;
-    levels.push_back(std::move(rgba));
-    return StoreDecoded(holder, width, height, std::move(levels), "ei-cpu-texture", std::move(source));
-}
-
-namespace {
 
 // The .mmp header (game.exe's texture files; src/game/texture.h MmpHeader): size, mip count,
 // format id ("DXTn" FourCCs or a 16 / 32-bit RGB id), bits per pixel, then mask / shift / bits for
@@ -884,7 +757,162 @@ bool DecodeMmp(const MmpFile& h, const std::uint8_t* pixels, std::uint32_t pixel
 
 int g_mmpFailures = 0;
 
+void Remake(Texture& t) {
+    const TextureSource& s = t.source;
+    std::vector<std::vector<std::uint8_t>> levels;
+    int width = 0, height = 0;
+    if (s.kind == TextureSource::Mmp && s.header.size() == sizeof(MmpFile)) {
+        MmpFile h{};
+        std::memcpy(&h, s.header.data(), sizeof(h));
+        std::uint32_t first = 0, end = 0;
+        if (!DecodeMmp(h, s.bytes.data(), s.firstOffset, s.mip, s.levels, &width, &height, levels, &first, &end)) return;
+    } else if (s.kind == TextureSource::Rgba) {
+        width = s.width;
+        height = s.height;
+        levels.push_back(s.bytes);
+    } else {
+        return;
+    }
+    t.image = MakeImage(width, height, std::move(levels), "ei-texture-again",
+                        s.kind == TextureSource::Rgba ? FrameStats::CpuPixels : FrameStats::Mmp);
+    t.view = MakeTextureView(t.image);
+    if (!t.view.id) {
+        if (t.image.id) sg_destroy_image(t.image);
+        t.image = sg_image{};
+    }
+}
+
+std::unordered_map<const void*, Picture> g_pictures;
+
+sg_wrap Wrap(std::uint8_t address) {
+    switch (address) {
+    case 2: return SG_WRAP_MIRRORED_REPEAT;
+    case 3: return SG_WRAP_CLAMP_TO_EDGE;
+    case 4: return SG_WRAP_CLAMP_TO_BORDER;
+    default: return SG_WRAP_REPEAT;
+    }
+}
+
 } // namespace
+
+sg_view SurfaceView(const void* holder) {
+    StatsTimer timer(&FrameStats::textureMs);
+    auto memory = g_memory.find(holder);
+    std::uint32_t frame = FrameNumber();
+    if (memory == g_memory.end()) {
+        // Nothing to read: what was decoded for the holder (its .mmp file), if anything.
+        auto decoded = holder ? g_textures.find(holder) : g_textures.end();
+        if (decoded != g_textures.end() && !decoded->second.view.id && decoded->second.owned &&
+            decoded->second.checkedFrame != frame) {
+            // Lost with the old device (DropTextures): made again from what it was decoded from, once a frame.
+            decoded->second.checkedFrame = frame;
+            Remake(decoded->second);
+        }
+        if (decoded == g_textures.end() || !decoded->second.view.id) return White().view;
+        decoded->second.usedFrame = frame;
+        return decoded->second.view;
+    }
+    Texture& t = g_textures[holder];
+    t.usedFrame = frame;
+    if (t.checkedFrame == frame) return t.view.id ? t.view : White().view;
+    // Textures in the renderer's memory are checked once a frame: read again when the game marked their memory
+    // written since (render::SurfaceWritten) and it differs from what they were made from.
+    const SurfaceMemory& m = memory->second;
+    t.checkedFrame = frame;
+    bool marked = g_textureMarks.erase(holder) != 0;
+    // (No snapshot: the memory was made again since, NewSurfaceMemory.)
+    auto snapshot = g_textureSnapshots.find(holder);
+    bool reread = !t.view.id || t.width != m.width || t.height != m.height || snapshot == g_textureSnapshots.end() ||
+                  snapshot->second.size() != MemoryBytes(m);
+    if (!reread && marked) reread = MemoryChanged(g_textureSnapshots, holder, m);
+#if defined(EI_RENDER_VALIDATION)
+    if (!reread && !marked) reread = CheckTextureMark(holder, m);
+#endif
+    if (reread) ReadClientTexture(t, holder, m);
+    return t.view.id ? t.view : White().view;
+}
+
+// The entry of `holder` from decoded levels: the texture until the holder goes, `source` kept to make it
+// again on a new device. Not for a holder with memory of the renderer's: that memory is what the texture shows.
+bool StoreDecoded(const void* holder, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
+                  const char* label, TextureSource source) {
+    FrameStats::Upload kind = source.kind == TextureSource::Rgba ? FrameStats::CpuPixels : FrameStats::Mmp;
+    if (!holder || g_memory.count(holder)) return false;
+    Texture& t = g_textures[holder];
+    t.usedFrame = FrameNumber();
+    Retire(t);
+    t.image = MakeImage(width, height, std::move(levels), label, kind);
+    t.view = MakeTextureView(t.image);
+    if (!t.view.id) {
+        if (t.image.id) sg_destroy_image(t.image);
+        t.image = sg_image{};
+    }
+    t.checkedFrame = FrameNumber();
+    t.owned = true;
+    t.width = width;
+    t.height = height;
+    t.source = std::move(source);
+    return t.view.id != 0;
+}
+
+StagePatch PatchOf(const void* holder) {
+    StagePatch p;
+    if (g_patches.empty() || !holder) return p;
+    auto it = g_patches.find(holder);
+    if (it == g_patches.end()) return p;
+    const Patch& patch = it->second;
+    int tw = 0, th = 0, sw = 0, sh = 0;
+    if (!HolderSize(holder, &tw, &th) || !HolderSize(patch.source, &sw, &sh)) return p;
+    // Texture coordinates: the target's rectangle; a texel of it at (x, y) takes the source's texel
+    // at (x - to + from) scaled by the rectangles' sizes (the same size from the blink).
+    float kx = static_cast<float>(patch.from[2] - patch.from[0]) / static_cast<float>(patch.to[2] - patch.to[0]);
+    float ky = static_cast<float>(patch.from[3] - patch.from[1]) / static_cast<float>(patch.to[3] - patch.to[1]);
+    p.to[0] = static_cast<float>(patch.to[0]) / static_cast<float>(tw);
+    p.to[1] = static_cast<float>(patch.to[1]) / static_cast<float>(th);
+    p.to[2] = static_cast<float>(patch.to[2]) / static_cast<float>(tw);
+    p.to[3] = static_cast<float>(patch.to[3]) / static_cast<float>(th);
+    p.map[0] = kx * static_cast<float>(tw) / static_cast<float>(sw);
+    p.map[1] = ky * static_cast<float>(th) / static_cast<float>(sh);
+    p.map[2] = (static_cast<float>(patch.from[0]) - kx * static_cast<float>(patch.to[0])) / static_cast<float>(sw);
+    p.map[3] = (static_cast<float>(patch.from[1]) - ky * static_cast<float>(patch.to[1])) / static_cast<float>(sh);
+    // Half a texel in from the source rectangle's edges: no texel next to it filtered in (the face's
+    // open and closed rectangles touch).
+    p.inside[0] = (static_cast<float>(patch.from[0]) + 0.5f) / static_cast<float>(sw);
+    p.inside[1] = (static_cast<float>(patch.from[1]) + 0.5f) / static_cast<float>(sh);
+    p.inside[2] = (static_cast<float>(patch.from[2]) - 0.5f) / static_cast<float>(sw);
+    p.inside[3] = (static_cast<float>(patch.from[3]) - 0.5f) / static_cast<float>(sh);
+    p.texture = SurfaceView(patch.source);
+    return p;
+}
+
+bool TextureFromPixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
+                       std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
+    int bytes = bitsPerPixel / 8;
+    if (width <= 0 || height <= 0 || (bytes != 2 && bytes != 4) || pitch < width * bytes) return false;
+    if (g_memory.count(holder)) return false;   // read from its memory (SurfaceView)
+    Channel r = MakeChannel(redMask), g = MakeChannel(greenMask), b = MakeChannel(blueMask), a = MakeChannel(alphaMask);
+    std::vector<std::uint8_t> rgba(static_cast<std::size_t>(width) * height * 4);
+    for (int y = 0; y < height; ++y) {
+        const auto* row = static_cast<const std::uint8_t*>(pixels) + static_cast<std::size_t>(y) * pitch;
+        for (int x = 0; x < width; ++x) {
+            std::uint32_t pixel = 0;
+            std::memcpy(&pixel, row + static_cast<std::size_t>(x) * bytes, static_cast<std::size_t>(bytes));
+            std::uint8_t* o = &rgba[(static_cast<std::size_t>(y) * width + x) * 4];
+            o[0] = Expand(pixel, r, 0);
+            o[1] = Expand(pixel, g, 0);
+            o[2] = Expand(pixel, b, 0);
+            o[3] = Expand(pixel, a, 255);
+        }
+    }
+    TextureSource source;
+    source.kind = TextureSource::Rgba;
+    source.bytes = rgba;
+    source.width = width;
+    source.height = height;
+    std::vector<std::vector<std::uint8_t>> levels;
+    levels.push_back(std::move(rgba));
+    return StoreDecoded(holder, width, height, std::move(levels), "ei-cpu-texture", std::move(source));
+}
 
 bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels) {
     if (!holder || !data) return false;
@@ -912,39 +940,6 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
     source.levels = levels;
     return StoreDecoded(holder, width, height, std::move(decoded), "ei-mmp-texture", std::move(source));
 }
-
-namespace {
-
-void Remake(Texture& t) {
-    const TextureSource& s = t.source;
-    std::vector<std::vector<std::uint8_t>> levels;
-    int width = 0, height = 0;
-    if (s.kind == TextureSource::Mmp && s.header.size() == sizeof(MmpFile)) {
-        MmpFile h{};
-        std::memcpy(&h, s.header.data(), sizeof(h));
-        std::uint32_t first = 0, end = 0;
-        if (!DecodeMmp(h, s.bytes.data(), s.firstOffset, s.mip, s.levels, &width, &height, levels, &first, &end)) return;
-    } else if (s.kind == TextureSource::Rgba) {
-        width = s.width;
-        height = s.height;
-        levels.push_back(s.bytes);
-    } else {
-        return;
-    }
-    t.image = MakeImage(width, height, std::move(levels), "ei-texture-again",
-                        s.kind == TextureSource::Rgba ? FrameStats::CpuPixels : FrameStats::Mmp);
-    t.view = MakeTextureView(t.image);
-    if (!t.view.id) {
-        if (t.image.id) sg_destroy_image(t.image);
-        t.image = sg_image{};
-    }
-}
-
-} // namespace
-
-namespace {
-std::unordered_map<const void*, Picture> g_pictures;
-} // namespace
 
 bool PictureFromMmpData(const void* holder, const void* data) {
     g_pictures.erase(holder);
@@ -1024,17 +1019,6 @@ sg_sampler LinearSampler() {
     }
     return g_linear;
 }
-
-namespace {
-sg_wrap Wrap(std::uint8_t address) {
-    switch (address) {
-    case 2: return SG_WRAP_MIRRORED_REPEAT;
-    case 3: return SG_WRAP_CLAMP_TO_EDGE;
-    case 4: return SG_WRAP_CLAMP_TO_BORDER;
-    default: return SG_WRAP_REPEAT;
-    }
-}
-} // namespace
 
 sg_sampler StageSampler(const StageState& s) {
     std::uint32_t key = static_cast<std::uint32_t>(s.magFilter & 7) | (static_cast<std::uint32_t>(s.minFilter & 7) << 3) |

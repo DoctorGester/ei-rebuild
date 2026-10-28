@@ -54,6 +54,12 @@ struct UnitRecordBuilder {
     PartyUnitRecord* Record() { return Party()->members_.data(); }
 };
 
+bool SameName(std::string_view a, std::string_view b) {
+    return str::Compare(a, b) == 0;
+}
+// "progres5.bik" is not among the game's strings; addon.dll points the name at its own copy.
+constexpr const char* kProgres5 = "progres5.bik";
+
 } // namespace
 
 // ---- Zone exits -------------------------------------------------------------------------------
@@ -169,14 +175,6 @@ void CWorldServer::SaveMapObjects(CStream* out) {
 }
 
 // ---- Loading movie -------------------------------------------------------------------
-
-namespace {
-bool SameName(std::string_view a, std::string_view b) {
-    return str::Compare(a, b) == 0;
-}
-// "progres5.bik" is not among the game's strings; addon.dll points the name at its own copy.
-constexpr const char* kProgres5 = "progres5.bik";
-} // namespace
 
 void SelectLoadingMovie(const char* zone) {
     std::string allod;

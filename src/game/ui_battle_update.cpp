@@ -209,6 +209,19 @@ void RebuildClientParty(CBattleScreen* screen) {
     }
 }
 
+bool SameIds(const std::vector<int>& a, const std::vector<int>& b) {
+    if (a.end() - a.begin() != b.end() - b.begin()) return false;
+    for (const int *x = a.data(), *y = b.data(); x != a.data() + a.size(); ++x, ++y)
+        if (*x != *y) return false;
+    return true;
+}
+
+// FCOMP; TEST AH,0x40: equal.
+bool Equal(float a, float b) {
+    EI_NAN_AUDIT(a, b);
+    return a == b;
+}
+
 } // namespace
 
 void CBattleScreen::Update() {
@@ -305,15 +318,6 @@ void CBattleScreen::Update() {
 
 // --- the party ids compared ----------------------------------------------------------------------
 
-namespace {
-bool SameIds(const std::vector<int>& a, const std::vector<int>& b) {
-    if (a.end() - a.begin() != b.end() - b.begin()) return false;
-    for (const int *x = a.data(), *y = b.data(); x != a.data() + a.size(); ++x, ++y)
-        if (*x != *y) return false;
-    return true;
-}
-} // namespace
-
 bool CBattleScreen::PartyIds::Equals(const CBattleScreen::PartyIds& other) const {
     return SameIds(withUnit, other.withUnit) && SameIds(without, other.without);
 }
@@ -386,16 +390,6 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
 }
 
 // --- a quest variable's notice -------------------------------------------------------------------
-
-namespace {
-
-// FCOMP; TEST AH,0x40: equal.
-bool Equal(float a, float b) {
-    EI_NAN_AUDIT(a, b);
-    return a == b;
-}
-
-} // namespace
 
 void CBattleScreen::OnQuestVariable(std::string_view name, float value) {
     CTextManager* texts = GameClientTexts();

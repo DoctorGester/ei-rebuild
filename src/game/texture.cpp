@@ -27,6 +27,11 @@ int BmpFormatFor(int type) {
     default: return 0x5650;                                 // no alpha
     }
 }
+
+// The texture quality setting (0 best .. 3).
+int TextureQuality() { return options::TheOptions()->textureQuality_; }
+const char* CantGetDeviceDescriptionText() { return "Can't get device description.\n"; }
+
 } // namespace
 
 int CTextureManager::LoadTexture(CTexture* texture) {
@@ -117,12 +122,6 @@ int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
     ::operator delete(buffer);
     return 1;
 }
-
-namespace {
-// The texture quality setting (0 best .. 3).
-int TextureQuality() { return options::TheOptions()->textureQuality_; }
-const char* CantGetDeviceDescriptionText() { return "Can't get device description.\n"; }
-} // namespace
 
 void CTextureManager::SetDevice(CTextureDevice* device) {
     CTextureDevice* old = device_;

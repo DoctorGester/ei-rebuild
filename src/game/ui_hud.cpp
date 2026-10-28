@@ -82,6 +82,63 @@ constexpr int kMapCentreX = 700;
 constexpr int kMapCentreY = 80;
 constexpr std::uint32_t kCameraFollows = 8;
 
+BOOL DrawWithSpecular(CUiWindow* window, CSceneRenderer* pass) {
+    SetRenderState(window->interface_->renderer_, kRenderStateSpecular, 1);
+    window->DrawBase(pass);
+    SetRenderState(window->interface_->renderer_, kRenderStateSpecular, 0);
+    return 1;
+}
+
+int PortraitMode(CInterface3D* ui) {
+    return ui->ActiveWindowAs<CBattleScreen>()->portraitMode_;
+}
+
+constexpr std::uint32_t kFlagSelected = 0x10;
+constexpr int kQuickSlots = 8;
+constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
+constexpr std::uint32_t kScaleLarge = 0x3F59999A;   // 0.85: quick slots 4..7
+constexpr std::uint32_t kScaleSmall = 0x3F0CCCCD;   // 0.55: quick slots 0..3
+constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0
+constexpr int kOrderEventFollow = 7;                // the speech event of a follow order
+
+// A unit's position, copied as three dwords.
+Vector3 PositionOf(const CUnit* unit) {
+    Vector3 v;
+    std::memcpy(&v, &unit->localPosition_.x, sizeof(v));
+    return v;
+}
+
+// The battle screen's own commands (the flag argument is a byte of the interface).
+void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int ctrl) {
+    screen->UseOnUnit(target, quick, ctrl);
+}
+void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int quick) {
+    screen->UseAtPoint(at.x, at.y, at.z, unit, static_cast<char>(quick));
+}
+
+constexpr int kCategoryWand = 8;
+// The factor turning a random dword into the portraits' negative start delay.
+double PortraitDelayScale() { return (-6.984919588798148e-11 /*00742760*/); }
+// A random value times ~-2^-34 * 0.3, stored the way the original does.
+float PortraitDelay(std::uint32_t random) {
+    return static_cast<float>(x87::FromUnsigned(random) * PortraitDelayScale());
+}
+// Portrait `index` nods (wobble kind 1) after a short random delay.
+void NodPortrait(CBattleScreen* screen, int index) {
+    HudPortraitSlot* slots = screen->portraits_->slots_.data();
+    float delay = PortraitDelay(g_random.Next());
+    slots[index].wobbleTime_ = delay;
+    screen->portraits_->slots_[index].wobbleKind_ = 1;
+}
+// Whether `x` is zero (either sign), as the FPU compare gives it.
+bool IsZero(float value) {
+    EI_NAN_AUDIT(value);
+    return value == 0.0f;
+}
+
+// The constant 1.0f the zone variable is compared with.
+float GameOne() { return 1.0f /*0073B84C*/; }
+
 } // namespace
 
 // --- Weapon bar --------------------------------------------------------------------------------
@@ -136,14 +193,6 @@ BOOL CHudWeaponBar::Draw(CSceneRenderer* pass) {
 }
 
 // The three other panels draw the same way, with specular on (the draw virtual).
-namespace {
-BOOL DrawWithSpecular(CUiWindow* window, CSceneRenderer* pass) {
-    SetRenderState(window->interface_->renderer_, kRenderStateSpecular, 1);
-    window->DrawBase(pass);
-    SetRenderState(window->interface_->renderer_, kRenderStateSpecular, 0);
-    return 1;
-}
-} // namespace
 
 BOOL CHudQuickItems::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
 BOOL CHudSpellColumn::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
@@ -228,12 +277,6 @@ void CHudActionColumn::OnMouseMove(int, int x, int y) {
 }
 
 // --- Portraits ---------------------------------------------------------------------------------
-
-namespace {
-int PortraitMode(CInterface3D* ui) {
-    return ui->ActiveWindowAs<CBattleScreen>()->portraitMode_;
-}
-} // namespace
 
 void CHudPortraits::OnMouseDown(int, int x, int y) {
     int region = RegionAt(x, y);
@@ -581,53 +624,6 @@ BOOL CHudTopPanel::OnWheel(int, int, int x, int y) {
 
 // --- CBattleScreen::SelectUnit --------------------------------------------------------
 
-namespace {
-
-constexpr std::uint32_t kFlagSelected = 0x10;
-constexpr int kQuickSlots = 8;
-constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
-constexpr std::uint32_t kScaleLarge = 0x3F59999A;   // 0.85: quick slots 4..7
-constexpr std::uint32_t kScaleSmall = 0x3F0CCCCD;   // 0.55: quick slots 0..3
-constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0
-constexpr int kOrderEventFollow = 7;                // the speech event of a follow order
-
-// A unit's position, copied as three dwords.
-Vector3 PositionOf(const CUnit* unit) {
-    Vector3 v;
-    std::memcpy(&v, &unit->localPosition_.x, sizeof(v));
-    return v;
-}
-
-// The battle screen's own commands (the flag argument is a byte of the interface).
-void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int ctrl) {
-    screen->UseOnUnit(target, quick, ctrl);
-}
-void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int quick) {
-    screen->UseAtPoint(at.x, at.y, at.z, unit, static_cast<char>(quick));
-}
-
-constexpr int kCategoryWand = 8;
-// The factor turning a random dword into the portraits' negative start delay.
-double PortraitDelayScale() { return (-6.984919588798148e-11 /*00742760*/); }
-// A random value times ~-2^-34 * 0.3, stored the way the original does.
-float PortraitDelay(std::uint32_t random) {
-    return static_cast<float>(x87::FromUnsigned(random) * PortraitDelayScale());
-}
-// Portrait `index` nods (wobble kind 1) after a short random delay.
-void NodPortrait(CBattleScreen* screen, int index) {
-    HudPortraitSlot* slots = screen->portraits_->slots_.data();
-    float delay = PortraitDelay(g_random.Next());
-    slots[index].wobbleTime_ = delay;
-    screen->portraits_->slots_[index].wobbleKind_ = 1;
-}
-// Whether `x` is zero (either sign), as the FPU compare gives it.
-bool IsZero(float value) {
-    EI_NAN_AUDIT(value);
-    return value == 0.0f;
-}
-
-} // namespace
-
 void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto ctrl = [this] { return static_cast<char>(interface_->doubleClick_); };
     auto orderAt = [this](const Vector3& at, int mode, char flag) { OrderAt(at.x, at.y, at.z, mode, flag); };
@@ -907,13 +903,6 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
 }
 
 // --- The selected units ordered to a point -------------------------------------------
-
-namespace {
-
-// The constant 1.0f the zone variable is compared with.
-float GameOne() { return 1.0f /*0073B84C*/; }
-
-} // namespace
 
 void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     // The point is the address of the argument slots, as in the original.

@@ -97,6 +97,11 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
     Cursor()->SetShape(0);
 }
 
+void DeleteBackdrop(CUiSurface* surface) {
+    if (!surface) return;
+    delete surface;
+}
+
 } // namespace
 
 void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
@@ -129,13 +134,6 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
 }
 
 // --- Activate ------------------------------------------------------------------------------------
-
-namespace {
-void DeleteBackdrop(CUiSurface* surface) {
-    if (!surface) return;
-    delete surface;
-}
-} // namespace
 
 void CInterface3D::Activate(CUiWindow* window) {
     if (closeAll_) {

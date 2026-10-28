@@ -62,6 +62,9 @@ const char* ModeName(int type) {
     }
 }
 const char* MotivationFormat() { return "Unit %i new motivation %s with power of %i"; }
+
+const std::uint32_t* Diplomacy() { return GameDiplomacy()->allied_; }
+
 } // namespace
 
 // --- Helpers -------------------------------------------------------------------------------------
@@ -450,10 +453,6 @@ void AIBrain::Follow(CMapObject* object) {
     action = kActionFollow;
     target.Assign(object);
 }
-
-namespace {
-const std::uint32_t* Diplomacy() { return GameDiplomacy()->allied_; }
-} // namespace
 
 void AIBrain::SetSeen(CMapObject* object) {
     seen.Assign(object);

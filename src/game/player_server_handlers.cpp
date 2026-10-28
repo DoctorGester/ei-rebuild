@@ -72,6 +72,57 @@ void AddCounted(std::list<CUnit*>& list, CUnit* object) {
     ++object->refCount_;
 }
 
+// The game mode (1 single player, 2 multiplayer); the campaign mode is CWorldServer::sessionKind_ (1 and 3 end
+// the game when the leader is gone).
+int GameMode() { return TheServerWorld()->gameResult_; }
+// The next object id for a new party's record (the party manager stores the party).
+int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
+
+constexpr std::uint8_t kMessageZone = 0x08;
+constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
+constexpr std::uint32_t kJoinedFlag = 0x10;               // CPlayer::dirty_
+
+// The unit list of the walk / attack orders: a count, then that many ids (missing units and units
+// flagged 0x800000 are left out).
+void ReadUnits(CMemoryStream& in, std::vector<CUnit*>* units) {
+    int count = 0;
+    in.Read(&count, 4);
+    for (int i = 0; i < count; ++i) {
+        int id = 0;
+        in.Read(&id, 4);
+        CUnit* unit = FindUnit(id);
+        if (unit && !(unit->flags_ & kFlagBlocked)) lib::SetAtGrow(*units, std::ssize(*units), unit);
+    }
+}
+
+using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, const Vector3*);
+int MoveUnits(MoveCommand command) {
+    CMemoryStream& in = ReceivedMessages();
+    std::vector<CUnit*> units{};
+    std::vector<Vector3> offsets{};
+    ReadUnits(in, &units);
+    int run = 0;
+    Vector3 to{};
+    in.Read(&run, 4);
+    in.Read(&to, sizeof(to));
+    FormationOffsets(&units, &offsets);
+    for (int i = 0; i < std::ssize(units); ++i) {
+        AIBrain* brain = units[i]->ServerController()->Brain();
+        if (PlayerMode* mode = brain->FindPlayerMode())
+            (mode->*command)(brain, &to, std::ssize(units) > 1, run != 0, &offsets[i]);
+    }
+    return 1;
+}
+
+constexpr int kClientVersion = 0x64;
+constexpr int kLoginTextLength = 0x3F;
+constexpr std::uint8_t kMessageLogin = 0x00;
+constexpr std::uint8_t kMessageError = 0x11;
+
+constexpr std::uint8_t kMessagePartyUpdate = 0x83;
+constexpr std::uint8_t kMessage19 = 0x19;
+const char* const kResendingParty = "Resending party of player ";
+
 } // namespace
 
 // The stream the received packets are decompressed into: built by the static initialiser and destroyed once by
@@ -79,6 +130,7 @@ void AddCounted(std::list<CUnit*>& list, CUnit* object) {
 constinit lib::StaticObject<CMemoryStream> g_receivedMessages = /*007C83D0*/ {};
 CMemoryStream& ReceivedMessages() { return *g_receivedMessages; }
 
+// A second block: it uses g_receivedMessages (defined above).
 namespace {
 std::uint8_t g_receivedMessagesDestroyed = /*007C83C8*/ {};
 void DestroyReceivedMessages() {
@@ -289,52 +341,6 @@ int CPlayerServer::OnUseOrder() {
 
 // --- Zone changes, joining, party blocks, the walk / attack orders -------------------------
 
-namespace {
-
-// The game mode (1 single player, 2 multiplayer); the campaign mode is CWorldServer::sessionKind_ (1 and 3 end
-// the game when the leader is gone).
-int GameMode() { return TheServerWorld()->gameResult_; }
-// The next object id for a new party's record (the party manager stores the party).
-int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
-
-constexpr std::uint8_t kMessageZone = 0x08;
-constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
-constexpr std::uint32_t kJoinedFlag = 0x10;               // CPlayer::dirty_
-
-// The unit list of the walk / attack orders: a count, then that many ids (missing units and units
-// flagged 0x800000 are left out).
-void ReadUnits(CMemoryStream& in, std::vector<CUnit*>* units) {
-    int count = 0;
-    in.Read(&count, 4);
-    for (int i = 0; i < count; ++i) {
-        int id = 0;
-        in.Read(&id, 4);
-        CUnit* unit = FindUnit(id);
-        if (unit && !(unit->flags_ & kFlagBlocked)) lib::SetAtGrow(*units, std::ssize(*units), unit);
-    }
-}
-
-using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, const Vector3*);
-int MoveUnits(MoveCommand command) {
-    CMemoryStream& in = ReceivedMessages();
-    std::vector<CUnit*> units{};
-    std::vector<Vector3> offsets{};
-    ReadUnits(in, &units);
-    int run = 0;
-    Vector3 to{};
-    in.Read(&run, 4);
-    in.Read(&to, sizeof(to));
-    FormationOffsets(&units, &offsets);
-    for (int i = 0; i < std::ssize(units); ++i) {
-        AIBrain* brain = units[i]->ServerController()->Brain();
-        if (PlayerMode* mode = brain->FindPlayerMode())
-            (mode->*command)(brain, &to, std::ssize(units) > 1, run != 0, &offsets[i]);
-    }
-    return 1;
-}
-
-} // namespace
-
 void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* offsets) {
     int count = std::ssize(*units);
     if (count < 1) return;
@@ -524,13 +530,6 @@ int CPlayerServer::OnPartyUpdate() {
 
 // --- The login -----------------------------------------------------------------------------
 
-namespace {
-constexpr int kClientVersion = 0x64;
-constexpr int kLoginTextLength = 0x3F;
-constexpr std::uint8_t kMessageLogin = 0x00;
-constexpr std::uint8_t kMessageError = 0x11;
-} // namespace
-
 BOOL IsPrintableText(const char* text, int maxLength, int minLength) {
     // By character, each a valid UTF-8 sequence of a printable code point, within `maxLength` bytes; `minLength`
     // counts characters. (The original's isprint of each signed byte passed UTF-8's bytes only through the
@@ -595,12 +594,6 @@ int CPlayerServer::OnLogin() {
 }
 
 // --- Party resends, message 0x19 -----------------------------------------------------------
-
-namespace {
-constexpr std::uint8_t kMessagePartyUpdate = 0x83;
-constexpr std::uint8_t kMessage19 = 0x19;
-const char* const kResendingParty = "Resending party of player ";
-} // namespace
 
 void CPlayerServer::SendPartyUpdate() {
     CMemoryStream block;

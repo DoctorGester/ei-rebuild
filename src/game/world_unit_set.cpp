@@ -15,6 +15,19 @@ void Put(CStream* stream, const void* data, std::uint32_t size) { stream->Write(
 
 void PutWord(CStream* stream, std::uint32_t value) { Put(stream, &value, 4); }
 
+// vector<int>::resize(n, value), vector<CString>::resize, the stream's CString reader.
+
+void Get(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
+
+// A counted dword array: the count, the vector resized (new entries 0), the data.
+void GetIds(CStream* stream, std::vector<std::uint32_t>& list) {
+    std::uint32_t n;
+    Get(stream, &n, 4);
+    std::uint32_t zero = 0;
+    list.resize(n, zero);
+    Get(stream, list.data(), static_cast<std::uint32_t>(list.size()) << 2);
+}
+
 } // namespace
 
 void DressedUnitRecord::Write(CStream* stream) {
@@ -71,23 +84,6 @@ void UnitSet::Write(CStream* stream) {
 }
 
 // ---- The unit look lists' reader ------------------------------------------------------
-
-namespace {
-
-// vector<int>::resize(n, value), vector<CString>::resize, the stream's CString reader.
-
-void Get(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
-
-// A counted dword array: the count, the vector resized (new entries 0), the data.
-void GetIds(CStream* stream, std::vector<std::uint32_t>& list) {
-    std::uint32_t n;
-    Get(stream, &n, 4);
-    std::uint32_t zero = 0;
-    list.resize(n, zero);
-    Get(stream, list.data(), static_cast<std::uint32_t>(list.size()) << 2);
-}
-
-} // namespace
 
 void ReadUnitLooks(CStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed) {
     std::uint32_t count;

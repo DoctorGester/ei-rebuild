@@ -147,6 +147,92 @@ void LearnNpcSkills(UnitStats* stats, const UnitNpcRecord* npc) {
     std::memcpy(&stats->spentExperience, &stats->experience, 4);
 }
 
+constexpr float kZero = 0.0f;
+constexpr float kOneF = 1.0f;
+constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);     // (0.01)
+constexpr float kTwelve = 12.0f;
+constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);
+constexpr float kTenF = 10.0f;
+constexpr std::uint32_t kMinusTwo = 0xC0000000u;
+constexpr int kSkillBodyB0 = 15;
+constexpr int kSkillHitPoints = 16;
+constexpr int kSkillRate = 20;
+constexpr int kSkillCapacity = 21;
+constexpr int kSkillStat10 = 23;
+constexpr int kSkillStat18 = 24;
+constexpr int kSkillStat20 = 25;
+
+// hpVal[3] ^ (ln(experience / hpVal[2]) / ln(hpVal[4])) with the CRT's _CIpow. Unrounded.
+double HitPointExperienceCurve(const float* experience) {
+    return libcrt::CiPow(g_logicSettings.hpVal[3], x87::flog(static_cast<double>(*experience) / g_logicSettings.hpVal[2]) / x87::flog(g_logicSettings.hpVal[4]));
+}
+
+// A level record's value (unsigned; exact).
+double LevelOf(const SkillLevelRecord* record) {
+    volatile std::int64_t wide = record->values[7];
+    return static_cast<double>(wide);
+}
+double LevelOrZero(UnitStats* stats, int skill) {
+    const SkillLevelRecord* record = stats->SkillLevelRecord(skill);
+    return record ? LevelOf(record) : kZero;
+}
+
+// The hit point maximum of the experience curve with skill 16 (the level byte read now).
+float CurveHitPoints(UnitStats* stats) {
+    double curve = HitPointExperienceCurve(&stats->experience);
+    double scaled = curve * (static_cast<double>(stats->stat10) / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
+    return static_cast<float>((LevelOrZero(stats, kSkillHitPoints) * kPercent + kOneF) * scaled);
+}
+
+constexpr float kStatBase = 25.0f;
+
+// The level value of skill `index` stored to a float; 0 without one.
+float LevelAsFloat(const UnitStats* stats, int index) {
+    std::uint8_t level = stats->skillLevels[index];   // unchecked
+    if (level == 0) return kZero;
+    const SkillLevelRecord* record = unitdb::SkillLevelAt(static_cast<std::uint32_t>(index * 3 - 1 + level));
+    if (!record) return kZero;
+    return static_cast<float>(LevelOf(record));
+}
+
+float WeaponBonus(CUnit* unit, int skill) {
+    CItem* weapon = unit->GetWeapon(unit->activeWeapon);
+    if (!weapon) return kZero;
+    const auto* record = itemdb::RecordAs<itemdb::WeaponRecord>(weapon->GetPrototype());
+    return static_cast<float>(static_cast<int>(record->skillBonus[skill]));
+}
+
+bool NamesRequirement(const std::string& text) {
+    if (text.size() == 0) return false;
+    return str::Compare(text,
+                           "none") != 0;
+}
+const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) { return unitdb::SkillLevelAt(index); }
+
+struct FactoryEntry {
+    int classId;
+    CEngineObject* (*create)();
+};
+// The class's entry: its id and a new object of it.
+template <class T>
+constexpr FactoryEntry Make(int classId) {
+    return {classId, [] () -> CEngineObject* { return new (kZeroed) T(); }};
+}
+constexpr FactoryEntry kFactory[] = {
+    Make<CUnit>(0x32),
+    Make<CUnit>(0x33),
+    Make<CUnit>(0x34),
+    Make<CTree>(0x35),
+    Make<CBuilding>(0x36),
+    Make<CStone>(0x37),
+    Make<CStuffObject>(0x38),
+    Make<CTorchObject>(0x3A),
+    Make<MagicTrap>(0x3B),
+    Make<Lever>(0x3C),
+    Make<CFigureAnimationState>(0x300D),
+    Make<CTrapObject>(0x3010),
+};
+
 } // namespace
 
 // --- Name lookups -----------------------------------------------------------------------------
@@ -343,39 +429,6 @@ int PrototypeObjectClass(const char* name) {
 
 // --- Statistics from their bases -----------------------------------------------------------------
 
-namespace {
-constexpr float kZero = 0.0f;
-constexpr float kOneF = 1.0f;
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);     // (0.01)
-constexpr float kTwelve = 12.0f;
-constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);
-constexpr float kTenF = 10.0f;
-constexpr std::uint32_t kMinusTwo = 0xC0000000u;
-constexpr int kSkillBodyB0 = 15;
-constexpr int kSkillHitPoints = 16;
-constexpr int kSkillRate = 20;
-constexpr int kSkillCapacity = 21;
-constexpr int kSkillStat10 = 23;
-constexpr int kSkillStat18 = 24;
-constexpr int kSkillStat20 = 25;
-
-// hpVal[3] ^ (ln(experience / hpVal[2]) / ln(hpVal[4])) with the CRT's _CIpow. Unrounded.
-double HitPointExperienceCurve(const float* experience) {
-    return libcrt::CiPow(g_logicSettings.hpVal[3], x87::flog(static_cast<double>(*experience) / g_logicSettings.hpVal[2]) / x87::flog(g_logicSettings.hpVal[4]));
-}
-
-// A level record's value (unsigned; exact).
-double LevelOf(const SkillLevelRecord* record) {
-    volatile std::int64_t wide = record->values[7];
-    return static_cast<double>(wide);
-}
-double LevelOrZero(UnitStats* stats, int skill) {
-    const SkillLevelRecord* record = stats->SkillLevelRecord(skill);
-    return record ? LevelOf(record) : kZero;
-}
-
-} // namespace
-
 void UnitStats::ResetToBase(float newLoad) {
     std::memcpy(&stat10, &stat10Base, 4);
     std::memcpy(&stat18, &stat18Base, 4);
@@ -421,16 +474,6 @@ void UnitStats::ResetToBase(float newLoad) {
     rate = static_cast<float>((LevelOrZero(this, kSkillRate) * kPercent + kOneF) * armsFactor * rateBase);
 }
 
-namespace {
-
-// The hit point maximum of the experience curve with skill 16 (the level byte read now).
-float CurveHitPoints(UnitStats* stats) {
-    double curve = HitPointExperienceCurve(&stats->experience);
-    double scaled = curve * (static_cast<double>(stats->stat10) / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
-    return static_cast<float>((LevelOrZero(stats, kSkillHitPoints) * kPercent + kOneF) * scaled);
-}
-} // namespace
-
 void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelRecord* record) {
     float oldMaximum = CurveHitPoints(this);
     float oldHitPoints = static_cast<float>(Reduce(oldMaximum));
@@ -448,26 +491,6 @@ void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelReco
     float heal = static_cast<float>(static_cast<double>(oldHitPoints) / oldMaximum * newMaximum - newHitPoints);
     HealSlots(newMaximum, heal);
 }
-
-namespace {
-constexpr float kStatBase = 25.0f;
-
-// The level value of skill `index` stored to a float; 0 without one.
-float LevelAsFloat(const UnitStats* stats, int index) {
-    std::uint8_t level = stats->skillLevels[index];   // unchecked
-    if (level == 0) return kZero;
-    const SkillLevelRecord* record = unitdb::SkillLevelAt(static_cast<std::uint32_t>(index * 3 - 1 + level));
-    if (!record) return kZero;
-    return static_cast<float>(LevelOf(record));
-}
-
-float WeaponBonus(CUnit* unit, int skill) {
-    CItem* weapon = unit->GetWeapon(unit->activeWeapon);
-    if (!weapon) return kZero;
-    const auto* record = itemdb::RecordAs<itemdb::WeaponRecord>(weapon->GetPrototype());
-    return static_cast<float>(static_cast<int>(record->skillBonus[skill]));
-}
-} // namespace
 
 double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
     if (type < 5 || type == 5 || type == 6) {
@@ -492,16 +515,6 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
     }
     return kZero;
 }
-
-namespace {
-
-bool NamesRequirement(const std::string& text) {
-    if (text.size() == 0) return false;
-    return str::Compare(text,
-                           "none") != 0;
-}
-const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) { return unitdb::SkillLevelAt(index); }
-} // namespace
 
 BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord* record) {
     if (!record->learnable) return 0;
@@ -575,32 +588,6 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
 }
 
 // --- The factory ------------------------------------------------------------------------------
-
-namespace {
-struct FactoryEntry {
-    int classId;
-    CEngineObject* (*create)();
-};
-// The class's entry: its id and a new object of it.
-template <class T>
-constexpr FactoryEntry Make(int classId) {
-    return {classId, [] () -> CEngineObject* { return new (kZeroed) T(); }};
-}
-constexpr FactoryEntry kFactory[] = {
-    Make<CUnit>(0x32),
-    Make<CUnit>(0x33),
-    Make<CUnit>(0x34),
-    Make<CTree>(0x35),
-    Make<CBuilding>(0x36),
-    Make<CStone>(0x37),
-    Make<CStuffObject>(0x38),
-    Make<CTorchObject>(0x3A),
-    Make<MagicTrap>(0x3B),
-    Make<Lever>(0x3C),
-    Make<CFigureAnimationState>(0x300D),
-    Make<CTrapObject>(0x3010),
-};
-} // namespace
 
 // Every object starts zeroed (kZeroed): the units' constructors leave levels4C8 and the
 // motion's turn fields, which the saves write.

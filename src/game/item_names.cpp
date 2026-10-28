@@ -83,6 +83,9 @@ std::string PictureNameOf(const NamedRecordTable<Record>& table, const char* con
     return name;
 }
 
+enum LootKind : std::uint32_t { kLootSelf = 0, kLootMaterial = 1, kLootRecord = 2 };
+enum LootRecord : std::uint32_t { kRecordWeapon, kRecordArmor, kRecordQuick, kRecordSpell, kRecordModifier };
+
 } // namespace
 
 // --- Weapons and armors ---------------------------------------------------------------------------
@@ -185,11 +188,6 @@ std::string CItemSpell::FigureName() {
 std::string CItemSpell::PictureName() { return std::string(kSpellPicture); }
 
 // --- Loot ----------------------------------------------------------------------------------------
-
-namespace {
-enum LootKind : std::uint32_t { kLootSelf = 0, kLootMaterial = 1, kLootRecord = 2 };
-enum LootRecord : std::uint32_t { kRecordWeapon, kRecordArmor, kRecordQuick, kRecordSpell, kRecordModifier };
-} // namespace
 
 std::string CItemLoot::FigureName() {
     std::string name;

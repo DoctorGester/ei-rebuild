@@ -153,6 +153,20 @@ constexpr std::uint32_t kFarAway = 0x5A0E1BCA;   // 1e16
 constexpr float kExitTurn = /*007C8170*/ 1.5707964f;   // a static initialiser: pi * 0.5
 constexpr float kExitTurnDown = 3.1415927f;
 
+std::unordered_map<std::string, QuestRecord*>& QuestIndex() { return TheQuestDatabase().questsByName; }
+
+QuestRecord* FindQuestRecord(const char* name) {
+    std::string key(name);
+    return QuestIndex()[key];
+}
+
+bool SameText(std::string_view a, std::string_view b) {
+    return text::CompareIgnoringCase(a, b) == 0;
+}
+
+const char* const kGlobalMapTopic = "quest_global_map";
+const char* const kMissionTopic = "quest_mission";
+
 } // namespace
 
 void ConstructLastQuest() {
@@ -349,21 +363,6 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
 }
 
 // --- The selected quest ------------------------------------------------------------------
-
-namespace {
-
-std::unordered_map<std::string, QuestRecord*>& QuestIndex() { return TheQuestDatabase().questsByName; }
-
-QuestRecord* FindQuestRecord(const char* name) {
-    std::string key(name);
-    return QuestIndex()[key];
-}
-
-bool SameText(std::string_view a, std::string_view b) {
-    return text::CompareIgnoringCase(a, b) == 0;
-}
-
-} // namespace
 
 void CObjectivesWindow::ShowQuest() {
     CTextManager* texts = TheTextManager();
@@ -670,11 +669,6 @@ void CObjectivesWindow::DrawQuestList() {
 }
 
 // --- What the window is opened for, and its help topic --------------------
-
-namespace {
-const char* const kGlobalMapTopic = "quest_global_map";
-const char* const kMissionTopic = "quest_mission";
-} // namespace
 
 void CObjectivesWindow::Setup(const char* zone, void* exitDistances, int twoButtons, int listZones) {
     zoneName_ = zone;

@@ -89,6 +89,202 @@ sg_pipeline PassPipeline(bool clear) {
     return clear ? g_clearMultisampled : g_blitMultisampled;
 }
 
+std::vector<sg_image> g_frameImages;   // made for one frame (the cursor), destroyed at the present
+std::vector<sg_view> g_frameViews;
+
+// RGBA8 images that are updated in place (sg_update_image) instead of made again. Sokol allows
+// one update per image and frame, and a recorded blit draws the image's contents at the end of the
+// frame (DrawPending), so an image is rewritten only when no blit of it is recorded in this frame
+// and it was not rewritten since the last commit.
+sg_image MakeDynamicImage(int w, int h, const char* label, ImageUse use) {
+    sg_image_desc desc{};
+    desc.width = w;
+    desc.height = h;
+    desc.pixel_format = SG_PIXELFORMAT_RGBA8;
+    desc.usage.dynamic_update = true;
+    desc.label = label;
+    CountImage(use, true);
+    return sg_make_image(&desc);
+}
+
+// A texture view of `image`; none (and the image destroyed) when it could not be made.
+sg_view MakeImageView(sg_image image) {
+    if (!image.id) return sg_view{};
+    sg_view view{};
+    if (sg_query_image_state(image) == SG_RESOURCESTATE_VALID) {
+        sg_view_desc vd{};
+        vd.texture.image = image;
+        view = sg_make_view(&vd);
+        if (view.id && sg_query_view_state(view) != SG_RESOURCESTATE_VALID) {
+            sg_destroy_view(view);
+            view = sg_view{};
+        }
+    }
+    if (!view.id) sg_destroy_image(image);
+    return view;
+}
+
+#if defined(EI_RENDER_VALIDATION)
+long g_uploadChecks = 0, g_uploadMismatches = 0;
+long g_uploads[2] = {0, 0};   // uploads so far, cursor / fill and movie (the read-back is sampled: ReadBackDue)
+// Verify build: reads the image back from the GPU and compares it with the pixels just written
+// (what the blit's unchanged shader then draws is exactly these texels).
+void CheckUpload(sg_image image, const std::uint8_t* rgba, int w, int h, const char* what) {
+    sg_d3d11_image_info info = sg_d3d11_query_image_info(image);
+    auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
+    if (!texture) return;
+    ID3D11Device* device = nullptr;
+    texture->GetDevice(&device);
+    if (!device) return;
+    ID3D11DeviceContext* context = nullptr;
+    device->GetImmediateContext(&context);
+    D3D11_TEXTURE2D_DESC desc{};
+    texture->GetDesc(&desc);
+    desc.Usage = D3D11_USAGE_STAGING;
+    desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    desc.MiscFlags = 0;
+    ID3D11Texture2D* staging = nullptr;
+    if (context && SUCCEEDED(device->CreateTexture2D(&desc, nullptr, &staging))) {
+        context->CopyResource(staging, texture);
+        D3D11_MAPPED_SUBRESOURCE mapped{};
+        if (SUCCEEDED(context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped))) {
+            bool same = true;
+            for (int y = 0; y < h && same; ++y)
+                same = std::memcmp(static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch,
+                                   rgba + static_cast<std::size_t>(y) * w * 4, static_cast<std::size_t>(w) * 4) == 0;
+            context->Unmap(staging, 0);
+            ++g_uploadChecks;
+            if (!same && g_uploadMismatches++ < 10)
+                ei::Log("render: MISMATCH: %s image %dx%d read back from the GPU differs from the pixels written", what, w, h);
+        }
+        staging->Release();
+    }
+    if (context) context->Release();
+    device->Release();
+    sg_reset_state_cache();
+}
+#endif
+
+void UpdateImage(sg_image image, const std::uint8_t* rgba, int w, int h, ImageUse use) {
+    sg_image_data data{};
+    data.mip_levels[0] = sg_range{rgba, static_cast<std::size_t>(w) * h * 4};
+    CountImage(use, false);
+    CountUpload(use == ImageUse::Movie ? FrameStats::Movie : FrameStats::Small, data.mip_levels[0].size);
+    sg_update_image(image, &data);
+#if defined(EI_RENDER_VALIDATION)
+    long& uploads = g_uploads[use == ImageUse::Movie ? 1 : 0];
+    if (ReadBackDue(uploads++)) {
+        CheckUpload(image, rgba, w, h, use == ImageUse::Movie ? "movie" : "cursor/fill");
+        if (g_uploadChecks % 20 == 1 && g_uploadChecks)
+            ei::Log("render: image uploads checked back from the GPU: %ld of %ld, mismatches %ld", g_uploadChecks, g_uploads[0] + g_uploads[1], g_uploadMismatches);
+    }
+#endif
+}
+
+struct Movie {
+    sg_image image{};
+    sg_view view{};
+    int width = 0, height = 0;
+    std::uint32_t blitFrame = 0xFFFFFFFFu;      // FrameNumber() of the last blit recorded
+    std::uint32_t updatedCommit = 0xFFFFFFFFu;  // CommitNumber() of the last update
+};
+std::unordered_map<const void*, Movie> g_movies;
+std::vector<std::uint8_t> g_movieScratch;
+
+// The cursor's and the fills' small images, kept across frames: one per size, rewritten only when
+// the content differs (compared with a copy of what the image holds). Several images of one size
+// are kept when a frame draws different contents of it.
+struct CachedImage {
+    sg_image image{};
+    sg_view view{};
+    int width = 0, height = 0;
+    std::uint32_t usedFrame = 0xFFFFFFFFu;      // FrameNumber() of the last blit recorded
+    std::uint32_t updatedCommit = 0xFFFFFFFFu;  // CommitNumber() of the last update
+    std::uint64_t lastUse = 0;                  // for dropping the least recently used
+    std::vector<std::uint8_t> pixels;
+};
+std::vector<CachedImage> g_cache;
+std::uint64_t g_cacheClock = 0;
+constexpr std::size_t kCacheMax = 64;
+
+// Draws `rgba` (w x h) at `to` as a blit of this frame.
+void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to, ImageUse use);
+
+// The view of a cached image holding `rgba` (w x h), or none when every cached image is in use
+// this frame or one could not be made.
+sg_view CachedView(const std::vector<std::uint8_t>& rgba, int w, int h, ImageUse use) {
+    std::uint32_t frame = FrameNumber(), commit = CommitNumber();
+    CachedImage* sameSize = nullptr;   // the least recently used free image of this size
+    CachedImage* anySize = nullptr;    // the least recently used free image
+    for (CachedImage& c : g_cache) {
+        if (c.width == w && c.height == h && c.pixels == rgba) {   // unchanged: no upload
+            c.usedFrame = frame;
+            c.lastUse = ++g_cacheClock;
+            return c.view;
+        }
+        if (c.usedFrame == frame || c.updatedCommit == commit) continue;
+        if (c.width == w && c.height == h && (!sameSize || c.lastUse < sameSize->lastUse)) sameSize = &c;
+        if (!anySize || c.lastUse < anySize->lastUse) anySize = &c;
+    }
+    CachedImage* chosen = sameSize;
+    if (!chosen && g_cache.size() < kCacheMax) {
+        g_cache.emplace_back();
+        chosen = &g_cache.back();
+    }
+    if (!chosen) chosen = anySize;
+    if (!chosen) return sg_view{};
+    if (chosen->width != w || chosen->height != h || !chosen->image.id) {
+        if (chosen->view.id) sg_destroy_view(chosen->view);
+        if (chosen->image.id) sg_destroy_image(chosen->image);
+        *chosen = CachedImage{};
+        sg_image image = MakeDynamicImage(w, h, "ei-small-image", use);
+        sg_view view = MakeImageView(image);
+        if (!view.id) return sg_view{};
+        chosen->image = image;
+        chosen->view = view;
+        chosen->width = w;
+        chosen->height = h;
+    }
+    UpdateImage(chosen->image, rgba.data(), w, h, use);
+    chosen->pixels = rgba;
+    chosen->updatedCommit = commit;
+    chosen->usedFrame = frame;
+    chosen->lastUse = ++g_cacheClock;
+    return chosen->view;
+}
+
+void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to, ImageUse use) {
+    CountImageRequest(use);
+    sg_view view = CachedView(rgba, w, h, use);
+    if (!view.id) {
+        // Every cached image is in use this frame: an image for this frame only.
+        CountImage(use, true);
+        sg_image_desc desc{};
+        desc.width = w;
+        desc.height = h;
+        desc.pixel_format = SG_PIXELFORMAT_RGBA8;
+        desc.data.mip_levels[0] = sg_range{rgba.data(), rgba.size()};
+        desc.label = "ei-cursor-frame";
+        CountUpload(FrameStats::Small, rgba.size());
+        sg_image image = sg_make_image(&desc);
+        view = MakeImageView(image);
+        if (!view.id) return;
+        g_frameImages.push_back(image);
+        g_frameViews.push_back(view);
+    }
+    Frame& f = CurrentFrame();
+    if (use == ImageUse::Cursor && PresentsItself()) {
+        // Drawn by the present (DrawToWindow) over the frame, which stays without it for the cursor thread.
+        f.cursor = BlitBatch{view, w, h, to, Rect{0, 0, w, h}};
+        f.haveCursor = true;
+        return;
+    }
+    ++Stats().blits;
+    f.blitBatches.push_back(BlitBatch{view, w, h, to, Rect{0, 0, w, h}});
+    f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
+}
+
 } // namespace
 
 namespace detail {
@@ -221,11 +417,6 @@ struct ImageCountLogger {
 #endif
 } // namespace detail
 
-namespace {
-std::vector<sg_image> g_frameImages;   // made for one frame (the cursor), destroyed at the present
-std::vector<sg_view> g_frameViews;
-} // namespace
-
 namespace detail {
 void RetireFrameImages() {
     for (sg_view v : g_frameViews) sg_destroy_view(v);
@@ -234,126 +425,6 @@ void RetireFrameImages() {
     g_frameImages.clear();
 }
 } // namespace detail
-
-namespace {
-
-// RGBA8 images that are updated in place (sg_update_image) instead of made again. Sokol allows
-// one update per image and frame, and a recorded blit draws the image's contents at the end of the
-// frame (DrawPending), so an image is rewritten only when no blit of it is recorded in this frame
-// and it was not rewritten since the last commit.
-sg_image MakeDynamicImage(int w, int h, const char* label, ImageUse use) {
-    sg_image_desc desc{};
-    desc.width = w;
-    desc.height = h;
-    desc.pixel_format = SG_PIXELFORMAT_RGBA8;
-    desc.usage.dynamic_update = true;
-    desc.label = label;
-    CountImage(use, true);
-    return sg_make_image(&desc);
-}
-
-// A texture view of `image`; none (and the image destroyed) when it could not be made.
-sg_view MakeImageView(sg_image image) {
-    if (!image.id) return sg_view{};
-    sg_view view{};
-    if (sg_query_image_state(image) == SG_RESOURCESTATE_VALID) {
-        sg_view_desc vd{};
-        vd.texture.image = image;
-        view = sg_make_view(&vd);
-        if (view.id && sg_query_view_state(view) != SG_RESOURCESTATE_VALID) {
-            sg_destroy_view(view);
-            view = sg_view{};
-        }
-    }
-    if (!view.id) sg_destroy_image(image);
-    return view;
-}
-
-#if defined(EI_RENDER_VALIDATION)
-long g_uploadChecks = 0, g_uploadMismatches = 0;
-long g_uploads[2] = {0, 0};   // uploads so far, cursor / fill and movie (the read-back is sampled: ReadBackDue)
-// Verify build: reads the image back from the GPU and compares it with the pixels just written
-// (what the blit's unchanged shader then draws is exactly these texels).
-void CheckUpload(sg_image image, const std::uint8_t* rgba, int w, int h, const char* what) {
-    sg_d3d11_image_info info = sg_d3d11_query_image_info(image);
-    auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
-    if (!texture) return;
-    ID3D11Device* device = nullptr;
-    texture->GetDevice(&device);
-    if (!device) return;
-    ID3D11DeviceContext* context = nullptr;
-    device->GetImmediateContext(&context);
-    D3D11_TEXTURE2D_DESC desc{};
-    texture->GetDesc(&desc);
-    desc.Usage = D3D11_USAGE_STAGING;
-    desc.BindFlags = 0;
-    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-    desc.MiscFlags = 0;
-    ID3D11Texture2D* staging = nullptr;
-    if (context && SUCCEEDED(device->CreateTexture2D(&desc, nullptr, &staging))) {
-        context->CopyResource(staging, texture);
-        D3D11_MAPPED_SUBRESOURCE mapped{};
-        if (SUCCEEDED(context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped))) {
-            bool same = true;
-            for (int y = 0; y < h && same; ++y)
-                same = std::memcmp(static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch,
-                                   rgba + static_cast<std::size_t>(y) * w * 4, static_cast<std::size_t>(w) * 4) == 0;
-            context->Unmap(staging, 0);
-            ++g_uploadChecks;
-            if (!same && g_uploadMismatches++ < 10)
-                ei::Log("render: MISMATCH: %s image %dx%d read back from the GPU differs from the pixels written", what, w, h);
-        }
-        staging->Release();
-    }
-    if (context) context->Release();
-    device->Release();
-    sg_reset_state_cache();
-}
-#endif
-
-void UpdateImage(sg_image image, const std::uint8_t* rgba, int w, int h, ImageUse use) {
-    sg_image_data data{};
-    data.mip_levels[0] = sg_range{rgba, static_cast<std::size_t>(w) * h * 4};
-    CountImage(use, false);
-    CountUpload(use == ImageUse::Movie ? FrameStats::Movie : FrameStats::Small, data.mip_levels[0].size);
-    sg_update_image(image, &data);
-#if defined(EI_RENDER_VALIDATION)
-    long& uploads = g_uploads[use == ImageUse::Movie ? 1 : 0];
-    if (ReadBackDue(uploads++)) {
-        CheckUpload(image, rgba, w, h, use == ImageUse::Movie ? "movie" : "cursor/fill");
-        if (g_uploadChecks % 20 == 1 && g_uploadChecks)
-            ei::Log("render: image uploads checked back from the GPU: %ld of %ld, mismatches %ld", g_uploadChecks, g_uploads[0] + g_uploads[1], g_uploadMismatches);
-    }
-#endif
-}
-
-struct Movie {
-    sg_image image{};
-    sg_view view{};
-    int width = 0, height = 0;
-    std::uint32_t blitFrame = 0xFFFFFFFFu;      // FrameNumber() of the last blit recorded
-    std::uint32_t updatedCommit = 0xFFFFFFFFu;  // CommitNumber() of the last update
-};
-std::unordered_map<const void*, Movie> g_movies;
-std::vector<std::uint8_t> g_movieScratch;
-
-// The cursor's and the fills' small images, kept across frames: one per size, rewritten only when
-// the content differs (compared with a copy of what the image holds). Several images of one size
-// are kept when a frame draws different contents of it.
-struct CachedImage {
-    sg_image image{};
-    sg_view view{};
-    int width = 0, height = 0;
-    std::uint32_t usedFrame = 0xFFFFFFFFu;      // FrameNumber() of the last blit recorded
-    std::uint32_t updatedCommit = 0xFFFFFFFFu;  // CommitNumber() of the last update
-    std::uint64_t lastUse = 0;                  // for dropping the least recently used
-    std::vector<std::uint8_t> pixels;
-};
-std::vector<CachedImage> g_cache;
-std::uint64_t g_cacheClock = 0;
-constexpr std::size_t kCacheMax = 64;
-
-} // namespace
 
 void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height) {
     if (!key || !rgbx || width <= 0 || height <= 0 || !Active() || !Started()) return;
@@ -392,11 +463,6 @@ void MovieBlit(const void* key, const Rect& to) {
     f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
 }
 
-namespace {
-// Draws `rgba` (w x h) at `to` as a blit of this frame.
-void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to, ImageUse use);
-} // namespace
-
 void Fill(const Rect& to, std::uint32_t colour) {
     if (!Active() || !Started() || to.right <= to.left || to.bottom <= to.top) return;
     FpuGuard fpu;
@@ -424,82 +490,6 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
         CursorPicturePart(imageHolder, mask, maskBytes, *picture, from, &rgba))
         CursorBlit(rgba, w, h, to, ImageUse::Cursor);
 }
-
-namespace {
-// The view of a cached image holding `rgba` (w x h), or none when every cached image is in use
-// this frame or one could not be made.
-sg_view CachedView(const std::vector<std::uint8_t>& rgba, int w, int h, ImageUse use) {
-    std::uint32_t frame = FrameNumber(), commit = CommitNumber();
-    CachedImage* sameSize = nullptr;   // the least recently used free image of this size
-    CachedImage* anySize = nullptr;    // the least recently used free image
-    for (CachedImage& c : g_cache) {
-        if (c.width == w && c.height == h && c.pixels == rgba) {   // unchanged: no upload
-            c.usedFrame = frame;
-            c.lastUse = ++g_cacheClock;
-            return c.view;
-        }
-        if (c.usedFrame == frame || c.updatedCommit == commit) continue;
-        if (c.width == w && c.height == h && (!sameSize || c.lastUse < sameSize->lastUse)) sameSize = &c;
-        if (!anySize || c.lastUse < anySize->lastUse) anySize = &c;
-    }
-    CachedImage* chosen = sameSize;
-    if (!chosen && g_cache.size() < kCacheMax) {
-        g_cache.emplace_back();
-        chosen = &g_cache.back();
-    }
-    if (!chosen) chosen = anySize;
-    if (!chosen) return sg_view{};
-    if (chosen->width != w || chosen->height != h || !chosen->image.id) {
-        if (chosen->view.id) sg_destroy_view(chosen->view);
-        if (chosen->image.id) sg_destroy_image(chosen->image);
-        *chosen = CachedImage{};
-        sg_image image = MakeDynamicImage(w, h, "ei-small-image", use);
-        sg_view view = MakeImageView(image);
-        if (!view.id) return sg_view{};
-        chosen->image = image;
-        chosen->view = view;
-        chosen->width = w;
-        chosen->height = h;
-    }
-    UpdateImage(chosen->image, rgba.data(), w, h, use);
-    chosen->pixels = rgba;
-    chosen->updatedCommit = commit;
-    chosen->usedFrame = frame;
-    chosen->lastUse = ++g_cacheClock;
-    return chosen->view;
-}
-
-void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to, ImageUse use) {
-    CountImageRequest(use);
-    sg_view view = CachedView(rgba, w, h, use);
-    if (!view.id) {
-        // Every cached image is in use this frame: an image for this frame only.
-        CountImage(use, true);
-        sg_image_desc desc{};
-        desc.width = w;
-        desc.height = h;
-        desc.pixel_format = SG_PIXELFORMAT_RGBA8;
-        desc.data.mip_levels[0] = sg_range{rgba.data(), rgba.size()};
-        desc.label = "ei-cursor-frame";
-        CountUpload(FrameStats::Small, rgba.size());
-        sg_image image = sg_make_image(&desc);
-        view = MakeImageView(image);
-        if (!view.id) return;
-        g_frameImages.push_back(image);
-        g_frameViews.push_back(view);
-    }
-    Frame& f = CurrentFrame();
-    if (use == ImageUse::Cursor && PresentsItself()) {
-        // Drawn by the present (DrawToWindow) over the frame, which stays without it for the cursor thread.
-        f.cursor = BlitBatch{view, w, h, to, Rect{0, 0, w, h}};
-        f.haveCursor = true;
-        return;
-    }
-    ++Stats().blits;
-    f.blitBatches.push_back(BlitBatch{view, w, h, to, Rect{0, 0, w, h}});
-    f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
-}
-} // namespace
 
 namespace detail {
 void DropBlits() {

@@ -65,6 +65,13 @@ bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
 
 CItem* ItemAt(const std::vector<CItem*>* items, int i) { return (*items)[i]; }
 
+// CTypedPtrList<CRefPtr> AddTail: the list holds a reference.
+void AddCountedTail(std::list<CEngineObject*>* list, CEngineObject* object) {
+    HeldObject<CEngineObject>::Of(&list->emplace_back(nullptr))->Assign(object);
+}
+
+CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
+
 } // namespace
 
 void CWorldServer::TakeZoneQuestItems(std::vector<CItem*>* items, std::list<CItem*>* list) {
@@ -187,15 +194,6 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
 
 // ---- CopyItem ---------------------------------------------------------------------------------
 
-namespace {
-
-// CTypedPtrList<CRefPtr> AddTail: the list holds a reference.
-void AddCountedTail(std::list<CEngineObject*>* list, CEngineObject* object) {
-    HeldObject<CEngineObject>::Of(&list->emplace_back(nullptr))->Assign(object);
-}
-
-} // namespace
-
 CItem* CWorldServer::CopyItem(CItem* source) {
     // The game also builds and frees two empty CPtrLists here, unused.
     std::uint32_t packed = source->prototypeId_;
@@ -212,12 +210,6 @@ CItem* CWorldServer::CopyItem(CItem* source) {
 }
 
 // ---- Items and spells by name -------------------------------------------------------------------
-
-namespace {
-
-CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
-
-} // namespace
 
 // As in CopyItem, the game also builds and frees two empty CPtrLists around the call.
 CItem* CWorldServer::CreateItemNamed(const char* name) { return ItemManager()->CreateItem(name); }

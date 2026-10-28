@@ -203,6 +203,7 @@ void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFla
 }
 
 constinit lib::StaticObject<std::unordered_set<int>> g_unreadSet = /*007AB8D8*/ {};
+// A second block: it uses g_unreadSet (defined above).
 namespace {
 void DestroyUnreadSet() { g_unreadSet.Destroy(); }
 } // namespace

@@ -95,6 +95,7 @@ struct CachedMesh {
 
 } // namespace detail
 
+// A second block: it uses CachedMesh (defined above).
 namespace {
 
 std::unordered_map<const void*, CachedMesh> g_meshes;

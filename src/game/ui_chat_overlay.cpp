@@ -46,11 +46,7 @@ void SendSay(const std::string& text) {
     say->text_ = text;
     net::g_gameClient->AddTimed(say, kSayLifetime);
 }
-} // namespace
 
-// --- a chat line added ---------------------------------------------------------------------------
-
-namespace {
 constexpr int kMaxLines = 12;
 constexpr int kLineWidth = 0x30C;
 constexpr int kLineFont = 1;
@@ -71,7 +67,14 @@ void DrawPiece(CUiSurface* surface, std::string_view text, int x, COLORREF colou
     RECT rect = {x, 0, kLineDrawRight, kLineSurfaceHeight};
     surface->DrawTextIn(text, &rect, kLineFont, colour, kLineDrawFormat, 1);
 }
+
+constexpr int kTypedTextRight = 0x30F, kTypedTextBottom = 0x11;
+constexpr int kCaretBottom = 0x10;
+constexpr COLORREF kTypedColour = 0xFFFFFF;
+
 } // namespace
+
+// --- a chat line added ---------------------------------------------------------------------------
 
 void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     const int before = static_cast<int>(lines_.size());
@@ -178,12 +181,6 @@ void CChatOverlay::ClearLines() {
 }
 
 // --- the typed line drawn (Rebirth-patched: WideScreen reproduced) -------------------------------
-
-namespace {
-constexpr int kTypedTextRight = 0x30F, kTypedTextBottom = 0x11;
-constexpr int kCaretBottom = 0x10;
-constexpr COLORREF kTypedColour = 0xFFFFFF;
-} // namespace
 
 void CChatOverlay::DrawTyped() {
     if (!chatOpen_) {

@@ -39,9 +39,6 @@ int BlocksHigh(const CRegionMap* map) { return map->edges[0].height; }
 const int* StepX() { return kDirectionDx + 1; }
 const int* StepY() { return kDirectionDy + 1; }
 
-} // namespace
-
-namespace {
 // A per size class grid of the region map reallocated for the map's size.
 template <typename T>
 void Fit(SearchGrid<T>& grid, int width, int height, void (*allocate)(SearchGrid<T>*)) {
@@ -82,6 +79,7 @@ void FinishSearch(BlockSearch& search) {
     search.touched = nullptr;
     search.active = false;
 }
+
 } // namespace
 
 bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGrid<std::int8_t>* marks) {

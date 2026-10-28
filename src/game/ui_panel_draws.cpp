@@ -48,6 +48,61 @@ void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
     render::ClearDepth(z, &r, 1);
 }
 
+int Channel(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
+
+std::uint32_t Colour(int alpha, int red, int blue) {
+    return static_cast<std::uint32_t>(((Channel(alpha) << 8 | Channel(red)) << 8 | Channel(red)) << 8 | Channel(blue));
+}
+
+// The highlight's pulse: the page's time advanced by the frame time (stored as float, the sum kept
+// unrounded), (cos(5 t) + 1) / 2 stored as float; then the colour's three values, truncated: the
+// alpha 130 (1 - p) + 240 p, `low` 80 (1 - p) and `high` 160 p + 80 (1 - p).
+struct Pulse {
+    int alpha;
+    int low;
+    int high;
+};
+Pulse Advance(CConstructorPage* page) {
+    double t = CUiContainer::FrameTime() + page->pulse_;
+    page->pulse_ = static_cast<float>(t);
+    float p = static_cast<float>((x87::fcos(t * 5.0) + 1.0) * 0.5);
+    double a = 1.0 - p;
+    double low = a * 80.0;
+    return Pulse{static_cast<int>(a * 130.0 + p * 240.0), static_cast<int>(low), static_cast<int>(p * 160.0 + low)};
+}
+
+bool IsSpellContainer(const CItem* item) { return static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item)) != 0; }
+
+void DrawSprite(CUiMesh* sprite, CSceneRenderer* pass, float x, float y) {
+    sprite->Place(x, y, 3.0f);
+    sprite->Draw(pass);
+}
+
+CUiMesh* Highlight(CUiWindow* window) { return window->SceneMesh(4); }
+
+// A slot's item drawn between depth clears: the screen to 0, the slot (layout `slot`) to 1, the
+// model, then the screen to 1 again.
+void DrawInSlot(CConstructorPage* page, CSceneRenderer* pass, ItemCell* cell, RECT slot) {
+    CInterface3D* ui = page->interface_;
+    ui->ScaleRectToScreenEntry(&slot);
+    RECT inside = slot;
+    ClearDepth(ui->renderer_, nullptr, 0.0f);
+    ClearDepth(ui->renderer_, &inside, 1.0f);
+    DrawItem(page->owner_, pass, cell);
+    ClearDepth(page->interface_->renderer_, nullptr, 1.0f);
+}
+
+// A part's prototype by its record type (weapons, armour, quick items), or null.
+const itemdb::ItemRecordHead* PartRecord(const CItemLoot* part) {
+    switch (part->recordType_) {
+    case 0: return itemdb::WeaponAt(part->index_);
+    case 1: return itemdb::ArmorAt(part->index_);
+    case 2:
+        return itemdb::QuickItemAt(part->index_);
+    default: return nullptr;
+    }
+}
+
 } // namespace
 
 // --- The quick strip ------------------------------------------------------------------
@@ -115,42 +170,6 @@ BOOL CRepairGrid::Draw(CSceneRenderer* pass) {
 }
 
 // --- The constructors' second pages ----------------------------------------
-
-namespace {
-
-int Channel(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
-
-std::uint32_t Colour(int alpha, int red, int blue) {
-    return static_cast<std::uint32_t>(((Channel(alpha) << 8 | Channel(red)) << 8 | Channel(red)) << 8 | Channel(blue));
-}
-
-// The highlight's pulse: the page's time advanced by the frame time (stored as float, the sum kept
-// unrounded), (cos(5 t) + 1) / 2 stored as float; then the colour's three values, truncated: the
-// alpha 130 (1 - p) + 240 p, `low` 80 (1 - p) and `high` 160 p + 80 (1 - p).
-struct Pulse {
-    int alpha;
-    int low;
-    int high;
-};
-Pulse Advance(CConstructorPage* page) {
-    double t = CUiContainer::FrameTime() + page->pulse_;
-    page->pulse_ = static_cast<float>(t);
-    float p = static_cast<float>((x87::fcos(t * 5.0) + 1.0) * 0.5);
-    double a = 1.0 - p;
-    double low = a * 80.0;
-    return Pulse{static_cast<int>(a * 130.0 + p * 240.0), static_cast<int>(low), static_cast<int>(p * 160.0 + low)};
-}
-
-bool IsSpellContainer(const CItem* item) { return static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item)) != 0; }
-
-void DrawSprite(CUiMesh* sprite, CSceneRenderer* pass, float x, float y) {
-    sprite->Place(x, y, 3.0f);
-    sprite->Draw(pass);
-}
-
-CUiMesh* Highlight(CUiWindow* window) { return window->SceneMesh(4); }
-
-} // namespace
 
 BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
     const std::vector<CItem*>& slots = slots_->items_;
@@ -238,31 +257,6 @@ BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
     highlight->visible_ = 0;
     return 1;
 }
-
-namespace {
-// A slot's item drawn between depth clears: the screen to 0, the slot (layout `slot`) to 1, the
-// model, then the screen to 1 again.
-void DrawInSlot(CConstructorPage* page, CSceneRenderer* pass, ItemCell* cell, RECT slot) {
-    CInterface3D* ui = page->interface_;
-    ui->ScaleRectToScreenEntry(&slot);
-    RECT inside = slot;
-    ClearDepth(ui->renderer_, nullptr, 0.0f);
-    ClearDepth(ui->renderer_, &inside, 1.0f);
-    DrawItem(page->owner_, pass, cell);
-    ClearDepth(page->interface_->renderer_, nullptr, 1.0f);
-}
-
-// A part's prototype by its record type (weapons, armour, quick items), or null.
-const itemdb::ItemRecordHead* PartRecord(const CItemLoot* part) {
-    switch (part->recordType_) {
-    case 0: return itemdb::WeaponAt(part->index_);
-    case 1: return itemdb::ArmorAt(part->index_);
-    case 2:
-        return itemdb::QuickItemAt(part->index_);
-    default: return nullptr;
-    }
-}
-} // namespace
 
 BOOL CConstructorPage::DrawItemMaker(CSceneRenderer* pass) {
     DrawBase(pass);

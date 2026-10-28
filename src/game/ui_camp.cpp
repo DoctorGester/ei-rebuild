@@ -81,6 +81,118 @@ void DrawLine(CUiSurface* surface, std::string_view text, RECT* rect) {
     surface->DrawTextIn(text, rect, 1, 0xFFFFFF, 1, 1);
 }
 
+// The camp's item predicates (none reads `this`).
+bool IsSpellContainer(const CItem* item) {
+    return static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item)) != 0;
+}
+bool IsSpell(const CItem* item) { return UiItemKinds::IsSpell(item); }
+bool IsModifier(const CItem* item) { return UiItemKinds::IsModifier(item); }
+bool IsPart(const CItem* item) { return UiItemKinds::IsPart(item); }
+bool IsKindOne(const CItem* item) { return UiItemKinds::IsKindOne(item); }
+bool IsBlueprint(const CItem* item) { return UiItemKinds::IsBuildable(item); }
+
+// The database records of the camp's loot items (the record index): spells, spell
+// modifiers and materials (null past the end, which is then read through).
+std::uint32_t Index(const CItem* item) { return AsLoot(item)->index_; }
+// The loot's record type: the record table it indexes.
+std::uint32_t RecordType(const CItem* item) { return AsLoot(item)->recordType_; }
+itemdb::SpellRecord* SpellRecordOf(const CItem* item) { return itemdb::SpellAt(Index(item)); }
+itemdb::SpellModifierRecord* ModifierRecordOf(const CItem* item) { return itemdb::SpellModifierAt(Index(item)); }
+itemdb::MaterialRecordHead* BlueprintRecord(const CItem* item) { return itemdb::MaterialAt(Index(item)); }
+// A part's prototype record by the loot's record type: weapon, armour, quick item.
+itemdb::ItemRecordHead* PartRecord(const CItem* item, int recordType) {
+    switch (recordType) {
+    case 0: return itemdb::WeaponAt(Index(item));
+    case 1: return itemdb::ArmorAt(Index(item));
+    case 2: return itemdb::QuickItemAt(Index(item));
+    default: return nullptr;
+    }
+}
+
+int ItemType(const CItem* item) { return item->type_; }
+
+double D(float f) { return f; }
+
+constexpr float kPriceZero = 0.0f;
+constexpr float kPriceOne = 1.0f;
+
+// The item's base price, left unrounded.
+double ItemPrice(CItem* item) {
+    return item->GetPrice();
+}
+
+// How worn the item is: 1 - durability / maximum. Rebirth's FixRepairPrice treats a
+// negative (or NaN) durability or maximum as 0 and clamps the result to [0, 1] (NaN stays).
+float WornFraction(const CItem* item) {
+    float durability = item->condition_, maximum = item->conditionMax_;
+    if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
+        return static_cast<float>(static_cast<double>(kPriceOne) - static_cast<double>(durability) / maximum);
+    float a = kPriceZero < durability ? durability : kPriceZero;
+    float b = kPriceZero < maximum ? maximum : kPriceZero;
+    double worn = static_cast<double>(kPriceOne) - static_cast<double>(a) / b;
+    if (worn > kPriceOne) return kPriceOne;
+    if (worn < kPriceZero) return kPriceZero;
+    return static_cast<float>(worn);
+}
+
+// The stack count of an item.
+int Count(const CItem* item) { return static_cast<int>(item->count_); }
+
+void ReleaseObject(CEngineObject* object) {
+    if (object) object->Release();
+}
+
+constexpr std::uint32_t kRecordBias = 100000000;
+
+UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
+
+// The hero's statistics with the armour it wears as their outer layers again.
+void RebuildArmourLayers(PartyUnitRecord* hero) {
+    UnitStats* stats = StatsOf(hero);
+    stats->ClearOuterLayers();
+    for (int i = 0; i < std::ssize(hero->armor); ++i) stats->AddArmourLayer(AsArmor(hero->armor[i]));
+}
+
+// The interface's Shift flag (set by its key handler).
+bool ShiftHeld(CInterface3D* ui) { return ui->shiftDown_ != 0; }
+
+// Whether `list` holds `item`.
+bool ListHolds(CParty* list, const CItem* item) {
+    for (int i = 0; i < CountOf(list); ++i)
+        if (list->items_[i] == item) return true;
+    return false;
+}
+
+// fmod(turn + sign * 2 * seconds, 2 pi) through the game's _CIfmod, which computes it on the FPU.
+constexpr float kCampFullTurn = /*007C7EE8*/ 6.2831855f;
+float TurnedBy(double seconds, float turn, bool backwards) {
+    const double twice = seconds + seconds;
+    const double turned = backwards ? turn - twice : twice + turn;
+    return static_cast<float>(std::fmod(turned, kCampFullTurn));
+}
+
+constexpr int kHeroClass = 0x32;
+
+// From the current hero, step until a record of the hero class (fatal after more steps than there are
+// records).
+template <typename Step>
+int FindHero(int start, Step step) {
+    CParty* party = PlayerParty();
+    int i = start;
+    for (int tries = 0;;) {
+        int count = std::ssize(party->members_);
+        if (tries > count) {
+            game::FatalError("ERROR: no human personages in the party.\n");
+            break;
+        }
+        i = step(i, count);
+        ++tries;
+        PartyUnitRecord* record = &party->members_[i];
+        if (PrototypeObjectClass(record->texts[5].c_str()) == kHeroClass) break;
+    }
+    return i;
+}
+
 } // namespace
 
 void CCampPages::ShowPage(int page) {
@@ -203,65 +315,6 @@ void CCampPages::ShowPage(int page) {
     SetShade(SceneMesh(page_ + 2), 1.0f);
     interface_->OpenHelp(0);
 }
-
-namespace {
-
-// The camp's item predicates (none reads `this`).
-bool IsSpellContainer(const CItem* item) {
-    return static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item)) != 0;
-}
-bool IsSpell(const CItem* item) { return UiItemKinds::IsSpell(item); }
-bool IsModifier(const CItem* item) { return UiItemKinds::IsModifier(item); }
-bool IsPart(const CItem* item) { return UiItemKinds::IsPart(item); }
-bool IsKindOne(const CItem* item) { return UiItemKinds::IsKindOne(item); }
-bool IsBlueprint(const CItem* item) { return UiItemKinds::IsBuildable(item); }
-
-// The database records of the camp's loot items (the record index): spells, spell
-// modifiers and materials (null past the end, which is then read through).
-std::uint32_t Index(const CItem* item) { return AsLoot(item)->index_; }
-// The loot's record type: the record table it indexes.
-std::uint32_t RecordType(const CItem* item) { return AsLoot(item)->recordType_; }
-itemdb::SpellRecord* SpellRecordOf(const CItem* item) { return itemdb::SpellAt(Index(item)); }
-itemdb::SpellModifierRecord* ModifierRecordOf(const CItem* item) { return itemdb::SpellModifierAt(Index(item)); }
-itemdb::MaterialRecordHead* BlueprintRecord(const CItem* item) { return itemdb::MaterialAt(Index(item)); }
-// A part's prototype record by the loot's record type: weapon, armour, quick item.
-itemdb::ItemRecordHead* PartRecord(const CItem* item, int recordType) {
-    switch (recordType) {
-    case 0: return itemdb::WeaponAt(Index(item));
-    case 1: return itemdb::ArmorAt(Index(item));
-    case 2: return itemdb::QuickItemAt(Index(item));
-    default: return nullptr;
-    }
-}
-
-int ItemType(const CItem* item) { return item->type_; }
-
-double D(float f) { return f; }
-} // namespace
-
-namespace {
-constexpr float kPriceZero = 0.0f;
-constexpr float kPriceOne = 1.0f;
-
-// The item's base price, left unrounded.
-double ItemPrice(CItem* item) {
-    return item->GetPrice();
-}
-
-// How worn the item is: 1 - durability / maximum. Rebirth's FixRepairPrice treats a
-// negative (or NaN) durability or maximum as 0 and clamps the result to [0, 1] (NaN stays).
-float WornFraction(const CItem* item) {
-    float durability = item->condition_, maximum = item->conditionMax_;
-    if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
-        return static_cast<float>(static_cast<double>(kPriceOne) - static_cast<double>(durability) / maximum);
-    float a = kPriceZero < durability ? durability : kPriceZero;
-    float b = kPriceZero < maximum ? maximum : kPriceZero;
-    double worn = static_cast<double>(kPriceOne) - static_cast<double>(a) / b;
-    if (worn > kPriceOne) return kPriceOne;
-    if (worn < kPriceZero) return kPriceZero;
-    return static_cast<float>(worn);
-}
-} // namespace
 
 int CCampPages::Price(CItem* item, int kind) {
     const float* multipliers = priceWeights_;
@@ -404,11 +457,6 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         return false;
     }
 }
-
-namespace {
-// The stack count of an item.
-int Count(const CItem* item) { return static_cast<int>(item->count_); }
-} // namespace
 
 void CCampPages::UpdateAction() {
     std::string action;
@@ -624,14 +672,6 @@ BOOL CCampPages::Draw(CSceneRenderer* pass) {
 
 // --- what the constructors would make ------------------------------------------------------------
 
-namespace {
-
-void ReleaseObject(CEngineObject* object) {
-    if (object) object->Release();
-}
-
-} // namespace
-
 bool CCampPages::CanMakeSpell() {
     CSpellConstructor* constructor = spellResults_->SpellConstructor();
     CItemManager* factory = spellResults_->ItemManager();
@@ -743,10 +783,6 @@ bool CCampPages::CanMakeItem() {
 
 // --- leaving the camp ----------------------------------------------------------------------------
 
-namespace {
-constexpr std::uint32_t kRecordBias = 100000000;
-} // namespace
-
 void CCampPages::Close() {
     GameSetServerPaused(0);
     device::SetRenderState(TheRenderDevice()->d3dDevice_, D3DRENDERSTATE_ANTIALIAS, 0);
@@ -784,19 +820,6 @@ void CCampPages::Close() {
 CTradePanel::~CTradePanel() {}
 
 // --- taking an item off the hero -----------------------------------------------------------------
-
-namespace {
-
-UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
-
-// The hero's statistics with the armour it wears as their outer layers again.
-void RebuildArmourLayers(PartyUnitRecord* hero) {
-    UnitStats* stats = StatsOf(hero);
-    stats->ClearOuterLayers();
-    for (int i = 0; i < std::ssize(hero->armor); ++i) stats->AddArmourLayer(AsArmor(hero->armor[i]));
-}
-
-} // namespace
 
 CItem* CCampPages::TakeOff(CItem* item) {
     interface_->PlaySound(game::PutOffSoundText(), 0);
@@ -889,18 +912,6 @@ void CCampPages::PutOn(CItem* item) {
 }
 
 // --- moving an item between the camp's lists -----------------------------------------------------
-
-namespace {
-// The interface's Shift flag (set by its key handler).
-bool ShiftHeld(CInterface3D* ui) { return ui->shiftDown_ != 0; }
-
-// Whether `list` holds `item`.
-bool ListHolds(CParty* list, const CItem* item) {
-    for (int i = 0; i < CountOf(list); ++i)
-        if (list->items_[i] == item) return true;
-    return false;
-}
-} // namespace
 
 void CCampPages::PutOnFromStrip(CItem* item) {
     switch (page_) {
@@ -1066,18 +1077,6 @@ void CCampPages::RefreshStats() {
 
 // --- turning and choosing the hero ---------------------------------------------------------------
 
-namespace {
-// fmod(turn + sign * 2 * seconds, 2 pi) through the game's _CIfmod, which computes it on the FPU.
-constexpr float kCampFullTurn = /*007C7EE8*/ 6.2831855f;
-float TurnedBy(double seconds, float turn, bool backwards) {
-    const double twice = seconds + seconds;
-    const double turned = backwards ? turn - twice : twice + turn;
-    return static_cast<float>(std::fmod(turned, kCampFullTurn));
-}
-
-constexpr int kHeroClass = 0x32;
-} // namespace
-
 void CCampPages::Update() {
     UpdateBase();
     int turning = turning_;
@@ -1092,28 +1091,6 @@ void CCampPages::Update() {
         std::memcpy(&heroTurn_, &turned, 4);
     }
 }
-
-namespace {
-// From the current hero, step until a record of the hero class (fatal after more steps than there are
-// records).
-template <typename Step>
-int FindHero(int start, Step step) {
-    CParty* party = PlayerParty();
-    int i = start;
-    for (int tries = 0;;) {
-        int count = std::ssize(party->members_);
-        if (tries > count) {
-            game::FatalError("ERROR: no human personages in the party.\n");
-            break;
-        }
-        i = step(i, count);
-        ++tries;
-        PartyUnitRecord* record = &party->members_[i];
-        if (PrototypeObjectClass(record->texts[5].c_str()) == kHeroClass) break;
-    }
-    return i;
-}
-} // namespace
 
 void CCampPages::NextHero() {
     int i = FindHero(hero_, [](int at, int count) { return at + 1 >= count ? 0 : at + 1; });

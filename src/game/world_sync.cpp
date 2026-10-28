@@ -95,10 +95,6 @@ bool OutOfView(const float* point, const CPlayerServer* state) {
     return distance >= range;
 }
 
-} // namespace
-
-namespace {
-
 // The map objects a player should know: around its camera (or all of them), its own units, the
 // objects named in scripts, and every unit within hearing range of one of its units. `out` is the
 // write cursor into g_collected.
