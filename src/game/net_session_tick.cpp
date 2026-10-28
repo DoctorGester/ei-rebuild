@@ -229,9 +229,6 @@ void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
 namespace net {
 
 namespace {
-// The handler vectors' destructor (the vector base's: the storage freed), as the CRT's eh vector
-// destructor iterator takes it.
-constexpr auto HandlerVectorDestructor = libcrt::Element<stlp::VectorAbi<MessageHandler>::DestroyBase>;
 // The clients list: its nodes and sentinel go back to the pool.
 } // namespace
 
@@ -251,9 +248,6 @@ SessionBase::~SessionBase() {
         }
         socket_.SendTo(&connection->address_, buffer);
     }
-    libcrt::DestroyElements(handlers_[2], sizeof(HandlerVector), kMessageTypes, HandlerVectorDestructor);
-    libcrt::DestroyElements(handlers_[1], sizeof(HandlerVector), kMessageTypes, HandlerVectorDestructor);
-    libcrt::DestroyElements(handlers_[0], sizeof(HandlerVector), kMessageTypes, HandlerVectorDestructor);
     socket_.Destruct();
     types_.byType.Destroy();     // clear, the buckets
     types_.byVtable.Destroy();   // clear, the buckets

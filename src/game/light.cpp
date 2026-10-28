@@ -125,16 +125,11 @@ int CLight::GetClassId() { return 10; }
 CLightFactory::CLightFactory() {
     held_ = nullptr;
     unused_CC = 0;
-    auto* sentinel = static_cast<std::list<int>::iterator >(stlp::allocate(sizeof(std::list<int>::iterator)));
-    sentinel->next = sentinel;
-    sentinel->prev = sentinel;
-    litIds_.end() = sentinel;
     std::memset(unused_B0, 0, sizeof(unused_B0));
     unused_D0 = 1;
 }
 
 CLightFactory::~CLightFactory() {
-    litIds_.clear();
     unused_CC = 0;
     if (held_) held_->Release();
 }

@@ -116,8 +116,8 @@ void CTextureDevice::BuildFormatTable() {
     largestFormatId_ = 0;
     formats_.Resize(0x40);
     largestFormatId_ = 0;
-    for (auto* node = textureFormats_.begin(); node != textureFormats_.end(); node = node->next) {
-        PixelFormat* format = &node->data;
+    for (PixelFormat& entry : textureFormats_) {
+        PixelFormat* format = &entry;
         const auto* described = reinterpret_cast<const DDPIXELFORMAT*>(format);
         std::uint32_t id;
         if (described->dwFlags & DDPF_FOURCC) {
@@ -191,9 +191,6 @@ CTextureDevice::CTextureDevice(HWND window, GUID* driver, int fullScreen, int wi
                                int refreshRate, unsigned backBuffers, int /*depthBits*/, int /*stencilBits*/)
     : CDXDirectDraw(window, driver, fullScreen, width, height, bitsPerPixel, refreshRate, backBuffers, 1),
       depth_(nullptr), depth2_(nullptr), deviceGuid_{}, pipeline_(nullptr) {
-    std::construct_at(&devices_);
-    std::construct_at(&depthFormats_);
-    std::construct_at(&textureFormats_);
     formats_.InitBuckets(100);
     largestFormatId_ = 0;
     material_ = nullptr;

@@ -26,7 +26,7 @@ class ChunkArchive;
 // instead, with the same result) and resizes it to the count of fields 1; each string is the next occurrence
 // of field 1.
 template <typename Text>
-void InlineStrings(ChunkArchive* ar, int id, stlp::vector<Text>* strings);
+void InlineStrings(ChunkArchive* ar, int id, std::vector<Text>* strings);
 
 // One gold roll of a prototype's loot: an amount between `minimum` and `maximum`, dropped when a percent roll
 // is within `chance`.

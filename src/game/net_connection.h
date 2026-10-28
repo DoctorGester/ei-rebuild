@@ -24,8 +24,6 @@ struct IdPool {
 
     // A returned id (the last one) if any, else ++next.
     std::uint16_t Allocate();
-    // Copy constructor.
-    IdPool* CopyFrom(const IdPool& other);
 };
 static_assert(sizeof(IdPool) == 0x10);
 

@@ -20,16 +20,6 @@
 
 namespace net {
 
-namespace {
-
-// The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4). The game flow at 0x7AFE20
-// (world_briefing.cpp, world_game.cpp): loading a zone's quests. vector<string> (library): the block free.
-void __fastcall NamesFree(std::string* a0, std::size_t a1) { stlp::deallocate(a0, a1 * sizeof(std::string)); }
-
-
-
-} // namespace
-
 // Empties queuedMaps_ and variables_, queues a map message (name + suffix) on the first, replaces map_ by a fresh
 // one and copies the name into it and into mapName_, loads the map into the world and announces its title. Then,
 // when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's names (inline,
@@ -123,8 +113,6 @@ void ServerSession::QueueMapList() {
         }
         LoadZoneQuests(zone->data());
     }
-    for (std::string* zone = zones.data(); zone != zones.data() + zones.size(); ++zone) std::destroy_at(zone);
-    NamesFree(zones.begin(), static_cast<std::size_t>(zones.EndOfStorage() - zones.begin()));
 }
 
 // When the held map message names `name`: drops it, empties the queued messages

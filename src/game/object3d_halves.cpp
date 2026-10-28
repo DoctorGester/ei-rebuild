@@ -117,8 +117,6 @@ CFigureMesh* CObject3DServer::FindPartOfType(int) { return nullptr; }
 // --- The wounds material and the stage copies ---------------------------------------------------------
 
 WoundsMaterial::~WoundsMaterial() {
-    stages.clear();
-    stages.FreeStorage();
     if (CRenderPreset* old = preset) {
         if (--old->refs_ == 0) delete old;
     }

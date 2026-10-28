@@ -60,8 +60,6 @@ constexpr std::int16_t kFrameMarked = 3;    // marked objects
 CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
 int LocalSide() { return LocalView()->Owner()->playerId_; }
 
-using IdNode = std::list<int>::iterator;
-
 // Builds the mesh entries in order. Each entry is one quad block (positions), four vertex
 // records and its indices: three for a unit (one triangle), six for the other markers.
 class MarkerWriter {
@@ -241,8 +239,7 @@ void CHudMap::BuildMarkers() {
     int unitCount = view ? view->partyUnitIds_.size : 0;
     CLightFactory* markers = TheLightFactory();
     const std::list<int>& marked = markers->litIds_;
-    int markedCount = 0;
-    for (IdNode* node = marked.begin(); node != marked.end(); ++node) ++markedCount;
+    const int markedCount = static_cast<int>(marked.size());
     int exitCount = TheClientWorld()->exits_.size;
     int playerCount = IsMultiplayerClient() ? view->otherUnitIds_.size : 0;
 
@@ -281,11 +278,11 @@ void CHudMap::BuildMarkers() {
         out.Show(frame);
     }
 
-    IdNode* node = marked.begin();
+    auto node = marked.begin();
     for (int i = 0; i < markedCount; ++i, ++node) {
         if (node == marked.end()) break;
         out.BeginQuad();
-        CLight* light = markers->LightWithId((*node));
+        CLight* light = markers->LightWithId(static_cast<unsigned>(*node));
         float x, y;
         if (light && out.Place(light->localPosition_.x, light->localPosition_.y, &x, &y)) {
             out.PutSquare(x, y);

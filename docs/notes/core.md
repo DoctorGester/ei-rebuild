@@ -275,11 +275,12 @@ to which template:
   arrays (`PointBuffer`, `UvBuffer`, `FaceBuffer`, `BlockBuffer`, `DwordBuffer`; 00452AF0, 0044FBB0, 0044F410, 0044F1D0,
   0044F1B0), `CUiRegion::points_`, unit_skins' texture set bytes. The animation / figure loader copies (0044F1B0-00454A30)
   are in aligned_arrays.cpp (element types `Blob<K>`).
-- STLport `vector`, `hash_map`, `list`, `map` (strings are std::string; stlp::string is gone): `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
+- STLport `vector`, `hash_map`, `list`, `map` (strings are std::string; stlp::string is gone; vectors and lists of
+  plain elements are std, see C14b below): `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
   next, prev, `data`); the instantiations keep their own insert / erase / clear, reached as free or static `__fastcall`
   forwarders (world_client_maps `GridOpsA/B`, `PlainOps`, `CellOps`; the text manager's 004E1530 / 004E1550 / 004E1590 /
   004DE930 / 004DEAF0 / 004DEB60). `vector<T>` has `Start` / `Finish` / `EndOfStorage` references for code that inlines
-  the original's reserve / push_back (unit_skins, party_records' `NamedPartyRecords`). The device's mesh buffers
+  the original's reserve / push_back (party_records' `NamedPartyRecords`). The device's mesh buffers
   (007AEDE0-007AEE3C): `src/game/device_buffers.h`.
 - Scene loader: `scene::VtArray` is `CArray<char, RawElements<char>>`, an untyped view of the caller's record arrays
   (meshes, nodes, helpers, figures, bone links), resized only through `Typed<...>` (the CArray of the same layout with the
@@ -547,6 +548,39 @@ to which template:
   helper defined elsewhere (CStream::ReadInto in exit_area.cpp) fails to link there; use a local helper.
 - Checked by: the build (every changed call shape is a compile error or a /W4 warning first), the function vectors
   (`CScript::Load` / Tokenize / the script copies replay the loader's string handling), both suites with goldens.
+
+## Containers: STLport vector and list to std (C14b)
+
+- `stlp::vector<T>` and `stlp::list<T>` with a std-equivalent element policy (`PlainElement`, `ObjectElement` of a
+  string or CString, `Element<T>`) are `std::vector<T>` / `std::list<T>`. A one-off script did the retype and the
+  call shapes the compiler reports (the ticket's scratch folder, `retype_containers.py`, not committed); the hand
+  finished the rest. Kept as stlp: the record vectors and lists with their own element policy (record_vectors.h,
+  record_lists, the `*Element` structs: records without real special members), counted or held elements
+  (`CEngineObject*`, `CMapObject*` with HeldObject, `CSpell*`, RefPtr), lists held as a raw sentinel pointer
+  (CUnitClientSpecific::speech, SessionBase::clients_), and the hash tables / maps (their bucket vector is
+  stlp::vector). A std container inside a kept record is handled by the record's policy (record_members.h's
+  CopyMember / AssignMember / DefaultMember overloads for std::vector; destroy_at in the record's Destroy).
+- Lifetimes: a container member of a class with a real constructor and destructor is the compiler's (no
+  construct_at / destroy_at, no clear before the end). A container in raw storage (a StaticObject, a class built by
+  `Construct()` on `operator_new_as` storage, a record in an stlp container) is built and destroyed by hand with
+  `std::construct_at` / `std::destroy_at`. Destroying a std::list twice frees its sentinel twice; an element loop
+  before a destroy_at of the vector destroys the elements twice (two such were in the script's output: the hero
+  screen's voices and the exchange screen's names).
+- constinit vector globals with game-order exit functions (item_stock's scratch vectors, the frame's draw lists,
+  the quest files, the zone table, the fog's dead cells): the exit function is `lib::FreeVector(v)` (swap with an
+  empty one), so the C++ destructor at our CRT's exit finds nothing to free. A std::list is not constinit (its
+  constructor allocates the sentinel): the global lists are `lib::StaticObject<std::list<T>>` (static_lists.cpp)
+  with Construct / Destroy. named_data's TYPES has `std::vector` ('III', zero is empty); STATIC_OBJECT_BYTES keeps
+  game.exe's 4-byte list ranges for the std::list StaticObjects (ours are 8 bytes, zero storage).
+- What the inlined STLport bodies did is the std member: reserve / push_back / resize / erase(begin, end) / the
+  list's clear and destructor walks. `std::next(end())` is no way to the first node (`head->next` came out of the
+  script as that; fixed to begin()). The STLport sorts replicated in stl_sorts take pointers: vectors pass `data()`.
+  The hash_map's operator[] builds its value in place (`new (&n->value) Value()`), so a value holding a std::vector
+  (RenderPresetRecord) is constructed, not assigned over raw memory. StringListPair (the item stock's recipe map) is
+  a std::list.
+- Layout: std::vector is 12 bytes like STLport's; std::list is 8 (STLport's 4), so offsets after a retyped list move
+  (the stlp batch's precedent: such layout asserts go). Archive formats are element-wise (ChunkArchive's string
+  vectors, InlineStrings), so their bytes do not change.
 
 ## Open items
 

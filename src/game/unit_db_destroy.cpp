@@ -30,12 +30,8 @@ void DestroyString(Text* s) {
     std::destroy_at(s);
 }
 
-// The inline ~vector<string> of the records: _Destroy, then the storage (the node pool's deallocate of the
-// capacity in whole elements).
-void DestroyStringVector(std::vector<std::string>* v) {
-    DestroyStringRange(v->data(), v->data() + v->size());
-    v->FreeStorage();
-}
+// The inline ~vector<string> of the records.
+void DestroyStringVector(std::vector<std::string>* v) { std::destroy_at(v); }
 
 } // namespace
 

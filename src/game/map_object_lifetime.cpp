@@ -301,7 +301,7 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
             }
         }
         int id = light->id_;
-        stlp::ListRemoveInt(&TheLightFactory()->litIds_, id);
+        TheLightFactory()->litIds_.remove(id);
         light.Assign(nullptr);
     }
     owner = nullptr;

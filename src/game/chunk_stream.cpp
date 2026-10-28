@@ -41,13 +41,6 @@ void ReadCounted(Chunk* chunk, void* data, std::uint32_t size) {
     chunk->consumed_ += static_cast<int>(size);
 }
 
-// The decoder: two byte vectors, the decoded text and the coded input.
-using ByteVector = std::vector<std::uint8_t>;
-struct TextDecoder {
-    ByteVector text;
-    ByteVector input;
-};
-
 } // namespace
 
 Chunk::~Chunk() = default;
@@ -226,26 +219,17 @@ mfc::CString* Chunk::ReadString(mfc::CString* out) {
 // The content read into the decoder's input (resized to it, zero-filled) in one read, then decoded.
 mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
     std::uint32_t length = static_cast<std::uint32_t>(size_ - kHeader);
-    TextDecoder decoder;
-    std::construct_at(&decoder.text);
-    std::construct_at(&decoder.input);
-    std::uint8_t zero = 0;
-    std::uint32_t had = static_cast<std::uint32_t>(decoder.input.size());
-    if (length < had)
-        decoder.input.erase(decoder.input.begin() + length, decoder.input.end());
-    else
-        decoder.input.insert(decoder.input.end(), length - had, zero);
+    MobScriptDecoder decoder;
+    decoder.input.resize(length, 0);
     FileRead(File(), decoder.input.data(), length);
     if (parent_) parent_->Advance(static_cast<int>(length));
     consumed_ += static_cast<int>(length);
     {
         mfc::CString text;
-        reinterpret_cast<MobScriptDecoder*>(&decoder)->Decode(&text);
+        decoder.Decode(&text);
         text::FromAssetText(&text);   // the scripts' literals in UTF-8 with EI_UTF8
         std::construct_at(out, text);
     }
-    std::destroy_at(&decoder.input);
-    std::destroy_at(&decoder.text);
     return out;
 }
 

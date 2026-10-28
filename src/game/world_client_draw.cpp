@@ -110,9 +110,6 @@ float LandscapeDrawRadius() {
 }
 
 void VectorClear(std::vector<CMapObject*>* v) { v->clear(); }
-CMapObject** VectorCopyBack(CMapObject** first, CMapObject** last, CMapObject** out) {
-    return stlp::CopyElements<CMapObject*>(first, last, out);
-}
 
 // The object margin around the camera when collecting what to draw (100.0).
 float ObjectsDrawMargin() { return 100.0f /*0073BAB0*/; }
@@ -174,8 +171,7 @@ void SortByModel(FrameList list) {
 
 template <typename Draw>
 void DrawEach(FrameList list, Draw draw) {
-    CMapObject** end = FrameObjects(list).end();
-    for (CMapObject** p = FrameObjects(list).begin(); p != end; ++p) draw(*p);
+    for (CMapObject* object : FrameObjects(list)) draw(object);
 }
 // The drawn objects' three figure draw virtuals with the scene context; their results are ignored. The
 // new renderer learns which object the meshes of a figure draw belong to (its shadow map's casters).
@@ -466,15 +462,7 @@ int CWorldClient::DrawPass() {
     std::list<ScreenEntry>& queued = screenEntries_;
     if (flags_ & 0xC0) {
         ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
-        using Node = std::list<ScreenEntry>::iterator;
-        Node node = queued.begin();
-        while (node != queued.end()) {
-            Node current = node;
-            node = node->next;
-            stlp::deallocate(current, 32);
-        }
-        queued.begin() = queued.end();
-        std::prev(queued.end()) = queued.end();
+        queued.clear();
         SetRenderState(renderer, 19, 5);
         SetRenderState(renderer, 20, 6);
         SetRenderState(renderer, 27, 1);
@@ -551,13 +539,12 @@ int CWorldClient::DrawPass() {
     // Selection markers (list7BC_ of object ids) in single-player mode 1 with units drawn: a marker at
     // each living object (at its named part when it has one); dead ones leave the list.
     std::list<int>& selected = list7BC_;
-    if (!ListEmpty(selected) && GameMode() == 1 && (flags_ & 0x80)) {
+    if (!selected.empty() && GameMode() == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
         TheSceneRenderer()->SetTexture(0, nullptr);
         CMapObjectManager* manager = manager40_;
         using Node = std::list<int>::iterator;
-        Node head = selected.end();
-        for (Node node = std::next(head); node != head;) {
+        for (Node node = selected.begin(); node != selected.end();) {
             Node next = std::next(node);
             int id = (*node);
             auto* object = manager->FindObjectAs<CMapObject>(static_cast<unsigned>(id));
@@ -583,7 +570,7 @@ int CWorldClient::DrawPass() {
                         object->attached->Unused25(0);
                         object->attached->SetLit(0);
                     }
-                    std::list<int>::Erase(node);
+                    selected.erase(node);
                 }
             }
             node = next;
@@ -594,17 +581,10 @@ int CWorldClient::DrawPass() {
     static const FrameList kCopied[] = {FrameList::Visible54,    FrameList::VisibleOther, FrameList::Visible5D,
                                         FrameList::VisibleUnits, FrameList::Visible52,    FrameList::Shadow54,
                                         FrameList::ShadowOther};
-    for (FrameList list : kCopied) {
-        std::vector<CMapObject*>& v = FrameObjects(list);
-        v.Finish() = VectorCopyBack(v.data() + v.size(), v.data() + v.size(), v.data());
-    }
-    std::vector<CMapObject*>& shadow5D = FrameObjects(FrameList::Shadow5D);
-    shadow5D.clear();
-    std::vector<CMapObject*>& shadowUnits = FrameObjects(FrameList::ShadowUnits);
-    shadowUnits.clear();
-    std::vector<CMapObject*>& shadow52 = FrameObjects(FrameList::Shadow52);
-    shadow52.Finish() = VectorCopyBack(shadow52.data() + shadow52.size(), shadow52.data() + shadow52.size(), shadow52.data());
-    std::vector<CMapObject*>& touchedModels = FrameObjects(FrameList::TouchedModels);
-    touchedModels.clear();
+    for (FrameList list : kCopied) FrameObjects(list).clear();
+    FrameObjects(FrameList::Shadow5D).clear();
+    FrameObjects(FrameList::ShadowUnits).clear();
+    FrameObjects(FrameList::Shadow52).clear();
+    FrameObjects(FrameList::TouchedModels).clear();
     return 1;
 }

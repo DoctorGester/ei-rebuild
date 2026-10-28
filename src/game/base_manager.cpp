@@ -170,11 +170,11 @@ void CBaseManager::Destroy() {
     ForEachObject(objects_, [](CEngineObject* o) { ++o->refCount_; });
     IdList ids;
     ForEachObject(objects_, [&ids](CEngineObject* o) {
-        ids.insert(ids.end(), o->id_);
+        ids.push_back(o->id_);
         o->Destroy();
     });
-    for (IdNode* n = ids.begin(); n != ids.end(); ++n) {
-        if (ObjectMap::Node* found = objects_.Find(static_cast<unsigned>((*n)))) found->value->Release();
+    for (const auto id : ids) {
+        if (ObjectMap::Node* found = objects_.Find(static_cast<unsigned>(id))) found->value->Release();
     }
     ids.clear();
     objectList_.RemoveAll();

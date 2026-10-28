@@ -7,15 +7,14 @@
 
 namespace stlp {
 
-StringListPair* StringListPair::Construct(const std::string& firstValue, const list<void*>& secondValue) {
+StringListPair* StringListPair::Construct(const std::string& firstValue, const std::list<void*>& secondValue) {
     std::construct_at(&key, firstValue);
-    mapped.Construct();
-    list<void*>::InsertRange(mapped.End(), secondValue.First(), secondValue.End());
+    std::construct_at(&mapped, secondValue);
     return this;
 }
 
 void StringListPair::Destruct() {
-    mapped.Destroy();
+    std::destroy_at(&mapped);
     std::destroy_at(&key);
 }
 

@@ -111,8 +111,8 @@ int TutorialFrameShift(const CHelpWindow* window) {
 } // namespace
 
 void CHelpWindow::ShowPage() {
-    pulsing_.ClearWith([](CUiMesh**) {});
-    pictures_.ClearWith([](CUiMesh**) {});
+    pulsing_.clear();
+    pictures_.clear();
     ClearSurfaces();
     ClearRegions();
     ClearSceneObjects();
@@ -230,8 +230,7 @@ void CHelpWindow::ShowPage() {
         int y = 0;
         UiSurfaceGetDC(body);
         body->Clear();
-        for (auto* node = entries.begin(); node != entries.end(); node = node->next) {
-            const PageEntry& entry = node->data;
+        for (const PageEntry& entry : entries) {
             bool withPicture = false;
             if (entry.picture.size() != 0 && pictures < kMaxPictures) {
                 if (pass == 0) {

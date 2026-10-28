@@ -168,7 +168,6 @@ CWorldClient::~CWorldClient() {
     objectGrid_.Resize(1, 1);
     FreeGrid(objectGrid_);
     lineLists_.Destroy();
-    hits_.FreeStorage();
     dynamicNodes_.Destroy();
     dynamicObjects_.vtable = mfc::impl::ClientObjectListClass::Vtable();
     dynamicObjects_.RemoveAll();

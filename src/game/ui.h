@@ -1502,7 +1502,6 @@ public:
     // The client's party ids: players with a unit, the camera's player, the others.
     using IdVector = std::vector<int>;
     struct PartyIds {
-        PartyIds* Construct();
         // Both id vectors hold the same ids in the same order (the camera's id is not compared).
         bool Equals(const PartyIds& other) const;
 
@@ -2187,10 +2186,7 @@ static_assert(offsetof(CMessageBox, title_) == 0x164);
 class CHelpWindow : public CUiContainer {
 public:
     CHelpWindow(CInterface3D* ui, bool message, const std::string& text, int page)
-        : CUiContainer(ui), message_(message), text_(text), page_(page) {
-        std::construct_at(&pulsing_);
-        std::construct_at(&pictures_);
-    }
+        : CUiContainer(ui), message_(message), text_(text), page_(page) {}
     ~CHelpWindow() override;
     BOOL Draw(CSceneRenderer* pass) override;
     void CloseScreen() override { Close(); }

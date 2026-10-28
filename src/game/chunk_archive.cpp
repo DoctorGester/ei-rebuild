@@ -407,8 +407,8 @@ void ChunkArchive::Close(CStream* stream) {
         data->Clear();
         Current()->Reset();
         while (!saved_.empty()) {
-            CRefCounted* object = (*saved_.begin());
-            SavedList::Erase(saved_.begin());
+            CRefCounted* object = saved_.front();
+            saved_.pop_front();
             std::uint32_t vtable;
             std::memcpy(&vtable, object, 4);
             const ClassRegistry::ClassIdMap::Node* found = Registry().classIds.Find(vtable);

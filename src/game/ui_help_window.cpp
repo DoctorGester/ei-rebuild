@@ -92,8 +92,8 @@ void CHelpWindow::CreateScreen() {
 }
 
 void CHelpWindow::Close() {
-    pulsing_.ClearWith([](CUiMesh**) {});
-    pictures_.ClearWith([](CUiMesh**) {});
+    pulsing_.clear();
+    pictures_.clear();
     ClearSurfaces();
     ClearRegions();
     ClearSceneObjects();
@@ -112,7 +112,7 @@ void CHelpWindow::Update() {
     std::uint32_t r = static_cast<std::uint32_t>(Clamp255(static_cast<int>(rest + alphaStored)));
     std::uint32_t gb = static_cast<std::uint32_t>(Clamp255(static_cast<int>(rest)));
     std::uint32_t colour = a << 24 | r << 16 | gb << 8 | gb;
-    for (auto* node = pulsing_.begin(); node != pulsing_.end(); node = node->next) node->data->flatColour_ = colour;
+    for (CUiMesh* mesh : pulsing_) mesh->flatColour_ = colour;
 }
 
 void CHelpWindow::Finish() {

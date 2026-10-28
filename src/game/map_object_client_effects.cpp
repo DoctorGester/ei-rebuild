@@ -168,7 +168,7 @@ void DropLight(CMapObjectClientSpecific* self) {
     self->HideLight();
     self->light->flags_ |= kLightHeld;
     int id = self->light->id_;
-    stlp::ListRemoveInt(&TheLightFactory()->litIds_, id);
+    TheLightFactory()->litIds_.remove(id);
     CEngineObject* old = self->light;
     self->light = nullptr;
     if (old) old->Release();

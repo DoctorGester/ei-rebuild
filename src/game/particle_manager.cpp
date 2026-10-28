@@ -70,7 +70,7 @@ void ReleaseHeld(CParticleManager* manager, Pick drop) {
         ids.push_back(id);
         object->Release();
     }
-    for (std::list<int>::iterator  n = ids.begin(); n != ids.end(); ++n) {
+    for (std::list<int>::iterator n = ids.begin(); n != ids.end(); ++n) {
         if (CParticleManager::HeldMap::Node* node = manager->held_.Find((*n))) manager->held_.Erase(node);
     }
     EndWalk(it);

@@ -15,30 +15,24 @@
 
 namespace {
 
-// Emptying a vector of strings (a piece of the vector archive the NPC serialiser inlines).
-template <typename Text>
-void StringsClear(stlp::vector<Text>* strings) {
-    strings->template EraseRange<stlp::ObjectElement<Text>>(strings->begin(), strings->end());
-}
-
 void Dword(ChunkArchive* ar, int id, void* data) { ar->Field(id, data, 4); }
 
 } // namespace
 
 template <typename Text>
-void InlineStrings(ChunkArchive* ar, int id, stlp::vector<Text>* strings) {
+void InlineStrings(ChunkArchive* ar, int id, std::vector<Text>* strings) {
     if (!ar->EnterChunk(id)) return;
     int count;
     if (ar->loading_) {
-        StringsClear(strings);
+        strings->clear();
         count = ar->CountChunks(1);
-        strings->template ResizeDefault<stlp::ObjectElement<Text>>(static_cast<std::uint32_t>(count));
+        strings->resize(static_cast<std::uint32_t>(count));
     } else {
         count = static_cast<int>(strings->size());
     }
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
-        ar->CStringField(1, &strings->begin()[i]);
+        ar->CStringField(1, &(*strings)[i]);
     }
     ar->LeaveChunk();
 }

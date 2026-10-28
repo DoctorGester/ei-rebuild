@@ -27,6 +27,7 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
+#include <algorithm>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -116,12 +117,8 @@ LoadedFiles& QuestFiles() { return g_questFiles; }
 constinit std::vector<std::string> g_questFiles = /*007AFDD0*/ {};
 constinit std::vector<std::string> g_questFolders = /*007AFDC0*/ {};
 
-namespace {
-using QuestStrings = stlp::VectorAbi<std::string, stlp::ObjectElement<std::string>>;
-} // namespace
-
-void __cdecl DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }
-void __cdecl DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }
+void __cdecl DestroyQuestFiles() { lib::FreeVector(g_questFiles); }
+void __cdecl DestroyQuestFolders() { lib::FreeVector(g_questFolders); }
 
 void GameFlow::ForgetBriefing(const char* briefing) {
     CPlayer* player = TheClientWorld()->LocalView()->player_;
@@ -201,9 +198,7 @@ bool __stdcall LoadZoneQuests(const char* zone) {
     if (ServerRuns()) ShareQuestFile(path.data(), file.c_str());
     // A file already loaded is not loaded again.
     LoadedFiles& files = QuestFiles();
-    std::string* listed = files.data();
-    while (listed != files.end() && !(*listed == path)) ++listed;
-    if (listed == files.end()) {
+    if (std::find(files.begin(), files.end(), path) == files.end()) {
         files.push_back(path);
         texts->AddSource(path.data());
     }

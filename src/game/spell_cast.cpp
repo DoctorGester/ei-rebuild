@@ -44,21 +44,6 @@ void AddScaledPositive(float& field, float strength, float base) {
     if (field <= 0.0f) field = 0.0f;
 }
 
-// Returns every node of the list to the node allocator's free list and leaves it empty. The sentinel is
-// re-read on every step.
-void FreeModifierNodes(SpellModifierList& list) {
-    SpellModifierNode node = list.begin();
-    if (node != list.end()) {
-        do {
-            SpellModifierNode current = node;
-            ++node;
-            if (current) libcrt::NodeDeallocate(current, sizeof(SpellModifierNode));
-        } while (node != list.end());
-    }
-    list.begin() = list.end();
-    std::prev(list.end()) = list.end();
-}
-
 // The code letters of a modifier record.
 char Letter(const itemdb::SpellModifierRecord* modifier, int i) { return modifier->code[i]; }
 } // namespace
@@ -88,7 +73,7 @@ CSpell* CSpell::Clone(CSpellManager* manager) {
 
 int CSpellContainer::Create() {
     prototype_ = nullptr;
-    FreeModifierNodes(modifiers_);
+    modifiers_.clear();
     Spell()->Create();
     return 1;
 }
@@ -96,7 +81,7 @@ int CSpellContainer::Create() {
 void CSpellContainer::Destroy() {
     ClearState();
     prototype_ = nullptr;
-    FreeModifierNodes(modifiers_);
+    modifiers_.clear();
     Spell()->Destroy();
 }
 
@@ -247,9 +232,9 @@ CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const S
     if (!constructor->BeginConstruct(prototype))
         return game::FatalErrorAs<CSpell>(kCantBegin, prototype->code.c_str());
     int added = 0;
-    for (SpellModifierNode node = modifiers->begin(); node != modifiers->end(); ++node) {
+    for (itemdb::SpellModifierRecord* modifier : *modifiers) {
         if (added >= 8) break;
-        constructor->AddModifier((*node));
+        constructor->AddModifier(modifier);
         ++added;
     }
     if (!constructor->EndConstruct()) return game::FatalErrorAs<CSpell>(kCantEnd);

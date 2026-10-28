@@ -97,11 +97,8 @@ void CInterface3D::DestroyBody() {
     std::destroy_at(&savedText_);
     std::destroy_at(&messageText_);
     helpTopics_.Destroy();
-    messages_.clear();
     std::destroy_at(&messages_);
-    if (stack_.data()) {
-        std::destroy_at(&stack_);
-    }
+    std::destroy_at(&stack_);
 }
 
 void console::ConsoleWindow::DestroyBody() {

@@ -347,7 +347,7 @@ void COptionsWindow::CommitBinding() {
         binding->keys_.push_back(pressedKey_);   // on overflow
         RebuildKeysText(*binding);
         if (other) {
-            for (const UiKeyName** key = other->keys_.data(); key != other->keys_.data() + other->keys_.size(); ++key) {
+            for (auto key = other->keys_.begin(); key != other->keys_.end(); ++key) {
                 if (*key != pressedKey_) continue;
                 other->keys_.erase(key);
                 RebuildKeysText(*other);

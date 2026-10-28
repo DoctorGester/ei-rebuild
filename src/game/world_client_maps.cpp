@@ -159,11 +159,6 @@ RadiusFunctor* RadiusFunctor::Mark(stlp::list<Footprint>::Node* first, stlp::lis
     return this;
 }
 
-void ScreenHits::InsertOverflow(ScreenEntry* position, const ScreenEntry* value, int count) {
-    std::vector<ScreenEntry>::InsertOverflow<stlp::PlainElement<ScreenEntry>>(position, *value,
-                                                                              static_cast<std::size_t>(count));
-}
-
 namespace {
 
 // The hit test of the object's side half for the point: CollectBounds or CollectParts.
@@ -173,8 +168,8 @@ using HitTest = int (CObject3DSpecific::*)(const long* point);
 // object still exists and answers `test` go to `hits`.
 HitCollector* CollectHits(HitCollector* out, ScreenEntryNode first, ScreenEntryNode last, ScreenHits* hits, LONG x,
                           LONG y, CMapObjectManager* manager, HitTest test) {
-    for (ScreenEntryNode node = first; node != last; node = node->next) {
-        const ScreenEntry* entry = &node->data;
+    for (ScreenEntryNode node = first; node != last; ++node) {
+        const ScreenEntry* entry = &*node;
         POINT pt = {x, y};
         if (!PtInRect(&entry->rect, pt)) continue;
         CMapObject* object = manager->FindMapObject(entry->objectId);
@@ -182,7 +177,7 @@ HitCollector* CollectHits(HitCollector* out, ScreenEntryNode first, ScreenEntryN
         LONG point[2] = {x, y};
         CObject3DSpecific* half = object->Object3D()->Specific();
         if (!(half->*test)(point)) continue;
-        hits->PushBack(entry);
+        hits->push_back(*entry);
     }
     out->hits = hits;
     return out;
@@ -495,14 +490,7 @@ void CWorldClient::ClearMaps() {
     dynamicNodes_.Clear();
     dynamicMaxId_ = 0;
 
-    std::list<int>& records = list7BC_;
-    for (std::list<int>::iterator  node = records.begin(); node != records.end();) {
-        std::list<int>::iterator  next = std::next(node);
-        if (node) stlp::deallocate(node, 0xC);
-        node = next;
-    }
-    records.begin() = records.end();
-    std::prev(records.end()) = records.end();
+    list7BC_.clear();
 
     PlainList& heroes = heroes_;
     for (SectorListNode* node = heroes.head->next; node != heroes.head;) {
@@ -539,12 +527,12 @@ using Collect = HitCollector* (HitCollector::*)(ScreenEntryNode, ScreenEntryNode
                                                 CMapObjectManager*);
 CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
     ScreenHits& hits = client->hits_;
-    hits.Finish() = hits.Start();
+    hits.clear();
     CMapObjectManager* manager = client->MapObjectManager();
     std::list<ScreenEntry>& screen = client->screenEntries_;
     HitCollector functor;
     (functor.*collect)(screen.begin(), screen.end(), &hits, point->x, point->y, manager);
-    if (hits.begin() == hits.end()) return nullptr;
+    if (hits.empty()) return nullptr;
 
     // sort(begin, end, DepthLess{top of the view stack, objects}), the introsort loop's first level inlined.
     const float* plane = ScenePipeline()->Top(CTransformPipeline::kViewStack)->m;
@@ -581,7 +569,7 @@ namespace {
 CUnit* FirstUnitHit(CWorldClient* client, CMapObject* object) {
     while (object->GetClassId() != world::kClassUnit) {
         do {
-            if (++client->hitCursor_ == client->hits_.end()) return nullptr;
+            if (++client->hitCursor_ == client->hits_.data() + client->hits_.size()) return nullptr;
             object = client->manager40_->FindMapObject(client->hitCursor_->objectId);
         } while (!object);
     }
@@ -603,8 +591,8 @@ CUnit* CWorldClient::UnitAt2(const POINT* point) {
 }
 
 void CWorldClient::UnitsInBox(const tagRECT* rect, stlp::list<CMapObject*>* out) {
-    for (ScreenEntryNode node = screenEntries_.begin(); node != screenEntries_.end(); node = node->next) {
-        CMapObject* object = manager40_->FindMapObject(node->data.objectId);
+    for (ScreenEntryNode node = screenEntries_.begin(); node != screenEntries_.end(); ++node) {
+        CMapObject* object = manager40_->FindMapObject(node->objectId);
         if (!object) continue;
         if (!object->Object3D()->Specific()->PartsIntersectRect(rect)) continue;
         SectorList::Insert(out->End(), object);
@@ -891,7 +879,7 @@ void CWorldClient::Destroy() {
     for (int x = 0; x < static_cast<int>(grid.width_); ++x)
         for (int y = 0; y < static_cast<int>(grid.height_); ++y)
             CellOps::Clear(&grid.rows_[y][x]);
-    EmptyList(list7BC_, [](std::list<int>::iterator  node) { stlp::deallocate(node, 12); });
+    list7BC_.clear();
     EmptyList(heroes_, [](SectorListNode* node) {
         if (node->data) node->data->Release();
         stlp::deallocate(node, 12);
@@ -960,14 +948,14 @@ void CWorldClient::Deselect(CMapObject* object) {
             CMapObject* found = objects->FindMapObject(static_cast<unsigned>((*node)));
             if (found && (found->flags_ & 0x10)) Unhighlight(found);
         }
-        EmptyList(selected, [](Node node) { stlp::deallocate(node, 12); });
+        selected.clear();
         return;
     }
     const int id = object->id_;
     Node node = selected.begin();
     while (node != selected.end() && (*node) != id) ++node;
     if (node == selected.end()) return;
-    std::list<int>::Erase(node);
+    selected.erase(node);
     if (object->flags_ & 0x10) Unhighlight(object);
 }
 
@@ -1162,22 +1150,7 @@ int CWorldClient::Create() {
 
     if (SpellManager()) ReferenceEveryObject(SpellManager());
 
-    ScreenHits& entries = hits_;
-    if (entries.Capacity() < 400) {
-        int count = static_cast<int>(entries.size());
-        ScreenEntry* block;
-        if (entries.begin()) {
-            block = std::vector<ScreenEntry>::AllocateAndCopy<stlp::PlainElement<ScreenEntry>>(
-                400, entries.begin(), entries.end());
-            if (ScreenEntry* old = entries.data())
-                stlp::deallocate(old, static_cast<std::size_t>(entries.EndOfStorage() - old) * sizeof(ScreenEntry));
-        } else {
-            block = gamecrt::operator_new_array<ScreenEntry>(400);
-        }
-        entries.Start() = block;
-        entries.Finish() = block + count;
-        entries.EndOfStorage() = block + 400;
-    }
+    hits_.reserve(400);
     nextClientObjectId_ = -100000;
     cave_ = 0;
     partyDanger_ = 0;

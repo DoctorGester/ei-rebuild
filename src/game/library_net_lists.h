@@ -59,13 +59,12 @@ struct PacketRecordElement {
 
 using FreedIds = net::FreedIds;
 
-// _M_create_node's copy: vector's copy constructor (room for exactly size() ids, none when empty). Destroyed
-// with its storage back to the pool, by its capacity. insert(pos) copies an empty vector.
+// _M_create_node's copy: vector's copy constructor. insert(pos) copies an empty vector.
 struct FreedIdsElement {
     static void Copy(FreedIds* to, const FreedIds& from) {
         std::construct_at(to, from);
     }
-    static void Destroy(FreedIds* p) { p->FreeStorage(); }
+    static void Destroy(FreedIds* p) { std::destroy_at(p); }
     static void Default(FreedIds* p) { std::construct_at(p); }
 };
 

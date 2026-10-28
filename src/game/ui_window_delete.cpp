@@ -103,8 +103,6 @@ void ChatLine::Destroy() {
 CChatOverlay::~CChatOverlay() { DestroyList(lines_, [](ChatLine* line) { line->Destroy(); }); }
 
 CBattleScreen::~CBattleScreen() {
-    FreeVectorStorage(clientParty_.without.begin(), clientParty_.without.EndOfStorage());
-    FreeVectorStorage(clientParty_.withUnit.begin(), clientParty_.withUnit.EndOfStorage());
     DestroyPersonTexts(personTexts_);
     heroes_.vtable = DwordArrayVtable();
     heroes_.FreeData();
@@ -148,17 +146,11 @@ CMpConnectScreen::~CMpConnectScreen() {
     entries_.FreeStorage();
 }
 
-CHelpWindow::~CHelpWindow() {
-    DestroyList(pictures_, [](CUiMesh**) {});
-    DestroyList(pulsing_, [](CUiMesh**) {});
-}
+CHelpWindow::~CHelpWindow() {}
 
 CObjectivesWindow::~CObjectivesWindow() {
-    FreeVectorStorage(questPlaces_.begin(), questPlaces_.EndOfStorage());
     exits_.vtable = ObjectiveExitsVtable();
     if (exits_.data) gamecrt::operator_delete(exits_.data);
-    for (mfc::CString* zone = zones_.data(); zone != zones_.data() + zones_.size(); ++zone) std::destroy_at(zone);
-    FreeVectorStorage(zones_.begin(), zones_.EndOfStorage());
 }
 
 CSaveLoadWindow::~CSaveLoadWindow() {

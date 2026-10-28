@@ -193,8 +193,6 @@ bool HeroCanUseSpell(UnitStats* stats, CSpell* spell);
 
 // A voice of the hero screen.
 struct MpVoiceEntry {
-    void Destroy();
-
     std::string file;
     std::string name;
 };

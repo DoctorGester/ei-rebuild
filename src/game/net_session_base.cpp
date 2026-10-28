@@ -60,9 +60,6 @@ SessionBase::SessionBase() {
     types_.byVtable.Construct(100);
     types_.byType.Construct(100);
     socket_.Construct();
-    // 3 x 256 empty handler vectors (the element constructor only zeroes them).
-    for (auto& channel : handlers_)
-        for (HandlerVector& v : channel) v = HandlerVector{};
     time_ = 0.0;
     frame_ = 1;
     magic_ = 0;
@@ -73,13 +70,7 @@ SessionBase::SessionBase() {
 
 void SessionBase::AddHandler(int channel, std::uint32_t type, MessageHandler handler) {
     if (channel < 0 || channel >= kChannels) return;
-    HandlerVector& v = handlers_[channel][type & 0xFF];
-    if (v.end() == v.EndOfStorage()) {
-        v.push_back(handler);
-        return;
-    }
-    if (v.end()) *v.Finish() = handler;
-    ++v.Finish();
+    handlers_[channel][type & 0xFF].push_back(handler);
 }
 
 void SessionBase::AddHandlerForPrototype(Message* prototype, int channel, MessageHandler handler) {

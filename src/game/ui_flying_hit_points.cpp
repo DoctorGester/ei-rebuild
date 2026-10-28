@@ -25,37 +25,25 @@
 #include <string>
 
 namespace {
-using Node = std::list<FlyingHitPoint>::iterator;
 constexpr std::uint32_t kDelayed = 8;
 constexpr std::uint32_t kDelay = 500;   // ms
 } // namespace
 
 CFlyingHitPoints* CFlyingHitPoints::Construct() {
-    auto* sentinel = stlp::allocate_as<Node>();
-    points_.end() = sentinel;
-    std::next(sentinel) = sentinel;
-    std::prev(sentinel) = sentinel;
+    std::construct_at(&points_);
     texture_ = nullptr;
     return this;
 }
 
 void CFlyingHitPoints::Destruct() {
     if (texture_) texture_->Release();
-    points_.clear();
     std::destroy_at(&points_);
 }
 
 void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
     if (!target || amount < 0) return;
     std::uint32_t time = (flags & kDelayed) ? gameapi::timeGetTime() + kDelay : gameapi::timeGetTime();
-    // list::insert(end, value) (the node made).
-    auto* node = stlp::allocate_as<Node>();
-    (*node) = FlyingHitPoint{target, amount, flags, time};
-    Node* head = points_.end();
-    std::next(node) = head;
-    std::prev(node) = std::prev(head);
-    std::next(std::prev(head)) = node;
-    std::prev(head) = node;
+    points_.push_back(FlyingHitPoint{target, amount, flags, time});
 }
 
 // --- drawing -------------------------------------------------------------------------------------
@@ -117,15 +105,6 @@ struct QuadBuffer {
     }
 };
 
-// list::erase: the node unlinked and back to the pool. Returns the next one.
-Node* Erase(Node* node) {
-    Node* next = std::next(node);
-    std::next(std::prev(node)) = next;
-    std::prev(next) = std::prev(node);
-    stlp::deallocate(node, sizeof(Node));
-    return next;
-}
-
 // Where the unit was drawn: the screen rectangle of its first "hd", "bd" or "hp" part's own mesh
 // (part flag 0x40), else the unit's; null when it has none of those parts.
 const RECT* UnitScreenRect(CUnit* unit) {
@@ -151,16 +130,11 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     if (!texture_) return 0;
     if (!renderer->SetTexture(0, texture_)) return game::FatalError(game::FlyingHitPointsTextureText());
 
-    Node* head = points_.end();
-    for (Node* node = std::next(head); node != head;) {
-        if (static_cast<int>(now - node->time) > kLifetime) node = Erase(node);
-        else ++node;
-    }
+    points_.remove_if([now](const FlyingHitPoint& point) { return static_cast<int>(now - point.time) > kLifetime; });
     if (!ShowHitNumbersOption()) return 1;
 
     const float width = static_cast<float>(targetWidth), height = static_cast<float>(targetHeight);
-    for (Node* node = std::next(head); node != head; ++node) {
-        const FlyingHitPoint& point = (*node);
+    for (const FlyingHitPoint& point : points_) {
         // The age as a fraction of the lifetime, stored as float.
         float age = static_cast<float>(static_cast<float>(static_cast<int>(now - point.time)) * kPerMillisecond);
         if (age > 1.0f || age < 0.0f) continue;   // integer-sourced: never NaN
@@ -241,9 +215,6 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     }
 
     // Markers are shown once.
-    for (Node* node = std::next(head); node != head;) {
-        if (node->flags & kMarker) node = Erase(node);
-        else ++node;
-    }
+    points_.remove_if([](const FlyingHitPoint& point) { return (point.flags & kMarker) != 0; });
     return 1;
 }

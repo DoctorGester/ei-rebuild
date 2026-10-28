@@ -16,38 +16,12 @@
 
 namespace {
 
-// list<CItem*>'s constructor (inlined): a sentinel node from the node pool linked to itself.
-void ListConstruct(StockList* list) {
-    auto* head = stlp::allocate_as<StockListNode>();
-    list->end() = head;
-    std::next(head) = head;
-    std::prev(head) = head;
-}
-
-// Each listed item goes to `party` (keeping its count, merged with an equal one) and is released;
-// then the nodes and the sentinel go back to the pool (the clear and destructor inlined).
-void HandOverAndFree(StockList* list, CParty* party) {
-    StockListNode head = list->end();
-    for (StockListNode node = std::next(head); node != head; ++node) {
-        CItem* item = (*node);
+// Each listed item goes to `party` (keeping its count, merged with an equal one) and is released.
+void HandOver(const StockList& list, CParty* party) {
+    for (CItem* item : list) {
         party->AddItem(item, 1, 1);
         item->Release();
     }
-    for (StockListNode node = std::next(head); node != head;) {
-        StockListNode next = std::next(node);
-        stlp::deallocate(node, sizeof(StockListNode));
-        node = next;
-    }
-    std::next(head) = head;
-    std::prev(head) = head;
-    stlp::deallocate(head, sizeof(StockListNode));
-}
-
-template <typename T>
-void VectorConstruct(stlp::vector<T>* v) {
-    v->Start() = nullptr;
-    v->Finish() = nullptr;
-    v->EndOfStorage() = nullptr;
 }
 
 } // namespace
@@ -55,12 +29,6 @@ void VectorConstruct(stlp::vector<T>* v) {
 ItemStock* ItemStock::Construct(CParty* owner) {
     context = owner;
     classIndex = 0;
-    VectorConstruct(&armors);
-    VectorConstruct(&weapons);
-    VectorConstruct(&quickItems);
-    VectorConstruct(&materials);
-    VectorConstruct(&spells);
-    VectorConstruct(&modifiers);
     // The maps' constructors as the template's constructor inlines them (_M_initialize_buckets(100)).
     spellMap.ConstructBuckets(100);
     modifierMap.ConstructBuckets(100);
@@ -84,13 +52,6 @@ void ItemStock::Destruct() {
     context = nullptr;
     modifierMap.Destroy();
     spellMap.Destroy();
-    // _Vector_base's destructors: the storage back to the node allocator (operator delete above 128 bytes).
-    std::destroy_at(&modifiers);
-    std::destroy_at(&spells);
-    materials.FreeStorage();
-    std::destroy_at(&quickItems);
-    std::destroy_at(&weapons);
-    std::destroy_at(&armors);
 }
 
 ClassTemplate::~ClassTemplate() {
@@ -110,7 +71,6 @@ void ClassTemplate::SetLevels(const float* base, const float* scroll) {
 void __fastcall ClassTemplateGenerateItems(ClassTemplate* t) {
     if (!t->flag0C) return;
     StockList list;
-    ListConstruct(&list);
     t->ItemsParty()->Clear(1, 0);
     ItemStock& stock = t->allowed;
     stock.classIndex = t->type - 1;
@@ -123,18 +83,17 @@ void __fastcall ClassTemplateGenerateItems(ClassTemplate* t) {
     stock.GenerateArmorInstructions(1, 3, &list);
     stock.GenerateQuickItemInstructions(1, 3, &list);
     stock.GenerateMaterials(20, 50, &list);
-    HandOverAndFree(&list, t->ItemsParty());
+    HandOver(list, t->ItemsParty());
 }
 
 void __fastcall ClassTemplateGenerateMagic(ClassTemplate* t) {
     if (!t->flag0D) return;
     StockList list;
-    ListConstruct(&list);
     t->SpellsParty()->Clear(1, 0);
     ItemStock& stock = t->magic;
     stock.classIndex = t->type - 1;
     stock.GenerateScrolls(40, 50, &list);
     stock.GenerateSpellInstructions(1, 3, &list);
     stock.GenerateModifierInstructions(20, 50, &list);
-    HandOverAndFree(&list, t->SpellsParty());
+    HandOver(list, t->SpellsParty());
 }

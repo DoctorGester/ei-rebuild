@@ -31,7 +31,6 @@ namespace {
 
 // The nodes of the servers list, the waiting addresses and the server's pending joins.
 using ServerNode = stlp::SharedRefList::Node;
-using AddressNode = std::list<NetAddress>::iterator;
 using JoinNode = std::list<PendingJoin>::iterator;
 ServerEntry* EntryOf(ServerNode* node) { return stlp::SharedRefListOf<ServerEntry>::At(node); }
 
@@ -307,11 +306,9 @@ void ClientBase::Refresh() {
     NetAddress address{};
     for (unsigned i = 0; socket_.Broadcast(&address, i, g_gamePort); ++i)
         SendPing(&address);
-    AddressNode* sentinel = waiting_.end();
-    if (std::next(sentinel) != sentinel) {
-        AddressNode* first = std::next(sentinel);
-        NetAddress next = (*first);
-        waiting_.Erase(first);
+    if (!waiting_.empty()) {
+        NetAddress next = waiting_.front();
+        waiting_.pop_front();
         SendPing(&next);
         return;
     }
@@ -321,7 +318,7 @@ void ClientBase::Refresh() {
     if (index >= static_cast<std::uint32_t>(v.size())) index = 0;
     if (index < static_cast<std::uint32_t>(v.size())) SendPing(&v[index].address);
     if (alwaysAsk_.ip != 0) {
-        waiting_.Insert(waiting_.end(), alwaysAsk_);
+        waiting_.push_back(alwaysAsk_);
     }
 }
 
@@ -437,7 +434,7 @@ void ClientBase::AddServer(ServerEntry* entry) {
         HolderInit(&holder, entry);
         servers_.Insert(servers_.End(), holder);
     }
-    waiting_.Insert(waiting_.end(), entry->address_);
+    waiting_.push_back(entry->address_);
 }
 
 // Unless already asking that host: a new join id (rand() << 16 | GetTickCount() & 0xFFFF), the
@@ -552,27 +549,26 @@ bool ServerBase::Admit(const NetAddress*, std::uint8_t**, std::uint8_t*) { retur
 // becomes a connection (with the id and rate of its join), then counts.
 bool ServerBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     if (SessionBase::OnUpdate(from, cursor)) return true;
-    JoinNode* sentinel = joins_.end();
-    JoinNode* node = std::next(sentinel);
-    while (node != sentinel && !SameAddress(&node->address, from)) ++node;
-    if (node == sentinel) return false;
-    PendingJoin& join = (*node);
+    JoinNode node = joins_.begin();
+    while (node != joins_.end() && !SameAddress(&node->address, from)) ++node;
+    if (node == joins_.end()) return false;
+    PendingJoin& join = *node;
     AddClient(&join.address, join.id, join.rate);
-    joins_.Erase(node);
+    joins_.erase(node);
     return SessionBase::OnUpdate(from, cursor);
 }
 
 // Ages the pending joins (dropping those older than the join timeout, logged), then
 // the session's receive step.
 void ServerBase::Tick(double dt) {
-    JoinNode* node = joins_.end()->next;
+    JoinNode node = joins_.begin();
     while (node != joins_.end()) {
         float& age = node->age;
         double sum = static_cast<double>(age) + dt;
         age = static_cast<float>(sum);
         if (sum > static_cast<double>(60.0f /*0073BF9C*/)) {
             LogAddressLine("Accept period elapsed for ", &node->address);
-            node = joins_.Erase(node);
+            node = joins_.erase(node);
         } else {
             ++node;
         }
@@ -616,11 +612,10 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
         return;
     }
 
-    JoinNode* sentinel = joins_.end();
-    JoinNode* node = std::next(sentinel);
-    while (node != sentinel && !SameAddress(&node->address, from)) ++node;
-    if (node != sentinel) {
-        PendingJoin& join = (*node);
+    JoinNode node = joins_.begin();
+    while (node != joins_.end() && !SameAddress(&node->address, from)) ++node;
+    if (node != joins_.end()) {
+        PendingJoin& join = *node;
         if (id != join.id) {
             join.id = id;
             LogAddressLine("WARNING: LinkID mismatch from ", from);
@@ -639,7 +634,7 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
         join.id = id;
         join.rate = rate;
         join.age = 0.0f;
-        joins_.Insert(joins_.end(), join);
+        joins_.push_back(join);
         SendAccepted(this, from, id);
         return;
     }

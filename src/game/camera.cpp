@@ -482,17 +482,17 @@ void CCamera::Update(float dt) {
 
     if (shakes_.empty()) return;
     float offset = 0.0f;
-    for (ShakeList::iterator  node = shakes_.begin(); node != shakes_.end();) {
-        CameraShake* s = &node->data;
+    for (ShakeList::iterator node = shakes_.begin(); node != shakes_.end();) {
+        CameraShake* s = &(*node);
         double damping = x87::fexp(-(D(s->decay) * s->elapsed));
         double wave = x87::fcos(D(camera::kHalfPi) * s->elapsed * kShakeFrequency);
         offset = static_cast<float>(wave * damping * s->amplitude + offset);
         double elapsed = D(dt) + s->elapsed;
         s->elapsed = static_cast<float>(elapsed);
         if (elapsed >= s->duration)
-            node = ShakeList::Erase(node);
+            node = shakes_.erase(node);
         else
-            node = node->next;   // also NaN
+            ++node;   // also NaN
     }
     localPosition_.z = static_cast<float>(D(offset) + localPosition_.z);
 }

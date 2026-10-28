@@ -641,8 +641,6 @@ void DestroyArray(Array* array, void* vtable) {
 
 CGlobalMap::~CGlobalMap() {
     arrivals_.Destroy();
-     *
-                                        sizeof(GlobalMapStep));
     DestroyArray(&quests_, GlobalMapPathArrayClass::Vtable());
     DestroyArray(&links_, GlobalMapPointArrayClass::Vtable());
     DestroyArray(&zones_, GlobalMapZoneArrayClass::Vtable());

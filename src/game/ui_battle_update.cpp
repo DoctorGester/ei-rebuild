@@ -180,7 +180,6 @@ void RebuildClientParty(CBattleScreen* screen) {
     net::ClientSession* session = net::GameClient();
     const auto& players = session->players_;
     PartyIds ids;
-    ids.Construct();
     ids.camera = -1;
     for (auto* node = players.First(); node != players.End(); node = node->next) {
         net::PlayerMessage* player = players.At(node);
@@ -236,8 +235,6 @@ void RebuildClientParty(CBattleScreen* screen) {
         screen->clientParty_.camera = ids.camera;
         screen->clientParty_.without = ids.without;
     }
-    std::destroy_at(&ids.without);
-    std::destroy_at(&ids.withUnit);
 }
 
 // Frees a list's nodes and empties it (the header is freed by the caller).
@@ -317,7 +314,7 @@ void CBattleScreen::Update() {
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
                 if (party->data[i] != node->data) continue;
-                inside.insert(inside.end(), static_cast<std::uintptr_t>(i));   // end, insert
+                inside.push_back(static_cast<std::uintptr_t>(i));
             }
         }
         auto mark = [](CUnit* unit, int on) { unit->Object3D()->attached->SetLit(on); };
@@ -329,7 +326,7 @@ void CBattleScreen::Update() {
                 mark(unit, 0);
             }
         }
-        for (ListNode* node = inside.begin(); node != inside.end(); ++node) {
+        for (ListNode node = inside.begin(); node != inside.end(); ++node) {
             auto* unit = party->data[(*node)];
             std::uint32_t flags = unit->flags_;
             if (!(flags & 0x10) && !(flags & 0x100)) {
@@ -337,8 +334,6 @@ void CBattleScreen::Update() {
                 mark(unit, 1);
             }
         }
-        FreeListNodes(&inside);
-        if (inside.end()) NodeFree(inside.end(), 0xC);
         FreeListNodes(&units);
         if (units.head) {
             stlp::PushSmallNode(units.head);
@@ -406,7 +401,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
                 if (party->data[i] != node->data) continue;
-                inside.insert(inside.end(), static_cast<std::uintptr_t>(i));   // end, insert
+                inside.push_back(static_cast<std::uintptr_t>(i));
                 if (first < 0) first = i;
             }
         }
@@ -425,7 +420,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 marker(i)->visible_ = 0;
                 slot(i).restB_ = kHudRestRotation;
             }
-            for (ListNode* node = inside.begin(); node != inside.end(); ++node) {
+            for (ListNode node = inside.begin(); node != inside.end(); ++node) {
                 int i = static_cast<int>((*node));
                 marker(i)->visible_ = 1;
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
@@ -442,8 +437,6 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     }
     RefreshSelection();
     boxSelecting_ = false;
-    FreeListNodes(&inside);
-    if (inside.end()) NodeFree(inside.end(), 0xC);
     FreeListNodes(&units);
     if (units.head) {
         stlp::PushSmallNode(units.head);

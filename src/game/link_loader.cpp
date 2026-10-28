@@ -187,8 +187,6 @@ CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u
     }
     for (std::string* part = names.data(); part != names.data() + names.size(); ++part)
         RemorphPart(mesh, set, part, s, t, u);
-    names.clear();
-    names.FreeStorage();
     return mesh;
 }
 

@@ -154,11 +154,7 @@ CCampPages::~CCampPages() {
 
 // --- Screen 9's destructor ------------------------------------------
 
-// The figure names (vector<CString>): the strings, then the storage through STLport's node allocator;
-// then the item screen's.
-CExchangeScreen::~CExchangeScreen() {
-    for (mfc::CString* at = names_.data(); at != names_.data() + names_.size(); ++at) std::destroy_at(at);
-}
+CExchangeScreen::~CExchangeScreen() {}
 
 // --- Moving items between lists ----------------------------------------------
 

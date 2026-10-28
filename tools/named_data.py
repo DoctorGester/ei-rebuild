@@ -121,6 +121,7 @@ TYPES = {
     # numbers. A template's arguments do not change the layout: TYPES names the template (element_format).
     'lib::AlignedArray': 'Iiii',   # containers.h: data, size, capacity, growBy
     'stlp::vector': 'III',         # stlp_vector.h: start, finish, end of storage
+    'std::vector': 'III',          # MSVC's: first, last, end of storage (zero is empty, as STLport's)
     'LineBuffer': 'Iiii',          # renderer_lines.h: an aligned array of line vertices
     # A global constructed by its hand-ported static initialiser (lib/static_object.h): zero storage before it.
     'lib::StaticObject<mfc::CString>': 'I',
@@ -165,7 +166,8 @@ def braced(text, start):
 
 # The size of the T of a `lib::StaticObject<T>` (zero storage; a static_assert next to the definition keeps it true).
 STATIC_OBJECT_BYTES = {
-    'stlp::list<std::uint8_t>': 4, 'stlp::list<DirectDrawDriver>': 4, 'stlp::list<CMapObject*>': 4,
+    # game.exe's lists are the 4-byte sentinel pointer; ours (std::list, 8 bytes) start zero all the same
+    'std::list<std::uint8_t>': 4, 'std::list<DirectDrawDriver>': 4, 'stlp::list<CMapObject*>': 4,
     'itemdb::SpellDatabase': 0x64, 'itemdb::ItemDatabase': 0xC0, 'QuestDatabase': 0x40, 'PrintsDatabase': 0x60,
     'acks::AckDatabase': 0x60, 'SkillDatabase': 0x18, 'UnitDatabase': 0x80, 'LeverRecordTable': 0x20,
     'PartyManager': 0x44, 'SavedParties': 0x84, 'FootprintCellSet': 0x54, 'IntSet': 0x14, 'UnreadSet': 0x14,

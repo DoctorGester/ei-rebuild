@@ -11,8 +11,6 @@
 
 #include "game_singletons.h"
 
-#include <list>
-
 namespace {
 constexpr std::uint32_t kFlagTalking = 0x800000;      // the server unit's flags_ while it speaks
 constexpr int kKindTalking = 0x2B;
@@ -24,7 +22,7 @@ constexpr int kSpeechPriority = 1;
 constexpr int kSpeechVolume = 100;
 
 // The queue is list<ClientSpeech>: its insert, its erase.
-using SpeechList = std::list<ClientSpeech>;
+using SpeechList = stlp::list<ClientSpeech>;
 
 // The kinds a queued speech gives way to: (new kind, queued kind).
 bool Replaces(int kind, int queued) {

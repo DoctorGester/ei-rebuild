@@ -17,9 +17,8 @@
 
 namespace net {
 
-IdPool* __fastcall IdPoolConstruct(IdPool* self);   // below
 namespace {
-// An id pool's destructor: its vector of free ids freed.
+// An id pool's destructor (Reset's teardown): its vector of free ids freed.
 void __fastcall IdPoolDestruct(IdPool* pool) { std::destroy_at(&pool->free); }
 // The CRT's eh vector constructor / destructor iterators take them as libcrt::Element<...>.
 using libcrt::Element;
@@ -65,7 +64,7 @@ void DestroyForReset(Connection* c) {
 Connection::Connection(std::uint32_t id) {
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
     address_ = NetAddress{};
-    libcrt::ConstructElements(idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolConstruct>, Element<IdPoolDestruct>);
+    for (IdPool& pool : idPools_) pool.next = 0;
     freedIds_.Construct();
     bySentId_.ConstructWith(&tags[3], &tags[2]);
     byObject_.ConstructWith(&tags[2], &tags[3]);
@@ -146,8 +145,6 @@ Connection::~Connection() {
     stlp::deallocate(bySentId_.end(), 24);
     freedIds_.Clear<FreedIdsElement>();
     stlp::deallocate(freedIds_.End(), sizeof(FreedBatch));
-    libcrt::DestroyElements(idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolDestruct>);
-    FreeReceived(this);
 }
 
 } // namespace net
@@ -163,14 +160,12 @@ Connection::Connection(const Connection& other)
     sendSequence_ = other.sendSequence_;
     lastReceived_ = other.lastReceived_;
     sequenceHigh_ = other.sequenceHigh_;
-    // vector(const vector&): room for exactly size() sequences, copied.
-    received_.ConstructWithCapacity(other.received_.size());
-    received_.Finish() = stlp::CopyTrivial(other.received_.begin(), other.received_.end(), received_.begin());
+    received_ = other.received_;
     // id, round trips; timers, clock, budget: copied as dwords.
     std::memcpy(&id_, &other.id_, offsetof(Connection, address_) - offsetof(Connection, id_));
     address_ = other.address_;
     std::memcpy(&sendInterval_, &other.sendInterval_, offsetof(Connection, idPools_) - offsetof(Connection, sendInterval_));
-    for (int i = 0; i < kMessageTypes; ++i) idPools_[i].CopyFrom(other.idPools_[i]);
+    for (int i = 0; i < kMessageTypes; ++i) idPools_[i] = other.idPools_[i];
     freedIds_.CopyConstruct<FreedIdsElement>(other.freedIds_);
     freedTimer_ = other.freedTimer_;
     bySentId_.CopyConstruct(&other.bySentId_);
@@ -193,19 +188,6 @@ Connection::Connection(const Connection& other)
 // ---- Id pools and replica entries ---------------------------------------------------------------------
 
 namespace net {
-
-IdPool* IdPool::CopyFrom(const IdPool& other) {
-    std::construct_at(&free);
-    std::size_t count = other.free.size();
-    std::uint16_t* block = count ? static_cast<std::uint16_t*>(NodeAllocate(count * 2)) : nullptr;
-    free.Start() = block;
-    free.Finish() = block;
-    free.EndOfStorage() = block + count;
-    std::memmove(block, other.free.data(), count * 2);
-    free.Finish() = block + count;
-    next = other.next;
-    return this;
-}
 
 namespace {
 // The entry's counted object pointer released as the original inlines it (16-bit count; slot 0
@@ -243,13 +225,5 @@ int ReplicaEntry::OnShutdown() {
 }
 
 ReplicaEntry::~ReplicaEntry() { ReleaseEntryObject(this); }
-
-// An empty id pool (no free ids, next 0); the connection's constructor passes it to the vector constructor
-// iterator.
-IdPool* __fastcall IdPoolConstruct(IdPool* self) {
-    std::construct_at(&self->free);
-    self->next = 0;
-    return self;
-}
 
 } // namespace net

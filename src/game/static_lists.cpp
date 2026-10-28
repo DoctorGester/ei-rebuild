@@ -23,18 +23,16 @@ constinit std::uint8_t g_driversDestroyed = /*007AEE60*/ 0;   // the driver list
 
 namespace static_lists {
 
-void __stdcall ConstructDirectDrawDrivers() { std::construct_at(g_directDrawDrivers); }
+void __stdcall ConstructDirectDrawDrivers() { g_directDrawDrivers.Construct(); }
 
 void __stdcall ConstructDeferredUnits() { g_deferredUnits->Construct(); }
 
 namespace {
-void __cdecl DestroyProtectionChecks() {
-    stlp::ListAbi<std::uint8_t>::Destruct(&g_protectionChecks.Get());
-}
+void __cdecl DestroyProtectionChecks() { g_protectionChecks.Destroy(); }
 void __cdecl DestroyDrivers() {
     if (g_driversDestroyed & 1) return;
     g_driversDestroyed = static_cast<std::uint8_t>(g_driversDestroyed | 1);
-    stlp::ListAbi<DirectDrawDriver>::Destruct(&g_directDrawDrivers.Get());
+    g_directDrawDrivers.Destroy();
 }
 void __cdecl DestroyDeferredUnits() { SectorListDestruct(&g_deferredUnits.Get()); }
 } // namespace

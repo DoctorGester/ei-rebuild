@@ -17,19 +17,7 @@
 #include <memory>
 #include <new>
 
-namespace {
-} // namespace
-
 // --- The battle screen's members constructed by CreateScreen 1 ---------------------------------------
-
-CBattleScreen::PartyIds* CBattleScreen::PartyIds::Construct() {
-    for (IdVector* ids : {&withUnit, &without}) {
-        ids->Start() = nullptr;
-        ids->Finish() = nullptr;
-        ids->EndOfStorage() = nullptr;
-    }
-    return this;
-}
 
 LockKey* LockKey::ConstructItemUseKey() {
     mask = 1;
@@ -106,9 +94,7 @@ CScreenFade* CScreenFade::Construct() {
 }
 
 CInterface3D* CInterface3D::Construct() {
-    stack_.Start() = nullptr;
-    stack_.Finish() = nullptr;
-    stack_.EndOfStorage() = nullptr;
+    std::construct_at(&stack_);
     std::construct_at(&messages_);
     helpTopics_.Construct();
     std::construct_at(&messageText_);

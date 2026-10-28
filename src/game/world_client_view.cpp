@@ -10,6 +10,7 @@
 #include "map_object_shadow.h"
 #include "object_tables.h"
 #include "lib/stlp_algo.h"
+#include "lib/static_object.h"
 #include "terrain.h"
 
 #include <cmath>
@@ -322,7 +323,7 @@ BOOL ModelUseLess::Less(CMapObject* a, CMapObject* b) {
 // ---- The frame's draw lists (world.h) ------------------------------------------------------------
 
 // Empty at the start, as the static initialisers leave them (in the list's order: the last list
-// first); the exit functions they register free their storage through ~vector() (docs/notes/standalone.md,
+// first); the exit functions they register free their storage (lib::FreeVector; docs/notes/standalone.md,
 // "The static initialisers' objects").
 constinit std::vector<CMapObject*> g_touchedModels = /*007AF508*/ {};
 constinit std::vector<CMapObject*> g_shadow52 = /*007AF518*/ {};
@@ -336,14 +337,14 @@ constinit std::vector<CMapObject*> g_visible5D = /*007AF588*/ {};
 constinit std::vector<CMapObject*> g_visibleOther = /*007AF598*/ {};
 constinit std::vector<CMapObject*> g_visible54 = /*007AF5A8*/ {};
 
-void __cdecl FreeTouchedModels() { std::destroy_at(&g_touchedModels); }
-void __cdecl FreeShadow52() { std::destroy_at(&g_shadow52); }
-void __cdecl FreeShadowUnits() { std::destroy_at(&g_shadowUnits); }
-void __cdecl FreeShadow5D() { std::destroy_at(&g_shadow5D); }
-void __cdecl FreeShadowOther() { std::destroy_at(&g_shadowOther); }
-void __cdecl FreeShadow54() { std::destroy_at(&g_shadow54); }
-void __cdecl FreeVisible52() { std::destroy_at(&g_visible52); }
-void __cdecl FreeVisibleUnits() { std::destroy_at(&g_visibleUnits); }
-void __cdecl FreeVisible5D() { std::destroy_at(&g_visible5D); }
-void __cdecl FreeVisibleOther() { std::destroy_at(&g_visibleOther); }
-void __cdecl FreeVisible54() { std::destroy_at(&g_visible54); }
+void __cdecl FreeTouchedModels() { lib::FreeVector(g_touchedModels); }
+void __cdecl FreeShadow52() { lib::FreeVector(g_shadow52); }
+void __cdecl FreeShadowUnits() { lib::FreeVector(g_shadowUnits); }
+void __cdecl FreeShadow5D() { lib::FreeVector(g_shadow5D); }
+void __cdecl FreeShadowOther() { lib::FreeVector(g_shadowOther); }
+void __cdecl FreeShadow54() { lib::FreeVector(g_shadow54); }
+void __cdecl FreeVisible52() { lib::FreeVector(g_visible52); }
+void __cdecl FreeVisibleUnits() { lib::FreeVector(g_visibleUnits); }
+void __cdecl FreeVisible5D() { lib::FreeVector(g_visible5D); }
+void __cdecl FreeVisibleOther() { lib::FreeVector(g_visibleOther); }
+void __cdecl FreeVisible54() { lib::FreeVector(g_visible54); }

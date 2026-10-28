@@ -313,8 +313,6 @@ void COptionsWindow::Update() {
 // --- The destructor body ------------------------------------------------------------------
 
 COptionsWindow::~COptionsWindow() {
-    for (OptionSetting& setting : settings_) std::destroy_at(&setting.text_);
-    settings_.FreeStorage();
     for (OptionBinding& binding : bindings_) binding.Destroy();
     bindings_.FreeStorage();
 }

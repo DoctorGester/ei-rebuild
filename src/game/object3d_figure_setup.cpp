@@ -290,25 +290,6 @@ constexpr int kClassUnit50 = 0x50;
 constexpr int kClassUnit54 = 0x54;
 constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
 
-// The piece names as the loader's slot 3 (LoadFigure) reads them, into an empty vector (the game
-// sizes it with helper calls and assigns each name).
-void FillPieceNames(std::vector<std::string>& pieces, const std::vector<std::string>* names) {
-    int count = static_cast<int>(names->size());
-    if (count > 0) {
-        auto* start = stlp::allocate_as<std::string>(static_cast<std::size_t>(count));
-        pieces.Start() = start;
-        for (int i = 0; i < count; ++i) {
-            std::construct_at(&start[i], (*names)[i]);
-        }
-        pieces.Finish() = start + count;
-        pieces.EndOfStorage() = pieces.data() + pieces.size();
-    }
-}
-
-void FreePieceNames(std::vector<std::string>& pieces) {
-    std::destroy_at(&pieces);
-}
-
 CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
     return object->WorldContext()->FigureLoader();
 }
@@ -326,8 +307,8 @@ int CObject3D::MakeFigure(const char* model, std::vector<std::string>* names, st
         CLinkMesh* made = FigureLoaderOf(this)->LoadLink(&key, scale.x, scale.y, scale.z, false);
         figure.Assign(made);
     } else {
-        std::vector<std::string> pieces;
-        FillPieceNames(pieces, names);
+        // The piece names as the loader's slot 3 (LoadFigure) reads them.
+        std::vector<std::string> pieces = *names;
         {
             std::string key(model, model + std::strlen(model));
             CLinkMesh* made = FigureLoaderOf(this)->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z, false);
@@ -337,7 +318,6 @@ int CObject3D::MakeFigure(const char* model, std::vector<std::string>* names, st
             // The old figure loses a reference and is deleted at the last one.
             if (old && --old->refCount_ == 0) delete old;
         }
-        FreePieceNames(pieces);
     }
     LoadParts(model, names, arg);
     int classId = GetClassId();

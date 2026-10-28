@@ -25,6 +25,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 #include <list>
 #include <memory>
 #include <string>
@@ -48,7 +49,6 @@ CBattleScreen::CBattleScreen(CInterface3D* ui) : CUiContainer(ui) {
     mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&party_);
     mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(&heroes_);
     personTexts_.Construct();
-    clientParty_.Construct();
     itemUseKey_.ConstructItemUseKey();
 }
 
@@ -201,12 +201,9 @@ void CInterface3D::Activate(CUiWindow* window) {
 void CInterface3D::ShowMessage(int force) {
     bool forced = static_cast<std::uint8_t>(force) != 0;
     if (!forced) {
-        using Node = std::list<mfc::CString>::iterator;
-        Node header = messages_.end();
-        Node node = header->next;
-        if (node == header) return;
-        std::string text = node->data.GetString();
-        messages_.Erase(node);
+        if (messages_.empty()) return;
+        std::string text = messages_.front().GetString();
+        messages_.pop_front();
         messageText_ = text;
         messageFlag_ = 0;
     }

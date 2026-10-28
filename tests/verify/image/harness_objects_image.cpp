@@ -132,12 +132,10 @@ void* UnitAt(void* world, int x, int y) {
     return static_cast<CEngineObject*>(static_cast<CWorldClient*>(world)->UnitAt(&p));
 }
 int ScreenRect(void* world, int id, RECT* rect) {
-    const std::list<ScreenEntry>& entries = static_cast<CWorldClient*>(world)->screenEntries_;
-    if (!entries.end()) return -1;
     int found = 0;
-    for (const ScreenEntryNode node = entries.begin(); node && node != entries.end(); node = node->next) {
-        if (static_cast<int>(node->data.objectId) != id) continue;
-        *rect = node->data.rect;
+    for (const ScreenEntry& entry : static_cast<CWorldClient*>(world)->screenEntries_) {
+        if (static_cast<int>(entry.objectId) != id) continue;
+        *rect = entry.rect;
         found = 1;
     }
     return found;

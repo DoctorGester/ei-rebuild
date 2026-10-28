@@ -120,8 +120,7 @@ void Connection::WriteAcks(std::uint8_t** p) {
     for (std::int32_t i = static_cast<std::int32_t>(received_.size()) - 1; i >= 0; --i) {
         std::int32_t* at = received_.data() + i;
         if (static_cast<std::uint32_t>(*at) + 0x20 < lastReceived_) {
-            for (std::int32_t* q = at; q + 1 < received_.end(); ++q) q[0] = q[1];
-            received_.pop_back();
+            received_.erase(received_.begin() + i);
         }
     }
 }
@@ -702,12 +701,7 @@ bool Connection::Accept(std::uint32_t sequence) {
         }
     }
     auto value = static_cast<std::int32_t>(sequence);
-    if (received_.end() == received_.EndOfStorage()) {
-        received_.push_back(value);
-    } else {
-        if (received_.end()) *received_.end() = value;
-        ++received_.Finish();
-    }
+    received_.push_back(value);
     return true;
 }
 

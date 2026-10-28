@@ -49,16 +49,7 @@ constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 
 using IdList = UnitIdList;
 
-// The byte distance between a vector's ends, as tested in the game (the count's bits, times 4).
-template <typename T>
-std::uintptr_t ByteSpan(stlp::vector<T>& list) {
-    return static_cast<std::uintptr_t>(list.Finish() - list.Start()) * sizeof(T);
-}
-
 // --- Helpers -------------------------------------------------------------------------------------
-
-// The storage of `a1` strings back to the pool.
-void __fastcall StringsFree(std::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * sizeof(std::string)); }
 
 // --- The dressed units ---------------------------------------------------------------------------
 
@@ -157,13 +148,11 @@ void Compose(CWorldClient* self, mfc::CString& out, SkinComposition& set, const 
 void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     const UnitPrototypeRecord* prototype = UnitPrototype(record->prototype);
     const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
-    lib::InPlace<RecordList> listStorage;
-    RecordList& list = *listStorage.Get();
-    std::construct_at(&list);
+    RecordList list;
     SkinComposition set{};
 
     const std::uint32_t* items = record->items.data();
-    if (ByteSpan(record->items) & ~std::uintptr_t{3}) {
+    if (!record->items.empty()) {
         mfc::CString built;
         UnitTextureRecords(1, record, &list);
         CopyRecords(set, list);
@@ -202,53 +191,24 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     }
 
     set.layers.FreeData();
-    list.FreeStorage();
 }
 
 // --- The other units -----------------------------------------------------------------------------
 
 using StringList = std::vector<std::string>;
-int Capacity(StringList& list) { return static_cast<int>(list.EndOfStorage() - list.data()); }
-
-// Room for `needed` strings as inlined (reserve): a copy into new storage, the old strings destroyed
-// and freed.
-void Reserve(StringList& list, int needed) {
-    int size = static_cast<int>(list.size());
-    if (!(static_cast<std::uint32_t>(Capacity(list)) < static_cast<std::uint32_t>(needed))) return;
-    std::string* storage;
-    if (list.data()) {
-        storage = StringList::AllocateAndCopy<stlp::ObjectElement<std::string>>(static_cast<std::size_t>(needed), list.data(), list.data() + list.size());
-        for (std::string* s = list.data(); s != list.data() + list.size(); ++s) std::destroy_at(s);
-        StringsFree(list.data(), Capacity(list));
-    } else {
-        storage = needed ? stlp::allocate_as<std::string>(static_cast<std::size_t>(needed)) : nullptr;
-    }
-    list.Start() = storage;
-    list.Finish() = storage + size;
-    list.EndOfStorage() = storage + needed;
-}
 
 void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     const UnitPrototypeRecord* prototype = UnitPrototype(record->prototype);
     const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
-    lib::InPlace<StringList> firstStorage;
-    lib::InPlace<StringList> secondStorage;
-    StringList& first = *firstStorage.Get();
-    StringList& second = *secondStorage.Get();
-    std::construct_at(&first);
-    std::construct_at(&second);
+    StringList first;
+    StringList second;
 
-    const mfc::CString* names = record->names.data();
-    if (!(ByteSpan(record->names) & ~std::uintptr_t{3})) {
+    if (record->names.empty()) {
         CollectArmourPartNames(prototype, &record->items, &record->extraWeapons, &first,
                                &second);
     } else {
-        int count = static_cast<int>(record->names.data() + record->names.size() - names);
-        Reserve(first, static_cast<int>(first.size()) + count);
-        for (const mfc::CString* p = record->names.data(); p != record->names.data() + record->names.size(); ++p) {
-            std::string string(p->GetString());
-            first.push_back(string);
-        }
+        first.reserve(first.size() + record->names.size());
+        for (const mfc::CString& name : record->names) first.push_back(name.GetString());
     }
     first.insert(first.end(), second.data(), second.data() + second.size());
 
@@ -257,11 +217,6 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
         // The figure loader's LoadFigure (not fresh).
         self->figureLoader_->LoadFigure(&name, &first, record->morphS, record->morphT, record->morphU, false);
     }
-
-    for (std::string* s = second.data(); s != second.data() + second.size(); ++s) std::destroy_at(s);
-    stlp::deallocate(second.data(), static_cast<std::size_t>(Capacity(second)) * sizeof(std::string));
-    for (std::string* s = first.data(); s != first.data() + first.size(); ++s) std::destroy_at(s);
-    stlp::deallocate(first.data(), static_cast<std::size_t>(Capacity(first)) * sizeof(std::string));
 }
 
 } // namespace
@@ -281,7 +236,7 @@ void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, R
     constexpr std::uint32_t kBody = 0x32, kArmourPiece = 0x3005, kWeapon = 0x3004;
     list->clear();
     auto& items = const_cast<IdList&>(record->items);
-    if ((ByteSpan(items) & ~std::uintptr_t{3}) == 0) return;
+    if (items.empty()) return;
     const TextureRecord empty = {0, kNone, kNone};
     const std::uint32_t* ids = items.data();
     if (body) {
@@ -306,7 +261,7 @@ void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, R
         out[0].itemType = static_cast<std::uint32_t>(Armour(ids[0] >> 16)->type);
     }
     auto& extra = const_cast<IdList&>(record->extraWeapons);
-    const auto count = static_cast<std::uint32_t>(ByteSpan(extra) >> 2);
+    const auto count = static_cast<std::uint32_t>(extra.size());
     const auto index = static_cast<std::uint32_t>(static_cast<int>(record->extraWeapon));
     if (index >= count) return;
     const std::uint32_t weapon = extra[index];

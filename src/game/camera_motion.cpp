@@ -174,17 +174,4 @@ void CCamera::ClampAboveObjects() {
         raised = z >= wanted ? z : wanted;
     }
     p->z = raised;
-    // The list's destructor, inlined: every node and the sentinel back to the node pool.
-    for (NearbyNode node = list.begin(); node != list.end();) {
-        NearbyNode next = std::next(node);
-        if (node) {
-            stlp::PushSmallNode(node);
-        }
-        node = next;
-    }
-    list.begin() = list.end();
-    std::prev(list.end()) = list.end();
-    if (list.end()) {
-        stlp::PushSmallNode(list.end());
-    }
 }

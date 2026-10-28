@@ -111,14 +111,9 @@ bool Connection::Tick(double dt) {
         for (FreedId* e = oldest.data(); e != oldest.data() + oldest.size(); ++e) {
             auto id = static_cast<std::uint16_t>(e->id);
             std::vector<std::uint16_t>& pool = idPools_[e->type].free;
-            if (pool.end() != pool.EndOfStorage()) {
-                stlp::ConstructAt(pool.end(), &id);
-                ++pool.Finish();
-            } else {
-                pool.push_back(id);
-            }
+            pool.push_back(id);
         }
-        oldest.Finish() = stlp::CopyElements(oldest.end(), oldest.end(), oldest.begin());   // erase(begin, end)
+        oldest.clear();
         Batches::Erase<FreedIdsElement>(freedIds_.First());
         Batches::InsertDefault<FreedIdsElement>(freedIds_.End());
     }
@@ -166,12 +161,7 @@ void Connection::Delivered(SentPacket* packet) {
                 value.id = entry->id_;
                 value.type = entry->type_;
                 FreedIds& batch = freedIds_.End()->prev->data;   // the newest batch
-                if (batch.end() != batch.EndOfStorage()) {
-                    stlp::ConstructAt(batch.end(), &value);
-                    ++batch.Finish();
-                } else {
-                    batch.push_back(value);
-                }
+                batch.push_back(value);
                 tree->EraseAt(found);
             }
         }

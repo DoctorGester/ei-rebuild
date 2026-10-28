@@ -134,7 +134,7 @@ public:
         Node* n = allocate_as<Node>();
         n->next = nullptr;
         new (&n->key) Key(key);
-        n->value = Value();
+        new (&n->value) Value();
         n->next = buckets_[b];
         buckets_[b] = n;
         ++count_;

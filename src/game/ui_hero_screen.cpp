@@ -192,16 +192,6 @@ void CMpHeroScreen::Close() {
     if (records.data) gamecrt::operator_delete(records.data);
 }
 
-// --- A voice entry's destructor -------------------------------------------------------
-
-void MpVoiceEntry::Destroy() {
-    std::destroy_at(&name);
-    std::destroy_at(&file);
-}
-namespace {
-void __fastcall VoiceEntryDestroy(MpVoiceEntry* self) { self->Destroy(); }
-} // namespace
-
 // --- The caches' objects released ----------------------------------------------------------
 
 template <typename Object>
@@ -212,18 +202,6 @@ void __fastcall ReleaseCachedObjects(ItemObjectCache<Object>* cache) {
 template void __fastcall ReleaseCachedObjects<CUiMesh>(ItemModelCache*);
 template void __fastcall ReleaseCachedObjects<CTexture>(ItemTextureCache*);
 
-// --- The destructor body -------------------------------------------------------------
-
-namespace {
-void DestroyVoices(MpVoiceVector& voices) {
-    for (MpVoiceEntry* entry = voices.data(); entry != voices.data() + voices.size(); ++entry) entry->Destroy();
-    std::destroy_at(&voices);
-}
-void DestroyStrings(mfc::CString* begin, mfc::CString* end) {
-    for (mfc::CString* at = begin; at != end; ++at) std::destroy_at(at);
-}
-} // namespace
-
 // Built inline by the main menu's Multiplayer click: the item screen, both caches
 // the name vectors, the text and the voice lists empty.
 CMpHeroScreen::CMpHeroScreen(CInterface3D* ui) : CItemScreen(ui) {
@@ -231,14 +209,7 @@ CMpHeroScreen::CMpHeroScreen(CInterface3D* ui) : CItemScreen(ui) {
     lib_trees::ConstructHeroItemCache(&textures_);
 }
 
-CMpHeroScreen::~CMpHeroScreen() {
-    DestroyVoices(voiceLists_[1]);
-    DestroyVoices(voiceLists_[0]);
-    DestroyStrings(names_.data(), names_.data() + names_.size());
-    DestroyStrings(defaults_.data(), defaults_.data() + defaults_.size());
-    stlp::deallocate(defaults_.begin(),
-                     static_cast<std::size_t>(defaults_.EndOfStorage() - defaults_.begin()) * sizeof(void*));
-}
+CMpHeroScreen::~CMpHeroScreen() {}
 
 // --- The hero list and the voices drawn -----------------------------------------------------
 

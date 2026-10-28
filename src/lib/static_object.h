@@ -44,6 +44,14 @@ private:
     alignas(T) unsigned char bytes_[sizeof(T)] = {};
 };
 
+// The exit function's part for a constinit vector (zero at the start, as game.exe's): its elements destroyed and
+// its storage freed at the game's place in the exit order, which leaves the C++ destructor an empty vector at our
+// CRT's exit.
+template <class V>
+void FreeVector(V& v) {
+    V().swap(v);
+}
+
 // A T inside its owner (a local or a member) whose constructor and destructor the owner calls itself, where
 // game.exe does (an archive on a loader's stack or in a window, built by its constructor's address and
 // destroyed through Rebirth's patched destructor): a union member, so the compiler runs neither.

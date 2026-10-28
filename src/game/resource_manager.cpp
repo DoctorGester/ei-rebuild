@@ -29,16 +29,11 @@ void CloseAll(std::vector<ArchiveEntry>& archives) {
 
 // --- Construction and destruction ---------------------------------------------------------------
 
-// The archive list has no destructor (the destructor frees it); its default constructor only nulls it.
-static_assert(std::is_trivially_destructible_v<std::vector<ArchiveEntry>>);
-
-CResourceManager::CResourceManager() { std::memset(&archives_, 0, sizeof(archives_)); }
+CResourceManager::CResourceManager() = default;
 
 CResourceManager::~CResourceManager() {
     CloseAll(archives_);
     CBaseManager::Destroy();
-    archives_.clear();
-    archives_.FreeStorage();
 }
 
 void CResourceManager::Destroy() {
@@ -78,7 +73,7 @@ BOOL CResourceManager::AddArchiveOf(const char* path, std::size_t size, CMappedR
 }
 
 BOOL CResourceManager::RemoveArchive(const char* path) {
-    for (ArchiveEntry* e = archives_.data(); e != archives_.data() + archives_.size(); ++e) {
+    for (auto e = archives_.begin(); e != archives_.end(); ++e) {
         if (!SameName(e->name, path)) continue;
         e->resource->CloseResource();
         delete e->resource;

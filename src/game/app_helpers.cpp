@@ -79,7 +79,7 @@ void __cdecl ScrambleObjects() {
 void __cdecl DelayedProtectionCheck() {
     if (Scaled(100) % 100 >= 1) return;
     ProtectionCheckList& checks = ProtectionChecks();
-    for (ProtectionCheckList::iterator  node = checks.begin(); node != checks.end(); ++node) {
+    for (ProtectionCheckList::iterator node = checks.begin(); node != checks.end(); ++node) {
         if (!(*node)) {
             ScrambleObjects();
             return;
@@ -87,7 +87,7 @@ void __cdecl DelayedProtectionCheck() {
     }
 }
 
-void __stdcall ConstructProtectionChecks() { std::construct_at(&ProtectionChecks()); }
+void __stdcall ConstructProtectionChecks() { g_protectionChecks.Construct(); }
 
 } // namespace app
 

@@ -39,10 +39,6 @@ public:
     TopicList() = default;
     TopicList(const TopicList&) = delete;
     TopicList& operator=(const TopicList&) = delete;
-    ~TopicList() {
-        list_.clear();
-        list_.FreeStorage();
-    }
     std::vector<std::string>& Get() { return list_; }
 
 private:

@@ -7,6 +7,7 @@
 #include "stlp.h"
 
 #include <cstdint>
+#include <list>
 #include <string>
 
 namespace stlp {
@@ -22,15 +23,13 @@ static_assert(sizeof(DwordPair) == 8);
 // pair<const string, list<T*>> (the trader stock's recipe map, item_stock.cpp; first and second
 // are named key and mapped, as the hash_map values are).
 struct StringListPair {
-    // pair(const string&, const list&): the string copied, then list(const list&)
-    // inlined: a sentinel, then insert(end(), first, last), one node per element in order.
-    StringListPair* Construct(const std::string& first, const list<void*>& second);
-    // ~pair (plain RET): the list's nodes and sentinel back to the pool (the nodes in
-    // order), then the string's block.
+    // pair(const string&, const list&): the string copied, then the list.
+    StringListPair* Construct(const std::string& first, const std::list<void*>& second);
+    // ~pair: the list, then the string.
     void Destruct();
 
     std::string key;
-    list<void*> mapped;
+    std::list<void*> mapped;
 };
 
 } // namespace stlp

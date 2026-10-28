@@ -804,20 +804,8 @@ using ScreenEntryNode = std::list<ScreenEntry>::iterator;
 // rectangle at the end of `queued`.
 int __fastcall QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued);
 
-// The STLport vector<ScreenEntry> the pickers fill; the collectors inline push_back.
-struct ScreenHits : std::vector<ScreenEntry> {
-    void InsertOverflow(ScreenEntry* position, const ScreenEntry* value, int count);
-    void PushBack(const ScreenEntry* entry) {
-        ScreenEntry*& finish = Finish();
-        if (finish != EndOfStorage()) {
-            if (finish) *finish = *entry;
-            ++finish;
-        } else {
-            InsertOverflow(finish, entry, 1);
-        }
-    }
-};
-static_assert(sizeof(ScreenHits) == 12);
+// The entries the pickers find.
+using ScreenHits = std::vector<ScreenEntry>;
 // The functor of the for_each over the screen entries: CollectBounds / CollectParts push to `hits` every entry whose
 // rectangle holds (x, y) and whose object (found in `manager`) answers the bounds virtual (CollectBounds) or 24
 // (CollectParts) for the point.

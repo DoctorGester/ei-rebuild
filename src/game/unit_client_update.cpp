@@ -19,7 +19,6 @@
 #include "logic_settings.h"
 
 #include <cmath>
-#include <list>
 
 namespace {
 constexpr std::uint32_t kFlagNotDrawn = 8;            // the unit's flags_
@@ -118,7 +117,7 @@ int CUnitClientSpecific::RunTick() {
             }
         } else if (delay < 0 && !SoundBusy(first->sound)) {
             if (speech->next->value.talking) SetTalking(unit, false);
-            std::list<ClientSpeech>::Erase(stlp::AsNode<ClientSpeech>(speech->next));
+            stlp::list<ClientSpeech>::Erase(stlp::AsNode<ClientSpeech>(speech->next));
         }
     }
     if (unit->secondEntry == kModeSpecialIdle && unit->Object3D()->animation->queue.count < kIdleRestartBelow)

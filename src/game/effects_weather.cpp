@@ -10,6 +10,7 @@
 #include "ei/x87.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp.h"
+#include "lib/static_object.h"
 #include "lib/mfc_coll.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -50,16 +51,12 @@ double Unsigned(std::uint32_t value) {
 }
 
 // vector<uint32> as the fog's static list of cells to drop (a function-local static: constructed on the first
-// update, its guard bit 0), with its constructor and insert-overflow.
+// update, its guard bit 0).
 using KeyVector = std::vector<std::uint32_t>;
-static_assert(sizeof(KeyVector) == 12);
-void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32_t* value, std::uint32_t count) {
-    v->InsertOverflow<stlp::PlainElement<std::uint32_t>>(pos, *value, count);
-}
 
 constinit std::vector<std::uint32_t> g_deadCells = /*007ABB58*/ {};
 std::uint8_t g_deadCellsGuard = /*007ABB64*/ {};
-void __cdecl DestroyDeadCells() { std::destroy_at(&g_deadCells); }
+void __cdecl DestroyDeadCells() { lib::FreeVector(g_deadCells); }
 
 } // namespace
 
@@ -223,7 +220,6 @@ int CVisibilityFog::UpdateCells() {
     KeyVector& dead = g_deadCells;
     if (!(g_deadCellsGuard & 1)) {
         g_deadCellsGuard |= 1;
-        std::construct_at(&dead);
         libcrt::AtExit(DestroyDeadCells);
     }
     dead.clear();
@@ -236,20 +232,11 @@ int CVisibilityFog::UpdateCells() {
             cell.alpha = cell.alpha * kHalf;
         EI_NAN_AUDIT(cell.alpha);
         if (LoadFloat(cell.alpha) < kFogMinAlpha) {
-            if (dead.data() + dead.size() == dead.EndOfStorage()) {
-                KeyVectorInsertOverflow(&dead, dead.data() + dead.size(), &n->key, 1);
-            } else {
-                if (dead.data() + dead.size()) *dead.Finish() = n->key;
-                ++dead.Finish();
-            }
+            dead.push_back(n->key);
         }
         cell.frame = static_cast<std::int8_t>((cell.frame + 1) % 15);
     });
-    std::uint32_t* end = dead.data() + dead.size();
-    for (std::uint32_t* key = dead.data(); key != end; ++key) {
-        std::uint32_t copy = *key;
-        cells.EraseKey(copy);
-    }
+    for (const std::uint32_t key : dead) cells.EraseKey(key);
     return (refCount_ > 1 || cells.Size() != 0) ? 1 : 0;
 }
 

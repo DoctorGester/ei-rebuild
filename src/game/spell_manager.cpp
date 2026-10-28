@@ -29,17 +29,6 @@ void ReleaseContainers(SpellSequence* sequence) {
         node->value->Release();
 }
 
-// The modifier list's nodes back to the node allocator; the sentinel stays, linked to itself.
-void FreeModifierNodes(SpellModifierNode sentinel) {
-    for (SpellModifierNode node = std::next(sentinel); node != sentinel;) {
-        SpellModifierNode current = node;
-        ++node;
-        stlp::deallocate(current, sizeof(SpellModifierNode));
-    }
-    std::next(sentinel) = sentinel;
-    std::prev(sentinel) = sentinel;
-}
-
 } // namespace
 
 
@@ -133,11 +122,8 @@ CSpellContainer::CSpellContainer() {
 CSpellContainer::~CSpellContainer() {
     // (ClearState is empty and called directly here.)
     prototype_ = nullptr;
-    FreeModifierNodes(modifiers_.end());
+    modifiers_.clear();
     Spell()->Destroy();
-    // The list's destructor: its (empty) clear, then the sentinel.
-    FreeModifierNodes(modifiers_.end());
-    stlp::deallocate(modifiers_.end(), sizeof(SpellModifierNode));
 }
 
 const char* CSpellContainer::GetClassName() { return "CSpellContainer"; }

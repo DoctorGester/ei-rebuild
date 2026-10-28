@@ -128,7 +128,7 @@ struct CStringFloatTraits {
 };
 
 // pair<const string, list<void*>> (the item stock's recipes by spell name): string keys as StringKeyTraits.
-// The node copies the string, then the list; deleting it frees the list's nodes, its sentinel, then the string.
+// The node copies the string, then the list; deleting it destroys the list, then the string.
 struct StringListTraits {
     using Value = StringListPair;
     using Key = std::string;
@@ -137,11 +137,10 @@ struct StringListTraits {
     static bool Equal(const Key& a, const Key& b) { return a == b; }
     static void Construct(Value* to, const Value& from) {
         std::construct_at(&to->key, from.key);
-        to->mapped.Construct();
-        list<void*>::InsertRange(to->mapped.head, from.mapped.First(), from.mapped.End());
+        std::construct_at(&to->mapped, from.mapped);
     }
     static void Destroy(Value* p) {
-        p->mapped.Release();
+        std::destroy_at(&p->mapped);
         std::destroy_at(&p->key);
     }
 };

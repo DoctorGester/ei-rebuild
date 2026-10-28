@@ -766,8 +766,6 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     CMemoryStream scripts;
     CMemoryStream text;
     MobScriptDecoder decoder;
-    std::construct_at(&decoder.text);
-    std::construct_at(&decoder.input);
     {
         mfc::CString path(mfc::CString::kUnset);   // MapPath constructs it
         MapPath(&path, mob);
@@ -789,8 +787,6 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     }
     ScriptReset(MainScript());
     MainScript()->Load(&script, 1);
-    std::destroy_at(&decoder.input);
-    std::destroy_at(&decoder.text);
 }
 
 namespace {
@@ -997,14 +993,14 @@ struct EntryPicks {
 
 } // namespace
 
-void __cdecl DestroyZoneTable() { recordvec::ZoneTableVector::Destruct(&g_zoneTable); }
+void __cdecl DestroyZoneTable() { lib::FreeVector(g_zoneTable); }
 
 void __stdcall PickZones(std::vector<std::string>* out, int id, const char* exclude) {
     const ZoneTable& table = g_zoneTable;
     int total = static_cast<int>(table.size());
     EntryPicks pending(total);
     EntryPicks group(total);
-    for (ZoneEntry* e = table.data(); e != table.data() + table.size(); ++e)
+    for (const ZoneEntry* e = table.data(); e != table.data() + table.size(); ++e)
         if (e->id == id) pending.items[pending.count++] = e;
     while (pending.count) {
         // The group of the first pending entry's second name, in table order.
@@ -1632,7 +1628,7 @@ void GameFlow::UpdateFromServer() {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);
             unsigned stamp = NodeStamp(node);
             if (stamp >= AppliedStamp() || stamp < previous) continue;
-            changed.push_back(value);
+            changed.push_back(node);
         }
         if (changed.begin() != changed.end()) {
             int depth = 0;
@@ -1744,20 +1740,6 @@ int AllodOfMap(const char* map) {
     return NameInList(kAllodMaps[kSuslanger], map) ? kSuslanger : 3;
 }
 
-// push_back of an entry with two empty names (its id is not set).
-void AppendEmptyEntry(ZoneTable& table) {
-    if (table.data() + table.size() != table.EndOfStorage()) {
-        if (table.data() + table.size()) {
-            std::construct_at(&(table.data() + table.size())->first);
-            std::construct_at(&(table.data() + table.size())->second);
-        }
-        ++table.Finish();
-        return;
-    }
-    ZoneEntry empty{};
-    table.InsertOverflow<recordvec::ZoneTableVector::Element>(table.data() + table.size(), empty, 1);
-}
-
 } // namespace
 
 void GameFlow::BuildZoneTable() {
@@ -1782,8 +1764,7 @@ void GameFlow::BuildZoneTable() {
         if (MapRecord* record = FindZone(name)) {
             map = record->map;
             const int allod = AllodOfMap(map.c_str());
-            AppendEmptyEntry(table);
-            ZoneEntry& entry = table.back();
+            ZoneEntry& entry = table.emplace_back();
             entry.first = name;
             entry.second = map;
             entry.id = allod;

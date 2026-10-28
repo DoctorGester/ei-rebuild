@@ -20,6 +20,7 @@
 #include "lib/static_object.h"
 #include "lib/nan_audit.h"
 
+#include <algorithm>
 #include <cstring>
 #include <iterator>
 #include <memory>
@@ -80,9 +81,6 @@ void Shuffle(T* first, T* last) {
 }
 
 // The callers skip a self-assignment.
-template <typename T>
-void AssignPointers(std::vector<T*>& to, const std::vector<T*>& from) { to.template AssignVector<stlp::PlainElement<T*>>(from); }
-void AssignMaterials(StockMaterialVector& to, const StockMaterialVector& from) { to = from; }
 
 // Counted by the caller.
 void Output(StockList* out, CItem* item) { out->insert(out->end(), item); }
@@ -176,10 +174,10 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
     StockPrototypeVector& taken = TakenPrototypes();
     taken.clear();   // erase(begin, end)
     if (prototypes->size() > static_cast<std::size_t>(count)) {
-        Shuffle(prototypes->begin(), prototypes->end());
+        Shuffle(prototypes->data(), prototypes->data() + prototypes->size());
         taken.insert(taken.begin(), prototypes->begin(), prototypes->begin() + count);
     } else if (prototypes != &taken) {
-        AssignPointers(taken, *prototypes);
+        taken = *prototypes;
     }
 
     CandidateVector& candidates = Candidates();
@@ -205,7 +203,7 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
                     ctor->SetManager(nullptr);
                     continue;
                 }
-                Shuffle(candidates.begin(), candidates.end());
+                Shuffle(candidates.data(), candidates.data() + candidates.size());
                 chosen = *candidates.begin();
             }
         }
@@ -246,10 +244,10 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     StockMaterialVector& taken = TakenMaterials();
     taken.clear();   // erase(begin, end)
     if (materials.size() > static_cast<std::size_t>(count)) {
-        Shuffle(materials.begin(), materials.end());
+        Shuffle(materials.data(), materials.data() + materials.size());
         taken.insert(taken.begin(), materials.begin(), materials.begin() + count);
     } else if (&materials != &taken) {
-        AssignMaterials(taken, materials);
+        taken = materials;
     }
     itemdb::LootItemRecord* prototype = itemdb::TheItemDatabase().loot.Named(game::MaterialText());
     for (StockMaterial* e = taken.data(); e != taken.data() + taken.size(); ++e) {
@@ -280,9 +278,9 @@ void GenerateInstructions(ItemStock* stock, const StockPrototypeVector& source, 
     CItemManager* manager = PartyOf(stock)->ItemManager();
     StockPrototypeVector& taken = TakenPrototypes();
     taken.clear();   // erase(begin, end)
-    if (&source != &taken) AssignPointers(taken, source);
+    if (&source != &taken) taken = source;
     itemdb::LootItemRecord* prototype = itemdb::TheItemDatabase().loot.Named(prototypeName);
-    for (itemdb::ItemRecordHead** p = taken.begin(); p != taken.end(); ++p) {
+    for (itemdb::ItemRecordHead** p = taken.data(); p != taken.data() + taken.size(); ++p) {
         if (skip && Compare(PrototypeName(*p), skip) == 0) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);
@@ -335,7 +333,7 @@ int ModifierLevel(const Modifier* m) { return m->skill; }
 
 void AppendModifier(SpellModifierList& list, Modifier* modifier) { list.insert(list.end(), modifier); }
 
-void ClearModifierList(SpellModifierList& list) { list.ClearWith([](Modifier**) {}); }
+void ClearModifierList(SpellModifierList& list) { list.clear(); }
 
 } // namespace
 
@@ -390,12 +388,11 @@ void ItemStock::GenerateSpells(StockSpellList* out, const float* levels, unsigne
     CSpellManager* spellManager = PartyOf(this)->SpellManager();
     SpellModifierList chosen;
     for (StockRecipeMap::Node* recipes = spellMap.First(); recipes; recipes = spellMap.Next(recipes)) {
-        StockRecipeList::iterator  head = recipes->value.mapped.head;
-        for (StockRecipeList::iterator  n = std::next(head); n != head; ++n) {
+        for (void* entry : recipes->value.mapped) {
             if (IsaacRandom::Global().Next() % 101 < threshold) continue;
             ClearModifierList(chosen);
             int count = 0;
-            auto* recipe = static_cast<const SpellRecipe*>((*n));
+            auto* recipe = static_cast<const SpellRecipe*>(entry);
             itemdb::SpellRecord* prototype = FindSpellPrototype(recipe->spell.data());
             int level = prototype->skill;
             int budget = x87::fistp(levels[prototype->school]);
@@ -443,8 +440,6 @@ void ItemStock::GenerateSpells(StockSpellList* out, const float* levels, unsigne
             if (spell) spell->Release();
         }
     }
-    ClearModifierList(chosen);
-    if (chosen.end()) stlp::deallocate(chosen.end(), sizeof(SpellModifierNode));
 }
 
 namespace {
@@ -462,9 +457,7 @@ void ReadName(CStream* stream, mfc::CString& name) {
 
 template <typename T>
 void AddUnique(std::vector<T*>& list, T* record) {
-    T** p = list.begin();
-    while (p != list.end() && *p != record) ++p;
-    if (p == list.end()) list.template PushBack<stlp::PlainElement<T*>>(record);
+    if (std::find(list.begin(), list.end(), record) == list.end()) list.push_back(record);
 }
 
 // A record section: a count, then names lower-cased and looked up in `table`.
@@ -537,7 +530,7 @@ void WriteText(CStream* stream, std::string_view text) {
 
 void SaveItemRecords(CStream* stream, const StockPrototypeVector& list) {
     WriteInt(stream, static_cast<std::uint32_t>(list.size()));
-    for (itemdb::ItemRecordHead** p = list.data(); p != list.data() + list.size(); ++p) WriteText(stream, (*p)->text04);
+    for (const itemdb::ItemRecordHead* record : list) WriteText(stream, record->text04);
 }
 
 } // namespace
@@ -577,8 +570,8 @@ void ItemStock::ResetMaterialUnits() {
 }
 
 void ItemStock::CopyMagic(const ItemStock* other) {
-    if (&other->spells != &spells) AssignPointers(spells, other->spells);
-    if (&other->modifiers != &modifiers) AssignPointers(modifiers, other->modifiers);
+    if (&other->spells != &spells) spells = other->spells;
+    if (&other->modifiers != &modifiers) modifiers = other->modifiers;
 }
 
 namespace {
@@ -604,22 +597,22 @@ void GenerateMagicInstructions(ItemStock* stock, const std::vector<Record*>& sou
     CItemConstructor* ctor = ConstructorOf(stock);
     CItemManager* manager = PartyOf(stock)->ItemManager();
     PartyOf(stock)->SpellManager();   // (fetched and not used)
-    taken.Finish() = taken.begin();   // erase(begin, end)
-    if (&source != &taken) AssignPointers(taken, source);
+    taken.clear();
+    if (&source != &taken) taken = source;
     itemdb::LootItemRecord* prototype = itemdb::TheItemDatabase().loot.Named(prototypeName);
-    for (Record** p = taken.begin(); p != taken.end(); ++p) {
+    for (Record* record : taken) {
         ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
-        AsLoot(item)->index_ = static_cast<std::uint32_t>(indexOf(*p));
+        AsLoot(item)->index_ = static_cast<std::uint32_t>(indexOf(record));
         item->count_ = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
         AddReference(item);
         Output(out, item);
     }
-    taken.Finish() = taken.begin();
+    taken.clear();
 }
 
 } // namespace
@@ -674,9 +667,7 @@ namespace {
 template <typename T>
 void AddUnlessPresent(std::vector<T*>& list, T* record) {
     if (!record) return;
-    T** p = list.begin();
-    while (p != list.end() && *p != record) ++p;
-    if (p == list.end()) list.push_back(record);  // grows as _M_insert_overflow does
+    if (std::find(list.begin(), list.end(), record) == list.end()) list.push_back(record);
 }
 
 } // namespace
@@ -690,8 +681,9 @@ void ItemStock::AddModifier(itemdb::SpellModifierRecord* record) { AddUnlessPres
 void ItemStock::AddMaterial(itemdb::MaterialRecordHead* record, int minCount, int maxCount) {
     if (!record) return;
     StockMaterial* entry = materials.data();
-    while (entry != materials.end() && entry->record != record) ++entry;
-    if (entry == materials.end()) {
+    StockMaterial* end = materials.data() + materials.size();
+    while (entry != end && entry->record != record) ++entry;
+    if (entry == end) {
         materials.push_back(StockMaterial{record, minCount, maxCount, maxCount});
         return;
     }
@@ -712,8 +704,8 @@ constinit std::vector<itemdb::SpellRecord*> g_takenSpells = /*007C8670*/ {};
 constinit std::vector<itemdb::SpellModifierRecord*> g_takenModifiers = /*007C8660*/ {};
 } // namespace stock
 
-void __cdecl FreeTakenPrototypes() { std::destroy_at(&stock::g_takenPrototypes); }
-void __cdecl FreeTakenSpells() { std::destroy_at(&stock::g_takenSpells); }
-void __cdecl FreeTakenModifiers() { std::destroy_at(&stock::g_takenModifiers); }
-void __cdecl FreeCandidates() { std::destroy_at(&stock::g_candidates); }
-void __cdecl FreeTakenMaterials() { stock::g_takenMaterials.FreeStorage(); }
+void __cdecl FreeTakenPrototypes() { lib::FreeVector(stock::g_takenPrototypes); }
+void __cdecl FreeTakenSpells() { lib::FreeVector(stock::g_takenSpells); }
+void __cdecl FreeTakenModifiers() { lib::FreeVector(stock::g_takenModifiers); }
+void __cdecl FreeCandidates() { lib::FreeVector(stock::g_candidates); }
+void __cdecl FreeTakenMaterials() { lib::FreeVector(stock::g_takenMaterials); }
