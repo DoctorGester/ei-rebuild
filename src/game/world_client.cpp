@@ -337,20 +337,10 @@ float SelectLess(float a, float b, float ifLess, float otherwise) {
     return a >= b ? otherwise : ifLess;
 }
 
-// One effect list: the records whose tick returns 0 are erased (through the list's own erase).
+// One print list ticked: the prints whose tick returns 0 are erased.
 template <typename T>
-using EraseFn = void**(*)(stlp::list<T>*, void*, void**, typename stlp::list<T>::Node*);
-template <typename T>
-void RunEffects(stlp::list<T>& list, EraseFn<T> erase) {
-    auto* head = list.head;
-    for (auto* node = head->next; node != head;) {
-        auto* current = node;
-        node = node->next;
-        if (current->data.Tick() == 0) {
-            void* out;
-            erase(&list, nullptr, &out, current);
-        }
-    }
+void RunEffects(std::list<T>& list) {
+    for (auto it = list.begin(); it != list.end();) it = it->Tick() == 0 ? list.erase(it) : std::next(it);
 }
 
 void EndWalk(ObjectListIterator& it) {
@@ -360,30 +350,7 @@ void EndWalk(ObjectListIterator& it) {
     }
 }
 
-// erase(pos) of a print list (nodes from operator new).
-template <typename T>
-void** ErasePrint(void** out, typename stlp::list<T>::Node* pos) {
-    auto* next = pos->next;
-    auto* prev = pos->prev;
-    prev->next = next;
-    next->prev = prev;
-    pos->data.GroundPrint::Destruct();
-    gamecrt::operator_delete(pos);
-    *out = next;
-    return out;
-}
-
 } // namespace
-
-void** CWorldClient::EraseBloodPrint(stlp::list<BloodPrint>*, void*, void** out, stlp::list<BloodPrint>::Node* pos) {
-    return ErasePrint<BloodPrint>(out, pos);
-}
-void** CWorldClient::EraseFootprint(stlp::list<Footprint>*, void*, void** out, stlp::list<Footprint>::Node* pos) {
-    return ErasePrint<Footprint>(out, pos);
-}
-void** CWorldClient::EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out, stlp::list<GroundPrint>::Node* pos) {
-    return ErasePrint<GroundPrint>(out, pos);
-}
 
 int CWorldClient::Segment() {
     ObjectListIterator objectsIt{nullptr, nullptr};
@@ -451,10 +418,10 @@ int CWorldClient::Segment() {
     }
     if (particleManager_) particleManager_->TickSources(static_cast<char>(paused_));
     if (!paused_) {
-        // The three print lists (std::list, sentinel head): finished ones (tick returns 0) go.
-        RunEffects(bloodPrints_, &EraseBloodPrint);
-        RunEffects(footprints_, &EraseFootprint);
-        RunEffects(scorchMarks_, &EraseScorchMark);
+        // The three print lists: finished ones (tick returns 0) go.
+        RunEffects(bloodPrints_);
+        RunEffects(footprints_);
+        RunEffects(scorchMarks_);
         if (!paused_ && worlddata::LightLevelsSetting() != 0) {
             lightLevelsCountdown_ -= worlddata::WorldUpdatePeriod();
             if (lightLevelsCountdown_ <= 0) {
@@ -462,8 +429,7 @@ int CWorldClient::Segment() {
                 // Each blood print gets a grey level: the brightest of the sun at
                 // the reference point and the lights whose range reaches the effect's point.
                 CLight* sun = worlddata::SceneSun();
-                for (auto* node = bloodPrints_.head->next; node != bloodPrints_.head; node = node->next) {
-                    BloodPrint& effect = node->data;
+                for (BloodPrint& effect : bloodPrints_) {
                     float level = sun->GetIntensityAt(&worlddata::kOrigin);
                     ObjectListIteratorOf<CLight> lights{};
                     for (CLight* light = lights.First(ClientLightManager()); light; light = lights.Next()) {

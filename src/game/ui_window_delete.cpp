@@ -41,13 +41,6 @@ void DestroyPersonTexts(PersonTextMap& map) {
     stlp::deallocate(map.end(), sizeof(PersonTextNode));
 }
 
-// An STLport list emptied and its sentinel freed (the destructor's inlined clear).
-template <typename T, typename F>
-void DestroyList(stlp::list<T>& list, F destroy) {
-    list.ClearWith(destroy);
-    stlp::deallocate(list.head, sizeof(typename stlp::list<T>::Node));
-}
-
 } // namespace
 
 // --- Destructor bodies -------------------------------------------------------------------------
@@ -82,16 +75,9 @@ CMessageBox::~CMessageBox() = default;
 // The link, then the box's.
 CMasterRequestBox::~CMasterRequestBox() = default;
 
-void ChatLine::Destroy() {
-    if (CUiSurface* shown = surface) {
-        delete shown;
-    }
-    surface = nullptr;
-    std::destroy_at(&name);
-    std::destroy_at(&text);
-}
+ChatLine::~ChatLine() { delete surface; }
 
-CChatOverlay::~CChatOverlay() { DestroyList(lines_, [](ChatLine* line) { line->Destroy(); }); }
+CChatOverlay::~CChatOverlay() {}
 
 CBattleScreen::~CBattleScreen() {
     DestroyPersonTexts(personTexts_);

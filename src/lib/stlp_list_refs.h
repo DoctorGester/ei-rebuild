@@ -74,8 +74,8 @@ struct HeldObject {
 };
 
 // A list<T> of an instantiation that copies and destroys its elements by the policy E: the members
-// its code compiles (stlp_list.h's bodies with E; the game's out-of-line copies are in
-// stlp_list.cpp). Construct (the sentinel) and the walks (First, End, Distance) are list<T>'s.
+// its code compiles (stlp_list.h's bodies with E). Construct (the sentinel) and the walks (First, End,
+// Distance) are list<T>'s.
 template <typename T, typename E>
 struct PolicyList : list<T> {
     using Base = list<T>;

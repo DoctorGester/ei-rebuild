@@ -28,14 +28,6 @@ void RefPtrRelease(RefPtr* self);
 
 namespace {
 
-// The client's ground print lists: each print's destructor (the client's copies of GroundPrint's).
-struct PrintElement {
-    template <typename P>
-    static void Destroy(P* print) {
-        print->Destruct();
-    }
-};
-
 // A sector grid's storage as the client's destructor frees it after setting the grid to 1 x 1: the
 // cells' lists (their vector deleting destructor), then the row pointers.
 void FreeGrid(SectorGrid& grid) {
@@ -159,9 +151,9 @@ Sector::~Sector() {
 CWorldClient::~CWorldClient() {
     CWorldClient::Destroy();
     handle_.Destroy();
-    scorchMarks_.Release<PrintElement>();
-    footprints_.Release<PrintElement>();
-    bloodPrints_.Release<PrintElement>();
+    scorchMarks_.clear();
+    footprints_.clear();
+    bloodPrints_.clear();
     secondGrid_.Resize(1, 1);
     FreeGrid(secondGrid_);
     objectGrid_.Resize(1, 1);

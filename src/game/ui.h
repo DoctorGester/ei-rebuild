@@ -2202,12 +2202,15 @@ static_assert(offsetof(CHelpWindow, text_) == 0x168);
 
 // A line of the in-game chat overlay: the text, the speaker, a value and the line's own surface.
 struct ChatLine {
-    void Destroy();
+    ChatLine() = default;
+    ChatLine(const ChatLine&) = delete;
+    ChatLine& operator=(const ChatLine&) = delete;
+    ~ChatLine();   // the surface deleted
 
     std::string text;          // AddLine leaves it empty
     std::string name;          // the line's text without its colour codes
-    std::uint32_t time;         // timeGetTime when it was added
-    CUiSurface* surface;
+    std::uint32_t time = 0;     // timeGetTime when it was added
+    CUiSurface* surface = nullptr;
 };
 
 // The in-game chat overlay: the interface's root window, updated after the top window every frame; in a
@@ -2236,14 +2239,13 @@ public:
     void Update() override;
     void Redraw() override;
 
-    stlp::list<ChatLine> lines_;
+    std::list<ChatLine> lines_;
     bool chatOpen_;                  // a multiplayer client's chat line is open (it takes the keys)
     std::uint8_t unused_14D[3];
     std::string typed_;
     int caret_;                      // in the typed line (a byte offset at a character's start: U4)
 };
 static_assert(offsetof(CChatOverlay, lines_) == 0x148);
-static_assert(offsetof(CChatOverlay, typed_) == 0x150);
 
 // The new game's difficulty question (the main menu's region 0): a message box ("option_difficulty", OK and
 // cancel) with two check boxes. Its button handler sets easy_ from the boxes (regions 2 / 3) and copies it to

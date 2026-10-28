@@ -741,14 +741,6 @@ struct SectorGrid {
 };
 static_assert(offsetof(SectorGrid, width_) == 0x10);
 
-// The functor of the for_each over the footprints: {x, y, scale}, handed back by value.
-struct RadiusFunctor {
-    // For_each over the footprint list's nodes [first, last): a footprint is made visible when
-    // hypot(position - (x, y)) <= its scale_ * scale. Writes {x, y, scale} to this and returns it.
-    RadiusFunctor* Mark(stlp::list<Footprint>::Node* first, stlp::list<Footprint>::Node* last, float x, float y,
-                        float scale);
-    float x, y, scale;
-};
 struct ReleaseIdentified {
     // An object with a positive id is released and true; false otherwise.
     bool Test(CMapObject* object);
@@ -1117,15 +1109,9 @@ public:
     CEffectMoshka* bird_;                 // the bird following the party (SummonBird), owned
     CFlyingHitPoints* numbers_;           // owned
     // Segment ticks the ground prints and colours the blood prints by the light.
-    stlp::list<BloodPrint> bloodPrints_;
-    stlp::list<Footprint> footprints_;
-    stlp::list<GroundPrint> scorchMarks_;
-    // Erase(pos) of the three lists: the node unlinked, its print destroyed, the node deleted (operator
-    // delete: the nodes are over 128 bytes); *out the node that followed it. Return out.
-    static void** EraseBloodPrint(stlp::list<BloodPrint>*, void*, void** out, stlp::list<BloodPrint>::Node* pos);
-    static void** EraseFootprint(stlp::list<Footprint>*, void*, void** out, stlp::list<Footprint>::Node* pos);
-    static void** EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out,
-                                             stlp::list<GroundPrint>::Node* pos);
+    std::list<BloodPrint> bloodPrints_;
+    std::list<Footprint> footprints_;
+    std::list<GroundPrint> scorchMarks_;
     int lightLevelsCountdown_;            // time left before the blood prints are lit again (Segment); 0 after Setup
     RefPtrTo<CClientHandle> handle_;      // the client's player source
     CSoundManager* sounds_;               // the sound manager (owned; the client controller's hit sounds)

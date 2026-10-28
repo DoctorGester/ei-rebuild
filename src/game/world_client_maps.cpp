@@ -141,23 +141,6 @@ void SectorGrid::Move2(CMapObject* object, const float* position) {
     MoveInGrid<GridOpsB>(this, object, position);
 }
 
-RadiusFunctor* RadiusFunctor::Mark(stlp::list<Footprint>::Node* first, stlp::list<Footprint>::Node* last, float px,
-                                   float py, float factor) {
-    for (stlp::list<Footprint>::Node* node = first; node != last; node = node->next) {
-        Footprint& print = node->data;
-        double dx = print.position_.x - px;
-        double dy = print.position_.y - py;
-        double distance = libcrt::Hypot(dx, dy);
-        float limit = print.scale_ * factor;
-        EI_NAN_AUDIT(distance, limit);
-        if (distance <= static_cast<double>(limit)) print.visible_ = 1;
-    }
-    x = px;
-    y = py;
-    scale = factor;
-    return this;
-}
-
 namespace {
 
 // The hit test of the object's side half for the point: CollectBounds or CollectParts.
@@ -343,8 +326,15 @@ bool CWorldClient::QueueSynchronised(CMapObject* object) {
 }
 
 void CWorldClient::MarkFootprintsInSight(const float* point, float range) {
-    RadiusFunctor functor;   // for_each's functor (x, y, range) comes back by value
-    functor.Mark(footprints_.First(), footprints_.End(), point[0], point[1], range);
+    // A footprint is made visible when hypot(position - point) <= its scale_ * range.
+    for (Footprint& print : footprints_) {
+        double dx = print.position_.x - point[0];
+        double dy = print.position_.y - point[1];
+        double distance = libcrt::Hypot(dx, dy);
+        float limit = print.scale_ * range;
+        EI_NAN_AUDIT(distance, limit);
+        if (distance <= static_cast<double>(limit)) print.visible_ = 1;
+    }
 }
 
 void CWorldClient::ApplyWind(const Vector3* direction, float strength) {
@@ -817,23 +807,6 @@ void EmptyList(stlp::list<T>& list, F free) {
     list.head->prev = list.head;
 }
 
-// The three ground print lists emptied (Teardown and the zone load inline this): each element destroyed, its
-// node returned to the pool.
-void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& feet, stlp::list<GroundPrint>& scorch) {
-    EmptyList(blood, [](stlp::list<BloodPrint>::Node* node) {
-        node->data.Destruct();
-        stlp::deallocate(node, sizeof(*node));
-    });
-    EmptyList(feet, [](stlp::list<Footprint>::Node* node) {
-        node->data.DeletingDestruct(0);
-        if (node) stlp::deallocate(node, sizeof(*node));
-    });
-    EmptyList(scorch, [](stlp::list<GroundPrint>::Node* node) {
-        node->data.DeletingDestruct(0);
-        if (node) stlp::deallocate(node, sizeof(*node));
-    });
-}
-
 template <typename T>
 void DeleteOwned(T*& slot) {
     if (CEngineObject* object = slot) {
@@ -870,7 +843,9 @@ void CWorldClient::Destroy() {
     DeleteOwned(bird_);
     ReleaseItemsAndSpells();
     mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);
-    ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
+    bloodPrints_.clear();
+    footprints_.clear();
+    scorchMarks_.clear();
     rainSnow_.Destroy();
     platforms_.Destroy();
     platforms_.list.RemoveAll();
@@ -1358,7 +1333,9 @@ int CWorldClient::LoadZone(CStream* block) {
     GameEnsureZone(map.c_str(), mob.c_str());
     ShowLoadingMovie(kProgressBlockRead);
 
-    ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
+    bloodPrints_.clear();
+    footprints_.clear();
+    scorchMarks_.clear();
     ResetZoneObjects();
     ClearMaps();
     ReleaseItemsAndSpells();

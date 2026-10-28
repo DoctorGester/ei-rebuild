@@ -12,6 +12,7 @@
 
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
+#include "engine_object.h"
 #include "item_db.h"
 #include "game_data.h"
 
@@ -40,8 +41,7 @@ using StockMaterialVector = std::vector<StockMaterial>;
 // map's lists hold recipe pointers.
 using StockList = std::list<CItem*>;
 using StockListNode = StockList::iterator;
-using StockSpellList = stlp::list<CSpell*>;
-using StockSpellListNode = StockSpellList::Node;
+using StockSpellList = std::list<HeldPtr<CSpell>>;
 using StockRecipeList = std::list<void*>;
 
 using StockStringVector = std::vector<std::string>;

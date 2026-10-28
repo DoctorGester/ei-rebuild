@@ -187,8 +187,8 @@ std::string CheckChatWrap(const std::string& wanted) {
     std::string joined;
     int count = 0;
     std::string failure;
-    for (auto* node = overlay->lines_.First(); node != overlay->lines_.End(); node = node->next) {
-        const std::string line(node->data.name.c_str(), static_cast<std::size_t>(node->data.name.size()));
+    for (const ChatLine& entry : overlay->lines_) {
+        const std::string& line = entry.name;
         if (!ValidUtf8(line) && failure.empty()) failure = "chatwrap: line " + std::to_string(count) + " is not valid UTF-8: \"" + line + "\"";
         Log("harness: chatwrap: line %d: \"%s\" (%d characters)", count, line.c_str(), text::CharacterCount(line));
         joined += line;

@@ -1,9 +1,8 @@
 #pragma once
 
-// The game's STLport list<T> instantiations over game records (the plain-data and reference
-// holder ones are in src/lib/stlp_list.cpp): an element policy per record (how _M_create_node
-// copies one, how erase / clear destroy one, what insert(pos)'s T() is), each over the record's
-// constructors and destructors; callers pass them to stlp::list<T>'s members (`Insert<TitleLineElement>`).
+// The game's STLport list<T> instantiations over game records: an element policy per record (how
+// _M_create_node copies one, how erase / clear destroy one, what insert(pos)'s T() is), each over the
+// record's constructors and destructors; callers pass them to stlp::list<T>'s members (`Insert<TradeElement>`).
 // Node sizes read from each instantiation's node creation.
 
 #include "chunk_archive.h"
@@ -76,18 +75,6 @@ struct LinkArchiveElement {
     }
     static void Destroy(LinkArchive* p) { std::destroy_at(&p->name); }
     static void Default(LinkArchive* p) { std::construct_at(&p->name); }
-};
-
-// The client world's ground prints (0x94 / 0x9C / 0xA4-byte nodes from operator new): the node copies (blood,
-// footprints, scorch marks) are the classes' copy constructors (GroundPrint's, then their own members).
-struct BloodPrintElement {
-    static void Copy(BloodPrint* to, const BloodPrint& from) { new (to) BloodPrint(from); }
-};
-struct FootprintElement {
-    static void Copy(Footprint* to, const Footprint& from) { new (to) Footprint(from); }
-};
-struct ScorchMarkElement {
-    static void Copy(GroundPrint* to, const GroundPrint& from) { new (to) GroundPrint(from); }
 };
 
 } // namespace recordlist

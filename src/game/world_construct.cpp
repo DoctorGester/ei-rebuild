@@ -41,9 +41,6 @@ void ConstructList(mfc::CList<T>& list, void* vtable) {
     list.blockSize = kListBlockSize;
 }
 
-// The ground print lists' sentinels come from operator new (their nodes are larger than the node
-// allocator's 128 bytes).
-static_assert(sizeof(stlp::list<GroundPrint>::Node) > 128);
 
 } // namespace
 
@@ -91,9 +88,6 @@ CWorldClient::CWorldClient() {
     secondGrid_.unknown08_ = 1;
     secondGrid_.unknown0C_ = 1;
     secondGrid_.Allocate();
-    bloodPrints_.Construct();
-    footprints_.Construct();
-    scorchMarks_.Construct();
     handle_.ptr = nullptr;
     flags_ |= kClientFlags;
     debugFlags_ = kClientDebugFlags;

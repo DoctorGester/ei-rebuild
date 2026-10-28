@@ -107,29 +107,6 @@ void GroundPrint::SetTexture(const char* name) {
     textures->LoadTexture(texture_.texture);
 }
 
-GroundPrint::GroundPrint(const GroundPrint& other) {
-    built_ = other.built_;
-    visible_ = other.visible_;
-    position_ = other.position_;
-    halfWidth_ = other.halfWidth_;
-    halfLength_ = other.halfLength_;
-    growth_ = other.growth_;
-    life_ = other.life_;
-    texture_.Copy(&other.texture_);
-    uvOffset_ = other.uvOffset_;
-    uvScale_ = other.uvScale_;
-    uvAngle_ = other.uvAngle_;
-    angle_ = other.angle_;
-    lit_ = other.lit_;
-    alpha_ = other.alpha_;
-    alphaScale_ = other.alphaScale_;
-    colour_ = other.colour_;
-    lifetime_ = other.lifetime_;
-    positions_ = other.positions_;
-    texCoords_ = other.texCoords_;
-    indices_ = other.indices_;
-}
-
 GroundPrint::GroundPrint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
                          int lifetime)
     : GroundPrint(1, life, alphaScale, lifetime, 0xFFFFFFFFu) {
@@ -257,18 +234,8 @@ int GroundPrint::Draw() {
                                   indices_.data(), std::ssize(indices_), colour_, static_cast<std::uint32_t>(lit_) << 24, nullptr, 1.0f);
 }
 
-void GroundPrint::Destruct() {
-    lib::FreeStorage(indices_);
-    lib::FreeStorage(texCoords_);
-    lib::FreeStorage(positions_);
+GroundPrint::~GroundPrint() {
     if (texture_.texture) texture_.texture->Release();
-    std::destroy_at(&texture_.name);
-}
-
-GroundPrint* GroundPrint::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
 }
 
 // ---- Footprint ----------------------------------------------------------------------------------
@@ -298,11 +265,6 @@ Footprint::Footprint(float x, float y, float halfWidth, float halfLength, float 
         SetTexture(name);
     }
     growth_ = 0.0f;
-}
-
-Footprint::Footprint(const Footprint& other) : GroundPrint(other) {
-    scale_ = other.scale_;
-    kind_ = other.kind_;
 }
 
 void Footprint::Load(CStream* stream) {
@@ -347,13 +309,6 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     growth_ = static_cast<float>((fullSize - halfWidth_) / static_cast<double>(spreadTicks_));
 }
 
-BloodPrint::BloodPrint(const BloodPrint& other) : GroundPrint(other) {
-    spin_ = other.spin_;
-    spreadTicks_ = other.spreadTicks_;
-    kind_ = other.kind_;
-    fresh_ = other.fresh_;
-}
-
 int BloodPrint::Tick() {
     if (--spreadTicks_ < 0) growth_ = 0.0f;
     else built_ = false;
@@ -387,11 +342,8 @@ void CWorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSiz
     EI_NAN_AUDIT(look.alpha);
     if (look.alpha <= 0.0f || look.life <= 0 || look.lifetime <= 0) return;
     std::uint32_t colour = ((Channel(frameSun_.r) | 0x100) << 8 | Channel(frameSun_.g)) << 8 | Channel(frameSun_.b);
-    alignas(BloodPrint) unsigned char storage[sizeof(BloodPrint)];
-    auto* print = new (storage) BloodPrint(x, y, halfSize, fullSize, look.alpha, look.life, look.lifetime, tile, colour,
-                                           static_cast<std::uint8_t>(fresh));
-    stlp::list<BloodPrint>::Insert<recordlist::BloodPrintElement>(bloodPrints_.End(), *print);
-    print->Destruct();
+    bloodPrints_.emplace_back(x, y, halfSize, fullSize, look.alpha, look.life, look.lifetime, tile, colour,
+                              static_cast<std::uint8_t>(fresh));
 }
 
 int CWorldClient::AddFootprint(float x, float y, float halfWidth, float halfLength, float angle, std::uint32_t tile,
@@ -400,8 +352,7 @@ int CWorldClient::AddFootprint(float x, float y, float halfWidth, float halfLeng
     // Stepping into a blood print (not a fresh hit's) makes bloody footprints of its kind.
     bool inBlood = false;
     float reach = (halfWidth + halfLength) * kHalf;
-    for (auto* node = bloodPrints_.First(); node != bloodPrints_.End(); node = node->next) {
-        const BloodPrint& blood = node->data;
+    for (const BloodPrint& blood : bloodPrints_) {
         float d2 = DistanceSquared2D(blood.position_, Vector2{x, y});
         float limit = (blood.halfWidth_ + reach) * (blood.halfWidth_ + reach);
         if (limit >= d2 && !blood.fresh_) {
@@ -418,11 +369,8 @@ int CWorldClient::AddFootprint(float x, float y, float halfWidth, float halfLeng
         if (const PrintRecord* entry = EntryAt(prints.blood, this, x, y)) look = &LookOf(*entry, rainSnow_.mode != 0);
     }
     if (look && look->alpha > 0.0f && look->life > 0 && look->lifetime > 0) {
-        alignas(Footprint) unsigned char storage[sizeof(Footprint)];
-        auto* print = new (storage) Footprint(x, y, halfWidth, halfLength, angle, look->alpha, look->life,
-                                              look->lifetime, tile, scale, visible, bloodKind);
-        stlp::list<Footprint>::Insert<recordlist::FootprintElement>(footprints_.End(), *print);
-        print->Destruct();
+        footprints_.emplace_back(x, y, halfWidth, halfLength, angle, look->alpha, look->life, look->lifetime, tile, scale,
+                                 visible, bloodKind);
     }
     return inBlood ? bloodKind : -1;
 }
@@ -434,8 +382,5 @@ void CWorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLe
     const PrintLook& look = LookOf(*entry, rainSnow_.mode != 0);
     EI_NAN_AUDIT(alpha);
     if (alpha <= 0.0f || look.life <= 0 || look.lifetime <= 0) return;
-    alignas(GroundPrint) unsigned char storage[sizeof(GroundPrint)];
-    auto* print = new (storage) GroundPrint(x, y, halfWidth, halfLength, angle, alpha, look.life, look.lifetime);
-    stlp::list<GroundPrint>::Insert<recordlist::ScorchMarkElement>(scorchMarks_.End(), *print);
-    print->Destruct();
+    scorchMarks_.emplace_back(x, y, halfWidth, halfLength, angle, alpha, look.life, look.lifetime);
 }
