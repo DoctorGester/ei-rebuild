@@ -222,7 +222,6 @@ public:
 // One of the five alarms InvokeAlarm raises (the script's IsAlarm / AlarmTime / AlarmPosX / AlarmPosY).
 struct WorldAlarm {
     std::uint8_t active;
-    std::uint8_t unused_01[3];
     int time;                             // tick it was raised
     float x, y;
 };

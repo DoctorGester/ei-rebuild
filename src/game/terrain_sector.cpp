@@ -576,7 +576,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
                 }
         const int count = static_cast<int>(in - g_projectionInput.data());
         const int mode = pipeline->ProjectTerrain(g_projectionInput.data(), g_projectionOutput.data(), g_projectionOutcodes->data(),
-                                                  count, BoundsOf(quarters[q]));
+                                                  count, &quarters[q]);
         quarterMode[q] = mode;
         if (mode == -1 || mode == kCulled) {
             quarterMode[q] = kCulled;

@@ -117,7 +117,6 @@ struct BufferCursor {
     std::uint8_t* bytePtr;     // the reserved byte the pending bits go to
     std::uint32_t acc;         // pending bits
     std::uint8_t bits;         // number of pending bits
-    std::uint8_t unused_0D[3];
     GameBuffer* sink;          // the buffer `p` is committed to at the end (or null)
     std::uint8_t* start;       // `p` when the cursor began
 

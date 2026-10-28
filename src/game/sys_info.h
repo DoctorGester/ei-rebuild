@@ -24,7 +24,6 @@ struct ProcessorInfo {
     std::uint32_t brand;
     std::uint32_t features2;
     std::uint8_t terminator;
-    std::uint8_t unused_0D[3];
     std::uint32_t features;
 };
 static_assert(offsetof(ProcessorInfo, terminator) == 0x0C && offsetof(ProcessorInfo, features) == 0x10 &&

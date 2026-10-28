@@ -45,7 +45,7 @@ ChunkArchive::Ref* PushRecordChunk(ChunkArchive* a) {
 // The current chunk's `occurrence`-th child `id` (reading), searched from a default Ref.
 bool FindField(ChunkArchive* a, int id, ChunkArchive::Ref* child) {
     ChunkArchive::Ref* current = a->Current();
-    *child = ChunkArchive::Ref{0xFF, {}, 0, 0, 1};
+    *child = ChunkArchive::Ref{0xFF, 0, 0, 1};
     return a->FindChild(current, id, child, current->occurrence);
 }
 
@@ -134,7 +134,7 @@ bool ChunkArchive::FindChild(const ChunkArchive::Ref* parent, int id, ChunkArchi
 }
 
 int ChunkArchive::CountChildrenOf(const ChunkArchive::Ref* parent, int id) {
-    ChunkArchive::Ref child{0xFF, {}, 0, 0, 1};
+    ChunkArchive::Ref child{0xFF, 0, 0, 1};
     std::int32_t cursor = 0;
     int count = 0;
     while (NextChild(parent, &cursor, &child))

@@ -75,7 +75,7 @@ int SectorData::IsDrawn() const { return clipMode == 0 || clipMode == terrain::k
 void SectorData::ClipTest(CSceneRenderer* renderer) {
     // The verdict as it is stored: -1 counts as outside.
     const auto verdict = [&](const terrain::SectorBox& bounds) {
-        const int where = renderer->pipeline_->ClipTest(terrain::BoundsOf(bounds));
+        const int where = renderer->pipeline_->ClipTest(&bounds);
         return where == -1 ? terrain::kCulled : where;
     };
     clipMode = verdict(box);

@@ -38,7 +38,6 @@ public:
     std::string name_;
     std::string text_;
     std::uint8_t host_ = 0;         // asks to host (honoured with a local client)
-    std::uint8_t unused_25[3];
     std::uint32_t state_ = 4;       // the player record's state
     std::int32_t id_ = -1;          // the player record's id
     RefPtrTo<BindingMessage> binding_{};   // the server's binding for this login (not sent)
@@ -141,13 +140,11 @@ public:
     std::vector<CountedRefPtr> members_;              // PartyMemberMessages
     std::uint32_t money_ = 0;        // the offered party's money (CParty::Money)
     std::uint8_t accepted_ = 0;      // the partner's offer is accepted
-    std::uint8_t unused_1D[3];
     std::uint32_t acceptedRevision_ = 0;   // the partner's revision accepted
     std::uint32_t revision_ = 1;
     RefPtrTo<PlayerMessage> player_{};     // the offering player's record
     RefPtrTo<PlayerMessage> partner_{};    // the partner's record
     std::uint8_t trading_ = 0;       // in a trade (server side; not sent)
-    std::uint8_t unused_31[3];
 };
 
 // Type 16: one member of an offered party, serialised into a memory stream.
@@ -187,7 +184,6 @@ public:
     std::string text_;
     std::uint32_t state_ = 1;       // from the login
     std::uint8_t host_ = 0;         // the hosting player
-    std::uint8_t unused_29[3];
     std::int32_t id_ = -1;          // from the login
     std::int32_t serial_ = -1;      // from the server's player serial (not sent)
     std::int32_t number_ = -1;      // the lowest number free when joining (not sent)
@@ -314,7 +310,6 @@ public:
     static Message* Create();
 
     std::uint16_t chunkCount_;
-    std::uint16_t unused_0E;
     std::int32_t size_;          // in bytes
     std::string name_;
     std::vector<SharedRefPtr> chunks_;   // the chunk messages (not sent)
@@ -339,7 +334,6 @@ public:
     RefPtrTo<FileMessage> file_{};
     std::uint16_t index_;
     std::uint8_t data_[kDataSize];
-    std::uint8_t unused_52[2];
 };
 
 // Type 14: an award for one connection (the server queues it with a delay; ClientSession::ApplyAwards).
@@ -381,7 +375,6 @@ public:
     RefPtrTo<PartyMessage> offer_{};
     RefPtrTo<PartyMessage> partnerOffer_{};
     std::uint8_t done_ = 0;                  // both sides accepted
-    std::uint8_t unused_1D[3];
     std::uint32_t revision_ = 0;             // the first offer's revision traded
     std::uint32_t partnerRevision_ = 0;      // the second's
 };
