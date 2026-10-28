@@ -33,6 +33,7 @@
 #include "world_map_files.h"
 
 #include "lib/crt.h"
+#include "lib/file_io.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
 
@@ -734,12 +735,12 @@ constexpr const char* kCantLoadMap = "CWorldServer::NewZone()\n Can't load map.\
 // Whether the file `name` is neither there as named nor in the maps folder (Rebirth's Maps names it
 // first: `site`).
 bool MapFileMissing(const char* name, modfolders::MapsSite site) {
-    if (libcrt::Access(name, 0) != -1) return false;
+    if (lib::FileExists(name)) return false;
     std::string folder;
     modfolders::SelectMaps(name, site);
     MapsFolder(&folder);
     std::string path = folder + name;
-    return libcrt::Access(path.c_str(), 0) == -1;
+    return !lib::FileExists(path.c_str());
 }
 
 } // namespace

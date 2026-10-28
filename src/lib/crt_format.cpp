@@ -916,12 +916,6 @@ int Vsprintf(char* buffer, const char* format, va_list args) {
     return written;
 }
 
-namespace {
-unsigned char g_gameStreams[3][0x20];   // the size of game.exe's FILE
-} // namespace
-
-gamecrt::CrtFile* GameStream(int index) { return reinterpret_cast<gamecrt::CrtFile*>(g_gameStreams[index]); }
-
 } // namespace libcrt
 
 // CString::FormatV's text (str.h): the game's vsprintf into a std::string, up to the first zero byte as

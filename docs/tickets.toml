@@ -3509,6 +3509,55 @@ group = "cleanup"
 note = "User 2026-10-28: keep a lookout for dead code and code that can be made dead by replacing it with std / our code. After each C14 / C35 merge, re-run C20m's relocation-graph scan (scratchpad C20m / C20o scripts) for both EI_UTF8 values (until C34 drops it), counting ei_vectors' references too so it stops flagging what the vectors replay; delete what is dead, and list what one small replacement would make dead. Also the unused kClass records in mfc_runtime_class.h (CBitmap, CClientDC, CMemFile, CPaintDC, CPalette, CPtrArray, CPtrList, CRgn, CWinApp, CWindowDC) once their class-chain links can go."
 
 [[ticket]]
+id = "C35a"
+title = "C35 file I/O: callers on FILE* / Win32 handles through the game's import slots, crt_file's CRT copies deleted"
+group = "cleanup"
+files = ["src/lib/crt_file.cpp", "src/lib/crt.h"]
+note = "Survey 2026-10-28: libcrt::Fopen 2, Fclose 6, Fseek 6, Ftell 5, Fread 5, Fwrite 3, Fflush, Fileno 2, Open 1, Read 4, Write 1, Lseek 4, Close 2, Filelength 1, Access 4, Findfirst 1, gamecrt::CrtFile 41, FindData 3, fwrite 2, fileno 1, write 1, GameStream (iostream's stdio flush); callers app_main, buffered_file, resource, resource_stream, ui_saveload, world_save, mfc_file (CStdioFile's own forwarders). Opening stays through gameapi::CreateFileA / GetFileAttributesA / FindFirstFileA (the harness's save sandbox and mods redirect those slots); the rest is std:: stdio or Win32."
+
+[[ticket]]
+id = "C35b"
+title = "C35 string and locale: the UTF-8 no-op multibyte functions and case / class wrappers to std or text_case.h, crt_locale_data deleted"
+group = "cleanup"
+note = "Survey 2026-10-28 (after C34 these are byte or ASCII functions): gamecrt::mbscmp 88, mbsicmp 56, mbsinc 16 (p + 1), strncpy 7, SameIgnoringCase 7, strnicmp 4, strncmp 4, tolower 4, CaseFoldTable 4, isdigit 3, isspace 1; libcrt::Stricmp 14, Mbslwr 4, Ismbblead 4 (always 0: the callers' lead-byte branches are dead), Isleadbyte 3 (0, same), Memicmp 3, Toupper 3, Tolower 3, Isalpha 3, Mbsinc 2, Mbscmp 2, Isspace 2, Strnicmp 2, Mbsncmp, Mbsicmp, Mbclen (1), Isdigit, Strncpy, Strncmp; TerminatedText; crt_locale_data.cpp/h (98 lines: CharClasses, CtypeLocale, CtypeCodePage, MbCurMax, DecimalPoint, MultibyteFlags; crt_format and mfc_resource read them). Constraint: ei_vectors answers tolower / isdigit / isspace / strnicmp from the game CRT's recorded 1251 tables (tests/vectors/replay_crt.cpp, the @GameCrtCtype fixture); check which replays meet a byte past ASCII before moving those callers to text_case.h."
+
+[[ticket]]
+id = "C35c"
+title = "C35 formatting: crt_format's printf to the host's for integers, strings and chars, VC6's float conversions kept"
+group = "cleanup"
+note = "Survey 2026-10-28: gamecrt::sprintf 35, libcrt::Vsprintf 5, str::FormatV (CString::Format's callers), WideToBytes, the BoundedSink / VectorSink; crt_format.cpp is 935 lines. Keep the %e/%f/%g digits (VC6's 12-byte _fltout and its decimal rounding: the UCRT rounds exact ties to even since Windows 10 2004, so '%.2f' of 0.125 differs; floats reach saves, the console and on-screen numbers). The rest (%d %u %x %s %c, flags, width, precision, %n) is the host's vsnprintf byte for byte; %Z and wide text have no caller to check. The lead-byte test in the plain-text state reads CharClasses (C35b)."
+
+[[ticket]]
+id = "C35d"
+title = "C35 iostream: the console's eight VC6 ostreams to std::ostream or a small writer of our own, crt_iostream deleted"
+group = "cleanup"
+note = "Survey 2026-10-28: libcrt::Ostream 19, FlushManipulator 19, Manipulator 10, Ostream::Apply 6, PutChar 5, EndlManipulator 2, Streambuf (the console's streambufs derive from it), Ios; crt_iostream.cpp/h 608 lines with compiled stand-ins of the exe's ios / ostream tables and the named kOstreamVirtualBases, g_sharedLock, g_liveIosCount. The console's ostreams are constant-initialised statics game.exe's data points at (crt_iostream.h): find what still reads them by address first. PutDouble formats through Vsprintf (C35c)."
+
+[[ticket]]
+id = "C35e"
+title = "C35 exit and atexit: libcrt::AtExit / Exit / OnExit to std::atexit / std::exit or static destructors"
+group = "cleanup"
+note = "Survey 2026-10-28: libcrt::AtExit 101 calls in 60 files (static initialisers registering their exit functions; one in gen_static_init.py's output, src/game/static_lists.cpp), Exit 8 (fatal errors, renderer creation, standalone_main), OnExit, ExitFunction; SetNewHandler 2 and g_heapNewHandler (007CAAD8; nothing calls the handler it sets). AtExit is already _crt_atexit, so a scripted rename to std::atexit is behaviour-exact; objects that can become plain statics with destructors are the better end (the exit order is last-registered first either way)."
+
+[[ticket]]
+id = "C35f"
+title = "C35 import thunks: libcrt::imports:: (WSOCK32 by ordinal, DirectInputCreateEx) to gameapi:: by name"
+group = "cleanup"
+note = "Survey 2026-10-28: libcrt::imports:: about 40 calls (Select 6, CloseSocket 6, IoctlSocket 4, Htons 3, WsaStartup 2, WsaCleanup 2, Socket 2, Ntohs 2, GetHostName 2, GetHostByName 2, Bind 2, SetSockOpt, SendTo, Send, RecvFrom, Recv, InetAddr, GetHostByAddr, Connect, DirectInputCreateEx). Each is a one-line forward to the same gameapi:: slot call: call gameapi:: directly, delete the 40 lines of crt.cpp and the 26 of crt.h."
+
+[[ticket]]
+id = "C35g"
+title = "C35 heap wrappers: gamecrt::operator_new* / operator_delete / malloc / free and the eh vector iterators to new / delete"
+group = "cleanup"
+note = "Survey 2026-10-28: gamecrt::operator_delete 354, operator_new_array 62, operator_new 52, operator_new_as 49, operator_new_bytes_as 12, operator_new_zeroed 9, malloc 1, free 2; libcrt::ConstructElements 2, DestroyElements 4, Element 3, OperatorNew / OperatorDelete / Malloc / Free; NewHandler 18 (mfc's g_afxNewHandler loop). Most are objects allocated raw and constructed by hand: they go with the classes' constructors (C27-C29 style), new T / delete p once each class has one. ei_vectors defines its own (replay_crt.cpp). The STLport node allocator (NodeAllocate 5, NodeDeallocate 9, NodeRefill, NodeChunkAlloc) goes with the last stlp container (C14c, C14n)."
+
+[[ticket]]
+id = "C35h"
+title = "C35 sort and maths: record why Qsort, rand, the x87 functions and Ftol stay; std::sort where the keys are unique"
+group = "cleanup"
+note = "Survey 2026-10-28: libcrt::Qsort 7 (VC6's quicksort: equal elements in the game's order; the host's qsort changed 105 image goldens), Rand / Srand / RandState (VC6's LCG per thread, the harness's random trace), Hypot 9, CiPow 7, CiAcos 3, CiAsin 2, gamecrt::acos 10, Controlfp 3, Ftol 146 (crt_x87.cpp, 295 lines: x87 results under the game's control word, check_x87). Kept on the goldens' evidence; the ticket: per Qsort caller, std::sort where no two keys compare equal (the order is then the same), and write each kept piece's reason in docs/notes/standalone.md."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"

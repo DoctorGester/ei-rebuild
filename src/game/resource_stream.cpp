@@ -8,6 +8,7 @@
 #include "lib/mfc.h"
 
 #include "lib/crt.h"
+#include "lib/file_io.h"
 #include "lib/gameapi.h"
 
 #include <cstdlib>
@@ -111,12 +112,13 @@ BOOL CResourceStream::OpenFile(const char* name, std::uint32_t* size) {
         }
     }
     // A readable loose file comes first.
-    if (libcrt::Access(name, 4) == 0) {
-        gamecrt::FindData data;
-        libcrt::Findfirst(name, &data);   // the handle is never closed
+    if (lib::FileExists(name)) {
+        WIN32_FIND_DATAA found{};   // the size (the original's _findfirst never closed its search)
+        const HANDLE search = gameapi::FindFirstFileA(name, &found);
+        if (search != INVALID_HANDLE_VALUE) FindClose(search);
         file_ = gameapi::mmioOpenA(const_cast<char*>(name), nullptr, MMIO_DENYWRITE);
         if (file_ != nullptr) {
-            if (size != nullptr) *size = data.size;
+            if (size != nullptr) *size = found.nFileSizeLow;
             offset_ = 1;
             return 1;
         }

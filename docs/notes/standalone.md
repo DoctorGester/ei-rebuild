@@ -576,7 +576,7 @@ kinds given.
     a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
     left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
     readers take `TheServerWorld()->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
-    CRT's since C26 (lib/crt_locale_data.cpp reads it), crt_file's modes (zero constants) and crt_iostream's shared lock and ios count. **Left**: 00783E34 / 00783E38
+    CRT's since C26 (lib/crt_locale_data.cpp reads it), crt_iostream's shared lock and ios count (crt_file's zero mode constants went with it, C35a). **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
     yet), the growing buffers 0079B8E0 / 0079B900 (game.exe's vtable: C19), 007B00BC (inside the server world
     007AFF60). The CRT's allocator state is named since C18r (below).
@@ -1683,7 +1683,7 @@ the `--no-hooks` suite) keeps the registry.
   constructor, 006EC8A8 `_mbsupr` lowers, 005E0550 is CTime::operator-). Read the code; the csv is add-only. Unquoted
   commas in names broke rows once (0055C730, 00561B00: now quoted).
 - Library bodies live in src/lib; game-element instantiations in src/game (game_arrays, game_lists, game_slots,
-  game_hashes, record_*, library_*). Callers call them by name (libcrt::Fopen ...; no forwarders since C29), and
+  game_hashes, record_*, library_*). Callers call them by name (libcrt::Qsort ...; no forwarders since C29), and
   C14a-d replace the containers with standard ones.
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)
@@ -1726,12 +1726,16 @@ the `--no-hooks` suite) keeps the registry.
   (combat, combat_more, sound, unit_ai_cast, unit_ai_corpse, unit_ai_heal: the console's "skill=3.40282e+038"
   attack line), so _output stays. atof and sscanf are the host CRT's (C26: goldens and the atof vectors the
   same); callers use std::atof / sscanf_s.
-- **Files** (crt_file.cpp): _open is VC6's _sopen through the game's import slots (so the harness's save / install
-  redirection applies), the handle wrapped as a host descriptor; fopen parses the mode as `_openfile` and wraps with
-  `_fdopen`, so the game's CrtFile* is the host's FILE*; the stream and descriptor functions are the host's (a bad
-  descriptor returns the error instead of the host's invalid-parameter abort); `&_iob[0..2]` map to the host's std
-  streams; _access and _findfirst go through the game's slots (the game never closes the find handle). fflush
-  006ED534 is the host's. Fact from S4b1: a truncating open of a just-written file, then a write past its end, can
+- **Files** (C35a: no CRT copy left): every open goes through the game's import slots, so the harness's save /
+  install redirection and a mod's hooks apply. `lib::OpenFile` (src/lib/file_io.h; fopen's r / w / a, +, b / t) opens
+  with CreateFileA and hands the handle to the host as a descriptor and `std::FILE*` (`_open_osfhandle`, `_fdopen`);
+  the callers (sysmsg.txt, BufferedFile, CStdioFile) use std::fread / fseek / ftell / fwrite / fclose / fgets on it.
+  The res archives (CMappedResource) keep a Win32 handle: CreateFileA, SetFilePointer, ReadFile, WriteFile through
+  the slots, the calls VC6's _sopen / _lseek / _read / _write made on its binary descriptor. _access is
+  `lib::FileExists` (GetFileAttributesA; every caller asked mode 0 or 4), _findfirst the resource stream's own
+  FindFirstFileA (now closed). The console ostreams' ios::stdio flush is std::fflush(stdout / stderr). Dropped with
+  VC6's _sopen: the text-mode update open's trailing Ctrl-Z cut and the read-only attribute of a created file (no
+  caller asked either). Fact from S4b1: a truncating open of a just-written file, then a write past its end, can
   read the gap back as old bytes on this machine under load (plain CreateFileA too).
 - **x87 entries** (crt_x87.cpp, naked, `__asm` exempt in check_cleanup): _ftol 006E853C (decodes the 80-bit value
   with integers; the integer indefinite for NaN / infinity / |x| >= 2^63), _CIacos / _CIasin / _CIpow and

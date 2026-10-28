@@ -11,6 +11,7 @@
 #include "gameapi.h"
 #include "game/game_data.h"
 
+#include <cstdio>
 #include <cstring>
 
 namespace libcrt {
@@ -36,10 +37,6 @@ int g_liveIosCount = /*007CAEC8*/ {};
 
 constexpr int kReserveSize = 0x200;   // doallocate's reserve area
 
-// The game CRT's stdout / stderr (&_iob[1], &_iob[2]), flushed after each insertion under ios::stdio.
-gamecrt::CrtFile* GameStdout() { return GameStream(1); }
-gamecrt::CrtFile* GameStderr() { return GameStream(2); }
-
 // opfx: the ios locked; a stream in error gets failbit and nothing is written (0); otherwise
 // the tie flushed and the streambuf locked too (1).
 int Prefix(Ostream* stream) {
@@ -62,8 +59,8 @@ void Suffix(Ostream* stream) {
     ios.width = 0;
     if ((ios.flags & Ios::kUnitBuf) && ios.bp->Sync() == kEof) ios.state = Ios::kFail | Ios::kBad;
     if (ios.flags & Ios::kStdio) {
-        if (Fflush(GameStdout()) == kEof) ios.state |= Ios::kFail;
-        if (Fflush(GameStderr()) == kEof) ios.state |= Ios::kFail;
+        if (std::fflush(stdout) == kEof) ios.state |= Ios::kFail;
+        if (std::fflush(stderr) == kEof) ios.state |= Ios::kFail;
     }
     ios.bp->Unlock();
     ios.Unlock();
