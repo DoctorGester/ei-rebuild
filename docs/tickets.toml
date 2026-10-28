@@ -1002,7 +1002,7 @@ title = "Interface typed views after F3a"
 group = "fields"
 size = 0.3
 model = "sonnet"
-note = "From F3a (2026-10-16): the HUD reaches the message log as children_.data[9] (ui_battle_commands, ui_battle_setup, ui_hud_panels, ui_hud_top_panel) instead of CBattleScreen::messageLog_; the battle tests view CBattleScreen::party_ as a UiDwordArray; ui_briefing.h's party is still a UiDwordArray; CUiWindow repeats CTransformObject's first 0x54 bytes (derive if the vtable and constructor allow)."
+note = "From F3a (2026-10-16): the HUD reaches the message log as children_.data[9] (ui_battle_commands, ui_battle_setup, ui_hud_panels, ui_hud_top_panel) instead of CBattleScreen::messageLog_; the battle tests view CBattleScreen::party_ as a UiDwordArray; ui_briefing.h's party is still a UiDwordArray; CUiWindow repeats CTransformObject's first 0x54 bytes (derive if the vtable and constructor allow). Re-review 2026-10-28: done by later cleanups: no children_.data[9] or UiDwordArray left, CUiWindow derives from CTransformObject (through an empty CUiWindowBase, a style leftover)."
 
 # ---------------------------------------------------------------- standalone verification
 
@@ -1482,7 +1482,7 @@ id = "SV7b5"
 title = "Net replication ordered by pointer"
 group = "verification"
 depends = ["SV7a"]
-note = "T2f (merged) already orders DiffObjectSets/SyncPlayer object sends (0047ADF0, 0047B4C0) by object id on both sides; the Connection maps here are the remaining part."
+note = "T2f (merged) already orders DiffObjectSets/SyncPlayer object sends (0047ADF0, 0047B4C0) by object id on both sides; the Connection maps here are the remaining part. Re-review 2026-10-28: still real. Connection keeps std::map<CRefObject*, ...> byObject_ / attached_ and 11 std::map<ReplicaEntry*, ...> priority trees (net_connection.h:181-186), so replication walks entries in heap-address order. The goldens pass, but the send order depends on allocation addresses, which the layout-independent goldens rule says nothing should. Fix: key the priority trees by a per-entry sequence number or object id (T2f did that for DiffObjectSets / SyncPlayer). Ready, Opus, small."
 
 [[ticket]]
 id = "SV7b6"
@@ -1956,7 +1956,7 @@ note = "Build warnings C4244 (world_rules.cpp:48-49) and C4458 (map_object_clien
 id = "X38"
 title = "Regenerate function_sizes.inc from a whole Ghidra database"
 group = "harness"
-note = "Ghidra reported cut-short bodies (0040D710 555 -> 60); the file is hand-patched for two sizes and gen_function_sizes.py no longer reproduces it."
+note = "Ghidra reported cut-short bodies (0040D710 555 -> 60); the file is hand-patched for two sizes and gen_function_sizes.py no longer reproduces it. Re-review 2026-10-28: still valid but low value. function_sizes.inc is still read by check_signatures, check_stolen, coverage, find_dead_code and gen_static_init; the two hand-patched sizes are correct. Keep parked until a tool gets a size wrong."
 
 [[ticket]]
 id = "X39"
@@ -2138,7 +2138,7 @@ title = "Read-before-write detector: trap the first read of never-written heap b
 group = "harness"
 size = 1
 model = "opus"
-note = "Parked 2026-10-15 (branch worktree-agent-aebf200856ca815e9, commit d4888138, unfinished, off by default). EI_HEAP_UNINIT=<size=|block=|site=[ei_hook+]hex|all>[,from=,updates=,reports=] (tests/verify/harness_uninit.h; hooks in harness_heap.cpp): picked blocks move to no-access pages of a two-view section, a VEH decodes each access (x86/x87/SSE/VEX), keeps a written bitmap, emulates plain MOV/MOVZX/MOVSX via the second view, single-steps the rest (REP MOVS/STOS as one range, bits carried block to block); reads of never-written bytes -> uninit.txt, tools/uninit_report.py names them. Works: levers --no-hooks site=004981D2 names 00496EB0+0x14D reading CParticleSource +0x98 (origin) in one 24 s run; hooked size=0x1F0 names CParticleSource::Tick+0x158 (plus verify-wrapper snapshot reads). Not done: broad selections too slow (all: stuck at game start; all,from=30,updates=20 on sandbox_actions: ~4M traps while the level loads, timeout at step 9; last run after adding CarryBits/NoteBusy timed out at step 5 with no traps after u30, possibly a hang to investigate); no golden check run yet; doc section in standalone-verification.md not written; SV7b7 also adds a block counter in RepeatableHeapAlloc (merge conflict expected)."
+note = "Parked 2026-10-15 (branch worktree-agent-aebf200856ca815e9, commit d4888138, unfinished, off by default). EI_HEAP_UNINIT=<size=|block=|site=[ei_hook+]hex|all>[,from=,updates=,reports=] (tests/verify/harness_uninit.h; hooks in harness_heap.cpp): picked blocks move to no-access pages of a two-view section, a VEH decodes each access (x86/x87/SSE/VEX), keeps a written bitmap, emulates plain MOV/MOVZX/MOVSX via the second view, single-steps the rest (REP MOVS/STOS as one range, bits carried block to block); reads of never-written bytes -> uninit.txt, tools/uninit_report.py names them. Works: levers --no-hooks site=004981D2 names 00496EB0+0x14D reading CParticleSource +0x98 (origin) in one 24 s run; hooked size=0x1F0 names CParticleSource::Tick+0x158 (plus verify-wrapper snapshot reads). Not done: broad selections too slow (all: stuck at game start; all,from=30,updates=20 on sandbox_actions: ~4M traps while the level loads, timeout at step 9; last run after adding CarryBits/NoteBusy timed out at step 5 with no traps after u30, possibly a hang to investigate); no golden check run yet; doc section in standalone-verification.md not written; SV7b7 also adds a block counter in RepeatableHeapAlloc (merge conflict expected). Re-review 2026-10-28: closed, not done. ASan (C35m1a) catches heap overflows and use-after-free but not reads of never-written bytes (MSVC has no MemorySanitizer), so I13 was not replaced by it. It is closed because the goldens are layout-independent, the game code is ours now, and the parked branch (worktree-agent-aebf200856ca815e9) was built on hook-era heap hooks. If uninitialised reads ever matter: zero-initialise members by default (a style rule) rather than trap reads."
 
 [[ticket]]
 id = "T2f"
@@ -2387,7 +2387,7 @@ id = "C14"
 title = "Standard types instead of MFC / STLport containers and strings"
 group = "cleanup"
 size = 5
-note = "Umbrella: C14a strings (running), C14b arrays / lists, C14c maps, C14d archives, C14e aligned arrays, C14f string_view consumers. R16i is done; work happens in the children."
+note = "Umbrella: C14a strings (running), C14b arrays / lists, C14c maps, C14d archives, C14e aligned arrays, C14f string_view consumers. R16i is done; work happens in the children. Re-review 2026-10-28: every child is done except C14f (string_view consumers, batch 5 running); the umbrella closes, C14f goes on by itself. C14zj1 is a UI scenario ticket, not part of C14."
 
 [[ticket]]
 id = "C15"
@@ -2804,7 +2804,7 @@ title = "Registrations: drop the unread ones C20c left in C19's files and the ge
 group = "cleanup"
 model = "sonnet"
 depends = ["C19"]
-note = "Done: gen_short_functions.py writes EI_REPLACE_SHORT only where registration_readers.read_addresses() finds a run-time reader (none today) and an EI_REWRITTEN line otherwise (the map keeps all 199); the 11 hand ones in particle_create.cpp are EI_REWRITTEN. Registrations 287 -> 72 (63 EI_REPLACE, 9 EI_REPLACE_METHOD; 282 after C20h merged). check_signatures skips templated names (LoadDword<0x24>). Left: the 40 unread in C14a's files (script_parse*, script_exec_helpers, script_unit_modes, console_streams, string_map, mfc_string, mfc_coll): run registration_readers.py --drop on them after C14a merges."
+note = "Done: gen_short_functions.py writes EI_REPLACE_SHORT only where registration_readers.read_addresses() finds a run-time reader (none today) and an EI_REWRITTEN line otherwise (the map keeps all 199); the 11 hand ones in particle_create.cpp are EI_REWRITTEN. Registrations 287 -> 72 (63 EI_REPLACE, 9 EI_REPLACE_METHOD; 282 after C20h merged). check_signatures skips templated names (LoadDword<0x24>). Left: the 40 unread in C14a's files (script_parse*, script_exec_helpers, script_unit_modes, console_streams, string_map, mfc_string, mfc_coll): run registration_readers.py --drop on them after C14a merges. Re-review 2026-10-28: obsolete. No EI_REPLACE / EI_REWRITTEN registrations are left in src (hook retirement, S21 and C20)."
 
 [[ticket]]
 id = "C20f"
@@ -3255,7 +3255,7 @@ group = "cleanup"
 size = 1
 model = "opus"
 files = ["tests/vectors/record_*.cpp"]
-note = "From H30b. tests/vectors/record_*.cpp record our functions' inputs from game.exe's EI_VECTORS=1 runs by reading game.exe's objects as our classes (OriginalGameData<CWorldServer>, <IsaacRandom>, members at our offsets). Once a cleanup moves members (C14a and later), recording vectors again reads wrong fields. Only matters when vectors are recorded again; run_all keys them only in EI_VECTORS=1 runs (HARNESS_VECTORS). Read game.exe through tests/verify/exe_objects.h and build our inputs from the views."
+note = "From H30b. tests/vectors/record_*.cpp record our functions' inputs from game.exe's EI_VECTORS=1 runs by reading game.exe's objects as our classes (OriginalGameData<CWorldServer>, <IsaacRandom>, members at our offsets). Once a cleanup moves members (C14a and later), recording vectors again reads wrong fields. Only matters when vectors are recorded again; run_all keys them only in EI_VECTORS=1 runs (HARNESS_VECTORS). Read game.exe through tests/verify/exe_objects.h and build our inputs from the views. Re-review 2026-10-28: still valid: 27 OriginalGameData<our class> reads in record_coder / record_crt_format / record_path / record_script / record_stats, and C37-C40 moved and renamed more members. Only matters if vectors are recorded again; keep parked, do it first if anyone re-records."
 
 [[ticket]]
 id = "C22g"
@@ -3376,7 +3376,7 @@ note = "User 2026-10-27. 637 forward declarations (class/struct X;) in 124 files
 id = "C31b"
 title = "Port scaffolding Abi types: ArrayAbi / ListAbi / ListTemporary / VectorAbi callers and registrations"
 group = "cleanup"
-note = "Do with C28o / C14b (after C14a): ~96 ArrayAbi uses (mfc_array.h, mfc_list.h, mfc_slots.h, game_arrays.h, game_slots.h, record_arrays.h), 52 ListAbi (game_lists.h, game_slots.h), 21 ListTemporary (SerializeThrough loaders), 56 stlp::VectorAbi (record_vectors.h, static_lists / unit_db_destroy / world_briefing Destruct); their Serialize / Destruct members are reached through the CArray / CList vtable tags."
+note = "Do with C28o / C14b (after C14a): ~96 ArrayAbi uses (mfc_array.h, mfc_list.h, mfc_slots.h, game_arrays.h, game_slots.h, record_arrays.h), 52 ListAbi (game_lists.h, game_slots.h), 21 ListTemporary (SerializeThrough loaders), 56 stlp::VectorAbi (record_vectors.h, static_lists / unit_db_destroy / world_briefing Destruct); their Serialize / Destruct members are reached through the CArray / CList vtable tags. Re-review 2026-10-28: obsolete. ArrayAbi / ListAbi / ListTemporary / VectorAbi have 0 uses in src and tests (C14b / C14m / C14zb deleted them); only stale coverage csv lines name them."
 
 [[ticket]]
 id = "C14f"
@@ -4154,7 +4154,7 @@ title = "Hashtables of objects: checks for the four unreached S11a members"
 group = "standalone"
 size = 1
 files = ["tests/verify/verify_stlp_hash.cpp"]
-note = "S11a ported 25 hash members; the suite never reaches 004A91B0 (hash_map<int, CParty> operator[]), 004ABA70 (its _M_delete_node), 006A6C20 (string-key ~hashtable) and 005BE090 (the shape cache's operator[]). Find a scenario that reaches them (party creation, a world teardown, an AI unit with a new shape key) or add one, and confirm 0 mismatches. Checks there are ours only for the CParty map (standalone.md S11a)."
+note = "S11a ported 25 hash members; the suite never reaches 004A91B0 (hash_map<int, CParty> operator[]), 004ABA70 (its _M_delete_node), 006A6C20 (string-key ~hashtable) and 005BE090 (the shape cache's operator[]). Find a scenario that reaches them (party creation, a world teardown, an AI unit with a new shape key) or add one, and confirm 0 mismatches. Checks there are ours only for the CParty map (standalone.md S11a). Re-review 2026-10-28: obsolete. STLport is gone (C14q moved these tables to std) and verify_stlp_hash.cpp was deleted; the goldens cover the std maps."
 
 [[ticket]]
 id = "S10d"
@@ -4313,7 +4313,7 @@ title = "Tooling: vtable slots must be function starts; library.csv 'not a funct
 group = "standalone"
 depends = ["S16d"]
 files = ["tools/find_vtables.py", "tools/dashboard_data.py", "config/vtables.csv"]
-note = "find_vtables.py half done in C19 batch 24 (slots must be function starts in functions.csv, minus the 'not a function' rows). Left: dashboard_data.py counts library.csv's five 'not a function' rows in library_functions (a denominator nothing can reach); leave them out there and out of the game count."
+note = "find_vtables.py half done in C19 batch 24 (slots must be function starts in functions.csv, minus the 'not a function' rows). Left: dashboard_data.py counts library.csv's five 'not a function' rows in library_functions (a denominator nothing can reach); leave them out there and out of the game count. Re-review 2026-10-28: obsolete. dashboard_data.py no longer counts library.csv rows, and the standalone no longer needs readiness counts against game.exe."
 
 [[ticket]]
 id = "S17a"
