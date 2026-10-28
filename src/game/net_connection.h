@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <list>
 #include <map>
+#include <unordered_map>
 #include <vector>
 
 namespace net {
@@ -42,6 +43,7 @@ public:
     std::uint8_t type_;        // message type of the object
     std::uint8_t flags_;       // bit 0 reliable; bits 1..7 priority (0..10)
     RefPtrTo<Message> object_;   // the object (null once it is gone)
+    std::uint32_t serial_ = 0;   // the connection's count of tracked entries when this one was made: its key in priorities_
 };
 
 // A counted reference to a replica entry (the connection's maps' values, a sent item's entry). Kept: the name of
@@ -133,10 +135,10 @@ public:
     // to the front of the queue (once). `packet` is a history node's data.
     void RollBack(SentPacket* packet);
     // Brings the tracked entries up to date: the session's CollectReplicated lists what this connection
-    // should have (sorted by object); new objects get an entry (Track), entries whose object is no longer
-    // listed are dropped (never sent) or marked gone (sent).
+    // should have; entries whose object is no longer listed are dropped (never sent) or marked gone (sent),
+    // then new objects get an entry (Track) in the list's order.
     void CollectChanges();
-    // Starts tracking `item` (an {object, priority} pair): a new entry for the object,
+    // Starts tracking `item` (an {object, priority} pair): a new entry for the object (the next serial),
     // kept in byObject_ and its priority map.
     void Track(Replicated* item);
     // Clocks, lost packets, sending, delayed id reuse; false when the peer timed out or the reliable stream
@@ -178,12 +180,15 @@ public:
     std::list<std::vector<FreedId>> freedIds_;     // batches of ids returned to the pools later
     float freedTimer_;
     std::map<std::int32_t, EntryRef> bySentId_;    // type << 16 | id -> entry
-    std::map<CRefObject*, EntryRef> byObject_;     // object -> entry
-    std::array<std::map<ReplicaEntry*, EntryRef>, 11> priorities_;          // per priority: entry -> entry
+    // Lookups only; nothing walks it. The original keys both by address (an ordered map each); the priority
+    // maps are walked to send, so ours key them by the entry's serial (the order entries were tracked in).
+    std::unordered_map<CRefObject*, EntryRef> byObject_;     // object -> entry
+    std::array<std::map<std::uint32_t, EntryRef>, 11> priorities_;          // per priority: entry serial -> entry
+    std::uint32_t entriesTracked_ = 0;   // the last serial handed out
     std::list<SentPacket> history_;    // packets sent, waiting for an acknowledgement
     std::list<SentPacket> acknowledged_;   // lost packets, kept a while for late acknowledgements
     std::map<std::int32_t, Record> records_;                 // objects received (key type << 16 | id)
-    std::map<CRefObject*, AttachedId> attached_;   // received object -> (type, id)
+    std::unordered_map<CRefObject*, AttachedId> attached_;   // received object -> (type, id); lookups only
     std::uint16_t headerSequence_;      // sequence of the next reliable chunk sent
     std::uint16_t incomingSequence_;    // sequence of the next reliable chunk expected
     std::list<ReliableChunk> headers_;    // reliable chunks waiting to be sent

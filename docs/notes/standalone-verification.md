@@ -391,7 +391,9 @@ happen (the harness logs "share id" if one does).
   get theirs on placement / load. The 3DS readers' stack figure (004A0350) is unported dead code.
 - **Address order**: a sort or hash walk by pointer that reaches behaviour, a save or a frame gets an id or name order
   in ours and a harness patch in the original. Pointer-keyed containers that reach no output (CRenderHelper::records_,
-  CMappedResource::filesByData_, mod_folders' sets) need nothing.
+  CMappedResource::filesByData_, mod_folders' sets, ChunkArchive::numbers_, text_sources' converted texts, ui_native's
+  surfaces, the renderer's caches) need nothing. Net replication (SV7b5) sends by entry serial in ours (network.md,
+  "Original bugs kept (rest)"); the original's runs keep the address order unpatched, as no golden reads it.
 - **Allocation order** (SV2f, SV2h1b): the game reads the heap's address order in places, and before the
   canonical orders a twin block allocated early moved a script group's last member. Those reads are canonical now,
   so a golden that changes with the allocation order is a missing canonicalisation: check with the jitter passes.
@@ -420,8 +422,6 @@ happen (the harness logs "share id" if one does).
   thousands of runs (once in the image); a retry passes.
 - SV7c1 (later): vanilla menu unit cunit2's flags 0x100004A2 against 0x100004AA once under jitter seed 3.
 - SV2c (watch): unit_create parted once in crt.rand only.
-- SV7b5: net replication ordered by pointer (Connection's maps keyed by ReplicaEntry* / CRefObject*; SendUpdate hands
-  out net ids in address order; only multiplayer and the lobby reach it).
 - I13: a read-before-write detector for never-written heap bytes.
 - SV5d3 / SV5d5: net_pair_quest parted on both installs, the original and the image alike, at the zone's fights
   (an extra block of random draws): the music's combat-track draw follows the real-time stream thread

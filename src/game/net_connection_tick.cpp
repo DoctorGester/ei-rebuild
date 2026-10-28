@@ -138,8 +138,8 @@ void Connection::Delivered(SentPacket* packet) {
             item->entry->version_ = version;
         } else if (action > 1 && action < 4) {
             ReplicaEntry* entry = item->entry;
-            std::map<ReplicaEntry*, EntryRef>& tree = priorities_[entry->flags_ >> 1];
-            auto found = tree.find(entry);
+            std::map<std::uint32_t, EntryRef>& tree = priorities_[entry->flags_ >> 1];
+            auto found = tree.find(entry->serial_);
             if (found != tree.end()) {
                 entry = item->entry;
                 std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;

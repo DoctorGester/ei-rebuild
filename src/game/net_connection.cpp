@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <unordered_set>
+#include <vector>
 
 namespace net {
 
@@ -166,7 +168,8 @@ bool Connection::SendUpdate(int budget) {
     std::uint8_t* count = c.p++;
     *count = 0;
     for (int priority = 10; priority >= 0; --priority) {
-        std::map<ReplicaEntry*, EntryRef>& map = priorities_[priority];
+        // In the order the entries were tracked (the original: by the entry's address).
+        std::map<std::uint32_t, EntryRef>& map = priorities_[priority];
         for (auto it = map.begin(); it != map.end(); ++it) {
             ReplicaEntry* entry = it->second.get();
             Message* object = entry->Object();
@@ -326,8 +329,9 @@ void Connection::Track(Replicated* item) {
     // A new entry with no version and no id yet.
     auto* entry = NewCounted<ReplicaEntry>();
 
+    entry->serial_ = ++entriesTracked_;
     byObject_[item->object] = entry;
-    priorities_[static_cast<std::int8_t>(item->priority)][entry] = entry;
+    priorities_[static_cast<std::int8_t>(item->priority)][entry->serial_] = entry;
     entry->type_ = static_cast<std::uint8_t>(type);
     CRefObject* previous = entry->object_.ptr;
     entry->object_.ptr = item->object;
@@ -347,59 +351,32 @@ void Connection::CollectChanges() {
     items.clear();
     std::vector<Replicated>* target = &items;
     g_currentSession->CollectReplicated(&target);
-    Replicated* item = items.data();
-    Replicated* end = item + items.size();
-    // By the object's address. An object is listed at most once per priority (only the server's file chunks are
-    // priority 1, and a file's chunks are listed for one request), so entries with the same object are equal.
-    std::sort(item, end, [](const Replicated& a, const Replicated& b) {
-        return reinterpret_cast<std::uintptr_t>(a.object) < reinterpret_cast<std::uintptr_t>(b.object);
-    });
+    // The original sorts the list by the object's address and merges it with byObject_ (also by address), so
+    // it tracks new objects, and its entries get their addresses, in address order. Ours goes by the list's
+    // order (the session's lists), so entries are tracked, and their serials handed out, in an order no
+    // allocation decides. An object listed twice would be tracked once (the original's merge tracks the second
+    // listing again); the sessions list each object once.
+    std::unordered_set<CRefObject*> listed;
+    for (const Replicated& item : items) listed.insert(item.object);
 
-    // Merge the sorted list with byObject_ (both ordered by object pointer).
-    auto node = byObject_.begin();
-    auto entryAt = [](auto n) { return n->second.get(); };
-    if (item != end) {
-        do {
-            if (node == byObject_.end()) {
-                for (; item < end; ++item) Track(item);
-                return;
-            }
-            ReplicaEntry* entry = entryAt(node);
-            CRefObject* listed = item->object;
-            CRefObject* tracked = entry->object_.ptr;
-            if (listed == tracked) {
-                ++node;
-                ++item;
-            } else if (listed < tracked) {
-                Track(item);
-                ++item;
-            } else {
-                // Tracked but no longer listed: never sent -> forgotten; sent -> marked gone.
-                auto gone = node++;
-                entry = entryAt(gone);
-                if (entry->id_ == 0) {
-                    priorities_[entry->flags_ >> 1].erase(entry);
-                } else {
-                    CRefObject* old = entry->object_.ptr;
-                    entry->object_.ptr = nullptr;
-                    if (old) old->Release();
-                    entry->version_ = 0;
-                }
-                byObject_.erase(gone);
-            }
-        } while (item != end);
-    }
-    while (node != byObject_.end()) {
-        auto gone = node++;
-        ReplicaEntry* entry = entryAt(gone);
+    // Tracked but no longer listed: never sent -> forgotten; sent -> marked gone. In serial order.
+    std::vector<ReplicaEntry*> gone;
+    for (const auto& [object, entry] : byObject_)
+        if (!listed.contains(object)) gone.push_back(entry.get());
+    std::sort(gone.begin(), gone.end(), [](const ReplicaEntry* a, const ReplicaEntry* b) { return a->serial_ < b->serial_; });
+    for (ReplicaEntry* entry : gone) {
+        auto node = byObject_.find(entry->object_.ptr);
         if (entry->id_ == 0) {
-            priorities_[entry->flags_ >> 1].erase(entry);
+            priorities_[entry->flags_ >> 1].erase(entry->serial_);
         } else {
             entry->object_.Assign(nullptr);
             entry->version_ = 0;
         }
-        byObject_.erase(gone);
+        byObject_.erase(node);
     }
+
+    for (Replicated& item : items)
+        if (!byObject_.contains(item.object)) Track(&item);
 }
 
 } // namespace net
