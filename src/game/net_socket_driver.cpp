@@ -5,6 +5,7 @@
 #include "net_classes.h"
 #include "net_coder.h"
 #include "lib/crt.h"
+#include "lib/gameapi.h"
 #include "lib/stlp.h"
 
 #include "ei/rebirth.h"
@@ -69,13 +70,13 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
         std::string host(s.data(), s.data() + m);
         s.assign(host.data(), host.data() + host.size());
     }
-    ip = libcrt::imports::InetAddr(s.data());
+    ip = gameapi::inet_addr(s.data());
     if (ip == 0xFFFFFFFFu) {
-        void* h = libcrt::imports::GetHostByName(s.data());
+        void* h = gameapi::gethostbyname(s.data());
         if (!h) return false;
         ip = FirstAddress(h);
     }
-    port = libcrt::imports::Htons(static_cast<std::uint16_t>(number));
+    port = gameapi::htons(static_cast<std::uint16_t>(number));
     return true;
 }
 
@@ -84,15 +85,15 @@ std::string NetAddress::Format(int resolve) const {
     char text[0x400];
     bool named = false;
     if (static_cast<std::uint8_t>(resolve)) {
-        void* h = libcrt::imports::GetHostByAddr(this, 0x10, 2);
+        void* h = gameapi::gethostbyaddr(this, 0x10, 2);
         if (h && *static_cast<char**>(h)) {
-            std::uint16_t value = libcrt::imports::Ntohs(port);
+            std::uint16_t value = gameapi::ntohs(port);
             gamecrt::sprintf(text, "%s:%i", *static_cast<char**>(h), value & 0xFFFF);
             named = true;
         }
     }
     if (!named) {
-        std::uint16_t value = libcrt::imports::Ntohs(port);
+        std::uint16_t value = gameapi::ntohs(port);
         auto* bytes = reinterpret_cast<const std::uint8_t*>(&ip);
         gamecrt::sprintf(text, "%i.%i.%i.%i:%i", bytes[0], bytes[1], bytes[2], bytes[3], value & 0xFFFF);
     }
@@ -104,11 +105,11 @@ std::string NetAddress::Format(int resolve) const {
 // The broadcast address is the host's first address with the host part (by its class: A, B or C) set to 0xFF.
 SocketDriver* SocketDriver::Construct() {
     alignas(4) std::uint8_t wsa[0x190];
-    libcrt::imports::WsaStartup(0x101, wsa);
+    gameapi::WSAStartup(0x101, wsa);
     socket = kNoSocket;
     char name[1000];
-    if (libcrt::imports::GetHostName(name, 1000) != 0) return this;
-    void* h = libcrt::imports::GetHostByName(name);
+    if (gameapi::gethostname(name, 1000) != 0) return this;
+    void* h = gameapi::gethostbyname(name);
     if (!h) return this;
     NetAddress a{};
     a.family = 2;
@@ -125,38 +126,38 @@ SocketDriver* SocketDriver::Construct() {
 }
 
 void SocketDriver::Destruct() {
-    if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
+    if (socket != kNoSocket) gameapi::closesocket(socket);
     socket = kNoSocket;
-    libcrt::imports::WsaCleanup();
+    gameapi::WSACleanup();
 }
 
 bool SocketDriver::Open(int port) {
-    if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
+    if (socket != kNoSocket) gameapi::closesocket(socket);
     socket = kNoSocket;
-    socket = libcrt::imports::Socket(2, 2, 0x11);
+    socket = gameapi::socket(2, 2, 0x11);
     if (socket == kNoSocket) return false;
     NetAddress a{};
     a.family = 2;
-    a.port = libcrt::imports::Htons(static_cast<std::uint16_t>(port));
-    if (port > 0 && libcrt::imports::Bind(socket, &a, 0x10) != 0) {
+    a.port = gameapi::htons(static_cast<std::uint16_t>(port));
+    if (port > 0 && gameapi::bind(socket, &a, 0x10) != 0) {
         // Not the game's: a second game on the machine holding the port leaves this session without a
         // socket, and its local client then talks to that game's server. The verify build's
         // check of the server's constructor builds a second server, which always gets this.
         ei::Log("net: UDP port %d is taken (bind failed): this session gets no socket", port);
-        libcrt::imports::CloseSocket(socket);
+        gameapi::closesocket(socket);
         socket = kNoSocket;
         return false;
     }
     std::uint32_t one = 1;
-    libcrt::imports::IoctlSocket(socket, kNonBlocking, &one);
-    libcrt::imports::SetSockOpt(socket, 0xFFFF, 0x20, &one, 4);   // SOL_SOCKET, SO_BROADCAST
+    gameapi::ioctlsocket(socket, kNonBlocking, &one);
+    gameapi::setsockopt(socket, 0xFFFF, 0x20, &one, 4);   // SOL_SOCKET, SO_BROADCAST
     return true;
 }
 
 bool SocketDriver::Broadcast(NetAddress* out, unsigned index, int port) {
     if (index >= AddressCount(this)) return false;
     *out = addresses[index];
-    out->port = libcrt::imports::Htons(static_cast<std::uint16_t>(port));
+    out->port = gameapi::htons(static_cast<std::uint16_t>(port));
     return true;
 }
 
@@ -181,14 +182,14 @@ bool SocketDriver::IsLocal(const NetAddress* address) {
 
 bool SocketDriver::SendTo(const NetAddress* address, GameBuffer* buffer) {
     std::int32_t length = Length(buffer);
-    return libcrt::imports::SendTo(socket, buffer->begin, length, 0, address, 0x10) == length;
+    return gameapi::sendto(socket, buffer->begin, length, 0, address, 0x10) == length;
 }
 
 // The buffer is first sought (its slot 6) to room for 0x800 bytes.
 bool SocketDriver::Receive(NetAddress* from, GameBuffer* buffer) {
     buffer->Seek(0x800);
     int fromLength = 0x10;
-    int n = libcrt::imports::RecvFrom(socket, buffer->begin, 0x800, 0, from, &fromLength);
+    int n = gameapi::recvfrom(socket, buffer->begin, 0x800, 0, from, &fromLength);
     if (n >= 0) {
         from->family = 2;
         std::memset(from->zero, 0, sizeof(from->zero));
@@ -202,28 +203,28 @@ bool SocketDriver::Receive(NetAddress* from, GameBuffer* buffer) {
 // ---- The master server link ----------------------------------------------------------------------
 
 MasterLink::MasterLink(const void* address) {
-    socket = libcrt::imports::Socket(2, 1, 6);
+    socket = gameapi::socket(2, 1, 6);
     if (socket == kNoSocket) {
         state = 0;
         return;
     }
     std::uint8_t any[16] = {};
     any[0] = 2;
-    if (libcrt::imports::Bind(socket, any, 0x10) != 0) {
-        if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
+    if (gameapi::bind(socket, any, 0x10) != 0) {
+        if (socket != kNoSocket) gameapi::closesocket(socket);
         socket = kNoSocket;
         state = 0;
         return;
     }
     std::uint32_t one = 1;
-    libcrt::imports::IoctlSocket(socket, kNonBlocking, &one);
-    libcrt::imports::Connect(socket, address, 0x10);
+    gameapi::ioctlsocket(socket, kNonBlocking, &one);
+    gameapi::connect(socket, address, 0x10);
     state = 1;
 }
 
 // Closes the socket (left as it is); the buffers are destroyed after it (in, then out).
 MasterLink::~MasterLink() {
-    if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
+    if (socket != kNoSocket) gameapi::closesocket(socket);
 }
 
 // One step: connecting (1) until writable (4) or failed; sending (4) the whole outgoing buffer at once,
@@ -235,25 +236,25 @@ int MasterLinkTick(MasterLink* self) {
         std::uint32_t sockets[1];
     } set = {1, {self->socket}};
     auto close = [self](std::int32_t state) {
-        if (self->socket != kNoSocket) libcrt::imports::CloseSocket(self->socket);
+        if (self->socket != kNoSocket) gameapi::closesocket(self->socket);
         self->socket = kNoSocket;
         self->state = state;
     };
     switch (self->state) {
     case 1:
-        if (libcrt::imports::Select(0, nullptr, &set, nullptr, kSelectTimeout) == 1) {
+        if (gameapi::select(0, nullptr, &set, nullptr, kSelectTimeout) == 1) {
             self->state = 4;
             return self->state;
         }
-        if (libcrt::imports::Select(0, nullptr, nullptr, &set, kSelectTimeout) == 1) close(0);
+        if (gameapi::select(0, nullptr, nullptr, &set, kSelectTimeout) == 1) close(0);
         return self->state;
     case 2: {
-        if (libcrt::imports::Select(0, &set, nullptr, nullptr, kSelectTimeout) != 1) {
-            if (libcrt::imports::Select(0, nullptr, nullptr, &set, kSelectTimeout) == 1) close(0);
+        if (gameapi::select(0, &set, nullptr, nullptr, kSelectTimeout) != 1) {
+            if (gameapi::select(0, nullptr, nullptr, &set, kSelectTimeout) == 1) close(0);
             return self->state;
         }
         std::uint8_t data[0x800];
-        int n = libcrt::imports::Recv(self->socket, data, 0x800, 0);
+        int n = gameapi::recv(self->socket, data, 0x800, 0);
         if (n == -1) {
             close(0);
             return self->state;
@@ -281,16 +282,16 @@ int MasterLinkTick(MasterLink* self) {
         return self->state;
     }
     case 4: {
-        if (libcrt::imports::Select(0, nullptr, &set, nullptr, kSelectTimeout) != 1) {
-            if (libcrt::imports::Select(0, nullptr, nullptr, &set, kSelectTimeout) == 1) close(0);
+        if (gameapi::select(0, nullptr, &set, nullptr, kSelectTimeout) != 1) {
+            if (gameapi::select(0, nullptr, nullptr, &set, kSelectTimeout) == 1) close(0);
             return self->state;
         }
         self->state = 2;
         std::uint32_t mode = 0;
-        libcrt::imports::IoctlSocket(self->socket, kNonBlocking, &mode);
-        int sent = libcrt::imports::Send(self->socket, self->out.begin, Length(&self->out), 0);
+        gameapi::ioctlsocket(self->socket, kNonBlocking, &mode);
+        int sent = gameapi::send(self->socket, self->out.begin, Length(&self->out), 0);
         mode = 1;
-        libcrt::imports::IoctlSocket(self->socket, kNonBlocking, &mode);
+        gameapi::ioctlsocket(self->socket, kNonBlocking, &mode);
         if (sent != Length(&self->out)) close(0);
         return self->state;
     }
@@ -302,6 +303,6 @@ int MasterLinkTick(MasterLink* self) {
 // The exit function of Winsock's static initialiser (WSAStartup 1.1): WSACleanup once the network
 // threads are gone. The original waits while their count is non-zero; only the thread procedure
 // counts them, and nothing starts it (config/dead_code.csv), so there is never one to wait for.
-void CleanUpWinsock() { libcrt::imports::WsaCleanup(); }
+void CleanUpWinsock() { gameapi::WSACleanup(); }
 
 } // namespace net

@@ -9,13 +9,14 @@
 #include "ui_screens.h"
 #include "world.h"
 
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 
 #include "game_data.h"
 #include "lib/str.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -41,7 +42,7 @@ bool Numbered(const std::string& name) {
     if (dot == -1) return false;
     const char* text = name.c_str();
     for (int i = 0; i < dot; ++i)
-        if (!gamecrt::isdigit(static_cast<signed char>(text[i]))) return false;
+        if (!text::IsDigit(static_cast<signed char>(text[i]))) return false;
     return true;
 }
 
@@ -74,7 +75,7 @@ bool MpHeroRecord::ReadFile(const char* folder) {
 }
 
 void SavedParties::SaveAll() {
-    if (gamecrt::mbscmp(folder_, game::EmptyText()) == 0)
+    if (str::Compare(folder_, game::EmptyText()) == 0)
         return;
     ClearSaveFolder(folder_.c_str());
     // The count is read again after each write.
@@ -108,5 +109,5 @@ void DestroySavedParties() { g_savedParties->Destruct(); }
 
 void ConstructSavedParties() {
     g_savedParties->Construct();
-    libcrt::AtExit(DestroySavedParties);
+    std::atexit(DestroySavedParties);
 }

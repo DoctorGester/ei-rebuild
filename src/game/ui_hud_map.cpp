@@ -20,6 +20,7 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "camera.h"
+#include "lib/text_case.h"
 
 #include <cstdint>
 #include <cstring>
@@ -180,7 +181,7 @@ private:
 std::int16_t UnitFrame(const CUnit* unit) {
     int side = LocalSide();
     if (unit->id_ == kSpecialUnitId) {
-        if (gamecrt::mbscmp(LocalPlayerZone().c_str(), "gz20g") == 0) return kFrameHostile;
+        if (std::strcmp(LocalPlayerZone().c_str(), "gz20g") == 0) return kFrameHostile;
     }
     std::uint32_t bit = 1u << (side & 31);
     return (bit & unit->relationsB & unit->relationsA) != 0 ? kFrameHostile : kFrameNeutral;
@@ -298,7 +299,7 @@ void CHudMap::BuildMarkers() {
     for (int i = 0; i < exitCount; ++i) {
         out.BeginQuad();
         float x, y;
-        if (libcrt::Stricmp(world->exits_[i].target.c_str(), "none") != 0) {
+        if (text::CompareIgnoringCase(world->exits_[i].target.c_str(), "none") != 0) {
             float centre[2];
             world->ExitCentre(centre, i);
             if (out.Place(centre[0], centre[1], &x, &y)) {

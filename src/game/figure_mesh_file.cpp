@@ -1,4 +1,4 @@
-// CFigureMesh's own file format (reached through virtuals only): the mesh is written to an MFC CFile and read
+// CFigureMesh's own file format (reached through virtuals only): the mesh is written to a file and read
 // back. The name, then every array as a count and its elements, then the bounding values. See figure_mesh.h
 // and docs/notes/world.md.
 #include "figure_mesh.h"
@@ -6,6 +6,7 @@
 #include "core_maths.h"
 
 #include "ei/x87.h"
+#include "lib/file_io.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "object_maths.h"
@@ -15,11 +16,11 @@
 
 namespace {
 
-void Write(mfc::CFileVirtuals* file, const void* data, int size) { file->Write(data, static_cast<unsigned>(size)); }
-void Read(mfc::CFileVirtuals* file, void* data, int size) { file->Read(data, static_cast<unsigned>(size)); }
+void Write(lib::File* file, const void* data, int size) { file->Write(data, static_cast<unsigned>(size)); }
+void Read(lib::File* file, void* data, int size) { file->Read(data, static_cast<unsigned>(size)); }
 
-void WriteCount(mfc::CFileVirtuals* file, int count) { Write(file, &count, 4); }
-int ReadCount(mfc::CFileVirtuals* file) {
+void WriteCount(lib::File* file, int count) { Write(file, &count, 4); }
+int ReadCount(lib::File* file) {
     int count;
     Read(file, &count, 4);
     return count;
@@ -27,7 +28,7 @@ int ReadCount(mfc::CFileVirtuals* file) {
 
 } // namespace
 
-void CFigureMesh::SaveTransform(mfc::CFileVirtuals* file) {
+void CFigureMesh::SaveTransform(lib::File* file) {
     int length = static_cast<int>(name_.size());
     WriteCount(file, length);
     Write(file, name_.c_str(), length);
@@ -52,7 +53,7 @@ void CFigureMesh::SaveTransform(mfc::CFileVirtuals* file) {
     Write(file, &meshType_, 4);
 }
 
-void CPlainFigureMesh::LoadTransform(mfc::CFileVirtuals* file) {
+void CPlainFigureMesh::LoadTransform(lib::File* file) {
     BuffersChanged();
     int length = ReadCount(file);
     Read(file, str::SetLength(name_, length), length);

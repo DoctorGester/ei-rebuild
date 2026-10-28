@@ -6,9 +6,10 @@
 #include "script.h"
 #include "ui.h"
 
-#include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_algo.h"
+#include "lib/str.h"
+#include "lib/text_case.h"
 
 #include <cstdint>
 #include <string>
@@ -45,7 +46,7 @@ struct IntLess {
 using IdSort = stlp::Sort<int, IntLess>;
 
 int CompareNames(const std::string& a, const std::string& b) {
-    return gamecrt::mbscmp(a,
+    return str::Compare(a,
                            b);
 }
 
@@ -84,7 +85,7 @@ struct NotOlder {
 using SaveSort = stlp::Sort<SaveEntry, NotOlder>;
 
 struct ByTextIgnoringCase {
-    bool operator()(const std::string& a, const std::string& b) const { return libcrt::Stricmp(a.data(), b.data()) < 0; }
+    bool operator()(const std::string& a, const std::string& b) const { return text::CompareIgnoringCase(a.data(), b.data()) < 0; }
 };
 using TopicSort = stlp::Sort<std::string, ByTextIgnoringCase, stlp::ObjectElement<std::string>>;
 

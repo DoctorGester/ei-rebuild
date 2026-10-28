@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <unordered_map>
 #include <vector>
 
 // One AI map cell: a 4-bit passability field per unit size class, then heights.
@@ -638,9 +639,9 @@ struct AreaOffset {
     int dx, dy;
 };
 
-// The cells under a bridge (CAIMap::bridgeHeights): an STLport hash_map keyed (short)x << 16 | (short)y, the
+// The cells under a bridge (CAIMap::bridgeHeights): a hash map keyed (short)x << 16 | (short)y, the
 // value the cell's saved ground level (low word), object height (bits 16-21) and occluder kind (bits 24-28).
-struct BridgeHeights : stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash> {
+struct BridgeHeights : std::unordered_map<std::uint32_t, std::uint32_t> {
     // Puts back what the cell's bridge map entry saved (ground level, object height, the occluder word's low five
     // bits) and erases the entry; nothing without one. x and y are read as shorts.
     void RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* occluder);
@@ -648,7 +649,6 @@ struct BridgeHeights : stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHas
     int HeightAt(short x, short y) const;
 };
 using BridgeMap = BridgeHeights;
-static_assert(sizeof(BridgeMap) == 0x14);
 
 // CAIMap's dirty rectangle: the area refreshed when a batch of refreshes ends.
 struct AIDirtyRect {

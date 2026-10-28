@@ -6,6 +6,7 @@
 #include "world.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <list>
 #include <memory>
 
@@ -39,15 +40,15 @@ void DestroyDeferredUnits() { SectorListDestruct(&g_deferredUnits.Get()); }
 
 void ConstructProtectionChecksList() {
     app::ConstructProtectionChecks();
-    libcrt::AtExit(DestroyProtectionChecks);
+    std::atexit(DestroyProtectionChecks);
 }
 void ConstructDriversList() {
     ConstructDirectDrawDrivers();
-    libcrt::AtExit(DestroyDrivers);
+    std::atexit(DestroyDrivers);
 }
 void ConstructDeferredUnitsList() {
     ConstructDeferredUnits();
-    libcrt::AtExit(DestroyDeferredUnits);
+    std::atexit(DestroyDeferredUnits);
 }
 
 } // namespace static_lists

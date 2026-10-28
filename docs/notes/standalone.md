@@ -320,7 +320,7 @@ made, and the generators still read game.exe when rerun. What needs no game.exe 
 a hand edit or a new harness route fails), `named_data.py --check` (definitions well formed, csv current, no address
 literal inside a named, retired or unread range, global_objects.csv) and `gen_image_cells.py --check` (retired vtables
 against vtables.csv and the sources, the committed cells' targets). The generated static_init.cpp / static_exit.cpp,
-image_cells.inc and short_functions.cpp are only as fresh as their generator's last run: rerun
+image_cells.inc are only as fresh as their generator's last run: rerun
 it (reads game.exe) after a change that registers or ports what it decodes.
 The harness still runs the original game.exe for goldens and vectors.
 
@@ -332,7 +332,7 @@ What C25a named or dropped of its list, still the code's form:
 - **A ported static initialiser**: 007043FA (`RegisterWindowMessageA("commctrl_DragListMsg")` into 007CAA64) is
   mfc_window.cpp's RegisterDragListMessage (5 bytes, a jump to its body: rows in extra_function_sizes.csv /
   function_sizes.inc); static_init.cpp calls it.
-- **Named**: ostream's virtual base table `kOstreamVirtualBases` {0, 8} (crt_iostream.cpp), OnNewParty's next record id
+- **Named**: OnNewParty's next record id
   `g_nextRecordObjectId` (player_server_handlers.cpp), and C25b's pause key `g_pauseMessageKey` 007930EC (ui.h; the
   message table and SetPauseTextDigit share it, so a resume shows "reserved_03" as with EI_Plugin).
 - **MFC's empty string**: no CString of ours is left (C14i: src/lib's MFC is on std::string). game.exe's cells
@@ -510,10 +510,11 @@ kinds given.
     committed file; add the rows by hand in order.
     config/runtime_classes.csv (the cell tool's list of the records) went with them: their cells are inside named
     ranges.
-    **The throws**: mfc_exception's file / archive / not supported / memory / resource exceptions and the device
+    **The throws**: mfc_exception's archive / memory / resource exceptions and the device
     layer's GameError are this compiler's `throw` of a pointer to a class of the game's name (lib/mfc_try.h:
-    CObject, CException, CSimpleException, CFileException, CArchiveException, CNotSupportedException,
-    CMemoryException, CResourceException; dx_errors.h: CGameException, CDXException), cast from the game's object.
+    CObject, CException, CSimpleException, CArchiveException, CMemoryException, CResourceException; dx_errors.h:
+    CGameException, CDXException), cast from the game's object. A failed file call throws `lib::FileError` (a
+    std::runtime_error, by value) where MFC threw a CFileException*.
     The compiler's ThrowInfo lists the pointer to the class and each base like the original's six records
     (0077F440, 0077F2B0, 0077EE80, 0077EE38, 0077EC28, 00759908), which nothing reads now: they and their catchable
     types stay in the image as dead data with their cells (ThrowInfo -> array 10 and array -> types 41 are counted
@@ -575,7 +576,8 @@ kinds given.
     a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
     left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
     readers take `TheServerWorld()->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
-    CRT's since C26 (lib/crt_locale_data.cpp reads it), crt_iostream's shared lock and ios count (crt_file's zero mode constants went with it, C35a). **Left**: 00783E34 / 00783E38
+    CRT's "C" locale since C26 (nothing reads it since C35b), the old iostream's shared lock and ios count and ostream's virtual base table (C35d: console::Stream has none;
+    crt_file's zero mode constants went with C35a). **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
     yet), the growing buffers 0079B8E0 / 0079B900 (game.exe's vtable: C19), 007B00BC (inside the server world
     007AFF60). The CRT's allocator state is named since C18r (below).
@@ -747,15 +749,13 @@ kinds given.
       here (SetDefaultRate's 00783E34: net::g_remoteRate, a plain int a flag can write); addon_sites.inc still names
       it for the harness in game.exe.
     - **The console's streams and command maps (C18s, 121 -> 90)**: console_streams.cpp names the eight streambufs
-      (`lib::StaticObject<ConsoleStreambuf>`, 0x454 bytes, 0x458 apart), the eight ostreams (`console::OStreamObject`:
-      the ostream and its ios, the virtual base, 0x58 bytes; trivial, so a plain `constinit` aggregate, TYPES
-      'OStreamObject') and the two command maps (`lib::StaticObject<CommandMap>`), with their 18 initialisers
+      (`lib::StaticObject<ConsoleStreambuf>`, 0x454 bytes, 0x458 apart), the eight ostreams (`console::Stream` since C35d,
+      a plain `constinit` object naming its streambuf; TYPES 'Stream' keeps the original's 0x58 bytes) and the two command maps (`lib::StaticObject<CommandMap>`), with their 18 initialisers
       (005DC050 / 005DC120, 005DC1E0-005DC3F0, 005DC420-005DC5E0) and 18 exit functions ported on the names and
       registered (rows in extra_function_sizes.csv / function_sizes.inc). The log pointers are `constexpr` pointers whose
       initialiser names the stream (`{&console::g_aiLogOut}`: named_data takes a qualified name of a range): unit_hits'
       kHitLog 007AF284, ai_alarm's kAlarmLog 007C2EB8, combat's kCombatLog 007AF3E8, unit_ai's kAiLog 007C53C4 and
-      kModeLog 007C54E8; a file's own ostream view (AiLogStream, UnitLogStream, GameOstream, net::LogStream) reads the
-      stream through `console::StreamAs<View>`.
+      kModeLog 007C54E8; the files write to them as `console::Stream&`.
     - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the worlds (g_serverWorld 007AFF60, g_clientWorld
       007AF5B8, world_construct.cpp), the camera 0079B2A8, the scene renderer 007AF060 and the device lock 007AEE78
       (renderer_lifetime.cpp), the map database 0079BF00, the debug panel 0079B930 (string_map.cpp), the class registry
@@ -787,8 +787,8 @@ kinds given.
       static windows (g_wndTop 007CAA28, g_wndBottom 007CA9E8, g_wndTopMost 007CA9A8, g_wndNoTopMost 007CA968).
     - **The MFC and CRT objects (C18r, 41 -> 6)**: the CRT's allocator state is named in crt.cpp: STLport's node
       allocator (`g_nodeFreeLists` 0079B224, 16 lists by 8-byte class, `g_nodeHeapSize` 0079B264, `g_chunkStart` /
-      `g_chunkEnd` 0079B268 / 6C; the ports that inlined a block's return call NodeDeallocate) and `_pnhHeap`
-      (`g_heapNewHandler` 007CAAD8); `_afxNewHandler` is mfc_handle_map's `g_afxNewHandler` 00796E14, initialised
+      `g_chunkEnd` 0079B268 / 6C; the ports that inlined a block's return call NodeDeallocate); `_pnhHeap` (007CAAD8) is gone
+      (nothing called the handler it held, C35e); `_afxNewHandler` is mfc_handle_map's `g_afxNewHandler` 00796E14, initialised
       `{DefaultNewHandler}` (a pointer element naming our registration at 0070058F). MFC (hand-ported initialisers and exit functions, rows in extra_function_sizes.csv /
       function_sizes.inc: each initialiser is the compiler's `call A; jmp B`, 10 bytes): the
       resource / memory / not-supported exceptions (mfc_exception.cpp, 007C8C58 / 007C8DE8 / 007C8D50) and afxData
@@ -1332,9 +1332,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     (`ei::OriginalGameData`); WindowReady, DescribeTopWindow, waitwindow (a hex table is game.exe's address; the top
     window's table goes through RealWindowVtable, then OriginalAddress), the camp's put-on and checkplayers compare
     game.exe's addresses in both runs. CSaveLoadWindow / COptionsWindow lost kVtableAddress.
-  - **The console** (console.cpp): ConsoleStreambufClass in place of 00740034 (1 / 7 the console's sync and
-    overflow, 8 EOF, the rest old iostream's streambuf defaults). Only ConsoleStreambuf changed (no ConsoleWindow
-    edits). The image's harness reads each line through `console::g_consoleLineObserver` (set under
+  - **The console** (console.cpp): since C35d ConsoleStreambuf has no virtual functions (00740034 retired, file
+    `-`). The image's harness reads each line through `console::g_consoleLineObserver` (set under
     `ei::Standalone()`); game.exe's run still takes game.exe's sync slot.
   - **The streams** (core_streams.h; real classes since C28e): CStream (0073BDB0, 1-6 pure), CMemoryStream (0073BD90
     with its tail 0073BD98; 0073C960 is the original's second copy of its table, stored by 0066C4F0) and FileStream
@@ -1350,13 +1349,11 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **The library kind**: MFC's CWordArray, CDWordArray, CByteArray (mfc_coll.cpp's
     ArrayTable) and CMapPtrToPtr (mfc_handle_map.cpp), slot 0 returning our CRuntimeClass record; the simple
     exceptions (CResourceException, CUserException, CMemoryException, CNotSupportedException) and
-    CArchiveException (mfc_exception.cpp); the old iostream's streambuf, ios and ostream-for-ios tables
-    (crt_iostream.cpp; ostream's virtual base table is data and stays); std::exception (file `-`: no class of ours). CPtrArray,
-    CPtrList and ostream_withassign are retired with no class of ours (file `-`): only game.exe's constructors and
+    CArchiveException (mfc_exception.cpp); std::exception (file `-`: no class of ours). CPtrArray,
+    CPtrList, ostream_withassign and the old iostream's streambuf, ios and ostream-for-ios tables (C35d) are retired with no class of ours (file `-`): only game.exe's constructors and
     destructors store them, and no code of ours calls those.
   - **Left**: the camp's panels (ui_camp_create.cpp, C15's area), the map spec chunk readers (C21), STLport's
-    out_of_range tables 0073B994 / 0073BE8C (batch 21), the CFile family (CFile 00745DF4, CFileException 00745E4C, CStdioFile 007464F0, CMemFile 00746650,
-    CFileFind 00745EE8), the GDI and DC classes (mfc_gdi: CDC and its three subclasses, CTempDC, CPen, CRgn,
+    out_of_range tables 0073B994 / 0073BE8C (batch 21), the GDI and DC classes (mfc_gdi: CDC and its three subclasses, CTempDC, CPen, CRgn,
     CTempGdiObject; CGdiObject 007463D4 and CBrush 007463C4 are stored by game code too), CHandleMap 0074685C (its
     deleting destructor needs the handle map's destructor body), the thread, window, menu and application classes
     and the module / thread state records (mfc_thread, mfc_window, mfc_state), CCmdUI / CTestCmdUI,
@@ -1383,10 +1380,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     CWinApp, CCommandLineInfo, CRecentFileList, CCmdUI, CTestCmdUI, _AFX_WIN_STATE and the six state records
     (_AFX_CTL3D_STATE / _THREAD, CThreadData, _AFX_THREAD_STATE, AFX_MODULE_STATE, AFX_MODULE_THREAD_STATE,
     _AFX_BASE_MODULE_STATE).
-  - **The CFile family** (mfc_file.cpp): FileTable (CFile; CStdioFile's StdioFileTable over it with 16 = its
-    LockRange body and 21-23 its own), FileFindTable and mfc_exception.cpp's FileExceptionTable; every slot was
-    registered already. CMemFile retired with no class of ours. Overloaded slots (CFileFind's CTime / FILETIME
-    getters, CStdioFile's two ReadStrings) get distinct names: MSVC groups a name's overloads in the table.
+  - **The CFile family**: CFile 00745DF4, CFileException 00745E4C, CFileFind 00745EE8, CStdioFile 007464F0 and
+    CMemFile 00746650 are retired with no class of ours (file `-`): the game's files are lib::File, lib::TextFile and
+    lib::FileFind (src/lib/file_io.h), a failed call throws lib::FileError. Their runtime class records are
+    gen_image_cells.py's UNREAD.
   - **stlp's out_of_range**: retired with file `-` (C14a removed stlp::string and the one unreachable throw); game.exe's
     ThrowInfo 0074C640 and its records are dead data.
   - **Left**: the camp's panels (C15), the map spec chunk readers (C21), the game's CFont table 0073BFB4 (string_map,
@@ -1619,8 +1616,8 @@ the `--no-hooks` suite) keeps the registry.
 ### Generated code
 
 - **Short functions** (S2): the game functions under five bytes needed no code of their own once nothing called game.exe;
-  src/game/short_functions.cpp keeps `Ret`, the exit function that does nothing (the initialisers' and the
-  function-local statics' atexit of it). tools/gen_short_functions.py, which wrote one map line per short function
+  the exit function that does nothing is not registered at all (C35e: src/game/short_functions.cpp and its `Ret` went; the
+  generator drops the initialisers' atexit of it). tools/gen_short_functions.py, which wrote one map line per short function
   (12 kinds, each compiling to the original's bytes), went with the map (C20l).
 - **Static initialisers** (S3): src/standalone/static_init.cpp by `tools/gen_static_init.py`. A small symbolic
   interpreter decodes each initialiser into stores, copies, fills, float folds (`Log` for FLDLN2 / FYL2X; .rdata
@@ -1686,20 +1683,26 @@ the `--no-hooks` suite) keeps the registry.
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)
 
-- **Locale** (C26, C34): the host CRT's, LC_CTYPE "C". The original's text manager Create 004DED20 called
-  setlocale(LC_CTYPE, the "Font CharSet" option, "english" -> "English_United States.1252") and
+- **Locale** (C26, C34, C35b): the host CRT's "C" locale, never changed. The original's text manager Create 004DED20
+  called setlocale(LC_CTYPE, the "Font CharSet" option, "english" -> "English_United States.1252") and
   `_setmbcp(_MB_CP_LOCALE)`; ours does neither (the text is UTF-8, section 4, U5), and the standalone's start-up sets
-  the host's `_MB_CP_SBCS` (no lead bytes). What still reads the state directly (crt_format.cpp's _output,
-  CaseFoldTable, mfc_resource.cpp) goes through crt_locale_data.h (`_pctype`, the LC_CTYPE locale name as an LCID,
-  `__lc_codepage`, `_mbctype`, `_mbcasemap`).
-- **Strings and characters** (crt.cpp, C26, C34): strncmp and strncpy the host CRT's; _stricmp, _strnicmp,
-  _memicmp, _mbsicmp and _mbslwr by text_case.h's UTF-8 table; _mbscmp and _mbsncmp byte compares; _mbsinc,
-  _ismbblead, isleadbyte and _mbclen without lead bytes; tolower / toupper ASCII only; isalpha / isdigit / isspace /
-  isprint no class past ASCII (section 4, U5), all behind their libcrt names (ei_vectors' recorded answers need the
-  names); memmove, memcpy, memset, strstr, wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, atoi, _itoa and
-  _splitpath called by their own names. Both suites goldens the same, though the host's compares return a difference
-  rather than VC6's -1 / 1, atoi saturates where VC6's wraps, and a negative char's class is 0 rather than the words
-  before `_pctype`.
+  the host's `_MB_CP_SBCS` (no lead bytes). Nothing reads the locale state: crt_format.cpp's _output takes the C
+  locale's decimal point '.', no lead bytes in a format and a wide character's low byte (wctomb's "C" branch); MFC's
+  AfxFormatString1 copies bytes. ei_vectors checks the game's recorded point and class words against that
+  ("@CrtFormatLocale": the point is '.', no lead-byte bit, the digits of ASCII are '0'-'9').
+- **Strings and characters** (C26, C34, C35b): no CRT function of ours. Callers use std::strcmp / strncmp / strncpy
+  (_mbscmp, _mbsncmp, strcmp, strncpy), `str::Compare` for std::string / string_view texts (strcmp's order up to
+  the first NUL, what _mbscmp read of a CString), and text_case.h: `CompareIgnoringCase` (_stricmp, _strnicmp, _memicmp,
+  _mbsicmp by the UTF-8 table), `LowerInPlace` (_mbslwr), `ToLower` / `ToUpper` (ASCII) and `IsDigit` / `IsSpace` /
+  `IsAlpha` (no class past ASCII; a negative char has none). _mbsinc is p + 1; _ismbblead and isleadbyte answered 0,
+  so the double-byte branches went (the console's tokens, the text reader's characters, the word wrap, the chat
+  overlay, AfxFormatString1, _output's format bytes, MFC's path walks, str's trims). memmove, memcpy, memset, strstr,
+  wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, _ismbcspace, atoi, _itoa and _splitpath are the host's, called by
+  their own names. Both suites goldens the same, though the host's compares return a difference rather than VC6's
+  -1 / 1, atoi saturates where VC6's wraps, and a negative char's class is 0 rather than the words before `_pctype`.
+  ei_vectors: the script lexer and loader replays call text_case.h too; none of their 772 records has a byte past ASCII
+  (the recorder's NegativeClasses flag is 0 in all), so the game's 1251 / 1252 answers were never needed and the replay
+  skips them; "@GameCrtCtype" checks that the game's isdigit, isspace and tolower answer ASCII as text_case.h does.
 - **Heap** (crt.cpp): malloc 006EABD1 and free 006EA8AD are the host CRT's (C26: both suites goldens the same, the
   image suite twice; until then a VC6-style Win32 heap of their own, `_crtheap` 007CAF08, sizes rounded up to 16,
   through the image's import slots, SV7c2). realloc, calloc, _msize and _strdup had no callers. The harness's
@@ -1727,11 +1730,15 @@ the `--no-hooks` suite) keeps the registry.
 - **Files** (C35a: no CRT copy left): every open goes through the game's import slots, so the harness's save /
   install redirection and a mod's hooks apply. `lib::OpenFile` (src/lib/file_io.h; fopen's r / w / a, +, b / t) opens
   with CreateFileA and hands the handle to the host as a descriptor and `std::FILE*` (`_open_osfhandle`, `_fdopen`);
-  the callers (sysmsg.txt, BufferedFile, CStdioFile) use std::fread / fseek / ftell / fwrite / fclose / fgets on it.
+  the callers (sysmsg.txt, BufferedFile, lib::TextFile) use std::fread / fseek / ftell / fwrite / fclose / fgets on
+  it. The game's CFile, CStdioFile and CFileFind uses are file_io.h's `lib::File` (a Win32 handle from CreateFileA,
+  MFC's open flags), `lib::TextFile` (OpenFile's "r" / "w", MFC's ReadString line pieces) and `lib::FileFind`
+  (FindFirstFileA / FindNextFileA, MFC's read-ahead: FindNext is false on the last entry; the paths are the
+  pattern's folder through GetFullPathNameA, as CFileFind's root).
   The res archives (CMappedResource) keep a Win32 handle: CreateFileA, SetFilePointer, ReadFile, WriteFile through
   the slots, the calls VC6's _sopen / _lseek / _read / _write made on its binary descriptor. _access is
   `lib::FileExists` (GetFileAttributesA; every caller asked mode 0 or 4), _findfirst the resource stream's own
-  FindFirstFileA (now closed). The console ostreams' ios::stdio flush is std::fflush(stdout / stderr). Dropped with
+  FindFirstFileA (now closed). Dropped with
   VC6's _sopen: the text-mode update open's trailing Ctrl-Z cut and the read-only attribute of a created file (no
   caller asked either). Fact from S4b1: a truncating open of a just-written file, then a write past its end, can
   read the gap back as old bytes on this machine under load (plain CreateFileA too).
@@ -1788,23 +1795,18 @@ the `--no-hooks` suite) keeps the registry.
   Mutations (_PC_53 mapped to 24 bits; the FLDCW test ignoring bit 3, the overflow mask) differ in 69M / 2.9M cases.
 - **Exceptions**: no file of ours: _CxxThrowException 006E7819 and MSVC 6's std::exception (vtable 00747290) went with
   crt_except.cpp (C20m), nothing calls them; the pointer throws are the compiler's ("Named data (C18)").
-- **iostreams** (crt_iostream.{h,cpp}): MSVC 6's old streambuf / ios / ostream layouts, the inserters (numbers
-  through the game's sprintf with VC6's formats: "%%%s.%.0ug", precision capped at 15), endl 004BA9F0, the streams'
-  constructors and destructors. The eight ostreams 007C55A8-007C5810 all write to console streambufs (console.h).
-- Not ported (no callers): acos / asin / fmod's plain forms, streambuf() 006FCA77, ios(streambuf*), ostream(),
-  ostream_withassign. The C initialisers `__onexitinit`, `__initstdio` and VC6's unhandled-exception filter are not
+- Not ported (no callers): acos / asin / fmod's plain forms. The old iostream (streambuf, ios, ostream; C35d):
+  the console's streams are console::Stream and ConsoleStreambuf (console.h), the doubles through the game's sprintf. The C initialisers `__onexitinit`, `__initstdio` and VC6's unhandled-exception filter are not
   run: the image's atexit, streams and crash filter are ours / the host's.
 
 ### MFC (src/lib/mfc_*.{h,cpp}; S5-S8b, S3d, S3f, S16)
 
 The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's constructor 0070D654 has no caller).
-- **CString**: none of ours since C14i. src/lib's MFC holds its texts as std::string (CFile's and the
-  exceptions' file names, CFileFind's root, the archive's string operators, CTime::Format, the resource strings:
+- **CString**: none of ours since C14i. src/lib's MFC holds its texts as std::string (the
+  archive exception's file name, the archive's string operators, CTime::Format, the resource strings:
   mfc_resource.h `LoadResourceString` / `AfxFormatString1`); the static initialisers of CString's four fixed
   allocators (00700718 .. 007007AB, 007C8B80 .. 007C8B08) are gen_static_init.py's UNUSED_INITIALISERS. `CFixedAlloc`
-  is mfc_gdi.h's (the temporary DCs' and GDI objects' allocators 007C8D18 / 007C8CF0). CFile, CStdioFile and
-  CFileFind have real constructors and destructors (the vtable stays a field); mfc.h's facades build them in place
-  over a mirror of their members. 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the
+  is mfc_gdi.h's (the temporary DCs' and GDI objects' allocators 007C8D18 / 007C8CF0). 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the
   real MakeUpper, unreached.
 - **Collections**: mfc_coll (one `PlainArray` for CWordArray / CDWordArray / CByteArray). CArray (mfc_array, `ArrayAbi<T, Policy>`): the element policy is what
   the instantiation's ConstructElements does after MFC's memset (nothing, an inlined constructor, or
@@ -1817,11 +1819,10 @@ The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's cons
   element policy must be the one the instantiation's inlined SetSize / NewNode uses, which is not always its
   destructor's (00450570). Quirks kept: a loaded list's elements borrow the source's references; a wave record's
   load frees the source's name buffer; the token and wave loads leak each element's temporary block.
-- **Files, archives, exceptions** (S8, S8b): mfc_exception (the four throws through 006E7819; the exception link is a
-  thread_local at 00702107; the four static exceptions; CSimpleException 0x98 bytes; ReportError / GetErrorMessage),
-  mfc_file (CFile, CStdioFile on the host CRT, CFileFind, the name getters via comdlg32's GetFileTitleA), mfc_time
-  (host `_mktime32` / `_localtime32_s` / `strftime`, VC6's time() from GetLocalTime), mfc_archive (CArchive and the
-  CString operators), mfc_resource (AfxLoadString through LoadStringA on the module state's null resource handle,
+- **Archives, exceptions** (S8, S8b): mfc_exception (the archive, memory and resource throws; the four static
+  exceptions; CSimpleException 0x98 bytes; ReportError / GetErrorMessage), mfc_time
+  (host `_mktime32` / `_localtime32_s` / `strftime`, VC6's time() from GetLocalTime), mfc_archive (CArchive over a
+  lib::File and the CString operators; only the collections' Serialize slots take one, and nothing builds one), mfc_resource (AfxLoadString through LoadStringA on the module state's null resource handle,
   AfxFormatStrings: "%0" reads the pointer before the array, as the original).
 - **Windows, GDI, state**: AfxMessageBox has no owner and the module's file name as title (the image shows
   ei_standalone.exe). CDC (0x10 bytes), CPen, CFont, CGdiObject; handle maps (mfc_handle_map: CMapPtrToPtr, whose
@@ -2068,11 +2069,11 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
   other host functions), whatever the system's ANSI code page. The "Font CharSet" option is not used:
   `CTextManager::Create` (004DED20) leaves LC_CTYPE "C". `CharUpperA` / `CharLowerA` are routed to the table. Sites:
   about 100 case-insensitive compares (map, zone, allod, material, model, spell, skill, item, keyword and file
-  names, "none", the briefing's person and topic keys, the save folders) left as identifiers: they reach the CRT's
-  compares, which use the table. 19 `MakeLower` (keys and file names) left. 5 `CharUpperA` / `CharLowerA`:
+  names, "none", the briefing's person and topic keys, the save folders) left as identifiers: they call
+  `text::CompareIgnoringCase`, the table's compare. 19 `MakeLower` (keys and file names) left. 5 `CharUpperA` / `CharLowerA`:
   mod_folders' 2 path keys and MFC's `CFileFind` path left, script `StrLower` / `StrUpper` fixed. 6 per-byte folds
-  (the .reg and archive name hashes, the map name hash, the archive wildcard, the keyword tables through
-  `CaseFoldTable`) left: their names are ASCII (the .reg tables' slots were laid out by the original's tools). 8
+  (the .reg and archive name hashes, the map name hash, the archive wildcard, the keyword and part-name tests)
+  left: their names are ASCII (the .reg tables' slots were laid out by the original's tools). 8
   class tests left (drive letters, digits in scripts and party files, the edit field's ASCII classes); the network's
   player name filter (`IsPrintableText` 0047ADA0) by character, each a valid UTF-8 sequence of a printable code
   point (the original passed bytes through the 1252 table's `isprint`; the login's name and password are the
@@ -2204,14 +2205,14 @@ trap until the run ends (OnTrap; the launch-free check fails on it). Runs from i
 other static constructor of ei_hook.dll: the harness takes import slots in its own. In game.exe (the original's
 runs) nothing happens: the loader filled its table.
 
-### lib/mfc_file.h
+### lib/file_io.h
 
-MFC 4.2's CFile, CStdioFile and CFileFind (filecore.cpp, filetxt.cpp, filefind.cpp) and the path helpers they use,
-written out for the standalone exe (docs/notes/standalone.md section 2). Same layout as the copy linked into
-game.exe; the tables are compiled (mfc_file.cpp's FileTable, StdioFileTable and FileFindTable) in place, with the
-slots in game.exe's order. Every body is registered at its library address (mfc_file.cpp). CFile works on Win32
-handles through the game's import table. CStdioFile's stream is the host CRT's FILE (crt.h: the game's FILE* is the
-host's).
+The game's files through its import slots (CreateFileA, FindFirstFileA, GetFileAttributesA), so the harness's
+redirection and a mod's hooks apply: `File` (binary, a Win32 handle; MFC's CFile open flags), `TextFile` (lines on a
+host CRT stream), `FileFind` (a folder search with CFileFind's read-ahead and absolute paths), `OpenFile` (fopen) and
+`FileExists` (_access). A failed read, write or seek throws `FileError` (the OS error and the path in what()), where
+the game's MFC threw a CFileException*: what the game caught (CDib's reads and writes, the script reader) catches it,
+the rest ends the game as the original (a write to a full disk: tests/scenarios/harness_disk_full.txt).
 
 ### lib/mfc_handle_map.h
 

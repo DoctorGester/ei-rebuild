@@ -47,10 +47,7 @@ void Release(CRenderPreset* preset) {
 }
 
 // a record's destructor: the preset released, the states' storage freed.
-void DestroyRecord(RenderPresetRecord* record) {
-    Release(record->preset);
-    std::destroy_at(&record->states);
-}
+void DropPreset(RenderPresetRecord* record) { Release(record->preset); }
 
 // What a failed Direct3D call leaves as its result: the fatal error's (0 when it comes back).
 CRenderPreset* Failed(int errorResult) { return reinterpret_cast<CRenderPreset*>(static_cast<std::uintptr_t>(errorResult)); }
@@ -220,9 +217,8 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
     return preset;
 }
 
-// The preset's state blocks deleted, its place among the built-in presets
-// cleared, and its record erased (hashtable::erase(key) as STLport writes it: the bucket's later
-// nodes first, then its head). The record holds the preset, so this usually deletes it.
+// The preset's state blocks deleted, its place among the built-in presets cleared, and its record erased. The
+// record holds the preset, so this usually deletes it.
 void CRenderHelper::ReleaseBlock(CRenderPreset* preset) {
     for (int i = 0; i < static_cast<int>(preset->blocks_.size()); ++i) {
         const std::uint32_t block = preset->blocks_[i];
@@ -231,20 +227,9 @@ void CRenderHelper::ReleaseBlock(CRenderPreset* preset) {
     }
     if (preset->Index() < kPresetCount) presets_[preset->Index()] = nullptr;
 
-    using Node = decltype(records_)::Node;
-    Node* head = records_.Bucket(stlp::PointerHash()(preset) % records_.BucketCount());
-    if (!head) return;
-    for (Node* node = head->next; node;) {
-        Node* next = node->next;
-        if (node->key == preset) {
-            DestroyRecord(&node->value);
-            records_.Erase(node);
-        }
-        node = next;
-    }
-    if (head->key == preset) {
-        DestroyRecord(&head->value);
-        records_.Erase(head);
+    if (auto node = records_.find(preset); node != records_.end()) {
+        DropPreset(&node->second);
+        records_.erase(node);
     }
 }
 
@@ -253,8 +238,6 @@ void CRenderHelper::ReleaseBlock(CRenderPreset* preset) {
 // Takes the device and its capabilities, then records the nine
 // built-in presets (`flag`'s low byte: one texture stage each).
 CRenderHelper::CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag) : device_(nullptr) {
-    records_.InitBuckets(100);
-
     device_ = device;
     if (device) device::AddRef(device);
 
@@ -274,20 +257,16 @@ CRenderHelper::CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag) : dev
     }
 }
 
-// The destructor body. Every record's preset goes through slot 3, which erases the record
-// the walk stands on: the step to the next record then reads the freed node (its
-// link is the node allocator's free list by then), so the walk can stray and leave records behind.
-// Those are destroyed with the table (their presets deleted, but not their state blocks).
+// The destructor body. Every record's preset goes through slot 3 (its state blocks deleted, the record
+// erased). (The game's walk stood on the erased record and read its freed node, so it could stray and leave
+// records behind with their state blocks; here every record goes.)
 CRenderHelper::~CRenderHelper() {
-    using Node = decltype(records_)::Node;
-    for (Node* node = records_.First(); node; node = records_.After(node)) {
-        if (Node* found = records_.Find(node->key)) ReleaseBlock(found->value.preset);
-    }
-    records_.ClearWith([](Node* node) {
-        DestroyRecord(&node->value);
-        stlp::deallocate(node, sizeof(Node));
-    });
-    records_.Destroy();
+    std::vector<CRenderPreset*> presets;
+    for (const auto& [preset, record] : records_) presets.push_back(preset);
+    for (CRenderPreset* preset : presets)
+        if (auto found = records_.find(preset); found != records_.end()) ReleaseBlock(found->second.preset);
+    for (auto& [preset, record] : records_) DropPreset(&record);
+    records_.clear();
     if (device_) device::Release(device_);
 }
 
@@ -297,12 +276,12 @@ void CRenderHelper::operator delete(void* block) { gamecrt::operator_delete(bloc
 // ---- The helper's table slots -----------------------------------------------------------------------
 
 void CRenderHelper::ReleasePreset(CRenderPreset* preset) {
-    if (auto* node = records_.Find(preset)) ReleaseBlock(node->value.preset);
+    if (auto node = records_.find(preset); node != records_.end()) ReleaseBlock(node->second.preset);
 }
 
 void* CRenderHelper::PresetBlock(CRenderPreset* preset) {
-    auto* node = records_.Find(preset);
-    return node ? node->value.preset : nullptr;
+    auto node = records_.find(preset);
+    return node != records_.end() ? node->second.preset : nullptr;
 }
 
 CRenderPreset* CRenderHelper::Preset(unsigned index) {
@@ -311,9 +290,9 @@ CRenderPreset* CRenderHelper::Preset(unsigned index) {
 
 // The result is a byte (a bool).
 bool CRenderHelper::PresetStates(CRenderPreset* preset, StateVector* out) {
-    auto* node = records_.Find(preset);
-    if (!node) return false;
-    *out = node->value.states;
+    auto node = records_.find(preset);
+    if (node == records_.end()) return false;
+    *out = node->second.states;
     return true;
 }
 

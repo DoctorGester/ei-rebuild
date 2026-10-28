@@ -62,8 +62,7 @@ using PartyMemberArray = PartyMembers;
 
 class CParty : public CManagerContext {
 public:
-    // Empty record and item arrays, an empty variable map with NextPrime(100) buckets (its functor bytes
-    // are an uninitialised stack byte, left alone), an empty zone name, no managers. The money and the
+    // Empty record and item arrays, an empty variable map, an empty zone name, no managers. The money and the
     // entrance are left as they are.
     CParty();
     // A copy of `source`, as Assign makes it (it reads its source non-const: saving it

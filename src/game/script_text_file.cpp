@@ -1,40 +1,30 @@
-// The script loader's text file reader: a file read line by line through MFC's
-// CStdioFile inside TRY / CATCH(CFileException) (lib/mfc_try.h). The file is opened by the
-// constructor, which throws when it cannot; so does a failed read. Either ends with a result of 0
-// and what was read so far in the text.
+// The script loader's text file reader: a file read in lines of at most 2 KB into one text. A file that does not
+// open or a failed read (the game's TRY / CATCH(CFileException) around its CStdioFile) ends with a result of 0 and
+// what was read so far in the text.
 #include "script_parse.h"
 #include "game_strings.h"
 
-#include "console.h"
-#include "lib/mfc.h"
-#include "lib/mfc_try.h"
+#include "lib/file_io.h"
 
 #include <string>
 
 namespace scriptparse {
 
 namespace {
-constexpr unsigned kOpenFlags = 0x4020;   // CFile::typeText | CFile::shareDenyWrite, for reading
 constexpr unsigned kLineSize = 0x800;     // longer lines arrive in pieces
-// The empty text the result starts from (a zero byte of the exe).
-const char* NoText() { return ""; }
 } // namespace
 
 int ReadTextFile(const char* path, std::string* text) {
-    int result;
-    mfc::ExceptionLink link;
+    text->clear();
+    lib::TextFile file;
+    if (!file.Open(path, "r")) return 0;
+    char line[kLineSize];
     try {
-        *text = NoText();
-        result = 1;
-        console::CStdioFile file(path, kOpenFlags);
-        char line[kLineSize];
-        while (file.ReadString(line, kLineSize)) *text = *text + std::string(line);
-        file.Close();
-    } catch (CFileException* caught) {
-        result = 0;
-        link.exception = caught;
+        while (file.ReadString(line, kLineSize)) *text += line;
+    } catch (const lib::FileError&) {
+        return 0;
     }
-    return result;
+    return 1;
 }
 
 } // namespace scriptparse

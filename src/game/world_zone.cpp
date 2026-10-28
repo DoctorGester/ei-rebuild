@@ -16,6 +16,7 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 
 #include "ei/rebirth.h"
 #include "map_object.h"
@@ -30,6 +31,7 @@
 #include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 namespace {
 
@@ -73,10 +75,10 @@ void CWorldServer::SetZoneExits(const ZoneExits* source) {
     exits->size = 0;
     for (int i = 0; i < source->size; ++i) {
         const ZoneExit* from = &source->data[i];
-        if (gamecrt::mbscmp(from->target,
+        if (str::Compare(from->target,
                             game::EmptyText()) == 0)
             continue;   // leads nowhere
-        if (from->entrance < 0 && gamecrt::mbscmp(from->target,
+        if (from->entrance < 0 && str::Compare(from->target,
                                                   kNoExit) != 0)
             game::FatalError(game::zonetexts::WrongEntrance());
         int index = exits->size;
@@ -113,24 +115,24 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
 int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     mapspec::MobFile rootChunk;
     mapspec::MobFile* root = &rootChunk;
-    auto* fileObject = root->file_.Virtuals();
+    auto* fileObject = &root->file_;
 
     std::string path;
     MapPath(&path, file);
     int result;
-    if (!root->Open(path, 0x8020)) {
+    if (!root->Open(path, lib::File::modeRead | lib::File::shareDenyWrite)) {
         result = game::FatalError(game::zonetexts::CantOpenObjects(), file);
     } else {
         bool read = root->Load(this, keepIds);
         fileObject->Close();
         result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file);
     }
-    return result;   // the CFile destroyed with the root
+    return result;   // the file closed with the root
 }
 
 int CWorldServer::LoadMobFile(const char* file) {
     for (const std::string& loaded : mobFiles_)
-        if (gamecrt::mbscmp(loaded.c_str(), file) == 0) return 1;
+        if (std::strcmp(loaded.c_str(), file) == 0) return 1;
     g_loadingMovieOff = 1;
     if (file) {
         int loaded = LoadMapObjects(file, 0);
@@ -157,8 +159,8 @@ void CWorldServer::ClearMapObjects() {
     pending.free = nullptr;
     pending.blocks = nullptr;
     pending.blockSize = 10;
-    for (auto* node = mapObjects_.map.First(); node; node = mapObjects_.map.After(node)) {
-        CEngineObject* object = node->value;
+    for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end(); ++node) {
+        CEngineObject* object = node->second;
         if (!object) break;   // the walk stops at the first empty entry
         pending.AddTail(object);
     }
@@ -183,8 +185,8 @@ void CWorldServer::ClearMapObjects() {
 }
 
 void CWorldServer::SaveMapObjects(CStream* out) {
-    for (auto* node = mapObjects_.map.First(); node; node = mapObjects_.map.After(node)) {
-        CMapObject* object = node->value;
+    for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end(); ++node) {
+        CMapObject* object = node->second;
         if (!object) break;
         int id = object->id_;
         out->Write(&id, 4u);
@@ -205,7 +207,7 @@ void CWorldServer::SaveMapObjects(CStream* out) {
 
 namespace {
 bool SameName(std::string_view a, std::string_view b) {
-    return gamecrt::mbscmp(a, b) == 0;
+    return str::Compare(a, b) == 0;
 }
 // "progres5.bik" is not among the game's strings; addon.dll points the name at its own copy.
 constexpr const char* kProgres5 = "progres5.bik";
@@ -233,7 +235,7 @@ void SelectLoadingMovie(const char* zone) {
         }
     }
     if (zone) {
-        if (libcrt::Stricmp(zone, "gz1g") == 0) app::g_loadingMovieName = "progres1.bik";
-        if (libcrt::Stricmp(zone, "bz7g") == 0) app::g_loadingMovieName = "progres1.bik";
+        if (text::CompareIgnoringCase(zone, "gz1g") == 0) app::g_loadingMovieName = "progres1.bik";
+        if (text::CompareIgnoringCase(zone, "bz7g") == 0) app::g_loadingMovieName = "progres1.bik";
     }
 }

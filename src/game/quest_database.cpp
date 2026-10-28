@@ -67,21 +67,21 @@ void ReadQuest(Registry& reg, QuestRecord* quest, std::vector<std::string>& plac
 // whole vector after the push_back (it may have moved the records).
 void AddQuest(QuestDatabase* db, const QuestRecord* quest) {
     QuestDatabase::QuestIndex& map = db->questsByName;
-    const QuestDatabase::QuestIndex::Node* found = map.Find(quest->name);
-    if (found && found->value != nullptr) return;
+    auto found = map.find(quest->name);
+    if (found != map.end() && found->second != nullptr) return;
     db->quests.push_back(*quest);
-    map.Clear();
-    for (QuestRecord& r : db->quests) map.Subscript(r.name) = &r;
+    map.clear();
+    for (QuestRecord& r : db->quests) map[r.name] = &r;
 }
 
 void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) {
     QuestBriefingTable* briefings = &db->briefings;
     QuestBriefingTable::Index& map = briefings->index;
-    const QuestBriefingTable::Index::Node* found = map.Find(briefing->name);
-    if (found && found->value != nullptr) return;
+    auto found = map.find(briefing->name);
+    if (found != map.end() && found->second != nullptr) return;
     briefings->records.push_back(*briefing);
-    map.Clear();
-    for (QuestBriefingRecord& r : briefings->records) map.Subscript(r.name) = &r;
+    map.clear();
+    for (QuestBriefingRecord& r : briefings->records) map[r.name] = &r;
 }
 
 // A briefing's name, exp and money (the "complete" briefing's name is assigned with the
@@ -175,10 +175,10 @@ void ReadStringList(CFileRegistry* registry, const char* section, const char* ke
 
 bool QuestBriefingTable::Add(const QuestBriefingRecord* record) {
     if (!record) return false;
-    const Index::Node* node = index.Find(record->name);
-    if (node && node->value) return false;
+    auto node = index.find(record->name);
+    if (node != index.end() && node->second) return false;
     records.push_back(*record);
-    index.Clear();
-    for (QuestBriefingRecord& r : records) index.Subscript(r.name) = &r;
+    index.clear();
+    for (QuestBriefingRecord& r : records) index[r.name] = &r;
     return true;
 }

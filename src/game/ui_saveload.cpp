@@ -6,6 +6,7 @@
 #include "app_helpers.h"
 #include "lib/mfc_time.h"
 #include "core_streams.h"
+#include "lib/text_case.h"
 #include "stl_sorts.h"
 #include "ui.h"
 #include "game_strings.h"
@@ -44,22 +45,22 @@ namespace {
 constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bits
 constexpr unsigned kInfoMagic = 0x111;
 constexpr unsigned kInfoVersion = 3;
-constexpr unsigned kOpenWrite = 0x1001;              // CFile::modeCreate | modeWrite
+constexpr unsigned kOpenWrite = lib::File::modeCreate | lib::File::modeWrite;
 constexpr std::uint32_t kClosed = 0x100002;          // pending value after saving
 constexpr int kVisibleRows = 16;
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY).
-BOOL IsDirectory(const mfc::CFileFind& find) { return find.MatchesMask(0x10ul); }
-std::string FilePath(const mfc::CFileFind& find) { return find.GetFilePath(); }
-std::string FileName(const mfc::CFileFind& find) { return find.GetFileName(); }
+// The entry is a folder.
+BOOL IsDirectory(const lib::FileFind& find) { return find.MatchesMask(0x10ul); }
+std::string FilePath(const lib::FileFind& find) { return find.GetFilePath(); }
+std::string FileName(const lib::FileFind& find) { return find.GetFileName(); }
 
 // A file stream on the stack with the reads and writes the save list uses.
 struct LocalFileStream {
     netlink::FileStream s;
 
-    // The stream's direction byte, then the CFile's virtual Open.
+    // The stream's direction byte, then the file's Open.
     void Open(std::string_view path, unsigned flags, std::uint8_t reading) { s.Open(path, flags, reading); }
     void Close() { s.Close(); }
     unsigned Read(void* buffer, unsigned size) { return Stream()->Read(buffer, size); }
@@ -109,21 +110,21 @@ void CSaveLoadWindow::ShowPicture() {
     }
     std::string folder;
     folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_.c_str());
-    mfc::CFileFind find;
+    lib::FileFind find;
     BOOL found;
     {
         std::string path = folder + game::savewords::ShotFile();
-        found = find.FindFile(path, 0);
+        found = find.FindFile(path);
     }
     if (!found) return;
     CDXSurface* holder = HolderOf(objects_.data[1]);
     gameapi::EnterCriticalSection(TheDeviceLock());
     PicturePixels pixels(holder);
     if (!pixels.Begin()) return;   // (the device lock stays held, as in the original)
-    mfc::CFile file;
+    lib::File file;
     {
         std::string path = folder + game::savewords::ShotFile();
-        file.Open(path, 0, nullptr);
+        file.Open(path, lib::File::modeRead);
     }
     file.Read(pixels.Bits(), kShotBytes);
     file.Close();
@@ -142,7 +143,7 @@ constexpr const char* kAutoExitTitle = "save_auto_exit";
 constexpr const char* kPlainFormat = "%s";
 
 bool SameFolder(std::string_view folder, std::string_view name) {
-    return gamecrt::mbsicmp(folder, name) == 0;
+    return text::CompareIgnoringCase(folder, name) == 0;
 }
 } // namespace
 
@@ -225,10 +226,10 @@ void CSaveLoadWindow::SaveGame() {
             interface_->SetPendingValue(kClosed);
             return;
         }
-        mfc::CFile shot;
+        lib::File shot;
         {
             std::string path = folder + game::savewords::ShotFile();
-            shot.Open(path, kOpenWrite, nullptr);
+            shot.Open(path, kOpenWrite);
         }
         shot.Write(pixels.Bits(), kShotBytes);
         shot.Close();
@@ -241,11 +242,11 @@ void CSaveLoadWindow::SaveGame() {
 void CSaveLoadWindow::FillEntries() {
     std::string pattern;
     pattern = str::Format(game::savewords::SavePattern(), DataFolderText());
-    mfc::CFileFind find;
+    lib::FileFind find;
     entries_.clear();
     int highest = 0;     // the highest number after "save" in the folder names
     int found = 0;       // the last FindNextFile result (the sort's comparison object below)
-    BOOL more = find.FindFile(pattern, 0);
+    BOOL more = find.FindFile(pattern);
     while (more) {
         found = find.FindNext();
         more = found;
@@ -253,12 +254,12 @@ void CSaveLoadWindow::FillEntries() {
         // A new entry (the original copies a stack temporary whose numbers are left as the stack held them).
         SaveEntry* entry = &entries_.emplace_back();
         entry->folder_ = FileName(find);
-        mfc::CFileFind infoFind;
+        lib::FileFind infoFind;
         BOOL hasInfo;
         {
             std::string folderPath = FilePath(find);
             std::string path = folderPath + game::savewords::InfoInFolder();
-            hasInfo = infoFind.FindFile(path, 0);
+            hasInfo = infoFind.FindFile(path);
         }
         if (!hasInfo) {
             entry->broken_ = true;
@@ -401,8 +402,8 @@ void QuickSave(const char* slot, char stepFrame) {
 
     // shot.sav: the copied screen at 256x192.
     std::uint16_t* pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
-    mfc::CFile shot;
-    shot.Open((folder + game::savewords::ShotFile()), kOpenWrite, nullptr);
+    lib::File shot;
+    shot.Open((folder + game::savewords::ShotFile()), kOpenWrite);
     shot.Write(pixels, kShotBytes);
     shot.Close();
     gamecrt::operator_delete(pixels);
@@ -498,9 +499,9 @@ void CSaveLoadWindow::DeleteSave() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     std::string folder;
-    folder = str::Format(kFolderFormat, DataFolderText(), entries_.data()[selected].folder_.c_str());
-    mfc::CFileFind find;
-    BOOL more = find.FindFile((folder + kEveryFile), 0);
+    folder = str::Format(kFolderFormat, DataFolderText(), entries_[selected].folder_.c_str());
+    lib::FileFind find;
+    BOOL more = find.FindFile((folder + kEveryFile));
     while (more) {
         more = find.FindNext();
         gameapi::DeleteFileA(FilePath(find).c_str());

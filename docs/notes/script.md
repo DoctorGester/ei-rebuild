@@ -81,10 +81,10 @@ ClassifyToken's code (immediate at 004CF69B, which Rebirth repoints at its exten
 **PF1, keyword compare without a CRT call per byte.** The original compares the token with every keyword through the game
 CRT's `_strnicmp` (006FA1A0); under the game's locale (`__lc_handle[LC_CTYPE]` 007CABF0 nonzero) each byte goes through
 `_tolower_lk` (006EBAC2), which sends upper-case bytes through `__crtLCMapStringA` (006F1FDE) and LCMapStringW. Ours
-tables the CRT's own `tolower` (006EBA53) for all 256 bytes (`gamecrt::CaseFoldTable` in src/lib/crt since PF1a, rebuilt when the LC_CTYPE
-handle or `__lc_codepage` 007CAC00 changes) and compares with `SameIgnoringCase`, which keeps `_strnicmp`'s rule that a
-zero byte in either string ends the compare (equal only when both are zero; the locale branch tests the raw bytes for
-zero, not the folded ones). Timing (EI_PLAIN=1, EI_PROFILE=1, world_load vanilla, one run each): the new game's zone
+compare with `text::CompareIgnoringCase` (src/lib/text_case.h, C35b; until then a table of the CRT's `tolower`
+006EBA53), which keeps `_strnicmp`'s rule that a zero byte in either string ends the compare (equal only when both
+are zero; the locale branch tests the raw bytes for zero, not the folded ones). The keywords are ASCII, so the UTF-8
+fold and the game's 1252 one find the same keyword. Timing (EI_PLAIN=1, EI_PROFILE=1, world_load vanilla, one run each): the new game's zone
 load (the `waitfor ... HP(GetLeader())` step) 615 ms -> 225 ms; samples with ClassifyToken on the stack 203 -> 6 over
 the run (about 400 ms -> 12 ms). Verified: the ClassifyToken wrapper (ours against the original, id and rest) with
 004CF600 taken out of the build's verified.txt for the run: 0 mismatches in 26k-40k calls per run over script_copy,
@@ -282,7 +282,7 @@ briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every
   sentinel from the node pool, generators, AddItem(1, 1) + Release), `ClassTemplate::Construct` 004A6580 and
   `ItemStock::Construct` 004A66C0 (193-bucket maps).
 - Script runtime helpers: `PartyForScript` 004BAEC0 ("owner::name"), `CAIMap::SetRefreshUnits` 004BA090, the sector map
-  wrappers 004BA0A0..004BA100 (Move by address: Rebirth), `GameOStream::PutFloatArgument` 004BA9D0,
+  wrappers 004BA0A0..004BA100 (Move by address: Rebirth), ConsoleFloat's float output 004BA9D0 (`console::Stream << f`),
   `CSceneRenderer::SetFogColour` 004BA120 (slot 0 00501AB0, `fogColour_` +0x14).
 - Party manager archive (A-S9): `PartyManager::Save` / `Load` 004A8560 / 004A8310 (the manager 007AA5A0: parties
   hash_map<int, CParty> +0x00, entries +0x14, field +0x20, records +0x24, templates +0x38); `ChunkArchive::SerializeParties`

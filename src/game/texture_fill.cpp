@@ -9,6 +9,7 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/str.h"
 
 namespace {
 
@@ -24,7 +25,7 @@ int CTexture::LoadBmp(CTextureDevice* device, const char* path) {
     std::string alphaPath;
     std::vector<std::string> pieces;
     if ((flags_ & kTextureLoaded) &&
-        gamecrt::mbscmp(name_, path) == 0) {
+        str::Compare(name_, path) == 0) {
         game::DebugLog(AlreadyLoadedText(), path);
         return 1;
     }

@@ -82,8 +82,8 @@ void CDiplomacy::OnAttack(CUnit* attacker, CUnit* victim, int) {
     const CPlayer* party = victim->player;
     if (!party) return;
     const CPlayer::UnitMap* members = &party->units_;
-    for (const CPlayer::UnitMap::Node* node = members->First(); node && node->value; node = members->After(node)) {
-        CUnit* unit = node->value;
+    for (auto node = members->begin(); node != members->end() && node->second; ++node) {
+        CUnit* unit = node->second;
         unit->AddHostileMask(unit->relationsA | Bit(attacker->side));
     }
 }

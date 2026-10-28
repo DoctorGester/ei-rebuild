@@ -4,12 +4,12 @@
 // guide rule 9, vtables and globals).
 
 #include <cstdint>
+#include <unordered_map>
 #include "options.h"
 
 #include "engine_object.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
-#include "lib/stlp_hash.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -133,9 +133,9 @@ inline const char* MercVariableN11Format() { return "b.%s.n11_%i"; }
 inline const char* MercHiredFormat() { return "amerc_%i"; }
 inline const char* BriefingCompleteScript() { return "WorldScript( GSSetVar( %i,\"%s\",2 ) #OnBriefingComplete( %i, \"%s\" ) )"; }
 inline const char* HumanHeroText() { return "Human Hero"; }
-// The quest database's briefings by name (QuestBriefingTable::Index, quest_records.h; operator[]
-// Stlp::NamedSlot).
-stlp::hash_map<std::string, QuestBriefingRecord*, stlp::StringHash>& QuestBriefings();
+// The quest database's briefings by name (QuestBriefingTable::Index, quest_records.h; operator[] files an
+// unknown name with null).
+std::unordered_map<std::string, QuestBriefingRecord*>& QuestBriefings();
 inline const char* DisconnectingPlayerText() { return "Disconnecting player "; }
 inline const char* HeroesGroupText() { return "Heroes"; }
 inline float HearingScale() { return 2.0f /*0073F910*/; }   // the units' perception scale (SyncPlayer too)

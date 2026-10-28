@@ -48,7 +48,6 @@ CRefCounted* CreateClassTemplate();
 static_assert(offsetof(ClassTemplate, weights) == 0x10);
 static_assert(offsetof(ClassTemplate, weightsTail) == 0x34);
 static_assert(offsetof(ClassTemplate, flag38) == 0x38);
-static_assert(sizeof(ItemStock) == 0xB8);
 
 // Counted pointers.
 struct TemplateTable : std::vector<CountedPtr<ClassTemplate>> {

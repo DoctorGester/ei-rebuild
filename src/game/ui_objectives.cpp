@@ -16,7 +16,7 @@
 #include "quest_records.h"
 #include "world.h"
 
-#include "lib/stlp_hash.h"
+#include "lib/text_case.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
@@ -32,6 +32,7 @@
 
 #include <concepts>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -83,12 +84,10 @@ void DestroyLastQuest() {
 }
 class VariableTable {
 public:
-    VariableTable() { table_.ConstructDefault(); }   // with 100 buckets
     void Fill(const char* prefix) { GameLocalPlayerVariables(prefix, &table_); }
-    ~VariableTable() { table_.Destroy(); }   // every node's key released, then the buckets
 
-    NamedFloatTable::Node* First() const { return table_.First(); }
-    NamedFloatTable::Node* Next(const NamedFloatTable::Node* node) const { return table_.Next(node); }
+    NamedFloatTable::const_iterator begin() const { return table_.begin(); }
+    NamedFloatTable::const_iterator end() const { return table_.end(); }
 
 private:
     NamedFloatTable table_;
@@ -113,8 +112,6 @@ void SortStrings(std::string* first, std::string* last) {
     }
 }
 
-using DistanceMap = stlp::map<int, float>;
-using DistanceNode = DistanceMap::Node;
 
 int SurfaceText(CUiSurface* surface, std::string_view text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
@@ -165,7 +162,7 @@ constexpr float kExitTurnDown = 3.1415927f;
 
 void ConstructLastQuest() {
     g_lastQuest.Construct();
-    libcrt::AtExit(DestroyLastQuest);
+    std::atexit(DestroyLastQuest);
 }
 
 // --- The zone page ----------------------------------------------------------------------
@@ -206,7 +203,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     exitArray->SetSize(0, -1);
     for (int i = 0; i < map->exits.size; ++i) {
         const ZoneExit& source = map->exits.data[i];
-        if (gamecrt::mbsicmp(source.target,
+        if (text::CompareIgnoringCase(source.target,
                             "none") == 0)
             continue;
         int index = exits_.size;
@@ -219,8 +216,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         exit->distance_ = 0.0f;
         exit->flag_ = false;
         if (exitDistances_) {
-            DistanceNode* header = exitDistances_->end();
-            for (DistanceNode* node = header->left; node != exitDistances_->end();) {
+            for (auto node = exitDistances_->begin(); node != exitDistances_->end(); ++node) {
                 if (node->first == i) {
                     anyKnown = true;
                     std::memcpy(&exit->distance_, &node->second, 4);
@@ -232,7 +228,6 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                     }
                     break;
                 }
-                node = DistanceMap::Next(node);
             }
         } else {
             std::string name;
@@ -302,10 +297,10 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         prefix = str::Format("q.%s", shownZone_.c_str());
         table->Fill(prefix.c_str());
         ZoneNames found;
-        for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
-            EI_NAN_AUDIT(node->value.mapped);
-            if (node->value.mapped == 0.0f) continue;
-            text::Split(node->value.key.c_str(), &parts, '.');
+        for (auto node = table->begin(); node != table->end(); ++node) {
+            EI_NAN_AUDIT(node->second);
+            if (node->second == 0.0f) continue;
+            text::Split(node->first.c_str(), &parts, '.');
             if (parts.size() == 3) PushBack(&found, parts[2].c_str());
         }
         shownQuest_ = -1;
@@ -319,7 +314,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                 quests.push_back(s->c_str());
                 const char* current = listZones_ == 0 ? LastQuest().c_str()
                                                       : interface_->savedText_.c_str();
-                if (gamecrt::mbsicmp(current,
+                if (text::CompareIgnoringCase(current,
                                     s->c_str()) == 0)
                     selectedQuest_ = static_cast<int>(quests.size()) - 1;
             }
@@ -366,11 +361,11 @@ QuestDatabase::QuestIndex& QuestIndex() { return TheQuestDatabase().questsByName
 
 QuestRecord* FindQuestRecord(const char* name) {
     std::string key(name);
-    return QuestIndex().Subscript(key);
+    return QuestIndex()[key];
 }
 
 bool SameText(std::string_view a, std::string_view b) {
-    return gamecrt::mbsicmp(a, b) == 0;
+    return text::CompareIgnoringCase(a, b) == 0;
 }
 
 } // namespace
@@ -590,24 +585,24 @@ void CObjectivesWindow::CreateScreen() {
         table->Fill("q.");
         ZoneNames* zones = &zones_;
         const char* interfaceQuest = interface_->savedText_.c_str();
-        for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
-            text::Split(node->value.key.c_str(), &parts, '.');
+        for (auto node = table->begin(); node != table->end(); ++node) {
+            text::Split(node->first.c_str(), &parts, '.');
             if (parts.size() != 3) continue;
-            if (gamecrt::mbsicmp(interfaceQuest,
+            if (text::CompareIgnoringCase(interfaceQuest,
                                 parts[2].c_str()) == 0)
                 current = parts[1];
             std::uint32_t one;
-            std::memcpy(&one, &node->value.mapped, 4);
+            std::memcpy(&one, &node->second, 4);
             if (one != 0x3F800000) continue;
             MapRecord* zone = FindZone(parts[1]);
             if (!zone) continue;
             if (!IsMultiplayerClient() &&
-                gamecrt::mbsicmp(zone->allod,
+                text::CompareIgnoringCase(zone->allod,
                                 allodZone->allod) != 0)
                 continue;
             bool listed = false;
             for (std::string* z = zones->data(); z != zones->data() + zones->size(); ++z)
-                if (gamecrt::mbscmp(zone->name,
+                if (str::Compare(zone->name,
                                     z->c_str()) == 0) {
                     listed = true;
                     break;
@@ -623,7 +618,7 @@ void CObjectivesWindow::CreateScreen() {
         }
         zoneIndex_ = 0;
         for (int i = 0; i < SizeOf(*zones); ++i)
-            if (gamecrt::mbsicmp(current,
+            if (text::CompareIgnoringCase(current,
                                 zones->begin()[i].c_str()) ==
                 0) {
                 zoneIndex_ = i;
@@ -689,7 +684,7 @@ const char* const kMissionTopic = "quest_mission";
 void CObjectivesWindow::Setup(const char* zone, void* exitDistances, int twoButtons, int listZones) {
     zoneName_ = zone;
     twoButtons_ = twoButtons;
-    exitDistances_ = static_cast<stlp::map<int, float>*>(exitDistances);
+    exitDistances_ = static_cast<std::map<int, float>*>(exitDistances);
     listZones_ = listZones;
 }
 

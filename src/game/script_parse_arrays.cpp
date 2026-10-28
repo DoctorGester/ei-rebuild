@@ -14,6 +14,7 @@
 
 #include "unit_ai.h"
 
+#include <cstring>
 #include <string>
 
 namespace {
@@ -86,7 +87,7 @@ void ScriptSubCallDestruct(ScriptSubCall* call) {
 template <typename T>
 int ScriptNamedValues<T>::FindName(const char* name) const {
     for (int i = 0; i < names.size; ++i) {
-        if (gamecrt::mbscmp(names.data[i].c_str(), name) == 0)
+        if (std::strcmp(names.data[i].c_str(), name) == 0)
             return i;
     }
     return -1;

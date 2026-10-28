@@ -16,6 +16,7 @@
 #include "game_data.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <vector>
@@ -52,31 +53,31 @@ constexpr int kOutOfView = 2;
 } // namespace
 
 int CVisibilityFog::Draw(CSceneRenderer* renderer) {
-    if (cells.Size() == 0) return 1;
-    if (cells.Size() > kBoundsCells && !boundsValid) ComputeBounds();
+    if (cells.size() == 0) return 1;
+    if (cells.size() > kBoundsCells && !boundsValid) ComputeBounds();
     if (renderer->pipeline_->ClipTest(&bounds) == kOutOfView) return 1;
 
     if (!(g_workArrayGuards & kSpritesConstructed)) {
         g_workArrayGuards |= kSpritesConstructed;
         Sprites().Construct(mfc::impl::SpriteArrayClass::Vtable());
-        libcrt::AtExit(DestroySprites);
+        std::atexit(DestroySprites);
     }
     if (!(g_workArrayGuards & kPointsConstructed)) {
         g_workArrayGuards |= kPointsConstructed;
         std::construct_at(&Points());
-        libcrt::AtExit(FreePoints);
+        std::atexit(FreePoints);
     }
     Sprites().SetSize(kWorkRecords);
     Points().resize(kWorkRecords);
-    Sprites().SetSize(static_cast<int>(cells.Size()));
-    Points().resize(static_cast<int>(cells.Size()));
+    Sprites().SetSize(static_cast<int>(cells.size()));
+    Points().resize(static_cast<int>(cells.size()));
 
-    int remaining = static_cast<int>(cells.Size());
+    int remaining = static_cast<int>(cells.size());
     ParticleVertex* point = Points().data();
     FogSprite* sprite = Sprites().data;
-    for (CellMap::Node* node = cells.First(); node; node = cells.After(node)) {
+    for (auto node = cells.begin(); node != cells.end(); ++node) {
         if (--remaining < 0) break;
-        const FogCell& cell = node->value;
+        const FogCell& cell = node->second;
         std::memcpy(point, &cell.pos, sizeof(cell.pos));
         point->size = kFogSpriteSize;
         const int alpha = x87::fistp(static_cast<float>(cell.alpha * kColourScale));

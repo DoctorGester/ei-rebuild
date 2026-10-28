@@ -10,8 +10,8 @@
 #include "console.h"
 #include "item_db_text.h"
 
-#include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 
 #include <cstdint>
 #include "game_data.h"
@@ -46,9 +46,9 @@ const UiKeyName* KeyNamesEnd() { return KeyNamesBegin() + kUiKeyNameCount; }
 
 bool CSaveLoadWindow::IsReservedSave(int index) {
     const char* folder = entries_[index].folder_.c_str();
-    if (gamecrt::mbsicmp(folder, game::menukeytexts::QuickSave()) == 0) return true;
-    if (gamecrt::mbsicmp(folder, game::menukeytexts::AutoSaveA()) == 0) return true;
-    return gamecrt::mbsicmp(folder, game::menukeytexts::AutoSaveB()) == 0;
+    if (text::CompareIgnoringCase(folder, game::menukeytexts::QuickSave()) == 0) return true;
+    if (text::CompareIgnoringCase(folder, game::menukeytexts::AutoSaveA()) == 0) return true;
+    return text::CompareIgnoringCase(folder, game::menukeytexts::AutoSaveB()) == 0;
 }
 
 void CSaveLoadWindow::ShowSelection() {

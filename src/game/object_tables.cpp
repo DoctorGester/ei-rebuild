@@ -3,11 +3,12 @@
 
 #include "core_streams.h"
 
-#include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <memory>
@@ -17,7 +18,7 @@
 int TextKeyFromName(const char* name) {
     std::uint32_t h = 0;
     for (const char* p = name; *p; ++p)
-        h = static_cast<std::uint32_t>(libcrt::Toupper(static_cast<unsigned char>(*p))) + h * 5;
+        h = static_cast<std::uint32_t>(text::ToUpper(static_cast<unsigned char>(*p))) + h * 5;
     return static_cast<int>(h % 1000000000u + 1000000000u);
 }
 
@@ -27,24 +28,24 @@ BOOL IsTextKey(int id) {
 
 MapRecord* CMapDatabase::FindMap(const char* name) {
     for (int i = 0; i < maps.size; ++i)
-        if (gamecrt::mbsicmp(maps.data[i].name, name) == 0) return &maps.data[i];
+        if (text::CompareIgnoringCase(maps.data[i].name, name) == 0) return &maps.data[i];
     return nullptr;
 }
 
 AllodRecord* CMapDatabase::FindAllod(const char* name) {
     for (int i = 0; i < allods.size; ++i)
-        if (gamecrt::mbsicmp(allods.data[i].name, name) == 0) return &allods.data[i];
+        if (text::CompareIgnoringCase(allods.data[i].name, name) == 0) return &allods.data[i];
     return nullptr;
 }
 
 float NamedFloatTable::Get(const char* name) {
     constexpr float kZero = 0.0f;
-    const Node* node;
+    const_iterator node;
     {
         std::string key = name;
-        node = Find(key);
+        node = find(key);
     }
-    return node ? node->value.mapped : kZero;
+    return node != end() ? node->second : kZero;
 }
 
 void NamedFloatTable::Set(const char* name, float value) {
@@ -52,7 +53,7 @@ void NamedFloatTable::Set(const char* name, float value) {
     std::string key = name;
     EI_NAN_AUDIT(value);
     if (value == 0.0f) {
-        EraseKey(key);
+        erase(key);
         return;
     }
     (*this)[key] = value;
@@ -60,18 +61,18 @@ void NamedFloatTable::Set(const char* name, float value) {
 
 void NamedFloatTable::Remove(const char* name) {
     std::string key = name;
-    EraseKey(key);
+    erase(key);
 }
 
 void NamedFloatTable::CopyPrefixed(const char* prefix, NamedFloatTable* out) {
     std::size_t length = std::strlen(prefix);
-    out->Clear();
-    for (const Node* node = First(); node; node = Next(node))
-        if (gamecrt::strncmp(prefix, node->value.key.c_str(), length) == 0) (*out)[node->value.key] = node->value.mapped;
+    out->clear();
+    for (const auto& [key, value] : *this)
+        if (std::strncmp(prefix, key.c_str(), length) == 0) (*out)[key] = value;
 }
 
 void NamedFloatTable::Load(CStream* stream) {
-    Clear();   // inlined: each chain's nodes freed in order, the count zeroed
+    clear();
     for (;;) {
         std::string key;
         {
@@ -79,7 +80,7 @@ void NamedFloatTable::Load(CStream* stream) {
             std::string* read = stream->ReadString(&raw);
             key = *read;
         }
-        if (gamecrt::mbscmp(key, game::EmptyText()) == 0) break;
+        if (str::Compare(key, game::EmptyText()) == 0) break;
         float value;
         stream->Read(&value, 4);
         (*this)[key] = value;
@@ -87,9 +88,8 @@ void NamedFloatTable::Load(CStream* stream) {
 }
 
 void NamedFloatTable::Save(CStream* stream) {
-    for (const Node* node = First(); node; node = Next(node)) {
-        stream->WriteString(node->value.key);
-        float value = node->value.mapped;
+    for (const auto& [name, value] : *this) {
+        stream->WriteString(name);
         stream->Write(&value, 4);
     }
     stream->WriteString("");   // the end

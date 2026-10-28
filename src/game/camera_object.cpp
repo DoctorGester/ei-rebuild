@@ -4,6 +4,7 @@
 
 #include "core_streams.h"
 
+#include "lib/file_io.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -77,7 +78,7 @@ void DestroyCamera() { g_camera.Destroy(); }
 
 void ConstructCamera() {
     g_camera.Construct();
-    libcrt::AtExit(DestroyCamera);
+    std::atexit(DestroyCamera);
 }
 
 const char* CCamera::GetClassName() { return "CCamera"; }
@@ -135,11 +136,11 @@ const char kRecordFolder[] = ".\\camera\\";
 // rename goes to camera0001.cam; kept as the game has it). Sets bit 0x10 of a global flags word either
 // way. Returns 1 (file name kept in fileName_, flag 0x10 set) when the file can be created, else 0.
 int CCamera::OpenFile(const char* name) {
-    mfc::CFileFind find;
-    mfc::CFile file;
-    if (find.FindFile(kCurrentRecord, 0) == 1) {
+    lib::FileFind find;
+    lib::File file;
+    if (find.FindFile(kCurrentRecord) == 1) {
         int last = 0;
-        if (find.FindFile(kNumberedRecords, 0)) {
+        if (find.FindFile(kNumberedRecords)) {
             int more;
             do {
                 more = find.FindNext();
@@ -161,7 +162,7 @@ int CCamera::OpenFile(const char* name) {
     {
         std::string folder = kRecordFolder;
         std::string full = folder + name;
-        failed = file.Open(full, 0x1001, nullptr) == 0;   // modeCreate | modeWrite
+        failed = !file.Open(full, lib::File::modeCreate | lib::File::modeWrite);
     }
     if (failed) return 0;
     {
@@ -178,10 +179,10 @@ int CCamera::OpenFile(const char* name) {
 // when written, 0 when not recording or the file does not open.
 int CCamera::RecordFrame(std::uint32_t time) {
     CameraKey record;
-    mfc::CFile file;
+    lib::File file;
     if (!(flags_ & CCamera::kRecording)) return 0;
-    if (!file.Open(fileName_, 0x2001, nullptr)) return 0;   // modeNoTruncate | modeWrite
-    file.Virtuals()->Seek(0, 2);   // Seek(0, end)
+    if (!file.Open(fileName_, lib::File::modeNoTruncate | lib::File::modeWrite)) return 0;   // (an existing file only)
+    file.Seek(0, FILE_END);
     std::memcpy(&record.time, &time, sizeof(record.time));
     record.reserved = 0;
     std::memcpy(&record.position, &localPosition_, sizeof(record.position));

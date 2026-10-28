@@ -12,12 +12,12 @@
 #include "ui_widescreen.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <cstring>
@@ -44,7 +44,7 @@ constexpr int kTipLine = 20;
 const char* ZoneSound() { return "buttons\\globalmap\\zone.wav"; }
 
 bool SameText(std::string_view a, std::string_view b) {
-    return gamecrt::mbscmp(a, b) == 0;
+    return str::Compare(a, b) == 0;
 }
 
 // tilt * spin as the drag sums it.
@@ -97,7 +97,7 @@ void CGlobalMap::OnRightUp(int, int, int) {
 void CGlobalMap::OnMouseMove(int, int x, int y) {
     if (dragging_) {
         POINT drag{MouseDragX(), MouseDragY()};
-        (console::g_graphicsLogOut <<static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y) << '\n').Flush();
+        console::EndLine(console::g_graphicsLogOut << static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y));
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         interface_->CallScalePointFromScreenNoMargin(&drag);
         float turned = static_cast<float>(static_cast<float>(drag.x) * 0.0033333334f /*00740204*/ + angle_);   // 1 / 300

@@ -6,9 +6,10 @@
 #include "console.h"
 #include "game_strings.h"
 
-#include "lib/crt.h"
+#include "lib/file_io.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 #include "text_split.h"
 #include "ui.h"
 #include "world_glue.h"
@@ -51,10 +52,10 @@ signed char* ActionOfScan() { return g_keyActions; }
 
 std::string* ConcatText(std::string* a0, const std::string* a1, const char* a2) { *a0 = *a1 + a2; return a0; }
 
-// Opens the bindings file with `flags`; the path is a temporary CString.
-bool OpenFile(console::CStdioFile& file, unsigned flags) {
+// Opens the bindings file with `mode` (TextFile::Open's).
+bool OpenFile(lib::TextFile& file, const char* mode) {
     std::string path;
-    return file.Open(*ConcatText(&path, GameDataPathString(), "config\\keyboard.ini"), flags, nullptr) != 0;
+    return file.Open(*ConcatText(&path, GameDataPathString(), "config\\keyboard.ini"), mode);
 }
 
 } // namespace
@@ -69,22 +70,22 @@ void LoadKeyBindings() {
     }
     std::string line;
     std::vector<std::string> words;
-    console::CStdioFile file;
+    lib::TextFile file;
     std::memset(ActionOfScan(), 0, 0x200);
-    if (!OpenFile(file, console::CStdioFile::typeText)) return;
-    while (file.ReadString(line)) {
+    if (!OpenFile(file, "r")) return;
+    while (file.ReadLine(line)) {
         text::SplitWords(line.c_str(), &words, ' ');
         if (words.size() <= 1) continue;
         bool known = false;
         int key = 0;
         for (; key < kKeyCount; ++key) {
-            if (libcrt::Stricmp(g_keyNames[key].file_, words[0].c_str()) == 0) {
+            if (text::CompareIgnoringCase(g_keyNames[key].file_, words[0].c_str()) == 0) {
                 known = true;
                 break;
             }
         }
         for (int action = 0; action < kActionCount; ++action) {
-            if (libcrt::Stricmp(kActionDefinitions[action].name_, words[1].c_str()) != 0) continue;
+            if (text::CompareIgnoringCase(kActionDefinitions[action].name_, words[1].c_str()) != 0) continue;
             if (known) ActionOfScan()[g_keyNames[key].scan_] = static_cast<signed char>(kActionDefinitions[action].id_);
             break;
         }
@@ -96,8 +97,8 @@ void LoadKeyBindings() {
 // key name, action name.
 void SaveKeyBindings() {
     std::string line;
-    console::CStdioFile file;
-    if (!OpenFile(file, console::CStdioFile::modeCreate | console::CStdioFile::modeWrite)) return;
+    lib::TextFile file;
+    if (!OpenFile(file, "w")) return;
     for (int scan = 0; scan < 0x200; ++scan) {
         signed char id = ActionOfScan()[scan];
         if (!id) continue;

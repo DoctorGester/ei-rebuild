@@ -43,9 +43,5 @@ void ScriptQuestAddObjective(int type, const std::string& text, float value) {
     std::memcpy(&objective.value, &value, 4);
 }
 
-// The key, then a {key, null} pair copied from it; the pair is destroyed before the key.
-QuestRecord* QuestDatabase::FindQuest(const char* name) {
-    std::string key(name);
-    QuestIndex::Pair pair{key, nullptr};
-    return questsByName.FindOrInsert(pair)->value;
-}
+// operator[]: an unknown name is filed with null.
+QuestRecord* QuestDatabase::FindQuest(const char* name) { return questsByName[std::string(name)]; }

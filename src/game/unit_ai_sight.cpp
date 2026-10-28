@@ -13,7 +13,6 @@
 #include "game_singletons.h"
 
 #include "lib/crt.h"
-#include "lib/crt_iostream.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 
@@ -49,14 +48,9 @@ bool IsZero(double v) {
     return v == 0.0;
 }
 
-console::GameOStream& PutLong(console::GameOStream& os, long value) {
-    os.PutInt(value);
-    return os;
-}
-
 // "Unit <self> <text> <other>" (no line end).
-console::GameOStream& LogPair(CUnit* self, const char* text, CEngineObject* other) {
-    return PutLong(PutLong(*AiLog() << "Unit ", self->id_) << text, other->id_);
+console::Stream& LogPair(CUnit* self, const char* text, CEngineObject* other) {
+    return AiLog() << "Unit " << self->id_ << text << other->id_;
 }
 
 // The noticed point taken over inline (Notice's copy).
@@ -157,7 +151,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
                 if (dead) continue;
                 EI_NAN_AUDIT(theirs->stats.valuesE0[2].current, ours->stats.valuesB0[2].current, distance);
                 if (static_cast<double>(theirs->stats.valuesE0[2].current) * ours->stats.valuesB0[2].current <= distance) continue;
-                *AiLog() << "using sense life ";
+                AiLog() << "using sense life ";
                 alive = true;
             }
         }
@@ -173,9 +167,8 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
             double dx = static_cast<double>(self->localPosition_.x) - other->localPosition_.x;
             double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
             double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
-            console::GameOStream& os = LogPair(self, " sees unit ", other) << " from ";
-            (void)os;
-            console::EndLine(AiLog()->PutFloat(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))) << "m distance");
+            LogPair(self, " sees unit ", other) << " from ";
+            console::EndLine(AiLog() << std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) << "m distance");
         }
     }
 }

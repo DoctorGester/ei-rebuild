@@ -39,66 +39,6 @@ private:
 };
 static_assert(sizeof(CString) == 4);
 
-class CFileVirtuals;
-
-// CFile: vtable, OS handle, close-on-delete flag, file name: mfc::impl::CFile's members (mfc_file.h), which its
-// constructors and destructor build and destroy in place. The game calls these methods non-virtually, so they are
-// plain members.
-class CFile {
-public:
-    enum OpenFlags { modeRead = 0 };
-
-    CFile();
-    // CFile(path, flags): opens the file, throwing a CFileException* when it cannot.
-    CFile(const char* path, unsigned flags);
-    ~CFile();
-    CFile(const CFile&) = delete;
-    CFile& operator=(const CFile&) = delete;
-    BOOL Open(std::string_view path, unsigned flags, void* error);
-    unsigned GetLength();
-    unsigned Read(void* buffer, unsigned count);
-    void Write(const void* buffer, unsigned count);
-    void Close();
-    // The OS file handle (m_hFile; INVALID_HANDLE_VALUE when closed).
-    void* Handle() const { return handle_; }
-    CFileVirtuals* Virtuals();
-
-private:
-    void* vtable_;
-    void* handle_;
-    BOOL closeOnDelete_;
-    alignas(std::string) unsigned char fileName_[sizeof(std::string)];
-};
-
-// The virtual slots of MFC 4.2's CFile, for callers that dispatch through a file's vtable (the verify build
-// hands some loaders a proxy file). Slots declared `void Name()` only keep their place.
-class __declspec(novtable) CFileVirtuals {
-public:
-    virtual void GetRuntimeClass();
-    virtual void* DeletingDestructor(unsigned flags);
-    virtual void Serialize();                                          // CObject's (empty)
-    virtual unsigned long GetPosition() const;
-    virtual void GetFileName();
-    virtual void GetFileTitle();
-    virtual void GetFilePath();
-    virtual void SetFilePath();
-    virtual BOOL Open(const char* path, unsigned flags, void* error);
-    virtual void Duplicate();
-    virtual long Seek(long offset, unsigned from);
-    virtual void SetLength(unsigned long length);
-    virtual unsigned long GetLength() const;
-    virtual unsigned Read(void* buffer, unsigned count);
-    virtual void Write(const void* buffer, unsigned count);
-    virtual void LockRange();
-    virtual void UnlockRange();
-    virtual void Abort();
-    virtual void Flush();
-    virtual void Close();
-    // (0: no buffer of its own; CArchive reads and writes through the file then).
-    virtual unsigned GetBufferPtr(unsigned command, unsigned count, void** start, void** end);
-};
-inline CFileVirtuals* CFile::Virtuals() { return reinterpret_cast<CFileVirtuals*>(this); }
-
 // The virtual slots every MFC 4.2 CObject has, for callers that dispatch through an object's vtable (the
 // inlined DestructElements calls slot 1 with 0; a CList or a CDib is deleted through slot 1 with 1).
 class __declspec(novtable) CObjectVirtuals {
@@ -106,35 +46,6 @@ public:
     virtual void GetRuntimeClass();
     virtual void* DeletingDestructor(unsigned flags);
     virtual void Serialize();
-};
-
-// CFileFind: mfc::impl::CFileFind's members (mfc_file.h), built and destroyed in place as CFile's.
-class CFileFind {
-public:
-    CFileFind();
-    ~CFileFind();
-    CFileFind(const CFileFind&) = delete;
-    CFileFind& operator=(const CFileFind&) = delete;
-    BOOL FindFile(std::string_view pattern, unsigned long flags);
-    unsigned long GetLength() const;                                // (the found file's size, low dword)
-    std::string GetFilePath() const;
-    std::string GetFileName() const;
-    // FindNextFile / GetFileTitle (Windows' headers define both names as macros).
-    std::string GetTitle() const;
-    BOOL FindNext();
-    BOOL IsDots() const;
-    // Whether the found file has one of the attribute bits `mask`.
-    BOOL MatchesMask(unsigned long mask) const;
-    void Close();
-
-private:
-    void* vtable_;
-    void* found_;
-    void* next_;
-    void* context_;
-    BOOL gotLast_;
-    alignas(std::string) unsigned char root_[sizeof(std::string)];
-    char separator_;
 };
 
 // CTime (a time_t). No constructor, so it can be a plain local: Construct is the constructor.
@@ -229,20 +140,6 @@ struct PlainElements<std::string> {
     static void Relocate(std::string* to, std::string* from, int count) { MoveElements(to, from, count); }
 };
 
-// Only what the CArray serialisers use: the mode (bit 0: loading).
-class CArchive {
-public:
-    bool IsLoading() const { return (mode_ & 1) != 0; }
-    void Flush();
-    CFile* File() const { return file_; }
-
-private:
-    std::uint8_t unused_00[0x10];
-    unsigned mode_;
-    std::uint8_t unused_14[8];
-    CFile* file_;
-};
-
 template <typename T, typename Elements = PlainElements<T>>
 struct CArray {
     void* vtable;
@@ -315,7 +212,7 @@ struct CArray {
     void RemoveAll() { SetSize(0, -1); }
 
     // Serialize (CObject::Serialize is empty): the count (ReadCount then SetSize when loading), then the
-    // elements as raw bytes (MFC's default SerializeElements). `Archive` is the facade's CArchive or mfc::impl's.
+    // elements as raw bytes (MFC's default SerializeElements). `Archive` is mfc::impl's CArchive.
     template <typename Archive>
     void Serialize(Archive* ar) {
         if (!ar->IsLoading()) ar->WriteCount(static_cast<unsigned long>(size));

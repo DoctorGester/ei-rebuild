@@ -162,7 +162,7 @@ bool Say(Call* call) {
 // flush.
 bool ConsoleString(Call* call) {
     std::string text = Joined(call);
-    (console::Out() << text.c_str() << "\n").Apply(libcrt::FlushManipulator);
+    (console::Out() << text.c_str() << "\n").Flush();
     return true;
 }
 

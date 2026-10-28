@@ -9,6 +9,8 @@
 
 #include "game_arrays.h"
 
+#include <cstdlib>
+
 static_assert(sizeof(mfc::CArray<int>) == 0x14 && sizeof(RadiusTree) == 0x1C && sizeof(mfc::CArray<SpiralOffset>) == 0x14);
 
 constinit lib::StaticObject<mfc::CArray<int>> g_spiralLengths = /*007C2FC0*/ {};
@@ -16,9 +18,6 @@ constinit lib::StaticObject<RadiusTree> g_spiralRadii = /*007C2FD8*/ {};
 constinit lib::StaticObject<mfc::CArray<SpiralOffset>> g_spiralOffsets = /*007C2FF8*/ {};
 
 namespace {
-
-using AtExitFunction = void(__cdecl*)();
-void RegisterExit(AtExitFunction exitFunction) { libcrt::AtExit(exitFunction); }
 
 void DestroySpiralOffsets() {
     mfc::impl::DestructArrayOf<gamearrays::SpiralOffsetArrayClass>(*g_spiralOffsets);
@@ -33,15 +32,15 @@ void DestroySpiralLengths() {
 
 void ConstructSpiralOffsets() {
     mfc::impl::ConstructArrayOf<gamearrays::SpiralOffsetArrayClass>(*g_spiralOffsets);
-    RegisterExit(DestroySpiralOffsets);
+    std::atexit(DestroySpiralOffsets);
 }
 
 void ConstructSpiralRadii() {
     mfc::impl::ConstructArrayOf<mfc::impl::FloatArrayClass>(g_spiralRadii->keys);
-    RegisterExit(DestroySpiralRadii);
+    std::atexit(DestroySpiralRadii);
 }
 
 void ConstructSpiralLengths() {
     mfc::impl::ConstructArrayOf<mfc::impl::IntArrayClass>(*g_spiralLengths);
-    RegisterExit(DestroySpiralLengths);
+    std::atexit(DestroySpiralLengths);
 }

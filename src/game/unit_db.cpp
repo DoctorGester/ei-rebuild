@@ -7,6 +7,7 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "lib/text_case.h"
 
 #include <memory>
 #include <string>
@@ -202,7 +203,7 @@ constexpr int kSkillLevelValues = 10;
 constexpr int kFirstValueField = 12;
 
 bool SameName(const std::string& name, const char* other) {
-    return gamecrt::mbsicmp(name, other) == 0;
+    return text::CompareIgnoringCase(name, other) == 0;
 }
 } // namespace
 

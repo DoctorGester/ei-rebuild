@@ -9,16 +9,17 @@
 #include "game_strings.h"
 
 #include "buffered_file.h"
+#include "lib/file_io.h"
 #include "lib/containers.h"
 #include "console.h"
 #include "item_db_text.h"
+#include "lib/text_case.h"
 #include "net_classes.h"
 #include "net_messages.h"   // MapMessage
 #include "quest_records.h"
 #include "mod_folders.h"
 #include "world_map_files.h"
 
-#include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -40,7 +41,7 @@ namespace {
 
 
 bool IsEmpty(const std::string& s) {
-    return gamecrt::mbscmp(s,
+    return str::Compare(s,
                            game::EmptyText()) == 0;
 }
 
@@ -63,7 +64,7 @@ std::string* BriefingSpeakerInto(std::string* out, const char* briefing) {
     while (texts->FindLine(game::briefingwords::ShowTag())) {
         texts->Split(&words, 1);
         if (words.size() >= 2 &&
-            gamecrt::mbsicmp(words[1].c_str(),
+            text::CompareIgnoringCase(words[1].c_str(),
                             game::briefingwords::Hero()) != 0) {
             *out = words[1];
             return out;
@@ -192,12 +193,12 @@ bool LoadZoneQuests(const char* zone) {
     std::string file = std::string(zone) + kQuestFileSuffix;
     bool found;
     {
-        mfc::CFileFind find;
+        lib::FileFind find;
         std::string folder;
         modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuests);
         MapsFolder(&folder);
         std::string pattern = folder.c_str() + file;
-        found = find.FindFile(pattern, 0) != 0;
+        found = find.FindFile(pattern) != 0;
     }
     if (!found) return false;
     std::string path = MapFilePath(file);
@@ -220,7 +221,7 @@ void GameFlow::OnVariableChanged(const stlp::list<RefPtr>::Node* node) {
     bool quest;
     {
         std::string prefix = str::Left(name, 2);
-        quest = gamecrt::mbscmp(prefix,
+        quest = str::Compare(prefix,
                                 flowdata::kQuestVariablePrefix) == 0;
     }
     if (quest) {

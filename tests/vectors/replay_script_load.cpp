@@ -200,7 +200,7 @@ bool CheckExpect(Reader& r, char* d, std::size_t n) {
     const int id = r.Get<std::int32_t>();
     Run run;
     ReadRun(r, &run);
-    const crt::NegativeClassesScope negative(r);
+    crt::SkipNegativeClasses(r);
     const int result0 = r.Get<std::int32_t>();
     const Error error0 = ReadError(r);
     if (!r.ok()) return true;
@@ -237,7 +237,7 @@ bool CheckLoadFunction(Reader& r, char* d, std::size_t n) {
         *growBy = r.Get<std::int32_t>();
     Run run;
     ReadRun(r, &run);
-    const crt::NegativeClassesScope negative(r);
+    crt::SkipNegativeClasses(r);
     const int result0 = r.Get<std::int32_t>();
     const Error error0 = ReadError(r);
     const std::uint64_t cmd0 = r.Get<std::uint64_t>();
@@ -265,7 +265,7 @@ bool CheckLoadCommands(Reader& r, char* d, std::size_t n) {
     ScriptCommands commands{{recordarrays::SubCallArrayClass::Vtable(), nullptr, 0, 0, r.Get<std::int32_t>()}};
     Run run;
     ReadRun(r, &run);
-    const crt::NegativeClassesScope negative(r);
+    crt::SkipNegativeClasses(r);
     const int result0 = r.Get<std::int32_t>();
     const Error error0 = ReadError(r);
     const std::uint64_t commands0 = r.Get<std::uint64_t>();
@@ -290,7 +290,7 @@ bool CheckLoad(Reader& r, char* d, std::size_t n) {
     CScript* s = ReadState(r, &pairs);
     SetError(s, ReadError(r));
     const std::string source = r.String();
-    const crt::NegativeClassesScope negative(r);
+    crt::SkipNegativeClasses(r);
     const BOOL runWorldScript = r.Get<std::int32_t>();
     const int result0 = r.Get<std::int32_t>();
     const Error error0 = ReadError(r);

@@ -3,7 +3,7 @@
 // Text at the system boundary in UTF-8 (docs/notes/standalone.md section 4). Every string inside the game is UTF-8,
 // so the Windows calls that take or give text (file names, the registry, the window title, the message box, key
 // names, resource strings) are the wide ones, converting at the call:
-//   - the game's imports (gameapi.h, and through it CFile, CFileFind and the CRT's file calls): the image's
+//   - the game's imports (gameapi.h, and through it lib's File, TextFile and FileFind (file_io.h)): the image's
 //     slot of each ANSI call below takes its UTF-8 version (text::utf8, SystemRoute; image_imports.cpp asks
 //     for it), so a call through gameapi:: passes and receives UTF-8. The harness takes those slots after,
 //     as it does the ANSI exports' (its redirects work on the bytes).

@@ -249,9 +249,8 @@ here is gone. What it covered, by file:
 ## Risks
 
 - Almost everything was checked for consistency only, so a wrong branch that leaves a consistent state is invisible to the
-  wrappers; the scenarios are the behavioural check. TakeHit's log line goes through forwarded ostream code (006FC31D,
-  006FC9C6, 006FC7FA, 006FC0B0, 00434FE0; log stream pointer 007AF3E8 = the console ostream at 007C5810) and must match
-  character for character.
+  wrappers; the scenarios are the behavioural check. TakeHit's log line goes through console::Stream (the log stream
+  pointer 007AF3E8 = the ai stream at 007C5810) and must match character for character.
 - The CombatStats overlay names bytes of UnitStats that unit.h leaves unnamed; merge if the units area names them.
   `+0x174`'s naming is a guess (behaviour copied). x87: values kept on the FPU stack are `double` locals (exact at 24 / 53-bit
   precision, not at 64); FinishCast's clamps select through float loads where the original selects dwords with masks (only

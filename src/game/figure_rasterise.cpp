@@ -14,6 +14,7 @@
 #include "game_data.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -35,7 +36,7 @@ int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const IntPoint* points, 
     if (!(g_texturePointsGuard & 1)) {
         g_texturePointsGuard |= 1;
         uv = PointArray{};
-        libcrt::AtExit(FreeTexturePoints);
+        std::atexit(FreeTexturePoints);
     }
     uv.resize(buffers.texCoordCount);
     float scale = 255.0f /*0073C370*/;

@@ -10,6 +10,8 @@
 #include "world.h"
 
 #include "lib/crt.h"
+#include "lib/str.h"
+#include "lib/text_case.h"
 
 #include <cstring>
 #include <memory>
@@ -308,7 +310,7 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
         bool named;
         {
             std::string copy = name;
-            named = gamecrt::mbsicmp(copy, kNoneText) != 0;
+            named = text::CompareIgnoringCase(copy, kNoneText) != 0;
         }
         if (!named) continue;
         TextureParts* set = partSets[k];
@@ -341,7 +343,7 @@ void CObject3DClientSpecific::ApplyMaterials() {
             material = materials[materialCursor];
         }
     }
-    if (gamecrt::mbscmp(secondSkinName, kNoneText) == 0)
+    if (str::Compare(secondSkinName, kNoneText) == 0)
         SetSkins(skinName.c_str(), nullptr);
     else
         SetSkins(skinName.c_str(), secondSkinName.c_str());

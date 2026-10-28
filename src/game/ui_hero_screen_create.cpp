@@ -18,10 +18,10 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -259,7 +259,7 @@ void CMpHeroScreen::CreateScreen() {
         }
         figureModel = figure->figureName;
         auto isModel = [&figureModel](const char* name) {
-            return gamecrt::mbsicmp(figureModel.c_str(),
+            return text::CompareIgnoringCase(figureModel.c_str(),
                                    name) == 0;
         };
         bool isMale = isModel("unhuma");

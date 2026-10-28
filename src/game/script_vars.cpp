@@ -8,6 +8,7 @@
 #include "ei/x87.h"
 
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <string>
 
@@ -18,7 +19,7 @@ namespace {
 
 int FindName(const mfc::CArray<std::string>& names, const char* name) {
     for (int i = 0; i < names.size; ++i)
-        if (gamecrt::mbscmp(names.data[i].c_str(), name) == 0) return i;
+        if (std::strcmp(names.data[i].c_str(), name) == 0) return i;
     return -1;
 }
 

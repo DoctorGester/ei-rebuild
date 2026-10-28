@@ -19,6 +19,7 @@
 #include "game_hashes.h"
 #include "game_data.h"
 
+#include <cstdlib>
 #include <dinput.h>
 
 #include <cstring>
@@ -112,5 +113,5 @@ void DestroyPartyManager() { g_partyManager->Destruct(); }
 
 void ConstructPartyManager() {
     g_partyManager->Construct();
-    libcrt::AtExit(DestroyPartyManager);
+    std::atexit(DestroyPartyManager);
 }

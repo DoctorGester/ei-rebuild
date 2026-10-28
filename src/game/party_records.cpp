@@ -10,17 +10,15 @@
 #include "game_lists.h"
 #include "party.h"
 
-#include "lib/crt.h"
 #include "game_hashes.h"
 #include "lib/mfc.h"
 
 #include "game_data.h"
+#include "lib/str.h"
 
 #include <bit>
 
 namespace {
-
-int MbsCmp(std::string_view a0, std::string_view a1) { return gamecrt::mbscmp(a0, a1); }
 
 const char* const kHero = "Hero";
 const char* const kHumanHero = "Human Hero";
@@ -59,8 +57,8 @@ void PartyRecordsReset(NamedPartyRecords* list) {
 CParty* NamedPartyRecords::Find(const char* name) const {
     CParty* unnamed = nullptr;
     for (PartyRecord* record : records) {
-        if (MbsCmp(NameOf(record), name) == 0) return record->Party();
-        if (MbsCmp(NameOf(record), game::EmptyText()) == 0) unnamed = record->Party();
+        if (str::Compare(NameOf(record), name) == 0) return record->Party();
+        if (str::Compare(NameOf(record), game::EmptyText()) == 0) unnamed = record->Party();
     }
     return unnamed;
 }
@@ -73,7 +71,7 @@ void NamedPartyRecords::Add(const char* name) {
 
 void NamedPartyRecords::Remove(const char* name) {
     for (unsigned i = 0; i < static_cast<unsigned>(records.size()); ++i) {
-        if (MbsCmp(NameOf(records[i]), name) != 0) continue;
+        if (str::Compare(NameOf(records[i]), name) != 0) continue;
         // The index still advances, so the record moved into slot i is not tested (original behaviour).
         records.erase(records.begin() + i);
     }

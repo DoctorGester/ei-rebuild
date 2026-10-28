@@ -126,14 +126,12 @@ CWorld::~CWorld() {
 
 CParticleManager::CParticleManager() {
     mfc::impl::ConstructListHeader<mfc::impl::ClientListClass>(&freeParticles, 10);
-    held_.Construct(100);
     maxHeldId_ = 0;
     ParticleManagerClearQuietStart(this);
 }
 
 CParticleManager::~CParticleManager() {
     CParticleManager::Destroy();
-    held_.Destroy();
     freeParticles.vtable = mfc::impl::ClientListClass::Vtable();
     freeParticles.RemoveAll();
 }
@@ -158,8 +156,6 @@ CWorldClient::~CWorldClient() {
     FreeGrid(secondGrid_);
     objectGrid_.Resize(1, 1);
     FreeGrid(objectGrid_);
-    lineLists_.Destroy();
-    dynamicNodes_.Destroy();
     dynamicObjects_.vtable = mfc::impl::ClientObjectListClass::Vtable();
     dynamicObjects_.RemoveAll();
     objects_.Destroy();
@@ -174,16 +170,9 @@ CWorldServer::~CWorldServer() {
     DestroyList<SharedObjectElements>(sharedObjects_, gameslots::SharedObjectListClass::Vtable());   // CList<SharedObject>
     DestroyList<ReleasedElements>(counted_, gameslots::ItemObjectListClass::Vtable());   // CList<CEngineObject*>
     DestroyList<ProjectileElements>(projectiles_, gameslots::RefListBClass::Vtable());   // CList<CSpellEffect*>
-    timedObjects_.map.Destroy();
-    namedObjects_.map.Destroy();
-    otherMapObjects_.map.Destroy();
-    mapObjects_.map.Destroy();
-    sentObjects_.map.Destroy();
-    objects_.map.Destroy();
     diplomacy_.Reset();
     SecondScript()->Destruct();
     MainScript()->Destruct();
     Messages()->Destroy();
-    updateMap_.map.Destroy();
     gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
 }

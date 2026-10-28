@@ -2,10 +2,11 @@
 
 // Chunked files: the .mob zone files and the map-editor object specs. A chunk is an id and a size (header
 // included), followed by its content; chunks nest. A Chunk passes every byte it consumes up to its parent and
-// reaches the file through File(): a chunk asks its parent, the root returns the CFile it embeds. See
+// reaches the file through File(): a chunk asks its parent, the root returns the file it embeds. See
 // docs/notes/core.md.
 
 #include "maths.h"
+#include "lib/file_io.h"
 #include "lib/mfc.h"
 
 #include <cstddef>
@@ -20,7 +21,7 @@ public:
 
     // Called by ForEachChild for each child header read; the readers read the chunk's value by its id.
     virtual void OnChunk();
-    virtual mfc::CFileVirtuals* File();
+    virtual lib::File* File();
 
     void Advance(int bytes);
     // Writing a chunk of unknown size: a placeholder size, patched in at the end.
@@ -67,18 +68,17 @@ static_assert(offsetof(Chunk, id_) == 0x04);
 static_assert(offsetof(Chunk, parent_) == 0x14);
 static_assert(sizeof(Chunk) == 0x18);
 
-// The root chunk of a file: File() returns its CFile.
+// The root chunk of a file: File() returns its file.
 class RootChunk : public Chunk {
 public:
     RootChunk() : Chunk(nullptr) {}
 
-    mfc::CFileVirtuals* File() override;
+    lib::File* File() override;
 
     ~RootChunk();
 
-    // Opens the file: CFile::Open through its vtable with the low 16 bits of `flags`.
+    // Opens the file: lib::File::Open with the low 16 bits of `flags`.
     int Open(const std::string& path, unsigned flags);
 
-    mfc::CFile file_;
+    lib::File file_;
 };
-static_assert(offsetof(RootChunk, file_) == 0x18);

@@ -1,6 +1,5 @@
 // MFC 4.2's resource strings and their formatting (mfc_resource.h).
 #include "mfc_resource.h"
-#include "crt_locale_data.h"
 
 #include "game/game_data.h"
 
@@ -11,10 +10,6 @@
 namespace mfc::impl {
 
 namespace {
-
-// _istlead: the lead-byte bit of the CRT's multibyte flags (crt_locale_data.h).
-constexpr unsigned char kMbLead = 0x4;   // _M1
-bool IsLeadByte(char c) { return (libcrt::MultibyteFlags()[static_cast<unsigned char>(c)] & kMbLead) != 0; }
 
 // A "%1".."%9" or "%A".."%Z" at `at`: its index into the strings ('1' is 0, 'A' is 9; '0' is -1).
 bool Reference(const char* at, int& index) {
@@ -111,7 +106,6 @@ std::string AfxFormatString1(unsigned formatId, const char* string) {
             if (index != 0) out += '?';
             else if (string) out += string;
         } else {
-            if (IsLeadByte(*at) && at[1] != '\0') out += *at++;
             out += *at++;
         }
     }

@@ -4,26 +4,12 @@
 
 #include "combat.h"
 #include "game_data.h"
-#include "lib/crt_iostream.h"
+#include "console.h"
 
 class CPlayerServer;
 
-// The game's (MSVC 6 <iostream.h>) ostream; only the inserters the combat logs use.
-struct GameOstream : libcrt::Ostream {
-    GameOstream* Put(const char* text);
-    GameOstream* Put(long value);
-    GameOstream* Put(double value);
-    GameOstream* PutChar(int c);
-    GameOstream* Apply(libcrt::Manipulator manipulator);  // manipulator(*this)
-
-    // The logs set x_floatused to 1 before each floating point number.
-    void SetField4() { floatUsed = 1; }
-};
-static_assert(sizeof(GameOstream) == 8);
-
-// The combat log (the AI stream; combat.cpp) and the manipulator that ends a line.
-GameOstream* GameLog();
-inline const libcrt::Manipulator kLogEndLine = libcrt::FlushManipulator;
+// The combat log (the AI stream; combat.cpp).
+console::Stream& GameLog();
 
 // The unit's server object (CUnit + 0x170, a CMapObjectServer) and the stats block at its +0x20.
 inline CEngineObject* ServerObjectOf(CUnit* unit) { return unit->companion; }

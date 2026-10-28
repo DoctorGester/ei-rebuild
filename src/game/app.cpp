@@ -14,7 +14,6 @@
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
-#include "lib/crt_iostream.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "options.h"
@@ -25,6 +24,8 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <cstdlib>
+#include <cstring>
 #include <ddraw.h>
 
 #include <cstdarg>
@@ -35,8 +36,6 @@ namespace app {
 namespace {
 
 
-
-libcrt::Ostream* Console() { return &console::g_consoleOut; }
 
 CDirectInputMouse* TheMouse() { return Mouse(); }
 
@@ -88,7 +87,7 @@ LRESULT OnActivate(WPARAM wParam) {
 LRESULT OnSysCommand(HWND window, WPARAM wParam, LPARAM lParam) {
     unsigned command = wParam & 0xFFF0;
     if (command == SC_HOTKEY || command == SC_NEXTWINDOW || command == SC_PREVWINDOW) {
-        Console()->PutText("switch task")->PutChar('\n')->Apply(libcrt::FlushManipulator);
+        console::PrintLine("switch task");
     } else if (command == SC_SCREENSAVE || command == SC_MONITORPOWER) {
         return 0;
     }
@@ -193,8 +192,7 @@ LRESULT DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
         input->OnKeyDown(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_SYSKEYUP:
-        Console()->PutUnsigned(static_cast<unsigned>(w))->PutChar(':')->PutLong(static_cast<long>(lParam))->PutChar('\n')
-            ->Apply(libcrt::FlushManipulator);
+        console::EndLine(console::Out() << static_cast<unsigned>(w) << ':' << static_cast<long>(lParam));
         if (wParam == VK_TAB && AltDown(lParam)) {   // Alt+Tab: as if the window was deactivated
             HWND window = g_mainWindow;
             BOOL iconic = gameapi::IsIconic(window);
@@ -246,7 +244,7 @@ int StartFirstMap() {
     const auto& cmdScript = CommandLineScript();
     std::string map;
     map = cmdMap.size() != 0 ? cmdMap : options::TheOptions()->defaultMapName_;
-    if (gamecrt::mbscmp(cmdMode.c_str(),
+    if (std::strcmp(cmdMode.c_str(),
                         game::EmptyText()) == 0) {
         TheGameFlow()->CloseSessions();
         MenuOpen(TheGameFlow());
@@ -318,7 +316,7 @@ int game::FatalError(const char* format, ...) {
     bool carryOn = ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport);
     if (!carryOn) app::ShowMessageBox(text, app::kErrorBoxFlags);
     if (auto hook = reinterpret_cast<app::ErrorHook>(app::g_fatalErrorHook)) hook(text);
-    if (++app::g_fatalErrorCount >= 1 && !carryOn) libcrt::Exit(-1);
+    if (++app::g_fatalErrorCount >= 1 && !carryOn) std::exit(-1);
     return 0;
 }
 
@@ -337,7 +335,7 @@ int FatalErrorCodeV(long result, const char* format, va_list args) {
     gamecrt::sprintf(report, CodeReportFormat(), text, result, DirectXErrorText(result));
     ShowMessageBox(report, kErrorBoxFlags);
     if (auto hook = reinterpret_cast<ErrorHook>(g_fatalErrorHook)) hook(report);
-    if (++g_fatalErrorCount >= 1) libcrt::Exit(-1);
+    if (++g_fatalErrorCount >= 1) std::exit(-1);
     return 0;
 }
 
@@ -347,17 +345,6 @@ int FatalErrorCode(long result, const char* format, ...) {
     int value = FatalErrorCodeV(result, format, args);
     va_end(args);
     return value;
-}
-
-// ---- The operator new handler -------------------------------------------------------
-
-namespace {
-const char* MemoryDepletedText() { return "Memory depleted"; }
-} // namespace
-
-int OutOfMemory(std::size_t) {
-    ShowMessageBox(MemoryDepletedText(), kErrorBoxFlags);
-    return 0;
 }
 
 } // namespace app

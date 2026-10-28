@@ -18,12 +18,14 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 
 #include "core_streams.h"
 #include "map_object.h"
 #include "lib/containers.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
+#include "lib/str.h"
 
 #include <string>
 #include <vector>
@@ -36,12 +38,12 @@ namespace {
 // first empty entry).
 void EndTimedObjects(CWorldServer* world) {
     auto& map = world->timedObjects_.map;
-    for (auto* node = map.First(); node && node->value; node = map.After(node)) {
-        CEngineObject* object = node->value;
+    for (auto node = map.begin(); node != map.end() && node->second; ++node) {
+        CEngineObject* object = node->second;
         object->ClearState();
         object->Release();
     }
-    world->timedObjects_.map.Clear();   // nodes freed, buckets kept
+    world->timedObjects_.map.clear();   // nodes freed, buckets kept
     world->timedObjects_.maxId = 0;
 }
 
@@ -56,7 +58,7 @@ void ClearMissiles(CWorldServer* world) {
 
 int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char fromSave) {
     CAIMap* aiMap = AIMap();
-    if (gamecrt::mbsicmp(mapName_, map) != 0) {
+    if (text::CompareIgnoringCase(mapName_, map) != 0) {
         aiMap->Reset();
         aiMap->BeginRefresh();
         bool failed;
@@ -72,7 +74,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
     graph->Seek(0);
     if (graph->Size() != 0 && !AIMap()->Regions()->LoadBlocks(graph)) return 0;
 
-    if (gamecrt::mbsicmp(mobName_, mob) == 0) {
+    if (text::CompareIgnoringCase(mobName_, mob) == 0) {
         // The same zone again: start over.
         ScriptReset(MainScript());
         ScriptReset(SecondScript());
@@ -164,13 +166,15 @@ void CWorldServer::ResetZone() {
         }
     }
 
-    for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
-        node->value->ClearState();
+    for (auto& [id, object] : objects_.map) {
+        if (!object) break;
+        object->ClearState();
+    }
     ReleaseEach(objects_.map);
     objects_.maxId = 0;
     MapObjectIdMap* const maps[] = {&sentObjects_, &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
     for (MapObjectIdMap* map : maps) {
-        map->map.Clear();
+        map->map.clear();
         map->maxId = 0;
     }
     ClearMissilePointers(this);
@@ -183,10 +187,6 @@ void CWorldServer::ResetZone() {
 }
 
 // ---- TeardownZone -----------------------------------------------------------------------------
-
-namespace {
-
-} // namespace
 
 void CWorldServer::TeardownZone() {
     // Every player leaves (the list is walked from its start again after each one).
@@ -229,11 +229,6 @@ void CWorldServer::TeardownZone() {
 
 // ---- SendFreshObjects -------------------------------------------------------------------------
 
-namespace {
-
-
-} // namespace
-
 void CWorldServer::SendFreshObjects() {
     mfc::CTypedPtrList<CEngineObject> fresh;
     fresh.vtable = mfc::impl::ClientObjectListClass::Vtable();
@@ -247,10 +242,10 @@ void CWorldServer::SendFreshObjects() {
     header->Clear();
 
     // The map objects that are not part of the map itself: also kept in sentObjects_.
-    for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node)) {
-        CMapObject* object = node->value;
+    for (auto node = objects_.map.begin(); node != objects_.map.end() && node->second; ++node) {
+        CMapObject* object = node->second;
         unsigned id = static_cast<unsigned>(object->id_);
-        if (!mapObjects_.map.Find(id)) continue;
+        if (!mapObjects_.map.contains(id)) continue;
         if (object->IsSynchronised()) continue;
         sentObjects_.Set(static_cast<unsigned>(object->id_), object);
         auto* entry = fresh.NewNode(fresh.tail, nullptr);
@@ -310,7 +305,7 @@ void CWorldServer::ResetState() {
 }
 
 void CWorldServer::EnsureZone(const char* map, const char* mob) {
-    if (gamecrt::mbscmp(mapName_, map) == 0 && gamecrt::mbscmp(mobName_, mob) == 0) return;
+    if (str::Compare(mapName_, map) == 0 && str::Compare(mobName_, mob) == 0) return;
     NewZone(map, mob, nullptr);
     TeardownZone();
 }

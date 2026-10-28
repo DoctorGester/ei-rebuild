@@ -37,7 +37,6 @@ public:
     CEngineObject* NewObject(int type) override;
 
 };
-static_assert(sizeof(CServerSpecificManager) == 0xB0);
 
 class CTorchObjectSpec : public CEngineObject {
 public:

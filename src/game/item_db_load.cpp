@@ -6,7 +6,6 @@
 #include "core_streams.h"
 
 #include "lib/stlp.h"
-#include "lib/stlp_hash.h"
 
 #include <functional>
 #include <type_traits>
@@ -30,7 +29,7 @@ void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int f
     archive.Close(source);
     for (Record& record : table->records) {
         std::string name(record.text04.c_str());
-        stlp::NamedSlot<Record>(table->names, name) = &record;
+        table->names[name] = &record;
     }
 }
 

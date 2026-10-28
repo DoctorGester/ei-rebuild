@@ -22,10 +22,11 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/crt.h"
 #include "lib/stlp.h"
+#include "lib/str.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/text_case.h"
 
 #include <algorithm>
 #include <cmath>
@@ -93,7 +94,7 @@ void CBriefingScreen::StartPhrases() {
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
     // (The name is compared through a CString copy.)
-    bool human = gamecrt::mbscmp(unit->name, HumanPrototype()) == 0;
+    bool human = str::Compare(unit->name, HumanPrototype()) == 0;
     int number;
     if (talking) {
         if (third)
@@ -273,7 +274,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
     auto* person = GameFindClientUnit(TextKeyFromName(name));
     if (!person) {
         for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
-            if (gamecrt::mbsicmp(node->name,
+            if (text::CompareIgnoringCase(node->name,
                                 name) != 0)
                 continue;
             if (node->item) {

@@ -15,6 +15,7 @@
 #include "lib/static_object.h"
 #include "game_data.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <string>
 
@@ -52,7 +53,7 @@ void DestroyEventPool() { AIEventPoolDestruct(&*g_eventPool); }
 
 void ConstructEventPool() {
     mfc::impl::ConstructListHeader<mfc::impl::StaticListClass>(&*g_eventPool, 0x400);
-    libcrt::AtExit(DestroyEventPool);
+    std::atexit(DestroyEventPool);
 }
 
 AIEventCell* AIEventTable::CellOf(const AIEvent* event) const {

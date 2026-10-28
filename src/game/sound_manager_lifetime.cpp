@@ -28,10 +28,6 @@ constexpr int kSoundManagerClassId = 0xE;
 constexpr const char* kSoundManagerClassNameAddress = "CSoundManager";
 const char* const kBackslash = "\\";
 
-int CompareText(std::string_view a, std::string_view b) {
-    return gamecrt::mbscmp(a, b);
-}
-
 } // namespace
 
 const char* CSoundManager::GetClassName() { return kSoundManagerClassNameAddress; }
@@ -98,7 +94,7 @@ int CSoundManager::SetPath(const char* folder, const char* registryPath) {
     bool missing;
     {
         std::string last = str::Right(soundPath, 1);
-        missing = CompareText(last, kBackslash) != 0;
+        missing = str::Compare(last, kBackslash) != 0;
     }
     if (missing) soundPath += kBackslash;
     return soundRegistry.Open(registryPath) != 0 ? 1 : 0;
@@ -130,7 +126,6 @@ int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, in
 namespace {
 
 constexpr int kListBlockSize = 10;
-constexpr unsigned kMapBuckets = 100;
 constexpr int kFullVolume = 100;
 constexpr int kNoSwitch = 4;   // RequestStream's "switch at the current position"
 constexpr int kEmitterCount = 16;
@@ -170,10 +165,6 @@ CSoundManager::CSoundManager() {
     ConstructFader(midiFader);
     gameapi::InitializeCriticalSection(&midiLock);
     ConstructList(cacheList, gameslots::WaveListClass::Vtable());
-    // hashtable(n, hash, equal, allocator); the functor bytes, never read, are 0 here (the game's are stack
-    // bytes).
-    cache.Construct(kMapBuckets, 0, 0, 0);
-    deferred.Construct(kMapBuckets);
     gameapi::AIL_startup();
     Reset();
 }
@@ -183,8 +174,6 @@ CSoundManager::CSoundManager() {
 CSoundManager::~CSoundManager() {
     Close();
     gameapi::AIL_shutdown();
-    deferred.Destroy();   // clear, then the buckets
-    cache.Destroy();      // clear, then the buckets
     cacheList.vtable = gameslots::WaveListClass::Vtable();
     for (WaveNode* node = cacheList.head; node; node = node->next) recordarrays::Waves::DestructElements(&node->data, 1);
     cacheList.RemoveAll();
@@ -398,7 +387,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
     const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName.c_str());
     std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
-    if (CompareText(m->nextName, game::EmptyText()) == 0 ||
+    if (str::Compare(m->nextName, game::EmptyText()) == 0 ||
         m->streamReader.OpenFile(path.c_str(), &m->streamFileSize) == 0) {
         Silence(m, to, bytes);
         m->streamState = 0;
@@ -590,7 +579,7 @@ void CSoundManager::Close() {
         gameapi::AIL_mem_free_lock(cacheList.head->data.data);
         cacheList.RemoveHead();   // the copy taken out is destroyed at once
     }
-    cache.Clear();
+    cache.clear();
     if (midiSequence != nullptr) {
         gameapi::AIL_end_sequence(midiSequence);
         gameapi::AIL_release_sequence_handle(midiSequence);

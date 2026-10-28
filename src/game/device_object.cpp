@@ -112,9 +112,9 @@ void CTextureDevice::BuildFormatTable() {
     if (lastLoadResult_ == D3DERR_TEXTURE_NO_SUPPORT) ThrowGameErrorResult(lastLoadResult_, "Choosen HW device have no texture support.\n");
     if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "Can't enumerate texture formats.\n");   // "Can't enumerate texture formats.\n"
 
-    formats_.Clear();
+    formats_.clear();
     largestFormatId_ = 0;
-    formats_.Resize(0x40);
+    formats_.reserve(0x40);
     largestFormatId_ = 0;
     for (PixelFormat& entry : textureFormats_) {
         PixelFormat* format = &entry;
@@ -177,7 +177,6 @@ CTextureDevice::~CTextureDevice() {
     if (d3d_) device::Direct3D(this)->Release();
 
     if (material_) material_->Release();
-    formats_.Destroy();
     devices_.clear();
     if (pipeline_) pipeline_->Release();
     if (depth2_) depth2_->Release();
@@ -191,7 +190,6 @@ CTextureDevice::CTextureDevice(HWND window, GUID* driver, int fullScreen, int wi
                                int refreshRate, unsigned backBuffers, int /*depthBits*/, int /*stencilBits*/)
     : CDXDirectDraw(window, driver, fullScreen, width, height, bitsPerPixel, refreshRate, backBuffers, 1),
       depth_(nullptr), depth2_(nullptr), deviceGuid_{}, pipeline_(nullptr) {
-    formats_.InitBuckets(100);
     largestFormatId_ = 0;
     material_ = nullptr;
     d3dDevice_ = nullptr;

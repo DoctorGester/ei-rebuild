@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <unordered_map>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -51,7 +52,7 @@ public:
     int Create() override;
     // Empties the deque.
     void Destroy() override;
-    // The name's text (short_functions.cpp)
+    // The name's text
     const char* GetName() override;
     const char* GetClassName() override;   // 11: "CMaterial"
     int GetClassId() override;
@@ -70,7 +71,7 @@ public:
 // its Create, Rebirth-patched). A real virtual class: the compiler makes its vtable.
 class CMaterialManager : public CResourceManager {
 public:
-    using ColorTable = stlp::hash_map<unsigned, MaterialColors, stlp::IntHash>;
+    using ColorTable = std::unordered_map<unsigned, MaterialColors>;
 
     CMaterialManager();
     ~CMaterialManager() override;
@@ -95,7 +96,6 @@ public:
 
     ColorTable colors_;
 };
-static_assert(offsetof(CMaterialManager, colors_) == 0xBC && sizeof(CMaterialManager) == 0xD0);
 
 // A kind the manager's Create enters and its file (material.cpp's kMaterialKindFiles).
 struct MaterialKindFile {

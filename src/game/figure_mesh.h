@@ -91,10 +91,10 @@ public:
     // Sets the rotation, rotates the position by it (plus `offset`, copied to a member) and
     // rebuilds the rotation matrix from the stored quaternion.
     void UpdateWorld(const Quaternion& rotation, const Vector3& offset) override;
-    // Writes the mesh to an MFC CFile: the name (length then characters), each buffer
+    // Writes the mesh to a file: the name (length then characters), each buffer
     // (buffers_) as a count and its elements, a 0, then centre, box, radius and two trailing dwords.
     // CPlainFigureMesh::LoadTransform reads it back.
-    void SaveTransform(mfc::CFileVirtuals* file) override;
+    void SaveTransform(lib::File* file) override;
     // Copies another mesh's transform, name, the shared buffer descriptors (texture coordinates, corners,
     // words, indices), spareDC_ and the bounds.
     virtual void CopyFigure(const CFigureMesh* other);
@@ -224,7 +224,7 @@ public:
 
     // Clear: the mesh's own arrays emptied, then CFigureMesh's Clear.
     void Destroy() override;
-    void LoadTransform(mfc::CFileVirtuals* file) override;
+    void LoadTransform(lib::File* file) override;
     // Loads a "FIG" mesh from memory at *cursor (advanced past it), morphing FIG8 vertices; once only (flag
     // 0x20).
     void LoadFig(char** cursor, float s, float t, float u) override;

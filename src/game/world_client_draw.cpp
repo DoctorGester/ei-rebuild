@@ -332,8 +332,8 @@ int CWorldClient::Render() {
 }
 
 int CWorldClient::DrawLineLists() {
-    for (auto* node = lineLists_.First(); node; node = lineLists_.After(node))
-        node->value->Draw(ScenePipeline(), TheRenderDevice());
+    for (auto node = lineLists_.begin(); node != lineLists_.end(); ++node)
+        node->second->Draw(ScenePipeline(), TheRenderDevice());
     return 1;
 }
 

@@ -6,111 +6,93 @@
 #include "game_data.h"
 #include "game_strings.h"
 #include "../lib/mfc.h"
-#include "../lib/mfc_file.h"
-#include "../lib/crt_iostream.h"
 #include "../lib/stlp.h"
-#include "../lib/stlp_tree_mbs.h"
+#include "../lib/str.h"
 #include "../lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 
-namespace libcrt { class Streambuf; }
+#include <windows.h>
+
 namespace mfc::impl { class CFont; }
 class CInterface3D;
 class CUiContainer;
 class CUiSurface;
 namespace acks { struct Speeches; struct EnvironmentSpeeches; }
+namespace lib { class TextFile; }
 
 namespace console {
 
-// MFC CStdioFile as a local: opened and closed like the C++ class.
-class CStdioFile {
-public:
-    enum { modeRead = 0, modeWrite = 1, modeCreate = 0x1000, typeText = 0x4000 };
-    CStdioFile();
-    CStdioFile(const char* name, unsigned flags);
-    ~CStdioFile();
-    CStdioFile(const CStdioFile&) = delete;
-    CStdioFile& operator=(const CStdioFile&) = delete;
-    mfc::BOOL Open(std::string_view name, unsigned flags, mfc::impl::CFileException* error);
-    // The next line into `line`; false at the end of the file.
-    mfc::BOOL ReadString(std::string& line);
-    // A line with its line end into `buffer` (at most size - 1 characters); null at the end
-    // of the file. A read error throws a CFileException*.
-    char* ReadString(char* buffer, unsigned size);
-    void WriteString(const char* text);
-    void Close();
-
-private:
-    mfc::impl::CStdioFile file_;
-};
-
-// The game's (pre-standard) ostream. Only the inline float output touches a member: x_floatused.
-class GameOStream : public libcrt::Ostream {
-public:
-    GameOStream& operator<<(const char* text);
-    GameOStream& operator<<(char c);
-    GameOStream& operator<<(int n);
-    GameOStream& operator<<(double d);
-    GameOStream& Apply(libcrt::Manipulator manipulator);
-    GameOStream& Flush() { return Apply(libcrt::FlushManipulator); }
-    // The header's inline operator<<(float): sets x_floatused, prints as double. The game passes
-    // the x87 value as is (never rounded to float).
-    GameOStream& PutFloat(double d) {
-        floatUsed = 1;
-        return *this << d;
-    }
-    GameOStream& PutFloatArgument(float f);
-};
-static_assert(sizeof(GameOStream) == 8);
-
-// One of the console's eight static ostreams: the ostream part and its ios (the virtual base) right after it.
-// Zero until its static initialiser constructs it on its streambuf; the initialiser's exit function destroys it.
-struct OStreamObject : GameOStream {
-    libcrt::Ios ios;
-};
-static_assert(sizeof(OStreamObject) == 0x58);
-
-// The ostreams, one per message filter (their streambufs below): the console itself, then all, unitacks (the AI
-// alarm's log), net (the network log), rpg (the hit log), graphics (the battle screen's "Terrain Coords" of a click
-// on the ground), event, ai (combat's and the AI's logs).
-extern OStreamObject g_consoleOut;
-extern OStreamObject g_allLogOut;
-extern OStreamObject g_unitAcksLogOut;
-extern OStreamObject g_netLogOut;
-extern OStreamObject g_rpgLogOut;
-extern OStreamObject g_graphicsLogOut;
-extern OStreamObject g_eventLogOut;
-extern OStreamObject g_aiLogOut;
-inline GameOStream& Out() { return g_consoleOut; }
-// A log stream seen through one of the game's per-file ostream views (inserters only, no data of their own).
-template <class View>
-View* StreamAs(libcrt::Ostream& stream) {
-    static_assert(sizeof(View) == sizeof(libcrt::Ostream));
-    return static_cast<View*>(&stream);
-}
-// `<< '\n' << flush`, how every console message ends.
-void EndLine(GameOStream& os);
-void PrintLine(const char* text);
 
 // The console's streambuf (eight static instances, one per message filter: 0 the console itself, then
 // ai 1, event 2, graphics 4, rpg 8, unitacks 0x10, net 0x20, all -1). Characters collect in the put
 // area (buffer_) and move into line_ on overflow; sync hands the line to the console window.
-class ConsoleStreambuf final : public libcrt::Streambuf {
+// MSVC 6's streambuf as the console's used it: the put area is set up by the first overflow while the
+// category is shown; a hidden category's overflow leaves it as it is (what it holds shows with the next
+// line once the category is shown again).
+class ConsoleStreambuf {
 public:
     explicit ConsoleStreambuf(unsigned filter);
-    ~ConsoleStreambuf() override;
-    int Sync() override;
-    int Overflow(int c) override;
-    int Underflow() override;            // EOF
+    ConsoleStreambuf(const ConsoleStreambuf&) = delete;
+    ConsoleStreambuf& operator=(const ConsoleStreambuf&) = delete;
+
+    void Put(char c);                    // into the put area, else overflow
+    void Write(std::string_view text);   // byte by byte, as Put
+    // Overflow(EOF), the line to the console window (an empty one too), then empty it.
+    void Sync();
+
+private:
+    // Moves the put area (and `c`, unless EOF) into the line when this streambuf's category is shown.
+    void Overflow(int c);
 
     unsigned filter_;          // message category; 0 = always shown
     std::string line_;
+    std::size_t putEnd_ = 0;   // the put area's size: 0 until the first overflow while shown
+    std::size_t putNext_ = 0;  // characters in the put area
     char buffer_[0x400];
 };
+
+// One of the console's eight output streams (MSVC 6's ostream as the game used it: no width, flags,
+// precision or tie ever set): text, characters and numbers into its streambuf; Flush is the streambuf's
+// sync. Zero until its static initialiser attaches it to its streambuf.
+class Stream {
+public:
+    constexpr Stream() = default;
+    void Attach(ConsoleStreambuf* buffer) { buffer_ = buffer; }
+
+    Stream& operator<<(const char* text);
+    Stream& operator<<(char c);
+    Stream& operator<<(int value);        // "%d"
+    Stream& operator<<(long value);       // "%ld"
+    Stream& operator<<(unsigned value);   // "%u"
+    // "%.6g" through the game's sprintf (VC6's formatting). A float is printed as the double it widens to.
+    Stream& operator<<(double value);
+    Stream& Flush();
+
+private:
+    ConsoleStreambuf* buffer_ = nullptr;
+};
+
+// The streams, one per message filter (their streambufs below): the console itself, then all, unitacks (the AI
+// alarm's log), net (the network log), rpg (the hit log), graphics (the battle screen's "Terrain Coords" of a click
+// on the ground), event, ai (combat's and the AI's logs).
+extern Stream g_consoleOut;
+extern Stream g_allLogOut;
+extern Stream g_unitAcksLogOut;
+extern Stream g_netLogOut;
+extern Stream g_rpgLogOut;
+extern Stream g_graphicsLogOut;
+extern Stream g_eventLogOut;
+extern Stream g_aiLogOut;
+inline Stream& Out() { return g_consoleOut; }
+// `<< '\n'` and a flush, how every console message ends.
+void EndLine(Stream& os);
+void PrintLine(const char* text);
 
 // The harness's view of the console (verify builds): sync's line, after overflow(EOF) and before the
 // console window gets it. In the original-game run the harness hooks the original's sync instead.
@@ -180,12 +162,11 @@ using Arguments = std::vector<std::string>;
 using CommandHandler = void(*)(Arguments* args);
 
 // Keys compared by _mbscmp.
-using CommandMap = stlp::map<std::string, CommandHandler, stlp::MbsLess>;
+using CommandMap = std::map<std::string, CommandHandler, str::MbsLess>;
 
 // The handler slot for `key`, inserted with a null handler if missing.
 CommandHandler& Command(CommandMap* map, const std::string& key);
 
-static_assert(sizeof(CommandMap) == 0xC);
 // The commands always available and those after the cheat word.
 extern lib::StaticObject<CommandMap> g_publicCommands;
 extern lib::StaticObject<CommandMap> g_cheatCommands;
@@ -245,8 +226,8 @@ void Fps(Arguments* args);
 void Rate(Arguments* args);
 void LocalRate(Arguments* args);
 // generateacks' lines for a speech list / an environment speech list (a null list writes nothing).
-void WriteSpeechLines(CStdioFile* file, const acks::Speeches* list);
-void WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeeches* list);
+void WriteSpeechLines(lib::TextFile* file, const acks::Speeches* list);
+void WriteEnvironmentSpeechLines(lib::TextFile* file, const acks::EnvironmentSpeeches* list);
 } // namespace commands
 
 } // namespace console

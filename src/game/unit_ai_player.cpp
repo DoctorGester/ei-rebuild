@@ -200,8 +200,8 @@ void PlayerMode::CollectParty(AIBrain* brain, AIObjectList* party) {
     bool added;
     do {
         added = false;
-        for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
-            CUnit* member = node->value;
+        for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
+            CUnit* member = node->second;
             CUnit* followed = LeaderOf(member);
             if (!party->Find(followed) || party->Find(member)) continue;
             party->AddTail(member);
@@ -215,8 +215,8 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     CUnit* unit = brain->owner->unit;
     CPlayer* player = unit->player;
     if (!player) return true;
-    for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
-        CUnit* member = node->value;
+    for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
+        CUnit* member = node->second;
         PlayerMode* mode = member->ServerController()->Brain()->FindPlayerMode();
         // A unit without a Player mode would have its leader read at address 0x0C (a crash).
         if (!mode || mode->leader != unit) continue;

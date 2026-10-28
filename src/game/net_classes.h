@@ -10,7 +10,6 @@
 #include "net_coder.h"
 #include "party_storage.h"
 #include "lib/crt.h"
-#include "lib/crt_iostream.h"
 #include "lib/stlp.h"
 #include "lib/stlp_list_refs.h"
 #include "lib/static_object.h"
@@ -20,9 +19,12 @@
 #include <cstdint>
 #include <cstring>
 #include <list>
+#include <unordered_map>
 #include <vector>
 
 struct QuestBriefingRecord;
+
+namespace console { class Stream; }
 
 namespace net {
 
@@ -97,16 +99,6 @@ public:
     std::int32_t state;
 };
 
-// The network log (g_netLog; null when logging is off).
-class LogStream : public libcrt::Ostream {
-public:
-    LogStream* Put(const char* text);
-    LogStream* PutChar(char c);
-    LogStream* PutInt(int value);
-    LogStream* Apply(libcrt::Manipulator manipulator);
-    LogStream* Flush() { return Apply(libcrt::FlushManipulator); }
-};
-
 // ---- The globals of the session code ------------------------------------------------------------
 
 // The send rates in bytes per second (the console's rate / localrate set them): to a remote address (2500;
@@ -120,7 +112,8 @@ class ClientSession;
 
 // The game's UDP port (8888; the harness writes a free port of its own, tests/verify/harness_net.h).
 inline int g_gamePort = /*00783E30*/ {8888};
-inline LogStream* g_netLog = /*0079B91C*/ {nullptr};
+// The network log (the net stream; null when logging is off).
+inline console::Stream* g_netLog = /*0079B91C*/ {nullptr};
 // The session being updated (set by Tick / Receive and by the connection code).
 inline SessionBase* g_currentSession = /*0079B920*/ {nullptr};
 // The connection being updated or read (null outside the session code).
@@ -256,10 +249,10 @@ static_assert(sizeof(HandlerVector) == 12);
 
 // The message type registry of a session.
 struct TypeRegistry {
-    using ByVtable = stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash>;
+    using ByVtable = std::unordered_map<std::uint32_t, std::uint32_t>;
 
-    ByVtable byVtable;     // message vtable -> type id (100 buckets)
-    stlp::hash_map<std::uint32_t, MessageFactory, stlp::IntHash> byType;         // type id -> factory (100 buckets)
+    ByVtable byVtable;     // message vtable -> type id
+    std::unordered_map<std::uint32_t, MessageFactory> byType;         // type id -> factory
 
     // The key of a message's class: its vtable (the object's first dword).
     static std::uint32_t KeyOf(const CRefObject* message) {
@@ -276,7 +269,6 @@ struct TypeRegistry {
     // gets an empty entry), or null.
     Message* Create(std::uint32_t type);
 };
-static_assert(sizeof(TypeRegistry) == 0x28);
 
 // The UDP socket of a session and the broadcast addresses of the host.
 struct SocketDriver {
@@ -419,10 +411,6 @@ static_assert(offsetof(SessionBase, frame_) == 0x18);
 static_assert(offsetof(SessionBase, time_) == 0x20);
 static_assert(offsetof(SessionBase, clients_) == 0x28);
 static_assert(offsetof(SessionBase, types_) == 0x2C);
-static_assert(offsetof(SessionBase, socket_) == 0x54);
-static_assert(offsetof(SessionBase, reliable_) == 0x64);
-static_assert(offsetof(SessionBase, handlers_) == 0x164);
-static_assert(sizeof(SessionBase) == 0x2568);
 
 constexpr std::uint32_t kSessionMagic = 0xDEC0AD07;
 
@@ -459,7 +447,6 @@ public:
     std::list<PendingJoin> joins_;
     std::uint32_t unused_256C;         // not set
 };
-static_assert(offsetof(ServerBase, joins_) == 0x2568);
 
 // The game server (g_gameServer). Its lists are STLport lists of counted pointers.
 class ServerSession final : public ServerBase {
@@ -611,11 +598,6 @@ public:
     std::uint32_t nextQuery_;           // the query the refresh pings next
     std::uint32_t unused_25D4;         // not set
 };
-static_assert(offsetof(ClientBase, host_) == 0x2568);
-static_assert(offsetof(ClientBase, joinData_) == 0x2578);
-static_assert(offsetof(ClientBase, joinState_) == 0x2598);
-static_assert(offsetof(ClientBase, servers_) == 0x25A8);
-static_assert(offsetof(ClientBase, queries_) == 0x25AC);
 
 // An embedded CParty. The client keeps two, a trade record three.
 using ::PartyStorage;

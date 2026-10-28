@@ -12,7 +12,7 @@
 #include "party_manager.h"
 #include "lib/crt.h"
 
-#include "lib/stlp_hash.h"
+#include "lib/stlp.h"
 
 #include <cstring>
 #include "spell.h"
@@ -49,12 +49,12 @@ void ClassTemplateFill(ClassTemplate* t) {
     }
     items->ListQuickItemNames(&names);
     for (const std::string& key : names) {
-        itemdb::QuickItemRecord* record = stlp::NamedSlot<itemdb::QuickItemRecord>(db.quickItems.names, key);
+        itemdb::QuickItemRecord* record = db.quickItems.names[key];
         if (record && Allowed(t, record->classMask)) AllList(t)->AddQuickItem(record);
     }
     items->ListMaterialNames(&names);
     for (const std::string& key : names) {
-        itemdb::MaterialRecordHead* record = stlp::NamedSlot<itemdb::MaterialRecordHead>(db.materials.names, key);
+        itemdb::MaterialRecordHead* record = db.materials.names[key];
         if (record && Allowed(t, record->classMask)) t->allowed.AddMaterial(record, 0x14, 0x32);
     }
 
@@ -63,7 +63,7 @@ void ClassTemplateFill(ClassTemplate* t) {
     for (const std::string& name : names) {
         const char* code = SpellCodeByName(name.c_str());
         std::string key(code);
-        itemdb::SpellRecord* record = stlp::NamedSlot<itemdb::SpellRecord>(stock::SpellsByName(), key);
+        itemdb::SpellRecord* record = stock::SpellsByName()[key];
         if (record && Allowed(t, record->classMask)) {
             MagicList(t)->AddSpell(record);
             AllList(t)->AddSpell(record);
@@ -73,7 +73,7 @@ void ClassTemplateFill(ClassTemplate* t) {
     for (const std::string& name : names) {
         const char* code = SpellModifierCodeByName(name.c_str());
         std::string key(code);
-        auto* record = stlp::NamedSlot<itemdb::SpellModifierRecord>(stock::ModifiersByName(), key);
+        auto* record = stock::ModifiersByName()[key];
         if (record && Allowed(t, record->classMask)) {
             MagicList(t)->AddModifier(record);
             AllList(t)->AddModifier(record);

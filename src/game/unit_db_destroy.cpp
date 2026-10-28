@@ -4,9 +4,9 @@
 #include "unit_db.h"
 
 #include "lib/crt.h"
-#include "lib/stlp_hash.h"
 
 #include <cstddef>
+#include <cstdlib>
 #include <memory>
 
 namespace unitdb {
@@ -17,21 +17,18 @@ void DestroySkillDatabase(SkillDatabase* self);
 
 namespace {
 
-constexpr std::size_t kNameBuckets = 100;   // the bucket count each name map asks for
-
-// A table: the name map cleared (each node's string freed, then the node) and its buckets freed, then the
-// records.
+// A table: the name map, then the records.
 template <typename Table>
 void DestroyTable(Table& table) {
-    table.byName.Destroy();
+    std::destroy_at(&table.byName);
     std::destroy_at(&table.records);
 }
 
-// A table as the database constructor builds it: no records, a name map with 100 buckets asked for.
+// A table as the database constructor builds it: no records, an empty name map.
 template <typename Table>
 void ConstructTable(Table& table) {
     std::construct_at(&table.records);
-    table.byName.Construct(kNameBuckets);
+    std::construct_at(&table.byName);
 }
 
 } // namespace
@@ -51,8 +48,7 @@ void DestroySkillDatabase(SkillDatabase* self) {
 }
 
 // The database constructor (the dynamic initialiser and the reload). The four tables in order: each record
-// vector empty, each name map with 100 buckets asked for (hashtable(n, hash, equal, allocator); the functor
-// bytes, never read, are 0 here). Returns the database.
+// vector and name map empty. Returns the database.
 UnitDatabase* ConstructUnitDatabase(UnitDatabase* self) {
     ConstructTable(self->prototypes);
     ConstructTable(self->npcs);
@@ -81,11 +77,11 @@ void DestroySkillDatabaseGlobal() {
 
 void ConstructUnitDatabaseGlobal() {
     ConstructUnitDatabase(&g_unitDatabase.Get());
-    libcrt::AtExit(DestroyUnitDatabaseGlobal);
+    std::atexit(DestroyUnitDatabaseGlobal);
 }
 void ConstructSkillDatabaseGlobal() {
     g_skillDatabase->Construct();
-    libcrt::AtExit(DestroySkillDatabaseGlobal);
+    std::atexit(DestroySkillDatabaseGlobal);
 }
 
 } // namespace unitdb

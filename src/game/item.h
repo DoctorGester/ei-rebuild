@@ -438,7 +438,6 @@ struct CItemManager : CResourceManager {
     void ListArmorNames(std::vector<std::string>* names);
     void ListQuickItemNames(std::vector<std::string>* names);
 };
-static_assert(sizeof(CItemManager) == CItemManager::kSize);
 
 // --- Weapon model parts------------------------------------------------------
 

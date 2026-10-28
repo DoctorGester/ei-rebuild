@@ -12,11 +12,9 @@
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
-#include "../lib/stlp_pair.h"
+#include "../lib/text_case.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/stlp_hash.h"
-#include "lib/stlp_pair.h"
 #include "lib/containers.h"
 #include "lib/static_object.h"
 #include "lib/nan_audit.h"
@@ -43,13 +41,6 @@ using stock::TakenPrototypes;
 // The template's party object (ItemStock::context): its item constructor, item manager and spell manager.
 CParty* PartyOf(const ItemStock* stock) { return stock->context; }
 CItemConstructor* ConstructorOf(const ItemStock* stock) { return PartyOf(stock)->ItemConstructor(); }
-
-int Compare(std::string_view a, std::string_view b) {
-    return gamecrt::mbscmp(a, b);
-}
-int CompareNoCase(std::string_view a, std::string_view b) {
-    return gamecrt::mbsicmp(a, b);
-}
 
 // The count drawn from the CRT generator: max when min >= max, else min + a value below the range
 // size (rand scaled by size / 0x7FFF, then modulo the size).
@@ -153,21 +144,21 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
     CandidateVector& candidates = Candidates();
     for (itemdb::ItemRecordHead** p = taken.data(); p != taken.data() + taken.size(); ++p) {
         itemdb::ItemRecordHead* prototype = *p;
-        if (Compare(PrototypeName(prototype), game::WandText()) == 0) continue;
+        if (str::Compare(PrototypeName(prototype), game::WandText()) == 0) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(prototype->Kind(), -1);
         ctor->SetPrototype(prototype);
         candidates.clear();   // erase(begin, end)
-        if (CompareNoCase(MaterialClass(prototype), game::NoneText()) != 0) {
+        if (text::CompareIgnoringCase(MaterialClass(prototype), game::NoneText()) != 0) {
             for (StockMaterial* e = materials.data(); e != materials.data() + materials.size(); ++e) {
-                if (Compare(MaterialClass(prototype), e->record->soundName) != 0) continue;
+                if (str::Compare(MaterialClass(prototype), e->record->soundName) != 0) continue;
                 if (MaterialUnits(prototype) > e->left) continue;
                 candidates.push_back(e);
             }
         }
         StockMaterial* chosen = DrawMaterial(prototype);
         if (!chosen) {
-            if (CompareNoCase(MaterialClass(prototype), game::NoneText()) != 0) {
+            if (text::CompareIgnoringCase(MaterialClass(prototype), game::NoneText()) != 0) {
                 if (candidates.end() == candidates.begin()) {
                     ctor->Cancel();
                     ctor->SetManager(nullptr);
@@ -249,7 +240,7 @@ void GenerateInstructions(ItemStock* stock, const StockPrototypeVector& source, 
     if (&source != &taken) taken = source;
     itemdb::LootItemRecord* prototype = itemdb::TheItemDatabase().loot.Named(prototypeName);
     for (itemdb::ItemRecordHead** p = taken.data(); p != taken.data() + taken.size(); ++p) {
-        if (skip && Compare(PrototypeName(*p), skip) == 0) continue;
+        if (skip && str::Compare(PrototypeName(*p), skip) == 0) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);
         ctor->SetPrototype(prototype);
@@ -290,7 +281,7 @@ itemdb::SpellRecord* FindSpellPrototype(const char* name) {
 
 // Created null when missing.
 itemdb::SpellModifierRecord*& ModifierSlot(ItemStock* stock, const std::string& name) {
-    return stlp::NamedSlot<itemdb::SpellModifierRecord>(stock->modifierMap, name);
+    return stock->modifierMap[name];
 }
 
 using Modifier = itemdb::SpellModifierRecord;
@@ -307,12 +298,12 @@ void ClearModifierList(SpellModifierList& list) { list.clear(); }
 
 // Kept bug: the lookup inserts a null entry into the spell map for every recipe name it does not know.
 void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
-    spellMap.Clear();
-    modifierMap.Clear();
+    spellMap.clear();
+    modifierMap.clear();
     for (const SpellRecipe& listed : *recipes) {
         const SpellRecipe* recipe = &listed;
         if (!(recipe->classMask & (1u << (classIndex & 31)))) continue;
-        itemdb::SpellRecord* spell = stlp::NamedSlot<itemdb::SpellRecord>(stock::SpellsByName(), recipe->spell);   // keyed by the recipe's spell name
+        itemdb::SpellRecord* spell = stock::SpellsByName()[recipe->spell];   // keyed by the recipe's spell name
         if (!spell) continue;
         bool offered = false;
         for (itemdb::SpellRecord** s = spells.data(); s != spells.data() + spells.size(); ++s) {
@@ -322,11 +313,7 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
             }
         }
         if (!offered) continue;
-        StockRecipeList list;
-        lib::InPlace<StockRecipeMap::Value> pair;
-        pair->Construct(recipe->spell, list);
-        StockRecipeList* entries = &spellMap.FindOrInsert(pair.object).mapped;
-        pair->Destruct();
+        StockRecipeList* entries = &spellMap[recipe->spell];
         entries->insert(entries->end(), const_cast<SpellRecipe*>(recipe));   // the recipe lists hold raw record pointers
     }
 
@@ -356,8 +343,8 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
 void ItemStock::GenerateSpells(StockSpellList* out, const float* levels, unsigned threshold) {
     CSpellManager* spellManager = PartyOf(this)->SpellManager();
     SpellModifierList chosen;
-    for (StockRecipeMap::Node* recipes = spellMap.First(); recipes; recipes = spellMap.Next(recipes)) {
-        for (void* entry : recipes->value.mapped) {
+    for (auto& [spellName, recipes] : spellMap) {
+        for (void* entry : recipes) {
             if (IsaacRandom::Global().Next() % 101 < threshold) continue;
             ClearModifierList(chosen);
             int count = 0;
@@ -438,7 +425,7 @@ void LoadRecords(CStream* stream, std::string& name, unsigned& count, itemdb::Na
     }
 }
 
-// A map section: a count, then names (as read) looked up in an STLport map by string.
+// A map section: a count, then names (as read) looked up by name.
 template <typename Record, typename Map>
 void LoadMapped(CStream* stream, std::string& name, unsigned& count, Map& map, std::vector<Record*>& list) {
     ReadInt(stream, &count);
@@ -447,7 +434,7 @@ void LoadMapped(CStream* stream, std::string& name, unsigned& count, Map& map, s
         Record* record;
         {
             std::string key(name.c_str());
-            record = stlp::NamedSlot<Record>(map, key);
+            record = map[key];
         }
         if (record) AddUnique(list, record);
     }

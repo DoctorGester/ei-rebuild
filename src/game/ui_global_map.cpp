@@ -84,12 +84,9 @@ int SurfaceText(CUiSurface* surface, std::string_view text, RECT* rect, int font
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
-// The local player's variables, copied by name prefix into a local hash_map<CString, float> (100
-// buckets), freed afterwards.
+// The local player's variables, copied by name prefix into a local table, freed afterwards.
 class VariableTable {
 public:
-    VariableTable() { table_.ConstructDefault(); }
-    ~VariableTable() { table_.Destroy(); }
     NamedFloatTable* Table() { return &table_; }
 
 private:
@@ -276,11 +273,11 @@ void CGlobalMap::CreateScreen() {
         variable = str::Format("q.%s", zones_.data[i].name.c_str());
         GameLocalPlayerVariables(variable.c_str(), vars.Table());
         const NamedFloatTable& table = *vars.Table();
-        for (const NamedFloatTable::Node* node = table.First(); node; node = table.Next(node)) {
+        for (auto node = table.begin(); node != table.end(); ++node) {
             std::uint32_t value;
-            std::memcpy(&value, &node->value.mapped, 4);
+            std::memcpy(&value, &node->second, 4);
             if (value == 0x3F800000) {
-                text::Split(node->value.key.c_str(), &parts, '.');
+                text::Split(node->first.c_str(), &parts, '.');
                 if (parts.size() == 3) {
                     int n = questCount_;
                     SetPlaceCount(quests_, quests_.size + 1);
@@ -440,18 +437,18 @@ void CGlobalMap::CreateScreen() {
     fog_[0] = 0.0f;
     fog_[1] = 1.0f;
     fog_[2] = 0.0f;
-    if (gamecrt::mbscmp(allod->name,
+    if (str::Compare(allod->name,
                         "ingos") == 0) {
         fog_[0] = Bits(0x3EBE0000);
         fog_[1] = Bits(0x3F020000);
         fog_[2] = Bits(0x3F200000);
-    } else if (gamecrt::mbscmp(allod->name,
+    } else if (str::Compare(allod->name,
                                "suslanger") == 0) {
         fog_[0] = Bits(0x3EC80000);
         fog_[1] = Bits(0x3E480000);
         fog_[2] = Bits(0x3DB00000);
     }
-    if (gamecrt::mbscmp(allod->name,
+    if (str::Compare(allod->name,
                         "gipat") == 0)
         gipat_ = true;
 
@@ -612,12 +609,6 @@ CGlobalMap::CGlobalMap(CInterface3D* ui) : CUiContainer(ui) {
     EmptyArray(&zones_, GlobalMapZoneArrayClass::Vtable());
     EmptyArray(&links_, GlobalMapPointArrayClass::Vtable());
     EmptyArray(&quests_, GlobalMapPathArrayClass::Vtable());
-    // The tree (the header from the pool; empties it) keeps the first byte of
-    // the compare object, the argument slot holding `ui`.
-    arrivals_.Header() = static_cast<stlp::map<int, float>::Node*>(stlp::allocate(sizeof(stlp::map<int, float>::Node)));
-    arrivals_.Count() = 0;
-    arrivals_.Compare() = static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(ui));
-    arrivals_.EmptyInitialize();
     turn_.w = 1.0f;   // the identity turn
     turn_.x = 0.0f;
     turn_.y = 0.0f;
@@ -639,7 +630,6 @@ void DestroyArray(Array* array, void* vtable) {
 } // namespace
 
 CGlobalMap::~CGlobalMap() {
-    arrivals_.Destroy();
     DestroyArray(&quests_, GlobalMapPathArrayClass::Vtable());
     DestroyArray(&links_, GlobalMapPointArrayClass::Vtable());
     DestroyArray(&zones_, GlobalMapZoneArrayClass::Vtable());

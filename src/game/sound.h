@@ -8,7 +8,7 @@
 #include "../lib/containers.h"
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
-#include "../lib/stlp_hash.h"
+#include "../lib/hash_map.h"
 #include "../lib/vecmath.h"
 #include "registry.h"
 #include "resource_stream.h"
@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include <windows.h>
 
@@ -123,9 +124,8 @@ struct SoundSequence {
     int PlayNext(struct CSoundManager* manager);
 };
 
-using DeferredMap = stlp::hash_map<std::int32_t, DeferredSound*, stlp::IntHash>;
-using DeferredNode = DeferredMap::Node;
-static_assert(sizeof(DeferredMap) == 0x14);
+// Walked in STLport's order (the first of the highest priority plays).
+using DeferredMap = lib::HashMap<std::int32_t, DeferredSound*>;
 
 // The wave cache: a list of loaded waves, most recently used first, and a hash_map from the wave name to its
 // list node. A copy of a record copies its name (RemoveHead returns one by value).
@@ -141,7 +141,7 @@ struct WaveRecord {
 // Its NewNode / FreeNode copy and destroy the record themselves.
 using WaveList = mfc::CList<WaveRecord, mfc::RawElements<WaveRecord>>;
 using WaveNode = WaveList::Node;
-using WaveCache = stlp::hash_map<std::string, WaveNode*, stlp::StringHash>;
+using WaveCache = std::unordered_map<std::string, WaveNode*>;
 // Miles' ASISTAGE (mss.h): the ASI codec's stream functions and the handles of the attributes it reports.
 struct AsiStage {
     void*(__stdcall* open)(void* user, void* read, int size);       // ASI_stream_open

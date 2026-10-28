@@ -22,9 +22,9 @@
 #include "world.h"
 
 #include "lib/crt.h"
+#include "lib/text_case.h"
 #include "text_split.h"
 #include "lib/stlp.h"
-#include "lib/stlp_hash.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -84,10 +84,6 @@ constexpr int kViewLeader = 2;
 constexpr int kViewPerson = 3;
 constexpr int kViewThird = 4;
 
-int Compare(std::string_view a, std::string_view b) {
-    return gamecrt::mbsicmp(a, b);
-}
-
 CUnitClientSpecific* Model(CUnit* unit) { return unit->ClientController(); }
 
 // The speaker's eyes: blinking (`blinks`), or open.
@@ -118,24 +114,24 @@ void CBriefingScreen::NextPhrase(bool skip) {
     // The lines up to the next phrase (the cursor stands after the previous one).
     while (texts->FindLine(nullptr)) {
         texts->Split(&words, 1);
-        if (Compare(words[0], NoLipsCommand()) == 0) {
+        if (text::CompareIgnoringCase(words[0], NoLipsCommand()) == 0) {
             lips = false;
             continue;
         }
         int count = words.size();
         if (count < 2) continue;
-        if (Compare(words[0], ShowCommand()) == 0) {
-            if (count > 3 && Compare(words[3], WeaponWord()) == 0)
+        if (text::CompareIgnoringCase(words[0], ShowCommand()) == 0) {
+            if (count > 3 && text::CompareIgnoringCase(words[3], WeaponWord()) == 0)
                 ShowItem(words[1].c_str(), std::atoi(words[2].c_str()) - 1, 0);
             if (count > 2)
                 ShowItem(words[1].c_str(), std::atoi(words[2].c_str()) - 1, 1);
             else
                 ShowItem(words[1].c_str(), -1, 1);
-        } else if (Compare(words[0], HideCommand()) == 0) {
+        } else if (text::CompareIgnoringCase(words[0], HideCommand()) == 0) {
             HideSpeaker(words[1].c_str(), skip, count > 2 ? 1 : 0);
-        } else if (Compare(words[0], AnimationCommand()) == 0) {
+        } else if (text::CompareIgnoringCase(words[0], AnimationCommand()) == 0) {
             animation = std::atoi(words[1].c_str());
-        } else if (Compare(words[0], CameraCommand()) == 0) {
+        } else if (text::CompareIgnoringCase(words[0], CameraCommand()) == 0) {
             if (count >= 5) {
                 angle = static_cast<float>(kRadiansPerDegree * std::atof(words[2].c_str()));
                 distance = static_cast<float>(std::atof(words[3].c_str()));
@@ -143,7 +139,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 view = true;
             }
             preset = std::atoi(words[1].c_str());
-        } else if (Compare(words[0], PhraseCommand()) == 0) {
+        } else if (text::CompareIgnoringCase(words[0], PhraseCommand()) == 0) {
             spoke = true;
             break;
         }
@@ -158,7 +154,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         } else {
             speaker = unit->GetName();
             if (speaker.size() == 0) {
-                const PersonTextNode* node = personTexts_.find(unit->id_);
+                auto node = personTexts_.find(unit->id_);
                 speaker = node == personTexts_.end() ? words[1] : node->second;
             }
         }
@@ -193,7 +189,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         QuestBriefingRecord* record;
         {
             std::string key(topic_.c_str());
-            record = stlp::NamedSlot<QuestBriefingRecord>(BriefingRecords(), key);
+            record = BriefingRecords()[key];
         }
         if (record) {
             std::vector<std::string> parts;
@@ -239,7 +235,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             addItems(record->lists[QuestBriefingRecord::kGiveItems]);
             texts->GetString(LostItemLabel(), &label);
             // A network client lists the quest items it holds after a zone topic ("z...").
-            if (IsMultiplayerClient() && !topic_.empty() && Compare(str::Left(topic_, 1), ZonePrefix()) == 0) {
+            if (IsMultiplayerClient() && !topic_.empty() && text::CompareIgnoringCase(str::Left(topic_, 1), ZonePrefix()) == 0) {
                 if (auto* player = TheServerWorld()->GetPlayer(0)) {
                     for (auto* node = player->items_.head; node; node = node->next) {
                         CItem* item = node->data;
@@ -271,7 +267,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         if (leader_) GameSetUnitHeight(leader_->id_, 0.0f);
         if (person_) GameSetUnitHeight(person_->id_, 0.0f);
         for (std::size_t i = 0; i < speakers_.size(); ++i) {
-            if (Compare(speakers_[i].name, named()) != 0) continue;
+            if (text::CompareIgnoringCase(speakers_[i].name, named()) != 0) continue;
             if (view) {
                 CUnit* target;
                 switch (preset) {
@@ -305,7 +301,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     if (!skip && spoke) {
         for (std::size_t i = 0; i < speakers_.size(); ++i) {
             CUnit* unit = speakers_[i].unit;
-            if (Compare(speakers_[i].name, named()) != 0) {
+            if (text::CompareIgnoringCase(speakers_[i].name, named()) != 0) {
                 PlaySpeakerAnimation(unit, 0, 0);
                 SetBlink(unit, 0);
                 continue;

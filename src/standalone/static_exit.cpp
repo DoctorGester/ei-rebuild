@@ -4,8 +4,8 @@
 // initialisers' ("atexit by" the initialiser; docs/notes/standalone.md, S3a; by hand next to
 // their objects) and the function-local statics' ("atexit at" the call; S16a): 12 nothing, 6 guarded destructor, 6 destructor.
 // Each is decoded from its instructions as a whole-function pattern and written over static_init.h's operations,
-// calling the destructors by name; static_init.cpp registers them by name. Those that do nothing are
-// ei::short_functions::Ret.
+// calling the destructors by name; static_init.cpp registers them by name. Those that do nothing are not
+// registered.
 // tools/gen_static_init.py writes this file from game.exe's exit functions.
 #include "static_init.h"
 
@@ -14,10 +14,6 @@
 #include "lib/mfc_state.h"
 #include "lib/mfc_static_objects.h"
 #include "lib/mfc_window.h"
-
-namespace ei::short_functions {
-void Ret();   // src/game/short_functions.cpp
-} // namespace ei::short_functions
 
 namespace ei::static_init {
 

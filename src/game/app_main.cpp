@@ -30,6 +30,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/file_io.h"
+#include "lib/text_case.h"
 #include "text_split.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -89,23 +90,23 @@ void DestroyMovieFolder() { g_movieFolder.Destroy(); }
 // The initialisers: each string empty (".\capture\" for the movie folder), its exit function registered.
 void ConstructCameraFile() {
     g_cameraFile.Construct();
-    libcrt::AtExit(DestroyCameraFile);
+    std::atexit(DestroyCameraFile);
 }
 void ConstructCommandLineScript() {
     g_commandLineScript.Construct();
-    libcrt::AtExit(DestroyCommandLineScript);
+    std::atexit(DestroyCommandLineScript);
 }
 void ConstructCommandLineMob() {
     g_commandLineMob.Construct();
-    libcrt::AtExit(DestroyCommandLineMob);
+    std::atexit(DestroyCommandLineMob);
 }
 void ConstructCommandLineMap() {
     g_commandLineMap.Construct();
-    libcrt::AtExit(DestroyCommandLineMap);
+    std::atexit(DestroyCommandLineMap);
 }
 void ConstructMovieFolder() {
     g_movieFolder.Construct(".\\capture\\");
-    libcrt::AtExit(DestroyMovieFolder);
+    std::atexit(DestroyMovieFolder);
 }
 
 // The mouse's reference dropped (ShutDown has already taken it: null at exit).
@@ -179,7 +180,6 @@ PrintsDatabase* PrintsDatabaseObject() { return &g_printsDatabase.Get(); }
 UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
 SkillDatabase* SkillDatabaseObject() { return SkillDb(); }
 
-console::GameOStream& SpeedLog() { return console::g_netLogOut; }
 
 // ---- Start-up --------------------------------------------------------------------------------------
 
@@ -240,7 +240,7 @@ void ReadCommandLine(const char* commandLine) {
             continue;
         }
         if (!(client->flags_ & 0x10)) {
-            if (gamecrt::mbsicmp(arguments[i].c_str(),
+            if (text::CompareIgnoringCase(arguments[i].c_str(),
                                 "-nocam") == 0) {
                 client->flags_ &= ~8u;
                 continue;
@@ -300,7 +300,7 @@ void RegisterWindowClass(HINSTANCE instance) {
         gameapi::BringWindowToTop(popup);
         gameapi::SetForegroundWindow(popup);
     }
-    libcrt::Exit(-1);
+    std::exit(-1);
 }
 
 struct PathParts {
@@ -347,12 +347,12 @@ bool CheckDrives(const std::vector<std::string>& messages) {
     if (FreeDiskSpace(dataFolder.c_str(), &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
     }
-    if (gamecrt::mbscmp(dataFolder, discFolder) != 0) {
+    if (str::Compare(dataFolder, discFolder) != 0) {
         char volume[0x400] = {};
         PathParts parts;
         DriveRoot(discFolder.c_str(), parts);
         gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
-        while (gamecrt::mbscmp(options::TheOptions()->cdLabels_[1], volume) != 0) {
+        while (str::Compare(options::TheOptions()->cdLabels_[1], volume) != 0) {
             if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
             gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         }
@@ -585,11 +585,7 @@ float SpeedForBalance(double balance, float rounded) {
 }
 
 void PrintClientSpeed(float speed, float balance) {
-    console::GameOStream& log = SpeedLog();
-    log << "Client speed = ";
-    log.PutFloat(speed) << " balance = ";
-    log.PutFloat(balance) << '\n';
-    log.Flush();
+    console::EndLine(console::g_netLogOut << "Client speed = " << speed << " balance = " << balance);
 }
 
 // One pass of the loop while no message waits. Returns whether the interface takes the input
@@ -682,7 +678,7 @@ int RunMainLoop(bool interfaceInput) {
 
 // ---- Shutdown --------------------------------------------------------------------------------------
 
-void ShutDown(gamecrt::NewHandler previousHandler) {
+void ShutDown() {
     DeleteComposedTextures();
     TheInterface()->Shutdown();
     TheCursor()->Shutdown();
@@ -695,7 +691,6 @@ void ShutDown(gamecrt::NewHandler previousHandler) {
     TheClientWorld()->SetCamera(nullptr);
     TheServerWorld()->Destroy();
     TheClientWorld()->Destroy();
-    libcrt::SetNewHandler(previousHandler);
 }
 
 } // namespace
@@ -724,8 +719,6 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
         g_logicSettings.Load(settings.c_str());
     }
     options->LoadFromRegistry(RegistryRoot().c_str());
-    const gamecrt::NewHandler previousHandler =
-        libcrt::SetNewHandler(app::OutOfMemory);
     TheClientWorld()->Create();
     TheServerWorld()->Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).
@@ -770,7 +763,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     TheSceneRenderer()->SetGamma(options->brightness_, options->contrast_, options->gamma_);
 
     const int result = RunMainLoop((reusedSlot >> 24) != 0);
-    ShutDown(previousHandler);
+    ShutDown();
     return result;
 }
 

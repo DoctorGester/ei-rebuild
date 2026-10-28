@@ -19,6 +19,7 @@
 #include "lib/mfc.h"
 #include "lib/mfc_coll.h"
 #include "lib/stlp.h"
+#include "lib/hash_map.h"
 #include "game_data.h"
 
 #include <cstddef>
@@ -280,7 +281,7 @@ void ParticleManagerClearQuietStart(CParticleManager* manager);
 // (`held_`, by id) until the source's tick ends it (TickSources) or nobody else holds it (ReleaseUnheld).
 class CParticleManager : public CBaseManager {
 public:
-    using HeldMap = stlp::hash_map<int, CParticleSource*, stlp::IntHash>;
+    using HeldMap = lib::HashMap<int, CParticleSource*>;
 
     CParticleManager();
     ~CParticleManager() override;
@@ -309,10 +310,6 @@ public:
     int maxHeldId_;                                 // highest key of held_
     int quietStart;                                 // see CreateSource; never set non-zero in src
 };
-static_assert(offsetof(CParticleManager, freeParticles) == 0xB0);
-static_assert(offsetof(CParticleManager, held_) == 0xCC);
-static_assert(offsetof(CParticleManager, maxHeldId_) == 0xE0);
-static_assert(sizeof(CParticleManager) == 0xE8);
 
 // One entry of the draw order: the source's depth along the camera's view axis.
 struct ParticleDepth {
@@ -686,7 +683,7 @@ static_assert(sizeof(FogGrid) == 0x18);
 
 class CVisibilityFog final : public CEngineObject {
 public:
-    using CellMap = stlp::hash_map<std::uint32_t, FogCell, stlp::IntHash>;
+    using CellMap = lib::HashMap<std::uint32_t, FogCell>;
 
     CVisibilityFog();
     ~CVisibilityFog() override;

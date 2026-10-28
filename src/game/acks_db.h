@@ -9,7 +9,9 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
+#include "lib/hash_map.h"
 #include "lib/stlp.h"
 #include "lib/static_object.h"
 #include "unit_client_models.h"
@@ -38,21 +40,11 @@ struct EnvironmentSpeeches : std::vector<EnvironmentSpeech> {
 };
 static_assert(sizeof(EnvironmentSpeeches) == 0xC);
 
-// The part every record type starts with. By default an empty name and an empty map of 193 buckets (its functor
-// bytes are an uninitialised stack byte in the game, 0 here). A copy's map still points into the source record's
-// lists (STLport's copy constructor and operator=, over _M_copy_from), as in the game.
+// The part every record type starts with. By default an empty name and an empty map. A copy's map still points
+// into the source record's lists, as in the game.
 struct AckRecordHead {
-    AckRecordHead() { speeches.Construct(100, 0, 0, 0); }
-    AckRecordHead(const AckRecordHead& from) : name(from.name) { speeches.CopyConstruct(from.speeches); }
-    AckRecordHead& operator=(const AckRecordHead& from) {
-        name = from.name;
-        speeches.Assign(from.speeches);
-        return *this;
-    }
-    ~AckRecordHead() { speeches.Destroy(); }
-
     std::string name;
-    stlp::hash_map<int, SpeechList*, stlp::IntHash> speeches;   // by ack kind
+    lib::HashMap<int, SpeechList*> speeches;   // by ack kind (the acks dump lists them in STLport's order)
 };
 
 // Table 0: per unit prototype name.
@@ -95,9 +87,8 @@ struct AckTable {
     Record* RecordAt(std::uint32_t index);
 
     std::vector<Record> records;
-    stlp::hash_map<std::string, Record*, stlp::StringHash> byName;
+    std::unordered_map<std::string, Record*> byName;
 };
-static_assert(sizeof(AckTable<UnitAcks>) == 0x20);
 
 struct AckDatabase {
     // "acks.db" of `folder` + "database.res": the three tables, each read through an archive of its own and
@@ -106,7 +97,7 @@ struct AckDatabase {
     // null; models: 0x2E..0x32; extras: 0x2C, 0x2D). 1; FatalError's result when the archive (reported as
     // "databases.res") or the file cannot be opened.
     int Load(const char* folder);
-    // Each index with 193 buckets. Returns this.
+    // Every table empty. Returns this.
     AckDatabase* Construct();
     void Destruct();
 
@@ -114,7 +105,6 @@ struct AckDatabase {
     AckTable<ModelAcks> models;
     AckTable<ExtraAcks> extras;
 };
-static_assert(sizeof(AckDatabase) == 0x60);
 } // namespace acks
 extern lib::StaticObject<acks::AckDatabase> g_ackDatabase;
 namespace acks {

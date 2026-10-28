@@ -9,7 +9,7 @@
 #include "item_db.h"
 #include "party.h"
 
-#include "lib/crt.h"
+#include "lib/text_case.h"
 #include "resource_manager.h"
 #include "game_data.h"
 #include "world.h"
@@ -62,7 +62,7 @@ void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* m
     for (int j = 0; j < materials; ++j) {
         const char* wanted = record->materialClass.c_str();
         const char* name = itemdb::MaterialAt(static_cast<std::uint32_t>(j))->soundName.c_str();
-        if (gamecrt::mbsicmp(name, wanted) != 0)
+        if (text::CompareIgnoringCase(name, wanted) != 0)
             continue;
         maker->SetManager(manager);
         maker->BeginCreateItem(kind, -1);

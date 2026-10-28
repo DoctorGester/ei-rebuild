@@ -61,7 +61,7 @@ void ServerSession::SetMap(const std::string* name) {
     QuestBriefingRecord* entry;
     {
         std::string registryName = *name + game::ZoneSuffix1Text();
-        entry = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), registryName);
+        entry = worlddata::QuestBriefings()[registryName];
     }
     if (!entry) return;
 

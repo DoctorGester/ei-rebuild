@@ -30,7 +30,7 @@ int Mbscmp(std::string_view a, std::string_view b);
 int ScriptErrorV(CScript* script, int line, int code, const char* format, char* args);
 
 // script_text_file.cpp: a text file's lines joined into
-// *text (emptied first). 0 when the file cannot be opened or read (MFC's CFileException, caught).
+// *text (emptied first). 0 when the file cannot be opened or read.
 int ReadTextFile(const char* path, std::string* text);
 
 } // namespace scriptparse

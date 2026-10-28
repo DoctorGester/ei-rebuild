@@ -42,8 +42,8 @@ void GuardPlayers(CPlayerManager* players, char units, std::uint32_t key) {
         // The player's units (the walk stops at an empty entry): the 0x704 bytes of their
         // controllers' statistics.
         auto& map = player->units_;
-        for (auto* node = map.First(); node && node->value; node = map.After(node)) {
-            auto* controller = node->value->ServerController();
+        for (auto node = map.begin(); node != map.end() && node->second; ++node) {
+            auto* controller = node->second->ServerController();
             XorRange(&controller->stats, key);
         }
     }

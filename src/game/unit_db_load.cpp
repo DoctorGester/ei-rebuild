@@ -43,7 +43,7 @@ void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, 
     archive.Close(stream);
     for (Record& record : table.records) {
         std::string key(record.name.c_str());
-        table.byName.Subscript(key) = &record;
+        table.byName[key] = &record;
     }
 }
 

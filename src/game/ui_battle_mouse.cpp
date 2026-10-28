@@ -84,7 +84,7 @@ void CBattleScreen::UnitName(CUnit* unit, std::string* out) {
         return;
     }
     if (IsTextKey(unit->id_)) {
-        const PersonTextNode* node = personTexts_.find(unit->id_);
+        auto node = personTexts_.find(unit->id_);
         if (node == personTexts_.end())
             out->clear();
         else

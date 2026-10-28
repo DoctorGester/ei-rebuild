@@ -9,6 +9,7 @@
 #include "unit_db.h"
 
 #include "lib/crt.h"
+#include "lib/str.h"
 
 #include "world.h"
 
@@ -31,7 +32,7 @@ std::uint32_t Count(const std::vector<std::string>& names) { return static_cast<
 
 // A weapon name other than "none" (_mbscmp) and not empty.
 bool Named(const std::string& name) {
-    return gamecrt::mbscmp(name,
+    return str::Compare(name,
                            game::NoneText()) != 0 &&
            static_cast<int>(name.size()) != 0;
 }

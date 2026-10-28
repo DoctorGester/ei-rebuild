@@ -10,6 +10,7 @@
 #include "camera.h"
 #include "console.h"
 #include "game_strings.h"
+#include "lib/text_case.h"
 #include "map_object.h"
 #include "net_classes.h"
 #include "net_messages.h"
@@ -762,9 +763,8 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             orderAt(at, 0, ctrl());
             // "Terrain Coords x y z" on the console: each float through the inline operator<<
             // (x_floatused set, printed as a double), then '\n' and flush.
-            console::GameOStream& stream = (console::g_graphicsLogOut << game::TerrainCoordsText())
-                                               .PutFloat(at.x) << game::SpaceText();
-            console::EndLine((stream.PutFloat(at.y) << game::SpaceText()).PutFloat(at.z));
+            console::EndLine(console::g_graphicsLogOut << game::TerrainCoordsText() << at.x << game::SpaceText() << at.y
+                                                      << game::SpaceText() << at.z);
         }
         return;
     case 1:   // a spell on a unit
@@ -935,7 +935,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     int exit;
     if (GameFindExitAt(&point.x, &exit) && selected > 0) {
         std::string name = GameExitTarget(exit);
-        if (gamecrt::mbsicmp(name,
+        if (text::CompareIgnoringCase(name,
                             game::NoneText()) != 0) {
             name = std::string(game::ZoneVariablePrefixText()) + name;   // "z."
             double value = LocalPlayerVariable(name.c_str());

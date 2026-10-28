@@ -10,6 +10,7 @@
 #include "core_streams.h"
 
 #include "lib/stlp.h"
+#include "lib/hash_map.h"
 #include "game_data.h"
 
 #include <cstddef>
@@ -18,6 +19,7 @@
 #include <iterator>
 #include <list>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 class ClassTemplate;
@@ -74,18 +76,19 @@ public:
     using SavedList = std::list<CRefCounted*>;
 
     // While loading: key -> the object the index names (by the key its record is stored under).
-    using LoadedObjects = stlp::hash_map<std::uint32_t, CRefCounted*, stlp::IntHash>;
+    // (walked in STLport's order by Close: the objects nobody took are deleted in that order)
+    using LoadedObjects = lib::HashMap<std::uint32_t, CRefCounted*>;
     // While saving: the objects already listed -> their number by first save (1, 2, ...), written as the key
     // instead of the object's address.
-    using SavedNumbers = stlp::hash_map<const CRefCounted*, std::uint32_t, stlp::PointerHash>;
+    using SavedNumbers = std::unordered_map<const CRefCounted*, std::uint32_t>;
 
     // The classes an archive can hold: Close writes an object's class id (found by its vtable) to the index,
     // Open creates the object with the class's factory.
     using Factory = CRefCounted*(__cdecl*)();
     struct ClassRegistry {
-        using ClassIdMap = stlp::hash_map<std::uint32_t, std::int32_t, stlp::IntHash>;
+        using ClassIdMap = std::unordered_map<std::uint32_t, std::int32_t>;
         ClassIdMap classIds;     // vtable -> class id
-        stlp::hash_map<std::uint32_t, Factory, stlp::IntHash> factories;    // class id -> factory
+        std::unordered_map<std::uint32_t, Factory> factories;    // class id -> factory
     };
     static ClassRegistry& Registry();
 
@@ -219,7 +222,6 @@ void RecordChunks(ChunkArchive* ar, int id, std::vector<Record>* records, Fields
     }
     ar->LeaveChunk();
 }
-static_assert(sizeof(ChunkArchive::ClassRegistry) == 0x28);
 
 // Whole chunks of a stream (the archive's top-level chunks). Reads one chunk header and its bytes into `to` (at
 // most 10,000,000). True when all of it was read.

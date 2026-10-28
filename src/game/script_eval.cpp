@@ -180,7 +180,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = FromBool(f[0] > f[1]);
         return;
     case 0x48:   // IsEqualString
-        *result = FromBool(gamecrt::mbscmp(stringArgs.data[0].c_str(), stringArgs.data[1].c_str()) == 0);
+        *result = FromBool(std::strcmp(stringArgs.data[0].c_str(), stringArgs.data[1].c_str()) == 0);
         return;
     case 0x49:   // Add
         *result = f[1] + f[0];
@@ -687,8 +687,8 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         }
         (*result)->CopyFrom(player->Server()->group50F8_);
         const auto& units = player->units_;
-        for (auto* node = units.First(); node; node = units.After(node)) {
-            CUnit* unit = node->value;
+        for (auto node = units.begin(); node != units.end(); ++node) {
+            CUnit* unit = node->second;
             if (!unit) break;
             (*result)->Insert(unit);
             InsertSeen(*result, unit->ServerController());

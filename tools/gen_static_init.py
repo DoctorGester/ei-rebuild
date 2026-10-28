@@ -784,7 +784,8 @@ UNREAD_EXITS = {}   # initialiser -> the exit function left out with its unread 
 # Initialisers left out whole, with their exit function: they build and register the destruction of an object
 # no code of ours reaches (C20o: MFC's fixed allocators of the temporary windows and menus, whose classes
 # CTempWnd and CTempMenu are never made; C14i: CString's four allocators, CString being std::string, and
-# CStringArray's runtime class, linked into MFC's class list by AfxClassInit, the class being gone). Each is the
+# CStringArray's runtime class, linked into MFC's class list by AfxClassInit, the class being gone; C14d:
+# _simpleNotSupportedException, which only CStdioFile threw). Each is the
 # constructor call and the atexit (or the one call); the object's range and the exit function's guard byte are in no
 # named range or source, and nothing reads them.
 UNUSED_INITIALISERS = {
@@ -795,6 +796,8 @@ UNUSED_INITIALISERS = {
     0x00700779: "CString's allocator of 256 characters 007C8B30",
     0x007007AB: "CString's allocator of 512 characters 007C8B08",
     0x0070BE81: "CStringArray's runtime class 00796EE8, linked into the module state's class list",
+    0x0070C1ED: "MFC's _simpleNotSupportedException 007C8D50 (only CStdioFile threw it; the game's text files are "
+                "lib::TextFile since C14d)",
 }
 
 
@@ -1063,6 +1066,13 @@ def match_exit(img, address, md):
     return None
 
 
+# The exit functions of initialisers ported by hand whose port registers nothing in their place: the object of ours
+# has no destructor to run. exit function -> why.
+UNREGISTERED_EXITS = {
+    **{fn: "a console stream's (ostream's and ios's destructors): console::Stream only names its streambuf "
+           "(console_streams.cpp)" for fn in range(0x005DC440, 0x005DC601, 0x40)},
+}
+
 # The call sites of runtime_atexits' registrations (render_exits says "atexit at" for them).
 RUNTIME_SITES = set()
 
@@ -1108,7 +1118,9 @@ def decode_exits(img, decoded):
     by = collections.OrderedDict()
     for a, _, _, targets, _, _ in decoded:
         for kind, fn in targets:
-            if kind == 'exit' and fn not in registered and a not in by.setdefault(fn, []):
+            if kind != 'exit' or fn in registered or fn in UNREGISTERED_EXITS:
+                continue
+            if a not in by.setdefault(fn, []):
                 by[fn].append(a)
     RUNTIME_SITES.clear()
     dead_ranges = dead_code()
@@ -1120,7 +1132,7 @@ def decode_exits(img, decoded):
 
     for fn, sites in runtime_atexits(img, md).items():
         sites = [s for s in sites if not dead(s)]
-        if sites and fn not in registered and fn not in by:
+        if sites and fn not in registered and fn not in UNREGISTERED_EXITS and fn not in by:
             by[fn] = sites
             RUNTIME_SITES.update(sites)
     out, bad = [], []
@@ -1148,7 +1160,7 @@ def decode_exits(img, decoded):
 # unchanged.
 
 PORTS = os.path.join(ROOT, 'config', 'static_init_ports.csv')
-RET = 'ei::short_functions::Ret'   # the exit functions that do nothing (static_exit.cpp's 'nothing')
+RET = 'nothing'   # the exit functions that do nothing (static_exit.cpp's 'nothing'): never registered
 
 
 def ports():
@@ -1209,12 +1221,14 @@ class Names:
     def resolve(self, a):
         if a in self.exits:   # this tool's own exit functions (static_exit.cpp)
             if self.exits[a] == 'nothing':
-                return RET, None, ('ei::short_functions', 'void Ret();')
+                return RET, None, None
             return f'Exit{a:08X}', None, ('ei::static_init', f'void __cdecl Exit{a:08X}();')
         port = self.ports.get(a)
         if port is None:
             self.problems.append(f'{a:08X} is called but has no port: port it (a row of config/static_init_ports.csv)')
             return None
+        if port.name.startswith('gameapi::'):   # an import, called through its slot (lib/gameapi.h)
+            return port.name, port.path, None
         rel = os.path.relpath(port.path, ROOT).replace(os.sep, '/')
         if not os.path.exists(port.path):
             self.problems.append(f'{rel}: {port.name} ({a:08X}): no such file (config/static_init_ports.csv)')
@@ -1265,6 +1279,7 @@ class Names:
         return expr, None, ('::'.join(full), f'void __cdecl {last}();')
 
 
+DROPPED = '@@dropped@@'
 CALL_BY_ADDRESS = re.compile(r'\bd\.(Cdecl|Stdcall|Thiscall|AtExit)\((0x[0-9A-F]{8})\b')
 
 
@@ -1276,12 +1291,14 @@ def name_calls(text, names, headers, declarations):
         if found is None:
             return m.group(0)
         expr, header, declaration = found
+        if expr == RET and m.group(1) == 'AtExit':   # an exit function that does nothing is not registered
+            return DROPPED + '('
         if header:
             headers.add(os.path.relpath(header, os.path.join(ROOT, 'src')).replace(os.sep, '/'))
         if declaration:
             declarations.add(declaration)
         return f'd.{"AtExit" if m.group(1) == "AtExit" else "Call"}({expr}'
-    return CALL_BY_ADDRESS.sub(named, text)
+    return re.sub(r'[ \t]*' + re.escape(DROPPED) + r'\([^\n]*', '', CALL_BY_ADDRESS.sub(named, text))
 
 
 def render_declarations(declarations):
@@ -1301,7 +1318,7 @@ def render_exits(exits, names):
         by = ', '.join(f'{a:08X}' for a in initialisers[:3]) + (f' and {len(initialisers) - 3} more' if len(initialisers) > 3 else '')
         how = 'atexit at' if initialisers[0] in RUNTIME_SITES else 'atexit by'
         note = f'// {name}, {size} byte(s); {how} {by}'
-        if name == 'nothing':   # the initialisers register ei::short_functions::Ret by name
+        if name == 'nothing':   # the initialisers do not register it
             continue
         body = name_calls(name_operands(body.replace('\n        ', '\n    '), headers), names, headers, declarations)
         if re.search(r'\bd\.(?:Cdecl|Stdcall|Thiscall)\(0x', body):
@@ -1350,6 +1367,7 @@ def render(decoded, names):
     summary = ', '.join(f'{n} {k}' for k, n in kinds.most_common())
     headers, declarations = set(), set()
     body = [name_calls(name_operands(line, headers), names, headers, declarations) for line in body]
+    body = [line for line in body if line.strip()]   # an atexit of an exit function that does nothing is gone
     for line in body:
         if re.search(r'd\.(?:Cdecl|Stdcall|Thiscall|Import|AtExit)\(', line):
             names.problems.append(f'static initialiser: {line.strip()} calls by address: give the callee a name')
@@ -1421,17 +1439,13 @@ EXIT_HEADER = '''\
 // initialisers' ("atexit by" the initialiser; docs/notes/standalone.md, S3a; by hand next to
 // their objects) and the function-local statics' ("atexit at" the call; S16a): @SUMMARY@.
 // Each is decoded from its instructions as a whole-function pattern and written over static_init.h's operations,
-// calling the destructors by name; static_init.cpp registers them by name. Those that do nothing are
-// ei::short_functions::Ret.
+// calling the destructors by name; static_init.cpp registers them by name. Those that do nothing are not
+// registered.
 // tools/gen_static_init.py writes this file from game.exe's exit functions.
 #include "static_init.h"
 
 @INCLUDES@
-@DECLARATIONS@namespace ei::short_functions {
-void Ret();   // src/game/short_functions.cpp
-} // namespace ei::short_functions
-
-namespace ei::static_init {
+@DECLARATIONS@namespace ei::static_init {
 
 '''
 

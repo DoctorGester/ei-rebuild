@@ -377,8 +377,8 @@ own copies).
 
 **PF1a, part-name tests without a CRT call per byte.** `CObject3D::SetUpAnimatedFigure` (per bone) and `LoadPart` test each
 part name against BASE / CROWN / EMPTY; the game CRT's `_strnicmp` sends every upper-case byte through LCMapStringW under
-the game's locale. The case-fold table PF1 built for ClassifyToken (docs/notes/script.md) lives in `src/lib/crt`
-(`gamecrt::CaseFoldTable`, `gamecrt::SameIgnoringCase`) and these tests use it. Profiling (EI_PLAIN=1 EI_PROFILE=1, world_load /
+the game's locale. Ours compare with `text::CompareIgnoringCase` (src/lib/text_case.h, C35b; PF1a's case-fold table of
+the CRT's tolower went with the CRT's case functions). Profiling (EI_PLAIN=1 EI_PROFILE=1, world_load /
 models / net_lobby vanilla) found `_strnicmp` almost only under figure setup and `FindEntry`; the gain is about 10 ms of a 625 ms
 zone load. Skipped as not hot: `CMappedResource::FindEntry` (resource.cpp) and `ServerSession::FindGuestConnection`
 (net_server_players.cpp). Checks: the part-name wrappers compare each part name against all three keywords both ways

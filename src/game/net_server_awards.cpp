@@ -119,7 +119,7 @@ void ServerSession::CompleteZone(const std::string* zone) {
     QuestBriefingRecord* entry;
     {
         std::string key = *zone + game::ZoneSuffix3Text();
-        entry = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), key);
+        entry = worlddata::QuestBriefings()[key];
     }
     if (entry) {
         int count = 0;
@@ -171,7 +171,7 @@ void ServerSession::LeaveZone() {
         {
             std::string key = holder->Get()->text_ + game::ZoneSuffix1Text();
             std::string lookup(key.data());
-            entry = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), lookup);
+            entry = worlddata::QuestBriefings()[lookup];
         }
         if (entry) AwardHost(entry, true);
     }

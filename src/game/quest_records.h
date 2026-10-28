@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 class ChunkArchive;
@@ -54,7 +55,7 @@ struct QuestBriefingRecord {
 
 // The quest database's briefings (its +0x20): the records and their index by name.
 struct QuestBriefingTable {
-    using Index = stlp::hash_map<std::string, QuestBriefingRecord*, stlp::StringHash>;
+    using Index = std::unordered_map<std::string, QuestBriefingRecord*>;
 
     // QuestBriefingTable::Add (quest_database.cpp; the "reject" and "complete" briefings of a
     // quest file). Appends a copy of `record` unless its name is indexed with a record; the index
@@ -65,19 +66,18 @@ struct QuestBriefingTable {
     std::vector<QuestBriefingRecord> records;
     Index index;
 };
-static_assert(offsetof(QuestBriefingTable, index) == 0x0C && sizeof(QuestBriefingTable) == 0x20);
 
 // The quest database: the quests and the briefings, each with its index by name.
 struct QuestDatabase {
-    using QuestIndex = stlp::hash_map<std::string, QuestRecord*, stlp::StringHash>;
+    using QuestIndex = std::unordered_map<std::string, QuestRecord*>;
 
     // Rebirth-patched; called by WinMain at startup. "quests.qdb" of `folder` + "database.res": the quests
     // (chunk 1) and the briefings (chunk 2), each read through an archive of its own and filed under its
     // records' names. 1; FatalError's result when the archive (reported as "databases.res") or the file cannot
     // be opened.
     int Load(const char* folder);
-    // The constructor (database_construct.cpp; run by the static initialiser). Both vectors empty, both
-    // indexes with 100 buckets (193). Returns this.
+    // The constructor (database_construct.cpp; run by the static initialiser). Both vectors and both indexes
+    // empty. Returns this.
     QuestDatabase* Construct();
     // The quests of a registry file in memory (`image`) filed into the database; false when it is not a
     // registry.
@@ -94,7 +94,6 @@ struct QuestDatabase {
     QuestIndex questsByName;
     QuestBriefingTable briefings;
 };
-static_assert(offsetof(QuestDatabase, briefings) == 0x20 && sizeof(QuestDatabase) == 0x40);
 extern lib::StaticObject<QuestDatabase> g_questDatabase;   // database_globals.cpp
 inline QuestDatabase& TheQuestDatabase() { return *g_questDatabase; }
 

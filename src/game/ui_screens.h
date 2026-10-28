@@ -327,19 +327,7 @@ public:
     int voiceIndex_;
     int voiceSound_;
 };
-static_assert(offsetof(CMpHeroScreen, rotating_) == 0x1E4);
 static_assert(offsetof(CMpHeroScreen, descPanel_) == 0x164);
-static_assert(offsetof(CMpHeroScreen, previewModel_) == 0x1A0);
-static_assert(offsetof(CMpHeroScreen, renameEdit_) == 0x1E8);
-static_assert(offsetof(CMpHeroScreen, tradePanel_) == 0x1C4);
-static_assert(offsetof(CMpHeroScreen, mode_) == 0x190);
-static_assert(offsetof(CMpHeroScreen, heroTop_) == 0x19C);
-static_assert(offsetof(CMpHeroScreen, weapon_) == 0x1A4);
-static_assert(offsetof(CMpHeroScreen, weaponPanel_) == 0x1B4);
-static_assert(offsetof(CMpHeroScreen, voiceScroll_) == 0x1F0);
-static_assert(offsetof(CMpHeroScreen, names_) == 0x1D4);
-static_assert(offsetof(CMpHeroScreen, models_) == 0x170 && offsetof(CMpHeroScreen, textures_) == 0x180);
-static_assert(offsetof(CMpHeroScreen, defaults_) == 0x1C8);
 
 // --- Multiplayer connection screen --------------------------------------------------------------
 // The servers found (config\addrbook.ini keeps the ones asked directly): a list of 15 rows with a scroll bar, row 0
@@ -611,7 +599,6 @@ public:
     int savedDisplay_;          // the renderer's fog colour while the titles run
 };
 static_assert(offsetof(CCreditsScreen, textSurface_) == 0x164);
-static_assert(offsetof(CCreditsScreen, lines_) == 0x1C8);
 
 
 // --- Main menu ----------------------------------------------------------------------------------
@@ -726,6 +713,3 @@ public:
     CUiEditField* moneyField_;       // the money offered
     MpStringVector names_;           // the figure strip's names
 };
-static_assert(offsetof(CExchangeScreen, scratch_) == 0x190);
-static_assert(offsetof(CExchangeScreen, names_) == 0x1AC);
-static_assert(sizeof(CExchangeScreen) == 0x1B8);

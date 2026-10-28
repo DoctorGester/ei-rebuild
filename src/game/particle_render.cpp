@@ -12,6 +12,7 @@
 #include "lib/mfc_slots.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <vector>
@@ -50,11 +51,11 @@ void ConstructArrays() {
     if (!(g_arraysConstructed & 1)) {
         g_arraysConstructed |= 1;
         ConstructSpriteArray(&Sprites());
-        libcrt::AtExit(DestroySprites);
+        std::atexit(DestroySprites);
     }
     if (!(g_arraysConstructed & 2)) {
         g_arraysConstructed |= 2;
-        libcrt::AtExit(FreeVertices);
+        std::atexit(FreeVertices);
     }
 }
 

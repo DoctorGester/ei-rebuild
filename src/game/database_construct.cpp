@@ -1,8 +1,7 @@
 // The compiler-generated constructors of the resource databases. Only the static initialisers call them,
 // before the hooks are installed (the spell and item databases' also the resource switch and reload of a
 // network game), so the hook build checks them at start-up against what the originals built; the standalone
-// image runs them. Each is the members' constructors inlined: a vector empty, a hash_map with 100 buckets
-// (STLport rounds it up to 193).
+// image runs them. Each is the members' constructors inlined: a vector empty, an empty index.
 #include "acks_db.h"
 #include "item_db.h"
 #include "model.h"
@@ -11,10 +10,6 @@
 
 #include <memory>
 #include <vector>
-
-namespace {
-constexpr std::size_t kBuckets = 100;
-} // namespace
 
 SkillDatabase* SkillDatabase::Construct() {
     std::construct_at(&skills);
@@ -27,7 +22,7 @@ namespace itemdb {
 template <typename Record>
 void CodeIndexedTable<Record>::Construct() {
     std::construct_at(&records);
-    byCode.InitBuckets(kBuckets);
+    std::construct_at(&byCode);
 }
 template void CodeIndexedTable<SpellRecord>::Construct();
 template void CodeIndexedTable<SpellModifierRecord>::Construct();
@@ -42,7 +37,7 @@ SpellDatabase* SpellDatabase::Construct() {
 template <typename Record>
 void NamedRecordTable<Record>::Construct() {
     std::construct_at(&records);
-    names.InitBuckets(kBuckets);
+    std::construct_at(&names);
 }
 
 ItemDatabase* ItemDatabase::Construct() {
@@ -59,19 +54,19 @@ ItemDatabase* ItemDatabase::Construct() {
 
 QuestDatabase* QuestDatabase::Construct() {
     std::construct_at(&quests);
-    questsByName.InitBuckets(kBuckets);
+    std::construct_at(&questsByName);
     std::construct_at(&briefings.records);
-    briefings.index.InitBuckets(kBuckets);
+    std::construct_at(&briefings.index);
     return this;
 }
 
 PrintsDatabase* PrintsDatabase::Construct() {
     std::construct_at(&blood);
-    bloodByName.InitBuckets(kBuckets);
+    std::construct_at(&bloodByName);
     std::construct_at(&footprints);
-    footprintsByName.InitBuckets(kBuckets);
+    std::construct_at(&footprintsByName);
     std::construct_at(&scorch);
-    scorchByName.InitBuckets(kBuckets);
+    std::construct_at(&scorchByName);
     return this;
 }
 
@@ -79,11 +74,11 @@ namespace acks {
 
 AckDatabase* AckDatabase::Construct() {
     std::construct_at(&units.records);
-    units.byName.InitBuckets(kBuckets);
+    std::construct_at(&units.byName);
     std::construct_at(&models.records);
-    models.byName.InitBuckets(kBuckets);
+    std::construct_at(&models.byName);
     std::construct_at(&extras.records);
-    extras.byName.InitBuckets(kBuckets);
+    std::construct_at(&extras.byName);
     return this;
 }
 

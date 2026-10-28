@@ -1,17 +1,17 @@
 #pragma once
 
-// The game's statically linked C runtime and MFC helpers (config/library.csv): memory comes from the game's
-// heap, and functions such as tolower depend on the game's locale tables.
+// The game's statically linked C runtime and MFC helpers (config/library.csv): the heap, rand, the formatting and the
+// maths as the game's CRT has them.
 
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <string>
-#include <string_view>
 
 namespace gamecrt {
 
+// ei_vectors.exe (tests/vectors/replay_crt.cpp) defines operator_new, operator_delete, malloc and free itself (on its
+// own heap).
 void* operator_new(std::size_t size);
 // operator_new with the block zeroed, for the objects whose constructors leave fields unset (server
 // and map objects, AI modes): a determinism fix the standalone keeps, the harness zeroes the
@@ -38,68 +38,7 @@ int rand();
 using RandObserver = void (*)(int value, const void* caller);
 void SetRandObserver(RandObserver observer);
 void srand(unsigned seed);
-int tolower(int c);
-int strnicmp(const char* a, const char* b, std::size_t n);
-char* strncpy(char* dst, const char* src, std::size_t n);
-int strncmp(const char* a, const char* b, std::size_t n);
-int isdigit(int c);
-int isspace(int c);
 int sprintf(char* buffer, const char* format, ...);
-int mbscmp(const unsigned char* a, const unsigned char* b);
-// The same on char strings (the single-byte code page makes them the same bytes).
-inline int mbscmp(const char* a, const char* b) {
-    return mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
-}
-
-// A view as the C string the CRT's comparisons read: its bytes up to the first NUL (where the C string of
-// the same text would end), in a small local buffer or, for a long text, a std::string.
-class TerminatedText {
-public:
-    explicit TerminatedText(std::string_view text) {
-        text = text.substr(0, text.find('\0'));
-        length_ = text.size();
-        if (text.size() < sizeof(small_)) {
-            std::memcpy(small_, text.data(), text.size());
-            small_[text.size()] = '\0';
-            chars_ = small_;
-        } else {
-            big_.assign(text);
-            chars_ = big_.c_str();
-        }
-    }
-    TerminatedText(const TerminatedText&) = delete;
-    TerminatedText& operator=(const TerminatedText&) = delete;
-    const char* c_str() const { return chars_; }
-    std::size_t size() const { return length_; }   // (strlen of c_str())
-
-private:
-    char small_[96];
-    std::string big_;
-    const char* chars_;
-    std::size_t length_;
-};
-// The same on two std::string_view texts: the same bytes and rules (the CRT's _mbscmp under the game's code
-// page; a text ends at its first NUL), so callers need no .c_str().
-inline int mbscmp(std::string_view a, std::string_view b) {
-    const TerminatedText first(a), second(b);
-    return mbscmp(first.c_str(), second.c_str());
-}
-
-// A table of the game CRT's own tolower for every byte, for the CRT's current LC_CTYPE locale (rebuilt when
-// its locale handle or code page changes; in ei_vectors, from the recorded character classes). strnicmp
-// sends every upper-case byte through LCMapStringW under the game's locale; callers that compare many names
-// use this instead (docs/notes/script.md, docs/notes/units.md).
-const int* CaseFoldTable();
-// strnicmp(a, b, n) == 0 with the table above, without a CRT call per byte.
-inline bool SameIgnoringCase(const int* fold, const char* a, const char* b, int n) {
-    for (; n > 0; --n, ++a, ++b) {
-        const unsigned char ca = static_cast<unsigned char>(*a);
-        const unsigned char cb = static_cast<unsigned char>(*b);
-        if (ca == 0 || cb == 0) return ca == cb;
-        if (ca != cb && fold[ca] != fold[cb]) return false;
-    }
-    return true;
-}
 
 // acos: the C entry of the body behind _CIacos; the result is left unrounded.
 double acos(double c);
@@ -110,51 +49,15 @@ inline std::uint32_t Ftol(double value) { return static_cast<std::uint32_t>(stat
 // The handler operator new calls when the heap is exhausted (nonzero: try again; _set_new_handler sets it).
 using NewHandler = int(__cdecl*)(std::size_t);
 
-#ifdef EI_VECTORS_REPLAY
-// ei_vectors.exe (tests/vectors/replay_crt.cpp) defines operator_new, operator_delete, malloc, free and
-// CaseFoldTable itself and libcrt::Tolower, Isdigit, Isspace, Strncpy, Strncmp and Strnicmp (the character
-// functions from the game CRT's recorded answers, tests/vectors/crt_vectors.h). Every other function here must
-// not be called there.
-struct ReplayCtype {
-    int digit[256];
-    int space[256];
-    int lower[256];
-};
-void SetReplayCtype(const ReplayCtype& ctype);
-#endif
-
 } // namespace gamecrt
 
-// The game CRT's own functions (docs/notes/standalone.md section 2).
-// The plain string functions are the host CRT's; the case and class functions answer for UTF-8 (text_case.h): a byte
-// past ASCII has no class or case of its own and is never a lead byte, the _mbs* functions are byte ones.
+// The game CRT's own functions (docs/notes/standalone.md section 2). Its string, case and class functions are the
+// host CRT's (std::strcmp and so on) or text_case.h's (UTF-8: no lead bytes, no class past ASCII).
 namespace libcrt {
 
-int Strncmp(const char* a, const char* b, std::size_t n);
-char* Strncpy(char* to, const char* from, std::size_t n);
-int Stricmp(const char* a, const char* b);
-int Strnicmp(const char* a, const char* b, std::size_t n);
-int Memicmp(const void* a, const void* b, std::size_t n);
-int Mbscmp(const unsigned char* a, const unsigned char* b);
-int Mbsicmp(const unsigned char* a, const unsigned char* b);
-unsigned char* Mbsinc(const unsigned char* p);
-int Ismbblead(unsigned c);
-int Isleadbyte(int c);
-int Tolower(int c);
-int Toupper(int c);
-int Isalpha(int c);
-int Isdigit(int c);
-int Isspace(int c);
-int Isprint(int c);
 // MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part first):
 // equal elements end up in the same order as in the game (the host's qsort changed 105 image goldens).
 void Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*));
-
-// memmove, memcpy, memset, strstr, wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, atoi, _itoa and _splitpath
-// are the host CRT's, called by their names.
-int Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n);
-std::size_t Mbclen(const unsigned char* c);
-unsigned char* Mbslwr(unsigned char* text);
 
 // rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread (the game CRT's _tiddata::_holdrand),
 // a thread_local starting at 1.
@@ -193,8 +96,6 @@ void NodeDeallocate(void* p, std::size_t bytes);
 void* NodeRefill(std::size_t bytes);
 char* NodeChunkAlloc(std::size_t size, int* count);
 
-gamecrt::NewHandler SetNewHandler(gamecrt::NewHandler handler);
-
 int Vsprintf(char* buffer, const char* format, va_list args);
 
 // The maths as the CRT computes it, under its control word (rounding to nearest, the caller's precision):
@@ -215,54 +116,8 @@ void* OperatorNew(std::size_t size);
 void OperatorDelete(void* p);
 void* Malloc(std::size_t size);
 void Free(void* p);
-using ExitFunction = void(__cdecl*)();
-ExitFunction OnExit(ExitFunction function);
-int AtExit(ExitFunction function);
-void Exit(int code);
 
 } // namespace libcrt
-
-namespace gamecrt {
-// _mbsicmp and _mbsinc on char strings (the single-byte code page makes them the same bytes).
-inline int mbsicmp(const char* a, const char* b) {
-    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
-}
-// The same on two std::string_view texts (the CRT's rules; a text ends at its first NUL).
-inline int mbsicmp(std::string_view a, std::string_view b) {
-    const TerminatedText first(a), second(b);
-    return mbsicmp(first.c_str(), second.c_str());
-}
-inline const char* mbsinc(const char* p) {
-    return reinterpret_cast<const char*>(libcrt::Mbsinc(reinterpret_cast<const unsigned char*>(p)));
-}
-} // namespace gamecrt
-
-// The import thunks of WSOCK32 (by ordinal) and DINPUT (defined in crt.cpp): the same call through the same
-// import slot.
-namespace libcrt::imports {
-
-std::uint16_t Htons(std::uint16_t v);
-void* GetHostByName(const char* name);
-std::uint32_t InetAddr(const char* text);
-std::uint16_t Ntohs(std::uint16_t v);
-void* GetHostByAddr(const void* address, int length, int type);
-int GetHostName(char* name, int length);
-int WsaStartup(std::uint16_t version, void* data);
-int WsaCleanup();
-int CloseSocket(std::uint32_t s);
-int SetSockOpt(std::uint32_t s, int level, int option, const void* value, int length);
-int IoctlSocket(std::uint32_t s, long command, std::uint32_t* argument);
-int Bind(std::uint32_t s, const void* address, int length);
-std::uint32_t Socket(int family, int type, int protocol);
-int SendTo(std::uint32_t s, const void* data, int length, int flags, const void* to, int toLength);
-int RecvFrom(std::uint32_t s, void* data, int length, int flags, void* from, int* fromLength);
-int Connect(std::uint32_t s, const void* address, int length);
-int Recv(std::uint32_t s, void* data, int length, int flags);
-int Send(std::uint32_t s, const void* data, int length, int flags);
-int Select(int count, void* read, void* write, void* except, const void* timeout);
-long DirectInputCreateEx(void* instance, unsigned long version, const void* iid, void** out, void* outer);
-
-} // namespace libcrt::imports
 
 namespace game {
 

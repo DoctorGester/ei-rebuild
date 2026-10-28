@@ -5,7 +5,7 @@
 
 #include "item_db_text.h"
 
-#include "lib/crt.h"
+#include "lib/text_case.h"
 #include "text_split.h"
 #include "lib/stlp.h"
 #include "game_singletons.h"
@@ -54,15 +54,15 @@ void CBriefingScreen::FindTopics(int personId) {
     std::string name;
     std::string constructor;
     TopicList found;
-    for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
-        if (Bits(node->value.mapped) != kOneBits) continue;
-        text::Split(node->value.key.c_str(), &parts, '.');
+    for (auto node = variables.begin(); node != variables.end(); ++node) {
+        if (Bits(node->second) != kOneBits) continue;
+        text::Split(node->first.c_str(), &parts, '.');
         if (parts.size() != kTopicNameParts || TextKeyFromName(parts[1].c_str()) != personId) continue;
         name = parts[2];
         bool isConstructor;
         {
             std::string start = str::Left(name, kConstructorPrefixLength);
-            isConstructor = gamecrt::mbsicmp(start,
+            isConstructor = text::CompareIgnoringCase(start,
                                             ConstructorTopic()) == 0;
         }
         if (isConstructor) {
@@ -91,7 +91,7 @@ std::string* CBriefingScreen::TopicTitle(std::string* out, const char* topic) {
     bool isConstructor;
     {
         std::string start = str::Left(key, kConstructorPrefixLength);
-        isConstructor = gamecrt::mbscmp(start, ConstructorTopic()) == 0;
+        isConstructor = str::Compare(start, ConstructorTopic()) == 0;
     }
     if (isConstructor) key = ConstructorTopic();
     CTextManager* texts = TheTextManager();

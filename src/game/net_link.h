@@ -9,6 +9,7 @@
 #include "net_connection.h"
 #include "player_source.h"
 
+#include "lib/file_io.h"
 #include "lib/mfc.h"
 #include "lib/static_object.h"
 #include "lib/stlp_list.h"
@@ -23,8 +24,7 @@ class CWorldHandle;
 
 namespace netlink {
 
-// A CStream over a file. The CFile is raw storage (MFC): the constructor and destructor build and tear it
-// down explicitly.
+// A CStream over a file.
 class FileStream : public CStream {
 public:
     FileStream();
@@ -38,26 +38,23 @@ public:
     std::uint32_t Position() override;
     void Clear() override;                                             // Restart
 
-    // Seeks from the start; returns the CFile's result.
+    // Seeks from the start; returns the file's position.
     long SeekFrom(long position);
     // ok_ again, back to the start; returns the seek's result.
     long Restart();
 
-    // The direction byte, then the CFile's Open; ok_ tells whether it opened.
+    // The direction byte, then the file's Open; ok_ tells whether it opened.
     bool Open(std::string_view path, unsigned flags, std::uint8_t reading) {
         reading_ = reading;
-        ok_ = File()->Open(std::string(path).c_str(), flags, nullptr) != 0;
+        ok_ = file_.Open(path, flags);
         return ok_ != 0;
     }
-    void Close() { File()->Close(); }
+    void Close() { file_.Close(); }
 
-    // The CFile called through its own vtable (MFC 4.2's).
-    mfc::CFileVirtuals* File() { return file_->Virtuals(); }
+    static constexpr unsigned kOpenRead = lib::File::modeRead;
+    static constexpr unsigned kOpenWrite = lib::File::modeCreate | lib::File::modeWrite;
 
-    static constexpr unsigned kOpenRead = 0;         // CFile::modeRead
-    static constexpr unsigned kOpenWrite = 0x1001;   // CFile::modeCreate | modeWrite
-
-    lib::InPlace<mfc::CFile> file_;
+    lib::File file_;
 };
 
 // The loopback link's queue.

@@ -21,6 +21,7 @@
 #include "options.h"
 #include "lib/str.h"
 
+#include <cstring>
 #include <string>
 
 namespace {
@@ -143,11 +144,11 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
         // to "stone", "Metal" or "leather".
         if (const itemdb::MaterialRecordHead* armour = ArmourMaterial(this, location)) material = armour->soundName;
         const char* name = material.c_str();
-        if (gamecrt::mbscmp(name, "Crystal") == 0 ||
-            gamecrt::mbscmp(name, "Bone") == 0 ||
-            gamecrt::mbscmp(name, "Stone") == 0)
+        if (std::strcmp(name, "Crystal") == 0 ||
+            std::strcmp(name, "Bone") == 0 ||
+            std::strcmp(name, "Stone") == 0)
             material = "stone";
-        else if (gamecrt::mbscmp(name, "Metal") != 0)
+        else if (std::strcmp(name, "Metal") != 0)
             material = "leather";
     }
     std::string sound;

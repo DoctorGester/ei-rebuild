@@ -15,6 +15,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 
@@ -51,7 +52,7 @@ int TextWidth(CInterface3D* ui, const std::string& text, int font) {
 }
 
 bool SameFolder(std::string_view folder, std::string_view name) {
-    return gamecrt::mbsicmp(folder,
+    return text::CompareIgnoringCase(folder,
                            name) == 0;
 }
 

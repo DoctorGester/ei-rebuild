@@ -9,6 +9,7 @@
 #include "unit_db.h"
 #include "item_db_text.h"
 
+#include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -381,14 +382,14 @@ void CMpHeroScreen::PlayVoice() {
     UnitPrototypeRecord* prototype;
     {
         std::string key(hero->texts[6].c_str());
-        prototype = unitdb::PrototypeTable().byName.Subscript(key);
+        prototype = unitdb::PrototypeTable().byName[key];
     }
     if (!prototype) return;
     acks::UnitAcks* set;
     {
         std::string key(prototype->name.c_str());
         // The sound sets (the units' acks) by name: operator[] inserts a null entry for an unknown name.
-        set = acks::Database().units.byName.Subscript(key);
+        set = acks::Database().units.byName[key];
     }
     if (!set) return;
     // The voice entries are counted and found again by their rank (no allocation; the original gathers
@@ -558,8 +559,8 @@ const char* HeroFileFormat() { return "%d.mp"; }
 // The highest number among the titles of the files matching `pattern` (atoi; 0 without any).
 int HighestFileNumber(std::string_view pattern) {
     int highest = 0;
-    mfc::CFileFind find;
-    if (find.FindFile(pattern, 0)) {
+    lib::FileFind find;
+    if (find.FindFile(pattern)) {
         int more;
         do {
             more = find.FindNext();

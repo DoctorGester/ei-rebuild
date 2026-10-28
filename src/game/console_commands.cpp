@@ -4,11 +4,11 @@
 #include "ei/x87.h"
 #include "console.h"
 
-#include "../lib/crt.h"
+#include "../lib/text_case.h"
+#include "lib/file_io.h"
 #include "player_client.h"
 #include "text_split.h"
 
-#include "lib/crt.h"
 #include "net_classes.h"
 #include "acks_db.h"
 #include "world_glue.h"
@@ -24,6 +24,7 @@
 #include "lib/str.h"
 
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -32,15 +33,9 @@ namespace console::commands {
 namespace {
 
 
-int Mbscmp(const char* a, const char* b) {
-    return gamecrt::mbscmp(a, b);
-}
-int Mbsicmp(const char* a, const char* b) {
-    return gamecrt::mbsicmp(a, b);
-}
 
 // Argument `i` equals `text` (_mbscmp).
-bool ArgIs(const Arguments* args, int i, const char* text) { return Mbscmp((*args)[i].c_str(), text) == 0; }
+bool ArgIs(const Arguments* args, int i, const char* text) { return std::strcmp((*args)[i].c_str(), text) == 0; }
 // "1"/"on" and "0"/"off".
 bool ArgOn(const Arguments* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
 bool ArgOff(const Arguments* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
@@ -135,7 +130,7 @@ void History(Arguments* args) {
 void Filter(Arguments* args) {
     if (args->empty()) {
         static constexpr const char* kLabels[] = {"AI: ", "\nEVENT: ", "\nGRAPHICS: ", "\nRPG: ", "\nUNITACKS: ", "\nNET: "};
-        GameOStream& os = Out();
+        Stream& os = Out();
         for (int i = 0; i < 6; ++i)   // "AI: on", "\nEVENT: off", ...
             os << kLabels[i] << (g_filterMask & (1u << i) ? "on" : "off");
         return EndLine(os);
@@ -197,19 +192,19 @@ void ListVar(Arguments* args) {
     if (!player) return PrintLine("Wrong player number");
 
     std::string line;
-    CStdioFile file;
+    lib::TextFile file;
     mfc::BOOL writing = 0;
     if (args->size() > 1) {
-        writing = file.Open((*args)[1], CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr);
+        writing = file.Open((*args)[1], "w");
         if (!writing)   // "Cannot open file <name> for writing"
             EndLine(Out() << "Cannot open file " << (*args)[1].c_str() << " for writing");
     }
     const NamedFloatTable& variables = player->Party()->variables_;
-    for (const NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
-        const char* name = node->value.key.c_str();
-        EndLine((Out() << name << " = ").PutFloat(node->value.mapped));
+    for (auto node = variables.begin(); node != variables.end(); ++node) {
+        const char* name = node->first.c_str();
+        EndLine(Out() << name << " = " << node->second);
         if (writing) {
-            line = str::Format("%s %g\n", name, static_cast<double>(node->value.mapped));
+            line = str::Format("%s %g\n", name, static_cast<double>(node->second));
             file.WriteString(line.c_str());
         }
     }
@@ -226,12 +221,12 @@ void LoadVar(Arguments* args) {
 
     std::string line;
     std::vector<std::string> parts;
-    CStdioFile file;
-    if (!file.Open((*args)[1], CStdioFile::modeRead, nullptr)) {   // "Cannot open file <name> for reading"
+    lib::TextFile file;
+    if (!file.Open((*args)[1], "r")) {   // "Cannot open file <name> for reading"
         EndLine(Out() << "Cannot open file " << (*args)[1].c_str() << " for reading");
         return;
     }
-    while (file.ReadString(line)) {
+    while (file.ReadLine(line)) {
         text::Split(line.c_str(), &parts, ' ');
         if (parts.size() > 1) {
             const char* name = parts[0].c_str();
@@ -245,10 +240,10 @@ void LoadVar(Arguments* args) {
 // "Current FPS: " 1000 / last frame time (printed as float).
 void LastFps(Arguments*) {
     auto* timer = SceneRenderer();
-    GameOStream& os = Out() << "Current FPS: ";
+    Stream& os = Out() << "Current FPS: ";
     unsigned ms = timer->FrameTime();
     double fps = 1000.0f /*0073C34C*/ / x87::FromUnsigned(ms);
-    EndLine(os.PutFloat(fps));
+    EndLine(os << fps);
 }
 
 // Exec <file>: runs each line of the file as a console command. Quotes around the name
@@ -259,12 +254,12 @@ void Exec(Arguments* args) {
     std::string name = (*args)[0];
     str::TrimLeft(name, '"');
     str::TrimRight(name, '"');
-    CStdioFile file;
-    if (!file.Open(name, CStdioFile::typeText, nullptr)) {   // "Cannot open file <name> for reading"
+    lib::TextFile file;
+    if (!file.Open(name, "r")) {   // "Cannot open file <name> for reading"
         EndLine(Out() << "Cannot open file " << (*args)[0].c_str() << " for reading");
         return;
     }
-    while (file.ReadString(line)) console::Execute(line.c_str());
+    while (file.ReadLine(line)) console::Execute(line.c_str());
     file.Close();
 }
 
@@ -350,16 +345,16 @@ void Net(Arguments* args) {
         PrintLine("net server 0/1 - show server traffic");
         return PrintLine("net time 0/1   - show client time counting info");
     }
-    if (Mbsicmp((*args)[0].c_str(), "client") == 0) {
+    if (text::CompareIgnoringCase((*args)[0].c_str(), "client") == 0) {
         std::string value = (*args)[1];
         LocalPlayer()->logTraffic_ = std::atoi(value.c_str());
     }
-    if (Mbsicmp((*args)[0].c_str(), "server") == 0) {
+    if (text::CompareIgnoringCase((*args)[0].c_str(), "server") == 0) {
         if (CPlayer* player = GetPlayer(0)) player->logTraffic_ = std::atoi((*args)[1].c_str());
     }
-    if (Mbsicmp((*args)[0].c_str(), "time") == 0)
+    if (text::CompareIgnoringCase((*args)[0].c_str(), "time") == 0)
         app::g_showClientSpeed = std::atoi((*args)[1].c_str());
-    if (Mbsicmp((*args)[0].c_str(), "zone") == 0 && ServerActive(Server())) {
+    if (text::CompareIgnoringCase((*args)[0].c_str(), "zone") == 0 && ServerActive(Server())) {
         std::string zone = (*args)[1];
         Server()->SendCommand(0, zone.c_str());
     }
@@ -368,7 +363,7 @@ void Net(Arguments* args) {
 // Every speech of the list that has a text, as two lines: "#say <name>" and
 // the text. The lines go through the file's WriteString slot.
 namespace {
-void WriteSpeech(CStdioFile* file, std::string& line, const SpeechRecord& speech) {
+void WriteSpeech(lib::TextFile* file, std::string& line, const SpeechRecord& speech) {
     if (speech.text.size() == 0) return;
     line = str::Format("#say %s\n", speech.name.data());
     file->WriteString(line.c_str());
@@ -377,13 +372,13 @@ void WriteSpeech(CStdioFile* file, std::string& line, const SpeechRecord& speech
 }
 } // namespace
 
-void WriteSpeechLines(CStdioFile* file, const acks::SpeechList* list) {
+void WriteSpeechLines(lib::TextFile* file, const acks::SpeechList* list) {
     if (!list) return;
     std::string line;
     for (const SpeechRecord& speech : *list) WriteSpeech(file, line, speech);
 }
 
-void WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeeches* list) {
+void WriteEnvironmentSpeechLines(lib::TextFile* file, const acks::EnvironmentSpeeches* list) {
     if (!list) return;
     std::string line;
     for (const acks::EnvironmentSpeech& entry : *list) WriteSpeech(file, line, entry.speech);
@@ -393,21 +388,21 @@ void WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeech
 // tables, each speech list its kind map names (in the map's order; a list that serves several
 // kinds is written once per kind), and after a unit record's lists its environment speeches.
 void GenerateAcks(Arguments*) {
-    CStdioFile file;
+    lib::TextFile file;
     {
         std::string path = *GameDataPathString() + "scenack.txt";
-        if (!file.Open(path, CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr)) return;
+        if (!file.Open(path, "w")) return;
     }
-    CStdioFile* out = &file;
+    lib::TextFile* out = &file;
     acks::AckDatabase& database = acks::Database();
     for (acks::UnitAcks& record : database.units.records) {
-        record.head.speeches.ForEach([out](const auto* node) { WriteSpeechLines(out, node->value); });
+        for (const auto& [kind, speeches] : record.head.speeches) WriteSpeechLines(out, speeches);
         WriteEnvironmentSpeechLines(out, &record.environmentSpeeches);
     }
     for (acks::ModelAcks& record : database.models.records)
-        record.head.speeches.ForEach([out](const auto* node) { WriteSpeechLines(out, node->value); });
+        for (const auto& [kind, speeches] : record.head.speeches) WriteSpeechLines(out, speeches);
     for (acks::ExtraAcks& record : database.extras.records)
-        record.head.speeches.ForEach([out](const auto* node) { WriteSpeechLines(out, node->value); });
+        for (const auto& [kind, speeches] : record.head.speeches) WriteSpeechLines(out, speeches);
     file.Close();
 }
 

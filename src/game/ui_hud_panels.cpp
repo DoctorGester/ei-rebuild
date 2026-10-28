@@ -10,7 +10,6 @@
 #include "party.h"
 #include "player_client.h"
 
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
@@ -22,6 +21,7 @@
 #include "lib/str.h"
 
 #include <cstdint>
+#include <cstring>
 #include <string>
 
 namespace {
@@ -118,7 +118,7 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
         std::string name;
         name = unit->GetPrototypeModel()->slots[i].levelName;
         for (int k = 0; k < 4; ++k) {
-            if (gamecrt::mbscmp(name,
+            if (str::Compare(name,
                                 kPartNames[k]) == 0) {
                 name = partLabels_[k];
                 break;

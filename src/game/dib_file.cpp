@@ -1,11 +1,11 @@
-// CDib's file reader and writer (dib.h): a .bmp file read from and written to an MFC file.
-// Both run the file's calls inside MFC's TRY / CATCH(CException) (lib/mfc_try.h): what the file
-// throws ends in a message box and a result of 0.
+// CDib's file reader and writer (dib.h): a .bmp file read from and written to a lib::File.
+// A lib::FileError from the file's calls ends in a message box and a result of 0 (the game's TRY /
+// CATCH(CException) around them).
 #include "dib.h"
 #include "game_strings.h"
 
+#include "lib/file_io.h"
 #include "lib/crt.h"
-#include "lib/mfc_try.h"
 #include "lib/mfc_window.h"
 
 #include <cstdint>
@@ -35,57 +35,49 @@ int ColourCount(const BITMAPINFOHEADER* header, int current) {
 
 } // namespace
 
-int CDib::Read(mfc::CFile* source) {
-    auto* input = source->Virtuals();
+int CDib::Read(lib::File* input) {
     Empty();
-    {
-        mfc::ExceptionLink link;
-        try {
-            BITMAPFILEHEADER fileHeader;
-            if (input->Read(&fileHeader, sizeof(fileHeader)) != sizeof(fileHeader)) {
-                mfc::impl::MessageBoxText("read error 1", 0, 0);
-                return 0;
-            }
-            if (fileHeader.bfType != kBitmapFileType) {
-                mfc::impl::MessageBoxText("Invalid bitmap file", 0, 0);
-                return 0;
-            }
-            // Everything between the file header and the bits: the info header, then masks or colours.
-            const std::uint32_t headerBytes = fileHeader.bfOffBits - sizeof(fileHeader);
-            header = gamecrt::operator_new_bytes_as<BITMAPINFOHEADER>(headerBytes);
-            bitsOwner = kNew;
-            headerOwner = kNew;
-            input->Read(header, headerBytes);
-            imageSize = DibImageSize(header);
-            colours = reinterpret_cast<RGBQUAD*>(header + 1);
-            bits = gamecrt::operator_new_array<std::uint8_t>(imageSize);
-            input->Read(bits, imageSize);
-        } catch (CException* caught) {
-            link.exception = caught;
-            mfc::impl::MessageBoxText("Read error 1", 0, 0);
+    try {
+        BITMAPFILEHEADER fileHeader;
+        if (input->Read(&fileHeader, sizeof(fileHeader)) != sizeof(fileHeader)) {
+            mfc::impl::MessageBoxText("read error 1", 0, 0);
             return 0;
         }
+        if (fileHeader.bfType != kBitmapFileType) {
+            mfc::impl::MessageBoxText("Invalid bitmap file", 0, 0);
+            return 0;
+        }
+        // Everything between the file header and the bits: the info header, then masks or colours.
+        const std::uint32_t headerBytes = fileHeader.bfOffBits - sizeof(fileHeader);
+        header = gamecrt::operator_new_bytes_as<BITMAPINFOHEADER>(headerBytes);
+        bitsOwner = kNew;
+        headerOwner = kNew;
+        input->Read(header, headerBytes);
+        imageSize = DibImageSize(header);
+        colours = reinterpret_cast<RGBQUAD*>(header + 1);
+        bits = gamecrt::operator_new_array<std::uint8_t>(imageSize);
+        input->Read(bits, imageSize);
+    } catch (const lib::FileError&) {
+        mfc::impl::MessageBoxText("Read error 1", 0, 0);
+        return 0;
     }
     colourCount = ColourCount(header, colourCount);
     MakePalette();
     return 1;
 }
 
-int CDib::Write(mfc::CFile* target) {
-    auto* output = target->Virtuals();
+int CDib::Write(lib::File* output) {
     BITMAPFILEHEADER fileHeader;
     fileHeader.bfType = kBitmapFileType;
     fileHeader.bfSize = imageSize + maskBytes + sizeof(BITMAPINFOHEADER) + sizeof(fileHeader);
     fileHeader.bfReserved1 = 0;
     fileHeader.bfReserved2 = 0;
     fileHeader.bfOffBits = maskBytes + sizeof(BITMAPINFOHEADER) + sizeof(fileHeader);
-    mfc::ExceptionLink link;
     try {
         output->Write(&fileHeader, sizeof(fileHeader));
         output->Write(header, maskBytes + sizeof(BITMAPINFOHEADER));
         output->Write(bits, imageSize);
-    } catch (CException* caught) {
-        link.exception = caught;
+    } catch (const lib::FileError&) {
         mfc::impl::MessageBoxText("write error", 0, 0);
         return 0;
     }

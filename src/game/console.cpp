@@ -7,18 +7,15 @@
 #include "game_strings.h"
 #include "ui.h"
 
-#include "../lib/crt.h"
-#include "lib/mfc_file.h"
-#include "lib/compiled_vtable.h"
-#include "lib/crt_iostream.h"
+#include "lib/file_io.h"
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
-#include "library_trees.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 
+#include <charconv>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -26,39 +23,59 @@
 
 namespace console {
 
-// ---- Helpers ------------------------------------------------------------------------------------
-
-CStdioFile::CStdioFile() = default;
-CStdioFile::CStdioFile(const char* name, unsigned flags) : file_(name, flags) {}
-CStdioFile::~CStdioFile() = default;
-mfc::BOOL CStdioFile::Open(std::string_view name, unsigned flags, mfc::impl::CFileException* error) {
-    return file_.Open(std::string(name).c_str(), flags, error);
-}
-// MFC's CStdioFile::ReadString(CString&), into a string.
-mfc::BOOL CStdioFile::ReadString(std::string& line) { return file_.ReadLine(line); }
-char* CStdioFile::ReadString(char* buffer, unsigned size) { return file_.ReadString(buffer, size); }
-void CStdioFile::WriteString(const char* text) { file_.WriteString(text); }
-void CStdioFile::Close() { file_.Close(); }
-
-GameOStream& GameOStream::operator<<(const char* text) { PutText(text); return *this; }
-GameOStream& GameOStream::operator<<(char c) { PutChar(c); return *this; }
-GameOStream& GameOStream::operator<<(int a0) { PutLong(static_cast<long>(a0)); return *this; }
-GameOStream& GameOStream::operator<<(double v) { PutDouble(v); return *this; }
-GameOStream& GameOStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::Apply(manipulator); return *this; }
-
-CommandHandler& Command(CommandMap* map, const std::string& name) { return map->Subscript(name); }
+// ---- Streams ------------------------------------------------------------------------------------
 
 namespace {
 
-int Mbscmp(const char* a, const char* b) {
-    return gamecrt::mbscmp(a, b);
+template <typename T>
+void WriteInteger(ConsoleStreambuf* buffer, T value) {
+    char text[12];
+    buffer->Write(std::string_view(text, std::to_chars(text, text + sizeof(text), value).ptr - text));
 }
+
+} // namespace
+
+Stream& Stream::operator<<(const char* text) {
+    buffer_->Write(text);
+    return *this;
+}
+Stream& Stream::operator<<(char c) {
+    buffer_->Put(c);
+    return *this;
+}
+Stream& Stream::operator<<(int value) {
+    WriteInteger(buffer_, value);
+    return *this;
+}
+Stream& Stream::operator<<(long value) {
+    WriteInteger(buffer_, value);
+    return *this;
+}
+Stream& Stream::operator<<(unsigned value) {
+    WriteInteger(buffer_, value);
+    return *this;
+}
+Stream& Stream::operator<<(double value) {
+    char text[32];   // "%.6g": at most 13 characters ("-1.23457e+308")
+    buffer_->Write(std::string_view(text, static_cast<std::size_t>(gamecrt::sprintf(text, "%.6g", value))));
+    return *this;
+}
+Stream& Stream::Flush() {
+    buffer_->Sync();
+    return *this;
+}
+
+// ---- Helpers ------------------------------------------------------------------------------------
+
+CommandHandler& Command(CommandMap* map, const std::string& name) { return (*map)[name]; }
+
+namespace {
 
 bool NetworkGame() { return IsMultiplayerClient(); }
 
 } // namespace
 
-void EndLine(GameOStream& os) { (os << '\n').Apply(libcrt::FlushManipulator); }
+void EndLine(Stream& os) { (os << '\n').Flush(); }
 
 void PrintLine(const char* text) { EndLine(Out() << text); }
 
@@ -66,33 +83,31 @@ void PrintLine(const char* text) { EndLine(Out() << text); }
 
 void (*g_consoleLineObserver)(const char* line) = nullptr;
 
-ConsoleStreambuf::ConsoleStreambuf(unsigned filter) : Streambuf(buffer_, sizeof(buffer_)), filter_(filter) {}
+ConsoleStreambuf::ConsoleStreambuf(unsigned filter) : filter_(filter) {}
 
-ConsoleStreambuf::~ConsoleStreambuf() {}
-
-int ConsoleStreambuf::Underflow() { return -1; }
-
-// Moves the put area (and `c`, unless EOF) into the line, when this streambuf's
-// category is shown; a hidden category keeps its put area as it is. Always returns 0.
-int ConsoleStreambuf::Overflow(int c) {
-    if (filter_ == 0 || (g_filterMask & filter_) != 0) {
-        const char* end = pptr;
-        for (const char* p = pbase; p < end; ++p) line_ += *p;
-        if (c != -1) line_ += static_cast<char>(c);
-        pbase = base;
-        pptr = base;
-        epptr = ebuf;
-    }
-    return 0;
+void ConsoleStreambuf::Put(char c) {
+    if (putNext_ < putEnd_) buffer_[putNext_++] = c;
+    else Overflow(static_cast<unsigned char>(c));
 }
 
-// Overflow(EOF), the line to the console window, then empty it.
-int ConsoleStreambuf::Sync() {
+void ConsoleStreambuf::Write(std::string_view text) {
+    for (char c : text) Put(c);
+}
+
+void ConsoleStreambuf::Overflow(int c) {
+    if (filter_ == 0 || (g_filterMask & filter_) != 0) {
+        line_.append(buffer_, putNext_);
+        if (c != -1) line_ += static_cast<char>(c);
+        putNext_ = 0;
+        putEnd_ = sizeof(buffer_);
+    }
+}
+
+void ConsoleStreambuf::Sync() {
     Overflow(-1);
     if (g_consoleLineObserver) g_consoleLineObserver(line_.c_str());
     TheInterface()->ConsoleAddText(line_.c_str());
     line_ = game::EmptyText();
-    return 0;
 }
 
 // ---- Executor -----------------------------------------------------------------------------------
@@ -161,7 +176,7 @@ void Execute(const char* text) {
 
     str::MakeLower(command);
     for (std::string& arg : args) str::MakeLower(arg);
-    if (Mbscmp(command.c_str(), "quit") == 0 || Mbscmp(command.c_str(), "exit") == 0) {
+    if (std::strcmp(command.c_str(), "quit") == 0 || std::strcmp(command.c_str(), "exit") == 0) {
         app::QuitGame(0);
         return;
     }
@@ -186,20 +201,14 @@ void Execute(const char* text) {
 }
 
 // States: 0 between tokens, 1 in a token, 2 inside double quotes (which stay in the
-// token). Double-byte characters are taken whole.
+// token).
 int Tokenize(const char* text, std::vector<std::string>* out) {
     std::string token;
     int state = 0;
     out->clear();
     const char* p = text;
     for (;;) {
-        int c = 0;
-        const char* low = p;
-        if (libcrt::Ismbblead(static_cast<unsigned char>(*p))) {
-            c = static_cast<signed char>(*p) * 256;
-            low = p + 1;
-        }
-        c += static_cast<signed char>(*low);
+        const char c = *p;
         if (c == 0) break;
         if (c == ' ') {
             if (state == 1) {
@@ -208,11 +217,11 @@ int Tokenize(const char* text, std::vector<std::string>* out) {
                     out->push_back(token);
                     token.clear();
                 }
-                p = gamecrt::mbsinc(p);
+                ++p;
                 continue;
             }
             if (state != 2) {
-                p = gamecrt::mbsinc(p);
+                ++p;
                 continue;
             }
         } else if (c == '"') {
@@ -220,10 +229,8 @@ int Tokenize(const char* text, std::vector<std::string>* out) {
         } else if (state == 0) {
             state = 1;
         }
-        // The character's bytes (a zero byte ends the text a CString kept).
-        token += p[0];
-        if (libcrt::Isleadbyte(static_cast<signed char>(*p)) && p[1] != '\0') token += p[1];
-        p = gamecrt::mbsinc(p);
+        token += c;
+        ++p;
     }
     if (token.size() != 0) {
         out->push_back(token);

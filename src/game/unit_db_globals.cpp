@@ -5,7 +5,6 @@
 #include "unit.h"
 #include "unit_db.h"
 
-static_assert(sizeof(UnitDatabase) == 0x80 && sizeof(SkillDatabase) == 0x18);
 
 constinit lib::StaticObject<UnitDatabase> g_unitDatabase = /*007AF358*/ {};
 constinit lib::StaticObject<SkillDatabase> g_skillDatabase = /*007AF268*/ {};

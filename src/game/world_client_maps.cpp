@@ -45,7 +45,7 @@
 #include "lib/nan_audit.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/stlp_hash.h"
+#include "lib/stlp.h"
 #include "lib/stlp_list_refs.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
@@ -178,9 +178,9 @@ HitCollector* HitCollector::CollectParts(ScreenEntryNode first, ScreenEntryNode 
 }
 
 int PendingIndex::Lookup(const std::uint32_t* key, mfc::CList<CMapObject*>::Node** value) const {
-    const Node* node = Find(*key);
-    if (!node) return 0;
-    *value = node->value;
+    auto node = find(*key);
+    if (node == end()) return 0;
+    *value = node->second;
     return 1;
 }
 
@@ -234,8 +234,8 @@ int CWorldClient::AddObject(CMapObject* object) {
             return 1;
         }
     }
-    const PendingMap::Node* entry = dynamicNodes_.Find(static_cast<std::uint32_t>(object->id_));
-    if (!entry && object->IsSynchronised()) {
+    auto entry = dynamicNodes_.find(static_cast<std::uint32_t>(object->id_));
+    if (entry == dynamicNodes_.end() && object->IsSynchronised()) {
         DynamicList& kept = dynamicObjects_;
         DynamicNode* node = kept.NewNode(kept.tail, nullptr);
         node->data = object;
@@ -310,7 +310,7 @@ void CWorldClient::RefreshPlatforms(CMapObject* object) {
 }
 
 bool CWorldClient::QueueSynchronised(CMapObject* object) {
-    if (dynamicNodes_.Find(static_cast<std::uint32_t>(object->id_))) return false;
+    if (dynamicNodes_.contains(static_cast<std::uint32_t>(object->id_))) return false;
     DynamicList& kept = dynamicObjects_;
     DynamicNode* node = kept.NewNode(kept.tail, nullptr);
     node->data = object;
@@ -408,9 +408,9 @@ void CWorldClient::RemoveObject(int id) {
         node = next;
     }
     PendingMap& ids = dynamicNodes_;
-    if (const PendingMap::Node* entry = ids.Find(static_cast<std::uint32_t>(id))) {
+    if (auto entry = ids.find(static_cast<std::uint32_t>(id)); entry != ids.end()) {
         DynamicList& kept = dynamicObjects_;
-        DynamicNode* node = entry->value;
+        DynamicNode* node = entry->second;
         if (node == kept.head)
             kept.head = node->next;
         else
@@ -420,7 +420,7 @@ void CWorldClient::RemoveObject(int id) {
         else
             node->next->prev = node->prev;
         kept.FreeNode(node);
-        if (const PendingMap::Node* again = ids.Find(static_cast<std::uint32_t>(id))) ids.Erase(const_cast<PendingMap::Node*>(again));
+        if (auto again = ids.find(static_cast<std::uint32_t>(id)); again != ids.end()) ids.erase(again);
     }
     MapObjectList& objects = objects_;
     FiledNode* node = objects.head->next;
@@ -476,7 +476,7 @@ void CWorldClient::ClearMaps() {
     // MFC RemoveAll of the platform faces and the dynamic objects (the elements need no destruction).
     platforms_.list.RemoveAll();
     dynamicObjects_.RemoveAll();
-    dynamicNodes_.Clear();
+    dynamicNodes_.clear();
     dynamicMaxId_ = 0;
 
     list7BC_.clear();
@@ -1304,7 +1304,7 @@ MapRecord* LocalZoneRecord() {
 }
 
 bool InFinalZone() {
-    return gamecrt::mbscmp(LocalPlayerZone().c_str(), worlddata::FinalZoneText()) == 0;
+    return std::strcmp(LocalPlayerZone().c_str(), worlddata::FinalZoneText()) == 0;
 }
 
 } // namespace

@@ -202,16 +202,13 @@ void SysInfoStaticInversePi() { SysInfoInitInversePi(); }
 // The global constructed, then its destructor registered with atexit: the
 // table's entry covers both.
 void SysInfoStaticConstruct() { g_sysInfo.Construct(); }
-void SysInfoStaticRegisterExit() { libcrt::AtExit(SysInfoAtExit); }
+void SysInfoStaticRegisterExit() { std::atexit(SysInfoAtExit); }
 void SysInfoStaticInit() {
     SysInfoStaticConstruct();
     SysInfoStaticRegisterExit();
 }
 
-// An empty destructor (a bare RET) registered with atexit. The
-// table's entry: the static's guard bit set when it is clear, then the registration either way.
-void SysInfoStaticRegisterEmptyExit() { libcrt::AtExit(ei::short_functions::Ret); }
+// A static with an empty destructor: its guard bit set when it is clear (nothing is registered for the destructor).
 void SysInfoStaticGuard() {
     if (!(lib::g_emptyStaticGuard & 1)) lib::g_emptyStaticGuard |= 1;
-    SysInfoStaticRegisterEmptyExit();
 }

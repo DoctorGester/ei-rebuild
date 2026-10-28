@@ -12,6 +12,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include "lib/file_io.h"
 
 namespace {
 
@@ -42,12 +43,12 @@ std::string* MapPath(std::string* out, const char* name) {
 }
 
 bool MapFileExists(const char* name) {
-    mfc::CFileFind find;
+    lib::FileFind find;
     std::string folder;
     modfolders::SelectMaps(name, modfolders::MapsSite::FileExists);
     MapsFolder(&folder);
     std::string path = folder + name;
-    return find.FindFile(path, 0) != 0;
+    return find.FindFile(path) != 0;
 }
 
 void WriteMapFile(const char* name, GameBuffer* buffer) {

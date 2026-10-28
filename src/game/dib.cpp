@@ -67,12 +67,6 @@ CDib::~CDib() { Empty(); }
 
 const void* CDib::GetRuntimeClass() const { return &g_classCDib; }
 
-void CDib::Serialize(mfc::CArchive* archive) {
-    archive->Flush();
-    if (archive->IsLoading()) Read(archive->File());
-    else Write(archive->File());
-}
-
 void CDib::Create(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue) {
     // What Empty looks at (the constructor above leaves the object raw).
     file = nullptr;

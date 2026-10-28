@@ -93,6 +93,20 @@ int CompareIgnoringCase(const char* a, const char* b, std::size_t n, bool termin
     return 0;
 }
 
+int CompareIgnoringCase(std::string_view a, std::string_view b) {
+    a = a.substr(0, a.find('\0'));
+    b = b.substr(0, b.find('\0'));
+    const unsigned char* pa = reinterpret_cast<const unsigned char*>(a.data());
+    const unsigned char* pb = reinterpret_cast<const unsigned char*>(b.data());
+    for (std::size_t i = 0;; ++i) {
+        // The shorter text's end is its terminator: below any byte.
+        if (i == a.size() || i == b.size()) return a.size() == b.size() ? 0 : i == a.size() ? -1 : 1;
+        const unsigned char la = MappedByte(pa, i, a.size(), LowerCodePoint);
+        const unsigned char lb = MappedByte(pb, i, b.size(), LowerCodePoint);
+        if (la != lb) return la < lb ? -1 : 1;
+    }
+}
+
 bool IsPrintableCodePoint(unsigned c) {
     if (c < 0x20 || c == 0x7F) return false;
     if (c >= 0x80 && c < 0xA0) return false;

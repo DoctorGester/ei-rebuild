@@ -18,6 +18,7 @@
 #include "lib/mfc.h"
 #include "lib/mfc_list.h"
 #include "game_lists.h"
+#include "lib/text_case.h"
 
 #include <cstring>
 #include "ei/x87.h"
@@ -84,7 +85,7 @@ bool Contains(const IdArray& ids, int id) {
 bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     bool found = false;
     for (unsigned i = 0; i < static_cast<unsigned>(info->zones.size()); ++i)
-        if (gamecrt::mbsicmp(info->zones[i], zone) == 0)
+        if (text::CompareIgnoringCase(info->zones[i], zone) == 0)
             found = true;
     return found;
 }
@@ -96,8 +97,8 @@ CItem* ItemAt(const ItemArray* items, int i) { return items->data[i]; }
 void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
     // The quest ids this zone's objects ask for, each once.
     IdArray wanted{IdArrayVtable(), nullptr, 0, 0, 0};
-    for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node)) {
-        CMapObject* object = node->value;
+    for (auto node = objects_.map.begin(); node != objects_.map.end() && node->second; ++node) {
+        CMapObject* object = node->second;
         if (!object->IsUsable()) continue;
         int id = object->KeyId();
         if (!Contains(wanted, id)) wanted.SetAtGrow(wanted.size, id);

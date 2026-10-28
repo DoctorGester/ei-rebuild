@@ -53,11 +53,11 @@ void ReadWorld(CWorldServer* w, Builder& b) {
     b.Vector("start.x", "start.y", "start.z", w->startPosition_);
     b.Int("occluderReplanTime", w->AIMap()->footprintTick);
     b.Int("sessionKind", w->sessionKind_);
-    b.Unsigned("objects", static_cast<std::uint32_t>(w->objects_.map.Size()));
-    b.Unsigned("mapObjects", static_cast<std::uint32_t>(w->mapObjects_.map.Size()));
-    b.Unsigned("sentObjects", static_cast<std::uint32_t>(w->sentObjects_.map.Size()));
-    b.Unsigned("timedObjects", static_cast<std::uint32_t>(w->timedObjects_.map.Size()));
-    b.Unsigned("updateMap", static_cast<std::uint32_t>(w->updateMap_.map.Size()));
+    b.Unsigned("objects", static_cast<std::uint32_t>(w->objects_.map.size()));
+    b.Unsigned("mapObjects", static_cast<std::uint32_t>(w->mapObjects_.map.size()));
+    b.Unsigned("sentObjects", static_cast<std::uint32_t>(w->sentObjects_.map.size()));
+    b.Unsigned("timedObjects", static_cast<std::uint32_t>(w->timedObjects_.map.size()));
+    b.Unsigned("updateMap", static_cast<std::uint32_t>(w->updateMap_.map.size()));
     b.Int("projectiles", w->projectiles_.GetCount());
     b.Int("counted", w->counted_.GetCount());
     b.Int("sharedObjects", w->sharedObjects_.GetCount());
@@ -76,8 +76,8 @@ void ReadPlayer(CPlayer* p, Builder& b) {
     b.Int("lastTick", p->lastTick_);
     b.Int("items", p->items_.GetCount());
     b.Int("ids", p->recharging_.GetCount());
-    b.Unsigned("units", static_cast<std::uint32_t>(p->units_.Size()));
-    b.Unsigned("objects", static_cast<std::uint32_t>(p->knownObjects_.Size()));
+    b.Unsigned("units", static_cast<std::uint32_t>(p->units_.size()));
+    b.Unsigned("objects", static_cast<std::uint32_t>(p->knownObjects_.size()));
     CParty* party = p->Party();
     b.Unsigned("money", party->money_);
     b.Int("partyItems", party->items_.size);
@@ -85,8 +85,8 @@ void ReadPlayer(CPlayer* p, Builder& b) {
     for (int i = 0; i < party->members_.GetSize(); ++i) b.Unsigned("member#.unit", party->members_[i].unitId, i);
     b.Unsigned("entrance", party->entrance_);
     std::vector<std::pair<std::string, float>> variables;
-    for (const auto* n = party->variables_.First(); n; n = party->variables_.Next(n))
-        variables.emplace_back(Text(n->value.key), n->value.mapped);
+    for (auto n = party->variables_.begin(); n != party->variables_.end(); ++n)
+        variables.emplace_back(Text(n->first), n->second);
     std::sort(variables.begin(), variables.end());
     for (const auto& v : variables) b.Float(Intern("var." + v.first), v.second);
 }
@@ -565,9 +565,8 @@ void ReadWater(State& state) {
 // The objects of a world map with an object, by id.
 std::vector<std::pair<unsigned, CEngineObject*>> ObjectsById(const auto& objects) {
     std::vector<std::pair<unsigned, CEngineObject*>> sorted;
-    objects.map.ForEach([&](const auto* n) {
-        if (n->value) sorted.emplace_back(n->key, n->value);
-    });
+    for (auto n = objects.map.begin(); n != objects.map.end(); ++n)
+        if (n->second) sorted.emplace_back(n->first, n->second);
     std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& c) { return a.first < c.first; });
     return sorted;
 }
@@ -600,7 +599,7 @@ void Read(void* server, Snapshot& s) {
     // zone's start in sentObjects_); other world objects (spells, effects, ...) get the base fields.
     std::set<unsigned> mapObjects;
     for (const auto* map : {&w->mapObjects_, &w->sentObjects_, &w->otherMapObjects_})
-        map->map.ForEach([&](const auto* n) { mapObjects.insert(n->key); });
+        for (auto n = map->map.begin(); n != map->map.end(); ++n) mapObjects.insert(n->first);
     for (const auto& [id, object] : ObjectsById(w->objects_)) {
         const bool mapObject = mapObjects.count(id) != 0;
         b.entity = &Slot(s.state, {kObject, static_cast<int>(id)});
@@ -648,9 +647,9 @@ void Read(void* server, Snapshot& s) {
 UnitNow Unit(void* server, int id) {
     UnitNow now;
     CEngineObject* object = nullptr;
-    static_cast<CWorldServer*>(server)->objects_.map.ForEach([&](const auto* n) {
-        if (n->key == static_cast<unsigned>(id)) object = n->value;
-    });
+    const auto& objects = static_cast<CWorldServer*>(server)->objects_.map;
+    for (auto n = objects.begin(); n != objects.end(); ++n)
+        if (n->first == static_cast<unsigned>(id)) object = n->second;
     if (!object || object->GetClassId() != kClassUnit) return now;
     auto* u = static_cast<CUnit*>(object);
     now.found = true;

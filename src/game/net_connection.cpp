@@ -1,4 +1,5 @@
 // Connections of the network sessions: object replication. See net_connection.h.
+#include "console.h"
 #include "net_coder.h"
 #include "net_connection.h"
 #include "net_connection_trees.h"
@@ -12,6 +13,7 @@
 #include "lib/stlp.h"
 #include "lib/stlp_tree_abi.h"
 
+#include <cstdlib>
 #include <cstring>
 #include "stl_sorts.h"
 #include "game_data.h"
@@ -41,7 +43,7 @@ void FreeReplicated() { lib::FreeStorage(g_replicated); }
 
 // "text\n" and a flush to the network log, when there is one.
 void LogLine(const char* text) {
-    if (LogStream* log = g_netLog) log->Put(text)->PutChar('\n')->Flush();
+    if (console::Stream* log = g_netLog) console::EndLine(*log << text);
 }
 
 // Inlined helper of the buffers: `high` follows `cur` upwards.
@@ -394,8 +396,8 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
 void Connection::Track(Replicated* item) {
     Message* object = item->object;
     if (!object || (object->flags7_ & CRefObject::kDetached)) return;
-    TypeRegistry::ByVtable::Node* found = g_currentSession->types_.byVtable.Find(TypeRegistry::KeyOf(object));
-    std::int32_t type = found ? static_cast<std::int32_t>(found->value) : -1;
+    auto found = g_currentSession->types_.byVtable.find(TypeRegistry::KeyOf(object));
+    std::int32_t type = found != g_currentSession->types_.byVtable.end() ? static_cast<std::int32_t>(found->second) : -1;
 
     // A new entry with no version and no id yet.
     auto* entry = NewCounted<ReplicaEntry>();
@@ -449,7 +451,7 @@ void Connection::CollectChanges() {
     ReplicatedVector& items = g_replicated;
     if (!(g_replicatedGuard & 1)) {
         g_replicatedGuard |= 1;
-        libcrt::AtExit(FreeReplicated);
+        std::atexit(FreeReplicated);
     }
     items.clear();
     ReplicatedVector* target = &items;
@@ -684,8 +686,7 @@ void Connection::ReadAcks(BufferCursor* cursor) {
 bool Connection::Accept(std::uint32_t sequence) {
     std::uint32_t newest = lastReceived_;
     if (sequence + 0x20 < newest) {
-        if (LogStream* log = g_netLog)
-            log->Put(game::nettexts::TooOld())->PutInt(static_cast<int>(newest - sequence))->PutChar('\n')->Flush();
+        if (console::Stream* log = g_netLog) console::EndLine(*log << game::nettexts::TooOld() << newest - sequence);
         return false;
     }
     if (!(newest > sequence)) newest = sequence;
@@ -695,7 +696,7 @@ bool Connection::Accept(std::uint32_t sequence) {
             if (g_netLog) {
                 std::string peer = address_.ToString();
                 const char* text = peer.data();
-                g_netLog->Put(game::nettexts::Duplicate())->Put(text)->PutChar('\n')->Flush();
+                console::EndLine(*g_netLog << game::nettexts::Duplicate() << text);
             }
             return false;
         }
@@ -783,8 +784,8 @@ void Connection::Close() {
         RefPtr* slot = &it->second.object;
         if (CRefObject* object = slot->ptr) {
             SessionBase* session = g_currentSession;
-            TypeRegistry::ByVtable::Node* found = session->types_.byVtable.Find(TypeRegistry::KeyOf(object));
-            std::uint32_t type = found ? found->value : 0xFFFFFFFFu;
+            auto found = session->types_.byVtable.find(TypeRegistry::KeyOf(object));
+            std::uint32_t type = found != session->types_.byVtable.end() ? found->second : 0xFFFFFFFFu;
             CallHandlers(session, 2, type, object);
         }
         if (slot->ptr) {
