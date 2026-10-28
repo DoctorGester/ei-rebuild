@@ -11,6 +11,7 @@
 #include "../lib/crt.h"
 #include "lib/mfc_array.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
@@ -80,7 +81,7 @@ int FindRootNode(NodeArray* nodeArray) {
         if (nodes.data[i].parent.size() == 0) root = i;
         for (int j = 0; j < nodes.size; ++j) {
             SceneNode* child = &nodes.data[j];
-            if (gamecrt::mbscmp(child->parent,
+            if (str::Compare(child->parent,
                                 nodes.data[i].name) != 0)
                 continue;
             ChildArray& children = Children(&nodes.data[i]);
@@ -132,7 +133,7 @@ int BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int frames, SceneS
         for (int j = 0; j < nodes.size; ++j) {
             SceneNode* candidate = &nodes.data[j];
             const char* meshName = mesh->GetName();
-            if (gamecrt::mbscmp(candidate->name,
+            if (str::Compare(candidate->name,
                                 meshName) == 0) {
                 node = candidate;
                 break;

@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <string>
 #include <vector>
 
@@ -54,12 +55,6 @@ struct SpeechFilter {
     int kind;                       // SpeechReplaced: the new speech's kind
 };
 
-struct ClientSpeechNode {
-    ClientSpeechNode* next;
-    ClientSpeechNode* prev;
-    ClientSpeech value;
-};
-static_assert(sizeof(ClientSpeechNode) == 0x1C);
 
 // The figure part names of the three armour groups: a body armour covers "bd" and the arm pieces, trousers
 // "hp" and the legs, a helmet the hair "hr" and the head "hd" (the rest of that row is empty). Armour slots 0
@@ -283,7 +278,7 @@ public:
     int speechSound;                // the sound of the last speech that waits (-1 none)
     const SpeechRecord* lastSpeech; // the speech played last
     std::uint32_t lastSpeechTime;   // when (timeGetTime)
-    ClientSpeechNode* speech;       // the speech queue (STLport list header node)
+    std::list<ClientSpeech> speech; // the speech queue
     std::uint32_t armourIds[7];     // packed ids of the armour worn, -1 none
     std::uint32_t weaponIds[4];
     CTexture* faceTexture;          // the face texture the blink changes (counted)
@@ -301,11 +296,6 @@ static_assert(offsetof(CUnitClientSpecific, weaponHidden) == 0x74);
 static_assert(offsetof(CUnitClientSpecific, fadeIn) == 0x78);
 static_assert(offsetof(CUnitClientSpecific, speechSound) == 0x90);
 static_assert(offsetof(CUnitClientSpecific, speech) == 0x9C);
-static_assert(offsetof(CUnitClientSpecific, armourIds) == 0xA0);
-static_assert(offsetof(CUnitClientSpecific, weaponIds) == 0xBC);
-static_assert(offsetof(CUnitClientSpecific, blinks) == 0xD0);
-static_assert(offsetof(CUnitClientSpecific, eyesClosed) == 0xD8);
-static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 
 // The figure part names a unit of prototype `prototype` shows with the armour pieces `armourIds` (appended to
 // `names`: "<part>.armor<number>", the hair as "hr.<hair>.armor<number>" unless the prototype has no hair,

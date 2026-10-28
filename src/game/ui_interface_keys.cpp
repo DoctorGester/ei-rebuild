@@ -9,7 +9,7 @@
 
 #include "lib/static_object.h"
 #include "lib/mfc.h"
-#include "lib/mfc_file.h"
+#include "lib/file_io.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -63,7 +63,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         std::string name;
         name = str::Format("shot%.4d.bmp", g_shotCounter);
         ++g_shotCounter;
-        mfc::CFile file(name.c_str(), 0x1001);   // modeCreate | modeWrite
+        lib::File file(name, lib::File::modeCreate | lib::File::modeWrite);
         picture->Write(&file);
         file.Close();
         delete picture;

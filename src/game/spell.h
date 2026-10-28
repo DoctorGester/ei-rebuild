@@ -12,6 +12,7 @@
 #include "maths.h"
 #include "game_data.h"
 #include "lib/static_object.h"
+#include "lib/hash_map.h"
 #include "game_singletons.h"
 
 #include <list>
@@ -266,10 +267,9 @@ struct SpellSequence {
     // The walk stops at the first entry without a container.
     void Destruct();
 
-    stlp::hash_map<std::uint32_t, CSpellContainer*, stlp::IntHash> containers;
+    lib::HashMap<std::uint32_t, CSpellContainer*> containers;
     std::uint32_t maxLow;
 };
-static_assert(sizeof(SpellSequence) == 0x18);
 // One step of a walk over a sequence's containers: the container there, or null at the end.
 
 // The spell manager; context_ gives the spell constructor.
@@ -307,7 +307,7 @@ public:
     void ListModifierNames(std::vector<std::string>* names);
 
     // By the high half of a packed id.
-    stlp::hash_map<std::uint32_t, SpellSequence*, stlp::IntHash> sequences_;
+    lib::HashMap<std::uint32_t, SpellSequence*> sequences_;
     std::uint32_t maxSequenceKey_;   // the largest key asked for
 };
 

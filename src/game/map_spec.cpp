@@ -44,7 +44,7 @@ void ReadInto(Chunk& c, std::string& field) {
 }
 bool ReadFlag(Chunk& c) { return c.ReadByte() == 1; }
 
-// The chunk's file (an MFC CFile) through its vtable.
+// The chunk's file.
 void FileWrite(Chunk& c, const void* data, unsigned size) { c.File()->Write(data, size); }
 void FileRead(Chunk& c, void* data, unsigned size) { c.File()->Read(data, size); }
 

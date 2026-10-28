@@ -2,7 +2,6 @@
 #include "world.h"
 #include "console.h"
 #include "lib/static_object.h"
-#include "lib/crt_iostream.h"
 
 #include "combat.h"
 #include "game_arrays.h"
@@ -21,11 +20,10 @@
 #include "lib/mfc_array.h"
 #include "game_data.h"
 
+#include <cstring>
 #include <memory>
 
 namespace {
-
-libcrt::Ostream* NetworkLog() { return &console::g_netLogOut; }
 
 // -1 while no Possession spell has taken a unit.
 bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(state->possessedId_) < 0; }
@@ -41,16 +39,15 @@ void RefsRelease(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::Destruct
 void DropPlayer(CWorldServer* world, CPlayer* player) {
     player->Disconnect();
     world->PlayerList()->ReleasePlayer(player);
-    NetworkLog()->PutText(worlddata::DisconnectingPlayerText())->PutInt(player->playerId_)->PutChar('\n')
-        ->Apply(libcrt::FlushManipulator);
+    console::EndLine(console::g_netLogOut << worlddata::DisconnectingPlayerText() << player->playerId_);
 }
 
 // Every unit of a connected player wakes the units within its hearing range (as SyncPlayer computes it, with
 // another margin: the server half's movement factor 3 and statistics B0 values 0 and 2).
 void WakeAroundUnits(CWorldServer* world, CPlayer* player) {
     auto& units = player->units_;
-    for (auto* node = units.First(); node && node->value; node = units.After(node)) {
-        CUnit* unit = node->value;
+    for (auto node = units.begin(); node != units.end() && node->second; ++node) {
+        CUnit* unit = node->second;
         auto* controller = unit->ServerController();
         float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
         float minimum = controller->stats.valuesB0[2].current;
@@ -102,7 +99,7 @@ int CWorldServer::Update() {
     ScriptVars& globals = MainScript()->globals_;
     auto& names = globals.groups.names;
     for (int i = 0; i < names.size; ++i) {
-        if (gamecrt::mbscmp(names.data[i].c_str(), worlddata::HeroesGroupText()) == 0) {
+        if (std::strcmp(names.data[i].c_str(), worlddata::HeroesGroupText()) == 0) {
             lib::InPlace<ScriptGroup> storage;
             ScriptGroup* group = globals.groups.values.CopyAt(storage.Get(), i);
             heroes.CopyFrom(*group);

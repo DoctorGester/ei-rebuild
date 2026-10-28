@@ -8,7 +8,6 @@
 #include "game_strings.h"
 #include "core_refcount.h"
 
-#include "lib/crt.h"
 #include "world_data.h"
 #include "lib/nan_audit.h"
 
@@ -53,7 +52,7 @@ void ServerSession::Tick(double dt) {
     if (announceTimer_ < worlddata::Zero()) {   // run out
         std::memcpy(&announceTimer_, &worlddata::AnnouncePeriodRef(), 4);
         const char* host = MasterHost();
-        if (gamecrt::mbscmp(host, game::EmptyText()) != 0) AnnounceToMaster();
+        if (std::strcmp(host, game::EmptyText()) != 0) AnnounceToMaster();
     }
 }
 

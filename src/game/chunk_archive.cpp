@@ -9,6 +9,7 @@
 #include "lib/static_object.h"
 #include "lib/mfc.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <string_view>
@@ -18,7 +19,6 @@ using Ref = ChunkArchive::Ref;
 using Stack = ChunkArchive::Stack;
 using SavedList = ChunkArchive::SavedList;
 using LoadedObjects = ChunkArchive::LoadedObjects;
-using RefElement = ChunkArchive::RefElement;
 
 namespace {
 
@@ -70,16 +70,16 @@ constinit lib::StaticObject<ChunkArchive::ClassRegistry> g_classRegistry = /*007
 ChunkArchive::ClassRegistry& ChunkArchive::Registry() { return *g_classRegistry; }
 
 namespace {
-void DestroyClassRegistry() { hash400::ClassRegistryDestruct(&*g_classRegistry); }
+void DestroyClassRegistry() { g_classRegistry.Destroy(); }
 } // namespace
 
 void ConstructClassRegistry() {
-    hash400::ClassRegistryConstruct(&*g_classRegistry);
-    libcrt::AtExit(DestroyClassRegistry);
+    g_classRegistry.Construct();
+    std::atexit(DestroyClassRegistry);
 }
 
 void ChunkArchive::PopChunk() {
-    Stack::Erase<RefElement>(stack_.End()->prev);
+    stack_.pop_back();
 }
 
 bool ChunkArchive::NextChild(const Ref* parent, std::int32_t* cursor, Ref* out) {
@@ -182,9 +182,9 @@ void ChunkArchive::LeaveChunk() {
     }
     // Writing: the chunk becomes a child of its parent (its content was written right after the
     // parent's, 5 bytes on to leave room for the header), then the stream is cut back to the parent.
-    Stack::Node* node = stack_.End()->prev;
-    const std::uint8_t* content = Data() + node->data.offset;   // taken before the parent's resize
-    AppendChild(&node->prev->data, node->data.id, content, static_cast<std::uint32_t>(node->data.size));
+    Ref* chunk = Current();
+    const std::uint8_t* content = Data() + chunk->offset;   // taken before the parent's resize
+    AppendChild(Parent(), chunk->id, content, static_cast<std::uint32_t>(chunk->size));
     PopChunk();
     Ref* parent = Current();
     dataStream_.Resize(static_cast<std::uint32_t>(parent->size + parent->offset));
@@ -224,18 +224,18 @@ void ChunkArchive::StreamField(int id, CMemoryStream* s) {
 // The number a save gives an object: its place in the saved list (1, 2, ...), written as the key (the loader maps
 // any key to the object it creates); numbers by first save keep the saves free of heap layout.
 std::uint32_t SavedNumber(const ChunkArchive* a, const CRefCounted* object) {
-    const ChunkArchive::SavedNumbers::Node* node = a->numbers_.Find(object);
-    return node ? node->value : 0;
+    auto node = a->numbers_.find(object);
+    return node != a->numbers_.end() ? node->second : 0;
 }
 
 // An object pointer field. An object not yet in the map joins the saved list (written by Close)
 // and the numbers (also while loading, where nothing reads the number). Writing
 // then stores the number; reading looks the field up and ignores it.
 void ChunkArchive::SaveObjectRef(int id, CRefCounted* object) {
-    if (!numbers_.Find(object)) {
+    if (!numbers_.contains(object)) {
         saved_.insert(saved_.end(), object);
-        ChunkArchive::SavedNumbers::Node* node = numbers_.FindOrInsert({object, 0});
-        node->value = static_cast<std::uint32_t>(numbers_.Size());
+        std::uint32_t& number = numbers_[object];
+        number = static_cast<std::uint32_t>(numbers_.size());
     }
     if (!loading_) {
         std::uint32_t number = SavedNumber(this, object);
@@ -257,23 +257,17 @@ CRefCounted* ChunkArchive::ObjectRef(int id) {
         if (FindField(this, id, &child)) std::memcpy(&key, Data() + child.offset, 4);
         else key = 0;
     }
-    LoadedObjects::Node* node = loaded_.Find(key);
-    return node ? node->value : nullptr;
+    auto node = loaded_.find(key);
+    return node != loaded_.end() ? node->second : nullptr;
 }
 
 // ---- An archive on the stack ----------------------------------------------------------------------
 
 ChunkArchive::ChunkArchive() {
-    stack_.Construct();
-    loaded_.Construct(100);
-    numbers_.Construct(100);
     version_ = 1;
 }
 
 ChunkArchive::~ChunkArchive() {
-    numbers_.Destroy();
-    loaded_.Destroy();
-    stack_.Release<RefElement>();
 }
 
 // ---- Whole archives over a CStream ---------------------------------------------------------------
@@ -320,7 +314,7 @@ bool WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
 }
 
 void ChunkArchive::Open(CStream* stream, int loading, int version) {
-    stack_.ClearWith([](Ref*) {});
+    stack_.clear();
     CMemoryStream* index = &indexStream_;
     CMemoryStream* data = &dataStream_;
     index->Clear();
@@ -344,7 +338,7 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
         Factory factory = Registry().factories[classId];
         CRefCounted* object = factory ? factory() : nullptr;
         saved_.insert(saved_.end(), object);
-        loaded_.FindOrInsert({key, nullptr})->value = object;
+        loaded_[key] = object;
     }
     if (version == 1) Field(2, &version_, 4);
     else version_ = version;
@@ -361,7 +355,7 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
         } else {
             AppendChild(record, 0, &key, 4);
         }
-        CRefCounted* object = loaded_.FindOrInsert({key, nullptr})->value;
+        CRefCounted* object = loaded_[key];
         if (object && EnterChunk(1)) {
             object->Serialize(this);
             LeaveChunk();
@@ -379,8 +373,8 @@ void ChunkArchive::Close(CStream* stream) {
     if (loading_) {
         // After a load: each loaded object gets a reference and loses it again (one without other
         // owners is deleted).
-        for (LoadedObjects::Node* node = loaded_.First(); node; node = loaded_.After(node)) {
-            CRefCounted* object = node->value;
+        for (auto node = loaded_.begin(); node != loaded_.end(); ++node) {
+            CRefCounted* object = node->second;
             if (!object) continue;
             ++object->refs_;
             if (--object->refs_ == 0) delete object;
@@ -395,8 +389,9 @@ void ChunkArchive::Close(CStream* stream) {
             saved_.pop_front();
             std::uint32_t vtable;
             std::memcpy(&vtable, object, 4);
-            const ClassRegistry::ClassIdMap::Node* found = Registry().classIds.Find(vtable);
-            std::int32_t classId = found ? found->value : -1;
+            const ClassRegistry::ClassIdMap& classIds = Registry().classIds;
+            auto found = classIds.find(vtable);
+            std::int32_t classId = found != classIds.end() ? found->second : -1;
             std::uint32_t number = SavedNumber(this, object);   // the number is the key, not the address
             index->Write(&classId, 4);
             index->Write(&number, 4);
@@ -416,9 +411,9 @@ void ChunkArchive::Close(CStream* stream) {
                 PopChunk();
             } else {
                 // LeaveChunk inlined, with pop_back and ResizeToCurrent.
-                Stack::Node* node = stack_.End()->prev;
-                const std::uint8_t* content = Data() + node->data.offset;
-                AppendChild(&node->prev->data, node->data.id, content, static_cast<std::uint32_t>(node->data.size));
+                Ref* chunk = Current();
+                const std::uint8_t* content = Data() + chunk->offset;
+                AppendChild(Parent(), chunk->id, content, static_cast<std::uint32_t>(chunk->size));
                 PopChunk();
                 ResizeToCurrent();
             }
@@ -430,8 +425,8 @@ void ChunkArchive::Close(CStream* stream) {
     }
     index->Clear();
     data->Clear();
-    loaded_.Clear();
-    numbers_.Clear();
+    loaded_.clear();
+    numbers_.clear();
     saved_.clear();
-    stack_.Clear<RefElement>();
+    stack_.clear();
 }

@@ -7,7 +7,7 @@
 #include "ui_screens.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
-#include "library_trees.h"
+#include "texture.h"
 
 #include "core_maths.h"
 #include "item_db_text.h"
@@ -191,18 +191,14 @@ void CMpHeroScreen::Close() {
 
 template <typename Object>
 void ReleaseCachedObjects(ItemObjectCache<Object>* cache) {
-    for (auto* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache<Object>::Map::Next(node))
-        node->second.object->Release();
+    for (auto& entry : cache->map) entry.second.object->Release();
 }
 template void ReleaseCachedObjects<CUiMesh>(ItemModelCache*);
 template void ReleaseCachedObjects<CTexture>(ItemTextureCache*);
 
 // Built inline by the main menu's Multiplayer click: the item screen, both caches
 // the name vectors, the text and the voice lists empty.
-CMpHeroScreen::CMpHeroScreen(CInterface3D* ui) : CItemScreen(ui) {
-    lib_trees::ConstructHeroItemCache(&models_);
-    lib_trees::ConstructHeroItemCache(&textures_);
-}
+CMpHeroScreen::CMpHeroScreen(CInterface3D* ui) : CItemScreen(ui) {}
 
 CMpHeroScreen::~CMpHeroScreen() {}
 

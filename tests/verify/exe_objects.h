@@ -145,8 +145,9 @@ struct AlignedArray {
 };
 static_assert(sizeof(AlignedArray<int>) == 0x10);
 
-// STLport's hashtable: the functor bytes, the bucket vector (start, finish, end of storage), the count. Its nodes
-// in iterator order: the buckets in order, each chain from its head.
+// STLport's hashtable: the functor bytes, the bucket vector (start, finish, end of storage), the count. Walked
+// like a std map (begin / end, ->first and ->second on the nodes) in iterator order: the buckets in order, each
+// chain from its head.
 template <class Node>
 struct HashTable {
     std::uint8_t functors[4];
@@ -154,21 +155,27 @@ struct HashTable {
     Node** finish;
     Node** endOfStorage;
     std::size_t count;
-    std::size_t Size() const { return count; }
-    template <class F>
-    void ForEach(F f) const {
-        for (Node** bucket = start; bucket != finish; ++bucket)
-            for (Node* n = *bucket; n; n = n->next) f(static_cast<const Node*>(n));
-    }
-    // The first node in iterator order, and the one after `node` (null at the end).
-    const Node* First() const { return After(start); }
-    const Node* Next(const Node* node) const {
-        if (node->next) return node->next;
-        for (Node** bucket = start; bucket != finish; ++bucket)
-            for (Node* n = *bucket; n; n = n->next)
-                if (n == node) return After(bucket + 1);
-        return nullptr;
-    }
+
+    class const_iterator {
+    public:
+        const Node& operator*() const { return *node_; }
+        const Node* operator->() const { return node_; }
+        const_iterator& operator++() {
+            node_ = node_->next ? node_->next : table_->After(table_->start + table_->BucketOf(node_) + 1);
+            return *this;
+        }
+        friend bool operator==(const const_iterator& a, const const_iterator& b) { return a.node_ == b.node_; }
+
+    private:
+        friend struct HashTable;
+        const_iterator(const HashTable* table, const Node* node) : table_(table), node_(node) {}
+        const HashTable* table_;
+        const Node* node_;
+    };
+
+    std::size_t size() const { return count; }
+    const_iterator begin() const { return {this, After(start)}; }
+    const_iterator end() const { return {this, nullptr}; }
 
 private:
     const Node* After(Node** bucket) const {
@@ -176,13 +183,20 @@ private:
             if (*bucket) return *bucket;
         return nullptr;
     }
+    // The bucket whose chain holds `node` (the view has no hash functor).
+    std::size_t BucketOf(const Node* node) const {
+        for (Node** bucket = start; bucket != finish; ++bucket)
+            for (Node* n = *bucket; n; n = n->next)
+                if (n == node) return static_cast<std::size_t>(bucket - start);
+        return static_cast<std::size_t>(finish - start);
+    }
 };
 
 template <class K, class V>
 struct HashMapNode {
     HashMapNode* next;
-    K key;
-    V value;
+    K first;
+    V second;
 };
 template <class K, class V>
 using HashMap = HashTable<HashMapNode<K, V>>;
@@ -197,15 +211,7 @@ struct ObjectIdMap {
 static_assert(sizeof(ObjectIdMap) == 0x18);
 
 // A party's named floats: a hashtable of {CString, float}.
-struct NamedFloat {
-    CString key;
-    float mapped;
-};
-struct NamedFloatNode {
-    NamedFloatNode* next;
-    NamedFloat value;
-};
-using NamedFloatTable = HashTable<NamedFloatNode>;
+using NamedFloatTable = HashMap<CString, float>;
 static_assert(sizeof(NamedFloatTable) == 0x14);
 
 // An element of the network sessions' lists: a counted pointer.

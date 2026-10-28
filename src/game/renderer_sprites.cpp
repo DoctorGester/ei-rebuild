@@ -20,6 +20,7 @@
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <utility>
 #include <vector>
@@ -90,22 +91,22 @@ void EnsureStatics() {
     if (!(g_guards & 1)) {
         g_guards |= 1;
         Unused() = std::vector<ProjectedVertex>{};
-        libcrt::AtExit(FreeUnused);
+        std::atexit(FreeUnused);
     }
     if (!(g_guards & 2)) {
         g_guards |= 2;
         Corners() = std::vector<TLVertex>{};
-        libcrt::AtExit(FreeCorners);
+        std::atexit(FreeCorners);
     }
     if (!(g_guards & 4)) {
         g_guards |= 4;
         g_outcodes.Construct();
-        libcrt::AtExit(DestroyOutcodes);
+        std::atexit(DestroyOutcodes);
     }
     if (!(g_guards & 8)) {
         g_guards |= 8;
         g_indices.Construct();
-        libcrt::AtExit(DestroyIndices);
+        std::atexit(DestroyIndices);
     }
 }
 
@@ -115,7 +116,7 @@ void EnsureSortStatic(std::uint8_t bit, std::vector<T>& array, void(__cdecl* onE
     if (g_sortGuards & bit) return;
     g_sortGuards |= bit;
     array = std::vector<T>{};
-    libcrt::AtExit(onExit);
+    std::atexit(onExit);
 }
 void EnsureSortStatics() {
     EnsureSortStatic(1, CornersCopy(), FreeCornersCopy);

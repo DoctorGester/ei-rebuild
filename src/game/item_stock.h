@@ -8,10 +8,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <list>
+#include <unordered_map>
 #include <vector>
 
 #include "lib/stlp.h"
-#include "lib/stlp_hash.h"
+#include "lib/hash_map.h"
+#include "engine_object.h"
 #include "item_db.h"
 #include "game_data.h"
 
@@ -40,8 +42,7 @@ using StockMaterialVector = std::vector<StockMaterial>;
 // map's lists hold recipe pointers.
 using StockList = std::list<CItem*>;
 using StockListNode = StockList::iterator;
-using StockSpellList = stlp::list<CSpell*>;
-using StockSpellListNode = StockSpellList::Node;
+using StockSpellList = std::list<HeldPtr<CSpell>>;
 using StockRecipeList = std::list<void*>;
 
 using StockStringVector = std::vector<std::string>;
@@ -50,14 +51,14 @@ using StockStringVector = std::vector<std::string>;
 using SpellRecipe = itemdb::SpellListRecord;
 
 // A vector of spell recipes (the spell database's lists for weapons, armors and scrolls).
-using SpellRecipeVector = stlp::vector<SpellRecipe>;
+using SpellRecipeVector = std::vector<SpellRecipe>;
 
-// The recipe map (ItemStock::spellMap): recipe lists by spell name.
-using StockRecipeMap = stlp::hashtable<stlp::StringListTraits>;
+// The recipe map (ItemStock::spellMap): recipe lists by spell name, walked in STLport's order (the spells are
+// offered in it, with the random rolls).
+using StockRecipeMap = lib::HashMap<std::string, std::list<void*>, lib::TextHash>;
 
-// Records by name (ItemStock::modifierMap; the spells and modifiers by name); stlp::NamedSlot inserts a null
-// record for a new name.
-using RecordNameMap = stlp::NameMap;
+// Records by name (ItemStock::modifierMap); operator[] inserts a null record for a new name.
+using RecordNameMap = std::unordered_map<std::string, itemdb::SpellModifierRecord*>;
 
 namespace stock {
 // Scratch vectors: the prototypes taken, the candidate materials of one prototype (pointers into
@@ -99,8 +100,8 @@ struct ItemStock {
     float baseLevels[8];            // set with scrollLevels (SetLevels)
     float scrollLevels[8];          // the spell level per school for the scrolls
 
-    // Both maps get NextPrime(100) buckets (their functor bytes left as they are: an uninitialised stack byte
-    // is copied); baseLevels and scrollLevels are not written.
+    // The owner and class index 0 (the members are the template's to build); baseLevels and scrollLevels are
+    // not written.
     ItemStock* Construct(CParty* context);
 
     // `record` appended to the armors / weapons / quick items / spells / modifiers unless null or already
@@ -184,6 +185,3 @@ struct ItemStock {
 };
 static_assert(offsetof(ItemStock, materials) == 0x2C);
 static_assert(offsetof(ItemStock, spellMap) == 0x50);
-static_assert(offsetof(ItemStock, baseLevels) == 0x78);
-static_assert(offsetof(ItemStock, scrollLevels) == 0x98);
-static_assert(sizeof(ItemStock) == 0xB8);

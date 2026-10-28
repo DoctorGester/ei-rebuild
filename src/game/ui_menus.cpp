@@ -59,7 +59,7 @@ void CSaveLoadWindow::TakeSelectedTitle() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     nameTyped_ = false;
-    name_ = entries_.begin()[selected].title_;
+    name_ = entries_[selected].title_;
     cursor_ = name_.size();
 }
 
@@ -312,10 +312,7 @@ void COptionsWindow::Update() {
 
 // --- The destructor body ------------------------------------------------------------------
 
-COptionsWindow::~COptionsWindow() {
-    for (OptionBinding& binding : bindings_) binding.Destroy();
-    bindings_.FreeStorage();
-}
+COptionsWindow::~COptionsWindow() {}
 
 // --- Scroll bar --------------------------------------------------------------------------------
 

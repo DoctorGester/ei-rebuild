@@ -58,8 +58,8 @@ struct BriefingShownItem {
     CEngineObject* frame;
 };
 
-// A copy of the local player's variables whose names start with a prefix (100 buckets), walked in the table's
-// order.
+
+// A copy of the local player's variables whose names start with a prefix, walked in the table's order.
 class BriefingVariables {
 public:
     explicit BriefingVariables(const char* prefix);
@@ -67,8 +67,8 @@ public:
     BriefingVariables(const BriefingVariables&) = delete;
     BriefingVariables& operator=(const BriefingVariables&) = delete;
 
-    NamedFloatTable::Node* First() const;
-    NamedFloatTable::Node* Next(NamedFloatTable::Node* node) const;
+    NamedFloatTable::const_iterator begin() const { return table_.begin(); }
+    NamedFloatTable::const_iterator end() const { return table_.end(); }
 
 private:
     NamedFloatTable table_;
@@ -101,7 +101,7 @@ public:
 
     int listed_;
     int portraits_;
-    stlp::vector<CRefObject*> players_;       // counted PlayerMessage records
+    std::vector<CountedPtr<CRefObject>> players_;   // PlayerMessage records
     std::vector<std::string> texts_;
 };
 static_assert(offsetof(CChatWindow, listed_) == 0x148);
@@ -265,7 +265,7 @@ public:
     CChatWindow* chat_;              // a network client's only
     std::vector<int> people_;       // ids of the local player's objects that are text keys
     float markPhase_;                // kept below 1
-    stlp::vector<BriefingSpeaker> speakers_;
+    std::vector<BriefingSpeaker> speakers_;
     int chatActive_;                 // the chat window takes the input
 };
 // What a speaker's controller calls when its dialogue animation has finished (its actionDone).

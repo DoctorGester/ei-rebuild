@@ -596,8 +596,8 @@ void CUnitServer::LiftNearby(UnitList* list, const Vector3* point, char moving) 
     }
     // The party members moving (when `moving`) or following this unit are lifted and listed too.
     const PartyMap* party = &player->units_;
-    for (PartyMap::Node* node = party->First(); node; node = party->After(node)) {
-        CUnit* member = node->value;
+    for (auto node = party->begin(); node != party->end(); ++node) {
+        CUnit* member = node->second;
         if (!member) break;
         if (member == unit) continue;
         auto* controller = member->ServerController();

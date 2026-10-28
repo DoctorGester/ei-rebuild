@@ -9,12 +9,11 @@
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "lib/static_object.h"
-#include "lib/stlp_tree_abi.h"
-#include "library_trees.h"
 #include "ui.h"        // CInterface3D, CUiSurface
 #include "ui_gdi.h"    // CDC, CFont
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 #include "game_data.h"
@@ -23,56 +22,30 @@ namespace strmap {
 
 namespace {
 
-using Node = StringMap::Node;
-
-// STLport (library): the map<string, string> instantiation's pair constructor, insert
-// with a hint, pair destructor and its scalar deleting destructor,
-// as the map's element policy runs them (lib_trees::StringPairs registers them).
-using Pair = StringMap::Element;
-
 } // namespace
 
 // Table[key] = value (a missing key is inserted at its lower bound with an
 // empty value first).
 void CDebugPanel::Set(const char* key, const char* value) {
-    std::string k(key);
-    StringMap& map = entries_;
-    Node* it = map.lower_bound(k);
-    if (it == map.end() || k < it->first) {
-        std::string empty;
-        lib::InPlace<StringMap::Value> pair;
-        Pair::Make(pair.Get(), k, empty);
-        it = map.InsertUnique<Pair>(it, *pair.Get());
-        Pair::Destroy(pair.Get());
-    }
-    it->second.assign(value);
+    entries_[std::string(key)].assign(value);
 }
 
 // Removes `key`.
 void CDebugPanel::Remove(const char* key) {
-    StringMap& map = entries_;
-    Node* it;
-    {
-        std::string k(key);
-        it = map.find(k);
-    }
-    if (it != map.end()) map.Erase<Pair>(it);
+    entries_.erase(std::string(key));
 }
 
-// The destructor (at exit): every node destroyed and freed (_M_erase's loop: the right subtree, the pair's
-// deleting destructor with 0, the node back to the pool), then the header back to the pool.
-CDebugPanel::~CDebugPanel() { entries_.Destroy<Pair>(); }
+// The destructor runs at exit (the exit function the static initialiser registers).
+CDebugPanel::~CDebugPanel() = default;
 
-// The constructor. A static initialiser runs it on the global before WinMain and registers the destructor
-// above with atexit. The empty map (its header node from the node pool); the interface, surface and font
-// are Init's. The map's compare byte is an uninitialised stack byte and is left as it is.
-CDebugPanel::CDebugPanel() { entries_.Construct(); }
+// The constructor. A static initialiser runs it on the global before WinMain: the empty map; the interface,
+// surface and font are Init's.
+CDebugPanel::CDebugPanel() {}
 
 // The panel, zero at the start: built by a static initialiser in the list's order and destroyed by the exit
 // function
 // it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CDebugPanel> g_debugPanel = /*0079B930*/ {};
-static_assert(sizeof(CDebugPanel) == 0x44);
 
 namespace {
 void DestroyDebugPanel() { g_debugPanel.Destroy(); }
@@ -80,7 +53,7 @@ void DestroyDebugPanel() { g_debugPanel.Destroy(); }
 
 void ConstructDebugPanel() {
     g_debugPanel.Construct();
-    libcrt::AtExit(DestroyDebugPanel);
+    std::atexit(DestroyDebugPanel);
 }
 
 // ---- The panel ---------------------------------------------------------------------------------
@@ -171,25 +144,22 @@ void CDebugPanel::Redraw() {
     mfc::impl::CGdiObject* oldFont = dc->SelectFont(font_);
     RECT key = {0, 0, (asked.right - asked.left) / 2, 20};
     RECT value = {(asked.right - asked.left) / 2, 0, asked.right - asked.left, 20};
-    StringMap& map = entries_;
-    Node* it = map.begin();
-    while (it != map.end()) {
+    for (const auto& [name, text] : entries_) {
         dc->SetTextColor(static_cast<COLORREF>(0x080808));
         RECT shadow = key;
         gameapi::OffsetRect(&shadow, 1, 1);
         RECT r = shadow;
-        DrawString(dc, it->first, &r);
+        DrawString(dc, name, &r);
         shadow = value;
         gameapi::OffsetRect(&shadow, 1, 1);
         r = shadow;
-        DrawString(dc, it->second, &r);
+        DrawString(dc, text, &r);
         dc->SetTextColor(static_cast<COLORREF>(0xFFFFFF));
-        DrawString(dc, it->first, &key);
-        DrawString(dc, it->second, &value);
+        DrawString(dc, name, &key);
+        DrawString(dc, text, &value);
         gameapi::OffsetRect(&key, 0, 15);
         gameapi::OffsetRect(&value, 0, 15);
         if (key.bottom > asked.bottom - asked.top) break;
-        it = StringMap::Next(it);
     }
     dc->SelectFont(oldFont);
     UiSurfaceReleaseDC(surface_);

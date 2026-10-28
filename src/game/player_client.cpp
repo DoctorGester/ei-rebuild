@@ -8,7 +8,6 @@
 #include "player_client.h"
 
 #include "app_helpers.h"
-#include "lib/crt_iostream.h"
 #include "camera.h"
 #include "net_link.h"
 #include "lib/static_object.h"
@@ -36,9 +35,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <list>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace {
@@ -61,7 +62,6 @@ struct LoginRequest {
 };
 static_assert(sizeof(LoginRequest) == 0x88);
 
-libcrt::Ostream* GameCout() { return &console::g_netLogOut; }
 // The texts the original reads from the exe: the traffic log, the login, the dispatch errors.
 const char* TextClientToServer() { return "client to server, size = "; }
 const char* TextSqueezedSize() { return " squeezed size = "; }
@@ -143,8 +143,7 @@ int CPlayerClient::SendToServer() {
         if (Owner()->logTraffic_ != 0) {
             std::uint32_t packedSize = packed.size_;
             std::uint32_t size = out_.Size();
-            GameCout()->PutText(TextClientToServer())->PutUnsigned(size)->PutText(TextSqueezedSize())
-                ->PutUnsigned(packedSize)->PutChar('\n')->Apply(libcrt::FlushManipulator);
+            console::EndLine(console::g_netLogOut << TextClientToServer() << size << TextSqueezedSize() << packedSize);
         }
         sent = link->Send(&packed) ? 1 : 0;
     }
@@ -265,8 +264,8 @@ int CPlayerClient::OnExperienceAll() {
     float amount;
     in_.Read(&amount, 4);
     CPlayer::UnitMap& units = Owner()->units_;
-    for (CPlayer::UnitMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
-        CUnit* unit = node->value;
+    for (auto node = units.begin(); node != units.end() && node->second; ++node) {
+        CUnit* unit = node->second;
         TheClientWorld()->ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
     }
     return 1;
@@ -329,8 +328,7 @@ int CPlayerClient::OnItemsReceived() {
 
 int CPlayerClient::OnParty() {
     CParty* party = Owner()->Party();
-    NamedFloatTable saved;
-    saved.CopyConstruct(party->variables_);
+    NamedFloatTable saved(party->variables_);
     {
         CMemoryStream block;
         in_.ReadSized(&block);
@@ -347,17 +345,13 @@ int CPlayerClient::OnParty() {
             if (walk.manager != nullptr) --walk.manager->refCount_;   // the iterator's inlined destructor
         }
         if (IsMultiplayerClient()) {
-            // A multiplayer client keeps its variables (the table's three functor bytes included).
-            NamedFloatTable& variables = party->variables_;
-            variables.Clear();
-            std::memcpy(variables.Functors(), saved.Functors(), 3);
-            variables.CopyFrom(saved);
+            // A multiplayer client keeps its variables.
+            party->variables_ = saved;
         }
         TheClientWorld()->ApplyObjectVariables();
-        GameCout()->PutText(TextPartyReceived())->PutChar('\n')->Apply(libcrt::FlushManipulator);
+        console::EndLine(console::g_netLogOut << TextPartyReceived());
         TheGameFlow()->ReturnLocalParty();
     }
-    saved.Destroy();   // inlined: every node deleted, then the bucket vector
     return 1;
 }
 
@@ -546,7 +540,7 @@ int CPlayerClient::OnNewObject() {
     if (created->type_ == kTypeHumanoid && (Same(model, TextHuman()) || Same(model, TextHumanFemale()))) {
         // The head part takes the prototype's hair, or goes without one.
         for (std::size_t i = 0; i < parts.size(); ++i) {
-            if (gamecrt::mbscmp(parts[i].c_str(), TextHairPart()) != 0) continue;
+            if (std::strcmp(parts[i].c_str(), TextHairPart()) != 0) continue;
             int hair = PrototypeRecord(header.prototype)->hair;
             if (hair == -1) parts.erase(parts.begin() + static_cast<std::ptrdiff_t>(i));
             else parts[i] = str::Format(TextHairFormat(), hair);
@@ -699,12 +693,12 @@ namespace {
 constexpr std::uint32_t kUnitInClientParty = 0x400000;
 constexpr int kSessionKindSingle = 1;
 
-// The client's party unit ids (hash_set<int>): insert_unique, find, clear.
-using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
+// The client's party unit ids (hash_set<int>): insert, find, clear.
+using IntSet = std::unordered_set<int>;
 // Built by the static initialiser and destroyed by the exit function it registers (docs/notes/standalone.md).
 constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};
 IntSet& PartyIdSet() { return *g_partyIdSet; }
-void DestroyPartyIdSet() { g_partyIdSet->Destroy(); }
+void DestroyPartyIdSet() { g_partyIdSet.Destroy(); }
 int ReadDword(BitStream* in) {
     int value;
     in->Read(&value, 4);
@@ -714,15 +708,14 @@ int ReadDword(BitStream* in) {
 } // namespace
 
 void ConstructPartyIdSet() {
-    g_partyIdSet->Construct(100, 0, 0, 0);
-    libcrt::AtExit(DestroyPartyIdSet);
+    g_partyIdSet.Construct();
+    std::atexit(DestroyPartyIdSet);
 }
 
 int CPlayerClient::OnPartyState() {
     CPlayer* player = Owner();
     for (int i = 0; i < std::ssize(partyUnitIds_); ++i) {
-        bool inserted;
-        PartyIdSet().InsertUnique(stlp::DwordKeyed<4>{static_cast<std::uint32_t>(partyUnitIds_[i])}, inserted);
+        PartyIdSet().insert(partyUnitIds_[i]);
         CUnit* unit = player->WorldContext()->FindUnit(partyUnitIds_[i]);
         if (unit != nullptr) unit->flags_ &= ~kUnitInClientParty;
     }
@@ -740,11 +733,11 @@ int CPlayerClient::OnPartyState() {
         auto* unit = player->WorldContext()->FindUnit(id);
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
-        if (PartyIdSet().Find(static_cast<std::uint32_t>(id)) == nullptr && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&
+        if (!PartyIdSet().contains(id) && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&
             TheClientWorld()->ticksRun_ >= 1)
             unit->Controller()->RestartFadeIn();
     }
-    PartyIdSet().Clear();
+    PartyIdSet().clear();
 
     player->ClientWorld()->partyDanger_ = ReadDword(&in_);
     int others = ReadDword(&in_);

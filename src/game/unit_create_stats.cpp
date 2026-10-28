@@ -22,6 +22,7 @@
 #include "ei/x87.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 #include "logic_settings.h"
 
 #include <bit>
@@ -502,7 +503,7 @@ namespace {
 
 bool NamesRequirement(const std::string& text) {
     if (text.size() == 0) return false;
-    return gamecrt::mbscmp(text,
+    return str::Compare(text,
                            "none") != 0;
 }
 const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) { return unitdb::SkillLevelAt(index); }
@@ -575,7 +576,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
         UnitOrNull(object)->SetPrototype23C(prototype);
     }
     UnitPrototypeRecord* record = unitdb::PrototypeTable().FindByName(name);
-    object->prototypeId_ = record ? static_cast<std::uint32_t>(record - unitdb::PrototypeTable().begin) : 0xFFFFFFFFu;
+    object->prototypeId_ = record ? static_cast<std::uint32_t>(record - unitdb::PrototypeTable().records.data()) : 0xFFFFFFFFu;
     return 1;
 }
 

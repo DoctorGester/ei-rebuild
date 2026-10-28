@@ -11,7 +11,6 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/crt_iostream.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -344,9 +343,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
         AICallRecord& call = data[i];
         if (--call.kind >= 0) continue;
         if (call.hostileMask != 0) {
-            console::GameOStream* log = &(*AiLog() << "Unit ");
-            log->PutInt(unit->id_);
-            console::EndLine(*log << " hear delayed sound: " << call.text.c_str());
+            console::EndLine(AiLog() << "Unit " << unit->id_ << " hear delayed sound: " << call.text.c_str());
             unit->ServerController()->AddHostileMask(static_cast<std::uint32_t>(call.hostileMask));
         } else if (memory->noticedLevel < 900) {
             // The inlined Notice of level 900: logged when the level rises by more than 100 or the point is
@@ -364,7 +361,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
             memory->noticedLevel = 900;
             memory->noticedY = point[1];
             memory->noticedKind = -3;
-            if (changed) console::EndLine(*AiLog() << "Delayed sound: " << call.text.c_str());
+            if (changed) console::EndLine(AiLog() << "Delayed sound: " << call.text.c_str());
         }
         call.Destruct();
         int after = size - i - 1;

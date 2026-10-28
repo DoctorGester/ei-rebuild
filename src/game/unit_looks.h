@@ -6,11 +6,9 @@
 // meanwhile.
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -51,26 +49,8 @@ struct FiguredUnitRecord : DressedUnitRecord {
 static_assert(offsetof(FiguredUnitRecord, morphS) == 0x24);
 static_assert(sizeof(FiguredUnitRecord) == 0x3C);
 
-// Both lists as a zone load holds them on its stack: empty vectors, destroyed as the game's inlined
-// destructors do it (the dressed records first; per record the id lists from the back, a figured record's
-// names before them; then each list's storage).
+// Both lists as a zone load holds them on its stack (destroyed the dressed records first).
 struct UnitLooks {
-    UnitLooks() = default;
-    UnitLooks(const UnitLooks&) = delete;
-    ~UnitLooks() {
-        for (DressedUnitRecord* r = dressed.Start(); r != dressed.Finish(); ++r) {
-            std::destroy_at(&r->extraWeapons);
-            std::destroy_at(&r->items);
-        }
-        dressed.FreeStorage();
-        for (FiguredUnitRecord* r = figured.Start(); r != figured.Finish(); ++r) {
-            std::destroy_at(&r->names);
-            std::destroy_at(&r->extraWeapons);
-            std::destroy_at(&r->items);
-        }
-        figured.FreeStorage();
-    }
-
-    stlp::vector<FiguredUnitRecord> figured;
-    stlp::vector<DressedUnitRecord> dressed;
+    std::vector<FiguredUnitRecord> figured;
+    std::vector<DressedUnitRecord> dressed;
 };

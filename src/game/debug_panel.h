@@ -5,7 +5,7 @@
 // code (renderer_scene.cpp, ui_interface_draw.cpp) sets its lines, the console shortcuts remove them.
 
 #include "lib/stlp.h"
-#include "lib/stlp_tree.h"
+#include <map>
 
 #include <windows.h>
 
@@ -18,7 +18,7 @@ namespace mfc::impl { class CFont; }
 
 namespace strmap {
 
-using StringMap = stlp::map<std::string, std::string>;
+using StringMap = std::map<std::string, std::string>;
 
 // The vtable has two slots and no destructor, over the abstract one.
 class CDebugPanel {
@@ -51,9 +51,5 @@ public:
     std::uint8_t unused_3D[3];
     DWORD lastDraw_;             // the tick of the last drawing
 };
-static_assert(offsetof(CDebugPanel, entries_) == 0x04 && offsetof(CDebugPanel, ui_) == 0x10 &&
-              offsetof(CDebugPanel, font_) == 0x18 && offsetof(CDebugPanel, shown_) == 0x1C &&
-              offsetof(CDebugPanel, asked_) == 0x2C && offsetof(CDebugPanel, visible_) == 0x3C &&
-              offsetof(CDebugPanel, lastDraw_) == 0x40);
 
 } // namespace strmap

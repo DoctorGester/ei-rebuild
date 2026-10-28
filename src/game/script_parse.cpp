@@ -5,14 +5,13 @@
 #include "script.h"
 #include "game_strings.h"
 #include "script_parse.h"
-#include "lib/mfc_string.h"
 #include "script_addon.h"
 #include "game_data.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 
 #include <cstdarg>
 
@@ -25,9 +24,9 @@
 
 namespace scriptparse {
 
-int IsDigit(int c) { return gamecrt::isdigit(c); }
-int IsSpace(int c) { return gamecrt::isspace(c); }
-int Mbscmp(std::string_view a0, std::string_view a1) { return gamecrt::mbscmp(a0, a1); }
+int IsDigit(int c) { return text::IsDigit(c); }
+int IsSpace(int c) { return text::IsSpace(c); }
+int Mbscmp(std::string_view a0, std::string_view a1) { return str::Compare(a0, a1); }
 
 } // namespace scriptparse
 
@@ -322,11 +321,10 @@ void __fastcall ClassifyToken(const char* text, int* id, int* rest) {
     if (id) *id = 0;
     int best = -1;
     const bool addon = scriptaddon::Enabled();
-    const int* fold = gamecrt::CaseFoldTable();
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
         int length = static_cast<int>(std::strlen(k->name));
         if (length < best) continue;
-        if (!gamecrt::SameIgnoringCase(fold, p, k->name, length)) continue;
+        if (text::CompareIgnoringCase(p, k->name, static_cast<std::size_t>(length)) != 0) continue;
         best = length;
         // Rebirth's AddNewScriptCommands: an identifier-like match must end the identifier.
         if (addon && scriptaddon::RejectsMatch(k->name, p[length])) continue;
@@ -423,11 +421,12 @@ BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
         int length = static_cast<int>(p - start);
         if (length > 0xFF) length = 0xFF;
         char buffer[0x100];
-        gamecrt::strncpy(buffer, start, length);
+        #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
+        std::strncpy(buffer, start, length);
         if (length == 0) continue;
         buffer[length] = 0;
 
-        if (gamecrt::strncmp(buffer, kCommentOpen, std::strlen(kCommentOpen)) == 0) {
+        if (std::strncmp(buffer, kCommentOpen, std::strlen(kCommentOpen)) == 0) {
             // Block comment: the search for the end starts after the token (so "/**/" written as
             // one token does not end it) and skips quoted text.
             if (!*p) return Error(this, line, 1, "End of file before '%s'", kCommentClose);
@@ -435,7 +434,7 @@ BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
                 const char c = *p;
                 if (c == '\n') ++line;
                 if (c == quote) inQuote = !inQuote;
-                if (!inQuote && gamecrt::strncmp(p, kCommentClose, std::strlen(kCommentClose)) == 0) {
+                if (!inQuote && std::strncmp(p, kCommentClose, std::strlen(kCommentClose)) == 0) {
                     p += std::strlen(kCommentClose);
                     break;
                 }
@@ -444,7 +443,7 @@ BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
             }
             continue;
         }
-        if (gamecrt::strnicmp(buffer, kLineComment, std::strlen(kLineComment)) == 0) {
+        if (text::CompareIgnoringCase(buffer, kLineComment, std::strlen(kLineComment)) == 0) {
             while (*p && *p != '\n') ++p;
             continue;
         }

@@ -18,7 +18,6 @@
 #include "lib/stlp.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "lib/stlp_vector_refs.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -54,19 +53,6 @@ constexpr int kFirstStatusLeft = 0x118;   // with the window at 0x1D0; 0x2E8 wit
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kPickCommandA = 4, kPickCommandB = 5;   // the client's command kinds for picks 1 / 2
 
-// Vector<counted pointer>::_M_insert_overflow(pos, x, n) (stlp::CountedRefVector's): a new
-// block with the elements before `pos`, `n` counted copies of `x`, the rest; the old elements released.
-
-// The counted pointers' inlined helpers (16-bit count; released through CRefObject::Release).
-void AddRef(CRefObject* object) {
-    if (object) ++object->refs_;
-}
-void Assign(CRefObject** slot, CRefObject* object) {
-    CRefObject* old = *slot;
-    *slot = object;
-    AddRef(object);
-    if (old) old->Release();
-}
 
 net::PlayerMessage* PlayerOf(CRefObject* object) { return static_cast<net::PlayerMessage*>(object); }
 // The active screen: the briefing, whose chat window this is (its chatActive_ is the pick mode).
@@ -142,10 +128,7 @@ void CChatWindow::ShowPlayers() {
     portraits_ = 0;
     listed_ = 0;
 
-    // The vector emptied (each player released, front to back).
-    for (CRefObject** p = players_.Start(); p != players_.Finish(); ++p)
-        if (*p) (*p)->Release();
-    players_.Finish() = players_.Start();
+    players_.clear();
 
     // Our own player first, the others after it; none while the binding is gone.
     net::ClientSession* client = net::GameClient();
@@ -154,33 +137,16 @@ void CChatWindow::ShowPlayers() {
         if (!Live(client->binding_)) continue;
         CRefObject* player = node->data.ptr;
         bool own = client->binding_->PlayerRef().ptr == player;
-        CRefObject**& finish = players_.Finish();
-        if (finish == players_.EndOfStorage()) {
-            players_.InsertOverflow<stlp::CountedPtrElement<CRefObject>>(own ? players_.Start() : finish, player, 1);
-        } else if (!own || players_.Start() == finish) {
-            if (finish) {
-                *finish = player;
-                AddRef(player);
-            }
-            ++finish;
-        } else {
-            // insert(begin(), x) with room: the last element copied up, the rest moved back by
-            // assignment, then x at the front.
-            *finish = finish[-1];
-            AddRef(*finish);
-            ++finish;
-            CRefObject* copy = player;
-            AddRef(copy);
-            for (CRefObject** p = finish - 2; p != players_.Start(); --p) Assign(p, p[-1]);
-            Assign(players_.Start(), copy);
-            if (copy) copy->Release();
-        }
+        if (own)
+            players_.emplace(players_.begin(), player);
+        else
+            players_.emplace_back(player);
         ++listed_;
     }
 
     // The faces (the strings live across players: the sex letter carries over).
     std::string model, picture, sex, build;
-    for (CRefObject** p = players_.Start(); p != players_.Finish(); ++p) {
+    for (auto p = players_.begin(); p != players_.end(); ++p) {
         net::PlayerMessage* player = PlayerOf(*p);
         UnitPrototypeRecord* prototype;
         {
@@ -220,7 +186,7 @@ void CChatWindow::Update() {
     surface->Clear();
     std::string status, offer;
     int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? kFirstFaceLeft : kFirstStatusLeft;
-    for (CRefObject** p = players_.Start(); p != players_.Finish(); ++p, left -= kFaceWidth) {
+    for (auto p = players_.begin(); p != players_.end(); ++p, left -= kFaceWidth) {
         net::PlayerMessage* player = PlayerOf(*p);
         status.clear();
         switch (player->state_) {

@@ -143,7 +143,7 @@ function does; this file keeps what is not visible in the code.
 - Master server: port 28004 (`SetPublic` 00417E10); TCP link 0x40 bytes (outgoing and incoming
   growing buffers, socket, state; 00440C60 / 00440D40 / 00440DE0). UDP driver 004407F0-00440BE0 and
   address parse / format 00440440 / 00440690; session rate 12500 local / 2500 otherwise (00783E34 / 38,
-  clamp 500..50000, send interval from 0073BF48). Winsock is called through the game's import thunks.
+  clamp 500..50000, send interval from 0073BF48). Winsock is called through the import slots (`gameapi::`).
 - Game port: one UDP port, 8888 (int 00783E30), for the server session's socket (00412D80 opens it through
   004409A0 and ignores a failed bind: the session then has no socket), the local client's join of 127.0.0.1
   (StartServer 0057E740) and the lobby's pings. A second game on the machine therefore joins the first

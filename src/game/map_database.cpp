@@ -8,8 +8,7 @@
 #include "console.h"
 #include "object_tables.h"
 
-#include "../lib/crt.h"
-#include "lib/crt.h"
+#include "../lib/text_case.h"
 #include "text_reader.h"
 #include "game_arrays.h"
 #include "game_slots.h"
@@ -48,7 +47,7 @@ void StoreRadians(float* out, const char* text) {
 }
 
 bool Is(const char* word, const char* text) {
-    return gamecrt::mbscmp(word, text) == 0;
+    return std::strcmp(word, text) == 0;
 }
 
 class Loader {
@@ -97,7 +96,7 @@ void Loader::AddMap() {
     const char* allodName = words_[2].c_str();
     for (int i = 0; i < db_->allods.size; ++i) {
         AllodRecord& allod = db_->allods.data[i];
-        if (gamecrt::mbsicmp(allod.name, allodName) != 0) continue;
+        if (text::CompareIgnoringCase(allod.name, allodName) != 0) continue;
         lib::SetAtGrow(allod.maps, std::ssize(allod.maps), map_);
         break;
     }
@@ -260,5 +259,5 @@ void DestroyMapDatabase() { g_mapDatabase->Destruct(); }
 
 void ConstructMapDatabase() {
     g_mapDatabase->Construct();
-    libcrt::AtExit(DestroyMapDatabase);
+    std::atexit(DestroyMapDatabase);
 }

@@ -17,7 +17,6 @@
 #include "record_arrays.h"
 
 CAIMap::CAIMap() {
-    bridgeHeights.Construct(100);
     footprint.hashed = true;
     bridges.hashed = true;
     waterDepth.width = 1;
@@ -65,7 +64,6 @@ CAIMap::~CAIMap() {
     FreeGrid(regions.backward.records);
     FreeGrid(regions.forward.records);
     FreeGrid(waterDepth);
-    bridgeHeights.Destroy();
 }
 
 void CAIMap::Reset() {

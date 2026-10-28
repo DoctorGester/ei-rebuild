@@ -5,6 +5,7 @@
 
 #include "ei/x87.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 #include "game_data.h"
@@ -83,7 +84,7 @@ int ClipPlane(TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int*
 
 void ConstructWorkWords() {
     g_workWords.Construct();
-    libcrt::AtExit(DestroyWorkWords);
+    std::atexit(DestroyWorkWords);
 }
 
 namespace clip {

@@ -56,40 +56,16 @@ CTime* CTime::Construct(int year, int month, int day, int hour, int minute, int 
     return this;
 }
 
-CTime* CTime::ConstructSystemTime(const SYSTEMTIME& at, int dst) {
-    if (at.wYear < 1900) {
-        time = 0;
-    } else {
-        CTime converted;
-        converted.Construct(at.wYear, at.wMonth, at.wDay, at.wHour, at.wMinute, at.wSecond, dst);
-        time = converted.time;
-    }
-    return this;
-}
-
-CTime* CTime::ConstructFileTime(const FILETIME& at, int dst) {
-    FILETIME local;
-    SYSTEMTIME system;
-    if (!gameapi::FileTimeToLocalFileTime(&at, &local) || !gameapi::FileTimeToSystemTime(&local, &system)) {
-        time = 0;
-    } else {
-        CTime converted;
-        converted.ConstructSystemTime(system, dst);
-        time = converted.time;
-    }
-    return this;
-}
-
 CTime* CTime::CurrentTime(CTime* out) {
     out->time = Now();
     return out;
 }
 
-CString CTime::Format(const char* format) const {
+std::string CTime::Format(const char* format) const {
     char buffer[128];
     const std::tm* at = Localtime(&time);
     if (!at || !Strftime(buffer, sizeof(buffer), format, at)) buffer[0] = '\0';
-    return CString(buffer);
+    return buffer;
 }
 
 } // namespace mfc::impl

@@ -12,7 +12,7 @@
 #include "text_split.h"
 #include "lib/mfc.h"
 #include "lib/str.h"
-#include "lib/stlp_hash.h"
+#include "lib/stlp.h"
 #include "game_data.h"
 
 #include <bit>
@@ -343,15 +343,15 @@ int LootTableIndex(int which, const char* name) {
     SpellDatabase& spells = TheSpellDatabase();
     switch (which) {
     case 0:
-        return TableIndex(items.weapons, stlp::NamedSlot<WeaponRecord>(items.weapons.names, key));
+        return TableIndex(items.weapons, items.weapons.names[key]);
     case 1:
-        return TableIndex(items.armors, stlp::NamedSlot<ArmorRecord>(items.armors.names, key));
+        return TableIndex(items.armors, items.armors.names[key]);
     case 2:
-        return TableIndex(items.quickItems, stlp::NamedSlot<QuickItemRecord>(items.quickItems.names, key));
+        return TableIndex(items.quickItems, items.quickItems.names[key]);
     case 3:
-        return TableIndex(spells.spells, stlp::NamedSlot<SpellRecord>(spells.spells.byCode, key));
+        return TableIndex(spells.spells, spells.spells.byCode[key]);
     default:
-        return TableIndex(spells.modifiers, stlp::NamedSlot<SpellModifierRecord>(spells.modifiers.byCode, key));
+        return TableIndex(spells.modifiers, spells.modifiers.byCode[key]);
     }
 }
 
@@ -377,7 +377,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     for (std::string& part : parts) str::MakeLower(part);
 
     // "spell container[spell text]": a scroll holding that spell.
-    if (gamecrt::mbscmp(parts[0].c_str(),
+    if (std::strcmp(parts[0].c_str(),
                         kSpellContainer) == 0) {
         const char* spellText = extra.c_str();
         CSpell* spell = context->SpellManager()->CreateSpellFromText(spellText);
@@ -413,10 +413,10 @@ CItem* CItemManager::CreateItem(const char* name) {
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, the count for materials.
     const char* type = prototype->text04.c_str();
-    if (extra.size() != 0 && gamecrt::mbscmp(type, kMaterialType) != 0) {
+    if (extra.size() != 0 && std::strcmp(type, kMaterialType) != 0) {
         CSpellManager* spells = context->SpellManager();
         if (CSpell* spell = spells->CreateSpellFromText(extra.c_str())) constructor->SetSpellObject(spell);
-    } else if (gamecrt::mbscmp(type, kMaterialType) == 0 &&
+    } else if (std::strcmp(type, kMaterialType) == 0 &&
                extra.size() != 0) {
         constructor->count_ = std::atoi(extra.c_str());
     }

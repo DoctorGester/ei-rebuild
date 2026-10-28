@@ -20,6 +20,7 @@
 #include "game_hashes.h"
 #include "game_data.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <list>
 #include <memory>
@@ -91,7 +92,7 @@ void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destruct
     if (StaticsGuard() & bit) return;
     StaticsGuard() |= bit;
     array.clear();
-    libcrt::AtExit(destructor);
+    std::atexit(destructor);
 }
 
 const float* PositionOf(CMapObject* object) { return &object->localPosition_.x; }
@@ -116,8 +117,8 @@ namespace {
 CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerServer* state, CEngineObject** out) {
     if (world->sessionKind_ == kKindSinglePlayer && SpectatorView() == 0) {
         // Every map object near the camera, and the player's units anywhere; nothing else.
-        for (auto* node = world->mapObjects_.map.First(); node && node->value; node = world->mapObjects_.map.After(node)) {
-            CMapObject* object = node->value;
+        for (auto node = world->mapObjects_.map.begin(); node != world->mapObjects_.map.end() && node->second; ++node) {
+            CMapObject* object = node->second;
             if (object->type_ == kTypeNoSync) continue;
             if (!OutOfView(PositionOf(object), state)) {
                 *out++ = object;
@@ -130,13 +131,13 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
 
     MapObjectIdMap& source = world->sessionKind_ == kKindSinglePlayer ? world->otherMapObjects_ : world->mapObjects_;
     if (world->sessionKind_ == kKindNoRangeTest) {
-        for (auto* node = source.map.First(); node && node->value; node = source.map.After(node)) {
-            CEngineObject* object = node->value;
+        for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
+            CEngineObject* object = node->second;
             if (object->type_ != kTypeNoSync && !(object->flags_ & kFlagHidden)) *out++ = object;
         }
     } else {
-        for (auto* node = source.map.First(); node && node->value; node = source.map.After(node)) {
-            CMapObject* object = node->value;
+        for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
+            CMapObject* object = node->second;
             if (object->type_ != kTypeNoSync && !OutOfView(PositionOf(object), state)) *out++ = object;
         }
     }
@@ -145,14 +146,14 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
     // The units always sent.
     int extra = state->partyUnits_.size;
     for (int i = 0; i < extra; ++i) *out++ = state->partyUnits_.data[i].object;
-    for (auto* node = world->namedObjects_.map.First(); node && node->value; node = world->namedObjects_.map.After(node))
-        *out++ = node->value;
+    for (auto node = world->namedObjects_.map.begin(); node != world->namedObjects_.map.end() && node->second; ++node)
+        *out++ = node->second;
 
     // The units each of the player's units can hear: max(perception * factor, minimum) * scale +
     // margin around it (the server half's movement factor 3 and statistics B0 values 0 and 2).
     auto& units = player->units_;
-    for (auto* node = units.First(); node && node->value; node = units.After(node)) {
-        CUnit* unit = node->value;
+    for (auto node = units.begin(); node != units.end() && node->second; ++node) {
+        CUnit* unit = node->second;
         std::list<CUnit*> heard;
         auto* controller = unit->ServerController();
         float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
@@ -169,8 +170,8 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
 // The timed objects (spells, effects) a player should know: those whose reach (a virtual, squared) covers its
 // camera.
 CEngineObject** CollectTimedObjects(CWorldServer* world, CPlayerServer* state, CEngineObject** out) {
-    for (auto* node = world->timedObjects_.map.First(); node && node->value; node = world->timedObjects_.map.After(node)) {
-        CEngineObject* object = node->value;
+    for (auto node = world->timedObjects_.map.begin(); node != world->timedObjects_.map.end() && node->second; ++node) {
+        CEngineObject* object = node->second;
         auto* timed = static_cast<CEffect*>(object);
         const Vector3* position = timed->Position(&state->partyUnits_);
         double dx = static_cast<double>(position->x) - state->lastPosition_.x;
@@ -222,7 +223,7 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
 
         // Map objects: room for seven entries per world object.
         StaticPtrArray& collected = Collected();
-        collected.resize(static_cast<int>(objects_.map.Size()) * 7);
+        collected.resize(static_cast<int>(objects_.map.size()) * 7);
         CEngineObject** end = CollectMapObjects(this, player, state, collected.data());
         collected.resize(static_cast<int>(end - Collected().data()));
         DiffSets(&state->sentObjects_, &collected, &Added(), &Kept(), &Removed());
@@ -230,7 +231,7 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
         state->SendObjectsAdded(&Added());
         state->SendObjectsChanged(&Removed());
 
-        collected.resize(static_cast<int>(timedObjects_.map.Size()));
+        collected.resize(static_cast<int>(timedObjects_.map.size()));
         end = CollectTimedObjects(this, state, collected.data());
         collected.resize(static_cast<int>(end - Collected().data()));
         DiffSets(&state->sentTimed_, &collected, &Added(), &Kept(), &Removed());
@@ -274,8 +275,8 @@ int CWorldServer::SendZone(CPlayer* player) {
         UnitSet units;
         units.figured.Construct(100, 0, 0, 0);
         units.dressed.Construct(100, 0, 0, 0);
-        for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node))
-            if (CUnit* unit = UnitOrNull(node->value)) units.Add(unit);
+        for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end() && node->second; ++node)
+            if (CUnit* unit = UnitOrNull(node->second)) units.Add(unit);
         units.Write(&message);
         units.dressed.Destroy();
         units.figured.Destroy();
@@ -283,10 +284,9 @@ int CWorldServer::SendZone(CPlayer* player) {
         result = state->SendState02(&message);
         if (result != 0 && sendsStartPosition_ != 0) {
             result = 1;
-            if (player->units_.Size() != 0) {
+            if (player->units_.size() != 0) {
                 // The player starts at its first unit, on the ground there.
-                auto* first = player->units_.First();
-                const float* at = PositionOf(first ? first->value : nullptr);
+                const float* at = PositionOf(player->units_.begin()->second);
                 Vector3 start;
                 std::memcpy(&start, at, sizeof(start));
                 start.z = static_cast<float>(RawSurfaceHeightAt(start.x, start.y));

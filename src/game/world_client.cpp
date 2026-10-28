@@ -23,6 +23,7 @@
 #include "unit.h"
 
 #include "lib/crt.h"
+#include "lib/text_case.h"
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -181,7 +182,7 @@ bool CWorldClient::IsLocalPlayerIdle() {
 BOOL CWorldClient::FindExitAt(const float* point, int* index) {
     for (int i = 0; i < exits_.size; ++i) {
         if (!exits_[i].Contains(point[0], point[1])) continue;
-        if (gamecrt::mbscmp(exits_[i].target, "none") == 0) continue;
+        if (str::Compare(exits_[i].target, "none") == 0) continue;
         if (index) *index = i;
         return 1;
     }
@@ -216,7 +217,7 @@ void CWorldClient::CreateExitMarkers() {
     countedA0_.SetSize(0);
     countedA0_.SetSize(exits_.size);
     for (int i = 0; i < exits_.size; ++i) {
-        if (gamecrt::mbsicmp(exits_[i].target,
+        if (text::CompareIgnoringCase(exits_[i].target,
                             game::NoneText()) == 0) {
             continue;
         }
@@ -272,7 +273,7 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
     name = str::Right(name, length - second - 1);
     for (MapObjectList::Node* node = objects_.First(); node != objects_.End(); node = node->next) {
         CMapObject* object = node->data;
-        if (gamecrt::mbscmp(name, object->name2) == 0) object->SetVisibilityLevel(value);
+        if (str::Compare(name, object->name2) == 0) object->SetVisibilityLevel(value);
     }
     // The original's test counts a NaN as equal; the audit checks that none arrives.
     EI_NAN_AUDIT(value);
@@ -314,9 +315,9 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
     case 2: flags = 2; break;
     case 3: flags = 1; break;
     }
-    if (gamecrt::mbscmp(zoneName_, "gipat") == 0) flags |= 0x10;
-    else if (gamecrt::mbscmp(zoneName_, "ingos") == 0) flags |= 0x20;
-    else if (gamecrt::mbscmp(zoneName_, "suslanger") == 0) flags |= 0x40;
+    if (str::Compare(zoneName_, "gipat") == 0) flags |= 0x10;
+    else if (str::Compare(zoneName_, "ingos") == 0) flags |= 0x20;
+    else if (str::Compare(zoneName_, "suslanger") == 0) flags |= 0x40;
     flags |= IsNight() ? 0x100 : 0x80;
     flags |= cave_ == 1 ? 0x400 : 0x200;
     const int weather = rainSnow_.mode;
@@ -336,20 +337,10 @@ float SelectLess(float a, float b, float ifLess, float otherwise) {
     return a >= b ? otherwise : ifLess;
 }
 
-// One effect list: the records whose tick returns 0 are erased (through the list's own erase).
+// One print list ticked: the prints whose tick returns 0 are erased.
 template <typename T>
-using EraseFn = void**(*)(stlp::list<T>*, void*, void**, typename stlp::list<T>::Node*);
-template <typename T>
-void RunEffects(stlp::list<T>& list, EraseFn<T> erase) {
-    auto* head = list.head;
-    for (auto* node = head->next; node != head;) {
-        auto current = node;
-        node = node->next;
-        if (current->data.Tick() == 0) {
-            void* out;
-            erase(&list, nullptr, &out, current);
-        }
-    }
+void RunEffects(std::list<T>& list) {
+    for (auto it = list.begin(); it != list.end();) it = it->Tick() == 0 ? list.erase(it) : std::next(it);
 }
 
 void EndWalk(ObjectListIterator& it) {
@@ -359,30 +350,7 @@ void EndWalk(ObjectListIterator& it) {
     }
 }
 
-// erase(pos) of a print list (nodes from operator new).
-template <typename T>
-void** ErasePrint(void** out, typename stlp::list<T>::Node* pos) {
-    auto* next = pos->next;
-    auto* prev = pos->prev;
-    prev->next = next;
-    next->prev = prev;
-    pos->data.GroundPrint::Destruct();
-    gamecrt::operator_delete(pos);
-    *out = next;
-    return out;
-}
-
 } // namespace
-
-void** CWorldClient::EraseBloodPrint(stlp::list<BloodPrint>*, void*, void** out, stlp::list<BloodPrint>::Node* pos) {
-    return ErasePrint<BloodPrint>(out, pos);
-}
-void** CWorldClient::EraseFootprint(stlp::list<Footprint>*, void*, void** out, stlp::list<Footprint>::Node* pos) {
-    return ErasePrint<Footprint>(out, pos);
-}
-void** CWorldClient::EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out, stlp::list<GroundPrint>::Node* pos) {
-    return ErasePrint<GroundPrint>(out, pos);
-}
 
 int CWorldClient::Segment() {
     ObjectListIterator objectsIt{nullptr, {}};
@@ -450,10 +418,10 @@ int CWorldClient::Segment() {
     }
     if (particleManager_) particleManager_->TickSources(static_cast<char>(paused_));
     if (!paused_) {
-        // The three print lists (std::list, sentinel head): finished ones (tick returns 0) go.
-        RunEffects(bloodPrints_, &EraseBloodPrint);
-        RunEffects(footprints_, &EraseFootprint);
-        RunEffects(scorchMarks_, &EraseScorchMark);
+        // The three print lists: finished ones (tick returns 0) go.
+        RunEffects(bloodPrints_);
+        RunEffects(footprints_);
+        RunEffects(scorchMarks_);
         if (!paused_ && worlddata::LightLevelsSetting() != 0) {
             lightLevelsCountdown_ -= worlddata::WorldUpdatePeriod();
             if (lightLevelsCountdown_ <= 0) {
@@ -461,8 +429,7 @@ int CWorldClient::Segment() {
                 // Each blood print gets a grey level: the brightest of the sun at
                 // the reference point and the lights whose range reaches the effect's point.
                 CLight* sun = worlddata::SceneSun();
-                for (auto* node = bloodPrints_.head->next; node != bloodPrints_.head; node = node->next) {
-                    BloodPrint& effect = node->data;
+                for (BloodPrint& effect : bloodPrints_) {
                     float level = sun->GetIntensityAt(&worlddata::kOrigin);
                     ObjectListIteratorOf<CLight> lights{};
                     for (CLight* light = lights.First(ClientLightManager()); light; light = lights.Next()) {

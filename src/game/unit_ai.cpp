@@ -17,7 +17,6 @@
 #include <string>
 #include "world.h"
 #include "world_data.h"
-#include "lib/crt_iostream.h"
 #include "lib/mfc_array.h"
 #include "game_arrays.h"
 #include "lib/nan_audit.h"
@@ -25,8 +24,8 @@
 #include "lib/str.h"
 
 // The AI's perception log: the AI stream (its static initialiser stores the address).
-constexpr console::GameOStream* kAiLog = /*007C53C4*/ {&console::g_aiLogOut};
-console::GameOStream* AiLog() { return kAiLog; }
+constexpr console::Stream* kAiLog = /*007C53C4*/ {&console::g_aiLogOut};
+console::Stream& AiLog() { return *kAiLog; }
 
 namespace {
 constexpr float kDecayScale = 30.0f;
@@ -39,18 +38,8 @@ constexpr int kVoiceAlarm = 8;
 
 int IsGone(CMapObject* object) { return object->IsDead(); }
 
-// The game's ostream (MSVC 6 iostream): operator<< for strings, chars and manipulators.
-struct GameOstream : libcrt::Ostream {
-    GameOstream* Write(const char* text) { PutText(text); return this; }
-    GameOstream* Put(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }  // (operator<<(char))
-    GameOstream* Apply(libcrt::Manipulator manipulator) {
-        libcrt::Ostream::Apply(manipulator);
-        return this;
-    }
-};
 // The modes' log: the AI stream (its static initialiser stores the address).
-constexpr libcrt::Ostream* kModeLog = /*007C54E8*/ {&console::g_aiLogOut};
-GameOstream* ModeLog() { return console::StreamAs<GameOstream>(*kModeLog); }
+constexpr console::Stream* kModeLog = /*007C54E8*/ {&console::g_aiLogOut};
 
 // A counted reference destroyed (DestructElements of a counted list): released, the slot cleared.
 template <typename T>
@@ -160,8 +149,7 @@ void AIBrain::Think() {
             if (const char* modeName = ModeName(best->GetType())) name = modeName;
             text = str::Format(MotivationFormat(), owner->unit->id_, name.c_str(),
                         bestPriority);
-            GameOstream* log = ModeLog();
-            log->Write(text.c_str())->Put('\n')->Apply(libcrt::FlushManipulator);
+            console::EndLine(*kModeLog << text.c_str());
             int type = best->GetType();
             if (type >= kModeSuspection && (type <= kModeCorpseWatcher || type == kModeFear) && alertMode == 2 && !alerted)
                 alerted = 1;

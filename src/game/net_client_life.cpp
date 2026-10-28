@@ -9,7 +9,6 @@
 #include "record_lists.h"
 
 #include "lib/crt.h"
-#include "record_vectors.h"
 
 namespace net {
 
@@ -55,7 +54,6 @@ ClientSession::~ClientSession() {
 }
 
 ClientBase::~ClientBase() {
-    recordvec::QueryVector::Destruct(&queries_.list);
     servers_.Release();
 }
 

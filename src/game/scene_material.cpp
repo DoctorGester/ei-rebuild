@@ -7,6 +7,7 @@
 #include "lib/str.h"
 
 #include <cstdint>
+#include <cstring>
 #include <new>
 #include <string>
 #include <vector>
@@ -15,7 +16,7 @@ namespace scene {
 namespace {
 
 
-bool Is(const std::string& s, const char* text) { return gamecrt::mbscmp(s.c_str(), text) == 0; }
+bool Is(const std::string& s, const char* text) { return std::strcmp(s.c_str(), text) == 0; }
 
 struct Entry {
     const char* text;

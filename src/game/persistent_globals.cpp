@@ -125,10 +125,10 @@ private:
 void ClearVariablesKeepingGlobals(NamedFloatTable* table) {
     AddonStringMap kept;
     // addon's iterator: buckets in order, each chain from its head.
-    for (const NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
-        if (std::strncmp(node->value.key.c_str(), "gvar.", 5) != 0) continue;
-        kept.Find(node->value.key).value = node->value.mapped;
+    for (const auto& [name, value] : *table) {
+        if (std::strncmp(name.c_str(), "gvar.", 5) != 0) continue;
+        kept.Find(name).value = value;
     }
-    table->Clear();
+    table->clear();
     for (const AddonStringMap::Element& e : kept.Elements()) table->Set(e.key.c_str(), e.value);
 }

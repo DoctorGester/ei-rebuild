@@ -74,7 +74,7 @@ void CSectorMap::FindUnitsInRadius(const Vector3*, std::list<CUnit*>*, float)
 // ai_movement.cpp's shape cache and passability marks (ai_shape_cache.cpp, ai_refresh.cpp).
 CRefObject* UnitShapeCache::Get(void*) EI_UNLINKED("UnitShapeCache::Get")
 std::uint32_t CAIMap::CellMark(void*, int, int, int, int) EI_UNLINKED("CAIMap::CellMark")
-console::GameOStream& console::GameOStream::operator<<(double) EI_UNLINKED("console::GameOStream::operator<<(double)")
+console::Stream& console::Stream::operator<<(double) EI_UNLINKED("console::Stream::operator<<(double)")
 
 // The script loaders' and destructors' callees outside the interpreter: the object registry
 // (base_manager.cpp), the streams (core_streams.cpp), the world's timed objects (world_server.cpp) and
@@ -87,39 +87,20 @@ void ScriptPointLight::ScriptPointLightLoad(ScriptStream*) EI_UNLINKED("ScriptPo
 void ScriptFxSource::ScriptFxSourceLoad(ScriptStream*) EI_UNLINKED("ScriptFxSource::ScriptFxSourceLoad")
 void ScriptLightningElementsDestruct(ScriptLightning*, int) EI_UNLINKED("ScriptLightningElementsDestruct")
 
-// The game CRT's ports (crt.cpp, crt_file.cpp, crt_x87.cpp read the game CRT's data)
-// that no replay reaches: the node allocator (stlp.cpp), the multibyte string functions CString uses
-// (mfc_string.cpp), qsort (script_group.cpp), srand (random.cpp), acos (quaternion.cpp),
-// fwrite (crt_format.cpp); replay_crt.cpp has the ones the replays call.
+// The game CRT's ports (crt.cpp, crt_x87.cpp read the game CRT's data)
+// that no replay reaches: the node allocator (stlp.cpp), qsort (script_group.cpp), srand (random.cpp), acos
+// (quaternion.cpp).
 void* libcrt::NodeAllocate(std::size_t) EI_UNLINKED("libcrt::NodeAllocate")
 void libcrt::NodeDeallocate(void*, std::size_t) EI_UNLINKED("libcrt::NodeDeallocate")
-unsigned char* libcrt::Mbslwr(unsigned char*) EI_UNLINKED("libcrt::Mbslwr")
 void libcrt::Qsort(void*, std::size_t, std::size_t, int(__cdecl*)(const void*, const void*)) EI_UNLINKED("libcrt::Qsort")
 void libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
 double libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
-std::size_t libcrt::Fwrite(const void*, std::size_t, std::size_t, gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fwrite")
 
-// The library's exceptions and resources (mfc_archive.cpp, mfc_string.cpp, mfc.cpp's
-// TRY link, mfc_file.cpp).
-mfc::impl::CFileException::~CFileException() {}   // the stack exceptions of mfc_file.cpp's CFile opens
-const mfc::impl::CRuntimeClass* mfc::impl::CFileException::GetRuntimeClass() const EI_UNLINKED("mfc::impl::CFileException::GetRuntimeClass")
-BOOL mfc::impl::CFileException::GetErrorMessage(char*, unsigned, unsigned*) EI_UNLINKED("mfc::impl::CFileException::GetErrorMessage")
+// The library's exceptions and resources (mfc_archive.cpp).
 int mfc::impl::CException::ReportError(unsigned, unsigned) EI_UNLINKED("mfc::impl::CException::ReportError")
 void mfc::impl::ThrowArchiveException(int, const char*) EI_UNLINKED("mfc::impl::ThrowArchiveException")
 void mfc::impl::AfxClassInit(mfc::impl::CRuntimeClass*) EI_UNLINKED("mfc::impl::AfxClassInit")
 int mfc::impl::AfxLoadString(unsigned, char*, unsigned) EI_UNLINKED("mfc::impl::AfxLoadString")
-mfc::ExceptionLink* mfc::ConstructExceptionLink(mfc::ExceptionLink*) EI_UNLINKED("mfc::ConstructExceptionLink")
-void mfc::TryCleanup() EI_UNLINKED("mfc::TryCleanup")
-int mfc::impl::OsErrorToException(long) EI_UNLINKED("mfc::impl::OsErrorToException")
-void mfc::impl::ThrowFileException(int, long, const char*) EI_UNLINKED("mfc::impl::ThrowFileException")
-void mfc::impl::ThrowOsError(long, const char*) EI_UNLINKED("mfc::impl::ThrowOsError")
-void mfc::impl::ThrowNotSupported() EI_UNLINKED("mfc::impl::ThrowNotSupported")
-// mfc_file.cpp's CFileFind times (mfc_time.cpp) and CStdioFile streams (crt_file.cpp).
-mfc::impl::CTime* mfc::impl::CTime::ConstructFileTime(const FILETIME&, int) EI_UNLINKED("mfc::impl::CTime::ConstructFileTime")
-int libcrt::Fclose(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fclose")
-int libcrt::Fseek(gamecrt::CrtFile*, long, int) EI_UNLINKED("libcrt::Fseek")
-long libcrt::Ftell(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Ftell")
-std::size_t libcrt::Fread(void*, std::size_t, std::size_t, gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fread")
 
 // world_construct.cpp (the server world, g_serverWorld) is not linked: the scripts' replays see a zero world, as they
 // saw the stand-in's zero bytes before C18t named it (no fixture fills it).
@@ -135,7 +116,3 @@ int game::FatalError(const char*, ...) EI_UNLINKED("game::FatalError")
 // The object lookup (world_server.cpp) and the sector map's Move (sector_map.cpp).
 CMapObject* CWorldServer::FindObject(unsigned) EI_UNLINKED("CWorldServer::FindObject")
 bool CSectorMap::Move(CMapObject*, const Vector3*) EI_UNLINKED("CSectorMap::Move")
-
-// The game CRT's atexit (crt.cpp): the static initialisers of the linked game sources register their exit
-// functions; the replay runs none of them.
-int libcrt::AtExit(libcrt::ExitFunction) { return 0; }

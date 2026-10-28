@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <list>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "ai_map.h"
@@ -31,6 +32,8 @@
 #include "water_tweens.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/hash_map.h"
+#include "lib/stlp_hash.h"
 #include "maths.h"
 #include "model.h"          // HeldTexture
 #include "party_storage.h"
@@ -81,35 +84,30 @@ constexpr int kClassUnit = 0x50;   // CEngineObject::GetClassId() of units
 // released, the nodes freed (the buckets stay). The caller clears its highest id.
 template <typename Map>
 void ReleaseEach(Map& map) {
-    for (auto* node = map.First(); node && node->value; node = map.After(node)) node->value->Release();
-    map.Clear();
+    for (auto& [id, object] : map) {
+        if (!object) break;
+        object->Release();
+    }
+    map.clear();
 }
 
-// hash_map<unsigned, CEngineObject*> plus the highest key ever inserted.
+// The world's object maps (walked in STLport's order) plus the highest key ever inserted.
 struct ObjectIdMap {
-    stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash> map;
-    int maxId;
+    lib::HashMap<unsigned, CEngineObject*> map;
+    int maxId = 0;
 
     void Set(const unsigned& key, CEngineObject* const& value);
-    // 100 buckets (193), maxId 0.
-    void Construct();
 };
-static_assert(sizeof(ObjectIdMap) == 0x18);
 
 struct MapObjectIdMap {
-    stlp::hash_map<unsigned, CMapObject*, stlp::IntHash> map;
-    int maxId;
+    lib::HashMap<unsigned, CMapObject*> map;
+    int maxId = 0;
 
     void Set(const unsigned& key, CMapObject* const& value) {
         if (static_cast<int>(key) > maxId) maxId = static_cast<int>(key);
         map[key] = value;
     }
-    void Construct() {
-        map.InitBuckets(100);
-        maxId = 0;
-    }
 };
-static_assert(sizeof(MapObjectIdMap) == 0x18);
 
 // Walks the world's player list; the list object is reference counted while an iterator holds it.
 struct PlayerIterator : ObjectListIteratorOf<CPlayer> {
@@ -120,15 +118,6 @@ struct PlayerIterator : ObjectListIteratorOf<CPlayer> {
         if (manager) --manager->refCount_;
     }
 };
-
-// Walks an object map's values; null at the end.
-struct ObjectMapIterator {
-    stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>::Node* node;
-    ObjectIdMap* table;
-    ObjectIdMap* map;
-
-};
-static_assert(sizeof(ObjectMapIterator) == 12);
 
 class CFlyingHitPoints;
 
@@ -659,12 +648,16 @@ static_assert(offsetof(PlatformSet, list) == 0x1C);
 // The unit set the server's SendZone fills and the client reads back as its unit looks (unit_looks.h): the figured
 // records grouped by prototype (each group an STLport hash_map keyed by three packed 10-bit values), and the dressed
 // records by prototype. All three maps hash a key to itself.
-namespace recordvec { struct FiguredUnitElement; struct DressedUnitElement; }
-namespace gamehash { struct FiguredTableElement; }
+namespace gamehash {
+struct FiguredTableElement;
+// The records in the tables: copied and destroyed by their own members.
+using FiguredUnitElement = stlp::ObjectElement<FiguredUnitRecord>;
+using DressedUnitElement = stlp::ObjectElement<DressedUnitRecord>;
+} // namespace gamehash
 struct UnitSet {
-    using FiguredTable = stlp::hashtable<stlp::DwordObjectTraits<FiguredUnitRecord, recordvec::FiguredUnitElement>>;
+    using FiguredTable = stlp::hashtable<stlp::DwordObjectTraits<FiguredUnitRecord, gamehash::FiguredUnitElement>>;
     using FiguredGroups = stlp::hashtable<stlp::DwordObjectTraits<FiguredTable, gamehash::FiguredTableElement>>;
-    using DressedTable = stlp::hashtable<stlp::DwordObjectTraits<DressedUnitRecord, recordvec::DressedUnitElement>>;
+    using DressedTable = stlp::hashtable<stlp::DwordObjectTraits<DressedUnitRecord, gamehash::DressedUnitElement>>;
 
     // Adds `unit`'s looks: its prototype, the figure's scale and, for a hero (type_ 0x32), the item ids of its 7 worn
     // pieces and 4 weapons (0xFFFFFFFF for none or an id out of the tables) and its active weapon; other units get
@@ -687,8 +680,7 @@ static_assert(sizeof(UnitSet) == 0x28);
 // prototype, two counted dword arrays, a byte, a dword, the three morph coefficients and a counted list
 // of names; then a count and per dressed record the prototype, the two arrays, the byte and a dword.
 // Both vectors are resized to the counts.
-void ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* figured,
-                              stlp::vector<DressedUnitRecord>* dressed);
+void ReadUnitLooks(CStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed);
 
 // The client's sector grids: an STLport list of counted pointers per 16x16 cell.
 struct SectorCellObjects : stlp::list<CMapObject*> {
@@ -725,21 +717,13 @@ struct SectorGrid {
 };
 static_assert(offsetof(SectorGrid, width_) == 0x10);
 
-// The functor of the for_each over the footprints: {x, y, scale}, handed back by value.
-struct RadiusFunctor {
-    // For_each over the footprint list's nodes [first, last): a footprint is made visible when
-    // hypot(position - (x, y)) <= its scale_ * scale. Writes {x, y, scale} to this and returns it.
-    RadiusFunctor* Mark(stlp::list<Footprint>::Node* first, stlp::list<Footprint>::Node* last, float x, float y,
-                        float scale);
-    float x, y, scale;
-};
 struct ReleaseIdentified {
     // An object with a positive id is released and true; false otherwise.
     bool Test(CMapObject* object);
     std::uint8_t unused;
 };
 // The client's pending map from an object id to its node in the pending list.
-struct PendingIndex : stlp::hash_map<std::uint32_t, std::list<CMapObject*>::iterator, stlp::IntHash> {
+struct PendingIndex : std::unordered_map<std::uint32_t, std::list<CMapObject*>::iterator> {
     int Lookup(const std::uint32_t* key, std::list<CMapObject*>::iterator* value) const;
 };
 using PendingMap = PendingIndex;
@@ -853,7 +837,7 @@ public:
     void MoveObject(CMapObject* object, const float* position) override;
     virtual void MoveObject2(CMapObject* object, const float* position);   // the second grid's move
 
-    void BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed);
+    void BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::vector<DressedUnitRecord>* dressed);
     // Draws the world view. Returns 1. Rebirth's LandscapeDrawRadius sets the terrain's draw distance (100 in
     // the game).
     int Render();
@@ -1074,7 +1058,7 @@ public:
     ScreenHits hits_;                     // the entries under the point (PickAt)
     ScreenEntry* hitCursor_;              // PickAt's walk, left on the entry it returns
     std::uint8_t unused_104[0x108 - 0x104];
-    stlp::hash_map<unsigned, LineBatch*, stlp::IntHash> lineLists_;   // line lists by key (DrawLineLists)
+    lib::HashMap<unsigned, LineBatch*> lineLists_;   // line lists by key (DrawLineLists: drawn in STLport's order)
     int lastLineListKey_;                 // the last line list key handed out; 0 from the constructor
     SectorGrid objectGrid_;               // the objects by sector (MoveObject moves them)
     std::uint32_t rangeFirstX_, rangeFirstY_, rangeLastX_, rangeLastY_, rangeX_, rangeY_;
@@ -1098,15 +1082,9 @@ public:
     CEffectMoshka* bird_;                 // the bird following the party (SummonBird), owned
     CFlyingHitPoints* numbers_;           // owned
     // Segment ticks the ground prints and colours the blood prints by the light.
-    stlp::list<BloodPrint> bloodPrints_;
-    stlp::list<Footprint> footprints_;
-    stlp::list<GroundPrint> scorchMarks_;
-    // Erase(pos) of the three lists: the node unlinked, its print destroyed, the node deleted (operator
-    // delete: the nodes are over 128 bytes); *out the node that followed it. Return out.
-    static void** EraseBloodPrint(stlp::list<BloodPrint>*, void*, void** out, stlp::list<BloodPrint>::Node* pos);
-    static void** EraseFootprint(stlp::list<Footprint>*, void*, void** out, stlp::list<Footprint>::Node* pos);
-    static void** EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out,
-                                             stlp::list<GroundPrint>::Node* pos);
+    std::list<BloodPrint> bloodPrints_;
+    std::list<Footprint> footprints_;
+    std::list<GroundPrint> scorchMarks_;
     int lightLevelsCountdown_;            // time left before the blood prints are lit again (Segment); 0 after Setup
     RefPtrTo<CClientHandle> handle_;      // the client's player source
     CSoundManager* sounds_;               // the sound manager (owned; the client controller's hit sounds)
@@ -1315,11 +1293,11 @@ extern lib::StaticObject<GameFlow> g_gameFlow;
 // A multiplayer hero record (the saved parties' entries below, the hero screens' records): its party
 // (CParty) and file name.
 struct MpHeroRecord {
-    MpHeroRecord* Assign(const MpHeroRecord* other);
-    MpHeroRecord* Construct();
-    void Destruct();
-    MpHeroRecord* DeletingDestruct(unsigned flags);
-    static MpHeroRecord* CopyRange(const MpHeroRecord* first, const MpHeroRecord* last, MpHeroRecord* dest);
+    // A copy copies the party (CParty's copy constructor and Assign, which read the source non-const).
+    MpHeroRecord();
+    MpHeroRecord(const MpHeroRecord& other);
+    MpHeroRecord& operator=(const MpHeroRecord& other);
+    ~MpHeroRecord();
     // Writes the party to `folder` + file: a file name with no '.' or with anything but digits before
     // the last one is deleted instead. Otherwise the old file is moved to `folder` + "temp.mp", the
     // party saved (with its variables) into a memory stream and that written as a save file (magic
@@ -1345,9 +1323,12 @@ struct SavedParties {
     void Destruct();
     SavedParties* Construct();
     void Select(const MpHeroRecord* hero);
+    // Room for one more record the way the original's vector grew: doubled, the old records copied before the
+    // new one is made. A record's copy loads its party again, which draws object ids and random numbers.
+    void ReserveOne();
 
     std::string folder_;
-    stlp::vector<MpHeroRecord> entries_;
+    std::vector<MpHeroRecord> entries_;
     MpHeroRecord outsideGame_;
     MpHeroRecord* OutsideGame() { return &outsideGame_; }
 };

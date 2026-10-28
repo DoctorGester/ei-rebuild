@@ -7,7 +7,6 @@
 #include "game_lists.h"
 #include "ground_print.h"
 #include "model.h"
-#include "record_lifetime.h"
 #include "registry.h"
 #include "script.h"
 #include "sector_map.h"
@@ -28,14 +27,6 @@
 void RefPtrRelease(RefPtr* self);
 
 namespace {
-
-// The client's ground print lists: each print's destructor (the client's copies of GroundPrint's).
-struct PrintElement {
-    template <typename P>
-    static void Destroy(P* print) {
-        print->Destruct();
-    }
-};
 
 // A sector grid's storage as the client's destructor frees it after setting the grid to 1 x 1: the
 // cells' lists (their vector deleting destructor), then the row pointers.
@@ -117,14 +108,12 @@ CWorld::~CWorld() {
 }
 
 CParticleManager::CParticleManager() {
-    held_.Construct(100);
     maxHeldId_ = 0;
     ParticleManagerClearQuietStart(this);
 }
 
 CParticleManager::~CParticleManager() {
     CParticleManager::Destroy();
-    held_.Destroy();
     freeParticles.clear();
 }
 
@@ -137,15 +126,13 @@ Sector::~Sector() {
 CWorldClient::~CWorldClient() {
     CWorldClient::Destroy();
     handle_.Destroy();
-    scorchMarks_.Release<PrintElement>();
-    footprints_.Release<PrintElement>();
-    bloodPrints_.Release<PrintElement>();
+    scorchMarks_.clear();
+    footprints_.clear();
+    bloodPrints_.clear();
     secondGrid_.Resize(1, 1);
     FreeGrid(secondGrid_);
     objectGrid_.Resize(1, 1);
     FreeGrid(objectGrid_);
-    lineLists_.Destroy();
-    dynamicNodes_.Destroy();
     dynamicObjects_.clear();
     objects_.Destroy();
     DestroySectorList(&heroes_);
@@ -160,16 +147,9 @@ CWorldServer::~CWorldServer() {
     ReleaseAndClear(counted_);
     for (CSpellEffect* missile : projectiles_) ReleaseCounted(missile);
     projectiles_.clear();
-    timedObjects_.map.Destroy();
-    namedObjects_.map.Destroy();
-    otherMapObjects_.map.Destroy();
-    mapObjects_.map.Destroy();
-    sentObjects_.map.Destroy();
-    objects_.map.Destroy();
     diplomacy_.Reset();
     SecondScript()->Destruct();
     MainScript()->Destruct();
     Messages()->Destroy();
-    updateMap_.map.Destroy();
     gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
 }

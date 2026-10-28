@@ -17,7 +17,8 @@
 #include "unit.h"
 #include "world.h"
 
-#include "lib/stlp_hash.h"
+#include "lib/stlp.h"
+#include "lib/text_case.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -382,7 +383,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
             if (!part) return false;
             const itemdb::MaterialRecordHead* own = BlueprintRecord(item);
             if (firstKindOne) return own == firstKindOne && kindOnes < part->materialUnits;
-            return gamecrt::mbsicmp(part->materialClass, own->soundName) == 0;
+            return text::CompareIgnoringCase(part->materialClass, own->soundName) == 0;
         }
         if (!IsSpellContainer(item)) return false;
         if (!itemMade_) return false;
@@ -724,7 +725,7 @@ bool CCampPages::CanMakeItem() {
     }
     if (!blueprint || !part) return fail();
     if (static_cast<int>(part->materialUnits) != blueprintCount) return fail();
-    if (gamecrt::mbsicmp(part->materialClass, blueprint->soundName) != 0)
+    if (text::CompareIgnoringCase(part->materialClass, blueprint->soundName) != 0)
         return fail();
     constructor->SetManager(factory);
     if (!constructor->BeginCreateItem(type, -1)) {
@@ -785,23 +786,7 @@ void CCampPages::Close() {
 
 // --- the trade panel's destructor body -----------------------------------------------------------
 
-namespace {
-
-// The rows' destructors, then the block (its capacity in rows).
-void DestroyRows(TradeRows& rows) {
-    for (TradeRow* at = rows.begin(); at != rows.end(); ++at) at->Destroy();
-    stlp::deallocate(rows.Start(), rows.Capacity() * sizeof(TradeRow));
-}
-
-} // namespace
-
-CTradePanel::~CTradePanel() {
-    stlp::deallocate(records_.Start(), records_.Capacity() * sizeof(TradeRecord));
-    DestroyRows(science_);
-    DestroyRows(schools_);
-    DestroyRows(perks_);
-    DestroyRows(learnable_);
-}
+CTradePanel::~CTradePanel() {}
 
 // --- taking an item off the hero -----------------------------------------------------------------
 
@@ -1175,9 +1160,5 @@ void CCampPages::ShowHero() {
 // --- the constructor -----------------------------------------------------------------------------
 
 CCampPages::CCampPages(CInterface3D* ui, bool fromHeroScreen) : CItemScreen(ui) {
-    // The caches' (empty) compare objects keep the flag's byte.
-    const auto compare = static_cast<std::uint8_t>(fromHeroScreen);
-    models_.Construct(compare);
-    textures_.Construct(compare);
     fromHeroScreen_ = fromHeroScreen;
 }

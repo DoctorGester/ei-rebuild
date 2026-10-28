@@ -241,9 +241,9 @@ void Terrain::RemoveLight(CLight* light) {
     // The game leaves the area uninitialised when the light was not registered (it loops over whatever its
     // stack held); this then takes it off nothing and relights nothing.
     LightArea area = {0, 0, -1, -1, 0, 0, 0, 0};
-    if (LightTable::Node* node = lights.Find(light->id_)) {
-        area = node->value.area;
-        lights.Erase(node);
+    if (auto node = lights.find(light->id_); node != lights.end()) {
+        area = node->second.area;
+        lights.erase(node);
     }
     Vector3 position = light->localPosition_;
     UpdateArea(this, light, &position, &area, 1);
@@ -255,8 +255,8 @@ void Terrain::MoveLight(CLight* light, const Vector3* delta) {
     if (!mapLoaded) return;
     // The game takes the entry's area without checking that the light is registered (an unregistered light
     // writes its area to address 4); this does the same through a null entry.
-    LightTable::Node* node = lights.Find(light->id_);
-    LightArea* area = node ? &node->value.area : nullptr;
+    auto node = lights.find(light->id_);
+    LightArea* area = node != lights.end() ? &node->second.area : nullptr;
     LightAreaOf(light, delta, area);
     Vector3 position = light->localPosition_;
     if (delta) position = position + *delta;
@@ -269,10 +269,10 @@ void Terrain::MoveLight(CLight* light, const Vector3* delta) {
 }
 
 void Terrain::LightSector(SectorData* sector) {
-    for (LightTable::Node* node = lights.First(); node; node = lights.After(node)) {
-        const LightArea& area = node->value.area;
+    for (auto& [id, entry] : lights) {
+        const LightArea& area = entry.area;
         if (area.firstSectorX <= sector->sx && sector->sx <= area.lastSectorX && area.firstSectorY <= sector->sy &&
             sector->sy <= area.lastSectorY)
-            terrain::UpdateVertexLights(sector, node->value.light, &node->value.light->localPosition_, &area, 0);
+            terrain::UpdateVertexLights(sector, entry.light, &entry.light->localPosition_, &area, 0);
     }
 }

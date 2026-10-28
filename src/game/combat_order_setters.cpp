@@ -14,6 +14,7 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 
 #include <cstring>
 #include <string>
@@ -187,6 +188,6 @@ FigureAnimation* CBaseManager::FindFigureAnimation(const std::string& figure, co
         return nullptr;
     }
     for (int i = 0; i < static_cast<int>(database->count); ++i)
-        if (libcrt::Stricmp(database->animations[i].name, name) == 0) return &database->animations[i];
+        if (text::CompareIgnoringCase(database->animations[i].name, name) == 0) return &database->animations[i];
     return nullptr;
 }

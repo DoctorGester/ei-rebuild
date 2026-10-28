@@ -7,8 +7,8 @@
 #include "texture.h"
 #include "unit.h"
 
-#include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/str.h"
 
 #include "ei/rebirth.h"
 
@@ -34,7 +34,7 @@ void Reload(CTexture* texture, const std::string& name) {
 bool NeedsReload(void* composed, CTexture* texture, const std::string& name, bool checkTexture) {
     if (composed) return true;
     if (checkTexture && !texture) return false;
-    return gamecrt::mbscmp(name,
+    return str::Compare(name,
                            texture->GetName()) != 0;
 }
 } // namespace

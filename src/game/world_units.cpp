@@ -34,6 +34,7 @@
 #include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -146,7 +147,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
 
     // A hero created next to the start of zone1 plays its arrival animation.
     bool atStart = false;
-    if (gamecrt::strnicmp(mapName_.c_str(), worlddata::StartZoneText(), 5) == 0) {
+    if (text::CompareIgnoringCase(mapName_.c_str(), worlddata::StartZoneText(), 5) == 0) {
         double dz = position->z;
         double dy = static_cast<double>(position->y) - worlddata::HeroStartY();
         double dx = static_cast<double>(position->x) - worlddata::HeroStartX();
@@ -452,7 +453,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         else
             object = created(std::type_identity<CMapObject>{});
         if (spec->shadow) object->flags_ |= 0x20000;
-        if (gamecrt::mbscmp(spec->model,
+        if (str::Compare(spec->model,
                             game::EmptyText()) != 0)
             object->flags_ |= 0x20000;
         if (!allowed(object)) return refuse(object);

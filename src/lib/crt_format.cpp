@@ -4,11 +4,10 @@
 // are the same bytes as game.exe's in either build. atof and sscanf are the
 // host CRT's; the host's printf differs (two-digit exponents, "inf"), so _output stays.
 #include "crt.h"
-#include "crt_locale_data.h"
 
 #include "game/game_data.h"
-#include "gameapi.h"
 #include "str.h"
+#include "text_case.h"
 
 #include <climits>
 #include <cstdint>
@@ -19,13 +18,9 @@ namespace libcrt {
 
 namespace {
 
-// ---- The CRT data the conversions read (as crt.cpp's) ----
-
-// The locale state is crt_locale_data.h's (the host CRT's): ei_vectors replays the conversions with the decimal
-// point and class words recorded in the game (tests/vectors/crt_format_vectors.h).
-unsigned short CharClass(int c) { return CharClasses()[c]; }
-constexpr unsigned short kDigit = 0x4;
-constexpr unsigned short kLeadByte = 0x8000;
+// The decimal point: the C locale's (nothing sets LC_NUMERIC). The other locale state the conversions read is the C
+// locale's too: no lead bytes, and a wide character is its low byte.
+constexpr char kDecimalPoint = '.';
 
 // ---- The 12-byte long double (_LDBL12): a 96-bit number as six 16-bit words, lowest first ----
 // As a long double: w[0] the extra low word, w[1..2] the low mantissa dword, w[3..4] the high one
@@ -392,7 +387,7 @@ void ExponentForm(char* buffer, int decimals, bool capitals, const Decimal& numb
     if (number.sign == '-') *p++ = '-';
     if (decimals > 0) {
         p[0] = p[1];
-        *++p = DecimalPoint();
+        *++p = kDecimalPoint;
     }
     p += decimals + (general ? 0 : 1);
     std::memcpy(p, "e+000", sizeof "e+000");
@@ -433,7 +428,7 @@ void FixedForm(char* buffer, int decimals, const Decimal& number, bool general) 
     }
     if (decimals > 0) {
         ShiftText(p, 1);
-        *p = DecimalPoint();
+        *p = kDecimalPoint;
         if (number.point < 0) {
             const int zeros = general || -number.point <= decimals ? -number.point : decimals;
             ShiftText(p + 1, zeros);
@@ -473,13 +468,13 @@ void FormatFloat(double value, char* buffer, int format, int precision, bool cap
 
 // _forcdecpt: a decimal point after the leading digits (or before an exponent).
 void ForceDecimalPoint(char* text) {
-    if (Tolower(*text) != 'e') {
+    if (text::ToLower(*text) != 'e') {
         do {
             ++text;
-        } while (CharClass(*text) & kDigit);
+        } while (text::IsDigit(*text));
     }
     char hold = *text;
-    *text = DecimalPoint();
+    *text = kDecimalPoint;
     do {
         ++text;
         const char next = *text;
@@ -490,32 +485,23 @@ void ForceDecimalPoint(char* text) {
 
 // _cropzeros: trailing zeros of the fraction, and then a bare point, removed.
 void CropZeros(char* text) {
-    const char point = DecimalPoint();
-    while (*text && *text != point) ++text;
+    while (*text && *text != kDecimalPoint) ++text;
     if (*text++) {
         while (*text && *text != 'e' && *text != 'E') ++text;
         const char* stop = text--;
         while (*text == '0') --text;
-        if (*text == point) --text;
+        if (*text == kDecimalPoint) --text;
         while ((*++text = *stop++) != '\0') {
         }
     }
 }
 
-// wctomb: one wide character in the locale's code page; -1 (errno EILSEQ) when it has none.
+// wctomb in the C locale: a wide character below 0x100 is its byte; -1 (errno EILSEQ, not set: no caller reads it)
+// otherwise.
 int WideToBytes(char* to, wchar_t c) {
-    if (CtypeLocale() == 0) {
-        if (static_cast<unsigned short>(c) < 0x100) {
-            *to = static_cast<char>(c);
-            return 1;
-        }
-    } else {
-        BOOL defaultUsed = FALSE;
-        const int size = gameapi::WideCharToMultiByte(CtypeCodePage(), WC_COMPOSITECHECK | WC_SEPCHARS, &c, 1, to,
-                                                      MbCurMax(), nullptr, &defaultUsed);
-        if (size != 0 && !defaultUsed) return size;
-    }
-    return -1;   // errno = EILSEQ is not set: no caller reads it
+    if (static_cast<unsigned short>(c) >= 0x100) return -1;
+    *to = static_cast<char>(c);
+    return 1;
 }
 
 // ---- _output ----
@@ -586,10 +572,6 @@ public:
             case kNormal:
             normal:
                 wideText = false;
-                if (CharClass(c) & kLeadByte) {
-                    PutChar(sc);
-                    c = *f++;
-                }
                 PutChar(static_cast<signed char>(c));
                 break;
             case kPercent:
@@ -915,12 +897,6 @@ int Vsprintf(char* buffer, const char* format, va_list args) {
     *sink.next = '\0';
     return written;
 }
-
-namespace {
-unsigned char g_gameStreams[3][0x20];   // the size of game.exe's FILE
-} // namespace
-
-gamecrt::CrtFile* GameStream(int index) { return reinterpret_cast<gamecrt::CrtFile*>(g_gameStreams[index]); }
 
 } // namespace libcrt
 

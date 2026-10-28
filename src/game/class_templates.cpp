@@ -12,11 +12,10 @@
 #include "party_manager.h"
 #include "lib/crt.h"
 
-#include "lib/stlp_hash.h"
+#include "lib/stlp.h"
 
 #include <cstring>
 #include "spell.h"
-#include "lib/stlp_vector_refs.h"
 #include "game_data.h"
 
 namespace {
@@ -50,12 +49,12 @@ void ClassTemplateFill(ClassTemplate* t) {
     }
     items->ListQuickItemNames(&names);
     for (const std::string& key : names) {
-        itemdb::QuickItemRecord* record = stlp::NamedSlot<itemdb::QuickItemRecord>(db.quickItems.names, key);
+        itemdb::QuickItemRecord* record = db.quickItems.names[key];
         if (record && Allowed(t, record->classMask)) AllList(t)->AddQuickItem(record);
     }
     items->ListMaterialNames(&names);
     for (const std::string& key : names) {
-        itemdb::MaterialRecordHead* record = stlp::NamedSlot<itemdb::MaterialRecordHead>(db.materials.names, key);
+        itemdb::MaterialRecordHead* record = db.materials.names[key];
         if (record && Allowed(t, record->classMask)) t->allowed.AddMaterial(record, 0x14, 0x32);
     }
 
@@ -64,7 +63,7 @@ void ClassTemplateFill(ClassTemplate* t) {
     for (const std::string& name : names) {
         const char* code = SpellCodeByName(name.c_str());
         std::string key(code);
-        itemdb::SpellRecord* record = stlp::NamedSlot<itemdb::SpellRecord>(stock::SpellsByName(), key);
+        itemdb::SpellRecord* record = stock::SpellsByName()[key];
         if (record && Allowed(t, record->classMask)) {
             MagicList(t)->AddSpell(record);
             AllList(t)->AddSpell(record);
@@ -74,7 +73,7 @@ void ClassTemplateFill(ClassTemplate* t) {
     for (const std::string& name : names) {
         const char* code = SpellModifierCodeByName(name.c_str());
         std::string key(code);
-        auto* record = stlp::NamedSlot<itemdb::SpellModifierRecord>(stock::ModifiersByName(), key);
+        auto* record = stock::ModifiersByName()[key];
         if (record && Allowed(t, record->classMask)) {
             MagicList(t)->AddModifier(record);
             AllList(t)->AddModifier(record);
@@ -105,22 +104,14 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
     std::memcpy(t->weights, weights, sizeof(t->weights));
     ClassTemplateFill(t);
 
-    ClassTemplate* temp = t;
-    if (temp) ++temp->refs_;
-    if (v->Finish() == v->EndOfStorage()) {
-        v->InsertOverflow<stlp::CountedPtrElement<ClassTemplate>>(v->Finish(), temp, 1);
-    } else {
-        if (v->Finish()) stlp::CountedPtrElement<ClassTemplate>::Construct(v->Finish(), temp);
-        ++v->Finish();
-    }
-    if (temp && --temp->refs_ == 0) delete temp;
+    v->emplace_back(t);
 }
 
 } // namespace
 
 void TemplateTable::Build(unsigned fourClasses) {
     TemplateTable* v = this;
-    v->EraseRange<stlp::CountedPtrElement<ClassTemplate>>(v->begin(), v->end());
+    v->clear();
     if (static_cast<std::uint8_t>(fourClasses)) {
         AddTemplate(v, 1, 1, 1, kDefaultWeights);
         AddTemplate(v, 3, 1, 1, kDefaultWeights);

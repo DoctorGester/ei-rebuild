@@ -6,6 +6,7 @@
 // so that is left out. See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
+#include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -28,9 +29,9 @@ const char* CantDeleteText() { return "Can't delete file \"%s\" due to %d.\n"; }
 } // namespace
 
 void DeleteComposedTextures() {
-    mfc::CFileFind find;
+    lib::FileFind find;
     std::string pattern = std::string(TheDataFolder()) + ComposedTexturePattern();
-    if (!find.FindFile(pattern, 0)) return;
+    if (!find.FindFile(pattern)) return;
     int more;
     do {
         more = find.FindNext();
@@ -47,8 +48,8 @@ void DeleteComposedTextures() {
 int CTextureManager::ReleaseObject(CEngineObject* object) {
     if (!object || object->refCount_ != 0) return 0;
     auto* texture = static_cast<CTexture*>(object);
-    if (const auto* node = objects_.Find(static_cast<unsigned>(object->id_))) {
-        Unregister(node->value->id_);
+    if (auto node = objects_.find(static_cast<unsigned>(object->id_)); node != objects_.end()) {
+        Unregister(node->second->id_);
         if (object->flags_ & kCacheable) {
             cache_.push_back(texture);
             cachedBytes_ += texture->uploadResult_;

@@ -5,7 +5,6 @@
 #include "asset_text.h"
 #include "options.h"
 #include "bink_video.h"
-#include "library_trees.h"
 #include "sound.h"
 #include "text_helpers.h"
 #include "ui.h"
@@ -22,14 +21,13 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 #include "world_glue.h"
 #include "record_lists.h"
 #include "game_data.h"
 #include "game_singletons.h"
-#include "lib/mfc_string.h"
 #include "figure_manager.h"
 #include "lib/str.h"
 
@@ -149,7 +147,7 @@ void CSaveLoadWindow::CreateScreen() {
         selected_ = 0;
         if (EntryCount() != 0) {
             nameTyped_ = false;
-            name_ = entries_.begin()->title_;
+            name_ = entries_.front().title_;
             cursor_ = name_.size();
         }
     } else {
@@ -293,10 +291,6 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
 }
 
 // --- Main menu clicks ------------------------------------------------------------
-
-namespace {
-
-} // namespace
 
 void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     CInterface3D* ui = interface_;
@@ -518,7 +512,7 @@ void CCreditsScreen::CreateScreen() {
     std::uint32_t size = 0;
     void* data = archive->GetFile("credits.scr", &size);
     if (!data) {
-        currentLine_ = lines_.End();
+        currentLine_ = lines_.end();
     } else {
         std::string script;
         std::memmove(str::SetLength(script, static_cast<int>(size)), data, size);
@@ -534,7 +528,7 @@ void CCreditsScreen::CreateScreen() {
             TitleLine record{};
             {
                 std::string first = words.WordOrEmpty();
-                record.scroll = gamecrt::mbsicmp(first,
+                record.scroll = text::CompareIgnoringCase(first,
                                                 "#scroll") ==
                                 0;
             }
@@ -544,10 +538,10 @@ void CCreditsScreen::CreateScreen() {
             record.style = words.WordOrEmpty();
             words.Next();
             record.text = words.WordOrEmpty();
-            stlp::list<TitleLine>::Insert<recordlist::TitleLineElement>(lines_.End(), record);
+            lines_.push_back(record);
             lines.Next();
         }
-        currentLine_ = lines_.First();
+        currentLine_ = lines_.begin();
         archive->CloseFile(data);
     }
 

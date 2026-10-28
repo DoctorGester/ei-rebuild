@@ -74,8 +74,8 @@ bool ListContains(const UnitList* list, const CUnit* unit) {
 // first member that is not `self`; a null member ends it.
 CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
     const auto& map = player->units_;
-    for (auto* node = map.First(); node; node = map.After(node)) {
-        CUnit* member = node->value;
+    for (auto node = map.begin(); node != map.end(); ++node) {
+        CUnit* member = node->second;
         if (!member) return nullptr;
         if (member != self) return member;
     }
@@ -229,7 +229,7 @@ BOOL CUnitServer::Heal(float amount) {
     stats.Recompute(ServerStatsOf(unit), unit);
     unit->MarkChanged(0);
     unit->MarkChanged(4);
-    GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" was healed")->PutChar(10)->Apply(kLogEndLine);
+    console::EndLine(GameLog() << "Unit " << static_cast<long>(unit->id_) << " was healed");
     return 1;
 }
 
@@ -278,13 +278,8 @@ void CUnitServer::WitnessMurder(UnitList* witnesses, CUnit* victim, CUnit* murde
                 if (murderer) ++murderer->refCount_;
                 *added = murderer;
             }
-            GameLog()
-                ->Put("Unit ")
-                ->Put(static_cast<long>(other->id_))
-                ->Put(" has seen murder and is forced to see unit ")
-                ->Put(static_cast<long>(murderer->id_))
-                ->PutChar(10)
-                ->Apply(kLogEndLine);
+            console::EndLine(GameLog() << "Unit " << static_cast<long>(other->id_)
+                                       << " has seen murder and is forced to see unit " << static_cast<long>(murderer->id_));
         }
         DiplomacyOf(world)->OnAttack(murderer, other, 10);
     } while (node != witnesses->end());
@@ -357,7 +352,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     }
     unit->ClearEffects();
     SetDead(1);
-    GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" damaged to death")->PutChar(10)->Apply(kLogEndLine);
+    console::EndLine(GameLog() << "Unit " << static_cast<long>(unit->id_) << " damaged to death");
 
     AnimationSteps animation;
     animation.ConstructBase();
@@ -398,7 +393,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
     float theirs = 0;
     if (other) theirs = static_cast<float>(other->ServerController()->stats.AttributeWithItems(0, other));
 
-    GameLog()->Put("Unit")->Put(static_cast<long>(unit->id_))->Put(" is using skill ");
+    GameLog() << "Unit" << static_cast<long>(unit->id_) << " is using skill ";
     const char* name;
     switch (action.source) {
     case 0: name = "science"; break;
@@ -406,12 +401,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
     case 2: name = "tame"; break;
     default: name = "unknown"; break;
     }
-    GameLog()->Put(name);
-    GameOstream* log = GameLog()->Put(" his_skill = ");
-    log->SetField4();
-    log = log->Put(static_cast<double>(mine))->Put(" target_skill = ");
-    log->SetField4();
-    log->Put(static_cast<double>(theirs))->PutChar(10)->Apply(kLogEndLine);
+    console::EndLine(GameLog() << name << " his_skill = " << mine << " target_skill = " << theirs);
 
     skill = action.source;
     if (skill != 0 && theirs >= mine) {
@@ -437,7 +427,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         if (other->player) return;
         CItem* item = other->TakeRandomItem();
         if (item) {
-            GameLog()->Put("Item has been stolen from")->PutChar(10)->Apply(kLogEndLine);
+            console::EndLine(GameLog() << "Item has been stolen from");
             if (CPlayer* player = unit->player) {
                 std::list<CItem*> list;
                 list.push_front(item);

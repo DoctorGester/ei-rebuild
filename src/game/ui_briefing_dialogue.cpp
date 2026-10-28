@@ -22,11 +22,13 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/crt.h"
 #include "lib/stlp.h"
+#include "lib/str.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/text_case.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <memory>
@@ -92,7 +94,7 @@ void CBriefingScreen::StartPhrases() {
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
     // (The name is compared through a CString copy.)
-    bool human = gamecrt::mbscmp(unit->name, HumanPrototype()) == 0;
+    bool human = str::Compare(unit->name, HumanPrototype()) == 0;
     int number;
     if (talking) {
         if (third)
@@ -272,7 +274,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
     auto* person = GameFindClientUnit(TextKeyFromName(name));
     if (!person) {
         for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
-            if (gamecrt::mbsicmp(node->name,
+            if (text::CompareIgnoringCase(node->name,
                                 name) != 0)
                 continue;
             if (node->item) {
@@ -286,8 +288,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         }
         return;
     }
-    BriefingSpeaker* entry = speakers_.begin();
-    while (entry != speakers_.end() && entry->unit != person) ++entry;
+    auto entry = std::find_if(speakers_.begin(), speakers_.end(), [person](const BriefingSpeaker& s) { return s.unit == person; });
     if (entry != speakers_.end()) {
         CPlayerServer* server = LocalServerPlayer()->Server();
         if (server) server->SendPair19(kEventLeaves, person->id_);
@@ -302,14 +303,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
             controller->StopAction();
             // (The person is then looked up among the party's first members; the result is not used.)
         }
-        // vector::erase (then the last entry's destructor).
-        for (BriefingSpeaker* p = entry; p + 1 != speakers_.end(); ++p) {
-            p->unit = p[1].unit;
-            p->name = p[1].name;
-            p->spareFlag = p[1].spareFlag;
-        }
-        --speakers_.Finish();
-        std::destroy_at(&speakers_.Finish()->name);
+        speakers_.erase(entry);
     }
     if (person == third_) {
         MovePerson(person, thirdPlace_.x, thirdPlace_.y, thirdPlace_.z, thirdDirection_.x,

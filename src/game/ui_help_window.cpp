@@ -118,7 +118,7 @@ void CHelpWindow::Update() {
 void CHelpWindow::Finish() {
     interface_->PlaySound(OkSound(), 0);
     if (!message_)
-        interface_->helpTopics_.Subscript(text_) = page_;
+        interface_->helpTopics_[text_] = page_;
     else
         interface_->messageFlag_ = page_;
     interface_->SetPendingValue(0);

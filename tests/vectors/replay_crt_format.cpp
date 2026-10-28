@@ -4,7 +4,6 @@
 
 #include "game/game_data.h"
 #include "lib/crt.h"
-#include "lib/crt_locale_data.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -17,12 +16,23 @@ namespace {
 using namespace ei::vectors;
 using namespace ei::vectors::crt_format;
 
-unsigned short g_classes[256];   // _pctype points here once the fixture ran
-
-bool CheckLocale(Reader& r, char*, std::size_t) {
+// The game's locale as the conversions read it: crt_format.cpp takes the point as '.' and no byte as a lead byte
+// (_pctype's _LEADBYTE), and ASCII digits as text::IsDigit has them (_forcdecpt reads the class of a number's text).
+bool CheckLocale(Reader& r, char* detail, std::size_t detailSize) {
     const char decimalPoint = r.Get<char>();
-    for (unsigned short& word : g_classes) word = r.Get<unsigned short>();
-    libcrt::SetReplayLocale(decimalPoint, g_classes);
+    if (decimalPoint != '.') {
+        std::snprintf(detail, detailSize, "the decimal point is '%c'", decimalPoint);
+        return false;
+    }
+    for (int c = 0; c < 256; ++c) {
+        const unsigned short word = r.Get<unsigned short>();
+        constexpr unsigned short kDigit = 0x4, kLeadByte = 0x8000;
+        const bool digit = c >= '0' && c <= '9';
+        if ((word & kLeadByte) || (c < 0x80 && ((word & kDigit) != 0) != digit)) {
+            std::snprintf(detail, detailSize, "the class word of %d is %04X", c, word);
+            return false;
+        }
+    }
     return true;
 }
 EI_VECTOR_CHECK_BYTES("@CrtFormatLocale", CheckLocale);

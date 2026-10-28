@@ -305,8 +305,8 @@ public:
     void ClearState() override { RemoveAllEffectSources(); }
     // worldRotation_ = parent * localRotation_.
     void CombineRotation(const Quaternion& parent) override;
-    void SaveTransform(mfc::CFileVirtuals* file) override;
-    void LoadTransform(mfc::CFileVirtuals* file) override;
+    void SaveTransform(lib::File* file) override;
+    void LoadTransform(lib::File* file) override;
     // Whether the object may play the animation entry (FigureAnimation); any here, CUnit overrides it.
     virtual bool AcceptsAnimation(const FigureAnimation* animation);
     // AttachSpecific. CMapObject and units override it.

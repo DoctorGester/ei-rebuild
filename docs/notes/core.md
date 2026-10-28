@@ -37,7 +37,7 @@ RollTowards 00401B50, Rotate(axis, angle) 00401E50, TurnUpTowards 00401F00, SetH
 - `CTransformObject` (vtable 0073BA38, abstract, 0x54 bytes): CEngineObject + local position (+0x1C),
   world position (+0x28), local rotation (+0x34), world rotation (+0x44). Slots 13-17 are the five
   methods above, shared by ~90 vtables; slot 14 is overridden by 00516370 in the unit classes
-  (writes the world rotation only). Slots 16 / 17 take an MFC `CFile*` and call its slot 14 / 13.
+  (writes the world rotation only). Slots 16 / 17 take a `lib::File*` and Write / Read it (the original: an MFC `CFile*`, its slots 14 / 13).
 - The camera's quaternion products in `ApplyView` and `Update` add the terms in different orders; each is written out separately.
 - Float rules: plain C++ (rule 7). `SetBSpline`'s 1/6 factor was distributed by `/fp:fast` and gave
   different results at 24 bit, so that function keeps `float_control(precise, on)`. Values the
@@ -103,14 +103,15 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
   capacity. Slots 1 Read 004A5380, 2 Write 004A53F0 (grows to twice the need), 3 Seek 004A5490 (also stores
   pending bits), 4 Size, 5 Position, 6 Clear 00417350, 7 CopyFrom 004A55D0. `Resize` 004A54D0 keeps the
   contents (1.5x + 0x10), `SetSize` 004A5570 is exact and drops them.
-- `FileStream` (0073C8D8, 0x1C): a CStream over an MFC `CFile` at +0xC; each slot calls the CFile's own
-  virtual (MFC 4.2: 3 GetPosition, 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19 Close). The
-  save code builds these on the stack. Defined in `net_link.h`.
+- `FileStream` (0073C8D8, 0x1C): a CStream over a `lib::File` (src/lib/file_io.h; the original: an MFC `CFile` at
+  +0xC, each slot calling the CFile's virtual: 3 GetPosition, 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19
+  Close). The save code builds these on the stack. Defined in `net_link.h`. Open takes MFC's CFile open flags
+  (lib::File's names: `modeCreate | modeWrite` to save, `modeRead` to load).
 - `Chunk` (vtable 0073BE94, 0x18: vtable, id, consumed, size, start, parent; not the models'
   `ChunkArchive`): slot 0 a handler called for every chunk `ForEachChild` reads (empty in the base),
   slot 1 the file (base asks its parent). Sizes include the 8-byte header; every byte read or
-  written is counted in the chunk and all its parents. `RootChunk` (0073BE9C, CFile at +0x18; the .mob
-  loader uses vtable 0073FAD4) owns the file: Open 0042D160, constructor 0042D1C0, Destruct 0042D270.
+  written is counted in the chunk and all its parents. `RootChunk` (0073BE9C, the original's CFile at +0x18; the .mob
+  loader uses vtable 0073FAD4) owns the file (a `lib::File`): Open 0042D160, constructor 0042D1C0, Destruct 0042D270.
   `ChunkArchive` is a different format over two memory streams (below).
 - `ChunkArchive` (0x74, constructor 0053A7B0): +0 index stream, +0x28 data stream, +0x54 version (1),
   +0x5C hash_map of loaded objects (ours: `loaded_`, key -> object, plus `numbers_`, object -> its number by first save, while saving; the original shared one map), +0x70 list of objects to save; class tables 0079B284 (class id ->
@@ -131,10 +132,10 @@ WriteString 0042C820, ReadStringArray 0042CA20, WriteStringArray 0042CB80; RootC
 `Ref::Reset`, Read / Find / WriteStreamChunk, Open, Close, CStringField 004093A0, StringField 00409470, StreamField 00409640,
 SaveObjectRef 0040A440, ObjectRef 0040A5A0).
 
-- Recorded-file verify (chunks, FileStream, transform save / load): ours runs with the CFile's vtable swapped for a
-  recorder, the original on a byte copy whose CFile replays the log; calls, bytes, chunk chains and outputs compared
-  (over 256 calls / 256 KB skipped; checks do not nest). Memory streams are deep-copied only for the two CMemoryStream
-  vtables; other stream classes run ours only.
+- The saves (FileStream, the chunks, the transforms' files) are checked by the goldens' decoded saves and, for
+  C14d's move to lib::File, byte for byte: every file the image suite's runs leave in harness_saves (the saves, info
+  and shot files, the texture cache, keyboard.ini, tutorial.ini) the same as main's runs of the same scenario
+  (the image's saves are byte-for-byte repeatable: two scenarios' autosaves at the same point are identical).
 - Kept: `ReadQuad` returns the file's values in the order 2, 0, 3, 1; `ReadVector3` copies x and z
   through the FPU (a signalling NaN becomes quiet; `FpuCopyBits`), y as an integer; `ForEachChild` reads
   the parent without a null check; `CMemoryStream`'s destructor leaves the freed pointer;
@@ -237,9 +238,9 @@ to which template:
   006C5010; the bone's morph frames 00452E20 / 00452DF0; the scene loader's `OriginalElements<T, Make, Unmake>`). The
   vtable is a field: each instantiation keeps its own constant. CByteArray / CWordArray / CDWordArray share
   the layout (`CArray<uint8_t / uint16_t / uint32_t>`); their SetSize stays MFC's own code (006FF64A, 006FEEFA,
-  006FF29A via originals_library.h). CUIntArray went in C20o (only an unused ini_file helper made one). `mfc::impl::CStringArray` (mfc_coll.h): CArray's layout over CStrings,
-  registered at MFC's addresses (Construct 006FE925, Destruct 006FE958, SetSize 006FE9B8, ...); nothing in src/game
-  uses it since C14a batch 14 (the public `mfc::CStringArray` and `console::CStringArray` went).
+  006FF29A via originals_library.h). CUIntArray went in C20o (only an unused ini_file helper made one), `mfc::impl::CStringArray` in C14i
+  (nothing used it since C14a batch 14; its runtime class 00796EE8 and the initialiser 0070BE81 that linked it went
+  with it).
   Aliases and registrations: `RecordPtrArray` (world.h) = `CArray<uint8_t*>` (vtable 0073FAA4; SetSize 005719B0 /
   SetAtGrow forwarded); `ZoneExitArray` = `CArray<ZoneExit>` (SetSize 00573080, `ZoneExitsSetSizeOriginal`); world_save's
   id / object / shared lists and world_party's carried items (+0xB0, `AlignedArray<CEngineObject*>`, 0059CB50 the aligned
@@ -276,8 +277,8 @@ to which template:
   unit.h weapons / items / spells, party.h, ui.h `UiPtrArray`, world.h items), and its static Allocate / Free still back
   the renderer's raw blocks (renderer_lines, particle_emitters, render_helper's matrix stack, texture_compose,
   link_figure's packets).
-- STLport `vector`, `hash_map`, `list`, `map` (strings are std::string; stlp::string is gone; vectors and lists of
-  plain elements are std, see C14b below): `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
+- STLport `vector`, `list`, the hashtable and the tree (strings are std::string; stlp::string is gone; vectors and
+  lists of plain elements are std, see C14b below; hash maps and maps are std or lib::HashMap, see C14c): `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
   next, prev, `data`); the instantiations keep their own insert / erase / clear, reached as free or static `__fastcall`
   forwarders (world_client_maps `GridOpsA/B`, `PlainOps`, `CellOps`; the text manager's 004E1530 / 004E1550 / 004E1590 /
   004DE930 / 004DEAF0 / 004DEB60). `vector<T>` has `Start` / `Finish` / `EndOfStorage` references for code that inlines
@@ -500,8 +501,7 @@ to which template:
   nothing, even after a full chunk. `mfc::CString` (mfc.h) keeps its constructors, assignments, GetLength and the
   `const char*` conversion: the tests' Original* layouts of game.exe's objects (record_script*.cpp,
   script_original.h, script_load_vectors.h, record_stats.cpp) hold it, ei_vectors gives it its own core
-  (replay_mfc.cpp). src/lib's MFC has its own `mfc::impl::CString` (mfc_string.h: CFile names, CArchive's text,
-  CFileFind's root, impl::CStringArray, the exceptions' messages), and the harness views have `exe::CString`.
+  (replay_mfc.cpp); the harness views have `exe::CString`. src/lib's MFC is on std::string since C14i (below).
 - Rule from this pass: the rules' column is where MSVC points, not where the expression starts: a C2440 '=' column
   at the right-hand side (find the `=` before it on the line), a 'return' column past the keyword in a one-line
   body, and a method's receiver that is a cast (`const_cast<T*>(x)->GetBuffer(0)`) starts at the cast keyword.
@@ -575,8 +575,7 @@ to which template:
   record_lists, the `*Element` structs: records without real special members), counted or held elements
   (`CEngineObject*`, `CMapObject*` with HeldObject, `CSpell*`, RefPtr), lists held as a raw sentinel pointer
   (CUnitClientSpecific::speech, SessionBase::clients_), and the hash tables / maps (their bucket vector is
-  stlp::vector). A std container inside a kept record is handled by the record's policy (record_members.h's
-  CopyMember / AssignMember / DefaultMember overloads for std::vector; destroy_at in the record's Destroy).
+  stlp::vector). C14n retyped most of these (next section).
 - Lifetimes: a container member of a class with a real constructor and destructor is the compiler's (no
   construct_at / destroy_at, no clear before the end). A container in raw storage (a StaticObject, a class built by
   `Construct()` on `operator_new_as` storage, a record in an stlp container) is built and destroyed by hand with
@@ -599,6 +598,69 @@ to which template:
 - Layout: std::vector is 12 bytes like STLport's; std::list is 8 (STLport's 4), so offsets after a retyped list move
   (the stlp batch's precedent: such layout asserts go). Archive formats are element-wise (ChunkArchive's string
   vectors, InlineStrings), so their bytes do not change.
+
+## Containers: STLport hash_map, map and set to std (C14c)
+
+- `stlp::map` / `multimap` users are `std::map` / `std::multimap` (sorted, so the walks keep their order): the link
+  meshes' headers and ranges, the mesh cache (a multimap; ClearCache releases from the back as the tree did), the console
+  commands, help topics and debug panel (`str::MbsLess`: _mbscmp order), the person texts, the camp's arrivals, the item
+  object caches. library_trees.h / .cpp went with their policies.
+- A hash map whose walk decides something (which object goes first, what is saved or listed in which order, which
+  entry a loop stops at) is `lib::HashMap<K, V[, lib::TextHash]>` (src/lib/hash_map.h): STLport's order, the prime
+  bucket counts (100 asks for 193), a new key at the head of its chain, resize before each insert with the chains
+  moved head first (keys that share a new bucket come out reversed), erase giving the next entry in walk order.
+  tests/vectors/replay_hash_map.cpp checks those cases. lib::HashMap holds: the world's id maps and line lists, the
+  player's objects / timed objects / units, the base manager's objects and spares, the archive's loaded objects, the
+  held particles, the fog cells, the .mob reader's records, the deferred sounds, the spell sequences and their
+  containers, the terrain lights, the named floats (party and player variables: saved, listed and walked in it), the
+  item stock's recipes (the walk feeds its random rolls), the unit prototypes by name (EI_Plugin's fallback reads
+  bucket heads) and the acks' speeches by kind (the acks dump lists them).
+- The rest (looked up only, or walked to free or log) are `std::unordered_map` / `std::unordered_set`: the record
+  tables' name and code indexes, the quests, the class and message registries, the saved numbers, the positions and
+  spare counts, the bridge cells, the material colours, the pixel formats, the loaded files, the figure models and
+  sets, the render presets, the wave cache, the pending dynamic objects, and the two int sets.
+- `stlp::NamedSlot(map, key)` (operator[] with a null record for a new key) is `map[key]`; `find_or_insert({k, v})` is
+  `map[k]` (the table grows first in both). Where the original read the count after the insert (the saved numbers), the
+  slot is taken first, then the count read.
+- Lifetimes as in C14b: a map member of a class with a real constructor and destructor is the compiler's (the
+  Construct(100) / InitBuckets / Destroy calls went); construct_at / destroy_at only in raw storage (the databases'
+  tables, the ack records, FigureModel, the StaticObject registries and sets). The item stock looks raw (Construct /
+  Destruct) but is a member of ClassTemplate: its maps are the compiler's (a construct_at there built and freed them
+  twice, a heap corruption at start-up). A std::unordered_map is not valid zeroed; lib::HashMap is (an empty
+  bucket vector).
+- Walks that erase the entry they stand on step first (CPlayer::ReleaseTamedUnits; the game's walk read the freed
+  node); the render helper's destructor collects the presets before releasing them.
+- Kept as stlp (C14q): the connection's five trees (counted RefPtr values with their element policies), UnitSet's
+  figured and dressed tables (record element policies), the party manager's parties (CParty in place) and the shape
+  cache (RefPtr values, its own height equality). stlp_hash.h keeps hashtable / HashtableAbi / DwordObjectTraits for
+  them; the hash_map class, the string / dword traits, NamedSlot, RecordsByName, the pairs (stlp_pair.h / .cpp),
+  HashString and LowerBoundDwords went. The tests' game.exe view (exe_objects.h `HashTable`) walks like a std map
+  (begin / end, `->first` / `->second`) so harness_digest_read.inc reads both sides with one loop.
+
+## Containers: the kept vectors and lists (C14n)
+
+- What C14b kept for "the original's element policy" is std now: the records got real special members or none
+  (the compiler's), and the policies (record_vectors.h, record_members.h, record_lifetime.h,
+  library_containers.h, lib/stlp_vector_refs.h, the record lists' print and title policies) are gone. Since S21
+  the layout only matters for the tests' game.exe views (tests/vectors' `OriginalVector` in record_stats.cpp).
+- Counted elements are RAII types: `CountedPtr<T>` (CRefCounted's refs_, core_refcount.h), `CountedRefPtr` /
+  `SharedRefPtr` (a RefPtr holding a plain reference / owning a share: copy FromRawCounted / Share, destroy the
+  plain release / Destroy) and `HeldPtr<T>` (CEngineObject's refCount_ and Release, engine_object.h). A move hands
+  the reference over, so a reallocation takes and drops none. A SharedRefPtr copy of a copy-on-share object is a
+  clone, as STLport's fill insert made it (the file message's chunks).
+- The record databases' tables hold their records in a `std::vector` member (`records`); the chunk serializers
+  share `RecordChunks` (chunk_archive.h: chunk `id` with one chunk 1 per record, `occurrence` set before each).
+- A copy with side effects keeps the original's copies: a saved hero's (MpHeroRecord) copy loads its party again,
+  drawing object ids and random numbers, so `SavedParties::ReserveOne` doubles the storage before a record is
+  added (STLport's growth, the old records copied before the new one) and the new-hero record at capacity is a
+  blank's copy. Without it the multiplayer goldens differ (the hero's #unit and the random state).
+- Value-initialised elements (`emplace_back()`, `resize`) zero what the original left as stack bytes (save
+  entries, connect list rows, trade rows, bindings); the fields are written before they are read.
+- Lists done: the titles' lines, the chat overlay's lines (ChatLine owns its surface), the ground prints (prints
+  built in place with emplace_back; GroundPrint has a virtual destructor and no copy), the unit's speech queue,
+  the item stock's spells. Still stlp::list (C14s, C14t): the CMapObject* sector lists and their grids, the
+  net RefPtr / timed lists and the connection's packet lists, the trade records, the link archives and the
+  stream queues; the bucket vectors inside stlp_hash.h's hashtable go with it (C14q).
 
 ## MFC CArray and CList to std (C14m)
 
@@ -658,7 +720,7 @@ to which template:
   player's two maps of sent objects call it through `ObjectMapClearOriginal`. Ours only (objects can go with
   their last reference); the map must end empty.
 - A-E1: `CCamera::LoadPath` (0040ECD0, RET 8, camera_path_load.cpp; Rebirth-patched at its file open
-  0040ED42, so the vanilla launch only): `<data folder>camera\<name>` opened with a CFile (0 when that fails),
+  0040ED42, so the vanilla launch only): `<data folder>camera\<name>` opened with a lib::File (0 when that fails),
   the keys (a `std::vector<CameraKey>`) resized to length / 36 and filled with one read. With the second
   argument above 1 and below the key count, the first key among that many that is more than 500 time units
   after its predecessor gives its position and rotation to every key before it. Side by side on the camera

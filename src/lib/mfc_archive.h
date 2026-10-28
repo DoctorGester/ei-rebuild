@@ -1,31 +1,29 @@
 #pragma once
 
 // MFC 4.2's CArchive buffer (arccore.cpp, afx.inl) as the game's copy has it: Read, Write, Flush, FillBuffer,
-// the count and string-length encodings, the BYTE / WORD / DWORD operators and the CString operators, with
-// CString's assignment from a wide string the loader uses (docs/notes/standalone.md section 2). Same layout
-// as the exe's; the bodies are in mfc_archive.cpp.
+// the count and string-length encodings, the BYTE / WORD / DWORD operators and the CString operators (on a
+// std::string) with the conversion of a wide string the loader uses (docs/notes/standalone.md section 2). The bodies
+// are in mfc_archive.cpp.
 
 #include "mfc_exception.h"
-#include "mfc_file.h"
+#include "file_io.h"
+
+#include <string>
 
 namespace mfc::impl {
 
-// CArchive (0x44 bytes). The buffer runs from `bufferStart`; loading reads it up to `bufferMax`,
-// storing fills it up to there. A file with a buffer of its own (CMemFile; `directBuffer`) hands it
-// out through CFile::GetBufferPtr instead.
+// CArchive over a lib::File (no code of ours builds one: only the collections' Serialize slots take one). The
+// buffer runs from `bufferStart`; loading reads it up to `bufferMax`, storing fills it up to there.
 struct CArchive {
     enum Mode : unsigned { store = 0, load = 1, noFlushOnDelete = 2, noByteSwap = 4 };
-    enum BufferCommand : unsigned { bufferRead = 0, bufferWrite = 1, bufferCommit = 2, bufferCheck = 3 };
 
     void* document;
     BOOL forceFlat;
-    BOOL directBuffer;
     unsigned objectSchema;
-    CString fileName;
     unsigned mode;
     BOOL userBuffer;
     unsigned bufferSize;
-    CFile* file;
+    lib::File* file;
     unsigned char* bufferCur;
     unsigned char* bufferMax;
     unsigned char* bufferStart;
@@ -54,18 +52,18 @@ struct CArchive {
     CArchive* LoadWord(unsigned short& value);
     CArchive* LoadDword(unsigned long& value);
 };
-static_assert(sizeof(CArchive) == 0x44);
 
 // AfxReadStringLength: a BYTE below 0xFF, else a WORD (0xFFFE: -1, a wide string follows; 0xFFFF:
 // a DWORD follows).
 unsigned ReadStringLength(CArchive& ar);
 // operator<<(CArchive&, const CString&): the length so encoded, then the characters.
-CArchive& StoreText(CArchive& ar, const CString& text);
-// operator>>(CArchive&, CString&): a wide string is converted to the ANSI code page.
-CArchive& LoadText(CArchive& ar, CString& text);
+CArchive& StoreText(CArchive& ar, const std::string& text);
+// operator>>(CArchive&, CString&): a wide string is converted to the ANSI code page (CString::operator=(LPCWSTR):
+// at most two bytes a character, up to the first zero byte).
+CArchive& LoadText(CArchive& ar, std::string& text);
 
-// CString::operator=(LPCWSTR) is CString::AssignWide (mfc_string.h). _wcstombsz: WideCharToMultiByte into
-// `count` bytes, terminated; the bytes written with the terminator (0 for no room).
+// _wcstombsz: WideCharToMultiByte into `count` bytes, terminated; the bytes written with the terminator (0 for no
+// room).
 int WideToMultiByte(char* to, const wchar_t* from, unsigned count);
 
 } // namespace mfc::impl

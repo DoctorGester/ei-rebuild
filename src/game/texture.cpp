@@ -3,6 +3,7 @@
 #include "app.h"
 #include "device.h"
 
+#include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
@@ -40,12 +41,12 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         return 1;
     }
 
-    mfc::CFileFind finder;
+    lib::FileFind finder;
     std::string path = GameRoot() + "textures\\" + texture->GetName() + ".bmp";
     PixelFormat format;
     int result;
 
-    if (finder.FindFile(path, 0)) {
+    if (finder.FindFile(path)) {
         // A loose .bmp overrides the archived texture.
         if (!device_->FindFormat(BmpFormatFor(texture->type_), &format))
             return game::FatalError(
@@ -70,9 +71,9 @@ int CTextureManager::LoadTexture(CTexture* texture) {
     }
 
     // Not in any archive: look in the data directory.
-    mfc::CFile file;
+    lib::File file;
     path = str::Format("%stextures\\%s.mmp", DataFolderText(), texture->GetName());
-    if (!file.Open(path, mfc::CFile::modeRead, nullptr)) {
+    if (!file.Open(path, lib::File::modeRead)) {
         game::DebugLog("CTextureManager::LoadTexture.\n Can't find texture \"%s\"\n", texture->GetName());
         return 1;
     }
@@ -99,9 +100,9 @@ int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
     }
 
     std::string path;
-    mfc::CFile file;
+    lib::File file;
     path = str::Format("%s%s.mmp", directory, texture->GetName());
-    if (!file.Open(path, mfc::CFile::modeRead, nullptr)) {
+    if (!file.Open(path, lib::File::modeRead)) {
         game::DebugLog("CTextureManager::LoadTexture.\n Can't find texture \"%s\" in directory \"%s\"\n",
                        texture->GetName(), directory);
         return 1;

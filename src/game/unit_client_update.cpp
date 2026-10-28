@@ -104,9 +104,8 @@ int CUnitClientSpecific::RunTick() {
     UpdateArrow();
     PlayStepSounds();
 
-    ClientSpeechNode* queue = speech;
-    if (queue->next != queue) {
-        ClientSpeech* first = &queue->next->value;
+    if (!speech.empty()) {
+        ClientSpeech* first = &speech.front();
         int delay = --first->delay;
         if (delay == 0) {
             if (first->talking) SetTalking(unit, true);
@@ -116,8 +115,8 @@ int CUnitClientSpecific::RunTick() {
                 Speak(first);
             }
         } else if (delay < 0 && !SoundBusy(first->sound)) {
-            if (speech->next->value.talking) SetTalking(unit, false);
-            stlp::list<ClientSpeech>::Erase(stlp::AsNode<ClientSpeech>(speech->next));
+            if (speech.front().talking) SetTalking(unit, false);
+            speech.pop_front();
         }
     }
     if (unit->secondEntry == kModeSpecialIdle && std::ssize(unit->Object3D()->animation->queue) < kIdleRestartBelow)

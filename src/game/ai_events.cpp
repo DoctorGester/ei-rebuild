@@ -14,6 +14,7 @@
 #include "lib/static_object.h"
 #include "game_data.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <list>
 #include <string>
@@ -46,7 +47,7 @@ void DestroyEventPool() { g_eventPool.Destroy(); }
 
 void ConstructEventPool() {
     g_eventPool.Construct();
-    libcrt::AtExit(DestroyEventPool);
+    std::atexit(DestroyEventPool);
 }
 
 AIEventCell* AIEventTable::CellOf(const AIEvent* event) const {

@@ -14,6 +14,7 @@
 #include "ei/x87.h"
 
 #include <bit>
+#include <cstdlib>
 #include <cstring>
 #include "game_singletons.h"
 #include "lib/mfc.h"
@@ -461,7 +462,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     if (!(guard & 1)) {
         guard |= 1;
         g_candidates.Construct();
-        libcrt::AtExit(DestroyCandidates);
+        std::atexit(DestroyCandidates);
     }
     CUnit* self = brain->owner->unit;
     brain->memory.FindEnemies(self, &Candidates());

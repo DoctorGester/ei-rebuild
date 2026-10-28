@@ -32,6 +32,7 @@
 #include "world_map_files.h"
 
 #include "lib/crt.h"
+#include "lib/file_io.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
 
@@ -187,8 +188,8 @@ namespace {
 // cell nearby when they are scripted units (text-key ids), otherwise removed.
 void RelocateStrandedUnits(CWorldServer* world) {
     IdArray stranded;
-    for (auto* node = world->objects_.map.First(); node; node = world->objects_.map.After(node)) {
-        CUnit* unit = UnitOrNull(node->value);
+    for (auto node = world->objects_.map.begin(); node != world->objects_.map.end(); ++node) {
+        CUnit* unit = UnitOrNull(node->second);
         if (!unit) continue;
         if (world->AIMap()->CanLeaveCell(unit)) continue;
         int id = unit->id_;
@@ -539,8 +540,8 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     stream->WriteDiff(&base, &current);
 
     // The map objects' identities (the walk stops at the first empty entry).
-    for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node)) {
-        CEngineObject* object = node->value;
+    for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end() && node->second; ++node) {
+        CEngineObject* object = node->second;
         WriteCopy(stream, object->id_);
         WriteCopy(stream, object->type_);
         WriteCopy(stream, object->prototypeId_);
@@ -554,8 +555,8 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     manager4C_->SaveObjects(stream);
     itemManager_->SaveObjects(stream);
 
-    for (auto* node = timedObjects_.map.First(); node; node = timedObjects_.map.After(node))
-        WriteCopy(stream, node->value->id_);
+    for (auto node = timedObjects_.map.begin(); node != timedObjects_.map.end(); ++node)
+        WriteCopy(stream, node->second->id_);
     WriteCopy(stream, -1);
 
     for (auto node = projectiles_.begin(); node != projectiles_.end();) {
@@ -697,8 +698,8 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
 }
 
 void CWorldServer::PrepareSave() {
-    for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node)) {
-        CUnit* unit = UnitOrNull(node->value);
+    for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end() && node->second; ++node) {
+        CUnit* unit = UnitOrNull(node->second);
         if (!unit || unit->IsDead()) continue;
         CUnitController* controller = unit->Controller();
         unit->ServerController()->stats.RefillSlots();
@@ -714,12 +715,12 @@ constexpr const char* kCantLoadMap = "CWorldServer::NewZone()\n Can't load map.\
 // Whether the file `name` is neither there as named nor in the maps folder (Rebirth's Maps names it
 // first: `site`).
 bool MapFileMissing(const char* name, modfolders::MapsSite site) {
-    if (libcrt::Access(name, 0) != -1) return false;
+    if (lib::FileExists(name)) return false;
     std::string folder;
     modfolders::SelectMaps(name, site);
     MapsFolder(&folder);
     std::string path = folder + name;
-    return libcrt::Access(path.c_str(), 0) == -1;
+    return !lib::FileExists(path.c_str());
 }
 
 } // namespace

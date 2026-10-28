@@ -17,6 +17,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <vector>
@@ -58,13 +59,13 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /
     if (!(g_glowGuards & 1)) {
         g_glowGuards |= 1;
         g_sprites.Construct();
-        libcrt::AtExit(DestroySprites);
+        std::atexit(DestroySprites);
     }
     if (!(g_glowGuards & 2)) {
         g_glowGuards |= 2;
         LightningPointArray& p = GlowPoints();
         std::construct_at(&p);
-        libcrt::AtExit(FreeGlowPoints);
+        std::atexit(FreeGlowPoints);
     }
     TextureHolderEnsureLoaded(&glowTexture_);
     if (!device->SetTexture(0, glowTexture_)) return;

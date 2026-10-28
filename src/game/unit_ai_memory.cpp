@@ -12,7 +12,6 @@
 #include "game_singletons.h"
 
 #include "lib/nan_audit.h"
-#include "lib/crt_iostream.h"
 
 #include <bit>
 #include <cmath>
@@ -34,10 +33,6 @@ double Distance2(const CUnit* a, const float* b) {
     return LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
 }
 
-console::GameOStream& PutLong(console::GameOStream& os, long value) {
-    os.PutInt(value);
-    return os;
-}
 } // namespace
 
 void AIObjectList::AddCountedTail(CUnit* object) {
@@ -110,22 +105,19 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
         if (sight > distance && nearValue > distance) return;
     }
     if (IsDead(object)) {
-        console::GameOStream& os = PutLong(*AiLog() << "Unit ", self->id_) << " sees corpse of unit ";
-        console::EndLine(PutLong(os, other->id_));
+        console::EndLine(AiLog() << "Unit " << self->id_ << " sees corpse of unit " << other->id_);
         seenCorpses.AddCountedTail(object);
         if (Allied(self->side, other->side)) corpses.AddCountedTail(object);
     } else {
         visible.push_front(object);
         ++object->refCount_;
-        console::GameOStream& os = PutLong(*AiLog() << "Unit ", self->id_) << " is forced to see unit ";
-        PutLong(os, other->id_) << " from ";
-        console::EndLine(AiLog()->PutFloat(distance) << "m distance");
+        AiLog() << "Unit " << self->id_ << " is forced to see unit " << other->id_ << " from ";
+        console::EndLine(AiLog() << distance << "m distance");
     }
 }
 
 void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
-    console::GameOStream& os = PutLong(*AiLog() << "Unit ", self->id_) << " sees corpse of unit ";
-    console::EndLine(PutLong(os, corpse->id_));
+    console::EndLine(AiLog() << "Unit " << self->id_ << " sees corpse of unit " << corpse->id_);
     seenCorpses.AddCountedTail(corpse);
     if (Allied(self->side, corpse->side)) corpses.AddCountedTail(corpse);
 }

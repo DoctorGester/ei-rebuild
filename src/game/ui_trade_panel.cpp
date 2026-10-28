@@ -5,7 +5,6 @@
 #include "ui_camp.h"
 #include "game_strings.h"
 #include "party.h"
-#include "record_lifetime.h"
 #include "unit.h"
 
 #include "lib/crt.h"
@@ -19,10 +18,8 @@
 #include "core_maths.h"
 #include "unit_db.h"
 #include "world_glue.h"
-#include "record_vectors.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_string.h"
 #include "lib/str.h"
 
 int __fastcall SchoolPrice(int /*from*/, int /*to*/);
@@ -36,24 +33,8 @@ namespace {
 
 
 
-SkillLevelRecord* SkillRecords() { return SkillDb()->levels.begin(); }
-int SkillCount() { return static_cast<int>(SkillDb()->levels.end() - SkillRecords()); }
-
-// The rows are pushed as copies of an empty row. The original's row has uninitialised price,
-// level and flag (stack bytes, all overwritten except the flag of the non-learnable rows); ours
-// are 0.
-TradeRow BlankRow() { return TradeRow{}; }
-
-TradeRow* PushBack(TradeRows* rows, const TradeRow& value) {
-    rows->PushBack<recordvec::TradeRowElement>(value);
-    return rows->end() - 1;
-}
-
-// erase(begin, end): the copy over the empty tail does nothing; the rows are destroyed.
-void Clear(TradeRows* rows) {
-    for (TradeRow* row = rows->begin(); row != rows->end(); ++row) row->DeleteThis(0);
-    rows->Finish() = rows->Start();
-}
+SkillLevelRecord* SkillRecords() { return SkillDb()->levels.data(); }
+int SkillCount() { return static_cast<int>(SkillDb()->levels.size()); }
 
 int HasPerkText(CTextManager* table, const std::string& name) {
     std::string prefix("perk ");
@@ -87,45 +68,21 @@ std::uint32_t PriceColour(int price, int experience) { return price > experience
 
 } // namespace
 
-// --- A row destroyed ----------------------------------------------------------------------------------
-
-void TradeRow::Destroy() {
-    std::destroy_at(&nextKey);
-    std::destroy_at(&key);
-    std::destroy_at(&name);
-}
-
-TradeRow* TradeRow::DeleteThis(int flags) {
-    Destroy();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-
-TradeRow* TradeRow::CopyConstruct(const TradeRow* from) {
-    std::construct_at(&name, from->name);
-    std::construct_at(&key, from->key);
-    std::construct_at(&nextKey, from->nextKey);
-    price = from->price;
-    level = from->level;
-    learnable = from->learnable;
-    return this;
-}
-
 void CTradePanel::BuildLists() {
     UnitStats* stats = &owner_->HeroRecord()->stats;
     stats->ResetToBase(0.0f);
     owner_->RefreshStats();
     CTextManager* table = GameClientTexts();
     CTextManager* texts = table;
-    Clear(&perks_);
-    Clear(&learnable_);
-    Clear(&schools_);
-    Clear(&science_);
-
-    const TradeRow blank = BlankRow();
+    perks_.clear();
+    learnable_.clear();
+    schools_.clear();
+    science_.clear();
+    // The rows are pushed empty. The original's row has uninitialised price, level and flag (stack bytes, all
+    // overwritten except the flag of the non-learnable rows); ours are 0.
     const char* const* names = SkillNames();
     for (int i = 0; i < 6; ++i) {
-        TradeRow* row = PushBack(&schools_, blank);
+        TradeRow* row = &schools_.emplace_back();
         if (HasPerkText(table, names[i]))
             row->name = ReadPerkLine(texts);
         else
@@ -134,7 +91,7 @@ void CTradePanel::BuildLists() {
         row->price = SchoolPrice(row->level, row->level + 1);
     }
     {
-        TradeRow* row = PushBack(&science_, blank);
+        TradeRow* row = &science_.emplace_back();
         if (HasPerkText(table, names[6]))
             row->name = ReadPerkLine(texts);
         else
@@ -154,7 +111,7 @@ void CTradePanel::BuildLists() {
         if (index >= static_cast<unsigned>(SkillCount())) continue;
         SkillLevelRecord* record = SkillRecords() + index;
         if (!record) continue;
-        TradeRow* row = PushBack(&perks_, blank);
+        TradeRow* row = &perks_.emplace_back();
         PerkBaseName(&text, record);
         if (HasPerkText(table, text))
             texts->ReadLine(&text, 1);
@@ -185,7 +142,7 @@ void CTradePanel::BuildLists() {
         SkillLevelRecord* record = SkillRecords() + index;
         if (!record) continue;
         if (!stats->CanLearn(SkillDb(), record)) continue;
-        TradeRow* row = PushBack(&learnable_, blank);
+        TradeRow* row = &learnable_.emplace_back();
         PerkBaseName(&text, record);
         if (HasPerkText(table, text))
             row->name = ReadPerkLine(texts);
@@ -256,7 +213,7 @@ void CTradePanel::DrawLists() {
         Down(&row);
     }
     row = {15, 65, 180, 80};
-    DrawSchool(this, draw, &row, science_.begin(), &value);
+    DrawSchool(this, draw, &row, science_.data(), &value);
 
     row = {15, 230, 180, 245};
     unsigned index = static_cast<unsigned>(perkTop_);
@@ -363,10 +320,9 @@ void CTradePanel::Build() {
 void CTradePanel::ResetRecords() {
     // The vector emptied first (the records hold no resources). The original pushes uninitialised stack bytes;
     // its record filler writes all but a few bytes. Ours pushes zeros.
-    records_.Finish() = records_.Start();
-    const TradeRecord blank{};
+    records_.clear();
     for (int i = 0; i < PartyRecordCount(); ++i) {
-        records_.PushBack<recordvec::TradeRecordVector::Element>(blank);
+        records_.emplace_back();
         recordIndex_ = i;
         TradeSnapshotRecord(this);
     }

@@ -11,9 +11,8 @@
 #include "world_data.h"
 
 #include <cstdint>
+#include <cstdlib>
 
-static_assert(sizeof(itemdb::SpellDatabase) == 0x64 && sizeof(itemdb::ItemDatabase) == 0xC0);
-static_assert(sizeof(QuestDatabase) == 0x40 && sizeof(PrintsDatabase) == 0x60 && sizeof(acks::AckDatabase) == 0x60);
 
 constinit lib::StaticObject<itemdb::SpellDatabase> g_spellDatabase = /*007C8510*/ {};
 constinit lib::StaticObject<itemdb::ItemDatabase> g_itemDatabase = /*007C86D8*/ {};
@@ -26,9 +25,6 @@ QuestBriefingTable::Index& worlddata::QuestBriefings() { return TheQuestDatabase
 
 namespace {
 
-using AtExitFunction = void(__cdecl*)();
-void RegisterExit(AtExitFunction exitFunction) { libcrt::AtExit(exitFunction); }
-
 void DestroySpellDatabase() { g_spellDatabase->Destruct(); }
 void DestroyItemDatabase() { g_itemDatabase->DestructBody(); }
 void DestroyQuestDatabase() { g_questDatabase->Destruct(); }
@@ -38,25 +34,25 @@ void DestroyAckDatabase() { g_ackDatabase->Destruct(); }
 
 void ConstructSpellDatabase() {
     g_spellDatabase->Construct();
-    RegisterExit(DestroySpellDatabase);
+    std::atexit(DestroySpellDatabase);
 }
 
 void ConstructItemDatabase() {
     g_itemDatabase->Construct();
-    RegisterExit(DestroyItemDatabase);
+    std::atexit(DestroyItemDatabase);
 }
 
 void ConstructQuestDatabase() {
     g_questDatabase->Construct();
-    RegisterExit(DestroyQuestDatabase);
+    std::atexit(DestroyQuestDatabase);
 }
 
 void ConstructPrintsDatabase() {
     g_printsDatabase->Construct();
-    RegisterExit(DestroyPrintsDatabase);
+    std::atexit(DestroyPrintsDatabase);
 }
 
 void ConstructAckDatabase() {
     g_ackDatabase->Construct();
-    RegisterExit(DestroyAckDatabase);
+    std::atexit(DestroyAckDatabase);
 }

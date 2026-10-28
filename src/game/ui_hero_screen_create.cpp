@@ -18,10 +18,10 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -239,13 +239,11 @@ void CMpHeroScreen::CreateScreen() {
     VoiceList& maleVoices = voiceLists_[0];
     VoiceList& femaleVoices = voiceLists_[1];
     const NpcPrototypeTable& creatures = unitdb::NpcTable();
-    const int count = static_cast<int>(creatures.end - creatures.begin);
+    const int count = static_cast<int>(creatures.records.size());
     for (int i = 0; i < count; ++i) {
         // The vector's checked access, repeated like the original.
-        auto creature = [&creatures, i]() {
-            const UnitNpcRecord* first = creatures.begin;
-            const UnitNpcRecord* last = creatures.end;
-            return static_cast<std::uint32_t>(i) < static_cast<std::uint32_t>(last - first) ? first + i : nullptr;
+        auto creature = [&creatures, i]() -> const UnitNpcRecord* {
+            return static_cast<std::uint32_t>(i) < creatures.records.size() ? &creatures.records[i] : nullptr;
         };
         const UnitPrototypeRecord* prototype;
         {
@@ -261,7 +259,7 @@ void CMpHeroScreen::CreateScreen() {
         }
         figureModel = figure->figureName;
         auto isModel = [&figureModel](const char* name) {
-            return gamecrt::mbsicmp(figureModel.c_str(),
+            return text::CompareIgnoringCase(figureModel.c_str(),
                                    name) == 0;
         };
         bool isMale = isModel("unhuma");

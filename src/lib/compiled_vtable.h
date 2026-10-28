@@ -40,24 +40,6 @@ protected:
     const T* ObjectAs() const { return reinterpret_cast<const T*>(static_cast<const Self*>(this)); }
 };
 
-template <typename F>
-struct DeleteTarget;
-template <typename R, typename C, typename Flags>
-struct DeleteTarget<R (C::*)(Flags)> {
-    using Type = C;
-};
-
-// A one-slot table whose slot 0 is the class's scalar deleting destructor (the flags: the
-// destructor's body, the memory freed when bit 0 is set; returns the object): `Delete` is that member.
-template <typename Self, auto Delete>
-class CompiledDeleter : public CompiledTag<Self> {
-public:
-    virtual void* DeleteScalar(unsigned flags) {   // 0
-        using Target = typename DeleteTarget<decltype(Delete)>::Type;
-        return (this->template ObjectAs<Target>()->*Delete)(flags);
-    }
-};
-
 // The body of a compiled table's slot whose game.exe body at `address` is not in our source: the image never reaches it
 // (the comment at the class gives the reason: the class is never made, or never called through that slot). Reached
 // anyway, it is reported as missing code at `address`.

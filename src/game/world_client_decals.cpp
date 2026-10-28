@@ -18,6 +18,7 @@
 #include "game_data.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -110,12 +111,11 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     if (!(Guards() & 1)) {
         Guards() |= 1;
         builder.Construct();
-        libcrt::AtExit(ei::short_functions::Ret);   // the builder: nothing to destroy
     }
     if (!(Guards() & 2)) {
         Guards() |= 2;
         PartPoints() = std::vector<Vector4>{};
-        libcrt::AtExit(FreePartPoints);
+        std::atexit(FreePartPoints);
     }
     auto* quad = reinterpret_cast<float* const*>(corners);
     builder.Begin(points, texCoords, indices, quad, direction, point, depth);

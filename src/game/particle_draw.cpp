@@ -14,6 +14,7 @@
 #include "game_arrays.h"
 #include "lib/static_object.h"
 
+#include <cstdlib>
 #include <cstring>
 
 namespace {
@@ -124,7 +125,7 @@ bool AttachedToHiddenUnit(const CParticleSource* s) {
 
 void ConstructDrawOrder() {
     g_drawOrder.Construct();
-    libcrt::AtExit(DestroyDrawOrder);
+    std::atexit(DestroyDrawOrder);
 }
 
 // STLport __make_heap (the tag arguments are unused).

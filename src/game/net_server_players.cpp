@@ -5,7 +5,7 @@
 #include "net_connection.h"
 #include "core_refcount.h"
 
-#include "lib/crt.h"
+#include "lib/text_case.h"
 
 #include <cstring>
 
@@ -74,7 +74,8 @@ bool ServerSession::Admit(const NetAddress* from, std::uint8_t** password, std::
 void ServerSession::SetPassword(const char* text) {
     char* stored = password_;
     std::memset(stored, 0, kPasswordSize);
-    gamecrt::strncpy(stored, text, kPasswordSize);
+    #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
+    std::strncpy(stored, text, kPasswordSize);
 }
 
 // The connection of the first player whose name starts with `name` (case-insensitive)
@@ -83,7 +84,7 @@ Connection* ServerSession::FindGuestConnection(const std::string* name) {
     const std::size_t length = name->size();
     for (RefNode* node = players_.First(); node != players_.End(); node = node->next) {
         PlayerMessage* player = players_.At(node);
-        if (gamecrt::strnicmp(player->name_.data(), name->data(), length) != 0) continue;
+        if (text::CompareIgnoringCase(player->name_.data(), name->data(), length) != 0) continue;
         const auto& bindings = bindings_;
         RefNode* first = bindings.First();
         for (RefNode* binding = first; binding != bindings.End(); binding = binding->next) {

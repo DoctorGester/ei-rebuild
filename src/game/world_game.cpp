@@ -39,21 +39,20 @@
 #include "mod_folders.h"
 #include "world_map_files.h"
 
+#include "lib/file_io.h"
 #include "lib/containers.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
-#include "lib/crt_iostream.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/mfc_array.h"
+#include "lib/text_case.h"
 
 #include "ei/rebirth.h"
 #include "party_manager.h"
 #include "party_records.h"
-#include "record_vectors.h"
 #include "game_arrays.h"
-#include "library_containers.h"
 #include "bink_video.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -61,6 +60,7 @@
 #include "lib/str.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <list>
 #include <memory>
@@ -83,8 +83,6 @@ int SaveVersion() { return kSaveVersion; }
 bool& ToMainMenu() { return TheInterface()->closeAll_; }
 // BeginMultiplayerGame sets it, a missing zone clears it.
 bool& SessionsOpen() { return TheInterface()->disconnected_; }
-
-libcrt::Ostream* const kConsole = &console::g_consoleOut;
 
 MapRecord* ZoneRecords() { return TheMapDatabase()->maps.data; }
 int ZoneRecordCount() { return TheMapDatabase()->maps.size; }
@@ -124,9 +122,9 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
         }
         bool keep = false;
         if (visited) {
-            keep = gamecrt::mbscmp(record->name,
+            keep = str::Compare(record->name,
                                    kAlwaysCopied) == 0 ||
-                   gamecrt::mbscmp(record->allod,
+                   str::Compare(record->allod,
                                    currentMap) == 0;
         }
         if (keep) {
@@ -160,7 +158,7 @@ void DestroySaveStream() { g_saveStream->~CMemoryStream(); }
 
 void ConstructSaveStream() {
     new (&*g_saveStream) CMemoryStream();
-    libcrt::AtExit(DestroySaveStream);
+    std::atexit(DestroySaveStream);
 }
 
 int GameFlow::SaveGame(const char* slot) {
@@ -226,7 +224,7 @@ int GameFlow::SaveGame(const char* slot) {
     }
 
     TheCursor()->SetShape(0);
-    kConsole->PutText(kSaved)->PutText(slot)->PutChar('\n')->Apply(libcrt::FlushManipulator);
+    console::EndLine(console::Out() << kSaved << slot);
     return 1;
 }
 
@@ -305,7 +303,7 @@ int EnterZone(CParty* records) {
 
     NamedFloatTable* variables = &records->variables_;
     if (static_cast<int>(gamecrt::Ftol(VariableGet(variables, kMovieVariable))) == 1) {
-        if (gamecrt::mbscmp(zone.c_str(),
+        if (std::strcmp(zone.c_str(),
                             kMovieZone) != 0) {
             {
                 std::string movie = MoviesFolder() + kMovieFile;
@@ -317,10 +315,10 @@ int EnterZone(CParty* records) {
         variables->Remove(kMovieVariable);
     }
 
-    if (gamecrt::mbscmp(zoneRecord->map,
+    if (str::Compare(zoneRecord->map,
                         game::EmptyText()) != 0) {
         const char* mapOverride = nullptr;
-        if (gamecrt::mbsicmp(zone.c_str(),
+        if (text::CompareIgnoringCase(zone.c_str(),
                             kFrozenZone) == 0) {
             double frozen = VariableGet(variables, kFrozenVariable);
             mapOverride = kFrozenMap;
@@ -375,7 +373,7 @@ bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CR
 // Tells the clients of the game server where the game is: the host's address and the zone.
 void AnnounceHost(const char* zone) {
     char host[100];
-    if (libcrt::imports::GetHostName(host, sizeof(host)) != 0) return;
+    if (gameapi::gethostname(host, sizeof(host)) != 0) return;
     net::NetAddress address{};
     address.Parse(host, kHostPort);
     std::string formatted = address.ToString();
@@ -521,7 +519,7 @@ namespace {
 // The local client's player record (ClientSession::player_, a LoginMessage): its state_ is the
 // game state request to the server (a change goes out with a new version_).
 net::LoginMessage* LocalLogin() { return net::GameClient()->player_.Get(); }
-int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->objects_.Size()); }
+int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->objects_.size()); }
 
 } // namespace
 
@@ -866,7 +864,7 @@ constexpr std::size_t kPasswordSize = 0x14;
 void GameFlow::StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted,
                            int value25FC) {
     BuildZoneTable();
-    net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
+    net::g_netLog = &console::g_netLogOut;
     {
         net::ServerSession* server = net::NewCounted<net::ServerSession>(gameType);
         AssignCounted(net::GameServer(), server);
@@ -881,7 +879,8 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     {
         GrowingBuffer hello;
         char secret[kPasswordSize] = {};
-        if (password) gamecrt::strncpy(secret, password, kPasswordSize);
+        #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
+        if (password) std::strncpy(secret, password, kPasswordSize);
         hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
         net::GameClient()->Join(&address, &hello);
     }
@@ -897,7 +896,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
 }
 
 void GameFlow::StartClient() {
-    net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
+    net::g_netLog = &console::g_netLogOut;
     AssignCounted(net::GameServer(), static_cast<net::ServerSession*>(nullptr));
     net::ClientSession* client = net::NewCounted<net::ClientSession>();
     AssignCounted(net::GameClient(), client);
@@ -907,16 +906,11 @@ void GameFlow::StartClient() {
 void GameFlow::JoinServer(const net::NetAddress* address, const char* password) {
     GrowingBuffer hello;
     char secret[kPasswordSize] = {};
-    if (password) gamecrt::strncpy(secret, password, kPasswordSize);
+    #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
+    if (password) std::strncpy(secret, password, kPasswordSize);
     hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
     net::GameClient()->Join(const_cast<net::NetAddress*>(address), &hello);
 }
-
-namespace {
-
-libcrt::Ostream* const kNetLog = &console::g_netLogOut;
-
-} // namespace
 
 void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
     std::list<netlink::NetLink*> joined;
@@ -931,7 +925,7 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
         player->sessionKind100_ = sessionKind_;
         std::memcpy(&player->Server()->lastPosition_, &startPosition_, 12);
         int id = player->playerId_;
-        kNetLog->PutText(kAcceptedPlayer)->PutInt(id)->PutChar('\n')->Apply(libcrt::FlushManipulator);
+        console::EndLine(console::g_netLogOut << kAcceptedPlayer << id);
         node = next;
     }
     // The list's inlined destructor: every reference released, then the blocks.
@@ -943,11 +937,15 @@ namespace {
 
 // The zone table: a vector of {first, second, id} entries (docs/notes/standalone.md, "The static
 // initialisers' objects").
-using ZoneEntry = recordvec::ZoneTableEntry;
+struct ZoneEntry {
+    std::string first;
+    std::string second;
+    int id;
+};
 using ZoneTable = std::vector<ZoneEntry>;
 constinit std::vector<ZoneEntry> g_zoneTable = /*007AFDE0*/ {};
 bool SameText(std::string_view a, std::string_view b) {
-    return gamecrt::mbscmp(a, b) == 0;
+    return str::Compare(a, b) == 0;
 }
 
 // A list of entry pointers on the game's heap (the game keeps STLport lists of copies).
@@ -1028,12 +1026,12 @@ int LoadMission(CStream* file) {
 
 void ClearSaveFolder(const char* path) {
     gameapi::CreateDirectoryA(path, nullptr);
-    mfc::CFileFind finder;
+    lib::FileFind finder;
     int found;
     {
         std::string folder(path);
         std::string pattern = folder + kAllFiles;
-        found = finder.FindFile(pattern, 0);
+        found = finder.FindFile(pattern);
     }
     while (found) {
         found = finder.FindNext();
@@ -1045,7 +1043,7 @@ void ClearSaveFolder(const char* path) {
 
 bool NameInList(const char* const* list, const char* name) {
     for (; *list[0] != 0; ++list)
-        if (libcrt::Stricmp(*list, name) == 0) return true;
+        if (text::CompareIgnoringCase(*list, name) == 0) return true;
     return false;
 }
 
@@ -1070,7 +1068,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     TheCursor()->SetShape(3);
     MapRecord* zoneRecord = nullptr;
     ToMainMenu() = 1;
-    if (libcrt::Stricmp(zone, kEndOfGame) == 0) {
+    if (text::CompareIgnoringCase(zone, kEndOfGame) == 0) {
         mode = kModeEndOfGame;
     } else {
         zoneRecord = FindZone(zone);
@@ -1200,10 +1198,10 @@ void GameFlow::UseResources(bool network) {
     if (!(LastResourcesGuard() & 1)) {
         LastResourcesGuard() |= 1;
         g_lastResources.Construct(kResourcesSingle);
-        libcrt::AtExit(DestroyLastResources);
+        std::atexit(DestroyLastResources);
     }
     std::string wanted = network ? kResourcesNetwork : kResourcesSingle;
-    if (gamecrt::mbscmp(wanted,
+    if (str::Compare(wanted,
                         LastResources().c_str()) == 0)
         return;
     LastResources() = wanted;
@@ -1370,9 +1368,9 @@ int GameFlow::LoadGame(const char* slot) {
         }
         bool restored = false;
         if (visited) {
-            bool keep = gamecrt::mbscmp(record->name,
+            bool keep = str::Compare(record->name,
                                         kAlwaysCopied) == 0 ||
-                        gamecrt::mbscmp(record->allod,
+                        str::Compare(record->allod,
                                         currentMap) == 0;
             if (keep) {
                 zone = record->name;
@@ -1405,7 +1403,7 @@ int GameFlow::LoadGame(const char* slot) {
         file.Close();
         TheServerWorld()->SetZoneExits(&zoneRecord->exits);
     }
-    kConsole->PutText(kLoadedText)->PutText(slot)->PutChar('\n')->Apply(libcrt::FlushManipulator);
+    console::EndLine(console::Out() << kLoadedText << slot);
     return 1;
 }
 
@@ -1434,7 +1432,7 @@ void DestroyGameFlow() { g_gameFlow->Destruct(); }
 
 void ConstructGameFlow() {
     g_gameFlow->Construct();
-    libcrt::AtExit(DestroyGameFlow);
+    std::atexit(DestroyGameFlow);
 }
 
 void GameFlow::SetNetworkZone(const char* zone) {
@@ -1446,11 +1444,11 @@ void GameFlow::SetNetworkZone(const char* zone) {
 }
 
 int CurrentSaveSize() {
-    mfc::CFileFind find;
+    lib::FileFind find;
     std::string pattern;
     pattern = str::Format(kCurrentFiles, DataFolderText());
     int total = 1000000;
-    if (find.FindFile(pattern, 0)) {
+    if (find.FindFile(pattern)) {
         int more;
         do {
             more = find.FindNext();
@@ -1468,7 +1466,7 @@ void GameFlow::AfterServerStart() {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
-        variables->Clear();
+        variables->clear();
     GlobalParty()->RemoveQuestItems();
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (GlobalParty()->members_.size == 1) {
@@ -1497,13 +1495,6 @@ using ZoneNode = net::RefNode;
 // The vector of changed variables (STLport vector<node*>) and the stamp sort (introsort,
 // world_stamp_sort.cpp).
 
-// A local NamedFloatTable (an empty one of 100 buckets, and a copy), released the way the inlined
-// destructor does.
-struct LocalVariables {
-    NamedFloatTable table;
-    ~LocalVariables() { table.Destroy(); }
-};
-
 VariableNode* VariableList() { return net::GameClient()->variables_.End(); }
 net::VariableMessage* NodeRecord(VariableNode* node) { return net::GameClient()->variables_.At(node); }
 unsigned NodeStamp(VariableNode* node) { return NodeRecord(node)->serial_; }
@@ -1525,18 +1516,15 @@ void GameFlow::UpdateFromServer() {
     }
     auto* clientWorld = TheClientWorld();
     CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
-    LocalVariables unusedEmpty;
-    unusedEmpty.table.ConstructDefault();
     NamedFloatTable* variables = &player->Party()->variables_;
 // The local player's variables are replaced by the server's; "constr.current" survives. Rebirth's
 // PersistentGlobalVars keeps the "gvar." ones.
     float construction = static_cast<float>(VariableGet(variables, kConstructionVariable));
-    LocalVariables unusedCopy;
-    unusedCopy.table.CopyConstruct(*variables);
+    NamedFloatTable unusedCopy(*variables);
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
-        variables->Clear();
+        variables->clear();
     VariableSet(variables, kConstructionVariable, construction);
     if (net::MapMessage* map = net::GameClient()->map_) {
         if (Active(map)) LoadZoneQuests(map->text_.data());
@@ -1572,7 +1560,7 @@ void GameFlow::UpdateFromServer() {
         bool quest;
         {
             std::string prefix = str::Left(name, 2);
-            quest = gamecrt::mbscmp(prefix,
+            quest = str::Compare(prefix,
                                     kQuestVariablePrefix) == 0;
         }
         if (!quest) continue;
@@ -1628,22 +1616,8 @@ void GameFlow::UpdateFromServer() {
     UpdateMultiplayerVariable();
 }
 
-namespace {
-
-// An entry is a multiplayer hero record (ui_screens.h); the entry's destructor is inlined here: the file
-// name, then the party's.
-void DestroyPartyEntry(MpHeroRecord* entry) {
-    std::destroy_at(&entry->file);
-    entry->Party()->~CParty();
-}
-
-} // namespace
-
 void SavedParties::Reload() {
-    MpHeroRecord*& finish = entries_.Finish();
-    MpHeroRecord* end = MpHeroRecord::CopyRange(finish, finish, entries_.begin());
-    for (MpHeroRecord* entry = end; entry != finish; ++entry) entry->DeletingDestruct(0);
-    finish = end;
+    entries_.clear();
 
     WIN32_FIND_DATAA found;
     HANDLE search;
@@ -1653,11 +1627,8 @@ void SavedParties::Reload() {
     }
     if (search == INVALID_HANDLE_VALUE) return;
     do {
-        // The party records and the file name, side by side as the list's entries are.
-        lib::InPlace<MpHeroRecord> storage;
-        auto* entry = storage.Get();
-        new (entry->Party()) CParty();
-        std::construct_at(&entry->file);
+        MpHeroRecord read;
+        MpHeroRecord* entry = &read;
         entry->file = found.cFileName;
         if (entry->ReadFile(folder_.c_str())) {
             NamedFloatTable* variables = &entry->Party()->variables_;
@@ -1666,22 +1637,13 @@ void SavedParties::Reload() {
                 // keeping its "gvar." entries.
                 ClearVariablesKeepingGlobals(variables);
             } else {
-                variables->Clear();
+                variables->clear();
             }
             if (entry->Party()->members_.size == 1) {
-                MpHeroRecord* eos = entries_.EndOfStorage();
-                if (finish != eos) {
-                    if (finish) {
-                        new (finish->Party()) CParty(*entry->Party());
-                        std::construct_at(&finish->file, entry->file);
-                    }
-                    ++finish;
-                } else {
-                    entries_.InsertOverflow<libcontainers::HeroRecordElement>(finish, *entry, 1);
-                }
+                ReserveOne();
+                entries_.push_back(read);
             }
         }
-        DestroyPartyEntry(entry);
     } while (gameapi::FindNextFileA(search, &found));
     gameapi::FindClose(search);
 }
@@ -1710,14 +1672,14 @@ int AllodOfMap(const char* map) {
 void GameFlow::BuildZoneTable() {
     ZoneTable& table = g_zoneTable;
     if (table.end() != table.begin()) return;
-    mfc::CFileFind find;
+    lib::FileFind find;
     int more;
     {
         std::string folder;
         modfolders::SelectMaps(kQuestFilePattern, modfolders::MapsSite::ZoneTable);
         MapsFolder(&folder);
         std::string pattern = folder + kQuestFilePattern;
-        more = find.FindFile(pattern, 0);
+        more = find.FindFile(pattern);
     }
     while (more) {
         more = find.FindNext();

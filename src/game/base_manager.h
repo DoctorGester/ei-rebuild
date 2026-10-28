@@ -3,12 +3,14 @@
 #include "engine_object.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/hash_map.h"
 #include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <list>
 #include <string>
+#include <unordered_map>
 
 #undef GetClassName   // CEngineObject::GetClassName
 
@@ -26,11 +28,13 @@ public:
     // object manager), or null; a missing database is reported to the debug log.
     FigureAnimation* FindFigureAnimation(const std::string& figure, const char* name);
 
-    using ObjectMap = stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>;
+    // The objects and the spares are walked in STLport's order (which object is destroyed, released or freed
+    // first); the positions and spare counts are only looked up.
+    using ObjectMap = lib::HashMap<unsigned, CEngineObject*>;
     using ObjectList = std::list<CEngineObject*>;
-    using PositionMap = stlp::hash_map<int, ObjectList::iterator, stlp::IntHash>;
-    using SpareMap = stlp::hash_map<int, ObjectList*, stlp::IntHash>;
-    using SpareCountMap = stlp::hash_map<int, int, stlp::IntHash>;
+    using PositionMap = std::unordered_map<int, ObjectList::iterator>;
+    using SpareMap = lib::HashMap<int, ObjectList*>;
+    using SpareCountMap = std::unordered_map<int, int>;
 
     // Empties the tables and sizes them for a new session; returns 1.
     int Create() override;
@@ -105,8 +109,6 @@ public:
     template <class World = CWorld> World* ContextAsWorld() const { return static_cast<World*>(context_); }
 };
 static_assert(offsetof(CBaseManager, objects_) == 0x1C);
-static_assert(offsetof(CBaseManager, maxId_) == 0x30);
-static_assert(offsetof(CBaseManager, objectList_) == 0x34);
 
 // Walks a manager's objectList_. While iterating it holds a reference on the manager (refCount_ + 1); the
 // owner drops it afterwards with `--manager->refCount_` (the inlined destructor).

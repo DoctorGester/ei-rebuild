@@ -11,14 +11,17 @@
 
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
+#include "../lib/text_case.h"
 #include "random.h"
 
 #include "lib/crt.h"
 #include "record_arrays.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 #include "world_data.h"
 
+#include <cstring>
 #include <new>
 #include <string>
 
@@ -29,13 +32,6 @@ namespace {
 // The themes' registry file and the music files' extension.
 constexpr const char* kMusicReg = /*00744090*/ "music.reg";
 constexpr const char* kMp3 = /*00744094*/ ".mp3";
-
-int Compare(std::string_view a, std::string_view b) {
-    return gamecrt::mbscmp(a, b);
-}
-int CompareNoCase(std::string_view a, std::string_view b) {
-    return gamecrt::mbsicmp(a, b);
-}
 
 // Next delay of the calm music: 120..180 s from now. The random value is drawn first.
 std::uint32_t CalmDelay() {
@@ -58,7 +54,6 @@ void WaitAndEndAfter(CSoundManager* snd) {
 }
 
 // ---- Theme loading ----
-
 
 // The themes' registry (registry.cpp).
 using Registry = CFileRegistry;
@@ -127,7 +122,7 @@ int CMusicSystem::LoadThemes() {
         reg.GetSectionNames(&sections);
         for (const std::string& name : sections) {
             const char* section = name.c_str();
-            if (CompareNoCase(section, "common") == 0) continue;
+            if (text::CompareIgnoringCase(section, "common") == 0) continue;
             LocalTheme read;
             read.name = name;
             read.dungeon = 0;
@@ -152,7 +147,7 @@ void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
     TheSoundManager()->StopStream(4);
     holding = 1;
     for (int i = 0; i < themeCount; ++i) {
-        if (CompareNoCase(themes[i].name, allod) == 0 && themes[i].dungeon == dungeon) {
+        if (text::CompareIgnoringCase(themes[i].name, allod) == 0 && themes[i].dungeon == dungeon) {
             theme = i;
             state = 1;
             calmDue = 1;
@@ -179,7 +174,7 @@ void PlayThemeFile(CMusicSystem* music, const char* allod, std::string MusicThem
     std::string name;
     int i = 0;
     for (; i < music->themeCount; ++i) {
-        if (CompareNoCase(music->themes[i].name, allod) == 0) {
+        if (text::CompareIgnoringCase(music->themes[i].name, allod) == 0) {
             name = music->themes[i].*file;
             break;
         }
@@ -233,7 +228,7 @@ int CMusicSystem::UpdateMusic() {
         current = playing;
     }
     if (jinglePlaying != 0) {
-        if (Compare(current, jingle) == 0) return 1;
+        if (str::Compare(current, jingle) == 0) return 1;
         jinglePlaying = 0;
         inCombat = 0;
         calmDue = CalmDelay();
@@ -245,12 +240,12 @@ int CMusicSystem::UpdateMusic() {
             calmDue = CalmDelay();
         }
     } else if (fighting == 1) {
-        if (Compare(current, combatTrack) != 0 || Compare(combatTrack, game::EmptyText()) == 0) {
+        if (str::Compare(current, combatTrack) != 0 || str::Compare(combatTrack, game::EmptyText()) == 0) {
             combatTrack = PickName(themes[theme].combat);
             combatTrack += kMp3;
         }
         snd->RequestStream(combatTrack.c_str(), 3);
-    } else if (Compare(current, game::EmptyText()) == 0) {
+    } else if (str::Compare(current, game::EmptyText()) == 0) {
         combatTrack = game::EmptyText();
         if (calmDue == 0) {
             std::uint32_t r = IsaacRandom::Global().Next();

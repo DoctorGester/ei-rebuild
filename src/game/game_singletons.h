@@ -3,7 +3,7 @@
 // The game's global objects and tick counters, named once (they were per-file copies): the game flow,
 // the interface manager, the client and server worlds and what they hold (the ticks, the managers, the
 // mission script, the sector map), the scene renderer, its render device and lock, the cursor, the map database,
-// the camera, the party manager and the folders. The shared empty string is mfc::impl::PchNil() (lib/mfc_string.h).
+// the camera, the party manager and the folders.
 // The global random generator is IsaacRandom::Global().
 
 #include "game_data.h"

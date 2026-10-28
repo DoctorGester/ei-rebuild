@@ -8,6 +8,7 @@
 #include "unit_record.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/hash_map.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -344,10 +345,9 @@ public:
 
 // The records of a .mob file by id (a local of the zone loader) and the largest id read.
 struct MobRecords {
-    stlp::hash_map<std::int32_t, Spec*, stlp::IntHash> byId;
+    lib::HashMap<std::int32_t, Spec*> byId;   // walked in STLport's order: the objects are created in it
     std::int32_t maxId;
 };
-static_assert(offsetof(MobRecords, maxId) == 0x14);
 
 // A .mob file's root chunk (CWorldServer::LoadMapObjects opens it).
 class MobFile : public RootChunk {

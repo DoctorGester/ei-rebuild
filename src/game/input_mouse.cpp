@@ -6,6 +6,7 @@
 #include "game_strings.h"
 
 #include "lib/crt.h"
+#include "lib/gameapi.h"
 #include "game_data.h"
 
 #include <dinput.h>
@@ -70,7 +71,7 @@ const void* CDirectInputMouse::MouseDataFormat() {
 
 int CDirectInputMouse::Setup(HWND window, HINSTANCE instance) {
     void* input = nullptr;
-    HRESULT result = libcrt::imports::DirectInputCreateEx(instance, kInputVersion, &kIidDirectInput7, &input, nullptr);
+    HRESULT result = gameapi::DirectInputCreateEx(instance, kInputVersion, &kIidDirectInput7, &input, nullptr);
     if (result < 0) return Reported(result, kNoInput);
     Adopt(input_, static_cast<IDirectInput7A*>(input));
 

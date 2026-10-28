@@ -1,5 +1,4 @@
-// MFC 4.2's exception classes and AFX_EXCEPTION_LINK
-// (mfc_exception.h).
+// MFC 4.2's exception classes (mfc_exception.h).
 #include "mfc_exception.h"
 
 #include "gameapi.h"
@@ -9,32 +8,29 @@
 #include "static_object.h"
 #include "game/game_data.h"
 
+#include <cstdlib>
 #include <new>
 
 namespace mfc::impl {
 
 namespace {
 
-// The static exceptions MFC throws by pointer, never deleted (_simpleResourceException, _simpleNotSupportedException,
-// _simpleMemoryException; CUserException's is mfc_static_objects.h's): zero at the start, each built by its static
+// The static exceptions MFC throws by pointer, never deleted (_simpleResourceException, _simpleMemoryException; CUserException's is mfc_static_objects.h's): zero at the start, each built by its static
 // initialiser in the list's order and destroyed by the exit function it registers (
 // docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CResourceException> g_simpleResourceException = /*007C8C58*/ {};
-constinit lib::StaticObject<CNotSupportedException> g_simpleNotSupportedException = /*007C8D50*/ {};
 constinit lib::StaticObject<CMemoryException> g_simpleMemoryException = /*007C8DE8*/ {};
 
 // ReportError's message buffer.
 constexpr unsigned kReportLength = 512;
 
-// GetErrorMessage of the file and archive exceptions: prompt `base` + cause with the file's name.
-BOOL CauseMessage(unsigned base, int cause, const CString& fileName, char* error, unsigned maxError, unsigned* helpContext) {
+// GetErrorMessage of the archive exception: prompt `base` + cause with the file's name.
+BOOL CauseMessage(unsigned base, int cause, const std::string& fileName, char* error, unsigned maxError, unsigned* helpContext) {
     const unsigned prompt = base + static_cast<unsigned>(cause);
     if (helpContext) *helpContext = prompt;
-    CString message;
-    CString name(fileName);
-    if (name.IsEmpty()) name.LoadResourceString(kIdsUnnamedFile);
-    AfxFormatString1(message, prompt, name);
-    gameapi::lstrcpynA(error, message, static_cast<int>(maxError));
+    const std::string name = fileName.empty() ? LoadResourceString(kIdsUnnamedFile) : fileName;
+    const std::string message = AfxFormatString1(prompt, name.c_str());
+    gameapi::lstrcpynA(error, message.c_str(), static_cast<int>(maxError));
     return TRUE;
 }
 
@@ -51,8 +47,6 @@ int CException::ReportError(unsigned type, unsigned error) {
 const CRuntimeClass* CResourceException::GetRuntimeClass() const { return &kClassCResourceException; }
 const CRuntimeClass* CUserException::GetRuntimeClass() const { return &kClassCUserException; }
 const CRuntimeClass* CMemoryException::GetRuntimeClass() const { return &kClassCMemoryException; }
-const CRuntimeClass* CNotSupportedException::GetRuntimeClass() const { return &kClassCNotSupportedException; }
-const CRuntimeClass* CFileException::GetRuntimeClass() const { return &kClassCFileException; }
 const CRuntimeClass* CArchiveException::GetRuntimeClass() const { return &kClassCArchiveException; }
 
 void CSimpleException::InitString() {
@@ -74,12 +68,6 @@ void DeleteException(CException* exception) {
     if (exception->autoDelete > 0 && exception) delete exception;
 }
 
-CFileException::~CFileException() {}
-
-BOOL CFileException::GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) {
-    return CauseMessage(kIdpFileNone, cause, fileName, error, maxError, helpContext);
-}
-
 CArchiveException::~CArchiveException() {}
 
 BOOL CArchiveException::GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) {
@@ -88,109 +76,10 @@ BOOL CArchiveException::GetErrorMessage(char* error, unsigned maxError, unsigned
 
 void DestroyUserException(CUserException* self) { self->~CUserException(); }
 
-int OsErrorToException(long osError) {
-    switch (static_cast<unsigned long>(osError)) {
-    case NO_ERROR: return CFileException::none;
-    case ERROR_FILE_NOT_FOUND: return CFileException::fileNotFound;
-    case ERROR_PATH_NOT_FOUND: return CFileException::badPath;
-    case ERROR_TOO_MANY_OPEN_FILES: return CFileException::tooManyOpenFiles;
-    case ERROR_ACCESS_DENIED: return CFileException::accessDenied;
-    case ERROR_INVALID_HANDLE: return CFileException::fileNotFound;
-    case ERROR_BAD_FORMAT: return CFileException::invalidFile;
-    case ERROR_INVALID_ACCESS: return CFileException::accessDenied;
-    case ERROR_INVALID_DRIVE: return CFileException::badPath;
-    case ERROR_CURRENT_DIRECTORY: return CFileException::removeCurrentDir;
-    case ERROR_NOT_SAME_DEVICE: return CFileException::badPath;
-    case ERROR_NO_MORE_FILES: return CFileException::fileNotFound;
-    case ERROR_WRITE_PROTECT: return CFileException::accessDenied;
-    case ERROR_BAD_UNIT: return CFileException::hardIO;
-    case ERROR_NOT_READY: return CFileException::hardIO;
-    case ERROR_BAD_COMMAND: return CFileException::hardIO;
-    case ERROR_CRC: return CFileException::hardIO;
-    case ERROR_BAD_LENGTH: return CFileException::badSeek;
-    case ERROR_SEEK: return CFileException::badSeek;
-    case ERROR_NOT_DOS_DISK: return CFileException::invalidFile;
-    case ERROR_SECTOR_NOT_FOUND: return CFileException::badSeek;
-    case ERROR_WRITE_FAULT: return CFileException::accessDenied;
-    case ERROR_READ_FAULT: return CFileException::badSeek;
-    case ERROR_SHARING_VIOLATION: return CFileException::sharingViolation;
-    case ERROR_LOCK_VIOLATION: return CFileException::lockViolation;
-    case ERROR_WRONG_DISK: return CFileException::badPath;
-    case ERROR_SHARING_BUFFER_EXCEEDED: return CFileException::tooManyOpenFiles;
-    case ERROR_HANDLE_EOF: return CFileException::endOfFile;
-    case ERROR_HANDLE_DISK_FULL: return CFileException::diskFull;
-    case ERROR_DUP_NAME: return CFileException::badPath;
-    case ERROR_BAD_NETPATH: return CFileException::badPath;
-    case ERROR_NETWORK_BUSY: return CFileException::accessDenied;
-    case ERROR_DEV_NOT_EXIST: return CFileException::badPath;
-    case ERROR_ADAP_HDW_ERR: return CFileException::hardIO;
-    case ERROR_BAD_NET_RESP: return CFileException::accessDenied;
-    case ERROR_UNEXP_NET_ERR: return CFileException::hardIO;
-    case ERROR_BAD_REM_ADAP: return CFileException::invalidFile;
-    case ERROR_NO_SPOOL_SPACE: return CFileException::directoryFull;
-    case ERROR_NETNAME_DELETED: return CFileException::accessDenied;
-    case ERROR_NETWORK_ACCESS_DENIED: return CFileException::accessDenied;
-    case ERROR_BAD_DEV_TYPE: return CFileException::invalidFile;
-    case ERROR_BAD_NET_NAME: return CFileException::badPath;
-    case ERROR_TOO_MANY_NAMES: return CFileException::tooManyOpenFiles;
-    case ERROR_SHARING_PAUSED: return CFileException::badPath;
-    case ERROR_REQ_NOT_ACCEP: return CFileException::accessDenied;
-    case ERROR_FILE_EXISTS: return CFileException::accessDenied;
-    case ERROR_CANNOT_MAKE: return CFileException::accessDenied;
-    case ERROR_ALREADY_ASSIGNED: return CFileException::badPath;
-    case ERROR_INVALID_PASSWORD: return CFileException::accessDenied;
-    case ERROR_NET_WRITE_FAULT: return CFileException::hardIO;
-    case ERROR_DISK_CHANGE: return CFileException::fileNotFound;
-    case ERROR_DRIVE_LOCKED: return CFileException::lockViolation;
-    case ERROR_BUFFER_OVERFLOW: return CFileException::badPath;
-    case ERROR_DISK_FULL: return CFileException::diskFull;
-    case ERROR_NO_MORE_SEARCH_HANDLES: return CFileException::tooManyOpenFiles;
-    case ERROR_INVALID_TARGET_HANDLE: return CFileException::invalidFile;
-    case ERROR_INVALID_CATEGORY: return CFileException::hardIO;
-    case ERROR_INVALID_NAME: return CFileException::badPath;
-    case ERROR_INVALID_LEVEL: return CFileException::badPath;
-    case ERROR_NO_VOLUME_LABEL: return CFileException::badPath;
-    case ERROR_NEGATIVE_SEEK: return CFileException::badSeek;
-    case ERROR_SEEK_ON_DEVICE: return CFileException::badSeek;
-    case ERROR_DIR_NOT_ROOT: return CFileException::badPath;
-    case ERROR_DIR_NOT_EMPTY: return CFileException::removeCurrentDir;
-    case ERROR_LABEL_TOO_LONG: return CFileException::badPath;
-    case ERROR_BAD_PATHNAME: return CFileException::badPath;
-    case ERROR_LOCK_FAILED: return CFileException::lockViolation;
-    case ERROR_BUSY: return CFileException::accessDenied;
-    case ERROR_INVALID_ORDINAL: return CFileException::invalidFile;
-    case ERROR_ALREADY_EXISTS: return CFileException::accessDenied;
-    case ERROR_INVALID_EXE_SIGNATURE: return CFileException::invalidFile;
-    case ERROR_BAD_EXE_FORMAT: return CFileException::invalidFile;
-    case ERROR_FILENAME_EXCED_RANGE: return CFileException::badPath;
-    case ERROR_META_EXPANSION_TOO_LONG: return CFileException::badPath;
-    case ERROR_DIRECTORY: return CFileException::badPath;
-    case ERROR_OPERATION_ABORTED: return CFileException::hardIO;
-    case ERROR_IO_INCOMPLETE: return CFileException::hardIO;
-    case ERROR_IO_PENDING: return CFileException::hardIO;
-    case ERROR_SWAPERROR: return CFileException::accessDenied;
-    default: return CFileException::generic;
-    }
-}
-
-void ThrowFileException(int cause, long osError, const char* fileName) {
-    auto* exception = new CFileException(cause, osError);
-    if (exception) exception->fileName = fileName;
-    throw reinterpret_cast<::CFileException*>(exception);
-}
-
-void ThrowOsError(long osError, const char* fileName) {
-    if (osError != 0) ThrowFileException(OsErrorToException(osError), osError, fileName);
-}
-
 void ThrowArchiveException(int cause, const char* fileName) {
     auto* exception = new CArchiveException(cause);
-    if (exception) exception->fileName = fileName;
+    if (exception && fileName) exception->fileName = fileName;
     throw reinterpret_cast<::CArchiveException*>(exception);
-}
-
-void ThrowNotSupported() {
-    throw reinterpret_cast<::CNotSupportedException*>(&g_simpleNotSupportedException.Get());
 }
 
 void ThrowMemoryException() {
@@ -204,49 +93,15 @@ void ThrowResourceException() {
 namespace {
 void DestroySimpleResourceException() { g_simpleResourceException.Destroy(); }
 void DestroySimpleMemoryException() { g_simpleMemoryException.Destroy(); }
-void DestroySimpleNotSupportedException() { g_simpleNotSupportedException.Destroy(); }
 } // namespace
 
 void ConstructSimpleResourceException() {
     g_simpleResourceException.Construct(FALSE, kIdsResourceException);
-    libcrt::AtExit(DestroySimpleResourceException);
+    std::atexit(DestroySimpleResourceException);
 }
 void ConstructSimpleMemoryException() {
     g_simpleMemoryException.Construct(FALSE, kIdsMemoryException);
-    libcrt::AtExit(DestroySimpleMemoryException);
-}
-void ConstructSimpleNotSupportedException() {
-    g_simpleNotSupportedException.Construct(FALSE, kIdsNotSupportedException);
-    libcrt::AtExit(DestroySimpleNotSupportedException);
+    std::atexit(DestroySimpleMemoryException);
 }
 
 } // namespace mfc::impl
-
-namespace mfc {
-
-namespace {
-// MFC's thread state lookup: the address of the thread's top link (game.exe's in the hook
-// build, ExceptionLinkTop below in the image).
-} // namespace
-
-ExceptionLink** ExceptionLinkTop() {
-    static thread_local ExceptionLink* top = nullptr;
-    return &top;
-}
-
-ExceptionLink* ConstructExceptionLink(ExceptionLink* link) {
-    link->exception = nullptr;
-    ExceptionLink** top = ExceptionLinkTop();
-    link->previous = *top;
-    *top = link;
-    return link;
-}
-
-void TryCleanup() {
-    ExceptionLink** top = ExceptionLinkTop();
-    ExceptionLink* link = *top;
-    if (link->exception) impl::DeleteException(static_cast<impl::CException*>(link->exception));
-    *top = link->previous;
-}
-
-} // namespace mfc

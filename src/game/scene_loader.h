@@ -204,8 +204,8 @@ struct SceneMesh : CTransformObject {
     const char* GetName() override;
     const char* GetClassName() override;
     int GetClassId() override;
-    void SaveTransform(mfc::CFileVirtuals* file) override;   // nothing
-    void LoadTransform(mfc::CFileVirtuals* file) override;   // nothing
+    void SaveTransform(lib::File* file) override;   // nothing
+    void LoadTransform(lib::File* file) override;   // nothing
 
     std::uint8_t unused_054[0x94 - 0x54];
     std::string name;
@@ -364,7 +364,7 @@ constexpr std::uint32_t kVersionWithNormals = 0x1468FCCA;
 class SceneInfo {
 public:
     // Only the file's Read is used. `meshes` and `nodes` get one element per record. Returns 1.
-    mfc::BOOL Load(mfc::CFileVirtuals* file, MeshArray* meshes, HelperArray* helpers, NodeArray* nodes);
+    mfc::BOOL Load(lib::File* file, MeshArray* meshes, HelperArray* helpers, NodeArray* nodes);
 
     std::uint16_t flags_;
 };

@@ -4,7 +4,6 @@
 // its patches.
 #include "net_classes.h"
 #include "options.h"
-#include "record_vectors.h"
 #include "stl_sorts.h"
 #include "asset_text.h"
 #include "ui.h"
@@ -98,20 +97,6 @@ void OpenBox(CInterface3D* ui, const char* title, const char* text, std::uint32_
     ui->PushWindow(box, 1, 1);
 }
 
-// The queries Create reads from the address book: an empty vector, its replies and storage
-// released at the end (the node allocator's deallocate).
-struct LocalQueries {
-    LocalQueries() { queries.extra = 0; }
-    ~LocalQueries() {
-        stlp::vector<net::Query>& list = queries.list;
-        for (net::Query* query = list.begin(); query != list.end(); ++query) query->~Query();
-        if (list.begin())
-            libcrt::NodeDeallocate(list.begin(), static_cast<std::size_t>(list.EndOfStorage() - list.begin()) * sizeof(net::Query));
-    }
-    LocalQueries(const LocalQueries&) = delete;
-    LocalQueries& operator=(const LocalQueries&) = delete;
-    net::ClientQueries queries;
-};
 
 const char* SaveLoadTexture() { return "saveload"; }
 const char* ScrollbarTexture() { return "scrollbar"; }
@@ -157,92 +142,6 @@ __declspec(noinline) void BufferPut(GameBuffer* b, const void* from, unsigned si
 }
 
 } // namespace
-
-// --- The list's vector members ------------------------------------------------
-
-MpAddressEntry* MpAddressEntry::CopyConstruct(const MpAddressEntry* other) {
-    std::construct_at(&name, other->name);
-    std::construct_at(&description, other->description);
-    players = other->players;
-    maxPlayers = other->maxPlayers;
-    ping = other->ping;
-    address = other->address;
-    gameType = other->gameType;
-    foreign = other->foreign;
-    state = other->state;
-    password = other->password;
-    return this;
-}
-
-MpAddressEntry* MpAddressEntry::AssignFrom(const MpAddressEntry& other) {
-    name = other.name;
-    description = other.description;
-    players = other.players;
-    maxPlayers = other.maxPlayers;
-    ping = other.ping;
-    address = other.address;
-    gameType = other.gameType;
-    foreign = other.foreign;
-    state = other.state;
-    password = other.password;
-    return this;
-}
-
-void MpAddressEntry::Destroy() {
-    std::destroy_at(&description);
-    std::destroy_at(&name);
-}
-
-void MpAddressList::PushDefault() {
-    MpAddressEntry*& finish = Finish();
-    if (finish != EndOfStorage()) {
-        if (finish) {
-            std::construct_at(&finish->name);
-            std::construct_at(&finish->description);
-            finish->address = net::NetAddress{};
-        }
-        ++finish;
-        return;
-    }
-    MpAddressEntry entry{};
-    InsertOverflow<recordvec::MpAddressElement>(finish, entry, 1);
-}
-
-MpAddressEntry* MpAddressList::InsertDefault(MpAddressEntry* pos) {
-    MpAddressEntry* start = begin();
-    int index = static_cast<int>(pos - start);
-    MpAddressEntry*& finish = Finish();
-    if (finish == EndOfStorage()) {
-        MpAddressEntry entry{};
-        InsertOverflow<recordvec::MpAddressElement>(pos, entry, 1);
-    } else if (pos == finish) {
-        if (finish) {
-            std::construct_at(&finish->name);
-            std::construct_at(&finish->description);
-            finish->address = net::NetAddress{};
-        }
-        ++finish;
-    } else {
-        if (finish) finish->CopyConstruct(finish - 1);
-        ++finish;
-        MpAddressEntry* to = finish - 1;
-        for (int n = static_cast<int>((finish - 2) - pos); n > 0; --n) {
-            --to;
-            to->AssignFrom(*(to - 1));
-        }
-        MpAddressEntry entry{};
-        pos->AssignFrom(entry);
-    }
-    return begin() + index;
-}
-
-MpAddressEntry* MpAddressList::Erase(MpAddressEntry* first, MpAddressEntry* last) {
-    MpAddressEntry* to = first;
-    for (int n = static_cast<int>(end() - last); n > 0; --n, ++to, ++last) to->AssignFrom(*last);
-    for (MpAddressEntry* entry = to; entry != end(); ++entry) entry->Destroy();
-    Finish() = to;
-    return first;
-}
 
 void CMpConnectScreen::Update() {
     net::ClientSession* client = net::GameClient();
@@ -424,7 +323,7 @@ void CMpConnectScreen::SelectAndScroll() {
     if (selected_ < 0) selected_ = 0;
     if (static_cast<unsigned>(selected_) >= entries_.size()) selected_ = static_cast<int>(entries_.size()) - 1;
     int row = selected_;
-    selectedAddress_ = entries_.begin()[row].address;
+    selectedAddress_ = entries_[row].address;
     if (!(scrollTop_ + kRows > row)) scrollTop_ = row - (kRows - 1);
     if (scrollTop_ > row) scrollTop_ = row;
     scroll_->SetPosition(scrollTop_);
@@ -506,12 +405,11 @@ void CMpConnectScreen::SaveAddressBook() {
 }
 
 void CMpConnectScreen::RebuildList() {
-    entries_.Erase(entries_.begin(), entries_.end());
+    entries_.clear();
     unsigned index = 0;
     for (net::ServerEntry* server = net::GameClient()->ServerAt(0); server;
          server = net::GameClient()->ServerAt(static_cast<int>(++index))) {
-        entries_.PushDefault();
-        MpAddressEntry& entry = entries_.back();
+        MpAddressEntry& entry = entries_.emplace_back();
         entry.address = server->address_;
         entry.gameType = static_cast<int>(server->kind_);
         if (entry.gameType < 0 || entry.gameType > 3) entry.gameType = 0;
@@ -525,8 +423,8 @@ void CMpConnectScreen::RebuildList() {
         entry.password = server->password_ != 0;
     }
 
-    MpAddressEntry* first = entries_.begin();
-    MpAddressEntry* last = entries_.end();
+    MpAddressEntry* first = entries_.data();
+    MpAddressEntry* last = first + entries_.size();
     int key = sortKey_;
     if (first != last) {
         int count = static_cast<int>(last - first);
@@ -542,8 +440,7 @@ void CMpConnectScreen::RebuildList() {
         }
     }
 
-    entries_.InsertDefault(entries_.begin());
-    MpAddressEntry& newGame = entries_[0];
+    MpAddressEntry& newGame = *entries_.emplace(entries_.begin());
     newGame.address = net::NetAddress{};
     newGame.gameType = kNewGameType;
     newGame.name = NewGameText();
@@ -703,22 +600,22 @@ void CMpConnectScreen::CreateScreen() {
 
     TheGameFlow()->StartClient();
     spare_ = 0;
-    LocalQueries book;
+    net::ClientQueries queries;
     ChunkArchive archive;
     netlink::FileStream file;
     if (file.Open(TheDataFolder() + AddressBookFile(), netlink::FileStream::kOpenRead, 1)) {
         archive.Open(&file, 1, 1);
         if (archive.EnterChunk(1)) {
-            book.queries.Serialize(&archive);
+            queries.Serialize(&archive);
             archive.LeaveChunk();
         }
         archive.Close(&file);
         file.Close();
-        if (book.queries.extra == 0) {
+        if (queries.extra == 0) {
             const std::uint32_t random = IsaacRandom::Global().Next();
-            book.queries.extra = gameapi::GetTickCount() ^ random;
+            queries.extra = gameapi::GetTickCount() ^ random;
         }
-        net::GameClient()->SetQueries(&book.queries);
+        net::GameClient()->SetQueries(&queries);
     }
 
     sortKey_ = 0;

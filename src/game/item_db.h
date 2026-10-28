@@ -7,14 +7,15 @@
 // Field() keeps that behaviour (a real read through the null record) rather than inventing a default.
 
 #include "lib/stlp.h"
-#include "lib/stlp_hash.h"
 #include "lib/static_object.h"
 #include "game_data.h"
 
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 class CStream;
@@ -30,12 +31,6 @@ struct SpellRecord {
     // Fields 0-2 the strings, 3-15 price..needsSight (not school), 16 / 17 the id lists, 18 icon, 19 school,
     // 20 bytes78, 21 skill, 22 classMask, 23-27 extraValues.
     void Serialize(ChunkArchive* ar);
-    void Destruct();
-    // Copies all but the padding after bytes78.
-    void CopyConstruct(const SpellRecord* source);
-    void AssignSpell(const SpellRecord* source);
-    // The spell vector's resize(n) temporary: empty strings and lists, the rest left as it is.
-    void ConstructDefault();
 
     std::string name;
     // the spell's code (the trader stock's spell instructions).
@@ -75,11 +70,6 @@ struct SpellListRecord {
     // String 1, the lists as chunks 2 / 3 (one string field 1 per entry; loading erases the list and
     // resizes it first), string 4, field 5.
     void Serialize(ChunkArchive* ar);
-    void Destruct();
-    void CopyConstruct(const SpellListRecord* source);
-    void AssignList(const SpellListRecord* source);
-    // The list vector's resize(n) temporary: empty strings with room for 8 bytes, empty lists.
-    void ConstructDefault();
 
     std::string spell;                      // the spell's name
     std::vector<std::string> required;     // modifier names
@@ -92,11 +82,6 @@ struct SpellListRecord {
 struct SpellModifierRecord {
     // String 0, fields 1-6 code..skill, string 7, field 8.
     void Serialize(ChunkArchive* ar);
-    void Destruct();
-    void CopyConstruct(const SpellModifierRecord* source);
-    void AssignModifier(const SpellModifierRecord* source);
-    // The modifier vector's resize(n) temporary: empty strings, the rest left as it is.
-    void ConstructDefault();
 
     std::string name;
     // the modifier's code inline; its first one or two letters are the kind the trader stock keys it by (a, d,
@@ -283,14 +268,6 @@ struct LootItemRecord : ItemRecordHead {
     std::uint32_t index;
 };
 
-// Per record kind: uninitialized_copy of [first, last) to `dest` and uninitialized_fill_n of
-// `count` copies of `value`. The last argument is STLport's unused type tag. Null destinations
-// are skipped; the result is the end of the destination.
-template <typename R>
-R* CopyItemRecords(const R* first, const R* last, R* dest, int tag);
-template <typename R>
-R* FillItemRecords(R* dest, int count, const R* value, int tag);
-
 // The start of a material record.
 struct MaterialRecordHead {
     std::string key;                   // (the camp's "material.<key>" loot items)
@@ -312,11 +289,6 @@ struct MaterialRecordHead {
 
     // The three strings, then number..classMask.
     void Serialize(ChunkArchive* ar);
-    MaterialRecordHead* CopyConstruct(const MaterialRecordHead* source);
-    void AssignMaterial(const MaterialRecordHead* source);
-    // The material vector's resize(n) temporary: three empty strings, the rest left as it is.
-    void ConstructDefault();
-    void Destruct();
 };
 
 // The two-letter type codes of weapons and armours, by type (the model and picture names).
@@ -332,27 +304,31 @@ struct NamedRecordTable {
     // every record filed in the index under its name.
     void Load(CStream* source, int field);
     void Construct();
+    // The name index (its nodes, then its buckets), then the records.
+    void Destruct() {
+        std::destroy_at(&names);
+        std::destroy_at(&records);
+    }
 
     // The materials are filed under their key.
-    using NameIndex = stlp::hash_map<std::string, Record*, stlp::StringHash>;
+    using NameIndex = std::unordered_map<std::string, Record*>;
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
     // The record at `index`, or nullptr when out of range.
-    Record* At(std::uint32_t index) const { return index < Count() ? records.begin() + index : nullptr; }
+    Record* At(std::uint32_t index) { return index < Count() ? &records[index] : nullptr; }
+    const Record* At(std::uint32_t index) const { return index < Count() ? &records[index] : nullptr; }
     // The index of `record`: the byte offset from the first record divided by the record size, signed (a null
     // record gives an index too).
     int IndexOf(const Record* record) const {
-        return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(records.begin())) /
+        return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(records.data())) /
                static_cast<int>(sizeof(Record));
     }
     // Null when there is none (a null record is filed under a new name).
-    Record* Named(const char* name) { return stlp::NamedSlot<Record>(names, std::string(name)); }
+    Record* Named(const char* name) { return names[std::string(name)]; }
 
-    stlp::vector<Record> records;
+    std::vector<Record> records;
     NameIndex names;
 };
-static_assert(sizeof(NamedRecordTable<ItemRecordHead>) == 0x20);
-static_assert(sizeof(NamedRecordTable<ItemRecordHead>::NameIndex) == 0x14);
 using MaterialTable = NamedRecordTable<MaterialRecordHead>;
 using WeaponTable = NamedRecordTable<WeaponRecord>;
 using ArmorTable = NamedRecordTable<ArmorRecord>;
@@ -367,20 +343,25 @@ struct CodeIndexedTable {
     // filed with null.
     Record* FindByCode(const char* code);
     void Construct();
+    // The index, then the records.
+    void Destruct() {
+        std::destroy_at(&byCode);
+        std::destroy_at(&records);
+    }
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
     // The record at `index`, or nullptr when out of range.
-    Record* At(std::uint32_t index) const { return index < Count() ? records.begin() + index : nullptr; }
+    Record* At(std::uint32_t index) { return index < Count() ? &records[index] : nullptr; }
+    const Record* At(std::uint32_t index) const { return index < Count() ? &records[index] : nullptr; }
     // The index of `record` in the table, -1 for null.
-    int IndexOf(const Record* record) const { return record ? static_cast<int>(record - records.begin()) : -1; }
+    int IndexOf(const Record* record) const { return record ? static_cast<int>(record - records.data()) : -1; }
     // Null when there is none (a null record is filed under a new code).
-    Record* Named(const char* code) { return stlp::NamedSlot<Record>(byCode, std::string(code)); }
+    Record* Named(const char* code) { return byCode[std::string(code)]; }
 
-    using CodeIndex = stlp::hash_map<std::string, Record*, stlp::StringHash>;
-    stlp::vector<Record> records;
+    using CodeIndex = std::unordered_map<std::string, Record*>;
+    std::vector<Record> records;
     CodeIndex byCode;
 };
-static_assert(sizeof(CodeIndexedTable<SpellRecord>) == 0x20);
 using SpellTable = CodeIndexedTable<SpellRecord>;
 using SpellModifierTable = CodeIndexedTable<SpellModifierRecord>;
 
@@ -399,10 +380,8 @@ struct SpellDatabase {
 
     SpellTable spells;
     SpellModifierTable modifiers;
-    stlp::vector<SpellListRecord> lists[3];
+    std::vector<SpellListRecord> lists[3];
 };
-static_assert(offsetof(SpellDatabase, lists) == 0x40);
-static_assert(sizeof(SpellDatabase) == 0x64);
 
 struct ItemDatabase {
     // Rebirth-patched. "items.idb" of the archive `folder` + `archive`: the materials (chunk 1, filed under
@@ -424,7 +403,6 @@ struct ItemDatabase {
     QuestItemTable questItems;      // (QuestItems())
     LootItemTable loot;             // (Loot())
 };
-static_assert(sizeof(ItemDatabase) == 0xC0);
 
 // The databases: built empty by their static initialisers, destroyed by the exit functions
 // those register (docs/notes/standalone.md, "The static initialisers' objects").
@@ -435,7 +413,6 @@ namespace itemdb {
 inline SpellDatabase& TheSpellDatabase() { return *g_spellDatabase; }
 inline ItemDatabase& TheItemDatabase() { return *g_itemDatabase; }
 
-static_assert(sizeof(stlp::RecordsByName) == sizeof(MaterialTable) && sizeof(stlp::RecordsByName) == sizeof(SpellTable));
 
 // The records of those tables typed (null when the index is out of range).
 inline MaterialRecordHead* MaterialAt(std::uint32_t index) { return TheItemDatabase().materials.At(index); }

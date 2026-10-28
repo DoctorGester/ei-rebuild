@@ -20,6 +20,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <list>
 #include <vector>
@@ -101,19 +102,16 @@ void CWorldServer::Tick(char force) {
     // Timed objects: each one's Update runs it; those that return 0 are released now and taken out of the map after
     // the walk (the walk reads the node again after the release).
     auto& timed = timedObjects_.map;
-    auto* node = timed.First();
-    CEngineObject* object = node ? node->value : nullptr;
     IdList finished;
-    while (node) {
+    for (auto node = timed.begin(); node != timed.end(); ++node) {
+        CEngineObject* object = node->second;
         if (object->RunTick() == 0) {
             finished.PushBack(static_cast<unsigned>(object->id_));
             object->Release();
         }
-        node = timed.After(node);
-        object = node ? node->value : nullptr;
     }
     for (IdList::Node* id = finished.Begin(); id != finished.End(); id = id->next) {
-        if (auto* found = timed.Find(id->value)) timed.Erase(found);
+        if (auto found = timed.find(id->value); found != timed.end()) timed.erase(found);
     }
     finished.Clear();
 
@@ -140,7 +138,6 @@ void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
         WakeCache().radius = -1.0f;
         WakeCacheGuard() |= 1;
         WakeCache().length = 0;
-        libcrt::AtExit(ei::short_functions::Ret);
     }
     int count;
     const std::int16_t* offsets = WakeCache().Get(radius * 0.03125f, &count);   // radius in sectors
@@ -170,9 +167,8 @@ void CWorldServer::InvokeAlarm(int index, const float* point, char force) {
 
     // Every AI unit without a player hears it; the walk stops at an empty entry.
     auto& objects = objects_.map;
-    auto* node = objects.First();
-    if (!node) return;
-    for (CMapObject* object = node->value; object; object = node->value) {
+    for (auto node = objects.begin(); node != objects.end() && node->second; ++node) {
+        CMapObject* object = node->second;
         if (CUnit* unit = UnitOrNull(object)) {
             if (!unit->player) {
                 AIBrain* brain = unit->ServerController()->Brain();
@@ -180,8 +176,6 @@ void CWorldServer::InvokeAlarm(int index, const float* point, char force) {
                 if (brain->alwaysUpdated) AddToUpdateMap(object);   // reacting to the alarm
             }
         }
-        node = objects.After(node);
-        if (!node) return;
     }
 }
 
@@ -213,12 +207,12 @@ void CWorldServer::UpdateUnits() {
     if (!(UpdateListGuards() & 1)) {
         UpdateListGuards() |= 1;
         RemovedIds() = IdArray{};
-        libcrt::AtExit(FreeRemovedIds);
+        std::atexit(FreeRemovedIds);
     }
     if (!(UpdateListGuards() & 2)) {
         UpdateListGuards() |= 2;
         SleepingIds() = IdArray{};
-        libcrt::AtExit(FreeSleepingIds);
+        std::atexit(FreeSleepingIds);
     }
     RemovedIds().clear();
     SleepingIds().clear();
@@ -227,8 +221,8 @@ void CWorldServer::UpdateUnits() {
     if (sessionKind_ != 1) {
         // Every map object runs (no sleeping).
         auto& objects = mapObjects_.map;
-        for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
-            CEngineObject* object = node->value;
+        for (auto node = objects.begin(); node != objects.end() && node->second; ++node) {
+            CEngineObject* object = node->second;
             object->RunTick();
             if (object->flags_ & 1) RemovedIds().push_back(static_cast<unsigned>(object->id_));
         }
@@ -237,8 +231,8 @@ void CWorldServer::UpdateUnits() {
         // The units in the update map; a unit whose countdown runs out goes to sleep (leaves the map) unless its
         // controller is busy, which restarts the countdown.
         auto& awake = updateMap_.map;
-        for (auto* node = awake.First(); node && node->value; node = awake.After(node)) {
-            CEngineObject* object = node->value;
+        for (auto node = awake.begin(); node != awake.end() && node->second; ++node) {
+            CEngineObject* object = node->second;
             object->RunTick();
             if (object->flags_ & 1) RemovedIds().push_back(static_cast<unsigned>(object->id_));
             CUnit* unit = UnitOrNull(object);
@@ -262,7 +256,7 @@ void CWorldServer::UpdateUnits() {
         }
     }
     for (int i = 0; i < std::ssize(SleepingIds()); ++i) {
-        if (auto* found = updateMap_.map.Find(SleepingIds()[i])) updateMap_.map.Erase(found);
+        if (auto found = updateMap_.map.find(SleepingIds()[i]); found != updateMap_.map.end()) updateMap_.map.erase(found);
     }
     for (int i = 0; i < std::ssize(RemovedIds()); ++i) RemoveObject(RemovedIds()[i]);
 }
@@ -271,14 +265,13 @@ void CWorldServer::TickSleepingEffects() {
     // Rebirth (a context hook): every map object that is referenced, not flagged for removal, has effects and a
     // companion, and is asleep gets one tick taken off each effect; when one runs out, the object goes back into
     // the update map, whose update removes it.
-    mapObjects_.map.ForEach([this](auto* node) {
-        CMapObject* object = node->value;
-        if ((object->flags_ & 1) || object->refCount_ == 0 || object->effects.size == 0) return;
-        if (object->updateCountdown > 0 || !object->companion) return;
+    for (const auto& [id, object] : mapObjects_.map) {
+        if ((object->flags_ & 1) || object->refCount_ == 0 || object->effects.size == 0) continue;
+        if (object->updateCountdown > 0 || !object->companion) continue;
         bool expired = false;
         for (int i = 0; i < object->effects.size; ++i) {
             if (--object->effects[i].ticksLeft <= 0) expired = true;
         }
         if (expired) AddToUpdateMap(object);
-    });
+    }
 }

@@ -60,7 +60,6 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         Spiral()->radius = -1.0f;
         SpiralGuard() |= 1;
         Spiral()->length = 0;
-        libcrt::AtExit([] {});   // nothing to destroy
     }
     int sizeClass = unit->sizeClass;
     path->cells.RemoveAll();

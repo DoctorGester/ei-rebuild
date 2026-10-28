@@ -465,9 +465,9 @@ void CountedListLoad(std::list<CUnit*>* list, CStream* stream, CWorld* context);
 
 class CSpell;
 namespace console {
-class GameOStream;
+class Stream;
 }
-console::GameOStream* AiLog();
+console::Stream& AiLog();
 
 // Copies x and y of a point; returns `out`.
 float* CopyPoint2(float* out, const float* point);

@@ -8,10 +8,10 @@
 #include "ui_gdi.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -104,8 +104,8 @@ int TextWidth(CInterface3D* ui, const std::string& text, int font) {
 std::uint32_t CharClass(int key) {
     if (key >= 0x80) return key <= 0xFFFF && IsCharAlphaW(static_cast<WCHAR>(key)) ? kClassLetter : kClassOther;
     const char c = static_cast<char>(key);
-    if (gamecrt::isdigit(key) != 0) return kClassDigit;
-    if (libcrt::Isalpha(key) != 0 || c == ' ') return kClassLetter;
+    if (text::IsDigit(key) != 0) return kClassDigit;
+    if (text::IsAlpha(key) != 0 || c == ' ') return kClassLetter;
     if (c == '.' || c == ':') return kClassSeparator;
     return kClassOther;
 }

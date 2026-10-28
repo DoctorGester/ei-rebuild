@@ -7,11 +7,14 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/hash_map.h"
 #include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
+#include <unordered_map>
 
 #undef GetClassName
 
@@ -26,27 +29,24 @@ struct UnitNpcRecord;
 // The unit prototype table: the records and an index by prototype name.
 struct UnitPrototypeTable {
     UnitPrototypeRecord* At(std::uint32_t index);
-    using NameIndex = stlp::hash_map<std::string, UnitPrototypeRecord*, stlp::StringHash>;
+    // In STLport's bucket order (EI_Plugin's fallback prototype is the first bucket head that fits).
+    using NameIndex = lib::HashMap<std::string, UnitPrototypeRecord*, lib::TextHash>;
 
     // The record named `name` (an unknown name gets a null entry), or null.
     UnitPrototypeRecord* FindByName(const char* name);
 
-    UnitPrototypeRecord* begin;
-    UnitPrototypeRecord* end;
-    UnitPrototypeRecord* endOfStorage;
+    std::vector<UnitPrototypeRecord> records;
     NameIndex byName;
 };
 static_assert(offsetof(UnitPrototypeTable, byName) == 0x0C);
 
 // The NPC prototype table (records of statistics for named creatures), laid out the same way.
 struct NpcPrototypeTable {
-    using NameIndex = stlp::hash_map<std::string, UnitNpcRecord*, stlp::StringHash>;
+    using NameIndex = std::unordered_map<std::string, UnitNpcRecord*>;
 
     UnitNpcRecord* FindByName(const char* name);
 
-    UnitNpcRecord* begin;
-    UnitNpcRecord* end;
-    UnitNpcRecord* endOfStorage;
+    std::vector<UnitNpcRecord> records;
     NameIndex byName;
 };
 static_assert(offsetof(NpcPrototypeTable, byName) == 0x0C);
@@ -112,6 +112,11 @@ inline CMapObjectManager* MapObjectManagerOf(const CEngineObject* object) {
 }
 
 namespace unitdb {
+// Record `index` of a table's records, or null past the end.
+template <typename T>
+T* RecordAt(std::vector<T>& records, std::uint32_t index) {
+    return index < records.size() ? &records[index] : nullptr;
+}
 UnitPrototypeTable& PrototypeTable();   // the unit database's first table
 NpcPrototypeTable& NpcTable();          // its second
 } // namespace unitdb

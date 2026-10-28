@@ -25,7 +25,7 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/crt.h"
+#include "lib/text_case.h"
 #include "text_split.h"
 #include "lib/stlp.h"
 #include "lib/str.h"
@@ -78,10 +78,6 @@ constexpr int kEventNoTopics = 2;
 constexpr int kTopicNameParts = 3;
 constexpr int kConstructorPrefix = 6;       // "constr"
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
-
-int Compare(std::string_view a, std::string_view b) {
-    return gamecrt::mbsicmp(a, b);
-}
 
 MapRecord* FindLocalMap() {
     return TheMapDatabase()->FindMap(LocalPlayerZone().c_str());
@@ -259,8 +255,8 @@ void CBriefingScreen::CreateScreen() {
     // The people of the base: the local player's objects whose ids are text keys. The walk ends
     // at an empty entry.
     const auto& objects = LocalViewPlayer()->knownObjects_;
-    for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
-        int id = node->value->id_;
+    for (auto node = objects.begin(); node != objects.end() && node->second; ++node) {
+        int id = node->second->id_;
         if (IsTextKey(id)) people_.push_back(id);
     }
     markPhase_ = 0.0f;
@@ -355,13 +351,13 @@ void CBriefingScreen::MarkPeople() {
     std::vector<std::string> parts;
     // The people with a topic open (the list is sorted and deduplicated; only membership is used).
     std::vector<int> open;
-    for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
+    for (auto node = variables.begin(); node != variables.end(); ++node) {
         std::uint32_t bits;
-        std::memcpy(&bits, &node->value.mapped, 4);
+        std::memcpy(&bits, &node->second, 4);
         if (bits != kOneBits) continue;
-        text::Split(node->value.key.c_str(), &parts, '.');
+        text::Split(node->first.c_str(), &parts, '.');
         if (parts.size() != kTopicNameParts) continue;
-        if (Compare(str::Left(parts[2], kConstructorPrefix), ConstructorTopic()) == 0) continue;
+        if (text::CompareIgnoringCase(str::Left(parts[2], kConstructorPrefix), ConstructorTopic()) == 0) continue;
         int id = TextKeyFromName(parts[1].c_str());
         if (std::find(people_.begin(), people_.end(), id) == people_.end()) continue;
         open.push_back(id);
@@ -380,7 +376,7 @@ void CBriefingScreen::LeaveIfExitOpen() {
     CParty* party = LocalPlayerData();
     if (!exitPending_ || party->members_.size <= 0) return;
     std::string zone = GameExitTarget(exit_);
-    if (Compare(zone, NoZone()) == 0) return;
+    if (text::CompareIgnoringCase(zone, NoZone()) == 0) return;
     std::string variable = ZoneVariablePrefix();
     variable += zone;
     float visited = PlayerZeroVariable(variable.c_str());

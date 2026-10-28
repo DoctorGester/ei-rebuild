@@ -50,8 +50,3 @@ int LeverRecordTable::Load(const char* folder) {
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }
-
-LeverRecordTable::LeverRecordTable() {
-    records.ConstructEmpty();
-    byName.InitBuckets(100);
-}

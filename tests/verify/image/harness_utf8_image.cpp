@@ -10,9 +10,9 @@
 #include "game/player_messages.h"
 #include "game/system_text.h"
 #include "game/ui.h"
-#include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc_string.h"
+#include "lib/str.h"
+#include "lib/text_case.h"
 
 #include <windows.h>
 
@@ -144,23 +144,22 @@ std::string CaseFailure() {
         {"абв", "АБГ", -1},             {"Ґанок", "ґАНОК", 0},           {"Straße É", "STRAßE é", 0},
     };
     for (const Pair& p : compares) {
-        const int got = libcrt::Stricmp(p.a, p.b);
-        const int mbs = gamecrt::mbsicmp(p.a, p.b);
-        if ((got > 0) - (got < 0) != p.sign || mbs != got)
-            return std::string("_stricmp / _mbsicmp(\"") + p.a + "\", \"" + p.b + "\") is " + std::to_string(got) + " / " +
-                   std::to_string(mbs) + ", expected the sign " + std::to_string(p.sign);
+        const int got = text::CompareIgnoringCase(p.a, p.b);
+        if ((got > 0) - (got < 0) != p.sign)
+            return std::string("CompareIgnoringCase(\"") + p.a + "\", \"" + p.b + "\") is " + std::to_string(got) +
+                   ", expected the sign " + std::to_string(p.sign);
     }
-    if (libcrt::Strnicmp("Привет мир", "ПРИВЕТ МИР", 12) != 0) return "_strnicmp of 12 bytes of \"Привет\" differs";
-    if (libcrt::Memicmp("ЖУК", "жук", 6) != 0) return "_memicmp of \"ЖУК\" and \"жук\" differs";
-    mfc::impl::CString lower("ПРИВЕТ Ёж Ґ ABC");
-    lower.MakeLower();
-    if (std::strcmp(lower, "привет ёж ґ abc") != 0) return std::string("CString::MakeLower gave \"") + static_cast<const char*>(lower) + "\"";
+    if (text::CompareIgnoringCase("Привет мир", "ПРИВЕТ МИР", 12) != 0) return "12 bytes of \"Привет\" compare different";
+    if (text::CompareIgnoringCase("ЖУК", "жук", 6, false) != 0) return "6 bytes of \"ЖУК\" and \"жук\" compare different";
+    std::string lower = "ПРИВЕТ Ёж Ґ ABC";
+    str::MakeLower(lower);
+    if (lower != "привет ёж ґ abc") return "str::MakeLower gave \"" + lower + "\"";
     char upper[] = "ёжик abc";
     text::utf8::CharUpperA(upper);
     if (std::strcmp(upper, "ЁЖИК ABC") != 0) return std::string("CharUpperA gave \"") + upper + "\"";
     // 0xD0 (a lead byte) is 'Ð' and 0xA0 (the trail of "Р") a space in code page 1252's tables.
-    if (libcrt::Tolower(0xD0) != 0xD0 || gamecrt::tolower(0xD0) != 0xD0) return "tolower changes the byte D0";
-    if (libcrt::Isspace(0xA0) != 0 || libcrt::Isalpha(0xD0) != 0) return "a UTF-8 byte has a character class";
+    if (text::ToLower(0xD0) != 0xD0) return "ToLower changes the byte D0";
+    if (text::IsSpace(0xA0) || text::IsAlpha(0xD0)) return "a UTF-8 byte has a character class";
     // The player name filter: a Cyrillic name passes, a cut sequence or a control character does not.
     if (!IsPrintableText("Игрок Ёж", 0x3F, 1)) return "the name filter rejects \"Игрок Ёж\"";
     const char cut[] = {'\xD0', '\0'};
@@ -187,8 +186,8 @@ std::string CheckChatWrap(const std::string& wanted) {
     std::string joined;
     int count = 0;
     std::string failure;
-    for (auto* node = overlay->lines_.First(); node != overlay->lines_.End(); node = node->next) {
-        const std::string line(node->data.name.c_str(), static_cast<std::size_t>(node->data.name.size()));
+    for (const ChatLine& entry : overlay->lines_) {
+        const std::string& line = entry.name;
         if (!ValidUtf8(line) && failure.empty()) failure = "chatwrap: line " + std::to_string(count) + " is not valid UTF-8: \"" + line + "\"";
         Log("harness: chatwrap: line %d: \"%s\" (%d characters)", count, line.c_str(), text::CharacterCount(line));
         joined += line;

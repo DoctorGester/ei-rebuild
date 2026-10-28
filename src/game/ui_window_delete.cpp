@@ -4,7 +4,6 @@
 // Bodies that only jump to the window's or container's destructor are those destructors themselves. docs/notes/ui.md,
 // section 2 "Deleting destructors".
 #include "global_map_clouds.h"
-#include "library_trees.h"
 #include "party.h"
 #include "ui.h"
 #include "ui_briefing.h"
@@ -20,34 +19,6 @@
 
 #include <memory>
 #include <string>
-
-namespace {
-
-// An STLport vector's storage back to the node pool (its elements already destroyed).
-template <typename T>
-void FreeVectorStorage(T* begin, T* capacity) {
-    stlp::deallocate(begin, static_cast<std::size_t>(capacity - begin) * sizeof(T));
-}
-
-// A "pers" texts map destroyed as the screens' destructors inline it: with nodes, every node
-// erased and the header reset, the count 0; then the header freed.
-void DestroyPersonTexts(PersonTextMap& map) {
-    PersonTextNode* header = map.end();
-    if (map.size() != 0) {
-        static_cast<lib_trees::PersonTexts*>(&map)->EraseSubtree(header->parent);
-        map.ResetToEmpty();
-    }
-    stlp::deallocate(map.end(), sizeof(PersonTextNode));
-}
-
-// An STLport list emptied and its sentinel freed (the destructor's inlined clear).
-template <typename T, typename F>
-void DestroyList(stlp::list<T>& list, F destroy) {
-    list.ClearWith(destroy);
-    stlp::deallocate(list.head, sizeof(typename stlp::list<T>::Node));
-}
-
-} // namespace
 
 // --- Destructor bodies -------------------------------------------------------------------------
 
@@ -65,11 +36,7 @@ CItemInfoPanel::~CItemInfoPanel() {
     ItemParty()->CParty::~CParty();
 }
 
-CChatWindow::~CChatWindow() {
-    for (CRefObject* player : players_)
-        if (player) player->Release();
-    players_.FreeStorage();
-}
+CChatWindow::~CChatWindow() {}
 
 CForwardingStrip::~CForwardingStrip() = default;
 
@@ -82,26 +49,16 @@ CMessageBox::~CMessageBox() = default;
 // The link, then the box's.
 CMasterRequestBox::~CMasterRequestBox() = default;
 
-void ChatLine::Destroy() {
-    if (CUiSurface* shown = surface) {
-        delete shown;
-    }
-    surface = nullptr;
-    std::destroy_at(&name);
-    std::destroy_at(&text);
-}
+ChatLine::~ChatLine() { delete surface; }
 
-CChatOverlay::~CChatOverlay() { DestroyList(lines_, [](ChatLine* line) { line->Destroy(); }); }
+CChatOverlay::~CChatOverlay() {}
 
 CBattleScreen::~CBattleScreen() {
-    DestroyPersonTexts(personTexts_);
 }
 
 static_assert(sizeof(BriefingMover) == 0x30);
 
 CBriefingScreen::~CBriefingScreen() {
-    for (BriefingSpeaker* speaker = speakers_.begin(); speaker != speakers_.end(); ++speaker) std::destroy_at(&speaker->name);
-    speakers_.FreeStorage();
     // The shown items' list (node 0x18 bytes: next, prev, then the item record).
     for (BriefingShownItem* node = shown_->next; node != shown_;) {
         BriefingShownItem* next = node->next;
@@ -112,7 +69,6 @@ CBriefingScreen::~CBriefingScreen() {
     shown_->next = shown_;
     shown_->prev = shown_;
     stlp::deallocate(shown_, sizeof(BriefingShownItem));
-    DestroyPersonTexts(personTexts_);
     for (BriefingMover* node = movers_->next; node != movers_;) {
         BriefingMover* next = node->next;
         stlp::deallocate(node, sizeof(BriefingMover));
@@ -123,26 +79,10 @@ CBriefingScreen::~CBriefingScreen() {
     stlp::deallocate(movers_, sizeof(BriefingMover));
 }
 
-CMpConnectScreen::~CMpConnectScreen() {
-    for (MpAddressEntry& entry : entries_) {
-        std::destroy_at(&entry.description);
-        std::destroy_at(&entry.name);
-    }
-    entries_.FreeStorage();
-}
+CMpConnectScreen::~CMpConnectScreen() {}
 
 CHelpWindow::~CHelpWindow() {}
 
 CObjectivesWindow::~CObjectivesWindow() = default;
 
-CSaveLoadWindow::~CSaveLoadWindow() {
-    for (SaveEntry* entry = entries_.begin(); entry != entries_.end(); ++entry) {
-        std::destroy_at(&entry->stringArrays_[1]);
-        std::destroy_at(&entry->stringArrays_[0]);
-        std::destroy_at(&entry->zone_);
-        std::destroy_at(&entry->map_);
-        std::destroy_at(&entry->folder_);
-        std::destroy_at(&entry->title_);
-    }
-    FreeVectorStorage(entries_.begin(), entries_.EndOfStorage());
-}
+CSaveLoadWindow::~CSaveLoadWindow() {}

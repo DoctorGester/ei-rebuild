@@ -12,6 +12,7 @@
 
 #include <list>
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include <windows.h>
 
@@ -140,7 +141,7 @@ public:
     std::list<PixelFormat> depthFormats_;   // one is picked
     std::list<PixelFormat> textureFormats_;
     // The values point at textureFormats_'s elements.
-    stlp::hash_map<int, PixelFormat*, stlp::IntHash> formats_;
+    std::unordered_map<int, PixelFormat*> formats_;
     std::uint32_t largestFormatId_;
     std::uint8_t unused_D4[0x58];    // two vertex-buffer batches and a spare set: never used
     CDXSurface* stageSurfaces_[8];   // the holder bound to each texture stage

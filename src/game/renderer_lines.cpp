@@ -19,6 +19,7 @@
 #include "render/render_state.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -145,5 +146,5 @@ void FreeLineVertices() {
 void FreeLineProjected() { lib::FreeStorage(g_lineProjected); }
 void ConstructLineOutcodes() {   // (CByteArray's constructor)
     g_lineOutcodes.Construct();
-    libcrt::AtExit(DestroyLineOutcodes);
+    std::atexit(DestroyLineOutcodes);
 }

@@ -3,6 +3,7 @@
 // parts").
 #include "ei/x87.h"
 #include "figure_mesh.h"
+#include "lib/text_case.h"
 #include "material.h"
 #include "link_figure.h"
 #include "map_object_figures.h"
@@ -12,10 +13,8 @@
 #include "world_data.h"
 #include "render/render.h"
 #include "lib/containers.h"
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "world.h"
-#include "library_trees.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -23,6 +22,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -142,7 +142,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
     l.emissiveColour[1] = c.emissive.y;
     l.emissiveColour[2] = c.emissive.z;
     l.coefficient = LightingCoefficient();
-    l.crown = CrownOption() != 0 && libcrt::Stricmp(MeshName(part.Mesh()), "crown") == 0;
+    l.crown = CrownOption() != 0 && text::CompareIgnoringCase(MeshName(part.Mesh()), "crown") == 0;
     g_partLights.clear();
     for (int i = 0; part.lights && i < std::ssize(*part.lights); ++i) {
         const CLight* light = (*part.lights)[i];
@@ -254,8 +254,7 @@ void DrawThroughFigure(Part& part) {
 
     if (part.rect) {
         std::string key(MeshName(part.Mesh()));
-        LinkHeaderMap::Node* node = nullptr;
-        node = lib_trees::FindLinkHeader(&part.figure->headers_, &key);
+        auto node = part.figure->headers_.find(key);
         RECT* own = &part.node->screen_;
         gameapi::CopyRect(own, &node->second.screen);
         *part.rect = *own;
@@ -279,7 +278,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     if (!(g_movedPositionsGuard & 1)) {
         g_movedPositionsGuard |= 1;
         MovedPositions() = std::vector<VertexPacket>{};
-        libcrt::AtExit(FreeMovedPositions);
+        std::atexit(FreeMovedPositions);
     }
 
     int visibility = device->pipeline_->ClipTest(&part.Mesh()->box_.bounds);

@@ -7,6 +7,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 
 #include <cstring>
 #include <new>
@@ -19,26 +20,39 @@ int CResourceBase::FindEntry(const char* name) const {
     std::uint32_t hash = 0;
     std::uint32_t length = 0;
     for (; name[length] != '\0'; ++length)
-        hash += gamecrt::tolower(static_cast<unsigned char>(name[length]));
+        hash += text::ToLower(static_cast<unsigned char>(name[length]));
 
     std::uint32_t index = hash % count;
     for (;;) {
         const ResEntry& e = entries_[index];
-        if (length == e.nameLength && gamecrt::strnicmp(name, names_ + e.nameOffset, length) == 0)
+        if (length == e.nameLength && text::CompareIgnoringCase(name, names_ + e.nameOffset, length) == 0)
             return static_cast<int>(index);
         index = static_cast<std::uint32_t>(entries_[index].next);
         if (index == 0xFFFFFFFF) return -1;
     }
 }
 
+namespace {
+
+// `size` bytes at `offset` of the archive, read or written through the game's slots (SetFilePointer, ReadFile,
+// WriteFile; VC6's _lseek, _read and _write on a binary descriptor did the same calls).
+bool ReadAt(void* file, std::uint32_t offset, void* to, std::uint32_t size) {
+    DWORD read = 0;
+    return gameapi::SetFilePointer(file, static_cast<LONG>(offset), nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
+           gameapi::ReadFile(file, to, size, &read, nullptr) && read == size;
+}
+
+bool WriteAt(void* file, std::uint32_t offset, const void* from, std::uint32_t size) {
+    DWORD written = 0;
+    return gameapi::SetFilePointer(file, static_cast<LONG>(offset), nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
+           gameapi::WriteFile(file, from, size, &written, nullptr) && written == size;
+}
+
+} // namespace
+
 CMappedResource::CMappedResource() {
-    // The loaded-file maps, 193 buckets each (STLport's first prime >= 100).
-    std::memset(&filesByData_, 0, sizeof(filesByData_));
-    filesByData_.InitBuckets(100);
-    std::memset(&filesByName_, 0, sizeof(filesByName_));
-    filesByName_.InitBuckets(100);
     image_ = nullptr;
-    fd_ = -1;
+    handle_ = INVALID_HANDLE_VALUE;
     writable_ = 0;
 }
 
@@ -46,9 +60,9 @@ CMappedResource::~CMappedResource() {
     // Rebirth's ResOverride: addon forgets the archive first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnDestroyResource(this);
     CMappedResource::FreeAllFiles();   // called directly, not through the vtable
-    if (fd_ >= 0) {
-        libcrt::Close(fd_);
-        fd_ = -1;
+    if (handle_ != INVALID_HANDLE_VALUE) {
+        CloseHandle(handle_);
+        handle_ = INVALID_HANDLE_VALUE;
     }
     if (!image_) {
         if (entries_) gamecrt::operator_delete(entries_);
@@ -58,14 +72,12 @@ CMappedResource::~CMappedResource() {
     names_ = nullptr;
     image_ = nullptr;
     header_ = ResHeader{};
-    filesByName_.Destroy();
-    filesByData_.Destroy();
     // ~CResourceBase follows.
 }
 
 void CMappedResource::Destroy() { this->CMappedResource::~CMappedResource(); }
 
-void CMappedResource::Flush() {}   // 4: (short_functions.cpp)
+void CMappedResource::Flush() {}   // 4
 
 BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
     // Rebirth's ResOverride: addon loads the mod's archives on the first open and records
@@ -73,11 +85,13 @@ BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnOpenResource(this, path);
     CloseResource();
     writable_ = writable;
-    fd_ = libcrt::Open(path, (writable ? 2 /* _O_RDWR */ : 0) | 0x8000 /* _O_BINARY */ | 0x10 /* _O_RANDOM */);
-    if (fd_ == -1)
+    handle_ = gameapi::CreateFileA(path, writable ? GENERIC_READ | GENERIC_WRITE : GENERIC_READ,
+                                   FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
+                                   FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS, nullptr);
+    if (handle_ == INVALID_HANDLE_VALUE)
         return game::FatalError(("CMappedResource::OpenResource()\nUnable to open file \"" + std::string(path) + "\"").c_str());
 
-    if (libcrt::Lseek(fd_, 0, 0) != -1 && libcrt::Read(fd_, &header_, sizeof(header_)) == sizeof(header_)) {
+    if (ReadAt(handle_, 0, &header_, sizeof(header_))) {
         if (header_.magic != kResMagic) {
             game::FatalError(("Wrong format resource file \"" + std::string(path) + "\"").c_str());
             CloseResource();
@@ -86,9 +100,8 @@ BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
         unsigned tableSize = header_.count * sizeof(ResEntry);
         entries_ = gamecrt::operator_new_array<ResEntry>(header_.count);
         names_ = gamecrt::operator_new_array<char>(header_.namesSize);
-        if (libcrt::Lseek(fd_, static_cast<long>(header_.tableOffset), 0) != -1 &&
-            static_cast<unsigned>(libcrt::Read(fd_, entries_, tableSize)) == tableSize &&
-            static_cast<std::uint32_t>(libcrt::Read(fd_, names_, header_.namesSize)) == header_.namesSize)
+        if (ReadAt(handle_, header_.tableOffset, entries_, tableSize) &&
+            ReadAt(handle_, header_.tableOffset + tableSize, names_, header_.namesSize))
             return 1;
     }
     CloseResource();
@@ -113,9 +126,9 @@ BOOL CMappedResource::OpenFromMemory(const void* image) {
 
 void CMappedResource::CloseResource() {
     FreeAllFiles();
-    if (fd_ >= 0) {
-        libcrt::Close(fd_);
-        fd_ = -1;
+    if (handle_ != INVALID_HANDLE_VALUE) {
+        CloseHandle(handle_);
+        handle_ = INVALID_HANDLE_VALUE;
     }
     // The table and names were read into memory by OpenResource unless the archive is an image.
     if (!image_) {
@@ -140,8 +153,8 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
     // Already loaded: share it.
     {
         std::string key(name);
-        if (auto* node = filesByName_.Find(key)) {
-            LoadedFile* file = node->value;
+        if (auto node = filesByName_.find(key); node != filesByName_.end()) {
+            LoadedFile* file = node->second;
             ++file->refCount;
             if (size) *size = file->size;
             return file->data;
@@ -166,17 +179,14 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
     file->data = gamecrt::operator_new(file->size);
     file->offset = entry.offset;
 
-    if (libcrt::Lseek(fd_, static_cast<long>(file->offset), 0 /* SEEK_SET */) != -1) {
-        std::uint32_t bytes = file->size;
-        if (static_cast<std::uint32_t>(libcrt::Read(fd_, file->data, bytes)) == bytes) {
-            if (size) *size = bytes;
-            {
-                std::string key(file->name);
-                filesByName_[key] = file;
-            }
-            filesByData_[file->data] = file;
-            return file->data;
+    if (ReadAt(handle_, file->offset, file->data, file->size)) {
+        if (size) *size = file->size;
+        {
+            std::string key(file->name);
+            filesByName_[key] = file;
         }
+        filesByData_[file->data] = file;
+        return file->data;
     }
 
     // Read failed. file->data leaks here (kept).
@@ -189,17 +199,16 @@ bool CMappedResource::CloseFile(void* data) {
     if (image_) return true;
     if (!data) return false;
 
-    auto* byData = filesByData_.Find(data);
-    if (!byData) {
+    auto byData = filesByData_.find(data);
+    if (byData == filesByData_.end()) {
         game::DebugLog("CMappedResource::CloseFile()\nFile already closed\n");
         return false;
     }
-    LoadedFile* file = byData->value;
+    LoadedFile* file = byData->second;
     if (--file->refCount != 0) return true;
 
     if (writable_) {
-        if (libcrt::Lseek(fd_, static_cast<long>(file->offset), 0 /* SEEK_SET */) == -1 ||
-            static_cast<std::uint32_t>(gamecrt::write(fd_, file->data, file->size)) != file->size) {
+        if (!WriteAt(handle_, file->offset, file->data, file->size)) {
             // The file name is the formatted data pointer.
             std::string name;
             name = static_cast<const char*>(data);
@@ -207,8 +216,8 @@ bool CMappedResource::CloseFile(void* data) {
         }
     }
 
-    filesByData_.Erase(byData);
-    filesByName_.Erase(filesByName_.Find(file->name));
+    filesByData_.erase(byData);
+    filesByName_.erase(file->name);
     gamecrt::operator_delete(file->data);
     std::destroy_at(&file->name);
     gamecrt::operator_delete(file);
@@ -217,16 +226,15 @@ bool CMappedResource::CloseFile(void* data) {
 
 void CMappedResource::FreeAllFiles() {
     if (image_) return;
-    filesByData_.ForEach([](auto* node) {
-        LoadedFile* file = node->value;
+    for (auto& [data, file] : filesByData_) {
         gamecrt::operator_delete(file->data);
         if (file) {
             std::destroy_at(&file->name);
             gamecrt::operator_delete(file);
         }
-    });
-    filesByData_.Clear();
-    filesByName_.Clear();
+    }
+    filesByData_.clear();
+    filesByName_.clear();
 }
 
 CMappedFile::CMappedFile() { Construct(); }
@@ -261,10 +269,11 @@ BOOL CMappedFile::Open(const char* path, BOOL writable) {
     // Unbuffered I/O only when the volume's sector size divides the page size.
     char root[4];
     DWORD bytesPerSector = 0xFFFFFFFF, sectorsPerCluster, freeClusters, totalClusters;
-    gamecrt::strncpy(root, path, 3);
+    #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
+    std::strncpy(root, path, 3);
     root[3] = '\0';
     const char* rootPath = root;
-    if (!libcrt::Isalpha(root[0]) || root[1] != ':' || root[2] != '\\') rootPath = nullptr;
+    if (!text::IsAlpha(root[0]) || root[1] != ':' || root[2] != '\\') rootPath = nullptr;
     gameapi::GetDiskFreeSpaceA(rootPath, &sectorsPerCluster, &bytesPerSector, &freeClusters, &totalClusters);
     SYSTEM_INFO info;
     gameapi::GetSystemInfo(&info);

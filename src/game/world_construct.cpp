@@ -17,6 +17,7 @@
 #include "lib/static_object.h"
 #include "game/game_slots.h"
 
+#include <cstdlib>
 #include <initializer_list>
 #include <new>
 
@@ -41,16 +42,7 @@ void ConstructList(mfc::CList<T>& list, void* vtable) {
     list.blockSize = kListBlockSize;
 }
 
-// The ground print lists' sentinels come from operator new (their nodes are larger than the node
-// allocator's 128 bytes).
-static_assert(sizeof(stlp::list<GroundPrint>::Node) > 128);
-
 } // namespace
-
-void ObjectIdMap::Construct() {
-    map.InitBuckets(100);
-    maxId = 0;
-}
 
 PlatformSet::PlatformSet() {
     ClearFields();
@@ -58,14 +50,10 @@ PlatformSet::PlatformSet() {
 
 CWorldServer::CWorldServer() {
     exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
-    updateMap_.Construct();
     Messages()->Construct();
     MainScript()->Construct();
     SecondScript()->Construct();
     diplomacy_.Reset();
-    for (MapObjectIdMap* map : {&objects_, &sentObjects_, &mapObjects_, &otherMapObjects_, &namedObjects_})
-        map->Construct();
-    timedObjects_.Construct();
     ConstructList(sharedObjects_, gameslots::SharedObjectListClass::Vtable());
     ResetState();
 }
@@ -75,9 +63,7 @@ CWorldClient::CWorldClient() {
     countedA0_.Construct(gameslots::ClientObjectPtrArrayClass::Vtable());
     heroes_.Construct();
     objects_.Construct();
-    dynamicNodes_.InitBuckets(100);
     dynamicMaxId_ = 0;
-    lineLists_.InitBuckets(100);
     lastLineListKey_ = 0;
     // Both sector grids at 1 x 1 (Create makes them 4 x 4).
     objectGrid_.unknown08_ = 1;
@@ -86,9 +72,6 @@ CWorldClient::CWorldClient() {
     secondGrid_.unknown08_ = 1;
     secondGrid_.unknown0C_ = 1;
     secondGrid_.Allocate();
-    bloodPrints_.Construct();
-    footprints_.Construct();
-    scorchMarks_.Construct();
     handle_.ptr = nullptr;
     flags_ |= kClientFlags;
     debugFlags_ = kClientDebugFlags;
@@ -135,9 +118,9 @@ void DestroyClientWorld() { g_clientWorld.Destroy(); }
 
 void ConstructServerWorld() {
     g_serverWorld.Construct();
-    libcrt::AtExit(DestroyServerWorld);
+    std::atexit(DestroyServerWorld);
 }
 void ConstructClientWorld() {
     g_clientWorld.Construct();
-    libcrt::AtExit(DestroyClientWorld);
+    std::atexit(DestroyClientWorld);
 }

@@ -6,47 +6,26 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "lib/stlp.h"
-#include "record_vectors.h"
 
 #include <cstring>
 
 namespace net {
 
-void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority) {
-    v->PushDefault<recordvec::ReplicatedElement>();
-    Replicated* last = v->end() - 1;
-    last->object = static_cast<Message*>(object);
-    last->priority = priority;
-}
-
-void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priority) {
-    if (v->end() != v->EndOfStorage()) {
-        ++v->Finish();   // the element's default constructor does nothing
-    } else {
-        Replicated value{};   // the original passes an uninitialised local; it is overwritten below
-        v->InsertOverflow<recordvec::ReplicatedElement>(v->end(), value, 1);
-    }
-    Replicated* last = v->end() - 1;
-    last->object = static_cast<Message*>(object);
-    last->priority = priority;
-}
-
 int TypeRegistry::TypeOf(const std::uint32_t* key) const {
-    const ByVtable::Node* node = byVtable.Find(*key);
-    return node ? static_cast<int>(node->value) : -1;
+    auto node = byVtable.find(*key);
+    return node != byVtable.end() ? static_cast<int>(node->second) : -1;
 }
 
 void TypeRegistry::Register(std::uint32_t type, MessageFactory factory) {
     Message* prototype = factory();
     if (prototype) ++prototype->refs_;
-    // operator[] as inlined: find_or_insert of {key, value()} (resize, new node).
-    byVtable.FindOrInsert({KeyOf(prototype), 0})->value = type;
-    byType.FindOrInsert({type, nullptr})->value = factory;
+    byVtable[KeyOf(prototype)] = type;
+    byType[type] = factory;
     if (prototype && --prototype->refs_ == 0) delete prototype;
 }
 
 Message* TypeRegistry::Create(std::uint32_t type) {
-    MessageFactory factory = byType.FindOrInsert({type, nullptr})->value;
+    MessageFactory factory = byType[type];
     return factory ? factory() : nullptr;
 }
 
@@ -56,9 +35,6 @@ SessionBase::SessionBase() {
     clients_ = sentinel;
     sentinel->next = sentinel;
     sentinel->prev = sentinel;
-    // hashtable(100, hash, equal, allocator) (the functors empty, 0 here).
-    types_.byVtable.Construct(100);
-    types_.byType.Construct(100);
     socket_.Construct();
     time_ = 0.0;
     frame_ = 1;

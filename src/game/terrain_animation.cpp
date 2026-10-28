@@ -22,6 +22,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -257,7 +258,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     auto& sorted = terrain::SortedSectors();
     if ((terrain::g_sortedSectorsGuard & 1) == 0) {
         terrain::g_sortedSectorsGuard |= 1;
-        libcrt::AtExit(terrain::FreeSortedSectors);
+        std::atexit(terrain::FreeSortedSectors);
     }
     sorted.clear();
     for (auto node = sectorCache.begin(); node != sectorCache.end(); ++node) {

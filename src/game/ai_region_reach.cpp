@@ -12,6 +12,7 @@
 #include "lib/static_object.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <initializer_list>
 
@@ -114,7 +115,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     if (!(BlocksGuard() & 1)) {
         BlocksGuard() |= 1;
         g_blocks.Construct();
-        libcrt::AtExit(DestroyBlocks);
+        std::atexit(DestroyBlocks);
     }
     lib::FreeStorage(blocks);
     for (int yy = by - 1; yy < by + 2; ++yy) {
@@ -176,12 +177,12 @@ void CRegionMap::LabelRegions() {
     if (!(FloodGuard() & 1)) {
         FloodGuard() |= 1;
         g_floodQueue.Construct();
-        libcrt::AtExit(DestroyFloodQueue);
+        std::atexit(DestroyFloodQueue);
     }
     if (!(FloodGuard() & 2)) {
         FloodGuard() |= 2;
         g_floodSecond.Construct();
-        libcrt::AtExit(DestroyFloodSecond);
+        std::atexit(DestroyFloodSecond);
     }
     queue.clear();
     for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {

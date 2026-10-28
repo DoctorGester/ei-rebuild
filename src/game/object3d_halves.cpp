@@ -118,11 +118,3 @@ WoundsMaterial::~WoundsMaterial() {
     }
 }
 
-// A named texture's copy constructor: the name copied (a block of its length +
-// 1), the texture referenced. Returns the copy.
-NamedTexture* NamedTexture::Copy(const NamedTexture* other) {
-    std::construct_at(&name, other->name);
-    texture = other->texture;
-    if (texture) ++texture->refCount_;
-    return this;
-}

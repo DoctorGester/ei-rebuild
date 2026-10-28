@@ -30,9 +30,9 @@ int CParticleManager::Create() {
 // for_each); the table is cleared (count and highest id 0); every pooled particle is deleted (RemoveHead,
 // which frees the list's blocks with the last node).
 void CParticleManager::Destroy() {
-    for (HeldMap::Node* node = held_.First(); node && node->value; node = held_.After(node))
-        node->value->Release();
-    held_.Clear();
+    for (auto node = held_.begin(); node != held_.end() && node->second; ++node)
+        node->second->Release();
+    held_.clear();
     maxHeldId_ = 0;
     while (!freeParticles.empty()) {
         Particle* p = freeParticles.front();
@@ -69,12 +69,12 @@ void ReleaseHeld(CParticleManager* manager, Pick drop) {
     for (; object; object = it.Next()) {
         if (!drop(object)) continue;
         int id = object->id_;
-        if (!manager->held_.Find(id)) continue;
+        if (!manager->held_.contains(id)) continue;
         ids.push_back(id);
         object->Release();
     }
     for (std::list<int>::iterator n = ids.begin(); n != ids.end(); ++n) {
-        if (CParticleManager::HeldMap::Node* node = manager->held_.Find((*n))) manager->held_.Erase(node);
+        if (auto node = manager->held_.find((*n)); node != manager->held_.end()) manager->held_.erase(node);
     }
     EndWalk(it);
 }

@@ -23,6 +23,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 
 #include <concepts>
 #include <cstdint>
@@ -48,13 +49,6 @@ float FloatOf(std::uint32_t bits) {
 template <std::floating_point T> float FloatOf(T) = delete;
 
 int FtolOf(float value) { return static_cast<int>(gamecrt::Ftol(D(value))); }
-
-int MbsICmp(std::string_view a, std::string_view b) {
-    return gamecrt::mbsicmp(a, b);
-}
-int MbsCmp(std::string_view a, std::string_view b) {
-    return gamecrt::mbscmp(a, b);
-}
 
 // _ftol of a value kept unrounded (a statistic's result).
 int Ftol(double value) { return static_cast<int>(gamecrt::Ftol(value)); }
@@ -296,7 +290,7 @@ void CItemInfoPanel::DescribeItem() {
     bool materialLine;
     if (kind == kQuick) {
         const itemdb::ItemRecordHead* prototype = PrototypeOf(item);
-        materialLine = !prototype || MbsICmp(prototype->materialClass, "none") != 0;
+        materialLine = !prototype || text::CompareIgnoringCase(prototype->materialClass, "none") != 0;
     } else {
         materialLine = kind != kQuest && kind != kLoot;
     }
@@ -757,7 +751,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     CItemWeapon* weapon = info->weapon;
     UnitStats* stats = info->stats;
     int type = weapon->GetType();
-    if (MbsCmp(info->text, "defense") == 0 && (type == 5 || type == 6)) {
+    if (str::Compare(info->text, "defense") == 0 && (type == 5 || type == 6)) {
         w.Wrapped(w.T(34), 2);
         w.Down();
         return;
@@ -783,7 +777,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     w.line = str::Format("     %s", w.T(32).c_str());
     w.Text(w.line);
     int own = Ftol(WeaponPrototypeSkillBonus(PackedIdOf(weapon)));
-    if (MbsCmp(info->text, "defense") == 0)
+    if (str::Compare(info->text, "defense") == 0)
         own += Ftol(WeaponStat88(PackedIdOf(weapon)));
     else
         own += Ftol(WeaponStat84(PackedIdOf(weapon)));

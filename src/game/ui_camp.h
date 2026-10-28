@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -204,7 +205,7 @@ public:
     bool found_;                     // a way reached the target
     bool beyondTarget_;              // the search goes on through the target zone itself
     std::uint8_t unused_1DE[2];
-    stlp::map<int, float> arrivals_; // target exit -> shortest time (-1: next to the current zone)
+    std::map<int, float> arrivals_; // target exit -> shortest time (-1: next to the current zone)
     Quaternion turn_;                // the model's orientation
     float angle_;                    // the model's turn about z (mod kGlobalMapFullTurn)
     float depth_;                    // 10
@@ -236,10 +237,6 @@ static_assert(offsetof(CGlobalMap, allodTitle_) == 0x17C);
 // perks the hero may learn, each with its price.
 
 struct TradeRow {
-    void Destroy();
-    TradeRow* DeleteThis(int flags);
-    TradeRow* CopyConstruct(const TradeRow* from);
-
     std::string name;
     std::string key;                // the perk's record name (perk rows)
     std::string nextKey;            // the next level's record name (held perks below 3)
@@ -249,7 +246,7 @@ struct TradeRow {
     std::uint8_t unused_15[3];
 };
 
-using TradeRows = stlp::vector<TradeRow>;
+using TradeRows = std::vector<TradeRow>;
 
 // A party member's statistics as the trade panel keeps them (filled from the local player's unit record
 // `index`).
@@ -323,7 +320,7 @@ public:
     TradeRows schools_;              // six
     TradeRows science_;              // one
     int experience_;                 // experience the hero can spend
-    stlp::vector<TradeRecord> records_;           // one per party member
+    std::vector<TradeRecord> records_;            // one per party member
     int heldRegion_;                 // the school / science row held after a purchase
     float holdTime_;                 // from -0.5 s
     std::vector<std::string> texts_; // the titles
@@ -476,8 +473,6 @@ public:
     std::uint32_t heroTurn_;         // passed to the hero preview
     int turning_;                    // 1 / 2 while a turn button is held (Update turns the hero)
 };
-static_assert(offsetof(CCampPages, page_) == 0x190);
-static_assert(offsetof(CCampPages, heroes_) == 0x19C);
 
 // --- Hero statistics panel ---
 // The statistics column of the camp and the multiplayer hero screen.

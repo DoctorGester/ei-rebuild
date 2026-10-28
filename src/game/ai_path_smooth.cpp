@@ -11,6 +11,7 @@
 #include "lib/mfc_slots.h"
 
 #include <cstdint>
+#include <cstdlib>
 
 namespace {
 
@@ -336,9 +337,6 @@ constinit lib::StaticObject<SmoothTable[81]> g_smoothTables = /*007C3058*/ {};
 
 namespace {
 
-using AtExitFunction = void(__cdecl*)();
-void RegisterExit(AtExitFunction exitFunction) { libcrt::AtExit(exitFunction); }
-
 // The tables destroyed, the last one first (the `eh vector destructor iterator`).
 void DestroySmoothTables() {
     SmoothTable* tables = g_smoothTables.Get();
@@ -349,10 +347,10 @@ void DestroySmoothPool() { g_smoothPool.Destroy(); }
 
 void ConstructSmoothTables() {
     for (SmoothTable& table : g_smoothTables.Get()) table.Construct();
-    RegisterExit(DestroySmoothTables);
+    std::atexit(DestroySmoothTables);
 }
 
 void ConstructSmoothPool() {
     g_smoothPool.Construct();
-    RegisterExit(DestroySmoothPool);
+    std::atexit(DestroySmoothPool);
 }

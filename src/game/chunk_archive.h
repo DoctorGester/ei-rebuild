@@ -10,15 +10,20 @@
 #include "core_streams.h"
 
 #include "lib/stlp.h"
+#include "lib/hash_map.h"
 #include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <iterator>
 #include <list>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 class ClassTemplate;
+struct TemplateTable;
 struct LeverRecord;
 namespace gamehash { struct PartyTable; }
 namespace itemdb {
@@ -67,35 +72,30 @@ public:
         void Reset();
     };
     static_assert(sizeof(Ref) == 0x10);
-
-    // The chunk stack's element policy: T() is Reset's (the three unused bytes are what the stack held).
-    struct RefElement {
-        static void Copy(Ref* to, const Ref& from) { *to = from; }
-        static void Destroy(Ref*) {}
-        static void Default(Ref* p) { p->Reset(); }
-    };
-    using Stack = stlp::list<Ref>;
-    static_assert(sizeof(Stack::Node) == 0x18);
+    using Stack = std::list<Ref>;
     using SavedList = std::list<CRefCounted*>;
 
     // While loading: key -> the object the index names (by the key its record is stored under).
-    using LoadedObjects = stlp::hash_map<std::uint32_t, CRefCounted*, stlp::IntHash>;
+    // (walked in STLport's order by Close: the objects nobody took are deleted in that order)
+    using LoadedObjects = lib::HashMap<std::uint32_t, CRefCounted*>;
     // While saving: the objects already listed -> their number by first save (1, 2, ...), written as the key
     // instead of the object's address.
-    using SavedNumbers = stlp::hash_map<const CRefCounted*, std::uint32_t, stlp::PointerHash>;
+    using SavedNumbers = std::unordered_map<const CRefCounted*, std::uint32_t>;
 
     // The classes an archive can hold: Close writes an object's class id (found by its vtable) to the index,
     // Open creates the object with the class's factory.
     using Factory = CRefCounted*(__cdecl*)();
     struct ClassRegistry {
-        using ClassIdMap = stlp::hash_map<std::uint32_t, std::int32_t, stlp::IntHash>;
+        using ClassIdMap = std::unordered_map<std::uint32_t, std::int32_t>;
         ClassIdMap classIds;     // vtable -> class id
-        stlp::hash_map<std::uint32_t, Factory, stlp::IntHash> factories;    // class id -> factory
+        std::unordered_map<std::uint32_t, Factory> factories;    // class id -> factory
     };
     static ClassRegistry& Registry();
 
-    Ref* Current() { return &stack_.End()->prev->data; }
-    void PushChunk() { Stack::InsertDefault<RefElement>(stack_.End()); }
+    Ref* Current() { return &stack_.back(); }
+    // The current chunk's parent.
+    Ref* Parent() { return &*std::prev(stack_.end(), 2); }
+    void PushChunk() { stack_.emplace_back().Reset(); }
     std::uint8_t* Data() { return dataStream_.data_; }
     // Drops the current chunk, as LeaveChunk does after a load.
     void PopChunk();
@@ -128,11 +128,11 @@ public:
     // Database arrays. Each is a vector of records serialised as chunk `id` holding one chunk 1 per record
     // (`occurrence` selects the record); loading replaces the vector's contents. The third argument (the
     // callers pass the database file's data) is unused.
-    void SerializePrints(int id, stlp::vector<PrintRecord>* records, void* unused);
-    void SerializePrints2(int id, stlp::vector<PrintRecord2>* records, void* unused);
-    void SerializeAcks(int id, stlp::vector<acks::UnitAcks>* records, void* unused);
-    void SerializeAcks2(int id, stlp::vector<acks::ModelAcks>* records, void* unused);
-    void SerializeAcks3(int id, stlp::vector<acks::ExtraAcks>* records, void* unused);
+    void SerializePrints(int id, std::vector<PrintRecord>* records, void* unused);
+    void SerializePrints2(int id, std::vector<PrintRecord2>* records, void* unused);
+    void SerializeAcks(int id, std::vector<acks::UnitAcks>* records, void* unused);
+    void SerializeAcks2(int id, std::vector<acks::ModelAcks>* records, void* unused);
+    void SerializeAcks3(int id, std::vector<acks::ExtraAcks>* records, void* unused);
 
     // The party manager's chunks. The third argument is unused but popped. Loading empties the container
     // first and takes one record per chunk 1. Hash_map<int, CParty>: per party a chunk 1 (field 1: the key)
@@ -140,9 +140,9 @@ public:
     void SerializeParties(int id, gamehash::PartyTable* parties, void* unused);
     // Vector<PartyManagerEntry>: per entry a chunk 1 with string fields 1 and 2 and a
     // chunk 3 holding one chunk 1 (field 1) per id.
-    void SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>* entries, void* unused);
+    void SerializePartyEntries(int id, std::vector<PartyManagerEntry>* entries, void* unused);
     // The class templates (counted pointers) as object references (field 1 per chunk 1).
-    void SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>* templates, void* unused);
+    void SerializeClassTemplates(int id, TemplateTable* templates, void* unused);
     void IntField(int id, int* value);
 
     // As chunk `id`; the third argument (the archive again) is unused.
@@ -150,37 +150,37 @@ public:
     void SerializeEnvironmentSpeeches(int id, acks::EnvironmentSpeeches* list, void* unused);
     // The lever records as chunk `id`, one chunk 1 per
     // record (emptied and resized to the number of chunks when loading). The last argument is not read.
-    void SerializeLevers(int id, stlp::vector<LeverRecord>* list, int unused);
+    void SerializeLevers(int id, std::vector<LeverRecord>* list, int unused);
 
     // The item database's vectors, one chunk 1 per record (the third argument unused).
-    void SerializeQuickItems(int id, stlp::vector<itemdb::QuickItemRecord>* records, void* unused);
-    void SerializeLoot(int id, stlp::vector<itemdb::QuestItemRecord>* records, void* unused);
-    void SerializeQuestItems(int id, stlp::vector<itemdb::LootItemRecord>* records, void* unused);
-    void SerializeMaterials(int id, stlp::vector<itemdb::MaterialRecordHead>* records, void* unused);
-    void SerializeWeapons(int id, stlp::vector<itemdb::WeaponRecord>* records, void* unused);
-    void SerializeArmors(int id, stlp::vector<itemdb::ArmorRecord>* records, void* unused);
+    void SerializeQuickItems(int id, std::vector<itemdb::QuickItemRecord>* records, void* unused);
+    void SerializeLoot(int id, std::vector<itemdb::QuestItemRecord>* records, void* unused);
+    void SerializeQuestItems(int id, std::vector<itemdb::LootItemRecord>* records, void* unused);
+    void SerializeMaterials(int id, std::vector<itemdb::MaterialRecordHead>* records, void* unused);
+    void SerializeWeapons(int id, std::vector<itemdb::WeaponRecord>* records, void* unused);
+    void SerializeArmors(int id, std::vector<itemdb::ArmorRecord>* records, void* unused);
 
     // The spell database's vectors, as the item database's.
-    void SerializeSpells(int id, stlp::vector<itemdb::SpellRecord>* records, void* unused);
-    void SerializeSpellModifiers(int id, stlp::vector<itemdb::SpellModifierRecord>* records, void* unused);
-    void SerializeSpellLists(int id, stlp::vector<itemdb::SpellListRecord>* records, void* unused);
+    void SerializeSpells(int id, std::vector<itemdb::SpellRecord>* records, void* unused);
+    void SerializeSpellModifiers(int id, std::vector<itemdb::SpellModifierRecord>* records, void* unused);
+    void SerializeSpellLists(int id, std::vector<itemdb::SpellListRecord>* records, void* unused);
     // vector<int> as chunk `id`: one field 1 per
     // value; loading empties the vector and refills it with as many zeros as there are fields.
     void IntVectorField(int id, std::vector<int>* values, void* unused);
 
     // The quest database's vectors: one chunk 1 per record (its Serialize); loading destroys the records and
     // resizes the vector to the record chunks first.
-    void SerializeQuests(int id, stlp::vector<QuestRecord>* quests, void* unused);
-    void SerializeBriefings(int id, stlp::vector<QuestBriefingRecord>* briefings, void* unused);
+    void SerializeQuests(int id, std::vector<QuestRecord>* quests, void* unused);
+    void SerializeBriefings(int id, std::vector<QuestBriefingRecord>* briefings, void* unused);
 
     // The skill database's vectors, the same shape.
-    void SerializeSkills(int id, stlp::vector<SkillRecord>* skills, void* unused);
+    void SerializeSkills(int id, std::vector<SkillRecord>* skills, void* unused);
     void SkillLevelChunk(int id, SkillLevelRecord* record);
     // The unit database's vectors, the same shape.
-    void SerializePrototypes(int id, stlp::vector<UnitPrototypeRecord>* records, void* unused);
-    void SerializeNpcs(int id, stlp::vector<UnitNpcRecord>* records, void* unused);
-    void SerializeModels(int id, stlp::vector<UnitModelRecord>* records, void* unused);
-    void SerializeUnitLevels(int id, stlp::vector<UnitLevelRecord>* records, void* unused);
+    void SerializePrototypes(int id, std::vector<UnitPrototypeRecord>* records, void* unused);
+    void SerializeNpcs(int id, std::vector<UnitNpcRecord>* records, void* unused);
+    void SerializeModels(int id, std::vector<UnitModelRecord>* records, void* unused);
+    void SerializeUnitLevels(int id, std::vector<UnitLevelRecord>* records, void* unused);
     // A vector of strings as chunk `id` (InlineStrings).
     void SerializeStrings(int id, std::vector<std::string>* strings, void* unused);
 
@@ -198,7 +198,30 @@ public:
     SavedNumbers numbers_;
     SavedList saved_;              // the objects whose records Close writes
 };
-static_assert(sizeof(ChunkArchive::ClassRegistry) == 0x28);
+
+// A vector of records as chunk `id`, one chunk 1 per record (the record's occurrence): loading empties the
+// vector and resizes it to the number of chunks 1 first. `fields(record, archive)` (a record's member
+// Serialize, or a function of both) reads or writes each record's chunk.
+template <typename Record, typename Fields>
+void RecordChunks(ChunkArchive* ar, int id, std::vector<Record>* records, Fields fields) {
+    if (!ar->EnterChunk(id)) return;
+    int count;
+    if (ar->loading_) {
+        records->clear();
+        count = ar->CountChunks(1);
+        records->resize(static_cast<std::size_t>(count));
+    } else {
+        count = static_cast<int>(records->size());
+    }
+    for (int i = 0; i < count; ++i) {
+        ar->Current()->occurrence = i + 1;
+        if (ar->EnterChunk(1)) {
+            std::invoke(fields, (*records)[static_cast<std::size_t>(i)], ar);
+            ar->LeaveChunk();
+        }
+    }
+    ar->LeaveChunk();
+}
 
 // Whole chunks of a stream (the archive's top-level chunks). Reads one chunk header and its bytes into `to` (at
 // most 10,000,000). True when all of it was read.

@@ -2,6 +2,7 @@
 #include "mfc_archive.h"
 
 #include "gameapi.h"
+#include "str.h"
 
 #include <cstring>
 #include <cwchar>
@@ -9,11 +10,6 @@
 namespace mfc::impl {
 
 namespace {
-
-mfc::CFileVirtuals* Virtuals(CFile* file) { return reinterpret_cast<mfc::CFileVirtuals*>(file); }
-
-void** Start(CArchive* ar) { return reinterpret_cast<void**>(&ar->bufferStart); }
-void** Max(CArchive* ar) { return reinterpret_cast<void**>(&ar->bufferMax); }
 
 unsigned Available(const CArchive* ar) { return static_cast<unsigned>(ar->bufferMax - ar->bufferCur); }
 
@@ -36,29 +32,24 @@ unsigned CArchive::Read(void* buffer, unsigned count) {
         unsigned got = 0;
         unsigned read;
         do {
-            read = Virtuals(file)->Read(to, want);
+            read = file->Read(to, want);
             to += read;
             got += read;
             want -= read;
         } while (read > 0 && want > 0);
         left -= got;
         if (got == whole) {
-            if (!directBuffer) {
-                want = left > bufferSize ? left : bufferSize;
-                unsigned char* at = bufferStart;
-                unsigned have = 0;
-                do {
-                    read = Virtuals(file)->Read(at, want);
-                    at += read;
-                    want -= read;
-                    have += read;
-                } while (read > 0 && want > 0 && have < left);
-                bufferCur = bufferStart;
-                bufferMax = bufferStart + have;
-            } else {
-                Virtuals(file)->GetBufferPtr(bufferRead, bufferSize, Start(this), Max(this));
-                bufferCur = bufferStart;
-            }
+            want = left > bufferSize ? left : bufferSize;
+            unsigned char* at = bufferStart;
+            unsigned have = 0;
+            do {
+                read = file->Read(at, want);
+                at += read;
+                want -= read;
+                have += read;
+            } while (read > 0 && want > 0 && have < left);
+            bufferCur = bufferStart;
+            bufferMax = bufferStart + have;
             part = Available(this) < left ? Available(this) : left;
             std::memcpy(to, bufferCur, part);
             bufferCur += part;
@@ -82,63 +73,45 @@ void CArchive::Write(const void* buffer, unsigned count) {
     if (left == 0) return;
     Flush();
     const unsigned whole = left - left % bufferSize;
-    Virtuals(file)->Write(from, whole);
+    file->Write(from, whole);
     from += whole;
     left -= whole;
-    if (directBuffer) {
-        Virtuals(file)->GetBufferPtr(bufferWrite, bufferSize, Start(this), Max(this));
-        bufferCur = bufferStart;
-    }
     std::memcpy(bufferCur, from, left);
     bufferCur += left;
 }
 
-// Loading: the file goes back over what the buffer has not handed out. Storing: the buffer is written
-// (or committed to the file's own buffer, and a new one taken).
+// Loading: the file goes back over what the buffer has not handed out. Storing: the buffer is written.
 void CArchive::Flush() {
     if (IsLoading()) {
-        if (bufferMax != bufferCur) Virtuals(file)->Seek(static_cast<long>(bufferCur - bufferMax), FILE_CURRENT);
+        if (bufferMax != bufferCur) file->Seek(static_cast<long>(bufferCur - bufferMax), FILE_CURRENT);
         bufferCur = bufferMax;
         return;
     }
-    if (!directBuffer) {
-        if (bufferCur != bufferStart)
-            Virtuals(file)->Write(bufferStart, static_cast<unsigned>(bufferCur - bufferStart));
-    } else {
-        if (bufferCur != bufferStart)
-            Virtuals(file)->GetBufferPtr(bufferCommit, static_cast<unsigned>(bufferCur - bufferStart), nullptr, nullptr);
-        Virtuals(file)->GetBufferPtr(bufferWrite, bufferSize, Start(this), Max(this));
-    }
+    if (bufferCur != bufferStart) file->Write(bufferStart, static_cast<unsigned>(bufferCur - bufferStart));
     bufferCur = bufferStart;
 }
 
 void CArchive::FillBuffer(unsigned needed) {
     const unsigned unused = Available(this);
     const unsigned total = needed + unused;
-    if (!directBuffer) {
-        if (bufferCur > bufferStart) {
-            if (static_cast<int>(unused) > 0) {
-                std::memmove(bufferStart, bufferCur, unused);
-                bufferCur = bufferStart;
-                bufferMax = bufferStart + unused;
-            }
-            unsigned have = unused;
-            unsigned want = bufferSize - unused;
-            unsigned char* at = bufferStart + unused;
-            unsigned read;
-            do {
-                read = Virtuals(file)->Read(at, want);
-                have += read;
-                at += read;
-                want -= read;
-            } while (read > 0 && want > 0 && have < needed);
+    if (bufferCur > bufferStart) {
+        if (static_cast<int>(unused) > 0) {
+            std::memmove(bufferStart, bufferCur, unused);
             bufferCur = bufferStart;
-            bufferMax = bufferStart + have;
+            bufferMax = bufferStart + unused;
         }
-    } else {
-        if (unused != 0) Virtuals(file)->Seek(-static_cast<long>(unused), FILE_CURRENT);
-        Virtuals(file)->GetBufferPtr(bufferRead, bufferSize, Start(this), Max(this));
+        unsigned have = unused;
+        unsigned want = bufferSize - unused;
+        unsigned char* at = bufferStart + unused;
+        unsigned read;
+        do {
+            read = file->Read(at, want);
+            have += read;
+            at += read;
+            want -= read;
+        } while (read > 0 && want > 0 && have < needed);
         bufferCur = bufferStart;
+        bufferMax = bufferStart + have;
     }
     if (Available(this) < total) ThrowArchiveException(CArchiveException::endOfFile, nullptr);
 }
@@ -218,8 +191,8 @@ unsigned ReadStringLength(CArchive& ar) {
     return word;
 }
 
-CArchive& StoreText(CArchive& ar, const CString& text) {
-    const int length = text.GetLength();
+CArchive& StoreText(CArchive& ar, const std::string& text) {
+    const int length = static_cast<int>(text.size());
     if (length < 0xFF) {
         ar.StoreByte(static_cast<unsigned char>(length));
     } else if (length < 0xFFFE) {
@@ -230,12 +203,12 @@ CArchive& StoreText(CArchive& ar, const CString& text) {
         ar.StoreWord(0xFFFF);
         ar.StoreDword(static_cast<unsigned long>(length));
     }
-    ar.Write(static_cast<const char*>(text), static_cast<unsigned>(text.GetLength()));
+    ar.Write(text.data(), static_cast<unsigned>(length));
     return ar;
 }
 
-// A wide string is read as its bytes, terminated, then converted into a fresh buffer.
-CArchive& LoadText(CArchive& ar, CString& text) {
+// A wide string is read as its characters, terminated, then converted.
+CArchive& LoadText(CArchive& ar, std::string& text) {
     int wide = 0;
     int length = static_cast<int>(ReadStringLength(ar));
     if (length == -1) {
@@ -244,30 +217,22 @@ CArchive& LoadText(CArchive& ar, CString& text) {
     }
     const int bytes = length * (wide + 1);
     if (length == 0) {
-        text.GetBufferSetLength(0);
+        text.clear();
         return ar;
     }
-    text.GetBufferSetLength(bytes + wide);
-    char* data = const_cast<char*>(static_cast<const char*>(text));
-    if (ar.Read(data, static_cast<unsigned>(bytes)) != static_cast<unsigned>(bytes))
-        ThrowArchiveException(CArchiveException::endOfFile, nullptr);
-    if (wide) {
-        auto* characters = reinterpret_cast<wchar_t*>(data);
-        characters[length] = L'\0';
-        CStringData* old = text.GetData();
-        text.Init();
-        text.AssignWide(characters);
-        CString::FreeData(old);
+    if (!wide) {
+        text.resize(static_cast<std::size_t>(bytes));
+        if (ar.Read(text.data(), static_cast<unsigned>(bytes)) != static_cast<unsigned>(bytes))
+            ThrowArchiveException(CArchiveException::endOfFile, nullptr);
+        return ar;
     }
+    std::wstring characters(static_cast<std::size_t>(length), L'\0');
+    if (ar.Read(characters.data(), static_cast<unsigned>(bytes)) != static_cast<unsigned>(bytes))
+        ThrowArchiveException(CArchiveException::endOfFile, nullptr);
+    const int room = static_cast<int>(std::wcslen(characters.c_str())) * 2;
+    WideToMultiByte(str::SetLength(text, room), characters.c_str(), static_cast<unsigned>(room + 1));
+    str::CutAtNull(text);
     return ar;
-}
-
-CString* CString::AssignWide(const wchar_t* text) {
-    const int length = text ? static_cast<int>(std::wcslen(text)) : 0;
-    AllocBeforeWrite(length * 2);
-    WideToMultiByte(const_cast<char*>(static_cast<const char*>(*this)), text, static_cast<unsigned>(length * 2 + 1));
-    ReleaseBuffer(-1);
-    return this;
 }
 
 int WideToMultiByte(char* to, const wchar_t* from, unsigned count) {

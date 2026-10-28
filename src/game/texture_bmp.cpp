@@ -12,6 +12,7 @@
 #include "dib.h"
 #include "dx_surface.h"
 
+#include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -61,11 +62,11 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     if (flags_ & kTextureLoaded) return 1;
     ChannelLayout layout;
     layout.Split(&format_);
-    mfc::CFile file;
-    mfc::CFile alphaFile;
+    lib::File file;
+    lib::File alphaFile;
     CDib colour;
     CDib alpha;
-    if (!file.Open(path, mfc::CFile::modeRead, nullptr)) {
+    if (!file.Open(path, lib::File::modeRead)) {
         game::DebugLog(CantLoadText(), GetName());
         return 0;
     }
@@ -75,7 +76,7 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     colour.Size(&size);
     const int width = size.cx, height = size.cy;
     bool withAlpha = false;
-    if (alphaFile.Open(alphaPath, mfc::CFile::modeRead, nullptr)) {
+    if (alphaFile.Open(alphaPath, lib::File::modeRead)) {
         alpha.Read(&alphaFile);
         alphaFile.Close();
         WORD bits = alpha.header->biBitCount;

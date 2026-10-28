@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <string>
 #include <vector>
 
@@ -322,19 +323,7 @@ public:
     int voiceIndex_;
     int voiceSound_;
 };
-static_assert(offsetof(CMpHeroScreen, rotating_) == 0x1E4);
 static_assert(offsetof(CMpHeroScreen, descPanel_) == 0x164);
-static_assert(offsetof(CMpHeroScreen, previewModel_) == 0x1A0);
-static_assert(offsetof(CMpHeroScreen, renameEdit_) == 0x1E8);
-static_assert(offsetof(CMpHeroScreen, tradePanel_) == 0x1C4);
-static_assert(offsetof(CMpHeroScreen, mode_) == 0x190);
-static_assert(offsetof(CMpHeroScreen, heroTop_) == 0x19C);
-static_assert(offsetof(CMpHeroScreen, weapon_) == 0x1A4);
-static_assert(offsetof(CMpHeroScreen, weaponPanel_) == 0x1B4);
-static_assert(offsetof(CMpHeroScreen, voiceScroll_) == 0x1F0);
-static_assert(offsetof(CMpHeroScreen, names_) == 0x1D4);
-static_assert(offsetof(CMpHeroScreen, models_) == 0x170 && offsetof(CMpHeroScreen, textures_) == 0x180);
-static_assert(offsetof(CMpHeroScreen, defaults_) == 0x1C8);
 
 // --- Multiplayer connection screen --------------------------------------------------------------
 // The servers found (config\addrbook.ini keeps the ones asked directly): a list of 15 rows with a scroll bar, row 0
@@ -344,11 +333,6 @@ static_assert(offsetof(CMpHeroScreen, defaults_) == 0x1C8);
 
 // An entry of the connection screen's list.
 struct MpAddressEntry {
-    MpAddressEntry* CopyConstruct(const MpAddressEntry* other);
-    // Every field; the padding is not copied. Returns this.
-    MpAddressEntry* AssignFrom(const MpAddressEntry& other);
-    void Destroy();
-
     std::string name;             // the server's name
     std::string description;      // the current map's title
     int players;
@@ -361,14 +345,7 @@ struct MpAddressEntry {
     bool password;                 // joining needs a password
 };
 
-struct MpAddresses : stlp::vector<MpAddressEntry> {
-    void PushDefault();
-    // One inserted before `pos` (the tail moved up by assignment); returns it.
-    MpAddressEntry* InsertDefault(MpAddressEntry* pos);
-    // [first, last) erased (the tail assigned down, the rest destroyed); returns `first`.
-    MpAddressEntry* Erase(MpAddressEntry* first, MpAddressEntry* last);
-};
-using MpAddressList = MpAddresses;
+using MpAddressList = std::vector<MpAddressEntry>;
 
 // The colour the connect list's texts and its line are drawn in: set per row and for the details by the list draw
 // and left as it is for the next draw's titles; Create's texts take it too.
@@ -528,8 +505,6 @@ static_assert(offsetof(CEscMenu, hovered_) == 0x164);
 // --- Credits ------------------------------------------------------------------------------------
 // The titles window (main menu region 4). A line of the titles' script:
 struct TitleLine {
-    void Destroy();
-
     bool scroll;                // the first word is "#scroll"
     std::uint8_t unused_1[3];
     float speed;                // the second word (atof): the scroll speed, or the seconds shown
@@ -608,9 +583,9 @@ public:
     CUiSurface* headerSurface_;
     int fontSmoothing_;         // passed (as uiParam) to SPI_GETFONTSMOOTHING, never written
     lib::InPlace<CMappedResource> archive_;   // "outro.res" (built and destroyed by hand)
-    stlp::list<TitleLine> lines_;
+    std::list<TitleLine> lines_;
     float nextLineAt_;          // game time the current line ends (0 from Build and for scrolls)
-    stlp::list<TitleLine>::Node* currentLine_;   // the next line (the sentinel at the end)
+    std::list<TitleLine>::iterator currentLine_;   // the next line (end() at the end)
     std::string name_;         // ("Titles")
     CBinkVideo player_;         // the movie player
     bool fromGame_;             // opened in a game (pending value 0xCCCCCCCC) or the menu
@@ -619,7 +594,6 @@ public:
     int savedDisplay_;          // the renderer's fog colour while the titles run
 };
 static_assert(offsetof(CCreditsScreen, textSurface_) == 0x164);
-static_assert(offsetof(CCreditsScreen, lines_) == 0x1C8);
 
 // --- Main menu ----------------------------------------------------------------------------------
 // The main menu (CreateScreen id 2). Regions 0-5 from the menus.reg "MainMenu" rectangles; the stones are the object
@@ -733,6 +707,3 @@ public:
     CUiEditField* moneyField_;       // the money offered
     MpStringVector names_;           // the figure strip's names
 };
-static_assert(offsetof(CExchangeScreen, scratch_) == 0x190);
-static_assert(offsetof(CExchangeScreen, names_) == 0x1AC);
-static_assert(sizeof(CExchangeScreen) == 0x1B8);

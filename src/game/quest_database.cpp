@@ -11,7 +11,6 @@
 #include "../lib/mfc.h"
 #include "lib/static_object.h"
 #include "lib/str.h"
-#include "record_vectors.h"
 #include "text_split.h"
 
 #include <cstdint>
@@ -29,8 +28,6 @@ using Registry = CFileRegistry;
 
 using PlaceElement = stlp::PlainElement<float>;
 using ListElement = stlp::ObjectElement<std::string>;
-using QuestElement = recordvec::QuestVector::Element;
-using BriefingElement = recordvec::BriefingVector::Element;
 
 std::vector<std::string>* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
 
@@ -70,21 +67,21 @@ void ReadQuest(Registry& reg, QuestRecord* quest, std::vector<std::string>& plac
 // whole vector after the push_back (it may have moved the records).
 void AddQuest(QuestDatabase* db, const QuestRecord* quest) {
     QuestDatabase::QuestIndex& map = db->questsByName;
-    const QuestDatabase::QuestIndex::Node* found = map.Find(quest->name);
-    if (found && found->value != nullptr) return;
-    db->quests.PushBack<QuestElement>(*quest);
-    map.Clear();
-    for (QuestRecord* r = db->quests.begin(); r != db->quests.end(); ++r) map.Subscript(r->name) = r;
+    auto found = map.find(quest->name);
+    if (found != map.end() && found->second != nullptr) return;
+    db->quests.push_back(*quest);
+    map.clear();
+    for (QuestRecord& r : db->quests) map[r.name] = &r;
 }
 
 void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) {
     QuestBriefingTable* briefings = &db->briefings;
     QuestBriefingTable::Index& map = briefings->index;
-    const QuestBriefingTable::Index::Node* found = map.Find(briefing->name);
-    if (found && found->value != nullptr) return;
-    briefings->records.PushBack<BriefingElement>(*briefing);
-    map.Clear();
-    for (QuestBriefingRecord* r = briefings->records.begin(); r != briefings->records.end(); ++r) map.Subscript(r->name) = r;
+    auto found = map.find(briefing->name);
+    if (found != map.end() && found->second != nullptr) return;
+    briefings->records.push_back(*briefing);
+    map.clear();
+    for (QuestBriefingRecord& r : briefings->records) map[r.name] = &r;
 }
 
 // A briefing's name, exp and money (the "complete" briefing's name is assigned with the
@@ -109,12 +106,6 @@ void ReadListInline(Registry& reg, const char* section, int list, QuestBriefingR
     for (const std::string& listed : strings) {
         if (!listed.empty()) v->push_back(listed);
     }
-}
-
-void ConstructBriefing(QuestBriefingRecord* briefing) {
-    std::construct_at(&briefing->name);
-    for (int i = 0; i < 6; ++i) std::construct_at(List(briefing, i));
-    std::construct_at(&briefing->text);
 }
 
 // "briefing receive": the lists read inline (the first three erased over their range, the others
@@ -154,25 +145,17 @@ bool QuestDatabase::LoadRegistry(const void* image) {
         return false;
     }
 
-    lib::InPlace<QuestRecord> questStorage;   // built and destroyed below
-    QuestRecord* quest = questStorage.Get();
-    std::construct_at(&quest->name);
-    std::construct_at(&quest->places);
-    std::construct_at(&quest->text);
+    QuestRecord quest{};
     {
         std::vector<std::string> places;
-        ReadQuest(reg, quest, places);
-        AddQuest(db, quest);
+        ReadQuest(reg, &quest, places);
+        AddQuest(db, &quest);
 
-        lib::InPlace<QuestBriefingRecord> briefingStorage;
-        QuestBriefingRecord* briefing = briefingStorage.Get();
-        ConstructBriefing(briefing);
-        ReadReceiveBriefing(reg, db, briefing);
-        ReadRejectBriefing(reg, db, briefing);
-        ReadCompleteBriefing(reg, db, briefing);
-        briefing->Destruct();
+        QuestBriefingRecord briefing{};
+        ReadReceiveBriefing(reg, db, &briefing);
+        ReadRejectBriefing(reg, db, &briefing);
+        ReadCompleteBriefing(reg, db, &briefing);
     }
-    quest->Destruct();
     reg.Destroy();
     return true;
 }
@@ -192,10 +175,10 @@ void ReadStringList(CFileRegistry* registry, const char* section, const char* ke
 
 bool QuestBriefingTable::Add(const QuestBriefingRecord* record) {
     if (!record) return false;
-    const Index::Node* node = index.Find(record->name);
-    if (node && node->value) return false;
-    records.PushBack<BriefingElement>(*record);
-    index.Clear();
-    for (QuestBriefingRecord* r = records.begin(); r != records.end(); ++r) index.Subscript(r->name) = r;
+    auto node = index.find(record->name);
+    if (node != index.end() && node->second) return false;
+    records.push_back(*record);
+    index.clear();
+    for (QuestBriefingRecord& r : records) index[r.name] = &r;
     return true;
 }

@@ -9,8 +9,8 @@
 
 #include <windows.h>
 #include "compiled_vtable.h"
+#include "mfc.h"
 #include "mfc_object.h"
-#include "mfc_string.h"
 #include "static_object.h"
 #include "game/game_data.h"
 

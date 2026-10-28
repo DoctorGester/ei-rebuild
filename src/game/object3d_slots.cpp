@@ -6,6 +6,7 @@
 
 #include "core_transform.h"
 
+#include "lib/file_io.h"
 #include "lib/gameapi.h"
 
 #include <cstring>
@@ -18,9 +19,9 @@ constexpr int kSpecificType = 0x46;   // the side halves' type_
 void CObject3D::CombineRotation(const Quaternion& parent) { CTransformObject::CombineRotation(parent); }
 
 // CTransformObject's functions, called directly.
-void CObject3D::SaveTransform(mfc::CFileVirtuals* file) { CTransformObject::SaveTransform(file); }
+void CObject3D::SaveTransform(lib::File* file) { CTransformObject::SaveTransform(file); }
 
-void CObject3D::LoadTransform(mfc::CFileVirtuals* file) { CTransformObject::LoadTransform(file); }
+void CObject3D::LoadTransform(lib::File* file) { CTransformObject::LoadTransform(file); }
 
 void CObject3D::CopyFigure(const CObject3D* other) {
     parts.SetSize(other->parts.size, -1);

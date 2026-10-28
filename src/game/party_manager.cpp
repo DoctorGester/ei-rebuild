@@ -9,40 +9,37 @@
 #include "party.h"
 #include "resource_local.h"   // FillStream
 
-#include "record_vectors.h"
 #include "game_hashes.h"
-#include "lib/stlp_vector_refs.h"
 
 #include <memory>
 #include <string>
 #include <vector>
 
-
 namespace {
 
-// The records and templates are reference-counted objects held by counted pointers, whose release is inlined: one
-// reference less, the object deleted at zero.
-void Release(CRefCounted* counted) {
-    if (counted && --counted->refs_ == 0) delete counted;
-}
-
-// Counted assignment (RefPtr::Assign, inlined for the templates): the new object gains a
-// reference before the old one is released.
+// Counted pointers as chunk `id`'s fields 1, object references (each the field's next occurrence): loading
+// drops the old ones and resizes to the number of fields first.
 template <typename T>
-void AssignCounted(T*& slot, CRefCounted* object) {
-    T* old = slot;
-    slot = static_cast<T*>(object);
-    if (object) ++object->refs_;
-    Release(old);
+void ObjectRefFields(ChunkArchive* ar, int id, std::vector<CountedPtr<T>>* objects) {
+    if (!ar->EnterChunk(id)) return;
+    int count;
+    if (ar->loading_) {
+        objects->clear();
+        count = ar->CountChunks(1);
+        objects->resize(static_cast<std::size_t>(count));
+    } else {
+        count = static_cast<int>(objects->size());
+    }
+    for (int i = 0; i < count; ++i) {
+        ar->Current()->occurrence = i + 1;
+        CountedPtr<T>& slot = (*objects)[static_cast<std::size_t>(i)];
+        if (ar->loading_) slot = static_cast<T*>(ar->ObjectRef(1));
+        else ar->SaveObjectRef(1, slot);
+    }
+    ar->LeaveChunk();
 }
 
 } // namespace
-
-void PartyManagerEntry::Destruct() {
-    std::destroy_at(&ids);
-    std::destroy_at(&text);
-    std::destroy_at(&name);
-}
 
 // ---- Archive chunks -------------------------------------------------------------------------------
 
@@ -82,89 +79,38 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
     LeaveChunk();
 }
 
-void ChunkArchive::SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>* entries, void*) {
-    if (!EnterChunk(id)) return;
-    int count;
-    if (loading_) {
-        for (PartyManagerEntry* e = entries->begin(); e != entries->end(); ++e) e->Destruct();
-        entries->Finish() = entries->Start();
-        count = CountChunks(1);
-        entries->ResizeDefault<recordvec::PartyEntryVector::Element>(static_cast<unsigned>(count));
-    } else {
-        count = static_cast<int>(entries->size());
-    }
-    for (int i = 0; i < count; ++i) {
-        Current()->occurrence = i + 1;
-        PartyManagerEntry* entry = entries->begin() + i;
-        if (!EnterChunk(1)) continue;
-        StringField(1, &entry->name);
-        StringField(2, &entry->text);
-        if (EnterChunk(3)) {
-            std::vector<int>& ids = entry->ids;
+void ChunkArchive::SerializePartyEntries(int id, std::vector<PartyManagerEntry>* entries, void*) {
+    RecordChunks(this, id, entries, [](PartyManagerEntry& entry, ChunkArchive* ar) {
+        ar->StringField(1, &entry.name);
+        ar->StringField(2, &entry.text);
+        if (ar->EnterChunk(3)) {
+            std::vector<int>& ids = entry.ids;
             int idCount;
-            if (loading_) {
+            if (ar->loading_) {
                 ids.clear();
-                idCount = CountChunks(1);
-                const int zero = 0;
-                ids.resize(static_cast<unsigned>(idCount), zero);
+                idCount = ar->CountChunks(1);
+                ids.resize(static_cast<unsigned>(idCount), 0);
             } else {
                 idCount = static_cast<int>(ids.size());
             }
             for (int j = 0; j < idCount; ++j) {
-                Current()->occurrence = j + 1;
-                int* data = ids.data();
-                if (EnterChunk(1)) {
-                    IntField(1, data + j);
-                    LeaveChunk();
+                ar->Current()->occurrence = j + 1;
+                if (ar->EnterChunk(1)) {
+                    ar->IntField(1, &ids[j]);
+                    ar->LeaveChunk();
                 }
             }
-            LeaveChunk();
+            ar->LeaveChunk();
         }
-        LeaveChunk();
-    }
-    LeaveChunk();
+    });
 }
 
-void ChunkArchive::SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>* templates, void*) {
-    if (!EnterChunk(id)) return;
-    int count;
-    if (loading_) {
-        for (ClassTemplate** p = templates->begin(); p != templates->end(); ++p) Release(*p);
-        templates->Finish() = templates->Start();
-        count = CountChunks(1);
-        templates->ResizeDefault<stlp::CountedPtrElement<ClassTemplate>>(static_cast<unsigned>(count));
-    } else {
-        count = static_cast<int>(templates->size());
-    }
-    for (int i = 0; i < count; ++i) {
-        Current()->occurrence = i + 1;
-        ClassTemplate*& slot = (*templates)[i];
-        if (loading_) AssignCounted(slot, ObjectRef(1));
-        else SaveObjectRef(1, slot);
-    }
-    LeaveChunk();
+void ChunkArchive::SerializeClassTemplates(int id, TemplateTable* templates, void*) {
+    ObjectRefFields(this, id, templates);
 }
 
 void NamedPartyRecords::Serialize(ChunkArchive* ar) {
-    if (ar->EnterChunk(1)) {
-        int count;
-        if (ar->loading_) {
-            // erase(begin, end): every record released in order.
-            for (PartyRecord** p = records.Start(); p != records.Finish(); ++p) Release(*p);
-            records.Finish() = records.Start();
-            count = ar->CountChunks(1);
-            records.ResizeDefault<stlp::CountedPtrElement<PartyRecord>>(static_cast<unsigned>(count));
-        } else {
-            count = static_cast<int>(records.size());
-        }
-        for (int i = 0; i < count; ++i) {
-            ar->Current()->occurrence = i + 1;
-            PartyRecord*& slot = records.Start()[i];
-            if (ar->loading_) AssignCounted(slot, ar->ObjectRef(1));
-            else ar->SaveObjectRef(1, slot);
-        }
-        ar->LeaveChunk();
-    }
+    ObjectRefFields(ar, 1, &records);
     ar->StringField(2, &text0C);
     ar->StringField(3, &text10);
 }
@@ -227,16 +173,14 @@ CParty* RecordParty(PartyRecord* record) { return record->Party(); }
 
 void NamedPartyRecords::BeginRedeploy(CParty* party) {
     if (CParty* found = Find(text10.c_str())) CopyParty(found, party);
-    NamedFloatTable variables;
-    variables.CopyConstruct(party->variables_);
+    NamedFloatTable variables(party->variables_);
     std::string zone = party->zone_;
     for (PartyRecord* record : records) {
         CParty* target = RecordParty(record);
-        target->variables_.Assign(variables);
+        target->variables_ = variables;
         target->zone_ = zone;
         target->entrance_ = party->entrance_;
     }
-    variables.Destroy();
 }
 
 void NamedPartyRecords::EndRedeploy(CParty* party) {

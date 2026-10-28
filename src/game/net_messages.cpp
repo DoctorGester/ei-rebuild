@@ -10,7 +10,6 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_vector.h"
-#include "lib/stlp_vector_refs.h"
 
 #include <cstring>
 
@@ -311,24 +310,10 @@ void VariableMessage::Read(BufferCursor* cursor) {
 
 // FileMessage.
 
-FileMessage::FileMessage() {
-    chunks_.ConstructEmpty();
-}
+FileMessage::FileMessage() {}
 FileMessage::FileMessage(const FileMessage& other)
-    : Message(other), chunkCount_(other.chunkCount_), size_(other.size_), name_(other.name_) {
-    const RefVector& from = other.chunks_;
-    std::size_t n = static_cast<std::size_t>(from.size());
-    chunks_.ConstructEmpty();
-    auto* block = stlp::allocate_as<RefPtr>(n);
-    chunks_.Start() = block;
-    chunks_.Finish() = block;
-    chunks_.EndOfStorage() = block + n;
-    chunks_.Finish() = stlp::SharedRefVector::UninitializedCopy(from.begin(), from.end(), block, nullptr);
-}
-FileMessage::~FileMessage() {
-    for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) p->Destroy();
-    stlp::deallocate(chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()) * sizeof(RefPtr));
-}
+    : Message(other), chunkCount_(other.chunkCount_), size_(other.size_), name_(other.name_), chunks_(other.chunks_) {}
+FileMessage::~FileMessage() {}
 
 Message* FileMessage::Create() { return NewCounted<FileMessage>(); }
 FileMessage* FileMessage::Clone() { return NewCounted<FileMessage>(*this); }
@@ -470,20 +455,16 @@ void PartyMemberMessage::Read(BufferCursor* cursor) {
 
 // PartyMessage.
 
-PartyMessage::PartyMessage() { members_.ConstructEmpty(); }
+PartyMessage::PartyMessage() {}
 PartyMessage::PartyMessage(const PartyMessage& other)
-    : Message(other), money_(other.money_), accepted_(other.accepted_), acceptedRevision_(other.acceptedRevision_),
-      revision_(other.revision_), trading_(other.trading_) {
-    members_.CopyConstruct<stlp::CountedRefElement>(other.members_);
+    : Message(other), members_(other.members_), money_(other.money_), accepted_(other.accepted_),
+      acceptedRevision_(other.acceptedRevision_), revision_(other.revision_), trading_(other.trading_) {
     CopyCounted(player_, other.player_);
     CopyCounted(partner_, other.partner_);
 }
 PartyMessage::~PartyMessage() {
     ReleaseCounted(partner_);
     ReleaseCounted(player_);
-    for (RefPtr *p = members_.begin(), *end = members_.end(); p != end; ++p)
-        if (p->ptr) p->ptr->Release();
-    stlp::deallocate(members_.begin(), static_cast<std::size_t>(members_.EndOfStorage() - members_.begin()) * sizeof(RefPtr));
 }
 
 Message* PartyMessage::Create() { return NewCounted<PartyMessage>(); }
@@ -495,7 +476,7 @@ int PartyMessage::OnShutdown() {
 void PartyMessage::Write(BufferCursor* cursor) {
     std::int32_t count = static_cast<std::int32_t>(members_.size());
     Put(cursor, count);
-    for (std::int32_t i = 0; i < count; ++i) PutObject(cursor, members_.begin()[i]);
+    for (std::int32_t i = 0; i < count; ++i) PutObject(cursor, members_[i]);
     Put(cursor, money_);
     Put(cursor, accepted_);
     Put(cursor, acceptedRevision_);
@@ -506,11 +487,8 @@ void PartyMessage::Write(BufferCursor* cursor) {
 void PartyMessage::Read(BufferCursor* cursor) {
     std::int32_t count;
     Take(cursor, count);
-    members_.ResizeDefault<stlp::CountedRefElement>(static_cast<std::size_t>(count));
-    for (std::int32_t i = 0; i < count; ++i) {
-        RefPtr& slot = members_.begin()[i];
-        AssignCounted(slot, g_currentConnection->ReadObjectRef(cursor));
-    }
+    members_.resize(static_cast<std::size_t>(count));
+    for (std::int32_t i = 0; i < count; ++i) AssignCounted(members_[i], g_currentConnection->ReadObjectRef(cursor));
     Take(cursor, money_);
     Take(cursor, accepted_);
     Take(cursor, acceptedRevision_);

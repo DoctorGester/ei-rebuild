@@ -16,7 +16,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 // ---- 3D library ---------------------------------------------------------------------------------
@@ -299,12 +301,10 @@ public:
     int refs_ = 0;
     IDirect3DDevice7* device_;          // counted (AddRef / Release)
     std::uint8_t caps_[0xEC];           // the device's D3DDEVICEDESC7
-    stlp::hash_map<CRenderPreset*, RenderPresetRecord, stlp::PointerHash> records_;   // by preset
+    std::unordered_map<CRenderPreset*, RenderPresetRecord> records_;   // by preset
     std::vector<CRenderPreset*> presets_;   // the nine built-in presets (not counted)
 };
-static_assert(offsetof(CRenderHelper, refs_) == 0x04 && sizeof(CRenderHelper) == 0x118);
 static_assert(offsetof(CRenderHelper, caps_) == 0x0C);
-static_assert(offsetof(CRenderHelper, records_) == 0xF8 && offsetof(CRenderHelper, presets_) == 0x10C);
 
 // The scene renderer's base class ("CVisualizator" in the game's messages); CSceneRenderer is its only one.
 class CVisualizator {
@@ -544,7 +544,7 @@ struct LinkArchiveNode {
 // loader's figure sets cache them by name.
 struct FigureModel {
     CMappedResource* FindAnimation(const std::string* name);
-    using AnimationMap = stlp::hash_map<std::string, CMappedResource*, stlp::StringHash>;
+    using AnimationMap = std::unordered_map<std::string, CMappedResource*>;
 
     CMappedResource* mesh;          // the .mod archive
     CMappedResource* bones;
@@ -555,7 +555,6 @@ struct FigureModel {
     // .anm files (OpenFromMemory); a null image leaves its archive alone.
     void Open(const void* mod, const void* bon, const void* anm);
 };
-static_assert(offsetof(FigureModel, animationCache) == 0x0C && sizeof(FigureModel) == 0x20);
 FigureModel* ConstructFigureModel(FigureModel* model);
 void DestroyFigureModel(FigureModel* model);
 
@@ -628,9 +627,9 @@ public:
     int refCount_ = 0;
     ITransformPipeline* pipeline_;    // the renderer's pipeline's transform object
     LinkArchiveNode* archives_;       // list sentinel
-    stlp::hash_map<std::string, FigureModel*, stlp::StringHash> figureSets_;    // by figure name
+    std::unordered_map<std::string, FigureModel*> figureSets_;    // by figure name
     CTextureDevice* renderer_;        // the device object, counted; meshes take their pipeline from it
-    stlp::map<std::string, CLinkMesh*> cache_;    // a multimap of counted references
+    std::multimap<std::string, CLinkMesh*> cache_;    // each entry holds a reference
 };
 
 
@@ -679,26 +678,24 @@ inline const PrintLook& LookOf(const PrintRecord2& r, bool second) { return seco
 // blood and bloody footprints, chunk 2 footprints, chunk 3 scorch marks; each table is followed by a
 // hash_map by name (filled by the load, never read).
 struct PrintsDatabase {
-    template <typename Record> using NameIndex = stlp::hash_map<std::string, Record*, stlp::StringHash>;
+    template <typename Record> using NameIndex = std::unordered_map<std::string, Record*>;
 
     // "prints.db" of `folder` + "database.res" (Rebirth-patched): the three tables, each read through an
     // archive of its own and filed under its records' names. 1; FatalError's result when the archive
     // (reported as "databases.res") or the file cannot be opened.
     int Load(const char* folder);
-    // The static initialiser's work. The three tables empty, each index with 100 buckets (193).
+    // The static initialiser's work. The three tables empty.
     PrintsDatabase* Construct();
     // The exit function's work: the tables from the last.
     void Destruct();
 
-    stlp::vector<PrintRecord> blood;
+    std::vector<PrintRecord> blood;
     NameIndex<PrintRecord> bloodByName;
-    stlp::vector<PrintRecord2> footprints;
+    std::vector<PrintRecord2> footprints;
     NameIndex<PrintRecord2> footprintsByName;
-    stlp::vector<PrintRecord> scorch;
+    std::vector<PrintRecord> scorch;
     NameIndex<PrintRecord> scorchByName;
 };
-static_assert(offsetof(PrintsDatabase, footprints) == 0x20 && offsetof(PrintsDatabase, scorch) == 0x40);
-static_assert(offsetof(PrintsDatabase, footprintsByName) == 0x2C && sizeof(PrintsDatabase) == 0x60);
 extern lib::StaticObject<PrintsDatabase> g_printsDatabase;
 inline const PrintsDatabase& ThePrintsDatabase() { return *g_printsDatabase; }
 

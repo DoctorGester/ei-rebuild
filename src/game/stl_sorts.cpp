@@ -6,9 +6,10 @@
 #include "script.h"
 #include "ui.h"
 
-#include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_algo.h"
+#include "lib/str.h"
+#include "lib/text_case.h"
 
 #include <cstdint>
 #include <string>
@@ -45,7 +46,7 @@ struct IntLess {
 using IdSort = stlp::Sort<int, IntLess>;
 
 int CompareNames(const std::string& a, const std::string& b) {
-    return gamecrt::mbscmp(a,
+    return str::Compare(a,
                            b);
 }
 
@@ -76,20 +77,15 @@ struct ByQuestOrder {
 };
 using QuestSort = stlp::Sort<std::string, ByQuestOrder>;
 
-struct SaveEntryOps {
-    static void Construct(SaveEntry* at, const SaveEntry& from) { at->CopyConstruct(&from); }
-    static void Assign(SaveEntry& to, const SaveEntry& from) { to.Assign(&from); }
-    static void Destroy(SaveEntry* p) { p->Destruct(); }
-};
 // Every helper tests a.savedAt < b.savedAt and takes the other branch: the order is
 // "not older than".
 struct NotOlder {
     bool operator()(const SaveEntry& a, const SaveEntry& b) const { return !(a.savedAt_ < b.savedAt_); }
 };
-using SaveSort = stlp::Sort<SaveEntry, NotOlder, SaveEntryOps>;
+using SaveSort = stlp::Sort<SaveEntry, NotOlder>;
 
 struct ByTextIgnoringCase {
-    bool operator()(const std::string& a, const std::string& b) const { return libcrt::Stricmp(a.data(), b.data()) < 0; }
+    bool operator()(const std::string& a, const std::string& b) const { return text::CompareIgnoringCase(a.data(), b.data()) < 0; }
 };
 using TopicSort = stlp::Sort<std::string, ByTextIgnoringCase, stlp::ObjectElement<std::string>>;
 
@@ -152,9 +148,6 @@ void SaveIntroSort(SaveEntry* first, SaveEntry* last, void*, int depth, int) {
     SaveSort::IntroLoop(first, last, depth, NotOlder());
 }
 void SaveFinalSort(SaveEntry* first, SaveEntry* last, int) { SaveSort::FinalInsertionSort(first, last, NotOlder()); }
-SaveEntry* SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEntry* result) {
-    return stlp::CopyBackward<SaveEntry, SaveEntryOps>(first, last, result);
-}
 
 void TopicIntroSort(std::string* first, std::string* last, int, int depth, int) {
     TopicSort::IntroLoop(first, last, depth, ByTextIgnoringCase());

@@ -141,8 +141,8 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
 - Kept: a message that waits before the first pass goes to the interface's input or to the window procedure by
   the top byte of a reused stack slot (the disc folder's text pointer with sound, the free non-local video
   memory without); `SetUpCursors`' last argument has only its low byte set; "res\speech.res" is built twice.
-- 00455A30 (`app::OutOfMemory`): the operator new handler WinMain installs ("Memory depleted", returns 0).
-  Ghidra has no function there (config/extra_function_sizes.csv). Ours only, not reached.
+- The operator new handler WinMain installs (00455A30, "Memory depleted", returns 0) is gone with `_set_new_handler`
+  (C35e): the host's malloc never called it (the game leaves `_newmode` 0).
 - Static initialisers (they run before the hooks, so each port is compared at WinMain's entry with what the
   original built: `verify_static_initialisers.cpp`): the debug panel 00444740, the options 00458870
   (`options_construct.cpp`; the layout is named in options.h), `CSysInfo`'s unit 004DDCB0-004DE87C

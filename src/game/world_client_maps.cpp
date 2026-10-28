@@ -45,7 +45,7 @@
 #include "lib/nan_audit.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/stlp_hash.h"
+#include "lib/stlp.h"
 #include "lib/stlp_list_refs.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
@@ -56,7 +56,6 @@
 #include "game_arrays.h"
 #include "game_data.h"
 #include "game_singletons.h"
-#include "lib/mfc_string.h"
 #include "game/game_slots.h"
 #include "game/record_arrays.h"
 #include "system_text.h"
@@ -142,23 +141,6 @@ void SectorGrid::Move2(CMapObject* object, const float* position) {
     MoveInGrid<GridOpsB>(this, object, position);
 }
 
-RadiusFunctor* RadiusFunctor::Mark(stlp::list<Footprint>::Node* first, stlp::list<Footprint>::Node* last, float px,
-                                   float py, float factor) {
-    for (stlp::list<Footprint>::Node* node = first; node != last; node = node->next) {
-        Footprint& print = node->data;
-        double dx = print.position_.x - px;
-        double dy = print.position_.y - py;
-        double distance = libcrt::Hypot(dx, dy);
-        float limit = print.scale_ * factor;
-        EI_NAN_AUDIT(distance, limit);
-        if (distance <= static_cast<double>(limit)) print.visible_ = 1;
-    }
-    x = px;
-    y = py;
-    scale = factor;
-    return this;
-}
-
 namespace {
 
 // The hit test of the object's side half for the point: CollectBounds or CollectParts.
@@ -195,10 +177,10 @@ HitCollector* HitCollector::CollectParts(ScreenEntryNode first, ScreenEntryNode 
     return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::PartsContainPoint);
 }
 
-int PendingIndex::Lookup(const std::uint32_t* key, std::list<CMapObject*>::iterator * value) const {
-    const Node* node = Find(*key);
-    if (!node) return 0;
-    *value = node->value;
+int PendingIndex::Lookup(const std::uint32_t* key, std::list<CMapObject*>::iterator* value) const {
+    auto node = find(*key);
+    if (node == end()) return 0;
+    *value = node->second;
     return 1;
 }
 
@@ -252,8 +234,8 @@ int CWorldClient::AddObject(CMapObject* object) {
             return 1;
         }
     }
-    const PendingMap::Node* entry = dynamicNodes_.Find(static_cast<std::uint32_t>(object->id_));
-    if (!entry && object->IsSynchronised()) {
+    auto entry = dynamicNodes_.find(static_cast<std::uint32_t>(object->id_));
+    if (entry == dynamicNodes_.end() && object->IsSynchronised()) {
         DynamicList& kept = dynamicObjects_;
         auto node = kept.emplace(kept.end(), object);
         int key = object->id_;
@@ -321,7 +303,7 @@ void CWorldClient::RefreshPlatforms(CMapObject* object) {
 }
 
 bool CWorldClient::QueueSynchronised(CMapObject* object) {
-    if (dynamicNodes_.Find(static_cast<std::uint32_t>(object->id_))) return false;
+    if (dynamicNodes_.contains(static_cast<std::uint32_t>(object->id_))) return false;
     DynamicList& kept = dynamicObjects_;
     auto node = kept.emplace(kept.end(), object);
     int key = object->id_;
@@ -330,8 +312,15 @@ bool CWorldClient::QueueSynchronised(CMapObject* object) {
 }
 
 void CWorldClient::MarkFootprintsInSight(const float* point, float range) {
-    RadiusFunctor functor;   // for_each's functor (x, y, range) comes back by value
-    functor.Mark(footprints_.First(), footprints_.End(), point[0], point[1], range);
+    // A footprint is made visible when hypot(position - point) <= its scale_ * range.
+    for (Footprint& print : footprints_) {
+        double dx = print.position_.x - point[0];
+        double dy = print.position_.y - point[1];
+        double distance = libcrt::Hypot(dx, dy);
+        float limit = print.scale_ * range;
+        EI_NAN_AUDIT(distance, limit);
+        if (distance <= static_cast<double>(limit)) print.visible_ = 1;
+    }
 }
 
 void CWorldClient::ApplyWind(const Vector3* direction, float strength) {
@@ -405,11 +394,11 @@ void CWorldClient::RemoveObject(int id) {
         node = next;
     }
     PendingMap& ids = dynamicNodes_;
-    if (const PendingMap::Node* entry = ids.Find(static_cast<std::uint32_t>(id))) {
+    if (auto entry = ids.find(static_cast<std::uint32_t>(id)); entry != ids.end()) {
         DynamicList& kept = dynamicObjects_;
-        DynamicNode node = entry->value;
+        DynamicNode node = entry->second;
         kept.erase(node);
-        if (const PendingMap::Node* again = ids.Find(static_cast<std::uint32_t>(id))) ids.Erase(const_cast<PendingMap::Node*>(again));
+        if (auto again = ids.find(static_cast<std::uint32_t>(id)); again != ids.end()) ids.erase(again);
     }
     MapObjectList& objects = objects_;
     FiledNode* node = objects.head->next;
@@ -465,7 +454,7 @@ void CWorldClient::ClearMaps() {
     // MFC RemoveAll of the platform faces and the dynamic objects (the elements need no destruction).
     platforms_.list.clear();
     dynamicObjects_.clear();
-    dynamicNodes_.Clear();
+    dynamicNodes_.clear();
     dynamicMaxId_ = 0;
 
     list7BC_.clear();
@@ -607,7 +596,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         auto* unit = manager->CreateObjectAs<CUnit>(kTypeHero, static_cast<int>(record->unitId));
         if (!unit) return;   // (leaving the loop is the same as returning here)
         UnitPrototypeRecord* prototype = unitdb::PrototypeTable().FindByName(record->texts[5].c_str());
-        unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - unitdb::PrototypeTable().begin : -1);
+        unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - unitdb::PrototypeTable().records.data() : -1);
         unit->SetPrototype23CByName(record->texts[6].c_str());
         unit->flags_ |= 0x4000000;
         if (!unit->MakeFigure(record->texts[2].c_str(), &parts, 1)) return;
@@ -789,23 +778,6 @@ void EmptyList(stlp::list<T>& list, F free) {
     list.head->prev = list.head;
 }
 
-// The three ground print lists emptied (Teardown and the zone load inline this): each element destroyed, its
-// node returned to the pool.
-void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& feet, stlp::list<GroundPrint>& scorch) {
-    EmptyList(blood, [](stlp::list<BloodPrint>::Node* node) {
-        node->data.Destruct();
-        stlp::deallocate(node, sizeof(*node));
-    });
-    EmptyList(feet, [](stlp::list<Footprint>::Node* node) {
-        node->data.DeletingDestruct(0);
-        if (node) stlp::deallocate(node, sizeof(*node));
-    });
-    EmptyList(scorch, [](stlp::list<GroundPrint>::Node* node) {
-        node->data.DeletingDestruct(0);
-        if (node) stlp::deallocate(node, sizeof(*node));
-    });
-}
-
 template <typename T>
 void DeleteOwned(T*& slot) {
     if (CEngineObject* object = slot) {
@@ -842,7 +814,9 @@ void CWorldClient::Destroy() {
     DeleteOwned(bird_);
     ReleaseItemsAndSpells();
     mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);
-    ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
+    bloodPrints_.clear();
+    footprints_.clear();
+    scorchMarks_.clear();
     rainSnow_.Destroy();
     platforms_.Destroy();
     platforms_.list.clear();
@@ -1291,7 +1265,7 @@ MapRecord* LocalZoneRecord() {
 }
 
 bool InFinalZone() {
-    return gamecrt::mbscmp(LocalPlayerZone().c_str(), worlddata::FinalZoneText()) == 0;
+    return std::strcmp(LocalPlayerZone().c_str(), worlddata::FinalZoneText()) == 0;
 }
 
 } // namespace
@@ -1320,7 +1294,9 @@ int CWorldClient::LoadZone(CStream* block) {
     GameEnsureZone(map.c_str(), mob.c_str());
     ShowLoadingMovie(kProgressBlockRead);
 
-    ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
+    bloodPrints_.clear();
+    footprints_.clear();
+    scorchMarks_.clear();
     ResetZoneObjects();
     ClearMaps();
     ReleaseItemsAndSpells();

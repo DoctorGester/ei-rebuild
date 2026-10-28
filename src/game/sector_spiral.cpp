@@ -9,6 +9,7 @@
 
 #include "game_arrays.h"
 
+#include <cstdlib>
 #include <vector>
 
 constinit lib::StaticObject<std::vector<int>> g_spiralLengths = /*007C2FC0*/ {};
@@ -16,9 +17,6 @@ constinit lib::StaticObject<RadiusTree> g_spiralRadii = /*007C2FD8*/ {};
 constinit lib::StaticObject<std::vector<SpiralOffset>> g_spiralOffsets = /*007C2FF8*/ {};
 
 namespace {
-
-using AtExitFunction = void(__cdecl*)();
-void RegisterExit(AtExitFunction exitFunction) { libcrt::AtExit(exitFunction); }
 
 void DestroySpiralOffsets() { g_spiralOffsets.Destroy(); }
 void DestroySpiralRadii() {
@@ -29,15 +27,15 @@ void DestroySpiralLengths() { g_spiralLengths.Destroy(); }
 
 void ConstructSpiralOffsets() {
     g_spiralOffsets.Construct();
-    RegisterExit(DestroySpiralOffsets);
+    std::atexit(DestroySpiralOffsets);
 }
 
 void ConstructSpiralRadii() {
     mfc::impl::ConstructArrayOf<mfc::impl::FloatArrayClass>(g_spiralRadii->keys);
-    RegisterExit(DestroySpiralRadii);
+    std::atexit(DestroySpiralRadii);
 }
 
 void ConstructSpiralLengths() {
     g_spiralLengths.Construct();
-    RegisterExit(DestroySpiralLengths);
+    std::atexit(DestroySpiralLengths);
 }

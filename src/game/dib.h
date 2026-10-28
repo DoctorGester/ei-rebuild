@@ -4,10 +4,13 @@
 #pragma once
 
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>
+
+namespace lib {
+class File;
+}
 
 class CDib {
 public:
@@ -19,8 +22,6 @@ public:
 
     virtual const void* GetRuntimeClass() const;
     virtual ~CDib();
-    // The archive is flushed, then the bitmap written to or read from its file.
-    virtual void Serialize(mfc::CArchive* archive);
 
     static void* operator new(std::size_t size) noexcept;
     static void* operator new(std::size_t, void* place) noexcept { return place; }
@@ -39,12 +40,12 @@ public:
     // `bits` (unchanged without a header).
     std::uint8_t* AllocateBits();
     // The bitmap emptied, then the file header, the info header with what follows it up to the bits (masks or
-    // colours), the bits; the colour count and the palette. A short or non-"BM" file, or an MFC exception
-    // from the reads (inside TRY / CATCH): a message box and 0. Returns 1.
-    int Read(mfc::CFile* file);
+    // colours), the bits; the colour count and the palette. A short or non-"BM" file, or a lib::FileError
+    // from the reads: a message box and 0. Returns 1.
+    int Read(lib::File* file);
     // The file header, the info header with the masks, `imageSize`
-    // bytes of bits. An MFC exception from the writes: a message box and 0. Returns 1.
-    int Write(mfc::CFile* file);
+    // bytes of bits. A lib::FileError from the writes: a message box and 0. Returns 1.
+    int Write(lib::File* file);
 
     RGBQUAD* colours;                // after the header
     HBITMAP bitmap;

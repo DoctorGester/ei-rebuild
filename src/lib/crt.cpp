@@ -1,24 +1,18 @@
 #include "crt.h"
-#include "crt_locale_data.h"
 #include "mfc_handle_map.h"
 
 #include "ei/x87.h"
 #include "gameapi.h"
 #include "game/game_data.h"
-#include "text_case.h"
 
 #include <cfloat>
 #include <cmath>
 #include <cstdarg>
 #include <cstdlib>
 #include <cstring>
-#include <cwchar>
 #include <intrin.h>
 #include <corecrt_startup.h>
 #include <malloc.h>
-#include <mbctype.h>
-#include <mbstring.h>
-#include <ctype.h>
 #include <new>
 
 namespace gamecrt {
@@ -42,14 +36,6 @@ int rand() {
     return value;
 }
 void srand(unsigned seed) { libcrt::Srand(seed); }
-// The ports (ei_vectors: replay_crt.cpp's libcrt:: versions; the vector recorders take the game CRT's
-// own answers through record_crt.cpp's calls by address).
-int tolower(int c) { return libcrt::Tolower(c); }
-int strnicmp(const char* a, const char* b, std::size_t n) { return libcrt::Strnicmp(a, b, n); }
-char* strncpy(char* dst, const char* src, std::size_t n) { return libcrt::Strncpy(dst, src, n); }
-int strncmp(const char* a, const char* b, std::size_t n) { return libcrt::Strncmp(a, b, n); }
-int isdigit(int c) { return libcrt::Isdigit(c); }
-int isspace(int c) { return libcrt::Isspace(c); }
 int sprintf(char* buffer, const char* format, ...) {
     va_list args;
     va_start(args, format);
@@ -57,45 +43,8 @@ int sprintf(char* buffer, const char* format, ...) {
     va_end(args);
     return length;
 }
-int mbscmp(const unsigned char* a, const unsigned char* b) { return libcrt::Mbscmp(a, b); }
-
-#ifndef EI_VECTORS_REPLAY
-namespace {
-
-struct CaseFold {
-    bool built = false;
-    unsigned localeHandle = 0;
-    unsigned codePage = 0;
-    int fold[256];
-};
-
-CaseFold caseFold;
-
-} // namespace
-
-const int* CaseFoldTable() {
-    CaseFold& table = caseFold;
-    const unsigned handle = libcrt::CtypeLocale();
-    const unsigned codePage = libcrt::CtypeCodePage();
-    if (!table.built || table.localeHandle != handle || table.codePage != codePage) {
-        for (int c = 0; c < 256; ++c) table.fold[c] = tolower(c);
-        table.localeHandle = handle;
-        table.codePage = codePage;
-        table.built = true;
-    }
-    return table.fold;
-}
-#endif
 
 double acos(double c) { return libcrt::CiAcos(c); }
-
-#ifndef EI_VECTORS_REPLAY
-int write(int fd, const void* buffer, unsigned count) { return libcrt::Write(fd, buffer, count); }
-#endif
-
-std::size_t fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file) {
-    return libcrt::Fwrite(from, size, count, file);
-}
 
 } // namespace gamecrt
 
@@ -108,82 +57,6 @@ unsigned DebugLog(const char*, ...) { return 0; }
 
 #ifndef EI_VECTORS_REPLAY   // the ports read the game CRT's data; ei_vectors has its own (replay_crt.cpp)
 namespace libcrt {
-
-namespace {
-
-// Every string is UTF-8 (text_case.h), so case and character classes do not come from the locale or the ANSI
-// code page's multibyte table. A byte past ASCII is part of a UTF-8 sequence: it has no class and no case of its
-// own, and is never a double-byte lead byte; the string compares and _mbslwr change case by text_case.h's table.
-// A byte (as the int the class functions take) past ASCII, or EOF.
-bool PastAscii(int c) { return c < 0 || c >= 0x80; }
-
-} // namespace
-
-// The plain string functions are the host CRT's; the case and class functions answer for UTF-8 (text_case.h).
-// These names stay for the callers ei_vectors answers from the game CRT's records (tests/vectors/replay_crt.cpp).
-int Strncmp(const char* a, const char* b, std::size_t n) { return std::strncmp(a, b, n); }
-
-char* Strncpy(char* to, const char* from, std::size_t n) {
-#pragma warning(suppress : 4996)
-    return std::strncpy(to, from, n);
-}
-
-int Stricmp(const char* a, const char* b) {
-    return text::CompareIgnoringCase(a, b, static_cast<std::size_t>(-1), true);
-}
-
-int Strnicmp(const char* a, const char* b, std::size_t n) {
-    if (n == 0) return 0;
-    return text::CompareIgnoringCase(a, b, n, true);
-}
-
-int Memicmp(const void* a, const void* b, std::size_t n) {
-    return text::CompareIgnoringCase(static_cast<const char*>(a), static_cast<const char*>(b), n, false);
-}
-
-int Mbscmp(const unsigned char* a, const unsigned char* b) {
-    return std::strcmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
-}
-
-int Mbsicmp(const unsigned char* a, const unsigned char* b) {
-    return Stricmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
-}
-
-unsigned char* Mbsinc(const unsigned char* p) {
-    return const_cast<unsigned char*>(p + 1);
-}
-
-int Ismbblead(unsigned) {
-    return 0;
-}
-
-int Isleadbyte(int) {
-    return 0;
-}
-
-int Tolower(int c) {
-    return c >= 'A' && c <= 'Z' ? c + 0x20 : c;
-}
-
-int Toupper(int c) {
-    return c >= 'a' && c <= 'z' ? c - 0x20 : c;
-}
-
-int Isalpha(int c) {
-    return PastAscii(c) ? 0 : isalpha(c);
-}
-
-int Isdigit(int c) {
-    return PastAscii(c) ? 0 : isdigit(c);
-}
-
-int Isspace(int c) {
-    return PastAscii(c) ? 0 : isspace(c);
-}
-
-int Isprint(int c) {
-    return PastAscii(c) ? 0 : isprint(c);
-}
 
 namespace {
 
@@ -265,20 +138,6 @@ void Qsort(void* base, std::size_t count, std::size_t width, Compare compare) {
         lo = loStack[stacked];
         hi = hiStack[stacked];
     }
-}
-
-// `n` bytes: there are no double-byte characters (the callers compare ASCII prefixes).
-int Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) {
-    return std::strncmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b), n);
-}
-
-std::size_t Mbclen(const unsigned char*) {
-    return 1;
-}
-
-unsigned char* Mbslwr(unsigned char* text) {
-    text::LowerInPlace(reinterpret_cast<char*>(text));
-    return text;
 }
 
 namespace {
@@ -366,23 +225,11 @@ unsigned Controlfp(unsigned value, unsigned mask) {
 
 // ---- The runtime the image owns ------------------------------------------------------------------
 
-namespace {
-// The CRT's new handler (_pnhHeap), which _set_new_handler sets (malloc never calls it: the game leaves _newmode 0).
-// MFC's (_afxNewHandler), which operator new calls, is mfc_handle_map.h's g_afxNewHandler.
-constinit gamecrt::NewHandler g_heapNewHandler = /*007CAAD8*/ {nullptr};
-} // namespace
-
 // malloc and free are the host CRT's (VC6's were HeapAlloc / HeapFree on a heap of their own, the size
 // rounded up to 16 bytes).
 void* Malloc(std::size_t size) { return std::malloc(size); }
 
 void Free(void* p) { std::free(p); }
-
-gamecrt::NewHandler SetNewHandler(gamecrt::NewHandler handler) {
-    const gamecrt::NewHandler old = g_heapNewHandler;
-    g_heapNewHandler = handler;
-    return old;
-}
 
 void* OperatorNew(std::size_t size) {
     for (;;) {
@@ -499,60 +346,8 @@ void NodeDeallocate(void* p, std::size_t bytes) {
     list = static_cast<FreeBlock*>(p);
 }
 
-// The onexit list is the host CRT's: _crt_atexit's table, which std::exit runs last-registered first
-// (functions registered while it runs, too) before the host's own terminators.
-ExitFunction OnExit(ExitFunction function) {
-    return _crt_atexit(function) == 0 ? function : nullptr;
-}
-
-int AtExit(ExitFunction function) { return OnExit(function) ? 0 : -1; }
-
-// exit: the host CRT's. The exe's own terminators (__xp / __xt, for the game CRT's streams) have nothing to do
-// in the image, where the streams are the host's.
-void Exit(int code) { std::exit(code); }
-
 } // namespace libcrt
 
-// The import thunks (JMP [slot]) of WSOCK32, imported by ordinal, and DINPUT: the same call through the
-// same import slot, so a mod's hook in the import table still applies.
-namespace libcrt::imports {
-
-std::uint16_t Htons(std::uint16_t v) { return gameapi::htons(v); }                 // ord 9
-void* GetHostByName(const char* name) { return gameapi::gethostbyname(name); }       // ord 52
-std::uint32_t InetAddr(const char* text) { return gameapi::inet_addr(text); }       // ord 10
-std::uint16_t Ntohs(std::uint16_t v) { return gameapi::ntohs(v); }                   // ord 15
-void* GetHostByAddr(const void* address, int length, int type) {                             // ord 51
-    return gameapi::gethostbyaddr(address, length, type);
-}
-int GetHostName(char* name, int length) { return gameapi::gethostname(name, length); } // ord 57
-int WsaStartup(std::uint16_t version, void* data) { return gameapi::WSAStartup(version, data); } // ord 115
-int WsaCleanup() { return gameapi::WSACleanup(); }                                  // ord 116
-int CloseSocket(std::uint32_t s) { return gameapi::closesocket(s); }                 // ord 3
-int SetSockOpt(std::uint32_t s, int level, int option, const void* value, int length) {     // ord 21
-    return gameapi::setsockopt(s, level, option, value, length);
-}
-int IoctlSocket(std::uint32_t s, long command, std::uint32_t* argument) {                    // ord 12
-    return gameapi::ioctlsocket(s, command, argument);
-}
-int Bind(std::uint32_t s, const void* address, int length) { return gameapi::bind(s, address, length); } // ord 2
-std::uint32_t Socket(int family, int type, int protocol) { return gameapi::socket(family, type, protocol); } // ord 23
-int SendTo(std::uint32_t s, const void* data, int length, int flags, const void* to, int toLength) { // ord 20
-    return gameapi::sendto(s, data, length, flags, to, toLength);
-}
-int RecvFrom(std::uint32_t s, void* data, int length, int flags, void* from, int* fromLength) { // ord 17
-    return gameapi::recvfrom(s, data, length, flags, from, fromLength);
-}
-int Connect(std::uint32_t s, const void* address, int length) { return gameapi::connect(s, address, length); } // ord 4
-int Recv(std::uint32_t s, void* data, int length, int flags) { return gameapi::recv(s, data, length, flags); } // ord 16
-int Send(std::uint32_t s, const void* data, int length, int flags) { return gameapi::send(s, data, length, flags); } // ord 19
-int Select(int count, void* read, void* write, void* except, const void* timeout) {         // ord 18
-    return gameapi::select(count, read, write, except, timeout);
-}
-long DirectInputCreateEx(void* instance, unsigned long version, const void* iid, void** out, void* outer) {
-    return gameapi::DirectInputCreateEx(instance, version, iid, out, outer);
-}
-
-} // namespace libcrt::imports
 #endif
 
 namespace libcrt {

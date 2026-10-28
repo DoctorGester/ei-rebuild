@@ -2,12 +2,14 @@
 // listing, and the CMMIOResource constructors and destructors (CResourceManager's are in
 // resource_manager.cpp). See resource_stream.h and docs/notes/models.md.
 
+#include "lib/text_case.h"
 #include "resource.h"
 #include "resource_stream.h"
 #include "mod_folders.h"
 #include "lib/mfc.h"
 
 #include "lib/crt.h"
+#include "lib/file_io.h"
 #include "lib/gameapi.h"
 
 #include <cstdlib>
@@ -111,12 +113,13 @@ BOOL CResourceStream::OpenFile(const char* name, std::uint32_t* size) {
         }
     }
     // A readable loose file comes first.
-    if (libcrt::Access(name, 4) == 0) {
-        gamecrt::FindData data;
-        libcrt::Findfirst(name, &data);   // the handle is never closed
+    if (lib::FileExists(name)) {
+        WIN32_FIND_DATAA found{};   // the size (the original's _findfirst never closed its search)
+        const HANDLE search = gameapi::FindFirstFileA(name, &found);
+        if (search != INVALID_HANDLE_VALUE) FindClose(search);
         file_ = gameapi::mmioOpenA(const_cast<char*>(name), nullptr, MMIO_DENYWRITE);
         if (file_ != nullptr) {
-            if (size != nullptr) *size = data.size;
+            if (size != nullptr) *size = found.nFileSizeLow;
             offset_ = 1;
             return 1;
         }
@@ -166,7 +169,7 @@ int WildcardMatch(const char* name, const char* pattern, int emptyPatternResult)
     if (*pattern == '\0') return *name == '\0' ? 1 : emptyPatternResult;
     while (*name != '\0' && *pattern != '\0') {
         if (*pattern == '*') return 1;
-        if (*pattern != '?' && libcrt::Toupper(*pattern) != libcrt::Toupper(*name)) return 0;
+        if (*pattern != '?' && text::ToUpper(*pattern) != text::ToUpper(*name)) return 0;
         ++name;
         ++pattern;
     }

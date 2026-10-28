@@ -5,7 +5,6 @@
 #include "core_refcount.h"
 
 #include "lib/crt.h"
-#include "lib/stlp_vector_refs.h"
 
 #include <cstring>
 
@@ -34,21 +33,14 @@ void ServerSession::ShareFile(const std::string* name, GameBuffer* data) {
     file->size_ = size;
     file->chunkCount_ = static_cast<std::uint16_t>(chunkCount);
 
-    auto* chunk = NewCounted<FileChunkMessage>();
-    RefPtr filler;
-    filler.Share(chunk);
-    RefVector& chunks = file->chunks_;
-    std::uint32_t have = static_cast<std::uint32_t>(chunks.size());
-    if (static_cast<std::uint32_t>(chunkCount) < have)
-        chunks.EraseRange<stlp::SharedRefElement>(chunks.begin() + chunkCount, chunks.end());
-    else
-        chunks.FillInsert<stlp::SharedRefElement>(chunks.end(), static_cast<std::uint32_t>(chunkCount) - have, filler);
-    filler.Destroy();
+    // Filled with shares of one chunk: each element a clone of it (it is marked copy-on-share by the first share).
+    auto& chunks = file->chunks_;
+    chunks.resize(static_cast<std::size_t>(chunkCount), SharedRefPtr(NewCounted<FileChunkMessage>()));
 
     data->Seek(0);
     std::int32_t remaining = size;
     for (std::int32_t i = 0; i < chunkCount; ++i) {
-        auto* piece = static_cast<FileChunkMessage*>(chunks.begin()[i].ptr);
+        auto* piece = static_cast<FileChunkMessage*>(chunks[i].ptr);
         piece->file_.Assign(file);
         piece->index_ = static_cast<std::uint16_t>(i);
         unsigned n = static_cast<unsigned>(remaining > kChunkSize ? kChunkSize : remaining);

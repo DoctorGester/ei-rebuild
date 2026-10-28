@@ -1,5 +1,6 @@
 #include "random.h"
 
+#include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -96,7 +97,7 @@ constexpr unsigned long kAttributeHidden = 0x02;      // FILE_ATTRIBUTE_HIDDEN
 constexpr unsigned long kAttributeSystem = 0x04;      // FILE_ATTRIBUTE_SYSTEM
 constexpr unsigned long kAttributeDirectory = 0x10;   // FILE_ATTRIBUTE_DIRECTORY
 constexpr unsigned long kMinimumFileSize = 0x800;
-constexpr unsigned kOpenReadShared = 0x8040;          // CFile modeRead | shareDenyNone | typeBinary
+constexpr unsigned kOpenReadShared = lib::File::modeRead | lib::File::shareDenyNone;
 constexpr int kSeedBytes = 0x400;
 
 // The game's 284-byte path buffer on its stack.
@@ -105,14 +106,13 @@ constexpr int kPathBuffer = 0x11C;
 // rand() % 512 as the game computes it (rand() is never negative).
 int RandomBelow512() { return gamecrt::rand() & 0x1FF; }
 
-// CFileFind::MatchesMask.
-BOOL Matches(const mfc::CFileFind& finder, unsigned long mask) { return finder.MatchesMask(mask); }
+BOOL Matches(const lib::FileFind& finder, unsigned long mask) { return finder.MatchesMask(mask); }
 
 } // namespace
 
 int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* counter) {
-    mfc::CFileFind finder;
-    BOOL more = finder.FindFile(pattern, 0);
+    lib::FileFind finder;
+    BOOL more = finder.FindFile(pattern);
     while (more) {
         more = finder.FindNext();
         if (finder.IsDots()) continue;
@@ -142,9 +142,9 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
     return 0;
 }
 
-// The game opens the file with CFile's throwing constructor inside TRY / CATCH(CFileException):
+// The game opens the file with MFC's throwing CFile constructor inside TRY / CATCH(CFileException):
 // a failed open, seek or read clears `ok`. Here Open reports the failure and the seek and read go to
-// the handle directly (as CFile::Seek / Read do), so nothing throws. Kept: when the first search
+// the handle directly, so nothing throws. Kept: when the first search
 // counts exactly one file, rand() % 0 faults as in the game.
 void IsaacRandom::Seed() {
     if (g_seedHook) {
@@ -163,8 +163,8 @@ void IsaacRandom::Seed() {
             if (!FindSeedFile(path, kSeedSearchPattern, r % (files - 1) + 1, &counter)) continue;
         }
         ok = 1;
-        mfc::CFile file;
-        if (file.Open(path, kOpenReadShared, nullptr)) {
+        lib::File file;
+        if (file.Open(path, kOpenReadShared)) {
             gamecrt::srand(gameapi::timeGetTime());
             long offset = kSeedBytes - RandomBelow512();
             DWORD read = 0;

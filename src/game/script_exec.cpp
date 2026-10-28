@@ -41,6 +41,7 @@
 #include "bink_video.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/text_case.h"
 
 #include <cstdint>
 #include <cstring>
@@ -205,7 +206,7 @@ void GiveSkill(const SSCCmd* cmd) {
                                          "sense", "astral", "stealth", "awareness"};
     static const int kIndex[] = {0, 0, 1, 2, 3, 4, 5, 6, 7};
     for (int i = 0; i < 9; ++i) {
-        if (gamecrt::mbsicmp(Text(cmd, 0), kNames[i]) != 0) continue;
+        if (text::CompareIgnoringCase(Text(cmd, 0), kNames[i]) != 0) continue;
         CUnit* owner = state->unit;
         int value = Ftol(cmd->floatArgs.data[0]);
         UnitStats* stats = StatsOf(state);
@@ -564,10 +565,10 @@ BOOL ScriptRun::Execute(CScript* script) {
             PlayMovie(cmd);
             break;
         case 0x7D:   // ConsoleFloat(value)
-            console::Out().PutFloatArgument(f[0]).Apply(libcrt::EndlManipulator);
+            console::EndLine(console::Out() << f[0]);
             break;
         case 0x7E:   // ConsoleString(text)
-            (console::Out() << Text(cmd, 0)).Apply(libcrt::EndlManipulator);
+            console::PrintLine(Text(cmd, 0));
             break;
         case 0xC3: {   // AddRectToArea(area, x1, y1, x2, y2)
             script->FindArea(Round(f[0]))->AddRect(f[1], f[2], f[3], f[4]);

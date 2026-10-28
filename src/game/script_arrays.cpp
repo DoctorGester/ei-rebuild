@@ -7,7 +7,6 @@
 
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
-#include "lib/mfc_string.h"
 #include "game_arrays.h"
 
 namespace {

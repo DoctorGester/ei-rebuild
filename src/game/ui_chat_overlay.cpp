@@ -10,7 +10,6 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "game_data.h"
@@ -64,18 +63,6 @@ constexpr COLORREF kWhite = 0xFFFFFF;
 const char* const kColourMark = "^";
 const char* const kDefaultColour = "7";
 
-// The character at `p` as it is compared: a lead byte shifted left by 8 (sign-extended)
-// plus the next byte (sign-extended), otherwise the byte itself.
-int CharAt(const char* p) {
-    int value = 0;
-    const char* q = p;
-    if (libcrt::Ismbblead(static_cast<unsigned char>(*p))) {
-        value = static_cast<signed char>(*p) << 8;
-        q = p + 1;
-    }
-    return value + static_cast<signed char>(*q);
-}
-
 // The colour of "^<digit>": bit 0 blue, bit 1 green, bit 2 red (COLORREF 0x00BBGGRR).
 COLORREF MarkColour(char digit) {
     int bits = static_cast<signed char>(digit) - '0';
@@ -89,9 +76,7 @@ void DrawPiece(CUiSurface* surface, std::string_view text, int x, COLORREF colou
 } // namespace
 
 void CChatOverlay::AddLine(const char* text, std::uint32_t) {
-    using Node = stlp::list<ChatLine>::Node;
-    int before = 0;
-    for (Node* node = lines_.First(); node != lines_.End(); node = node->next) ++before;
+    const int before = static_cast<int>(lines_.size());
     std::vector<std::string> plain;       // the lines without colour codes
     std::vector<std::string> formatted;   // the same lines with them
     std::string source = text;
@@ -99,11 +84,11 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     bool mark = false;
     // A character is its whole UTF-8 sequence, so a word wider than a line is broken between characters and
     // measured as text.
-    for (const char* p = source.c_str(); CharAt(p) != 0; p += text::CharacterLength(p)) {
+    for (const char* p = source.c_str(); *p != 0; p += text::CharacterLength(p)) {
         ch.assign(p, static_cast<std::size_t>(text::CharacterLength(p)));
-        int c = CharAt(p);
+        const char c = *p;
         if (mark) {
-            if (static_cast<unsigned>(c) >= '0' && static_cast<unsigned>(c) < '8')
+            if (c >= '0' && c < '8')
                 wordFormatted += ch;
             else
                 wordFormatted += kDefaultColour;
@@ -146,32 +131,15 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     }
     const int count = static_cast<int>(plain.size());
 
-    // The oldest lines go (list::erase, inlined as Update does).
-    for (int i = 0; i < count + before - kMaxLines; ++i) {
-        Node* first = lines_.First();
-        first->prev->next = first->next;
-        first->next->prev = first->prev;
-        first->data.Destroy();
-        stlp::deallocate(first, sizeof(Node));
-    }
+    // The oldest lines go.
+    for (int i = 0; i < count + before - kMaxLines; ++i) lines_.pop_front();
 
     std::uint32_t now = gameapi::timeGetTime();
     COLORREF colour = kWhite;
     for (int i = 0; i < count; ++i) {
-        // insert(end()) of an empty line.
-        auto* node = stlp::allocate_as<Node>();
-        std::construct_at(&node->data.text);
-        std::construct_at(&node->data.name);
-        node->data.time = 0;
-        node->data.surface = nullptr;
-        Node* head = lines_.head;
-        node->next = head;
-        node->prev = head->prev;
-        head->prev->next = node;
-        head->prev = node;
-
-        node->data.name = plain[i];
-        node->data.time = now;
+        ChatLine& added = lines_.emplace_back();
+        added.name = plain[i];
+        added.time = now;
         const int width = TextWidth(interface_, plain[i], kLineFont) + kLineSurfacePad;
         CUiSurface* surface = new CUiSurface(interface_, 0, 0, width, kLineSurfaceHeight, kLineSurfaceFormat, 1);
         UiSurfaceGetDC(surface);
@@ -192,7 +160,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
         piece = str::Mid(codes, start);
         if (piece.size() != 0) DrawPiece(surface, piece, x, colour);
         UiSurfaceReleaseDC(surface);
-        node->data.surface = surface;
+        added.surface = surface;
     }
 }
 
@@ -208,7 +176,7 @@ void CChatOverlay::SetOpen(bool open) {
 }
 
 void CChatOverlay::ClearLines() {
-    lines_.ClearWith([](ChatLine* line) { line->Destroy(); });
+    lines_.clear();
 }
 
 // --- the typed line drawn (Rebirth-patched: WideScreen reproduced) -------------------------------
@@ -309,11 +277,6 @@ void CChatOverlay::OnChar(int key, int, int) {
 
 // Its own redraw and update; the input side's keys and characters.
 CChatOverlay::CChatOverlay(CInterface3D* ui) : CUiWindow(ui) {
-    using Node = stlp::list<ChatLine>::Node;
-    auto* sentinel = stlp::allocate_as<Node>();
-    sentinel->next = sentinel;
-    sentinel->prev = sentinel;
-    lines_.head = sentinel;
     AddSurface(new CUiSurface(interface_, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, kTypedFormat, 1));
     chatOpen_ = false;
     caret_ = 0;
@@ -322,26 +285,14 @@ CChatOverlay::CChatOverlay(CInterface3D* ui) : CUiWindow(ui) {
 
 void CChatOverlay::Update() {
     std::uint32_t now = gameapi::timeGetTime();
-    using Node = stlp::list<ChatLine>::Node;
-    Node* head = lines_.head;
-    for (Node* node = head->next; node != head;) {
-        Node* next = node->next;
-        if (static_cast<int>(now - node->data.time) > kLineLifetime) {
-            // list::erase: unlinked, destroyed, the node back to the pool.
-            node->prev->next = next;
-            next->prev = node->prev;
-            node->data.Destroy();
-            stlp::deallocate(node, sizeof(Node));
-        }
-        node = next;
-    }
+    std::erase_if(lines_, [now](const ChatLine& line) { return static_cast<int>(now - line.time) > kLineLifetime; });
 }
 
 void CChatOverlay::Redraw() {
     int y = kTop;
-    for (auto* node = lines_.First(); node != lines_.End(); node = node->next) {
-        node->data.surface->MoveTo(kLeft, y);
-        node->data.surface->Blit();
+    for (const ChatLine& line : lines_) {
+        line.surface->MoveTo(kLeft, y);
+        line.surface->Blit();
         y += kLineHeight;
     }
     RedrawBase();

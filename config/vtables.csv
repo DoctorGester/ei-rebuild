@@ -350,7 +350,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073FF74,3,,game,005D0F60 005D0F90 005D1140 005D8CB0,007005E3,PatrolPointsClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the constructors')
 0073FF80,3,,game,005D1140 005D1240 005D8CF0 005D95B0,007005E3,PatrolPointsBaseClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the destructors': the same slots)
 0073FF8C,13,,game,005D2850 005D2880 005D28F0 005D6480 005D8310,005D2930,FearMode,src/game/unit_ai.h,the Fear AI mode
-00740034,11,,game,005DC200 005DC260,005DC240,ConsoleStreambuf,src/game/console.h,the console streambuf (ConsoleStreambuf; nine instances
+00740034,11,,game,005DC200 005DC260,005DC240,ConsoleStreambuf,-,"stored only by game.exe's 005DC200 / 005DC260 (the console streambuf's constructor and destructor); ours (console.h) has no virtual functions"
 007400A8,13,,game,005E26F0,005E3C80,CChatOverlay,src/game/ui.h,the chat overlay's input side
 007400DC,25,,game,005E26F0,005E28C0,CChatOverlay,src/game/ui.h,the multiplayer chat overlay (CChatOverlay)
 0074019C,13,,game,005EA600,005EA810,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
@@ -559,10 +559,9 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00744264,1,,game,006D26E0 006D2E40 006D3430 006D38C0 006D3CB0 006D3DE0 006D3F10 006D4050,006D41D0,PrintRecord,src/game/model.h,a prints.db record
 00744268,1,,game,006D2830 006D3120 006D3680 006D3F10 006D4050,006D4270,PrintRecord2,src/game/model.h,prints.db's second record type
 00744288,3,,game,006D49E0 006D4AA0 006D4B30 006D4CD0,006D4A60,CDib,src/game/dib.h,CDib
-00745DF4,21,.?AVCFile@@,lib,00701036 0070106C 0070108B 0070112B,0070BE58,PlainFileTable,src/lib/mfc_file.cpp,CFile
-00745E4C,5,.?AVCFileException@@,lib,006E6335 0070108B 00701BD4 007031D5,0070CF4C,CFileException,src/lib/mfc_exception.h,CFileException
-00745EE8,19,.?AVCFileFind@@,lib,006E6370 006E63AD,0070BE5E,FileFindTable,src/lib/mfc_file.cpp,CFileFind
-00745F5C,3,.?AVCStringArray@@,lib,006FE925 006FE958,0070BE7B,StringArrayTable,src/lib/mfc_coll.cpp,CStringArray
+00745DF4,21,.?AVCFile@@,lib,00701036 0070106C 0070108B 0070112B,0070BE58,CFile,-,"stored only by game.exe's constructors / destructor 00701036 / 0070106C / 0070108B / 0070112B, which no code of ours calls (the game's files are lib::File since C14d)"
+00745E4C,5,.?AVCFileException@@,lib,006E6335 0070108B 00701BD4 007031D5,0070CF4C,CFileException,-,"stored only by game.exe's 006E6335 / 0070108B / 00701BD4 / 007031D5, which no code of ours calls (a failed file call throws lib::FileError since C14d)"
+00745EE8,19,.?AVCFileFind@@,lib,006E6370 006E63AD,0070BE5E,CFileFind,-,"stored only by game.exe's constructor / destructor 006E6370 / 006E63AD, which no code of ours calls (lib::FileFind since C14d)"
 00745F78,3,.?AVCWordArray@@,lib,006FEE9A 006FEECD,0070BEC3,WordArrayTable,src/lib/mfc_coll.cpp,CWordArray
 007461B0,29,.?AVCDC@@,lib,00708CD7 00708E0C,0070BF7B,CDC,src/lib/mfc_gdi.h,CDC
 0074624C,29,.?AVCClientDC@@,lib,00709DCD 00709E3F,0070BF81,CClientDC,-,"stored only by game.exe's constructor / destructor 00709DCD / 00709E3F, which no code of ours calls"
@@ -577,10 +576,10 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00746484,5,.?AVCUserException@@,lib,006E6916 006E695C,0070BF2C,CUserException,src/lib/mfc_exception.h,CUserException (_simpleUserException)
 0074649C,3,.?AVCRgn@@,lib,0070B7D6,0070BFD1,CRgn,-,"stored only by game.exe's 0070B7D6 and the CRgn destructor, which no code of ours calls"
 007464B8,3,.?AVCDWordArray@@,lib,006FF23A 006FF26D,0070C12A,DWordArrayTable,src/lib/mfc_coll.cpp,CDWordArray
-007464F0,24,.?AVCStdioFile@@,lib,00701B79 00701BAB 00701BD4 00701C6D,0070C15B,StdioFileTable,src/lib/mfc_file.cpp,CStdioFile
+007464F0,24,.?AVCStdioFile@@,lib,00701B79 00701BAB 00701BD4 00701C6D,0070C15B,CStdioFile,-,"stored only by game.exe's constructors / destructor 00701B79 / 00701BAB / 00701BD4 / 00701C6D, which no code of ours calls (lib::TextFile since C14d)"
 00746560,3,.?AVCByteArray@@,lib,006FF5EA 006FF61D,0070C178,ByteArrayTable,src/lib/mfc_coll.cpp,CByteArray (the terrain sectors' water materials)
 007465F8,5,.?AVCMemoryException@@,lib,006E6AEA 006E6B30,0070C1AF,CMemoryException,src/lib/mfc_exception.h,CMemoryException (_simpleMemoryException)
-00746610,5,.?AVCNotSupportedException@@,lib,006E6B37 006E6B7D,0070C1E7,CNotSupportedException,src/lib/mfc_exception.h,CNotSupportedException (_simpleNotSupportedException)
+00746610,5,.?AVCNotSupportedException@@,lib,006E6B37 006E6B7D,0070C1E7,CNotSupportedException,-,"stored only by game.exe's constructor / destructor 006E6B37 / 006E6B7D, which no code of ours calls (_simpleNotSupportedException's initialiser 0070C1ED is gen_static_init.py's UNUSED_INITIALISERS: only CStdioFile threw it)"
 00746650,26,.?AVCMemFile@@,lib,0070ADD9 0070AE25 0070AE9E,0070C253,CMemFile,-,"stored only by game.exe's constructors / destructor 0070ADD9 / 0070AE25 / 0070AE9E, which no code of ours calls"
 007466E0,31,.?AVCWinThread@@,lib,0070C259 0070C2B9 0070E132,0070C328,WinThread,src/lib/mfc_thread.h,"CWinThread (the sound stream's, the MIDI player's and the cursor's threads)"
 00746760,1,.?AV_AFX_CTL3D_STATE@@,lib,0070C328 0070D43F,0070C389,_AFX_CTL3D_STATE,-,"an MFC state object: stored only by game.exe's MFC state code, which no code of ours calls (mfc_state.cpp makes no state objects)"
@@ -604,7 +603,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00747240,6,.?AVCRecentFileList@@,lib,00707DE3 00707F02,00707FD0,CRecentFileList,-,"stored only by game.exe's 00707DE3 / 00707F02, which no code of ours calls"
 00747290,2,.?AVexception@@,lib,006E7CD5 006E7CE6 006E7D3F 006E7DA8,006E7CE6,std::exception,-,std::exception (MSVC 6; stored only by game.exe's code: our ports never throw it)
 007472B0,1,.?AVtype_info@@,lib,006E7DCB 006E7DF4,006E7DF4,-,-,"type_info (game.exe CRT; stored only by its destructors 006E7DCB / 006E7DF4): the RTTI type descriptors vtable field, never dispatched through in the image"
-00748280,1,.?AVostream@@,lib,006FC3CE 006FC42F 006FC494 006FC502,006FC404,OstreamIosTable,src/lib/crt_iostream.cpp,ostream's table for its ios (the console's ostreams; game.exe's virtual base table after it stays)
+00748280,1,.?AVostream@@,lib,006FC3CE 006FC42F 006FC494 006FC502,006FC404,OstreamIosTable,-,"ostream's table for its ios: stored only by game.exe's 006FC3CE / 006FC42F / 006FC494 / 006FC502, which no code of ours calls (the console's streams are console::Stream)"
 00748290,1,.?AVostream_withassign@@,lib,006FC597 006FC61D 006FC67B,006FC5F2,ostream_withassign,-,"stored only by game.exe's 006FC597 / 006FC61D / 006FC67B (its constructors and destructor), which no code of ours calls"
-007482AC,11,.?AVstreambuf@@,lib,006FCA77 006FCAD2 006FCB35,006FCAB6,Streambuf,src/lib/crt_iostream.h,streambuf (the base of the console's streambufs; slots 7 / 8 _purecall)
-007482E8,1,.?AVios@@,lib,006FCDB1 006FCE0F 006FCE94 006FCEDC,006FCE0F,IosTable,src/lib/crt_iostream.cpp,ios
+007482AC,11,.?AVstreambuf@@,lib,006FCA77 006FCAD2 006FCB35,006FCAB6,Streambuf,-,"streambuf: stored only by game.exe's 006FCA77 / 006FCAD2 / 006FCB35, which no code of ours calls (the console's streambufs are a plain class)"
+007482E8,1,.?AVios@@,lib,006FCDB1 006FCE0F 006FCE94 006FCEDC,006FCE0F,IosTable,-,"ios: stored only by game.exe's 006FCDB1 / 006FCE0F / 006FCE94 / 006FCEDC, which no code of ours calls"

@@ -15,6 +15,7 @@
 #include "lib/str.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -317,9 +318,9 @@ void DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }
 
 void ConstructScriptQuestObjectives() {
     mfc::impl::ConstructArrayOf<gamearrays::ObjectiveArrayClass>(*g_scriptQuestObjectives);
-    libcrt::AtExit(DestroyScriptQuestObjectives);
+    std::atexit(DestroyScriptQuestObjectives);
 }
 void ConstructScriptQuestName() {
     g_scriptQuestName.Construct();
-    libcrt::AtExit(DestroyScriptQuestName);
+    std::atexit(DestroyScriptQuestName);
 }

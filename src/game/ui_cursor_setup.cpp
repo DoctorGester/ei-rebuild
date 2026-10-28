@@ -12,6 +12,7 @@
 #include "game_singletons.h"
 #include "game_data.h"
 
+#include <cstdlib>
 #include <memory>
 #include <string>
 
@@ -132,7 +133,7 @@ void DestroyGameCursor() { g_cursor->DestroyBody(); }
 
 void ConstructGameCursor() {
     g_cursor->Construct();
-    libcrt::AtExit(DestroyGameCursor);
+    std::atexit(DestroyGameCursor);
 }
 
 namespace {

@@ -146,7 +146,6 @@ CSpellConstructor::CSpellConstructor() {
 }
 
 CSpellManager::CSpellManager() {
-    sequences_.InitBuckets(100);
     maxSequenceKey_ = 0;
 }
 
@@ -179,7 +178,6 @@ CParty::CParty() {
     items_.growBy = 0;
     items_.capacity = 0;
     items_.size = 0;
-    variables_.InitZeroedBuckets(100);
     itemManager_ = nullptr;
     spellManager_ = nullptr;
     itemConstructor_ = nullptr;
@@ -189,7 +187,6 @@ CParty::CParty() {
 CParty::~CParty() {
     Clear(1, 1);
     CParty::Destroy();
-    variables_.Destroy();
     if (items_.data != nullptr) gamecrt::operator_delete(items_.data[-1]);
     members_.vtable = PartyMembers::Vtable();
     if (members_.data != nullptr) {
@@ -246,7 +243,7 @@ void CParty::Clear(int clearVariables, int keepSpells) {
         if (keepSpells == 0) spellManager_->Init(this);
     }
     members_.SetSize(0, -1);
-    if (clearVariables != 0) variables_.Clear();   // each name destroyed, its node back to the allocator
+    if (clearVariables != 0) variables_.clear();
     zone_ = game::EmptyText();
     entrance_ = 0;
     money_ = 0;

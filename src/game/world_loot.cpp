@@ -167,8 +167,7 @@ private:
 
 void CWorldServer::LootDeadUnits() {
     // The walk starts before the player is looked up; unlike most walks it does not stop at an empty entry.
-    auto* node = objects_.map.First();
-    CEngineObject* object = node ? node->value : nullptr;
+    auto node = objects_.map.begin();
     CPlayer* local = nullptr;
     {
         PlayerIterator it;
@@ -181,14 +180,13 @@ void CWorldServer::LootDeadUnits() {
     if (!local) return;
 
     IdList dead;
-    while (node) {
+    for (; node != objects_.map.end(); ++node) {
+        CEngineObject* object = node->second;
         CUnit* unit = UnitOrNull(object);   // no null test here: the map holds no null
         if (unit && unit->IsDead()) {
             TheServerWorld()->Loot(unit, local);
             dead.PushBack(static_cast<unsigned>(object->id_));
         }
-        node = objects_.map.After(node);
-        object = node ? node->value : nullptr;
     }
     for (IdList::Node* id = dead.Begin(); id != dead.End(); id = id->next) TheServerWorld()->RemoveObject(id->value);
 }

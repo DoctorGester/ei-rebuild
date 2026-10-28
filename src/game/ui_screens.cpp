@@ -19,6 +19,7 @@
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
+#include "lib/text_case.h"
 
 #include <string>
 
@@ -85,7 +86,7 @@ bool UiItemKinds::IsBuildable(const CItem* item) {
     if (type != kTypeArmor) return false;
     prototype = object->GetPrototype();
     return prototype &&
-           gamecrt::mbsicmp(prototype->materialClass, game::NoneText()) != 0;
+           text::CompareIgnoringCase(prototype->materialClass, game::NoneText()) != 0;
 }
 
 namespace uiorig {

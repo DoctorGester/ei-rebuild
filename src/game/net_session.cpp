@@ -8,6 +8,8 @@
 #include "game_lists.h"
 #include "game_singletons.h"
 
+#include <cstdlib>
+
 namespace {
 
 // timeGetTime() at the previous pump.
@@ -50,21 +52,21 @@ void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
 // clears it, then the exit function is registered.
 void InitGameServerPointer() {
     net::g_gameServer = nullptr;
-    libcrt::AtExit(ReleaseGameServer);
+    std::atexit(ReleaseGameServer);
 }
 void InitGameClientPointer() {
     net::g_gameClient = nullptr;
-    libcrt::AtExit(ReleaseGameClient);
+    std::atexit(ReleaseGameClient);
 }
 
 // Their static initialisers (in the list's order).
 void ConstructSendBuffer() {
     net::g_sendBuffer.Construct();
-    libcrt::AtExit(DestroySendBuffer);
+    std::atexit(DestroySendBuffer);
 }
 void ConstructReceiveBuffer() {
     net::g_receiveBuffer.Construct();
-    libcrt::AtExit(DestroyReceiveBuffer);
+    std::atexit(DestroyReceiveBuffer);
 }
 
 namespace net {

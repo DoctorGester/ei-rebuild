@@ -18,6 +18,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <map>
 #include <type_traits>
@@ -113,6 +114,11 @@ public:
     static Result Call(R(*fn)(P...), A... args) {
         return Returned([&] { return fn(Argument<P>(args)...); });
     }
+    // An import by its name (gameapi::), called through its slot.
+    template <class R, class... P, class... A>
+    static Result Call(R(__stdcall* fn)(P...), A... args) {
+        return Returned([&] { return fn(Argument<P>(args)...); });
+    }
     // A method by its name, on the object the original passed in ECX.
     template <class R, class C, class... P, class O, class... A>
     static Result Call(R (C::*method)(P...), O object, A... args) {
@@ -126,7 +132,7 @@ public:
     // A buffer on the initialiser's stack frame (SUB ESP, n; LEA reg, [ESP + offset]).
     std::uint32_t Local(std::uint32_t offset) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(frame_ + offset)); }
     // The CRT's atexit with an exit function (a port by its name).
-    void AtExit(void(__cdecl* fn)());
+    void AtExit(void(__cdecl* fn)()) { std::atexit(fn); }
 
 private:
     alignas(16) unsigned char frame_[0x400] = {};
