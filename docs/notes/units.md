@@ -309,7 +309,7 @@ address in its source comment (grep the address); the per-function table that us
   (message box).
 - Shared-header hazards: CUnit's old `speed*` fields are `boundsFlags` / `center[2]` / `radius` / `above[2]`; CWorld
   declares virtual slots 13-41 (named, world.h), so a later non-virtual CWorldServer / CWorldClient member with one of these
-  names silently overrides (check_thunks catches it when hooked). The serialisers' verify relies on loading being
+  names silently overrides. The serialisers' verify relies on loading being
   repeatable; `ComposeSkin` and `WearArmourModel` build CString / STLport temporaries in the original's order.
 
 ## A-U12 (the range's leftovers, 0x00520000-0x00540000, and the Rebirth-patched loaders)

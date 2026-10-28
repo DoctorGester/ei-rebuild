@@ -1,6 +1,5 @@
 // CPlex and the game's CList<T> / CMap<K, V> instantiations whose elements need nothing of the game
-// (mfc_list.h); registered at their own addresses where something still reaches them by game.exe's address
-// (tools/registration_readers.py), our code calls them directly. The groups
+// (mfc_list.h); our code calls them by name. The groups
 // were found by comparing the instructions of every instantiation our code forwards to (addresses
 // masked); each node size is the one its NewNode passes to CPlex::Create.
 #include "mfc_list.h"

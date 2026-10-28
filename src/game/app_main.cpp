@@ -782,6 +782,6 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     ShutDown(previousHandler);
     return result;
 }
-EI_REPLACE(0x00456440, GameMain);
+EI_REWRITTEN(0x00456440, GameMain);
 
 } // namespace app

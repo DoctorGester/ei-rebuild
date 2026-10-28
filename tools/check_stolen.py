@@ -3,7 +3,8 @@
 A vector recorder (tests/vectors/record_*.cpp; EI_VECTORS recording in the original game) calls the
 original through a trampoline holding the function's first N bytes.
 N must end on an instruction boundary, be at least 5, and the copied instructions must not be
-IP-relative (CALL/JMP/Jcc rel). A wrong N jumps into the middle of an instruction and crashes
+IP-relative (CALL/JMP/Jcc rel). Each address is a known function start (src/hook/function_sizes.inc) with one
+recorder (a second one would never run). A wrong N jumps into the middle of an instruction and crashes
 only when that function first runs, which can be deep into a harness run.
 
 usage: python tools/check_stolen.py     (needs the capstone module; exits 1 on any problem)
@@ -26,6 +27,7 @@ def main():
         r'\{0x([0-9A-F]+), (\d+)\}', open(os.path.join(ROOT, 'src', 'hook', 'function_sizes.inc')).read())}
     bad = 0
     total = 0
+    first = {}   # address -> where its first recorder is
     for path in sorted(glob.glob(os.path.join(ROOT, 'tests', 'vectors', '*.cpp'))):
         text = open(path, encoding='utf-8').read()
         for m in re.finditer(r'EI_RECORD\(\s*0x([0-9A-Fa-f]+)\s*,\s*[\w:<>]+\s*,\s*(\d+)\s*,', text):
@@ -38,11 +40,16 @@ def main():
             offset = address - 0x400000
             end = 0
             problem = None
+            if address in first:
+                problem = f'a second recorder (the first at {first[address]})'
+            first.setdefault(address, where)
+            if problem is None and address not in sizes:
+                problem = 'not a known function start (src/hook/function_sizes.inc)'
             for insn in md.disasm(data[offset:offset + stolen + 16], address):
                 if end >= stolen:
                     break
                 if RELATIVE.match(insn.mnemonic):
-                    problem = f'copies a relative {insn.mnemonic} at +{end}'
+                    problem = problem or f'copies a relative {insn.mnemonic} at +{end}'
                 end += insn.size
             if problem is None and stolen < 5:
                 problem = 'fewer than 5 bytes'

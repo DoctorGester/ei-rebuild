@@ -33,9 +33,7 @@ if /i "%~2"=="utf8" set OUT=%~dp0build\%CFG%-utf8
 
 cmake -S "%~dp0." -B "%OUT%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% -DEI_HARNESS=%HARNESS% -DEI_UTF8=%UTF8% || exit /b 1
 cmake --build "%OUT%" || exit /b 1
-rem Hooks registered through a virtual-call thunk recurse forever (rewrite-guide rule 4).
-python "%~dp0tools\check_thunks.py" || exit /b 1
-rem One address, one registration per kind (replacement, recorder), read from the built DLL (SV6d).
+rem One EI_REWRITTEN per address (the function-to-original map), read from the built DLL (SV6d, C20).
 python "%~dp0tools\check_registrations.py" --dll "%OUT%\ei_hook.dll" || exit /b 1
 rem Cleanup-plan patterns (offsets, VCall, __asm, raw addresses) may only go down per file.
 python "%~dp0tools\check_cleanup.py" || exit /b 1

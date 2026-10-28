@@ -94,11 +94,17 @@ def main():
         rows.append([f'{vt:08X}', n, rtti_name(vt), 'lib' if lib else 'game',
                      ' '.join(f'{a:08X}' for a in sorted(users)), f'{u32(vt):08X}'])
 
+    # The class, file and note of a row already listed stay (the retired vtables, C19: tools/gen_image_cells.py);
+    # a new row has none until someone decides it (gen_image_cells --check fails until then).
     out = os.path.join(ROOT, 'config', 'vtables.csv')
-    with open(out, 'w', newline='') as f:
-        w = csv.writer(f)
-        w.writerow(['vtable', 'slots', 'rtti', 'kind', 'installed_by', 'slot0'])
-        w.writerows(rows)
+    kept = {}
+    if os.path.exists(out):
+        with open(out, newline='', encoding='utf-8') as f:
+            kept = {r['vtable']: [r.get('class', ''), r.get('file', ''), r.get('note', '')] for r in csv.DictReader(f)}
+    with open(out, 'w', newline='', encoding='utf-8') as f:
+        w = csv.writer(f, lineterminator='\n')
+        w.writerow(['vtable', 'slots', 'rtti', 'kind', 'installed_by', 'slot0', 'class', 'file', 'note'])
+        w.writerows(r + kept.get(r[0], ['', '', '']) for r in rows)
     print(f'{len(rows)} vtables ({sum(r[3] == "game" for r in rows)} game) -> {out}')
 
 if __name__ == '__main__':

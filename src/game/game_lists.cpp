@@ -1,5 +1,5 @@
-// The CList<T> instantiations that destroy game elements (game_lists.h), registered at their library
-// addresses (ticket S7; the plain ones are in lib/mfc_list.cpp).
+// The CList<T> instantiations that destroy game elements (game_lists.h; the plain ones are in
+// lib/mfc_list.cpp).
 #include "game/game_lists.h"
 #include "game/game_slots.h"
 #include "game/record_arrays.h"

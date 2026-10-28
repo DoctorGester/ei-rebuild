@@ -9,7 +9,7 @@ usage: python tools/ui_census_report.py [run folders or ui_census.csv files...]
 
 Call chains in the CSVs are code addresses: game.exe as is (named from config/functions.csv),
 E+offset in ei_hook.dll (named from build/verify/ei_hook.map, and given the game address the
-function replaces from the EI_REPLACE lines in src/), A+offset in addon.dll. The call site of a row
+function replaces from the EI_REWRITTEN lines in src/), A+offset in addon.dll. The call site of a row
 is the first frame that is not MFC / library code and not one of the surface helpers (GetDC,
 DrawTextIn, the fills, the text extent); the helpers passed on the way are its "via". A run of the
 standalone image counts under its data's install (standalone: vanilla, standalone-rebirth: rebirth).
@@ -49,11 +49,11 @@ def load_game_functions():
 
 
 def load_replacements(bare_only=False):
-    """EI_REPLACE / EI_REPLACE_METHOD / EI_REWRITTEN lines: function name -> game address. `bare_only`: the names
+    """EI_REWRITTEN lines: function name -> game address. `bare_only`: the names
     written without a class, as written (no aliases)."""
     out = {}
     short = collections.defaultdict(set)
-    pattern = re.compile(r'(?:EI_REPLACE(?:_METHOD)?|EI_REWRITTEN(?:_SPECIAL)?)\(\s*(0x[0-9A-Fa-f]+)\s*,\s*([\w:~]+)\s*\)')
+    pattern = re.compile(r'EI_REWRITTEN(?:_SPECIAL)?\(\s*(0x[0-9A-Fa-f]+)\s*,\s*([\w:~]+)\s*\)')
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True):
         for m in pattern.finditer(open(path, encoding='utf-8', errors='replace').read()):
             out.setdefault(m.group(2), int(m.group(1), 16))
@@ -85,7 +85,7 @@ class Resolver:
         self.syms = resolve_crash.load_map(map_path) if os.path.exists(map_path) else []
         self.offsets = [s[0] for s in self.syms]
         self.replaced = load_replacements()
-        # A function of ours with a bare name (no class) is a replacement only when EI_REPLACE names it
+        # A function of ours with a bare name (no class) is a rewrite only when EI_REWRITTEN names it
         # so: the bare aliases of qualified names (Send for SessionBase::Send) would make every
         # function called Send, a lambda in an anonymous namespace among them, the game's.
         self.replaced_bare = load_replacements(bare_only=True)

@@ -136,8 +136,8 @@ CSceneRenderer::~CSceneRenderer() {
 EI_REWRITTEN_SPECIAL(0x00500AC0, CSceneRenderer::~CSceneRenderer);
 
 // The scene renderer and the device's lock, zero at the start: built by their static initialisers
-// in the list's order and destroyed by the exit functions those register;
-// names and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+// in the list's order and destroyed by the exit functions those register (docs/notes/standalone.md, "The static
+// initialisers' objects").
 constinit lib::StaticObject<CSceneRenderer> g_sceneRenderer = /*007AF060*/ {};
 static_assert(sizeof(CSceneRenderer) == 0x5C);
 CSceneRenderer* TheSceneRenderer() { return &*g_sceneRenderer; }

@@ -33,7 +33,8 @@ class CWnd;
 
 // CCmdTarget (0x1C bytes): CObject's three slots, then MFC 4.2's CCmdTarget virtuals (3-19: the command
 // routing and OLE automation slots, unported: only MFC's own message routing and IDispatch call them, none of
-// which the image has; config/standalone_unreachable.csv). CWnd and CWinThread derive from it.
+// which the image has: its CWnds are MFC's four static windows, its CWinThreads run their procedure only). CWnd and
+// CWinThread derive from it.
 class CCmdTarget : public CObject {
 public:
     // One reference, no outer unknown or dispatch, a result expected.
@@ -77,7 +78,8 @@ public:
 };
 
 // CWnd (0x3C bytes). Game.exe's tables CWnd and CTempWnd (mfc_window.cpp) have 46 slots (MFC 4.2's CWnd
-// virtuals in declaration order), all unported but the destructor.
+// virtuals in declaration order), all unported but the destructor: only MFC's four static windows are made, with no
+// handle, and destroyed without a virtual call; CTempWnd is never made.
 class CWnd : public CCmdTarget {
 public:
     // CWnd(HWND) with no window.

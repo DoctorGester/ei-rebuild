@@ -79,7 +79,8 @@ public:
 // CDC (0x10 bytes): the output DC and the attribute DC (the same one for a plain DC). Game.exe's tables: CDC,
 // CTempDC, 29 slots (MFC 4.2's CDC virtuals in declaration order). The ones the image reaches have bodies:
 // the interface calls 10 / 12 / 26 of its surfaces' CTempDCs, a handle map deletes them through 1, Detach calls 5;
-// 0, 2-4 and 6 are as short. The rest are unported (config/standalone_unreachable.csv).
+// 0, 2-4 and 6 are as short. The rest are unported: a plain CDC is made only inside CreateTempDC, which stores
+// CTempDC's table at once.
 class CDC : public CObject {
 public:
     // No DCs.

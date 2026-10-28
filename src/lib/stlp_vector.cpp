@@ -1,6 +1,4 @@
-// The game's STLport vector<T> instantiations (stlp_vector.h) registered at their own addresses: the ones
-// something still reaches by game.exe's address (the exit functions; tools/registration_readers.py). Our
-// code calls the others directly. Instantiations with the same instructions (addresses masked) and element size
+// The game's STLport vector<T> instantiations (stlp_vector.h); our code calls them by name. Instantiations with the same instructions (addresses masked) and element size
 // share one body; the element size of each was read from its size arithmetic.
 #include "stlp_vector.h"
 
