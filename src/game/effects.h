@@ -279,6 +279,8 @@ void ParticleManagerClearQuietStart(CParticleManager* manager);
 // (`held_`, by id) until the source's tick ends it (TickSources) or nobody else holds it (ReleaseUnheld).
 class CParticleManager : public CBaseManager {
 public:
+    // Kept order: Destroy releases the sources in it, which sends them to the spares and their textures' releases
+    // to the texture manager's spare list in that order.
     using HeldMap = lib::HashMap<int, CParticleSource*>;
 
     CParticleManager();
@@ -655,7 +657,7 @@ struct FogGrid {
 
 class CVisibilityFog final : public CEngineObject {
 public:
-    using CellMap = lib::HashMap<std::uint32_t, FogCell>;
+    using CellMap = lib::HashMap<std::uint32_t, FogCell>;   // Draw hands the cells' sprites over in STLport's order
 
     CVisibilityFog();
     ~CVisibilityFog() override;

@@ -303,7 +303,8 @@ class CPlayer final : public CEngineObject {
 public:
     // The world objects the player knows, by id, each counted once: the map objects and the timed objects
     // (effects).
-    // Walked in STLport's order (the objects are released, the units handled in it).
+    // Walked in STLport's order: the units by the party's loops (combat_motion, object_diplomacy), the known objects by
+    // the briefing's people list, the known timed objects by ReleaseEach (each release can destroy the effect).
     using MapObjectMap = lib::HashMap<int, CMapObject*>;
     using TimedObjectMap = lib::HashMap<int, CEffect*>;
     using UnitMap = lib::HashMap<int, CUnit*>;
