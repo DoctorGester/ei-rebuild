@@ -3745,7 +3745,15 @@ id = "C35m"
 title = "C35 heap wrappers, the rest: gamecrt::operator_new_as / operator_new_array / operator_delete in the script's MFC records and the tagged record arrays to new / delete, then crt.h's gamecrt heap deleted"
 group = "cleanup"
 depends = ["C14z"]
-note = "Left by C35g (2026-10-28, 88 lines): script.h / script_*.cpp / script_array.h (~45), record_arrays.cpp (3), mfc.h (5), mfc_array.h (1), mfc_slots.h (2), mfc_coll.cpp (PlainArray data, CreateCWordArray / CDWordArray / CByteArray Construct, the deleting destructor: 4), the vtable-tagged arrays freed or grown by hand outside them (unit_items.cpp / unit_save.cpp / unit_controller.cpp / map_object_lifetime.cpp carried items, player_sync.cpp, world_update.cpp: 17), the hand-built deleting destructors (deleting_destructors_400.cpp, world_deleting_destructors.cpp, world_destructors.cpp: 3) and tests/vectors/replay_script_load.cpp (1). Most go with C14z's std containers; then delete gamecrt::operator_new / operator_new_as / operator_new_array / operator_delete from src/lib/crt.h."
+note = "Done (2026-10-28): no users were left (C14z / C35g had moved them all); crt.h's gamecrt::operator_new / operator_new_as / operator_new_array / operator_delete deleted (crt.h 86 -> 77 lines), with deleting_destructors_400.cpp (34 lines: its DeletingDestructor template had no instantiations since C28k made the messages / sessions real classes) and crt.cpp's unused malloc.h / new / corecrt_startup.h includes. Notes (rewrite guide rule 6, cleanup-tooling, core, standalone, ui, world) updated. Image suite: 145 runs, 120 goldens the same plus effects, which crashed once at quit (C35m1) and passed 3 reruns with its golden the same."
+
+[[ticket]]
+id = "C35m1"
+title = "Flaky access violation at quit: ~CLinkMesh frees its std::vector<MeshCorner> on a bad heap block (CLinkFigureLoader teardown from CWorld::Destroy)"
+group = "cleanup"
+model = "opus"
+files = ["src/game/figure_mesh.h src/game/link_figure.h"]
+note = "Found by C35m (2026-10-28) on main f14ce2571 plus a code-neutral change: the image suite's effects run crashed once after quit (report written, 0 failures) with C0000005 in ntdll's free: _free <- operator delete <- vector<MeshCorner>::~vector <- CLinkMesh::~CLinkMesh <- CLinkMesh scalar deleting destructor <- CLinkFigureLoader::~CLinkFigureLoader <- CWorld::Destroy <- CWorldClient::Destroy <- app::GameMain. Three reruns passed. Suspect a double free or a byte copy over the vector (C14v-style) in the link mesh's lifetime (figure_mesh.h corners_, link_figure.h GetPartData hands out MeshCorner*). Reproduce with EI_HEAP_JITTER or page heap on effects; resolve with tools/resolve_crash.py --raw."
 
 [[ticket]]
 id = "S"
