@@ -185,7 +185,7 @@ void CEffectSoundSeq::Reset() {
     sound_ = -1;
     volume_ = 0.0f;
     radius_ = 0.0f;
-    name_ = EmptyCString();
+    name_ = game::kEmptyText;
     names_.clear();
     noFade_ = 0;
 }

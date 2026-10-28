@@ -1463,8 +1463,6 @@ unsigned g_appliedStamp = /*007AFED4*/ {};   // the stamp applied up to
 
 // The variable setter with the value as the raw dword that is pushed (no FPU load on the way).
 void VariableSetBits(NamedFloatTable* table, std::string_view name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
-// The client's variables (ClientSession::variables_), each with its stamp (VariableMessage::serial_).
-std::list<CountedRefTo<net::VariableMessage>>& Variables() { return net::g_gameClient->variables_; }
 // The value's bits, moved as the dword that is pushed (no FPU load).
 std::uint32_t ValueBits(const net::VariableMessage* record) {
     std::uint32_t bits;
@@ -1521,7 +1519,7 @@ void GameFlow::UpdateFromServer() {
     // The briefings the server says were seen.
     for (const auto& zone : net::g_gameClient->zones_) MarkBriefing(zone.Get()->text_.data());
     // The quest variables ("q.<folder>.<name>") register their quest folders.
-    for (const auto& variable : Variables()) {
+    for (const auto& variable : net::g_gameClient->variables_) {
         std::string name = variable.Get()->name_.data();
         bool quest;
         {
@@ -1543,7 +1541,7 @@ void GameFlow::UpdateFromServer() {
         unsigned previous = g_appliedStamp;
         if (g_serverStamp > g_appliedStamp + 2) g_appliedStamp = g_serverStamp + 1;
         std::vector<const net::VariableMessage*> changed;
-        for (const auto& variable : Variables()) {
+        for (const auto& variable : net::g_gameClient->variables_) {
             const unsigned stamp = variable.Get()->serial_;
             if (g_serverStamp <= stamp) g_serverStamp = stamp;
             if (stamp >= g_appliedStamp || stamp < previous) continue;
@@ -1557,7 +1555,7 @@ void GameFlow::UpdateFromServer() {
         bool settled;
         do {
             settled = true;
-            for (const auto& variable : Variables()) {
+            for (const auto& variable : net::g_gameClient->variables_) {
                 const net::VariableMessage* record = variable.Get();
                 if (record->serial_ > g_appliedStamp) continue;
                 if (record->serial_ == g_appliedStamp) {
@@ -1569,7 +1567,7 @@ void GameFlow::UpdateFromServer() {
             }
         } while (!settled);
     } else {
-        for (const auto& variable : Variables()) {
+        for (const auto& variable : net::g_gameClient->variables_) {
             const net::VariableMessage* record = variable.Get();
             if (g_serverStamp <= record->serial_) g_serverStamp = record->serial_;
             std::string name = record->name_.data();

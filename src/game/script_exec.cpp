@@ -73,7 +73,6 @@ NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
 
 CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
-net::ServerSession* ServerPointer() { return net::g_gameServer; }
 bool ServerActive() {
     net::ServerSession* server = net::g_gameServer;
     return server && !(server->flags7_ & CRefCounted::kDetached);
@@ -234,13 +233,13 @@ void CopyLoot(const SSCCmd* cmd, bool replace) {
 
 void GSSetVarMultiplayer(const SSCCmd* cmd) {
     std::string text(Text(cmd, 0));
-    ServerPointer()->SetVariable(&text, cmd->floatArgs[1]);
+    net::g_gameServer->SetVariable(&text, cmd->floatArgs[1]);
 }
 
 void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
     std::string text(Text(cmd, 0));
-    if (setMax) ServerPointer()->RaiseVariable(&text, cmd->floatArgs[1]);
-    else ServerPointer()->RemoveVariable(&text);
+    if (setMax) net::g_gameServer->RaiseVariable(&text, cmd->floatArgs[1]);
+    else net::g_gameServer->RemoveVariable(&text);
 }
 
 void PlayMovie(const SSCCmd* cmd) {

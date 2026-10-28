@@ -45,7 +45,6 @@ CPlayer* LocalPlayer() {
     return TheClientWorld()->LocalView()->player_;
 }
 
-inline net::ClientSession* Server() { return net::g_gameClient; }
 bool ServerActive(net::ClientSession* server) { return server && !(server->flags7_ & CRefCounted::kDetached); }
 
 void SetDebugInfoRect(int left, int top, int right, int bottom) {
@@ -354,9 +353,9 @@ void Net(Arguments* args) {
     }
     if (text::CompareIgnoringCase((*args)[0], "time") == 0)
         app::g_showClientSpeed = str::ToInt((*args)[1]);
-    if (text::CompareIgnoringCase((*args)[0], "zone") == 0 && ServerActive(Server())) {
+    if (text::CompareIgnoringCase((*args)[0], "zone") == 0 && ServerActive(net::g_gameClient)) {
         std::string zone = (*args)[1];
-        Server()->SendCommand(0, zone.c_str());
+        net::g_gameClient->SendCommand(0, zone.c_str());
     }
 }
 
@@ -462,7 +461,7 @@ namespace {
 void KickOrBan(Arguments* args, int windowMode, int command) {
     int count = static_cast<int>(args->size());
     if (count == 0) {
-        net::ClientSession* server = Server();
+        net::ClientSession* server = net::g_gameClient;
         if (ServerActive(server)) {
             // Our binding's player record: only the host gets the window.
             net::BindingMessage* binding = server->binding_;
@@ -475,7 +474,7 @@ void KickOrBan(Arguments* args, int windowMode, int command) {
     std::string name = (*args)[0];
     const char* text = name.c_str();
     if (text[0] == '"' && text[static_cast<int>(name.size()) - 1] == '"') name = str::Mid(name, 1, static_cast<int>(name.size()) - 2);
-    if (ServerActive(Server())) Server()->SendCommand(command, name.c_str());
+    if (ServerActive(net::g_gameClient)) net::g_gameClient->SendCommand(command, name.c_str());
 }
 } // namespace
 
