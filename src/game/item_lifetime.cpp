@@ -1,14 +1,11 @@
 // The items' constructors and destructors, their Create / Destroy slots (2 / 3) and class names
 // (11 / 12). See item.h and docs/notes/items_spells.md ("Item rules").
-#include "item.h"
-
 #include "core_refcount.h"
+#include "item.h"
 #include "spell.h"
 
 #include <bit>
 #include <cstring>
-
-#undef GetClassName   // CEngineObject::GetClassName
 
 namespace {
 
@@ -87,17 +84,17 @@ CItemLoot::CItemLoot() = default;
 
 CItemSpell::CItemSpell() = default;
 
-const char* CItemWeapon::GetClassName() { return "CItemWeapon"; }
+const char* CItemWeapon::ClassName() { return "CItemWeapon"; }
 ClassId CItemWeapon::GetClassId() { return kClassItemWeapon; }
-const char* CItemArmor::GetClassName() { return "CItemArmor"; }
+const char* CItemArmor::ClassName() { return "CItemArmor"; }
 ClassId CItemArmor::GetClassId() { return kClassItemArmor; }
-const char* CItemQuick::GetClassName() { return "CItemQuick"; }
+const char* CItemQuick::ClassName() { return "CItemQuick"; }
 ClassId CItemQuick::GetClassId() { return kClassItemQuick; }
-const char* CItemQuest::GetClassName() { return "CItemQuest"; }
+const char* CItemQuest::ClassName() { return "CItemQuest"; }
 ClassId CItemQuest::GetClassId() { return kClassItemQuest; }
-const char* CItemLoot::GetClassName() { return "CItemLoot"; }
+const char* CItemLoot::ClassName() { return "CItemLoot"; }
 ClassId CItemLoot::GetClassId() { return kClassItemLoot; }
-const char* CItemSpell::GetClassName() { return "CItemSpell"; }
+const char* CItemSpell::ClassName() { return "CItemSpell"; }
 ClassId CItemSpell::GetClassId() { return kClassItemSpell; }
 
 // --- The item manager's Create and factory -------------------------------------------------
@@ -116,6 +113,6 @@ CEngineObject* CItemManager::NewObject(int kind) {
     case kItemQuest: object = new CItemQuest(); break;
     default: return nullptr;
     }
-    if (object != nullptr) object->type_ = kind;
+    object->type_ = kind;
     return object;
 }

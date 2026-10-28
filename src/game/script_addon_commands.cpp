@@ -1,35 +1,34 @@
 // AddNewScriptCommands: addon's commands, plus GSGetPlayerVar and IsFileExists. The game
 // functions they call are the rewritten members.
-#include "script_addon_handlers.h"
-#include "options.h"
 #include "bink_video.h"   // g_loadingMovieOff
-#include "world_glue.h"
-
 #include "combat.h"
 #include "console.h"
+#include "game_singletons.h"
 #include "item.h"
 #include "item_db.h"
 #include "map_object.h"
+#include "options.h"
 #include "party.h"
 #include "player_messages.h"
+#include "script_addon_handlers.h"
+#include "settings_file.h"
+#include "system_text.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
+#include "world_glue.h"
+
+#include "lib/str.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "game_singletons.h"
-#include "settings_file.h"
-#include "system_text.h"
-#include "lib/str.h"
 
 #include <bit>
-#include <windows.h>
-
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <windows.h>
 
 namespace scriptaddon {
 
@@ -209,9 +208,9 @@ bool IsFileExists(Call* call) {
 bool GSListPlayerVars(Call* call) {
     CPlayer* player = GetPlayer(Ftol(Floats(call)[0]));
     const NamedFloatTable& variables = player->Party()->variables_;
-    for (auto node = variables.begin(); node != variables.end(); ++node) {
+    for (auto& node : variables) {
         std::string line;
-        line = str::Format("%s = %f", node->first, static_cast<double>(node->second));
+        line = str::Format("%s = %f", node.first, static_cast<double>(node.second));
         (console::g_consoleOut << line << "\n").Flush();
     }
     return true;

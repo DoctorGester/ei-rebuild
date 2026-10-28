@@ -1,9 +1,10 @@
 // Magic traps: who is inside, casting at newcomers, set-up from the zone record, lifetime, Save and Load and the
 // update. See magic_trap.h and docs/notes/units.md ("Magic traps").
-#include "base_manager.h"
 #include "magic_trap.h"
 
+#include "base_manager.h"
 #include "engine_object.h"
+#include "game_singletons.h"
 #include "map_object.h"
 #include "spell.h"
 #include "unit.h"
@@ -12,15 +13,12 @@
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
 #include <list>
 #include <new>
-#include "game_singletons.h"
-#include "lib/nan_audit.h"
-
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 
@@ -57,9 +55,9 @@ CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager();
 // element's reference released and cleared, the list emptied, its blocks freed).
 void ClearVictims(MagicTrap* trap) {
     std::list<CUnit*>& inside = trap->inside;
-    for (auto node = inside.begin(); node != inside.end(); ++node) {
-        if (*node) (*node)->Release();
-        *node = nullptr;
+    for (auto& node : inside) {
+        if (node) node->Release();
+        node = nullptr;
     }
     inside.clear();
 }

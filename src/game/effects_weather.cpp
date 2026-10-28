@@ -1,15 +1,15 @@
-#include "effects.h"
-#include "texture.h"
-
 #include "core_maths.h"
+#include "effects.h"
+#include "game_singletons.h"
 #include "random.h"
 #include "sound.h"
+#include "texture.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/containers.h"
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
+
+#include "ei/x87.h"
 
 #include <array>
 #include <bit>
@@ -139,7 +139,7 @@ CRainSnow::~CRainSnow() {
     if (texture) texture->Release();
 }
 
-const char* CRainSnow::GetClassName() { return "CWeather"; }
+const char* CRainSnow::ClassName() { return "CWeather"; }
 ClassId CRainSnow::GetClassId() { return kClassRainSnow; }
 
 // --- Visibility fog -----------------------------------------------------------------------------
@@ -270,5 +270,5 @@ int CVisibilityFog::Create() {
     ClearCells();
     return 1;
 }
-const char* CVisibilityFog::GetClassName() { return "CVisibilityFog"; }
+const char* CVisibilityFog::ClassName() { return "CVisibilityFog"; }
 ClassId CVisibilityFog::GetClassId() { return kClassVisibilityFog; }

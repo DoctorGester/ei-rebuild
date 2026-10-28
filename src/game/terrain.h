@@ -4,8 +4,8 @@
 #include "resource.h"
 
 #include "lib/containers.h"
-#include "lib/vecmath.h"
 #include "lib/hash_map.h"
+#include "lib/vecmath.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -81,7 +81,7 @@ public:
     // Returns 1.
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;    // "CTerrain"
+    const char* ClassName() override;   // "CTerrain"
     ClassId GetClassId() override;
     // The constructor's body: no map, texts "none", frame 1, waves upwards at strength 0, phase 2 pi.
     void Reset();

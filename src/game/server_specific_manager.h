@@ -4,16 +4,14 @@
 // (class id 0x31; created by the world server) and the torch state object it makes for
 // type 0x4B, CTorchObjectSpec (0x58 bytes, class id 0x42). Both are real virtual classes: the
 // compiler makes their vtables).
-// server_specific_manager.cpp. Names from the classes' own GetClassName strings.
+// server_specific_manager.cpp. Names from the classes' own ClassName strings.
 
 #include "base_manager.h"
 #include "engine_object.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
-
-
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 class CStream;
 class CMapObject;
@@ -25,7 +23,7 @@ public:
     ~CServerSpecificManager() override;
 
     // "CServerSpecificManager" (the exe's string).
-    const char* GetClassName() override;
+    const char* ClassName() override;
     // 0x31.
     ClassId GetClassId() override;
     // A new object of `type`: 0x46 CObject3DServer,
@@ -46,7 +44,7 @@ public:
     void Load(CStream* stream) override;                // LoadSpec
     void Save(CStream* stream) override;                // SaveSpec
     // "CTorchObjectSpec". 12: 0x42.
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     // 13-15: empty here; the client half (torch_client_spec.h) shows its
     // effects, hides them and warms its particles up.

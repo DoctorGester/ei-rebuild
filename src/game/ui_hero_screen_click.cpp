@@ -1,34 +1,34 @@
 // The multiplayer hero screen's left button and keys.
 // See docs/notes/ui.md, section 5.
-#include "ui.h"
-#include "ui_screens.h"
-#include "game_strings.h"
-#include "ui_camp.h"
 #include "acks_db.h"
+#include "console.h"
+#include "game_singletons.h"
+#include "game_strings.h"
+#include "item.h"
+#include "item_db_text.h"
+#include "map_object_figures.h"
+#include "party.h"
+#include "ui.h"
+#include "ui_camp.h"
+#include "ui_screens.h"
+#include "unit.h"
 #include "unit_create.h"
 #include "unit_db.h"
-#include "item_db_text.h"
-
-#include "lib/file_io.h"
-#include "lib/crt.h"
-#include "lib/gameapi.h"
-#include <cstdint>
-#include <new>
-#include <string>
-#include "console.h"
-#include "item.h"
-#include "party.h"
-#include "unit.h"
-#include "map_object_figures.h"
 #include "world.h"
 #include "world_glue.h"
+
+#include "lib/crt.h"
+#include "lib/file_io.h"
+#include "lib/gameapi.h"
 #include "lib/nan_audit.h"
-#include "game_singletons.h"
 #include "lib/str.h"
 
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <new>
+#include <string>
 #include <vector>
 
 namespace {
@@ -440,7 +440,7 @@ void CMpHeroScreen::PlayVoice() {
             if (IsVoice(e) && rank-- == 0) return &e;
         return nullptr;
     };
-    int index = libcrt::Rand() * count / 0x7FFF % count;
+    int index = libcrt::RandBelow(count);
     for (int tries = 0; tries < count && voiceSound_ == -1; ++tries) {
         voiceSound_ = interface_->PlaySound(nth(index)->speech.sound.c_str(), 0);
         index = (index + 1) % count;

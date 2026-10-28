@@ -4,18 +4,15 @@
 // in the figure factory) is a class 0x42 figure mesh (CPlainFigureMesh, figure_mesh.h) with one more
 // aligned array, and CSky, the world view's holder that lights and draws it.
 // sky_object.cpp. A real virtual class: the compiler makes its vtable.
-// Names from GetClassName ("CSkyObject"); the rest provisional.
+// Names from ClassName ("CSkyObject"); the rest provisional.
 
 #include "core_transform.h"
 #include "figure_mesh.h"   // CPlainFigureMesh
 #include "model.h"         // Matrix4, CSceneRenderer
 
 #include <cstddef>
-
 #include <cstdint>
 #include <vector>
-
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // A light colour as the sky gets it (by value): red, green, blue (0..1) and a fourth value.
 struct SkyColour {
@@ -29,7 +26,7 @@ public:
 
     // The vtable: the class 0x42 mesh's (CPlainFigureMesh) but for
     // 0, 11 and 12.
-    const char* GetClassName() override;   // "CSkyObject"
+    const char* ClassName() override;   // "CSkyObject"
     ClassId GetClassId() override;
 
     // Lights the vertices. Each vertex's haze (distances_) is recomputed

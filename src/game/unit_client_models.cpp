@@ -1,30 +1,30 @@
 // How the client dresses a unit: armour figure parts and the composed skin texture. See
 // unit_client_models.h and docs/notes/units.md ("Creation, databases, save").
-#include "figure_manager.h"
-#include "item.h"
-#include "resource.h"
-#include "texture.h"
 #include "unit_client_models.h"
 
+#include "figure_manager.h"
+#include "game_singletons.h"
+#include "item.h"
 #include "item_db.h"
 #include "map_object_figures.h"
+#include "resource.h"
+#include "texture.h"
 #include "unit.h"
 #include "unit_db.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <string>
-
-#include "ei/x87.h"
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
+#include "ei/x87.h"
+
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <new>
+#include <string>
 #include <vector>
 
 namespace {
@@ -321,8 +321,8 @@ void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vec
                                        const std::vector<std::uint32_t>* weaponIds,
                                        std::vector<std::string>* names, std::vector<std::string>* plainNames) {
     char text[0x401];
-    for (const std::uint32_t* id = armourIds->data(); id != armourIds->data() + armourIds->size(); ++id) {
-        const itemdb::ArmorRecord* armour = ArmourRecord(*id >> 16);
+    for (const auto& id : *armourIds) {
+        const itemdb::ArmorRecord* armour = ArmourRecord(id >> 16);
         if (!armour) continue;
         int row = RowOfSlot(armour->type);
         if (row < 0) continue;
@@ -340,7 +340,7 @@ void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vec
             names->push_back(name);
         }
     }
-    for (const std::uint32_t* id = weaponIds->data(); id != weaponIds->data() + weaponIds->size(); ++id) AppendWeaponModelParts(*id, names);
+    for (const auto& id : *weaponIds) AppendWeaponModelParts(id, names);
 
     // Every plain part of the three rows. All seven names of each row are walked (the
     // test on the name's address never fails), so the empty names of the helmet row go in too.

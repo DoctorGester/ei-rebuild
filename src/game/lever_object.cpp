@@ -1,21 +1,18 @@
 // The lever map object's own functions: lifetime, update, save / load, network state, the zone record set-up
 // and the small slots. SetState and UseSpots are in See docs/notes/units.md ("Levers").
-#include "lever.h"
-
 #include "core_maths.h"
 #include "core_streams.h"
+#include "game_singletons.h"
+#include "lever.h"
 #include "map_object_figures.h"
 #include "net_delta.h"
 #include "sound.h"
 #include "world.h"
 
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <initializer_list>
 #include <new>
-
-#undef GetClassName   // windows.h's macro would rename CEngineObject::GetClassName
 
 namespace {
 constexpr int kLeverNetFields = 6;
@@ -207,5 +204,5 @@ bool Lever::ApplyKey(const LockKey* key) {
 
 BOOL Lever::KeyOpens(const LockKey* key) { return key->Opens(&lock); }
 
-const char* Lever::GetClassName() { return kLeverClassName; }
+const char* Lever::ClassName() { return kLeverClassName; }
 ClassId Lever::GetClassId() { return kClassLever; }

@@ -1,16 +1,15 @@
 #pragma once
 
 #include "engine_object.h"
-#include <cstddef>
-#include <cstdint>
-#include <string>
-#include <string_view>
+
 #include "lib/hash_map.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <list>
+#include <string>
+#include <string_view>
 #include <unordered_map>
-
-#undef GetClassName   // CEngineObject::GetClassName
 
 using BOOL = int;
 
@@ -128,7 +127,7 @@ class CClientSpecificManager : public CBaseManager {
 public:
     CClientSpecificManager();
     ~CClientSpecificManager() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     // A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a failed allocation.
     CEngineObject* NewObject(int type) override;
@@ -139,7 +138,7 @@ public:
     ~CEffectManager() override;
     // CBaseManager's Create, as 0 / 1.
     int Create() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
 };

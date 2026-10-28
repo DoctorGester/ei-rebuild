@@ -13,13 +13,11 @@
 #include "party_records.h"
 #include "ui_cursor.h"
 
+#include <cstdlib>
+#include <cstring>
+#include <dinput.h>
 #include <memory>
 #include <new>
-
-#include <cstdlib>
-#include <dinput.h>
-
-#include <cstring>
 
 namespace {
 
@@ -32,10 +30,8 @@ void ReleaseCounted(CRefCounted* object) {
 
 // ---- The registry's creators ----------------------------------------------------------------------
 
-// The count dword is cleared only after the allocation has been tested.
 CRefCounted* CreatePartyRecord() {
     auto* record = new PartyRecord();
-    if (!record) return nullptr;
     record->refs_ = 0;
     record->flags6_ = 0;
     record->flags7_ = 0;
@@ -44,7 +40,6 @@ CRefCounted* CreatePartyRecord() {
 
 CRefCounted* CreateClassTemplate() {
     auto* created = new ClassTemplate();
-    if (!created) return nullptr;
     created->refs_ = 0;
     created->flags6_ = 0;
     created->flags7_ = 0;

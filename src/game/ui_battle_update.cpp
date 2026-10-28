@@ -2,38 +2,39 @@
 // its quest variable notice, the selection's refresh and the quick
 // item panel's unit. See docs/notes/ui.md ("Battle screen").
 #include "camera.h"
+#include "game_singletons.h"
 #include "item.h"
-#include "player_client.h"
-#include "player_messages.h"
 #include "item_db_text.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "net_classes.h"
 #include "net_messages.h"
+#include "party.h"
+#include "player_client.h"
+#include "player_messages.h"
 #include "text_reader.h"
+#include "text_split.h"
 #include "ui.h"
 #include "ui_camp.h"
 #include "ui_widescreen.h"
 #include "unit.h"
 #include "unit_db.h"
+#include "world.h"
+#include "world_glue.h"
+
+#include "lib/nan_audit.h"
 
 #include "ei/x87.h"
-#include "lib/nan_audit.h"
-#include "text_split.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <string>
 
 #include <algorithm>
 #include <bit>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <list>
 #include <memory>
+#include <string>
 #include <vector>
-#include "party.h"
-#include "world.h"
-#include "world_glue.h"
-#include "game_singletons.h"
 
 // --- the quick item panel's unit -----------------------------------------------------------------
 
@@ -151,8 +152,8 @@ void RebuildClientParty(CBattleScreen* screen) {
     const auto& players = session->players_;
     CBattleScreen::PartyIds ids;
     ids.camera = -1;
-    for (auto node = players.begin(); node != players.end(); ++node) {
-        net::PlayerMessage* player = node->Get();
+    for (auto& node : players) {
+        net::PlayerMessage* player = node.Get();
         int* unitId = &player->id_;
         int* playerId = &player->serial_;
         if (player->state_ == 0 && *unitId >= 0) {
@@ -175,8 +176,8 @@ void RebuildClientParty(CBattleScreen* screen) {
         auto* party = &screen->party_;
         party->clear();
         bool cameraFirst = false;
-        for (int* id = ids.withUnit.data(); id != ids.withUnit.data() + ids.withUnit.size(); ++id) {
-            int unitId = *id;
+        for (auto& id : ids.withUnit) {
+            int unitId = id;
             CUnit* unit = g_clientWorld->FindUnit(unitId);
             if (!unit) continue;
             if (unitId == ids.camera) {
@@ -291,8 +292,8 @@ void CBattleScreen::Update() {
                 mark(unit, 0);
             }
         }
-        for (std::list<std::uintptr_t>::iterator node = inside.begin(); node != inside.end(); ++node) {
-            auto* unit = (*party)[(*node)];
+        for (auto& node : inside) {
+            auto* unit = (*party)[node];
             std::uint32_t flags = unit->flags_;
             if (!(flags & 0x10) && !(flags & 0x100)) {
                 unit->flags_ = flags | 0x100;
@@ -368,8 +369,8 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 marker(i)->visible_ = 0;
                 slot(i).restB_ = kHudRestRotation;
             }
-            for (std::list<std::uintptr_t>::iterator node = inside.begin(); node != inside.end(); ++node) {
-                int i = static_cast<int>((*node));
+            for (auto& node : inside) {
+                int i = static_cast<int>(node);
                 marker(i)->visible_ = 1;
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
                 const float angle = kHudQuarterTurn *
@@ -377,7 +378,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 Quaternion turn;
                 turn.SetAxisAngle(axis, angle);
                 slot(i).restB_ = turn;
-                world->Select(unitAt(static_cast<int>((*node))));
+                world->Select(unitAt(static_cast<int>(node)));
             }
             int id = unitAt(first)->id_;
             Speech(id, AckKind::Selected, nullptr);

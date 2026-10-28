@@ -1,6 +1,6 @@
 #pragma once
 
-// Torches (GetClassName "CTorchObject", class id 0x57): a map
+// Torches (ClassName "CTorchObject", class id 0x57): a map
 // object holding its light / flame description, a CTorchObjectSpec (server_specific_manager.h,
 // type_ 0x4B),. Names provisional; torch_object.cpp; Create is in
 // map_object_create.cpp. A real virtual class: the compiler makes its vtable.
@@ -9,8 +9,6 @@
 
 #include <cstddef>
 #include <cstdint>
-
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 class CTorchObjectSpec;
 
@@ -25,7 +23,7 @@ public:
     int RunTick() override { return UpdateTorch(); }
     void Load(CStream* stream) override;                      // LoadTorch
     void Save(CStream* stream) override;                      // SaveTorch
-    const char* GetClassName() override;                   // "CTorchObject"
+    const char* ClassName() override;                         // "CTorchObject"
     ClassId GetClassId() override;
     void AttachObject(CEngineObject* object) override { AttachTorchObject(object); }
     bool IsSynchronised() override { return Slot29True(); }

@@ -3,13 +3,14 @@
 #include "lightning.h"
 
 #include "core_maths.h"
+#include "game_singletons.h"
 #include "random.h"
 #include "texture.h"
+#include "world.h"
+
+#include "lib/nan_audit.h"
 
 #include "ei/x87.h"
-#include "game_singletons.h"
-#include "world.h"
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <concepts>
@@ -421,8 +422,8 @@ int CLightningManager::DrawAll(CSceneRenderer* device) {
         ++node;
         static_cast<CLightning*>(*current)->Draw(device);
     }
-    for (auto n = newBolts_.begin(); n != newBolts_.end(); ++n) {
-        if (*n) (*n)->Release();
+    for (auto& n : newBolts_) {
+        if (n) n->Release();
     }
     newBolts_.clear();
     return 1;

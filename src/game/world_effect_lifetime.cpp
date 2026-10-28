@@ -1,12 +1,10 @@
 // The effects' constructor and destructor bodies, their deleting destructors and the state field's
 // constructor and emptying. See world_effect.h and docs/notes/effects.md ("Missiles and visibility").
-#include "world_effect.h"
-
 #include "console.h"
 #include "net_link.h"
+#include "world_effect.h"
 
 #include <new>
-
 
 namespace {
 
@@ -33,31 +31,31 @@ CEffect::~CEffect() = default;
 
 int CEffect::RunTick() { return 1; }
 
-// --- The class names and ids (GetClassName / GetClassId; the exe's strings) ------------------------------------
+// --- The class names and ids (ClassName / GetClassId; the exe's strings) ------------------------------------
 
-const char* CEffectSound::GetClassName() { return "CEffectSound"; }
+const char* CEffectSound::ClassName() { return "CEffectSound"; }
 ClassId CEffectSound::GetClassId() { return kClassEffectSound; }
-const char* CEffectSoundSeq::GetClassName() { return "CEffectSoundSeq"; }
+const char* CEffectSoundSeq::ClassName() { return "CEffectSoundSeq"; }
 ClassId CEffectSoundSeq::GetClassId() { return kClassEffectSoundSeq; }
-const char* CEffectAmbientSound::GetClassName() { return "CEffectAmbientSound"; }
+const char* CEffectAmbientSound::ClassName() { return "CEffectAmbientSound"; }
 ClassId CEffectAmbientSound::GetClassId() { return kClassEffectAmbientSound; }
-const char* CEffectPointLight::GetClassName() { return "CEffectPointLight"; }
+const char* CEffectPointLight::ClassName() { return "CEffectPointLight"; }
 ClassId CEffectPointLight::GetClassId() { return kClassEffectPointLight; }
-const char* CEffectParticle::GetClassName() { return "CEffectParticle"; }
+const char* CEffectParticle::ClassName() { return "CEffectParticle"; }
 ClassId CEffectParticle::GetClassId() { return kClassEffectParticle; }
-const char* CEffectWall::GetClassName() { return "CEffectWall"; }
+const char* CEffectWall::ClassName() { return "CEffectWall"; }
 ClassId CEffectWall::GetClassId() { return kClassEffectWall; }
-const char* CEffectLightning::GetClassName() { return "CEffectLightning"; }
+const char* CEffectLightning::ClassName() { return "CEffectLightning"; }
 ClassId CEffectLightning::GetClassId() { return kClassEffectLightning; }
-const char* CEffectArrow::GetClassName() { return "CEffectArrow"; }
+const char* CEffectArrow::ClassName() { return "CEffectArrow"; }
 ClassId CEffectArrow::GetClassId() { return kClassEffectArrow; }
-const char* CEffectArrowFigure::GetClassName() { return "CEffectArrowFigure"; }
+const char* CEffectArrowFigure::ClassName() { return "CEffectArrowFigure"; }
 ClassId CEffectArrowFigure::GetClassId() { return kClassEffectArrowFigure; }
-const char* CEffectShowVisibility::GetClassName() { return "CEffectShowVisibility"; }
+const char* CEffectShowVisibility::ClassName() { return "CEffectShowVisibility"; }
 ClassId CEffectShowVisibility::GetClassId() { return kClassEffectShowVisibility; }
-const char* CEffectMoshka::GetClassName() { return "CEffectMoshka"; }
+const char* CEffectMoshka::ClassName() { return "CEffectMoshka"; }
 ClassId CEffectMoshka::GetClassId() { return kClassEffectMoshka; }
-const char* CEffectTornado::GetClassName() { return "CEffectTornado"; }
+const char* CEffectTornado::ClassName() { return "CEffectTornado"; }
 ClassId CEffectTornado::GetClassId() { return kClassEffectTornado; }
 
 CEffectSound::CEffectSound() {

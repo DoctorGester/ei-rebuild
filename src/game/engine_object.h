@@ -14,12 +14,8 @@ inline constexpr ZeroFill kZeroed{};
 inline void* operator new(std::size_t size, ZeroFill) { return std::memset(::operator new(size), 0, size); }
 inline void operator delete(void* block, ZeroFill) noexcept { ::operator delete(block); }
 
-// windows.h's GetClassName macro would rename the slot in files that include windows.h first; the files that
-// override it undefine it too.
-#undef GetClassName
-
 // CEngineObject::GetClassId: the class of an engine object or manager, named kClass + the class's name here
-// (GetClassName gives the original's). The effect manager creates its effects by it too. Two classes share
+// (ClassName gives the original's). The effect manager creates its effects by it too. Two classes share
 // 0x0E and two 0x21.
 enum ClassId : int {
     kClassMaterial = 0x05,
@@ -128,7 +124,7 @@ public:
     virtual const char* GetDescription();              // "nodesc"
     virtual void Load(CStream* stream);
     virtual void Save(CStream* stream);
-    virtual const char* GetClassName() = 0;
+    virtual const char* ClassName() = 0;
     virtual ClassId GetClassId() = 0;
 
     CManagerContext* ManagerContext() const;

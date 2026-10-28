@@ -5,15 +5,13 @@
 
 #include "resource_manager.h"
 
+#include "lib/hash_map.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include "lib/hash_map.h"
-
-#include <vector>
 #include <unordered_map>
-
-#undef GetClassName
+#include <vector>
 
 struct FigureAnimation;
 class CUnit;
@@ -57,7 +55,7 @@ struct CMapObjectManager : CResourceManager {
     CMapObjectManager();
     ~CMapObjectManager() override;
     int Create() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
     CEngineObject* CreateObject(int type, int id) override;

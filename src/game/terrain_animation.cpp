@@ -6,20 +6,21 @@
 // +0x2C) and gives the crest its specular colour; materials of kind 4 move the vertex sideways (only where
 // its depth is negative), the others up and in a circle driven by the world time (its sines per column and
 // row once per call: CircleSines).
+#include "game_singletons.h"
+#include "random.h"
+#include "render/render.h"
+#include "spell.h"
 #include "terrain.h"
 #include "terrain_sector.h"
-#include "random.h"
-#include "spell.h"
+#include "world.h"
+
+#include "lib/float_select.h"
+#include "lib/vecmath.h"
 
 #include "ei/x87.h"
-#include "lib/vecmath.h"
-#include "render/render.h"
-#include "game_singletons.h"
-#include "world.h"
-#include "lib/float_select.h"
 
-#include <bit>
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -231,7 +232,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     sunStepY = x87::fistp(static_cast<float>(terrain::kSunStepScale * y));
     sun = light;
     if (lightInterval <= 0) {
-        for (auto node = sectorCache.begin(); node != sectorCache.end(); ++node) (*node)->built &= ~kSectorLit;
+        for (auto& node : sectorCache) node->built &= ~kSectorLit;
         return;
     }
     // The lit sectors, sorted, get relight countdowns spread evenly over the next interval.
@@ -241,8 +242,8 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
         std::atexit(terrain::FreeSortedSectors);
     }
     sorted.clear();
-    for (auto node = sectorCache.begin(); node != sectorCache.end(); ++node) {
-        SectorData* sector = *node;
+    for (auto& node : sectorCache) {
+        SectorData* sector = node;
         if (sector->built & kSectorLit) {
             int index = std::ssize(sorted);
             sorted.resize(index + 1);

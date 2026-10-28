@@ -1,17 +1,17 @@
 // CWorldServer: the per-tick update (timed objects, missiles, countdowns), waking units near a
 // point, alarms and the game result. See world.h.
-#include "script.h"
 #include "combat.h"
-#include "spell.h"
-#include "world.h"
-
 #include "core_maths.h"
+#include "game_data.h"
 #include "map_object.h"
 #include "model.h"
 #include "net_link.h"   // netlink::DriverSession (SetGameResult)
+#include "script.h"
 #include "sector_map.h"
+#include "spell.h"
 #include "unit.h"
 #include "unit_ai.h"
+#include "world.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -23,7 +23,6 @@
 #include <cstring>
 #include <list>
 #include <vector>
-#include "game_data.h"
 
 namespace {
 
@@ -59,8 +58,8 @@ void CWorldServer::Tick(char force) {
     // the walk (the walk reads the node again after the release).
     auto& timed = timedObjects_.map;
     std::list<unsigned> finished;
-    for (auto node = timed.begin(); node != timed.end(); ++node) {
-        CEngineObject* object = node->second;
+    for (auto& node : timed) {
+        CEngineObject* object = node.second;
         if (object->RunTick() == 0) {
             finished.push_back(static_cast<unsigned>(object->id_));
             object->Release();

@@ -10,10 +10,8 @@ CItemLink::CItemLink() {
 
 int CItemLink::OnShutdown() { return 0; }
 
-// The count dword is cleared only after the allocation is tested.
 CItemLink* CItemLink::Clone() {
     auto* copy = new CItemLink();
-    if (!copy) return nullptr;
     copy->value = value;
     return copy;
 }

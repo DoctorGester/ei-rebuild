@@ -1,10 +1,9 @@
 // Small virtuals of a map object's companions: the base companion (what the server's CMapObjectServer mostly
 // keeps) and the client's CMapObjectClientSpecific. Virtual names: CMapObjectCompanion (map_object.h).
+#include "effects.h"   // CParticleSource
 #include "map_object.h"
-#include "effects.h"       // CParticleSource
 #include "net_delta.h"
 #include "unit.h"
-
 #include "world.h"
 
 namespace {
@@ -37,7 +36,7 @@ void CMapObjectClientSpecific::Hit(int damage, int kind) {
 }
 
 // Class name and id.
-const char* CMapObjectClientSpecific::GetClassName() { return kClientClassName; }
+const char* CMapObjectClientSpecific::ClassName() { return kClientClassName; }
 ClassId CMapObjectClientSpecific::GetClassId() { return kClassMapObjectClientSpecific; }
 
 // Class name and id.
@@ -45,7 +44,7 @@ EffectParticle::EffectParticle(EffectParticle&&) noexcept = default;
 EffectParticle& EffectParticle::operator=(EffectParticle&&) noexcept = default;
 EffectParticle::~EffectParticle() = default;
 
-const char* CMapObjectServer::GetClassName() { return kServerClassName; }
+const char* CMapObjectServer::ClassName() { return kServerClassName; }
 ClassId CMapObjectServer::GetClassId() { return kClassMapObjectServer; }
 
 // --- The client companion's particle records and the network records ---------------------------------

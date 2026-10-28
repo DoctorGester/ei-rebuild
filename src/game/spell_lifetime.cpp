@@ -1,8 +1,7 @@
 // Constructor and destructor bodies of the spell objects: the effect record (MapEffect), the spell
 // (CSpell) and the cast spell (CSpellEffect). See spell.h.
-#include "spell.h"
-
 #include "map_object.h"
+#include "spell.h"
 #include "unit.h"
 #include "world.h"
 #include "world_effect.h"
@@ -72,7 +71,7 @@ CSpell::CSpell() {
 
 CSpell::~CSpell() { CSpell::Destroy(); }
 
-const char* CSpell::GetClassName() { return "CSpell"; }
+const char* CSpell::ClassName() { return "CSpell"; }
 ClassId CSpell::GetClassId() { return kClassSpell; }
 
 CSpellEffect::CSpellEffect() {

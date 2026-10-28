@@ -9,13 +9,11 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
-
 #include <vector>
-
-#undef GetClassName   // CEngineObject::GetClassName
 
 // Four vertex positions in SoA form for the transform library: x[4], y[4], z[4] and w[4] (the loaders set w to
 // 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2. Also the moved positions the part drawers
@@ -82,7 +80,7 @@ public:
     int Create() override;                 // CreateMesh (the derived classes' Create jumps to it)
     void Destroy() override;               // Clear
     const char* GetName() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     // Sets the rotation, rotates the position by it (plus `offset`, copied to a member) and
     // rebuilds the rotation matrix from the stored quaternion.

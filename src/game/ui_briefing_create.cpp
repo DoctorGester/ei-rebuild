@@ -1,37 +1,37 @@
 // The briefing / base screen's Create and per-frame Update
 // CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
 #include "app.h"
-#include "core_streams.h"
-#include "options.h"
-#include "game_strings.h"
-#include "player_client.h"
-#include "world_glue.h"
+#include "camera.h"
 #include "combat.h"
+#include "core_maths.h"
+#include "core_streams.h"
+#include "core_transform.h"
+#include "game_singletons.h"
+#include "game_strings.h"
+#include "object_tables.h"
+#include "options.h"
+#include "party.h"
+#include "player_client.h"
 #include "player_messages.h"
+#include "sound.h"
+#include "text_split.h"
 #include "ui.h"
 #include "ui_briefing.h"
-
-#include "camera.h"
-#include "core_maths.h"
-#include "core_transform.h"
-#include "object_tables.h"
-#include "sound.h"
 #include "ui_camera_keys.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_client_models.h"
-#include "party.h"
 #include "world.h"
+#include "world_glue.h"
+
+#include "lib/nan_audit.h"
+#include "lib/str.h"
+#include "lib/text_case.h"
 
 #include "ei/x87.h"
-#include "lib/nan_audit.h"
-#include "lib/text_case.h"
-#include "text_split.h"
-#include "lib/str.h"
-#include "game_singletons.h"
 
-#include <bit>
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <cstring>
 #include <string>
@@ -338,23 +338,22 @@ void CBriefingScreen::MarkPeople() {
     std::vector<std::string> parts;
     // The people with a topic open (the list is sorted and deduplicated; only membership is used).
     std::vector<int> open;
-    for (auto node = variables.begin(); node != variables.end(); ++node) {
+    for (auto& node : variables) {
         std::uint32_t bits;
-        bits = std::bit_cast<std::uint32_t>(node->second);
+        bits = std::bit_cast<std::uint32_t>(node.second);
         if (bits != kOneBits) continue;
-        text::Split(node->first, &parts, '.');
+        text::Split(node.first, &parts, '.');
         if (parts.size() != kTopicNameParts) continue;
         if (text::CompareIgnoringCase(str::Left(parts[2], kConstructorPrefix), ConstructorTopic()) == 0) continue;
         int id = TextKeyFromName(parts[1]);
         if (std::find(people_.begin(), people_.end(), id) == people_.end()) continue;
         open.push_back(id);
     }
-    for (int* id = people_.data(); id != people_.data() + people_.size(); ++id) {
-        if (!g_clientWorld->FindUnit(*id)) continue;
-        bool hasTopics = std::find(open.begin(), open.end(), *id) != open.end();
+    for (auto& id : people_) {
+        if (!g_clientWorld->FindUnit(id)) continue;
+        bool hasTopics = std::find(open.begin(), open.end(), id) != open.end();
         auto* player = g_serverWorld->GetPlayer(0);
-        if (player && player->Server())
-            player->Server()->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, *id);
+        if (player && player->Server()) player->Server()->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, id);
     }
     open.clear();
 }

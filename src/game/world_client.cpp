@@ -1,37 +1,36 @@
 // CWorldClient: terrain and platform height queries, unit and exit lookups. See world.h.
-#include "texture.h"
-#include "world.h"
-#include "world_data.h"
-#include "ui.h"
-#include "hash_tables_400.h"
-
 #include "core_maths.h"
+#include "effects.h"
+#include "game_data.h"
+#include "game_singletons.h"
+#include "game_strings.h"
+#include "hash_tables_400.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "net_classes.h"
 #include "net_link.h"
-#include "player_client.h"
-#include "terrain.h"
-#include "sound.h"
-#include "spell.h"
-#include "effects.h"
-#include "game_strings.h"
 #include "object_tables.h"
 #include "party.h"
+#include "player_client.h"
 #include "player_messages.h"
-#include "world_effect.h"
+#include "sound.h"
+#include "spell.h"
+#include "terrain.h"
+#include "texture.h"
+#include "ui.h"
 #include "unit.h"
+#include "world.h"
+#include "world_data.h"
+#include "world_effect.h"
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
+#include "lib/nan_audit.h"
+#include "lib/str.h"
 #include "lib/text_case.h"
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"
-#include "lib/nan_audit.h"
-#include "game_data.h"
-#include "game_singletons.h"
-#include "lib/str.h"
-#include "lib/float_select.h"
 
 #include <cmath>
 #include <cstring>
@@ -55,8 +54,8 @@ float CWorldClient::ClampedGroundHeight(float x, float y) {
 }
 
 float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
-    for (auto node = list.begin(); node != list.end(); ++node) {
-        const Platform& p = *node;
+    for (auto& node : list) {
+        const Platform& p = node;
         float dx = point->x - p.x;
         float dy = point->y - p.y;
         EI_NAN_AUDIT(p.radius, dy, dx);
@@ -78,8 +77,8 @@ float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
 }
 
 bool PlatformSet::Contains(float x, float y) {
-    for (auto node = list.begin(); node != list.end(); ++node) {
-        const Platform& p = *node;
+    for (auto& node : list) {
+        const Platform& p = node;
         float dx = x - p.x;
         float dy = y - p.y;
         EI_NAN_AUDIT(p.radius, dx, dy);
@@ -101,8 +100,8 @@ bool PlatformSet::Contains(float x, float y) {
 void PlatformSet::SurfacePlane(float x, float y, Vector3* normal, float* height) {
     *height = 0.0f;
     *normal = {0.0f, 0.0f, 1.0f};
-    for (auto node = list.begin(); node != list.end(); ++node) {
-        const Platform& p = *node;
+    for (auto& node : list) {
+        const Platform& p = node;
         EI_NAN_AUDIT(p.radius, x, y, p.x, p.y);
         if (p.radius * p.radius < DistanceSquared2D(Vector2{x, y}, Vector2{p.x, p.y})) continue;
         float a = x - p.origin.x;

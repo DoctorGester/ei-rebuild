@@ -1,23 +1,22 @@
 // Missiles: CEffectMissile (the homing base), CEffectArrow (a spell missile carrying a particle
 // source, a light and a sound) and CEffectArrowFigure (a bow shot drawn as a figure). See
 // world_effect.h and docs/notes/effects.md ("Missiles").
-#include "core_streams.h"
-#include "map_object_shadow.h"
-#include "unit_ai.h"
-#include "world_effect.h"
-
 #include "base_manager.h"
 #include "camera.h"
+#include "core_streams.h"
+#include "game_singletons.h"
 #include "game_strings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "unit.h"
-#include "world.h"
-
-#include "../lib/crt.h"
-#include "game_singletons.h"
-#include "lib/nan_audit.h"
+#include "map_object_shadow.h"
 #include "save_versions.h"
+#include "unit.h"
+#include "unit_ai.h"
+#include "world.h"
+#include "world_effect.h"
+
+#include "lib/crt.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cmath>
@@ -25,7 +24,6 @@
 #include <new>
 #include <string>
 #include <vector>
-
 
 namespace {
 

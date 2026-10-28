@@ -86,8 +86,7 @@ void ReadPlayer(CPlayer* p, Builder& b) {
     for (int i = 0; i < std::ssize(party->members_); ++i) b.Unsigned("member#.unit", party->members_[i].unitId, i);
     b.Unsigned("entrance", party->entrance_);
     std::vector<std::pair<std::string, float>> variables;
-    for (auto n = party->variables_.begin(); n != party->variables_.end(); ++n)
-        variables.emplace_back(Text(n->first), n->second);
+    for (auto& n : party->variables_) variables.emplace_back(Text(n.first), n.second);
     std::sort(variables.begin(), variables.end());
     for (const auto& v : variables) b.Float(Intern("var." + v.first), v.second);
 }
@@ -238,7 +237,7 @@ void ReadObject(CEngineObject* o, bool mapObject, const std::map<const void*, in
 
 std::string Describe(CEngineObject* o, bool mapObject) {
     std::string text = std::to_string(o->GetClassId());
-    if (!mapObject) return text + " " + Text(o->GetClassName());
+    if (!mapObject) return text + " " + Text(o->ClassName());
     auto* m = static_cast<CMapObject*>(o);
     text += std::string(" ") + Text(m->name);
     if (o->GetClassId() == kClassUnit) text += std::string(" \"") + Text(static_cast<CUnit*>(m)->scriptName) + "\"";
@@ -597,7 +596,7 @@ void Read(void* server, Snapshot& s) {
     // zone's start in sentObjects_); other world objects (spells, effects, ...) get the base fields.
     std::set<unsigned> mapObjects;
     for (const auto* map : {&w->mapObjects_, &w->sentObjects_, &w->otherMapObjects_})
-        for (auto n = map->map.begin(); n != map->map.end(); ++n) mapObjects.insert(n->first);
+        for (auto& n : map->map) mapObjects.insert(n.first);
     for (const auto& [id, object] : ObjectsById(w->objects_)) {
         const bool mapObject = mapObjects.count(id) != 0;
         b.entity = &Slot(s.state, {kObject, static_cast<int>(id)});
@@ -608,7 +607,7 @@ void Read(void* server, Snapshot& s) {
     // The timed objects' own state (the effects), by id.
     for (const auto& [id, object] : ObjectsById(w->timedObjects_)) {
         Entity entity;
-        entity.description = std::to_string(object->GetClassId()) + " " + Text(object->GetClassName());
+        entity.description = std::to_string(object->GetClassId()) + " " + Text(object->ClassName());
         b.entity = &entity;
         if (ReadTimed(object, b)) s.state[{kTimed, static_cast<int>(id)}] = std::move(entity);
     }

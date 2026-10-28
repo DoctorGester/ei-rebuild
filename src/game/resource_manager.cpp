@@ -5,8 +5,6 @@
 #include <type_traits>
 #include <vector>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
-
 namespace {
 
 bool SameName(const std::string& a, const std::string& b) { return a == b; }

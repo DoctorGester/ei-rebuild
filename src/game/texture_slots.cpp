@@ -4,10 +4,8 @@
 #include "texture.h"
 
 #include "lib/crt.h"
+
 #include <cstring>
-
-
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 void MmpHeader::SetNoFormat() {
     alphaMask = alphaKind = alphaShift = 0;
@@ -56,7 +54,7 @@ void DropSurface(CTexture* texture) {
 } // namespace
 
 const char* CTexture::GetName() { return name_.c_str(); }
-const char* CTexture::GetClassName() { return "CTexture"; }
+const char* CTexture::ClassName() { return "CTexture"; }
 ClassId CTexture::GetClassId() { return kClassTexture; }
 
 int CTexture::Create() {

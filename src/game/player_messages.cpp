@@ -1,22 +1,24 @@
 // CPlayerServer's message writers and the party record lookup. See player_messages.h and
 // docs/notes/objects.md.
 
+#include "player_messages.h"
+
 #include "ai_map.h"
 #include "base_manager.h"
-#include "object_tables.h"
-#include "player_messages.h"
-#include "item.h"
 #include "game_singletons.h"
+#include "item.h"
+#include "object_tables.h"
 #include "party.h"
 #include "random.h"
 #include "script.h"
 #include "unit.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/bytes.h"
-#include "lib/static_object.h"
 #include "lib/nan_audit.h"
+#include "lib/static_object.h"
+
+#include "ei/x87.h"
 
 #include <algorithm>
 #include <bit>
@@ -310,7 +312,7 @@ CPlayerServer::~CPlayerServer() {
     compressor_.out.End();
 }
 
-const char* CPlayerServer::GetClassName() { return "CPlayerServer"; }
+const char* CPlayerServer::ClassName() { return "CPlayerServer"; }
 ClassId CPlayerServer::GetClassId() { return kClassPlayerServer; }
 
 void CPlayerServer::ReleaseSentObjects() {

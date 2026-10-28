@@ -1,25 +1,24 @@
 // The client world's light by the time of day (UpdateLighting) and the zone exit
 // markers' colour (UpdateExitMarkers). See world.h and docs/notes/world.md.
-#include "party.h"
-#include "world.h"
-#include "world_data.h"
-
-#include "sky_object.h"   // before windows.h (GetClassName)
-
 #include "effects.h"
 #include "link_figure.h"
 #include "model.h"
 #include "object_tables.h"
+#include "party.h"
+#include "sky_object.h"
 #include "spell.h"
 #include "terrain.h"
+#include "world.h"
+#include "world_data.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
-#include <string>
+
+#include "ei/x87.h"
 
 #include <bit>
 #include <cmath>
+#include <string>
 
 namespace {
 

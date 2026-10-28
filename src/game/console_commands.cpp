@@ -1,27 +1,27 @@
 // Console command handlers. Each gets the command's arguments, already lower-cased.
 // See docs/notes/console.md.
-#include "app.h"
-#include "ei/x87.h"
-#include "console.h"
-
-#include "../lib/text_case.h"
-#include "lib/calendar.h"
-#include "lib/file_io.h"
-#include "player_client.h"
-#include "text_split.h"
-
-#include "net_classes.h"
 #include "acks_db.h"
-#include "world_glue.h"
+#include "app.h"
+#include "console.h"
+#include "game_singletons.h"
 #include "model.h"
+#include "net_classes.h"
 #include "net_messages.h"
 #include "party.h"
+#include "player_client.h"
 #include "player_messages.h"
+#include "text_split.h"
 #include "ui.h"
 #include "unit.h"
 #include "world.h"
-#include "game_singletons.h"
+#include "world_glue.h"
+
+#include "lib/calendar.h"
+#include "lib/file_io.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
+
+#include "ei/x87.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -246,11 +246,11 @@ void ListVar(std::vector<std::string>* args) {
             EndLine(g_consoleOut << "Cannot open file " << (*args)[1] << " for writing");
     }
     const NamedFloatTable& variables = player->Party()->variables_;
-    for (auto node = variables.begin(); node != variables.end(); ++node) {
-        const std::string& name = node->first;
-        EndLine(g_consoleOut << name << " = " << node->second);
+    for (auto& node : variables) {
+        const std::string& name = node.first;
+        EndLine(g_consoleOut << name << " = " << node.second);
         if (writing) {
-            line = str::Format("%s %g\n", name, static_cast<double>(node->second));
+            line = str::Format("%s %g\n", name, static_cast<double>(node.second));
             file.WriteString(line);
         }
     }

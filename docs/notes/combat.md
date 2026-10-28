@@ -9,7 +9,7 @@ animation code each tick, so any scenario with units reaches it.
 
 ## Address map
 
-Most of the range is **CUnitServer** (class id 0x3E, vtable 0073EF38, 54 slots, GetClassName 005460C0; abstract base vtable
+Most of the range is **CUnitServer** (class id 0x3E, vtable 0073EF38, 54 slots, ClassName 005460C0; abstract base vtable
 0073EDBC; constructor 00545580, 0xB20 bytes), the server-side unit controller at CUnit + 0x240.
 
 | Range | Contents |

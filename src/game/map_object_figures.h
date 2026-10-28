@@ -10,20 +10,17 @@
 #include "figure_mesh.h"            // CFigureMesh (an object's figure parts)
 #include "map_object_animation.h"   // AnimationTrack (a bone's animator)
 #include "maths.h"
-#include "model.h"              // FootprintPart (the part boxes)
+#include "model.h"   // FootprintPart (the part boxes)
 
 #include "lib/containers.h"
-#include <cstddef>
-#include <cstdint>
-#include <string>
 #include "lib/nan_audit.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <list>
+#include <string>
 #include <vector>
-
 #include <windows.h>   // RECT (dirtyRect)
-
-#undef GetClassName   // CEngineObject::GetClassName
 
 class CObject3D;
 class CParticleSource;
@@ -129,7 +126,7 @@ public:
     ~CObject3DServer() override;
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     int OnPartAdded(CFigureMesh* part) override;
     CFigureMesh* RemoveFromPartSets(const char* name) override;
@@ -163,7 +160,7 @@ struct FigureBone : CEngineObject {
     int Create() override;
     void Destroy() override;
     const char* GetName() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     int CreateBone();
@@ -207,7 +204,7 @@ public:
 
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     int CreateState();

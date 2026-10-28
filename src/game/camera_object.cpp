@@ -1,23 +1,22 @@
 // The camera object itself: construction and destruction, its small virtuals, Init, and saving / loading
 // its state with the world. See camera.h and docs/notes/core.md.
 #include "camera.h"
-
 #include "core_streams.h"
+#include "save_versions.h"
+#include "world.h"
 
-#include "lib/file_io.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "lib/file_io.h"
 #include "lib/gameapi.h"
+#include "lib/str.h"
+
 #include <bit>
 #include <cstdint>
-#include <cstring>
-#include <string>
-#include "world.h"
-#include "lib/str.h"
-#include "save_versions.h"
-
 #include <cstdlib>
+#include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -84,7 +83,7 @@ void ConstructCamera() {
     std::atexit(DestroyCamera);
 }
 
-const char* CCamera::GetClassName() { return "CCamera"; }
+const char* CCamera::ClassName() { return "CCamera"; }
 ClassId CCamera::GetClassId() { return kClassCamera; }
 
 int CCamera::Create() {

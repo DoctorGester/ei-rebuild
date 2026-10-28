@@ -1,8 +1,8 @@
 // Containers (CUiContainer, ui.h): the default input handlers of their input side, which pass an
 // event on to the extra input sides and the child windows. See docs/notes/ui.md ("Container input dispatch").
+#include "game_singletons.h"
 #include "model.h"
 #include "ui.h"
-#include "game_singletons.h"
 
 #include "ei/x87.h"
 
@@ -74,10 +74,10 @@ void CUiContainer::ShowChildren(int show) {
 void CUiContainer::Dispatch(int slot, int a, int b, int c, bool atPoint) {
     CUiContainer* self = this;
     handled_ = false;
-    for (auto side = self->inputs_.begin(); side != self->inputs_.end(); ++side) {
-        (*side)->handled_ = false;
-        (*side)->Event(slot, a, b, c);
-        if ((*side)->handled_) {
+    for (auto& side : self->inputs_) {
+        side->handled_ = false;
+        side->Event(slot, a, b, c);
+        if (side->handled_) {
             handled_ = true;
             return;
         }
@@ -98,7 +98,7 @@ void CUiContainer::Dispatch(int slot, int a, int b, int c, bool atPoint) {
 
 void CUiContainer::Deactivate() {
     CUiContainer* self = this;
-    for (auto side = self->inputs_.begin(); side != self->inputs_.end(); ++side) (*side)->Deactivate();
+    for (auto& side : self->inputs_) side->Deactivate();
     for (int i = 0; i < std::ssize(self->children_); ++i) self->children_[i]->Input()->Deactivate();
 }
 
@@ -158,10 +158,10 @@ int CUiContainer::KeyUp(int key, int repeat, int flags) {
 int CUiContainer::Wheel(int flags, int delta, int x, int y) {
     CUiContainer* self = this;
     handled_ = false;
-    for (auto side = self->inputs_.begin(); side != self->inputs_.end(); ++side) {
-        (*side)->handled_ = false;
-        (*side)->Wheel(flags, delta, x, y);
-        if ((*side)->handled_) {
+    for (auto& side : self->inputs_) {
+        side->handled_ = false;
+        side->Wheel(flags, delta, x, y);
+        if (side->handled_) {
             handled_ = true;
             return 1;
         }

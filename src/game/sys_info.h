@@ -7,14 +7,12 @@
 
 #include "engine_object.h"
 
+#include "lib/static_object.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include "lib/static_object.h"
-
 #include <windows.h>
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
-
 
 // What CPUID function 1 reported (the globals; zeros on a processor without CPUID):
 // EAX, EBX, ECX as twelve bytes, a terminator, then EDX (the feature flags). Written by CSysInfo's
@@ -50,7 +48,7 @@ public:
 
     int Create() override;                  // everything collected; 1
     void Destroy() override {}              // empty
-    const char* GetClassName() override;    // "CSysInfo"
+    const char* ClassName() override;       // "CSysInfo"
     ClassId GetClassId() override;
 
     // Everything below filled from the system; returns 1.

@@ -1,17 +1,15 @@
 // CServerSpecificManager and CTorchObjectSpec. See server_specific_manager.h.
-#include "combat.h"
 #include "server_specific_manager.h"
 
-#include "unit.h"   // CMapObjectServer
+#include "combat.h"
 #include "player_messages.h"
+#include "unit.h"   // CMapObjectServer
 
 #include <new>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
-
 namespace {
 
-// The class names are the exe's strings (GetClassName returns their addresses).
+// The class names are the exe's strings (ClassName returns their addresses).
 constexpr const char* kManagerClassName = "CServerSpecificManager";
 constexpr const char* kTorchSpecClassName = "CTorchObjectSpecific";
 
@@ -31,7 +29,7 @@ CServerSpecificManager::CServerSpecificManager() {}
 
 CServerSpecificManager::~CServerSpecificManager() {}
 
-const char* CServerSpecificManager::GetClassName() { return kManagerClassName; }
+const char* CServerSpecificManager::ClassName() { return kManagerClassName; }
 ClassId CServerSpecificManager::GetClassId() { return kClassServerSpecificManager; }
 
 // Every object starts zeroed (kZeroed): CUnitServer's constructor leaves waitFrame,
@@ -61,6 +59,6 @@ CTorchObjectSpec::CTorchObjectSpec() {
 
 CTorchObjectSpec::~CTorchObjectSpec() { DestroySpec(); }
 
-const char* CTorchObjectSpec::GetClassName() { return kTorchSpecClassName; }
+const char* CTorchObjectSpec::ClassName() { return kTorchSpecClassName; }
 ClassId CTorchObjectSpec::GetClassId() { return kClassTorchObjectSpec; }
 int CTorchObjectSpec::RunTick() { return 1; }

@@ -1,13 +1,12 @@
 // The game server's handlers of the login message (LoginMessage, registered by the server constructor):
 // a client joined (a player record and a connection binding for it), its record changed or it left. See
 // net_classes.h and docs/notes/network.md.
-#include "net_messages.h"
-#include "net_connection.h"
 #include "core_refcount.h"
-
+#include "game_singletons.h"
+#include "net_connection.h"
+#include "net_messages.h"
 #include "ui.h"
 #include "world_data.h"
-#include "game_singletons.h"
 
 #include <cstring>
 #include <string>
@@ -44,17 +43,17 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     BindingMessage* bound = self->bindings_.back().Get();
 
     std::string* name = &record->name_;
-    if (&msg->name_ != name) *name = msg->name_;
+    *name = msg->name_;
     record->state_ = msg->state_;
-    if (&msg->text_ != &record->text_) record->text_ = msg->text_;
+    record->text_ = msg->text_;
     record->id_ = msg->id_;
 
     // The lowest player number no player has yet.
     int number = 1;
     for (;;) {
         bool used = false;
-        for (auto it = self->players_.begin(); it != self->players_.end(); ++it) {
-            if (it->Get()->number_ == number) {
+        for (auto& it : self->players_) {
+            if (it.Get()->number_ == number) {
                 used = true;
                 break;
             }

@@ -4,17 +4,18 @@
 // background through Locks of the holders' surfaces, has no caller of ours since: the new renderer draws the
 // cursor, ui_cursor_frame.cpp.)
 #include "ui_cursor.h"
+
+#include "game_singletons.h"
+#include "model.h"
 #include "surface.h"
 #include "texture.h"
+#include "world.h"
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
 #include <cstdint>
 #include <cstring>
-#include "game_singletons.h"
-#include "model.h"
-#include "world.h"
 
 // --- a cursor image ------------------------------------------------------------------------------
 
@@ -41,7 +42,7 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     MmpHeader* picture = manager->GetFileData(name);
     // (A throw frees the holder's memory and passes the exception on; that ends the game.)
     holder = new Surface(g_sceneRenderer->device_, picture);
-    if (holder) ++holder->refs_;
+    ++holder->refs_;
     // (A holder kept before here would be released; there is none: it was cleared above.)
     manager->CloseFile(picture);
 

@@ -1,15 +1,13 @@
 // CBaseManager and the object list iterator. See base_manager.h and docs/notes/core.md.
 #include "base_manager.h"
-#include "hash_tables_400.h"
 
 #include "core_streams.h"
+#include "hash_tables_400.h"
 
 #include "lib/crt.h"
 
 #include <list>
 #include <type_traits>
-
-#undef GetClassName
 
 namespace {
 

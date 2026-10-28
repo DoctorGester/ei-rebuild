@@ -1,16 +1,16 @@
 // The session's receive step, its packet handlers, sends and destruction,
 // and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
 #include "console.h"
-#include "net_classes.h"
+#include "core_streams.h"
+#include "game_data.h"
 #include "game_strings.h"
+#include "net_classes.h"
 #include "net_coder.h"
 #include "net_connection.h"
 
-#include "core_streams.h"
 #include "lib/bytes.h"
-#include "lib/static_object.h"
 #include "lib/crt.h"
-#include "game_data.h"
+#include "lib/static_object.h"
 
 #include <cstring>
 
@@ -216,8 +216,8 @@ namespace net {
 // Every client is sent a leave packet; the connections are released (the owner's release) after the socket
 // and the type registry.
 SessionBase::~SessionBase() {
-    for (auto node = clients_.begin(); node != clients_.end(); ++node) {
-        Connection* connection = node->Get();
+    for (auto& node : clients_) {
+        Connection* connection = node.Get();
         std::uint32_t id = connection->id_;
         GrowingBuffer storage;
         auto* buffer = &storage;

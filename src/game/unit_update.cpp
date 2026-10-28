@@ -1,18 +1,15 @@
 // CUnit's own virtuals: the per-tick update and the virtuals that pass map object
 // events on to the unit's controller, plus standing on the ground. See unit.h and docs/notes/units.md.
 #include "combat.h"
-#include "unit.h"
-
 #include "map_object.h"
 #include "object_tables.h"
+#include "unit.h"
 #include "unit_db.h"
 #include "world.h"
 
 #include "lib/crt.h"
 
 #include <cstring>
-
-#undef GetClassName
 
 namespace {
 constexpr const char* kUnitClassName = "CUnit";
@@ -145,7 +142,7 @@ int CUnit::RunTick() { return Tick(); }
 const char* CUnit::GetName() { return scriptName.c_str(); }
 void CUnit::Load(CStream* stream) { LoadUnit(stream); }
 void CUnit::Save(CStream* stream) { SaveUnit(stream); }
-const char* CUnit::GetClassName() { return kUnitClassName; }
+const char* CUnit::ClassName() { return kUnitClassName; }
 ClassId CUnit::GetClassId() { return kClassUnit; }
 bool CUnit::IsSynchronised() { return true; }
 Vector3* CUnit::EyePoint(Vector3* out) {

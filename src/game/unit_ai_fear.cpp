@@ -1,23 +1,23 @@
 // The unit AI's Fear mode: how afraid the unit is (Evaluate) and running
 // away or taking shelter (Execute); and the brain taking up a chosen attack.
-#include "unit_ai.h"
-
 #include "ai_map.h"
 #include "ai_scoped_path.h"
 #include "combat.h"
+#include "game_singletons.h"
 #include "logic_settings.h"
 #include "map_object.h"
 #include "random.h"
+#include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
-#include "game_singletons.h"
+
+#include "lib/nan_audit.h"
 
 #include "ei/x87.h"
-#include "lib/nan_audit.h"
-#include <cstdint>
 
 #include <bit>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 
 namespace {
@@ -172,8 +172,8 @@ int FearMode::Evaluate(AIBrain* brain) {
         // The nearest player unit in sight (2D).
         double best = kFar;
         Vector3 nearest{};      // left unset when there is none (then 1e30 is never inside)
-        for (auto node = brain->memory.visible.begin(); node != brain->memory.visible.end(); ++node) {
-            auto* other = *node;
+        for (auto& node : brain->memory.visible) {
+            auto* other = node;
             if (!other->player) continue;
             const Vector3* me = &brain->owner->unit->localPosition_;
             double oy = static_cast<double>(me->y) - other->localPosition_.y;

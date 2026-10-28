@@ -3,14 +3,14 @@
 // game's x87 code: `double` for values the game keeps on the FPU stack, static_cast<float> where it stores to
 // a float.
 #include "camera.h"
-
+#include "game_singletons.h"
 #include "map_object_figures.h"
 #include "world.h"
 
-#include "ei/x87.h"
-#include "game_singletons.h"
-#include "lib/nan_audit.h"
 #include "lib/float_select.h"
+#include "lib/nan_audit.h"
+
+#include "ei/x87.h"
 
 #include <bit>
 #include <cstdint>
@@ -136,8 +136,8 @@ void CCamera::ClampAboveObjects() {
     std::list<CObject3D*> list;
     g_clientWorld->ObjectsInRange(p, 16.0f, &list);
     float best = 0.0f;
-    for (std::list<CObject3D*>::iterator node = list.begin(); node != list.end(); ++node) {
-        const CObject3D* object = (*node);
+    for (auto& node : list) {
+        const CObject3D* object = node;
         const float limit = CAM_OBJECT_EXTENT_LIMIT;
         if (object->bounds.boxMax.x > limit || object->bounds.boxMax.y > limit || object->bounds.boxMax.z > limit ||
             object->bounds.center.z > limit)

@@ -1,17 +1,13 @@
 // CTextureManager's lifetime, Destroy and CreateObject. See texture.h and
 // docs/notes/items_spells.md ("Textures").
-#include "texture.h"
-
-#include "mod_folders.h"
-#include "world_data.h"   // the text resources' folder
-
 #include "game_data.h"
+#include "mod_folders.h"
+#include "texture.h"
+#include "world_data.h"   // the text resources' folder
 
 #include <list>
 #include <new>
 #include <string>
-
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 
@@ -86,6 +82,6 @@ CEngineObject* CTextureManager::CreateObject(int type, int id) {
     return object;
 }
 
-const char* CTextureManager::GetClassName() { return kClassName; }
+const char* CTextureManager::ClassName() { return kClassName; }
 ClassId CTextureManager::GetClassId() { return kClassTextureManager; }
 const char* CTextureManager::GetFolderName() { return kFolder; }

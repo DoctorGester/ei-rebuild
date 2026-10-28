@@ -14,8 +14,6 @@
 #include <new>
 #include <string>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
-
 namespace {
 
 constexpr const char* kMaterialClassName = "CMaterial";
@@ -63,7 +61,7 @@ void CMaterial::Destroy() {
 }
 
 const char* CMaterial::GetName() { return name.c_str(); }
-const char* CMaterial::GetClassName() { return kMaterialClassName; }
+const char* CMaterial::ClassName() { return kMaterialClassName; }
 ClassId CMaterial::GetClassId() { return kClassMaterial; }
 
 CMaterialManager::CMaterialManager() {}
@@ -117,6 +115,6 @@ int CMaterialManager::FillMaterial(CMaterial* material, unsigned key) {
     return 1;
 }
 
-const char* CMaterialManager::GetClassName() { return kManagerClassName; }
+const char* CMaterialManager::ClassName() { return kManagerClassName; }
 ClassId CMaterialManager::GetClassId() { return kClassMaterialManager; }
 const char* CMaterialManager::GetFolderName() { return kManagerFolder; }

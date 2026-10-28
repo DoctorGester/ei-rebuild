@@ -1,8 +1,7 @@
 // Lights and the light manager: CLight's lifetime and setters, CLightFactory ("CLightManager")
 // lifetime and object creation. See spell.h and docs/notes/items_spells.md.
-#include "spell.h"
-
 #include "core_transform.h"
+#include "spell.h"
 
 #include "lib/crt.h"
 #include "lib/vecmath.h"
@@ -12,8 +11,6 @@
 #include <cstring>
 #include <list>
 #include <new>
-
-#undef GetClassName   // CEngineObject::GetClassName
 
 namespace {
 
@@ -95,7 +92,7 @@ void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vect
 
 int CLight::Create() { return 1; }
 void CLight::Destroy() { flags_ &= ~kFlagDestroyed; }
-const char* CLight::GetClassName() { return "CLight"; }
+const char* CLight::ClassName() { return "CLight"; }
 ClassId CLight::GetClassId() { return kClassLight; }
 
 // --- CLightFactory -------------------------------------------------------------------------------
@@ -127,5 +124,5 @@ CEngineObject* CLightFactory::CreateObject(int type, int id) {
     return object;
 }
 
-const char* CLightFactory::GetClassName() { return "CLightManager"; }
+const char* CLightFactory::ClassName() { return "CLightManager"; }
 ClassId CLightFactory::GetClassId() { return kClassLightFactory; }

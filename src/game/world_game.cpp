@@ -1,69 +1,67 @@
 // The game flow object (the state machine runs on it, Rebirth patches that one): saving a game into
 // saves\<slot>, entering a zone. See docs/notes/world.md.
+#include "bink_video.h"
 #include "camera.h"
+#include "console.h"
+#include "core_maths.h"
 #include "core_refcount.h"
-#include "options.h"
-#include "player_manager.h"
-#include "random.h"
+#include "core_streams.h"
+#include "game_data.h"
+#include "game_flow_data.h"
+#include "game_singletons.h"
+#include "game_strings.h"
 #include "item_db.h"
 #include "item_db_text.h"
-#include "net_coder.h"
-#include "sound.h"
-#include "net_session.h"
-#include "ui.h"
-#include "ui_screens.h"
-#include "world.h"
-#include "game_flow_data.h"
-#include "game_strings.h"
-
-#include "console.h"
-
-#include "core_maths.h"
-#include "core_streams.h"
 #include "mob_script_decoder.h"
+#include "mod_folders.h"
 #include "net_classes.h"
+#include "net_coder.h"
 #include "net_connection.h"
 #include "net_link.h"
 #include "net_messages.h"
+#include "net_session.h"
 #include "object.h"
 #include "object_tables.h"
+#include "options.h"
 #include "party.h"
+#include "party_manager.h"
+#include "party_records.h"
 #include "player_client.h"
-#include "ui_cursor.h"
+#include "player_manager.h"
 #include "player_messages.h"
+#include "random.h"
+#include "save_versions.h"
+#include "sound.h"
+#include "ui.h"
+#include "ui_cursor.h"
+#include "ui_screens.h"
 #include "unit.h"
 #include "unit_db.h"
-#include "mod_folders.h"
+#include "world.h"
 #include "world_map_files.h"
 
-#include "lib/file_io.h"
 #include "lib/containers.h"
-#include "lib/static_object.h"
 #include "lib/crt.h"
+#include "lib/file_io.h"
 #include "lib/gameapi.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <memory>
-#include <new>
-#include <string>
+#include "lib/nan_audit.h"
+#include "lib/static_object.h"
+#include "lib/str.h"
 #include "lib/text_case.h"
 
 #include "ei/rebirth.h"
-#include "party_manager.h"
-#include "party_records.h"
-#include "bink_video.h"
-#include "game_data.h"
-#include "lib/nan_audit.h"
-#include "game_singletons.h"
-#include "lib/str.h"
-#include "save_versions.h"
 
 #include <algorithm>
-#include <cmath>
-#include <cstdlib>
-#include <list>
 #include <bit>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <list>
+#include <memory>
+#include <new>
+#include <string>
 #include <vector>
 
 namespace {
@@ -943,7 +941,7 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
         node = next;
     }
     // The list's destructor: every reference released, then the blocks.
-    for (auto node = joined.begin(); node != joined.end(); ++node) ReleaseSession(*node);
+    for (auto& node : joined) ReleaseSession(node);
     joined.clear();
 }
 
@@ -1401,8 +1399,7 @@ void GameFlow::AfterServerStart() {
 void GameFlow::UpdateFromServer() {
     if (!Active(net::g_gameClient)) return;
     if (CTextManager* texts = g_clientWorld->texts_) {
-        for (const std::string* file = g_questFiles.data(); file != g_questFiles.data() + g_questFiles.size(); ++file)
-            texts->RemoveSource(*file);
+        for (const auto& file : g_questFiles) texts->RemoveSource(file);
         g_questFiles.clear();
     }
     auto* clientWorld = &g_clientWorld.Get();

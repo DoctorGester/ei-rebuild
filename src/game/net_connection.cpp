@@ -1,11 +1,12 @@
 // Connections of the network sessions: object replication. See net_connection.h.
-#include "console.h"
-#include "net_coder.h"
 #include "net_connection.h"
-#include "game_strings.h"
 
+#include "console.h"
 #include "core_refcount.h"
 #include "core_streams.h"
+#include "game_strings.h"
+#include "net_coder.h"
+
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -45,7 +46,7 @@ std::int32_t BufferedSize(GameBuffer* b) {
 // is read again after each call.
 void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObject* message) {
     std::vector<MessageHandler>& v = session->handlers_[channel][type & 0xFF];
-    for (MessageHandler* h = v.data(); h != v.data() + v.size(); ++h) (*h)(session, message);
+    for (auto& h : v) h(session, message);
 }
 
 // A message's virtual Write and Read over a byte cursor.
@@ -171,8 +172,8 @@ bool Connection::SendUpdate(int budget) {
     for (int priority = 10; priority >= 0; --priority) {
         // In the order the entries were tracked (the original: by the entry's address).
         std::map<std::uint32_t, EntryRef>& map = priorities_[priority];
-        for (auto it = map.begin(); it != map.end(); ++it) {
-            ReplicaEntry* entry = it->second.get();
+        for (auto& it : map) {
+            ReplicaEntry* entry = it.second.get();
             Message* object = entry->Object();
             bool alive;
             if (object && !(object->flags7_ & CRefObject::kDetached)) {
@@ -536,8 +537,8 @@ bool Connection::Accept(std::uint32_t sequence) {
     }
     if (!(newest > sequence)) newest = sequence;
     lastReceived_ = newest;
-    for (std::int32_t* it = received_.data(); it != received_.data() + received_.size(); ++it) {
-        if (*it == static_cast<std::int32_t>(sequence)) {
+    for (auto& it : received_) {
+        if (it == static_cast<std::int32_t>(sequence)) {
             if (g_netLog) {
                 std::string peer = address_.ToString();
                 const char* text = peer.data();
@@ -624,8 +625,8 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
 
 void Connection::Close() {
     g_currentConnection = this;
-    for (auto it = records_.begin(); it != records_.end(); ++it) {
-        RefPtr* slot = &it->second.object;
+    for (auto& it : records_) {
+        RefPtr* slot = &it.second.object;
         if (CRefObject* object = slot->ptr) {
             SessionBase* session = g_currentSession;
             auto found = session->types_.byVtable.find(TypeRegistry::KeyOf(object));

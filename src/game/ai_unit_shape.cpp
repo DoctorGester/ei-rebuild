@@ -16,7 +16,7 @@ constexpr int kMiddle = 8;
 
 } // namespace
 
-// No references, no flags (the original's creators write them before they test the allocation).
+// No references, no flags.
 CUnitShape::CUnitShape(float newRadius) {
     refs_ = 0;
     flags6_ = 0;
@@ -49,7 +49,6 @@ int CUnitShape::OnShutdown() {
 
 CUnitShape* CUnitShape::Clone() {
     auto* copy = new CUnitShape();
-    if (!copy) return nullptr;
     std::memcpy(copy->levels, levels, sizeof(levels));
     copy->radius = radius;
     return copy;

@@ -2,17 +2,17 @@
 // the caches' trimming, the base Create and the icon window's
 // frame. See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "app.h"
+#include "core_streams.h"
+#include "item.h"
 #include "model.h"
+#include "party.h"
 #include "texture.h"
 #include "ui.h"
-#include "ui_item_info.h"
 #include "ui_camp.h"
+#include "ui_item_info.h"
 #include "ui_screens.h"
-#include "core_streams.h"
 
 #include "lib/gameapi.h"
-#include "item.h"
-#include "party.h"
 
 #include <cstdint>
 #include <cstring>
@@ -136,7 +136,6 @@ CExchangeScreen::~CExchangeScreen() {}
 
 ItemTurn* ItemTurn::Clone() {
     auto* copy = new ItemTurn();
-    if (!copy) return nullptr;
     copy->angle = angle;
     copy->speed = speed;
     copy->flag = flag;

@@ -154,7 +154,7 @@ does not need a second pass:
   field or the named global (`g_random`, `net::g_gameClient`, `g_logicSettings`), also through a dereference or an
   address (`*g_dataFolder`, `g_itemDatabase->weapons`, `&g_deviceLock`, `unit->brain.memory`; C38a: a
   `lib::StaticObject` is built by its static initialiser either way). Getters stay where they are virtual
-  (GetClassName, the manager context's slots), compute or convert (`return this`, `&stack_.back()`), give a base
+  (ClassName, the manager context's slots), compute or convert (`return this`, `&stack_.back()`), give a base
   class's shared field its meaning in a subclass (a pair message's `ConnectionRef()` for `second_`), or are the
   only const view of a file's state (the renderer's `FrameNumber()`). A field is named by what it means, not
   through a getter (C40);

@@ -1,16 +1,15 @@
 // CWorldServer: keeping each player's view of the world up to date (single player too: the local
 // player is a client of the server). SyncPlayer runs once per world update for every player
 // SendZone sends a player the zone it has to load. See world.h and docs/notes/world.md.
-#include "world.h"
-#include "options.h"
-
 #include "combat.h"
 #include "core_maths.h"
 #include "core_streams.h"
 #include "map_object.h"
 #include "object.h"
+#include "options.h"
 #include "player_messages.h"
 #include "unit.h"
+#include "world.h"
 #include "world_effect.h"
 
 #include "lib/bytes.h"
@@ -143,7 +142,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         float range = perception >= minimum ? perception : minimum;   // branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * kHearingScale + kHearingMargin);
         world->aiMap_.sectorMap.FindUnitsInRadius(&unit->localPosition_, &heard, radius);
-        for (auto entry = heard.begin(); entry != heard.end(); ++entry) *out++ = *entry;
+        for (auto& entry : heard) *out++ = entry;
         heard.clear();
     }
     return out;

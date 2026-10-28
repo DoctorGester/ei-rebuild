@@ -1,9 +1,8 @@
 // The spell manager's own code and the spell container's lifetime: CreateSpellObject, the factory, Create /
 // Destroy, the destructor, and the "sequences" it keeps (spell.h, SpellSequence). See
 // docs/notes/items_spells.md.
-#include "spell.h"
-
 #include "item_db.h"
+#include "spell.h"
 
 #include "lib/crt.h"
 
@@ -11,8 +10,6 @@
 #include <memory>
 #include <new>
 #include <vector>
-
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 
@@ -88,7 +85,7 @@ CSpellManager::~CSpellManager() {
     CResourceManager::Destroy();
 }
 
-const char* CSpellManager::GetClassName() { return kSpellManagerClassName; }
+const char* CSpellManager::ClassName() { return kSpellManagerClassName; }
 ClassId CSpellManager::GetClassId() { return kClassSpellManager; }
 const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
 
@@ -114,5 +111,5 @@ CSpellContainer::~CSpellContainer() {
     spell_.Destroy();
 }
 
-const char* CSpellContainer::GetClassName() { return "CSpellContainer"; }
+const char* CSpellContainer::ClassName() { return "CSpellContainer"; }
 ClassId CSpellContainer::GetClassId() { return kClassSpellContainer; }

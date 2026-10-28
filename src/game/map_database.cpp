@@ -1,18 +1,17 @@
 // The map database loader: CMapDatabase's allods, maps and exits (object_tables.h) filled from map.txt / map-
 // LMP.txt.
 // More: docs/notes/comments-c22i.md, "map_database.cpp".
-#include "item_db_text.h"
 #include "angles.h"
-#include "game_strings.h"
-
 #include "console.h"
-#include "object_tables.h"
-
-#include "../lib/text_case.h"
-#include "text_reader.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "game_strings.h"
+#include "item_db_text.h"
+#include "object_tables.h"
+#include "text_reader.h"
 #include "world.h"
+
+#include "lib/text_case.h"
 
 #include <cstdlib>
 #include <cstring>

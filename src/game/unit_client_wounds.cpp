@@ -1,9 +1,8 @@
 // A party unit's wounds, face texture and weapon point on the client (CUnitClientSpecific): the wound level
 // of each body part and the composed wounds texture the figure shows called by RefreshWounds See
 // unit_client_models.h.
-#include "unit_client_models.h"
-
 #include "core_maths.h"
+#include "game_singletons.h"
 #include "item.h"
 #include "item_db.h"
 #include "map_object_figures.h"
@@ -12,25 +11,21 @@
 #include "texture.h"   // CTexture, CTextureManager
 #include "ui.h"
 #include "unit.h"
+#include "unit_client_models.h"
 #include "unit_db.h"
+#include "world.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <string>
-
-#include "game_singletons.h"
-#include "world.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <new>
-
-// windows.h (through texture.h) renames CEngineObject's GetClassName.
-#undef GetClassName
+#include <string>
 
 namespace {
 constexpr int kBodyParts = 6;
@@ -174,7 +169,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
         AssignTexture(&woundsTexture, manager->FindTypedTexture(kWoundsTextureKind, name));
         if (!woundsTexture) {
             AssignTexture(&woundsTexture, manager->FindOrCreate(kWoundsTextureKind, name));
-            if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->GetClassName(), object->id_);
+            if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->ClassName(), object->id_);
         }
     }
     std::vector<std::uint8_t> extra{};

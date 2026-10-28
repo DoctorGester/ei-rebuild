@@ -1,15 +1,16 @@
 // The game server's tick and a player state query (called by the file chunk sender). Float maths in plain C++
 // (rewrite-guide rule 7). See net_classes.h and docs/notes/network.md.
-#include "ei/x87.h"
-#include "net_classes.h"
-#include "net_messages.h"
-#include "net_connection.h"
-#include "options.h"
-#include "game_strings.h"
 #include "core_refcount.h"
-
+#include "game_strings.h"
+#include "net_classes.h"
+#include "net_connection.h"
+#include "net_messages.h"
+#include "options.h"
 #include "world_data.h"
+
 #include "lib/nan_audit.h"
+
+#include "ei/x87.h"
 
 #include <cstring>
 
@@ -60,8 +61,8 @@ void ServerSession::Tick(double dt) {
 // False for a dead connection, binding or player.
 bool ServerSession::PlayerStateIs3(const Connection* connection) {
     if (!IsLive(connection)) return false;
-    for (auto node = bindings_.begin(); node != bindings_.end(); ++node) {
-        auto* binding = node->Get();
+    for (auto& node : bindings_) {
+        auto* binding = node.Get();
         if (binding->ConnectionRef().ptr != connection) continue;
         if (!IsLive(binding)) return false;
         auto* player = binding->Player();

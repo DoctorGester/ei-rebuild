@@ -4,23 +4,23 @@
 // announcement and the master answer (NewMaster; both reproduced: the answer's NOPs and the announcement's
 // copy of the announcement to the second master server, net_second_master.h) and addon.dll's ChatLog has a
 // site in the chat handler (disabled in this install). See docs/notes/network.md and rebirth.md.
-#include "net_classes.h"
-
 #include "core_refcount.h"
 #include "game_strings.h"
+#include "net_classes.h"
 #include "net_coder.h"
 #include "net_connection.h"
 #include "net_messages.h"
 #include "net_second_master.h"
-#include "world.h"             // g_gameFlow
+#include "world.h"   // g_gameFlow
 
-#include "ei/rebirth.h"
-#include <cstdint>
-#include <cstring>
-#include <string>
 #include "lib/str.h"
 
+#include "ei/rebirth.h"
+
+#include <cstdint>
+#include <cstring>
 #include <new>
+#include <string>
 
 namespace net {
 
@@ -87,8 +87,8 @@ void ServerOnSay(ServerSession* server, SayMessage* message) {
     Connection* connection = g_currentConnection;
     if (!connection || (connection->flags7_ & CRefCounted::kDetached)) return;
     const auto& bindings = server->bindings_;
-    for (auto node = bindings.begin(); node != bindings.end(); ++node) {
-        auto* binding = node->Get();
+    for (auto& node : bindings) {
+        auto* binding = node.Get();
         if (binding->ConnectionRef().ptr != connection) continue;
         // (The original also tests the binding for null here, after having read it.)
         if (binding->flags7_ & CRefCounted::kDetached) return;

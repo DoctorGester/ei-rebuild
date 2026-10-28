@@ -7,7 +7,7 @@ const char* const kServerName = "CUnitServer";
 } // namespace
 
 // Class name and id.
-const char* CUnitServer::GetClassName() { return kServerName; }
+const char* CUnitServer::ClassName() { return kServerName; }
 ClassId CUnitServer::GetClassId() { return kClassUnitServer; }
 
 void CUnitServer::MoveFactorsChanged() { UpdateMoveFactors(); }

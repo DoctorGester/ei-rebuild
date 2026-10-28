@@ -1,8 +1,7 @@
 // Random animations of a 3D object's figure (CObject3D::RandomAnimation and RandomAnimationOfKind; units'
 // FindAnimation picks idle, attack and death animations with them). See map_object_figures.h.
-#include "map_object_figures.h"
-
 #include "map_object.h"
+#include "map_object_figures.h"
 
 #include "lib/crt.h"
 
@@ -11,14 +10,11 @@
 namespace {
 constexpr std::uint32_t kKeyLowBits = 0x7FFF;          // variant bits a key may ask for
 constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
-constexpr int kRandMax = 0x7FFF;
 
 bool Accepts(CObject3D* object, const FigureAnimation* animation) {
     return object->AcceptsAnimation(animation);
 }
 
-// rand() scaled to 0..count-1 as the game does.
-int RandomIndex(int count) { return (libcrt::Rand() * count / kRandMax) % count; }
 } // namespace
 
 FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
@@ -39,8 +35,8 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
         FigureAnimation* only = count == 1 ? list[0] : nullptr;
         return only;
     }
-    std::uint32_t percent = static_cast<std::uint32_t>((libcrt::Rand() * 100 / kRandMax) % 100);
-    FigureAnimation* picked = list[RandomIndex(count)];
+    std::uint32_t percent = static_cast<std::uint32_t>(libcrt::RandBelow(100));
+    FigureAnimation* picked = list[libcrt::RandBelow(count)];
     for (int i = 0; i < count; ++i) {
         if (list[i]->chance < percent) {
             for (int k = i; k < count - 1; ++k) list[k] = list[k + 1];
@@ -48,7 +44,7 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
             --i;
         }
     }
-    if (count > 0) picked = list[RandomIndex(count)];
+    if (count > 0) picked = list[libcrt::RandBelow(count)];
     return picked;
 }
 
@@ -67,6 +63,6 @@ FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
     if (candidates.empty()) {
         return nullptr;
     }
-    FigureAnimation* picked = candidates[RandomIndex(std::ssize(candidates))];
+    FigureAnimation* picked = candidates[libcrt::RandBelow(std::ssize(candidates))];
     return picked;
 }

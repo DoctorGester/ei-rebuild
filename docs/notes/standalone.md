@@ -826,13 +826,11 @@ decision). `python tools/named_data.py --split vtable` lists each table with the
 - **Traps**: a class constant left in a derived class compiles against the base class's (the item tags once stored
   CEngineObject's table, every run hit `_purecall` at startup): remove a constant by declaring a poison member first.
   Member pointers of classes with several bases are two words: `ei::MemberAddress` takes the code word (adjustment 0).
-  windows.h's `GetClassName` macro renames slot 11 in a file that includes it: engine_object.h, the class's header and
-  its .cpp `#undef GetClassName`.
 
 ### Real classes (C28)
 
 Classes are ordinary C++: the constructor body is the C++ constructor, `Destruct` / `DestructBody` the virtual
-destructor, the slot bodies the virtual overrides (base calls qualified), class names and ids `GetClassName` /
+destructor, the slot bodies the virtual overrides (base calls qualified), class names and ids `ClassName` /
 `GetClassId` overrides. How a family converts (C28a, the items):
 - The destructor calls its own Destroy qualified (`CItem::Destroy()`), as the original's does.
 - Allocation: `new T()`. CEngineObject has the game heap's `operator new` (noexcept: null without memory, then no

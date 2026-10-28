@@ -1,30 +1,29 @@
 // CWorldServer::LoadMap: loads a zone's map and objects (from NewZone, LoadSave,
 // EnterZone). See world.h and docs/notes/world.md.
 #include "ai_map.h"
-#include "core_refcount.h"
 #include "base_manager.h"
+#include "core_refcount.h"
+#include "core_streams.h"
+#include "figure_manager.h"
+#include "game_strings.h"
 #include "hash_tables_400.h"
+#include "map_object.h"
+#include "model.h"   // TweenArray (countdowns_)
 #include "object_diplomacy.h"
 #include "player_manager.h"
 #include "player_messages.h"
-#include "world.h"
-#include "figure_manager.h"
 #include "spell.h"
-#include "model.h"   // TweenArray (countdowns_)
-#include "game_strings.h"
+#include "world.h"
 #include "world_map_files.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
-#include <bit>
-#include <string>
+#include "lib/str.h"
 #include "lib/text_case.h"
 
-#include "core_streams.h"
-#include "map_object.h"
-#include "lib/containers.h"
-#include "lib/str.h"
-
+#include <bit>
 #include <list>
+#include <string>
 #include <vector>
 
 namespace {
@@ -44,14 +43,13 @@ void EndTimedObjects(CWorldServer* world) {
 
 void ClearMissiles(CWorldServer* world) {
     auto& list = world->projectiles_;
-    for (auto node = list.begin(); node != list.end(); ++node)
-        ReleaseCounted(*node);
+    for (auto& node : list) ReleaseCounted(node);
     list.clear();
 }
 
 void ClearMissilePointers(CWorldServer* world) {
     auto& list = world->projectiles_;
-    for (auto node = list.begin(); node != list.end(); ++node) ReleaseCounted(*node);
+    for (auto& node : list) ReleaseCounted(node);
     list.clear();   // the elements were destroyed above; this frees the blocks
 }
 
@@ -191,8 +189,8 @@ void CWorldServer::TeardownZone() {
 
     // The missiles' counted pointers, released inline (16-bit count, deleted at zero).
     auto& missiles = projectiles_;
-    for (auto node = missiles.begin(); node != missiles.end(); ++node) {
-        CSpellEffect* missile = *node;
+    for (auto& node : missiles) {
+        CSpellEffect* missile = node;
         if (missile && --missile->refs_ == 0) delete missile;
     }
     missiles.clear();

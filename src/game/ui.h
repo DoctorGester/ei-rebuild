@@ -8,27 +8,26 @@
 #include "ack_kind.h"
 #include "app.h"   // app::g_interfaceHasScreen
 #include "core_transform.h"
-#include "options.h"
 #include "debug_panel.h"
 #include "engine_object.h"
 #include "figure_mesh.h"
 #include "game_strings.h"   // game::kEmptyText
 #include "item_db.h"
 #include "object_tables.h"   // g_keyActions
+#include "options.h"
 #include "unit.h"   // LockKey
 
 #include "lib/containers.h"
 #include "lib/gdi.h"
-#include <cstddef>
-#include <cstdint>
-#include <string>
 #include "lib/static_object.h"
 #include "lib/str.h"
 
-
+#include <cstddef>
+#include <cstdint>
 #include <list>
 #include <map>
 #include <memory>
+#include <string>
 #include <vector>
 #include <windows.h>
 
@@ -485,7 +484,7 @@ public:
     // The class name is "Sorry, no other way." and the id 0x45.
     int Create() override;
     void Destroy() override {}
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     virtual void Build() {}
     virtual void Show(int show) { ShowSurfaces(show); }
@@ -875,7 +874,6 @@ public:
     std::vector<HudPortraitSlot> slots_;   // one per portrait
 };
 
-#undef GetClassName
 // The figure factory's class 0x43 ("CI3DFigure"): a plain figure mesh with the sprite's fields.
 class CUiMesh : public CPlainFigureMesh {
 public:
@@ -883,7 +881,7 @@ public:
     ~CUiMesh() override;
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // The quads get z 0 and w 1, the vertices a zero normal index.

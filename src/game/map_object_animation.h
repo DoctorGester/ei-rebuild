@@ -9,8 +9,6 @@
 #include <cstdint>
 #include <vector>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
-
 struct FigureAnimation;
 
 // The animation tracks' defaults without key frames (static initialisers: the origin and the identity).
@@ -34,7 +32,7 @@ struct AnimationTrack : CEngineObject {
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;   // "CAnimationTrack" (small_slots_500.cpp)
+    const char* ClassName() override;   // "CAnimationTrack" (small_slots_500.cpp)
     ClassId GetClassId() override;
 
     // DestroyTrack's reset; returns 1.

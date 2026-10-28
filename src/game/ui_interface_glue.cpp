@@ -1,16 +1,15 @@
 // The interface manager's small services to the rest of the game (CInterface3D): interface sounds,
 // the console window and debug panel settings, the frame rate surface and quest variable news for
 // the top window. See ui.h and docs/notes/ui.md, section 3.
-#include "ui.h"
 #include "app.h"
-
 #include "console.h"
+#include "game_singletons.h"
 #include "sound.h"
 #include "text_split.h"
+#include "ui.h"
 #include "ui_native.h"
-
-#include "game_singletons.h"
 #include "world.h"
+
 #include "lib/nan_audit.h"
 
 #include <vector>
@@ -118,7 +117,6 @@ void CInterface3D::SaveWindowState() {
 
 void CInterface3D::ShowStatusText(std::string_view text) {
     statusSurface_ = new CUiSurface(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, kStatusFormat, 1);
-    if (!statusSurface_) return;
     ui_native::Adopt(statusSurface_, "status");
     UiSurfaceGetDC(statusSurface_);
     statusSurface_->Clear();

@@ -3,12 +3,12 @@
 // CSpellConstructor: SetManager, BeginConstruct (a new CSpellContainer for the prototype), AddModifier per
 // modifier (each rebuilds the container's spell), EndConstruct, CSpell::Clone into a new spell object,
 // SetManager(null).
+#include "item.h"
 #include "item_db.h"
 #include "spell.h"
 
-#include "item.h"
-
 #include "lib/crt.h"
+
 #include "ei/x87.h"
 
 #include <cstring>
@@ -130,8 +130,8 @@ BOOL CSpellContainer::Build() {
 
     if (!codes_.empty()) codes_.clear();
 
-    for (std::list<itemdb::SpellModifierRecord*>::iterator node = modifiers_.begin(); node != modifiers_.end(); ++node) {
-        const itemdb::SpellModifierRecord* modifier = (*node);
+    for (auto& node : modifiers_) {
+        const itemdb::SpellModifierRecord* modifier = node;
         float strength = modifier->strength;
         switch (Letter(modifier, 0)) {
         case 'a':   // area
@@ -244,7 +244,7 @@ CSpellConstructor::~CSpellConstructor() {
     if (container_) container_->Release();   // the container member's destructor
 }
 
-const char* CSpellConstructor::GetClassName() { return "CSpellConstructor"; }
+const char* CSpellConstructor::ClassName() { return "CSpellConstructor"; }
 ClassId CSpellConstructor::GetClassId() { return kClassSpellConstructor; }
 
 int CSpellConstructor::Create() {

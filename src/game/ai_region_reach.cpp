@@ -1,16 +1,16 @@
 // CRegionMap::ReachesRegion and LabelRegions, and the region map's block grids. See ai_map.h and
 // docs/notes/ai.md ("Regions").
-#include "ai_map.h"
 #include "ai_grids.h"
+#include "ai_map.h"
 #include "core_streams.h"
 
 #include "lib/crt.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
 #include "lib/static_object.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <initializer_list>
 
 namespace {
@@ -339,8 +339,8 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     int counts[9];
     int distinct = 0;
     std::uint16_t** rows = regions[sizeClass].rows;
-    for (auto n = blocks.begin(); n != blocks.end(); ++n) {
-        std::uint16_t region = rows[n->y][n->x];
+    for (auto& n : blocks) {
+        std::uint16_t region = rows[n.y][n.x];
         int i = 0;
         while (i < distinct && seen[i] != region) ++i;
         if (i < distinct) {

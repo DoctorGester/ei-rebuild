@@ -1,45 +1,44 @@
 // CWorldServer: the world part of a save (mission.sav): SaveWorld writes it, LoadSave reads it
 // back, LoadSavedMapObjects restores the map objects SaveMapObjects wrote, and UpdatePlayerTimes
 // brings the players' "gtime" up to date before a save. See world.h and docs/notes/world.md.
+#include "ai_map.h"
+#include "base_manager.h"
 #include "bink_video.h"
 #include "combat.h"
 #include "core_refcount.h"
-#include "map_object_figures.h"
-#include "object_diplomacy.h"
-#include "player_messages.h"
-#include "party.h"
-#include "sector_map.h"
-#include "world.h"
-
-#include "ai_map.h"
-#include "base_manager.h"
 #include "core_streams.h"
 #include "game_strings.h"
 #include "item.h"
 #include "map_object.h"
+#include "map_object_figures.h"
+#include "mod_folders.h"
+#include "model.h"
 #include "net_delta.h"
 #include "net_messages.h"
 #include "net_session.h"
 #include "object.h"
+#include "object_diplomacy.h"
+#include "party.h"
+#include "player_messages.h"
+#include "save_versions.h"
 #include "script.h"
+#include "sector_map.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
-#include "mod_folders.h"
-#include "model.h"
+#include "world.h"
 #include "world_effect.h"
 #include "world_map_files.h"
 
 #include "lib/crt.h"
 #include "lib/file_io.h"
-#include "save_versions.h"
+
 #include <bit>
 #include <cstdint>
 #include <cstring>
-#include <string>
-
 #include <list>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace {
@@ -75,8 +74,8 @@ T ReadAs(CStream* stream) {
 // cell nearby when they are scripted units (text-key ids), otherwise removed.
 void RelocateStrandedUnits(CWorldServer* world) {
     std::vector<int> stranded;
-    for (auto node = world->objects_.map.begin(); node != world->objects_.map.end(); ++node) {
-        CUnit* unit = UnitOrNull(node->second);
+    for (auto& node : world->objects_.map) {
+        CUnit* unit = UnitOrNull(node.second);
         if (!unit) continue;
         if (world->aiMap_.CanLeaveCell(unit)) continue;
         int id = unit->id_;
@@ -479,8 +478,7 @@ void CWorldServer::SaveWorld(CStream* stream) {
     spellManager_->SaveObjects(stream);
     itemManager_->SaveObjects(stream);
 
-    for (auto node = timedObjects_.map.begin(); node != timedObjects_.map.end(); ++node)
-        stream->WriteValue(node->second->id_);
+    for (auto& node : timedObjects_.map) stream->WriteValue(node.second->id_);
     stream->WriteValue(-1);
 
     for (auto node = projectiles_.begin(); node != projectiles_.end();) {

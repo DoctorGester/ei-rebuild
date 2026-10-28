@@ -6,8 +6,6 @@
 
 #include "ei/hook.h"
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
-
 namespace {
 constexpr const char* kTrackClassName = "CAnimationTrack";
 constexpr const char* kBoneClassName = "CAnimationNode";
@@ -15,13 +13,13 @@ constexpr const char* kStateClassName = "CAnimationSystem2";
 
 } // namespace
 
-const char* AnimationTrack::GetClassName() { return kTrackClassName; }
+const char* AnimationTrack::ClassName() { return kTrackClassName; }
 ClassId AnimationTrack::GetClassId() { return kClassAnimationTrack; }
 
 const char* FigureBone::GetName() { return name.c_str(); }
-const char* FigureBone::GetClassName() { return kBoneClassName; }
+const char* FigureBone::ClassName() { return kBoneClassName; }
 ClassId FigureBone::GetClassId() { return kClassFigureBone; }
 
-const char* CFigureAnimationState::GetClassName() { return kStateClassName; }
+const char* CFigureAnimationState::ClassName() { return kStateClassName; }
 ClassId CFigureAnimationState::GetClassId() { return kClassFigureAnimationState; }
 

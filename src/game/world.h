@@ -3,43 +3,42 @@
 // The world: the server side that runs the game rules (CWorldServer) and the client side that draws it and answers
 // terrain queries (CWorldClient), both derived from a common base. Class names come from the game's error strings.
 
-#include <cstddef>
-#include "options.h"
-#include <cstdint>
-#include <list>
-#include <optional>
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <vector>
-
 #include "ai_map.h"
 #include "base_manager.h"
 #include "core_refcount.h"
 #include "core_streams.h"
-#include "effects.h"        // CRainSnow
+#include "effects.h"   // CRainSnow
 #include "engine_object.h"
-#include "manager_context.h"
+#include "game_data.h"
+#include "game_singletons.h"
 #include "ground_print.h"
+#include "manager_context.h"
+#include "maths.h"
+#include "model.h"   // HeldTexture
 #include "object_diplomacy.h"
 #include "object_tables.h"
+#include "options.h"
+#include "party_storage.h"
 #include "player_manager.h"
 #include "player_messages.h"
 #include "player_source.h"
 #include "registry.h"
 #include "script.h"
-#include "unit_ai.h"       // AIEventTable (the server world's AI events)
+#include "unit_ai.h"   // AIEventTable (the server world's AI events)
 #include "unit_create.h"
 #include "unit_looks.h"
 #include "water_tweens.h"
-#include "lib/hash_map.h"
-#include "maths.h"
-#include "model.h"          // HeldTexture
-#include "party_storage.h"
-#include "game_data.h"
-#include "game_singletons.h"
 
-#undef GetClassName
+#include "lib/hash_map.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <list>
+#include <memory>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 inline constexpr Quaternion kNewUnitRotation = /*007C2DE0*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
@@ -252,7 +251,7 @@ public:
     // group, synchronises every player (SyncPlayer; 0 drops it). Returns 1.
     int Update();
     int RunTick() override { return Update(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CItem* DuplicateItem(CItem* item) override { return CopyItem(item); }
     int IsServer() override;
@@ -568,7 +567,7 @@ public:
     ~PlatformSet() override;
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // Max(height, z of every platform surface whose area contains the point); the point is projected
@@ -697,7 +696,7 @@ struct ClientArrayManager : CBaseManager {
     int Create() override;
     void Destroy() override;
     int RunTick() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
 
@@ -726,7 +725,7 @@ public:
     // disconnected, FatalError; Rebirth's DisableExitOnCrashReport keeps the session).
     int Segment();
     int RunTick() override { return Segment(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     const char* TexturePath() override;
     double GridHeightAt(float x, float y) override { return ClampedGroundHeight(x, y); }

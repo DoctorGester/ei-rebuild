@@ -10,11 +10,11 @@
 #include "item_stock.h"
 #include "party.h"
 #include "party_manager.h"
+#include "spell.h"
+
 #include "lib/crt.h"
 
-
 #include <cstring>
-#include "spell.h"
 
 namespace {
 
@@ -35,7 +35,6 @@ constexpr std::uint32_t kZeroWeights[9] = {};
 // One template, appended to the vector through a temporary counted pointer.
 void AddTemplate(TemplateTable* v, int type, std::uint8_t sellsItems, std::uint8_t sellsSpells,
                  const std::uint32_t (&weights)[9]) {
-    // The count dword is cleared before the allocation is tested; ours tests first.
     auto* t = new ClassTemplate();
     t->refs_ = 0;
     t->flags6_ = 0;

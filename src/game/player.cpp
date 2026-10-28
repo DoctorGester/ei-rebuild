@@ -1,17 +1,15 @@
 // A world player (CPlayer): constructor and destructor,
 // Create / Destroy, Clear, the link and connection, the given items and the units. See player_messages.h
 // and docs/notes/objects.md ("Players").
-#include "player_messages.h"
-
 #include "item.h"
 #include "net_link.h"
 #include "party.h"
+#include "player_messages.h"
 #include "unit.h"
+#include "world.h"
 #include "world_effect.h"
 
 #include "lib/crt.h"
-
-#include "world.h"
 #include "lib/str.h"
 
 #include <list>
@@ -62,7 +60,7 @@ int PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t
     return game::FatalError(text);
 }
 
-const char* CPlayer::GetClassName() { return "CPlayer"; }
+const char* CPlayer::ClassName() { return "CPlayer"; }
 ClassId CPlayer::GetClassId() { return kClassPlayer; }
 
 BOOL CPlayer::CreatePlayer() {

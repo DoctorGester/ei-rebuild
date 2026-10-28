@@ -10,9 +10,8 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <string>
-
 #include <list>
+#include <string>
 #include <vector>
 
 class CParticleSource;
@@ -85,7 +84,7 @@ public:
     // speech, flash, footprint or blink, every armour and weapon model -1, the face texture released. Returns 1.
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     PathOrder* Path() override { return &motion; }
     void Unused17() override {}

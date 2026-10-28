@@ -7,12 +7,9 @@
 #include "resource_manager.h"
 #include "world.h"
 
-
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
-
-#undef GetClassName
 
 void* CreateFigureObject(int classId);
 
@@ -28,7 +25,7 @@ public:
     ~CFigureManager() override;
 
     int Create() override { return CreateWithArchives(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
     BOOL AddArchive(const std::string& path) override { return AddMmioArchive(path); }

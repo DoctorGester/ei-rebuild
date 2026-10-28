@@ -1,9 +1,9 @@
 // The client's trade offer (called by the party screens after a change): one member
 // message per party member, kept in our PartyMessage. See net_messages.h and docs/notes/network.md.
-#include "core_streams.h"
-#include "net_messages.h"
 #include "core_refcount.h"
+#include "core_streams.h"
 #include "item.h"
+#include "net_messages.h"
 #include "party.h"
 #include "spell.h"
 
@@ -96,8 +96,8 @@ void ClientPublishParty(ClientSession* self) {
 PartyMessage* ClientFindParty(ClientSession* self) {
     auto* ours = self->party_.Get();
     if (!ours) return nullptr;
-    for (auto node = self->offers_.begin(); node != self->offers_.end(); ++node) {
-        auto* other = node->Get();
+    for (auto& node : self->offers_) {
+        auto* other = node.Get();
         if (other->partner_.ptr != ours->player_.ptr || other->player_.ptr != ours->partner_.ptr) continue;
         if (other && !(other->flags7_ & CRefObject::kDetached)) return other;
     }

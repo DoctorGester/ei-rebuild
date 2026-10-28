@@ -1,24 +1,25 @@
 // The unit AI brain: the per-tick mode selection and the actions.
-#include "core_refcount.h"
 #include "unit_ai.h"
-#include "console.h"
 
 #include "ai_alarm.h"
 #include "combat.h"
+#include "console.h"
+#include "core_refcount.h"
+#include "game_singletons.h"
 #include "random.h"
+#include "world.h"
+#include "world_data.h"
+
+#include "lib/crt.h"
+#include "lib/nan_audit.h"
+#include "lib/str.h"
 
 #include "ei/x87.h"
-#include "lib/crt.h"
+
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
-
-#include <bit>
-#include "world.h"
-#include "world_data.h"
-#include "lib/nan_audit.h"
-#include "game_singletons.h"
-#include "lib/str.h"
 
 namespace {
 constexpr float kDecayScale = 30.0f;
@@ -162,7 +163,7 @@ void AIBrain::Think() {
     seen.Reset();
 
     // The corpses seen this tick are forgotten (the list emptied, elements destroyed).
-    for (auto node = memory.corpses.begin(); node != memory.corpses.end(); ++node) DestructRef(&*node);
+    for (auto& node : memory.corpses) DestructRef(&node);
     memory.corpses.clear();
 
     switch (action) {

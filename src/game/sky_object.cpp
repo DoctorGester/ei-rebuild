@@ -1,14 +1,12 @@
 // CSkyObject and CSky's lighting. See sky_object.h.
 #include "sky_object.h"
-#include "texture.h"
-#include "world.h"
-// windows.h (texture.h) renames CEngineObject's GetClassName.
-#undef GetClassName
 
 #include "render/render.h"   // MeshChanged
+#include "texture.h"
+#include "world.h"
 
-#include "lib/nan_audit.h"
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cmath>
@@ -47,7 +45,7 @@ CSkyObject::CSkyObject() {
 
 CSkyObject::~CSkyObject() {  }
 
-const char* CSkyObject::GetClassName() { return kClassName; }
+const char* CSkyObject::ClassName() { return kClassName; }
 ClassId CSkyObject::GetClassId() { return kClassSkyObject; }
 
 void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour light) {

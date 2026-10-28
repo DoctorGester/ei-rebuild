@@ -1,14 +1,13 @@
 // The briefing / base screen's topics: a person's topics from the "b." variables and a topic's
 // title (CBriefingScreen, ui_briefing.h). See docs/notes/ui.md, "Briefing / base screen".
+#include "game_singletons.h"
+#include "item_db_text.h"
+#include "text_split.h"
 #include "ui_briefing.h"
 
-#include "item_db_text.h"
-
 #include "lib/intro_sort.h"
-#include "lib/text_case.h"
-#include "text_split.h"
-#include "game_singletons.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 
 #include <bit>
 #include <cstring>
@@ -42,9 +41,9 @@ void CBriefingScreen::FindTopics(int personId) {
     std::string name;
     std::string constructor;
     std::vector<std::string> found;
-    for (auto node = variables.begin(); node != variables.end(); ++node) {
-        if (Bits(node->second) != kOneBits) continue;
-        text::Split(node->first, &parts, '.');
+    for (auto& node : variables) {
+        if (Bits(node.second) != kOneBits) continue;
+        text::Split(node.first, &parts, '.');
         if (parts.size() != kTopicNameParts || TextKeyFromName(parts[1]) != personId) continue;
         name = parts[2];
         bool isConstructor;
@@ -68,7 +67,7 @@ void CBriefingScreen::FindTopics(int personId) {
         });
     }
     topics_.clear();
-    for (std::string* topic = list.data(); topic != list.data() + list.size(); ++topic) topics_.push_back(*topic);
+    for (auto& topic : list) topics_.push_back(topic);
     if (constructor.size() != 0) topics_.push_back(constructor);
 }
 

@@ -110,9 +110,9 @@ bool CRegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x
     bool seeded = false;
     std::list<BlockCost> blocks{};
     NearbyBlocks(sizeClass, flag, x, y, &blocks);
-    for (auto node = blocks.begin(); node != blocks.end(); ++node) {
-        int cost = node->cost / 128;
-        BlockRecord* record = &search->records.rows[node->y][node->x];
+    for (auto& node : blocks) {
+        int cost = node.cost / 128;
+        BlockRecord* record = &search->records.rows[node.y][node.x];
         if (cost > record->cost) continue;
         record->cost = cost;
         search->Requeue(record);

@@ -12,16 +12,17 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
 
+#include "ei/x87.h"
+
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <list>
-#include <vector>
-#include <cstddef>
 #include <string>
-#include "lib/nan_audit.h"
+#include <vector>
 
 namespace {
 
@@ -49,7 +50,7 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
         const double scale = 2.3283064370807974e-10;   // 1 / 0xFFFFFFFF
         amount = static_cast<int>(static_cast<double>(high - low) * random * scale + low);
     }
-    int percent = libcrt::Rand() * 100 / 0x7FFF % 100 + 1;
+    int percent = libcrt::RandBelow(100) + 1;
     EI_NAN_AUDIT(roll.chance);
     if (static_cast<float>(percent) <= roll.chance) *gold += amount;
 }

@@ -7,15 +7,18 @@
 #include "net_second_master.h"
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS   // gethostbyname, as the plugin looks the name up
+// clang-format off
 #include <winsock2.h>   // before anything includes windows.h (and with it winsock.h)
 #include <windows.h>
+// clang-format on
 
 #include "net_classes.h"
 #include "net_coder.h"
 #include "net_messages.h"
 
-#include "ei/rebirth.h"
 #include "lib/bytes.h"
+
+#include "ei/rebirth.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -92,8 +95,8 @@ std::string Names(std::uint8_t* count) {
     std::string names;
     *count = 0;
     const auto& bindings = g_gameServer->bindings_;
-    for (auto node = bindings.begin(); node != bindings.end(); ++node) {
-        auto* binding = node->Get();
+    for (auto& node : bindings) {
+        auto* binding = node.Get();
         auto* player = binding->Player();
         const char* name = player->name_.data();
         std::size_t length = std::strlen(name);

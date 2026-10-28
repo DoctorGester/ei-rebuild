@@ -9,14 +9,11 @@
 #include "model.h"         // ClipBounds, TriangleIndexArray, CLinkFigureLoader
 #include "texture.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <vector>
 #include <windows.h>
-
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
-
-#include <cstddef>
-#include <cstdint>
 
 // The figure mesh drawer's base (an engine object with the mesh it draws).
 // No object of the base alone exists.
@@ -46,7 +43,7 @@ struct FigureMeshDrawer : FigureDrawerBase {
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;   // "CFigureClientSpecific" (world_class_slots.cpp)
+    const char* ClassName() override;   // "CFigureClientSpecific" (world_class_slots.cpp)
     ClassId GetClassId() override;
 
     // No flags. Returns 1.

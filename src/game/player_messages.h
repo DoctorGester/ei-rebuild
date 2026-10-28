@@ -13,10 +13,10 @@
 #include "script.h"
 
 #include "lib/containers.h"
-#include <cstddef>
-#include <cstdint>
 #include "lib/hash_map.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <list>
 #include <vector>
 
@@ -80,7 +80,7 @@ public:
 
     int Create() override { return CreateServer(); }
     void Destroy() override { ClearServerState(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     void ForgetSentObjects() override { ReleaseSentObjects(); }
     void ResetState() override { ClearServerState(); }
@@ -308,7 +308,7 @@ public:
 
     int Create() override { return CreatePlayer(); }
     void Destroy() override { DestroyPlayer(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     BOOL CreatePlayer();

@@ -3,13 +3,13 @@
 // The game's statically linked C runtime (config/library.csv): rand, the formatting and the maths as the game's CRT
 // has them. The heap is the host's new / delete.
 
+#include "printf_args.h"
+
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <string>
-
-#include "printf_args.h"
 
 // The game CRT's own functions (docs/notes/standalone.md section 2). Its string, case and class functions are the
 // host CRT's (std::strcmp and so on) or text_case.h's (UTF-8: no lead bytes, no class past ASCII).
@@ -31,6 +31,8 @@ void Qsort(void* base, std::size_t count, std::size_t width, int (*compare)(cons
 using RandObserver = void (*)(int value, const void* caller);
 void SetRandObserver(RandObserver observer);
 int Rand();
+// Rand() * n / 0x7FFF % n: a draw in 0 .. n-1 scaled the way the game does (one Rand call; n > 0).
+inline int RandBelow(int n) { return Rand() * n / 0x7FFF % n; }
 void Srand(unsigned seed);
 // The calling thread's seed itself (the harness's digest and random trace read it).
 unsigned& RandState();

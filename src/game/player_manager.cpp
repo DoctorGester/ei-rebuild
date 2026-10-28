@@ -1,9 +1,9 @@
 // The world's player manager.
 #include "player_manager.h"
 
+#include "game_singletons.h"
 #include "player_messages.h"
 #include "world.h"
-#include "game_singletons.h"
 
 #include "ei/rebirth.h"
 
@@ -44,7 +44,6 @@ CEngineObject* CPlayerManager::NewObject(int type) { return NewPlayer(type); }
 
 CEngineObject* CPlayerManager::NewPlayer(int type) {
     CPlayer* player = new CPlayer();
-    if (!player) return nullptr;
     player->type_ = type;
     return player;
 }

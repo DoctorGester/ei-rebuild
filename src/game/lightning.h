@@ -7,16 +7,15 @@
 
 #include "base_manager.h"
 #include "engine_object.h"
-#include "lib/containers.h"
-#include <cstdint>
 #include "maths.h"
 #include "model.h"   // ClipBounds
 
+#include "lib/containers.h"
+
 #include <cstddef>
+#include <cstdint>
 #include <list>
 #include <vector>
-
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // One polyline point (16 bytes: the fourth float is never written here).
 struct LightningPoint {
@@ -72,7 +71,7 @@ public:
     int Create() override;
     // Power 1, amplitude 0.1, releases both textures.
     void Destroy() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     void DrawGlow(CSceneRenderer* device, const Vector3* position, float size);
@@ -119,7 +118,7 @@ class CLightningManager : public CBaseManager {
 public:
     CLightningManager();
     ~CLightningManager() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     // A new bolt.
     CEngineObject* NewObject(int type) override;

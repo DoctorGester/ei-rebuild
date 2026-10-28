@@ -2,13 +2,13 @@
 // missiles, casts, skills, quick items), the spells items cast on hit, item charges, healing, death and the
 // AI's reactions to it (witnesses, hostility claims). See combat.h and docs/notes/combat.md.
 #include "ai_alarm.h"
+#include "base_manager.h"
 #include "combat.h"
-#include "map_object.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
-
-#include "base_manager.h"
+#include "game_singletons.h"
 #include "item.h"
+#include "map_object.h"
 #include "maths.h"
 #include "object_diplomacy.h"
 #include "party.h"
@@ -18,11 +18,11 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
+#include "world_effect.h"
+
+#include "lib/float_select.h"
 
 #include "ei/x87.h"
-#include "world_effect.h"
-#include "game_singletons.h"
-#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
@@ -57,8 +57,8 @@ bool ListContains(const std::list<CUnit*>* list, const CUnit* unit) {
 // first member that is not `self`; a null member ends it.
 CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
     const auto& map = player->units_;
-    for (auto node = map.begin(); node != map.end(); ++node) {
-        CUnit* member = node->second;
+    for (auto& node : map) {
+        CUnit* member = node.second;
         if (!member) return nullptr;
         if (member != self) return member;
     }

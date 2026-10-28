@@ -2,16 +2,14 @@
 // docs/notes/world.md.
 #include "world_class_slots.h"
 
-#include "world.h"
-#include "figure_manager.h"
-#include "spell.h"   // CLightFactory
 #include "effects.h"
+#include "figure_manager.h"
 #include "item.h"
 #include "item_db_text.h"
 #include "lightning.h"
+#include "spell.h"   // CLightFactory
 #include "terrain.h"
-
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#include "world.h"
 
 namespace {
 
@@ -32,31 +30,31 @@ constexpr const char* kFiguresFolderName = "figures";
 
 } // namespace
 
-const char* CWorldClient::GetClassName() { return kWorldClientName; }
+const char* CWorldClient::ClassName() { return kWorldClientName; }
 ClassId CWorldClient::GetClassId() { return kClassWorldClient; }
 
-const char* CWorldServer::GetClassName() { return kWorldServerName; }
+const char* CWorldServer::ClassName() { return kWorldServerName; }
 ClassId CWorldServer::GetClassId() { return kClassWorldServer; }
 
-const char* PlatformSet::GetClassName() { return kBridgeManagerName; }
+const char* PlatformSet::ClassName() { return kBridgeManagerName; }
 ClassId PlatformSet::GetClassId() { return kClassPlatformSet; }
 
-const char* CParticleManager::GetClassName() { return kParticleManagerName; }
+const char* CParticleManager::ClassName() { return kParticleManagerName; }
 ClassId CParticleManager::GetClassId() { return kClassParticleManager; }
 
-const char* CTextManager::GetClassName() { return kTextManagerName; }
+const char* CTextManager::ClassName() { return kTextManagerName; }
 ClassId CTextManager::GetClassId() { return kClassTextManager; }
 
-const char* Terrain::GetClassName() { return kTerrainName; }
+const char* Terrain::ClassName() { return kTerrainName; }
 ClassId Terrain::GetClassId() { return kClassTerrain; }
 
-const char* CLightningManager::GetClassName() { return kLightningManagerName; }
+const char* CLightningManager::ClassName() { return kLightningManagerName; }
 ClassId CLightningManager::GetClassId() { return kClassLightningManager; }
 
-const char* ClientArrayManager::GetClassName() { return kVisFogManagerName; }
+const char* ClientArrayManager::ClassName() { return kVisFogManagerName; }
 ClassId ClientArrayManager::GetClassId() { return kClassClientArrayManager; }
 
-const char* CFigureManager::GetClassName() { return kFigureManagerName; }
+const char* CFigureManager::ClassName() { return kFigureManagerName; }
 ClassId CFigureManager::GetClassId() { return kClassFigureManager; }
 const char* CFigureManager::GetFolderName() { return kFiguresFolderName; }
 

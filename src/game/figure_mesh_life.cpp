@@ -12,8 +12,6 @@
 #include <memory>
 #include <new>
 
-#undef GetClassName   // CEngineObject::GetClassName
-
 namespace {
 
 constexpr int kFirstFigureClass = 0x41;
@@ -128,7 +126,7 @@ CPlainFigureMesh::~CPlainFigureMesh() {
 int CFigureMesh::Create() { return CreateMesh(); }
 void CFigureMesh::Destroy() { Clear(); }
 const char* CFigureMesh::GetName() { return name_.c_str(); }
-const char* CFigureMesh::GetClassName() { return "CFigure"; }
+const char* CFigureMesh::ClassName() { return "CFigure"; }
 ClassId CFigureMesh::GetClassId() { return kClassFigureMesh; }
 
 // --- Drawer and owner ---------------------------------------------------------------------------

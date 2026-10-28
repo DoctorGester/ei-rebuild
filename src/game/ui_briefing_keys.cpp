@@ -1,15 +1,14 @@
 // The briefing / base screen's key handler (CBriefingScreen::OnKeyDown). See
 // docs/notes/ui.md, "Briefing / base screen".
+#include "camera.h"
+#include "game_singletons.h"
 #include "game_strings.h"
+#include "text_split.h"
 #include "ui.h"
 #include "ui_briefing.h"
-
-#include "camera.h"
 #include "world.h"
 
 #include "lib/text_case.h"
-#include "text_split.h"
-#include "game_singletons.h"
 
 #include <bit>
 #include <cstring>
@@ -42,9 +41,9 @@ void OpenObjectives(CInterface3D* ui) {
     if (!zone) return;
     std::vector<std::string> parts;
     BriefingVariables quests(QuestPrefix());
-    for (auto node = quests.begin(); node != quests.end(); ++node) {
-        text::Split(node->first, &parts, '.');
-        if (parts.size() != kQuestNameParts || Bits(node->second) != kOneBits) continue;
+    for (auto& node : quests) {
+        text::Split(node.first, &parts, '.');
+        if (parts.size() != kQuestNameParts || Bits(node.second) != kOneBits) continue;
         MapRecord* questZone = g_mapDatabase->FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;

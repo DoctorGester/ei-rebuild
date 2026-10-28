@@ -2,20 +2,19 @@
 // lifetime, the bones the skeleton file links (LinkPiece per link, then FindRoot), the meshes the bones
 // carry, and placing the skeleton when the animation or the figure's morph changes. See
 // docs/notes/map_objects.md.
-#include "figure_manager.h"
-#include "map_object_animation.h"
-#include "map_object_figures.h"
-
 #include "base_manager.h"
 #include "core_maths.h"
+#include "figure_manager.h"
 #include "figure_mesh.h"
+#include "map_object_animation.h"
+#include "map_object_figures.h"
 #include "world.h"
+
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "lib/str.h"
-
 #include <vector>
 
 namespace {
@@ -120,9 +119,9 @@ int CFigureAnimationState::LinkPiece(FigureModel* model, std::string_view child,
 
 int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     FigureBone* parent = nullptr;
-    for (auto node = bones.begin(); node != bones.end(); ++node) {
-        if (str::Compare((*node)->name, bone->name2) == 0) {
-            parent = *node;
+    for (auto& node : bones) {
+        if (str::Compare(node->name, bone->name2) == 0) {
+            parent = node;
             break;
         }
     }
@@ -149,9 +148,9 @@ int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
 int CFigureAnimationState::AttachMesh(CEngineObject* part) {
     changed = 1;
     FigureBone* bone = nullptr;
-    for (auto node = bones.begin(); node != bones.end(); ++node) {
-        if (str::Compare((*node)->name, part->GetName()) == 0) {
-            bone = *node;
+    for (auto& node : bones) {
+        if (str::Compare(node->name, part->GetName()) == 0) {
+            bone = node;
             break;
         }
     }
@@ -169,9 +168,9 @@ int CFigureAnimationState::AttachMesh(CEngineObject* part) {
 
 int CFigureAnimationState::FindRoot() {
     changed = 1;
-    for (auto node = bones.begin(); node != bones.end(); ++node) {
-        if ((*node)->name2.empty()) {
-            root = *node;
+    for (auto& node : bones) {
+        if (node->name2.empty()) {
+            root = node;
             return 1;
         }
     }
@@ -185,8 +184,8 @@ int CFigureAnimationState::SetModel(std::string_view model) {
 
 int CFigureAnimationState::DetachMesh(CEngineObject* part) {
     changed = 1;
-    for (auto node = bones.begin(); node != bones.end(); ++node) {
-        FigureBone* bone = *node;
+    for (auto& node : bones) {
+        FigureBone* bone = node;
         if (bone->mesh && bone->mesh == AsMesh(part)) {
             CFigureMesh* old = bone->mesh;
             bone->mesh = nullptr;
@@ -247,7 +246,7 @@ void CFigureAnimationState::Rescale(float s, float t, float u) {
 }
 
 void CFigureAnimationState::CollectBoneNames(std::vector<std::string>* out) {
-    for (auto node = bones.begin(); node != bones.end(); ++node) out->push_back((*node)->name);
+    for (auto& node : bones) out->push_back(node->name);
 }
 
 int CFigureAnimationState::ClearBoneTracks() {

@@ -6,7 +6,7 @@
 // The object starts with eight registry subkey names that the loader passes to the value getters;
 // the values follow.
 
-#include "../lib/static_object.h"
+#include "lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>

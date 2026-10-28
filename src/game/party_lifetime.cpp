@@ -3,10 +3,9 @@
 // destructor, Create / Destroy / Clear, and the constructors of the managers a party makes. The
 // record's item lists are aligned pointer arrays; four more copies of their SetSize are
 // here. See party.h and docs/notes/items_spells.md ("Party").
-#include "party.h"
-
 #include "game_strings.h"
 #include "item.h"
+#include "party.h"
 #include "spell.h"
 #include "unit.h"
 
@@ -86,7 +85,7 @@ CParty::~CParty() {
     lib::FreeStorage(items_);
 }
 
-const char* CParty::GetClassName() { return "CParty"; }
+const char* CParty::ClassName() { return "CParty"; }
 ClassId CParty::GetClassId() { return kClassParty; }
 
 CItemConstructor* CParty::ItemConstructor() { return itemConstructor_; }

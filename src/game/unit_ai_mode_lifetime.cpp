@@ -2,10 +2,9 @@
 // the Patrol and Fear destructors, their
 // GetType slots, the abstract base's Execute and the abstract bases'
 // constructors.
-#include "unit_ai.h"
 #include "combat.h"
-
 #include "random.h"
+#include "unit_ai.h"
 
 #include <cstring>
 
@@ -51,7 +50,6 @@ int PatrolMode::OnShutdown() {
 // A copy with its own points.
 PatrolMode* PatrolMode::Clone() {
     auto* clone = new PatrolMode();
-    if (!clone) return nullptr;
     clone->points = points;
     clone->current = current;
     return clone;
@@ -59,7 +57,6 @@ PatrolMode* PatrolMode::Clone() {
 
 FearMode* FearMode::Clone() {
     auto* clone = new FearMode(flag);
-    if (!clone) return nullptr;
     clone->distance = distance;
     clone->spread = spread;
     clone->shelter = shelter;

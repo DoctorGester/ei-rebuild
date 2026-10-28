@@ -9,6 +9,7 @@
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "options.h"
+#include "render/render.h"
 #include "spell.h"
 #include "terrain.h"
 #include "terrain_sector.h"
@@ -16,8 +17,6 @@
 #include "world.h"
 
 #include "lib/vecmath.h"
-
-#include "render/render.h"
 
 #include <algorithm>
 #include <bit>
@@ -222,8 +221,8 @@ void HandOverSceneLights(CWorldClient* world) {
     static std::vector<render::ScenePointLight> points;
     points.clear();
     if (terrain && terrain->mapLoaded) {
-        for (auto node = terrain->lights.begin(); node != terrain->lights.end(); ++node) {
-            const CLight* light = node->second.light;
+        for (auto& node : terrain->lights) {
+            const CLight* light = node.second.light;
             if (!light) continue;
             render::ScenePointLight p{};
             p.position = light->localPosition_;

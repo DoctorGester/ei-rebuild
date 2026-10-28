@@ -1,15 +1,12 @@
 // The torch map object: lifetime, update, save / load, its spec and the
 // network state. See torch.h and docs/notes/units.md.
-#include "torch.h"
-
 #include "core_streams.h"
 #include "net_delta.h"
 #include "server_specific_manager.h"
+#include "torch.h"
 
 #include <initializer_list>
 #include <new>
-
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 const char* const kTorchClassName = "CTorchObject";
@@ -86,5 +83,5 @@ std::uint32_t CTorchObject::ReadTorchNetState(int first) {
     return complete;
 }
 
-const char* CTorchObject::GetClassName() { return kTorchClassName; }
+const char* CTorchObject::ClassName() { return kTorchClassName; }
 ClassId CTorchObject::GetClassId() { return kClassTorchObject; }

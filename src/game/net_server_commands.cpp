@@ -1,16 +1,15 @@
 // The game server's command messages (CommandMessage) and the file requests a client
 // hands in, with the host check they use. See net_messages.h and docs/notes/network.md.
-#include "net_messages.h"
-#include "net_connection.h"
 #include "core_refcount.h"
+#include "game_strings.h"
+#include "net_connection.h"
+#include "net_messages.h"
+#include "world.h"
 
 #include "lib/crt.h"
-#include "world.h"
-#include "game_strings.h"
 
 #include <cstdlib>
 #include <cstring>
-
 
 namespace net {
 
@@ -37,8 +36,8 @@ bool Is(const std::string& s, const char* t) {
 
 // Whether `connection` is the host's (a binding of it with a live host player).
 bool ServerSession::IsHostConnection(const Connection* connection) {
-    for (auto node = bindings_.begin(); node != bindings_.end(); ++node) {
-        auto* binding = node->Get();
+    for (auto& node : bindings_) {
+        auto* binding = node.Get();
         if (binding->ConnectionRef().ptr != connection) continue;
         auto* player = binding->Player();
         if (IsLive(player) && player->host_) return true;

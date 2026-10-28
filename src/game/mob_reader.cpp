@@ -4,12 +4,12 @@
 // instantiations). Nothing in the game, addon.dll or EI_Plugin.asi writes that global (it sits in
 // zero-initialised data; a byte search finds its address only in the test), so the branch never runs and is
 // not reproduced: see docs/notes/script.md.
-#include "map_spec.h"
-#include "options.h"
-
 #include "bink_video.h"
 #include "combat.h"
+#include "game_singletons.h"
+#include "map_spec.h"
 #include "object_diplomacy.h"
+#include "options.h"
 #include "script.h"
 #include "unit.h"
 #include "unit_ai.h"
@@ -17,7 +17,6 @@
 
 #include "lib/static_object.h"
 #include "lib/str.h"
-#include "game_singletons.h"
 
 #include <memory>
 #include <new>
@@ -151,8 +150,8 @@ bool MobFile::Load(int keepIds) {
     // Every record becomes a world object, then is deleted (the map keeps the dangling pointer).
     const int step = static_cast<int>(records.byId.size()) / 5 + 1;
     int done = 0;
-    for (auto node = records.byId.begin(); node != records.byId.end(); ++node) {
-        Spec* spec = node->second;
+    for (auto& node : records.byId) {
+        Spec* spec = node.second;
         if (spec->kind == kKindTrap) {
             auto* record = static_cast<TrapSpec*>(spec);
             record->trap.sides = 0;

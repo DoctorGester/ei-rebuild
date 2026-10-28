@@ -28,8 +28,8 @@ void ReleaseHeld(CParticleManager* manager, Pick drop) {
         ids.push_back(id);
         object->Release();
     }
-    for (std::list<int>::iterator n = ids.begin(); n != ids.end(); ++n) {
-        if (auto node = manager->held_.find((*n)); node != manager->held_.end()) manager->held_.erase(node);
+    for (auto& n : ids) {
+        if (auto node = manager->held_.find(n); node != manager->held_.end()) manager->held_.erase(node);
     }
     EndWalk(it);
 }

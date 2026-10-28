@@ -2,23 +2,24 @@
 // is built on the stack, copied into its list (sharing the empty geometry arrays) and destroyed; its prints.db
 // entry (by the ground's surface class) gives the alpha and the life. See docs/notes/models.md ("Ground prints").
 #include "ground_print.h"
-#include "options.h"
 
 #include "camera.h"
 #include "core_streams.h"
 #include "effects.h"
 #include "figure_mesh.h"
+#include "game_singletons.h"
 #include "ground_decal.h"
 #include "model.h"
+#include "options.h"
 #include "terrain.h"
 #include "texture.h"
 #include "world.h"
 
-#include "ei/x87.h"
-#include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "game_singletons.h"
+#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
+
+#include "ei/x87.h"
 
 #include <cstdio>
 #include <cstring>
@@ -64,7 +65,7 @@ void Write(CStream* stream, T value) {
     stream->WriteValue(value);
 }
 
-int RandomQuarter() { return libcrt::Rand() * 4 / 0x7FFF % 4; }
+int RandomQuarter() { return libcrt::RandBelow(4); }
 
 // The prints.db entry for the ground at (x, y), or null.
 template <typename Record>
@@ -292,7 +293,7 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     uvOffset_.y = static_cast<float>(index >> 1) * kQuarter + static_cast<float>(high >> 1) * 0.5f;
     uvAngle_ = static_cast<float>(RandomQuarter()) * kHalfPi;
     int steps = x87::fistp(static_cast<float>(kTwoPi * kAngleMilli));
-    angle_ = static_cast<float>(libcrt::Rand() * steps / 0x7FFF % steps) * kMilli;
+    angle_ = static_cast<float>(libcrt::RandBelow(steps)) * kMilli;
     SetTexture("bloodprints");
     int spread = life / 2;
     if (spread > kMaxSpreadTicks) spread = kMaxSpreadTicks;

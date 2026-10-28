@@ -1,23 +1,22 @@
 // Combat orders, the rest of the setters: movement style, wanted weapon, the skill and use orders, playing an
 // animation as an order, dropping everything, and two armour queries. See combat.h and docs/notes/combat.md.
-#include "combat.h"
-
 #include "ai_map.h"
 #include "base_manager.h"
+#include "combat.h"
+#include "game_singletons.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "player_messages.h"
 #include "sector_map.h"
 #include "unit_ai.h"
 #include "world.h"
-#include "game_singletons.h"
 
 #include "lib/crt.h"
+#include "lib/text_case.h"
+
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "lib/text_case.h"
-
 
 namespace {
 constexpr int kStateStopped = 6;        // CUnitServer::state after StopAction
@@ -102,8 +101,8 @@ void CUnitServer::OrderSearchBody(CMapObject* target, int run) {
 bool CUnitServer::TargetBusy(CMapObject* target) {
     if (target->flags_ & kFlagShared) return !g_serverWorld->IsObjectShared(target->id_, unit->id_);
     AIBrain* ai = &brain;
-    for (auto node = ai->memory.nearby.begin(); node != ai->memory.nearby.end(); ++node) {
-        auto* other = *node;
+    for (auto& node : ai->memory.nearby) {
+        auto* other = node;
         if (!other || other->IsDead() != 0) continue;
         auto* controller = other->ServerController();
         const UnitAction& order = controller->action;

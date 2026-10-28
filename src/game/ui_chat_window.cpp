@@ -1,22 +1,22 @@
 // A network client's player list on the base screen (CChatWindow). See
 // ui_briefing.h and docs/notes/ui.md, section 3. Multiplayer only.
-#include "ui_briefing.h"
-#include "world_glue.h"
-#include "plugin_fixes.h"
-
+#include "game_data.h"
+#include "game_singletons.h"
 #include "item_db_text.h"
 #include "net_classes.h"
 #include "net_messages.h"
+#include "plugin_fixes.h"
 #include "ui.h"
+#include "ui_briefing.h"
 #include "ui_cursor.h"
 #include "ui_screens.h"
 #include "unit_db.h"
+#include "world_glue.h"
 
-#include "ei/rebirth.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
-#include "game_singletons.h"
+
+#include "ei/rebirth.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -144,8 +144,8 @@ void CChatWindow::ShowPlayers() {
 
     // The faces (the strings live across players: the sex letter carries over).
     std::string model, picture, sex, build;
-    for (auto p = players_.begin(); p != players_.end(); ++p) {
-        net::PlayerMessage* player = PlayerOf(*p);
+    for (auto& p : players_) {
+        net::PlayerMessage* player = PlayerOf(p);
         UnitPrototypeRecord* prototype;
         {
             prototype = unitdb::PrototypeNamed(std::string(player->text_));
@@ -199,8 +199,8 @@ void CChatWindow::Update() {
         auto* own = client->party_.Get();
         if (own && own->partner_.ptr == *p) offer = texts_[kWeOffer];
         const auto& offers = client->offers_;
-        for (auto node = offers.begin(); node != offers.end(); ++node) {
-            if (node->Get()->player_.ptr == *p) {
+        for (auto& node : offers) {
+            if (node.Get()->player_.ptr == *p) {
                 offer = texts_[kTheyOffer];
                 break;
             }

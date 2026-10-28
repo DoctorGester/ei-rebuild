@@ -10,12 +10,10 @@
 #include "item.h"
 
 #include <cstdint>
+#include <list>
 #include <string>
 #include <string_view>
-
-#include <list>
 #include <vector>
-
 
 // An archive the texts are looked up in.
 struct TextSource {
@@ -53,7 +51,7 @@ public:
     // code page set to the locale's; returns 1. The constructor calls it too.
     int Create() override;
     void Destroy() override { ClearSources(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // The first word at the cursor (leading spaces and line ends skipped; it ends at a

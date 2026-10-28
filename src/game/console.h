@@ -3,17 +3,16 @@
 // The developer console: the streambuf that collects console output, the command executor with its two
 // command maps, the "@"/"#"/"$" script lines and the command handlers. See docs/notes/console.md.
 
-#include "../lib/gdi.h"
+#include "lib/gdi.h"
+#include "lib/static_object.h"
+#include "lib/str.h"
+
 #include <cstddef>
 #include <cstdint>
-#include <string>
-#include "../lib/str.h"
-#include "../lib/static_object.h"
-
 #include <map>
+#include <string>
 #include <string_view>
 #include <vector>
-
 #include <windows.h>
 
 class CInterface3D;

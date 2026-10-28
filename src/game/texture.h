@@ -1,20 +1,19 @@
 #pragma once
 
 #include "engine_object.h"
+#include "render/render_state.h"
+#include "renderer_base.h"
 #include "resource_manager.h"
+#include "surface.h"
+
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/static_object.h"
-#include "renderer_base.h"
-#include "surface.h"
-#include "render/render_state.h"
 
 #include <list>
 #include <string>
 #include <vector>
 #include <windows.h>
-
-#undef GetClassName
 
 class CTexture;
 class CTextureManager;
@@ -178,7 +177,7 @@ public:
     int Create() override;
     void Destroy() override;
     const char* GetName() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     std::string name_;
@@ -215,7 +214,7 @@ public:
 
     CTextureManager();
     ~CTextureManager() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     const char* GetFolderName() override;    // "textures"
     // Rebirth-patched. Also deletes the composed textures and adds the archives "textures.res", "redress.res"
