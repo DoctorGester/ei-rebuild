@@ -49,8 +49,8 @@ void DropPlayer(CWorldServer* world, CPlayer* player) {
 // another margin: the server half's movement factor 3 and statistics B0 values 0 and 2).
 void WakeAroundUnits(CWorldServer* world, CPlayer* player) {
     auto& units = player->units_;
-    for (auto* node = units.First(); node && node->value; node = units.After(node)) {
-        CUnit* unit = node->value;
+    for (auto node = units.begin(); node != units.end() && node->second; ++node) {
+        CUnit* unit = node->second;
         auto* controller = unit->ServerController();
         float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
         float minimum = controller->stats.valuesB0[2].current;

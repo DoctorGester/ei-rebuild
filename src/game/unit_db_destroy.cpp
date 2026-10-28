@@ -6,7 +6,6 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "lib/stlp_hash.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -22,8 +21,6 @@ void DestroyUnitDatabase(UnitDatabase* self);
 void DestroySkillDatabase(SkillDatabase* self);
 
 namespace {
-
-constexpr std::size_t kNameBuckets = 100;   // the bucket count each name map asks for
 
 template <typename Text>
 void DestroyString(Text* s) {
@@ -47,22 +44,22 @@ void FreeRecords(Record* begin, Record* endOfStorage) {
 // freed.
 void DestroyUnitDatabase(UnitDatabase* self) {
     UnitLevelTable& levels = self->levels;
-    levels.byName.Destroy();
+    std::destroy_at(&levels.byName);
     for (UnitLevelRecord *p = levels.begin, *end = levels.end; p != end; ++p) p->DeleteScalar(0);
     FreeRecords(levels.begin, levels.endOfStorage);
 
     UnitModelTable& models = self->models;
-    models.byName.Destroy();
+    std::destroy_at(&models.byName);
     for (UnitModelRecord *p = models.begin, *end = models.end; p != end; ++p) DestroyModelRecord(p);
     FreeRecords(models.begin, models.endOfStorage);
 
     NpcPrototypeTable& npcs = self->npcs;
-    npcs.byName.Destroy();
+    std::destroy_at(&npcs.byName);
     for (UnitNpcRecord *p = npcs.begin, *end = npcs.end; p != end; ++p) DestroyNpcRecord(p);
     FreeRecords(npcs.begin, npcs.endOfStorage);
 
     UnitPrototypeTable& prototypes = self->prototypes;
-    prototypes.byName.Destroy();
+    std::destroy_at(&prototypes.byName);
     for (UnitPrototypeRecord *p = prototypes.begin, *end = prototypes.end; p != end; ++p) p->DeleteScalar(0);
     FreeRecords(prototypes.begin, prototypes.endOfStorage);
 }
@@ -148,19 +145,18 @@ void DestroyNpcRecord(UnitNpcRecord* record) {
 }
 
 namespace {
-// A table as the database constructor builds it: no records, a name map with 100 buckets asked for.
+// A table as the database constructor builds it: no records, an empty name map.
 template <typename Table>
 void ConstructTable(Table& table) {
     table.begin = nullptr;
     table.end = nullptr;
     table.endOfStorage = nullptr;
-    table.byName.Construct(kNameBuckets);
+    std::construct_at(&table.byName);
 }
 } // namespace
 
 // The database constructor (the dynamic initialiser and the reload). The four tables in order: each record
-// vector empty, each name map with 100 buckets asked for (hashtable(n, hash, equal, allocator); the functor
-// bytes, never read, are 0 here). Returns the database.
+// vector and name map empty. Returns the database.
 UnitDatabase* ConstructUnitDatabase(UnitDatabase* self) {
     ConstructTable(self->prototypes);
     ConstructTable(self->npcs);

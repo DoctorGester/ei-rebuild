@@ -175,7 +175,8 @@ ALIGNED_ARRAY_VECTORS = {
     0x007C88E8, 0x007C88F8, 0x007C8938,
 }
 
-# The size of the T of a `lib::StaticObject<T>` (zero storage; a static_assert next to the definition keeps it true).
+# The bytes game.exe's object of a `lib::StaticObject<T>` spans at its address (zero storage). Ours may be larger
+# (std containers in place of the game's).
 STATIC_OBJECT_BYTES = {
     # game.exe's lists are the 4-byte sentinel pointer; ours (std::list, 8 bytes) start zero all the same
     'std::list<std::uint8_t>': 4, 'std::list<DirectDrawDriver>': 4, 'stlp::list<CMapObject*>': 4,

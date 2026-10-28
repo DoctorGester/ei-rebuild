@@ -234,7 +234,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     QuestBriefingRecord* record = nullptr;
     if (parts.size() == 3) {
         std::string key(parts[2]);
-        record = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), key);
+        record = worlddata::QuestBriefings()[key];
     }
     CPlayer* player = nullptr;
     {
@@ -333,7 +333,7 @@ double Weight(CUnitServer* controller) {
 
 // Without a player: the single heroes of every player share `amount` in proportion to their weights.
 void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
-    if (world->PlayerList()->objects_.Size() == 0) return;
+    if (world->PlayerList()->objects_.size() == 0) return;
     ShareList list{mfc::impl::ExperienceListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     auto soloUnit = [&](CPlayer* p) -> CUnit* {
         if (!p->Server() || p->Party()->members_.size != 1) return nullptr;
@@ -395,8 +395,8 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
 // With a player: its living heroes share `amount` equally.
 void ShareAmongHeroes(CWorldServer* world, CPlayer* player, float amount) {
     IdArray heroes{mfc::impl::IntArrayClass::Vtable(), nullptr, 0, 0, 0};
-    for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
-        CUnit* unit = node->value;
+    for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
+        CUnit* unit = node->second;
         if (unit->IsDead() != 0 || unit->type_ != kUnitTypeHero) continue;
         int id = unit->id_;
         int index = heroes.size;

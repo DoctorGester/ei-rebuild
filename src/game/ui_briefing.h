@@ -59,8 +59,7 @@ struct BriefingShownItem {
 };
 
 
-// A copy of the local player's variables whose names start with a prefix (100 buckets), walked in the table's
-// order.
+// A copy of the local player's variables whose names start with a prefix, walked in the table's order.
 class BriefingVariables {
 public:
     explicit BriefingVariables(const char* prefix);
@@ -68,8 +67,8 @@ public:
     BriefingVariables(const BriefingVariables&) = delete;
     BriefingVariables& operator=(const BriefingVariables&) = delete;
 
-    NamedFloatTable::Node* First() const;
-    NamedFloatTable::Node* Next(NamedFloatTable::Node* node) const;
+    NamedFloatTable::const_iterator begin() const { return table_.begin(); }
+    NamedFloatTable::const_iterator end() const { return table_.end(); }
 
 private:
     NamedFloatTable table_;

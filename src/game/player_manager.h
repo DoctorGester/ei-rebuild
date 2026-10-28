@@ -41,4 +41,3 @@ public:
     void SendValueToAll(int unused, int value);
     void SendTextToAll(int unused, const char* text);
 };
-static_assert(sizeof(CPlayerManager) == 0xB0);

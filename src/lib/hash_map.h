@@ -56,7 +56,9 @@ class HashMap {
         using reference = std::conditional_t<Const, const value_type&, value_type&>;
 
         Iterator() = default;
-        Iterator(const Iterator<false>& other) requires Const : node_(other.node_), map_(other.map_) {}
+        // (a template, so the copy constructor stays the implicit one)
+        template <bool C = Const, std::enable_if_t<C, int> = 0>
+        Iterator(const Iterator<false>& other) : node_(other.node_), map_(other.map_) {}
 
         reference operator*() const { return node_->value; }
         pointer operator->() const { return &node_->value; }
@@ -166,12 +168,12 @@ public:
         reserve(count_ + 1);
         size_type b = bucket(key);
         for (Node* n = buckets_[b]; n; n = n->next)
-            if (n->value.first == key) return {{n, this}, false};
+            if (n->value.first == key) return {iterator(n, this), false};
         Node* n = new Node{buckets_[b], std::pair<const K, V>(std::piecewise_construct, std::forward_as_tuple(key),
                                                               std::forward_as_tuple(std::forward<A>(arguments)...))};
         buckets_[b] = n;
         ++count_;
-        return {{n, this}, true};
+        return {iterator(n, this), true};
     }
     std::pair<iterator, bool> insert(const value_type& value) { return try_emplace(value.first, value.second); }
 

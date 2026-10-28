@@ -8,7 +8,6 @@
 #include "game_data.h"
 
 LeverRecordTable::~LeverRecordTable() {
-    byName.Destroy();
     records.clear();
     records.FreeStorage();
 }

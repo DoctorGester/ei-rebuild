@@ -231,7 +231,7 @@ int CLinkFigureLoader::LoadArchivePart(CLinkMesh* mesh, const std::string* name,
 }
 
 FigureModel* CLinkFigureLoader::FindFigureSet(const std::string* name) {
-    if (auto* found = figureSets_.Find(*name)) return found->value;
+    if (auto found = figureSets_.find(*name); found != figureSets_.end()) return found->second;
     // "<name>" plus each suffix in a 512-byte buffer (strcpy / strcat, no length check).
     char path[512];
     const char* files[3];
@@ -248,8 +248,8 @@ FigureModel* CLinkFigureLoader::FindFigureSet(const std::string* name) {
     figureSets_[*name] = set;
     // The map is indexed a second time (resize for one more element included).
     figureSets_[*name]->Open(files[0], files[1], files[2]);
-    auto* found = figureSets_.Find(*name);
-    return found ? found->value : nullptr;
+    auto found = figureSets_.find(*name);
+    return found != figureSets_.end() ? found->second : nullptr;
 }
 
 namespace {
@@ -273,8 +273,8 @@ CLinkFigureLoader::~CLinkFigureLoader() {
         if (n->resource) delete n->resource;
     }
     ClearArchives(archives_);
-    for (auto* node = figureSets_.First(); node; node = figureSets_.After(node)) {
-        if (FigureModel* set = node->value) {
+    for (auto& [name, set] : figureSets_) {
+        if (set) {
             DestroyFigureModel(set);
             gamecrt::operator_delete(set);
         }
@@ -285,7 +285,6 @@ CLinkFigureLoader::~CLinkFigureLoader() {
     }
     CLinkFigureLoader::ClearCache();
     // renderer_ is released here once more, like the original; it is null by now.
-    figureSets_.Destroy();
     ClearArchives(archives_);
     stlp::deallocate(archives_, sizeof(LinkArchiveNode));
 }

@@ -612,7 +612,6 @@ public:
     int savedDisplay_;          // the renderer's fog colour while the titles run
 };
 static_assert(offsetof(CCreditsScreen, textSurface_) == 0x164);
-static_assert(offsetof(CCreditsScreen, lines_) == 0x1C8);
 
 
 // --- Main menu ----------------------------------------------------------------------------------

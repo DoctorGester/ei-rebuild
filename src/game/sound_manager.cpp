@@ -65,10 +65,10 @@ float StopFadeStep() { return 0.010416667f /*007440E8*/; }
 miles::SampleCallback EndOfSampleCallback() { return SoundEndOfSample; }
 
 // The slot of the wave's cache list node (its record's uses counts the voices playing it).
-WaveNode*& CacheEntry(WaveCache& cache, const SoundSlot* slot) { return stlp::NamedSlot<WaveNode>(cache, slot->name); }
+WaveNode*& CacheEntry(WaveCache& cache, const SoundSlot* slot) { return cache[slot->name]; }
 // May rehash first.
 void SetDeferred(DeferredMap& deferred, std::int32_t handle, DeferredSound* rec) {
-    deferred.FindOrInsert({handle, nullptr})->value = rec;
+    deferred[handle] = rec;
 }
 void FreeDeferred(DeferredSound* rec) {
     std::destroy_at(&rec->name);
@@ -280,8 +280,8 @@ SoundSlot* CSoundManager::FindPlaying(int handle) {
 // The deferred record of `handle`, or null.
 DeferredSound* CSoundManager::FindDeferred(std::uint32_t handle) {
     if (enabled == 0) return nullptr;
-    DeferredNode* node = deferred.Find(static_cast<std::int32_t>(handle));
-    return node != nullptr ? node->value : nullptr;
+    auto node = deferred.find(static_cast<std::int32_t>(handle));
+    return node != deferred.end() ? node->second : nullptr;
 }
 
 // Makes a sound 2D with the given volume (0..100) and pan.
@@ -303,11 +303,11 @@ int CSoundManager::SetSoundVolume(int handle, int volume, int pan) {
         }
     }
     if (enabled != 0) {
-        DeferredNode* node = deferred.Find(handle);
-        if (node != nullptr && node->value != nullptr) {
-            node->value->baseVolume = volume;
-            node->value->pan = pan;
-            node->value->flat = 1;
+        auto node = deferred.find(handle);
+        if (node != deferred.end() && node->second != nullptr) {
+            node->second->baseVolume = volume;
+            node->second->pan = pan;
+            node->second->flat = 1;
             return 1;
         }
     }
@@ -333,9 +333,9 @@ int CSoundManager::SetSoundPosition(int handle, const float* position, float nea
         }
     }
     if (enabled != 0) {
-        DeferredNode* node = deferred.Find(handle);
-        if (node != nullptr && node->value != nullptr) {
-            DeferredSound* rec = node->value;
+        auto node = deferred.find(handle);
+        if (node != deferred.end() && node->second != nullptr) {
+            DeferredSound* rec = node->second;
             std::memcpy(&rec->position, position, sizeof(rec->position));
             rec->flat = 0;
             rec->nearDistance = nearDist;
@@ -349,11 +349,11 @@ int CSoundManager::SetSoundPosition(int handle, const float* position, float nea
 namespace {
 // Deletes the deferred record of `handle`, if any (StopSound, RemoveSequence).
 void DropDeferred(CSoundManager* m, int handle) {
-    DeferredNode* node = m->deferred.Find(handle);
-    if (node == nullptr) return;
-    DeferredSound* rec = node->value;
+    auto node = m->deferred.find(handle);
+    if (node == m->deferred.end()) return;
+    DeferredSound* rec = node->second;
     if (rec == nullptr) return;
-    m->deferred.EraseKey(rec->handle);
+    m->deferred.erase(rec->handle);
     FreeDeferred(rec);
 }
 } // namespace
@@ -506,9 +506,9 @@ void MoveSequenceSound(CSoundManager* m, int handle, const float* position, floa
         }
     }
     if (m->enabled == 0) return;
-    DeferredNode* node = m->deferred.Find(handle);
-    if (node == nullptr || node->value == nullptr) return;
-    DeferredSound* rec = node->value;
+    auto node = m->deferred.find(handle);
+    if (node == m->deferred.end() || node->second == nullptr) return;
+    DeferredSound* rec = node->second;
     std::memcpy(&rec->position, position, sizeof(rec->position));
     rec->flat = 0;
     rec->nearDistance = nearDist;
@@ -583,20 +583,19 @@ void CSoundManager::Tick() {
     }
 
     for (int i = 0; i < 15; ++i) {
-        if (deferred.Size() == 0) break;
+        if (deferred.size() == 0) break;
         if (slots[i].playing != 0) continue;
         // The highest priority (the first one met on ties).
-        std::int32_t best = deferred.First()->value->priority;
-        std::int32_t key = deferred.First()->value->handle;
-        for (DeferredNode* node = deferred.First(); node != nullptr; node = deferred.After(node)) {
-            DeferredSound* candidate = node->value;
+        std::int32_t best = deferred.begin()->second->priority;
+        std::int32_t key = deferred.begin()->second->handle;
+        for (auto& [handle, candidate] : deferred) {
             if (candidate->priority > best) {
                 best = candidate->priority;
                 key = candidate->handle;
             }
         }
-        DeferredSound* rec = deferred.FindOrInsert({key, nullptr})->value;
-        deferred.EraseKey(key);
+        DeferredSound* rec = deferred[key];
+        deferred.erase(key);
 
         SoundSlot* slot = &slots[i];
         slot->volume = rec->volume;
@@ -855,11 +854,9 @@ void CSoundManager::StopAll(bool stopStream) {
 
 // StopAll's loop (Close's is the same with the map's clear() out of line).
 void CSoundManager::DeleteDeferred() {
-    for (DeferredNode* node = deferred.First(); node != nullptr; node = deferred.After(node)) {
-        DeferredSound* rec = node->value;
+    for (auto& [handle, rec] : deferred)
         if (rec != nullptr) FreeDeferred(rec);
-    }
-    deferred.Clear();
+    deferred.clear();
 }
 
 // AILSOUNDINFO, filled by AIL_WAV_info.
@@ -1145,11 +1142,10 @@ void PushBack(WaveList& list, const WaveRecord* record) {
     else list.head = node;
     list.tail = node;
 }
-void CacheSet(CSoundManager* m, const std::string* key, WaveNode* node) { stlp::NamedSlot<WaveNode>(m->cache, *key) = node; }
+void CacheSet(CSoundManager* m, const std::string* key, WaveNode* node) { m->cache[*key] = node; }
 
 // A cached wave: moved to the front with one more use and the time of now, then given to the voice.
-void UseCached(CSoundManager* m, SoundSlot* slot, const std::string* key, const char* name, const WaveCache::Node* cached) {
-    WaveNode* node = cached->value;
+void UseCached(CSoundManager* m, SoundSlot* slot, const std::string* key, const char* name, WaveNode* node) {
     WaveRecord record = node->data;
     Unlink(m->cacheList, node);
     mfc::impl::FreeNodeAs<gamelists::Waves>(&m->cacheList, node);
@@ -1171,7 +1167,7 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
         if (record.uses <= 0) {
             gameapi::AIL_mem_free_lock(record.data);
             m->cacheBytes -= record.size;
-            m->cache.EraseKey(record.name);
+            m->cache.erase(record.name);
             Unlink(m->cacheList, node);
             mfc::impl::FreeNodeAs<gamelists::Waves>(&m->cacheList, node);
         }
@@ -1187,9 +1183,9 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
 // Returns 0 when no archive has the file or the decompression fails.
 int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, int compressed) {
     std::string key(name);    // freed on each return
-    const WaveCache::Node* cached = cache.Find(key);
-    if (cached != nullptr) {
-        if (compressed == 0) UseCached(this, slot, &key, name, cached);
+    auto cached = cache.find(key);
+    if (cached != cache.end()) {
+        if (compressed == 0) UseCached(this, slot, &key, name, cached->second);
     } else {
         CMappedResource* source = nullptr;
         void* data = nullptr;

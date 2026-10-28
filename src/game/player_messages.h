@@ -14,6 +14,7 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/hash_map.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -306,9 +307,10 @@ class CPlayer final : public CEngineObject {
 public:
     // The world objects the player knows, by id, each counted once: the map objects and the timed objects
     // (effects).
-    using MapObjectMap = stlp::hash_map<int, CMapObject*, stlp::IntHash>;
-    using TimedObjectMap = stlp::hash_map<int, CEffect*, stlp::IntHash>;
-    using UnitMap = stlp::hash_map<int, CUnit*, stlp::IntHash>;
+    // Walked in STLport's order (the objects are released, the units handled in it).
+    using MapObjectMap = lib::HashMap<int, CMapObject*>;
+    using TimedObjectMap = lib::HashMap<int, CEffect*>;
+    using UnitMap = lib::HashMap<int, CUnit*>;
 
     CPlayer();
     ~CPlayer() override;
@@ -391,11 +393,7 @@ public:
 };
 static_assert(offsetof(CPlayer, link_) == 0x1C);
 static_assert(offsetof(CPlayer, knownObjects_) == 0x28);
-static_assert(offsetof(CPlayer, maxUnitId_) == 0x54);
-static_assert(offsetof(CPlayer, maxTimedId_) == 0x6C);
-static_assert(offsetof(CPlayer, party_) == 0x70);
 static_assert(offsetof(CPlayer, connection_) == 0x20);
-static_assert(offsetof(CPlayer, units_) == 0x40);
 
 // The message dispatchers' fatal error: `format` with the previous and the current message type (their low
 // bytes); the FatalError result.

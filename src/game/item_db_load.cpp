@@ -7,7 +7,6 @@
 #include "record_vectors.h"
 
 #include "lib/stlp.h"
-#include "lib/stlp_hash.h"
 #include "lib/stlp_vector.h"
 
 #include <functional>
@@ -39,7 +38,7 @@ void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int f
     archive.Close(source);
     for (Record* record = table->records.begin(); record != table->records.end(); ++record) {
         std::string name(record->text04.c_str());
-        stlp::NamedSlot<Record>(table->names, name) = record;
+        table->names[name] = record;
     }
 }
 
@@ -231,7 +230,7 @@ namespace {
 // the vector's storage (STLport's deallocate of the capacity in whole records).
 template <typename Record, typename Destroy>
 void DestroyTable(itemdb::NamedRecordTable<Record>& table, Destroy destroy) {
-    table.names.Destroy();
+    std::destroy_at(&table.names);
     Record* end = table.records.end();
     for (Record* record = table.records.begin(); record != end; ++record) std::invoke(destroy, record);
     if (table.records.begin() != nullptr)

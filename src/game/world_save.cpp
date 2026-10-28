@@ -197,8 +197,8 @@ void RelocateStrandedUnits(CWorldServer* world) {
     stranded.growBy = 0;
     stranded.maxSize = 0;
     stranded.size = 0;
-    for (auto* node = world->objects_.map.First(); node; node = world->objects_.map.After(node)) {
-        CUnit* unit = UnitOrNull(node->value);
+    for (auto node = world->objects_.map.begin(); node != world->objects_.map.end(); ++node) {
+        CUnit* unit = UnitOrNull(node->second);
         if (!unit) continue;
         if (world->AIMap()->CanLeaveCell(unit)) continue;
         int id = unit->id_;
@@ -559,8 +559,8 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     stream->WriteDiff(&base, &current);
 
     // The map objects' identities (the walk stops at the first empty entry).
-    for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node)) {
-        CEngineObject* object = node->value;
+    for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end() && node->second; ++node) {
+        CEngineObject* object = node->second;
         WriteCopy(stream, object->id_);
         WriteCopy(stream, object->type_);
         WriteCopy(stream, object->prototypeId_);
@@ -574,8 +574,8 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     manager4C_->SaveObjects(stream);
     itemManager_->SaveObjects(stream);
 
-    for (auto* node = timedObjects_.map.First(); node; node = timedObjects_.map.After(node))
-        WriteCopy(stream, node->value->id_);
+    for (auto node = timedObjects_.map.begin(); node != timedObjects_.map.end(); ++node)
+        WriteCopy(stream, node->second->id_);
     WriteCopy(stream, -1);
 
     for (auto* node = projectiles_.head; node;) {
@@ -722,8 +722,8 @@ namespace {
 } // namespace
 
 void CWorldServer::PrepareSave() {
-    for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node)) {
-        CUnit* unit = UnitOrNull(node->value);
+    for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end() && node->second; ++node) {
+        CUnit* unit = UnitOrNull(node->second);
         if (!unit || unit->IsDead()) continue;
         CUnitController* controller = unit->Controller();
         unit->ServerController()->stats.RefillSlots();

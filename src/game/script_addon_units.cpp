@@ -76,7 +76,7 @@ bool DataField(Call* call, float UnitStats::* field, const char* function) {
 template <typename Visit>
 void ForWorldObjects(Visit visit) {
     auto& objects = TheServerWorld()->objects_.map;
-    objects.ForEach([&](std::remove_reference_t<decltype(objects)>::Node* node) { visit(node->value); });
+    for (const auto& [id, object] : objects) visit(object);
 }
 
 } // namespace

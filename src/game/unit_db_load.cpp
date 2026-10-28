@@ -38,7 +38,7 @@ template <typename Record, typename Index>
 void IndexNames(Record* begin, Record* const& end, Index* index) {
     for (Record* record = begin; record != end; ++record) {
         std::string key(record->name.c_str());
-        auto& slot = index->Subscript(key);
+        auto& slot = (*index)[key];
         slot = reinterpret_cast<std::remove_reference_t<decltype(slot)>>(record);
     }
 }

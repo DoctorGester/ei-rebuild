@@ -95,15 +95,15 @@ std::uint32_t ChannelLayout::FromNative(std::uint32_t pixel) const {
 }
 
 int CTextureDevice::FindFormat(int id, PixelFormat* format) {
-    auto* node = formats_.Find(id);
-    if (!node) return 0;
-    *format = *node->value;
+    auto node = formats_.find(id);
+    if (node == formats_.end()) return 0;
+    *format = *node->second;
     return 1;
 }
 
 int CTextureDevice::ParseMmpHeader(const MmpHeader* header, PixelFormat* format) {
-    if (auto* node = formats_.Find(static_cast<int>(header->format))) {
-        *format = *node->value;
+    if (auto node = formats_.find(static_cast<int>(header->format)); node != formats_.end()) {
+        *format = *node->second;
         return 1;
     }
     if ((header->format & kMmpDxtMask) != kMmpDxt) return 0;
@@ -116,8 +116,8 @@ int CTextureDevice::ParseMmpHeader(const MmpHeader* header, PixelFormat* format)
     else if (red == 5 && green == 5 && blue == 5 && alpha == 1) id = 0x5551;
     else if (red == 4 && green == 4 && blue == 4 && alpha == 4) id = 0x4444;
     else if (red == 8 && green == 8 && blue == 8 && alpha == 8) id = 0x8888;
-    auto* node = formats_.Find(id);
-    if (!node) return 0;
-    *format = *node->value;
+    auto node = formats_.find(id);
+    if (node == formats_.end()) return 0;
+    *format = *node->second;
     return 1;
 }

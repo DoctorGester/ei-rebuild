@@ -5,9 +5,9 @@
 
 #include "lib/crt.h"
 #include "lib/static_object.h"
-#include "lib/stlp_hash.h"
 
 #include <cstring>
+#include <unordered_set>
 
 namespace {
 
@@ -201,13 +201,13 @@ void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFla
 }
 
 // A hash_set<int> that nothing of ours reads: built by its static initialiser, destroyed by its exit function.
-using UnreadSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
+using UnreadSet = std::unordered_set<int>;
 constinit lib::StaticObject<UnreadSet> g_unreadSet = /*007AB8D8*/ {};
 namespace {
-void DestroyUnreadSet() { g_unreadSet->Destroy(); }
+void DestroyUnreadSet() { g_unreadSet.Destroy(); }
 } // namespace
 
 void ConstructUnreadSet() {
-    g_unreadSet->Construct(100, 0, 0, 0);
+    g_unreadSet.Construct();
     libcrt::AtExit(DestroyUnreadSet);
 }

@@ -75,8 +75,8 @@ bool ListContains(const UnitList* list, const CUnit* unit) {
 // first member that is not `self`; a null member ends it.
 CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
     const auto& map = player->units_;
-    for (auto* node = map.First(); node; node = map.After(node)) {
-        CUnit* member = node->value;
+    for (auto node = map.begin(); node != map.end(); ++node) {
+        CUnit* member = node->second;
         if (!member) return nullptr;
         if (member != self) return member;
     }

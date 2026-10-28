@@ -13,7 +13,7 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "lib/stlp_hash.h"
+#include "lib/stlp.h"
 #include "lib/mfc_slots.h"
 
 #include <cmath>

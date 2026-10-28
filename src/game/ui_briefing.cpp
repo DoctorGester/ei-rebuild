@@ -47,16 +47,9 @@ constexpr int kTopicNameParts = 3;
 
 // --- The variable copies ------------------------------------------------------------------------
 
-BriefingVariables::BriefingVariables(const char* prefix) {
-    table_.ConstructDefault();
-    PlayerZeroVariables(prefix, &table_);
-}
+BriefingVariables::BriefingVariables(const char* prefix) { PlayerZeroVariables(prefix, &table_); }
 
-BriefingVariables::~BriefingVariables() { table_.Destroy(); }
-
-NamedFloatTable::Node* BriefingVariables::First() const { return table_.First(); }
-
-NamedFloatTable::Node* BriefingVariables::Next(NamedFloatTable::Node* node) const { return table_.Next(node); }
+BriefingVariables::~BriefingVariables() = default;
 
 
 void CBriefingScreen::Close() {
@@ -128,11 +121,11 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     prefix = str::Format(ZoneTopicFormat(), zone->name.c_str());
     BriefingVariables variables(prefix.c_str());
     std::vector<std::string> parts;
-    for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
+    for (auto node = variables.begin(); node != variables.end(); ++node) {
         std::uint32_t bits;
-        std::memcpy(&bits, &node->value.mapped, 4);
+        std::memcpy(&bits, &node->second, 4);
         if (bits != kOneBits) continue;
-        text::Split(node->value.key.c_str(), &parts, '.');
+        text::Split(node->first.c_str(), &parts, '.');
         if (parts.size() != kTopicNameParts) continue;
         topic_ = parts[2];
         briefingStarted_ = true;

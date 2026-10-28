@@ -1,5 +1,4 @@
 address,size,name,file
-0073B914,112,kPrimes,src/game/figure_models.cpp
 0073CB38,64,kSphereSizeByLife,src/game/effects.h
 0073CB78,24,kAntimagicSizeByLife,src/game/effects.h
 0073D080,4,kSeedSearchPattern,src/game/random.cpp

@@ -6,7 +6,6 @@
 #include "crt.h"
 #include "stlp.h"
 #include "stlp_alloc.h"
-#include "stlp_pair.h"
 #include "stlp_vector.h"
 
 #include <cstddef>
@@ -17,69 +16,6 @@
 #include <string>
 
 namespace stlp {
-
-std::size_t NextPrime(std::size_t n);
-
-// A value whose first dword is the key, hashed as itself (hash<int>, hash<unsigned>, hash of a pointer).
-// Bytes is the whole value's size: 4 for a hash_set of dwords, 8 for a map of dword to dword.
-template <std::size_t Bytes>
-struct DwordKeyed {
-    std::uint32_t key;
-    unsigned char rest[Bytes - 4];
-};
-template <>
-struct DwordKeyed<4> {
-    std::uint32_t key;
-};
-
-template <std::size_t Bytes>
-struct DwordKeyTraits {
-    using Value = DwordKeyed<Bytes>;
-    using Key = std::uint32_t;
-    static const Key& KeyOf(const Value& v) { return v.key; }
-    static std::uint32_t Hash(const Key& k) { return k; }
-    static bool Equal(const Key& a, const Key& b) { return a == b; }
-    static void Construct(Value* to, const Value& from) { std::memcpy(to, &from, sizeof(Value)); }
-    static void Destroy(Value*) {}
-};
-
-// __stl_hash_string: h = 5 * h + c over the characters, which are signed in this build.
-inline std::uint32_t HashChars(const char* first, const char* last) {
-    std::uint32_t h = 0;
-    for (; first != last; ++first) h = h * 5 + static_cast<std::uint32_t>(static_cast<int>(*first));
-    return h;
-}
-inline std::uint32_t HashChars(const char* s) {
-    std::uint32_t h = 0;
-    for (; *s; ++s) h = h * 5 + static_cast<std::uint32_t>(static_cast<int>(*s));
-    return h;
-}
-
-// pair<const string, T> with T plain data of MappedBytes. A temporary built from a key holds a copy of it
-// and zeroes, as value_type(key, T()) does.
-template <std::size_t MappedBytes>
-struct StringKeyed {
-    std::string key;
-    unsigned char mapped[MappedBytes];
-    StringKeyed() = default;
-    explicit StringKeyed(const std::string& k) : key(k), mapped{} {}
-};
-
-// The traits of a hashtable keyed by a string (HashChars over its bytes; equal when the sizes and bytes
-// are). The node copies the string and the mapped bytes; deleting it frees the string's block.
-template <std::size_t MappedBytes>
-struct StringKeyTraits {
-    using Value = StringKeyed<MappedBytes>;
-    using Key = std::string;
-    static const Key& KeyOf(const Value& v) { return v.key; }
-    static std::uint32_t Hash(const Key& k) { return HashChars(k.data(), k.data() + k.size()); }
-    static bool Equal(const Key& a, const Key& b) { return a == b; }
-    static void Construct(Value* to, const Value& from) {
-        std::construct_at(&to->key, from.key);
-        std::memcpy(to->mapped, from.mapped, MappedBytes);
-    }
-    static void Destroy(Value* p) { std::destroy_at(&p->key); }
-};
 
 // A value of a dword key (hashed as itself) and a T whose copy and destruction are an element
 // policy's (Construct(T*, const T&), Destroy(T*): stlp_vector.h's policies, record_vectors.h's).
@@ -100,46 +36,6 @@ struct DwordObjectTraits {
         E::Construct(&to->mapped, from.mapped);
     }
     static void Destroy(Value* p) { E::Destroy(&p->mapped); }
-};
-
-// pair<const string, float> (the party's named variables, game.exe's hash_map<CString, float>): string keys as
-// StringKeyTraits (the game's text has no zero bytes, so HashChars over the size hashes what the CString's did up to
-// its zero, and equal bytes are what _mbscmp called equal). The node copies the string and the float's bits; deleting
-// it frees the string's block. A temporary built from a key holds a copy of it and zero.
-struct StringFloat {
-    std::string key;
-    float mapped;
-    explicit StringFloat(const std::string& k) : key(k), mapped(0.0f) {}
-};
-struct StringFloatTraits {
-    using Value = StringFloat;
-    using Key = std::string;
-    static const Key& KeyOf(const Value& v) { return v.key; }
-    static std::uint32_t Hash(const Key& k) { return HashChars(k.data(), k.data() + k.size()); }
-    static bool Equal(const Key& a, const Key& b) { return a == b; }
-    static void Construct(Value* to, const Value& from) {
-        std::construct_at(&to->key, from.key);
-        std::memcpy(&to->mapped, &from.mapped, sizeof(float));
-    }
-    static void Destroy(Value* p) { std::destroy_at(&p->key); }
-};
-
-// pair<const string, list<void*>> (the item stock's recipes by spell name): string keys as StringKeyTraits.
-// The node copies the string, then the list; deleting it destroys the list, then the string.
-struct StringListTraits {
-    using Value = StringListPair;
-    using Key = std::string;
-    static const Key& KeyOf(const Value& v) { return v.key; }
-    static std::uint32_t Hash(const Key& k) { return HashChars(k.data(), k.data() + k.size()); }
-    static bool Equal(const Key& a, const Key& b) { return a == b; }
-    static void Construct(Value* to, const Value& from) {
-        std::construct_at(&to->key, from.key);
-        std::construct_at(&to->mapped, from.mapped);
-    }
-    static void Destroy(Value* p) {
-        std::destroy_at(&p->mapped);
-        std::destroy_at(&p->key);
-    }
 };
 
 template <typename Traits>
@@ -593,39 +489,6 @@ struct HashtableAbi : hashtable<Traits> {
             return this;
         }
     };
-};
-
-std::uint32_t HashString(const std::string* s);
-
-// hash_map<string, T*>: the record tables' maps by name, the spells and modifiers by name.
-using NameMap = hashtable<StringKeyTraits<4>>;
-// operator[](name) and find_or_insert({name, null}): the slot of
-// `name`'s record, a null one inserted for a new name (from a copy of the name, freed after).
-template <typename T>
-T*& NamedSlot(NameMap& map, const std::string& name) {
-    NameMap::Value obj(name);
-    return *reinterpret_cast<T**>(map.FindOrInsert(obj).mapped);
-}
-// The same on a typed hash_map<string, T*> (the item and spell tables' indexes): operator[] as
-// STLport writes it, a {name, null} temporary for find_or_insert.
-template <typename T>
-T*& NamedSlot(hash_map<std::string, T*, StringHash>& map, const std::string& name) {
-    return map.Subscript(name);
-}
-
-// A vector of records (start, finish, end of storage) followed by the map from a record's name to it
-// (the item databases' weapon, armor, quick item, material and loot tables, the lever table).
-struct RecordsByName {
-    void* records[3];
-    hashtable<StringKeyTraits<4>> byName;
-
-};
-
-// A hash_map<int, T> with a dword after the table (the terrain's light table):
-// hashtable(100) and the dword zeroed. Returns this.
-struct TableWithDword {
-    hashtable<DwordKeyTraits<8>> table;
-    std::uint32_t extra;
 };
 
 } // namespace stlp

@@ -687,8 +687,8 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         }
         (*result)->CopyFrom(player->Server()->group50F8_);
         const auto& units = player->units_;
-        for (auto* node = units.First(); node; node = units.After(node)) {
-            CUnit* unit = node->value;
+        for (auto node = units.begin(); node != units.end(); ++node) {
+            CUnit* unit = node->second;
             if (!unit) break;
             (*result)->Insert(unit);
             InsertSeen(*result, unit->ServerController());

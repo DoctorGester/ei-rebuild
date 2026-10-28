@@ -9,7 +9,6 @@
 #include "text_split.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "lib/stlp_hash.h"
 #include "lib/str.h"
 #include "game_data.h"
 
@@ -20,9 +19,7 @@ const char* const kNoSpellConstructor = "No valid spell constructor\n";
 const char* const kCantBegin = "Can't begin spell construction with prototype \"%s\"\n";
 const char* const kCantEnd = "Can't end spell construction\n";
 
-// The spell and modifier name maps (STLport hash_map<string, char*>), thiscall on the map. Operator[](key)
-// (inserts a null record for a missing name); returns the value. The spells and modifiers by name
-// (operator[], find_or_insert of {name, null}).
+// The spells and modifiers by name; operator[] files a missing name with a null record.
 itemdb::SpellTable::CodeIndex& SpellNameMap() { return itemdb::TheSpellDatabase().spells.byCode; }
 itemdb::SpellModifierTable::CodeIndex& ModifierNameMap() { return itemdb::TheSpellDatabase().modifiers.byCode; }
 
@@ -54,7 +51,7 @@ void ParseSpellText(std::string& text, std::vector<std::string>& codes) {
 // The modifier record named `name` (find_or_insert with a null record).
 itemdb::SpellModifierRecord* FindModifier(const char* name) {
     std::string key(name);
-    return stlp::NamedSlot<itemdb::SpellModifierRecord>(ModifierNameMap(), key);
+    return ModifierNameMap()[key];
 }
 
 } // namespace
@@ -71,7 +68,7 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
     itemdb::SpellRecord* prototype;
     {
         std::string key(text);
-        prototype = stlp::NamedSlot<itemdb::SpellRecord>(SpellNameMap(), key);
+        prototype = SpellNameMap()[key];
     }
     if (!constructor->BeginConstruct(prototype))
         return game::FatalErrorAs<CSpell>(kCantBegin, text.c_str());

@@ -8,7 +8,6 @@
 #include "world.h"
 
 #include "ei/x87.h"
-#include "lib/stlp_hash.h"
 #include "lib/stlp.h"
 #include "lib/containers.h"
 #include "lib/mfc_coll.h"
@@ -166,15 +165,15 @@ CWorld* CVisibilityFog::World() { return ObjectWorld(this); }
 void CVisibilityFog::ComputeBounds() {
     bounds.boxMin = {kFar, kFar, kFar};
     bounds.boxMax = {-kFar, -kFar, -kFar};
-    cells.ForEach([this](CellMap::Node* n) {
-        const Vector3& p = n->value.pos;
+    for (const auto& [key, cell] : cells) {
+        const Vector3& p = cell.pos;
         bounds.boxMin.x = p.x >= bounds.boxMin.x ? bounds.boxMin.x : p.x;
         bounds.boxMin.y = p.y >= bounds.boxMin.y ? bounds.boxMin.y : p.y;
         bounds.boxMin.z = p.z >= bounds.boxMin.z ? bounds.boxMin.z : p.z;
         bounds.boxMax.x = bounds.boxMax.x >= p.x ? bounds.boxMax.x : p.x;
         bounds.boxMax.y = bounds.boxMax.y >= p.y ? bounds.boxMax.y : p.y;
         bounds.boxMax.z = bounds.boxMax.z >= p.z ? bounds.boxMax.z : p.z;
-    });
+    }
     bounds.boxMax.x = LoadFloat(bounds.boxMax.x) + kHalf;
     bounds.boxMax.y = LoadFloat(bounds.boxMax.y) + kHalf;
     bounds.boxMax.z = LoadFloat(bounds.boxMax.z) + kHalf;
@@ -216,40 +215,38 @@ int CVisibilityFog::UpdateCells() {
     }
     dead.clear();
     World();   // called and ignored
-    cells.ForEach([&dead](CellMap::Node* n) {
-        FogCell& cell = n->value;
+    for (auto& [key, cell] : cells) {
         if (cell.visible)
             cell.alpha = kOne - (kOne - cell.alpha) * kHalf;
         else
             cell.alpha = cell.alpha * kHalf;
         EI_NAN_AUDIT(cell.alpha);
         if (LoadFloat(cell.alpha) < kFogMinAlpha) {
-            dead.push_back(n->key);
+            dead.push_back(key);
         }
         cell.frame = static_cast<std::int8_t>((cell.frame + 1) % 15);
-    });
-    for (const std::uint32_t key : dead) cells.EraseKey(key);
-    return (refCount_ > 1 || cells.Size() != 0) ? 1 : 0;
+    }
+    for (const std::uint32_t key : dead) cells.erase(key);
+    return (refCount_ > 1 || cells.size() != 0) ? 1 : 0;
 }
 
 // Marks the cells of the visible squares (adding new ones, transparent, at a jittered point on
 // the ground) and clears the mark on all others.
 void CVisibilityFog::Reveal(const FogGrid* grid) {
-    cells.ForEach([](CellMap::Node* n) { n->value.visible = 0; });
+    for (auto& [key, cell] : cells) cell.visible = 0;
     for (int row = 0; row < grid->cells.height; ++row) {
         for (int col = 0; col < grid->cells.width; ++col) {
             if (grid->cells.rows[row][col] == 0) continue;
             std::uint32_t key = ((grid->y0 + row) << 16) + grid->x0 + col;
-            if (CellMap::Node* found = cells.Find(key)) {
-                found->value.visible = 1;
+            if (auto found = cells.find(key); found != cells.end()) {
+                found->second.visible = 1;
                 continue;
             }
             // The pair template is filled by an overlapping copy from the key, so every dword of the new value
             // starts as the key.
-            std::array<std::uint32_t, 7> words;
+            std::array<std::uint32_t, sizeof(FogCell) / 4> words;
             words.fill(key);
-            static_assert(sizeof(CellMap::Pair) == sizeof(words));
-            FogCell* cell = &cells.FindOrInsert(std::bit_cast<CellMap::Pair>(words))->value;
+            FogCell* cell = &cells.try_emplace(key, std::bit_cast<FogCell>(words)).first->second;
             cell->visible = 1;
             cell->x = static_cast<std::int16_t>(grid->x0 + col);
             cell->y = static_cast<std::int16_t>(grid->y0 + row);
@@ -269,28 +266,19 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
 
 // ---- The fog object's virtuals ------------------------------------------------------------------
 
-// The cell nodes (0x20 bytes) go back to the pool's 32-byte free list.
-static_assert(sizeof(CVisibilityFog::CellMap::Node) > 24 && sizeof(CVisibilityFog::CellMap::Node) <= 32);
-
 void CVisibilityFog::ClearCells() {
-    cells.Clear();
+    cells.clear();
     boundsValid = 0;
 }
-
-namespace {
-constexpr std::size_t kFogBuckets = 100;   // the hint the cell map is created with
-} // namespace
 
 CVisibilityFog::CVisibilityFog() {
     ClearFields();
     std::memset(static_cast<void*>(&bounds), 0, offsetof(CVisibilityFog, cells) - offsetof(CVisibilityFog, bounds));
-    cells.InitBuckets(kFogBuckets);
     boundsValid = 0;
 }
 
 CVisibilityFog::~CVisibilityFog() {
     ClearCells();
-    cells.Destroy();
 }
 
 int CVisibilityFog::Create() {

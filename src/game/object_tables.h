@@ -9,7 +9,7 @@
 #include <string>
 
 #include "lib/mfc.h"
-#include "lib/stlp_hash.h"
+#include "lib/hash_map.h"
 #include "game_data.h"
 
 using BOOL = int;
@@ -146,16 +146,9 @@ static_assert(offsetof(CMapDatabase, maps) == 0x14);
 static_assert(sizeof(CMapDatabase) == 0x28);
 
 // The game's hash_map<CString, float> (the party's and players' variables, the briefing's copies) with std::string
-// keys: STLport's hashtable over pair<string, float> (stlp_hash.h; game.exe's hash and bucket order), nodes {next,
-// key, value}, with the named-variable members the game adds.
-struct NamedFloatTable : stlp::hashtable<stlp::StringFloatTraits> {
-    // hash_map(): 100 buckets.
-    void ConstructDefault() { Construct(100, 0, 0, 0); }
-    // operator[]: the value under `key`, a new zero one when absent.
-    float& operator[](const std::string& key) {
-        stlp::StringFloat entry(key);
-        return FindOrInsert(entry).mapped;
-    }
+// keys, in game.exe's hash and bucket order (lib::HashMap: the variables are saved and listed in it), with the
+// named-variable members the game adds.
+struct NamedFloatTable : lib::HashMap<std::string, float, lib::TextHash> {
 
     // Value stored under `name`, 0 if absent. Builds a string of the name first, as the game does.
     float Get(const char* name);
@@ -173,7 +166,6 @@ struct NamedFloatTable : stlp::hashtable<stlp::StringFloatTraits> {
     // Writes each entry (name with its zero, then the value), in bucket order, then an empty name.
     void Save(CStream* stream);
 };
-static_assert(sizeof(NamedFloatTable) == 0x14);static_assert(sizeof(NamedFloatTable) == 0x14);
 
 // Rebirth's PersistentGlobalVars (persistent_globals.cpp): empties `table` but keeps
 // its "gvar." entries, set again in the order addon's own container gives them.

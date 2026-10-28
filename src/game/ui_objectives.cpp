@@ -16,7 +16,6 @@
 #include "quest_records.h"
 #include "world.h"
 
-#include "lib/stlp_hash.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
@@ -83,12 +82,10 @@ void DestroyLastQuest() {
 }
 class VariableTable {
 public:
-    VariableTable() { table_.ConstructDefault(); }   // with 100 buckets
     void Fill(const char* prefix) { GameLocalPlayerVariables(prefix, &table_); }
-    ~VariableTable() { table_.Destroy(); }   // every node's key released, then the buckets
 
-    NamedFloatTable::Node* First() const { return table_.First(); }
-    NamedFloatTable::Node* Next(const NamedFloatTable::Node* node) const { return table_.Next(node); }
+    NamedFloatTable::const_iterator begin() const { return table_.begin(); }
+    NamedFloatTable::const_iterator end() const { return table_.end(); }
 
 private:
     NamedFloatTable table_;
@@ -298,10 +295,10 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         prefix = str::Format("q.%s", shownZone_.c_str());
         table->Fill(prefix.c_str());
         ZoneNames found;
-        for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
-            EI_NAN_AUDIT(node->value.mapped);
-            if (node->value.mapped == 0.0f) continue;
-            text::Split(node->value.key.c_str(), &parts, '.');
+        for (auto node = table->begin(); node != table->end(); ++node) {
+            EI_NAN_AUDIT(node->second);
+            if (node->second == 0.0f) continue;
+            text::Split(node->first.c_str(), &parts, '.');
             if (parts.size() == 3) PushBack(&found, parts[2].c_str());
         }
         shownQuest_ = -1;
@@ -362,7 +359,7 @@ QuestDatabase::QuestIndex& QuestIndex() { return TheQuestDatabase().questsByName
 
 QuestRecord* FindQuestRecord(const char* name) {
     std::string key(name);
-    return QuestIndex().Subscript(key);
+    return QuestIndex()[key];
 }
 
 bool SameText(std::string_view a, std::string_view b) {
@@ -586,14 +583,14 @@ void CObjectivesWindow::CreateScreen() {
         table->Fill("q.");
         ZoneNames* zones = &zones_;
         const char* interfaceQuest = interface_->savedText_.c_str();
-        for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
-            text::Split(node->value.key.c_str(), &parts, '.');
+        for (auto node = table->begin(); node != table->end(); ++node) {
+            text::Split(node->first.c_str(), &parts, '.');
             if (parts.size() != 3) continue;
             if (gamecrt::mbsicmp(interfaceQuest,
                                 parts[2].c_str()) == 0)
                 current = parts[1];
             std::uint32_t one;
-            std::memcpy(&one, &node->value.mapped, 4);
+            std::memcpy(&one, &node->second, 4);
             if (one != 0x3F800000) continue;
             MapRecord* zone = FindZone(parts[1]);
             if (!zone) continue;

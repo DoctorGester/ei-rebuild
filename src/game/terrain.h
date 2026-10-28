@@ -7,6 +7,7 @@
 #include "lib/vecmath.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/hash_map.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -225,7 +226,8 @@ public:
     int lightingX;
     int lightingY;
     CLight* sun;
-    using LightTable = stlp::hash_map<int, LandscapeLight, stlp::IntHash>;
+    // Walked in STLport's order (the lights are added up in it).
+    using LightTable = lib::HashMap<int, LandscapeLight>;
     LightTable lights;              // by id
     int maxLightId;
     Vector3 waveDirection;          // unit vector; x, y: the waves' travel

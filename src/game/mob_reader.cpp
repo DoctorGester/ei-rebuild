@@ -141,7 +141,6 @@ bool MobFile::ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, std::str
 
 bool MobFile::Load(void*, int keepIds) {
     MobRecords records;
-    records.byId.InitBuckets(100);
     records.maxId = 0;
     ZoneDiplomacy zoneDiplomacy;
     ZoneDiplomacy* diplomacy = &zoneDiplomacy;
@@ -154,10 +153,10 @@ bool MobFile::Load(void*, int keepIds) {
     }
 
     // Every record becomes a world object, then is deleted (the map keeps the dangling pointer).
-    const int step = static_cast<int>(records.byId.Size()) / 5 + 1;
+    const int step = static_cast<int>(records.byId.size()) / 5 + 1;
     int done = 0;
-    for (auto* node = records.byId.First(); node; node = records.byId.After(node)) {
-        Spec* spec = node->value;
+    for (auto node = records.byId.begin(); node != records.byId.end(); ++node) {
+        Spec* spec = node->second;
         if (spec->kind == kKindTrap) {
             auto* record = static_cast<TrapSpec*>(spec);
             record->trap.sides = 0;
@@ -179,7 +178,6 @@ bool MobFile::Load(void*, int keepIds) {
     }
 
     if (!(keepIds & 0xFF)) TheMissionScript()->Load(&scripts, 1);
-    records.byId.Destroy();
     return true;
 }
 

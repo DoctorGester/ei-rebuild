@@ -67,7 +67,7 @@ void PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
     } else {
         player = TheServerWorld()->GetPlayer(0);
         if (!player) {
-            out->Clear();
+            out->clear();
             return;
         }
     }

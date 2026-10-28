@@ -96,8 +96,8 @@ CItem* ItemAt(const ItemArray* items, int i) { return items->data[i]; }
 void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
     // The quest ids this zone's objects ask for, each once.
     IdArray wanted{IdArrayVtable(), nullptr, 0, 0, 0};
-    for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node)) {
-        CMapObject* object = node->value;
+    for (auto node = objects_.map.begin(); node != objects_.map.end() && node->second; ++node) {
+        CMapObject* object = node->second;
         if (!object->IsUsable()) continue;
         int id = object->KeyId();
         if (!Contains(wanted, id)) wanted.SetAtGrow(wanted.size, id);

@@ -527,7 +527,7 @@ namespace {
 // The local client's player record (ClientSession::player_, a LoginMessage): its state_ is the
 // game state request to the server (a change goes out with a new version_).
 net::LoginMessage* LocalLogin() { return net::GameClient()->player_.Get(); }
-int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->objects_.Size()); }
+int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->objects_.size()); }
 
 } // namespace
 
@@ -1503,7 +1503,7 @@ void GameFlow::AfterServerStart() {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
-        variables->Clear();
+        variables->clear();
     GlobalParty()->RemoveQuestItems();
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (GlobalParty()->members_.size == 1) {
@@ -1533,12 +1533,6 @@ using ZoneNode = net::RefNode;
 // The vector of changed variables (STLport vector<node*>) and the stamp sort (introsort,
 // world_stamp_sort.cpp).
 
-// A local NamedFloatTable (an empty one of 100 buckets, and a copy), released the way the inlined
-// destructor does.
-struct LocalVariables {
-    NamedFloatTable table;
-    ~LocalVariables() { table.Destroy(); }
-};
 
 VariableNode* VariableList() { return net::GameClient()->variables_.End(); }
 net::VariableMessage* NodeRecord(VariableNode* node) { return net::GameClient()->variables_.At(node); }
@@ -1561,18 +1555,15 @@ void GameFlow::UpdateFromServer() {
     }
     auto* clientWorld = TheClientWorld();
     CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
-    LocalVariables unusedEmpty;
-    unusedEmpty.table.ConstructDefault();
     NamedFloatTable* variables = &player->Party()->variables_;
 // The local player's variables are replaced by the server's; "constr.current" survives. Rebirth's
 // PersistentGlobalVars keeps the "gvar." ones.
     float construction = static_cast<float>(VariableGet(variables, kConstructionVariable));
-    LocalVariables unusedCopy;
-    unusedCopy.table.CopyConstruct(*variables);
+    NamedFloatTable unusedCopy(*variables);
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
-        variables->Clear();
+        variables->clear();
     VariableSet(variables, kConstructionVariable, construction);
     if (net::MapMessage* map = net::GameClient()->map_) {
         if (Active(map)) LoadZoneQuests(map->text_.data());
@@ -1702,7 +1693,7 @@ void SavedParties::Reload() {
                 // keeping its "gvar." entries.
                 ClearVariablesKeepingGlobals(variables);
             } else {
-                variables->Clear();
+                variables->clear();
             }
             if (entry->Party()->members_.size == 1) {
                 MpHeroRecord* eos = entries_.EndOfStorage();

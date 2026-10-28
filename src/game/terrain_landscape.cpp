@@ -207,7 +207,6 @@ Terrain::Terrain() {
     worldRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     // archive: a C++ member, constructed before this body (CMMIOResource())
     mfc::impl::ConstructListHeader<mfc::impl::ClientList2Class>(&sectorCache, 10);
-    lights.Construct(100);   // the light table, then the highest id 0
     maxLightId = 0;
     mfc::impl::ConstructHeader<mfc::impl::ClientMapArrayClass>(&waterLevels);
     Reset();
@@ -218,7 +217,6 @@ Terrain::~Terrain() {
     Terrain::Destroy();
     waterLevels.vtable = mfc::impl::ClientMapArrayClass::Vtable();
     waterLevels.FreeData();
-    lights.Destroy();
     sectorCache.vtable = mfc::impl::ClientList2Class::Vtable();
     sectorCache.RemoveAll();
     // archive: destroyed after this body (~CMMIOResource())
@@ -236,9 +234,9 @@ int Terrain::Create() {
 
 void Terrain::Destroy() {
     ClearMap();
-    for (LightTable::Node* node = lights.First(); node; node = lights.After(node)) node->value.light->Release();
+    for (auto& [id, entry] : lights) entry.light->Release();
     maxLightId = 0;
-    lights.Clear();
+    lights.clear();
     sectorCache.RemoveAll();
     Reset();
 }

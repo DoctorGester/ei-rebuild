@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <list>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "ai_map.h"
@@ -31,6 +32,8 @@
 #include "water_tweens.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/hash_map.h"
+#include "lib/stlp_hash.h"
 #include "maths.h"
 #include "model.h"          // HeldTexture
 #include "party_storage.h"
@@ -81,35 +84,30 @@ constexpr int kClassUnit = 0x50;   // CEngineObject::GetClassId() of units
 // released, the nodes freed (the buckets stay). The caller clears its highest id.
 template <typename Map>
 void ReleaseEach(Map& map) {
-    for (auto* node = map.First(); node && node->value; node = map.After(node)) node->value->Release();
-    map.Clear();
+    for (auto& [id, object] : map) {
+        if (!object) break;
+        object->Release();
+    }
+    map.clear();
 }
 
-// hash_map<unsigned, CEngineObject*> plus the highest key ever inserted.
+// The world's object maps (walked in STLport's order) plus the highest key ever inserted.
 struct ObjectIdMap {
-    stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash> map;
-    int maxId;
+    lib::HashMap<unsigned, CEngineObject*> map;
+    int maxId = 0;
 
     void Set(const unsigned& key, CEngineObject* const& value);
-    // 100 buckets (193), maxId 0.
-    void Construct();
 };
-static_assert(sizeof(ObjectIdMap) == 0x18);
 
 struct MapObjectIdMap {
-    stlp::hash_map<unsigned, CMapObject*, stlp::IntHash> map;
-    int maxId;
+    lib::HashMap<unsigned, CMapObject*> map;
+    int maxId = 0;
 
     void Set(const unsigned& key, CMapObject* const& value) {
         if (static_cast<int>(key) > maxId) maxId = static_cast<int>(key);
         map[key] = value;
     }
-    void Construct() {
-        map.InitBuckets(100);
-        maxId = 0;
-    }
 };
-static_assert(sizeof(MapObjectIdMap) == 0x18);
 
 // Walks the world's player list; the list object is reference counted while an iterator holds it.
 struct PlayerIterator : ObjectListIteratorOf<CPlayer> {
@@ -122,14 +120,6 @@ struct PlayerIterator : ObjectListIteratorOf<CPlayer> {
 };
 static_assert(sizeof(PlayerIterator) == 8);
 
-// Walks an object map's values; null at the end.
-struct ObjectMapIterator {
-    stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>::Node* node;
-    ObjectIdMap* table;
-    ObjectIdMap* map;
-
-};
-static_assert(sizeof(ObjectMapIterator) == 12);
 
 class CFlyingHitPoints;
 
@@ -608,9 +598,6 @@ public:
 static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
 static_assert(offsetof(CWorldServer, nightLevel_) == 0x84);
 static_assert(offsetof(CWorldServer, loaded_) == 0x100);
-static_assert(offsetof(CWorldServer, zoneName_) == 0x120);
-static_assert(offsetof(CWorldServer, loadedFresh_) == 0x11D);
-static_assert(offsetof(CWorldServer, keepsState_) == 0x11E);
 static_assert(offsetof(CWorldServer, alarms_) == 0x8C);
 static_assert(offsetof(CWorldServer, climate_) == 0xDC);
 static_assert(offsetof(CWorldServer, exits_) == 0xEC);
@@ -752,7 +739,7 @@ struct ReleaseIdentified {
     std::uint8_t unused;
 };
 // The client's pending map from an object id to its node in the pending list.
-struct PendingIndex : stlp::hash_map<std::uint32_t, mfc::CList<CMapObject*>::Node*, stlp::IntHash> {
+struct PendingIndex : std::unordered_map<std::uint32_t, mfc::CList<CMapObject*>::Node*> {
     int Lookup(const std::uint32_t* key, mfc::CList<CMapObject*>::Node** value) const;
 };
 using PendingMap = PendingIndex;
@@ -830,7 +817,6 @@ struct ClientArrayManager : CBaseManager {
     HeldTexture texture;                  // the fog texture (counted)
     mfc::CList<CEngineObject*> list;      // counted
 };
-static_assert(sizeof(ClientArrayManager) == 0xD0);
 // The manager's Clear (its object and every listed one released, the list emptied); a new fog object,
 // counted, at the list end.
 void VisFogManagerDestroy(ClientArrayManager* manager);
@@ -1090,7 +1076,7 @@ public:
     ScreenHits hits_;                     // the entries under the point (PickAt)
     ScreenEntry* hitCursor_;              // PickAt's walk, left on the entry it returns
     std::uint8_t unused_104[0x108 - 0x104];
-    stlp::hash_map<unsigned, LineBatch*, stlp::IntHash> lineLists_;   // line lists by key (DrawLineLists)
+    lib::HashMap<unsigned, LineBatch*> lineLists_;   // line lists by key (DrawLineLists: drawn in STLport's order)
     int lastLineListKey_;                 // the last line list key handed out; 0 from the constructor
     SectorGrid objectGrid_;               // the objects by sector (MoveObject moves them)
     std::uint32_t rangeFirstX_, rangeFirstY_, rangeLastX_, rangeLastY_, rangeX_, rangeY_;
@@ -1174,8 +1160,6 @@ static_assert(offsetof(CWorldClient, heroes_) == 0xB4);
 static_assert(offsetof(CWorldClient, objects_) == 0xB8);
 static_assert(offsetof(CWorldClient, dynamicObjects_) == 0xBC);
 static_assert(offsetof(CWorldClient, dynamicNodes_) == 0xD8);
-static_assert(offsetof(CWorldClient, dynamicMaxId_) == 0xEC);
-static_assert(offsetof(CWorldClient, screenEntries_) == 0xF0);
 static_assert(offsetof(CWorldClient, exits_) == 0x8C);
 
 // Orders screen entries (their objects by objectId) by distance along the view's depth axis; dead and

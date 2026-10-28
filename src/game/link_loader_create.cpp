@@ -17,7 +17,6 @@ namespace {
 
 const char* FiguresArchive() { return "figures.res"; }
 const char* MenusArchive() { return "menus.res"; }
-constexpr std::size_t kFigureSetBuckets = 100;   // the hint the figure sets' table is created with
 
 } // namespace
 
@@ -32,7 +31,6 @@ CLinkFigureLoader::CLinkFigureLoader(CTextureDevice* renderer, const std::string
     archives_ = stlp::allocate_as<LinkArchiveNode>();
     archives_->next = archives_;
     archives_->prev = archives_;
-    figureSets_.InitBuckets(kFigureSetBuckets);
     renderer_ = renderer;
     if (renderer) renderer->AddRef();
     pipeline_ = renderer_->pipeline_->transform_;

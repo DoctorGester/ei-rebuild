@@ -356,7 +356,7 @@ void CItemScreen::FaceNames(const char* prototype, std::string* model, std::stri
     UnitPrototypeRecord* unit;
     {
         std::string key(prototype);
-        unit = unitdb::PrototypeTable().byName.Subscript(key);   // an unknown name gets a null entry
+        unit = unitdb::PrototypeTable().byName[key];   // an unknown name gets a null entry
     }
     UnitModelRecord* figure;
     {

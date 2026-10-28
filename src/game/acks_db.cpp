@@ -40,8 +40,8 @@ std::uint32_t PartyKind(std::uint32_t kind) {
 
 // The speech list a record keeps for `kind`, or null.
 SpeechList* ListFor(const AckRecordHead& record, std::uint32_t kind) {
-    auto* node = record.speeches.Find(static_cast<int>(kind));
-    return node ? node->value : nullptr;
+    auto node = record.speeches.find(static_cast<int>(kind));
+    return node != record.speeches.end() ? node->second : nullptr;
 }
 
 } // namespace
@@ -269,7 +269,7 @@ void ExtraAcks::Serialize(ChunkArchive* ar) {
 // ---- The records' destructors -------------------------------------------------------------
 
 void AckRecordHead::Destruct() {
-    speeches.Destroy();
+    std::destroy_at(&speeches);
     std::destroy_at(&name);
 }
 

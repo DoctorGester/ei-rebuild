@@ -36,11 +36,8 @@ void InitList(mfc::CList<T>& list, void* vtable) {
 CPlayer::CPlayer() {
     ClearFields();
     link_ = nullptr;
-    knownObjects_.InitBuckets(100);
     maxObjectId_ = 0;
-    units_.InitBuckets(100);
     maxUnitId_ = 0;
-    knownTimed_.InitBuckets(100);
     maxTimedId_ = 0;
     new (Party()) CParty();
     InitList(items_, mfc::impl::ItemListClass::Vtable());
@@ -73,9 +70,6 @@ CPlayer::~CPlayer() {
     items_.vtable = mfc::impl::ItemListClass::Vtable();
     items_.RemoveAll();
     Party()->~CParty();
-    knownTimed_.Destroy();
-    units_.Destroy();
-    knownObjects_.Destroy();
     if (link_ != nullptr) link_->Release();
 }
 
@@ -131,9 +125,8 @@ void CPlayer::Clear() {
     maxObjectId_ = 0;
     // Each unit leaves (its SetPlayer erases it here) until the map is empty or its first entry
     // holds no unit.
-    for (UnitMap::Node* first = units_.First(); first != nullptr && first->value != nullptr; first = units_.First())
-        first->value->SetPlayer(nullptr);
-    units_.Clear();
+    while (!units_.empty() && units_.begin()->second != nullptr) units_.begin()->second->SetPlayer(nullptr);
+    units_.clear();
     maxUnitId_ = 0;
     recharging_.RemoveAll();
     if (connection_ != nullptr) connection_->ForgetSentObjects();
@@ -218,8 +211,8 @@ void CPlayer::TakeAllItems() {
 BOOL CPlayer::HasLoot(int kind) {
     for (auto* node = items_.head; node != nullptr; node = node->next)
         if (node->data->type_ == kItemQuest && ItemWord4C(node->data) == static_cast<std::uint32_t>(kind)) return 1;
-    for (UnitMap::Node* node = units_.First(); node != nullptr && node->value != nullptr; node = units_.After(node)) {
-        CUnit* unit = node->value;
+    for (auto node = units_.begin(); node != units_.end() && node->second != nullptr; ++node) {
+        CUnit* unit = node->second;
         for (int i = 0; i < unit->carriedCount; ++i)
             if (ItemWord4C(unit->carried[i]) == static_cast<std::uint32_t>(kind)) return 1;
     }
@@ -257,7 +250,7 @@ BOOL CPlayer::TakeItem(int id) {
 void CPlayer::AddUnit(CUnit* unit) {
     if (unit == nullptr) return;
     const int id = unit->id_;
-    if (units_.Find(id) != nullptr) return;
+    if (units_.contains(id)) return;
     ++unit->refCount_;
     if (maxUnitId_ < id) maxUnitId_ = id;
     units_[id] = unit;
@@ -266,9 +259,9 @@ void CPlayer::AddUnit(CUnit* unit) {
 
 void CPlayer::RemoveUnit(CUnit* unit) {
     if (unit == nullptr) return;
-    UnitMap::Node* node = units_.Find(unit->id_);
-    if (node == nullptr) return;
-    units_.Erase(node);
+    auto node = units_.find(unit->id_);
+    if (node == units_.end()) return;
+    units_.erase(node);
     unit->Release();
     connection_->UnitChanged(unit);
 }
@@ -285,9 +278,11 @@ CParty* CPlayer::AssignParty(CParty* source) {
 }
 
 void CPlayer::ReleaseTamedUnits() {
-    // The walk goes on from the node of a unit that has just left (and been erased), as the original's does.
-    for (UnitMap::Node* node = units_.First(); node != nullptr && node->value != nullptr; node = units_.After(node)) {
-        CUnit* unit = node->value;
+    // A unit that leaves is erased here, so the walk steps on first. (The game's walk went on from the erased
+    // node, reading freed memory.)
+    for (auto node = units_.begin(); node != units_.end() && node->second != nullptr;) {
+        CUnit* unit = node->second;
+        ++node;
         if (unit->Controller()->TamingStage() != 0) unit->SetPlayer(nullptr);
     }
 }

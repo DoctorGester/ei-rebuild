@@ -24,7 +24,6 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/stlp.h"
-#include "lib/stlp_hash.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -193,7 +192,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         QuestBriefingRecord* record;
         {
             std::string key(topic_.c_str());
-            record = stlp::NamedSlot<QuestBriefingRecord>(BriefingRecords(), key);
+            record = BriefingRecords()[key];
         }
         if (record) {
             std::vector<std::string> parts;

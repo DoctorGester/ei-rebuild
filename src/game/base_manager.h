@@ -3,11 +3,13 @@
 #include "engine_object.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/hash_map.h"
 #include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 #undef GetClassName   // CEngineObject::GetClassName
 
@@ -25,11 +27,13 @@ public:
     // object manager), or null; a missing database is reported to the debug log.
     FigureAnimation* FindFigureAnimation(const std::string& figure, const char* name);
 
-    using ObjectMap = stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>;
+    // The objects and the spares are walked in STLport's order (which object is destroyed, released or freed
+    // first); the positions and spare counts are only looked up.
+    using ObjectMap = lib::HashMap<unsigned, CEngineObject*>;
     using ObjectList = mfc::CTypedPtrList<CEngineObject>;
-    using PositionMap = stlp::hash_map<int, ObjectList::Node*, stlp::IntHash>;
-    using SpareMap = stlp::hash_map<int, ObjectList*, stlp::IntHash>;
-    using SpareCountMap = stlp::hash_map<int, int, stlp::IntHash>;
+    using PositionMap = std::unordered_map<int, ObjectList::Node*>;
+    using SpareMap = lib::HashMap<int, ObjectList*>;
+    using SpareCountMap = std::unordered_map<int, int>;
 
     // Empties the tables and sizes them for a new session; returns 1.
     int Create() override;
@@ -104,16 +108,6 @@ public:
     template <class World = CWorld> World* ContextAsWorld() const { return static_cast<World*>(context_); }
 };
 static_assert(offsetof(CBaseManager, objects_) == 0x1C);
-static_assert(offsetof(CBaseManager, maxId_) == 0x30);
-static_assert(offsetof(CBaseManager, objectList_) == 0x34);
-static_assert(offsetof(CBaseManager, positions_) == 0x50);
-static_assert(offsetof(CBaseManager, maxPositionId_) == 0x64);
-static_assert(offsetof(CBaseManager, spares_) == 0x68);
-static_assert(offsetof(CBaseManager, spareCounts_) == 0x80);
-static_assert(offsetof(CBaseManager, idLow_) == 0x98);
-static_assert(offsetof(CBaseManager, lastId_) == 0xA8);
-static_assert(offsetof(CBaseManager, context_) == 0xAC);
-static_assert(sizeof(CBaseManager) == 0xB0);
 
 // Walks a manager's objectList_. While iterating it holds a reference on the manager (refCount_ + 1); the
 // owner drops it afterwards with `--manager->refCount_` (the inlined destructor).

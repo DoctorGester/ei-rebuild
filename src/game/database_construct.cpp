@@ -1,8 +1,7 @@
 // The compiler-generated constructors of the resource databases. Only the static initialisers call them,
 // before the hooks are installed (the spell and item databases' also the resource switch and reload of a
 // network game), so the hook build checks them at start-up against what the originals built; the standalone
-// image runs them. Each is the members' constructors inlined: an STLport vector empty, a hash_map with 100
-// buckets (STLport rounds it up to 193).
+// image runs them. Each is the members' constructors inlined: an STLport vector empty, an empty index.
 #include "acks_db.h"
 #include "item_db.h"
 #include "model.h"
@@ -10,11 +9,8 @@
 #include "unit_db.h"
 
 #include <initializer_list>
+#include <memory>
 #include <new>
-
-namespace {
-constexpr std::size_t kBuckets = 100;
-} // namespace
 
 SkillDatabase* SkillDatabase::Construct() {
     new (&skills) stlp::vector<SkillRecord>();
@@ -27,7 +23,7 @@ namespace itemdb {
 template <typename Record>
 void CodeIndexedTable<Record>::Construct() {
     new (&records) stlp::vector<Record>();
-    byCode.InitBuckets(kBuckets);
+    std::construct_at(&byCode);
 }
 template void CodeIndexedTable<SpellRecord>::Construct();
 template void CodeIndexedTable<SpellModifierRecord>::Construct();
@@ -42,7 +38,7 @@ SpellDatabase* SpellDatabase::Construct() {
 template <typename Record>
 void NamedRecordTable<Record>::Construct() {
     records.ConstructEmpty();
-    names.InitBuckets(kBuckets);
+    std::construct_at(&names);
 }
 
 ItemDatabase* ItemDatabase::Construct() {
@@ -59,19 +55,19 @@ ItemDatabase* ItemDatabase::Construct() {
 
 QuestDatabase* QuestDatabase::Construct() {
     new (&quests) stlp::vector<QuestRecord>();
-    questsByName.InitBuckets(kBuckets);
+    std::construct_at(&questsByName);
     new (&briefings.records) stlp::vector<QuestBriefingRecord>();
-    briefings.index.InitBuckets(kBuckets);
+    std::construct_at(&briefings.index);
     return this;
 }
 
 PrintsDatabase* PrintsDatabase::Construct() {
     new (&blood) stlp::vector<PrintRecord>();
-    bloodByName.InitBuckets(kBuckets);
+    std::construct_at(&bloodByName);
     new (&footprints) stlp::vector<PrintRecord2>();
-    footprintsByName.InitBuckets(kBuckets);
+    std::construct_at(&footprintsByName);
     new (&scorch) stlp::vector<PrintRecord>();
-    scorchByName.InitBuckets(kBuckets);
+    std::construct_at(&scorchByName);
     return this;
 }
 
@@ -79,11 +75,11 @@ namespace acks {
 
 AckDatabase* AckDatabase::Construct() {
     new (&units.records) stlp::vector<UnitAcks>();
-    units.byName.InitBuckets(kBuckets);
+    std::construct_at(&units.byName);
     new (&models.records) stlp::vector<ModelAcks>();
-    models.byName.InitBuckets(kBuckets);
+    std::construct_at(&models.byName);
     new (&extras.records) stlp::vector<ExtraAcks>();
-    extras.byName.InitBuckets(kBuckets);
+    std::construct_at(&extras.byName);
     return this;
 }
 

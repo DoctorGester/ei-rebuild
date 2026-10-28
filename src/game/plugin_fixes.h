@@ -39,14 +39,14 @@ inline bool Contains(const char* name, const char* needle) {
 // there is none (the plugin would run on past the buckets).
 inline UnitPrototypeRecord* FallbackPrototype() {
     auto& index = unitdb::PrototypeTable().byName;
-    for (std::size_t b = 0; b < index.BucketCount(); ++b) {
-        auto* node = index.Bucket(b);
-        if (!node) continue;
-        const char* name = node->key.data();
+    for (std::size_t b = 0; b < index.bucket_count(); ++b) {
+        auto node = index.begin(b);
+        if (node == index.end(b)) continue;
+        const char* name = node->first.data();
         bool listed = false;
         for (const char* race : {"NPC", "Human", "Orc", "Undead", "Male", "Female"})
             listed = listed || detail::Contains(name, race);
-        if (!listed) return node->value;
+        if (!listed) return node->second;
     }
     return nullptr;
 }

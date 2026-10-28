@@ -274,8 +274,8 @@ to which template:
   unit.h weapons / items / spells, party.h, ui.h `UiPtrArray`, world.h items), and its static Allocate / Free still back
   the renderer's raw blocks (renderer_lines, particle_emitters, render_helper's matrix stack, texture_compose,
   link_figure's packets).
-- STLport `vector`, `hash_map`, `list`, `map` (strings are std::string; stlp::string is gone; vectors and lists of
-  plain elements are std, see C14b below): `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
+- STLport `vector`, `list`, the hashtable and the tree (strings are std::string; stlp::string is gone; vectors and
+  lists of plain elements are std, see C14b below; hash maps and maps are std or lib::HashMap, see C14c): `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
   next, prev, `data`); the instantiations keep their own insert / erase / clear, reached as free or static `__fastcall`
   forwarders (world_client_maps `GridOpsA/B`, `PlainOps`, `CellOps`; the text manager's 004E1530 / 004E1550 / 004E1590 /
   004DE930 / 004DEAF0 / 004DEB60). `vector<T>` has `Start` / `Finish` / `EndOfStorage` references for code that inlines
@@ -618,6 +618,38 @@ to which template:
 - Layout: std::vector is 12 bytes like STLport's; std::list is 8 (STLport's 4), so offsets after a retyped list move
   (the stlp batch's precedent: such layout asserts go). Archive formats are element-wise (ChunkArchive's string
   vectors, InlineStrings), so their bytes do not change.
+
+## Containers: STLport hash_map, map and set to std (C14c)
+
+- `stlp::map` / `multimap` users are `std::map` / `std::multimap` (sorted, so the walks keep their order): the link
+  meshes' headers and ranges, the mesh cache (a multimap; ClearCache releases from the back as the tree did), the console
+  commands, help topics and debug panel (`str::MbsLess`: _mbscmp order), the person texts, the camp's arrivals, the item
+  object caches. library_trees.h / .cpp went with their policies.
+- A hash map whose walk decides something (which object goes first, what is saved or listed in which order, which
+  entry a loop stops at) is `lib::HashMap<K, V[, lib::TextHash]>` (src/lib/hash_map.h): STLport's order, the prime
+  bucket counts (100 asks for 193), a new key at the head of its chain, resize before each insert with the chains
+  moved head first (keys that share a new bucket come out reversed), erase giving the next entry in walk order.
+  tests/vectors/replay_hash_map.cpp checks those cases. lib::HashMap holds: the world's id maps and line lists, the
+  player's objects / timed objects / units, the base manager's objects and spares, the archive's loaded objects, the
+  held particles, the fog cells, the .mob reader's records, the deferred sounds, the spell sequences and their
+  containers, the terrain lights, the named floats (party and player variables: saved, listed and walked in it), the
+  item stock's recipes (the walk feeds its random rolls), the unit prototypes by name (EI_Plugin's fallback reads
+  bucket heads) and the acks' speeches by kind (the acks dump lists them).
+- The rest (looked up only, or walked to free or log) are `std::unordered_map` / `std::unordered_set`: the record
+  tables' name and code indexes, the quests, the class and message registries, the saved numbers, the positions and
+  spare counts, the bridge cells, the material colours, the pixel formats, the loaded files, the figure models and
+  sets, the render presets, the wave cache, the pending dynamic objects, and the two int sets.
+- `stlp::NamedSlot(map, key)` (operator[] with a null record for a new key) is `map[key]`; `find_or_insert({k, v})` is
+  `map[k]` (the table grows first in both). Where the original read the count after the insert (the saved numbers), the
+  slot is taken first, then the count read.
+- Walks that erase the entry they stand on step first (CPlayer::ReleaseTamedUnits; the game's walk read the freed
+  node); the render helper's destructor collects the presets before releasing them.
+- Kept as stlp (C14o): the connection's five trees (counted RefPtr values with their element policies), UnitSet's
+  figured and dressed tables (record element policies), the party manager's parties (CParty in place) and the shape
+  cache (RefPtr values, its own height equality). stlp_hash.h keeps hashtable / HashtableAbi / DwordObjectTraits for
+  them; the hash_map class, the string / dword traits, NamedSlot, RecordsByName, the pairs (stlp_pair.h / .cpp),
+  HashString and LowerBoundDwords went. The tests' game.exe view (exe_objects.h `HashTable`) walks like a std map
+  (begin / end, `->first` / `->second`) so harness_digest_read.inc reads both sides with one loop.
 
 ## Open items
 

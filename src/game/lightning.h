@@ -137,4 +137,3 @@ public:
 
     mfc::CTypedPtrList<CLightning> newBolts_;   // (each entry holds a reference)
 };
-static_assert(offsetof(CLightningManager, newBolts_) == 0xB0 && sizeof(CLightningManager) == 0xCC);

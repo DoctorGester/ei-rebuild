@@ -164,7 +164,7 @@ void CFigureMesh::SetObject(CTransformObject* object) { object_ = object; }
 
 // --- The figure manager -------------------------------------------------------------------------
 
-CFigureManager::CFigureManager() { models_.InitBuckets(100); }
+CFigureManager::CFigureManager() {}
 
 CEngineObject* CFigureManager::NewObject(int type) {
     return static_cast<CEngineObject*>(::CreateFigureObject(type));

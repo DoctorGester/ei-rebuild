@@ -39,6 +39,7 @@
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 
@@ -274,8 +275,8 @@ int CPlayerClient::OnExperienceAll() {
     float amount;
     in_.Read(&amount, 4);
     CPlayer::UnitMap& units = Owner()->units_;
-    for (CPlayer::UnitMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
-        CUnit* unit = node->value;
+    for (auto node = units.begin(); node != units.end() && node->second; ++node) {
+        CUnit* unit = node->second;
         TheClientWorld()->ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
     }
     return 1;
@@ -339,8 +340,7 @@ int CPlayerClient::OnItemsReceived() {
 
 int CPlayerClient::OnParty() {
     CParty* party = Owner()->Party();
-    NamedFloatTable saved;
-    saved.CopyConstruct(party->variables_);
+    NamedFloatTable saved(party->variables_);
     {
         CMemoryStream block;
         in_.ReadSized(&block);
@@ -357,17 +357,13 @@ int CPlayerClient::OnParty() {
             if (walk.manager != nullptr) --walk.manager->refCount_;   // the iterator's inlined destructor
         }
         if (IsMultiplayerClient()) {
-            // A multiplayer client keeps its variables (the table's three functor bytes included).
-            NamedFloatTable& variables = party->variables_;
-            variables.Clear();
-            std::memcpy(variables.Functors(), saved.Functors(), 3);
-            variables.CopyFrom(saved);
+            // A multiplayer client keeps its variables.
+            party->variables_ = saved;
         }
         TheClientWorld()->ApplyObjectVariables();
         GameCout()->PutText(TextPartyReceived())->PutChar('\n')->Apply(libcrt::FlushManipulator);
         TheGameFlow()->ReturnLocalParty();
     }
-    saved.Destroy();   // inlined: every node deleted, then the bucket vector
     return 1;
 }
 
@@ -710,12 +706,12 @@ namespace {
 constexpr std::uint32_t kUnitInClientParty = 0x400000;
 constexpr int kSessionKindSingle = 1;
 
-// The client's party unit ids (hash_set<int>): insert_unique, find, clear.
-using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
+// The client's party unit ids (hash_set<int>): insert, find, clear.
+using IntSet = std::unordered_set<int>;
 // Built by the static initialiser and destroyed by the exit function it registers (docs/notes/standalone.md).
 constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};
 IntSet& PartyIdSet() { return *g_partyIdSet; }
-void DestroyPartyIdSet() { g_partyIdSet->Destroy(); }
+void DestroyPartyIdSet() { g_partyIdSet.Destroy(); }
 int ReadDword(BitStream* in) {
     int value;
     in->Read(&value, 4);
@@ -725,15 +721,14 @@ int ReadDword(BitStream* in) {
 } // namespace
 
 void ConstructPartyIdSet() {
-    g_partyIdSet->Construct(100, 0, 0, 0);
+    g_partyIdSet.Construct();
     libcrt::AtExit(DestroyPartyIdSet);
 }
 
 int CPlayerClient::OnPartyState() {
     CPlayer* player = Owner();
     for (int i = 0; i < std::ssize(partyUnitIds_); ++i) {
-        bool inserted;
-        PartyIdSet().InsertUnique(stlp::DwordKeyed<4>{static_cast<std::uint32_t>(partyUnitIds_[i])}, inserted);
+        PartyIdSet().insert(partyUnitIds_[i]);
         CUnit* unit = player->WorldContext()->FindUnit(partyUnitIds_[i]);
         if (unit != nullptr) unit->flags_ &= ~kUnitInClientParty;
     }
@@ -751,11 +746,11 @@ int CPlayerClient::OnPartyState() {
         auto* unit = player->WorldContext()->FindUnit(id);
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
-        if (PartyIdSet().Find(static_cast<std::uint32_t>(id)) == nullptr && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&
+        if (!PartyIdSet().contains(id) && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&
             TheClientWorld()->ticksRun_ >= 1)
             unit->Controller()->RestartFadeIn();
     }
-    PartyIdSet().Clear();
+    PartyIdSet().clear();
 
     player->ClientWorld()->partyDanger_ = ReadDword(&in_);
     int others = ReadDword(&in_);
