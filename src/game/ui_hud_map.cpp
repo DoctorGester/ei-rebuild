@@ -67,14 +67,14 @@ public:
     MarkerWriter(CUiMesh* mesh, const CHudMap* map) : mesh_(mesh), map_(map) {}
 
     void BeginUnit() {
-        std::uint16_t* index = mesh_->indices_.data + indexPos_;
+        std::uint16_t* index = mesh_->indices_.data() + indexPos_;
         index[0] = static_cast<std::uint16_t>(vertex_ + 1);
         index[1] = static_cast<std::uint16_t>(vertex_ + 2);
         index[2] = static_cast<std::uint16_t>(vertex_ + 3);
         indexPos_ += 3;
     }
     void BeginQuad() {
-        std::uint16_t* index = mesh_->indices_.data + indexPos_;
+        std::uint16_t* index = mesh_->indices_.data() + indexPos_;
         index[0] = static_cast<std::uint16_t>(vertex_);
         index[1] = static_cast<std::uint16_t>(vertex_ + 2);
         index[2] = static_cast<std::uint16_t>(vertex_ + 1);
@@ -236,12 +236,12 @@ void CHudMap::BuildMarkers() {
     CUiMesh* mesh = SceneMesh(2);
     CBaseManager* objects = TheObjectManager();
     CPlayerClient* view = LocalView();
-    int unitCount = view ? view->partyUnitIds_.size : 0;
+    int unitCount = view ? std::ssize(view->partyUnitIds_) : 0;
     CLightFactory* markers = TheLightFactory();
     const std::list<int>& marked = markers->litIds_;
     const int markedCount = static_cast<int>(marked.size());
     int exitCount = TheClientWorld()->exits_.size;
-    int playerCount = IsMultiplayerClient() ? view->otherUnitIds_.size : 0;
+    int playerCount = IsMultiplayerClient() ? std::ssize(view->otherUnitIds_) : 0;
 
     int quads = markedCount + playerCount + exitCount;   // six indices each
     mesh->SetQuadCount(quads + unitCount);
@@ -352,28 +352,28 @@ bool Crosses(float prev, float cur, float edge) {
 // inserted before the edge's end (which is then skipped); afterwards the points outside are removed.
 template <typename Cut, typename Outside>
 void ClipPass(UiPointArray& points, Cut cut, Outside outside) {
-    int count = points.size;
+    int count = std::ssize(points);
     for (int i = 0; i < count; ++i) {
-        UiPointF cur = points.data[i];
-        UiPointF prev = points.data[i == 0 ? count - 1 : i - 1];
+        UiPointF cur = points[i];
+        UiPointF prev = points[i == 0 ? count - 1 : i - 1];
         UiPointF cross;
         if (!cut(prev, cur, &cross)) continue;
-        int size = points.size;
+        int size = std::ssize(points);
         if (i < size) {
-            points.SetSize(size + 1, -1);
-            std::memmove(&points.data[i + 1], &points.data[i], (size - i) * sizeof(UiPointF));
+            points.resize(size + 1);
+            std::memmove(&points[i + 1], &points[i], (size - i) * sizeof(UiPointF));
         } else {
-            points.SetSize(i + 1, -1);
+            points.resize(i + 1);
         }
-        points.data[i] = cross;
+        points[i] = cross;
         ++i;
         ++count;
     }
     for (int i = 0; i < count; ++i) {
-        if (!outside(points.data[i])) continue;
-        int tail = points.size - i - 1;
-        if (tail != 0) std::memmove(&points.data[i], &points.data[i + 1], tail * sizeof(UiPointF));
-        --points.size;
+        if (!outside(points[i])) continue;
+        int tail = std::ssize(points) - i - 1;
+        if (tail != 0) std::memmove(&points[i], &points[i + 1], tail * sizeof(UiPointF));
+        points.pop_back();
         --i;
         --count;
     }
@@ -408,14 +408,14 @@ void CHudMap::UpdateView() {
 
     auto* area = SceneMesh(1);
     UiPointArray& points = visibleArea_;
-    int count = viewPolygon_.size;
-    points.SetSize(count, -1);   // the original inlines the same code
+    int count = std::ssize(viewPolygon_);
+    points.resize(count);   // the original inlines the same code
     for (int i = 0; i < count; ++i) {
-        const UiPointF& v = viewPolygon_.data[i];
+        const UiPointF& v = viewPolygon_[i];
         double x = D(v.x) / D(zoom_);
         float y = static_cast<float>(D(v.y) / D(zoom_));
-        points.data[i].x = static_cast<float>(x / D(scale_) + D(centreX_));
-        points.data[i].y = static_cast<float>(D(centreY_) - D(y) / D(scale_));
+        points[i].x = static_cast<float>(x / D(scale_) + D(centreX_));
+        points[i].y = static_cast<float>(D(centreY_) - D(y) / D(scale_));
     }
 
     // Clipped to the world rectangle: x >= 0, y >= 0, x <= width, y <= height.
@@ -461,7 +461,7 @@ void CHudMap::UpdateView() {
              [height](const UiPointF& v) { return v.y > height; });
 
     // The visible-area mesh: a fan over the clipped polygon, textured by world position.
-    count = points.size;
+    count = std::ssize(points);
     area->SetVertexCount(count);
     for (int i = 0; i < count; ++i) {
         area->corners_[i].position = static_cast<std::uint16_t>(i);
@@ -469,8 +469,8 @@ void CHudMap::UpdateView() {
     }
     area->SetUvCount(count);
     for (int i = 0; i < count; ++i) {
-        area->texCoords_[i].u = static_cast<float>(D(points.data[i].x) / D(textureSize_));
-        area->texCoords_[i].v = static_cast<float>(D(points.data[i].y) / D(textureSize_));
+        area->texCoords_[i].u = static_cast<float>(D(points[i].x) / D(textureSize_));
+        area->texCoords_[i].v = static_cast<float>(D(points[i].y) / D(textureSize_));
     }
     if (count > 2) {
         area->SetIndexCount((count - 2) * 3);
@@ -486,17 +486,17 @@ void CHudMap::UpdateView() {
     int quads = count / 4;
     if (count % 4 != 0) {
         ++quads;
-        UiPointF first = points.data[0];
+        UiPointF first = points[0];
         for (int k = 4 - count % 4; k > 0; --k) {
-            int size = points.size;
-            points.SetSize(size + 1, -1);
-            points.data[size] = first;
+            int size = std::ssize(points);
+            points.resize(size + 1);
+            points[size] = first;
         }
     }
     area->SetQuadCount(quads);
     for (int q = 0; q < quads; ++q) {
         for (int k = 0; k < 4; ++k) {
-            const UiPointF& v = points.data[q * 4 + k];
+            const UiPointF& v = points[q * 4 + k];
             double x = (D(v.x) - D(centreX_)) * D(scale_);
             float y = static_cast<float>(-((D(v.y) - D(centreY_)) * D(scale_)));
             float mapY = static_cast<float>(D(y) * D(zoom_));
@@ -534,7 +534,7 @@ void CHudMap::UpdateView() {
     float vTop = static_cast<float>(D(static_cast<float>(D(centreY_) - D(top) / D(scale_))) / D(textureSize_));
     float u1 = static_cast<float>((D(right) / D(scale_) + D(centreX_)) / D(textureSize_));
     float vBottom = static_cast<float>(D(static_cast<float>(D(centreY_) - D(bottom) / D(scale_))) / D(textureSize_));
-    TexCoord* uv = bounds->texCoords_.data;
+    TexCoord* uv = bounds->texCoords_.data();
     uv[0].u = u0;
     uv[0].v = vBottom;
     uv[1].u = u0;

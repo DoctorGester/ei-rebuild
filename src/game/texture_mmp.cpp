@@ -124,8 +124,8 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const MmpHeader* header, uns
     if (previous) previous->Release();
     uploadResult_ = static_cast<int>(header->FilledBytes(format_, mip, levels));
     MarkLoaded(this, header);
-    extra_.SetSize(static_cast<int>(header->extraSize));
-    std::memcpy(extra_.data, header + 1, header->extraSize);
+    extra_.resize(static_cast<int>(header->extraSize));
+    std::memcpy(extra_.data(), header + 1, header->extraSize);
     return 1;
 }
 
@@ -138,19 +138,19 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
         file.Read(&header, sizeof(header));
         int size = static_cast<int>(header.extraSize);
-        out->SetSizeDiscard(size);
-        if (size) file.Read(out->data, static_cast<unsigned>(size));
+        out->resize(size);
+        if (size) file.Read(out->data(), static_cast<unsigned>(size));
         file.Close();
         return 1;
     }
     path = str::Format("%s%s", name, ".mmp");   // "%s%s", ".mmp"
     auto* fileHeader = static_cast<MmpHeader*>(GetFile(path.c_str(), nullptr));
     if (!fileHeader) {
-        out->SetSizeDiscard(0);
+        out->clear();
         return 0;
     }
-    out->SetSizeDiscard(static_cast<int>(fileHeader->extraSize));
-    if (fileHeader->extraSize) std::memcpy(out->data, fileHeader + 1, fileHeader->extraSize);
+    out->resize(static_cast<int>(fileHeader->extraSize));
+    if (fileHeader->extraSize) std::memcpy(out->data(), fileHeader + 1, fileHeader->extraSize);
     CloseFile(fileHeader);
     return 1;
 }

@@ -195,12 +195,12 @@ void CMpHeroScreen::Close() {
 // --- The caches' objects released ----------------------------------------------------------
 
 template <typename Object>
-void __fastcall ReleaseCachedObjects(ItemObjectCache<Object>* cache) {
+void ReleaseCachedObjects(ItemObjectCache<Object>* cache) {
     for (auto* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache<Object>::Map::Next(node))
         node->second.object->Release();
 }
-template void __fastcall ReleaseCachedObjects<CUiMesh>(ItemModelCache*);
-template void __fastcall ReleaseCachedObjects<CTexture>(ItemTextureCache*);
+template void ReleaseCachedObjects<CUiMesh>(ItemModelCache*);
+template void ReleaseCachedObjects<CTexture>(ItemTextureCache*);
 
 // Built inline by the main menu's Multiplayer click: the item screen, both caches
 // the name vectors, the text and the voice lists empty.
@@ -251,9 +251,6 @@ void CMpHeroScreen::DrawHeroList() {
     }
     UiSurfaceReleaseDC(surface);
 }
-namespace {
-void __fastcall HeroScreenDrawHeroList(CMpHeroScreen* self) { self->DrawHeroList(); }
-} // namespace
 
 void CMpHeroScreen::DrawVoices() {
     CUiSurface* surface = surfaces_.data[2];
@@ -279,9 +276,6 @@ void CMpHeroScreen::DrawVoices() {
     }
     UiSurfaceReleaseDC(surface);
 }
-namespace {
-void __fastcall HeroScreenDrawVoices(CMpHeroScreen* self) { self->DrawVoices(); }
-} // namespace
 
 // --- The preview's unit -------------------------------------------------------------------
 

@@ -59,13 +59,6 @@ void DestroyObjectList(mfc::CTypedPtrList<CUnit>& list) {
     list.RemoveAll();
 }
 
-// The attack option arrays' destructor (inlined for the second): the vtable, the data freed (the options have
-// no destructor).
-void DestroyAttackOptions(AIAttackOptions& options) {
-    options.vtable = mfc::impl::AttackOptionArrayClass::Vtable();
-    if (options.data) gamecrt::operator_delete(options.data);
-}
-
 constexpr SpiralCache kEmptySightCache{0, -1.0f};
 } // namespace
 
@@ -179,26 +172,4 @@ void AIMemory::Destruct() {
     DestroyObjectList(seenCorpses);
     DestroyObjectList(visible);
     DestroyObjectList(nearby);
-}
-
-void AIBrain::Destruct() {
-    Init();
-    memory.Destruct();
-    DestroyAttackOptions(attention.spells);
-    DestroyAttackOptions(attention.weapons);
-    alarmRecords.vtable = recordarrays::BehaviourArrayClass::Vtable();
-    if (alarmRecords.data) {
-        AIAlarmRecordElements::Destruct(alarmRecords.data, alarmRecords.size);
-        gamecrt::operator_delete(alarmRecords.data);
-    }
-    if (current) current->Release();
-    modes.vtable = gameslots::OwnedRefListClass::Vtable();   // the destructor writes the same vtable
-    for (auto* node = modes.head; node; node = node->next) DestroyOwned(node->data);
-    modes.RemoveAll();
-    if (seen) seen->Release();
-    seen = nullptr;
-    if (target) target->Release();
-    target = nullptr;
-    move.looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
-    if (move.looks.data) gamecrt::operator_delete(move.looks.data);
 }

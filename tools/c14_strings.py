@@ -174,8 +174,15 @@ def postfix_start(s, end):
     i = skip_space_back(s, end - 1)
     while i >= 0:
         if s[i] in ')]':
-            i = match_backward(s, i) - 1
-            i = skip_space_back(s, i)
+            o = match_backward(s, i)
+            k = skip_space_back(s, o - 1)
+            if s[i] == ')' and k >= 0 and s[k] == '>':
+                # a cast's operand: the cast is the expression's start
+                w = max(0, k - 160)
+                c = re.search(r'\b(?:static_cast|reinterpret_cast|const_cast|dynamic_cast)\s*<[^;{}()]*>$', s[w:k + 1])
+                if c:
+                    return w + c.start()
+            i = k
             continue
         if s[i].isalnum() or s[i] == '_':
             j = i
@@ -824,11 +831,20 @@ class Fixer:
             return self.add(d['file'], pos, e, c_str_of(t[c.end():e], m[c.end():e]))
         elif code == 'C2440' and ("'initializing'" in msg or "'return'" in msg or "'='" in msg):
             k = pos
+            ls = src.line_starts[d['line'] - 1]
             if "'return'" in msg:
                 r = re.compile(r'\breturn\b').search(m, pos)
-                if not r:
+                if not r or src.line_of(r.start()) != d['line']:
+                    # the column past the keyword (a one-line function): the line's last return before it
+                    r = ([x for x in re.finditer(r'\breturn\b', m[ls:pos])] or [None])[-1]
+                    k = ls + r.end() if r else -1
+                else:
+                    k = r.end()
+                if k < 0:
                     return self.manual.append('%s(%d): return not found' % (d['file'], d['line']))
-                k = r.end()
+            elif "'='" in msg and re.search(r'(?<![=!<>+\-*/%&|^])=(?!=)', m[ls:pos]):
+                # the column at the right-hand side: the assignment before it on the line
+                k = ls + [x for x in re.finditer(r'(?<![=!<>+\-*/%&|^])=(?!=)', m[ls:pos])][-1].end()
             else:
                 while k < len(m) and m[k] not in '=(;{':
                     k += 1

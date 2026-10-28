@@ -937,7 +937,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
         std::string name = GameExitTarget(exit);
         if (gamecrt::mbsicmp(name,
                             game::NoneText()) != 0) {
-            name = mfc::CString(game::ZoneVariablePrefixText()) + name;   // "z."
+            name = std::string(game::ZoneVariablePrefixText()) + name;   // "z."
             double value = LocalPlayerVariable(name.c_str());
             const float one = GameOne();
             // Equal skips.

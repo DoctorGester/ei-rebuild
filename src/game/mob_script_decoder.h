@@ -10,6 +10,7 @@
 #include "lib/stlp.h"
 
 #include <cstddef>
+#include <string>
 #include <vector>
 
 struct MobScriptDecoder {
@@ -18,7 +19,7 @@ struct MobScriptDecoder {
 
     // `text` = the input after the seed, unscrambled; `out` = the text up to its
     // first zero byte (CString ReleaseBuffer(-1)).
-    void Decode(mfc::CString* out);
+    void Decode(std::string* out);
 };
 static_assert(offsetof(MobScriptDecoder, input) == 0x0C);
 static_assert(sizeof(MobScriptDecoder) == 0x18);

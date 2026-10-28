@@ -42,11 +42,11 @@ int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* 
 
     const std::uint8_t* cursor = reinterpret_cast<const std::uint8_t*>(data + 1);
     {
-        mfc::CString child, parent;
+        std::string child, parent;
         for (std::uint32_t i = data[0]; i != 0; --i) {
             ReadPrefixedName(&child, &cursor);
             ReadPrefixedName(&parent, &cursor);
-            state->LinkPiece(model, child, parent);
+            state->LinkPiece(model, child.c_str(), parent.c_str());
         }
         state->FindRoot();
         if (model) model->mesh->CloseFile(data);

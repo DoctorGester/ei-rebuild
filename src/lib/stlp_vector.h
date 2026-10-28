@@ -357,7 +357,7 @@ struct VectorAbi : vector<T> {
     using Vector = vector<T>;
     using Element = E;
 
-    static void __fastcall DestroyBase(Vector* self) { self->FreeStorage(); }
+    static void DestroyBase(Vector* self) { self->FreeStorage(); }
     // The scalar deleting destructor of a _Vector_base.
     Vector* DeleteBase(unsigned flags) {
         this->FreeStorage();
@@ -385,18 +385,18 @@ struct VectorAbi : vector<T> {
     T* EraseRange(T* first, T* last) {
         return Vector::template EraseRange<E>(first, last);
     }
-    static void __fastcall Clear(Vector* self) { self->template EraseRange<E>(self->begin(), self->end()); }
+    static void Clear(Vector* self) { self->template EraseRange<E>(self->begin(), self->end()); }
     void Resize(std::size_t n, const T& x) { Vector::template Resize<E>(n, x); }
     void ResizeDefault(std::size_t n) { Vector::template ResizeDefault<E>(n); }
     // ~vector: the elements destroyed in order, then the storage freed.
-    static void __fastcall Destruct(Vector* self) {
+    static void Destruct(Vector* self) {
         self->template EraseRange<E>(self->begin(), self->end());
         self->FreeStorage();
     }
     void Reserve(std::size_t n) { Vector::template Reserve<E>(n); }
     void PushBack(const T& x) { Vector::template PushBack<E>(x); }
     // push_back of a default-constructed element, out of line.
-    static void __fastcall PushDefault(Vector* self) { self->template PushDefault<E>(); }
+    static void PushDefault(Vector* self) { self->template PushDefault<E>(); }
     Vector* Assign(const Vector& x) {
         Vector::template AssignVector<E>(x);
         return this;
@@ -405,14 +405,14 @@ struct VectorAbi : vector<T> {
     // list nodes' and hash buckets' allocators.
     void Deallocate(T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
     // The same compiled as a function of p and n.
-    static void __fastcall DeallocateFast(T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
+    static void DeallocateFast(T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
     // uninitialized_copy(first, last, result) (the tag argument is not read): the end of the copies.
-    static T* __fastcall UninitializedCopy(const T* first, const T* last, T* result, const void*) {
+    static T* UninitializedCopy(const T* first, const T* last, T* result, const void*) {
         for (; first != last; ++first, ++result) E::Construct(result, *first);
         return result;
     }
     // uninitialized_fill_n(first, n, x): the end of the copies.
-    static T* __fastcall UninitializedFill(T* first, std::size_t n, const T* x, const void*) {
+    static T* UninitializedFill(T* first, std::size_t n, const T* x, const void*) {
         for (; n > 0; --n, ++first) E::Construct(first, *x);
         return first;
     }
@@ -421,19 +421,19 @@ struct VectorAbi : vector<T> {
 // Helpers of class instantiations compiled out of line, the element done by the policy E:
 // - _Construct(p) : E::Default, nothing for a null p.
 template <typename T, typename E>
-void __fastcall ConstructDefaultAt(T* p) {
+void ConstructDefaultAt(T* p) {
     if (p) E::Default(p);
 }
 // - _Construct(p, x) : E::Construct, nothing for a null p.
 template <typename T, typename E>
-void __fastcall ConstructCopyAt(T* p, const T* x) {
+void ConstructCopyAt(T* p, const T* x) {
     if (p) E::Construct(p, *x);
 }
 // - __copy(first, last, out, random_access_iterator_tag, distance*) (the last two arguments
 //   are not read): each element assigned by E::Assign;
 //   nothing when last is not after first; returns the end of the copy.
 template <typename T, typename E>
-T* __fastcall CopyAssignTagged(const T* first, const T* last, T* out, const void*, const void*) {
+T* CopyAssignTagged(const T* first, const T* last, T* out, const void*, const void*) {
     for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++out) E::Assign(*out, *first);
     return out;
 }
@@ -442,13 +442,13 @@ T* __fastcall CopyAssignTagged(const T* first, const T* last, T* out, const void
 // arguments):
 // - _Construct(p, x) : placement new, which skips a null p.
 template <typename T>
-void __fastcall ConstructAt(T* p, const T* x) {
+void ConstructAt(T* p, const T* x) {
     if (p) new (p) T(*x);
 }
 // - copy(first, last, out) as __copy_trivial: one memmove of the whole range;
 //   returns the end of the copy.
 template <typename T>
-T* __fastcall CopyTrivial(const T* first, const T* last, T* out) {
+T* CopyTrivial(const T* first, const T* last, T* out) {
     std::size_t bytes = static_cast<std::size_t>(last - first) * sizeof(T);
     std::memmove(out, first, bytes);
     return out + (last - first);
@@ -456,13 +456,13 @@ T* __fastcall CopyTrivial(const T* first, const T* last, T* out) {
 // - copy(first, last, out) as the element loop: nothing when last is not after
 //   first; returns the end of the copy.
 template <typename T>
-T* __fastcall CopyElements(const T* first, const T* last, T* out) {
+T* CopyElements(const T* first, const T* last, T* out) {
     for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++out) *out = *first;
     return out;
 }
 // - the same with the element policy's assignment (counted_ptr<T>).
 template <typename T, typename E>
-T* __fastcall CopyAssigned(const T* first, const T* last, T* out) {
+T* CopyAssigned(const T* first, const T* last, T* out) {
     for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++out) E::Assign(*out, *first);
     return out;
 }

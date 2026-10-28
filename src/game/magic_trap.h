@@ -79,5 +79,5 @@ public:
 
 // `out` becomes the living units whose side has its bit in `sides` within each circle of `area` (from the
 // world's sector map); a unit in two circles is appended twice.
-void __fastcall FindTrapVictims(CWorldServer* context, const TrapArea* area, std::uint32_t sides,
+void FindTrapVictims(CWorldServer* context, const TrapArea* area, std::uint32_t sides,
                                 mfc::CTypedPtrList<CUnit>* out);

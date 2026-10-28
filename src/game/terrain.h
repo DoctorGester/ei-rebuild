@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class CLight;
 class CMaterial;
@@ -48,10 +49,10 @@ struct LightArea {
 };
 
 // The first vertex truncated, the last rounded.
-void __fastcall LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY,
+void LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY,
                                     LightArea* area);
 // (x0, y0) is clamped to the map; a first vertex on a sector edge counts as vertex 32 of the sector before.
-void __fastcall SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, LightArea* area);
+void SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, LightArea* area);
 
 // A point light registered with the landscape (held).
 struct LandscapeLight {
@@ -183,8 +184,8 @@ public:
     // 1 water waves, 2 animated tiles, 4 fade the light at the map edges, 8 ambient sounds, 0x10 sun shadows.
     std::uint32_t landscapeFlags;
     Matrix4 worldMatrix;            // rows; position in the last row
-    lib::AlignedArray<CTexture*> pageTextures;     // held
-    lib::AlignedArray<CMaterial*> pageMaterials;   // held ("Wood")
+    std::vector<CTexture*> pageTextures;     // held
+    std::vector<CMaterial*> pageMaterials;   // held ("Wood")
     std::string textF8;
     std::string textFC;
     int mapLoaded;                  // nothing is drawn or lit while 0
@@ -198,15 +199,15 @@ public:
     int tileSize;                   // a tile texture's side in pixels; -1 after Reset
     int tilesPerRow;
     int perPage;                    // tilesPerRow squared
-    lib::AlignedArray<terrain::TerrainMaterial> materials;   // the water materials
+    std::vector<terrain::TerrainMaterial> materials;   // the water materials
     // Per tile texture: its class 0..15 (sounds, prints), with sixteen entries of class 15 after the map's
     // own; its frame count when animated, else 0.
-    lib::AlignedArray<int> textureClass;
-    lib::AlignedArray<int> textureFrames;
+    std::vector<int> textureClass;
+    std::vector<int> textureFrames;
     CMMIOResource archive;          // the map's sector archive
     float* uvTables[4];             // per rotation
     float* uvTablesLast[4];         // the same for the last two pages
-    lib::AlignedArray<terrain::VertexTiles> vertexTiles;   // 33 x 33
+    std::vector<terrain::VertexTiles> vertexTiles;   // 33 x 33
     using SectorCache = mfc::CList<terrain::SectorData*>;
     SectorCache::Node*** sectorGrid;   // [sx][sy]: the sector's cache node, or null
     SectorCache sectorCache;        // most recently used first
@@ -232,24 +233,22 @@ public:
     float waveGlow;                 // scales the crests' specular colour
     float wavePhase;                // advanced by waveSpeed every frame
     float waveSpeed;
-    lib::AlignedArray<float> wavePhases;   // per water vertex (33 x 33) phase offsets
+    std::vector<float> wavePhases;   // per water vertex (33 x 33) phase offsets
     float sine[512];                // sin(i * pi / 256)
     int minDetail;                  // the finest level of detail ChooseDetail gives
     int visibleRowFirst;
-    lib::AlignedArray<int> visibleColumnFirst;   // per visible row
-    lib::AlignedArray<int> visibleColumnLast;
+    std::vector<int> visibleColumnFirst;   // per visible row
+    std::vector<int> visibleColumnLast;
     int ambientSounds[3];           // the looping circle sounds (handles, -1 none)
     int ambientClasses[3];          // their sound classes, -1 none
     std::string textAE0;           // the ambient sound set (ambient\<set>\...)
     int extraPages;                 // texture pages loaded after the map's own
     mfc::CArray<mfc::CArray<float>, terrain::LevelArrayElements> waterLevels;   // per sector, per material
 };
-static_assert(offsetof(Terrain, pageTextures) == 0xD8 && offsetof(Terrain, pageMaterials) == 0xE8);
-static_assert(offsetof(Terrain, textF8) == 0xF8);
 static_assert(offsetof(Terrain, drawMatrix) == 0x54 && offsetof(Terrain, worldMatrix) == 0x98);
 static_assert(offsetof(Terrain, landscapeFlags) == 0x94);
 
 // The average of the three heights when the triangle is degenerate.
-float __fastcall PlaneHeight(const Vector3* v0, const Vector3* v1, float x, float y, const Vector3* v2);
+float PlaneHeight(const Vector3* v0, const Vector3* v1, float x, float y, const Vector3* v2);
 
 static_assert(sizeof(void*) == 4, "game.exe is 32-bit");

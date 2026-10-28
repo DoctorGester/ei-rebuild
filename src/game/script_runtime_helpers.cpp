@@ -22,7 +22,7 @@ void ScriptGroup::DestructBody() {
     gamecrt::operator_delete(data);
 }
 
-void __fastcall ScriptDeclDestruct(ScriptDecl* block) {
+void ScriptDeclDestruct(ScriptDecl* block) {
     mfc::CArray<SSCCmd>& commands = block->commands;
     ei::SetVtable(&commands, gameslots::CommandArrayClass::Vtable());   // CArray<SSCCmd>
     if (!commands.data) return;
@@ -30,7 +30,7 @@ void __fastcall ScriptDeclDestruct(ScriptDecl* block) {
     gamecrt::operator_delete(commands.data);
 }
 
-void __fastcall ScriptDefinesDestruct(ScriptDefineList* defines) {
+void ScriptDefinesDestruct(ScriptDefineList* defines) {
     ei::SetVtable(defines, gameslots::DefineListClass::Vtable());   // CList<ScriptDefine>
     defines->RemoveAll();
 }

@@ -31,6 +31,6 @@ std::uint32_t CMaterial::GpuLitColour() const {
 
 // The particle manager's own part of its constructor (the client world's manager set-up
 // calls it after the base manager's): quietStart cleared.
-void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager) {
+void ParticleManagerClearQuietStart(CParticleManager* manager) {
     manager->quietStart = 0;
 }

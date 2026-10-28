@@ -15,14 +15,14 @@ namespace {
 // STLport instantiations (library.csv), through their addresses: vector<float>::_M_fill_insert, the records'
 // destructors (quests, briefings) and the vectors' resize (new records default-constructed, extra ones
 // destroyed).
-void __fastcall QuestDestroy(QuestRecord* record) { record->Destruct(); }
-void __fastcall BriefingDestroy(QuestBriefingRecord* record) { record->Destruct(); }
+void QuestDestroy(QuestRecord* record) { record->Destruct(); }
+void BriefingDestroy(QuestBriefingRecord* record) { record->Destruct(); }
 
 // The vectors' serialiser (one instantiation per record type in the game): chunk `id`
 // holding one chunk 1 per record; loading destroys the old records (erase(begin, end): the tail
 // copy is empty) and resizes to the number of record chunks first.
 template <typename Record, typename Abi>
-void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, void(__fastcall* destroy)(Record*),
+void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, void(*destroy)(Record*),
                       void (Abi::*resize)(std::size_t),
                       void (Record::*serialize)(ChunkArchive*)) {
     if (!ar->EnterChunk(id)) return;

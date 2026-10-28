@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 // One AI map cell: a 4-bit passability field per unit size class, then heights.
 #pragma pack(push, 1)
@@ -52,8 +53,8 @@ struct FootprintCellSet {
     // first footprint empties them).
     FootprintCellSet* Construct();
 
-    // Resizes the array to `size` (0 frees it; 32-byte aligned storage); `growBy` != -1 also sets the step.
-    void SetSize(int size, int growBy);
+    // Resizes the array to `size`.
+    void SetSize(int size);
 
     // Adds a top-face sample: raises `high` of the cell (x, y) to `height`, lowering the
     // kind and transparency to the given ones; a new cell gets low = 0x7FFFFFFF.
@@ -66,14 +67,11 @@ struct FootprintCellSet {
     // Bounding box of the cells: {minX, maxX, minY, maxY}; {100000, 0, 100000, 0} if empty.
     void GetBounds(int* bounds) const;
 
-    lib::AlignedArray<FootprintCell> cells;
+    std::vector<FootprintCell> cells;
     int buckets[16];        // first index per (x + y) & 15, -1 when empty
     bool hashed;            // set by Construct and by every insertion, never cleared
     std::uint8_t unused_51[3];
 };
-static_assert(offsetof(FootprintCellSet, buckets) == 0x10);
-static_assert(offsetof(FootprintCellSet, hashed) == 0x50);
-static_assert(sizeof(FootprintCellSet) == 0x54);
 
 // The passability cost tables of one size class, filled by CAIMap::CostContext.
 struct PassCostContext {
@@ -130,7 +128,7 @@ inline void SetPlainCellWords(PathCellList* list) {
 
 // Removes each cell equal (x, y) to the one before it (the first is compared with (-1, -1)); an emptied list
 // frees its blocks.
-void __fastcall PathCellsRemoveRepeats(PathCellList* list);
+void PathCellsRemoveRepeats(PathCellList* list);
 
 // A block a search reaches.
 struct BlockCost {
@@ -466,7 +464,7 @@ struct CRegionMap {
     bool SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y);
 
     // A progress report (stdcall, 0..1) during UpdateBlocks; cleared by it.
-    using ProgressFn = void(__stdcall*)(float);
+    using ProgressFn = void(*)(float);
 
     BlockSearch forward;
     BlockSearch backward;
@@ -481,7 +479,7 @@ static_assert(offsetof(CRegionMap, progress) == 0x118);
 static_assert(offsetof(CRegionMap, edges) == 0x11C);
 static_assert(offsetof(CRegionMap, regions) == 0x21C);
 static_assert(sizeof(CRegionMap) == 0x29C);
-CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self);
+CRegionMap* ConstructRegionMap(CRegionMap* self);
 
 // The path smoother's trellis: per path cell nine states, one per direction the unit leaves the cell in (index
 // direction - 1; index 8 unused), each the cheapest cost so far and its back-pointer chain.
@@ -833,7 +831,7 @@ public:
     int stepCosts[16];                  // step speeds per nibble (SetStepSpeeds)
     ClimbTable climbLarge;              // size classes other than 0: no step steeper than 40 degrees
     ClimbTable climbSmall;              // size class 0: up to 60 degrees, every step at the flat cost
-    lib::AlignedArray<AITerrainType> materials;     // the terrain types (16 after Load)
+    std::vector<AITerrainType> materials;     // the terrain types (16 after Load)
     BridgeMap bridgeHeights;            // keyed (short)x << 16 | (short)y
     float heightScale;                  // world z to AI height units
     CSectorMap sectorMap;
@@ -860,27 +858,10 @@ public:
 static_assert(offsetof(CAIMap, batching) == 0x01 && offsetof(CAIMap, refreshUnits) == 0x02);
 static_assert(offsetof(CAIMap, dirty) == 0x04 && sizeof(AIDirtyRect) == 0x10);
 static_assert(offsetof(CAIMap, passCosts) == 0x14);
-static_assert(offsetof(CAIMap, sectorMap) == 0x124);
-static_assert(offsetof(CAIMap, areaLists) == 0x204);
 static_assert(offsetof(CAIMap, stepCosts) == 0x94);
 static_assert(offsetof(CAIMap, climbLarge) == 0xD4);
 static_assert(offsetof(CAIMap, climbSmall) == 0xE8);
 static_assert(offsetof(CAIMap, materials) == 0xFC);
-static_assert(offsetof(CAIMap, waterDepth) == 0x1F4);
-static_assert(offsetof(CAIMap, cells) == 0x2698 && offsetof(CAIMap, occluders) == 0x26A8);
-static_assert(offsetof(CAIMap, bridgeHeights) == 0x10C);
-static_assert(offsetof(CAIMap, heightScale) == 0x120);
-static_assert(offsetof(CAIMap, footprint) == 0x14C);
-static_assert(offsetof(CAIMap, bridges) == 0x1A0);
-static_assert(offsetof(CAIMap, unitLayerSmall) == 0x27C && offsetof(CAIMap, unitLayerLarge) == 0x12A4);
-static_assert(offsetof(CAIMap, regionMap) == 0x22F8);
-static_assert(offsetof(CAIMap, smoother) == 0x22CC);
-static_assert(offsetof(CAIMap, forwardSearch) == 0x2594);
-static_assert(offsetof(CAIMap, backwardSearch) == 0x2614);
-static_assert(offsetof(CAIMap, footprintTick) == 0x2694);
-static_assert(offsetof(CAIMap, marks) == 0x26B8);
-static_assert(offsetof(CAIMap, events) == 0x26C8);
-static_assert(sizeof(CAIMap) == 0x26C8 + 0x1003C);
 
 // A cached lookup in the global spiral of cell offsets (pairs of int16 dx, dy ordered by distance).
 struct SpiralCache {
@@ -895,9 +876,9 @@ struct SpiralCache {
 // then to the nearest integer.
 int WorldToCell(float world);
 
-void __fastcall InitCostTables(CAIMap* map);
+void InitCostTables(CAIMap* map);
 // Standing level of size class `sizeClass` (0..7): (2 - height) * 16, at least 0. Outside 0..7 the original
 // returns only the low byte 0 (the rest of the result is the argument), reproduced here.
-int __stdcall LevelForSizeClass(int sizeClass);
+int LevelForSizeClass(int sizeClass);
 // Standing level of `unit`: (2 - standingHeight) * 16, at least 0.
-int __stdcall StandingLevel(const CUnit* unit);
+int StandingLevel(const CUnit* unit);

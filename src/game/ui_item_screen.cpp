@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <string>
 
 namespace {
 
@@ -44,7 +45,7 @@ void ItemObjectCache<Object>::Construct(std::uint8_t compare) {
 // its object released and is erased. Spins while every entry was
 // used at or after now.
 template <typename Object>
-void __fastcall TrimItemCache(ItemObjectCache<Object>* cache) {
+void TrimItemCache(ItemObjectCache<Object>* cache) {
     while (cache->map.size() > cache->limit) {
         std::uint32_t oldestTime = gameapi::timeGetTime();
         typename ItemObjectCache<Object>::Node* oldest = cache->map.end();

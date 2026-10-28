@@ -57,7 +57,7 @@ static_assert(offsetof(Sector, occluders) == 0x40);
 
 // CArray<Sector>'s element functions: the constructor (sector_map.cpp) constructs
 // (zeroed, then each sector's constructor), the destructor destroys.
-void __stdcall ConstructSectors(Sector* sectors, int count);
+void ConstructSectors(Sector* sectors, int count);
 struct SectorElements {
     static void Construct(Sector* sectors, int count);
     static void Destruct(Sector* sectors, int count) {
@@ -133,7 +133,7 @@ public:
 
     // The destructor's body (on `sectors`): the array's vtable back, every sector
     // destroyed, the storage freed.
-    static void __fastcall DestructSectors(mfc::CArray<Sector, SectorElements>* sectors);
+    static void DestructSectors(mfc::CArray<Sector, SectorElements>* sectors);
 
     int width;              // in sectors
     int height;

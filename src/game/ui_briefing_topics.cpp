@@ -84,7 +84,7 @@ void CBriefingScreen::FindTopics(int personId) {
     if (constructor.size() != 0) topics_.push_back(constructor);
 }
 
-mfc::CString* CBriefingScreen::TopicTitle(mfc::CString* out, const char* topic) {
+std::string* CBriefingScreen::TopicTitle(std::string* out, const char* topic) {
     std::string title;
     std::string key = topic;
     str::MakeLower(key);
@@ -98,5 +98,5 @@ mfc::CString* CBriefingScreen::TopicTitle(mfc::CString* out, const char* topic) 
     std::string section = BriefingSection();
     section += key;
     if (texts->CTextManager::Open(section.c_str())) texts->ReadLine(&title, 1);
-    return std::construct_at(out, title);
+    *out = title; return out;
 }

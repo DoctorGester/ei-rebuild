@@ -24,13 +24,14 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 
 // The positions with the offsets added (a lib::AlignedArray; a function-local static, freed at exit).
-constinit lib::AlignedArray<VertexPacket> g_movedPositions = /*007C2E48*/ {};
-lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
-void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }
+constinit std::vector<VertexPacket> g_movedPositions = /*007C2E48*/ {};
+std::vector<VertexPacket>& MovedPositions() { return g_movedPositions; }
+void FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
 std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
 // The scale the lights' colours are set with and the "crown" option.
 float LightingCoefficient() { return options::TheOptions()->objectsLightingCoeff_; }
@@ -80,7 +81,7 @@ struct Part {
     CFigureMesh* Mesh() const { return node->mesh_; }
     // The new renderer keeps the mesh on the GPU: what the device's draw below draws.
     render::MeshSource Source(bool throughFigure) const {
-        return render::MeshSource{Mesh(), throughFigure ? figure : nullptr, Mesh()->offsets_.size != 0, coloursWritten,
+        return render::MeshSource{Mesh(), throughFigure ? figure : nullptr, !Mesh()->offsets_.empty(), coloursWritten,
                                   lighting};
     }
     ColourArray& Colours() const { return Mesh()->colorsA_; }
@@ -143,8 +144,8 @@ const render::MeshLighting* PartLighting(const Part& part) {
     l.coefficient = LightingCoefficient();
     l.crown = CrownOption() != 0 && libcrt::Stricmp(MeshName(part.Mesh()), "crown") == 0;
     g_partLights.clear();
-    for (int i = 0; part.lights && i < part.lights->size; ++i) {
-        const CLight* light = part.lights->data[i];
+    for (int i = 0; part.lights && i < std::ssize(*part.lights); ++i) {
+        const CLight* light = (*part.lights)[i];
         g_partLights.push_back(render::MeshLightSource{light->localPosition_, light->inverseRangeSquared_,
                                                        {light->color_[0], light->color_[1], light->color_[2]}});
     }
@@ -173,17 +174,17 @@ void Light(Part& part) {
 
 // The positions with the per-vertex offsets (CFigureMesh::offsets_) added.
 const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
-    lib::AlignedArray<VertexPacket>& moved = MovedPositions();
-    moved.SetSize(mesh->buffers_.vertexCount);
-    std::memcpy(moved.data, mesh->buffers_.vertices, static_cast<std::size_t>(mesh->buffers_.vertexCount) * 64);
-    for (int i = 0; i < mesh->offsets_.size; ++i) {
-        const float* offset = &mesh->offsets_.data[i].x;
-        VertexPacket& packet = moved.data[i >> 2];
+    std::vector<VertexPacket>& moved = MovedPositions();
+    moved.resize(mesh->buffers_.vertexCount);
+    std::memcpy(moved.data(), mesh->buffers_.vertices, static_cast<std::size_t>(mesh->buffers_.vertexCount) * 64);
+    for (int i = 0; i < std::ssize(mesh->offsets_); ++i) {
+        const float* offset = &mesh->offsets_[i].x;
+        VertexPacket& packet = moved[i >> 2];
         AddOffset(&offset[0], &packet.block[0][i & 3]);
         AddOffset(&offset[1], &packet.block[1][i & 3]);
         AddOffset(&offset[2], &packet.block[2][i & 3]);
     }
-    return moved.data;
+    return moved.data();
 }
 
 // The mesh through the device. The drawn flag (0x40) is only set when a rectangle was asked for.
@@ -191,7 +192,7 @@ void DrawThroughDevice(Part& part) {
     CFigureMesh* mesh = part.Mesh();
     const VertexPacket* positions = mesh->buffers_.vertices;
     int blocks = mesh->buffers_.vertexCount;
-    if (mesh->offsets_.size != 0) positions = MovedPositionsOf(mesh);
+    if (!mesh->offsets_.empty()) positions = MovedPositionsOf(mesh);
     mesh = part.Mesh();
     const MeshBuffers& b = mesh->buffers_;
     const render::MeshSource source = part.Source(false);
@@ -226,7 +227,7 @@ void DrawThroughDevice(Part& part) {
 // without; the rectangle from the figure's part header of that name.
 void DrawThroughFigure(Part& part) {
     CFigureMesh* mesh = part.Mesh();
-    bool moved = mesh->offsets_.size != 0;
+    bool moved = !mesh->offsets_.empty();
     const char* name = MeshName(mesh);
     std::string s(name);
     mesh = part.Mesh();
@@ -234,7 +235,7 @@ void DrawThroughFigure(Part& part) {
     std::uint32_t v = OffsetBits(mesh->textureOffsetV_);
     ColourArray* colours = &part.Colours();
     ColourArray* speculars = &part.Speculars();
-    lib::AlignedArray<Vector3>* offsets = &mesh->offsets_;
+    std::vector<Vector3>* offsets = &mesh->offsets_;
     const render::MeshSource source = part.Source(true);
     render::SetMeshSource(&source);
     int result;
@@ -277,7 +278,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
               owner ? static_cast<CLinkMesh*>(static_cast<CObject3D*>(owner)->figure) : nullptr, 0};
     if (!(g_movedPositionsGuard & 1)) {
         g_movedPositionsGuard |= 1;
-        MovedPositions() = lib::AlignedArray<VertexPacket>{};
+        MovedPositions() = std::vector<VertexPacket>{};
         libcrt::AtExit(FreeMovedPositions);
     }
 

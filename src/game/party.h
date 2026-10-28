@@ -36,10 +36,10 @@ using PartyItemArray = lib::AlignedArray<CItem*>;
 inline CParty* g_loadingParty = /*007C8344*/ {nullptr};
 
 // MFC ConstructElements for the records: the memory zeroed, then each record constructed.
-void __stdcall ConstructPartyUnitRecords(PartyUnitRecord* records, int count);
+void ConstructPartyUnitRecords(PartyUnitRecord* records, int count);
 
 // MFC DestructElements for the records: each record's Destruct (a count of 0 does nothing).
-void __stdcall DestructPartyUnitRecords(PartyUnitRecord* records, int count);
+void DestructPartyUnitRecords(PartyUnitRecord* records, int count);
 
 // ConstructElements / DestructElements of the records.
 struct PartyUnitRecordElements {
@@ -49,7 +49,7 @@ struct PartyUnitRecordElements {
     static void Relocate(PartyUnitRecord* to, PartyUnitRecord* from, int count);   // party_lifetime.cpp
 };
 // A party's unit records: an MFC CArray<PartyUnitRecord> (CObject vtable Vtable()). Its SetSize is
-// registered on the template (party_lifetime.cpp).
+// the template's (party_lifetime.cpp).
 struct PartyMembers : mfc::CArray<PartyUnitRecord, PartyUnitRecordElements> {
     // The compiled table (party_lifetime.cpp's PartyMemberArrayClass over mfc_slots.h's CompiledCollection).
     static void* Vtable();

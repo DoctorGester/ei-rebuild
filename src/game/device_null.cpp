@@ -398,11 +398,11 @@ const char* const kInterfaceNames[] = {"IDirect3DDevice7", "IDirectDraw7"};
 }
 
 template <int InterfaceId, int Slot>
-[[noreturn]] void __stdcall Trap() {
+[[noreturn]] void Trap() {
     OldInterfaceCalled(InterfaceId, Slot, _ReturnAddress());
 }
 
-using TrapFn = void(__stdcall*)();
+using TrapFn = void(*)();
 template <int InterfaceId, int... Slots>
 constexpr std::array<TrapFn, sizeof...(Slots)> TrapTable(std::integer_sequence<int, Slots...>) {
     return {&Trap<InterfaceId, Slots>...};

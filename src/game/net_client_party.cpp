@@ -42,7 +42,7 @@ void PushBack(RefVector* v, const RefPtr* value) {
 
 // The first element in [first, last) whose member stream holds the same bytes as
 // `message`'s (sizes through slot 4, then a byte compare). The last argument is not used.
-RefPtr* __fastcall FindSameMessage(RefPtr* first, RefPtr* last, PartyMemberMessage* message, std::uint32_t) {
+RefPtr* FindSameMessage(RefPtr* first, RefPtr* last, PartyMemberMessage* message, std::uint32_t) {
     CStream* stream = &message->stream_;
     for (; first != last; ++first) {
         CMemoryStream* element = StreamOf(first->ptr);
@@ -60,7 +60,7 @@ RefPtr* __fastcall FindSameMessage(RefPtr* first, RefPtr* last, PartyMemberMessa
 // or -1 without a spell, then the item's type and packed id and its own Save. A message equal to
 // one of the previous messages is replaced by that one (so unchanged members keep their object).
 // The offer takes the party's money; then its counters move on and its accepted flag is cleared.
-void __fastcall ClientPublishParty(ClientSession* self) {
+void ClientPublishParty(ClientSession* self) {
     CParty* party = self->parties_[0].Get();
     // Read again at each use.
     auto state = [self] { return self->party_.Get(); };
@@ -117,7 +117,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
 
 // The received offer that pairs with ours: its partner is our
 // player and its player our partner, and it is live. Null without one.
-PartyMessage* __fastcall ClientFindParty(ClientSession* self) {
+PartyMessage* ClientFindParty(ClientSession* self) {
     auto* ours = self->party_.Get();
     if (!ours) return nullptr;
     for (stlp::list<RefPtr>::Node* node = self->offers_.First(); node != self->offers_.End(); node = node->next) {
@@ -129,7 +129,7 @@ PartyMessage* __fastcall ClientFindParty(ClientSession* self) {
 }
 
 // An accepted offer is unaccepted with its version moved on, so it is sent again.
-void __fastcall ClientCommitParty(ClientSession* self) {
+void ClientCommitParty(ClientSession* self) {
     auto* state = self->party_.Get();
     if (!state || !state->accepted_) return;
     state->accepted_ = 0;
@@ -141,7 +141,7 @@ void __fastcall ClientCommitParty(ClientSession* self) {
 // (slot 22; CreateObject with the stored type and that id, its packed id set and its Load, slot 9) and an
 // item made by the item manager (slot 18; CreateObject with id -1, packed id, Load). The items are added to
 // the party, which takes the offer's money first; trade records older than the offer's revision are dropped.
-void __fastcall ClientApplyParty(ClientSession* self) {
+void ClientApplyParty(ClientSession* self) {
     PartyMessage* remote = ClientFindParty(self);
     if (!remote) return;
     auto count = [remote] { return static_cast<std::uint32_t>(remote->members_.size()); };

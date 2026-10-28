@@ -13,11 +13,11 @@
 
 namespace zone {
 
-void __fastcall ExitDestruct(ZoneExit* self) { std::destroy_at(&self->target); }
+void ExitDestruct(ZoneExit* self) { std::destroy_at(&self->target); }
 
 // The exits' array (base vtable; each exit's string destroyed, the block freed, the fields left as they are),
 // then the strings, last first.
-void __fastcall ZoneRecordDestruct(MapRecord* self) {
+void ZoneRecordDestruct(MapRecord* self) {
     ZoneExits& exits = self->exits;
     exits.vtable = mfc::impl::ExitArrayClass::Vtable();
     if (ZoneExit* data = exits.data) {

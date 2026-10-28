@@ -27,7 +27,7 @@ double WeldDistance() { return 0.00001 /*0073B860*/; }
 // `unit`: the fake unit (meshes: a CArray); `nodes`: the scene's
 // nodes, one per mesh (morph keys). A position or coordinate within the weld distance of
 // an earlier kept one (or a NaN distance) maps to it, otherwise it is kept.
-void __fastcall WeldMeshVertices(FakeUnitScene* unit, NodeArray* nodes) {
+void WeldMeshVertices(FakeUnitScene* unit, NodeArray* nodes) {
     PointBuffer points{};
     DwordBuffer pointMap{};
     UvBuffer coords{};

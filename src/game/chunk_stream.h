@@ -50,11 +50,10 @@ public:
     void WriteQuaternion(std::uint32_t id, Quaternion value);
     void WriteBlob(std::uint32_t id, const void* data, int size);
     // A string chunk's content is its characters (no terminator); the string arrays are a count followed by one
-    // string chunk per element (all with the array chunk's id). CStrings are returned and passed by value as the
-    // game does.
-    mfc::CString* ReadString(mfc::CString* out);
-    mfc::CString* ReadEncodedString(mfc::CString* out);
-    void WriteString(std::uint32_t id, mfc::CString text);
+    // string chunk per element (all with the array chunk's id). The strings are returned through `out`.
+    std::string* ReadString(std::string* out);
+    std::string* ReadEncodedString(std::string* out);
+    void WriteString(std::uint32_t id, std::string text);
     void ReadStringArray(std::vector<std::string>* array);
     void WriteStringArray(std::uint32_t id, const std::vector<std::string>* array);
 
@@ -78,7 +77,7 @@ public:
     ~RootChunk();
 
     // Opens the file: CFile::Open through its vtable with the low 16 bits of `flags`.
-    int Open(mfc::CString path, unsigned flags);
+    int Open(const std::string& path, unsigned flags);
 
     mfc::CFile file_;
 };

@@ -1,7 +1,7 @@
 // The zone exit's area test (world.h, ZoneExit). The rectangle is turned by `angle` about
 // its centre: the point is turned the other way first. Comparisons keep the game's NaN cases:
 // a NaN angle takes the axis-aligned path, a NaN turned x is outside, the other tests let NaN in.
-// Also the exit's stream form and the stream's CString reader.
+// Also the exit's stream form and the stream's string reader.
 #include "world.h"
 
 #include "core_maths.h"
@@ -52,21 +52,17 @@ ZoneExit* ZoneExit::Assign(const ZoneExit* from) {
     return this;
 }
 
-// ---- Stream form and the CString reader ------------------
+// ---- Stream form and the string reader ------------------
 
 namespace {
 constexpr std::uint32_t kExitExtrasVersion = 0x68;   // +0x38 and the angle saved from here on
 } // namespace
 
-template <typename Text>
-void CStream::ReadInto(Text* out) {
-    alignas(mfc::CString) unsigned char slot[sizeof(mfc::CString)];
-    auto* text = ReadString(slot);
-    *out = static_cast<const char*>(*text);
-    std::destroy_at(text);
+void CStream::ReadInto(std::string* out) {
+    std::string text;
+    ReadString(&text);
+    *out = text.c_str();   // up to the first zero byte
 }
-template void CStream::ReadInto(mfc::CString*);
-template void CStream::ReadInto(std::string*);
 
 void ZoneExit::Read(CStream* stream) {
     stream->Read(&passTime, 4);

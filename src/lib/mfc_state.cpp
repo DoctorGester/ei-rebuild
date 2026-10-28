@@ -1,4 +1,4 @@
-// MFC 4.2's thread and process locals and AUX_DATA, registered at their library addresses (mfc_state.h).
+// MFC 4.2's thread and process locals and AUX_DATA (mfc_state.h).
 #include "mfc_state.h"
 
 #include "crt.h"
@@ -9,22 +9,12 @@
 namespace mfc::impl {
 
 namespace {
-
-// on afxData, no arguments.
-void __cdecl UpdateAfxScrollMetricsMarked4() { AfxData().UpdateScrollMetricsMarked4(); }
-void __cdecl UpdateAfxScrollMetrics() { AfxData().UpdateScrollMetrics(); }
-
-} // namespace
-
-namespace {
 // _afxThreadData: made on first use of a thread local, which the image never makes (null).
 constinit CThreadSlotData* g_afxThreadData = /*007C9084*/ {nullptr};
 // afxData, zero at the start: built by its static initialiser in the list's order and its menu-dot bitmap deleted by
 // the exit function it registers.
 constinit lib::StaticObject<AuxData> g_afxData = /*007C90C8*/ {};
 } // namespace
-
-AuxData& AfxData() { return *g_afxData; }
 
 // ---- Thread and process locals -------------------------------------------------------------------
 
@@ -51,7 +41,7 @@ void CProcessLocalObject::Destruct() {
 
 // ---- GDI objects and AUX_DATA ----------------------------------------------------------------------
 
-void __stdcall AfxDeleteObject(HGDIOBJ* object) {
+void AfxDeleteObject(HGDIOBJ* object) {
     if (!*object) return;
     gameapi::DeleteObject(*object);
     *object = nullptr;
@@ -121,10 +111,10 @@ void AuxData::UpdateScrollMetrics() {
 }
 
 namespace {
-void __cdecl DestroyAfxData() { g_afxData->Destruct(); }
+void DestroyAfxData() { g_afxData->Destruct(); }
 } // namespace
 
-void __cdecl ConstructAfxData() {
+void ConstructAfxData() {
     g_afxData->Construct();
     libcrt::AtExit(DestroyAfxData);
 }
@@ -140,9 +130,9 @@ void CSimpleList::AddHead(void* element) {
     head = element;
 }
 
-ModuleState* __cdecl AfxGetModuleState() { return mfc::impl::ImageModuleState(); }
+ModuleState* AfxGetModuleState() { return mfc::impl::ImageModuleState(); }
 
-ModuleState* __cdecl ImageModuleState() {
+ModuleState* ImageModuleState() {
     static ModuleState state = {nullptr, nullptr, nullptr, nullptr, nullptr, 0, 0, {0, 0}, 0, {nullptr, kNextClassOffset}};
     return &state;
 }
@@ -158,7 +148,7 @@ constinit BOOL g_afxCriticalWin32s = /*007C9078*/ {};
 constinit BOOL g_afxCriticalInit = /*007C907C*/ {};
 } // namespace
 
-BOOL __cdecl AfxCriticalInit() {
+BOOL AfxCriticalInit() {
     if (!g_afxCriticalInit) {
         g_afxCriticalInit = TRUE;
         const DWORD versionWord = gameapi::GetVersion();
@@ -172,7 +162,7 @@ BOOL __cdecl AfxCriticalInit() {
     return g_afxCriticalInit;
 }
 
-void __stdcall AfxLockGlobals(int lockType) {
+void AfxLockGlobals(int lockType) {
     if (!g_afxCriticalInit) AfxCriticalInit();
     if (g_afxCriticalWin32s) return;
     if (!g_afxLockInit[lockType]) {
@@ -186,19 +176,19 @@ void __stdcall AfxLockGlobals(int lockType) {
     gameapi::EnterCriticalSection(&g_afxResourceLocks[lockType]);
 }
 
-void __stdcall AfxUnlockGlobals(int lockType) {
+void AfxUnlockGlobals(int lockType) {
     if (g_afxCriticalWin32s) return;
     gameapi::LeaveCriticalSection(&g_afxResourceLocks[lockType]);
 }
 
-void __stdcall AfxClassInit(CRuntimeClass* newClass) {
+void AfxClassInit(CRuntimeClass* newClass) {
     ModuleState* state = AfxGetModuleState();
     AfxLockGlobals(kRuntimeClassListLock);
     state->classList.AddHead(newClass);
     AfxUnlockGlobals(kRuntimeClassListLock);
 }
 
-BOOL __cdecl AfxInitDbcs() {
+BOOL AfxInitDbcs() {
     CPINFO info;
     gameapi::GetCPInfo(gameapi::GetOEMCP(), &info);
     return info.MaxCharSize > 1 ? TRUE : FALSE;
@@ -209,9 +199,9 @@ namespace {
 constinit HGDIOBJ g_afxHalftoneBrush = /*007C8D40*/ {nullptr};
 } // namespace
 
-void __cdecl AfxWingdixTerm() { AfxDeleteObject(&g_afxHalftoneBrush); }
+void AfxWingdixTerm() { AfxDeleteObject(&g_afxHalftoneBrush); }
 
 // atexit's answer would be kept in _afxWingdixTerm, which nothing reads.
-void __cdecl AfxWingdixTermInit() { libcrt::AtExit(AfxWingdixTerm); }
+void AfxWingdixTermInit() { libcrt::AtExit(AfxWingdixTerm); }
 
 } // namespace mfc::impl

@@ -3,7 +3,7 @@
 // MFC 4.2's resource strings and their formatting (strcore.cpp, winstr.cpp, appui1.cpp) as the
 // game's copy has them (docs/notes/standalone.md section 2). The strings are a table in code
 // (mfc_resource.cpp) holding the texts of MFC's 0xF0xx / 0xF1xx ids our code can reach (the host has no
-// string table). Registered at the library addresses (mfc_resource.cpp).
+// string table). Defined in mfc_resource.cpp.
 
 #include "mfc_string.h"
 
@@ -20,16 +20,16 @@ constexpr unsigned kIdpArchiveNone = 0xF1B0;         // AFX_IDP_ARCH_NONE (+ a C
 
 // AfxLoadString: string `id` into `buffer` (`size` bytes); its length, 0 with an empty
 // buffer when there is none.
-int __stdcall AfxLoadString(unsigned id, char* buffer, unsigned size);
+int AfxLoadString(unsigned id, char* buffer, unsigned size);
 
 // AfxFormatStrings: `format` into `out` with "%1".."%9" and "%A".."%Z" replaced by
 // strings[0] ... (a null string by nothing, an index at or past `count` by '?'; "%0" reads the
 // pointer before the array). A lead byte copies its trail byte with it.
-void __stdcall AfxFormatStrings(CString& out, const char* format, const char* const* strings, int count);
+void AfxFormatStrings(CString& out, const char* format, const char* const* strings, int count);
 // AfxFormatStrings(CString&, UINT, ...): the same with string `formatId` (at most 255
 // bytes) as the format; `out` is left as it is when the string does not load.
-void __stdcall AfxFormatStringsId(CString& out, unsigned formatId, const char* const* strings, int count);
+void AfxFormatStringsId(CString& out, unsigned formatId, const char* const* strings, int count);
 // AfxFormatString1: the format string `formatId` with one string.
-void __stdcall AfxFormatString1(CString& out, unsigned formatId, const char* string);
+void AfxFormatString1(CString& out, unsigned formatId, const char* string);
 
 } // namespace mfc::impl

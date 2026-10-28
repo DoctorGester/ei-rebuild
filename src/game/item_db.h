@@ -287,9 +287,9 @@ struct LootItemRecord : ItemRecordHead {
 // `count` copies of `value`. The last argument is STLport's unused type tag. Null destinations
 // are skipped; the result is the end of the destination.
 template <typename R>
-R* __fastcall CopyItemRecords(const R* first, const R* last, R* dest, int tag);
+R* CopyItemRecords(const R* first, const R* last, R* dest, int tag);
 template <typename R>
-R* __fastcall FillItemRecords(R* dest, int count, const R* value, int tag);
+R* FillItemRecords(R* dest, int count, const R* value, int tag);
 
 // The start of a material record.
 struct MaterialRecordHead {

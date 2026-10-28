@@ -27,7 +27,7 @@ using gamehash::FiguredTable;
 using recordvec::DressedUnitElement;
 using recordvec::FiguredUnitElement;
 using IdElement = stlp::PlainElement<std::uint32_t>;
-using NameElement = stlp::ObjectElement<mfc::CString>;
+using NameElement = stlp::ObjectElement<std::string>;
 
 constexpr std::uint32_t kNoItem = 0xFFFFFFFFu;
 constexpr float kScaleSteps = 127.0f;
@@ -151,11 +151,3 @@ void UnitSet::Add(CUnit* unit) {
     DressedUnitElement::Destroy(&entry.mapped);                      // called twice
     FiguredUnitElement::Destroy(&record);
 }
-
-// ---- The helpers UnitSet::Add was compiled with ---------------------------------------------------
-
-namespace unitset {
-
-void __fastcall DestructName(mfc::CString* name) { std::destroy_at(name); }
-
-} // namespace unitset

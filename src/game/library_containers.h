@@ -24,7 +24,7 @@ namespace libcontainers {
 // ---- Algorithms -----------------------------------------------------------------------------------
 
 // _Construct(p, value) of a RefPtr: a copy with one more reference, nothing for a null p.
-void __fastcall ConstructRefPtr(RefPtr* p, const RefPtr* value);
+void ConstructRefPtr(RefPtr* p, const RefPtr* value);
 
 // ---- CString's destructor and the unwind helpers ---------------------------------------------------
 
@@ -61,7 +61,7 @@ struct SpeakerElement {
     static void Destroy(BriefingSpeaker* p) { std::destroy_at(&p->name); }
 };
 // _Construct(p, value): nothing for a null p.
-void __fastcall ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* value);
+void ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* value);
 
 // The server's banned addresses (find_if compares the host, not the port).
 

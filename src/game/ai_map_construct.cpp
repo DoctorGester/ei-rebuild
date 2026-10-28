@@ -18,11 +18,8 @@
 CAIMap::CAIMap() {
     climbLarge.Construct(mfc::impl::IntArrayClass::Vtable());
     climbSmall.Construct(mfc::impl::IntArrayClass::Vtable());
-    materials.Construct();
     bridgeHeights.Construct(100);
-    footprint.cells.Construct();
     footprint.hashed = true;
-    bridges.cells.Construct();
     bridges.hashed = true;
     waterDepth.width = 1;
     waterDepth.height = 1;
@@ -71,10 +68,7 @@ CAIMap::~CAIMap() {
     FreeGrid(regions.forward.records);
     for (int list = 5; list >= 0; --list) mfc::impl::DestructArrayOf<mfc::impl::AreaListClass>(areaLists[list]);
     FreeGrid(waterDepth);
-    bridges.cells.FreeData();
-    footprint.cells.FreeData();
     bridgeHeights.Destroy();
-    materials.FreeData();
     mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(climbSmall);
     mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(climbLarge);
 }

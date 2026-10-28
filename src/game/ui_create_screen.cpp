@@ -202,7 +202,7 @@ void CInterface3D::ShowMessage(int force) {
     bool forced = static_cast<std::uint8_t>(force) != 0;
     if (!forced) {
         if (messages_.empty()) return;
-        std::string text = messages_.front().GetString();
+        std::string text = messages_.front();
         messages_.pop_front();
         messageText_ = text;
         messageFlag_ = 0;

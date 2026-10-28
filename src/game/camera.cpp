@@ -141,7 +141,7 @@ void camera::NoteTargetTick(const CCamera* camera) {
     if (ticks.count < 2) ++ticks.count;
 }
 
-void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,
+void SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,
                              float* average, float* minimum, float* maximum) {
     double centre = TheClientWorld()->RawSurfaceHeightAt(p->x, p->y);
     *minimum = static_cast<float>(centre);
@@ -171,26 +171,26 @@ void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, f
 }
 
 int CCamera::PlaybackStart() {
-    if (keys_.size == 0) return 0;
+    if (keys_.empty()) return 0;
     std::memcpy(&localPosition_, &keys_[0].position, sizeof(Vector3));
     std::memcpy(&localRotation_, &keys_[0].rotation, sizeof(Quaternion));
     return 1;
 }
 
 int CCamera::PlaybackStep(float time) {
-    if (!(flags_ & kPlaying) || keys_.size == 0) return 0;
-    const CameraKey* keys = keys_.data;
-    if (keyIndex_ >= keys_.size - 1) {
-        std::memcpy(&localPosition_, &keys[keys_.size - 1].position, sizeof(Vector3));
-        std::memcpy(&localRotation_, &keys[keys_.size - 1].rotation, sizeof(Quaternion));
+    if (!(flags_ & kPlaying) || keys_.empty()) return 0;
+    const CameraKey* keys = keys_.data();
+    if (keyIndex_ >= std::ssize(keys_) - 1) {
+        std::memcpy(&localPosition_, &keys[std::ssize(keys_) - 1].position, sizeof(Vector3));
+        std::memcpy(&localRotation_, &keys[std::ssize(keys_) - 1].rotation, sizeof(Quaternion));
         return 0;
     }
     double next = D(keys[keyIndex_ + 1].time) + timeOffset_;
     while (time > next) {
         ++keyIndex_;
-        if (keyIndex_ >= keys_.size - 1) {
-            std::memcpy(&localPosition_, &keys[keys_.size - 1].position, sizeof(Vector3));
-            std::memcpy(&localRotation_, &keys[keys_.size - 1].rotation, sizeof(Quaternion));
+        if (keyIndex_ >= std::ssize(keys_) - 1) {
+            std::memcpy(&localPosition_, &keys[std::ssize(keys_) - 1].position, sizeof(Vector3));
+            std::memcpy(&localRotation_, &keys[std::ssize(keys_) - 1].rotation, sizeof(Quaternion));
             flags_ &= ~kPlaying;
             return 0;
         }

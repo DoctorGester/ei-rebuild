@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class CFigureMesh;
 
@@ -42,13 +43,13 @@ static_assert(sizeof(AnimationTranslationKey) == 32);
 struct AnimationMorphFrame {
     int frame;
     int next;
-    lib::AlignedArray<Vector3> points;
+    std::vector<Vector3> points;
 };
-static_assert(sizeof(AnimationMorphFrame) == 0x18);
 // The morph frames' CArray instantiation constructs and destroys them out of line.
 struct AnimationMorphFrameElements {
     static void Construct(AnimationMorphFrame* frames, int count);
     static void Destruct(AnimationMorphFrame* frames, int count);
+    static void Relocate(AnimationMorphFrame* to, AnimationMorphFrame* from, int count);
 };
 
 // An animated node of a figure (one bone). The fake units' skeletons build them from scene nodes (BuildBone).
@@ -75,14 +76,14 @@ public:
     std::string spareName00C_;
     std::uint32_t spare010_[3];
     CAnimationNode* parent_;
-    lib::AlignedArray<CAnimationNode*> children_;
+    std::vector<CAnimationNode*> children_;
     class CFigureMesh* mesh_;                            // the part the node places, or null
     std::uint32_t spare034_;
     std::uint32_t clock_[2];                             // cleared by Rewind (a double?)
     int frameCount_;                                     // the animation's frames (a short)
-    lib::AlignedArray<AnimationRotationKey> rotationKeys_;
+    std::vector<AnimationRotationKey> rotationKeys_;
     int rotationCursor_;                                 // -1 after construction, 0 after ResetPose
-    lib::AlignedArray<AnimationTranslationKey> translationKeys_;
+    std::vector<AnimationTranslationKey> translationKeys_;
     int translationCursor_;                              // the same
     mfc::CArray<Vector3> normals_;                       // zeroed when added
     int normalCursor_;                                   // the same
@@ -92,10 +93,10 @@ public:
     Vector3 defaultPosition_;                            // the origin (constructor); nothing reads it
     Quaternion poseRotation_;                            // the node's rotation in the figure
     Vector3 posePosition_;                               // its position in the figure
-    lib::AlignedArray<Vector3> pointsB_;                 // one per morph point, zeroed
+    std::vector<Vector3> pointsB_;                 // one per morph point, zeroed
     Quaternion restRotation_;                            // the node's rest rotation
     Vector3 restPosition_;                               // the node's rest pivot
-    lib::AlignedArray<Vector3> pointsA_;                 // one per morph point, zeroed
+    std::vector<Vector3> pointsA_;                 // one per morph point, zeroed
     // the bone position (SetMorph); the skeleton code keeps the rest position in the parent's frame here.
     Vector3 position_;
     float morphS_;

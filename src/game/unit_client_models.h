@@ -25,7 +25,7 @@ struct UnitPrototypeRecord;
 
 // Blits rectangle `from` of `source` to `at` (x, y) of `target`, then the same halved on each next level of
 // both mip chains until either ends (DirectDraw surfaces; nothing without them).
-void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, const tagRECT* from);
+void BlitMipChain(CTexture* target, const int* at, CTexture* source, const tagRECT* from);
 
 // What a unit says: an acks.db entry with its sound file name.
 struct SpeechRecord {
@@ -84,7 +84,7 @@ using SkinLayerArray = mfc::CArray<SkinLayer>;
 // What the texture manager composes a skin from: the layers as bytes in 32-byte aligned storage, the layer
 // texture names, and a flag (0x100 detailed, 0x80 simple).
 struct SkinRequest {
-    lib::AlignedArray<std::uint8_t> layers;
+    std::vector<std::uint8_t> layers;
     std::vector<std::string> textures;
     int flags;
 };
@@ -239,14 +239,14 @@ public:
     // for it: on a platform 0.01 or more away from the ground the kind is 2; crawling (movement mode 0)
     // except on kinds 6 / 14 gives "steps\human\crawl\<1..6>.wav", else "<the kind's name>\<1..count>.wav"
     // (one rand() each). Returns 1, or 0 (no prototype, model or sounds; `out` untouched).
-    int FootstepSound(int terrain, mfc::CString* out);
+    int FootstepSound(int terrain, std::string* out);
     // The sound of `animation`'s action into `out` (emptied first) when its sound frame (not 0) lies in
     // [from, to): "weapons\miss.wav" for `miss`, else one of its sound numbers (rand()) in the folder of the
     // second prototype or its model: idle (kind 0x180000, by the model's idle chance), skill sounds (0x40000:
     // tame, steal, science, loot), attack (0x80000: "weapons\<n>.wav" for a hero with a bow or crossbow, else
     // by the attack chance), death (0x1C0000), hit (0x200000). Returns 1 for those kinds (also when a chance
     // left `out` empty), else 0.
-    int ActionSound(const FigureAnimation* animation, float from, float to, mfc::CString* out, std::uint8_t miss);
+    int ActionSound(const FigureAnimation* animation, float from, float to, std::string* out, std::uint8_t miss);
 
     // The wound level of each of the six body parts (head, body, hands, legs) into (*levels)[0..5]: 0 for a
     // part without state or maximum, at full durability, or at 75% or more; 1 above 33%, 2 above one point, 3
@@ -312,7 +312,7 @@ static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 // -1), the parts of the weapons `weaponIds` (also into `names`), and every plain part of the three rows (into
 // `plainNames`, the hair as "hr.<hair>"; the empty names of the helmet row too).
 
-void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vector<std::uint32_t>* armourIds,
+void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vector<std::uint32_t>* armourIds,
                                        const std::vector<std::uint32_t>* weaponIds,
                                        std::vector<std::string>* names, std::vector<std::string>* plainNames);
 

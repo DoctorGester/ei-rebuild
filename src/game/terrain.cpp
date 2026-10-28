@@ -28,7 +28,7 @@ const Vector3* Terrain::VertexAt(int ix, int iy, int layer) {
     return &sector->vertices.data[lx + ly * 33 + layerOffset];
 }
 
-float __fastcall PlaneHeight(const Vector3* v0, const Vector3* v1, float x, float y, const Vector3* v2) {
+float PlaneHeight(const Vector3* v0, const Vector3* v1, float x, float y, const Vector3* v2) {
     float ax = v1->x - v0->x, ay = v1->y - v0->y;
     float bx = v2->x - v0->x, by = v2->y - v0->y;
     float det = by * ax - bx * ay;

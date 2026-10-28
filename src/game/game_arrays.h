@@ -14,13 +14,11 @@
 #include <memory>
 
 namespace aligned {
-std::uint32_t* __fastcall AllocateDwords(int count);
-void __fastcall ArrayAt8Free(void* self);
-void __fastcall ArrayAt4Free(void* self);
+void ArrayAt8Free(void* self);
 } // namespace aligned
 
 namespace zone {
-void __fastcall ZoneRecordDestruct(MapRecord* self);
+void ZoneRecordDestruct(MapRecord* self);
 } // namespace zone
 
 namespace gamearrays {
@@ -29,14 +27,13 @@ using mfc::impl::ArrayAbi;
 using mfc::impl::Bytes;
 using mfc::impl::EachElements;
 
-// Records holding an aligned block at +8 (24 bytes) / +4 (20 bytes): the block freed.
+// Records holding an aligned block at +8 (24 bytes): the block freed.
 inline void DestroyBlockAt8(Bytes<24>* p) { aligned::ArrayAt8Free(p); }
-inline void DestroyBlockAt4(Bytes<20>* p) { aligned::ArrayAt4Free(p); }
 
 inline void DestroyZoneRecord(MapRecord* p) { zone::ZoneRecordDestruct(p); }
 
 inline void InitGroup(ScriptGroup* p);   // defined below the tags
-inline void __fastcall DestructGroupBody(ScriptGroup* group) { group->DestructBody(); }
+inline void DestructGroupBody(ScriptGroup* group) { group->DestructBody(); }
 inline void DestroyGroup(ScriptGroup* p) { p->DestructBody(); }
 
 inline void InitObjective(ScriptQuestObjective* p) { std::construct_at(&p->text); }
@@ -64,7 +61,6 @@ inline void ReleaseOnly(CEngineObject** p) {
 inline void DestroyPointLight(ScriptPointLight* p) { p->ScriptPointLightDestruct(); }
 
 using BlocksAt8 = ArrayAbi<Bytes<24>, EachElements<Bytes<24>, nullptr, DestroyBlockAt8>>;
-using BlocksAt4 = ArrayAbi<Bytes<20>, EachElements<Bytes<20>, nullptr, DestroyBlockAt4>>;
 using Exits = ArrayAbi<ZoneExit, ZoneExitElements>;
 using ZoneRecords = ArrayAbi<MapRecord, EachElements<MapRecord, nullptr, DestroyZoneRecord>>;
 using Groups = ArrayAbi<ScriptGroup, EachElements<ScriptGroup, InitGroup, DestroyGroup>>;
@@ -136,7 +132,6 @@ struct ObjectPtrArrayClass final : gamearrays::ObjectPtrArrayBaseClass {
 
 // The element policies over them (the lib headers cannot name the complete tags).
 // The map database's zone records (eight strings and the exits) and allods (six strings and the map indices).
-using MapRecords = ArrayAbi<MapRecord, MapRecordElements>;
 using AllodRecords = ArrayAbi<AllodRecord, AllodRecordElements>;
 // The map database's allods.
 struct AllodArrayClass final
@@ -148,7 +143,6 @@ using ScriptGroups = ArrayAbi<WithArray<0x14, 0, ScriptGroupClass>,
 using SharedObjectElement = WithArray<0x20, 0xC, ObjectPtrArrayClass>;
 using SharedObjectElements = InitElements<SharedObjectElement, InitWithArray<0x20, 0xC, ObjectPtrArrayClass>>;
 using SharedObjectNewList = ListAbi<SharedObjectElement, SharedObjectElements>;
-using SharedObjectArray = ArrayAbi<SharedObjectElement, SharedObjectElements>;
 
 } // namespace mfc::impl
 

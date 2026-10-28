@@ -118,8 +118,8 @@ struct Behaviour {
 };
 static_assert(offsetof(Behaviour, guard) == 0x18);
 static_assert(sizeof(Behaviour) == 0x4C);
-Behaviour* __fastcall BehaviourConstruct(Behaviour* self);
-void __fastcall BehaviourDestruct(Behaviour* self);
+Behaviour* BehaviourConstruct(Behaviour* self);
+void BehaviourDestruct(Behaviour* self);
 
 // The base record. The records are read and written chunk by chunk (no record is a block of file bytes).
 class Spec : public Chunk {
@@ -131,7 +131,7 @@ public:
     virtual void* WorldObject();
     virtual void Nothing(int) {}
     // The type name in `out` (a CString returned by value): "error".
-    virtual mfc::CString* TypeName(mfc::CString* out);
+    virtual std::string* TypeName(std::string* out);
     // Moves the record, then Apply.
     virtual void Move(float dx, float dy, float dz);
     // Removes the world object (here: Apply).
@@ -167,7 +167,7 @@ public:
     ~ObjectSpec() override;
 
     void OnChunk() override;                                 // the chunk just read, by its id
-    mfc::CString* TypeName(mfc::CString* out) override;      // the player number ("%i")
+    std::string* TypeName(std::string* out) override;      // the player number ("%i")
     void Remove() override;                                  // removes the world object, then Apply
     // Makes the world object, or updates it from the record (position, rotation, scale,
     // visibility) while it is out of the editor's lists.
@@ -218,7 +218,7 @@ public:
     ~TrapSpec() override;
 
     void OnChunk() override;
-    mfc::CString* TypeName(mfc::CString* out) override;      // "MagicTrap"
+    std::string* TypeName(std::string* out) override;      // "MagicTrap"
     // Chunk BBAB0000: the trap's fields (the arrays as a count and the raw elements), then the common ones.
     void Save() override;
 
@@ -276,7 +276,7 @@ public:
     ~ParticleSpec() override;
 
     void OnChunk() override;
-    mfc::CString* TypeName(mfc::CString* out) override;      // "Particle source"
+    std::string* TypeName(std::string* out) override;      // "Particle source"
     void Apply() override;          // makes the source (when it has a type) or updates its effect
     void Save() override;           // chunk DD01
 
@@ -291,7 +291,7 @@ public:
     ~LightSpec() override;
 
     void OnChunk() override;
-    mfc::CString* TypeName(mfc::CString* out) override;      // "Light"
+    std::string* TypeName(std::string* out) override;      // "Light"
     void Apply() override;          // makes the light or updates its effect (colour, radius, position)
     void Save() override;           // chunk AA01
 
@@ -308,7 +308,7 @@ public:
     ~SoundSpec() override;
 
     void OnChunk() override;
-    mfc::CString* TypeName(mfc::CString* out) override;      // "Sound"
+    std::string* TypeName(std::string* out) override;      // "Sound"
     // Makes the sound (when it has sounds); otherwise moves the world object and makes its effect again.
     void Apply() override;
     void Save() override;           // chunk CC01
@@ -356,7 +356,7 @@ public:
     // the weather (0xABD0: wind and time of day, applied to the server), the records (0xB000) into `records`,
     // the players (0xDDDDDDD1) into `diplomacy`. Returns the last 0xC000 (true) / 0xD000 (false) seen, true
     // without either.
-    bool ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, mfc::CString* scripts);
+    bool ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, std::string* scripts);
     // Reads the file, applies its player relations, makes every record's world object (traps learn their
     // hostile players, units their alarm records), frees the records, then loads the scripts unless
     // `keepIds`' low byte is set. Returns true.

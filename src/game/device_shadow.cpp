@@ -29,7 +29,7 @@ void ScaleZ(float* z, const float* scale) { *z = *scale * *z; }
 // The vertices: projected position, the colour / specular pair, the vertex's texture coordinate
 // (each copied as qwords).
 void Fill(TLVertex* out, int count, const void* colours, const void* uvs) {
-    const ProjectedVertex* projected = Projected().data;
+    const ProjectedVertex* projected = Projected().data();
     for (int i = 0; i < count; ++i) {
         std::memcpy(&out[i].x, &projected[i], 16);
         std::memcpy(&out[i].color, colours, 8);
@@ -40,7 +40,7 @@ void Fill(TLVertex* out, int count, const void* colours, const void* uvs) {
 void Scale(int count, const float* scale) {
     EI_NAN_AUDIT(*scale);
     if (*scale == 1.0f) return;
-    for (int i = 0; i < count; ++i) ScaleZ(&Vertices().data[i].z, scale);
+    for (int i = 0; i < count; ++i) ScaleZ(&Vertices()[i].z, scale);
 }
 
 // The new renderer (src/render) gets the geometry in model space with the screen stack's matrix
@@ -71,39 +71,39 @@ int DrawFlat(CTextureDevice* device, const void* positions, const void* uvs, int
     ITransformPipeline* transform = pipeline->transform_;
     int count = blocks * 4;
     std::uint32_t colours[2] = {colour, specular};
-    Projected().SetSizeDiscard(count * 10);
-    Outcodes().SetSizeDiscard(count);
+    Projected().resize(count * 10);
+    Outcodes().resize(count);
     // The blocks projected with outcodes; 0 on screen, 1 crossing, 2 outside.
-    int visibility = pipeline->ProjectBlocks(positions, Projected().data, Outcodes().data, blocks, bounds);
+    int visibility = pipeline->ProjectBlocks(positions, Projected().data(), Outcodes().data(), blocks, bounds);
     if (visibility != 2)
         HandOver(device, positions, uvs, count, indices, indexCount, colours, &zScale, visibility == 1);
 
     if (visibility == 0) {
         // (The device's vertex-buffer batch never gave a buffer: the vertices are drawn.)
-        Vertices().SetSizeDiscard(count);
-        Fill(Vertices().data, count, colours, uvs);
+        Vertices().resize(count);
+        Fill(Vertices().data(), count, colours, uvs);
         Scale(count, &zScale);
-        device->DrawIndexed(4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
+        device->DrawIndexed(4, 0x1C4, Vertices().data(), count, indices, indexCount, 0);
         return 0;
     }
     if (visibility == 2) return 2;
     if (visibility != 1) return 0;
 
-    Vertices().SetSizeDiscard(count * 10);
-    Fill(Vertices().data, count, colours, uvs);
-    ClipIndices().SetSizeDiscard(indexCount * 10);
-    CornerOutcodes().SetSizeDiscard(Outcodes().size * 10);
-    std::memcpy(CornerOutcodes().data, Outcodes().data, static_cast<std::size_t>(Outcodes().size));
+    Vertices().resize(count * 10);
+    Fill(Vertices().data(), count, colours, uvs);
+    ClipIndices().resize(indexCount * 10);
+    CornerOutcodes().resize(std::ssize(Outcodes()) * 10);
+    std::memcpy(CornerOutcodes().data(), Outcodes().data(), static_cast<std::size_t>(std::ssize(Outcodes())));
     int vertexCount = count;
     int clippedIndices = indexCount;
-    transform->ClipTriangles(Vertices().data, CornerOutcodes().data, indices, ClipIndices().data, &vertexCount,
+    transform->ClipTriangles(Vertices().data(), CornerOutcodes().data(), indices, ClipIndices().data(), &vertexCount,
                              &clippedIndices);
-    Vertices().SetSize(vertexCount);
-    ClipIndices().SetSize(clippedIndices);
-    transform->ToScreenClipped(Vertices().data, Vertices().size);
+    Vertices().resize(vertexCount);
+    ClipIndices().resize(clippedIndices);
+    transform->ToScreenClipped(Vertices().data(), std::ssize(Vertices()));
     if (vertexCount == 0 || clippedIndices == 0) return 0;
     Scale(vertexCount, &zScale);
-    device->DrawIndexed(4, 0x1C4, Vertices().data, vertexCount, ClipIndices().data, clippedIndices, 0);
+    device->DrawIndexed(4, 0x1C4, Vertices().data(), vertexCount, ClipIndices().data(), clippedIndices, 0);
     return 0;
 }
 

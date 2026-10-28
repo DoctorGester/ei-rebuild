@@ -49,12 +49,12 @@ int ShadowSwitch(int classId) {
 constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: zeros
 // The work buffers: the parts' points projected into the light's view, their texture pixels, and
 // the ground quad (one block of four corners).
-constinit lib::AlignedArray<Vector2> g_points = /*007AF1F8*/ {};
-constinit lib::AlignedArray<RasterTriangle::Point> g_pixels = /*007AF1E0*/ {};
-constinit lib::AlignedArray<VertexPacket> g_quads = /*007AF208*/ {};
-lib::AlignedArray<Vector2>& Points() { return g_points; }
-lib::AlignedArray<RasterTriangle::Point>& Pixels() { return g_pixels; }
-lib::AlignedArray<VertexPacket>& Quads() { return g_quads; }
+constinit std::vector<Vector2> g_points = /*007AF1F8*/ {};
+constinit std::vector<RasterTriangle::Point> g_pixels = /*007AF1E0*/ {};
+constinit std::vector<VertexPacket> g_quads = /*007AF208*/ {};
+std::vector<Vector2>& Points() { return g_points; }
+std::vector<RasterTriangle::Point>& Pixels() { return g_pixels; }
+std::vector<VertexPacket>& Quads() { return g_quads; }
 
 // The exit functions their static initialisers register: each frees its array's block. The points' and the
 // pixels' are guarded by a guard bit each, so a second run frees nothing.
@@ -194,16 +194,16 @@ float CornerY(const float* m, float a, float b) {
 }
 } // namespace
 
-void __cdecl FreeQuads() { g_quads.FreeData(); }
-void __cdecl FreePoints() {
+void FreeQuads() { lib::FreeStorage(g_quads); }
+void FreePoints() {
     if (g_freed & 1) return;
     g_freed = static_cast<std::uint8_t>(g_freed | 1);
-    g_points.FreeData();
+    lib::FreeStorage(g_points);
 }
-void __cdecl FreePixels() {
+void FreePixels() {
     if (g_freed & 2) return;
     g_freed = static_cast<std::uint8_t>(g_freed | 2);
-    g_pixels.FreeData();
+    lib::FreeStorage(g_pixels);
 }
 
 // --- The shadow -------------------------------------------------------------------------------
@@ -303,8 +303,8 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     view::LightShearMatrix(view.m, &direction);   // (on the pipeline, not read)
     pipeline->PushMatrixProduct(view, kShadowStack);
     // The buffers grow without keeping their contents.
-    Points().SetSizeDiscard(kPointBufferSize);
-    Pixels().SetSizeDiscard(kPointBufferSize);
+    Points().resize(kPointBufferSize);
+    Pixels().resize(kPointBufferSize);
     int count = 0;
     Quaternion turn{1.0f, 0.0f, 0.0f, 0.0f};
     view::LightRotation(&direction, &turn);   // (likewise)
@@ -350,7 +350,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     }
     pipeline->PopMatrix(kShadowStack);
     pipeline->PopMatrix(kShadowStack);
-    Points().SetSizeDiscard(count);
+    Points().resize(count);
 
     // Points to texture pixels.
     float scaleX = static_cast<float>(kTextureScale / (static_cast<double>(self->bounds[2]) - self->bounds[0]));
@@ -364,13 +364,13 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     t[12] = offsetX;
     t[13] = offsetY;
     t[5] = scaleY;
-    for (int k = 0; k < Points().size; ++k) {
+    for (int k = 0; k < std::ssize(Points()); ++k) {
         float x = static_cast<float>(static_cast<double>(t[0]) * Points()[k].x + t[12]);
         Pixels()[k].x = x87::fistp(x);
         float y = static_cast<float>(static_cast<double>(t[5]) * Points()[k].y + t[13]);
         Pixels()[k].y = x87::fistp(y);
     }
-    Pixels().SetSizeDiscard(count);
+    Pixels().resize(count);
 
     // The texture (only when it is drawn; the decal's projection below takes only whether any part is keyed).
     const int keyedParts = KeyedParts(self->object);
@@ -407,7 +407,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     m[10] = static_cast<float>(kOne - (static_cast<double>(yy) + xx));
 
     // The texture's square on the ground: corner 0 at (minimum x, maximum y), then clockwise.
-    Quads().SetSize(1);   // keeps the contents when growing
+    Quads().resize(1);   // keeps the contents when growing
     {
         float a = self->bounds[3];
         float b = self->bounds[0];
@@ -415,7 +415,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         float y = CornerY(m, a, b);
         float x = static_cast<float>(CornerX(m, a, b));
         (void)z;   // computed for the corner's Vector3, never used
-        VertexPacket* quad = Quads().data;   // rows x, y, z, w; lane 0
+        VertexPacket* quad = Quads().data();   // rows x, y, z, w; lane 0
         quad->block[0][0] = static_cast<float>(static_cast<double>(at.x) + x);
         quad->block[1][0] = static_cast<float>(static_cast<double>(at.y) + y);
         quad->block[2][0] = at.z;
@@ -429,7 +429,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         float b = corners[c][1];
         float y = CornerY(m, a, b);
         double x = CornerX(m, a, b);
-        VertexPacket* quad = Quads().data;
+        VertexPacket* quad = Quads().data();
         quad->block[0][1 + c] = static_cast<float>(x + at.x);
         quad->block[1][1 + c] = static_cast<float>(static_cast<double>(y) + at.y);
         quad->block[2][1 + c] = at.z;
@@ -446,11 +446,12 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     float px = static_cast<float>((product(w[1], c.y) + product(w[2], c.z)) + product(w[0], c.x));
     Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
                      static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
-    TheClientWorld()->ProjectDecal(&direction, &point, self->object->bounds.radius, &Quads().data,
+    VertexPacket* quads = Quads().data();
+    TheClientWorld()->ProjectDecal(&direction, &point, self->object->bounds.radius, &quads,
                                &self->vertices, &self->texCoords, &self->indices, static_cast<unsigned char>(0), static_cast<unsigned char>(keyedParts == 0));
 
-    if (self->vertices.size != 0) {
-        pipeline->transform_->FitBounds(&self->sphere, self->vertices.data, self->vertices.size);
+    if (!self->vertices.empty()) {
+        pipeline->transform_->FitBounds(&self->sphere, self->vertices.data(), std::ssize(self->vertices));
         const Vector3& position = self->object->localPosition_;
         self->sphere.center.x = static_cast<float>(static_cast<double>(self->sphere.center.x) - position.x);
         self->sphere.center.y = static_cast<float>(static_cast<double>(self->sphere.center.y) - position.y);
@@ -503,7 +504,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         if (!built) return failure;
     }
 
-    if (vertices.size == 0) return 1;
+    if (vertices.empty()) return 1;
     std::uint32_t colour = kDefaultColour;
     if (CUnit* unit = UnitOrNull(object)) {
         CUnitClientSpecific* half = unit->ClientController();
@@ -514,8 +515,8 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     std::uint8_t lit = TheTerrain()->EdgeFade(&object->localPosition_);
     if (!makeTexture) return 1;   // the shadow map draws it
     TheRenderDevice()
-        ->DrawFlatBlocks(vertices.data, texCoords.data, vertices.size, indices.data,
-                         indices.size, colour, static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,
+        ->DrawFlatBlocks(vertices.data(), texCoords.data(), std::ssize(vertices), indices.data(),
+                         std::ssize(indices), colour, static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,
                          std::bit_cast<float>(kDrawDepth));
     return 1;
 }

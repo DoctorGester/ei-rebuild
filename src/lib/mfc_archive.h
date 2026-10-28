@@ -3,7 +3,7 @@
 // MFC 4.2's CArchive buffer (arccore.cpp, afx.inl) as the game's copy has it: Read, Write, Flush, FillBuffer,
 // the count and string-length encodings, the BYTE / WORD / DWORD operators and the CString operators, with
 // CString's assignment from a wide string the loader uses (docs/notes/standalone.md section 2). Same layout
-// as the exe's; every body is registered at its library address (mfc_archive.cpp).
+// as the exe's; the bodies are in mfc_archive.cpp.
 
 #include "mfc_exception.h"
 #include "mfc_file.h"
@@ -58,14 +58,14 @@ static_assert(sizeof(CArchive) == 0x44);
 
 // AfxReadStringLength: a BYTE below 0xFF, else a WORD (0xFFFE: -1, a wide string follows; 0xFFFF:
 // a DWORD follows).
-unsigned __stdcall ReadStringLength(CArchive& ar);
+unsigned ReadStringLength(CArchive& ar);
 // operator<<(CArchive&, const CString&): the length so encoded, then the characters.
-CArchive& __stdcall StoreText(CArchive& ar, const CString& text);
+CArchive& StoreText(CArchive& ar, const CString& text);
 // operator>>(CArchive&, CString&): a wide string is converted to the ANSI code page.
-CArchive& __stdcall LoadText(CArchive& ar, CString& text);
+CArchive& LoadText(CArchive& ar, CString& text);
 
 // CString::operator=(LPCWSTR) is CString::AssignWide (mfc_string.h). _wcstombsz: WideCharToMultiByte into
 // `count` bytes, terminated; the bytes written with the terminator (0 for no room).
-int __cdecl WideToMultiByte(char* to, const wchar_t* from, unsigned count);
+int WideToMultiByte(char* to, const wchar_t* from, unsigned count);
 
 } // namespace mfc::impl

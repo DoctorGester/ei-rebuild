@@ -178,6 +178,6 @@ extern lib::StaticObject<GameOptions> g_options;
 inline GameOptions* TheOptions() { return &*g_options; }
 
 // The options' defaults.
-void __fastcall OptionsResetDefaults(GameOptions* self);
+void OptionsResetDefaults(GameOptions* self);
 
 } // namespace options

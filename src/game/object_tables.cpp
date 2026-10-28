@@ -14,14 +14,14 @@
 #include <new>
 #include <string>
 
-int __fastcall TextKeyFromName(const char* name) {
+int TextKeyFromName(const char* name) {
     std::uint32_t h = 0;
     for (const char* p = name; *p; ++p)
         h = static_cast<std::uint32_t>(libcrt::Toupper(static_cast<unsigned char>(*p))) + h * 5;
     return static_cast<int>(h % 1000000000u + 1000000000u);
 }
 
-BOOL __fastcall IsTextKey(int id) {
+BOOL IsTextKey(int id) {
     return id >= 1000000000 && id < 2000000000 ? 1 : 0;
 }
 
@@ -67,7 +67,7 @@ void NamedFloatTable::CopyPrefixed(const char* prefix, NamedFloatTable* out) {
     std::size_t length = std::strlen(prefix);
     out->Clear();
     for (const Node* node = First(); node; node = Next(node))
-        if (gamecrt::strncmp(prefix, node->value.key, length) == 0) (*out)[node->value.key] = node->value.mapped;
+        if (gamecrt::strncmp(prefix, node->value.key, length) == 0) (*out)[node->value.key.GetString()] = node->value.mapped;
 }
 
 void NamedFloatTable::Load(CStream* stream) {
@@ -75,10 +75,9 @@ void NamedFloatTable::Load(CStream* stream) {
     for (;;) {
         std::string key;
         {
-            alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-            mfc::CString* read = stream->ReadString(raw);
+            std::string raw;
+            std::string* read = stream->ReadString(&raw);
             key = *read;
-            std::destroy_at(read);
         }
         if (gamecrt::mbscmp(key, game::EmptyText()) == 0) break;
         float value;
@@ -98,7 +97,7 @@ void NamedFloatTable::Save(CStream* stream) {
     stream->Write(end.c_str(), static_cast<std::uint32_t>(std::strlen(end.c_str()) + 1));
 }
 
-void* __fastcall FindCommandByKey(int key) {
+void* FindCommandByKey(int key) {
     const signed char* keys = g_keyActions;
     for (int slot = 0; slot < 0x200; ++slot) {
         if (keys[slot] != key) continue;

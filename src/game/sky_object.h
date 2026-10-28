@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -45,7 +46,7 @@ public:
 
     // The mesh's fields (CFigureMesh): worldMatrix_ the world matrix CSky::Draw builds, name_
     // "nask0", directory_ emptied by LoadSky, the vertices and normals four per packet.
-    lib::AlignedArray<float> distances_;            // haze per vertex
+    std::vector<float> distances_;            // haze per vertex
 };
 static_assert(offsetof(CSkyObject, worldMatrix_) == 0x54);
 

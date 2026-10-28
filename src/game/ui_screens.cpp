@@ -20,6 +20,8 @@
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 
+#include <string>
+
 namespace {
 const char* const kSoundCampScroll = "buttons\\camp\\scroll.wav";
 const char* const kSoundCampMode = "buttons\\camp\\mode.wav";
@@ -50,31 +52,31 @@ const CItemLoot* LootOrNull(const CItem* item) {
 
 // The predicates are thiscall in the original (on the camp or a strip's owner) but never read ECX:
 // static __stdcall functions here.
-bool __stdcall UiItemKinds::IsSpell(const CItem* item) {
+bool UiItemKinds::IsSpell(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 2 && loot->recordType_ == 3;
 }
 
-bool __stdcall UiItemKinds::IsModifier(const CItem* item) {
+bool UiItemKinds::IsModifier(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 2 && loot->recordType_ == 4;
 }
 
-BOOL __stdcall UiItemKinds::IsSpellContainer(const CItem* item) {
+BOOL UiItemKinds::IsSpellContainer(const CItem* item) {
     return item->type_ == kTypeSpellContainer;
 }
 
-bool __stdcall UiItemKinds::IsPart(const CItem* item) {
+bool UiItemKinds::IsPart(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 2 && loot->recordType_ <= 2;
 }
 
-bool __stdcall UiItemKinds::IsKindOne(const CItem* item) {
+bool UiItemKinds::IsKindOne(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 1;
 }
 
-bool __stdcall UiItemKinds::IsBuildable(const CItem* item) {
+bool UiItemKinds::IsBuildable(const CItem* item) {
     auto* object = const_cast<CItem*>(item);
     const itemdb::ItemRecordHead* prototype = object->GetPrototype();
     if (prototype && !prototype->buildable) return false;
@@ -434,7 +436,7 @@ void CMpHeroScreen::ClampVoiceSelection() {
     voiceScroll_->SetPosition(voiceTop_);
     voiceScroll_->TakePosition(&voiceTop_);
     // Each voice is {file, name}; the hero keeps the file name in texts[6].
-    const mfc::CString& file = voices_->begin()[voiceIndex_].file;
+    const std::string& file = voices_->begin()[voiceIndex_].file;
     HeroRecord()->texts[6] = file;
     DrawVoices();
 }

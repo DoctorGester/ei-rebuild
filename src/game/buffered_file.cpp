@@ -204,10 +204,10 @@ void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFla
 using UnreadSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 constinit lib::StaticObject<UnreadSet> g_unreadSet = /*007AB8D8*/ {};
 namespace {
-void __cdecl DestroyUnreadSet() { g_unreadSet->Destroy(); }
+void DestroyUnreadSet() { g_unreadSet->Destroy(); }
 } // namespace
 
-void __cdecl ConstructUnreadSet() {
+void ConstructUnreadSet() {
     g_unreadSet->Construct(100, 0, 0, 0);
     libcrt::AtExit(DestroyUnreadSet);
 }

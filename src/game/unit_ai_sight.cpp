@@ -230,7 +230,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
     See(self, memory);
 }
 
-void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
+void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     Vector3 axis;
     seer->localRotation_.AxisY(&axis);
     Vector3 look{-axis.x, -axis.y, -axis.z};

@@ -11,6 +11,7 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <string>
 
 namespace net {
 
@@ -25,8 +26,8 @@ void ServerSession::Describe(RefPtr* out) {
 
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefObject::kDetached)) {
-        mfc::CString title(mfc::CString::kUnset);
-        const char* text = *SessionMapNameInto(&title);
+        std::string title;
+        const char* text = (*SessionMapNameInto(&title)).c_str();
         description->assign(text);   // inlined: overwrite, then cut or append
     }
 

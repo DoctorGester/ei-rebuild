@@ -17,10 +17,10 @@ struct ByStamp {
 using StampSort = stlp::Sort<Node*, ByStamp>;
 } // namespace
 
-void __fastcall StampIntroSort(Node** first, Node** last, int, int depthLimit, const void*) {
+void StampIntroSort(Node** first, Node** last, int, int depthLimit, const void*) {
     StampSort::IntroLoop(first, last, depthLimit, ByStamp());
 }
 
-void __fastcall StampInsertionSort(Node** first, Node** last, const void*) {
+void StampInsertionSort(Node** first, Node** last, const void*) {
     StampSort::FinalInsertionSort(first, last, ByStamp());
 }

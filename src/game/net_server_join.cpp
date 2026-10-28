@@ -12,6 +12,7 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <string>
 
 namespace net {
 
@@ -25,7 +26,7 @@ std::uint32_t g_playerSerial = /*0079B60C*/ {};
 // values, the lowest free player number, the next serial, the server's next line number) and a
 // binding (the player and the current connection) the login keeps. The player is the host when
 // the login asks (with a local client) or when it is the only binding. Announces the player's name.
-void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
+void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     auto* player = NewCounted<PlayerMessage>();
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, player);
@@ -79,9 +80,9 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     }
     if (host) record->host_ = 1;
 
-    mfc::CString announcement(mfc::CString::kUnset);   // constructed by the call
-    mfc::CString* formatted = TheInterface()->MessageText(&announcement, 0, name->data());
-    self->Announce(formatted->GetString(), nullptr);
+    std::string announcement;
+    std::string* formatted = TheInterface()->MessageText(&announcement, 0, name->data());
+    self->Announce(formatted->c_str(), nullptr);
 }
 
 namespace {
@@ -102,7 +103,7 @@ PlayerMessage* PlayerOf(LoginMessage* login) {
 }
 
 // Channel 1: the client's login changed: its player record takes the state and id, and its version goes up.
-void __fastcall ServerOnPlayerChanged(ServerSession*, LoginMessage* message) {
+void ServerOnPlayerChanged(ServerSession*, LoginMessage* message) {
     PlayerOf(message)->state_ = message->state_;
     PlayerOf(message)->id_ = message->id_;
     PlayerMessage* player = PlayerOf(message);
@@ -112,7 +113,7 @@ void __fastcall ServerOnPlayerChanged(ServerSession*, LoginMessage* message) {
 // Channel 2: the client left. With a live binding: its live player is removed from the
 // players list, and when it was the host the first remaining player becomes the host (its version
 // goes up); then the binding is removed from the bindings list.
-void __fastcall ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
+void ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
     auto* binding = message->binding_.Get();
     if (!IsLive(binding)) return;
     auto* player = binding->Player();

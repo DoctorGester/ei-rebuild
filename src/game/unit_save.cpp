@@ -180,15 +180,15 @@ void CUnit::LoadUnit(CStream* stream) {
     stream->Read(&fightAtWill, 4);
     if (stream->version_ < kVersionPrototypeNames) return;
 
-    mfc::CString prototypeName;
+    std::string prototypeName;
     stream->ReadInto(&prototypeName);
-    prototypeId_ = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName)));
+    prototypeId_ = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName.c_str())));
     UnitPrototypeRecord* second;
     if (stream->version_ < kVersionSecondName) {
-        second = unitdb::PrototypeTable().FindByName(prototypeName);
+        second = unitdb::PrototypeTable().FindByName(prototypeName.c_str());
     } else {
         stream->ReadInto(&prototypeName);
-        second = PrototypeByName(prototypeName);
+        second = PrototypeByName(prototypeName.c_str());
     }
     prototype23C = PrototypeIndexOf(second);
 }

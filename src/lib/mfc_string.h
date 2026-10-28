@@ -128,7 +128,7 @@ public:
     void TrimLeft();
     void TrimLeft(char target);
 
-    void __cdecl Format(const char* format, ...);   // (`this` is the first stack argument)
+    void Format(const char* format, ...);   // (`this` is the first stack argument)
     void FormatV(const char* format, va_list arguments);
 
     // The library's helpers.
@@ -146,23 +146,23 @@ public:
     CString* ConstructText(const char* text);
     CString* AssignWide(const wchar_t* text);
     void Release();
-    static void __stdcall Release(CStringData* data);
-    static void __fastcall FreeData(CStringData* data);
+    static void Release(CStringData* data);
+    static void FreeData(CStringData* data);
 
 private:
     char* data_;
 };
 static_assert(sizeof(CString) == 4);
 
-CString __stdcall operator+(const CString& a, const CString& b);
-CString __stdcall operator+(const CString& a, const char* b);
-CString __stdcall operator+(const char* a, const CString& b);
-CString __stdcall operator+(const CString& a, char b);
-CString __stdcall operator+(char a, const CString& b);
+CString operator+(const CString& a, const CString& b);
+CString operator+(const CString& a, const char* b);
+CString operator+(const char* a, const CString& b);
+CString operator+(const CString& a, char b);
+CString operator+(char a, const CString& b);
 
 // ConstructElements / DestructElements<CString> (AFXTEMPL.H, out of line): new elements point at
 // the empty string; destroying releases each.
-void __stdcall ConstructStrings(CString* elements, int count);
-void __stdcall DestructStrings(CString* elements, int count);
+void ConstructStrings(CString* elements, int count);
+void DestructStrings(CString* elements, int count);
 
 } // namespace mfc::impl

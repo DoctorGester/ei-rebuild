@@ -19,7 +19,7 @@ namespace net {
 
 namespace {
 // An id pool's destructor (Reset's teardown): its vector of free ids freed.
-void __fastcall IdPoolDestruct(IdPool* pool) { std::destroy_at(&pool->free); }
+void IdPoolDestruct(IdPool* pool) { std::destroy_at(&pool->free); }
 // The CRT's eh vector constructor / destructor iterators take them as libcrt::Element<...>.
 using libcrt::Element;
 
@@ -27,7 +27,7 @@ using libcrt::Element;
 using netlists::ChunkElement;
 using netlists::FreedIdsElement;
 using netlists::PacketRecordElement;
-inline void* __fastcall NodeAllocate(std::size_t a0) { return libcrt::NodeAllocate(a0); }
+inline void* NodeAllocate(std::size_t a0) { return libcrt::NodeAllocate(a0); }
 
 void Put32(void* object, std::size_t offset, std::uint32_t v) { std::memcpy(static_cast<std::uint8_t*>(object) + offset, &v, 4); }
 

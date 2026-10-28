@@ -10,7 +10,7 @@
 #include "map_object_shadow.h"
 #include "object_tables.h"
 #include "lib/stlp_algo.h"
-#include "lib/static_object.h"
+#include "lib/containers.h"
 #include "terrain.h"
 
 #include <cmath>
@@ -300,19 +300,19 @@ struct ByModelUse {
 
 } // namespace
 
-void __fastcall IntroSortByModel(CMapObject** first, CMapObject** last, void*, int depthLimit, int) {
+void IntroSortByModel(CMapObject** first, CMapObject** last, void*, int depthLimit, int) {
     PtrSort<ByModel>::IntroLoop(first, last, depthLimit, ByModel());
 }
 
-void __fastcall FinalSortByModel(CMapObject** first, CMapObject** last, int) {
+void FinalSortByModel(CMapObject** first, CMapObject** last, int) {
     PtrSort<ByModel>::FinalInsertionSort(first, last, ByModel());
 }
 
-void __fastcall IntroSortByModelUse(CMapObject** first, CMapObject** last, void*, int depthLimit, int) {
+void IntroSortByModelUse(CMapObject** first, CMapObject** last, void*, int depthLimit, int) {
     PtrSort<ByModelUse>::IntroLoop(first, last, depthLimit, ByModelUse());
 }
 
-void __fastcall FinalSortByModelUse(CMapObject** first, CMapObject** last, int) {
+void FinalSortByModelUse(CMapObject** first, CMapObject** last, int) {
     PtrSort<ByModelUse>::FinalInsertionSort(first, last, ByModelUse());
 }
 
@@ -323,7 +323,7 @@ BOOL ModelUseLess::Less(CMapObject* a, CMapObject* b) {
 // ---- The frame's draw lists (world.h) ------------------------------------------------------------
 
 // Empty at the start, as the static initialisers leave them (in the list's order: the last list
-// first); the exit functions they register free their storage (lib::FreeVector; docs/notes/standalone.md,
+// first); the exit functions they register free their storage (lib::FreeStorage; docs/notes/standalone.md,
 // "The static initialisers' objects").
 constinit std::vector<CMapObject*> g_touchedModels = /*007AF508*/ {};
 constinit std::vector<CMapObject*> g_shadow52 = /*007AF518*/ {};
@@ -337,14 +337,14 @@ constinit std::vector<CMapObject*> g_visible5D = /*007AF588*/ {};
 constinit std::vector<CMapObject*> g_visibleOther = /*007AF598*/ {};
 constinit std::vector<CMapObject*> g_visible54 = /*007AF5A8*/ {};
 
-void __cdecl FreeTouchedModels() { lib::FreeVector(g_touchedModels); }
-void __cdecl FreeShadow52() { lib::FreeVector(g_shadow52); }
-void __cdecl FreeShadowUnits() { lib::FreeVector(g_shadowUnits); }
-void __cdecl FreeShadow5D() { lib::FreeVector(g_shadow5D); }
-void __cdecl FreeShadowOther() { lib::FreeVector(g_shadowOther); }
-void __cdecl FreeShadow54() { lib::FreeVector(g_shadow54); }
-void __cdecl FreeVisible52() { lib::FreeVector(g_visible52); }
-void __cdecl FreeVisibleUnits() { lib::FreeVector(g_visibleUnits); }
-void __cdecl FreeVisible5D() { lib::FreeVector(g_visible5D); }
-void __cdecl FreeVisibleOther() { lib::FreeVector(g_visibleOther); }
-void __cdecl FreeVisible54() { lib::FreeVector(g_visible54); }
+void FreeTouchedModels() { lib::FreeStorage(g_touchedModels); }
+void FreeShadow52() { lib::FreeStorage(g_shadow52); }
+void FreeShadowUnits() { lib::FreeStorage(g_shadowUnits); }
+void FreeShadow5D() { lib::FreeStorage(g_shadow5D); }
+void FreeShadowOther() { lib::FreeStorage(g_shadowOther); }
+void FreeShadow54() { lib::FreeStorage(g_shadow54); }
+void FreeVisible52() { lib::FreeStorage(g_visible52); }
+void FreeVisibleUnits() { lib::FreeStorage(g_visibleUnits); }
+void FreeVisible5D() { lib::FreeStorage(g_visible5D); }
+void FreeVisibleOther() { lib::FreeStorage(g_visibleOther); }
+void FreeVisible54() { lib::FreeStorage(g_visible54); }

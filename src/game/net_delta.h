@@ -13,6 +13,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 // The bit writer / reader of this code is the CMemoryStream of core_streams.h (PutBit, GetBit,
 // WriteStream, ReadStream, CompressTo and DecompressTo are its members, defined in net_delta.cpp).
@@ -28,16 +29,16 @@ inline BitStream* g_readSnapshot = /*007A9794*/ {nullptr};
 inline BitStream* g_received = /*007A9798*/ {nullptr};
 
 // WriteDelta for a single channel.
-void __fastcall WriteDeltaChannel(BitStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
+void WriteDeltaChannel(BitStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
                                   BitStream* out);
 // Bits and changed words of `data` against `old` (no snapshot stream).
-void __fastcall WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, BitStream* out);
+void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, BitStream* out);
 // All of `data`: a 0 bit, then a 0 bit before every 4-byte word.
-void __fastcall WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out);
+void WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out);
 
 // Reads what WriteDiff wrote: `data` = `old` when nothing changed (returns false),
 // otherwise the changed words from `reader` (returns true).
-bool __fastcall ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader);
+bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader);
 
 } // namespace delta
 
@@ -72,9 +73,8 @@ struct DeltaField {
     void WriteStringBoth(const char* text);
     // Reads raw bytes from the reader; returns what the stream's Read returns.
     std::uint32_t ReadRaw(void* data, std::uint32_t size);
-    // Reads a CString from the reader into `cstring` (raw storage it constructs, as
-    // CStream::ReadString); returns it.
-    mfc::CString* ReadString(void* cstring);
+    // Reads a string from the reader into `text` (CStream::ReadString); returns it.
+    std::string* ReadString(std::string* text);
     // Reads a string (ReadString) into `text`, a buffer of `size` bytes: a
     // string of size - 1 characters or more leaves `text` empty instead.
     void ReadText(char* text, int size);

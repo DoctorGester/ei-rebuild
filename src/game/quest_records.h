@@ -117,4 +117,4 @@ class CFileRegistry;
 // (__fastcall registry, section; key and list on the stack; quest_database.cpp).
 // The registry's string list `section` / `key` into `list`: the list emptied, reserved for
 // the strings' count, then every non-empty string appended (the briefings' lists).
-void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, std::vector<std::string>* list);
+void ReadStringList(CFileRegistry* registry, const char* section, const char* key, std::vector<std::string>* list);

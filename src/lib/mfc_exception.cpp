@@ -1,4 +1,4 @@
-// MFC 4.2's exception classes and AFX_EXCEPTION_LINK, registered at their library addresses
+// MFC 4.2's exception classes and AFX_EXCEPTION_LINK
 // (mfc_exception.h).
 #include "mfc_exception.h"
 
@@ -70,7 +70,7 @@ BOOL CSimpleException::GetErrorMessage(char* error, unsigned maxError, unsigned*
     return loaded;
 }
 
-void __fastcall DeleteException(CException* exception) {
+void DeleteException(CException* exception) {
     if (exception->autoDelete > 0 && exception) delete exception;
 }
 
@@ -86,9 +86,9 @@ BOOL CArchiveException::GetErrorMessage(char* error, unsigned maxError, unsigned
     return CauseMessage(kIdpArchiveNone, cause, fileName, error, maxError, helpContext);
 }
 
-void __fastcall DestroyUserException(CUserException* self) { self->~CUserException(); }
+void DestroyUserException(CUserException* self) { self->~CUserException(); }
 
-int __stdcall OsErrorToException(long osError) {
+int OsErrorToException(long osError) {
     switch (static_cast<unsigned long>(osError)) {
     case NO_ERROR: return CFileException::none;
     case ERROR_FILE_NOT_FOUND: return CFileException::fileNotFound;
@@ -173,49 +173,49 @@ int __stdcall OsErrorToException(long osError) {
     }
 }
 
-void __stdcall ThrowFileException(int cause, long osError, const char* fileName) {
+void ThrowFileException(int cause, long osError, const char* fileName) {
     auto* exception = new CFileException(cause, osError);
     if (exception) exception->fileName = fileName;
     throw reinterpret_cast<::CFileException*>(exception);
 }
 
-void __stdcall ThrowOsError(long osError, const char* fileName) {
+void ThrowOsError(long osError, const char* fileName) {
     if (osError != 0) ThrowFileException(OsErrorToException(osError), osError, fileName);
 }
 
-void __stdcall ThrowArchiveException(int cause, const char* fileName) {
+void ThrowArchiveException(int cause, const char* fileName) {
     auto* exception = new CArchiveException(cause);
     if (exception) exception->fileName = fileName;
     throw reinterpret_cast<::CArchiveException*>(exception);
 }
 
-void __stdcall ThrowNotSupported() {
+void ThrowNotSupported() {
     throw reinterpret_cast<::CNotSupportedException*>(&g_simpleNotSupportedException.Get());
 }
 
-void __stdcall ThrowMemoryException() {
+void ThrowMemoryException() {
     throw reinterpret_cast<::CMemoryException*>(&g_simpleMemoryException.Get());
 }
 
-void __stdcall ThrowResourceException() {
+void ThrowResourceException() {
     throw reinterpret_cast<::CResourceException*>(&g_simpleResourceException.Get());
 }
 
 namespace {
-void __cdecl DestroySimpleResourceException() { g_simpleResourceException.Destroy(); }
-void __cdecl DestroySimpleMemoryException() { g_simpleMemoryException.Destroy(); }
-void __cdecl DestroySimpleNotSupportedException() { g_simpleNotSupportedException.Destroy(); }
+void DestroySimpleResourceException() { g_simpleResourceException.Destroy(); }
+void DestroySimpleMemoryException() { g_simpleMemoryException.Destroy(); }
+void DestroySimpleNotSupportedException() { g_simpleNotSupportedException.Destroy(); }
 } // namespace
 
-void __cdecl ConstructSimpleResourceException() {
+void ConstructSimpleResourceException() {
     g_simpleResourceException.Construct(FALSE, kIdsResourceException);
     libcrt::AtExit(DestroySimpleResourceException);
 }
-void __cdecl ConstructSimpleMemoryException() {
+void ConstructSimpleMemoryException() {
     g_simpleMemoryException.Construct(FALSE, kIdsMemoryException);
     libcrt::AtExit(DestroySimpleMemoryException);
 }
-void __cdecl ConstructSimpleNotSupportedException() {
+void ConstructSimpleNotSupportedException() {
     g_simpleNotSupportedException.Construct(FALSE, kIdsNotSupportedException);
     libcrt::AtExit(DestroySimpleNotSupportedException);
 }
@@ -229,12 +229,12 @@ namespace {
 // build, ExceptionLinkTop below in the image).
 } // namespace
 
-ExceptionLink** __cdecl ExceptionLinkTop() {
+ExceptionLink** ExceptionLinkTop() {
     static thread_local ExceptionLink* top = nullptr;
     return &top;
 }
 
-ExceptionLink* __fastcall ConstructExceptionLink(ExceptionLink* link) {
+ExceptionLink* ConstructExceptionLink(ExceptionLink* link) {
     link->exception = nullptr;
     ExceptionLink** top = ExceptionLinkTop();
     link->previous = *top;
@@ -242,7 +242,7 @@ ExceptionLink* __fastcall ConstructExceptionLink(ExceptionLink* link) {
     return link;
 }
 
-void __cdecl TryCleanup() {
+void TryCleanup() {
     ExceptionLink** top = ExceptionLinkTop();
     ExceptionLink* link = *top;
     if (link->exception) impl::DeleteException(static_cast<impl::CException*>(link->exception));

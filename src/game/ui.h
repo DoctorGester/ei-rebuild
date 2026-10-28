@@ -22,7 +22,7 @@
 #include "lib/mfc.h"
 #include "lib/static_object.h"
 #include "lib/stlp.h"
-#include "lib/stlp_tree_cstring.h"
+#include "lib/stlp_tree_mbs.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -129,8 +129,8 @@ public:
     // 0x5D one more value; from 0x5F a CString.
     void LoadState(CStream* stream);
     // The text of message `id` (0-12: "lmp_player_connected" .. "reserved_02"; others an empty key) from
-    // the text table, formatted with `value` unless 0, constructed into `out`.
-    mfc::CString* MessageText(void* out, int id, const char* value);
+    // the text table, formatted with `value` unless 0, into `out`.
+    std::string* MessageText(std::string* out, int id, const char* value);
     // Without `force`, takes the next queued message into the current text or returns when there is
     // none. A non-empty text opens the message window over the others, unless the option is off and it
     // was not forced.
@@ -148,7 +148,7 @@ public:
     void ChatKeyBackspace();
     // The extent of `text` in interface font `font`, measured on the game window's DC and scaled to the
     // layout (cx * 800 / width, cy * 600 / height). Rebirth-patched; WideScreen behind its flag.
-    SIZE* TextExtent(SIZE* out, mfc::CString text, int font);
+    SIZE* TextExtent(SIZE* out, std::string_view text, int font);
     // Sets up the stack, lists, map and texts; nothing else is written.
     CInterface3D* Construct();
     // When there is a console window.
@@ -257,7 +257,7 @@ public:
     // The top window is asked every frame until it agrees ("autosave" sets it).
     bool pollTop_;
     std::uint8_t unused_82[0x84 - 0x82];
-    std::list<mfc::CString> messages_;   // queued message texts (ShowMessage takes the first)
+    std::list<std::string> messages_;   // queued message texts (ShowMessage takes the first)
     bool disconnected_;
     // The state saved with a game (LoadState), cleared by ResetSavedState. The HUD panels keep theirs
     // here every frame.
@@ -267,7 +267,7 @@ public:
     int fastGame_;                   // the fast game speed (CHudClock::fast_)
     // Help topics seen: name -> times (or the page the help window was closed on; ui_help_window.cpp);
     // config\tutorial.ini "name count" lines, read by Create, written by Shutdown, counted by OpenHelp.
-    stlp::map<mfc::CString, int, stlp::CStringLess> helpTopics_;
+    stlp::map<std::string, int, stlp::MbsLess> helpTopics_;
     std::string messageText_;
     int messageFlag_;                // the message window's page, set when it closes
     std::string savedText_;         // the current quest (OnQuestVariable); saved from version 0x5F
@@ -334,7 +334,7 @@ public:
     void SetRectFrom(RECT rect);
 
     CInterface3D* interface_;
-    lib::AlignedArray<UiPoint> points_;   // polygon vertices
+    std::vector<UiPoint> points_;   // polygon vertices
     RECT bounds_;
     bool rectOnly_;
     bool enabled_;
@@ -343,9 +343,6 @@ public:
     int offsetY_;
     CUiTooltip* tip_;
 };
-static_assert(offsetof(CUiRegion, bounds_) == 0x14);
-static_assert(offsetof(CUiRegion, offsetX_) == 0x28);
-static_assert(sizeof(CUiRegion) == 0x34);
 
 // An off-screen DirectDraw surface a window draws into; no destructor: the owners destroy it directly.
 class CUiSurface {
@@ -427,8 +424,8 @@ static_assert(offsetof(CUiSurface, keptSize_) == 0x20);
 static_assert(offsetof(CUiSurface, background_) == 0x34);
 static_assert(sizeof(CUiSurface) == 0x38);
 // The surface's CDC (a temporary MFC wrapper; null without a DirectDraw surface) and the matching release.
-mfc::impl::CDC* __fastcall UiSurfaceGetDC(CUiSurface* surface);
-void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);
+mfc::impl::CDC* UiSurfaceGetDC(CUiSurface* surface);
+void UiSurfaceReleaseDC(CUiSurface* surface);
 inline mfc::impl::CDC* CUiSurface::GetDC() { return UiSurfaceGetDC(this); }
 inline void CUiSurface::ReleaseDC() { UiSurfaceReleaseDC(this); }
 
@@ -1066,9 +1063,7 @@ struct UiPointF {
     float x;
     float y;
 };
-using UiPointArray = lib::AlignedArray<UiPointF>;
-// `growBy` -1 keeps the growth step.
-void __fastcall UiPointsSetSize(UiPointArray* points, void*, int size, int growBy);
+using UiPointArray = std::vector<UiPointF>;
 
 // Map (615..800 x 0..165). Regions: 0 the sling button, 1 the round map, 2 the map area, 3 and 4 the two
 // view buttons, 5 a button above them, 6 the whole panel.
@@ -1130,12 +1125,6 @@ public:
 static_assert(offsetof(CHudMap, centreX_) == 0x14C);
 static_assert(offsetof(CHudMap, scale_) == 0x168);
 static_assert(offsetof(CHudMap, zoomMax_) == 0x170);
-static_assert(offsetof(CHudMap, viewPolygon_) == 0x178 && offsetof(CHudMap, visibleArea_) == 0x188);
-static_assert(offsetof(CHudMap, view_) == 0x1AC);
-static_assert(offsetof(CHudMap, sliding_) == 0x198 && offsetof(CHudMap, slide_) == 0x1A4);
-static_assert(offsetof(CHudMap, slideDirection_) == 0x1A8);
-static_assert(offsetof(CHudMap, northTime_) == 0x1B0);
-static_assert(sizeof(CHudMap) == 0x1B4);   // CBattleScreen's operator new
 
 // Unit panel (0..185 x 0..225). Regions: 0 the sling button, 1-4 the body parts, 5 the whole panel.
 class CHudUnitPanel : public CUiWindow {
@@ -1372,7 +1361,7 @@ inline CUiContainer* ScreenOf(CUiWindow* window) { return static_cast<CUiContain
 
 // --- Battle screen ---
 // The battle screen's "pers" texts by text key id.
-using PersonTextMap = stlp::map<int, mfc::CString>;
+using PersonTextMap = stlp::map<int, std::string>;
 using PersonTextNode = PersonTextMap::Node;
 static_assert(offsetof(PersonTextNode, second) == 0x14);
 
@@ -1633,7 +1622,6 @@ static_assert(sizeof(CUiSlider) == 0x18C);
 static_assert(offsetof(CUiScrollbar, state_) == 0x184);
 static_assert(offsetof(CUiScrollbar, accumulated_) == 0x188);
 
-namespace mfc { class CString; }
 
 // The pieces of a scrolling text: a format change (type 1) or a word (type 2).
 struct UiFormatToken;
@@ -1698,11 +1686,11 @@ public:
     // token ends the line and sets the next lines' font. Then the scroll bar's maximum.
     void Layout();
     // One format token before each run of newline, BEL C<rgb> and BEL F<digit> tokens.
-    void Tokenize(const mfc::CString* text);
+    void Tokenize(const std::string* text);
     // The token at `pos` (spaces and tabs skipped): a BEL F / BEL C format (3 / 5 characters), a newline, or
     // up to the next space, tab, BEL or newline. Returns the position after it, or -1 at the end (`out`
     // untouched). `this` is not read.
-    int NextToken(const mfc::CString* text, int pos, mfc::CString* out);
+    int NextToken(const std::string* text, int pos, std::string* out);
     // From `scroll` pixels down. A line is justified when align_ is not 1, it is not the last, not ended by
     // a newline, and of two or more tokens.
     void DrawLines(int scroll);
@@ -1752,8 +1740,8 @@ struct SaveEntry {
     // "save_quick", "save_auto_enter" / "save_auto_exit" for "saveq", "savea" / "saveb", else the zone's name.
     void MakeTitle(int unused);
     // Text "zone " + zone_ (its first line), else "save_camp"; text "allod " + map_, else "Unknown".
-    mfc::CString ZoneTitle() const;
-    mfc::CString AllodTitle() const;
+    std::string ZoneTitle() const;
+    std::string AllodTitle() const;
     SaveEntry* Assign(const SaveEntry* from);
     SaveEntry* CopyConstruct(const SaveEntry* from);
     void Destruct();
@@ -1771,9 +1759,9 @@ struct SaveEntry {
 // The quick and automatic saves (`slot` the save folder's name). Nothing for a multiplayer client or when
 // the disc lacks the space a save needs (0 free space: not checked). Writes info.sav (the "gtime" variable,
 // the zone's map, the zone, the time, an empty title) and shot.sav (the screen as 256x192 5:6:5 pixels).
-void __fastcall QuickSave(const char* slot, char stepFrame);
+void QuickSave(const char* slot, char stepFrame);
 // Not for a multiplayer client; only when saves\<slot>\ exists.
-void __fastcall QuickLoad(const char* slot);
+void QuickLoad(const char* slot);
 
 // The save/load window (opened from the Esc menu). Regions: 0 OK, 1 cancel, 2 delete, 3.. the visible rows.
 class CSaveLoadWindow : public CUiContainer {
@@ -1995,7 +1983,7 @@ public:
     void Setup(const char* zone, void* exitDistances, int twoButtons, int listZones);
     const char* HelpTopic() override;
 
-    std::vector<mfc::CString> zones_;   // the zones listed
+    std::vector<std::string> zones_;   // the zones listed
     std::string zoneName_;          // the zone it was opened for
     int twoButtons_;                 // OK on the left and a second button (else OK centred)
     stlp::map<int, float>* exitDistances_;   // exit -> distance, or null
@@ -2302,6 +2290,6 @@ inline int& GameDifficulty() { return options::TheOptions()->difficulty_; }
 
 // config\keyboard.ini.
 namespace keybind {
-void __cdecl LoadKeyBindings();
-void __cdecl SaveKeyBindings();
+void LoadKeyBindings();
+void SaveKeyBindings();
 }

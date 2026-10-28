@@ -16,12 +16,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include <windows.h>   // RECT
 
-struct DecalTexCoord;
-
 #include "device_material.h"   // CDeviceMaterial, MaterialStage
+#include "ground_decal.h"      // DecalTexCoord
 #include "material.h"   // CMaterial
 #include "model.h"      // ClipBounds, CSceneRenderer (the draws' context), CTransformPipeline
 
@@ -34,9 +34,8 @@ struct PartGroup {
     int ReleaseParts();
 
     CMaterial* material;                    // counted
-    lib::AlignedArray<CFigureMesh*> parts;   // counted
+    std::vector<CFigureMesh*> parts;   // counted
 };
-static_assert(sizeof(PartGroup) == 0x14);
 
 // A part set of a 3D object's client half: a texture and the groups of parts drawn with it, one per material.
 struct TextureParts {
@@ -44,9 +43,8 @@ struct TextureParts {
     void Destruct();
 
     CTexture* texture;
-    lib::AlignedArray<PartGroup*> groups;   // owned
+    std::vector<PartGroup*> groups;   // owned
 };
-static_assert(sizeof(TextureParts) == 0x14);
 
 struct WoundsMaterial;
 
@@ -154,14 +152,14 @@ public:
     // The two part sets Draw walks: the first has the skin texture (its colour key is the shadow colour key),
     // the second a hero's simple skin (CUnitClientSpecific).
     TextureParts* partSets[2];
-    lib::AlignedArray<CTexture*> textures;     // the sets' textures (counted)
-    lib::AlignedArray<CMaterial*> materials;   // the groups' materials (counted): fade-in, tints
+    std::vector<CTexture*> textures;     // the sets' textures (counted)
+    std::vector<CMaterial*> materials;   // the groups' materials (counted): fade-in, tints
     int materialCursor;             // the iteration's index, -1 when there are none
     // The projected shadow (the projector fills the three, the device draws them): blocks of four positions,
     // their texture coordinates, the triangles' indices.
-    lib::AlignedArray<VertexPacket> vertices;
-    lib::AlignedArray<DecalTexCoord> texCoords;
-    lib::AlignedArray<std::uint16_t> indices;
+    std::vector<VertexPacket> vertices;
+    std::vector<DecalTexCoord> texCoords;
+    std::vector<std::uint16_t> indices;
     CTexture* texture;              // the shadow texture (counted)
     float bounds[4];                // minimum x, y and maximum x, y in the light's view
     ClipBounds sphere;              // the shadow's bounds, the centre relative to the object
@@ -177,18 +175,6 @@ public:
 };
 static_assert(offsetof(CObject3DClientSpecific, object) == 0x1C);
 static_assert(offsetof(CObject3DClientSpecific, textures) == 0x28);
-static_assert(offsetof(CObject3DClientSpecific, materials) == 0x38);
-static_assert(offsetof(CObject3DClientSpecific, materialCursor) == 0x48);
-static_assert(offsetof(CObject3DClientSpecific, skinName) == 0xE0);
-static_assert(offsetof(CObject3DClientSpecific, vertices) == 0x4C);
-static_assert(offsetof(CObject3DClientSpecific, texCoords) == 0x5C);
-static_assert(offsetof(CObject3DClientSpecific, indices) == 0x6C);
-static_assert(offsetof(CObject3DClientSpecific, texture) == 0x7C);
-static_assert(offsetof(CObject3DClientSpecific, bounds) == 0x80);
-static_assert(offsetof(CObject3DClientSpecific, sphere) == 0x90);
-static_assert(offsetof(CObject3DClientSpecific, woundsTexture) == 0xD8);
-static_assert(offsetof(CObject3DClientSpecific, drawnRect) == 0xC8);
-static_assert(offsetof(CObject3DClientSpecific, woundsMaterial) == 0xDC);
 
 // Whether the game shows `object`'s shadow (shadows on for its kind, the object shown and not invisible) and,
 // when it does, how strongly it casts in the new renderer's shadow map (*strength: 1, a unit as far as it has

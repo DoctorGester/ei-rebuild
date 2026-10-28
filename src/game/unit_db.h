@@ -182,12 +182,12 @@ struct UnitLevelRecord {
 };
 
 namespace unitdb {
-void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record);
-void __fastcall DestroyNpcRecord(UnitNpcRecord* record);
-void __fastcall DestroyModelRecord(UnitModelRecord* record);
-void __fastcall DestroyModelSlot(UnitModelSlot* slot);
-void __fastcall DestroyLevelRecord(UnitLevelRecord* record);
-void __fastcall DestroyStringRange(std::string* first, std::string* last);
+void DestroyPrototypeRecord(UnitPrototypeRecord* record);
+void DestroyNpcRecord(UnitNpcRecord* record);
+void DestroyModelRecord(UnitModelRecord* record);
+void DestroyModelSlot(UnitModelSlot* slot);
+void DestroyLevelRecord(UnitLevelRecord* record);
+void DestroyStringRange(std::string* first, std::string* last);
 } // namespace unitdb
 
 // The model table: the records and an index by name, as the prototype tables.

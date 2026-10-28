@@ -388,8 +388,8 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
 
 // Record i: node i and mesh i.
 void Loader::LoadRecord(int i, MeshArray* meshes, NodeArray* nodes) {
-    mfc::CString name;
-    mfc::CString parent;
+    std::string name;
+    std::string parent;
     RecordArrays r;
     InitArray(r.normals, mfc::impl::NormalArrayClass::Vtable());
     InitArray(r.points, mfc::impl::FilePointArrayClass::Vtable());
@@ -415,8 +415,8 @@ void Loader::LoadRecord(int i, MeshArray* meshes, NodeArray* nodes) {
     SetBits(node->offset.z, z);
 
     SizeRecordArrays(r, h);
-    Read(file_, name.GetBufferSetLength(h.nameLength), h.nameLength);
-    Read(file_, parent.GetBufferSetLength(h.parentLength), h.parentLength);
+    Read(file_, str::SetLength(name, h.nameLength), h.nameLength);
+    Read(file_, str::SetLength(parent, h.parentLength), h.parentLength);
     node->name = name;
     node->parent = parent;
     mesh->name = name;
@@ -442,8 +442,8 @@ void Loader::LoadRecord(int i, MeshArray* meshes, NodeArray* nodes) {
 // A record after the meshes: read in full and dropped. Only its names, keys, normals and morph
 // keys are read (its point, texture, face and group counts are expected to be zero).
 void Loader::SkipRecord() {
-    mfc::CString name;
-    mfc::CString parent;
+    std::string name;
+    std::string parent;
     RotKeyRecords rotKeys;
     PosKeyRecords posKeys;
     MorphHeadRecords morphHeads;
@@ -459,8 +459,8 @@ void Loader::SkipRecord() {
     posKeys.SetSize(h.posKeyCount, -1);
     normals.SetSize(h.posKeyCount, -1);
     morphHeads.SetSize(h.morphKeyCount - 1, -1);
-    Read(file_, name.GetBufferSetLength(h.nameLength), h.nameLength);
-    Read(file_, parent.GetBufferSetLength(h.parentLength), h.parentLength);
+    Read(file_, str::SetLength(name, h.nameLength), h.nameLength);
+    Read(file_, str::SetLength(parent, h.parentLength), h.parentLength);
     Read(file_, rotKeys.data, rotKeys.size * 0x14);
     Read(file_, posKeys.data, posKeys.size * 0x18);
     if (version_ == kVersionWithNormals) Read(file_, normals.data, normals.size * 0x14);
@@ -557,7 +557,7 @@ void FreeArray(A& array, void* vtable) {
 
 } // namespace
 
-void __stdcall FaceGroup::ConstructElements(FaceGroup* groups, int count) {
+void FaceGroup::ConstructElements(FaceGroup* groups, int count) {
     std::memset(static_cast<void*>(groups), 0, static_cast<std::size_t>(count) * sizeof(FaceGroup));
     for (; count > 0; --count, ++groups) {
         std::construct_at(&groups->name);
@@ -572,7 +572,7 @@ void FaceGroup::Destruct() {
     std::destroy_at(&name);
 }
 
-void __fastcall FaceGroupArrayDestruct(FaceGroupArray* groups) {
+void FaceGroupArrayDestruct(FaceGroupArray* groups) {
     groups->vtable = recordarrays::FaceGroupArrayClass::Vtable();
     if (!groups->data) return;
     for (int i = 0; i < groups->size; ++i) groups->data[i].Destruct();
@@ -643,8 +643,8 @@ void SceneMesh::LoadTransform(mfc::CFileVirtuals*) {}
 
 // --- Building a CFakeUnit's figure from its scene ---------------------------------------
 
-void __fastcall ComputeMeshNormals(MeshArray*);
-void __fastcall IndexMeshCorners(MeshArray*);
+void ComputeMeshNormals(MeshArray*);
+void IndexMeshCorners(MeshArray*);
 namespace {
 
 // The loader's locals that need cleaning up, as small owners. Declared in the construction order, so C++ destroys
@@ -678,15 +678,13 @@ struct TextureNames : TextureNameArray {
 };
 
 struct SceneLoad {
-    mfc::CString path;
+    std::string path;
     SceneNodes nodes;
     Registry registry;
     mfc::CFile file;
-    mfc::CString unused90, unused8C, unused94;
-    console::CStringArray unused40;
     TextureLinks textureLinks;
     TextureNames textureNames;
-    console::CStringArray roots;   // the nodes without parent
+    std::vector<std::string> roots;   // the nodes without parent
     // The scene's flags. BuildSkeleton is given them as a dword minus one; the upper word is left
     // uninitialised (its callees only read the low word, with MOVSX).
     union {
@@ -703,7 +701,7 @@ struct SceneLoad {
 // .reg file (`registryName`, or "Ini's\\<name>.reg" for a scene under "scenes\\"), the figures, skeleton
 // and textures. Returns 0 if the file cannot be opened or the scene has more than one top-level node (a
 // fatal error).
-mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registryName, FakeUnitScene* fakeUnit) {
+mfc::BOOL LoadFakeUnitScene(const char* fileName, const char* registryName, FakeUnitScene* fakeUnit) {
     FakeUnitScene* u = fakeUnit;
     MeshArray* meshes = &u->meshes;
     HelperArray* helpers = &u->helpers;
@@ -730,28 +728,28 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         SceneNode& n = s.nodes.data[i];
         if (n.parent.size() == 0) {
             ++tops;
-            s.roots.SetAtGrow(s.roots.size, n.name);
+            s.roots.push_back(n.name);
         }
     }
     if (tops > 1) {
         std::string message;
         message = str::Format(scenedata::ManyTopsText(), fileName);
-        for (int i = 0; i < s.roots.size; ++i) message += s.roots[i] + scenedata::NewLineText();
+        for (const std::string& root : s.roots) message += root + scenedata::NewLineText();
         game::FatalError(message.c_str());
         return 0;
     }
 
     // The figure's registry file.
-    int ext = s.path.Find(scenedata::SceneExtText());
+    int ext = str::Find(s.path, scenedata::SceneExtText());
     if (ext != -1) {
         if (!registryName) {
-            if (s.path.Find(scenedata::ScenesDirText()) == 0) {
-                s.path = scenedata::IniDirText() + s.path.Right(s.path.GetLength() - 7);
+            if (str::Find(s.path, scenedata::ScenesDirText()) == 0) {
+                s.path = scenedata::IniDirText() + str::Right(s.path, static_cast<int>(s.path.size()) - 7);
                 --ext;
             }
-            s.path = s.path.Left(ext) + scenedata::RegExtText();
+            s.path = str::Left(s.path, ext) + scenedata::RegExtText();
         } else {
-            s.path = mfc::CString(registryName);
+            s.path = std::string(registryName);
         }
         LoadFigureRegistry(fakeUnit, &s.path, &s.textureLinks, &s.textureNames);
         WeldMeshVertices(fakeUnit, &s.nodes);

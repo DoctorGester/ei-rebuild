@@ -72,14 +72,14 @@ template <typename Add> void ForEachPart(const WeaponRecord* head, Add add) {
 
 } // namespace
 
-void __fastcall WeaponModelParts(std::uint32_t index, std::vector<std::string>* out) {
+void WeaponModelParts(std::uint32_t index, std::vector<std::string>* out) {
     out->clear();
     const WeaponRecord* record = WeaponAt(index);
     if (!record) return;
     ForEachPart(record, [out](const char* name) { out->push_back(name); });
 }
 
-void __fastcall AppendWeaponModelParts(std::uint32_t packedId, std::vector<std::string>* out) {
+void AppendWeaponModelParts(std::uint32_t packedId, std::vector<std::string>* out) {
     const WeaponRecord* record = WeaponAt(PrototypeIndex(packedId));
     if (!record) return;
     ForEachPart(record, [out](const char* name) {

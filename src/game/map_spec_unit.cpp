@@ -16,6 +16,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <new>
+#include <string>
 #include "lib/mfc_slots.h"
 #include "lib/mfc_array.h"
 #include "world_data.h"
@@ -79,8 +80,8 @@ std::uint32_t Bits(float f) {
 }
 
 void ReadInto(Chunk& c, std::string& field) {
-    mfc::CString read(mfc::CString::kUnset);
-    field = c.ReadString(&read)->GetString();
+    std::string read;
+    field = c.ReadString(&read)->c_str();
 }
 void ReadVector(Chunk& c, Vector3& to) {
     Vector3 v;
@@ -92,7 +93,7 @@ void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(
 
 // ---- Behaviour records -------------------------------------------------------------------------
 
-Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
+Behaviour* BehaviourConstruct(Behaviour* self) {
     self->patrols.data = nullptr;
     self->patrols.growBy = 0;
     self->patrols.maxSize = 0;
@@ -114,7 +115,7 @@ Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
 
 // The destructor body (the patrol array's destructor inlined: each patrol's waypoint
 // block freed, then the patrols' block).
-void __fastcall BehaviourDestruct(Behaviour* self) {
+void BehaviourDestruct(Behaviour* self) {
     Patrol* patrols = self->patrols.data;
     ei::SetVtable(&self->patrols, mfc::impl::PatrolArrayClass::Vtable());
     if (!patrols) return;
@@ -381,7 +382,7 @@ void StreamWrite(CStream* stream, const void* data, unsigned size) { stream->Wri
 } // namespace
 
 // The count, the array sized to it (MFC SetSize inlined, new waypoints cleared), then the raw waypoints.
-void __fastcall WaypointsRead(Array<Waypoint>* a, CStream* stream) {
+void WaypointsRead(Array<Waypoint>* a, CStream* stream) {
     int n;
     StreamRead(stream, &n, 4);
     if (n == 0) {
@@ -419,7 +420,7 @@ void __fastcall WaypointsRead(Array<Waypoint>* a, CStream* stream) {
 }
 
 // The count, then the raw waypoints.
-void __fastcall WaypointsWrite(const Array<Waypoint>* a, CStream* stream) {
+void WaypointsWrite(const Array<Waypoint>* a, CStream* stream) {
     int n = a->size;
     StreamWrite(stream, &n, 4);
     for (int i = 0; i < a->size; ++i) StreamWrite(stream, &a->data[i], sizeof(Waypoint));

@@ -120,14 +120,14 @@ namespace {
 CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
 } // namespace
 
-void __fastcall LoadStepList(AnimationSteps* steps, CStream* stream) {
+void LoadStepList(AnimationSteps* steps, CStream* stream) {
     int count = 0;
     stream->Read(&count, 4);
     steps->SetSize(count, -1);
     for (int i = 0; i < steps->size; ++i) stream->Read(&steps->data[i], sizeof(AnimationStep));
 }
 
-void __fastcall SaveStepList(const AnimationSteps* steps, CStream* stream) {
+void SaveStepList(const AnimationSteps* steps, CStream* stream) {
     WriteCopy(stream, steps->size);
     for (int i = 0; i < steps->size; ++i) stream->Write(&steps->data[i], sizeof(AnimationStep));
 }
@@ -137,7 +137,7 @@ void ArmourSpell::Save(CStream* stream) const {
     WriteCopy(stream, countdown);
 }
 
-void __fastcall LoadArmourSpells(ArmourSpellList* list, CStream* stream) {
+void LoadArmourSpells(ArmourSpellList* list, CStream* stream) {
     int count = 0;
     stream->Read(&count, 4);
     for (int i = 0; i < count; ++i) {

@@ -29,7 +29,7 @@ Quaternion ParentTimesKey(const Quaternion& p, const Quaternion& k) {
 } // namespace
 
 void CAnimationNode::ResetPose() {
-    const Quaternion& key = rotationKeys_.data[0].rotation;
+    const Quaternion& key = rotationKeys_[0].rotation;
     if (parent_) {
         const Quaternion& parentRotation = parent_->poseRotation_;
         poseRotation_ = ParentTimesKey(parentRotation, key);
@@ -38,8 +38,8 @@ void CAnimationNode::ResetPose() {
         poseRotation_ = key;
         posePosition_ = TurnByQuaternion(poseRotation_, position_);
     }
-    pointsB_.SetSize(pointsA_.size);
-    std::memcpy(pointsB_.data, pointsA_.data, static_cast<std::size_t>(pointsA_.size) * sizeof(Vector3));
+    pointsB_.resize(std::ssize(pointsA_));
+    std::memcpy(pointsB_.data(), pointsA_.data(), static_cast<std::size_t>(std::ssize(pointsA_)) * sizeof(Vector3));
     translationCursor_ = 0;
     rotationCursor_ = 0;
     normalCursor_ = 0;
@@ -53,10 +53,10 @@ void CAnimationNode::Rewind() {
     if (mesh_) {
         mesh_->localPosition_ = posePosition_;
         mesh_->localRotation_ = poseRotation_;
-        CFigureMesh::OffsetSpan points{pointsB_.data, pointsB_.size};
+        CFigureMesh::OffsetSpan points{pointsB_.data(), std::ssize(pointsB_)};
         mesh_->SetOffsets(&points);
     }
-    for (int i = 0; i < children_.size; ++i) children_.data[i]->Rewind();
+    for (int i = 0; i < std::ssize(children_); ++i) children_[i]->Rewind();
 }
 
 // The parts are engine objects (figure mesh classes 0x41-0x44); slot 7 gives the mesh's name.
@@ -69,13 +69,13 @@ int CAnimationNode::AttachMeshes(const lib::AlignedArray<CFigureMesh*>* parts) {
         if (mesh_) {
             mesh_->localPosition_ = posePosition_;
             mesh_->localRotation_ = poseRotation_;
-            CFigureMesh::OffsetSpan points{pointsB_.data, pointsB_.size};
+            CFigureMesh::OffsetSpan points{pointsB_.data(), std::ssize(pointsB_)};
             mesh_->SetOffsets(&points);
         }
         break;
     }
-    for (int i = 0; i < children_.size; ++i) {
-        if (children_.data[i]) children_.data[i]->AttachMeshes(parts);
+    for (int i = 0; i < std::ssize(children_); ++i) {
+        if (children_[i]) children_[i]->AttachMeshes(parts);
     }
     return 1;
 }

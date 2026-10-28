@@ -11,7 +11,7 @@
 // the lines of the titles text.
 struct TextTokenizer {
     int position;                    // where the next word starts; -1 at the end
-    const mfc::CString* source;
+    const std::string* source;
     const char* separator;
     std::string word;                // the last word returned
 
@@ -23,9 +23,9 @@ struct TextTokenizer {
 };
 
 // Removes every carriage return from `text` (CString::Remove); returns the count.
-int __fastcall RemoveCarriageReturns(mfc::CString* text);
+int RemoveCarriageReturns(std::string* text);
 
 // (`name` is passed by value and destroyed here). Constructs `out` as the entry of
 // `names` that equals `name` ignoring case (_mbsicmp), or as `name` itself when there is none.
 // Returns `out`.
-mfc::CString* __fastcall FindListedName(mfc::CString* out, const std::vector<std::string>* names, mfc::CString name);
+std::string* FindListedName(std::string* out, const std::vector<std::string>* names, const std::string& name);

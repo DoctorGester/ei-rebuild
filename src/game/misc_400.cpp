@@ -19,17 +19,6 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-namespace misc400 {
-
-
-// The destructor.
-void __fastcall ManagerDestruct(CBaseManager* self) {
-    auto* manager = static_cast<CClientSpecificManager*>(self);
-    manager->CClientSpecificManager::~CClientSpecificManager();
-}
-
-} // namespace misc400
-
 CClientSpecificManager::CClientSpecificManager() {}
 CClientSpecificManager::~CClientSpecificManager() {}
 const char* CClientSpecificManager::GetClassName() { return "CClientSpecificManager"; }

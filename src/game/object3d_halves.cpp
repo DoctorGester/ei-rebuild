@@ -18,6 +18,7 @@
 #include "lib/crt.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 
 namespace {
@@ -51,14 +52,9 @@ std::uint32_t CObject3DClientSpecific::ShadowsShown() {
 }
 
 void CObject3DClientSpecific::ClearShadow() {
-    vertices.SetSize(0, -1);
-    texCoords.SetSize(0, -1);
-    if (indices.data) {
-        lib::FreeAligned32(indices.data);
-        indices.data = nullptr;
-    }
-    indices.capacity = 0;
-    indices.size = 0;
+    vertices.clear();
+    texCoords.clear();
+    lib::FreeStorage(indices);
     CTexture* old = texture;
     texture = nullptr;
     if (old) old->Release();

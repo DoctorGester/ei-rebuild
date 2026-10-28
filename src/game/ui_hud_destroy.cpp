@@ -30,8 +30,6 @@ CHudActionColumn::~CHudActionColumn() {
 }
 
 CHudMap::~CHudMap() {
-    if (visibleArea_.data) lib::FreeAligned32(visibleArea_.data);
-    if (viewPolygon_.data) lib::FreeAligned32(viewPolygon_.data);
 }
 
 CHudUnitPanel::~CHudUnitPanel() = default;

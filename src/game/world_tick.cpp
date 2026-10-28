@@ -21,6 +21,7 @@
 #include "ei/x87.h"
 
 #include <cstring>
+#include <vector>
 #include "game_lists.h"
 #include "game_data.h"
 
@@ -204,14 +205,14 @@ void CWorldServer::SetGameResult(int result) {
 namespace {
 // UpdateUnits' two function-local id lists (arrays of data, size, max, grow; the data block starts one dword
 // after its allocation), with their guard bits in g_updateListGuards.
-using IdArray = lib::AlignedArray<unsigned>;
-constinit lib::AlignedArray<unsigned> g_removedIds = /*007AFEF0*/ {};    // flagged for removal
-constinit lib::AlignedArray<unsigned> g_sleepingIds = /*007AFEE0*/ {};   // leave the update map
+using IdArray = std::vector<unsigned>;
+constinit std::vector<unsigned> g_removedIds = /*007AFEF0*/ {};    // flagged for removal
+constinit std::vector<unsigned> g_sleepingIds = /*007AFEE0*/ {};   // leave the update map
 IdArray& RemovedIds() { return g_removedIds; }
 IdArray& SleepingIds() { return g_sleepingIds; }
 // The exit functions: each frees its array's block (the fields stay).
-void __cdecl FreeRemovedIds() { g_removedIds.FreeData(); }
-void __cdecl FreeSleepingIds() { g_sleepingIds.FreeData(); }
+void FreeRemovedIds() { lib::FreeStorage(g_removedIds); }
+void FreeSleepingIds() { lib::FreeStorage(g_sleepingIds); }
 std::uint8_t g_updateListGuards = /*007AFF00*/ {};
 std::uint8_t& UpdateListGuards() { return g_updateListGuards; }
 } // namespace
@@ -227,8 +228,8 @@ void CWorldServer::UpdateUnits() {
         SleepingIds() = IdArray{};
         libcrt::AtExit(FreeSleepingIds);
     }
-    RemovedIds().RemoveAll();
-    SleepingIds().RemoveAll();
+    RemovedIds().clear();
+    SleepingIds().clear();
 
     // The walk stops at the end or at an entry without an object.
     if (sessionKind_ != 1) {
@@ -237,7 +238,7 @@ void CWorldServer::UpdateUnits() {
         for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
             CEngineObject* object = node->value;
             object->RunTick();
-            if (object->flags_ & 1) RemovedIds().SetAtGrow(RemovedIds().size, static_cast<unsigned>(object->id_));
+            if (object->flags_ & 1) RemovedIds().push_back(static_cast<unsigned>(object->id_));
         }
     } else {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow)) TickSleepingEffects();
@@ -247,14 +248,14 @@ void CWorldServer::UpdateUnits() {
         for (auto* node = awake.First(); node && node->value; node = awake.After(node)) {
             CEngineObject* object = node->value;
             object->RunTick();
-            if (object->flags_ & 1) RemovedIds().SetAtGrow(RemovedIds().size, static_cast<unsigned>(object->id_));
+            if (object->flags_ & 1) RemovedIds().push_back(static_cast<unsigned>(object->id_));
             CUnit* unit = UnitOrNull(object);
             if (!unit) continue;
             if (--unit->updateCountdown > 0) continue;   // updates left before it may sleep
             const CUnitServer* controller = unit->ServerController();
             if (controller->moveMode2.flag4 == 0 && controller->brain.alwaysUpdated == 0 &&
                 controller->brain.memory.seesEnemy == 0)
-                SleepingIds().SetAtGrow(SleepingIds().size, static_cast<unsigned>(object->id_));
+                SleepingIds().push_back(static_cast<unsigned>(object->id_));
             else
                 unit->updateCountdown = UpdateCountdownFor(object);
         }
@@ -267,10 +268,10 @@ void CWorldServer::UpdateUnits() {
         position = position->next;
         if (current->data->RunTick() == 0) mfc::impl::RemoveAtAs<gamelists::EngineObjects>(&counted_, current);   // the object released
     }
-    for (int i = 0; i < SleepingIds().size; ++i) {
-        if (auto* found = updateMap_.map.Find(SleepingIds().data[i])) updateMap_.map.Erase(found);
+    for (int i = 0; i < std::ssize(SleepingIds()); ++i) {
+        if (auto* found = updateMap_.map.Find(SleepingIds()[i])) updateMap_.map.Erase(found);
     }
-    for (int i = 0; i < RemovedIds().size; ++i) RemoveObject(RemovedIds().data[i]);
+    for (int i = 0; i < std::ssize(RemovedIds()); ++i) RemoveObject(RemovedIds()[i]);
 }
 
 void CWorldServer::TickSleepingEffects() {

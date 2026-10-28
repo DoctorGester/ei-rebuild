@@ -45,7 +45,7 @@ protected:
     CResourceManager();
 
 private:
-    BOOL AddArchiveOf(const char* path, std::size_t size, CMappedResource*(__fastcall* construct)(void*));
+    BOOL AddArchiveOf(const char* path, std::size_t size, CMappedResource*(*construct)(void*));
 
 public:
     std::vector<ArchiveEntry> archives_;

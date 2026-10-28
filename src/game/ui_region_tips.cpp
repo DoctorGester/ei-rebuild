@@ -56,5 +56,5 @@ void CUiRegion::SetTipText(const char* text) {
 
 void CUiRegion::ReleaseContents() {
     delete tip_;
-    points_.FreeData();
+    lib::FreeStorage(points_);
 }

@@ -97,8 +97,8 @@ void ChunkArchive::SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>
         Current()->occurrence = i + 1;
         PartyManagerEntry* entry = entries->begin() + i;
         if (!EnterChunk(1)) continue;
-        CStringField(1, &entry->name);
-        CStringField(2, &entry->text);
+        StringField(1, &entry->name);
+        StringField(2, &entry->text);
         if (EnterChunk(3)) {
             std::vector<int>& ids = entry->ids;
             int idCount;
@@ -165,15 +165,15 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
         }
         ar->LeaveChunk();
     }
-    ar->CStringField(2, &text0C);
-    ar->CStringField(3, &text10);
+    ar->StringField(2, &text0C);
+    ar->StringField(3, &text10);
 }
 
 // ---- The archived objects (Serialize) ---------------------------------------------------
 
 void PartyRecord::Serialize(ChunkArchive* ar) {
     CMemoryStream local;
-    ar->CStringField(1, &name);
+    ar->StringField(1, &name);
     CParty* p = Party();
     if (!ar->loading_) {
         p->SaveParty(&local, 1);

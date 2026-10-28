@@ -15,6 +15,8 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <string>
+
 namespace {
 
 constexpr std::uint32_t kRestPoseKind = 0x80590000;
@@ -59,7 +61,7 @@ void CUiModel::Play(int animation) {
 // The rest pose: the object named like the figure of kind 0x80590000 from the object manager, played.
 void CUiModel::Stop() {
     CObject3D* object = Figure();
-    mfc::CString name(object->name);
+    std::string name(object->name);
     object->PlayAnimation(TheObjectManager()->FindAnimation(&name, kRestPoseKind), 1);
 }
 

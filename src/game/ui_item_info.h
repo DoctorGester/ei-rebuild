@@ -18,27 +18,25 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class CItemInfoPanel;
 class CTexture;
-namespace console {
-class CStringArray;
-}
 
 // The seven damage values against the last one: into `out` (emptied) the threshold ("%d" when `integer`, else
 // "%.1f"), the damage kinds ("dmg_<n>" texts, ", " separated) of the first six above it and those below it
 // (or unordered).
-void __fastcall ItemDamageLists(const float* values, console::CStringArray* out, char integer);
+void ItemDamageLists(const float* values, std::vector<std::string>* out, char integer);
 
 // --- The item screens' model view --------------------------------------------------------------
 
 // A new 256 x 256 texture (texture manager, format 0x20, counted) holding image "<name>.mmp" decoded and
 // packed to 1:5:5:5 at the bottom left (rows of 512 bytes), or white when there is no such image; null when
 // it cannot be made or locked.
-CTexture* __fastcall ItemFigureTexture(const char* name);
+CTexture* ItemFigureTexture(const char* name);
 // The model manager's object `name`, or a 100 x 100 interface sprite standing in for it; counted (one
 // reference for the caller).
-CUiMesh* __fastcall ItemModel(const char* name);
+CUiMesh* ItemModel(const char* name);
 
 // An item drawn as a turning model in a cell (DrawItem's argument).
 struct ItemCell {
@@ -88,10 +86,10 @@ static_assert(sizeof(ItemModelCache) == 0x10);
 static_assert(sizeof(ItemTextureCache) == 0x10);
 // Every cached object released, in key order (the hero screen's model and texture caches).
 template <typename Object>
-void __fastcall ReleaseCachedObjects(ItemObjectCache<Object>* cache);
+void ReleaseCachedObjects(ItemObjectCache<Object>* cache);
 
 template <typename Object>
-void __fastcall TrimItemCache(ItemObjectCache<Object>* cache);
+void TrimItemCache(ItemObjectCache<Object>* cache);
 
 // An item's turning state, a counted object in the item's link_: made by the item draw and the moves.
 class ItemTurn : public CRefObject {
@@ -159,7 +157,7 @@ public:
     // "f" for "unhufe", else nothing), both cached as the items are, tilted back by (y - 300) / 1000
     // radians, over the cell frame.
     void DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell);
-    static void FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture);
+    static void FaceNames(const char* prototype, std::string* model, std::string* texture);
     // The screens' common Create: the icon window (iconWindow_, a child with the screen's texture 0, built), textures
     // "modifiers2" and "campslots", the display's settings, and the caches' limits (30, or 20 with an option byte
     // set).

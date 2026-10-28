@@ -27,7 +27,7 @@ void RegisterInline(ClientSession* client, int channel, Function handler) {
 } // namespace
 
 // The queries' constructor (an empty vector and a zero dword).
-ClientQueries* __fastcall ClientVectorConstruct(ClientQueries* self) {
+ClientQueries* ClientVectorConstruct(ClientQueries* self) {
     new (&self->list) stlp::vector<Query>();
     self->extra = 0;
     return self;

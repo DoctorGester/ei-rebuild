@@ -13,6 +13,6 @@
 namespace figure {
 
 // A record whose only member to destroy is a CString, and its scalar deleting destructor.
-void __fastcall NamedRecordDestruct(scene::TextureNameRecord* self) { std::destroy_at(&self->name); }
+void NamedRecordDestruct(scene::TextureNameRecord* self) { std::destroy_at(&self->name); }
 
 } // namespace figure

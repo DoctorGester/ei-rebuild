@@ -40,23 +40,23 @@ bool NeedsReload(void* composed, CTexture* texture, const std::string& name, boo
 } // namespace
 
 int CUnitClientSpecific::RefreshEquipment() {
-    mfc::CString name;
+    std::string name;
     // EI_Plugin's Fixes: the test for a hero is gone, every unit is refreshed.
     if (unit->type_ != kUnitTypeHero && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) return 1;
     auto* half = unit->Object3D()->ClientSpecific();
     CTexture* detailed = SkinTexture(half->partSets[0]);
-    if (NeedsReload(ComposeSkin(1, &name), detailed, name.GetString(), false)) Reload(detailed, name.GetString());
+    if (NeedsReload(ComposeSkin(1, &name), detailed, name.c_str(), false)) Reload(detailed, name.c_str());
     CTexture* simple = SkinTexture(half->partSets[1]);
-    if (NeedsReload(ComposeSkin(0, &name), simple, name.GetString(), true) && simple) Reload(simple, name.GetString());
+    if (NeedsReload(ComposeSkin(0, &name), simple, name.c_str(), true) && simple) Reload(simple, name.c_str());
     return 1;
 }
 
 int CUnitClientSpecific::RefreshModel() {
     if (unit->type_ != kUnitTypeHero) return 1;
-    mfc::CString name;
+    std::string name;
     auto* half = unit->Object3D()->ClientSpecific();
     CTexture* simple = SkinTexture(half->partSets[1]);
-    if (NeedsReload(ComposeSkin(0, &name), simple, name.GetString(), true) && simple) Reload(simple, name.GetString());
+    if (NeedsReload(ComposeSkin(0, &name), simple, name.c_str(), true) && simple) Reload(simple, name.c_str());
     return 1;
 }
 

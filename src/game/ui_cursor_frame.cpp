@@ -39,7 +39,7 @@ void MoveBetweenFrames(CCursor* self) {
 } // namespace
 
 // (Without an image shown, DirectDraw saves the background from the primary in mode 2: nothing here.)
-void __fastcall CursorDrawFrame(CCursor* self) {
+void CursorDrawFrame(CCursor* self) {
     if (!SoftwareCursor()) return;
     if (!self->enabled_) return;
     self->UpdatePosition();
@@ -55,7 +55,7 @@ void __fastcall CursorDrawFrame(CCursor* self) {
 // MoveBetweenFrames (DirectDraw: when an image is shown and the cursor moved, its old place's background
 // restored, the new one's saved and the composed cursor blitted to the primary, after the vertical blank). At
 // the end the event `stopped_` is set.
-void __fastcall CursorThread(CCursor* self) {
+void CursorThread(CCursor* self) {
     if (!self->enabled_) return;
     gameapi::EnterCriticalSection(&self->lock_);
     self->UpdatePosition();

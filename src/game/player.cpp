@@ -82,7 +82,7 @@ CPlayer::~CPlayer() {
 // The message dispatchers' fatal error: `format` ("... prevID=%x
 // curID=%x") with the previous and the current message type (their low bytes; the callers set
 // only DL) raises FatalError (patched by Rebirth: through its address); its result.
-int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type) {
+int PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type) {
     std::string text;
     text = str::Format(format, previous & 0xFF, type & 0xFF);
     return game::FatalError(text.c_str());

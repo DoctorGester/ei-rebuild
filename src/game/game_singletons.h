@@ -10,6 +10,8 @@
 #include "lib/mfc.h"
 #include "lib/static_object.h"
 
+#include <string>
+
 struct GameFlow;
 class CInterface3D;
 class CWorldClient;
@@ -80,17 +82,17 @@ CCamera* TheCamera();   // g_camera
 // The party manager (the parties by key, the named records and the class templates).
 PartyManager* ThePartyManager();   // g_partyManager
 
-// The registry key of the options and the game's folders (CStrings; game_folders.cpp): where the game was started,
+// The registry key of the options and the game's folders (game_folders.cpp): where the game was started,
 // the disc's (the base folder), the text resources' and the data folder (with its trailing backslash; DataFolderText()
 // is its characters for printf-style arguments).
-extern lib::StaticObject<mfc::CString> g_registryRoot;
-extern lib::StaticObject<mfc::CString> g_startFolder;
-extern lib::StaticObject<mfc::CString> g_discFolder;
-extern lib::StaticObject<mfc::CString> g_textFolder;
-extern lib::StaticObject<mfc::CString> g_dataFolder;
-inline mfc::CString& TheRegistryRoot() { return *g_registryRoot; }
-inline mfc::CString& TheStartFolder() { return *g_startFolder; }
-inline mfc::CString& TheDiscFolder() { return *g_discFolder; }
-inline mfc::CString& TheTextFolder() { return *g_textFolder; }
-inline mfc::CString& TheDataFolder() { return *g_dataFolder; }
-inline const char* DataFolderText() { return TheDataFolder(); }
+extern lib::StaticObject<std::string> g_registryRoot;
+extern lib::StaticObject<std::string> g_startFolder;
+extern lib::StaticObject<std::string> g_discFolder;
+extern lib::StaticObject<std::string> g_textFolder;
+extern lib::StaticObject<std::string> g_dataFolder;
+inline std::string& TheRegistryRoot() { return *g_registryRoot; }
+inline std::string& TheStartFolder() { return *g_startFolder; }
+inline std::string& TheDiscFolder() { return *g_discFolder; }
+inline std::string& TheTextFolder() { return *g_textFolder; }
+inline std::string& TheDataFolder() { return *g_dataFolder; }
+inline const char* DataFolderText() { return TheDataFolder().c_str(); }

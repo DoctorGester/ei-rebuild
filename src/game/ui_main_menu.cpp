@@ -172,13 +172,13 @@ void CMainMenu::OnMessageResult(int result) {
     GameSetServerPaused(0);
     if (result == 0x10001) {
         {
-            std::string path = (*GameBasePathString() + kExitMovie).GetString();
+            std::string path = *GameBasePathString() + kExitMovie;
             PlayMovie(path.c_str(), 0, 0, 0, 1, 1, 1);
         }
         app::QuitGame(0);
     } else if (result == 0x20001) {
         {
-            std::string path = (*GameBasePathString() + kIntroMovie).GetString();
+            std::string path = *GameBasePathString() + kIntroMovie;
             PlayMovie(path.c_str(), 0, 1, 1, 1, 1, 1);
         }
         app::g_interfaceHasScreen = 0;
@@ -194,7 +194,7 @@ void CMainMenu::OnMessageResult(int result) {
 void CMainMenu::OnMouseMove(int buttons, int x, int y) {
     if (auto* stones = TheObjectManager()->FindObjectAs<CObject3D>(kStonesObject)) {
         int region = RegionAt(x, y);
-        mfc::CString name(stones->name);
+        std::string name(stones->name);
         if (region != hovered_) {
             FigureAnimation* animation;
             if (region >= 0 && region < 6)

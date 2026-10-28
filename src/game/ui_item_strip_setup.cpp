@@ -13,6 +13,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -95,13 +96,13 @@ BOOL CFigureStrip::Draw(CSceneRenderer* pass) {
         }
     }
     DrawBase(pass);
-    mfc::CString name;
+    std::string name;
     for (int i = 0; i < 8; ++i) {
         int index = first + i;
         if (index < 0 || index >= count_) continue;
         name = figures_->begin()[index];
         HeroFaceCell cell;
-        cell.prototype = name;
+        cell.prototype = name.c_str();
         cell.x = ((static_cast<float>(i) - frac) + kOne) * kCell;
         cell.y = static_cast<float>(top_) + kHalfCell;
         cell.depth = scale_ * kFaceDepth;
@@ -121,5 +122,5 @@ void CFigureStrip::OnFigureClick(int buttons, int x, int y) {
     int index = static_cast<int>(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]);   // _ftol
     if (index < 0 || index >= count_) return;
     uiorig::PlayUiSound(interface_, OnOffSound(), 0);
-    owner_->ChooseFigure(figures_->begin()[index]);   // the hero screen: the new hero's figure
+    owner_->ChooseFigure(figures_->begin()[index].c_str());   // the hero screen: the new hero's figure
 }

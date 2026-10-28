@@ -40,13 +40,13 @@ bool IsFormat(const char* token) {
 } // namespace
 
 
-int CUiScrollText::NextToken(const mfc::CString* text, int pos, mfc::CString* out) {
-    int length = text->GetLength();
-    const char* chars = *text;
+int CUiScrollText::NextToken(const std::string* text, int pos, std::string* out) {
+    int length = text->size();
+    const char* chars = (*text).c_str();
     while (pos < length && (chars[pos] == ' ' || chars[pos] == '\t')) ++pos;
     if (pos >= length) return -1;
     // GetBuffer(0) on the text, as the original (a shared text gets its own copy).
-    char* buffer = const_cast<mfc::CString*>(text)->GetBuffer(0);
+    char* buffer = str::Buffer(*(const_cast<std::string*>(text)), 0);
     std::string rest = buffer + pos;
     const char* r = rest.c_str();
     int count;
@@ -71,12 +71,12 @@ int CUiScrollText::NextToken(const mfc::CString* text, int pos, mfc::CString* ou
     return pos + count;
 }
 
-void CUiScrollText::Tokenize(const mfc::CString* text) {
-    mfc::CString token;
+void CUiScrollText::Tokenize(const std::string* text) {
+    std::string token;
     int font = kDefaultFont;
     COLORREF colour = kDefaultColour;
     int pos = 0;
-    if (!(text->GetLength() > 0)) return;
+    if (!(text->size() > 0)) return;
     do {
         if (pos == -1) break;
         UiFormatToken* format = nullptr;
@@ -84,8 +84,8 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
         pos = NextToken(text, pos, &token);
         // A run of format tokens shares one format token; the token after it is a word.
         while (pos != -1) {
-            const char* t = token;
-            if (token.GetLength() == 0) break;
+            const char* t = token.c_str();
+            if (token.size() == 0) break;
             if (!IsFormat(t)) {
                 word = true;
                 break;
@@ -113,12 +113,12 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
         if (format) Append(tokens_, format);
         if (word) {
             auto* w = new UiWordToken();
-            SIZE size = TextExtent(interface_, token.GetString(), font);
+            SIZE size = TextExtent(interface_, token.c_str(), font);
             w->width_ = size.cx;
             w->text_ = token;
             Append(tokens_, w);
         }
-    } while (pos < text->GetLength());
+    } while (pos < static_cast<int>(text->size()));
 }
 
 namespace {
@@ -232,7 +232,7 @@ constexpr int kScrollbarSprites = 4;
 constexpr int kFontSlots = 10;
 
 void TokenizeText(CUiScrollText* self, const char* text) {
-    mfc::CString copy(text);
+    std::string copy(text);
     self->Tokenize(&copy);
 }
 void LayOut(CUiScrollText* self) { self->Layout(); }

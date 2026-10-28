@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 class CPlayer;
 class CItem;
@@ -30,7 +31,7 @@ class NetLink;
 
 // A pointer array of the sync (SyncPlayer's statics, the player state's sent objects): data on a
 // 32-byte boundary, size, capacity, grow-by.
-using PlayerObjectArray = lib::AlignedArray<CEngineObject*>;
+using PlayerObjectArray = std::vector<CEngineObject*>;
 
 // One row of the server's and the client's handler tables: a message type and its handler, a method of the
 // connection that reads the message from its stream.
@@ -261,7 +262,7 @@ public:
     BOOL CreateServer();
 
     using Handler = int (CPlayerServer::*)();
-    lib::AlignedArray<Handler> handlers_;   // by message type (null: refused; 256 of them)
+    std::vector<Handler> handlers_;   // by message type (null: refused; 256 of them)
     Vector3 lastPosition_;          // sent with 0x04 / 0x0F
     int spare_;                     // -1 after Create; nothing reads it
     BitStream out_;                 // messages to the client
@@ -290,13 +291,13 @@ static_assert(sizeof(PlayerLoginMessage) == 0x88);
 // 1 when the first `maxLength` characters of `text` are printable (the game's isprint, of the signed char);
 // a terminator before that gives whether at least `minLength` characters came first; 0 at the first
 // unprintable one. With EI_UTF8 by character: a valid UTF-8 sequence of a printable code point each.
-BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength);
+BOOL IsPrintableText(const char* text, int maxLength, int minLength);
 
 // |a - b| squared, unrounded (the use order's nearest-unit test).
-double __fastcall UseOrderDistanceSquared(const Vector3* a, const Vector3* b);
+double UseOrderDistanceSquared(const Vector3* a, const Vector3* b);
 // The walk orders' formation: one unit gets (0, 0, 0); several get the unit vector (x, y, 0) from the units'
 // 2D centroid to each (unnormalised when it is zero). `offsets` is sized to the units.
-void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets);
+void FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets);
 
 
 // A world player (CPlayer). The harness's digest reads its fields (tests/verify/harness_digest.cpp), hence the
@@ -398,4 +399,4 @@ static_assert(offsetof(CPlayer, units_) == 0x40);
 
 // The message dispatchers' fatal error: `format` with the previous and the current message type (their low
 // bytes); the FatalError result.
-int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type);
+int PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type);

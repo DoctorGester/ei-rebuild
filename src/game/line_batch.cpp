@@ -6,10 +6,12 @@
 #include "link_figure.h"
 #include "model.h"
 
+#include <vector>
+
 int LineBatch::AddPoint(const float* point) {
-    if (count == packets.size * 4) packets.SetSize(packets.size + 1);
+    if (count == std::ssize(packets) * 4) packets.resize(std::ssize(packets) + 1);
     auto put = [this, point](int index) {
-        LinePacket& packet = packets.data[index >> 2];
+        LinePacket& packet = packets[index >> 2];
         int slot = index & 3;
         packet.x[slot] = point[0];
         packet.y[slot] = point[1];
@@ -18,18 +20,18 @@ int LineBatch::AddPoint(const float* point) {
     };
     put(count);
     ++count;
-    for (int index = count; index < packets.size * 4; ++index) put(index);
+    for (int index = count; index < std::ssize(packets) * 4; ++index) put(index);
     return count;
 }
 
 int LineBatch::Draw(CTransformPipeline* pipeline, CTextureDevice* device) {
-    lib::AlignedArray<ProjectedPoint>& projected = LineProjected();
-    projected.SetSizeDiscard(packets.size * 4);
-    LineOutcodes().SetSize(packets.size * 4, -1);
-    int visibility = pipeline->transform_->ProjectClipped(pipeline->Top(CTransformPipeline::kClipStack), packets.data,
-                                                         projected.data, LineOutcodes().data, packets.size);
+    std::vector<ProjectedPoint>& projected = LineProjected();
+    projected.resize(std::ssize(packets) * 4);
+    LineOutcodes().SetSize(std::ssize(packets) * 4, -1);
+    int visibility = pipeline->transform_->ProjectClipped(pipeline->Top(CTransformPipeline::kClipStack), packets.data(),
+                                                         projected.data(), LineOutcodes().data, std::ssize(packets));
     if (visibility == 0) {
-        const ProjectedPoints points{projected.data, projected.size};
+        const ProjectedPoints points{projected.data(), std::ssize(projected)};
         DeviceDrawLineStrip(device, &points, colour);
     }
     return 1;

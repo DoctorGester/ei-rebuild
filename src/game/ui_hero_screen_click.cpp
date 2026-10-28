@@ -39,11 +39,11 @@ namespace {
 // The hero screen's own methods (on the window): the mode (Rebirth-patched), create the hero, the
 // statistics page's next, continue to the connection screen, rename, the voice's sound.
 void SetMode(CMpHeroScreen* screen, void*, int mode) { screen->SetModeVanilla(mode); }
-void __fastcall MpHeroCreate(CMpHeroScreen*);
-void __fastcall MpHeroAddNew(CMpHeroScreen*);
-void __fastcall MpHeroContinue(CMpHeroScreen*);
-void __fastcall MpHeroRename(CMpHeroScreen*);
-void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
+void MpHeroCreate(CMpHeroScreen*);
+void MpHeroAddNew(CMpHeroScreen*);
+void MpHeroContinue(CMpHeroScreen*);
+void MpHeroRename(CMpHeroScreen*);
+void MpHeroPlayVoice(CMpHeroScreen*);
 
 
 int HeroCount() {
@@ -101,7 +101,7 @@ void CMpHeroScreen::FinishRename() {
     std::string typed = renameEdit_->text_;
     str::TrimLeft(typed);
     str::TrimRight(typed);
-    if (typed.size() != 0) typed = mfc::CString(RenameSeparator()) + typed;
+    if (typed.size() != 0) typed = std::string(RenameSeparator()) + typed;
     std::string& name = MpHeroName(heroIndex_);
     std::string title = name;
     std::string base;
@@ -217,7 +217,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         case 4: {
             // Back to the defaults: the attributes 25, the speed factor 0.7.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
-            ChooseFigure(defaults_[0]);
+            ChooseFigure(defaults_[0].c_str());
             PartyUnitRecord* hero = HeroRecord();
             auto* stats = &hero->stats;
             stats->stat10Base = 25.0f;
@@ -243,7 +243,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(voices.end() - voices.begin())) return;
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         voiceIndex_ = index;
-        const mfc::CString& file = voices.begin()[index].file;
+        const std::string& file = voices.begin()[index].file;
         HeroRecord()->texts[6] = file;
         MpHeroPlayVoice(this);
         DrawVoices();
@@ -291,7 +291,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     case 5:
         // A new hero.
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
-        ChooseFigure(defaults_[0]);
+        ChooseFigure(defaults_[0].c_str());
         statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
         surfaces_.data[0]->GetDC();
         surfaces_.data[0]->Clear();
@@ -346,7 +346,7 @@ void CMpHeroScreen::Rename() {
     if (bar < 0) {
         renameEdit_->SetText(game::EmptyText());
     } else {
-        std::string typed = console::Ops(name).Mid(bar + 1).GetString();
+        std::string typed = str::Mid(name, bar + 1);
         str::TrimLeft(typed);
         renameEdit_->SetText(typed.c_str());
         name = str::Left(name, bar);
@@ -361,7 +361,7 @@ void CMpHeroScreen::Rename() {
     surface->ReleaseDC();
 }
 namespace {
-void __fastcall MpHeroRename(CMpHeroScreen* self) { self->Rename(); }
+void MpHeroRename(CMpHeroScreen* self) { self->Rename(); }
 } // namespace
 
 // --- The voice's sound ----------------------------------------------------------------
@@ -411,7 +411,7 @@ void CMpHeroScreen::PlayVoice() {
     }
 }
 namespace {
-void __fastcall MpHeroPlayVoice(CMpHeroScreen* self) { self->PlayVoice(); }
+void MpHeroPlayVoice(CMpHeroScreen* self) { self->PlayVoice(); }
 } // namespace
 
 // --- Continue -------------------------------------------------------------------------
@@ -434,7 +434,7 @@ void CMpHeroScreen::Continue() {
     ui->PushWindow(box, 1, 1);
 }
 namespace {
-void __fastcall MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
+void MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
 } // namespace
 
 // --- The new hero's statistics and its creation --------------------------------------
@@ -460,9 +460,6 @@ void CMpHeroScreen::RefreshHero() {
     }
     statsPanel_->DrawStats();
 }
-namespace {
-void __fastcall MpHeroRefresh(CMpHeroScreen* self) { self->RefreshHero(); }
-} // namespace
 
 void CMpHeroScreen::CreateHero() {
     std::string name = nameEdit_->text_;
@@ -488,7 +485,7 @@ void CMpHeroScreen::CreateHero() {
     SetMode(this, nullptr, kModeStats);
 }
 namespace {
-void __fastcall MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
+void MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
 } // namespace
 // --- A hero deleted, the message box's answer ------------------------------------------
 
@@ -517,7 +514,7 @@ MpHeroRecord* MpHeroRecord::DeletingDestruct(unsigned flags) {
     return this;
 }
 
-MpHeroRecord* __fastcall MpHeroRecord::CopyRange(const MpHeroRecord* first, const MpHeroRecord* last,
+MpHeroRecord* MpHeroRecord::CopyRange(const MpHeroRecord* first, const MpHeroRecord* last,
                                                  MpHeroRecord* dest) {
     for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++dest) dest->Assign(first);
     return dest;
@@ -562,7 +559,7 @@ void CMpHeroScreen::RefreshHeroScroll() {
     }
 }
 namespace {
-void __fastcall MpHeroDelete(CMpHeroScreen* self) { self->DeleteHero(); }
+void MpHeroDelete(CMpHeroScreen* self) { self->DeleteHero(); }
 } // namespace
 
 void CMpHeroScreen::OnMessageResult(int result) {
@@ -656,5 +653,5 @@ void CMpHeroScreen::AddNewHero() {
     SetMode(this, nullptr, kModeList);
 }
 namespace {
-void __fastcall MpHeroAddNew(CMpHeroScreen* self) { self->AddNewHero(); }
+void MpHeroAddNew(CMpHeroScreen* self) { self->AddNewHero(); }
 } // namespace

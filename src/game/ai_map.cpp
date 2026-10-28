@@ -29,12 +29,12 @@ const BridgeMap::Node* FindBridgeHeight(const BridgeMap* map, short x, short y) 
 
 } // namespace
 
-int __stdcall LevelForSizeClass(int sizeClass) {
+int LevelForSizeClass(int sizeClass) {
     if (sizeClass < 0 || sizeClass >= 8) return sizeClass & ~0xFF;   // XOR AL,AL
     return PositiveOrZero(x87::fistp((2.0f - kSizeClassHeights[sizeClass]) * 16.0f));
 }
 
-int __stdcall StandingLevel(const CUnit* unit) {
+int StandingLevel(const CUnit* unit) {
     return PositiveOrZero(x87::fistp((2.0f - unit->standingHeight) * 16.0f));
 }
 
@@ -199,8 +199,8 @@ int CAIMap::MaterialAt(const Vector3* position) {
 
 AITerrainType* CAIMap::MaterialRecordAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return materials.data;
-    return materials.data + (occluders[y][x] & 0x1F);
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return materials.data();
+    return materials.data() + (occluders[y][x] & 0x1F);
 }
 
 void CAIMap::TurnObject(CMapObject* object, const Quaternion* rotation) {

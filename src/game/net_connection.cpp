@@ -15,7 +15,7 @@
 #include "stl_sorts.h"
 #include "game_data.h"
 
-RefPtr* __fastcall RefPtrNull(RefPtr* /*p*/);
+RefPtr* RefPtrNull(RefPtr* /*p*/);
 namespace net {
 
 namespace {
@@ -36,7 +36,7 @@ using Packets = stlp::list<SentPacket>;
 // CollectChanges's static vector of {object, priority}; its exit function frees the storage.
 constinit stlp::vector<Replicated> g_replicated = /*0079B8D0*/ {};
 std::uint8_t g_replicatedGuard = /*0079B8DC*/ {};
-void __cdecl FreeReplicated() { g_replicated.FreeStorage(); }
+void FreeReplicated() { g_replicated.FreeStorage(); }
 
 // "text\n" and a flush to the network log, when there is one.
 void LogLine(const char* text) {

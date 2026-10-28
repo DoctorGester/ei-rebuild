@@ -273,7 +273,6 @@ struct CountedPtrs : mfc::CArray<T*> {
         gamecrt::operator_delete(this->data);
     }
 };
-using EngineObjectPtrs = CountedPtrs<CEngineObject>;
 
 // An entry of the world server's shared-object list: the loot a unit left.
 struct SharedObject {
@@ -348,7 +347,7 @@ public:
     void SetClimate(int value);
     void SetWeather(int weather, float strength);
     // Target zone and entrance of exit `index`; FALSE when out of range.
-    BOOL GetZoneExit(int index, mfc::CString* target, int* entrance);
+    BOOL GetZoneExit(int index, std::string* target, int* entrance);
     // Registers an object that lives for a limited time (spells, effects) in timedObjects_.
     void AddTimedObject(CEffect* object);
     void RemoveTimedObject(unsigned id);
@@ -432,7 +431,7 @@ public:
     // starting at startPosition_ ("Accepted player <id>" goes to the network log).
     void AcceptNewPlayers(CPlayerSource* lobby);
 
-    mfc::CString* ZoneNameInto(mfc::CString* out);
+    std::string* ZoneNameInto(std::string* out);
 
     // Loads map `map` (when it changed), the AI layer state from `graph` and the zone's .mob objects (the
     // same .mob starts the zone over, another one empties the world first; from a save the loaded objects are
@@ -697,15 +696,11 @@ struct UnitSet {
 static_assert(offsetof(UnitSet, dressed) == 0x14);
 static_assert(sizeof(UnitSet) == 0x28);
 
-namespace unitset {
-void __fastcall DestructName(mfc::CString* name);
-} // namespace unitset
-
 // Reads the zone's two unit look lists from `stream`: a count, then per figured record a 16-bit
 // prototype, two counted dword arrays, a byte, a dword, the three morph coefficients and a counted list
 // of names; then a count and per dressed record the prototype, the two arrays, the byte and a dword.
 // Both vectors are resized to the counts.
-void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* figured,
+void ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* figured,
                               stlp::vector<DressedUnitRecord>* dressed);
 
 // The client's sector grids: an STLport list of counted pointers per 16x16 cell.
@@ -721,7 +716,7 @@ using SectorListNode = SectorList::Node;
 using MapObjectList = stlp::list<CMapObject*>;
 // A cell's list destroyed: each object released and its node returned to the pool, the sentinel last.
 void DestroySectorList(stlp::list<CMapObject*>* list);
-void __fastcall SectorListDestruct(stlp::list<CMapObject*>* list);
+void SectorListDestruct(stlp::list<CMapObject*>* list);
 struct SectorGrid {
     SectorList* cells_;
     SectorList** rows_;                   // row y: its lists
@@ -802,7 +797,7 @@ static_assert(sizeof(ScreenEntry) == 0x18);
 using ScreenEntryNode = std::list<ScreenEntry>::iterator;
 // An object whose screen rectangle is valid (flags 0x20) and that is not hidden (0x40) puts its class id, id and
 // rectangle at the end of `queued`.
-int __fastcall QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued);
+int QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued);
 
 // The entries the pickers find.
 using ScreenHits = std::vector<ScreenEntry>;
@@ -838,8 +833,8 @@ struct ClientArrayManager : CBaseManager {
 static_assert(sizeof(ClientArrayManager) == 0xD0);
 // The manager's Clear (its object and every listed one released, the list emptied); a new fog object,
 // counted, at the list end.
-void __fastcall VisFogManagerDestroy(ClientArrayManager* manager);
-CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* manager);
+void VisFogManagerDestroy(ClientArrayManager* manager);
+CEngineObject* VisFogManagerAdd(ClientArrayManager* manager);
 
 // The drawing side.
 class CWorldClient : public CWorld {
@@ -898,11 +893,11 @@ public:
     // lies on a platform; with `objects`, the platform faces' objects the decal can touch add the triangles of each
     // part of their figure (once per face).
     void ProjectDecal(const Vector3* direction, const Vector3* point, float depth, VertexPacket* const* corners,
-                      lib::AlignedArray<VertexPacket>* points, lib::AlignedArray<DecalTexCoord>* texCoords,
-                      lib::AlignedArray<std::uint16_t>* indices, std::uint8_t skipOnPlatform, std::uint8_t objects);
+                      std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
+                      std::vector<std::uint16_t>* indices, std::uint8_t skipOnPlatform, std::uint8_t objects);
     // The ambient sounds' time of day into `out`: "day" from 6 to 18 o'clock, "morning" before 6 and
     // "evening" after 18 within 2..22, else "night". Returns out.
-    mfc::CString* AmbienceTimeOfDay(mfc::CString* out);
+    std::string* AmbienceTimeOfDay(std::string* out);
     // Nearest living unit of the local player's group that `unit`'s side can see (the candidate's
     // relation masks); null when none or `unit` is null.
     CUnit* NearestVisibleUnit(CUnit* unit);
@@ -1124,9 +1119,9 @@ public:
     stlp::list<GroundPrint> scorchMarks_;
     // Erase(pos) of the three lists: the node unlinked, its print destroyed, the node deleted (operator
     // delete: the nodes are over 128 bytes); *out the node that followed it. Return out.
-    static void** __fastcall EraseBloodPrint(stlp::list<BloodPrint>*, void*, void** out, stlp::list<BloodPrint>::Node* pos);
-    static void** __fastcall EraseFootprint(stlp::list<Footprint>*, void*, void** out, stlp::list<Footprint>::Node* pos);
-    static void** __fastcall EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out,
+    static void** EraseBloodPrint(stlp::list<BloodPrint>*, void*, void** out, stlp::list<BloodPrint>::Node* pos);
+    static void** EraseFootprint(stlp::list<Footprint>*, void*, void** out, stlp::list<Footprint>::Node* pos);
+    static void** EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out,
                                              stlp::list<GroundPrint>::Node* pos);
     int lightLevelsCountdown_;            // time left before the blood prints are lit again (Segment); 0 after Setup
     RefPtrTo<CClientHandle> handle_;      // the client's player source
@@ -1202,20 +1197,20 @@ struct EntryIdLess {
     BOOL Less(const stlp::list<RefPtr>::Node* a, const stlp::list<RefPtr>::Node* b);
 };
 // STLport's sort of the changed variables' nodes with EntryIdLess (the flow's update).
-void __fastcall StampIntroSort(stlp::list<RefPtr>::Node** first, stlp::list<RefPtr>::Node** last, int valueType, int depthLimit,
+void StampIntroSort(stlp::list<RefPtr>::Node** first, stlp::list<RefPtr>::Node** last, int valueType, int depthLimit,
                                const void* comp);
-void __fastcall StampInsertionSort(stlp::list<RefPtr>::Node** first, stlp::list<RefPtr>::Node** last, const void* comp);
+void StampInsertionSort(stlp::list<RefPtr>::Node** first, stlp::list<RefPtr>::Node** last, const void* comp);
 
 BOOL IsMultiplayerClient();
 // Game clock: whole ticks + fraction.
 float GameTime();
 class CParty* LocalPlayerData();
 // The local player's party's zone (a copy).
-std::string __stdcall LocalPlayerZone();
-float __stdcall LocalPlayerVariable(const char* name);
+std::string LocalPlayerZone();
+float LocalPlayerVariable(const char* name);
 // Float variable `name` of the local player: the client's view in multiplayer, player 0
 // of the server otherwise (0 without that player).
-float __stdcall PlayerZeroVariable(const char* name);
+float PlayerZeroVariable(const char* name);
 
 struct GameFlow {
     // Saves the game into saves\<slot>\ (single player only): empties the folder, copies the visited zones' files
@@ -1231,8 +1226,8 @@ struct GameFlow {
     // field is active. Nothing without an active client session.
     void UpdateMultiplayerVariable();
     // The multiplayer start zone for the client session's game type: "bz2mpg".."bz4mpg" for
-    // 1..3, else "bz1mpg"; constructed into `out`, returned.
-    mfc::CString* MultiplayerZoneInto(mfc::CString* out);
+    // 1..3, else "bz1mpg"; into `out`, returned.
+    std::string* MultiplayerZoneInto(std::string* out);
     // Starts a multiplayer game: the party manager is reset, a single party record gets the unit id
     // 0x3B9AF5CE, the party outside a game is sent to the start zone with "z.MPGame1" = 1 and
     // redeployed; the flow loads that zone (state 4) and the client's game state request becomes kind 1.
@@ -1260,7 +1255,7 @@ struct GameFlow {
     void EndSession();
     // The client's variable at `node` (an element of ClientSession::variables_) changed: "q." variables
     // go to the quest log and the client world. Only the argument is read.
-    static void __stdcall OnVariableChanged(const stlp::list<RefPtr>::Node* node);
+    static void OnVariableChanged(const stlp::list<RefPtr>::Node* node);
     // Registers a quest folder once: the flow loads its quests, then with "<folder>\quest.reg" in the
     // texts the quest table reads it, the map database loads "<folder>\map.txt" and the folder joins the
     // list.
@@ -1349,7 +1344,7 @@ struct MpHeroRecord {
     MpHeroRecord* Construct();
     void Destruct();
     MpHeroRecord* DeletingDestruct(unsigned flags);
-    static MpHeroRecord* __fastcall CopyRange(const MpHeroRecord* first, const MpHeroRecord* last, MpHeroRecord* dest);
+    static MpHeroRecord* CopyRange(const MpHeroRecord* first, const MpHeroRecord* last, MpHeroRecord* dest);
     // Writes the party to `folder` + file: a file name with no '.' or with anything but digits before
     // the last one is deleted instead. Otherwise the old file is moved to `folder` + "temp.mp", the
     // party saved (with its variables) into a memory stream and that written as a save file (magic
@@ -1384,7 +1379,7 @@ struct SavedParties {
 extern lib::StaticObject<SavedParties> g_savedParties;
 inline SavedParties& TheSavedParties() { return *g_savedParties; }
 
-int __stdcall RequestZone(const char* zone, int entrance);
+int RequestZone(const char* zone, int entrance);
 
 // With the briefing texts loaded: every quest text file loaded so far (g_questFiles) is unloaded and
 // the list emptied.
@@ -1395,43 +1390,43 @@ extern std::vector<std::string> g_questFiles;
 // "<zone>.mq". A running game server first lists the file's bytes under "<zone>.mq" for its clients
 // (ShareFile); then a path not yet among the quest files joins them and the briefing texts add it as a
 // source.
-bool __stdcall LoadZoneQuests(const char* zone);
+bool LoadZoneQuests(const char* zone);
 
-bool __fastcall NameInList(const char* const* list, const char* name);
+bool NameInList(const char* const* list, const char* name);
 
-void __fastcall ClearSaveFolder(const char* path);
+void ClearSaveFolder(const char* path);
 
 // For the zone table entries with `id`, grouped by their second name in order of first appearance: one
 // random entry per group (never the one whose first name is `exclude` when there is a choice; one
 // IsaacRandom draw per group) has its first name appended to `out` (an STLport vector of strings).
-void __stdcall PickZones(std::vector<std::string>* out, int id, const char* exclude);
+void PickZones(std::vector<std::string>* out, int id, const char* exclude);
 
 // Reads mission.sav from a file stream (magic 0x102) and restores the world (LoadSave); old versions
 // also carry the globals (< 0x52) and the input state (< 0x47). 0 when the file does not read.
-int __stdcall LoadMission(CStream* file);
+int LoadMission(CStream* file);
 
 // SaveFileWrite writes the header, at version > 0x6B a checksum, then a flag byte and the LZ-compressed data
 // (or, when decompressing it does not give the data back, 0 and the raw data). SaveFileRead reads one back
 // (versions up to kSaveLastUncompressedVersion uncompressed); false on a bad header or checksum.
-void __fastcall SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* data);
-bool __fastcall SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, CStream* file);
+void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* data);
+bool SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, CStream* file);
 inline constexpr int kSaveVersion = /*00790260*/ 116;
 inline constexpr int kSaveLastUncompressedVersion = /*00790264*/ 100;
 inline constexpr int kSaveOldestVersion = /*00790268*/ 66;
 
 // The mercenary who speaks `briefing` (the second word of the first "#show" line of
-// section "briefing <name>" that is not "Hero"), or "", constructed into `out`. The briefing's
+// section "briefing <name>" that is not "Hero"), or "", into `out`. The briefing's
 // variable, "b.<speaker>.<briefing>" or, without a speaker, "b.elder.<briefing>".
-mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* briefing);
-mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing);
+std::string* BriefingSpeakerInto(std::string* out, const char* briefing);
+std::string* BriefingVariableInto(std::string* out, const char* briefing);
 // The multiplayer peer's map (the client's session field or the server's), replaced by the first line of its "quest
 // <name>" section when there is one; "" without a peer.
-mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out);
+std::string* SessionMapNameInto(std::string* out);
 // Chooses the loading movie for zone `zone` (may be null) by its allod in the map database:
 // progres2.bik for gipat, progres3.bik for ingos, progres4.bik for suslanger, else progres.bik
 // (Rebirth's FixProgressNames: progres2.bik for gipat2, progres5.bik for jigran); the zones gz1g and
 // bz7g (case-insensitive) take progres1.bik.
-void __stdcall SelectLoadingMovie(const char* zone);
+void SelectLoadingMovie(const char* zone);
 
 inline int TimeSpeedSetting() { return options::TheOptions()->defaultTimeScale_; }
 inline float FogStartDay() { return options::TheOptions()->fogDayStartDistance_; }
@@ -1482,28 +1477,28 @@ inline CMapObjectManager* WorldObjectManager() { return TheServerWorld()->manage
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a
 // thunder sound, otherwise a point light at the middle, a sound and two bolts.
-void __stdcall ShowBolt(Vector3 from, Vector3 to);
+void ShowBolt(Vector3 from, Vector3 to);
 
 // With `plain` 0 the players' gold, party records and, on the server, their units' controller statistics are
 // XORed with a new random key, with 1 they are XORed back; also the party records outside a game. Nothing
 // when the state is already `plain`.
-void __stdcall GuardPlayerData(char plain);
-void __fastcall GuardPlayers(CPlayerManager* players, char units, std::uint32_t key);
+void GuardPlayerData(char plain);
+void GuardPlayers(CPlayerManager* players, char units, std::uint32_t key);
 
 // ---- Client draw lists and their sorting --------------------------------
 // STLport's sort instantiated for two orderings; the entry points keep STLport's signature (first, last, a
 // dummy value-type pointer, the depth limit, the empty comparator).
 
 // STLport __introsort_loop with UnitOrderLess (model rank, a model field, view depth).
-void __fastcall IntroSortByModel(CMapObject** first, CMapObject** last, void* valueType, int depthLimit,
+void IntroSortByModel(CMapObject** first, CMapObject** last, void* valueType, int depthLimit,
                                  int comp);
 // STLport __final_insertion_sort with UnitOrderLess.
-void __fastcall FinalSortByModel(CMapObject** first, CMapObject** last, int comp);
+void FinalSortByModel(CMapObject** first, CMapObject** last, int comp);
 // __introsort_loop ordering objects by their model's last use, most recent first.
-void __fastcall IntroSortByModelUse(CMapObject** first, CMapObject** last, void* valueType, int depthLimit,
+void IntroSortByModelUse(CMapObject** first, CMapObject** last, void* valueType, int depthLimit,
                                     int comp);
 // __final_insertion_sort with the same ordering.
-void __fastcall FinalSortByModelUse(CMapObject** first, CMapObject** last, int comp);
+void FinalSortByModelUse(CMapObject** first, CMapObject** last, int comp);
 // The comparator of that ordering: b's model used before a's.
 struct ModelUseLess {
     BOOL Less(CMapObject* a, CMapObject* b);
@@ -1513,7 +1508,7 @@ struct ModelUseLess {
 // registered under the id is released first (its count raised to 1 when 0), then a new one is created
 // (NewObject), loaded (Load) and referenced. 1 at the end mark, 0 when a mark is read from a failed
 // stream.
-int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream);
+int LoadManagerObjects(CBaseManager* manager, CStream* stream);
 // The parts of it a list of a class derived from CEngineObject walks itself: one object's entry, and the end
 // mark.
 void SaveListedObject(CEngineObject* object, CStream* stream);
@@ -1524,4 +1519,4 @@ int CurrentSaveSize();
 
 // Every resource database (units with their sound file counts, skills, spell tables, items) destroyed
 // and constructed again in place, then loaded from `name`.
-void __fastcall SwitchResourceDatabases(const char* name);
+void SwitchResourceDatabases(const char* name);

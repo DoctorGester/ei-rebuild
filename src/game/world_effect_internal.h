@@ -30,7 +30,6 @@ inline std::uint8_t FrameCounter() { return static_cast<std::uint8_t>(CurrentWor
 
 // Constants read from memory, as the original does, so that nothing is folded.
 inline float ConstAt(const float& constant) { return *reinterpret_cast<const volatile float*>(&constant); }
-inline double AngleScale() { return 1.4668330997698233e-9 /*0073FFD0*/; }  // ~2 pi / 2^32
 
 // By reference: a float passed by value would be loaded and stored through the FPU.
 inline std::uint32_t Bits(const float& f) {

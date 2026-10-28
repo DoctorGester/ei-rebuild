@@ -10,7 +10,7 @@
 #include "lib/stlp_list.h"
 #include "lib/stlp_list_refs.h"
 #include "lib/stlp_tree_abi.h"
-#include "lib/stlp_tree_cstring.h"
+#include "lib/stlp_tree_mbs.h"
 
 #include <cstdint>
 #include <cstring>
@@ -37,7 +37,6 @@ struct TintListValue {
     }
     static void Destroy(TintList* p) { p->Release(); }
 };
-using TintLists = PairTree<std::string, TintListValue>;
 
 // A link mesh's part headers (LinkHeaderMap): copied as bytes, zeroed by
 // the pair's destructor before the key goes.
@@ -55,7 +54,6 @@ static_assert(std::is_same_v<LinkHeaders, stlp::TreeAbi<LinkHeaderMap, LinkHeade
 // Find(key) on a link mesh's part headers (LinkHeaders' instantiation): the node, or the header for none.
 inline LinkHeaderMap::Node* FindLinkHeader(LinkHeaderMap* map, const std::string* key) { return map->find(*key); }
 // A link mesh's part ranges (LinkRangeMap; plain values).
-using LinkRanges = stlp::TreeAbi<LinkRangeMap>;
 
 // The link loader's mesh cache (a multimap<string, CLinkMesh*> of counted references): one more reference per copy, released by the pair's destructor.
 struct CountedMesh : stlp::CountedRef {
@@ -69,20 +67,19 @@ template <typename Object>
 using ItemCacheOf = stlp::TreeAbi<typename ItemObjectCache<Object>::Map>;
 using ItemCache = ItemCacheOf<CTexture>;
 
-// The console's command maps (console.h; 0x18-byte nodes, CString keys by _mbscmp).
+// The console's command maps (console.h; std::string keys by _mbscmp).
 using Commands = stlp::TreeAbi<console::CommandMap>;
-// The interface's help topics (0x18-byte nodes, CString keys by _mbscmp).
-using HelpTopics = stlp::TreeAbi<stlp::map<mfc::CString, int, stlp::CStringLess>>;
-// The "pers" texts by text key (ui_camp.h; 0x18-byte nodes).
+// The interface's help topics (std::string keys by _mbscmp).
+using HelpTopics = stlp::TreeAbi<stlp::map<std::string, int, stlp::MbsLess>>;
+// The "pers" texts by text key (ui_camp.h).
 using PersonTexts = stlp::TreeAbi<PersonTextMap>;
 // The global map's arrival times by exit (CGlobalMap::arrivals_; 0x18-byte nodes).
 using Arrivals = stlp::TreeAbi<stlp::map<int, float>>;
-static_assert(sizeof(Commands::Node) == 0x18 && sizeof(HelpTopics::Node) == 0x18 && sizeof(PersonTexts::Node) == 0x18 &&
-              sizeof(Arrivals::Node) == 0x18);
+static_assert(sizeof(Arrivals::Node) == 0x18);
 
 // The hero screen's item caches (ItemObjectCache, ui_item_info.h). Their constructors:
 // Map() (the header from the pool, empty), then the limit 50.
 template <typename Object>
-ItemObjectCache<Object>* __fastcall ConstructHeroItemCache(ItemObjectCache<Object>* self);
+ItemObjectCache<Object>* ConstructHeroItemCache(ItemObjectCache<Object>* self);
 
 } // namespace lib_trees

@@ -78,7 +78,7 @@ struct Scored {
 };
 } // namespace
 
-double __fastcall AIDistance2(const Vector3* a, const Vector3* b) {
+double AIDistance2(const Vector3* a, const Vector3* b) {
     return DistanceSquaredXYUnrounded<double>(*a, *b);
 }
 

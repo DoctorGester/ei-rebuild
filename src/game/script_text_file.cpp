@@ -9,6 +9,8 @@
 #include "lib/mfc.h"
 #include "lib/mfc_try.h"
 
+#include <string>
+
 namespace scriptparse {
 
 namespace {
@@ -18,7 +20,7 @@ constexpr unsigned kLineSize = 0x800;     // longer lines arrive in pieces
 const char* NoText() { return ""; }
 } // namespace
 
-int __fastcall ReadTextFile(const char* path, mfc::CString* text) {
+int ReadTextFile(const char* path, std::string* text) {
     int result;
     mfc::ExceptionLink link;
     try {
@@ -26,7 +28,7 @@ int __fastcall ReadTextFile(const char* path, mfc::CString* text) {
         result = 1;
         console::CStdioFile file(path, kOpenFlags);
         char line[kLineSize];
-        while (file.ReadString(line, kLineSize)) *text = *text + mfc::CString(line);
+        while (file.ReadString(line, kLineSize)) *text = *text + std::string(line);
         file.Close();
     } catch (CFileException* caught) {
         result = 0;

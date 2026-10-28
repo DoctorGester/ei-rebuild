@@ -103,7 +103,7 @@ LightRef* AllocLightRef() {
     return ref;
 }
 
-void __stdcall FreeLightRef(LightRef* ref) {
+void FreeLightRef(LightRef* ref) {
     LightRefBlock* block = ref->block;
     ref->next = block->freeList;
     block->freeList = ref;
@@ -125,11 +125,11 @@ void SectorVertex::ReleaseLights() {
     }
 }
 
-void __stdcall DestroyRecords(SectorVertex* records, int count) {
+void DestroyRecords(SectorVertex* records, int count) {
     for (int i = 0; i < count; ++i) records[i].ReleaseLights();
 }
 
-void __stdcall UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area,
+void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area,
                                   int remove) {
     VertexRange range = RangeIn(area, sector->sx, sector->sy);
     float rangeSquared = static_cast<float>(light->range_ * light->range_);
@@ -162,7 +162,7 @@ void __stdcall UpdateVertexLights(SectorData* sector, CLight* light, const Vecto
 } // namespace terrain
 
 
-void __fastcall SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, LightArea* area) {
+void SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, LightArea* area) {
     if (x0 < 0) x0 = 0;
     if (y0 < 0) y0 = 0;
     if (x0 > sectorsX * kSectorCells) x0 = sectorsX * kSectorCells;
@@ -185,7 +185,7 @@ void __fastcall SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int s
     area->lastY = y1 % kSectorCells;
 }
 
-void __fastcall LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY,
+void LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY,
                                     LightArea* area) {
     int lastY = static_cast<int>(gamecrt::Ftol(maxY / CellSize() + 0.5f));
     int lastX = static_cast<int>(gamecrt::Ftol(maxX / CellSize() + 0.5f));

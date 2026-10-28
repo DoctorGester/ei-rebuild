@@ -18,6 +18,7 @@
 #include "unit_db.h"
 
 #include "ei/rebirth.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
@@ -52,7 +53,7 @@ std::uint32_t PackColour(const float* rgb) {
 // The cached object for `name` (its use time refreshed), or a new one put in the cache, which then drops its
 // least recently used entries beyond its limit. Null when it cannot be made. `make` is the object's maker.
 template <typename Object>
-Object* CachedObject(ItemObjectCache<Object>* cache, const char* name, Object* (__fastcall* make)(const char*)) {
+Object* CachedObject(ItemObjectCache<Object>* cache, const char* name, Object* (*make)(const char*)) {
     typename ItemObjectCache<Object>::Node* node;
     {
         std::string key(name);
@@ -182,12 +183,12 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
     CItem* item = cell->item;
     CUiMesh* model;
     {
-        std::string name = item->PictureName().GetString();
+        std::string name = item->PictureName();
         model = CachedModel(&models_, name.c_str());
     }
     CTexture* texture;
     {
-        std::string name = item->FigureName().GetString();
+        std::string name = item->FigureName();
         texture = CachedTexture(&textures_, name.c_str());
     }
     if (!model || !texture) return;
@@ -342,7 +343,7 @@ BOOL CItemInfoPanel::Draw(CSceneRenderer* pass) {
 
 // --- A hero's face -----------------------------------------------------------------------------
 
-Quaternion* __fastcall MultiplyQuaternions(Quaternion*, const Quaternion*, const Quaternion*);
+Quaternion* MultiplyQuaternions(Quaternion*, const Quaternion*, const Quaternion*);
 namespace {
 
 
@@ -355,7 +356,7 @@ bool SameText(const char* a, const char* b) {
 
 } // namespace
 
-void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture) {
+void CItemScreen::FaceNames(const char* prototype, std::string* model, std::string* texture) {
     UnitPrototypeRecord* unit;
     {
         std::string key(prototype);
@@ -373,15 +374,15 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
         sex = "m";
     else if (fixes || SameText(figureModel, "unhufe"))
         sex = "f";
-    model->Format("infa%sme%dface", figureModel, unit->hair + 1);
-    texture->Format("face%s%02d", sex.c_str(), unit->skin);
+    *model = str::Format("infa%sme%dface", figureModel, unit->hair + 1);
+    *texture = str::Format("face%s%02d", sex.c_str(), unit->skin);
 }
 
 void CItemScreen::DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell) {
-    mfc::CString modelName, textureName;
+    std::string modelName, textureName;
     FaceNames(cell->prototype, &modelName, &textureName);
-    CUiMesh* model = CachedModel(&models_, modelName);
-    CTexture* texture = CachedTexture(&textures_, textureName);
+    CUiMesh* model = CachedModel(&models_, modelName.c_str());
+    CTexture* texture = CachedTexture(&textures_, textureName.c_str());
     if (!model || !texture) return;
 
     model->texture_ = texture;
@@ -422,7 +423,7 @@ long LockTexture(CDXSurface* holder, SurfacePixels* pixels) {
 
 } // namespace
 
-CTexture* __fastcall ItemFigureTexture(const char* name) {
+CTexture* ItemFigureTexture(const char* name) {
     CTextureManager* manager = TheTextureManager();
     CTexture* texture = manager->NewTexture(0x100, 0x100, 0x20);
     if (!texture) return nullptr;

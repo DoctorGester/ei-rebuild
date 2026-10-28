@@ -65,7 +65,9 @@ Rules:
   turn and wait for the completion notice. Never poll: no `until` / `while sleep` loops, no
   Wait-Process, no repeated tail of an output file. Build `verify` while iterating, `release`
   before each commit.
-- Scratch files go under the scratchpad's folder for your ticket (the scratchpad is shared).
+- Scratch files go under the scratchpad's folder for your ticket (the scratchpad is shared). So do one-off
+  migration scripts (retypes, deletions): never commit them to tools/; give the script's full path in your report
+  so the coordinator can re-run it after a merge conflict.
 - Commit messages end with: Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
 
 Report (short): what you changed (addresses, files), how each is verified, risks, branch/commit.

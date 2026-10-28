@@ -16,9 +16,9 @@
 #include <cstring>
 
 namespace scene {
-void __fastcall MakeFrameRelative(CAnimationNode*, CAnimationNode*, int);
+void MakeFrameRelative(CAnimationNode*, CAnimationNode*, int);
 
-void __stdcall ConstructNodeFrames(void* records, int count) {
+void ConstructNodeFrames(void* records, int count) {
     mfc::impl::KeyFrames::ConstructElements(static_cast<mfc::impl::KeyFrame40*>(records), count);
 }
 
@@ -47,7 +47,7 @@ ChildArray& Children(SceneNode* node) { return node->children; }
 
 // Replaces the skin's root bone (the old one destroyed and freed) by a new one built
 // from `node`, then makes frames 0 .. (short)frames of the skeleton relative.
-void __fastcall BuildRootBone(SceneSkin* skin, const SceneNode* node, int frames) {
+void BuildRootBone(SceneSkin* skin, const SceneNode* node, int frames) {
     if (CAnimationNode* old = skin->root) {
         old->DestructBody();
         gamecrt::operator_delete(old);
@@ -61,7 +61,7 @@ void __fastcall BuildRootBone(SceneSkin* skin, const SceneNode* node, int frames
 }
 
 // Every child's rest pivot and rotation copied, recursively.
-void __fastcall CopyRestPose(SceneNode* node) {
+void CopyRestPose(SceneNode* node) {
     ChildArray& children = Children(node);
     for (int i = 0; i < children.size; ++i) {
         CopyRest(children.data[i]);
@@ -72,7 +72,7 @@ void __fastcall CopyRestPose(SceneNode* node) {
 // Links each node to its children (nodes whose parent name equals its name, _mbscmp), finds the root (the
 // last node with an empty parent name, -1 when none) and copies the rest pose from it down. Without a root
 // the element before the array is read and written; kept.
-int __fastcall FindRootNode(NodeArray* nodeArray) {
+int FindRootNode(NodeArray* nodeArray) {
     NodeArray& nodes = *nodeArray;
     int root = -1;
     for (int i = 0; i < nodes.size; ++i) {
@@ -101,7 +101,7 @@ int __fastcall FindRootNode(NodeArray* nodeArray) {
 // Takes the unit's meshes (a CArray; a mesh's virtual 7 is its name) and the nodes; `frames` (its
 // low word counts), `skin`. 1, or 0 without a root node; a first rotation key not at frame 0 is a fatal
 // error (game::FatalError's result is returned if it comes back).
-int __fastcall BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int frames, SceneSkin* skin) {
+int BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int frames, SceneSkin* skin) {
     MeshArray& meshes = *meshArray;
     NodeArray& nodes = *nodeArray;
     for (int i = 0; i < nodes.size; ++i) {

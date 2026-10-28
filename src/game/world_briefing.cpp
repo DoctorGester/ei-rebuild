@@ -9,7 +9,7 @@
 #include "game_strings.h"
 
 #include "buffered_file.h"
-#include "lib/static_object.h"
+#include "lib/containers.h"
 #include "console.h"
 #include "item_db_text.h"
 #include "net_classes.h"
@@ -46,7 +46,7 @@ bool IsEmpty(const std::string& s) {
 
 } // namespace
 
-mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* briefing) {
+std::string* BriefingSpeakerInto(std::string* out, const char* briefing) {
     CTextManager* texts = TheTextManager();
     bool missing;
     {
@@ -54,34 +54,40 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
         std::string section = prefix + briefing;
         missing = texts->CTextManager::Open(section.c_str()) == 0;
     }
-    if (missing) return std::construct_at(out, game::EmptyText());
+    if (missing) {
+        *out = game::EmptyText();
+        return out;
+    }
     // The first "#show" line whose second word is not "Hero" names the speaker.
     std::vector<std::string> words;
     while (texts->FindLine(game::briefingwords::ShowTag())) {
         texts->Split(&words, 1);
         if (words.size() >= 2 &&
             gamecrt::mbsicmp(words[1].c_str(),
-                            game::briefingwords::Hero()) != 0)
-            return std::construct_at(out, words[1]);
+                            game::briefingwords::Hero()) != 0) {
+            *out = words[1];
+            return out;
+        }
     }
-    return std::construct_at(out, game::EmptyText());
+    *out = game::EmptyText();
+    return out;
 }
 
-mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing) {
-    mfc::CString speaker(mfc::CString::kUnset);   // BriefingSpeakerInto constructs it
+std::string* BriefingVariableInto(std::string* out, const char* briefing) {
+    std::string speaker;
     BriefingSpeakerInto(&speaker, briefing);
-    if (!IsEmpty(speaker.GetString())) {
+    if (!IsEmpty(speaker.c_str())) {
         std::string prefix = game::briefingwords::VariablePrefix();
         std::string withSpeaker = prefix + speaker;
         std::string withDot = withSpeaker + flowdata::kDot;
-        mfc::CString variable = withDot + briefing;
+        std::string variable = withDot + briefing;
         speaker = variable;
     } else {
         std::string prefix = game::briefingwords::ElderPrefix();
-        mfc::CString variable = prefix + briefing;
+        std::string variable = prefix + briefing;
         speaker = variable;
     }
-    std::construct_at(out, speaker);
+    *out = speaker;
     return out;
 }
 
@@ -97,9 +103,9 @@ void GameFlow::MarkBriefing(const char* briefing) {
         }
         LoadZoneQuests(zone.c_str());
     }
-    mfc::CString variable(mfc::CString::kUnset);   // BriefingVariableInto constructs it
+    std::string variable;
     BriefingVariableInto(&variable, briefing);
-    player->Party()->variables_.Set(variable, 1.0f);
+    player->Party()->variables_.Set(variable.c_str(), 1.0f);
 }
 
 // ---- Forgetting briefings, unloading quest texts --------------------------------------------------
@@ -117,14 +123,14 @@ LoadedFiles& QuestFiles() { return g_questFiles; }
 constinit std::vector<std::string> g_questFiles = /*007AFDD0*/ {};
 constinit std::vector<std::string> g_questFolders = /*007AFDC0*/ {};
 
-void __cdecl DestroyQuestFiles() { lib::FreeVector(g_questFiles); }
-void __cdecl DestroyQuestFolders() { lib::FreeVector(g_questFolders); }
+void DestroyQuestFiles() { lib::FreeStorage(g_questFiles); }
+void DestroyQuestFolders() { lib::FreeStorage(g_questFolders); }
 
 void GameFlow::ForgetBriefing(const char* briefing) {
     CPlayer* player = TheClientWorld()->LocalView()->player_;
-    mfc::CString variable(mfc::CString::kUnset);   // BriefingVariableInto constructs it
+    std::string variable;
     BriefingVariableInto(&variable, briefing);
-    player->Party()->variables_.Remove(variable);
+    player->Party()->variables_.Remove(variable.c_str());
 }
 
 void UnloadQuestTexts() {
@@ -171,26 +177,26 @@ void ShareQuestFile(const char* path, const char* name) {
 
 // The path of the maps folder's file `file` (LoadZoneQuests's).
 std::string MapFilePath(const std::string& file) {
-    mfc::CString folder;
+    std::string folder;
     modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuestsPath);
     MapsFolder(&folder);
-    std::string full = (folder + file).GetString();
+    std::string full = folder + file;
     return std::string(full.c_str());
 }
 
 } // namespace
 
-bool __stdcall LoadZoneQuests(const char* zone) {
+bool LoadZoneQuests(const char* zone) {
     auto* texts = TheTextManager();
     if (!texts) return false;
-    std::string file = (mfc::CString(zone) + kQuestFileSuffix).GetString();
+    std::string file = std::string(zone) + kQuestFileSuffix;
     bool found;
     {
         mfc::CFileFind find;
-        mfc::CString folder;
+        std::string folder;
         modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuests);
         MapsFolder(&folder);
-        std::string pattern = folder.GetString() + file;
+        std::string pattern = folder.c_str() + file;
         found = find.FindFile(pattern, 0) != 0;
     }
     if (!found) return false;
@@ -207,7 +213,7 @@ bool __stdcall LoadZoneQuests(const char* zone) {
 
 // ---- Quest variables ------------------------------------------------------------------------------
 
-void __stdcall GameFlow::OnVariableChanged(const stlp::list<RefPtr>::Node* node) {
+void GameFlow::OnVariableChanged(const stlp::list<RefPtr>::Node* node) {
     const net::VariableMessage* record = stlp::CountedRefListOf<net::VariableMessage>::At(node);
     std::string name = record->name_.data();
     const float value = record->value_;
@@ -269,7 +275,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     folders.push_back(name);
 }
 
-mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
+std::string* SessionMapNameInto(std::string* out) {
     std::string name;
     // The peer's map message: the client's, else the server's (the map's name its text).
     const net::MapMessage* peer = nullptr;
@@ -279,7 +285,10 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
         peer = client->map_;
     else if (Active(server) && Active(server->map_.Get()))
         peer = server->map_.Get();
-    if (!peer) return std::construct_at(out, game::EmptyText());
+    if (!peer) {
+        *out = game::EmptyText();
+        return out;
+    }
     name = peer->text_.data();
     CTextManager* texts = TheTextManager();
     int found;
@@ -289,5 +298,5 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
         found = texts->CTextManager::Open(section.c_str());
     }
     if (found) texts->ReadLine(&name, 1);
-    return std::construct_at(out, name);
+    *out = name; return out;
 }

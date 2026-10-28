@@ -51,7 +51,7 @@ void SetTalking(const CUnit* unit, bool talking) {
 } // namespace
 
 CMaterial* CObject3DClientSpecific::FirstMaterial() {
-    if (materials.size <= 0) {
+    if (materials.empty()) {
         materialCursor = -1;
         return nullptr;
     }
@@ -61,7 +61,7 @@ CMaterial* CObject3DClientSpecific::FirstMaterial() {
 
 CMaterial* CObject3DClientSpecific::NextMaterial() {
     ++materialCursor;
-    return materials.size > materialCursor ? materials[materialCursor] : nullptr;
+    return std::ssize(materials) > materialCursor ? materials[materialCursor] : nullptr;
 }
 
 int CUnitClientSpecific::RunTick() {

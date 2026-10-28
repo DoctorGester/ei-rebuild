@@ -49,7 +49,7 @@ bool IsSurfaceMemoryDc(HDC dc) { return g_memoryDcs.count(dc) != 0; }
 // The surface's CDC (a temporary MFC wrapper), or null without a surface or when getting
 // the DC failed (also: no memory) and the report said stop (the device lock then stays held, as in
 // the original).
-mfc::impl::CDC* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
+mfc::impl::CDC* UiSurfaceGetDC(CUiSurface* surface) {
     CDXSurface* holder = surface->holder_;
     if (!holder) return nullptr;
     HDC& dc = surface->dc_;
@@ -68,7 +68,7 @@ mfc::impl::CDC* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
 }
 
 // Leaves the device lock and releases the DC (nothing for a DC the getter did not make).
-void __fastcall UiSurfaceReleaseDC(CUiSurface* surface) {
+void UiSurfaceReleaseDC(CUiSurface* surface) {
     CDXSurface* holder = surface->holder_;
     if (holder) {
         HDC dc = surface->dc_;

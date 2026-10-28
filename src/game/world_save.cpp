@@ -90,7 +90,7 @@ void WriteCopy(WorldStream* stream, const T& value) {
     stream->Write(&copy, sizeof(T));
 }
 
-void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
+void ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 
 } // namespace
 
@@ -105,11 +105,10 @@ SharedObjectNode* SharedObjectsNewNode(SharedObjectList* list, SharedObjectNode*
 namespace {
 
 // Reads a string and assigns it to `target` (the temporary is destroyed at once).
-void ReadStringInto(WorldStream* stream, mfc::CString& target) {
-    alignas(4) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* read = stream->ReadString(storage);
+void ReadStringInto(WorldStream* stream, std::string& target) {
+    std::string storage;
+    std::string* read = stream->ReadString(&storage);
     target = *read;
-    std::destroy_at(read);
 }
 
 template <typename T>
@@ -144,9 +143,9 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         if (id == -1) return;
         CMapObject* object = manager40_->FindMapObject(id);
         if (stream->version_ >= kVersionMapObjectName) {
-            mfc::CString name;
+            std::string name;
             ReadStringInto(stream, name);
-            object->TakePrototype(name.GetString());
+            object->TakePrototype(name.c_str());
         }
         object->WriteFullState();
         object->Load(stream);
@@ -283,9 +282,9 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
 int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     CMemoryStream savedGraph;   // the AI graph state as the zone files have it
     CMemoryStream graph;        // ... with the save's differences applied
-    mfc::CString mobName;
-    mfc::CString mapName;
-    mfc::CString zoneName;
+    std::string mobName;
+    std::string mapName;
+    std::string zoneName;
 
     gameResult_ = 0;
     scriptsActive_ = 0;
@@ -306,7 +305,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     ReadStringInto(stream, zoneName);
     if (map) mapName = map;
     zoneName_ = zoneName;
-    SelectLoadingMovie(zoneName);
+    SelectLoadingMovie(zoneName.c_str());
     ShowLoadProgress(kProgressStart);
     {
         PlayerIterator it;
@@ -332,12 +331,12 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     stream->Read(&sessionKind_, 4);
 
     int result;
-    if (!ReadAIGraph(mapName, mobName, &savedGraph)) {
+    if (!ReadAIGraph(mapName.c_str(), mobName.c_str(), &savedGraph)) {
         result = 0;
     } else {
         graph.ApplyDiff(&savedGraph, stream);
         ShowLoadProgress(kProgressZone);
-        if (!LoadMap(mapName, mobName, &graph, 1)) {
+        if (!LoadMap(mapName.c_str(), mobName.c_str(), &graph, 1)) {
             result = game::FatalError(game::CantLoadSaveMapText());
         } else {
             // The map objects' identities: id, type and prototype id.
@@ -443,10 +442,9 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             if (stream->version_ >= kVersionMobFiles) {
                 int count = ReadValue<int>(stream);
                 for (int i = 0; i < count; ++i) {
-                    alignas(4) unsigned char storage[sizeof(mfc::CString)];
-                    mfc::CString* name = stream->ReadString(storage);
-                    mobFiles_.push_back(name->GetString());
-                    std::destroy_at(name);
+                    std::string storage;
+                    std::string* name = stream->ReadString(&storage);
+                    mobFiles_.push_back(name->c_str());
                 }
             } else {
                 mobFiles_.clear();
@@ -742,10 +740,10 @@ constexpr const char* kCantLoadMap = "CWorldServer::NewZone()\n Can't load map.\
 // first: `site`).
 bool MapFileMissing(const char* name, modfolders::MapsSite site) {
     if (libcrt::Access(name, 0) != -1) return false;
-    mfc::CString folder;
+    std::string folder;
     modfolders::SelectMaps(name, site);
     MapsFolder(&folder);
-    std::string path = (folder + name).GetString();
+    std::string path = folder + name;
     return libcrt::Access(path.c_str(), 0) == -1;
 }
 

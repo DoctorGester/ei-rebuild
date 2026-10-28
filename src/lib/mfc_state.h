@@ -67,7 +67,7 @@ struct CProcessLocalObject {
 };
 
 // AfxDeleteObject: the GDI object `*object` deleted and the handle cleared, when there is one.
-void __stdcall AfxDeleteObject(HGDIOBJ* object);
+void AfxDeleteObject(HGDIOBJ* object);
 
 // AUX_DATA (0x6C bytes): afxData (mfc_state.cpp).
 struct AuxData {
@@ -114,9 +114,6 @@ struct AuxData {
 };
 static_assert(sizeof(AuxData) == 0x6C);
 
-// afxData.
-AuxData& AfxData();
-
 // ---- Module state, runtime class list, global locks ----------------------------------------
 
 // CSimpleList: an intrusive singly linked list; each element keeps its next pointer `nextOffset` bytes in.
@@ -150,8 +147,8 @@ constexpr std::size_t kNextClassOffset = 0x14;
 // AfxGetModuleState: the calling thread's module state. The image registers ImageModuleState at that address:
 // one module state for the process, nothing in it but the class list. Its instance and resource handles stay
 // null (the game never runs AfxWinInit); AfxLoadString (mfc_resource.h) answers from a table in code.
-ModuleState* __cdecl AfxGetModuleState();
-ModuleState* __cdecl ImageModuleState();
+ModuleState* AfxGetModuleState();
+ModuleState* ImageModuleState();
 
 // MFC's global locks (mtcore.cpp): the lock types index _afxResourceLock (CRIT_RUNTIMECLASSLIST 0,
 // CRIT_PROCESSLOCAL 1, ...; 17 of them: _afxResourceLock ends where _afxCriticalWin32s starts).
@@ -160,22 +157,22 @@ constexpr int kLockTypes = 17;
 constexpr int kRuntimeClassListLock = 0;
 
 // Once, the Win32s flag from GetVersion and the lock that guards the locks' set-up; returns _afxCriticalInit.
-BOOL __cdecl AfxCriticalInit();
+BOOL AfxCriticalInit();
 // lock type `lockType` entered (its critical section made on first use) / left.
-void __stdcall AfxLockGlobals(int lockType);
-void __stdcall AfxUnlockGlobals(int lockType);
+void AfxLockGlobals(int lockType);
+void AfxUnlockGlobals(int lockType);
 
 // AfxClassInit: `newClass` put at the head of the module state's class list, under
 // CRIT_RUNTIMECLASSLIST. The static initialisers register five classes with it.
-void __stdcall AfxClassInit(CRuntimeClass* newClass);
+void AfxClassInit(CRuntimeClass* newClass);
 
 // _AfxInitDBCS: whether the OEM code page has double-byte characters (its MaxCharSize above
 // 1); the static initialiser stores it in _afxDBCS (a BOOL).
-BOOL __cdecl AfxInitDbcs();
+BOOL AfxInitDbcs();
 
 // wingdix.cpp's halftone brush (_afxHalftoneBrush, made on first use by code the game never reaches) deleted at
 // exit by AfxWingdixTerm, which the static initialiser registers with atexit.
-void __cdecl AfxWingdixTerm();
-void __cdecl AfxWingdixTermInit();
+void AfxWingdixTerm();
+void AfxWingdixTermInit();
 
 } // namespace mfc::impl

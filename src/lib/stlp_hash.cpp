@@ -9,6 +9,6 @@
 
 namespace stlp {
 
-std::uint32_t __fastcall HashString(const std::string* s) { return HashChars(s->data(), s->data() + s->size()); }
+std::uint32_t HashString(const std::string* s) { return HashChars(s->data(), s->data() + s->size()); }
 
 } // namespace stlp

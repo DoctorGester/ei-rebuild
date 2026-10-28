@@ -8,17 +8,17 @@
 #include <cstring>
 #include <memory>
 #include <new>
+#include <string>
 
 namespace {
 constexpr std::uint32_t kBaseScaleVersion = 0x4E;   // base scale saved after this version
 
-// A string read up to its terminator (CStream::ReadString into a temporary).
-struct ReadText {
-    explicit ReadText(CStream* stream) : text(stream->ReadString(storage)) {}
-    ~ReadText() { std::destroy_at(text); }
-    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* text;
-};
+// A string read up to its terminator.
+std::string ReadText(CStream* stream) {
+    std::string text;
+    stream->ReadString(&text);
+    return text;
+}
 
 void WriteText(CStream* stream, std::string_view text) {
     const gamecrt::TerminatedText terminated(text);
@@ -31,10 +31,7 @@ void CMapObject::LoadMapObject(CStream* stream) {
     stream->Read(&animationSpeed, sizeof(animationSpeed));
     stream->Read(&localPosition_.x, 3 * sizeof(float));
     stream->Read(&localRotation_, sizeof(localRotation_));
-    {
-        ReadText text(stream);
-        name = text.text->GetString();
-    }
+    name = ReadText(stream);
     stream->Read(&scale, sizeof(scale));
     int count = 0;
     stream->Read(&count, sizeof(count));
@@ -43,10 +40,7 @@ void CMapObject::LoadMapObject(CStream* stream) {
     std::uint32_t flags = flags_;   // the original's local starts as stack garbage
     stream->Read(&flags, sizeof(flags));
     flags_ = flags;
-    {
-        ReadText text(stream);
-        name2 = *text.text;
-    }
+    name2 = ReadText(stream);
     if (stream->version_ > kBaseScaleVersion) stream->Read(&baseScale, sizeof(baseScale));
 }
 
@@ -69,20 +63,11 @@ void CMapObject::SaveMapObject(CStream* stream) {
 
 void CMapObjectServer::Load(CStream* stream) {
     stream->Read(&vitals, sizeof(vitals));
-    {
-        ReadText text(stream);
-        name78 = *text.text;
-    }
-    {
-        ReadText text(stream);
-        name7C = *text.text;
-    }
+    name78 = ReadText(stream);
+    name7C = ReadText(stream);
     int count = 0;
     stream->Read(&count, sizeof(count));
-    for (int i = 0; i < count; ++i) {
-        ReadText text(stream);
-        strings.push_back(text.text->GetString());
-    }
+    for (int i = 0; i < count; ++i) strings.push_back(ReadText(stream));
 }
 
 void CMapObjectServer::Save(CStream* stream) {

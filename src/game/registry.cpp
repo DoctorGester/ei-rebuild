@@ -8,6 +8,7 @@
 
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -44,11 +45,11 @@ std::uint32_t HomeSlot(const char* name, std::uint16_t slots) {
 
 // GetIntArray / GetFloatArray: the values are copied as dwords.
 template <typename T>
-BOOL GetDwordArray(CFileRegistry* registry, const char* section, const char* key, unsigned type, lib::AlignedArray<T>* out) {
+BOOL GetDwordArray(CFileRegistry* registry, const char* section, const char* key, unsigned type, std::vector<T>* out) {
     int isScalar;
     const std::uint8_t* value = registry->FindData(section, key, type, &isScalar);
     if (!value) {
-        out->RemoveAll();
+        out->clear();
         return 0;
     }
     int count;
@@ -58,12 +59,12 @@ BOOL GetDwordArray(CFileRegistry* registry, const char* section, const char* key
         count = U16(value);
         value += 2;
         if (count == 0) {
-            out->RemoveAll();
+            out->clear();
             return 1;
         }
     }
-    out->SetSize(count);
-    for (int i = 0; i < count; ++i) out->data[i] = static_cast<T>(U32(value + 4 * i));
+    out->resize(count);
+    for (int i = 0; i < count; ++i) (*out)[i] = static_cast<T>(U32(value + 4 * i));
     return 1;
 }
 
@@ -190,11 +191,11 @@ double CFileRegistry::GetFloat(const char* section, const char* key, float defau
     return defaultValue;
 }
 
-mfc::CString CFileRegistry::GetString(const char* section, const char* key, mfc::CString defaultValue) {
+std::string CFileRegistry::GetString(const char* section, const char* key, const std::string& defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
-        mfc::CString text(Chars(value + 2), U16(value));
+        std::string text(Chars(value + 2), U16(value));
         text::FromAssetText(&text);
-        std::string result = text.GetString();
+        std::string result = text;
         return result;
     }
     return defaultValue;

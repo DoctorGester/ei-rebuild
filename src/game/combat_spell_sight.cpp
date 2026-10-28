@@ -13,7 +13,7 @@ constexpr float kAboveSurface = std::bit_cast<float>(0x3F800000u);   // 1.0
 constexpr float kMinSight = std::bit_cast<float>(0x3DCCCCCDu);       // 0.1
 } // namespace
 
-bool __fastcall SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* from,
+bool SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* from,
                                     CUnit* target, const Vector3* at) {
     const auto* record = spell->GetPrototype();
     if (!record->needsSight) return true;

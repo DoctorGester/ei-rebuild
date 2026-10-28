@@ -26,7 +26,7 @@
 
 using options::GameOptions;
 
-Matrix4* __stdcall AxisSwapMatrix(Matrix4*);
+Matrix4* AxisSwapMatrix(Matrix4*);
 namespace {
 
 

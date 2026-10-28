@@ -136,7 +136,7 @@ void AddReference(CParticleSource* source) { ++source->refCount_; }
 void ReleaseSource(CParticleSource* source) { source->Release(); }
 
 // The feeble mind sequence's chooser: the first name once, then the second.
-int __fastcall FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
+int FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
 
 // Is there a record of `type` other than `index`?
 bool OtherRecordOfType(const EffectParticleArray& particles, int index, int type) {
@@ -176,7 +176,7 @@ void DropLight(CMapObjectClientSpecific* self) {
 
 } // namespace
 
-void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
+void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
                                 const char* suffix) {
     CSoundManager* sounds = TheSoundManager();
     if (kind == kStench) {
@@ -394,11 +394,11 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
 }
 
 void CObject3DClientSpecific::ResetPartAlpha() {
-    for (int i = 0; i < materials.size; ++i) materials[i]->colors.diffuse.w = 1.0f;
+    for (int i = 0; i < std::ssize(materials); ++i) materials[i]->colors.diffuse.w = 1.0f;
 }
 
 void CObject3DClientSpecific::ClearPartTints() {
-    for (int i = 0; i < materials.size; ++i) {
+    for (int i = 0; i < std::ssize(materials); ++i) {
         CMaterial* part = materials[i];
         part->colors.specular.x = 0.0f;
         part->colors.specular.y = 0.0f;

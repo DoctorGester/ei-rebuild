@@ -69,15 +69,15 @@ using RecordList = std::vector<TextureRecord>;
 
 } // namespace
 
-void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list);
+void UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list);
 
 namespace {
 
 // The texture records copied into the set's byte array (SetSize inlined: kept contents, 0 frees).
 void CopyRecords(SkinComposition& set, const RecordList& list) {
     int size = static_cast<int>(list.size()) * static_cast<int>(sizeof(TextureRecord));
-    set.layers.SetSize(size);
-    std::memcpy(set.layers.data, list.data(), static_cast<std::size_t>(size));
+    set.layers.resize(size);
+    std::memcpy(set.layers.data(), list.data(), static_cast<std::size_t>(size));
 }
 
 // Inlined strcpy / strcat: the bytes up to and including the terminator.
@@ -94,9 +94,9 @@ void AppendName(const UnitModelRecord* model, const std::string& name, char* buf
 void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t id) {
     char buffer[0x100];
     {
-        mfc::CString name;
+        std::string name;
         ArmorModelName(&name, id >> 16, id & 0xFFFF);
-        AppendName(model, name.GetString(), buffer);
+        AppendName(model, name.c_str(), buffer);
     }
     set.textures.push_back(buffer);
 }
@@ -130,19 +130,19 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
     char buffer[0x100];
     {
         const itemdb::WeaponRecord* weapon = itemdb::WeaponAt(id >> 16);
-        mfc::CString name;
+        std::string name;
         const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(id & 0xFFFF);
         WeaponRecordModelName(&name, weapon, material);
-        AppendName(model, name.GetString(), buffer);
+        AppendName(model, name.c_str(), buffer);
     }
     set.textures.push_back(buffer);
 }
 
 // The texture cache is the client world's texture manager.
-void Compose(CWorldClient* self, mfc::CString& out, SkinComposition& set, const mfc::CString& name, int size, int kind) {
+void Compose(CWorldClient* self, std::string& out, SkinComposition& set, const std::string& name, int size, int kind) {
     set.flags = size;
     self->textureManager_->Compose(&out, &set, &name, &name, 3, 0, 0x5551);
-    self->textureManager_->FindOrLoad(kind, name);
+    self->textureManager_->FindOrLoad(kind, name.c_str());
 }
 
 void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
@@ -153,7 +153,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 
     const std::uint32_t* items = record->items.data();
     if (!record->items.empty()) {
-        mfc::CString built;
+        std::string built;
         UnitTextureRecords(1, record, &list);
         CopyRecords(set, list);
         std::string skin;
@@ -169,11 +169,11 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         }
         AddWeapons(set, model, items);
 
-        mfc::CString name;
+        std::string name;
         if (record->modelNumber != -1) {
-            name.Format("mo%dp", record->modelNumber);
+            name = str::Format("mo%dp", record->modelNumber);
         } else {
-            name.Format("prot%dp", static_cast<int>(record->prototype));
+            name = str::Format("prot%dp", static_cast<int>(record->prototype));
         }
         Compose(self, built, set, name, 0x100, 1);
 
@@ -183,14 +183,14 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         if (items[0] != kNone) AddItem(set, model, items[0]);
         AddExtraWeapon(set, model, record);
         if (record->modelNumber != -1) {
-            name.Format("mo%ds", record->modelNumber);
+            name = str::Format("mo%ds", record->modelNumber);
         } else {
-            name.Format("prot%ds", static_cast<int>(record->prototype));
+            name = str::Format("prot%ds", static_cast<int>(record->prototype));
         }
         Compose(self, built, set, name, 0x80, 2);
     }
 
-    set.layers.FreeData();
+    lib::FreeStorage(set.layers);
 }
 
 // --- The other units -----------------------------------------------------------------------------
@@ -208,7 +208,7 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
                                &second);
     } else {
         first.reserve(first.size() + record->names.size());
-        for (const mfc::CString& name : record->names) first.push_back(name.GetString());
+        for (const std::string& name : record->names) first.push_back(name);
     }
     first.insert(first.end(), second.data(), second.data() + second.size());
 
@@ -232,7 +232,7 @@ void CWorldClient::BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp:
 // armour's type; item i goes to record i + 1). The head list two: [0] the helmet row items[0] (0x3005) and
 // [1] the shown extra weapon (0x3004, the weapon's type) when its index is within the list. items[1..6] are
 // read whatever the item list's size; an id past its table reads through a null record (it faults).
-void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list) {
+void UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list) {
     constexpr std::uint32_t kBody = 0x32, kArmourPiece = 0x3005, kWeapon = 0x3004;
     list->clear();
     auto& items = const_cast<IdList&>(record->items);

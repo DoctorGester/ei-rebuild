@@ -9,6 +9,7 @@
 // cell fades in while visible and out once not, and is dropped when nearly transparent.
 
 #include "base_manager.h"
+#include "clip.h"   // TLVertex
 #include "core_transform.h"
 #include "maths.h"
 #include "model.h"   // ClipBounds
@@ -22,10 +23,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 #undef GetClassName
 
-struct TLVertex;
 struct VertexPacket;
 
 // One particle (from the source's pool). The source's tick saves the "prev" fields before calling the update
@@ -272,7 +273,7 @@ class CObject3D;
 
 // The client world's manager set-up calls it after the base manager's constructor.
 class CParticleManager;
-void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager);
+void ParticleManagerClearQuietStart(CParticleManager* manager);
 
 // The particle manager: a CBaseManager whose objects are the sources. It keeps a pool of free particles (taken
 // from the head, returned to the tail), and holds one reference on every source made through CreateSource
@@ -322,12 +323,12 @@ struct ParticleDepth {
 using ParticleDepthArray = mfc::CArray<ParticleDepth>;
 
 // The draw order's sort: STLport's introsort on [first, last) with "greater depth first" (far sources first).
-void __fastcall IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void* tag, int depthLimit,
+void IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void* tag, int depthLimit,
                                  int compare);
-void __fastcall FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int compare);
-void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void* tag, int compare,
+void FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int compare);
+void MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void* tag, int compare,
                                 void* distanceTag);
-void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, ParticleDepth* result,
+void PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, ParticleDepth* result,
                                ParticleDepth value, int compare, void* distanceTag);
 
 // One texture frame's UV rectangle.
@@ -564,7 +565,7 @@ public:
     ClipBounds clip;
     std::uint8_t unused_1A8[0x1B4 - 0x1A8];
     mfc::CTypedPtrList<Particle> particles;
-    lib::AlignedArray<SourceFrame> frames;
+    std::vector<SourceFrame> frames;
     EmitCallback emitFn;
     UpdateCallback updateFn;
     ElementCallback elementFn;
@@ -572,10 +573,10 @@ public:
 };
 
 // The class factory's creator; the register arguments are unused.
-CParticleSource* __stdcall NewParticleSource(int type);
+CParticleSource* NewParticleSource(int type);
 
 // `out` = v / d, all three quotients computed before the first store; returns out.
-Vector3* __fastcall DivideVector(Vector3* out, const Vector3& v, float d);
+Vector3* DivideVector(Vector3* out, const Vector3& v, float d);
 
 // The particle renderer's shared arrays. One vertex (position and size,
 // interpolated between the last two ticks) and one sprite (colour, texture frame) per particle.
@@ -589,7 +590,7 @@ struct ParticleSprite {
 using ParticleSpriteArray = mfc::CArray<ParticleSprite>;
 
 // Room for `count` elements, 32-byte aligned, the allocated block stored just below;
-ParticleElement* __fastcall AllocateElements(int count);
+ParticleElement* AllocateElements(int count);
 
 // The world's rain/snow layer.
 class CRainSnow final : public CEngineObject {
@@ -629,13 +630,13 @@ public:
     class CWorldClient* world;      // the client world (set after construction)
     int sound;                      // rain loop handle in the sound manager (0: none)
     // The draws' work arrays.
-    lib::AlignedArray<Vector4> projected;       // the positions projected (four per packet)
-    lib::AlignedArray<VertexPacket> positions;  // the particles' corners (w not written)
+    std::vector<Vector4> projected;       // the positions projected (four per packet)
+    std::vector<VertexPacket> positions;  // the particles' corners (w not written)
     mfc::impl::CByteArray outcodes;             // a clip outcode per position
     mfc::impl::CByteArray frames;               // a texture frame (0..3) per particle
-    lib::AlignedArray<TLVertex> vertices;       // what is drawn (colours never written)
+    std::vector<TLVertex> vertices;       // what is drawn (colours never written)
     mfc::impl::CWordArray indices;              // 0, 1, 2, ... (filled elsewhere)
-    lib::AlignedArray<int> offsets;             // the grid's 81 cell offsets (filled elsewhere)
+    std::vector<int> offsets;             // the grid's 81 cell offsets (filled elsewhere)
     int particleCount;              // positions built by the last draw
     Vector3 wind;
     int mode;                       // 0 off, 1 rain, 2 snow

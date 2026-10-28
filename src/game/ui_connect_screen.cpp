@@ -40,7 +40,7 @@
 #include <string>
 
 namespace net {
-int __fastcall MasterLinkTick(net::MasterLink*);
+int MasterLinkTick(net::MasterLink*);
 }
 namespace {
 
@@ -255,8 +255,8 @@ void CMpConnectScreen::Update() {
             joining_ = false;
             std::string key;
             key = RefusalKey(client->refusal_);
-            mfc::CString text = key + MessageSuffix();
-            interface_->PushWindow(new CMessageBox(interface_, key.c_str(), text, kBoxNotice, kBoxFlagsOk, kBoxFormat), 1, 1);
+            std::string text = key + MessageSuffix();
+            interface_->PushWindow(new CMessageBox(interface_, key.c_str(), text.c_str(), kBoxNotice, kBoxFlagsOk, kBoxFormat), 1, 1);
             return;
         }
     }

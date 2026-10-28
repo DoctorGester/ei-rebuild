@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #undef GetClassName
 
@@ -53,10 +54,10 @@ static_assert(offsetof(NpcPrototypeTable, byName) == 0x0C);
 
 // The statistics of an NPC of prototype `name` (a fatal error without one; a debug message without its NPC
 // record), then recomputed around a refill of the slots. Returns 1.
-int __stdcall BuildNpcStats(UnitStats* stats, const char* name);
+int BuildNpcStats(UnitStats* stats, const char* name);
 
 // The object class of prototype `name`'s model record; 0x33 without a prototype or model.
-int __stdcall PrototypeObjectClass(const char* name);
+int PrototypeObjectClass(const char* name);
 
 // The map object manager ("map objects", class id 0x2D).
 struct CMapObjectManager : CResourceManager {
@@ -83,7 +84,7 @@ struct CMapObjectManager : CResourceManager {
     // The entry of the animation database "<figure>.adb" matching `key`: the same bits above 0x7FFF and, of
     // the low bits, none of the key's missing (a key without low bits takes only an entry without). Null
     // (with a debug message when there is no database).
-    FigureAnimation* FindAnimation(const mfc::CString* figure, std::uint32_t key);
+    FigureAnimation* FindAnimation(const std::string* figure, std::uint32_t key);
     // The defaults of an object without a prototype (SetDefaults): a unit (class 0x50) gets the statistics
     // (SetStats), any other object the vitals (SetServerData); then ScaleEffectChanged(0) and no prototype
     // index. Returns 1.

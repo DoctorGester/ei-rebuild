@@ -29,11 +29,6 @@ namespace console {
 
 // ---- Helpers ------------------------------------------------------------------------------------
 
-void Str::AppendChar(char a0) { mfc::CString::operator+=(a0); }
-void Str::AppendText(const char* a0) { mfc::CString::operator+=(a0); }
-void Str::TrimLeft(char a0) { mfc::CString::TrimLeft(a0); }
-void Str::TrimRight(char a0) { mfc::CString::TrimRight(a0); }
-
 CStdioFile::CStdioFile() {
     std::construct_at(&file_);
     file_.Construct();
@@ -46,7 +41,13 @@ CStdioFile::~CStdioFile() { file_.Destruct(); }
 mfc::BOOL CStdioFile::Open(std::string_view name, unsigned flags, mfc::impl::CFileException* error) {
     return file_.Open(std::string(name).c_str(), flags, error);
 }
-mfc::BOOL CStdioFile::ReadString(mfc::CString& line) { return file_.ReadLine(mfc::ImplOf(line)); }
+// MFC's CStdioFile::ReadString(CString&) reads into a CString of src/lib's MFC; the line is its text.
+mfc::BOOL CStdioFile::ReadString(std::string& line) {
+    mfc::CString read;
+    const mfc::BOOL found = file_.ReadLine(mfc::ImplOf(read));
+    line = read.GetString();
+    return found;
+}
 char* CStdioFile::ReadString(char* buffer, unsigned size) { return file_.ReadString(buffer, size); }
 void CStdioFile::WriteString(const char* text) { file_.WriteString(text); }
 void CStdioFile::Close() { file_.Close(); }
@@ -142,7 +143,7 @@ const CommandRegistration kCommandRegistrations[27] = {
 // "$" lines (cheat word given, not in a network game) become WorldScript lines. Other commands and
 // their arguments are lower-cased; "quit"/"exit" quit; otherwise the public map is tried, then the
 // cheat word, then (after it) the cheat map. Looking a command up inserts it (original behaviour).
-void __fastcall Execute(const char* text) {
+void Execute(const char* text) {
     for (const CommandRegistration& r : kCommandRegistrations) {
         std::string name = r.name;
         Command(r.cheat ? CheatCommands() : PublicCommands(), name) = r.handler;
@@ -252,8 +253,7 @@ void RunScriptLine(const std::string& text, const Arguments& args, const char* p
         line += arg;
     }
     line += suffix;
-    mfc::CString script(line.c_str());
-    if (!RunScriptText(&script, 1, &error))
+    if (!RunScriptText(line, 1, &error))
         EndLine(Out() << "Script error: " << error.text.c_str());
 }
 

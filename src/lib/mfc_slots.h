@@ -16,12 +16,12 @@ namespace mfc::impl {
 template <typename F>
 struct DestructTarget;
 template <typename T>
-struct DestructTarget<void(__fastcall*)(T*)> {
+struct DestructTarget<void(*)(T*)> {
     using Type = T;
 };
 
 // `Destruct` on the object, its memory freed when bit 0 of `flags` is set; returns the object.
-// Registered as ScalarDeleting<&Destruct>::Delete: `this` is the object, of Destruct's parameter type.
+// ScalarDeleting<&Destruct>::Delete: `this` is the object, of Destruct's parameter type.
 template <auto Destruct>
 struct ScalarDeleting {
     void* Delete(unsigned flags) {
@@ -31,9 +31,6 @@ struct ScalarDeleting {
         return self;
     }
 };
-
-// std::exception's destructor, which the exception classes' own destructors jump to.
-void __fastcall ExceptionDestruct(libcrt::Exception* self);
 
 // ---- Serialize (vtable slot 2) --------------------------------------------------------------
 // afxtempl.h's Serialize with the default SerializeElements: each element as its raw bytes, whatever it
@@ -332,7 +329,6 @@ void FreeAlignedAt(E* p) {
 template <std::size_t Size>
 using DeletedThroughObject = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DeleteThroughObject<Bytes<Size>>>>;
 template <std::size_t Size>
-using DeletedThroughFirst = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DeleteThroughFirst<Bytes<Size>>>>;
 template <std::size_t Size, std::size_t At>
 using AlignedBlockAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, FreeAlignedAt<Bytes<Size>, At>>>;
 

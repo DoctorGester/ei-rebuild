@@ -244,6 +244,3 @@ BOOL CCameraInput::OnWheel(int, int delta, int, int) {
     return TRUE;
 }
 
-namespace {
-void __fastcall CameraInputDeactivate(CCameraInput* self) { self->OnDeactivate(); }
-} // namespace

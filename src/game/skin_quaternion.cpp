@@ -6,7 +6,7 @@
 
 #include "lib/vecmath.h"
 
-Quaternion* __fastcall MultiplyQuaternions(Quaternion* out, const Quaternion* a, const Quaternion* b) {
+Quaternion* MultiplyQuaternions(Quaternion* out, const Quaternion* a, const Quaternion* b) {
     Vector3 av = {a->x, a->y, a->z};
     Vector3 bv = {b->x, b->y, b->z};
     Vector3 cross = Cross(av, bv);   // as the game does

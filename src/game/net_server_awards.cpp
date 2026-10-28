@@ -15,6 +15,7 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <string>
 #include <vector>
 
 namespace net {
@@ -109,9 +110,9 @@ void ServerSession::CompleteZone(const std::string* zone) {
     auto* holder = &map_;
     if (IsLive(holder->ptr)) {
         {
-            mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
-            const char* mapTitle = *SessionMapNameInto(&title);
-            Announce(*TheInterface()->MessageText(&text, 7, mapTitle), nullptr);
+            std::string title, text;
+            const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
+            Announce((*TheInterface()->MessageText(&text, 7, mapTitle)).c_str(), nullptr);
         }
     }
 
@@ -161,9 +162,9 @@ void ServerSession::LeaveZone() {
     auto* holder = &map_;
     if (IsLive(holder->ptr)) {
         {
-            mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
-            const char* mapTitle = *SessionMapNameInto(&title);
-            Announce(*TheInterface()->MessageText(&text, 6, mapTitle), nullptr);
+            std::string title, text;
+            const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
+            Announce((*TheInterface()->MessageText(&text, 6, mapTitle)).c_str(), nullptr);
         }
 
         QuestBriefingRecord* entry;

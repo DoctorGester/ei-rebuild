@@ -19,7 +19,7 @@ namespace {
 CEngineObject* FindObject(int id) { return TheServerWorld()->FindObject(static_cast<unsigned>(id)); }
 
 // The game's CRT.
-void __cdecl GameQsort(void* a0, std::size_t a1, std::size_t a2, int(__cdecl* a3)(const void*, const void*)) { libcrt::Qsort(a0, a1, a2, a3); }
+void GameQsort(void* a0, std::size_t a1, std::size_t a2, int(__cdecl* a3)(const void*, const void*)) { libcrt::Qsort(a0, a1, a2, a3); }
 
 constexpr std::uint32_t kDeleted = 1;     // CEngineObject::flags_: removed from the world
 
@@ -42,7 +42,7 @@ void Store(ScriptObjectRef* slot, CEngineObject* object) {
 
 
 // The game's order: by object address, unsigned (ours: ScriptGroup::After).
-int __cdecl CompareMembers(const void* a, const void* b) {
+int CompareMembers(const void* a, const void* b) {
     const CEngineObject* x = static_cast<const ScriptObjectRef*>(a)->object;
     const CEngineObject* y = static_cast<const ScriptObjectRef*>(b)->object;
     if (x == y) return 0;

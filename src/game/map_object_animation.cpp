@@ -58,11 +58,11 @@ void AnimationTrack::Evaluate(float atTime) {
         rotation = kTrackDefaultRotation;
     }
 
-    if (next < frames.size) {
+    if (next < std::ssize(frames)) {
         for (int v = 0; v < vertexCount; ++v)
-            LerpPoint(&vertices.data[v].x, frames.data[index] + 3 * v, frames.data[next] + 3 * v, fraction);
-    } else if (frames.size != 0) {
-        std::memcpy(vertices.data, frames.data[frames.size - 1], static_cast<std::size_t>(vertexCount) * 12);
+            LerpPoint(&vertices[v].x, frames[index] + 3 * v, frames[next] + 3 * v, fraction);
+    } else if (!frames.empty()) {
+        std::memcpy(vertices.data(), frames[std::ssize(frames) - 1], static_cast<std::size_t>(vertexCount) * 12);
     }
     std::memcpy(&time, &atTime, 4);
 }

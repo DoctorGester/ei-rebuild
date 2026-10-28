@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -24,10 +25,7 @@ struct LightningPoint {
 };
 static_assert(sizeof(LightningPoint) == 16);
 
-// An aligned array of LightningPoint (the raw operator new block is kept just before the data, at data[-1]).
-// Its SetSize is the library instantiation's, reached through LightningPointsSetSize (lightning.cpp).
-using LightningPointArray = lib::AlignedArray<LightningPoint>;
-void __fastcall LightningPointsSetSize(LightningPointArray* points, void*, int newSize, int newGrowBy);
+using LightningPointArray = std::vector<LightningPoint>;
 
 // A random noise key: two rows of the noise table (0..15) and their weights, scaled together to a
 // fixed length.
@@ -119,7 +117,7 @@ inline float g_lightningNoise[kLightningNoiseRows][kLightningNoiseRowLength] = /
 inline float* LightningNoiseTable() { return g_lightningNoise[0]; }
 // (cdecl; lightning_load.cpp; Rebirth-patched: callers use LoadLightningNoiseOriginal).
 // Fills the noise table from the archive; 0 when gfx.res does not open, else 1.
-int __cdecl LoadLightningNoise();
+int LoadLightningNoise();
 
 // The client world's lightning manager. Built by the client world's Setup (world_client_maps.cpp,
 // the constructor inlined there), which also holds its lifetime and slots.

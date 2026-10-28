@@ -54,59 +54,59 @@
 using options::GameOptions;
 
 namespace app {
-std::uint32_t __cdecl GetDxVersion();
+std::uint32_t GetDxVersion();
 
 // ---- The application's globals that the static initialisers set ------------------------------------
 
-// The command line's CStrings, built by static initialisers in the list's order and destroyed by the exit
+// The command line's strings, built by static initialisers in the list's order and destroyed by the exit
 // functions they register; the mouse object's pointer, null at the start, released by its exit function.
-constinit lib::StaticObject<mfc::CString> g_movieFolder = /*0079BA0C*/ {};
-constinit lib::StaticObject<mfc::CString> g_commandLineMap = /*0079BA10*/ {};
-constinit lib::StaticObject<mfc::CString> g_commandLineMob = /*0079BA14*/ {};
-constinit lib::StaticObject<mfc::CString> g_commandLineScript = /*0079BA18*/ {};
-constinit lib::StaticObject<mfc::CString> g_cameraFile = /*0079BA1C*/ {};
+constinit lib::StaticObject<std::string> g_movieFolder = /*0079BA0C*/ {};
+constinit lib::StaticObject<std::string> g_commandLineMap = /*0079BA10*/ {};
+constinit lib::StaticObject<std::string> g_commandLineMob = /*0079BA14*/ {};
+constinit lib::StaticObject<std::string> g_commandLineScript = /*0079BA18*/ {};
+constinit lib::StaticObject<std::string> g_cameraFile = /*0079BA1C*/ {};
 constinit CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};
 
-mfc::CString& MovieFolder() { return *g_movieFolder; }
-mfc::CString& CommandLineMap() { return *g_commandLineMap; }
-mfc::CString& CommandLineMob() { return *g_commandLineMob; }
-mfc::CString& CommandLineScript() { return *g_commandLineScript; }
-mfc::CString& CameraFile() { return *g_cameraFile; }
+std::string& MovieFolder() { return *g_movieFolder; }
+std::string& CommandLineMap() { return *g_commandLineMap; }
+std::string& CommandLineMob() { return *g_commandLineMob; }
+std::string& CommandLineScript() { return *g_commandLineScript; }
+std::string& CameraFile() { return *g_cameraFile; }
 CDirectInputMouse*& Mouse() { return g_mouse; }
 
 namespace {
 
-void __cdecl DestroyCameraFile() { g_cameraFile.Destroy(); }
-void __cdecl DestroyCommandLineScript() { g_commandLineScript.Destroy(); }
-void __cdecl DestroyCommandLineMob() { g_commandLineMob.Destroy(); }
-void __cdecl DestroyCommandLineMap() { g_commandLineMap.Destroy(); }
-void __cdecl DestroyMovieFolder() { g_movieFolder.Destroy(); }
+void DestroyCameraFile() { g_cameraFile.Destroy(); }
+void DestroyCommandLineScript() { g_commandLineScript.Destroy(); }
+void DestroyCommandLineMob() { g_commandLineMob.Destroy(); }
+void DestroyCommandLineMap() { g_commandLineMap.Destroy(); }
+void DestroyMovieFolder() { g_movieFolder.Destroy(); }
 } // namespace
 
-// The initialisers: each CString empty (".\capture\" for the movie folder), its exit function registered.
-void __cdecl ConstructCameraFile() {
+// The initialisers: each string empty (".\capture\" for the movie folder), its exit function registered.
+void ConstructCameraFile() {
     g_cameraFile.Construct();
     libcrt::AtExit(DestroyCameraFile);
 }
-void __cdecl ConstructCommandLineScript() {
+void ConstructCommandLineScript() {
     g_commandLineScript.Construct();
     libcrt::AtExit(DestroyCommandLineScript);
 }
-void __cdecl ConstructCommandLineMob() {
+void ConstructCommandLineMob() {
     g_commandLineMob.Construct();
     libcrt::AtExit(DestroyCommandLineMob);
 }
-void __cdecl ConstructCommandLineMap() {
+void ConstructCommandLineMap() {
     g_commandLineMap.Construct();
     libcrt::AtExit(DestroyCommandLineMap);
 }
-void __cdecl ConstructMovieFolder() {
+void ConstructMovieFolder() {
     g_movieFolder.Construct(".\\capture\\");
     libcrt::AtExit(DestroyMovieFolder);
 }
 
 // The mouse's reference dropped (ShutDown has already taken it: null at exit).
-void __cdecl ReleaseMouseAtExit() {
+void ReleaseMouseAtExit() {
     if (CDirectInputMouse* mouse = g_mouse)
         if (--mouse->references_ == 0) delete mouse;
 }
@@ -148,10 +148,10 @@ constexpr const char* kWindowClassName = "EIGAME";
 
 // The registry key of the options and the folders: where the game was started, the disc's, the
 // text resources' and the data folder (the last three are set from the options).
-mfc::CString& RegistryRoot() { return TheRegistryRoot(); }
-mfc::CString& StartFolder() { return TheStartFolder(); }
-mfc::CString& DiscFolder() { return TheDiscFolder(); }
-mfc::CString& TextFolder() { return TheTextFolder(); }
+std::string& RegistryRoot() { return TheRegistryRoot(); }
+std::string& StartFolder() { return TheStartFolder(); }
+std::string& DiscFolder() { return TheDiscFolder(); }
+std::string& TextFolder() { return TheTextFolder(); }
 
 // The loop's clock: the time of the last pass (a function-local static), the time not yet run by the server and by
 // the client (milliseconds), and the client's speed.
@@ -220,9 +220,9 @@ void ReadCommandLine(const char* commandLine) {
     std::vector<std::string> arguments;
     text::Split(commandLine, &arguments, ' ');
     CameraFile() = ".\\camera.cam";
-    CommandLineScript().Empty();
-    CommandLineMob().Empty();
-    CommandLineMap().Empty();
+    CommandLineScript().clear();
+    CommandLineMob().clear();
+    CommandLineMap().clear();
     CWorldClient* client = TheClientWorld();
     GameOptions* options = options::TheOptions();
     for (std::size_t i = 0; i < arguments.size(); ++i) {
@@ -232,8 +232,8 @@ void ReadCommandLine(const char* commandLine) {
                 std::string folder = Tail(arguments[i], 11);
                 MovieFolder() = folder;
             }
-            const char* folder = MovieFolder();
-            if (folder[MovieFolder().GetLength() - 1] != '\\') MovieFolder() += '\\';
+            const char* folder = MovieFolder().c_str();
+            if (folder[static_cast<int>(MovieFolder().size()) - 1] != '\\') MovieFolder() += '\\';
             continue;
         }
         if (!(client->flags_ & 0x10)) {
@@ -338,8 +338,8 @@ bool FreeDiskSpace(const char* folder, double* freeBytes) {
 // disc folder (when it is not the data folder) is not on a volume with the options' label. False
 // when the player cancels.
 bool CheckDrives(const std::vector<std::string>& messages) {
-    std::string discFolder = DiscFolder().GetString();
-    std::string dataFolder = TheDataFolder().GetString();
+    std::string discFolder = DiscFolder();
+    std::string dataFolder = TheDataFolder();
     double freeBytes;
     if (FreeDiskSpace(dataFolder.c_str(), &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
@@ -369,13 +369,13 @@ void CreateMouse() {
     if (old) ReleaseMouse(old);
 }
 
-void CreateFolders(mfc::CString& path) {
-    path.Format("%ssaves\\", TheDataFolder().GetString());
-    gameapi::CreateDirectoryA(path, nullptr);
-    path.Format("%smp\\", TheDataFolder().GetString());
-    gameapi::CreateDirectoryA(path, nullptr);
-    path.Format("%stextures\\", TheDataFolder().GetString());
-    gameapi::CreateDirectoryA(path, nullptr);
+void CreateFolders(std::string& path) {
+    path = str::Format("%ssaves\\", TheDataFolder().c_str());
+    gameapi::CreateDirectoryA(path.c_str(), nullptr);
+    path = str::Format("%smp\\", TheDataFolder().c_str());
+    gameapi::CreateDirectoryA(path.c_str(), nullptr);
+    path = str::Format("%stextures\\", TheDataFolder().c_str());
+    gameapi::CreateDirectoryA(path.c_str(), nullptr);
 }
 
 // The renderer created on the window, then what the video memory allows. Returns the free
@@ -410,9 +410,9 @@ DWORD CreateRenderer() {
 // the disc folder's text pointer (see the caller).
 std::uintptr_t OpenSound() {
     GameOptions* options = options::TheOptions();
-    std::string textFolder = TextFolder().GetString();
-    std::string dataFolder = TheDataFolder().GetString();
-    std::string discFolder = DiscFolder().GetString();
+    std::string textFolder = TextFolder();
+    std::string dataFolder = TheDataFolder();
+    std::string discFolder = DiscFolder();
     TheSoundManager()->Open(g_mainWindow, 1, -1, 44100, 16);
     {
         std::string registry = textFolder + "streamsn.reg";
@@ -473,6 +473,7 @@ void FrameCameraUpdate(CCamera* camera, float seconds) {
     else camera->Update(seconds);
 }
 using WorldUpdate = ei::mainloop::HarnessHooks::WorldUpdate;
+// The hook types are __fastcall (include/ei/main_loop.h): the harness's hooks are also game.exe's CALL targets.
 int __fastcall UpdateServer(void* server, void*) { return static_cast<CWorldServer*>(server)->Update(); }
 int __fastcall RunClientSegment(void* client, void*) { return static_cast<CWorldClient*>(client)->Segment(); }
 WorldUpdate ServerUpdate() {
@@ -687,7 +688,7 @@ void ShutDown(gamecrt::NewHandler previousHandler) {
     if (mouse) ReleaseMouse(mouse);
     TheSceneRenderer()->SetGamma(0.0f, 0.0f, 0.0f);
     SceneRenderer()->DestroyRenderer();
-    options::TheOptions()->SaveToRegistry(RegistryRoot());
+    options::TheOptions()->SaveToRegistry(RegistryRoot().c_str());
     TheClientWorld()->SetCamera(nullptr);
     TheServerWorld()->Destroy();
     TheClientWorld()->Destroy();
@@ -696,7 +697,7 @@ void ShutDown(gamecrt::NewHandler previousHandler) {
 
 } // namespace
 
-int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
+int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     std::vector<std::string> messages;
     LoadSystemMessages(messages);
     if (GetDxVersion() < 0x700) {
@@ -716,10 +717,10 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
                          : "Software\\Nival Interactive\\EvilIslands";
     StoreStartFolder();
     {
-        std::string settings = (StartFolder() + "config\\ai.reg").GetString();
+        std::string settings = StartFolder() + "config\\ai.reg";
         g_logicSettings.Load(settings.c_str());
     }
-    options->LoadFromRegistry(RegistryRoot());
+    options->LoadFromRegistry(RegistryRoot().c_str());
     const gamecrt::NewHandler previousHandler =
         libcrt::SetNewHandler(app::OutOfMemory);
     TheClientWorld()->Create();
@@ -732,7 +733,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     if (!CheckDrives(messages)) return kExitDeclined;
     CreateMouse();
 
-    mfc::CString folder;
+    std::string folder;
     CreateFolders(folder);
     g_instance = instance;
     g_mainWindow = gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_windowClassAtom), g_windowTitle, WS_POPUP | WS_CLIPSIBLINGS, 0, 0,

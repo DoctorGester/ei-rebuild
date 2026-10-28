@@ -115,8 +115,8 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     mapspec::MobFile* root = &rootChunk;
     auto* fileObject = root->file_.Virtuals();
 
-    mfc::CString path;
-    MapPath(&path, file);   // constructs the CString in place
+    std::string path;
+    MapPath(&path, file);
     int result;
     if (!root->Open(path, 0x8020)) {
         result = game::FatalError(game::zonetexts::CantOpenObjects(), file);
@@ -211,7 +211,7 @@ bool SameName(std::string_view a, std::string_view b) {
 constexpr const char* kProgres5 = "progres5.bik";
 } // namespace
 
-void __stdcall SelectLoadingMovie(const char* zone) {
+void SelectLoadingMovie(const char* zone) {
     std::string allod;
     if (zone) {
         MapRecord* map = TheMapDatabase()->FindMap(zone);

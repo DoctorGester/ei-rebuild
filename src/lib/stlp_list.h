@@ -3,7 +3,7 @@
 // STLport's list<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md, section 2). One
 // pointer to the sentinel node the constructor allocates (its next is the first element, its prev the last; an
 // empty list's sentinel points at itself). Nodes are next, prev, then the element, from the node allocator. The
-// game's instantiations of the members below are registered at their own addresses in stlp_list.cpp through the
+// game's instantiations of the members below are in stlp_list.cpp through the
 // ListAbi shims: one body for every element type, the element's copy and destruction supplied by an element policy.
 
 #include "stlp_alloc.h"
@@ -184,12 +184,12 @@ struct ListAbi : list<T> {
         List::Construct();
         return this;
     }
-    static List* __fastcall ConstructDefault(List* self) {
+    static List* ConstructDefault(List* self) {
         self->Construct();
         return self;
     }
-    static void __fastcall Destruct(List* self) { self->template Release<E>(); }
-    static void __fastcall Clear(List* self) { self->template Clear<E>(); }
+    static void Destruct(List* self) { self->template Release<E>(); }
+    static void Clear(List* self) { self->template Clear<E>(); }
     // _M_create_node(x): the list is not read; the node's links are left as the pool had them.
     Node* CreateNode(const T& x) { return List::template CreateNode<E>(x); }
     // insert(pos, x). The list is not read (it is called with any register value).
@@ -211,8 +211,8 @@ struct ListAbi : list<T> {
         List::template InsertRange<E>(pos, first, last);
     }
     void PushBack(const T& x) { List::template Insert<E>(this->head, x); }
-    static void __fastcall PushBackDefault(List* self) { List::template InsertDefault<E>(self->head); }
-    static void __fastcall PopBack(List* self) { List::template Erase<E>(self->head->prev); }
+    static void PushBackDefault(List* self) { List::template InsertDefault<E>(self->head); }
+    static void PopBack(List* self) { List::template Erase<E>(self->head->prev); }
     Node** Erase(Node** out, Node* pos) {
         *out = List::template Erase<E>(pos);
         return out;

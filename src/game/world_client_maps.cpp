@@ -228,7 +228,7 @@ struct CellOps {
 using DynamicList = mfc::CList<CMapObject*>;
 using DynamicNode = DynamicList::Node;
 
-void __fastcall SessionPlayerClear(CPlayer* session) { session->Clear(); }
+void SessionPlayerClear(CPlayer* session) { session->Clear(); }
 
 constexpr int kClassPlatform54 = 0x54;
 constexpr int kClassPlatform5D = 0x5D;
@@ -1042,7 +1042,7 @@ SectorList* SectorList::VectorDelete(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-void __fastcall SectorListDestruct(stlp::list<CMapObject*>* list) { DestroySectorList(list); }
+void SectorListDestruct(stlp::list<CMapObject*>* list) { DestroySectorList(list); }
 
 void SectorGrid::Allocate() {
     const int count = unknown08_ * unknown0C_;
@@ -1070,7 +1070,7 @@ void SectorGrid::Resize(int width, int height) {
 int CWorldClient::Create() {
     CWorld::Create();
     {
-        std::string path = (TheDataFolder() + worlddata::TexturesFolderText()).GetString();
+        std::string path = TheDataFolder() + worlddata::TexturesFolderText();
         texturePath_ = path;
     }
     LoadLights(worlddata::LightsTableText());
@@ -1115,11 +1115,11 @@ int CWorldClient::Create() {
     sounds_->Create();
     texts_->Create();
     {
-        std::string path = (TheTextFolder() + worlddata::TextsFileText()).GetString();
+        std::string path = TheTextFolder() + worlddata::TextsFileText();
         texts_->AddSource(path.c_str());
     }
     {
-        std::string path = (TheTextFolder() + worlddata::TextsLmpFileText()).GetString();
+        std::string path = TheTextFolder() + worlddata::TextsLmpFileText();
         texts_->AddSource(path.c_str());
     }
 
@@ -1144,7 +1144,7 @@ int CWorldClient::Create() {
     else
         flags_ &= ~0x200u;
     {
-        std::string path = (TheDataFolder() + worlddata::CursorFileText()).GetString();
+        std::string path = TheDataFolder() + worlddata::CursorFileText();
         cursor_ = text::sys::LoadCursorFromFileA(path.c_str());
     }
 
@@ -1205,7 +1205,7 @@ int CWorldClient::LoadItemsAndSpells(CStream* block) {
     return 1;
 }
 
-int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream) {
+int LoadManagerObjects(CBaseManager* manager, CStream* stream) {
     for (;;) {
         std::uint8_t more;
         stream->Read(&more, 1);
@@ -1337,8 +1337,8 @@ bool InFinalZone() {
 
 int CWorldClient::LoadZone(CStream* block) {
     TheGameFlow()->UpdateAndAcknowledge();
-    mfc::CString map;
-    mfc::CString mob;
+    std::string map;
+    std::string mob;
     sounds_->SetEffectsVolume(0);
     sounds_->StopAll(1);
     partyDanger_ = 0;
@@ -1356,7 +1356,7 @@ int CWorldClient::LoadZone(CStream* block) {
     UnitLooks looks;
     ReadUnitLooks(block, &looks.figured, &looks.dressed);
     cave_ = cave;
-    GameEnsureZone(map, mob);
+    GameEnsureZone(map.c_str(), mob.c_str());
     ShowLoadingMovie(kProgressBlockRead);
 
     ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
@@ -1367,9 +1367,9 @@ int CWorldClient::LoadZone(CStream* block) {
     Session()->sessionKind100_ = 0;
     ShowLoadingMovie(kProgressZoneCleared);
     Terrain* terrain = terrain_;
-    if (map.GetLength() > 1 && map[1] != ':') {
-        mfc::CString folder;
-        modfolders::SelectMaps(map, modfolders::MapsSite::ClientLoadZone);
+    if (static_cast<int>(map.size()) > 1 && map[1] != ':') {
+        std::string folder;
+        modfolders::SelectMaps(map.c_str(), modfolders::MapsSite::ClientLoadZone);
         MapsFolder(&folder);
         map = folder + map;
     }
@@ -1385,8 +1385,8 @@ int CWorldClient::LoadZone(CStream* block) {
     allod = worlddata::DefaultAllodText();
     if (zone) allod = zone->allod;
     str::MakeLower(allod);
-    if (!terrain->LoadMap(map, allod.c_str(), cave == kCave))
-        return game::FatalError(worlddata::CantLoadTerrainFormat(), map.GetString());
+    if (!terrain->LoadMap(map.c_str(), allod.c_str(), cave == kCave))
+        return game::FatalError(worlddata::CantLoadTerrainFormat(), map.c_str());
 
     FitGrid(objectGrid_, terrain);
     FitGrid(secondGrid_, terrain);

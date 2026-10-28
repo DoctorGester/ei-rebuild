@@ -54,20 +54,6 @@ std::string FromAssetText(std::string_view bytes, unsigned codepage) {
     }
 }
 
-void FromAssetText(mfc::CString* text, unsigned codepage) {
-    if constexpr (kUtf8) {
-        const std::string_view bytes(text->GetString(), static_cast<std::size_t>(text->GetLength()));
-        if (IsAscii(bytes)) return;
-        const std::string converted = FromAssetText(bytes, codepage);
-        const int length = static_cast<int>(converted.size());
-        std::memcpy(text->GetBufferSetLength(length), converted.data(), converted.size());
-        text->ReleaseBuffer(length);
-    } else {
-        (void)text;
-        (void)codepage;
-    }
-}
-
 void FromAssetText(std::string* text, unsigned codepage) {
     if constexpr (kUtf8) {
         if (IsAscii(*text)) return;
@@ -114,8 +100,6 @@ int CharacterCount(std::string_view text) {
     }
 }
 
-int CharacterCount(const mfc::CString& text) { return CharacterCount(Bytes(text.GetString())); }
-
 // ---- Lengths and cuts by character ----------------------------------------------------------------
 
 namespace {
@@ -157,8 +141,6 @@ int CharacterBytes(std::string_view text, int characters) {
         return static_cast<int>(i);
     }
 }
-
-int CharacterBytes(const mfc::CString& text, int characters) { return CharacterBytes(Bytes(text.GetString()), characters); }
 
 std::size_t FittingBytes(std::string_view text, std::size_t room) {
     if (text.size() <= room) return text.size();
@@ -208,11 +190,11 @@ bool IsContinuation(char byte) { return (static_cast<unsigned char>(byte) & 0xC0
 
 } // namespace
 
-mfc::CString Typed(const std::string& head, int character) {
+std::string Typed(const std::string& head, int character) {
     if constexpr (kUtf8) {
         return head + Utf8Of(character).c_str();
     } else {
-        return mfc::operator+(head, static_cast<char>(character));
+        return head + static_cast<char>(character);
     }
 }
 

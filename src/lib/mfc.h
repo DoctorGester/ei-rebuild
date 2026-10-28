@@ -32,7 +32,7 @@ public:
     const CString& operator=(const CString& s);
 
     // Printf-style; MFC declares it __cdecl, so `this` is the first stack argument.
-    void __cdecl Format(const char* format, ...);
+    void Format(const char* format, ...);
 
     void Empty();
     char* GetBufferSetLength(int length);
@@ -211,8 +211,8 @@ struct CPlex {
     CPlex* next;
 };
 namespace impl {
-CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);
-int __fastcall FreePlexChain(CPlex* head);
+CPlex* CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);
+int FreePlexChain(CPlex* head);
 } // namespace impl
 inline CPlex* PlexCreate(CPlex*& head, unsigned count, unsigned elementSize) {
     return impl::CreatePlex(head, count, elementSize);
@@ -694,42 +694,17 @@ struct CMap {
 static_assert(sizeof(CMap<int, int>) == 0x1C);
 static_assert(sizeof(CMapAssoc<std::uint64_t, std::uint32_t>) == 0x14);
 
-// CStringArray (afxcoll): CArray's layout over CStrings. No constructor, so it can sit in layouts: Construct /
-// Destruct are the constructor and destructor.
-struct CStringArray {
-    void* vtable;       // written by Construct
-    CString* data;
-    int size;
-    int maxSize;
-    int growBy;
-
-    void Construct();
-    void Destruct();
-    void SetSize(int newSize, int newGrowBy = -1);
-    void SetAtGrow(int index, const CString& value);
-    void SetAtGrow(int index, const char* text);
-    void RemoveAt(int index, int count = 1);
-    void Copy(const CStringArray& source);
-    int Append(const CStringArray& source);             // the old size
-    void InsertAt(int index, const CString& value, int count = 1);
-
-    int GetSize() const { return size; }
-    CString& operator[](int index) { return data[index]; }
-    const CString& operator[](int index) const { return data[index]; }
-};
-static_assert(sizeof(CStringArray) == 0x14);
-
 // CTypedPtrList<CPtrList, T*>: a CPtrList (the list of void*, same layout) with typed elements. The game
 // inlines its operations; they are CList<T*>'s (a new node's data is zeroed, nothing destroyed).
 template <typename T>
 using CTypedPtrList = CList<T*>;
 
 
-CString __stdcall operator+(const CString& a, const char* b);
-CString __stdcall operator+(const char* a, const CString& b);
-CString __stdcall operator+(const CString& a, const CString& b);
-CString __stdcall operator+(const CString& a, char b);
-CString __stdcall operator+(char a, const CString& b);
+CString operator+(const CString& a, const char* b);
+CString operator+(const char* a, const CString& b);
+CString operator+(const CString& a, const CString& b);
+CString operator+(const CString& a, char b);
+CString operator+(char a, const CString& b);
 // The same bridge: text joined with a std::string, as the std::string side's type.
 inline std::string operator+(const std::string& a, const CString& b) { return a + b.GetString(); }
 inline CString operator+(const CString& a, const std::string& b) { return a + b.c_str(); }

@@ -108,10 +108,10 @@ constinit lib::StaticObject<CInterface3D> g_interface = /*007C7D50*/ {};
 CInterface3D* TheInterface() { return &*g_interface; }
 
 namespace {
-void __cdecl DestroyInterface() { g_interface->DestroyBody(); }
+void DestroyInterface() { g_interface->DestroyBody(); }
 } // namespace
 
-void __cdecl ConstructInterface() {
+void ConstructInterface() {
     g_interface->Construct();
     libcrt::AtExit(DestroyInterface);
 }

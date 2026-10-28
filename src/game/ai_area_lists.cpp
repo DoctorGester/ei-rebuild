@@ -31,7 +31,7 @@ constexpr int kEnd = 100;
 
 } // namespace
 
-void __fastcall FillAreaLists(CAIMap* map) {
+void FillAreaLists(CAIMap* map) {
     for (int i = 0; i < 6; ++i) {
         mfc::CArray<AreaOffset>* list = &map->areaLists[i];
         list->SetSize(0, -1);

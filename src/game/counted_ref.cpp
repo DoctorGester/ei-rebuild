@@ -1,7 +1,6 @@
 // A counted reference to an engine object (AIRefTo<T>, unit_ai.h; the map objects, the AI, the traps,
 // the effects and the unit controller keep these): reset, assign, and load / save by object id.
-// The bodies are one template, instantiated below for the classes the fields hold; AIRef's
-// (CEngineObject) are the registered ones.
+// The bodies are one template, instantiated below for the classes the fields hold.
 #include "unit_ai.h"
 
 #include "base_manager.h"
@@ -60,7 +59,7 @@ template void AIRefTo<CUnit>::Save(CStream*);
 
 // Reads a count, then that many counted references added at the tail of the list, each loaded in
 // `context` (the trap's units, the brain's lists).
-void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, CWorld* context) {
+void CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, CWorld* context) {
     int count;
     stream->Read(&count, 4);
     while (count-- > 0) {

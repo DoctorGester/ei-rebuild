@@ -16,6 +16,7 @@
 
 #include <cstring>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace net {
@@ -52,9 +53,9 @@ void ServerSession::SetMap(const std::string* name) {
     world->RegisterQuests(name->data());
     world->SetNetworkZone(name->data());
     {
-        mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
-        const char* mapTitle = *SessionMapNameInto(&title);
-        Announce(*TheInterface()->MessageText(&text, 5, mapTitle), nullptr);
+        std::string title, text;
+        const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
+        Announce((*TheInterface()->MessageText(&text, 5, mapTitle)).c_str(), nullptr);
     }
 
     QuestBriefingRecord* entry;

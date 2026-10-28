@@ -31,7 +31,7 @@ void SaveObjectList(mfc::CTypedPtrList<CUnit>& list, CStream* stream) {
 }
 } // namespace
 
-void __fastcall LoadLooks(AILookArray* looks, CStream* stream) {
+void LoadLooks(AILookArray* looks, CStream* stream) {
     int count;
     stream->Read(&count, 4);
     looks->SetSize(count, -1);
@@ -44,7 +44,7 @@ void __fastcall LoadLooks(AILookArray* looks, CStream* stream) {
     }
 }
 
-void __fastcall SaveLooks(const AILookArray* looks, CStream* stream) {
+void SaveLooks(const AILookArray* looks, CStream* stream) {
     WriteCopy(stream, looks->size);
     for (int i = 0; i < looks->size; ++i) {
         const AILook& look = looks->data[i];

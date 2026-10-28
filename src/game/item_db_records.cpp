@@ -233,7 +233,7 @@ namespace itemdb {
 // uninitialized_copy(first, last, dest) and uninitialized_fill_n(dest, n, x) (the last argument is STLport's
 // unused type tag). Null destinations are skipped, as placement new does. Both return the end of the destination.
 template <typename R>
-R* __fastcall CopyItemRecords(const R* first, const R* last, R* dest, int /*tag*/) {
+R* CopyItemRecords(const R* first, const R* last, R* dest, int /*tag*/) {
     for (; first != last; ++first, ++dest) {
         if (dest) new (dest) R(*first);
     }
@@ -241,22 +241,22 @@ R* __fastcall CopyItemRecords(const R* first, const R* last, R* dest, int /*tag*
 }
 
 template <typename R>
-R* __fastcall FillItemRecords(R* dest, int count, const R* value, int /*tag*/) {
+R* FillItemRecords(R* dest, int count, const R* value, int /*tag*/) {
     for (; count != 0; --count, ++dest) {
         if (dest) new (dest) R(*value);
     }
     return dest;
 }
 
-template WeaponRecord* __fastcall CopyItemRecords(const WeaponRecord*, const WeaponRecord*, WeaponRecord*, int);
-template WeaponRecord* __fastcall FillItemRecords(WeaponRecord*, int, const WeaponRecord*, int);
-template ArmorRecord* __fastcall CopyItemRecords(const ArmorRecord*, const ArmorRecord*, ArmorRecord*, int);
-template ArmorRecord* __fastcall FillItemRecords(ArmorRecord*, int, const ArmorRecord*, int);
-template QuickItemRecord* __fastcall CopyItemRecords(const QuickItemRecord*, const QuickItemRecord*, QuickItemRecord*, int);
-template QuickItemRecord* __fastcall FillItemRecords(QuickItemRecord*, int, const QuickItemRecord*, int);
-template QuestItemRecord* __fastcall CopyItemRecords(const QuestItemRecord*, const QuestItemRecord*, QuestItemRecord*, int);
-template QuestItemRecord* __fastcall FillItemRecords(QuestItemRecord*, int, const QuestItemRecord*, int);
-template LootItemRecord* __fastcall CopyItemRecords(const LootItemRecord*, const LootItemRecord*, LootItemRecord*, int);
-template LootItemRecord* __fastcall FillItemRecords(LootItemRecord*, int, const LootItemRecord*, int);
+template WeaponRecord* CopyItemRecords(const WeaponRecord*, const WeaponRecord*, WeaponRecord*, int);
+template WeaponRecord* FillItemRecords(WeaponRecord*, int, const WeaponRecord*, int);
+template ArmorRecord* CopyItemRecords(const ArmorRecord*, const ArmorRecord*, ArmorRecord*, int);
+template ArmorRecord* FillItemRecords(ArmorRecord*, int, const ArmorRecord*, int);
+template QuickItemRecord* CopyItemRecords(const QuickItemRecord*, const QuickItemRecord*, QuickItemRecord*, int);
+template QuickItemRecord* FillItemRecords(QuickItemRecord*, int, const QuickItemRecord*, int);
+template QuestItemRecord* CopyItemRecords(const QuestItemRecord*, const QuestItemRecord*, QuestItemRecord*, int);
+template QuestItemRecord* FillItemRecords(QuestItemRecord*, int, const QuestItemRecord*, int);
+template LootItemRecord* CopyItemRecords(const LootItemRecord*, const LootItemRecord*, LootItemRecord*, int);
+template LootItemRecord* FillItemRecords(LootItemRecord*, int, const LootItemRecord*, int);
 
 } // namespace itemdb

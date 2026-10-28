@@ -3,7 +3,7 @@
 // Element policies (stlp_list.h) of the game's list<T> instantiations that hold the engine's
 // reference holders: how each _M_create_node copies an element and each erase / clear destroys one.
 // Each is what the instantiation's own code does inline or calls (the out-of-line copies of the
-// holder helpers are registered in src/game/refptr_copies.cpp).
+// holder helpers are in src/game/refptr_copies.cpp).
 
 #include "stlp_list.h"
 
@@ -12,7 +12,7 @@
 
 #include <cstdint>
 
-void __fastcall RefPtrRelease(RefPtr* self);
+void RefPtrRelease(RefPtr* self);
 
 namespace stlp {
 
@@ -74,7 +74,7 @@ struct HeldObject {
 };
 
 // A list<T> of an instantiation that copies and destroys its elements by the policy E: the members
-// its code compiles (stlp_list.h's bodies with E; the game's out-of-line copies are registered in
+// its code compiles (stlp_list.h's bodies with E; the game's out-of-line copies are in
 // stlp_list.cpp). Construct (the sentinel) and the walks (First, End, Distance) are list<T>'s.
 template <typename T, typename E>
 struct PolicyList : list<T> {
@@ -97,8 +97,6 @@ struct PolicyList : list<T> {
 // The reference lists by their element policy.
 using SharedRefList = PolicyList<RefPtr, SharedRef>;
 using CountedRefList = PolicyList<RefPtr, CountedRef>;
-using SharedEntryList = PolicyList<RefEntry, SharedEntry>;
-using CountedEntryList = PolicyList<RefEntry, CountedEntry>;
 static_assert(sizeof(SharedRefList) == 4);
 
 // A reference list whose elements all point at a T (one network message class): the list's layout, policy and

@@ -13,6 +13,8 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
+#include <vector>
 #include "model.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -29,19 +31,19 @@ double Unsigned(std::uint32_t value) {
 
 #define EI_ONE 1.0f /*0073B84C*/
 
-constinit lib::AlignedArray<ParticleVertex> g_vertices = /*007A9BD0*/ {};
-lib::AlignedArray<ParticleVertex>& Vertices() { return g_vertices; }
-void __cdecl FreeVertices() { g_vertices.FreeData(); }
+constinit std::vector<ParticleVertex> g_vertices = /*007A9BD0*/ {};
+std::vector<ParticleVertex>& Vertices() { return g_vertices; }
+void FreeVertices() { lib::FreeStorage(g_vertices); }
 static_assert(sizeof(ParticleSpriteArray) == 0x14);
 constinit lib::StaticObject<ParticleSpriteArray> g_sprites = /*007A9BE0*/ {};
 ParticleSpriteArray& Sprites() { return *g_sprites; }
-void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
+void DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
 // The guard bits of the arrays below (function-local statics in the original).
 std::uint32_t g_arraysConstructed = /*007A9BF4*/ {};
 
 constexpr int kReserve = 0x1000;
 
-void __fastcall ConstructSpriteArray(ParticleSpriteArray* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>((void*)a0); }
+void ConstructSpriteArray(ParticleSpriteArray* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>((void*)a0); }
 // The arrays are function-local statics in the original (guard bits 1 and 2 of g_arraysConstructed, their
 // destructors registered with atexit).
 void ConstructArrays() {
@@ -51,11 +53,7 @@ void ConstructArrays() {
         libcrt::AtExit(DestroySprites);
     }
     if (!(g_arraysConstructed & 2)) {
-        Vertices().data = nullptr;
         g_arraysConstructed |= 2;
-        Vertices().growBy = 0;
-        Vertices().capacity = 0;
-        Vertices().size = 0;
         libcrt::AtExit(FreeVertices);
     }
 }
@@ -96,16 +94,16 @@ int CParticleSource::Draw(CSceneRenderer* renderer) {
     ConstructArrays();
     float t = Interpolation();
     Sprites().SetSize(kReserve, -1);
-    Vertices().SetSize(kReserve);
+    Vertices().resize(kReserve);
     Sprites().SetSize(particles.count, -1);
-    Vertices().SetSize(particles.count);
+    Vertices().resize(particles.count);
     if (!renderer->BindHeldTexture(0, &texture)) return 0;
 
     ParticleSprite* sprite = Sprites().data;
     mfc::CTypedPtrList<Particle>::Node* cursor = particles.head;
     if (cursor) {
         float u = static_cast<float>(D(EI_ONE) - D(t));
-        ParticleVertex* vertex = Vertices().data;
+        ParticleVertex* vertex = Vertices().data();
         do {
             const Particle* p = particles.GetNext(cursor);
             vertex->x = static_cast<float>(D(u) * D(p->prevPos.x) + D(t) * D(p->pos.x));
@@ -121,7 +119,7 @@ int CParticleSource::Draw(CSceneRenderer* renderer) {
             argb <<= 8;
             argb |= static_cast<std::uint32_t>(MixChannel(now, before, 0, t, u));
             sprite->color = argb;
-            sprite->frame = frames.data + p->prevFrame;
+            sprite->frame = frames.data() + p->prevFrame;
             ++sprite;
             ++vertex;
         } while (cursor);

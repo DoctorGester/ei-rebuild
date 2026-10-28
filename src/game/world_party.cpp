@@ -45,8 +45,7 @@ constexpr std::uint32_t kNoStart = 0xC4A42000;   // -1313.0f as the state's last
 
 using ObjectList = mfc::CTypedPtrList<CItem>;
 
-// The player's carried items (CParty::items_): an aligned array of item pointers (its SetSize is
-// lib::AlignedArray's).
+// The player's carried items (CParty::items_): an aligned array of item pointers.
 using ItemArray = PartyItemArray;
 
 // CArray<int>, and the CArray of record pointers CreateUnits takes.

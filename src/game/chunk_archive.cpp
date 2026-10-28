@@ -70,10 +70,10 @@ constinit lib::StaticObject<ChunkArchive::ClassRegistry> g_classRegistry = /*007
 ChunkArchive::ClassRegistry& ChunkArchive::Registry() { return *g_classRegistry; }
 
 namespace {
-void __cdecl DestroyClassRegistry() { hash400::ClassRegistryDestruct(&*g_classRegistry); }
+void DestroyClassRegistry() { hash400::ClassRegistryDestruct(&*g_classRegistry); }
 } // namespace
 
-void __cdecl ConstructClassRegistry() {
+void ConstructClassRegistry() {
     hash400::ClassRegistryConstruct(&*g_classRegistry);
     libcrt::AtExit(DestroyClassRegistry);
 }
@@ -190,22 +190,6 @@ void ChunkArchive::LeaveChunk() {
     dataStream_.Resize(static_cast<std::uint32_t>(parent->size + parent->offset));
 }
 
-template <typename Text>
-void ChunkArchive::CStringField(int id, Text* s) {
-    if (!loading_) {
-        std::string_view text;
-        if constexpr (std::is_same_v<Text, std::string>) text = *s;
-        else text = std::string_view(static_cast<const char*>(*s), static_cast<std::size_t>(s->GetLength()));
-        AppendChild(Current(), id, text.data(), static_cast<std::uint32_t>(text.size() + 1));
-        return;
-    }
-    Ref child;
-    if (FindField(this, id, &child)) *s = TextAt(Data() + child.offset);
-    else *s = game::EmptyText();
-}
-template void ChunkArchive::CStringField(int, mfc::CString*);
-template void ChunkArchive::CStringField(int, std::string*);
-
 // A string field, written with its terminator; read through an inlined assign (the empty
 // string when missing).
 void ChunkArchive::StringField(int id, std::string* s) {
@@ -294,7 +278,7 @@ ChunkArchive::~ChunkArchive() {
 
 // ---- Whole archives over a CStream ---------------------------------------------------------------
 
-bool __fastcall ReadStreamChunk(CStream* in, char* id, CMemoryStream* to) {
+bool ReadStreamChunk(CStream* in, char* id, CMemoryStream* to) {
     std::uint32_t length = 0;
     in->Read(id, 1);
     in->Read(&length, 1);
@@ -307,7 +291,7 @@ bool __fastcall ReadStreamChunk(CStream* in, char* id, CMemoryStream* to) {
 }
 
 // ReadStreamChunk is inlined here; Open inlines all of this for the index and the records.
-bool __fastcall FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence) {
+bool FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence) {
     in->Rewind();
     char readId;
     while (ReadStreamChunk(in, &readId, to)) {
@@ -320,7 +304,7 @@ bool __fastcall FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occu
     return false;
 }
 
-bool __fastcall WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
+bool WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
     char tag = static_cast<char>(id);
     out->Write(&tag, 1);
     std::uint32_t length = from->Size() * 2;

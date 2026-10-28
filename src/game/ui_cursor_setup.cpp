@@ -12,6 +12,7 @@
 #include "game_singletons.h"
 #include "game_data.h"
 
+#include <memory>
 #include <string>
 
 namespace {
@@ -68,10 +69,10 @@ void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, i
 void CCursor::AddShape(const char* name, int hotX, int hotY, int flag) {
     CursorImage* image = nullptr;
     if (auto* memory = gamecrt::operator_new_as<CursorImage>()) {
-        std::string file = (mfc::CString(name) + ".mmp").GetString();
+        std::string file = std::string(name) + ".mmp";
         image = memory->Construct(file.c_str(), hotX, hotY, flag);
     }
-    images_.Add(image);
+    images_.push_back(image);
 }
 
 // --- The cursor's life cycle and state ---------------------------------------
@@ -101,10 +102,7 @@ CCursor* CCursor::Construct() {
     device_ = nullptr;
     under_ = nullptr;
     target_ = nullptr;
-    images_.data = nullptr;
-    images_.growBy = 0;
-    images_.capacity = 0;
-    images_.size = 0;
+    std::construct_at(&images_);
     gameapi::InitializeCriticalSection(&lock_);
     enabled_ = 0;
     return this;
@@ -112,7 +110,7 @@ CCursor* CCursor::Construct() {
 
 void CCursor::DestroyBody() {
     gameapi::DeleteCriticalSection(&lock_);
-    images_.FreeData();
+    lib::FreeStorage(images_);
     if (target_) target_->Release();
     if (under_) under_->Release();
     if (device_) device_->Release();
@@ -129,10 +127,10 @@ long& MouseDragX() { return g_cursor->motion_.x; }
 long& MouseDragY() { return g_cursor->motion_.y; }
 
 namespace {
-void __cdecl DestroyGameCursor() { g_cursor->DestroyBody(); }
+void DestroyGameCursor() { g_cursor->DestroyBody(); }
 } // namespace
 
-void __cdecl ConstructGameCursor() {
+void ConstructGameCursor() {
     g_cursor->Construct();
     libcrt::AtExit(DestroyGameCursor);
 }
@@ -153,7 +151,7 @@ int CCursor::ChangeShape(int shape) {
     if (previous == -1 || !enabled_) return -1;
     gameapi::EnterCriticalSection(&lock_);
     shape_ = shape;
-    image_ = images_.data[shape];
+    image_ = images_[shape];
     ShowFrame(this);
     gameapi::LeaveCriticalSection(&lock_);
     return previous;
@@ -186,7 +184,7 @@ void CCursor::Start() {
     if (!enabled_) return;
     gameapi::EnterCriticalSection(&lock_);
     shape_ = 0;
-    image_ = images_.data[0];
+    image_ = images_[0];
     ShowFrame(this);
     gameapi::LeaveCriticalSection(&lock_);
     if (!enabled_ || mode_ == kModeNoThread) return;
@@ -201,14 +199,14 @@ void CCursor::Shutdown() {
     }
     gameapi::CloseHandle(stopped_);
     stopped_ = nullptr;
-    for (int i = 0; i < images_.size; ++i) {
-        ReleaseHolder(images_.data[i]->holder);
-        if (CursorImage* image = images_.data[i]) {
+    for (int i = 0; i < std::ssize(images_); ++i) {
+        ReleaseHolder(images_[i]->holder);
+        if (CursorImage* image = images_[i]) {
             image->Destroy();
             gamecrt::operator_delete(image);
         }
     }
-    images_.SetSize(0, -1);
+    images_.clear();
     ReleaseHolder(under_);
     ReleaseHolder(target_);
     CTextureDevice* device = device_;

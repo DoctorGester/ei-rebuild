@@ -70,12 +70,12 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
     case kRegionPreviousZone:
         if (listZones_ == 0 || zoneCount <= 1) return;
         if (--zoneIndex_ < 0) zoneIndex_ = static_cast<int>(zoneCount) - 1;
-        ShowZone(zones_[zoneIndex_]);
+        ShowZone(zones_[zoneIndex_].c_str());
         return;
     case kRegionNextZone:
         if (listZones_ == 0 || zoneCount <= 1) return;
         if (static_cast<std::uint32_t>(++zoneIndex_) >= zoneCount) zoneIndex_ = 0;
-        ShowZone(zones_[zoneIndex_]);
+        ShowZone(zones_[zoneIndex_].c_str());
         return;
     default:
         break;

@@ -88,13 +88,13 @@ void CBattleScreen::UnitName(CUnit* unit, std::string* out) {
         if (node == personTexts_.end())
             out->clear();
         else
-            *out = node->second.GetString();
+            *out = node->second.c_str();
         return;
     }
     out->clear();
     name = unit->GetPrototype()->name;
     text::ReplaceChar(&name, ' ', '_');
-    if (texts->Open(mfc::CString(kUnitTextPrefix) + name)) {
+    if (texts->Open((std::string(kUnitTextPrefix) + name).c_str())) {
         std::string line;
         texts->ReadLine(&line, 1);
         *out = line.c_str();

@@ -16,6 +16,7 @@
 #include <concepts>
 #include <bit>
 #include <cstring>
+#include <memory>
 #include <new>
 #include "game_lists.h"
 #include "game_data.h"
@@ -454,7 +455,7 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
 
 // Returns the sequence id (generation << 8 | slot) or -1.
 int CSoundManager::AddSequence(const SoundNameArray* names, int priority, const float* position, float nearDist,
-                               float farDist, int randomOrder, int count, int(__fastcall* chooser)(int, int)) {
+                               float farDist, int randomOrder, int count, int(*chooser)(int, int)) {
     if (enabled == 0 || names->empty()) return -1;
     int i = 0;
     while (i < 8 && sequences[i].active != 0) ++i;
@@ -755,7 +756,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
         at = 0x7FFFFFFF;
         break;
     case 3: {
-        int n = markers.size;
+        int n = std::ssize(markers);
         if (n == 0) {
             m = 1;
             at = 0x7FFFFFFF;

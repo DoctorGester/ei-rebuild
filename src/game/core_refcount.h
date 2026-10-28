@@ -157,5 +157,5 @@ struct CountedRef {
 };
 
 // `self` holds `object` without a reference; returns self.
-RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object);
-void __fastcall RefPtrClear(RefPtr* self);
+RefPtr* RefPtrFromRaw(RefPtr* self, CRefObject* object);
+void RefPtrClear(RefPtr* self);

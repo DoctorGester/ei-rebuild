@@ -220,7 +220,7 @@ bool ListEmpty(const stlp::list<T>& list) { return list.head->next == list.head;
 
 const Matrix4* worlddata::SceneCamera() { return g_haveSceneCamera ? &g_sceneCamera : nullptr; }
 
-int __fastcall QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued) {
+int QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued) {
     if (!(object->flags_ & 0x20) || (object->flags_ & 0x40)) return 0;
     const CObject3D* figure = object;
     ScreenEntry entry;

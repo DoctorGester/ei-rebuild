@@ -201,7 +201,7 @@ void CGlobalMap::CreateScreen() {
     MapRecord* current = FindZone(LocalPlayerZone());
     AllodRecord* allod = TheMapDatabase()->FindAllod(current->allod.c_str());
     {
-        mfc::CString title(mfc::CString::kUnset);
+        std::string title;
         allodTitle_ = *AllodTitle(&title, allod->name.c_str());
     }
     {
@@ -209,10 +209,10 @@ void CGlobalMap::CreateScreen() {
         ZonePosition(&position, current->name.c_str());
         std::memcpy(&position_, &position, 12);
     }
-    const mfc::CString& allodName = allod->name;
-    LoadTexture(mfc::operator+(allodName, "Map"), 3, 0);
-    LoadTexture(mfc::operator+(allodName, "Sys"), 3, 0);
-    LoadTexture(mfc::operator+(allodName, "MapG"), 3, 0);
+    const std::string& allodName = allod->name;
+    LoadTexture((allodName + "Map").c_str(), 3, 0);
+    LoadTexture((allodName + "Sys").c_str(), 3, 0);
+    LoadTexture((allodName + "MapG").c_str(), 3, 0);
     LoadTexture("saveload", 3, 0);
     CreateTexture(0x100, 0x100, 0x21);
     angle_ = 0.0f;
@@ -263,7 +263,7 @@ void CGlobalMap::CreateScreen() {
         zones_.data[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable.c_str()))));
         zones_.data[zoneCount_].name = zone->name;
         {
-            mfc::CString title(mfc::CString::kUnset);
+            std::string title;
             zones_.data[zoneCount_].title = *ZoneTitle(&title, zone->name.c_str());
         }
         CUiMesh* sprite = AddFigure(this, zone->figure);
@@ -290,7 +290,7 @@ void CGlobalMap::CreateScreen() {
                     quest.name = parts[2];
                     quests_.data[n].zone = i;
                     {
-                        mfc::CString title(mfc::CString::kUnset);
+                        std::string title;
                         quests_.data[n].title = *QuestTitle(&title, parts[2].c_str());
                     }
                     {
@@ -333,7 +333,7 @@ void CGlobalMap::CreateScreen() {
             links_.data[n].zone = i;
             links_.data[n].name = way->name;
             {
-                mfc::CString title(mfc::CString::kUnset);
+                std::string title;
                 links_.data[n].title = *ZoneTitle(&title, way->name.c_str());
             }
             {
@@ -654,7 +654,7 @@ void GlobalMapZoneElements::Construct(GlobalMapZone* zones, int count) {
     }
 }
 
-void __fastcall DestroyGlobalMapZone(GlobalMapZone* zone) {
+void DestroyGlobalMapZone(GlobalMapZone* zone) {
     std::destroy_at(&zone->title);
     std::destroy_at(&zone->name);
 }
@@ -671,7 +671,7 @@ void GlobalMapPlaceElements::Construct(GlobalMapPlace* places, int count) {
     }
 }
 
-void __fastcall DestroyGlobalMapPlace(GlobalMapPlace* place) {
+void DestroyGlobalMapPlace(GlobalMapPlace* place) {
     std::destroy_at(&place->title);
     std::destroy_at(&place->name);
 }

@@ -22,7 +22,7 @@ int CCamera::LoadPath(const char* name, int settle) {
     mfc::CFile file;
     int opened;
     {
-        std::string folder = TheDataFolder().GetString();
+        std::string folder = TheDataFolder();
         std::string path = folder + "camera\\" + name;
         if (modfolders::Active(ei::rebirth::Patch::CameraPatch)) {
             // CameraPatch: the mod's Camera\ copy when there is one.
@@ -35,10 +35,10 @@ int CCamera::LoadPath(const char* name, int settle) {
 
     // As many keys as the file holds whole; the array is resized as the engine's aligned arrays
     // are (the old keys kept when it grows) and filled with one read.
-    keys_.SetSize(static_cast<int>(file.GetLength() / sizeof(CameraKey)));
-    file.Read(keys_.data, static_cast<unsigned>(keys_.size) * sizeof(CameraKey));
+    keys_.resize(static_cast<int>(file.GetLength() / sizeof(CameraKey)));
+    file.Read(keys_.data(), static_cast<unsigned>(std::ssize(keys_)) * sizeof(CameraKey));
 
-    if (settle != 0 && keys_.size > settle && settle > 1) {
+    if (settle != 0 && std::ssize(keys_) > settle && settle > 1) {
         // The first key (of the first `settle`) more than the gap after its predecessor: every key
         // before it takes its position and rotation (the times stay).
         for (int first = 1; first < settle; ++first) {

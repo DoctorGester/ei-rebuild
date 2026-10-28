@@ -15,18 +15,18 @@ std::uint32_t g_lastPumpTime = /*0079B604*/ {};
 
 // The session pointers' exit functions (each through a copy of the counted pointer's
 // release): the last reference deletes the session.
-void __cdecl ReleaseGameServer() { ReleaseCounted(net::g_gameServer); }
-void __cdecl ReleaseGameClient() { ReleaseCounted(net::g_gameClient); }
+void ReleaseGameServer() { ReleaseCounted(net::g_gameServer); }
+void ReleaseGameClient() { ReleaseCounted(net::g_gameClient); }
 
 // The two growing buffers' exit functions: each destroys its buffer once (bit 0 / bit 1 of their flags).
 std::uint8_t g_bufferFlags = /*0079B8FC*/ {};
-void __cdecl DestroySendBuffer() {
+void DestroySendBuffer() {
     std::uint8_t flags = g_bufferFlags;
     if (flags & 1) return;
     g_bufferFlags = static_cast<std::uint8_t>(flags | 1);
     net::g_sendBuffer.Destroy();
 }
-void __cdecl DestroyReceiveBuffer() {
+void DestroyReceiveBuffer() {
     std::uint8_t flags = g_bufferFlags;
     if (flags & 2) return;
     g_bufferFlags = static_cast<std::uint8_t>(flags | 2);
@@ -48,21 +48,21 @@ void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
 
 // Their static initialisers (in the list's order): the counted pointer's constructor
 // clears it, then the exit function is registered.
-void __cdecl InitGameServerPointer() {
+void InitGameServerPointer() {
     net::g_gameServer = nullptr;
     libcrt::AtExit(ReleaseGameServer);
 }
-void __cdecl InitGameClientPointer() {
+void InitGameClientPointer() {
     net::g_gameClient = nullptr;
     libcrt::AtExit(ReleaseGameClient);
 }
 
 // Their static initialisers (in the list's order).
-void __cdecl ConstructSendBuffer() {
+void ConstructSendBuffer() {
     net::g_sendBuffer.Construct();
     libcrt::AtExit(DestroySendBuffer);
 }
-void __cdecl ConstructReceiveBuffer() {
+void ConstructReceiveBuffer() {
     net::g_receiveBuffer.Construct();
     libcrt::AtExit(DestroyReceiveBuffer);
 }
@@ -74,7 +74,7 @@ namespace net {
 constinit lib::StaticObject<GrowingBuffer> g_receiveBuffer = /*0079B8E0*/ {};
 constinit lib::StaticObject<GrowingBuffer> g_sendBuffer = /*0079B900*/ {};
 
-void __cdecl Pump() {
+void Pump() {
     std::uint32_t now = gameapi::timeGetTime();
     std::uint32_t elapsed = now - g_lastPumpTime;
     if (elapsed > 5000) elapsed = 1000;   // after a long stall, pretend one second passed

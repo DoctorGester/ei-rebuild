@@ -329,14 +329,6 @@ const char* const kMaterialType = "material";
 const char* const kNoPrototype = "Can't find prototype for item \"%s\".\n";
 const char* const kCantCreate = "Can't create item \"%s\".\nCheck shape and material names\n";
 
-struct ItemText : mfc::CString {
-    int Find(char c) const;
-    void TrimSpaceLeft() { mfc::CString::TrimLeft(); }
-    void TrimSpaceRight() { mfc::CString::TrimRight(); }
-};
-int ItemText::Find(char c) const { return mfc::CString::Find(c); }
-ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
-
 // Index of `record` in `table` (signed division of the byte offset), -1 for no record.
 template <typename Table, typename Record>
 int TableIndex(const Table& table, const Record* record) {
@@ -368,26 +360,26 @@ int LootTableIndex(int which, const char* name) {
 CItem* CItemManager::CreateItem(const char* name) {
     auto* context = context_;
     CItemConstructor* constructor = context->ItemConstructor();
-    mfc::CString extra;               // the part in brackets: "name[extra]"
-    mfc::CString text(name);
+    std::string extra;               // the part in brackets: "name[extra]"
+    std::string text(name);
     std::vector<std::string> parts;      // the name split at '.'
-    int bracket = AsText(text).Find('[');
+    int bracket = str::Find(text, '[');
     if (bracket != -1) {
-        extra = AsText(text).Right(text.GetLength() - bracket - 1);
-        console::Ops(extra).TrimLeft('[');
-        console::Ops(extra).TrimRight(']');
-        AsText(extra).TrimSpaceLeft();
-        AsText(extra).TrimSpaceRight();
-        text = text.Left(bracket);
-        AsText(text).TrimSpaceRight();
+        extra = str::Right(text, static_cast<int>(text.size()) - bracket - 1);
+        str::TrimLeft(extra, '[');
+        str::TrimRight(extra, ']');
+        str::TrimLeft(extra);
+        str::TrimRight(extra);
+        text = str::Left(text, bracket);
+        str::TrimRight(text);
     }
-    text::Split(text, &parts, '.');
+    text::Split(text.c_str(), &parts, '.');
     for (std::string& part : parts) str::MakeLower(part);
 
     // "spell container[spell text]": a scroll holding that spell.
     if (gamecrt::mbscmp(parts[0].c_str(),
                         kSpellContainer) == 0) {
-        const char* spellText = extra;
+        const char* spellText = extra.c_str();
         CSpell* spell = context->SpellManager()->CreateSpellFromText(spellText);
         CItem* item = nullptr;
         if (spell) {
@@ -421,12 +413,12 @@ CItem* CItemManager::CreateItem(const char* name) {
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, the count for materials.
     const char* type = prototype->text04.c_str();
-    if (extra.GetLength() != 0 && gamecrt::mbscmp(type, kMaterialType) != 0) {
+    if (extra.size() != 0 && gamecrt::mbscmp(type, kMaterialType) != 0) {
         CSpellManager* spells = context->SpellManager();
-        if (CSpell* spell = spells->CreateSpellFromText(extra)) constructor->SetSpellObject(spell);
+        if (CSpell* spell = spells->CreateSpellFromText(extra.c_str())) constructor->SetSpellObject(spell);
     } else if (gamecrt::mbscmp(type, kMaterialType) == 0 &&
-               extra.GetLength() != 0) {
-        constructor->count_ = std::atoi(extra);
+               extra.size() != 0) {
+        constructor->count_ = std::atoi(extra.c_str());
     }
     CItem* item = constructor->EndCreateItem();
     if (!item) {

@@ -43,10 +43,6 @@
 
 // --- the quick item panel's unit -----------------------------------------------------------------
 
-namespace {
-
-} // namespace
-
 void CHudQuickItems::SetUnit(CUnit* unit) {
     std::string tip;
     std::string unused;
@@ -92,8 +88,8 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         CItem* item = unit_->GetQuickItem(slot);
         if (!item) continue;
         {
-            std::string image = item->FigureName().GetString();
-            std::string model = item->PictureName().GetString();
+            std::string image = item->FigureName();
+            std::string model = item->PictureName();
             AddItem(model.c_str(), image.c_str());
         }
         finish(item, true);
@@ -117,8 +113,8 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         if (!item || item->type_ != kItemQuest)
             continue;
         {
-            std::string image = item->FigureName().GetString();
-            std::string model = item->PictureName().GetString();
+            std::string image = item->FigureName();
+            std::string model = item->PictureName();
             AddItem(model.c_str(), image.c_str());
         }
         finish(item, false);
@@ -155,7 +151,7 @@ using PartyIds = CBattleScreen::PartyIds;
 using List = std::list<std::uintptr_t>;
 using ListNode = List::iterator;
 using UnitList = stlp::list<CMapObject*>;
-void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
+void NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
 
 
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
@@ -352,9 +348,6 @@ void CBattleScreen::Update() {
         questSound_ = 0;
     }
 }
-namespace {
-void __fastcall BattleScreenUpdate(CBattleScreen* self) { self->Update(); }
-} // namespace
 
 // --- the party ids compared ----------------------------------------------------------------------
 
@@ -538,10 +531,6 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
 }
 
 // --- the selection's refresh ---------------------------------------------------------------------
-
-namespace {
-
-} // namespace
 
 void CBattleScreen::RefreshSelection() {
     auto* party = &party_;

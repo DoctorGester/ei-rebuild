@@ -156,10 +156,10 @@ int CSysInfo::Collect() {
     char digits[0x400];
 #pragma warning(push)
 #pragma warning(disable : 4996)   // _itoa
-    report += mfc::CString("Total physical memory\t") + _itoa(static_cast<int>(memory_.dwTotalPhys), digits, 10) + "\n";
-    report += mfc::CString("Available physical memory\t") + _itoa(static_cast<int>(memory_.dwAvailPhys), digits, 10) + "\n";
-    report += mfc::CString("Total virtual memory\t\t") + _itoa(static_cast<int>(memory_.dwTotalVirtual), digits, 10) + "\n";
-    report += mfc::CString("Available virtual memory\t") + _itoa(static_cast<int>(memory_.dwAvailVirtual), digits, 10) + "\n";
+    report += std::string("Total physical memory\t") + _itoa(static_cast<int>(memory_.dwTotalPhys), digits, 10) + "\n";
+    report += std::string("Available physical memory\t") + _itoa(static_cast<int>(memory_.dwAvailPhys), digits, 10) + "\n";
+    report += std::string("Total virtual memory\t\t") + _itoa(static_cast<int>(memory_.dwTotalVirtual), digits, 10) + "\n";
+    report += std::string("Available virtual memory\t") + _itoa(static_cast<int>(memory_.dwAvailVirtual), digits, 10) + "\n";
 #pragma warning(pop)
     return 1;
 }
@@ -182,36 +182,36 @@ const char* CSysInfo::GetClassName() { return SysInfoClassNameText(); }
 int CSysInfo::GetClassId() { return kClassId; }
 
 // The global's destructor (cdecl; registered with atexit by the static initialiser).
-void __cdecl SysInfoAtExit() { g_sysInfo.Destroy(); }
+void SysInfoAtExit() { g_sysInfo.Destroy(); }
 
 // ---- The static initialisers (each table entry is a stub that calls the function after it) --------
 
 // The four constants, each one operation on the exe's
 // pi rounded to a float by the store.
-void __cdecl SysInfoInitTwoPi() { g_twoPi = static_cast<float>(Pi() + Pi()); }
-void __cdecl SysInfoInitHalfPi() { g_halfPi = static_cast<float>(Pi() / 2.0f /*0073CDB8*/); }
-void __cdecl SysInfoInitQuarterPi() { g_quarterPi = static_cast<float>(Pi() / 4.0f /*0073BAA0*/); }
-void __cdecl SysInfoInitInversePi() { g_inversePi = static_cast<float>(1.0f /*0073B84C*/ / Pi()); }
+void SysInfoInitTwoPi() { g_twoPi = static_cast<float>(Pi() + Pi()); }
+void SysInfoInitHalfPi() { g_halfPi = static_cast<float>(Pi() / 2.0f /*0073CDB8*/); }
+void SysInfoInitQuarterPi() { g_quarterPi = static_cast<float>(Pi() / 4.0f /*0073BAA0*/); }
+void SysInfoInitInversePi() { g_inversePi = static_cast<float>(1.0f /*0073B84C*/ / Pi()); }
 
 // The table's entries for them.
-void __cdecl SysInfoStaticTwoPi() { SysInfoInitTwoPi(); }
-void __cdecl SysInfoStaticHalfPi() { SysInfoInitHalfPi(); }
-void __cdecl SysInfoStaticQuarterPi() { SysInfoInitQuarterPi(); }
-void __cdecl SysInfoStaticInversePi() { SysInfoInitInversePi(); }
+void SysInfoStaticTwoPi() { SysInfoInitTwoPi(); }
+void SysInfoStaticHalfPi() { SysInfoInitHalfPi(); }
+void SysInfoStaticQuarterPi() { SysInfoInitQuarterPi(); }
+void SysInfoStaticInversePi() { SysInfoInitInversePi(); }
 
 // The global constructed, then its destructor registered with atexit: the
 // table's entry covers both.
-void __cdecl SysInfoStaticConstruct() { g_sysInfo.Construct(); }
-void __cdecl SysInfoStaticRegisterExit() { libcrt::AtExit(SysInfoAtExit); }
-void __cdecl SysInfoStaticInit() {
+void SysInfoStaticConstruct() { g_sysInfo.Construct(); }
+void SysInfoStaticRegisterExit() { libcrt::AtExit(SysInfoAtExit); }
+void SysInfoStaticInit() {
     SysInfoStaticConstruct();
     SysInfoStaticRegisterExit();
 }
 
 // An empty destructor (a bare RET) registered with atexit. The
 // table's entry: the static's guard bit set when it is clear, then the registration either way.
-void __cdecl SysInfoStaticRegisterEmptyExit() { libcrt::AtExit(ei::short_functions::Ret); }
-void __cdecl SysInfoStaticGuard() {
+void SysInfoStaticRegisterEmptyExit() { libcrt::AtExit(ei::short_functions::Ret); }
+void SysInfoStaticGuard() {
     if (!(lib::g_emptyStaticGuard & 1)) lib::g_emptyStaticGuard |= 1;
     SysInfoStaticRegisterEmptyExit();
 }

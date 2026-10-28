@@ -179,11 +179,11 @@ struct DequeAbi : deque<T> {
         return this;
     }
     // _M_initialize_map(n), _M_push_back_aux(x) and _M_reallocate_map(add, atFront)
-    // (the flag is the low byte of its slot) are deque's own members, registered through this type.
+    // (the flag is the low byte of its slot) are deque's own members, reached through this type.
     // _M_create_nodes(nstart, nfinish): the deque itself is not read.
     void CreateNodes(T** nstart, T** nfinish) { Deque::CreateNodes(nstart, nfinish); }
     // ~deque().
-    static void __fastcall Destruct(Deque* self) { self->Destroy(); }
+    static void Destruct(Deque* self) { self->Destroy(); }
 };
 
 } // namespace stlp

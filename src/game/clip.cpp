@@ -42,7 +42,7 @@ std::uint32_t LerpColor(std::uint32_t a, std::uint32_t b, float t) {
 // destroyed by the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<mfc::CArray<std::uint16_t>> g_workWords = /*0079B668*/ {};
 mfc::CArray<std::uint16_t>& WorkWords() { return *g_workWords; }
-void __cdecl DestroyWorkWords() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_workWords); }
+void DestroyWorkWords() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_workWords); }
 void Emit(std::uint16_t index) { clip::Buffer()[clip::g_bufferCount++] = index; }
 
 template <std::size_t Axis>
@@ -80,7 +80,7 @@ int ClipPlane(TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int*
 
 } // namespace
 
-void __cdecl ConstructWorkWords() {
+void ConstructWorkWords() {
     mfc::impl::ConstructArrayOf<mfc::impl::WordArrayClass>(*g_workWords);
     libcrt::AtExit(DestroyWorkWords);
 }
@@ -89,7 +89,7 @@ namespace clip {
 
 std::uint16_t* Buffer() { return WorkWords().data; }
 
-void __fastcall LerpVertex(const TLVertex* a, const TLVertex* b, float t, TLVertex* out) {
+void LerpVertex(const TLVertex* a, const TLVertex* b, float t, TLVertex* out) {
     out->x = (b->x - a->x) * t + a->x;
     out->y = (b->y - a->y) * t + a->y;
     out->z = (b->z - a->z) * t + a->z;
@@ -100,26 +100,26 @@ void __fastcall LerpVertex(const TLVertex* a, const TLVertex* b, float t, TLVert
     out->specular = LerpColor(a->specular, b->specular, t);
 }
 
-int __fastcall ClipXBelow(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
+int ClipXBelow(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
     return ClipPlane<0, false>(v, vertexCount, indices, count, limit);
 }
-int __fastcall ClipXAbove(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
+int ClipXAbove(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
     return ClipPlane<0, true>(v, vertexCount, indices, count, limit);
 }
-int __fastcall ClipYBelow(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
+int ClipYBelow(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
     return ClipPlane<1, false>(v, vertexCount, indices, count, limit);
 }
-int __fastcall ClipYAbove(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
+int ClipYAbove(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
     return ClipPlane<1, true>(v, vertexCount, indices, count, limit);
 }
-int __fastcall ClipZBelow(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
+int ClipZBelow(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
     return ClipPlane<2, false>(v, vertexCount, indices, count, limit);
 }
-int __fastcall ClipZAbove(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
+int ClipZAbove(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
     return ClipPlane<2, true>(v, vertexCount, indices, count, limit);
 }
 
-int __fastcall ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, std::uint16_t* tri,
+int ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, std::uint16_t* tri,
                             int* vertexCount, int* indexCount, float xMax, float yMax) {
     std::uint8_t c0 = outcodes[tri[0]];
     std::uint8_t c1 = outcodes[tri[1]];

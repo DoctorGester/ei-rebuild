@@ -10,7 +10,7 @@
 #include "ei/x87.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp.h"
-#include "lib/static_object.h"
+#include "lib/containers.h"
 #include "lib/mfc_coll.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -56,7 +56,7 @@ using KeyVector = std::vector<std::uint32_t>;
 
 constinit std::vector<std::uint32_t> g_deadCells = /*007ABB58*/ {};
 std::uint8_t g_deadCellsGuard = /*007ABB64*/ {};
-void __cdecl DestroyDeadCells() { lib::FreeVector(g_deadCells); }
+void DestroyDeadCells() { lib::FreeStorage(g_deadCells); }
 
 } // namespace
 
@@ -139,13 +139,9 @@ void CRainSnow::Start(int newMode, float duration) {
 CRainSnow::CRainSnow() {
     ClearFields();
     texture = nullptr;
-    projected.Construct();
-    positions.Construct();
     outcodes.Construct();
     frames.Construct();
-    vertices.Construct();
     indices.Construct();
-    offsets.Construct();
     world = nullptr;
     sound = 0;
     Clear();
@@ -153,13 +149,9 @@ CRainSnow::CRainSnow() {
 
 CRainSnow::~CRainSnow() {
     Clear();
-    offsets.FreeData();
     indices.Destruct();
-    vertices.FreeData();
     frames.Destruct();
     outcodes.Destruct();
-    positions.FreeData();
-    projected.FreeData();
     if (texture) texture->Release();
 }
 

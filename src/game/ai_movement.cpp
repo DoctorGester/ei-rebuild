@@ -259,7 +259,7 @@ ShapePair* ShapePair::Construct(const ShapeHandle* from, const RefPtr* shared) {
     return this;
 }
 
-void __fastcall DestroyShapePair(ShapePair* pair) {
+void DestroyShapePair(ShapePair* pair) {
     pair->value.Destroy();
     ReleaseHandle(&pair->key);
 }

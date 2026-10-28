@@ -34,7 +34,7 @@ constexpr Entry kMaterials[] = {{"le", 0x11}, {"wo", 0x12}, {"me", 0x13},
 
 // Writes the texture type and `material`. Returns 1. A name without exactly three parts gives (1, 0x15); an
 // unknown texture type 1, an unknown material 0x15 (after the error).
-int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
+int ParseMaterial(const char* name, int* texture, int* material) {
     std::string rest = name;
     std::vector<std::string> parts;
     rest += '.';

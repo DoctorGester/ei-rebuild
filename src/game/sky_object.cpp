@@ -39,11 +39,10 @@ std::uint32_t Truncate(float v) { return static_cast<std::uint32_t>(static_cast<
 } // namespace
 
 CSkyObject::CSkyObject() {
-    distances_.Construct();
     CreateMesh();
 }
 
-CSkyObject::~CSkyObject() { distances_.FreeData(); }
+CSkyObject::~CSkyObject() {  }
 
 const char* CSkyObject::GetClassName() { return kClassName; }
 int CSkyObject::GetClassId() { return kClassId; }
@@ -54,18 +53,18 @@ void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour ligh
     const std::uint32_t b = Truncate(ambient.b * kColourScale);
     const std::uint32_t lit = ((r | 0xFFFFFF00u) << 8 | g) << 8 | b;
     const int count = colorsA_.size;
-    if (distances_.size != count) {
-        distances_.SetSize(count);
-        for (int i = 0; i < distances_.size; ++i) {
+    if (std::ssize(distances_) != count) {
+        distances_.resize(count);
+        for (int i = 0; i < std::ssize(distances_); ++i) {
             const float z = Row(vertices_, i, 2);
-            distances_.data[i] = static_cast<float>(z >= kHorizon ? std::sqrt(-Row(normals_, i, 2)) : 0.0f);
+            distances_[i] = static_cast<float>(z >= kHorizon ? std::sqrt(-Row(normals_, i, 2)) : 0.0f);
         }
     }
     for (int i = 0; i < colorsA_.size; ++i) {
         const float x = Row(normals_, i, 0);
         const float y = Row(normals_, i, 1);
         const float z = Row(normals_, i, 2);
-        const float distance = distances_.data[i];
+        const float distance = distances_[i];
         EI_NAN_AUDIT(distance);
         if (distance == 0.0f) {
             colorsB_.data[i] = 0;

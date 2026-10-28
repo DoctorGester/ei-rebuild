@@ -10,6 +10,7 @@
 #include <bit>
 #include <cstring>
 #include <memory>
+#include <string>
 
 
 namespace {
@@ -98,7 +99,7 @@ void CMemoryStream::DecompressTo(CoderState* coder, BitStream* out) { CodeStream
 
 namespace delta {
 
-void __fastcall WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out) {
+void WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out) {
     const std::uint8_t* p = data;
     std::uint32_t rest = size;
     out->PutBit(false);
@@ -114,7 +115,7 @@ void __fastcall WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream
     out->Write(p, rest);
 }
 
-void __fastcall WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, BitStream* out) {
+void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, BitStream* out) {
     if (std::memcmp(old, data, size) == 0) {
         out->PutBit(true);
         return;
@@ -143,7 +144,7 @@ void __fastcall WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std
 // appended to the snapshot. Otherwise a 1 bit means "all unchanged"; else a 0 bit and, per 4-byte
 // word, 1 (unchanged) or 0 and the word, then the remaining bytes as they are. With
 // `keepSnapshot` the snapshot is updated in place; it is advanced past the bytes either way.
-void __fastcall WriteDeltaChannel(BitStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
+void WriteDeltaChannel(BitStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
                                   BitStream* out) {
     const auto* bytes = static_cast<const std::uint8_t*>(data);
     std::uint32_t end = snapshot->Position() + size;
@@ -257,8 +258,8 @@ void DeltaField::WriteStringBoth(const char* text) {
 
 std::uint32_t DeltaField::ReadRaw(void* data, std::uint32_t size) { return delta::g_received->Read(data, size); }
 
-mfc::CString* DeltaField::ReadString(void* cstring) {
-    return delta::g_received->ReadString(cstring);
+std::string* DeltaField::ReadString(std::string* text) {
+    return delta::g_received->ReadString(text);
 }
 
 void DeltaField::WriteStreamBoth(BitStream* from) {
@@ -267,22 +268,21 @@ void DeltaField::WriteStreamBoth(BitStream* from) {
 }
 
 void DeltaField::ReadText(char* text, int size) {
-    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* string = ReadString(storage);
-    if (string->GetLength() < size - 1) {
-        const char* from = *string;
+    std::string storage;
+    std::string* string = ReadString(&storage);
+    if (static_cast<int>(string->size()) < size - 1) {
+        const char* from = (*string).c_str();
         std::memcpy(text, from, std::strlen(from) + 1);
     } else {
         text[0] = '\0';
     }
-    std::destroy_at(string);
 }
 
 int DeltaField::ReadStream(BitStream* to) { return delta::g_received->ReadStream(to); }
 
 namespace delta {
 
-bool __fastcall ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader) {
+bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader) {
     if (reader->GetBit()) {
         std::memcpy(data, old, size);
         return false;

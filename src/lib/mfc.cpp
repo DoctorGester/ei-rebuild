@@ -46,7 +46,7 @@ const CString& CString::operator=(const CString& s) { *Impl(this) = *Impl(&s); r
 #endif
 
 // (the implementation's Format is FormatV over its arguments).
-void __cdecl CString::Format(const char* format, ...) {
+void CString::Format(const char* format, ...) {
     va_list arguments;
     va_start(arguments, format);
     Impl(this)->FormatV(format, arguments);
@@ -103,8 +103,6 @@ namespace {
 impl::CFile* Impl(CFile* file) { return reinterpret_cast<impl::CFile*>(file); }
 impl::CFileFind* Impl(CFileFind* find) { return reinterpret_cast<impl::CFileFind*>(find); }
 const impl::CFileFind* Impl(const CFileFind* find) { return reinterpret_cast<const impl::CFileFind*>(find); }
-impl::CStringArray* Impl(CStringArray* array) { return reinterpret_cast<impl::CStringArray*>(array); }
-const impl::CStringArray* Impl(const CStringArray* array) { return reinterpret_cast<const impl::CStringArray*>(array); }
 } // namespace
 
 CFile::CFile() { Impl(this)->Construct(); }
@@ -156,18 +154,6 @@ BOOL CFileFind::MatchesMask(unsigned long mask) const { return Impl(this)->Match
 BOOL CFileFind::IsDots() const { return Impl(this)->IsDots(); }
 void CFileFind::Close() { Impl(this)->Close(); }
 
-void CStringArray::Construct() { Impl(this)->Construct(); }
-void CStringArray::Destruct() { Impl(this)->Destruct(); }
-void CStringArray::SetSize(int newSize, int newGrowBy) { Impl(this)->SetSize(newSize, newGrowBy); }
-void CStringArray::SetAtGrow(int index, const CString& value) { Impl(this)->SetAtGrow(index, *Impl(&value)); }
-void CStringArray::SetAtGrow(int index, const char* text) { Impl(this)->SetAtGrow(index, text); }
-void CStringArray::RemoveAt(int index, int count) { Impl(this)->RemoveAt(index, count); }
-void CStringArray::Copy(const CStringArray& source) { Impl(this)->Copy(*Impl(&source)); }
-int CStringArray::Append(const CStringArray& source) { return Impl(this)->Append(*Impl(&source)); }
-void CStringArray::InsertAt(int index, const CString& value, int count) {
-    Impl(this)->InsertAt(index, *Impl(&value), count);
-}
-
 namespace {
 impl::CArchive* Impl(CArchive* archive) { return reinterpret_cast<impl::CArchive*>(archive); }
 } // namespace
@@ -175,27 +161,27 @@ impl::CArchive* Impl(CArchive* archive) { return reinterpret_cast<impl::CArchive
 void CArchive::Flush() { Impl(this)->Flush(); }
 
 #ifndef EI_VECTORS_REPLAY
-CString __stdcall operator+(const CString& a, const char* b) {
+CString operator+(const CString& a, const char* b) {
     CString result(CString::kUnset);
     Place(result, *Impl(&a) + b);
     return result;
 }
-CString __stdcall operator+(const char* a, const CString& b) {
+CString operator+(const char* a, const CString& b) {
     CString result(CString::kUnset);
     Place(result, a + *Impl(&b));
     return result;
 }
-CString __stdcall operator+(const CString& a, const CString& b) {
+CString operator+(const CString& a, const CString& b) {
     CString result(CString::kUnset);
     Place(result, *Impl(&a) + *Impl(&b));
     return result;
 }
-CString __stdcall operator+(const CString& a, char b) {
+CString operator+(const CString& a, char b) {
     CString result(CString::kUnset);
     Place(result, *Impl(&a) + b);
     return result;
 }
-CString __stdcall operator+(char a, const CString& b) {
+CString operator+(char a, const CString& b) {
     CString result(CString::kUnset);
     Place(result, a + *Impl(&b));
     return result;

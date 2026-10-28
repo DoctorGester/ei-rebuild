@@ -851,22 +851,22 @@ struct PartyUnitRecord {
 
 // Wears `item` by `amount` (shared by its count_ pieces); the owner says `brokenRemark` when its condition
 // rounds to 0 or less, `wornRemark` when it drops below the itemDurabilityCritical share of its maximum.
-void __fastcall WearItem(CItem* item, CUnit* unit, float amount, int brokenRemark, int wornRemark);
+void WearItem(CItem* item, CUnit* unit, float amount, int brokenRemark, int wornRemark);
 // `item` joins `items` and its spell `spells`.
-void __fastcall GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* item);
+void GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* item);
 // Text-key units: the armour pieces covering hit location `location` at layer `layer` (1 or 2) wear by
 // `amount`.
-void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount);
+void WearArmour(CUnit* unit, int location, int layer, float amount);
 // The skill bonus byte of the weapon prototype `itemId >> 16`, as a float.
-double __stdcall WeaponPrototypeSkillBonus(std::uint32_t itemId);
+double WeaponPrototypeSkillBonus(std::uint32_t itemId);
 
 // `value` scaled by the unit's strengthen / weaken effects (types 0x1D / 0x1E) with k = 0.003, at least 1: (1 +
 // strengthen * k) / (1 + weaken * k), 1 without a unit.
-float __stdcall ScaleDamageByEffects(CUnit* unit, float value);
+float ScaleDamageByEffects(CUnit* unit, float value);
 // The scale itself with k = 0.005, unrounded.
-double __stdcall HitPointEffectScale(CUnit* unit);
+double HitPointEffectScale(CUnit* unit);
 // `value` scaled with k = 0.005, at least 1.
-float __stdcall ScaleHitPointsByEffects(CUnit* unit, float value);
+float ScaleHitPointsByEffects(CUnit* unit, float value);
 static_assert(offsetof(UnitStats, attributes) == 0x6C8);
 static_assert(offsetof(UnitStats, skillLevels) == 0x6D3);
 static_assert(sizeof(UnitStats) == 0x704);
@@ -942,7 +942,7 @@ static_assert(sizeof(EffectSoundRecord) == 0x14);
 // An effect's sound at `position`: "<folder of kind><suffix>" when `play` (types with a folder); stench
 // (0x13) only clears the record's timer; feeble mind (0x20) starts its sound sequence into the record (and
 // the bare suffix) or stops it and plays its end sound.
-void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
+void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
                                 const char* suffix);
 
 using EffectParticleArray = mfc::CArray<EffectParticle>;

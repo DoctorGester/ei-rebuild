@@ -17,8 +17,10 @@
 #include "lib/crt.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp_pair.h"
+#include "lib/containers.h"
 #include "lib/static_object.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 
 #include <algorithm>
 #include <cstring>
@@ -448,11 +450,10 @@ namespace {
 // previous value.
 void ReadInt(CStream* stream, void* value) { stream->Read(value, 4u); }
 
-void ReadName(CStream* stream, mfc::CString& name) {
-    alignas(mfc::CString) unsigned char temporary[sizeof(mfc::CString)];
-    mfc::CString* read = stream->ReadString(temporary);
+void ReadName(CStream* stream, std::string& name) {
+    std::string temporary;
+    std::string* read = stream->ReadString(&temporary);
     name = *read;
-    std::destroy_at(read);
 }
 
 template <typename T>
@@ -462,26 +463,26 @@ void AddUnique(std::vector<T*>& list, T* record) {
 
 // A record section: a count, then names lower-cased and looked up in `table`.
 template <typename Record>
-void LoadRecords(CStream* stream, mfc::CString& name, unsigned& count, itemdb::NamedRecordTable<Record>& table,
+void LoadRecords(CStream* stream, std::string& name, unsigned& count, itemdb::NamedRecordTable<Record>& table,
                  StockPrototypeVector& list) {
     ReadInt(stream, &count);
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
-        name.MakeLower();
-        itemdb::ItemRecordHead* record = table.Named(name);
+        str::MakeLower(name);
+        itemdb::ItemRecordHead* record = table.Named(name.c_str());
         if (record) AddUnique(list, record);
     }
 }
 
 // A map section: a count, then names (as read) looked up in an STLport map by string.
 template <typename Record, typename Map>
-void LoadMapped(CStream* stream, mfc::CString& name, unsigned& count, Map& map, std::vector<Record*>& list) {
+void LoadMapped(CStream* stream, std::string& name, unsigned& count, Map& map, std::vector<Record*>& list) {
     ReadInt(stream, &count);
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
         Record* record;
         {
-            std::string key(name.GetString());
+            std::string key(name.c_str());
             record = stlp::NamedSlot<Record>(map, key);
         }
         if (record) AddUnique(list, record);
@@ -495,7 +496,7 @@ void LoadMapped(CStream* stream, mfc::CString& name, unsigned& count, Map& map, 
 void ItemStock::LoadLists(CStream* stream) {
     PartyOf(this)->SpellManager();   // (the spell and item managers, fetched and not used)
     PartyOf(this)->ItemManager();
-    mfc::CString name;
+    std::string name;
     unsigned count = 0;
     itemdb::ItemDatabase& items = itemdb::TheItemDatabase();
     LoadRecords(stream, name, count, items.armors, armors);
@@ -506,10 +507,10 @@ void ItemStock::LoadLists(CStream* stream) {
     int values[3] = {0, 0, 0};
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
-        name.MakeLower();
+        str::MakeLower(name);
         StockMaterial entry;
         for (int& v : values) ReadInt(stream, &v);
-        entry.record = items.materials.Named(name);
+        entry.record = items.materials.Named(name.c_str());
         entry.minCount = values[0];
         entry.maxCount = values[1];
         entry.left = values[2];
@@ -704,8 +705,8 @@ constinit std::vector<itemdb::SpellRecord*> g_takenSpells = /*007C8670*/ {};
 constinit std::vector<itemdb::SpellModifierRecord*> g_takenModifiers = /*007C8660*/ {};
 } // namespace stock
 
-void __cdecl FreeTakenPrototypes() { lib::FreeVector(stock::g_takenPrototypes); }
-void __cdecl FreeTakenSpells() { lib::FreeVector(stock::g_takenSpells); }
-void __cdecl FreeTakenModifiers() { lib::FreeVector(stock::g_takenModifiers); }
-void __cdecl FreeCandidates() { lib::FreeVector(stock::g_candidates); }
-void __cdecl FreeTakenMaterials() { lib::FreeVector(stock::g_takenMaterials); }
+void FreeTakenPrototypes() { lib::FreeStorage(stock::g_takenPrototypes); }
+void FreeTakenSpells() { lib::FreeStorage(stock::g_takenSpells); }
+void FreeTakenModifiers() { lib::FreeStorage(stock::g_takenModifiers); }
+void FreeCandidates() { lib::FreeStorage(stock::g_candidates); }
+void FreeTakenMaterials() { lib::FreeStorage(stock::g_takenMaterials); }

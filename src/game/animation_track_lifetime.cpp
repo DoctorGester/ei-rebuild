@@ -26,9 +26,7 @@ int ReadCount(std::uint8_t** cursor) {
 
 AnimationTrack::AnimationTrack() {
     ClearFields();
-    frames.Construct();
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
-    vertices.Construct();
     DestroyTrack();
 }
 
@@ -40,10 +38,10 @@ void AnimationTrack::DestroyTrack() {
     rotationCount = 0;
     rotations = nullptr;
     vertexCount = 0;
-    frames.RemoveAll();
+    frames.clear();
     position = kTrackDefaultPosition;
     rotation = kTrackDefaultRotation;
-    vertices.RemoveAll();
+    vertices.clear();
     time = 0.0f;
 }
 
@@ -54,8 +52,6 @@ int AnimationTrack::CreateTrack() {
 
 AnimationTrack::~AnimationTrack() {
     DestroyTrack();   // empties the arrays through SetSize(0)
-    vertices.FreeData();
-    frames.FreeData();
 }
 
 int AnimationTrack::Create() { return CreateTrack(); }
@@ -70,11 +66,11 @@ void AnimationTrack::LoadKeyFrames(std::uint8_t** cursor) {
     *cursor += positionCount * static_cast<int>(sizeof(Vector3));
     int frameCount = ReadCount(cursor);
     vertexCount = frameCount;   // vertexCount holds the frame count until the vertex count is read
-    frames.SetSizeDiscard(frameCount);
+    frames.resize(frameCount);
     vertexCount = ReadCount(cursor);
-    vertices.SetSizeDiscard(vertexCount);
-    for (int i = 0; i < frames.size; ++i) {
-        frames.data[i] = reinterpret_cast<float*>(*cursor);
+    vertices.resize(vertexCount);
+    for (int i = 0; i < std::ssize(frames); ++i) {
+        frames[i] = reinterpret_cast<float*>(*cursor);
         *cursor += vertexCount * static_cast<int>(sizeof(Vector3));
     }
 }

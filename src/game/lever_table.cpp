@@ -17,10 +17,10 @@ LeverRecordTable::~LeverRecordTable() {
 constinit lib::StaticObject<LeverRecordTable> g_leverTable = /*0079C1A0*/ {};
 
 namespace {
-void __cdecl DestroyLeverTable() { g_leverTable.Destroy(); }
+void DestroyLeverTable() { g_leverTable.Destroy(); }
 } // namespace
 
-void __cdecl ConstructLeverTable() {
+void ConstructLeverTable() {
     g_leverTable.Construct();
     libcrt::AtExit(DestroyLeverTable);
 }

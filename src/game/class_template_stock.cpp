@@ -68,7 +68,7 @@ void ClassTemplate::SetLevels(const float* base, const float* scroll) {
     magic.SetLevels(base, scroll);
 }
 
-void __fastcall ClassTemplateGenerateItems(ClassTemplate* t) {
+void ClassTemplateGenerateItems(ClassTemplate* t) {
     if (!t->flag0C) return;
     StockList list;
     t->ItemsParty()->Clear(1, 0);
@@ -86,7 +86,7 @@ void __fastcall ClassTemplateGenerateItems(ClassTemplate* t) {
     HandOver(list, t->ItemsParty());
 }
 
-void __fastcall ClassTemplateGenerateMagic(ClassTemplate* t) {
+void ClassTemplateGenerateMagic(ClassTemplate* t) {
     if (!t->flag0D) return;
     StockList list;
     t->SpellsParty()->Clear(1, 0);

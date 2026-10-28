@@ -178,7 +178,7 @@ public:
     void FindTopics(int personId);
     // The first line of the text "briefing <topic>" (lowercased; "constr..." topics share "briefing constr"),
     // empty without one. `out` is constructed here.
-    mfc::CString* TopicTitle(mfc::CString* out, const char* topic);
+    std::string* TopicTitle(std::string* out, const char* topic);
 
     void LoadPersonTexts();
 
@@ -270,7 +270,7 @@ public:
     int chatActive_;                 // the chat window takes the input
 };
 // What a speaker's controller calls when its dialogue animation has finished (its actionDone).
-void __fastcall SpeakerAnimationDone(CUnit* serverUnit);
+void SpeakerAnimationDone(CUnit* serverUnit);
 static_assert(offsetof(CBriefingScreen, exit_) == 0x164);
 static_assert(offsetof(CBriefingScreen, state_) == 0x16C);
 static_assert(offsetof(CBriefingScreen, topics_) == 0x170);

@@ -17,10 +17,6 @@
 #include <vector>
 
 class CMappedResource;
-namespace mfc {
-class CString;
-}
-
 namespace modfolders {
 
 // Whether the rewritten code applies patch `p` itself: its flag is on.
@@ -57,14 +53,14 @@ enum class MapsSite : int {
 // Nothing without Active(Maps).
 void SelectMaps(const char* name, MapsSite site);
 // The folder MapsFolder starts from: the game's data folder or the mod's.
-const mfc::CString& MapsRoot(const mfc::CString& dataFolder);
+const std::string& MapsRoot(const std::string& dataFolder);
 
 // ---- Camera, Stream, Movies ----
 // CameraPatch: `path` (the camera\ file CCamera::LoadPath opens), or the mod's Camera\<last part>.
 std::string CameraFile(const char* path);
 // StreamPatch: whether the mod's Stream\ has `name` (then the stream opens <mod>Stream\<name>).
 bool StreamInMod(const char* name);
-const mfc::CString& StreamFolder();
+const std::string& StreamFolder();
 // MoviesPatch: `name` (as BinkOpen gets it), or the mod's Movies\<last part>.
 std::string MovieFile(const char* name);
 

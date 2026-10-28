@@ -15,7 +15,7 @@ int Split(const char* text, std::vector<std::string>* array, char separator);
 // that is empty only after trimming is still added. Returns 1.
 int SplitWords(const char* text, std::vector<std::string>* array, char separator);
 // (ECX string, EDX from; `to` on the stack). Every `from` in the string becomes `to`. Returns 1.
-int __fastcall ReplaceChar(std::string* string, char from, char to);
+int ReplaceChar(std::string* string, char from, char to);
 // `out` becomes the strings with `separator` between them (empty for none). Returns 1.
 int Join(std::string* out, const std::vector<std::string>& parts, char separator);
 

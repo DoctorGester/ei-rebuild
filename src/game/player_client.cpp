@@ -75,12 +75,6 @@ const char* TextUnknownType() { return "Wrong packet ID prevID=%x curID=%x\n"; }
 
 void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
 
-// A CString the stream reader constructs in place (CStream::ReadString), destroyed at the end of the scope.
-struct TextBuffer {
-    mfc::CString text{mfc::CString::kUnset};
-    mfc::CString* Get() { return &text; }
-};
-
 const char* QuestPrefix() { return "q."; }
 
 void* EmptyListVtable() { return mfc::impl::ItemListClass::Vtable(); }   // the CPtrList passed to it
@@ -176,7 +170,7 @@ int CPlayerClient::DispatchMessages() {
         if (!in_.ok_) return PlayerMessageError(TextReadPastEnd(), previous, type);
         previous = type;
         if (in_.Read(&type, 1) == 0) return 1;
-        if (static_cast<int>(type) >= handlers_.size) return PlayerMessageError(TextUnknownType(), previous, type);
+        if (static_cast<int>(type) >= std::ssize(handlers_)) return PlayerMessageError(TextUnknownType(), previous, type);
         auto handler = handlers_[type];
         if (handler == nullptr) return PlayerMessageError(TextNoHandler(), previous, type);
         if (!(this->*handler)()) return PlayerMessageError(TextHandlerFailed(), previous, type);
@@ -193,18 +187,14 @@ int CPlayerClient::ReceiveMessages() {
     return DispatchMessages() != 0 ? 1 : 0;
 }
 
-void* CPlayerClient::ReadText(void* out) {
+std::string* CPlayerClient::ReadText(std::string* out) {
     in_.ReadString(out);
     return out;
 }
 
 int CPlayerClient::OnSetVariable() {
     std::string name;
-    {
-        TextBuffer text;
-        in_.ReadString(text.Get());
-        name = *text.Get();
-    }
+    in_.ReadString(&name);
     std::uint32_t value;
     in_.Read(&value, 4);
     NamedFloatTable& variables = Owner()->Party()->variables_;
@@ -219,11 +209,7 @@ int CPlayerClient::OnSetVariable() {
 
 int CPlayerClient::OnDeleteVariable() {
     std::string name;
-    {
-        TextBuffer text;
-        in_.ReadString(text.Get());
-        name = *text.Get();
-    }
+    in_.ReadString(&name);
     Owner()->Party()->variables_.Remove(name.c_str());
     if (IsQuestVariable(name)) {
         TheInterface()->OnQuestVariable(name.c_str(), 0.0f);
@@ -233,18 +219,18 @@ int CPlayerClient::OnDeleteVariable() {
 }
 
 int CPlayerClient::OnZoneChange() {
-    TextBuffer zone;
-    ReadText(zone.Get());
+    std::string zone;
+    ReadText(&zone);
     int entrance;
     in_.Read(&entrance, 4);
-    TheGameFlow()->RequestZoneChange(*zone.Get(), entrance);
+    TheGameFlow()->RequestZoneChange(zone.c_str(), entrance);
     return 1;
 }
 
 int CPlayerClient::OnJingle() {
-    TextBuffer name;
-    in_.ReadString(name.Get());
-    TheMusicSystem()->PlayJingle(*name.Get());
+    std::string name;
+    in_.ReadString(&name);
+    TheMusicSystem()->PlayJingle(name.c_str());
     return 1;
 }
 
@@ -442,9 +428,9 @@ int CPlayerClient::OnPathMarker() {
 }
 
 int CPlayerClient::OnStringEvent() {
-    TextBuffer text;
-    ReadText(text.Get());
-    TheInterface()->OnStringEvent(*text.Get());
+    std::string text;
+    ReadText(&text);
+    TheInterface()->OnStringEvent(text.c_str());
     return 1;
 }
 
@@ -524,11 +510,7 @@ int CPlayerClient::OnNewObject() {
     in_.Read(&header, sizeof(header));
     Vector3 scale;
     in_.Read(&scale, sizeof(scale));
-    {
-        TextBuffer text;
-        in_.ReadString(text.Get());
-        secondName = *text.Get();
-    }
+    in_.ReadString(&secondName);
     if (!in_.ok_) return 0;
     char model[kTextSize];
     char textureFrom[kTextSize];
@@ -544,11 +526,7 @@ int CPlayerClient::OnNewObject() {
         in_.ReadText(part, kTextSize);
         parts[i] = part;
     }
-    {
-        TextBuffer text;
-        in_.ReadString(text.Get());
-        scriptName = *text.Get();
-    }
+    in_.ReadString(&scriptName);
     int prototypeValue;
     in_.Read(&prototypeValue, 4);
 
@@ -674,15 +652,15 @@ constexpr HandlerEntry<CPlayerClient> kClientHandlers[] = {
 
 BOOL CPlayerClient::CreateClient() {
     state_ = 0;
-    partyUnitIds_.SetSize(0, -1);
+    partyUnitIds_.clear();
     in_.Resize(0);
     out_.Resize(0);
     localSession_ = 0;
     sendParty_ = 0;
     compressor_.Reset();
     decompressor_.Reset();
-    handlers_.SetSize(kClientHandlerCount);
-    std::fill_n(handlers_.data, handlers_.size, Handler{});
+    handlers_.resize(kClientHandlerCount);
+    std::fill_n(handlers_.data(), std::ssize(handlers_), Handler{});
     for (const auto& entry : kClientHandlers)
         handlers_[entry.type] = entry.handler;
     return 1;
@@ -690,7 +668,7 @@ BOOL CPlayerClient::CreateClient() {
 
 void CPlayerClient::Clear() {
     state_ = 0;
-    partyUnitIds_.RemoveAll();
+    partyUnitIds_.clear();
     in_.Resize(0);
     out_.Resize(0);
     localSession_ = 0;
@@ -710,22 +688,16 @@ CPlayerConnection::~CPlayerConnection() { player_ = nullptr; }
 
 // The streams are members (constructed before the body; the original builds them after the handler table).
 CPlayerClient::CPlayerClient() {
-    handlers_.Construct();
     compressor_.Construct();
     decompressor_.Construct();
-    partyUnitIds_.Construct();
-    otherUnitIds_.Construct();
     Clear();
 }
 
 // The streams are members, destroyed after the body (the original frees them before the handler table).
 CPlayerClient::~CPlayerClient() {
     Clear();
-    otherUnitIds_.FreeData();
-    partyUnitIds_.FreeData();
     decompressor_.out.End();
     compressor_.out.End();
-    handlers_.FreeData();
 }
 
 const char* CPlayerClient::GetClassName() { return "CPlayerClient"; }
@@ -743,7 +715,7 @@ using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 // Built by the static initialiser and destroyed by the exit function it registers (docs/notes/standalone.md).
 constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};
 IntSet& PartyIdSet() { return *g_partyIdSet; }
-void __cdecl DestroyPartyIdSet() { g_partyIdSet->Destroy(); }
+void DestroyPartyIdSet() { g_partyIdSet->Destroy(); }
 int ReadDword(BitStream* in) {
     int value;
     in->Read(&value, 4);
@@ -752,17 +724,17 @@ int ReadDword(BitStream* in) {
 
 } // namespace
 
-void __cdecl ConstructPartyIdSet() {
+void ConstructPartyIdSet() {
     g_partyIdSet->Construct(100, 0, 0, 0);
     libcrt::AtExit(DestroyPartyIdSet);
 }
 
 int CPlayerClient::OnPartyState() {
     CPlayer* player = Owner();
-    for (int i = 0; i < partyUnitIds_.size; ++i) {
+    for (int i = 0; i < std::ssize(partyUnitIds_); ++i) {
         bool inserted;
-        PartyIdSet().InsertUnique(stlp::DwordKeyed<4>{static_cast<std::uint32_t>(partyUnitIds_.data[i])}, inserted);
-        CUnit* unit = player->WorldContext()->FindUnit(partyUnitIds_.data[i]);
+        PartyIdSet().InsertUnique(stlp::DwordKeyed<4>{static_cast<std::uint32_t>(partyUnitIds_[i])}, inserted);
+        CUnit* unit = player->WorldContext()->FindUnit(partyUnitIds_[i]);
         if (unit != nullptr) unit->flags_ &= ~kUnitInClientParty;
     }
 
@@ -772,10 +744,10 @@ int CPlayerClient::OnPartyState() {
     ReadDword(&in_);   // the server's possessedId_, not used
 
     int count = ReadDword(&in_);
-    partyUnitIds_.SetSizeDiscard(count);
+    partyUnitIds_.resize(count);
     for (int i = 0; i < count; ++i) {
         int id = ReadDword(&in_);
-        partyUnitIds_.data[i] = id;
+        partyUnitIds_[i] = id;
         auto* unit = player->WorldContext()->FindUnit(id);
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
@@ -787,8 +759,8 @@ int CPlayerClient::OnPartyState() {
 
     player->ClientWorld()->partyDanger_ = ReadDword(&in_);
     int others = ReadDword(&in_);
-    otherUnitIds_.SetSize(others);
-    for (int i = 0; i < others; ++i) in_.Read(&otherUnitIds_.data[i], 4);
+    otherUnitIds_.resize(others);
+    for (int i = 0; i < others; ++i) in_.Read(&otherUnitIds_[i], 4);
     return 1;
 }
 

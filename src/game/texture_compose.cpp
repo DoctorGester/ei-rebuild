@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -52,7 +53,7 @@ struct ReadBuffer {
     }
 };
 
-mfc::CString CachePath(const std::string& name) { return TheDataFolder() + kTextures + name + kMmp; }
+std::string CachePath(const std::string& name) { return TheDataFolder() + kTextures + name + kMmp; }
 
 // Reads an opened cached file's header and extra block, closes it, and tells whether the extra
 // block is the request's layer bytes.
@@ -64,7 +65,7 @@ bool CacheMatches(mfc::CFile& file, MmpHeader& header, ReadBuffer& buffer, const
     buffer.size = size;
     if (size != 0) file.Read(buffer.data, static_cast<unsigned>(size));
     file.Close();
-    return size == request->layers.size && std::memcmp(buffer.data, request->layers.data, static_cast<std::size_t>(size)) == 0;
+    return size == std::ssize(request->layers) && std::memcmp(buffer.data, request->layers.data(), static_cast<std::size_t>(size)) == 0;
 }
 
 // The pixel format fields for `format`; 0x5650 (5-6-5) is filled in place.
@@ -171,10 +172,10 @@ int CTextureManager::DrawLayers(std::uint32_t* image, const std::vector<std::str
 // `fill`) is drawn from the layers and written with `mipCount` levels in `format` (1), or, without
 // layer textures, the file is deleted (0). 0 when the drawing fails; FatalError's result when the
 // file cannot be written.
-int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, const mfc::CString* name,
-                             const mfc::CString* fallback, unsigned mipCount, std::uint32_t fill,
+int CTextureManager::Compose(std::string* out, const SkinRequest* request, const std::string* name,
+                             const std::string* fallback, unsigned mipCount, std::uint32_t fill,
                              std::uint32_t format) {
-    std::string path = CachePath((*name).GetString()).GetString();
+    std::string path = CachePath((*name).c_str());
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
     ReadBuffer buffer;
@@ -182,14 +183,14 @@ int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, cons
     *out = *name;
     if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
         if (CacheMatches(file, header, buffer, request)) return 1;
-    } else if (gamecrt::mbscmp(name->GetString(),
-                               fallback->GetString()) != 0) {
+    } else if (gamecrt::mbscmp(name->c_str(),
+                               fallback->c_str()) != 0) {
         *out = *fallback;
-        path = CachePath((*fallback).GetString());
+        path = CachePath((*fallback).c_str());
         if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
             if (CacheMatches(file, header, buffer, request)) return 1;
             *out = *name;
-            path = CachePath((*name).GetString());
+            path = CachePath((*name).c_str());
         }
     }
 
@@ -210,11 +211,11 @@ int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, cons
     header.width = static_cast<std::uint32_t>(request->flags);
     header.height = static_cast<std::uint32_t>(request->flags);
     header.mipCount = mipCount;
-    header.extraSize = static_cast<std::uint32_t>(request->layers.size);
+    header.extraSize = static_cast<std::uint32_t>(std::ssize(request->layers));
     int kind = ConversionKind(format);
     if (!file.Open(path, kWriteCreate, nullptr)) return game::FatalError(kCantWrite, path.c_str());
     file.Write(&header, sizeof(MmpHeader));
-    if (header.extraSize != 0) file.Write(request->layers.data, header.extraSize);
+    if (header.extraSize != 0) file.Write(request->layers.data(), header.extraSize);
     WriteLevels(file, header, image, kind, mipCount);
     return 1;
 }

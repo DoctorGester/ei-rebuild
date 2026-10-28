@@ -33,9 +33,6 @@ inline double Unsigned(std::uint32_t value) {
 // A float read back from memory (the original stores, then reloads it).
 inline float Load(const float& f) { return *static_cast<const volatile float*>(&f); }
 
-inline std::uint32_t GameDword(std::uintptr_t address) {
-    return *reinterpret_cast<const volatile std::uint32_t*>(address);
-}
 
 inline void SetBits(void* field, std::uint32_t bits) { std::memcpy(field, &bits, sizeof(bits)); }
 inline std::uint32_t Bits(const void* field) {
@@ -56,7 +53,7 @@ inline double GroundHeight(float x, float y) { return TheClientWorld()->RawSurfa
 inline float PickIfLess(float a, float b) { return a >= b ? b : a; }
 
 // The game's debug message (cdecl, one argument; compiled out, other mods may hook it).
-inline void __cdecl DebugMessage(const char* a0) { game::DebugLog(a0); }
+inline void DebugMessage(const char* a0) { game::DebugLog(a0); }
 
 // The element array's inlined SetSize(n) (MFC CArray; 32-byte aligned blocks).
 inline void SetElementCount(CParticleSource* s, int n) {

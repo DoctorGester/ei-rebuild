@@ -8,10 +8,12 @@
 #include "lib/stlp.h"
 #include "mob_script_decoder.h"
 #include "ei/x87.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <memory>
 #include <new>
+#include <string>
 #include <vector>
 
 namespace {
@@ -199,10 +201,10 @@ void Chunk::ReadBytes(void* data, int size) {
 // --- Text ----------------------------------------------------------------------------------------
 
 // The characters are read one at a time, each counted; the text ends at the first NUL (ReleaseBuffer(-1)).
-mfc::CString* Chunk::ReadString(mfc::CString* out) {
-    mfc::CString text;
+std::string* Chunk::ReadString(std::string* out) {
+    std::string text;
     int length = size_ - kHeader;
-    char* p = text.GetBufferSetLength(length);
+    char* p = str::SetLength(text, length);
     std::uint8_t c;
     for (int i = length; i > 0; --i) {
         FileRead(File(), &c, 1);
@@ -210,14 +212,14 @@ mfc::CString* Chunk::ReadString(mfc::CString* out) {
         ++consumed_;
         *p++ = static_cast<char>(c);
     }
-    text.ReleaseBuffer(-1);
+    str::CutAtNull(text);
     text::FromAssetText(&text);   // .mob text (unit names, dialogue) in UTF-8 with EI_UTF8
-    std::construct_at(out, text);
+    *out = text;
     return out;
 }
 
 // The content read into the decoder's input (resized to it, zero-filled) in one read, then decoded.
-mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
+std::string* Chunk::ReadEncodedString(std::string* out) {
     std::uint32_t length = static_cast<std::uint32_t>(size_ - kHeader);
     MobScriptDecoder decoder;
     decoder.input.resize(length, 0);
@@ -225,24 +227,24 @@ mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
     if (parent_) parent_->Advance(static_cast<int>(length));
     consumed_ += static_cast<int>(length);
     {
-        mfc::CString text;
+        std::string text;
         decoder.Decode(&text);
         text::FromAssetText(&text);   // the scripts' literals in UTF-8 with EI_UTF8
-        std::construct_at(out, text);
+        *out = text;
     }
     return out;
 }
 
 // A chunk holding the characters (no terminator). The buffer is taken after the file (GetBuffer(0)).
-void Chunk::WriteString(std::uint32_t id, mfc::CString text) {
-    int size = text.GetLength() + kHeader;
+void Chunk::WriteString(std::uint32_t id, std::string text) {
+    int size = static_cast<int>(text.size()) + kHeader;
     FileWrite(File(), &id, 4);
     FileWrite(File(), &size, 4);
     if (parent_) parent_->Advance(size);
     consumed_ += size;
-    int length = text.GetLength();
+    int length = text.size();
     mfc::CFileVirtuals* file = File();
-    FileWrite(file, text.GetBuffer(0), static_cast<std::uint32_t>(length));
+    FileWrite(file, str::Buffer(text, 0), static_cast<std::uint32_t>(length));
 }
 
 // The array is emptied, then `count` string chunks are read through a child chunk (its constructor
@@ -254,8 +256,8 @@ void Chunk::ReadStringArray(std::vector<std::string>* array) {
     array->clear();
     for (std::uint32_t i = count; i != 0; --i) {
         child.ReadHeader();
-        mfc::CString text(mfc::CString::kUnset);   // reuses a stack slot
-        array->push_back(child.ReadString(&text)->GetString());
+        std::string text;   // reuses a stack slot
+        array->push_back(child.ReadString(&text)->c_str());
     }
 }
 
@@ -282,8 +284,8 @@ void Chunk::WriteStringArray(std::uint32_t id, const std::vector<std::string>* a
 
 // --- The root chunk ------------------------------------------------------------------------------
 
-int RootChunk::Open(mfc::CString path, unsigned flags) {
-    return file_.Virtuals()->Open(path.GetString(), flags & 0xFFFF, nullptr);
+int RootChunk::Open(const std::string& path, unsigned flags) {
+    return file_.Virtuals()->Open(path.c_str(), flags & 0xFFFF, nullptr);
 }
 
 mfc::CFileVirtuals* RootChunk::File() { return file_.Virtuals(); }

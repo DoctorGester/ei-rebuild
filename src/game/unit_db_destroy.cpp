@@ -17,9 +17,9 @@
 
 namespace unitdb {
 
-UnitDatabase* __fastcall ConstructUnitDatabase(UnitDatabase* self);
-void __fastcall DestroyUnitDatabase(UnitDatabase* self);
-void __fastcall DestroySkillDatabase(SkillDatabase* self);
+UnitDatabase* ConstructUnitDatabase(UnitDatabase* self);
+void DestroyUnitDatabase(UnitDatabase* self);
+void DestroySkillDatabase(SkillDatabase* self);
 
 namespace {
 
@@ -45,7 +45,7 @@ void FreeRecords(Record* begin, Record* endOfStorage) {
 // The tables are destroyed last to first; in each the name map is cleared (each node's string freed, then
 // the node) and its buckets freed, then every record is destroyed (the end read once) and the storage
 // freed.
-void __fastcall DestroyUnitDatabase(UnitDatabase* self) {
+void DestroyUnitDatabase(UnitDatabase* self) {
     UnitLevelTable& levels = self->levels;
     levels.byName.Destroy();
     for (UnitLevelRecord *p = levels.begin, *end = levels.end; p != end; ++p) p->DeleteScalar(0);
@@ -69,7 +69,7 @@ void __fastcall DestroyUnitDatabase(UnitDatabase* self) {
 
 // The skill level records (their CStrings in reverse order), their storage, then the skills (the string
 // vector, then the two CStrings) and their storage (the node pool's deallocate inlined).
-void __fastcall DestroySkillDatabase(SkillDatabase* self) {
+void DestroySkillDatabase(SkillDatabase* self) {
     for (SkillLevelRecord *record = self->levels.begin(), *end = self->levels.end(); record != end; ++record) {
         DestroyString(&record->requiredSkillName);
         DestroyString(&record->requiredLevelName);
@@ -87,9 +87,9 @@ void __fastcall DestroySkillDatabase(SkillDatabase* self) {
 
 // A model slot's destructor: its level name (the one member to destroy); the CRT's vector destructor iterator
 // runs it on the record's six slots.
-void __fastcall DestroyModelSlot(UnitModelSlot* slot) { DestroyString(&slot->levelName); }
+void DestroyModelSlot(UnitModelSlot* slot) { DestroyString(&slot->levelName); }
 
-void __fastcall DestroyLevelRecord(UnitLevelRecord* record) { DestroyString(&record->name); }
+void DestroyLevelRecord(UnitLevelRecord* record) { DestroyString(&record->name); }
 
 } // namespace unitdb
 
@@ -107,13 +107,13 @@ UnitPrototypeRecord* UnitPrototypeRecord::DeleteScalar(unsigned flags) {
 
 namespace unitdb {
 
-void __fastcall DestroyStringRange(std::string* first, std::string* last) {
+void DestroyStringRange(std::string* first, std::string* last) {
     for (; first != last; ++first) DestroyString(first);
 }
 
 // A unit model record's destructor, members in reverse order: the sound counts (storage only), the sound
 // names, the two strings, the two unread string vectors, the figure name, the six slots and the name.
-void __fastcall DestroyModelRecord(UnitModelRecord* record) {
+void DestroyModelRecord(UnitModelRecord* record) {
     std::destroy_at(&record->soundCounts);
     DestroyStringVector(&record->soundNames);
     DestroyString(&record->soundFolder);
@@ -127,7 +127,7 @@ void __fastcall DestroyModelRecord(UnitModelRecord* record) {
 
 // A unit prototype record's destructor, members in reverse order: the two weapon names, the armour, spell and
 // loot item string vectors, the sound folder, the model name and the name.
-void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record) {
+void DestroyPrototypeRecord(UnitPrototypeRecord* record) {
     DestroyString(&record->secondWeaponName);
     DestroyString(&record->weaponName);
     DestroyStringVector(&record->armourNames);
@@ -139,7 +139,7 @@ void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record) {
 }
 
 // An NPC record's destructor: the four string vectors last to first, then the name.
-void __fastcall DestroyNpcRecord(UnitNpcRecord* record) {
+void DestroyNpcRecord(UnitNpcRecord* record) {
     DestroyStringVector(&record->startSpells);
     DestroyStringVector(&record->startQuickItems);
     DestroyStringVector(&record->startWeapons);
@@ -161,7 +161,7 @@ void ConstructTable(Table& table) {
 // The database constructor (the dynamic initialiser and the reload). The four tables in order: each record
 // vector empty, each name map with 100 buckets asked for (hashtable(n, hash, equal, allocator); the functor
 // bytes, never read, are 0 here). Returns the database.
-UnitDatabase* __fastcall ConstructUnitDatabase(UnitDatabase* self) {
+UnitDatabase* ConstructUnitDatabase(UnitDatabase* self) {
     ConstructTable(self->prototypes);
     ConstructTable(self->npcs);
     ConstructTable(self->models);
@@ -179,19 +179,19 @@ namespace unitdb {
 
 namespace {
 
-void __cdecl DestroyUnitDatabaseGlobal() {
+void DestroyUnitDatabaseGlobal() {
     DestroyUnitDatabase(&g_unitDatabase.Get());
 }
-void __cdecl DestroySkillDatabaseGlobal() {
+void DestroySkillDatabaseGlobal() {
     DestroySkillDatabase(&g_skillDatabase.Get());
 }
 } // namespace
 
-void __cdecl ConstructUnitDatabaseGlobal() {
+void ConstructUnitDatabaseGlobal() {
     ConstructUnitDatabase(&g_unitDatabase.Get());
     libcrt::AtExit(DestroyUnitDatabaseGlobal);
 }
-void __cdecl ConstructSkillDatabaseGlobal() {
+void ConstructSkillDatabaseGlobal() {
     g_skillDatabase->Construct();
     libcrt::AtExit(DestroySkillDatabaseGlobal);
 }

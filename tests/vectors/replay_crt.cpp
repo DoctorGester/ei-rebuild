@@ -32,10 +32,10 @@ int Classify(const int* table, const std::uint8_t* negative, int c, int bit, con
 
 namespace gamecrt {
 
-void* __cdecl operator_new(std::size_t size) { return ::operator new(size ? size : 1); }
-void __cdecl operator_delete(void* p) { ::operator delete(p); }
-void* __cdecl malloc(std::size_t size) { return std::malloc(size); }
-void __cdecl free(void* p) { std::free(p); }
+void* operator_new(std::size_t size) { return ::operator new(size ? size : 1); }
+void operator_delete(void* p) { ::operator delete(p); }
+void* malloc(std::size_t size) { return std::malloc(size); }
+void free(void* p) { std::free(p); }
 
 const int* CaseFoldTable() { return g_fold; }
 
@@ -50,15 +50,15 @@ void SetReplayCtype(const ReplayCtype& ctype) {
 // ports are not linked here (they read the game CRT's data).
 namespace libcrt {
 
-int __cdecl Isdigit(int c) { return Classify(g_ctype.digit, g_negative ? g_negative->digit : nullptr, c, 4, "isdigit"); }
-int __cdecl Isspace(int c) { return Classify(g_ctype.space, g_negative ? g_negative->space : nullptr, c, 8, "isspace"); }
-int __cdecl Tolower(int c) {
+int Isdigit(int c) { return Classify(g_ctype.digit, g_negative ? g_negative->digit : nullptr, c, 4, "isdigit"); }
+int Isspace(int c) { return Classify(g_ctype.space, g_negative ? g_negative->space : nullptr, c, 8, "isspace"); }
+int Tolower(int c) {
     if (c >= 0 && c < 256) return g_ctype.lower[c];
     std::fprintf(stderr, "ei_vectors: gamecrt::tolower(%d) was not recorded\n", c);
     std::abort();
 }
 
-char* __cdecl Strncpy(char* dst, const char* src, std::size_t n) {
+char* Strncpy(char* dst, const char* src, std::size_t n) {
     char* d = dst;
     while (n && (*d++ = *src++) != 0) --n;
     if (n)
@@ -66,11 +66,11 @@ char* __cdecl Strncpy(char* dst, const char* src, std::size_t n) {
     return dst;
 }
 
-int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return std::strncmp(a, b, n); }
+int Strncmp(const char* a, const char* b, std::size_t n) { return std::strncmp(a, b, n); }
 
 // _strnicmp: both of its branches (the "C" locale's ASCII fold and the locale's _tolower_lk) fold each
 // byte as tolower does.
-int __cdecl Strnicmp(const char* a, const char* b, std::size_t n) {
+int Strnicmp(const char* a, const char* b, std::size_t n) {
     if (n == 0) return 0;
     const int* fold = gamecrt::CaseFoldTable();
     int f, l;
@@ -133,17 +133,17 @@ unsigned char Ascii(unsigned c, const char* what) {
 
 } // namespace
 
-std::size_t __cdecl libcrt::Mbclen(const unsigned char* c) {
+std::size_t libcrt::Mbclen(const unsigned char* c) {
     Ascii(*c, "_mbclen");
     return 1;
 }
 
-unsigned char* __cdecl libcrt::Mbsinc(const unsigned char* p) {
+unsigned char* libcrt::Mbsinc(const unsigned char* p) {
     Ascii(*p, "_mbsinc");
     return const_cast<unsigned char*>(p + 1);
 }
 
-int __cdecl libcrt::Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) {
+int libcrt::Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) {
     for (; n; --n, ++a, ++b) {
         Ascii(*a, "_mbsncmp");
         Ascii(*b, "_mbsncmp");
@@ -154,7 +154,7 @@ int __cdecl libcrt::Mbsncmp(const unsigned char* a, const unsigned char* b, std:
 }
 
 // _mbscmp (the loader's name lookups): strcmp's -1 / 0 / 1 when no lead byte is met.
-int __cdecl libcrt::Mbscmp(const unsigned char* a, const unsigned char* b) {
+int libcrt::Mbscmp(const unsigned char* a, const unsigned char* b) {
     for (;; ++a, ++b) {
         Ascii(*a, "_mbscmp");
         Ascii(*b, "_mbscmp");

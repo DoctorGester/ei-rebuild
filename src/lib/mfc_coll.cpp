@@ -106,15 +106,15 @@ template struct PlainArray<std::uint8_t, ByteArrayClass>;
 template struct PlainArray<unsigned, UIntArrayClass>;
 
 
-void __cdecl CStringArray::ConstructElements(CString* elements, int count) {
+void CStringArray::ConstructElements(CString* elements, int count) {
     for (; count--; ++elements) ::new (elements) CString;
 }
 
-void __cdecl CStringArray::DestructElements(CString* elements, int count) {
+void CStringArray::DestructElements(CString* elements, int count) {
     for (; count--; ++elements) elements->~CString();
 }
 
-void __cdecl CStringArray::CopyElements(CString* dest, const CString* source, int count) {
+void CStringArray::CopyElements(CString* dest, const CString* source, int count) {
     while (count--) *dest++ = *source++;
 }
 
@@ -287,10 +287,10 @@ struct UIntArrayTable final : ArrayTable<UIntArrayTable, CUIntArray, &kClassCUIn
 } // namespace
 
 // The static initialisers (the exe's list holds the first instruction of each: a jump to the body).
-void __cdecl LinkStringArrayClass() { AfxClassInit(&g_classCStringArray); }
-void __cdecl LinkWordArrayClass() { AfxClassInit(&g_classCWordArray); }
-void __cdecl LinkDWordArrayClass() { AfxClassInit(&g_classCDWordArray); }
-void __cdecl LinkByteArrayClass() { AfxClassInit(&g_classCByteArray); }
+void LinkStringArrayClass() { AfxClassInit(&g_classCStringArray); }
+void LinkWordArrayClass() { AfxClassInit(&g_classCWordArray); }
+void LinkDWordArrayClass() { AfxClassInit(&g_classCDWordArray); }
+void LinkByteArrayClass() { AfxClassInit(&g_classCByteArray); }
 
 void* CStringArray::Vtable() { return StringArrayTable::Vtable(); }
 void* WordArrayClass::Vtable() { return WordArrayTable::Vtable(); }

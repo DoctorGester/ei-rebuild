@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <list>
 #include <string>
+#include <vector>
 
 class CObject3D;
 
@@ -70,7 +71,7 @@ static_assert(sizeof(ViewStack) == 0x28);
 // Average, lowest and highest surface height on a grid of `step` spacing over
 // [p.x - halfX, p.x + halfX] x [p.y - halfY, p.y + halfY] (points off the map skipped; the centre
 // counts once more). The two unused pointers are always the zero vector.
-void __stdcall SampleTerrain(const Vector3* p, const Vector3* unused1, const Vector3* unused2, float step,
+void SampleTerrain(const Vector3* p, const Vector3* unused1, const Vector3* unused2, float step,
                              float halfX, float halfY, float* average, float* minimum, float* maximum);
 
 // The camera ("CCamera"). flags_: 0x8 following the target, 0x10 a camera file is open, 0x20 playing a
@@ -196,8 +197,8 @@ public:
     // than 500 time units among the first `settle` take the pose of the key after the gap. Returns 0 when the
     // file does not open, else 1.
     int LoadPath(const char* name, int settle);
-    // the recorded path's keys (grow step 0: an eighth of the size, 4..1024)
-    lib::AlignedArray<CameraKey> keys_;
+    // the recorded path's keys
+    std::vector<CameraKey> keys_;
     float timeOffset_;
     int keyIndex_;
 };
@@ -215,7 +216,7 @@ using NearbyList = std::list<CObject3D*>;
 using NearbyNode = NearbyList::iterator;
 
 // The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
-const Vector3* __fastcall CameraAnchor(const CCamera* self);
+const Vector3* CameraAnchor(const CCamera* self);
 
 // Names for the game's globals and constants the camera code uses. The floating-point constants
 // are read from the exe at run time (volatile): the game multiplies them at run time and the
@@ -255,4 +256,4 @@ void NoteTargetTick(const CCamera* camera);
 
 } // namespace camera
 
-int __fastcall CameraCloseFile(CCamera* self);
+int CameraCloseFile(CCamera* self);

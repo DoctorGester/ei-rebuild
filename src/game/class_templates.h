@@ -43,7 +43,7 @@ public:
     ItemStock magic;                // the same layout: spells and modifiers only
 };
 // A new template with no references; the application's start registers it with the class registry as class 1.
-CRefCounted* __cdecl CreateClassTemplate();
+CRefCounted* CreateClassTemplate();
 static_assert(offsetof(ClassTemplate, weights) == 0x10);
 static_assert(offsetof(ClassTemplate, weightsTail) == 0x34);
 static_assert(offsetof(ClassTemplate, flag38) == 0x38);
@@ -61,16 +61,16 @@ static_assert(sizeof(ClassTemplateVector) == 12);
 
 // Adds to the template's lists every weapon, armor, quick item, fourth-kind record, spell and modifier whose
 // class mask has the template's bit (spells and modifiers to both lists).
-void __fastcall ClassTemplateFill(ClassTemplate* t);
+void ClassTemplateFill(ClassTemplate* t);
 
 // The script's quest completion: sets flag38 of every template. Returns the template count.
-unsigned __fastcall ClassTemplatesQuestCompleted(PartyManager* manager);
+unsigned ClassTemplatesQuestCompleted(PartyManager* manager);
 
 // The trader stock of a camp's constructor record. With flag0C: the items party is emptied and refilled from
 // the "allowed" stock (its class index type - 1; the "magic" stock's spells and modifiers, fresh material
 // units): 40-50 weapons, armors and quick items, 1-3 instructions of each, 20-50 materials, each added (count
 // kept, merged) and released.
-void __fastcall ClassTemplateGenerateItems(ClassTemplate* t);
+void ClassTemplateGenerateItems(ClassTemplate* t);
 // With flag0D: the spells party is emptied and refilled from the "magic" stock: 40-50 scrolls, 1-3 spell
 // instructions, 20-50 modifier instructions.
-void __fastcall ClassTemplateGenerateMagic(ClassTemplate* t);
+void ClassTemplateGenerateMagic(ClassTemplate* t);

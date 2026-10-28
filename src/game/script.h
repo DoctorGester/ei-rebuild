@@ -79,8 +79,6 @@ struct ScriptStrings : mfc::CArray<std::string> {
     // A by-value GetAt assigned to `out`.
     void CopyTo(int index, std::string* out) const;
     ScriptStrings* CopyConstruct(const ScriptStrings* other);
-    // A by-value GetAt constructed in raw storage at `out`.
-    std::string* CopyAt(std::string* out, int index) const;
     void CopyFrom(const ScriptStrings& source);
 };
 
@@ -106,8 +104,6 @@ struct ScriptCommands : mfc::CArray<SSCCmd> {
     void SetAtGrow(int index, const SSCCmd& cmd);
     SSCCmd* CopyAt(SSCCmd* out, int index) const;
     void CopyFrom(const ScriptCommands& source);
-    // Empty, growBy 0.
-    ScriptCommands* ConstructEmpty();
 };
 
 struct ScriptDefinitions : mfc::CArray<ScriptDefinition> {
@@ -351,8 +347,6 @@ static_assert(sizeof(ScriptParticleSource) == 0x24);
 // CreateFXSource / CreateRandomizedFXSource. The tick replaces the sound of a source whose `idle` is 0 when
 // its countdown runs out.
 struct ScriptFxSource {
-    // The name is the caller's to destroy.
-    void ScriptFxSourceDropSound();
     void ScriptFxSourceDestruct();
     // Freed when bit 0 of `flags` is set.
     void* DestroyElement(int flags);
@@ -458,12 +452,12 @@ public:
     // current token; functions consume tokens through it.
 
     // Formats the message into the error text; returns 0. Rebirth patches it.
-    static int __cdecl Error(CScript* script, int line, int code, const char* format, ...);
+    static int Error(CScript* script, int line, int code, const char* format, ...);
     // See script.md, "Lexer".
     BOOL Tokenize(const std::string& text, ScriptTokenList* tokens);
     BOOL ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id);
     // `name`, or "!<file>!<name>" when this is not the first file loaded.
-    mfc::CString* QualifyName(mfc::CString* out, const std::string& name);
+    std::string* QualifyName(std::string* out, const std::string& name);
     // Retries without each "!<n>!" prefix.
     int FindScript(const char* name);
     // Rebirth patches it. `signature`: the parameter types (lower-case letters). `assignment`: one parameter,
@@ -477,7 +471,7 @@ public:
     BOOL LoadScriptBody(struct ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens);
     // `= value` assigned to global variable `name` (command 0x78).
     BOOL LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens,
-                            ScriptVars* locals, const mfc::CString* name);
+                            ScriptVars* locals, const std::string* name);
     // `name : type, ...)` (parameters or GlobalVars). Returns 0 without an error when the tokens run out.
     BOOL LoadVariableDeclarations(struct ScriptDefinition* script, ScriptPos* pos,
                                   const ScriptTokenList* tokens, BOOL qualify);
@@ -486,7 +480,7 @@ public:
     BOOL LoadCommands(ScriptCommands* commands, ScriptPos* pos, const ScriptTokenList* tokens,
                       ScriptVars* locals);
     // The text is replaced by its #define-expanded form.
-    BOOL Load(mfc::CString* text, BOOL runWorldScript);
+    BOOL Load(std::string* text, BOOL runWorldScript);
     // With the WorldScript started; error 0x11 when the file cannot be read.
     BOOL LoadFile(const char* path);
 
@@ -630,7 +624,7 @@ constexpr int kCmdFor = 0x6B;
 constexpr int kCmdForIf = 0x6C;
 
 // Each token "None" / -1.
-void __stdcall ConstructTokens(ScriptToken* tokens, int count);
+void ConstructTokens(ScriptToken* tokens, int count);
 
 struct ScriptDefine {
     std::string name;
@@ -653,12 +647,12 @@ struct ScriptDefineElements {
 };
 using ScriptDefineList = mfc::CList<ScriptDefine, ScriptDefineElements>;
 // Every define's value and name destroyed, the list's blocks freed.
-void __fastcall ScriptDefinesDestruct(ScriptDefineList* defines);
+void ScriptDefinesDestruct(ScriptDefineList* defines);
 // Before the first define with a shorter name (else before the last one; at the end only when the list is
 // empty).
-void __fastcall AddDefine(ScriptDefineList* defines, const ScriptDefine* define);
+void AddDefine(ScriptDefineList* defines, const ScriptDefine* define);
 // Each define in list order.
-void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines);
+void __fastcall ApplyDefines(std::string* line, const ScriptDefineList* defines);
 
 // Rebirth patches it. *id = number (7A), string (7B, closed quote) or the id of the longest keyword the text
 // starts with (case-insensitive; 0 if none), *rest = characters after the matched part. Either may be null.
@@ -682,7 +676,7 @@ struct ScriptDecl {
     int id;
 };
 static_assert(sizeof(ScriptDecl) == 0x18);
-void __fastcall ScriptDeclDestruct(ScriptDecl* block);
+void ScriptDeclDestruct(ScriptDecl* block);
 
 // One `if(...)then(...)` pair of a script definition.
 struct ScriptIfThen {
@@ -696,8 +690,6 @@ struct ScriptIfThen {
 static_assert(sizeof(ScriptIfThen) == 8);
 
 struct ScriptIfThens : mfc::CArray<ScriptIfThen> {
-    // Empty, growBy 0.
-    ScriptIfThens* ConstructEmpty();
 };
 
 // A Script / DeclareScript definition. Script instances are copies of their definition: an instance's
@@ -709,7 +701,7 @@ struct ScriptDefinition {
     // instance's variables; FatalError when a type's count does not match.
     void BindCall(const SSCCmd* call);
     // FALSE when the name is taken.
-    BOOL AddParameter(const mfc::CString* name, int type);
+    BOOL AddParameter(const std::string* name, int type);
     ScriptDefinition* ScriptDefinitionAssign(const ScriptDefinition* other);
 
     int index;                          // 0 after loading
@@ -743,17 +735,17 @@ struct ScriptRun {
 static_assert(sizeof(ScriptRun) == 0xB4);
 
 // Outside For loops; keeps one empty group and one released object reference.
-void __fastcall ScriptFreeTemporaries(CScript* script);
+void ScriptFreeTemporaries(CScript* script);
 // When a script is loaded: the waiting runs, every instance's if-then pairs (killed instances dropped), then
 // the timed effects (FX sources, point lights, particle sources).
-void __fastcall ScriptTick(CScript* script);
+void ScriptTick(CScript* script);
 
 // QFinish: one declared script per objective, chaining to the next, loaded with the WorldScript started.
-void __fastcall ScriptQuestFinish(CScript* script);
+void ScriptQuestFinish(CScript* script);
 
 // Frees everything loaded (the point light slots stay, zeroed); error text "Unknown error", the two counters
 // -2.
-void __fastcall ScriptReset(CScript* script);
+void ScriptReset(CScript* script);
 
 // ---- Saving ----
 
@@ -766,61 +758,61 @@ static_assert(offsetof(ScriptArea, id) == 0x14);
 static_assert(sizeof(ScriptArea) == 0x18);
 
 // The areas: count, then per area its id, part count and parts.
-void __fastcall ScriptAreasSave(const mfc::CArray<ScriptArea>* areas, ScriptStream* stream);
+void ScriptAreasSave(const mfc::CArray<ScriptArea>* areas, ScriptStream* stream);
 
 // ---- Loading ----
 
 // The caller reads the id.
-void __fastcall ScriptDeclCommandsLoad(ScriptDecl* block, ScriptStream* stream);
+void ScriptDeclCommandsLoad(ScriptDecl* block, ScriptStream* stream);
 // Per pair two block ids, resolved in g_streamedScript's block lists.
-void __fastcall ScriptIfThenLoad(mfc::CArray<ScriptIfThen>* pairs, ScriptStream* stream);
+void ScriptIfThenLoad(mfc::CArray<ScriptIfThen>* pairs, ScriptStream* stream);
 // The count, that many default nodes appended, then every node read from the head.
-void __fastcall ScriptParticlesLoad(mfc::CList<ScriptParticleSource>* list, ScriptStream* stream);
-void __fastcall ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStream* stream);
-void __fastcall ScriptLightningLoad(mfc::CList<ScriptLightning>* list, ScriptStream* stream);
-void __fastcall ScriptWorldBlocksLoad(ScriptDecls* list, ScriptStream* stream);
-void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream);
-void __fastcall ScriptRunsLoad(ScriptRuns* list, ScriptStream* stream);
+void ScriptParticlesLoad(mfc::CList<ScriptParticleSource>* list, ScriptStream* stream);
+void ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStream* stream);
+void ScriptLightningLoad(mfc::CList<ScriptLightning>* list, ScriptStream* stream);
+void ScriptWorldBlocksLoad(ScriptDecls* list, ScriptStream* stream);
+void ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream);
+void ScriptRunsLoad(ScriptRuns* list, ScriptStream* stream);
 
 // Nested commands deleted; growBy kept.
-void __fastcall ScriptCmdClear(SSCCmd* cmd);
+void ScriptCmdClear(SSCCmd* cmd);
 
 // ---- Constructor, reset and small loaders ----
-void __fastcall ScriptDefinitionReset(ScriptDefinition* definition);
-void __fastcall ScriptStringLoad(std::string* out, ScriptStream* stream);
+void ScriptDefinitionReset(ScriptDefinition* definition);
+void ScriptStringLoad(std::string* out, ScriptStream* stream);
 
 // ---- Destructors and AppendFrom ----
-void __fastcall ScriptVarsDestruct(ScriptVars* vars);
-void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition);
-void __fastcall ScriptCmdDestruct(SSCCmd* cmd);
+void ScriptVarsDestruct(ScriptVars* vars);
+void ScriptDefinitionDestruct(ScriptDefinition* definition);
+void ScriptCmdDestruct(SSCCmd* cmd);
 
 // One type's values destroyed and freed, then the names emptied.
-void __fastcall ScriptFloatsClear(ScriptNamedValues<float>* vars);
-void __fastcall ScriptStringsClear(ScriptNamedValues<std::string>* vars);
-void __fastcall ScriptObjectsClear(ScriptNamedValues<ScriptObjectRef>* vars);
-void __fastcall ScriptGroupsClear(ScriptNamedValues<ScriptGroup>* vars);
-void __fastcall ScriptVarsClear(ScriptVars* vars);
+void ScriptFloatsClear(ScriptNamedValues<float>* vars);
+void ScriptStringsClear(ScriptNamedValues<std::string>* vars);
+void ScriptObjectsClear(ScriptNamedValues<ScriptObjectRef>* vars);
+void ScriptGroupsClear(ScriptNamedValues<ScriptGroup>* vars);
+void ScriptVarsClear(ScriptVars* vars);
 
 // ---- Variable array constructors and destructors ----
-ScriptNamedValues<float>* __fastcall ScriptFloatsConstruct(ScriptNamedValues<float>* vars);
-ScriptNamedValues<std::string>* __fastcall ScriptStringsConstruct(ScriptNamedValues<std::string>* vars);
-ScriptNamedValues<ScriptObjectRef>* __fastcall ScriptObjectsConstruct(ScriptNamedValues<ScriptObjectRef>* vars);
-ScriptNamedValues<ScriptGroup>* __fastcall ScriptGroupsConstruct(ScriptNamedValues<ScriptGroup>* vars);
-void __fastcall ScriptFloatsDestruct(ScriptNamedValues<float>* vars);
-void __fastcall ScriptStringsDestruct(ScriptNamedValues<std::string>* vars);
-void __fastcall ScriptObjectsDestruct(ScriptNamedValues<ScriptObjectRef>* vars);
-void __fastcall ScriptNamesDestruct(mfc::CArray<std::string>* names);
-void __fastcall ScriptRefArrayDestruct(mfc::CArray<ScriptObjectRef>* refs);
-void __fastcall ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups);
-void __fastcall ScriptRunDestruct(ScriptRun* run);
+ScriptNamedValues<float>* ScriptFloatsConstruct(ScriptNamedValues<float>* vars);
+ScriptNamedValues<std::string>* ScriptStringsConstruct(ScriptNamedValues<std::string>* vars);
+ScriptNamedValues<ScriptObjectRef>* ScriptObjectsConstruct(ScriptNamedValues<ScriptObjectRef>* vars);
+ScriptNamedValues<ScriptGroup>* ScriptGroupsConstruct(ScriptNamedValues<ScriptGroup>* vars);
+void ScriptFloatsDestruct(ScriptNamedValues<float>* vars);
+void ScriptStringsDestruct(ScriptNamedValues<std::string>* vars);
+void ScriptObjectsDestruct(ScriptNamedValues<ScriptObjectRef>* vars);
+void ScriptNamesDestruct(mfc::CArray<std::string>* names);
+void ScriptRefArrayDestruct(mfc::CArray<ScriptObjectRef>* refs);
+void ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups);
+void ScriptRunDestruct(ScriptRun* run);
 
 // ---- Purge and zone reset ----
 // After every removal of a world object: deleted objects dropped from every variable set, then the
 // temporaries freed.
-void __fastcall ScriptPurgeDeletedObjects(CScript* script);
-void __fastcall ScriptDropInstancesAndRuns(CScript* script);
+void ScriptPurgeDeletedObjects(CScript* script);
+void ScriptDropInstancesAndRuns(CScript* script);
 // EnterZone: instances, runs and effects dropped, global values reset, each WorldScript block run again.
-void __fastcall ScriptResetZone(CScript* script);
+void ScriptResetZone(CScript* script);
 
 // ---- Quest construction ----
 // An objective of the quest QStart starts; QFinish turns them into a script.
@@ -831,17 +823,16 @@ struct ScriptQuestObjective {
 };
 extern lib::StaticObject<mfc::CArray<ScriptQuestObjective>> g_scriptQuestObjectives;
 inline mfc::CArray<ScriptQuestObjective>& ScriptQuestObjectives() { return *g_scriptQuestObjectives; }
-extern lib::StaticObject<mfc::CString> g_scriptQuestName;
+extern lib::StaticObject<std::string> g_scriptQuestName;
 // The script being loaded or saved: the run loader and saver find a run's instance through it.
 inline CScript* g_streamedScript = /*007AA620*/ {nullptr};
-inline mfc::CString& ScriptQuestName() { return *g_scriptQuestName; }
-void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective);
-void __fastcall ScriptQuestStart(const char* name);
-void __fastcall ScriptQuestAddObjective(int type, const std::string& text, float value);
+inline std::string& ScriptQuestName() { return *g_scriptQuestName; }
+void ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective);
+void ScriptQuestStart(const char* name);
+void ScriptQuestAddObjective(int type, const std::string& text, float value);
 
 // ---- Loader arrays ----
 // The pointer stays.
-void __fastcall ScriptSubCallDestruct(ScriptSubCall* call);
+void ScriptSubCallDestruct(ScriptSubCall* call);
 
-void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars);
-void __stdcall ScriptLightningElementsDestruct(ScriptLightning* first, int count);
+void ScriptLightningElementsDestruct(ScriptLightning* first, int count);

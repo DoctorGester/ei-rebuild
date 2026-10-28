@@ -25,6 +25,9 @@
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 
+#include <string>
+#include <vector>
+
 namespace {
 
 
@@ -58,9 +61,9 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         aiMap->BeginRefresh();
         bool failed;
         {
-            mfc::CString path(mfc::CString::kUnset);   // MapPath constructs it
+            std::string path;
             MapPath(&path, map);
-            failed = aiMap->Load(path) == 0;
+            failed = aiMap->Load(path.c_str()) == 0;
         }
         if (failed) return 0;
         mapName_ = map;
@@ -124,7 +127,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
 namespace {
 
 // Releases a range of counted object pointers.
-void __stdcall CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructElements(static_cast<CEngineObject**>(a0), a1); }
+void CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructElements(static_cast<CEngineObject**>(a0), a1); }
 
 void ClearMissilePointers(CWorldServer* world) {
     auto& list = world->projectiles_;
@@ -260,7 +263,7 @@ void CWorldServer::SendFreshObjects() {
     // They stop being map objects and are sent to a temporary player, which is then dropped.
     CPlayer* temporary = players_->CreateSessionPlayer();
     CPlayerServer* state = temporary->Server();
-    lib::AlignedArray<CEngineObject*> objects{nullptr, 0, 0, 0};
+    std::vector<CEngineObject*> objects;
     for (auto* node = fresh.head; node;) {
         auto* next = node->next;
         CEngineObject* object = node->data;
@@ -271,13 +274,13 @@ void CWorldServer::SendFreshObjects() {
             id = static_cast<unsigned>(object->id_);
             hash400::RemoveKey(otherMapObjects_.map, id);
         }
-        objects.SetAtGrow(objects.size, object);
+        objects.push_back(object);
         node = next;
     }
     state->SendObjectsAdded(&objects);
     state->WriteTo(header);
     PlayerList()->ReleasePlayer(temporary);
-    if (objects.data) lib::AlignedArray<CEngineObject*>::Free(objects.data);
+    lib::FreeStorage(objects);
     fresh.vtable = mfc::impl::ClientObjectListClass::Vtable();
     fresh.RemoveAll();
 }

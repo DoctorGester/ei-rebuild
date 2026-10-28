@@ -43,7 +43,7 @@ template <typename Text>
 void ReadTutorText(CTextManager* texts, const std::string& key, Text* text) {
     BOOL found;
     {
-        std::string section = (mfc::CString(TutorSection()) + key).GetString();
+        std::string section = std::string(TutorSection()) + key;
         found = texts->Open(section.c_str());
     }
     if (!found) return;
@@ -63,7 +63,7 @@ void CHelpWindow::CreateScreen() {
     CTextManager* texts = TheTextManager();
     BOOL found;
     {
-        std::string section = (mfc::CString(TutorialSection()) + text_).GetString();
+        std::string section = std::string(TutorialSection()) + text_;
         found = texts->Open(section.c_str());
     }
     if (!found) {

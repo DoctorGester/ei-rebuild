@@ -97,9 +97,9 @@ public:
                         int vertexCount, const std::uint16_t* indices, unsigned indexCount, int flags);
     int DrawIndexed(int primitive, int fvf, void* vertices, int vertexCount, const std::uint16_t* indices,
                     unsigned indexCount, int flags);
-    int BoundsOfProjected(const lib::AlignedArray<devicebuffers::ProjectedVertex>* positions,
+    int BoundsOfProjected(const std::vector<devicebuffers::ProjectedVertex>* positions,
                           const std::uint8_t* outcodes);
-    int BoundsOfVertices(const lib::AlignedArray<TLVertex>* vertices, const std::uint8_t* outcodes);
+    int BoundsOfVertices(const std::vector<TLVertex>* vertices, const std::uint8_t* outcodes);
     int DrawTlTriangles(TLVertex* vertices, int vertexCount, std::uint16_t* indices, int indexCount);
     int DrawIndexedDirect(int primitive, int fvf, void* vertices, int vertexCount, std::uint16_t* indices,
                           int indexCount, int flags);
@@ -166,7 +166,7 @@ enum StageBlock { kSceneBlock, kTextureAlphaBlock, kAlphaPassBlock, kTerrainBloc
 extern DWORD g_stageBlocks[kStageBlockCount];
 
 // Once a frame; returns the DirectDraw result (0).
-long __fastcall DevicePresent(CTextureDevice* device);
+long DevicePresent(CTextureDevice* device);
 static_assert(offsetof(CTextureDevice, ddraw_) == 0x0C);
 static_assert(offsetof(CTextureDevice, primary_) == 0x14);
 static_assert(offsetof(CTextureDevice, renderTarget_) == 0x18);
@@ -182,7 +182,6 @@ struct DirectDrawDriver {
     HMONITOR monitor;
 };
 extern lib::StaticObject<std::list<DirectDrawDriver>> g_directDrawDrivers;
-inline std::list<DirectDrawDriver>& DirectDrawDrivers() { return *g_directDrawDrivers; }
 
 // A DirectDraw surface wrapper. The surface pointer is always null: the pixels are the new renderer's memory
 // (dx_surface.h).
@@ -244,7 +243,7 @@ CPixelConverter* PixelConverter();
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
 
 // Aligned to 32 bytes.
-using AlignedBuffer = lib::AlignedArray<std::uint8_t>;
+using AlignedBuffer = std::vector<std::uint8_t>;
 
 // Header of an .mmp file; the extra block follows it, then the mips. Each channel: its mask, the shift of its
 // lowest bit and its bit count.
@@ -352,12 +351,12 @@ public:
 };
 
 // A null texture is a fatal error (its result returned); a loaded one gives 1.
-int __fastcall TextureHolderEnsureLoaded(struct HeldTexture* holder);
+int TextureHolderEnsureLoaded(struct HeldTexture* holder);
 
 constexpr std::uint32_t kTextureLoaded = 0x08;    // CEngineObject::flags_
 
 // Deletes every composed-skin cache file (<data path>textures\*.mmp).
-void __cdecl DeleteComposedTextures();
+void DeleteComposedTextures();
 
 // Class id 0x26.
 class CTextureManager : public CResourceManager {
@@ -410,8 +409,8 @@ public:
     int DrawLayers(std::uint32_t* image, const std::vector<std::string>* names, int width);
     // The skin composed into the cached texture `name` (or `fallback`), the name used into `out`: 1 when
     // cached or written, 0 when nothing was drawn.
-    int Compose(mfc::CString* out, const SkinRequest* request, const mfc::CString* name,
-                const mfc::CString* fallback, unsigned mipCount, std::uint32_t fill, std::uint32_t format);
+    int Compose(std::string* out, const SkinRequest* request, const std::string* name,
+                const std::string* fallback, unsigned mipCount, std::uint32_t fill, std::uint32_t format);
 
     MmpHeader* GetFileData(const char* name);   // an .mmp file's data (CloseFile frees it)
     CTexture* NewTextureOfType(int type);

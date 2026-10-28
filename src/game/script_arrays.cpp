@@ -57,40 +57,40 @@ ScriptNamedValues<T>* Construct(ScriptNamedValues<T>* vars, void* valuesVtable) 
 
 } // namespace
 
-ScriptNamedValues<float>* __fastcall ScriptFloatsConstruct(ScriptNamedValues<float>* vars) {
+ScriptNamedValues<float>* ScriptFloatsConstruct(ScriptNamedValues<float>* vars) {
     return Construct(vars, mfc::impl::ScriptFloatValuesClass::Vtable());
 }
-ScriptNamedValues<std::string>* __fastcall ScriptStringsConstruct(ScriptNamedValues<std::string>* vars) {
+ScriptNamedValues<std::string>* ScriptStringsConstruct(ScriptNamedValues<std::string>* vars) {
     return Construct(vars, gamearrays::ScriptStringValuesClass::Vtable());
 }
-ScriptNamedValues<ScriptObjectRef>* __fastcall ScriptObjectsConstruct(ScriptNamedValues<ScriptObjectRef>* vars) {
+ScriptNamedValues<ScriptObjectRef>* ScriptObjectsConstruct(ScriptNamedValues<ScriptObjectRef>* vars) {
     return Construct(vars, mfc::impl::ScriptGroupClass::Vtable());
 }
-ScriptNamedValues<ScriptGroup>* __fastcall ScriptGroupsConstruct(ScriptNamedValues<ScriptGroup>* vars) {
+ScriptNamedValues<ScriptGroup>* ScriptGroupsConstruct(ScriptNamedValues<ScriptGroup>* vars) {
     return Construct(vars, gamearrays::ScriptGroupValuesClass::Vtable());
 }
 
-void __fastcall ScriptFloatsDestruct(ScriptNamedValues<float>* vars) {
+void ScriptFloatsDestruct(ScriptNamedValues<float>* vars) {
     FreeStrings(&vars->names);
     FreePlain(&vars->values, mfc::impl::ScriptFloatsClass::Vtable());
 }
 
-void __fastcall ScriptStringsDestruct(ScriptNamedValues<std::string>* vars) {
+void ScriptStringsDestruct(ScriptNamedValues<std::string>* vars) {
     FreeStrings(&vars->names);
     FreeStrings(&vars->values);
 }
 
-void __fastcall ScriptObjectsDestruct(ScriptNamedValues<ScriptObjectRef>* vars) {
+void ScriptObjectsDestruct(ScriptNamedValues<ScriptObjectRef>* vars) {
     FreeStrings(&vars->names);
     FreeRefs(&vars->values);
 }
 
-void __fastcall ScriptNamesDestruct(mfc::CArray<std::string>* names) { FreeStrings(names); }
+void ScriptNamesDestruct(mfc::CArray<std::string>* names) { FreeStrings(names); }
 
-void __fastcall ScriptRefArrayDestruct(mfc::CArray<ScriptObjectRef>* refs) { FreeRefs(refs); }
+void ScriptRefArrayDestruct(mfc::CArray<ScriptObjectRef>* refs) { FreeRefs(refs); }
 
 // Each group's references reset and its storage freed, then the array's.
-void __fastcall ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups) {
+void ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups) {
     groups->vtable = gamearrays::GroupArrayClass::Vtable();
     if (!groups->data) return;
     ScriptGroup* group = groups->data;
@@ -105,7 +105,7 @@ void __fastcall ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups) {
 }
 
 // The run's variables, members from the last to the first.
-void __fastcall ScriptRunDestruct(ScriptRun* run) {
+void ScriptRunDestruct(ScriptRun* run) {
     ScriptVars& vars = run->vars;
     FreeStrings(&vars.groups.names);
     vars.groups.values.vtable = gamearrays::GroupArrayClass::Vtable();
@@ -123,22 +123,4 @@ void __fastcall ScriptRunDestruct(ScriptRun* run) {
     FreeStrings(&vars.strings.values);
     FreeStrings(&vars.floats.names);
     FreePlain(&vars.floats.values, mfc::impl::ScriptFloatsClass::Vtable());
-}
-
-// The names, then each group's references through the element destructor and
-// its storage, then the array's storage.
-void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars) {
-    FreeStrings(&vars->names);
-    mfc::CArray<ScriptGroup>& groups = vars->values;
-    groups.vtable = gamearrays::GroupArrayClass::Vtable();
-    if (!groups.data) return;
-    ScriptGroup* group = groups.data;
-    for (int n = groups.size; n != 0; --n, ++group) {
-        group->vtable = mfc::impl::ObjectRefArrayClass::Vtable();
-        if (!group->data) continue;
-        ScriptObjectRef* ref = group->data;
-        for (int k = group->size; k != 0; --k, ++ref) ref->DestroyElement(0);
-        gamecrt::operator_delete(group->data);
-    }
-    gamecrt::operator_delete(groups.data);
 }

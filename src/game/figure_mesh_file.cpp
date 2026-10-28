@@ -64,18 +64,18 @@ void CPlainFigureMesh::LoadTransform(mfc::CFileVirtuals* file) {
     normals_.SetSize(count);
     Read(file, normals_.data, count * 0x40);
     count = ReadCount(file);
-    texCoords_.SetSize(count);
-    Read(file, texCoords_.data, count * 8);
+    texCoords_.resize(count);
+    Read(file, texCoords_.data(), count * 8);
     ReadCount(file);   // the 0 the writer puts here
     count = ReadCount(file);
-    corners_.SetSize(count, -1);
-    Read(file, corners_.data, count * 6);
+    corners_.resize(count);
+    Read(file, corners_.data(), count * 6);
     count = ReadCount(file);
-    words_.SetSize(count, -1);
-    Read(file, words_.data, count * 4);
+    words_.resize(count);
+    Read(file, words_.data(), count * 4);
     count = ReadCount(file);
-    indices_.SetSize(count, -1);
-    Read(file, indices_.data, count * 2);
+    indices_.resize(count);
+    Read(file, indices_.data(), count * 2);
     Read(file, &center_, 12);
     Read(file, &boxMin_, 12);
     Read(file, &boxMax_, 12);

@@ -16,9 +16,7 @@ inline const char* EmptyText() { return kEmptyText; }
 inline const char* CantFindTextureFormatText() { return "Can't find texture format %d.\n"; }
 
 // The window surfaces' FatalDirectX.
-inline const char* CantGetSurfaceDescriptionText() { return "Can't get surface description.\n"; }
 // The picture file name of a window made from a picture.
-inline const char* MmpExtensionText() { return ".mmp"; }
 
 // The battle screen's (ui_hud.cpp): the sound of a portrait's unit clicked, the console line of a
 // click on the ground ("Terrain Coords", space), a zone exit's player variable prefix.
@@ -72,8 +70,6 @@ inline const char* FigPathFormat() { return "%s%s.fig"; }
 inline const char* CantOpenFigText() { return "Can't open file \"%s%s.fig\"\n"; }
 inline const char* AstExtensionText() { return ".ast"; }
 
-// The server's and the client's lists show it for a name that is missing.
-inline const char* QuestionMarkText() { return "?"; }
 
 // The suffixes of the zone messages and the quest registry keys: enter, leave, finish.
 inline const char* ZoneSuffix1Text() { return "_1"; }
@@ -152,8 +148,6 @@ inline const char* GameTime() { return "gtime"; }
 inline const char* NotifySaving() { return "notify_saving"; }
 inline const char* NoSpace() { return "no_disc_space"; }
 inline const char* NoSpaceText() { return "no_disc_space_msg"; }
-inline const char* CantLockSurface() { return "Can't lock surface.\n"; }  // "Can't lock surface.\n"
-inline const char* CantUnlockSurface() { return "Can't unlock surface.\n"; }  // "Can't unlock surface.\n"
 }  // namespace savewords
 
 // The briefing and quest registry texts (world_briefing.cpp).

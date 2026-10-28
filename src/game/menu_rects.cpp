@@ -51,20 +51,20 @@ int CFigureManager::LoadMenuRects(RECT* rects) {
         reg->Destroy();
         return result;
     }
-    IntArray values{nullptr, 0, 0, 0};
+    IntArray values;
     for (const MenuRect& entry : kRects) {
-        values.SetSize(0, -1);
+        values.clear();
         reg->GetIntArray(entry.section, entry.name, &values);
-        if (values.size != 4) {
+        if (std::ssize(values) != 4) {
             int result = game::FatalError(entry.error);
-            if (values.data) lib::FreeAligned32(values.data);
+            lib::FreeStorage(values);
             reg->Destroy();
             return result;
         }
-        gameapi::SetRect(&rects[entry.index], values.data[0], values.data[1], values.data[2],
-                         values.data[3]);
+        gameapi::SetRect(&rects[entry.index], values[0], values[1], values[2],
+                         values[3]);
     }
-    if (values.data) lib::FreeAligned32(values.data);
+    lib::FreeStorage(values);
     reg->Destroy();
     return 1;
 }

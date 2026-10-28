@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <string>
 
 namespace app {
 
@@ -37,8 +38,8 @@ void LockCursorAtCallSite() {
     else TheCursor()->TakeLock();
 }
 
-// The movie list's .ini path: CString concatenation (AFXAPI).
-mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return std::construct_at(a0, *a1 + a2); }
+// The movie list's .ini path: the folder and the file name joined into `a0`.
+std::string* ConcatText(std::string* a0, const std::string* a1, const char* a2) { *a0 = *a1 + a2; return a0; }
 
 // Fills the device object's screen rectangle of the primary surface with black (a colour-fill Blt under the
 // render lock, taken twice) and keeps the result in the device's lastLoadResult_. The primary is a holder
@@ -55,7 +56,7 @@ std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame 
 } // namespace
 
 // Nothing while the application is inactive (a 50 ms sleep when no window of the interface is active).
-void __fastcall FrameStep(bool draw, bool cursor) {
+void FrameStep(bool draw, bool cursor) {
     if (!Running()) return;
     if (!TheInterface()->GetActiveWindow()) {
         gameapi::Sleep(50);
@@ -72,7 +73,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     TheCursor()->ReleaseLock();
     if (!app::g_recordingFrames) return;
     char path[256];
-    gamecrt::sprintf(path, "%sshot%.4d.bmp", MovieFolder().GetString(), g_movieFrame);
+    gamecrt::sprintf(path, "%sshot%.4d.bmp", MovieFolder().c_str(), g_movieFrame);
     mfc::CFile file;
     if (!file.Open(path, 0x1001, nullptr)) {
         game::FatalError("Can't open file \"%s\" to write movie frame.\n", path);   // "Can't open file (%s) to write movie"
@@ -102,20 +103,20 @@ void __fastcall FrameStep(bool draw, bool cursor) {
 
 // Plays the movies listed under `section` in the .ini under the movie folder setting (each
 // from the movie directory), clearing the screen before and, with `clearAfter`, after each.
-void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, int b) {
+void PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, int b) {
     std::vector<std::string> list;
     lib::InPlace<CIniFile> iniStorage;   // built and destroyed through the game's own calls
     CIniFile* ini = iniStorage.Get();
     ini->Construct();
     {
-        mfc::CString path(mfc::CString::kUnset);
-        ini->SetPath(*ConcatText(&path, &TheDataFolder(), "config\\movie.ini"));
+        std::string path;
+        ini->SetPath((*ConcatText(&path, &TheDataFolder(), "config\\movie.ini")).c_str());
     }
     ini->GetList(section, "movies", &list, ',');
     if (clearFirst) ClearScreen();
     for (const std::string& movie : list) {
         {
-            const std::string full = TheDiscFolder().GetString() + std::string("Movies\\") + movie;
+            const std::string full = TheDiscFolder().c_str() + std::string("Movies\\") + movie;
             PlayMovie(full.c_str(), 0, 1, 0, 0, static_cast<char>(a), b);
         }
         if (clearAfter) ClearScreen();

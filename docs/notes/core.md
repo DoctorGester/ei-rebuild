@@ -237,10 +237,9 @@ to which template:
   006C5010; the bone's morph frames 00452E20 / 00452DF0; the scene loader's `OriginalElements<T, Make, Unmake>`). The
   vtable is a field: each instantiation keeps its own constant. CByteArray / CWordArray / CDWordArray / CUIntArray share
   the layout (`CArray<uint8_t / uint16_t / uint32_t>`); their SetSize stays MFC's own code (006FF64A, 006FEEFA, 006FF993,
-  006FF29A via originals_library.h). `mfc::CStringArray`: CArray's layout over CStrings without constructors (it sits in
-  layouts); its members are MFC's own code through their addresses (Construct 006FE925, Destruct 006FE958, SetSize
-  006FE9B8, SetAtGrow 006FEBFA / 006FEBCE, RemoveAt 006FED3C, Copy 006FEB61; src/lib/mfc.cpp); `console::CStringArray`
-  adds the constructor / destructor for locals.
+  006FF29A via originals_library.h). `mfc::impl::CStringArray` (mfc_coll.h): CArray's layout over CStrings,
+  registered at MFC's addresses (Construct 006FE925, Destruct 006FE958, SetSize 006FE9B8, ...); nothing in src/game
+  uses it since C14a batch 14 (the public `mfc::CStringArray` and `console::CStringArray` went).
   Aliases and registrations: `RecordPtrArray` (world.h) = `CArray<uint8_t*>` (vtable 0073FAA4; SetSize 005719B0 /
   SetAtGrow forwarded); `ZoneExitArray` = `CArray<ZoneExit>` (SetSize 00573080, `ZoneExitsSetSizeOriginal`); world_save's
   id / object / shared lists and world_party's carried items (+0xB0, `AlignedArray<CEngineObject*>`, 0059CB50 the aligned
@@ -262,19 +261,19 @@ to which template:
 - `mfc::CMap<K, V>` (0x1C bytes) with its `CMapAssoc` (pack 4: a 64-bit key at +8); the inlined GetNextAssoc walk (`Next`)
   and RemoveAll. Hashing and the association pool stay with each instantiation's GetAssocAt / InitHashTable / NewAssoc
   (scene meshes: 004540A0 / 00453FD0 / 00454040, 004541C0 / 004540F0 / 00454160, 004542E0 / 00454210 / 00454280).
-- `lib::AlignedArray<T>` (`src/lib/containers.h`, 0x10 bytes: data, size, capacity, growBy): the engine's arrays in 32-byte
-  aligned blocks (operator new of count * sizeof(T) + 0x24, the block pointer stored before the data; `AllocAligned32` /
-  `FreeAligned32`). The per-size allocators 00406B30 / 00406B50, 00452C20, 00452D80, 00452DA0, 00452E70, 00452E90, 00453A10,
-  00468F70, 004ECB50, 004ECB70, 004F65B0, 00600A80, 00695B00-00695B40, 00476EF0, 00477250 all compute the same. SetSize(n,
-  growBy) keeps the contents (no element construction); SetSizeDiscard is the renderer's inlined variant that drops them
-  when it grows; Add / SetAtGrow take the element by value; RemoveAt shifts down; RemoveAll frees; `Copy` = operator=.
-  Registered on it: 005A6E70 (figure mesh colours), 0044F960 / 0044FA90 / 00452FC0 (ui_mesh_build sprite arrays), 004F57B0
-  (`TriangleIndexArray`, 6-byte triangles), 006003D0 / 006004E0 / 00600730 / 00600840 / 00600950 / 00601D00 SetSize and
-  006005F0 SetAtGrow (`UiPtrArray<T>` = `AlignedArray<T*>`), AlignedPtrArray = `AlignedArray<void*>` SetAtGrow / SetSize /
-  Add 00519E80 / 00519D70 / 00519A10 and copies (SetAtGrow(-1) faults like the original's), the scene loader's vertex
-  arrays (`PointBuffer`, `UvBuffer`, `FaceBuffer`, `BlockBuffer`, `DwordBuffer`; 00452AF0, 0044FBB0, 0044F410, 0044F1D0,
-  0044F1B0), `CUiRegion::points_`, unit_skins' texture set bytes. The animation / figure loader copies (0044F1B0-00454A30)
-  are in aligned_arrays.cpp (element types `Blob<K>`).
+- The engine's aligned arrays (game.exe: data, size, capacity, growBy in 32-byte aligned blocks, new slots left
+  uninitialised, relocated by memcpy, no destructor) are `std::vector` (C14e, a scripted retype; the build has no SIMD, so
+  the alignment was not kept). `lib::FreeStorage(v)` frees the storage (`v = {}` / clear() keep it); `lib::SetAtGrow(v, i,
+  x)` grows to i + 1. A record holding a vector in an `mfc::CArray` needs typed elements (construct_at, destroy_n and
+  `mfc::MoveElements` to relocate), never a byte view (`Bytes<N>`, `BlocksAt8`, `AlignedArrays`); a raw-lifetime owner
+  (operator_new + Construct / DestructBody) constructs its vectors with std::construct_at. resize() value-initialises the
+  new slots where the original kept stale ones: a site that reads a slot before writing it differs. named_data.py formats
+  a vector global by the container it replaced (ALIGNED_ARRAY_VECTORS: the 39 game.exe addresses of aligned arrays).
+  `lib::AlignedArray<T>` (`src/lib/containers.h`) remains for the declarations C14a's files (scene_loader, ui_item_info)
+  reach and the figure mesh / party / unit / ui item arrays tied to them (figure.h parts, figure_mesh, link_figure colours,
+  unit.h weapons / items / spells, party.h, ui.h `UiPtrArray`, world.h items), and its static Allocate / Free still back
+  the renderer's raw blocks (renderer_lines, particle_emitters, render_helper's matrix stack, texture_compose,
+  link_figure's packets).
 - STLport `vector`, `hash_map`, `list`, `map` (strings are std::string; stlp::string is gone; vectors and lists of
   plain elements are std, see C14b below): `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
   next, prev, `data`); the instantiations keep their own insert / erase / clear, reached as free or static `__fastcall`
@@ -306,8 +305,7 @@ to which template:
 - Scope `params` (batch 2): 65 `const mfc::CString&` parameters of functions defined in src/game are
   `const std::string&`, in the definition and every declaration of the name and position. Kept CStrings: virtual
   functions (an override retyped alone silently stops overriding), overload sets on the string type (CopyMember /
-  AssignMember of record_members.h, the `Ops` cast views of console.h, text_reader.cpp, options.cpp, which
-  static_cast the CString to a subclass, CharacterCount / CharacterBytes beside their string_view overloads), Sum and
+  AssignMember of record_members.h, the cast views that static_cast the CString to a subclass (gone by batch 14), CharacterCount / CharacterBytes beside their string_view overloads), Sum and
   Compose, and `MapsRoot`, which returns its parameter by `const mfc::CString&` (a std::string parameter would
   return a temporary: C4172, a code-generator warning without a column). A CString given to a retyped parameter
   passes `.GetString()` (a std::string copy of its text; the game's text has no embedded zero bytes), the seam the
@@ -456,22 +454,51 @@ to which template:
   their size asserts; every node or block size that was a literal now is a sizeof (the animation caches' and the figure manager's
   hash nodes `deallocate(n, 20)`, the blood prints' list nodes 164, the text sources' nodes 0x18, the string vectors'
   `capacity * 12`): a literal size with a string-holding element frees into the wrong pool list.
-- Members that must stay CStrings for now: the console's (console::CStringArray history, lines and command arguments),
-  Split / SplitWords / Join's CStringArrays and the locals their callers fill (the quest places' `parts`).
-  The console batch: text::Split / SplitWords / Join, CTextManager::Split and console::Tokenize fill / read a
+- The console batch: text::Split / SplitWords / Join, CTextManager::Split and console::Tokenize fill / read a
   `std::vector<std::string>` (SplitStrings went), and so do their callers' locals (the command line and sysmsg.txt
   lines, the map database's words, the briefing / objectives / help / global map texts, the key bindings, CreateItem's
   and CreateSpellFromText's names, the texture's path pieces, the script events' words). The console's command
   arguments are `console::Arguments` (`std::vector<std::string>`; the handlers take `Arguments*`), ConsoleWindow's
   commands_ / lines_ are vectors (its offset assert went; it is allocated by sizeof), Execute keeps the command as a
   std::string (the cheat word's XOR, then cut at the first zero byte as ReleaseBuffer(-1) did) and RunScriptLine
-  builds a std::string, converted to a CString only for RunScriptText. `str::TrimLeft(s, char)` is CString's
+  builds a std::string for RunScriptText (which makes the CString that CScript::Load preprocesses in place). `str::TrimLeft(s, char)` is CString's
   TrimLeft(TCHAR). The briefing's phrase speaker (`named` in NextPhrase) is empty for a one-word line, where the
   original read past the array.
-- Members that must stay CStrings for now: the registry's and resources' list out parameters (GetStringArray,
-  GetSectionNames, ListFiles, CIniFile::GetList / GetKeyNames, the List*Names, ListWaveFiles, ListKeys) and the locals
-  they fill (`console::CStringArray`, kept for them), the console's command map keys (`stlp::CStringLess`).
-  To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
+- Batch 14: no CStringArray is left in src/game, and mfc.h's public `mfc::CStringArray` went (only mfc_coll.h's
+  `mfc::impl::CStringArray`, registered at its library addresses, is left). console.h's `Str` / `Ops` views and
+  `console::CStringArray` went, and so did spell_text.cpp's and item_constructor.cpp's view classes (CreateItem's bracket
+  text and CreateSpellFromText's name are std::strings). The chat overlay's and DrawWrappedText's lines, the damage
+  lists (`ItemDamageLists` fills a `std::vector<std::string>*`), the unit panel's and the scene loader's roots are
+  vectors. The console's command maps and the interface's help topics are `stlp::map<std::string, ...,
+  stlp::MbsLess>` (stlp_tree_mbs.h: `_mbscmp < 0` on the text up to its first zero byte, CStringLess's order;
+  CStringLess went), and the queued tutorial messages are a `stlp::list<std::string>`. Their nodes grew (the 0x18 asserts
+  went; the trees allocate by sizeof). RunScriptText takes a `const std::string&` and CInterface3D::TextExtent a
+  `std::string_view`. `TextSources::FindText` is `FindKeyText`: windows.h's FindText macro renamed the call but not
+  the declaration once console.h stopped coming first in text_reader.cpp.
+- The whole-tree pass (batches 15-18 at once): no `mfc::CString` is left in src/game but CStdioFile::ReadString's
+  local (MFC's ReadLine fills a CString of src/lib). A one-off script, kept out of the repository, retyped every
+  declaration and then ran c14_strings.py's diagnostic rules over the verify build; its shapes: `kUnset` storage
+  becomes a plain `std::string` (the callee assigns), `std::construct_at(out, a)` / `new (out) mfc::CString(a)` in a
+  function taking `mfc::CString* out` (or a `void* out` it built a CString in) becomes `*out = a`, raw
+  `alignas` storage a local whose address the call takes (its `std::destroy_at` goes), by-value parameters
+  `const std::string&` (`std::string` where the body changes them), `mfc::operator+(a, b)` -> `a + b`, the CString
+  overloads beside std::string ones went (asset_text's, record_members'). So the folders and command-line globals
+  (`lib::StaticObject<std::string>`; named_data.py still counts game.exe's range as one CString pointer), the out
+  parameters (`std::string*`: Chunk / CStream / DeltaField ReadString, the title and zone getters, TypeName,
+  MapPath ...), CItem's name virtuals, the sorts over `std::string*`, PersonTextMap (its node grew: the 0x18 assert
+  went), MpStringVector, the script's Load / QualifyName / ApplyDefines / AddParameter / ReadTextFile and the
+  registry getters are std::string. ChunkArchive::CStringField went (StringField writes the same bytes for text
+  without zero bytes); CStream::ReadInto is not a template. Left for the bridge: src/lib's MFC (CFileFind's
+  returns, CStdioFile, `stlp::CStringFloatTraits`: NamedFloatTable is still a hash_map<CString, float>, its
+  operator[] takes a std::string), mfc::CString itself, and tests' Original* layouts (record_script*.cpp,
+  script_original.h, record_stats.cpp, harness views).
+- Rule from this pass: the rules' column is where MSVC points, not where the expression starts: a C2440 '=' column
+  at the right-hand side (find the `=` before it on the line), a 'return' column past the keyword in a one-line
+  body, and a method's receiver that is a cast (`const_cast<T*>(x)->GetBuffer(0)`) starts at the cast keyword.
+  A rewrite that turns one statement into two (`return std::construct_at(out, a);` -> `*out = a; return out;`)
+  braces them where the statement was an if's body: unbraced, the return ran always (BriefingSpeakerInto, 8 MP
+  goldens).
+- To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
   (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride. Record such a
   change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it, `vectors.py merge <runs>
   --out <scratch>`, `ei_vectors.exe <scratch>`): tests/vectors is not in the original runs' key without
@@ -567,8 +594,9 @@ to which template:
   before a destroy_at of the vector destroys the elements twice (two such were in the script's output: the hero
   screen's voices and the exchange screen's names).
 - constinit vector globals with game-order exit functions (item_stock's scratch vectors, the frame's draw lists,
-  the quest files, the zone table, the fog's dead cells): the exit function is `lib::FreeVector(v)` (swap with an
-  empty one), so the C++ destructor at our CRT's exit finds nothing to free. A std::list is not constinit (its
+  the quest files, the zone table, the fog's dead cells): the exit function is `lib::FreeStorage(v)`
+  (lib/containers.h: a swap with an empty one), so the C++ destructor at our CRT's exit finds nothing to free. A
+  std::list is not constinit (its
   constructor allocates the sentinel): the global lists are `lib::StaticObject<std::list<T>>` (static_lists.cpp)
   with Construct / Destroy. named_data's TYPES has `std::vector` ('III', zero is empty); STATIC_OBJECT_BYTES keeps
   game.exe's 4-byte list ranges for the std::list StaticObjects (ours are 8 bytes, zero storage).
@@ -607,8 +635,7 @@ to which template:
   their last reference); the map must end empty.
 - A-E1: `CCamera::LoadPath` (0040ECD0, RET 8, camera_path_load.cpp; Rebirth-patched at its file open
   0040ED42, so the vanilla launch only): `<data folder>camera\<name>` opened with a CFile (0 when that fails),
-  the keys resized to length / 36 as the engine's aligned arrays are (+0x2F0..+0x2FC are an
-  `AlignedArray<CameraKey>`: data, size, capacity, grow step) and filled with one read. With the second
+  the keys (a `std::vector<CameraKey>`) resized to length / 36 and filled with one read. With the second
   argument above 1 and below the key count, the first key among that many that is more than 500 time units
   after its predecessor gives its position and rotation to every key before it. Side by side on the camera
   itself (the original loads, the keys are copied, ours loads again; results, counts and key bytes compared).

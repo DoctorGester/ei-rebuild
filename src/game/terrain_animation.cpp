@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace terrain {
 namespace {
@@ -90,7 +91,7 @@ void SectorData::Clear() {
     records.SetSize(0, -1);
     for (int quarter = 0; quarter < 4; ++quarter) {
         for (int page = 0; page < tileFlags[quarter].size; ++page) tileFlags[quarter][page].SetSize(0, -1);
-        for (int page = 0; page < tiles[quarter].size; ++page) tiles[quarter][page].SetSize(0, -1);
+        for (int page = 0; page < tiles[quarter].size; ++page) tiles[quarter][page].clear();
     }
     ResetFields();
     render::TerrainChanged(this, render::TerrainChange::Rebuilt);
@@ -111,7 +112,7 @@ void SectorData::RelightTick() {
 void SectorData::Animate(Terrain* landscape, int frame) {
     if (frame % 3 == 0 && (landscape->landscapeFlags & 2) != 0) {
         bool stepped = false;
-        for (int i = 0; i < animated.size; ++i) {
+        for (int i = 0; i < std::ssize(animated); ++i) {
             AnimatedTile& tile = animated[i];
             if (tile.frame == 0 && tile.speed < 1000 &&
                 IsaacRandom::Global().Next() % 1000 + 1 > static_cast<std::uint32_t>(tile.speed)) {
@@ -131,7 +132,7 @@ void SectorData::Animate(Terrain* landscape, int frame) {
 
     SectorPosition* positions = &vertices[kVertices];
     SectorVertex* water = &records[kVertices];
-    const float* phaseOffset = landscape->wavePhases.data;
+    const float* phaseOffset = landscape->wavePhases.data();
     Vector2 direction = {landscape->waveDirection.x, landscape->waveDirection.y};
     float stepX = static_cast<float>(1.0f * direction.x);   // the vertex spacing
     float stepY = static_cast<float>(1.0f * direction.y);
@@ -207,7 +208,7 @@ namespace {
 // addresses of the array slots: it reads +0xC / +0x8 of those, the pointers three and two slots further on
 // (past the end for the last ones), so its order follows the heap. Here the sectors themselves are compared
 // (address_order.h).
-int __cdecl CompareSectors(const void* a, const void* b) {
+int CompareSectors(const void* a, const void* b) {
     const auto* x = *static_cast<const SectorData* const*>(a);
     const auto* y = *static_cast<const SectorData* const*>(b);
     if (x->sy < y->sy) return -1;
@@ -217,9 +218,9 @@ int __cdecl CompareSectors(const void* a, const void* b) {
 }
 
 // SetSun's function-local static (guard bit 1, freed at exit).
-constinit lib::AlignedArray<SectorData*> g_sortedSectors = /*007C8938*/ {};
-lib::AlignedArray<SectorData*>& SortedSectors() { return g_sortedSectors; }
-void __cdecl FreeSortedSectors() { g_sortedSectors.FreeData(); }
+constinit std::vector<SectorData*> g_sortedSectors = /*007C8938*/ {};
+std::vector<SectorData*>& SortedSectors() { return g_sortedSectors; }
+void FreeSortedSectors() { lib::FreeStorage(g_sortedSectors); }
 std::uint8_t g_sortedSectorsGuard = /*007C8948*/ {};
 
 // A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01
@@ -256,27 +257,22 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     auto& sorted = terrain::SortedSectors();
     if ((terrain::g_sortedSectorsGuard & 1) == 0) {
         terrain::g_sortedSectorsGuard |= 1;
-        sorted = {nullptr, 0, 0, 0};
         libcrt::AtExit(terrain::FreeSortedSectors);
     }
-    if (!sorted.data) {
-        sorted.data = sorted.Allocate(0);
-        sorted.capacity = 0;
-    }
-    sorted.size = 0;
+    sorted.clear();
     for (SectorCache::Node* node = sectorCache.head; node; node = node->next) {
         SectorData* sector = node->data;
         if (sector->built & terrain::kLit) {
-            int index = sorted.size;
-            sorted.SetSize(index + 1, -1);
+            int index = std::ssize(sorted);
+            sorted.resize(index + 1);
             sorted[index] = sector;
         }
     }
-    libcrt::Qsort(sorted.data, sorted.size, sizeof(SectorData*), terrain::CompareSectors);
-    if (sorted.size == 0) return;
-    float step = static_cast<float>(static_cast<double>(lightInterval - 1) / sorted.size);
+    libcrt::Qsort(sorted.data(), std::ssize(sorted), sizeof(SectorData*), terrain::CompareSectors);
+    if (sorted.empty()) return;
+    float step = static_cast<float>(static_cast<double>(lightInterval - 1) / std::ssize(sorted));
     float at = 0.0f;
-    for (int i = 0; i < sorted.size; ++i) {
+    for (int i = 0; i < std::ssize(sorted); ++i) {
         int frames = x87::fistp(at);
         at = static_cast<float>(at + step);
         sorted[i]->ScheduleRelight(frames);
@@ -297,7 +293,7 @@ int Terrain::RunTick() {
     if ((landscapeFlags & 8) != 0) PlayAmbience();
     wavePhase = static_cast<float>(waveSpeed + wavePhase);
     ++frame;
-    for (int row = 0; row < visibleColumnFirst.size; ++row) {
+    for (int row = 0; row < std::ssize(visibleColumnFirst); ++row) {
         for (int column = visibleColumnFirst[row]; column <= visibleColumnLast[row]; ++column) {
             SectorData* sector = SectorAt(column, visibleRowFirst + row, terrain::kLit, 0);
             if (sector && sector->IsDrawn()) sector->Animate(this, frame);

@@ -10,6 +10,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
+#include <utility>
+#include <vector>
 
 namespace lib {
 
@@ -55,7 +58,7 @@ struct AlignedArray {
 
     // SetSize(count, growBy): 0 frees the block; the first allocation is exact; growing past the
     // capacity reallocates to max(count, capacity + step) and copies the old elements with memcpy.
-    // growBy -1 keeps the step. The out-of-line copies are registered on this member.
+    // growBy -1 keeps the step.
     void SetSize(int count, int newGrowBy = -1) {
         if (newGrowBy != -1) growBy = newGrowBy;
         if (count == 0) {
@@ -115,8 +118,7 @@ struct AlignedArray {
         SetSizeDiscard(count);
     }
 
-    // SetAtGrow / Add take the element by value, as the out-of-line copies do,
-    // so they can be registered on these members.
+    // SetAtGrow / Add take the element by value, as the out-of-line copies do.
     void SetAtGrow(int index, T value) {
         if (index >= size) SetSize(index + 1);
         data[index] = value;
@@ -176,5 +178,19 @@ struct AlignedArray {
     }
 };
 static_assert(sizeof(AlignedArray<int>) == 0x10);
+
+// Frees a vector's block and leaves it empty (where the aligned array's block was freed by hand: the exit
+// functions of the static work buffers, the owners' release paths).
+template <typename T>
+void FreeStorage(std::vector<T>& v) {
+    std::vector<T>().swap(v);
+}
+
+// CArray's SetAtGrow on a vector: grows it to hold `index` (the new elements value-initialised), then sets it.
+template <typename T, typename U>
+void SetAtGrow(std::vector<T>& v, int index, U&& value) {
+    if (index >= std::ssize(v)) v.resize(static_cast<std::size_t>(index) + 1);
+    v[static_cast<std::size_t>(index)] = std::forward<U>(value);
+}
 
 } // namespace lib

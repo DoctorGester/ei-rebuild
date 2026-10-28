@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <cstring>
 
-Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a, const Quaternion& b);   // quaternion.cpp
+Quaternion* MultiplyByConjugate(Quaternion* out, const Quaternion& a, const Quaternion& b);   // quaternion.cpp
 
 namespace scene {
 namespace {
@@ -47,12 +47,12 @@ float ToAxisAngle(const Quaternion& q, Vector3* axis) {
     return static_cast<float>(angle);
 }
 
-RotationKey* Keys(CAnimationNode* bone) { return bone->rotationKeys_.data; }
+RotationKey* Keys(CAnimationNode* bone) { return bone->rotationKeys_.data(); }
 
 } // namespace
 
-void __fastcall MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, int frame) {
-    for (int i = 0; i < bone->children_.size; ++i) MakeFrameRelative(bone, bone->children_.data[i], frame);
+void MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, int frame) {
+    for (int i = 0; i < std::ssize(bone->children_); ++i) MakeFrameRelative(bone, bone->children_[i], frame);
 
     RotationKey& key = Keys(bone)[frame];
     if (!parent) {
@@ -89,8 +89,8 @@ void __fastcall MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, 
             Quaternion theirs = parent->restRotation_;
             MultiplyByConjugate(&bone->restRotation_, own, theirs);
         }
-        Vector3& t = bone->translationKeys_.data[frame].position;
-        const Vector3& pt = parent->translationKeys_.data[frame].position;
+        Vector3& t = bone->translationKeys_[frame].position;
+        const Vector3& pt = parent->translationKeys_[frame].position;
         t.x = t.x - pt.x;
         t.y = t.y - pt.y;
         t.z = t.z - pt.z;

@@ -33,6 +33,6 @@ public:
 
 using UnitShapeHandle = ShapeCacheHandle;
 // The shape cache's creator virtual: a new shape for the handle's radius (`this` unused).
-CUnitShape* __stdcall CreateUnitShape(const UnitShapeHandle* handle);
+CUnitShape* CreateUnitShape(const UnitShapeHandle* handle);
 
 inline int UnitLayerBucket(int blockX, int blockY) { return (blockX * 17 + blockY) & 0x3FF; }

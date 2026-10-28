@@ -6,8 +6,8 @@
 // does through its address: the hook build patches that address to jump here.
 
 namespace ei::static_init {
-void __cdecl Exit004E1C50();   // the dead fog cells
-void __cdecl Exit004E2280();   // the weather draw's records
+void Exit004E1C50();   // the dead fog cells
+void Exit004E2280();   // the weather draw's records
 } // namespace ei::static_init
 
 namespace ei::short_functions {

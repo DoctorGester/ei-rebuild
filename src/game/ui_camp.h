@@ -94,8 +94,8 @@ struct GlobalMapPlaceElements {
 };
 using GlobalMapPlaces = mfc::CArray<GlobalMapPlace, GlobalMapPlaceElements>;
 // Their element destructors (title, then name).
-void __fastcall DestroyGlobalMapZone(GlobalMapZone* zone);
-void __fastcall DestroyGlobalMapPlace(GlobalMapPlace* place);
+void DestroyGlobalMapZone(GlobalMapZone* zone);
+void DestroyGlobalMapPlace(GlobalMapPlace* place);
 
 // The arrays' tables: the zones', the links' and the quests'.
 using GlobalMapZoneRecords = mfc::impl::ArrayAbi<GlobalMapZone, GlobalMapZoneElements>;
@@ -138,9 +138,9 @@ public:
     void Update() override;
 
     // Empty when there is no such text; `this` not read.
-    mfc::CString* AllodTitle(mfc::CString* out, const char* allod);
-    mfc::CString* ZoneTitle(mfc::CString* out, const char* zone);
-    mfc::CString* QuestTitle(mfc::CString* out, const char* quest);
+    std::string* AllodTitle(std::string* out, const char* allod);
+    std::string* ZoneTitle(std::string* out, const char* zone);
+    std::string* QuestTitle(std::string* out, const char* quest);
     // From map.txt (missing numbers 0). Not found leaves `out` as it is (the original writes its
     // uninitialised locals there). `this` not read.
     Vector3* ZonePosition(Vector3* out, const char* zone);
@@ -283,7 +283,7 @@ public:
     void DrawLists();
     // "%d" below 1000, "%.1fk" below 10000, "%dk" below a million, "%.1fm" below ten million, "%dm" below
     // 1e9, else "%.1fg"; a negative price shows as 0x7FFFFFFF.
-    void FormatPrice(int price, mfc::CString* out);
+    void FormatPrice(int price, std::string* out);
     // Regions 4-9 the schools (kind 1), 10 science (kind 2), 11 up the perks (kind 3: the perk's record name
     // without its level digits, plus "0"; held ones with their level).
     void HoverInfo(int x, int y, ItemHoverInfo* info);

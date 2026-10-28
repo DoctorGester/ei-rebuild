@@ -20,28 +20,28 @@ namespace {
 using AtExitFunction = void(__cdecl*)();
 void RegisterExit(AtExitFunction exitFunction) { libcrt::AtExit(exitFunction); }
 
-void __cdecl DestroySpiralOffsets() {
+void DestroySpiralOffsets() {
     mfc::impl::DestructArrayOf<gamearrays::SpiralOffsetArrayClass>(*g_spiralOffsets);
 }
-void __cdecl DestroySpiralRadii() {
+void DestroySpiralRadii() {
     mfc::impl::DestructArrayOf<mfc::impl::FloatArrayClass>(g_spiralRadii->keys);
 }
-void __cdecl DestroySpiralLengths() {
+void DestroySpiralLengths() {
     mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(*g_spiralLengths);
 }
 } // namespace
 
-void __cdecl ConstructSpiralOffsets() {
+void ConstructSpiralOffsets() {
     mfc::impl::ConstructArrayOf<gamearrays::SpiralOffsetArrayClass>(*g_spiralOffsets);
     RegisterExit(DestroySpiralOffsets);
 }
 
-void __cdecl ConstructSpiralRadii() {
+void ConstructSpiralRadii() {
     mfc::impl::ConstructArrayOf<mfc::impl::FloatArrayClass>(g_spiralRadii->keys);
     RegisterExit(DestroySpiralRadii);
 }
 
-void __cdecl ConstructSpiralLengths() {
+void ConstructSpiralLengths() {
     mfc::impl::ConstructArrayOf<mfc::impl::IntArrayClass>(*g_spiralLengths);
     RegisterExit(DestroySpiralLengths);
 }

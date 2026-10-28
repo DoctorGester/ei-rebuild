@@ -60,7 +60,6 @@ void CBriefingScreen::StartPhrases() {
     if (voice_ != -1) TheSoundManager()->StopSound(voice_);
     voice_ = -1;
     TheMusicSystem()->FadeOut();
-    // (An unused CStringArray is also constructed and destroyed here.)
     std::string key = BriefingSection();
     key += topic_;
     if (!TheTextManager()->CTextManager::Open(key.c_str())) {
@@ -116,7 +115,7 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
 // a server unit's dialogue animation has ended, its client unit, when it is one of the briefing's
 // speakers, plays a listening animation again (once per entry). The active window is taken to be the
 // briefing screen unchecked; the count is read again after each call.
-void __fastcall SpeakerAnimationDone(CUnit* serverUnit) {
+void SpeakerAnimationDone(CUnit* serverUnit) {
     if (!serverUnit) return;
     auto* unit = TheClientWorld()->FindUnit(serverUnit->id_);
     if (!unit) return;

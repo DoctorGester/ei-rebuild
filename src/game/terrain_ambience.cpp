@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <memory>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -89,7 +90,7 @@ constexpr float kHalfPi = /*007C8930*/ 1.5707964f;   // a static initialiser: pi
 int SectorOf(float v) { return x87::fistp(static_cast<float>(v / CellSize())) / 32; }
 
 // By weight, highest first (an unordered pair sorts "after").
-int __cdecl ByWeight(const void* a, const void* b) {
+int ByWeight(const void* a, const void* b) {
     float wa = static_cast<const ClassVotes*>(a)->weightSum;
     float wb = static_cast<const ClassVotes*>(b)->weightSum;
     if (wa > wb) return -1;
@@ -117,14 +118,14 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
 
 } // namespace
 
-mfc::CString* CWorldClient::AmbienceTimeOfDay(mfc::CString* out) {
+std::string* CWorldClient::AmbienceTimeOfDay(std::string* out) {
     float hour = static_cast<float>(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, 24.0));
     const char* name;
     if (hour < 6.0f || hour > 18.0f)
         name = hour < 22.0f && hour > 2.0f ? (hour < 6.0f ? "morning" : "evening") : "night";
     else
         name = "day";   // also NaN
-    return std::construct_at(out, name);
+    *out = name; return out;
 }
 
 void Terrain::PlayAmbience() {
@@ -225,9 +226,9 @@ void Terrain::PlayAmbience() {
         std::uint32_t variant = random.Next();
         char name[256];
         {
-            mfc::CString time;   // the empty string, replaced (raw stack storage in the game)
+            std::string time;   // the empty string, replaced (raw stack storage in the game)
             TheClientWorld()->AmbienceTimeOfDay(&time);
-            gamecrt::sprintf(name, "ambient\\%s\\%s\\%s\\%i.wav", textAE0.c_str(), kind.name, time.GetString(),
+            gamecrt::sprintf(name, "ambient\\%s\\%s\\%s\\%i.wav", textAE0.c_str(), kind.name, time.c_str(),
                              variant % static_cast<std::uint32_t>(kind.variants) + 1);
         }
         Vector3 position = listener + cells[pick].offset;

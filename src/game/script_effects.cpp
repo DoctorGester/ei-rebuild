@@ -136,7 +136,6 @@ void DropEffect(T** slot) {
 void ScriptPointLight::ScriptPointLightDestruct() { DropEffect(&object); }
 void ScriptLightning::ScriptLightningDestruct() { DropEffect(&object); }
 void ScriptParticleSource::ScriptParticleSourceDestruct() { DropEffect(&object); }
-void ScriptFxSource::ScriptFxSourceDropSound() { DropEffect(&object); }
 // The FX source's destructor body (the sound dropped, then the name).
 void ScriptFxSource::ScriptFxSourceDestruct() {
     DropEffect(&object);
@@ -144,7 +143,7 @@ void ScriptFxSource::ScriptFxSourceDestruct() {
 }
 
 // DestructElements<ScriptLightning>.
-void __stdcall ScriptLightningElementsDestruct(ScriptLightning* first, int count) {
+void ScriptLightningElementsDestruct(ScriptLightning* first, int count) {
     for (; count != 0; --count, ++first) DropEffect(&first->object);
 }
 

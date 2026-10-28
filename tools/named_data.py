@@ -119,12 +119,13 @@ TYPES = {
     'LogicSettings': 'B' * 4 + 'f' * 39 + 'if' + 'f' * 9,   # logic_settings.h: loaded and padding, 39 floats, questsToRespawn, 10 floats
     # Containers a static initialiser zeroes and an exit function frees (C18k): pointers that start null, compared as
     # numbers. A template's arguments do not change the layout: TYPES names the template (element_format).
-    'lib::AlignedArray': 'Iiii',   # containers.h: data, size, capacity, growBy
+    'lib::AlignedArray': 'Iiii',   # containers.h: data, size, capacity, growBy (game.exe's; our std::vector: below)
     'stlp::vector': 'III',         # stlp_vector.h: start, finish, end of storage
     'std::vector': 'III',          # MSVC's: first, last, end of storage (zero is empty, as STLport's)
     'LineBuffer': 'Iiii',          # renderer_lines.h: an aligned array of line vertices
     # A global constructed by its hand-ported static initialiser (lib/static_object.h): zero storage before it.
-    'lib::StaticObject<mfc::CString>': 'I',
+    # A string's is game.exe's CString, one pointer (ours is a std::string; the range is the original's).
+    'lib::StaticObject<std::string>': 'I',
     'OStreamObject': 'B' * 0x58,   # console.h: an ostream and its ios, zero until the initialiser builds it
     'BOOL': 'i',
     'CThreadLocalObject': 'i', 'CProcessLocalObject': 'I',   # mfc_state.h: a TLS slot, an object made on first use
@@ -164,6 +165,16 @@ def braced(text, start):
     return None
 
 
+# The std::vector globals that replaced game.exe's engine aligned arrays (C14e): their ranges keep the original's 16
+# bytes (data, size, capacity, growBy). Any other std::vector range replaced an STLport vector (12 bytes).
+ALIGNED_ARRAY_VECTORS = {
+    0x0079C1D0, 0x007A9BD0, 0x007A9CB8, 0x007ABA30, 0x007AEDE0, 0x007AEE00, 0x007AEE10, 0x007AEE20, 0x007AEE30,
+    0x007AEEB8, 0x007AEED0, 0x007AEF90, 0x007AEFA0, 0x007AEFB8, 0x007AEFC8, 0x007AEFD8, 0x007AEFE8, 0x007AF000,
+    0x007AF010, 0x007AF020, 0x007AF030, 0x007AF040, 0x007AF1E0, 0x007AF1F8, 0x007AF208, 0x007AF478, 0x007AFEE0,
+    0x007AFEF0, 0x007AFF18, 0x007AFF28, 0x007AFF38, 0x007AFF48, 0x007C2E00, 0x007C2E18, 0x007C2E48, 0x007C2E60,
+    0x007C88E8, 0x007C88F8, 0x007C8938,
+}
+
 # The size of the T of a `lib::StaticObject<T>` (zero storage; a static_assert next to the definition keeps it true).
 STATIC_OBJECT_BYTES = {
     # game.exe's lists are the 4-byte sentinel pointer; ours (std::list, 8 bytes) start zero all the same
@@ -183,9 +194,12 @@ STATIC_OBJECT_BYTES = {
 }
 
 
-def element_format(type_):
+def element_format(type_, address=None):
     """TYPES' format of an element type; a template instantiation's is its template's (`lib::AlignedArray<T>`); a
-    pointer to another type is a pointer element ('P': `CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`)."""
+    pointer to another type is a pointer element ('P': `CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`).
+    A std::vector's is the layout of the game.exe container it replaced, by its address (ALIGNED_ARRAY_VECTORS)."""
+    if re.fullmatch(r'std::vector<.*>', type_):
+        return TYPES['lib::AlignedArray'] if address in ALIGNED_ARRAY_VECTORS else TYPES['stlp::vector']
     found = TYPES.get(type_)
     if found is None:
         inner = re.fullmatch(r'lib::StaticObject<(.*)>', type_)
@@ -215,7 +229,7 @@ class Definition:
         if self.type == 'char':
             self.pack_names()
             return
-        fmt = element_format(self.type)
+        fmt = element_format(self.type, self.address)
         if fmt is None:
             self.problem = f'{self.type} is no element type tools/named_data.py knows (TYPES)'
             return
@@ -297,7 +311,7 @@ class Targets:
         self.ranges = {d.name: d.address for d in defs}
         self.element_sizes = {}   # a named range's element size, for `NAME + k`
         for d in defs:
-            fmt = 'B' if d.type == 'char' else element_format(d.type)
+            fmt = 'B' if d.type == 'char' else element_format(d.type, d.address)
             if fmt is not None:
                 self.element_sizes[d.name] = sum(code_size(c) for c in codes_of(fmt))
         self.functions = collections.defaultdict(set)
@@ -918,7 +932,7 @@ def layout(elements, single, indent='    ', width=120):
 def emit(img, img_path, address, type_, shape, name):
     """--emit: prints a tagged definition of `shape` (a count, or rows: '4x10') elements of `type_` at `address` from
     game.exe's bytes (as the static initialisers leave them), then packs it back as --check would."""
-    fmt = element_format(type_)
+    fmt = element_format(type_, address)
     if fmt is None:
         sys.exit(f'named_data: {type_} is no element type tools/named_data.py knows (TYPES)')
     bounds = [int(n, 0) for n in shape.lower().split('x')]
@@ -997,7 +1011,7 @@ def rewrite(name, apply_):
     if len(found) != 1:
         sys.exit(f'named_data: {len(found)} tagged definition(s) named {name}')
     d = found[0]
-    fmt = element_format(d.type)
+    fmt = element_format(d.type, d.address)
     if fmt is None:
         sys.exit(f'named_data: {d.type} is no element type tools/named_data.py knows (TYPES)')
     esize = sum(code_size(c) for c in codes_of(fmt)) if d.type != 'char' else 1

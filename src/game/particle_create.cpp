@@ -739,8 +739,8 @@ const char* SetupType(CParticleSource* s) {
 // The frames are cells of a grid `columns` wide, row 0 at the top (v = 1), each inset by 1/512.
 void BuildFrames(CParticleSource* s) {
     float step = static_cast<float>(D(EI_ONE) / static_cast<double>(s->frameColumns));
-    s->frames.SetSize(s->frameCount);
-    SourceFrame* rect = s->frames.data;
+    s->frames.resize(s->frameCount);
+    SourceFrame* rect = s->frames.data();
     for (int i = 0; i < s->frameCount; ++i, ++rect) {
         double column = static_cast<double>(i % s->frameColumns);
         float row = static_cast<float>(static_cast<double>(i / s->frameColumns));
@@ -862,16 +862,12 @@ CParticleSource::CParticleSource(int type) {
     particles.blocks = nullptr;
     particles.blockSize = 10;
     // The frame rectangle array and the texture holder only zero their fields.
-    frames.data = nullptr;
-    frames.growBy = 0;
-    frames.capacity = 0;
-    frames.size = 0;
     texture = nullptr;
     Reset();
     type_ = type;
 }
 
-CParticleSource* __stdcall NewParticleSource(int type) { return new CParticleSource(type); }
+CParticleSource* NewParticleSource(int type) { return new CParticleSource(type); }
 
 CEngineObject* CParticleManager::NewObject(int type) {
     return NewParticleSource(type);
@@ -880,7 +876,6 @@ CEngineObject* CParticleManager::NewObject(int type) {
 CParticleSource::~CParticleSource() {
     Clear();
     if (texture) texture->Release();
-    if (frames.data) lib::AlignedArray<SourceFrame>::Free(frames.data);
     ei::SetVtable(&particles, mfc::impl::ClientListClass::Vtable());
     particles.count = 0;
     particles.free = nullptr;

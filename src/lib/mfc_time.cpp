@@ -1,4 +1,4 @@
-// MFC 4.2's CTime, registered at its library addresses (mfc_time.h).
+// MFC 4.2's CTime (mfc_time.h).
 #include "mfc_time.h"
 
 #include "gameapi.h"
@@ -80,7 +80,7 @@ CTime* CTime::ConstructFileTime(const FILETIME& at, int dst) {
     return this;
 }
 
-CTime* __stdcall CTime::CurrentTime(CTime* out) {
+CTime* CTime::CurrentTime(CTime* out) {
     out->time = Now();
     return out;
 }

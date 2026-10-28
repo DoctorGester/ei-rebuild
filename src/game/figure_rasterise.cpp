@@ -15,14 +15,15 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 
 using IntPoint = RasterTriangle::Point;
-using PointArray = lib::AlignedArray<IntPoint>;
-constinit lib::AlignedArray<RasterTriangle::Point> g_texturePoints = /*007C2E00*/ {};
-lib::AlignedArray<RasterTriangle::Point>& TexturePoints() { return g_texturePoints; }
-void __cdecl FreeTexturePoints() { g_texturePoints.FreeData(); }
+using PointArray = std::vector<IntPoint>;
+constinit std::vector<RasterTriangle::Point> g_texturePoints = /*007C2E00*/ {};
+std::vector<RasterTriangle::Point>& TexturePoints() { return g_texturePoints; }
+void FreeTexturePoints() { lib::FreeStorage(g_texturePoints); }
 std::uint8_t g_texturePointsGuard = /*007C2E10*/ {};
 
 
@@ -36,19 +37,19 @@ int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const IntPoint* points, 
         uv = PointArray{};
         libcrt::AtExit(FreeTexturePoints);
     }
-    uv.SetSizeDiscard(buffers.texCoordCount);
+    uv.resize(buffers.texCoordCount);
     float scale = 255.0f /*0073C370*/;
     for (int i = 0; i < buffers.texCoordCount; ++i) {
         const float* source = &buffers.texCoords[i].u;
-        uv.data[i].x = x87::fistp(static_cast<float>(source[0] * scale));
-        uv.data[i].y = x87::fistp(static_cast<float>(source[1] * scale));
+        uv[i].x = x87::fistp(static_cast<float>(source[0] * scale));
+        uv[i].y = x87::fistp(static_cast<float>(source[1] * scale));
     }
     for (int t = 0; t < buffers.indexCount; t += 3) {
         for (int k = 0; k < 3; ++k) {
             std::uint16_t corner = buffers.indices[t + k];
             const MeshCorner& record = buffers.corners[corner];
             std::memcpy(&target->corners[k].screen, &points[record.position], sizeof(IntPoint));
-            std::memcpy(&target->corners[k].texture, &TexturePoints().data[record.texCoord], sizeof(IntPoint));
+            std::memcpy(&target->corners[k].texture, &TexturePoints()[record.texCoord], sizeof(IntPoint));
         }
         if (target->keyTexels) rasteriser->RasteriseKeyedTriangle(target);
         else rasteriser->RasteriseTriangle(target);

@@ -10,6 +10,7 @@
 
 #include <cstdint>
 
+#include <vector>
 #include <windows.h>
 
 class CTextureDevice;
@@ -130,7 +131,7 @@ public:
     RECT bounds_;
     CDXSurface* under_;              // the background under the cursor
     CDXSurface* target_;             // where the cursor is drawn
-    lib::AlignedArray<CursorImage*> images_;   // the shapes (AddShape)
+    std::vector<CursorImage*> images_;   // the shapes (AddShape)
     POINT position_;                 // the position drawn last
     POINT heldPosition_;             // the position kept while held
     POINT motion_;                   // the mouse motion summed
@@ -143,21 +144,16 @@ public:
     CRITICAL_SECTION lock_;
 };
 // The software cursor drawn into the render target before the present.
-void __fastcall CursorDrawFrame(CCursor* self);
+void CursorDrawFrame(CCursor* self);
 static_assert(offsetof(CCursor, imageShown_) == 0x0C);
 static_assert(offsetof(CCursor, shape_) == 0x18);
 static_assert(offsetof(CCursor, stopped_) == 0x1C);
 static_assert(offsetof(CCursor, drawn_) == 0x20);
 static_assert(offsetof(CCursor, bounds_) == 0x50);
 static_assert(offsetof(CCursor, under_) == 0x60);
-static_assert(offsetof(CCursor, enabled_) == 0x91 && offsetof(CCursor, images_) == 0x68 && offsetof(CCursor, motion_) == 0x88);
-static_assert(offsetof(CCursor, frameTime_) == 0x94 && offsetof(CCursor, thread_) == 0x98);
-static_assert(offsetof(CCursor, stop_) == 0x9C);
-static_assert(offsetof(CCursor, lock_) == 0xA0);
 
-static_assert(sizeof(CCursor) == 0xB8);
 
 extern lib::StaticObject<CCursor> g_cursor;
 
-void __fastcall SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags);
-void __fastcall ResetCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags);
+void SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags);
+void ResetCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags);

@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -88,18 +89,14 @@ constexpr int kMaxDepth = 0x3F;
 // (the file is closed before the sectors are read).
 struct MapDescription {
     MapDescription() {
-        materials.Construct();
-        tileTypes.Construct();
     }
     ~MapDescription() {
-        tileTypes.FreeData();
-        materials.FreeData();
     }
     MapDescription(const MapDescription&) = delete;
 
     MapHeader header;
-    lib::AlignedArray<MapMaterial> materials;
-    lib::AlignedArray<std::uint32_t> tileTypes;
+    std::vector<MapMaterial> materials;
+    std::vector<std::uint32_t> tileTypes;
 };
 
 // A resource archive as a local, constructed in place.
@@ -138,10 +135,10 @@ int ReadDescription(Archive& archive, const std::string& path, const std::string
 
     const auto* materials = static_cast<const std::uint8_t*>(file) + sizeof(MapHeader);
     const std::size_t materialBytes = header.materialCount * sizeof(MapMaterial);
-    map.materials.SetSize(header.materialCount);
-    std::memcpy(map.materials.data, materials, materialBytes);
-    map.tileTypes.SetSize(static_cast<int>(header.tileCount));
-    std::memcpy(map.tileTypes.data, materials + materialBytes, header.tileCount * sizeof(std::uint32_t));
+    map.materials.resize(header.materialCount);
+    std::memcpy(map.materials.data(), materials, materialBytes);
+    map.tileTypes.resize(static_cast<int>(header.tileCount));
+    std::memcpy(map.tileTypes.data(), materials + materialBytes, header.tileCount * sizeof(std::uint32_t));
     archive.Close(file);
     return 1;
 }
@@ -193,7 +190,7 @@ int ReadTerrainTypes(CAIMap& map) {
     Archive archive;
     bool opened;
     {
-        std::string folder = TheTextFolder().GetString();
+        std::string folder = TheTextFolder();
         opened = archive.Open((folder + "aiinfo.res"));
     }
     if (!opened) return game::FatalError("Unable to read file aiinfo.res");
@@ -204,8 +201,8 @@ int ReadTerrainTypes(CAIMap& map) {
     std::vector<std::string> sections;
     registry.file.GetSectionNames(&sections);
 
-    map.materials.SetSize(kTerrainTypes);
-    for (int i = 0; i < map.materials.size; ++i) {
+    map.materials.resize(kTerrainTypes);
+    for (int i = 0; i < std::ssize(map.materials); ++i) {
         AITerrainType& type = map.materials[i];
         type.name[0] = '\0';
         type.cost = 1;
@@ -218,9 +215,9 @@ int ReadTerrainTypes(CAIMap& map) {
         const char* const section = sectionName.c_str();
         const int index = std::atoi(section);
         {
-            std::string name = registry.file.GetString(section, "Name", mfc::CString("")).GetString();
+            std::string name = registry.file.GetString(section, "Name", std::string(""));
             const char* text = str::Buffer(name, 0);
-            std::memcpy(map.materials.ElementAt(index).name, text, std::strlen(text) + 1);
+            std::memcpy(map.materials[index].name, text, std::strlen(text) + 1);
         }
         AITerrainType& type = map.materials[index];
         type.cost = registry.file.GetInt2(section, "CostMul", -1);
@@ -248,7 +245,7 @@ static_assert(static_cast<double>(kAltitudeUnit) == 32769.0 / 2147483648.0);
 // A grid of the map sized for it: reallocated (and filled as its element type's Allocate fills
 // it) unless it has that size already.
 template <typename T>
-void ResizeGrid(SearchGrid<T>& grid, int width, int height, void(__fastcall* allocate)(SearchGrid<T>*)) {
+void ResizeGrid(SearchGrid<T>& grid, int width, int height, void(*allocate)(SearchGrid<T>*)) {
     if (grid.width == width && grid.height == height) return;
     gamecrt::operator_delete(grid.data);
     gamecrt::operator_delete(grid.rows);
@@ -258,7 +255,7 @@ void ResizeGrid(SearchGrid<T>& grid, int width, int height, void(__fastcall* all
 }
 
 // The grids of plain bytes (the marks; the water depths' is the same code inline) are left as allocated.
-void __fastcall AllocateBytes(SearchGrid<std::int8_t>* grid) { AllocateGrid(*grid); }
+void AllocateBytes(SearchGrid<std::int8_t>* grid) { AllocateGrid(*grid); }
 
 constexpr float kHalf = 0.5f;
 constexpr float kQuarter = 0.25f;
@@ -445,8 +442,8 @@ int CAIMap::LoadTerrain(const char* path) {
             gamecrt::sprintf(file, "%s%3.3i%3.3i%s", str::Buffer(name, 0), sectorX, sectorY, kSectorExtension);
             std::uint32_t size;
             void* sector = archive.File(file, &size);
-            if (!sector) return Fatal(("Unable to locate resource: " + mfc::CString(file)).GetString());
-            if (!IsSector(sector, size)) return Fatal(("Wrong format resource: " + mfc::CString(file)).GetString());
+            if (!sector) return Fatal(("Unable to locate resource: " + std::string(file)).c_str());
+            if (!IsSector(sector, size)) return Fatal(("Wrong format resource: " + std::string(file)).c_str());
             StampSector(*this, description, sector, sectorX * kSectorCells, sectorY * kSectorCells);
             archive.Close(sector);
         }

@@ -63,10 +63,10 @@ public:
     virtual BOOL CopyTo(CItem* target, CSpellManager* spells);
     virtual float GetPrice() { return price_; }
     // "" for a plain item.
-    virtual mfc::CString ModelName();
-    virtual mfc::CString FirstListName();
-    virtual mfc::CString FigureName();
-    virtual mfc::CString PictureName();
+    virtual std::string ModelName();
+    virtual std::string FirstListName();
+    virtual std::string FigureName();
+    virtual std::string PictureName();
     // The key the item works as on a lock (AcceptsKey, a lever's or a trap's ApplyScience): zeros; the quest
     // item's has its id.
     virtual LockKey GetUse();
@@ -155,10 +155,10 @@ public:
     // Names built from the prototype. Model name: "<type>_<number>.<material name>.<variant>" (type "sw",
     // "ax", ...; empty without a prototype or material). First list name: the first string of list20, else "".
     // Figure name: "unhuma" + the model name. Picture name: "initwe<type><number>weapon".
-    mfc::CString ModelName() override;
-    mfc::CString FirstListName() override;
-    mfc::CString FigureName() override;
-    mfc::CString PictureName() override;
+    std::string ModelName() override;
+    std::string FirstListName() override;
+    std::string FigureName() override;
+    std::string PictureName() override;
 
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
@@ -185,10 +185,10 @@ public:
 
     // The same four names as CItemWeapon's, with the armor types ("hl", "pl",
     // ...) and the picture name "initar<type><number>armor".
-    mfc::CString ModelName() override;
-    mfc::CString FirstListName() override;
-    mfc::CString FigureName() override;
-    mfc::CString PictureName() override;
+    std::string ModelName() override;
+    std::string FirstListName() override;
+    std::string FigureName() override;
+    std::string PictureName() override;
 
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
@@ -211,8 +211,8 @@ public:
 
     // "qitem<number>.<material name>" when the prototype's materialClass is not "none" ("uq" for a material
     // out of range), else "qitem<number>" (-1 without a prototype).
-    mfc::CString FigureName() override;
-    mfc::CString PictureName() override;
+    std::string FigureName() override;
+    std::string PictureName() override;
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
     // Also the scrolls'. The base's, then actionValue_.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
@@ -230,8 +230,8 @@ public:
     const char* GetClassName() override;
     int GetClassId() override;             // 0x14
 
-    mfc::CString FigureName() override;    // "quitem<number>"
-    mfc::CString PictureName() override;   // "initqu<number>item"
+    std::string FigureName() override;    // "quitem<number>"
+    std::string PictureName() override;   // "initqu<number>item"
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
     BOOL IsSameAs(CItem* other) override;
@@ -253,9 +253,9 @@ public:
     int GetClassId() override;             // 0x16
 
     // "spell<the carried spell's prototype icon>" (no null checks).
-    mfc::CString FigureName() override;
+    std::string FigureName() override;
     // "initqi1item".
-    mfc::CString PictureName() override;
+    std::string PictureName() override;
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
 };
 
@@ -271,10 +271,10 @@ public:
 
     // By kind_: a record's name ("<type>_<number>.<variant>" for weapons and armors, "qitem", "prototype"
     // (spells, by icon), "modifier" + number), "material<index>", or "litem<number>" for the loot itself.
-    mfc::CString FigureName() override;
+    std::string FigureName() override;
     // "initwe..." / "initar..." / "initqi..." for records, "initqi1item" for spells and modifiers,
     // "initlimt<index>item" for materials, "initlitr<number>item" for the loot itself.
-    mfc::CString PictureName() override;
+    std::string PictureName() override;
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
     // The base's, then kind_, recordType_ and index_.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
@@ -291,34 +291,34 @@ public:
 
 // Weapon stats from a packed id. Each faults if the prototype index is out of range; an out-of-range
 // material reads the multiplier from address 0 likewise.
-int __fastcall WeaponType(std::uint32_t packedId);
-float __fastcall WeaponMinDamage(std::uint32_t packedId);
-float __fastcall WeaponMaxDamage(std::uint32_t packedId);
-float __fastcall WeaponAttack(std::uint32_t packedId);
-int __fastcall WeaponDamageType(std::uint32_t packedId);    // first non-zero weight, else 6
-float __fastcall WeaponStat84(std::uint32_t packedId);
-float __fastcall WeaponStat88(std::uint32_t packedId);
+int WeaponType(std::uint32_t packedId);
+float WeaponMinDamage(std::uint32_t packedId);
+float WeaponMaxDamage(std::uint32_t packedId);
+float WeaponAttack(std::uint32_t packedId);
+int WeaponDamageType(std::uint32_t packedId);    // first non-zero weight, else 6
+float WeaponStat84(std::uint32_t packedId);
+float WeaponStat88(std::uint32_t packedId);
 
 // The base figure (skeleton) a weapon prototype (by index) is animated with, into `out` (emptied first):
 // "basesword", "baseaxe", "basedagger", "basepike", "baseclub" with the prototype's number as "%.2d"
     // appended, "basearrow00" / "basearrow01" for types 5 / 6, else "baser_hand3". False for index -1 or out of
     // range (only the low byte set).
-bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out);
+bool WeaponBaseFigure(std::uint32_t index, std::string* out);
 
 // The armour model name "<type>_<number>.<material name>.<variant>" of armour prototype `armorIndex` in
 // material `materialIndex` into `out` (emptied first; left empty when either is out of range). The type
 // code is copied into the stack slot of `materialIndex`, so for a type without a code the index's own bytes
 // are the code.
-void __fastcall ArmorModelName(mfc::CString* out, std::uint32_t armorIndex, std::uint32_t materialIndex);
+void ArmorModelName(std::string* out, std::uint32_t armorIndex, std::uint32_t materialIndex);
 // The same for weapon prototype `weaponIndex` ("sw", "ax", ...).
-void __fastcall WeaponModelName(mfc::CString* out, std::uint32_t weaponIndex, std::uint32_t materialIndex);
+void WeaponModelName(std::string* out, std::uint32_t weaponIndex, std::uint32_t materialIndex);
 // The same from the records themselves (no null checks, `out` not emptied first); for a type without a code
 // the code is the bytes of `out`'s address.
-void __fastcall WeaponRecordModelName(mfc::CString* out, const itemdb::WeaponRecord* weapon,
+void WeaponRecordModelName(std::string* out, const itemdb::WeaponRecord* weapon,
                                       const itemdb::MaterialRecordHead* material);
 
 // The armour prototype's layer by prototype index; 0 if out of range.
-int __fastcall ArmorFieldB8(std::uint32_t index);
+int ArmorFieldB8(std::uint32_t index);
 
 // --- Item construction -------------------------------------------------
 
@@ -449,7 +449,7 @@ template <typename T> class vector;
 // The names of the figure parts a weapon prototype (by index) is drawn with, replacing
 // the contents of `out`: "rh3.sword07" for a sword with number 7, the bow and crossbow pieces plus
 // the quiver and arrows. Nothing for an index out of range or an unknown weapon type.
-void __fastcall WeaponModelParts(std::uint32_t index, std::vector<std::string>* out);
+void WeaponModelParts(std::uint32_t index, std::vector<std::string>* out);
 
 // The same names for a packed item id, appended to an STLport vector of strings.
-void __fastcall AppendWeaponModelParts(std::uint32_t packedId, std::vector<std::string>* out);
+void AppendWeaponModelParts(std::uint32_t packedId, std::vector<std::string>* out);

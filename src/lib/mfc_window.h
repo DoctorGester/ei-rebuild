@@ -3,7 +3,7 @@
 // MFC 4.2's AfxMessageBox as the game reaches it (docs/notes/standalone.md section 2). The game constructs no
 // CWinApp and has no MFC window, so the module state's application is always null: AfxMessageBox runs
 // CWinApp::DoMessageBox with no object, and the box has no owner, no help context and the module's file name
-// as its title (registered in mfc_window.cpp). CWnd's constructor and destructor: the exit functions run it on
+// as its title (mfc_window.cpp). CWnd's constructor and destructor: the exit functions run it on
 // MFC's four static windows (wndTop, wndBottom, wndTopMost, wndNoTopMost: placement constants, never destroyed
 // as windows); MFC's other classes reach it from their own destructors.
 
@@ -139,7 +139,7 @@ public:
 static_assert(sizeof(CWnd) == 0x3C);
 
 // ~CWnd as the generated exit functions reach it at its address on MFC's four static windows.
-void __fastcall DestroyStaticWindow(CWnd* window);
+void DestroyStaticWindow(CWnd* window);
 
 // CMenu (8 bytes): CObject's slots, DrawItem and MeasureItem (empty); m_hMenu. Their create functions are the
 // only makers, and nothing calls those.
@@ -158,10 +158,10 @@ static_assert(sizeof(CMenu) == 8);
 
 // AfxMessageBox(LPCTSTR, UINT type, UINT helpId): MessageBoxA's answer. MB_ICONEXCLAMATION is added
 // to an OK, OK / Cancel, Yes / No / Cancel or Yes / No box that names no icon.
-int __stdcall MessageBoxText(const char* text, unsigned type, unsigned helpId);
+int MessageBoxText(const char* text, unsigned type, unsigned helpId);
 // AfxMessageBox(UINT id, UINT type, UINT helpId): the box with string `id` of game.exe's table (empty
 // when it is missing; MFC only traces that). A help id of -1 means `id`.
-int __stdcall MessageBoxId(unsigned promptId, unsigned type, unsigned helpId);
+int MessageBoxId(unsigned promptId, unsigned type, unsigned helpId);
 
 // The fixed allocators of the temporary windows (CTempWnd) and menus (CTempMenu), 64 to a block, and MFC's
 // four static windows (placement constants: HWND_TOP 0, HWND_BOTTOM 1, HWND_TOPMOST -1, HWND_NOTOPMOST -2),

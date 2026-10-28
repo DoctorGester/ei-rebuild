@@ -33,7 +33,7 @@ constexpr int kInputHeight = 0x1F;     // the input strip at the bottom
 constexpr UINT kDrawLine = 0x800;      // DT_NOPREFIX
 constexpr UINT kDrawMark = 0x802;      // DT_NOPREFIX | DT_RIGHT
 
-mfc::CString Left(const std::string& s, int count) { return str::Left(s, count); }
+std::string Left(const std::string& s, int count) { return str::Left(s, count); }
 
 int Clamp(int value, int high) {
     if (value > high) value = high;
@@ -43,7 +43,7 @@ int Clamp(int value, int high) {
 
 // Width in pixels of the prompt and the first `count` characters of the input.
 int PromptWidth(CDC* dc, const std::string& input, int count) {
-    std::string text = (mfc::CString(game::consoletexts::Prompt()) + Left(input, count)).GetString();
+    std::string text = std::string(game::consoletexts::Prompt()) + Left(input, count);
     SIZE size;
     gameapi::GetTextExtentPoint32A(dc->hdc, text.c_str(), text.size(), &size);   // EI_UTF8: measured wide
     return size.cx;
@@ -158,7 +158,7 @@ namespace {
 
 constexpr int kHistoryDepth = 30;
 
-mfc::CString MidOf(const std::string& s, int first) { return str::Mid(s, first); }
+std::string MidOf(const std::string& s, int first) { return str::Mid(s, first); }
 // Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted with the ANSI code page as
 // addon's helpers do (EI_UTF8: from UTF-8).
 void CopyToClipboard(const char* first, const char* last) {
@@ -232,14 +232,14 @@ void ConsoleWindow::OnChar(int key, int, int) {
         if (anchor_ != caret_) {
             int first = anchor_ < caret_ ? anchor_ : caret_;
             int last = anchor_ > caret_ ? anchor_ : caret_;
-            std::string rest = MidOf(input_, last).GetString();
+            std::string rest = MidOf(input_, last);
             input_ = Left(input_, first) + rest;
             caret_ = first;
             anchor_ = first;
         } else {
             if (caret_ == 0) return;
             const int previous = ::text::PreviousCharacter(input_, caret_);
-            std::string rest = MidOf(input_, caret_).GetString();
+            std::string rest = MidOf(input_, caret_);
             input_ = Left(input_, previous) + rest;
             caret_ = previous;
             anchor_ = caret_;
@@ -284,8 +284,8 @@ void ConsoleWindow::OnChar(int key, int, int) {
             const char* text = input_.c_str();
             CopyToClipboard(text + low, text + high);
             if (letter == 'x') {
-                std::string rest = MidOf(input_, high).GetString();
-                std::string head = Left(input_, low).GetString();
+                std::string rest = MidOf(input_, high);
+                std::string head = Left(input_, low);
                 input_ = head + rest;
                 caret_ = low;
                 anchor_ = low;
@@ -295,8 +295,8 @@ void ConsoleWindow::OnChar(int key, int, int) {
             std::string clip = ClipboardText().c_str();
             int cut = str::FindOneOf(clip, "\r\n");
             if (cut >= 0) clip = Left(clip, cut);
-            std::string rest = MidOf(input_, high).GetString();
-            std::string head = Left(input_, low).GetString();
+            std::string rest = MidOf(input_, high);
+            std::string head = Left(input_, low);
             input_ = (head + clip) + rest;
             int position = static_cast<int>(clip.size()) - (anchor_ != caret_ ? 1 : 0) + high;
             position = ::text::CharacterStart(input_, position);   // EI_UTF8: never inside a character
@@ -306,8 +306,8 @@ void ConsoleWindow::OnChar(int key, int, int) {
         }
     }
     if (ctrl_) return;
-    std::string rest = MidOf(input_, high).GetString();
-    std::string head = Left(input_, low).GetString();
+    std::string rest = MidOf(input_, high);
+    std::string head = Left(input_, low);
     input_ = ::text::Typed(head, key) + rest;
     caret_ = low + ::text::TypedLength(key);
     anchor_ = caret_;
@@ -370,7 +370,7 @@ void ConsoleWindow::DrawInput() {
     dc->SetTextColor(kInputText);
     dc->SetBkMode(TRANSPARENT);
     RECT rect{8, height_ - 0x17, width_ - 8, height_ - 3};
-    std::string text = (mfc::CString(game::consoletexts::Prompt()) + input_).GetString();
+    std::string text = std::string(game::consoletexts::Prompt()) + input_;
     dc->DrawText(text.c_str(), text.size(), &rect, kDrawLine);
     if (caretX < width_ - 0x10) {
         mfc::impl::CPen pen(PS_SOLID, 2, kInputText);

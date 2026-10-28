@@ -3,9 +3,9 @@
 // MFC 4.2's CDC and GDI objects as the game's copy has them: the members that reach GDI without a handle map,
 // and the ones the game calls (FromHandle, SelectObject, CGdiObject's Attach / Detach / DeleteObject, CPen's
 // constructor, CFont's point fonts, the CDC slots the interface calls; docs/notes/standalone.md section 2).
-// Registered at their library addresses (mfc_gdi.cpp); real C++ classes over CObject. The interface
+// Defined in mfc_gdi.cpp; real C++ classes over CObject. The interface
 // (ui_gdi.h) draws with them directly. The handle maps are MFC's module thread state; the image has its own
-// per thread (MapHDC / MapHGDIOBJ, registered image-only at the exe's addresses).
+// per thread (MapHDC / MapHGDIOBJ).
 
 #include "compiled_vtable.h"
 #include "mfc_handle_map.h"
@@ -20,8 +20,8 @@ namespace mfc::impl {
 
 // The maps of DCs (CTempDC objects for unknown handles, both handles set) and of GDI objects
 // (CTempGdiObject), made on first use when `create`; null otherwise. Image only.
-CHandleMap* __stdcall MapHDC(BOOL create);
-CHandleMap* __stdcall MapHGDIOBJ(BOOL create);
+CHandleMap* MapHDC(BOOL create);
+CHandleMap* MapHGDIOBJ(BOOL create);
 
 // CGdiObject (8 bytes): CObject's slots, m_hObject. Game.exe's tables: CGdiObject, CBrush, CPen,
 // CTempGdiObject, CFont.
@@ -35,7 +35,7 @@ public:
     const CRuntimeClass* GetRuntimeClass() const override;
 
     // The object of `handle` (a CTempGdiObject when it has no permanent one), null for null.
-    static CGdiObject* __stdcall FromHandle(HGDIOBJ handle);
+    static CGdiObject* FromHandle(HGDIOBJ handle);
     BOOL Attach(HGDIOBJ object);        // FALSE for null; else kept and put in the permanent map
     HGDIOBJ Detach();                   // taken out of the permanent map; the old handle
     BOOL DeleteObject();                // FALSE without a handle; else detached and deleted
@@ -124,7 +124,7 @@ public:
     // returns the old output DC.
     HDC Detach();
     // The DC object of `dc` (a CTempDC when it has no permanent one), null for null.
-    static CDC* __stdcall FromHandle(HDC dc);
+    static CDC* FromHandle(HDC dc);
 
     // SelectObject(CPen*): selected into both DCs; the attribute DC's old object (the output DC's when
     // there is no attribute DC) through CGdiObject::FromHandle.

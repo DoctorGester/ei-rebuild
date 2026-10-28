@@ -119,7 +119,7 @@ void SaveListed(mfc::CTypedPtrList<T>* list, CStream* stream) {
 // SyncPlayer's arrays (world_sync.cpp) hold one class per pass: the map objects, then the timed
 // objects (CEffect). The next element as that class; the loops read the data pointer once.
 template <typename T>
-T* NextAs(CEngineObject**& next) {
+T* NextAs(CEngineObject* const*& next) {
     return static_cast<T*>(*next++);
 }
 
@@ -163,8 +163,8 @@ int CPlayerServer::Flush() {
 }
 
 int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
-    CEngineObject** next = objects->data;
-    for (int i = 0; i < objects->size; ++i) {
+    CEngineObject* const* next = objects->data();
+    for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* object = NextAs<CMapObject>(next);
         bool isUnit = object->GetClassId() == world::kClassUnit;
         std::uint32_t header[4] = {static_cast<std::uint32_t>(object->id_), static_cast<std::uint32_t>(object->type_),
@@ -199,9 +199,9 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
 }
 
 int CPlayerServer::SendObjectsChanged(const PlayerObjectArray* objects) {
-    CEngineObject** next = objects->data;
+    CEngineObject* const* next = objects->data();
     int stamp = WorldUpdateCount(Owner());
-    for (int i = 0; i < objects->size; ++i) {
+    for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* object = NextAs<CMapObject>(next);
         if (object->changeStamp != stamp) continue;
         if (object->flags_ & kFlagDeltaPending) object->WriteChangedState();
@@ -213,8 +213,8 @@ int CPlayerServer::SendObjectsChanged(const PlayerObjectArray* objects) {
 }
 
 int CPlayerServer::SendObjectsRemoved(const PlayerObjectArray* objects) {
-    CEngineObject** next = objects->data;
-    for (int i = 0; i < objects->size; ++i) {
+    CEngineObject* const* next = objects->data();
+    for (int i = 0; i < std::ssize(*objects); ++i) {
         CEngineObject* object = *next++;
         int id = object->id_;
         Forget(Owner()->knownObjects_, id);
@@ -226,8 +226,8 @@ int CPlayerServer::SendObjectsRemoved(const PlayerObjectArray* objects) {
 }
 
 int CPlayerServer::SendTimedAdded(const PlayerObjectArray* objects) {
-    CEngineObject** next = objects->data;
-    for (int i = 0; i < objects->size; ++i) {
+    CEngineObject* const* next = objects->data();
+    for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* effect = NextAs<CEffect>(next);
         if (effect->flags_ & kFlagDeltaPending) effect->SendDelta();
         std::uint32_t header[2];
@@ -243,9 +243,9 @@ int CPlayerServer::SendTimedAdded(const PlayerObjectArray* objects) {
 }
 
 int CPlayerServer::SendTimedChanged(const PlayerObjectArray* objects) {
-    CEngineObject** next = objects->data;
+    CEngineObject* const* next = objects->data();
     int stamp = WorldUpdateCount(Owner());
-    for (int i = 0; i < objects->size; ++i) {
+    for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* effect = NextAs<CEffect>(next);
         if (effect->changeStamp_ != stamp) continue;
         if (effect->flags_ & kFlagDeltaPending) effect->SendDelta();
@@ -257,8 +257,8 @@ int CPlayerServer::SendTimedChanged(const PlayerObjectArray* objects) {
 }
 
 int CPlayerServer::SendTimedRemoved(const PlayerObjectArray* objects) {
-    CEngineObject** next = objects->data;
-    for (int i = 0; i < objects->size; ++i) {
+    CEngineObject* const* next = objects->data();
+    for (int i = 0; i < std::ssize(*objects); ++i) {
         CEngineObject* object = *next++;
         WriteByte(&out_, kMessageTimedRemoved);
         WriteDword(&out_, static_cast<std::uint32_t>(object->id_));
@@ -335,11 +335,9 @@ int CPlayerServer::ForgetObject(CEngineObject* object) {
     if (known.Find(object->id_) != nullptr) {
         Forget(known, object->id_);
         object->Release();
-        for (int i = 0; i < sentObjects_.size; ++i) {
-            CEngineObject** data = sentObjects_.data;
-            if (data[i] != object) continue;
-            std::memmove(&data[i], &data[i + 1], static_cast<std::size_t>(sentObjects_.size - i - 1) * 4);
-            --sentObjects_.size;
+        for (int i = 0; i < std::ssize(sentObjects_); ++i) {
+            if (sentObjects_[i] != object) continue;
+            sentObjects_.erase(sentObjects_.begin() + i);
             object->Release();
             --i;
         }
@@ -379,7 +377,7 @@ int CPlayerServer::ReceiveMessages() {
             previous = type;
             if (in.Read(&type, 1) == 0) break;
             if (state_ == 0 && type != kMessageJoin && type != kMessageJoin8) break;
-            if (static_cast<int>(type) >= handlers_.size) return PlayerMessageError(TextUnknownType(), previous, type);
+            if (static_cast<int>(type) >= std::ssize(handlers_)) return PlayerMessageError(TextUnknownType(), previous, type);
             auto handler = handlers_[type];
             if (handler == nullptr) return PlayerMessageError(TextNoHandler(), previous, type);
             if (!(this->*handler)()) return PlayerMessageError(TextHandlerFailed(), previous, type);

@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 // ---- 3D library ---------------------------------------------------------------------------------
@@ -211,8 +212,9 @@ class CPixelConverter;
 class CFigureMesh;
 class CMaterial;
 // The lights a figure part is lit with (the draw's lights argument).
-using FigureLights = lib::AlignedArray<CLight*>;
+using FigureLights = std::vector<CLight*>;
 struct LineBatch;
+struct LightningPoint;
 
 // A render state preset the renderer's helper keeps (counted).
 class CRenderPreset final {
@@ -328,8 +330,8 @@ public:
     virtual int DrawFigure(CFigureMesh* figure, const void* unknownA, const void* unknownB, CMaterial* material, int alpha,
                            tagRECT* screen) = 0;
     virtual void DrawLineList(LineBatch* lines) = 0;
-    virtual int DrawStrip(void* points, float width, int visibility, float length, float offset,
-                          float slant) = 0;
+    virtual int DrawStrip(const std::vector<LightningPoint>* points, float width, int visibility, float length,
+                          float offset, float slant) = 0;
     virtual int DrawSprites(int unknown, void* points, void* sprites) = 0;
     virtual int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX,
                                     const Vector3* axisY) = 0;
@@ -451,7 +453,8 @@ public:
     // Draws a strip along `points` (a lightning segment's aligned points) of `width` with the bound texture:
     // `visibility` the bounds' clip result, the texture's `length` and `offset` along it (0 and 0: untextured
     // lengthwise), `slant` 0.25 at every call known.
-    int DrawStrip(void* points, float width, int visibility, float length, float offset, float slant) override;
+    int DrawStrip(const std::vector<LightningPoint>* points, float width, int visibility, float length, float offset,
+                  float slant) override;
     // Draws sprites facing the view with the bound texture: `points` an aligned array of centres and sizes
     // (x, y, z, size), `sprites` a CArray of their colours and texture rectangles. The first argument is 0
     // at every call known.
@@ -508,13 +511,13 @@ static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08 && offsetof(CSceneRend
 static_assert(offsetof(CSceneRenderer, helper_) == 0x24 && offsetof(CSceneRenderer, frameTime_) == 0x34 &&
               offsetof(CSceneRenderer, lastFrameStart_) == 0x50 && offsetof(CSceneRenderer, windowFrames_) == 0x58);
 
-CSceneRenderer* __cdecl SceneRenderer();
+CSceneRenderer* SceneRenderer();
 
 // Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by the half extents,
 // y flipped.
-Matrix4* __stdcall ViewportMatrix(Matrix4* out, const tagRECT* rect);
+Matrix4* ViewportMatrix(Matrix4* out, const tagRECT* rect);
 // Perspective projection; `fov` in radians (full angle).
-Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar);
+Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar);
 
 // A triangle corner of a figure part: the vertex (position) index, a second index (the normal's; the interface
 // sprites write 0) and the texture coordinate index.
@@ -524,7 +527,7 @@ struct MeshCorner {
     std::uint16_t texCoord;
 };
 static_assert(sizeof(MeshCorner) == 6);
-using TriangleIndexArray = lib::AlignedArray<MeshCorner>;
+using TriangleIndexArray = std::vector<MeshCorner>;
 
 class CMappedResource;
 
@@ -553,8 +556,8 @@ struct FigureModel {
     void Open(const void* mod, const void* bon, const void* anm);
 };
 static_assert(offsetof(FigureModel, animationCache) == 0x0C && sizeof(FigureModel) == 0x20);
-FigureModel* __fastcall ConstructFigureModel(FigureModel* model);
-void __fastcall DestroyFigureModel(FigureModel* model);
+FigureModel* ConstructFigureModel(FigureModel* model);
+void DestroyFigureModel(FigureModel* model);
 
 // Loads .lnk link files and the figures they name (created at startup with figures.res and menus.res). A
 // figure is a CLinkMesh of parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made
@@ -701,4 +704,4 @@ inline const PrintsDatabase& ThePrintsDatabase() { return *g_printsDatabase; }
 
 // A length-prefixed name (a four-byte length, then the characters) at *cursor into `out` (emptied for length
 // 0), the cursor moved past it.
-void __fastcall ReadPrefixedName(mfc::CString* out, const std::uint8_t** cursor);
+void ReadPrefixedName(std::string* out, const std::uint8_t** cursor);

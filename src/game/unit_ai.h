@@ -80,12 +80,12 @@ struct AILooks : mfc::CArray<AILook> {
     AILook* CopyAt(AILook* out, int index) const;
 };
 using AILookArray = AILooks;
-void __fastcall LooksDestroyAt(AILookArray* looks);
-AILookArray* __fastcall LooksInit(AILookArray* looks);
+void LooksDestroyAt(AILookArray* looks);
+AILookArray* LooksInit(AILookArray* looks);
 // The looks from / to a save: the count, then angle, time and wait of each and (from version 0x44) the stop
 // flag.
-void __fastcall LoadLooks(AILookArray* looks, CStream* stream);
-void __fastcall SaveLooks(const AILookArray* looks, CStream* stream);
+void LoadLooks(AILookArray* looks, CStream* stream);
+void SaveLooks(const AILookArray* looks, CStream* stream);
 
 // A move the modes prepare on the stack: where to go and what to look at there.
 struct AIMoveOrder {
@@ -257,7 +257,6 @@ static_assert(sizeof(FollowMode) == 0x0C);
 class SuspectionMode : public AIActionMode {
 public:
     SuspectionMode() { ClearFields(); }
-    SuspectionMode* Construct();
     ~SuspectionMode() override;
     int OnShutdown() override;
     SuspectionMode* Clone() override;
@@ -463,7 +462,7 @@ public:
 
 
 // A count read from `stream`, then that many counted references appended to `list`, each loaded in `context`.
-void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, CWorld* context);
+void CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, CWorld* context);
 
 class CSpell;
 namespace console {
@@ -472,7 +471,7 @@ class GameOStream;
 console::GameOStream* AiLog();
 
 // Copies x and y of a point; returns `out`.
-float* __fastcall CopyPoint2(float* out, const float* point);
+float* CopyPoint2(float* out, const float* point);
 
 // A call the perception memory heard (CallAllies sends kind 0x1A).
 struct AICallRecord {
@@ -529,7 +528,7 @@ static_assert(sizeof(AIReport) == 8);
 
 // The reports' ConstructElements (zeroed, each object null) and DestructElements (each object released).
 struct AIReportElements {
-    static void __stdcall Construct(AIReport* reports, int count);
+    static void Construct(AIReport* reports, int count);
     static void Destruct(AIReport* reports, int count);
 };
 
@@ -562,7 +561,7 @@ static_assert(sizeof(AIAttackOption) == 0x28);
 using AIAttackOptions = mfc::CArray<AIAttackOption>;
 static_assert(sizeof(AIAttackOptions) == 0x14);
 // The count, the array sized to it, then each option.
-void __fastcall LoadAttackOptions(AIAttackOptions* options, CStream* stream);
+void LoadAttackOptions(AIAttackOptions* options, CStream* stream);
 
 
 // The brain's attention: the unit's attack options and choosing a target.
@@ -618,7 +617,7 @@ struct AIAttention {
 static_assert(sizeof(AIAttention) == 0x2C);
 
 
-double __fastcall AIDistance2(const Vector3* a, const Vector3* b);
+double AIDistance2(const Vector3* a, const Vector3* b);
 
 // The brain's perception memory: what the unit sees, has seen and heard.
 struct AIMemory {
@@ -730,9 +729,6 @@ struct AIBrain {
     void Init();
     // Empty containers, the move order cleared, both sight caches {0, -1}, then Init. Returns this.
     AIBrain* Construct();
-    // Init, the memory destroyed, then the attention arrays, alarm records, the mode in charge, the mode
-    // list, target / seen and the looks.
-    void Destruct();
     // The brain from / to a save: the action, its point, looks and time, target and seen object, the scalars,
     // the modes (count, the index of the one in charge, then each mode's type and its own data), the
     // perception memory, the alarm records, and (by file version) the attack options. Load empties the mode

@@ -36,7 +36,7 @@ int Scaled(int n) { return gamecrt::rand() * n / 0x7FFF; }
 
 // The bytes free for the caller on the path's drive: GetDiskFreeSpaceExA when kernel32 has it (looked up on
 // every call), else sectors per cluster x bytes per sector x free clusters. 0 when the call fails.
-double __fastcall DiskFreeSpace(const char* path) {
+double DiskFreeSpace(const char* path) {
     auto getEx = reinterpret_cast<GetDiskFreeSpaceExFn>(
         gameapi::GetProcAddress(gameapi::GetModuleHandleA(Kernel32Text()), GetDiskFreeSpaceExText()));
     if (getEx) {
@@ -49,7 +49,7 @@ double __fastcall DiskFreeSpace(const char* path) {
     return x87::FromUnsigned(sectorsPerCluster) * x87::FromUnsigned(bytesPerSector) * x87::FromUnsigned(freeClusters);
 }
 
-bool __fastcall QuitGame(int exitCode) {
+bool QuitGame(int exitCode) {
     if (!g_quitAllowed) return false;
     gameapi::PostQuitMessage(exitCode);
     return true;
@@ -58,12 +58,12 @@ bool __fastcall QuitGame(int exitCode) {
 // The movie mode byte (1 unless the command line changed it; the loop passes it to the frame step).
 std::uint8_t g_movieMode = /*00784752*/ 1;
 
-std::uint8_t __cdecl MovieMode() { return g_movieMode; }
+std::uint8_t MovieMode() { return g_movieMode; }
 
 // The copy protection's sabotage: the options go back to their defaults and every object
 // of the object manager gets a random number below 0x1000 as its companion and as its specific
 // half (both are pointers; the game fails some time later).
-void __cdecl ScrambleObjects() {
+void ScrambleObjects() {
     options::OptionsResetDefaults(options::TheOptions());
     ObjectListIteratorOf<CMapObject> it{};
     for (CMapObject* object = it.First(TheObjectManager()); object; object = it.Next()) {
@@ -76,7 +76,7 @@ void __cdecl ScrambleObjects() {
 // Called for every new object of the client (CPlayerClient::OnNewObject). One call in a hundred
 // looks through the protection's check list and scrambles the objects when an entry has failed
 // (its byte is 0). Nothing adds an entry, so the list is empty.
-void __cdecl DelayedProtectionCheck() {
+void DelayedProtectionCheck() {
     if (Scaled(100) % 100 >= 1) return;
     ProtectionCheckList& checks = ProtectionChecks();
     for (ProtectionCheckList::iterator node = checks.begin(); node != checks.end(); ++node) {
@@ -87,7 +87,7 @@ void __cdecl DelayedProtectionCheck() {
     }
 }
 
-void __stdcall ConstructProtectionChecks() { g_protectionChecks.Construct(); }
+void ConstructProtectionChecks() { g_protectionChecks.Construct(); }
 
 } // namespace app
 

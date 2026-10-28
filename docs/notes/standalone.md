@@ -1352,7 +1352,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     ArrayTable) and CMapPtrToPtr (mfc_handle_map.cpp), slot 0 returning our CRuntimeClass record; the simple
     exceptions (CResourceException, CUserException, CMemoryException, CNotSupportedException) and
     CArchiveException (mfc_exception.cpp); the old iostream's streambuf, ios and ostream-for-ios tables
-    (crt_iostream.cpp; ostream's virtual base table is data and stays); std::exception (crt_except.cpp). CPtrArray,
+    (crt_iostream.cpp; ostream's virtual base table is data and stays); std::exception (file `-`: no class of ours). CPtrArray,
     CPtrList and ostream_withassign are retired with no class of ours (file `-`): only game.exe's constructors and
     destructors store them, and no code of ours calls those.
   - **Left**: the camp's panels (ui_camp_create.cpp, C15's area), the map spec chunk readers (C21), STLport's
@@ -1784,8 +1784,8 @@ the `--no-hooks` suite) keeps the registry.
   control word in 437k of 4.9M calls, never in the return value or MXCSR (probably start words whose reserved bits the
   round trip changes, which the UCRT version skipped setting: the original always loads the converted word).
   Mutations (_PC_53 mapped to 24 bits; the FLDCW test ignoring bit 3, the overflow mask) differ in 69M / 2.9M cases.
-- **Exceptions** (crt_except.cpp): _CxxThrowException 006E7819 raises 0xE06D7363 with the thrower's ThrowInfo (only
-  stlp's out_of_range uses it now; the pointer throws are the compiler's, "Named data (C18)"); MSVC 6 std::exception (vtable 00747290, "Unknown exception").
+- **Exceptions**: no file of ours: _CxxThrowException 006E7819 and MSVC 6's std::exception (vtable 00747290) went with
+  crt_except.cpp (C20m), nothing calls them; the pointer throws are the compiler's ("Named data (C18)").
 - **iostreams** (crt_iostream.{h,cpp}): MSVC 6's old streambuf / ios / ostream layouts, the inserters (numbers
   through the game's sprintf with VC6's formats: "%%%s.%.0ug", precision capped at 15), endl 004BA9F0, the streams'
   constructors and destructors. The eight ostreams 007C55A8-007C5810 all write to console streambufs (console.h).
@@ -1844,10 +1844,11 @@ One body per member over an element policy, `*Abi<T, Policy>` shims with each in
   `DwordObjectTraits`; game_hashes): default 100 -> 193 buckets; node sizes 12 bytes (most), 8 (the dword sets),
   20 in game.exe (string keys; ours are sizeof(Node) with std::string keys), 32 (find_or_insert 004E2E90).
 - **deque** (stlp_deque: camera view stack 0x24 in 0x1F8-byte nodes, material entries 0x10 in 0x200).
-- **tree** (stlp_tree, stlp_tree_abi `TreeAbi`, stlp_tree_cstring; net_connection_trees, library_trees): SGI 3.x's tree
+- **tree** (stlp_tree, stlp_tree_abi `TreeAbi`, stlp_tree_mbs; net_connection_trees, library_trees): SGI 3.x's tree
   (`_M_insert(x, y, v)`, RET 0x10, the hint insert falls back to `insert_unique(v)`); the node colour is a byte;
-  `stlp::CStringLess` is `_mbscmp < 0`; the sent-ids map compares signed. operator[] of records and attached ids
-  inserts a partly uninitialised value in the original.
+  `stlp::MbsLess` (the keys that were CStrings: the console commands, the help topics) is `_mbscmp < 0`; the
+  sent-ids map compares signed. operator[] of records and attached ids inserts a partly uninitialised value in the
+  original.
 - **string**: std::string everywhere since C14a (stlp::string and StringAbi are gone).
 - **pair** (stlp_pair), **sort** (stlp_algo.h `stlp::Sort<T, Less, Ops>`: STLport's introsort with median of three by
   reference, unguarded partitions and inserts, heap sort at depth 0, element policies with `Held<T, Ops>`
@@ -1941,7 +1942,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   valid UTF-8), `text::CharacterCount` (a length that means time: one per character, a colour escape `\007C`+3
   bytes by its bytes). U1's ANSI boundary helper `ForAnsiCall` (UTF-8 back into the asset code page at GDI's
   ANSI calls) went with U3.
-- **Sites converted**: the text database (`TextSources::FindText`, which `CTextManager::Open` reads through; the
+- **Sites converted**: the text database (`TextSources::FindKeyText`, which `CTextManager::Open` reads through; the
   copies are cached per data address and dropped when their archive closes); `CTextManager::ListKeys` (key names)
   and the key passed to the lookup (one "pers" key holds Cyrillic); CFileRegistry's `GetString`,
   `GetStringBuffer`, `GetStringArray`; Chunk's `ReadString` / `ReadEncodedString` (.mob); credits.scr

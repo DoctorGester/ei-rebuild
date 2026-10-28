@@ -2,7 +2,7 @@
 // the record array (MFC CArray::SetSize and ConstructElements), the party's constructor,
 // destructor, Create / Destroy / Clear, and the constructors of the managers a party makes. The
 // record's item lists are aligned pointer arrays; four more copies of their SetSize are
-// registered here. See party.h and docs/notes/items_spells.md ("Party").
+// here. See party.h and docs/notes/items_spells.md ("Party").
 #include "party.h"
 
 #include "game_strings.h"
@@ -86,13 +86,13 @@ void PartyUnitRecord::ClearItems() {
 
 // --- The record array ---------------------------------------------------------------------------
 
-void __stdcall ConstructPartyUnitRecords(PartyUnitRecord* records, int count) {
+void ConstructPartyUnitRecords(PartyUnitRecord* records, int count) {
     std::memset(records, 0, static_cast<std::size_t>(count) * sizeof(PartyUnitRecord));
     for (PartyUnitRecord* record = records; count != 0; --count, ++record)
         if (record != nullptr) record->Construct();
 }
 
-void __stdcall DestructPartyUnitRecords(PartyUnitRecord* records, int count) {
+void DestructPartyUnitRecords(PartyUnitRecord* records, int count) {
     for (; count != 0; --count, ++records) records->Destruct();
 }
 
@@ -111,7 +111,7 @@ void PartyUnitRecordElements::Relocate(PartyUnitRecord* to, PartyUnitRecord* fro
 }
 
 namespace {
-void __fastcall DestroyPartyMembers(PartyMembers* members) { members->Destruct(); }
+void DestroyPartyMembers(PartyMembers* members) { members->Destruct(); }
 // Slot 2 through the slot's archive type (mfc::impl's).
 struct PartyMembersStore : PartyMembers {
     void Store(mfc::impl::CArchive* ar) { Serialize(ar); }

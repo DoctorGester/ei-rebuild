@@ -21,7 +21,7 @@
 
 namespace {
 
-int __cdecl MbsCmp(std::string_view a0, std::string_view a1) { return gamecrt::mbscmp(a0, a1); }
+int MbsCmp(std::string_view a0, std::string_view a1) { return gamecrt::mbscmp(a0, a1); }
 
 const char* const kHero = "Hero";
 const char* const kHumanHero = "Human Hero";
@@ -49,7 +49,7 @@ const char* NameOf(const PartyRecord* record) { return record->name.c_str(); }
 
 } // namespace
 
-void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
+void PartyRecordsReset(NamedPartyRecords* list) {
     PartyRecord** end = list->records.Finish();
     PartyRecord** newEnd = stlp::CopyAssigned<PartyRecord*, Elements>(end, end, list->records.Start());
     for (PartyRecord** p = newEnd; p != end; ++p) Release(*p);
@@ -132,12 +132,12 @@ CParty* FindParty(const PartyMap& parties, int key) {
 
 } // namespace
 
-void __fastcall PartyManagerNewGame(PartyManager* manager) {
+void PartyManagerNewGame(PartyManager* manager) {
     PartyRecordsReset(&manager->records);
     manager->templates.Build(0);
 }
 
-void __fastcall PartyManagerNewGameFour(PartyManager* manager) {
+void PartyManagerNewGameFour(PartyManager* manager) {
     PartyRecordsReset(&manager->records);
     manager->templates.Build(1);
 }
@@ -148,7 +148,7 @@ void PartyManager::EndRedeploy(CParty* party) { records.EndRedeploy(party); }
 
 int g_nextPartyId = /*0078B0E8*/ 1;
 
-int __stdcall PartyNextId(int* out) {
+int PartyNextId(int* out) {
     *out = g_nextPartyId;
     return ++g_nextPartyId;
 }

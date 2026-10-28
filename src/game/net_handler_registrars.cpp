@@ -13,7 +13,7 @@ namespace net {
 
 namespace {
 
-void RegisterHandler(SessionBase* self, int channel, MessageHandler handler, Message* (__fastcall* factory)()) {
+void RegisterHandler(SessionBase* self, int channel, MessageHandler handler, Message* (*factory)()) {
     RefPtr prototype;
     prototype.Share(factory());
     const std::uint32_t key = TypeRegistry::KeyOf(prototype.ptr);

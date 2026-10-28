@@ -115,15 +115,15 @@ const LinkPartRanges* RangesOf(const CLinkMesh* figure, const char* name) {
 }
 
 // The part's positions with its per-vertex offsets added (as the draws add them), in `moved`.
-const float* MovedPositions(const VertexPacket* positions, int packets, const lib::AlignedArray<Vector3>& offsets,
+const float* MovedPositions(const VertexPacket* positions, int packets, const std::vector<Vector3>& offsets,
                             std::vector<VertexPacket>& moved) {
     moved.assign(positions, positions + packets);
-    const int count = (std::min)(offsets.size, packets * 4);
+    const int count = (std::min)(std::ssize(offsets), packets * 4);
     for (int i = 0; i < count; ++i) {
         VertexPacket& packet = moved[static_cast<std::size_t>(i >> 2)];
-        packet.block[0][i & 3] = offsets.data[i].x + packet.block[0][i & 3];
-        packet.block[1][i & 3] = offsets.data[i].y + packet.block[1][i & 3];
-        packet.block[2][i & 3] = offsets.data[i].z + packet.block[2][i & 3];
+        packet.block[0][i & 3] = offsets[i].x + packet.block[0][i & 3];
+        packet.block[1][i & 3] = offsets[i].y + packet.block[1][i & 3];
+        packet.block[2][i & 3] = offsets[i].z + packet.block[2][i & 3];
     }
     return &moved.data()->block[0][0];
 }
@@ -146,9 +146,9 @@ void HandOverParts(CObject3D* object, CObject3DClientSpecific* half, const Matri
     for (TextureParts* set : half->partSets) {
         if (!set) continue;
         const void* holder = set->texture ? set->texture->surface_ : nullptr;
-        for (int g = 0; g < set->groups.size; ++g) {
+        for (int g = 0; g < std::ssize(set->groups); ++g) {
             const PartGroup* group = set->groups[g];
-            for (int p = 0; p < group->parts.size; ++p) {
+            for (int p = 0; p < std::ssize(group->parts); ++p) {
                 CFigureMesh* part = group->parts[p];
                 if (!part || (part->flags_ & kPartHidden)) continue;
                 if (LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition_) > kNearSquared) continue;
@@ -159,13 +159,13 @@ void HandOverParts(CObject3D* object, CObject3DClientSpecific* half, const Matri
                 if (figure) {
                     const LinkPartRanges* r = RangesOf(figure, part->GetName());
                     if (!r) continue;
-                    positions = figure->vertices_.data + r->vertices.start;
+                    positions = figure->vertices_.data() + r->vertices.start;
                     packets = r->vertices.count;
-                    mesh.uvs = reinterpret_cast<const float*>(figure->texCoords_.data + r->texCoords.start);
+                    mesh.uvs = reinterpret_cast<const float*>(figure->texCoords_.data() + r->texCoords.start);
                     mesh.uvCount = r->texCoords.count;
-                    mesh.corners = reinterpret_cast<const std::uint16_t*>(figure->corners_.data + r->corners.start);
+                    mesh.corners = reinterpret_cast<const std::uint16_t*>(figure->corners_.data() + r->corners.start);
                     mesh.cornerCount = r->corners.count;
-                    mesh.indices = figure->indices_.data + r->indices.start;
+                    mesh.indices = figure->indices_.data() + r->indices.start;
                     mesh.indexCount = r->indices.count;
                 } else {
                     const MeshBuffers& b = part->buffers_;
@@ -179,7 +179,7 @@ void HandOverParts(CObject3D* object, CObject3DClientSpecific* half, const Matri
                     mesh.indexCount = b.indexCount;
                 }
                 if (!positions || packets <= 0) continue;
-                mesh.positions = part->offsets_.size != 0 ? MovedPositions(positions, packets, part->offsets_, moved)
+                mesh.positions = !part->offsets_.empty() ? MovedPositions(positions, packets, part->offsets_, moved)
                                                           : &positions->block[0][0];
                 mesh.positionCount = packets * 4;
                 mesh.uOffset = part->textureOffsetU_;

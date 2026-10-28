@@ -219,7 +219,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 for (const std::string* it = list.data(); it != list.data() + list.size(); ++it) {
                     text::Split(it->c_str(), &parts, '.');
                     if (parts.size() != kQuestNameParts) continue;
-                    if (!texts->Open(mfc::CString(QuestSection()) + parts[2])) continue;
+                    if (!texts->Open((std::string(QuestSection()) + parts[2]).c_str())) continue;
                     texts->ReadLine(&name, 1);
                     line = str::Format(NameLine(), label.c_str(), name.c_str());
                     add();

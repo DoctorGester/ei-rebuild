@@ -16,6 +16,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -29,7 +30,7 @@ constexpr char kListSeparator = ',';
 // MFC's afxcoll array of dwords, through its own code: the constructor, destructor and SetSize.
 using MfcDWords = mfc::impl::CUIntArray;
 
-mfc::CString ReadString(const CIniFile* ini, const char* section, const char* key, const char* defaultValue) {
+std::string ReadString(const CIniFile* ini, const char* section, const char* key, const char* defaultValue) {
     return const_cast<CIniFile*>(ini)->GetString(section, key, defaultValue);
 }
 
@@ -40,12 +41,12 @@ mfc::CString ReadString(const CIniFile* ini, const char* section, const char* ke
 BOOL ReadIntTemp(CIniFile* ini, const char* section, const char* key, DwordArray& temp) {
     std::vector<std::string> codes;
     if (!ini->GetList(section, key, &codes, kListSeparator)) return 0;
-    temp.SetSize(static_cast<int>(codes.size()), -1);
-    for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
+    temp.resize(static_cast<int>(codes.size()));
+    for (int i = 0; i < std::ssize(temp); ++i) temp[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
     return 1;
 }
 
-template <typename T> BOOL ReadAlignedVia(CIniFile* ini, const char* section, const char* key, lib::AlignedArray<T>* out) {
+template <typename T> BOOL ReadAlignedVia(CIniFile* ini, const char* section, const char* key, std::vector<T>* out) {
     DwordArray temp{nullptr, 0, 0, 0};
     BOOL ok = ReadIntTemp(ini, section, key, temp);
     if (ok) {
@@ -53,7 +54,7 @@ template <typename T> BOOL ReadAlignedVia(CIniFile* ini, const char* section, co
         out->SetSize(count);
         for (int i = 0; i < count; ++i) out->data[i] = static_cast<T>(temp.data[i]);
     }
-    temp.FreeData();
+    lib::FreeStorage(temp);
     return ok;
 }
 
@@ -121,15 +122,15 @@ BOOL CIniFile::GetKeyNames(const char* section, std::vector<std::string>* out) {
     return 0;
 }
 
-mfc::CString CIniFile::GetString(const char* section, const char* key, const char* defaultValue) {
+std::string CIniFile::GetString(const char* section, const char* key, const char* defaultValue) {
     char buffer[0x400];
     std::memset(buffer, 0, 4);
     gameapi::GetPrivateProfileStringA(section, key, defaultValue, buffer, 0x3FF, path_.c_str());
-    return mfc::CString(buffer);
+    return std::string(buffer);
 }
 
 BOOL CIniFile::GetList(const char* section, const char* key, std::vector<std::string>* out, char separator) {
-    std::string value = ReadString(this, section, key, game::EmptyText()).GetString();
+    std::string value = ReadString(this, section, key, game::EmptyText());
     std::string item;
     if (value.empty()) return 0;
     value += separator;
@@ -148,7 +149,7 @@ BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out
     std::vector<std::string> codes;
     if (!GetList(section, key, &codes, kListSeparator)) return 0;
     int count = static_cast<int>(codes.size());
-    out->SetSize(count);
-    for (int i = 0; i < count; ++i) out->data[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
+    out->resize(count);
+    for (int i = 0; i < count; ++i) (*out)[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
     return 1;
 }

@@ -96,7 +96,7 @@ WinThread::~WinThread() {
     if (t_current == this) t_current = nullptr;
 }
 
-WinThread* __stdcall AfxBeginThread(ThreadProc procedure, void* parameter, int priority, UINT stackSize,
+WinThread* AfxBeginThread(ThreadProc procedure, void* parameter, int priority, UINT stackSize,
                                     DWORD flags, LPSECURITY_ATTRIBUTES security) {
     auto* thread = new WinThread(procedure, parameter);
     if (!CreateThread(thread, flags | CREATE_SUSPENDED, stackSize, security)) {
@@ -108,7 +108,7 @@ WinThread* __stdcall AfxBeginThread(ThreadProc procedure, void* parameter, int p
     return thread;
 }
 
-void __stdcall AfxEndThread(UINT exitCode, BOOL deleteThread) {
+void AfxEndThread(UINT exitCode, BOOL deleteThread) {
     if (WinThread* thread = t_current) {
         if (thread->oleTermOrFreeLib) thread->oleTermOrFreeLib(TRUE, FALSE);
         if (deleteThread) thread->Delete();

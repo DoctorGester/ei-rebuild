@@ -70,13 +70,13 @@ MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
 int FindText(const char* key) { return TheTextManager()->Open(key); }
 
 // The quest the window last selected (a global CString): built empty by its static initialiser in the list's
-// order, destroyed once by the exit function it registers. Both are defined on the names and
-// registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
-constinit lib::StaticObject<mfc::CString> g_lastQuest = /*007C8178*/ {};
+// order, destroyed once by the exit function it registers. Both are defined on their names
+// (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<std::string> g_lastQuest = /*007C8178*/ {};
 constinit std::uint8_t g_lastQuestDestroyed = /*007C8174*/ 0;
-mfc::CString& LastQuest() { return *g_lastQuest; }
+std::string& LastQuest() { return *g_lastQuest; }
 
-void __cdecl DestroyLastQuest() {
+void DestroyLastQuest() {
     if (g_lastQuestDestroyed & 1) return;
     g_lastQuestDestroyed = static_cast<std::uint8_t>(g_lastQuestDestroyed | 1);
     g_lastQuest.Destroy();
@@ -94,13 +94,13 @@ private:
     NamedFloatTable table_;
 };
 
-using ZoneNames = std::vector<mfc::CString>;
+using ZoneNames = std::vector<std::string>;
 int SizeOf(const ZoneNames& v) { return static_cast<int>(v.end() - v.begin()); }
 void PushBack(ZoneNames* v, const std::string& x) {
     v->push_back(x);
 }
 
-void SortStrings(mfc::CString* first, mfc::CString* last) {
+void SortStrings(std::string* first, std::string* last) {
     if (first == last) return;
     int depth = 0;
     for (int n = static_cast<int>(last - first); n != 1; n >>= 1) ++depth;
@@ -163,7 +163,7 @@ constexpr float kExitTurnDown = 3.1415927f;
 
 } // namespace
 
-void __cdecl ConstructLastQuest() {
+void ConstructLastQuest() {
     g_lastQuest.Construct();
     libcrt::AtExit(DestroyLastQuest);
 }
@@ -312,15 +312,15 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         selectedQuest_ = 0;
         if (SizeOf(found) == 0) {
             selectedQuest_ = -1;
-            LastQuest().Empty();
+            LastQuest().clear();
         } else {
             SortStrings(found.data(), found.data() + found.size());
-            for (mfc::CString* s = found.data(); s != found.data() + found.size(); ++s) {
-                quests.push_back(s->GetString());
-                const char* current = listZones_ == 0 ? LastQuest().GetString()
+            for (std::string* s = found.data(); s != found.data() + found.size(); ++s) {
+                quests.push_back(s->c_str());
+                const char* current = listZones_ == 0 ? LastQuest().c_str()
                                                       : interface_->savedText_.c_str();
                 if (gamecrt::mbsicmp(current,
-                                    s->GetString()) == 0)
+                                    s->c_str()) == 0)
                     selectedQuest_ = static_cast<int>(quests.size()) - 1;
             }
             LastQuest() = quests[selectedQuest_];
@@ -606,9 +606,9 @@ void CObjectivesWindow::CreateScreen() {
                                 allodZone->allod) != 0)
                 continue;
             bool listed = false;
-            for (mfc::CString* z = zones->data(); z != zones->data() + zones->size(); ++z)
+            for (std::string* z = zones->data(); z != zones->data() + zones->size(); ++z)
                 if (gamecrt::mbscmp(zone->name,
-                                    z->GetString()) == 0) {
+                                    z->c_str()) == 0) {
                     listed = true;
                     break;
                 }
@@ -624,7 +624,7 @@ void CObjectivesWindow::CreateScreen() {
         zoneIndex_ = 0;
         for (int i = 0; i < SizeOf(*zones); ++i)
             if (gamecrt::mbsicmp(current,
-                                zones->begin()[i].GetString()) ==
+                                zones->begin()[i].c_str()) ==
                 0) {
                 zoneIndex_ = i;
                 break;
@@ -635,7 +635,7 @@ void CObjectivesWindow::CreateScreen() {
             regions_.data[2]->SetTip(0x13948, 1, 0);
             regions_.data[3]->SetTip(0x13949, 1, 0);
         }
-        ShowZone(zones->begin()[zoneIndex_]);
+        ShowZone(zones->begin()[zoneIndex_].c_str());
         table->~VariableTable();
     }
     interface_->OpenHelp(0);

@@ -13,6 +13,7 @@
 #include "world_effect.h"
 
 #include "ei/x87.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <string>
@@ -156,9 +157,9 @@ float Half() { return 0.5f /*0073B86C*/; }
 
 } // namespace
 
-void __stdcall ShowBolt(Vector3 from, Vector3 to) {
+void ShowBolt(Vector3 from, Vector3 to) {
     std::string prefix;   // stays empty
-    mfc::CString text;
+    std::string text;
     // The middle: x and y are summed into floats first, z is not.
     float sumY = static_cast<float>(to.y + from.y);
     float sumX = static_cast<float>(to.x + from.x);
@@ -170,13 +171,13 @@ void __stdcall ShowBolt(Vector3 from, Vector3 to) {
     if ((IsaacRandom::Global().Next() & 3) == 0) {
         // Thunder only: one of four sounds at `from`.
         unsigned sound = (IsaacRandom::Global().Next() & 3) + 1;
-        text.Format(game::weathertexts::ThunderScript(), fx, fy, fz, sound);
-        mfc::CString line = prefix + text;
+        text = str::Format(game::weathertexts::ThunderScript(), fx, fy, fz, sound);
+        std::string line = prefix + text;
         ScriptQueue().Load(&line, 1);
     } else {
         // A light at the middle, one of three sounds, and two bolts from `from` to `to`.
         unsigned sound = IsaacRandom::Global().Next() % 3 + 1;
-        text.Format(game::weathertexts::LightningScript(), static_cast<double>(midX),
+        text = str::Format(game::weathertexts::LightningScript(), static_cast<double>(midX),
                     static_cast<double>(midY), static_cast<double>(midZ), fx, fy, fz, sound, fx, fy, fz, tx, ty,
                     tz, fx, fy, fz, tx, ty, tz);
         ScriptQueue().Load(&text, 1);

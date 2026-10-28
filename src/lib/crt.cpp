@@ -24,10 +24,10 @@
 namespace gamecrt {
 
 #ifndef EI_VECTORS_REPLAY   // ei_vectors defines these (crt.h)
-void* __cdecl operator_new(std::size_t size) { return libcrt::OperatorNew(size); }
-void __cdecl operator_delete(void* p) { libcrt::OperatorDelete(p); }
-void* __cdecl malloc(std::size_t size) { return libcrt::Malloc(size); }
-void __cdecl free(void* p) { libcrt::Free(p); }
+void* operator_new(std::size_t size) { return libcrt::OperatorNew(size); }
+void operator_delete(void* p) { libcrt::OperatorDelete(p); }
+void* malloc(std::size_t size) { return libcrt::Malloc(size); }
+void free(void* p) { libcrt::Free(p); }
 #endif
 
 namespace {
@@ -36,28 +36,28 @@ RandObserver g_randObserver;
 
 void SetRandObserver(RandObserver observer) { g_randObserver = observer; }
 
-int __cdecl rand() {
+int rand() {
     const int value = libcrt::Rand();
     if (g_randObserver) g_randObserver(value, _ReturnAddress());
     return value;
 }
-void __cdecl srand(unsigned seed) { libcrt::Srand(seed); }
+void srand(unsigned seed) { libcrt::Srand(seed); }
 // The ports (ei_vectors: replay_crt.cpp's libcrt:: versions; the vector recorders take the game CRT's
 // own answers through record_crt.cpp's calls by address).
-int __cdecl tolower(int c) { return libcrt::Tolower(c); }
-int __cdecl strnicmp(const char* a, const char* b, std::size_t n) { return libcrt::Strnicmp(a, b, n); }
-char* __cdecl strncpy(char* dst, const char* src, std::size_t n) { return libcrt::Strncpy(dst, src, n); }
-int __cdecl strncmp(const char* a, const char* b, std::size_t n) { return libcrt::Strncmp(a, b, n); }
-int __cdecl isdigit(int c) { return libcrt::Isdigit(c); }
-int __cdecl isspace(int c) { return libcrt::Isspace(c); }
-int __cdecl sprintf(char* buffer, const char* format, ...) {
+int tolower(int c) { return libcrt::Tolower(c); }
+int strnicmp(const char* a, const char* b, std::size_t n) { return libcrt::Strnicmp(a, b, n); }
+char* strncpy(char* dst, const char* src, std::size_t n) { return libcrt::Strncpy(dst, src, n); }
+int strncmp(const char* a, const char* b, std::size_t n) { return libcrt::Strncmp(a, b, n); }
+int isdigit(int c) { return libcrt::Isdigit(c); }
+int isspace(int c) { return libcrt::Isspace(c); }
+int sprintf(char* buffer, const char* format, ...) {
     va_list args;
     va_start(args, format);
     const int length = libcrt::Vsprintf(buffer, format, args);
     va_end(args);
     return length;
 }
-int __cdecl mbscmp(const unsigned char* a, const unsigned char* b) { return libcrt::Mbscmp(a, b); }
+int mbscmp(const unsigned char* a, const unsigned char* b) { return libcrt::Mbscmp(a, b); }
 
 #ifndef EI_VECTORS_REPLAY
 namespace {
@@ -87,13 +87,13 @@ const int* CaseFoldTable() {
 }
 #endif
 
-double __cdecl acos(double c) { return libcrt::CiAcos(c); }
+double acos(double c) { return libcrt::CiAcos(c); }
 
 #ifndef EI_VECTORS_REPLAY
-int __cdecl write(int fd, const void* buffer, unsigned count) { return libcrt::Write(fd, buffer, count); }
+int write(int fd, const void* buffer, unsigned count) { return libcrt::Write(fd, buffer, count); }
 #endif
 
-std::size_t __cdecl fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file) {
+std::size_t fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file) {
     return libcrt::Fwrite(from, size, count, file);
 }
 
@@ -102,7 +102,7 @@ std::size_t __cdecl fwrite(const void* from, std::size_t size, std::size_t count
 namespace game {
 
 // The release build's debug log writes nothing (its callers ignore the result).
-unsigned __cdecl DebugLog(const char*, ...) { return 0; }
+unsigned DebugLog(const char*, ...) { return 0; }
 
 } // namespace game
 
@@ -125,14 +125,14 @@ bool PastAscii(int c) { return c < 0 || c >= 0x80; }
 // locale (crt_locale_data.h); with EI_UTF8 the case and class functions keep text_case.h's answers. These
 // names stay for the callers ei_vectors answers from the game CRT's records (tests/vectors/replay_crt.cpp) and
 // for the EI_UTF8 branches.
-int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return std::strncmp(a, b, n); }
+int Strncmp(const char* a, const char* b, std::size_t n) { return std::strncmp(a, b, n); }
 
-char* __cdecl Strncpy(char* to, const char* from, std::size_t n) {
+char* Strncpy(char* to, const char* from, std::size_t n) {
 #pragma warning(suppress : 4996)
     return std::strncpy(to, from, n);
 }
 
-int __cdecl Stricmp(const char* a, const char* b) {
+int Stricmp(const char* a, const char* b) {
     if constexpr (kUtf8) {
         return text::CompareIgnoringCase(a, b, static_cast<std::size_t>(-1), true);
     } else {
@@ -140,7 +140,7 @@ int __cdecl Stricmp(const char* a, const char* b) {
     }
 }
 
-int __cdecl Strnicmp(const char* a, const char* b, std::size_t n) {
+int Strnicmp(const char* a, const char* b, std::size_t n) {
     if (n == 0) return 0;
     if constexpr (kUtf8) {
         return text::CompareIgnoringCase(a, b, n, true);
@@ -149,7 +149,7 @@ int __cdecl Strnicmp(const char* a, const char* b, std::size_t n) {
     }
 }
 
-int __cdecl Memicmp(const void* a, const void* b, std::size_t n) {
+int Memicmp(const void* a, const void* b, std::size_t n) {
     if constexpr (kUtf8) {
         return text::CompareIgnoringCase(static_cast<const char*>(a), static_cast<const char*>(b), n, false);
     } else {
@@ -157,9 +157,9 @@ int __cdecl Memicmp(const void* a, const void* b, std::size_t n) {
     }
 }
 
-int __cdecl Mbscmp(const unsigned char* a, const unsigned char* b) { return _mbscmp(a, b); }
+int Mbscmp(const unsigned char* a, const unsigned char* b) { return _mbscmp(a, b); }
 
-int __cdecl Mbsicmp(const unsigned char* a, const unsigned char* b) {
+int Mbsicmp(const unsigned char* a, const unsigned char* b) {
     if constexpr (kUtf8) {
         return Stricmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
     } else {
@@ -167,7 +167,7 @@ int __cdecl Mbsicmp(const unsigned char* a, const unsigned char* b) {
     }
 }
 
-unsigned char* __cdecl Mbsinc(const unsigned char* p) {
+unsigned char* Mbsinc(const unsigned char* p) {
     if constexpr (kUtf8) {
         return const_cast<unsigned char*>(p + 1);
     } else {
@@ -175,7 +175,7 @@ unsigned char* __cdecl Mbsinc(const unsigned char* p) {
     }
 }
 
-int __cdecl Ismbblead(unsigned c) {
+int Ismbblead(unsigned c) {
     if constexpr (kUtf8) {
         (void)c;
         return 0;
@@ -184,7 +184,7 @@ int __cdecl Ismbblead(unsigned c) {
     }
 }
 
-int __cdecl Isleadbyte(int c) {
+int Isleadbyte(int c) {
     if constexpr (kUtf8) {
         (void)c;
         return 0;
@@ -193,7 +193,7 @@ int __cdecl Isleadbyte(int c) {
     }
 }
 
-int __cdecl Tolower(int c) {
+int Tolower(int c) {
     if constexpr (kUtf8) {
         return c >= 'A' && c <= 'Z' ? c + 0x20 : c;
     } else {
@@ -201,7 +201,7 @@ int __cdecl Tolower(int c) {
     }
 }
 
-int __cdecl Toupper(int c) {
+int Toupper(int c) {
     if constexpr (kUtf8) {
         return c >= 'a' && c <= 'z' ? c - 0x20 : c;
     } else {
@@ -209,7 +209,7 @@ int __cdecl Toupper(int c) {
     }
 }
 
-int __cdecl Isalpha(int c) {
+int Isalpha(int c) {
     if constexpr (kUtf8) {
         return PastAscii(c) ? 0 : isalpha(c);
     } else {
@@ -217,7 +217,7 @@ int __cdecl Isalpha(int c) {
     }
 }
 
-int __cdecl Isdigit(int c) {
+int Isdigit(int c) {
     if constexpr (kUtf8) {
         return PastAscii(c) ? 0 : isdigit(c);
     } else {
@@ -225,7 +225,7 @@ int __cdecl Isdigit(int c) {
     }
 }
 
-int __cdecl Isspace(int c) {
+int Isspace(int c) {
     if constexpr (kUtf8) {
         return PastAscii(c) ? 0 : isspace(c);
     } else {
@@ -233,7 +233,7 @@ int __cdecl Isspace(int c) {
     }
 }
 
-int __cdecl Isprint(int c) {
+int Isprint(int c) {
     if constexpr (kUtf8) {
         return PastAscii(c) ? 0 : isprint(c);
     } else {
@@ -267,7 +267,7 @@ void ShortSort(char* lo, char* hi, std::size_t width, Compare compare) {
 
 } // namespace
 
-void __cdecl Qsort(void* base, std::size_t count, std::size_t width, Compare compare) {
+void Qsort(void* base, std::size_t count, std::size_t width, Compare compare) {
     constexpr std::size_t kShortSort = 8;
     if (count < 2 || width == 0) return;
     char* loStack[30];
@@ -323,9 +323,9 @@ void __cdecl Qsort(void* base, std::size_t count, std::size_t width, Compare com
     }
 }
 
-int __cdecl Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) { return _mbsncmp(a, b, n); }
+int Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) { return _mbsncmp(a, b, n); }
 
-std::size_t __cdecl Mbclen(const unsigned char* c) {
+std::size_t Mbclen(const unsigned char* c) {
     if constexpr (kUtf8) {
         (void)c;
         return 1;
@@ -334,7 +334,7 @@ std::size_t __cdecl Mbclen(const unsigned char* c) {
     }
 }
 
-unsigned char* __cdecl Mbslwr(unsigned char* text) {
+unsigned char* Mbslwr(unsigned char* text) {
     if constexpr (kUtf8) {
         text::LowerInPlace(reinterpret_cast<char*>(text));
     } else {
@@ -352,13 +352,13 @@ unsigned& RandSeed() {
 }
 } // namespace
 
-int __cdecl Rand() {
+int Rand() {
     unsigned& seed = RandSeed();
     seed = seed * 214013u + 2531011u;
     return static_cast<int>((seed >> 16) & 0x7FFF);
 }
 
-void __cdecl Srand(unsigned seed) { RandSeed() = seed; }
+void Srand(unsigned seed) { RandSeed() = seed; }
 unsigned& RandState() { return RandSeed(); }
 
 // ---- Maths ----
@@ -418,7 +418,7 @@ unsigned HardwareControl(unsigned word) {
 }
 } // namespace
 
-unsigned __cdecl Controlfp(unsigned value, unsigned mask) {
+unsigned Controlfp(unsigned value, unsigned mask) {
     constexpr unsigned kKept = 0x1F3F;       // the bits the FPU keeps of what FLDCW loads (bit 6 reads 1; 7, 13-15 read 0)
     const unsigned current = x87::ControlWord();
     const unsigned word = (AbstractControl(current) & ~mask) | (value & mask);
@@ -437,17 +437,17 @@ constinit gamecrt::NewHandler g_heapNewHandler = /*007CAAD8*/ {nullptr};
 
 // malloc and free are the host CRT's (VC6's were HeapAlloc / HeapFree on a heap of their own, the size
 // rounded up to 16 bytes).
-void* __cdecl Malloc(std::size_t size) { return std::malloc(size); }
+void* Malloc(std::size_t size) { return std::malloc(size); }
 
-void __cdecl Free(void* p) { std::free(p); }
+void Free(void* p) { std::free(p); }
 
-gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler) {
+gamecrt::NewHandler SetNewHandler(gamecrt::NewHandler handler) {
     const gamecrt::NewHandler old = g_heapNewHandler;
     g_heapNewHandler = handler;
     return old;
 }
 
-void* __cdecl OperatorNew(std::size_t size) {
+void* OperatorNew(std::size_t size) {
     for (;;) {
         if (void* p = Malloc(size)) return p;
         const gamecrt::NewHandler handler = mfc::impl::g_afxNewHandler;
@@ -455,7 +455,7 @@ void* __cdecl OperatorNew(std::size_t size) {
     }
 }
 
-void __cdecl OperatorDelete(void* p) { Free(p); }
+void OperatorDelete(void* p) { Free(p); }
 
 // ---- The STLport node allocator (__node_alloc<true, 0>, no lock) ----
 // Blocks of up to 128 bytes come from 16 free lists by 8-byte size class; an empty list is refilled
@@ -479,7 +479,7 @@ FreeBlock*& FreeListFor(std::size_t bytes) { return g_nodeFreeLists[(bytes - 1) 
 std::size_t RoundUp(std::size_t bytes) { return (bytes + 7) & ~std::size_t{7}; }
 } // namespace
 
-char* __fastcall NodeChunkAlloc(std::size_t size, int* count) {
+char* NodeChunkAlloc(std::size_t size, int* count) {
     for (;;) {
         const std::size_t total = size * static_cast<std::size_t>(*count);
         std::size_t left = static_cast<std::size_t>(g_chunkEnd - g_chunkStart);
@@ -523,7 +523,7 @@ char* __fastcall NodeChunkAlloc(std::size_t size, int* count) {
     }
 }
 
-void* __fastcall NodeRefill(std::size_t bytes) {
+void* NodeRefill(std::size_t bytes) {
     const std::size_t size = RoundUp(bytes);
     int count = 20;
     char* chunk = NodeChunkAlloc(size, &count);
@@ -542,7 +542,7 @@ void* __fastcall NodeRefill(std::size_t bytes) {
     return chunk;
 }
 
-void* __fastcall NodeAllocate(std::size_t bytes) {
+void* NodeAllocate(std::size_t bytes) {
     if (bytes > kMaxPooled) return gamecrt::operator_new(bytes);
     FreeBlock*& list = FreeListFor(bytes);
     if (FreeBlock* block = list) {
@@ -552,7 +552,7 @@ void* __fastcall NodeAllocate(std::size_t bytes) {
     return NodeRefill(bytes);
 }
 
-void __fastcall NodeDeallocate(void* p, std::size_t bytes) {
+void NodeDeallocate(void* p, std::size_t bytes) {
     if (bytes > kMaxPooled) {
         gamecrt::operator_delete(p);
         return;
@@ -564,15 +564,15 @@ void __fastcall NodeDeallocate(void* p, std::size_t bytes) {
 
 // The onexit list is the host CRT's: _crt_atexit's table, which std::exit runs last-registered first
 // (functions registered while it runs, too) before the host's own terminators.
-ExitFunction __cdecl OnExit(ExitFunction function) {
+ExitFunction OnExit(ExitFunction function) {
     return _crt_atexit(function) == 0 ? function : nullptr;
 }
 
-int __cdecl AtExit(ExitFunction function) { return OnExit(function) ? 0 : -1; }
+int AtExit(ExitFunction function) { return OnExit(function) ? 0 : -1; }
 
 // exit: the host CRT's. The exe's own terminators (__xp / __xt, for the game CRT's streams) have nothing to do
 // in the image, where the streams are the host's.
-void __cdecl Exit(int code) { std::exit(code); }
+void Exit(int code) { std::exit(code); }
 
 } // namespace libcrt
 
@@ -580,38 +580,38 @@ void __cdecl Exit(int code) { std::exit(code); }
 // same import slot, so a mod's hook in the import table still applies.
 namespace libcrt::imports {
 
-std::uint16_t __stdcall Htons(std::uint16_t v) { return gameapi::htons(v); }                 // ord 9
-void* __stdcall GetHostByName(const char* name) { return gameapi::gethostbyname(name); }       // ord 52
-std::uint32_t __stdcall InetAddr(const char* text) { return gameapi::inet_addr(text); }       // ord 10
-std::uint16_t __stdcall Ntohs(std::uint16_t v) { return gameapi::ntohs(v); }                   // ord 15
-void* __stdcall GetHostByAddr(const void* address, int length, int type) {                             // ord 51
+std::uint16_t Htons(std::uint16_t v) { return gameapi::htons(v); }                 // ord 9
+void* GetHostByName(const char* name) { return gameapi::gethostbyname(name); }       // ord 52
+std::uint32_t InetAddr(const char* text) { return gameapi::inet_addr(text); }       // ord 10
+std::uint16_t Ntohs(std::uint16_t v) { return gameapi::ntohs(v); }                   // ord 15
+void* GetHostByAddr(const void* address, int length, int type) {                             // ord 51
     return gameapi::gethostbyaddr(address, length, type);
 }
-int __stdcall GetHostName(char* name, int length) { return gameapi::gethostname(name, length); } // ord 57
-int __stdcall WsaStartup(std::uint16_t version, void* data) { return gameapi::WSAStartup(version, data); } // ord 115
-int __stdcall WsaCleanup() { return gameapi::WSACleanup(); }                                  // ord 116
-int __stdcall CloseSocket(std::uint32_t s) { return gameapi::closesocket(s); }                 // ord 3
-int __stdcall SetSockOpt(std::uint32_t s, int level, int option, const void* value, int length) {     // ord 21
+int GetHostName(char* name, int length) { return gameapi::gethostname(name, length); } // ord 57
+int WsaStartup(std::uint16_t version, void* data) { return gameapi::WSAStartup(version, data); } // ord 115
+int WsaCleanup() { return gameapi::WSACleanup(); }                                  // ord 116
+int CloseSocket(std::uint32_t s) { return gameapi::closesocket(s); }                 // ord 3
+int SetSockOpt(std::uint32_t s, int level, int option, const void* value, int length) {     // ord 21
     return gameapi::setsockopt(s, level, option, value, length);
 }
-int __stdcall IoctlSocket(std::uint32_t s, long command, std::uint32_t* argument) {                    // ord 12
+int IoctlSocket(std::uint32_t s, long command, std::uint32_t* argument) {                    // ord 12
     return gameapi::ioctlsocket(s, command, argument);
 }
-int __stdcall Bind(std::uint32_t s, const void* address, int length) { return gameapi::bind(s, address, length); } // ord 2
-std::uint32_t __stdcall Socket(int family, int type, int protocol) { return gameapi::socket(family, type, protocol); } // ord 23
-int __stdcall SendTo(std::uint32_t s, const void* data, int length, int flags, const void* to, int toLength) { // ord 20
+int Bind(std::uint32_t s, const void* address, int length) { return gameapi::bind(s, address, length); } // ord 2
+std::uint32_t Socket(int family, int type, int protocol) { return gameapi::socket(family, type, protocol); } // ord 23
+int SendTo(std::uint32_t s, const void* data, int length, int flags, const void* to, int toLength) { // ord 20
     return gameapi::sendto(s, data, length, flags, to, toLength);
 }
-int __stdcall RecvFrom(std::uint32_t s, void* data, int length, int flags, void* from, int* fromLength) { // ord 17
+int RecvFrom(std::uint32_t s, void* data, int length, int flags, void* from, int* fromLength) { // ord 17
     return gameapi::recvfrom(s, data, length, flags, from, fromLength);
 }
-int __stdcall Connect(std::uint32_t s, const void* address, int length) { return gameapi::connect(s, address, length); } // ord 4
-int __stdcall Recv(std::uint32_t s, void* data, int length, int flags) { return gameapi::recv(s, data, length, flags); } // ord 16
-int __stdcall Send(std::uint32_t s, const void* data, int length, int flags) { return gameapi::send(s, data, length, flags); } // ord 19
-int __stdcall Select(int count, void* read, void* write, void* except, const void* timeout) {         // ord 18
+int Connect(std::uint32_t s, const void* address, int length) { return gameapi::connect(s, address, length); } // ord 4
+int Recv(std::uint32_t s, void* data, int length, int flags) { return gameapi::recv(s, data, length, flags); } // ord 16
+int Send(std::uint32_t s, const void* data, int length, int flags) { return gameapi::send(s, data, length, flags); } // ord 19
+int Select(int count, void* read, void* write, void* except, const void* timeout) {         // ord 18
     return gameapi::select(count, read, write, except, timeout);
 }
-long __stdcall DirectInputCreateEx(void* instance, unsigned long version, const void* iid, void** out, void* outer) {
+long DirectInputCreateEx(void* instance, unsigned long version, const void* iid, void** out, void* outer) {
     return gameapi::DirectInputCreateEx(instance, version, iid, out, outer);
 }
 
@@ -642,7 +642,7 @@ struct ArrayUnwind {
 };
 } // namespace
 
-void __stdcall ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
+void ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
                                  ElementFunction destroy) {
     char* p = static_cast<char*>(array);
     int constructed = 0;
@@ -654,7 +654,7 @@ void __stdcall ConstructElements(void* array, std::size_t size, int count, Eleme
     unwind.done = true;
 }
 
-void __stdcall DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy) {
+void DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy) {
     char* p = static_cast<char*>(array) + size * count;
     ArrayUnwind unwind{p, size, count, destroy};
     while (--count >= 0) {

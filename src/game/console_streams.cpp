@@ -56,47 +56,47 @@ void DestroyStream(OStreamObject& stream) {
     stream.ios.Destruct();
 }
 
-void __cdecl DestroyCheatCommands() { lib_trees::Commands::Destroy(&console::g_cheatCommands.Get()); }
-void __cdecl DestroyPublicCommands() { lib_trees::Commands::Destroy(&console::g_publicCommands.Get()); }
-void __cdecl DestroyAiLogBuf() { console::g_aiLogBuf.Destroy(); }
-void __cdecl DestroyEventLogBuf() { console::g_eventLogBuf.Destroy(); }
-void __cdecl DestroyGraphicsLogBuf() { console::g_graphicsLogBuf.Destroy(); }
-void __cdecl DestroyRpgLogBuf() { console::g_rpgLogBuf.Destroy(); }
-void __cdecl DestroyUnitAcksLogBuf() { console::g_unitAcksLogBuf.Destroy(); }
-void __cdecl DestroyNetLogBuf() { console::g_netLogBuf.Destroy(); }
-void __cdecl DestroyAllLogBuf() { console::g_allLogBuf.Destroy(); }
-void __cdecl DestroyConsoleBuf() { console::g_consoleBuf.Destroy(); }
-void __cdecl DestroyAiLogOut() { DestroyStream(console::g_aiLogOut); }
-void __cdecl DestroyEventLogOut() { DestroyStream(console::g_eventLogOut); }
-void __cdecl DestroyGraphicsLogOut() { DestroyStream(console::g_graphicsLogOut); }
-void __cdecl DestroyRpgLogOut() { DestroyStream(console::g_rpgLogOut); }
-void __cdecl DestroyNetLogOut() { DestroyStream(console::g_netLogOut); }
-void __cdecl DestroyUnitAcksLogOut() { DestroyStream(console::g_unitAcksLogOut); }
-void __cdecl DestroyAllLogOut() { DestroyStream(console::g_allLogOut); }
-void __cdecl DestroyConsoleOut() { DestroyStream(console::g_consoleOut); }
+void DestroyCheatCommands() { lib_trees::Commands::Destroy(&console::g_cheatCommands.Get()); }
+void DestroyPublicCommands() { lib_trees::Commands::Destroy(&console::g_publicCommands.Get()); }
+void DestroyAiLogBuf() { console::g_aiLogBuf.Destroy(); }
+void DestroyEventLogBuf() { console::g_eventLogBuf.Destroy(); }
+void DestroyGraphicsLogBuf() { console::g_graphicsLogBuf.Destroy(); }
+void DestroyRpgLogBuf() { console::g_rpgLogBuf.Destroy(); }
+void DestroyUnitAcksLogBuf() { console::g_unitAcksLogBuf.Destroy(); }
+void DestroyNetLogBuf() { console::g_netLogBuf.Destroy(); }
+void DestroyAllLogBuf() { console::g_allLogBuf.Destroy(); }
+void DestroyConsoleBuf() { console::g_consoleBuf.Destroy(); }
+void DestroyAiLogOut() { DestroyStream(console::g_aiLogOut); }
+void DestroyEventLogOut() { DestroyStream(console::g_eventLogOut); }
+void DestroyGraphicsLogOut() { DestroyStream(console::g_graphicsLogOut); }
+void DestroyRpgLogOut() { DestroyStream(console::g_rpgLogOut); }
+void DestroyNetLogOut() { DestroyStream(console::g_netLogOut); }
+void DestroyUnitAcksLogOut() { DestroyStream(console::g_unitAcksLogOut); }
+void DestroyAllLogOut() { DestroyStream(console::g_allLogOut); }
+void DestroyConsoleOut() { DestroyStream(console::g_consoleOut); }
 } // namespace
 
-void __cdecl ConstructCheatCommands() { BuildCommands(console::g_cheatCommands, DestroyCheatCommands); }
-void __cdecl ConstructPublicCommands() { BuildCommands(console::g_publicCommands, DestroyPublicCommands); }
+void ConstructCheatCommands() { BuildCommands(console::g_cheatCommands, DestroyCheatCommands); }
+void ConstructPublicCommands() { BuildCommands(console::g_publicCommands, DestroyPublicCommands); }
 
-void __cdecl ConstructAiLogBuf() { BuildStreambuf(console::g_aiLogBuf, 1, DestroyAiLogBuf); }
-void __cdecl ConstructEventLogBuf() { BuildStreambuf(console::g_eventLogBuf, 2, DestroyEventLogBuf); }
-void __cdecl ConstructGraphicsLogBuf() { BuildStreambuf(console::g_graphicsLogBuf, 4, DestroyGraphicsLogBuf); }
-void __cdecl ConstructRpgLogBuf() { BuildStreambuf(console::g_rpgLogBuf, 8, DestroyRpgLogBuf); }
-void __cdecl ConstructUnitAcksLogBuf() { BuildStreambuf(console::g_unitAcksLogBuf, 0x10, DestroyUnitAcksLogBuf); }
-void __cdecl ConstructNetLogBuf() { BuildStreambuf(console::g_netLogBuf, 0x20, DestroyNetLogBuf); }
-void __cdecl ConstructAllLogBuf() { BuildStreambuf(console::g_allLogBuf, 0xFFFFFFFF, DestroyAllLogBuf); }
-void __cdecl ConstructConsoleBuf() { BuildStreambuf(console::g_consoleBuf, 0, DestroyConsoleBuf); }
+void ConstructAiLogBuf() { BuildStreambuf(console::g_aiLogBuf, 1, DestroyAiLogBuf); }
+void ConstructEventLogBuf() { BuildStreambuf(console::g_eventLogBuf, 2, DestroyEventLogBuf); }
+void ConstructGraphicsLogBuf() { BuildStreambuf(console::g_graphicsLogBuf, 4, DestroyGraphicsLogBuf); }
+void ConstructRpgLogBuf() { BuildStreambuf(console::g_rpgLogBuf, 8, DestroyRpgLogBuf); }
+void ConstructUnitAcksLogBuf() { BuildStreambuf(console::g_unitAcksLogBuf, 0x10, DestroyUnitAcksLogBuf); }
+void ConstructNetLogBuf() { BuildStreambuf(console::g_netLogBuf, 0x20, DestroyNetLogBuf); }
+void ConstructAllLogBuf() { BuildStreambuf(console::g_allLogBuf, 0xFFFFFFFF, DestroyAllLogBuf); }
+void ConstructConsoleBuf() { BuildStreambuf(console::g_consoleBuf, 0, DestroyConsoleBuf); }
 
-void __cdecl ConstructAiLogOut() { BuildStream(console::g_aiLogOut, console::g_aiLogBuf, DestroyAiLogOut); }
-void __cdecl ConstructEventLogOut() { BuildStream(console::g_eventLogOut, console::g_eventLogBuf, DestroyEventLogOut); }
-void __cdecl ConstructGraphicsLogOut() {
+void ConstructAiLogOut() { BuildStream(console::g_aiLogOut, console::g_aiLogBuf, DestroyAiLogOut); }
+void ConstructEventLogOut() { BuildStream(console::g_eventLogOut, console::g_eventLogBuf, DestroyEventLogOut); }
+void ConstructGraphicsLogOut() {
     BuildStream(console::g_graphicsLogOut, console::g_graphicsLogBuf, DestroyGraphicsLogOut);
 }
-void __cdecl ConstructRpgLogOut() { BuildStream(console::g_rpgLogOut, console::g_rpgLogBuf, DestroyRpgLogOut); }
-void __cdecl ConstructNetLogOut() { BuildStream(console::g_netLogOut, console::g_netLogBuf, DestroyNetLogOut); }
-void __cdecl ConstructUnitAcksLogOut() {
+void ConstructRpgLogOut() { BuildStream(console::g_rpgLogOut, console::g_rpgLogBuf, DestroyRpgLogOut); }
+void ConstructNetLogOut() { BuildStream(console::g_netLogOut, console::g_netLogBuf, DestroyNetLogOut); }
+void ConstructUnitAcksLogOut() {
     BuildStream(console::g_unitAcksLogOut, console::g_unitAcksLogBuf, DestroyUnitAcksLogOut);
 }
-void __cdecl ConstructAllLogOut() { BuildStream(console::g_allLogOut, console::g_allLogBuf, DestroyAllLogOut); }
-void __cdecl ConstructConsoleOut() { BuildStream(console::g_consoleOut, console::g_consoleBuf, DestroyConsoleOut); }
+void ConstructAllLogOut() { BuildStream(console::g_allLogOut, console::g_allLogBuf, DestroyAllLogOut); }
+void ConstructConsoleOut() { BuildStream(console::g_consoleOut, console::g_consoleBuf, DestroyConsoleOut); }

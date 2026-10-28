@@ -19,7 +19,7 @@ struct CTime {
     // CTime(const FILETIME&, dst): the UTC file time as local time; 0 when it does not convert.
     CTime* ConstructFileTime(const FILETIME& at, int dst);
     // CTime::GetCurrentTime into `out` (returned).
-    static CTime* __stdcall CurrentTime(CTime* out);
+    static CTime* CurrentTime(CTime* out);
     // strftime of the local time into at most 127 characters (empty when it does not fit).
     CString Format(const char* format) const;
 };

@@ -25,9 +25,6 @@
 
 namespace recordlist {
 
-// The chunk archive's stack (ChunkArchive::Stack).
-using ChunkRef = ChunkArchive::Ref;
-using ChunkRefElement = ChunkArchive::RefElement;
 
 // The client's finished trades (ClientSession::tradeRecords_, TradeRecordNode; 0x160-byte nodes from
 // operator new): two revisions and three parties. Copied member by member (CParty's copy

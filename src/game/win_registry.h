@@ -8,6 +8,7 @@
 // and gives the default.
 
 #include <cstdint>
+#include <string>
 
 #include "../lib/mfc.h"
 
@@ -25,8 +26,8 @@ public:
     mfc::BOOL SetInt(const char* subkey, const char* name, int value);                // same code
     // The float's bits as a 4-byte REG_BINARY (bits passed as the game pushes them).
     mfc::BOOL SetFloat(const char* subkey, const char* name, std::uint32_t bits);
-    mfc::BOOL SetString(const char* subkey, const char* name, mfc::CString value);
-    mfc::BOOL SetStringInt(const char* subkey, const char* name, mfc::CString value);  // REG_SZ
+    mfc::BOOL SetString(const char* subkey, const char* name, const std::string& value);
+    mfc::BOOL SetStringInt(const char* subkey, const char* name, const std::string& value);  // REG_SZ
 
     // The readers: the value, or `defaultValue` when the subkey or value is missing or of
     // another type (the last also logged).
@@ -34,8 +35,8 @@ public:
     int GetInt(const char* subkey, const char* name, int defaultValue);
     // A 4-byte REG_BINARY returned as a float; the default passed as bits, as the game pushes it.
     double GetFloat(const char* subkey, const char* name, std::uint32_t defaultBits);
-    mfc::CString GetString(const char* subkey, const char* name, mfc::CString defaultValue);
-    mfc::CString GetStringInt(const char* subkey, const char* name, mfc::CString defaultValue); // REG_SZ
+    std::string GetString(const char* subkey, const char* name, const std::string& defaultValue);
+    std::string GetStringInt(const char* subkey, const char* name, const std::string& defaultValue); // REG_SZ
 
     void* key_;    // the settings file's key, null when closed
 };

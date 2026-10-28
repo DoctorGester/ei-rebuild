@@ -55,8 +55,8 @@ void ServerSession::AnnounceToMaster() {
     description.assign(empty);
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefCounted::kDetached)) {
-        mfc::CString title(mfc::CString::kUnset);
-        const char* text = *SessionMapNameInto(&title);
+        std::string title;
+        const char* text = (*SessionMapNameInto(&title)).c_str();
         description.assign(text);
     }
     info.players = static_cast<std::uint8_t>(ClientCount());
@@ -86,7 +86,7 @@ void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
 // (g_currentConnection; nothing when it is gone or detached): the first binding of that connection names the
 // player (nothing without one, or when the binding is detached), and the line is announced to
 // everybody as "^<number><name>^7: <text>".
-void __fastcall ServerOnSay(ServerSession* server, SayMessage* message) {
+void ServerOnSay(ServerSession* server, SayMessage* message) {
     Connection* connection = g_currentConnection;
     if (!connection || (connection->flags7_ & CRefCounted::kDetached)) return;
     const auto& bindings = server->bindings_;
@@ -105,6 +105,6 @@ void __fastcall ServerOnSay(ServerSession* server, SayMessage* message) {
 
 // The handler of the party members' channels 0 and 1 (ServerSession::Construct). The member message's version
 // moves on, so the connections send it again.
-void __fastcall ServerOnMemberChanged(ServerSession*, Message* message) { ++message->version_; }
+void ServerOnMemberChanged(ServerSession*, Message* message) { ++message->version_; }
 
 } // namespace net

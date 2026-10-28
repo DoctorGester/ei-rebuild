@@ -8,7 +8,7 @@
 #include "render/render.h"
 
 // Returns the DirectDraw result: 0.
-long __fastcall DevicePresent(CTextureDevice* device) {
+long DevicePresent(CTextureDevice* device) {
     present_window::Update(device);
     render::Present();
     return 0;

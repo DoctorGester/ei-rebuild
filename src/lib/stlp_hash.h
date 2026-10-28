@@ -494,12 +494,12 @@ struct HashtableAbi : hashtable<Traits> {
     }
     // hash_map / hash_set: hashtable(100, ...) inlined; the functor bytes are
     // an uninitialised stack byte (0 here). Returns this.
-    static Table* __fastcall ConstructDefault(Table* self) {
+    static Table* ConstructDefault(Table* self) {
         self->Construct(100, 0, 0, 0);
         return self;
     }
     // _M_initialize_buckets(n), resize(hint), erase(key) and _M_copy_from(ht) are hashtable's own members,
-    // registered through this type.
+    // reached through this type.
     Iterator* Find(Iterator* out, const Key& key) {
         out->cur = Table::Find(key);
         out->table = this;
@@ -570,14 +570,14 @@ struct HashtableAbi : hashtable<Traits> {
         return out;
     }
     void EraseIterator(const Node* cur, const Table*) { Table::EraseNode(cur); }
-    static void __fastcall Clear(Table* self) { self->Clear(); }
-    static void __fastcall Destroy(Table* self) { self->Destroy(); }
+    static void Clear(Table* self) { self->Clear(); }
+    static void Destroy(Table* self) { self->Destroy(); }
     Node* NewNode(const Value& obj) { return Table::NewNode(obj); }
     void DeleteNode(Node* n) {
         if (n) Table::DeleteNode(n);
     }
-    static Node* __fastcall SkipToNext(const Iterator* self) { return self->table->SkipToNext(self->cur); }
-    static Iterator* __fastcall Increment(Iterator* self) {
+    static Node* SkipToNext(const Iterator* self) { return self->table->SkipToNext(self->cur); }
+    static Iterator* Increment(Iterator* self) {
         self->cur = self->table->Next(self->cur);
         return self;
     }
@@ -598,7 +598,7 @@ struct HashtableAbi : hashtable<Traits> {
     };
 };
 
-std::uint32_t __fastcall HashString(const std::string* s);
+std::uint32_t HashString(const std::string* s);
 
 // hash_map<string, T*>: the record tables' maps by name, the spells and modifiers by name.
 using NameMap = hashtable<StringKeyTraits<4>>;

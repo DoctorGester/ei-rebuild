@@ -25,12 +25,12 @@
 
 namespace net {
 
-void __fastcall ClientApplyParty(ClientSession* self);      // net_client_party.cpp
+void ClientApplyParty(ClientSession* self);      // net_client_party.cpp
 
 namespace {
 
 inline void FlowVariablesChanged(void* flow) { static_cast<GameFlow*>(flow)->UpdateFromServer(); }
-inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { LoadZoneQuests(a2); }
+inline void FlowLoadZoneQuests(void*, void*, const char* a2) { LoadZoneQuests(a2); }
 
 // Every node holding `value` erased (the sentinel read once, the next node taken first).
 template <typename List>
@@ -188,74 +188,74 @@ void ClientSession::StartParty(CRefObject* partner) {
 }
 
 // Drops the party description.
-void __fastcall ClientDropParty(ClientSession* self) { DropParty(self); }
+void ClientDropParty(ClientSession* self) { DropParty(self); }
 
 // The binding of this client: kept, dropped. An update lists its
 // objects in the order of the server's entries' addresses (Connection::SendUpdate), so the players may
 // come before the binding; their refresh then listed nobody (ShowPlayers lists only with the binding)
 // and the original's binding does not refresh: the base screen's faces followed the heap. Ours
 // (address_order.h) refreshes the list when players came before the binding, as if it came first.
-void __fastcall ClientOnBinding(ClientSession* self, BindingMessage* message) {
+void ClientOnBinding(ClientSession* self, BindingMessage* message) {
     AssignRef(&self->binding_, message);
     if (!self->players_.Empty()) TheInterface()->OnPlayersChanged(1);
 }
-void __fastcall ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&self->binding_); }
+void ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&self->binding_); }
 // The players, with the interface's player list refreshed.
-void __fastcall ClientOnPlayer(ClientSession* self, Message* message) {
+void ClientOnPlayer(ClientSession* self, Message* message) {
     AppendRaw(self->players_, message);
     TheInterface()->OnPlayersChanged(1);
 }
-void __fastcall ClientOnPlayerChanged(ClientSession*, Message*) { TheInterface()->OnPlayersChanged(0); }
-void __fastcall ClientOnPlayerGone(ClientSession* self, Message* message) {
+void ClientOnPlayerChanged(ClientSession*, Message*) { TheInterface()->OnPlayersChanged(0); }
+void ClientOnPlayerGone(ClientSession* self, Message* message) {
     RemoveCounted(self->players_, message);
     TheInterface()->OnPlayersChanged(1);
 }
 // The chat lines, each shown with its number.
-void __fastcall ClientOnLine(ClientSession* self, LineMessage* message) {
+void ClientOnLine(ClientSession* self, LineMessage* message) {
     AppendCounted(self->lines_, message);
     TheInterface()->OnChatLine(message->text_.data(), message->number_);
 }
-void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }
+void ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }
 // The host message kept.
-void __fastcall ClientOnInfo(ClientSession* self, HostMessage* message) { AssignRef(&self->info_, message); }
-void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->info_); }
+void ClientOnInfo(ClientSession* self, HostMessage* message) { AssignRef(&self->info_, message); }
+void ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->info_); }
 // The zones offered, passed to the game flow.
-void __fastcall ClientOnZone(ClientSession* self, ZoneMessage* message) {
+void ClientOnZone(ClientSession* self, ZoneMessage* message) {
     AppendCounted(self->zones_, message);
     TheGameFlow()->MarkBriefing(message->text_.data());
 }
-void __fastcall ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {
+void ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {
     RemoveCounted(self->zones_, message);
     TheGameFlow()->ForgetBriefing(message->text_.data());
 }
 // The current map; without a server of our own the flow loads it.
-void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {
+void ClientOnMap(ClientSession* self, MapMessage* message) {
     AssignRef(&self->map_, message);
     auto* server = GameServer();
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
     FlowLoadZoneQuests(TheGameFlow(), nullptr, message->text_.data());
     TheGameFlow()->RegisterQuests(message->text_.data());
 }
-void __fastcall ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }
+void ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }
 // The script variables; the flow is told of every change.
-void __fastcall ClientOnVariable(ClientSession* self, Message* message) {
+void ClientOnVariable(ClientSession* self, Message* message) {
     AppendRaw(self->variables_, message);
     FlowVariablesChanged(TheGameFlow());
 }
-void __fastcall ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(TheGameFlow()); }
-void __fastcall ClientOnVariableGone(ClientSession* self, Message* message) {
+void ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(TheGameFlow()); }
+void ClientOnVariableGone(ClientSession* self, Message* message) {
     RemoveRaw(self->variables_, message);
     FlowVariablesChanged(TheGameFlow());
 }
 // The shared files; for a file the flow lacks, a request holding the file goes on fileRequests_.
-void __fastcall ClientOnFile(ClientSession* self, FileMessage* message) {
+void ClientOnFile(ClientSession* self, FileMessage* message) {
     AppendRaw(self->files_, message);
     if (MapFileExists(message->name_.data())) return;
     auto* request = NewCounted<FileRequestMessage>();
     AssignRef(&request->FileRef(), message);
     AppendRaw(self->fileRequests_, request);
 }
-void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {
+void ClientOnFileGone(ClientSession* self, Message* message) {
     RemoveRaw(self->files_, message);
     DropRequestsFor(self, message);
 }
@@ -264,7 +264,7 @@ void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {
 // flow writes the buffer as the map file of that name, and the requests for the file leave fileRequests_. A
 // file without a name is only collected. Rebirth's MQClient returns after collecting every chunk: no file from
 // the server is written.
-void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
+void ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
     AppendRaw(self->chunks_, message);
     auto* file = message->file_.Get();
     const char* none = game::EmptyText();
@@ -309,29 +309,29 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
         DropRequestsFor(self, file);
     }
 }
-void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(self->chunks_, message); }
+void ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(self->chunks_, message); }
 // The awards (applied by the tick).
-void __fastcall ClientOnAward(ClientSession* self, Message* message) { AppendRaw(self->awards_, message); }
+void ClientOnAward(ClientSession* self, Message* message) { AppendRaw(self->awards_, message); }
 // The other players' trade offers; the one paired with ours rebuilds the party.
-void __fastcall ClientOnParty(ClientSession* self, Message* message) {
+void ClientOnParty(ClientSession* self, Message* message) {
     AppendRaw(self->offers_, message);
     if (ClientFindParty(self) != message) return;
     ClientCommitParty(self);
     ClientApplyParty(self);
 }
-void __fastcall ClientOnPartyChanged(ClientSession* self, Message* message) {
+void ClientOnPartyChanged(ClientSession* self, Message* message) {
     if (ClientFindParty(self) != message) return;
     ClientCommitParty(self);
     ClientApplyParty(self);
 }
-void __fastcall ClientOnPartyGone(ClientSession* self, Message* message) { RemoveRaw(self->offers_, message); }
+void ClientOnPartyGone(ClientSession* self, Message* message) { RemoveRaw(self->offers_, message); }
 // Party members, every channel: the description committed and the party rebuilt.
-void __fastcall ClientOnMember(ClientSession* self, Message*) {
+void ClientOnMember(ClientSession* self, Message*) {
     ClientCommitParty(self);
     ClientApplyParty(self);
 }
 // The trade: a new one empties the trade records and resets both parties.
-void __fastcall ClientOnTrade(ClientSession* self, TradeMessage* message) {
+void ClientOnTrade(ClientSession* self, TradeMessage* message) {
     AssignRef(&self->trade_, message);
     ClearTradeRecords(self);
     self->parties_[0].Get()->Clear(1, 0);
@@ -339,7 +339,7 @@ void __fastcall ClientOnTrade(ClientSession* self, TradeMessage* message) {
 }
 // A finished trade (done, and ours): the record of the two sides' values is shown, then the trade,
 // the party description and the records are dropped.
-void __fastcall ClientOnTradeChanged(ClientSession* self, TradeMessage* message) {
+void ClientOnTradeChanged(ClientSession* self, TradeMessage* message) {
     if (!message->done_ || message != self->trade_) return;
     std::uint32_t a, b;
     if (message->offer_.ptr == self->party_.ptr) {
@@ -360,7 +360,7 @@ void __fastcall ClientOnTradeChanged(ClientSession* self, TradeMessage* message)
     DropParty(self);
     ClearTradeRecords(self);
 }
-void __fastcall ClientOnTradeGone(ClientSession* self, Message* message) {
+void ClientOnTradeGone(ClientSession* self, Message* message) {
     if (self->trade_ != message) return;
     ClearRef(&self->trade_);
     DropParty(self);

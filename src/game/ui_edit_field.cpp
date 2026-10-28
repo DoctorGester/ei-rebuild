@@ -143,7 +143,7 @@ void CUiEditField::OnChar(int key, int, int) {
     }
     std::string tail = str::Mid(text, caret_);
     std::string head = str::Left(text, caret_);
-    std::string typed = (text::Typed(head, key) + tail).GetString();
+    std::string typed = text::Typed(head, key) + tail;
     if (text::CharacterCount(text) < maxLength_ && TextWidth(interface_, typed, font_) < area_.right - area_.left) {
         text = typed;
         changed_ = true;

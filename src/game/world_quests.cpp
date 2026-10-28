@@ -45,7 +45,7 @@ double VariableGet(NamedFloatTable* table, const char* name) { return table->Get
 // The briefing variables of one mercenary slot (declared so that they are destroyed in the
 // original's order: n11, amerc, n10, n2, n8, n9, n3, n1).
 struct Briefing {
-    mfc::CString n1, n3, n9, n8, n2, n10, hired, n11;
+    std::string n1, n3, n9, n8, n2, n10, hired, n11;
 };
 
 CParty* PartyOf(CPlayer* player) { return player->Party(); }
@@ -58,7 +58,7 @@ void CWorldServer::UpdateMercBriefings() {
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
         CPlayerServer* state = player->Server();
         int otherMercs = CountLivingMercs(player->playerId_);
-        auto set = [&](const mfc::CString& name, float value) { state->SetVariable(name, std::bit_cast<std::uint32_t>(value)); };
+        auto set = [&](const std::string& name, float value) { state->SetVariable(name.c_str(), std::bit_cast<std::uint32_t>(value)); };
 
         for (int slot = 1; slot <= kMercSlots; ++slot) {
             std::string merc;
@@ -67,14 +67,14 @@ void CWorldServer::UpdateMercBriefings() {
             bool briefedHere = gamecrt::mbsicmp(zoneName_,
                                                worlddata::MercZoneName(slot - 1)) == 0;
             Briefing b;
-            b.n8.Format(worlddata::MercVariableN8Format(), merc.c_str(), slot);
-            b.n1.Format(worlddata::MercVariableN1Format(), merc.c_str(), slot);
-            b.n2.Format(worlddata::MercVariableN2Format(), merc.c_str(), slot);
-            b.n3.Format(worlddata::MercVariableN3Format(), merc.c_str(), slot);
-            b.n9.Format(worlddata::MercVariableN9Format(), merc.c_str(), slot);
-            b.n10.Format(worlddata::MercVariableN10Format(), merc.c_str(), slot);
-            b.n11.Format(worlddata::MercVariableN11Format(), merc.c_str(), slot);
-            b.hired.Format(worlddata::MercHiredFormat(), slot);
+            b.n8 = str::Format(worlddata::MercVariableN8Format(), merc.c_str(), slot);
+            b.n1 = str::Format(worlddata::MercVariableN1Format(), merc.c_str(), slot);
+            b.n2 = str::Format(worlddata::MercVariableN2Format(), merc.c_str(), slot);
+            b.n3 = str::Format(worlddata::MercVariableN3Format(), merc.c_str(), slot);
+            b.n9 = str::Format(worlddata::MercVariableN9Format(), merc.c_str(), slot);
+            b.n10 = str::Format(worlddata::MercVariableN10Format(), merc.c_str(), slot);
+            b.n11 = str::Format(worlddata::MercVariableN11Format(), merc.c_str(), slot);
+            b.hired = str::Format(worlddata::MercHiredFormat(), slot);
             set(b.n11, 0.0f);
 
             bool inParty = false;
@@ -85,7 +85,7 @@ void CWorldServer::UpdateMercBriefings() {
                 }
             }
             NamedFloatTable* variables = &player->Party()->variables_;
-            double left = VariableGet(variables, b.n10);
+            double left = VariableGet(variables, b.n10.c_str());
             EI_NAN_AUDIT(left);
             if (inParty) {
                 if (left != worlddata::Zero()) {
@@ -110,10 +110,10 @@ void CWorldServer::UpdateMercBriefings() {
                 set(b.n10, 0.0f);
                 set(b.hired, 0.0f);
             } else {
-                double hiredValue = VariableGet(variables, b.hired);
+                double hiredValue = VariableGet(variables, b.hired.c_str());
                 float hired = static_cast<float>(hiredValue);   // FST: stored as float, compared unrounded
                 float hiredStored = hired;
-                double briefed = VariableGet(variables, b.n8);
+                double briefed = VariableGet(variables, b.n8.c_str());
                 EI_NAN_AUDIT(hiredValue, briefed);
                 if (hiredValue != worlddata::Zero()) {
                     if (briefed != worlddata::One()) {
@@ -255,8 +255,8 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
 }
 
 void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
-    mfc::CString script;
-    script.Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
+    std::string script;
+    script = str::Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
     MainScript()->Load(&script, 1);
     if (sessionKind_ == kKindNoRangeTest)
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
@@ -268,7 +268,7 @@ namespace {
 // One slot's names, declared so that they are destroyed in the game's order: amerc, n10, n2, n8, n9, n3,
 // n1, merc.
 struct MercNames {
-    mfc::CString merc, n1, n3, n9, n8, n2, n10, hired;
+    std::string merc, n1, n3, n9, n8, n2, n10, hired;
 };
 
 } // namespace
@@ -276,24 +276,24 @@ struct MercNames {
 void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
     CPlayerServer* state = player->Server();
     CParty* party = PartyOf(player);
-    auto is = [name](const mfc::CString& variable) {
-        return gamecrt::mbsicmp(variable.GetString(),
+    auto is = [name](const std::string& variable) {
+        return gamecrt::mbsicmp(variable.c_str(),
                                name) == 0;
     };
     for (int slot = 1; slot <= kMercSlots; ++slot) {
         MercNames v;
-        v.merc.Format(worlddata::MercNameFormat(), slot);
-        unsigned key = TextKeyFromName(v.merc);
-        v.n8.Format(worlddata::MercVariableN8Format(), v.merc.GetString(), slot);
-        v.n1.Format(worlddata::MercVariableN1Format(), v.merc.GetString(), slot);
-        v.n2.Format(worlddata::MercVariableN2Format(), v.merc.GetString(), slot);
-        v.n3.Format(worlddata::MercVariableN3Format(), v.merc.GetString(), slot);
-        v.n9.Format(worlddata::MercVariableN9Format(), v.merc.GetString(), slot);
-        v.n10.Format(worlddata::MercVariableN10Format(), v.merc.GetString(), slot);
-        v.hired.Format(worlddata::MercHiredFormat(), slot);
+        v.merc = str::Format(worlddata::MercNameFormat(), slot);
+        unsigned key = TextKeyFromName(v.merc.c_str());
+        v.n8 = str::Format(worlddata::MercVariableN8Format(), v.merc.c_str(), slot);
+        v.n1 = str::Format(worlddata::MercVariableN1Format(), v.merc.c_str(), slot);
+        v.n2 = str::Format(worlddata::MercVariableN2Format(), v.merc.c_str(), slot);
+        v.n3 = str::Format(worlddata::MercVariableN3Format(), v.merc.c_str(), slot);
+        v.n9 = str::Format(worlddata::MercVariableN9Format(), v.merc.c_str(), slot);
+        v.n10 = str::Format(worlddata::MercVariableN10Format(), v.merc.c_str(), slot);
+        v.hired = str::Format(worlddata::MercHiredFormat(), slot);
         CUnit* unit = FindUnit(key);
 
-        if (is(v.n8)) state->SetVariable(v.n8, std::bit_cast<std::uint32_t>(0.0f));
+        if (is(v.n8)) state->SetVariable(v.n8.c_str(), std::bit_cast<std::uint32_t>(0.0f));
         // n10: the mercenary leaves the party and the world; n2: the party.
         if (is(v.n10)) {
             party->RemoveMember(key);
@@ -302,9 +302,9 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
         if (is(v.n2)) party->RemoveMember(key);
         // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
         if (is(v.n1) || is(v.n3)) {
-            state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
+            state->SetVariable(v.hired.c_str(), std::bit_cast<std::uint32_t>(2.0f));
             const char* prototype = unit ? unit->GetPrototype()->name.c_str() : worlddata::HumanHeroText();
-            party->AddMember(v.merc, prototype, game::EmptyText());
+            party->AddMember(v.merc.c_str(), prototype, game::EmptyText());
         }
     }
     UpdateMercBriefings();

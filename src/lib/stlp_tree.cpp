@@ -1,10 +1,9 @@
 // STLport's _Rb_global<bool> (stlp_tree.h): the node-only algorithms every tree instantiation of
-// the exe shares, registered at their addresses.
+// the exe shares.
 #include "stlp_tree.h"
-#include "stlp_tree_cstring.h"
+#include "stlp_tree_mbs.h"
 
 #include "crt.h"
-#include "mfc_string.h"
 
 #include <utility>
 
@@ -17,7 +16,7 @@ constexpr std::uint8_t kBlack = RbNodeBase::kBlack;
 bool IsBlack(const RbNodeBase* n) { return !n || n->color == kBlack; }
 } // namespace
 
-void __fastcall Increment(RbNodeBase** it) {
+void Increment(RbNodeBase** it) {
     RbNodeBase* node = *it;
     if (node->right) {
         node = node->right;
@@ -35,7 +34,7 @@ void __fastcall Increment(RbNodeBase** it) {
     *it = node;
 }
 
-void __fastcall Decrement(RbNodeBase** it) {
+void Decrement(RbNodeBase** it) {
     RbNodeBase* node = *it;
     if (node->color == kRed && node->parent->parent == node) {
         *it = node->right;   // end(): the rightmost
@@ -55,7 +54,7 @@ void __fastcall Decrement(RbNodeBase** it) {
     *it = y;
 }
 
-void __fastcall RotateLeft(RbNodeBase* x, RbNodeBase*& root) {
+void RotateLeft(RbNodeBase* x, RbNodeBase*& root) {
     RbNodeBase* y = x->right;
     x->right = y->left;
     if (y->left) y->left->parent = x;
@@ -67,7 +66,7 @@ void __fastcall RotateLeft(RbNodeBase* x, RbNodeBase*& root) {
     x->parent = y;
 }
 
-void __fastcall RotateRight(RbNodeBase* x, RbNodeBase*& root) {
+void RotateRight(RbNodeBase* x, RbNodeBase*& root) {
     RbNodeBase* y = x->left;
     x->left = y->right;
     if (y->right) y->right->parent = x;
@@ -79,7 +78,7 @@ void __fastcall RotateRight(RbNodeBase* x, RbNodeBase*& root) {
     x->parent = y;
 }
 
-void __fastcall Rebalance(RbNodeBase* x, RbNodeBase*& root) {
+void Rebalance(RbNodeBase* x, RbNodeBase*& root) {
     x->color = kRed;
     while (x != root && x->parent->color == kRed) {
         RbNodeBase* p = x->parent;
@@ -121,7 +120,7 @@ void __fastcall Rebalance(RbNodeBase* x, RbNodeBase*& root) {
     root->color = kBlack;
 }
 
-RbNodeBase* __fastcall RebalanceForErase(RbNodeBase* z, RbNodeBase*& root, RbNodeBase*& leftmost,
+RbNodeBase* RebalanceForErase(RbNodeBase* z, RbNodeBase*& root, RbNodeBase*& leftmost,
                                          RbNodeBase*& rightmost) {
     RbNodeBase* y = z;
     RbNodeBase* x = nullptr;
@@ -227,9 +226,6 @@ RbNodeBase* __fastcall RebalanceForErase(RbNodeBase* z, RbNodeBase*& root, RbNod
 
 namespace stlp {
 
-bool CStringLess::Less(const mfc::CString& a, const mfc::CString& b) {
-    return gamecrt::mbscmp(static_cast<const char*>(a),
-                           static_cast<const char*>(b)) < 0;
-}
+bool MbsLess::Less(const std::string& a, const std::string& b) { return gamecrt::mbscmp(a.c_str(), b.c_str()) < 0; }
 
 } // namespace stlp

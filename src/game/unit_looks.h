@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <vector>
 
 class CStream;
@@ -45,7 +46,7 @@ struct FiguredUnitRecord : DressedUnitRecord {
     float morphS;                   // the figure's morph coefficients (LoadFigure's s, t, u)
     float morphT;
     float morphU;
-    std::vector<mfc::CString> names;
+    std::vector<std::string> names;
 };
 static_assert(offsetof(FiguredUnitRecord, morphS) == 0x24);
 static_assert(sizeof(FiguredUnitRecord) == 0x3C);

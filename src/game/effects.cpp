@@ -64,7 +64,7 @@ constexpr int kTypeAntimagic = 0x201A;
 
 // --- Free helpers -------------------------------------------------------------------------------
 
-Vector3* __fastcall DivideVector(Vector3* out, const Vector3& v, float d) {
+Vector3* DivideVector(Vector3* out, const Vector3& v, float d) {
     float z = v.z / d;
     float y = v.y / d;
     float x = v.x / d;

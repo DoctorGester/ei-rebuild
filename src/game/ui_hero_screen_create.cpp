@@ -76,8 +76,8 @@ CUiEditField* NewEditField(CInterface3D* ui, RECT rect) { return new CUiEditFiel
 
 // std::sort(begin, end) (its first level of the introsort loop does the same steps as the out-of-line loop).
 void SortNames(NameList& names) {
-    mfc::CString* first = names.data();
-    mfc::CString* last = names.data() + names.size();
+    std::string* first = names.data();
+    std::string* last = names.data() + names.size();
     if (first == last) return;
     int depth = 0;
     for (int n = static_cast<int>(last - first); n != 1; n >>= 1) ++depth;
@@ -230,7 +230,7 @@ void CMpHeroScreen::CreateScreen() {
     CTextManager* texts = TheTextManager();
     std::string male;
     std::string female;
-    mfc::CString figureModel;
+    std::string figureModel;
     std::string label;
     texts->GetString("lmp_male_voice", &male);
     texts->GetString("lmp_female_voice", &female);
@@ -261,7 +261,7 @@ void CMpHeroScreen::CreateScreen() {
         }
         figureModel = figure->figureName;
         auto isModel = [&figureModel](const char* name) {
-            return gamecrt::mbsicmp(figureModel.GetString(),
+            return gamecrt::mbsicmp(figureModel.c_str(),
                                    name) == 0;
         };
         bool isMale = isModel("unhuma");
@@ -270,7 +270,7 @@ void CMpHeroScreen::CreateScreen() {
             // EI_Plugin's fixes: the two name comparisons become one test of
             // the two characters at +4 of the model's name (the word 0x6566, "fe"); a model that
             // has them is a woman's, every other one a man's.
-            isFemale = ModelNameIsFemale(figureModel.GetString());
+            isFemale = ModelNameIsFemale(figureModel.c_str());
             isMale = !isFemale;
         }
         if (isMale) {
@@ -285,9 +285,9 @@ void CMpHeroScreen::CreateScreen() {
     // Both lists by name, the women's from the end.
     SortNames(men);
     SortNames(women);
-    for (mfc::CString *low = women.data(), *high = women.data() + women.size(); low < high; ++low) {
+    for (std::string *low = women.data(), *high = women.data() + women.size(); low < high; ++low) {
         --high;
-        std::string kept = (*low).GetString();
+        std::string kept = *low;
         *low = *high;
         *high = kept;
     }

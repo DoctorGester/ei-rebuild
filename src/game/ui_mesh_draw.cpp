@@ -154,10 +154,10 @@ void CUiMesh::SetQuadCount(int count) {
 }
 
 void CUiMesh::SetVertexCount(int count) {
-    corners_.SetSize(count);
+    corners_.resize(count);
     for (int i = 0; i < count; ++i) corners_[i].normal = 0;
 }
 
-void CUiMesh::SetIndexCount(int count) { indices_.SetSize(count); }
+void CUiMesh::SetIndexCount(int count) { indices_.resize(count); }
 
-void CUiMesh::SetUvCount(int count) { texCoords_.SetSize(count); }
+void CUiMesh::SetUvCount(int count) { texCoords_.resize(count); }
