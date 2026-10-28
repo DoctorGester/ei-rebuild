@@ -91,10 +91,8 @@ public:
                  std::uint32_t* colours, std::uint32_t* speculars, const TexCoord* uvs, int unused10,
                  const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
                  std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha, int flags);
-    int DrawTwoTextures(CDXSurface* first, CDXSurface* second, int primitive, int fvf, void* vertices,
-                        int vertexCount, const std::uint16_t* indices, unsigned indexCount, int flags);
-    int DrawIndexed(int primitive, int fvf, void* vertices, int vertexCount, const std::uint16_t* indices,
-                    unsigned indexCount, int flags);
+    int DrawTwoTextures(CDXSurface* first, CDXSurface* second, int vertexCount, unsigned indexCount);
+    int DrawIndexed(int vertexCount, unsigned indexCount);
     int BoundsOfProjected(const std::vector<devicebuffers::ProjectedVertex>* positions,
                           const std::uint8_t* outcodes);
     int BoundsOfVertices(const std::vector<TLVertex>* vertices, const std::uint8_t* outcodes);

@@ -1,5 +1,5 @@
-// The old renderer's two line-strip draws, so the new renderer's state mirror (src/render/render_state.h) gets
-// the states they set and the new renderer gets the lines (render::TlDraw).
+// The old renderer's line-strip draw, so the new renderer's state mirror (src/render/render_state.h) gets
+// the states it sets and the new renderer gets the lines (render::TlDraw).
 // More: docs/notes/comments-c22i.md, "renderer_lines.cpp".
 #include "renderer_lines.h"
 
@@ -47,28 +47,6 @@ void DestroyLineOutcodes() {   // (the byte array's destructor)
 }
 
 } // namespace
-
-// Fewer than two points: 0. Else the strip in
-// `colour` (opaque), the vertices in a temporary array; returns 1.
-int CSceneRenderer::Polyline(const ScreenPoints* points, std::uint32_t colour) {
-    int count = points->count;
-    if (count < 2) return 0;
-    std::vector<LineVertex> vertices(static_cast<std::size_t>(count));
-    for (int i = 0; i < points->count; ++i) {
-        LineVertex& v = vertices[i];
-        v.x = static_cast<float>(points->xy[i * 2]);
-        v.y = static_cast<float>(points->xy[i * 2 + 1]);
-        v.z = 0.0f;
-        v.rhw = 1.0f;
-        v.colour = colour | 0xFF000000u;
-        v.specular = 0xFF000000u;
-    }
-    CTextureDevice* device = device_;
-    SetStageOps(device, kOpDisable);
-    ::DrawStrip(device, vertices.data(), count);
-    SetStageOps(device, kOpModulate);
-    return 1;
-}
 
 // Flat shaded
 // (Gouraud again after); returns the last SetRenderState's result.

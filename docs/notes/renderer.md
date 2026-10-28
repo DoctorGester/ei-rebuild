@@ -183,7 +183,7 @@ Stage 0's mip filter, which the unit panel's draw 006462A0 turns off around the 
 
 Rewritten state setters (all feed the mirror): 00501C60 (renderer slot 10, `device_states.cpp`: SRCBLEND then
 DESTBLEND, failure through 004800E0; known caller the particle draw 00498940);
-005045D0 (slot 20, a strip through integer screen points, no caller) and 0049B4B0 (`renderer_lines.cpp`: the strip of
+005045D0 (a strip through integer screen points, no caller: deleted in R26c) and 0049B4B0 (`renderer_lines.cpp`: the strip of
 the renderer's line lists, 0049B780 from slot 15 00501CE0: bounds boxes 005A7290, line lists 00569D60; flat shaded,
 into a growing vertex buffer at 007A9CE0; both turn stage 0's colour / alpha ops off and back to MODULATE) go to
 `render::TlDraw` (line strip, FVF 0xC4), not reached by scenarios; 005041F0 (`renderer_rect.cpp`). 0049B140
@@ -1345,17 +1345,17 @@ across runs; the goldens check the game state.
     with the per-cell reads 0.051% and 0.016%: the check catches the old reads on Rebirth's data only),
     the map against the classic frame, and four frames at 8 ms for the eye.
 
-11. **R16k The device's mesh draws without the per-corner work nothing reads (done).** `device_mesh.cpp`. When
-    `render::MeshCornersSkipped()` (the image with the new renderer on) the mesh draws 004E9010 / 004E9A50 still
-    project (the visibility verdict), override the colours (flag 4: the hand-over reads them), take the screen
-    rectangle for draw flag 1 (picking: BoundsOfProjected, or for a crossing mesh BoundsOfVertices of the clipped
-    vertices), clip a crossing mesh (the clipper's vertex and index counts go to the device's counters, and an empty
-    result draws no pass) and hand every pass to the device with the same counts (DrawIndexed / DrawTwoTextures:
-    the pass state the new renderer reads, the counters). Skipped: the TL vertices of a mesh on screen (FillCorners),
-    the fog of every mesh (FogVertices) and, without flag 1, a clipped mesh's projection to the screen
-    (ToScreenClipped). Nothing reads them: the image has no Direct3D 7 device (DrawIndexed / DrawTwoTextures hand
-    over only the pass) and the new renderer draws from the model-space hand-over. Kept for a crossing mesh: its TL vertices
-    (the clipper's input). The harness's `meshcorners full|read` switches back to all the old work (A/B).
+11. **R16k, R26c The device's mesh draws without the work nothing reads (done).** `device_mesh.cpp`, `device_shadow.cpp`,
+    `device_draw.cpp`. The mesh draws 004E9010 / 004E9A50 and the flat draw 004EA4A0 project (the visibility verdict),
+    override the colours (flag 4: the hand-over reads them), take the screen rectangle for draw flag 1 (picking:
+    BoundsOfProjected, or for a crossing mesh BoundsOfVertices of the clipped vertices projected to the screen), clip
+    a crossing mesh (the clipper's vertex and index counts go to the device's counters, and an empty result draws no pass;
+    its input is the corners' projected positions alone) and hand every pass to the device by its counts
+    (`DrawIndexed(vertexCount, indexCount)` / `DrawTwoTextures(first, second, vertexCount, indexCount)`: the pass state the
+    new renderer reads, the counters). Not made: the TL vertices of a mesh on screen, the fog, the colours and texture
+    coordinates of the clipper's vertices, the z scale, the projection to the screen of a clipped mesh without flag 1
+    (R26c took out the arguments of the Direct3D 7 draws and the work only they needed; until then the harness's
+    `meshcorners full|read` switched back to all the old work for an A/B check, 0 pixels different).
     Measured (render_stats, vanilla 4K, harness build, two runs; ms a frame; "device mesh draws" read / full in the
     same run, the full stretch between two read ones): zone1 0.094-0.104 / 0.111-0.115, fight 0.23-0.26 / 0.27-0.29,
     town 0.31-0.34 / 0.49-0.51, so 0.02 / 0.04 / 0.18 ms saved. Main-thread CPU (read, full, read again; the
@@ -1364,7 +1364,7 @@ across runs; the goldens check the game state.
     heavier load: zone1 13.62, fight 21.98, town 15.46). The gain is within the main thread's noise: the device
     path was never the cost; what is left of it (0.1-0.3 ms) is the projection, the clipper and the passes' state,
     which game code or the hand-over read. Check: render_scene, models and units capture the frozen frame with
-    `meshcorners full` and compare it with the default (0 pixels differ); the goldens (picking reads the
+    `meshcorners full` and compare it with the default (0 pixels differ; R16k, the switch is gone); the goldens (picking reads the
     rectangles; the digest) are the same in the image's suite.
 
 Not worth a ticket now: pipeline and texture-binding changes (2-13 / 4-66 a frame) and the state reads per pass (part

@@ -706,6 +706,13 @@ group = "renderer"
 depends = ["R26b"]
 note = "Found by R26b. device_draw.cpp's DrawArgs keeps primitive, fvf, vertices, indices and flags that nothing reads now that Draw only hands the pass to render::MeshPass and counts (vertexCount, indexCount). DrawIndexed / DrawTwoTextures (texture.h) take them from device_mesh.cpp's Submit and device_shadow.cpp's DrawFlat; the TL vertices those fill (FillCorners, Fill, Scale, the fog) are read only by the meshcorners full A/B switch (render::MeshCornersSkipped, EI_RENDER_VALIDATION). Trim the arguments and the work only they needed, keeping the counts and the clipper's verdict. Also CSceneRenderer::Polyline (slot 20, renderer_lines.cpp) has no caller (renderer.md section 5): check and delete. Goldens must stay the same."
 
+[[ticket]]
+id = "R26d"
+title = "Harness: drop the meshcorners verb from tests/verify/harness.cpp"
+group = "renderer"
+depends = ["R26c"]
+note = "R26c removed render::SetMeshCornersFull, the image's meshcorners verb and its scenario steps. tests/verify/harness.cpp still has the verb in the image-verb list (line ~2242) and its comment (line ~324); removing them changes the harness key (every --no-hooks run replays), so do it with the next harness change."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]

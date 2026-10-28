@@ -512,7 +512,6 @@ void CheckDevice() {
     if (g_deviceLost) RecreateDevice();
 }
 
-bool g_meshCornersFull = false;
 #if defined(EI_RENDER_VALIDATION)
 // The timer of the device mesh draw running (at most one), made in place so no static destructor comes with it.
 alignas(detail::StatsTimer) unsigned char g_deviceMeshTimer[sizeof(detail::StatsTimer)];
@@ -1115,16 +1114,6 @@ void BeginShadowBuildTime() {
 void EndShadowBuildTime() {
 #if defined(EI_RENDER_VALIDATION)
     g_shadowBuildTimer.End();
-#endif
-}
-bool MeshCornersSkipped() { return !g_meshCornersFull; }
-void SetMeshCornersFull(bool full) {
-#if defined(EI_RENDER_VALIDATION)
-    if (full != g_meshCornersFull)
-        ei::Log("render: the device's mesh draws do %s per-corner work", full ? "all the old" : "only the read");
-    g_meshCornersFull = full;
-#else
-    (void)full;
 #endif
 }
 

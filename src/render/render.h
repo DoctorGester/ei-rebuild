@@ -197,11 +197,6 @@ struct FrameStats {
 };
 FrameStats TakeFrameStats();
 
-// Whether the old device path's mesh draws do only the per-corner work game code reads (the screen
-// rectangle of draw flag 1 and the clipper's counts); the renderer draws every mesh from the model-space
-// hand-over. True unless the harness asked for "meshcorners full".
-bool MeshCornersSkipped();
-void SetMeshCornersFull(bool full);
 // Harness build: timers into FrameStats (deviceMeshMs, the decal / flat / shadow build times; `shadow`: an
 // object shadow's decal, else a ground print's).
 void BeginDeviceMeshTime();

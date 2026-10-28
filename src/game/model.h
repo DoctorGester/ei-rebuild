@@ -192,7 +192,6 @@ public:
 // The scene renderer's pipeline: stacks 1 and 2 take the scene matrices, 5 the world draw's, 9 the views.
 
 struct tagRECT;
-struct ScreenPoints;
 class CTextureDevice;
 namespace options {
 class GameOptions;
@@ -312,7 +311,6 @@ public:
     virtual int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX,
                                     const Vector3* axisY) = 0;
     virtual int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) = 0;
-    virtual int Polyline(const ScreenPoints* points, std::uint32_t colour) = 0;
     virtual bool SetGamma(float brightness, float contrast, float gamma) = 0;
     virtual void GetGamma(float* brightness, float* contrast, float* gamma) const = 0;
     virtual bool RestoreSurfaces() = 0;
@@ -437,7 +435,6 @@ public:
     // A black rectangle (left, top, right, bottom in screen pixels) of `alpha` over the current blend state,
     // with `outline` a white frame. Returns 1.
     int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) override;
-    int Polyline(const ScreenPoints* points, std::uint32_t colour) override;
     // The primary surface's gamma ramp from the options' brightness, contrast and gamma (kept for GetGamma);
     // false without a device or DDCAPS2_PRIMARYGAMMA, else whether SetGammaRamp succeeded.
     bool SetGamma(float brightness, float contrast, float gamma) override;

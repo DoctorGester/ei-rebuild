@@ -1,6 +1,6 @@
 // The device's draw of flat-coloured textured geometry, used for object shadows: the positions are projected by
-// the pipeline, every vertex gets one colour / specular pair and its own texture coordinate, z can be scaled;
-// crossing the screen edges, the triangles are clipped. See docs/notes/models.md ("Mesh draws").
+// the pipeline; the renderer gets one colour / specular pair, each vertex's texture coordinate and a z scale;
+// crossing the screen edges, the triangles are clipped (only the counts are kept). See docs/notes/models.md ("Mesh draws").
 #include "clip.h"
 
 #include "device_buffers.h"
@@ -24,23 +24,10 @@ using devicebuffers::g_vertices;
 // The pipeline's screen stack (1; the projection uses it or the clip stack 2, which get the same pushes).
 constexpr int kScreenStack = 1;
 
-void ScaleZ(float* z, const float* scale) { *z = *scale * *z; }
-
-// The vertices: projected position, the colour / specular pair, the vertex's texture coordinate
-// (each copied whole).
-void Fill(TLVertex* out, int count, const void* colours, const void* uvs) {
+// The clipper's input: the projected positions (colour, specular and texture coordinates are read by nothing).
+void Fill(TLVertex* out, int count) {
     const ProjectedVertex* projected = g_projected.data();
-    for (int i = 0; i < count; ++i) {
-        std::memcpy(&out[i].x, &projected[i], 16);
-        std::memcpy(&out[i].color, colours, 8);
-        std::memcpy(&out[i].u, static_cast<const std::uint8_t*>(uvs) + i * 8, 8);
-    }
-}
-
-void Scale(int count, const float* scale) {
-    EI_NAN_AUDIT(*scale);
-    if (*scale == 1.0f) return;
-    for (int i = 0; i < count; ++i) ScaleZ(&g_vertices[i].z, scale);
+    for (int i = 0; i < count; ++i) std::memcpy(&out[i].x, &projected[i], 16);
 }
 
 // The new renderer (src/render) gets the geometry in model space with the screen stack's matrix
@@ -61,7 +48,8 @@ void HandOver(CTextureDevice* device, const void* positions, const void* uvs, in
     m.screenMatrix = true;
     m.clipped = clipped;
     m.distanceFog = false;   // no fog pass here
-    m.zScale = *zScale;   // the scale Scale applies (1: none)
+    EI_NAN_AUDIT(*zScale);
+    m.zScale = *zScale;   // multiplies z (1: none)
     render::BeginMesh(device, m);
 }
 
@@ -79,18 +67,14 @@ int DrawFlat(CTextureDevice* device, const void* positions, const void* uvs, int
         HandOver(device, positions, uvs, count, indices, indexCount, colours, &zScale, visibility == 1);
 
     if (visibility == 0) {
-        // (The device's vertex-buffer batch never gave a buffer: the vertices are drawn.)
-        g_vertices.resize(count);
-        Fill(g_vertices.data(), count, colours, uvs);
-        Scale(count, &zScale);
-        device->DrawIndexed(4, 0x1C4, g_vertices.data(), count, indices, indexCount, 0);
+        device->DrawIndexed(count, static_cast<unsigned>(indexCount));
         return 0;
     }
     if (visibility == 2) return 2;
     if (visibility != 1) return 0;
 
     g_vertices.resize(count * 10);
-    Fill(g_vertices.data(), count, colours, uvs);
+    Fill(g_vertices.data(), count);
     g_clipIndices.resize(indexCount * 10);
     g_cornerOutcodes.resize(std::ssize(g_outcodes) * 10);
     std::memcpy(g_cornerOutcodes.data(), g_outcodes.data(), static_cast<std::size_t>(std::ssize(g_outcodes)));
@@ -98,12 +82,8 @@ int DrawFlat(CTextureDevice* device, const void* positions, const void* uvs, int
     int clippedIndices = indexCount;
     transform->ClipTriangles(g_vertices.data(), g_cornerOutcodes.data(), indices, g_clipIndices.data(), &vertexCount,
                              &clippedIndices);
-    g_vertices.resize(vertexCount);
-    g_clipIndices.resize(clippedIndices);
-    transform->ToScreenClipped(g_vertices.data(), std::ssize(g_vertices));
     if (vertexCount == 0 || clippedIndices == 0) return 0;
-    Scale(vertexCount, &zScale);
-    device->DrawIndexed(4, 0x1C4, g_vertices.data(), vertexCount, g_clipIndices.data(), clippedIndices, 0);
+    device->DrawIndexed(vertexCount, static_cast<unsigned>(clippedIndices));
     return 0;
 }
 

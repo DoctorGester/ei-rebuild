@@ -1,7 +1,6 @@
 #pragma once
 
-// The old renderer's line-strip draws (renderer_lines.cpp): the strip through integer points and
-// the strip of the renderer's line lists.
+// The old renderer's line-strip draw (renderer_lines.cpp): the strip of the renderer's line lists.
 
 #include "lib/containers.h"
 #include <cstdint>
@@ -19,12 +18,6 @@ struct LineVertex {
     std::uint32_t colour, specular;
 };
 static_assert(sizeof(LineVertex) == 0x18);
-
-// The integer screen points: x, y pairs.
-struct ScreenPoints {
-    const std::int32_t* xy;
-    int count;
-};
 
 // The projected points: x, y, z, rhw each (the transform pipeline's output).
 struct ProjectedPoint {

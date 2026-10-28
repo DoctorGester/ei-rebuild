@@ -236,9 +236,6 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         } else {
             failures->push_back("meshcache needs on, off or check");
         }
-    } else if (verb == "meshcorners") {
-        if (argument == "read" || argument == "full") render::SetMeshCornersFull(argument == "full");
-        else failures->push_back("meshcorners needs read or full");
     } else if (verb == "memorytextures") {
         if (argument == "inplace" || argument == "remake") render::SetMemoryTexturesInPlace(argument == "inplace");
         else failures->push_back("memorytextures needs inplace or remake");
