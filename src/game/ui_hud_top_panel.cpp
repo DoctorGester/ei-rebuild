@@ -13,12 +13,12 @@
 #include "game_singletons.h"
 #include "world.h"
 #include "lib/str.h"
+#include "lib/vecmath.h"
 
 #include <concepts>
 
 namespace {
 
-constexpr float kPi = 3.1415927f;
 
 float FloatFromBits(std::uint32_t bits) {
     float f;

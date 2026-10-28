@@ -65,7 +65,6 @@ constexpr int kNormalPeriod = 55;
 constexpr int kFastPeriod = 27;
 
 // The constants the movement panel's marker is placed with, read where the game reads them.
-constexpr float kPi = 3.1415927f;
 constexpr float kSixteenth = 0.0625f;
 constexpr float kMarkerRadius = 73.0f;
 constexpr float kMarkerCentreY = 600.0f;
@@ -94,13 +93,6 @@ constexpr std::uint32_t kScaleLarge = 0x3F59999A;   // 0.85: quick slots 4..7
 constexpr std::uint32_t kScaleSmall = 0x3F0CCCCD;   // 0.55: quick slots 0..3
 constexpr float kScaleOne = 1.0f;
 constexpr int kOrderEventFollow = 7;                // the speech event of a follow order
-
-// A unit's position, copied as three dwords.
-Vector3 PositionOf(const CUnit* unit) {
-    Vector3 v;
-    std::memcpy(&v, &unit->localPosition_.x, sizeof(v));
-    return v;
-}
 
 // The battle screen's own commands (the flag argument is a byte of the interface).
 void ScreenCastOn(CBattleScreen* screen, CUnit* target, char quick, int ctrl) {
@@ -625,7 +617,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         Vector3* p = g_clientWorld->PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
-    auto unitPosition = [](CUnit* u) { return PositionOf(u); };
+    auto unitPosition = [](CUnit* u) { return u->localPosition_; };
     auto objectAt = [x, y]() {
         POINT point = {x, y};
         return static_cast<CUnit*>(g_clientWorld->PickAt2(&point));

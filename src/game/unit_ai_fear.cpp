@@ -61,7 +61,6 @@ bool IsZero(double v) {
 
 bool IsUnset(const Vector3& point) { return std::bit_cast<std::uint32_t>(point.x) == kUnsetBits; }
 
-const Vector3* PositionOf(CMapObject* object) { return &object->localPosition_; }
 
 
 // The prototype's height (units below 0.5 count as small).
@@ -127,9 +126,9 @@ int FearMode::Evaluate(AIBrain* brain) {
     float grown = static_cast<float>(static_cast<double>(spread) + spread + kThree);
     spread = static_cast<float>(static_cast<double>(grown) * kThird);
     if (CMapObject* seen = brain->seen) {
-        const Vector3* at = PositionOf(seen);
+        const Vector3* at = &seen->localPosition_;
         brain->memory.Notice(at, kNoticeLevel, kNoticeKind);
-        const Vector3* me = PositionOf(brain->owner->unit);
+        const Vector3* me = &brain->owner->unit->localPosition_;
         float x = static_cast<float>(static_cast<double>(me->x) - at->x);
         float y = static_cast<float>(static_cast<double>(me->y) - at->y);
         float z = static_cast<float>(static_cast<double>(me->z) - at->z);
@@ -145,8 +144,8 @@ int FearMode::Evaluate(AIBrain* brain) {
         owner->stats.MovementState(0) == 0 && owner->stats.loadFactor > kMaxLoadFactor) {
         bool aggressive = brain->current && brain->current->GetType() == kModeAggression;
         float range = aggressive ? g_logicSettings.rangedRunDist : g_logicSettings.rangedAttackDist;
-        Vector3 me = *PositionOf(self);
-        Vector3 foe = *PositionOf(enemy);
+        Vector3 me = self->localPosition_;
+        Vector3 foe = enemy->localPosition_;
         double dx = static_cast<double>(foe.x) - me.x;
         double dy = static_cast<double>(foe.y) - me.y;
         if (static_cast<double>(range) * range > LengthSquared2DUnrounded(dx, dy)) {
@@ -161,7 +160,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     }
 
     if (brain->memory.seesEnemy) return kSeesEnemy;
-    const Vector3* here = PositionOf(self);
+    const Vector3* here = &self->localPosition_;
     EI_NAN_AUDIT(PrototypeSize(self));
     if (g_serverWorld->aiMap_.HasKind3OccluderAt(here) && (self->sizeClass != 0 || PrototypeSize(self) < 0.5f)) {
         shelter = *here;
@@ -176,12 +175,12 @@ int FearMode::Evaluate(AIBrain* brain) {
         for (auto node = brain->memory.visible.begin(); node != brain->memory.visible.end(); ++node) {
             auto* other = *node;
             if (!other->player) continue;
-            const Vector3* me = PositionOf(brain->owner->unit);
+            const Vector3* me = &brain->owner->unit->localPosition_;
             double oy = static_cast<double>(me->y) - other->localPosition_.y;
             double ox = static_cast<double>(me->x) - other->localPosition_.x;
             double d2 = LengthSquared2DUnrounded(ox, oy);
             if (d2 < best) {
-                nearest = *PositionOf(other);
+                nearest = other->localPosition_;
                 best = static_cast<float>(d2);
             }
         }
@@ -191,7 +190,7 @@ int FearMode::Evaluate(AIBrain* brain) {
 
     if (brain->memory.noticedLevel > kCalmLevel) {
         if (brain->current == this) return brain->memory.noticedLevel / 6;
-        const Vector3* me = PositionOf(brain->owner->unit);
+        const Vector3* me = &brain->owner->unit->localPosition_;
         double nx = static_cast<double>(me->x) - brain->memory.noticedX;
         double ny = static_cast<double>(me->y) - brain->memory.noticedY;
         double z = me->z;   // not a difference: the memory keeps no z
@@ -208,14 +207,14 @@ void FearMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
     ConstructOrder(&order);
     CUnitServer* owner = brain->owner;
-    const Vector3* here = PositionOf(owner->unit);
+    const Vector3* here = &owner->unit->localPosition_;
 
     // What to run from: the nearest enemy, a shelter to stay in, or the noticed point.
     Vector3 from{brain->memory.noticedX, brain->memory.noticedY, 0.0f};
     if (brain->memory.seesEnemy) {
         if (CUnit* enemy = brain->memory.NearestEnemy(brain->owner->unit)) {
-            from = *PositionOf(enemy);
-            brain->CallAllies(PositionOf(enemy));
+            from = enemy->localPosition_;
+            brain->CallAllies(&enemy->localPosition_);
         }
     } else if (g_serverWorld->aiMap_.HasKind3OccluderAt(here)) {
         from = *here;
@@ -275,14 +274,14 @@ void FearMode::Execute(AIBrain* brain) {
         // Fight back when there is something worth it (helping allies too).
         CountedUnits candidates{};
         AITargetChoice best{-1, nullptr};
-        Vector3 at = *PositionOf(brain->owner->unit);
+        Vector3 at = brain->owner->unit->localPosition_;
         brain->ChooseTarget(&best, &candidates, &at, 1, 1);
         if (best.object) brain->attention.ApplyAttack(brain, &best);
         candidates.clear();
 
         if (brain->action == AIBrain::kActionNone) {
             // Stand still and look away from the danger.
-            order.point = *PositionOf(brain->owner->unit);
+            order.point = brain->owner->unit->localPosition_;
             Vector3 v = from - *here;
             Vector3 direction = v;
             double length = LengthXYZ(v);

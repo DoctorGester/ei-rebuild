@@ -15,6 +15,7 @@
 
 #include <list>
 #include "lib/nan_audit.h"
+#include "lib/float_select.h"
 
 namespace {
 constexpr float kTargetThreshold = 0.5f;
@@ -79,10 +80,7 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
         double dy = at->localPosition_.y - position.y;
         double dx = at->localPosition_.x - position.x;
         float distance = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(dx, dy, dz, normalX, normalY, normalZ));
-        std::uint32_t bits;
-        bits = std::bit_cast<std::uint32_t>(distance);
-        bits &= 0x7FFFFFFF;
-        distance = std::bit_cast<float>(bits);
+        distance = AbsBits(distance);
         if (distance > kWallHalfWidth) continue;
         if (!AcceptsAreaSpells(unit)) continue;
         Deliver(this, &hit, unit);

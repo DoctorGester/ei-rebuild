@@ -9,6 +9,7 @@
 #include "spell.h"
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstdint>
@@ -21,7 +22,6 @@ using terrain::SectorVertex;
 
 namespace {
 
-constexpr int kRow = 33;          // vertices per sector row
 constexpr int kLastVertex = 32;   // the last vertex of a sector row / column
 constexpr int kSectorCells = 32;
 
@@ -44,7 +44,6 @@ void PushFront(LightRefBlock* block, LightRefBlock*& head) {
 
 // The cell size (1) the light bounds are divided by.
 
-bool SignSet(float v) { return std::bit_cast<std::uint32_t>(v) >> 31 != 0; }
 
 // The vertex range of `area` inside the sector at (sx, sy): the area's first / last vertex in its
 // edge sectors, the whole row or column elsewhere.
@@ -135,8 +134,8 @@ void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* positi
     VertexRange range = RangeIn(area, sector->sx, sector->sy);
     float rangeSquared = static_cast<float>(light->range_ * light->range_);
     for (int y = range.y0; y <= range.y1; ++y) {
-        const SectorPosition* vertex = &sector->vertices[y * kRow + range.x0];
-        SectorVertex* record = &sector->records[y * kRow + range.x0];
+        const SectorPosition* vertex = &sector->vertices[y * kSectorRow + range.x0];
+        SectorVertex* record = &sector->records[y * kSectorRow + range.x0];
         for (int x = range.x0; x <= range.x1; ++x, ++vertex, ++record) {
             Vector3 offset = Vector3{vertex->x, vertex->y, vertex->z} - *position;
             LightRef* head = record->lights;
@@ -202,9 +201,9 @@ void Terrain::LightAreaOf(CLight* light, const Vector3* delta, LightArea* area) 
     float maxX = position.x + range;
     float maxY = position.y + range;
     if (delta) {
-        if (SignSet(delta->x)) minX = minX + delta->x;
+        if (SignBit(delta->x)) minX = minX + delta->x;
         else maxX = maxX + delta->x;
-        if (SignSet(delta->y)) minY = minY + delta->y;
+        if (SignBit(delta->y)) minY = minY + delta->y;
         else maxY = maxY + delta->y;
     }
     LightAreaFromBounds(sectorsX, sectorsY, minX, minY, maxX, maxY, area);

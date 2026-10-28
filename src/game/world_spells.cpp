@@ -146,7 +146,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
             } else {
                 int casterSide = caster->side;
                 int bestSide = best->side;
-                hit = (diplomacy_.allied_[bestSide] & (1u << (casterSide & 31))) != 0;
+                hit = diplomacy_.IsAllied(bestSide, casterSide);
             }
         }
         if (!hit) continue;

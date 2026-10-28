@@ -34,7 +34,6 @@ constexpr float kInitialCallRadius = 10.0f;
 // A new fear mode's distance (copied bit for bit).
 std::uint32_t FearDistanceBits() { return 0x41200000u; }
 
-const Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 
 // The mode list's elements are owning pointers: released with DestroyOwned, added with ShareOwned
 // (which may hand out a clone).
@@ -268,11 +267,11 @@ void AIBrain::StandardSentry(const Vector3* point) {
 void AIBrain::CallAllies(const Vector3* point) {
     std::list<CUnit*> units{};
     CUnit* self = owner->unit;
-    g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(PositionOf(self), &units, callRadius);
+    g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(&self->localPosition_, &units, callRadius);
     for (auto node = units.begin(); node != units.end();) {
         auto* other = *node;
         ++node;
-        if (other == self || !(g_serverWorld->diplomacy_.allied_[self->side] & (1u << (other->side & 31)))) continue;
+        if (other == self || !g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) continue;
         std::string message;
         AIBrain* ally = &other->ServerController()->brain;
         if (console::g_filterMask & 1) {

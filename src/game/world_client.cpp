@@ -31,6 +31,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
+#include "lib/float_select.h"
 
 #include <cmath>
 #include <cstring>
@@ -200,9 +201,6 @@ const char* QuestPrefixText() { return "q."; }
 void SessionDisconnect(CPlayer* session) { session->Disconnect(); }
 
 // `ifLess` when a < b or unordered, else `otherwise`.
-float SelectLess(float a, float b, float ifLess, float otherwise) {
-    return a >= b ? otherwise : ifLess;
-}
 
 // One print list ticked: the prints whose tick returns 0 are erased.
 template <typename T>

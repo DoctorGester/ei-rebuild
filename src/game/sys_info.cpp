@@ -41,7 +41,6 @@ constexpr std::uint32_t kEflagsId = 0x00200000;   // EFLAGS.ID: can be flipped w
 constexpr unsigned kFirstWindows98Build = 1998;
 
 // The translation unit's constants and what they are made of (the exe's pi, 2, 4 and 1).
-constexpr float kPi = 3.1415927f;
 
 } // namespace
 

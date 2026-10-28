@@ -23,6 +23,7 @@
 #include "lib/nan_audit.h"
 #include "camera.h"
 #include "lib/text_case.h"
+#include "lib/float_select.h"
 
 #include <list>
 #include <new>
@@ -30,14 +31,6 @@
 namespace {
 
 inline double D(float f) { return f; }
-
-float AbsBits(float f) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(f);
-    bits &= 0x7FFFFFFF;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
 
 constexpr float kUnitRadius2 = 0.56f;    // units further out (squared) are not shown
 constexpr double kTinyLength2 = 1e-6;

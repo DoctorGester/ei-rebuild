@@ -20,6 +20,7 @@
 #include "lib/bytes.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
+#include "lib/float_select.h"
 
 namespace {
 
@@ -34,14 +35,6 @@ float FloatBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatBits(T) = delete;
 
-float AbsBits(float f) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(f);
-    bits &= 0x7FFFFFFF;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
-
 constexpr float kHeightFull = 30.0f;     // 2D height-faded sounds are full below
 constexpr float kHeightSilent = 70.0f;   // ... and silent above
 constexpr float kHundred = 100.0f;
@@ -55,7 +48,6 @@ static_assert(std::bit_cast<std::uint32_t>(kEmitterMargin) == 0x3A83126Fu);
 constexpr float kEmitterMaxScale = 255.0f;
 
 // pi and pi / 2 (set by a static initialiser).
-constexpr float kPi = 3.1415927f;
 constexpr float kHalfPi = /*007C8808*/ 1.5707964f;
 // The fade step every fade request uses (1/96).
 std::uint32_t FadeStepBits() { return 0x3C2AAAABu; }

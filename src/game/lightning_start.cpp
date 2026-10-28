@@ -15,16 +15,9 @@
 #include "game_singletons.h"
 #include "world.h"
 #include "lib/nan_audit.h"
+#include "lib/float_select.h"
 
 namespace {
-
-float Absolute(float f) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(f);
-    bits &= 0x7FFFFFFFu;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
 
 // The noise amplitude of a segment's keys: 1.5 for positive power, 1 for negative, else 2 (zero or NaN).
 float KeyAmplitude(float power) {
@@ -47,11 +40,11 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     float fraction = g_clientWorld->tickFraction_;
     float time = static_cast<float>((static_cast<double>(ticks) + fraction) / 4.0f);
     power_ = power;
-    const float strength = Absolute(power);
+    const float strength = AbsBits(power);
     amplitude_ = power_ > 0.0f ? 0.05f : 0.3f;   // 0.05 : 0.3
     // A bolt about 30 units high sways less.
     EI_NAN_AUDIT(to->z, from->z);
-    if (Absolute(Absolute(to->z - from->z) - 30.0f) < 0.01f) amplitude_ = 0.05f;
+    if (AbsBits(AbsBits(to->z - from->z) - 30.0f) < 0.01f) amplitude_ = 0.05f;
 
     main_.Init(from, to);
     FreshKeys(main_, time, KeyAmplitude(power_));

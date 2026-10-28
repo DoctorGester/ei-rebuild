@@ -28,7 +28,6 @@ constexpr float kArrivedDistanceSq = 1.0f;
 
 constexpr int kControllerStateInactive = 5;
 
-int IsGone(CMapObject* object) { return object->IsDead(); }
 
 // The modes' log: the AI stream (its static initialiser stores the address).
 constexpr console::Stream* kModeLog = /*007C54E8*/ {&console::g_aiLogOut};
@@ -58,7 +57,6 @@ const char* ModeName(int type) {
 }
 const char* MotivationFormat() { return "Unit %i new motivation %s with power of %i"; }
 
-const std::uint32_t* Diplomacy() { return g_serverWorld->diplomacy_.allied_; }
 
 } // namespace
 
@@ -105,7 +103,7 @@ void AIBrain::Think() {
     for (auto node = memory.visible.begin(); node != memory.visible.end();) {
         CUnit* other = *node;
         ++node;
-        if (unit->IsHostileTo(other) && IsGone(other) == 0) {
+        if (unit->IsHostileTo(other) && other->IsDead() == 0) {
             memory.seesEnemy = 1;
             break;
         }
@@ -358,17 +356,17 @@ void AIBrain::UpdateAttack() {
     CUnitServer* o = owner;
     bool giveUp = false;
     if (o->unit->player != nullptr) {
-        if (IsGone(target) != 0) {
+        if (target->IsDead() != 0) {
             action = kActionNone;
             return;
         }
-    } else if (IsGone(target) != 0) {
+    } else if (target->IsDead() != 0) {
         giveUp = true;
     } else if (target->GetClassId() == kClassUnit && memory.IsEnemy(owner->unit, target) == 0) {
         giveUp = true;
     }
     if (giveUp) {
-        if (IsGone(target) == 0) memory.Notice(&target->localPosition_, 1000, -2);
+        if (target->IsDead() == 0) memory.Notice(&target->localPosition_, 1000, -2);
         action = kActionNone;
         return;
     }
@@ -453,8 +451,7 @@ void AIBrain::SetSeen(CMapObject* object) {
     if (object) {
         bool allied = false;
         if (CUnit* seenUnit = UnitOrNull(seen)) {
-            std::uint32_t bit = 1u << (seenUnit->side & 31);
-            allied = (Diplomacy()[owner->unit->side] & bit) != 0;
+            allied = g_serverWorld->diplomacy_.IsAllied(owner->unit->side, seenUnit->side);
         }
         if (!allied) CallAllies(&object->localPosition_);
     } else {

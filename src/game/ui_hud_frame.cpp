@@ -20,6 +20,7 @@
 #include "lib/crt.h"
 #include "world.h"
 #include "game_singletons.h"
+#include "lib/vecmath.h"
 
 namespace {
 
@@ -33,7 +34,6 @@ float FloatFromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
-constexpr float kPi = 3.1415927f;
 // The constants are read from memory at run time; Rebirth rewrites one of them (the clock's x,
 // widescreen::g_layoutWidth, for its widescreen layout).
 constexpr float kPausedHand = 0.9166667f;   // hand angle while paused, in pi

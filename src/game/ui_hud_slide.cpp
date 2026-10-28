@@ -120,7 +120,6 @@ constexpr const char* kDefaultPicture = "battle00";
 constexpr float kZoneUnit = 32.0f;            // world units per unit of a zone's size
 constexpr float kMapSide = 2.0f;             // the map's side in map units
 constexpr float kZoomRange = 0.05f;           // the largest zoom per world unit
-constexpr float kPi = 3.1415927f;
 constexpr float kOutlineStep = 0.125f;         // sixteen points round the map
 constexpr double kOutlineRadius = 65.0;
 constexpr double kOutlineCentreX = 700.0;

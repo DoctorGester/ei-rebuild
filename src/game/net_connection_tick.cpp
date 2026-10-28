@@ -5,6 +5,7 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
@@ -47,10 +48,7 @@ bool Connection::Tick(double dt) {
     idleTime_ = static_cast<float>(D(idleTime_) + dt);
     Set(&clock_, dt + Get(&clock_));
     float spread = static_cast<float>(D(roundTrip_) * D(roundTrip_) - D(roundTripSquare_));
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(spread);
-    bits &= 0x7FFFFFFF;
-    spread = std::bit_cast<float>(bits);
+    spread = AbsBits(spread);
     float loss = static_cast<float>(std::sqrt(spread) * D(3.0f) + D(roundTrip_));
     float tenth;
     tenth = 0.1f;

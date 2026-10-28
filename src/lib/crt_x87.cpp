@@ -3,6 +3,7 @@
 // entries; the one naked function is the x87 addition Hypot gives a NaN to, which makes this the one file in src/lib
 // that tools/check_cleanup.py lets hold __asm. Why these stay ported: docs/notes/standalone.md, "The CRT".
 #include "crt.h"
+#include "vecmath.h"
 
 #include "ei/x87.h"
 
@@ -22,7 +23,6 @@ constexpr std::uint64_t kSign = 0x8000000000000000ull;
 constexpr std::uint64_t kIndefinite = 0xFFF8000000000000ull;
 constexpr std::uint64_t kInfinity = 0x7FF0000000000000ull;
 // pi and pi / 2 (FLDPI, and the long double) as the callers store them.
-constexpr double kPi = 3.141592653589793;
 constexpr double kHalfPi = 1.5707963267948966;
 
 std::uint64_t Bits(double value) {
@@ -148,7 +148,7 @@ double ArcCosineOrSine(double x, bool sine) {
     if (exponent > 0x3FF || (exponent == 0x3FF && (bits & kMantissa) != 0)) return FromBits(kIndefinite);
     if (exponent == 0x3FF) {   // +-1
         if (sine) return bits & kSign ? -kHalfPi : kHalfPi;
-        return bits & kSign ? kPi : 0.0;
+        return bits & kSign ? kPiDouble : 0.0;
     }
     const MathControlWord control;
     const double sum = control.Round(1.0 + x);

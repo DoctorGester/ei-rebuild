@@ -40,6 +40,9 @@ struct CDiplomacy {
     // become hostile to the attacker's player.
     void OnAttack(CUnit* attacker, CUnit* victim);
 
+    // Whether `player` is allied with `other` (bit other & 31 of row `player`; a player is allied with itself).
+    bool IsAllied(int player, int other) const { return (allied_[player] & (1u << (other & 31))) != 0; }
+
     std::uint32_t allied_[32];    // bit q of row p: p is allied with q
     std::uint32_t hostile_[32];   // bit q of row p: p is hostile to q
 };

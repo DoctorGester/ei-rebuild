@@ -51,6 +51,7 @@
 #include "game_singletons.h"
 #include "system_text.h"
 #include "lib/str.h"
+#include "lib/float_select.h"
 
 #include <algorithm>
 #include <iterator>
@@ -147,14 +148,6 @@ CUnit* FirstUnitHit(CWorldClient* client, CMapObject* object) {
 bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
 // Branch-free selects (C0 shifted into a mask): `a < b` picks one side.
-float MaxZero(float b) {
-    EI_NAN_AUDIT(b);
-    return 0.0f < b ? b : 0.0f;
-}
-float MinOf(float a, float b) {
-    EI_NAN_AUDIT(a, b);
-    return a < b ? a : b;
-}
 
 std::uint32_t Ftol(float v) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(v)); }
 
@@ -569,10 +562,10 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
 void CWorldClient::ObjectsInRange(const Vector3* point, float radius, std::list<CObject3D*>* out) {
     float maxX = terrain_->width - 1.0f;
     float maxY = terrain_->height - 1.0f;
-    float y1 = MinOf(MaxZero(point->y + radius), maxY);
-    float x1 = MinOf(MaxZero(point->x + radius), maxX);
-    float y0 = MaxZero(MinOf(MaxZero(point->y - radius), maxY));
-    float x0 = MaxZero(MinOf(MaxZero(point->x - radius), maxX));
+    float y1 = MinKeepB(MaxKeepA(0.0f, point->y + radius), maxY);
+    float x1 = MinKeepB(MaxKeepA(0.0f, point->x + radius), maxX);
+    float y0 = MaxKeepA(0.0f, MinKeepB(MaxKeepA(0.0f, point->y - radius), maxY));
+    float x0 = MaxKeepA(0.0f, MinKeepB(MaxKeepA(0.0f, point->x - radius), maxX));
     std::uint32_t& firstX = rangeFirstX_;
     std::uint32_t& firstY = rangeFirstY_;
     std::uint32_t& lastX = rangeLastX_;

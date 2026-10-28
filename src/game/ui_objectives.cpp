@@ -31,6 +31,7 @@
 #include "lib/static_object.h"
 #include "game_singletons.h"
 #include "lib/str.h"
+#include "lib/float_select.h"
 
 #include <concepts>
 #include <cstdlib>
@@ -48,14 +49,6 @@ float Bits(std::uint32_t bits) {
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float Bits(T) = delete;
-
-float AbsBits(float f) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(f);
-    bits &= 0x7FFFFFFF;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
 
 // --- Game data ----------------------------------------------------------------------------------
 

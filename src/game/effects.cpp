@@ -9,6 +9,7 @@
 #include "lib/crt.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
@@ -236,7 +237,7 @@ int CParticleSource::UpdateDebris(Particle* p) {
     p->color = (a << 24) | 0xFFFFFF;
     EI_NAN_AUDIT(p->drift.z);
     if (p->drift.z < 0.0f && size * 0.5 + origin.z > p->pos.z) {
-        float speed = std::bit_cast<float>(std::bit_cast<std::uint32_t>(p->drift.z) & 0x7FFFFFFFu);
+        float speed = AbsBits(p->drift.z);
         p->state = 1;
         p->drift.x = speed * p->drift.x;
         p->drift.y = speed * p->drift.y;

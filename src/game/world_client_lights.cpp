@@ -15,6 +15,7 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/vecmath.h"
 #include <string>
 
 #include <bit>
@@ -34,10 +35,9 @@ constexpr float kDawnLength = 4.0f, kDuskLength = 4.0f;
 constexpr float kSunrise = 4.0f, kSunset = 20.0f;
 constexpr float kDayLength = 24.0f;
 constexpr float kNightSpan = 45.0f, kBaseElevation = 30.0f;
-constexpr double kPi = 3.141592653589793;
 constexpr double kPerDegree = 1.0 / 180.0;
 // pi * (1 / 180) as the original's arithmetic leaves it at 24-bit precision (not the folded double).
-constexpr float kRadiansPerDegree = static_cast<float>(kPi * kPerDegree);
+constexpr float kRadiansPerDegree = static_cast<float>(kPiDouble * kPerDegree);
 constexpr float kPerHour = 0.041666668f;   // 1/24 (the sun turns once a day)
 static_assert(std::bit_cast<std::uint32_t>(kPerHour) == 0x3D2AAAABu);
 // A cave's sun: (0.5, 0.5, -0.70710677).
@@ -175,7 +175,7 @@ int CWorldClient::UpdateLighting() {
 
     const double elevation = SunElevation(hour) * kRadiansPerDegree;
     const double turn = hour * kPerHour;
-    const double azimuth = (turn + turn) * kPi;
+    const double azimuth = (turn + turn) * kPiDouble;
     const double cosElevation = x87::fcos(elevation);
     Vector3 direction;
     {

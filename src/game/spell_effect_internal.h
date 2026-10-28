@@ -193,7 +193,7 @@ inline std::uint32_t Bits(const float& f) {
 
 inline bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kClassUnit; }
 // Where the object sees from into `scratch`.
-inline Vector3* PositionOf(CMapObject* object, Vector3* scratch) { return object->EyePoint(scratch); }
+inline Vector3* EyePointOf(CMapObject* object, Vector3* scratch) { return object->EyePoint(scratch); }
 // A unit's server half (CUnit::controller).
 inline CUnitServer* ControllerOf(CUnit* unit) { return unit->ServerController(); }
 // The target as a unit (the callers checked its class, or the game does not).

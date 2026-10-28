@@ -53,10 +53,9 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
         return;
     }
     int side = server->unit->side;
-    std::uint32_t allies = world->diplomacy_.allied_[side];
     for (auto node = server->brain.memory.nearby.begin(); node != server->brain.memory.nearby.end(); ++node) {
         auto* member = *node;
-        if (!(allies & (1u << (member->side & 31)))) continue;
+        if (!world->diplomacy_.IsAllied(side, member->side)) continue;
         int& alarm = member->ServerController()->voice.level;
         if (alarm <= active) alarm = active;
     }

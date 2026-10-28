@@ -41,14 +41,12 @@ static_assert(std::bit_cast<std::uint32_t>(kNoScore) == 0xF149F2CAu);
 constexpr float kFloorScore = -1e20f; // and the starting best: -1e20
 static_assert(std::bit_cast<std::uint32_t>(kFloorScore) == 0xE0AD78ECu);
 
-const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // The prototype's height (compared with 0.5: units below it count as small).
 float PrototypeSize(CUnit* unit) {
     return std::bit_cast<float>(unit->GetPrototype()->height);
 }
 
-bool Allied(int side, int other) { return (g_serverWorld->diplomacy_.allied_[side] & (1u << (other & 31))) != 0; }
 
 std::uint32_t Excess(const AIAttackOption* option, const CUnit* target) {
     return option->damage.ExcessOver(&target->ServerController()->protection);
@@ -62,8 +60,8 @@ std::uint32_t GroupExcess(const AIAttackOption* option, CountedUnits* group, CUn
     float radius2 = static_cast<float>(option->radius * option->radius);
     for (auto node = group->begin(); node != group->end(); ++node) {
         auto* member = *node;
-        EI_NAN_AUDIT(AIDistance2(PositionOf(member), PositionOf(candidate)), radius2);
-        if (AIDistance2(PositionOf(member), PositionOf(candidate)) <= radius2) sum += Excess(option, member);
+        EI_NAN_AUDIT(AIDistance2(&member->localPosition_, &candidate->localPosition_), radius2);
+        if (AIDistance2(&member->localPosition_, &candidate->localPosition_) <= radius2) sum += Excess(option, member);
     }
     return sum;
 }
@@ -123,7 +121,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
     // Where the order is checked from: the unit's place, or the end of a path towards the target.
     Vector3 point;
     if (self == target || static_cast<char>(fromHere) != 0) {
-        point = *PositionOf(self);
+        point = self->localPosition_;
     } else {
         double dz = static_cast<double>(self->localPosition_.z) - target->localPosition_.z;
         double dy = static_cast<double>(self->localPosition_.y) - target->localPosition_.y;
@@ -135,13 +133,13 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         CWorldServer* server = &g_serverWorld.Get();
         // The target is lifted off the sector map so it does not block its own cell.
         server->aiMap_.sectorMap.Remove(target);
-        if (server->aiMap_.FindPath(self, PositionOf(target), &local.path, range, minDistance)) {
+        if (server->aiMap_.FindPath(self, &target->localPosition_, &local.path, range, minDistance)) {
             float scale = 0.5f;
             point.x = static_cast<float>(scale * local.path.targetX);
             point.y = static_cast<float>(scale * local.path.targetY);
             point.z = 0.0f;
         } else {
-            point = *PositionOf(self);
+            point = self->localPosition_;
         }
         server->aiMap_.sectorMap.Add(target);
     }
@@ -176,13 +174,13 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
     if (option->kind != kOptionAreaAttack && option->kind != kOptionLastingArea) return true;
     EI_NAN_AUDIT(PrototypeSize(self));
     if (self->sizeClass == 0 && PrototypeSize(self) >= 0.5f) return true;
-    Vector3 at = *PositionOf(target);
+    Vector3 at = target->localPosition_;
     for (auto node = brain->memory.nearby.begin(); node != brain->memory.nearby.end(); ++node) {
         auto* other = *node;
         double dy = static_cast<double>(at.y) - other->localPosition_.y;
         double dx = static_cast<double>(at.x) - other->localPosition_.x;
         EI_NAN_AUDIT(dx, dy, PrototypeSize(other));
-        if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && Allied(other->side, self->side)) {
+        if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && g_serverWorld->diplomacy_.IsAllied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
             if (PrototypeSize(other) < 0.5f) return false;
         }
@@ -318,7 +316,7 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, CountedUnits* c
         allies.push_back(self);
         for (auto node = brain->memory.nearby.begin(); node != brain->memory.nearby.end(); ++node) {
             auto* other = *node;
-            if (other->IsDead() == 0 && !brain->memory.reports.Contains(other) && Allied(self->side, other->side))
+            if (other->IsDead() == 0 && !brain->memory.reports.Contains(other) && g_serverWorld->diplomacy_.IsAllied(self->side, other->side))
                 allies.push_back(other);
         }
         for (auto node = allies.begin(); node != allies.end(); ++node) {
@@ -351,14 +349,14 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, CountedUnits* c
         CUnit* object = choice->object;
         if (IsUsable(brain, choice)) {
             bool allowed = true;
-            if (alliesOnly && !brain->IsNearPath(PositionOf(object), kPathNear)) {
+            if (alliesOnly && !brain->IsNearPath(&object->localPosition_, kPathNear)) {
                 AIOrder order{};
                 if (choice->part < 0) {
                     order.MakeAttack(object);
                 } else {
                     order.MakeCast(choice->part, object);
                 }
-                allowed = brain->owner->CanReachAndPlanFrom(&order, PositionOf(self));
+                allowed = brain->owner->CanReachAndPlanFrom(&order, &self->localPosition_);
                 order.target.Reset();
             }
             if (allowed && CanReach(brain, choice, reachArg)) return;

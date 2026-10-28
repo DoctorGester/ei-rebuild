@@ -20,7 +20,6 @@
 
 namespace {
 
-constexpr float kPi = 3.1415927f;
 // A texel as a texture offset: 1 / 256.
 constexpr float kTexelStep = 0.00390625f;
 // The layout y the columns' bottom button sits at (490).

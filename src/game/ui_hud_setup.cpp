@@ -16,7 +16,6 @@
 namespace {
 
 // The constants the original reads from the exe's data.
-constexpr float kPi = 3.1415927f;
 constexpr float kSixth = 0.16666667f;             // the clock's sectors: pi / 6
 constexpr float kEighth = 0.125f;            // the movement panel's: pi / 8
 constexpr double kMiddleRadius = 34.0;

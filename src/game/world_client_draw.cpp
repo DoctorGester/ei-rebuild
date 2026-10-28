@@ -50,6 +50,7 @@
 #include "game_singletons.h"
 #include "settings_file.h"
 #include "system_text.h"
+#include "lib/float_select.h"
 
 // windows.h renames CEngineObject's GetClassName.
 #undef GetClassName
@@ -124,9 +125,7 @@ bool Less(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a < b;
 }
-float SelectLess(float a, float b) { return Less(a, b) ? a : b; }
 // t when 0 < t or unordered, else 0.
-float ClampToZero(float t) { return Less(0.0f, t) ? t : 0.0f; }
 // A float copied through the FPU in the original; here the value as it is.
 float Reload(float v) { return v; }
 int Ftol(float v) { return static_cast<int>(libcrt::Ftol(v)); }
@@ -363,13 +362,13 @@ int CWorldClient::DrawPass() {
     const float margin = ObjectsDrawRadius();
     const float edge = kMapEdgeMargin;
     terrain = terrain_;
-    float yHi = SelectLess(AddRounded(position[1], margin), SubRounded(terrain->height, edge));
+    float yHi = MinKeepB(AddRounded(position[1], margin), SubRounded(terrain->height, edge));
     float xMax = SubRounded(terrain_->width, edge);
-    float xHi = SelectLess(AddRounded(position[0], margin), xMax);
+    float xHi = MinKeepB(AddRounded(position[0], margin), xMax);
     float yMax = SubRounded(terrain_->height, edge);
-    float yLo = ClampToZero(Reload(SelectLess(SubRounded(position[1], margin), yMax)));
+    float yLo = MaxKeepA(0.0f, Reload(MinKeepB(SubRounded(position[1], margin), yMax)));
     float xMax2 = SubRounded(terrain_->width, edge);
-    float xLo = ClampToZero(Reload(SelectLess(SubRounded(position[0], margin), xMax2)));
+    float xLo = MaxKeepA(0.0f, Reload(MinKeepB(SubRounded(position[0], margin), xMax2)));
     std::uint32_t sx0 = static_cast<std::uint32_t>(Ftol(xLo)) >> 4;
     rangeFirstX_ = sx0;
     rangeX_ = sx0;

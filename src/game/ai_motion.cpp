@@ -14,18 +14,12 @@
 #include "map_object.h"
 #include "world.h"
 #include "ai_map.h"
+#include "lib/vecmath.h"
+#include "lib/float_select.h"
 
 #include <concepts>
 
 namespace {
-
-float AbsBits(float f) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(f);
-    bits &= 0x7FFFFFFF;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
 
 float AsFloat(std::uint32_t bits) {
     float f;
@@ -42,7 +36,6 @@ const volatile float kMinusOne = -1.0f;
 const volatile float kZero = 0.0f;
 const volatile float kOne = 1.0f;
 
-constexpr float kPi = 3.14159274f;
 constexpr double kHalfCellScale = 2.0;      // 1 / (half a cell)
 constexpr float kSpeedUnit = 0.001953125f;  // 1/512
 constexpr float kMinLength = 9.99999975e-06f;

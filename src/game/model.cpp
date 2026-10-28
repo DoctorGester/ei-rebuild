@@ -8,19 +8,12 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
 
 namespace {
-
-std::uint32_t Bits(float v) {
-    std::uint32_t b;
-    b = std::bit_cast<std::uint32_t>(v);
-    return b;
-}
-
-std::uint32_t SignBit(float v) { return Bits(v) >> 31; }
 
 // Combines the codes of a volume's 8 corners: 2 if all corners are outside one plane, 0 if all
 // are inside, -1 if undecided.
@@ -58,7 +51,7 @@ static std::uint32_t ClipCode(const Matrix4& m, const Vector3& p) {
     float w2 = static_cast<float>(cw + cw);
     float xw = static_cast<float>(c.x + cw);
     float yw = static_cast<float>(c.y + cw);
-    return SignBit(xw) | SignBit(yw) << 2 | SignBit(c.z) << 4 | (w2 >= xw ? 0u : 2u) | (w2 >= yw ? 0u : 8u) |
+    return (SignBit(xw) ? 1u : 0u) | (SignBit(yw) ? 4u : 0u) | (SignBit(c.z) ? 0x10u : 0u) | (w2 >= xw ? 0u : 2u) | (w2 >= yw ? 0u : 8u) |
            (cw >= c.z ? 0u : 0x20u);
 }
 

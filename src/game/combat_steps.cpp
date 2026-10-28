@@ -14,6 +14,7 @@
 #include "ei/x87.h"
 #include "unit.h"
 #include "lib/nan_audit.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
@@ -72,9 +73,6 @@ const char* const kNoAnimationMessage = "Fucking ShITTT!!! ArtIsTs MuSt diE!!! C
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
 // Branch-free selects: `ifLess` when a < b or unordered.
-float Select(float a, float b, float ifLess, float otherwise) {
-    return std::bit_cast<float>(a >= b ? Bits(otherwise) : Bits(ifLess));
-}
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 
@@ -383,7 +381,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     double dx = static_cast<double>(x) - aim.x;
     float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
     float orderDistance = static_cast<float>(ActionDistance(&order));
-    float reach = Select(distance, orderDistance, distance, orderDistance);
+    float reach = SelectLess(distance, orderDistance, distance, orderDistance);
 
     UnitStats* victimStats = &victim->ServerController()->stats;
     float myBase = static_cast<float>(unit->GroundHeight(x, y) + z);
@@ -422,31 +420,31 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
             blow = static_cast<double>(myBase) - theirTopValue;
             key = kKeyLow;
         } else {
-            float low = Select(theirTop, myTop, theirTop, myTop);         // top of the overlap
-            float high = Select(myBase, theirBase, theirBase, myBase);    // its bottom
+            float low = SelectLess(theirTop, myTop, theirTop, myTop);         // top of the overlap
+            float high = SelectLess(myBase, theirBase, theirBase, myBase);    // its bottom
             float from = theirBase;
             double to;
             switch (static_cast<std::uint32_t>(location)) {
             case 0: {   // head
                 float part = static_cast<float>(static_cast<double>(theirSize) * kUpperPart + theirBase);
-                from = Select(high, part, part, high);
-                to = Select(theirTop, low, theirTop, low);
+                from = SelectLess(high, part, part, high);
+                to = SelectLess(theirTop, low, theirTop, low);
                 break;
             }
             case 1:
             case 2:
             case 3: {   // body and arms
                 float part = static_cast<float>(static_cast<double>(theirSize) * kLowerPart + theirBase);
-                from = Select(high, part, part, high);
+                from = SelectLess(high, part, part, high);
                 float upper = static_cast<float>(static_cast<double>(theirSize) * kUpperPart + theirBase);
-                to = Select(upper, low, upper, low);
+                to = SelectLess(upper, low, upper, low);
                 break;
             }
             case 4:
             case 5: {   // legs
-                from = Select(high, theirBase, theirBase, high);
+                from = SelectLess(high, theirBase, theirBase, high);
                 float part = static_cast<float>(static_cast<double>(theirSize) * kLowerPart + theirBase);
-                to = Select(part, low, part, low);
+                to = SelectLess(part, low, part, low);
                 break;
             }
             default:
@@ -457,7 +455,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
             double h = RandomHeight(to, from, low, high);
             key = BandAt(h, myBase, mySize, myTop);
             float offset = static_cast<float>((h - myBase) + static_cast<double>(mySize) * kEyeLevel);
-            blow = std::bit_cast<float>(Bits(offset) & 0x7FFFFFFFu);
+            blow = AbsBits(offset);
         }
     }
 

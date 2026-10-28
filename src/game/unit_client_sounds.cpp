@@ -19,6 +19,7 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
+#include "lib/vecmath.h"
 
 #include <cmath>
 #include <cstdio>
@@ -74,7 +75,6 @@ constexpr float kShakeDecay = 0.25f;
 constexpr std::uint32_t kEffectSilence = 0x10;
 constexpr int kViewNoAttackSounds = 3;       // the local view player's sessionKind_
 constexpr double kMinAxisLength = 0.0001;
-constexpr float kPi = 3.14159274f;
 constexpr float kCrawlPrintScale = 0.5f;
 constexpr float kWalkPrintScale = 0.75f;
 constexpr std::uint32_t kFlagPrintsShown = 0x400000;   // the unit's flags_

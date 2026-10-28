@@ -25,6 +25,7 @@
 #include "lib/str.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"
+#include "lib/vecmath.h"
 
 #include <algorithm>
 #include <cmath>
@@ -53,7 +54,6 @@ constexpr int kPersonPlace = 0;
 constexpr int kLeaderPlace = 1;
 constexpr int kThirdPlace = 2;
 
-constexpr float kPi = 3.14159274f;
 constexpr float kSixth = 0.166666672f;
 constexpr float kTwelfth = 0.0833333358f;
 constexpr float kQuarter = 0.25f;

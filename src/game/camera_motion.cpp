@@ -10,6 +10,7 @@
 #include "ei/x87.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstdint>
@@ -97,10 +98,7 @@ void CCamera::AlignToTarget() {
     else if (D(cosine) < D(CAM_MINUS_ONE)) cosine = -1.0f;
     float angle = static_cast<float>(libcrt::CiAcos(cosine));
     float magnitude = angle;
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(magnitude);
-    bits &= 0x7FFFFFFF;
-    magnitude = std::bit_cast<float>(bits);
+    magnitude = AbsBits(magnitude);
     if (CAM_DEGREE > D(magnitude)) return;
     float cx = static_cast<float>(D(xAxis.y) * hz - D(xAxis.z) * hy);
     float cy = static_cast<float>(D(xAxis.z) * hx - D(hz) * xAxis.x);

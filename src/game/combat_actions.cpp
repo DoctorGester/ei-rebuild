@@ -22,6 +22,7 @@
 #include "ei/x87.h"
 #include "world_effect.h"
 #include "game_singletons.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
@@ -50,7 +51,6 @@ CDiplomacy* DiplomacyOf(CWorldServer* world) { return &world->diplomacy_; }
 
 AIEventTable* AIEventsOf(CWorldServer* world) { return &world->aiMap_.events; }
 
-float AbsBits(float v) { return std::bit_cast<float>(std::bit_cast<std::uint32_t>(v) & 0x7FFFFFFFu); }
 
 bool ListContains(const std::list<CUnit*>* list, const CUnit* unit) {
     for (auto node = list->begin(); node != list->end(); ++node)
@@ -246,11 +246,10 @@ void CUnitServer::WitnessMurder(std::list<CUnit*>* witnesses, CUnit* victim, CUn
     int side = unit->side;
     auto node = witnesses->begin();
     if (node == witnesses->end()) return;
-    std::uint32_t bit = 1u << (static_cast<std::uint32_t>(side) & 31);
     do {
         CUnit* other = *node;
         ++node;
-        if (!(diplomacy->allied_[other->side] & bit)) continue;
+        if (!diplomacy->IsAllied(other->side, side)) continue;
         other->flags_ |= 0x2000000;
         CUnitServer* controller = other->ServerController();
         AIEventsOf(world)->Update(controller, &controller->brain.memory);
@@ -286,7 +285,7 @@ void CUnitServer::PropagateHostility() {
     while (node != brain.memory.nearby.end()) {
         CUnit* other = *node;
         ++node;
-        if (!(diplomacy->allied_[side] & (1u << (static_cast<std::uint32_t>(other->side) & 31)))) continue;
+        if (!diplomacy->IsAllied(side, other->side)) continue;
         CUnit* self = unit;
         double dx = static_cast<double>(other->localPosition_.x) - self->localPosition_.x;
         double dy = static_cast<double>(other->localPosition_.y) - self->localPosition_.y;

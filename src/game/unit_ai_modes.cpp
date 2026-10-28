@@ -28,7 +28,6 @@ constexpr int kNoPriority = -1000;
 constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull);
 constexpr float kDecayBase = 0.8f;
 static_assert(std::bit_cast<std::uint32_t>(kDecayBase) == 0x3F4CCCCDu);
-const std::uint32_t* Diplomacy() { return g_serverWorld->diplomacy_.allied_; }
 
 // The server side of a unit's player (CPlayer::connection_). Its refreshPending_ == 2 is what the modes take
 // as the player controlling the unit directly.
@@ -36,15 +35,6 @@ inline const CPlayerServer* PlayerServerOf(const CPlayer* player) {
     return player->Server();
 }
 
-template <typename T>
-void ReleaseRef(AIRefTo<T>& ref) {
-    if (ref) {
-        ref->Release();
-        ref = nullptr;
-    }
-}
-
-int IsGone(CMapObject* object) { return object->IsDead(); }
 
 constexpr float kMoveTime = 1000000.0f;
 constexpr float kNearX = 35.0f;
@@ -107,7 +97,7 @@ void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3* to, int run, c
         self->point.z = offset->z + self->point.z;
     }
     self->run = static_cast<std::uint8_t>(run);
-    if (!DirectControl(brain)) ReleaseRef(self->leader);
+    if (!DirectControl(brain)) self->leader.Reset();
     self->target.Reset();
 }
 
@@ -326,8 +316,7 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
     if (CEngineObject* seen = brain->seen) {
         bool allied = false;
         if (CUnit* seenUnit = UnitOrNull(seen)) {
-            std::uint32_t bit = 1u << (seenUnit->side & 31);
-            allied = (Diplomacy()[brain->owner->unit->side] & bit) != 0;
+            allied = g_serverWorld->diplomacy_.IsAllied(brain->owner->unit->side, seenUnit->side);
         }
         if (!allied) {
             Vector3 where;
@@ -409,7 +398,7 @@ void SuspectionMode::Leave(AIBrain* brain) {
 int AggressionMode::Evaluate(AIBrain* brain) {
     chosen.object = nullptr;
     if (fixed) {
-        if (enemy && IsGone(enemy) != 0) {
+        if (enemy && enemy->IsDead() != 0) {
             enemy.Assign(nullptr);
             return kNoPriority;
         }
@@ -417,15 +406,14 @@ int AggressionMode::Evaluate(AIBrain* brain) {
             if (CMapObject* seen = brain->seen) {
                 bool allied = false;
                 if (CUnit* seenUnit = UnitOrNull(seen)) {
-                    std::uint32_t bit = 1u << (seenUnit->side & 31);
-                    allied = (Diplomacy()[brain->owner->unit->side] & bit) != 0;
+                    allied = g_serverWorld->diplomacy_.IsAllied(brain->owner->unit->side, seenUnit->side);
                 }
                 if (!allied && seen != brain->owner->unit && !brain->memory.reports.Contains(seen))
                     enemy.Assign(seen);
             }
         }
         if (!enemy) return kNoPriority;
-        if (IsGone(enemy) == 0 && enemy->GetClassId() == kClassUnit) {
+        if (enemy->IsDead() == 0 && enemy->GetClassId() == kClassUnit) {
             if (brain->memory.IsEnemy(brain->owner->unit, enemy) == 0) return kNoPriority;
             chosen.part = -1;
             chosen.object = static_cast<CUnit*>(enemy.object);   // a unit (tested above)
@@ -506,7 +494,7 @@ void AggressionMode::Enter(AIBrain* brain) {
 }
 
 void AggressionMode::Leave(AIBrain* brain) {
-    if (!enemy || IsGone(enemy) != 0) {
+    if (!enemy || enemy->IsDead() != 0) {
         brain->memory.noticedLevel = 0;
         brain->memory.noticedKind = 0;
     }
@@ -755,7 +743,7 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
 
 void PlayerMode::OnObjectDeleted(CEngineObject* object) {
     if (target == object && target) target.Reset();
-    if (leader == object && leader) ReleaseRef(leader);
+    if (leader == object && leader) leader.Reset();
 }
 
 void PlayerMode::Load(CStream* stream) {

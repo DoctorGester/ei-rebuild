@@ -10,6 +10,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <cstdint>
@@ -18,8 +19,6 @@
 namespace terrain {
 namespace {
 
-constexpr int kVertices = 33 * 33;     // per layer
-constexpr int kRow = 33;
 
 // 1 / the water depth scale (set by a static initialiser).
 constexpr float kWaterFalloff = /*007C8908*/ 0.06666667f;   // a static initialiser: 1 / 15
@@ -28,14 +27,7 @@ constexpr float kWaterFalloff = /*007C8908*/ 0.06666667f;   // a static initiali
 // the unit `direction`): each channel clamped to 1, the alpha copied through.
 
 // Select idiom: `b` when a < b or unordered.
-float Max(float a, float b) { return a >= b ? a : b; }
-float AtLeastZero(float v) { return v >= 0.0f ? v : 0.0f; }
 
-bool SignClear(float v) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(v);
-    return (bits & 0x80000000u) == 0;
-}
 
 // Whether the sun's ray march (Terrain::SunReaches) from vertex (column, row) of `sector` can change
 // nothing of the game's. Its answer feeds only the vertex colours, which the GPU lighting does not read;
@@ -49,21 +41,21 @@ bool SunMarchTouchesNothing(const Terrain* terrain, const SectorData* sector, in
     int stepX = terrain->sunStepX, stepY = terrain->sunStepY;
     float slopeX = terrain->sunSlopeX, slopeY = terrain->sunSlopeY;
     int directionX = 1, directionY = 1;
-    if (stepX < 0 || (stepX == 0 && !SignClear(slopeX))) {
+    if (stepX < 0 || (stepX == 0 && SignBit(slopeX))) {
         slopeX = -slopeX;
         directionX = -1;
         stepX = -stepX;
     }
-    if (stepY < 0 || (stepY == 0 && !SignClear(slopeY))) {
+    if (stepY < 0 || (stepY == 0 && SignBit(slopeY))) {
         slopeY = -slopeY;
         directionY = -1;
         stepY = -stepY;
     }
-    if (!SignClear(slopeX) || !SignClear(slopeY)) return true;   // it returns before any step
+    if (SignBit(slopeX) || SignBit(slopeY)) return true;   // it returns before any step
     const int length = stepY > stepX ? stepY : stepX;
     auto crossings = [length](int at, int direction) {
-        int toFirst = direction > 0 ? kRow - at : at + 1;   // moves to the first crossing
-        return length >= toFirst ? 1 + (length - toFirst) / (kRow - 1) : 0;
+        int toFirst = direction > 0 ? kSectorRow - at : at + 1;   // moves to the first crossing
+        return length >= toFirst ? 1 + (length - toFirst) / (kSectorRow - 1) : 0;
     };
     const int acrossX = crossings(column, directionX), acrossY = crossings(row, directionY);
     for (int j = 0; j <= acrossY; ++j)
@@ -100,18 +92,18 @@ void SectorData::LightSpecular(const SectorPosition* position, SectorVertex* rec
         float inverse = static_cast<float>(1.0f / distance);
         Vector3 direction = {static_cast<float>(inverse * offset.x), static_cast<float>(inverse * offset.y),
                              static_cast<float>(inverse * offset.z)};
-        const SectorVertex& water = record[kVertices];
-        if (layer == 0 && hasWater && water.waterMaterial != 0xFFFF && SignClear(record->depth)) {
+        const SectorVertex& water = record[kSectorVertices];
+        if (layer == 0 && hasWater && water.waterMaterial != 0xFFFF && !SignBit(record->depth)) {
             float absorption = terrain->materials[water.waterMaterial].absorption;
             double loss = Product(absorption, record->depth, record->depth, direction.z, direction.z, kWaterFalloff);
-            attenuation = AtLeastZero(static_cast<float>(1.0 - loss));
+            attenuation = MaxKeepB(static_cast<float>(1.0 - loss), 0.0f);
         }
         Vector4 source = {record->materialColour.x, record->materialColour.y, record->materialColour.z, 1.0f};
         Vector4 shaded;
         light->AddPoint(&shaded, attenuation, &source, &record->normal, &direction, distance);
-        specular.x = Max(specular.x, shaded.x);
-        specular.y = Max(specular.y, shaded.y);
-        specular.z = Max(specular.z, shaded.z);
+        specular.x = MaxKeepB(specular.x, shaded.x);
+        specular.y = MaxKeepB(specular.y, shaded.y);
+        specular.z = MaxKeepB(specular.z, shaded.z);
         hasSpecular = 1;
         ref = next;
     }
@@ -142,7 +134,7 @@ void SectorData::Light(Terrain* terrain, int skipSun, int x0, int y0, int x1, in
             terrain->lightingY = y;
             for (int x = x0; x <= x1; ++x) {
                 terrain->lightingX = x;
-                int i = kVertices + y * kRow + x;
+                int i = kSectorVertices + y * kSectorRow + x;
                 if (records[i].waterMaterial == 0xFFFF) continue;
                 LightSpecular(&vertices[i], &records[i], terrain, 1);
             }
@@ -154,7 +146,7 @@ void SectorData::Light(Terrain* terrain, int skipSun, int x0, int y0, int x1, in
         terrain->lightingY = y;
         for (int x = x0; x <= x1; ++x) {
             terrain->lightingX = x;
-            int i = y * kRow + x;
+            int i = y * kSectorRow + x;
             if (march && !quiet && !(quiet = SunMarchTouchesNothing(terrain, this, x, y)))
                 terrain->SunReaches(&vertices[i]);
             records[i].specular = static_cast<std::uint32_t>(terrain->EdgeFade(&vertices[i])) << 24;

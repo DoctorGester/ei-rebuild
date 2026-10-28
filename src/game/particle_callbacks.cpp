@@ -688,7 +688,7 @@ double FunnelCentre(const CParticleSource* s, double h, float& x) {
     int k = static_cast<int>(libcrt::Ftol(h));
     if (k >= std::ssize(s->elements) - 2) k = std::ssize(s->elements) - 2;
     float f = static_cast<float>(h - static_cast<double>(k));
-    float t = PickIfLess(f, 1.0f);
+    float t = MinKeepA(f, 1.0f);
     double u = D(EI_P_ONE) - D(t);
     const ParticleElement& a = s->elements[k];
     const ParticleElement& b = s->elements[k + 1];
@@ -1707,9 +1707,9 @@ int CParticleSource::EmitPoisonFog(Particle*, int) {
             q->dead = 0;
             q->prevColor = q->color;
             q->prevFrame = q->frame;
-            boundsMin.x = PickIfLess(q->pos.x, boundsMin.x);
-            boundsMin.y = PickIfLess(q->pos.y, boundsMin.y);
-            boundsMin.z = PickIfLess(q->pos.z, boundsMin.z);
+            boundsMin.x = MinKeepA(q->pos.x, boundsMin.x);
+            boundsMin.y = MinKeepA(q->pos.y, boundsMin.y);
+            boundsMin.z = MinKeepA(q->pos.z, boundsMin.z);
             boundsMax.x = boundsMax.x >= q->pos.x ? boundsMax.x : q->pos.x;
             boundsMax.y = boundsMax.y >= q->pos.y ? boundsMax.y : q->pos.y;
             boundsMax.z = boundsMax.z >= q->pos.z ? boundsMax.z : q->pos.z;
@@ -2263,7 +2263,7 @@ int CParticleSource::EmitTornado(Particle* p, int) {
     int k = x87::fistp(scaled);
     if (k >= std::ssize(elements) - 2) k = std::ssize(elements) - 2;
     float f = static_cast<float>(D(scaled) - static_cast<double>(k));
-    float t = PickIfLess(f, 1.0f);
+    float t = MinKeepA(f, 1.0f);
     double u = D(EI_P_ONE) - D(t);
     const ParticleElement& a = elements[k];
     const ParticleElement& b = elements[k + 1];
@@ -2321,7 +2321,7 @@ int CParticleSource::UpdateTornado(Particle* p) {
     double base = D(elements[0].pos.z) + D(origin.z);
     p->pos.z = static_cast<float>(base);
     p->pos.z = static_cast<float>(D(elements[0].funnel.height) * D(p->aux0) + base);
-    if (p->life > 8) p->aux1 = PickIfLess(static_cast<float>(D(p->aux1) + D(EI_FUNNEL_FADE)), 1.0f);
+    if (p->life > 8) p->aux1 = MinKeepA(static_cast<float>(D(p->aux1) + D(EI_FUNNEL_FADE)), 1.0f);
     else p->aux1 = 0.1f >= p->aux1 ? 0.1f : p->aux1;
     int a = x87::fistp(static_cast<float>(std::sqrt(D(EI_P_ONE) - D(p->aux0)) * D(p->aux1) * EI_FUNNEL_ALPHA));
     p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(a) << 24);

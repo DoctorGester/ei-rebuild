@@ -22,6 +22,7 @@
 #include "lib/static_object.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
+#include "lib/float_select.h"
 
 #include <algorithm>
 #include <iterator>
@@ -85,10 +86,7 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
         EI_NAN_AUDIT(fifth);
         if (quality >= low && quality <= fifth) {
             float t = static_cast<float>(((quality - seventh) / (seventh - fifth)) * 100.0f);
-            std::uint32_t bits;
-            bits = std::bit_cast<std::uint32_t>(t);
-            bits &= 0x7FFFFFFFu;
-            t = std::bit_cast<float>(bits);
+            t = AbsBits(t);
             chance = static_cast<int>(110.0f - t);
         }
         int roll = libcrt::Rand() * 100 / 0x7FFF % 100 + 1;

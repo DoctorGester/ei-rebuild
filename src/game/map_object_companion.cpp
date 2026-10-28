@@ -40,7 +40,6 @@ const char* const kStenchSoundFormat = "magic\\Stench\\%i.wav";
 CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
 
 // The light's position (a point light of the light factory, class 0x31).
-float* PositionOf(CLight* light) { return &light->localPosition_.x; }
 
 bool IsScaleEffect(int type) {
     return type == mapeffect::kStrengthen || type == mapeffect::kWeaken || type == mapeffect::kEnlarge ||
@@ -129,7 +128,7 @@ int CMapObjectClientSpecific::RunTick() {
     CLight* lamp = light;
     if (lamp && !(lamp->flags_ & kFlagHidden)) {
         Vector3 lightPosition;
-        lib::LoadBytes(lightPosition, PositionOf(lamp));
+        lib::LoadBytes(lightPosition, &lamp->localPosition_.x);
         float lightZ = lightPosition.z - kLightHeight;   // stored as a float
         CMapObject* followed = OwnerOf(this);
         double dx = static_cast<double>(lightPosition.x) - followed->localPosition_.x;
@@ -144,7 +143,7 @@ int CMapObjectClientSpecific::RunTick() {
             direction.z = followed->localPosition_.z - lightZ;
             g_clientWorld->terrain_->MoveLight(lamp, &direction);
             followed = OwnerOf(this);
-            float* position = PositionOf(light);
+            float* position = &light->localPosition_.x;
             std::memcpy(position, &followed->localPosition_.x, 2 * sizeof(float));
             position[2] = static_cast<float>(static_cast<double>(kLightHeight) + followed->localPosition_.z);
         }
