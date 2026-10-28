@@ -327,7 +327,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
             if (killer->player)
                 PlayerMessage(killer->player->Server(), killer, kMessageKilled);
         } else if (unit->player) {
-            attacker->ServerController()->voice.Raise(9);
+            attacker->ServerController()->voice.Raise(kRemarkKill);
         }
         if (attacker->GetClassId() == kClassUnit) {
             CUnitServer* theirs = attacker->ServerController();

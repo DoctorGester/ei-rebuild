@@ -27,7 +27,6 @@ static_assert(std::bit_cast<std::uint32_t>(kDecayDivisor) == 0x3D042108u);
 constexpr float kArrivedDistanceSq = 1.0f;
 
 constexpr int kControllerStateInactive = 5;
-constexpr int kVoiceAlarm = 8;
 
 int IsGone(CMapObject* object) { return object->IsDead(); }
 
@@ -95,7 +94,7 @@ void AIBrain::Think() {
     if (alerted && alarmCountdown > 0) {
         if (--alarmCountdown == 0 && alarm != 0) {
             g_serverWorld->InvokeAlarm(alarm, &owner->unit->localPosition_.x, 0);
-            owner->voice.Raise(kVoiceAlarm);
+            owner->voice.Raise(kRemarkAlarm);
         }
     }
     decay = (decay * kDecayScale + 1.0f) * kDecayDivisor;
@@ -175,7 +174,7 @@ void AIBrain::Think() {
         return;
     case kActionWalk:
         target.Reset();
-        if (owner->action.kind == kOrderMove || owner->action2.kind == kOrderMove || owner->action.kind == kOrderTurn || owner->action2.kind == kOrderTurn) return;
+        if (owner->HasOrder(kOrderMove) || owner->HasOrder(kOrderTurn)) return;
         action = kActionNone;
         return;
     case kActionMove:
@@ -186,14 +185,14 @@ void AIBrain::Think() {
         UpdateAttack();
         return;
     case kActionCast:
-        if (owner->action.kind == kOrderCastAt || owner->action.kind == kOrderCastOn || owner->action2.kind == kOrderCastAt || owner->action2.kind == kOrderCastOn) return;
+        if (owner->HasOrder(kOrderCastAt) || owner->HasOrder(kOrderCastOn)) return;
         if (target && owner->orderStopped) memory.reports.Report(target, 0xF);
         target.Reset();
         action = kActionNone;
         return;
     case kActionUse:
         target.Reset();
-        if (owner->action.kind == kOrderUse || owner->action2.kind == kOrderUse) return;
+        if (owner->HasOrder(kOrderUse)) return;
         action = kActionNone;
         return;
     case kActionFollow:
@@ -206,7 +205,7 @@ void AIBrain::Think() {
 
 // --- Mode lookups --------------------------------------------------------------------------------
 
-AIMode* AIBrain::FindMode(int type) {
+AIMode* AIBrain::FindMode(AIModeType type) {
     for (auto node = modes.begin(); node != modes.end();) {
         AIMode* mode = *node;
         ++node;
@@ -310,7 +309,7 @@ void AIBrain::OnObjectDeleted(CEngineObject* object) {
 
 void AIBrain::UpdateMove() {
     CUnitServer* o = owner;
-    if (o->action.kind == kOrderMove || o->action2.kind == kOrderMove || o->action.kind == kOrderTurn || o->action2.kind == kOrderTurn) return;
+    if (o->HasOrder(kOrderMove) || o->HasOrder(kOrderTurn)) return;
     if (o->orderStopped) {
         CUnit* unit = o->unit;
         double dy = move.point.y - unit->localPosition_.y;     // kept on the FPU stack
@@ -376,8 +375,7 @@ void AIBrain::UpdateAttack() {
     o = owner;
     if (o->action.kind == kOrderAttack && o->action.target == target) return;
     if (o->action2.kind == kOrderAttack && o->action2.target == target) return;
-    if (o->action.kind == kOrderCastAt || o->action.kind == kOrderCastOn) return;
-    if (o->action2.kind == kOrderCastAt || o->action2.kind == kOrderCastOn) return;
+    if (o->HasOrder(kOrderCastAt) || o->HasOrder(kOrderCastOn)) return;
     action = kActionNone;
 }
 

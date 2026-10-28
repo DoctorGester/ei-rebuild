@@ -10,9 +10,6 @@
 #include <cstring>
 
 namespace {
-constexpr int kRemarkIdle = 1;
-constexpr int kTypePatrol = 1;
-constexpr int kTypeFear = 7;
 } // namespace
 
 AIMode::AIMode() {
@@ -28,9 +25,9 @@ void AIMode::Execute(AIBrain* brain) {
     brain->attention.LookAround(brain, 0);
 }
 
-int PatrolMode::GetType() { return kTypePatrol; }
+AIModeType PatrolMode::GetType() { return kModePatrol; }
 
-int FearMode::GetType() { return kTypeFear; }
+AIModeType FearMode::GetType() { return kModeFear; }
 
 PlayerMode::PlayerMode() {
     target = nullptr;

@@ -10,11 +10,6 @@
 
 namespace {
 
-constexpr int kTypeSentry = 2;
-constexpr int kTypeSuspection = 3;
-constexpr int kTypeAggression = 4;
-constexpr int kTypeCorpseWatcher = 5;
-constexpr int kTypeFollow = 10;
 constexpr int kNoPart = -1;   // the whole unit as the part to hit
 
 // A referenced object taken over by a clone or a constructor.
@@ -65,7 +60,7 @@ SentryMode* SentryMode::Clone() {
     return copy;
 }
 
-int SentryMode::GetType() { return kTypeSentry; }
+AIModeType SentryMode::GetType() { return kModeSentry; }
 
 FollowMode::FollowMode(CMapObject* newLeader) { leader = Reference(newLeader); }
 
@@ -79,7 +74,7 @@ int FollowMode::OnShutdown() {
 
 FollowMode* FollowMode::Clone() { return new FollowMode(leader.object); }
 
-int FollowMode::GetType() { return kTypeFollow; }
+AIModeType FollowMode::GetType() { return kModeFollow; }
 
 SuspectionMode::~SuspectionMode() {}
 
@@ -93,7 +88,7 @@ SuspectionMode* SuspectionMode::Clone() {
     return copy;
 }
 
-int SuspectionMode::GetType() { return kTypeSuspection; }
+AIModeType SuspectionMode::GetType() { return kModeSuspection; }
 
 AggressionMode::AggressionMode() : AggressionMode(0) {}
 
@@ -124,7 +119,7 @@ AggressionMode* AggressionMode::Clone() {
     return copy;
 }
 
-int AggressionMode::GetType() { return kTypeAggression; }
+AIModeType AggressionMode::GetType() { return kModeAggression; }
 
 void AggressionMode::OnObjectDeleted(CEngineObject* object) {
     if (enemy == object && enemy) enemy.Reset();
@@ -138,7 +133,7 @@ int CorpseWatcherMode::OnShutdown() { return 0; }
 
 CorpseWatcherMode* CorpseWatcherMode::Clone() { return new CorpseWatcherMode(); }
 
-int CorpseWatcherMode::GetType() { return kTypeCorpseWatcher; }
+AIModeType CorpseWatcherMode::GetType() { return kModeCorpseWatcher; }
 
 // ---- A patrol point's look ----------------------------------------------------------------------
 

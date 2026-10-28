@@ -54,9 +54,8 @@ constexpr float kArrivedSq = 0.2f;
 static_assert(std::bit_cast<std::uint32_t>(kArrivedSq) == 0x3E4CCCCDu);
 constexpr float kCloseSq = 25.0f;
 constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                       // -1313: no position yet
-constexpr int kRemarkIdle = 1;
 
-void MaybeRemark(AIBrain* brain, int what) {
+void MaybeRemark(AIBrain* brain, AIRemark what) {
     if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(what);
 }
 
@@ -398,12 +397,12 @@ void SuspectionMode::Enter(AIBrain* brain) {
     Vector3 none{0.0f, 0.0f, 0.0f};
     brain->PlanLooks(&order, &none, kNoWander, false);
     StartMove(brain, &order);
-    brain->owner->voice.Raise(5);
+    brain->owner->voice.Raise(kRemarkSuspicion);
 }
 
 void SuspectionMode::Leave(AIBrain* brain) {
     brain->owner->moveMode2.onGuard = 0;
-    brain->owner->voice.Raise(3);
+    brain->owner->voice.Raise(kRemarkCalmFromSuspicion);
 }
 
 int AggressionMode::Evaluate(AIBrain* brain) {
@@ -458,7 +457,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
 }
 
 void AggressionMode::Execute(AIBrain* brain) {
-    if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(2);
+    if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(kRemarkFightingIdle);
     if (!chosen.object) return;
     brain->CallAllies(&chosen.object->localPosition_);
     AITargetChoice attack{-1, nullptr};     // what the brain is attacking now
@@ -502,7 +501,7 @@ void AggressionMode::Enter(AIBrain* brain) {
     brain->owner->moveMode2.onGuard = 1;
     brain->target.Reset();
     brain->action = AIBrain::kActionNone;
-    brain->owner->voice.Raise(6);
+    brain->owner->voice.Raise(kRemarkAggression);
 }
 
 void AggressionMode::Leave(AIBrain* brain) {
@@ -512,7 +511,7 @@ void AggressionMode::Leave(AIBrain* brain) {
     }
     enemy.Reset();
     brain->owner->moveMode2.onGuard = 0;
-    brain->owner->voice.Raise(4);
+    brain->owner->voice.Raise(kRemarkCalmFromAggression);
 }
 
 void AggressionMode::Load(CStream* stream) {

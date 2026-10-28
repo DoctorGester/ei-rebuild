@@ -185,6 +185,8 @@ public:
     bool IsFighting();
     // A carrier with enough charge (category 5), or a spell the party unit has the mana for.
     bool CanCast(const AIOrder* order);
+    // The current or the queued order is of `kind`.
+    bool HasOrder(UnitOrderKind kind) const { return action.kind == kind || action2.kind == kind; }
     // The point of the first move order (action, then action2). 0/1.
     BOOL GetMovePoint(float* out);
     float ActionDistance(const AIOrder* order);
