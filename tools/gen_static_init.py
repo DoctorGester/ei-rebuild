@@ -13,7 +13,9 @@ target's port (C20 batch 3: nothing is called by address), unless the target is 
 referenced from one place only and decodes itself: then it is inlined (the compiler's helper halves,
 `call A; jmp B`). An initialiser registered by a rewrite (0042FAE0) is one call of its own name. Anything the interpreter does not know stops the script.
 
-The result is one template, StaticInitialisers(Do&), that the standalone runs (Run).
+The result is one function, RunStaticInitialisers, that the standalone runs before WinMain: plain calls, atexit
+registrations and the guard bit (static_init.h). Statements are written `d.Operation(...)` inside this script (the
+analysis below matches them); `plain` turns them into the code that is written.
 
 usage: python tools/gen_static_init.py [--exe game.exe]
 """
@@ -114,7 +116,7 @@ def lit(v):
 
 
 # game.exe's data (its import address table, .rdata, .data and .bss, .rsrc): an argument there is a
-# data address, which the visitor resolves through the data seam (d.At, static_init.h; S18).
+# data address (written d.At here; only a left-out statement has one: static_init.h has no such function, S18).
 DATA = (0x0073B000, 0x007D7000)
 
 
@@ -1002,8 +1004,8 @@ def generate(img):
 # The exit functions the initialisers register with atexit, each a whole-function pattern of
 # instructions as capstone prints them. {NAME} matches a number, the same wherever the name repeats;
 # {@n} is the address of the pattern's n-th instruction (a branch inside the function), {@E} of its
-# last. The C++ is the body of ExitFunction's case over static_init.h's operations (a guard is d.Once,
-# as in the initialisers). A function that matches none stops the script: add a pattern or port it
+# last. The C++ is the body of ExitFunction's case over the `d.` operations of the initialisers (a guard is
+# d.Once). A function that matches none stops the script: add a pattern or port it
 # by hand, next to the object it destroys (camera_object.cpp's DestroyCamera, ...).
 GUARD_TEST = ['test byte ptr [{F}], {BIT}', 'jne {@E}', 'or byte ptr [{F}], {BIT}']
 GUARD_MOV = ['mov cl, byte ptr [{F}]', 'mov al, {BIT}', 'test al, cl', 'jne {@E}', 'or cl, al', 'mov byte ptr [{F}], cl']
@@ -1163,7 +1165,7 @@ def decode_exits(img, decoded):
 #
 # A call, an atexit or an exit function's call of a function ported by hand (config/static_init_ports.csv: address,
 # name, file) is written by the function's name: `d.Call(Fn, args...)`, `d.Call(&Class::Method, object, args...)`,
-# `d.AtExit(Fn)`; static_init.h's visitors convert the arguments to the declared parameters. The csv also lists the
+# `d.AtExit(Fn)`; static_init.h's Call converts the arguments to the declared parameters. The csv also lists the
 # initialisers, exit functions and atexit targets ported by hand, which are neither decoded nor inlined
 # (registered_addresses). The csv's name is fully qualified and its file holds the definition; the call is the
 # definition's name, and a header that declares it in the same namespace is included, otherwise an initialiser's or
@@ -1315,6 +1317,22 @@ def name_calls(text, names, headers, declarations):
     return re.sub(r'[ \t]*' + re.escape(DROPPED) + r'\([^\n]*', '', CALL_BY_ADDRESS.sub(named, text))
 
 
+# What static_init.h has (the rest of the operations the analysis knows is for data that is left out or named).
+PLAIN_ZERO_ARGUMENTS = re.compile(r'(?m)^(\s*)d\.Call\(([\w:]+)\);$')
+OPERATIONS = {'Call': 'Call', 'Once': 'Once', 'Local': 'Local', 'AtExit': 'std::atexit'}
+
+
+def plain(text, names):
+    """`text` (statements over the `d.` operations) as written: a call of a ported function without arguments is the
+    call, an atexit is std::atexit's; an operation static_init.h does not have is a problem."""
+    text = PLAIN_ZERO_ARGUMENTS.sub(r'\1\2();', text)
+    text = re.sub(r'\bd\.(\w+)\(', lambda m: OPERATIONS.get(m.group(1), m.group(0)) + '(', text)
+    for m in re.finditer(r'\bd\.\w+', text):
+        names.problems.append(f'{m.group(0)} is written by the analysis but static_init.h has no such function: '
+                              f'{text.strip()}')
+    return text
+
+
 def render_declarations(declarations):
     """The declarations name_calls collected, by namespace."""
     out = []
@@ -1337,7 +1355,7 @@ def render_exits(exits, names):
         body = name_calls(name_operands(body.replace('\n        ', '\n    '), headers), names, headers, declarations)
         if re.search(r'\bd\.(?:Cdecl|Stdcall|Thiscall)\(0x', body):
             names.problems.append(f'exit function {fn:08X}: {body.strip()} calls by address: give the callee a name')
-        functions += [note, f'void Exit{fn:08X}() {{', '    Code d;', f'    {body}', '}', '']
+        functions += [note, f'void Exit{fn:08X}() {{', f'    {plain(body, names)}', '}', '']
     summary = ', '.join(f'{n} {k}' for k, n in kinds.most_common())
     return (EXIT_HEADER.replace('@COUNT@', str(len(exits))).replace('@SUMMARY@', summary)
             .replace('@INCLUDES@', includes(headers)).replace('@DECLARATIONS@', render_declarations(declarations)) +
@@ -1376,7 +1394,6 @@ def render(decoded, names):
         if LEFT_OUT.get(a):
             note += f'; {LEFT_OUT[a]} left out'
         body.append(f'    // {note}')
-        body.append(f'    d.Begin({hexa(a)});')
         body.extend('    ' + line for line in lines)
     summary = ', '.join(f'{n} {k}' for k, n in kinds.most_common())
     headers, declarations = set(), set()
@@ -1385,6 +1402,7 @@ def render(decoded, names):
     for line in body:
         if re.search(r'd\.(?:Cdecl|Stdcall|Thiscall|Import|AtExit)\(', line):
             names.problems.append(f'static initialiser: {line.strip()} calls by address: give the callee a name')
+    body = [plain(line, names) for line in body]
     return (HEADER.replace('@SUMMARY@', summary).replace('@COUNT@', str(len(decoded)))
             .replace('@INCLUDES@', includes(headers)).replace('@DECLARATIONS@', render_declarations(declarations)) +
             '\n'.join(body) + FOOTER)
@@ -1425,22 +1443,21 @@ HEADER = '''\
 // Stores, float folds and fills into game.exe's data that a named global of ours holds (config/named_data.csv: its
 // definition's initialiser takes their place) or that nothing reads (config/unread_data.csv) are left out ("n left
 // out"; docs/notes/standalone.md, "Named data (C18)").
-// The standalone image runs them before WinMain (Run in static_init.h). A call or atexit of a ported function names
-// it (d.Call, d.AtExit).
+// The standalone image runs them before WinMain (RunStaticInitialisers). A call or atexit of a ported function names
+// it.
 // tools/gen_static_init.py writes this file from game.exe's initialisers.
 #include "static_init.h"
+
+#include <cstdlib>
 
 @INCLUDES@
 @DECLARATIONS@namespace ei::static_init {
 
-template <class Do>
-void StaticInitialisers(Do& d) {
+void RunStaticInitialisers() {
 '''
 
 FOOTER = '''
 }
-
-template void StaticInitialisers<Run>(Run&);
 
 } // namespace ei::static_init
 '''
@@ -1451,7 +1468,7 @@ EXIT_HEADER = '''\
 // The @COUNT@ exit functions game.exe registers with atexit that no rewrite ports, the static
 // initialisers' ("atexit by" the initialiser; docs/notes/standalone.md, S3a; by hand next to
 // their objects) and the function-local statics' ("atexit at" the call; S16a): @SUMMARY@.
-// Each is decoded from its instructions as a whole-function pattern and written over static_init.h's operations,
+// Each is decoded from its instructions as a whole-function pattern and written as plain calls (static_init.h),
 // calling the destructors by name; static_init.cpp registers them by name. Those that do nothing are not
 // registered.
 // tools/gen_static_init.py writes this file from game.exe's exit functions.

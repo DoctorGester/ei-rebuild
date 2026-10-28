@@ -9,8 +9,6 @@ zero-filled tail .bss, .rsrc) in src/, tests/ or include/ is one of:
              seam (per-file helpers such as GameFloat(std::uintptr_t)); found from the definitions
   id         the value of a constant (constexpr std::uintptr_t kName = 0x...) whose every use is the
              address argument of the seam or a helper, or the whole value of an alias constant whose every use is
-  generated  src/standalone/static_init.cpp / static_exit.cpp: an address argument of the visitor's
-             operations, which resolve it (static_init.h)
   raw        anything else: read at game.exe's address whatever the image does
 A section is sealed (config/data_seam.csv) once its raw count is 0; the check keeps it there and holds
 every other file's raw count per section to the baseline (it may only go down).
@@ -39,10 +37,6 @@ SECTIONS = [('iat', 0x0073B000, 0x0073B820), ('rdata', 0x0073B820, 0x00783000), 
             ('bss', 0x0079BF70, 0x007CD000), ('rsrc', 0x007CD000, 0x007D7000)]
 # OriginalGameData: the harness's read of game.exe's own copy of a named object in its --no-hooks runs (tests/verify/harness_original.h).
 OPENERS = {'GameAddress', 'GameData', 'GamePointer', 'DataId', 'OriginalGameData'}
-# The visitor operations of the generated static initialisers and exit functions whose first argument is
-# a data address, and At (any argument).
-GENERATED = ('src/standalone/static_init.cpp', 'src/standalone/static_exit.cpp')
-GENERATED_FIRST = {'Store', 'StoreFloat', 'Fill', 'Once', 'NonZero', 'Release', 'Dword', 'Float', 'Double', 'Import'}
 
 LITERAL = re.compile(r'(?<![\w.])0[xX]([0-9A-Fa-f]{1,8})[uUlL]*(?![\w.])')
 _TOKEN = re.compile(r'//[^\n]*|/\*.*?\*/|R"([^(\s]*)\(.*?\)\1"|"(?:\\.|[^"\\\n])*"'
@@ -255,14 +249,6 @@ class Scan:
         return True
 
     def classify(self, path, code, at, end):
-        if path in GENERATED:
-            owner = call_of(code, at)
-            if owner and owner[0]:
-                callee, index, _ = owner
-                op = last(callee)
-                if callee.startswith('d.') and ((op in GENERATED_FIRST and index == 0) or op == 'At'
-                                                or (op == 'Thiscall' and index == 1)):
-                    return 'generated', callee
         owner = argument_owner(code, at)
         if owner:
             callee, index = owner
@@ -425,12 +411,12 @@ def write_config(sealed, raw):
 def report(scan):
     raw, kinds = scan.counts()
     sealed, _ = load_config()
-    print(f'{"section":8} {"uses":>6} {"seam":>6} {"helper":>6} {"id":>5} {"gen":>5} {"raw":>5} {"addresses":>9} {"raw addr":>8}')
+    print(f'{"section":8} {"uses":>6} {"seam":>6} {"helper":>6} {"id":>5} {"raw":>5} {"addresses":>9} {"raw addr":>8}')
     for name, _, _ in SECTIONS:
         k = kinds[name]
         addrs = {u[2] for u in scan.uses if u[3] == name}
         raw_addrs = {u[2] for u in scan.uses if u[3] == name and u[4] == 'raw'}
-        print(f'{name:8} {sum(k.values()):6} {k["seam"]:6} {k["helper"]:6} {k["id"]:5} {k["generated"]:5} {k["raw"]:5} '
+        print(f'{name:8} {sum(k.values()):6} {k["seam"]:6} {k["helper"]:6} {k["id"]:5} {k["raw"]:5} '
               f'{len(addrs):9} {len(raw_addrs):8}{"  sealed" if name in sealed else ""}')
 
 
@@ -571,8 +557,6 @@ def apply(scan, sections, only):
     total = 0
     for path in scan.paths:
         if only and path not in only:
-            continue
-        if path in GENERATED:
             continue
         text = read(path)
         code = scan.code[path]
