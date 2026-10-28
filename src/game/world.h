@@ -112,8 +112,10 @@ struct MapObjectIdMap {
 // Walks the world's player list; the list object is reference counted while an iterator holds it.
 struct PlayerIterator : ObjectListIteratorOf<CPlayer> {
     PlayerIterator() : ObjectListIteratorOf<CPlayer>{{nullptr, {}}} {}
+    PlayerIterator(const PlayerIterator&) = delete;
+    PlayerIterator& operator=(const PlayerIterator&) = delete;
 
-    // Drops the list's count without releasing it.
+    // Drops the list's count without releasing it (the list must outlive the iterator).
     ~PlayerIterator() {
         if (manager) --manager->refCount_;
     }

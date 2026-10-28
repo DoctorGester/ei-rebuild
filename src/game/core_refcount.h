@@ -219,6 +219,9 @@ struct CountedRefTo : CountedRefPtr {
 // object3d_lifetime.cpp defines Assign for those. A plain store (`ref = p`) takes and drops no reference.
 template <typename T>
 struct CountedRef {
+    CountedRef() = default;
+    CountedRef(const CountedRef&) = delete;
+    CountedRef& operator=(const CountedRef&) = delete;
     // The new object gains a reference; the old one loses one and is deleted when that was the last.
     void Assign(T* value);
 

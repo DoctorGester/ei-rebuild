@@ -68,9 +68,10 @@ int CWorldServer::Create() {
 }
 
 void CWorldServer::Destroy() {
-    // Every player disconnected and released.
-    PlayerIterator it;
+    // Every player disconnected and released. The iterator drops its count of the player list when it goes out
+    // of scope: before CWorld::Destroy deletes the list.
     if (PlayerList()) {
+        PlayerIterator it;
         for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
             player->Disconnect();
             PlayerList()->ReleasePlayer(player);
