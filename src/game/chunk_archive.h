@@ -9,7 +9,6 @@
 
 #include "core_streams.h"
 
-#include "lib/stlp.h"
 #include "lib/hash_map.h"
 #include "game_data.h"
 

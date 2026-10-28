@@ -89,12 +89,6 @@ void Element(void* element, void*) {
     Function(static_cast<typename ElementOf<decltype(Function)>::Type*>(element));
 }
 
-// The STLport node allocator (__node_alloc<true, 0>); its pool is the exe's data.
-void* NodeAllocate(std::size_t bytes);
-void NodeDeallocate(void* p, std::size_t bytes);
-void* NodeRefill(std::size_t bytes);
-char* NodeChunkAlloc(std::size_t size, int* count);
-
 // The game's printf text of `format` (crt_format.cpp; str::Format is its CString form), every byte written (a %c of
 // 0 too): the format read as MSVC 6's _output reads it, the floats with its digits, the rest the host's.
 std::string Format(const char* format, va_list args);

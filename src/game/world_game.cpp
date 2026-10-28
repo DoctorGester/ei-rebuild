@@ -45,7 +45,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "lib/mfc_array.h"
 #include "lib/text_case.h"
 

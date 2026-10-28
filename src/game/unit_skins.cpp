@@ -16,7 +16,6 @@
 #include "../lib/crt.h"
 #include "unit_client_models.h"
 #include "../lib/mfc.h"
-#include "../lib/stlp.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
 #include "unit_looks.h"

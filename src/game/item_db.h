@@ -6,7 +6,6 @@
 // field of the record without checking for null, so an index out of range reads near address 0 and crashes.
 // Field() keeps that behaviour (a real read through the null record) rather than inventing a default.
 
-#include "lib/stlp.h"
 #include "lib/static_object.h"
 #include "game_data.h"
 

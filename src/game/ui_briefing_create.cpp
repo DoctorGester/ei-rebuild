@@ -27,7 +27,6 @@
 #include "lib/nan_audit.h"
 #include "lib/text_case.h"
 #include "text_split.h"
-#include "lib/stlp.h"
 #include "lib/str.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -100,13 +99,6 @@ Vector3 NormalisedUnlessZero(const Vector3& v) {
     out.y = static_cast<float>(out.y * inverse);
     out.z = static_cast<float>(out.z * inverse);
     return out;
-}
-
-// inlined: the node unlinked and back to the pool.
-void EraseMover(BriefingMover* node) {
-    node->prev->next = node->next;
-    node->next->prev = node->prev;
-    stlp::deallocate(node, sizeof(BriefingMover));
 }
 
 // A mover that took too long is put at its place, facing its direction, at once.
@@ -271,22 +263,18 @@ void CBriefingScreen::Update() {
     children_[kTopicBarChild]->SetEnabled(0, 1);
     children_[kTextChild]->SetEnabled(0, 1);
 
-    for (BriefingMover* node = movers_->next; node != movers_; node = node->next) {
-        node->time = static_cast<float>(FrameTime() + node->time);
-        if (node->time > kMoverTimeout) {
-            PlaceMover(node);
-            node->state = BriefingMover::kDone;
-        } else if (node->state == BriefingMover::kWalking) {
-            StepWalking(node);
-        } else if (node->state == BriefingMover::kTurning) {
-            StepTurning(node);
+    for (BriefingMover& mover : movers_) {
+        mover.time = static_cast<float>(FrameTime() + mover.time);
+        if (mover.time > kMoverTimeout) {
+            PlaceMover(&mover);
+            mover.state = BriefingMover::kDone;
+        } else if (mover.state == BriefingMover::kWalking) {
+            StepWalking(&mover);
+        } else if (mover.state == BriefingMover::kTurning) {
+            StepTurning(&mover);
         }
     }
-    for (BriefingMover* node = movers_->next; node != movers_;) {
-        BriefingMover* next = node->next;
-        if (node->state == BriefingMover::kDone) EraseMover(node);
-        node = next;
-    }
+    std::erase_if(movers_, [](const BriefingMover& mover) { return mover.state == BriefingMover::kDone; });
 
     switch (state_) {
     case kChoosing: {
@@ -309,8 +297,8 @@ void CBriefingScreen::Update() {
         break;
     case kStarting:
         state_ = kPhrases;
-        for (BriefingMover* node = movers_->next; node != movers_; node = node->next) {
-            if (node->state > 0 && node->waited) {
+        for (const BriefingMover& mover : movers_) {
+            if (mover.state > 0 && mover.waited) {
                 state_ = kStarting;
                 break;
             }

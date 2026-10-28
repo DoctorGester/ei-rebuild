@@ -10,7 +10,6 @@
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "game_data.h"
 
 #include <cstddef>

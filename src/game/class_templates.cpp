@@ -12,7 +12,6 @@
 #include "party_manager.h"
 #include "lib/crt.h"
 
-#include "lib/stlp.h"
 
 #include <cstring>
 #include "spell.h"

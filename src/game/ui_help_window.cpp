@@ -10,7 +10,6 @@
 #include "text_reader.h"
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "game_singletons.h"
 #include "render/render_state.h"
 #include "lib/str.h"

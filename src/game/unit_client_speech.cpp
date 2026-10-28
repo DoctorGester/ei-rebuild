@@ -7,7 +7,6 @@
 #include "world.h"
 
 #include "lib/gameapi.h"
-#include "lib/stlp.h"
 
 #include "game_singletons.h"
 

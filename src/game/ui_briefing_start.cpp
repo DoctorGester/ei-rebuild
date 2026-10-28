@@ -25,7 +25,6 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "text_split.h"
-#include "lib/stlp.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "party_manager.h"
@@ -81,23 +80,16 @@ void Normalise(Vector3* v) {
     v->z = inverse * v->z;
 }
 
-// inlined: the node unlinked and back to the pool.
-void EraseMover(BriefingMover* node) {
-    node->prev->next = node->next;
-    node->next->prev = node->prev;
-    stlp::deallocate(node, sizeof(BriefingMover));
-}
-
 // The first mover of `person` is dropped; its target goes to `place` / `direction` unless the
 // dialogue waited for it.
-void DropMover(BriefingMover* movers, const CUnit* person, Vector3* place, Vector3* direction) {
-    for (BriefingMover* node = movers->next; node != movers; node = node->next) {
+void DropMover(std::list<BriefingMover>& movers, const CUnit* person, Vector3* place, Vector3* direction) {
+    for (auto node = movers.begin(); node != movers.end(); ++node) {
         if (node->person != person) continue;
         if (!node->waited) {
             *place = Vector3{node->target.x, node->target.y, node->target.z};
             *direction = Vector3{node->direction.x, node->direction.y, node->direction.z};
         }
-        EraseMover(node);
+        movers.erase(node);
         return;
     }
 }
@@ -216,23 +208,15 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
 }
 
 void CBriefingScreen::ClearShownItems() {
-    for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
-        if (node->item) {
-            RemoveObject(node->item->texture_);
-            RemoveSceneObject(node->item);
+    for (const BriefingShownItem& shown : shown_) {
+        if (shown.item) {
+            RemoveObject(shown.item->texture_);
+            RemoveSceneObject(shown.item);
         }
-        if (node->back) RemoveSceneObject(node->back);
-        if (node->frame) RemoveSceneObject(node->frame);
+        if (shown.back) RemoveSceneObject(shown.back);
+        if (shown.frame) RemoveSceneObject(shown.frame);
     }
-    // list::clear (the name's destructor, the node back to the pool).
-    for (BriefingShownItem* node = shown_->next; node != shown_;) {
-        BriefingShownItem* next = node->next;
-        std::destroy_at(&node->name);
-        stlp::deallocate(node, sizeof(BriefingShownItem));
-        node = next;
-    }
-    shown_->next = shown_;
-    shown_->prev = shown_;
+    shown_.clear();
 }
 
 void CBriefingScreen::FinishDialogue() {

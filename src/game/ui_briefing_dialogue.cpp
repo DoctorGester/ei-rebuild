@@ -22,7 +22,6 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/stlp.h"
 #include "lib/str.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -260,20 +259,12 @@ namespace {
 
 constexpr int kEventLeaves = 2;
 
-// inlined: the node unlinked, its name destroyed, the node back to the pool.
-void EraseShown(BriefingShownItem* node) {
-    node->prev->next = node->next;
-    node->next->prev = node->prev;
-    std::destroy_at(&node->name);
-    stlp::deallocate(node, sizeof(BriefingShownItem));
-}
-
 } // namespace
 
 void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
     auto* person = GameFindClientUnit(TextKeyFromName(name));
     if (!person) {
-        for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
+        for (auto node = shown_.begin(); node != shown_.end(); ++node) {
             if (text::CompareIgnoringCase(node->name,
                                 name) != 0)
                 continue;
@@ -283,7 +274,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
             }
             if (node->back) RemoveSceneObject(node->back);
             if (node->frame) RemoveSceneObject(node->frame);
-            EraseShown(node);
+            shown_.erase(node);
             return;
         }
         return;

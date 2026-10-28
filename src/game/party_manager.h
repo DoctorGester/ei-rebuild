@@ -9,7 +9,6 @@
 #include "party_records.h"
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "lib/hash_map.h"
 #include "lib/static_object.h"
 #include "game_data.h"

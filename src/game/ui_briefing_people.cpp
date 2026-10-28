@@ -17,7 +17,6 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/stlp.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -83,23 +82,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
         return;
     }
     if (serverUnit->flags_ & kUnitBlocked) return;
-    // list::push_front of the mover (node pool 0x30; its padding bytes are left as allocated).
-    auto* node = stlp::allocate_as<BriefingMover>();
-    node->target.x = target.x;
-    node->target.y = target.y;
-    node->target.z = target.z;
-    node->direction.x = dx;
-    node->direction.y = dy;
-    node->direction.z = dz;
-    node->state = BriefingMover::kWalking;
-    node->person = unit;
-    node->waited = waited;
-    node->time = 0.0f;
-    BriefingMover* first = movers_->next;
-    node->next = first;
-    node->prev = first->prev;
-    first->prev->next = node;
-    first->prev = node;
+    movers_.push_front(BriefingMover{target, Vector3{dx, dy, dz}, BriefingMover::kWalking, unit, waited != 0, {}, 0.0f});
     controller->Brain()->Walk(&target, run, 0);
 }
 
@@ -122,8 +105,8 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     if (index < 0) return;
 
     // An item: one shown under this name goes first.
-    for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
-        if (text::CompareIgnoringCase(node->name, name) != 0) continue;
+    for (const BriefingShownItem& shown : shown_) {
+        if (text::CompareIgnoringCase(shown.name, name) != 0) continue;
         HideSpeaker(name, 0, 0);
         break;
     }
@@ -172,15 +155,5 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, TurnedOver());
     item->localRotation_ = turn;
 
-    // list::push_front of {name, item, back, frame} (node pool 0x18).
-    auto* node = stlp::allocate_as<BriefingShownItem>();
-    std::construct_at(&node->name, name);
-    node->item = item;
-    node->back = back;
-    node->frame = frame;
-    BriefingShownItem* first = shown_->next;
-    node->next = first;
-    node->prev = first->prev;
-    first->prev->next = node;
-    first->prev = node;
+    shown_.push_front(BriefingShownItem{name, item, back, frame});
 }

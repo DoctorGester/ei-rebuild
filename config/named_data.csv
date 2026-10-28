@@ -163,10 +163,6 @@ address,size,name,file
 0079AE60,348,kPow10Positive,src/lib/crt_format.cpp
 0079AFC0,348,kPow10Negative,src/lib/crt_format.cpp
 0079B1B8,4,kHeadingOffset,src/game/core_transform_math.cpp
-0079B224,64,g_nodeFreeLists,src/lib/crt.cpp
-0079B264,4,g_nodeHeapSize,src/lib/crt.cpp
-0079B268,4,g_chunkStart,src/lib/crt.cpp
-0079B26C,4,g_chunkEnd,src/lib/crt.cpp
 0079B270,40,g_classRegistry,src/game/chunk_archive.cpp
 0079B298,1,kEmptyText,src/game/game_strings.h
 0079B2A4,4,kHalfPi,src/game/camera.h

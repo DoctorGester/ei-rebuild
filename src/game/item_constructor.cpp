@@ -12,7 +12,6 @@
 #include "text_split.h"
 #include "lib/mfc.h"
 #include "lib/str.h"
-#include "lib/stlp.h"
 #include "game_data.h"
 
 #include <bit>

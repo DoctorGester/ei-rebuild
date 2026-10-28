@@ -1,7 +1,6 @@
 // Weapon model parts: the names of the figure parts a weapon is drawn with.
 #include "item.h"
 
-#include "lib/stlp.h"
 
 #include <cstdio>
 #include <cstring>

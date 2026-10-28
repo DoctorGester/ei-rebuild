@@ -7,7 +7,6 @@
 #include "item_db_text.h"
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "game_data.h"
 #include "game_singletons.h"
 

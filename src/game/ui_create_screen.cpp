@@ -27,29 +27,12 @@
 #include <memory>
 #include <string>
 
-namespace {
-
-// An empty STLport list whose nodes are `Node` (next, prev, then the element): its sentinel from the
-// node pool, linked to itself (the list constructors).
-template <typename Node>
-Node* EmptyList() {
-    auto* head = stlp::allocate_as<Node>();
-    head->next = head;
-    head->prev = head;
-    return head;
-}
-
-} // namespace
-
 // The screens CreateScreen builds inline (screens 1 and 3; 2 and 7 have only the container's).
 CBattleScreen::CBattleScreen(CInterface3D* ui) : CUiContainer(ui) {
     itemUseKey_.ConstructItemUseKey();
 }
 
-CBriefingScreen::CBriefingScreen(CInterface3D* ui) : CUiContainer(ui) {
-    movers_ = EmptyList<BriefingMover>();
-    shown_ = EmptyList<BriefingShownItem>();
-}
+CBriefingScreen::CBriefingScreen(CInterface3D* ui) : CUiContainer(ui) {}
 
 void CInterface3D::CreateScreen(int id) {
     CUiWindow* screen = nullptr;

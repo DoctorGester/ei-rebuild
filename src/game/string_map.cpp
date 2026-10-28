@@ -7,7 +7,6 @@
 #include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/stlp.h"
 #include "lib/static_object.h"
 #include "ui.h"        // CInterface3D, CUiSurface
 #include "ui_gdi.h"    // CDC, CFont

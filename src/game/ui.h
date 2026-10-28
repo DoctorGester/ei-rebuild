@@ -21,7 +21,6 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/static_object.h"
-#include "lib/stlp.h"
 #include "lib/str.h"
 
 #include <cstddef>
@@ -1314,9 +1313,7 @@ public:
     void ShowChildren(int show);
 
     UiPtrArray<CUiWindow> children_;
-    UiInputSide** inputsBegin_;               // extra input sides
-    UiInputSide** inputsEnd_;
-    UiInputSide** inputsCapacity_;
+    std::vector<UiInputSide*> inputs_;        // extra input sides
 
 private:
     // `atPoint` limits the children to those holding (b, c).

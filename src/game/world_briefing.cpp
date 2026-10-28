@@ -21,7 +21,6 @@
 #include "world_map_files.h"
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 
 #include "game_flow_data.h"
 #include "game_data.h"

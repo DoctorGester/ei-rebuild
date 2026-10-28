@@ -25,7 +25,6 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "unit.h"
 #include "world.h"
 

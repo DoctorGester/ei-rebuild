@@ -1887,14 +1887,12 @@ The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's cons
 - Not ported, unreached: CString Delete / Insert / Replace / MakeReverse / FreeExtra / Span* / AnsiToOem / wide
   constructors / FormatMessage; CPtrList, CPtrArray (S5a).
 
-### STLport (src/lib/stlp_*.{h,cpp}; S9-S12g)
+### STLport (S9-S12g; only src/lib/stlp_algo.h is left)
 
-One body per member over an element policy, `*Abi<T, Policy>` shims with each instantiation's calling convention.
-- **Node allocator rule**: the node size picks the free list; a wrong element size corrupts another size's pool
-  (005392C0 holds 20 bytes in a 32-byte node). Read sizes from each `_M_create_node` / `_M_new_node` / clear's free
-  list.
-- **list** (stlp_list, stlp_list_refs: Share + Destroy, counted + release): only the net RefPtr / timed lists and the
-  sessions' raw-sentinel lists are left (C14t); the record lists went with C14n / C14s (core.md).
+The containers were ported one body per member over an element policy; since C14t every container is std and the
+node allocator (`__node_alloc`, libcrt::NodeAllocate, its free lists at 0079B224) is gone with stlp.h / stlp.cpp /
+stlp_alloc.h.
+- **list** (stlp_list, stlp_list_refs: gone with C14n / C14s / C14t; core.md).
 - **vector** (S10, S10a; stlp_vector, stlp_vector_refs, record_vectors: all gone with C14n / C14q, the vectors are
   std).
   `records::IsPlain<T>` decides plain data: never CString, std::string, stlp::vector or arrays of them (an array of

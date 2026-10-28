@@ -11,7 +11,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "lib/stlp.h"
 #include "lib/hash_map.h"
 #include "engine_object.h"
 #include "item_db.h"

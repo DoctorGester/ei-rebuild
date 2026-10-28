@@ -7,7 +7,6 @@
 // (chunk_stream.cpp, its own vector declaration and members).
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 
 #include <cstddef>
 #include <string>

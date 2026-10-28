@@ -13,7 +13,6 @@
 #include "terrain.h"
 
 #include "render/render.h"
-#include "lib/stlp.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 

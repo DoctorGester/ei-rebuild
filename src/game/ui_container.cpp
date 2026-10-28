@@ -5,7 +5,6 @@
 
 #include "ei/x87.h"
 #include "lib/containers.h"
-#include "lib/stlp.h"
 #include "game_data.h"
 
 namespace {
@@ -18,21 +17,12 @@ std::uint32_t FrameMilliseconds() { return SceneRenderer()->FrameTime(); }
 
 CUiContainer::CUiContainer(CInterface3D* ui) : CUiWindow(ui) {
     children_ = UiPtrArray<CUiWindow>{};
-    // The extra input sides (an empty STLport vector; the low byte of `ui` is stored as its allocator and
-    // overwritten with the null capacity at once).
-    inputsBegin_ = nullptr;
-    inputsEnd_ = nullptr;
-    inputsCapacity_ = nullptr;
 }
 
 CUiContainer::~CUiContainer() {
-    for (UiInputSide** side = inputsBegin_; side != inputsEnd_; ++side) delete *side;
+    for (UiInputSide* side : inputs_) delete side;
     for (int i = 0; i < std::ssize(children_); ++i) delete children_[i];
     children_.clear();
-    // The vector's storage goes back to the node pool (the pointers are left as they are).
-    if (inputsBegin_)
-        stlp::deallocate(inputsBegin_, static_cast<std::size_t>(inputsCapacity_ - inputsBegin_) * sizeof(UiInputSide*));
-    // The children array's destructor (its storage is already freed).
 }
 
 extern "C" int _purecall();
@@ -41,25 +31,8 @@ extern "C" int _purecall();
 void CUiContainer::CreateScreen() { _purecall(); }
 void CUiContainer::CloseScreen() { _purecall(); }
 
-// STLport's push_back: when full, a block of size + max(size, 1) pointers from the node pool
-// (_M_insert_overflow), the old block back to the pool.
 void CUiContainer::AddInput(UiInputSide* input) {
-    if (!input) return;
-    if (inputsEnd_ != inputsCapacity_) {
-        if (inputsEnd_) *inputsEnd_ = input;
-        ++inputsEnd_;
-        return;
-    }
-    std::size_t size = static_cast<std::size_t>(inputsEnd_ - inputsBegin_);
-    std::size_t length = size + (size > 1 ? size : 1);
-    auto** fresh = stlp::allocate_as<UiInputSide*>(length);
-    for (std::size_t i = 0; i < size; ++i) fresh[i] = inputsBegin_[i];
-    fresh[size] = input;
-    if (inputsBegin_)
-        stlp::deallocate(inputsBegin_, static_cast<std::size_t>(inputsCapacity_ - inputsBegin_) * sizeof(UiInputSide*));
-    inputsBegin_ = fresh;
-    inputsEnd_ = fresh + size + 1;
-    inputsCapacity_ = fresh + length;
+    if (input) inputs_.push_back(input);
 }
 
 // --- Per-frame slots ---------------------------------------------------------------------------
@@ -102,7 +75,7 @@ void CUiContainer::ShowChildren(int show) {
 void CUiContainer::Dispatch(int slot, int a, int b, int c, bool atPoint) {
     CUiContainer* self = this;
     handled_ = false;
-    for (UiInputSide** side = self->inputsBegin_; side != self->inputsEnd_; ++side) {
+    for (auto side = self->inputs_.begin(); side != self->inputs_.end(); ++side) {
         (*side)->handled_ = false;
         (*side)->Event(slot, a, b, c);
         if ((*side)->handled_) {
@@ -126,7 +99,7 @@ void CUiContainer::Dispatch(int slot, int a, int b, int c, bool atPoint) {
 
 void CUiContainer::Deactivate() {
     CUiContainer* self = this;
-    for (UiInputSide** side = self->inputsBegin_; side != self->inputsEnd_; ++side) (*side)->Deactivate();
+    for (auto side = self->inputs_.begin(); side != self->inputs_.end(); ++side) (*side)->Deactivate();
     for (int i = 0; i < std::ssize(self->children_); ++i) self->children_[i]->Input()->Deactivate();
 }
 
@@ -186,7 +159,7 @@ int CUiContainer::KeyUp(int key, int repeat, int flags) {
 int CUiContainer::Wheel(int flags, int delta, int x, int y) {
     CUiContainer* self = this;
     handled_ = false;
-    for (UiInputSide** side = self->inputsBegin_; side != self->inputsEnd_; ++side) {
+    for (auto side = self->inputs_.begin(); side != self->inputs_.end(); ++side) {
         (*side)->handled_ = false;
         (*side)->Wheel(flags, delta, x, y);
         if ((*side)->handled_) {

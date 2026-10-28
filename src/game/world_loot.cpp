@@ -113,48 +113,6 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
 
 namespace {
 
-// STLport list<unsigned> on the game's node pool (12-byte nodes {next, prev, value}); the constructor
-// allocates the head node, the destructor frees the nodes and the head. As in world_tick.cpp.
-class IdList {
-public:
-    struct Node {
-        Node* next;
-        Node* prev;
-        unsigned value;
-    };
-
-    IdList() {
-        head_ = stlp::allocate_as<Node>();
-        head_->next = head_->prev = head_;
-    }
-    ~IdList() {
-        for (Node* node = head_->next; node != head_;) {
-            Node* next = node->next;
-            stlp::deallocate(node, sizeof(Node));
-            node = next;
-        }
-        head_->next = head_->prev = head_;
-        stlp::deallocate(head_, sizeof(Node));
-    }
-    IdList(const IdList&) = delete;
-    IdList& operator=(const IdList&) = delete;
-
-    // insert(end(), value): create the node, then link it.
-    void PushBack(unsigned value) {
-        auto* node = stlp::allocate_as<Node>();
-        node->value = value;
-        node->next = head_;
-        node->prev = head_->prev;
-        head_->prev->next = node;
-        head_->prev = node;
-    }
-    Node* Begin() const { return head_->next; }
-    Node* End() const { return head_; }
-
-private:
-    Node* head_;
-};
-
 } // namespace
 
 void CWorldServer::LootDeadUnits() {
@@ -171,14 +129,14 @@ void CWorldServer::LootDeadUnits() {
     }
     if (!local) return;
 
-    IdList dead;
+    std::list<unsigned> dead;
     for (; node != objects_.map.end(); ++node) {
         CEngineObject* object = node->second;
         CUnit* unit = UnitOrNull(object);   // no null test here: the map holds no null
         if (unit && unit->IsDead()) {
             TheServerWorld()->Loot(unit, local);
-            dead.PushBack(static_cast<unsigned>(object->id_));
+            dead.push_back(static_cast<unsigned>(object->id_));
         }
     }
-    for (IdList::Node* id = dead.Begin(); id != dead.End(); id = id->next) TheServerWorld()->RemoveObject(id->value);
+    for (unsigned id : dead) TheServerWorld()->RemoveObject(id);
 }

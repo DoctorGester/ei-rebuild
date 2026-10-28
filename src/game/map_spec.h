@@ -7,7 +7,6 @@
 #include "maths.h"
 #include "unit_record.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "lib/hash_map.h"
 
 #include <cstddef>

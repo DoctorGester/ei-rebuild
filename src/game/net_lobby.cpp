@@ -10,7 +10,6 @@
 #include "net_messages.h"
 #include "net_coder.h"
 #include "lib/crt.h"
-#include "lib/stlp.h"
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"

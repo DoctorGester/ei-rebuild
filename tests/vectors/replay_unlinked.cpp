@@ -71,9 +71,7 @@ void ScriptFxSource::ScriptFxSourceLoad(ScriptStream*) EI_UNLINKED("ScriptFxSour
 void ScriptLightningElementsDestruct(ScriptLightning*, int) EI_UNLINKED("ScriptLightningElementsDestruct")
 
 // The game CRT's ports (crt.cpp, crt_x87.cpp read the game CRT's data)
-// that no replay reaches: the node allocator (stlp.cpp), srand (random.cpp), acos (quaternion.cpp).
-void* libcrt::NodeAllocate(std::size_t) EI_UNLINKED("libcrt::NodeAllocate")
-void libcrt::NodeDeallocate(void*, std::size_t) EI_UNLINKED("libcrt::NodeDeallocate")
+// that no replay reaches: srand (random.cpp), acos (quaternion.cpp).
 void libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
 double libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
 

@@ -11,7 +11,6 @@
 
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
-#include "../lib/stlp.h"
 #include "../lib/text_case.h"
 #include "ei/x87.h"
 #include "lib/crt.h"

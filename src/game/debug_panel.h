@@ -4,7 +4,6 @@
 // map<string, string> drawn as "key  value" lines into a panel surface of the interface. The frame
 // code (renderer_scene.cpp, ui_interface_draw.cpp) sets its lines, the console shortcuts remove them.
 
-#include "lib/stlp.h"
 #include <map>
 
 #include <windows.h>

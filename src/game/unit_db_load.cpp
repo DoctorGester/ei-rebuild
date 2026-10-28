@@ -8,7 +8,6 @@
 #include "lib/crt.h"
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 
 #include <string>
 #include <vector>

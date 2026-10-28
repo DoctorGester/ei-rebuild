@@ -243,8 +243,7 @@ Every rewritten function carries its address in its source comment (grep the add
 be here are gone. Where things live: `world_server.cpp` (lookups, setters, object-map iterators), `world_server_life.cpp`
 (server Setup / Teardown, slots 2 / 3; `hoover_` +0x140 is a CHoover), `world_update.cpp` (Tick, Update, AcceptNewPlayers),
 `world_save.cpp` / `world_map.cpp` / `world_create.cpp` (zone load and save, NewZone, EnsureZone, FindUnit),
-`world_quests.cpp`, `world_party.cpp`, `party_items.cpp`, `world_time.cpp`, `world_stamp_sort.cpp` (variable sorts, the
-template in `lib/stlp_algo.h`), `world_game.cpp` (GameFlow), `world_glue.cpp` (the small glue objects), `world_briefing.cpp`,
+`world_quests.cpp`, `world_party.cpp`, `party_items.cpp`, `world_time.cpp`, `world_game.cpp` (GameFlow), `world_glue.cpp` (the small glue objects), `world_briefing.cpp`,
 `world_map_files.cpp`, `world_savefile.cpp`, `world_sessions.cpp`, `world_class_slots.cpp`, `world_deleting_destructors.cpp`,
 `world_small_calls.cpp`, `world_client*.cpp` (frame, maps, setup, lights, draw, view, session), `figure_mesh*.cpp`,
 `figure_manager.cpp`, `figure_drawer.cpp`, the AI grids in `ai_grids.cpp` / `ai_unit_shape.cpp` / `ai_map_load.cpp` /

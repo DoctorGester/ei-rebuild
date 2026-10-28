@@ -6,7 +6,6 @@
 #include "console.h"
 
 #include "lib/file_io.h"
-#include "lib/stlp.h"
 #include "mob_script_decoder.h"
 #include "ei/x87.h"
 #include "lib/str.h"

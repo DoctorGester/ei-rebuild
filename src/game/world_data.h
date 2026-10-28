@@ -8,7 +8,6 @@
 #include "options.h"
 
 #include "engine_object.h"
-#include "lib/stlp.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "game_singletons.h"

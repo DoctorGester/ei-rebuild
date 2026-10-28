@@ -9,7 +9,6 @@
 #include "net_link.h"
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 
 namespace {
 

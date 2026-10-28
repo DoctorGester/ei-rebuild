@@ -15,7 +15,6 @@
 
 #include "ei/rebirth.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"

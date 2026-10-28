@@ -7,7 +7,6 @@
 #include "resource_manager.h"
 #include "world.h"
 
-#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>

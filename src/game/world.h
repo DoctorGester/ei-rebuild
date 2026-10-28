@@ -32,7 +32,6 @@
 #include "unit_looks.h"
 #include "water_tweens.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "lib/hash_map.h"
 #include "maths.h"
 #include "model.h"          // HeldTexture

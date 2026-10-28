@@ -9,7 +9,6 @@
 #include "spell.h"
 
 #include "lib/crt.h"
-#include "lib/stlp.h"
 
 #include <cstring>
 #include <iterator>

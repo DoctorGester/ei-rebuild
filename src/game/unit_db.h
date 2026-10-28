@@ -9,7 +9,6 @@
 #include "lib/mfc.h"
 #include "maths.h"
 
-#include "lib/stlp.h"
 #include "lib/static_object.h"
 #include "unit_create.h"
 

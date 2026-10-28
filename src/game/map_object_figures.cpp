@@ -7,7 +7,6 @@
 #include "world.h"   // CWorld: the figure manager and cache
 
 #include "lib/crt.h"
-#include "lib/stlp.h"
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"

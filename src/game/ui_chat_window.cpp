@@ -14,7 +14,6 @@
 #include "unit_db.h"
 
 #include "ei/rebirth.h"
-#include "lib/stlp.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
