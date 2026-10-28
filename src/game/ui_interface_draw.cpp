@@ -141,7 +141,7 @@ void CInterface3D::DrawOverlays() {
         // A window opens over the screen: the screen greyed behind it.
         if (!backdrop_) MakeBackdrop(this);
         backdrop_->CaptureScreen();
-        if (block5C_) gamecrt::operator_delete(block5C_);
+        if (block5C_) delete[] block5C_;
         block5C_ = backdrop_->Rgb565Copy(0x100, 0xC0);
         backdrop_->Greyscale();
         backdropMode_ = 2;

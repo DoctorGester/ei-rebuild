@@ -1,5 +1,4 @@
-// MFC 4.2's handle maps, CMapPtrToPtr, CRuntimeClass::CreateObject and the new handler, registered
-// at their library addresses (mfc_handle_map.h).
+// MFC 4.2's handle maps, CMapPtrToPtr and CRuntimeClass::CreateObject (mfc_handle_map.h).
 #include "mfc_handle_map.h"
 
 #include "mfc_exception.h"
@@ -15,7 +14,7 @@ namespace {
 std::uint32_t HashKey(const void* key) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(key)) >> 4; }
 } // namespace
 
-// ---- CRuntimeClass and the new handler ------------------------------------------------------------
+// ---- CRuntimeClass ---------------------------------------------------------------------------------
 
 void* CRuntimeClass::CreateObject() const {
     if (!create) return nullptr;
@@ -28,22 +27,6 @@ void* CRuntimeClass::CreateObject() const {
     return object;
 }
 
-constinit gamecrt::NewHandler g_afxNewHandler = /*00796E14*/ {DefaultNewHandler};
-
-gamecrt::NewHandler SetAfxNewHandler(gamecrt::NewHandler handler) {
-    const gamecrt::NewHandler old = g_afxNewHandler;
-    g_afxNewHandler = handler;
-    return old;
-}
-
-int CriticalNewHandler(std::size_t) {
-    ThrowMemoryException();
-}
-
-int __cdecl DefaultNewHandler(std::size_t) {
-    ThrowMemoryException();
-}
-
 CMapPtrToPtr::CMapPtrToPtr(int size) : blockSize(size) {}
 
 CMapPtrToPtr::~CMapPtrToPtr() { RemoveAll(); }
@@ -53,11 +36,11 @@ const CRuntimeClass* CMapPtrToPtr::GetRuntimeClass() const { return &kClassCMapP
 // The old table is deleted; a new one of `size` empty buckets only when asked for.
 void CMapPtrToPtr::InitHashTable(std::uint32_t size, BOOL allocNow) {
     if (table) {
-        gamecrt::operator_delete(table);
+        delete[] table;
         table = nullptr;
     }
     if (allocNow) {
-        table = gamecrt::operator_new_array<Assoc*>(size);
+        table = new Assoc*[size];
         std::memset(table, 0, size * sizeof(Assoc*));
     }
     hashSize = size;
@@ -65,7 +48,7 @@ void CMapPtrToPtr::InitHashTable(std::uint32_t size, BOOL allocNow) {
 
 void CMapPtrToPtr::RemoveAll() {
     if (table) {
-        gamecrt::operator_delete(table);
+        delete[] table;
         table = nullptr;
     }
     count = 0;
@@ -193,17 +176,9 @@ void* CHandleMap::FromHandle(HANDLE handle) {
         SetHandles(object, handle);
         return object;
     }
-    const gamecrt::NewHandler old = SetAfxNewHandler(CriticalNewHandler);
-    void* object;
-    try {
-        object = objectClass->CreateObject();
-        if (!object) ThrowMemoryException();
-        *temporaryMap.At(handle) = object;
-    } catch (::CException*) {
-        SetAfxNewHandler(old);
-        throw;
-    }
-    SetAfxNewHandler(old);
+    void* object = objectClass->CreateObject();
+    if (!object) ThrowMemoryException();
+    *temporaryMap.At(handle) = object;
     SetHandles(object, handle);
     return object;
 }

@@ -16,8 +16,6 @@ public:
     CCloudNoise(const CCloudNoise&) = delete;
     CCloudNoise& operator=(const CCloudNoise&) = delete;
 
-    static void* operator new(std::size_t size) noexcept;
-    static void operator delete(void* block);
 
     virtual void MakeLayer(std::uint8_t* out) = 0;
     virtual void Generate(std::uint8_t* out, int step) = 0;

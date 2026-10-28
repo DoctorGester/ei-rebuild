@@ -23,10 +23,6 @@ public:
     virtual const void* GetRuntimeClass() const;
     virtual ~CDib();
 
-    static void* operator new(std::size_t size) noexcept;
-    static void* operator new(std::size_t, void* place) noexcept { return place; }
-    static void operator delete(void* block);
-    static void operator delete(void*, void*) noexcept {}
 
     // A new header for `width` x `height` pixels of `bitCount` bits, without a colour table and without bits
     // (AllocateBits). 16 and 32 bits: BI_BITFIELDS with the three channel masks after the header.

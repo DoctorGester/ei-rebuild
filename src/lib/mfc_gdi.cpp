@@ -93,13 +93,11 @@ public:
     static void operator delete(void* block) { TempDCAlloc().Free(block); }
 };
 
-// A map of the image's thread, made as afxMapHDC / afxMapHGDIOBJ make it (under the critical new
+// A map of the image's thread, made as afxMapHDC / afxMapHGDIOBJ make it (MFC's under its critical new
 // handler). The thread state's destructor frees MFC's; the image's live until the process ends.
 CHandleMap* MakeMap(CHandleMap*& map, BOOL create, const CRuntimeClass* objectClass, unsigned handleOffset, int handleCount) {
     if (!map && create) {
-        const gamecrt::NewHandler old = SetAfxNewHandler(CriticalNewHandler);
         map = new CHandleMap(objectClass, handleOffset, handleCount);
-        SetAfxNewHandler(old);
     }
     return map;
 }

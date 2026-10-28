@@ -54,8 +54,6 @@ void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(
 
 // ---- The base record ---------------------------------------------------------------
 
-void* Spec::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void Spec::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 Spec::Spec() : Chunk(nullptr) {
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};

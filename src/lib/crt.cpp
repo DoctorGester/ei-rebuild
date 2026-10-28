@@ -1,5 +1,4 @@
 #include "crt.h"
-#include "mfc_handle_map.h"
 
 #include "ei/x87.h"
 #include "gameapi.h"
@@ -16,13 +15,6 @@
 #include <new>
 
 namespace gamecrt {
-
-#ifndef EI_VECTORS_REPLAY   // ei_vectors defines these (crt.h)
-void* operator_new(std::size_t size) { return libcrt::OperatorNew(size); }
-void operator_delete(void* p) { libcrt::OperatorDelete(p); }
-void* malloc(std::size_t size) { return libcrt::Malloc(size); }
-void free(void* p) { libcrt::Free(p); }
-#endif
 
 namespace {
 RandObserver g_randObserver;
@@ -213,72 +205,6 @@ unsigned Controlfp(unsigned value, unsigned mask) {
     return word;
 }
 
-// ---- The runtime the image owns ------------------------------------------------------------------
-
-// malloc and free are the host CRT's (VC6's were HeapAlloc / HeapFree on a heap of their own, the size
-// rounded up to 16 bytes).
-void* Malloc(std::size_t size) { return std::malloc(size); }
-
-void Free(void* p) { std::free(p); }
-
-void* OperatorNew(std::size_t size) {
-    for (;;) {
-        if (void* p = Malloc(size)) return p;
-        const gamecrt::NewHandler handler = mfc::impl::g_afxNewHandler;
-        if (!handler || !handler(size)) return nullptr;
-    }
-}
-
-void OperatorDelete(void* p) { Free(p); }
-
 } // namespace libcrt
 
 #endif
-
-namespace libcrt {
-
-// ---- eh vector constructor / destructor iterator (ei_vectors too) ----
-
-namespace {
-// Destroys `left` elements below `end`, last first, when the loop it guards is left by an exception
-// (__ArrayUnwind).
-struct ArrayUnwind {
-    char*& end;
-    std::size_t size;
-    int& left;
-    ElementFunction destroy;
-    bool done = false;
-    ~ArrayUnwind() {
-        if (done) return;
-        char* p = end;
-        while (--left >= 0) {
-            p -= size;
-            destroy(p, nullptr);
-        }
-    }
-};
-} // namespace
-
-void ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
-                                 ElementFunction destroy) {
-    char* p = static_cast<char*>(array);
-    int constructed = 0;
-    ArrayUnwind unwind{p, size, constructed, destroy};
-    for (; constructed < count; ++constructed) {
-        construct(p, nullptr);
-        p += size;
-    }
-    unwind.done = true;
-}
-
-void DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy) {
-    char* p = static_cast<char*>(array) + size * count;
-    ArrayUnwind unwind{p, size, count, destroy};
-    while (--count >= 0) {
-        p -= size;
-        destroy(p, nullptr);
-    }
-    unwind.done = true;
-}
-
-} // namespace libcrt

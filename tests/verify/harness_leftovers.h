@@ -28,7 +28,7 @@
 // (AddSuspectionMode / AddFearMode allocate them zeroed; the calls of their constructors 004BA610 /
 // 005D2850 from ApplyBehaviour 005D6630 and the script zero their fields first): Evaluate 005D1E90
 // keeps a Suspection point that compares the same and the lower level, so its leftovers picked the
-// brain's mode. Ours does the same (gamecrt::operator_new_zeroed, SuspectionMode / FearMode::
+// brain's mode. Ours does the same (`new (kZeroed)`, SuspectionMode / FearMode::
 // ClearFields). These families are patched only with EI_NO_HOOKS=1: every site sits in a function ours
 // replaces, and a harness patch in a body makes InstallHooks leave the rewrite out.
 //

@@ -14,10 +14,6 @@
 namespace net {
 
 namespace {
-// An id pool's destructor (Reset's teardown): its vector of free ids freed.
-void IdPoolDestruct(IdPool* pool) { std::destroy_at(&pool->free); }
-// The CRT's eh vector constructor / destructor iterators take them as libcrt::Element<...>.
-using libcrt::Element;
 
 void Put32(void* object, std::size_t offset, std::uint32_t v) { std::memcpy(static_cast<std::uint8_t*>(object) + offset, &v, 4); }
 
@@ -38,7 +34,7 @@ void DestroyForReset(Connection* c) {
     std::destroy_at(&c->byObject_);
     std::destroy_at(&c->bySentId_);
     std::destroy_at(&c->freedIds_);
-    libcrt::DestroyElements(c->idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolDestruct>);
+    for (int i = kMessageTypes; i-- > 0;) std::destroy_at(&c->idPools_[i].free);   // the last first
     FreeReceived(c);
 }
 

@@ -21,7 +21,6 @@ public:
         flags = 0;
     }
     ~BufferedStream() override { ReleaseBlock(); }
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     void ReserveRead(std::int32_t size) override { ReserveReadWindow(size); }
     void ReserveWrite(std::int32_t size) override { ReserveWriteWindow(size); }

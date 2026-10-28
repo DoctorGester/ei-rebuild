@@ -67,15 +67,13 @@ void Begin(CUiSurface* self, CInterface3D* ui, int format) {
 
 } // namespace
 
-void* CUiSurface::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void CUiSurface::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 // The destructor: frees the kept bytes (a total), takes the surface's height * pitch off the surface-bytes
 // total, drops the holder and empties the screen rectangle.
 CUiSurface::~CUiSurface() {
     ui_native::Forget(this);
     if (std::uint8_t* kept = kept_) {
-        gamecrt::operator_delete(kept);
+        delete[] kept;
         kept_ = nullptr;
         UiSurfaceKeptBytes() -= keptSize_;
     }

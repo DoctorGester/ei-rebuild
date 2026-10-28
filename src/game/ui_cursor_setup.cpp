@@ -95,7 +95,7 @@ void ReleaseHolder(CDXSurface*& slot) {
 } // namespace
 
 void CursorImage::Destroy() {
-    gamecrt::operator_delete(saved);
+    delete[] saved;
     if (holder) holder->Release();
 }
 

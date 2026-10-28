@@ -16,14 +16,14 @@ bool CStream::ReadTagged(std::uint32_t* tag, CStream* out) {
     size -= 8;
     out->Clear();
     out->reading_ = 0;
-    void* block = gamecrt::operator_new(size);
+    auto* block = new std::uint8_t[size];
     if (Read(block, size) != size) {
-        gamecrt::operator_delete(block);
+        delete[] block;
         return false;
     }
     out->Write(block, size);
     out->Seek(0);
-    gamecrt::operator_delete(block);
+    delete[] block;
     return true;
 }
 

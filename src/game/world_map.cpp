@@ -147,17 +147,9 @@ void CWorldServer::ResetZone() {
     counted_.clear();
 
     if (PlayerList()) {
-        auto* it = gamecrt::operator_new_as<PlayerIterator>();
-        if (it) it->manager = nullptr;
-        for (CPlayer* player = it->First(PlayerList()); player; player = it->Next())
+        PlayerIterator it;
+        for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
             player->Clear();
-        if (it) {
-            if (it->manager) {
-                --it->manager->refCount_;
-                it->manager = nullptr;
-            }
-            gamecrt::operator_delete(it);
-        }
     }
 
     for (auto& [id, object] : objects_.map) {

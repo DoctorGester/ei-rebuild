@@ -46,14 +46,6 @@ bool IsPrimaryKind(int kind) {
     }
 }
 
-// A value-initialised part set or group; null when the allocation fails (the callers then write
-// through null, as the game does).
-template <typename T>
-T* NewZeroed() {
-    auto* p = gamecrt::operator_new_as<T>();
-    return p ? new (p) T() : nullptr;
-}
-
 // `part` taken out of the group that holds it (the tail moved down) and released: true, or false
 // when no group of either set holds it (slots 14 / 15 share the loop).
 bool RemoveFromGroups(CObject3DClientSpecific* self, CFigureMesh* part) {
@@ -185,7 +177,7 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
     int k = IsPrimaryKind(kind) ? 0 : 1;
     TextureParts* set;
     if (!partSets[k]) {
-        set = NewZeroed<TextureParts>();
+        set = new TextureParts();
         set->texture = ClientWorld()->NewTexture(kind);
         partSets[k] = set;
         int count = std::ssize(textures);
@@ -223,7 +215,7 @@ CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int mater
         CMaterial* material = set->groups[g]->material;
         if (material && material->type_ == materialKind) return set->groups[g]->material;
     }
-    PartGroup* group = NewZeroed<PartGroup>();
+    PartGroup* group = new PartGroup();
     CMaterial* material = ClientWorld()->NewMaterial(materialKind);
     group->material = material;
     ++material->refCount_;

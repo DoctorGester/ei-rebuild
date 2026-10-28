@@ -37,7 +37,7 @@ PlainArray<T, Class>* PlainArray<T, Class>::Construct() {
 template <typename T, typename Class>
 void PlainArray<T, Class>::Destruct() {
     vtable = Class::Vtable();
-    gamecrt::operator_delete(data);
+    delete[] data;
 }
 
 template <typename T, typename Class>
@@ -53,11 +53,11 @@ template <typename T, typename Class>
 void PlainArray<T, Class>::SetSize(int newSize, int newGrowBy) {
     if (newGrowBy != -1) growBy = newGrowBy;
     if (newSize == 0) {
-        gamecrt::operator_delete(data);
+        delete[] data;
         data = nullptr;
         size = maxSize = 0;
     } else if (!data) {
-        data = gamecrt::operator_new_array<T>(static_cast<std::size_t>(newSize));
+        data = new T[static_cast<std::size_t>(newSize)];
         std::memset(data, 0, static_cast<std::size_t>(newSize) * sizeof(T));
         size = maxSize = newSize;
     } else if (newSize <= maxSize) {
@@ -66,10 +66,10 @@ void PlainArray<T, Class>::SetSize(int newSize, int newGrowBy) {
     } else {
         int step = GrowthStep(growBy, size);
         int newMax = newSize < maxSize + step ? maxSize + step : newSize;
-        T* fresh = gamecrt::operator_new_array<T>(static_cast<std::size_t>(newMax));
+        T* fresh = new T[static_cast<std::size_t>(newMax)];
         std::memcpy(fresh, data, static_cast<std::size_t>(size) * sizeof(T));
         std::memset(fresh + size, 0, static_cast<std::size_t>(newSize - size) * sizeof(T));
-        gamecrt::operator_delete(data);
+        delete[] data;
         data = fresh;
         size = newSize;
         maxSize = newMax;

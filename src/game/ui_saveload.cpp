@@ -401,7 +401,7 @@ void QuickSave(const char* slot, char stepFrame) {
     shot.Open((folder + game::savewords::ShotFile()), kOpenWrite);
     shot.Write(pixels, kShotBytes);
     shot.Close();
-    gamecrt::operator_delete(pixels);
+    delete[] pixels;
     if (surface != nullptr) {
         delete surface;
     }

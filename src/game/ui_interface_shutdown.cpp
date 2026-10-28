@@ -72,7 +72,7 @@ void CInterface3D::Shutdown() {
     backdrop_ = nullptr;
     DeleteSurface(secondBackdrop_);
     secondBackdrop_ = nullptr;
-    if (block5C_) gamecrt::operator_delete(block5C_);
+    if (block5C_) delete[] block5C_;
     block5C_ = nullptr;
     DebugInfoPanel()->Release();
     if (root_) {

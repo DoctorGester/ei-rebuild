@@ -24,11 +24,6 @@ public:
     virtual ~CRefCounted() {}
     virtual void Serialize(ChunkArchive*) {}
 
-    // Counted objects live on the game's heap: null without memory, and then no constructor runs.
-    static void* operator new(std::size_t size) noexcept;
-    static void* operator new(std::size_t, void* place) noexcept { return place; }
-    static void operator delete(void* block);
-    static void operator delete(void*, void*) noexcept {}
 
     std::int16_t refs_;
     std::uint8_t flags6_;

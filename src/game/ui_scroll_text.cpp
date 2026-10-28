@@ -265,7 +265,7 @@ void CUiScrollText::PlaceText(const RECT& rect) {
 CUiScrollText::~CUiScrollText() {
     DeleteTokens();
     tokens_.clear();
-    for (int i = 0; i < std::ssize(lines_); ++i) gamecrt::operator_delete(lines_[i]);
+    for (int i = 0; i < std::ssize(lines_); ++i) delete lines_[i];
     lines_.clear();
 }
 
@@ -312,12 +312,12 @@ void CUiScrollText::Layout() {
         std::string sample = FontSampleText();
         heights[f] = TextExtent(interface_, sample, f).cy;
     }
-    for (int i = 0; i < std::ssize(lines_); ++i) gamecrt::operator_delete(lines_[i]);
+    for (int i = 0; i < std::ssize(lines_); ++i) delete lines_[i];
     lines_.clear();
 
     for (int t = 0; t < std::ssize(tokens_); ++t) {
         // (The original does not check the allocation.)
-        auto* line = gamecrt::operator_new_as<UiTextLine>();
+        auto* line = new UiTextLine;
         int height = heights[font];
         line->firstToken_ = t;
         line->height_ = height;
@@ -361,8 +361,6 @@ void CUiScrollbar::SetMaximum(int maximum) {
 
 // --- The tokens' destructors ---------------------------------------------------------------------
 
-void* UiTextToken::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void UiTextToken::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 UiFormatToken::UiFormatToken(int font) : UiTextToken(kFormatType), newline_(false), font_(font), colour_(kConstructedColour) {}
 

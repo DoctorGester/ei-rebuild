@@ -36,7 +36,7 @@ void CParticleManager::Destroy() {
     while (!freeParticles.empty()) {
         Particle* p = freeParticles.front();
         freeParticles.pop_front();
-        gamecrt::operator_delete(p);
+        delete p;
     }
     CBaseManager::Destroy();
     quietStart = 0;

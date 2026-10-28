@@ -171,11 +171,11 @@ void Terrain::ClearMap() {
     sectorsY = -1;
     mapLoaded = 0;
     for (float*& table : uvTables) {
-        if (table) gamecrt::operator_delete(table);
+        if (table) delete[] table;
         table = nullptr;
     }
     for (float*& table : uvTablesLast) {
-        if (table) gamecrt::operator_delete(table);
+        if (table) delete[] table;
         table = nullptr;
     }
 }
@@ -527,14 +527,14 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     const float margin = static_cast<float>(static_cast<float>(static_cast<double>(tileSide) / tileSize) * kMarginPixels);
     const std::size_t tableBytes = static_cast<std::size_t>(perPage * kUvFloats * static_cast<int>(sizeof(float)));
     for (int rotation = 0; rotation < 4; ++rotation) {
-        uvTables[rotation] = gamecrt::operator_new_bytes_as<float>(tableBytes);
+        uvTables[rotation] = new float[tableBytes / sizeof(float)];
         int index = 0;
         for (int row = 0; row < tilesPerRow; ++row)
             for (int column = 0; column < tilesPerRow; ++column, ++index)
                 BuildTileUv(uvTables[rotation] + index * kUvFloats, rotation, column, row, tileSide, margin, 0);
     }
     for (int rotation = 0; rotation < 4; ++rotation) {
-        uvTablesLast[rotation] = gamecrt::operator_new_bytes_as<float>(tableBytes);
+        uvTablesLast[rotation] = new float[tableBytes / sizeof(float)];
         for (int column = 0; column < tilesPerRow; ++column)
             BuildTileUv(uvTablesLast[rotation] + column * kUvFloats, rotation, column, 0, tileSide, margin, 1);
     }

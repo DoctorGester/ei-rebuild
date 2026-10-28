@@ -67,16 +67,12 @@ struct LoadedFile {
 };
 
 // The base of the archive readers (ResourceBaseClass in the game's messages; slot 0 is the scalar
-// deleting destructor): the archive header and tables, and an index table (accelerator) from
-// numbers to entries built by CreateAccelTable (only called by the unused).
+// deleting destructor): the archive header and tables. (The game's index table from numbers to
+// entries, CreateAccelTable's, is never built: it has no caller.)
 class CResourceBase {
 public:
     CResourceBase();                                // fields cleared
     virtual ~CResourceBase();
-    // The deleting destructors free into the game's heap (resource_stream.cpp).
-    static void operator delete(void* block);
-
-    void FreeAccelTable();
 
     // Index of the entry named `name` (case-insensitive), or -1.
     int FindEntry(const char* name) const;
@@ -84,10 +80,7 @@ public:
     ResHeader header_;
     ResEntry* entries_;
     char* names_;
-    int* accelTable_;
-    std::uint32_t accelCount_;
 };
-static_assert(sizeof(CResourceBase) == 0x24);
 
 // Reads an archive with low-level file I/O, loading individual files into memory on request.
 class CMappedResource : public CResourceBase {

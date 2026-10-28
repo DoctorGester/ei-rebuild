@@ -582,16 +582,14 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
 // --- The factory ------------------------------------------------------------------------------
 
 namespace {
-using Constructor = void*(*)(void* block);
 struct FactoryEntry {
     int classId;
-    std::size_t size;
-    Constructor constructor;
+    CEngineObject* (*create)();
 };
-// The class's entry: its id, its size (the block NewObject allocates) and its constructor.
+// The class's entry: its id and a new object of it.
 template <class T>
 constexpr FactoryEntry Make(int classId) {
-    return {classId, sizeof(T), ConstructOn<T>};
+    return {classId, [] () -> CEngineObject* { return new (kZeroed) T(); }};
 }
 constexpr FactoryEntry kFactory[] = {
     Make<CUnit>(0x32),
@@ -609,14 +607,12 @@ constexpr FactoryEntry kFactory[] = {
 };
 } // namespace
 
-// Every object starts zeroed (operator_new_zeroed): the units' constructors leave levels4C8 and the
+// Every object starts zeroed (kZeroed): the units' constructors leave levels4C8 and the
 // motion's turn fields, which the saves write.
 CEngineObject* CMapObjectManager::NewObject(int classId) {
     for (const FactoryEntry& entry : kFactory) {
         if (entry.classId != classId) continue;
-        void* block = gamecrt::operator_new_zeroed(entry.size);
-        if (!block) return nullptr;
-        return static_cast<CEngineObject*>(entry.constructor(block));
+        return entry.create();
     }
     return nullptr;
 }

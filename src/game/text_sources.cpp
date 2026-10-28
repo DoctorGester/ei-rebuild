@@ -80,8 +80,7 @@ void CloseAndDelete(CMappedResource* source) {
 BOOL TextSources::Add(const char* path, BOOL writable) {
     for (const TextSource& archive : archives)
         if (SameName(archive, path)) return 1;
-    CMappedResource* memory = gamecrt::operator_new_as<CMappedResource>();
-    CMappedResource* resource = memory ? new (memory) CMappedResource() : nullptr;
+    auto* resource = new CMappedResource();
     archives.push_back(TextSource{std::string(path), resource});
     return archives.back().source->OpenResource(path, writable);
 }

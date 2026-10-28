@@ -158,8 +158,7 @@ int CLinkFigureLoader::AddArchive(const std::string* path) {
         if (archive.name == *path) return 1;
 
     LinkArchive& archive = archives_.emplace_back(*path);
-    CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();
-    CMappedResource* resource = memory ? new (memory) CMMIOResource() : nullptr;
+    CMappedResource* resource = new CMMIOResource();
     archive.resource = resource;
     if (resource->OpenResource(path->data(), 0)) return 1;
 

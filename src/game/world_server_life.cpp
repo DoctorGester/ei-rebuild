@@ -69,21 +69,13 @@ int CWorldServer::Create() {
 }
 
 void CWorldServer::Destroy() {
-    // Every player disconnected and released (a heap iterator).
-    auto* it = gamecrt::operator_new_as<PlayerIterator>();
-    if (it) it->manager = nullptr;
+    // Every player disconnected and released.
+    PlayerIterator it;
     if (PlayerList()) {
-        for (CPlayer* player = it->First(PlayerList()); player; player = it->Next()) {
+        for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
             player->Disconnect();
             PlayerList()->ReleasePlayer(player);
         }
-    }
-    if (it) {
-        if (it->manager) {
-            --it->manager->refCount_;
-            it->manager = nullptr;
-        }
-        gamecrt::operator_delete(it);
     }
 
     if (hoover_) {

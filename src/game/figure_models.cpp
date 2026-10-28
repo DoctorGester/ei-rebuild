@@ -59,8 +59,7 @@ CMappedResource* FigureModel::FindAnimation(const std::string* name) {
     if (auto found = map->find(*name); found != map->end()) return found->second;
     void* data = animations->GetFile(name->data(), nullptr);
     if (data) {
-        CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();
-        CMappedResource* animation = memory ? new (memory) CMMIOResource() : nullptr;
+        CMappedResource* animation = new CMMIOResource();
         *AnimationSlot(map, name) = animation;
         (*AnimationSlot(map, name))->OpenFromMemory(data);
     }
@@ -75,8 +74,7 @@ FigureModel* ConstructFigureModel(FigureModel* model) {
     static constexpr CMappedResource* FigureModel::*kArchives[3] = {&FigureModel::mesh, &FigureModel::bones,
                                                                     &FigureModel::animations};
     for (CMappedResource* FigureModel::*archive : kArchives) {
-        CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();
-        model->*archive = memory ? new (memory) CMMIOResource() : nullptr;
+        model->*archive = new CMMIOResource();
     }
     return model;
 }

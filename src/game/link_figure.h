@@ -155,8 +155,6 @@ public:
                             Vector2* points, float* bounds) = 0;
     virtual int RasterisePart(const std::string* name, const RasterTriangle::Point* pixels, RasterTarget* target) = 0;
 
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
-
     int refCount_;
     std::string name_;
     LinkHeaderMap headers_;

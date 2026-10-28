@@ -11,7 +11,7 @@ namespace mfc::impl {
 
 
 CPlex* CreatePlex(CPlex*& head, unsigned count, unsigned elementSize) {
-    auto* block = gamecrt::operator_new_bytes_as<CPlex>(sizeof(CPlex) + count * elementSize);
+    auto* block = static_cast<CPlex*>(::operator new(sizeof(CPlex) + count * elementSize));
     block->next = head;
     head = block;
     return block;
@@ -20,7 +20,7 @@ CPlex* CreatePlex(CPlex*& head, unsigned count, unsigned elementSize) {
 int FreePlexChain(CPlex* head) {
     while (head) {
         CPlex* next = head->next;
-        gamecrt::operator_delete(head);
+        ::operator delete(head);
         head = next;
     }
     return 0;

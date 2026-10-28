@@ -355,9 +355,6 @@ public:
     // Releases the kept bytes and the DirectDraw surface. Not virtual (a window's surface list destroys a
     // scrolling surface as a plain one).
     ~CUiSurface();
-    // The game's heap (null without memory: then no constructor runs).
-    static void* operator new(std::size_t size) noexcept;
-    static void operator delete(void* block);
     // Onto the render target, when shown.
     virtual void Blit();
 
@@ -497,11 +494,6 @@ struct UiInputSide {
     // Events 2-11 by number (the containers' dispatch).
     int Event(int slot, int a, int b, int c);
 
-    // The game's heap; `new` gives null without memory and then constructs nothing.
-    static void* operator new(std::size_t size) noexcept;
-    static void* operator new(std::size_t, void* place) noexcept { return place; }
-    static void operator delete(void* block);
-    static void operator delete(void*, void*) noexcept {}
 
     CInterface3D* interface_;
     bool handled_;                   // set by a handler that used the event
@@ -528,8 +520,6 @@ class CUiWindow : public CUiWindowBase, public UiInputSide {
 public:
     explicit CUiWindow(CInterface3D* ui);
     ~CUiWindow() override;
-    using CEngineObject::operator new;
-    using CEngineObject::operator delete;
 
     // The class name is "Sorry, no other way." and the id 0x45.
     int Create() override;
@@ -1569,9 +1559,6 @@ struct UiWordToken;
 struct UiTextToken {
     explicit UiTextToken(int type) : type_(type) {}
     virtual ~UiTextToken();
-    // The game's heap (null without memory: then no constructor runs).
-    static void* operator new(std::size_t size) noexcept;
-    static void operator delete(void* block);
     UiFormatToken* AsFormat();
     const UiFormatToken* AsFormat() const;
     UiWordToken* AsWord();

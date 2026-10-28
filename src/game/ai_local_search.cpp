@@ -314,8 +314,7 @@ void LocalSearch::CommitDirections() {
 
 void LocalSearch::SaveLevels(bool clear) {
     if (levels.width != kWindow || levels.height != kWindow) {
-        gamecrt::operator_delete(levels.data);
-        gamecrt::operator_delete(levels.rows);
+        FreeGrid(levels);
         levels.width = kWindow;
         levels.height = kWindow;
         AllocateGrid(levels);
@@ -356,8 +355,7 @@ void LocalSearch::Attach(CAIMap* mapArg, bool backwardArg) {
     map = mapArg;
     backward = backwardArg;
     if (nodes.width != kWindow || nodes.height != kWindow) {
-        gamecrt::operator_delete(nodes.data);
-        gamecrt::operator_delete(nodes.rows);
+        FreeGrid(nodes);
         nodes.width = kWindow;
         nodes.height = kWindow;
         AllocateGrid(nodes);
@@ -435,7 +433,6 @@ bool LocalSearch::Recenter(int x0, int y0, int x1, int y1, bool settleInside) {
         }
     }
     PickCurrent();
-    gamecrt::operator_delete(old.data);
-    gamecrt::operator_delete(old.rows);
+    FreeGrid(old);
     return true;
 }

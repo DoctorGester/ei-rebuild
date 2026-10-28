@@ -102,9 +102,7 @@ int CMaterialManager::Create() {
 }
 
 CEngineObject* CMaterialManager::NewObject(int type) {
-    CMaterial* block = gamecrt::operator_new_as<CMaterial>();
-    if (!block) return nullptr;
-    auto* material = new (block) CMaterial();
+    auto* material = new CMaterial();
     material->type_ = type;
     return material;
 }

@@ -39,8 +39,6 @@ void LinkDibClass() { mfc::impl::AfxClassInit(&g_classCDib); }
 
 std::uint32_t DibImageSize(const BITMAPINFOHEADER* header) { return ImageSize(header); }
 
-void* CDib::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void CDib::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 CDib::CDib() {
     bitsOwner = kNotOwned;
@@ -76,7 +74,7 @@ void CDib::Create(int width, int height, int bitCount, std::uint32_t red, std::u
     headerOwner = kNotOwned;
     Empty();
     maskBytes = HasMasks(bitCount) ? kMaskBytes : 0;
-    header = gamecrt::operator_new_bytes_as<BITMAPINFOHEADER>(maskBytes + sizeof(BITMAPINFOHEADER));
+    header = static_cast<BITMAPINFOHEADER*>(::operator new(maskBytes + sizeof(BITMAPINFOHEADER)));
     headerOwner = kNew;
     header->biSize = sizeof(BITMAPINFOHEADER);
     header->biWidth = width;
@@ -111,12 +109,12 @@ void CDib::Empty() {
         file = nullptr;
     }
     if (headerOwner == kNew) {
-        gamecrt::operator_delete(header);
+        ::operator delete(header);
     } else if (headerOwner == kGlobal) {
         GlobalUnlock(headerMemory);
         GlobalFree(headerMemory);
     }
-    if (bitsOwner == kNew) gamecrt::operator_delete(bits);
+    if (bitsOwner == kNew) delete[] bits;
     if (palette) DeleteObject(palette);
     palette = nullptr;
     if (bitmap) DeleteObject(bitmap);
@@ -152,7 +150,7 @@ int CDib::MakePalette() {
     if (palette) DeleteObject(palette);
     // A LOGPALETTE's header is four bytes; its entries follow.
     auto* description = static_cast<LOGPALETTE*>(
-        gamecrt::operator_new(static_cast<std::size_t>(colourCount) * sizeof(PALETTEENTRY) + 4));
+        ::operator new(static_cast<std::size_t>(colourCount) * sizeof(PALETTEENTRY) + 4));
     description->palVersion = kPaletteVersion;
     description->palNumEntries = static_cast<WORD>(colourCount);
     for (int i = 0; i < colourCount; ++i) {
@@ -163,7 +161,7 @@ int CDib::MakePalette() {
         entry.peFlags = 0;
     }
     palette = CreatePalette(description);
-    gamecrt::operator_delete(description);
+    ::operator delete(description);
     return 1;
 }
 
@@ -171,7 +169,7 @@ std::uint8_t* CDib::AllocateBits() {
     if (header) {
         const std::uint32_t bytes = static_cast<std::uint32_t>(header->biBitCount >> 3) * header->biPlanes *
                                     header->biHeight * header->biWidth;
-        bits = gamecrt::operator_new_array<std::uint8_t>(bytes);
+        bits = new std::uint8_t[bytes];
         bitsOwner = kNew;
     }
     return bits;

@@ -28,8 +28,6 @@ int QuickItemRecord::Kind() { return 0x3006; }
 int QuestItemRecord::Kind() { return 0x3009; }
 int LootItemRecord::Kind() { return 0x3007; }
 
-void* ItemRecordHead::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void ItemRecordHead::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     text04 = source->text04;

@@ -19,8 +19,6 @@ const char* MenusArchive() { return "menus.res"; }
 
 } // namespace
 
-void* CLinkFigureLoader::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void CLinkFigureLoader::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 // An empty archive list, figure set table and cache, the device object counted, the transform object taken
 // from its pipeline, then the two archives of `folder` opened (a failure is only logged). The original also

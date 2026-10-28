@@ -331,10 +331,6 @@ class CParticleSource final : public CTransformObject {
 public:
     explicit CParticleSource(int type);
     ~CParticleSource() override;
-    // Sources start zeroed: nothing here or in Reset sets the emission point (origin) and the first Tick takes the
-    // motion from it. The harness zeroes the game's sources alike.
-    static void* operator new(std::size_t size) noexcept;
-
     int Create() override;                          // per-type parameters
     void Destroy() override { Clear(); }
     int RunTick() override;                         // 1 while the source stays alive

@@ -14,10 +14,10 @@ void ReadPrefixedName(std::string* out, const std::uint8_t** cursor) {
         out->clear();
         return;
     }
-    auto* text = gamecrt::operator_new_array<char>(static_cast<std::size_t>(length) + 2);
+    auto* text = new char[static_cast<std::size_t>(length) + 2];
     std::memcpy(text, *cursor, static_cast<std::size_t>(length));
     text[length] = 0;
     *out = text;
-    gamecrt::operator_delete(text);
+    delete[] text;
     *cursor += length;
 }

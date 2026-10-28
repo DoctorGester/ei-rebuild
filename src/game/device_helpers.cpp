@@ -25,8 +25,6 @@
 // The renderer's counted base: nothing to destroy. Its deleting destructor is reached by no object.
 CRendererBase::~CRendererBase() = default;
 
-void* CRendererBase::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void CRendererBase::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 // (The figure loader's fieldless abstract base is not modelled: its deleting destructor is reached by no object.)
 

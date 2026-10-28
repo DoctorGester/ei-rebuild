@@ -38,25 +38,20 @@ CServerSpecificManager::~CServerSpecificManager() {}
 const char* CServerSpecificManager::GetClassName() { return kManagerClassName; }
 int CServerSpecificManager::GetClassId() { return kManagerClassId; }
 
-// Every object starts zeroed (operator_new_zeroed): CUnitServer's constructor leaves waitFrame,
+// Every object starts zeroed (kZeroed): CUnitServer's constructor leaves waitFrame,
 // which ResolveBlocker reads, and others the saves write.
 CEngineObject* CServerSpecificManager::NewObject(int type) {
     switch (type) {
     case kObject3DServer:
-        if (void* p = gamecrt::operator_new_zeroed(sizeof(CObject3DServer))) return new (p) CObject3DServer();
-        return nullptr;
+        return new (kZeroed) CObject3DServer();
     case kMapObjectServer:
-        if (void* p = gamecrt::operator_new_zeroed(sizeof(CMapObjectServer))) return new (p) CMapObjectServer();
-        return nullptr;
+        return new (kZeroed) CMapObjectServer();
     case kUnitServer:
-        if (void* p = gamecrt::operator_new_zeroed(sizeof(CUnitServer))) return new (p) CUnitServer();
-        return nullptr;
+        return new (kZeroed) CUnitServer();
     case kPlayerServer:
-        if (void* p = gamecrt::operator_new_zeroed(sizeof(CPlayerServer))) return new (p) CPlayerServer();
-        return nullptr;
+        return new (kZeroed) CPlayerServer();
     case kTorchObjectSpec:
-        if (void* p = gamecrt::operator_new_zeroed(sizeof(CTorchObjectSpec))) return new (p) CTorchObjectSpec();
-        return nullptr;
+        return new (kZeroed) CTorchObjectSpec();
     default:
         return nullptr;
     }

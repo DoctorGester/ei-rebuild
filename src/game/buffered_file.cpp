@@ -23,10 +23,10 @@ constexpr int kSeekEnd = 2;
 
 // The block replaced by one of `capacity` bytes holding the old capacity's bytes; the pointers move with it.
 void Reallocate(BufferedStream* self, std::int32_t capacity) {
-    auto* block = gamecrt::operator_new_array<std::uint8_t>(static_cast<std::uint32_t>(capacity));
+    auto* block = new std::uint8_t[static_cast<std::uint32_t>(capacity)];
     if (self->begin) {
         std::memcpy(block, self->begin, static_cast<std::uint32_t>(self->Capacity()));
-        gamecrt::operator_delete(self->begin);
+        delete[] self->begin;
     }
     std::uint8_t* old = self->begin;
     self->begin = block;
@@ -50,7 +50,7 @@ void BufferedStream::Flush() {
 
 void BufferedStream::ReleaseBlock() {
     Flush();
-    if (begin) gamecrt::operator_delete(begin);
+    if (begin) delete[] begin;
     begin = nullptr;
 }
 
@@ -193,7 +193,7 @@ void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFla
     std::fseek(file, 0, kSeekEnd);
     long size = std::ftell(file);
     flags &= ~kFlagUnwritten;
-    auto* block = gamecrt::operator_new_array<std::uint8_t>(kWindowBytes);
+    auto* block = new std::uint8_t[kWindowBytes];
     end = block + kWindowBytes;
     begin = block;
     cur = block;

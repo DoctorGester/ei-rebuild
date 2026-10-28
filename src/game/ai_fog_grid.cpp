@@ -1,5 +1,6 @@
 // FogGrid (effects.h): the squares a seer sees, rows of bytes (Clear, Read, Write); used by
 // CEffectShowVisibility (world_effect_visibility.cpp). See docs/notes/world.md.
+#include "ai_grids.h"
 #include "effects.h"
 
 #include "core_streams.h"
@@ -14,12 +15,11 @@ constexpr int kNoOrigin = 0x7FFFFFFF;
 
 // The cells and the row table freed and made again for `width` x `height` (not cleared).
 void Reallocate(SearchGrid<std::uint8_t>* grid, int width, int height) {
-    gamecrt::operator_delete(grid->data);
-    gamecrt::operator_delete(grid->rows);
+    FreeGrid(*grid);
     grid->width = width;
     grid->height = height;
-    grid->data = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(width * height)));
-    grid->rows = static_cast<std::uint8_t**>(gamecrt::operator_new(static_cast<std::size_t>(grid->height) * 4));
+    grid->data = new std::uint8_t[static_cast<std::size_t>(width * height)];
+    grid->rows = new std::uint8_t*[static_cast<std::size_t>(grid->height)];
     for (int row = 0; row < grid->height; ++row) grid->rows[row] = grid->data + grid->width * row;
 }
 

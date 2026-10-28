@@ -137,12 +137,6 @@ public:
     CEngineObject* NewObject(int type) override;
 
 };
-// T's constructor on `memory`, as the map object factory takes it.
-template <typename T>
-void* ConstructOn(void* memory) {
-    return new (memory) T();
-}
-
 class CEffectManager : public CBaseManager {
 public:
     CEffectManager();

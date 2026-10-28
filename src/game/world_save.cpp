@@ -203,9 +203,8 @@ void RelocateStrandedUnits(CWorldServer* world) {
 
 // The players' part of the save (in the player list's order).
 void LoadPlayers(CWorldServer* world, WorldStream* stream) {
-    auto* it = gamecrt::operator_new_as<PlayerIterator>();
-    if (it) it->manager = nullptr;
-    for (CPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
+    PlayerIterator it;
+    for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
         CPlayerServer* state = player->Server();
         stream->Read(&player->partyId_, 4);
         player->Party()->LoadParty(stream, 1);
@@ -241,13 +240,6 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         }
         state->SendParty();
         state->SetFlag70(1);
-    }
-    if (it) {
-        if (it->manager) {
-            --it->manager->refCount_;
-            it->manager = nullptr;
-        }
-        gamecrt::operator_delete(it);
     }
 }
 
@@ -437,9 +429,8 @@ namespace {
 
 // The players' part of the save (what LoadPlayers reads).
 void SavePlayers(CWorldServer* world, WorldStream* stream) {
-    auto* it = gamecrt::operator_new_as<PlayerIterator>();
-    if (it) it->manager = nullptr;
-    for (CPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
+    PlayerIterator it;
+    for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
         stream->Write(&player->partyId_, 4);
         player->Party()->SaveParty(stream, 1);
         stream->Write(&player->sessionKind100_, 4);
@@ -457,13 +448,6 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
             stream->Write(&*node, 4);
             node = next;
         }
-    }
-    if (it) {
-        if (it->manager) {
-            --it->manager->refCount_;
-            it->manager = nullptr;
-        }
-        gamecrt::operator_delete(it);
     }
 }
 

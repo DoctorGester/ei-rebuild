@@ -203,7 +203,7 @@ void LoadSystemMessages(std::vector<std::string>& messages) {
         return;
     }
     const std::size_t length = static_cast<std::size_t>(_filelength(_fileno(file)));
-    char* text = gamecrt::operator_new_array<char>(length);
+    char* text = new char[length];
     std::memset(text, 0, length);
     std::fread(text, 1, length, file);
     std::fclose(file);
@@ -212,7 +212,7 @@ void LoadSystemMessages(std::vector<std::string>& messages) {
         messages.clear();
         AppendDefaultMessages(messages);
     }
-    gamecrt::operator_delete(text);
+    delete[] text;
 }
 
 std::string Tail(const std::string& argument, int prefixLength) { return str::Right(argument, static_cast<int>(argument.size()) - prefixLength); }

@@ -3,6 +3,7 @@
 #include "lib/static_object.h"
 #include "world_effect.h"
 
+#include "ai_grids.h"
 #include "map_object.h"
 #include "world.h"
 #include "unit.h"
@@ -33,8 +34,8 @@ CEffectShowVisibility::CEffectShowVisibility() {
     SearchGrid<std::uint8_t>& cells = grid_.cells;
     cells.width = 1;
     cells.height = 1;
-    cells.data = gamecrt::operator_new_array<std::uint8_t>(1);
-    cells.rows = gamecrt::operator_new_array<std::uint8_t*>(cells.height);
+    cells.data = new std::uint8_t[1];
+    cells.rows = new std::uint8_t*[cells.height];
     for (int row = 0; row < cells.height; ++row) cells.rows[row] = cells.data + row * cells.width;
     observerId_ = -1;
     seerId_ = -1;
@@ -44,8 +45,7 @@ CEffectShowVisibility::CEffectShowVisibility() {
 CEffectShowVisibility::~CEffectShowVisibility() {
     Reset();
     Reset();
-    gamecrt::operator_delete(grid_.cells.data);
-    gamecrt::operator_delete(grid_.cells.rows);
+    FreeGrid(grid_.cells);
 }
 
 // The base is not reset: only the grid (taken out of the fog first), the units and the fog.

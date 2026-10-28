@@ -22,8 +22,6 @@
 // --- Destructor bodies -------------------------------------------------------------------------
 
 // The input sides' storage: the game's heap.
-void* UiInputSide::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void UiInputSide::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 // The base input side's deleting destructor.
 UiInputSide::~UiInputSide() {}

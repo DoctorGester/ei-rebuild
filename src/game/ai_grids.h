@@ -4,26 +4,26 @@
 // width x height cells and the row table; the element types with a constructor are filled. See docs/notes/ai.md.
 
 #include "ai_map.h"
-#include "lib/crt.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 // The block (`perCell` elements per cell, left as allocated) and the row table of a grid whose
 // width and height are set.
 template <typename T>
 void AllocateGrid(SearchGrid<T>& grid, int perCell = 1) {
-    grid.data = static_cast<T*>(
-        gamecrt::operator_new(static_cast<std::size_t>(grid.width * grid.height * perCell) * sizeof(T)));
-    grid.rows = static_cast<T**>(gamecrt::operator_new(static_cast<std::size_t>(grid.height) * sizeof(T*)));
+    static_assert(std::is_trivially_default_constructible_v<T> && std::is_trivially_destructible_v<T>);
+    grid.data = new T[static_cast<std::size_t>(grid.width * grid.height * perCell)];
+    grid.rows = new T*[static_cast<std::size_t>(grid.height)];
     for (int i = 0; i < grid.height; ++i) grid.rows[i] = grid.data + i * grid.width * perCell;
 }
 
 // The grids' destructor: the block and the row table freed (the pointers stay).
 template <typename T>
 void FreeGrid(SearchGrid<T>& grid) {
-    gamecrt::operator_delete(grid.data);
-    gamecrt::operator_delete(grid.rows);
+    delete[] grid.data;
+    delete[] grid.rows;
 }
 
 void AllocateNodeGrid(SearchGrid<SearchNode>* grid);

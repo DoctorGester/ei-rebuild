@@ -49,13 +49,13 @@ int CDib::Read(lib::File* input) {
         }
         // Everything between the file header and the bits: the info header, then masks or colours.
         const std::uint32_t headerBytes = fileHeader.bfOffBits - sizeof(fileHeader);
-        header = gamecrt::operator_new_bytes_as<BITMAPINFOHEADER>(headerBytes);
+        header = static_cast<BITMAPINFOHEADER*>(::operator new(headerBytes));
         bitsOwner = kNew;
         headerOwner = kNew;
         input->Read(header, headerBytes);
         imageSize = DibImageSize(header);
         colours = reinterpret_cast<RGBQUAD*>(header + 1);
-        bits = gamecrt::operator_new_array<std::uint8_t>(imageSize);
+        bits = new std::uint8_t[imageSize];
         input->Read(bits, imageSize);
     } catch (const lib::FileError&) {
         mfc::impl::MessageBoxText("Read error 1", 0, 0);

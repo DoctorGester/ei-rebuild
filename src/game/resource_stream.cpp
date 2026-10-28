@@ -36,30 +36,16 @@ CResourceBase::CResourceBase() {
     header_ = ResHeader{};
     entries_ = nullptr;
     names_ = nullptr;
-    accelTable_ = nullptr;
-    accelCount_ = 0;
 }
 
 CResourceBase::~CResourceBase() {
     header_ = ResHeader{};
     entries_ = nullptr;
     names_ = nullptr;
-    if (accelTable_ != nullptr) {
-        gamecrt::operator_delete(accelTable_);
-        accelTable_ = nullptr;
-        accelCount_ = 0;
-    }
 }
 
-void CResourceBase::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-void CResourceBase::FreeAccelTable() {
-    if (accelTable_ != nullptr) {
-        gamecrt::operator_delete(accelTable_);
-        accelTable_ = nullptr;
-        accelCount_ = 0;
-    }
-}
+
 
 
 CResourceStream::CResourceStream() {
@@ -81,11 +67,11 @@ void CResourceStream::Close() {
         }
     }
     if (entries_ != nullptr) {
-        gamecrt::operator_delete(entries_);
+        delete[] entries_;
         entries_ = nullptr;
     }
     if (names_ != nullptr) {
-        gamecrt::operator_delete(names_);
+        delete[] names_;
         names_ = nullptr;
     }
     header_ = ResHeader{};
@@ -93,7 +79,6 @@ void CResourceStream::Close() {
         gameapi::mmioClose(static_cast<HMMIO>(archive_), 0);
         archive_ = nullptr;
     }
-    FreeAccelTable();
     if (file_ != nullptr) {
         gameapi::mmioClose(static_cast<HMMIO>(file_), 0);
         file_ = nullptr;

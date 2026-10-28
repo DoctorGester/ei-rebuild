@@ -29,16 +29,6 @@ struct CRuntimeClass {
     void* CreateObject() const;
 };
 
-// The new handler operator new calls when an allocation fails (_afxNewHandler).
-gamecrt::NewHandler SetAfxNewHandler(gamecrt::NewHandler handler);
-// AfxCriticalNewHandler: what a handle map's allocations run under. Image only: with no
-// CWinThread there is no safety pool to release, so it throws a CMemoryException.
-int CriticalNewHandler(std::size_t size);
-// AfxNewHandler, which MFC's operator new calls when an allocation fails: throws a CMemoryException.
-int __cdecl DefaultNewHandler(std::size_t size);
-// _afxNewHandler: the handler MFC's operator new (libcrt::OperatorNew) calls when an allocation fails.
-extern gamecrt::NewHandler g_afxNewHandler;
-
 // CMapPtrToPtr (0x1C bytes): void* to void*, hashed by `key >> 4`.
 class CMapPtrToPtr final : public CObject {
 public:
@@ -86,14 +76,11 @@ public:
     // destroyed (mfc_gdi.cpp MapHDC / MapHGDIOBJ live until the process ends).
     virtual ~CHandleMap();
 
-    static void* operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
-
     // Every temporary object's handles cleared and the object deleted, then the temporary map emptied. A null
     // map also returns at once (MFC's `this == NULL` test); every caller here has one.
     void DeleteTemp();
     // The object of `handle` (null for null): the permanent one, else the temporary one,
-    // else a new temporary object of objectClass (under the critical new handler; a CMemoryException
+    // else a new temporary object of objectClass (a CMemoryException
     // when none could be made). A temporary object's handles are (re)written.
     void* FromHandle(HANDLE handle);
 

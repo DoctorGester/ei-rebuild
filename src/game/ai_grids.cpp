@@ -166,10 +166,8 @@ namespace {
 AIEvent*& FreeEvents() { return g_freeEvents; }
 
 void AllocateEventCells(AIEventTable* table) {
-    table->cells = static_cast<AIEventCell*>(
-        gamecrt::operator_new(static_cast<std::size_t>(table->width * table->height) * sizeof(AIEventCell)));
-    table->rows =
-        static_cast<AIEventCell**>(gamecrt::operator_new(static_cast<std::size_t>(table->height) * sizeof(AIEventCell*)));
+    table->cells = new AIEventCell[static_cast<std::size_t>(table->width * table->height)];
+    table->rows = new AIEventCell*[static_cast<std::size_t>(table->height)];
     for (int i = 0; i < table->height; ++i) table->rows[i] = table->cells + i * table->width;
 }
 } // namespace
@@ -186,8 +184,8 @@ void AIEventTable::Clear() {
     tick = -1;
     std::memset(slots, 0, sizeof(slots));
     if (width != 1 || height != 1) {
-        gamecrt::operator_delete(cells);
-        gamecrt::operator_delete(rows);
+        delete[] cells;
+        delete[] rows;
         width = 1;
         height = 1;
         AllocateEventCells(this);
@@ -204,8 +202,8 @@ void AIEventTable::Destroy() {
             }
         }
     }
-    gamecrt::operator_delete(cells);
-    gamecrt::operator_delete(rows);
+    delete[] cells;
+    delete[] rows;
 }
 
 // ---- Terrain types --------------------------------------------------------------------------------

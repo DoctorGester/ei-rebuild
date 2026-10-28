@@ -32,8 +32,6 @@ public:
     CDirectInputMouse() {}
     virtual ~CDirectInputMouse();
 
-    static void* operator new(std::size_t size) noexcept;
-    static void operator delete(void* block);
 
     CDirectInputMouse(const CDirectInputMouse&) = delete;
     CDirectInputMouse& operator=(const CDirectInputMouse&) = delete;

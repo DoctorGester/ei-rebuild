@@ -169,8 +169,7 @@ CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u
 }
 
 CLinkMesh* CLinkFigureLoader::LoadLinkFile(const std::string* name, float s, float t, float u) {
-    CLinkMesh* memory = gamecrt::operator_new_as<CLinkMesh>();
-    CLinkMesh* mesh = memory ? new (memory) CLinkMesh(this, name, s, t, u) : nullptr;
+    auto* mesh = new CLinkMesh(this, name, s, t, u);
     FigureModel* set = FindFigureSet(name);
     const char* data;
     if (set) {
@@ -204,8 +203,7 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const std::string* name, float s, flo
 
 CLinkMesh* CLinkFigureLoader::MakeFigure(const std::string* name, const std::vector<std::string>* parts, float s,
                                          float t, float u) {
-    CLinkMesh* memory = gamecrt::operator_new_as<CLinkMesh>();
-    CLinkMesh* mesh = memory ? new (memory) CLinkMesh(this, name, s, t, u) : nullptr;
+    auto* mesh = new CLinkMesh(this, name, s, t, u);
     FigureModel* set = FindFigureSet(name);
     for (const std::string* part = parts->data(); part != parts->data() + parts->size(); ++part) {
         if (!set) {

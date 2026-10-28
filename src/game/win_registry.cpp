@@ -115,18 +115,18 @@ std::string CWinRegistry::GetStringInt(const char* subkey, const char* name, con
     char* longValue = nullptr;
     LONG status = settings_file::Query(key_, subkey, name, &type, buffer, &size);
     if (status == ERROR_MORE_DATA) {
-        longValue = static_cast<char*>(gamecrt::malloc(size));
+        longValue = new char[size];
         status = settings_file::Query(key_, subkey, name, &type, longValue, &size);
     }
     if (status == 0 && type != REG_SZ) game::DebugLog("CWinRegistry::GetStringInt().\nRegistry data type is not SZ.\n");
     if (status != 0 || type != REG_SZ) {
-        if (longValue) gamecrt::free(longValue);
+        delete[] longValue;
         return defaultValue;
     }
     std::string text;
     if (longValue) {
         text = longValue;
-        gamecrt::free(longValue);
+        delete[] longValue;
     } else {
         text = buffer;
     }
