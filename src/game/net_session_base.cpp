@@ -5,7 +5,6 @@
 
 #include "core_refcount.h"
 #include "core_streams.h"
-#include "lib/stlp.h"
 
 #include <cstring>
 
@@ -30,11 +29,6 @@ Message* TypeRegistry::Create(std::uint32_t type) {
 }
 
 SessionBase::SessionBase() {
-    // The connection list: an empty STLport list (a 12-byte sentinel linked to itself).
-    auto* sentinel = stlp::allocate_as<ClientNode>();
-    clients_ = sentinel;
-    sentinel->next = sentinel;
-    sentinel->prev = sentinel;
     socket_.Construct();
     time_ = 0.0;
     frame_ = 1;
@@ -72,16 +66,6 @@ void SessionBase::RegisterMessageTypes() {
     }
 }
 
-ClientNode* SessionBase::ClientAt(const NetAddress* address) {
-    ClientNode* found;
-    FindClient(&found, address);
-    return found;
-}
-
-std::uint32_t SessionBase::ClientCount() const {
-    std::uint32_t count = 0;
-    for (ClientNode* node = clients_->next; node != clients_; node = node->next) ++count;
-    return count;
-}
+std::uint32_t SessionBase::ClientCount() const { return static_cast<std::uint32_t>(clients_.size()); }
 
 } // namespace net

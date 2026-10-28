@@ -40,8 +40,8 @@ void ClientSession::ApplyAwards() {
     ClientSession* self = this;
     CPlayer* player = LocalPlayer();
     if (!player) return;
-    for (RefNode* node = self->awards_.First(); node != self->awards_.End(); node = node->next) {
-        auto* award = self->awards_.At(node);
+    for (auto node = self->awards_.begin(); node != self->awards_.end(); ++node) {
+        auto* award = node->Get();
         const char* name = award->text_.data();
         switch (award->kind_) {
         case 0: {
@@ -96,7 +96,7 @@ void ClientSession::ApplyAwards() {
     }
 
     // The list emptied inline: each award released, each node back to the 16-byte pool list.
-    self->awards_.Clear();
+    self->awards_.clear();
 }
 
 // The client base tick, then the timers count down by `dt` (as a float) and those below zero are dropped. Awards
@@ -104,21 +104,21 @@ void ClientSession::ApplyAwards() {
 void ClientSession::Tick(double dt) {
     ClientSession* self = this;
     self->ClientBase::Tick(dt);
-    TimedNode* sentinel = self->timers_.End();
-    TimedNode* node = sentinel->next;
+    auto sentinel = self->timers_.end();
+    auto node = self->timers_.begin();
     if (node != sentinel) {
         const float step = static_cast<float>(dt);
         do {
-            TimedNode* current = node;
-            node = node->next;
-            float& seconds = current->data.seconds;
+            auto current = node;
+            ++node;
+            float& seconds = current->seconds;
             const double left = static_cast<double>(seconds) - step;
             seconds = static_cast<float>(left);
             EI_NAN_AUDIT(left);
-            if (left < 0.0f /*0073B858*/) self->timers_.Erase(current);
+            if (left < 0.0f /*0073B858*/) self->timers_.erase(current);
         } while (node != sentinel);
     }
-    if (self->awards_.First() == self->awards_.End() || TheServerWorld()->sessionKind_ != 3) return;
+    if (self->awards_.begin() == self->awards_.end() || TheServerWorld()->sessionKind_ != 3) return;
     CPlayer* player = LocalPlayer();
     if (!player || player->connection_->state_ != 1 || !World()->zoneLoaded_) return;
     ApplyAwards();

@@ -8,8 +8,6 @@
 #include "net_connection.h"
 #include "net_messages.h"
 
-#include "lib/stlp_list_refs.h"
-
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -18,15 +16,11 @@ namespace netlink {
 
 namespace {
 
-using RefList = stlp::list<RefPtr>;
-void NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
-
-// A new driver for `player`, put at the end of the owning list.
+// A new driver for `player`, put at the end of the owning list (shared there).
 DriverLink* NewDriver(DriverSession* self, CRefObject* player) {
     auto* driver = net::NewCounted<DriverLink>();
     driver->player_.Assign(player);
-    RefPtr held{driver};   // taken without a reference; the list's copy adds one
-    RefList::Insert<stlp::SharedRef>(stlp::AsRefNode(self->drivers_), held);
+    self->drivers_.emplace_back(driver);
     return driver;
 }
 
@@ -36,34 +30,32 @@ DriverLink* NewDriver(DriverSession* self, CRefObject* player) {
 // and the game server knows it; then each driver pumped, and those whose player is gone or detached erased.
 void DriverSession::PumpDrivers(net::SessionBase* session) {
     if (!IsLive(session)) return;
-    for (net::ClientNode* node = session->clients_->next; node != session->clients_; node = node->next) {
-        CRefObject* player = node->connection;
+    for (auto node = session->clients_.begin(); node != session->clients_.end(); ++node) {
+        CRefObject* player = node->ptr;
         bool known = false;
-        for (DriverNode* it = drivers_->next, *end = drivers_; it != end; it = it->next) {
-            if (it->Driver()->player_.ptr == player) {
+        for (auto it = drivers_.begin(); it != drivers_.end(); ++it) {
+            if (it->Get()->player_.ptr == player) {
                 known = true;
                 break;
             }
         }
         if (known) continue;
-        GameBuffer* in = &node->connection->reliableIn_;
+        GameBuffer* in = &node->Get()->reliableIn_;
         net::BufferUpdateHigh(in);
         if (in->PositionOf(in->high) <= 0) continue;
         net::ServerSession* server = net::GameServer();
         if (!IsLive(server)) continue;
-        if (!server->PlayerStateIs3(node->connection)) continue;
-        player = node->connection;
+        if (!server->PlayerStateIs3(node->Get())) continue;
+        player = node->Get();
         DriverLink* driver = NewDriver(this, player);
-        // The original then destroys the emptied temporary holder.
-        RefPtr held{driver};
-        RefList::Insert<stlp::CountedRef>(stlp::AsRefNode(holders_), held);
+        holders_.emplace_back(driver);
     }
-    for (DriverNode* it = drivers_->next; it != drivers_;) {
-        it->Driver()->Pump();
-        if (IsLive(it->Driver()->player_.ptr)) {
-            it = it->next;
+    for (auto it = drivers_.begin(); it != drivers_.end();) {
+        it->Get()->Pump();
+        if (IsLive(it->Get()->player_.ptr)) {
+            ++it;
         } else {
-            it = reinterpret_cast<DriverNode*>(RefList::Erase<stlp::SharedRef>(stlp::AsRefNode(it)));
+            it = drivers_.erase(it);
         }
     }
 }
@@ -71,22 +63,8 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {
 // Both lists emptied, then one driver for `player`: started, and its pending output
 // drained into throwaway memory streams while slot 6 answers true. Returns the driver.
 DriverLink* DriverSession::Start(net::Connection* player) {
-    for (DriverNode* node = drivers_->next; node != drivers_;) {
-        DriverNode* next = node->next;
-        node->value.Destroy();
-        stlp::deallocate(node, 12);
-        node = next;
-    }
-    drivers_->next = drivers_;
-    drivers_->prev = drivers_;
-    for (DriverNode* node = holders_->next; node != holders_;) {
-        DriverNode* next = node->next;
-        node->value.DeleteReleased(0);
-        if (node) NodeFree(node, 0xC);
-        node = next;
-    }
-    holders_->next = holders_;
-    holders_->prev = holders_;
+    drivers_.clear();
+    holders_.clear();
     DriverLink* driver = NewDriver(this, player);
     driver->Pump();
     while (driver->HasIncoming()) {

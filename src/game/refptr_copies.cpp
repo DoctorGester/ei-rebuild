@@ -17,24 +17,6 @@ void RefPtrRelease(RefPtr* self) {
     if (--object->refs_ == 0) delete object;   // slot 0 (the deleting destructor) with 1
 }
 
-// The holder cleared without a release (MOV [ECX],0). 17 copies.
-void RefPtrClear(RefPtr* self) { self->ptr = nullptr; }
-
-// A holder of a raw pointer taken without a reference (ECX the holder, EDX the object), returning
-// the holder (the game also zeroes a dead stack slot). 16 copies.
-RefPtr* RefPtrFromRaw(RefPtr* self, CRefObject* object) {
-    self->ptr = object;
-    return self;
-}
-
-// The released holder's scalar deleting destructor (the release, then the
-// holder freed when bit 0 of the flags is set); returns the holder.
-RefPtr* RefPtr::DeleteReleased(unsigned flags) {
-    RefPtrRelease(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-
 // A holder of a raw pointer with a reference added, returning the holder. 2 copies.
 RefPtr* RefPtr::FromRawCounted(CRefObject* object) {
     ptr = object;

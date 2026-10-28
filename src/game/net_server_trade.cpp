@@ -19,19 +19,12 @@ namespace {
 
 constexpr std::uint32_t kFinishedDelay = 0x42700000;   // 60.0f
 
-// The release a counted pointer's destructor inlines: one reference less, deleted at zero.
-void ReleaseInline(CRefObject* object) {
-    if (!object) return;
-    --object->refs_;
-    if (object->refs_ == 0 && object) delete object;
-}
-
 // The offer of `offer`'s partner (its player is our partner and its partner our player), or null.
-PartyMessage* FindPartnerOffer(const stlp::CountedRefListOf<PartyMessage>& list, PartyMessage* offer) {
-    for (RefNode* node = list.First(); node != list.End(); node = node->next) {
-        auto* other = list.At(node);
+PartyMessage* FindPartnerOffer(const std::list<CountedRefTo<PartyMessage>>& list, PartyMessage* offer) {
+    for (auto node = list.begin(); node != list.end(); ++node) {
+        auto* other = node->Get();
         if (other->player_.ptr == offer->partner_.ptr && other->partner_.ptr == offer->player_.ptr)
-            return list.At(node);
+            return node->Get();
     }
     return nullptr;
 }
@@ -49,20 +42,12 @@ void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
 
 } // namespace net
 
-// A counted pointer copy (a reference added, no copy-on-share handling).
-RefPtr* RefPtr::CopyPlain(const RefPtr* other) {
-    CRefObject* object = other->ptr;
-    ptr = object;
-    if (object) ++object->refs_;
-    return this;
-}
-
 namespace net {
 
 // The trade between the two offers (in either order), or null.
 TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMessage* other) {
-    for (RefNode* node = trades_.First(); node != trades_.End(); node = node->next) {
-        TradeMessage* trade = trades_.At(node);
+    for (auto node = trades_.begin(); node != trades_.end(); ++node) {
+        TradeMessage* trade = node->Get();
         const CRefObject* first = trade->offer_.ptr;
         if ((first == offer && trade->partnerOffer_.ptr == other) || (first == other && trade->partnerOffer_.ptr == offer))
             return trade;
@@ -72,12 +57,9 @@ TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMes
 
 // Removed file request: drops `message`.
 void ServerOnObjectRemoved(ServerSession* self, Message* message) {
-    RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, message);
-    RefNode* sentinel = self->fileRequests_.End();
-    for (RefNode* node = sentinel->next; node != sentinel;) {
-        RefNode* next = node->next;
-        if (node->data.ptr == value->ptr) self->fileRequests_.Erase(node);
+    for (auto node = self->fileRequests_.begin(); node != self->fileRequests_.end();) {
+        auto next = std::next(node);
+        if (node->ptr == message) self->fileRequests_.erase(node);
         node = next;
     }
 }
@@ -85,9 +67,7 @@ void ServerOnObjectRemoved(ServerSession* self, Message* message) {
 // Offer created: lists the offer; when the partner's offer is listed, a trade of the two
 // is made (both marked paired), else the partner is told of the offer.
 void ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
-    RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, message);
-    self->offers_.Insert(self->offers_.End(), *value);
+    self->offers_.emplace_back(message);
 
     PartyMessage* other = FindPartnerOffer(self->offers_, message);
     if (!other) {
@@ -99,9 +79,7 @@ void ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     trade->partnerOffer_.Assign(other);
     trade->player_.Assign(message->player_.ptr);
     trade->partner_.Assign(message->partner_.ptr);
-    RefPtr tradeRef;
-    value = RefPtrFromRaw(&tradeRef, trade);
-    self->trades_.Insert(self->trades_.End(), *value);
+    self->trades_.emplace_back(trade);
     message->trading_ = 1;
     other->trading_ = 1;
 }
@@ -128,12 +106,9 @@ void ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) {
 // Offer removed: drops the offer; an unpaired offer's partner is told it was withdrawn.
 // Its trade, when live, is dropped, a done one first kept on finishedTrades_ for 60 seconds.
 void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
-    RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, message);
-    RefNode* sentinel = self->offers_.End();
-    for (RefNode* node = sentinel->next; node != sentinel;) {
-        RefNode* next = node->next;
-        if (node->data.ptr == value->ptr) self->offers_.Erase(node);
+    for (auto node = self->offers_.begin(); node != self->offers_.end();) {
+        auto next = std::next(node);
+        if (node->ptr == message) self->offers_.erase(node);
         node = next;
     }
     PartyMessage* other = FindPartnerOffer(self->offers_, message);
@@ -141,21 +116,17 @@ void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     if (!message->trading_) TellPartner(self, message, 11);
     if (!IsLive(trade)) return;
     if (trade->done_) {
-        RefPtr held;
-        held.ptr = trade;
-        ++trade->refs_;
-        TimedEntry entry;
-        entry.key = kFinishedDelay;
-        entry.ref.CopyPlain(&held);
-        self->finishedTrades_.PushBack(entry);
-        if (entry.ref.ptr) entry.ref.ptr->Release();
-        ReleaseInline(held.ptr);
+        CountedRefPtr held(trade);
+        TimedEntry<CountedRefPtr> entry(kFinishedDelay, held);
+        self->finishedTrades_.push_back(entry);
     }
-    RefPtr removing;
-    removing.ptr = trade;
-    ++trade->refs_;
-    self->trades_.Remove(removing, stlp::SameObject());
-    ReleaseInline(removing.ptr);
+    // remove(trade): each element holding it erased as the walk reaches it, the trade held meanwhile.
+    CountedRefPtr removing(trade);
+    for (auto node = self->trades_.begin(); node != self->trades_.end();) {
+        auto next = std::next(node);
+        if (node->ptr == removing.ptr) self->trades_.erase(node);
+        node = next;
+    }
 }
 
 } // namespace net

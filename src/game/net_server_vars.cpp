@@ -13,71 +13,48 @@
 
 namespace net {
 
-namespace {
-
-
-// The search the original inlines in each function: the first node whose variable's name has the
-// same bytes as `name`, else the sentinel.
-RefNode* FindNode(const stlp::SharedRefListOf<VariableMessage>& list, const std::string* name) {
-    RefNode* node = list.First();
-    for (; node != list.End(); node = node->next)
-        if (list.At(node)->name_ == *name) break;
+// The search the original inlines in each function: the first variable whose name has the same bytes as
+// `name`.
+std::list<SharedRefTo<VariableMessage>>::iterator ServerSession::FindVariable(const std::string* name) {
+    auto node = variables_.begin();
+    for (; node != variables_.end(); ++node)
+        if (node->Get()->name_ == *name) break;
     return node;
 }
 
-} // namespace
+std::list<SharedRefTo<VariableMessage>>::iterator ServerSession::FindOrAddVariable(const std::string* name) {
+    auto node = FindVariable(name);
+    if (node != variables_.end()) return node;
 
-// The variable named `name` (its list node), or the sentinel.
-RefNode** ServerSession::FindVariable(RefNode** out, const std::string* name) {
-    *out = FindNode(variables_, name);
-    return out;
-}
-
-// The variable named `name`, made (value 0) at the front of the list when missing.
-RefNode** ServerSession::FindOrAddVariable(RefNode** out, const std::string* name) {
-    RefNode* node = FindNode(variables_, name);
-    if (node != variables_.End()) {
-        *out = node;
-        return out;
-    }
-
-    auto* variable = NewCounted<VariableMessage>();
-    RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, variable);
-    variables_.Insert(variables_.First(), *value);
-    RefNode* first = variables_.First();
+    variables_.emplace_front(NewCounted<VariableMessage>());
+    auto first = variables_.begin();
 
     // The name, assigned in place (string::operator= inlined: overwrite, then cut or append).
-    std::string* to = &variables_.At(first)->name_;
+    std::string* to = &first->Get()->name_;
     if (name != to) *to = *name;
-    *out = first;
-    return out;
+    return first;
 }
 
 // Sets the variable; a zero value removes it instead. A set bumps the version and takes the next serial.
 void ServerSession::SetVariable(const std::string* name, float value) {
     EI_NAN_AUDIT(value);
     if (value != 0.0f /*0073B858*/) {
-        RefNode* found;
-        FindOrAddVariable(&found, name);
-        VariableMessage* variable = variables_.At(found);
+        VariableMessage* variable = FindOrAddVariable(name)->Get();
         std::memcpy(&variable->value_, &value, 4);
         variable->serial_ = g_variableSerial;
         ++g_variableSerial;
         ++variable->version_;
         return;
     }
-    RefNode* found;
-    FindVariable(&found, name);
-    if (found != variables_.End()) variables_.Erase(found);
+    auto found = FindVariable(name);
+    if (found != variables_.end()) variables_.erase(found);
 }
 
 // Raises the variable to `value` (the larger of the two; `value` when either is NaN),
 // made when missing; a result of zero (or NaN) removes it.
 void ServerSession::RaiseVariable(const std::string* name, float value) {
-    RefNode* found;
-    FindOrAddVariable(&found, name);
-    VariableMessage* variable = variables_.At(found);
+    auto found = FindOrAddVariable(name);
+    VariableMessage* variable = found->Get();
     float current = variable->value_;
     std::uint32_t currentBits, valueBits;
     std::memcpy(&currentBits, &current, 4);
@@ -86,27 +63,27 @@ void ServerSession::RaiseVariable(const std::string* name, float value) {
     float selected;
     std::memcpy(&selected, &bits, 4);
     volatile double loaded = selected;   // FLD / FSTP
-    variables_.At(found)->value_ = static_cast<float>(loaded);
-    variables_.At(found)->serial_ = g_variableSerial;
+    found->Get()->value_ = static_cast<float>(loaded);
+    found->Get()->serial_ = g_variableSerial;
     ++g_variableSerial;
-    ++variables_.At(found)->version_;
-    EI_NAN_AUDIT(variables_.At(found)->value_);
-    if (variables_.At(found)->value_ == 0.0f /*0073B858*/) {
-        RefNode* node = FindNode(variables_, name);
-        if (node != variables_.End()) variables_.Erase(node);
+    ++found->Get()->version_;
+    EI_NAN_AUDIT(found->Get()->value_);
+    if (found->Get()->value_ == 0.0f /*0073B858*/) {
+        auto node = FindVariable(name);
+        if (node != variables_.end()) variables_.erase(node);
     }
 }
 
 // Removes the variable when it exists.
 void ServerSession::RemoveVariable(const std::string* name) {
-    RefNode* node = FindNode(variables_, name);
-    if (node != variables_.End()) variables_.Erase(node);
+    auto node = FindVariable(name);
+    if (node != variables_.end()) variables_.erase(node);
 }
 
 // The variable's value, 0 when missing (returned unrounded in ST0).
 double ServerSession::GetVariable(const std::string* name) {
-    RefNode* node = FindNode(variables_, name);
-    if (node != variables_.End()) return variables_.At(node)->value_;
+    auto node = FindVariable(name);
+    if (node != variables_.end()) return node->Get()->value_;
     return 0.0f /*0073B858*/;
 }
 

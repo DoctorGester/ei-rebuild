@@ -31,10 +31,9 @@ void CWorldClient::SetPlayer(CWorldHandle* player) {
 bool CWorldClient::JoinGameClient(const char*) {
     net::ClientSession* client = net::GameClient();
     if (!client || (client->flags7_ & CRefCounted::kDetached)) return false;
-    if (client->clients_->next == client->clients_) return false;
+    if (client->clients_.empty()) return false;
     OpenSession();
-    netlink::NetLink* link =
-        netSession_.Get()->Start(client->clients_->next->connection);
+    netlink::NetLink* link = netSession_.Get()->Start(client->clients_.front().Get());
     ClearMaps();
     ResetZoneObjects();
     session_->Connect(nullptr);

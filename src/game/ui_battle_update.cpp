@@ -174,8 +174,8 @@ void RebuildClientParty(CBattleScreen* screen) {
     const auto& players = session->players_;
     PartyIds ids;
     ids.camera = -1;
-    for (auto* node = players.First(); node != players.End(); node = node->next) {
-        net::PlayerMessage* player = players.At(node);
+    for (auto node = players.begin(); node != players.end(); ++node) {
+        net::PlayerMessage* player = node->Get();
         int* unitId = &player->id_;
         int* playerId = &player->serial_;
         if (player->state_ == 0 && *unitId >= 0) {

@@ -1,6 +1,6 @@
 #pragma once
 
-// What every STLport family header needs (stlp_list.h, stlp_vector.h): the node allocator and an
+// The node allocator and an
 // element seen only as its bytes.
 
 #include <cstddef>

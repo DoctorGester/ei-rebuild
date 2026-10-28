@@ -90,8 +90,8 @@ void ServerOnSay(ServerSession* server, SayMessage* message) {
     Connection* connection = g_currentConnection;
     if (!connection || (connection->flags7_ & CRefCounted::kDetached)) return;
     const auto& bindings = server->bindings_;
-    for (auto* node = bindings.First(); node != bindings.End(); node = node->next) {
-        auto* binding = bindings.At(node);
+    for (auto node = bindings.begin(); node != bindings.end(); ++node) {
+        auto* binding = node->Get();
         if (binding->ConnectionRef().ptr != connection) continue;
         // (The original also tests the binding for null here, after having read it.)
         if (binding->flags7_ & CRefCounted::kDetached) return;

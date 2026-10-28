@@ -55,9 +55,6 @@ public:
 static_assert(sizeof(CRefObject) == 8);
 
 struct RefPtr {
-    RefPtr* CopyPlain(const RefPtr* other);
-    RefPtr* CopyShared(const RefPtr* other);
-    RefPtr* DeleteReleased(unsigned flags);
     RefPtr* FromRawCounted(CRefObject* object);
     RefPtr* AssignObject(CRefObject* object);
     CRefObject* ptr;
@@ -210,6 +207,19 @@ struct SharedRefPtr : RefPtr {
 };
 static_assert(sizeof(SharedRefPtr) == 4);
 
+// A SharedRefPtr / CountedRefPtr whose object is always a T (the element of a list of one network message
+// class): the same copies and releases, the object read typed.
+template <typename T>
+struct SharedRefTo : SharedRefPtr {
+    using SharedRefPtr::SharedRefPtr;
+    T* Get() const { return static_cast<T*>(ptr); }
+};
+template <typename T>
+struct CountedRefTo : CountedRefPtr {
+    using CountedRefPtr::CountedRefPtr;
+    T* Get() const { return static_cast<T*>(ptr); }
+};
+
 // A counted reference to a figure (CLinkMesh), the client half's wounds material or its helper preset;
 // object3d_lifetime.cpp defines Assign for those. A plain store (`ref = p`) takes and drops no reference.
 template <typename T>
@@ -227,6 +237,3 @@ struct CountedRef {
     T* object;
 };
 
-// `self` holds `object` without a reference; returns self.
-RefPtr* RefPtrFromRaw(RefPtr* self, CRefObject* object);
-void RefPtrClear(RefPtr* self);

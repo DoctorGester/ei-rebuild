@@ -21,34 +21,14 @@ namespace {
 
 constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
 
-// RefPtr::Destroy as the callers inline it (the release is not null-checked after the shutdown,
-// and done inline: one reference less, deleted at zero).
-void DestroyInline(RefPtr* p) {
-    CRefObject* object = p->ptr;
-    if (!object) return;
-    if (object->refs_ != 1) {
-        object->flags7_ |= CRefObject::kDetached;
-        ++object->refs_;
-        object->OnShutdown();
-        --object->refs_;
-    }
-    CRefObject* held = p->ptr;
-    --held->refs_;
-    if (held->refs_ == 0 && held) delete held;
-}
 
 } // namespace
 
 // Keeps `object` on the timers list for `seconds` (shared into the entry).
 void ClientSession::AddTimed(CRefObject* object, std::uint32_t seconds) {
-    ClientSession* self = this;
-    RefPtr raw;
-    RefPtrFromRaw(&raw, object);
-    TimedEntry entry;
-    entry.key = seconds;
-    entry.ref.Share(raw.ptr);
-    self->timers_.Insert(self->timers_.End(), entry);
-    DestroyInline(&entry.ref);
+    // The list's copy shares the entry's share: a clone, as sharing marked the object copy-on-share.
+    TimedEntry<SharedRefPtr> entry(seconds, SharedRefPtr(object));
+    timers_.push_back(entry);
 }
 
 // Sends the server a command message, kept 60 seconds on the timers list.
@@ -60,15 +40,9 @@ void ClientSession::SendCommand(int kind, const char* text) {
     // terminator moved down) or appended.
     command->text_.assign(text);
 
-    RefPtr raw;
-    RefPtrFromRaw(&raw, command);
-    TimedEntry entry;
-    entry.key = kCommandLifetime;
-    entry.ref.CopyShared(&raw);
-    self->timers_.PushBack(entry);
-    entry.ref.Destroy();
-    raw.ptr = nullptr;
-    raw.Destroy();
+    // As AddTimed: the list keeps a clone of the entry's share.
+    TimedEntry<SharedRefPtr> entry(kCommandLifetime, SharedRefPtr(command));
+    self->timers_.push_back(entry);
 }
 
 // Makes `*out` an empty server entry (no name or description, kind 4, no players).

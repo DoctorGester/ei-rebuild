@@ -54,11 +54,6 @@ bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) {
 // Texture and figure by name, then the view depth (address_order::DrawBefore, address_order.cpp).
 bool UnitOrderLess::Less(CMapObject* a, CMapObject* b) { return address_order::DrawBefore(a, b); }
 
-BOOL EntryIdLess::Less(const stlp::list<RefPtr>::Node* a, const stlp::list<RefPtr>::Node* b) {
-    using Variables = stlp::CountedRefListOf<net::VariableMessage>;
-    return Variables::At(a)->serial_ < Variables::At(b)->serial_;
-}
-
 // ---- Game interface glue -------------------------------------------------------------------------
 
 BOOL IsMultiplayerClient() {

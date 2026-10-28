@@ -27,13 +27,12 @@
 
 namespace net {
 
-RefPtr* HolderInit(RefPtr*, CRefObject*);
 namespace {
 
-// The nodes of the servers list, the waiting addresses and the server's pending joins.
-using ServerNode = stlp::SharedRefList::Node;
+// The nodes of the servers list and the server's pending joins.
+using ServerNode = std::list<SharedRefTo<ServerEntry>>::iterator;
 using JoinNode = std::list<PendingJoin>::iterator;
-ServerEntry* EntryOf(ServerNode* node) { return stlp::SharedRefListOf<ServerEntry>::At(node); }
+ServerEntry* EntryOf(ServerNode node) { return node->Get(); }
 
 constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
 constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
@@ -56,11 +55,11 @@ void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, 4); }
 
 bool SameAddress(const NetAddress* a, const NetAddress* b) { return std::memcmp(a, b, sizeof(NetAddress)) == 0; }
 
-// The servers list node whose entry has `address`, or the sentinel.
-ServerNode* FindServer(ClientBase* self, const NetAddress* address) {
-    ServerNode* end = self->servers_.End();
-    ServerNode* node = end->next;
-    while (node != end && !SameAddress(&EntryOf(node)->address_, address)) node = node->next;
+// The servers list node whose entry has `address`, or the end.
+ServerNode FindServer(ClientBase* self, const NetAddress* address) {
+    auto end = self->servers_.end();
+    auto node = self->servers_.begin();
+    while (node != end && !SameAddress(&EntryOf(node)->address_, address)) ++node;
     return node;
 }
 // The query with `address`, or the end.
@@ -99,9 +98,7 @@ void AppendServer(ClientBase* self, RefPtr& entry) {
     --raw->refs_;
     raw->flags6_ &= static_cast<std::uint8_t>(~CRefCounted::kCopyOnShare);
     entry.ptr = nullptr;
-    RefPtr holder;
-    HolderInit(&holder, raw);
-    self->servers_.Insert(self->servers_.End(), holder);
+    self->servers_.emplace_back(raw);
 }
 
 } // namespace
@@ -127,13 +124,6 @@ std::int32_t BufferLength(GameBuffer* b) {
 Query::Query() { std::memset(&address, 0, sizeof(address)); }
 Query::~Query() {}
 Query::Query(const Query& from) : address(from.address), reply(from.reply) {}
-
-// The temporary counted pointer handed to the list insert (set from a raw
-// pointer without a reference; cleared when unwinding).
-RefPtr* HolderInit(RefPtr* self, CRefObject* raw) {
-    self->ptr = raw;
-    return self;
-}
 
 // ---- Client: sending ------------------------------------------------------------------------------
 
@@ -231,7 +221,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
         entry.Destroy();
         return;
     }
-    ServerNode* node = FindServer(this, from);
+    auto node = FindServer(this, from);
     CreateEntry(&entry);
     entry.Get()->Read(cursor);
     if (!entry.ptr) {
@@ -253,7 +243,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
         auto count = static_cast<std::uint32_t>(v.list.size());
         e->timeout_ = static_cast<float>(x87::FromUnsigned(count) * 0.5f /*0073B86C*/ + 20.0f /*0073BF98*/);   // FILD qword
     } else {
-        if (node == servers_.End()) {
+        if (node == servers_.end()) {
             entry.Destroy();
             return;
         }
@@ -263,10 +253,10 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     float echoed;
     std::memcpy(&echoed, &echo, 4);
     e->ping_ = static_cast<float>(time_ - echoed);
-    if (node == servers_.End()) {
+    if (node == servers_.end()) {
         AppendServer(this, entry);
     } else {
-        RefPtr& slot = node->data;
+        RefPtr& slot = *node;
         if (entry.ptr != slot.ptr) {
             slot.Destroy();
             slot.Share(entry.ptr);
@@ -289,10 +279,10 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // Removes a connection; when none is left the connection to the host is lost.
-void ClientBase::RemoveClient(ClientNode* node) {
-    if (node == clients_) return;
+void ClientBase::RemoveClient(ClientList::iterator node) {
+    if (node == clients_.end()) return;
     SessionBase::RemoveClient(node);
-    if (clients_->next != clients_) return;
+    if (!clients_.empty()) return;
     LogLine("CONNECTION LOST server link is lost, entering idle");
     ei::Log("net: the client lost its connection to the host");   // not the game's
     joinState_ = kNotJoined;
@@ -331,7 +321,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
     if (v.empty()) return;
     for (unsigned i = 0; i < static_cast<unsigned>(v.size()); ++i) {
         Query* q = &v[i];
-        if (FindServer(this, &q->address) != servers_.End()) continue;
+        if (FindServer(this, &q->address) != servers_.end()) continue;
         RefPtrTo<ServerEntry> entry{nullptr};
         GameBuffer& r = q->reply;
         if (r.cur > r.high) r.high = r.cur;
@@ -376,8 +366,8 @@ void ClientBase::Ask(const NetAddress* address) {
         b.BufferWrite(&time, 4);
         Send(address, &b);
     }
-    ServerNode* node = FindServer(this, address);
-    if (node != servers_.End()) {
+    auto node = FindServer(this, address);
+    if (node != servers_.end()) {
         EntryOf(node)->state_ = ServerEntry::kAsked;
         return;
     }
@@ -402,24 +392,22 @@ void ClientBase::Forget(const NetAddress* address) {
     QueryList& v = queries_.list;
     auto q = FindQuery(queries_, address);
     if (q != v.end()) v.erase(q);
-    ServerNode* node = servers_.End()->next;
-    while (node != servers_.End()) {
+    auto node = servers_.begin();
+    while (node != servers_.end()) {
         if (SameAddress(&EntryOf(node)->address_, address)) {
-            node = servers_.Erase(node);
+            node = servers_.erase(node);
         } else {
-            node = node->next;
+            ++node;
         }
     }
 }
 
 // Listed (never checked again) unless known, and its address queued to be asked.
 void ClientBase::AddServer(ServerEntry* entry) {
-    if (FindServer(this, &entry->address_) == servers_.End()) {
+    if (FindServer(this, &entry->address_) == servers_.end()) {
         entry->state_ = ServerEntry::kFromList;
         SetBits(entry->timeout_, kNever);
-        RefPtr holder;
-        HolderInit(&holder, entry);
-        servers_.Insert(servers_.End(), holder);
+        servers_.emplace_back(entry);
     }
     waiting_.push_back(entry->address_);
 }
@@ -440,11 +428,11 @@ void ClientBase::Join(const NetAddress* address, const GrowingBuffer* data) {
 }
 
 ServerEntry* ClientBase::ServerAt(int index) {
-    ServerNode* sentinel = servers_.End();
-    ServerNode* node = sentinel->next;
+    auto sentinel = servers_.end();
+    auto node = servers_.begin();
     for (int i = 0; i < index; ++i) {
         if (node == sentinel) return nullptr;
-        node = node->next;
+        ++node;
     }
     if (node == sentinel) return nullptr;
     return EntryOf(node);
@@ -454,8 +442,8 @@ ServerEntry* ClientBase::ServerAt(int index) {
 // unless asked directly (then its ping is reset). Then the session's receive step, and while
 // joining the request is repeated with a doubling interval until it passes the limit.
 void ClientBase::Tick(double dt) {
-    ServerNode* node = servers_.End()->next;
-    while (node != servers_.End()) {
+    auto node = servers_.begin();
+    while (node != servers_.end()) {
         ServerEntry* e = EntryOf(node);
         if (e->timeout_ > 0.0f) {
             e->timeout_ = static_cast<float>(static_cast<double>(e->timeout_) - dt);
@@ -464,13 +452,13 @@ void ClientBase::Tick(double dt) {
             if (e->timeout_ <= 0.0f) {
                 ClientQueries& v = queries_;
                 if (v.list.begin() == v.list.end() || FindQuery(v, &e->address_) == v.list.end()) {
-                    node = servers_.Erase(node);
+                    node = servers_.erase(node);
                     continue;
                 }
                 e->ping_ = 9.999f /*0073BFA0*/;
             }
         }
-        node = node->next;
+        ++node;
     }
     SessionBase::Tick(dt);
     if (joinState_ != kAsking) return;
@@ -592,9 +580,7 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
     const std::int32_t limit = static_cast<std::int32_t>(RateFor(from));
     if (rate >= limit) rate = limit;
 
-    ClientNode* client;
-    FindClient(&client, from);
-    if (client != clients_) {
+    if (FindClient(from) != clients_.end()) {
         LogAddressLine("ERROR: Ignoring login request for active session from ", from);
         return;
     }

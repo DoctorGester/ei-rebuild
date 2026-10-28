@@ -21,8 +21,8 @@ constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::
 // 64 bytes) per 64 bytes. The vector is first filled with one shared chunk (a copy per element when shared,
 // as RefPtr copies are), whose elements are then filled in turn.
 void ServerSession::ShareFile(const std::string* name, GameBuffer* data) {
-    for (RefNode* node = files_.First(); node != files_.End(); node = node->next)
-        if (files_.At(node)->name_ == *name) return;
+    for (auto node = files_.begin(); node != files_.end(); ++node)
+        if (node->Get()->name_ == *name) return;
 
     auto* file = NewCounted<FileMessage>();
 
@@ -56,11 +56,7 @@ void ServerSession::ShareFile(const std::string* name, GameBuffer* data) {
         remaining -= kChunkSize;
     }
 
-    RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, file);
-    files_.Insert(files_.End(), *value);
-    ref.ptr = nullptr;
-    ref.Destroy();
+    files_.emplace_back(file);
 }
 
 } // namespace net

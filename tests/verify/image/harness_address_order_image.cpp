@@ -11,8 +11,7 @@ bool BriefingPlayerList(void* briefing, PlayerList* list) {
     const net::ClientSession* client = net::GameClient();
     const CChatWindow* chat = static_cast<CBriefingScreen*>(briefing)->chat_;
     if (!client || !chat) return false;
-    list->players = 0;
-    for (auto* node = client->players_.First(); node != client->players_.End(); node = node->next) ++list->players;
+    list->players = static_cast<int>(client->players_.size());
     const CRefObject* binding = client->binding_;
     list->bound = binding && !(binding->flags7_ & CRefObject::kDetached);
     list->listed = chat->listed_;

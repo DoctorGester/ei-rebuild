@@ -32,20 +32,12 @@ void CWorldHandle::TakeNew(JoinedLinks* joined) {
 namespace netlink {
 
 void DriverSession::TakeNew(JoinedLinks* list) {
-    for (DriverNode* node = holders_->next; node != holders_; node = node->next) {
-        DriverLink* link = node->Driver();
+    for (const auto& holder : holders_) {
+        DriverLink* link = holder.Get();
         if (link && !(link->flags7_ & CRefCounted::kDetached)) AppendCounted(list, link);
     }
-    // The holders list cleared: each reference dropped, the node pushed on the allocator's list of
-    // 12-byte nodes, the sentinel linked to itself.
-    for (DriverNode* node = holders_->next; node != holders_;) {
-        DriverNode* current = node;
-        node = node->next;
-        if (CRefObject* link = current->value.ptr) link->Release();
-        stlp::PushSmallNode(current);
-    }
-    holders_->next = holders_;
-    holders_->prev = holders_;
+    // Each reference dropped.
+    holders_.clear();
 }
 
 } // namespace netlink

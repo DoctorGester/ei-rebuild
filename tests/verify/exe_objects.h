@@ -1369,17 +1369,10 @@ struct ServerEntry {
 };
 static_assert(sizeof(ServerEntry) == 0x48);
 
-// A server's connection (a list node).
-struct ClientNode {
-    ClientNode* next;                       // +0x00
-    std::uint8_t unknown4[0x8];
-};
-static_assert(sizeof(ClientNode) == 0xC);
-
 // The game's server session (net_classes.h).
 struct ServerSession {
     std::uint8_t unknown0[0x28];
-    ClientNode* clients_;                   // +0x28
+    StlpList<RefPtr> clients_;              // +0x28 the connections
     std::uint8_t unknown2C[0x25D4];
 };
 static_assert(sizeof(ServerSession) == 0x2600);
