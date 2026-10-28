@@ -61,6 +61,13 @@ class Run(unittest.TestCase):
         self.assertEqual(self.timeout, 3 + run_all.LIMIT_MARGIN_S + 90)
         self.assertTrue(any('terminating' in n for n in notes))
 
+    def test_silent_end_names_ei_launch_exit_code(self):
+        # C36b: the game died with no line in ei_hook.log and the report still said RUNNING.
+        result, _, failures, _, _ = self.run_scenario('quit\n', 1, 'RESULT: RUNNING\n', stdout='ei_launch: started\n')
+        self.assertEqual(result, 'RUNNING')
+        self.assertEqual(len(failures), 1)
+        self.assertIn('ei_launch exit code 1', failures[0])
+
     def test_watchdog_ended_the_game(self):
         result, _, failures, _, _ = self.run_scenario(
             'quit\n', 1, 'FAILED: scenario exceeded its 60 s time limit at step 3 of 9\nRESULT: FAIL\n')

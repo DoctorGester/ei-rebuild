@@ -12,7 +12,7 @@ that reaches the function of the frame before it (through jump thunks, tail call
 the original game functions; where that cannot be told, an indirect call or a hooked function with a
 differing name, the word waits until a later word links to it). Words before the throw's own function
 (CxxThrowException) and after the thread's first function (entry) are dropped. The named stack reads
-outermost first and ends at the throw: "... -> ComposeTexture -> ... -> CFile::Write -> CxxThrowException".
+outermost first and ends at the throw: "... -> CTextureManager::Compose -> ... -> lib::File::Write -> CxxThrowException".
 
 usage: python tools/resolve_crash.py [run folder or build/verify]   (defaults to build/verify; last crash only)
        --raw  every logged word, one per line, instead of the filtered frames and the named stack
@@ -100,7 +100,8 @@ def undecorate(names, name_only=False):
 
 def short_name(demangled):
     """Drops what the project's namespaces add: 'mfc::impl::CFile::Write' -> 'CFile::Write'."""
-    s = demangled
+    # A C name's stdcall decoration: '__CxxThrowException@8' (libcrt's extern "C" throw) -> 'CxxThrowException'.
+    s = re.sub(r'^_+(\w+)@\d+$', r'\1', demangled)
     for ns in ("`anonymous namespace'::", 'mfc::impl::', 'mfc::', 'libcrt::', 'impl::', 'ei::'):
         s = s.replace(ns, '')
     return s.strip() or demangled
@@ -180,7 +181,7 @@ class Stack:
             if raw not in self.cache:
                 self.cache[raw] = short_name(undecorate([raw], True)[0])
             return self.cache[raw]
-        return raw
+        return short_name(raw) if kind == 'ei' else raw
 
     def targets(self, kind, start):
         """The direct call and jump targets (function starts of this module) found in the bytes of the

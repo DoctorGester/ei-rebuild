@@ -230,7 +230,7 @@ class RealRun(unittest.TestCase):
         text = rc.named_stack(d)
         names = text.split(' -> ')
         self.assertEqual(names[-1], 'CxxThrowException', text)
-        self.assertLess(names.index('ComposeTexture'), names.index('CFile::Write'), text)
+        self.assertLess(names.index('CTextureManager::Compose'), names.index('lib::File::Write'), text)
         self.assertNotIn('__lseeki64', text)          # the stale words after the game's first function
 
 
