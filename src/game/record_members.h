@@ -13,6 +13,7 @@
 #include <new>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 namespace records {
 
@@ -48,6 +49,18 @@ void AssignMember(stlp::vector<T>& to, const stlp::vector<T>& from) {
 template <typename T>
 void DefaultMember(stlp::vector<T>& to) {
     to.ConstructEmpty();
+}
+template <typename T>
+void CopyMember(std::vector<T>& to, const std::vector<T>& from) {
+    std::construct_at(&to, from);
+}
+template <typename T>
+void AssignMember(std::vector<T>& to, const std::vector<T>& from) {
+    to = from;
+}
+template <typename T>
+void DefaultMember(std::vector<T>& to) {
+    std::construct_at(&to);
 }
 
 // A vector or a type derived from one (acks::Speeches): copied as a vector, never as bytes.
@@ -102,7 +115,7 @@ std::enable_if_t<!kPlain<T>> DefaultMember(T (&to)[N]) {
 
 static_assert(std::is_trivially_copyable_v<stlp::vector<int>[2]> && !kPlain<stlp::vector<int>[2]>,
               "arrays of vectors go element by element");
-static_assert(!kPlain<mfc::CString[2][3]> && kPlain<int[4]>);
+static_assert(!kPlain<mfc::CString[2][3]> && kPlain<int[4]> && !kPlain<std::vector<int>[2]>);
 struct DerivedVectorCheck : stlp::vector<int> {};
 static_assert(!kPlain<DerivedVectorCheck> && !kPlain<DerivedVectorCheck[2]>, "derived vectors are not bytes");
 
