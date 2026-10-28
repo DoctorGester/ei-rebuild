@@ -190,7 +190,6 @@ address,name,file
 005CDFB0,ConstructLogicSettings,src/game/logic_settings.cpp
 005CDFC0,LogicSettings::Construct,src/game/logic_settings.cpp
 005D2570,DestroyCandidates,src/game/unit_ai_modes.cpp
-005DA380,ReleaseLoadingHolder,src/game/bink_video.cpp
 005DC050,ConstructCheatCommands,src/game/console_streams.cpp
 005DC070,DestroyCheatCommands,src/game/console_streams.cpp
 005DC120,ConstructPublicCommands,src/game/console_streams.cpp

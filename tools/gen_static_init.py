@@ -648,6 +648,9 @@ REVIEWED_READ = {
     0x007C53E0: '00683868 is the middle of a call displacement (coincidence); 005C8AE2.. are the initialiser own stores',
     0x007C7E80: '0070B443 is the middle of a CMP [reg + 0x7C], 0 (coincidence); 00600AF2.. are the initialiser own stores',
     0x007C8430: 'CEffectMoshka::Update (ported, 0067CEF0): pi / 2 is its kHalfPi literal',
+    0x007AA890: 'CSky::Draw (ported): 004D9841 / 004D9846 push the identity rotation and the origin as the figure '
+                'draw arguments nothing read; ours passes neither (R27c)',
+    0x007AA8A0: 'CSky::Draw (ported): see 007AA890',
 }
 
 
@@ -813,6 +816,8 @@ UNUSED_INITIALISERS = {
     0x0070D5FE: "the exit function of MFC's process local _afxCtl3dState 007CAA88 (nothing fills it)",
     0x0070DC27: "the exit function of MFC's process local _afxWinState 007CAA8C (nothing fills it)",
     0x004ED520: "the DirectDraw driver list 007AEE64 (never filled or read; its guard byte 007AEE60)",
+    0x005DA360: "the loading movie's surface holder 007C551C (exit function 005DA380, guard byte 007C5518): the movie "
+                "players draw through the new renderer without a holder (R27f)",
 }
 
 
