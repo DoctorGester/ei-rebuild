@@ -1,7 +1,6 @@
 // ei_hook.dll inside ei_standalone.exe (src/standalone/host.cpp; docs/notes/standalone.md section 2): the image's
 // start-up, which only the image runs (the run's kind and what both runs use: standalone.cpp).
-// The host is an ordinary exe that reads no game.exe and keeps what of game.exe's range is free reserved with no
-// access; the DLL's static
+// The host is an ordinary exe that reads no game.exe; the DLL's static
 // initialisation has put .rdata, .data and the import slots in its own storage (image_data.cpp,
 // image_imports.cpp); here the start-up actions run, then the static initialisers and WinMain (app::GameMain).
 #include "ei/hook.h"
@@ -18,7 +17,6 @@
 #include <mbctype.h>
 #include <windows.h>
 
-#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -80,31 +78,6 @@ LONG WINAPI OnUnhandled(EXCEPTION_POINTERS* e) {
     Log("standalone: unhandled exception %08lX at %p", e->ExceptionRecord->ExceptionCode, e->ExceptionRecord->ExceptionAddress);
     TerminateProcess(GetCurrentProcess(), 4);
     return EXCEPTION_CONTINUE_SEARCH;
-}
-
-// The image has nothing of game.exe at its addresses: no instruction of the original runs, none that calls
-// through game.exe's import slots (CALL [slot], JMP [slot]) either. The host reserved what of game.exe's range was
-// free with no access, so a stray game address faults and is named (OnOldCode, image_data.cpp's OnOldData, the
-// host's OnGameRange). Logs what of the range an access would not fault on (memory the loader had put there before
-// the host ran) and returns its size.
-std::size_t CheckGuard() {
-    std::size_t open = 0;
-    for (std::uintptr_t a = kImageBegin; a < kImageEnd;) {
-        MEMORY_BASIC_INFORMATION mbi;
-        if (!VirtualQuery(reinterpret_cast<const void*>(a), &mbi, sizeof(mbi))) return kImageEnd - a + open;
-        const std::uintptr_t regionEnd = reinterpret_cast<std::uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
-        const std::uintptr_t end = (std::min)(kImageEnd, regionEnd);
-        if (mbi.State == MEM_COMMIT && !(mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD))) {
-            char owner[MAX_PATH] = "not a module";
-            if (mbi.Type == MEM_IMAGE)
-                GetModuleFileNameA(static_cast<HMODULE>(mbi.AllocationBase), owner, MAX_PATH);
-            Log("standalone: %08X-%08X of game.exe's range is open (%s)", static_cast<unsigned>(a),
-                static_cast<unsigned>(end), owner);
-            open += end - a;
-        }
-        a = end;
-    }
-    return open;
 }
 
 // ---- game.exe's module, as the image's code sees it ------------------------------------------------
@@ -230,12 +203,6 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     AddVectoredExceptionHandler(1, OnOldCode);
     SetUnhandledExceptionFilter(OnUnhandled);
     RunStartupActions();
-    // Informational: what the loader put in game.exe's range before the host ran is not ours to move.
-    const std::size_t open = CheckGuard();
-    const auto* taken = reinterpret_cast<const std::uint32_t*>(GetProcAddress(GetModuleHandleA(nullptr), "EiStandaloneRangeTaken"));
-    Log("standalone: game.exe's range %08X-%08X %s (%zu byte(s) open; %u taken before the host's main; the host at %p)",
-        static_cast<unsigned>(kImageBegin), static_cast<unsigned>(kImageEnd), open ? "NOT all guarded" : "guarded", open,
-        taken ? *taken : 0u, static_cast<void*>(GetModuleHandleA(nullptr)));
     const bool routed = RouteImageCalls();
     Log("standalone: the game's command line%s routed; arguments: '%s'", routed ? "" : " not",
         g_commandLine.c_str() + g_argumentsAt);
