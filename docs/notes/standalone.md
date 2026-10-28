@@ -1004,7 +1004,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **Derived instantiations** (the motion's 0073EB9C / 0073EB90, which the unit's constructor stores, over
     0073EBA8 / 0073EBB4, which the destructors and 00556D70 store): the derived tag (MotionPointsClass,
     MotionWaypointArrayClass) derives from the base's and only names its own table; its destructor ends in the
-    base's, which stores the base's table, as game.exe's 00532E30 / 00532E50 do.
+    base's, which stores the base's table, as game.exe's 00532E30 / 00532E50 do. (C14m made the motion's arrays
+    std::vector and those tags went; ScriptFloatValuesClass over ScriptFloatsClass is a derived tag still in use.)
   - **Slot 0** is `ObjectRuntimeClass()` (mfc_coll.cpp: ei_vectors links it, not mfc_slots.cpp).
   - CUnit's carried array's table field is `void*` (unit.h); the code sets every one of these tables through its tag.
   - The other ~150 container tables can go the same way, a tag at a time: replace the tag's `Vtable()` by deriving

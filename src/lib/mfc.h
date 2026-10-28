@@ -155,7 +155,7 @@ inline CPlex* PlexCreate(CPlex*& head, unsigned count, unsigned elementSize) {
 inline void PlexFreeDataChain(CPlex* head) { impl::FreePlexChain(head); }
 
 // ---- Collection templates (AFXTEMPL.H) ------------------------------------------------------------
-// The game's CArray / CList / CTypedPtrList instantiations share one layout each and differ only in the
+// The game's CArray / CList instantiations share one layout each and differ only in the
 // element type and the vtable, so one template serves all of them (docs/notes/core.md, "Shared containers").
 // The vtable is a plain field: an object game.exe constructs keeps the one its constructor wrote, and code
 // that builds one itself passes the instantiation's vtable. The templates have no constructors, so they can
@@ -596,10 +596,5 @@ struct CMap {
 };
 static_assert(sizeof(CMap<int, int>) == 0x1C);
 static_assert(sizeof(CMapAssoc<std::uint64_t, std::uint32_t>) == 0x14);
-
-// CTypedPtrList<CPtrList, T*>: a CPtrList (the list of void*, same layout) with typed elements. The game
-// inlines its operations; they are CList<T*>'s (a new node's data is zeroed, nothing destroyed).
-template <typename T>
-using CTypedPtrList = CList<T*>;
 
 } // namespace mfc
