@@ -4876,3 +4876,10 @@ group = "cleanup"
 model = "sonnet"
 files = ["src/game", "src/lib", "src/render"]
 note = "User 2026-10-28 asked why anonymous namespaces are needed: they give internal linkage (like static), which ~1000 port files with same-named helpers need, and let the compiler drop / warn about unused ones; they stay. But 1072 blocks in 621 files, 197 files with several (particle_callbacks.cpp 32, world_game.cpp 20, world_client_maps.cpp 13): the port added helpers one at a time next to their users. Script: per .cpp, move the internal helpers into one `namespace {` block after the includes (keeping declaration-before-use order; where a helper needs a type or function declared later in the file, forward-declare or keep a second block and say why). Spelling / order only; builds verify / release / debug and both builds' goldens."
+
+[[ticket]]
+id = "C38a"
+title = "One-line getters that dereference or take the address of a global or field"
+group = "cleanup"
+depends = ["C38"]
+note = "C38's next batch. ~75 one-liners of the forms { return *g_x; } (lib::StaticObject derefs: AIEventPool, MovieFolder, LineOutcodes, ...) and { return &field_; } (DirtyRect, Rect, ...): callers write *g_x / g_x-> / &field where nothing else needs the function (a StaticObject deref is fine at the call: the object is built by its static initialiser either way). Also the renderer's by-reference accessors to render.cpp's anonymous-namespace state (CurrentFrame -> g_frame, detail::Stats -> g_stats; 60 uses): needs the globals moved out of the anonymous namespace. Same rule and scripts as C38 (scratchpad C38/c38lib.py). Spelling only."
