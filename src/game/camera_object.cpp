@@ -150,7 +150,7 @@ int CCamera::OpenFile(const char* name) {
             int more;
             do {
                 more = find.FindNext();
-                std::string title = find.GetTitle().GetString();
+                std::string title = find.GetTitle();
                 {
                     std::string tail = str::Right(title, 4);
                     title = tail;

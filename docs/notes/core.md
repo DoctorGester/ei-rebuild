@@ -487,10 +487,19 @@ to which template:
   MapPath ...), CItem's name virtuals, the sorts over `std::string*`, PersonTextMap (its node grew: the 0x18 assert
   went), MpStringVector, the script's Load / QualifyName / ApplyDefines / AddParameter / ReadTextFile and the
   registry getters are std::string. ChunkArchive::CStringField went (StringField writes the same bytes for text
-  without zero bytes); CStream::ReadInto is not a template. Left for the bridge: src/lib's MFC (CFileFind's
-  returns, CStdioFile, `stlp::CStringFloatTraits`: NamedFloatTable is still a hash_map<CString, float>, its
-  operator[] takes a std::string), mfc::CString itself, and tests' Original* layouts (record_script*.cpp,
-  script_original.h, record_stats.cpp, harness views).
+  without zero bytes); CStream::ReadInto is not a template.
+- The bridge's end (C14g): no CString is left in src/game. NamedFloatTable is `hashtable<StringFloatTraits>`
+  (stlp_hash.h: a std::string key hashed by HashChars over its bytes and compared with `==`, which for text without
+  zero bytes is the CString's hash up to its zero and _mbscmp's equality, so the buckets and their order are
+  game.exe's); its users take `node->value.key.c_str()` where a `const char*` goes. The facades of mfc.h return
+  std::string (`CFileFind::GetFilePath` / `GetFileName` / `GetTitle`, `CTime::Format`), and `impl::CStdioFile::ReadLine`
+  (slot 22, MFC's ReadString(CString&)) reads into a std::string: 128-byte chunks through a local buffer, fgets given
+  129 as MFC gave it, each chunk counted up to its first zero byte (ReleaseBuffer(-1)), FALSE when the last fgets read
+  nothing, even after a full chunk. `mfc::CString` (mfc.h) keeps its constructors, assignments, GetLength and the
+  `const char*` conversion: the tests' Original* layouts of game.exe's objects (record_script*.cpp,
+  script_original.h, script_load_vectors.h, record_stats.cpp) hold it, ei_vectors gives it its own core
+  (replay_mfc.cpp). src/lib's MFC has its own `mfc::impl::CString` (mfc_string.h: CFile names, CArchive's text,
+  CFileFind's root, impl::CStringArray, the exceptions' messages), and the harness views have `exe::CString`.
 - Rule from this pass: the rules' column is where MSVC points, not where the expression starts: a C2440 '=' column
   at the right-hand side (find the `=` before it on the line), a 'return' column past the keyword in a one-line
   body, and a method's receiver that is a cast (`const_cast<T*>(x)->GetBuffer(0)`) starts at the cast keyword.

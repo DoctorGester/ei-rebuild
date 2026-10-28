@@ -72,37 +72,6 @@ struct StringCore {
         DataOf(Chars(s))->length = length;
         Chars(s)[length] = 0;
     }
-    // ConcatCopy into a string holding nothing.
-    static void ConcatCopy(CString& s, int length1, const char* data1, int length2, const char* data2) {
-        int length = length1 + length2;
-        if (length == 0) return;
-        Chars(s) = Allocate(length);
-        std::memcpy(Chars(s), data1, length1);
-        std::memcpy(Chars(s) + length1, data2, length2);
-    }
-    static void ConcatInPlace(CString& s, int length, const char* from) {
-        if (length == 0) return;
-        char* chars = Chars(s);
-        StringData* data = DataOf(chars);
-        if (data->refs > 1 || data->length + length > data->alloc) {
-            Chars(s) = NilChars();
-            ConcatCopy(s, data->length, chars, length, from);
-            ReleaseData(chars);
-        } else {
-            std::memcpy(chars + data->length, from, length);
-            data->length += length;
-            chars[data->length] = 0;
-        }
-    }
-    // AllocCopy: `count` characters from `index` into the empty `dest`.
-    static CString Copy(const CString& s, int count, int index) {
-        CString dest;
-        if (count != 0) {
-            Chars(dest) = Allocate(count);
-            std::memcpy(Chars(dest), Chars(s) + index, count);
-        }
-        return dest;
-    }
 };
 
 CString::CString() : data_(NilChars()) {}
@@ -154,75 +123,6 @@ const CString& CString::operator=(const CString& s) {
         }
     }
     return *this;
-}
-
-void CString::Empty() {
-    if (DataOf(data_)->length == 0) return;
-    if (DataOf(data_)->refs >= 0)
-        StringCore::Release(*this);
-    else
-        *this = "";
-}
-
-CString CString::Left(int count) const {
-    if (count < 0) count = 0;
-    if (count >= GetLength()) return *this;
-    return StringCore::Copy(*this, count, 0);
-}
-
-CString CString::Right(int count) const {
-    if (count < 0) count = 0;
-    if (count >= GetLength()) return *this;
-    return StringCore::Copy(*this, count, GetLength() - count);
-}
-
-CString CString::Mid(int first) const { return Mid(first, GetLength() - first); }
-
-CString CString::Mid(int first, int count) const {
-    const int length = GetLength();
-    if (first < 0) first = 0;
-    if (count < 0) count = 0;
-    if (first + count > length) count = length - first;
-    if (first > length) count = 0;
-    if (first == 0 && first + count == length) return *this;
-    return StringCore::Copy(*this, count, first);
-}
-
-// _tcsstr is _mbsstr in MFC's MBCS build; the game's code pages are single-byte, where it is strstr.
-int CString::Find(const char* sub) const { return Find(sub, 0); }
-
-int CString::Find(const char* sub, int start) const {
-    if (start > GetLength()) return -1;
-    const char* at = std::strstr(data_ + start, sub);
-    return at ? static_cast<int>(at - data_) : -1;
-}
-
-const CString& CString::operator+=(const CString& s) {
-    StringCore::ConcatInPlace(*this, s.GetLength(), s.data_);
-    return *this;
-}
-
-const CString& CString::operator+=(const char* s) {
-    StringCore::ConcatInPlace(*this, SafeLength(s), s);
-    return *this;
-}
-
-CString __stdcall operator+(const CString& a, const char* b) {
-    CString s;
-    StringCore::ConcatCopy(s, a.GetLength(), a, SafeLength(b), b);
-    return s;
-}
-
-CString __stdcall operator+(const char* a, const CString& b) {
-    CString s;
-    StringCore::ConcatCopy(s, SafeLength(a), a, b.GetLength(), b);
-    return s;
-}
-
-CString __stdcall operator+(const CString& a, const CString& b) {
-    CString s;
-    StringCore::ConcatCopy(s, a.GetLength(), a, b.GetLength(), b);
-    return s;
 }
 
 } // namespace mfc

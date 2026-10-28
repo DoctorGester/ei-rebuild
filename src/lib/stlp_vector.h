@@ -335,7 +335,7 @@ struct PlainElement {
     static void Default(T* p) { new (p) T(); }
 };
 
-// The element policy of a class with its own copy constructor, assignment and destructor (CString).
+// The element policy of a class with its own copy constructor, assignment and destructor (std::string).
 template <typename T>
 struct ObjectElement {
     static void Construct(T* to, const T& from) { new (to) T(from); }

@@ -596,7 +596,7 @@ int HighestFileNumber(std::string_view pattern) {
         do {
             more = find.FindNext();
             if (!find.IsDots()) {
-                std::string title = find.GetTitle().GetString();
+                std::string title = find.GetTitle();
                 int number = std::atoi(title.c_str());
                 if (!(highest > number)) highest = number;
             }

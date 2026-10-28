@@ -153,10 +153,10 @@ bool CheckTokenize(Reader& r, char* d, std::size_t n) {
     for (std::uint32_t& h : each0) h = r.Get<std::uint32_t>();
     if (!bytes || !r.ok()) return true;   // RunBytes reports the short payload
 
-    mfc::CString source(reinterpret_cast<const char*>(bytes), static_cast<int>(length));
+    const std::string source(reinterpret_cast<const char*>(bytes), length);
     ScriptTokenList tokens{nullptr, nullptr, nullptr, 0, nullptr, nullptr, blockSize};
     g_error = ReportedError();
-    const BOOL result = NoScript()->Tokenize(source.GetString(), &tokens);
+    const BOOL result = NoScript()->Tokenize(source, &tokens);
 
     std::uint64_t all = 0xCBF29CE484222325ull;
     std::uint32_t first = count0;   // the first token that differs

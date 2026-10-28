@@ -253,7 +253,7 @@ struct PlainFileTable final : FileTable<PlainFileTable, CFile, &kClassCFile> {};
 struct StdioFileTable final : FileTable<StdioFileTable, CStdioFile, &kClassCStdioFile> {
     void UnlockRange(unsigned long position, unsigned long count) override { This()->LockRange(position, count); }
     virtual void WriteString(const char* text) { This()->WriteString(text); }
-    virtual BOOL ReadLine(CString& text) { return This()->ReadLine(text); }
+    virtual BOOL ReadLine(std::string& text) { return This()->ReadLine(text); }
     virtual char* ReadString(char* buffer, unsigned size) { return This()->ReadString(buffer, size); }
 };
 
@@ -602,15 +602,15 @@ char* CStdioFile::ReadString(char* buffer, unsigned size) {
 }
 
 // A line without its '\n', read 128 characters at a time (fgets is given 129: one more than the
-// buffer asked for, as in MFC).
-BOOL CStdioFile::ReadLine(CString& text) {
+// chunk, as in MFC, which reads into the CString's buffer). A chunk counts up to its first zero byte, as
+// ReleaseBuffer(-1) counted it. FALSE when the last fgets read nothing, even after a full chunk.
+BOOL CStdioFile::ReadLine(std::string& text) {
     constexpr int kChunk = 128;
-    text = ChNil();
-    char* at = text.GetBuffer(kChunk);
+    char chunk[kChunk + 1];
+    text.clear();
     char* result;
     for (;;) {
-        result = Fgets(at, kChunk + 1, stream);
-        text.ReleaseBuffer(-1);
+        result = Fgets(chunk, kChunk + 1, stream);
         if (!result) {
             if (!AtEnd(stream)) {
                 Clearerr(stream);
@@ -618,14 +618,11 @@ BOOL CStdioFile::ReadLine(CString& text) {
             }
             break;
         }
-        const int length = gameapi::lstrlenA(at);
-        if (length < kChunk || at[length - 1] == '\n') break;
-        const int sofar = text.GetLength();
-        at = text.GetBuffer(sofar + kChunk) + sofar;
+        const int length = gameapi::lstrlenA(chunk);
+        text.append(chunk, static_cast<std::size_t>(length));
+        if (length < kChunk || chunk[length - 1] == '\n') break;
     }
-    const char* data = text.GetBuffer(0);
-    const int length = text.GetLength();
-    if (length != 0 && data[length - 1] == '\n') text.GetBufferSetLength(length - 1);
+    if (!text.empty() && text.back() == '\n') text.pop_back();
     return result != nullptr;
 }
 

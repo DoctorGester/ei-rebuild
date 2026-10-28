@@ -102,7 +102,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
         }
         if (!isSave_ || index != 0) {
             // CTime::Format.
-            const std::string date = mfc::CTime{entry.savedAt_}.Format(kDateFormat).GetString();
+            const std::string date = mfc::CTime{entry.savedAt_}.Format(kDateFormat);
             surface->DrawTextIn(date, &dateRect, kFont, kTextColour, DT_RIGHT, 1);
         }
         gameapi::OffsetRect(&titleRect, 0, kRowHeight);

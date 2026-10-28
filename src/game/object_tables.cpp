@@ -67,7 +67,7 @@ void NamedFloatTable::CopyPrefixed(const char* prefix, NamedFloatTable* out) {
     std::size_t length = std::strlen(prefix);
     out->Clear();
     for (const Node* node = First(); node; node = Next(node))
-        if (gamecrt::strncmp(prefix, node->value.key, length) == 0) (*out)[node->value.key.GetString()] = node->value.mapped;
+        if (gamecrt::strncmp(prefix, node->value.key.c_str(), length) == 0) (*out)[node->value.key] = node->value.mapped;
 }
 
 void NamedFloatTable::Load(CStream* stream) {
@@ -88,7 +88,7 @@ void NamedFloatTable::Load(CStream* stream) {
 
 void NamedFloatTable::Save(CStream* stream) {
     for (const Node* node = First(); node; node = Next(node)) {
-        const char* key = node->value.key;
+        const char* key = node->value.key.c_str();
         stream->Write(key, static_cast<std::uint32_t>(std::strlen(key) + 1));
         float value = node->value.mapped;
         stream->Write(&value, 4);

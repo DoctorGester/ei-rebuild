@@ -56,8 +56,8 @@ constexpr int kVisibleRows = 16;
 void EntryConstruct(SaveEntry* at, const SaveEntry* from) { stlp::ConstructCopyAt<SaveEntry, recordvec::SaveEntryElement>(at, from); }
 // CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY).
 BOOL IsDirectory(const mfc::CFileFind& find) { return find.MatchesMask(0x10ul); }
-std::string FilePath(const mfc::CFileFind& find) { return find.GetFilePath().GetString(); }
-std::string FileName(const mfc::CFileFind& find) { return find.GetFileName().GetString(); }
+std::string FilePath(const mfc::CFileFind& find) { return find.GetFilePath(); }
+std::string FileName(const mfc::CFileFind& find) { return find.GetFileName(); }
 
 // A file stream on the stack with the reads and writes the save list uses.
 struct LocalFileStream {

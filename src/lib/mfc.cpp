@@ -20,19 +20,9 @@ namespace {
 // mfc_time.h, mfc_coll.h, mfc_archive.h), which are what the registered addresses run.
 impl::CString* Impl(CString* s) { return reinterpret_cast<impl::CString*>(s); }
 const impl::CString* Impl(const CString* s) { return reinterpret_cast<const impl::CString*>(s); }
-// `result` (unset storage) takes the implementation string `s`'s data: no copy, no reference
-// counting; `s` is left empty (its destructor then does nothing).
-void Place(CString& result, impl::CString&& s) {
-    std::memcpy(static_cast<void*>(&result), &s, sizeof(result));
-    s.Init();
-}
 } // namespace
 
-impl::CString& ImplOf(CString& s) { return *Impl(&s); }
-
-// ei_vectors (EI_VECTORS_REPLAY) has its own CString and CPlex core (tests/vectors/replay_mfc.cpp): the
-// functions in the #ifndef blocks below. The other members must not be called there unless their
-// implementation links into it (mfc_string.cpp, mfc_archive.cpp).
+// ei_vectors (EI_VECTORS_REPLAY) has its own CString and CPlex core (tests/vectors/replay_mfc.cpp).
 #ifndef EI_VECTORS_REPLAY
 // _afxPchNil: the shared empty-string data pointer.
 CString::CString() : data_(impl::PchNil()) {}
@@ -43,60 +33,6 @@ CString::CString(const CString& s) { ::new (static_cast<void*>(this)) impl::CStr
 CString::~CString() { Impl(this)->~CString(); }
 const CString& CString::operator=(const char* s) { *Impl(this) = s; return *this; }
 const CString& CString::operator=(const CString& s) { *Impl(this) = *Impl(&s); return *this; }
-#endif
-
-// (the implementation's Format is FormatV over its arguments).
-void __cdecl CString::Format(const char* format, ...) {
-    va_list arguments;
-    va_start(arguments, format);
-    Impl(this)->FormatV(format, arguments);
-    va_end(arguments);
-}
-#ifndef EI_VECTORS_REPLAY
-CString CString::Left(int count) const {
-    CString result(kUnset);
-    Place(result, Impl(this)->Left(count));
-    return result;
-}
-CString CString::Right(int count) const {
-    CString result(kUnset);
-    Place(result, Impl(this)->Right(count));
-    return result;
-}
-CString CString::Mid(int first) const {
-    CString result(kUnset);
-    Place(result, Impl(this)->Mid(first));
-    return result;
-}
-CString CString::Mid(int first, int count) const {
-    CString result(kUnset);
-    Place(result, Impl(this)->Mid(first, count));
-    return result;
-}
-#endif
-int CString::Remove(char ch) { return Impl(this)->Remove(ch); }
-int CString::ReverseFind(char ch) const { return Impl(this)->ReverseFind(ch); }
-#ifndef EI_VECTORS_REPLAY
-int CString::Find(const char* sub) const { return Impl(this)->Find(sub); }
-int CString::Find(const char* sub, int start) const { return Impl(this)->Find(sub, start); }
-void CString::Empty() { Impl(this)->Empty(); }
-#endif
-char* CString::GetBufferSetLength(int length) { return Impl(this)->GetBufferSetLength(length); }
-char* CString::GetBuffer(int minLength) { return Impl(this)->GetBuffer(minLength); }
-void CString::ReleaseBuffer(int newLength) { Impl(this)->ReleaseBuffer(newLength); }
-void CString::MakeLower() { Impl(this)->MakeLower(); }
-void CString::AssignChar(char c) { *Impl(this) = c; }
-void CString::TrimRight(const char* targets) { Impl(this)->TrimRight(targets); }
-void CString::TrimRight() { Impl(this)->TrimRight(); }
-void CString::TrimRight(char target) { Impl(this)->TrimRight(target); }
-void CString::TrimLeft() { Impl(this)->TrimLeft(); }
-void CString::TrimLeft(char target) { Impl(this)->TrimLeft(target); }
-const CString& CString::operator+=(char c) { *Impl(this) += c; return *this; }
-int CString::Find(char c) const { return Impl(this)->Find(c); }
-int CString::Find(char c, int start) const { return Impl(this)->Find(c, start); }
-#ifndef EI_VECTORS_REPLAY
-const CString& CString::operator+=(const CString& s) { *Impl(this) += *Impl(&s); return *this; }
-const CString& CString::operator+=(const char* s) { *Impl(this) += s; return *this; }
 #endif
 
 namespace {
@@ -121,10 +57,8 @@ CTime* CTime::Construct(int year, int month, int day, int hour, int minute, int 
     reinterpret_cast<impl::CTime*>(this)->Construct(year, month, day, hour, minute, second, dst);
     return this;
 }
-CString CTime::Format(const char* format) const {
-    CString result(CString::kUnset);
-    Place(result, reinterpret_cast<const impl::CTime*>(this)->Format(format));
-    return result;
+std::string CTime::Format(const char* format) const {
+    return std::string(reinterpret_cast<const impl::CTime*>(this)->Format(format));
 }
 #endif
 
@@ -133,22 +67,10 @@ CFileFind::~CFileFind() { Impl(this)->Destruct(); }
 BOOL CFileFind::FindFile(std::string_view pattern, unsigned long flags) {
     return Impl(this)->FindFile(std::string(pattern).c_str(), flags);
 }
-CString CFileFind::GetFilePath() const {
-    CString result(CString::kUnset);
-    Place(result, Impl(this)->GetFilePath());
-    return result;
-}
+std::string CFileFind::GetFilePath() const { return std::string(Impl(this)->GetFilePath()); }
 unsigned long CFileFind::GetLength() const { return Impl(this)->GetLength(); }
-CString CFileFind::GetFileName() const {
-    CString result(CString::kUnset);
-    Place(result, Impl(this)->GetFileName());
-    return result;
-}
-CString CFileFind::GetTitle() const {
-    CString result(CString::kUnset);
-    Place(result, Impl(this)->GetFileTitle());
-    return result;
-}
+std::string CFileFind::GetFileName() const { return std::string(Impl(this)->GetFileName()); }
+std::string CFileFind::GetTitle() const { return std::string(Impl(this)->GetFileTitle()); }
 BOOL CFileFind::FindNext() { return Impl(this)->FindNextFile(); }
 BOOL CFileFind::MatchesMask(unsigned long mask) const { return Impl(this)->MatchesMask(mask); }
 BOOL CFileFind::IsDots() const { return Impl(this)->IsDots(); }
@@ -159,34 +81,6 @@ impl::CArchive* Impl(CArchive* archive) { return reinterpret_cast<impl::CArchive
 } // namespace
 
 void CArchive::Flush() { Impl(this)->Flush(); }
-
-#ifndef EI_VECTORS_REPLAY
-CString __stdcall operator+(const CString& a, const char* b) {
-    CString result(CString::kUnset);
-    Place(result, *Impl(&a) + b);
-    return result;
-}
-CString __stdcall operator+(const char* a, const CString& b) {
-    CString result(CString::kUnset);
-    Place(result, a + *Impl(&b));
-    return result;
-}
-CString __stdcall operator+(const CString& a, const CString& b) {
-    CString result(CString::kUnset);
-    Place(result, *Impl(&a) + *Impl(&b));
-    return result;
-}
-CString __stdcall operator+(const CString& a, char b) {
-    CString result(CString::kUnset);
-    Place(result, *Impl(&a) + b);
-    return result;
-}
-CString __stdcall operator+(char a, const CString& b) {
-    CString result(CString::kUnset);
-    Place(result, a + *Impl(&b));
-    return result;
-}
-#endif
 
 // AFX_EXCEPTION_LINK (mfc_try.h): the constructor, and AfxTryCleanup for the destructor.
 ExceptionLink::ExceptionLink() { ConstructExceptionLink(this); }

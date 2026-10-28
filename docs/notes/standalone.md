@@ -1840,9 +1840,10 @@ One body per member over an element policy, `*Abi<T, Policy>` shims with each in
 - **vector** (S10, S10a; stlp_vector, stlp_vector_refs; record_vectors with `records::Memberwise` in record_members.h).
   `records::IsPlain<T>` decides plain data: never CString, std::string, stlp::vector or arrays of them (an array of
   vectors is trivially copyable to the compiler, so a default record's lists were garbage once: S10b / S10d).
-- **hashtable** (stlp_hash: dword keys, `StringKeyTraits`, `CStringFloatTraits`, `StringListTraits`,
-  `DwordObjectTraits`; game_hashes): default 100 -> 193 buckets; node sizes 12 bytes (most), 8 (the dword sets),
-  20 in game.exe (string keys; ours are sizeof(Node) with std::string keys), 32 (find_or_insert 004E2E90).
+- **hashtable** (stlp_hash: dword keys, `StringKeyTraits`, `StringFloatTraits`, `StringListTraits`,
+  `DwordObjectTraits`; game_hashes): default 100 -> 193 buckets; node sizes 12 bytes (most; the named variables'
+  CString keys in game.exe), 8 (the dword sets), 20 in game.exe (string keys; ours are sizeof(Node) with std::string
+  keys, the named variables' too), 32 (find_or_insert 004E2E90).
 - **deque** (stlp_deque: camera view stack 0x24 in 0x1F8-byte nodes, material entries 0x10 in 0x200).
 - **tree** (stlp_tree, stlp_tree_abi `TreeAbi`, stlp_tree_mbs; net_connection_trees, library_trees): SGI 3.x's tree
   (`_M_insert(x, y, v)`, RET 0x10, the hint insert falls back to `insert_unique(v)`); the node colour is a byte;
