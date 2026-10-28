@@ -161,6 +161,8 @@ public:
 
 protected:
     explicit CLinkMeshBase(const std::string* name);
+    CLinkMeshBase(const CLinkMeshBase&) = delete;
+    CLinkMeshBase& operator=(const CLinkMeshBase&) = delete;
 };
 
 // A figure's mesh: the parts' elements concatenated in the arrays. A real virtual class.

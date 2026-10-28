@@ -78,7 +78,10 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    gets its constructor and destructor; plain arrays are `new T[n]` / `delete[]`, a block of a byte count
    other than its type's (a header with what follows it) `::operator new(bytes)` / `::operator delete`. An
    engine object whose constructor leaves fields the game reads is `new (kZeroed) T(...)` (engine_object.h).
-   Containers are
+   A heap helper the original freed by hand that becomes a local with a destructor (PlayerIterator drops its
+   count of the player list) runs that destructor at the end of its scope, not where the original freed it:
+   scope it so it ends before anything it holds is deleted (CWorldServer::Destroy's iterator outlived the
+   list CWorld::Destroy deletes and decremented the freed block, a flaky heap crash at quit). Containers are
    `std::` (the last `mfc::` ones until C14 finishes). Call the CRT functions whose game behaviour differs from the host's through
    `gamecrt::` (C26 decides which those are) and Win32 through `gameapi::`.
 7. **Floating point.** Write float maths as plain C++ (`float`/`double`, the standard maths functions); do NOT hand-copy x87 instruction
