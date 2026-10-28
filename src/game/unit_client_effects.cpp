@@ -90,10 +90,9 @@ const char* HitSoundFormat(std::uint8_t kind) {
     }
 }
 
-int RandomBelow(int n) { return libcrt::Rand() * n / 0x7FFF % n; }
 
 // rand() picks the decal's variant (0 or 1).
-std::uint32_t DecalVariant() { return static_cast<std::uint32_t>(libcrt::Rand() * 2 / 0x7FFF % 2); }
+std::uint32_t DecalVariant() { return static_cast<std::uint32_t>(libcrt::RandBelow(2)); }
 
 std::uint32_t DecalKind(std::uint32_t variant, std::uint32_t blood) { return variant | (blood + 0xFFFF) << 16; }
 
@@ -179,9 +178,9 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     unit->PartWorldPosition(&at.x, part);
     float spreadStored = reach * kSpreadUnits;
     float spread = spreadStored;
-    int offset = RandomBelow(x87::fistp(spread));
+    int offset = libcrt::RandBelow(x87::fistp(spread));
     at.x = static_cast<float>(offset * kSpreadStep - reach + at.x);
-    offset = RandomBelow(x87::fistp(spread));
+    offset = libcrt::RandBelow(x87::fistp(spread));
     at.y = static_cast<float>(offset * kSpreadStep - reach + at.y);
     std::uint32_t variant = DecalVariant();
     g_clientWorld->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);

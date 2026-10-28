@@ -30,8 +30,6 @@ const char* GetDiskFreeSpaceExText() { return "GetDiskFreeSpaceExA"; }
 
 using GetDiskFreeSpaceExFn = BOOL(__stdcall*)(const char*, ULARGE_INTEGER*, ULARGE_INTEGER*, ULARGE_INTEGER*);
 
-// rand() scaled to 0 .. n (rand() * n / 0x7FFF).
-int Scaled(int n) { return libcrt::Rand() * n / 0x7FFF; }
 
 } // namespace
 
@@ -66,8 +64,8 @@ void ScrambleObjects() {
     options::OptionsResetDefaults(&options::g_options.Get());
     ObjectListIteratorOf<CMapObject> it{};
     for (CMapObject* object = it.First(g_clientWorld->objectManager_); object; object = it.Next()) {
-        object->AttachCompanion(reinterpret_cast<CEngineObject*>(Scaled(0x1000) % 0x1000));
-        object->SetSpecific(reinterpret_cast<CObject3DSpecific*>(Scaled(0x1000) % 0x1000));
+        object->AttachCompanion(reinterpret_cast<CEngineObject*>(libcrt::RandBelow(0x1000)));
+        object->SetSpecific(reinterpret_cast<CObject3DSpecific*>(libcrt::RandBelow(0x1000)));
     }
     if (it.manager) --it.manager->refCount_;
 }
@@ -76,7 +74,7 @@ void ScrambleObjects() {
 // looks through the protection's check list and scrambles the objects when an entry has failed
 // (its byte is 0). Nothing adds an entry, so the list is empty.
 void DelayedProtectionCheck() {
-    if (Scaled(100) % 100 >= 1) return;
+    if (libcrt::RandBelow(100) >= 1) return;
     std::list<std::uint8_t>& checks = *g_protectionChecks;
     for (std::list<std::uint8_t>::iterator node = checks.begin(); node != checks.end(); ++node) {
         if (!(*node)) {

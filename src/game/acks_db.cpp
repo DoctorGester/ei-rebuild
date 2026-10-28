@@ -24,7 +24,7 @@ namespace {
 
 
 // The roll a speech's chance is compared with: rand() scaled to 0..99.
-int Roll() { return libcrt::Rand() * 100 / 0x7FFF % 100; }
+int Roll() { return libcrt::RandBelow(100); }
 
 // The ack kinds a party (text-key) unit says differently while it walks slowly (move mode 0 or 1):
 // 0..5 and 7..10 become 0x27, 0x0B..0x13 and 0x1D become 0x28.
@@ -89,7 +89,7 @@ const SpeechRecord* Speeches::Pick(int roll) const {
     for (const SpeechRecord& s : *this)
         if (s.chance >= roll) ++count;
     if (count == 0) return nullptr;
-    int chosen = libcrt::Rand() * count / 0x7FFF % count;
+    int chosen = libcrt::RandBelow(count);
     for (const SpeechRecord* s = data();; ++s)
         if (s->chance >= roll && chosen-- == 0) return s;
 }
@@ -102,7 +102,7 @@ const SpeechRecord* EnvironmentSpeeches::Pick(std::uint32_t environment, int rol
     for (const EnvironmentSpeech& s : *this)
         if (eligible(s)) ++count;
     if (count == 0) return nullptr;
-    int chosen = libcrt::Rand() * count / 0x7FFF % count;
+    int chosen = libcrt::RandBelow(count);
     for (const EnvironmentSpeech* s = data();; ++s)
         if (eligible(*s) && chosen-- == 0) return &s->speech;
 }

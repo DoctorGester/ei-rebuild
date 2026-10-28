@@ -31,6 +31,8 @@ void Qsort(void* base, std::size_t count, std::size_t width, int (*compare)(cons
 using RandObserver = void (*)(int value, const void* caller);
 void SetRandObserver(RandObserver observer);
 int Rand();
+// Rand() * n / 0x7FFF % n: a draw in 0 .. n-1 scaled the way the game does (one Rand call; n > 0).
+inline int RandBelow(int n) { return Rand() * n / 0x7FFF % n; }
 void Srand(unsigned seed);
 // The calling thread's seed itself (the harness's digest and random trace read it).
 unsigned& RandState();

@@ -101,7 +101,7 @@ int CUnitClientSpecific::RunTick() {
         if (blinkTimer > 0) {
             --blinkTimer;
         } else {
-            blinkTimer = libcrt::Rand() * 8 / 0x7FFF % 8 + 2;
+            blinkTimer = libcrt::RandBelow(8) + 2;
             if (eyesClosed == 0) BlinkClose(0);
             else BlinkOpen(0);
         }

@@ -440,7 +440,7 @@ void CMpHeroScreen::PlayVoice() {
             if (IsVoice(e) && rank-- == 0) return &e;
         return nullptr;
     };
-    int index = libcrt::Rand() * count / 0x7FFF % count;
+    int index = libcrt::RandBelow(count);
     for (int tries = 0; tries < count && voiceSound_ == -1; ++tries) {
         voiceSound_ = interface_->PlaySound(nth(index)->speech.sound.c_str(), 0);
         index = (index + 1) % count;

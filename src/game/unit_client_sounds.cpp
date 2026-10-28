@@ -44,7 +44,6 @@ constexpr int kWeaponCrossbow = 6;
 
 
 // rand() scaled into 0..n-1.
-int RandomBelow(int n) { return libcrt::Rand() * n / 0x7FFF % n; }
 
 const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
     return unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
@@ -120,12 +119,12 @@ int CUnitClientSpecific::FootstepSound(int terrain, std::string* out) {
     float gap = ground - surface;
     if (std::fabs(static_cast<float>(gap)) > kPlatformGap) terrain = kTerrainPlatform;
     if (unit->moveMode == 0 && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1) {
-        *out = str::Format("steps\\human\\crawl\\%d.wav", RandomBelow(kCrawlSounds) + 1);
+        *out = str::Format("steps\\human\\crawl\\%d.wav", libcrt::RandBelow(kCrawlSounds) + 1);
         return 1;
     }
     int count = static_cast<int>(model->SoundCounts()[terrain]);
     const std::string& name = model->soundNames.begin()[terrain];
-    *out = str::Format("%s\\%d.wav", name, RandomBelow(count) + 1);
+    *out = str::Format("%s\\%d.wav", name, libcrt::RandBelow(count) + 1);
     return 1;
 }
 
@@ -148,13 +147,13 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
     int count = 0;
     while (count < 4 && animation->sounds[count] != 0) ++count;
     if (count == 0) return 0;
-    std::uint32_t sound = animation->sounds[RandomBelow(count)];
+    std::uint32_t sound = animation->sounds[libcrt::RandBelow(count)];
     std::string folder = model->soundFolder;   // a missing model's soundFolder is read (sic)
     if (prototype->soundFolder.size() != 0) folder = prototype->soundFolder;
     const char* format = nullptr;
     switch (animation->key & kKeyKind) {
     case kKindIdle:
-        if (static_cast<std::uint32_t>(RandomBelow(100)) >= model->idleSoundChance) return 1;
+        if (static_cast<std::uint32_t>(libcrt::RandBelow(100)) >= model->idleSoundChance) return 1;
         format = "%s\\idle\\%d.wav";
         break;
     case kKindSkill:
@@ -167,7 +166,7 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
             *out = str::Format("weapons\\%d.wav", sound);
             return 1;
         }
-        if (static_cast<std::uint32_t>(RandomBelow(100)) >= model->attackSoundChance) return 1;
+        if (static_cast<std::uint32_t>(libcrt::RandBelow(100)) >= model->attackSoundChance) return 1;
         format = "%s\\attack\\%d.wav";
         break;
     }
@@ -293,7 +292,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         else footprint = -1;
         if (id >= 0) {
             footprint = id;
-            footprintRepeats = RandomBelow(4) + 4;
+            footprintRepeats = libcrt::RandBelow(4) + 4;
         }
         break;
     }

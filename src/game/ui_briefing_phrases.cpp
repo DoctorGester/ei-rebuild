@@ -166,7 +166,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             int number;
             if (words.size() > 2 && (number = str::ToInt(words[2])) > 0) {
                 std::string file;
-                int folder = libcrt::Rand() * 2 / 0x7FFF % 2;
+                int folder = libcrt::RandBelow(2);
                 file = str::Format(VoiceFormat(), VoiceFolders()[folder], topic_, number);
                 voice_ = g_clientWorld->sounds_->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
             }

@@ -45,7 +45,7 @@ CItemConstructor* ConstructorOf(const ItemStock* stock) { return PartyOf(stock)-
 int RandomCount(int minCount, int maxCount) {
     if (minCount >= maxCount) return maxCount;
     int range = maxCount + 1 - minCount;
-    return libcrt::Rand() * range / 0x7FFF % range + minCount;
+    return libcrt::RandBelow(range) + minCount;
 }
 
 // STLport random_shuffle with the CRT generator: element i swaps with one at rand() % (i + 1).
@@ -89,7 +89,7 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
             t = AbsBits(t);
             chance = static_cast<int>(110.0f - t);
         }
-        int roll = libcrt::Rand() * 100 / 0x7FFF % 100 + 1;
+        int roll = libcrt::RandBelow(100) + 1;
         if (roll < chance) return *q;
     }
     return nullptr;
@@ -315,7 +315,7 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
         ctor->SetManager(nullptr);
         AddReference(item);
         if (item->type_ == kItemQuick && item->GetCategory() == kCategoryPotion)
-            item->count_ = static_cast<std::uint32_t>(libcrt::Rand() * 30 / 0x7FFF % 30 + 20);
+            item->count_ = static_cast<std::uint32_t>(libcrt::RandBelow(30) + 20);
         Output(out, item);
     }
     candidates.clear();
@@ -349,7 +349,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>*
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(e->record);
         int range = e->maxCount - e->minCount + 1;
-        ctor->count_ = libcrt::Rand() * range / 0x7FFF % range + e->minCount;
+        ctor->count_ = libcrt::RandBelow(range) + e->minCount;
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         AddReference(item);
