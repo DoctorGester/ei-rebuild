@@ -17,6 +17,8 @@
 #include <string_view>
 #include <vector>
 
+#include <windows.h>
+
 namespace mfc::impl { class CFont; }
 class CInterface3D;
 class CUiContainer;
