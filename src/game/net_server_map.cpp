@@ -46,13 +46,13 @@ void ServerSession::SetMap(const std::string* name) {
     if (name != &current->text_) current->text_ = *name;
     if (name != &mapName_) mapName_ = *name;
 
-    GameFlow* world = TheGameFlow();
+    GameFlow* world = &g_gameFlow.Get();
     world->RegisterQuests(name->data());
     world->SetNetworkZone(name->data());
     {
         std::string title, text;
         const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
-        Announce((*TheInterface()->MessageText(&text, 5, mapTitle)).c_str(), nullptr);
+        Announce((*g_interface->MessageText(&text, 5, mapTitle)).c_str(), nullptr);
     }
 
     QuestBriefingRecord* entry;

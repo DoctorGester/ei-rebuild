@@ -52,7 +52,7 @@ void CInterface3D::SetConsoleHistory(int lines) {
     if (console_) console_->SetHistory(lines);
 }
 
-void CInterface3D::SetDebugInfoRect(const RECT* rect) { DebugInfoPanel()->SetRect(rect); }
+void CInterface3D::SetDebugInfoRect(const RECT* rect) { strmap::g_debugPanel->SetRect(rect); }
 
 void CInterface3D::ShowFps(int on) {
     if (!static_cast<std::uint8_t>(on)) {

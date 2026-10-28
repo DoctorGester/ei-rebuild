@@ -42,7 +42,7 @@ constexpr int kCampScreen = 5;
 
 // The zone the local player is in.
 MapRecord* PlayerZone() {
-    return TheMapDatabase()->FindMap(LocalPlayerZone());
+    return g_mapDatabase->FindMap(LocalPlayerZone());
 }
 
 // The ways from the player's zone to `target`, the earlier results dropped.
@@ -65,7 +65,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
     std::string variable;   // one string for every "z.<zone>" name
     for (int i = 0; i < std::ssize(from->exits); ++i) {
         bool goesBeyond = false;
-        MapRecord* zone = TheMapDatabase()->FindMap(from->exits[i].target);
+        MapRecord* zone = g_mapDatabase->FindMap(from->exits[i].target);
         if (!zone) continue;
         float passTime = from->exits[i].passTime;
         if (SameName(zone->name, target_)) {

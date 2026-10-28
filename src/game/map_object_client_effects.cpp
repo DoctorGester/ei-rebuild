@@ -148,8 +148,8 @@ constexpr float kLightHeight = 2.0f;
 constexpr int kUnitClassId = 0x50;
 
 // The default light of mode 1 (r, g, b, radius).
-const float* DefaultLightColour() { return &options::TheOptions()->questLight_.red; }
-float DefaultLightRadius() { return options::TheOptions()->questLight_.radius; }
+const float* DefaultLightColour() { return &options::g_options->questLight_.red; }
+float DefaultLightRadius() { return options::g_options->questLight_.radius; }
 
 CObject3DSpecific* SideHalf(CMapObject* owner) {
     return owner->attached;

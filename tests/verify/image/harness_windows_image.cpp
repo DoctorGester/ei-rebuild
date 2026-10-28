@@ -89,7 +89,7 @@ const std::vector<Kind>& WindowKinds() {
 
 } // namespace
 
-void* TopWindow() { return TheInterface()->GetActiveWindow(); }
+void* TopWindow() { return g_interface->GetActiveWindow(); }
 
 std::uintptr_t WindowKind(const void* window) {
     const std::uintptr_t vtable = *static_cast<const std::uintptr_t*>(window);

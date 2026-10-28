@@ -67,7 +67,7 @@ int CPlayerClient::OnCameraPlacement() {
     int mode;
     const int result = static_cast<int>(in_.Read(&mode, 4));
     g_clientWorld->CentreOn(&point);
-    CCamera* camera = TheCamera();
+    CCamera* camera = &g_camera.Get();
     const char* zone = player_->Party()->zone_.c_str();
     if (std::strcmp(zone,
                         FixedViewZone()) == 0) {
@@ -91,28 +91,28 @@ int CPlayerClient::OnGameState() {
     int tick;
     in_.Read(&tick, 4);
     if (localSession_) {
-        TheInterface()->OnKeyDown(-1, kKeyEnter, 0);
+        g_interface->OnKeyDown(-1, kKeyEnter, 0);
         return 1;
     }
     player->sessionKind100_ = state;
-    TheInterface()->CreateScreen(state);
+    g_interface->CreateScreen(state);
     g_clientWorld->tick_ = tick;
     if (state == kGameStateBetweenZones) g_clientWorld->LoadUnitFaces();
     for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node)
         UnitChanged(node->second);
-    if (IsMultiplayerClient()) TheGameFlow()->UpdateFromServer();
+    if (IsMultiplayerClient()) g_gameFlow->UpdateFromServer();
     return 1;
 }
 
 int CPlayerClient::OnGameLost() {
-    TheInterface()->OnGameLost();
+    g_interface->OnGameLost();
     return 1;
 }
 
 int CPlayerClient::OnUnitSpeech() {
     int values[2];
     in_.Read(values, 8);
-    TheInterface()->OnUnitSpeech(values[0], static_cast<unsigned>(values[1]));
+    g_interface->OnUnitSpeech(values[0], static_cast<unsigned>(values[1]));
     return 1;
 }
 
@@ -137,8 +137,8 @@ int CPlayerClient::OnFreeCamera() {
     in_.Read(&to, 12);
     std::uint8_t free = 0;
     in_.Read(&free, 1);
-    TheCamera()->LookFrom(&from, &to, 0);
-    TheCamera()->SetFree(free != 0);
+    g_camera->LookFrom(&from, &to, 0);
+    g_camera->SetFree(free != 0);
     return 1;
 }
 
@@ -312,8 +312,8 @@ int CPlayerClient::OnWorldStream() {
 }
 
 void CPlayerClient::NotifyUnitChanged(CUnit* unit) {
-    if (unit->player) TheInterface()->OnUnitJoined(unit);
-    else TheInterface()->OnUnitLeft(unit);
+    if (unit->player) g_interface->OnUnitJoined(unit);
+    else g_interface->OnUnitLeft(unit);
     if (!IsMultiplayerClient()) return;
     CParty* party = player_->Party();
     if (std::ssize(party->members_) != 1 || static_cast<int>(party->members_[0].unitId) != unit->id_) return;

@@ -57,7 +57,6 @@ constexpr float kHalfBits = 0.5f;                       // immediate pushed to t
 // Footprints of the walls and clouds, along a direction or a disc, then stamped into / cleared from the AI
 // map.
 extern lib::StaticObject<FootprintCellSet> g_spellFootprint;
-inline FootprintCellSet* SpellFootprint() { return &*g_spellFootprint; }
 
 // --- x87 sequences ------------------------------------------------------------------------------
 // Plain C++ in the x87 order: double intermediates are the unrounded register values.

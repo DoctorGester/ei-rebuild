@@ -337,13 +337,13 @@ eh/rtti/runtime class, rdata constant, data object, bss object, other) and by ow
 that names the address, "several files", or "generated static init / exit only"), and lists the addresses of the
 kinds given.
 - **Blocks**: an address that looks like a lone object can sit inside a larger one the code reaches by its base: C18f's
-  0079BCF0 and 0079BEC8 are GameOptions members (0079BC70 +0x80, +0x258), read as `options::TheOptions()->...`, not named.
+  0079BCF0 and 0079BEC8 are GameOptions members (0079BC70 +0x80, +0x258), read as `options::g_options->...`, not named.
   A `char` buffer is `char g_x[256] = /*addr*/ {""};` (the tool packs char arrays as names), a function pointer
   `void* g_hook = /*addr*/ {nullptr};` cast at the call.
 - **Global objects (C18n)**: `--check` refuses a named range inside a singleton the code reaches by field offset
-  (config/global_objects.csv: address, size, name, class; TheServerWorld 007AFF60 +0x12E7C, TheClientWorld, TheGameFlow,
-  TheInterface, TheCursor, TheCamera, TheSceneRenderer, ...) and says which object and field: C18i's 007C2CC4 is
-  `TheServerWorld + 0x12D64 (CWorldServer::sessionKind_)`; the world also holds TheMissionScript 007C27D4 (commandsA_),
+  (config/global_objects.csv: address, size, name, class; g_serverWorld 007AFF60 +0x12E7C, g_clientWorld, g_gameFlow,
+  g_interface, g_cursor, g_camera, g_sceneRenderer, ...) and says which object and field: C18i's 007C2CC4 is
+  `g_serverWorld + 0x12D64 (CWorldServer::sessionKind_)`; the world also holds TheMissionScript 007C27D4 (commandsA_),
   007C29CC (commandsB_), TheSectorMap 007B01F4 (sectorMap_), the AI map 007B00D0 and the diplomacy 007C2BC4. Naming the
   whole object is allowed. `python tools/named_data.py --owner BEGIN [END]` asks the same of any address. The CSV's sizes
   come from `static_assert(sizeof(T) == N)` where the sources have one (checked against it); CWorldServer 0x12E7C,
@@ -352,7 +352,7 @@ kinds given.
 - **C18h (the small areas)**: three kinds of reads went away. (1) Members of blocks read by their base: the logic
   settings 007C53F8 (`GameLogicSettings()`: guard / follow radii, the hit point curve's hpVal, skillVal, lost money /
   experience, durability, absorption / attack / defence per difficulty; 25 literals in unit*, combat*, player_server_handlers)
-  and the options 0079BC70 (`options::TheOptions()->...`: video / audio, texture quality, mipmapping, reverse stereo, flora
+  and the options 0079BC70 (`options::g_options->...`: video / audio, texture quality, mipmapping, reverse stereo, flora
   light, the two LOD distances, the camera's terrain area, keyboard layout, the objects' lighting coefficient, the hero and
   quest lights). Check a new candidate against these two structs first (an offset from 007C53F8 / 0079BC70 is a member).
   (2) Struct tables with string pointers: TYPES has `OptionDefinition` / `ActionDefinition` (ui_options.cpp), `ScriptParticleType`
@@ -542,7 +542,7 @@ kinds given.
     00434980 beside it), the select timeout and net_delta.h's keep / read state. **The "campaign mode" 007C2CC4 is not
     a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
     left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
-    readers take `TheServerWorld()->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
+    readers take `g_serverWorld->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
     CRT's "C" locale since C26 (nothing reads it since C35b), the old iostream's shared lock and ios count and ostream's virtual base table (C35d: console::Stream has none;
     crt_file's zero mode constants went with C35a). **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
@@ -610,7 +610,7 @@ kinds given.
         without one is `constinit lib::StaticObject<Class> g_x = /*ADDR*/ {};` and the initialiser calls the class's
         own `Construct(...)`. named_data needs the class's size (STATIC_OBJECT_BYTES in tools/named_data.py maps the
         T of a StaticObject<T> to it; a template deeper than one level gets an alias, `using IntSet = ...`). Every
-        access goes through the name or a member (an accessor such as `ThePartyManager()`); a raw address inside the
+        access goes through the name or a member (`g_partyManager->`); a raw address inside the
         range is refused. Named: ui_objectives' last quest string 007C8178, bink_video's loading holder 007C551C, the
         protection checks / driver / deferred-unit lists (static_lists.cpp), the spell / item / quest / print / speech
         databases (database_globals.cpp), the lever table, the unit and skill databases (unit_db_globals.cpp), the
@@ -621,8 +621,8 @@ kinds given.
         (ui_small_members.cpp). Their raw reads became members: the options' 80 reads (camera speeds, shadows, prints,
         volumes, difficulty, paths, master server ...), the mouse position and drag motion (CCursor::position_ /
         motion_: 007C7C50 and 007C7C60 were lone ints before C18k5 named the cursor), the interface's window stack
-        (007C7D84 was misnamed PeerList), close-all and sessions flags. Accessors of the objects whose header only
-        forward-declares them (TheGameFlow, TheInterface, TheCursor) are out-of-line functions. **The harness** reads
+        (007C7D84 was misnamed PeerList), close-all and sessions flags. The objects whose header only forward-declares
+        their class (g_gameFlow, g_interface, g_cursor) are declared extern in game_singletons.h. **The harness** reads
         them through tests/verify/harness_objects.h (HarnessOptions / HarnessFlow / HarnessInterface / HarnessCursor: ours
         in the image, `ei::OriginalGameData` at the address in --no-hooks runs); the stats recorder reads the
         difficulty from game.exe's options the same way. Left: string_map 0079B930, CMapDatabase 0079BF00, the renderer
@@ -693,7 +693,7 @@ kinds given.
   - **The remaining objects** (C18, 2026-10-22; 247 -> 130):
     - **Singletons' fields read as members**: what was left of the client / server worlds', the scene renderer's and
       the camera's fields (managers, tick and its fraction, terrain, scripts, diplomacy, flags, wind, platforms) is
-      read through the object (`TheClientWorld()->manager3C_`); the accessors that need world.h are out of line in
+      read through the object (`g_clientWorld->manager3C_`); the accessors that need world.h are out of line in
       world_singletons.cpp (game_singletons.h declares them; replay_path.cpp defines CurrentWorldTick for the path
       vectors). TheMatrixDevice was the scene pipeline (ScenePipeline()), 007AFDB0 the origin (worlddata::kOrigin),
       007C5488 / 007C548C the logic settings' considerModifier / considerLogBase. Check a lone address with

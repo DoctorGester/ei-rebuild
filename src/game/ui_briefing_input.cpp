@@ -140,11 +140,11 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
 
 void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (chatActive_) {
-        TheCursor()->SetShape(kCursorChat);
+        g_cursor->SetShape(kCursorChat);
         if (chat_) chat_->Input()->MouseMove(buttons, x, y);
         return;
     }
-    TheCursor()->SetShape(kCursorNormal);
+    g_cursor->SetShape(kCursorNormal);
     CUiContainer::MouseMove(buttons, x, y);
     if (state_ == 1) {
         int region = RegionAt(x, y);
@@ -155,9 +155,9 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
             DrawTopics();
         }
     } else if (state_ == 3) {
-        TheCursor()->SetShape(kCursorTalk);
+        g_cursor->SetShape(kCursorTalk);
     } else if (state_ == 4) {
-        TheCursor()->SetShape(kCursorNormal);
+        g_cursor->SetShape(kCursorNormal);
     }
     if (interface_->rightDown_ || state_ != 0) return;
 
@@ -168,7 +168,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         if (IsMultiplayerClient() && leader_ && leader_->id_ == id) return;
         if (!CanTalk(object)) return;
         FindTopics(id);
-        if (!topics_.empty()) TheCursor()->SetShape(kCursorTalk);
+        if (!topics_.empty()) g_cursor->SetShape(kCursorTalk);
         auto node = personTexts_.find(id);
         if (node == personTexts_.end()) return;
         CUiSurface* label = surfaces_[1];
@@ -196,7 +196,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     variable += zone;
     float visited = PlayerZeroVariable(variable);
     EI_NAN_AUDIT(visited);
-    if (visited != 1.0f) TheCursor()->SetShape(kCursorExit);
+    if (visited != 1.0f) g_cursor->SetShape(kCursorExit);
 }
 
 

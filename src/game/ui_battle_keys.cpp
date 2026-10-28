@@ -148,7 +148,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     }
 
     const int action = g_keyActions[flags & kScanCodeMask];
-    CCamera* camera = TheCamera();
+    CCamera* camera = &g_camera.Get();
     switch (action) {
     case kActionPause: {
         auto* clock = clock_;

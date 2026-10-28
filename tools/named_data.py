@@ -38,9 +38,9 @@ Elements the initialiser leaves out are zero, as in C++ (`{}`: all of them; the 
 in .rdata must be const.
 
   * no named range falls inside a known global object that game.exe reaches by field offset (C18n; config/
-    global_objects.csv: address, size, name, type; TheServerWorld, TheClientWorld, TheGameFlow, TheInterface, ...):
+    global_objects.csv: address, size, name, type; g_serverWorld, g_clientWorld, g_gameFlow, g_interface, ...):
     a name for part of such an object is a second name for a field, and the code that still reads the object's
-    own name sees something else ("007C2CC4 is inside TheServerWorld 007AFF60 + 0x12D64", C18i's sessionKind_).
+    own name sees something else ("007C2CC4 is inside g_serverWorld 007AFF60 + 0x12D64", C18i's sessionKind_).
     The object itself may be named whole (a range covering it). The CSV's sizes are compared with the sources'
     static_asserts (sizeof(T) == N) where they have one, and every GamePointer<T>(address) accessor of
     src/game/game_singletons.h must lie in a listed object.
@@ -574,7 +574,7 @@ def asserted_layouts(sources):
 
 
 def where_in(obj, address, members):
-    """'TheServerWorld 007AFF60 + 0x12D64 (CWorldServer::sessionKind_)': the field at the offset when a static_assert
+    """'g_serverWorld 007AFF60 + 0x12D64 (CWorldServer::sessionKind_)': the field at the offset when a static_assert
     names it, else the last named field before it."""
     offset = address - obj.address
     text = f'{obj.name} {obj.address:08X} + 0x{offset:X}'

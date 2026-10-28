@@ -51,7 +51,7 @@ LRESULT OnActivate(WPARAM wParam) {
     if (state == 0) {   // WA_INACTIVE
         g_active = 0;
         g_activationChanged = 1;
-        TheCursor()->ShowImage(0);
+        g_cursor->ShowImage(0);
         CTextureDevice* device = TheRenderDevice();
         if (device && (device->flags_ & 1)) device->RestoreDisplayMode();
         if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(0);
@@ -74,13 +74,13 @@ LRESULT OnActivate(WPARAM wParam) {
             // The context is the mouse.
             std::uint32_t flags = (reinterpret_cast<std::uintptr_t>(device) & 0xFFFFFF00u) |
                                   (g_deviceNamed == 0 ? 1u : 0u);
-            ResetCursors(options::TheOptions()->fpsIndependentCursor_ != 0, g_mouse, 0,
+            ResetCursors(options::g_options->fpsIndependentCursor_ != 0, g_mouse, 0,
                          static_cast<int>(flags));
         }
     }
-    TheCursor()->ShowImage(1);
+    g_cursor->ShowImage(1);
     if (sounds) sounds->ResumeAll();
-    TheInterface()->ResetInput();
+    g_interface->ResetInput();
     return 1;
 }
 
@@ -106,7 +106,7 @@ UINT AutoPlayMessage() {
 }
 
 LRESULT Handled() {
-    TheInterface()->CloseAllPending();
+    g_interface->CloseAllPending();
     return 1;
 }
 
@@ -175,7 +175,7 @@ LRESULT DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     // The switch-over with the frame scaled into the window: the mouse's coordinates as the frame's
     // (present_window.h; unchanged otherwise). The game's own wheel message (0xCC54) is not mapped.
     lParam = present_window::MouseToGame(message, lParam);
-    CInterface3D* input = TheInterface();
+    CInterface3D* input = &g_interface.Get();
     input->CloseAllPending();
     int w = static_cast<int>(wParam);
     switch (message) {
@@ -249,11 +249,11 @@ int StartFirstMap() {
     const auto& cmdMode = *g_commandLineMob;   // empty: main menu
     const auto& cmdScript = *g_commandLineScript;
     std::string map;
-    map = cmdMap.size() != 0 ? cmdMap : options::TheOptions()->defaultMapName_;
+    map = cmdMap.size() != 0 ? cmdMap : options::g_options->defaultMapName_;
     if (str::Compare(cmdMode,
                         game::kEmptyText) == 0) {
-        TheGameFlow()->CloseSessions();
-        MenuOpen(TheGameFlow());
+        g_gameFlow->CloseSessions();
+        MenuOpen(&g_gameFlow.Get());
         return 1;
     }
     CWorldServer* world = &g_serverWorld.Get();

@@ -71,7 +71,6 @@ CCamera::~CCamera() {
 
 // The camera, zero at the start: built by its static initialiser and destroyed by the exit function it registers.
 constinit lib::StaticObject<CCamera> g_camera = /*0079B2A8*/ {};
-CCamera* TheCamera() { return &*g_camera; }
 
 // A second block: it uses g_camera (defined above).
 namespace {

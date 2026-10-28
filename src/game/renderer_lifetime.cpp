@@ -106,7 +106,7 @@ void CVisualizator::SetSunAndAmbient(CLight* light, float r, float g, float b) {
 // --- The renderer -----------------------------------
 
 // The renderer.
-CSceneRenderer* SceneRenderer() { return TheSceneRenderer(); }
+CSceneRenderer* SceneRenderer() { return &g_sceneRenderer.Get(); }
 
 CSceneRenderer::CSceneRenderer() {
     device_ = nullptr;
@@ -125,7 +125,6 @@ CSceneRenderer::~CSceneRenderer() {
 // in the list's order and destroyed by the exit functions those register (docs/notes/standalone.md, "The static
 // initialisers' objects").
 constinit lib::StaticObject<CSceneRenderer> g_sceneRenderer = /*007AF060*/ {};
-CSceneRenderer* TheSceneRenderer() { return &*g_sceneRenderer; }
 constinit CRITICAL_SECTION g_deviceLock = /*007AEE78*/ {};
 
 // A second block: it uses g_sceneRenderer and g_deviceLock (defined above).

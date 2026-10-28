@@ -334,7 +334,7 @@ void CHudPortraits::OnMouseMove(int, int x, int y) {
         if (region < std::ssize(owner->party_)) owner->HoverUnit(owner->party_[region], 0, 0);
         return;
     }
-    if (region >= 0 && region < count_) TheCursor()->SetShape(0);
+    if (region >= 0 && region < count_) g_cursor->SetShape(0);
 }
 
 // --- Map ---------------------------------------------------------------------------------------
@@ -385,7 +385,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
         const float worldY = static_cast<float>(centreY_ - down / scale_);
         if (worldX > 0.0f && worldX < worldWidth_ && worldY > 0.0f && worldY < worldHeight_) {
             // The camera stops following its unit and looks there.
-            CCamera* view = TheCamera();
+            CCamera* view = &g_camera.Get();
             view->flags_ &= ~kCameraFollows;
             view->SetTargetId(-1);
             Vector3 focus = view->focus_;
@@ -398,7 +398,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
     }
     case 5:     // "camera north"
         interface_->PlaySound(kSoundClick, 0);
-        TheCamera()->SetHeading(0.0f);
+        g_camera->SetHeading(0.0f);
         northTime_ = 0.5f;
         handled_ = true;
         return;
@@ -687,7 +687,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             if (unit != party_[i]) continue;
             interface_->PlaySound(game::SoundOnOffText(), 0);
             if (interface_->doubleClick_) {
-                if (i < std::ssize(party_)) TheCamera()->SetTarget(party_[i]);
+                if (i < std::ssize(party_)) g_camera->SetTarget(party_[i]);
             } else {
                 ToggleMember(i);
             }
@@ -730,7 +730,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 if (unit != party_[i]) continue;
                 interface_->PlaySound(game::SoundOnOffText(), 0);
                 if (interface_->doubleClick_) {
-                    if (i < std::ssize(party_)) TheCamera()->SetTarget(party_[i]);
+                    if (i < std::ssize(party_)) g_camera->SetTarget(party_[i]);
                 } else {
                     ToggleMember(i);
                 }

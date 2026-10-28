@@ -1276,10 +1276,10 @@ std::string* SessionMapNameInto(std::string* out);
 // bz7g (case-insensitive) take progres1.bik.
 void SelectLoadingMovie(const char* zone);
 
-inline int TimeSpeedSetting() { return options::TheOptions()->defaultTimeScale_; }
-inline float FogStartDay() { return options::TheOptions()->fogDayStartDistance_; }
-inline float FogStartNight() { return options::TheOptions()->fogNightStartDistance_; }
-inline float FarClipDistance() { return options::TheOptions()->farClipDistance_; }
+inline int TimeSpeedSetting() { return options::g_options->defaultTimeScale_; }
+inline float FogStartDay() { return options::g_options->fogDayStartDistance_; }
+inline float FogStartNight() { return options::g_options->fogNightStartDistance_; }
+inline float FarClipDistance() { return options::g_options->farClipDistance_; }
 
 extern std::vector<CMapObject*> g_touchedModels;
 extern std::vector<CMapObject*> g_shadow52;
@@ -1312,7 +1312,6 @@ inline std::vector<CMapObject*>& FrameObjects(FrameList list) {
     return *kQueues[static_cast<int>(list)];
 }
 extern lib::StaticObject<std::list<HeldPtr<CMapObject>>> g_deferredUnits;
-inline std::list<HeldPtr<CMapObject>>* FrameDeferredUnits() { return &*g_deferredUnits; }
 // The id the next object only the client makes gets (client figures such as a bow shot's arrow); each
 // use counts it down.
 inline int& NextClientObjectId() { return g_clientWorld->nextClientObjectId_; }

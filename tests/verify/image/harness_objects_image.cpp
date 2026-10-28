@@ -67,14 +67,14 @@ void* MainWindow() { return app::g_mainWindow; }
 std::uint8_t& InterfaceHasScreen() { return app::g_interfaceHasScreen; }
 std::uint8_t& RecordingFrames() { return app::g_recordingFrames; }
 bool AppActive() { return app::g_active != 0; }
-int& FlowState() { return TheGameFlow()->state_; }
-void SetLoadTarget(const char* slot) { TheGameFlow()->requestTarget_ = slot; }
-void ClearShowTutorial() { options::TheOptions()->showTutorial_ = 0; }
-void SetMasterHost(const char* host) { options::TheOptions()->masterServerName_ = host; }
-void SetWaterWaves(bool on) { options::TheOptions()->enableWaterWaves_ = on; }
+int& FlowState() { return g_gameFlow->state_; }
+void SetLoadTarget(const char* slot) { g_gameFlow->requestTarget_ = slot; }
+void ClearShowTutorial() { options::g_options->showTutorial_ = 0; }
+void SetMasterHost(const char* host) { options::g_options->masterServerName_ = host; }
+void SetWaterWaves(bool on) { options::g_options->enableWaterWaves_ = on; }
 
 CursorState Cursor() {
-    const CCursor* cursor = TheCursor();
+    const CCursor* cursor = &g_cursor.Get();
     CursorState state;
     state.mode = cursor->mode_;
     state.thread = cursor->thread_ != nullptr;
@@ -87,10 +87,10 @@ CursorState Cursor() {
     return state;
 }
 
-void* QueuedWindow() { return TheInterface()->queuedWindow_; }
-bool CloseAllPending() { return TheInterface()->closeAll_; }
+void* QueuedWindow() { return g_interface->queuedWindow_; }
+bool CloseAllPending() { return g_interface->closeAll_; }
 bool ScreenFade(bool* running, float* alpha) {
-    const CScreenFade* fade = TheInterface()->fade_;
+    const CScreenFade* fade = g_interface->fade_;
     if (!fade) return false;
     *running = fade->active_ != 0;
     *alpha = fade->alpha_;
@@ -98,7 +98,7 @@ bool ScreenFade(bool* running, float* alpha) {
 }
 int CampaignMode() { return g_serverWorld->sessionKind_; }
 void* ClientWorldObject() { return &g_clientWorld.Get(); }
-void* SceneDevice() { return TheSceneRenderer()->device_.device; }
+void* SceneDevice() { return g_sceneRenderer->device_.device; }
 void* DeviceLock() { return &g_deviceLock; }
 bool RenderActive() { return render::Active(); }
 
@@ -192,28 +192,28 @@ bool Region(void* window, int index, RegionInfo* region) {
 }
 void ScaleToScreen(long* x, long* y) {
     POINT point{*x, *y};
-    TheInterface()->ScalePointToScreenEntry(&point);
+    g_interface->ScalePointToScreenEntry(&point);
     *x = point.x;
     *y = point.y;
 }
 void InterfaceSize(int* width, int* height) {
-    *width = TheInterface()->width_;
-    *height = TheInterface()->height_;
+    *width = g_interface->width_;
+    *height = g_interface->height_;
 }
 bool SaveLoadSliding(void* window) { return static_cast<CSaveLoadWindow*>(window)->sliding_; }
 bool OptionsSliding(void* window) { return static_cast<COptionsWindow*>(window)->sliding_; }
-bool HasChatOverlay() { return TheInterface()->root_ != nullptr; }
-void ChatKeyEnter() { TheInterface()->ChatKeyEnter(); }
-void CloseChat() { TheInterface()->root_->SetOpen(false); }
-bool HasClassTemplate(int id) { return ThePartyManager()->templates.Find(id) != nullptr; }
-const void* FindMap(const char* name) { return TheMapDatabase()->FindMap(name); }
+bool HasChatOverlay() { return g_interface->root_ != nullptr; }
+void ChatKeyEnter() { g_interface->ChatKeyEnter(); }
+void CloseChat() { g_interface->root_->SetOpen(false); }
+bool HasClassTemplate(int id) { return g_partyManager->templates.Find(id) != nullptr; }
+const void* FindMap(const char* name) { return g_mapDatabase->FindMap(name); }
 int MapKind(const void* record) { return static_cast<const MapRecord*>(record)->kind; }
 void LeaveToZone(void* connection, const char* name, int exit) {
     static_cast<CPlayerServer*>(connection)->LeaveToZone(name, exit);
 }
 
 bool RestoreSurfaces(long* result) {
-    CTextureDevice* device = TheSceneRenderer()->device_.device;
+    CTextureDevice* device = g_sceneRenderer->device_.device;
     if (!device || !device->ddraw_) return false;
     EnterCriticalSection(&g_deviceLock);
     *result = DD_OK;   // the image's device object holds a token: nothing to restore

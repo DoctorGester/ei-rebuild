@@ -62,7 +62,7 @@ std::uint8_t g_movieMode = /*00784752*/ 1;
 // of the object manager gets a random number below 0x1000 as its companion and as its specific
 // half (both are pointers; the game fails some time later).
 void ScrambleObjects() {
-    options::OptionsResetDefaults(options::TheOptions());
+    options::OptionsResetDefaults(&options::g_options.Get());
     ObjectListIteratorOf<CMapObject> it{};
     for (CMapObject* object = it.First(TheObjectManager()); object; object = it.Next()) {
         object->AttachCompanion(reinterpret_cast<CEngineObject*>(Scaled(0x1000) % 0x1000));

@@ -100,7 +100,7 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
     CTransformPipeline* pipeline = renderer->pipeline_;
     MatrixStack* stacks = pipeline->stacks_;
     // The camera's near and far distances and field of view, as dwords.
-    const CCamera* cam = TheCamera();
+    const CCamera* cam = &g_camera.Get();
     float zNear, zFar, fov;
     std::memcpy(&zNear, &cam->nearDistance_, 4);
     std::memcpy(&zFar, &cam->farDistance_, 4);
@@ -268,7 +268,7 @@ void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
     CTransformPipeline* pipeline = pipeline_;
     MatrixStack* stacks = pipeline->stacks_;
     for (int i = 15; i >= 0; --i) stacks[i].count = 0;
-    const CCamera* cam = TheCamera();
+    const CCamera* cam = &g_camera.Get();
     float zNear, zFar, fov;
     std::memcpy(&zNear, &cam->nearDistance_, 4);
     std::memcpy(&zFar, &cam->farDistance_, 4);

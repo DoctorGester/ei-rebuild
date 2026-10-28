@@ -32,8 +32,8 @@ constinit std::vector<VertexPacket> g_movedPositions = /*007C2E48*/ {};
 void FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
 std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
 // The scale the lights' colours are set with and the "crown" option.
-float LightingCoefficient() { return options::TheOptions()->objectsLightingCoeff_; }
-int CrownOption() { return options::TheOptions()->floraSpecialLight_; }
+float LightingCoefficient() { return options::g_options->objectsLightingCoeff_; }
+int CrownOption() { return options::g_options->floraSpecialLight_; }
 
 // --- Helpers -------------------------------------------------------------------------------------
 
@@ -300,6 +300,6 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const std::vector<CLight*>
     } else {
         DrawThroughDevice(part);
     }
-    DrawBounds(TheSceneRenderer());
+    DrawBounds(&g_sceneRenderer.Get());
     return 1;
 }

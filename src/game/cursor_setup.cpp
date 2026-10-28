@@ -51,15 +51,15 @@ const CursorShape kShapes[] = {
 // Set-up. `modeTwo` picks the cursor's mode 2 (else 1); `context` and
 // `smallCursors` (low byte tested) go to the cursor's Init, `flags` to every shape.
 void SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags) {
-    TheCursor()->Init(TheRenderDevice(), modeTwo ? 2 : 1,
+    g_cursor->Init(TheRenderDevice(), modeTwo ? 2 : 1,
                                                 context, smallCursors);
     bool useSmall = static_cast<std::uint8_t>(smallCursors) != 0;
     for (const CursorShape& shape : kShapes)
-        TheCursor()->AddShape(useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY, flags);
-    TheCursor()->Start();
+        g_cursor->AddShape(useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY, flags);
+    g_cursor->Start();
 }
 
 void ResetCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags) {
-    TheCursor()->Shutdown();   // the drawing thread stopped, the shapes released
+    g_cursor->Shutdown();   // the drawing thread stopped, the shapes released
     SetUpCursorsAt(modeTwo, context, smallCursors, flags);
 }

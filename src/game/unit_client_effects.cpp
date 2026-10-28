@@ -68,8 +68,8 @@ constexpr HitPart kHitParts[6] = {{"hd", 1}, {"bd", 7}, {"lh2", 3}, {"rh2", 4}, 
 constexpr int kBloodParticles[8] = {0x200F, 0x2031, 0x2032, 0x2033, 0x200F, 0x2031, 0x2032, 0x2033};
 
 // The party light (r, g, b; radius).
-const float* PartyLightColour() { return &options::TheOptions()->heroLight_.red; }
-float PartyLightRadius() { return options::TheOptions()->heroLight_.radius; }
+const float* PartyLightColour() { return &options::g_options->heroLight_.red; }
+float PartyLightRadius() { return options::g_options->heroLight_.radius; }
 
 // The hit sound's folder by the weapon class (kinds 7 and 8 and above 15 have none).
 const char* HitSoundFormat(std::uint8_t kind) {

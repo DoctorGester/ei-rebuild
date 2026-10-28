@@ -85,7 +85,7 @@ constexpr int kMaxFootPart = 9;
 // The client world's local view (CWorldClient::LocalView) and its player; only the field read here.
 
 // Footprints show for every unit (else only for units with flags_ 0x400000).
-bool AllFootprintsShown() { return options::TheOptions()->drawVisibleOnly_ == 0; }
+bool AllFootprintsShown() { return options::g_options->drawVisibleOnly_ == 0; }
 
 // The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; the
 // callers have returned on a NaN `now`).
@@ -95,7 +95,7 @@ void Shake(CUnit* unit) {
     const auto* prototype = unit->GetPrototype();
     float strength = prototype->shake;
     if (strength > 0.0f)
-        TheCamera()->Shake(&unit->localPosition_, kShakeDuration, strength,
+        g_camera->Shake(&unit->localPosition_, kShakeDuration, strength,
                                    kShakeDecay);
 }
 
@@ -250,7 +250,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (prototype) {
             float strength = prototype->shake;
             if (strength > 0.0f)
-                TheCamera()->Shake(&unit->localPosition_, kShakeDuration, strength,
+                g_camera->Shake(&unit->localPosition_, kShakeDuration, strength,
                                    kShakeDecay);
         }
         const auto* model = unit->GetPrototypeModel();

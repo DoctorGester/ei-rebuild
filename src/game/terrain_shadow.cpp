@@ -19,7 +19,7 @@ constexpr int kLastCell = 31;       // the column / row a ray enters a sector at
 constexpr int kLoaded = 1;          // SectorAt's stage: the vertex positions
 
 // The width of the fade at the map's edges (the interface's screens set it).
-float MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
+float MapEdgeFade() { return options::g_options->borderFogDistance_; }
 
 std::uint32_t Bits(float value) {
     std::uint32_t bits;

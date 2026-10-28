@@ -63,13 +63,13 @@ constexpr int kClassQuestItem = 0x14;
 const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
 const char* MoviesFolder() { return "Movies\\"; }
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
-int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
+int ConfiguredTimeSpeed() { return options::g_options->defaultTimeScale_; }
 
 CWorldServer* TheWorld() { return &g_serverWorld.Get(); }
 
 CAIMap* TheAIMap() { return g_serverWorld->AIMap(); }
 
-NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
+NamedPartyRecords* Parties() { return &g_partyManager->records; }
 
 CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
@@ -205,8 +205,8 @@ void RedeployParty(const SSCCmd* cmd) {
     std::vector<UnitPlacement> slots;
     TheWorld()->CollectParty(player, &slots);
     CParty* party = player->Party();
-    ThePartyManager()->BeginRedeploy(party);
-    ThePartyManager()->EndRedeploy(party);
+    g_partyManager->BeginRedeploy(party);
+    g_partyManager->EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
     const std::vector<PartyUnitRecord>& members = player->Party()->members_;
     if (slots.size() == 1 && std::ssize(members) == 1) slots[0].id = static_cast<int>(members[0].unitId);
@@ -1055,7 +1055,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             QuestRecord* quest = g_questDatabase->FindQuest(Text(cmd, 0));
             if (!quest) break;
             TheWorld()->AwardExperience(player, quest->exp);
-            ClassTemplatesQuestCompleted(ThePartyManager());
+            ClassTemplatesQuestCompleted(&g_partyManager.Get());
             break;
         }
         case 0xD5:   // QStart(name)

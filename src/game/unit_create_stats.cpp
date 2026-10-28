@@ -141,8 +141,8 @@ void LearnNpcSkills(UnitStats* stats, const UnitNpcRecord* npc) {
     if (!npc) return;
     stats->AddScaledExperience(npc->experience);
     for (const std::string* name = npc->skillNames.data(); name != npc->skillNames.data() + npc->skillNames.size(); ++name) {
-        ::SkillLevelRecord* skill = SkillDb()->FindLevel(name->c_str());
-        if (skill) stats->LearnSkill(SkillDb(), skill);
+        ::SkillLevelRecord* skill = g_skillDatabase->FindLevel(name->c_str());
+        if (skill) stats->LearnSkill(&g_skillDatabase.Get(), skill);
     }
     std::memcpy(&stats->spentExperience, &stats->experience, 4);
 }

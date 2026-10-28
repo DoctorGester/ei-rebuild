@@ -235,8 +235,8 @@ std::uint32_t Bits(const float& f) {
     std::memcpy(&bits, &f, sizeof(bits));
     return bits;
 }
-std::uint32_t CameraTargetXBits() { return Bits(TheCamera()->focus_.x); }
-std::uint32_t CameraTargetYBits() { return Bits(TheCamera()->focus_.y); }
+std::uint32_t CameraTargetXBits() { return Bits(g_camera->focus_.x); }
+std::uint32_t CameraTargetYBits() { return Bits(g_camera->focus_.y); }
 
 void SetBits(float* f, std::uint32_t bits) { std::memcpy(f, &bits, sizeof(bits)); }
 

@@ -213,7 +213,7 @@ void GameFlow::OnVariableChanged(const net::VariableMessage* record) {
                                 flowdata::kQuestVariablePrefix) == 0;
     }
     if (quest) {
-        TheInterface()->OnQuestVariable(name, value);
+        g_interface->OnQuestVariable(name, value);
         g_clientWorld->OnQuestVariable(name, value);
     }
 }
@@ -255,7 +255,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     {
         std::string base = folder;
         std::string path = base + game::briefingwords::MapList();
-        TheMapDatabase()->Load(path.c_str());
+        g_mapDatabase->Load(path.c_str());
     }
     std::string name(folder);
     folders.push_back(name);

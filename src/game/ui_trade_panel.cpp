@@ -30,8 +30,8 @@ namespace {
 
 
 
-SkillLevelRecord* SkillRecords() { return SkillDb()->levels.data(); }
-int SkillCount() { return static_cast<int>(SkillDb()->levels.size()); }
+SkillLevelRecord* SkillRecords() { return g_skillDatabase->levels.data(); }
+int SkillCount() { return static_cast<int>(g_skillDatabase->levels.size()); }
 
 int HasPerkText(CTextManager* table, const std::string& name) {
     std::string prefix("perk ");
@@ -183,7 +183,7 @@ void CTradePanel::BuildLists() {
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(SkillCount())) continue;
         SkillLevelRecord* record = SkillRecords() + index;
         if (!record) continue;
-        if (!stats->CanLearn(SkillDb(), record)) continue;
+        if (!stats->CanLearn(&g_skillDatabase.Get(), record)) continue;
         TradeRow* row = &learnable_.emplace_back();
         PerkBaseName(&text, record);
         if (HasPerkText(table, text))

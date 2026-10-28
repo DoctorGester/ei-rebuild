@@ -24,7 +24,7 @@ void DestroyDrawOrder() {
     g_drawOrder.Destroy();
 }
 // The camera's orientation.
-const Quaternion& CameraRotation() { return TheCamera()->localRotation_; }
+const Quaternion& CameraRotation() { return g_camera->localRotation_; }
 
 // The blend factors set: SRCBLEND, DESTBLEND (5 source alpha; 2 one: additive, 6 inverse source alpha: the
 // default).

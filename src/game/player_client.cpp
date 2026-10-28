@@ -78,7 +78,7 @@ const char* QuestPrefix() { return "q."; }
 // The quest log refreshed with an empty CPtrList built and destroyed on the stack.
 void RefreshQuestLog() {
     std::list<void*> none;
-    TheInterface()->OnItemsPicked(&none, 0, 0);
+    g_interface->OnItemsPicked(&none, 0, 0);
 }
 
 // The client world shows a number over a unit (id, value, kind).
@@ -105,7 +105,7 @@ constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
 constexpr std::uint8_t kRequestRecording = 2;
 
 // Path markers are shown.
-bool MarkersShown() { return options::TheOptions()->drawPath_ != 0; }
+bool MarkersShown() { return options::g_options->drawPath_ != 0; }
 const char* TextPartyReceived() { return "party received on client"; }
 
 constexpr int kClassUnitObject = 0x50;      // GetClassId of units
@@ -282,7 +282,7 @@ int CPlayerClient::OnSetVariable() {
     variables.Get(name);
     variables.Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
-        TheInterface()->OnQuestVariable(name, std::bit_cast<float>(value));
+        g_interface->OnQuestVariable(name, std::bit_cast<float>(value));
         g_clientWorld->OnQuestVariable(name, std::bit_cast<float>(value));
     }
     return 1;
@@ -293,7 +293,7 @@ int CPlayerClient::OnDeleteVariable() {
     in_.ReadString(&name);
     player_->Party()->variables_.Remove(name);
     if (IsQuestVariable(name)) {
-        TheInterface()->OnQuestVariable(name, 0.0f);
+        g_interface->OnQuestVariable(name, 0.0f);
         g_clientWorld->OnQuestVariable(name, 0.0f);
     }
     return 1;
@@ -304,7 +304,7 @@ int CPlayerClient::OnZoneChange() {
     ReadText(&zone);
     int entrance;
     in_.Read(&entrance, 4);
-    TheGameFlow()->RequestZoneChange(zone.c_str(), entrance);
+    g_gameFlow->RequestZoneChange(zone.c_str(), entrance);
     return 1;
 }
 
@@ -395,7 +395,7 @@ int CPlayerClient::OnItemsReceived() {
     }
     if (result != 0) {
         player_->GiveItems(&items, flag);
-        TheInterface()->OnItemsPicked(&items, money - before, flag);
+        g_interface->OnItemsPicked(&items, money - before, flag);
     }
     items.clear();   // the list's inlined destructor
     return result;
@@ -425,7 +425,7 @@ int CPlayerClient::OnParty() {
         }
         g_clientWorld->ApplyObjectVariables();
         console::EndLine(console::g_netLogOut << TextPartyReceived());
-        TheGameFlow()->ReturnLocalParty();
+        g_gameFlow->ReturnLocalParty();
     }
     return 1;
 }
@@ -489,7 +489,7 @@ int CPlayerClient::OnPathMarker() {
 int CPlayerClient::OnStringEvent() {
     std::string text;
     ReadText(&text);
-    TheInterface()->OnStringEvent(text.c_str());
+    g_interface->OnStringEvent(text.c_str());
     return 1;
 }
 

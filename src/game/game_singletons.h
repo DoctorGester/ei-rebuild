@@ -35,10 +35,10 @@ class CCamera;
 struct PartyManager;
 struct _RTL_CRITICAL_SECTION;   // CRITICAL_SECTION: the render device's lock
 
-GameFlow* TheGameFlow();   // g_gameFlow
+extern lib::StaticObject<GameFlow> g_gameFlow;   // world_game.cpp
 
 // The interface manager (windows, the quest log, status text, the console window).
-CInterface3D* TheInterface();   // g_interface
+extern lib::StaticObject<CInterface3D> g_interface;   // ui_small_members.cpp
 
 // The world tick (the server world's), advanced once per simulation step, and the client's tick counter and the
 // fraction of its current tick (the client world's), advanced each frame.
@@ -66,19 +66,19 @@ Terrain* TheTerrain();
 
 // The scene renderer; its device object; the critical section held around the device's
 // DirectDraw / Direct3D calls.
-CSceneRenderer* TheSceneRenderer();   // g_sceneRenderer
+extern lib::StaticObject<CSceneRenderer> g_sceneRenderer;   // renderer_lifetime.cpp
 CTextureDevice* TheRenderDevice();
 extern _RTL_CRITICAL_SECTION g_deviceLock;   // renderer_lifetime.cpp
 
 // The cursor. The map database. The server world's mission script and sector map. The camera.
-CCursor* TheCursor();   // g_cursor
-CMapDatabase* TheMapDatabase();   // g_mapDatabase
+extern lib::StaticObject<CCursor> g_cursor;   // ui_cursor_setup.cpp
+extern lib::StaticObject<CMapDatabase> g_mapDatabase;   // map_database.cpp
 CScript* TheMissionScript();
 CSectorMap* TheSectorMap();
-CCamera* TheCamera();   // g_camera
+extern lib::StaticObject<CCamera> g_camera;   // camera_object.cpp
 
 // The party manager (the parties by key, the named records and the class templates).
-PartyManager* ThePartyManager();   // g_partyManager
+extern lib::StaticObject<PartyManager> g_partyManager;   // app_lifetime.cpp
 
 // The registry key of the options and the game's folders (game_folders.cpp): where the game was started,
 // the disc's (the base folder), the text resources' and the data folder (with its trailing backslash; DataFolderText()

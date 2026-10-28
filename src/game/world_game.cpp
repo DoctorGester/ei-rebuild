@@ -75,13 +75,13 @@ constexpr unsigned kMagicScenario = 0xDEAD;
 constexpr unsigned kMagicMission = 0x102;
 
 int GameMode() { return g_serverWorld->gameResult_; }        // 1: single player
-bool& ToMainMenu() { return TheInterface()->closeAll_; }
+bool& ToMainMenu() { return g_interface->closeAll_; }
 // BeginMultiplayerGame sets it, a missing zone clears it.
-bool& SessionsOpen() { return TheInterface()->disconnected_; }
+bool& SessionsOpen() { return g_interface->disconnected_; }
 
-MapRecord* ZoneRecords() { return TheMapDatabase()->maps.data(); }
-int ZoneRecordCount() { return static_cast<int>(TheMapDatabase()->maps.size()); }
-MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
+MapRecord* ZoneRecords() { return g_mapDatabase->maps.data(); }
+int ZoneRecordCount() { return static_cast<int>(g_mapDatabase->maps.size()); }
+MapRecord* FindZone(const char* name) { return g_mapDatabase->FindMap(name); }
 MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
 
 using netlink::FileStream;
@@ -201,7 +201,7 @@ constexpr int kGameResultNetwork = 2;
 constexpr int kHostPort = 8000;
 constexpr int kServerMessageZone = 8;
 
-int& SpectatorFlag() { return options::TheOptions()->drawVisibleOnly_; }
+int& SpectatorFlag() { return options::g_options->drawVisibleOnly_; }
 
 bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
 
@@ -309,10 +309,10 @@ constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone 
 constinit lib::StaticObject<std::string> g_lastResources = /*007AFDEC*/ {};
 void DestroyLastResources() { g_lastResources.Destroy(); }
 std::uint8_t g_lastResourcesGuard = /*007AFDF0*/ {};
-int& SavedSpectator() { return options::TheOptions()->difficultyStored_; }
-int& Spectator0() { return options::TheOptions()->difficulty_; }
+int& SavedSpectator() { return options::g_options->difficultyStored_; }
+int& Spectator0() { return options::g_options->difficulty_; }
 std::uint8_t& AutoplayOn() { return g_serverWorld->sendsStartPosition_; }
-const char* ResourcesPath() { return options::TheOptions()->resourcesPath_.c_str(); }
+const char* ResourcesPath() { return options::g_options->resourcesPath_.c_str(); }
 
 constexpr int kScenarioScriptsVersion = 0x47;      // scenario.sav from this version holds the input and scripts
 constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the globals
@@ -354,7 +354,6 @@ int AllodOfMap(const char* map) {
 // The game's save stream (core_streams.h), zero at the start: built by a static initialiser and destroyed
 // by the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CMemoryStream> g_saveStream = /*007AFDF8*/ {};
-CMemoryStream* GameSaveStream() { return &*g_saveStream; }
 
 // A second block: it uses g_saveStream (defined above).
 namespace {
@@ -373,21 +372,21 @@ int GameFlow::SaveGame(const char* slot) {
     std::string currentFolder;
     if (GameMode() != 1) return 0;
 
-    TheCursor()->SetShape(3);
+    g_cursor->SetShape(3);
     slotFolder = str::Format(kSlotFolder, DataFolderText(), slot);
     currentFolder = str::Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(slotFolder);
     if (g_serverWorld->sessionKind_ == 4) {
         if (CPlayer* player = g_serverWorld->GetPlayer(0))
-            ThePartyManager()->BeginRedeploy(player->Party());
+            g_partyManager->BeginRedeploy(player->Party());
     }
     LocalRecords records;
-    ThePartyManager()->EndRedeploy(records.Party());
+    g_partyManager->EndRedeploy(records.Party());
     std::string currentMap;
     currentMap = FindZone(records.Party()->zone_)->allod;
 
     CopyVisitedZones(slotFolder, currentFolder, zone, currentMap, &records.Party()->variables_);
-    ThePartyManager()->BeginRedeploy(records.Party());
+    g_partyManager->BeginRedeploy(records.Party());
 
     bool opened;
     {
@@ -403,13 +402,13 @@ int GameFlow::SaveGame(const char* slot) {
     // scenario.sav: the party, the input state, the scripts and the globals.
     CMemoryStream scenario;
     scenario.version_ = static_cast<std::uint32_t>(kSaveVersion);
-    ThePartyManager()->Save(&scenario);
-    TheInterface()->SaveState(&scenario);
-    ScriptsReset(GameSaveStream());
-    TheInterface()->SaveWindowState();
-    scenario.WriteSized(GameSaveStream());
-    ScriptsReset(GameSaveStream());
-    TheCamera()->Save(&scenario);
+    g_partyManager->Save(&scenario);
+    g_interface->SaveState(&scenario);
+    ScriptsReset(&g_saveStream.Get());
+    g_interface->SaveWindowState();
+    scenario.WriteSized(&g_saveStream.Get());
+    ScriptsReset(&g_saveStream.Get());
+    g_camera->Save(&scenario);
     SaveFileWrite(&file, kMagicScenario, kSaveVersion, &scenario);
     file.Close();
 
@@ -428,7 +427,7 @@ int GameFlow::SaveGame(const char* slot) {
         file.Close();
     }
 
-    TheCursor()->SetShape(0);
+    g_cursor->SetShape(0);
     console::EndLine(console::g_consoleOut << kSaved << slot);
     return 1;
 }
@@ -574,8 +573,8 @@ int LeaveZone(CParty* records) {
     g_serverWorld->ZoneNameInto(&zone);
     // `path` must be destroyed after `zone`: it is declared first.
 
-    if (g_serverWorld->sessionKind_ == 1) TheCamera()->SaveView(7);
-    else if (g_serverWorld->sessionKind_ == 3) TheCamera()->SaveView(6);
+    if (g_serverWorld->sessionKind_ == 1) g_camera->SaveView(7);
+    else if (g_serverWorld->sessionKind_ == 3) g_camera->SaveView(6);
     path = str::Format(kCurrentFolder, DataFolderText());
     {
         std::string fileName = zone + kSaveExtension;
@@ -633,14 +632,14 @@ std::string* GameFlow::MultiplayerZoneInto(std::string* out) {
 }
 
 void GameFlow::BeginMultiplayerGame() {
-    PartyManagerNewGameFour(ThePartyManager());
+    PartyManagerNewGameFour(&g_partyManager.Get());
     if (std::ssize(GlobalParty()->members_) == 1) GlobalParty()->members_.data()->unitId = kMultiplayerHeroId;
     {
         std::string zone;
         GlobalParty()->zone_ = *MultiplayerZoneInto(&zone);
     }
     VariableSet(&GlobalParty()->variables_, kMultiplayerVariable, 1.0f);
-    ThePartyManager()->BeginRedeploy(GlobalParty());
+    g_partyManager->BeginRedeploy(GlobalParty());
     {
         std::string zone;
         MultiplayerZoneInto(&zone);
@@ -661,7 +660,7 @@ void GameFlow::ReturnLocalParty() {
     CPlayer* player = g_clientWorld->LocalView()->player_;
     CParty* party = player->Party();
     GlobalParty()->Assign(party);
-    ThePartyManager()->BeginRedeploy(party);
+    g_partyManager->BeginRedeploy(party);
     // The global party record written into the heroes' folder.
     g_savedParties->outsideGame_.WriteFile(g_savedParties->folder_.c_str());
     UpdateFromServer();
@@ -695,7 +694,7 @@ void GameFlow::RecreateClientSession() {
 int GameFlow::SaveGameThunk(const char* slot) { return SaveGame(slot); }
 
 int RequestZone(const char* zone, int entrance) {
-    TheInterface()->closeAll_ = true;
+    g_interface->closeAll_ = true;
     // The local view asks to go to a zone (name, entrance).
     return g_clientWorld->LocalView()->RequestZone(zone, entrance);
 }
@@ -1003,13 +1002,13 @@ int LoadMission(CStream* file) {
                       kSaveOldestVersion, file))
         return 0;
     int version = static_cast<int>(mission.version_);
-    if (version < kVersionGlobalsInMission) TheCamera()->Load(&mission);
+    if (version < kVersionGlobalsInMission) g_camera->Load(&mission);
     if (static_cast<int>(mission.version_) < kVersionInputInMission) {
         // Old saves: the input state, then the rest goes to the save stream.
-        GameSaveStream()->Resize(0);
-        TheInterface()->LoadState(&mission);
-        mission.ReadSized(GameSaveStream());
-        GameSaveStream()->version_ = mission.version_;
+        g_saveStream->Resize(0);
+        g_interface->LoadState(&mission);
+        mission.ReadSized(&g_saveStream.Get());
+        g_saveStream->version_ = mission.version_;
     }
     return g_serverWorld->LoadSave(&mission, nullptr);
 }
@@ -1037,7 +1036,7 @@ bool NameInList(const char* const* list, const char* name) {
 }
 
 void GameFlow::StartZone(const char* zone, int mode) {
-    TheCursor()->SetShape(3);
+    g_cursor->SetShape(3);
     MapRecord* zoneRecord = nullptr;
     ToMainMenu() = 1;
     if (text::CompareIgnoringCase(zone, kEndOfGame) == 0) {
@@ -1096,9 +1095,9 @@ void GameFlow::StartZone(const char* zone, int mode) {
     } else {
         // The party enters the zone, then the clock is set from its "gtime".
         LocalRecords records;
-        ThePartyManager()->EndRedeploy(records.Party());
+        g_partyManager->EndRedeploy(records.Party());
         EnterZone(records.Party());
-        ThePartyManager()->BeginRedeploy(records.Party());
+        g_partyManager->BeginRedeploy(records.Party());
         g_serverWorld->SetTime(HoursOfDay(VariableGet(&records.Party()->variables_, kGTime)));
         if (zoneRecord) {
             g_serverWorld->SetClimate(zoneRecord->setting2C);
@@ -1120,12 +1119,12 @@ void GameFlow::StartNewGame() {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
     console::Execute(kExecAutoexec);
     ToMainMenu() = 1;
-    PartyManagerNewGame(ThePartyManager());
+    PartyManagerNewGame(&g_partyManager.Get());
     std::string folder;
     folder = str::Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
     LocalRecords records;
-    ThePartyManager()->EndRedeploy(records.Party());
+    g_partyManager->EndRedeploy(records.Party());
     StartZone(records.Party()->zone_.c_str(), 0);
 }
 
@@ -1136,8 +1135,8 @@ void SwitchResourceDatabases(const char* name) {
     units->Reset();
     units->Load(ResourcesPath(), name);
     units->CountSoundFiles(TheSoundManager());
-    SkillDb()->Reset();
-    SkillDb()->Load(ResourcesPath(), name);
+    g_skillDatabase->Reset();
+    g_skillDatabase->Load(ResourcesPath(), name);
     g_spellDatabase->Reset();
     g_spellDatabase->Load(ResourcesPath(), name);
     g_itemDatabase->Reset();
@@ -1171,15 +1170,15 @@ void GameFlow::ProcessRequest() {
     // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
     if (GameMode() == 1 && (g_serverWorld->sessionKind_ == 1 || g_serverWorld->sessionKind_ == 3) && state == kStateZone) {
         LocalRecords records;
-        ThePartyManager()->EndRedeploy(records.Party());
+        g_partyManager->EndRedeploy(records.Party());
         ::LeaveZone(records.Party());
-        ThePartyManager()->BeginRedeploy(records.Party());
+        g_partyManager->BeginRedeploy(records.Party());
     }
     if (GameMode() == 2 && g_serverWorld->sessionKind_ == 1 && state == kStateZone) {
         LocalRecords records;
         ::LeaveZone(records.Party());
     }
-    TheInterface()->CloseAll();
+    g_interface->CloseAll();
     g_serverWorld->TeardownZone();
     UseResources(Active(net::g_gameClient));
 
@@ -1252,7 +1251,7 @@ int GameFlow::LoadGame(const char* slot) {
     // Rebirth's AutoExec #1 (the call redirected): addon's AutoExec lines first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
     console::Execute(kExecAutoexec);
-    TheCursor()->SetShape(3);
+    g_cursor->SetShape(3);
     ToMainMenu() = 1;
     FileStream file;
     std::string zone;
@@ -1279,22 +1278,22 @@ int GameFlow::LoadGame(const char* slot) {
         StartZone(kMainMenu, 2);
         return 0;
     }
-    ThePartyManager()->Load(&scenario);
+    g_partyManager->Load(&scenario);
     int version = static_cast<int>(scenario.version_);
     if (version >= kScenarioScriptsVersion) {
-        ScriptsReset(GameSaveStream());
-        TheInterface()->LoadState(&scenario);
-        StreamLoadScripts(&scenario, nullptr, GameSaveStream());
+        ScriptsReset(&g_saveStream.Get());
+        g_interface->LoadState(&scenario);
+        StreamLoadScripts(&scenario, nullptr, &g_saveStream.Get());
         version = static_cast<int>(scenario.version_);
-        GameSaveStream()->version_ = static_cast<std::uint32_t>(version);
+        g_saveStream->version_ = static_cast<std::uint32_t>(version);
     }
-    if (version >= kScenarioGlobalsVersion) TheCamera()->Load(&scenario);
+    if (version >= kScenarioGlobalsVersion) g_camera->Load(&scenario);
     file.Close();
 
     // The visited zones of the current map (and bz7g) come back into saves\current; every other
     // zone, and one whose file could not be copied, is marked not visited.
     LocalRecords records;
-    ThePartyManager()->EndRedeploy(records.Party());
+    g_partyManager->EndRedeploy(records.Party());
     std::string currentMap;
     currentMap = FindZone(records.Party()->zone_)->allod;
     NamedFloatTable* variables = &records.Party()->variables_;
@@ -1328,7 +1327,7 @@ int GameFlow::LoadGame(const char* slot) {
         std::string variable = prefix + record->name;
         VariableSet(variables, variable, 0.0f);
     }
-    ThePartyManager()->BeginRedeploy(records.Party());
+    g_partyManager->BeginRedeploy(records.Party());
 
     // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh.
     MapRecord* zoneRecord = FindZone(records.Party()->zone_);
@@ -1366,7 +1365,6 @@ void GameFlow::Destruct() {
 // The flow, zero at the start: built by a static initialiser and destroyed by the exit function it
 // registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<GameFlow> g_gameFlow = /*007AFE20*/ {};
-GameFlow* TheGameFlow() { return &*g_gameFlow; }
 
 void ConstructGameFlow() {
     g_gameFlow->Construct();

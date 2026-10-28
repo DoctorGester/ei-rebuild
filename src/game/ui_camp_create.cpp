@@ -55,7 +55,7 @@ constexpr int kActionEquip = 1, kActionSpellParts = 2, kActionItemParts = 3;
 constexpr int kModeSpellTrade = 4, kModeItemTrade = 5;
 constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 
-const TemplateTable* ClassTemplates() { return &ThePartyManager()->templates; }
+const TemplateTable* ClassTemplates() { return &g_partyManager->templates; }
 CParty* LocalParty() { return LocalPlayerData(); }
 CUiContainer* AsContainer(CCampPages* camp) { return camp; }
 
@@ -366,7 +366,7 @@ void CCampPages::BuildPages() {
     }
 
     // The music of the allod the party's zone is on.
-    const MapRecord* zone = TheMapDatabase()->FindMap(LocalPlayerZone());
+    const MapRecord* zone = g_mapDatabase->FindMap(LocalPlayerZone());
     TheMusicSystem()->PlayConstructor(zone ? zone->allod.c_str() : "gipat");
 
     // Antialiasing while the camp shows, when the device does it without sorting (Close turns it off).

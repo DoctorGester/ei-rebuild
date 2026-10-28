@@ -82,7 +82,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         } else {
             int tenths = x87::fistp(static_cast<float>(static_cast<double>(otherHeight) * 10.0f + 1.0f));
             handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
-            shape = static_cast<const CUnitShape*>(UnitShapes()->Get(&handle));
+            shape = static_cast<const CUnitShape*>(g_unitShapes->Get(&handle));
             if (CRefObject* ref = handle.ref) {
                 if (--ref->refs_ == 0) delete ref;
             }
@@ -244,7 +244,7 @@ void* CAIMap::UnitShape(float standingHeight) {
     int tenths = x87::fistp(static_cast<float>(static_cast<double>(standingHeight) * 10.0f + 1.0f));
     handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
 
-    CRefObject* shape = UnitShapes()->Resolve(&handle);
+    CRefObject* shape = g_unitShapes->Resolve(&handle);
     ReleaseHandle(&handle);
     return shape;
 }

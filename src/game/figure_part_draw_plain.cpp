@@ -109,6 +109,6 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*
         }
     }
     if (result != 2) mesh_->flags_ |= 0x40;
-    DrawBounds(TheSceneRenderer());
+    DrawBounds(&g_sceneRenderer.Get());
     return 1;
 }

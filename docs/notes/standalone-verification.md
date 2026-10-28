@@ -133,7 +133,7 @@ check, another payload size, or no files.
 - The game's data seam (src/game/game_data.h, SV4d): `ei::GameData<T>(address)` is the address in the game and, with
   `EI_VECTORS_REPLAY`, a zeroed stand-in image of 00401000-007D7000 that a check fills (replay_game_data.cpp) and
   replay_main clears before every record. Named accessors go through it (GameLogicSettings, GameDifficulty,
-  unitdb::Skills, SkillDb, IsaacRandom::Global, the coder tables, the keyword table).
+  unitdb::Skills, g_skillDatabase, IsaacRandom::Global, the coder tables, the keyword table).
 - CRT in the replay: replay_crt.cpp (the replay's heap;
   "@GameCrtCtype" checks text_case.h's ASCII classes and case against the game's; the code under test calls
   text_case.h, C35b). Finding (SV4b): isdigit / isspace of a negative char

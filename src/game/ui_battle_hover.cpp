@@ -36,7 +36,7 @@ constexpr int kCursorCantCast = 0x17;
 constexpr int kCursorOrder = 0x18;
 
 // The mouse cursor; selects shape `shape`.
-void SetCursor(int shape) { TheCursor()->SetShape(shape); }
+void SetCursor(int shape) { g_cursor->SetShape(shape); }
 
 static const UnitPrototypeRecord* HoverPrototype(CUnit* unit) {
     return unit->GetPrototype();

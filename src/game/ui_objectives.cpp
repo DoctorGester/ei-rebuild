@@ -61,7 +61,7 @@ float AbsBits(float f) {
 // A zone of the map database: its picture (picture2, the texture shown here), its size in map
 // cells and its exits (the deploy rectangle x1, y1, x2, y2 and the target zone, "none" when it
 // leads nowhere).
-MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
+MapRecord* FindZone(const char* name) { return g_mapDatabase->FindMap(name); }
 MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
 
 int FindText(const char* key) { return TheTextManager()->Open(key); }

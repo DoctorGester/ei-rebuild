@@ -37,14 +37,14 @@ std::uint32_t Bits(float value) {
 // Action 4: the objectives window of the current zone, when a quest of a zone in its allod is
 // active.
 void OpenObjectives(CInterface3D* ui) {
-    MapRecord* zone = TheMapDatabase()->FindMap(LocalPlayerZone());
+    MapRecord* zone = g_mapDatabase->FindMap(LocalPlayerZone());
     if (!zone) return;
     std::vector<std::string> parts;
     BriefingVariables quests(QuestPrefix());
     for (auto node = quests.begin(); node != quests.end(); ++node) {
         text::Split(node->first, &parts, '.');
         if (parts.size() != kQuestNameParts || Bits(node->second) != kOneBits) continue;
-        MapRecord* questZone = TheMapDatabase()->FindMap(parts[1]);
+        MapRecord* questZone = g_mapDatabase->FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;
         auto* window = new CObjectivesWindow(ui);
@@ -120,7 +120,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         OpenObjectives(interface_);
         break;
     case kActionLeader:
-        if (leader_) TheCamera()->SetTarget(leader_);
+        if (leader_) g_camera->SetTarget(leader_);
         handled_ = true;
         break;
     case kActionQuickSave:

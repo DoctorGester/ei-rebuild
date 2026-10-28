@@ -60,7 +60,7 @@ inline const char* TextsLmpFileText() { return "textsLmp.res"; }
 inline const char* CursorFileText() { return "wincurs\\Df0000.cur"; }
 // The shadow setting (0 off, 2 blurred; map_object_shadow.cpp's ShadowMode): above 0 the client
 // sets its flag 0x200.
-inline int ShadowSetting() { return static_cast<const volatile int&>(options::TheOptions()->shadowQuality_); }
+inline int ShadowSetting() { return static_cast<const volatile int&>(options::g_options->shadowQuality_); }
 
 inline const char* DefaultAllodText() { return "gipat"; }
 inline const char* CantLoadTerrainFormat() { return "Can't load terrain or map file \"%s\".\n"; }
@@ -74,34 +74,34 @@ inline const char* FinalMusicText() { return "final"; }
 // Options (options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing,
 // LightingFreq (milliseconds; the zone load turns it into frames at 66 ms each) and
 // DefaultWindForce. AudioStreaming / AudioSFX are MovieVolumeSetting / VolumeSettingA below.
-inline int AudioOption() { return static_cast<const volatile int&>(options::TheOptions()->audio_); }
-inline int WaterWavesOption() { return static_cast<const volatile int&>(options::TheOptions()->enableWaterWaves_); }
-inline int SelfShadowingOption() { return static_cast<const volatile int&>(options::TheOptions()->enableSelfShadowing_); }
-inline int LightingFrequencyOption() { return static_cast<const volatile int&>(options::TheOptions()->lightingFreq_); }
-inline float DefaultWindForceOption() { return static_cast<const volatile float&>(options::TheOptions()->defaultWindForce_); }
+inline int AudioOption() { return static_cast<const volatile int&>(options::g_options->audio_); }
+inline int WaterWavesOption() { return static_cast<const volatile int&>(options::g_options->enableWaterWaves_); }
+inline int SelfShadowingOption() { return static_cast<const volatile int&>(options::g_options->enableSelfShadowing_); }
+inline int LightingFrequencyOption() { return static_cast<const volatile int&>(options::g_options->lightingFreq_); }
+inline float DefaultWindForceOption() { return static_cast<const volatile float&>(options::g_options->defaultWindForce_); }
 // The hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the next UpdateLighting set it.
 inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 
 // The configured paths the game's folders (TheDataFolder, TheTextFolder, TheDiscFolder the base folder;
 // game_singletons.h) are set from (their text pointers).
-inline const char* ConfiguredDataPath() { return options::TheOptions()->workPath_.c_str(); }
-inline const char* ConfiguredTextPath() { return options::TheOptions()->resourcesPath_.c_str(); }
-inline const char* ConfiguredBasePath() { return options::TheOptions()->cdRomPath_.c_str(); }
+inline const char* ConfiguredDataPath() { return options::g_options->workPath_.c_str(); }
+inline const char* ConfiguredTextPath() { return options::g_options->resourcesPath_.c_str(); }
+inline const char* ConfiguredBasePath() { return options::g_options->cdRomPath_.c_str(); }
 
 inline const char* AutosaveEventText() { return "autosave"; }
 inline const char* SegmentDisconnectedText() { return "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n"; }
 // The volume settings the sound manager takes on the client's tenth tick; the movies' is bink_video.cpp's.
-inline int VolumeSettingA() { return options::TheOptions()->audioSfx_; }
-inline int VolumeSettingB() { return options::TheOptions()->audioSpeech_; }
-inline int MovieVolumeSetting() { return options::TheOptions()->audioStreaming_; }
+inline int VolumeSettingA() { return options::g_options->audioSfx_; }
+inline int VolumeSettingB() { return options::g_options->audioSpeech_; }
+inline int MovieVolumeSetting() { return options::g_options->audioStreaming_; }
 // The party's fight state the client world keeps (2: fighting; sound_music.cpp, world_client.cpp).
 int FightState();
 // The light effects' grey levels: on when its setting is set; the countdown takes the world update
 // period per tick and restarts at its start value.
-inline int LightLevelsSetting() { return options::TheOptions()->enableBloodprintsRelight_; }
+inline int LightLevelsSetting() { return options::g_options->enableBloodprintsRelight_; }
 // The milliseconds of real time one world update takes (55; the speed-up key sets 27, the main loop reads it).
 inline int g_updatePeriod = /*0078FF34*/ 55;
-inline int LightLevelsPeriod() { return options::TheOptions()->shadowLightingFreq_; }
+inline int LightLevelsPeriod() { return options::g_options->shadowLightingFreq_; }
 // The scene renderer's sun light (figure_part_draw.cpp; world_singletons.cpp) and the point the grey levels start
 // from (its distance to the sun), the origin; the picking returns it without a view matrix.
 CLight* SceneSun();

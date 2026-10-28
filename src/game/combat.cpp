@@ -81,7 +81,7 @@ constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 
 float DifficultyAttackFactor() {
-    int difficulty = options::TheOptions()->difficulty_;
+    int difficulty = options::g_options->difficulty_;
     return g_logicSettings.attack[difficulty];
 }
 

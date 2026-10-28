@@ -173,4 +173,3 @@ void CDebugPanel::Show(std::uint8_t show) {
 
 } // namespace strmap
 
-strmap::CDebugPanel* DebugInfoPanel() { return &*strmap::g_debugPanel; }

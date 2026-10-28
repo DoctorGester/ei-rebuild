@@ -347,7 +347,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         std::string text;
         GameClientTexts()->CTextManager::GetString("reserved_04", &text);
-        TheInterface()->ShowStatusText(text);
+        g_interface->ShowStatusText(text);
         GameSetServerPaused(1);
         ui->PlaySound(okSound, 0);
         ui->PushWindow(new CMpHeroScreen(ui), 1, 1);
@@ -488,7 +488,7 @@ void CCreditsScreen::CreateScreen() {
         TheSoundManager()->StopAll(1);
         TheMusicSystem()->Stop();
     }
-    TheCursor()->ShowImage(0);
+    g_cursor->ShowImage(0);
     app::PlayMovies((name + "fin").c_str(), true, false, 0, 0);
     nextLineAt_ = 0.0f;
     // (Like the original: the field's address goes in as uiParam, so it is never written; then font
@@ -498,7 +498,7 @@ void CCreditsScreen::CreateScreen() {
     gameapi::SystemParametersInfoA(0x4B, 0, nullptr, 0);   // SPI_SETFONTSMOOTHING
 
     CMappedResource* archive = archive_.Get();
-    archive->OpenResource((options::TheOptions()->resourcesPath_ + "outro.res").c_str(), 0);
+    archive->OpenResource((options::g_options->resourcesPath_ + "outro.res").c_str(), 0);
     std::uint32_t size = 0;
     void* data = archive->GetFile("credits.scr", &size);
     if (!data) {

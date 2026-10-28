@@ -8,7 +8,7 @@
 #include "app.h"       // app::FatalErrorCode
 #include "clip.h"      // TLVertex
 #include "core_maths.h"
-#include "ui.h"        // GameDeviceLock, DebugInfoPanel
+#include "ui.h"        // GameDeviceLock, strmap::g_debugPanel
 #include "game_singletons.h"
 
 #include "ei/x87.h"
@@ -90,7 +90,7 @@ int CSceneRenderer::EndScene() {
     long result = DeviceEndScene(device);
     if (result != D3DERR_SCENE_NOT_IN_SCENE && result != 0) app::FatalErrorCode(result, "Can't end scene.\n");
     std::string text;
-    strmap::CDebugPanel* panel = DebugInfoPanel();
+    strmap::CDebugPanel* panel = &strmap::g_debugPanel.Get();
     text = str::Format("%g", 1000.0 / x87::FromUnsigned(frameTime_));
     panel->Set("FPS", text.c_str());
     text = str::Format("%d", device_->vertexCount_);

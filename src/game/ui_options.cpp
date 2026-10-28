@@ -59,37 +59,37 @@ float ConstHalf() { return 0.5f /*0073B86C*/; }       // the slider's centre
 float ConstThumbLift() { return 0.1f /*0073B850*/; }  // the thumb above the track
 constexpr float kQuarterTurn = /*007C8210*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-int& OptVolume0() { return options::TheOptions()->audioSfx_; }       // setting 0 (the sound system's volume A)
-int& OptVolume1() { return options::TheOptions()->audioStreaming_; }       // setting 1
-int& OptVolume2() { return options::TheOptions()->audioSpeech_; }       // setting 2
-float& OptSpeedA() { return options::TheOptions()->cameraScroll_.powerKeyboard; }    // setting 3 (three more copies on store)
-float& OptSpeedA2() { return options::TheOptions()->cameraPitch_.powerKeyboard; }
-float& OptSpeedA3() { return options::TheOptions()->cameraZoom_.powerKeyboard; }
-float& OptSpeedA4() { return options::TheOptions()->cameraRotate_.powerKeyboard; }
-float& OptSpeedB() { return options::TheOptions()->cameraScroll_.powerMouse; }    // setting 4 (three more copies on store)
-float& OptSpeedB2() { return options::TheOptions()->cameraPitch_.powerMouse; }
-float& OptSpeedB3() { return options::TheOptions()->cameraZoom_.powerMouse; }
-float& OptSpeedB4() { return options::TheOptions()->cameraRotate_.powerMouse; }
-int& Opt5() { return options::TheOptions()->cameraBorderScrollArea_; }             // setting 5
-int& Opt6Tenths() { return options::TheOptions()->cameraFrameSelectionArea_; }       // setting 6 * 10
-int& OptShadowUnits() { return options::TheOptions()->unitShadow_; }
-int& OptShadowBuildings() { return options::TheOptions()->buildingShadow_; }
-int& OptShadowFlora() { return options::TheOptions()->floraShadow_; }
-int& Opt10() { return options::TheOptions()->enableBloodprints_; }
-int& Opt11() { return options::TheOptions()->enableFootprints_; }
-int& Opt12() { return options::TheOptions()->selectionType_; }
-int& Opt13() { return options::TheOptions()->drawPath_; }
-float& OptGamma14() { return options::TheOptions()->brightness_; }   // settings 14-16 (setting * 0.02 - 1)
-float& OptGamma15() { return options::TheOptions()->contrast_; }
-float& OptGamma16() { return options::TheOptions()->gamma_; }
-int& Opt17() { return options::TheOptions()->drawFlyingHp_; }
+int& OptVolume0() { return options::g_options->audioSfx_; }       // setting 0 (the sound system's volume A)
+int& OptVolume1() { return options::g_options->audioStreaming_; }       // setting 1
+int& OptVolume2() { return options::g_options->audioSpeech_; }       // setting 2
+float& OptSpeedA() { return options::g_options->cameraScroll_.powerKeyboard; }    // setting 3 (three more copies on store)
+float& OptSpeedA2() { return options::g_options->cameraPitch_.powerKeyboard; }
+float& OptSpeedA3() { return options::g_options->cameraZoom_.powerKeyboard; }
+float& OptSpeedA4() { return options::g_options->cameraRotate_.powerKeyboard; }
+float& OptSpeedB() { return options::g_options->cameraScroll_.powerMouse; }    // setting 4 (three more copies on store)
+float& OptSpeedB2() { return options::g_options->cameraPitch_.powerMouse; }
+float& OptSpeedB3() { return options::g_options->cameraZoom_.powerMouse; }
+float& OptSpeedB4() { return options::g_options->cameraRotate_.powerMouse; }
+int& Opt5() { return options::g_options->cameraBorderScrollArea_; }             // setting 5
+int& Opt6Tenths() { return options::g_options->cameraFrameSelectionArea_; }       // setting 6 * 10
+int& OptShadowUnits() { return options::g_options->unitShadow_; }
+int& OptShadowBuildings() { return options::g_options->buildingShadow_; }
+int& OptShadowFlora() { return options::g_options->floraShadow_; }
+int& Opt10() { return options::g_options->enableBloodprints_; }
+int& Opt11() { return options::g_options->enableFootprints_; }
+int& Opt12() { return options::g_options->selectionType_; }
+int& Opt13() { return options::g_options->drawPath_; }
+float& OptGamma14() { return options::g_options->brightness_; }   // settings 14-16 (setting * 0.02 - 1)
+float& OptGamma15() { return options::g_options->contrast_; }
+float& OptGamma16() { return options::g_options->gamma_; }
+int& Opt17() { return options::g_options->drawFlyingHp_; }
 // Setting 18: help windows (Rebirth's ForceShowTutorial patches its store).
-int& OptHelp18() { return options::TheOptions()->showTutorial_; }
-int& Opt19() { return options::TheOptions()->autosave_; }
-float& Opt20() { return options::TheOptions()->toolTipTime_; }        // setting 20
-int& Opt21() { return options::TheOptions()->switchFilters_; }
-float& OptSign22() { return options::TheOptions()->cameraFlipX_; }    // setting 22 (-1 for 1, else +1)
-float& OptSign23() { return options::TheOptions()->cameraFlipY_; }    // setting 23 (likewise)
+int& OptHelp18() { return options::g_options->showTutorial_; }
+int& Opt19() { return options::g_options->autosave_; }
+float& Opt20() { return options::g_options->toolTipTime_; }        // setting 20
+int& Opt21() { return options::g_options->switchFilters_; }
+float& OptSign22() { return options::g_options->cameraFlipX_; }    // setting 22 (-1 for 1, else +1)
+float& OptSign23() { return options::g_options->cameraFlipY_; }    // setting 23 (likewise)
 constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
     {0, "volume_sfx", 0, 100, 1, 0},
     {1, "volume_stream", 0, 100, 1, 1},
@@ -119,8 +119,8 @@ constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
     {25, "difficulty", 1, 2, 3, 0},
 };
 
-int& Opt24() { return options::TheOptions()->reverseStereo_; }
-int& OptDifficultyCopy() { return options::TheOptions()->difficultyStored_; } // setting 25 (with GameDifficulty)
+int& Opt24() { return options::g_options->reverseStereo_; }
+int& OptDifficultyCopy() { return options::g_options->difficultyStored_; } // setting 25 (with GameDifficulty)
 
 CUiMesh* SceneSprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 

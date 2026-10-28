@@ -28,10 +28,10 @@ Terrain* TheTerrain() { return g_clientWorld->terrain_; }
 
 int worlddata::FightState() { return g_clientWorld->partyDanger_; }
 
-CTextureDevice* TheRenderDevice() { return TheSceneRenderer()->device_; }
-CTransformPipeline* ScenePipeline() { return TheSceneRenderer()->pipeline_; }
-CPixelConverter* PixelConverter() { return TheSceneRenderer()->graphicsProcessor_; }
-CLight* worlddata::SceneSun() { return TheSceneRenderer()->sun_; }
+CTextureDevice* TheRenderDevice() { return g_sceneRenderer->device_; }
+CTransformPipeline* ScenePipeline() { return g_sceneRenderer->pipeline_; }
+CPixelConverter* PixelConverter() { return g_sceneRenderer->graphicsProcessor_; }
+CLight* worlddata::SceneSun() { return g_sceneRenderer->sun_; }
 
 CDiplomacy* GameDiplomacy() { return &g_serverWorld->diplomacy_; }
 CScript* TheMissionScript() { return g_serverWorld->MainScript(); }

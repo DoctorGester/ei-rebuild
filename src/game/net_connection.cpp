@@ -139,7 +139,7 @@ bool Connection::SendUpdate(int budget) {
     BufferCursor c;
     c.Reset(nullptr, 0, 0);
     c.sink = nullptr;
-    GameBuffer* out = SendBuffer();
+    GameBuffer* out = &g_sendBuffer.Get();
     out->Seek(0);
     c.BeginWrite(out, budget + 0x400);
 

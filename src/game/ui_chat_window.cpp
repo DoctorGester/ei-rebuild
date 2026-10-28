@@ -250,5 +250,5 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
 void CChatWindow::OnMouseMove(int, int x, int y) {
     int index = RegionAt(x, y);
     int pick = ActiveBriefing(interface_)->chatActive_;
-    if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players_.size()) TheCursor()->SetShape(0);
+    if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players_.size()) g_cursor->SetShape(0);
 }

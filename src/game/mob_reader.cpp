@@ -42,7 +42,7 @@ constexpr int kRelationHostile = 2;
 constexpr int kBehaviourCount = 5;
 
 // The limit the .mob wind strength is clamped to (never written: 0).
-float MobWindLimit() { return options::TheOptions()->defaultWindForce_; }
+float MobWindLimit() { return options::g_options->defaultWindForce_; }
 
 // A new record for the given chunk id, or null for other ids (or without memory).
 Spec* NewRecord(std::uint32_t id) {

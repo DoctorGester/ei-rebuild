@@ -38,7 +38,7 @@ const char* GoodbyeTopic() { return "goodbye"; }
 const char* ConstructorTopic() { return "constr"; }
 const char* BriefingSection() { return "briefing "; }
 const char* ShowLine() { return "#show"; }
-const TemplateTable* ClassTemplates() { return &ThePartyManager()->templates; }
+const TemplateTable* ClassTemplates() { return &g_partyManager->templates; }
 const char* TopicPrefix() { return "b."; }
 
 CPlayer* LocalServerPlayer() { return g_serverWorld->GetPlayer(0); }
@@ -269,7 +269,7 @@ void CBriefingScreen::FinishDialogue() {
     Vector3 at = Position(leader_);
     if (briefingStarted_) {
         LocalServerPlayer()->Server()->SendPosition04(&at, 0, 1);
-        TheCamera()->flags_ &= ~CCamera::kFree;
+        g_camera->flags_ &= ~CCamera::kFree;
         briefingStarted_ = false;
     } else {
         LocalServerPlayer()->Server()->SendPosition0F(&savedCamera_, &lookAt_, 0);

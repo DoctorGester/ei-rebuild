@@ -37,15 +37,15 @@ constexpr float kMinVisibility = 0.0001f;
 
 // The spiral of cell offsets ordered by distance, built at startup: a binary tree mapping a radius (compared
 // as raw float bits) to the number of offsets within it. (sector_map.h's tables, sector_spiral.cpp).
-int SpiralDepth() { return SpiralRadiusTree()->depth; }
+int SpiralDepth() { return g_spiralRadii->depth; }
 std::int32_t SpiralKey(std::uint32_t node) {
     std::int32_t key;
-    std::memcpy(&key, &SpiralRadiusTree()->keys[node], sizeof(key));
+    std::memcpy(&key, &g_spiralRadii->keys[node], sizeof(key));
     return key;
 }
-std::uint32_t SpiralMask() { return static_cast<std::uint32_t>(SpiralRadiusTree()->mask); }
-const int* SpiralLengthTable() { return SpiralLengthArray()->data(); }
-const std::int16_t* SpiralOffsets() { return &SpiralOffsetArray()->data()->x; }
+std::uint32_t SpiralMask() { return static_cast<std::uint32_t>(g_spiralRadii->mask); }
+const int* SpiralLengthTable() { return g_spiralLengths->data(); }
+const std::int16_t* SpiralOffsets() { return &g_spiralOffsets->data()->x; }
 
 SpiralCache g_findFreeSpiral = /*007C2F48*/ {};   // FindFreeCellNear's function-local static
 std::uint8_t g_findFreeGuard = /*007C2F50*/ {};

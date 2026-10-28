@@ -50,7 +50,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
 // Announce with text `kind` of the text table formatted with `text`.
 void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player) {
     std::string line;
-    std::string* formatted = TheInterface()->MessageText(&line, kind, text);
+    std::string* formatted = g_interface->MessageText(&line, kind, text);
     Announce(formatted->c_str(), player);
 }
 

@@ -174,7 +174,6 @@ public:
 // The game's options (options_global.cpp): built by its static initialiser in the list's
 // order, destroyed by the exit function it registers (options_construct.cpp, options_defaults.cpp).
 extern lib::StaticObject<GameOptions> g_options;
-inline GameOptions* TheOptions() { return &*g_options; }
 
 // The options' defaults.
 void OptionsResetDefaults(GameOptions* self);

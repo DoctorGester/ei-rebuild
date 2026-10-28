@@ -119,8 +119,6 @@ inline Connection* g_currentConnection = /*0079B924*/ {nullptr};
 // The buffer every update packet is built in and the one datagrams are received into (net_session.cpp).
 extern lib::StaticObject<GrowingBuffer> g_sendBuffer;
 extern lib::StaticObject<GrowingBuffer> g_receiveBuffer;
-inline GameBuffer* SendBuffer() { return &*g_sendBuffer; }
-inline GameBuffer* ReceiveBuffer() { return &*g_receiveBuffer; }
 // The game client and the game server (null when there is none): counted pointers, cleared by their static
 // initialisers and released at exit (net_session.cpp).
 inline ClientSession* g_gameClient = /*0079B5D8*/ {nullptr};

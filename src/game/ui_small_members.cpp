@@ -89,7 +89,6 @@ CInterface3D* CInterface3D::Construct() {
 // The interface manager, zero at the start: built by a static initialiser in the list's order and destroyed
 // by the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CInterface3D> g_interface = /*007C7D50*/ {};
-CInterface3D* TheInterface() { return &*g_interface; }
 
 namespace {
 void DestroyInterface() { g_interface->DestroyBody(); }

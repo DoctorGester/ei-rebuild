@@ -179,7 +179,7 @@ void CWorldServer::SaveMapObjects(CStream* out) {
 void SelectLoadingMovie(const char* zone) {
     std::string allod;
     if (zone) {
-        MapRecord* map = TheMapDatabase()->FindMap(zone);
+        MapRecord* map = g_mapDatabase->FindMap(zone);
         if (map) allod = map->allod;
     }
     if (SameName(allod, "gipat")) {

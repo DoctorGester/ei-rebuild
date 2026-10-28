@@ -38,8 +38,8 @@
 
 namespace {
 
-float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
-bool LoadingGame() { return GameSaveStream()->size_ != 0; }
+float& MapEdgeFade() { return options::g_options->borderFogDistance_; }
+bool LoadingGame() { return g_saveStream->size_ != 0; }
 
 const char* SaveLoadTexture() { return "saveload"; }
 const char* DefaultAllod() { return "gipat"; }
@@ -78,7 +78,7 @@ constexpr int kConstructorPrefix = 6;       // "constr"
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 
 MapRecord* FindLocalMap() {
-    return TheMapDatabase()->FindMap(LocalPlayerZone());
+    return g_mapDatabase->FindMap(LocalPlayerZone());
 }
 
 CPlayer* LocalViewPlayer() {
@@ -165,7 +165,7 @@ void CBriefingScreen::CreateScreen() {
     chatActive_ = 0;
     autosave_ = false;
     if (LoadingGame())
-        GameSaveStream()->Resize(0);
+        g_saveStream->Resize(0);
     else if (LocalViewPlayer()->lastScreen_ != kFromCamp)
         autosave_ = true;
     MapRecord* map = FindLocalMap();
@@ -223,7 +223,7 @@ void CBriefingScreen::CreateScreen() {
 
     // The camera: no longer free, kept within the zone's circle (the first lookup's record,
     // not checked for null), the alternate limits, no target.
-    CCamera* camera = TheCamera();
+    CCamera* camera = &g_camera.Get();
     camera->flags_ &= ~CCamera::kFree;
     if (map->restricted) {
         Vector3 centre{map->restrictX, map->restrictY, 0.0f};

@@ -83,9 +83,6 @@ static_assert(sizeof(SpiralOffset) == 4);
 extern lib::StaticObject<std::vector<int>> g_spiralLengths;
 extern lib::StaticObject<RadiusTree> g_spiralRadii;
 extern lib::StaticObject<std::vector<SpiralOffset>> g_spiralOffsets;
-inline std::vector<int>* SpiralLengthArray() { return &*g_spiralLengths; }
-inline RadiusTree* SpiralRadiusTree() { return &*g_spiralRadii; }
-inline std::vector<SpiralOffset>* SpiralOffsetArray() { return &*g_spiralOffsets; }
 // What the spiral's static initialiser does, on any three constructed tables (sector_map.cpp).
 void BuildSectorSpiralAt(std::vector<int>* lengths, RadiusTree* tree, std::vector<SpiralOffset>* offsets);
 

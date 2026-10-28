@@ -49,9 +49,9 @@ constexpr unsigned kFolderBufferSize = 0x400;
 constexpr double kHoursPerDay = 24.0;
 const char kConstructionVariable[] = "constr.current";
 // Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
-bool& CloseAllRequested() { return TheInterface()->closeAll_; }
-float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
-const char* DefaultMusic() { return options::TheOptions()->defaultStreamingSound_.c_str(); }
+bool& CloseAllRequested() { return g_interface->closeAll_; }
+float& MapEdgeFade() { return options::g_options->borderFogDistance_; }
+const char* DefaultMusic() { return options::g_options->defaultStreamingSound_.c_str(); }
 constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
 constexpr std::uint32_t kTerrainAmbience = 8;            // Terrain landscapeFlags
 CPlayerClient* LocalClient() { return g_clientWorld->LocalView(); }
@@ -194,7 +194,7 @@ const char* GameExitTarget(int index) { return g_clientWorld->ExitTarget(index);
 
 void GameLeaveThroughExit(int exit) {
     if (IsMultiplayerClient())
-        TheGameFlow()->SwitchMultiplayerZone();
+        g_gameFlow->SwitchMultiplayerZone();
     else
         LocalClient()->TakeExit(exit);
 }

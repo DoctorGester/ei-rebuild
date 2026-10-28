@@ -394,7 +394,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     party->zone_ = zone;
     int mode = GameMode();
     if (mode == 1) {
-        ThePartyManager()->BeginRedeploy(party);
+        g_partyManager->BeginRedeploy(party);
     } else if (mode == 2) {
         if (std::ssize(party->members_) == 1) party->members_[0].unitId = kLoneHeroRecordId;
         SendParty();
@@ -483,7 +483,7 @@ int CPlayerServer::OnNewParty() {
     while (g_serverWorld->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
     party->members_[0].unitId = static_cast<std::uint32_t>(next);
     ++next;
-    ThePartyManager()->StoreParty(key, party);
+    g_partyManager->StoreParty(key, party);
     return 1;
 }
 
@@ -568,13 +568,13 @@ int CPlayerServer::OnLogin() {
     CParty* party = player->Party();
     switch (GameMode()) {
     case 1:
-        ThePartyManager()->EndRedeploy(party);
+        g_partyManager->EndRedeploy(party);
         party->OpenEdgeExits();
         break;
     case 2:
     case 3:
         // The two strings are passed but not read.
-        if (!ThePartyManager()->LoadParty(login.name, login.password, &player->partyId_, party))
+        if (!g_partyManager->LoadParty(login.name, login.password, &player->partyId_, party))
             return 0;
         break;
     case 4:

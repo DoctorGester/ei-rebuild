@@ -83,7 +83,7 @@ void CBriefingScreen::StartPhrases() {
     if (server) server->SendPair19(kEventPhrases, 0);
 
     // The camera's position, and that plus its rotation's z axis (third column of the matrix).
-    const CCamera* camera = TheCamera();
+    const CCamera* camera = &g_camera.Get();
     savedCamera_ = camera->localPosition_;
     const Quaternion& q = camera->localRotation_;
     double zz = q.z * q.z;
@@ -132,7 +132,7 @@ void SpeakerAnimationDone(CUnit* serverUnit) {
     if (!serverUnit) return;
     auto* unit = g_clientWorld->FindUnit(serverUnit->id_);
     if (!unit) return;
-    auto* screen = TheInterface()->ActiveWindowAs<CBriefingScreen>();
+    auto* screen = g_interface->ActiveWindowAs<CBriefingScreen>();
     for (std::size_t i = 0; i < screen->speakers_.size(); ++i)
         if (screen->speakers_[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
 }

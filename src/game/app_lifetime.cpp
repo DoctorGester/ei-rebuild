@@ -98,7 +98,6 @@ PartyManager* PartyManager::Construct() {
 // The manager, empty at the start: built by a static initialiser in the list's order and destroyed by the exit
 // function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<PartyManager> g_partyManager = /*007AA5A0*/ {};
-PartyManager* ThePartyManager() { return &*g_partyManager; }
 
 // A second block: it uses g_partyManager (defined above).
 namespace {

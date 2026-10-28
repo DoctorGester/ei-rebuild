@@ -390,7 +390,7 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
   (app.cpp shares it); its two `__asm` helpers (_ftol, 24.0), `TextOpsAt`, the literal-address accessors (GameMode, Campaign,
   ...) that belong in game_flow_data.h; world_quests' GameFtol `__asm`; world_client_draw.cpp's six x87 `__asm` helpers;
   world_client_view.cpp's own draw-queue view (007AF508, a local DeferredUnits()) that could use world.h `FrameObjects` /
-  `FrameDeferredUnits`.
+  `g_deferredUnits`.
 - 00564AF0 (`CObject3D::PartBox`) runs on a platform object (AddObject passes it in ECX; it reads CObject3D::parts +0xD0 /
   +0xD4 and pendingParts +0xE0), not on the client. The client's +0x1F0 list is the platform set's face list (PlatformSet
   +0x1D4: an engine object, then an CList<Platform> at +0x1C; 00573000 carves 0x54-byte nodes; AddFace is AddHead).

@@ -66,9 +66,9 @@ constexpr int kAllodIsland = 3;        // the island model
 
 // A zone of the map database: its figure is its marker on the global map (may be empty), its
 // kind 0 a game zone and 2 a way between zones here.
-MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
+MapRecord* FindZone(const char* name) { return g_mapDatabase->FindMap(name); }
 MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
-MapRecord* ZoneAt(int index) { return &TheMapDatabase()->maps[index]; }
+MapRecord* ZoneAt(int index) { return &g_mapDatabase->maps[index]; }
 
 bool NonEmpty(const std::string& text) { return text.size() != 0; }
 
@@ -194,8 +194,8 @@ void SetFrameFraction(CEngineObject* layer, float time, float rate) {
 
 void CGlobalMap::CreateScreen() {
     autosave_ = false;
-    if (GameSaveStream()->size_ != 0)
-        GameSaveStream()->Resize(0);
+    if (g_saveStream->size_ != 0)
+        g_saveStream->Resize(0);
     else if (g_clientWorld->LocalView()->player_->lastScreen_ != 5)
         autosave_ = true;   // not back from the camp
     depth_ = Bits(0x41200000);     // 10
@@ -205,7 +205,7 @@ void CGlobalMap::CreateScreen() {
     bobTime_ = 0.0f;
 
     MapRecord* current = FindZone(LocalPlayerZone());
-    AllodRecord* allod = TheMapDatabase()->FindAllod(current->allod);
+    AllodRecord* allod = g_mapDatabase->FindAllod(current->allod);
     {
         std::string title;
         allodTitle_ = *AllodTitle(&title, allod->name.c_str());
@@ -373,7 +373,7 @@ void CGlobalMap::CreateScreen() {
         glow->visible_ = 0;
         SetPlain(glow);
     }
-    TheSceneRenderer()->fogColour_ = 0xFF3C005A;
+    g_sceneRenderer->fogColour_ = 0xFF3C005A;
 
     {
         backdrop_ = new CUiSurface(interface_, 0, 0, 400, 300, 5, 1);
@@ -477,7 +477,7 @@ void CGlobalMap::CreateScreen() {
     Update();
     windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", 1);
     if (autosave_) {
-        if (options::TheOptions()->autosave_ != 0) ::QuickSave("saveb", static_cast<char>(1));
+        if (options::g_options->autosave_ != 0) ::QuickSave("saveb", static_cast<char>(1));
         autosave_ = false;
     }
     interface_->OpenHelp(0);
@@ -568,7 +568,7 @@ void CGlobalMap::Update() {
         }
         gameapi::LeaveCriticalSection(lock);
     }
-    TheCursor()->ChangeShape(dragging_ ? 0x16 : 0);
+    g_cursor->ChangeShape(dragging_ ? 0x16 : 0);
 }
 
 CGlobalMap::CGlobalMap(CInterface3D* ui) : CUiContainer(ui) {

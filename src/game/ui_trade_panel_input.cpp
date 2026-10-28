@@ -17,7 +17,7 @@ namespace {
 
 const char* const kPerkSound = "buttons\\camp\\perk.wav";
 // The skill database (levels by record name).
-SkillDatabase* Skills() { return SkillDb(); }
+SkillDatabase* Skills() { return &g_skillDatabase.Get(); }
 
 constexpr int kHeldRows = 10;
 constexpr int kLearnableRows = 23;

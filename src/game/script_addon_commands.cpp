@@ -36,7 +36,7 @@ namespace {
 
 
 // The "draw all units" flag (the console's spectator mode).
-int& DrawAllUnits() { return options::TheOptions()->drawVisibleOnly_; }
+int& DrawAllUnits() { return options::g_options->drawVisibleOnly_; }
 
 CPlayer* GetPlayer(int number) { return g_serverWorld->GetPlayer(number); }
 const float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
