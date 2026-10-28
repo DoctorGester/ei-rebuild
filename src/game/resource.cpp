@@ -4,6 +4,7 @@
 #include "resource_stream.h"
 #include "mod_folders.h"
 
+#include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include <cstdint>
@@ -114,7 +115,7 @@ BOOL CMappedResource::OpenFromMemory(const void* image) {
     // GetFile hands out pointers into the image (writable through them).
     char* base = const_cast<char*>(static_cast<const char*>(image));
     image_ = base;
-    std::memcpy(&header_, base, sizeof(header_));
+    lib::LoadBytes(header_, base);
     if (header_.magic != kResMagic) {
         game::FatalError("Wrong format resource");
         CloseResource();
@@ -329,7 +330,7 @@ BOOL CMMIOResource::OpenResource(const std::string& path, BOOL writable) {
 BOOL CMMIOResource::OpenFromMemory(const void* image) {
     char* base = const_cast<char*>(static_cast<const char*>(image));
     mappedImage_ = base;
-    std::memcpy(&header_, base, sizeof(header_));
+    lib::LoadBytes(header_, base);
     if (header_.magic != kResMagic) {
         game::FatalError("Wrong format resource");
         CloseResource();

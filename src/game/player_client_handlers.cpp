@@ -16,6 +16,7 @@
 #include "unit.h"
 #include "world.h"
 #include "world_effect.h"
+#include "lib/bytes.h"
 #include "lib/vecmath.h"
 
 #include "game_data.h"
@@ -145,7 +146,7 @@ int CPlayerClient::OnWorldValue() {
     std::uint8_t bytes[5];
     in_.Read(bytes, 5);
     int value;
-    std::memcpy(&value, bytes + 1, 4);
+    lib::LoadBytes(value, bytes + 1);
     player_->ClientWorld()->SetWorldValue(value);
     return 1;
 }

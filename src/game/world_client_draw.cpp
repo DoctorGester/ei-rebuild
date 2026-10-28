@@ -24,6 +24,7 @@
 #include "model.h"
 #include "terrain.h"
 #include "texture.h"
+#include "lib/bytes.h"
 #include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
@@ -505,7 +506,7 @@ int CWorldClient::DrawPass() {
                     if (CFigureMesh* part = object->FindPartByPrefix(MarkerPartName())) {
                         Vector3 scratch;
                         const float* at = object->PartWorldPosition(&scratch.x, part);
-                        std::memcpy(&point, at, sizeof(point));
+                        lib::LoadBytes(point, at);
                         point.z = Reload(object->localPosition_.z);
                     }
                     const Quaternion* orientation = &object->localRotation_;

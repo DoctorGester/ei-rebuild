@@ -7,6 +7,7 @@
 #include "world.h"   // CWorld: the figure manager and cache
 
 #include "ei/x87.h"
+#include "lib/bytes.h"
 #include "lib/nan_audit.h"
 
 #include <concepts>
@@ -127,7 +128,7 @@ void CObject3D::SetFigureScale(const float* newScale) {
     EI_NAN_AUDIT(scale.x, scale.y, scale.z, newScale[0], newScale[1], newScale[2]);
     if (scale.x == newScale[0] && scale.y == newScale[1] && scale.z == newScale[2])
         return;
-    std::memcpy(&scale, newScale, sizeof(scale));
+    lib::LoadBytes(scale, newScale);
     if (CLinkMesh* current = figure) {
         CLinkFigureLoader* loader = WorldContext()->FigureLoader();
         CLinkMesh* rebuilt = loader->Remorph(current, scale.x, scale.y, scale.z);

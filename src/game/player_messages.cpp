@@ -14,6 +14,7 @@
 #include "world.h"
 
 #include "ei/x87.h"
+#include "lib/bytes.h"
 #include "lib/static_object.h"
 #include "lib/nan_audit.h"
 
@@ -224,7 +225,7 @@ void CPlayerServer::SendObject0B(const CEngineObject* object, std::uint32_t valu
 
 void CPlayerServer::SendValue12(std::uint32_t value) {
     std::uint8_t payload[1 + sizeof(value)] = {};
-    std::memcpy(payload + 1, &value, sizeof(value));
+    lib::StoreBytes(payload + 1, value);
     WriteByte(&out_, 0x12);
     Write(&out_, payload, sizeof(payload));
 }

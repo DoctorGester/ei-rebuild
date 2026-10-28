@@ -9,6 +9,7 @@
 #include "world_data.h"
 
 #include "ei/x87.h"
+#include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "core_transform.h"
@@ -48,7 +49,7 @@ const float* SceneLightColor() { return g_sceneRenderer->sun_->color_; }
 // The rotation Reset gives a source: the identity (a static initialiser's stores).
 constexpr Quaternion kIdentityRotation = /*007A9C30*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
-void SetBits(void* field, std::uint32_t bits) { std::memcpy(field, &bits, sizeof(bits)); }
+void SetBits(void* field, std::uint32_t bits) { lib::StoreBytes(field, bits); }
 
 // The spread box particles start in, relative to the emission point.
 void SetSpread(CParticleSource* s, float x0, float y0, float z0, float x1, float y1, float z1) {

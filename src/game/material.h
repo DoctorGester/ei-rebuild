@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include "lib/bytes.h"
 #include "lib/vecmath.h"
 
 #include <cstddef>
@@ -99,7 +100,7 @@ constexpr int kMagicMaterialKind = 0x17;
 // The colours a material file holds: after its name (a 16-bit length, then the text).
 inline const void* MaterialFileColors(const void* data) {
     std::uint16_t nameLength;
-    std::memcpy(&nameLength, data, sizeof(nameLength));
+    lib::LoadBytes(nameLength, data);
     return static_cast<const char*>(data) + nameLength + 2;
 }
 

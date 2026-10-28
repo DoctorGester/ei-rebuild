@@ -8,6 +8,7 @@
 #include "model.h"        // CSceneRenderer, CTransformPipeline
 
 #include "ei/x87.h"
+#include "lib/bytes.h"
 #include "lib/containers.h"
 #include <cstdint>
 #include <cstring>
@@ -83,7 +84,7 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
     for (auto node = cells.begin(); node != cells.end(); ++node) {
         if (--remaining < 0) break;
         const FogCell& cell = node->second;
-        std::memcpy(point, &cell.pos, sizeof(cell.pos));
+        lib::StoreBytes(point, cell.pos);
         point->size = kFogSpriteSize;
         const int alpha = x87::fistp(static_cast<float>(cell.alpha * kColourScale));
         sprite->colour = (static_cast<std::uint32_t>(alpha) << 24) | 0x00FFFFFFu;

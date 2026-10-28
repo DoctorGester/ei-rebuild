@@ -19,6 +19,7 @@
 #include <memory>
 #include <vector>
 #include "render/render.h"
+#include "lib/bytes.h"
 #include "lib/nan_audit.h"
 #include "lib/static_object.h"
 
@@ -99,7 +100,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
                 (rec - kVertices)->depth = static_cast<float>(static_cast<double>(vin->z) - (vin - kVertices)->z);
             }
             std::uint32_t n;
-            std::memcpy(&n, src + 4, 4);
+            lib::LoadBytes(n, src + 4);
             rec->normal.z = static_cast<float>(x87::FromUnsigned(n >> 22) * kNormalScale);
             rec->normal.x = static_cast<float>((static_cast<double>(static_cast<int>((n >> 11) & 0x7FF)) - kNormalBias) * kNormalScale);
             rec->normal.y = static_cast<float>((static_cast<double>(static_cast<int>(n & 0x7FF)) - kNormalBias) * kNormalScale);
@@ -321,7 +322,7 @@ int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pag
     if (size < 5) return fail(wrongFormat);
 
     std::uint32_t magic;
-    std::memcpy(&magic, file, 4);
+    lib::LoadBytes(magic, file);
     std::uint8_t flags = file[4];
     data = file + 5;
     if (magic != kSectorMagic) return fail(wrongFormat);

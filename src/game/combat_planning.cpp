@@ -18,6 +18,7 @@
 #include "unit.h"
 #include "world.h"
 
+#include "lib/bytes.h"
 #include "lib/static_object.h"
 
 #include "game_singletons.h"
@@ -188,7 +189,7 @@ double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder
         if (sight.unit) {
             Vector3 eye;
             const float* at = &sight.unit->EyePoint(&eye)->x;
-            std::memcpy(&sight.point, at, sizeof(sight.point));
+            lib::LoadBytes(sight.point, at);
             sight.unit = nullptr;
         }
         float sy = sight.point.y - position.y;

@@ -1,12 +1,13 @@
 // A length-prefixed name in a model file's data. See model.h.
 #include "model.h"
+#include "lib/bytes.h"
 
 #include <cstring>
 #include <string>
 
 void ReadPrefixedName(std::string* out, const std::uint8_t** cursor) {
     std::int32_t length;
-    std::memcpy(&length, *cursor, 4);
+    lib::LoadBytes(length, *cursor);
     *cursor += 4;
     if (length == 0) {
         out->clear();

@@ -13,6 +13,7 @@
 #include "unit.h"
 #include "world_effect.h"
 
+#include "lib/bytes.h"
 #include "lib/containers.h"
 
 #include "ei/x87.h"
@@ -197,7 +198,7 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
         }
         if (player->dirty_ & kDirtyWind) {
             Vector3 direction;
-            std::memcpy(&direction, windDirection_, sizeof(direction));
+            lib::LoadBytes(direction, windDirection_);
             if (!state->SendState72(std::bit_cast<std::uint32_t>(direction.x), std::bit_cast<std::uint32_t>(direction.y),
                                     std::bit_cast<std::uint32_t>(direction.z), windStrength_))
                 return 0;
@@ -267,7 +268,7 @@ int CWorldServer::SendZone(CPlayer* player) {
                 // The player starts at its first unit, on the ground there.
                 const float* at = PositionOf(player->units_.begin()->second);
                 Vector3 start;
-                std::memcpy(&start, at, sizeof(start));
+                lib::LoadBytes(start, at);
                 start.z = static_cast<float>(RawSurfaceHeightAt(start.x, start.y));
                 result = state->SendPosition04(&start, 0, sessionKind_);
             }

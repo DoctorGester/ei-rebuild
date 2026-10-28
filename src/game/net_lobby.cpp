@@ -9,6 +9,7 @@
 #include "net_classes.h"
 #include "net_messages.h"
 #include "net_coder.h"
+#include "lib/bytes.h"
 #include "lib/crt.h"
 
 #include "ei/rebirth.h"
@@ -167,7 +168,7 @@ bool ClientBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
 
 void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
-    std::memcpy(&id, cursor->p, 4);
+    lib::LoadBytes(id, cursor->p);
     cursor->p += 4;
     if (!SameAddress(&host_, from)) {
         LogAddressLine("ERROR: Accepted msg received from unknown host ", from);
@@ -192,7 +193,7 @@ void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
 void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
     std::uint8_t* p = cursor->p;
     std::uint32_t id;
-    std::memcpy(&id, p, 4);
+    lib::LoadBytes(id, p);
     p += 4;
     cursor->p = p;
     if (!SameAddress(&host_, from)) {
@@ -506,7 +507,7 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
         c.bytePtr = nullptr;
         c.sink = nullptr;
         c.BeginWrite(&b, 0x400);
-        std::memcpy(c.p, &magic_, 4);
+        lib::StoreBytes(c.p, magic_);
         c.p += 4;
         entry.Get()->Write(&c);
         EndCursor(c);
@@ -517,7 +518,7 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
 
 void ServerBase::OnGetInfo(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t echo;
-    std::memcpy(&echo, cursor->p, 4);
+    lib::LoadBytes(echo, cursor->p);
     cursor->p += 4;
     SendInfo(from, echo);
 }

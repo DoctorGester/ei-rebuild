@@ -6,6 +6,7 @@
 #include "core_refcount.h"
 
 #include "hash_tables_400.h"
+#include "lib/bytes.h"
 #include "lib/static_object.h"
 #include <cstdint>
 #include <cstring>
@@ -108,7 +109,7 @@ bool ChunkArchive::AppendChild(ChunkArchive::Ref* chunk, int id, const void* dat
     std::uint32_t length = size * 2;
     if (length >= 0x100) {
         length |= 1;
-        std::memcpy(base + chunk->size, &length, 4);
+        lib::StoreBytes(base + chunk->size, length);
         chunk->size += 4;
     } else {
         base[chunk->size] = static_cast<std::uint8_t>(length);
@@ -251,7 +252,7 @@ CRefCounted* ChunkArchive::ObjectRef(int id) {
         AppendChild(Current(), id, &key, 4);
     } else {
         ChunkArchive::Ref child;
-        if (FindField(this, id, &child)) std::memcpy(&key, dataStream_.data_ + child.offset, 4);
+        if (FindField(this, id, &child)) lib::LoadBytes(key, dataStream_.data_ + child.offset);
         else key = 0;
     }
     auto node = loaded_.find(key);
@@ -385,7 +386,7 @@ void ChunkArchive::Close(CStream* stream) {
             CRefCounted* object = saved_.front();
             saved_.pop_front();
             std::uint32_t vtable;
-            std::memcpy(&vtable, object, 4);
+            lib::LoadBytes(vtable, object);
             const std::unordered_map<std::uint32_t, std::int32_t>& classIds = g_classRegistry->classIds;
             auto found = classIds.find(vtable);
             std::int32_t classId = found != classIds.end() ? found->second : -1;

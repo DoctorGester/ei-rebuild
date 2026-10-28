@@ -9,6 +9,7 @@
 #include "texture.h"
 
 #include "ei/x87.h"
+#include "lib/bytes.h"
 #include "lib/crt.h"
 #include "game_singletons.h"
 #include "world.h"
@@ -432,7 +433,7 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, char dungeon)
         return game::FatalError("Wrong file format: " + name);
     }
     MapHeader header;
-    std::memcpy(&header, file, sizeof(header));
+    lib::LoadBytes(header, file);
     const std::uint32_t dwords =
         header.animated + header.materials * kMaterialDwords + static_cast<std::uint32_t>(header.textures);
     if (header.magic != kMapMagic || size != dwords * 4 + sizeof(MapHeader)) {
@@ -463,7 +464,7 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, char dungeon)
     materials.resize(materialCount);
     for (int i = 0; i < materialCount; ++i, cursor += sizeof(MapMaterial)) {
         MapMaterial source;
-        std::memcpy(&source, cursor, sizeof(source));
+        lib::LoadBytes(source, cursor);
         terrain::TerrainMaterial& material = materials[i];
         material.kind = source.kind;
         material.waveColour = source.colour;
@@ -488,7 +489,7 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, char dungeon)
     const std::uint8_t* animated = cursor + classBytes;
     for (int i = 0; i < static_cast<int>(header.animated); ++i, animated += sizeof(MapAnimatedTexture)) {
         MapAnimatedTexture entry;
-        std::memcpy(&entry, animated, sizeof(entry));
+        lib::LoadBytes(entry, animated);
         textureFrames[entry.texture] = entry.frames;
     }
 

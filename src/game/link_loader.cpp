@@ -6,6 +6,7 @@
 #include "resource.h"          // CMappedResource
 #include "texture.h"           // CTextureDevice
 
+#include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 
@@ -19,7 +20,7 @@
 
 void ReadLinkString(std::string* out, const char** cursor) {
     std::uint32_t length;
-    std::memcpy(&length, *cursor, 4);
+    lib::LoadBytes(length, *cursor);
     *cursor += 4;
     if (length == 0) return;
     const char* text = *cursor;
@@ -37,7 +38,7 @@ constexpr double kSameMorph = 1e-5;           // squared distance of the coeffic
 void LoadPartRecord(CLinkFigureLoader* loader, CLinkMesh* mesh, const std::string* name, const char* data, float s,
                     float t, float u) {
     std::uint32_t tag;
-    std::memcpy(&tag, data, 4);
+    lib::LoadBytes(tag, data);
     const char* cursor = data;
     if ((tag & 0xFFFFFF) == kFigTag)
         loader->LoadFigPart(mesh, name, &cursor, s, t, u);
@@ -180,7 +181,7 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const std::string* name, float s, flo
         return nullptr;
     }
     std::uint32_t count;
-    std::memcpy(&count, data, 4);
+    lib::LoadBytes(count, data);
     const char* cursor = data + 4;
     std::string part;
     std::string unused;
@@ -274,7 +275,7 @@ bool CLinkFigureLoader::RemorphPart(CLinkMesh* mesh, FigureModel* set, const std
     }
     if (!data) return false;
     std::uint32_t tag;
-    std::memcpy(&tag, data, 4);
+    lib::LoadBytes(tag, data);
     const char* cursor = data;
     if ((tag & 0xFFFFFF) == kFigTag)
         RemorphFigPart(mesh, name, &cursor, s, t, u);

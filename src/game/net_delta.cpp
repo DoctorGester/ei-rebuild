@@ -9,6 +9,7 @@
 #include <string>
 
 #include "ei/x87.h"
+#include "lib/bytes.h"
 
 #include <bit>
 #include <memory>
@@ -18,7 +19,7 @@ namespace {
 
 std::uint32_t Word(const std::uint8_t* p) {
     std::uint32_t w;
-    std::memcpy(&w, p, sizeof(w));
+    lib::LoadBytes(w, p);
     return w;
 }
 

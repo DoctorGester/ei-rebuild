@@ -12,6 +12,7 @@
 #include "unit_ai.h"
 #include "world.h"
 
+#include "lib/bytes.h"
 #include "lib/crt.h"
 
 #include "ei/x87.h"
@@ -238,7 +239,7 @@ bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time)
     if (!FindSightTarget(order, &sight)) return true;
     if (sight.unit) {
         // A unit target is seen at `point`, at its own height above the ground there.
-        std::memcpy(&sight.point, point, sizeof(sight.point));
+        lib::LoadBytes(sight.point, point);
         float ground = static_cast<float>(sight.unit->GroundHeight(point[0], point[1]));
         sight.point.z = static_cast<float>(sight.unit->ModeSpeed() + ground);
         sight.unit = nullptr;

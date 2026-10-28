@@ -15,6 +15,7 @@
 
 #include "game_singletons.h"
 #include "world.h"
+#include "lib/bytes.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
@@ -70,7 +71,7 @@ int CMapObjectServer::RunTick() {
 }
 
 void CMapObjectServer::SetData(const UnitVitals* data) {
-    std::memcpy(&vitals, data, sizeof(vitals));
+    lib::LoadBytes(vitals, data);
     owner->MarkChanged(0);
 }
 
@@ -128,7 +129,7 @@ int CMapObjectClientSpecific::RunTick() {
     CLight* lamp = light;
     if (lamp && !(lamp->flags_ & kFlagHidden)) {
         Vector3 lightPosition;
-        std::memcpy(&lightPosition, PositionOf(lamp), sizeof(lightPosition));
+        lib::LoadBytes(lightPosition, PositionOf(lamp));
         float lightZ = lightPosition.z - kLightHeight;   // stored as a float
         CMapObject* followed = OwnerOf(this);
         double dx = static_cast<double>(lightPosition.x) - followed->localPosition_.x;

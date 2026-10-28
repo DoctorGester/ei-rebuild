@@ -11,6 +11,7 @@
 #include "world.h"
 
 #include "ei/x87.h"
+#include "lib/bytes.h"
 #include "lib/crt.h"
 #include "game_singletons.h"
 
@@ -31,10 +32,10 @@ inline double Unsigned(std::uint32_t value) {
 inline float Load(const float& f) { return *static_cast<const volatile float*>(&f); }
 
 
-inline void SetBits(void* field, std::uint32_t bits) { std::memcpy(field, &bits, sizeof(bits)); }
+inline void SetBits(void* field, std::uint32_t bits) { lib::StoreBytes(field, bits); }
 inline std::uint32_t Bits(const void* field) {
     std::uint32_t bits;
-    std::memcpy(&bits, field, sizeof(bits));
+    lib::LoadBytes(bits, field);
     return bits;
 }
 

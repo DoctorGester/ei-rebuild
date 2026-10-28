@@ -17,6 +17,7 @@
 #include <cstring>
 #include <memory>
 #include <new>
+#include "lib/bytes.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
@@ -116,7 +117,7 @@ void MoveSequenceSound(CSoundManager* m, int handle, const float* position, floa
         if (slot->finished != 0) {
             if (slot->playing != 0) m->EndSlot(slot);
         } else {
-            std::memcpy(&slot->position, position, sizeof(slot->position));
+            lib::LoadBytes(slot->position, position);
             slot->flat = 0;
             slot->nearDistance = nearDist;
             slot->farDistance = farDist;
@@ -129,7 +130,7 @@ void MoveSequenceSound(CSoundManager* m, int handle, const float* position, floa
     auto node = m->deferred.find(handle);
     if (node == m->deferred.end() || node->second == nullptr) return;
     DeferredSound* rec = node->second;
-    std::memcpy(&rec->position, position, sizeof(rec->position));
+    lib::LoadBytes(rec->position, position);
     rec->flat = 0;
     rec->nearDistance = nearDist;
     rec->farDistance = farDist;
@@ -339,8 +340,8 @@ void CSoundManager::SetSpeechVolume(int volume) {
 // The camera's position and direction (CCamera::Update every frame).
 void CSoundManager::SetListener(const float* position, const float* axis) {
     if (enabled == 0) return;
-    std::memcpy(&listener, position, sizeof(listener));
-    std::memcpy(&listenerAxis, axis, sizeof(listenerAxis));
+    lib::LoadBytes(listener, position);
+    lib::LoadBytes(listenerAxis, axis);
     double len = std::sqrt(LengthSquared2DUnrounded<double>(listenerAxis.x, listenerAxis.y));
     EI_NAN_AUDIT(len);
     if (len == 0.0) {
@@ -448,7 +449,7 @@ int CSoundManager::SetSoundPosition(int handle, const float* position, float nea
             if (slot->finished != 0) {
                 if (slot->playing != 0) EndSlot(slot);
             } else {
-                std::memcpy(&slot->position, position, sizeof(slot->position));
+                lib::LoadBytes(slot->position, position);
                 slot->nearDistance = nearDist;
                 slot->farDistance = farDist;
                 slot->flat = 0;
@@ -462,7 +463,7 @@ int CSoundManager::SetSoundPosition(int handle, const float* position, float nea
         auto node = deferred.find(handle);
         if (node != deferred.end() && node->second != nullptr) {
             DeferredSound* rec = node->second;
-            std::memcpy(&rec->position, position, sizeof(rec->position));
+            lib::LoadBytes(rec->position, position);
             rec->flat = 0;
             rec->nearDistance = nearDist;
             rec->farDistance = farDist;
@@ -495,7 +496,7 @@ void CSoundManager::MoveEmitter(int index, const float* position, float inner, f
     if (index < 0 || index > 16) return;
     SoundEmitter* e = EmitterAt(this, index);
     if (e->active == 0) return;
-    std::memcpy(&e->position, position, sizeof(e->position));
+    lib::LoadBytes(e->position, position);
     e->innerRadius = inner;
     e->outerRadius = outer;
     e->minInterval = minInterval;
@@ -572,7 +573,7 @@ int CSoundManager::AddSequence(const std::vector<std::string>* names, int priori
     s->id = s->generation << 8 | i;
     s->active = 1;
     s->names = *names;
-    std::memcpy(&s->position, position, sizeof(s->position));
+    lib::LoadBytes(s->position, position);
     s->nearDistance = nearDist;
     s->farDistance = farDist;
     s->random = randomOrder;
@@ -594,7 +595,7 @@ int CSoundManager::MoveSequence(std::uint32_t id, const float* position) {
     if (enabled == 0 || (id & 0xFF) >= 8) return 0;
     SoundSequence* s = SequenceForId(this, id);
     if (s == nullptr) return 0;
-    std::memcpy(&s->position, position, sizeof(s->position));
+    lib::LoadBytes(s->position, position);
     if (enabled != 0) MoveSequenceSound(this, s->handle, position, s->nearDistance, s->farDistance);
     return 1;
 }
@@ -603,7 +604,7 @@ int CSoundManager::UpdateSequence(std::uint32_t id, const float* position, float
     if (enabled == 0 || (id & 0xFF) >= 8) return 0;
     SoundSequence* s = SequenceForId(this, id);
     if (s == nullptr) return 0;
-    std::memcpy(&s->position, position, sizeof(s->position));
+    lib::LoadBytes(s->position, position);
     s->nearDistance = nearDist;
     s->farDistance = farDist;
     s->remaining = count;
@@ -1099,7 +1100,7 @@ int CSoundManager::Play3D(std::string_view name, int priority, const float* posi
         if (loop == 0) return -1;
         auto* rec = new DeferredSound;
         rec->name.assign(name);
-        std::memcpy(&rec->position, position, sizeof(rec->position));
+        lib::LoadBytes(rec->position, position);
         rec->nearDistance = nearDist;
         rec->farDistance = farDist;
         rec->flat = 0;
@@ -1115,7 +1116,7 @@ int CSoundManager::Play3D(std::string_view name, int priority, const float* posi
     SoundSlot* slot = &slots[index];
     gameapi::AIL_init_sample(slot->sample);
     slot->looping = loop;
-    std::memcpy(&slot->position, position, sizeof(slot->position));
+    lib::LoadBytes(slot->position, position);
     slot->nearDistance = nearDist;
     slot->farDistance = farDist;
     slot->flat = 0;

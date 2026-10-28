@@ -2,6 +2,7 @@
 // buffer view's slots. See net_coder.h and docs/notes/network.md.
 #include "net_coder.h"
 
+#include "lib/bytes.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -293,7 +294,7 @@ void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
     reader.BeginRead(in, size);
     const std::uint8_t* end = reader.p + size;
     out.BeginWrite(outBuffer, size * 2 + 10);
-    std::memcpy(out.p, &size, 4);
+    lib::StoreBytes(out.p, size);
     out.p += 4;
     if (size > 0) {
         const std::uint8_t* at = reader.p;
@@ -349,7 +350,7 @@ void CoderState::Decompress(GameBuffer* in, GameBuffer* outBuffer) {
     if (in->cur > in->high) in->high = in->cur;
     reader.BeginRead(in, static_cast<std::int32_t>(in->high - in->cur));
     std::int32_t remaining;
-    std::memcpy(&remaining, reader.p, 4);
+    lib::LoadBytes(remaining, reader.p);
     reader.p += 4;
     out.BeginWrite(outBuffer, remaining);
     while (remaining > 0) {

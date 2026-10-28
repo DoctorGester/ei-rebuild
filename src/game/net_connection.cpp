@@ -6,6 +6,7 @@
 
 #include "core_refcount.h"
 #include "core_streams.h"
+#include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 
@@ -72,7 +73,7 @@ void Connection::WriteAcks(std::uint8_t** p) {
     }
     std::memcpy(*p, &base, 2);
     *p += 2;
-    std::memcpy(*p, &mask, 4);
+    lib::StoreBytes(*p, mask);
     *p += 4;
     // Forget sequences more than 32 behind (from the back, shifting the rest down).
     for (std::int32_t i = static_cast<std::int32_t>(received_.size()) - 1; i >= 0; --i) {
@@ -503,7 +504,7 @@ void Connection::ReadAcks(BufferCursor* cursor) {
     std::memcpy(&sequence, cursor->p, 2);
     cursor->p += 2;
     std::uint32_t mask;
-    std::memcpy(&mask, cursor->p, 4);
+    lib::LoadBytes(mask, cursor->p);
     cursor->p += 4;
     std::int32_t moved = static_cast<std::int32_t>((static_cast<std::uint32_t>(sequence) - ackBase_) & 0xFFFF);
     if (moved > 0x8000) moved -= 0x10000;

@@ -4,6 +4,7 @@
 // 0x28-byte header to the FIG bounds morph with the full magic, any other past 8 bytes to the older-format
 // one, both with the morph weights. Returns 1. See figure_mesh.h and docs/notes/models.md.
 #include "figure_manager.h"   // CFigureManager, FigureModel
+#include "lib/bytes.h"
 
 #include <bit>
 #include <cstdint>
@@ -32,7 +33,7 @@ int CFigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::s
     }
     if (!data) return 0;
     std::uint32_t magic;
-    std::memcpy(&magic, data, 4);
+    lib::LoadBytes(magic, data);
     if ((magic & 0xFFFFFF) == kFigMagic)
         MorphFigureBounds(out, reinterpret_cast<const float*>(data + 0x28), std::bit_cast<float>(s), std::bit_cast<float>(t),
                           std::bit_cast<float>(u), magic);

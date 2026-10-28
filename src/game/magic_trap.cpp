@@ -10,6 +10,7 @@
 #include "unit_ai.h"
 #include "world.h"
 
+#include "lib/bytes.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -246,7 +247,7 @@ void MagicTrap::SaveTrap(CStream* stream) {
     stream->WriteValue(value);
     for (int i = 0; i < std::ssize(points); ++i) stream->WriteValue(points[i]);
     for (int i = 0; i < kTailFieldCount; ++i) {
-        std::memcpy(&value, TailFields(this, i), 4);
+        lib::LoadBytes(value, TailFields(this, i));
         stream->WriteValue(value);
     }
 }

@@ -3,6 +3,7 @@
 // the network's TypeRegistry::Register). See docs/notes/app.md.
 #include "chunk_archive.h"
 #include "core_refcount.h"
+#include "lib/bytes.h"
 
 
 #include <unknwn.h>
@@ -17,7 +18,7 @@ void TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, std::uint32_t i
     CRefCounted* prototype = factory();
     if (prototype) ++prototype->refs_;
     std::uint32_t vtable;
-    std::memcpy(&vtable, prototype, 4);
+    lib::LoadBytes(vtable, prototype);
     registry->classIds[vtable] = static_cast<std::int32_t>(id);
     registry->factories[id] = factory;
     if (prototype && --prototype->refs_ == 0) delete prototype;

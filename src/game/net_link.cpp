@@ -7,6 +7,7 @@
 #include "net_messages.h"
 #include "world.h"   // CWorldHandle (CreatePair)
 
+#include "lib/bytes.h"
 #include "lib/file_io.h"
 #include "lib/crt.h"
 #include <cstdint>
@@ -285,7 +286,7 @@ bool FramedLink::Send(CStream* stream) {
     std::uint8_t buffer[kMaxMessage + 4];
     if (stream->Size() > kMaxMessage) return false;
     std::uint32_t size = stream->Size();
-    std::memcpy(buffer, &size, sizeof(size));
+    lib::StoreBytes(buffer, size);
     stream->Seek(0);
     std::uint32_t count = stream->Size();
     stream->Read(buffer + 4, count);

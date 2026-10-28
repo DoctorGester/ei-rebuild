@@ -2,6 +2,7 @@
 #include "unit.h"
 
 #include "ei/rebirth.h"
+#include "lib/bytes.h"
 #include "lib/nan_audit.h"
 #include "lib/text_case.h"
 
@@ -86,7 +87,7 @@ bool CSpell::HasCastFlagModifier() {
         // Modifier index = entry - 1, sign-extended then compared unsigned; faults when out of range.
         SpellModifierRecord* modifier = SpellModifierAt(static_cast<std::uint32_t>(entry - 1));
         int code;
-        std::memcpy(&code, modifier->code, sizeof(code));
+        lib::LoadBytes(code, modifier->code);
         if (code == 0x6369 || code == 0x7469) return true;   // "ic", "it"
     }
     return false;

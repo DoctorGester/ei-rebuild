@@ -6,6 +6,7 @@
 #include "mod_folders.h"
 #include "world_data.h"   // TextPathString
 
+#include "lib/bytes.h"
 #include "lib/crt.h"
 
 #include <bit>
@@ -86,7 +87,7 @@ int CMaterialManager::Create() {
             colors.specular.x = colors.specular.y = colors.specular.z = 0.2f;
             colors.power = 5.0f;
         } else {
-            std::memcpy(&colors, MaterialFileColors(data), sizeof(colors));
+            lib::LoadBytes(colors, MaterialFileColors(data));
         }
         CloseFile(data);
         if (kind.kind == kMagicMaterialKind) colors.emissive.x = colors.emissive.y = colors.emissive.z = 1.0f;
