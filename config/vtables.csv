@@ -217,7 +217,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073DA4C,13,,game,0050C5F0 0050C730,0050C710,CFigureAnimationState,src/game/map_object_figures.h,class 0x300D (the figure and map object factories)
 0073DA80,3,,game,0050C5F0 0050C730 0050DE30,007005E3,AnimationStateListClass,-,CList (an animation state's queue); stored only by game.exe (ours is a std::list)
 0073DAA0,61,,game,0050E2D0 0050E660,0050E560,CMapObject,src/game/map_object.h,"CMapObject's own table (slots 11, 12 _purecall)"
-0073DB94,3,,game,0050E2D0 0050E580 0050E660 0050FBC0,007005E3,DeltaFieldArrayClass,src/game/record_arrays.h,CArray<DeltaField> (a map object's network records)
+0073DB94,3,,game,0050E2D0 0050E580 0050E660 0050FBC0,007005E3,DeltaFieldArrayClass,-,CArray<DeltaField> (a map object's network records); stored only by game.exe (ours is a std::vector)
 0073DBA0,3,,game,0050E2D0 0050E660 0050FFB0 00510B80 005112A0,007005E3,EffectArrayClass,src/lib/mfc_slots.h,CArray (a map object's effects)
 0073DBEC,20,,game,00510450 00510560,00510540,CMapObjectClientSpecific,src/game/unit.h,the map objects' client companion
 0073DC3C,3,,game,00510450 00510560 00511E00,007005E3,EffectSoundArrayClass,src/lib/mfc_slots.h,CArray (a map object's effect sounds)
@@ -546,7 +546,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00744064,1,,game,006A5D60 006A8290 006A90B0 006AA630 006ABCD0 006ABE20,006A6440,ArmorRecord,src/game/item_db.h,an armour record
 00744068,1,,game,006A5D60 006A8110 006A8C50 006AA380 006AB9C0 006ABB50,006A6430,WeaponRecord,src/game/item_db.h,a weapon record
 00744098,13,,game,006B4350 006B44B0,006B4490,CMusicSystem,src/game/sound.h,
-007440CC,3,,game,006B4350 006B44B0 006B56C0,007005E3,ThemeArrayClass,src/game/record_arrays.h,CArray<MusicTheme> (the music system's themes)
+007440CC,3,,game,006B4350 006B44B0 006B56C0,007005E3,ThemeArrayClass,-,CArray<MusicTheme> (the music system's themes); stored only by game.exe (ours is a std::vector)
 007440F0,13,,game,006B6040 006B65D0,006B62B0,CSoundManager,src/game/sound.h,
 00744124,3,,game,006B6040 006B65D0 006BC870,007005E3,WaveListClass,-,CList (the sound cache's wave records); stored only by game.exe (ours is a std::list)
 00744130,3,,game,006B6040 006B65D0 006BC570,007005E3,SoundListClass,-,CList (the sound manager's list); stored only by game.exe (ours is a std::list)

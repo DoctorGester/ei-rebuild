@@ -45,20 +45,6 @@ struct FaceGroupArrayClass final
     : mfc::impl::CompiledCollection<FaceGroupArrayClass, &scene::FaceGroupArrayDestruct, &FaceGroups::Serialize> {};
 
 
-// Network delta fields (DeltaState's array; net_delta.h has the element policy).
-using DeltaFields = ArrayAbi<DeltaField, DeltaFieldElements>;
-
-// Music themes: the names empty, both name arrays constructed; destroyed from the last member to the first.
-void InitTheme(MusicTheme* p);
-void DestroyTheme(MusicTheme* p);
-struct ThemeElements : EachElements<MusicTheme, InitTheme, DestroyTheme> {
-    // Moves themes within or between storages: the names moved (std::string), the name arrays as bytes.
-    static void Relocate(MusicTheme* to, MusicTheme* from, int count);
-};
-using Themes = ArrayAbi<MusicTheme, ThemeElements>;
-// CArray<MusicTheme>.
-struct ThemeArrayClass final
-    : mfc::impl::CompiledCollection<ThemeArrayClass, &Themes::Destruct<ThemeArrayClass>, &Themes::Serialize> {};
 
 // A fake unit's figure parts, meshes and materials (FakeUnitScene's constructor).
 struct FakeUnitPartArrayClass final
@@ -107,9 +93,6 @@ struct SubCallBaseClass
 struct SubCallArrayClass final : SubCallBaseClass {
     static void* Vtable() { return mfc::impl::CompiledVtable<SubCallArrayClass>(); }
 };
-// CArray<DeltaField>.
-struct DeltaFieldArrayClass final
-    : mfc::impl::CompiledCollection<DeltaFieldArrayClass, &DeltaFields::Destruct<DeltaFieldArrayClass>, &DeltaFields::Serialize> {};
 using TerrainTileLists = ArrayAbi<terrain::TileList, terrain::TileListElements>;
 // The terrain sectors' tile lists (one vector per texture page).
 struct TerrainAlignedArrayClass final

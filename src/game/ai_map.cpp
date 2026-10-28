@@ -300,7 +300,7 @@ namespace {
 int SpiralDepth() { return SpiralRadiusTree()->depth; }
 std::int32_t SpiralKey(std::uint32_t node) {
     std::int32_t key;
-    std::memcpy(&key, &SpiralRadiusTree()->keys.data[node], sizeof(key));
+    std::memcpy(&key, &SpiralRadiusTree()->keys[node], sizeof(key));
     return key;
 }
 std::uint32_t SpiralMask() { return static_cast<std::uint32_t>(SpiralRadiusTree()->mask); }

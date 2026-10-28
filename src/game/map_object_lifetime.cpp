@@ -125,15 +125,11 @@ void CObject3D::TearDownObject3D() {
 
 CMapObject::CMapObject() { SetUpMapObject(); }
 
-DeltaState::DeltaState() {
-    fields_.Construct(recordarrays::DeltaFieldArrayClass::Vtable());
-    Reset();
-}
+DeltaState::DeltaState() { Reset(); }
 
-DeltaState::~DeltaState() {
-    fields_.vtable = const_cast<void*>(recordarrays::DeltaFieldArrayClass::Vtable());
-    fields_.FreeData();
-}
+DeltaState::~DeltaState() = default;
+
+void DeltaState::SetFieldCount(int count) { fields_.resize(count); }
 
 void CMapObject::SetUpMapObject() {
     effects.Construct(mfc::impl::EffectArrayClass::Vtable());
@@ -153,8 +149,6 @@ CMapObject::~CMapObject() {
 CUnit::CUnit() {
     // The unit's motion: two arrays, then the step speeds and the segment part.
     UnitMotion* m = Motion();
-    mfc::impl::ConstructArrayOf<mfc::impl::FloatArrayClass>(m->stepSpeeds);
-    SetVtable(&m->stepSpeeds, mfc::impl::ArgFloatArrayClass::Vtable());
     // (The segment part's constructor only returns it.)
     std::memset(&m->curveX, 0, sizeof(m->curveX));
     std::memset(&m->curveY, 0, sizeof(m->curveY));
@@ -224,8 +218,6 @@ CUnit::~CUnit() {
     Reset();
     carriedVtable = mfc::impl::CarriedArrayClass::Vtable();
     if (carried) gamecrt::operator_delete(carried);
-    UnitMotion* m = Motion();
-    DestroyArray(m->stepSpeeds, mfc::impl::FloatArrayClass::Vtable());
 }
 
 CMapObjectServer::CMapObjectServer() {

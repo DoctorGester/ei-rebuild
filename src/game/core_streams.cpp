@@ -12,6 +12,7 @@
 #include <cstring>
 #include <new>
 #include <string>
+#include <utility>
 
 namespace {
 
@@ -60,6 +61,15 @@ CMemoryStream::CMemoryStream() {
 
 CMemoryStream::~CMemoryStream() {
     if (data_) gamecrt::operator_delete(data_);
+}
+
+CMemoryStream::CMemoryStream(CMemoryStream&& other) noexcept
+    : bits_(other.bits_), bitMask_(other.bitMask_), bitsIndex_(other.bitsIndex_),
+      data_(std::exchange(other.data_, nullptr)), capacity_(std::exchange(other.capacity_, 0)),
+      position_(std::exchange(other.position_, 0)), size_(std::exchange(other.size_, 0)) {
+    reading_ = other.reading_;
+    ok_ = other.ok_;
+    version_ = other.version_;
 }
 
 void CMemoryStream::Clear() {

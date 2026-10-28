@@ -91,7 +91,6 @@ struct LocalMotionOrder : PathOrder {
 struct LocalUnitMotion {
     UnitMotion motion;
     LocalUnitMotion() {
-        mfc::impl::ConstructArrayOf<mfc::impl::ArgFloatArrayClass>(motion.stepSpeeds);
         motion.curveX = {};   // the segment part: no curves, no segment
         motion.curveY = {};
         motion.segment = -1;
@@ -99,9 +98,6 @@ struct LocalUnitMotion {
         motion.speedScale = 0.5f /*0073EF20*/;
         motion.segment = -1;
         motion.baseTurnRate = std::bit_cast<float>(0x501502F9u);   // 1e10
-    }
-    ~LocalUnitMotion() {
-        mfc::impl::DestructArrayOf<mfc::impl::FloatArrayClass>(motion.stepSpeeds);
     }
     LocalUnitMotion(const LocalUnitMotion&) = delete;
     LocalUnitMotion& operator=(const LocalUnitMotion&) = delete;

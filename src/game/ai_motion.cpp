@@ -221,7 +221,7 @@ int UnitMotion::Clear() {
     segment = -1;
     points.clear();
     waypoints.clear();
-    stepSpeeds.size = 0;
+    stepSpeeds.clear();
     return 0;
 }
 
@@ -425,7 +425,7 @@ void UnitMotion::Build(PathOrder* path) {
     segment = -1;
     points.clear();
     waypoints.clear();
-    stepSpeeds.size = 0;
+    stepSpeeds.clear();
     CopyBits(&startAngle, &order->angle);
 
     switch (static_cast<unsigned>(order->kind)) {
@@ -477,7 +477,7 @@ void UnitMotion::Build(PathOrder* path) {
     for (auto node = path->steps.begin(); node != path->steps.end();) {
         auto next = std::next(node);
         ++waypoints[std::ssize(waypoints) - 1].cells;
-        stepSpeeds.SetAtGrow(stepSpeeds.size, static_cast<float>(static_cast<double>(node->flags)));
+        stepSpeeds.push_back(static_cast<float>(static_cast<double>(node->flags)));
         if (next == path->steps.end()) break;
         auto afterNext = std::next(next);
         const PathCell& cell = *node;
@@ -606,7 +606,7 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
         CopyBits(&p.x, &a->x);
         CopyBits(&p.y, &a->y);
         int size = std::ssize(points);
-        p.speed = static_cast<float>(static_cast<double>(stepSpeeds.data[*stepIndex]) * speedScale * kSpeedUnit);
+        p.speed = static_cast<float>(static_cast<double>(stepSpeeds[*stepIndex]) * speedScale * kSpeedUnit);
         points.resize(size + 1);
         points[size] = p;
         size = std::ssize(points);
@@ -624,7 +624,7 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
         double g = 1.0f - f;
         p.x = static_cast<float>(f * b->x + g * a->x);
         p.y = static_cast<float>(g * a->y + f * b->y);
-        p.speed = static_cast<float>(static_cast<double>(stepSpeeds.data[*stepIndex]) * speedScale * kSpeedUnit);
+        p.speed = static_cast<float>(static_cast<double>(stepSpeeds[*stepIndex]) * speedScale * kSpeedUnit);
         int size = std::ssize(points);
         points.resize(size + 1);
         points[size] = p;
@@ -663,8 +663,8 @@ void UnitMotion::LoadState(CStream* stream) {
     waypoints.resize(count);
     for (int i = 0; i < std::ssize(waypoints); ++i) stream->Read(&waypoints[i], sizeof(MotionWaypoint));
     stream->Read(&count, 4);
-    stepSpeeds.SetSize(count, -1);
-    for (int i = 0; i < stepSpeeds.size; ++i) stream->Read(&stepSpeeds[i], 4);
+    stepSpeeds.resize(count);
+    for (float& step : stepSpeeds) stream->Read(&step, 4);
     stream->Read(&speedScale, 4);
     stream->Read(&baseTurnRate, 4);
     stream->Read(&turnRate, 4);
@@ -679,9 +679,9 @@ void UnitMotion::SaveState(CStream* stream) {
     count = std::ssize(waypoints);
     stream->Write(&count, 4);
     for (int i = 0; i < std::ssize(waypoints); ++i) stream->Write(&waypoints[i], sizeof(MotionWaypoint));
-    count = stepSpeeds.size;
+    count = std::ssize(stepSpeeds);
     stream->Write(&count, 4);
-    for (int i = 0; i < stepSpeeds.size; ++i) stream->Write(&stepSpeeds[i], 4);
+    for (const float& step : stepSpeeds) stream->Write(&step, 4);
     // Copied through a local as dwords.
     const float* const fields[] = {&speedScale, &baseTurnRate, &turnRate, &startAngle, &turn};
     for (const float* field : fields) {

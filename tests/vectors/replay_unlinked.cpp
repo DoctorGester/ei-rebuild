@@ -52,8 +52,6 @@ void ScriptLightning::ScriptLightningDestruct() EI_UNLINKED("ScriptLightning::Sc
 // record_arrays.cpp's other element types.
 void scene::InitFigurePart(CPlainFigureMesh*) EI_UNLINKED("scene::InitFigurePart")
 void scene::InitHelper(CMaterial*) EI_UNLINKED("scene::InitHelper")
-void DeltaFieldElements::Construct(DeltaField*, int) EI_UNLINKED("DeltaFieldElements::Construct")
-void DeltaFieldElements::Destruct(DeltaField*, int) EI_UNLINKED("DeltaFieldElements::Destruct")
 void SectorElements::Construct(Sector*, int) EI_UNLINKED("SectorElements::Construct")
 void terrain::RecordElements::Construct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Construct")
 void terrain::RecordElements::Destruct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Destruct")

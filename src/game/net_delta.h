@@ -54,9 +54,7 @@ struct DeltaField {
     BitStream out[2];        // per channel, what is sent now
 
     DeltaField() = default;
-    ~DeltaField() = default;
-    DeltaField(const DeltaField&) = delete;
-    DeltaField& operator=(const DeltaField&) = delete;
+    DeltaField(DeltaField&&) noexcept = default;
 
     DeltaField* BeginWriteB(int channel1Only);
     DeltaField* BeginReadB(int second, BitStream* reader);
@@ -110,17 +108,9 @@ struct DeltaField {
 static_assert(offsetof(DeltaField, out) == 0x50);
 static_assert(sizeof(DeltaField) == 0xA0);
 
-// The element policy of the fields' CArray (record_arrays.h's DeltaFields): new fields zeroed and constructed,
-// dropped ones destroyed. Out of line (world_effect_lifetime.cpp), so the replays that link net_delta.h need no
-// streams.
-struct DeltaFieldElements {
-    static void Construct(DeltaField* fields, int count);
-    static void Destruct(DeltaField* fields, int count);
-};
-
 // The fields of one object.
 struct DeltaState {
-    mfc::CArray<DeltaField, DeltaFieldElements> fields_;
+    std::vector<DeltaField> fields_;
     std::uint16_t sentMask_ = 0;
     std::uint16_t lastMask_ = 0;
     std::uint16_t mask_ = 0;     // fields to write / read
@@ -154,6 +144,3 @@ struct DeltaState {
     // full write the headers and the masks are emptied. The state goes idle without a reader.
     void Finish();
 };
-static_assert(offsetof(DeltaState, mask_) == 0x18);
-static_assert(offsetof(DeltaState, header_) == 0x24);
-static_assert(sizeof(DeltaState) == 0x74);

@@ -94,6 +94,8 @@ class CMemoryStream : public CStream {
 public:
     CMemoryStream();
     ~CMemoryStream() override;
+    // The buffer and the bit state move; `other` is left empty.
+    CMemoryStream(CMemoryStream&& other) noexcept;
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // a short read zero-fills, clears ok_
     // Grows to (capacity + size) * 2. The harness's observer (verify builds) is told first.
     void Write(const void* buffer, std::uint32_t size) override;

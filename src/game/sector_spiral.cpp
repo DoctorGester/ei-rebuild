@@ -19,9 +19,7 @@ constinit lib::StaticObject<std::vector<SpiralOffset>> g_spiralOffsets = /*007C2
 namespace {
 
 void DestroySpiralOffsets() { g_spiralOffsets.Destroy(); }
-void DestroySpiralRadii() {
-    mfc::impl::DestructArrayOf<mfc::impl::FloatArrayClass>(g_spiralRadii->keys);
-}
+void DestroySpiralRadii() { g_spiralRadii.Destroy(); }
 void DestroySpiralLengths() { g_spiralLengths.Destroy(); }
 } // namespace
 
@@ -31,7 +29,7 @@ void ConstructSpiralOffsets() {
 }
 
 void ConstructSpiralRadii() {
-    mfc::impl::ConstructArrayOf<mfc::impl::FloatArrayClass>(g_spiralRadii->keys);
+    g_spiralRadii.Construct();
     std::atexit(DestroySpiralRadii);
 }
 

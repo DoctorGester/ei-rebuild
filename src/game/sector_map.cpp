@@ -181,7 +181,7 @@ void RadiusTree::Build(const float* values, int count) {
         do ++depth;
         while ((1 << depth) < count);
     }
-    keys.SetSize(2 << depth, -1);
+    keys.resize(2 << depth);
     mask = (1 << depth) - 1;
     for (int level = 0; level <= depth; ++level) {
         const int width = 1 << level;
@@ -189,7 +189,7 @@ void RadiusTree::Build(const float* values, int count) {
         for (int k = 0; k < width; ++k) {
             int index = (1 << (depth - level)) * k + offset;
             if (index >= count) index = count - 1;
-            keys.data[width + k] = values[index];
+            keys[width + k] = values[index];
         }
     }
 }
@@ -244,24 +244,22 @@ void BuildSectorSpiralAt(std::vector<int>* lengths, RadiusTree* tree, std::vecto
     for (int i = 0; i < std::ssize(cells); ++i) (*offsets)[i] = cells[i].offset;
 
     // A length per distinct distance: the offsets up to and including that distance.
-    mfc::CArray<float> radii;
-    radii.Construct(mfc::impl::FloatArrayClass::Vtable());
+    std::vector<float> radii;
     lengths->clear();
-    radii.Add(0.0f);
+    radii.push_back(0.0f);
     lengths->push_back(1);
     for (int i = 0; i < std::ssize(cells); ++i) {
         const float distance = cells[i].distance;
-        if (distance == radii.data[radii.size - 1]) {
+        if (distance == radii.back()) {
             (*lengths)[std::ssize(*lengths) - 1] = i + 1;
         } else {
-            radii.Add(distance);
+            radii.push_back(distance);
             lengths->push_back(i + 1);
         }
     }
-    radii.Add(kBeyondSpiral);
+    radii.push_back(kBeyondSpiral);
     lengths->push_back(std::ssize(*offsets));
-    tree->Build(radii.data, radii.size);
-    radii.FreeData();
+    tree->Build(radii.data(), static_cast<int>(radii.size()));
 }
 
 // Builds the spiral in the tables (the static initialiser's object has no fields; returns it).
