@@ -227,7 +227,7 @@ void CHeroStatsPanel::DrawStats() {
     } else if (page_ == 0) {
         rect = RECT{0x14, 0x41, 0xAF, 0x50};
         texts->GetString("infoitem_25", &text);
-        draw->DrawLine(text.c_str(), &rect, 0, kBright, 0, 1);
+        draw->DrawLine(text, &rect, 0, kBright, 0, 1);
         Down(&rect);
         DrawPart(&rect, "skull", 0);   // skull
         Down(&rect);

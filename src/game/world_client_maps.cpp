@@ -537,15 +537,15 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
         if (!unit) return;   // (leaving the loop is the same as returning here)
         UnitPrototypeRecord* prototype = g_unitDatabase->prototypes.FindByName(record->texts[5]);
         unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - g_unitDatabase->prototypes.records.data() : -1);
-        unit->SetSecondPrototypeByName(record->texts[6].c_str());
+        unit->SetSecondPrototypeByName(record->texts[6]);
         unit->flags_ |= 0x4000000;
         if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
         CObject3DClientSpecific* figure = unit->Object3D()->ClientSpecific();
         figure->RegisterPartMaterials();
         unit->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
         unit->RestartPose();
-        const char* skin = record->texts[4].c_str();
-        figure->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
+        const std::string& skin = record->texts[4];
+        figure->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? std::nullopt : std::optional<std::string_view>(skin)));
         unit->WriteFullState();
         CMapObject* slots = unit;
         slots->SetStats(&record->stats);
@@ -1074,14 +1074,14 @@ int CWorldClient::LoadZone(CStream* block) {
     {
         std::string table = lights + allod;
         std::string file = table + worlddata::IniSuffixText();
-        LoadLights(file.c_str());
+        LoadLights(file);
     }
     CreateExitMarkers();
     worlddata::g_lastLitHour = -1.0f;
     UpdateLighting();
     if (worlddata::AudioOption() && options::g_options->audioStreaming_) {
         if (InFinalZone()) music_->SetZoneMode(worlddata::FinalMusicText(), cave_ == kCave);
-        else music_->SetZoneMode(allod.c_str(), cave_ == kCave);
+        else music_->SetZoneMode(allod, cave_ == kCave);
     }
 
     // The local server's pending messages follow this block in the view's stream.

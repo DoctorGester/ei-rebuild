@@ -347,10 +347,10 @@ std::string CameraFile(const char* path) {
     return FileExists(mod) ? mod : std::string(path);
 }
 
-bool StreamInMod(const char* name) {
+bool StreamInMod(std::string_view name) {
     // 1001BA8D: the mod's Stream\ (100BCB5C) and the name.
-    if (!name || !*name || ModPath().empty()) return false;
-    return FileExists(ModPath() + "Stream\\" + name);
+    if (name.empty() || ModPath().empty()) return false;
+    return FileExists(ModPath() + "Stream\\" + std::string(name));
 }
 
 const std::string& StreamFolder() {

@@ -54,8 +54,7 @@ void ServerSession::AnnounceToMaster() {
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefCounted::kDetached)) {
         std::string title;
-        const char* text = (*SessionMapNameInto(&title)).c_str();
-        description.assign(text);
+        description.assign(*SessionMapNameInto(&title));
     }
     info.players = static_cast<std::uint8_t>(ClientCount());
     info.maxPlayers = static_cast<std::uint8_t>(maxPlayers_);

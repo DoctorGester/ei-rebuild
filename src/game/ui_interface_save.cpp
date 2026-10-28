@@ -79,7 +79,7 @@ std::string* CInterface3D::MessageText(std::string* out, int id, const char* val
     CTextManager* table = g_clientWorld->texts_;
     table->CTextManager::GetString(key, &key);
     if (value)
-        text = str::Format(key.c_str(), value);
+        text = str::Format(key, value);
     else
         text = key;
     *out = text; return out;

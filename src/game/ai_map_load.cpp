@@ -120,7 +120,7 @@ struct Registry {
     CFileRegistry file;
 };
 
-int Fatal(const std::string& message) { return game::FatalError(message.c_str()); }
+int Fatal(const std::string& message) { return game::FatalError(message); }
 
 // The .mp file `name`.MP of `archive` into `map`. Returns 1, or the fatal error's result when the
 // file is missing or not a map (its size must be the header's counts).
@@ -441,8 +441,8 @@ int CAIMap::LoadTerrain(const char* path) {
             std::snprintf(file, sizeof(file), "%s%3.3i%3.3i%s", str::Buffer(name, 0), sectorX, sectorY, kSectorExtension);
             std::uint32_t size;
             void* sector = archive.File(file, &size);
-            if (!sector) return Fatal(("Unable to locate resource: " + std::string(file)).c_str());
-            if (!IsSector(sector, size)) return Fatal(("Wrong format resource: " + std::string(file)).c_str());
+            if (!sector) return Fatal("Unable to locate resource: " + std::string(file));
+            if (!IsSector(sector, size)) return Fatal("Wrong format resource: " + std::string(file));
             StampSector(*this, description, sector, sectorX * kSectorCells, sectorY * kSectorCells);
             archive.Close(sector);
         }

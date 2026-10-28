@@ -177,7 +177,7 @@ void CInterface3D::ShowMessage(int force) {
     }
     if (messageText_.size() == 0) return;
     if (options::g_options->showTutorial_ == 0 && !forced) return;
-    PushWindow(new CHelpWindow(this, true, messageText_.c_str(), messageFlag_), 1, 0);
+    PushWindow(new CHelpWindow(this, true, messageText_, messageFlag_), 1, 0);
 }
 
 // --- the help window -----------------------------------------------------------------------------

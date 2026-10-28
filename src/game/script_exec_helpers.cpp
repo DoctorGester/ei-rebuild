@@ -169,17 +169,16 @@ void ScriptQuestFinish(CScript* script) {
         std::string condition;
         std::string then;
         std::string tail;
-        const char* quest = g_scriptQuestName->c_str();
+        const std::string& quest = *g_scriptQuestName;
         head = str::Format("Script Su%i(if(\n", i);                              // "Script Su%i(if(\n"
         then = str::Format("\n)then(\nKillScript()\nSu%i()\nGSSetVar(0,\"q.%s.%s.%i\",2)\n", i + 1, quest, quest, i + 1);     // "\n)then(\nKillScript()..."
         if (i == QuestObjectiveCount() - 1) {
             tail = ")\n)\n";                                   // ")\n)\n"
         } else {
-            quest = g_scriptQuestName->c_str();
             tail = str::Format("GSSetVar(0,\"q.%s.%s.%i\",1)\n)\n)\n", quest, quest, i + 2);        // "GSSetVar(0,\"q.%s.%s.%i\",1)..."
         }
         const ScriptQuestObjective& objective = QuestObjectives()[i];
-        const char* argument = objective.text.c_str();
+        const std::string& argument = objective.text;
         switch (objective.type) {
         case 0xD7:   // QObjArea
             condition = str::Format("any( i, Heroes, IsInArea( %f, GetX(i), GetY(i) ) )", static_cast<double>(objective.value));
@@ -212,7 +211,7 @@ void ScriptQuestFinish(CScript* script) {
     }
     {
         std::string last;
-        const char* quest = g_scriptQuestName->c_str();
+        const std::string& quest = *g_scriptQuestName;
         last = str::Format("Script Su%i(if()then(KillScript()\nQuestComplete(0,\"%s\")\nGSSetVar(0,\"q.%s.%s\", 2)\n)\n)\n", QuestObjectiveCount(), quest, quest, quest);
         text += last;
     }

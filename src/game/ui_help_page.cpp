@@ -205,14 +205,12 @@ void CHelpWindow::ShowPage() {
         } else if (Same(words[0], kTextLine)) {
             std::string picture;
             if (words.size() > 1) {
-                const char* name = words[1].c_str();
-                picture.assign(name, name + std::strlen(name));
+                picture = words[1];
             }
             // The next line's first word is the text's key.
             texts->Split(&words, 1);
             if (words.size() > 0) {
-                const char* key = words[0].c_str();
-                const PageEntry entry{std::string(key), picture};
+                const PageEntry entry{words[0], picture};
                 entries.push_back(entry);
             }
         }

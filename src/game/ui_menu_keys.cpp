@@ -48,7 +48,7 @@ int TextWidth(CInterface3D* ui, const std::string& text, int font) {
 // --- Save/load window ----------------------------------------------------------------------------
 
 bool CSaveLoadWindow::IsReservedSave(int index) {
-    const char* folder = entries_[index].folder_.c_str();
+    const std::string& folder = entries_[index].folder_;
     if (text::CompareIgnoringCase(folder, game::menukeytexts::QuickSave()) == 0) return true;
     if (text::CompareIgnoringCase(folder, game::menukeytexts::AutoSaveA()) == 0) return true;
     return text::CompareIgnoringCase(folder, game::menukeytexts::AutoSaveB()) == 0;
@@ -231,7 +231,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             std::string format;
             std::string message;
             g_clientWorld->texts_->GetString(game::menukeytexts::KeyMappedText(), &format);
-            message = str::Format(format.c_str(), pressed->name_, other->name_);
+            message = str::Format(format, pressed->name_, other->name_);
             // The box's text (a null box is written through, like the original).
             box->text_ = message.c_str();
             interface_->PushWindow(box, 1, 1);

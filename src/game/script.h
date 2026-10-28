@@ -571,6 +571,7 @@ void ApplyDefines(std::string* line, const std::list<ScriptDefine>* defines);
 // Rebirth patches it. *id = number (7A), string (7B, closed quote) or the id of the longest keyword the text
 // starts with (case-insensitive; 0 if none), *rest = characters after the matched part. Either may be null.
 void ClassifyToken(const char* text, int* id, int* rest);
+inline void ClassifyToken(const std::string& text, int* id, int* rest) { ClassifyToken(text.c_str(), id, rest); }
 // Rebirth patches it. Null unless function `id` returns `type`.
 const char* FunctionSignature(int id, int type);
 // Rebirth patches it. "Unknown command" if none.

@@ -119,10 +119,9 @@ int CFigureAnimationState::LinkPiece(FigureModel* model, std::string_view child,
 }
 
 int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
-    const char* parentName = bone->name2.c_str();
     FigureBone* parent = nullptr;
     for (auto node = bones.begin(); node != bones.end(); ++node) {
-        if (str::Compare((*node)->name, parentName) == 0) {
+        if (str::Compare((*node)->name, bone->name2) == 0) {
             parent = *node;
             break;
         }
@@ -229,8 +228,7 @@ void CFigureAnimationState::UpdatePose() {
 void CFigureAnimationState::Rescale(float s, float t, float u) {
     FigureModel* model;
     {
-        const char* name = owner->name.c_str();
-        std::string key(name, name + std::strlen(name));
+        std::string key = owner->name;
         model = FigureManagerOf(this)->FindModel(&key);
     }
     for (auto node = bones.begin(); node != bones.end();) {

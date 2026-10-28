@@ -18,7 +18,7 @@ int FindName(const std::vector<std::string>& names, std::string_view name) {
 
 // A new variable named `name` at the end of `vars` unless the name is taken.
 template <typename T>
-bool AddVariable(ScriptNamedValues<T>& vars, const char* name) {
+bool AddVariable(ScriptNamedValues<T>& vars, std::string_view name) {
     if (::FindName(vars.names, name) >= 0) return false;
     vars.values.resize(vars.values.size() + 1);
     vars.names.emplace_back(name);
@@ -104,7 +104,7 @@ void ScriptVars::RemoveDeletedObjects() {
 
 // An unknown type is accepted and adds no letter.
 BOOL ScriptDefinition::AddParameter(const std::string* parameterName, int type) {
-    const char* text = parameterName->c_str();
+    const std::string& text = *parameterName;
     switch (type) {
     case kScriptFloat:
         if (!AddVariable(vars.floats, text)) return 0;

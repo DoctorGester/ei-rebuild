@@ -1123,7 +1123,7 @@ void CCampPages::ShowHero() {
     } else {
         name = own;
     }
-    statsPanel_->SetHero(hero_, name.c_str());
+    statsPanel_->SetHero(hero_, name);
     trade_->SelectHero(hero_);
 }
 

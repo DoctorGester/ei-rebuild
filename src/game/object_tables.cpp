@@ -63,11 +63,10 @@ void NamedFloatTable::Remove(std::string_view name) {
     erase(key);
 }
 
-void NamedFloatTable::CopyPrefixed(const char* prefix, NamedFloatTable* out) {
-    std::size_t length = std::strlen(prefix);
+void NamedFloatTable::CopyPrefixed(std::string_view prefix, NamedFloatTable* out) {
     out->clear();
     for (const auto& [key, value] : *this)
-        if (std::strncmp(prefix, key.c_str(), length) == 0) (*out)[key] = value;
+        if (key.starts_with(prefix)) (*out)[key] = value;
 }
 
 void NamedFloatTable::Load(CStream* stream) {

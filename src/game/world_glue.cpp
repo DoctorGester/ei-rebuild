@@ -50,7 +50,7 @@ CPlayerClient* LocalClient() { return g_clientWorld->LocalView(); }
 
 int RunScriptText(const std::string& text, char run, ScriptErrorInfo* error) {
     CScript* script = CommandScript();
-    std::string source(text.c_str());   // CScript::Load preprocesses its text in place
+    std::string source = text;   // CScript::Load preprocesses its text in place
     int loaded = script->Load(&source, 1);
     if (loaded && run) ScriptTick(script);
     if (error) {
@@ -80,7 +80,7 @@ void StoreStartFolder() {
     char folder[kFolderBufferSize];
     gameapi::GetCurrentDirectoryA(kFolderBufferSize, folder);
     std::string text = folder;
-    *g_startFolder = (text + '\\').c_str();
+    *g_startFolder = text + '\\';
 }
 
 // ---- A-W13: the rest of the glue -----------------------------------------------------------------
@@ -195,7 +195,7 @@ void GameRejoin() {
     LocalClient()->Rejoin();
 }
 
-void GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out) {
+void GameLocalPlayerVariables(std::string_view prefix, NamedFloatTable* out) {
     CPlayer* player = g_clientWorld->LocalView()->player_;
     player->Party()->variables_.CopyPrefixed(prefix, out);
 }

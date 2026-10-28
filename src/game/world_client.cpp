@@ -296,8 +296,8 @@ std::string CWorldClient::ObjectVariableName(std::string_view name) {
 void CWorldClient::ApplyObjectVariables() {
     NamedFloatTable* variables = &session_->Party()->variables_;
     for (CMapObject* object : objects_) {
-        const char* name = object->name2.c_str();
-        if (!name || !*name) continue;
+        const std::string& name = object->name2;
+        if (name.empty()) continue;
         object->SetVisibilityLevel(variables->Get(ObjectVariableName(name)));
     }
 }

@@ -432,7 +432,7 @@ public:
     void HoverInfo(int x, int y, ItemHoverInfo* info);
     // `title` may be null; the hero arrows show only for a party of more than one; points_ = the hero's
     // height * 100 (truncated).
-    void SetHero(int heroIndex, const char* title);
+    void SetHero(int heroIndex, std::optional<std::string_view> title);
     // On page 10 a -/+ button (regions 6-13) steps a point and is held; elsewhere region 0 / 1 show the
     // owner's previous / next hero.
     void OnLButtonDown(int buttons, int x, int y);

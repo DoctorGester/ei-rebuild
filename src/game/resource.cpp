@@ -90,11 +90,11 @@ BOOL CMappedResource::OpenResource(const std::string& path, BOOL writable) {
                                    FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
                                    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS, nullptr);
     if (handle_ == INVALID_HANDLE_VALUE)
-        return game::FatalError(("CMappedResource::OpenResource()\nUnable to open file \"" + path + "\"").c_str());
+        return game::FatalError("CMappedResource::OpenResource()\nUnable to open file \"" + path + "\"");
 
     if (ReadAt(handle_, 0, &header_, sizeof(header_))) {
         if (header_.magic != kResMagic) {
-            game::FatalError(("Wrong format resource file \"" + path + "\"").c_str());
+            game::FatalError("Wrong format resource file \"" + path + "\"");
             CloseResource();
             return 0;
         }
@@ -106,7 +106,7 @@ BOOL CMappedResource::OpenResource(const std::string& path, BOOL writable) {
             return 1;
     }
     CloseResource();
-    return game::FatalError(("CMappedResource::OpenResource()\nUnable to read file \"" + path + "\"").c_str());
+    return game::FatalError("CMappedResource::OpenResource()\nUnable to read file \"" + path + "\"");
 }
 
 BOOL CMappedResource::OpenFromMemory(const void* image) {
@@ -211,7 +211,7 @@ bool CMappedResource::CloseFile(void* data) {
             // The file name is the formatted data pointer.
             std::string name;
             name = static_cast<const char*>(data);
-            game::FatalError(("CMappedResource::CloseFile()\nUnable to write file \"" + name + "\"\n").c_str());
+            game::FatalError("CMappedResource::CloseFile()\nUnable to write file \"" + name + "\"\n");
         }
     }
 

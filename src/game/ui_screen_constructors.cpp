@@ -21,7 +21,7 @@ constexpr std::uint32_t kEditField = 4;   // the message box's flag: an edit fie
 
 // --- The message box ----------------------------------------------------------------------------------
 
-CMessageBox::CMessageBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
+CMessageBox::CMessageBox(CInterface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result,
                          std::uint32_t flags, std::uint32_t format)
     : CUiContainer(ui), result_(result), flags_(flags), format_(format) {
     std::string text;

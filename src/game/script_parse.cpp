@@ -431,7 +431,7 @@ BOOL CScript::ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<Scrip
     const ScriptToken token = *(*pos)++;
     std::string text = token.text;
     int found;
-    ClassifyToken(text.c_str(), &found, nullptr);
+    ClassifyToken(text, &found, nullptr);
     if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text);
     return 1;
 }
@@ -479,7 +479,7 @@ void ApplyDefines(std::string* line, const std::list<ScriptDefine>* defines) {
         // never ends; kept).
         for (;;) {
             const std::string& text = *line;
-            int at = str::Find(text, define.name.c_str());
+            int at = str::Find(text, define.name);
             if (at < 0) break;
             std::string right = str::Right(text, static_cast<int>(line->size()) - static_cast<int>(define.name.size()) - at);
             std::string left = str::Left(text, at);

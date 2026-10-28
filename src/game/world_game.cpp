@@ -102,7 +102,7 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
                       const std::string& currentMap, NamedFloatTable* variables) {
     for (int i = 0; i < ZoneRecordCount(); ++i) {
         MapRecord* record = ZoneRecords() + i;
-        const char* name = record->name.c_str();
+        const std::string& name = record->name;
         bool visited;
         {
             std::string prefix = kVisitedPrefix;
@@ -334,7 +334,7 @@ constexpr const char* kAllodMaps[4][10] = /*00790270*/ {
 };
 constexpr int kGipat = 0, kIngos = 1, kSuslanger = 2;
 
-int AllodOfMap(const char* map) {
+int AllodOfMap(std::string_view map) {
     if (NameInList(kAllodMaps[kGipat], map)) return kGipat;
     if (NameInList(kAllodMaps[kIngos], map)) return kIngos;
     return NameInList(kAllodMaps[kSuslanger], map) ? kSuslanger : 3;
@@ -356,7 +356,7 @@ void ConstructSaveStream() {
     std::atexit(DestroySaveStream);
 }
 
-int GameFlow::SaveGame(const char* slot) {
+int GameFlow::SaveGame(const std::string& slot) {
     FileStream file;
     std::string zone;
     std::string slotFolder;
@@ -468,7 +468,7 @@ int EnterZone(CParty* records) {
         }
         if (visited) {
             bool failed = false;
-            result = RestoreZone(records, zoneRecord, zone.c_str(), folder, mapOverride, file, failed);
+            result = RestoreZone(records, zoneRecord, zone, folder, mapOverride, file, failed);
             if (failed) return 0;
         } else {
             std::string map = zoneRecord->map + kMapExtension;
@@ -476,7 +476,7 @@ int EnterZone(CParty* records) {
             bool loaded;
             {
                 std::string mob = zoneRecord->mob + kMobExtension;
-                loaded = g_serverWorld->NewZone(map, mob, zoneRecord->name.c_str()) != 0;
+                loaded = g_serverWorld->NewZone(map, mob, zoneRecord->name) != 0;
             }
             if (!loaded) return 0;
             zoneRecord = FindZone(zone);
@@ -497,7 +497,7 @@ int EnterZone(CParty* records) {
 // saves\current\<zone>.sav when there is one (else loads the zone fresh at time 4), copies its exits with
 // every target set to "MPGame1", applies its two settings, marks the game a network one and, on a running
 // game server, announces the host and loads the zone's .mob. Returns 1, 0 on failure.
-int StartNetworkZone(const char* zone) {
+int StartNetworkZone(const std::string& zone) {
     g_interface->closeAll_ = 1;
     MapRecord* zoneRecord = FindZone(zone);
     if (!zoneRecord || zoneRecord->kind != 0) return 0;
@@ -541,7 +541,7 @@ int StartNetworkZone(const char* zone) {
     options::g_options->drawVisibleOnly_ = 1;
 
     if (Active(net::g_gameServer)) {
-        AnnounceHost(zone);
+        AnnounceHost(zone.c_str());
         std::string name = zone;
         std::string mob = name + kMobExtension;
         g_serverWorld->LoadMobFile(mob);
@@ -585,7 +585,7 @@ int LeaveZone(CParty* records) {
     NamedFloatTable* variables = &records->variables_;
     {
         std::string prefix = kVisitedPrefix;
-        std::string variable = prefix + zone.c_str();
+        std::string variable = prefix + zone;
         VariableSet(variables, variable, 1.0f);
     }
     float now = static_cast<float>(VariableGet(variables, kGTime));
@@ -635,7 +635,7 @@ void GameFlow::BeginMultiplayerGame() {
         std::string zone;
         MultiplayerZoneInto(&zone);
         state_ = 4;   // load the zone
-        requestTarget_ = zone.c_str();
+        requestTarget_ = zone;
         requestArg_ = 0;
     }
     zoneSwitchStarted_ = 0;
@@ -653,7 +653,7 @@ void GameFlow::ReturnLocalParty() {
     GlobalParty()->Assign(party);
     g_partyManager->BeginRedeploy(party);
     // The global party record written into the heroes' folder.
-    g_savedParties->outsideGame_.WriteFile(g_savedParties->folder_.c_str());
+    g_savedParties->outsideGame_.WriteFile(g_savedParties->folder_);
     UpdateFromServer();
 }
 
@@ -665,7 +665,7 @@ void GameFlow::UpdateAndAcknowledge() {
     ++net::g_gameClient->player_.Get()->version_;
 }
 
-void GameFlow::RequestBriefing(const char* briefing) {
+void GameFlow::RequestBriefing(std::string_view briefing) {
     net::ClientSession* client = net::g_gameClient;
     if (Active(client)) client->SendCommand(kCommandBriefing, briefing);
 }
@@ -682,7 +682,7 @@ void GameFlow::RecreateClientSession() {
     ReleaseSession(previous);
 }
 
-int GameFlow::SaveGameThunk(const char* slot) { return SaveGame(slot); }
+int GameFlow::SaveGameThunk(const std::string& slot) { return SaveGame(slot); }
 
 int RequestZone(std::string_view zone, int entrance) {
     g_interface->closeAll_ = true;
@@ -963,7 +963,7 @@ void PickZones(std::vector<std::string>* out, int id, const char* exclude) {
         if (e->id == id) pending.items[pending.count++] = e;
     while (pending.count) {
         // The group of the first pending entry's second name, in table order.
-        const char* key = pending.items[0]->second.c_str();
+        const std::string& key = pending.items[0]->second;
         group.count = 0;
         for (int i = 0; i < pending.count;) {
             if (SameText(pending.items[i]->second, key)) {
@@ -979,7 +979,7 @@ void PickZones(std::vector<std::string>* out, int id, const char* exclude) {
                 if (SameText(group.items[i]->first, exclude)) group.RemoveAt(i);
                 else ++i;
         unsigned pick = ((&g_random))->Next() % static_cast<unsigned>(group.count);
-        std::string name(group.items[pick]->first.c_str());
+        std::string name = group.items[pick]->first;
         out->push_back(name);
     }
 }
@@ -1018,7 +1018,7 @@ void ClearSaveFolder(const std::string& path) {
     finder.Close();
 }
 
-bool NameInList(const char* const* list, const char* name) {
+bool NameInList(const char* const* list, std::string_view name) {
     for (; *list[0] != 0; ++list)
         if (text::CompareIgnoringCase(*list, name) == 0) return true;
     return false;
@@ -1119,7 +1119,7 @@ void GameFlow::StartNewGame() {
 
 // ---- The flow's requests -------------------------------------------------------------
 
-void SwitchResourceDatabases(const char* name) {
+void SwitchResourceDatabases(const std::string& name) {
     UnitDatabase* units = &g_unitDatabase.Get();
     units->Reset();
     units->Load(ResourcesPath(), name);
@@ -1139,11 +1139,10 @@ void GameFlow::UseResources(bool network) {
         std::atexit(DestroyLastResources);
     }
     std::string wanted = network ? kResourcesNetwork : kResourcesSingle;
-    if (str::Compare(wanted,
-                        g_lastResources->c_str()) == 0)
+    if (str::Compare(wanted, *g_lastResources) == 0)
         return;
     *g_lastResources = wanted;
-    SwitchResourceDatabases(wanted.c_str());
+    SwitchResourceDatabases(wanted);
     if (network) {
         int value = options::g_options->difficulty_;
         options::g_options->difficulty_ = 0;
@@ -1185,7 +1184,7 @@ void GameFlow::ProcessRequest() {
         g_serverWorld->Update();
         clientWorld->Segment();
         g_serverWorld->Update();
-        LoadGame(requestTarget_.c_str());
+        LoadGame(requestTarget_);
         if (requestArg_) {
             const char* autoplay = kAutoplay;
             if (autoplay) {
@@ -1221,7 +1220,7 @@ void GameFlow::ProcessRequest() {
         break;
     }
     case kStateNetworkZone: {
-        StartNetworkZone(requestTarget_.c_str());
+        StartNetworkZone(requestTarget_);
         CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
         player->AssignParty(RequestParty());
         clientWorld->SetPlayer(g_serverWorld->worldHandle_.Get());
@@ -1235,7 +1234,7 @@ void GameFlow::ProcessRequest() {
     net::Pump();
 }
 
-int GameFlow::LoadGame(const char* slot) {
+int GameFlow::LoadGame(const std::string& slot) {
     if (g_serverWorld->gameResult_ == 2 || g_serverWorld->gameResult_ == 3) return 0;
     // Rebirth's AutoExec #1 (the call redirected): addon's AutoExec lines first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
@@ -1396,8 +1395,8 @@ void GameFlow::AfterServerStart() {
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (std::ssize(GlobalParty()->members_) == 1) {
         const std::string* names = GlobalParty()->members_.data()->texts;
-        net::g_gameClient->player_.Get()->text_.assign(names[5].c_str());
-        net::g_gameClient->player_.Get()->name_.assign(names[0].c_str());
+        net::g_gameClient->player_.Get()->text_.assign(names[5]);
+        net::g_gameClient->player_.Get()->name_.assign(names[0]);
     } else {
         net::g_gameClient->player_.Get()->text_.assign(kDefaultHeroName);
         net::g_gameClient->player_.Get()->name_.assign(kDefaultPartyName);
@@ -1437,8 +1436,8 @@ void GameFlow::UpdateFromServer() {
     }
     std::string questVariable;
     std::string kVariable;
-    BriefingVariableInto(&questVariable, (briefing + kBriefingSuffixQuest).c_str());
-    BriefingVariableInto(&kVariable, (briefing + kBriefingSuffixK).c_str());
+    BriefingVariableInto(&questVariable, briefing + kBriefingSuffixQuest);
+    BriefingVariableInto(&kVariable, briefing + kBriefingSuffixK);
     std::string* const names[2] = {&questVariable, &kVariable};
     for (std::string* name : names) {
         float value = static_cast<float>(VariableGet(variables, (*name)));
@@ -1465,7 +1464,7 @@ void GameFlow::UpdateFromServer() {
         int dot = str::Find(rest, kDot);
         if (dot > 0) {
             std::string folder = str::Left(rest, dot);
-            RegisterQuests(folder.c_str());
+            RegisterQuests(folder);
         }
     }
 
@@ -1525,7 +1524,7 @@ void SavedParties::Reload() {
         MpHeroRecord read;
         MpHeroRecord* entry = &read;
         entry->file = found.cFileName;
-        if (entry->ReadFile(folder_.c_str())) {
+        if (entry->ReadFile(folder_)) {
             NamedFloatTable* variables = &entry->Party()->variables_;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars)) {
                 // Rebirth's PersistentGlobalVars: the clear is skipped and the table is cleared
@@ -1559,12 +1558,12 @@ void GameFlow::BuildZoneTable() {
         more = find.FindNext();
         std::string name = find.GetTitle();
         str::MakeLower(name);
-        RegisterQuests(name.c_str());
+        RegisterQuests(name);
         UnloadQuestTexts();
         std::string map;
         if (MapRecord* record = FindZone(name)) {
             map = record->map;
-            const int allod = AllodOfMap(map.c_str());
+            const int allod = AllodOfMap(map);
             ZoneEntry& entry = table.emplace_back();
             entry.first = name;
             entry.second = map;

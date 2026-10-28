@@ -88,9 +88,8 @@ void Loader::AddMap() {
     exit_ = -1;
     Map().name = words_[1];
     Map().allod = words_[2];
-    const char* allodName = words_[2].c_str();
     for (AllodRecord& allod : db_->allods) {
-        if (text::CompareIgnoringCase(allod.name, allodName) != 0) continue;
+        if (text::CompareIgnoringCase(allod.name, words_[2]) != 0) continue;
         allod.maps.push_back(map_);
         break;
     }

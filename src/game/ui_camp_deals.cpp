@@ -112,7 +112,7 @@ const char* SpellContainerText() { return "spell container"; }
 constexpr int kSpellContainerClass = 0x3008;
 
 // A new item named `name` from the results' item manager added to them (when one is made).
-void AddNamed(CParty* results, const char* name, std::uint32_t prototypeIndex, bool setIndex) {
+void AddNamed(CParty* results, std::string_view name, std::uint32_t prototypeIndex, bool setIndex) {
     auto* item = AsLoot(results->ItemFactory()->CreateItem(name));
     if (!item) return;
     ++item->refCount_;
@@ -217,7 +217,7 @@ bool CCampPages::DeconstructItem() {
         std::string name = MaterialText();
         name += ".";
         name += material->key;
-        AddNamed(results, name.c_str(), 0, false);
+        AddNamed(results, name, 0, false);
     }
     if (copy->spell_) {
         CItemManager* manager = results->ItemFactory();

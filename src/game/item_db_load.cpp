@@ -27,7 +27,7 @@ void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int f
         archive.SerializeQuestItems(field, &table->records, nullptr);
     archive.Close(source);
     for (Record& record : table->records) {
-        std::string name(record.name.c_str());
+        std::string name = record.name;
         table->names[name] = &record;
     }
 }

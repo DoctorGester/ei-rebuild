@@ -105,7 +105,7 @@ void CHudTopPanel::AddMoney(int money) {
     std::string format;
     g_clientWorld->texts_->GetString("combat_picked_up", &picked);
     g_clientWorld->texts_->GetString("format_money", &format);
-    text = str::Format(format.c_str(), money);
+    text = str::Format(format, money);
     std::string line = picked;
     line += " ";
     line += text;

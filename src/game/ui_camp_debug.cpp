@@ -56,9 +56,7 @@ void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t
 void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* maker, itemdb::ItemRecordHead* record,
                     int kind, int materials) {
     for (int j = 0; j < materials; ++j) {
-        const char* wanted = record->materialClass.c_str();
-        const char* name = itemdb::MaterialAt(static_cast<std::uint32_t>(j))->soundName.c_str();
-        if (text::CompareIgnoringCase(name, wanted) != 0)
+        if (text::CompareIgnoringCase(itemdb::MaterialAt(static_cast<std::uint32_t>(j))->soundName, record->materialClass) != 0)
             continue;
         maker->SetManager(manager);
         maker->BeginCreateItem(kind, -1);

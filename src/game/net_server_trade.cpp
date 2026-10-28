@@ -34,7 +34,7 @@ void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
     const char* name = offer->player_.Get()->name_.data();
     std::string line;
     std::string* formatted = g_interface->MessageText(&line, text, name);
-    self->Announce(formatted->c_str(), partner);
+    self->Announce(*formatted, partner);
 }
 
 } // namespace

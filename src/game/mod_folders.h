@@ -60,7 +60,7 @@ const std::string& MapsRoot(const std::string& dataFolder);
 // CameraPatch: `path` (the camera\ file CCamera::LoadPath opens), or the mod's Camera\<last part>.
 std::string CameraFile(const char* path);
 // StreamPatch: whether the mod's Stream\ has `name` (then the stream opens <mod>Stream\<name>).
-bool StreamInMod(const char* name);
+bool StreamInMod(std::string_view name);
 const std::string& StreamFolder();
 // MoviesPatch: `name` (as BinkOpen gets it), or the mod's Movies\<last part>.
 std::string MovieFile(const char* name);

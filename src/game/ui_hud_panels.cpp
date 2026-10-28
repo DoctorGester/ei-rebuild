@@ -289,7 +289,7 @@ void CHudTopPanel::ShowItems() {
     auto* party = LocalPlayerData();
     if (static_cast<int>(party->money_) > 0) {
         texts->CTextManager::GetString("format_money", &format);
-        line = str::Format(format.c_str(), static_cast<int>(party->money_));
+        line = str::Format(format, static_cast<int>(party->money_));
         text += line;
         text += kNewLine;
     }

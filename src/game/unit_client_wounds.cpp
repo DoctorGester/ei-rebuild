@@ -145,7 +145,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
                 if (!level) continue;
                 name = str::Format(kWoundTexture, unit->name, unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
                             static_cast<int>(level));
-                request.textures.push_back(name.c_str());
+                request.textures.push_back(name);
             }
             name = str::Format(kWoundCacheName, unit->id_);
             result = g_clientWorld->textureManager_->Compose(&out, &request, &name, &name, kMipCount, 0, kFormat);

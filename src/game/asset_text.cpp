@@ -196,7 +196,7 @@ void CopyFitting(char* to, std::size_t size, std::string_view text) {
 
 // ---- Typing ---------------------------------------------------------------------------------------
 
-std::string Typed(const std::string& head, int character) { return head + Utf8Of(character).c_str(); }
+std::string Typed(const std::string& head, int character) { return head + Utf8Of(character); }
 
 int TypedLength(int character) { return static_cast<int>(Utf8Of(character).size()); }
 

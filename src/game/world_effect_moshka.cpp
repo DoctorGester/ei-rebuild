@@ -247,7 +247,7 @@ void CEffectMoshka::Follow(int objectId) {
     attached->RegisterPartMaterials();
     bird->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
     bird->RestartPose();
-    attached->SetSkins(texture.c_str(), game::kEmptyText);
+    attached->SetSkins(texture, game::kEmptyText);
     g_clientWorld->AddObject(bird_);
     attached->SetLit(1);
     if (FigureAnimation* first = bird->AnimationAt(0)) {

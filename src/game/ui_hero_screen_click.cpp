@@ -142,7 +142,7 @@ void CMpHeroScreen::CloseRenameEdit() {
 
 void CMpHeroScreen::BackToNewHero() {
     uiorig::PlayUiSound(interface_, game::CancelSoundText(), 0);
-    statsPanel_->SetHero(0, const_cast<char*>(game::kEmptyText));
+    statsPanel_->SetHero(0, game::kEmptyText);
     surfaces_[0]->GetDC();
     surfaces_[0]->Clear();
     surfaces_[0]->ReleaseDC();
@@ -282,7 +282,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             stats->intelligence = 25.0f;
             hero->height = 0.7f;
             nameEdit_->SetText(game::kEmptyText);
-            statsPanel_->SetHero(0, const_cast<char*>(game::kEmptyText));
+            statsPanel_->SetHero(0, game::kEmptyText);
             RefreshStats();
             return;
         }
@@ -346,7 +346,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // A new hero.
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         ChooseFigure(defaults_[0]);
-        statsPanel_->SetHero(0, const_cast<char*>(game::kEmptyText));
+        statsPanel_->SetHero(0, game::kEmptyText);
         surfaces_[0]->GetDC();
         surfaces_[0]->Clear();
         surfaces_[0]->ReleaseDC();
@@ -498,7 +498,7 @@ void CMpHeroScreen::CreateHero() {
     spellContainer_ = !hero->spells.empty() ? hero->spells[0] : nullptr;
     spellPanel_->ShowEntry(spellContainer_);
     hero->texts[0] = name;
-    statsPanel_->SetHero(0, const_cast<char*>(name.c_str()));
+    statsPanel_->SetHero(0, name);
     RefreshStats();
     SetMode(this, nullptr, kModeStats);
 }

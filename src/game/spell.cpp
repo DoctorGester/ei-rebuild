@@ -128,11 +128,11 @@ bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
         if ((flags & 2) && !hostile) return false;    // enemies only
     }
 
-    const char* name = unit->name.c_str();   // the prototype name, e.g. "unhuma"
-    if ((flags & 4) && (std::strcmp(name, kHumanMale) == 0 || std::strcmp(name, kHumanFemale) == 0)) return false;
-    if ((flags & 8) && std::strcmp(name, kGoblin) == 0) return false;
-    if ((flags & 0x10) && (std::strcmp(name, kOrcMale) == 0 || std::strcmp(name, kOrcFemale) == 0)) return false;
-    if ((flags & 0x20) && std::strcmp(name, kMoli) == 0) return false;
+    const std::string& name = unit->name;   // the prototype name, e.g. "unhuma"
+    if ((flags & 4) && (name == kHumanMale || name == kHumanFemale)) return false;
+    if ((flags & 8) && name == kGoblin) return false;
+    if ((flags & 0x10) && (name == kOrcMale || name == kOrcFemale)) return false;
+    if ((flags & 0x20) && name == kMoli) return false;
     return true;
 }
 
@@ -190,9 +190,7 @@ char* SpellCodeByName(std::string_view name) {
     const SpellTable& spells = g_spellDatabase->spells;
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(spells.Count()); ++i) {
         const SpellRecord* spell = spells.At(i);
-        const char* spellName = spell->name.c_str();
-        if (text::CompareIgnoringCase(spellName,
-                            name) == 0) {
+        if (text::CompareIgnoringCase(spell->name, name) == 0) {
             // The code string's pointer.
             const char* code = spells.At(i)->code.c_str();
             return const_cast<char*>(code);
@@ -205,9 +203,7 @@ char* SpellModifierCodeByName(std::string_view name) {
     SpellModifierTable& modifiers = g_spellDatabase->modifiers;
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(modifiers.Count()); ++i) {
         const SpellModifierRecord* modifier = modifiers.At(i);
-        const char* modifierName = modifier->name.c_str();
-        if (text::CompareIgnoringCase(modifierName,
-                            name) == 0) {
+        if (text::CompareIgnoringCase(modifier->name, name) == 0) {
             // Out of range gives address 4 (null record + 4).
             return modifiers.At(i)->code;
         }

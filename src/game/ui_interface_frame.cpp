@@ -136,7 +136,7 @@ void CInterface3D::OnStringEvent(std::string_view event) {
         GameStopSounds(1);
         GameStopAmbience();
         PlaySound("buttons\\gameover.wav", 0);
-        const char* title = words.size() > 1 ? words[1].c_str() : "game_over";
+        const std::string_view title = words.size() > 1 ? std::string_view(words[1]) : "game_over";
         const char* message = words.size() > 2 ? words[2].c_str() : "game_over_msg";
         CMessageBox* window = new CMessageBox(this, title, message, 0x20000, 3, 1);
         PushWindow(window, 1, 1);
@@ -155,7 +155,7 @@ void CInterface3D::OnStringEvent(std::string_view event) {
         messages_.insert(messages_.end(), words[1]);
     } else if (Compare(words[0], "briefing") == 0) {
         if (words.size() < 2 || stack_.empty()) return;
-        ScreenOf(top())->ShowBriefing(words[1].c_str());
+        ScreenOf(top())->ShowBriefing(words[1]);
     } else if (Compare(words[0], "autosave") == 0) {
         pollTop_ = true;
     } else if (Compare(words[0], "endofgame") == 0) {

@@ -10,6 +10,7 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/str.h"
 #include <cstdint>
 #include <string>
 #include "lib/vecmath.h"
@@ -219,12 +220,12 @@ void Terrain::PlayAmbience() {
         } while (cells[pick].soundClass != vote.soundClass);
         if (kind.variants == 0) continue;
         std::uint32_t variant = random.Next();
-        char name[256];
+        std::string name;
         {
             std::string time;   // the empty string, replaced (raw stack storage in the game)
             g_clientWorld->AmbienceTimeOfDay(&time);
-            std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\%s\\%i.wav", ambientSet.c_str(), kind.name, time.c_str(),
-                             variant % static_cast<std::uint32_t>(kind.variants) + 1);
+            name = str::Format("ambient\\%s\\%s\\%s\\%i.wav", ambientSet, kind.name, time,
+                               variant % static_cast<std::uint32_t>(kind.variants) + 1);
         }
         Vector3 position = listener + cells[pick].offset;
         float half = static_cast<float>(kSpotCells);
@@ -244,8 +245,7 @@ void Terrain::PlayAmbience() {
             vote.sound = ambientSounds[slot];
             sounds->SetSoundVolume(vote.sound, vote.volume, vote.pan);
         } else {
-            char name[256];
-            std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\circle.wav", ambientSet.c_str(), classes[vote.soundClass].name);
+            const std::string name = str::Format("ambient\\%s\\%s\\circle.wav", ambientSet, classes[vote.soundClass].name);
             vote.sound = sounds->Play2D(name, 1000, vote.volume, vote.pan, 1, 1, 0, 0);
         }
     }

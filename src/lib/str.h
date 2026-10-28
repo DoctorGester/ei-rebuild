@@ -42,6 +42,12 @@ template <class... Args>
 std::string Format(const char* format, Args&&... args) {
     return Format(format, libprintf::Arg(std::forward<Args>(args))...);
 }
+// A std::string format.
+template <class F, class... Args>
+    requires libprintf::IsString<F>
+std::string Format(F&& format, Args&&... args) {
+    return Format(format.c_str(), libprintf::Arg(std::forward<Args>(args))...);
+}
 std::string FormatV(const char* format, va_list arguments);
 
 int Find(const std::string& s, char c, int start = 0);

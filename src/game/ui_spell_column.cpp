@@ -55,7 +55,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
         {
             std::string image = spell->FigureName();
             std::string model = spell->PictureName();
-            AddSpell(model.c_str(), image.c_str());
+            AddSpell(model, image);
         }
         g_clientWorld->texts_->GetItemTexts(spell, &tip, &description, &description);
 

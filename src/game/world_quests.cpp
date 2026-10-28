@@ -56,7 +56,7 @@ constexpr int kKindNoRangeTest = 3;
 constexpr int kClassQuestItem = 0x14;
 
 // The item named `name` (the game builds two unused temporary lists around the creation).
-CItem* CreateNamedItem(const char* name) { return g_serverWorld->itemManager_->CreateItem(name); }
+CItem* CreateNamedItem(std::string_view name) { return g_serverWorld->itemManager_->CreateItem(name); }
 
 void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingRecord* record) {
     float experience = record->exp;
@@ -68,7 +68,7 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
 
     std::list<CItem*> items;
     for (const std::string& name : record->lists[QuestBriefingRecord::kGiveItems]) {
-        CItem* item = CreateNamedItem(name.c_str());
+        CItem* item = CreateNamedItem(name);
         if (!item) continue;
         auto node = items.emplace(items.end());
         *node = item;
@@ -76,7 +76,7 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
     if (!items.empty()) player->GiveItems(&items, 0);
 
     for (const std::string& name : record->lists[QuestBriefingRecord::kRemoveItems]) {
-        CItem* item = CreateNamedItem(name.c_str());
+        CItem* item = CreateNamedItem(name);
         if (!item) continue;
         ++item->refCount_;
         if (item->GetClassId() == kClassQuestItem)
@@ -401,7 +401,7 @@ void CWorldServer::CompleteBriefing(int playerId, std::string_view name) {
     if (IsMultiplayerClient()) {
         std::vector<std::string> parts;
         text::Split(name, &parts, '.');
-        if (parts.size() == 3) g_gameFlow->RequestBriefing(parts[2].c_str());
+        if (parts.size() == 3) g_gameFlow->RequestBriefing(parts[2]);
         // EI_Plugin's Briefings (the array's destruction moved to the end): the client queues the
         // completion script as well. The plugin formats it with the caller's EBX as the name; the client's
         // only caller holds the name there.
@@ -471,7 +471,7 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, std::string_view name) {
         // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
         if (is(v.n1) || is(v.n3)) {
             state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
-            const char* prototype = unit ? unit->GetPrototype()->name.c_str() : worlddata::HumanHeroText();
+            const std::string_view prototype = unit ? std::string_view(unit->GetPrototype()->name) : std::string_view(worlddata::HumanHeroText());
             party->AddMember(v.merc, prototype, game::kEmptyText);
         }
     }

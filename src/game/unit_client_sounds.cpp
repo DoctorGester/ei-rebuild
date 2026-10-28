@@ -124,7 +124,7 @@ int CUnitClientSpecific::FootstepSound(int terrain, std::string* out) {
         return 1;
     }
     int count = static_cast<int>(model->SoundCounts()[terrain]);
-    const char* name = model->soundNames.begin()[terrain].c_str();
+    const std::string& name = model->soundNames.begin()[terrain];
     *out = str::Format("%s\\%d.wav", name, RandomBelow(count) + 1);
     return 1;
 }

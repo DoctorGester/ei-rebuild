@@ -92,7 +92,7 @@ void CMpHeroScreen::ChooseFigure(std::string_view prototype) {
     spellContainer_ = FirstOf(hero->spells);
     spellPanel_->ShowEntry(spellContainer_);
     MakePreview(0);
-    statsPanel_->SetHero(0, nullptr);
+    statsPanel_->SetHero(0, std::nullopt);
     tradePanel_->ResetRecords();
     tradePanel_->SelectHero(0);
     text_ = prototype;

@@ -202,7 +202,7 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
 // CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
 // negative id takes the next automatic one; an existing source with the id gets the new effect.
 void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
-    std::string name = cmd->stringArgs[0].c_str();
+    std::string name = cmd->stringArgs[0];
     const ScriptParticleType* type = nullptr;
     for (int i = 0; i < kScriptParticleTypeCount; ++i) {
         if (text::CompareIgnoringCase(kScriptParticleTypes[i].name, name) == 0) {

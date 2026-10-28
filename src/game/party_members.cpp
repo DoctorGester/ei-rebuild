@@ -100,7 +100,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     auto* prototype = g_unitDatabase->prototypes.FindByName(record->texts[5]);
     auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     record->texts[2] = model->figureName;
-    BuildNpcStats(&record->stats, record->texts[5].c_str());
+    BuildNpcStats(&record->stats, record->texts[5]);
     record->scaleY = prototype->scale.y;
     record->scaleX = prototype->scale.x;
     record->height = prototype->scale.z;

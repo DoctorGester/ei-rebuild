@@ -425,11 +425,11 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, char dungeon)
     const auto* file = static_cast<const std::uint8_t*>(archive.GetFile((mapName + kMapDataExtension), &size));
     if (!file) {
         ClearMap();
-        return game::FatalError(("Unable to open file \"" + name + "\"").c_str());
+        return game::FatalError("Unable to open file \"" + name + "\"");
     }
     if (size < sizeof(MapHeader)) {
         ClearMap();
-        return game::FatalError(("Wrong file format: " + name).c_str());
+        return game::FatalError("Wrong file format: " + name);
     }
     MapHeader header;
     std::memcpy(&header, file, sizeof(header));
@@ -437,7 +437,7 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, char dungeon)
         header.animated + header.materials * kMaterialDwords + static_cast<std::uint32_t>(header.textures);
     if (header.magic != kMapMagic || size != dwords * 4 + sizeof(MapHeader)) {
         ClearMap();
-        return game::FatalError(("Wrong file format: " + name).c_str());
+        return game::FatalError("Wrong file format: " + name);
     }
 
     if (sectorGrid) {

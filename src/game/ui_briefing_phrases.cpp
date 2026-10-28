@@ -199,7 +199,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             };
             auto addItems = [&](const std::vector<std::string>& list) {
                 for (const std::string* it = list.data(); it != list.data() + list.size(); ++it) {
-                    CItem* item = g_clientWorld->itemManager_->CreateItem(it->c_str());
+                    CItem* item = g_clientWorld->itemManager_->CreateItem(*it);
                     if (!item) continue;
                     ++item->refCount_;
                     texts->FormatItemName(item, &name);
@@ -210,7 +210,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             };
             auto addQuests = [&](const std::vector<std::string>& list) {
                 for (const std::string* it = list.data(); it != list.data() + list.size(); ++it) {
-                    text::Split(it->c_str(), &parts, '.');
+                    text::Split(*it, &parts, '.');
                     if (parts.size() != kQuestNameParts) continue;
                     if (!texts->Open((std::string(QuestSection()) + parts[2]))) continue;
                     texts->ReadLine(&name, 1);

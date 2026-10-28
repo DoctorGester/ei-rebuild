@@ -216,10 +216,10 @@ BOOL CTextManager::FormatItemName(CItem* item, std::string* out) {
     if (!GetItemTexts(item, &name, &format, &kind)) return 0;
     if (static_cast<int>(item->count_) > 1) {
         GetString("format_item2", &format);
-        *out = str::Format(format.c_str(), kind, name, item->count_);
+        *out = str::Format(format, kind, name, item->count_);
     } else {
         GetString("format_item1", &format);
-        *out = str::Format(format.c_str(), kind, name);
+        *out = str::Format(format, kind, name);
     }
     return 1;
 }
