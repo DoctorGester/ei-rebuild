@@ -112,7 +112,7 @@ float g_clientSpeed = /*00784758*/ 1.0f;
 std::uint8_t g_littleNonLocalMemory = /*00784755*/ 1;
 constexpr DWORD kLittleMemory = 0x800000;
 
-SkillDatabase* SkillDatabaseObject() { return SkillDb(); }
+SkillDatabase* SkillDatabaseObject() { return &g_skillDatabase.Get(); }
 
 
 // ---- Start-up --------------------------------------------------------------------------------------
@@ -160,8 +160,8 @@ void ReadCommandLine(const char* commandLine) {
     g_commandLineScript->clear();
     g_commandLineMob->clear();
     g_commandLineMap->clear();
-    CWorldClient* client = TheClientWorld();
-    GameOptions* options = options::TheOptions();
+    CWorldClient* client = &g_clientWorld.Get();
+    GameOptions* options = &options::g_options.Get();
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         if (str::Find(arguments[i], "-moviepath_") == 0) {
             client->flags_ &= ~0x20u;
@@ -286,7 +286,7 @@ bool CheckDrives(const std::vector<std::string>& messages) {
         PathParts parts;
         DriveRoot(discFolder.c_str(), parts);
         gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
-        while (str::Compare(options::TheOptions()->cdLabels_[1], volume) != 0) {
+        while (str::Compare(options::g_options->cdLabels_[1], volume) != 0) {
             if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
             gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         }
@@ -318,8 +318,8 @@ void CreateFolders(std::string& path) {
 // The renderer created on the window, then what the video memory allows. Returns the free
 // non-local video memory.
 DWORD CreateRenderer() {
-    GameOptions* options = options::TheOptions();
-    CCamera* camera = TheCamera();
+    GameOptions* options = &options::g_options.Get();
+    CCamera* camera = &g_camera.Get();
     camera->localPosition_.x = options->cameraDefaultXDeploy_;
     camera->localPosition_.y = options->cameraDefaultYDeploy_;
     camera->localPosition_.z = options->cameraDefaultHeight_;
@@ -339,14 +339,14 @@ DWORD CreateRenderer() {
     device::GetAvailableVidMem(TheRenderDevice()->ddraw_, &caps, &total, &free);
     g_littleNonLocalMemory = free <= kLittleMemory;
     g_deviceNamed = options->driverIndex_ != 0;
-    TheSceneRenderer()->SetGamma(options->brightness_, options->contrast_, options->gamma_);
+    g_sceneRenderer->SetGamma(options->brightness_, options->contrast_, options->gamma_);
     return free;
 }
 
 // The sound opened (44.1 kHz, 16 bits) with its music folder, wave archives and volumes. Returns
 // the disc folder's text pointer (see the caller).
 std::uintptr_t OpenSound() {
-    GameOptions* options = options::TheOptions();
+    GameOptions* options = &options::g_options.Get();
     std::string textFolder = *g_textFolder;
     std::string dataFolder = *g_dataFolder;
     std::string discFolder = *g_discFolder;
@@ -376,7 +376,7 @@ std::uintptr_t OpenSound() {
 
 void LoadDatabases() {
     const char* archive = "database.res";
-    GameOptions* options = options::TheOptions();
+    GameOptions* options = &options::g_options.Get();
     SkillDatabaseObject()->Load(options->resourcesPath_.c_str(), archive);
     g_questDatabase->Load(options->resourcesPath_.c_str());
     g_unitDatabase->Load(options->resourcesPath_.c_str(), archive);
@@ -438,7 +438,7 @@ std::uint32_t ClientClockMs() {
 void TakeActivationChange() {
     if (!g_activationChanged) return;
     if (g_active) {
-        if (TheSceneRenderer()->flags_ & 2) {
+        if (g_sceneRenderer->flags_ & 2) {
             CTextureDevice* device = TheRenderDevice();
             gameapi::EnterCriticalSection(&g_deviceLock);
             device->lastLoadResult_ = device::RestoreAllSurfaces(device->ddraw_);
@@ -477,19 +477,19 @@ bool RunWorlds() {
         bool settled = true;
         if (g_serverBacklog >= TickLength()) {
             settled = false;
-            if (!ServerUpdate()(TheServerWorld(), nullptr)) return false;
+            if (!ServerUpdate()(&g_serverWorld.Get(), nullptr)) return false;
             g_serverBacklog -= TickLength();
             net::Pump();
         }
-        if (g_clientBacklog >= TickLength() && (TheClientWorld()->PumpHasIncoming() || !TheClientWorld()->IsLocalViewMode2())) {
-            if (!ClientSegment()(TheClientWorld(), nullptr)) return false;
+        if (g_clientBacklog >= TickLength() && (g_clientWorld->PumpHasIncoming() || !g_clientWorld->IsLocalViewMode2())) {
+            if (!ClientSegment()(&g_clientWorld.Get(), nullptr)) return false;
             const std::uint32_t tick = TickLength();
             g_clientBacklog -= tick;
             g_clientTicksMs += tick;
             if (render::SmoothCamera())
-                camera::NoteTargetTick(TheCamera());
+                camera::NoteTargetTick(&g_camera.Get());
             else
-                TheCamera()->Update(CameraSeconds(tick));
+                g_camera->Update(CameraSeconds(tick));
             net::Pump();
             continue;
         }
@@ -530,17 +530,17 @@ bool RunPass() {
         return false;
     }
     GuardPlayerData(1);
-    CWorldClient* client = TheClientWorld();
+    CWorldClient* client = &g_clientWorld.Get();
     if (client->IsLocalPlayerIdle()) {
-        if (IsMultiplayerClient()) TheGameFlow()->RecreateClientSession();
-        else TheGameFlow()->CloseSessions();
+        if (IsMultiplayerClient()) g_gameFlow->RecreateClientSession();
+        else g_gameFlow->CloseSessions();
     }
     if (elapsed > 0x80000000u) elapsed = 0;
     net::Pump();
     if (elapsed > TickLength() * kLongestPassTicks) elapsed = TickLength() * kLongestPassTicks;
     if (g_recordingFrames) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up.
-        const double frame = Step(1000.0f /*0073C34C*/ / static_cast<double>(options::TheOptions()->movieCapturingFps_));
+        const double frame = Step(1000.0f /*0073C34C*/ / static_cast<double>(options::g_options->movieCapturingFps_));
         elapsed = libcrt::Ftol(std::ceil(frame));
     }
     g_serverBacklog += elapsed;
@@ -550,7 +550,7 @@ bool RunPass() {
     if (g_clientBacklog > kBacklogLimit) g_clientBacklog = 0;
 
     if (RunWorlds()) {
-        TheGameFlow()->ProcessRequest();
+        g_gameFlow->ProcessRequest();
         const float fraction = static_cast<float>(x87::FromUnsigned(g_clientBacklog) / static_cast<double>(static_cast<std::int32_t>(TickLength())));
         if (!client->paused_) client->tickFraction_ = fraction;
         const double balance = Step(static_cast<double>(client->PumpIncomingCount()) - fraction);
@@ -564,7 +564,7 @@ bool RunPass() {
         std::uint32_t clientTime = clientClock - g_cameraClientMs;
         g_cameraClientMs = clientClock;
         if (render::SmoothCamera() && clientTime < 0x80000000u) elapsed += clientTime;   // not after a backlog reset
-        CCamera* camera = TheCamera();
+        CCamera* camera = &g_camera.Get();
         std::uint32_t tick = TickLength();
         while (elapsed > tick) {
             camera->Update(CameraSeconds(tick));
@@ -579,7 +579,7 @@ bool RunPass() {
                 camera->PlaybackStep(static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_));
         }
     }
-    TheInterface()->Update();
+    g_interface->Update();
     const bool draw = static_cast<char>(g_movieMode) != 0;
     if (auto hook = ei::mainloop::g_harnessHooks.frameStep) hook(draw, true);
     else app::FrameStep(draw, true);
@@ -612,17 +612,17 @@ int RunMainLoop(bool interfaceInput) {
 
 void ShutDown() {
     DeleteComposedTextures();
-    TheInterface()->Shutdown();
-    TheCursor()->Shutdown();
+    g_interface->Shutdown();
+    g_cursor->Shutdown();
     CDirectInputMouse* mouse = g_mouse;
     g_mouse = nullptr;
     if (mouse) ReleaseMouse(mouse);
-    TheSceneRenderer()->SetGamma(0.0f, 0.0f, 0.0f);
+    g_sceneRenderer->SetGamma(0.0f, 0.0f, 0.0f);
     SceneRenderer()->DestroyRenderer();
-    options::TheOptions()->SaveToRegistry(g_registryRoot->c_str());
-    TheClientWorld()->SetCamera(nullptr);
-    TheServerWorld()->Destroy();
-    TheClientWorld()->Destroy();
+    options::g_options->SaveToRegistry(g_registryRoot->c_str());
+    g_clientWorld->SetCamera(nullptr);
+    g_serverWorld->Destroy();
+    g_clientWorld->Destroy();
 }
 
 } // namespace
@@ -682,7 +682,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     ReadCommandLine(commandLine);
     RegisterWindowClass(instance);
 
-    GameOptions* options = options::TheOptions();
+    GameOptions* options = &options::g_options.Get();
     // NivalRegistry: Rebirth's patch names its own key instead.
     *g_registryRoot = ei::rebirth::Enabled(ei::rebirth::Patch::NivalRegistry)
                          ? "Software\\Gipat.ru\\EI_Starter\\EvilIslands"
@@ -693,13 +693,13 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
         g_logicSettings.Load(settings.c_str());
     }
     options->LoadFromRegistry(g_registryRoot->c_str());
-    TheClientWorld()->Create();
-    TheServerWorld()->Create();
+    g_clientWorld->Create();
+    g_serverWorld->Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).
-    TheCamera()->Init(options, std::bit_cast<std::uint32_t>(options->nearClipDistance_),
+    g_camera->Init(options, std::bit_cast<std::uint32_t>(options->nearClipDistance_),
                    std::bit_cast<std::uint32_t>(options->farClipDistance_),
                    std::bit_cast<std::uint32_t>(static_cast<float>(3.141592653589793 /*0073C308*/ * 0.2857142857142857 /*0073B9D8*/)));
-    TheClientWorld()->SetCamera(TheCamera());
+    g_clientWorld->SetCamera(&g_camera.Get());
     if (!CheckDrives(messages)) return kExitDeclined;
     CreateMouse();
 
@@ -726,15 +726,15 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     CloseLoadingMovie();
     LoadDatabases();
     g_mouse->Setup(g_mainWindow, instance);
-    TheClientWorld()->SetUpGraphics(TheRenderDevice());
+    g_clientWorld->SetUpGraphics(TheRenderDevice());
     // The last argument's upper three bytes are whatever the call before left behind; only the low
     // byte is a value (the shapes' flag: no device named).
     SetUpCursors(options->fpsIndependentCursor_ != 0, g_mouse, 0,
                  g_deviceNamed == 0);
-    TheInterface()->Create(TheRenderDevice());
-    TheMapDatabase()->LoadAll();
+    g_interface->Create(TheRenderDevice());
+    g_mapDatabase->LoadAll();
     StartFirstMap();
-    TheSceneRenderer()->SetGamma(options->brightness_, options->contrast_, options->gamma_);
+    g_sceneRenderer->SetGamma(options->brightness_, options->contrast_, options->gamma_);
 
     const int result = RunMainLoop((reusedSlot >> 24) != 0);
     ShutDown();

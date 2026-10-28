@@ -99,7 +99,7 @@ void CBattleScreen::ToggleMember(int index) {
             if (chosen[i] != 0) chosen[i] = 0;
         chosen[index] = 1;
     }
-    TheClientWorld()->Deselect(nullptr);
+    g_clientWorld->Deselect(nullptr);
 
     for (int i = 0; i < std::ssize(*party); ++i) {
         auto* portraits = portraits_;
@@ -116,15 +116,15 @@ void CBattleScreen::ToggleMember(int index) {
         portraits->slots_[i].restB_ = *rest;
         CUnit* member = unitAt(i);
         if (member && chosen[i] != 0) {
-            TheClientWorld()->Select(member);
+            g_clientWorld->Select(member);
             if (index == i) Speech(unitAt(i)->id_, 0, nullptr);
         }
     }
 
     // Single player: the local player's unit records (0x784 bytes, +0x1C the unit id) keep the
     // members' selection, record i against member i.
-    if (TheServerWorld()->gameResult_ == 1) {
-        if (auto* player = TheServerWorld()->GetPlayer(0)) {
+    if (g_serverWorld->gameResult_ == 1) {
+        if (auto* player = g_serverWorld->GetPlayer(0)) {
             for (int i = 0; i < std::ssize(player->Party()->members_); ++i) {
                 if (i >= std::ssize(*party)) continue;
                 PartyUnitRecord* record = &player->Party()->members_[i];
@@ -159,7 +159,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         int memberLevel = unitAt(i)->Level();
         if (targetLevel - memberLevel > 5) Speech(unitAt(i)->id_, 10, nullptr);
     }
-    if (!units.empty()) LocalView(TheClientWorld())->SendAttack(&units, target, kind, ctrl & 0xFF);
+    if (!units.empty()) LocalView(&g_clientWorld.Get())->SendAttack(&units, target, kind, ctrl & 0xFF);
 }
 
 void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
@@ -175,7 +175,7 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
         slot.wobbleTime_ = PortraitDelay(g_random.Next());
         portraits_->slots_[i].wobbleKind_ = 1;
     }
-    if (!units.empty()) LocalView(TheClientWorld())->SendUseDead(&units, target, ctrl & 0xFF);
+    if (!units.empty()) LocalView(&g_clientWorld.Get())->SendUseDead(&units, target, ctrl & 0xFF);
 }
 
 // --- the pending spell or quick item used --------------------------------------------------------
@@ -190,10 +190,10 @@ void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
         std::memcpy(&position, &target->localPosition_, sizeof(position));
         int refused;
         if (quick == 0) {
-            LocalView(TheClientWorld())->SendCastOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
+            LocalView(&g_clientWorld.Get())->SendCastOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
             refused = unitAt(i)->CanCastSpell(pendingSlot_, &position.x);
         } else {
-            LocalView(TheClientWorld())->SendItemOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
+            LocalView(&g_clientWorld.Get())->SendItemOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
             quickItems_->SetUnit(unitAt(i));
             refused = unitAt(i)->CanUseQuickItem(pendingSlot_, &position.x);
         }
@@ -220,11 +220,11 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
         }
         int refused;
         if (quick != 0) {
-            LocalView(TheClientWorld())->SendItemAtPoint(pendingSlot_, unitAt(i), &point, 0);
+            LocalView(&g_clientWorld.Get())->SendItemAtPoint(pendingSlot_, unitAt(i), &point, 0);
             quickItems_->SetUnit(unitAt(i));
             refused = unitAt(i)->CanUseQuickItem(pendingSlot_, &point.x);
         } else {
-            LocalView(TheClientWorld())->SendCastAtPoint(pendingSlot_, unitAt(i), &point, 0);
+            LocalView(&g_clientWorld.Get())->SendCastAtPoint(pendingSlot_, unitAt(i), &point, 0);
             refused = unitAt(i)->CanCastSpell(pendingSlot_, &point.x);
         }
         if (refused == 0) NodPortrait(this, i);

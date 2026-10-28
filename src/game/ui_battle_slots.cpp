@@ -27,7 +27,7 @@ namespace {
 // The world's update period in milliseconds (the harness's `speed`; the game's default 55).
 constexpr int kDefaultUpdatePeriod = 55;
 // The autosave option (nonzero: save "savea" on entering a zone).
-bool AutoSaveEnabled() { return options::TheOptions()->autosave_ != 0; }
+bool AutoSaveEnabled() { return options::g_options->autosave_ != 0; }
 const char* AutoSaveName() { return "savea"; }
 
 constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a selected party unit
@@ -50,9 +50,9 @@ CHudMap* Map(CUiWindow* map) { return static_cast<CHudMap*>(map); }
 } // namespace
 
 void CBattleScreen::Close() {
-    TheCamera()->flags_ |= CCamera::kFree;
+    g_camera->flags_ |= CCamera::kFree;
     worlddata::g_updatePeriod = kDefaultUpdatePeriod;
-    TheCursor()->SetHeld(0);
+    g_cursor->SetHeld(0);
     GameStopSounds(1);
     GameStopAmbience();
     party_.clear();
@@ -61,7 +61,7 @@ void CBattleScreen::Close() {
 bool CBattleScreen::PollShown() {
     if (hasHero_) {
         auto& party = party_;
-        if (!party.empty()) TheCamera()->SetTarget(party[0]);
+        if (!party.empty()) g_camera->SetTarget(party[0]);
         if (AutoSaveEnabled()) ::QuickSave(AutoSaveName(), static_cast<char>(1));
         hasHero_ = false;
         interface_->OpenHelp(0);
@@ -100,7 +100,7 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
 }
 
 void CBattleScreen::SaveState() {
-    CStream* stream = GameSaveStream();
+    CStream* stream = &g_saveStream.Get();
     auto& party = party_;
     // The ids go through a CDWordArray first; the bytes written are the same.
     int count = 0;
@@ -167,7 +167,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
     }
     portraits_->Rebuild(0);
     if (selected) {
-        TheClientWorld()->Select(unit);
+        g_clientWorld->Select(unit);
         MarkPortrait(place);
     }
     // A hero the save had selected.
@@ -176,7 +176,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
         int after = std::ssize(heroes_) - i - 1;
         if (after != 0) std::memmove(&heroes_[i], &heroes_[i + 1], after * sizeof(heroes_[0]));
         heroes_.pop_back();
-        TheClientWorld()->Select(unit);
+        g_clientWorld->Select(unit);
         MarkPortrait(place);
         break;
     }
@@ -196,7 +196,7 @@ void CBattleScreen::OnMessageResult(int result) {
     case kLeaveAnswer:
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
-        TheGameFlow()->DropSessions();
+        g_gameFlow->DropSessions();
         uiorig::LeaveGame();
         break;
     default:

@@ -16,7 +16,7 @@ namespace net {
 
 namespace {
 
-const char* MasterHost() { return options::TheOptions()->masterServerName_.c_str(); }   // the master server's host name
+const char* MasterHost() { return options::g_options->masterServerName_.c_str(); }   // the master server's host name
 
 // Timed entries {seconds left (float), object}: each loses `dt`; those below zero are
 // erased. The end is read again after every entry.

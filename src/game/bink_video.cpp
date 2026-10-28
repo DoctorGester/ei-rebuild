@@ -45,9 +45,9 @@ RECT g_loadingScreen = /*007C5520*/ {};
 BinkHeader* g_loadingBink = /*007C5550*/ {nullptr};
 unsigned g_loadingSurfaceType = /*007C5554*/ {};
 
-int MoviesMode() { return options::TheOptions()->video_; }           // 0 off, 1 at size, 2 stretched to the width
-int MovieSound() { return options::TheOptions()->audio_; }
-int MovieVolume() { return options::TheOptions()->audioStreaming_; }          // percent
+int MoviesMode() { return options::g_options->video_; }           // 0 off, 1 at size, 2 stretched to the width
+int MovieSound() { return options::g_options->audio_; }
+int MovieVolume() { return options::g_options->audioStreaming_; }          // percent
 
 // The movie's surface holder: null at the start; the exit function its static initialiser registers releases
 // it once.
@@ -125,7 +125,7 @@ char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char s
         return 1;
     }
     gameapi::BinkSetVolume(bink, MovieVolume() * 0x7FF6 / 100);
-    TheCursor()->ShowImage(0);
+    g_cursor->ShowImage(0);
     // (The game fills the primary black and clears the render target when `clearScreen`: the new
     // frames fill the screen themselves, render::Fill below.)
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
@@ -195,8 +195,8 @@ char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char s
     gameapi::BinkClose(bink);
     if (holder) holder->Release();
     SetQuitAllowed(1);
-    TheCursor()->SaveBackground(1);
-    TheCursor()->ShowImage(1);
+    g_cursor->SaveBackground(1);
+    g_cursor->ShowImage(1);
     return escaped ? 0 : 1;
 }
 
@@ -205,7 +205,7 @@ char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char s
 void ShowLoadingMovie(int progress) {
     net::Pump();
     if (g_loadingMovieOff) return;
-    TheCursor()->ShowImage(0);
+    g_cursor->ShowImage(0);
     if (!g_loadingHolder) {
         std::string path = DataFolderText();
         path += "Movies\\";
@@ -228,7 +228,7 @@ void ShowLoadingMovie(int progress) {
         if (old) old->Release();
         g_loadingSurfaceType = kBinkSurface32R;
         g_loadingScreen = screen;
-        TheCursor()->SaveBackground(1);
+        g_cursor->SaveBackground(1);
     }
     BinkHeader* bink = g_loadingBink;
     int last = static_cast<int>(bink->frames) - 1;
@@ -247,7 +247,7 @@ void ShowLoadingMovie(int progress) {
         bink = g_loadingBink;
         if (bink->frames == bink->lastFrame) break;
     }
-    TheCursor()->TakeLock();
+    g_cursor->TakeLock();
     bink = g_loadingBink;
     CDXSurface* holder = g_loadingHolder;
     RECT source{0, 0, static_cast<LONG>(bink->width), static_cast<LONG>(bink->height)};
@@ -258,8 +258,8 @@ void ShowLoadingMovie(int progress) {
         render::MovieBlit(key, ToRender(g_loadingScreen));
         PresentMovieFrame();
     }
-    TheCursor()->SaveBackground(1);
-    TheCursor()->ReleaseLock();
+    g_cursor->SaveBackground(1);
+    g_cursor->ReleaseLock();
 }
 
 // --- Opening a movie for the frame's player ----------------------------------------------
@@ -278,7 +278,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", name);
         return 0;
     }
-    TheCursor()->ShowImage(0);
+    g_cursor->ShowImage(0);
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
     gameapi::CopyRect(&screen, &TheRenderDevice()->screen_);
@@ -310,7 +310,7 @@ void CloseLoadingMovie() {
     g_loadingBink = nullptr;
     g_loadingHolder = nullptr;
     if (holder) holder->Release();
-    TheCursor()->ShowImage(1);
+    g_cursor->ShowImage(1);
 }
 
 CBinkVideo* CBinkVideo::Construct() {
@@ -327,8 +327,8 @@ void CBinkVideo::Close() {
     CDXSurface* old = holder;
     holder = nullptr;
     if (old) old->Release();
-    TheCursor()->SaveBackground(1);
-    TheCursor()->ShowImage(1);
+    g_cursor->SaveBackground(1);
+    g_cursor->ShowImage(1);
 }
 
 void CBinkVideo::Destruct() { Close(); }

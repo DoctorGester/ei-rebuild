@@ -94,7 +94,7 @@ void AIBrain::Think() {
     // An alarm counting down since the brain became alerted.
     if (alerted && alarmCountdown > 0) {
         if (--alarmCountdown == 0 && alarm != 0) {
-            TheServerWorld()->InvokeAlarm(alarm, &owner->unit->localPosition_.x, 0);
+            g_serverWorld->InvokeAlarm(alarm, &owner->unit->localPosition_.x, 0);
             owner->voice.Raise(kVoiceAlarm);
         }
     }

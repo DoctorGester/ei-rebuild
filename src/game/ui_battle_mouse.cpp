@@ -28,11 +28,11 @@ int Distance(int a, int b) { return a < b ? b - a : a - b; }
 
 void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
     if (portraitMode_ != 0) {
-        TheCursor()->SetShape(kCursorPickPlayer);
+        g_cursor->SetShape(kCursorPickPlayer);
         if (portraits_) portraits_->Input()->MouseMove(buttons, x, y);
         return;
     }
-    TheCursor()->SetShape(kCursorArrow);
+    g_cursor->SetShape(kCursorArrow);
     if (viewPressed_ && BoxSelectThreshold() > 0 && !IsMultiplayerClient()) {
         int threshold = BoxSelectThreshold();
         if (Distance(x, pressX_) > threshold || Distance(y, pressY_) > threshold) boxSelecting_ = true;
@@ -51,7 +51,7 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
     }
     // The (x, y) pair is read back through its address.
     POINT point = {x, y};
-    CUnit* unit = TheClientWorld()->UnitAt(&point);
+    CUnit* unit = g_clientWorld->UnitAt(&point);
     HoverUnit(unit, point.x, point.y);
 }
 

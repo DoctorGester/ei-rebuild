@@ -19,7 +19,7 @@ namespace mapspec {
 void EffectNotify(const std::string& kind, const std::string& family);
 namespace {
 
-CBaseManager* Effects() { return TheServerWorld()->manager48_; }
+CBaseManager* Effects() { return g_serverWorld->manager48_; }
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);
@@ -41,7 +41,7 @@ void Notify(const char* kind, const char* family) { EffectNotify(std::string(kin
 
 // A new world object for the record and its effect.
 void MakeEffect(EffectSpec* self) {
-    TheServerWorld()->CreateObject(self);
+    g_serverWorld->CreateObject(self);
     self->effect = Effects()->FindObject(self->id);
 }
 
@@ -247,7 +247,7 @@ void SoundSpec::Apply() {
         return;
     }
     std::memcpy(&Transform()->localPosition_, &position, 12);
-    if (effect) TheServerWorld()->RemoveTimedObject(id);
+    if (effect) g_serverWorld->RemoveTimedObject(id);
     if (!sounds.empty()) MakeEffect(this);
     else effect = nullptr;
 }

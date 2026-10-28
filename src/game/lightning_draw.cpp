@@ -78,7 +78,7 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /
     SizePoints();
 
     // Towards the camera, normalised unless zero.
-    const Vector3& camera = TheCamera()->localPosition_;
+    const Vector3& camera = g_camera->localPosition_;
     Vector3 towards = camera - *position;
     float length = LengthZYX(towards);
     EI_NAN_AUDIT(length);

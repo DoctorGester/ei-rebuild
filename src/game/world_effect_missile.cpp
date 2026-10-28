@@ -252,7 +252,7 @@ CEffectMissile::~CEffectMissile() = default;
 
 void CEffectArrowFigure::Reset() {
     CEffectMissile::Reset();
-    if (figure_ != nullptr) TheClientWorld()->RemoveObject(figure_->id_);
+    if (figure_ != nullptr) g_clientWorld->RemoveObject(figure_->id_);
     hit_ = DamageInfo{};
     hit_.multiplier = 1.0f;
     if (figure_ != nullptr) {
@@ -281,7 +281,7 @@ int CEffectArrowFigure::RunTick() {
 
 void CEffectArrowFigure::MoveParts() {
     if (figure_ == nullptr) return;
-    TheClientWorld()->objectGrid_.Move(figure_, &localPosition_.x);
+    g_clientWorld->objectGrid_.Move(figure_, &localPosition_.x);
     figure_->RollTowards(velocity_);
 }
 
@@ -310,7 +310,7 @@ void CEffectArrowFigure::Start(int update) {
     figure->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
     figure->RestartPose();
     attached->SetSkins(texture.c_str(), game::kEmptyText);
-    TheClientWorld()->AddObject(figure_);
+    g_clientWorld->AddObject(figure_);
 }
 
 int CEffectArrowFigure::Unpack(int update, DeltaField* field) {

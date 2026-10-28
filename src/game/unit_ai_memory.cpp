@@ -154,7 +154,7 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
         if (distance < sight) {
             Vector3 theirEye;
             Vector3 to = *other->EyePoint(&theirEye);
-            double range = TheServerWorld()->AIMap()->LineOfSight(&eye, &to) * sight;
+            double range = g_serverWorld->AIMap()->LineOfSight(&eye, &to) * sight;
             KeepLower(out[0], Exposure(distance, range));
         }
         KeepLower(out[4], Exposure(distance, static_cast<double>(theirs->stats.valuesB0[2].current) * self->stats.valuesE0[2].current));

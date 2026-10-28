@@ -16,7 +16,7 @@ qualified member).
   from what the handlers do with them. `Message : CRefObject` (0073BC10, virtual Write / Read, `version_` +8), `ServerEntryBase` (0073BB40) /
   `ServerEntry` (0073BB28), `Query` / `ClientQueries`, `NetAddress` (sockaddr_in: Parse 00440440, Format 00440690, ToString 00435010), `SocketDriver` members,
   `TypeRegistry` over two hash maps,
-  one `LogStream`, and the session globals declared once (`NetLog()`, `CurrentSession()`, `CurrentConnection()`, `SendBuffer()`, `ReceiveBuffer()`,
+  one `LogStream`, and the session globals declared once (`NetLog()`, `CurrentSession()`, `CurrentConnection()`, `g_sendBuffer`, `g_receiveBuffer`,
   `GameServer()`, `GameClient()`).
 - `net_connection.h`: `Connection : CRefObject` (0073BF38; slot 2 OnShutdown = the reset 00433320, slot 3 Clone) and `ReplicaEntry : CRefObject`
   (0073BF4C); typed std containers (`TreeMap`, `HistoryNode` with a double time, `HeaderNode` / `ReliableChunk`, `FreedBatch` / `FreedId`, `Record`,
@@ -106,7 +106,7 @@ functions are STLport's `vector<Query>` instantiation: 004439C0 `_M_insert_overf
 - `LoopbackLink::CreatePair` takes the `CWorldHandle*`; every link's Receive takes the `CMemoryStream*`.
 - `SocketDriver::addresses` is a `std::vector<NetAddress>`.
 - The world's helpers are `RefPtrTo<CWorldHandle> shared5C_`, `RefPtrTo<netlink::DriverSession> netSession_` and
-  `RefPtrTo<CClientHandle> handle_`; the server's 007AFFBC is `TheServerWorld()->shared5C_`.
+  `RefPtrTo<CClientHandle> handle_`; the server's 007AFFBC is `g_serverWorld->shared5C_`.
 
 ## C21 batch 23: typed server records (2026-10-22)
 

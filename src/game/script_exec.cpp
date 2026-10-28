@@ -63,13 +63,13 @@ constexpr int kClassQuestItem = 0x14;
 const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
 const char* MoviesFolder() { return "Movies\\"; }
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
-int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
+int ConfiguredTimeSpeed() { return options::g_options->defaultTimeScale_; }
 
-CWorldServer* TheWorld() { return TheServerWorld(); }
+CWorldServer* TheWorld() { return &g_serverWorld.Get(); }
 
-CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }
+CAIMap* TheAIMap() { return g_serverWorld->AIMap(); }
 
-NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
+NamedPartyRecords* Parties() { return &g_partyManager->records; }
 
 CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
@@ -78,9 +78,9 @@ bool ServerActive() {
     return server && !(server->flags7_ & CRefCounted::kDetached);
 }
 
-CPlayerManager* TheEvents() { return TheServerWorld()->players_; }
+CPlayerManager* TheEvents() { return g_serverWorld->players_; }
 
-CSpellManager* TheSpellManager() { return TheServerWorld()->manager4C_; }
+CSpellManager* TheSpellManager() { return g_serverWorld->manager4C_; }
 
 CUnitServer* UnitState(CUnit* unit) { return unit->ServerController(); }
 AIBrain* BrainOf(CUnitServer* state) { return &state->brain; }
@@ -205,8 +205,8 @@ void RedeployParty(const SSCCmd* cmd) {
     std::vector<UnitPlacement> slots;
     TheWorld()->CollectParty(player, &slots);
     CParty* party = player->Party();
-    ThePartyManager()->BeginRedeploy(party);
-    ThePartyManager()->EndRedeploy(party);
+    g_partyManager->BeginRedeploy(party);
+    g_partyManager->EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
     const std::vector<PartyUnitRecord>& members = player->Party()->members_;
     if (slots.size() == 1 && std::ssize(members) == 1) slots[0].id = static_cast<int>(members[0].unitId);
@@ -519,7 +519,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             TheWorld()->SetWaterLevel(Round(f[0]), f[1], Round(f[2]));
             break;
         case 0xA0:   // AddMob(name)
-            TheServerWorld()->LoadMobFile(Text(cmd, 0));
+            g_serverWorld->LoadMobFile(Text(cmd, 0));
             break;
         case 0xA1:   // PlayCamera(name)
             GamePlayCameraPath(Text(cmd, 0), 0);
@@ -1031,7 +1031,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0xDF: {   // FixItems: every item repaired
-            auto* list = TheServerWorld()->itemManager_;
+            auto* list = g_serverWorld->itemManager_;
             ObjectListIteratorOf<CItem> it;
             it.manager = nullptr;
             for (CItem* item = it.First(list); item; item = it.Next()) item->Repair();
@@ -1055,7 +1055,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             QuestRecord* quest = g_questDatabase->FindQuest(Text(cmd, 0));
             if (!quest) break;
             TheWorld()->AwardExperience(player, quest->exp);
-            ClassTemplatesQuestCompleted(ThePartyManager());
+            ClassTemplatesQuestCompleted(&g_partyManager.Get());
             break;
         }
         case 0xD5:   // QStart(name)

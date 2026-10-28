@@ -77,7 +77,7 @@ constexpr int kOrderKeyOfAction[6] = {0, 1, 5, 4, 3, 2};
 
 // The screen as the panels know it (the same object; ui.h).
 CBattleScreen* Hud(CBattleScreen* screen) { return screen; }
-CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
+CPlayerClient* LocalView() { return g_clientWorld->LocalView(); }
 
 // The action column's button of an action name: "follow" is button 0, any other name button 1
 // (names compared with the constants).
@@ -148,7 +148,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     }
 
     const int action = g_keyActions[flags & kScanCodeMask];
-    CCamera* camera = TheCamera();
+    CCamera* camera = &g_camera.Get();
     switch (action) {
     case kActionPause: {
         auto* clock = clock_;
@@ -212,7 +212,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     case kActionMoveMode + 3: {
         auto* panel = movePanel_;
         const int mode = action - kActionMoveMode;
-        if (TheClientWorld()->LocalView()) {
+        if (g_clientWorld->LocalView()) {
             panel->interface_->PlaySound(ClickSound(), 0);
             for (int i = 0; i < std::ssize(panel->owner_->party_); ++i) {
                 CUnit* unit = panel->owner_->party_[i];
@@ -320,7 +320,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         interface_->PlaySound(OnOffSound(), 0);
         for (int i = 0; i < std::ssize(hud->party_); ++i) {
             MarkPortrait(i);
-            if (CUnit* unit = hud->party_[i]) TheClientWorld()->Select(unit);
+            if (CUnit* unit = hud->party_[i]) g_clientWorld->Select(unit);
         }
         if (!hud->party_.empty() && hud->party_[0]) hud->Speech(hud->party_[0]->id_, 0, nullptr);
         RefreshSelection();

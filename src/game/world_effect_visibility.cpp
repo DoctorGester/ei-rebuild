@@ -16,7 +16,7 @@
 namespace {
 
 // The fog manager; VisFogManagerAdd makes a fog object, already counted once by the manager's list.
-ClientArrayManager* FogManager() { return TheClientWorld()->arrayManager_; }
+ClientArrayManager* FogManager() { return g_clientWorld->arrayManager_; }
 
 void ReleaseFog(CVisibilityFog*& fog) {
     CVisibilityFog* old = fog;

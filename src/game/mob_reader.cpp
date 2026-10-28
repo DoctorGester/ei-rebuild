@@ -42,7 +42,7 @@ constexpr int kRelationHostile = 2;
 constexpr int kBehaviourCount = 5;
 
 // The limit the .mob wind strength is clamped to (never written: 0).
-float MobWindLimit() { return options::TheOptions()->defaultWindForce_; }
+float MobWindLimit() { return options::g_options->defaultWindForce_; }
 
 // A new record for the given chunk id, or null for other ids (or without memory).
 Spec* NewRecord(std::uint32_t id) {
@@ -89,7 +89,7 @@ void ReadWeather(Chunk* parent) {
     chunk.ReadFloat();
     chunk.ReadHeader();
     chunk.ReadFloat();
-    CWorldServer* server = TheServerWorld();
+    CWorldServer* server = &g_serverWorld.Get();
     server->CWorldServer::SetTime(time);
     float limit = MobWindLimit();
     server->ChangeWind(&direction, limit >= strength ? strength : limit);
@@ -164,7 +164,7 @@ bool MobFile::Load(void*, int keepIds) {
             for (int c = 0; c < 32; ++c)
                 record->trap.sides |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
         }
-        TheServerWorld()->CreateObject(spec);
+        g_serverWorld->CreateObject(spec);
         auto* object = static_cast<ObjectSpec*>(spec);
         bool skip = spec->id == 2 && str::Compare(object->texture, "unmoco2") == 0;
         if (!skip && spec->kind == kKindUnit && spec->object) {

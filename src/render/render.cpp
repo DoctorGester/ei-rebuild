@@ -1014,7 +1014,7 @@ void ReadFog(Frame& f) {
 
 namespace game {
 Addresses& Where() {
-    static Addresses addresses = {&app::g_mainWindow, TheSceneRenderer()};
+    static Addresses addresses = {&app::g_mainWindow, &g_sceneRenderer.Get()};
     return addresses;
 }
 } // namespace game

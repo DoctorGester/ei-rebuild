@@ -1276,10 +1276,10 @@ std::string* SessionMapNameInto(std::string* out);
 // bz7g (case-insensitive) take progres1.bik.
 void SelectLoadingMovie(const char* zone);
 
-inline int TimeSpeedSetting() { return options::TheOptions()->defaultTimeScale_; }
-inline float FogStartDay() { return options::TheOptions()->fogDayStartDistance_; }
-inline float FogStartNight() { return options::TheOptions()->fogNightStartDistance_; }
-inline float FarClipDistance() { return options::TheOptions()->farClipDistance_; }
+inline int TimeSpeedSetting() { return options::g_options->defaultTimeScale_; }
+inline float FogStartDay() { return options::g_options->fogDayStartDistance_; }
+inline float FogStartNight() { return options::g_options->fogNightStartDistance_; }
+inline float FarClipDistance() { return options::g_options->farClipDistance_; }
 
 extern std::vector<CMapObject*> g_touchedModels;
 extern std::vector<CMapObject*> g_shadow52;
@@ -1312,12 +1312,11 @@ inline std::vector<CMapObject*>& FrameObjects(FrameList list) {
     return *kQueues[static_cast<int>(list)];
 }
 extern lib::StaticObject<std::list<HeldPtr<CMapObject>>> g_deferredUnits;
-inline std::list<HeldPtr<CMapObject>>* FrameDeferredUnits() { return &*g_deferredUnits; }
 // The id the next object only the client makes gets (client figures such as a bow shot's arrow); each
 // use counts it down.
-inline int& NextClientObjectId() { return TheClientWorld()->nextClientObjectId_; }
-inline CItemManager* WorldItemManager() { return TheServerWorld()->itemManager_; }
-inline CMapObjectManager* WorldObjectManager() { return TheServerWorld()->manager40_; }
+inline int& NextClientObjectId() { return g_clientWorld->nextClientObjectId_; }
+inline CItemManager* WorldItemManager() { return g_serverWorld->itemManager_; }
+inline CMapObjectManager* WorldObjectManager() { return g_serverWorld->manager40_; }
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a
 // thunder sound, otherwise a point light at the middle, a sound and two bolts.

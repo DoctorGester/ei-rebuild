@@ -59,10 +59,7 @@ double libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
 
 // world_construct.cpp (the server world, g_serverWorld) is not linked: the scripts' replays see a zero world, as they
 // saw the stand-in's zero bytes before C18t named it (no fixture fills it).
-CWorldServer* TheServerWorld() {
-    alignas(8) static unsigned char world[sizeof(CWorldServer)] = {};
-    return reinterpret_cast<CWorldServer*>(world);
-}
+constinit lib::StaticObject<CWorldServer> g_serverWorld = {};
 
 // The game CRT's rand (crt.cpp's port reads the image's per-thread seed) and the fatal error report (app.cpp).
 int libcrt::Rand() EI_UNLINKED("libcrt::Rand")

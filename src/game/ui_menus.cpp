@@ -170,12 +170,12 @@ void CSaveLoadWindow::OnDialogResult(int result) {
 
 void COptionsWindow::RestoreSettings() {
     // The values the window saved when it opened.
-    TheSoundManager()->SetEffectsVolume(options::TheOptions()->audioSfx_);
-    TheSoundManager()->SetMusicVolume(options::TheOptions()->audioStreaming_);
-    TheSoundManager()->SetSpeechVolume(options::TheOptions()->audioSpeech_);
+    TheSoundManager()->SetEffectsVolume(options::g_options->audioSfx_);
+    TheSoundManager()->SetMusicVolume(options::g_options->audioStreaming_);
+    TheSoundManager()->SetSpeechVolume(options::g_options->audioSpeech_);
     // The scene renderer's gamma.
-    SceneRenderer()->SetGamma(options::TheOptions()->brightness_, options::TheOptions()->contrast_,
-                              options::TheOptions()->gamma_);
+    SceneRenderer()->SetGamma(options::g_options->brightness_, options::g_options->contrast_,
+                              options::g_options->gamma_);
 }
 
 void COptionsWindow::OnMouseDown(int buttons, int x, int y) {

@@ -50,14 +50,14 @@ float BlinkBase() { return 1.4f /*0073CDF8*/; }
 float PulseAmplitude() { return 0.3f /*0073C54C*/; }
 float PulseMiddle() { return 0.7f /*0073C538*/; }
 float SlideTime() { return 0.3f /*00742428*/; }   // 0.3 seconds for a full slide
-bool GamePaused() { return TheClientWorld()->paused_ != 0; }
+bool GamePaused() { return g_clientWorld->paused_ != 0; }
 
 constexpr std::uint32_t kHandDepth = 0x41000000;   // 8.0f
 constexpr std::uint32_t kSpriteDepth = 0x4101B287;   // 8.106: the dial marks, the top panel sling
 
 // The time of day in hours: (client ticks * scale + offset) mod 24 (_CIfmod), stored.
 float TimeOfDay() {
-    const CWorldClient* world = TheClientWorld();
+    const CWorldClient* world = &g_clientWorld.Get();
     return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 

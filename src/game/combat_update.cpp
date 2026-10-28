@@ -80,7 +80,7 @@ void StartQueueIfUnset(CUnitServer* self) {
 
 void DropEffectObject(CUnitServer* self) {
     if (!self->effectObject) return;
-    TheServerWorld()->RemoveTimedObject(self->effectObject->id_);
+    g_serverWorld->RemoveTimedObject(self->effectObject->id_);
     CEngineObject* effect = self->effectObject;
     self->effectObject = nullptr;
     if (effect) effect->Release();
@@ -153,13 +153,13 @@ int CUnitServer::RunTick() {
             unit->MarkChanged(4);
         }
         // Every (speedClass + 1) updates the unit's step noise (it returns 0: no record).
-        if ((static_cast<std::uint32_t>(TheServerWorld()->tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
+        if ((static_cast<std::uint32_t>(g_serverWorld->tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
             AIEventPresence*& presence = aiPresence;
             if (presence) {
                 presence->x = unit->localPosition_.x;
                 presence->y = unit->localPosition_.y;
             }
-            presence = TheServerWorld()->AIEvents()->StepNoise(&unit->localPosition_, this);
+            presence = g_serverWorld->AIEvents()->StepNoise(&unit->localPosition_, this);
         }
         TickItemSpells();
         if (unit->player != nullptr) {
@@ -469,7 +469,7 @@ void CUnitServer::TickAction() {
         PopFinishedSteps();
         ShowCurrentStep();
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
-            auto* objects = TheServerWorld()->manager48_;
+            auto* objects = g_serverWorld->manager48_;
             auto* particle = objects->CreateObjectAs<CEffectParticle>(kCastEffectKind, -1);
             static constexpr int kEffects[8] = {0x2027, 0x2028, 0x2029, 0x202B, 0x202A, 0x202D, 0x202E, 0x202C};
             int kind = plan.castKind;

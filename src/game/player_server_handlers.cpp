@@ -63,7 +63,7 @@ float ExperiencePenalty() { return g_logicSettings.lostXp; }
 float CellScaleA() { return 1.0f /*0074326C*/; }
 float CellScaleB() { return 0.5f /*0073B86C*/; }
 
-CUnit* FindUnit(int id) { return TheServerWorld()->FindUnit(id); }
+CUnit* FindUnit(int id) { return g_serverWorld->FindUnit(id); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists).
@@ -74,7 +74,7 @@ void AddCounted(std::list<CUnit*>& list, CUnit* object) {
 
 // The game mode (1 single player, 2 multiplayer); the campaign mode is CWorldServer::sessionKind_ (1 and 3 end
 // the game when the leader is gone).
-int GameMode() { return TheServerWorld()->gameResult_; }
+int GameMode() { return g_serverWorld->gameResult_; }
 // The next object id for a new party's record (the party manager stores the party).
 int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
 
@@ -170,12 +170,12 @@ void CPlayerServer::OnLeaderDied() {
         if (hero) SendObject0B(hero, kLeaderDiedValue);
         newId = oldId;
         if (newId < kRevivedIdBase) newId += kRevivedIdStep;
-        while (TheServerWorld()->FindObject(static_cast<unsigned>(newId))) ++newId;
-        TheServerWorld()->AddSharedObject(oldId, oldId, static_cast<std::uint32_t>(lost), &player->items_);
+        while (g_serverWorld->FindObject(static_cast<unsigned>(newId))) ++newId;
+        g_serverWorld->AddSharedObject(oldId, oldId, static_cast<std::uint32_t>(lost), &player->items_);
         player->TakeAllItems();
     }
     if (flag70_) {
-        TheServerWorld()->CollectParty(player, nullptr);
+        g_serverWorld->CollectParty(player, nullptr);
         flag70_ = 0;
     }
     if (std::ssize(party->members_) == 1) {
@@ -194,7 +194,7 @@ void CPlayerServer::OnLeaderDied() {
     SendParty();
     lastPosition_.z = kUnknownZ;
     if (!flag70_) {
-        TheServerWorld()->Redeploy(player, nullptr, 1);
+        g_serverWorld->Redeploy(player, nullptr, 1);
         flag70_ = 1;
     }
     CUnit* revived = FindUnit(newId);
@@ -273,7 +273,7 @@ int CPlayerServer::OnUseOrder() {
     in.Read(&value, 4);
     in.Read(&objectId, 4);
     // A map object (the use order's target), or null.
-    CMapObject* object = TheServerWorld()->FindObject(static_cast<unsigned>(objectId));
+    CMapObject* object = g_serverWorld->FindObject(static_cast<unsigned>(objectId));
 
     CUnit* chosen = nullptr;
     if (std::ssize(units) >= 2) {
@@ -309,7 +309,7 @@ int CPlayerServer::OnUseOrder() {
                 break;
             }
             Vector3 from;
-            if (TheServerWorld()->AIMap()->FindPath(nearest, &aim, &path, kPathRange, 0.0f)) {
+            if (g_serverWorld->AIMap()->FindPath(nearest, &aim, &path, kPathRange, 0.0f)) {
                 Vector3 end;
                 from = *path.TargetPoint(&end);
             } else {
@@ -377,7 +377,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     if (state_ != 1) return;
     CPlayer* player = player_;
     CParty* party = player->Party();
-    int campaign = TheServerWorld()->sessionKind_;
+    int campaign = g_serverWorld->sessionKind_;
     if (campaign == 1 || campaign == 3) {
         CUnit* leader = FindUnit(static_cast<int>(party->members_[0].unitId));
         if (leader == nullptr || leader->IsDead() != 0) {
@@ -386,7 +386,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
         }
     }
     if (flag70_) {
-        TheServerWorld()->CollectParty(player, nullptr);
+        g_serverWorld->CollectParty(player, nullptr);
         flag70_ = 0;
     }
     state_ = 3;
@@ -394,7 +394,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     party->zone_ = zone;
     int mode = GameMode();
     if (mode == 1) {
-        ThePartyManager()->BeginRedeploy(party);
+        g_partyManager->BeginRedeploy(party);
     } else if (mode == 2) {
         if (std::ssize(party->members_) == 1) party->members_[0].unitId = kLoneHeroRecordId;
         SendParty();
@@ -409,7 +409,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
 void CPlayerServer::LeaveAndFlush() {
     if (state_ == 1) {
         if (flag70_) {
-            TheServerWorld()->CollectParty(player_, nullptr);
+            g_serverWorld->CollectParty(player_, nullptr);
             flag70_ = 0;
         }
         if (GameMode() == 2) SendParty();
@@ -433,7 +433,7 @@ int CPlayerServer::OnTakeExit() {
     int exit = 0;
     int entrance = 0;
     g_receivedMessages->Read(&exit, 4);
-    if (!TheServerWorld()->GetZoneExit(exit, &zone, &entrance)) return 0;
+    if (!g_serverWorld->GetZoneExit(exit, &zone, &entrance)) return 0;
     LeaveToZone(zone.c_str(), entrance);
     return 1;
 }
@@ -443,7 +443,7 @@ int CPlayerServer::OnJoined() {
     state_ = 1;
     CPlayer* player = player_;
     player->sessionKind100_ = player->ServerWorld()->sessionKind_;
-    TheServerWorld()->Redeploy(player, &placements_, 1);
+    g_serverWorld->Redeploy(player, &placements_, 1);
     player->dirty_ |= kJoinedFlag;
     return 1;
 }
@@ -468,7 +468,7 @@ int CPlayerServer::OnBriefingDone() {
         std::string* read = g_receivedMessages->ReadString(&text);
         name = *read;
     }
-    TheServerWorld()->CompleteBriefing(player_->playerId_, name.c_str());
+    g_serverWorld->CompleteBriefing(player_->playerId_, name.c_str());
     return 1;
 }
 
@@ -480,10 +480,10 @@ int CPlayerServer::OnNewParty() {
     int* key = &player_->partyId_;
     PartyNextId(key);
     int& next = g_nextRecordObjectId;
-    while (TheServerWorld()->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
+    while (g_serverWorld->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
     party->members_[0].unitId = static_cast<std::uint32_t>(next);
     ++next;
-    ThePartyManager()->StoreParty(key, party);
+    g_partyManager->StoreParty(key, party);
     return 1;
 }
 
@@ -491,7 +491,7 @@ int CPlayerServer::OnResume() {
     if (state_ != 4) return 0;
     state_ = 1;
     if (!flag70_) {
-        TheServerWorld()->Redeploy(player_, nullptr, 1);
+        g_serverWorld->Redeploy(player_, nullptr, 1);
         flag70_ = 1;
     }
     return 1;
@@ -508,7 +508,7 @@ int CPlayerServer::OnAttack() {
     in.Read(&ctrl, 4);
     in.Read(&how, 4);
     in.Read(&objectId, 4);
-    if (CMapObject* object = TheServerWorld()->FindObject(static_cast<unsigned>(objectId))) {
+    if (CMapObject* object = g_serverWorld->FindObject(static_cast<unsigned>(objectId))) {
         for (int i = 0; i < std::ssize(units); ++i) {
             AIBrain* brain = &units[i]->ServerController()->brain;
             if (PlayerMode* mode = brain->FindPlayerMode())
@@ -568,13 +568,13 @@ int CPlayerServer::OnLogin() {
     CParty* party = player->Party();
     switch (GameMode()) {
     case 1:
-        ThePartyManager()->EndRedeploy(party);
+        g_partyManager->EndRedeploy(party);
         party->OpenEdgeExits();
         break;
     case 2:
     case 3:
         // The two strings are passed but not read.
-        if (!ThePartyManager()->LoadParty(login.name, login.password, &player->partyId_, party))
+        if (!g_partyManager->LoadParty(login.name, login.password, &player->partyId_, party))
             return 0;
         break;
     case 4:
@@ -606,9 +606,9 @@ void CPlayerServer::ResendParty() {
     if (state_ != 1 || !flag70_) return;
     CPlayer* player = player_;
     console::EndLine(console::g_netLogOut << kResendingParty << player->playerId_);
-    TheServerWorld()->SyncPartyRecords(player);
+    g_serverWorld->SyncPartyRecords(player);
     SendParty();
-    TheServerWorld()->ClearPlayerItems(player);
+    g_serverWorld->ClearPlayerItems(player);
 }
 
 void CPlayerServer::SendPair19(std::uint8_t a, std::uint32_t b) {

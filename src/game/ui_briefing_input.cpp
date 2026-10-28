@@ -65,7 +65,7 @@ const char* NoZone() { return "none"; }
 const char* ZoneVariablePrefix() { return "z."; }
 
 // The server's unit with the id of a client object, or null.
-CUnit* ServerUnit(int id) { return TheServerWorld()->FindUnit(id); }
+CUnit* ServerUnit(int id) { return g_serverWorld->FindUnit(id); }
 
 // A person can talk when their controller is idle (command 0 or 0xB, nothing queued); people
 // without a server unit or controller can always.
@@ -85,7 +85,7 @@ bool IsPerson(CMapObject* object) { return object && object->IsDead() == 0; }
 // The leader walks (or runs) to the ground point under the screen point (x, y), unless blocked.
 static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, int run) {
     Vector3 picked;
-    Vector3* p = TheClientWorld()->PickSurface(&picked, x, y);
+    Vector3* p = g_clientWorld->PickSurface(&picked, x, y);
     Vector3 point{p->x, p->y, p->z};
     if (!screen->leader_) return;
     CUnit* unit = ServerUnit(screen->leader_->id_);
@@ -104,7 +104,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
     switch (state_) {
     case 0: {
         POINT point = {x, y};
-        CUnit* object = TheClientWorld()->UnitAt2(&point);
+        CUnit* object = g_clientWorld->UnitAt2(&point);
         if (IsPerson(object)) {
             if (CanTalk(object)) {
                 interface_->PlaySound(ClickSound(), 0);
@@ -140,11 +140,11 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
 
 void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (chatActive_) {
-        TheCursor()->SetShape(kCursorChat);
+        g_cursor->SetShape(kCursorChat);
         if (chat_) chat_->Input()->MouseMove(buttons, x, y);
         return;
     }
-    TheCursor()->SetShape(kCursorNormal);
+    g_cursor->SetShape(kCursorNormal);
     CUiContainer::MouseMove(buttons, x, y);
     if (state_ == 1) {
         int region = RegionAt(x, y);
@@ -155,20 +155,20 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
             DrawTopics();
         }
     } else if (state_ == 3) {
-        TheCursor()->SetShape(kCursorTalk);
+        g_cursor->SetShape(kCursorTalk);
     } else if (state_ == 4) {
-        TheCursor()->SetShape(kCursorNormal);
+        g_cursor->SetShape(kCursorNormal);
     }
     if (interface_->rightDown_ || state_ != 0) return;
 
     POINT point = {x, y};
-    CUnit* object = TheClientWorld()->UnitAt2(&point);
+    CUnit* object = g_clientWorld->UnitAt2(&point);
     if (IsPerson(object)) {
         int id = object->id_;
         if (IsMultiplayerClient() && leader_ && leader_->id_ == id) return;
         if (!CanTalk(object)) return;
         FindTopics(id);
-        if (!topics_.empty()) TheCursor()->SetShape(kCursorTalk);
+        if (!topics_.empty()) g_cursor->SetShape(kCursorTalk);
         auto node = personTexts_.find(id);
         if (node == personTexts_.end()) return;
         CUiSurface* label = surfaces_[1];
@@ -184,10 +184,10 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         return;
     }
     Vector3 picked;
-    Vector3* p = TheClientWorld()->PickSurface(&picked, x, y);
+    Vector3* p = g_clientWorld->PickSurface(&picked, x, y);
     Vector3 ground{p->x, p->y, p->z};
     int exit = 0;
-    if (!TheClientWorld()->FindExitAt(&ground.x, &exit)) return;
+    if (!g_clientWorld->FindExitAt(&ground.x, &exit)) return;
     std::string zone = GameExitTarget(exit_);
     if (text::CompareIgnoringCase(zone,
                         NoZone()) == 0)
@@ -196,7 +196,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     variable += zone;
     float visited = PlayerZeroVariable(variable);
     EI_NAN_AUDIT(visited);
-    if (visited != 1.0f) TheCursor()->SetShape(kCursorExit);
+    if (visited != 1.0f) g_cursor->SetShape(kCursorExit);
 }
 
 
@@ -209,7 +209,7 @@ void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
         return;
     }
     POINT point = {x, y};
-    CUnit* object = TheClientWorld()->UnitAt2(&point);
+    CUnit* object = g_clientWorld->UnitAt2(&point);
     if (IsPerson(object)) {
         for (const BriefingMover& mover : movers_)
             if (mover.person->id_ == object->id_) return;

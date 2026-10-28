@@ -68,14 +68,14 @@ int Lever::UpdateLever() {
     if (t > 0.0) {
         shown.y = static_cast<float>(to - (to - from) * t);
         Object3D()->SetFigureScale(&shown.x);
-        TheClientWorld()->RefreshPlatforms(this);
+        g_clientWorld->RefreshPlatforms(this);
         return 1;
     }
     EI_NAN_AUDIT(shown.y, to);
     if (shown.y != to) {
         shown.y = to;
         Object3D()->SetFigureScale(&shown.x);
-        TheClientWorld()->RefreshPlatforms(this);
+        g_clientWorld->RefreshPlatforms(this);
     }
     return 0;
 }
@@ -154,7 +154,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     field->EndField();
     if (disabled) flags_ |= kDisabled;
     else flags_ &= ~kDisabled;
-    TheClientWorld()->QueueSynchronised(this);
+    g_clientWorld->QueueSynchronised(this);
     if (first == 1) {
         const LeverRecord* record = g_leverTable->Named(name.c_str());
         EI_NAN_AUDIT(from, to);

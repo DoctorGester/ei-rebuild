@@ -125,7 +125,7 @@ void ShowRainBolt(CWorldServer* world) {
 // "WorldScript(CreateFX( %f,%f,%f,60,150,"nature\thunder\%i.wav" ) )"
 // "WorldScript(CreatePointLight(1,%f,%f,%f,...) CreateFX( %f,%f,%f,...,"nature\lightning\%i.wav" )
 //  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
-CScript& ScriptQueue() { return *TheServerWorld()->SecondScript(); }   // a command queue (adds a line)
+CScript& ScriptQueue() { return *g_serverWorld->SecondScript(); }   // a command queue (adds a line)
 
 float Half() { return 0.5f /*0073B86C*/; }
 

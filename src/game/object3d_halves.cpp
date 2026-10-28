@@ -33,9 +33,9 @@ int Setting(const int& setting) { return static_cast<const volatile int&>(settin
 // The switch for the class of `object` (its slot 12).
 int ShadowSwitchOf(CObject3D* object) {
     int classId = object->GetClassId();
-    if (classId == kClassUnit) return Setting(options::TheOptions()->unitShadow_);
-    if (classId == kClass52) return Setting(options::TheOptions()->floraShadow_);
-    return Setting(options::TheOptions()->buildingShadow_);
+    if (classId == kClassUnit) return Setting(options::g_options->unitShadow_);
+    if (classId == kClass52) return Setting(options::g_options->floraShadow_);
+    return Setting(options::g_options->buildingShadow_);
 }
 
 } // namespace

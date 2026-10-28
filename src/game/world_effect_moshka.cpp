@@ -64,7 +64,7 @@ bool Same(float a, float b) {
     return a == b;
 }
 
-CAIMap* AIMap() { return TheServerWorld()->AIMap(); }
+CAIMap* AIMap() { return g_serverWorld->AIMap(); }
 
 Vector3& PositionOf(CMapObject* object) { return object->localPosition_; }
 
@@ -88,7 +88,7 @@ CEffectMoshka::~CEffectMoshka() {
 
 void CEffectMoshka::Reset() {
     CEffect::Reset();
-    if (bird_ != nullptr) TheClientWorld()->RemoveObject(bird_->id_);
+    if (bird_ != nullptr) g_clientWorld->RemoveObject(bird_->id_);
     if (source_ != nullptr) source_->Stop();
     CEngineObject* source = source_;
     source_ = nullptr;
@@ -128,7 +128,7 @@ Vector3* CEffectMoshka::FindPerch(Vector3* out, const Vector3* from) {
 
 void CEffectMoshka::Update(float now) {
     if (bird_ == nullptr) return;
-    CMapObject* followedObject = TheClientWorld()->ObjectWithId(followedId_);
+    CMapObject* followedObject = g_clientWorld->ObjectWithId(followedId_);
     if (followedObject == nullptr) return;
     const Vector3& followed = PositionOf(followedObject);
     CObject3D* bird = bird_;
@@ -203,8 +203,8 @@ void CEffectMoshka::Update(float now) {
 
     // Kept above the surface, the bird moves at most its speed towards the target.
     Vector3 ground{target.x, target.y, 0.0f};
-    double raw = TheClientWorld()->RawSurfaceHeightAt(target.x, target.y);
-    float floor = static_cast<float>(TheClientWorld()->platforms_.SurfaceHeight(&ground, static_cast<float>(raw)) + kClearance);
+    double raw = g_clientWorld->RawSurfaceHeightAt(target.x, target.y);
+    float floor = static_cast<float>(g_clientWorld->platforms_.SurfaceHeight(&ground, static_cast<float>(raw)) + kClearance);
     float z = target.z >= floor ? target.z : floor;
     Vector3 move{static_cast<float>(target.x - birdAt.x), static_cast<float>(target.y - birdAt.y), static_cast<float>(z - birdAt.z)};
     float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(move)));
@@ -221,7 +221,7 @@ void CEffectMoshka::Update(float now) {
             move.z = static_cast<float>(scale * move.z);
         }
         Vector3 to{static_cast<float>(move.x + birdAt.x), static_cast<float>(move.y + birdAt.y), static_cast<float>(move.z + birdAt.z)};
-        TheClientWorld()->objectGrid_.Move(bird_, &to.x);
+        g_clientWorld->objectGrid_.Move(bird_, &to.x);
         bird_->RollTowards(move);
     }
     bird->animation->Advance(frames);
@@ -229,7 +229,7 @@ void CEffectMoshka::Update(float now) {
 
 void CEffectMoshka::Follow(int objectId) {
     followedId_ = objectId;
-    CMapObject* followed = TheClientWorld()->ObjectWithId(objectId);
+    CMapObject* followed = g_clientWorld->ObjectWithId(objectId);
     if (followed == nullptr) return;
     std::string model = game::MoshkaModelText();
     std::string texture = game::MoshkaTextureText();
@@ -249,7 +249,7 @@ void CEffectMoshka::Follow(int objectId) {
     bird->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
     bird->RestartPose();
     attached->SetSkins(texture.c_str(), game::kEmptyText);
-    TheClientWorld()->AddObject(bird_);
+    g_clientWorld->AddObject(bird_);
     attached->SetLit(1);
     if (FigureAnimation* first = bird->AnimationAt(0)) {
         bird->animation->queue.clear();

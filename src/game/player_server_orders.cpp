@@ -77,13 +77,13 @@ int CPlayerServer::OnGameStateRequest() {
     int state;
     g_receivedMessages->Read(&state, 4);
     player->sessionKind100_ = state;
-    TheServerWorld()->CollectParty(player, &placements_);
+    g_serverWorld->CollectParty(player, &placements_);
     SendParty();
     std::uint8_t type = kMessageGameState;
     out_.Write(&type, 1);
     int value = player->sessionKind100_;
     out_.Write(&value, 4);
-    value = TheServerWorld()->tick_;
+    value = g_serverWorld->tick_;
     out_.Write(&value, 4);
     player->dirty_ &= ~kDirtyGameState;
     state_ = kStateSendingCamera;

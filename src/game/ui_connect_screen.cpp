@@ -62,7 +62,7 @@ const char* RefusalKey(int refusal) {
     default: return "lmp_cannot_connect";
     }
 }
-const char* MasterHost() { return options::TheOptions()->masterServerName_.c_str(); }
+const char* MasterHost() { return options::g_options->masterServerName_.c_str(); }
 constexpr int kMasterPort = 28004;
 
 // The switches' sprite frames: off (0.0), on (-0.08984375); the selected game
@@ -205,7 +205,7 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
         auto* sprite = SceneMesh(kSpritePassword);
         sprite->textureOffsetU_ = hostPassword_.size() == 0 ? FrameOff() : FrameOn();
     } else if (result == (kBoxJoinPassword | kAnswerOk)) {
-        TheGameFlow()->JoinServer(&entries_[selected_].address, boxText_);
+        g_gameFlow->JoinServer(&entries_[selected_].address, boxText_);
         net::g_gameClient->gameType_ = entries_[selected_].gameType;
     }
 }
@@ -221,7 +221,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
     case kRegionBack:
         interface_->PlaySound(CancelSound(), 0);
         SaveAddressBook();
-        TheGameFlow()->DropSessions();
+        g_gameFlow->DropSessions();
         interface_->SetPendingValue(kLeaveScreen);
         break;
     case kRegionMaster:
@@ -301,7 +301,7 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     case VK_ESCAPE:
         interface_->PlaySound(CancelSound(), 0);
-        TheGameFlow()->DropSessions();
+        g_gameFlow->DropSessions();
         interface_->SetPendingValue(kLeaveScreen);
         handled_ = true;
         return;
@@ -339,7 +339,7 @@ void CMpConnectScreen::Connect() {
         std::string name = nameEdit_->text_;
         if (name.size() == 0) name = DefaultGameName();
         SaveAddressBook();
-        TheGameFlow()->StartServer(name.c_str(), players, gameType_, hostPassword_.c_str(), static_cast<char>(unlisted_),
+        g_gameFlow->StartServer(name.c_str(), players, gameType_, hostPassword_.c_str(), static_cast<char>(unlisted_),
                                    static_cast<int>(net::g_gameClient->queries_.extra));
         return;
     }
@@ -353,7 +353,7 @@ void CMpConnectScreen::Connect() {
         boxText_[0] = '\0';
         OpenBox(interface_, texts_[kTextPassword].c_str(), boxText_, kBoxJoinPassword, kBoxFlagsEdit);
     }
-    TheGameFlow()->JoinServer(&entries_[selected_].address, EmptyText());
+    g_gameFlow->JoinServer(&entries_[selected_].address, EmptyText());
     net::g_gameClient->gameType_ = entries_[selected_].gameType;
 }
 
@@ -597,7 +597,7 @@ void CMpConnectScreen::CreateScreen() {
         texts_.push_back(text);
     }
 
-    TheGameFlow()->StartClient();
+    g_gameFlow->StartClient();
     spare_ = 0;
     net::ClientQueries queries;
     ChunkArchive archive;

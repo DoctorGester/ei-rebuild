@@ -63,7 +63,7 @@ void ReleaseDragCursor() {
     int y = MouseScreenY();
     MouseDragY() = 0;
     MouseDragX() = 0;
-    TheCursor()->SetHeld(0);
+    g_cursor->SetHeld(0);
     gameapi::SetCursorPos(x, y);
 }
 
@@ -83,7 +83,7 @@ void CGlobalMap::OnRightDown(int, int x, int y) {
     dragAngle_ = angle_;
     MouseDragY() = 0;
     MouseDragX() = 0;
-    TheCursor()->SetHeld(1);
+    g_cursor->SetHeld(1);
 }
 
 void CGlobalMap::OnRightUp(int, int, int) {
@@ -209,5 +209,5 @@ void CGlobalMap::Close() {
 // The briefing screen's SaveState, byte for byte.
 void CGlobalMap::SaveState() {
     int zero = 0;
-    GameSaveStream()->Write(&zero, 4);
+    g_saveStream->Write(&zero, 4);
 }

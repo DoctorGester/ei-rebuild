@@ -184,23 +184,23 @@ void ClientDropParty(ClientSession* self) { DropParty(self); }
 // (address_order.h) refreshes the list when players came before the binding, as if it came first.
 void ClientOnBinding(ClientSession* self, BindingMessage* message) {
     AssignRef(&self->binding_, message);
-    if (!self->players_.empty()) TheInterface()->OnPlayersChanged(1);
+    if (!self->players_.empty()) g_interface->OnPlayersChanged(1);
 }
 void ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&self->binding_); }
 // The players, with the interface's player list refreshed.
 void ClientOnPlayer(ClientSession* self, Message* message) {
     Append(self->players_, message);
-    TheInterface()->OnPlayersChanged(1);
+    g_interface->OnPlayersChanged(1);
 }
-void ClientOnPlayerChanged(ClientSession*, Message*) { TheInterface()->OnPlayersChanged(0); }
+void ClientOnPlayerChanged(ClientSession*, Message*) { g_interface->OnPlayersChanged(0); }
 void ClientOnPlayerGone(ClientSession* self, Message* message) {
     RemoveCounted(self->players_, message);
-    TheInterface()->OnPlayersChanged(1);
+    g_interface->OnPlayersChanged(1);
 }
 // The chat lines, each shown with its number.
 void ClientOnLine(ClientSession* self, LineMessage* message) {
     Append(self->lines_, message);
-    TheInterface()->OnChatLine(message->text_.data(), message->number_);
+    g_interface->OnChatLine(message->text_.data(), message->number_);
 }
 void ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }
 // The host message kept.
@@ -209,30 +209,30 @@ void ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->info_); }
 // The zones offered, passed to the game flow.
 void ClientOnZone(ClientSession* self, ZoneMessage* message) {
     Append(self->zones_, message);
-    TheGameFlow()->MarkBriefing(message->text_.data());
+    g_gameFlow->MarkBriefing(message->text_.data());
 }
 void ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {
     RemoveCounted(self->zones_, message);
-    TheGameFlow()->ForgetBriefing(message->text_.data());
+    g_gameFlow->ForgetBriefing(message->text_.data());
 }
 // The current map; without a server of our own the flow loads it.
 void ClientOnMap(ClientSession* self, MapMessage* message) {
     AssignRef(&self->map_, message);
     auto* server = g_gameServer;
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
-    FlowLoadZoneQuests(TheGameFlow(), nullptr, message->text_.data());
-    TheGameFlow()->RegisterQuests(message->text_.data());
+    FlowLoadZoneQuests(&g_gameFlow.Get(), nullptr, message->text_.data());
+    g_gameFlow->RegisterQuests(message->text_.data());
 }
 void ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }
 // The script variables; the flow is told of every change.
 void ClientOnVariable(ClientSession* self, Message* message) {
     Append(self->variables_, message);
-    FlowVariablesChanged(TheGameFlow());
+    FlowVariablesChanged(&g_gameFlow.Get());
 }
-void ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(TheGameFlow()); }
+void ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(&g_gameFlow.Get()); }
 void ClientOnVariableGone(ClientSession* self, Message* message) {
     RemoveRaw(self->variables_, message);
-    FlowVariablesChanged(TheGameFlow());
+    FlowVariablesChanged(&g_gameFlow.Get());
 }
 // The shared files; for a file the flow lacks, a request holding the file goes on fileRequests_.
 void ClientOnFile(ClientSession* self, FileMessage* message) {
@@ -335,7 +335,7 @@ void ClientOnTradeChanged(ClientSession* self, TradeMessage* message) {
     }
     for (TradeRecord& record : self->tradeRecords_) {
         if (record.revision == b && record.acceptedRevision == a) {
-            TheInterface()->OnExchangeDone(&record.parties[1], &record.parties[0], &record.parties[2]);
+            g_interface->OnExchangeDone(&record.parties[1], &record.parties[0], &record.parties[2]);
             break;
         }
     }

@@ -317,7 +317,7 @@ void CParticleSource::TickTendril(ParticleElement*) {
 // its first tick; emission stops after 30 ticks.
 void CParticleSource::TickMushroom(ParticleElement* e) {
     if (type_ == kTypeMushroom && e->ticks == 0 && e == elements.data())
-        TheCamera()->Shake(&origin, 5.0f, size, 0.25f);
+        g_camera->Shake(&origin, 5.0f, size, 0.25f);
     int ticks = ++e->ticks;
     e->pos.x = static_cast<float>(x87::flog(ticks + 1) * size * kMushroomWidth);
     e->pos.z = size * kMushroomRise + e->pos.z;

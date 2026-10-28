@@ -80,7 +80,7 @@ constexpr int kScanCodeMask = 0x1FF;
 void LetCursorGo() {
     MouseDragY() = 0;
     MouseDragX() = 0;
-    TheCursor()->SetHeld(0);
+    g_cursor->SetHeld(0);
 }
 
 } // namespace
@@ -115,7 +115,7 @@ void CCameraInput::OnKeyUp(int, int, int flags) {
         break;
     }
     if (!handled_) return;
-    CCamera* camera = TheCamera();
+    CCamera* camera = &g_camera.Get();
     if (!ModifierHeld(interface_)) {
         float left = static_cast<float>(-x_);
         float speed = static_cast<float>(PanSpeed());
@@ -140,13 +140,13 @@ void CCameraInput::OnRightDown(int, int x, int y) {
     interface_->ScalePointFromScreenEntry(&pressLayout_);
     MouseDragY() = 0;
     MouseDragX() = 0;
-    TheCursor()->SetHeld(1);
+    g_cursor->SetHeld(1);
     handled_ = true;
 }
 
 void CCameraInput::OnRightUp(int, int, int) {
     turning_ = false;
-    CCamera* camera = TheCamera();
+    CCamera* camera = &g_camera.Get();
     camera->SetTurnRate(0.0f);
     camera->SetTiltRate(0.0f);
     Vector3 still = {0.0f, 0.0f, 0.0f};
@@ -159,7 +159,7 @@ void CCameraInput::OnRightUp(int, int, int) {
 }
 
 void CCameraInput::OnMouseMove(int, int x, int y) {
-    CCamera* camera = TheCamera();
+    CCamera* camera = &g_camera.Get();
     if (turning_) {
         POINT point{x, y};
         POINT drag{MouseDragX(), MouseDragY()};
@@ -185,7 +185,7 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
         }
         MouseDragY() = 0;
         MouseDragX() = 0;
-        TheCursor()->SetShape(kDragCursor);
+        g_cursor->SetShape(kDragCursor);
         handled_ = true;
         pressLayout_ = point;
         return;
@@ -217,7 +217,7 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
             direction.x = static_cast<float>(forward + direction.x);
             direction.y = static_cast<float>(left + direction.y);
         }
-        TheCursor()->SetShape(EdgeCursor(edges));
+        g_cursor->SetShape(EdgeCursor(edges));
         camera->Pan(&direction);
         if (edges) handled_ = true;
     }
@@ -229,15 +229,15 @@ void CCameraInput::OnDeactivate() {
     x_ = 0.0f;
     y_ = 0.0f;
     z_ = 0.0f;
-    TheCursor()->SetHeld(0);
+    g_cursor->SetHeld(0);
     MouseDragY() = 0;
     MouseDragX() = 0;
-    TheCamera()->StopMotion();
+    g_camera->StopMotion();
 }
 
 BOOL CCameraInput::OnWheel(int, int delta, int, int) {
     int steps = static_cast<short>(delta);
-    TheCamera()->ZoomBy(ZoomSpeed() * static_cast<float>(steps) * WheelStep());
+    g_camera->ZoomBy(ZoomSpeed() * static_cast<float>(steps) * WheelStep());
     return TRUE;
 }
 

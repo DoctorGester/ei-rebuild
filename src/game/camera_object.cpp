@@ -71,7 +71,6 @@ CCamera::~CCamera() {
 
 // The camera, zero at the start: built by its static initialiser and destroyed by the exit function it registers.
 constinit lib::StaticObject<CCamera> g_camera = /*0079B2A8*/ {};
-CCamera* TheCamera() { return &*g_camera; }
 
 // A second block: it uses g_camera (defined above).
 namespace {
@@ -150,7 +149,7 @@ int CCamera::OpenFile(const char* name) {
         path = str::Format(kNumberedRecord, last + 1);
         gameapi::MoveFileA(kCurrentRecord, path.c_str());
     }
-    TheClientWorld()->flags_ |= 0x10;
+    g_clientWorld->flags_ |= 0x10;
     bool failed;
     {
         std::string folder = kRecordFolder;

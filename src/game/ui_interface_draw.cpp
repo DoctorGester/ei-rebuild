@@ -122,7 +122,7 @@ int CInterface3D::Draw() {
 
 void CInterface3D::DrawOverlays() {
     std::string text;
-    strmap::CDebugPanel* panel = DebugInfoPanel();
+    strmap::CDebugPanel* panel = &strmap::g_debugPanel.Get();
     text = str::Format("%d", SurfaceBytesKept());
     panel->Set("surface stored", text.c_str());
     text = str::Format("%d", SurfaceBytesAllocated());

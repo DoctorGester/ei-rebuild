@@ -40,7 +40,7 @@ constexpr int kGameResultLost = 2;
 constexpr std::uint32_t kNoStart = 0xC4A42000;   // -1313.0f as the state's last z: no start position
 
 const MapRecord* FindZone(const std::string& name) {
-    return TheMapDatabase()->FindMap(name);
+    return g_mapDatabase->FindMap(name);
 }
 
 // AddTail through the game's out-of-line NewNode.
@@ -70,7 +70,7 @@ void AddCountedTail(std::list<CEngineObject*>* list, CEngineObject* object) {
     HeldObject<CEngineObject>::Of(&list->emplace_back(nullptr))->Assign(object);
 }
 
-CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
+CItemManager* ItemManager() { return g_serverWorld->itemManager_; }
 
 } // namespace
 

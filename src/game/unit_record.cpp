@@ -19,8 +19,8 @@ namespace {
 CItem* CreateItem(CItemManager* factory, std::string_view name) {   // patched by Rebirth
     return factory->CreateItem(name);
 }
-CItemManager* TheFactory() { return TheServerWorld()->itemManager_; }
-CSpellManager* SpellOwner() { return TheServerWorld()->manager4C_; }
+CItemManager* TheFactory() { return g_serverWorld->itemManager_; }
+CSpellManager* SpellOwner() { return g_serverWorld->manager4C_; }
 
 void AddItems(const UnitRecord& record, CUnit* unit, CItemManager* factory) {
     for (const std::string& name : record.lists[UnitRecord::kQuickItems])

@@ -62,7 +62,7 @@ bool IsUnset(const Vector3& point) { return std::bit_cast<std::uint32_t>(point.x
 
 const Vector3* PositionOf(CMapObject* object) { return &object->localPosition_; }
 
-CAIMap* Map() { return TheServerWorld()->AIMap(); }
+CAIMap* Map() { return g_serverWorld->AIMap(); }
 
 // The prototype's height (units below 0.5 count as small).
 float PrototypeSize(CUnit* unit) {

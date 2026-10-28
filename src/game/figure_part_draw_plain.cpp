@@ -28,7 +28,7 @@ void AddOffset(const float* offset, float* target) { *target = *offset + *target
 
 // The world time: whole ticks plus the fraction of the current one, rounded to a float.
 void TickTime(float* out) {
-    const CWorldClient* world = TheClientWorld();
+    const CWorldClient* world = &g_clientWorld.Get();
     *out = static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 
@@ -109,6 +109,6 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*
         }
     }
     if (result != 2) mesh_->flags_ |= 0x40;
-    DrawBounds(TheSceneRenderer());
+    DrawBounds(&g_sceneRenderer.Get());
     return 1;
 }

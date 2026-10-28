@@ -32,8 +32,8 @@ constinit std::vector<VertexPacket> g_movedPositions = /*007C2E48*/ {};
 void FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
 std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
 // The scale the lights' colours are set with and the "crown" option.
-float LightingCoefficient() { return options::TheOptions()->objectsLightingCoeff_; }
-int CrownOption() { return options::TheOptions()->floraSpecialLight_; }
+float LightingCoefficient() { return options::g_options->objectsLightingCoeff_; }
+int CrownOption() { return options::g_options->floraSpecialLight_; }
 
 // --- Helpers -------------------------------------------------------------------------------------
 
@@ -46,7 +46,7 @@ void AddOffset(const float* offset, float* target) { *target = *offset + *target
 
 // The world time: whole ticks plus the fraction of the current one, rounded to a float.
 void TickTime(float* out) {
-    const CWorldClient* world = TheClientWorld();
+    const CWorldClient* world = &g_clientWorld.Get();
     *out = static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 
@@ -300,6 +300,6 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const std::vector<CLight*>
     } else {
         DrawThroughDevice(part);
     }
-    DrawBounds(TheSceneRenderer());
+    DrawBounds(&g_sceneRenderer.Get());
     return 1;
 }

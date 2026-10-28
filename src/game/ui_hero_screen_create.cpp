@@ -87,7 +87,7 @@ bool ModelNameIsFemale(const std::string& model) {
 } // namespace
 
 void CMpHeroScreen::CreateScreen() {
-    TheGameFlow()->UseResources(true);
+    g_gameFlow->UseResources(true);
     LoadTexture("campinfo", kTextureKind, nullptr);
     CUiModel* model = AddModel();
     model->Load("unmoco2", "MainMenu00", "MainMenu00labels");

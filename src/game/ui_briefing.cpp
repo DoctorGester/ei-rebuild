@@ -25,7 +25,7 @@
 namespace {
 
 // The map edge fade (a float the zone screens set while they are open).
-float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
+float& MapEdgeFade() { return options::g_options->borderFogDistance_; }
 
 constexpr std::uint32_t kLeaveZoneYes = 0x10001;
 constexpr std::uint32_t kGameOverLoad = 0x20001;
@@ -52,7 +52,7 @@ void CBriefingScreen::Close() {
     MapEdgeFade() = savedEdgeFade_;
     GameStopSounds(1);
     GameStopAmbience();
-    std::uint32_t& flags = TheCamera()->flags_;
+    std::uint32_t& flags = g_camera->flags_;
     flags = (flags & ~(CCamera::kBounded | CCamera::kAlternate)) | CCamera::kFree;
 }
 
@@ -69,7 +69,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     case kLeaveAnswer:
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
-        TheGameFlow()->DropSessions();
+        g_gameFlow->DropSessions();
         uiorig::LeaveGame();
         break;
     default:
@@ -109,9 +109,9 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     if (unit->id_ != RecordUnitId(player->members_[0])) return;
 
     leader_ = unit;
-    TheClientWorld()->Select(unit);
-    TheCamera()->SetTarget(unit);
-    MapRecord* zone = TheMapDatabase()->FindMap(LocalPlayerZone());
+    g_clientWorld->Select(unit);
+    g_camera->SetTarget(unit);
+    MapRecord* zone = g_mapDatabase->FindMap(LocalPlayerZone());
     std::string prefix;
     prefix = str::Format(ZoneTopicFormat(), zone->name.c_str());
     BriefingVariables variables(prefix.c_str());
@@ -157,7 +157,7 @@ void CBriefingScreen::ShowChat(char show) {
 
 void CBriefingScreen::SaveState() {
     int zero = 0;
-    GameSaveStream()->Write(&zero, 4);
+    g_saveStream->Write(&zero, 4);
 }
 
 void CBriefingScreen::LoadPersonTexts() { ::LoadPersonTexts(&personTexts_); }

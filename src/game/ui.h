@@ -635,9 +635,11 @@ public:
 };
 
 // Option 17 of the options window: the numbers flying up from units hit are shown.
-inline int& ShowHitNumbersOption() { return options::TheOptions()->drawFlyingHp_; }
-// The console's "debuginfo" rectangle.
-strmap::CDebugPanel* DebugInfoPanel();
+inline int& ShowHitNumbersOption() { return options::g_options->drawFlyingHp_; }
+// The console's "debuginfo" rectangle (string_map.cpp).
+namespace strmap {
+extern lib::StaticObject<CDebugPanel> g_debugPanel;
+}
 
 // The in-game key bindings' size (g_keyActions).
 constexpr int kKeyActionCount = 0x200;
@@ -2106,7 +2108,7 @@ long& MouseDragX();
 long& MouseDragY();
 
 // The game's difficulty (1 easy, 0 hard; combat reads it).
-inline int& GameDifficulty() { return options::TheOptions()->difficulty_; }
+inline int& GameDifficulty() { return options::g_options->difficulty_; }
 
 // config\keyboard.ini.
 namespace keybind {

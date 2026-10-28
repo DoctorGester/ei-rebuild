@@ -290,14 +290,13 @@ struct SkillDatabase {
     std::vector<SkillLevelRecord> levels;
 };
 extern lib::StaticObject<SkillDatabase> g_skillDatabase;
-inline SkillDatabase* SkillDb() { return &*g_skillDatabase; }
 namespace unitdb {
 inline SkillLevelRecord* SkillLevelAt(std::uint32_t index) {
-    std::vector<SkillLevelRecord>& levels = SkillDb()->levels;
+    std::vector<SkillLevelRecord>& levels = g_skillDatabase->levels;
     return index < levels.size() ? &levels[index] : nullptr;
 }
 inline SkillRecord* SkillAt(std::uint32_t index) {
-    std::vector<SkillRecord>& skills = SkillDb()->skills;
+    std::vector<SkillRecord>& skills = g_skillDatabase->skills;
     return index < skills.size() ? &skills[index] : nullptr;
 }
 inline UnitLevelRecord* ModelLevelAt(std::uint32_t index) {

@@ -31,9 +31,9 @@
 namespace {
 
 // The width of the fade at the map's edges. The menu shows its world with 6.
-float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
+float& MapEdgeFade() { return options::g_options->borderFogDistance_; }
 // Interface options (bit 0: the menu's lightning).
-std::uint32_t InterfaceOptions() { return TheSceneRenderer()->flags_; }
+std::uint32_t InterfaceOptions() { return g_sceneRenderer->flags_; }
 // The tick count of the menu's next lightning chance.
 std::uint32_t g_nextLightningTick = /*007C811C*/ {};
 
@@ -98,7 +98,7 @@ void CMainMenu::AddVersionLine() {
 
 void CMainMenu::CreateScreen() {
     interface_->ResetSavedState();
-    TheGameFlow()->UseResources(false);
+    g_gameFlow->UseResources(false);
     UiInputSide* inert = new UiInertInput(interface_);
     AddInput(inert);
     hovered_ = -1;
@@ -163,7 +163,7 @@ void CMainMenu::Close() {
 // --- A message box's answer -----------------------------------------------
 
 void CMainMenu::OnMessageResult(int result) {
-    TheGameFlow()->UseResources(false);
+    g_gameFlow->UseResources(false);
     GameSetServerPaused(0);
     if (result == 0x10001) {
         {
@@ -177,7 +177,7 @@ void CMainMenu::OnMessageResult(int result) {
             PlayMovie(path, 0, 1, 1, 1, 1, 1);
         }
         app::g_interfaceHasScreen = 0;
-        TheGameFlow()->RequestState3();
+        g_gameFlow->RequestState3();
     } else if (static_cast<std::uint32_t>(result) == 0xCCCCCCCC) {
         GameStartAmbience();
         AddVersionLine();

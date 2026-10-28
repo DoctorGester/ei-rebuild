@@ -104,7 +104,7 @@ std::string CheckConsoleLine(const std::string& argument) {
         ++caret;
         while (caret < expected.size() && (static_cast<unsigned char>(expected[caret]) & 0xC0) == 0x80) ++caret;
     }
-    const console::ConsoleWindow* console = TheInterface()->console_;
+    const console::ConsoleWindow* console = g_interface->console_;
     if (!console) return "consoleline: no console window";
     const std::string& line = console->input_;
     if (line != expected || console->caret_ != static_cast<int>(caret)) {
@@ -179,7 +179,7 @@ std::string Check() {
 }
 
 std::string CheckChatWrap(const std::string& wanted) {
-    CChatOverlay* overlay = TheInterface()->root_;
+    CChatOverlay* overlay = g_interface->root_;
     if (!overlay) return "chatwrap: the interface has no chat overlay";
     overlay->ClearLines();
     overlay->AddLine(wanted.c_str(), 0);

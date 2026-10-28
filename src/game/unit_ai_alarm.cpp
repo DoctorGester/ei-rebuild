@@ -89,7 +89,7 @@ void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
         break;
     }
     case kGuardAlarm: {
-        const WorldAlarm& alarmAt = TheServerWorld()->alarms_[slot];
+        const WorldAlarm& alarmAt = g_serverWorld->alarms_[slot];
         Vector3 point{alarmAt.x, alarmAt.y, 0.0f};
         AddMode(new GuardMode(&point, record->guardRadius, kNoWander));
         break;
@@ -138,7 +138,7 @@ void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
     target.Assign(nullptr);
     action = kActionNone;
     attention.Build(owner->unit);
-    if (alwaysUpdated) TheServerWorld()->AddToUpdateMap(owner->unit);
+    if (alwaysUpdated) g_serverWorld->AddToUpdateMap(owner->unit);
 }
 
 void AIBrain::SetAlarmRecords(const mapspec::Behaviour* records, int count) {

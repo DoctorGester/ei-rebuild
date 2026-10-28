@@ -123,7 +123,6 @@ void CCursor::DestroyBody() {
 // function it registers (docs/notes/standalone.md,
 // "The static initialisers' objects").
 constinit lib::StaticObject<CCursor> g_cursor = /*007C7BD8*/ {};
-CCursor* TheCursor() { return &*g_cursor; }
 long& MouseScreenX() { return g_cursor->position_.x; }
 long& MouseScreenY() { return g_cursor->position_.y; }
 long& MouseDragX() { return g_cursor->motion_.x; }

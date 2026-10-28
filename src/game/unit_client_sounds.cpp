@@ -85,7 +85,7 @@ constexpr int kMaxFootPart = 9;
 // The client world's local view (CWorldClient::LocalView) and its player; only the field read here.
 
 // Footprints show for every unit (else only for units with flags_ 0x400000).
-bool AllFootprintsShown() { return options::TheOptions()->drawVisibleOnly_ == 0; }
+bool AllFootprintsShown() { return options::g_options->drawVisibleOnly_ == 0; }
 
 // The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; the
 // callers have returned on a NaN `now`).
@@ -95,7 +95,7 @@ void Shake(CUnit* unit) {
     const auto* prototype = unit->GetPrototype();
     float strength = prototype->shake;
     if (strength > 0.0f)
-        TheCamera()->Shake(&unit->localPosition_, kShakeDuration, strength,
+        g_camera->Shake(&unit->localPosition_, kShakeDuration, strength,
                                    kShakeDecay);
 }
 
@@ -112,7 +112,7 @@ int CUnitClientSpecific::FootstepSound(int terrain, std::string* out) {
     if (!prototype) return 0;
     const UnitModelRecord* model = ModelOf(prototype);
     if (!model || model->SoundCounts()[terrain] == 0) return 0;
-    CWorldClient* world = TheClientWorld();
+    CWorldClient* world = &g_clientWorld.Get();
     float x = unit->localPosition_.x;
     float y = unit->localPosition_.y;
     float ground = world->ClampedGroundHeight(x, y);   // stored as a float
@@ -203,7 +203,7 @@ void CUnitClientSpecific::PlayStepSounds() {
     bool steps = false;
     switch (kind) {
     case kKindAttack: {
-        if (TheClientWorld()->LocalView()->player_->sessionKind100_ == kViewNoAttackSounds) break;
+        if (g_clientWorld->LocalView()->player_->sessionKind100_ == kViewNoAttackSounds) break;
         sounds->StopSound(idleSound);
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
         if (unit->type_ == kUnitTypeHero && unit->actionSound &&
@@ -250,7 +250,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (prototype) {
             float strength = prototype->shake;
             if (strength > 0.0f)
-                TheCamera()->Shake(&unit->localPosition_, kShakeDuration, strength,
+                g_camera->Shake(&unit->localPosition_, kShakeDuration, strength,
                                    kShakeDecay);
         }
         const auto* model = unit->GetPrototypeModel();
@@ -287,7 +287,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         float scale = prototype->valuesE0[0];
         if (unit->moveMode == 0) scale *= kCrawlPrintScale;
         else if (unit->moveMode == 1) scale *= kWalkPrintScale;
-        int id = TheClientWorld()->AddFootprint(footAt.x - sizeX * facing.x * kHalf,
+        int id = g_clientWorld->AddFootprint(footAt.x - sizeX * facing.x * kHalf,
                               footAt.y - sizeY * facing.y * kHalf, sizeX, sizeY, turn, (left << 16) | printKind, scale,
                               shown, footprint);
         if (footprintRepeats > 0) --footprintRepeats;

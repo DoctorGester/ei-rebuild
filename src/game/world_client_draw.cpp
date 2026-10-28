@@ -123,10 +123,10 @@ float ShadowLength() { return (-0.02f /*0073F750*/); }
 // The light effect settings (the blood print, footprint and scorch mark lists) and the game mode (1
 // single player).
 int LightEffectsSetting(const int& setting) { return setting; }
-int LightEffects1B8() { return LightEffectsSetting(options::TheOptions()->enableBloodprints_); }
-int LightEffects1BC() { return LightEffectsSetting(options::TheOptions()->enableFootprints_); }
-int LightEffects1C0() { return LightEffectsSetting(options::TheOptions()->enableFireprints_); }
-int GameMode() { return options::TheOptions()->selectionType_; }
+int LightEffects1B8() { return LightEffectsSetting(options::g_options->enableBloodprints_); }
+int LightEffects1BC() { return LightEffectsSetting(options::g_options->enableFootprints_); }
+int LightEffects1C0() { return LightEffectsSetting(options::g_options->enableFireprints_); }
+int GameMode() { return options::g_options->selectionType_; }
 const char* MarkerPartName() { return "hp"; }
 
 float AddRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) + b); }
@@ -144,7 +144,7 @@ float Reload(float v) { return v; }
 int Ftol(float v) { return static_cast<int>(libcrt::Ftol(v)); }
 // The client world's time: (float)(int)tick + the tick's fraction, rounded once (FILD, FADD, FSTP).
 float AnimationTime() {
-    const CWorldClient* world = TheClientWorld();
+    const CWorldClient* world = &g_clientWorld.Get();
     return static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 
@@ -165,15 +165,15 @@ void DrawEach(FrameList list, Draw draw) {
 // new renderer learns which object the meshes of a figure draw belong to (its shadow map's casters).
 constexpr auto kDraw = [](CMapObject* object) {
     render::BeginCaster(object, false);
-    object->DrawFigure(TheSceneRenderer());
+    object->DrawFigure(&g_sceneRenderer.Get());
     render::EndCaster();
 };
 constexpr auto kDrawUnit = [](CMapObject* object) {
     render::BeginCaster(object, true);
-    object->DrawCollectDirty(TheSceneRenderer());
+    object->DrawCollectDirty(&g_sceneRenderer.Get());
     render::EndCaster();
 };
-constexpr auto kDrawShadow = [](CMapObject* object) { object->DrawFigureShadow(TheSceneRenderer()); };
+constexpr auto kDrawShadow = [](CMapObject* object) { object->DrawFigureShadow(&g_sceneRenderer.Get()); };
 
 // Calls the ground print draw on the value of every node of an effect list (the ground print lists).
 template <typename T>
@@ -186,7 +186,7 @@ constexpr std::uint32_t kShowRenderInfo = 2;
 constexpr std::uint32_t kShowManagers = 4;
 constexpr std::uint32_t kShowWorldData = 8;
 
-void RemoveDebugLine(const char* key) { DebugInfoPanel()->Remove(key); }
+void RemoveDebugLine(const char* key) { strmap::g_debugPanel->Remove(key); }
 
 } // namespace
 
@@ -219,7 +219,7 @@ int CWorldClient::Render() {
     }
     HandOverSceneLights(this);
     Matrix4 view;
-    view::CameraViewMatrix(view.m, TheCamera());   // (the result is not read)
+    view::CameraViewMatrix(view.m, &g_camera.Get());   // (the result is not read)
     PopMatrix(device->stacks_[kStackView]);
     PushMatrix(device->stacks_[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;
@@ -238,7 +238,7 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 22, 1);
         SetRenderState(renderer, 29, 1);
         renderer->distanceFog_ = 0;
-        skyDome_->Draw(TheSceneRenderer(), &camera_->localPosition_);
+        skyDome_->Draw(&g_sceneRenderer.Get(), &camera_->localPosition_);
         renderer->distanceFog_ = 1;
         SetRenderState(renderer, 22, 2);
         SetRenderState(renderer, 29, 0);
@@ -251,7 +251,7 @@ int CWorldClient::Render() {
         CCamera* camera = camera_;
         terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
         ApplyStateBlock(renderer, g_stageBlocks[kTerrainBlock]);
-        terrain_->DrawGround(TheSceneRenderer());
+        terrain_->DrawGround(&g_sceneRenderer.Get());
     }
     DrawPass();
     net::Pump();
@@ -262,7 +262,7 @@ int CWorldClient::Render() {
         terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
         SetRenderState(renderer, 15, 0);
         ApplyStateBlock(renderer, g_stageBlocks[kSceneBlock]);
-        terrain_->DrawWater(TheSceneRenderer());
+        terrain_->DrawWater(&g_sceneRenderer.Get());
     }
     // The shadow map's casters the game did not draw (the map is fitted to the ground drawn above),
     // and the ground's own.
@@ -276,18 +276,18 @@ int CWorldClient::Render() {
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
         SetRenderState(renderer, 14, 0);
-        arrayManager_->Draw(TheSceneRenderer());
+        arrayManager_->Draw(&g_sceneRenderer.Get());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
         SetRenderState(renderer, 14, 0);
         CParticleManager* particles = ClientParticleManager();
-        particles->DrawAll(TheSceneRenderer());
+        particles->DrawAll(&g_sceneRenderer.Get());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
-        listManager_->DrawAll(TheSceneRenderer());
+        listManager_->DrawAll(&g_sceneRenderer.Get());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
-        rainSnow_.Draw(TheSceneRenderer());
+        rainSnow_.Draw(&g_sceneRenderer.Get());
         SetRenderState(renderer, 14, 1);
     }
     ApplyStateBlock(renderer, g_stageBlocks[kSceneBlock]);
@@ -301,7 +301,7 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 7, 0);
         ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
         renderer->distanceFog_ = 0;
-        numbers_->Draw(TheSceneRenderer());
+        numbers_->Draw(&g_sceneRenderer.Get());
         renderer->distanceFog_ = 1;
         SetRenderState(renderer, 7, renderer->zEnable_);
     }
@@ -359,7 +359,7 @@ int CWorldClient::DrawPass() {
     CTransformPipeline* device = ScenePipeline();
     std::uint32_t now = gameapi::timeGetTime();
     const Matrix4* view = device->Top(kStackView);
-    FrameDeferredUnits()->clear();
+    g_deferredUnits->clear();
     static const FrameList kCleared[] = {FrameList::Visible54,   FrameList::VisibleOther, FrameList::Visible5D,
                                          FrameList::VisibleUnits, FrameList::Visible52,   FrameList::Shadow54,
                                          FrameList::ShadowOther, FrameList::Shadow5D,     FrameList::ShadowUnits,
@@ -402,8 +402,8 @@ int CWorldClient::DrawPass() {
         }
         sector = &objectGrid_.rows_[rangeY_][rangeX_];
     }
-    touched += CollectVisible(FrameDeferredUnits(), view, animTime, now, 1, 0);
-    FrameDeferredUnits()->clear();
+    touched += CollectVisible(&g_deferredUnits.Get(), view, animTime, now, 1, 0);
+    g_deferredUnits->clear();
     touched += CollectVisible(&heroes_, view, animTime, now, 1, 1);
 
     // Models in view stay loaded: the most recently used max(10, n / 8) lose flag 0x400.
@@ -476,7 +476,7 @@ int CWorldClient::DrawPass() {
         matrix.m[5] = 1.0f;
         matrix.m[0] = 1.0f;
         Vector3 sun;
-        TheCamera()->localRotation_.AxisZ(&sun);
+        g_camera->localRotation_.AxisZ(&sun);
         const float scale = ShadowLength();
         float product = sun.x * scale;
         matrix.m[3] = product;
@@ -504,7 +504,7 @@ int CWorldClient::DrawPass() {
     std::list<int>& selected = list7BC_;
     if (!selected.empty() && GameMode() == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
-        TheSceneRenderer()->SetTexture(0, nullptr);
+        g_sceneRenderer->SetTexture(0, nullptr);
         CMapObjectManager* manager = manager40_;
         for (std::list<int>::iterator node = selected.begin(); node != selected.end();) {
             std::list<int>::iterator next = std::next(node);
@@ -524,7 +524,7 @@ int CWorldClient::DrawPass() {
                     Vector3 axisY, axisX;
                     orientation->AxisY(&axisY);
                     orientation->AxisX(&axisX);
-                    TheSceneRenderer()->DrawSelectionMarker(&point, 0.5f, &axisX, &axisY);
+                    g_sceneRenderer->DrawSelectionMarker(&point, 0.5f, &axisX, &axisY);
                 } else {
                     if (object->flags_ & 0x10) {
                         object->flags_ &= ~0x110u;
@@ -539,7 +539,7 @@ int CWorldClient::DrawPass() {
         }
     }
 
-    FrameDeferredUnits()->clear();
+    g_deferredUnits->clear();
     static const FrameList kCopied[] = {FrameList::Visible54,    FrameList::VisibleOther, FrameList::Visible5D,
                                         FrameList::VisibleUnits, FrameList::Visible52,    FrameList::Shadow54,
                                         FrameList::ShadowOther};

@@ -52,7 +52,7 @@ bool SoundBusy(int handle) {
 }
 
 void SetTalking(int unitId, bool talking) {
-    CEngineObject* serverUnit = TheServerWorld()->FindUnit(unitId);
+    CEngineObject* serverUnit = g_serverWorld->FindUnit(unitId);
     if (!serverUnit) return;
     if (talking) serverUnit->flags_ |= kFlagTalking;
     else serverUnit->flags_ &= ~kFlagTalking;

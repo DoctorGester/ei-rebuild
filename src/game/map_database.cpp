@@ -237,7 +237,6 @@ bool CMapDatabase::LoadAll() {
 // The map database, zero at the start: built by a static initialiser in the list's order and destroyed by the
 // exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CMapDatabase> g_mapDatabase = /*0079BF00*/ {};
-CMapDatabase* TheMapDatabase() { return &*g_mapDatabase; }
 
 namespace {
 void DestroyMapDatabase() { g_mapDatabase.Destroy(); }

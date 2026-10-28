@@ -38,7 +38,7 @@ constexpr int kTypeArmor = 0x3006;
 constexpr int kTypeQuick = 0x3007;
 constexpr int kTypeSpellContainer = 0x3008;
 
-bool TabKeysEnabled() { return options::TheOptions()->switchFilters_ != 0; }
+bool TabKeysEnabled() { return options::g_options->switchFilters_ != 0; }
 
 // The item as loot (type 0x3007), or null.
 const CItemLoot* LootOrNull(const CItem* item) {
@@ -88,7 +88,7 @@ bool UiItemKinds::IsBuildable(const CItem* item) {
 
 namespace uiorig {
 void PlayUiSound(CInterface3D* ui, const char* name, int flags) { ui->PlaySound(name, flags); }
-void LeaveGame() { TheGameFlow()->CloseSessions(); }
+void LeaveGame() { g_gameFlow->CloseSessions(); }
 } // namespace uiorig
 
 // --- CUiItemStrip -----------------------------------------------------------------------------

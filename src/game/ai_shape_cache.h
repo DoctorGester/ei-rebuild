@@ -58,4 +58,3 @@ public:
 
 // The cache: built by a static initialiser, destroyed at exit (both in ai_shape_cache.cpp).
 extern lib::StaticObject<UnitShapeCache> g_unitShapes;
-inline UnitShapeCache* UnitShapes() { return &*g_unitShapes; }

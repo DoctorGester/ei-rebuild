@@ -133,7 +133,7 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
   (`game::mapwords`, `questwords`, `savewords`, `briefingwords`, `zonetexts`, `equipmenttexts`, `menutexts`, `nettexts`,
   `menukeytexts`, `consoletexts`, `weathertexts`; they return `Text(address)` so ei_vectors reads the stand-in data); floats
   are `worlddata::One()` / `Zero()` / `Half()` and the `const float&` (`ExeFloatRef`) effect constants in world_data.h;
-  globals are accessors (`TheGameFlow()`, `worlddata::InterfaceManager()`, `WorldServer()`, `SkillDb()`, ...). unit_vitals'
+  globals are accessors (`worlddata::InterfaceManager()`, `WorldServer()`, ...) or named (`g_gameFlow`, `g_skillDatabase`). unit_vitals'
   constants are the `hpVal`, `mpVal` and `damageLevel*` members of `LogicSettings` at 007C53F8. `RecordTable::At` is
   `RecordAt`, `CMap::At` is `ElementAt`; `ei::OffsetPtr(base, offset)` (game_data.h) replaces own `At()` helpers.
 - **Callbacks by function.** Function-local statics register their exit functions with `std::atexit` themselves

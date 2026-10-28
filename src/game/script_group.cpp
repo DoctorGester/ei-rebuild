@@ -13,7 +13,7 @@
 namespace {
 
 // The server world's object by id.
-CEngineObject* FindObject(int id) { return TheServerWorld()->FindObject(static_cast<unsigned>(id)); }
+CEngineObject* FindObject(int id) { return g_serverWorld->FindObject(static_cast<unsigned>(id)); }
 
 constexpr std::uint32_t kDeleted = 1;     // CEngineObject::flags_: removed from the world
 

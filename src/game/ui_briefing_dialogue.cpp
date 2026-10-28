@@ -37,7 +37,7 @@ namespace {
 const char* BriefingSection() { return "briefing "; }
 const char* HumanPrototype() { return "unhuma"; }
 
-CPlayer* LocalServerPlayer() { return TheServerWorld()->GetPlayer(0); }
+CPlayer* LocalServerPlayer() { return g_serverWorld->GetPlayer(0); }
 
 constexpr int kEventPhrases = 3;
 constexpr int kStatePhrases = 3;
@@ -83,7 +83,7 @@ void CBriefingScreen::StartPhrases() {
     if (server) server->SendPair19(kEventPhrases, 0);
 
     // The camera's position, and that plus its rotation's z axis (third column of the matrix).
-    const CCamera* camera = TheCamera();
+    const CCamera* camera = &g_camera.Get();
     savedCamera_ = camera->localPosition_;
     const Quaternion& q = camera->localRotation_;
     double zz = q.z * q.z;
@@ -115,7 +115,7 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
     } else {
         number = human ? kHumanListen[g_random.Next() & 3] : kListen;
     }
-    auto* serverUnit = TheServerWorld()->FindUnit(unit->id_);
+    auto* serverUnit = g_serverWorld->FindUnit(unit->id_);
     if (!serverUnit) return;
     auto* controller = serverUnit->ServerController();
     controller->StopAction();
@@ -130,9 +130,9 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
 // briefing screen unchecked; the count is read again after each call.
 void SpeakerAnimationDone(CUnit* serverUnit) {
     if (!serverUnit) return;
-    auto* unit = TheClientWorld()->FindUnit(serverUnit->id_);
+    auto* unit = g_clientWorld->FindUnit(serverUnit->id_);
     if (!unit) return;
-    auto* screen = TheInterface()->ActiveWindowAs<CBriefingScreen>();
+    auto* screen = g_interface->ActiveWindowAs<CBriefingScreen>();
     for (std::size_t i = 0; i < screen->speakers_.size(); ++i)
         if (screen->speakers_[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
 }
@@ -277,7 +277,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         CUnitClientSpecific* model = person->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);
-        if (auto* serverUnit = TheServerWorld()->FindUnit(person->id_)) {
+        if (auto* serverUnit = g_serverWorld->FindUnit(person->id_)) {
             serverUnit->SetFlag40000000Off(true);
             GameSetUnitHeight(person->id_, 0.0f);
             auto* controller = serverUnit->ServerController();

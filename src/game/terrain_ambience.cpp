@@ -223,7 +223,7 @@ void Terrain::PlayAmbience() {
         char name[256];
         {
             std::string time;   // the empty string, replaced (raw stack storage in the game)
-            TheClientWorld()->AmbienceTimeOfDay(&time);
+            g_clientWorld->AmbienceTimeOfDay(&time);
             std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\%s\\%i.wav", textAE0.c_str(), kind.name, time.c_str(),
                              variant % static_cast<std::uint32_t>(kind.variants) + 1);
         }

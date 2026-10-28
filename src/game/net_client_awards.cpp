@@ -23,7 +23,7 @@ namespace {
 
 constexpr int kClassQuestItem = 0x14;
 
-CWorldServer* World() { return TheServerWorld(); }
+CWorldServer* World() { return &g_serverWorld.Get(); }
 // Player 0 of the world (the local player), or null.
 CPlayer* LocalPlayer() { return World()->GetPlayer(0); }
 
@@ -115,7 +115,7 @@ void ClientSession::Tick(double dt) {
             if (left < 0.0f /*0073B858*/) self->timers_.erase(current);
         } while (node != sentinel);
     }
-    if (self->awards_.begin() == self->awards_.end() || TheServerWorld()->sessionKind_ != 3) return;
+    if (self->awards_.begin() == self->awards_.end() || g_serverWorld->sessionKind_ != 3) return;
     CPlayer* player = LocalPlayer();
     if (!player || player->connection_->state_ != 1 || !World()->zoneLoaded_) return;
     ApplyAwards();

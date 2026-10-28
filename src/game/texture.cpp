@@ -17,7 +17,7 @@
 
 namespace {
 // Game-wide paths set at startup. Names provisional.
-const std::string& GameRoot() { return options::TheOptions()->workPath_; }
+const std::string& GameRoot() { return options::g_options->workPath_; }
 
 // Format id for a .bmp texture, by texture kind.
 int BmpFormatFor(int type) {
@@ -29,7 +29,7 @@ int BmpFormatFor(int type) {
 }
 
 // The texture quality setting (0 best .. 3).
-int TextureQuality() { return options::TheOptions()->textureQuality_; }
+int TextureQuality() { return options::g_options->textureQuality_; }
 const char* CantGetDeviceDescriptionText() { return "Can't get device description.\n"; }
 
 } // namespace

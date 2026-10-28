@@ -29,8 +29,8 @@ const char* RuneItem() { return "Rune"; }
 const char* PrototypeItem() { return "Prototype"; }
 
 // The item and spell managers (their name lists).
-CItemManager* ItemDatabase() { return TheClientWorld()->itemManager_; }
-CSpellManager* SpellDatabase() { return TheClientWorld()->manager4C_; }
+CItemManager* ItemDatabase() { return g_clientWorld->itemManager_; }
+CSpellManager* SpellDatabase() { return g_clientWorld->manager4C_; }
 
 constexpr int kWeaponClass = 0x3004;
 constexpr int kArmorClass = 0x3005;

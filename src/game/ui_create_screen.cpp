@@ -73,7 +73,7 @@ void CInterface3D::CreateScreen(int id) {
 
 namespace {
 
-CCursor* Cursor() { return TheCursor(); }
+CCursor* Cursor() { return &g_cursor.Get(); }
 
 // The window stack's insert when it is full (vector<CUiWindow*>'s, plain elements).
 
@@ -179,7 +179,7 @@ void CInterface3D::ShowMessage(int force) {
         messageFlag_ = 0;
     }
     if (messageText_.size() == 0) return;
-    if (options::TheOptions()->showTutorial_ == 0 && !forced) return;
+    if (options::g_options->showTutorial_ == 0 && !forced) return;
     PushWindow(new CHelpWindow(this, true, messageText_.c_str(), messageFlag_), 1, 0);
 }
 
@@ -197,7 +197,7 @@ void CInterface3D::OpenHelp(int flag) {
     if (found != helpTopics_.end()) seen = found->second;
     else helpTopics_[std::string(topic)] = 0;
     bool forced = static_cast<std::uint8_t>(flag) != 0;
-    if (options::TheOptions()->showTutorial_ != 0) {
+    if (options::g_options->showTutorial_ != 0) {
         if (!forced && seen >= 0) return;
     } else if (!forced) {
         return;

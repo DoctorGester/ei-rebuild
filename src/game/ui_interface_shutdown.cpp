@@ -38,7 +38,7 @@ void CInterface3D::ResetInput() {
 }
 
 void CInterface3D::Shutdown() {
-    TheCursor()->SetShape(kCursorWait);
+    g_cursor->SetShape(kCursorWait);
     while (!stack_.empty()) {
         stack_.back()->Input()->Deactivate();
         ScreenOf(stack_.back())->CloseScreen();
@@ -74,7 +74,7 @@ void CInterface3D::Shutdown() {
     secondBackdrop_ = nullptr;
     if (block5C_) delete[] block5C_;
     block5C_ = nullptr;
-    DebugInfoPanel()->Release();
+    strmap::g_debugPanel->Release();
     if (root_) {
         delete root_;
         root_ = nullptr;

@@ -18,9 +18,9 @@ constexpr float kZero = 0.0f;
 
 // Spiral of sector offsets ordered by distance, with a radius-to-length table (sector_spiral.cpp);
 // RadiusTree::Find maps a radius to a table index.
-const RadiusTree* Spiral() { return SpiralRadiusTree(); }
-const int* SpiralLengths() { return SpiralLengthArray()->data(); }
-const std::int16_t* SpiralOffsets() { return &SpiralOffsetArray()->data()->x; }
+const RadiusTree* Spiral() { return &g_spiralRadii.Get(); }
+const int* SpiralLengths() { return g_spiralLengths->data(); }
+const std::int16_t* SpiralOffsets() { return &g_spiralOffsets->data()->x; }
 
 constexpr int kSpiralReach = 10;                                    // sectors either way
 constexpr int kSpiralCells = (kSpiralReach * 2 + 1) * (kSpiralReach * 2 + 1);
@@ -239,7 +239,7 @@ void BuildSectorSpiralAt(std::vector<int>* lengths, RadiusTree* tree, std::vecto
 
 // Builds the spiral in the tables (the static initialiser's object has no fields; returns it).
 void* BuildSectorSpiral(void* self) {
-    BuildSectorSpiralAt(SpiralLengthArray(), SpiralRadiusTree(), SpiralOffsetArray());
+    BuildSectorSpiralAt(&g_spiralLengths.Get(), &g_spiralRadii.Get(), &g_spiralOffsets.Get());
     return self;
 }
 

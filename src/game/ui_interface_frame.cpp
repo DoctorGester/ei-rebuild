@@ -28,7 +28,7 @@ namespace {
 // The value a window leaves pending that ends the game session (the message boxes' "yes").
 constexpr std::uint32_t kLeaveGame = 0x990001;
 
-void SetCursorShape(int shape) { TheCursor()->ChangeShape(shape); }
+void SetCursorShape(int shape) { g_cursor->ChangeShape(shape); }
 
 void ReleaseBackdrop(CUiSurface* surface) {
     if (!surface) return;
@@ -84,8 +84,8 @@ void CInterface3D::Update() {
         }
         if (pendingValue_ == kLeaveGame) {
             closeAll_ = true;
-            TheGameFlow()->DropSessions();
-            TheGameFlow()->CloseSessions();
+            g_gameFlow->DropSessions();
+            g_gameFlow->CloseSessions();
         }
         mouseCapture_ = nullptr;
         SetCursorShape(0);

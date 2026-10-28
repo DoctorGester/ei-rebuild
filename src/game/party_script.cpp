@@ -11,7 +11,7 @@
 namespace {
 
 // The party manager's record list.
-const NamedPartyRecords* RecordList() { return &ThePartyManager()->records; }
+const NamedPartyRecords* RecordList() { return &g_partyManager->records; }
 
 } // namespace
 

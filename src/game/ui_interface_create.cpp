@@ -42,7 +42,7 @@ bool CreateFont(gdi::Font& font, int size) {
 }
 
 // The language the keyboard starts in (the option, a Windows language id) and English.
-DWORD KeyboardLanguage() { return static_cast<DWORD>(options::TheOptions()->keyboardLayout_); }
+DWORD KeyboardLanguage() { return static_cast<DWORD>(options::g_options->keyboardLayout_); }
 constexpr DWORD kEnglish = 0x409;
 constexpr int kMaxLayouts = 16;
 
@@ -104,7 +104,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     ChooseKeyboardLayout();
     keybind::LoadKeyBindings();
     console_ = new console::ConsoleWindow(this);
-    DebugInfoPanel()->Init(this);
+    strmap::g_debugPanel->Init(this);
     root_ = new CChatOverlay(this);
     mouseX_ = 0;
     mouseCapture_ = nullptr;

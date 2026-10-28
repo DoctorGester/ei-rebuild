@@ -87,8 +87,6 @@ CWorldClient::CWorldClient() {
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CWorldServer> g_serverWorld = /*007AFF60*/ {};
 constinit lib::StaticObject<CWorldClient> g_clientWorld = /*007AF5B8*/ {};
-CWorldServer* TheServerWorld() { return &*g_serverWorld; }
-CWorldClient* TheClientWorld() { return &*g_clientWorld; }
 
 // A second block: it uses g_serverWorld and g_clientWorld (defined above).
 namespace {

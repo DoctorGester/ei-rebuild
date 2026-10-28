@@ -26,7 +26,7 @@ namespace {
 
 // The objects manager (0x7AF5F8) look-up by id; the world server: an object removed by id, an object made
 // from a record; the editor's selection and object lists the world object's own updates.
-CAIMap* Selection() { return TheServerWorld()->AIMap(); }
+CAIMap* Selection() { return g_serverWorld->AIMap(); }
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;
@@ -173,7 +173,7 @@ void ObjectSpec::OnChunk() {
 
 void ObjectSpec::Remove() {
     if (object) {
-        TheServerWorld()->RemoveObject(id);
+        g_serverWorld->RemoveObject(id);
         object = nullptr;
     }
     Apply();
@@ -187,7 +187,7 @@ void ObjectSpec::Refresh() {
 
 void ObjectSpec::Apply() {
     if (!object) {
-        TheServerWorld()->CreateObject(this);
+        g_serverWorld->CreateObject(this);
         return;
     }
     Selection()->BeginRefresh();
@@ -226,10 +226,10 @@ FlameSpec::~FlameSpec() = default;
 
 void FlameSpec::Apply() {
     if (object) {
-        TheServerWorld()->RemoveObject(id);
+        g_serverWorld->RemoveObject(id);
         object = nullptr;
     }
-    TheServerWorld()->CreateObject(this);
+    g_serverWorld->CreateObject(this);
 }
 
 void FlameSpec::Save() {

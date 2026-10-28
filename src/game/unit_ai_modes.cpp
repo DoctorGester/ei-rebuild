@@ -326,7 +326,7 @@ void FollowMode::OnObjectDeleted(CEngineObject* object) {
     if (leader == object && leader) leader.Reset();
 }
 
-void FollowMode::Load(CStream* stream) { leader.Load(stream, TheServerWorld()); }
+void FollowMode::Load(CStream* stream) { leader.Load(stream, &g_serverWorld.Get()); }
 
 void FollowMode::Save(CStream* stream) { leader.Save(stream); }
 
@@ -526,7 +526,7 @@ void AggressionMode::Leave(AIBrain* brain) {
 }
 
 void AggressionMode::Load(CStream* stream) {
-    enemy.Load(stream, TheServerWorld());
+    enemy.Load(stream, &g_serverWorld.Get());
     stream->Read(&fixed, 1);
 }
 
@@ -770,8 +770,8 @@ void PlayerMode::OnObjectDeleted(CEngineObject* object) {
 
 void PlayerMode::Load(CStream* stream) {
     constexpr int kGroupFirst = 0x46, kGroupEnd = 0x5E;
-    target.Load(stream, TheServerWorld());
-    leader.Load(stream, TheServerWorld());
+    target.Load(stream, &g_serverWorld.Get());
+    leader.Load(stream, &g_serverWorld.Get());
     stream->Read(&point, sizeof(Vector3));
     stream->Read(&state, 4);
     if (stream->version_ >= kGroupFirst && stream->version_ < kGroupEnd) {

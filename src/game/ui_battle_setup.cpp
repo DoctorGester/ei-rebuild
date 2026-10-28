@@ -33,8 +33,8 @@
 
 namespace {
 // The game's save stream's version and a game being loaded (the save stream holds its data).
-int SaveVersion() { return static_cast<int>(GameSaveStream()->version_); }
-bool LoadingGame() { return GameSaveStream()->size_ != 0; }
+int SaveVersion() { return static_cast<int>(g_saveStream->version_); }
+bool LoadingGame() { return g_saveStream->size_ != 0; }
 
 constexpr DWORD kClearTarget = 2;         // D3DCLEAR_ZBUFFER
 constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
@@ -56,7 +56,7 @@ void CBattleScreen::CreateScreen() {
 
     if (LoadingGame()) {
         // The screen's part of the saved game.
-        CMemoryStream* stream = GameSaveStream();
+        CMemoryStream* stream = &g_saveStream.Get();
         stream->Seek(0);
         int count;
         stream->Read(&count, 4);
@@ -164,7 +164,7 @@ void CBattleScreen::CreateScreen() {
 
     AddInput(new CCameraInput(interface_));
 
-    TheCamera()->flags_ &= ~0x40u;
+    g_camera->flags_ &= ~0x40u;
     pendingAction_ = 0;
     pendingSlot_ = -1;
     GameSetWeather(0, 0.0f);   // clear weather

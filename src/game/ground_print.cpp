@@ -46,9 +46,9 @@ constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
 // pi and 1 / 180 (doubles; their product is rounded at the FPU's precision, as in the game).
 double Pi() { return 3.141592653589793 /*00744238*/; }
 double PerDegree() { return 0.005555555555555556 /*0073BA30*/; }
-bool BloodPrintsOn() { return options::TheOptions()->enableBloodprints_ != 0; }
-bool FootprintsOn() { return options::TheOptions()->enableFootprints_ != 0; }
-bool ScorchMarksOn() { return options::TheOptions()->enableFireprints_ != 0; }
+bool BloodPrintsOn() { return options::g_options->enableBloodprints_ != 0; }
+bool FootprintsOn() { return options::g_options->enableFootprints_ != 0; }
+bool ScorchMarksOn() { return options::g_options->enableFireprints_ != 0; }
 
 void AssignCounted(CTexture** slot, CTexture* value) {
     CTexture* old = *slot;
@@ -181,7 +181,7 @@ int GroundPrint::Draw() {
     if (!visible_) return 1;
     if (!built_) {
         // The quad at the height of the ground or the platform under the point.
-        CWorldClient* world = TheClientWorld();
+        CWorldClient* world = &g_clientWorld.Get();
         std::vector<VertexPacket> quad;
         Vector3 at{position_.x, position_.y, 0.0f};
         float z = static_cast<float>(world->platforms_.SurfaceHeight(&at, world->ClampedGroundHeight(position_.x, position_.y)));

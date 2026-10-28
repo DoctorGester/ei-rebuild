@@ -12,7 +12,7 @@
 #include "net_connection.h"
 #include "net_messages.h"
 #include "net_second_master.h"
-#include "world.h"             // TheGameFlow
+#include "world.h"             // g_gameFlow
 
 #include "ei/rebirth.h"
 #include <cstdint>

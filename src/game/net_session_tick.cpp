@@ -49,7 +49,7 @@ void SessionBase::Tick(double dt) {
     g_currentSession = this;
     time_ = dt + time_;
     NetAddress from{};
-    GameBuffer* buffer = ReceiveBuffer();
+    GameBuffer* buffer = &g_receiveBuffer.Get();
     while (socket_.Receive(&from, buffer)) {
         BufferUpdateHigh(buffer);
         if (buffer->PositionOf(buffer->high) == 0) {

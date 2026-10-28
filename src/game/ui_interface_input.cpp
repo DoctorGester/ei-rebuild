@@ -105,7 +105,7 @@ void console::ConsoleWindow::OnKeyUp(int key, int, int) {
 // --- Every window closed --------------------------------------------------
 
 void CInterface3D::CloseAll() {
-    TheCursor()->SetShape(kCursorWait);
+    g_cursor->SetShape(kCursorWait);
     while (!stack_.empty()) {
         stack_.back()->Input()->Deactivate();
         ScreenOf(stack_.back())->CloseScreen();

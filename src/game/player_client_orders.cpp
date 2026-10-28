@@ -198,7 +198,7 @@ int CPlayerClient::SendPartyUpdate() {
 
 void CPlayerClient::Rejoin() {
     if (state_ != kStateBetweenZones) return;
-    TheGameFlow()->ReturnLocalParty();
+    g_gameFlow->ReturnLocalParty();
     SendPartyUpdate();
     WriteType(out_, kJoined);
     state_ = kStateJoining;

@@ -36,7 +36,7 @@ constexpr int kCursorCantCast = 0x17;
 constexpr int kCursorOrder = 0x18;
 
 // The mouse cursor; selects shape `shape`.
-void SetCursor(int shape) { TheCursor()->SetShape(shape); }
+void SetCursor(int shape) { g_cursor->SetShape(shape); }
 
 static const UnitPrototypeRecord* HoverPrototype(CUnit* unit) {
     return unit->GetPrototype();
@@ -54,12 +54,12 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return u->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
-        Vector3* p = TheClientWorld()->PickSurface(&out, x, y);
+        Vector3* p = g_clientWorld->PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
     auto objectAt = [x, y]() {
         POINT point = {x, y};
-        return static_cast<CUnit*>(TheClientWorld()->PickAt2(&point));
+        return static_cast<CUnit*>(g_clientWorld->PickAt2(&point));
     };
     auto unitPosition = [](CUnit* u) {
         Vector3 at;
@@ -99,7 +99,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     if (interface_->altDown_) {
         Vector3 at = pick();
         int exit;
-        if (!TheClientWorld()->FindExitAt(&at.x, &exit)) return;
+        if (!g_clientWorld->FindExitAt(&at.x, &exit)) return;
         SetCursor(kCursorExit);
         return;
     }
@@ -137,7 +137,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             // is asked as is).
             Vector3 at = pick();
             int exit;
-            if (!TheClientWorld()->FindExitAt(&at.x, &exit)) return;
+            if (!g_clientWorld->FindExitAt(&at.x, &exit)) return;
             std::string name = GameExitTarget(exit);
             if (text::CompareIgnoringCase(name,
                                 game::NoneText()) != 0) {

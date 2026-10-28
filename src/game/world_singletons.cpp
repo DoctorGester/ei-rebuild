@@ -11,28 +11,28 @@
 #include "world.h"
 #include "world_data.h"
 
-int CurrentWorldTick() { return TheServerWorld()->tick_; }
-int CurrentClientTick() { return TheClientWorld()->tick_; }
-float ClientTickFraction() { return TheClientWorld()->tickFraction_; }
+int CurrentWorldTick() { return g_serverWorld->tick_; }
+int CurrentClientTick() { return g_clientWorld->tick_; }
+float ClientTickFraction() { return g_clientWorld->tickFraction_; }
 
-CTextManager* TheTextManager() { return TheClientWorld()->texts_; }
-CMapObjectManager* TheObjectManager() { return TheClientWorld()->manager40_; }
-CFigureManager* TheFigureManager() { return TheClientWorld()->manager3C_; }
-CTextureManager* TheTextureManager() { return TheClientWorld()->textureManager_; }
-CMaterialManager* TheMaterialManager() { return TheClientWorld()->manager188_; }
-CSoundManager* TheSoundManager() { return TheClientWorld()->sounds_; }
-CMusicSystem* TheMusicSystem() { return TheClientWorld()->music_; }
-CParticleManager* TheParticleManager() { return TheClientWorld()->particleManager_; }
-CLightFactory* TheLightFactory() { return TheClientWorld()->manager190_; }
-Terrain* TheTerrain() { return TheClientWorld()->terrain_; }
+CTextManager* TheTextManager() { return g_clientWorld->texts_; }
+CMapObjectManager* TheObjectManager() { return g_clientWorld->manager40_; }
+CFigureManager* TheFigureManager() { return g_clientWorld->manager3C_; }
+CTextureManager* TheTextureManager() { return g_clientWorld->textureManager_; }
+CMaterialManager* TheMaterialManager() { return g_clientWorld->manager188_; }
+CSoundManager* TheSoundManager() { return g_clientWorld->sounds_; }
+CMusicSystem* TheMusicSystem() { return g_clientWorld->music_; }
+CParticleManager* TheParticleManager() { return g_clientWorld->particleManager_; }
+CLightFactory* TheLightFactory() { return g_clientWorld->manager190_; }
+Terrain* TheTerrain() { return g_clientWorld->terrain_; }
 
-int worlddata::FightState() { return TheClientWorld()->partyDanger_; }
+int worlddata::FightState() { return g_clientWorld->partyDanger_; }
 
-CTextureDevice* TheRenderDevice() { return TheSceneRenderer()->device_; }
-CTransformPipeline* ScenePipeline() { return TheSceneRenderer()->pipeline_; }
-CPixelConverter* PixelConverter() { return TheSceneRenderer()->graphicsProcessor_; }
-CLight* worlddata::SceneSun() { return TheSceneRenderer()->sun_; }
+CTextureDevice* TheRenderDevice() { return g_sceneRenderer->device_; }
+CTransformPipeline* ScenePipeline() { return g_sceneRenderer->pipeline_; }
+CPixelConverter* PixelConverter() { return g_sceneRenderer->graphicsProcessor_; }
+CLight* worlddata::SceneSun() { return g_sceneRenderer->sun_; }
 
-CDiplomacy* GameDiplomacy() { return &TheServerWorld()->diplomacy_; }
-CScript* TheMissionScript() { return TheServerWorld()->MainScript(); }
-CSectorMap* TheSectorMap() { return &TheServerWorld()->aiMap_.sectorMap; }
+CDiplomacy* GameDiplomacy() { return &g_serverWorld->diplomacy_; }
+CScript* TheMissionScript() { return g_serverWorld->MainScript(); }
+CSectorMap* TheSectorMap() { return &g_serverWorld->aiMap_.sectorMap; }

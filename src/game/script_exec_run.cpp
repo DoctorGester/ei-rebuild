@@ -35,7 +35,7 @@ bool IsZero(float value) {
 }
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_).
-CBaseManager* EffectManager() { return TheServerWorld()->manager48_; }
+CBaseManager* EffectManager() { return g_serverWorld->manager48_; }
 
 // An effect object took a new position.
 void EffectMoved(CEngineObject* object) { static_cast<CEffect*>(object)->MarkChanged(); }
@@ -75,7 +75,7 @@ void RespawnFxSources(CScript* script) {
         fx.object = ScriptEffect<CEffectSound>(sound);
         const char* name = fx.name.c_str();
         std::memcpy(sound->name_, name, std::strlen(name) + 1);
-        TheServerWorld()->AddTimedObject(sound);
+        g_serverWorld->AddTimedObject(sound);
     }
 }
 

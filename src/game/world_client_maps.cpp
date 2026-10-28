@@ -249,7 +249,7 @@ void FitGrid(SectorGrid& grid, const Terrain* terrain) {
 }
 
 MapRecord* LocalZoneRecord() {
-    return TheMapDatabase()->FindMap(LocalPlayerZone());
+    return g_mapDatabase->FindMap(LocalPlayerZone());
 }
 
 bool InFinalZone() {
@@ -682,7 +682,7 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
 }
 
 void CWorldClient::Destroy() {
-    TheCamera()->SetTarget(nullptr);
+    g_camera->SetTarget(nullptr);
     delete numbers_;
     numbers_ = nullptr;
     delete skyDome_;
@@ -993,7 +993,7 @@ ClientArrayManager::~ClientArrayManager() {
 }
 
 int CWorldClient::LoadZone(CStream* block) {
-    TheGameFlow()->UpdateAndAcknowledge();
+    g_gameFlow->UpdateAndAcknowledge();
     std::string map;
     std::string mob;
     sounds_->SetEffectsVolume(0);

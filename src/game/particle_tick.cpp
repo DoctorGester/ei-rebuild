@@ -234,7 +234,7 @@ void CParticleSource::AddParticle(Particle* p) {
 // alive (flag 4) or has particles, an attached one while it emits or has particles.
 int CParticleSource::RunTick() {
     if (hiddenTicks > 0x38 && (flags_ & 0x20)) return 1;
-    const CWorldClient* world = TheClientWorld();
+    const CWorldClient* world = &g_clientWorld.Get();
     std::memcpy(&windDirection, world->windDirection_, sizeof(windDirection));
     std::memcpy(&windStrength, &world->windStrength_, sizeof(windStrength));
     SetBits(boundsMin.x, kFarBits);

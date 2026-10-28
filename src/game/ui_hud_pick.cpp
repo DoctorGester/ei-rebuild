@@ -43,7 +43,7 @@ CSpell* SpellOf(CItem* item) { return item->spell_; }
 bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spell, char quick) {
     CUnit* target = unit;
     if (spell->IsOffensive()) {
-        target = TheClientWorld()->NearestVisibleUnit(unit);
+        target = g_clientWorld->NearestVisibleUnit(unit);
         if (!target) {
             ui->PlaySound(kSoundNoMagic, 0);
             screen->SetPendingAction(kPendingNone, -1, -1);

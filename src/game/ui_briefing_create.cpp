@@ -38,8 +38,8 @@
 
 namespace {
 
-float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
-bool LoadingGame() { return GameSaveStream()->size_ != 0; }
+float& MapEdgeFade() { return options::g_options->borderFogDistance_; }
+bool LoadingGame() { return g_saveStream->size_ != 0; }
 
 const char* SaveLoadTexture() { return "saveload"; }
 const char* DefaultAllod() { return "gipat"; }
@@ -78,14 +78,14 @@ constexpr int kConstructorPrefix = 6;       // "constr"
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 
 MapRecord* FindLocalMap() {
-    return TheMapDatabase()->FindMap(LocalPlayerZone());
+    return g_mapDatabase->FindMap(LocalPlayerZone());
 }
 
 CPlayer* LocalViewPlayer() {
-    return TheClientWorld()->LocalView()->player_;
+    return g_clientWorld->LocalView()->player_;
 }
 
-CUnit* ServerUnit(int id) { return TheServerWorld()->FindUnit(id); }
+CUnit* ServerUnit(int id) { return g_serverWorld->FindUnit(id); }
 
 // A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).
 Vector3 NormalisedUnlessZero(const Vector3& v) {
@@ -165,7 +165,7 @@ void CBriefingScreen::CreateScreen() {
     chatActive_ = 0;
     autosave_ = false;
     if (LoadingGame())
-        GameSaveStream()->Resize(0);
+        g_saveStream->Resize(0);
     else if (LocalViewPlayer()->lastScreen_ != kFromCamp)
         autosave_ = true;
     MapRecord* map = FindLocalMap();
@@ -223,7 +223,7 @@ void CBriefingScreen::CreateScreen() {
 
     // The camera: no longer free, kept within the zone's circle (the first lookup's record,
     // not checked for null), the alternate limits, no target.
-    CCamera* camera = TheCamera();
+    CCamera* camera = &g_camera.Get();
     camera->flags_ &= ~CCamera::kFree;
     if (map->restricted) {
         Vector3 centre{map->restrictX, map->restrictY, 0.0f};
@@ -350,9 +350,9 @@ void CBriefingScreen::MarkPeople() {
         open.push_back(id);
     }
     for (int* id = people_.data(); id != people_.data() + people_.size(); ++id) {
-        if (!TheClientWorld()->FindUnit(*id)) continue;
+        if (!g_clientWorld->FindUnit(*id)) continue;
         bool hasTopics = std::find(open.begin(), open.end(), *id) != open.end();
-        auto* player = TheServerWorld()->GetPlayer(0);
+        auto* player = g_serverWorld->GetPlayer(0);
         if (player && player->Server())
             player->Server()->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, *id);
     }

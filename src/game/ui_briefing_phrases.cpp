@@ -199,7 +199,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             };
             auto addItems = [&](const std::vector<std::string>& list) {
                 for (const std::string* it = list.data(); it != list.data() + list.size(); ++it) {
-                    CItem* item = TheClientWorld()->itemManager_->CreateItem(it->c_str());
+                    CItem* item = g_clientWorld->itemManager_->CreateItem(it->c_str());
                     if (!item) continue;
                     ++item->refCount_;
                     texts->FormatItemName(item, &name);
@@ -233,7 +233,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             texts->GetString(LostItemLabel(), &label);
             // A network client lists the quest items it holds after a zone topic ("z...").
             if (IsMultiplayerClient() && !topic_.empty() && text::CompareIgnoringCase(str::Left(topic_, 1), ZonePrefix()) == 0) {
-                if (auto* player = TheServerWorld()->GetPlayer(0)) {
+                if (auto* player = g_serverWorld->GetPlayer(0)) {
                     for (auto node = player->items_.begin(); node != player->items_.end(); ++node) {
                         CItem* item = *node;
                         if (item->GetClassId() != kClassQuestItem) continue;
@@ -304,7 +304,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 continue;
             }
             if (animation > 0) {
-                if (auto* serverUnit = TheServerWorld()->FindUnit(unit->id_)) {
+                if (auto* serverUnit = g_serverWorld->FindUnit(unit->id_)) {
                     auto* controller = serverUnit->ServerController();
                     controller->StopAction();
                     controller->actionDone = SpeakerAnimationDone;

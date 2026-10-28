@@ -89,7 +89,7 @@ void CUiModel::Draw(CSceneRenderer* pass) {
 }
 
 void CUiModel::Load(const char* name, const char* from, const char* to) {
-    auto* manager = TheClientWorld()->MapObjectManager();
+    auto* manager = g_clientWorld->MapObjectManager();
     auto* object = manager->CreateObjectAs<CObject3D>(kPreviewClass, kPreviewId);
     object_ = object;
     ++object->refCount_;

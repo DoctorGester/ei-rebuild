@@ -41,11 +41,11 @@
 
 namespace {
 
-int ShadowMode() { return options::TheOptions()->shadowQuality_; }   // 0 off, 2 blurred
+int ShadowMode() { return options::g_options->shadowQuality_; }   // 0 off, 2 blurred
 int ShadowSwitch(int classId) {
-    if (classId == 0x50) return options::TheOptions()->unitShadow_;   // units
-    if (classId == 0x52) return options::TheOptions()->floraShadow_;
-    return options::TheOptions()->buildingShadow_;
+    if (classId == 0x50) return options::g_options->unitShadow_;   // units
+    if (classId == 0x52) return options::g_options->floraShadow_;
+    return options::g_options->buildingShadow_;
 }
 constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: zeros
 // The work buffers: the parts' points projected into the light's view, their texture pixels, and
@@ -423,7 +423,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
                      static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
     VertexPacket* quads = g_quads.data();
-    TheClientWorld()->ProjectDecal(&direction, &point, self->object->bounds.radius, &quads,
+    g_clientWorld->ProjectDecal(&direction, &point, self->object->bounds.radius, &quads,
                                &self->vertices, &self->texCoords, &self->indices, static_cast<unsigned char>(0), static_cast<unsigned char>(keyedParts == 0));
 
     if (!self->vertices.empty()) {
@@ -502,7 +502,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         float alpha = static_cast<float>(static_cast<double>(half->fadeIn) * kAlphaScale);
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
-    TheSceneRenderer()->SetTexture(0, texture);
+    g_sceneRenderer->SetTexture(0, texture);
     std::uint8_t lit = TheTerrain()->EdgeFade(&object->localPosition_);
     if (!makeTexture) return 1;   // the shadow map draws it
     TheRenderDevice()

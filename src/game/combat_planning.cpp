@@ -46,8 +46,8 @@ constexpr int kShoutCannotDo = 0x0E;
 // --- Helpers --------------------------------------------------------------------------------------
 
 // The server's AI map's refreshUnits, cleared around path searches, and its sector map.
-std::uint8_t& PathFlag() { return TheServerWorld()->AIMap()->refreshUnits; }
-CSectorMap* ServerSectors() { return &TheServerWorld()->aiMap_.sectorMap; }
+std::uint8_t& PathFlag() { return g_serverWorld->AIMap()->refreshUnits; }
+CSectorMap* ServerSectors() { return &g_serverWorld->aiMap_.sectorMap; }
 CAIMap* MapOf(CWorldServer* world) { return world->AIMap(); }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
 

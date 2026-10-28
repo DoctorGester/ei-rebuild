@@ -43,7 +43,7 @@ constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
 constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";
 constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 
-CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
+CPlayerClient* LocalView() { return g_clientWorld->LocalView(); }
 
 long SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
     render::state::Render(static_cast<std::uint32_t>(state), value);
@@ -334,7 +334,7 @@ void CHudPortraits::OnMouseMove(int, int x, int y) {
         if (region < std::ssize(owner->party_)) owner->HoverUnit(owner->party_[region], 0, 0);
         return;
     }
-    if (region >= 0 && region < count_) TheCursor()->SetShape(0);
+    if (region >= 0 && region < count_) g_cursor->SetShape(0);
 }
 
 // --- Map ---------------------------------------------------------------------------------------
@@ -385,7 +385,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
         const float worldY = static_cast<float>(centreY_ - down / scale_);
         if (worldX > 0.0f && worldX < worldWidth_ && worldY > 0.0f && worldY < worldHeight_) {
             // The camera stops following its unit and looks there.
-            CCamera* view = TheCamera();
+            CCamera* view = &g_camera.Get();
             view->flags_ &= ~kCameraFollows;
             view->SetTargetId(-1);
             Vector3 focus = view->focus_;
@@ -398,7 +398,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
     }
     case 5:     // "camera north"
         interface_->PlaySound(kSoundClick, 0);
-        TheCamera()->SetHeading(0.0f);
+        g_camera->SetHeading(0.0f);
         northTime_ = 0.5f;
         handled_ = true;
         return;
@@ -517,7 +517,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
         return;
     }
     int mode = region - 1;
-    if (!TheClientWorld()->LocalView()) return;
+    if (!g_clientWorld->LocalView()) return;
     if (mode >= 0 && mode < 4) {
         interface_->PlaySound(kSoundClick, 0);
         for (int i = 0; i < std::ssize(owner_->party_); ++i) {
@@ -557,7 +557,7 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
 }
 
 void CHudMovePanel::Update() {
-    if (!TheClientWorld()->LocalView()) return;
+    if (!g_clientWorld->LocalView()) return;
     // The common value over the selected units: -1 none selected, -2 mixed.
     int mode = -1;
     int flag = -1;
@@ -630,13 +630,13 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return u->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
-        Vector3* p = TheClientWorld()->PickSurface(&out, x, y);
+        Vector3* p = g_clientWorld->PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
     auto unitPosition = [](CUnit* u) { return PositionOf(u); };
     auto objectAt = [x, y]() {
         POINT point = {x, y};
-        return static_cast<CUnit*>(TheClientWorld()->PickAt2(&point));
+        return static_cast<CUnit*>(g_clientWorld->PickAt2(&point));
     };
     // The portrait of member `index` flashes after a short random delay.
     auto flash = [this](int index) { NodPortrait(this, index); };
@@ -687,7 +687,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             if (unit != party_[i]) continue;
             interface_->PlaySound(game::SoundOnOffText(), 0);
             if (interface_->doubleClick_) {
-                if (i < std::ssize(party_)) TheCamera()->SetTarget(party_[i]);
+                if (i < std::ssize(party_)) g_camera->SetTarget(party_[i]);
             } else {
                 ToggleMember(i);
             }
@@ -730,7 +730,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 if (unit != party_[i]) continue;
                 interface_->PlaySound(game::SoundOnOffText(), 0);
                 if (interface_->doubleClick_) {
-                    if (i < std::ssize(party_)) TheCamera()->SetTarget(party_[i]);
+                    if (i < std::ssize(party_)) g_camera->SetTarget(party_[i]);
                 } else {
                     ToggleMember(i);
                 }

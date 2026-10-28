@@ -13,7 +13,7 @@
 
 namespace {
 // The game's settings (globals read at the time of the call).
-int Difficulty() { return options::TheOptions()->difficulty_; }
+int Difficulty() { return options::g_options->difficulty_; }
 } // namespace
 
 void AttackParams::ScaleForDifficulty(int keyed) {

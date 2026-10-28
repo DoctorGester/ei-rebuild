@@ -45,7 +45,7 @@ void WindowSurfaces(const void* window, const void* const** data, int* size) {
     *size = static_cast<int>(w->surfaces_.size());
 }
 void ReadInterfaceSurfaces(InterfaceSurfaces* surfaces) {
-    const CInterface3D* ui = TheInterface();
+    const CInterface3D* ui = &g_interface.Get();
     surfaces->backdrop = ui->backdrop_;
     surfaces->secondBackdrop = ui->secondBackdrop_;
     surfaces->fps = ui->fpsSurface_;

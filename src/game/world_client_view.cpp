@@ -40,8 +40,8 @@ void PushBack(std::vector<CMapObject*>& v, CMapObject* const& value) {
     v.push_back(value);
 }
 
-const int& g_multiplayerView = options::TheOptions()->drawVisibleOnly_;
-const int& g_modelTouchDelay = options::TheOptions()->shadowLightingFreq_;
+const int& g_multiplayerView = options::g_options->drawVisibleOnly_;
+const int& g_modelTouchDelay = options::g_options->shadowLightingFreq_;
 
 // Pushes `matrix` on the pipeline's stack `index` (multiplied onto its top).
 void PushStackMatrix(CTransformPipeline* device, int index, const float* matrix) {
@@ -161,7 +161,7 @@ int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Mat
                     if (!drawAllUnits && !(object->flags_ & kFlagAlwaysDrawn)) process = false;
                 } else {
                     // First pass: units wait on the deferred list (which holds a reference).
-                    FrameDeferredUnits()->emplace_back(object);
+                    g_deferredUnits->emplace_back(object);
                     process = false;
                 }
             }

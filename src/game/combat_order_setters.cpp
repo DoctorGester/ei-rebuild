@@ -66,7 +66,7 @@ void QueueUse(CUnitServer* self, CMapObject* target, std::uint32_t source, int s
 bool CUnitServer::FitsMoveMode(int mode) {
     int stored = mode == kStyleRun ? kStyleWalk : mode;
     if (stored == moveMode.mode) return true;
-    CAIMap* map = TheServerWorld()->AIMap();
+    CAIMap* map = g_serverWorld->AIMap();
     int saved = unit->moveMode;
     map->sectorMap.Remove(unit);
     unit->moveMode = mode;
@@ -116,7 +116,7 @@ void CUnitServer::OrderSearchBody(CMapObject* target, int run) {
 }
 
 bool CUnitServer::TargetBusy(CMapObject* target) {
-    if (target->flags_ & kFlagShared) return !TheServerWorld()->IsObjectShared(target->id_, unit->id_);
+    if (target->flags_ & kFlagShared) return !g_serverWorld->IsObjectShared(target->id_, unit->id_);
     AIBrain* ai = &brain;
     for (auto node = ai->memory.nearby.begin(); node != ai->memory.nearby.end(); ++node) {
         auto* other = *node;
@@ -151,7 +151,7 @@ void CUnitServer::StopAction() {
     state = kStateStopped;
     unit->UpdateSizeClass();
     if (effectObject) {
-        TheServerWorld()->RemoveTimedObject(effectObject->id_);
+        g_serverWorld->RemoveTimedObject(effectObject->id_);
         CEngineObject* old = effectObject;
         effectObject = nullptr;
         if (old) old->Release();

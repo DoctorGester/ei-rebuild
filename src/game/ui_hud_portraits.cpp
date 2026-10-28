@@ -35,8 +35,8 @@ float FloatFromBits(std::uint32_t bits) {
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
 float Pi() { return 3.1415927f /*007423F8*/; }
-bool GamePaused() { return TheClientWorld()->paused_ != 0; }
-int SelectedUnitId() { return TheCamera()->targetId_; }
+bool GamePaused() { return g_clientWorld->paused_ != 0; }
+int SelectedUnitId() { return g_camera->targetId_; }
 
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
 constexpr float kBarTexels = 64.0f;

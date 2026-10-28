@@ -105,8 +105,8 @@ constexpr const char* kNotifyLoading = "notify_loading";
 constexpr int kScreenWidth = 800, kScreenHeight = 600;   // the copy's layout rectangle (immediates)
 constexpr int kShotWidth = 256, kShotHeight = 192;
 
-CInterface3D* Interface() { return TheInterface(); }
-GameFlow* Flow() { return TheGameFlow(); }
+CInterface3D* Interface() { return &g_interface.Get(); }
+GameFlow* Flow() { return &g_gameFlow.Get(); }
 
 // The save folder saves\<slot>\ under the game's folder.
 std::string SlotFolder(const char* slot) {
@@ -218,9 +218,9 @@ void CSaveLoadWindow::SaveGame() {
     folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_.c_str());
     std::string notice;
     TheTextManager()->GetString(game::savewords::NotifySaving(), &notice);
-    TheInterface()->ShowStatusText(notice);
-    TheGameFlow()->SaveGameThunk(entry->folder_.c_str());
-    TheCursor()->ChangeShape(3);
+    g_interface->ShowStatusText(notice);
+    g_gameFlow->SaveGameThunk(entry->folder_.c_str());
+    g_cursor->ChangeShape(3);
 
     // info.sav: the new save's entry (the first) with the title being given.
     LocalFileStream info;
@@ -265,7 +265,7 @@ void CSaveLoadWindow::SaveGame() {
         shot.Close();
         gameapi::LeaveCriticalSection(&g_deviceLock);
     }
-    TheCursor()->ChangeShape(0);
+    g_cursor->ChangeShape(0);
     interface_->SetPendingValue(kClosed);
 }
 
@@ -335,7 +335,7 @@ void CSaveLoadWindow::FillEntries() {
         entry->folder_ = str::Format(game::savewords::NewFolder(), highest + 1);
         entry->gameTime_ = LocalPlayerVariable(game::savewords::GameTime());
         entry->zone_ = LocalPlayerZone();
-        if (MapRecord* record = TheMapDatabase()->FindMap(entry->zone_))
+        if (MapRecord* record = g_mapDatabase->FindMap(entry->zone_))
             entry->map_ = record->allod;
         entry->MakeTitle(1);
         entry->broken_ = false;
@@ -382,12 +382,12 @@ void QuickSave(const char* slot, char stepFrame) {
     // A null surface (no memory) is used all the same, as in the original.
     CUiSurface* surface = new CUiSurface(Interface(), 0, 0, kScreenWidth, kScreenHeight, 4, 1);
     surface->CaptureScreen();
-    TheCursor()->ChangeShape(3);
+    g_cursor->ChangeShape(3);
     Interface()->serverFlag_ = static_cast<std::uint8_t>(GameServerPaused());
     std::string notice;
     TheTextManager()->GetString(game::savewords::NotifySaving(), &notice);
-    TheInterface()->ShowStatusText(notice);
-    TheGameFlow()->SaveGameThunk(slot);
+    g_interface->ShowStatusText(notice);
+    g_gameFlow->SaveGameThunk(slot);
 
     // info.sav: the "gtime" variable, the zone's map, the zone, the time and an empty title.
     std::string title;
@@ -395,7 +395,7 @@ void QuickSave(const char* slot, char stepFrame) {
     const std::int32_t savedAt = lib::CurrentTime();
     const float gameTime = LocalPlayerVariable(game::savewords::GameTime());
     const std::string zone = LocalPlayerZone();
-    if (const MapRecord* record = TheMapDatabase()->FindMap(zone))
+    if (const MapRecord* record = g_mapDatabase->FindMap(zone))
         map = record->allod;
     std::string folder = SlotFolder(slot);
     LocalFileStream info;
@@ -418,7 +418,7 @@ void QuickSave(const char* slot, char stepFrame) {
     if (surface != nullptr) {
         delete surface;
     }
-    TheCursor()->ChangeShape(0);
+    g_cursor->ChangeShape(0);
 }
 
 void QuickLoad(const char* slot) {
@@ -427,7 +427,7 @@ void QuickLoad(const char* slot) {
     if (!lib::FileExists(folder.c_str())) return;
     std::string notice;
     TheTextManager()->GetString(kNotifyLoading, &notice);
-    TheInterface()->ShowStatusText(notice);
+    g_interface->ShowStatusText(notice);
     GameStopSounds(1);
     Flow()->RequestLoad(slot, 0);
 }
@@ -472,7 +472,7 @@ void CSaveLoadWindow::LoadSelected() {
     if (entries_.data()[selected].broken_) return;
     std::string notice;
     TheTextManager()->GetString(kNotifyLoading, &notice);
-    TheInterface()->ShowStatusText(notice);
+    g_interface->ShowStatusText(notice);
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk, 0);
     Flow()->RequestLoad(entries_.data()[selected_].folder_.c_str(), 0);

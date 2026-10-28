@@ -40,20 +40,20 @@ bool ArgIs(const std::vector<std::string>* args, int i, const char* text) { retu
 bool ArgOn(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
 bool ArgOff(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
-CPlayer* GetPlayer(int id) { return TheServerWorld()->GetPlayer(id); }
+CPlayer* GetPlayer(int id) { return g_serverWorld->GetPlayer(id); }
 CPlayer* LocalPlayer() {
-    return TheClientWorld()->LocalView()->player_;
+    return g_clientWorld->LocalView()->player_;
 }
 
 bool ServerActive(net::ClientSession* server) { return server && !(server->flags7_ & CRefCounted::kDetached); }
 
 void SetDebugInfoRect(int left, int top, int right, int bottom) {
     RECT rect = {left, top, right, bottom};
-    TheInterface()->SetDebugInfoRect(&rect);
+    g_interface->SetDebugInfoRect(&rect);
 }
 void SetConsoleRect(int left, int top, int right, int bottom) {
     RECT rect = {left, top, right, bottom};
-    TheInterface()->SetConsoleRect(&rect);
+    g_interface->SetConsoleRect(&rect);
 }
 
 // join / server: a party with one member ("F", "Human Hero", `extra`) on the stack, handed
@@ -63,7 +63,7 @@ void RequestWithParty(std::vector<std::string>* args, const char* extra) {
     CParty party;
     party.AddMember("F", "Human Hero", extra);
     std::string map = (*args)[0];
-    (TheGameFlow()->*Request)(map.c_str(), &party);
+    (g_gameFlow.Get().*Request)(map.c_str(), &party);
 }
 
 void WriteSpeech(lib::TextFile* file, std::string& line, const SpeechRecord& speech) {
@@ -84,7 +84,7 @@ void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
             // Our binding's player record: only the host gets the window.
             net::BindingMessage* binding = server->binding_;
             if (binding->Player()->host_)
-                ScreenOf(TheInterface()->GetActiveWindow())->PlayerList(windowMode);
+                ScreenOf(g_interface->GetActiveWindow())->PlayerList(windowMode);
             return;
         }
     }
@@ -170,7 +170,7 @@ void ConsolePos(std::vector<std::string>* args) {
 // History <lines>.
 void History(std::vector<std::string>* args) {
     if (args->empty()) return PrintLine("Invalid parameters");
-    TheInterface()->SetConsoleHistory(str::ToInt((*args)[0]));
+    g_interface->SetConsoleHistory(str::ToInt((*args)[0]));
 }
 
 // Filter (prints the shown categories), filter <type> (shows only that one), filter <type> 1|on|0|off.
@@ -223,8 +223,8 @@ void Show(std::vector<std::string>* args) {
     } else {
         return PrintLine("Invalid parameters in command 'show'");
     }
-    if (ArgOn(args, 1)) (TheClientWorld()->*on)();
-    else if (ArgOff(args, 1)) (TheClientWorld()->*off)();
+    if (ArgOn(args, 1)) (g_clientWorld.Get().*on)();
+    else if (ArgOff(args, 1)) (g_clientWorld.Get().*off)();
 }
 
 // Listvar <player> [file]: prints the player's global variables ("name = value") and
@@ -337,7 +337,7 @@ void Give(std::vector<std::string>* args) {
         return state->SendParty();
     }
     if (ArgIs(args, 1, "assortment")) {
-        ScreenOf(TheInterface()->GetActiveWindow())->DebugFill();
+        ScreenOf(g_interface->GetActiveWindow())->DebugFill();
         return;
     }
     PrintLine("Give what?");
@@ -359,17 +359,17 @@ void HostServer(std::vector<std::string>* args) {
 void MemUsage(std::vector<std::string>*) {}
 
 // disconnect, any arguments: the client world's local player disconnects.
-void Disconnect(std::vector<std::string>*) { TheGameFlow()->DisconnectClient(); }
+void Disconnect(std::vector<std::string>*) { g_gameFlow->DisconnectClient(); }
 
 void LootAll(std::vector<std::string>*) {
     PrintLine("Looting...");
-    TheServerWorld()->LootDeadUnits();
+    g_serverWorld->LootDeadUnits();
 }
 
 // Fadeout <milliseconds>.
 void FadeOut(std::vector<std::string>* args) {
     if (args->empty()) return PrintLine("FADEOUT nMillSec");
-    TheInterface()->fade_->Start(str::ToInt((*args)[0]));
+    g_interface->fade_->Start(str::ToInt((*args)[0]));
     PrintLine("Ok");
 }
 
@@ -491,8 +491,8 @@ void Ban(std::vector<std::string>* args) { KickOrBan(args, 2, 3); }
 // Fps 1|on|0|off (anything else: nothing).
 void Fps(std::vector<std::string>* args) {
     if (args->size() < 1) return PrintLine("Invalid number of parameters for command \"FPS\"");
-    if (ArgOn(args, 0)) TheInterface()->ShowFps(1);
-    else if (ArgOff(args, 0)) TheInterface()->ShowFps(0);
+    if (ArgOn(args, 0)) g_interface->ShowFps(1);
+    else if (ArgOff(args, 0)) g_interface->ShowFps(0);
 }
 
 // Rate <bytes per second>.
