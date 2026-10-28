@@ -578,7 +578,7 @@ int RunMainLoop(bool interfaceInput) {
 // ---- Shutdown --------------------------------------------------------------------------------------
 
 void ShutDown() {
-    DeleteComposedTextures();
+    ForgetComposedTextures();
     g_interface->Shutdown();
     g_cursor->Shutdown();
     CDirectInputMouse* mouse = g_mouse;

@@ -24,6 +24,7 @@ class CTransformPipeline;
 class CDeviceMaterial;
 struct NamedTexture;
 struct SkinRequest;
+struct ComposedTexture;
 struct MmpHeader;
 struct TLVertex;
 struct VertexPacket;
@@ -187,6 +188,11 @@ public:
     // From mip level `mip` on: a holder for the levels the new renderer decodes; copies the file's extra
     // block. Returns 1.
     int CreateFromMmp(CTextureDevice* device, const MmpHeader* data, unsigned mip);
+    // From mip level `mip` on: a holder for the levels the new renderer composes from the layer textures (no
+    // check that the level exists, as the original's load of its cache file); copies the extra block. Returns 1.
+    int CreateComposed(CTextureDevice* device, const ComposedTexture& composed, unsigned mip);
+    // The alpha kind from the header (flags 0x4000..0x20000), and the texture loaded.
+    void MarkLoaded(const MmpHeader* header);
     // With its alpha from "a_<file>" beside it. 1 without loading when this texture is loaded and named `path`.
     int LoadBmp(CTextureDevice* device, const char* path);
     // A square surface header->width wide (the height is not read) in the new renderer's memory, one level.
@@ -219,8 +225,17 @@ int TextureHolderEnsureLoaded(struct HeldTexture* holder);
 
 constexpr std::uint32_t kTextureLoaded = 0x08;    // CEngineObject::flags_
 
-// Deletes every composed-skin cache file (<data path>textures\*.mmp).
-void DeleteComposedTextures();
+// A texture the texture manager composes from layer textures on the GPU (CTextureManager::Compose): what the
+// original drew on the CPU into <data path>textures\<name>.mmp. `header` is that file's (format, size, levels, the
+// extra block's size), `extra` its extra block (the request's layer bytes), `layers` the layer textures, bottom first.
+struct ComposedTexture {
+    MmpHeader header;
+    std::vector<std::uint8_t> extra;
+    std::vector<std::string> layers;
+};
+
+// Forgets every composed texture (the original deleted its cache files, <data path>textures\*.mmp).
+void ForgetComposedTextures();
 
 // Class id 0x26.
 class CTextureManager : public CResourceManager {
@@ -238,11 +253,11 @@ public:
     void Destroy() override;
     // flags_ by type: 0x3E 0x80, 0x3F 0x100, 0x40 0x200, any other 0x40 (no null check).
     CEngineObject* CreateObject(int type, int id) override;
-    // textures\<name>.bmp on disk if present, else <name>.mmp from the archives, else <data
-    // path>textures\<name>.mmp on disk.
+    // textures\<name>.bmp on disk if present, else <name>.mmp from the archives, else the composed texture
+    // `name` (Compose).
     int LoadTexture(CTexture* texture);
-    // From <data path>textures\ on disk, else from the archives. Returns 0 (and an empty buffer) when neither
-    // has the file.
+    // From the composed texture `name`, else from the archives. Returns 0 (and an empty buffer) when neither
+    // has it.
     int LoadMmpExtra(const char* name, std::vector<std::uint8_t>* out);
     // A texture the game fills on the CPU, in the format of `kind` (0x1E 5:6:5, 0x20 1:5:5:5, 0x21 4:4:4:4;
     // another kind keeps a zero format), square at `width`. FatalError's result when the device has no such
@@ -263,13 +278,15 @@ public:
     CTexture* FindTexture(std::string_view name);
     CTexture* FindTypedTexture(int type, std::string_view name);
     void FreeCache();
-    // Each layer a `width` x `width` .mmp from the archives; a missing one is skipped, one of another size is
-    // a fatal error (its result returned). Returns the layers drawn.
-    int DrawLayers(std::uint32_t* image, const std::vector<std::string>* names, int width);
-    // The skin composed into the cached texture `name` (or `fallback`), the name used into `out`: 1 when
-    // cached or written, 0 when nothing was drawn.
+    // Each layer a `width` x `width` .mmp from the archives, its name into `found`; a missing one is skipped,
+    // one of another size is a fatal error (its result returned). Returns the layers found.
+    int FindLayers(const std::vector<std::string>* names, int width, std::vector<std::string>* found);
+    // The composed texture `name` (`fallback` when `name` has none) made of the request's layers, the name used
+    // into `out`: 1 when it was made of them already or is now, 0 when there is nothing to draw.
     int Compose(std::string* out, const SkinRequest* request, const std::string* name,
-                const std::string* fallback, unsigned mipCount, std::uint32_t fill, std::uint32_t format);
+                const std::string* fallback, unsigned mipCount, std::uint32_t format);
+    // The composed texture `name` (any case), or null.
+    const ComposedTexture* FindComposed(std::string_view name);
 
     MmpHeader* GetFileData(std::string_view name);   // an .mmp file's data (CloseFile frees it)
     CTexture* NewTextureOfType(int type);

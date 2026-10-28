@@ -322,6 +322,24 @@ rectangle; the target texture is not changed. The unit's face (00533980, the bli
 down the mip chain) is its only user; check `render_blink` (frames of the hero's portrait with the mouth open, closed,
 open again; the original's run the same).
 
+**Textures composed on the GPU (R28, `render_compose.cpp`).** `render::ComposeTexture(holder, size, mip, levels,
+images)` makes a texture from images drawn over each other: the unit skins and wounds textures
+(CTextureManager::Compose, items_spells.md "Composed textures"). Each image is an .mmp file's pixels after its header and
+extra block: 32-bit 0xAARRGGBB with premultiplied alpha, rows from the top; "PNT3" files are packed: groups of four
+pixels, where a group's first pixel has alpha 0 and is not 0 that word instead counts target bytes left as they are
+(2DintMMX slot 5's reading; its plain path took pixel 1's alpha for pixel 0 of each group, not kept). The renderer
+decodes an image to RGBA8 once (shared by name while a texture holds it: `DecodeComposeImage`), and draws into a
+Direct3D 11 texture of the full size with every level the texture uses (`ComposeRecipe`): cleared to transparent
+black, each image a rectangle drawn texel for texel (shader texture_compose.hlsl) with premultiplied blending (ONE,
+INV_SRC_ALPHA, alpha too), then `GenerateMips`; the texture's view starts at level `mip` (the texture quality option),
+so its size is `size >> mip` (HolderSize, texture patches: the blink patches the hero's composed skin). The work runs at
+once from the game's load (not inside a frame pass), with the present's lock held against the cursor thread
+(`GpuWorkAlone`). The entry is owned and keeps its recipe (the decoded images, shared): a new device draws every
+composed texture again right after it is made (`RemakeComposed`; render_device_lost's camp and world frames match
+before and after the loss). Frames against the CPU composition (render_blink, units, models, render_device_lost: at
+most 0.012% of a 4K frame over 8, on the hero's and wounded units' skins; ui_gallery_camp unchanged): the 8-bit
+colours instead of 1:5:5:5 / 4:4:4:4.
+
 Scenarios: render_present*, render_movie_present, render_titles_present, ui_saveload, render_blink. Dead / not functions: 00693DE0,
 0068F860 (reached only from unreferenced 00691D50),
 004EAFD0 (inside 004EA4A0's range).

@@ -130,7 +130,7 @@ void AddExtraWeapon(SkinRequest& set, const UnitModelRecord* model, DressedUnitR
 // The texture cache is the client world's texture manager.
 void Compose(CWorldClient* self, std::string& out, SkinRequest& set, const std::string& name, int size, int kind) {
     set.flags = size;
-    self->textureManager_->Compose(&out, &set, &name, &name, 3, 0, 0x5551);
+    self->textureManager_->Compose(&out, &set, &name, &name, 3, 0x5551);
     self->textureManager_->FindOrLoad(kind, name);
 }
 

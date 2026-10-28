@@ -282,6 +282,29 @@ bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned
 // The unit's face blink.
 void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]);
 
+// An image the game has drawn into a texture on the GPU (ComposeTexture): an .mmp file's pixels after its header
+// and extra block, 0xAARRGGBB with premultiplied alpha, rows from the top; `packed` ("PNT3"): groups of four
+// pixels, where a group's first pixel has alpha 0 and is not 0, that word instead counts target bytes left as
+// they are. What the renderer decodes of a file is shared by `name` while a texture holds it.
+struct TextureImage {
+    const char* name;
+    const void* pixels;
+    std::uint32_t bytes;   // the pixels' bytes in the file
+    int width, height;
+    bool packed;
+};
+// The texture of `holder` composed on the GPU: `size` x `size` texels of transparent black, each image (`size`
+// square) drawn over the last (premultiplied: what is there x (1 - the image's alpha) + the image), the levels
+// below made from it; the texture shows the levels from `mip` on, `levels` of them (its size `size` >> `mip`).
+// Kept until the holder goes, made again on a new device. False when not made (nothing shown).
+bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels, const TextureImage* images, int count);
+// A texture of `holder` the game draws into on the GPU (DrawIntoTexture): `width` x `height` texels, one level, all
+// transparent black; with `oneBitAlpha` what is drawn into it keeps only the alpha's top bit (a 1:5:5:5 texture's).
+bool BlankTexture(const void* holder, int width, int height, bool oneBitAlpha);
+// The rectangle `width` x `height` at `image`'s top-left put into the texture at (x, y), replacing what is there
+// (clipped to the texture); without an image that rectangle is filled with opaque white.
+void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y, int width, int height);
+
 void BeginMesh(void* device, const MeshDraw& mesh);
 void MeshPass(void* device);
 void EndMesh();

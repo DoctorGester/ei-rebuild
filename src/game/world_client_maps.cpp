@@ -1034,7 +1034,7 @@ int CWorldClient::LoadZone(CStream* block) {
     }
     terrain->ClearMap();
     // The texture manager is fetched for both calls; the first does not use it.
-    DeleteComposedTextures();
+    ForgetComposedTextures();
     TextureManager()->FreeCache();
     ShowLoadingMovie(kProgressMapFreed);
 

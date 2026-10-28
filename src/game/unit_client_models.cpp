@@ -417,7 +417,7 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
         std::memcpy(request.layers.data(), layers.data(), static_cast<std::size_t>(bytes));
         NameSkinTextures(this, detailed, request, unitKey, prototypeKey, texture);
         result = reinterpret_cast<void*>(
-            textureManager->Compose(static_cast<std::string*>(target), &request, &unitKey, &prototypeKey, 3, 0, 0x5551));
+            textureManager->Compose(static_cast<std::string*>(target), &request, &unitKey, &prototypeKey, 3, 0x5551));
         lib::FreeStorage(request.layers);
     }
     return result;

@@ -12,7 +12,7 @@ that reaches the function of the frame before it (through jump thunks, tail call
 the original game functions; where that cannot be told, an indirect call or a hooked function with a
 differing name, the word waits until a later word links to it). Words before the throw's own function
 (CxxThrowException) and after the thread's first function (entry) are dropped. The named stack reads
-outermost first and ends at the throw: "... -> CTextureManager::Compose -> ... -> lib::File::Write -> CxxThrowException".
+outermost first and ends at the throw: "... -> QuickSave -> lib::File::Write -> CxxThrowException".
 
 usage: python tools/resolve_crash.py [run folder or build/verify]   (defaults to build/verify; last crash only)
        --raw  every logged word, one per line, instead of the filtered frames and the named stack

@@ -316,16 +316,32 @@ Verification: `CreateFromMmp` 00690430, `LoadMmpExtra` O; `MmpHeader::MipOffset`
 compared; texture_fill); `CTextureManager::NewObject` 00691810 (manager slot 14; constructor and reset inlined) O, the extra
 block's `AlignedArray<uint8_t>::SetSize` 00694300 S on a copy; `SetDevice` 006913A0 (texture.cpp; quality 0079BCDC to the mip
 level, the 512 limit off (the device's 4096-pixel textures; R27c: constant), the cache limit a tenth of 256 MB (`kCacheLimit`); world_client_setup calls it by address; S with
-references undone between the runs); `DeleteComposedTextures` 006916F0 (texture_cache; cdecl: every <data path>textures\*.mmp
-through the game's DeleteFileA, failures to the debug log; O counted only: the harness overlay decides what a delete does);
+references undone between the runs); `ForgetComposedTextures` (the original's DeleteComposedTextures 006916F0 deleted
+every <data path>textures\*.mmp; the image keeps no such file);
 `LoadBmp` 00690260 (alpha "a_<file>" beside it; no scenario: no loose .bmp).
 
-CTextureManager::Compose: the cache file `<game folder>textures\<name>.mmp` keeps the request's layer bytes in its extra block (header
-+0x48), so an unchanged request is reused (1). When `name` has no file and differs from the fallback name, the fallback's
-file is tried. No layer textures deletes the file (0); else the image is drawn by 00693010 (`CTextureManager::DrawLayers`, S
-on an image copy; returns the layers drawn, converter slot 5 per layer) and written, each level converted to 16 bits by the
-pixel converter 007AF06C slot 2 [out, in, kind, count] (kind 3 for 4444, 2 for 5551, 0 for 5650, else -1) and halved by slot 7.
-A file that cannot be created goes to FatalError (the image block leaks, as in the original). 00693970 and 0068F860 (a texture
+### Composed textures
+
+CTextureManager::Compose (texture_compose.cpp): a party unit's skins ("mo<n>p" / "prot<n>p" 256 square and "mo<n>s" /
+"prot<n>s" 128, 1:5:5:5, three levels) and its wounds texture ("mo<n>w", the wounded parts' "<unit><part>w<level>.mmp"
+overlays, 128 for a hero and 64 for others, 4:4:4:4, three levels) are drawn from layer textures on the GPU
+(render::ComposeTexture, R28; renderer.md section 7). The texture manager keeps what each one is made of under its name,
+case-insensitive (`ComposedTexture`: the header the original's cache file `<data path>textures\<name>.mmp` had, the
+request's layer bytes as its extra block, the layer textures found); the original drew the image on the CPU (00693010
+DrawLayers: 2DintMMX slot 5 per layer, a premultiplied "over"), converted each level to 16 bits (slot 2) and halved it
+(slot 7, the alpha sum plus 128 before the shift) into that file. The logic is the file's: an unchanged request is reused
+(1); when `name` has none and differs from the fallback name, the fallback's is tried (and taken, made anew, when it does
+not exist either); no layer textures forgets it (0); a missing layer is skipped (logged), one of another size is
+FatalError's result. LoadTexture looks for it where the original read the file (after the archives), LoadMmpExtra
+first. The texture's holder has no memory: `CTexture::CreateComposed` hands the layers' file pixels to the renderer,
+which decodes them (32-bit premultiplied, "PNT3" run-length packed) and draws them over transparent black, the
+levels below made by the GPU (a plain box filter: the original's alpha +128 per level is not kept), the colours kept
+at 8 bits a channel (the original's 1:5:5:5 / 4:4:4:4 cut is gone). `ForgetComposedTextures` (map load, texture
+manager create / destroy, shutdown) drops them all, as the original deleted the files. Checked by every golden that
+dresses a unit (combat, camera, ... the coverage list of 00693010 / 00693180) and visually by render_blink, units,
+render_device_lost (made again on a new device: RemakeComposed) and ui_gallery_camp.
+
+00693970 and 0068F860 (a texture
 from a surface description; its one caller 00691D50 is dead) are dead. `FindTypedTexture` 00692D30 and `FreeCache` 00692F00
 (texture_cache.cpp, O). Not rewritten: Rebirth-patched slot 2 00691500. The fills keep a reference on every attached level
 they move to (never released; the wrappers drop their second run's); a DXT file / surface pair without a decode mode passes the

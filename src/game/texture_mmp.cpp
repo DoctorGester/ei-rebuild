@@ -5,7 +5,6 @@
 // and shows nothing. See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
-#include "lib/file_io.h"
 #include "lib/crt.h"
 #include <cstdint>
 #include <cstring>
@@ -24,19 +23,6 @@ namespace {
 
 
 // Nonzero when mipmaps are used (otherwise every texture gets a single level).
-
-// The alpha kind from the file (texture flags 0x4000..0x20000), and the texture loaded.
-void MarkLoaded(CTexture* texture, const MmpHeader* header) {
-    texture->flags_ &= 0xFFFC3FFF;
-    switch (header->alphaKind) {
-    case 0: texture->flags_ |= 0x4000; break;
-    case 1: texture->flags_ |= 0x8000; break;
-    case 4: texture->flags_ |= 0x10000; break;
-    case 8: texture->flags_ |= 0x20000; break;
-    default: break;
-    }
-    texture->flags_ |= kTextureLoaded;
-}
 
 constexpr std::uint32_t kDxtTag = 0x545844;          // "DXT" (the format's low three bytes)
 
@@ -60,6 +46,18 @@ Surface* DecodedHolder(CTextureDevice* device, const CTexture* texture, const Mm
 
 } // namespace
 
+
+void CTexture::MarkLoaded(const MmpHeader* header) {
+    flags_ &= 0xFFFC3FFF;
+    switch (header->alphaKind) {
+    case 0: flags_ |= 0x4000; break;
+    case 1: flags_ |= 0x8000; break;
+    case 4: flags_ |= 0x10000; break;
+    case 8: flags_ |= 0x20000; break;
+    default: break;
+    }
+    flags_ |= kTextureLoaded;
+}
 
 std::uint32_t MmpHeader::MipOffset(unsigned mip) const {
     if (mip == 0) return extraSize;
@@ -112,27 +110,18 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const MmpHeader* header, uns
     ++decoded->refs_;
     if (previous) previous->Release();
     uploadResult_ = static_cast<int>(header->FilledBytes(format_, mip, levels));
-    MarkLoaded(this, header);
+    MarkLoaded(header);
     extra_.resize(static_cast<int>(header->extraSize));
     std::memcpy(extra_.data(), header + 1, header->extraSize);
     return 1;
 }
 
 int CTextureManager::LoadMmpExtra(const char* name, std::vector<std::uint8_t>* out) {
-    MmpHeader header;
-    std::memset(&header, 0, sizeof(header));
-    std::string path;
-    lib::File file;
-    path = str::Format("%stextures\\%s.mmp", DataFolderText(), name);
-    if (file.Open(path, lib::File::modeRead)) {
-        file.ReadValue(header);
-        int size = static_cast<int>(header.extraSize);
-        out->resize(size);
-        if (size) file.Read(out->data(), static_cast<unsigned>(size));
-        file.Close();
+    if (const ComposedTexture* composed = FindComposed(name)) {
+        *out = composed->extra;
         return 1;
     }
-    path = str::Format("%s%s", name, ".mmp");   // "%s%s", ".mmp"
+    std::string path = str::Format("%s%s", name, ".mmp");   // "%s%s", ".mmp"
     auto* fileHeader = static_cast<MmpHeader*>(GetFile(path, nullptr));
     if (!fileHeader) {
         out->clear();

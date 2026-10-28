@@ -47,7 +47,7 @@ static void ReleaseTextures(CTextureManager* manager) {
     }
     manager->cache_.clear();
     manager->cachedBytes_ = 0;
-    DeleteComposedTextures();
+    ForgetComposedTextures();
     CTextureDevice* device = manager->device_;
     manager->device_ = nullptr;
     if (device) device->Release();
@@ -55,7 +55,7 @@ static void ReleaseTextures(CTextureManager* manager) {
 
 int CTextureManager::Create() {
     if (!CBaseManager::Create()) return 0;
-    DeleteComposedTextures();
+    ForgetComposedTextures();
     const std::string folder = *g_textFolder;
     BOOL opened = AddArchive((folder + "textures.res"));
     opened = AddArchive((folder + "redress.res")) && opened ? 1 : 0;
