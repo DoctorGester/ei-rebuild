@@ -12,7 +12,6 @@
 #include "party_manager.h"
 #include "player_messages.h"
 #include "sound.h"
-#include "text_reader.h"
 #include "text_split.h"
 #include "ui_briefing.h"
 #include "unit.h"

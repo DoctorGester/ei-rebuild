@@ -1,9 +1,8 @@
-// The text manager's line reader. See text_reader.h.
+// The text manager's line reader (CTextManager, item_db_text.h).
 // The game inlines the same few loops many times with small differences (the end test inline
 // or through IsPastEnd, the character code inline or through a helper); `Advance` below
 // reproduces each variant by its call pattern.
 #include "item_db_text.h"
-#include "text_reader.h"
 
 #include "resource.h"
 
@@ -14,8 +13,6 @@
 #include <string>
 
 namespace {
-
-// Splits `text` at `separator` into `out`.
 
 const char* const kComment = "##";
 const char* const kHeader = "#";
@@ -115,24 +112,12 @@ bool CTextManager::PeekWord(std::string* out) {
     return true;
 }
 
-bool TextSkipLine(CTextManager* self) {
-    const char* p = self->cursor_;
-    if (!Inside(self, p)) return false;
-    while (Inside(self, p) && *p != 10) ++p;
-    if (!Inside(self, p)) {
-        self->cursor_ = p;
-        return false;
-    }
-    self->cursor_ = p + 1;
-    return true;
-}
-
-bool TextNextLine(CTextManager* self) {
+bool CTextManager::NextLine() {
     std::string word;
-    Advance(self, kInline);
-    while (self->PeekWord(&word)) {
+    Advance(this, kInline);
+    while (PeekWord(&word)) {
         if (!IsComment(word)) return true;
-        Advance(self, kInline);
+        Advance(this, kInline);
     }
     return false;
 }
@@ -246,7 +231,7 @@ bool CTextManager::FindLine(std::string_view key) {
         Advance(this, kFindMulti);
         while (PeekWord(&next)) {
             if (!IsComment(next)) break;
-            TextSkipLine(this);
+            Advance(this, kInline);
         }
     }
     return false;

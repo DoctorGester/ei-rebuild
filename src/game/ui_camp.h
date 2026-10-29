@@ -126,11 +126,9 @@ public:
     CUiMesh* Marker(int index) const { return SceneMesh(3 + index); }
     // Scene objects 0..2 and those after the zone markers.
     void ShowAllButZones(bool visible);
+    // Zones + quests + links: the layers and the rest follow them.
+    int MarkerCount() const { return static_cast<int>(zones_.size() + quests_.size() + links_.size()); }
 
-    int zoneCount_ = 0;
-    int questCount_ = 0;
-    int linkCount_ = 0;
-    int markerCount_ = 0;            // zones + quests + links
     int turning_ = 0;                // -1 / +1 while a turn button is held
     float bobTime_ = 0.0f;           // seconds, for the arrow's bobbing and the layers' frames
     std::string allodTitle_;
@@ -431,12 +429,12 @@ public:
     void Build(bool body);
     // The place in the hero's weapon list, or -1.
     void ShowWeapon(CItem* weapon);
-    // The place in the hero's armour list, or -1.
-    void ShowArmour(CItem* item);
+    // The place in the hero's quick item list, or -1.
+    void ShowQuickItem(CItem* item);
     // On the camp's body: a right click on a filled weapon slot (of the first four) shows that weapon. The
     // event is not marked used.
     void RightDown(int buttons, int x, int y) override;
-    // Regions 0-3 the weapons (topic 2), 4-7 the armour list from its end (3), body regions 8-14 the armour
+    // Regions 0-3 the weapons (topic 2), 4-7 the quick items from the right (3), body regions 8-14 the armour
     // worn at body part region - 8 (topic region - 4).
     CItem* ItemAt(int x, int y, int* topic) override;
 

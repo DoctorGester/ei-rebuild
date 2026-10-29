@@ -12,7 +12,6 @@
 #include "party.h"
 #include "player_client.h"
 #include "player_messages.h"
-#include "text_reader.h"
 #include "text_split.h"
 #include "ui.h"
 #include "ui_camp.h"
@@ -430,7 +429,7 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
             }
         }
         if (found) {
-            TextNextLine(texts);
+            texts->NextLine();
             texts->ReadLine(&text, 1);
         }
         std::string colour("\007C\377\263" "1 ");   // colour code 0x31B3FF43 and a space

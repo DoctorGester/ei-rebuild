@@ -94,7 +94,7 @@ wrappers (`verify_ui_window_slots.cpp`) use stand-in vtables that record the cal
 bytes in the screen constructors/destructors are stack bytes; ours passes the same value where a constructor keeps them.
 
 **Deleting destructors** (O): slot 0 of all 50 windows in 005E0000-00640000 and the input sides'
-37 thunks (`SUB ECX,0x94; JMP`); ours are the compiler's, `ui_window_delete.cpp` keeps the few with a body. The plain strip's 0060E280 frees nothing of its own; `CObjectivesWindow` 00603B90 does not free the exit distances map +0x178. `CMasterRequestBox` (00741DD8) is a message box
+37 thunks (`SUB ECX,0x94; JMP`); ours are the compiler's; the chat line's (its surface) is in `ui_chat_overlay.cpp`. The plain strip's 0060E280 frees nothing of its own; `CObjectivesWindow` 00603B90 does not free the exit distances map +0x178. `CMasterRequestBox` (00741DD8) is a message box
 plus a master server link at +0x180; `MpAddressEntry` is 0x34 bytes; 0062EDA0 is 00499E30's code.
 
 ### Window stack, screen construction, window base methods (O unless noted)
@@ -792,7 +792,8 @@ renderer (ticket R5, docs/notes/renderer.md sections 5 and 8):
 and 2: the menu frame step, (screen 3) a mouse move to the input
   side, a depth clear, then the children;
 - the hero equipment panel's draw (CHeroEquipPanel): the two
-  highlight frames placed, the quick slots' item models, and with the body (the camp) the seven
+  highlight frames placed (the shown weapon, the selected quick item), the weapons' (left) and quick items' (from the
+  right) item models, and with the body (the camp) the seven
   equipment slots' models inside depth clears (all to 0, the slots' rectangles to 1, all to 1
   afterwards), as the hero preview and the trade grid do;
 - the alpha reference set to the window's +0x1EC.

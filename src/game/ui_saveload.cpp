@@ -12,7 +12,6 @@
 
 #include "console.h"
 #include "item_db_text.h"
-#include "text_reader.h"
 #include "net_link.h"
 #include "object_tables.h"
 #include "texture.h"

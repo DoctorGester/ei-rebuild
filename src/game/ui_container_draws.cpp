@@ -52,16 +52,16 @@ void CBriefingScreen::Draw(CSceneRenderer* pass) { ScreenDraw(this, pass, true);
 
 void CMainMenu::Draw(CSceneRenderer* pass) { ScreenDraw(this, pass, false); }
 
-// The hero's quick items (the strip's left part), the other list (from the right), the worn armour and the
-// selected quick slot, with the panel's highlight frames, strip mode, body and right-part selection.
+// The hero's weapons (the strip's left part), quick items (from the right) and worn armour, with the frames of
+// the shown weapon and the selected quick item.
 void CHeroEquipPanel::Draw(CSceneRenderer* pass) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     auto frame = [this](int i) { return SceneMesh(i); };
-    std::uint32_t quick = hero->weaponIndex;
-    if (quick < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
+    std::uint32_t shown = hero->weaponIndex;
+    if (shown < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
         frame(0)->visible_ = true;
         // The unsigned slot * 100 + 50 is converted as a 64-bit integer.
-        frame(0)->Place(static_cast<float>(x87::FromUnsigned(quick * 100u + 50u)), 50.0f, 3.0f);
+        frame(0)->Place(static_cast<float>(x87::FromUnsigned(shown * 100u + 50u)), 50.0f, 3.0f);
     } else {
         frame(0)->visible_ = false;
     }

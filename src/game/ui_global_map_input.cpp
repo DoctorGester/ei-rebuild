@@ -97,7 +97,7 @@ void CGlobalMap::MouseMove(int, int x, int y) {
     bool isLink = false;
     int index = -1;
     int region = RegionAt(x, y);
-    if (region >= linkCount_ + kFirstLinkRegion) return;
+    if (region >= std::ssize(links_) + kFirstLinkRegion) return;
     if (turning_ == 0) {
         if (region >= kFirstLinkRegion) {
             index = region - kFirstLinkRegion;
@@ -108,7 +108,7 @@ void CGlobalMap::MouseMove(int, int x, int y) {
             // WideScreen takes the margin off its x (addon's code).
             std::uint32_t pixel = backdrop_->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
             index = static_cast<int>((pixel >> 4) & 0xF) - 1;
-            if (index >= zoneCount_) index = -1;
+            if (index >= std::ssize(zones_)) index = -1;
             if (gipat_ && index >= 0 && zones_[index].link >= 0) {
                 isLink = true;
                 index = zones_[index].link;
@@ -118,8 +118,8 @@ void CGlobalMap::MouseMove(int, int x, int y) {
     SelectZone(index, isLink);
     if (index == -1 || (!isLink && zones_[index].state == 0)) {
         surfaces_[0]->Hide(false);
-        SceneMesh(markerCount_ + kTipBack)->visible_ = false;
-        SceneMesh(markerCount_ + kTipFrame)->visible_ = false;
+        SceneMesh(MarkerCount() + kTipBack)->visible_ = false;
+        SceneMesh(MarkerCount() + kTipFrame)->visible_ = false;
         shownName_.clear();
         return;
     }
@@ -145,10 +145,10 @@ void CGlobalMap::MouseMove(int, int x, int y) {
             bottom += kTipLine;
         }
     }
-    CUiMesh* back = SceneMesh(markerCount_ + kTipBack);
+    CUiMesh* back = SceneMesh(MarkerCount() + kTipBack);
     back->SetRectangle(3.0f, 100.0f, 400.0f, 20.0f, 780.0f, static_cast<float>(lines * kTipLine + 75), 0, 0, 0x100, 0x100);
     back->visible_ = true;
-    CUiMesh* frame = SceneMesh(markerCount_ + kTipFrame);
+    CUiMesh* frame = SceneMesh(MarkerCount() + kTipFrame);
     frame->SetFrame(3.0f, 100.0f, 395.0f, 15.0f, 785.0f, static_cast<float>((lines * 5 + 20) * 4), 5.0f, 2, 0xFE, 0xB4,
                     0xF9);
     frame->visible_ = true;

@@ -6,7 +6,6 @@
 
 #include "item_db_text.h"
 #include "object_tables.h"
-#include "text_reader.h"
 #include "ui_cursor.h"
 #include "unit.h"
 #include "unit_db.h"

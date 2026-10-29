@@ -1,11 +1,8 @@
 // The global map's Create: the island model of the local player's allod, its zones, the quests the player
 // holds and the links to the zones the player may enter, the clock text, the camp and turn buttons, the
 // weather. See docs/notes/ui.md ("Camp, global map, hero screens").
-// Floating point follows the x87 code: `double` for values kept on the FPU stack, static_cast<float> where it
-// stores to a float.
 #include "app.h"
 #include "console.h"
-#include "core_maths.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "global_map_clouds.h"
@@ -27,7 +24,6 @@
 
 #include "render/render_state.h"
 
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
@@ -44,8 +40,6 @@
 #include <vector>
 
 namespace {
-
-inline double D(float f) { return f; }
 
 // --- Game data ----------------------------------------------------------------------------------
 
@@ -70,19 +64,15 @@ public:
 
     Vector3 Centre() const {
         float depth = map_->depth_;
-        float x = static_cast<float>((D(map_->centreX_) * D(0.0025f) - 1.0) *
-                        D(0.48157462f) * D(depth));
-        float y = static_cast<float>((D(map_->centreY_) * D(0.0025f) - D(0.75f)) *
-                        D(0.48157462f) * D(depth));
+        float x = static_cast<float>((map_->centreX_ * 0.0025f - 1.0) * 0.48157462f * depth);
+        float y = static_cast<float>((map_->centreY_ * 0.0025f - 0.75f) * 0.48157462f * depth);
         return Vector3{x, y, depth};
     }
     Vector3 ModelPoint(const Vector3& local) const {
         Vector3 centre = Centre();
         Vector3 turned;
         map_->turn_.Rotate(&turned, &local);
-        Vector3 out;
-        AddVectors(&out, centre, turned);
-        return out;
+        return centre + turned;
     }
     void Turn(CUiMesh* sprite) const { sprite->localRotation_ = map_->turn_; }
     CTexture* Texture(int index) const { return map_->objects_[index]; }
@@ -101,14 +91,7 @@ public:
                              static_cast<int>(u1), static_cast<int>(v1));
         sprite->texture_ = Texture(4);
         Turn(sprite);
-        Vector3 centre = Centre();
-        Vector3 local = {0.0f, 0.0f, height};
-        Vector3 turned;
-        map_->turn_.Rotate(&turned, &local);
-        Vector3 p;
-        p.Construct(static_cast<float>(D(centre.x) + D(turned.x)), static_cast<float>(D(centre.y) + D(turned.y)),
-                    static_cast<float>(D(centre.z) + D(turned.z)));
-        sprite->localPosition_ = p;
+        sprite->localPosition_ = ModelPoint(Vector3{0.0f, 0.0f, height});
         return sprite;
     }
 
@@ -126,20 +109,20 @@ void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, i
 void SetMarkerRegion(CUiRegion* region, const CUiMesh* sprite) {
     float x, y, depth;
     sprite->GetPlacement(&x, &y, &depth);
-    int bottom = static_cast<int>(libcrt::Ftol(D(y) + D(10.0f)));
-    int right = static_cast<int>(libcrt::Ftol(D(x) + D(20.0f)));
-    int top = static_cast<int>(libcrt::Ftol(D(y) - D(25.0f)));
-    int left = static_cast<int>(libcrt::Ftol(D(x) - D(20.0f)));
+    int bottom = static_cast<int>(y + 10.0f);
+    int right = static_cast<int>(x + 20.0f);
+    int top = static_cast<int>(y - 25.0f);
+    int left = static_cast<int>(x - 20.0f);
     region->SetRect(left, top, right, bottom);
 }
 
 // The product (r = b * a in this operand order), each component stored.
 Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
     Quaternion r;
-    float z = static_cast<float>(((D(b.x) * D(a.y) - D(a.x) * D(b.y)) + D(b.z) * D(a.w)) + D(a.z) * D(b.w));
-    float y = static_cast<float>(((D(a.x) * D(b.z) - D(b.x) * D(a.z)) + D(b.y) * D(a.w)) + D(b.w) * D(a.y));
-    float x = static_cast<float>(((D(a.z) * D(b.y) - D(b.z) * D(a.y)) + D(b.x) * D(a.w)) + D(a.x) * D(b.w));
-    float w = static_cast<float>(D(b.w) * D(a.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
+    float z = ((b.x * a.y - a.x * b.y) + b.z * a.w) + a.z * b.w;
+    float y = ((a.x * b.z - b.x * a.z) + b.y * a.w) + b.w * a.y;
+    float x = ((a.z * b.y - b.z * a.y) + b.x * a.w) + a.x * b.w;
+    float w = static_cast<float>(b.w * a.w - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
     r.w = w;
     r.x = x;
     r.y = y;
@@ -149,9 +132,8 @@ Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
 
 // A layer's texture frame: the fractional part of time * rate (stored).
 void SetFrameFraction(CEngineObject* layer, float time, float rate) {
-    double v = D(time) * D(rate);
-    int whole = static_cast<int>(libcrt::Ftol(v));
-    float fraction = static_cast<float>(v - static_cast<double>(whole));
+    float v = time * rate;
+    float fraction = v - static_cast<float>(static_cast<int>(v));
     AsUiMesh(layer)->textureOffsetU_ = fraction;
 }
 
@@ -180,14 +162,14 @@ void CGlobalMap::CreateScreen() {
     {
         Vector3 axis = {1.0f, 0.0f, 0.0f};
         Quaternion q;
-        q.SetAxisAngle(axis, static_cast<float>(D(3.1415927f) * D(0.8f)));   // pi * 0.8
+        q.SetAxisAngle(axis, 3.1415927f * 0.8f);   // pi * 0.8
         turn_ = q;
     }
     MapBuilder builder(this);
 
     // The current zone: its arrow above it, its base on it, the island.
     {
-        Vector3 above = {position_.x, position_.y, static_cast<float>(D(position_.z) + 2.0)};
+        Vector3 above = {position_.x, position_.y, position_.z + 2.0f};
         builder.Marker(allod->otherNames[kAllodArrow], above, 1.0f);
         builder.Marker(allod->otherNames[kAllodBall], position_, 0.8f);
         CUiMesh* island = AddSprite(allod->otherNames[kAllodIsland]);
@@ -212,17 +194,16 @@ void CGlobalMap::CreateScreen() {
         variable = str::Format("z.%s", zone->name);
         GlobalMapZone& entry = zones_.emplace_back();
         entry.link = -1;
-        entry.state = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable(variable))));
+        entry.state = static_cast<int>(LocalPlayerVariable(variable));
         entry.name = zone->name;
         entry.title = PlaceTitle("zone ", zone->name);
         CUiMesh* sprite = AddSprite(zone->figure);
         sprite->Place(centreX_, centreY_, depth_);
         builder.Turn(sprite);
-        ++zoneCount_;
     }
 
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
-    for (int i = 0; i < zoneCount_; ++i) {
+    for (int i = 0; i < std::ssize(zones_); ++i) {
         variable = str::Format("q.%s", zones_[i].name);
         GameLocalPlayerVariables(variable, &vars);
         for (const auto& node : vars) {
@@ -240,24 +221,22 @@ void CGlobalMap::CreateScreen() {
             sprite->SetScale(0.3f);
             builder.Turn(sprite);
             SetWhite(sprite);
-            ++questCount_;
         }
     }
 
     // The ways out of each zone the player may take ("z.<way>" = 2), with a region each.
-    for (int i = 0; i < zoneCount_; ++i) {
+    for (int i = 0; i < std::ssize(zones_); ++i) {
         MapRecord* zone = g_mapDatabase.FindMap(zones_[i].name);
         for (int e = 0; e < std::ssize(zone->exits); ++e) {
             MapRecord* way = g_mapDatabase.FindMap(zone->exits[e].target);
             if (!way) continue;
             variable = str::Format("z.%s", way->name);
             if (way->kind != 2) continue;
-            double state = D(LocalPlayerVariable(variable));
-            double two = 2.0;
+            float state = LocalPlayerVariable(variable);
             EI_NAN_AUDIT(state);
-            if (state != two) continue;
+            if (state != 2.0f) continue;
             if (way->figure.empty()) continue;
-            if (zones_[i].state == 2) zones_[i].link = linkCount_;
+            if (zones_[i].state == 2) zones_[i].link = std::ssize(links_);
             GlobalMapPlace& link = links_.emplace_back();
             link.zone = i;
             link.name = way->name;
@@ -270,10 +249,8 @@ void CGlobalMap::CreateScreen() {
             builder.Turn(sprite);
             SetWhite(sprite);
             SetMarkerRegion(AddRegion(), sprite);
-            ++linkCount_;
         }
     }
-    markerCount_ = questCount_ + linkCount_ + zoneCount_;
 
     // Three plain layers over the model (shadow, haze, glow), in the weather's colours (the original first gave
     // them 0xA08200C8, 0xF0B400FF and 0x4BFFFFFF; its weather table replaced them before the first frame).
@@ -323,7 +300,7 @@ void CGlobalMap::CreateScreen() {
     }
 
     // The clock: "<save_day>  <day>,  <h>:<mm>" under the allod's title.
-    int minutes = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable("gtime")) * D(60.0f)));
+    int minutes = static_cast<int>(LocalPlayerVariable("gtime") * 60.0f);
     int day = minutes / 1440;
     minutes -= day * 1440;
     int hour = minutes / 60;
@@ -346,7 +323,7 @@ void CGlobalMap::CreateScreen() {
         CUiMesh* camp = AddBlankSprite();
         camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
         camp->texture_ = builder.Texture(3);
-        noCamp_ = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable("i.nocamp")))) == 1;
+        noCamp_ = static_cast<int>(LocalPlayerVariable("i.nocamp")) == 1;
         if (noCamp_) camp->visible_ = false;
         CUiMesh* left = AddBlankSprite();
         left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
@@ -393,20 +370,18 @@ void CGlobalMap::Update() {
     }
     MapBuilder builder(this);
     if (turning_ != 0 || dragging_) {
-        float turned = static_cast<float>(FrameTime() * static_cast<double>(turning_) * D(3.1415927f) *
-                                 D(0.25f) +
-                             D(angle_));
+        float turned = static_cast<float>(FrameTime() * turning_ * 3.1415927f * 0.25f + angle_);
         angle_ = static_cast<float>(std::fmod(turned, kGlobalMapFullTurn));
         Vector3 up = {0.0f, 0.0f, 1.0f};
         Vector3 side = {1.0f, 0.0f, 0.0f};
         Quaternion spin;
         spin.SetAngleAxis(angle_, up);
         Quaternion tilt;
-        tilt.SetAxisAngle(side, static_cast<float>(D(3.1415927f) * D(0.8f)));
+        tilt.SetAxisAngle(side, 3.1415927f * 0.8f);
         Quaternion turn = TurnProduct(spin, tilt);
         turn_ = turn;
         EI_NAN_AUDIT(turn_.w);
-        if (D(turn_.w) < 0.0) {
+        if (turn_.w < 0.0f) {
             turn_.w = -turn_.w;
             turn_.x = -turn_.x;
             turn_.y = -turn_.y;
@@ -415,29 +390,29 @@ void CGlobalMap::Update() {
         SceneMesh(1)->localPosition_ = builder.ModelPoint(position_);
         builder.Turn(SceneMesh(1));
         builder.Turn(SceneMesh(2));
-        for (int k = 3; k < 6; ++k) builder.Turn(SceneMesh(markerCount_ + k));
-        for (int i = 0; i < zoneCount_; ++i) builder.Turn(SceneMesh(3 + i));
-        for (int i = 0; i < questCount_; ++i) {
-            CUiMesh* sprite = SceneMesh(3 + zoneCount_ + i);
+        for (int k = 3; k < 6; ++k) builder.Turn(SceneMesh(MarkerCount() + k));
+        for (int i = 0; i < std::ssize(zones_); ++i) builder.Turn(Marker(i));
+        for (int i = 0; i < std::ssize(quests_); ++i) {
+            CUiMesh* sprite = Marker(std::ssize(zones_) + i);
             sprite->localPosition_ = builder.ModelPoint(quests_[i].position);
             builder.Turn(sprite);
         }
-        for (int i = 0; i < linkCount_; ++i) {
-            CUiMesh* sprite = SceneMesh(3 + questCount_ + zoneCount_ + i);
+        for (int i = 0; i < std::ssize(links_); ++i) {
+            CUiMesh* sprite = Marker(std::ssize(zones_) + std::ssize(quests_) + i);
             sprite->localPosition_ = builder.ModelPoint(links_[i].position);
             builder.Turn(sprite);
             SetMarkerRegion(regions_[3 + i], sprite);
         }
     }
 
-    double time = FrameTime() + D(bobTime_);
+    double time = FrameTime() + bobTime_;
     bobTime_ = static_cast<float>(time);
-    double bob = 0.5 - x87::fcos(time * D(5.0f)) * D(0.2f);
-    Vector3 above = {position_.x, position_.y, static_cast<float>(bob + D(position_.z))};
+    double bob = 0.5 - x87::fcos(time * 5.0f) * 0.2f;
+    Vector3 above = {position_.x, position_.y, static_cast<float>(bob + position_.z)};
     SceneMesh(0)->localPosition_ = builder.ModelPoint(above);
-    SetFrameFraction(sceneObjects_[markerCount_ + 3], bobTime_, 0.01f);
-    SetFrameFraction(sceneObjects_[markerCount_ + 4], bobTime_, 0.016666668f);
-    SetFrameFraction(sceneObjects_[markerCount_ + 5], bobTime_, 0.033333335f);
+    SetFrameFraction(sceneObjects_[MarkerCount() + 3], bobTime_, 0.01f);
+    SetFrameFraction(sceneObjects_[MarkerCount() + 4], bobTime_, 0.016666668f);
+    SetFrameFraction(sceneObjects_[MarkerCount() + 5], bobTime_, 0.033333335f);
 
     if (selectPending_) RefreshSelection();
     selectPending_ = false;

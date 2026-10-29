@@ -120,7 +120,7 @@ void CGlobalMap::LeftDown(int, int x, int y) {
         // WideScreen takes the margin off its x (addon's code).
         const std::uint32_t pixel = backdrop_->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
-        if (index < 0 || index >= zoneCount_ || zones_[index].state == 0) return;
+        if (index < 0 || index >= std::ssize(zones_) || zones_[index].state == 0) return;
         interface_->PlaySound(kOkSound);
         GlobalMapZone& zone = zones_[index];
         link = zone.link;

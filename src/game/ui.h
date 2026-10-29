@@ -1276,7 +1276,6 @@ public:
     // A portrait click picks a player while it is not 0.
     void PlayerList(int mode) override { portraitMode_ = mode; }
     explicit CBattleScreen(CInterface3D* ui);
-    ~CBattleScreen() override;
 
     struct PartyIds {
         // Both id vectors hold the same ids in the same order (the camera's id is not compared).

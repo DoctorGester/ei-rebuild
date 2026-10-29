@@ -7,7 +7,6 @@
 
 #include "console.h"
 #include "item_db_text.h"
-#include "text_reader.h"
 
 #include "game_singletons.h"
 #include "render/render_state.h"
@@ -46,7 +45,7 @@ std::optional<Vector3> CGlobalMap::MapPosition(std::string_view prefix, std::str
     key += name;
     std::optional<Vector3> position;
     if (texts->FindLine(key) && (!positionLine || texts->FindLine(kPositionLine))) {
-        TextNextLine(texts);
+        texts->NextLine();
         if (texts->Split(&words, true)) {
             while (words.size() < 3) words.push_back(kMissingNumber);
             position = Vector3{static_cast<float>(str::ToDouble(words[0])), static_cast<float>(str::ToDouble(words[1])),
@@ -69,7 +68,7 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
         link = index;
         if (gipat_ && index >= 0 && links_[index].zone >= 0) zone = links_[index].zone;
     }
-    for (int i = 0; i < zoneCount_; ++i) {
+    for (int i = 0; i < std::ssize(zones_); ++i) {
         CUiMesh* marker = Marker(i);
         int state = zones_[i].state;
         if (state == 0) {
@@ -83,8 +82,8 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
         }
         marker->flags_ &= ~FigureMeshFlag::Flat;
     }
-    for (int i = 0; i < linkCount_; ++i) {
-        CUiMesh* marker = Marker(zoneCount_ + questCount_ + i);
+    for (int i = 0; i < std::ssize(links_); ++i) {
+        CUiMesh* marker = Marker(std::ssize(zones_) + std::ssize(quests_) + i);
         for (int k = 0; k < 3; ++k) marker->tint_[k] = i == link ? fog_[k] : 1.0f;
     }
 }
@@ -95,16 +94,17 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
 // layers and the rest) shown or hidden.
 void CGlobalMap::ShowAllButZones(bool visible) {
     for (int i = 0; i < 3; ++i) SceneMesh(i)->visible_ = visible;
-    for (int i = zoneCount_ + 3; i < std::ssize(sceneObjects_); ++i) SceneMesh(i)->visible_ = visible;
+    for (int i = std::ssize(zones_) + 3; i < std::ssize(sceneObjects_); ++i) SceneMesh(i)->visible_ = visible;
 }
 
 void CGlobalMap::RefreshSelection() {
     if (!backdrop_) return;
-    for (int i = 0; i < zoneCount_; ++i) {
+    for (int i = 0; i < std::ssize(zones_); ++i) {
         CUiMesh* marker = Marker(i);
         std::uint32_t level = 0x18u + 0x10u * static_cast<std::uint32_t>(i);
         marker->texture_ = nullptr;
-        marker->flatColour_ = ((((level | 0xFFFFFF00u) << 8) | level) << 8) | level;
+        // Opaque grey (from the 16th zone on the level's ninth bit spills into the next channel, as in the original).
+        marker->flatColour_ = 0xFF000000u | level << 16 | level << 8 | level;
         marker->flags_ |= FigureMeshFlag::Flat;
     }
     surfaces_[1]->Hide(false);
@@ -116,8 +116,8 @@ void CGlobalMap::RefreshSelection() {
     g_sceneRenderer->fogColour_ = colour;
     surfaces_[1]->Show();
     ShowAllButZones(true);
-    SceneMesh(markerCount_ + 6)->visible_ = false;
-    SceneMesh(markerCount_ + 7)->visible_ = false;
+    SceneMesh(MarkerCount() + 6)->visible_ = false;
+    SceneMesh(MarkerCount() + 7)->visible_ = false;
     backdrop_->CaptureScreen();
     SelectZone(-1, false);
 }

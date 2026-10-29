@@ -4,9 +4,9 @@
 // See docs/notes/ui.md ("Battle screen").
 #include "acks_db.h"
 #include "base_manager.h"
+#include "item_db_text.h"
 #include "maths.h"
 #include "player_client.h"
-#include "text_reader.h"
 #include "ui.h"
 #include "ui_camp.h"
 #include "unit.h"
