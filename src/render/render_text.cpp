@@ -96,6 +96,8 @@ public:
         metrics_.ascent = RoundToInt(static_cast<float>(file_->winAscent) * scale_);
         metrics_.descent = RoundToInt(static_cast<float>(file_->winDescent) * scale_);
         metrics_.height = metrics_.ascent + metrics_.descent;
+        metrics_.cellAscent = static_cast<int>(std::ceil(static_cast<float>(file_->winAscent) * scale_));
+        metrics_.cellDescent = static_cast<int>(std::ceil(static_cast<float>(file_->winDescent) * scale_));
         const int hheaHeight = file_->hheaAscent - file_->hheaDescent + file_->hheaLineGap;
         const int winHeight = file_->winAscent + file_->winDescent;
         metrics_.lineGap = std::max(0, RoundToInt(static_cast<float>(hheaHeight - winHeight) * scale_));

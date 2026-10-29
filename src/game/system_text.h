@@ -16,7 +16,7 @@
 // Case: CharUpperA / CharLowerA's slots and text::utf8 change UTF-8 case by lib/text_case.h's table.
 // Not routed (still ANSI): the profile calls (GetPrivateProfile*, WritePrivateProfileString), whose values
 // round-trip as bytes in the ANSI calls (the config\*.ini files are the game's own and their names are
-// ASCII); SendMessageA to the titles' RichEdit control (RTF names its own code page).
+// ASCII).
 
 #include <windows.h>
 #include <mmsystem.h>

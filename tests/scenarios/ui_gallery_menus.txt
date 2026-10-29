@@ -6,7 +6,7 @@
 # bind_box (the key binding's message box), difficulty (the new game's box with check boxes),
 # quit_box (the plain message box), load_empty (the save / load window, no saves yet), heroes (the
 # multiplayer hero list), hero_new (a new hero: the name edit
-# field with typed text, the voice list, the statistics panel), titles (the RichEdit credits).
+# field with typed text, the voice list, the statistics panel), titles (the scrolling credits).
 # Nothing is saved, no hero is created (no .mp file), the key table is not stored (options cancelled).
 reject Script error
 waitmenu
@@ -123,7 +123,7 @@ frames 20
 key esc
 waitwindow 15 menu
 
-# The titles (region 4): the scrolling RichEdit text; a click ends them. (About 2 s first, as in
+# The titles (region 4): the scrolling RTF text; a click ends them. (About 2 s first, as in
 # ui_main_menu: with 1 s the vanilla game sometimes stopped on "Can't begin scene".)
 clickregion 4
 waitwindow 10 titles
