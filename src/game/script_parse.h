@@ -19,11 +19,6 @@ inline constexpr const char* kCommentOpen = /*0078BC8C*/ "/*";
 inline constexpr const char* kCommentClose = /*0078BC90*/ "*/";
 inline constexpr const char* kLineComment = /*0078BC94*/ "//";
 
-// Game CRT (locale-dependent ctype functions).
-bool IsDigit(int c);
-bool IsSpace(int c);
-int Mbscmp(std::string_view a, std::string_view b);
-
 
 // Formats the error message into the CScript's error text and sets code and line;
 // returns 0. (CScript::Error is the same.)

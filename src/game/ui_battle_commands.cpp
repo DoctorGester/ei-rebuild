@@ -51,7 +51,7 @@ void CBattleScreen::ToggleMember(int index) {
             if (chosen[i] != 0) chosen[i] = 0;
         chosen[index] = 1;
     }
-    g_clientWorld.Deselect(nullptr);
+    g_clientWorld.Deselect();
 
     for (int i = 0; i < std::ssize(*party); ++i) {
         auto* portraits = portraits_;

@@ -61,7 +61,7 @@ void RandomInBall(float& x, float& y, float& z) {
 // 0 (and a debug message) without a carrier.
 bool SetUpCasting(CParticleSource* s) {
     if (!s->attachedTo) {
-        DebugMessage(NoCarrierCasting());
+        game::DebugLog(NoCarrierCasting());
         return false;
     }
     Vector3 offset;
@@ -140,7 +140,7 @@ void RandomInBallZYX(float& x, float& y, float& z) {
 // figure, the emission rate follows the source's size, and element 1 smooths the carrier's motion.
 bool FollowCarrier(CParticleSource* s) {
     if (!s->attachedTo) {
-        DebugMessage(NoCarrierSphere());
+        game::DebugLog(NoCarrierSphere());
         return false;
     }
     Vector3 offset;
@@ -609,7 +609,7 @@ std::uint32_t ColumnAlpha(int life) { return static_cast<std::uint32_t>(kRiseFal
 // The ring from the carrier's figure (the first emission). False without a carrier.
 bool SetUpColumn(CParticleSource* s) {
     if (!s->attachedTo) {
-        DebugMessage(NoCarrierCasting());
+        game::DebugLog(NoCarrierCasting());
         return false;
     }
     Vector3 offset;
@@ -856,8 +856,7 @@ constexpr std::int32_t kFeebleAlpha[24] = /*0078ABB8*/ {0, 32, 64, 128, 255, 255
 constexpr std::int32_t kFeetAlpha[24] = /*0078AC18*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
                                              255, 255, 255, 255, 255, 255, 255};
 
-// The figure part named `name` (null if none) and a part's world position.
-CFigureMesh* FindFigurePart(CObject3D* unit, const char* name) { return unit->FindPartByPrefix(name); }
+// A figure part's world position.
 Vector3* FigurePartPosition(CObject3D* unit, Vector3* out, const CFigureMesh* part) {
     unit->PartWorldPosition(&out->x, part);
     return out;
@@ -901,10 +900,6 @@ double PowInline(double base, int exponent) { return x87::fexp(x87::flog(base) *
 // By quadrant.
 constexpr float kDustAxisX[4] = /*0078AAB8*/ {0.707f, -0.707f, -0.707f, 0.707f};
 constexpr float kDustAxisY[4] = /*0078AAC8*/ {0.707f, -0.707f, 0.707f, -0.707f};
-
-// The unit's point `index`, and the ground's and the platforms' surface heights there (left unrounded).
-Vector3* UnitPoint(CObject3D* unit, Vector3* out, int index) { return Carrier(unit)->PositionAt(out, index); }
-double TerrainHeight(float x, float y) { return g_clientWorld.RawSurfaceHeightAt(x, y); }
 
 bool Same(float a, float b) {
     EI_NAN_AUDIT(a, b);
@@ -1125,7 +1120,7 @@ int CParticleSource::EmitOrbit(Particle* p, int index) {
 int CParticleSource::EmitCastRing(Particle* p, int) {
     if (std::ssize(elements) == 0) {
         if (!attachedTo) {
-            DebugMessage(NoCarrierRing());
+            game::DebugLog(NoCarrierRing());
             return 0;
         }
         emitCount = 3;
@@ -1224,7 +1219,7 @@ void CParticleSource::TickCastRing(ParticleElement* e) {
 int CParticleSource::EmitHealing(Particle* p, int) {
     if (std::ssize(elements) == 0) {
         if (!attachedTo) {
-            DebugMessage(NoCarrierHealing());
+            game::DebugLog(NoCarrierHealing());
             return 0;
         }
         emitCount = x87::fistp(static_cast<float>(D(size) * D(EI_HEAL_RINGS) + D(EI_HEAL_RINGS_BASE)));
@@ -1294,7 +1289,7 @@ void CParticleSource::TickHealing(ParticleElement* e) {
 int CParticleSource::EmitCastSwirl(Particle* p, int) {
     if (std::ssize(elements) < lifetime) {
         if (!attachedTo) {
-            DebugMessage(NoCarrierCasting());
+            game::DebugLog(NoCarrierCasting());
             return 0;
         }
         return AddOrbiter(this, p);
@@ -2167,7 +2162,7 @@ int CParticleSource::UpdateMushroom(Particle* p) {
 int CParticleSource::EmitStench(Particle* p, int) {
     if (std::ssize(elements) == 0) {
         if (!attachedTo) {
-            DebugMessage(NoCarrierGas());
+            game::DebugLog(NoCarrierGas());
             return 0;
         }
         Vector3 offset;
@@ -3441,8 +3436,8 @@ int CParticleSource::UpdateFeetCloud(Particle* p) {
 void CParticleSource::TickFeetCloud(ParticleElement* e) {
     if (attachedTo && attachedTo->GetClassId() == ClassId::Unit) {
         CObject3D* unit = attachedTo;
-        CFigureMesh* part = FindFigurePart(unit, e->ticks ? kLeftFoot : kRightFoot);
-        if (!part) part = FindFigurePart(unit, kBody);
+        CFigureMesh* part = unit->FindPartByPrefix(e->ticks ? kLeftFoot : kRightFoot);
+        if (!part) part = unit->FindPartByPrefix(kBody);
         if (part) {
             Vector3 at;
             FigurePartPosition(unit, &at, part);
@@ -4035,7 +4030,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     if (!unit) return 0;
     if (static_cast<double>(index) > D(typeParam)) return 0;
     Vector3 scratch;
-    Vector3 point = *UnitPoint(unit, &scratch, index + g_clientWorld.tick_);
+    Vector3 point = *Carrier(unit)->PositionAt(&scratch, index + g_clientWorld.tick_);
     float* mark = &elements[0].glow.mark.x;
     if (Same(mark[0], point.x) && Same(mark[1], point.y) && Same(mark[2], point.z)) return 0;
     elements[0].glow.mark = point;
@@ -4043,7 +4038,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     under.x = point.x;
     under.y = point.y;
     under.z = 0.0f;
-    float ground = static_cast<float>(TerrainHeight(point.x, point.y));
+    float ground = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(point.x, point.y));
     double top = g_clientWorld.platforms_.SurfaceHeight(under, ground);
     p->pos.y = point.y;
     p->size = 0.07f;     // 0.07

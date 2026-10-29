@@ -51,21 +51,11 @@ constexpr float kHalfCell = 0.5f;
 
 UnitVitals& ServerVitals(CUnit* unit) { return unit->ServerCompanion()->vitals; }
 
-void StartQueueIfUnset(CUnitServer* self) {
-    if (self->queue.extra == -1) self->queue.extra = self->World()->tick_;
-}
-
 void ShowHead(CUnitServer* self) {
     AnimationSteps& queue = self->queue;
     if (queue.empty()) return;
     const AnimationStep& head = queue[0];
     if (!head.IsBlank()) self->unit->SetAnimationEntries(head.animation, head.variant, self->queue.extra, head.flags);
-}
-
-void DropEffectObject(CUnitServer* self) {
-    if (!self->effectObject) return;
-    g_serverWorld.RemoveTimedObject(self->effectObject->id_);
-    self->effectObject.Reset();
 }
 
 // The unit stops where it is, facing its direction (the motion restarted with the reversed Y axis of its
@@ -126,9 +116,9 @@ using PartyMap = CPlayer::UnitMap;
 void Play(CUnitServer* self, const AnimationSteps& steps, int newState) {
     self->state = newState;
     self->unit->UpdateSizeClass();
-    DropEffectObject(self);
+    self->DropEffectObject();
     self->queue = steps;
-    StartQueueIfUnset(self);
+    self->StartQueueIfUnset();
     self->PopFinishedSteps();
     ShowHead(self);
     self->motion.Clear();
@@ -200,7 +190,7 @@ void CUnitServer::PlayIdle() {
     }
     // The idle list into the queue, started.
     queue = idleAnimation;
-    StartQueueIfUnset(this);
+    StartQueueIfUnset();
     PopFinishedSteps();
     ShowHead(this);
 }
@@ -458,14 +448,14 @@ bool CUnitServer::PathTo(const Vector3& point, float range) {
     if (state < 0 || (state > 1 && state != kStateTurning)) PlaySteps(IdleAnimation());
     state = kStateIdle;
     unit->UpdateSizeClass();
-    DropEffectObject(this);
+    DropEffectObject();
     if (movingAnimation != 0) {
         // Moving already: the movement animation goes on unless it is the same one-step loop.
         const AnimationSteps& moving = *NextAnimation();
         AnimationSteps& current = queue;
         if (current.size() != 1 || moving.size() != 1 || current[0].variant != moving[0].variant) {
             current = moving;
-            StartQueueIfUnset(this);
+            StartQueueIfUnset();
             PopFinishedSteps();
             ShowCurrentStep();
         }
@@ -595,7 +585,7 @@ void CUnitServer::ResyncWithUnit() {
         if (queue.empty() && queue.extra == -1)
             idleAnimation.extra = World()->tick_ - static_cast<int>(g_random.Next() % 0x33);
         queue = idleAnimation;
-        StartQueueIfUnset(this);
+        StartQueueIfUnset();
         PopFinishedSteps();
         ShowCurrentStep();
     }

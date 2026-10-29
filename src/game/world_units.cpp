@@ -138,8 +138,6 @@ constexpr int kQuickEffectType = 9;
 constexpr std::uint32_t kQuickEffectFlags = 0x3010;
 constexpr std::uint32_t kFlagsNewEffect = 0x180000;
 
-void UnitSetDiplomacy(CUnit* a0, int a2) { a0->SetHostileMask((std::uint32_t)a2); }
-
 // The timed objects' types (world_effect.h).
 constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B, kTimedParticle = 0x4A;
 constexpr std::uint32_t kGrey = 0x3F4CCCCD, kOne = 0x3F800000;
@@ -458,7 +456,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             auto* unitSpec = static_cast<UnitSpec*>(message);
             unit->SetPlayer(nullptr);
             unit->SetSide(spec->side);
-            UnitSetDiplomacy(unit, diplomacy_.GetHostileMask(spec->side));
+            unit->SetHostileMask(static_cast<std::uint32_t>(diplomacy_.GetHostileMask(spec->side)));
             objectManager->ApplyPrototype(object, unitSpec->prototype);
             objectManager->GiveStartingEquipment(unit, unitSpec->prototype);
             for (const std::string& name : unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems])

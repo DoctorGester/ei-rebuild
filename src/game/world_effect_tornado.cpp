@@ -91,7 +91,7 @@ void CEffectTornado::Launch(const Vector3& from, const Vector3& to) {
     moving_ = effect::IsMoving(velocity_);
     MarkChanged();
     localPosition_ = from;
-    launchTick_ = effect::ContextWorld(this)->tick_;
+    launchTick_ = WorldContext()->tick_;
 }
 
 bool CEffectTornado::RunTick() {
@@ -102,7 +102,7 @@ bool CEffectTornado::RunTick() {
         if (sound_ != -1) g_clientWorld.sounds_->SetSoundPosition(sound_, &localPosition_.x, kSoundNear, kSoundFar);
     }
     if (framesLeft_ <= kStopEmittingTicks && source_ != nullptr) source_->Stop();
-    CWorld* world = effect::ContextWorld(this);
+    CWorld* world = WorldContext();
     if (world->IsServer() && framesLeft_ > kHurtUntil && (framesLeft_ & (kHurtEvery - 1)) == 0) {
         std::list<CUnit*> units = ServerWorld()->aiMap_.sectorMap.FindUnitsInRadius(localPosition_, kHurtRadius);
         DamageInfo hit = TornadoHit();

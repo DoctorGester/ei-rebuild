@@ -719,23 +719,12 @@ void CWorldClient::ResetZoneObjects() {
     if (it.manager) --it.manager->refCount_;
 }
 
-void CWorldClient::Deselect(CMapObject* object) {
-    std::list<int>& selected = selectedIds_;
-    auto* objects = objectManager_;
-    if (!object) {
-        for (auto& node : selected) {
-            CMapObject* found = objects->FindMapObject(static_cast<unsigned>(node));
-            if (found && (found->flags_ & MapObjectFlag::Selected)) Unhighlight(found);
-        }
-        selected.clear();
-        return;
+void CWorldClient::Deselect() {
+    for (int id : selectedIds_) {
+        CMapObject* found = objectManager_->FindMapObject(static_cast<unsigned>(id));
+        if (found && (found->flags_ & MapObjectFlag::Selected)) Unhighlight(found);
     }
-    const int id = object->id_;
-    std::list<int>::iterator node = selected.begin();
-    while (node != selected.end() && (*node) != id) ++node;
-    if (node == selected.end()) return;
-    selected.erase(node);
-    if (object->flags_ & MapObjectFlag::Selected) Unhighlight(object);
+    selectedIds_.clear();
 }
 
 void CWorldClient::Select(CMapObject* object) {

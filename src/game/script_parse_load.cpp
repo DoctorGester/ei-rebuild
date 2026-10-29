@@ -13,6 +13,7 @@
 #include "ei/rebirth.h"
 #include "game_data.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 
 #include <bit>
 #include <cstdarg>
@@ -42,7 +43,7 @@ namespace {
 // Index of `name` in a variable name array (four identical copies).
 int FindName(const std::vector<std::string>& names, std::string_view name) {
     for (std::size_t i = 0; i < names.size(); ++i)
-        if (Mbscmp(names[i], name) == 0) return static_cast<int>(i);
+        if (str::Compare(names[i], name) == 0) return static_cast<int>(i);
     return -1;
 }
 
@@ -337,12 +338,12 @@ bool CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<Scrip
     while (*pos != tokens->end()) {
         token = NextToken(pos);
         name = token.text;
-        if (Mbscmp(name, ")") == 0) {
+        if (str::Compare(name, ")") == 0) {
             result = 1;
             break;
         }
         if (!first) {
-            if (Mbscmp(name, ",") != 0)
+            if (str::Compare(name, ",") != 0)
                 return Error(this, token.line, 4, "Expected , or ) after variable");
             token = NextToken(pos);
             name = token.text;
@@ -364,10 +365,10 @@ bool CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<Scrip
         token = NextToken(pos);
         typeName = token.text;
         int type;
-        if (Mbscmp(typeName, "float") == 0) type = kScriptFloat;
-        else if (Mbscmp(typeName, "string") == 0) type = kScriptString;
-        else if (Mbscmp(typeName, "object") == 0) type = kScriptObject;
-        else if (Mbscmp(typeName, "group") == 0) type = kScriptGroup;
+        if (str::Compare(typeName, "float") == 0) type = kScriptFloat;
+        else if (str::Compare(typeName, "string") == 0) type = kScriptString;
+        else if (str::Compare(typeName, "object") == 0) type = kScriptObject;
+        else if (str::Compare(typeName, "group") == 0) type = kScriptGroup;
         else return Error(this, token.line, 12, "Unknown parameter type");
         if (!script->AddParameter(&name, type))   // "Duplicate variable name %s"
             return Error(this, token.line, 13, "Duplicate variable name %s", name);
@@ -431,12 +432,12 @@ bool CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
             std::vector<ScriptDefinition>& scripts = definitions_;
             std::size_t index = 0;
             for (; index < scripts.size(); ++index)
-                if (Mbscmp(scripts[index].name, text) == 0 || Mbscmp(scripts[index].name, qualified) == 0) break;
+                if (str::Compare(scripts[index].name, text) == 0 || str::Compare(scripts[index].name, qualified) == 0) break;
             if (index < scripts.size()) {
                 // A call to a declared script: command 8, float 0 = script index, string 0 = name.
                 if (!LoadFunction(cmd, pos, tokens, kCmdCallScript, locals, scripts[index].params.c_str(), 0, 1))
                     return false;
-                cmd->stringArgs[0] = Mbscmp(scripts[index].name, text) == 0 ? text : qualified;
+                cmd->stringArgs[0] = str::Compare(scripts[index].name, text) == 0 ? text : qualified;
                 StoreIntAsFloat(&cmd->floatArgs[0], static_cast<int>(index));
                 commands->push_back(*cmd);
                 continue;
@@ -485,12 +486,12 @@ bool CScript::Load(std::string* text, bool runWorldScript) {
                 define.name = game::kEmptyText;
                 define.value = game::kEmptyText;
                 char* q = start + std::strlen(keyword);
-                while (*q && IsSpace(*q)) ++q;
+                while (*q && text::IsSpace(*q)) ++q;
                 char* name = q;
-                while (*q && !IsSpace(*q)) ++q;
+                while (*q && !text::IsSpace(*q)) ++q;
                 if (*q) *q++ = 0;
                 define.name = name;
-                while (*q && IsSpace(*q)) ++q;
+                while (*q && text::IsSpace(*q)) ++q;
                 define.value = q;
                 AddDefine(&defines, &define);
                 line = game::kEmptyText;

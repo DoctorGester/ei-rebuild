@@ -408,6 +408,10 @@ public:
     bool PopFinishedSteps();
     void ShowCurrentStep();
     void PlaySteps(const AnimationSteps* steps);
+    // Starts the queue's time (queue.extra) at the world's tick when it has none (-1).
+    void StartQueueIfUnset();
+    // Removes the effect object from the world and releases it.
+    void DropEffectObject();
     // Other than 5 (acting) the size class is updated and the effect object dropped; 5 sets actingCheckTime to
     // 10 updates from now.
     void SetState(int newState);

@@ -868,9 +868,8 @@ public:
     bool QueueSynchronised(CMapObject* object);
     // Every filed object whose kind has no shadows drops its shadow (after an options change).
     void DropShadows();
-    // Takes `object` out of the selection list, its highlight off when it was on; with null every listed
-    // object's highlight goes off and the list empties.
-    void Deselect(CMapObject* object);
+    // Empties the selection list, each listed object's highlight off when it was on.
+    void Deselect();
     // Adds `object` (not null) to the selection list: its part bounds refreshed, the highlight on when it was off,
     // and its id appended unless it is listed already.
     void Select(CMapObject* object);

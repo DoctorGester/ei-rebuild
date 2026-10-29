@@ -48,8 +48,7 @@ void CopyParty(CParty* to, CParty* from) {
 }
 
 
-// The archive's contents, the same calls for both directions. The containers' serialisers get an unused third
-// argument (a stack leftover).
+// The archive's contents, the same calls for both directions.
 void ArchiveManager(PartyManager* manager, ChunkArchive* ar) {
     ar->SerializeParties(1, &manager->parties);
     ar->SerializePartyEntries(2, &manager->entries);

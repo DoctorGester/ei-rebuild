@@ -289,7 +289,7 @@ static_assert(sizeof(PlayerLoginMessage) == 0x88);
 // 1 when the first `maxLength` bytes of `text` are printable characters, each a valid UTF-8 sequence of a printable
 // code point; a terminator before that gives whether at least `minLength` characters came first; 0 at the first
 // unprintable one. (The original took the game's isprint of each signed char.)
-bool IsPrintableText(const char* text, int maxLength, int minLength);
+bool IsPrintableText(const char* text);
 
 // |a - b| squared, unrounded (the use order's nearest-unit test).
 double UseOrderDistanceSquared(const Vector3& a, const Vector3& b);

@@ -261,8 +261,6 @@ constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone 
 
 const char* ResourcesPath() { return options::g_options.resourcesPath_.c_str(); }
 
-void StreamLoadScripts(CMemoryStream* a0, CStream* a2) { a0->ReadSized(a2); }
-
 unsigned g_serverStamp = /*007AFED0*/ {};   // the newest variable stamp seen
 unsigned g_appliedStamp = /*007AFED4*/ {};   // the stamp applied up to
 
@@ -1143,7 +1141,7 @@ int GameFlow::LoadGame(const std::string& slot) {
     if (version >= kVersionScenarioInput) {
         ScriptsReset(&g_saveStream);
         g_interface.LoadState(&scenario);
-        StreamLoadScripts(&scenario, &g_saveStream);
+        (&scenario)->ReadSized(&g_saveStream);
         version = static_cast<int>(scenario.version_);
         g_saveStream.version_ = static_cast<std::uint32_t>(version);
     }

@@ -35,7 +35,6 @@ namespace scriptaddon {
 namespace {
 
 
-CPlayer* GetPlayer(int number) { return g_serverWorld.GetPlayer(number); }
 const float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
 const char* Text(Call* call, int i) { return call->cmd->stringArgs[i].c_str(); }
 CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]->object; }
@@ -52,7 +51,7 @@ bool Equals(float constant, float value) { return constant == value; }
 
 // The server-side object of player 0 (game over), or null.
 CPlayerServer* FirstPlayerState() {
-    CPlayer* player = GetPlayer(0);
+    CPlayer* player = g_serverWorld.GetPlayer(0);
     return player ? player->Server() : nullptr;
 }
 
@@ -88,7 +87,7 @@ bool GSSetPlayerVar(Call* call) {
     float value;
     Store(&value, Floats(call)[1]);
     const char* name = Text(call, 0);
-    CPlayer* player = GetPlayer(number);
+    CPlayer* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("GSSetPlayerVar", "There is no player with number %d", number);
     player->Server()->SetVariable(name, Bits(value));
     return true;
@@ -99,7 +98,7 @@ bool GSSetPlayerVar(Call* call) {
 bool GSGetPlayerVar(Call* call) {
     int number = Ftol(Floats(call)[0]);
     const char* name = Text(call, 0);
-    CPlayer* player = GetPlayer(number);
+    CPlayer* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("GSGetPlayerVar", "There is no player with number %d", number);
     *call->result.number = static_cast<float>(static_cast<double>(player->Party()->variables_.Get(name)));
     return true;
@@ -108,7 +107,7 @@ bool GSGetPlayerVar(Call* call) {
 // GiveExp(player, value): the world's experience award of `value` to the player (no check that
 // the player exists: null takes the multiplayer path).
 bool GiveExp(Call* call) {
-    CPlayer* player = GetPlayer(Ftol(Floats(call)[0]));
+    CPlayer* player = g_serverWorld.GetPlayer(Ftol(Floats(call)[0]));
     g_serverWorld.AwardExperience(player, Floats(call)[1]);
     return true;
 }
@@ -151,7 +150,7 @@ bool ResetTarget(Call* call) {
 
 bool SendCurrentParty(Call* call) {
     int number = Ftol(Floats(call)[0]);
-    CPlayer* player = GetPlayer(number);
+    CPlayer* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("SendCurrentParty", "There is no player with number %d", number);
     player->Server()->ResendParty();
     return true;
@@ -160,7 +159,7 @@ bool SendCurrentParty(Call* call) {
 // Loot(player, unit): the player loots the dead unit, which is then removed.
 bool Loot(Call* call) {
     int number = Ftol(Floats(call)[0]);
-    CPlayer* player = GetPlayer(number);
+    CPlayer* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("Loot", "There is no player with number %d", number);
     CEngineObject* object = ObjectArg(call, 0);
     if (!object) return Report("Loot", "Object doesn't exist");
@@ -206,7 +205,7 @@ bool IsFileExists(Call* call) {
 // GSListPlayerVars(player): "<name> = <value>" for each of the player's variables, in the
 // table's order (no check for the player).
 bool GSListPlayerVars(Call* call) {
-    CPlayer* player = GetPlayer(Ftol(Floats(call)[0]));
+    CPlayer* player = g_serverWorld.GetPlayer(Ftol(Floats(call)[0]));
     const NamedFloatTable& variables = player->Party()->variables_;
     for (auto& node : variables) {
         std::string line;

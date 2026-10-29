@@ -34,7 +34,6 @@ int QuestDatabase::Load(const std::string& folder) {
     CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
-    // The serialisers' unused third argument is stack memory the game has not written yet.
     LoadTable(stream, kQuestsChunk, &ChunkArchive::SerializeQuests, &quests, [this] {
         for (QuestRecord& record : quests) questsByName[record.name] = &record;
     });

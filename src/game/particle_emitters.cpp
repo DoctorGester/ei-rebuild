@@ -191,8 +191,6 @@ int EmitSpark(CParticleSource* s, Particle* p) {
 constexpr std::int32_t kFadeAlpha[35] = /*0078A774*/ {0, 32, 64, 128, 255, 207, 159, 111, 63, 15};
 const char* NoCarrierMessage() { return "Particle effect Modifier without carrier\n"; }
 
-void DebugMessage(const char* a0) { game::DebugLog(a0); }
-
 void SetBits(void* dst, std::uint32_t bits) { lib::StoreBytes(dst, bits); }
 
 // The axis the points are spread around (their offsets are perpendicular to it); some types also
@@ -339,7 +337,7 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
     p->frameTimer = frameDelay;
     if (std::ssize(elements) == 0) {
         if (!attachedTo) {
-            DebugMessage(NoCarrierMessage());
+            game::DebugLog(NoCarrierMessage());
             return 0;
         }
         int count = static_cast<int>(libcrt::Ftol(D(AbsBits(size)) * D(EI_TEN)));

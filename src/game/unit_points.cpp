@@ -18,7 +18,6 @@ namespace {
 constexpr int kOrderPath = 2;
 const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
 
-bool IsDead(CUnit* unit) { return unit->IsDead() != 0; }
 void CopyPosition(Vector3* out, const CUnit* unit) { *out = unit->localPosition_; }
 
 } // namespace
@@ -28,7 +27,7 @@ void CopyPosition(Vector3* out, const CUnit* unit) { *out = unit->localPosition_
 static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
     // The controller's motion virtual: its motion (the order in its first 0x20 bytes).
     PathOrder* path = unit->Controller()->Path();
-    if (IsDead(unit)) {
+    if (unit->IsDead()) {
         unit->AimPoint(out);
         return out;
     }
@@ -59,7 +58,7 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
 // box's max Y, MinusX +X, PlusX -X by its max X. The point is kept only where the AI map lets size
 // class 3 stand (on the server); otherwise, and for a living unit, the position.
 static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
-    if (!IsDead(unit)) {
+    if (!unit->IsDead()) {
         CopyPosition(out, unit);
         return out;
     }
