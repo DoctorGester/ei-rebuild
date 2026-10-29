@@ -5,7 +5,6 @@
 #include "base_manager.h"
 #include "world.h"
 
-#include <list>
 
 namespace {
 constexpr int kNoObject = -1;
@@ -34,16 +33,6 @@ template void LoadRef(Ref<CUnit>&, ByteStream*, CWorld*);
 
 // Reads a count, then that many counted references added at the tail of the list, each loaded in
 // `context` (the trap's units, the brain's lists).
-void CountedListLoad(std::list<CUnit*>* list, ByteStream* stream, CWorld* context) {
-    int count;
-    stream->ReadValue(count);
-    while (count-- > 0) {
-        Ref<CUnit> loaded;
-        LoadRef(loaded, stream, context);
-        list->push_back(loaded.Take());
-    }
-}
-
 void CountedListLoad(HeldUnits* list, ByteStream* stream, CWorld* context) {
     int count;
     stream->ReadValue(count);

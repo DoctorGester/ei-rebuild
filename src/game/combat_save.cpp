@@ -94,21 +94,14 @@ void ArmourSpell::Save(ByteStream* stream) const {
     stream->WriteValue(countdown);
 }
 
-void LoadArmourSpells(std::list<ArmourSpell>* list, ByteStream* stream) {
+void LoadArmourSpells(std::vector<ArmourSpell>* list, ByteStream* stream) {
     int count = 0;
     stream->ReadValue(count);
-    for (int i = 0; i < count; ++i) {
-        auto node = list->emplace(list->end());
-        // The entry takes a blank one (no item, countdown 0; `worn` is the original's stack byte).
-        node->item.Reset();
-        (*node).countdown = 0;
-        (*node).worn = 0;
-    }
-    for (auto node = list->begin(); node != list->end();) {
-        auto current = node;
-        ++node;
-        current->item.Assign(ReadItem(stream, g_serverWorld.itemManager));
-        stream->ReadValue(current->countdown);
+    // Blank entries (no item, countdown 0; `worn` is the original's stack byte).
+    if (count > 0) list->resize(list->size() + count, ArmourSpell{{}, 0, 0});
+    for (ArmourSpell& entry : *list) {
+        entry.item.Assign(ReadItem(stream, g_serverWorld.itemManager));
+        stream->ReadValue(entry.countdown);
     }
 }
 
@@ -207,11 +200,7 @@ void UnitServer::Save(ByteStream* stream) {
     stream->WriteValue(sinkSpeed);   // the float's bits
     stream->WriteValue(IdOrNone(effectObject));
     stream->WriteValue(std::ssize(armourSpells));
-    for (auto node = armourSpells.begin(); node != armourSpells.end();) {
-        auto current = node;
-        ++node;
-        current->Save(stream);
-    }
+    for (const ArmourSpell& entry : armourSpells) entry.Save(stream);
     stream->WriteValue(followsLeader);
     stream->WriteValue(IdOrNone(followedLeader));
     stream->WriteValue(actingCheckTime);

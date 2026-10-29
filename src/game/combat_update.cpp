@@ -81,18 +81,9 @@ void TakeQueue(UnitServer* self, const AnimationSteps* steps) {
 }
 
 bool HasOpenStep(const AnimationSteps& steps) {
-    for (const AnimationStep& step : steps)
+    for (const AnimationStep& step : steps.steps)
         if (step.duration < 0) return true;
     return false;
-}
-
-int TotalDuration(const AnimationSteps& steps) {
-    int total = 0;
-    for (const AnimationStep& step : steps) {
-        if (step.duration < 0) return -1;
-        total += step.duration;
-    }
-    return total;
 }
 
 } // namespace
@@ -173,7 +164,7 @@ bool UnitServer::RunTick() {
         unit->MarkChanged(2);
     }
     std::uint8_t& reported = deathReported;
-    if (reported == 0 && queue.empty()) {
+    if (reported == 0 && queue.steps.empty()) {
         reported = 1;
         world->TellPartiesGone(unit);
         CPlayer* player = unit->player;
@@ -204,7 +195,7 @@ void UnitServer::UpdateState() {
     }
     if (keepHitDirection != 0) {
         // A hit reaction plays: when it is over, the saved queue comes back.
-        if (!queue.empty()) {
+        if (!queue.steps.empty()) {
             animationHeld = 1;
             hitDirection = kNoHitDirection;
             return;
@@ -233,7 +224,7 @@ void UnitServer::UpdateState() {
         if (hitDirection != kNoHitDirection) PlayHitReaction();
         break;
     case UnitState::Animating:
-        if (queue.empty()) {
+        if (queue.steps.empty()) {
             state = UnitState::Stopped;
             unit->UpdateSizeClass();
             DropEffectObject();
@@ -276,21 +267,21 @@ void UnitServer::AdvanceAnimation() {
     }
     unit->SetPathTimeShift(held ? 1 : 0);
     if (PopFinishedSteps()) {
-        if (queue.empty()) {
+        if (queue.steps.empty()) {
             unit->SetMotionMode(0);
             return;
         }
-        const AnimationStep& head = queue[0];
+        const AnimationStep& head = queue.steps[0];
         if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, queue.extra, head.flags);
     }
-    if (queue.empty()) {
+    if (queue.steps.empty()) {
         unit->SetMotionMode(0);
         return;
     }
-    int kind = queue[0].kind;
+    int kind = queue.steps[0].kind;
     if (kind == 1) {
         ++queue.extra;
-        if (!queue.empty()) --queue[0].duration;
+        if (!queue.steps.empty()) --queue.steps[0].duration;
     }
     unit->SetMotionMode(kind);
 }
@@ -298,19 +289,19 @@ void UnitServer::AdvanceAnimation() {
 bool UnitServer::PopFinishedSteps() {
     bool popped = false;
     int now = WorldContext()->tick;
-    while (!queue.empty()) {
-        AnimationStep* steps = queue.data();
+    while (!queue.steps.empty()) {
+        AnimationStep* steps = queue.steps.data();
         int duration = steps[0].duration;
         if (duration == -1) break;
         int end = queue.extra + duration;
         if (end > now) break;
         popped = true;
-        if (std::ssize(queue) > 1 && steps[1].IsBlank()) {
+        if (std::ssize(queue.steps) > 1 && steps[1].IsBlank()) {
             // The pause after it goes on with this step's animation, and lasts as long more.
             steps[1].animation = steps[0].animation;
-            queue[1].variant = queue[0].variant;
-            queue[1].duration += steps[0].duration;
-            if (queue[1].kind == 1) {
+            queue.steps[1].variant = queue.steps[0].variant;
+            queue.steps[1].duration += steps[0].duration;
+            if (queue.steps[1].kind == 1) {
                 int late = now - queue.extra - steps[0].duration;
                 if (late > steps[0].duration) late = steps[0].duration;
                 if (late > 0) queue.extra += late;
@@ -318,14 +309,14 @@ bool UnitServer::PopFinishedSteps() {
         } else {
             queue.extra = end;
         }
-        queue.erase(queue.begin());
+        queue.steps.erase(queue.steps.begin());
     }
     return popped;
 }
 
 void UnitServer::ShowCurrentStep() {
-    if (queue.empty()) return;
-    const AnimationStep& head = queue[0];
+    if (queue.steps.empty()) return;
+    const AnimationStep& head = queue.steps[0];
     if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, queue.extra, head.flags);
 }
 
@@ -333,8 +324,8 @@ void UnitServer::PlaySteps(const AnimationSteps* steps) {
     queue = *steps;
     StartQueueIfUnset();
     PopFinishedSteps();
-    if (queue.empty()) return;
-    const AnimationStep& head = queue[0];
+    if (queue.steps.empty()) return;
+    const AnimationStep& head = queue.steps[0];
     if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, queue.extra, head.flags);
 }
 
@@ -367,7 +358,7 @@ void UnitServer::PlayHitReaction() {
     AnimationSteps reaction;
     if (moveMode.mode == 0 && state == UnitState::Idle) return;
     BuildDeathAnimation(&reaction, hitDirection, 0, 0);
-    int duration = TotalDuration(reaction);
+    int duration = reaction.Duration();
     if (action.kind == UnitOrderKind::Attack && state == UnitState::Turning &&
         World()->tick + duration > nextAttackTime)
         return;
@@ -389,25 +380,25 @@ void UnitServer::EndOrder(char abort) {
         SetState(UnitState::Stopped);
     } else {
         // A three-step plan (step out, action, step back): what is left of it is played out.
-        if (std::ssize(currentPlan.animation) == 3) {
-            if (queue.size() == 2) {
+        if (std::ssize(currentPlan.animation.steps) == 3) {
+            if (queue.steps.size() == 2) {
                 AnimationSteps rest = currentPlan.animation;
-                if (rest[1].kind == 1) {
-                    rest.extra = now - rest[0].duration;
-                    rest[0].duration += rest[2].duration;
-                    rest.resize(1);
+                if (rest.steps[1].kind == 1) {
+                    rest.extra = now - rest.steps[0].duration;
+                    rest.steps[0].duration += rest.steps[2].duration;
+                    rest.steps.resize(1);
                     TakeQueue(this, &rest);
                 }
-            } else if (queue.size() == 3) {
+            } else if (queue.steps.size() == 3) {
                 AnimationSteps rest = currentPlan.animation;
-                if (rest[1].kind == 1) {
-                    rest[0].duration += rest[2].duration;
+                if (rest.steps[1].kind == 1) {
+                    rest.steps[0].duration += rest.steps[2].duration;
                     rest.extra = queue.extra;
-                    rest.resize(1);
+                    rest.steps.resize(1);
                     TakeQueue(this, &rest);
                 } else {
                     rest.extra = queue.extra;
-                    rest.erase(rest.begin() + 1);
+                    rest.steps.erase(rest.steps.begin() + 1);
                     PlaySteps(&rest);
                 }
             }
@@ -516,14 +507,14 @@ bool UnitServer::ActionInReach() {
 void UnitServer::TickItemSpells() {
     WorldServer* world = ServerWorld();
     bool healed = false;
-    for (auto node = armourSpells.begin(); node != armourSpells.end();) {
-        ArmourSpell* current = &*node;
-        ++node;
-        if (current->countdown > 0) {
-            --current->countdown;
+    // CastSpell does not reach RefreshItemSpells (the only change to the list while the unit runs), so the
+    // entry stays put across the cast.
+    for (ArmourSpell& entry : armourSpells) {
+        if (entry.countdown > 0) {
+            --entry.countdown;
             continue;
         }
-        Item* item = current->item;
+        Item* item = entry.item;
         if (!item) continue;
         auto* spell = item->spell.Get();
         float cost = spell->manaCost;
@@ -537,8 +528,8 @@ void UnitServer::TickItemSpells() {
         CUnit* self = unit;
         world->CastSpell(spell, self, self->localPosition, self, self->localPosition, 1);
         int countdown = static_cast<int>(spell->duration) - 3;
-        current->countdown = countdown;
-        if (countdown <= 0) current->countdown = 8;
+        entry.countdown = countdown;
+        if (countdown <= 0) entry.countdown = 8;
     }
 }
 
@@ -549,7 +540,6 @@ void UnitServer::RefreshItemSpells() {
     std::erase_if(items, [this](Item* item) {
         return item->GetClassId() == ClassId::ItemWeapon && item != unit->GetWeapon(unit->activeWeapon);
     });
-    std::list<ArmourSpell>* list = &armourSpells;
     for (ArmourSpell& entry : armourSpells) entry.worn = 0;
     // Each item with a periodic spell keeps its entry or gets a new one. A missing item reuses the previous
     // item's spell (like the original).
@@ -568,19 +558,12 @@ void UnitServer::RefreshItemSpells() {
             found->worn = 1;
             continue;
         }
-        ArmourSpell blank{};
-        ArmourSpell& added = list->emplace_back();
-        added.Assign(&blank);
-        added.item.Assign(item);
-        added.worn = 1;
+        armourSpells.push_back({item, 0, 1});
     }
-    // Entries of items no longer worn go.
-    for (auto entry = armourSpells.begin(); entry != armourSpells.end();) {
-        auto current = entry;
-        ++entry;
-        if (current->worn != 0) continue;
-        armourSpells.erase(current);
-    }
+    // Entries of items no longer worn go (their items released from the head).
+    for (ArmourSpell& entry : armourSpells)
+        if (entry.worn == 0) entry.item.Reset();
+    std::erase_if(armourSpells, [](const ArmourSpell& entry) { return entry.worn == 0; });
     held.spells.clear();
     items.clear();
 }

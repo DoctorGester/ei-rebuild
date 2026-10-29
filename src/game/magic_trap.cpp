@@ -12,13 +12,15 @@
 #include "world.h"
 
 #include "lib/bytes.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <new>
+#include <vector>
 
 namespace {
 
@@ -39,24 +41,7 @@ bool StaysInside(MagicTrap* trap, CMapObject* unit) {
     return false;
 }
 
-void Append(std::list<CUnit*>* list, CUnit* unit) {
-    auto node = list->emplace(list->end());
-    *node = unit;
-}
-
 constexpr float kFar = 1e30f;                        // a squared distance
-
-
-// The units inside: the list emptied, as SetUp, the constructor and the destructor all do it (each
-// element's reference released and cleared, the list emptied, its blocks freed).
-void ClearVictims(MagicTrap* trap) {
-    std::list<CUnit*>& inside = trap->inside;
-    for (auto& node : inside) {
-        if (node) node->Release();
-        node = nullptr;
-    }
-    inside.clear();
-}
 
 constexpr MapObjectFlag kTrapFlags = MapObjectFlag::Armed | MapObjectFlag::NotDrawn;
 constexpr std::uint32_t kDefaultPeriod = 10;
@@ -77,41 +62,23 @@ void SetSpell(MagicTrap* trap, CSpell* spell) {
 } // namespace
 
 void MagicTrap::UpdateVictims() {
-    std::list<CUnit*>* victims = &inside;
-    for (auto node = victims->begin(); node != victims->end();) {
-        auto next = std::next(node);
-        if (!StaysInside(this, *node)) {
-            // The reference released.
-            if (*node) (*node)->Release();
-            victims->erase(node);
-        }
-        node = next;
-    }
+    std::erase_if(inside, [this](const HeldRef<CUnit>& unit) { return !StaysInside(this, unit); });
 
     if (!(flags & MapObjectFlag::Armed)) return;
     WorldServer* context = ServerWorld();
-    std::list<CUnit*> found;
-    std::list<CUnit*> newcomers;
+    std::vector<CUnit*> found;
+    std::vector<CUnit*> newcomers;
     FindTrapVictims(context, &area, sides, &found);
-    for (auto node = found.begin(); node != found.end();) {
-        auto next = std::next(node);
-        CUnit* unit = *node;
-        auto known = victims->begin();
-        while (known != victims->end() && *known != unit) ++known;
-        if (known == victims->end()) {
-            if (unit) unit->AddRef();
-            victims->push_back(unit);
-            Append(&newcomers, unit);
-        }
-        node = next;
+    for (CUnit* unit : found) {
+        if (lib::Contains(inside, unit)) continue;
+        inside.emplace_back(unit);
+        newcomers.push_back(unit);
     }
     if (!newcomers.empty()) CastAtUnits(&newcomers);
-    newcomers.clear();
-    found.clear();
 }
 
 void FindTrapVictims(WorldServer* context, const std::vector<TrapCircle>* area, std::uint32_t sides,
-                                std::list<CUnit*>* out) {
+                                std::vector<CUnit*>* out) {
     out->clear();
     SectorMap* sectors = &context->aiMap.sectorMap;
     for (int i = 0; i < std::ssize(*area); ++i) {
@@ -125,7 +92,7 @@ void FindTrapVictims(WorldServer* context, const std::vector<TrapCircle>* area, 
     }
 }
 
-void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
+void MagicTrap::CastAtUnits(std::vector<CUnit*>* units) {
     if (units->empty() || !spell) return;
     const Vector3& origin = localPosition;
     Vector3 from = {origin.x, origin.y, origin.z};
@@ -141,8 +108,7 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
         if (singleTarget != 0) {
             if (units->empty()) return;
             CUnit* closest = nullptr;
-            for (auto node = units->begin(); node != units->end(); ++node) {
-                CUnit* unit = *node;
+            for (CUnit* unit : *units) {
                 float dx = unit->localPosition.x - origin.x;
                 float dy = unit->localPosition.y - origin.y;
                 float dz = unit->localPosition.z - origin.z;
@@ -151,15 +117,9 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
             }
             if (!closest) return;
             units->clear();
-            units->push_back(closest);   // AddTail calls the list's NewNode
+            units->push_back(closest);
         }
-        for (auto node = units->begin(); node != units->end();) {
-            auto next = std::next(node);
-            CUnit* unit = *node;
-            g_serverWorld.CastSpell(spell, nullptr, from, unit,
-                                   unit->localPosition, 0);
-            node = next;
-        }
+        for (CUnit* unit : *units) g_serverWorld.CastSpell(spell, nullptr, from, unit, unit->localPosition, 0);
     }
     countdown = period;
 }
@@ -174,7 +134,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     area = record->area;
     points = record->points;
 
-    ClearVictims(this);
+    inside.clear();
 
     period = record->period;
     countdown = 0;
@@ -190,7 +150,7 @@ MagicTrap::MagicTrap() {
     SetSpell(this, nullptr);
     area.clear();
     points.clear();
-    ClearVictims(this);
+    inside.clear();
     countdown = 0;
     singleTarget = 0;
     period = static_cast<int>(kDefaultPeriod);
@@ -201,9 +161,7 @@ MagicTrap::~MagicTrap() {
     SetSpell(this, nullptr);
     area.clear();
     points.clear();
-    ClearVictims(this);        // the list emptied (each element released)
-    // The list's destructor: its vtable, then emptied again.
-    ClearVictims(this);
+    inside.clear();
 }
 
 void MagicTrap::Load(ByteStream* stream) { LoadTrap(stream); }
@@ -218,11 +176,7 @@ void MagicTrap::SaveTrap(ByteStream* stream) {
     for (int i = 0; i < std::ssize(area); ++i) stream->WriteValue(area[i]);
     value = std::ssize(inside);
     stream->WriteValue(value);
-    for (auto node = inside.begin(); node != inside.end();) {
-        auto next = std::next(node);
-        SaveRef(*node, stream);
-        node = next;
-    }
+    for (CUnit* unit : inside) SaveRef(unit, stream);
     value = std::ssize(points);
     stream->WriteValue(value);
     for (int i = 0; i < std::ssize(points); ++i) stream->WriteValue(points[i]);
@@ -258,7 +212,7 @@ void MagicTrap::Create() {
     SetSpell(this, nullptr);
     area = {};
     points.clear();
-    ClearVictims(this);
+    inside.clear();
     period = kDefaultPeriod;
     countdown = 0;
     singleTarget = 0;
@@ -269,7 +223,7 @@ void MagicTrap::DestroyTrap() {
     SetSpell(this, nullptr);
     area = {};
     points.clear();
-    ClearVictims(this);
+    inside.clear();
 }
 
 bool MagicTrap::RunTick() {
@@ -287,7 +241,7 @@ bool MagicTrap::RunTick() {
 
 void MagicTrap::FireAtOccupants() {
     WorldServer* context = ServerWorld();
-    std::list<CUnit*> found;
+    std::vector<CUnit*> found;
     if (flags & MapObjectFlag::Armed) {
         FindTrapVictims(context, &area, sides, &found);
         if (!found.empty()) CastAtUnits(&found);
@@ -295,14 +249,6 @@ void MagicTrap::FireAtOccupants() {
 }
 
 int MagicTrap::ForgetObject(EngineObject* object) {
-    for (auto node = inside.begin(); node != inside.end();) {
-        auto next = std::next(node);
-        if (*node == object) {
-            // The reference released, the node removed.
-            if (*node) (*node)->Release();
-            inside.erase(node);
-        }
-        node = next;
-    }
+    std::erase_if(inside, [object](const HeldRef<CUnit>& unit) { return unit.Get() == object; });
     return 0;
 }

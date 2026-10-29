@@ -863,12 +863,3 @@ void UnitServer::AddExperience(float amount) {
     stats.GainExperience(unit, amount);
     RefreshVitals(false);
 }
-
-// --- The armour spell record ---------------------------------------------------------------------
-
-ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {
-    item.Assign(other->item);
-    countdown = other->countdown;
-    worn = other->worn;
-    return this;
-}

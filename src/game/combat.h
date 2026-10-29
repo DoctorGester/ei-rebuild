@@ -11,7 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <list>
+#include <vector>
 
 // An order of the unit: an AIOrder and two more fields. The order checks (CanReachAndPlan and the planning
 // under it) take the AIOrder part only: the AI builds just that on the stack.
@@ -51,7 +51,7 @@ struct AnimationStep {
 static_assert(sizeof(AnimationStep) == 0xC);   // saved as its 12 bytes
 
 // A step list and a dword copied along with it (extra: the queue's start time, ...).
-struct AnimationSteps : std::vector<AnimationStep> {
+struct AnimationSteps {
     // Appends a blank step of `animation` (low byte) lasting `duration`.
     void AddStep(int animation, int duration);
     // The last step becomes the open-ended emote `emote` (its variant; duration -1); a blank step is appended
@@ -67,6 +67,7 @@ struct AnimationSteps : std::vector<AnimationStep> {
     void Load(ByteStream* stream);
     void Save(ByteStream* stream) const;
 
+    std::vector<AnimationStep> steps;
     int extra = -1;
 };
 
@@ -134,17 +135,15 @@ struct AIEventPresence {
 struct ArmourSpell {
 // The item's id (-1 without one) and the countdown.
     void Save(ByteStream* stream) const;
-// `other`'s item is referenced before the old one is released.
-    ArmourSpell* Assign(const ArmourSpell* other);
 
-    Ref<Item> item;
+    HeldRef<Item> item;
     int countdown;
     std::uint8_t worn;
 };
 
 // `count` entries appended (no item, countdown 0; the original's `worn` byte was stack garbage, ours 0), then
 // each entry from the head takes its item (the item manager's object of the id read, referenced) and countdown.
-void LoadArmourSpells(std::list<ArmourSpell>* list, ByteStream* stream);
+void LoadArmourSpells(std::vector<ArmourSpell>* list, ByteStream* stream);
 
 // What a unit controller is doing (UnitServer::state).
 enum class UnitState : int {
@@ -574,7 +573,7 @@ public:
     int tamerSide;                  // the tamer's side (TryTame)
     int speedClass;
     AIEventPresence* aiPresence;    // StepNoise's result, always 0
-    std::list<ArmourSpell> armourSpells;   // periodic spells of the worn items (blocks of 10)
+    std::vector<ArmourSpell> armourSpells;   // periodic spells of the worn items
     int boredTicks;                 // a party unit's updates since its last order (a bored remark past a
                                     // limit); cleared when an order starts and by the move style /
                                     // wanted weapon setters

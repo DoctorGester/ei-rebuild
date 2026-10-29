@@ -176,10 +176,13 @@ here is gone. What it covered, by file:
 - Save: SaveServer 005561C0 (slot 10) / LoadServer 00555D10 (9); `combat_save.cpp` SaveArmourSpell 00545430, LoadArmourSpells
   005585F0; the step lists go through AnimationSteps::Save / Load (SaveStepList 00558420 / LoadStepList 005582A0 and the extra
   dword after them).
-- AnimationSteps is a `std::vector<AnimationStep>` with `extra` (C14za); a default step is the blank step (0xFF, 0xFF, 0,
+- AnimationSteps holds a `std::vector<AnimationStep>` (`steps`) and `extra`; a default step is the blank step (0xFF, 0xFF, 0,
   padding 0, duration -1, kind 0). The original's by-value lists, copy-construct-then-free locals and queues assigned twice
   are plain copies and assignments.
-- Lifetime (`combat.cpp`, every spawn): the constructors UnitServer 00545580, AIBrain 00545990 and the destructors
+- `armourSpells` is a vector: TickItemSpells keeps its entry across CastSpell, which never reaches RefreshItemSpells
+  (the only change to it while units run). CastSpell runs the missile's Start: hits, TakeHit, the struck unit's item
+  spells; RefreshItemSpells comes from TakeUpWeapon (ShowWeapon: the order system in RunTick, ResyncWithUnit) and
+  RefreshEquipment (network, scripts, interface).- Lifetime (`combat.cpp`, every spawn): the constructors UnitServer 00545580, AIBrain 00545990 and the destructors
   AIMemory 00545CB0 (the brain's memory, + 0xD0), AIBrain 005457E0 (only from unwind funclets), AIPath 00546100 (from
   PlayerServer::OnUseOrder) are ours: default member initialisers (the values AIBrain::Init and AIMemory::Reset set) and
   the members' own destructors; the controller's constructor and destructor run ResetController, which empties the
@@ -249,7 +252,7 @@ here is gone. What it covered, by file:
   00556870 / 00556950, list constructors / destructors, MFC template functions in 0x5576C0-0x559000, and the EH-only helpers 005461E0 /
   00545FD0 (an order's target release), 00546200, 00556AA0, 00545B80, 005576B0 (an STLport count decrement). 0054B220 (WorldTick, 4 bytes,
   not hookable) is called only by the rewritten 0054A900. The small records (`combat.cpp`) cover MotionSegmentInit
-  0054E5D0, PathConstructSteps 0054EAC0 (PlanOrderRoute, the AI's test paths), ArmourSpell::Assign 00558840 and the counted
+  0054E5D0, PathConstructSteps 0054EAC0 (PlanOrderRoute, the AI's test paths), ArmourSpell::Assign 00558840 (a plain entry copy here) and the counted
   reference / call record deleting destructors 00558CA0 / 00558CC0. Nothing else in 0x00540000-0x00560000 is unported except
   0055E1B0-0055FF90's small slots (world.md).
 
