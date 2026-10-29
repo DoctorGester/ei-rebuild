@@ -23,6 +23,12 @@ namespace {
 
 inline double D(float f) { return f; }
 
+// Every cached object released, in key order.
+template <typename Object>
+void ReleaseCachedObjects(ItemObjectCache<Object>* cache) {
+    for (auto& entry : cache->map) entry.second.object->Release();
+}
+
 } // namespace
 
 // While the cache holds more than its limit: the least recently used entry (used before now) has
@@ -142,8 +148,6 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, b
     if (turning) {
         if (!ItemTurnOf(moved)) {   // a null item faults here, like the original
             auto* turn = new ItemTurn();
-            turn->angle = 0.0f;
-            turn->speed = 0.0f;
             moved->link_ = turn;
             ++turn->refs_;
         }

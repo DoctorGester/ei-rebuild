@@ -326,7 +326,7 @@ void CForwardingStrip::LeftDown(int flags, int x, int y) {
     CUiItemStrip::LeftDown(flags, x, y);
     // The original passes its own first argument's stack memory as the cursor output.
     CItem* item = ItemAt(x, y, &flags);
-    if (item) OwnerTakeItem(item);
+    if (item) owner_->TakeItem(item, mode_);
 }
 
 // --- Heroes' skills ---------------------------------------------------------------------------
@@ -397,8 +397,6 @@ void CCampPages::TopicClicked(int page) {
 
 // --- CMpHeroScreen ----------------------------------------------------------------------------
 
-void CMpHeroScreen::CallShowHero(int index) { ShowHero(index); }
-
 void CMpHeroScreen::ClampHeroSelection() {
     if (heroIndex_ < 0) heroIndex_ = 0;
     auto count = static_cast<std::uint32_t>(SavedHeroCount());
@@ -409,7 +407,7 @@ void CMpHeroScreen::ClampHeroSelection() {
     if (heroTop_ > selected) heroTop_ = selected;
     heroScroll_->SetPosition(heroTop_);
     heroScroll_->TakePosition(&heroTop_);
-    CallShowHero(heroIndex_);
+    ShowHero(heroIndex_);
 }
 
 void CMpHeroScreen::ClampVoiceSelection() {
@@ -428,7 +426,7 @@ void CMpHeroScreen::ClampVoiceSelection() {
     DrawVoices();
 }
 
-double CMpHeroScreen::EquipmentWeight() {
+double CMpHeroScreen::Weight() {
     PartyUnitRecord* hero = HeroRecord();
     double weight = 0.0;
     if (weapon_) weight = weapon_->Weight();
@@ -474,16 +472,14 @@ bool CMpHeroScreen::CanEquip(CItem* item, int) {
     CSpell* spell = item->spell_;
     if (!spell) return true;
     return HeroCanUseSpell(&HeroRecord()->stats, spell);
-
 }
 
-PartyUnitRecord* CMpHeroScreen::GetHero() { return LocalPlayerData()->members_.data(); }
+PartyUnitRecord* CMpHeroScreen::HeroRecord() { return LocalPlayerData()->members_.data(); }
 
 void CMpHeroScreen::LeftUp(int flags, int x, int y) {
     CUiContainer::LeftUp(flags, x, y);
     // Releasing a rotate arrow.
-    void*& capture = UiCapture(interface_);
-    if (capture == Input()) capture = nullptr;
+    if (interface_->mouseCapture_ == Input()) interface_->mouseCapture_ = nullptr;
     rotating_ = 0;
 }
 

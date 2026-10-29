@@ -19,45 +19,34 @@ namespace {
 
 const char* const kHeroName = "Hero";
 
-constexpr int kModeList = 9;
-constexpr int kModeNewHero = 10;
 constexpr float kDefaultAttribute = 25.0f;
 constexpr float kDefaultHeight = 0.7f;
 constexpr int kVoiceRows = 11;
 
-// The index of `name` in a vector of strings (case-insensitive), or -1.
-int IndexOf(const std::string* begin, const std::string* end, std::string_view name) {
-    int index = 0;
-    for (const std::string* entry = begin; entry != end; ++entry, ++index) {
-        if (text::CompareIgnoringCase(*entry, name) == 0)
-            return index;
-    }
+// The index of `name` in `names` (case-insensitive), or -1.
+int IndexOf(const std::vector<std::string>& names, std::string_view name) {
+    for (int i = 0; i < std::ssize(names); ++i)
+        if (text::CompareIgnoringCase(names[i], name) == 0) return i;
     return -1;
 }
-
-// The first entry of a record's item array, or null when it is empty.
-CItem* FirstOf(const std::vector<CItem*>& list) { return !list.empty() ? list[0] : nullptr; }
 
 } // namespace
 
 void CMpHeroScreen::ChooseFigure(std::string_view prototype) {
-    std::vector<PartyUnitRecord*> records = {};
     auto* player = LocalPlayerData();
     // The attributes and height to keep (copied bit for bit).
     float strength = kDefaultAttribute;
     float dexterity = kDefaultAttribute;
     float intelligence = kDefaultAttribute;
     float height = kDefaultHeight;
-    if (std::ssize(player->members_) > 0) {
+    if (!player->members_.empty()) {
         PartyUnitRecord* first = player->members_.data();
         const auto* stats = &first->stats;
         strength = stats->strength;
         dexterity = stats->dexterity;
         height = first->height;
         intelligence = stats->intelligence;
-        int size = std::ssize(records);
-        records.resize(size + 1);
-        records[size] = first;
+        std::vector<PartyUnitRecord*> records{first};
         GameRemoveUnitsOf(&records);
     }
     player->Clear(1, 0);
@@ -79,19 +68,14 @@ void CMpHeroScreen::ChooseFigure(std::string_view prototype) {
     // Each strip selects the figure when its list has it; the second list decides the voices.
     figureStrips_[1]->selected_ = -1;
     figureStrips_[0]->selected_ = -1;
-    int index = IndexOf(defaults_.data(), defaults_.data() + defaults_.size(), prototype);
+    int index = IndexOf(defaults_, prototype);
     if (index >= 0) figureStrips_[0]->selected_ = index;
-    index = IndexOf(names_.data(), names_.data() + names_.size(), prototype);
+    index = IndexOf(names_, prototype);
     bool firstVoices = index < 0;
     if (index >= 0) figureStrips_[1]->selected_ = index;
 
-    weapon_ = FirstOf(hero->weapons);
-    weaponPanel_->ShowWeapon(weapon_);
-    armor_ = FirstOf(hero->quickItems);
-    weaponPanel_->ShowArmour(armor_);
-    spellContainer_ = FirstOf(hero->spells);
-    spellPanel_->ShowEntry(spellContainer_);
-    MakePreview(0);
+    ShowFirstEquipment();
+    MakePreview(false);
     statsPanel_->SetHero(0, std::nullopt);
     tradePanel_->ResetRecords();
     tradePanel_->SelectHero(0);
@@ -99,12 +83,11 @@ void CMpHeroScreen::ChooseFigure(std::string_view prototype) {
     voiceIndex_ = 0;
     voiceTop_ = 0;
     voices_ = firstVoices ? &voiceLists_[0] : &voiceLists_[1];
-    std::vector<MpVoiceEntry>& voices = *voices_;
+    const std::vector<MpVoiceEntry>& voices = *voices_;
     // The first entry's file (the original read it even from an empty list; ours leaves the text then).
-    if (voices.begin() != voices.end()) hero->texts[6] = voices.begin()->file;
-    // The entry count compared unsigned.
-    std::uint32_t count = static_cast<std::uint32_t>(voices.end() - voices.begin());
-    voiceScroll_->SetMaximum(count > kVoiceRows ? static_cast<int>(count) - kVoiceRows : 0);
+    if (!voices.empty()) hero->texts[6] = voices.front().file;
+    const int count = static_cast<int>(voices.size());
+    voiceScroll_->SetMaximum(count > kVoiceRows ? count - kVoiceRows : 0);
     voiceScroll_->SetPosition(0);
     if (mode_ == kModeNewHero) DrawVoices();
 }

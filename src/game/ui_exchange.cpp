@@ -31,18 +31,15 @@ net::PartyMessage* LiveOffer() {
     net::PartyMessage* offer = net::g_gameClient->party_.Get();
     return IsLive(offer) ? offer : nullptr;
 }
-CParty* LocalParty() { return LocalPlayerData(); }
 
 constexpr int kSurfaceFormat = 5;
 constexpr int kStripActionTake = 1;
 constexpr int kGridMode = 5;
 
+// A text surface of the left column (x 0..200).
 CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
-    CUiSurface* surface = new CUiSurface(ui, 0, top, 200, bottom, kSurfaceFormat, 1);
-    return surface;
+    return new CUiSurface(ui, 0, top, 200, bottom, kSurfaceFormat, 1);
 }
-
-CUiContainer* AsContainer(CExchangeScreen* screen) { return screen; }
 
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr std::uint32_t kGrey = 0xA7D7E4;
@@ -54,10 +51,8 @@ void SetTint(CUiMesh* sprite, float value) {
     sprite->tint_[1] = value;
     sprite->tint_[2] = value;
 }
-CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
-bool LiveAccepted(const net::PartyMessage* offer) {
-    return offer && !(offer->flags7_ & CRefObject::kDetached) && offer->accepted_;
-}
+// An offer that is live (not detached) and accepted.
+bool LiveAccepted(const net::PartyMessage* offer) { return IsLive(offer) && offer->accepted_; }
 
 const char* const kPutOnSound = "buttons\\camp\\put_on.wav";
 const char* const kPutOffSound = "buttons\\camp\\put_off.wav";
@@ -67,19 +62,17 @@ constexpr int kOfferLimit = 8;
 
 // --- closing, message box answers ----------------------------------------------------------------
 
-void CExchangeScreen::Close() {
+void CExchangeScreen::CloseScreen() {
     descPanel_->Describe(nullptr);
     delete scratch_;   // the deleting destructor
 }
-
-void CExchangeScreen::MessageResult(int) {}
 
 // --- the update ----------------------------------------------------------------------------------
 
 void CExchangeScreen::Update() {
     UpdateBase();
     if (!LiveOffer()) {
-        ReturnAll(LocalParty(), ownOffer_);
+        ReturnAll(LocalPlayerData(), ownOffer_);
         GameRejoin();
         return;
     }
@@ -97,9 +90,9 @@ void CExchangeScreen::LeftDown(int buttons, int x, int y) {
     switch (RegionAt(x, y)) {
     case kAcceptRegion: {
         net::PartyMessage* offer = LiveOffer();
-        if (offer && !offer->accepted_ && ownOffer_->money_ <= LocalParty()->money_) {
+        if (offer && !offer->accepted_ && ownOffer_->money_ <= LocalPlayerData()->money_) {
             interface_->PlaySound(kBuySound);
-            net::g_gameClient->RecordTrade(LocalParty());
+            net::g_gameClient->RecordTrade(LocalPlayerData());
             return;
         }
         interface_->PlaySound(kCancelSound);
@@ -124,13 +117,12 @@ void CExchangeScreen::LeftDown(int buttons, int x, int y) {
 
 // --- the exchange went through -------------------------------------------------------------------
 
-void CExchangeScreen::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
-    LocalPlayerData()->ReleaseAllItems();
-    auto* local = LocalPlayerData();
+void CExchangeScreen::ExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
+    CParty* local = LocalPlayerData();
+    local->ReleaseAllItems();
     ReturnAll(local, partyC);
-    ReturnAll(LocalPlayerData(), partyB);
-    int money = partyB->money_ - partyA->money_ + partyC->money_;
-    LocalPlayerData()->money_ = money;
+    ReturnAll(local, partyB);
+    local->money_ = partyB->money_ - partyA->money_ + partyC->money_;
     GameRejoin();
 }
 
@@ -170,33 +162,31 @@ void CExchangeScreen::CreateScreen() {
     ownOffer_->Clear(1, 0);
 
     // The description panel (its item list and text arrays constructed in place).
-    auto* panel = new CItemInfoPanel(interface_, this);
-    descPanel_ = panel;
-    AsContainer(this)->AddChild(panel);
+    descPanel_ = new CItemInfoPanel(interface_, this);
+    AddChild(descPanel_);
     descPanel_->Build(600, 100);
 
     // The local party's items (the strip that hands clicks to this screen).
-    CUiItemStrip* strip = new CForwardingStrip(interface_, this);
-    strip_ = strip;
-    AsContainer(this)->AddChild(strip);
-    strip_->Setup(&LocalParty()->items_, 0);
+    strip_ = new CForwardingStrip(interface_, this);
+    AddChild(strip_);
+    strip_->Setup(&LocalPlayerData()->items_, false);
     strip_->mode_ = kStripActionTake;
     strip_->SetFilter(0);
 
     // The players.
     figures_ = new CFigureStrip(interface_, this);
-    AsContainer(this)->AddChild(figures_);
-    figures_->SetupFigures(&names_, 1, 1);
+    AddChild(figures_);
+    figures_->SetupFigures(&names_, true, true);
 
     // Both offers.
     grid_ = new CTradeGrid(interface_, this);
-    AsContainer(this)->AddChild(grid_);
+    AddChild(grid_);
     grid_->Build(&partnerOffer_->items_, &ownOffer_->items_, false, true);
     grid_->mode_ = kGridMode;
 
     // The money offered.
     moneyField_ = new CUiEditField(interface_, RECT{0, 0x15E, 200, 0x16E});
-    AsContainer(this)->AddChild(moneyField_);
+    AddChild(moneyField_);
     moneyField_->SetLook(1, static_cast<char>(1), 1, 9, 0xFFFFFF, 0x31B3FF);
     moneyField_->SetText("");
 
@@ -231,7 +221,7 @@ void CExchangeScreen::Draw(CSceneRenderer* pass) {
     CUiSurface* surface = surfaces_[0];
     surface->Clear();
     texts->GetString("xch_current_money", &text);
-    line = str::Format("%s %d", text, LocalParty()->money_);
+    line = str::Format("%s %d", text, LocalPlayerData()->money_);
     RECT rect{0, 0, 200, 0x14};
     surface->DrawTextIn(line, &rect, kAlignLeft, kWhite, 1, 1);
     texts->GetString("xch_accept", &text);
@@ -249,7 +239,7 @@ void CExchangeScreen::Draw(CSceneRenderer* pass) {
     surface = surfaces_[2];
     surface->Clear();
     net::PartyMessage* partner = net::ClientFindParty(client);
-    if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
+    if (IsLive(partner)) {
         texts->GetString("xch_money_remote", &text);
         rect = RECT{0x14, 0, 0xB4, 0x14};
         surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
@@ -262,7 +252,7 @@ void CExchangeScreen::Draw(CSceneRenderer* pass) {
     surface = surfaces_[3];
     surface->Clear();
     partner = net::ClientFindParty(client);
-    if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
+    if (IsLive(partner)) {
         texts->GetString("xch_remote_header", &text);
         rect = RECT{0x14, 0, 0xB4, 0x14};
         surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
@@ -276,28 +266,21 @@ void CExchangeScreen::Draw(CSceneRenderer* pass) {
     // The accept button greyed and take-back lit while our offer is accepted, else the reverse;
     // the third one lit while the partner accepted.
     bool accepted = LiveAccepted(client->party_.Get());
-    SetTint(Sprite(sceneObjects_[0]), accepted ? 0.5f : 1.0f);
-    SetTint(Sprite(sceneObjects_[1]), accepted ? 1.0f : 0.5f);
-    partner = net::ClientFindParty(client);
-    bool partnerAccepted = partner && !(partner->flags7_ & CRefObject::kDetached) && net::ClientFindParty(client)->accepted_;
-    SetTint(Sprite(sceneObjects_[2]), partnerAccepted ? 0.5f : 1.0f);
+    SetTint(SceneMesh(0), accepted ? 0.5f : 1.0f);
+    SetTint(SceneMesh(1), accepted ? 1.0f : 0.5f);
+    bool partnerAccepted = LiveAccepted(net::ClientFindParty(client));
+    SetTint(SceneMesh(2), partnerAccepted ? 0.5f : 1.0f);
 
-    AsContainer(this)->CUiContainer::Draw(pass);
+    CUiContainer::Draw(pass);
 }
 
 // --- an item clicked in the strip or the grid ------------------------------------------------------
 
-bool CExchangeScreen::CanMove() { return true; }
-
-void CExchangeScreen::MoveOffered(CItem* item, int mode) {
-    if (!CanEquip(item, mode)) {   // CanMove here
-        interface_->PlaySound(kCancelSound);
-        return;
-    }
+// (The original first asks CanEquip, which always accepts here.)
+void CExchangeScreen::TakeItem(CItem* item, int mode) {
     if (mode == kStripActionTake) {
         interface_->PlaySound(kPutOnSound);
-        CParty* local = LocalParty();
-        MoveItem(item, ownOffer_, local, kOfferLimit, true, false);
+        MoveItem(item, ownOffer_, LocalPlayerData(), kOfferLimit, true, false);
         net::ClientPublishParty(net::g_gameClient);
         return;
     }
@@ -306,8 +289,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
     for (int i = 0; i < std::ssize(offered); ++i) {
         if (offered[i] != item) continue;
         interface_->PlaySound(kPutOffSound);
-        CParty* offer = ownOffer_;
-        CItem* held = MoveItem(item, LocalParty(), offer, 0, true, false);
+        CItem* held = MoveItem(item, LocalPlayerData(), ownOffer_, 0, true, false);
         strip_->ScrollToItem(held);
         net::ClientPublishParty(net::g_gameClient);
         return;

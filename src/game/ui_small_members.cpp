@@ -50,10 +50,6 @@ CItem* CFigureStrip::ItemAt(int, int, int*) { return nullptr; }
 
 void CBriefingScreen::SetChatActive(int mode) { chatActive_ = mode; }
 
-void CUiItemStrip::SetSlots(int slots) { slots_ = slots; }
-
-CItem* CItemInfoPanel::FirstItem() { return std::ssize(itemParty_->items_) ? itemParty_->items_[0] : nullptr; }
-
 void CUiMesh::SetScaleYBits(std::uint32_t bits) { scaleMatrix_.m[5] = std::bit_cast<float>(bits); }
 
 

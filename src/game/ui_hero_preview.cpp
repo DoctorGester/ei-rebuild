@@ -60,14 +60,14 @@ Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
 
 } // namespace
 
-void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, float depth, int wide) {
+void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, float depth, bool wide) {
     CObject3D* model = hero;
     if (!model) return;
 
     // The whole depth buffer to the near plane, then the preview's rectangles to the far plane.
     ClearUiDepth(0.0f);
     RECT rects[6];
-    if (static_cast<std::uint8_t>(wide) != 0) {
+    if (wide) {
         for (int i = 0; i < 6; ++i) {
             RECT r{kWideClearLeft[i], kWideClearTop[i], kWideClearRight[i], kWideClearBottom[i]};
             interface_->ScaleRectToScreenEntry(&r);

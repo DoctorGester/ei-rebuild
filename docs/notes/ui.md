@@ -175,7 +175,7 @@ constructors, handlers, exchange slots 42 / 43: net_pair_zone reaches both), the
 005E6FA0 sprite Place, the shapes 005E70E0 / 005E7680 / 005E7D60 / 005E99D0; 005F8340 and 005E6FA0 S), `CInterface3D::Create`
 and `DrawOverlays`, the battle camera / global map mouse moves (005EB210 S, 00630010 S, 0062F950 O), the battle panel builders
 (0063BAB0 .. 0063F500, 0063A560 key-down; 0063C050 S), `CCampPages::Create` (0060C870), the hero screen (00613EA0 Create,
-00615D30 SetModeVanilla) and the connection screen (0061B2C0 Create, 0061D780 list draw; ui_mp_host reaches the list draw).
+00615D30 SetMode) and the connection screen (0061B2C0 Create, 0061D780 list draw; ui_mp_host reaches the list draw).
 
 CSV: library.csv 12 rows (the chat line list, help topic / cache map nodes, `CFont` / `CRect` inlines, EH-only
 destructors), dead_code.csv 0063C010, 0063F6E0. Forwarded on purpose: the Rebirth-patched callees (`CUiMesh::SetRectangle` /
@@ -289,8 +289,8 @@ Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `
 Multiplayer hero screen (`CMpHeroScreen`, `ui_hero_screen*.cpp`, `ui_hero_figure.cpp`; O unless marked). Modes: 9 hero list
 (rows 9-18; 1 continue 006183B0, 5 new hero, 6 rename, 7 delete "lmp_deletepers", 8 the hero's inventory = the camp screen
 built inline with `fromHeroScreen_` 1), 10 new hero (1 create 006186F0, rows 9-19 the voice), 11 equipment (1 next 00617A50).
-Scenarios ui_hero_screen, ui_hero_stats (RefreshHero), ui_hero_delete (AddNewHero, DeleteHero, record life cycle; unconfirmed).
-`EquipmentWeight` (53, double in ST0), `CanEquip` (43, AL), `TakeItem` (42), `GetHero` (51), `RefreshHero` (47),
+Scenarios ui_hero_screen, ui_hero_stats (RefreshStats), ui_hero_delete (AddNewHero, DeleteHero, record life cycle; unconfirmed).
+`Weight` (53, double in ST0), `CanEquip` (43, AL), `TakeItem` (42), `HeroRecord` (51), `RefreshStats` (47),
 `ChooseFigure` (52: +0x1BC / +0x1C0 are two item strips whose `selected_` (+0x17C) is the chosen figure; the strip listing
 the prototype picks the voice list; the voice (text 6) is the list's first file, read even when the list is empty).
 `KeyDown` `FinishRename`: the name before " | " plus " | " and the typed text; paging by 10 / 1 heroes or 11 / 1 voices;
@@ -300,12 +300,13 @@ attribute sum vs 00741C98 equal or unordered, a name. `Draw` previews at depth 5
 tints the create button; `Destroy` is the destructor body (vtable 0074214C slot 0 00633240 calls it). `AddNewHero` writes file
 "<highest *.mp title + 1>.mp" (00619920 when full; `RefreshHeroScroll` shared with DeleteHero); `MessageResult` 0x10001
 deletes in mode 9. `DrawHeroList`: a hero record is a CParty whose first member's text 0 is the name. `MakePreview` (RET 4;
-skill animation 0x21 from a random frame, controller slot 14 `RestartAnimation(float)`). Forwarders `RenameAt` /
-`PlayVoiceAt` / `ContinueAt` / `CreateHeroAt`.
+skill animation 0x21 from a random frame, controller slot 14 `RestartAnimation(float)`). The original's forwarders
+`RenameAt` / `PlayVoiceAt` / `ContinueAt` / `CreateHeroAt` are the member calls.
 
 Exchange (screen 9; multiplayer only, no scenario): `CExchangeScreen : CItemScreen` (+0x190 scratch party, +0x194 / +0x198 the
-client's parties_[1] / [0], strip, figure strip, trade grid, money field, figure names); `ui_exchange.cpp`: `OnExchangeDone`
-0062D210 (37), `Close` 0062C8F0, `MessageResult` 0062C920, `Update` 0062C930, `LeftDown` 0062CF70 (O). The client's trade
+client's parties_[1] / [0], strip, figure strip, trade grid, money field, figure names); `ui_exchange.cpp`: `ExchangeDone`
+0062D210 (37), `CloseScreen` 0062C8F0, `Update` 0062C930, `LeftDown` 0062CF70, `TakeItem` 0062D100 (O); the empty
+`MessageResult` 0062C920 is the container's default and `CanEquip` (0062D200) always true. The client's trade
 calls go through their addresses (originals_ui.h `Client*Original`).
 
 Hazards and facts:
@@ -708,7 +709,7 @@ local player's items; a new hero record is appended (the vector's own growth whe
 file named "<the highest number among the folder's *.mp titles + 1>.mp", given the local party and saved;
 the list's scroll range, the list drawn, mode 9.
 
-## CMpHeroScreen::SetModeVanilla
+## CMpHeroScreen::SetMode
 
 ui_hero_screen_mode.cpp (Rebirth-patched, reproducing WideScreen, so hooked in both launches). The screen
 laid out for `mode`. First everything off: the menu model's parts, the nine child windows, every sprite and

@@ -189,7 +189,7 @@ void CCampPages::BuildPages() {
     CUiItemStrip* strip = new CForwardingStrip(interface_, this);
     itemStrip_ = strip;
     AddChild(strip);
-    itemStrip_->Setup(&LocalPlayerData()->items_, 0);
+    itemStrip_->Setup(&LocalPlayerData()->items_, false);
     itemStrip_->mode_ = kActionEquip;
     itemStrip_->SetFilter(kFilterItems);
 
@@ -217,10 +217,10 @@ void CCampPages::BuildPages() {
         strip = new CForwardingStrip(interface_, this);
         spellStrip_ = strip;
         AddChild(strip);
-        spellStrip_->Setup(&spellParts_[0]->items_, 1);
+        spellStrip_->Setup(&spellParts_[0]->items_, true);
         spellStrip_->mode_ = kActionSpellParts;
         spellStrip_->SetFilter(kFilterSpells);
-        spellStrip_->SetSlots(0);
+        spellStrip_->slots_ = 0;
 
         auto* grid = new CTradeGrid(interface_, this);
         spellConstructor1_ = grid;
@@ -238,10 +238,10 @@ void CCampPages::BuildPages() {
         strip = new CForwardingStrip(interface_, this);
         partStrip_ = strip;
         AddChild(strip);
-        partStrip_->Setup(&itemParts_[0]->items_, 1);
+        partStrip_->Setup(&itemParts_[0]->items_, true);
         partStrip_->mode_ = kActionItemParts;
         partStrip_->SetFilter(kFilterArmour);
-        partStrip_->SetSlots(4);
+        partStrip_->slots_ = 4;
 
         auto* grid = new CTradeGrid(interface_, this);
         itemConstructor1_ = grid;

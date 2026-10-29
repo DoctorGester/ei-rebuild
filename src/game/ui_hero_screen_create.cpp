@@ -34,7 +34,6 @@ constexpr float kMenuTilt = /*007C7F14*/ 1.5707964f;   // a static initialiser: 
 
 constexpr int kTextureKind = 3;
 constexpr int kSurfaceFormat = 5;
-constexpr int kModeHeroList = 9;
 constexpr std::uint32_t kPlainSprite = 0x100;
 constexpr std::uint32_t kSelectionColour = 0xC8A06800;
 constexpr std::uint32_t kBackColour = 0xA0000000;
@@ -49,20 +48,6 @@ constexpr int kTextFormat = 1;
 constexpr int kPanelTexture = 0, kItemTexture = 2, kSaveLoadTexture = 3, kFirstQuarterTexture = 4;
 // surfaces_: 0 the hero list, 1 its four commands, 2 the voices, 3 the name being changed.
 constexpr int kSurfaceCommands = 1, kSurfaceRename = 3;
-
-// The menu model's turn about x: pi / 2 times 1.2.
-float MenuTurn() { return kMenuTilt * 1.2f; }
-
-CUiContainer* AsContainer(CMpHeroScreen* screen) { return screen; }
-
-CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
-    return surface;
-}
-
-CUiScrollbar* NewScrollbar(CInterface3D* ui, RECT rect) { return new CUiScrollbar(ui, rect, 3.0f, 0, 1.0f); }
-
-CUiEditField* NewEditField(CInterface3D* ui, RECT rect) { return new CUiEditField(ui, rect); }
 
 // By name (_mbscmp). Names that compare equal are the same text.
 void SortNames(std::vector<std::string>& names) { std::sort(names.begin(), names.end(), str::MbsLess()); }
@@ -92,9 +77,10 @@ void CMpHeroScreen::CreateScreen() {
     model->Load("unmoco2", "MainMenu00", "MainMenu00labels");
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
     {
+        // Turned about x by pi / 2 times 1.2.
         const Vector3 axis = {1.0f, 0.0f, 0.0f};
         Quaternion turn;
-        model->object_->localRotation_ = *turn.SetAxisAngle(axis, MenuTurn());
+        model->object_->localRotation_ = *turn.SetAxisAngle(axis, kMenuTilt * 1.2f);
     }
     model->ShowAllParts(0);
     model->ShowPart("but03", 1);
@@ -168,43 +154,35 @@ void CMpHeroScreen::CreateScreen() {
     }
 
     // The description panel on the right (its item list and text arrays constructed in place).
-    auto* info = new CItemInfoPanel(interface_, this);
-    descPanel_ = info;
-    AsContainer(this)->AddChild(info);
+    descPanel_ = new CItemInfoPanel(interface_, this);
+    AddChild(descPanel_);
     descPanel_->Build(600, 100);
 
     // The hero's statistics.
-    auto* stats = new CHeroStatsPanel(interface_, this);
-    statsPanel_ = stats;
-    AsContainer(this)->AddChild(stats);
-    stats->AddObject(texture(kPanelTexture));
-    stats->Build();
+    statsPanel_ = new CHeroStatsPanel(interface_, this);
+    AddChild(statsPanel_);
+    statsPanel_->AddObject(texture(kPanelTexture));
+    statsPanel_->Build();
 
     // The equipment (without the body) and the quick items.
-    auto* equipment = new CHeroEquipPanel(interface_, this);
-    weaponPanel_ = equipment;
-    AsContainer(this)->AddChild(equipment);
-    equipment->AddObject(texture(kItemTexture));
-    equipment->Build(false);
+    weaponPanel_ = new CHeroEquipPanel(interface_, this);
+    AddChild(weaponPanel_);
+    weaponPanel_->AddObject(texture(kItemTexture));
+    weaponPanel_->Build(false);
 
-    auto* quick = new CHeroQuickStrip(interface_, this);
-    spellPanel_ = quick;
-    AsContainer(this)->AddChild(quick);
-    quick->AddObject(texture(kItemTexture));
-    quick->Build(false);
+    spellPanel_ = new CHeroQuickStrip(interface_, this);
+    AddChild(spellPanel_);
+    spellPanel_->AddObject(texture(kItemTexture));
+    spellPanel_->Build(false);
 
     // The skills for experience.
-    auto* trade = new CTradePanel(interface_, this);
-    tradePanel_ = trade;
-    AsContainer(this)->AddChild(trade);
-    trade->AddObject(texture(kPanelTexture));
-    trade->Build();
+    tradePanel_ = new CTradePanel(interface_, this);
+    AddChild(tradePanel_);
+    tradePanel_->AddObject(texture(kPanelTexture));
+    tradePanel_->Build();
 
-    {
-        CUiScrollbar* bar = NewScrollbar(interface_, RECT{110, 250, 384, 490});
-        heroScroll_ = bar;
-        AsContainer(this)->AddChild(bar);
-    }
+    heroScroll_ = new CUiScrollbar(interface_, RECT{110, 250, 384, 490}, 3.0f, 0, 1.0f);
+    AddChild(heroScroll_);
 
     // The figures a new hero can take, men (model "unhuma") and women ("unhufe"): every creature
     // record whose unit prototype has one of the two models, with a numbered voice when the
@@ -265,45 +243,31 @@ void CMpHeroScreen::CreateScreen() {
     // Both lists by name, the women's from the end.
     SortNames(men);
     SortNames(women);
-    for (std::string *low = women.data(), *high = women.data() + women.size(); low < high; ++low) {
-        --high;
-        std::string kept = *low;
-        *low = *high;
-        *high = kept;
-    }
+    std::reverse(women.begin(), women.end());
 
     // The two figure strips: the men on top, the women below.
-    auto figureStrip = [this](int index, std::vector<std::string>& names, char top) {
+    auto figureStrip = [this](int index, std::vector<std::string>& names, bool top) {
         figureStrips_[index] = new CFigureStrip(interface_, this);
-        AsContainer(this)->AddChild(figureStrips_[index]);
-        figureStrips_[index]->SetupFigures(&names, top, 0);
+        AddChild(figureStrips_[index]);
+        figureStrips_[index]->SetupFigures(&names, top, false);
     };
-    figureStrip(0, men, 1);
-    figureStrip(1, women, 0);
+    figureStrip(0, men, true);
+    figureStrip(1, women, false);
 
     // The edit windows: a listed hero's new name, and the new hero's name.
-    {
-        CUiEditField* edit = NewEditField(interface_, RECT{558, 110, 695, 126});
-        renameEdit_ = edit;
-        AsContainer(this)->AddChild(edit);
-        edit->SetLook(3, 0, 1, kNameLength, kRenameColour, kCaretColour);
-        edit->SetEnabled(false);
-        edit->SetFocused(false);
-    }
-    {
-        CUiEditField* edit = NewEditField(interface_, RECT{0, 127, 200, 143});
-        nameEdit_ = edit;
-        AsContainer(this)->AddChild(edit);
-        edit->SetLook(3, 1, 1, kNameLength, kWhite, kCaretColour);
-        edit->SetEnabled(false);
-        edit->SetFocused(false);
-    }
-    {
-        CUiScrollbar* bar = NewScrollbar(interface_, RECT{10, 325, 190, 490});
-        voiceScroll_ = bar;
-        AsContainer(this)->AddChild(bar);
-        bar->SetEnabled(false);
-    }
+    renameEdit_ = new CUiEditField(interface_, RECT{558, 110, 695, 126});
+    AddChild(renameEdit_);
+    renameEdit_->SetLook(3, 0, 1, kNameLength, kRenameColour, kCaretColour);
+    renameEdit_->SetEnabled(false);
+    renameEdit_->SetFocused(false);
+    nameEdit_ = new CUiEditField(interface_, RECT{0, 127, 200, 143});
+    AddChild(nameEdit_);
+    nameEdit_->SetLook(3, 1, 1, kNameLength, kWhite, kCaretColour);
+    nameEdit_->SetEnabled(false);
+    nameEdit_->SetFocused(false);
+    voiceScroll_ = new CUiScrollbar(interface_, RECT{10, 325, 190, 490}, 3.0f, 0, 1.0f);
+    AddChild(voiceScroll_);
+    voiceScroll_->SetEnabled(false);
     voiceSound_ = -1;
     voiceTop_ = 0;
     voiceIndex_ = 0;
@@ -311,10 +275,10 @@ void CMpHeroScreen::CreateScreen() {
     turn_ = 0.0f;
     rotating_ = 0;
 
-    AddSurface(NewSurface(interface_, 100, 240, 390, 500));
-    AddSurface(NewSurface(interface_, 100, 100, 390, 220));
-    AddSurface(NewSurface(interface_, 0, 300, 200, 500));
-    AddSurface(NewSurface(interface_, 425, 110, 555, 126));
+    AddSurface(new CUiSurface(interface_, 100, 240, 390, 500, kSurfaceFormat, 1));
+    AddSurface(new CUiSurface(interface_, 100, 100, 390, 220, kSurfaceFormat, 1));
+    AddSurface(new CUiSurface(interface_, 0, 300, 200, 500, kSurfaceFormat, 1));
+    AddSurface(new CUiSurface(interface_, 425, 110, 555, 126, kSurfaceFormat, 1));
     surfaces_[kSurfaceRename]->Freeze(0, 0);
 
     // The list's four commands.
@@ -342,7 +306,7 @@ void CMpHeroScreen::CreateScreen() {
     RefreshHeroScroll();
     DrawHeroList();
     heroIndex_ = heroes->entries_.size() == 0 ? -1 : 0;
-    SetModeVanilla(kModeHeroList);
+    SetMode(kModeList);
     // Rebirth's WideScreen: the curtains, hidden (sprites 19, 20).
     widescreen::AddCurtains(this, 0);
 }

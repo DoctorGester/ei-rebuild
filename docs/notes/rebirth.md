@@ -369,7 +369,7 @@ computes the floats it writes into the code:
 
 **EI_Plugin's other Fixes and NPlayers (W4b)** (installer at EI_Plugin.asi +0x2E60 and +0x2FD0..: `100031F0`, `10003220`, `10003110`;
 NPlayers +0x2C80, and +0x2D20 for more than 7 players), each behind its flag and declared:
-- *Sex of a face* (`EiPluginFixes`, 005ED889 `CItemScreen::FaceNames` for 005ED7B0, 00609427 `CChatWindow::ShowPlayers` 006091C0, 006408E6
+- *Sex of a face* (`EiPluginFixes`, 005ED889 `FaceNames` (ui_item_view.cpp) for 005ED7B0, 00609427 `CChatWindow::ShowPlayers` 006091C0, 006408E6
   and 00640D2F `CHudPortraits::Rebuild` 006407E0): the two strcmp tests become `cmp byte [name+4], 0x66`: a model whose fifth character is 'f'
   gives "f", every other one "m" (always assigned: the original's `sex` carried over from the last face when the model was neither).
   `pluginfixes::ModelIsFemale` (src/game/plugin_fixes.h).

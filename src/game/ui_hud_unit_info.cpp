@@ -134,11 +134,10 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
 
     float description[7];
     params->ProtectionBlock(&unit->packedVitals, description, static_cast<unsigned char>(IsTextKey(unit->id_)));
-    std::vector<std::string> lines;
-    ItemDamageLists(description, &lines, static_cast<char>(1));
-    panel.DrawLabelled(10, lines[0]);
+    const DamageLists lines = ItemDamageLists(description, true);
+    panel.DrawLabelled(10, lines.threshold);
     if (outside) {
-        if (lines[1].size() != 0) panel.DrawLabelled(11, lines[1]);
+        if (!lines.above.empty()) panel.DrawLabelled(11, lines.above);
         auto* prototype = unit->GetPrototype();
         if (prototype->spellNames.end() != prototype->spellNames.begin()) panel.DrawLine(panel.labels[5]);
         CBattleScreen* group = owner_;
@@ -158,8 +157,8 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
             panel.text = str::Format(kTwoTexts, panel.labels[16], suffix);
             panel.DrawLine();
         }
-    } else if (lines[2].size() != 0) {
-        panel.DrawLabelled(12, lines[2]);
+    } else if (!lines.below.empty()) {
+        panel.DrawLabelled(12, lines.below);
     }
 
     if (IsMultiplayerClient() && !outside) {

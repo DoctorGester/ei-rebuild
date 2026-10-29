@@ -68,15 +68,14 @@ public:
     // For the camp's three strips and the exchange window's: the background texture "Inventory02" (`top`) or "Inventory01", the
     // strip built, the arrows' tips 0x4FB0 / 0x4FB1, two text surfaces (x 50..750, y top_ + 15..35 and top_ + 65..85), nine
     // slots and the source list.
-    void Setup(std::vector<CItem*>* source, char top);
+    void Setup(std::vector<CItem*>* source, bool top);
     // The figure strips (the hero screen's two, the exchange window's): the name list, the texture "InventoryM01", Build, the
     // arrows' tips 0x9DD0 / 0x9DD1 unless `noArrowTips`, no tabs, the six tab buttons' sprites (scene objects 2..7) hidden.
-    void SetupFigures(std::vector<std::string>* names, char top, char noArrowTips);
-    void SetSlots(int slots);
+    void SetupFigures(std::vector<std::string>* names, bool top, bool noArrowTips);
     // Lays the strip out along the top edge (`top`: y 0, scale 8) or the bottom (y 500, scale 4): the scroll state cleared, nine
     // regions (arrows, six tab buttons, the items), the ends' and tab buttons' sprites, the highlight frame, the background
     // cells; tab 5.
-    void Build(char top);
+    void Build(bool top);
     // Selects tab `tab`: settles the current tab to a whole slot, highlights its button, stops scrolling.
     void SetTab(int tab);
     // Chooses what the tabs sort by (0 items, 1 spells, 2 armour), loads their tooltips and resets every tab's position.
@@ -131,7 +130,7 @@ public:
 // The forwarding strip: the camp's item strips and the exchange's; an item click goes to the owner.
 class CForwardingStrip : public CUiItemStrip {
 public:
-    CForwardingStrip(CInterface3D* ui, CItemScreen* owner);
+    using CUiItemStrip::CUiItemStrip;
     // The end faces dimmed (sprite alpha 0.195) where it can scroll on, the background cells shifted by the current tab's
     // fractional position, the window's sprites, eight item cells through the owner, the stack counts (not 1) on surface 0
     // and, unless a member is 9, the owner's number of each item its accept virtual takes on surface 1.
@@ -180,22 +179,28 @@ struct MpVoiceEntry {
 // 11 new hero's statistics. The heroes are records in a global vector.
 class CMpHeroScreen : public CItemScreen {
 public:
-    explicit CMpHeroScreen(CInterface3D* ui);
-    ~CMpHeroScreen() override;
-    void CloseScreen() override { Close(); }
-    void RefreshStats() override { RefreshHero(); }
-    PartyUnitRecord* HeroRecord() override { return GetHero(); }
-    double Weight() override { return EquipmentWeight(); }
+    // The modes (mode_; the statistics panel's page too).
+    static constexpr int kModeList = 9;
+    static constexpr int kModeNewHero = 10;
+    static constexpr int kModeStats = 11;
+
+    // Built inline by the main menu's Multiplayer click.
+    explicit CMpHeroScreen(CInterface3D* ui) : CItemScreen(ui) {}
+    // The heroes saved, the player's records handed to the client world, the preview cleared and the description panel emptied.
+    void CloseScreen() override;
+    // With a preview figure: the hero's statistics restored, its size factors, scale and unit statistics; then the statistics
+    // panel redrawn.
+    void RefreshStats() override;
+    // The local player's first hero.
+    PartyUnitRecord* HeroRecord() override;
+    // The weight carried by the hero being made (weapon, armour, spell container and the quick items), unrounded.
+    double Weight() override;
     // Keeps the selected hero in the list and visible (ten rows), then shows it.
     void ClampHeroSelection();
     // The same for the voice list (eleven rows), then shows the voice's name.
     void ClampVoiceSelection();
-    // The weight carried by the hero being made (weapon, armour, spell container and the quick items), unrounded.
-    double EquipmentWeight();
     // What an item strip calls with its action mode: with mode 0, equips a weapon, armour or spell container; then refreshes.
     void TakeItem(CItem* item, int mode) override;
-    // The local player's first hero.
-    PartyUnitRecord* GetHero();
     // Whether the hero can take `item`; spell containers need the spell's skill and mana.
     bool CanEquip(CItem* item, int mode) override;
 
@@ -213,19 +218,21 @@ public:
     void CloseRenameEdit();
     // Back from the statistics page to the new hero (mode 10).
     void BackToNewHero();
+    // The hero's first weapon, armour (its first quick item) and spell container chosen and shown.
+    void ShowFirstEquipment();
 
     // Shows hero `index` (none when not in the list): copied into the local party and made current, the preview rebuilt, the
     // unit re-armed, the turn reset and the list redrawn.
     void ShowHero(int index);
-    // The preview figure of the local player's first record: see docs/notes/ui.md, "CMpHeroScreen::MakePreview".
-    void MakePreview(int flag);
+    // The preview figure of the local player's first record (`allArmour` as GameCreatePartyUnits takes it): see
+    // docs/notes/ui.md, "CMpHeroScreen::MakePreview".
+    void MakePreview(bool allArmour);
     // The new hero takes figure (unit prototype) `prototype`: see docs/notes/ui.md, "CMpHeroScreen::ChooseFigure".
     void ChooseFigure(std::string_view prototype) override;
     // The voices' surface (2): the "lmp_voices" title and eleven rows from voiceTop_, the selection frame on the chosen one.
     void DrawVoices();
     // The hero list's surface (0): ten rows of names from heroTop_, the selection frame on the selected hero.
     void DrawHeroList();
-    void CallShowHero(int index);
 
     // On the statistics page the experience lines on surface 2; then what is under the mouse for the description panel, the
     // children drawn and the hero previewed (list at depth 553, new hero at 400).
@@ -234,8 +241,6 @@ public:
     // list and voices; on the new hero page the create button is bright only when the three attributes add up to the
     // attribute points and the name is not empty.
     void Update() override;
-    // The heroes saved, the player's records handed to the client world, the preview cleared and the description panel emptied.
-    void Close();
     void DrawExperience();
     // Region 6 of the list: the rename edit window enabled and editing; its text is the selected hero's name after its "|",
     // surface 3 shows the name before it plus " | ". Nothing without a selection.
@@ -246,9 +251,6 @@ public:
     // Enter / region 1 of the list: with a hero selected the heroes are saved and the connection screen opened; otherwise a
     // message box.
     void Continue();
-    // With a preview figure: the hero's statistics restored, its size factors, scale and unit statistics; then the statistics
-    // panel redrawn.
-    void RefreshHero();
     // Region 1 / Enter of the new hero: when the three attributes add up to the attribute points and a name is typed, the
     // first weapon, one more entry and the spell entry shown, the name given to the hero and the statistics panel, mode 11;
     // otherwise the cancel sound.
@@ -262,9 +264,9 @@ public:
     // Region 1 / Enter of the statistics page: the new hero is kept and saved as a record: see docs/notes/ui.md,
     // "CMpHeroScreen::AddNewHero".
     void AddNewHero();
-    // The screen laid out for `mode` (9 list, 10 new hero, 11 statistics): see docs/notes/ui.md, "CMpHeroScreen::SetModeVanilla".
+    // The screen laid out for `mode` (9 list, 10 new hero, 11 statistics): see docs/notes/ui.md, "CMpHeroScreen::SetMode".
     // Rebirth's WideScreen shows the curtains (sprites 19 and 20) in modes 10 and 11 and hides them in 9.
-    void SetModeVanilla(int mode);
+    void SetMode(int mode);
     // The screen's Create (reproduces Rebirth's WideScreen: the two curtains over the margins, sprites 19 and 20): see
     // docs/notes/ui.md, "CMpHeroScreen::CreateScreen".
     void CreateScreen() override;
@@ -578,12 +580,19 @@ class CTradeGrid;
 class CExchangeScreen : public CItemScreen {
 public:
     explicit CExchangeScreen(CInterface3D* ui);
-    void CloseScreen() override { Close(); }
-    void ExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) override {
-        OnExchangeDone(partyB, partyA, partyC);
-    }
-    void TakeItem(CItem* item, int mode) override { MoveOffered(item, mode); }
-    bool CanEquip(CItem*, int) override { return CanMove(); }
+    // The description panel describes nothing and the scratch party is deleted.
+    void CloseScreen() override;
+    // The exchange went through: the local party's items are released, every item of `partyC`, then of
+    // `partyB`, returned into it (ReturnAll), its money set to partyB's - partyA's + partyC's, and the client
+    // goes back to the world.
+    void ExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) override;
+    // Mode 1 (the strip): the put_on sound, `item` moves from the local party into our offer (MoveItem with
+    // limit 8, merging) and the offer is published. Mode 5 (the grid), only for an item of our offer: the
+    // put_off sound, the item moves back to the local party, the strip scrolls to what the party now holds and
+    // the offer is published. Other modes nothing.
+    void TakeItem(CItem* item, int mode) override;
+    // Every item may move.
+    bool CanEquip(CItem*, int) override { return true; }
     // Builds the window (texture "campinfo", regions 0 accept, 1 take back, 2 leave): see docs/notes/ui.md,
     // "CExchangeScreen::CreateScreen".
     void CreateScreen() override;
@@ -594,14 +603,6 @@ public:
     // offer's acceptance and the third button by the partner's; then the children.
     void Draw(CSceneRenderer* pass) override;
     void KeyDown(int key, int repeat, int flags) override;
-    // The exchange went through: the local party's items are released, every item of `partyC`, then of
-    // `partyB`, returned into it (ReturnAll), its money set to partyB's - partyA's + partyC's, and the client
-    // goes back to the world.
-    void OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC);
-    // The description panel describes nothing and the scratch party is deleted.
-    void Close();
-    // A message box's answer: nothing.
-    void MessageResult(int result) override;
     // The children's update; then, when the client's offer is gone or detached, our offer's items go back to
     // the local party and the client returns to the world; else a changed money field (its changed_ cleared)
     // becomes our offer's money (atoi) and the offer is published.
@@ -611,13 +612,6 @@ public:
     // cancel sound), 1 take the acceptance back (cancel sound and the recorded take-back, when it is
     // accepted), 2 leave (the transit sound and the recorded leave). The event is not marked used.
     void LeftDown(int buttons, int x, int y) override;
-    // Refused by the accept virtual: the cancel sound. Mode 1 (the strip): the put_on sound, `item` moves
-    // from the local party into our offer (MoveItem with limit 8, merging) and the offer is published. Mode 5
-    // (the grid), only for an item of our offer: the put_off sound, the item moves back to the local party,
-    // the strip scrolls to what the party now holds and the offer is published. Other modes nothing.
-    void MoveOffered(CItem* item, int mode);
-    // Whether an item may move: always.
-    bool CanMove();
 
     CParty* scratch_;                // a party of the screen's own (made by Create, deleted by Close)
     CParty* partnerOffer_;           // the client's parties_[1]

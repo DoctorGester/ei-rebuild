@@ -43,9 +43,6 @@ constexpr float kNewHeroPoints = 75.0f;
 // The preview's full turn (2 pi), the modulus of its angle.
 constexpr float kFullTurn = /*007C7F10*/ 6.2831855f;   // a static initialiser: pi + pi
 
-constexpr int kModeList = 9;
-constexpr int kModeNewHero = 10;
-constexpr int kModeStats = 11;
 constexpr int kFirstVoiceRegion = 9;
 constexpr int kVoiceRegionEnd = 20;
 constexpr int kCreateButton = 9;             // scene object of the create button
@@ -54,8 +51,6 @@ constexpr float kNewHeroDepth = 400.0f;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kTextFormat = 1;
 
-UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
-
 const char* const kVoicesKey = "lmp_voices";
 // The voice rows' first y offset of the selection frame.
 constexpr float kVoiceFrameTop = 332.5f;
@@ -63,15 +58,6 @@ constexpr int kSelectionFrame = 2;           // scene object
 constexpr std::uint32_t kListColour = 0xA7D7E4;
 constexpr int kListFormat = 0x800;
 constexpr float kFrameDepth = 3.0f;
-
-CUiMesh* SelectionFrame(CUiWindow& w) {
-    return w.SceneMesh(kSelectionFrame);
-}
-// A multiplayer hero record (a party) and its name: its first member's text 0.
-CParty* MpHero(std::uint32_t index) { return SavedHero(static_cast<int>(index))->Party(); }
-std::uint32_t MpHeroCount() {
-    return static_cast<std::uint32_t>(SavedHeroCount());
-}
 
 const char* const kHeroName = "Hero";
 const char* const kHumanHero = "Human Hero";
@@ -88,7 +74,7 @@ int CTradePanel::Experience() const {
 
 int CTradePanel::PurchaseCost() {
     PartyUnitRecord* hero = owner_->HeroRecord();
-    return static_cast<int>(static_cast<double>(StatsOf(hero)->spentExperience) - Record().spentExperience);
+    return static_cast<int>(static_cast<double>(hero->stats.spentExperience) - Record().spentExperience);
 }
 
 // --- Draw ------------------------------------------------------------------------------
@@ -98,13 +84,13 @@ void CMpHeroScreen::DrawExperience() {
     std::string text;
     std::string line;
     surface->Clear();
-    g_clientWorld->texts_->CTextManager::GetString(kLevelUpKey, &text);
+    g_clientWorld->texts_->GetString(kLevelUpKey, &text);
     RECT title = {0, 130, 200, 150};
     surface->DrawTextIn(text, &title, kTextFormat, kWhite, 1, 1);
     text = str::Format(kSignedFormat, -tradePanel_->PurchaseCost());
     RECT cost = {0, 150, 200, 170};
     surface->DrawTextIn(text, &cost, kTextFormat, kWhite, 1, 1);
-    g_clientWorld->texts_->CTextManager::GetString(kCurrentExpKey, &text);
+    g_clientWorld->texts_->GetString(kCurrentExpKey, &text);
     line = str::Format(kLabelFormat, text, tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
     surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
@@ -136,14 +122,14 @@ void CMpHeroScreen::Draw(CSceneRenderer* pass) {
                 }
             }
         }
-        if (descPanel_) descPanel_->DescribeStats(&info);
+        if (descPanel_) descPanel_->DescribeStats(info);
     }
 
     CUiContainer::Draw(pass);
     if (mode_ == kModeList && heroIndex_ >= 0)
-        DrawHeroPreview(pass, previewModel_, turn_, kListDepth, 0);
+        DrawHeroPreview(pass, previewModel_, turn_, kListDepth, false);
     else if (mode_ == kModeNewHero)
-        DrawHeroPreview(pass, previewModel_, turn_, kNewHeroDepth, 0);
+        DrawHeroPreview(pass, previewModel_, turn_, kNewHeroDepth, false);
 }
 
 // --- Update ----------------------------------------------------------------------------
@@ -169,12 +155,12 @@ void CMpHeroScreen::Update() {
     if (mode_ != kModeNewHero) return;
 
     std::string name = nameEdit_->text_;
-    const UnitStats* stats = StatsOf(HeroRecord());
+    const UnitStats* stats = &HeroRecord()->stats;
     double points = static_cast<double>(stats->intelligenceBase) + stats->dexterityBase + stats->strengthBase;
     float target = kNewHeroPoints;
     EI_NAN_AUDIT(points, target);
     bool equal = points == target;
-    bool ready = equal && static_cast<int>(name.size()) != 0;
+    bool ready = equal && !name.empty();
     float shade = ready ? 1.0f : 0.5f;
     auto* button = SceneMesh(kCreateButton);
     button->tint_[0] = shade;
@@ -184,51 +170,34 @@ void CMpHeroScreen::Update() {
 
 // --- Close -----------------------------------------------------------------------------
 
-void CMpHeroScreen::Close() {
+void CMpHeroScreen::CloseScreen() {
     g_savedParties->SaveAll();
-    std::vector<PartyUnitRecord*> records = {};
-    auto* party = LocalPlayerData();
-    for (int i = 0; i < std::ssize(party->members_); ++i) {
-        PartyUnitRecord* record = &party->members_[i];
-        int size = std::ssize(records);
-        records.resize(size + 1);
-        records[size] = record;
-    }
+    std::vector<PartyUnitRecord*> records;
+    for (PartyUnitRecord& record : LocalPlayerData()->members_) records.push_back(&record);
     GameRemoveUnitsOf(&records);
     previewModel_ = nullptr;
     descPanel_->Describe(nullptr);
 }
-
-// --- The caches' objects released ----------------------------------------------------------
-
-template <typename Object>
-void ReleaseCachedObjects(ItemObjectCache<Object>* cache) {
-    for (auto& entry : cache->map) entry.second.object->Release();
-}
-template void ReleaseCachedObjects<CUiMesh>(ItemModelCache*);
-template void ReleaseCachedObjects<CTexture>(ItemTextureCache*);
-
-// Built inline by the main menu's Multiplayer click: the item screen, both caches
-// the name vectors, the text and the voice lists empty.
-CMpHeroScreen::CMpHeroScreen(CInterface3D* ui) : CItemScreen(ui) {}
-
-CMpHeroScreen::~CMpHeroScreen() {}
 
 // --- The hero list and the voices drawn -----------------------------------------------------
 
 void CMpHeroScreen::DrawHeroList() {
     CUiSurface* surface = surfaces_[0];
     surface->Clear();
-    SelectionFrame(*this)->visible_ = 0;
+    CUiMesh* frame = SceneMesh(kSelectionFrame);
+    frame->visible_ = 0;
     RECT rect = {12, 13, 265, 33};
+    const auto count = static_cast<std::uint32_t>(SavedHeroCount());
     std::uint32_t index = static_cast<std::uint32_t>(heroTop_);
     for (int y = 262; y < 502; y += 24, ++index) {
-        if (index >= MpHeroCount()) break;
+        if (index >= count) break;
         if (static_cast<int>(index) == heroIndex_) {
-            SelectionFrame(*this)->visible_ = 1;
-            SelectionFrame(*this)->Place(240.0f, static_cast<float>(y), kFrameDepth);
+            frame->visible_ = 1;
+            frame->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
-        surface->DrawTextIn(MpHero(index)->members_[0].texts[0], &rect, 1, kListColour, kListFormat, 1);
+        // A hero record is a party; its name the first member's text 0.
+        surface->DrawTextIn(SavedHero(static_cast<int>(index))->Party()->members_[0].texts[0], &rect, 1, kListColour,
+                            kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 24);
     }
 }
@@ -236,41 +205,38 @@ void CMpHeroScreen::DrawHeroList() {
 void CMpHeroScreen::DrawVoices() {
     CUiSurface* surface = surfaces_[2];
     surface->Clear();
-    SelectionFrame(*this)->visible_ = 0;
+    CUiMesh* frame = SceneMesh(kSelectionFrame);
+    frame->visible_ = 0;
     std::string title;
     RECT rect = {10, 5, 190, 20};
-    g_clientWorld->texts_->CTextManager::GetString(kVoicesKey, &title);
+    g_clientWorld->texts_->GetString(kVoicesKey, &title);
     surface->DrawTextIn(title, &rect, 0, kWhite, 1, 1);
     rect = {20, 25, 175, 40};
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop_);
     for (int offset = 0; offset < 165; offset += 15, ++index) {
-        std::vector<MpVoiceEntry>& voices = *voices_;
-        if (index >= static_cast<std::uint32_t>(voices.end() - voices.begin())) break;
+        const std::vector<MpVoiceEntry>& voices = *voices_;
+        if (index >= voices.size()) break;
         if (static_cast<int>(index) == voiceIndex_) {
-            SelectionFrame(*this)->visible_ = 1;
+            frame->visible_ = 1;
             float y = static_cast<float>(static_cast<double>(offset) + kVoiceFrameTop);
-            SelectionFrame(*this)->Place(97.5f, y, kFrameDepth);
+            frame->Place(97.5f, y, kFrameDepth);
         }
-        surface->DrawTextIn(voices.begin()[index].name, &rect, 0, kListColour, kListFormat, 1);
+        surface->DrawTextIn(voices[index].name, &rect, 0, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 15);
     }
 }
 
 // --- The preview's unit -------------------------------------------------------------------
 
-void CMpHeroScreen::MakePreview(int flag) {
+void CMpHeroScreen::MakePreview(bool allArmour) {
     previewModel_ = nullptr;
-    std::vector<PartyUnitRecord*> records = {};
     auto* player = LocalPlayerData();
-    if (std::ssize(player->members_) == 0) {
+    if (player->members_.empty()) {
         player->Clear(1, 0);
         player->AddMember(kHeroName, kHumanHero, game::kEmptyText);
     }
-    PartyUnitRecord* first = player->members_.data();
-    int size = std::ssize(records);
-    records.resize(size + 1);
-    records[size] = first;
-    GameCreatePartyUnits(&records, flag);
+    const std::vector<PartyUnitRecord*> records{player->members_.data()};
+    GameCreatePartyUnits(&records, allArmour);
     auto* unit = GameFindClientUnit(player->members_.data()->unitId);
     unit->SetSecondPrototype(unit->GetPrototype());
     previewModel_ = unit;
@@ -295,21 +261,18 @@ void CMpHeroScreen::MakePreview(int flag) {
 // --- A hero shown -------------------------------------------------------------------------
 
 void CMpHeroScreen::ShowHero(int index) {
-    std::vector<PartyUnitRecord*> records = {};
     auto* player = LocalPlayerData();
-    if (std::ssize(player->members_) > 0) {
-        int size = std::ssize(records);
-        records.resize(size + 1);
-        records[size] = player->members_.data();
+    if (!player->members_.empty()) {
+        std::vector<PartyUnitRecord*> records{player->members_.data()};
         GameRemoveUnitsOf(&records);
     }
     heroIndex_ = -1;
-    if (index >= 0 && static_cast<std::uint32_t>(index) < MpHeroCount()) {
+    if (index >= 0 && index < SavedHeroCount()) {
         heroIndex_ = index;
-        player->Assign(MpHero(index));
-        g_savedParties->Select(SavedHero(static_cast<int>(index)));
+        player->Assign(SavedHero(index)->Party());
+        g_savedParties->Select(SavedHero(index));
     }
-    MakePreview(1);
+    MakePreview(true);
     auto* hero = HeroRecord();
     auto* unit = GameFindClientUnit(hero->unitId);
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
