@@ -14,7 +14,6 @@
 #include "unit_create.h"   // CMapObjectManager
 #include "world.h"
 
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 
 #include "ei/x87.h"
@@ -57,10 +56,6 @@ bool QuitGame(int exitCode) {
 
 // The movie mode byte (1 unless the command line changed it; the loop passes it to the frame step).
 std::uint8_t g_movieMode = /*00784752*/ 1;
-
-// Called for every new object of the client (PlayerClient::OnNewObject): the copy protection's check. It draws a
-// number below 100 and, one time in a hundred, looked through a check list nothing fills; only the draw is left.
-void DelayedProtectionCheck() { static_cast<void>(libcrt::RandBelow(100)); }
 
 } // namespace app
 

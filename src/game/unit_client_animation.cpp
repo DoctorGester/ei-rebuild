@@ -136,7 +136,7 @@ void UnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
     }
     if (unit->MapType() != MapObjectType::Hero) key |= kKeyNotHero;
     if (unit->secondEntry == kModeSpecialIdle) key |= kKeySpecialIdle;
-    FigureAnimation* animation = unit->FindAnimation(key, 1);
+    FigureAnimation* animation = unit->FindAnimation(key, 1, AnimationRandom::Client);
     if (!animation) return;
     if (play) unit->Object3D()->animation->Play(animation);
     else unit->Object3D()->animation->Queue(animation);

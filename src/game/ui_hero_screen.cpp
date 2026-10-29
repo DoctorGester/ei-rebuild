@@ -240,7 +240,7 @@ void MpHeroScreen::MakePreview(bool allArmour) {
     if (unit) {
         FigureAnimation* animation = unit->FindSkillAnimation(kPreviewAnimation);
         if (animation) {
-            std::uint32_t random = g_random.Next();
+            std::uint32_t random = g_clientRandom.Next();
             double frames = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
             int start = static_cast<int>(frames - static_cast<int>(random % 51));
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);

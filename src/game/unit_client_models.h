@@ -170,7 +170,8 @@ public:
     void RestartAnimation(float time) override;
     // Unless frozen, finds an idle animation (CUnit::FindAnimation with any of the kind) for the weapon in
     // hand (bit of its prototype's type) or the natural weapon (when below 7), with 0x10000 for non-heroes
-    // and 0x80580000 for secondEntry -2; plays it (`play`) or queues it.
+    // and 0x80580000 for secondEntry -2, picked from the client effects' generator (g_clientRandom); plays it
+    // (`play`) or queues it.
     void StartIdleAnimation(std::uint8_t play);
 
     // A hit on body location `location` (0 head .. 5 right leg) of strength `amount`; the hit sound and blood

@@ -419,8 +419,9 @@ public:
     // An animation entry of the unit's figure for `key` (bits: docs/notes/combat.md), only for units (type
     // 0x32..0x34): a random entry matching the key, else one matching the key without its low 15 bits, else
     // for movement bits 0x8000 (alone among 0x38000) one without movement bits or with 0x10000 in place of
-    // 0x8000; then, when `anyOfKind`, a random entry of the key's kind. Null when none.
-    FigureAnimation* FindAnimation(std::uint32_t key, bool anyOfKind);
+    // 0x8000; then, when `anyOfKind`, a random entry of the key's kind. The picks draw from `random`'s generator
+    // (RandomAnimation). Null when none.
+    FigureAnimation* FindAnimation(std::uint32_t key, bool anyOfKind, AnimationRandom random = AnimationRandom::Game);
     // The figure's animation entry `key & 0xFF`; null (and "Can't find animation entry index" to the DebugLog
     // stub) when there is none.
     FigureAnimation* AnimationEntry(std::uint32_t key);

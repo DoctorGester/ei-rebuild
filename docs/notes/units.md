@@ -200,7 +200,8 @@ address in its source comment (grep the address); the per-function table that us
   between frames +0x28 / +0x2C. `WeaponPoint`: node by WeaponBaseFigure or "baserh3", its +0x74. `LoadFaceTexture`:
   "<model>mouth[_NN]" kind 0x3D. `HideWounds`: +0xD8 texture, +0xDC material. `CObject3D::MakeFigure`: from the cache, whole for
   an animated object without names (slot 4), else from the piece names (slot 3); LoadParts, bounds, `flags` 0x80.
-  `RandomAnimation`: variant bits, chance +0x1C narrowing. `Object3DClientSpecific::ExtraScale` (18: +0xF0..+0xF8),
+  `RandomAnimation`: variant bits, chance +0x1C narrowing; its draws from rand(), or from `g_clientRandom` for the client's
+  idle picks (`AnimationRandom::Client`, StartIdleAnimation, R34c). `Object3DClientSpecific::ExtraScale` (18: +0xF0..+0xF8),
   `Object3DServer`'s is (1, 1, 1); RegisterPartMaterials uses world slot 33 (material manager, 0068EAF0).
   `CTorchObjectClientSpecific` (A-U11, torch_client_spec.h: vtable 0073E954, 19 slots, 0x64): 13 / 14 show / hide the
   particles, light and looping sound, 15 warms the particles up, 16-18 rebuild them (particle type + offset + scale, point

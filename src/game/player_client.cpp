@@ -4,7 +4,6 @@
 #include "player_client.h"
 
 #include "ai_map.h"
-#include "app_helpers.h"
 #include "base_manager.h"
 #include "camera.h"
 #include "console.h"
@@ -489,7 +488,6 @@ void PlayerClient::StopRecording() {
 // --- A new map object (message 0x40, multiplayer) ------------------------------------------
 
 int PlayerClient::OnNewObject() {
-    app::DelayedProtectionCheck();
     std::vector<std::string> parts;
     std::string scriptName;
     std::string secondName;
