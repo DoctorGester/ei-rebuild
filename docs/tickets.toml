@@ -6204,7 +6204,7 @@ id = "S23b"
 title = "The drop-in exe's names: exe and log (user to pick)"
 group = "standalone"
 depends = ["S23"]
-note = "After S23 the play build is one exe, still named ei_standalone.exe, and it writes ei_hook.log beside itself (named after the DLL S23 removed). Ask the user for the names a player sees (e.g. EvilIslands.exe; ei.log or a logs folder) and rename through what reads them (run_all, resolve_crash, randtrace, profile_report, ei_launch, play.cmd, launch-vanilla.cmd, the harness's OutputPath readers, the docs). Goldens unchanged."
+note = "After S23 the play build is one exe, still named ei_standalone.exe, and it writes ei_hook.log beside itself (named after the DLL S23 removed). Ask the user for the names a player sees (e.g. EvilIslands.exe; ei.log or a logs folder) and rename through what reads them (run_all, resolve_crash, randtrace, profile_report, ei_launch, play.cmd, launch-vanilla.cmd, the harness's OutputPath readers, the docs). Goldens unchanged. User 2026-10-29: ei-rebuild.exe and ei-rebuild.log."
 
 [[ticket]]
 id = "R35c"
