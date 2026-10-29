@@ -24,7 +24,7 @@ public:
     // An empty shape, as OnShutdown leaves one (the water patch, ai_water_patch.cpp). No references.
     CUnitShape();
     // Constructed again empty: no levels, radius -1. Returns 0.
-    int OnShutdown() override;
+    void OnShutdown() override;
     CUnitShape* Clone() override;
 
     std::uint8_t levels[16][16];    // rows of 16

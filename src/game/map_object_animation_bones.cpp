@@ -66,13 +66,12 @@ CFigureAnimationState::~CFigureAnimationState() {
     bones.clear();
 }
 
-int CFigureAnimationState::Create() { return CreateState(); }
+void CFigureAnimationState::Create() { CreateState(); }
 void CFigureAnimationState::Destroy() { DestroyState(); }
 
-int CFigureAnimationState::CreateState() {
+void CFigureAnimationState::CreateState() {
     changed = 1;
     Reset();
-    return 1;
 }
 
 void CFigureAnimationState::DestroyState() {

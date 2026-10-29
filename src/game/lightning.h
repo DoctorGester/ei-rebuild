@@ -68,7 +68,7 @@ public:
 
     // Resets the bolt like Destroy, then adds it to the manager's list of new bolts, which holds a
     // reference until the next DrawAll. Returns 1.
-    int Create() override;
+    void Create() override;
     // Power 1, amplitude 0.1, releases both textures.
     void Destroy() override;
     const char* ClassName() override;
@@ -126,7 +126,7 @@ public:
     // empties it. Returns 1.
     int DrawAll(CSceneRenderer* device);
     // Create (class_slots.cpp): loads the noise table on the first call, then the base manager's Create.
-    int Create() override;
+    void Create() override;
 
     std::list<CLightning*> newBolts_;   // (each entry holds a reference)
 };

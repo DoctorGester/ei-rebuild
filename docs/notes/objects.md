@@ -141,7 +141,7 @@ Rewritten (grep the address; the per-function table is gone). Facts a worker nee
   end; Player mode CommandUse), UseOrderDistanceSquared, AIPath's constructor / TargetPoint, AIOrder::MakeUse / AimPoint
   (ui_battle_commands' dead-wolf clicks). Server handlers 0x02 refresh party 0066FAA0, 0x03 take exit, 0x05 joined, 0x06 leave to
   zone, 0x07 briefing done, 0x08 new party, 0x09 resume, 0x30 walk, 0x3A go to, 0x31 attack, 0x50 party update.
-- CPlayerManager (`player_manager.cpp`, vtable 0073F328): CreatePlayers (2), NewPlayer (14), ReleasePlayer, ChangeId (client message
+- CPlayerManager (`player_manager.cpp`, vtable 0073F328): Create (2, the base manager's), NewPlayer (14), ReleasePlayer, ChangeId (client message
   0x00), SendValueToAll / SendTextToAll (0x12 via SendValue12 0066D730, through its address / SendText13).
 - CPlayerClient (`player_client.cpp`): Construct 00666D10, Clear (slot 3 00667510 / slot 15 00667600), CoderState::Reset, Pump
   00667680 (slot 4: login message 0 with version 100, "Tango", "Very top secret", the player's +0xFC; state 2 sends the camera

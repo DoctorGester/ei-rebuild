@@ -94,7 +94,7 @@ void CEffectTornado::Launch(const Vector3* from, const Vector3* to) {
     launchTick_ = effect::ContextWorld(this)->tick_;
 }
 
-int CEffectTornado::RunTick() {
+bool CEffectTornado::RunTick() {
     if (moving_ != 0) {
         localPosition_ = Vector3{static_cast<float>(localPosition_.x + velocity_.x), static_cast<float>(localPosition_.y + velocity_.y),
                                  static_cast<float>(localPosition_.z + velocity_.z)};
@@ -115,7 +115,7 @@ int CEffectTornado::RunTick() {
         units.clear();
     }
     --framesLeft_;
-    return framesLeft_ >= 0 ? 1 : 0;
+    return framesLeft_ >= 0;
 }
 
 int CEffectTornado::Unpack(int update, DeltaField* field) {

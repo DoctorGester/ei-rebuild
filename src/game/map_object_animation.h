@@ -30,13 +30,13 @@ struct AnimationTrack : CEngineObject {
     ~AnimationTrack() override;
 
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     const char* ClassName() override;   // "CAnimationTrack" (small_slots_500.cpp)
     ClassId GetClassId() override;
 
     // DestroyTrack's reset; returns 1.
-    int CreateTrack();
+    void CreateTrack();
     // The key frames from the model entry at *cursor (advanced past them): the rotations (a count, then that
     // many quaternions; none: null), the positions (likewise, three floats each), the frame count and the
     // vertex count; the frame array is sized to the frames and the vertices to the vertex count (both without

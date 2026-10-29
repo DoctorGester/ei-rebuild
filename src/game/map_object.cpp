@@ -81,9 +81,8 @@ bool CMapObject::HasEffect(std::uint32_t type) {
 
 // --- Per-tick update -------------------------------------------------------------------------
 
-int CMapObject::Update() {
+void CMapObject::Update() {
     if (companion) companion->RunTick();
-    return 1;
 }
 
 void CMapObject::SetEffectCount(int count) {

@@ -87,7 +87,7 @@ CObject3DServer::CObject3DServer() {}
 CObject3DServer::~CObject3DServer() {}
 
 // No object.
-int CObject3DServer::Create() { return 1; }
+void CObject3DServer::Create() {}
 void CObject3DServer::Destroy() { object = nullptr; }
 
 // Class name and id.

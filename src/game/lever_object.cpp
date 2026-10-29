@@ -49,22 +49,21 @@ Lever::Lever() {
 
 Lever::~Lever() { DestroyMapObject(); }
 
-int Lever::CreateLever() {
-    int result = CreateMapObject();
+void Lever::CreateLever() {
+    CreateMapObject();
     ResetLever(this);
-    return result;
 }
 
-int Lever::UpdateLever() {
+bool Lever::UpdateLever() {
     Update();
-    if (WorldContext()->IsServer()) return 0;
+    if (WorldContext()->IsServer()) return false;
     Vector3 shown = {scale.x, scale.y, scale.z};
     double t = (endTick - static_cast<double>(g_clientWorld->tick_)) * rate;
     if (t > 0.0) {
         shown.y = static_cast<float>(to - (to - from) * t);
         Object3D()->SetFigureScale(&shown.x);
         g_clientWorld->RefreshPlatforms(this);
-        return 1;
+        return true;
     }
     EI_NAN_AUDIT(shown.y, to);
     if (shown.y != to) {
@@ -72,7 +71,7 @@ int Lever::UpdateLever() {
         Object3D()->SetFigureScale(&shown.x);
         g_clientWorld->RefreshPlatforms(this);
     }
-    return 0;
+    return false;
 }
 
 void Lever::LoadLever(CStream* stream) {

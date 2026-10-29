@@ -77,7 +77,7 @@ MapObjectType PrototypeObjectClass(std::string_view name);
 struct CMapObjectManager : CResourceManager {
     CMapObjectManager();
     ~CMapObjectManager() override;
-    int Create() override;
+    void Create() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     // A new object of the factory's type `type` (a MapObjectType), constructed; null for other ids.
@@ -88,7 +88,7 @@ struct CMapObjectManager : CResourceManager {
     // The starting equipment of prototype `name`: see docs/notes/units.md, "Creation helpers".
     int GiveStartingEquipment(CUnit* unit, const std::string& name);
 
-    int CreateManager();
+    void CreateManager();
     // The base manager's CreateObject; a new object gets an animation state (the figure manager's) and its side
     // halves from the world's specific manager: Object3D and MapObject, then Unit for the three unit types and
     // Torch for the torch. Returns the object or null.

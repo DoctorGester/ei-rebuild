@@ -67,11 +67,10 @@ CSpell* CSpell::Clone(CSpellManager* manager) {
     return spell;
 }
 
-int CSpellContainer::Create() {
+void CSpellContainer::Create() {
     prototype_ = nullptr;
     modifiers_.clear();
     spell_.Create();
-    return 1;
 }
 
 void CSpellContainer::Destroy() {
@@ -243,10 +242,9 @@ CSpellConstructor::~CSpellConstructor() { CSpellConstructor::Destroy(); }
 const char* CSpellConstructor::ClassName() { return "CSpellConstructor"; }
 ClassId CSpellConstructor::GetClassId() { return ClassId::SpellConstructor; }
 
-int CSpellConstructor::Create() {
+void CSpellConstructor::Create() {
     container_.Reset();
     manager_ = nullptr;
-    return 1;
 }
 
 void CSpellConstructor::Destroy() {

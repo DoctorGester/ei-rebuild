@@ -125,7 +125,7 @@ class CObject3DServer : public CObject3DSpecific {
 public:
     CObject3DServer();             // The factory allocates it zeroed.
     ~CObject3DServer() override;
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -158,13 +158,13 @@ struct FigureBone : CEngineObject {
     FigureBone();
     ~FigureBone() override;
 
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     const char* GetName() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    int CreateBone();
+    void CreateBone();
     void DestroyBone();
 
     // Places this bone and, recursively, its children: a child turns its offset by the parent's
@@ -203,12 +203,12 @@ public:
     CFigureAnimationState();
     ~CFigureAnimationState() override;
 
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    int CreateState();
+    void CreateState();
     void DestroyState();
     void ReleaseBones();
     void Reset();
@@ -272,7 +272,7 @@ public:
     ~CObject3D() override;
     // type_ as the map object factory's type.
     MapObjectType MapType() const { return static_cast<MapObjectType>(type_); }
-    int Create() override { return Create3D(); }
+    void Create() override { Create3D(); }
     void Destroy() override { Destroy3D(); }
     void ClearState() override { RemoveAllEffectSources(); }
     // worldRotation_ = parent * localRotation_.
@@ -369,8 +369,8 @@ public:
     // The box (CFigureMesh::bounds_) of part `index`.
     FootprintPart* PartBox(int index);
 
-    // Create (named apart so it is no override): back to an empty object, the figure released. Returns 1.
-    int Create3D();
+    // Create (named apart so it is no override): back to an empty object, the figure released.
+    void Create3D();
     // Destroy: the figure, the effect sources, the animation state, the parts and the side half let go (the
     // parts lose a reference without a release).
     void Destroy3D();

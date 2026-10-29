@@ -382,8 +382,11 @@ void FrameCameraUpdate(CCamera* camera, float seconds) {
     else camera->Update(seconds);
 }
 // Stand-ins in the hook types' convention (__fastcall, include/ei/main_loop.h): in game.exe the harness's hooks are CALL targets.
-int __fastcall UpdateServer(void* server, void*) { return static_cast<CWorldServer*>(server)->Update(); }
-int __fastcall RunClientSegment(void* client, void*) { return static_cast<CWorldClient*>(client)->Segment(); }
+int __fastcall UpdateServer(void* server, void*) {
+    static_cast<CWorldServer*>(server)->Update();
+    return 1;
+}
+int __fastcall RunClientSegment(void* client, void*) { return static_cast<CWorldClient*>(client)->Segment() ? 1 : 0; }
 ei::mainloop::HarnessHooks::WorldUpdate ServerUpdate() {
     if (auto hook = ei::mainloop::g_harnessHooks.serverUpdate) return hook;
     return &UpdateServer;

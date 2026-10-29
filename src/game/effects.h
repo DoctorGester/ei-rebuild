@@ -294,7 +294,7 @@ public:
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
 
-    int Create() override;
+    void Create() override;
     void Destroy() override;
 
     Particle* AcquireParticle();                    // from the pool, else new
@@ -333,9 +333,9 @@ class CParticleSource final : public CTransformObject {
 public:
     explicit CParticleSource(int type);
     ~CParticleSource() override;
-    int Create() override;                          // per-type parameters
+    void Create() override;                          // per-type parameters
     void Destroy() override { Clear(); }
-    int RunTick() override;                         // 1 while the source stays alive
+    bool RunTick() override;                         // 1 while the source stays alive
     const char* ClassName() override;
     ClassId GetClassId() override;
 
@@ -573,7 +573,7 @@ class CRainSnow final : public CEngineObject {
 public:
     CRainSnow();
     ~CRainSnow() override;
-    int Create() override { return 0; }
+    void Create() override {}
     void Destroy() override { Clear(); }
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -663,14 +663,14 @@ public:
 
     CVisibilityFog();
     ~CVisibilityFog() override;
-    int Create() override;
+    void Create() override;
     void Destroy() override { ClearCells(); }
-    int RunTick() override { return UpdateCells(); }
+    bool RunTick() override { return UpdateCells(); }
     const char* ClassName() override;
     ClassId GetClassId() override;
 
     void ComputeBounds();
-    int UpdateCells();
+    bool UpdateCells();
     void Reveal(const FogGrid* grid);
     // Every cell freed (nodes back to the pool), the bounds invalid.
     void ClearCells();

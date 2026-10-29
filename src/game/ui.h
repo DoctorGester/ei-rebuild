@@ -476,7 +476,7 @@ public:
     ~CUiWindow() override;
 
     // The class name is "Sorry, no other way." and the id 0x45.
-    int Create() override;
+    void Create() override;
     void Destroy() override {}
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -869,7 +869,7 @@ class CUiMesh : public CPlainFigureMesh {
 public:
     CUiMesh();
     ~CUiMesh() override;
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -932,7 +932,7 @@ public:
     void SetScaleYBits(std::uint32_t bits);
     // When visible; returns 1.
     int Draw(CSceneRenderer* renderer);
-    int CreateSprite();
+    void CreateSprite();
 
     // CFigureMesh's fields as a sprite uses them: flags_ 0x100 draws in flatColour_ (ARGB), flatSpecular_
     // the HUD buttons' highlight (0xFF404040 / 0xFF000000), textureOffsetU_ / V_ a frame of the sprite

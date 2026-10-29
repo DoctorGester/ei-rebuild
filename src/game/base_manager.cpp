@@ -108,7 +108,7 @@ CBaseManager::~CBaseManager() {
 
 // --- Create and destroy -------------------------------------------------------------------------
 
-int CBaseManager::Create() {
+void CBaseManager::Create() {
     idLow_ = 0;
     idHigh_ = 2000000000;
     ResetTable(objects_, maxId_, 0x400);
@@ -117,7 +117,6 @@ int CBaseManager::Create() {
     ResetTable(spareCounts_, maxSpareCountType_, 0x100);
     reservedA_ = 0;
     reservedB_ = 300;
-    return 1;
 }
 
 // Every object gets a reference, then its own Destroy; then every object still registered under the ids
@@ -147,11 +146,9 @@ void CBaseManager::Destroy() {
     context_ = nullptr;
 }
 
-bool CBaseManager::Init(CManagerContext* context) {
+void CBaseManager::Init(CManagerContext* context) {
     context_ = context;
-    if (Create()) return true;
-    context_ = nullptr;
-    return false;
+    Create();
 }
 
 // Every object gets a reference, then is destroyed, then released (objects nothing else holds go back to the

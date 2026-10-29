@@ -24,9 +24,8 @@ void DropMarker(CParticleSource*& marker) {
 
 CUnitController::~CUnitController() { unit = nullptr; }
 
-int CUnitController::Create() {
+void CUnitController::Create() {
     unit = nullptr;
-    return 1;
 }
 void CUnitController::Destroy() { unit = nullptr; }
 

@@ -247,12 +247,11 @@ void CLightning::Destroy() {
     glowTexture_.Reset();
 }
 
-int CLightning::Create() {
+void CLightning::Create() {
     Destroy();
     auto* manager = static_cast<CLightningManager*>(owner_);
     manager->newBolts_.push_back(this);
     ++refCount_;
-    return 1;
 }
 
 void CLightning::ExpandBounds(const LightningSegment* segment) {

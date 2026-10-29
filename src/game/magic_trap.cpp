@@ -259,8 +259,8 @@ void MagicTrap::LoadTrap(CStream* stream) {
 
 // --- Create, Destroy, the update, firing, forgetting a removed object -------------
 
-int MagicTrap::CreateTrap() {
-    int result = CreateMapObject();
+void MagicTrap::CreateTrap() {
+    CreateMapObject();
     sides = 0xFFFFFFFFu;
     flags_ |= kTrapFlags;
     SetSpell(this, nullptr);
@@ -270,7 +270,6 @@ int MagicTrap::CreateTrap() {
     period = kDefaultPeriod;
     countdown = 0;
     singleTarget = 0;
-    return result;
 }
 
 void MagicTrap::DestroyTrap() {
@@ -281,17 +280,17 @@ void MagicTrap::DestroyTrap() {
     ClearVictims(this);
 }
 
-int MagicTrap::UpdateTrap() {
-    int result = CMapObject::Update();
+bool MagicTrap::UpdateTrap() {
+    CMapObject::Update();
     auto* world = WorldContext();
-    if (!world->IsServer() || !spell) return result;
+    if (!world->IsServer() || !spell) return true;
     if (period <= 0) {
         UpdateVictims();
-        return result;
+        return true;
     }
     if (countdown > 0) --countdown;
     if (countdown <= 0) FireAtOccupants();
-    return result;
+    return true;
 }
 
 void MagicTrap::FireAtOccupants() {

@@ -104,10 +104,13 @@ public:
     bool AcceptsNoKey();
 
     ~CMapObject() override;
-    int Create() override { return CreateMapObject(); }
+    void Create() override { CreateMapObject(); }
     void Destroy() override { DestroyMapObject(); }
     void ClearState() override {}
-    int RunTick() override { return Update(); }
+    bool RunTick() override {
+        Update();
+        return true;
+    }
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     // An object of type SideObjectType::MapObject becomes the companion (AttachCompanion); null and others go to CObject3D's (which
@@ -192,8 +195,8 @@ public:
 
     void SetUpMapObject();
 
-    // The per-tick update: lets the companion update. Returns 1. CUnit's update calls it after its controller's.
-    int Update();
+    // The per-tick update: lets the companion update. CUnit's update calls it after its controller's.
+    void Update();
 
     // Removes every effect (frees the array), marks part 3 changed and calls the vitals, stun (0) and scale
     // virtuals.
@@ -229,7 +232,7 @@ public:
     bool IsStunned();
     std::uint32_t Flag20000();
 
-    int CreateMapObject();
+    void CreateMapObject();
     void DestroyMapObject();
 
     // Load: the companion's Load, then animationSpeed, the position, the orientation, the name, the scale, the
@@ -295,11 +298,9 @@ public:
         owner = nullptr;
     }
     ~CMapObjectCompanion() override;
-    int Create() override;    // no map object; 1
+    void Create() override;    // no map object
     void Destroy() override;  // no map object
-    int RunTick() override { return UpdateCompanion(); }
-
-    int UpdateCompanion();
+    bool RunTick() override { return false; }
 
     // The object's effect list changed (`first`: it arrived with the object). The server's is empty.
     virtual void EffectsChanged(bool) {}

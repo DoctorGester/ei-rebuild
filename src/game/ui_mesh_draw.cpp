@@ -102,7 +102,7 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     return 1;
 }
 
-int CUiMesh::CreateSprite() {
+void CUiMesh::CreateSprite() {
     CreateMesh();
     material_ = nullptr;
     texture_ = nullptr;
@@ -124,7 +124,6 @@ int CUiMesh::CreateSprite() {
     flatColour_ = kOpaqueBlack;
     flatSpecular_ = kOpaqueBlack;
     visible_ = 1;
-    return 1;
 }
 
 // --- The class 0x43's lifetime and slots ---------------------------------------------------
@@ -132,7 +131,7 @@ int CUiMesh::CreateSprite() {
 CUiMesh::CUiMesh() {}
 CUiMesh::~CUiMesh() {}
 
-int CUiMesh::Create() { return CreateSprite(); }
+void CUiMesh::Create() { CreateSprite(); }
 void CUiMesh::Destroy() { DestroySprite(); }
 const char* CUiMesh::ClassName() { return I3DFigureClassName(this); }
 ClassId CUiMesh::GetClassId() { return ClassId::UiMesh; }

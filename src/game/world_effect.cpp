@@ -75,10 +75,9 @@ void CEffect::MarkChanged() {
     changeStamp_ = g_serverWorld->updateCount_;
 }
 
-int CEffect::Create() {
+void CEffect::Create() {
     Reset();
     SendFull();
-    return 1;
 }
 
 void CEffect::Destroy() { Reset(); }
@@ -106,7 +105,7 @@ void CEffectSound::Reset() {
     fresh_ = 1;
 }
 
-int CEffectSound::RunTick() {
+bool CEffectSound::RunTick() {
     std::uint8_t wasFresh = fresh_;
     fresh_ = 0;
     if (moving_ != 0) {
@@ -114,7 +113,7 @@ int CEffectSound::RunTick() {
         // Tests the handle against 0, not -1 (a stopped sound is moved too).
         if (sound_ != 0) g_clientWorld->sounds_->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
     }
-    return looping_ == 0 && wasFresh == 0 ? 0 : 1;
+    return looping_ != 0 || wasFresh != 0;
 }
 
 void CEffectSound::Start(int update) {
@@ -191,13 +190,13 @@ void CEffectSoundSeq::Reset() {
     noFade_ = 0;
 }
 
-int CEffectSoundSeq::RunTick() {
+bool CEffectSoundSeq::RunTick() {
     if (moving_ != 0) {
         MoveByVelocity(this);
         if (sound_ != 0)
             g_clientWorld->sounds_->UpdateSequence(sound_, &localPosition_.x, volume_, radius_, -1);
     }
-    return 1;
+    return true;
 }
 
 void CEffectSoundSeq::Pack(DeltaField* field) {

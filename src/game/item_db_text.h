@@ -49,7 +49,7 @@ public:
 
     // setlocale(LC_CTYPE, the "Font CharSet" option, "english" by default), then the C runtime's multibyte
     // code page set to the locale's; returns 1. The constructor calls it too.
-    int Create() override;
+    void Create() override;
     void Destroy() override { ClearSources(); }
     const char* ClassName() override;
     ClassId GetClassId() override;

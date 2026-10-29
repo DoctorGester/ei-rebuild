@@ -24,7 +24,7 @@ public:
     CFigureManager();
     ~CFigureManager() override;
 
-    int Create() override { return CreateWithArchives(); }
+    void Create() override { CreateWithArchives(); }
     const char* ClassName() override;
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
@@ -47,7 +47,7 @@ public:
     CEngineObject* CreateFigureObject(int type, int id);
     // Create (Rebirth patches it; vanilla only): the base's Create, then the archives "figures.res" and
     // "menus.res" and the menus' rectangles. Returns 1.
-    int CreateWithArchives();
+    void CreateWithArchives();
 
     // (The interface's model manager too.) A figure object, loaded from "<name>.fig" when named (released and null
     // when the file is missing); the empty object without a name.

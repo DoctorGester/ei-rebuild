@@ -46,7 +46,7 @@ public:
     CSysInfo();
     ~CSysInfo() override;
 
-    int Create() override;                  // everything collected; 1
+    void Create() override;                  // everything collected
     void Destroy() override {}              // empty
     const char* ClassName() override;       // "CSysInfo"
     ClassId GetClassId() override;

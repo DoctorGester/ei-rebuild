@@ -15,7 +15,7 @@ void ReleaseFace(CUnitClientSpecific* self) {
 }
 } // namespace
 
-int CUnitClientSpecific::Create() {
+void CUnitClientSpecific::Create() {
     sources[0] = nullptr;
     sources[1] = nullptr;
     sources[2] = nullptr;
@@ -42,7 +42,6 @@ int CUnitClientSpecific::Create() {
     for (std::uint32_t& id : weaponIds) id = kNoModel;
     ReleaseFace(this);
     blinks = 0;
-    return 1;
 }
 
 void CUnitClientSpecific::Destroy() {

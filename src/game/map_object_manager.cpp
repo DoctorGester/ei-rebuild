@@ -47,14 +47,13 @@ CMapObjectManager::~CMapObjectManager() {}
 const char* CMapObjectManager::GetFolderName() { return kFolderName; }
 const char* CMapObjectManager::ClassName() { return kClassName; }
 ClassId CMapObjectManager::GetClassId() { return ClassId::MapObjectManager; }
-int CMapObjectManager::Create() { return CreateManager(); }
+void CMapObjectManager::Create() { CreateManager(); }
 CEngineObject* CMapObjectManager::CreateObject(int type, int id) { return CreateMapObject(type, id); }
 
-int CMapObjectManager::CreateManager() {
+void CMapObjectManager::CreateManager() {
     std::string folder = *g_textFolder;
-    if (!CBaseManager::Create()) return 0;
+    CBaseManager::Create();
     AddArchive((folder + "database.res"));
-    return 1;
 }
 
 CMapObject* CMapObjectManager::FindMapObject(unsigned id) const { return FindObjectAs<CMapObject>(id); }

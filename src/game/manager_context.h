@@ -20,7 +20,7 @@ class CWorld;
 
 class CManagerContext : public CEngineObject {
 public:
-    int Create() override;
+    void Create() override;
 
     virtual CWorld* ThisWorld() { return nullptr; }                      // the world (returns this)
     virtual CBaseManager* TimedObjectManager() { return nullptr; }       // the world's timedObjectManager_ (the client's Segment ticks its objects)

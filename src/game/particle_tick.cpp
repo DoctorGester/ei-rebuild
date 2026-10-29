@@ -234,8 +234,8 @@ void CParticleSource::AddParticle(Particle* p) {
 
 // Returns 1 while the source is still needed: a free source while it keeps
 // alive (flag 4) or has particles, an attached one while it emits or has particles.
-int CParticleSource::RunTick() {
-    if (hiddenTicks > 0x38 && (flags_ & 0x20)) return 1;
+bool CParticleSource::RunTick() {
+    if (hiddenTicks > 0x38 && (flags_ & 0x20)) return true;
     const CWorldClient* world = &g_clientWorld.Get();
     lib::LoadBytes(windDirection, world->windDirection_);
     windStrength = std::bit_cast<float>(world->windStrength_);
@@ -256,9 +256,9 @@ int CParticleSource::RunTick() {
     steps.FinishBounds();
 
     if (!attachedTo) {
-        if (flags_ & 4) return 1;
+        if (flags_ & 4) return true;
         return !particles.empty();
     }
-    if (flags_ & 1) return 1;
+    if (flags_ & 1) return true;
     return !particles.empty();
 }

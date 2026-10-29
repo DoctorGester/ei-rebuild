@@ -86,7 +86,7 @@ public:
     ~Terrain() override;
 
     // Returns 1.
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     const char* ClassName() override;   // "CTerrain"
     ClassId GetClassId() override;
@@ -182,7 +182,7 @@ public:
 
     // The light and relight countdowns, the ambient sounds, the waves, then Animate for each drawn sector of
     // the visible rows. Returns 1.
-    int RunTick() override;
+    bool RunTick() override;
 
     // The shadow test's ray steps from the direction towards the sun (components below 0.01 pushed to 0.01);
     // with a light interval the lit sectors get relight countdowns spread over it (sorted; 0 drops the

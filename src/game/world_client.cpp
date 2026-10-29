@@ -326,7 +326,7 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
 
 // ---- Segment --------------------------------------------------------------------------
 
-int CWorldClient::Segment() {
+bool CWorldClient::Segment() {
     ObjectListIterator objectsIt{nullptr, {}};
     int frames = ++ticksRun_;
     if (frames == 10) {
@@ -355,7 +355,7 @@ int CWorldClient::Segment() {
             if (!ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport)) SessionDisconnect(session_);
             game::FatalError(worlddata::SegmentDisconnectedText());
             EndWalk(objectsIt);
-            return 0;
+            return false;
         }
         view->RunTick();
     }
@@ -366,8 +366,7 @@ int CWorldClient::Segment() {
             auto current = node;
             ++node;
             CMapObject* object = *current;
-            int done = object->RunTick();
-            if (done != 0) continue;
+            if (object->RunTick()) continue;
             auto key = static_cast<std::uint32_t>(object->id_);
             std::list<CMapObject*>::iterator position{};
             if (dynamicNodes_.Lookup(&key, &position)) {
@@ -432,5 +431,5 @@ int CWorldClient::Segment() {
     }
     if (tick_ % 32 == 0) TextureManager()->TrimCache();
     EndWalk(objectsIt);
-    return 1;
+    return true;
 }

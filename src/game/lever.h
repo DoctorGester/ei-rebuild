@@ -52,8 +52,8 @@ public:
     Lever();
     ~Lever() override;
 
-    int Create() override { return CreateLever(); }
-    int RunTick() override { return UpdateLever(); }
+    void Create() override { CreateLever(); }
+    bool RunTick() override { return UpdateLever(); }
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     const char* ClassName() override;
@@ -81,10 +81,10 @@ public:
     // the record's farScale by scale.z, plus userRadius. None for an unknown model.
     void CollectUseSpots(std::vector<Vector3>* out, float userRadius);
 
-    int CreateLever();
+    void CreateLever();
     // The map object's update; on the client, while the move runs, the shown position goes from `from`
     // to `to` and the client world refreshes the object. Returns 1 while moving, else 0.
-    int UpdateLever();
+    bool UpdateLever();
     // The save record: the map object part, then state, count, cycling, the lock (three dwords) and
     // both flag bytes.
     void LoadLever(CStream* stream);

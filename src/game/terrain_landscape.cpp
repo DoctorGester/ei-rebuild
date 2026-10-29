@@ -251,14 +251,13 @@ Terrain::~Terrain() {
     // archive: destroyed after this body (~CMMIOResource())
 }
 
-int Terrain::Create() {
+void Terrain::Create() {
     Reset();
     BuildVertexTiles();
     BuildWavePhases();
     for (int i = 0; i < 512; ++i) sine[i] = static_cast<float>(x87::fsin(i * kPiDouble * kSineStep));
     localPosition_ = kZeroPosition;
     localRotation_ = kIdentityRotation;
-    return 1;
 }
 
 void Terrain::Destroy() {

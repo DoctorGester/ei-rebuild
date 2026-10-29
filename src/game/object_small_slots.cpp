@@ -21,19 +21,17 @@ void CMapObject::FreeArray(std::vector<Vector3>* array) {
     lib::FreeStorage(*array);
 }
 
-int CMapObjectClientSpecific::Create() {
+void CMapObjectClientSpecific::Create() {
     lightStateA = 0;
     lightStateB = 0;
     particles.clear();
     endSound = kNoSound;
     owner = nullptr;
-    return 1;
 }
 
-int CMapObjectServer::Create() {
+void CMapObjectServer::Create() {
     owner = nullptr;
     vitals.Reset();
-    return 1;
 }
 
 void CMapObjectServer::Destroy() {

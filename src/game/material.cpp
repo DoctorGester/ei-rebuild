@@ -50,10 +50,9 @@ CMaterial::CMaterial() {
     ResetFields(this);
 }
 
-int CMaterial::Create() {
+void CMaterial::Create() {
     ResetFields(this);
     entries.clear();
-    return 1;
 }
 
 void CMaterial::Destroy() {
@@ -68,10 +67,10 @@ CMaterialManager::CMaterialManager() {}
 
 CMaterialManager::~CMaterialManager() = default;
 
-int CMaterialManager::Create() {
+void CMaterialManager::Create() {
     // Rebirth's ResOverride: the mod's archives open here if nothing opened them yet.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::LoadModArchives();
-    if (!CBaseManager::Create()) return 0;
+    CBaseManager::Create();
     const std::string folder = *g_textFolder;
     AddArchive((folder + "materials.res"));
 
@@ -91,7 +90,6 @@ int CMaterialManager::Create() {
         if (kind.kind == kMagicMaterialKind) colors.emissive.x = colors.emissive.y = colors.emissive.z = 1.0f;
         colors_[static_cast<unsigned>(kind.kind)] = colors;
     }
-    return 1;
 }
 
 CEngineObject* CMaterialManager::NewObject(int type) {

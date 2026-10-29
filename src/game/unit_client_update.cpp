@@ -65,7 +65,7 @@ CMaterial* CObject3DClientSpecific::NextMaterial() {
     return std::ssize(materials) > materialCursor ? materials[materialCursor] : nullptr;
 }
 
-int CUnitClientSpecific::RunTick() {
+bool CUnitClientSpecific::RunTick() {
     if (unit->pathTimeShift == 1) motion.ShiftTime(1);
     if (unit->motionMode == 1) ++unit->animationStart;
     const FigureAnimation* current = unit->Object3D()->animation->current;
@@ -122,7 +122,7 @@ int CUnitClientSpecific::RunTick() {
     }
     if (unit->secondEntry == kModeSpecialIdle && std::ssize(unit->Object3D()->animation->queue) < kIdleRestartBelow)
         StartIdleAnimation(0);
-    return 1;
+    return true;
 }
 
 // --- Fade-in, level and wounds slots ----------------------------------------------------------

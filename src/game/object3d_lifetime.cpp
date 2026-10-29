@@ -14,7 +14,7 @@ namespace {
 constexpr Quaternion kIdentityOrientation = /*007AF1C0*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
 } // namespace
 
-int CObject3D::Create3D() {
+void CObject3D::Create3D() {
     localPosition_ = {};
     localRotation_ = kIdentityOrientation;
     attached = nullptr;
@@ -25,7 +25,6 @@ int CObject3D::Create3D() {
     defaultScale = kDefaultFigureScale;
     ClearBounds();
     std::vector<FootprintPart>().swap(partBoxes);
-    return 1;
 }
 
 void CObject3D::Destroy3D() {

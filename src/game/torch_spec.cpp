@@ -17,7 +17,7 @@ constexpr float kDefaultValue2C = 10.0f;
 constexpr float kDefaultColour[3] = /*007AF2D0*/ {};
 } // namespace
 
-int CTorchObjectSpec::CreateSpec() {
+void CTorchObjectSpec::CreateSpec() {
     torch_ = nullptr;
     lightKind_ = 0;
     name_.clear();
@@ -26,7 +26,6 @@ int CTorchObjectSpec::CreateSpec() {
     for (int i = 2; i < 6; ++i) values_[i] = kDefaultValue;
     std::memcpy(colours_[0], kDefaultColour, sizeof(colours_[0]));
     std::memcpy(colours_[1], kDefaultColour, sizeof(colours_[1]));
-    return 1;
 }
 
 void CTorchObjectSpec::DestroySpec() {

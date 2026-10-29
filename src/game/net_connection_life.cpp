@@ -83,10 +83,9 @@ Connection::Connection(std::uint32_t id) {
 
 // Tears every container down (in the order the destructor's unwinding would)
 // and constructs the connection again with id 0 (the count and the flags kept).
-int Connection::OnShutdown() {
+void Connection::OnShutdown() {
     DestroyForReset(this);
     new (this) Connection(0);
-    return 0;
 }
 
 // The members are destroyed in the original's order (the reliable streams first, then the lists and maps
@@ -147,12 +146,11 @@ ReplicaEntry* ReplicaEntry::Clone() { return NewCounted<ReplicaEntry>(*this); }
 
 // Entry reset: releases the object, then built again in place as the constructor would (object, version and
 // id cleared; type and flags kept). The result means nothing.
-int ReplicaEntry::OnShutdown() {
+void ReplicaEntry::OnShutdown() {
     ReleaseEntryObject(this);
     object_.ptr = nullptr;
     version_ = 0;
     id_ = 0;
-    return 0;
 }
 
 ReplicaEntry::~ReplicaEntry() { ReleaseEntryObject(this); }

@@ -782,7 +782,7 @@ void SectorGrid::Resize(int width, int height) {
     Allocate();
 }
 
-int CWorldClient::Create() {
+void CWorldClient::Create() {
     CWorld::Create();
     {
         std::string path = *g_dataFolder + worlddata::TexturesFolderText();
@@ -869,7 +869,6 @@ int CWorldClient::Create() {
     GridToFour(objectGrid_);
     ticksRun_ = 0;
     lightLevelsCountdown_ = 0;
-    return 1;
 }
 
 void CWorldClient::ReferenceItemsAndSpells() {
@@ -931,9 +930,8 @@ int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
     return LoadManagerObjects(ItemFactory(), block) != 0;
 }
 
-int PlatformSet::Create() {
+void PlatformSet::Create() {
     list.clear();
-    return 1;
 }
 
 void PlatformSet::Destroy() { list.clear(); }

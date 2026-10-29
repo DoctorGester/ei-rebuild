@@ -41,16 +41,15 @@ void AnimationTrack::DestroyTrack() {
     time = 0.0f;
 }
 
-int AnimationTrack::CreateTrack() {
+void AnimationTrack::CreateTrack() {
     DestroyTrack();
-    return 1;
 }
 
 AnimationTrack::~AnimationTrack() {
     DestroyTrack();   // empties the arrays through SetSize(0)
 }
 
-int AnimationTrack::Create() { return CreateTrack(); }
+void AnimationTrack::Create() { CreateTrack(); }
 void AnimationTrack::Destroy() { DestroyTrack(); }
 
 void AnimationTrack::LoadKeyFrames(std::uint8_t** cursor) {

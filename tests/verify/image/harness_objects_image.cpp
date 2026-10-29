@@ -98,8 +98,11 @@ void* ClientWorldObject() { return &g_clientWorld.Get(); }
 void* SceneDevice() { return g_sceneRenderer->device_.Get(); }
 void* DeviceLock() { return &g_deviceLock; }
 
-int ServerUpdate(void* server) { return static_cast<CWorldServer*>(server)->Update(); }
-int ClientSegment(void* client) { return static_cast<CWorldClient*>(client)->Segment(); }
+int ServerUpdate(void* server) {
+    static_cast<CWorldServer*>(server)->Update();
+    return 1;
+}
+int ClientSegment(void* client) { return static_cast<CWorldClient*>(client)->Segment() ? 1 : 0; }
 void CameraUpdate(void* camera, float seconds) { static_cast<CCamera*>(camera)->Update(seconds); }
 void FrameStep(bool draw, bool cursor) { app::FrameStep(draw, cursor); }
 void CursorLock(void* cursor) { static_cast<CCursor*>(cursor)->TakeLock(); }

@@ -27,8 +27,6 @@ void CTorchObject::DestroyTorch() {
     DestroyMapObject();
 }
 
-int CTorchObject::UpdateTorch() { return 1; }
-
 bool CTorchObject::Slot29True() { return true; }
 
 void CTorchObject::LoadTorch(CStream* stream) {

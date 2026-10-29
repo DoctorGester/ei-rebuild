@@ -262,7 +262,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     }
 }
 
-int Terrain::RunTick() {
+bool Terrain::RunTick() {
     if (lightCountdown > 0 && --lightCountdown == 0) {
         lightCountdown = lightInterval;
         SetSun(sun, &ambient);
@@ -281,5 +281,5 @@ int Terrain::RunTick() {
             if (sector && sector->IsDrawn()) sector->Animate(this, frame);
         }
     }
-    return 1;
+    return true;
 }

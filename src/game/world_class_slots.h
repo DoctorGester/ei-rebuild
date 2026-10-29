@@ -13,7 +13,7 @@ const char* I3DFigureClassName(CEngineObject*);           // "CI3DFigure"
 const char* FigureClientSpecificClassName(CEngineObject*);   // "CFigureClientSpecific"
 // The interface objects' base (53 window classes keep these): Create answers 1, the name is "Sorry, no
 // other way.".
-int UiObjectCreate(CEngineObject*);
+void UiObjectCreate(CEngineObject*);
 const char* UiObjectClassName(CEngineObject*);
 
 // The lightning and fog managers' Init is CBaseManager::Init; the particle, lightning and fog

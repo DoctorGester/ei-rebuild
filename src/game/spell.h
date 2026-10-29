@@ -35,7 +35,7 @@ public:
     CSpell();
     ~CSpell() override;
 
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     // The effect record, the parameters, the modifiers, flags_ and the last field. Load clears the modifiers
     // first.
@@ -213,7 +213,7 @@ public:
     CSpellContainer();
     ~CSpellContainer() override;
 
-    int Create() override;
+    void Create() override;
     // As Create, but the spell gets its Destroy.
     void Destroy() override;
     const char* GetName() override;
@@ -272,7 +272,6 @@ public:
     // (id >> 16) (null when out of range); otherwise the sequence of the high half gives the container to
     // copy the spell from (FatalError without a sequence; a new entry has no container and faults).
     CSpell* CreateSpellObject(int id);
-    int Create() override;
     // The sequences' tables' bucket arrays leak.
     void Destroy() override;
     // A CSpell (0x3002) or CSpellContainer (0x3003); else null.
@@ -303,7 +302,7 @@ public:
     ~CSpellConstructor() override;
 
     // Releases the container and forgets the manager. Returns 1.
-    int Create() override;
+    void Create() override;
     // Also drops the manager's count.
     void Destroy() override;
     const char* ClassName() override;
@@ -335,7 +334,7 @@ public:
     // The range is sqrt(FLT_MAX).
     CLight();
     ~CLight() override;
-    int Create() override;                  // returns 1
+    void Create() override;
     void Destroy() override;                // flags_ bit 5 cleared
     const char* ClassName() override;
     ClassId GetClassId() override;

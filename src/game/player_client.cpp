@@ -189,11 +189,11 @@ int ReadDword(CMemoryStream* in) {
 
 } // namespace
 
-int CPlayerClient::Pump() {
+bool CPlayerClient::Pump() {
     netlink::NetLink* link = player_->link_;
     switch (state_) {
     case kStateConnecting: {
-        if (link == nullptr || !link->Connected()) return 1;
+        if (link == nullptr || !link->Connected()) return true;
         if (sendParty_) {
             WriteByte(&out_, kRequestParty);
             player_->Party()->SaveParty(&out_, 1);
@@ -210,7 +210,7 @@ int CPlayerClient::Pump() {
         return SendToServer();
     }
     case kStateLoggedIn:
-        return 1;
+        return true;
     case kStateSendingCamera: {
         const Vector3* anchor = CameraAnchor(g_clientWorld->camera_);
         float point[2] = {anchor->x, anchor->y};
@@ -223,10 +223,10 @@ int CPlayerClient::Pump() {
     }
 }
 
-int CPlayerClient::SendToServer() {
+bool CPlayerClient::SendToServer() {
     netlink::NetLink* link = player_->link_;
-    if (link == nullptr) return 1;
-    int sent = 0;
+    if (link == nullptr) return true;
+    bool sent = false;
     if (link->Connected()) {
         CMemoryStream packed;
         out_.CompressTo(&compressor_, &packed);
@@ -235,7 +235,7 @@ int CPlayerClient::SendToServer() {
             std::uint32_t size = out_.Size();
             console::EndLine(console::g_netLogOut << TextClientToServer() << size << TextSqueezedSize() << packedSize);
         }
-        sent = link->Send(&packed) ? 1 : 0;
+        sent = link->Send(&packed);
     }
     out_.Resize(0);
     return sent;

@@ -18,9 +18,9 @@ public:
     // The spec released (the pointer kept), then the map object's destructor.
     ~CTorchObject() override;
 
-    int Create() override { return CreateTorch(); }
+    void Create() override { CreateTorch(); }
     void Destroy() override { DestroyTorch(); }
-    int RunTick() override { return UpdateTorch(); }
+    bool RunTick() override { return true; }   // no map object update
     void Load(CStream* stream) override;                      // LoadTorch
     void Save(CStream* stream) override;                      // SaveTorch
     const char* ClassName() override;                         // "CTorchObject"
@@ -33,12 +33,10 @@ public:
     // map_object_create.cpp. Create: the map object's Create,
     // the spec released and cleared, 5 network fields (SetSize inlined), then
     // DeltaState::Reset. Returns 1.
-    int CreateTorch();
+    void CreateTorch();
     // Destroy. The spec released and cleared, the network state reset
     // then the map object's Destroy.
     void DestroyTorch();
-    // Returns 1 (no map object update).
-    int UpdateTorch();
     // Load / Save. The map object part, then the spec's Load / Save
     // (its Load / Save; the spec must exist).
     void LoadTorch(CStream* stream);

@@ -20,9 +20,8 @@ CWorldHandle* CWorldHandle::Clone() {
 }
 
 // The helper is destroyed and built again in place (the count and flags kept): the link released, none pending.
-int CWorldHandle::OnShutdown() {
+void CWorldHandle::OnShutdown() {
     pendingLink_.Reset();
-    return 0;
 }
 
 CWorldHandle::~CWorldHandle() { pendingLink_.Reset(); }
@@ -47,10 +46,9 @@ DriverSession* DriverSession::Clone() {
 
 // The session is destroyed and built again in place (the count and flags kept): both lists emptied, the
 // holders first.
-int DriverSession::OnShutdown() {
+void DriverSession::OnShutdown() {
     holders_.clear();
     drivers_.clear();
-    return 0;
 }
 
 // The holders are released before the drivers (members: the reverse order).

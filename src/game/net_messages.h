@@ -28,7 +28,7 @@ public:
     LoginMessage(const LoginMessage& other);
     ~LoginMessage() override;
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     LoginMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -63,7 +63,7 @@ public:
     SayMessage(const SayMessage& other) : TextMessage(other) {}
     ~SayMessage() override {}
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     SayMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -78,7 +78,7 @@ public:
     CommandMessage(const CommandMessage& other);
     ~CommandMessage() override {}
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     CommandMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -112,7 +112,7 @@ public:
     FileRequestMessage(const FileRequestMessage& other) : PairMessage(other) {}
     ~FileRequestMessage() override {}
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     FileRequestMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -130,7 +130,7 @@ public:
     PartyMessage(const PartyMessage& other);
     ~PartyMessage() override;
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     PartyMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -154,7 +154,7 @@ public:
     PartyMemberMessage(const PartyMemberMessage& other);
     ~PartyMemberMessage() override {}
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     PartyMemberMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -173,7 +173,7 @@ public:
     PlayerMessage(const PlayerMessage& other);
     ~PlayerMessage() override {}
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     PlayerMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -197,7 +197,7 @@ public:
     LineMessage(const LineMessage& other);
     ~LineMessage() override;
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     LineMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -216,7 +216,7 @@ public:
     HostMessage(const HostMessage& other);
     ~HostMessage() override {}
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     HostMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -234,7 +234,7 @@ public:
     BindingMessage(const BindingMessage& other) : PairMessage(other) {}
     ~BindingMessage() override {}
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     BindingMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -253,7 +253,7 @@ public:
     ZoneMessage(const ZoneMessage& other) : TextMessage(other) {}
     ~ZoneMessage() override {}
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     ZoneMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -268,7 +268,7 @@ public:
     MapMessage(const MapMessage& other) : TextMessage(other) {}
     ~MapMessage() override {}
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     MapMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -283,7 +283,7 @@ public:
     VariableMessage(const VariableMessage& other);
     ~VariableMessage() override {}
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     VariableMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -302,7 +302,7 @@ public:
     FileMessage(const FileMessage& other);
     ~FileMessage() override;
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     FileMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -324,7 +324,7 @@ public:
     FileChunkMessage(const FileChunkMessage& other);
     ~FileChunkMessage() override;
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     FileChunkMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -343,7 +343,7 @@ public:
     AwardMessage(const AwardMessage& other);
     ~AwardMessage() override;
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     AwardMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -363,7 +363,7 @@ public:
     TradeMessage(const TradeMessage& other);
     ~TradeMessage() override;
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     TradeMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;

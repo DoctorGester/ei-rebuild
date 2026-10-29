@@ -88,9 +88,9 @@ void CEffectMoshka::Reset() {
     followedId_ = -1;
 }
 
-int CEffectMoshka::RunTick() {
+bool CEffectMoshka::RunTick() {
     Update(static_cast<float>(g_clientWorld->tick_));
-    return 0;
+    return false;
 }
 
 Vector3* CEffectMoshka::FindPerch(Vector3* out, const Vector3* from) {

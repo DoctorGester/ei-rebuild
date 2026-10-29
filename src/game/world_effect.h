@@ -27,9 +27,9 @@ public:
     CEffect();
     ~CEffect() override;
 
-    int Create() override;     // Reset, then a full Pack; returns 1.
+    void Create() override;     // Reset, then a full Pack.
     void Destroy() override;   // Reset (a tail jump).
-    int RunTick() override;    // 1: the effect stays.
+    bool RunTick() override;    // 1: the effect stays.
     // Position, state field, start tick, velocity and stamp cleared.
     virtual void Reset();
     // How far it reaches: a constant.
@@ -67,7 +67,7 @@ public:
     CEffectSound();
     ~CEffectSound() override;
     void Reset() override;
-    int RunTick() override;
+    bool RunTick() override;
     void Start(int update) override;
     int Unpack(int update, DeltaField* field) override;
     void Pack(DeltaField* field) override;
@@ -92,7 +92,7 @@ public:
     CEffectSoundSeq();
     ~CEffectSoundSeq() override;
     void Reset() override;
-    int RunTick() override;
+    bool RunTick() override;
     void Start(int update) override;
     int Unpack(int update, DeltaField* field) override;
     void Pack(DeltaField* field) override;
@@ -139,7 +139,7 @@ public:
     CEffectPointLight();
     ~CEffectPointLight() override;
     void Reset() override;
-    int RunTick() override;
+    bool RunTick() override;
     void Start(int update) override;
     int Unpack(int update, DeltaField* field) override;
     void Pack(DeltaField* field) override;
@@ -173,7 +173,7 @@ public:
     void Attach();                                // attaches the source to attachedTo_
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    int RunTick() override;
+    bool RunTick() override;
 
     Vector3 worldPosition_;    // Position's result when attached
     int type_;                 // particle type 0x2000..
@@ -220,7 +220,7 @@ public:
     void Save(CStream* stream) override;
     void SetObjects(int fromObject, int toObject);
     void SetFlag(std::uint8_t flag);
-    int RunTick() override;
+    bool RunTick() override;
 
     Vector3 from_;
     Vector3 to_;
@@ -260,7 +260,7 @@ public:
     ClassId GetClassId() override;
     CEffectArrow();
     ~CEffectArrow() override;
-    int RunTick() override;
+    bool RunTick() override;
     void Reset() override;
     void MoveParts() override;                    // the parts follow, Start(1)
     void Start(int update) override;
@@ -292,7 +292,7 @@ public:
     CEffectArrowFigure();
     ~CEffectArrowFigure() override;
     void Reset() override;                                 // figure out of the maps and released
-    int RunTick() override;
+    bool RunTick() override;
     void MoveParts() override;                    // the figure follows
     void Start(int update) override;                       // 0 makes the figure
     int Unpack(int update, DeltaField* field) override;
@@ -319,7 +319,7 @@ public:
     void Start(int update) override;
     int Unpack(int update, DeltaField* field) override;
     void Pack(DeltaField* field) override;
-    int RunTick() override;
+    bool RunTick() override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
@@ -341,7 +341,7 @@ public:
     CEffectMoshka();
     ~CEffectMoshka() override;
     void Reset() override;                                 // the figure out of the maps, both released
-    int RunTick() override;                                   // Update(game tick), returns 0
+    bool RunTick() override;                                   // Update(game tick), returns 0
     // A perch seen from 1.5 above `from`: random directions at distance 50 (then 5 less each try, at least 4)
     // and height 30 (3 more each try) until the AI map's line of sight to it is above 0.5.
     Vector3* FindPerch(Vector3* out, const Vector3* from);
@@ -378,7 +378,7 @@ public:
     // From `from` towards `to` at a random speed 0.096 .. 0.216 per tick; the ticks to go are the
     // distance over the speed (rounded, at least 0; 0 when the points meet).
     void Launch(const Vector3* from, const Vector3* to);
-    int RunTick() override;                                   // 0 once the ticks are used up
+    bool RunTick() override;                                   // 0 once the ticks are used up
     int Unpack(int update, DeltaField* field) override;
     void Pack(DeltaField* field) override;
     void Start(int update) override;

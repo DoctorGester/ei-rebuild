@@ -146,10 +146,10 @@ public:
     CUnitServer();
     ~CUnitServer() override;
 
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     void ClearState() override;
-    int RunTick() override;
+    bool RunTick() override;
     // The controller's state (animation lists, the motion and plan objects, both orders, the stats copy,
     // movement factors, the brain, the voice, the effect object and the attackers list), version dependent from
     // 0x44 on. Save writes the same at the current version.

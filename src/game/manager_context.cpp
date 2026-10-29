@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-int CManagerContext::Create() { return 1; }
+void CManagerContext::Create() {}
 
 CItem* CManagerContext::MakeCopyOf(CItem* item) {
     std::uint32_t packed = item->prototypeId_;

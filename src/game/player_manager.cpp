@@ -37,8 +37,6 @@ int NextPlayerNumber(CPlayer* self, int id) {
 
 } // namespace
 
-bool CPlayerManager::CreatePlayers() { return CBaseManager::Create() != 0; }
-int CPlayerManager::Create() { return CreatePlayers(); }
 CEngineObject* CPlayerManager::NewObject(int type) { return NewPlayer(type); }
 
 CEngineObject* CPlayerManager::NewPlayer(int type) {

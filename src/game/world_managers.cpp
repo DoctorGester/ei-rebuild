@@ -68,7 +68,6 @@ ClassId CPlayerManager::GetClassId() { return ClassId::PlayerManager; }
 
 CEffectManager::CEffectManager() {}
 CEffectManager::~CEffectManager() {}
-int CEffectManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
 const char* CEffectManager::ClassName() { return kEffectManagerName; }
 ClassId CEffectManager::GetClassId() { return ClassId::EffectManager; }
 

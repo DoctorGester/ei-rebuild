@@ -99,7 +99,7 @@ void CEffectMissile::SetTarget(int objectId) {
 
 
 
-int CEffectArrow::RunTick() {
+bool CEffectArrow::RunTick() {
     fromCaster_ = 0;
     int flying = Steer();
     localPosition_.x = localPosition_.x + velocity_.x;
@@ -257,7 +257,7 @@ void CEffectArrowFigure::Reset() {
     casterId_ = -1;
 }
 
-int CEffectArrowFigure::RunTick() {
+bool CEffectArrowFigure::RunTick() {
     fromCaster_ = 0;
     Steer();
     localPosition_.x = localPosition_.x + velocity_.x;
@@ -271,7 +271,7 @@ int CEffectArrowFigure::RunTick() {
         CUnit* caster = world->FindUnit(casterId_);
         if (target != nullptr) target->ReceiveHit(&hit_, caster, caster);
     }
-    return arrived_ == 0 ? 1 : 0;
+    return arrived_ == 0;
 }
 
 void CEffectArrowFigure::MoveParts() {

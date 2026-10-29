@@ -66,8 +66,6 @@ CEngineObject* CSpellManager::NewObject(int type) {
     return nullptr;
 }
 
-int CSpellManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
-
 void CSpellManager::Destroy() {
     for (auto& [key, sequence] : sequences_) {
         if (!sequence) break;

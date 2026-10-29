@@ -1,10 +1,9 @@
 #include "core_refcount.h"
 
-int CRefObject::Shutdown() {
+void CRefObject::Shutdown() {
     ++refs_;
-    int result = OnShutdown();
+    OnShutdown();
     --refs_;
-    return result;
 }
 
 void RefPtr::Assign(CRefObject* object) {

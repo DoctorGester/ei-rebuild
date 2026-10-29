@@ -129,10 +129,10 @@ public:
     ~CWorld() override;
 
     // Folders, managers, the ISAAC generator and the countdowns set up. Returns 1.
-    int Create() override;
+    void Create() override;
     // Every object of the spell manager gets ClearState, then the managers are deleted whatever their counts.
     void Destroy() override;
-    int RunTick() override;
+    bool RunTick() override;
 
     CWorld* ThisWorld() override { return this; }
     CBaseManager* TimedObjectManager() override { return timedObjectManager_; }
@@ -243,13 +243,16 @@ public:
 
     // The managers, the messages registry, the CHoover, the wind (1, 0, 0; strength 0.4) and the zone state
     // set up. Returns 1, or FatalError's result when the managers or the registry fail.
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     // One world update: drops disconnected players and lets the others' units wake what they hear, accepts
     // new players, runs the players and the world tick (unless paused_), rebuilds the local players' "Heroes"
-    // group, synchronises every player (SyncPlayer; 0 drops it). Returns 1.
-    int Update();
-    int RunTick() override { return Update(); }
+    // group, synchronises every player (SyncPlayer; 0 drops it).
+    void Update();
+    bool RunTick() override {
+        Update();
+        return true;
+    }
     const char* ClassName() override;
     ClassId GetClassId() override;
     CItem* DuplicateItem(CItem* item) override { return CopyItem(item); }
@@ -564,7 +567,7 @@ class PlatformSet final : public CEngineObject {
 public:
     PlatformSet();
     ~PlatformSet() override;
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -647,7 +650,7 @@ class CWorldHandle final : public CPlayerSource {
 public:
     ~CWorldHandle() override;
 
-    int OnShutdown() override;
+    void OnShutdown() override;
     CWorldHandle* Clone() override;
     bool Query() override { return false; }
     void TakeNew(std::list<HeldRef<netlink::NetLink>>* joined) override;
@@ -658,7 +661,7 @@ public:
 // The client world's player source (Setup makes it): it has no state of its own.
 class CClientHandle final : public CPlayerSource {
 public:
-    int OnShutdown() override { return 0; }
+    void OnShutdown() override {}
     CClientHandle* Clone() override;
     bool Query() override { return false; }
     // The client takes no connections: every link of the list is released and the list emptied.
@@ -691,9 +694,9 @@ class CLightningManager;
 struct ClientArrayManager : CBaseManager {
     ClientArrayManager();
     ~ClientArrayManager() override;
-    int Create() override;
+    void Create() override;
     void Destroy() override;
-    int RunTick() override;
+    bool RunTick() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
@@ -716,13 +719,13 @@ public:
 
     // Sets the client world up: the managers, the lights table (LightsGipat.ini), the terrain, the session,
     // the rain and snow layer, the platforms, the cursor and both sector grids. Returns 1.
-    int Create() override;
+    void Create() override;
     // Tears the client world down in the reverse order, then deletes the owned objects (counted ones dropped first).
     void Destroy() override;
-    // The client's tick. Returns 1; 0 when the session's view has lost its connection (the session is
+    // The client's tick. True; false when the session's view has lost its connection (the session is
     // disconnected, FatalError; Rebirth's DisableExitOnCrashReport keeps the session).
-    int Segment();
-    int RunTick() override { return Segment(); }
+    bool Segment();
+    bool RunTick() override { return Segment(); }
     const char* ClassName() override;
     ClassId GetClassId() override;
     const char* TexturePath() override;

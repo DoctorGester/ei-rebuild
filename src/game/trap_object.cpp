@@ -31,16 +31,15 @@ CTrapObject::CTrapObject() {
     flags_ &= ~MapObjectFlag::NotDrawn;
 }
 
-int CTrapObject::CreateTrap() {
-    int result = CreateMapObject();
+void CTrapObject::CreateTrap() {
+    CreateMapObject();
     flags_ &= ~MapObjectFlag::NotDrawn;
-    return result;
 }
 
-int CTrapObject::UpdateTrap() {
+bool CTrapObject::UpdateTrap() {
     Update();
-    if (!(flags_ & MapObjectFlag::Armed)) return 0;
-    if (!WorldContext()->IsServer()) return 0;
+    if (!(flags_ & MapObjectFlag::Armed)) return false;
+    if (!WorldContext()->IsServer()) return false;
     std::list<CUnit*> units{};
     auto* world = ServerWorld();
     world->aiMap_.sectorMap.FindUnitsInRadius(&localPosition_, &units, kTriggerRadius);
@@ -56,7 +55,7 @@ int CTrapObject::UpdateTrap() {
         flags_ &= ~MapObjectFlag::Armed;
     }
     units.clear();
-    return 0;
+    return false;
 }
 
 bool CTrapObject::Disarm(const LockKey* key) {

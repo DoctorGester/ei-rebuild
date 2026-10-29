@@ -41,13 +41,13 @@ struct FigureMeshDrawer : FigureDrawerBase {
     ~FigureMeshDrawer() override;
 
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     const char* ClassName() override;   // "CFigureClientSpecific" (world_class_slots.cpp)
     ClassId GetClassId() override;
 
     // No flags. Returns 1.
-    int CreateDrawer();
+    void CreateDrawer();
     // No mesh, no flags.
     void DestroyDrawer();
 

@@ -173,7 +173,7 @@ public:
     int LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath);
 
     // Back to the constructed state. Returns 1.
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     const char* GetName() override;
     const char* ClassName() override;
@@ -221,7 +221,7 @@ public:
     const char* GetFolderName() override;    // "textures"
     // Rebirth-patched. Also deletes the composed textures and adds the archives "textures.res", "redress.res"
     // and "menus.res"; 1 only when every one opened.
-    int Create() override;
+    void Create() override;
     // As the destructor up to CResourceManager::Destroy (without SetDevice).
     void Destroy() override;
     // flags_ by type: 0x3E 0x80, 0x3F 0x100, 0x40 0x200, any other 0x40 (no null check).

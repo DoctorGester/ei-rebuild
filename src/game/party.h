@@ -40,7 +40,7 @@ public:
 
     // Makes and counts the party's own item manager and spell manager (attached to this
     // party), item constructor and spell constructor (created), then Clear(1, 0). Returns 1.
-    int Create() override;
+    void Create() override;
     // Empties the record array, releases the items and frees their storage, then drops
     // (count, delete) the item constructor, spell constructor, item manager and spell manager.
     void Destroy() override;

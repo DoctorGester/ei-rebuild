@@ -94,7 +94,7 @@ public:
     LoopbackLink(const LoopbackLink& other);
     ~LoopbackLink() override;
 
-    int OnShutdown() override;                  // torn down and built again in place
+    void OnShutdown() override;                  // torn down and built again in place
     LoopbackLink* Clone() override;
     bool Connected() override;                  // the peer is there, not detached
     bool Alive() override;
@@ -151,7 +151,7 @@ public:
     DriverLink(const DriverLink& other);
     ~DriverLink() override;
 
-    int OnShutdown() override;                  // destroyed and built again in place
+    void OnShutdown() override;                  // destroyed and built again in place
     DriverLink* Clone() override;
     bool Connected() override;                  // the player is there, not detached
     bool Alive() override { return true; }
@@ -168,7 +168,7 @@ public:
     DriverSession();
     ~DriverSession() override;
 
-    int OnShutdown() override;          // both lists emptied
+    void OnShutdown() override;          // both lists emptied
     DriverSession* Clone() override;    // drivers shared, holders counted
     bool Query() override { return true; }
     void TakeNew(std::list<HeldRef<netlink::NetLink>>* joined) override;   // the live holders' links appended

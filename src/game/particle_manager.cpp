@@ -36,9 +36,9 @@ void ReleaseHeld(CParticleManager* manager, Pick drop) {
 
 } // namespace
 
-int CParticleManager::Create() {
+void CParticleManager::Create() {
     quietStart = 0;
-    return CBaseManager::Create() != 0 ? 1 : 0;
+    CBaseManager::Create();
 }
 
 // The held sources are released walking the table (a null value ends the walk, as in the original's
@@ -77,7 +77,7 @@ CParticleSource* CParticleManager::CreateSource(int type) {
 int CParticleManager::TickSources(char paused) {
     ReleaseHeld(this, [paused](CEngineObject* object) {
         if (paused != 0 && !(object->flags_ & 8)) return false;
-        return object->RunTick() == 0;
+        return !object->RunTick();
     });
     return 0;
 }

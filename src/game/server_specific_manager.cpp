@@ -52,4 +52,4 @@ CTorchObjectSpec::~CTorchObjectSpec() { DestroySpec(); }
 
 const char* CTorchObjectSpec::ClassName() { return kTorchSpecClassName; }
 ClassId CTorchObjectSpec::GetClassId() { return ClassId::TorchObjectSpec; }
-int CTorchObjectSpec::RunTick() { return 1; }
+bool CTorchObjectSpec::RunTick() { return true; }

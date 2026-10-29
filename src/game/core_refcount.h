@@ -46,11 +46,11 @@ public:
     CRefObject() = default;
     ~CRefObject() override = default;
 
-    virtual int OnShutdown() = 0;           // the object is still shared and about to lose its owner
+    virtual void OnShutdown() = 0;           // the object is still shared and about to lose its owner
     virtual CRefObject* Clone() = 0;        // the copy handed out when a kCopyOnShare object is shared
 
     // Calls OnShutdown with an extra reference held, so it cannot destroy itself meanwhile.
-    int Shutdown();
+    void Shutdown();
 };
 
 struct RefPtr {

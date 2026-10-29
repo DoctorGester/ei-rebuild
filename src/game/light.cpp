@@ -88,7 +88,7 @@ void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vect
     out->z = blue;
 }
 
-int CLight::Create() { return 1; }
+void CLight::Create() {}
 void CLight::Destroy() { flags_ &= ~kFlagDestroyed; }
 const char* CLight::ClassName() { return "CLight"; }
 ClassId CLight::GetClassId() { return ClassId::Light; }

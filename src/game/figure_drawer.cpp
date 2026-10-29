@@ -55,9 +55,8 @@ FigureMeshDrawer::FigureMeshDrawer() = default;
 
 FigureMeshDrawer::~FigureMeshDrawer() { flags_ = 0; }
 
-int FigureMeshDrawer::CreateDrawer() {
+void FigureMeshDrawer::CreateDrawer() {
     flags_ = 0;
-    return 1;
 }
 
 void FigureMeshDrawer::DestroyDrawer() {
@@ -65,7 +64,7 @@ void FigureMeshDrawer::DestroyDrawer() {
     flags_ = 0;
 }
 
-int FigureMeshDrawer::Create() { return CreateDrawer(); }
+void FigureMeshDrawer::Create() { CreateDrawer(); }
 void FigureMeshDrawer::Destroy() { DestroyDrawer(); }
 const char* FigureMeshDrawer::ClassName() { return FigureClientSpecificClassName(this); }
 ClassId FigureMeshDrawer::GetClassId() { return ClassId::FigureMeshDrawer; }

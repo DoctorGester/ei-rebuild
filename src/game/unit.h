@@ -125,7 +125,7 @@ public:
         unit = nullptr;
     }
     ~CUnitController() override;
-    int Create() override;
+    void Create() override;
     void Destroy() override;
 
     virtual int FiguresLoaded();
@@ -193,10 +193,10 @@ public:
     CUnit();
     ~CUnit() override;
 
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     void ClearState() override;
-    int RunTick() override;
+    bool RunTick() override;
     const char* GetName() override;          // the script name
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
@@ -306,8 +306,7 @@ public:
     double AnimationRatio();
 
     // The per-tick update (another name, so it is no override): the controller's update, then the map object's.
-    // Returns 1.
-    int Tick();
+    void Tick();
     void RecomputeScale() override;
     void EffectsChanged() override;
     // The figures take the base scale again.
@@ -394,8 +393,8 @@ public:
     // changes then).
     CItem* TakeRandomItem();
 
-    // The map object's Create, Reset, then 14 network fields. Returns 1.
-    int CreateUnit();
+    // The map object's Create, Reset, then 14 network fields.
+    void CreateUnit();
 
     // An animation entry of the unit's figure for `key` (bits: docs/notes/combat.md), only for units (type_
     // 0x32..0x34): a random entry matching the key, else one matching the key without its low 15 bits, else
@@ -873,7 +872,7 @@ public:
     bool IsOverkilled() override;
 
     // Per-tick update: counts down the owner's effects and removes the expired ones. Returns 0.
-    int RunTick() override;
+    bool RunTick() override;
     // Copies the vitals block (0x58 bytes) from `data` and marks the owner's part 0 changed.
     void SetData(const UnitVitals* data);
     // Applies a hit to the vitals; a dead object loses its effects and gets flags_ bit 1. Returns 0 when the
@@ -885,7 +884,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     // No map object, the vitals reset. Returns 1.
-    int Create() override;
+    void Create() override;
     void Destroy() override;
 
     UnitVitals vitals;
@@ -942,10 +941,10 @@ public:
     void Hit(int damage, int kind) override;
 
     // No light state, the particle array emptied, no end sound, no map object. Returns 1.
-    int Create() override;
+    void Create() override;
 
     // Effect countdown and end sounds, looping effect sounds, the light following the object. Returns 1.
-    int RunTick() override;
+    bool RunTick() override;
 
     // The object's effect list changed; the particles and the looping sounds follow it. `first` is set when
     // the list arrives with the object (no sounds; particles run 30 ticks ahead, the scale effects' one-shot

@@ -258,7 +258,7 @@ void CPlayer::Tick() {
         ++node;
         int id = static_cast<int>(*current);
         CEngineObject* object = Party()->ItemFactory()->FindObject(id);
-        if (object == nullptr || object->RunTick() == 0) recharging_.erase(current);
+        if (object == nullptr || !object->RunTick()) recharging_.erase(current);
     }
     connection_->TickDone();
 }

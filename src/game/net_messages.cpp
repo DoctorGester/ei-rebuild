@@ -90,9 +90,8 @@ LoginMessage::~LoginMessage() { ReleaseCounted(binding_); }
 
 Message* LoginMessage::Create() { return NewCounted<LoginMessage>(); }
 LoginMessage* LoginMessage::Clone() { return NewCounted<LoginMessage>(*this); }
-int LoginMessage::OnShutdown() {
+void LoginMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void LoginMessage::Write(BufferCursor* cursor) {
     PutString(cursor, name_);
@@ -120,9 +119,8 @@ void TextMessage::ReadText(BufferCursor* cursor) { TakeString(cursor, text_); }
 SayMessage::SayMessage() {}
 Message* SayMessage::Create() { return NewCounted<SayMessage>(); }
 SayMessage* SayMessage::Clone() { return NewCounted<SayMessage>(*this); }
-int SayMessage::OnShutdown() {
+void SayMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void SayMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void SayMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
@@ -130,18 +128,16 @@ void SayMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 ZoneMessage::ZoneMessage() {}
 Message* ZoneMessage::Create() { return NewCounted<ZoneMessage>(); }
 ZoneMessage* ZoneMessage::Clone() { return NewCounted<ZoneMessage>(*this); }
-int ZoneMessage::OnShutdown() {
+void ZoneMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void ZoneMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void ZoneMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
 Message* MapMessage::Create() { return NewCounted<MapMessage>(); }
 MapMessage* MapMessage::Clone() { return NewCounted<MapMessage>(*this); }
-int MapMessage::OnShutdown() {
+void MapMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void MapMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void MapMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
@@ -153,9 +149,8 @@ CommandMessage::CommandMessage(const CommandMessage& other) : Message(other), ki
 
 Message* CommandMessage::Create() { return NewCounted<CommandMessage>(); }
 CommandMessage* CommandMessage::Clone() { return NewCounted<CommandMessage>(*this); }
-int CommandMessage::OnShutdown() {
+void CommandMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void CommandMessage::Write(BufferCursor* cursor) {
     Put(cursor, kind_);
@@ -182,9 +177,8 @@ void PairMessage::ReadFirst(BufferCursor* cursor) { TakeObject(cursor, first_); 
 BindingMessage::BindingMessage() {}
 Message* BindingMessage::Create() { return NewCounted<BindingMessage>(); }
 BindingMessage* BindingMessage::Clone() { return NewCounted<BindingMessage>(*this); }
-int BindingMessage::OnShutdown() {
+void BindingMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void BindingMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }
 void BindingMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
@@ -192,9 +186,8 @@ void BindingMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
 FileRequestMessage::FileRequestMessage() {}
 Message* FileRequestMessage::Create() { return NewCounted<FileRequestMessage>(); }
 FileRequestMessage* FileRequestMessage::Clone() { return NewCounted<FileRequestMessage>(*this); }
-int FileRequestMessage::OnShutdown() {
+void FileRequestMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void FileRequestMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }
 void FileRequestMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
@@ -208,9 +201,8 @@ PlayerMessage::PlayerMessage(const PlayerMessage& other)
 
 Message* PlayerMessage::Create() { return NewCounted<PlayerMessage>(); }
 PlayerMessage* PlayerMessage::Clone() { return NewCounted<PlayerMessage>(*this); }
-int PlayerMessage::OnShutdown() {
+void PlayerMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void PlayerMessage::Write(BufferCursor* cursor) {
     PutString(cursor, name_);
@@ -239,9 +231,8 @@ LineMessage::~LineMessage() { ReleaseCounted(connection_); }
 
 Message* LineMessage::Create() { return NewCounted<LineMessage>(); }
 LineMessage* LineMessage::Clone() { return NewCounted<LineMessage>(*this); }
-int LineMessage::OnShutdown() {
+void LineMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void LineMessage::Write(BufferCursor* cursor) {
     Put(cursor, number_);
@@ -259,9 +250,8 @@ HostMessage::HostMessage(const HostMessage& other) : Message(other), address_(ot
 
 Message* HostMessage::Create() { return NewCounted<HostMessage>(); }
 HostMessage* HostMessage::Clone() { return NewCounted<HostMessage>(*this); }
-int HostMessage::OnShutdown() {
+void HostMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void HostMessage::Write(BufferCursor* cursor) {
     PutString(cursor, address_);
@@ -282,9 +272,8 @@ VariableMessage::VariableMessage(const VariableMessage& other) : Message(other),
 
 Message* VariableMessage::Create() { return NewCounted<VariableMessage>(); }
 VariableMessage* VariableMessage::Clone() { return NewCounted<VariableMessage>(*this); }
-int VariableMessage::OnShutdown() {
+void VariableMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void VariableMessage::Write(BufferCursor* cursor) {
     PutString(cursor, name_);
@@ -306,9 +295,8 @@ FileMessage::~FileMessage() {}
 
 Message* FileMessage::Create() { return NewCounted<FileMessage>(); }
 FileMessage* FileMessage::Clone() { return NewCounted<FileMessage>(*this); }
-int FileMessage::OnShutdown() {
+void FileMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void FileMessage::Write(BufferCursor* cursor) {
     Put(cursor, chunkCount_);
@@ -332,9 +320,8 @@ FileChunkMessage::~FileChunkMessage() { ReleaseCounted(file_); }
 
 Message* FileChunkMessage::Create() { return NewCounted<FileChunkMessage>(); }
 FileChunkMessage* FileChunkMessage::Clone() { return NewCounted<FileChunkMessage>(*this); }
-int FileChunkMessage::OnShutdown() {
+void FileChunkMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void FileChunkMessage::Write(BufferCursor* cursor) {
     PutObject(cursor, file_);
@@ -359,9 +346,8 @@ AwardMessage::~AwardMessage() { ReleaseCounted(connection_); }
 
 Message* AwardMessage::Create() { return NewCounted<AwardMessage>(); }
 AwardMessage* AwardMessage::Clone() { return NewCounted<AwardMessage>(*this); }
-int AwardMessage::OnShutdown() {
+void AwardMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void AwardMessage::Write(BufferCursor* cursor) {
     Put(cursor, kind_);
@@ -392,9 +378,8 @@ TradeMessage::~TradeMessage() {
 
 Message* TradeMessage::Create() { return NewCounted<TradeMessage>(); }
 TradeMessage* TradeMessage::Clone() { return NewCounted<TradeMessage>(*this); }
-int TradeMessage::OnShutdown() {
+void TradeMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void TradeMessage::Write(BufferCursor* cursor) {
     PutObject(cursor, offer_);
@@ -425,9 +410,8 @@ Message* PartyMemberMessage::Create() { return NewCounted<PartyMemberMessage>();
 PartyMemberMessage* PartyMemberMessage::Clone() {
     return NewCounted<PartyMemberMessage>(*this);
 }
-int PartyMemberMessage::OnShutdown() {
+void PartyMemberMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void PartyMemberMessage::Write(BufferCursor* cursor) {
     CStream* stream = &stream_;
@@ -458,9 +442,8 @@ PartyMessage::~PartyMessage() {
 
 Message* PartyMessage::Create() { return NewCounted<PartyMessage>(); }
 PartyMessage* PartyMessage::Clone() { return NewCounted<PartyMessage>(*this); }
-int PartyMessage::OnShutdown() {
+void PartyMessage::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void PartyMessage::Write(BufferCursor* cursor) {
     std::int32_t count = static_cast<std::int32_t>(members_.size());
@@ -509,9 +492,8 @@ ServerEntry::ServerEntry(const ServerEntry& other)
       players_(other.players_), maxPlayers_(other.maxPlayers_), password_(other.password_) {}
 
 ServerEntry* ServerEntry::Clone() { return NewCounted<ServerEntry>(*this); }
-int ServerEntry::OnShutdown() {
+void ServerEntry::OnShutdown() {
     Rebuild(this);
-    return 0;
 }
 void ServerEntry::Write(BufferCursor* cursor) {
     PutString(cursor, name_);

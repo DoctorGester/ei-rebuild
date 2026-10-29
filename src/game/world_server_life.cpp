@@ -31,16 +31,19 @@ constexpr float kWindStrength = 0.4f;
 
 } // namespace
 
-int CWorldServer::Create() {
+void CWorldServer::Create() {
     Destroy();
-    if (!CWorld::Create()) return game::FatalError(CantCreateText());
+    CWorld::Create();
     std::string folder = *g_textFolder;
     bool opened;
     {
         std::string path = folder + kMessagesFileName;
         opened = Messages()->Open(path);
     }
-    if (!opened) return game::FatalError(CantOpenText());
+    if (!opened) {
+        game::FatalError(CantOpenText());
+        return;
+    }
 
     specificManager_ = new CServerSpecificManager();
     specificManager_->AddRef();   // the reference is counted without testing the pointer
@@ -63,7 +66,6 @@ int CWorldServer::Create() {
     zoneName_ = game::kEmptyText;
     gameResult_ = 0;
     mobFiles_.clear();
-    return 1;
 }
 
 void CWorldServer::Destroy() {

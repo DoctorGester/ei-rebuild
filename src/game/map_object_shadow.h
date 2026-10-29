@@ -52,7 +52,7 @@ class CObject3DClientSpecific : public CObject3DSpecific {
 public:
     CObject3DClientSpecific();
     ~CObject3DClientSpecific() override;
-    int Create() override;
+    void Create() override;
     void Destroy() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
