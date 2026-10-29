@@ -18,18 +18,25 @@ bool On();
 // off in the harness build).
 void SetOn(bool on);
 
-// ---- The frame's GPU time (render.cpp, inside the frame's draws) ------------------------------------------
+// ---- The frame's GPU time and draws (render.cpp, render_shadows.cpp, inside the frame's draws) ------------
 
-// The points of a frame its timestamps are taken at, in the frame's order.
-enum class Mark : int { FrameBegin, ShadowBegin, ShadowEnd, WorldEnd, FrameEnd, PresentEnd, Count };
-// The frame's first draws: a set of queries begun (once a frame; the results of earlier frames that are ready
-// are collected first). Nothing when off, or when every set is still waiting for the GPU.
+// What the frame's work goes to, each from its first draw up to the next one's (a timestamp at each change): the
+// sun's shadow map with its range passes, the point lights' shadow faces, the ground and water pages, the models
+// that cast shadows (objects and units), the rest of the world view (the other models, effects, decals,
+// pre-transformed draws, the uploads, the frame passes' clears, copies and resolve), the interface (with the
+// canvases' queued drawing at the frame's start), and the present's pass (the frame onto the window, the cursor,
+// this overlay).
+enum class Pass : int { Sun, Point, Terrain, Objects, Other, Ui, Present, Count };
+constexpr int kPasses = static_cast<int>(Pass::Count);
+// The frame's first draws (once a frame): its work counted from here, in Ui; a set of queries begun (the results
+// of earlier frames that are ready are collected first) unless every set still waits for the GPU. Nothing when off.
 void BeginGpuFrame();
-void Stamp(Mark mark);
-// Each command drawn: whether it is a world view's (the world's GPU time ends at the first command after it).
-void WorldCommand(bool world);
-// Before the frame's commit: the set closed (its results read at a later frame).
+// The frame's work from here on is `pass`'s.
+void Enter(Pass pass);
+// After the present's draws: the frame's last timestamp, the set closed (its results read at a later frame).
 void EndGpuFrame();
+// The draws made so far in the frame, every pass's (render.cpp, from FrameStats; tools/perf_check has its own).
+std::uint64_t FrameDrawCount();
 
 // The renderer's CPU time: the end of the frame's draws up to the present (Submit) and the shadow map (Shadow).
 enum class Cpu : int { Submit, Shadow, Count };
@@ -46,8 +53,8 @@ private:
     long long start = 0;
 };
 
-// The frame presented (render::Present): its interval since the last one and its counts.
-void FrameDone(std::uint64_t draws, std::uint64_t shadowDraws);
+// The frame presented (render::Present): its interval since the last one, its CPU times and draws.
+void FrameDone();
 
 // ---- The overlay (render_window.cpp, in the present's pass on the back buffer) -----------------------------
 
@@ -63,9 +70,9 @@ struct Numbers {
     double frameMs = 0.0, worstFrameMs = 0.0;
     bool gpu = false;                      // GPU times known (timestamps of the last second)
     double gpuMs = 0.0, worstGpuMs = 0.0;  // the frame's draws and the present
-    double shadowMs = 0.0, worldMs = 0.0, uiMs = 0.0, presentMs = 0.0;
+    double passMs[kPasses] = {};           // of it, each pass's (by Pass)
     double submitMs = 0.0, shadowCpuMs = 0.0;
-    double draws = 0.0, shadowDraws = 0.0;
+    double draws[kPasses] = {};            // each pass's draws
 };
 // The numbers over the last second as of now.
 Numbers Current();

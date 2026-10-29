@@ -58,31 +58,37 @@ void Keep(std::deque<Sample<N>>& samples, const Sample<N>& s) {
     while (!samples.empty() && s.when - samples.front().when > second) samples.pop_front();
 }
 
-// The frames: their interval since the last present, the CPU times, the draws.
-enum FrameValue { Interval, SubmitMs, ShadowCpuMs, Draws, ShadowDraws, FrameValues };
+// The frames: their interval since the last present, the CPU times, each pass's draws (FrameDraws + pass).
+enum FrameValue { Interval, SubmitMs, ShadowCpuMs, FrameDraws, FrameValues = FrameDraws + kPasses };
 std::deque<Sample<FrameValues>> g_frames;
 long long g_lastPresent = 0;
 double g_cpu[static_cast<int>(Cpu::Count)] = {};   // this frame's
+double g_draws[kPasses] = {};                       // this frame's
+std::uint64_t g_drawsCounted = 0;                   // FrameDrawCount when last given to a pass
 
-// The GPU: the frame's draws and the present, and of them the passes.
-enum GpuValue { Total, ShadowPass, WorldPass, UiPass, PresentPass, GpuValues };
+// The GPU: the frame's draws and the present (GpuTotal), and each pass's (GpuPasses + pass).
+enum GpuValue { GpuTotal, GpuPasses, GpuValues = GpuPasses + kPasses };
 std::deque<Sample<GpuValues>> g_gpu;
+
+// The frame's pass (between BeginGpuFrame and EndGpuFrame).
+bool g_inFrame = false;
+Pass g_pass = Pass::Ui;
 
 // ---- Timestamp queries --------------------------------------------------------------------------------------
 
-constexpr int kMarks = static_cast<int>(Mark::Count);
-constexpr int kSets = 5;   // frames in flight
+constexpr int kStamps = 64;   // a frame's; past them the last stamped pass takes the rest of the frame
+constexpr int kSets = 5;      // frames in flight
 
 struct FrameQueries {
     ID3D11Query* disjoint = nullptr;
-    ID3D11Query* stamps[kMarks] = {};
-    unsigned written = 0;   // the marks stamped (1 << mark)
-    bool pending = false;   // closed, its results not read yet
+    ID3D11Query* stamps[kStamps] = {};
+    Pass passes[kStamps] = {};   // the pass from each stamp on
+    int count = 0;               // the stamps taken
+    bool pending = false;        // closed, its results not read yet
 };
 FrameQueries g_sets[kSets];
 int g_open = -1;            // the set of the frame being drawn
 bool g_queriesFailed = false;
-bool g_worldSeen = false, g_worldEnded = false;
 
 bool MakeSet(FrameQueries& q) {
     ID3D11Device* device = D3DDevice();
@@ -104,6 +110,19 @@ void ReleaseSet(FrameQueries& q) {
     q = FrameQueries{};
 }
 
+void Stamp(FrameQueries& q, Pass pass) {
+    q.passes[q.count] = pass;
+    D3DContext()->End(q.stamps[q.count]);
+    ++q.count;
+}
+
+// The draws since the last change, to the pass they were made in.
+void CountDraws() {
+    const std::uint64_t now = FrameDrawCount();
+    if (now >= g_drawsCounted) g_draws[static_cast<int>(g_pass)] += static_cast<double>(now - g_drawsCounted);
+    g_drawsCounted = now;
+}
+
 // The closed sets the GPU finished, into the samples (never waiting: a set not ready stays for a later frame).
 void Collect() {
     ID3D11DeviceContext* context = D3DContext();
@@ -111,30 +130,19 @@ void Collect() {
         if (!q.pending) continue;
         D3D11_QUERY_DATA_TIMESTAMP_DISJOINT d{};
         if (context->GetData(q.disjoint, &d, sizeof(d), D3D11_ASYNC_GETDATA_DONOTFLUSH) != S_OK) continue;
-        UINT64 t[kMarks] = {};
+        UINT64 t[kStamps] = {};
         bool ready = true;
-        for (int k = 0; k < kMarks && ready; ++k)
-            if (q.written & (1u << k))
-                ready = context->GetData(q.stamps[k], &t[k], sizeof(t[k]), D3D11_ASYNC_GETDATA_DONOTFLUSH) == S_OK;
+        for (int k = 0; k < q.count && ready; ++k)
+            ready = context->GetData(q.stamps[k], &t[k], sizeof(t[k]), D3D11_ASYNC_GETDATA_DONOTFLUSH) == S_OK;
         if (!ready) continue;
         q.pending = false;
-        if (d.Disjoint || d.Frequency == 0 || !(q.written & 1u)) continue;
-        // A mark not stamped (no shadow map, no world view) takes the one before it: its part is empty.
-        for (int k = 1; k < kMarks; ++k)
-            if (!(q.written & (1u << k))) t[k] = t[k - 1];
+        if (d.Disjoint || d.Frequency == 0 || q.count < 2) continue;
         double ms = 1000.0 / static_cast<double>(d.Frequency);
-        auto span = [&](Mark from, Mark to) {
-            UINT64 a = t[static_cast<int>(from)], b = t[static_cast<int>(to)];
-            return b > a ? static_cast<double>(b - a) * ms : 0.0;
-        };
+        auto span = [&](int from, int to) { return t[to] > t[from] ? static_cast<double>(t[to] - t[from]) * ms : 0.0; };
         Sample<GpuValues> s;
         s.when = Now();
-        s.values[Total] = span(Mark::FrameBegin, Mark::PresentEnd);
-        s.values[ShadowPass] = span(Mark::ShadowBegin, Mark::ShadowEnd);
-        s.values[WorldPass] = span(Mark::FrameBegin, Mark::WorldEnd) - s.values[ShadowPass];
-        if (s.values[WorldPass] < 0.0) s.values[WorldPass] = 0.0;
-        s.values[UiPass] = span(Mark::WorldEnd, Mark::FrameEnd);
-        s.values[PresentPass] = span(Mark::FrameEnd, Mark::PresentEnd);
+        s.values[GpuTotal] = span(0, q.count - 1);
+        for (int k = 0; k + 1 < q.count; ++k) s.values[GpuPasses + static_cast<int>(q.passes[k])] += span(k, k + 1);
         Keep(g_gpu, s);
     }
 }
@@ -330,7 +338,11 @@ void SetOn(bool on) {
 }
 
 void BeginGpuFrame() {
-    if (!g_on || g_open >= 0 || g_queriesFailed || !D3DContext()) return;
+    if (!g_on || g_inFrame) return;
+    g_inFrame = true;
+    g_pass = Pass::Ui;
+    g_drawsCounted = FrameDrawCount();
+    if (g_queriesFailed || !D3DContext()) return;
     Collect();
     for (int k = 0; k < kSets; ++k) {
         FrameQueries& q = g_sets[k];
@@ -342,40 +354,27 @@ void BeginGpuFrame() {
             return;
         }
         g_open = k;
-        q.written = 0;
-        g_worldSeen = g_worldEnded = false;
+        q.count = 0;
         D3DContext()->Begin(q.disjoint);
-        Stamp(Mark::FrameBegin);
+        Stamp(q, g_pass);
         return;
     }
 }
 
-void Stamp(Mark mark) {
-    if (g_open < 0) return;
-    FrameQueries& q = g_sets[g_open];
-    // A world view drawn last ends with the frame's draws.
-    if (mark == Mark::FrameEnd && g_worldSeen && !g_worldEnded) {
-        g_worldEnded = true;
-        Stamp(Mark::WorldEnd);
-    }
-    int k = static_cast<int>(mark);
-    D3DContext()->End(q.stamps[k]);
-    q.written |= 1u << k;
-}
-
-void WorldCommand(bool world) {
-    if (g_open < 0) return;
-    if (world) g_worldSeen = true;
-    else if (g_worldSeen && !g_worldEnded) {
-        Stamp(Mark::WorldEnd);
-        g_worldEnded = true;
-    }
+void Enter(Pass pass) {
+    if (!g_inFrame || pass == g_pass) return;
+    CountDraws();
+    g_pass = pass;
+    if (g_open >= 0 && g_sets[g_open].count < kStamps - 1) Stamp(g_sets[g_open], pass);   // the last for EndGpuFrame
 }
 
 void EndGpuFrame() {
+    if (!g_inFrame) return;
+    CountDraws();
+    g_inFrame = false;
     if (g_open < 0) return;
     FrameQueries& q = g_sets[g_open];
-    if (!(q.written & (1u << static_cast<int>(Mark::FrameEnd)))) Stamp(Mark::FrameEnd);   // not presented
+    Stamp(q, g_pass);
     D3DContext()->End(q.disjoint);
     q.pending = true;
     g_open = -1;
@@ -391,7 +390,7 @@ void CpuTimer::Stop() {
     start = 0;
 }
 
-void FrameDone(std::uint64_t draws, std::uint64_t shadowDraws) {
+void FrameDone() {
     if (!g_on) return;
     long long now = Now();
     if (g_lastPresent) {
@@ -400,12 +399,12 @@ void FrameDone(std::uint64_t draws, std::uint64_t shadowDraws) {
         s.values[Interval] = static_cast<double>(now - g_lastPresent) * MsPerTick();
         s.values[SubmitMs] = g_cpu[static_cast<int>(Cpu::Submit)];
         s.values[ShadowCpuMs] = g_cpu[static_cast<int>(Cpu::Shadow)];
-        s.values[Draws] = static_cast<double>(draws);
-        s.values[ShadowDraws] = static_cast<double>(shadowDraws);
+        for (int p = 0; p < kPasses; ++p) s.values[FrameDraws + p] = g_draws[p];
         Keep(g_frames, s);
     }
     g_lastPresent = now;
     for (double& c : g_cpu) c = 0.0;
+    for (double& d : g_draws) d = 0.0;
 }
 
 void Draw(int width, int height, const Rect& placed) {
@@ -438,6 +437,7 @@ void Draw(int width, int height, const Rect& placed) {
 void Release() {
     for (FrameQueries& q : g_sets) ReleaseSet(q);
     g_open = -1;
+    g_inFrame = false;
     g_queriesFailed = false;
     DropImage();
     if (g_pipeline.id) sg_destroy_pipeline(g_pipeline);
@@ -463,27 +463,25 @@ Numbers Current() {
         n.fps = n.frameMs > 0.0 ? 1000.0 / n.frameMs : 0.0;
         n.submitMs = sum[SubmitMs] / count;
         n.shadowCpuMs = sum[ShadowCpuMs] / count;
-        n.draws = sum[Draws] / count;
-        n.shadowDraws = sum[ShadowDraws] / count;
+        for (int p = 0; p < kPasses; ++p) n.draws[p] = sum[FrameDraws + p] / count;
     }
     if (!g_gpu.empty()) {
         double sum[GpuValues] = {};
         for (const auto& s : g_gpu) {
             for (int k = 0; k < GpuValues; ++k) sum[k] += s.values[k];
-            n.worstGpuMs = std::max(n.worstGpuMs, s.values[Total]);
+            n.worstGpuMs = std::max(n.worstGpuMs, s.values[GpuTotal]);
         }
         float count = static_cast<float>(static_cast<int>(g_gpu.size()));
         n.gpu = true;
-        n.gpuMs = sum[Total] / count;
-        n.shadowMs = sum[ShadowPass] / count;
-        n.worldMs = sum[WorldPass] / count;
-        n.uiMs = sum[UiPass] / count;
-        n.presentMs = sum[PresentPass] / count;
+        n.gpuMs = sum[GpuTotal] / count;
+        for (int p = 0; p < kPasses; ++p) n.passMs[p] = sum[GpuPasses + p] / count;
     }
     return n;
 }
 
 std::vector<std::string> Lines(const Numbers& n) {
+    auto ms = [&](Pass p) { return n.passMs[static_cast<int>(p)]; };
+    auto draws = [&](Pass p) { return n.draws[static_cast<int>(p)]; };
     char line[128];
     std::vector<std::string> lines;
     std::snprintf(line, sizeof(line), "FPS %.0f   FRAME %.2f MS   WORST %.2f", n.fps, n.frameMs, n.worstFrameMs);
@@ -491,15 +489,23 @@ std::vector<std::string> Lines(const Numbers& n) {
     if (n.gpu) {
         std::snprintf(line, sizeof(line), "GPU %.2f MS   WORST %.2f", n.gpuMs, n.worstGpuMs);
         lines.emplace_back(line);
-        std::snprintf(line, sizeof(line), "  SHADOW %.2f   WORLD %.2f   UI %.2f   PRESENT %.2f", n.shadowMs, n.worldMs,
-                      n.uiMs, n.presentMs);
+        std::snprintf(line, sizeof(line), "  SHADOW %.2f (SUN %.2f  POINT %.2f)", ms(Pass::Sun) + ms(Pass::Point),
+                      ms(Pass::Sun), ms(Pass::Point));
+        lines.emplace_back(line);
+        std::snprintf(line, sizeof(line), "  WORLD %.2f (TERRAIN %.2f  OBJECTS %.2f  OTHER %.2f)",
+                      ms(Pass::Terrain) + ms(Pass::Objects) + ms(Pass::Other), ms(Pass::Terrain), ms(Pass::Objects),
+                      ms(Pass::Other));
+        lines.emplace_back(line);
+        std::snprintf(line, sizeof(line), "  UI %.2f   PRESENT %.2f", ms(Pass::Ui), ms(Pass::Present));
         lines.emplace_back(line);
     } else {
         lines.emplace_back("GPU -");
     }
     std::snprintf(line, sizeof(line), "CPU SUBMIT %.2f MS   SHADOW %.2f", n.submitMs, n.shadowCpuMs);
     lines.emplace_back(line);
-    std::snprintf(line, sizeof(line), "DRAWS %.0f   SHADOW %.0f", n.draws, n.shadowDraws);
+    std::snprintf(line, sizeof(line), "DRAWS WORLD %.0f   SUN %.0f   POINT %.0f   UI %.0f",
+                  draws(Pass::Terrain) + draws(Pass::Objects) + draws(Pass::Other), draws(Pass::Sun), draws(Pass::Point),
+                  draws(Pass::Ui) + draws(Pass::Present));
     lines.emplace_back(line);
     return lines;
 }
