@@ -531,7 +531,7 @@ public:
     // Ends the titles: back to where they were opened from.
     void Close();
     // Opened in a game (fromGame_ 0) the loading screen steps and the music stops; the cursor hidden, the
-    // "<name>fin" movies played, font smoothing switched off, "outro.res" opened and its "credits.scr" parsed
+    // "<name>fin" movies played, "outro.res" opened and its "credits.scr" parsed
     // into lines_ (one record per line: "#scroll" flag, speed, two texts); the scrolling text surface and the
     // header surface, both frozen; the display's flag kept in savedDisplay_ and cleared; the player starts
     // "Movies\<name>.bik".
@@ -542,15 +542,13 @@ public:
     // movie flag is 1); when it has ended after the last line: "<name>fout" played, the screen flag cleared
     // and the titles closed as Close() does; otherwise the container's draw.
     BOOL Draw(CSceneRenderer* pass) override;
-    // The lines freed, font smoothing set back to fontSmoothing_ (never read: kept), the display's flag
-    // restored, the screen flag set and the cursor shown.
+    // The lines freed, the display's flag restored, the screen flag set and the cursor shown.
     void OnClose();
     // A window above closed: the movie player is closed.
     void OnMessageResult(int result);
 
     CUiScrollingSurface* textSurface_;   // the scrolling text
     CUiSurface* headerSurface_;
-    int fontSmoothing_;         // passed (as uiParam) to SPI_GETFONTSMOOTHING, never written
     lib::InPlace<CMappedResource> archive_;   // "outro.res" (built and destroyed by hand)
     std::list<TitleLine> lines_;
     float nextLineAt_;          // game time the current line ends (0 from Build and for scrolls)

@@ -47,7 +47,8 @@ Notes on the inventory:
 **Fonts.** `CInterface3D::Create` 005F4990 (`ui_interface_create.cpp`) makes `fonts_[0..2]` with `gdi::PointFont` (the original's `CFont::CreatePointFont` 0070BBE5): "Times New Roman" at width·{104, 112, 144}/800/scale. The scale is the pixel height of a 75-point font. So the font size depends on resolution; with WideScreen the scale's 0.01 becomes width·0.0075/height (addon's float at 005F4F81, `widescreen::FontScale`; W4).
 - The console has its own point font (`console_window_create.cpp`).
 - All text is GDI: no bitmap fonts, quality left at its default, so the system's ClearType / smoothing setting decides the look.
-- The credits switch font smoothing off for the session.
+- The credits switch font smoothing off for the session (the original; ours does not, P8b: "Font smoothing" in
+  section 3).
 
 **Metrics.**
 - The text extent 005F8340 calls `GetTextExtentPoint32A` on `GetDC(game window)` and scales by 800/width and 600/height. It feeds word wrap in 005FDFA0, `CUiScrollText::Tokenize` 0065D4B0 / `DrawLines` 0065D150 (sample "W" for each font's height), tooltip sizes, the chat (wrap at 780) and the message box.
@@ -512,7 +513,7 @@ the canvas is the surface's pixels: no DIB section, no memory for a window, no m
 to adopt, no `uinative` / `uiboth` words (an EI_RENDER word that is no longer known is logged and ignored). The
 surface functions draw only on the canvas: `Clear` / `Fill` / `FillRect` / `FrameRect`, `Line` (the edit field's,
 the chat's, the save list's and the console's carets, the connect list's rule: the pen's rule, end point left out),
-`Dot` (the minimap marker), `DrawTextIn` / `DrawTextPixels` (glyph runs), `CaptureScreen`, `Greyscale`, `Image`. The
+`Dot` (the minimap marker), `DrawTextIn` / `DrawTextPixels` (glyph runs), `CaptureScreen`, `Greyscale`. The
 readers read the GPU: `PixelAt` (`ReadPixel`), `Rgb565Copy` (`ReadRgb565`); `SwapContents` moves the canvas aside
 (`MoveCanvas`; a surface brought back without one gets a new black canvas). P6's parts were on the GPU already
 (R28a: the pick picture, the camp's backdrop modes 3 / 4 through the screen copy, greying and `MoveCanvas`); they
@@ -547,6 +548,16 @@ put away and copied again). P3e's comment (tests/verify/harness_ui.h) went with 
 textures (render_textures.cpp: `WindowSurfaceView`, `Lookup16`, `SurfaceWritten`, `MissedSurfaceWrites`), render_ui's
 switch, comparison views and read-back into memory, system_text's DrawTextA / GetTextExtentPoint32A /
 CreateFontIndirectA routes.
+
+**Pictures.** `render::ui::Image` (a CPU picture written onto a canvas) has no game caller since P8a: it stays as
+`ei_ui_check`'s way to put arbitrary pixels on a canvas ("image", "picture", "lost"); it records the canvas's Pixels
+command, which the read-back history (`Compact`) needs anyway (P8b).
+
+**Font smoothing (P8b).** The original's titles (0062B7D0) switched the system's font smoothing off for the session
+(SPI_SETFONTSMOOTHING, "restored" in 0062BD00 from a field never written) so RichEdit and the header drew unsmoothed,
+which left the whole desktop and the rest of the game unsmoothed. Ours changes no system setting: the titles' text is
+unsmoothed by its own layout (P8a) and the header is drawn in an unsmoothed font (`UiFont::unsmoothed`); the rest of
+the interface follows SPI_GETFONTSMOOTHING (the harness reports it off).
 
 **GDI left.** None in the interface since P8a (the titles' text: next section). Outside it: the tools' references
 (`ei_ui_check` draws GDI's fills and lines to compare, `ei_text_check` GDI's DrawTextA and RichEdit), and gameapi.h's

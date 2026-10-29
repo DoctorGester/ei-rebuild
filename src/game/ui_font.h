@@ -17,14 +17,15 @@ class TextFont;
 struct UiFont {
     const char* face = nullptr;
     int pixels = 0;
+    bool unsmoothed = false;   // drawn without smoothing whatever the system's setting (the titles' header)
     explicit operator bool() const { return face && pixels > 0; }
 };
 
 // `face` at `tenths` of a point, at 96 dots an inch (the size CreatePointFont gave).
 UiFont PointFont(int tenths, const char* face);
 
-// The font `font`'s text is laid out and drawn in: smoothed unless the system's font smoothing is off (the titles
-// switch it off; the harness reports it off). Made on first use and kept for the process (queued glyph runs keep
+// The font `font`'s text is laid out and drawn in: smoothed unless the font is unsmoothed or the system's font
+// smoothing is off (the harness reports it off). Made on first use and kept for the process (queued glyph runs keep
 // its atlas); null for no font.
 render::text::TextFont* TextFontOf(const UiFont& font);
 

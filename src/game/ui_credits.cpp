@@ -10,7 +10,6 @@
 
 #include "world.h"
 
-#include "lib/gameapi.h"
 #include <cstdint>
 #include "ui_cursor.h"
 #include "game_singletons.h"
@@ -22,7 +21,7 @@ namespace {
 
 constexpr const char* kOutroSuffix = "fout";
 constexpr std::uint32_t kHeaderColour = 0xFEFEFE;
-constexpr UINT kSetFontSmoothing = 0x4B;        // SPI_SETFONTSMOOTHING
+constexpr int kHeaderFont = 2;
 
 } // namespace
 
@@ -47,8 +46,13 @@ BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
             if (line.scroll) {
                 textSurface_->Start(line.speed, 1);
                 headerSurface_->Clear();
-                RECT rect = {0, 0, 0, 0};
-                headerSurface_->DrawTextIn(line.text, &rect, 2, kHeaderColour, 1, 1);
+                // Centred over the whole surface with its shadow, without smoothing: the original switched the
+                // system's font smoothing off for the titles.
+                const UiFont& font = interface_->fonts_[kHeaderFont];
+                const RECT& at = headerSurface_->rect_;
+                const RECT whole = {0, 0, at.right - at.left, at.bottom - at.top};
+                headerSurface_->DrawTextPixels(UiFont{font.face, font.pixels, true}, line.text, whole, DT_CENTER,
+                                               kHeaderColour, true);
                 headerSurface_->Freeze(1, 0);
             } else {
                 nextLineAt_ = GameTime() + line.speed;
@@ -71,7 +75,6 @@ BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
 
 void CCreditsScreen::OnClose() {
     lines_.clear();
-    gameapi::SystemParametersInfoA(kSetFontSmoothing, static_cast<UINT>(fontSmoothing_), nullptr, 0);
     g_sceneRenderer->fogColour_ = static_cast<std::uint32_t>(savedDisplay_);
     app::g_interfaceHasScreen = 1;
     g_cursor->ShowImage(1);

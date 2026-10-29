@@ -488,11 +488,6 @@ void CCreditsScreen::CreateScreen() {
     g_cursor->ShowImage(0);
     app::PlayMovies((name + "fin"), 0);
     nextLineAt_ = 0.0f;
-    // (Like the original: the field's address goes in as uiParam, so it is never written; then font
-    // smoothing is switched off.)
-    gameapi::SystemParametersInfoA(0x4A, static_cast<UINT>(reinterpret_cast<std::uintptr_t>(&fontSmoothing_)), nullptr,
-                                   0);   // SPI_GETFONTSMOOTHING
-    gameapi::SystemParametersInfoA(0x4B, 0, nullptr, 0);   // SPI_SETFONTSMOOTHING
 
     CMappedResource* archive = archive_.Get();
     archive->OpenResource((options::g_options->resourcesPath_ + "outro.res"), 0);

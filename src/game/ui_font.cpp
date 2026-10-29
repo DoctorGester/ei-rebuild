@@ -14,8 +14,8 @@ UiFont PointFont(int tenths, const char* face) { return UiFont{face, render::tex
 
 render::text::TextFont* TextFontOf(const UiFont& font) {
     if (!font) return nullptr;
-    BOOL smoothing = TRUE;
-    if (!gameapi::SystemParametersInfoA(SPI_GETFONTSMOOTHING, 0, &smoothing, 0)) smoothing = TRUE;
+    BOOL smoothing = FALSE;
+    if (!font.unsmoothed && !gameapi::SystemParametersInfoA(SPI_GETFONTSMOOTHING, 0, &smoothing, 0)) smoothing = TRUE;
     return render::text::GetTextFont(font.face, font.pixels, smoothing != FALSE);
 }
 

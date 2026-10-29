@@ -206,8 +206,8 @@ resume, Esc, the quit box cancelled), `ui_view_screen`. The harness's `newgame` 
   (cancel alone adds an empty region 0 first, so cancel is region 1 in both layouts). The difficulty question (0074225C /
   00742228; Create 006337B0, buttons 00633DD0: 0 OK, 1 cancel, 2 / 3 the choice) copies +0x180 to 0079BEC0 on OK.
 - **Credits** (0062B7D0, slot 25 of 00740C3C): from a game (+0x1F4 0) it steps the loading screen (006B71C0 with 1) and stops
-  the music, from the menu (1) it clears the server flag at the end; plays the movies under "Titlesfin" (00458270), switches
-  font smoothing off for the session, parses "credits.scr" from "<0079BC94>outro.res" (one TitleLine per line) and starts
+  the music, from the menu (1) it clears the server flag at the end; plays the movies under "Titlesfin" (00458270) (the original then switches
+  font smoothing off for the session; ours draws the header unsmoothed instead, ui-native.md "Font smoothing"), parses "credits.scr" from "<0079BC94>outro.res" (one TitleLine per line) and starts
   "Movies\Titles.bik". `Draw` (0062BD80) takes the next line once the time passes `nextLineAt_` and the text stopped
   (`speed_` 0 or NaN).
 - **View screen** (`ui_view_screen.cpp`): screen 7, a debug view (0x168, 00740840 / 0074080C): inert input 00741154,
