@@ -21,14 +21,14 @@ constexpr int kFaces = 6;
 constexpr int kAtlasWidth = kFaces * kPointFaceTexels;
 constexpr int kAtlasHeight = kMostPointShadows * kPointFaceTexels;
 // The faces' near distance (world units): nearer geometry is drawn at it (shaders/shadow_caster.hlsl).
-constexpr double kNear = 0.05;
+constexpr float kNear = 0.05f;
 // A light dimmer than this in every channel casts no shadow; casters weaker than kLeastStrength (units
 // fading in) cast none, as for the sun.
 constexpr float kLeastColour = 0.02f;
 constexpr float kLeastStrength = 0.5f;
 // An object holds a light (and casts nothing for it) when the light lies within this far of one of its
 // meshes' spheres: a lamp's post, the campfire's spit.
-constexpr double kHoldMargin = 0.5;
+constexpr float kHoldMargin = 0.5f;
 
 // The cube's faces: the axis a face looks along and the two across it (its clip x and y). The
 // receivers pick the face and its coordinates the same way (shaders/point_shadow.hlsli, point_seen).
@@ -55,7 +55,7 @@ struct Caster {
     int object;   // into g_objects
     Sphere sphere;
     int model;   // PointShadowFrame::models
-    double distance;   // squared, to the light being mapped
+    float distance;   // squared, to the light being mapped
 };
 
 // A unit's mesh this frame, its model matrix (-1: none under the camera) and its sphere once made.
@@ -81,7 +81,7 @@ struct FrameObject {
 struct Candidate {
     int scene;
     Vector3 at;
-    double range, strength;
+    float range, strength;
 };
 
 // A light given a map this frame: its scene light, its row of the atlas, and the casters each of its faces draws.
@@ -89,7 +89,7 @@ struct MappedLight {
     int scene;
     int row;
     Vector3 at;
-    double range;
+    float range;
     std::vector<int> faces[kFaces];   // indices into g_casters
 };
 
@@ -129,14 +129,14 @@ struct FaceCaster {
 // 0.0015 units measured in the town. Within these a kept face is not drawn again: its place differs by
 // less than a tenth of a face texel at a range of 5 units (a texel there is 0.02 units), well under the
 // receivers' one-texel depth bias.
-constexpr double kKeptPlace = 0.002;   // the translation, units
-constexpr double kKeptTurn = 1e-4;     // the other entries, relative
+constexpr float kKeptPlace = 0.002f;   // the translation, units
+constexpr float kKeptTurn = 1e-4f;     // the other entries, relative
 
 bool CloseModel(const Matrix4& a, const Matrix4& b) {
     for (int k = 0; k < 16; ++k) {
-        const double x = a.m[k], y = b.m[k];
+        const float x = a.m[k], y = b.m[k];
         const bool place = k == 3 || k == 7 || k == 11;
-        if (std::fabs(x - y) > (place ? kKeptPlace : kKeptTurn * (1.0 + std::fabs(x)))) return false;
+        if (std::fabs(x - y) > (place ? kKeptPlace : kKeptTurn * (1.0f + std::fabs(x)))) return false;
     }
     return true;
 }
@@ -157,7 +157,7 @@ struct AtlasFace {
 struct AtlasRow {
     bool given = false;
     Vector3 at{};
-    double range = 0.0;
+    float range = 0.0f;
     AtlasFace faces[kFaces];
 };
 AtlasRow g_rows[kMostPointShadows];
@@ -318,40 +318,24 @@ bool MakePipelines() {
     return ok;
 }
 
-// a x b, both row-major, in double.
-Matrix4 Multiply(const Matrix4& a, const Matrix4& b) {
-    Matrix4 r;
-    for (int i = 0; i < 4; ++i)
-        for (int j = 0; j < 4; ++j) {
-            double s = 0.0;
-            for (int k = 0; k < 4; ++k) s += static_cast<double>(a.m[i * 4 + k]) * b.m[k * 4 + j];
-            r.m[i * 4 + j] = static_cast<float>(s);
-        }
-    return r;
-}
-
-double DistanceSquared(const Vector3& a, const Vector3& b) { return LengthSquaredUnrounded<Sum3::XYZ, double>(a - b); }
-
-double Distance(const Vector3& a, const Vector3& b) { return std::sqrt(DistanceSquared(a, b)); }
-
 // sqrt(squared) <= limit, decided as with the root, which is taken only where the two lie too close to tell.
-bool NotFurther(double squared, double limit) {
-    if (!(limit >= 0.0)) return std::sqrt(squared) <= limit;
-    const double edge = limit * limit;
-    if (squared < edge * (1.0 - 1e-9)) return true;
-    if (squared > edge * (1.0 + 1e-9)) return false;
+bool NotFurther(float squared, float limit) {
+    if (!(limit >= 0.0f)) return std::sqrt(squared) <= limit;
+    const float edge = limit * limit;
+    if (squared < edge * (1.0f - 1e-6f)) return true;
+    if (squared > edge * (1.0f + 1e-6f)) return false;
     return std::sqrt(squared) <= limit;
 }
 
 // A face's depth for a distance d along its axis is a + b / d: 0 at kNear, 1 at `range`.
-void FaceDepth(double range, double* a, double* b) {
+void FaceDepth(float range, float* a, float* b) {
     *a = range / (range - kNear);
     *b = -range * kNear / (range - kNear);
 }
 
 // The landscape's space to a face's clip space (x across `right`, y along `up`, w along `forward`).
-Matrix4 FaceMatrix(const CubeFace& face, const Vector3& at, double range) {
-    double a = 0.0, b = 0.0;
+Matrix4 FaceMatrix(const CubeFace& face, const Vector3& at, float range) {
+    float a = 0.0f, b = 0.0f;
     FaceDepth(range, &a, &b);
     const Vector3* rows[3] = {&face.right, &face.up, &face.forward};
     Matrix4 m{};
@@ -363,39 +347,39 @@ Matrix4 FaceMatrix(const CubeFace& face, const Vector3& at, double range) {
         m.m[row * 4 + 2] = v.z;
         m.m[row * 4 + 3] = -vecmath::Dot<Sum3::XYZ>(v, at);
     }
-    for (int j = 0; j < 4; ++j) m.m[8 + j] = static_cast<float>(a * m.m[12 + j] + (j == 3 ? b : 0.0));
+    for (int j = 0; j < 4; ++j) m.m[8 + j] = a * m.m[12 + j] + (j == 3 ? b : 0.0f);
     return m;
 }
 
 // The sphere (relative to the light) reaches into the face's view: in front of it and inside its four
 // sides (planes at 45 degrees through the light).
 bool InFace(const CubeFace& face, const Vector3& c, float radius) {
-    const double f = vecmath::Dot<Sum3::XYZ>(face.forward, c), x = vecmath::Dot<Sum3::XYZ>(face.right, c),
-                 y = vecmath::Dot<Sum3::XYZ>(face.up, c);
-    const double r = radius * 1.41421356;
-    return f + radius > kNear && f - x + r >= 0.0 && f + x + r >= 0.0 && f - y + r >= 0.0 && f + y + r >= 0.0;
+    const float f = vecmath::Dot<Sum3::XYZ>(face.forward, c), x = vecmath::Dot<Sum3::XYZ>(face.right, c),
+                y = vecmath::Dot<Sum3::XYZ>(face.up, c);
+    const float r = radius * 1.41421356f;
+    return f + radius > kNear && f - x + r >= 0.0f && f + x + r >= 0.0f && f - y + r >= 0.0f && f + y + r >= 0.0f;
 }
 
 // The sphere around a model-space box placed by `model`: its centre and the farthest corner's distance (the root
 // of the largest square: the root keeps the order).
 Sphere BoxSphere(const float box[6], const Matrix4& model) {
     const Vector3 centre = TransformColumn<Sum3::XYZ>(model, Vector3{(box[0] + box[3]) * 0.5f, (box[1] + box[4]) * 0.5f, (box[2] + box[5]) * 0.5f});
-    double farthest = 0.0;
+    float farthest = 0.0f;
     for (int k = 0; k < 8; ++k) {
         const Vector3 corner{box[(k & 1) ? 3 : 0], box[(k & 2) ? 4 : 1], box[(k & 4) ? 5 : 2]};
-        farthest = std::max(farthest, DistanceSquared(TransformColumn<Sum3::XYZ>(model, corner), centre));
+        farthest = std::max(farthest, DistanceSquared<Sum3::XYZ>(TransformColumn<Sum3::XYZ>(model, corner), centre));
     }
-    return Sphere{centre, static_cast<float>(std::sqrt(farthest))};
+    return Sphere{centre, std::sqrt(farthest)};
 }
 
 // The sphere lies inside the camera's view (the clip matrix's six planes).
-bool InView(const Matrix4& clip, const Vector3& c, double radius) {
+bool InView(const Matrix4& clip, const Vector3& c, float radius) {
     // Row k of the matrix: its normal (the first three) and its constant.
     auto row = [&](int k) { return Vector3{clip.m[k * 4], clip.m[k * 4 + 1], clip.m[k * 4 + 2]}; };
     auto constant = [&](int k) { return clip.m[k * 4 + 3]; };
     auto inside = [&](const Vector3& normal, float w) {
-        const double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(normal));
-        return length <= 1e-12 || (vecmath::Dot<Sum3::XYZ>(normal, c) + w) / length >= -radius;
+        const float length = Length<Sum3::XYZ>(normal);
+        return length <= 1e-12f || (vecmath::Dot<Sum3::XYZ>(normal, c) + w) / length >= -radius;
     };
     // -w <= x, y <= w and 0 <= z <= w.
     for (int k = 0; k < 2; ++k)
@@ -429,9 +413,9 @@ void PreparePointShadows(Frame& f) {
         const float* colour = scene[k][1];
         const float brightest = std::max({colour[0], colour[1], colour[2]});
         if (!SceneLightCastsShadows(k) || !(at[3] > 0.0f) || brightest < kLeastColour) continue;
-        const double range = 1.0 / std::sqrt(static_cast<double>(at[3]));
+        const float range = 1.0f / std::sqrt(at[3]);
         const Vector3 position{at[0], at[1], at[2]};
-        if (range <= kNear * 4.0 || !InView(camera, position, range)) continue;
+        if (range <= kNear * 4.0f || !InView(camera, position, range)) continue;
         g_candidates.push_back(Candidate{k, position, range, brightest * range});
     }
     if (g_candidates.empty()) return;
@@ -504,7 +488,7 @@ void PreparePointShadows(Frame& f) {
             lastFirst = b.firstIndex;
             const int model = modelOf(b);
             if (model < 0) continue;
-            g_casters.push_back(Caster{&b, object, sphereOf(b, model), model, 0.0});
+            g_casters.push_back(Caster{&b, object, sphereOf(b, model), model, 0.0f});
             if (b.figure) {
                 g_units.back().haveSphere = true;
                 g_units.back().sphere = g_casters.back().sphere;
@@ -518,7 +502,7 @@ void PreparePointShadows(Frame& f) {
     for (const Candidate& light : g_candidates) {
         if (g_mappedCount == kMostPointShadows) break;
         for (Caster& c : g_casters) {
-            c.distance = DistanceSquared(c.sphere.centre, light.at);
+            c.distance = DistanceSquared<Sum3::XYZ>(c.sphere.centre, light.at);
             g_objects[static_cast<std::size_t>(c.object)].holds = false;
         }
         for (const Caster& c : g_casters)
@@ -548,14 +532,14 @@ void PreparePointShadows(Frame& f) {
     for (int i = 0; i < g_mappedCount; ++i) {
         const MappedLight& m = g_mapped[i];
         ps.sceneSlots[m.scene] = m.row + 1;
-        double a = 0.0, b = 0.0;
+        float a = 0.0f, b = 0.0f;
         FaceDepth(m.range, &a, &b);
         ps.params.lights[m.row][0] = m.at.x;
         ps.params.lights[m.row][1] = m.at.y;
         ps.params.lights[m.row][2] = m.at.z;
-        ps.params.lights[m.row][3] = static_cast<float>(kNear);
-        ps.params.depth[m.row][0] = static_cast<float>(a);
-        ps.params.depth[m.row][1] = static_cast<float>(b);
+        ps.params.lights[m.row][3] = kNear;
+        ps.params.depth[m.row][0] = a;
+        ps.params.depth[m.row][1] = b;
     }
     ps.params.on[0] = static_cast<float>(g_mappedCount);
     ps.params.on[1] = static_cast<float>(kPointFaceTexels);
@@ -576,9 +560,9 @@ void PreparePointShadows(Frame& f) {
             for (float& d : o.front) d = kNoFront;
         }
         for (int slot = 0; slot < g_mappedCount; ++slot) {
-            const double squared = DistanceSquared(u.sphere.centre, g_mapped[slot].at);
-            if (o.front[slot] != kNoFront && !NotFurther(squared, o.front[slot] + static_cast<double>(u.sphere.radius))) continue;
-            const float d = static_cast<float>(std::sqrt(squared) - u.sphere.radius);
+            const float squared = DistanceSquared<Sum3::XYZ>(u.sphere.centre, g_mapped[slot].at);
+            if (o.front[slot] != kNoFront && !NotFurther(squared, o.front[slot] + u.sphere.radius)) continue;
+            const float d = std::sqrt(squared) - u.sphere.radius;
             o.front[slot] = std::min(o.front[slot], d);
         }
     }
@@ -669,7 +653,7 @@ void DrawPointShadows(Frame& f) {
                 b.views[0] = st.texture.id ? st.texture : SurfaceView(nullptr);
                 b.samplers[0] = sg_sampler{d.sampler};
                 sg_apply_bindings(&b);
-                CasterVs vs{Multiply(view, d.model), {d.uv[0], d.uv[1], 0.0f, 0.0f}};
+                CasterVs vs{Product(view, d.model), {d.uv[0], d.uv[1], 0.0f, 0.0f}};
                 sg_range vr{&vs, sizeof(vs)};
                 sg_apply_uniforms(0, &vr);
                 sg_range fr{&d.fs, sizeof(d.fs)};

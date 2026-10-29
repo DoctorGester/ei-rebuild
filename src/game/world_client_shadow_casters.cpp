@@ -28,27 +28,17 @@
 namespace {
 
 constexpr std::uint32_t kBoundsValid = 1 | 2;           // CObject3D::boundsFlags
-constexpr double kNearSquared = 1e9;                    // parts farther from the object are not drawn
+constexpr float kNearSquared = 1e9f;                    // parts farther from the object are not drawn
 constexpr float kLeastStrength = 0.5f;                  // as the map: units fading in cast from half
 constexpr int kSectorShift = 4;                         // 16-unit sectors
 constexpr std::uint32_t kHeightScanEvery = 32;          // frames between scans of the highest object
 
-// Row-major 4 x 4 matrices in double: out = M * (x, y, z, 1).
-struct Matrix {
-    double m[16];
-};
-
-Matrix FromFloat(const Matrix4& a) {
-    Matrix r;
-    for (int i = 0; i < 16; ++i) r.m[i] = a.m[i];
-    return r;
-}
-
-Matrix Multiply(const Matrix& a, const Matrix& b) {
-    Matrix r;
+// Row-major 4 x 4 matrices, out = M * (x, y, z, 1): a x b.
+Matrix4 Multiply(const Matrix4& a, const Matrix4& b) {
+    Matrix4 r;
     for (int i = 0; i < 4; ++i)
         for (int j = 0; j < 4; ++j) {
-            double s = 0.0;
+            float s = 0.0f;
             for (int k = 0; k < 4; ++k) s += a.m[i * 4 + k] * b.m[k * 4 + j];
             r.m[i * 4 + j] = s;
         }
@@ -56,10 +46,10 @@ Matrix Multiply(const Matrix& a, const Matrix& b) {
 }
 
 // The placement it builds (ObjectWorldMatrix of a rotation and a position), into a local.
-Matrix Placement(const Quaternion& rotation, const Vector3& position) {
+Matrix4 Placement(const Quaternion& rotation, const Vector3& position) {
     Matrix4 m;
     ObjectWorldMatrix(&rotation, position, &m);
-    return FromFloat(m);
+    return m;
 }
 
 // The object's extra scale (Object3DClientSpecific::figureScale) as Draw applies it: only when not 1, 1, 1.
@@ -75,16 +65,12 @@ float LargestScale(const Vector3& s) {
 
 // The object's bounding sphere in the world (its bounds' centre through its placement and extra
 // scale, the radius by the largest scale); false without valid bounds.
-bool WorldSphere(const CObject3D* object, const Matrix& world, const Vector3& scale, render::ShadowCasterSphere* sphere) {
+bool WorldSphere(const CObject3D* object, const Matrix4& world, const Vector3& scale, render::ShadowCasterSphere* sphere) {
     if ((object->bounds.flags & kBoundsValid) != kBoundsValid) return false;
     const Vector3& center = object->bounds.center;
     const Vector3 c{center.x * scale.x, center.y * scale.y, center.z * scale.z};
-    double out[3];
-    for (int i = 0; i < 3; ++i) {
-        const double* row = world.m + i * 4;
-        out[i] = DotUnrounded<Sum3::XYZ, double>(row[0], row[1], row[2], c.x, c.y, c.z) + row[3];
-    }
-    *sphere = {out[0], out[1], out[2], object->bounds.radius * LargestScale(scale)};
+    const Vector3 out = TransformColumn<Sum3::XYZ>(world, c);
+    *sphere = {out.x, out.y, out.z, object->bounds.radius * LargestScale(scale)};
     return std::isfinite(sphere->x) && std::isfinite(sphere->y) && std::isfinite(sphere->z) && std::isfinite(sphere->radius);
 }
 
@@ -117,16 +103,16 @@ const float* MovedPositions(const VertexPacket* positions, int packets, const st
 
 // Hands over the parts of `object` that were not drawn this frame, placed by `world` (and the extra
 // scale), each with its part set's texture.
-void HandOverParts(CObject3D* object, Object3DClientSpecific* half, const Matrix& world) {
+void HandOverParts(CObject3D* object, Object3DClientSpecific* half, const Matrix4& world) {
     static std::vector<VertexPacket> moved;
-    Matrix objectMatrix = world;
+    Matrix4 objectMatrix = world;
     const Vector3& scale = half->figureScale;
     if (Scaled(scale)) {
-        Matrix s{};
+        Matrix4 s{};
         s.m[0] = scale.x;
         s.m[5] = scale.y;
         s.m[10] = scale.z;
-        s.m[15] = 1.0;
+        s.m[15] = 1.0f;
         objectMatrix = Multiply(world, s);
     }
     LinkMesh* figure = object->figure;
@@ -138,7 +124,7 @@ void HandOverParts(CObject3D* object, Object3DClientSpecific* half, const Matrix
             for (int p = 0; p < std::ssize(group->parts); ++p) {
                 FigureMesh* part = group->parts[p];
                 if (!part || (part->flags & FigureMeshFlag::Hidden)) continue;
-                if (LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition) > kNearSquared) continue;
+                if (LengthSquared<Sum3::XYZ>(part->localPosition) > kNearSquared) continue;
                 if (render::CasterPartDrawn(part)) continue;
                 render::ShadowMesh mesh{};
                 const VertexPacket* positions = nullptr;
@@ -171,8 +157,7 @@ void HandOverParts(CObject3D* object, Object3DClientSpecific* half, const Matrix
                 mesh.positionCount = packets * 4;
                 mesh.uOffset = part->textureOffsetU;
                 mesh.vOffset = part->textureOffsetV;
-                const Matrix model = Multiply(objectMatrix, Placement(part->localRotation, part->localPosition));
-                for (int k = 0; k < 16; ++k) mesh.model[k] = model.m[k];
+                mesh.model = Multiply(objectMatrix, Placement(part->localRotation, part->localPosition));
                 mesh.texture = holder;
                 mesh.owner = part;
                 mesh.shared = figure;
@@ -301,7 +286,7 @@ void HandOverOutsideCasters(WorldClient* world) {
                 if (!(flags & (unit ? WorldClientFlag::DrawUnits : WorldClientFlag::DrawObjects))) continue;
                 if (unit && !allUnits && !(object->flags & MapObjectFlag::InParty)) continue;
                 Object3DClientSpecific* half = object->ClientSpecific();
-                const Matrix placement = Placement(object->localRotation, object->localPosition);
+                const Matrix4 placement = Placement(object->localRotation, object->localPosition);
                 render::ShadowCasterSphere sphere{};
                 if (!WorldSphere(object, placement, half->figureScale, &sphere)) continue;
                 if (!render::ShadowCasterReaches(sphere)) {

@@ -236,9 +236,15 @@ an `x87::` helper (but the control word render.cpp's `FpuGuard` puts back), a `l
   are float maths, so a vertex's sine-table entry, crest byte or edge fade can round the other way from the
   original's 24-bit sums (the water group's speculars from record 0). The Rebirth golden stays the original's
   (the image suite runs the scenario on vanilla only).
-- **Left (C30d):** the render files R37c / R37d were changing (render_shadows, render_mesh*, render_terrain,
-  render_point_shadows, world_client_shadow_casters). The other `static_cast<float>` left in the SSE2 files are
-  conversions, mostly an int argument or initialiser (MSVC warns, C4244, without the cast).
+- **The shadow files (C30d, after R37c / R37d):** render_shadows, render_point_shadows, render_terrain's caster
+  spheres and world_client_shadow_casters by hand: float constants, the map's fit (axes, planes, area, depths,
+  `LightMatrix`), the point lights' ranges, spheres and face matrices, the casters' world matrices;
+  `ShadowCasterSphere` and `ShadowMesh::model` (render.h) are float. **Kept double:** render_shadows' `M4`
+  (`Invert`, its `Multiply`, `CameraEye`): the camera's clip matrix inverted and multiplied back into the game's
+  clip matrices (`UnderCamera`, the fit's `fromClip`, the meshes' light matrices), a product that nearly
+  cancels (a float inverse moves a still object by the camera's rounding, beyond the point shadows'
+  `kKeptPlace`); and the GPU timers. The other `static_cast<float>` left in the SSE2 files are conversions,
+  mostly an int argument or initialiser (MSVC warns, C4244, without the cast).
 - **Counts** (code, comments left out). The 186 SSE2 files: `static_cast<float>` 839 -> 343, `static_cast<double>`
   164 -> 36, `D(` 704 -> 0, `double` 673 -> 159, `x87::` 7 -> 3. The dashboard's (src but hook and standalone):
   `static_cast<float>` 2,504 -> 2,009, `static_cast<double>` 772 -> 643, `x87::` 394 -> 390, `Ftol(` 234 -> 129.

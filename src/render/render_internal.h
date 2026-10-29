@@ -223,6 +223,8 @@ int SceneLightIndex(const Vector3& position);
 bool MapLightDirection(const Vector3& sun, Vector3* travel);
 // `placed` (camera x model) without the camera. False when the camera has no inverse.
 bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model);
+// a x b, both row-major.
+Matrix4 Product(const Matrix4& a, const Matrix4& b);
 // A figure part lit on the GPU (shaders/mesh.hlsl's fragment uniforms): the sun and lights in the part's
 // model space, their colours times the material's diffuse colour and the coefficient; the
 // kMostMeshLights nearest the part's origin.

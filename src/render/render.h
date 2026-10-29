@@ -110,7 +110,7 @@ struct ShadowCasterRect {
 };
 bool ShadowCasterArea(float highestTop, float widest, ShadowCasterRect* area);
 struct ShadowCasterSphere {
-    double x, y, z, radius;
+    float x, y, z, radius;
 };
 bool ShadowCasterReaches(const ShadowCasterSphere& sphere);
 bool CasterPartDrawn(const void* part);
@@ -125,7 +125,7 @@ struct ShadowMesh {
     const std::uint16_t* indices;      // a triangle list over the corners
     int indexCount;
     float uOffset, vOffset;            // added to the texture coordinates
-    double model[16];                  // model space to the landscape's, row-major: out = M * (x, y, z, 1)
+    Matrix4 model;                     // model space to the landscape's, row-major: out = M * (x, y, z, 1)
     const void* texture;               // stage 0's surface holder, or null
     // The part (MeshSource::owner) and its link figure (MeshSource::shared, else null), and whether the
     // positions are a copy with the per-vertex offsets added (MeshSource::moved): the renderer keeps the

@@ -211,7 +211,7 @@ GpuPool g_casterPool(sizeof(TerrainCasterVertex), 1u << 15, 3u << 16, "ei-terrai
 void BuildCaster(const SectorData* s, SectorCaster& c) {
     const Vector3* v = s->vertices.data();
     c.vertices.resize(static_cast<std::size_t>(kWaterRecords));
-    double lo[3] = {1e30, 1e30, 1e30}, hi[3] = {-1e30, -1e30, -1e30};
+    Vector3 lo{1e30f, 1e30f, 1e30f}, hi{-1e30f, -1e30f, -1e30f};
     using terrain::kLastVertex, terrain::kSectorRow;
     auto at = [&](int x, int y) { return v[std::clamp(y, 0, kLastVertex) * kSectorRow + std::clamp(x, 0, kLastVertex)]; };
     for (int y = 0; y < kSectorRow; ++y)
@@ -228,15 +228,11 @@ void BuildCaster(const SectorData* s, SectorCaster& c) {
                 n = Vector3{0.0f, 0.0f, 1.0f};
             }
             c.vertices[static_cast<std::size_t>(y * kSectorRow + x)] = TerrainCasterVertex{p, n};
-            const double q[3] = {p.x, p.y, p.z};
-            for (int k = 0; k < 3; ++k) {
-                lo[k] = (std::min)(lo[k], q[k]);
-                hi[k] = (std::max)(hi[k], q[k]);
-            }
+            lo = Vector3{(std::min)(lo.x, p.x), (std::min)(lo.y, p.y), (std::min)(lo.z, p.z)};
+            hi = Vector3{(std::max)(hi.x, p.x), (std::max)(hi.y, p.y), (std::max)(hi.z, p.z)};
         }
-    double r2 = 0.0;
-    for (int k = 0; k < 3; ++k) r2 += (hi[k] - lo[k]) * (hi[k] - lo[k]) * 0.25;
-    c.sphere = ShadowCasterSphere{(lo[0] + hi[0]) * 0.5, (lo[1] + hi[1]) * 0.5, (lo[2] + hi[2]) * 0.5, std::sqrt(r2)};
+    const Vector3 centre = (lo + hi) * 0.5f;
+    c.sphere = ShadowCasterSphere{centre.x, centre.y, centre.z, Length<Sum3::XYZ>((hi - lo) * 0.5f)};
     if (g_gridIndices.empty()) {
         for (int y = 0; y < terrain::kSectorCells; ++y)
             for (int x = 0; x < terrain::kSectorCells; ++x) {
