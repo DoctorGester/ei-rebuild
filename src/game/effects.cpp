@@ -87,12 +87,12 @@ void CParticleSource::ScaleSize(float factor) {
     emitSpacing = factor * emitSpacing;
 }
 
-void CParticleSource::StopEmitting() { flags_ = (flags_ & ~1u) | 4u; }
+void CParticleSource::StopEmitting() { flags_ = (flags_ & ~ParticleSourceFlag::Emitting) | ParticleSourceFlag::KeepAlive; }
 
-void CParticleSource::StartEmitting() { flags_ |= 5u; }
+void CParticleSource::StartEmitting() { flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive; }
 
 void CParticleSource::Stop() {
-    flags_ &= ~5u;
+    flags_ &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
     Attach(nullptr);
 }
 
@@ -121,7 +121,7 @@ int CParticleSource::UpdateCloud(Particle* p) {
         if (++p->frame >= frameCount) p->frame = 0;
         p->frameTimer = frameDelay;
     }
-    if (flags_ & 1) return 1;
+    if (flags_ & ParticleSourceFlag::Emitting) return 1;
     std::uint32_t a = p->color >> 24;
     if (a <= 9) return 0;
     int step = x87::fistp(alpha * kCloudAlpha);
@@ -298,7 +298,7 @@ int CParticleSource::UpdateOrbit(Particle* p) {
 void CParticleSource::TickNuke(ParticleElement* e) {
     ++e->ticks;
     if (emitCount > 8) emitCount = emitCount / 2;
-    if (e->ticks == 13) flags_ &= ~1u;
+    if (e->ticks == 13) flags_ &= ~ParticleSourceFlag::Emitting;
 }
 
 // Tendril smoke: emission proportional to the length of `extent`, at least 6, at most a 16th of
@@ -319,5 +319,5 @@ void CParticleSource::TickMushroom(ParticleElement* e) {
     int ticks = ++e->ticks;
     e->pos.x = static_cast<float>(x87::flog(ticks + 1) * size * kMushroomWidth);
     e->pos.z = size * kMushroomRise + e->pos.z;
-    if (ticks == 30) flags_ &= ~1u;
+    if (ticks == 30) flags_ &= ~ParticleSourceFlag::Emitting;
 }

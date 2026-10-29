@@ -18,8 +18,6 @@
 // keeps on the FPU stack are double locals, values it stores are floats.
 
 namespace {
-constexpr std::uint32_t kFlagPartsMarked = 0x200;    // flags_ of a non-unit object
-constexpr std::uint32_t kPartFlagStatic = 8;         // flags_ of its parts
 constexpr std::uint32_t kBoundsValid = 1 | 2;
 
 constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;      // FLT_MAX / -FLT_MAX: the empty box
@@ -140,8 +138,8 @@ void CObject3D::LoadFigures() {
         FigureManagerOf(this)->FindModel(&key);
     }
     if (GetClassId() != ClassId::Unit) {
-        for (int i = 0; i < std::ssize(parts); ++i) parts[i]->flags_ |= kPartFlagStatic;
-        flags_ |= kFlagPartsMarked;
+        for (int i = 0; i < std::ssize(parts); ++i) parts[i]->flags_ |= FigureMeshFlag::Stationary;
+        flags_ |= MapObjectFlag::Stationary;
     }
     attached->ApplyMaterials();
     flags_ |= MapObjectFlag::FiguresLoaded;

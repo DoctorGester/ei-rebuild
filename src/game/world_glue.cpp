@@ -42,7 +42,6 @@ constexpr double kHoursPerDay = 24.0;
 const char kConstructionVariable[] = "constr.current";
 // Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
 const char* DefaultMusic() { return options::g_options->defaultStreamingSound_.c_str(); }
-constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
 CPlayerClient* LocalClient() { return g_clientWorld->LocalView(); }
 
 } // namespace
@@ -120,12 +119,12 @@ void GameSetServerPaused(int paused) { g_serverWorld->SetServerPaused(static_cas
 void GameStopCameraRecording() {
     CWorldClient* world = &g_clientWorld.Get();
     CameraCloseFile(world->camera_);
-    world->flags_ &= ~kClientRecordingCamera;
+    world->flags_ &= ~WorldClientFlag::RecordingCamera;
 }
 
 int GameStartCameraRecording(const char* name) {
     CWorldClient* world = &g_clientWorld.Get();
-    world->flags_ |= kClientRecordingCamera;
+    world->flags_ |= WorldClientFlag::RecordingCamera;
     return world->camera_->OpenFile(name);
 }
 

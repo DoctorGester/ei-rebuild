@@ -114,7 +114,7 @@ int CTextureManager::Compose(std::string* out, const SkinRequest* request, const
 }
 
 int CTexture::CreateComposed(CTextureDevice* device, const ComposedTexture& composed, unsigned mip) {
-    if (flags_ & kTextureLoaded) return 1;
+    if (flags_ & TextureFlag::Loaded) return 1;
     const MmpHeader& header = composed.header;
     unsigned levels = header.mipCount - mip;
     if (!options::g_options->mipmapping_) levels = 1;

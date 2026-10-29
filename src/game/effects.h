@@ -15,6 +15,7 @@
 #include "model.h"   // ClipBounds
 #include "search_grid.h"
 
+#include "lib/bit_flags.h"
 #include "lib/containers.h"
 #include "lib/hash_map.h"
 
@@ -397,7 +398,7 @@ public:
     // CreateObject(type, -1), referenced and held under its id; with quietStart set, types 0x2001 / 0x2003 /
     // 0x2004 start without emitting.
     CParticleSource* CreateSource(int type);
-    // Every source's tick (with `paused` only the ones with flag 8); a held source whose tick returned 0 is
+    // Every source's tick (with `paused` only the ones with ParticleSourceFlag::TicksWhilePaused); a held source whose tick returned 0 is
     // released and leaves `held_`. Returns 0.
     int TickSources(char paused);
     // Every held source nobody else references (refCount_ 1) is released and leaves `held_` (the client's zone
@@ -420,6 +421,18 @@ struct ParticleDepth {
 struct SourceFrame {
     float u0, v0, u1, v1;
 };
+
+// The bits of CEngineObject::flags_ on a particle source (the types' setups in particle_create.cpp set them).
+enum class ParticleSourceFlag : std::uint32_t {
+    Emitting = 0x1,
+    AttachedOnly = 0x2,     // emits only while attached
+    KeepAlive = 0x4,        // a detached source stays while it has it (else while it has particles)
+    TicksWhilePaused = 0x8, // ticked while the game is paused
+    OnPart = 0x10,          // sits on a unit's part chosen by attachPoint (else on the top of the object's bounds)
+    IdlesOffScreen = 0x20,  // the tick idles once the draws were skipped off screen past 0x38 times
+    NotDrawn = 0x40,        // the draw skips it; nothing sets it
+};
+template <> inline constexpr bool lib::kBitFlags<ParticleSourceFlag> = true;
 
 // A particle source: localPosition_ is where it emits relative to what it is attached to, localRotation_ the
 // identity after Reset.
@@ -580,27 +593,27 @@ public:
 
     // --- small setters the game calls on sources ---
     void ScaleSize(float factor);
-    void StopEmitting();                            // flags bit 0 off, bit 2 on
-    void StartEmitting();                           // flags bits 0 and 2 on
+    void StopEmitting();                            // Emitting off, KeepAlive on
+    void StartEmitting();                           // Emitting and KeepAlive on
     void Stop();                                    // bits 0 and 2 off, detach
 
     // Follow `object` (a CObject3D, or null to let go): the old object
     // drops the source (its point is folded into the local position), the new one adds it, and
     // the emission point becomes the new attachment point (or the local position).
     void Attach(CObject3D* object);
-    // Where the source sits on `object`: with flag 0x10 a unit's part chosen by attachPoint (0 the effect
-    // point, 1-7 head / hands / legs / body, 8-12 body00-04), else the top of its bounds; without flag 0x10 its
+    // Where the source sits on `object`: with OnPart a unit's part chosen by attachPoint (0 the effect
+    // point, 1-7 head / hands / legs / body, 8-12 body00-04), else the top of its bounds; without OnPart its
     // position.
     Vector3* AttachmentPoint(Vector3* out, CObject3D* object);
     // The world position of `object`'s first part named `prefix...`, else of its "bd" part, else its position
     // raised by the bounds' upper z extent.
     Vector3* PartPoint(Vector3* out, CObject3D* object, const char* prefix);
-    // Every particle back to the pool, emission off (flags 0 and 2), detached.
+    // Every particle back to the pool, emission off (Emitting and KeepAlive cleared), detached.
     void StopAndClear();
     void ReleaseAllParticles();
 
-    // CEngineObject's flags_: bit 0 emitting, bit 1 attached-only, bit 2 keep alive; type_ 0x2000.. (the effect
-    // names in the type name table).
+    // CEngineObject's flags_: the ParticleSourceFlag bits; type_ 0x2000.. (the effect names in the type name
+    // table).
     CObject3D* attachedTo;          // the object followed, null: none
     Vector3 origin;                 // world emission point
     Vector3 motion;                 // movement since the last tick
@@ -614,7 +627,7 @@ public:
     int frameCount;
     int frameColumns;               // columns of the texture's frame grid
     int frameDelay;                 // (Tornado, CurseHolder: the particle colour)
-    int hiddenTicks;                // draws skipped off screen (the tick idles past 0x38 with flag 0x20)
+    int hiddenTicks;                // draws skipped off screen (the tick idles past 0x38 with IdlesOffScreen)
     int lifetime;
     Vector3 spreadMin;
     Vector3 spreadMax;

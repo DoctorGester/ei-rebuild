@@ -30,8 +30,6 @@ void CObject3DClientSpecific::RegisterPartMaterials() {
 // --- Screen picking, part lookups, class slots, the base half's destructor -----------------
 
 namespace {
-constexpr std::uint32_t kObjectShown = 0x20;    // CObject3D::flags_
-constexpr std::uint32_t kPartOwnMesh = 0x40;    // CFigureMesh::flags_: the part is drawn through its drawer
 // "CObject3DClientSpecific".
 const char* ClientClassName() { return "CObject3DClientSpecific"; }
 
@@ -43,16 +41,16 @@ constexpr float kNoScale = 1.0f;
 } // namespace
 
 int CObject3DClientSpecific::BoundsContainPoint(const long* point) {
-    if (!(object->flags_ & kObjectShown)) return FALSE;
+    if (!(object->flags_ & MapObjectFlag::Shown)) return FALSE;
     return gameapi::PtInRect(&object->dirtyRect, AsPoint(point));
 }
 
 int CObject3DClientSpecific::PartsContainPoint(const long* point) {
     CObject3D* target = object;
-    if (!(target->flags_ & kObjectShown)) return FALSE;
+    if (!(target->flags_ & MapObjectFlag::Shown)) return FALSE;
     for (int i = 0; i < std::ssize(target->parts); ++i) {
         CFigureMesh* part = target->parts[i];
-        if (!(part->flags_ & kPartOwnMesh)) continue;
+        if (!(part->flags_ & FigureMeshFlag::Drawn)) continue;
         if (gameapi::PtInRect(PartRect(part), AsPoint(point))) return TRUE;
     }
     return FALSE;
@@ -60,10 +58,10 @@ int CObject3DClientSpecific::PartsContainPoint(const long* point) {
 
 int CObject3DClientSpecific::PartRectsMeet(const tagRECT* rect) {
     CObject3D* target = object;
-    if (!(target->flags_ & kObjectShown)) return FALSE;
+    if (!(target->flags_ & MapObjectFlag::Shown)) return FALSE;
     for (int i = 0; i < std::ssize(target->parts); ++i) {
         CFigureMesh* part = target->parts[i];
-        if (!(part->flags_ & kPartOwnMesh)) continue;
+        if (!(part->flags_ & FigureMeshFlag::Drawn)) continue;
         RECT common;
         gameapi::IntersectRect(&common, PartRect(part), rect);
         if (!gameapi::IsRectEmpty(&common)) return TRUE;

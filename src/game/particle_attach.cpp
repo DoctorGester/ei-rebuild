@@ -1,7 +1,7 @@
 // Particle sources that follow an object (A-S4): Attach, the attachment point
 // and its part lookup, the attachment offset and StopAndClear
 //. Names are provisional.
-// The object a source follows is a CObject3D (attachedTo, +0x94). With flag 0x10 a source on a
+// The object a source follows is a CObject3D (attachedTo, +0x94). With ParticleSourceFlag::OnPart a source on a
 // unit sits on the part attachPoint names; otherwise on top of the object's bounds.
 #include "effects.h"
 
@@ -14,7 +14,6 @@
 
 namespace {
 
-constexpr std::uint32_t kFlagOnPart = 0x10;     // flags_: sit on a part of a unit
 
 // The part each attachPoint 1..12 asks for (0 is the unit's effect point). 2 is the head raised
 // by 1; 7 asks for "bd" twice (the fallback part).
@@ -59,7 +58,7 @@ Vector3* CParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
         out->z = 0.0f;
         return out;
     }
-    if (!(flags_ & kFlagOnPart)) {
+    if (!(flags_ & ParticleSourceFlag::OnPart)) {
         SetPosition(out, &object->localPosition_.x);
         return out;
     }
@@ -139,6 +138,6 @@ void CParticleSource::Attach(CObject3D* object) {
 
 void CParticleSource::StopAndClear() {
     ReleaseAllParticles();
-    flags_ &= ~5u;
+    flags_ &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
     Attach(nullptr);
 }

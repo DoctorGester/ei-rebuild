@@ -27,7 +27,6 @@
 
 namespace {
 
-constexpr std::uint32_t kPartHidden = 0x80;             // CFigureMesh::flags_: not drawn
 constexpr std::uint32_t kBoundsValid = 1 | 2;           // CObject3D::boundsFlags
 constexpr double kNearSquared = 1e9;                    // parts farther from the object are not drawn
 constexpr float kLeastStrength = 0.5f;                  // as the map: units fading in cast from half
@@ -139,7 +138,7 @@ void HandOverParts(CObject3D* object, CObject3DClientSpecific* half, const Matri
             const PartGroup* group = set->groups[g];
             for (int p = 0; p < std::ssize(group->parts); ++p) {
                 CFigureMesh* part = group->parts[p];
-                if (!part || (part->flags_ & kPartHidden)) continue;
+                if (!part || (part->flags_ & FigureMeshFlag::Hidden)) continue;
                 if (LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition_) > kNearSquared) continue;
                 if (render::CasterPartDrawn(part)) continue;
                 render::ShadowMesh mesh{};
@@ -227,7 +226,7 @@ void HandOverSceneLights(CWorldClient* world) {
             p.position = light->localPosition_;
             p.inverseRangeSquared = light->inverseRangeSquared_;
             for (int k = 0; k < 3; ++k) p.colour[k] = light->color_[k];
-            p.specular = (light->flags_ & 0x40) != 0;
+            p.specular = lib::Has(light->flags_, LightFlag::Specular);
             points.push_back(p);
         }
     }
@@ -265,7 +264,9 @@ void HandOverTerrainCasters(CWorldClient* world) {
 
 void HandOverOutsideCasters(CWorldClient* world) {
     const std::uint32_t flags = world->flags_;
-    if (!(flags & 0x200) || !(flags & (0x40 | 0x80)) || !world->terrain_) return;   // no shadows, no objects drawn
+    if (!(flags & WorldClientFlag::DrawShadows) || !(flags & (WorldClientFlag::DrawObjects | WorldClientFlag::DrawUnits)) ||
+        !world->terrain_)
+        return;   // no shadows, no objects drawn
     const SectorGrid& grid = world->objectGrid_;
     if (!grid.rows_ || grid.width_ == 0 || grid.height_ == 0) return;
     struct WalkTimer {
@@ -293,7 +294,7 @@ void HandOverOutsideCasters(CWorldClient* world) {
             for (CMapObject* object : list) {
                 if (!object || !object->attached) continue;
                 const bool unit = object->GetClassId() == ClassId::Unit;
-                if (!(flags & (unit ? 0x80u : 0x40u))) continue;
+                if (!(flags & (unit ? WorldClientFlag::DrawUnits : WorldClientFlag::DrawObjects))) continue;
                 if (unit && !allUnits && !(object->flags_ & MapObjectFlag::InParty)) continue;
                 CObject3DClientSpecific* half = object->ClientSpecific();
                 const Matrix placement = Placement(object->localRotation_, object->localPosition_);

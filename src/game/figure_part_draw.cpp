@@ -63,7 +63,7 @@ struct Part {
     CTexture* textureA;
     CTexture* textureB;
     CLinkMesh* figure;        // the mesh owner's figure (CObject3D::figure), or null
-    int drawFlags;            // 1 rectangle wanted, 2 crossing the view, 8 material flag 0x10
+    int drawFlags;            // 1 rectangle wanted, 2 crossing the view, 8 MaterialFlag::KeepSpecular
     bool coloursWritten = false;   // this draw filled or lit the colour arrays (render::MeshSource)
     const render::MeshLighting* lighting = nullptr;   // lit on the GPU (not a flat mesh)
 
@@ -79,7 +79,7 @@ struct Part {
 
 std::uint32_t OffsetBits(float offset) { return std::bit_cast<std::uint32_t>(offset); }
 
-// Flat meshes (flag 0x100): the figure fills the colours (its FlatColours), else every colour is
+// Flat meshes (FigureMeshFlag::Flat): the figure fills the colours (its FlatColours), else every colour is
 // the mesh's flat colour and every specular its flat specular (both arrays sized 4 * normals first).
 void FlatColours(Part& part) {
     part.coloursWritten = true;
@@ -142,7 +142,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
     return &l;
 }
 
-// Lighting (once, flag 0x10). The new renderer lights the part on the GPU; the colours keep only the material's
+// Lighting (once, FigureMeshFlag::Lit). The new renderer lights the part on the GPU; the colours keep only the material's
 // diffuse alpha (white otherwise), the speculars become the alpha unless the material keeps them.
 void Light(Part& part) {
     part.coloursWritten = true;
@@ -154,10 +154,10 @@ void Light(Part& part) {
     } else {
         Fill(part.Colours(), part.material->GpuLitColour());
     }
-    if (!(part.material->flags_ & 0x10)) {
+    if (!(part.material->flags_ & MaterialFlag::KeepSpecular)) {
         Fill(part.Speculars(), (static_cast<std::uint32_t>(part.alpha) & 0xFF) << 24);
     }
-    part.node->mesh_->flags_ |= 0x10;
+    part.node->mesh_->flags_ |= FigureMeshFlag::Lit;
 }
 
 // The positions with the per-vertex offsets (CFigureMesh::offsets_) added.
@@ -175,7 +175,7 @@ const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
     return moved.data();
 }
 
-// The mesh through the device. The drawn flag (0x40) is only set when a rectangle was asked for.
+// The mesh through the device. FigureMeshFlag::Drawn is only set when a rectangle was asked for.
 void DrawThroughDevice(Part& part) {
     CFigureMesh* mesh = part.node->mesh_;
     const VertexPacket* positions = mesh->buffers_.vertices;
@@ -208,7 +208,7 @@ void DrawThroughDevice(Part& part) {
     }
     gameapi::CopyRect(own, &part.device->drawnRect_);
     *part.rect = *own;
-    part.node->mesh_->flags_ |= 0x40;
+    part.node->mesh_->flags_ |= FigureMeshFlag::Drawn;
 }
 
 // The mesh through the owner's figure: DrawPartMoved(Textured) with the offsets, DrawPart(Textured)
@@ -247,7 +247,7 @@ void DrawThroughFigure(Part& part) {
         gameapi::CopyRect(own, &node->second.screen);
         *part.rect = *own;
     }
-    if (result != 2) part.node->mesh_->flags_ |= 0x40;
+    if (result != 2) part.node->mesh_->flags_ |= FigureMeshFlag::Drawn;
 }
 
 } // namespace
@@ -258,8 +258,8 @@ void DrawThroughFigure(Part& part) {
 int FigureMeshDrawer::DrawLit(CTextureDevice* device, const std::vector<CLight*>* lights,
                               CMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB) {
     CFigureMesh* mesh = mesh_;
-    mesh->flags_ &= ~0x40u;
-    if (mesh_->flags_ & 0x80) return 1;
+    mesh->flags_ &= ~FigureMeshFlag::Drawn;
+    if (mesh_->flags_ & FigureMeshFlag::Hidden) return 1;
     CTransformObject* owner = mesh_->object_;
     Part part{this, device, lights, material, alpha, rect, textureA, textureB,
               owner ? static_cast<CLinkMesh*>(static_cast<CObject3D*>(owner)->figure) : nullptr, 0};
@@ -275,16 +275,16 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const std::vector<CLight*>
     }
 
     std::uint32_t meshFlags = part.node->mesh_->flags_;
-    if (meshFlags & 0x100) {
+    if (meshFlags & FigureMeshFlag::Flat) {
         FlatColours(part);
     } else {
         part.lighting = PartLighting(part);
-        if (!(meshFlags & 0x10)) Light(part);
+        if (!(meshFlags & FigureMeshFlag::Lit)) Light(part);
     }
 
     if (visibility == 1) part.drawFlags = 2;
     if (rect) part.drawFlags |= 1;
-    if (material->flags_ & 0x10) part.drawFlags |= 8;
+    if (material->flags_ & MaterialFlag::KeepSpecular) part.drawFlags |= 8;
     if (part.figure) {
         DrawThroughFigure(part);
     } else {

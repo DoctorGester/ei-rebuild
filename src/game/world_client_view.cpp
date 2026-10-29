@@ -22,8 +22,6 @@
 
 namespace {
 
-constexpr std::uint32_t kFlagVisible = 0x20;
-constexpr std::uint32_t kFlagTouchModel = 0x200;
 
 // The scene's transform pipeline: the picking stack, the clip stack an object's matrix is pushed on to classify it,
 // and the view stack.
@@ -180,7 +178,7 @@ int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Mat
 
                 CMapObject* const& entry = object;
                 if (where != 2) {
-                    object->flags_ |= kFlagVisible;
+                    object->flags_ |= MapObjectFlag::Shown;
                     // View-space position: x summed ZYX, y and z XYZ, each rounded.
                     o3d->worldPosition_ = TransformColumnNormal<Sum3::ZYX, Sum3::XYZ>(*view, o3d->localPosition_);
                     switch (object->GetClassId()) {
@@ -205,12 +203,12 @@ int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Mat
                         PushBack(g_shadowOther, entry);
                         break;
                     }
-                    if ((object->flags_ & kFlagTouchModel) && now - ModelOf(object)->touchTime > static_cast<std::uint32_t>(g_modelTouchDelay)) {
+                    if ((object->flags_ & MapObjectFlag::Stationary) && now - ModelOf(object)->touchTime > static_cast<std::uint32_t>(g_modelTouchDelay)) {
                         PushBack(g_touchedModels, entry);
                         ++touched;
                     }
                 } else {
-                    object->flags_ &= ~kFlagVisible;
+                    object->flags_ &= ~MapObjectFlag::Shown;
                     // Out of view: still listed for shadows when its shadow volume is in view.
                     if (ModelOf(object)->ShadowInView()) {
                         if (o3d->animation) o3d->animation->UpdatePose();

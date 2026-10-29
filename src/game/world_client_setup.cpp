@@ -35,7 +35,6 @@ const char* AmbientSection() { return "ambient"; }
 const char* SkySection() { return "sky"; }
 
 constexpr int kNumbersKind = 6;
-constexpr std::uint32_t kTextureKeep = 0x40000;   // CEngineObject::flags_ of the digits' texture
 
 const char* NumbersName() { return "numbers"; }
 const char* FiguresResource() { return options::g_options->resourcesPath_.c_str(); }
@@ -79,7 +78,6 @@ void ReadTable(CIniFile& ini, std::vector<std::string>& keys, std::string& hour,
 constexpr int kSkyFigureClass = 0x44;
 constexpr int kSkyObjectId = -666;
 constexpr int kSkyMaterialType = 0x12;
-constexpr std::uint32_t kSkyObjectFlag = 0x10;
 const char* SkyPartName() { return "nask0"; }
 const char* SkyFigureFile() { return "nask0sky.fig"; }
 
@@ -110,7 +108,7 @@ void CWorldClient::SetUpGraphics(CTextureDevice* device) {
     if (texture) {
         numbers_->texture_.Assign(texture);
         TextureManager()->LoadTexture(texture);
-        texture->flags_ |= kTextureKeep;
+        texture->flags_ |= TextureFlag::Keep;
     }
     CLinkFigureLoader* loader;
     {
@@ -138,7 +136,7 @@ void CWorldClient::LoadSky() {
         return;
     }
     object->LoadFromMemory(&data, 0.0f, 0.0f, 0.0f);
-    object->flags_ |= kSkyObjectFlag;
+    object->flags_ |= FigureMeshFlag::Lit;
     skyDome_->object.Assign(object);
     CEngineObject* material = MaterialManager()->NewMaterial(kSkyMaterialType);
     skyDome_->material.Assign(material);

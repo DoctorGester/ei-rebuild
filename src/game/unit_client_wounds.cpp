@@ -166,7 +166,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
     bool same = !extra.empty() && std::ssize(loaded) == std::ssize(extra) &&
                 std::memcmp(loaded.data(), extra.data(), static_cast<std::size_t>(std::ssize(extra))) == 0;
     if (!same) {
-        woundsTexture->flags_ &= ~kTextureLoaded;
+        woundsTexture->flags_ &= ~TextureFlag::Loaded;
         if (!manager->LoadTexture(woundsTexture)) {
             woundsTexture.Reset();
             woundsMaterial.Reset();
@@ -197,7 +197,7 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     CTexture* texture = g_clientWorld->textureManager_->FindOrCreate(kFaceTextureKind, name);
     faceTexture.Assign(texture);
     g_clientWorld->textureManager_->LoadTexture(faceTexture);
-    if (faceTexture->flags_ & kTextureLoaded) return true;
+    if (faceTexture->flags_ & TextureFlag::Loaded) return true;
     faceTexture.Reset();
     blinks = 0;
     return false;

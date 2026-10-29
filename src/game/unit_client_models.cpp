@@ -58,7 +58,6 @@ const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::Arm
 
 
 constexpr int kWeaponBow = 5;
-constexpr std::uint32_t kArrowPartFlag = 0x80;  // set in the arrow part's flags_
 const char* const kBowArrow = "rh3.arrow00";
 
 std::uint32_t WeaponIdOf(const CUnitClientSpecific* self, std::uint32_t slot) {
@@ -265,7 +264,7 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
         std::uint32_t hand = WeaponIdOf(this, unit->activeWeapon);
         if (hand != kNone && ::WeaponType(hand) == kWeaponBow) {
             if (CEngineObject* arrow = unit->FindPart(kBowArrow)) {
-                arrow->flags_ |= kArrowPartFlag;
+                arrow->flags_ |= FigureMeshFlag::Hidden;
                 arrowHidden = 1;
             }
         }
@@ -284,8 +283,8 @@ void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
     if (hand != kNone) WeaponModelParts(hand >> 16, &names);
     for (const std::string& name : names) {
         if (CEngineObject* part = unit->FindPart(name)) {
-            if (hidden) part->flags_ |= kArrowPartFlag;
-            else part->flags_ &= ~kArrowPartFlag;
+            if (hidden) part->flags_ |= FigureMeshFlag::Hidden;
+            else part->flags_ &= ~FigureMeshFlag::Hidden;
         }
     }
     weaponHidden = hidden;
@@ -303,7 +302,7 @@ void CUnitClientSpecific::UpdateArrow() {
         if (Passed(current->arrowFrom, lastAnimationTime, now)) {
             if (!arrowHidden) return;
             if (CEngineObject* arrow = BowArrow(this)) {
-                arrow->flags_ &= ~kArrowPartFlag;
+                arrow->flags_ &= ~FigureMeshFlag::Hidden;
                 arrowHidden = 0;
             }
             return;
@@ -312,7 +311,7 @@ void CUnitClientSpecific::UpdateArrow() {
     }
     if (arrowHidden == 1) return;
     if (CEngineObject* arrow = BowArrow(this)) {
-        arrow->flags_ |= kArrowPartFlag;
+        arrow->flags_ |= FigureMeshFlag::Hidden;
         arrowHidden = 1;
     }
 }

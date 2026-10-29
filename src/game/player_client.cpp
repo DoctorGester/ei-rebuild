@@ -110,9 +110,7 @@ bool MarkersShown() { return options::g_options->drawPath_ != 0; }
 const char* TextPartyReceived() { return "party received on client"; }
 
 constexpr std::uint32_t kHeaderFlagHidden = 8;
-constexpr std::uint32_t kFlagNoParts = 0x200;
 constexpr std::uint32_t kFlagCow = 0x10000000;
-constexpr std::uint32_t kPartFlagFigure = 8;
 constexpr int kWeaponPike = 5;
 constexpr int kWispParticles = static_cast<int>(ParticleType::Stun);
 constexpr float kWispSize = 0.05f;
@@ -581,8 +579,8 @@ int CPlayerClient::OnNewObject() {
         source->attachPoint = 0;
     }
     if (!isUnit) {
-        for (int i = 0; i < std::ssize(figure->parts); ++i) figure->parts[i]->flags_ |= kPartFlagFigure;
-        created->flags_ |= kFlagNoParts;
+        for (int i = 0; i < std::ssize(figure->parts); ++i) figure->parts[i]->flags_ |= FigureMeshFlag::Stationary;
+        created->flags_ |= MapObjectFlag::Stationary;
     }
     CObject3DClientSpecific* attached = figure->ClientSpecific();
     attached->RegisterPartMaterials();

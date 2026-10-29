@@ -419,7 +419,7 @@ void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, fl
 }
 
 void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
-    if (flags_ & 0x20) return;
+    if (flags_ & FigureMeshFlag::Loaded) return;
     FigHeader header;
     lib::LoadBytes(header, *cursor);
     *cursor += sizeof(header);
@@ -458,11 +458,11 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     buffers_.cornerCount = std::ssize(corners_);
     buffers_.wordCount = std::ssize(words_);
     buffers_.words = words_.data();
-    flags_ |= 0x20;
+    flags_ |= FigureMeshFlag::Loaded;
 }
 
 void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
-    if (flags_ & 0x20) return;
+    if (flags_ & FigureMeshFlag::Loaded) return;
     FigHeader header;
     lib::LoadBytes(header, *cursor);
     *cursor += sizeof(header);
@@ -498,13 +498,13 @@ void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     buffers_.normalCount = std::ssize(normals_);
     colorsA_.resize(std::ssize(normals_) * 4);
     colorsB_.resize(std::ssize(normals_) * 4);
-    flags_ |= 0x20;
+    flags_ |= FigureMeshFlag::Loaded;
 }
 
 // ---- Old (non-FIG) format -----------------------------------------------------------------------
 
 void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
-    if (flags_ & 0x20) return;
+    if (flags_ & FigureMeshFlag::Loaded) return;
     LoadOldCommon(this, cursor, s, t, u, false);
     LoadArray(texCoords_, cursor, ReadCount(cursor));
     SkipRecords34(cursor);
@@ -527,7 +527,7 @@ void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     buffers_.wordCount = std::ssize(words_);
     buffers_.indexCount = std::ssize(indices_);
     buffers_.indices = indices_.data();
-    flags_ |= 0x20;
+    flags_ |= FigureMeshFlag::Loaded;
 }
 
 void CSharedFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
@@ -551,7 +551,7 @@ void CSharedFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     buffers_.normalCount = std::ssize(normals_);
     colorsA_.resize(std::ssize(normals_) * 4);
     colorsB_.resize(std::ssize(normals_) * 4);
-    flags_ |= 0x20;
+    flags_ |= FigureMeshFlag::Loaded;
 }
 
 // ---- World-space box ----------------------------------------------------------------------------

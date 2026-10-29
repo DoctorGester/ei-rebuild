@@ -187,7 +187,7 @@ void SetupTornado(CParticleSource* s) {
 }
 
 void SetupCurseHolder(CParticleSource* s) {
-    s->flags_ |= 0x12;
+    s->flags_ |= ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
     s->emitChance = 100;
     s->emitCount = 4;
     s->attachPoint = 7;
@@ -216,7 +216,7 @@ void SetupNuke(CParticleSource* s) {
 // Rain and snow (0x200F, 0x2031-0x2033): one element, whose ticks pick the kind.
 void SetupWeather(CParticleSource* s) {
     s->attachPoint = 7;
-    s->flags_ |= 0x12;
+    s->flags_ |= ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
     SetSpread(s, -0.2f, -0.2f, -0.2f, 0.2f, 0.2f, 0.2f);
     s->emitCount = 10;
     s->maxParticles = 300;
@@ -236,7 +236,7 @@ void SetupWeather(CParticleSource* s) {
 // Falling leaves and the like (0x2034-0x2037): four to eight elements.
 void SetupFalling(CParticleSource* s) {
     s->attachPoint = 7;
-    s->flags_ |= 0x12;
+    s->flags_ |= ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
     SetSpread(s, -0.2f, -0.2f, -0.2f, 0.2f, 0.2f, 0.2f);
     s->emitCount = 45;
     s->maxParticles = 300;
@@ -280,7 +280,7 @@ void SetupTeleport(CParticleSource* s) {
 
 // Ground plane (0x203A green, 0x203B red): one element holding the colour.
 void SetupGroundPlane(CParticleSource* s) {
-    s->flags_ |= 9;
+    s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::TicksWhilePaused;
     s->elements.resize(1);
     s->elements[0].ticks = 0;
     if (ParticleTypeOf(s->type_) == ParticleType::GroundDust1) {
@@ -299,7 +299,7 @@ void SetupGroundPlane(CParticleSource* s) {
 // Bag (0x203C): eighty elements.
 void SetupBag(CParticleSource* s) {
     s->emitCount = 100;
-    s->flags_ |= 3;
+    s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
     s->maxParticles = 800;
     SetCallbacks(s, &CParticleSource::EmitBag, &CParticleSource::UpdateBag, &CParticleSource::TickBag);
     s->elements.resize(80);
@@ -319,7 +319,7 @@ void SetupPortal(CParticleSource* s) {
 
 // Casting circles (0x203F, 0x2040): two elements with a countdown of 100.
 void SetupCastingCircle(CParticleSource* s) {
-    s->flags_ |= 3;
+    s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
     s->emitCount = 30;
     s->frameDelay = 1;
     s->maxParticles = 600;
@@ -332,7 +332,7 @@ void SetupCastingCircle(CParticleSource* s) {
 void SetupFeetCloud(CParticleSource* s) {
     SetBits(&s->additiveBlend, 1);
     s->emitCount = 8;
-    s->flags_ |= 3;
+    s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
     s->maxParticles = 300;
     s->elements.resize(2);
     for (int i = 0; i < 2; ++i) {
@@ -349,7 +349,7 @@ void SetupFeetCloud(CParticleSource* s) {
 // StartTrans (0x2051): one element with a 30-tick countdown.
 void SetupStartTrans(CParticleSource* s) {
     s->attachPoint = 7;
-    s->flags_ |= 0x12;
+    s->flags_ |= ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
     s->emitCount = 1;
     s->maxParticles = 300;
     SetCallbacks(s, &CParticleSource::EmitStartTrans, &CParticleSource::UpdateStartTrans, &CParticleSource::TickStartTrans);
@@ -394,7 +394,7 @@ const char* SetupType(CParticleSource* s) {
         SetCallbacks(s, &CParticleSource::EmitVulkan, &CParticleSource::UpdateVulkan, nullptr);
         return "Vulkan";
     case ParticleType::Healing:        // Healing
-        s->flags_ |= 2;
+        s->flags_ |= ParticleSourceFlag::AttachedOnly;
         SetBits(&s->additiveBlend, 1);
         s->emitCount = 0x7FFFFFFF;
         s->lifetime = 8;
@@ -418,7 +418,7 @@ const char* SetupType(CParticleSource* s) {
         SetupTornado(s);
         return "Tornado";
     case ParticleType::Casting:
-        s->flags_ |= 3;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
         s->emitCount = 0x7FFFFFFF;
         s->lifetime = -1;
         s->frameDelay = 1;
@@ -428,7 +428,7 @@ const char* SetupType(CParticleSource* s) {
         SetupNuke(s);
         return "AcidRay";
     case ParticleType::Banshee:        // Banshee
-        s->flags_ |= 3;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
         s->emitCount = 0x7FFFFFFF;
         s->lifetime = -1;
         s->frameDelay = 1;
@@ -469,7 +469,7 @@ const char* SetupType(CParticleSource* s) {
         SetCallbacks(s, &CParticleSource::EmitAcidRay, &CParticleSource::UpdateAcidRay, nullptr);
         return "AcidRay";
     case ParticleType::BlueGas:        // Stench
-        s->flags_ |= 2;
+        s->flags_ |= ParticleSourceFlag::AttachedOnly;
         SetSpread(s, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f);
         s->emitChance = 80;
         s->emitCount = 5;
@@ -491,7 +491,7 @@ const char* SetupType(CParticleSource* s) {
         SetCallbacks(s, &CParticleSource::EmitLink, &CParticleSource::UpdateLink, &CParticleSource::TickLink);
         return "Link";
     case ParticleType::SphereAcid: case ParticleType::SphereElectricity: case ParticleType::SphereFire: case ParticleType::Antimagic:   // protection spheres, AntiMagic
-        s->flags_ |= 2;
+        s->flags_ |= ParticleSourceFlag::AttachedOnly;
         SetBits(&s->additiveBlend, 1);
         s->emitChance = 90;
         s->emitCount = 1;
@@ -514,13 +514,13 @@ const char* SetupType(CParticleSource* s) {
     case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3: case ParticleType::Modifier4: case ParticleType::Modifier5: case ParticleType::Modifier6:
     case ParticleType::Modifier7: case ParticleType::Modifier8: case ParticleType::Modifier9: case ParticleType::Modifier10: case ParticleType::Modifier11: case ParticleType::Modifier12:   // Modifier1-12
         s->emitCount = 80;
-        s->flags_ |= 3;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
         s->lifetime = 14;
         s->frameDelay = 2;
         SetCallbacks(s, &CParticleSource::EmitModifier, &CParticleSource::UpdateModifier, &CParticleSource::TickModifier);
         return "Stun";
     case ParticleType::CastingFire: case ParticleType::CastingElectricity: case ParticleType::CastingAcid: case ParticleType::CastingDivination:
-        s->flags_ |= 0x13;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 0;
         SetCallbacks(s, &CParticleSource::EmitCasting, &CParticleSource::UpdateCasting, &CParticleSource::TickCasting);
         s->lifetime = 5;
@@ -543,7 +543,7 @@ const char* SetupType(CParticleSource* s) {
         SetBits(&s->additiveBlend, 1);
         return "Casting4";
     case ParticleType::CastingIllusion: case ParticleType::CastingDomination: case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
-        s->flags_ |= 3;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
         SetSpread(s, -0.04f, -0.04f, -0.04f, 0.04f, 0.04f, 0.04f);
         s->emitCount = 10;
         s->frameDelay = 1;
@@ -565,7 +565,7 @@ const char* SetupType(CParticleSource* s) {
         return "Casting1";
     case ParticleType::TeleportRing:
         s->emitCount = 25;
-        s->flags_ |= 3;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
         s->lifetime = 14;
         s->frameDelay = 1;
         SetCallbacks(s, &CParticleSource::EmitColumn, &CParticleSource::UpdateColumn, &CParticleSource::TickColumn);
@@ -590,12 +590,12 @@ const char* SetupType(CParticleSource* s) {
         s->maxParticles = 600;
         s->alpha = 5.0f;
         s->typeParam = 5.0f;
-        s->flags_ |= 0x21;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::IdlesOffScreen;
         SetCallbacks(s, &CParticleSource::EmitZoneExit, &CParticleSource::UpdateZoneExit, &CParticleSource::TickNone);
         return "ZoneExit";
     case ParticleType::ShapeChange:
         s->emitFn = &CParticleSource::EmitGlow;
-        s->flags_ |= 9;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::TicksWhilePaused;
         s->emitCount = 2500;
         s->maxParticles = 2500;
         s->updateFn = &CParticleSource::UpdateGlow;
@@ -619,7 +619,7 @@ const char* SetupType(CParticleSource* s) {
         SetupCastingCircle(s);
         return type == ParticleType::Cylinder1 ? "Casting2" : "Casting1";
     case ParticleType::FireStar: case ParticleType::AcidStar:
-        s->flags_ |= 0x13;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 7;
         s->emitCount = 1;
         SetCallbacks(s, &CParticleSource::EmitFireStar, &CParticleSource::UpdateFireStar, &CParticleSource::TickNone);
@@ -627,14 +627,14 @@ const char* SetupType(CParticleSource* s) {
         return type == ParticleType::FireStar ? "FireArrowSmoke" : "AcidRay";
     case ParticleType::Sparks:        // Sparks
         SetBits(&s->additiveBlend, 1);
-        s->flags_ |= 0x13;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 7;
         s->emitCount = 10;
         s->maxParticles = 300;
         SetCallbacks(s, &CParticleSource::EmitSparks, &CParticleSource::UpdateSparks, &CParticleSource::TickNone);
         return "Casting6";
     case ParticleType::VisionStar1: case ParticleType::VisionStar2: case ParticleType::VisionStar3: case ParticleType::VisionStar4:
-        s->flags_ |= 0x13;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         SetBits(&s->additiveBlend, 1);
         s->attachPoint = 2;
         s->emitCount = 3;
@@ -646,14 +646,14 @@ const char* SetupType(CParticleSource* s) {
         return "Stun";
     case ParticleType::Regeneration:
         SetBits(&s->additiveBlend, 1);
-        s->flags_ |= 0x13;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 7;
         s->emitCount = 2;
         SetCallbacks(s, &CParticleSource::EmitRegeneration, &CParticleSource::UpdateRegeneration, &CParticleSource::TickNone);
         return "Stun";
     case ParticleType::Silence:
         SetBits(&s->additiveBlend, 1);
-        s->flags_ |= 0x13;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 7;
         s->emitCount = 4;
         s->maxParticles = 300;
@@ -661,7 +661,7 @@ const char* SetupType(CParticleSource* s) {
         return "Stun";
     case ParticleType::FeebleMind:        // FeebleMind
         SetBits(&s->additiveBlend, 1);
-        s->flags_ |= 0x13;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 1;
         s->emitCount = 5;
         s->maxParticles = 300;
@@ -672,7 +672,7 @@ const char* SetupType(CParticleSource* s) {
         return "VisionFog";
     case ParticleType::Stun:
         SetBits(&s->additiveBlend, 1);
-        s->flags_ |= 0x13;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 0;
         s->emitCount = 1;
         s->maxParticles = 300;
@@ -680,7 +680,7 @@ const char* SetupType(CParticleSource* s) {
         return "Stun";
     case ParticleType::CurseStars:
         SetBits(&s->additiveBlend, 1);
-        s->flags_ |= 0x13;
+        s->flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
         s->attachPoint = 7;
         s->emitCount = 8;
         s->maxParticles = 300;
@@ -773,7 +773,7 @@ void CParticleSource::Create() {
     boundsMax = nearBound;
     frameColumns = 4;
     emitChance = 100;
-    flags_ = (flags_ & ~0x18u) | 1;
+    flags_ = (flags_ & ~(ParticleSourceFlag::TicksWhilePaused | ParticleSourceFlag::OnPart)) | ParticleSourceFlag::Emitting;
     maxParticles = 500;
     frameCount = 16;
 

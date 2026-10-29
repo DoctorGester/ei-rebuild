@@ -46,15 +46,15 @@ Surface* DecodedHolder(CTextureDevice* device, const CTexture* texture, const Mm
 
 
 void CTexture::MarkLoaded(const MmpHeader* header) {
-    flags_ &= 0xFFFC3FFF;
+    flags_ &= ~TextureFlag::AlphaBits;
     switch (header->alphaKind) {
-    case 0: flags_ |= 0x4000; break;
-    case 1: flags_ |= 0x8000; break;
-    case 4: flags_ |= 0x10000; break;
-    case 8: flags_ |= 0x20000; break;
+    case 0: flags_ |= TextureFlag::Alpha0; break;
+    case 1: flags_ |= TextureFlag::Alpha1; break;
+    case 4: flags_ |= TextureFlag::Alpha4; break;
+    case 8: flags_ |= TextureFlag::Alpha8; break;
     default: break;
     }
-    flags_ |= kTextureLoaded;
+    flags_ |= TextureFlag::Loaded;
 }
 
 std::uint32_t MmpHeader::MipOffset(unsigned mip) const {
@@ -81,7 +81,7 @@ std::uint32_t MmpHeader::FilledBytes(std::uint32_t heldFormat, unsigned mip, uns
 
 
 int CTexture::CreateFromMmp(CTextureDevice* device, const MmpHeader* header, unsigned mip) {
-    if (flags_ & kTextureLoaded) return 1;
+    if (flags_ & TextureFlag::Loaded) return 1;
     header->MipOffset(mip);   // the result is not used
 
     std::uint32_t width = header->width >> (mip & 31);

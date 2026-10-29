@@ -28,10 +28,8 @@ namespace {
 constexpr float kColourScale = 255.0f;
 constexpr float kInverseColourScale = 0.003921569f;   // 1 / 255
 static_assert(std::bit_cast<std::uint32_t>(kInverseColourScale) == 0x3B808081u);
-constexpr std::uint32_t kFigureHidden = 0x80;   // CFigureMesh::flags_
 // TransformAmbientColour: what SetBaseColour gave the transform object last.
 float g_transformAmbientColour[3] = {};
-constexpr std::uint32_t kTextureIsLoaded = 8;   // CTexture::flags_ (CEngineObject)
 
 // "Final loading data to NULL texture!" and a newline.
 const char* NullTextureText() { return "Final loading data to NULL texture!\n"; }
@@ -119,13 +117,13 @@ int CSceneRenderer::SetTexture(int stage, CTexture* texture) {
 void CSceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline_, device_); }
 
 int CSceneRenderer::DrawFigure(CFigureMesh* mesh, CMaterial* material, int alpha, tagRECT* screen) {
-    if (mesh->flags_ & kFigureHidden) return 1;
+    if (mesh->flags_ & FigureMeshFlag::Hidden) return 1;
     return mesh->drawer_->DrawPlain(device_, material, alpha, screen);
 }
 
 int CSceneRenderer::DrawFigureLit(CFigureMesh* mesh, const std::vector<CLight*>* lights, CMaterial* material, int alpha, tagRECT* screen,
                                   CTexture* textureA, CTexture* textureB) {
-    if (mesh->flags_ & kFigureHidden) return 1;
+    if (mesh->flags_ & FigureMeshFlag::Hidden) return 1;
     return mesh->drawer_->DrawLit(device_, lights, material, alpha, screen, textureA, textureB);
 }
 
@@ -142,7 +140,7 @@ bool CSceneRenderer::RestoreSurfaces() { return device_ != nullptr; }
 
 int EnsureTextureLoaded(CTexture* texture) {
     if (!texture) return game::FatalError(NullTextureText());
-    if (texture->flags_ & kTextureIsLoaded) return 1;
+    if (texture->flags_ & TextureFlag::Loaded) return 1;
     return g_clientWorld->textureManager_->LoadTexture(texture);
 }
 

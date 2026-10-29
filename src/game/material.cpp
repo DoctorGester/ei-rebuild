@@ -101,7 +101,7 @@ CMaterial* CMaterialManager::NewMaterial(int type) {
     auto* material = CreateObjectAs<CMaterial>(type, -1);
     // The game sets the flag before its null check, so a failed creation faults there.
     if (!material) return nullptr;
-    material->flags_ |= 8;
+    material->flags_ |= MaterialFlag::Keyed;
     material->colors = EnterKey(colors_, static_cast<unsigned>(material->type_));
     return material;
 }

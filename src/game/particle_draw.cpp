@@ -53,7 +53,7 @@ Vector3* CParticleSource::WorldPosition(Vector3* out) {
 
 // Rebuilds the draw order (depth = position . camera view axis, iterating the manager's
 // sources until the first empty entry), sorts it far to near and draws each source that is not
-// hidden (flag 0x40) and not on a hidden unit, switching to additive blending for sources with
+// hidden (ParticleSourceFlag::NotDrawn) and not on a hidden unit, switching to additive blending for sources with
 // +0x150 == 1. Returns 0 as soon as a source fails to draw. The manager is held (+4) meanwhile.
 int CParticleManager::DrawAll(CSceneRenderer* renderer) {
     ++refCount_;
@@ -84,7 +84,7 @@ int CParticleManager::DrawAll(CSceneRenderer* renderer) {
     bool additive = false;
     for (int i = 0; i < std::ssize(order); ++i) {
         CParticleSource* s = order[i].source;
-        if (s->flags_ & 0x40) continue;
+        if (s->flags_ & ParticleSourceFlag::NotDrawn) continue;
         if (AttachedToHiddenUnit(s)) continue;
         int blend;
         blend = std::bit_cast<std::int32_t>(s->additiveBlend);

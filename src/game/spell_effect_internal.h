@@ -31,7 +31,7 @@ namespace spellfx {
 constexpr double (CWorld::*kGridHeight)(float, float) = &CWorld::GridHeightAt;
 constexpr double (CWorld::*kRawSurfaceHeight)(float, float) = &CWorld::RawSurfaceHeightAt;
 
-constexpr std::uint32_t kPointLightFlags = 0x840;
+constexpr std::uint32_t kPointLightFlags = lib::Bits(LightFlag::Specular | LightFlag::Strong);
 
 // Volumes and radii the casts pass as immediates.
 constexpr float kVolume = 10.0f;

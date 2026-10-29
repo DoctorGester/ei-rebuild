@@ -7,6 +7,7 @@
 #include "maths.h"
 #include "model.h"
 
+#include "lib/bit_flags.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 
@@ -66,12 +67,25 @@ struct FigureMeshDrawer;
 // The flags an animated mesh's drawer gets on top of its own (figure_part_draw*.cpp).
 inline constexpr std::uint32_t kAnimatedDrawerFlags = /*00790C0C*/ 0x200;
 
-// The material a figure part is drawn with (the draw's fourth argument) is a CMaterial: flags_
-// 0x10 keeps the speculars (draw flag 8), the lights scale colors.diffuse / colors.specular
+// The material a figure part is drawn with (the draw's fourth argument) is a CMaterial: MaterialFlag::KeepSpecular
+// keeps the speculars (draw flag 8), the lights scale colors.diffuse / colors.specular
 // (CLight::SetLitColors) and the transform object lights with colors.emissive's first three dwords.
 class CMaterial;
 
 class CLight;
+
+// The bits of CEngineObject::flags_ on a figure mesh (a part of an object's figure).
+enum class FigureMeshFlag : std::uint32_t {
+    Stationary = 0x8,   // a part of a non-unit object's figure (CObject3D::LoadFigures, the client's figure creation);
+                        // nothing reads it
+    Lit = 0x10,         // the colours are lit and kept: the draw lights the part only without it (the sky mesh has it
+                        // from the start); a non-static object's draw clears it on every part
+    Loaded = 0x20,      // LoadFromMemory / the figure manager's load ran
+    Drawn = 0x40,       // drawn through drawer_ this frame (cleared first; its screen_ is where the part was last drawn)
+    Hidden = 0x80,      // not drawn (nothing more, not even the finishing call): the hidden weapon parts
+    Flat = 0x100,       // drawn in flatColour_ / flatSpecular_ instead of lit
+};
+template <> inline constexpr bool lib::kBitFlags<FigureMeshFlag> = true;
 
 // The figure meshes' base ("CFigure"): the parts of an object's figure (CObject3D::parts). Derived (by the figure manager's type): 0x41
 // CSharedFigureMesh, 0x42 CPlainFigureMesh, 0x43 CUiMesh (ui.h), 0x44 CSkyObject (sky_object.h).
@@ -92,7 +106,7 @@ public:
     // Copies another mesh's transform, name, the shared buffer descriptors (texture coordinates, corners,
     // words, indices) and the bounds.
     virtual void CopyFigure(const CFigureMesh* other);
-    // Loads the mesh from memory at *cursor once (flags_ 0x20 set afterwards): data whose first dword starts
+    // Loads the mesh from memory at *cursor once (FigureMeshFlag::Loaded set afterwards): data whose first dword starts
     // with "FIG" through LoadFig, other data through LoadOld.
     virtual void LoadFromMemory(char** cursor, float s, float t, float u);
     virtual void LoadFig(char** cursor, float s, float t, float u) = 0;   // "FIG" data
@@ -143,9 +157,9 @@ private:
 
 public:
 
-    // CEngineObject: flags_ 0x20 loaded, 0x40 drawn through drawer_ (its screen_ is where the part was last
-    // drawn), 0x80 hidden; type_ the figure manager's type (0x41-0x44; the class id is ClassId::FigureMesh). CTransformObject: localPosition_ relative to the
-    // object (a bone places it), worldPosition_ UpdateWorld's moved position, localRotation_ and worldRotation_.
+    // CEngineObject: flags_ the FigureMeshFlag bits; type_ the figure manager's type (0x41-0x44; the class id is
+    // ClassId::FigureMesh). CTransformObject: localPosition_ relative to the object (a bone places it),
+    // worldPosition_ UpdateWorld's moved position, localRotation_ and worldRotation_.
     // The part -> object matrix: the rotation, the local position as column 3 (the draws build it,
     // ObjectWorldMatrix in map_object_shadow.h).
     Matrix4 worldMatrix_;
@@ -156,7 +170,7 @@ public:
     // drawer sets per frame (FigureMeshDrawer::Animate); an interface sprite's frame of its sprite sheet.
     float textureOffsetU_;
     float textureOffsetV_;
-    // every colour / specular of a flat mesh (flags_ 0x100); set for every part of an object by
+    // every colour / specular of a flat mesh (FigureMeshFlag::Flat); set for every part of an object by
     // CObject3D::SetPartsFlatColour / SetPartsFlatSpecular (the interface's model view).
     std::uint32_t flatColour_;
     std::uint32_t flatSpecular_;

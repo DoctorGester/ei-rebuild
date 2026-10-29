@@ -67,14 +67,14 @@ bool SunMarchTouchesNothing(const Terrain* terrain, const SectorData* sector, in
 
 // The water layer's specular word (the GPU lights the colours): the harness digest's "water" reads that word
 // (the edge fade, then the specular lights; Animate writes the crests over its colour bytes): the vertex lighting
-// of the lights with flag 0x40; the others only fed the colour word (AddPoint changes nothing).
+// of the lights with LightFlag::Specular; the others only fed the colour word (AddPoint changes nothing).
 void SectorData::LightSpecular(const SectorPosition* position, SectorVertex* record, Terrain* terrain, int layer) {
     Vector3 specular = {0.0f, 0.0f, 0.0f};
     Vector3 at = *position;
     for (LightRef* ref = record->lights; ref;) {
         LightRef* next = ref->next;
         CLight* light = ref->light;
-        if (!(light->flags_ & 0x40)) {
+        if (!(light->flags_ & LightFlag::Specular)) {
             ref = next;
             continue;
         }

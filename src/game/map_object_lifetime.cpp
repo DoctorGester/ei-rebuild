@@ -164,9 +164,9 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
     lightStateB = 0;
     particles.clear();
     if (light) {
-        light->flags_ &= ~0x200u;
-        if (CLight* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {
-            shown->flags_ |= 0x80;
+        light->flags_ &= ~LightFlag::Held;
+        if (CLight* shown = light; shown && !(shown->flags_ & LightFlag::Hidden) && !(shown->flags_ & LightFlag::Held)) {
+            shown->flags_ |= LightFlag::Hidden;
             g_clientWorld->terrain_->RemoveLight(light);
             if (CUnit* unit = Unit()) {
                 if (CObject3DSpecific* half = unit->Object3D()->attached) half->SetLit(0);
