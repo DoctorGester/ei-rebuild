@@ -14,7 +14,6 @@
 
 #include <bit>
 #include <cstring>
-#include <list>
 #include "lib/nan_audit.h"
 
 namespace {
@@ -88,25 +87,25 @@ void WorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, C
     Vector3 center;
     center = caster ? caster->localPosition : from;
     float radius = spell->range;
-    std::list<CUnit*> units = aiMap.sectorMap.FindUnitsInRadius(center, radius);
+    std::vector<CUnit*> units = aiMap.sectorMap.FindUnitsInRadius(center, radius);
     if (CUnit* targetUnit = UnitOrNull(target)) {
         if (auto found = std::ranges::find(units, target); found != units.end()) units.erase(found);
-        units.push_front(targetUnit);
+        units.insert(units.begin(), targetUnit);
     }
 
     while (targets > 0) {
         if (units.empty()) break;
         CUnit* best = nullptr;
-        std::list<CUnit*>::iterator bestNode{};
+        std::ptrdiff_t bestIndex = 0;
         std::uint32_t bestBits = kFarAway;
-        for (auto node = units.begin(); node != units.end();) {
-            auto next = std::next(node);
-            CUnit* unit = *node;
+        for (std::ptrdiff_t i = 0; i < std::ssize(units);) {
+            CUnit* unit = units[i];
             if (unit->IsDead()) {
-                units.erase(node);
+                units.erase(units.begin() + i);
+                continue;
             } else if (unit == target) {
                 best = unit;
-                bestNode = node;
+                bestIndex = i;
                 break;
             } else {
                 double dz = static_cast<double>(to.z) - unit->localPosition.z;
@@ -120,13 +119,13 @@ void WorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, C
                     float stored = static_cast<float>(distance);
                     bestBits = std::bit_cast<std::uint32_t>(stored);
                     best = unit;
-                    bestNode = node;
+                    bestIndex = i;
                 }
             }
-            node = next;
+            ++i;
         }
         if (!best) break;
-        units.erase(bestNode);
+        units.erase(units.begin() + bestIndex);
 
         bool hit;
         if (!caster) {

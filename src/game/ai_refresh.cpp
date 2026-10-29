@@ -12,7 +12,6 @@
 #include "ei/x87.h"
 
 #include <vector>
-#include <list>
 
 namespace {
 
@@ -154,19 +153,10 @@ void AIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     centre.x = cx;
     centre.y = cy;
     SectorMap* sectors = &sectorMap;
-    std::list<CUnit*> objects = sectors->FindUnitsInRadius(centre, radius);
-    for (auto node = objects.begin(); node != objects.end();) {
-        auto next = std::next(node);
-        sectors->Remove(*node);
-        node = next;
-    }
+    std::vector<CUnit*> objects = sectors->FindUnitsInRadius(centre, radius);
+    for (CUnit* object : objects) sectors->Remove(object);
     regionMap.UpdateBlocksFor(this, bx0, bx1, by0, by1);
-    for (auto node = objects.begin(); node != objects.end();) {
-        auto next = std::next(node);
-        sectors->Add(*node);
-        node = next;
-    }
-    objects.clear();
+    for (CUnit* object : objects) sectors->Add(object);
 }
 
 // ---- CellMark ---------------------------------------------------------------------------------

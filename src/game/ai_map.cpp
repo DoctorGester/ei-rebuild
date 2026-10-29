@@ -47,8 +47,8 @@ int StandingLevel(const CUnit* unit) {
 }
 
 int BridgeHeights::HeightAt(short x, short y) const {
-    auto node = find(static_cast<std::uint32_t>(x * 0x10000 + y));   // the key is (short)x << 16 | (short)y
-    return node != end() ? static_cast<std::uint16_t>(node->second) : 0;
+    auto node = saved.find(static_cast<std::uint32_t>(x * 0x10000 + y));   // the key is (short)x << 16 | (short)y
+    return node != saved.end() ? static_cast<std::uint16_t>(node->second) : 0;
 }
 
 // --- Cell queries --------------------------------------------------------------------------------

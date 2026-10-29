@@ -22,7 +22,6 @@
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
-#include <list>
 
 namespace spellfx {
 
@@ -267,10 +266,7 @@ inline float LightRiseScaled(SpellEffect* e, const float& scale) {
 inline void HitAreaTargets(SpellEffect* e) {
     DamageInfo hit;
     e->GetDamage(&hit);
-    std::list<CUnit*> units = e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius);
-    for (auto node = units.begin(); node != units.end();) {
-        CUnit* unit = *node;
-        ++node;
+    for (CUnit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius)) {
         if (static_cast<std::uint8_t>(IsSpellTarget(unit))) e->HitUnit(&hit, unit);
     }
 }

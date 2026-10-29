@@ -11,7 +11,6 @@
 #include "unit_ai.h"
 #include "world_effect.h"
 
-#include <list>
 
 using namespace spellfx;
 
@@ -238,10 +237,7 @@ void Fireworks(SpellEffect* e) {
     if (ticks >= 0) {
         float wake = e->Spell()->radius + ConstAt(worlddata::ImpactWakeMargin());
         e->world->WakeUnitsAround(e->position, wake);
-        std::list<CUnit*> units = e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius);
-        for (auto node = units.begin(); node != units.end();) {
-            CUnit* unit = *node;
-            ++node;
+        for (CUnit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius)) {
             int duration = static_cast<int>(e->Spell()->duration);
             int level = FrightLevel(&e->timer, &duration);
             ControllerOf(unit)->brain.memory.Notice(e->position, level, -1);
@@ -264,12 +260,8 @@ void Clairvoyance(SpellEffect* e) {
         auto* player = e->caster->player;
         if (player) {
             ScriptGroup* group = &player->Server()->possessedGroup;
-            std::list<CUnit*> units = e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius);
-            for (auto node = units.begin(); node != units.end();) {
-                CUnit* unit = *node;
-                ++node;
+            for (CUnit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius))
                 group->Insert(unit);
-            }
         }
         float wake = e->Spell()->radius + ConstAt(worlddata::ImpactWakeMargin());
         e->world->WakeUnitsAround(e->position, wake);

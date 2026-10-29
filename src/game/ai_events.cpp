@@ -28,7 +28,8 @@ constexpr int kSides = 16;
 constexpr int kSideMask = kSides - 1;
 constexpr int kWheelMask = kWheelTicks - 1;
 
-// The records' pool (a list whose nodes hold them; the free list is chained through AIEvent::next).
+// The records' pool: a list, as the wheel and the free list (chained through AIEvent::next) point into it while it
+// grows.
 std::list<AIEvent> g_eventPool;
 
 void PushFree(AIEvent* event) {

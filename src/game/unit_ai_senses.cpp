@@ -25,7 +25,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <string>
 
 namespace {
@@ -83,16 +82,15 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
         memory->sightCells.Get(static_cast<float>(static_cast<double>(reach) * kSightCellsFactor * kSectorScale), &count);
     memory->nearby.clear();
     for (int i = 0; i < count; ++i) {
-        std::list<CUnit*>* units = map->sectorMap.UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
+        std::vector<CUnit*>* units = map->sectorMap.UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
         if (!units) continue;
-        for (auto node = units->begin(); node != units->end(); ++node) {
-            CUnit* other = *node;
-            if (other == self) continue;
-            // At the head, holding a reference: See walks the list
-            // from the head, so the units of the last sector come first.
-            memory->nearby.push_front(other);
+        for (CUnit* other : *units) {
+            if (other != self) memory->nearby.push_back(other);
         }
     }
+    // The original adds each unit at the head: See walks the list from the head, so the units of the last sector
+    // come first.
+    std::ranges::reverse(memory->nearby);
 }
 
 void AIViewer::See(CUnit* self, AIMemory* memory) {
@@ -151,7 +149,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
             continue;
         }
         if (alive) {
-            memory->visible.push_front(other);
+            memory->visible.insert(memory->visible.begin(), other);
             double dx = static_cast<double>(self->localPosition.x) - other->localPosition.x;
             double dy = static_cast<double>(self->localPosition.y) - other->localPosition.y;
             double dz = static_cast<double>(self->localPosition.z) - other->localPosition.z;
@@ -160,6 +158,40 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         }
     }
 }
+
+namespace {
+
+// Whether `owner`'s unit still sees the visible unit `other`. A dead one is not seen: it is recorded as a corpse
+// first (twice in the seen corpses when allied, as the original does).
+bool StillSees(UnitServer* owner, AIMemory* memory, CUnit* other, float reachFactor) {
+    CUnit* self = owner->unit;
+    Vector3 d{static_cast<float>(static_cast<double>(other->localPosition.x) - self->localPosition.x),
+              static_cast<float>(static_cast<double>(other->localPosition.y) - self->localPosition.y),
+              static_cast<float>(static_cast<double>(other->localPosition.z) - self->localPosition.z)};
+    float distance = LengthZYX(d);
+    if (other->IsDead()) {
+        if (g_serverWorld.diplomacy.IsAllied(self->side, other->side)) {
+            memory->seenCorpses.push_back(other);
+            if (memory->noticedLevel < kNoticeCorpseLevel) NoticeAt(memory, other, kNoticeCorpseLevel, kNoticeCorpseDecay);
+        }
+        console::EndLine(LogPair(self, " sees corpse of unit ", other));
+        memory->seenCorpses.push_back(other);
+        if (g_serverWorld.diplomacy.IsAllied(self->side, other->side)) memory->corpses.push_back(other);
+        return false;
+    }
+    if (self->IsHostileTo(other) && self->player == nullptr) return true;
+    UnitServer* theirs = other->ServerController();
+    AIBrain* theirBrain = &theirs->brain;
+    if (theirs->moveMode2.onGuard && theirBrain->target == self) return true;
+    double sight = static_cast<double>(theirs->moveFactors[2]) * owner->moveFactors[3] * theirs->stats.conspicuity[0].current *
+                   owner->stats.perception[0].current * reachFactor;
+    if (sight > distance) return true;
+    double sense = static_cast<double>(theirs->stats.conspicuity[2].current) * owner->stats.perception[2].current * reachFactor;
+    if (sense > distance) return true;
+    return theirBrain->AggressionEnemy() == self;
+}
+
+} // namespace
 
 void AIViewer::Update(UnitServer* owner, AIMemory* memory) {
     CUnit* self = owner->unit;
@@ -172,39 +204,17 @@ void AIViewer::Update(UnitServer* owner, AIMemory* memory) {
     cellX = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.x) - 0.5f));
     cellY = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.y) - 0.5f));
     Refresh(self, memory);
-    for (auto node = memory->visible.begin(); node != memory->visible.end();) {
-        auto current = node;
-        ++node;
-        CUnit* other = *current;
-        Vector3 d{static_cast<float>(static_cast<double>(other->localPosition.x) - self->localPosition.x),
-                  static_cast<float>(static_cast<double>(other->localPosition.y) - self->localPosition.y),
-                  static_cast<float>(static_cast<double>(other->localPosition.z) - self->localPosition.z)};
-        float distance = LengthZYX(d);
-        if (other->IsDead()) {
-            if (g_serverWorld.diplomacy.IsAllied(self->side, other->side)) {
-                // AddTail (a second copy follows below).
-                memory->seenCorpses.push_back(other);
-                if (memory->noticedLevel < kNoticeCorpseLevel) NoticeAt(memory, other, kNoticeCorpseLevel, kNoticeCorpseDecay);
-            }
-            console::EndLine(LogPair(self, " sees corpse of unit ", other));
-            memory->seenCorpses.push_back(other);
-            if (g_serverWorld.diplomacy.IsAllied(self->side, other->side)) memory->corpses.push_back(other);
-        } else {
-            if (self->IsHostileTo(other) && !hasPlayer) continue;
-            UnitServer* theirs = other->ServerController();
-            AIBrain* theirBrain = &theirs->brain;
-            if (theirs->moveMode2.onGuard && theirBrain->target == self) continue;
-            double sight = static_cast<double>(theirs->moveFactors[2]) * owner->moveFactors[3] * theirs->stats.conspicuity[0].current *
-                           owner->stats.perception[0].current * reachFactor;
-            if (sight > distance) continue;
-            double sense = static_cast<double>(theirs->stats.conspicuity[2].current) * owner->stats.perception[2].current * reachFactor;
-            if (sense > distance) continue;
-            if (theirBrain->AggressionEnemy() == self) continue;
+    HeldUnits& visible = memory->visible;
+    for (std::size_t i = 0; i < visible.size();) {
+        CUnit* other = visible[i];
+        if (StillSees(owner, memory, other, reachFactor)) {
+            ++i;
+            continue;
         }
         console::EndLine(LogPair(self, " lost from sight unit ", other));
         if (self->IsHostileTo(other) && memory->noticedLevel < kNoticeSeenLevel)
             NoticeAt(memory, other, kNoticeSeenLevel, kNoticeSeenDecay);
-        memory->visible.erase(current);
+        visible.erase(visible.begin() + static_cast<std::ptrdiff_t>(i));
     }
     See(self, memory);
 }
@@ -266,10 +276,8 @@ void AIMemory::AddClaim(std::uint32_t mask, int delay, std::string_view text) { 
 
 void AIViewer::Noise(UnitServer* source, float loudness, int delay, const Vector3& at) {
     CUnit* unit = source->unit;
-    std::list<CUnit*> units = map->sectorMap.FindUnitsInRadius(at, kNoiseRadius);
-    for (auto node = units.begin(); node != units.end();) {
-        auto* other = *node;
-        ++node;
+    UnitList units = map->sectorMap.FindUnitsInRadius(at, kNoiseRadius);
+    for (CUnit* other : units) {
         if (!other->IsHostileTo(unit)) continue;
         UnitServer* control = other->ServerController();
         AIBrain* brain = &control->brain;
@@ -397,7 +405,7 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
         seenCorpses.push_back(object);
         if (g_serverWorld.diplomacy.IsAllied(self->side, other->side)) corpses.push_back(object);
     } else {
-        visible.push_front(object);
+        visible.insert(visible.begin(), object);
         kAiLog << "Unit " << self->id << " is forced to see unit " << other->id << " from ";
         console::EndLine(kAiLog << distance << "m distance");
     }

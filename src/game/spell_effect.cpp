@@ -13,7 +13,6 @@
 #include <cstdint>
 #include <cstring>
 
-#include <list>
 #include "lib/nan_audit.h"
 #include "lib/float_select.h"
 
@@ -44,10 +43,7 @@ void SpellEffect::HitUnit(DamageInfo* hit, CMapObject* unit) { Deliver(this, hit
 void SpellEffect::HitUnitsInRadius() {
     DamageInfo hit;
     GetDamage(&hit);
-    std::list<CUnit*> list = world->aiMap.sectorMap.FindUnitsInRadius(position, Spell()->radius);
-    for (auto node = list.begin(); node != list.end();) {
-        CUnit* unit = *node;
-        ++node;
+    for (CUnit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, Spell()->radius)) {
         if (!AcceptsAreaSpells(unit)) continue;
         Deliver(this, &hit, unit);
     }
@@ -66,10 +62,7 @@ void SpellEffect::HitUnitsAlong(const Vector3& direction) {
     float normalY = scale * x;
     float normalZ = 0.0f;
 
-    std::list<CUnit*> list = world->aiMap.sectorMap.FindUnitsInRadius(position, Spell()->radius);
-    for (auto node = list.begin(); node != list.end();) {
-        CUnit* unit = *node;
-        ++node;
+    for (CUnit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, Spell()->radius)) {
         const CUnit* at = unit;
         double dz = at->localPosition.z - position.z;
         double dy = at->localPosition.y - position.y;

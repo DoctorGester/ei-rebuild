@@ -134,17 +134,16 @@ void AIMap::AdvancePath(CUnit* unit, AIPath* path) {
 
     PathCells& pathCells = path->cells;
     PathCells& steps = path->steps;
-    while (std::ssize(steps) < 32 && std::ssize(pathCells) > 0) {
-        steps.push_back(pathCells.front());
-        pathCells.pop_front();
-    }
+    std::ptrdiff_t taken = 0;
+    while (std::ssize(steps) < 32 && taken < std::ssize(pathCells)) steps.push_back(pathCells[taken++]);
+    pathCells.erase(pathCells.begin(), pathCells.begin() + taken);
 
     float x, y;
     if (std::ssize(pathCells) > 0) {
         path->reached = false;
         // Put the last step back at the head of the path: it is where the steering heads.
         const PathCell* last = &steps.back();
-        pathCells.push_front(*last);   // the element zeroed first
+        pathCells.insert(pathCells.begin(), *last);
         y = static_cast<float>(last->y) + 0.5f;
         x = static_cast<float>(last->x) + 0.5f;
     } else {
@@ -197,7 +196,7 @@ bool AIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float ran
         cell.x = static_cast<std::int16_t>(ux);
         cell.y = static_cast<std::int16_t>(uy);
         std::memcpy(&cell.flags, &uyHalf, 4);
-        pathCells.push_front(cell);
+        pathCells.insert(pathCells.begin(), cell);
         found = true;
         pathCells.front().flags = 0x200;
         AdvancePath(unit, path);
@@ -235,7 +234,7 @@ bool AIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float ran
             path->targetX = goal.x;
             path->targetY = goal.y;
             if (ux == gx && uy == gy) {
-                PathCell& first = pathCells.emplace_front();
+                PathCell& first = *pathCells.emplace(pathCells.begin());
                 first.x = static_cast<std::int16_t>(ux);
                 first.y = static_cast<std::int16_t>(uy);
                 std::memcpy(&first.flags, &shorter, 4);

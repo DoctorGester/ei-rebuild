@@ -143,11 +143,8 @@ struct PathCell {
 };
 static_assert(sizeof(PathCell) == 8);
 
-struct PathCells : std::list<PathCell> {
-    void Append(const PathCells* other);
-    // `out` constructed (blocks of 0x80) with the cells in reverse order.
-    PathCells* Reversed(PathCells* out) const;
-};
+// A path's cells in walking order.
+using PathCells = std::vector<PathCell>;
 
 // The speed word and terrain bits a path builder gives its cells: the plain step speed, no terrain bits. The
 // original leaves stack leftovers there; the harness patches them to this too. SetStepSpeeds rewrites both
@@ -161,8 +158,7 @@ inline void SetPlainCellWords(PathCells* list) {
     for (PathCell& cell : *list) SetPlainCellWords(&cell);
 }
 
-// Removes each cell equal (x, y) to the one before it (the first is compared with (-1, -1)); an emptied list
-// frees its blocks.
+// Removes each cell equal (x, y) to the one before it (the first is compared with (-1, -1)).
 void PathCellsRemoveRepeats(PathCells* list);
 
 // A block a search reaches.
@@ -449,7 +445,7 @@ struct RegionMap {
     void FloodRegionFrom(int sizeClass, std::vector<BlockPoint>* frontier, std::vector<BlockPoint>* next, int label);
     // The 3x3 blocks around cell (x, y) whose representative cell the local search reaches from it, as {block x,
     // block y, cost}.
-    std::list<BlockCost> NearbyBlocks(int sizeClass, bool flag, int x, int y);
+    std::vector<BlockCost> NearbyBlocks(int sizeClass, bool flag, int x, int y);
 
     // Re-measures blocks [x0, x1) x [y0, y1) (clamped to the grid): representative cells, then edges, row by
     // row (reporting progress), then the edge clamp, the two block searches and the regions.
@@ -504,23 +500,13 @@ struct SmoothEdge {
     int x1, y1;
     int index;
 };
-struct SmoothEdges : std::vector<SmoothEdge> {
-    // The seven states of a cell crossed by the straight step (mx, my), with (sx, sy) the step to its side.
-    void AddStraightEdges(int mx, int my, int sx, int sy);
-    // The nine states of a cell crossed by the diagonal step (mx, my), with (sx, sy) one of its straight halves.
-    void AddDiagonalEdges(int mx, int my, int sx, int sy);
-    // Emptied, then the states of a cell the path crosses in `direction` (1..8):
-    // seven moves for a straight step, nine for a diagonal one. Direction 0 (the path's ends) gives the
-    // eight moves from the cell to its neighbours, or from the neighbours to it when `incoming`.
-    void BuildEdges(int direction, bool incoming);
-};
 
 // One of the 81 transition tables (previous direction * 9 + next direction; 0 at the path's end).
 struct SmoothTable {
     // The table between a cell with the states `from` and the next one with the
     // states `to`: a copy for every state both have, a step from every `from` state to every `to`
     // state that starts where it ends, and the same between the `to` states themselves.
-    void Build(const SmoothEdges* from, const SmoothEdges* to);
+    void Build(const std::vector<SmoothEdge>& from, const std::vector<SmoothEdge>& to);
 
     std::vector<SmoothCopy> copies;
     std::vector<SmoothStep> steps;        // from the previous cell's states
@@ -585,7 +571,7 @@ public:
     // Removes `unit`'s nodes from the 5x5 blocks from block (x >> 2, y >> 2); for each
     // block it had, Set gets the block with the other units' levels merged (maximum).
     void Remove(CUnit* unit, int x, int y);
-    std::list<UnitLayerNode> nodes;
+    std::list<UnitLayerNode> nodes;     // every node made: a list, the buckets and free list point into it as it grows
     UnitLayerNode* buckets[1024] = {};  // by (key x * 17 + key y) & 0x3FF
     UnitLayerNode* freeNodes = nullptr; // unused nodes
     AIMap* const map;                  // the owner
@@ -611,14 +597,22 @@ struct AreaOffset {
     int dx, dy;
 };
 
-// The cells under a bridge (AIMap::bridgeHeights): a hash map keyed (short)x << 16 | (short)y, the
-// value the cell's saved ground level (low word), water depth (bits 16-21) and terrain type (bits 24-28).
-struct BridgeHeights : std::unordered_map<std::uint32_t, std::uint32_t> {
+// The cells under a bridge (AIMap::bridgeHeights): what each cell was before a bridge deck covered it.
+class BridgeHeights {
+public:
+    // Saves cell (x, y)'s ground level, water depth and the terrain type of its occluder word; a cell saved
+    // already keeps its entry. x and y are read as shorts.
+    void SaveCell(int x, int y, const AIMapCell& cell, std::uint32_t occluder);
     // Puts back what the cell's bridge map entry saved (ground level, water depth, terrain type) and erases the
     // entry; nothing without one. x and y are read as shorts.
     void RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* occluder);
     // Bridge deck height of cell (x, y), 0 if none.
     int HeightAt(short x, short y) const;
+
+private:
+    // Keyed (short)x << 16 | (short)y: the saved ground level (low word), water depth (bits 16-21) and terrain
+    // type (bits 24-28).
+    std::unordered_map<std::uint32_t, std::uint32_t> saved;
 };
 
 // AIMap's dirty rectangle: the area refreshed when a batch of refreshes ends.
@@ -668,7 +662,7 @@ public:
     bool RemoveFromSectors(CMapObject* object);
     // SectorMap::Move (Rebirth patches it).
     bool MoveInSectors(CMapObject* object, const Vector3& position);
-    std::list<CUnit*> FindUnitsInRadius(const Vector3& position, float radius);
+    std::vector<CUnit*> FindUnitsInRadius(const Vector3& position, float radius);
 
     // Can `unit` stand on cell (x, y)? `reason` gets 0 (ok or not a unit), 1 (cell level
     // too high) or 2 (water too deep).

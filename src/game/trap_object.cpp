@@ -12,7 +12,6 @@
 #include "lib/str.h"
 
 #include <cstdint>
-#include <list>
 #include <new>
 #include <string>
 
@@ -41,7 +40,7 @@ bool TrapObject::RunTick() {
     if (!(flags & MapObjectFlag::Armed)) return false;
     if (!WorldContext()->IsServer()) return false;
     auto* world = ServerWorld();
-    std::list<CUnit*> units = world->aiMap.sectorMap.FindUnitsInRadius(localPosition, kTriggerRadius);
+    std::vector<CUnit*> units = world->aiMap.sectorMap.FindUnitsInRadius(localPosition, kTriggerRadius);
     if ((flags & MapObjectFlag::ArmedFresh) && units.empty()) {
         flags &= ~MapObjectFlag::ArmedFresh;
     } else if (!units.empty()) {
@@ -53,7 +52,6 @@ bool TrapObject::RunTick() {
         TheMissionScript()->Load(&line, 1);
         flags &= ~MapObjectFlag::Armed;
     }
-    units.clear();
     return false;
 }
 

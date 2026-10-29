@@ -1,6 +1,5 @@
-// Path cell list operations (PathCellList, the game's list of PathCell) used by the path search:
-// adding cells, appending and reversing lists, dropping repeated cells, and stepping a cell in one
-// of the eight directions. See ai_map.h and docs/notes/ai.md.
+// Path cell operations used by the path search: dropping repeated cells, stepping a cell in one of the eight
+// directions, a path as a motion order. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 #include "ai_motion.h"
 
@@ -24,30 +23,24 @@ PathCell* PathCell::Step(PathCell* out, int direction) const {
     return out;
 }
 
-void PathCells::Append(const PathCells* other) { insert(end(), other->begin(), other->end()); }
-
-PathCells* PathCells::Reversed(PathCells* out) const {
-    out->assign(rbegin(), rend());
-    return out;
-}
-
 void PathCellsRemoveRepeats(PathCells* list) {
     std::int16_t lastX = -1, lastY = -1;
-    list->remove_if([&](const PathCell& cell) {
+    auto kept = list->begin();
+    for (const PathCell& cell : *list) {
         bool repeat = cell.x == lastX && cell.y == lastY;
         lastX = cell.x;
         lastY = cell.y;
-        return repeat;
-    });
+        if (!repeat) *kept++ = cell;
+    }
+    list->erase(kept, list->end());
 }
 
 void AIPath::ToMotionOrder(PathOrder* out) const {
     constexpr int kFollowSteps = 2;
     std::memcpy(&out->motionOrder, &motionOrder, sizeof(motionOrder));
-    out->steps.clear();
-    out->steps.Append(&steps);
+    out->steps = steps;
     if (out->motionOrder.kind != kFollowSteps) return;
-    out->steps.Append(&cells);
+    out->steps.insert(out->steps.end(), cells.begin(), cells.end());
     PathCellsRemoveRepeats(&out->steps);
     out->SetStepSpeeds(0x200);
     out->SetTarget(targetX, targetY);

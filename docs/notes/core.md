@@ -94,7 +94,8 @@ File `core_refcount.cpp`, `core_refcount.h`.
   `ShareAssignOwned` (a clone of a copy-on-share object; the object held is marked copy-on-share); a container element
   that owns its share is a `SharedRef<T>` (copy: share, destructor: DestroyOwned). The network messages' plain counted
   fields are `Ref<T>` (the copy constructors Assign), their plain lists `HeldRef<T>`. The AI brain's `modes` are a
-  `std::list<SharedRef<AIMode>>` (AddMode and Load emplace_back the new mode; erase and clear release).
+  `std::vector<std::unique_ptr<AIMode>>` (AddMode and Load append the new mode; `current` points at a mode object,
+  never into the vector).
 - Item's `spell` (Ref<CSpell>) and `link` (Ref<RefObject>: the server's ItemLink or the interface's ItemTurn) are
   Refs. CObject3D's `parts` are a `std::vector<HeldRef<FigureMesh>>` whose references the original never releases
   through the vector: CopyFigure copies the pointers uncounted (the old ones taken without a release, each copy's
@@ -103,10 +104,11 @@ File `core_refcount.cpp`, `core_refcount.h`.
 - The game client's `info`, `binding`, `map` and `trade` are plain `Ref<T>` (the handlers Assign / Reset; the
   destructor resets them in the original's order between the lists' clears).
 - Not merged: `ScriptEffect<T>` (its reset removes the timed object first).
-- Counted lists outside the interface: the world's missiles, a CObject3D's effect sources, the joined links (TakeNew)
-  and the AI memory's four unit lists (`HeldUnits`: nearby, visible, seen corpses, corpses) are lists of `HeldRef`; a
-  removal that must release after a later step moves the element out first (RemoveEffectSource detaches before the
-  release). The candidate and party lists the AI builds on the stack hold no references (`UnitList`).
+- Counted lists outside the interface: the world's missiles, a CObject3D's effect sources and the joined links
+  (TakeNew) are lists of `HeldRef`, the AI memory's four unit lists (`HeldUnits`: nearby, visible, seen corpses,
+  corpses) vectors of them; a removal that must release after a later step moves the element out first
+  (RemoveEffectSource detaches before the release). The candidate and party lists the AI builds on the stack hold no
+  references (`UnitList`, a vector), nor does SectorMap::FindUnitsInRadius's result.
 
 ## Object manager (EngineObject, BaseManager)
 

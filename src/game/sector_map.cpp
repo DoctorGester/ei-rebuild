@@ -6,8 +6,8 @@
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
+#include <algorithm>
 #include <cstring>
-#include <list>
 #include <vector>
 
 void Sector::Clear() {
@@ -100,7 +100,7 @@ bool SectorMap::Add(CMapObject* object) {
     return false;
 }
 
-std::list<CUnit*>* SectorMap::UnitsAt(int sx, int sy) {
+std::vector<CUnit*>* SectorMap::UnitsAt(int sx, int sy) {
     if (sx < 0 || sy < 0 || sx >= width || sy >= height) return nullptr;
     return &sectors[width * sy + sx].units;
 }
@@ -129,8 +129,8 @@ bool SectorMap::Remove(CMapObject* object) {
     return cleared;
 }
 
-std::list<CUnit*> SectorMap::FindUnitsInRadius(const Vector3& position, float radius) {
-    std::list<CUnit*> result;
+std::vector<CUnit*> SectorMap::FindUnitsInRadius(const Vector3& position, float radius) {
+    std::vector<CUnit*> result;
     const SectorSpiral& spiral = SectorSpiralTables();
     int length = spiral.lengths[spiral.radii.Find(radius * 0.03125f)];
     const std::int16_t* offset = &spiral.offsets.data()->x;
@@ -147,15 +147,14 @@ std::list<CUnit*> SectorMap::FindUnitsInRadius(const Vector3& position, float ra
         int gx = offset[0] + sx, gy = offset[1] + sy;
         if (gx < 0 || gy < 0 || gx >= grid->width || gy >= grid->height) continue;
         Sector& sector = grid->sectors[grid->width * gy + gx];
-        for (auto node = sector.units.begin(); node != sector.units.end();) {
-            CUnit* unit = *node;
-            ++node;
+        for (CUnit* unit : sector.units) {
             float dx = unit->localPosition.x - px, dy = unit->localPosition.y - py;
             const auto distance = LengthSquared2DUnrounded(dy, dx);
             EI_NAN_AUDIT(distance);
-            if (distance < radiusSquared) result.push_front(unit);
+            if (distance < radiusSquared) result.push_back(unit);
         }
     }
+    std::ranges::reverse(result);
     return result;
 }
 

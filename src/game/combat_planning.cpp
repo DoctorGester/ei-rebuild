@@ -267,7 +267,7 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
 void UnitServer::PlanMove(const Vector3& point, int moving, int run, float range) {
     WorldServer* world = ServerWorld();
     AIPath path;
-    std::list<CUnit*> lifted = LiftNearby(point, static_cast<char>(moving));
+    std::vector<CUnit*> lifted = LiftNearby(point, static_cast<char>(moving));
     int mode = unit->moveMode;
     SectorMap* sectors = &world->aiMap.sectorMap;
     AIMap* map = MapOf(world);
@@ -293,11 +293,6 @@ void UnitServer::PlanMove(const Vector3& point, int moving, int run, float range
         unit->UpdateSizeClass();
         sectors->Add(unit);
     }
-    for (auto node = lifted.begin(); node != lifted.end();) {
-        std::list<CUnit*>::iterator  current = node;
-        ++node;
-        sectors->Add(*current);
-    }
+    for (CUnit* other : lifted) sectors->Add(other);
     ReportPath(&path, found ? 1 : 0);
-    lifted.clear();
 }

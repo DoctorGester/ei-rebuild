@@ -13,7 +13,6 @@
 #include <cstdint>
 #include <cstring>
 
-#include <list>
 
 // The unit shape cache. Here, not in ai_shape_cache.cpp, so the path vectors' replay links it.
 UnitShapeCache g_unitShapes;
@@ -36,12 +35,10 @@ void ResizeCleared(SearchGrid<std::uint8_t>* grid, int size) {
 
 CUnit* AIMap::BlockingUnitAt(CUnit* unit, const Vector3& position) {
     float unitHeight = unit->standingHeight;
-    std::list<CUnit*> nearby = sectorMap.FindUnitsInRadius(position, 10.0f);
+    std::vector<CUnit*> nearby = sectorMap.FindUnitsInRadius(position, 10.0f);
 
     CUnit* blocker = nullptr;
-    for (auto node = nearby.begin(); node != nearby.end();) {
-        CUnit* other = *node;
-        ++node;
+    for (CUnit* other : nearby) {
         if (other == unit) continue;
         double reach = static_cast<double>(other->standingHeight) + unitHeight;
         double dy = static_cast<double>(position.y) - other->localPosition.y;
@@ -76,7 +73,6 @@ CUnit* AIMap::BlockingUnitAt(CUnit* unit, const Vector3& position) {
             break;
         }
     }
-    nearby.clear();
     return blocker;
 }
 

@@ -18,7 +18,6 @@
 
 #include <cmath>
 #include <cstring>
-#include <list>
 
 namespace {
 
@@ -104,14 +103,11 @@ bool EffectTornado::RunTick() {
     if (framesLeft <= kStopEmittingTicks && source != nullptr) source->Stop();
     CWorld* world = WorldContext();
     if (world->IsServer() && framesLeft > kHurtUntil && (framesLeft & (kHurtEvery - 1)) == 0) {
-        std::list<CUnit*> units = ServerWorld()->aiMap.sectorMap.FindUnitsInRadius(localPosition, kHurtRadius);
+        std::vector<CUnit*> units = ServerWorld()->aiMap.sectorMap.FindUnitsInRadius(localPosition, kHurtRadius);
         DamageInfo hit = TornadoHit();
-        for (auto node = units.begin(); node != units.end();) {
-            auto* unit = *node;
-            ++node;
+        for (CUnit* unit : units) {
             if (unit->player != nullptr) unit->Controller()->TakeHit(&hit, nullptr, nullptr);
         }
-        units.clear();
     }
     --framesLeft;
     return framesLeft >= 0;

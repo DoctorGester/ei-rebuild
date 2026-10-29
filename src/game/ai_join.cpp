@@ -12,8 +12,8 @@
 namespace {
 
 // The local search: expand one round, the best open cell (x, y, cost), the cost of a cell (0x7FFFFFFF
-// unreached), the path to a cell into a list, reset. The path cell list: a reversed copy into `out`, append a
-// list, and the fix-up of the joined path.
+// unreached), the path to a cell into a list, reset. The joined path: the backward search's cells appended in
+// reverse, then the fix-up.
 
 constexpr int kUnreached = 0x7FFFFFFF;
 
@@ -47,8 +47,7 @@ bool AIMap::JoinLocalSearches(PathCells* path, int* cost) {
         if (cost) *cost = other + open;
         forward->PathTo(x, y, path);
         backward->PathTo(x, y, &scratch);
-        PathCells reversed;
-        path->Append(scratch.Reversed(&reversed));
+        path->insert(path->end(), scratch.rbegin(), scratch.rend());
         PathCellsRemoveRepeats(path);
         // Like the original, the cells keep the stack word under SearchPathTo's local cell (the forward search's
         // address); ours get the plain words.
@@ -67,9 +66,10 @@ void AIMap::BuildCellsTo(int x, int y, PathCells* path) {
         PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), kPlainStepSpeed, 0};
         return c;
     };
-    // Walk back along the marks (directions 1..8; 0 ends), each cell added at the head.
+    // Walk back along the marks (directions 1..8; 0 ends); the cells go before the path's, the last one walked first.
+    PathCells walked;
     while (int dir = marks[y][x]) {
-        path->push_front(cellAt(x, y));
+        walked.push_back(cellAt(x, y));
         switch (dir) {
         case 1: --y; break;
         case 2: --y; --x; break;
@@ -82,5 +82,6 @@ void AIMap::BuildCellsTo(int x, int y, PathCells* path) {
         default: break;
         }
     }
-    path->push_front(cellAt(x, y));
+    walked.push_back(cellAt(x, y));
+    path->insert(path->begin(), walked.rbegin(), walked.rend());
 }

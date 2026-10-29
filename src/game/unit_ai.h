@@ -29,9 +29,9 @@ extern Stream g_aiLogOut;
 }
 
 // A list of units holding no references (candidates, parties).
-using UnitList = std::list<CUnit*>;
+using UnitList = std::vector<CUnit*>;
 // A list of units holding a reference to each (the AI memory's lists).
-using HeldUnits = std::list<HeldRef<CUnit>>;
+using HeldUnits = std::vector<HeldRef<CUnit>>;
 
 // What an order does (AIOrder::kind). A unit's queued order (UnitServer::action2) is UnitOrderKind::None when nothing is
 // queued; a queued UnitOrderKind::Idle stops the current order and the unit stands.
@@ -752,7 +752,7 @@ struct AIBrain {
     Vector3 position{};
     int standCooldown = 0;          // FindStandPoint fails while above 0 (one off per call)
     int followTimer = 0;            // UpdateFollow acts once it has counted past 8
-    std::list<std::unique_ptr<AIMode>> modes;
+    std::vector<std::unique_ptr<AIMode>> modes;
     AIMode* current = nullptr;      // the mode in charge: one of `modes`, or `removedCurrent`
     // The mode in charge after RemoveModesOfType took it out of `modes` (detached): it stays in charge until
     // another one takes over, as the original's counted reference kept it.

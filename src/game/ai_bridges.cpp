@@ -27,16 +27,18 @@ std::uint32_t SavedType(std::uint32_t saved) { return occluder::Type(saved >> 24
 
 } // namespace
 
-// A cell that has an entry gets back its ground level, its water depth and its terrain type; the entry is erased.
-// x and y are read as shorts.
+void BridgeHeights::SaveCell(int x, int y, const AIMapCell& cell, std::uint32_t occluder) {
+    saved.try_emplace(BridgeKey(x, y), SavedCell(cell, occluder));
+}
+
 void BridgeHeights::RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* occluder) {
-    auto node = find(BridgeKey(x, y));
-    if (node == end()) return;
-    std::uint32_t saved = node->second;
-    cell->groundLevel = static_cast<std::uint16_t>(saved);
-    cell->flags = static_cast<std::uint8_t>((cell->flags & ~kCellDepthMask) | SavedDepth(saved));
-    *occluder = occluder::WithType(*occluder, SavedType(saved));
-    erase(node);
+    auto node = saved.find(BridgeKey(x, y));
+    if (node == saved.end()) return;
+    std::uint32_t entry = node->second;
+    cell->groundLevel = static_cast<std::uint16_t>(entry);
+    cell->flags = static_cast<std::uint8_t>((cell->flags & ~kCellDepthMask) | SavedDepth(entry));
+    *occluder = occluder::WithType(*occluder, SavedType(entry));
+    saved.erase(node);
 }
 
 bool AIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
@@ -67,13 +69,7 @@ bool AIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
         if (x < 0 || y < 0 || x >= cells.width || y >= cells.height || c.low >= c.high) continue;
         c.kind = OccluderKind::BridgeDeck;
         AIMapCell* cell = &cells[y][x];
-        if (!(cell->flags & kCellBridge)) {
-            std::uint32_t* occluderRow = occluders[y];
-            std::uint32_t key = BridgeKey(x, y);
-            if (!bridgeHeights.contains(key)) {
-                bridgeHeights[key] = SavedCell(*cell, occluderRow[x]);
-            }
-        }
+        if (!(cell->flags & kCellBridge)) bridgeHeights.SaveCell(x, y, *cell, occluders[y][x]);
         if (!AddOccluderRecord(&c)) return false;
         cell->flags = kCellBridge;
         std::uint16_t deck = static_cast<std::uint16_t>(c.high);

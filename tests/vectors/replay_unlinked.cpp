@@ -18,7 +18,7 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <list>
+#include <vector>
 
 namespace {
 [[noreturn]] void Unlinked(const char* what) {
@@ -35,7 +35,7 @@ namespace {
 void ScriptDropEffect(EngineObject*) EI_UNLINKED("ScriptDropEffect")
 
 // script_runtime_helpers.cpp's AI map and console helpers (SectorMap::Add and Remove: replay_path.cpp).
-std::list<CUnit*> SectorMap::FindUnitsInRadius(const Vector3&, float)
+std::vector<CUnit*> SectorMap::FindUnitsInRadius(const Vector3&, float)
     EI_UNLINKED("CSectorMap::FindUnitsInRadius")
 // ai_movement.cpp's shape cache and passability marks (ai_shape_cache.cpp, ai_refresh.cpp).
 RefObject* UnitShapeCache::Get(void*) EI_UNLINKED("UnitShapeCache::Get")
