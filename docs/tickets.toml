@@ -6089,3 +6089,17 @@ title = "Drawing-only files on /arch:SSE2 (flags only, code untouched)"
 group = "cleanup"
 model = "opus"
 note = "Step 1 of C30's plan (read C30's note). Per-file /arch:SSE2 for the drawing-only list, golden-checked; files that change a golden go back to IA32, listed with the golden; frame time before/after on R37's scenes. User 2026-10-29: sound goes on the SSE2 list (output only). Check first that no game state reads sound results back: speech/sample lengths driving dialogue or script timing, Play return handles used in logic, music state in saves; those paths stay x87 or get the golden check."
+
+[[ticket]]
+id = "R34c"
+title = "Client draws still on the game generators: idle animation picks, interface previews"
+group = "renderer"
+model = "opus"
+note = "V30 review (build/reviews/v30_a.md 1-2), checked: the client's StartIdleAnimation (unit_client_update.cpp RunTick, unit_client_animation.cpp) picks through CUnit::FindAnimation -> Object3D::RandomAnimation (object3d_animations.cpp) on libcrt::RandBelow, the stream the server's BuildAttackHit (combat.cpp), item_stock, hoover_loot and unit_ai_senses draw from; how often depends on draw-time AdvanceTime, so frame rate / framing shifts combat and loot on a host or in single player. Give the client path its own pick on g_clientRandom (the server keeps rand()). Also on the game generators: ui_hero_screen.cpp MpHeroScreen::MakePreview, ui_camp_create.cpp, ui_connect_screen.cpp, player_client.cpp DelayedProtectionCheck's rand() per 0x40 message: move each that is client-only. Harness retarget on game.exe as R34a did (harness_client_effects), goldens re-recorded once for the random group (user approved the R34a re-record; same reason)."
+
+[[ticket]]
+id = "S24b"
+title = "Settings file: never overwrite on a read failure; unwritable folder; paths; resolution"
+group = "standalone"
+model = "opus"
+note = "V30 review (build/reviews/v30_a.md 3-6). (1) settings_file.cpp Load writes the defaults over the file on any read failure (sharing violation: ReadWhole opens FILE_SHARE_READ only; cloud placeholder; read error; >=16 MB): write defaults only on ERROR_FILE_NOT_FOUND / ERROR_PATH_NOT_FOUND, otherwise run with defaults in memory and never write that session (say so in the log). (2) An unwritable exe folder (drop-in exe under Program Files) rewrites defaults every start and loses option changes: fall back to %LOCALAPPDATA%/EvilIslands/ei_settings.ini (read there first when the exe folder has none) or decide otherwise, and say which. (3) Defaults lack Work path / CD-ROM Path, so the game relies on the working directory being the data folder: the drop-in exe should use its own folder (S23), not the working directory. (4) The default resolution from GetSystemMetrics at first read: guard 0x0 (no desktop) and keep it after SetProcessDPIAware. Goldens unchanged."
