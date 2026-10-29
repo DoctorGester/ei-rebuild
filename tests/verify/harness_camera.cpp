@@ -1,6 +1,7 @@
-// The camera's motion frame by frame: the smooth camera's check (harness_camera.h; ticket R18).
+// The camera's motion frame by frame: the drawn view's checks (harness_camera.h; tickets R18, R35a).
 #include "harness_camera.h"
 
+#include "exe_objects.h"
 #include "image/image_side.h"
 #include "ei/hook.h"
 #include "../../src/hook/log.h"
@@ -18,11 +19,11 @@ namespace {
 constexpr double kPi = 3.14159265358979323846;
 constexpr double kJump = 2.0;   // a step more than this many times both neighbours' is a jump
 
-enum Kind { Pan, Turn, Zoom, Kinds };
-constexpr const char* kKindNames[Kinds] = {"pan", "turn", "zoom"};
+enum Kind { Pan, Turn, Zoom, Height, Kinds };
+constexpr const char* kKindNames[Kinds] = {"pan", "turn", "zoom", "height"};
 
 struct Sample {
-    double x, y, heading, distance;
+    double x, y, heading, distance, height;
 };
 
 struct Recording {
@@ -33,7 +34,9 @@ struct Recording {
 };
 
 bool g_recording = false;
-std::vector<Sample> g_samples;
+bool g_logFrames = false;          // "camtrace start log": each frame's poses in the log
+std::vector<Sample> g_samples;         // the drawn view's
+std::vector<Sample> g_cameraSamples;   // the camera's own
 double g_frameTime = 0.0;   // the frames' last camera updates' time, summed (camera time: 1 a tick)
 unsigned g_flags = 0;       // the camera's flags at the last sample
 std::map<std::string, Recording> g_recordings;
@@ -47,7 +50,8 @@ double Step(const Sample& a, const Sample& b, int kind) {
         if (d < -kPi) d += 2.0 * kPi;
         return std::fabs(d);
     }
-    default: return std::fabs(b.distance - a.distance);
+    case Zoom: return std::fabs(b.distance - a.distance);
+    default: return std::fabs(b.height - a.height);
     }
 }
 
@@ -78,31 +82,68 @@ int KindOf(const char* name) {
 
 } // namespace
 
+// game.exe's camera through its view (exe_objects.h); the original draws its own pose.
+image::CameraState OriginalCamera(const void* camera) {
+    const auto* c = static_cast<const exe::CCamera*>(camera);
+    image::CameraState state;
+    image::CameraPose& pose = state.own;
+    pose.focusX = c->focus_.x;
+    pose.focusY = c->focus_.y;
+    pose.focusZ = c->focus_.z;
+    pose.turnZ = c->viewRotation_.z;
+    pose.turnW = c->viewRotation_.w;
+    pose.distance = c->distance_;
+    pose.position[0] = c->localPosition_.x;
+    pose.position[1] = c->localPosition_.y;
+    pose.position[2] = c->localPosition_.z;
+    pose.rotation[0] = c->localRotation_.w;
+    pose.rotation[1] = c->localRotation_.x;
+    pose.rotation[2] = c->localRotation_.y;
+    pose.rotation[3] = c->localRotation_.z;
+    state.drawn = pose;
+    state.flags = c->flags_;
+    return state;
+}
+
+Sample SampleOf(const image::CameraPose& pose) {
+    return Sample{pose.focusX, pose.focusY, 2.0 * std::atan2(static_cast<double>(pose.turnZ), static_cast<double>(pose.turnW)),
+                  pose.distance, pose.position[2]};
+}
+
 void Frame(const void* camera, float seconds) {
     if (!g_recording || !camera) return;
     g_frameTime += seconds;
-    const image::CameraState c = image::Camera(camera);   // the image's camera (recorded only there)
+    const image::CameraState c = ei::Standalone() ? image::Camera(camera) : OriginalCamera(camera);
     g_flags = c.flags;
-    g_samples.push_back(Sample{c.focusX, c.focusY, 2.0 * std::atan2(static_cast<double>(c.turnZ), static_cast<double>(c.turnW)),
-                               c.distance});
+    const image::CameraPose& d = c.drawn;
+    g_samples.push_back(SampleOf(d));
+    g_cameraSamples.push_back(SampleOf(c.own));
+    if (g_logFrames) {
+        const image::CameraPose& o = c.own;
+        Log("harness: camframe %d %.3f own %.5f %.5f %.5f %.6f %.6f %.6f %.6f focus %.5f %.5f %.5f drawn %.5f %.5f %.5f %.6f %.6f "
+            "%.6f %.6f",
+            static_cast<int>(g_samples.size()), seconds, o.position[0], o.position[1], o.position[2], o.rotation[0], o.rotation[1],
+            o.rotation[2], o.rotation[3], o.focusX, o.focusY, o.focusZ, d.position[0], d.position[1], d.position[2], d.rotation[0],
+            d.rotation[1], d.rotation[2], d.rotation[3]);
+    }
 }
 
-bool UsedBy(const std::string& verb) { return verb == "camtrace" || verb == "camsame" || verb == "camsmooth"; }
+bool UsedBy(const std::string& verb) {
+    return verb == "camtrace" || verb == "camsame" || verb == "camsteadier" || verb == "camsmooth";
+}
 
 void Step(const std::string& verb, const std::string& argument, std::vector<std::string>* failures,
           std::vector<std::string>* lines) {
-    if (!ei::Standalone()) {
-        Log("harness: %s %s: the original code (the smooth camera is the image's): skipped", verb.c_str(), argument.c_str());
-        return;
-    }
     char text[600];
     if (verb == "camtrace") {
         char what[16] = "", name[64] = "";
         sscanf_s(argument.c_str(), "%15s %63s", what, unsigned(sizeof(what)), name, unsigned(sizeof(name)));
         if (std::strcmp(what, "start") == 0) {
             g_samples.clear();
+            g_cameraSamples.clear();
             g_frameTime = 0.0;
             g_recording = true;
+            g_logFrames = std::strcmp(name, "log") == 0;
             return;
         }
         if (std::strcmp(what, "stop") != 0 || !name[0]) {
@@ -110,32 +151,47 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
             return;
         }
         g_recording = false;
-        const Recording r = Measure(g_samples);
-        g_recordings[name] = r;
-        const Sample first = g_samples.empty() ? Sample{} : g_samples.front();
-        const Sample last = g_samples.empty() ? Sample{} : g_samples.back();
-        std::snprintf(text, sizeof(text),
-                      "camtrace %s: %d frames (last updates %.3f ticks, flags %X); pan %.4f (largest step %.4f, %d jumps), "
-                      "turn %.5f (%.5f, %d), zoom %.4f (%.4f, %d); focus (%.2f, %.2f) to (%.2f, %.2f), distance %.2f to %.2f",
-                      name, r.frames, g_frameTime, g_flags, r.total[Pan], r.largest[Pan], r.jumps[Pan], r.total[Turn],
-                      r.largest[Turn], r.jumps[Turn], r.total[Zoom], r.largest[Zoom], r.jumps[Zoom], first.x, first.y, last.x,
-                      last.y, first.distance, last.distance);
-        Log("harness: %s", text);
-        lines->push_back(text);
+        // The drawn view as <name>, the camera's own as <name>.camera.
+        for (const bool own : {false, true}) {
+            const std::vector<Sample>& samples = own ? g_cameraSamples : g_samples;
+            const std::string kept = own ? std::string(name) + ".camera" : std::string(name);
+            const Recording r = Measure(samples);
+            g_recordings[kept] = r;
+            const Sample first = samples.empty() ? Sample{} : samples.front();
+            const Sample last = samples.empty() ? Sample{} : samples.back();
+            std::snprintf(text, sizeof(text),
+                          "camtrace %s: %d frames (last updates %.3f ticks, flags %X); pan %.4f (largest step %.4f, %d jumps), "
+                          "turn %.5f (%.5f, %d), zoom %.4f (%.4f, %d), height %.4f (%.4f, %d); focus (%.2f, %.2f) to (%.2f, "
+                          "%.2f), distance %.2f to %.2f",
+                          kept.c_str(), r.frames, g_frameTime, g_flags, r.total[Pan], r.largest[Pan], r.jumps[Pan], r.total[Turn],
+                          r.largest[Turn], r.jumps[Turn], r.total[Zoom], r.largest[Zoom], r.jumps[Zoom], r.total[Height],
+                          r.largest[Height], r.jumps[Height], first.x, first.y, last.x, last.y, first.distance, last.distance);
+            Log("harness: %s", text);
+            lines->push_back(text);
+        }
         return;
     }
-    if (verb == "camsame") {
+    if (verb == "camsame" || verb == "camsteadier") {
         char a[64] = "", b[64] = "", kindName[16] = "";
         double fraction = 0.0;
         if (sscanf_s(argument.c_str(), "%63s %63s %15s %lf", a, unsigned(sizeof(a)), b, unsigned(sizeof(b)), kindName,
                      unsigned(sizeof(kindName)), &fraction) < 4 ||
             KindOf(kindName) < 0) {
-            failures->push_back("camsame needs two recordings, pan|turn|zoom and a fraction");
+            failures->push_back(verb + " needs two recordings, pan|turn|zoom|height and a fraction");
             return;
         }
         const int kind = KindOf(kindName);
         if (!g_recordings.count(a) || !g_recordings.count(b)) {
-            failures->push_back("camsame " + argument + ": no such recording");
+            failures->push_back(verb + " " + argument + ": no such recording");
+            return;
+        }
+        if (verb == "camsteadier") {
+            const double la = g_recordings[a].largest[kind], lb = g_recordings[b].largest[kind];
+            std::snprintf(text, sizeof(text), "camsteadier %s %s %s: largest step %.5f against %.5f (allowed %.3f of it)", a, b,
+                          kindName, la, lb, fraction);
+            Log("harness: %s", text);
+            lines->push_back(text);
+            if (!(lb > 1e-4) || la > fraction * lb) failures->push_back(text);
             return;
         }
         const double ta = g_recordings[a].total[kind], tb = g_recordings[b].total[kind];
@@ -153,7 +209,7 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
     if (sscanf_s(argument.c_str(), "%63s %15s %15s", name, unsigned(sizeof(name)), kindName, unsigned(sizeof(kindName)), jerky,
                  unsigned(sizeof(jerky))) < 2 ||
         KindOf(kindName) < 0) {
-        failures->push_back("camsmooth needs a recording and pan|turn|zoom");
+        failures->push_back("camsmooth needs a recording and pan|turn|zoom|height");
         return;
     }
     if (!g_recordings.count(name)) {

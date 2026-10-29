@@ -68,7 +68,6 @@ void ConfigureRenderer(const char* spec) { render::Configure(spec); }
 void SetWaitForVsync(bool on) { render::SetWaitForVsync(on); }
 void LoseDevice() { render::LoseDevice(); }
 bool RemoveDevice() { return render::RemoveDevice(); }
-void SetSmoothCamera(bool on) { render::SetSmoothCamera(on); }
 void EndFrame() { render::EndFrame(); }
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) { return render::ReadFrame(width, height, bgr); }
 

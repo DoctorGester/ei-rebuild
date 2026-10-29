@@ -13,7 +13,7 @@
 # with the cells). Then a run of frames at 8 ms (the sun turns between them) for the eye.
 # no original: vanilla rebirth (the shadow map is our renderer's)
 # prepare: copy_save.py tests/saves/shadow_corrupt save2
-render smooth,smoothcamera,checkall
+render smooth,checkall
 timeout 120
 reject Script error
 waitmenu

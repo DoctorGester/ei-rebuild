@@ -185,6 +185,10 @@ int CWorldClient::Render() {
     // The world view for the new renderer's render quality (multisampled, models sampled
     // anisotropically); the interface draws after it.
     render::BeginWorld();
+    // The camera's pose this frame shows (camera::DrawnView): the view, the sky and what the draws below place
+    // by the camera (camera::FrameView).
+    camera::TakeFrameView(&g_camera);
+    const camera::ViewPose& drawn = camera::FrameView();
     CTextureDevice* renderer = g_sceneRenderer.device_;
     CTransformPipeline* device = g_sceneRenderer.pipeline_;
     UpdateLighting();
@@ -197,11 +201,7 @@ int CWorldClient::Render() {
     }
     HandOverSceneLights(this);
     Matrix4 view;
-    // The smooth view (an experiment, render::SmoothView): the pose between the camera's last two ticks.
-    const bool smoothView = render::SmoothView() != render::ViewSmoothing::Off;
-    const camera::ViewPose drawn = smoothView ? camera::DrawnView(&g_camera) : camera::ViewPose{};
-    if (smoothView) view::ViewMatrix(view.m, drawn.position, drawn.rotation);
-    else view::CameraViewMatrix(view.m, &g_camera);   // (the result is not read)
+    view::ViewMatrix(view.m, drawn.position, drawn.rotation);
     PopMatrix(device->stacks_[kStackView]);
     PushMatrix(device->stacks_[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;
@@ -220,7 +220,7 @@ int CWorldClient::Render() {
         state.cull = render::Cull::None;
         state.specular = true;
         renderer->distanceFog_ = 0;
-        skyDome_->Draw(&g_sceneRenderer, smoothView ? drawn.position : camera_->localPosition_);
+        skyDome_->Draw(&g_sceneRenderer, drawn.position);
         renderer->distanceFog_ = 1;
         state.cull = render::Cull::Clockwise;
         state.specular = false;
@@ -230,8 +230,7 @@ int CWorldClient::Render() {
     if ((flags_ & WorldClientFlag::DrawTerrain) && terrain_) {
         Vector3 frame;
         camera_->GroundPoint(&frame);
-        CCamera* camera = camera_;
-        terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
+        terrain_->SetVisibleSectors(camera_->localPosition_.x, camera_->localPosition_.y, LandscapeDrawRadius());
         state.stages[0].combiner = kTerrainStage;
         terrain_->DrawGround(&g_sceneRenderer);
     }
@@ -240,8 +239,7 @@ int CWorldClient::Render() {
     if ((flags_ & WorldClientFlag::DrawTerrain) && terrain_) {
         Vector3 frame;
         camera_->GroundPoint(&frame);
-        CCamera* camera = camera_;
-        terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
+        terrain_->SetVisibleSectors(camera_->localPosition_.x, camera_->localPosition_.y, LandscapeDrawRadius());
         state.alphaTest = false;
         state.stages[0].combiner = kSceneStage;
         terrain_->DrawWater(&g_sceneRenderer);
@@ -420,7 +418,7 @@ int CWorldClient::DrawPass() {
         matrix.m[5] = 1.0f;
         matrix.m[0] = 1.0f;
         Vector3 sun;
-        g_camera.localRotation_.AxisZ(&sun);
+        camera::FrameView().rotation.AxisZ(&sun);
         const float scale = kShadowLength;
         float product = sun.x * scale;
         matrix.m[3] = product;

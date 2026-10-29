@@ -42,6 +42,10 @@ void Install();
 // real mouse's and is answered with *result.
 bool RealMouse(HWND window, UINT message, WPARAM wParam, LPARAM lParam, LRESULT* result);
 
+// The harness's own DirectInput motion (the "mousedrag" step): the game's next read of its mouse reports
+// (dx, dy) more, summed until read (the real mouse's motion stays left out).
+void AddMotion(int dx, int dy);
+
 // The report's MOUSE: line.
 void Report(FILE* f);
 

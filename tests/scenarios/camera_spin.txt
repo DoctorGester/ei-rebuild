@@ -1,0 +1,63 @@
+# The drawn view while the camera spins (R35a; docs/notes/renderer.md section 14, "Spinning"), at a fixed frame
+# time of 8 ms. Zoomed in and tilted low, a turn with Ctrl and an arrow key swings the camera over the ground and
+# the houses behind it: the game lifts it over them and aims it back down at the focus (CCamera::ClampAboveObjects
+# and ApplyView, as the original does), so it rises and falls by several units a turn and, at 120 frames a second,
+# jumps in height at every world tick; the drawn view spreads those jumps (its largest step in height about a quarter
+# of the camera's; what is left are the game's own changes within a frame). Zoomed out, a fast drag with
+# the right button (mousedrag 160: 0.43 rad a tick) turns the camera faster than the drawn view's old cut
+# (0.4 rad or 8 units a tick, shown at once): the drawn view still turns without jumps.
+# no original: vanilla rebirth (the drawn view is our renderer's; the original draws the camera's own pose)
+timeout 120
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 300
+frametime 8
+frames 30
+
+keydown pgup
+frames 150
+keyup pgup
+frames 40
+hold ctrl
+keydown down
+frames 200
+keyup down
+frames 40
+camtrace start
+keydown left
+frames 400
+keyup left
+frames 40
+camtrace stop low
+release ctrl
+
+keydown pgdn
+frames 200
+keyup pgdn
+frames 40
+rdown 400 300
+camtrace start
+mousedrag 160 0
+frames 300
+mousedrag 0 0
+frames 40
+camtrace stop fast
+rup 400 300
+
+camsame low low.camera turn 0.03
+camsmooth low turn
+camsmooth low.camera turn jerky
+camsteadier low low.camera height 0.35
+camsmooth low.camera height jerky
+camsame fast fast.camera turn 0.03
+camsmooth fast turn
+camsmooth fast.camera turn jerky
+frametime 0
+report
+quit

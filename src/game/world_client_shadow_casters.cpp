@@ -236,7 +236,7 @@ void HandOverSceneLights(CWorldClient* world) {
     s.ambientColour[0] = world->frameAmbient_.r;
     s.ambientColour[1] = world->frameAmbient_.g;
     s.ambientColour[2] = world->frameAmbient_.b;
-    if (const CCamera* camera = world->camera_) s.camera = camera->localPosition_;
+    if (world->camera_) s.camera = camera::FrameView().position;
     s.points = points.data();
     s.pointCount = static_cast<int>(points.size());
     render::SceneLighting(s);

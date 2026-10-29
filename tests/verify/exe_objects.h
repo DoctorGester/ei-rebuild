@@ -273,6 +273,17 @@ struct CTransformObject : CEngineObject {
 };
 static_assert(sizeof(CTransformObject) == 0x54);
 
+// The camera (camera.h, 0079B2A8): its focus, distance and heading; the camera trace reads them (harness_camera.cpp).
+struct CCamera : CTransformObject {
+    std::uint8_t unknown54[0x8C];
+    Vector3 focus_;                         // +0xE0
+    float focusHeight_;                     // +0xEC
+    float distance_;                        // +0xF0
+    Quaternion viewRotation_;               // +0xF4
+    std::uint8_t unknown104[0x200];
+};
+static_assert(sizeof(CCamera) == 0x304 && offsetof(CCamera, focus_) == 0xE0 && offsetof(CCamera, viewRotation_) == 0xF4);
+
 // A texture (texture.h).
 struct CTexture : CEngineObject {
     CString name_;                          // +0x1C

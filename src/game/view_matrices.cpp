@@ -10,10 +10,6 @@
 
 namespace view {
 
-void CameraViewMatrix(float* out, const CTransformObject* camera) {
-    ViewMatrix(out, camera->localPosition_, camera->localRotation_);
-}
-
 void ViewMatrix(float* out, const Vector3& position, const Quaternion& q) {
     Vector3 axisX;
     q.AxisX(&axisX);

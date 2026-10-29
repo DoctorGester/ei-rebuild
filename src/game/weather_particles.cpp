@@ -107,7 +107,7 @@ ParticleFrame Begin(CRainSnow& layer, float sink, float rise) {
     frame.wind.z = static_cast<float>(layer.wind.z - sink);
     const CWorldClient* world = layer.world;
     frame.time = static_cast<float>(static_cast<float>(world->tick_) + world->tickFraction_);
-    const Vector3 eye = world->camera_->localPosition_;
+    const Vector3 eye = camera::FrameView().position;
     // The time a particle takes from `rise` above the camera, and where it starts from then.
     const float time = static_cast<float>((eye.z - rise) / frame.wind.z);
     frame.baseX = x87::fistp(static_cast<float>((eye.x - frame.wind.x * time) * kCellsPerUnit));

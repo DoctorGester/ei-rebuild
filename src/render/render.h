@@ -5,8 +5,8 @@
 // cannot go on (a sokol panic, a lost device not made again, no swap chain), the game ends with the reason in the
 // game's error box (renderer.md, "When the renderer fails"). Nothing calls it in game.exe's process (harness,
 // vector recorders). See docs/notes/renderer.md.
-// EI_RENDER (or the harness step "render <spec>") is a comma-separated list: "smoothcamera", "smoothview",
-// "smoothviewspread", the harness build's "removable" and "checkall".
+// EI_RENDER (or the harness step "render <spec>") is a comma-separated list of the harness build's words:
+// "removable" and "checkall".
 
 #include "lib/vecmath.h"
 
@@ -56,17 +56,6 @@ SmoothInfo SmoothState();
 enum class SmoothOrder : std::uint8_t { Game, Before, Split };
 void SetSmoothOrder(SmoothOrder order);
 
-// The smooth camera (renderer.md section 14; off by default): the battle camera moves once a frame by the
-// frame's time and follows its target blended between the target's last two ticks. Read by the main loop
-// and CCamera::Update, not by the renderer. EI_RENDER's "smoothcamera" or SetSmoothCamera.
-void SetSmoothCamera(bool on);
-bool SmoothCamera();
-// The smooth view (an experiment; renderer.md section 14a): the camera keeps the game's timing and the
-// world's draw shows another pose (camera::DrawnView). Between ("smoothview" in EI_RENDER): between its last two
-// client ticks. Spread ("smoothviewspread"): the camera's own, less the part of its last tick's step the frame has
-// not reached yet.
-enum class ViewSmoothing { Off, Between, Spread };
-ViewSmoothing SmoothView();
 // The performance overlay (render_perf.h). Switched by the settings file; the harness build has none.
 bool PerfOverlaySupported();
 void SetPerfOverlay(bool on);
