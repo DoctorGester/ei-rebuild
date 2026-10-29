@@ -47,8 +47,6 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
-#include <iterator>
-#include <list>
 #include <vector>
 #include <windows.h>
 
@@ -159,24 +157,24 @@ constexpr auto kDrawUnit = [](CMapObject* object) {
 };
 constexpr auto kDrawShadow = [](CMapObject* object) { object->DrawFigureShadow(&g_sceneRenderer); };
 
-// Calls the ground print draw on the value of every node of an effect list (the ground print lists).
+// Draws every print of a ground print vector.
 template <typename T>
-void DrawLightEffects(std::list<T>& list) {
-    for (GroundPrint& print : list) print.Draw();
+void DrawLightEffects(std::vector<T>& prints) {
+    for (GroundPrint& print : prints) print.Draw();
 }
 
 } // namespace
 
 const Matrix4* worlddata::SceneCamera() { return g_haveSceneCamera ? &g_sceneCamera : nullptr; }
 
-int QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued) {
+int QueueScreenEntry(CMapObject* object, std::vector<ScreenEntry>* queued) {
     if (!(object->flags & MapObjectFlag::Shown) || (object->flags & MapObjectFlag::NotDrawn)) return 0;
     const CObject3D* figure = object;
     ScreenEntry entry;
     entry.classId = object->GetClassId();
     entry.objectId = static_cast<unsigned>(object->id);
     entry.rect = figure->dirtyRect;
-    queued->insert(queued->end(), entry);
+    queued->push_back(entry);
     return 1;
 }
 
@@ -333,9 +331,9 @@ int WorldClient::DrawPass() {
     rangeLastY = static_cast<std::uint32_t>(Ftol(yHi)) >> 4;
 
     int touched = 0;
-    std::list<HeldRef<CMapObject>>* sector = &objectGrid.rows[sy0][sx0];
+    auto* sector = &objectGrid.rows[sy0][sx0];
     while (sector) {
-        touched += CollectVisible(sector, view, animTime, now, 0, 0);
+        for (CMapObject* object : *sector) touched += CollectVisible(object, view, animTime, now, 0, 0);
         std::uint32_t x = ++rangeX;
         if (x > rangeLastX) {
             rangeX = rangeFirstX;
@@ -344,9 +342,9 @@ int WorldClient::DrawPass() {
         }
         sector = &objectGrid.rows[rangeY][rangeX];
     }
-    touched += CollectVisible(&g_deferredUnits, view, animTime, now, 1, 0);
+    for (CMapObject* object : g_deferredUnits) touched += CollectVisible(object, view, animTime, now, 1, 0);
     g_deferredUnits.clear();
-    touched += CollectVisible(&heroes, view, animTime, now, 1, 1);
+    for (CMapObject* object : heroes) touched += CollectVisible(object, view, animTime, now, 1, 1);
 
     // Models in view stay loaded: the most recently used max(10, n / 8) lose MapObjectFlag::Static.
     std::vector<CMapObject*>& models = FrameObjects(FrameList::TouchedModels);
@@ -363,8 +361,8 @@ int WorldClient::DrawPass() {
         }
     }
 
-    // The frame's window rectangles (an STLport list of 32-byte nodes).
-    std::list<ScreenEntry>& queued = screenEntries;
+    // The frame's window rectangles.
+    std::vector<ScreenEntry>& queued = screenEntries;
     if (flags & (WorldClientFlag::DrawObjects | WorldClientFlag::DrawUnits)) {
         state.stages[0].combiner = kAlphaPassStage;
         queued.clear();
@@ -443,42 +441,39 @@ int WorldClient::DrawPass() {
 
     // Selection markers (selectedIds of object ids) in single-player mode 1 with units drawn: a marker at
     // each living object (at its named part when it has one); dead ones leave the list.
-    std::list<int>& selected = selectedIds;
+    std::vector<int>& selected = selectedIds;
     if (!selected.empty() && options::g_options.selectionType == 1 && (flags & WorldClientFlag::DrawUnits)) {
         state.alphaTest = false;
         g_sceneRenderer.SetTexture(0, nullptr);
         CMapObjectManager* manager = objectManager;
-        for (std::list<int>::iterator node = selected.begin(); node != selected.end();) {
-            std::list<int>::iterator next = std::next(node);
-            int objectId = (*node);
+        // In order: a living object's marker drawn, a dead one unselected and its id erased.
+        std::erase_if(selected, [manager](int objectId) {
             auto* object = manager->FindObjectAs<CMapObject>(static_cast<unsigned>(objectId));
-            if (object) {
-                if (object->IsDead() == 0) {
-                    Vector3 point;
-                    point = object->localPosition;
-                    if (FigureMesh* part = object->FindPartByPrefix(MarkerPartName())) {
-                        Vector3 scratch;
-                        const float* at = object->PartWorldPosition(&scratch.x, part);
-                        lib::LoadBytes(point, at);
-                        point.z = Reload(object->localPosition.z);
-                    }
-                    const Quaternion* orientation = &object->localRotation;
-                    Vector3 axisY, axisX;
-                    orientation->AxisY(&axisY);
-                    orientation->AxisX(&axisX);
-                    g_sceneRenderer.DrawSelectionMarker(point, 0.5f, axisX, axisY);
-                } else {
-                    if (object->flags & MapObjectFlag::Selected) {
-                        object->flags &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);
-                        // The side half's empty virtual and SetLit with 0: the marker light goes off.
-                        object->attached->Unused25(0);
-                        object->attached->SetLit(false);
-                    }
-                    selected.erase(node);
+            if (!object) return false;
+            if (object->IsDead() == 0) {
+                Vector3 point;
+                point = object->localPosition;
+                if (FigureMesh* part = object->FindPartByPrefix(MarkerPartName())) {
+                    Vector3 scratch;
+                    const float* at = object->PartWorldPosition(&scratch.x, part);
+                    lib::LoadBytes(point, at);
+                    point.z = Reload(object->localPosition.z);
                 }
+                const Quaternion* orientation = &object->localRotation;
+                Vector3 axisY, axisX;
+                orientation->AxisY(&axisY);
+                orientation->AxisX(&axisX);
+                g_sceneRenderer.DrawSelectionMarker(point, 0.5f, axisX, axisY);
+                return false;
             }
-            node = next;
-        }
+            if (object->flags & MapObjectFlag::Selected) {
+                object->flags &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);
+                // The side half's empty virtual and SetLit with 0: the marker light goes off.
+                object->attached->Unused25(0);
+                object->attached->SetLit(false);
+            }
+            return true;
+        });
     }
 
     g_deferredUnits.clear();

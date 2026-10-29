@@ -52,15 +52,11 @@ void VisFogManagerDestroy(ClientArrayManager* self) {
 
 // Every fog's tick; one that returns false (no cells left) leaves the list and is released.
 bool ClientArrayManager::RunTick() {
-    for (auto node = list.begin(); node != list.end();) {
-        EngineObject* fog = *node;
-        if (fog->RunTick()) {
-            ++node;
-            continue;
-        }
-        node = list.erase(node);
+    std::erase_if(list, [](EngineObject* fog) {
+        if (fog->RunTick()) return false;
         fog->Release();
-    }
+        return true;
+    });
     return false;
 }
 

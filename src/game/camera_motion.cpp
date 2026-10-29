@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iterator>
+#include <vector>
 
 namespace {
 
@@ -132,7 +133,7 @@ void Camera::ClampAboveObjects() {
     Vector3* p = &localPosition;
     float average, lowest, highest;
     SampleTerrain(*p, 1.0f, 2.0f, 2.0f, &average, &lowest, &highest);
-    std::list<CObject3D*> list = g_clientWorld.ObjectsInRange(*p, 16.0f);
+    std::vector<CObject3D*> list = g_clientWorld.ObjectsInRange(*p, 16.0f);
     float best = 0.0f;
     for (auto& node : list) {
         const CObject3D* object = node;

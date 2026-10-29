@@ -1,7 +1,7 @@
 #pragma once
 
 // Ground prints: footprints, blood and scorch marks lying on the ground. The client world keeps them by value
-// in three lists (blood, footprints, scorch marks), ticks them (a print whose life reaches 0 is erased),
+// in three vectors (blood, footprints, scorch marks), ticks them (a print whose life reaches 0 is erased),
 // draws them (Draw) and saves / loads them. A print is a textured quad around its point, rotated by `angle`,
 // its texture tile picked by the uv offset and scale and turned by `uvAngle`; Draw lays it on the ground
 // once (the decal projector) and draws it with an alpha that fades over the print's life. See
@@ -13,6 +13,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 #include <vector>
 
 class ByteStream;
@@ -22,7 +23,7 @@ struct VertexPacket;
 // A texture by name. The device binds it by looking the texture up again by name.
 struct NamedTexture {
     std::string name;
-    Ref<CTexture> texture;
+    HeldRef<CTexture> texture;   // a HeldRef: the client world's print vectors move the prints
 };
 
 // A scorch mark and the base of the other two.
@@ -34,6 +35,8 @@ public:
                 int lifetime);
     GroundPrint(const GroundPrint&) = delete;
     GroundPrint& operator=(const GroundPrint&) = delete;
+    GroundPrint(GroundPrint&&) noexcept = default;   // the client world's print vectors move them
+    GroundPrint& operator=(GroundPrint&&) noexcept = default;
     virtual ~GroundPrint() = default;
 
     // One tick: life - 1, both half sizes grow by `growth`, alpha = (1 - max(t, 0))
@@ -117,3 +120,5 @@ public:
     int kind;                       // tile >> 16
     std::uint8_t fresh;             // a hit's blood (not a death's): footprints ignore it
 };
+
+static_assert(std::is_nothrow_move_constructible_v<Footprint> && std::is_nothrow_move_constructible_v<BloodPrint>);

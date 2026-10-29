@@ -589,7 +589,7 @@ public:
     // R (pivot + offset) + position and the radius.
     void AddBox(int id, const FootprintPart* item, const Vector3& position, const Quaternion* rotation);
 
-    std::list<Platform> list;                    // the faces, the newest first
+    std::vector<Platform> list;                  // the faces, the newest first
 };
 
 // The unit set the server's SendZone fills and the client reads back as its unit looks (unit_looks.h): the figured
@@ -620,6 +620,8 @@ struct UnitSet {
 void ReadUnitLooks(ByteStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed);
 
 struct SectorGrid {
+    // Nothing keeps a cell's iterators or adds to a cell while it is walked: lists only until the shadow
+    // casters' walk (world_client_shadow_casters.cpp) takes another type.
     std::unique_ptr<std::list<HeldRef<CMapObject>>[]> cells;
     std::unique_ptr<std::list<HeldRef<CMapObject>>*[]> rows;    // row y: its lists
     int allocatedWidth, allocatedHeight;    // the cells allocated (Resize: when they change)
@@ -669,15 +671,15 @@ struct ScreenEntry {
 };
 // An object whose screen rectangle is valid (flags 0x20) and that is not hidden (0x40) puts its class id, id and
 // rectangle at the end of `queued`.
-int QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued);
+int QueueScreenEntry(CMapObject* object, std::vector<ScreenEntry>* queued);
 
-// The functor of the for_each over the screen entries: CollectBounds / CollectParts push to `hits` every entry whose
-// rectangle holds (x, y) and whose object (found in `manager`) answers the bounds virtual (CollectBounds) or 24
-// (CollectParts) for the point.
+// The functor of the for_each over the screen entries: CollectBounds / CollectParts push to `hits` every entry of
+// `entries` whose rectangle holds (x, y) and whose object (found in `manager`) answers the bounds virtual
+// (CollectBounds) or 24 (CollectParts) for the point.
 struct HitCollector {
-    HitCollector* CollectBounds(std::list<ScreenEntry>::iterator first, std::list<ScreenEntry>::iterator last, std::vector<ScreenEntry>* hits, long x, long y,
+    HitCollector* CollectBounds(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* hits, long x, long y,
                                 CMapObjectManager* manager);
-    HitCollector* CollectParts(std::list<ScreenEntry>::iterator first, std::list<ScreenEntry>::iterator last, std::vector<ScreenEntry>* hits, long x, long y,
+    HitCollector* CollectParts(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* hits, long x, long y,
                                CMapObjectManager* manager);
     std::vector<ScreenEntry>* hits;
 };
@@ -697,7 +699,7 @@ struct ClientArrayManager : BaseManager {
     int Draw(SceneRenderer* renderer);
 
     Ref<CTexture> texture;                  // the fog texture (counted)
-    std::list<EngineObject*> list;       // counted
+    std::vector<EngineObject*> list;     // counted
 };
 // The manager's Clear (its object and every listed one released, the list emptied); a new fog object,
 // counted, at the list end.
@@ -841,11 +843,11 @@ public:
     // cave or not, the weather.
     std::uint32_t EnvironmentFlags(CUnit* unit);
 
-    // Files each object of `list` with a model inside the view frustum in the frame's draw lists; with
-    // `animateUnits` 0 units only go on the deferred list, `withScripted` lets heroes with a text-key id
-    // through. Returns how many objects were queued for the model-touch list.
-    int CollectVisible(std::list<HeldRef<CMapObject>>* list, const Matrix4* view, float animTime, std::uint32_t now,
-                       char animateUnits, char withScripted);
+    // Files `object` (null skipped) in the frame's draw lists when it has a model inside the view frustum;
+    // with `animateUnits` 0 a unit only goes on the deferred list, `withScripted` lets heroes with a text-key
+    // id through. Returns 1 when the object was queued for the model-touch list, else 0.
+    int CollectVisible(CMapObject* object, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
+                       char withScripted);
     // The ground point under screen pixel (x, y): inverts the current view matrix and iterates on the
     // terrain height (Terrain::HeightAt). Returns out (x, y, z).
     Vector3* PickGround(Vector3* out, int x, int y);
@@ -913,7 +915,7 @@ public:
     CUnit* UnitAt2(const struct tagPOINT* point);
     // Every object of the frame's window list that still exists and whose side half has a drawn part
     // meeting the screen rectangle `rect`.
-    std::list<CMapObject*> UnitsInBox(const tagRECT* rect);
+    std::vector<CMapObject*> UnitsInBox(const tagRECT* rect);
     // Marks the footprints within their scale times `range` of the point (x, y).
     void MarkFootprintsInSight(const float* point, float range);
     // The wind: stored, given to the terrain's waves and to the rain and snow layer.
@@ -939,7 +941,7 @@ public:
     // hypot(rangeX, rangeY) of the point. The cell range (truncated
     // and clamped to the terrain) and the walk's cursor are left in rangeFirstX .. rangeY. The
     // original's z difference is the point's z minus itself (0, kept).
-    std::list<CObject3D*> ObjectsInRange(const Vector3& point, float radius);
+    std::vector<CObject3D*> ObjectsInRange(const Vector3& point, float radius);
     // Reads the light colours from config\<file> (an .ini, LightsGipat.ini): each key of [sunlight],
     // [ambient] and [sky] names its hour in characters 4..5 ("hour07") and holds "r, g, b" (0..255,
     // scaled by 1/255, alpha 1); the hours between two keys in file order are filled by linear steps
@@ -965,14 +967,14 @@ public:
     std::vector<ZoneExit> exits;
     // The exits' particle markers, one per exit or null (counted; CreateExitMarkers / UpdateExitMarkers).
     std::vector<HeldRef<ParticleSource>> exitMarkers;
-    std::list<HeldRef<CMapObject>> heroes;                    // heroes with a text-key id (counted)
-    std::list<CMapObject*> objects;                // every filed object (one reference each)
+    std::vector<HeldRef<CMapObject>> heroes;                  // heroes with a text-key id (counted)
+    std::vector<CMapObject*> objects;              // every filed object (one reference each)
     // The objects answering IsSynchronised, with their nodes by id in dynamicNodes and the highest id
     // in dynamicMaxId (Segment drops those whose update returns 0). A list: dynamicNodes keeps its iterators.
     std::list<CMapObject*> dynamicObjects;
     std::unordered_map<std::uint32_t, std::list<CMapObject*>::iterator> dynamicNodes;   // id -> its node in dynamicObjects
     int dynamicMaxId;
-    std::list<ScreenEntry> screenEntries;    // the window rectangles of the frame
+    std::vector<ScreenEntry> screenEntries;  // the window rectangles of the frame
     std::vector<ScreenEntry> hits;                      // the entries under the point (PickAt)
     ScreenEntry* hitCursor;               // PickAt's walk, left on the entry it returns
     lib::HashMap<unsigned, LineBatch*> lineLists;    // line lists by key (DrawLineLists: drawn in STLport's order)
@@ -996,9 +998,9 @@ public:
     EffectMoshka* bird;                  // the bird following the party (SummonBird), owned
     FlyingHitPoints* numbers;            // owned
     // Segment ticks the ground prints and colours the blood prints by the light.
-    std::list<BloodPrint> bloodPrints;
-    std::list<Footprint> footprints;
-    std::list<GroundPrint> scorchMarks;
+    std::vector<BloodPrint> bloodPrints;
+    std::vector<Footprint> footprints;
+    std::vector<GroundPrint> scorchMarks;
     int lightLevelsCountdown;             // time left before the blood prints are lit again (Segment); 0 after Setup
     Ref<ClientHandle> handle;       // the client's player source
     SoundManager* sounds;                // the sound manager (owned; the client controller's hit sounds)
@@ -1030,7 +1032,7 @@ public:
     // The rain / snow layer, built and destroyed with the world. Its `mode` (1 rain, 2 snow) picks the ground
     // prints' wet look and an environment flag.
     RainSnow rainSnow;
-    std::list<int> selectedIds;              // the selected objects' ids
+    std::vector<int> selectedIds;            // the selected objects' ids
     int worldValue;                       // -1; message 0x12 sets it (SetWorldValue); the exe never reads it
     void* cursor;                         // HCURSOR wincurs\Df0000.cur
     // The window's names, set by the constructor and freed by the destructor only: "EvilIslands",
@@ -1304,7 +1306,7 @@ inline std::vector<CMapObject*>& FrameObjects(FrameList list) {
                                               &g_visibleLevers,     &g_visibleOther, &g_visibleBuildings};
     return *kQueues[static_cast<int>(list)];
 }
-extern std::list<HeldRef<CMapObject>> g_deferredUnits;   // world_client_view.cpp
+extern std::vector<HeldRef<CMapObject>> g_deferredUnits;   // world_client_view.cpp
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a
 // thunder sound, otherwise a point light at the middle, a sound and two bolts.

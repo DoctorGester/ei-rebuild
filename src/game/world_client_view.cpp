@@ -137,89 +137,86 @@ Vector3* PickPoint(WorldClient* world, Vector3* out, int screenX, int screenY, H
 
 // ---- Visibility ----------------------------------------------------------------------------------
 
-int WorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Matrix4* view, float animTime, std::uint32_t now,
-                                 char animateUnits, char withScripted) {
+int WorldClient::CollectVisible(CMapObject* object, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
+                                char withScripted) {
+    if (!object || !Object3D(object)->attached) return 0;
     TransformPipeline* device = g_sceneRenderer.pipeline;
     int touched = 0;
     // Only a multiplayer spectator view (session kind 1) leaves units it cannot see out.
     bool drawAllUnits = true;
     if (g_multiplayerView != 0 && session->sessionKind == 1) drawAllUnits = false;
 
-    for (CMapObject* object : *list) {
-        if (object && Object3D(object)->attached) {
-            bool process = true;
-            if (object->GetClassId() == ClassId::Unit) {
-                if (object->MapType() == MapObjectType::Hero && IsTextKey(object->id) && !withScripted) {
-                    process = false;
-                } else if (animateUnits) {
-                    object->AdvanceTime(animTime);
-                    if (!drawAllUnits && !(object->flags & MapObjectFlag::InParty)) process = false;
-                } else {
-                    // First pass: units wait on the deferred list (which holds a reference).
-                    g_deferredUnits.emplace_back(object);
-                    process = false;
-                }
-            }
-            if (process) {
-                // Object -> world matrix: the rotation with the position as the last column.
-                CObject3D* o3d = Object3D(object);
-                float* matrix = o3d->worldMatrix.m;
-                static_cast<const Quaternion*>(&o3d->localRotation)->ToMatrix(matrix);
-                matrix[3] = o3d->localPosition.x;
-                matrix[7] = o3d->localPosition.y;
-                matrix[11] = o3d->localPosition.z;
-                matrix[14] = 0.0f;
-                matrix[13] = 0.0f;
-                matrix[12] = 0.0f;
-                matrix[15] = 1.0f;
-                PushStackMatrix(device, TransformPipeline::kClipStack, matrix);
-                int where = g_sceneRenderer.pipeline->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->bounds.flags));
-                device->PopMatrix(TransformPipeline::kClipStack);
+    bool process = true;
+    if (object->GetClassId() == ClassId::Unit) {
+        if (object->MapType() == MapObjectType::Hero && IsTextKey(object->id) && !withScripted) {
+            process = false;
+        } else if (animateUnits) {
+            object->AdvanceTime(animTime);
+            if (!drawAllUnits && !(object->flags & MapObjectFlag::InParty)) process = false;
+        } else {
+            // First pass: units wait on the deferred list (which holds a reference).
+            g_deferredUnits.emplace_back(object);
+            process = false;
+        }
+    }
+    if (process) {
+        // Object -> world matrix: the rotation with the position as the last column.
+        CObject3D* o3d = Object3D(object);
+        float* matrix = o3d->worldMatrix.m;
+        static_cast<const Quaternion*>(&o3d->localRotation)->ToMatrix(matrix);
+        matrix[3] = o3d->localPosition.x;
+        matrix[7] = o3d->localPosition.y;
+        matrix[11] = o3d->localPosition.z;
+        matrix[14] = 0.0f;
+        matrix[13] = 0.0f;
+        matrix[12] = 0.0f;
+        matrix[15] = 1.0f;
+        PushStackMatrix(device, TransformPipeline::kClipStack, matrix);
+        int where = g_sceneRenderer.pipeline->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->bounds.flags));
+        device->PopMatrix(TransformPipeline::kClipStack);
 
-                CMapObject* const& entry = object;
-                if (where != 2) {
-                    object->flags |= MapObjectFlag::Shown;
-                    // View-space position: x summed ZYX, y and z XYZ, each rounded.
-                    o3d->worldPosition = TransformColumnNormal<Sum3::ZYX, Sum3::XYZ>(*view, o3d->localPosition);
-                    switch (object->GetClassId()) {
-                    case ClassId::Unit:
-                        PushBack(g_visibleUnits, entry);
-                        PushBack(g_shadowUnits, entry);
-                        break;
-                    case ClassId::Tree:
-                        PushBack(g_visibleTrees, entry);
-                        PushBack(g_shadowTrees, entry);
-                        break;
-                    case ClassId::Building:
-                        PushBack(g_visibleBuildings, entry);
-                        PushBack(g_shadowBuildings, entry);
-                        break;
-                    case ClassId::Lever:
-                        PushBack(g_visibleLevers, entry);
-                        PushBack(g_shadowLevers, entry);
-                        break;
-                    default:
-                        PushBack(g_visibleOther, entry);
-                        PushBack(g_shadowOther, entry);
-                        break;
-                    }
-                    if ((object->flags & MapObjectFlag::Stationary) && now - ModelOf(object)->touchTime > static_cast<std::uint32_t>(g_modelTouchDelay)) {
-                        PushBack(g_touchedModels, entry);
-                        ++touched;
-                    }
-                } else {
-                    object->flags &= ~MapObjectFlag::Shown;
-                    // Out of view: still listed for shadows when its shadow volume is in view.
-                    if (ModelOf(object)->ShadowInView()) {
-                        if (o3d->animation) o3d->animation->UpdatePose();
-                        switch (object->GetClassId()) {
-                        case ClassId::Unit: PushBack(g_shadowUnits, entry); break;
-                        case ClassId::Tree: PushBack(g_shadowTrees, entry); break;
-                        case ClassId::Building: PushBack(g_shadowBuildings, entry); break;
-                        case ClassId::Lever: PushBack(g_shadowLevers, entry); break;
-                        default: PushBack(g_shadowOther, entry); break;
-                        }
-                    }
+        CMapObject* const& entry = object;
+        if (where != 2) {
+            object->flags |= MapObjectFlag::Shown;
+            // View-space position: x summed ZYX, y and z XYZ, each rounded.
+            o3d->worldPosition = TransformColumnNormal<Sum3::ZYX, Sum3::XYZ>(*view, o3d->localPosition);
+            switch (object->GetClassId()) {
+            case ClassId::Unit:
+                PushBack(g_visibleUnits, entry);
+                PushBack(g_shadowUnits, entry);
+                break;
+            case ClassId::Tree:
+                PushBack(g_visibleTrees, entry);
+                PushBack(g_shadowTrees, entry);
+                break;
+            case ClassId::Building:
+                PushBack(g_visibleBuildings, entry);
+                PushBack(g_shadowBuildings, entry);
+                break;
+            case ClassId::Lever:
+                PushBack(g_visibleLevers, entry);
+                PushBack(g_shadowLevers, entry);
+                break;
+            default:
+                PushBack(g_visibleOther, entry);
+                PushBack(g_shadowOther, entry);
+                break;
+            }
+            if ((object->flags & MapObjectFlag::Stationary) && now - ModelOf(object)->touchTime > static_cast<std::uint32_t>(g_modelTouchDelay)) {
+                PushBack(g_touchedModels, entry);
+                ++touched;
+            }
+        } else {
+            object->flags &= ~MapObjectFlag::Shown;
+            // Out of view: still listed for shadows when its shadow volume is in view.
+            if (ModelOf(object)->ShadowInView()) {
+                if (o3d->animation) o3d->animation->UpdatePose();
+                switch (object->GetClassId()) {
+                case ClassId::Unit: PushBack(g_shadowUnits, entry); break;
+                case ClassId::Tree: PushBack(g_shadowTrees, entry); break;
+                case ClassId::Building: PushBack(g_shadowBuildings, entry); break;
+                case ClassId::Lever: PushBack(g_shadowLevers, entry); break;
+                default: PushBack(g_shadowOther, entry); break;
                 }
             }
         }
@@ -255,4 +252,4 @@ std::vector<CMapObject*> g_visibleUnits;
 std::vector<CMapObject*> g_visibleLevers;
 std::vector<CMapObject*> g_visibleOther;
 std::vector<CMapObject*> g_visibleBuildings;
-std::list<HeldRef<CMapObject>> g_deferredUnits;
+std::vector<HeldRef<CMapObject>> g_deferredUnits;
