@@ -1,0 +1,26 @@
+# The titles' text sized by the window, not the system's DPI (ticket P8c, docs/notes/ui-native.md, "The titles' rich
+# text"): the same run as ui_titles_scroll's first captures at 800x600. The text's layout (line places, wrap, heights) is
+# the same in proportion at every window size and does not move with the system DPI. Compare the captures with
+# the other ui_titles_size_* scenarios' (tools/compare_frames.py, or by eye).
+# no original: vanilla rebirth (the titles' scale is ours; the original sized them by the system DPI)
+render checkall
+resolution 800x600
+fullscreen 0
+timeout 120
+reject Script error
+waitmenu
+move 400 20
+clickregion 4
+waitwindow 10 titles
+wait 12000
+freeze
+capture t012
+unfreeze
+wait 20000
+freeze
+capture t032
+unfreeze
+click 400 300
+waitwindow 10 menu
+report
+quit

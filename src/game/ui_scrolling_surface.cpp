@@ -1,9 +1,11 @@
 // The titles' scrolling text surface (CUiScrollingSurface, ui_screens.h): a window surface holding an RTF text
 // (outro.rtf), laid out once by render_rich_text as RichEdit 2.0 placed it and drawn onto the surface's canvas as
-// glyph runs at a scroll offset that moves with the game time. Twips and font sizes go to pixels at the system's
-// DPI, as RichEdit's memory DC measured them (docs/notes/ui-native.md, "The titles' rich text"). See docs/notes/items_spells.md.
+// glyph runs at a scroll offset that moves with the game time. Twips and font sizes go to pixels at a DPI taken from
+// the window's size, as the interface's fonts are sized (TitlesDpi), not from the system's (docs/notes/ui-native.md,
+// "The titles' rich text"). See docs/notes/items_spells.md.
 #include "ui.h"
 #include "ui_screens.h"
+#include "ui_widescreen.h"
 #include "game_strings.h"
 
 #include "resource.h"
@@ -20,16 +22,22 @@
 
 namespace {
 constexpr int kTwipsPerInch = 1440;
+constexpr int kDesignDpi = 96;           // the dots an inch at the design width, as the interface's point sizes are measured
+constexpr int kDesignWidth = 800;        // the layout's width
 constexpr int kExtraTwipsBelow = 1000;   // the text is formatted this far below the visible height
 constexpr COLORREF kWhite = 0xFFFFFF;
 
-// The DPI twips and points are measured at: the system's (the process is system DPI aware), what GetDeviceCaps gave
-// the original's memory DC.
-int Dpi() { return static_cast<int>(::GetDpiForSystem()); }
+// The DPI twips and points are measured at: the interface's font scale (CInterface3D::Create sizes its fonts by the
+// window's width over FontScale, 0.01 on a 4:3 window), 96 at 800 pixels wide. Text and layout then grow with the
+// window and ignore the system's DPI.
+int TitlesDpi(const CUiSurface* surface) {
+    const float scale = static_cast<float>(surface->interface_->width_) / kDesignWidth * (0.01f / widescreen::FontScale());
+    return static_cast<int>(scale * kDesignDpi + 0.5f);
+}
 
-int PixelsToTwips(int pixels) { return ::MulDiv(pixels, kTwipsPerInch, Dpi()); }
+int PixelsToTwips(const CUiSurface* surface, int pixels) { return ::MulDiv(pixels, kTwipsPerInch, TitlesDpi(surface)); }
 
-int HeightInTwips(const CUiScrollingSurface* surface) { return PixelsToTwips(surface->rect_.bottom - surface->rect_.top); }
+int HeightInTwips(const CUiScrollingSurface* surface) { return PixelsToTwips(surface, surface->rect_.bottom - surface->rect_.top); }
 } // namespace
 
 CUiScrollingSurface::CUiScrollingSurface(CInterface3D* ui, const RECT* rect) : CUiSurface(ui, rect, SurfaceBlend::Keyed) {
@@ -47,8 +55,8 @@ bool CUiScrollingSurface::Load(CMappedResource* archive, const char* name) {
 }
 
 void CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
-    const int dpi = Dpi();
-    const int width = render::text::TwipsToPixels(PixelsToTwips(rect_.right - rect_.left), dpi);
+    const int dpi = TitlesDpi(this);
+    const int width = render::text::TwipsToPixels(PixelsToTwips(this, rect_.right - rect_.left), dpi);
     // Drawn without smoothing, as RichEdit drew with the titles' font smoothing off.
     text_ = std::make_unique<render::text::RichLayout>(render::text::LayoutRichText(
         render::text::ReadRtf(std::string_view(static_cast<const char*>(data), size)), width, dpi, false));
@@ -58,7 +66,7 @@ void CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
 
 void CUiScrollingSurface::RenderText() {
     if (!holder_ || !text_) return;
-    const int dpi = Dpi();
+    const int dpi = TitlesDpi(this);
     const render::Rect page{0, 0, width_, height_};
     render::ui::Fill(holder_, page, background_);
     const int top = render::text::TwipsToPixels(-offset_, dpi);

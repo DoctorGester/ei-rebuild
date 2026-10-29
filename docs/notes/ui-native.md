@@ -604,9 +604,16 @@ DPI. Bold has no face of its own: `BoldFont` widens each glyph by max(1, (pixels
 as much (GDI's emboldening); italic is drawn upright (the file's text has none). The text is drawn without
 smoothing, as RichEdit drew it with the titles' font smoothing off.
 
-**DPI.** Twips and points go to pixels at the system DPI (`GetDpiForSystem`; the process is system DPI aware), the
-number GetDeviceCaps gave RichEdit's memory DC: 192 on a 200% display, so the text is as big as before on every
-machine (the interface fonts are width-relative; these are not).
+**Scale (P8c, 2026-10-29).** Twips and points go to pixels at a DPI taken from the window, not the system's: `TitlesDpi`
+(ui_scrolling_surface.cpp) = 96 * (screen width / 800) * (0.01 / `widescreen::FontScale`), the scale the interface's fonts
+get in `CInterface3D::Create` (width over FontScale, so 96 at 800 pixels wide and, in Rebirth's WideScreen, following the
+height as the other fonts do). The titles' text, indents, wrap and scroll then grow with the window like the rest of
+the interface and do not move with the system DPI (the original and P8a took `GetDpiForSystem`: 192 on a 200% display, 96
+on 100%, so the same window showed text twice as big). The page width, the surface's height in twips and the end rule use the same DPI.
+Check: scenarios `ui_titles_size_small` (800x600) and `ui_titles_size_large` (1600x900) capture the titles; the same line is 400 pixels wide
+at 800 and 789 at 1600 (the same frame shows other lines: the scroll starts one surface height below, and the 16:9 window's surface is 450 pixels high against 300, the layout being stretched; like the other fonts the text follows the width). DPI independence: with a temporary `EI_DPI_UNAWARE` switch
+(skipping `SetProcessDPIAware`, not kept) the same run had system DPI 96 against 192 and the log said titles DPI 96 in
+both; the two runs' frames were byte for byte equal.
 
 **Checks.** `ei_text_check --titles` (tools/text_check/titles_check.cpp) streams the file into a real RichEdit and
 measures each line's bottom by EM_FORMATRANGE (the least page height that fits one more line; RichEdit puts the first
