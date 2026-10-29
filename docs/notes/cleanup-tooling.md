@@ -296,7 +296,10 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   says which way the exact result lies): `lib::RoundedProduct(float, double)` and `lib::RoundedSum(double, double)`
   (lib/rounded_ops.h, SSE2 only; C30e3's test: 50 M cases, a million of them where the double then float rounding
   differs, 0 differ from the x87 form). A constant that is exact in 24 bits (0.5, 100.0, 0.25) is a float constant.
-  The double 1 / (2^32 - 1) is 2^-32 (1 + 2^-32): a float times it rounds to the float times 2^-32 (`0x1p-32f`).
+  The double 1 / (2^32 - 1) is 2^-32 (1 + 2^-32): a float times it rounds to the float times 2^-32 (`0x1p-32f`);
+  `RoundedProduct(x, word * 0x1p-32)` (the scaling exact in the double) keeps the x87 result where the product
+  `x * word` alone would pass 3.4e38. A zero, infinite or NaN product is the plain double product (C30e2: the split
+  turned an infinity times a zero half into a NaN and lost a zero's sign).
   A single operation on two floats done in double and then stored as float is the float operation (53 >= 2 x 24 + 2:
   double rounding is harmless there); a chain of them in double is not.
 - **ints above 2^24** in float arithmetic: FILD is exact and the operation rounds once; float maths converts first.
@@ -394,6 +397,23 @@ the animation time minus the frame count (a uint32 as a double) go through `lib:
 their double result already was one. `x87::fistp` -> `lib::RoundEven` (the track's key frame), `modf` on the float.
 Kept: `RemoveOutdatedEffects`' `static_cast<double>(distance) < 0.001` (addon.dll's double compare, exact on both),
 `CMapObject::MoveSpeed`'s double return (a virtual of the units; a constant here).
+
+**C30e2 (scripts; 10 files).** Script arguments come from mission data, so NaN, infinities and huge values are
+plausible. The truncations (`Ftol`, 72 calls): the game's `_ftol` is `Truncate` (script_eval, script_exec, addon's
+`TruncateX87`), `static_cast<int>(static_cast<std::int64_t>(x))`: SSE2's `__ftol3`, the low half, 0 for NaN; addon's
+own CVTTSD2SI is `TruncateOrMin` (0x80000000 for NaN and out of range), unchanged. `fistp` / `RoundToInt` ->
+`lib::RoundEven`, addon's `Store` and `CopyBits` -> `=`. Float maths: the distances (vecmath's `Length2D` /
+`DistanceSquared2D`; IsInArea's squared distance is a float), `LightStep`, addon's `Round` / `Ceil` / `Floor` on
+floats. Through the helpers: `ScaleRandom` and the FX source offset (`RoundedProduct(x, word * 0x1p-32)`),
+`RoundTimeOffset` (the int plus the float), `GetWorldTime` (the tick times seconds per tick; fmod is exact), `GetZ`
+(the unit's double ground height plus z). addon's sin / cos / pow stay the host CRT's calls: the x87 and the SSE2
+object call the same UCRT functions (SSE2 code inside), equal on all 2^32 floats (sin, cos) and 48 M pairs (pow).
+Equivalence test (`eq/` in the C30e2 scratch folder): every float for the truncations, `RoundEven`, the int cast,
+Round / Ceil / Floor / Sin / Cos; random operands for the rest: 0 differ with game-sized operands (|x| 2^-10 to 2^16)
+and with |x| 2^-30 to 2^60 plus zeros, infinities, NaN and the int edges. Left, by the exponent range only: a sum
+of squares past 3.4e38 (coordinates beyond 1.8e19) or under 1.2e-38 (two coordinates within 1e-19), an FX spread beyond 1.7e38 (twice it
+passes the float range) and denormal results; and when two different NaNs meet in one operation, which one comes out
+(x87: the larger significand; SSE2: the first operand).
 
 **Batches left** (209 files, 57,575 lines; source counts: `double` 1,640, `D(` 472, `x87::` 358, `Ftol(` 120).
 Each one focused area, one worker session, after C30e4 where it has a transcendental:

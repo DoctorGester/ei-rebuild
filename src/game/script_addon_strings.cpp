@@ -65,9 +65,8 @@ bool GetObjectStringID(Call* call) {
 // "%.<digits>f" (digits 3 by default, clamped to 0..8), then trailing zeros and a trailing '.'
 // cut. The scan stops at index 0 without looking at it, so "100" with no decimals becomes "1".
 bool FloatToStr(Call* call) {
-    float value;
-    Store(&value, call->cmd->floatArgs[0]);
-    int digits = std::ssize(call->cmd->floatArgs) >= 2 ? Ftol(call->cmd->floatArgs[1]) : 3;
+    float value = call->cmd->floatArgs[0];
+    int digits = std::ssize(call->cmd->floatArgs) >= 2 ? TruncateOrMin(call->cmd->floatArgs[1]) : 3;
     if (digits > 8) digits = 8;
     else if (digits < 0) digits = 0;
     std::string text = str::Format("%.*f", digits, static_cast<double>(value));
@@ -82,7 +81,7 @@ bool FloatToStr(Call* call) {
 }
 
 bool StrToFloat(Call* call) {
-    Store(call->result.number, static_cast<float>(str::ToDouble(Arg(call, 0))));
+    *call->result.number = static_cast<float>(str::ToDouble(Arg(call, 0)));
     return true;
 }
 
@@ -93,7 +92,7 @@ bool StrCat(Call* call) {
 
 // The length in characters (a UTF-8 sequence counts once).
 bool StrLen(Call* call) {
-    Store(call->result.number, static_cast<float>(text::CharacterCount(Arg(call, 0))));
+    *call->result.number = static_cast<float>(text::CharacterCount(Arg(call, 0)));
     return true;
 }
 
@@ -105,7 +104,7 @@ bool RandStr(Call* call) {
 }
 
 bool StrHas(Call* call) {
-    Store(call->result.number, std::strstr(Arg(call, 0).c_str(), Arg(call, 1).c_str()) ? 1.0f : 0.0f);
+    *call->result.number = std::strstr(Arg(call, 0).c_str(), Arg(call, 1).c_str()) ? 1.0f : 0.0f;
     return true;
 }
 
@@ -115,8 +114,8 @@ bool StrHas(Call* call) {
 bool StrMid(Call* call) {
     const std::string& string = Arg(call, 0);
     int length = text::CharacterCount(string);
-    int start = Ftol(call->cmd->floatArgs[0]);
-    int count = Ftol(call->cmd->floatArgs[1]);
+    int start = TruncateOrMin(call->cmd->floatArgs[0]);
+    int count = TruncateOrMin(call->cmd->floatArgs[1]);
     if (start < 0) start += length + 1;
     if (count == 0) count = length;
     else if (count < 0) return true;

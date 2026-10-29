@@ -22,7 +22,6 @@
 #include "lib/str.h"
 
 #include "ei/hook.h"
-#include "ei/x87.h"
 
 #include <bit>
 #include <cstdint>
@@ -83,9 +82,8 @@ bool EndsWith(const std::string& text, const char* suffix) {
 
 // GSSetPlayerVar(player, name, value): the player's server-side variable.
 bool GSSetPlayerVar(Call* call) {
-    int number = Ftol(Floats(call)[0]);
-    float value;
-    Store(&value, Floats(call)[1]);
+    int number = TruncateOrMin(Floats(call)[0]);
+    float value = Floats(call)[1];
     const char* name = Text(call, 0);
     CPlayer* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("GSSetPlayerVar", "There is no player with number %d", number);
@@ -96,18 +94,18 @@ bool GSSetPlayerVar(Call* call) {
 // GSGetPlayerVar(player, name): the player's variable; the result is left alone without the
 // player.
 bool GSGetPlayerVar(Call* call) {
-    int number = Ftol(Floats(call)[0]);
+    int number = TruncateOrMin(Floats(call)[0]);
     const char* name = Text(call, 0);
     CPlayer* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("GSGetPlayerVar", "There is no player with number %d", number);
-    *call->result.number = static_cast<float>(static_cast<double>(player->Party()->variables.Get(name)));
+    *call->result.number = player->Party()->variables.Get(name);
     return true;
 }
 
 // GiveExp(player, value): the world's experience award of `value` to the player (no check that
 // the player exists: null takes the multiplayer path).
 bool GiveExp(Call* call) {
-    CPlayer* player = g_serverWorld.GetPlayer(Ftol(Floats(call)[0]));
+    CPlayer* player = g_serverWorld.GetPlayer(TruncateOrMin(Floats(call)[0]));
     g_serverWorld.AwardExperience(player, Floats(call)[1]);
     return true;
 }
@@ -149,7 +147,7 @@ bool ResetTarget(Call* call) {
 }
 
 bool SendCurrentParty(Call* call) {
-    int number = Ftol(Floats(call)[0]);
+    int number = TruncateOrMin(Floats(call)[0]);
     CPlayer* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("SendCurrentParty", "There is no player with number %d", number);
     player->Server()->ResendParty();
@@ -158,7 +156,7 @@ bool SendCurrentParty(Call* call) {
 
 // Loot(player, unit): the player loots the dead unit, which is then removed.
 bool Loot(Call* call) {
-    int number = Ftol(Floats(call)[0]);
+    int number = TruncateOrMin(Floats(call)[0]);
     CPlayer* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("Loot", "There is no player with number %d", number);
     EngineObject* object = ObjectArg(call, 0);
@@ -198,14 +196,14 @@ bool IsFileExists(Call* call) {
     if (forbidden) return Report("IsFileExists", "'..' string literal is forbidden");
     path += name;
     DWORD attributes = text::utf8::GetFileAttributesA(path.c_str());
-    Store(call->result.number, attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY) ? 1.0f : 0.0f);
+    *call->result.number = attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY) ? 1.0f : 0.0f;
     return true;
 }
 
 // GSListPlayerVars(player): "<name> = <value>" for each of the player's variables, in the
 // table's order (no check for the player).
 bool GSListPlayerVars(Call* call) {
-    CPlayer* player = g_serverWorld.GetPlayer(Ftol(Floats(call)[0]));
+    CPlayer* player = g_serverWorld.GetPlayer(TruncateOrMin(Floats(call)[0]));
     const NamedFloatTable& variables = player->Party()->variables;
     for (auto& node : variables) {
         std::string line;
@@ -234,18 +232,16 @@ bool GiveUnitWeapon(Call* call) {
         const auto* weapon = itemdb::RecordAs<itemdb::WeaponRecord>(item->GetPrototype());
         UnitStats& stats = unit->ServerController()->stats;
         const UnitPrototypeRecord* prototype = unit->GetPrototype();
-        Store(&stats.damage, item->damage);
-        Store(&stats.damageSpread, item->damageSpread);
+        stats.damage = item->damage;
+        stats.damageSpread = item->damageSpread;
         float sum = prototype->combat[3] + weapon->defenceBonus;
-        Store(&stats.combat[UnitStats::kDefence], sum);
-        float reach;
-        reach = weapon->reach;
-        Store(&stats.combat[UnitStats::kReach], reach);
+        stats.combat[UnitStats::kDefence] = sum;
+        stats.combat[UnitStats::kReach] = weapon->reach;
         sum = prototype->combat[1] + weapon->attackBonus;
-        Store(&stats.combat[UnitStats::kAttack], sum);
-        stats.attackCategory = static_cast<float>(x87::FromUnsigned(weapon->category));
+        stats.combat[UnitStats::kAttack] = sum;
+        stats.attackCategory = static_cast<float>(static_cast<double>(weapon->category));
         stats.naturalWeapon = item->GetType();
-        for (int i = 0; i < 7; ++i) Store(&stats.damageWeights[i], weapon->damageTypes[i]);
+        for (int i = 0; i < 7; ++i) stats.damageWeights[i] = weapon->damageTypes[i];
         unit->MarkChanged(0);
     }
     unit->Controller()->RefreshModel();
@@ -296,9 +292,9 @@ bool GiveUnitArmor(Call* call) {
             float sum = 0.0f;
             for (int k = 0; k < 4; ++k) sum = weights[k] * blocks[k][c] + sum;
             float value = prototype->protectionScale + sum;
-            Store(&protection[c].base, value);
+            protection[c].base = value;
             value = prototype->protectionScale + sum;
-            Store(&protection[c].current, value);
+            protection[c].current = value;
         }
         unit->MarkChanged(0);
     }

@@ -57,9 +57,6 @@ endif()
 # CRT's pow / acos), the terrain's chop rounding; picking reads the camera's, the view's and the projected meshes'.
 # Each group below is the ticket that moves it with the goldens unchanged; a file split from one of these joins it here.
 set(EI_X87_GAME_SOURCES
-    # C30e2: scripts
-    game/script_addon game/script_addon_commands game/script_addon_math game/script_addon_units game/script_effects
-    game/script_eval game/script_exec game/script_exec_helpers game/script_exec_run game/script_parse
     # C30e5: the server world and world effects
     game/world_effect game/world_effect_missile game/world_effect_moshka game/world_effect_sequence
     game/world_effect_tornado game/world_effect_visual game/world_game game/world_glue game/world_party

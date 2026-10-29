@@ -8,11 +8,10 @@
 #include "world.h"
 #include "world_effect.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/rounded_ops.h"
 #include "game_singletons.h"
 
-#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -34,19 +33,12 @@ bool IsZero(float value) {
 // An effect object took a new position.
 void EffectMoved(EngineObject* object) { static_cast<CEffect*>(object)->MarkChanged(); }
 
-// 1 / (2^32 - 1).
-constexpr std::uint64_t kRandomScaleBits = 0x3DF0000000100000ull;
-
-// FX source position: (r - (-r)) * random * (1 / (2^32 - 1)) + (-r), with the random value loaded
-// as a 64-bit integer; for x the source's x is added before rounding, for y the rounded offset is
-// added to the source's y afterwards (the goldens depend on the order).
+// An FX source's offset on one axis: random * (r - (-r)) * (1 / (2^32 - 1)) + (-r), with the random value loaded
+// whole; the double 1 / (2^32 - 1) = 2^-32 (1 + 2^-32) rounds the rounded product to the product times 2^-32: the
+// same as (r - (-r)) times random * 2^-32 (exact in a double) rounded once.
 float FxOffset(float radius, std::uint32_t random) {
     const float negative = -radius;
-    return static_cast<float>(x87::FromUnsigned(random) * (static_cast<double>(radius) - negative) * std::bit_cast<double>(kRandomScaleBits) + negative);
-}
-float FxOffsetPlus(float radius, std::uint32_t random, float origin) {
-    const float negative = -radius;
-    return static_cast<float>(x87::FromUnsigned(random) * (static_cast<double>(radius) - negative) * std::bit_cast<double>(kRandomScaleBits) + negative + origin);
+    return lib::RoundedProduct(radius - negative, random * 0x1p-32) + negative;
 }
 
 void RespawnFxSources(Script* script) {
@@ -58,14 +50,14 @@ void RespawnFxSources(Script* script) {
         fx.object.reset();
         auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<EffectSound>(ClassId::EffectSound, -1);
         float yOffset = FxOffset(fx.spread, g_random.Next());
-        float x = FxOffsetPlus(fx.spread, g_random.Next(), fx.position.x);
+        float x = FxOffset(fx.spread, g_random.Next()) + fx.position.x;
         float y = yOffset + fx.position.y;
         float z = fx.position.z;
         sound->localPosition.x = x;
         sound->localPosition.y = y;
         sound->localPosition.z = z;
-        x87::CopyBits(sound->volume, fx.volume);
-        x87::CopyBits(sound->radius, fx.radius);
+        sound->volume = fx.volume;
+        sound->radius = fx.radius;
         fx.object = ScriptEffect<EffectSound>(sound);
         const char* name = fx.name.c_str();
         std::memcpy(sound->name, name, std::strlen(name) + 1);
@@ -140,7 +132,7 @@ void ScriptDefinition::BindCall(const SSCCmd* call) {
         return;
     }
     // Float 0 and string 0 name the script; the rest are the parameters.
-    for (std::size_t i = 1; i < call->floatArgs.size(); ++i) x87::CopyBits(vars.floats.values[i - 1], call->floatArgs[i]);
+    for (std::size_t i = 1; i < call->floatArgs.size(); ++i) vars.floats.values[i - 1] = call->floatArgs[i];
     for (std::size_t i = 1; i < call->stringArgs.size(); ++i) vars.strings.values[i - 1] = call->stringArgs[i];
     for (std::size_t i = 0; i < call->objectArgs.size(); ++i) vars.objects.values[i] = *call->objectArgs[i];
     for (std::size_t i = 0; i < call->groupArgs.size(); ++i) vars.groups.values[i] = *call->groupArgs[i];

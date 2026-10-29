@@ -1,8 +1,9 @@
 // Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. Rebirth's
 // AddNewScriptCommands dispatches to addon's functions first.
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
-// old x87 compare counted it as equal and less: the NaN audit, lib/nan_audit.h); the multi-step
-// computations keep their intermediates unrounded (double locals), as x87 registers would.
+// old x87 compare counted it as equal and less: the NaN audit, lib/nan_audit.h). The game's x87
+// code ran at 24-bit precision, where every operation rounds to a float: float maths here, and
+// lib/rounded_ops.h where an operand is an int or a double that a float cannot hold.
 #include "ai_map.h"
 #include "base_manager.h"
 #include "combat.h"
@@ -23,12 +24,12 @@
 #include "world.h"
 #include "world_glue.h"
 
-#include "lib/crt.h"
 #include "lib/nan_audit.h"
+#include "lib/rounded_ops.h"
+#include "lib/rounding.h"
 #include "lib/str.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 
 #include <bit>
 #include <cmath>
@@ -38,38 +39,28 @@
 
 namespace {
 
-// ---- x87 helpers --------------------------------------------------------------------------------
+// ---- Conversions --------------------------------------------------------------------------------
 
-// sqrt(dy * dy + dx * dx) with dx = x0 - x1 and dy = y0 - y1 kept unrounded (in registers).
-float Distance(float x0, float y0, float x1, float y1) {
-    const double dx = static_cast<double>(x0) - x1;
-    const double dy = static_cast<double>(y0) - y1;
-    return static_cast<float>(std::sqrt(LengthSquared2DUnrounded(dy, dx)));
+float Distance(float x0, float y0, float x1, float y1) { return Length2D(Vector2{x0, y0} - Vector2{x1, y1}); }
+
+// As IsInArea tests circles.
+float SquaredDistance(float x, float y, float centreX, float centreY) {
+    return DistanceSquared2D(Vector2{x, y}, Vector2{centreX, centreY});
 }
 
-// (dy * dy + dx * dx) unrounded, as IsInArea tests circles.
-double SquaredDistance(float x, float y, float centreX, float centreY) {
-    const double dx = static_cast<double>(x) - centreX;
-    const double dy = static_cast<double>(y) - centreY;
-    return LengthSquared2DUnrounded(dy, dx);
-}
+// value * range / (2^32 - 1): the game multiplies the 32-bit value (loaded whole) by the range, then by the double
+// 1 / (2^32 - 1) = 2^-32 (1 + 2^-32), which rounds the rounded product to the product times 2^-32: the same as the
+// range times value * 2^-32 (exact in a double) rounded once.
+float ScaleRandom(std::uint32_t value, float range) { return lib::RoundedProduct(range, value * 0x1p-32); }
 
-// 1 / (2^32 - 1).
-const std::uint64_t kRandomScaleBits = 0x3DF0000000100000ull;
-
-// value * range / (2^32 - 1): the 32-bit value loaded as a 64-bit integer, two multiplications.
-float ScaleRandom(std::uint32_t value, float range) {
-    return static_cast<float>(x87::FromUnsigned(value) * range * std::bit_cast<double>(kRandomScaleBits));
-}
-
-// (float)(time + add) rounded to nearest: the sum is rounded to float before the conversion.
+// (float)(time + add) rounded to nearest: the sum (the int loaded whole) is rounded to float before the conversion.
 int RoundTimeOffset(int time, float extra) {
-    return x87::fistp(static_cast<float>(static_cast<double>(time) + extra));
+    return lib::RoundEven(lib::RoundedSum(static_cast<double>(time), extra));
 }
 
 // The game's _ftol: truncating conversion; out-of-range values keep the low 32 bits
-// of the 64-bit result.
-int Ftol(float value) { return static_cast<int>(libcrt::Ftol(value)); }
+// of the 64-bit result (0 for NaN).
+int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 
 constexpr float kMinusOne = -1.0f;
 constexpr float kFar = 1e30f;     // the distance when an object is missing
@@ -91,10 +82,10 @@ net::ServerSession* ActiveServer() {
 
 WorldAlarm& Alarm(int index) { return g_serverWorld.alarms[index]; }
 
-// GetWorldTime: (time * scale + offset) mod 24.
+// GetWorldTime: (time * scale + offset) mod 24 (the tick loaded whole; fmod is exact).
 float WorldTimeOfDay() {
     const WorldServer* world = &g_serverWorld;
-    return static_cast<float>(std::fmod(static_cast<double>(world->tick) * world->secondsPerTick + world->timeBase, 24.0));
+    return std::fmod(lib::RoundedProduct(world->secondsPerTick, world->tick) + world->timeBase, 24.0f);
 }
 
 // What a unit sees: the AI brain's visible list.
@@ -195,7 +186,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
                                : function == ScriptFunction::MaxHP ? &vitals.maxHitPoints
                                : function == ScriptFunction::Mana ? &vitals.mana
                                             : &vitals.maxMana;
-            x87::CopyBits(*result, *value);
+            *result = *value;
         } else {
             *result = 0.0f;
         }
@@ -204,7 +195,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     case ScriptFunction::GetX:
     case ScriptFunction::GetY: {
         EngineObject* o = objectArgs[0]->object;
-        if (o) x87::CopyBits(*result, function == ScriptFunction::GetX ? ObjectSlots(o)->localPosition.x : ObjectSlots(o)->localPosition.y);
+        if (o) *result = function == ScriptFunction::GetX ? ObjectSlots(o)->localPosition.x : ObjectSlots(o)->localPosition.y;
         else *result = 0.0f;
         return;
     }
@@ -215,14 +206,14 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
             return;
         }
         float x = ObjectSlots(o)->localPosition.x, y = ObjectSlots(o)->localPosition.y, z = ObjectSlots(o)->localPosition.z;
-        if (CUnit* unit = UnitOrNull(o)) *result = static_cast<float>(unit->GroundHeight(x, y) + z);   // (o is not null)
+        if (CUnit* unit = UnitOrNull(o)) *result = lib::RoundedSum(unit->GroundHeight(x, y), z);   // (o is not null)
         else *result = g_serverWorld.GridHeight(x, y) + z;
         return;
     }
     case ScriptFunction::GetLootItemsCount:
     case ScriptFunction::GetMoney: {
         *result = 0.0f;
-        CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
         if (player) *result = static_cast<float>(function == ScriptFunction::GetLootItemsCount ? std::ssize(player->items) : player->Party()->money);
         return;
     }
@@ -241,7 +232,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         }
         Vector3 buffer;
         const Vector3* position = ObjectSlots(o)->PositionAt(&buffer, RoundTimeOffset(g_serverWorld.tick, f[0]));
-        x87::CopyBits(*result, *(function == ScriptFunction::GetFutureX ? &position->x : &position->y));
+        *result = *(function == ScriptFunction::GetFutureX ? &position->x : &position->y);
         return;
     }
     case ScriptFunction::IsUnitInWater: { // IsUnitInWater: flag 0x80 of the AI map cell at the object's position
@@ -266,8 +257,8 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         return;
     }
     case ScriptFunction::GetDiplomacy: { // GetDiplomacy: 1 allied, -1 enemies, 0 otherwise
-        int b = Ftol(f[1]);
-        int a = Ftol(f[0]);
+        int b = Truncate(f[1]);
+        int a = Truncate(f[0]);
         int relation = g_serverWorld.diplomacy.GetRelation(a, b);
         *result = 0.0f;
         if (relation == 2) *result = kMinusOne;
@@ -288,7 +279,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         CUnit* unit = UnitOrNull(objectArgs[0]->object);
         *result = 0.0f;
         if (!unit) return;
-        int player = Ftol(f[0]);
+        int player = Truncate(f[0]);
         std::uint32_t mask = 1u << (player & 31);
         bool enemy = (mask & unit->relationsB & unit->relationsA) != 0;
         *result = static_cast<float>(enemy ? 1 : 0);
@@ -320,16 +311,16 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         return;
     }
     case ScriptFunction::IsAlarm:
-        *result = FromBool(Alarm(x87::fistp(f[0])).active != 0);
+        *result = FromBool(Alarm(lib::RoundEven(f[0])).active != 0);
         return;
     case ScriptFunction::AlarmTime:
-        *result = static_cast<float>(Alarm(x87::fistp(f[0])).time);
+        *result = static_cast<float>(Alarm(lib::RoundEven(f[0])).time);
         return;
     case ScriptFunction::AlarmPosX:
-        x87::CopyBits(*result, Alarm(x87::fistp(f[0])).x);
+        *result = Alarm(lib::RoundEven(f[0])).x;
         return;
     case ScriptFunction::AlarmPosY:
-        x87::CopyBits(*result, Alarm(x87::fistp(f[0])).y);
+        *result = Alarm(lib::RoundEven(f[0])).y;
         return;
     case ScriptFunction::DistanceUnitUnit: {
         EngineObject* a = objectArgs[0]->object;
@@ -358,7 +349,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
                 break;
             }
         if (!condition) {
-            if (function == ScriptFunction::Every) x87::CopyBits(*result, floatArgs[0]);
+            if (function == ScriptFunction::Every) *result = floatArgs[0];
             else if (function == ScriptFunction::Any) {
                 EI_NAN_AUDIT(floatArgs[0]);
                 *result = FromBool(floatArgs[0] != 0.0f);
@@ -396,14 +387,14 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
 
     case ScriptFunction::HaveItem: { // HaveItem(player, item)
         *result = 0.0f;
-        auto* player = g_serverWorld.GetPlayer(Ftol(f[0]));
-        if (player && player->HasLoot(Ftol(f[1]))) *result = 1.0f;
+        auto* player = g_serverWorld.GetPlayer(Truncate(f[0]));
+        if (player && player->HasLoot(Truncate(f[1]))) *result = 1.0f;
         return;
     }
     case ScriptFunction::IsPlayerInDanger:
     case ScriptFunction::IsPlayerInSafety: {
         *result = 0.0f;
-        CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
         if (!player) return;
         PlayerServer::PartyDanger danger = player->Server()->danger;
         if (function == ScriptFunction::IsPlayerInDanger ? danger == PlayerServer::PartyDanger::InDanger
@@ -412,7 +403,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         return;
     }
     case ScriptFunction::GetMercsNumber:
-        *result = static_cast<float>(g_serverWorld.CountLivingMercs(Ftol(f[0])));
+        *result = static_cast<float>(g_serverWorld.CountLivingMercs(Truncate(f[0])));
         return;
     case ScriptFunction::GSGetVar: { // GSGetVar(player, name): from the game server in multiplayer, else the player's
         net::ServerSession* server = IsMultiplayerClient() ? ActiveServer() : nullptr;
@@ -422,7 +413,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
             return;
         }
         *result = 0.0f;
-        CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
         if (player) *result = player->Party()->variables.Get(stringArgs[0]);
         return;
     }
@@ -430,7 +421,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         *result = static_cast<float>(static_cast<int>(GameCameraPathPlaying()));
         return;
     case ScriptFunction::IsNight:   // IsNight (the world's day-time value, copied as a float)
-        x87::CopyBits(*result, g_serverWorld.nightLevel);
+        *result = g_serverWorld.nightLevel;
         return;
     case ScriptFunction::GetWorldTime:
         *result = WorldTimeOfDay();
@@ -467,7 +458,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         *result = static_cast<float>(g_serverWorld.RawSurfaceHeightAt(f[0], f[1]));
         return;
     case ScriptFunction::IsInArea: { // IsInArea(area, x, y)
-        int area = x87::fistp(f[0]);
+        int area = lib::RoundEven(f[0]);
         float x = f[1], y = f[2];
         const ScriptArea* parts = script->FindArea(area);
         bool inside = false;
@@ -511,17 +502,17 @@ void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** resu
     const ScriptFunction function = static_cast<ScriptFunction>(id);
     switch (function) {
     case ScriptFunction::ScriptGetObject: { // GetObject(id)
-        EngineObject* o = g_serverWorld.FindObject(Ftol(floatArgs[0]));
-        if (!o) game::DebugLog("Object with ID %d not found in function \"%s\".\n", Ftol(floatArgs[0]), "GetObject");
+        EngineObject* o = g_serverWorld.FindObject(Truncate(floatArgs[0]));
+        if (!o) game::DebugLog("Object with ID %d not found in function \"%s\".\n", Truncate(floatArgs[0]), "GetObject");
         (*result)->object = o;
         return;
     }
     case ScriptFunction::GetUnitOfPlayer: { // GetUnitOfPlayer(player, index)
-        CPlayer* player = g_serverWorld.GetPlayer(Ftol(floatArgs[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(Truncate(floatArgs[0]));
         EngineObject* o = nullptr;
         if (player) {
             const std::vector<PartyUnitRecord>& members = player->Party()->members;
-            int index = x87::fistp(floatArgs[1]);
+            int index = lib::RoundEven(floatArgs[1]);
             if (index >= 0 && index < std::ssize(members))
                 o = g_serverWorld.FindUnit(static_cast<int>(members[index].unitId));
         }
@@ -611,7 +602,7 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
         break;
     }
     case ScriptFunction::PlayerSee: { // PlayerSee(player): the player's seen objects, its units and what they see
-        CPlayer* player = g_serverWorld.GetPlayer(Ftol(floatArgs[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(Truncate(floatArgs[0]));
         if (!player) {
             (*result)->Clear();
             break;

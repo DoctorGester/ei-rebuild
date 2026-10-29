@@ -7,8 +7,7 @@
 #include "world.h"
 #include "world_effect.h"
 
-#include "ei/x87.h"
-#include "lib/crt.h"
+#include "lib/rounding.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 
@@ -23,17 +22,13 @@ namespace {
 
 int LightCount(Script* script) { return static_cast<int>(script->pointLights.size()); }
 
-// MovePointLight's step: (target - position) / steps per axis. The x difference stays in the FPU,
-// the y and z differences are rounded to float first (the goldens depend on it).
+// MovePointLight's step: (target - position) * (1 / steps) per axis. steps is a float rounded to an int, so a
+// float holds it.
 void LightStep(ScriptPointLight* light, const float* target, const float* position) {
-    const double dx = static_cast<double>(target[0]) - position[0];
-    const float dy = static_cast<float>(static_cast<double>(target[1]) - position[1]);
-    const float dz = static_cast<float>(static_cast<double>(target[2]) - position[2]);
-    // 1 / steps, rounded to float.
-    const float inverse = static_cast<float>(1.0 / light->steps);
-    light->step.x = static_cast<float>(dx * inverse);
-    light->step.y = static_cast<float>(static_cast<double>(dy) * inverse);
-    light->step.z = static_cast<float>(static_cast<double>(dz) * inverse);
+    const float inverse = 1.0f / static_cast<float>(light->steps);
+    light->step.x = (target[0] - position[0]) * inverse;
+    light->step.y = (target[1] - position[1]) * inverse;
+    light->step.z = (target[2] - position[2]) * inverse;
 }
 
 int QuestObjectiveCount() { return static_cast<int>(g_scriptQuestObjectives.size()); }
@@ -70,7 +65,7 @@ void Script::DeleteArea(int id) {
 
 void Script::CreatePointLight(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data();
-    int id = x87::fistp(f[0]);
+    int id = lib::RoundEven(f[0]);
     // The light with this id is replaced, else the first free slot is used (one with the id after
     // a free slot is not found).
     int i = 0;
@@ -96,7 +91,7 @@ void Script::CreatePointLight(const SSCCmd* cmd) {
     object->localPosition.x = f[1];
     object->localPosition.y = f[2];
     object->localPosition.z = f[3];
-    x87::CopyBits(object->range, f[4]);    // radius
+    object->range = f[4];    // radius
     g_serverWorld.AddTimedObject(object);
     slot->step.x = 0.0f;
     slot->step.y = 0.0f;
@@ -106,7 +101,7 @@ void Script::CreatePointLight(const SSCCmd* cmd) {
 
 void Script::MovePointLight(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data();
-    int id = x87::fistp(f[0]);
+    int id = lib::RoundEven(f[0]);
     int i = 0;
     for (;; ++i) {
         if (i >= LightCount(this)) return;
@@ -115,13 +110,13 @@ void Script::MovePointLight(const SSCCmd* cmd) {
     }
     ScriptPointLight* light = &pointLights[i];
     light->moving = 1;
-    light->removeWhenDone = x87::fistp(f[5]);
-    light->steps = x87::fistp(f[4]);
+    light->removeWhenDone = lib::RoundEven(f[5]);
+    light->steps = lib::RoundEven(f[4]);
     LightStep(light, &f[1], &light->object->localPosition.x);
 }
 
 void Script::DeletePointLight(const SSCCmd* cmd) {
-    int id = x87::fistp(cmd->floatArgs[0]);
+    int id = lib::RoundEven(cmd->floatArgs[0]);
     for (ScriptPointLight& light : pointLights) {
         if (!light.object || light.id != id) continue;
         light.object.reset();

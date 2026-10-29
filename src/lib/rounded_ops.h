@@ -13,6 +13,7 @@
 #endif
 
 #include <bit>
+#include <cmath>
 #include <cstdint>
 
 namespace lib {
@@ -38,8 +39,11 @@ inline float RoundedSum(double a, double b) {
 }
 
 // a * b rounded once to a float: b split in two 26-bit halves (Veltkamp), each product with a float exact in a
-// double, their sum by two-sum.
+// double, their sum by two-sum. A zero, infinite or NaN product is the double product (the split would lose a zero's
+// sign and turn an infinity times a zero half into a NaN).
 inline float RoundedProduct(float a, double b) {
+    const double product = a * b;
+    if (product == 0.0 || !std::isfinite(product)) return static_cast<float>(product);
     const double scaled = 134217729.0 * b;   // 2^27 + 1
     const double high = scaled - (scaled - b);
     const double low = b - high;
