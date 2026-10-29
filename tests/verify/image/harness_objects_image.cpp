@@ -27,10 +27,13 @@
 #include "game/unit.h"
 #include "game/unit_client_models.h"
 #include "game/world.h"
+#include "game/view_matrices.h"
 #include "game/world_data.h"
+#include "render/render.h"
 #include "game/world_glue.h"
 #include "lib/crt.h"
 
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <list>
@@ -248,6 +251,51 @@ void ObserveStreamWrites(void (*observer)(void* stream, std::uint32_t size, void
     g_memoryStreamWriteObserver = &ObservedStreamWrite;
 }
 
+namespace {
+
+// The smooth view (an experiment): where `p` lands on the screen (pixels) through the pipeline's viewport, axis swap
+// and projection (stacks 8, 7, 6: renderer_init's FillMatrixStacks) and the view of `position` / `rotation`; false
+// behind the camera or before the stacks are filled.
+bool ScreenPoint(const Vector3& p, const Vector3& position, const Quaternion& rotation, float* x, float* y) {
+    const MatrixStack* stacks = g_sceneRenderer.pipeline_->stacks_;
+    if (stacks[6].count == 0 || stacks[7].count == 0 || stacks[8].count == 0) return false;
+    Matrix4 view, swapped, projected, screen;
+    view::ViewMatrix(view.m, position, rotation);
+    swapped.Multiply(stacks[8].matrices[0].m, stacks[7].matrices[0].m);
+    projected.Multiply(swapped.m, stacks[6].matrices[0].m);
+    screen.Multiply(projected.m, view.m);
+    const float* m = screen.m;
+    const float w = m[12] * p.x + m[13] * p.y + m[14] * p.z + m[15];
+    if (!(w > 0.0f)) return false;
+    *x = (m[0] * p.x + m[1] * p.y + m[2] * p.z + m[3]) / w;
+    *y = (m[4] * p.x + m[5] * p.y + m[6] * p.z + m[7]) / w;
+    return true;
+}
+
+// The largest distance in pixels between where the logic camera and the drawn view put the focus and four ground
+// points around it (half the camera's distance along its heading and across it).
+float PickOffset(const CCamera* c, const camera::ViewPose& drawn, float* focusX, float* focusY) {
+    Vector3 across, along;
+    c->viewRotation_.AxisX(&across);
+    c->viewRotation_.AxisY(&along);
+    const float reach = c->distance_ * 0.5f;
+    const Vector3 points[5] = {c->focus_, c->focus_ + across * reach, c->focus_ - across * reach,
+                               c->focus_ + along * reach, c->focus_ - along * reach};
+    float largest = 0.0f;
+    *focusX = *focusY = -1.0f;
+    ScreenPoint(c->focus_, c->localPosition_, c->localRotation_, focusX, focusY);
+    for (const Vector3& p : points) {
+        float lx, ly, vx, vy;
+        if (!ScreenPoint(p, c->localPosition_, c->localRotation_, &lx, &ly)) continue;
+        if (!ScreenPoint(p, drawn.position, drawn.rotation, &vx, &vy)) continue;
+        const float d = std::sqrt((lx - vx) * (lx - vx) + (ly - vy) * (ly - vy));
+        if (d > largest) largest = d;
+    }
+    return largest;
+}
+
+} // namespace
+
 CameraState Camera(const void* camera) {
     const auto* c = static_cast<const CCamera*>(camera);
     CameraState state;
@@ -257,6 +305,21 @@ CameraState Camera(const void* camera) {
     state.turnW = c->viewRotation_.w;
     state.distance = c->distance_;
     state.flags = c->flags_;
+    if (render::SmoothView() != render::ViewSmoothing::Off) {
+        // The trace reads the drawn view; the log keeps both and how far apart they put the ground.
+        const camera::ViewPose drawn = camera::DrawnView(c);
+        float focusX, focusY;
+        const float offset = PickOffset(c, drawn, &focusX, &focusY);
+        Log("harness: smoothview logic %.4f %.4f %.5f %.4f drawn %.4f %.4f %.5f %.4f offset %.2f focus at %.1f %.1f", c->focus_.x, c->focus_.y,
+            2.0 * std::atan2(static_cast<double>(c->viewRotation_.z), static_cast<double>(c->viewRotation_.w)), c->distance_,
+            drawn.focus.x, drawn.focus.y, 2.0 * std::atan2(static_cast<double>(drawn.heading.z), static_cast<double>(drawn.heading.w)),
+            drawn.distance, offset, focusX, focusY);
+        state.focusX = drawn.focus.x;
+        state.focusY = drawn.focus.y;
+        state.turnZ = drawn.heading.z;
+        state.turnW = drawn.heading.w;
+        state.distance = drawn.distance;
+    }
     return state;
 }
 

@@ -56,6 +56,12 @@ void SetSmoothOrder(SmoothOrder order);
 // and CCamera::Update, not by the renderer. EI_RENDER's "smoothcamera" or SetSmoothCamera.
 void SetSmoothCamera(bool on);
 bool SmoothCamera();
+// The smooth view (an experiment; renderer.md section 14a): the camera keeps the game's timing and the
+// world's draw shows another pose (camera::DrawnView). Between ("smoothview" in EI_RENDER): between its last two
+// client ticks. Spread ("smoothviewspread"): the camera's own, less the part of its last tick's step the frame has
+// not reached yet.
+enum class ViewSmoothing { Off, Between, Spread };
+ViewSmoothing SmoothView();
 // The performance overlay (render_perf.h). Switched by the settings file; the harness build has none.
 bool PerfOverlaySupported();
 void SetPerfOverlay(bool on);

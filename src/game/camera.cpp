@@ -104,6 +104,58 @@ void TargetPlace(int id, Vector3* at, float* ground) {
     *ground = Lerp(ticks.previousGround, ticks.currentGround, fraction);
 }
 
+// ---- The smooth view (an experiment; camera::DrawnView) --------------------------------------------
+
+// A tick's camera motion farther than this (map units) or turned by more than this (the rotations'
+// |dot| below kViewCutDot, about 0.4 rad) is a cut: shown at once, not moved to.
+constexpr float kViewCut = 8.0f;
+constexpr float kViewCutDot = 0.98f;
+
+// The camera's pose after its last two client ticks and their client times (ms); after a cut both
+// are the new pose, a tick apart. For Spread: the last tick's step (what undoes it) and the client's
+// ticks' time at it.
+struct ViewTicks {
+    bool kept = false;
+    camera::ViewPose pose[2]{};
+    std::uint32_t time[2]{};
+    std::uint32_t tick = 55;
+    std::uint32_t sinceTick = 0;   // real time since the last tick (ms)
+    camera::ViewPose before{};     // the pose before the tick's update
+    Vector3 stepPosition{}, stepFocus{};
+    Quaternion undoRotation{1.0f, 0.0f, 0.0f, 0.0f}, undoHeading{1.0f, 0.0f, 0.0f, 0.0f};
+    float stepDistance = 0.0f;
+    std::uint32_t tickTime = 0;
+};
+ViewTicks g_viewTicks;
+std::uint32_t g_viewTime = 0;
+
+camera::ViewPose PoseOf(const CCamera* c) {
+    return camera::ViewPose{c->localPosition_, c->localRotation_, c->focus_, c->viewRotation_, c->distance_};
+}
+
+Quaternion Conjugate(const Quaternion& q) { return Quaternion{q.w, -q.x, -q.y, -q.z}; }
+
+// The rotation that turns `to` back to `from` (from * to^-1).
+Quaternion Undo(const Quaternion& from, const Quaternion& to) {
+    Quaternion undo = Conjugate(to);
+    undo.PreMultiply(from);
+    return undo;
+}
+
+// `r` turned back by the part `t` of `undo`.
+Quaternion TurnedBack(const Quaternion& r, const Quaternion& undo, float t) {
+    Quaternion part;
+    part.Slerp(t, camera::kIdentityRotation, undo);
+    Quaternion out = r;
+    out.PreMultiply(part);
+    return out;
+}
+
+float RotationDot(const Quaternion& a, const Quaternion& b) {
+    const float dot = DotWZYXUnrounded<float>(a, b);
+    return dot >= 0.0f ? dot : -dot;
+}
+
 void ResetMotion(CCamera* c) {
     c->panVelocity_ = camera::kZeroVector;
     c->panTarget_ = camera::kZeroVector;
@@ -132,6 +184,75 @@ void camera::NoteTargetTick(const CCamera* camera) {
     ticks.current = body->localPosition_;
     ticks.currentGround = body->localPosition_.z;
     if (ticks.count < 2) ++ticks.count;
+}
+
+void camera::NoteViewBeforeTick(const CCamera* camera) { g_viewTicks.before = PoseOf(camera); }
+
+void camera::NoteViewTick(const CCamera* camera, std::uint32_t ticksMs, std::uint32_t frameMs, std::uint32_t tickMs) {
+    ViewTicks& ticks = g_viewTicks;
+    const ViewPose now = PoseOf(camera);
+    const std::uint32_t timeMs = frameMs + static_cast<std::uint32_t>(static_cast<std::int32_t>(ticksMs - frameMs) / 2);
+    const ViewPose& last = ticks.pose[1];
+    const bool follows = ticks.kept && ticks.sinceTick <= 2 * tickMs &&
+                         static_cast<std::int32_t>(timeMs - ticks.time[1]) > 0 &&
+                         DistanceSquaredZYX(now.position, last.position) <= kViewCut * kViewCut &&
+                         RotationDot(now.rotation, last.rotation) >= kViewCutDot;
+    // Spread: the tick's own step, none for a cut.
+    const ViewPose& before = ticks.before;
+    const bool step = DistanceSquaredZYX(now.position, before.position) <= kViewCut * kViewCut &&
+                      RotationDot(now.rotation, before.rotation) >= kViewCutDot;
+    ticks.stepPosition = step ? now.position - before.position : kZeroVector;
+    ticks.stepFocus = step ? now.focus - before.focus : kZeroVector;
+    ticks.stepDistance = step ? now.distance - before.distance : 0.0f;
+    ticks.undoRotation = step ? Undo(before.rotation, now.rotation) : kIdentityRotation;
+    ticks.undoHeading = step ? Undo(before.heading, now.heading) : kIdentityRotation;
+    ticks.tickTime = ticksMs;
+    if (follows) {
+        ticks.pose[0] = last;
+        ticks.time[0] = ticks.time[1];
+    } else {
+        ticks.pose[0] = now;
+        ticks.time[0] = timeMs - tickMs;
+    }
+    ticks.pose[1] = now;
+    ticks.time[1] = timeMs;
+    ticks.tick = tickMs;
+    ticks.sinceTick = 0;
+    ticks.kept = true;
+}
+
+void camera::SetViewTime(std::uint32_t timeMs, std::uint32_t passMs) {
+    g_viewTime = timeMs;
+    g_viewTicks.sinceTick += passMs;
+}
+
+camera::ViewPose camera::DrawnView(const CCamera* camera) {
+    const ViewTicks& ticks = g_viewTicks;
+    if (!ticks.kept || ticks.sinceTick > 2 * ticks.tick) return PoseOf(camera);
+    if (render::SmoothView() == render::ViewSmoothing::Spread) {
+        // The part of the tick's step not reached yet: 1 just after the tick, 0 a tick later.
+        float back = static_cast<float>(static_cast<std::int32_t>(ticks.tickTime - g_viewTime)) / static_cast<float>(ticks.tick);
+        back = back > 0.0f ? (back < 1.0f ? back : 1.0f) : 0.0f;
+        ViewPose out = PoseOf(camera);
+        out.position = out.position - ticks.stepPosition * back;
+        out.rotation = TurnedBack(out.rotation, ticks.undoRotation, back);
+        out.focus = out.focus - ticks.stepFocus * back;
+        out.heading = TurnedBack(out.heading, ticks.undoHeading, back);
+        out.distance = out.distance - ticks.stepDistance * back;
+        return out;
+    }
+    const float span = static_cast<float>(static_cast<std::int32_t>(ticks.time[1] - ticks.time[0]));
+    float f = static_cast<float>(static_cast<std::int32_t>(g_viewTime - ticks.time[0])) / span;
+    f = f > 0.0f ? (f < 1.0f ? f : 1.0f) : 0.0f;
+    const ViewPose& a = ticks.pose[0];
+    const ViewPose& b = ticks.pose[1];
+    ViewPose out;
+    out.position = Lerp(a.position, b.position, f);
+    out.rotation.Slerp(f, a.rotation, b.rotation);
+    out.focus = Lerp(a.focus, b.focus, f);
+    out.heading.Slerp(f, a.heading, b.heading);
+    out.distance = Lerp(a.distance, b.distance, f);
+    return out;
 }
 
 void SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,

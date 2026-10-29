@@ -222,6 +222,28 @@ inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 
 // calls this after each of the client's ticks instead of CCamera::Update. It keeps the position of
 // the camera's target after its last two ticks, which Update blends by the client's tickFraction_.
 void NoteTargetTick(const CCamera* camera);
+
+// The smooth view (an experiment, render::SmoothView; docs/notes/renderer.md section 14a): the camera
+// keeps its own timing and the world's draw shows a pose between the camera's last two client ticks.
+struct ViewPose {
+    Vector3 position;       // CTransformObject::localPosition_
+    Quaternion rotation;    // CTransformObject::localRotation_
+    Vector3 focus;          // focus_, heading viewRotation_ and distance_: what the harness's camtrace reads
+    Quaternion heading;
+    float distance;
+};
+// Around a client tick's camera update: the pose before it, then after it. `ticksMs`: the client's ticks'
+// time with this one; `frameMs`: the client time of the last frame's camera update (half the camera's motion
+// comes from each); `tickMs`: a tick.
+void NoteViewBeforeTick(const CCamera* camera);
+void NoteViewTick(const CCamera* camera, std::uint32_t ticksMs, std::uint32_t frameMs, std::uint32_t tickMs);
+// Once a pass: the client time the frame shows (a tick behind the client's clock) and the real time
+// the pass took.
+void SetViewTime(std::uint32_t timeMs, std::uint32_t passMs);
+// The pose the world's draw shows (render::ViewSmoothing): Between, between the last two kept ticks at
+// the view time; Spread, the camera's own less the part of the last tick's step that the view time has not
+// reached. The camera's own when no tick is kept or none came for two ticks of real time.
+ViewPose DrawnView(const CCamera* camera);
 } // namespace camera
 
 int CameraCloseFile(CCamera* self);

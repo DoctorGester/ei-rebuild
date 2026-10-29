@@ -448,10 +448,13 @@ bool RunWorlds() {
             const std::uint32_t tick = TickLength();
             g_clientBacklog -= tick;
             g_clientTicksMs += tick;
+            const bool smoothView = render::SmoothView() != render::ViewSmoothing::Off;   // an experiment
+            if (smoothView) camera::NoteViewBeforeTick(&g_camera);
             if (render::SmoothCamera())
                 camera::NoteTargetTick(&g_camera);
             else
                 g_camera.Update(CameraSeconds(tick));
+            if (smoothView) camera::NoteViewTick(&g_camera, g_clientTicksMs, g_cameraClientMs, tick);
             net::Pump();
             continue;
         }
@@ -525,6 +528,7 @@ bool RunPass() {
         const std::uint32_t clientClock = ClientClockMs();
         std::uint32_t clientTime = clientClock - g_cameraClientMs;
         g_cameraClientMs = clientClock;
+        if (render::SmoothView() != render::ViewSmoothing::Off) camera::SetViewTime(clientClock - TickLength(), elapsed);
         if (render::SmoothCamera() && clientTime < 0x80000000u) elapsed += clientTime;   // not after a backlog reset
         CCamera* camera = &g_camera;
         std::uint32_t tick = TickLength();

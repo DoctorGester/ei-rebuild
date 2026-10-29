@@ -924,6 +924,13 @@ depends = ["R31"]
 files = ["src/game/renderer_sprites.cpp", "src/game/clip.cpp", "src/game/clip.h", "src/game/projection.cpp"]
 note = "Left after R31: the particle sprites are the last draw clipped on the CPU. ProjectSprites still writes an outcode per corner and DrawClipped (renderer_sprites.cpp) runs every crossing sprite's two triangles through clip::ClipTriangle (clip.cpp, a screen-space six-plane clipper) before render::TlDraw; every other draw hands crossing geometry to the GPU (R30f). One uniform path: hand the corners over as DrawQuads does and let the GPU clip, drop the sprite outcodes' per-corner work if nothing else reads them, delete clip.cpp and clip.h's clipper. Sprite corners at w <= 0 need a look (behind the camera, the projection's 1 / w flips them): name the difference, do not emulate. Goldens decide; any difference is reported, not re-recorded."
 
+[[ticket]]
+id = "R35a"
+title = "Smooth view: decide and settle (Spread for R18's option, or drop)"
+group = "renderer"
+depends = ["R35"]
+note = "R35's experiment (renderer.md section 14a): Spread (EI_RENDER smoothviewspread) is as smooth as R18's option (camera_smooth: 0 jumps, step cv pan 0.09 / turn 0.00 / zoom 0.13 / follow 0.06), lags 2 frames, keeps all 121 goldens. After the user plays it at 120 Hz: make Spread the one smooth camera (always on: no render flags), delete R18's option (render::SmoothCamera, ClientClockMs, NoteTargetTick, TimeGain) and the Between variant, rewrite camera_smooth's checks against the drawn view, decide whether particle billboards / lightning take the drawn pose."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
