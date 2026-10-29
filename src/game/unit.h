@@ -164,9 +164,9 @@ public:
     virtual int RefreshModel() { return 0; }     // after a weapon change
     virtual void RefreshWounds() {}
     // Count capped at 7.
-    virtual void SetArmourModels(const std::uint32_t*, int) {}
+    virtual void SetArmourModels(const std::uint32_t*) {}
     // Count capped at 4.
-    virtual void SetWeaponModels(const std::uint32_t*, int) {}
+    virtual void SetWeaponModels(const std::uint32_t*) {}
     virtual bool WeaponAdded(std::uint32_t itemId);
     virtual bool RemoveWeaponModel(std::uint32_t itemId);
     virtual bool HasOtherArmour() = 0;
@@ -604,7 +604,7 @@ struct UnitStats {
     // `value` minus value * factor of each slot record of kind 1.
     double ReduceKind1(float value);
     // Two factors from strength and dexterity (relative to 15, over 20).
-    void GetFactors(float* a, float* b, int unused);
+    void GetFactors(float* scaleX, float* scaleY, int unused);
 
     // Recomputes the current values from the bases, the skill levels, the unit's effects, the carried weight and the
     // slots; writes the maxima and hit points into `vitals`.

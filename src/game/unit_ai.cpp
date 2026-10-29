@@ -56,11 +56,6 @@ const char* MotivationFormat() { return "Unit %i new motivation %s with power of
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-void AIBrain::ChooseTarget(AITargetChoice* choice, UnitList* candidates, const Vector3* from, int a, int b) {
-    // `a` is read as a byte.
-    attention.Choose(this, choice, candidates, from, static_cast<std::uint8_t>(a) != 0, b);
-}
-
 // --- The corpse list ---------------------------------------------------------------
 
 Ref<CUnit>* AIBrain::PopCorpse(Ref<CUnit>* out) {
@@ -374,31 +369,31 @@ void AIBrain::AttackTarget(CMapObject* object) {
     owner->OrderAttack(target, 6, 0, flags);
 }
 
-void AIBrain::UseOn(CMapObject* object, UseSource kind, int a, int b) {
+void AIBrain::UseOn(CMapObject* object, UseSource kind, int spot, int run) {
     if (!object) return;
     action = kActionUse;
     target.Reset();
     switch (kind) {
     case UseSource::Use:
-        owner->OrderUse(object, a, b);
+        owner->OrderUse(object, spot, run);
         return;
     case UseSource::Steal:
-        if (object->GetClassId() == ClassId::Unit) owner->OrderSteal(object, b);
+        if (object->GetClassId() == ClassId::Unit) owner->OrderSteal(object, run);
         return;
     case UseSource::Tame:
-        if (object->GetClassId() == ClassId::Unit) owner->OrderTame(object, b);
+        if (object->GetClassId() == ClassId::Unit) owner->OrderTame(object, run);
         return;
     case UseSource::SearchBody:
-        if (object->GetClassId() == ClassId::Unit) owner->OrderSearchBody(object, b);
+        if (object->GetClassId() == ClassId::Unit) owner->OrderSearchBody(object, run);
         return;
     default:
         return;
     }
 }
 
-void AIBrain::Walk(const Vector3* point, int run, int unknown) {
+void AIBrain::Walk(const Vector3* point, int run) {
     action = kActionWalk;
-    owner->OrderMove(point, run, unknown, 1000000.0f);
+    owner->OrderMove(point, run, 0, 1000000.0f);
 }
 
 void AIBrain::TurnTowards(const Vector3* direction, float time) {

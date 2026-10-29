@@ -65,10 +65,7 @@ bool IsUnit(CMapObject* object) { return object && object->GetClassId() == Class
 bool IsCastKind(UnitOrderKind kind) { return kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn; }
 bool IsActionKind(UnitOrderKind kind) { return kind == UnitOrderKind::Attack || kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn || kind == UnitOrderKind::Use; }
 
-// The map objects' virtuals. The movement-state virtual is 1 while a unit moves.
 bool IsDead(CMapObject* object) { return object->IsDead(); }
-bool IsMoving(CMapObject* object) { return object->IsLargeUnit(); }
-int WorldTick(const CEngineObject* object) { return ObjectWorld(object)->tick_; }
 float PrototypeHeight(CUnit* unit) { return unit->GetPrototype()->height; }
 CPlayerServer* PlayerMessages(CPlayer* player) { return player->Server(); }
 
@@ -118,7 +115,7 @@ void StandIdle(CUnitServer* self) {
     AnimationSteps* idle = self->IdleAnimation();
     if (!self->queue.SameAs(idle)) {
         if (self->queue.empty() && self->queue.extra == -1) {
-            int now = WorldTick(self);
+            int now = self->World()->tick_;
             idle->extra = now - static_cast<int>(g_random.Next() % 0x33);
         }
         self->PlaySteps(idle);
@@ -370,7 +367,7 @@ bool CUnitServer::StartQueuedOrder() {
         AnimationSteps steps;
         int duration;
         BuildOrderSteps(&steps, &duration, UnitOrderKind::Use, 0);
-        int now = WorldTick(this);
+        int now = World()->tick_;
         currentPlan.TakeSteps(std::move(steps), now, duration);
         StartAction(1, 0);
         return true;
@@ -500,7 +497,7 @@ bool CUnitServer::CanReachAndPlanFrom(const AIOrder* order, const Vector3* point
 }
 
 void CUnitServer::ExecuteOrder() {
-    int now = WorldTick(this);
+    int now = World()->tick_;
     searchingTarget = 0;
     if (nextAttackTime > now && action.kind == UnitOrderKind::Attack) {
         ApproachTarget();
@@ -588,7 +585,7 @@ void CUnitServer::ExecuteOrder() {
 // --- Closing in --------------------------------------------------------------------------------
 
 void CUnitServer::ApproachTarget() {
-    int now = WorldTick(this);
+    int now = World()->tick_;
     unit->altPassCosts = 1;
     CMapObject* target = action.target;
 
@@ -629,7 +626,7 @@ void CUnitServer::ApproachTarget() {
     float reach = static_cast<float>(ActionDistance(&action));
     Vector3 aim;
     target->AimPoint(&aim);
-    if (!IsMoving(target)) {
+    if (!target->IsLargeUnit()) {
         if (static_cast<double>(reach) * reach >= DistanceSquaredXYUnrounded<double>(aim, unit->localPosition_) &&
             CanActFrom(&action, &aim.x, now)) {
             // In reach of a standing target: wait.
@@ -637,7 +634,7 @@ void CUnitServer::ApproachTarget() {
             return;
         }
     }
-    if (IsMoving(target)) {
+    if (target->IsLargeUnit()) {
         int lead = nextAttackTime - now + kAttackLead;
         if (lead > 0) {
             // A moving target that comes into reach before the next attack: wait for it.
@@ -683,7 +680,7 @@ void CUnitServer::ApproachTarget() {
     float distance = LengthZXY(offset);
     float mySpeed = static_cast<float>(unit->MoveSpeed());
     double closing;
-    if (IsMoving(chased)) {
+    if (chased->IsLargeUnit()) {
         // The chased unit's speed along the line between them adds to ours.
         auto* other = static_cast<CUnit*>(chased);
         float vx = other->localPosition_.x - unit->localPosition_.x;
@@ -755,7 +752,7 @@ void CUnitServer::ApproachTarget() {
         // The way leads elsewhere: stop, face along, and chase from here.
         AIPath* path = &motion;
         path->Clear();
-        int time = WorldTick(this);
+        int time = World()->tick_;
         Vector3 axis;
         unit->localRotation_.AxisY(&axis);
         Vector3 back;
@@ -763,7 +760,7 @@ void CUnitServer::ApproachTarget() {
         back.y = -axis.y;
         back.z = -axis.z;
         if (path->Start(&unit->localPosition_, &back, time)) unit->RefreshMotion();
-        SetStanding(0);
+        ClearStanding();
         state = kStateChasing;
         unit->UpdateSizeClass();
         if (effectObject) {

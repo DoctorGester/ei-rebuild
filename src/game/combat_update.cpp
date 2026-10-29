@@ -52,19 +52,10 @@ constexpr std::uint32_t kBoredChance = 0x3E9;         // one in 1001
 
 // How much faster a dead body sinks every update.
 constexpr float kSinkAcceleration = 0.01f;
-int TickOf(const CWorld* world) { return world->tick_; }
-int WorldTime(const CEngineObject* object) { return TickOf(object->WorldContext()); }
-// A CPlayerServer on the server.
-CPlayerConnection* ConnectionOf(CPlayer* player) { return player->connection_; }
 
-AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
-AnimationSteps& SavedQueue(CUnitServer* self) { return self->savedQueue; }
-int& QueueTime(CUnitServer* self) { return Queue(self).extra; }
-int& SavedQueueTime(CUnitServer* self) { return SavedQueue(self).extra; }
-OrderPlan& Plan(CUnitServer* self) { return self->currentPlan; }
 
 void StartQueueIfUnset(CUnitServer* self) {
-    if (QueueTime(self) == -1) QueueTime(self) = TickOf(ObjectWorld(self));
+    if (self->queue.extra == -1) self->queue.extra = self->World()->tick_;
 }
 
 void DropEffectObject(CUnitServer* self) {
@@ -102,7 +93,7 @@ void EmptyAction(UnitAction* order) {
 
 // The queue replaced by `steps`, then started.
 void TakeQueue(CUnitServer* self, const AnimationSteps* steps) {
-    Queue(self) = *steps;
+    self->queue = *steps;
     StartQueueIfUnset(self);
     self->PopFinishedSteps();
     self->ShowCurrentStep();
@@ -190,13 +181,13 @@ bool CUnitServer::RunTick() {
         unit->MarkChanged(2);
     }
     std::uint8_t& reported = deathReported;
-    if (reported == 0 && Queue(this).empty()) {
+    if (reported == 0 && queue.empty()) {
         reported = 1;
         world->TellPartiesGone(unit);
         CPlayer* player = unit->player;
         unit->SetPlayer(nullptr);
         if (player && player->IsLeader(unit) != 0) {
-            ConnectionOf(player)->LeaderDied();
+            player->connection_->LeaderDied();
         } else {
             brain.Reset();
             voice.Reset();
@@ -221,12 +212,12 @@ void CUnitServer::UpdateState() {
     }
     if (keepHitDirection != 0) {
         // A hit reaction plays: when it is over, the saved queue comes back.
-        if (!Queue(this).empty()) {
+        if (!queue.empty()) {
             animationHeld = 1;
             hitDirection = kNoHitDirection;
             return;
         }
-        Queue(this) = SavedQueue(this);
+        queue = savedQueue;
         StartQueueIfUnset(this);
         PopFinishedSteps();
         ShowCurrentStep();
@@ -250,7 +241,7 @@ void CUnitServer::UpdateState() {
         if (hitDirection != kNoHitDirection) PlayHitReaction();
         break;
     case kStateRecovering:
-        if (Queue(this).empty()) {
+        if (queue.empty()) {
             state = kStateChasing;
             unit->UpdateSizeClass();
             DropEffectObject(this);
@@ -277,19 +268,19 @@ void CUnitServer::AdvanceAnimation() {
         unit->SetPathTimeShift(1);
         unit->SetMotionMode(1);
         motion.ShiftTime(1);
-        ++QueueTime(this);
-        ++SavedQueueTime(this);
-        ++Plan(this).startTime;
-        ++Plan(this).endTime;
+        ++queue.extra;
+        ++savedQueue.extra;
+        ++currentPlan.startTime;
+        ++currentPlan.endTime;
         ++unit->animationStart;
         return;
     }
     bool held = animationHeld != 0;
     if (held) {
         motion.ShiftTime(1);
-        ++SavedQueueTime(this);
-        ++Plan(this).startTime;
-        ++Plan(this).endTime;
+        ++savedQueue.extra;
+        ++currentPlan.startTime;
+        ++currentPlan.endTime;
     }
     unit->SetPathTimeShift(held ? 1 : 0);
     if (PopFinishedSteps()) {
@@ -298,7 +289,7 @@ void CUnitServer::AdvanceAnimation() {
             return;
         }
         const AnimationStep& head = queue[0];
-        if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
+        if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, queue.extra, head.flags);
     }
     if (queue.empty()) {
         unit->SetMotionMode(0);
@@ -306,7 +297,7 @@ void CUnitServer::AdvanceAnimation() {
     }
     int kind = queue[0].kind;
     if (kind == 1) {
-        ++QueueTime(this);
+        ++queue.extra;
         if (!queue.empty()) --queue[0].duration;
     }
     unit->SetMotionMode(kind);
@@ -314,12 +305,12 @@ void CUnitServer::AdvanceAnimation() {
 
 bool CUnitServer::PopFinishedSteps() {
     bool popped = false;
-    int now = WorldTime(this);
+    int now = WorldContext()->tick_;
     while (!queue.empty()) {
         AnimationStep* steps = queue.data();
         int duration = steps[0].duration;
         if (duration == -1) break;
-        int end = QueueTime(this) + duration;
+        int end = queue.extra + duration;
         if (end > now) break;
         popped = true;
         if (std::ssize(queue) > 1 && steps[1].IsBlank()) {
@@ -328,12 +319,12 @@ bool CUnitServer::PopFinishedSteps() {
             queue[1].variant = queue[0].variant;
             queue[1].duration += steps[0].duration;
             if (queue[1].kind == 1) {
-                int late = now - QueueTime(this) - steps[0].duration;
+                int late = now - queue.extra - steps[0].duration;
                 if (late > steps[0].duration) late = steps[0].duration;
-                if (late > 0) QueueTime(this) += late;
+                if (late > 0) queue.extra += late;
             }
         } else {
-            QueueTime(this) = end;
+            queue.extra = end;
         }
         queue.erase(queue.begin());
     }
@@ -343,7 +334,7 @@ bool CUnitServer::PopFinishedSteps() {
 void CUnitServer::ShowCurrentStep() {
     if (queue.empty()) return;
     const AnimationStep& head = queue[0];
-    if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
+    if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, queue.extra, head.flags);
 }
 
 void CUnitServer::PlaySteps(const AnimationSteps* steps) {
@@ -352,7 +343,7 @@ void CUnitServer::PlaySteps(const AnimationSteps* steps) {
     PopFinishedSteps();
     if (queue.empty()) return;
     const AnimationStep& head = queue[0];
-    if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
+    if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, queue.extra, head.flags);
 }
 
 // --- States -------------------------------------------------------------------------------------
@@ -364,14 +355,14 @@ void CUnitServer::SetState(int newState) {
         DropEffectObject(this);
         return;
     }
-    actingCheckTime = WorldTime(this) + 10;
+    actingCheckTime = WorldContext()->tick_ + 10;
 }
 
-void CUnitServer::SetStanding(int standing) { SetStandingFlag(this, standing); }
+void CUnitServer::ClearStanding() { SetStandingFlag(this, 0); }
 
 void CUnitServer::StandStill() {
     motion.Clear();
-    int now = TickOf(ObjectWorld(this));
+    int now = World()->tick_;
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
     Vector3 direction = -RotatedAxisY(unit->localRotation_);
     if (motion.Start(&unit->localPosition_, &direction, now)) unit->RefreshMotion();
@@ -386,11 +377,11 @@ void CUnitServer::PlayHitReaction() {
     BuildDeathAnimation(&reaction, hitDirection, 0, 0);
     int duration = TotalDuration(reaction);
     if (action.kind == UnitOrderKind::Attack && state == kStateTurning &&
-        TickOf(ObjectWorld(this)) + duration > nextAttackTime)
+        World()->tick_ + duration > nextAttackTime)
         return;
     keepHitDirection = 1;
-    SavedQueue(this) = Queue(this);
-    Queue(this) = reaction;
+    savedQueue = queue;
+    queue = reaction;
     StartQueueIfUnset(this);
     PopFinishedSteps();
     ShowCurrentStep();
@@ -400,30 +391,30 @@ void CUnitServer::PlayHitReaction() {
 // --- The end of an order ------------------------------------------------------------------------
 
 void CUnitServer::EndOrder(char abort) {
-    int now = WorldTime(this);
-    bool open = HasOpenStep(Queue(this));
-    if (abort != 0 || now < Plan(this).startTime || open) {
+    int now = WorldContext()->tick_;
+    bool open = HasOpenStep(queue);
+    if (abort != 0 || now < currentPlan.startTime || open) {
         SetState(kStateChasing);
     } else {
         // A three-step plan (step out, action, step back): what is left of it is played out.
-        if (std::ssize(Plan(this).animation) == 3) {
-            if (Queue(this).size() == 2) {
-                AnimationSteps rest = Plan(this).animation;
+        if (std::ssize(currentPlan.animation) == 3) {
+            if (queue.size() == 2) {
+                AnimationSteps rest = currentPlan.animation;
                 if (rest[1].kind == 1) {
                     rest.extra = now - rest[0].duration;
                     rest[0].duration += rest[2].duration;
                     rest.resize(1);
                     TakeQueue(this, &rest);
                 }
-            } else if (Queue(this).size() == 3) {
-                AnimationSteps rest = Plan(this).animation;
+            } else if (queue.size() == 3) {
+                AnimationSteps rest = currentPlan.animation;
                 if (rest[1].kind == 1) {
                     rest[0].duration += rest[2].duration;
-                    rest.extra = QueueTime(this);
+                    rest.extra = queue.extra;
                     rest.resize(1);
                     TakeQueue(this, &rest);
                 } else {
-                    rest.extra = QueueTime(this);
+                    rest.extra = queue.extra;
                     rest.erase(rest.begin() + 1);
                     PlaySteps(&rest);
                 }
@@ -431,7 +422,7 @@ void CUnitServer::EndOrder(char abort) {
         }
         SetState(kStateRecovering);
     }
-    OrderPlanReset(&Plan(this));
+    OrderPlanReset(&currentPlan);
     StandStill();
 }
 
@@ -439,12 +430,12 @@ void CUnitServer::EndOrder(char abort) {
 
 void CUnitServer::TickAction() {
     CWorldServer* world = ServerWorld();
-    int now = TickOf(world);
+    int now = world->tick_;
     if (now == actingCheckTime) unit->UpdateSizeClass();
-    OrderPlan& plan = Plan(this);
+    OrderPlan& plan = currentPlan;
     if (now == plan.startTime) {
         // The action starts: its animation replaces the queue, and a cast shows its effect.
-        Queue(this) = plan.animation;
+        queue = plan.animation;
         StartQueueIfUnset(this);
         PopFinishedSteps();
         ShowCurrentStep();
@@ -469,7 +460,7 @@ void CUnitServer::TickAction() {
         int cellX;
         int cellY;
         bool turning;
-        unit->motion.Sample(context, OrderOf(&motion), static_cast<float>(TickOf(context)),
+        unit->motion.Sample(context, OrderOf(&motion), static_cast<float>(context->tick_),
                                &turning, &position.x, &direction.x, &speed, &cellX, &cellY);
         SetStandingFlag(this, state == kStateIdle ? 1 : 0);
         unit->TurnUpTowards(direction, 0);
@@ -491,12 +482,12 @@ void CUnitServer::TickAction() {
         DropEffectObject(this);
     }
     motion.Clear();
-    int time = TickOf(ObjectWorld(this));
+    int time = World()->tick_;
     Vector3 axis;
     unit->localRotation_.AxisY(&axis);
     Vector3 backwards = -axis;
     if (motion.Start(&unit->localPosition_, &backwards, time)) unit->RefreshMotion();
-    SetStanding(0);
+    ClearStanding();
 }
 
 // --- Checks -------------------------------------------------------------------------------------
@@ -520,12 +511,12 @@ bool CUnitServer::ActionInReach() {
         if (action.Skill() != UseSource::SearchBody && action.Skill() != UseSource::Use) return false;
     }
     Vector3 where;
-    const float* at = &target->PositionAt(&where, Plan(this).endTime)->x;
+    const float* at = &target->PositionAt(&where, currentPlan.endTime)->x;
     float dx = at[0] - unit->localPosition_.x;
     float dy = at[1] - unit->localPosition_.y;
     float distanceSq = LengthSquared2DUnrounded(dx, dy);
-    EI_NAN_AUDIT(distanceSq, Plan(this).rangeSq);
-    return distanceSq < Plan(this).rangeSq;   // closer
+    EI_NAN_AUDIT(distanceSq, currentPlan.rangeSq);
+    return distanceSq < currentPlan.rangeSq;   // closer
 }
 
 // --- Item spells --------------------------------------------------------------------------------

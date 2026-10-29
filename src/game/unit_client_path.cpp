@@ -43,14 +43,14 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     float speed;
     int cellX, cellY;
     bool turning;
-    CWorld* world = ObjectWorld(self);
+    CWorld* world = self->World();
     unit->motion.Sample(world, OrderOf(&self->motion), time, &turning, &position.x,
                            &direction.x, &speed, &cellX, &cellY);
     float toWorld = 0.5f;
     position.x = toWorld * position.x;
     position.y = toWorld * position.y;
     position.z = static_cast<float>(unit->GroundHeight(position.x, position.y) + unit->heightOffset);
-    ObjectWorld(self)->MoveObject(unit, &position.x);
+    self->World()->MoveObject(unit, &position.x);
     if (self->snapHeading) {
         self->snapHeading = 0;
         unit->TurnUpTowards(direction, 0);

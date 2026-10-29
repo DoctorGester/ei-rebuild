@@ -61,8 +61,6 @@ void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
 
 } // namespace
 
-CWorld* CMapObject::World() { return ObjectWorld(this); }
-
 // --- Change tracking -------------------------------------------------------------------------
 
 void CMapObject::MarkChanged(int part) {

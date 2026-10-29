@@ -19,8 +19,7 @@
 
 namespace {
 
-// The world (ObjectWorld) as the base class.
-CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
+CWorld* WorldOf(const CEngineObject* object) { return object->World(); }
 
 void PutByte(DeltaField* field, std::uint8_t value) { field->WriteDelta(&value, 1); }
 void PutWord(DeltaField* field, std::uint32_t value) { field->WriteDelta(&value, 4); }
@@ -359,8 +358,8 @@ std::uint32_t CUnit::ReadNetState(int first) {
     }
     if (changed) {
         if (gotItems) {
-            unit->Controller()->SetArmourModels(ids7, 7);
-            unit->Controller()->SetWeaponModels(ids4, 4);
+            unit->Controller()->SetArmourModels(ids7);
+            unit->Controller()->SetWeaponModels(ids4);
         }
         unit->Controller()->ShowWeapon(unit->activeWeapon);
         unit->Controller()->RefreshEquipment();

@@ -136,7 +136,7 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
     if (units->empty() || !spell) return;
     const Vector3& origin = localPosition_;
     Vector3 from = {origin.x, origin.y, origin.z};
-    auto* world = ObjectWorld(this);
+    auto* world = World();
     from.z = static_cast<float>(world->RawSurfaceHeightAt(from.x, from.y) + from.z);
     if (!(spell->targetFlags_ & SpellTargetFlag::AtUnits) && std::ssize(points) != 0) {
         for (int i = 0; i < std::ssize(points); ++i) {

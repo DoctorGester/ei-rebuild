@@ -27,14 +27,7 @@ constexpr std::uint32_t kNoPointZ = 0xC4A42000u;    // -1313.0f: "no point"
 constexpr float kReachHeight = 1.5f;
 
 
-AIEventTable* AIEventsOf(CWorldServer* world) { return &world->aiMap_.events; }
 
-const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
-    return spell->GetPrototype();
-}
-const UnitPrototypeRecord* UnitPrototypeOf(CUnit* unit) {
-    return unit->GetPrototype();
-}
 
 // The reset of an order: kind 9, target released, pointIsUseSpot / +0x1C / +0x20 cleared.
 void ResetOrder(UnitAction* order) {
@@ -72,7 +65,7 @@ bool MayCast(CUnitServer* self, std::uint32_t source) {
     if (spell && self->unit->player && !(source & kQuickItemSource)) {
         int needed = static_cast<int>(spell->skillNeeded_);
         float skill = static_cast<float>(
-            self->stats.SpellSchoolSkill(SpellPrototype(spell)->school));
+            self->stats.SpellSchoolSkill(spell->GetPrototype()->school));
         if (x87::fistp(skill) < needed) return false;
     }
     return !(self->unit->flags_ & MapObjectFlag::NoCasting);
@@ -126,9 +119,9 @@ void CUnitServer::FinishCast() {
         unit->MarkChanged(0);
     }
     world->CastSpell(spell, unit, &unit->localPosition_, action.target, &at, 0);
-    if (SpellPrototype(spell)->castType != 1) {
+    if (spell->GetPrototype()->castType != 1) {
         float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kCastNoiseScale);
-        AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
+        world->aiMap_.events.Noise(this, loudness, kNoiseKind, nullptr);
     }
     action.source = kNoSource;
 }
@@ -184,7 +177,7 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
             }
             if (!ranged) {
                 double height =
-                    static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(other)->height)) + other->localPosition_.z;
+                    static_cast<double>(std::bit_cast<float>(other->GetPrototype()->height)) + other->localPosition_.z;
                 if (height >= kReachHeight) {
                     TellParty(unit, AckKind::OutOfReach);
                     action2.kind = UnitOrderKind::None;

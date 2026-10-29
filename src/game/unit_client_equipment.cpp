@@ -59,17 +59,15 @@ int CUnitClientSpecific::RefreshModel() {
     return 1;
 }
 
-void CUnitClientSpecific::SetArmourModels(const std::uint32_t* ids, int count) {
+void CUnitClientSpecific::SetArmourModels(const std::uint32_t* ids) {
     for (int slot = 0; slot < kArmourSlots; ++slot) ArmourTakenOff(static_cast<std::uint32_t>(slot));
     for (std::uint32_t& id : armourIds) id = kNoItemId;
-    int n = static_cast<std::uint32_t>(count) < kArmourSlots ? count : kArmourSlots;
-    for (int i = 0; i < n; ++i) ArmourPutOn(ids[i]);
+    for (int i = 0; i < kArmourSlots; ++i) ArmourPutOn(ids[i]);
 }
 
-void CUnitClientSpecific::SetWeaponModels(const std::uint32_t* ids, int count) {
+void CUnitClientSpecific::SetWeaponModels(const std::uint32_t* ids) {
     for (std::uint32_t& id : weaponIds) id = kNoItemId;
-    int n = static_cast<std::uint32_t>(count) < kWeaponSlots ? count : kWeaponSlots;
-    for (int i = 0; i < n; ++i) WeaponAdded(ids[i]);
+    for (int i = 0; i < kWeaponSlots; ++i) WeaponAdded(ids[i]);
 }
 
 bool CUnitClientSpecific::WeaponAdded(std::uint32_t id) {

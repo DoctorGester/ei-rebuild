@@ -24,7 +24,6 @@ namespace {
 constexpr int kCallClaim = 0x1E;        // the kind of the AI memory's call for a claim
 constexpr int kPartWeapons = 6;         // CUnit::MarkChanged part
 
-AIBrain* BrainOf(CUnitServer* self) { return &self->brain; }
 
 // The weapon's condition (CItem +0x20, a float) rounded to nearest is above 0.
 bool Usable(const CItem* weapon) { return weapon && x87::RoundToInt(weapon->condition_) > 0; }
@@ -39,7 +38,7 @@ void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
         piece = str::Format("Unit %i claims that player %i are enemies! ", claimant->id_, player);
         text += piece;
     }
-    BrainOf(this)->memory.AddClaim(mask, kCallClaim, text);
+    brain.memory.AddClaim(mask, kCallClaim, text);
 }
 
 bool CUnitServer::TakeUpWeapon(int slot) {
@@ -48,7 +47,7 @@ bool CUnitServer::TakeUpWeapon(int slot) {
     unit->MarkChanged(kPartWeapons);
     unit->activeWeapon = static_cast<std::uint32_t>(taken);
     unit->pendingWeapon = taken;
-    if (unit->player) BrainOf(this)->attention.Build(unit);
+    if (unit->player) brain.attention.Build(unit);
     RefreshItemSpells();
     return Usable(weapon);
 }
@@ -62,7 +61,7 @@ void CUnitServer::OnObjectDeleted(CEngineObject* object) {
     if (action2.target == object && action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote)
         DropQueuedOrder();
     if (currentPlan.targetId == object->id_) EndOrder(0);
-    BrainOf(this)->OnObjectDeleted(object);
+    brain.OnObjectDeleted(object);
     if (followedLeader == object) {
         followsLeader = 0;
         followedLeader.Reset();
@@ -96,7 +95,7 @@ void CUnitServer::Resettle() {
 
 void CUnitServer::Create() {
     ResetController();
-    BrainOf(this)->SetOwner(this);
+    brain.SetOwner(this);
 }
 
 void CUnitServer::ClearState() { ResetController(); }

@@ -28,13 +28,6 @@ constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull
 constexpr float kDecayBase = 0.8f;
 static_assert(std::bit_cast<std::uint32_t>(kDecayBase) == 0x3F4CCCCDu);
 
-// The server side of a unit's player (CPlayer::connection_). Its refreshPending_ == 2 is what the modes take
-// as the player controlling the unit directly.
-inline const CPlayerServer* PlayerServerOf(const CPlayer* player) {
-    return player->Server();
-}
-
-
 constexpr float kMoveTime = 1000000.0f;
 constexpr float kNearX = 35.0f;
 constexpr float kNearY = 80.0f;
@@ -70,9 +63,10 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
     if (previous == kUnsetBits) brain->previousPosition = *where;
 }
 
+// The player controls the unit directly: the server side of its player (CPlayer::connection_) has refreshPending_ == 2.
 bool DirectControl(const AIBrain* brain) {
     const CPlayer* player = brain->owner->unit->player;
-    return player && PlayerServerOf(player)->refreshPending_ == 2;
+    return player && player->Server()->refreshPending_ == 2;
 }
 
 // Common start of CommandWalk / CommandGoTo: the point (moved by `offset` when the way is clear),
@@ -92,8 +86,6 @@ void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3* to, int run, c
     if (!DirectControl(brain)) self->leader.Reset();
     self->target.Reset();
 }
-
-PlayerMode* PlayerModeOf(CUnit* unit) { return unit->ServerController()->brain.FindPlayerMode(); }
 
 } // namespace
 
@@ -132,7 +124,7 @@ void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
 
 void GuardMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, AIRemark::Idle);
-    brain->attention.LookAround(brain, 0);
+    brain->attention.LookAround(brain);
     if (brain->action != AIBrain::kActionNone) return;
     // 35 + radius / 80 + radius, computed before the positions are copied.
     float nearX = kNearX + radius;
@@ -186,18 +178,16 @@ void GuardMode::Save(CStream* stream) {
 
 // --- Patrol --------------------------------------------------------------------------------------
 
-void PatrolMode::AddPoint(const Vector3* a0) { AppendPoint(a0); }
-
 int PatrolMode::Evaluate(AIBrain* brain) {
     if (std::ssize(points) != 0) return kPriority;
     game::FatalError("Unit %i has no patrol points, switching to guard", brain->owner->unit->id_);
-    AddPoint(&brain->owner->unit->localPosition_);
+    AppendPoint(&brain->owner->unit->localPosition_);
     return kNoPriority;
 }
 
 void PatrolMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, AIRemark::Idle);
-    brain->attention.LookAround(brain, 0);
+    brain->attention.LookAround(brain);
     if (std::ssize(points) == 0 || brain->action != AIBrain::kActionNone) return;
     if (++current >= std::ssize(points)) current = 0;
     PatrolPoint* next = points.data() + current;
@@ -262,7 +252,7 @@ void SentryMode::Set(const Vector3* p) { point = *p; }
 
 void SentryMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, AIRemark::Idle);
-    brain->attention.LookAround(brain, 0);
+    brain->attention.LookAround(brain);
     if (brain->action != AIBrain::kActionNone) return;
     AIMoveOrder order;
     order.looks.clear();
@@ -417,7 +407,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     CUnit* self = brain->owner->unit;
     UnitList candidates;
     brain->memory.FindEnemies(self, &candidates);
-    brain->ChooseTarget(&chosen, &candidates, &self->localPosition_, 0, 0);
+    brain->attention.Choose(brain, &chosen, &candidates, &self->localPosition_, false, 0);
     CUnit* best = chosen.object;
     if (best != enemy) {
         enemy.Assign(best);
@@ -534,7 +524,7 @@ void FearMode::Save(CStream* stream) {
 void PlayerMode::Execute(AIBrain* brain) {
     CUnit* unit = brain->owner->unit;
     bool direct = false;
-    if (unit->player) direct = PlayerServerOf(unit->player)->refreshPending_ == 2;
+    if (unit->player) direct = unit->player->Server()->refreshPending_ == 2;
     if (brain->seen && unit->fightAtWill != 1) brain->owner->Shout(AckKind::AttackedInDefence);
 
     switch (state) {
@@ -606,28 +596,28 @@ void PlayerMode::Execute(AIBrain* brain) {
     brain->action = AIBrain::kActionNone;
 }
 
-void PlayerMode::CommandWalk(AIBrain* brain, const Vector3* to, int unknown, int runArg, const Vector3* offset) {
+void PlayerMode::CommandWalk(AIBrain* brain, const Vector3* to, int inGroup, int runArg, const Vector3* offset) {
     state = kStateCommand;
     PrepareWalk(this, brain, to, runArg, offset);
     brain->action = AIBrain::kActionWalk;
-    brain->owner->OrderMove(&point, run, unknown, kMoveTime);
+    brain->owner->OrderMove(&point, run, inGroup, kMoveTime);
 }
 
-void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int runArg, const Vector3* offset) {
+void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int inGroup, int runArg, const Vector3* offset) {
     state = kStateMoveTo;
     PrepareWalk(this, brain, to, runArg, offset);
     if (!DirectControl(brain) && !StaysWithParty(brain, true)) {
         point.z = 0.0f;
-        brain->owner->PlanMove(&point, unknown, 0, kMoveTime);
+        brain->owner->PlanMove(&point, inGroup, 0, kMoveTime);
         return;
     }
     constexpr std::uint32_t kOneBits = 0x3F800000u;
     point.z = std::bit_cast<float>(kOneBits);
     brain->action = AIBrain::kActionWalk;
-    brain->owner->OrderMove(&point, run, unknown, kMoveTime);
+    brain->owner->OrderMove(&point, run, inGroup, kMoveTime);
 }
 
-void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int unknown) {
+void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int calledShot) {
     if (object == brain->owner->unit) return;
     state = kStateFollow;
     if (object != target) {
@@ -640,12 +630,12 @@ void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int 
     if (object != brain->target) {
         brain->target.Assign(object);
     }
-    brain->owner->OrderAttack(brain->target, how, unknown, AckKind::Attack);
+    brain->owner->OrderAttack(brain->target, how, calledShot, AckKind::Attack);
 }
 
-void PlayerMode::CommandUse(AIBrain* brain, CMapObject* object, UseSource kind, int a, int b) {
+void PlayerMode::CommandUse(AIBrain* brain, CMapObject* object, UseSource kind, int spot, int runArg) {
     state = kStateFollow;
-    brain->UseOn(object, kind, a, b);
+    brain->UseOn(object, kind, spot, runArg);
 }
 
 void PlayerMode::CommandCast(AIBrain* brain, int spell, CMapObject* object) {
@@ -679,12 +669,12 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
     if (newLeader) {
         CUnit* unit = newLeader;
         for (;;) {
-            PlayerMode* mode = PlayerModeOf(unit);
+            PlayerMode* mode = unit->ServerController()->brain.FindPlayerMode();
             CUnit* next = mode ? mode->leader.Get() : nullptr;
             if (!next) break;
             if (next == self) {
                 AIBrain* own = &next->ServerController()->brain;
-                if (PlayerMode* ownMode = PlayerModeOf(next)) ownMode->SetLeader(own, nullptr);
+                if (PlayerMode* ownMode = own->FindPlayerMode()) ownMode->SetLeader(own, nullptr);
                 break;
             }
             unit = next;

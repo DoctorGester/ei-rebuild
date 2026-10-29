@@ -411,8 +411,8 @@ public:
     // Other than 5 (acting) the size class is updated and the effect object dropped; 5 sets actingCheckTime to
     // 10 updates from now.
     void SetState(int newState);
-    // Re-registers the unit on the sector map.
-    void SetStanding(int standing);
+    // Clears the standing flag, re-registering the unit on the sector map.
+    void ClearStanding();
     // The unit stays where it is, facing its direction; standing 0.
     void StandStill();
     // The reaction to a hit from hitDirection (BuildDeathAnimation without dying), saving the queue in

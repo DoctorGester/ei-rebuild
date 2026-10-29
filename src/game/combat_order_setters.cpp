@@ -29,7 +29,6 @@ constexpr std::uint32_t kUntameable = 0x32;
 constexpr std::uint32_t kEmoteKeyBit = AnimationKeyOf(AnimationKeyFlag::Looped);   // FigureAnimation::key: an emote (kind 8)
 constexpr int kStateActing = 5;                       // CUnitServer::state
 
-CPlayerServer* PlayerConnection(CUnit* unit) { return unit->player->Server(); }
 
 // The shared tail of the kind 6 setters: the queued order (reset first) becomes a use of `target` with
 // `source`, `spot` and `run`, and is planned; reset again when the planner refuses.
@@ -65,7 +64,7 @@ void CUnitServer::SetMoveStyle(int style) {
     unit->moveMode2 = style;
     if (FitsMoveMode(style)) {
         if (style == kStyleRun && stats.MovementState(1) != 0) return;
-        if (unit->player) PlayerConnection(unit)->SendObject0B(unit, AckKind::ChangePosition);
+        if (unit->player) unit->player->Server()->SendObject0B(unit, AckKind::ChangePosition);
     }
     if (style != kStyleWalk && style != kStyleRun) action.modifier = 0;
 }

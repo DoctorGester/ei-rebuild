@@ -272,7 +272,7 @@ void FearMode::Execute(AIBrain* brain) {
         UnitList candidates{};
         AITargetChoice best{-1, nullptr};
         Vector3 at = brain->owner->unit->localPosition_;
-        brain->ChooseTarget(&best, &candidates, &at, 1, 1);
+        brain->attention.Choose(brain, &best, &candidates, &at, true, 1);
         if (best.object) brain->attention.ApplyAttack(brain, &best);
         candidates.clear();
 

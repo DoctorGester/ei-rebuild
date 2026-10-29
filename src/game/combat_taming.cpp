@@ -19,11 +19,10 @@ namespace {
 
 constexpr int kStatTaming = 2;
 
-int& Stage(CUnitServer* self) { return self->tameStage; }
 
 // The side that tamed the unit (-1 when not tamed) is the attacker's: the taming is undone.
 void UndoIfTamedBy(CUnitServer* self, CUnit* tamer) {
-    int side = Stage(self) == 0 ? -1 : self->tamerSide;
+    int side = self->tameStage == 0 ? -1 : self->tamerSide;
     if (side == tamer->side) self->UndoTaming();
 }
 
@@ -40,15 +39,15 @@ bool CUnitServer::TryTame(CUnit* tamer, float roll) {
         return false;
     }
     CPlayer* tamerPlayer = tamer->player;
-    switch (Stage(this)) {
+    switch (tameStage) {
     case 0:
         unit->SetRelationsB(~(1u << (tamer->side & 31)));
-        Stage(this) = 1;
+        tameStage = 1;
         break;
     case 1:
         ownSide = unit->side;
         unit->SetSide(tamer->side);
-        Stage(this) = 2;
+        tameStage = 2;
         break;
     case 2: {
         if (!tamerPlayer) break;
@@ -58,7 +57,7 @@ bool CUnitServer::TryTame(CUnit* tamer, float roll) {
         brain.AddMode(new TamedMode());
         brain.memory.seenCorpses.clear();
         brain.memory.corpses.clear();
-        Stage(this) = 3;
+        tameStage = 3;
         break;
     }
     default:
@@ -82,10 +81,10 @@ bool CUnitServer::TryTame(CUnit* tamer, float roll) {
 }
 
 void CUnitServer::UndoTaming() {
-    if (Stage(this) == 0) return;
+    if (tameStage == 0) return;
     brain.RemoveModesOfType(AIModeType::Tamed);   // unit_ai.h: the tamed mode (8)
     unit->SetPlayer(nullptr);
     unit->SetRelationsB(0xFFFFFFFFu);
-    if (Stage(this) > 1) unit->SetSide(ownSide);
-    Stage(this) = 0;
+    if (tameStage > 1) unit->SetSide(ownSide);
+    tameStage = 0;
 }

@@ -21,7 +21,6 @@ inline const float* DefenceFactors() { return g_logicSettings.defence; }
 
 UnitVitals& VitalsOf(CUnit* unit) { return unit->ServerCompanion()->vitals; }
 
-AIBrain* BrainOf(CUnitServer* self) { return &self->brain; }
 
 } // namespace
 
@@ -75,12 +74,12 @@ int CUnitServer::ClearOuterArmourLayers() { return stats.ClearOuterLayers(); }
 
 void CUnitServer::RefreshEquipment() {
     RefreshItemSpells();
-    BrainOf(this)->attention.Build(unit);
+    brain.attention.Build(unit);
 }
 
 void CUnitServer::HostileMaskChanged() {
     claimedHostile = 0;
-    BrainOf(this)->memory.calls.RemoveClaims();
+    brain.memory.calls.RemoveClaims();
 }
 
 void CUnitServer::CopyStats(UnitStats* out) { std::memcpy(out, &stats, sizeof(UnitStats)); }

@@ -33,7 +33,7 @@ Next StartFireArrow(CSpellEffect* e, SpellType type, const Vector3& from) {
     Vector3 color = PrototypeColor(e);
     float power = Power(e);
     e->CreateArrow(&from, e->target, type == SpellType::FireArrow ? static_cast<int>(ParticleType::FireArrow) : static_cast<int>(ParticleType::RikArrowSmoke), power, "magic\\Firearrow\\circle.wav", &color, range);
-    e->CreateSound(0, "magic\\Firearrow\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
+    e->CreateSound("magic\\Firearrow\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
     e->state = 1;
     return Next::Set;
 }
@@ -42,7 +42,7 @@ Next StartFireArrow(CSpellEffect* e, SpellType type, const Vector3& from) {
 Next StartLightning(CSpellEffect* e, SpellType type, const Vector3& from) {
     float power = Power(e);
     e->CreateLightning(&from, e->target, e->caster, power, type == SpellType::CurseMagic ? 1 : 0);
-    e->CreateSound(0, "magic\\lightning\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
+    e->CreateSound("magic\\lightning\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
     Vector3 scratch;
@@ -63,7 +63,7 @@ Next StartAcidRay(CSpellEffect* e, const Vector3& from) {
     Vector3 color = PrototypeColor(e);
     float power = PowerScaled(e, worlddata::AcidRayScale());
     e->CreateArrow(&from, e->target, static_cast<int>(ParticleType::AcidRay), power, "magic\\Acidray\\circle.wav", &color, range);
-    e->CreateSound(0, "magic\\Acidray\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
+    e->CreateSound("magic\\Acidray\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
     e->state = 1;
     return Next::Set;
 }
@@ -88,10 +88,9 @@ Next StartFireball(CSpellEffect* e, const Vector3& from) {
     e->targetPoint.z = GroundPlus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::OneRef()));
     particle->SetTarget(&e->targetPoint);
     if (speed * ConstAt(worlddata::FireballNear()) > distance) {
-        e->CreateSound(0, "magic\\FireBall\\start.wav", &e->position, &velocity, kVolume, kHearing);
+        e->CreateSound("magic\\FireBall\\start.wav", &e->position, &velocity, kVolume, kHearing);
     } else {
-        e->CreateSoundSequence(&e->position, &velocity, "magic\\Fireball\\start.wav", "magic\\Fireball\\circle.wav", -1, kVolume,
-                               kHearing);
+        e->CreateSoundSequence(&e->position, &velocity, "magic\\Fireball\\start.wav", "magic\\Fireball\\circle.wav", -1);
     }
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
@@ -113,7 +112,7 @@ Next StartLightStrike(CSpellEffect* e) {
 
     float alpha = Power(e);
     e->CreateParticle(0, static_cast<int>(ParticleType::LightningBlast), &e->targetPoint, e->Spell()->radius_, alpha, &kZeroVector, nullptr);
-    e->CreateSound(0, "magic\\InvokeLight\\start.wav", &e->position, &kZeroVector, kLoud, kLoud);
+    e->CreateSound("magic\\InvokeLight\\start.wav", &e->position, &kZeroVector, kLoud, kLoud);
     e->targetPoint.z = e->targetPoint.z + ConstAt(worlddata::LightAbove());
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
     PrototypeLight(e, &e->targetPoint, PrototypeRange(e), &rise);
@@ -128,7 +127,7 @@ Next StartLightStrike(CSpellEffect* e) {
 Next StartAcidColumn(CSpellEffect* e) {
     e->position = e->targetPoint;
     e->CreateParticle(0, static_cast<int>(ParticleType::Nuke), &e->targetPoint, 1.0f, 1.0f, &kZeroVector, nullptr);
-    e->CreateSound(0, "magic\\Acidcolumn\\start.wav", &e->targetPoint, &kZeroVector, kVolume, kHearing);
+    e->CreateSound("magic\\Acidcolumn\\start.wav", &e->targetPoint, &kZeroVector, kVolume, kHearing);
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
     PrototypeLight(e, &e->targetPoint, PrototypeRange(e), &rise);
     e->timer = 0x1E;
@@ -165,7 +164,7 @@ Next StartFireWall(CSpellEffect* e, const Vector3& from) {
     float radius = e->Spell()->radius_;
     float range = PrototypeRange(e);
     PrototypeLight(e, &centre, radius + range, &kZeroVector);
-    e->CreateSoundSequence(&centre, &kZeroVector, "magic\\Firewall\\start.wav", "magic\\Firewall\\circle.wav", -1, kVolume, kHearing);
+    e->CreateSoundSequence(&centre, &kZeroVector, "magic\\Firewall\\start.wav", "magic\\Firewall\\circle.wav", -1);
     return Next::Set;
 }
 
@@ -194,7 +193,7 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
     float radius = e->Spell()->radius_;
     float range = PrototypeRange(e);
     PrototypeLight(e, &centre, radius + range, &kZeroVector);
-    e->CreateSoundSequence(&centre, &kZeroVector, game::kEmptyText, "magic\\Lightwall\\circle.wav", -1, kVolume, kHearing);
+    e->CreateSoundSequence(&centre, &kZeroVector, game::kEmptyText, "magic\\Lightwall\\circle.wav", -1);
     return Next::Set;
 }
 
@@ -204,7 +203,7 @@ Next StartPoisonCloud(CSpellEffect* e) {
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float alpha = Power(e);
     e->CreateParticle(1, static_cast<int>(ParticleType::PoisonFog), &centre, e->Spell()->radius_, alpha, &kZeroVector, nullptr);
-    e->CreateSoundSequence(&centre, &kZeroVector, "magic\\poison\\start.wav", "magic\\poison\\circle.wav", -1, kVolume, kHearing);
+    e->CreateSoundSequence(&centre, &kZeroVector, "magic\\poison\\start.wav", "magic\\poison\\circle.wav", -1);
     float radius = e->Spell()->radius_;
     float range = PrototypeRange(e);
     PrototypeLight(e, &centre, radius + range, &kZeroVector);
@@ -231,7 +230,7 @@ Next StartFirework(CSpellEffect* e) {
     float size = Power(e);
     e->CreateParticle(1, static_cast<int>(ParticleType::Geyser), &centre, size, 1.0f, &kZeroVector, nullptr);
     PrototypeLight(e, &centre, PrototypeRange(e), &kZeroVector);
-    e->CreateSoundSequence(&centre, &kZeroVector, game::kEmptyText, "magic\\Firework\\%i.wav", 5, kVolume, kHearing);
+    e->CreateSoundSequence(&centre, &kZeroVector, game::kEmptyText, "magic\\Firework\\%i.wav", 5);
     e->position = centre;
     return Next::Set;
 }
@@ -243,7 +242,7 @@ Next StartClairvoyance(CSpellEffect* e) {
     e->position = centre;
     e->CreateParticle(0, static_cast<int>(ParticleType::ClayRing), &e->targetPoint, e->Spell()->radius_, 1.0f, &kZeroVector, nullptr);
     PrototypeLight(e, &centre, e->Spell()->radius_, &kZeroVector);
-    e->CreateSound(0, "magic\\Clairvoyence\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
+    e->CreateSound("magic\\Clairvoyence\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
     return Next::Set;
 }
 
@@ -251,7 +250,7 @@ Next StartClairvoyance(CSpellEffect* e) {
 Next StartPossession(CSpellEffect* e) {
     if (!e->target) return Next::Done;
     Vector3 scratch;
-    e->CreateSound(0, "magic\\Possession\\start.wav", EyePointOf(e->target, &scratch), &kZeroVector, kVolume, kHearing);
+    e->CreateSound("magic\\Possession\\start.wav", EyePointOf(e->target, &scratch), &kZeroVector, kVolume, kHearing);
     return Next::Set;
 }
 
@@ -265,7 +264,7 @@ Next StartVisionFog(CSpellEffect* e) {
     SetPosition(shown, &kZeroVector);
     e->SetVisual(shown);
     Vector3 scratch;
-    e->CreateSound(0, "magic\\VisionFog\\start.wav", EyePointOf(e->target, &scratch), &kZeroVector, kVolume, kHearing);
+    e->CreateSound("magic\\VisionFog\\start.wav", EyePointOf(e->target, &scratch), &kZeroVector, kVolume, kHearing);
     return Next::Set;
 }
 
@@ -280,7 +279,7 @@ Next StartHealing(CSpellEffect* e) {
     e->CreateParticle(0, static_cast<int>(ParticleType::Healing), &kZeroVector, size, 1.0f, &kZeroVector, unit);
     bool full = unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints;
     if (e->silentEnd == 0 || !full) {
-        e->CreateSound(0, "magic\\Healing\\start.wav", &unit->localPosition_, &kZeroVector, kVolume, kHearing);
+        e->CreateSound("magic\\Healing\\start.wav", &unit->localPosition_, &kZeroVector, kVolume, kHearing);
         Vector3 rise{0.0f, 0.0f, LightRise(e)};
         float range = PrototypeRange(e);
         Vector3 color = PrototypeColor(e);
@@ -313,7 +312,7 @@ Next StartLink(CSpellEffect* e) {
         direction.z = to->z - from.z;
         e->Visual<CEffectWall>()->SetDirection(&direction);
     }
-    e->CreateSoundSequence(&from, &kZeroVector, "magic\\Link\\start.wav", "magic\\Link\\circle.wav", -1, kVolume, kHearing);
+    e->CreateSoundSequence(&from, &kZeroVector, "magic\\Link\\start.wav", "magic\\Link\\circle.wav", -1);
     return Next::Set;
 }
 
@@ -326,7 +325,7 @@ Next StartTeleport(CSpellEffect* e) {
     point = e->targetPoint;
     point.z = GroundMinus(e, kGridHeight, point, ConstPtr(worlddata::TeleportDepth()));
     e->CreateParticle(0, static_cast<int>(ParticleType::Teleport), &point, -1.0f, 1.0f, &kZeroVector, nullptr);
-    e->CreateSound(0, "magic\\Teleport\\start.wav", &point, &kZeroVector, kVolume, kHearing);
+    e->CreateSound("magic\\Teleport\\start.wav", &point, &kZeroVector, kVolume, kHearing);
     PrototypeLight(e, &point, PrototypeRange(e), &kZeroVector);
     int duration = static_cast<int>(e->Spell()->duration_);
     if (duration < 1) duration = 1;
@@ -350,7 +349,7 @@ Next StartCharm(CSpellEffect* e) {
             return Next::Done;
         }
     }
-    e->CreateSound(0, "magic\\Charm\\start.wav", &e->target->localPosition_, &kZeroVector, kVolume, kHearing);
+    e->CreateSound("magic\\Charm\\start.wav", &e->target->localPosition_, &kZeroVector, kVolume, kHearing);
     return Next::Done;
 }
 
@@ -429,13 +428,13 @@ void CSpellEffect::UpdateFootprint(SpellType type, int stamp) {
     case SpellType::FireWall: {
         Vector3 direction;
         direction = (Visual<CEffectWall>()->direction_);
-        g_spellFootprint.AlongDirection(aiMap, &position, kHalfBits, &direction);
+        g_spellFootprint.AlongDirection(aiMap, &position, &direction);
         break;
     }
     case SpellType::LightningWall: {
         Vector3 half;
         HalfSpan(Visual<CEffectLightning>(), &half);
-        g_spellFootprint.AlongDirection(aiMap, &position, kHalfBits, &half);
+        g_spellFootprint.AlongDirection(aiMap, &position, &half);
         break;
     }
     case SpellType::AcidFog:
@@ -503,8 +502,7 @@ void CSpellEffect::CreateLightning(const Vector3* from, CMapObject* boltTarget, 
     world->AddTimedObject(visual);
 }
 
-void CSpellEffect::CreateSound(int keep, const char* name, const Vector3* at, const Vector3* velocity, float volume,
-                               float hearing) {
+void CSpellEffect::CreateSound(const char* name, const Vector3* at, const Vector3* velocity, float volume, float hearing) {
     auto* effect = CreateObject<CEffectSound>(this, ClassId::EffectSound);
     SetPosition(effect, at);
     effect->noFade_ = 1;
@@ -512,19 +510,18 @@ void CSpellEffect::CreateSound(int keep, const char* name, const Vector3* at, co
     effect->volume_ = volume;
     std::memcpy(effect->name_, name, std::strlen(name) + 1);
     effect->SetVelocity(velocity);
-    effect->looping_ = keep;
-    if (keep) Assign<CEffect>(this, &sound, effect);
+    effect->looping_ = 0;
     world->AddTimedObject(effect);
 }
 
 void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocity, const char* first,
-                                       const char* pattern, int count, float volume, float hearing) {
+                                       const char* pattern, int count) {
     std::string name;
     auto* effect = CreateObject<CEffectSoundSeq>(this, ClassId::EffectSoundSeq);
     SetPosition(effect, at);
     effect->SetVelocity(velocity);
-    effect->radius_ = hearing;
-    effect->volume_ = volume;
+    effect->radius_ = kHearing;
+    effect->volume_ = kVolume;
     effect->noFade_ = 1;
     effect->name_ = first;
     auto& names = effect->names_;

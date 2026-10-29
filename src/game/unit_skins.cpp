@@ -40,7 +40,6 @@ const UnitModelRecord* UnitModel(std::uint32_t index) {
 const itemdb::ArmorRecord* Armour(std::uint32_t index) {
     return itemdb::ArmorAt(index);
 }
-const char* ModelPrefix(const UnitModelRecord* model) { return model->figureName.c_str(); }
 
 // The texture records' kind and item type of an empty record.
 constexpr std::uint32_t kNoRecordField = 0xFFFFFFFFu;
@@ -76,7 +75,7 @@ void AppendText(char* to, const char* from) { CopyText(to + std::strlen(to), fro
 
 // "<model prefix><name>.mmp" into `buffer`.
 void AppendName(const UnitModelRecord* model, const std::string& name, char* buffer) {
-    CopyText(buffer, ModelPrefix(model));
+    CopyText(buffer, model->figureName.c_str());
     AppendText(buffer, name.c_str());
     AppendText(buffer, ".mmp");
 }
@@ -149,9 +148,9 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         std::string skin;
         set.textures.clear();
         if (prototype) {
-            skin = str::Format("%sskin_%.2d.mmp", ModelPrefix(model), prototype->skin);
+            skin = str::Format("%sskin_%.2d.mmp", model->figureName.c_str(), prototype->skin);
         } else {
-            skin = str::Format("%sskin_00.mmp", ModelPrefix(model));
+            skin = str::Format("%sskin_00.mmp", model->figureName.c_str());
         }
         set.textures.push_back(skin);
         for (int slot = 3; slot <= 6; ++slot) {
@@ -201,7 +200,7 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     first.insert(first.end(), second.data(), second.data() + second.size());
 
     {
-        std::string name(ModelPrefix(model));
+        std::string name(model->figureName.c_str());
         // The figure loader's LoadFigure (not fresh).
         self->figureLoader_->LoadFigure(&name, &first, record->morphS, record->morphT, record->morphU, false);
     }

@@ -21,7 +21,7 @@ AIActionMode::AIActionMode() {}
 
 void AIMode::Execute(AIBrain* brain) {
     if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(AIRemark::Idle);
-    brain->attention.LookAround(brain, 0);
+    brain->attention.LookAround(brain);
 }
 
 AIModeType PatrolMode::GetType() { return AIModeType::Patrol; }

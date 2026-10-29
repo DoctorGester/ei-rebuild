@@ -95,7 +95,7 @@ struct FootprintCell {
 
 // A growable array of FootprintCell with a 16-bucket hash on (x + y).
 struct FootprintCellSet {
-    void AlongDirection(CAIMap* map, const Vector3* position, float width, const Vector3* direction);
+    void AlongDirection(CAIMap* map, const Vector3* position, const Vector3* direction);
     void DiscAt(CAIMap* map, const Vector3* position, float radius);
     // Resizes the array to `size`.
     void SetSize(int size);

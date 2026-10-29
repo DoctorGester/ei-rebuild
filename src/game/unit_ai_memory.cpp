@@ -20,7 +20,6 @@
 namespace {
 const float kFar = 1e30f;
 
-bool IsDead(CMapObject* object) { return object->IsDead(); }
 
 // (a - b) squared in 3D, summed z, then x, then y.
 double Distance2(const CUnit* a, const float* b) {
@@ -49,7 +48,7 @@ void AIMemory::FindEnemies(CUnit* self, UnitList* out) {
     out->clear();
     for (auto& node : visible) {
         CUnit* other = node;
-        if (!self->IsHostileTo(other) || IsDead(other) || reports.Contains(other)) continue;
+        if (!self->IsHostileTo(other) || other->IsDead() || reports.Contains(other)) continue;
         out->push_back(other);
     }
 }
@@ -59,7 +58,7 @@ void AIMemory::FindEnemiesNear(CUnit* self, UnitList* out, const Vector3* point,
     float radius2 = radius > 0.0f ? static_cast<float>(static_cast<double>(radius) * radius) : -1.0f;
     for (auto& node : visible) {
         CUnit* other = node;
-        if (!other->IsHostileTo(self) || IsDead(other) || reports.Contains(other)) continue;
+        if (!other->IsHostileTo(self) || other->IsDead() || reports.Contains(other)) continue;
         if (Distance2(other, &point->x) >= radius2) {
             AIBrain* theirs = &other->ServerController()->brain;
             auto* mode = static_cast<AggressionMode*>(theirs->FindMode(AIModeType::Aggression));
@@ -77,7 +76,7 @@ CUnit* AIMemory::NearestEnemy(CUnit* self) {
     float best = kFar;
     for (auto& node : visible) {
         CUnit* other = node;
-        if (!self->IsHostileTo(other) || IsDead(other)) continue;
+        if (!self->IsHostileTo(other) || other->IsDead()) continue;
         double dx = static_cast<double>(self->localPosition_.x) - other->localPosition_.x;
         double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
         double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
@@ -109,7 +108,7 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
         double nearValue = static_cast<double>(theirs->stats.conspicuity[2].current) * ours->stats.perception[2].current;
         if (sight > distance && nearValue > distance) return;
     }
-    if (IsDead(object)) {
+    if (object->IsDead()) {
         console::EndLine(kAiLog << "Unit " << self->id_ << " sees corpse of unit " << other->id_);
         seenCorpses.push_back(object);
         if (g_serverWorld.diplomacy_.IsAllied(self->side, other->side)) corpses.push_back(object);
@@ -133,7 +132,7 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
     unit->EyePoint(&eye);
     for (auto& node : nearby) {
         CUnit* other = node;
-        if (IsDead(other) || !unit->IsHostileTo(other)) continue;
+        if (other->IsDead() || !unit->IsHostileTo(other)) continue;
         CUnitServer* theirs = other->ServerController();
         double dx = static_cast<double>(other->localPosition_.x) - unit->localPosition_.x;
         double dy = static_cast<double>(other->localPosition_.y) - unit->localPosition_.y;

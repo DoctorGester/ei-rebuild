@@ -39,7 +39,6 @@ constexpr int kLostLevel = 1000;
 constexpr int kLostKind = -2;
 constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 
-bool IsDead(CMapObject* object) { return object->IsDead(); }
 
 bool IsZero(double v) {
     EI_NAN_AUDIT(v);
@@ -106,7 +105,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
     for (auto node = memory->nearby.begin(); node != memory->nearby.end();) {
         CUnit* other = *node;
         ++node;
-        bool dead = IsDead(other);
+        bool dead = other->IsDead();
         bool hostile = self->IsHostileTo(other) || other->player != nullptr;
         if (dead) {
             if (!seesAll && hostile) continue;
@@ -184,7 +183,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
                   static_cast<float>(static_cast<double>(other->localPosition_.y) - self->localPosition_.y),
                   static_cast<float>(static_cast<double>(other->localPosition_.z) - self->localPosition_.z)};
         float distance = LengthZYX(d);
-        if (IsDead(other)) {
+        if (other->IsDead()) {
             if (g_serverWorld.diplomacy_.IsAllied(self->side, other->side)) {
                 // AddTail (a second copy follows below).
                 memory->seenCorpses.push_back(other);

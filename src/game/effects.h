@@ -783,8 +783,6 @@ public:
     // The cells as sprites through the scene renderer; 1 without cells or when the bounds are out of view.
     int Draw(class CSceneRenderer* renderer);
 
-    CWorld* World();
-
     ClipBounds bounds;              // flags 3 once computed; the box relative to the centre
     Vector3 boundsSpare;            // zeroed with the bounds, never read
     CellMap cells;

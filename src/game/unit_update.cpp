@@ -15,8 +15,6 @@ namespace {
 constexpr const char* kUnitClassName = "CUnit";
 constexpr std::uint8_t kMovesOnWater = 2;     // UnitParams::movementKind
 
-// The world gives the ground and water surface heights at (x, y), unrounded.
-CWorld* WorldOf(CUnit* unit) { return unit->World(); }
 } // namespace
 
 // The map object's (map_object.cpp) and the 3D object's (map_object_figures.cpp) bodies these slots run are
@@ -82,7 +80,7 @@ float* CUnit::StandPoint(float* out) {
     float x = localPosition_.x;
     float y = localPosition_.y;
     float lift = static_cast<float>(ModeSpeed());   // inlined
-    CWorld* world = WorldOf(this);
+    CWorld* world = World();
     double height;
     if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == ClassId::UnitServer) {
@@ -103,7 +101,7 @@ void CUnit::PlaceOnGround(float offset) {
     float x = localPosition_.x;
     float y = localPosition_.y;
     heightOffset = offset;
-    CWorld* world = WorldOf(this);
+    CWorld* world = World();
     if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == ClassId::UnitServer) {
             localPosition_.z = static_cast<float>(world->SurfaceHeightAt(x, y) + localPosition_.z);

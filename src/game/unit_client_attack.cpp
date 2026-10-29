@@ -21,7 +21,6 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr int kDamageTypes = 7;
 
-UnitParams* ParamsOf(CUnit* unit) { return &unit->params; }
 
 // The weapon id of the controller's slot `slot`, or none for a slot beyond 3.
 std::uint32_t WeaponIn(const CUnitClientSpecific* self, std::uint32_t slot) {
@@ -31,7 +30,7 @@ std::uint32_t WeaponIn(const CUnitClientSpecific* self, std::uint32_t slot) {
 
 void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
     CUnit* owner = unit;
-    UnitParams* params = ParamsOf(owner);
+    UnitParams* params = &owner->params;
     int keyed = IsTextKey(owner->id_);
     std::uint32_t weapon = WeaponIn(this, owner->activeWeapon);
     if (keyed && weapon != kNoWeapon) {

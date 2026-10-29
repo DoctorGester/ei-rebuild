@@ -90,8 +90,8 @@ int CUnit::RemoveCarried(int index) {
 void CUnit::SendEquipment() {
     std::uint32_t ids[11];   // 4 weapons, then 7 armour pieces (-1 for none)
     GetEquipmentIds(ids);
-    Controller()->SetArmourModels(&ids[4], 7);
-    Controller()->SetWeaponModels(&ids[0], 4);
+    Controller()->SetArmourModels(&ids[4]);
+    Controller()->SetWeaponModels(&ids[0]);
 }
 
 std::uint32_t CUnit::SetSecondPrototypeByName(std::string_view prototypeName) {

@@ -221,12 +221,11 @@ public:
                                     const Vector3* velocity, CEngineObject* attachTo);
     // Nothing without a target; it becomes the visual.
     void CreateLightning(const Vector3* from, CMapObject* target, CEngineObject* source, float power, int flag);
-    // `keep`: it becomes the sound.
-    void CreateSound(int keep, const char* name, const Vector3* position, const Vector3* velocity, float volume,
-                     float radius);
+    // A one-shot sound effect (the effect does not keep it).
+    void CreateSound(const char* name, const Vector3* position, const Vector3* velocity, float volume, float radius);
     // `first`, then `pattern` itself (count < 1) or `pattern` formatted with 1..count. It becomes the sound.
     void CreateSoundSequence(const Vector3* position, const Vector3* velocity, const char* first,
-                             const char* pattern, int count, float volume, float radius);
+                             const char* pattern, int count);
     // Light flags Specular | Strong; it becomes the light.
     void CreatePointLight(const Vector3* position, const Vector3* color, float range, const Vector3* velocity);
 

@@ -68,7 +68,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
         Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
         position.z = static_cast<float>(unit->GroundHeight(position.x, position.y) +
                                         unit->heightOffset);
-        ObjectWorld(this)->MoveObject(unit, &position.x);
+        World()->MoveObject(unit, &position.x);
         return;
     }
     if (step > kLongStep) step = static_cast<float>(g_random.Next() % kLongStepSpread + 500u);

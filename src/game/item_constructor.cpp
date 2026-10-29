@@ -240,8 +240,8 @@ void CItemConstructor::SetManager(CBaseManager* manager) {
     if (manager) manager->AddRef();
 }
 
-bool CItemConstructor::BeginCreateItem(ItemKind kind, int key) {
-    CItem* item = manager_->CreateObjectAs<CItem>(kind, key);
+bool CItemConstructor::BeginCreateItem(ItemKind kind) {
+    CItem* item = manager_->CreateObjectAs<CItem>(kind, kNoObjectId);
     if (!item) return game::FatalError(kCantCreateItem);
     item_.Assign(item);
     material_ = nullptr;
@@ -329,7 +329,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
         if (spell) {
             QuickItemTable& quickItems = g_itemDatabase.quickItems;
             int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
-            item = (CItem*)MakeItem(ItemKind::Spell, index, 0, -1);
+            item = (CItem*)MakeItem(ItemKind::Spell, index, 0);
             if (item) item->AttachSpell(spell);
         }
         return item;
@@ -350,7 +350,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
         return nullptr;
     }
     constructor->SetManager(this);
-    constructor->BeginCreateItem(prototype->Kind(), -1);
+    constructor->BeginCreateItem(prototype->Kind());
     MaterialRecordHead* material = nullptr;
     if (parts.size() > 1) material = items.materials.Named(parts[1]);
     constructor->SetPrototype(prototype);
@@ -381,11 +381,11 @@ CItem* CItemManager::CreateItem(std::string_view name) {
 
 // --- The item manager's MakeItem ----------------------------------------------------------------
 
-CItem* CItemManager::MakeItem(ItemKind kind, std::uint32_t index, std::uint32_t material, int key) {
+CItem* CItemManager::MakeItem(ItemKind kind, std::uint32_t index, std::uint32_t material) {
     CItemConstructor* constructor = context_->ItemConstructor();
     if (static_cast<std::int16_t>(index) == -1) index = 0;
     constructor->SetManager(this);
-    constructor->BeginCreateItem(kind, key);
+    constructor->BeginCreateItem(kind);
     ItemRecordHead* prototype = nullptr;
     MaterialRecordHead* materialRecord = nullptr;
     switch (kind) {
@@ -426,7 +426,7 @@ CItem* CItemManager::CreateSpellItem(std::string_view spellText, CSpellManager* 
     if (!spell) return nullptr;
     QuickItemTable& quickItems = g_itemDatabase.quickItems;
     int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
-    CItem* item = (CItem*)MakeItem(ItemKind::Spell, index, 0, -1);
+    CItem* item = (CItem*)MakeItem(ItemKind::Spell, index, 0);
     if (item) item->AttachSpell(spell);
     return item;
 }

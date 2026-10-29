@@ -39,13 +39,11 @@ UnitPrototypeRecord* PrototypeByName(std::string_view name) {
     return g_unitDatabase.prototypes.byName[key];
 }
 
-// The world the unit belongs to (its manager's context).
-CWorld* ContextWorld(CUnit* unit) { return unit->WorldContext(); }
 
 // Reads an item id and resolves it in the world's item manager (asked before each read), with a
 // counted reference.
 CItem* ReadItem(CUnit* unit, CStream* stream) {
-    CBaseManager* manager = ContextWorld(unit)->ItemFactory();
+    CBaseManager* manager = unit->WorldContext()->ItemFactory();
     int id;
     stream->ReadValue(id);
     if (id == -1) return nullptr;
@@ -68,7 +66,7 @@ void ReadItems(CUnit* unit, CStream* stream, CItemArmor** slots, int count) {
 // The unit's new owner: on a server world, player `id` (null when there is none).
 CPlayer* PlayerById(CUnit* unit, int id) {
     CPlayer* player = nullptr;
-    if (ContextWorld(unit)->GetClassId() == ClassId::WorldServer)
+    if (unit->WorldContext()->GetClassId() == ClassId::WorldServer)
         player = unit->ServerWorld()->GetPlayer(id);
     return player;
 }

@@ -690,7 +690,7 @@ bool ScriptRun::Execute(CScript* script) {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
-            BrainOf(state)->Walk(&point, 0, 0);
+            BrainOf(state)->Walk(&point, 0);
             break;
         }
         case ScriptFunction::RotateTo: {   // RotateTo(unit, x, y)
@@ -706,7 +706,7 @@ bool ScriptRun::Execute(CScript* script) {
             CEngineObject* target = Arg(cmd, 1);
             if (!state || !target) break;
             Vector3 point = {Position(target)->x, Position(target)->y, 0.0f};
-            BrainOf(state)->Walk(&point, 0, 0);
+            BrainOf(state)->Walk(&point, 0);
             break;
         }
         case ScriptFunction::Follow: {   // Follow(unit, leader)

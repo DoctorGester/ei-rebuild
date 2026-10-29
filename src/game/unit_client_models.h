@@ -210,8 +210,8 @@ public:
     void RefreshEquipment() override;
     int RefreshModel() override;
     // Every armour slot taken off, the ids cleared, then the first min(count, 7) of `ids` put on.
-    void SetArmourModels(const std::uint32_t* ids, int count) override;
-    void SetWeaponModels(const std::uint32_t* ids, int count) override;
+    void SetArmourModels(const std::uint32_t* ids) override;
+    void SetWeaponModels(const std::uint32_t* ids) override;
     bool WeaponAdded(std::uint32_t id) override;
     bool RemoveWeaponModel(std::uint32_t id) override;
 
