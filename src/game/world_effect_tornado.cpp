@@ -68,7 +68,7 @@ CEffectTornado::~CEffectTornado() {
 void CEffectTornado::Reset() {
     CEffect::Reset();
     if (source_ != nullptr) source_->StopAndClear();
-    if (sound_ != -1) g_clientWorld->sounds_->StopSound(sound_);
+    if (sound_ != -1) g_clientWorld.sounds_->StopSound(sound_);
     sound_ = -1;
     source_.Reset();
 }
@@ -99,7 +99,7 @@ bool CEffectTornado::RunTick() {
         localPosition_ = Vector3{static_cast<float>(localPosition_.x + velocity_.x), static_cast<float>(localPosition_.y + velocity_.y),
                                  static_cast<float>(localPosition_.z + velocity_.z)};
         if (source_ != nullptr) source_->localPosition_ = localPosition_;
-        if (sound_ != -1) g_clientWorld->sounds_->SetSoundPosition(sound_, &localPosition_.x, kSoundNear, kSoundFar);
+        if (sound_ != -1) g_clientWorld.sounds_->SetSoundPosition(sound_, &localPosition_.x, kSoundNear, kSoundFar);
     }
     if (framesLeft_ <= kStopEmittingTicks && source_ != nullptr) source_->Stop();
     CWorld* world = effect::ContextWorld(this);
@@ -145,13 +145,13 @@ void CEffectTornado::Start(int update) {
     }
     if (source_ != nullptr) return;
     if (sound_ == -1) {
-        sound_ = g_clientWorld->sounds_->Play3D(game::TornadoSoundText(), 0, &localPosition_.x, kSoundNear, kSoundFar, 1, 0);
+        sound_ = g_clientWorld.sounds_->Play3D(game::TornadoSoundText(), 0, &localPosition_.x, kSoundNear, kSoundFar, 1, 0);
     }
-    CParticleSource* source = g_clientWorld->particleManager_->CreateSource(kTornadoParticles);
+    CParticleSource* source = g_clientWorld.particleManager_->CreateSource(kTornadoParticles);
     source_.Assign(source);
     source_->localPosition_ = localPosition_;
     source_->ScaleSize(1.0f);
-    int behind = g_clientWorld->tick_ - launchTick_;
+    int behind = g_clientWorld.tick_ - launchTick_;
     if (behind >= kMaxCatchUp) behind = kMaxCatchUp;
     for (int i = 1; i < behind; ++i) source_->RunTick();
 }

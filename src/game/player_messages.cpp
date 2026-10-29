@@ -113,7 +113,7 @@ void CPlayerServer::SendGameTime() {
     std::uint32_t value = static_cast<std::uint32_t>(player_->sessionKind_);
     WriteByte(&out_, 0x07);
     WriteDword(&out_, value);
-    WriteDword(&out_, static_cast<std::uint32_t>(g_serverWorld->tick_));
+    WriteDword(&out_, static_cast<std::uint32_t>(g_serverWorld.tick_));
     player_->dirty_ &= ~PlayerDirty::GameState;
 }
 

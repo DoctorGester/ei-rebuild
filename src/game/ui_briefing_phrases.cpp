@@ -87,7 +87,7 @@ void SetBlink(CUnit* unit, std::uint8_t blinks) {
 
 void CBriefingScreen::NextPhrase(bool skip) {
     std::vector<std::string> words;
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string speaker;
     std::string phrase;
     bool last = true;       // no "#phrase" follows this one
@@ -153,7 +153,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         const char* cursor = texts->cursor_;
         if (texts->FindLine(kPhraseCommand)) last = false;
         texts->cursor_ = cursor;
-        if (voice_ != -1) g_clientWorld->sounds_->StopSound(voice_);
+        if (voice_ != -1) g_clientWorld.sounds_->StopSound(voice_);
         voice_ = -1;
         if (!skip) {
             int number;
@@ -161,7 +161,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 std::string file;
                 int folder = libcrt::RandBelow(2);
                 file = str::Format(kVoiceFormat, kVoiceFolders[folder], topic_, number);
-                voice_ = g_clientWorld->sounds_->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
+                voice_ = g_clientWorld.sounds_->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
             }
             phraseTime_ = static_cast<float>(text::CharacterCount(std::string_view(phrase))) *
                           kSecondsPerCharacter;
@@ -191,7 +191,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             };
             auto addItems = [&](const std::vector<std::string>& list) {
                 for (const auto& it : list) {
-                    CItem* item = g_clientWorld->itemManager_->CreateItem(it);
+                    CItem* item = g_clientWorld.itemManager_->CreateItem(it);
                     if (!item) continue;
                     ++item->refCount_;
                     texts->FormatItemName(item, &name);
@@ -225,7 +225,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             texts->GetString(kLostItemLabel, &label);
             // A network client lists the quest items it holds after a zone topic ("z...").
             if (IsMultiplayerClient() && !topic_.empty() && text::CompareIgnoringCase(str::Left(topic_, 1), kZonePrefix) == 0) {
-                if (auto* player = g_serverWorld->GetPlayer(0)) {
+                if (auto* player = g_serverWorld.GetPlayer(0)) {
                     for (auto& node : player->items_) {
                         CItem* item = node;
                         if (item->GetClassId() != ClassId::ItemQuest) continue;
@@ -296,7 +296,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 continue;
             }
             if (animation > 0) {
-                if (auto* serverUnit = g_serverWorld->FindUnit(unit->id_)) {
+                if (auto* serverUnit = g_serverWorld.FindUnit(unit->id_)) {
                     auto* controller = serverUnit->ServerController();
                     controller->StopAction();
                     controller->actionDone = SpeakerAnimationDone;

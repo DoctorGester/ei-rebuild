@@ -90,14 +90,14 @@ constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
 // The text `key` up to the next '#', or the key itself without one.
 std::string TipText(const std::string& key) {
     std::string tip = key;
-    if (g_clientWorld->texts_->CTextManager::Open(key.c_str())) g_clientWorld->texts_->ReadToHash(&tip, 1);
+    if (g_clientWorld.texts_->CTextManager::Open(key.c_str())) g_clientWorld.texts_->ReadToHash(&tip, 1);
     return tip;
 }
 
 // The text `prefix` + `name`, or the name itself without one.
 std::string ShownName(const char* prefix, const char* name) {
     std::string text;
-    if (g_clientWorld->texts_->GetString(std::string(prefix) + name, &text)) return text;
+    if (g_clientWorld.texts_->GetString(std::string(prefix) + name, &text)) return text;
     return name;
 }
 
@@ -228,12 +228,12 @@ void COptionsWindow::BuildSettings() {
         } else if (definition->kind_ == kSpinKind) {
             std::string text;
             text = kTextOffDefault;
-            g_clientWorld->texts_->GetString(kTextOptionOff, &text);
-            if (i == kDifficultySetting) g_clientWorld->texts_->GetString(kTextDifficultyHard, &text);
+            g_clientWorld.texts_->GetString(kTextOptionOff, &text);
+            if (i == kDifficultySetting) g_clientWorld.texts_->GetString(kTextDifficultyHard, &text);
             setting.spin_ = new CUiSpin(interface_, RECT{530, top + 160, 690, top + 176}, text.c_str());
             text = kTextOnDefault;
-            g_clientWorld->texts_->GetString(kTextOptionOn, &text);
-            if (i == kDifficultySetting) g_clientWorld->texts_->GetString(kTextDifficultyEasy, &text);
+            g_clientWorld.texts_->GetString(kTextOptionOn, &text);
+            if (i == kDifficultySetting) g_clientWorld.texts_->GetString(kTextDifficultyEasy, &text);
             setting.spin_->AddText(text);
             AddChild(setting.spin_);
             setting.bar_ = nullptr;
@@ -381,7 +381,7 @@ void COptionsWindow::Apply() {
         options::g_options->difficultyStored_ = s[25].value_;
         options::g_options->difficulty_ = s[25].value_;
     }
-    if (shadowsChanged_) g_clientWorld->DropShadows();
+    if (shadowsChanged_) g_clientWorld.DropShadows();
 }
 
 // --- The slider's virtual ------------------------------------------------------------------

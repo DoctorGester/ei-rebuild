@@ -45,7 +45,7 @@ int Clamp255(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
 void CHelpWindow::CreateScreen() {
     LoadTexture(kSaveLoadTexture, 3);
     CreateTexture(0x100, 0x100, 0x20);
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     if (!texts->Open(std::string(kTutorialSection) + text_)) {
         interface_->SetPendingValue(0);
         return;

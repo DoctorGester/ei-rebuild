@@ -39,8 +39,8 @@ constexpr int kReserve = 0x1000;
 
 // How far the frame is between the last tick and the next, clamped to [0, 1] (NaN gives 1).
 float Interpolation() {
-    double ticks = g_clientWorld->tick_;
-    float fraction = static_cast<float>((ticks + D(g_clientWorld->tickFraction_)) - ticks);
+    double ticks = g_clientWorld.tick_;
+    float fraction = static_cast<float>((ticks + D(g_clientWorld.tickFraction_)) - ticks);
     float one;
     one = 1.0f;
     float clamped = fraction <= one ? fraction : one;

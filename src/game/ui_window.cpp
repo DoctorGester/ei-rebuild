@@ -35,7 +35,7 @@ void DestroySurface(CUiSurface* surface) {
 
 // A new object of the model manager by name, or null.
 CFigureMesh* NewModelObject(std::string_view name) {
-    return g_clientWorld->figureManager_->NewFigure(name);
+    return g_clientWorld.figureManager_->NewFigure(name);
 }
 
 constexpr Quaternion kIdentityRotation = /*007C7E58*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
@@ -44,7 +44,7 @@ constexpr const char* kClassName = "Sorry, no other way.";
 
 // A new material of kind 0x16 (filled by the manager) glowing `value` in every channel, referenced.
 CMaterial* NewGlowMaterial(float value) {
-    CMaterialManager* materials = g_clientWorld->materialManager_;
+    CMaterialManager* materials = g_clientWorld.materialManager_;
     CMaterial* material = materials->NewMaterial(0x16);
     materials->FillMaterial(material, 0x16);
     material->colors.emissive.x = value;
@@ -257,7 +257,7 @@ void CUiWindow::ClearSurfaces() {
 }
 
 CTexture* CUiWindow::LoadTexture(std::string_view name, int kind) {
-    CTextureManager* manager = g_clientWorld->textureManager_;
+    CTextureManager* manager = g_clientWorld.textureManager_;
     CTexture* texture = manager->FindOrCreate(kind, name);
     if (!texture) return nullptr;
     int loaded = manager->LoadTexture(texture);
@@ -268,7 +268,7 @@ CTexture* CUiWindow::LoadTexture(std::string_view name, int kind) {
 }
 
 CTexture* CUiWindow::CreateTexture(int width, int height, int kind) {
-    CTexture* texture = g_clientWorld->textureManager_->NewTexture(width, height, kind);
+    CTexture* texture = g_clientWorld.textureManager_->NewTexture(width, height, kind);
     if (!texture) return nullptr;
     int index = std::ssize(objects_);
     objects_.resize(index + 1);
@@ -356,7 +356,7 @@ CUiMesh* CUiWindow::AddSprite(std::string_view name) {
     return AddSceneObject(object);
 }
 
-CUiMesh* CUiWindow::AddBlankSprite() { return AddSceneObject(g_clientWorld->figureManager_->NewBlankFigure()); }
+CUiMesh* CUiWindow::AddBlankSprite() { return AddSceneObject(g_clientWorld.figureManager_->NewBlankFigure()); }
 
 CUiMesh* CUiWindow::AddSceneObject(CFigureMesh* object) {
     bool listed = false;

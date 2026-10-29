@@ -235,9 +235,9 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
             CMapObject* target = order->target;
             std::uint8_t savedFlag = 0;
             if (target) {
-                savedFlag = g_serverWorld->aiMap_.refreshUnits;
-                g_serverWorld->aiMap_.refreshUnits = false;
-                g_serverWorld->aiMap_.sectorMap.Remove(target);
+                savedFlag = g_serverWorld.aiMap_.refreshUnits;
+                g_serverWorld.aiMap_.refreshUnits = false;
+                g_serverWorld.aiMap_.sectorMap.Remove(target);
             }
             CWorldServer* world = ServerWorld();
             path.mayExcludeRegions = unit->player == nullptr;
@@ -247,8 +247,8 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
             unit->altPassCosts = savedAltPassCosts;
             if (!found) path.StandStill(unit);
             if (target) {
-                g_serverWorld->aiMap_.sectorMap.Add(target);
-                g_serverWorld->aiMap_.refreshUnits = savedFlag;
+                g_serverWorld.aiMap_.sectorMap.Add(target);
+                g_serverWorld.aiMap_.refreshUnits = savedFlag;
             }
             path.ToMotionOrder(&route);
             ok = actsFromDestination();

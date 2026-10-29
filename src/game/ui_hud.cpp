@@ -109,7 +109,7 @@ void CHudWeaponBar::LeftUp(int, int x, int y) {
     selected_ = region;
     interface_->PlaySound(kSoundWeapon);
     // No check for a missing local view here (like the original).
-    if (CUnit* unit = unit_) g_clientWorld->LocalView()->SetWeapon(unit, region);
+    if (CUnit* unit = unit_) g_clientWorld.LocalView()->SetWeapon(unit, region);
 }
 
 void CHudWeaponBar::MouseMove(int, int x, int y) {
@@ -407,7 +407,7 @@ void CHudClock::LeftUp(int, int x, int y) {
     case 0: {   // the pause button
         handled_ = true;
         interface_->PlaySound(kSoundClock);
-        const bool paused = g_clientWorld->paused_;
+        const bool paused = g_clientWorld.paused_;
         GameSendFlag10(paused ? 0 : 1);
         return;
     }
@@ -416,7 +416,7 @@ void CHudClock::LeftUp(int, int x, int y) {
         handled_ = true;
         // Rebirth's MPSpeedControl (the JNEs aimed at the next instruction).
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
-        if (g_clientWorld->paused_) GameSendFlag10(0);
+        if (g_clientWorld.paused_) GameSendFlag10(0);
         fast_ = region == 2;
         worlddata::g_updatePeriod = fast_ ? kFastPeriod : kNormalPeriod;
         interface_->fastGame_ = fast_;
@@ -461,12 +461,12 @@ void CHudMovePanel::LeftUp(int, int x, int y) {
         return;
     }
     int mode = region - 1;
-    if (!g_clientWorld->LocalView()) return;
+    if (!g_clientWorld.LocalView()) return;
     if (mode >= 0 && mode < 4) {
         interface_->PlaySound(kSoundClick);
         for (int i = 0; i < std::ssize(owner_->party_); ++i) {
             CUnit* unit = owner_->party_[i];
-            if (unit->flags_ & 0x10) g_clientWorld->LocalView()->SetMoveMode(unit, mode);
+            if (unit->flags_ & 0x10) g_clientWorld.LocalView()->SetMoveMode(unit, mode);
         }
     }
     ShowMode(mode);
@@ -501,7 +501,7 @@ void CHudMovePanel::ShowMode(int mode) {
 }
 
 void CHudMovePanel::Update() {
-    if (!g_clientWorld->LocalView()) return;
+    if (!g_clientWorld.LocalView()) return;
     // The common value over the selected units: -1 none selected, -2 mixed.
     int mode = -1;
     int flag = -1;
@@ -572,18 +572,18 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return u->IsDead(); };
     auto pick = [x, y]() {
         Vector3 out;
-        Vector3* p = g_clientWorld->PickSurface(&out, x, y);
+        Vector3* p = g_clientWorld.PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
     auto unitPosition = [](CUnit* u) { return u->localPosition_; };
     auto objectAt = [x, y]() {
         POINT point = {x, y};
-        return static_cast<CUnit*>(g_clientWorld->PickAt2(&point));
+        return static_cast<CUnit*>(g_clientWorld.PickAt2(&point));
     };
     // The portrait of member `index` nods after a short random delay.
     auto flash = [this](int index) { portraits_->Wobble(index, kWobbleNod); };
     auto order = [this, ctrl](CUnit* first, CUnit* target, int kind, int value) {
-        g_clientWorld->LocalView()->SendUseOrder(first, target, kind, value, ctrl);
+        g_clientWorld.LocalView()->SendUseOrder(first, target, kind, value, ctrl);
     };
 
     CUnit* living = (unit && !unitDead(unit)) ? unit : nullptr;
@@ -709,7 +709,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         for (int i = 0; i < std::ssize(party_); ++i) {
             CUnit* member = party_[i];
             if (!member || !(member->flags_ & kFlagSelected)) continue;
-            g_clientWorld->LocalView()->SendFollow(member, unit);
+            g_clientWorld.LocalView()->SendFollow(member, unit);
             Speech(party_[i]->id_, AckKind::Follow, nullptr);
             portraits_->Wobble(i, kWobbleNod);
         }
@@ -802,7 +802,7 @@ void CBattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
         portraits_->Wobble(i, kWobbleNod);
     }
     if (!units.empty()) {
-        CPlayerClient* view = g_clientWorld->LocalView();
+        CPlayerClient* view = g_clientWorld.LocalView();
         if (goTo)
             view->SendGoTo(&units, &point, run);
         else

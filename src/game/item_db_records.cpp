@@ -45,15 +45,6 @@ void ArmorRecord::CopyOwn(const ArmorRecord* source) {
     CopyBytes(this, source, offsetof(ArmorRecord, category), offsetof(ArmorRecord, showsWounds));
 }
 
-// ---- The records' destructors ------------------------------------------------------------------
-
-ItemRecordHead::~ItemRecordHead() = default;
-
-QuickItemRecord::~QuickItemRecord() = default;
-
-QuestItemRecord::~QuestItemRecord() {
-}
-
 void QuickItemRecord::CopyOwn(const QuickItemRecord* source) {
     actionValue = source->actionValue;
     std::memcpy(attributeBonus, source->attributeBonus, sizeof(attributeBonus));

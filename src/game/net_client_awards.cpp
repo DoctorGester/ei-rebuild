@@ -22,7 +22,7 @@ namespace net {
 namespace {
 
 // Player 0 of the world (the local player), or null.
-CPlayer* LocalPlayer() { return g_serverWorld->GetPlayer(0); }
+CPlayer* LocalPlayer() { return g_serverWorld.GetPlayer(0); }
 
 } // namespace
 
@@ -41,7 +41,7 @@ void ClientSession::ApplyAwards() {
         case 0: {
             std::uint32_t bits;
             bits = std::bit_cast<std::uint32_t>(award->value_);
-            g_serverWorld->AwardExperience(nullptr, std::bit_cast<float>(bits));
+            g_serverWorld.AwardExperience(nullptr, std::bit_cast<float>(bits));
             break;
         }
         case 1: {
@@ -113,9 +113,9 @@ void ClientSession::Tick(double dt) {
             if (left < 0.0f) self->timers_.erase(current);
         } while (node != sentinel);
     }
-    if (self->awards_.begin() == self->awards_.end() || g_serverWorld->sessionKind_ != 3) return;
+    if (self->awards_.begin() == self->awards_.end() || g_serverWorld.sessionKind_ != 3) return;
     CPlayer* player = LocalPlayer();
-    if (!player || player->connection_->state_ != 1 || !g_serverWorld->zoneLoaded_) return;
+    if (!player || player->connection_->state_ != 1 || !g_serverWorld.zoneLoaded_) return;
     ApplyAwards();
 }
 

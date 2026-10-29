@@ -97,7 +97,7 @@ ScriptEffect<T> ReadObject(CStream* stream) {
     int id;
     stream->ReadValue(id);
     if (id == -1) return {};
-    return ScriptEffect<T>(g_serverWorld->timedObjectManager_->FindObjectAs<T>(id));
+    return ScriptEffect<T>(g_serverWorld.timedObjectManager_->FindObjectAs<T>(id));
 }
 
 std::size_t Length(const char* s) { return std::strlen(s); }
@@ -114,13 +114,13 @@ T* FindId(std::list<T>& list, int id) {
 
 // Takes the effect object out of the world's timed objects and drops the reference to it.
 void ScriptDropEffect(CEngineObject* object) {
-    g_serverWorld->RemoveTimedObject(object->id_);
+    g_serverWorld.RemoveTimedObject(object->id_);
     object->Release();
 }
 
 // CreateFX(x, y, z, volume, radius, name), a sound played once.
 void CScript::ScriptCreateFx(const SSCCmd* cmd) {
-    auto* sound = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
+    auto* sound = g_serverWorld.timedObjectManager_->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
     const float* f = cmd->floatArgs.data();
     sound->localPosition_ = {f[0], f[1], f[2]};
     x87::CopyBits(sound->volume_, f[3]);
@@ -128,7 +128,7 @@ void CScript::ScriptCreateFx(const SSCCmd* cmd) {
     sound->looping_ = 0;
     const char* name = cmd->stringArgs[0].c_str();
     std::memcpy(sound->name_, name, Length(name) + 1);
-    g_serverWorld->AddTimedObject(sound);
+    g_serverWorld.AddTimedObject(sound);
 }
 
 // CreateFXSource / CreateRandomizedFXSource (script.h). A new source is appended empty. Every field
@@ -164,14 +164,14 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
         source->idle = 1;
         return;
     }
-    auto* sound = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
+    auto* sound = g_serverWorld.timedObjectManager_->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
     source->object = ScriptEffect<CEffectSound>(sound);
     sound->localPosition_ = {source->position.x, source->position.y, source->position.z};
     x87::CopyBits(sound->volume_, source->volume);
     x87::CopyBits(sound->radius_, source->radius);
     const char* name = source->name.c_str();
     std::memcpy(sound->name_, name, Length(name) + 1);
-    g_serverWorld->AddTimedObject(sound);
+    g_serverWorld.AddTimedObject(sound);
     source->idle = 0;
 }
 
@@ -184,12 +184,12 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
     if (f[0] >= 0.0f) lightning.id = static_cast<int>(f[0]);
     else lightning.id = nextParticleId_--;   // also NaN
 
-    auto* bolt = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectLightning>(ClassId::EffectLightning, -1);
+    auto* bolt = g_serverWorld.timedObjectManager_->CreateObjectAs<CEffectLightning>(ClassId::EffectLightning, -1);
     lightning.object = ScriptEffect<CEffectLightning>(bolt);
     Vector3 to{f[4], f[5], f[6]};
     Vector3 from{f[1], f[2], f[3]};
     bolt->SetEnds(&from, &to, f[7]);
-    g_serverWorld->AddTimedObject(bolt);
+    g_serverWorld.AddTimedObject(bolt);
 }
 
 // CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
@@ -215,12 +215,12 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     if (source) source->object.reset();
     else source = &particles_.emplace_back();
 
-    auto* particles = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectParticle>(ClassId::EffectParticle, -1);
+    auto* particles = g_serverWorld.timedObjectManager_->CreateObjectAs<CEffectParticle>(ClassId::EffectParticle, -1);
     particles->type_ = particleType;
     particles->localPosition_ = {f[1], f[2], f[3]};
     source->object = ScriptEffect<CEffectParticle>(particles);
     x87::CopyBits(particles->size_, f[4]);
-    g_serverWorld->AddTimedObject(particles);
+    g_serverWorld.AddTimedObject(particles);
 
     source->id = id;
     source->deleteAfterMove = 0;

@@ -31,12 +31,12 @@ constexpr int kIdleRestartBelow = 3;                  // CFigureAnimationState::
 // Is sound `handle` still playing or waiting to play?
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    CSoundManager* sounds = g_clientWorld->sounds_;
+    CSoundManager* sounds = g_clientWorld.sounds_;
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
 void SetTalking(const CUnit* unit, bool talking) {
-    CEngineObject* serverUnit = g_serverWorld->FindUnit(unit->id_);
+    CEngineObject* serverUnit = g_serverWorld.FindUnit(unit->id_);
     if (!serverUnit) return;
     if (talking) serverUnit->flags_ |= MapObjectFlag::Blocked;
     else serverUnit->flags_ &= ~MapObjectFlag::Blocked;

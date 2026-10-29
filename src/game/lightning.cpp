@@ -300,7 +300,7 @@ void CLightning::UpdateBounds() {
 
 void CLightning::Animate() {
     float sway = amplitude_;
-    float time = static_cast<float>((static_cast<double>(g_clientWorld->tick_) + g_clientWorld->tickFraction_) / 4.0);
+    float time = static_cast<float>((static_cast<double>(g_clientWorld.tick_) + g_clientWorld.tickFraction_) / 4.0);
     main_.Animate(time, NoiseAmplitude(power_));
     EI_NAN_AUDIT(power_);
     if (power_ != 0.0f) {

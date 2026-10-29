@@ -271,11 +271,11 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
             {
                 std::string zoneKey("zone ");
                 std::string key = zoneKey + shownZone_;
-                foundText = g_clientWorld->texts_->Open(key);
+                foundText = g_clientWorld.texts_->Open(key);
             }
             if (foundText) {
-                g_clientWorld->texts_->ReadLine(&title, 1);
-                g_clientWorld->texts_->ReadToHash(&text, 1);
+                g_clientWorld.texts_->ReadLine(&title, 1);
+                g_clientWorld.texts_->ReadToHash(&text, 1);
                 CUiSurface* surface = surfaces_[1];
                 surface->Clear();
                 RECT titleRect = {0, 5, 340, 25};
@@ -290,7 +290,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
 // --- The selected quest ------------------------------------------------------------------
 
 void CObjectivesWindow::ShowQuest() {
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string line;
     std::string part;
     std::string text;
@@ -412,7 +412,7 @@ void CObjectivesWindow::CreateScreen() {
     std::string key;
     for (int k = 0; k < 3; ++k) {
         key = str::Format("obj_%d", k);
-        g_clientWorld->texts_->GetString(key, &text);
+        g_clientWorld.texts_->GetString(key, &text);
         objectiveTexts_.push_back(text);
     }
 
@@ -550,7 +550,7 @@ void CObjectivesWindow::CreateScreen() {
     interface_->OpenHelp(0);
 }
 void CObjectivesWindow::DrawQuestList() {
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string title;
     std::string variable;
     auto mesh = [this](int index) { return SceneMesh(index); };

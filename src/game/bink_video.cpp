@@ -88,8 +88,8 @@ char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char s
                char loadingStep) {
     if (!options::g_options->video_) return 1;
     const char* file = name.c_str();
-    if (loadingStep) g_clientWorld->sounds_->StopAll(1);
-    if (options::g_options->audio_) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld->sounds_->waveDriver);
+    if (loadingStep) g_clientWorld.sounds_->StopAll(1);
+    if (options::g_options->audio_) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld.sounds_->waveDriver);
     BinkHeader* bink = OpenBink(file, 0);
     if (!bink) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", file);
@@ -217,8 +217,8 @@ void ShowLoadingMovie(int progress) {
 char CBinkVideo::Open(const char* name, char loadingStep) {
     if (bink) gameapi::BinkClose(bink);
     if (!options::g_options->video_) return 0;
-    if (loadingStep) g_clientWorld->sounds_->StopAll(1);
-    if (options::g_options->audio_) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld->sounds_->waveDriver);
+    if (loadingStep) g_clientWorld.sounds_->StopAll(1);
+    if (options::g_options->audio_) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld.sounds_->waveDriver);
     bink = OpenBink(name, 0);
     if (!bink) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", name);

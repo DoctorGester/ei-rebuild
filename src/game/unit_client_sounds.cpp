@@ -88,7 +88,7 @@ void Shake(CUnit* unit) {
 
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    CSoundManager* sounds = g_clientWorld->sounds_;
+    CSoundManager* sounds = g_clientWorld.sounds_;
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
@@ -99,7 +99,7 @@ int CUnitClientSpecific::FootstepSound(int terrain, std::string* out) {
     if (!prototype) return 0;
     const UnitModelRecord* model = ModelOf(prototype);
     if (!model || model->SoundCounts()[terrain] == 0) return 0;
-    CWorldClient* world = &g_clientWorld.Get();
+    CWorldClient* world = &g_clientWorld;
     float x = unit->localPosition_.x;
     float y = unit->localPosition_.y;
     float ground = world->ClampedGroundHeight(x, y);   // stored as a float
@@ -187,14 +187,14 @@ void CUnitClientSpecific::PlayStepSounds() {
     EI_NAN_AUDIT(now, lastAnimationTime);
     if (now == lastAnimationTime) return;   // the same frame
     if (!current) return;
-    CSoundManager* sounds = g_clientWorld->sounds_;
+    CSoundManager* sounds = g_clientWorld.sounds_;
     AnimationKind kind = current->Kind();
 
     bool action = false;     // ActionSound at `priority`
     bool steps = false;
     switch (kind) {
     case AnimationKind::Attack: {
-        if (g_clientWorld->LocalView()->player_->sessionKind_ == kViewNoAttackSounds) break;
+        if (g_clientWorld.LocalView()->player_->sessionKind_ == kViewNoAttackSounds) break;
         sounds->StopSound(idleSound);
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
         if (unit->MapType() == MapObjectType::Hero && unit->actionSound &&
@@ -278,7 +278,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         float scale = prototype->conspicuity[0];
         if (unit->moveMode == 0) scale *= kCrawlPrintScale;
         else if (unit->moveMode == 1) scale *= kWalkPrintScale;
-        int id = g_clientWorld->AddFootprint(footAt.x - sizeX * facing.x * 0.5f,
+        int id = g_clientWorld.AddFootprint(footAt.x - sizeX * facing.x * 0.5f,
                               footAt.y - sizeY * facing.y * 0.5f, sizeX, sizeY, turn, (left << 16) | printKind, scale,
                               shown, footprint);
         if (footprintRepeats > 0) --footprintRepeats;

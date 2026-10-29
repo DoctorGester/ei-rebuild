@@ -52,7 +52,7 @@ void CBattleScreen::ToggleMember(int index) {
             if (chosen[i] != 0) chosen[i] = 0;
         chosen[index] = 1;
     }
-    g_clientWorld->Deselect(nullptr);
+    g_clientWorld.Deselect(nullptr);
 
     for (int i = 0; i < std::ssize(*party); ++i) {
         auto* portraits = portraits_;
@@ -69,15 +69,15 @@ void CBattleScreen::ToggleMember(int index) {
         portraits->slots_[i].restB_ = *rest;
         CUnit* member = unitAt(i);
         if (member && chosen[i] != 0) {
-            g_clientWorld->Select(member);
+            g_clientWorld.Select(member);
             if (index == i) Speech(unitAt(i)->id_, AckKind::Selected, nullptr);
         }
     }
 
     // Single player: the local player's unit records (0x784 bytes, +0x1C the unit id) keep the
     // members' selection, record i against member i.
-    if (g_serverWorld->gameResult_ == 1) {
-        if (auto* player = g_serverWorld->GetPlayer(0)) {
+    if (g_serverWorld.gameResult_ == 1) {
+        if (auto* player = g_serverWorld.GetPlayer(0)) {
             for (int i = 0; i < std::ssize(player->Party()->members_); ++i) {
                 if (i >= std::ssize(*party)) continue;
                 PartyUnitRecord* record = &player->Party()->members_[i];
@@ -108,7 +108,7 @@ void CBattleScreen::AttackUnit(CUnit* target, bool ctrl) {
         int memberLevel = unitAt(i)->Level();
         if (targetLevel - memberLevel > 5) Speech(unitAt(i)->id_, AckKind::BigAttack, nullptr);
     }
-    if (!units.empty()) g_clientWorld->LocalView()->SendAttack(&units, target, kind, ctrl);
+    if (!units.empty()) g_clientWorld.LocalView()->SendAttack(&units, target, kind, ctrl);
 }
 
 void CBattleScreen::OrderDeadUnit(CUnit* target, bool ctrl) {
@@ -119,7 +119,7 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, bool ctrl) {
         units.push_back(member);
         portraits_->Wobble(i, kWobbleNod);
     }
-    if (!units.empty()) g_clientWorld->LocalView()->SendUseDead(&units, target, ctrl);
+    if (!units.empty()) g_clientWorld.LocalView()->SendUseDead(&units, target, ctrl);
 }
 
 // --- the pending spell or quick item used --------------------------------------------------------
@@ -132,10 +132,10 @@ void CBattleScreen::UseOnUnit(CUnit* target, bool quick, bool ctrl) {
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         int refused;
         if (!quick) {
-            g_clientWorld->LocalView()->SendCastOnUnit(pendingSlot_, member, target, ctrl);
+            g_clientWorld.LocalView()->SendCastOnUnit(pendingSlot_, member, target, ctrl);
             refused = unitAt(i)->CanCastSpell(pendingSlot_);
         } else {
-            g_clientWorld->LocalView()->SendItemOnUnit(pendingSlot_, member, target, ctrl);
+            g_clientWorld.LocalView()->SendItemOnUnit(pendingSlot_, member, target, ctrl);
             quickItems_->SetUnit(unitAt(i));
             refused = unitAt(i)->CanUseQuickItem(pendingSlot_);
         }
@@ -161,11 +161,11 @@ void CBattleScreen::UseAtPoint(Vector3 point, CUnit* unit, bool quick) {
         }
         int refused;
         if (quick) {
-            g_clientWorld->LocalView()->SendItemAtPoint(pendingSlot_, unitAt(i), &point, 0);
+            g_clientWorld.LocalView()->SendItemAtPoint(pendingSlot_, unitAt(i), &point, 0);
             quickItems_->SetUnit(unitAt(i));
             refused = unitAt(i)->CanUseQuickItem(pendingSlot_);
         } else {
-            g_clientWorld->LocalView()->SendCastAtPoint(pendingSlot_, unitAt(i), &point, 0);
+            g_clientWorld.LocalView()->SendCastAtPoint(pendingSlot_, unitAt(i), &point, 0);
             refused = unitAt(i)->CanCastSpell(pendingSlot_);
         }
         if (refused == 0) portraits_->Wobble(i, kWobbleNod);
@@ -176,7 +176,7 @@ void CBattleScreen::UseAtPoint(Vector3 point, CUnit* unit, bool quick) {
 // --- a unit's speech event -----------------------------------------------------------------------
 
 void CBattleScreen::Speech(int id, AckKind kind, char* extra) {
-    CUnit* unit = UnitWithId(g_clientWorld->objectManager_, id);
+    CUnit* unit = UnitWithId(g_clientWorld.objectManager_, id);
     if (!unit) return;
     const SpeechRecord* phrase = (kind == AckKind::Scenario || kind == AckKind::ScenarioTalking)
                                      ? acks::SayNamedAck(unit, extra, kind == AckKind::ScenarioTalking)
@@ -185,7 +185,7 @@ void CBattleScreen::Speech(int id, AckKind kind, char* extra) {
         // The phrase's text.
         std::string text;
         std::string line = UnitName(unit) + ":\n";
-        CTextManager* texts = g_clientWorld->texts_;
+        CTextManager* texts = g_clientWorld.texts_;
         if (texts->Open(std::string("say ") + phrase->name.data())) {
             texts->ReadToHash(&text, 1);
             str::TrimRight(text, "\r\n");

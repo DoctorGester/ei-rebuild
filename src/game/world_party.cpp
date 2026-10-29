@@ -210,10 +210,10 @@ CItem* CWorldServer::CopyItem(CItem* source) {
 // ---- Items and spells by name -------------------------------------------------------------------
 
 // As in CopyItem, the game also builds and frees two empty CPtrLists around the call.
-CItem* CWorldServer::CreateItemNamed(const char* name) { return g_serverWorld->itemManager_->CreateItem(name); }
+CItem* CWorldServer::CreateItemNamed(const char* name) { return g_serverWorld.itemManager_->CreateItem(name); }
 
 CItem* CWorldServer::CreateSpellNamed(const char* name) {
-    CItemManager* manager = g_serverWorld->itemManager_;   // read first
+    CItemManager* manager = g_serverWorld.itemManager_;   // read first
     return manager->CreateSpellItem(name, SpellManager());
 }
 

@@ -131,7 +131,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
                 request.textures.push_back(name);
             }
             name = str::Format(kWoundCacheName, unit->id_);
-            result = g_clientWorld->textureManager_->Compose(&out, &request, &name, &name, kMipCount, kFormat);
+            result = g_clientWorld.textureManager_->Compose(&out, &request, &name, &name, kMipCount, kFormat);
         }
     }
     return result;
@@ -151,7 +151,7 @@ WoundsMaterial::WoundsMaterial() {
 
 int CObject3DClientSpecific::ShowWounds(const char* name) {
     if (!partSets[0]) return 0;
-    CTextureManager* manager = g_clientWorld->textureManager_;
+    CTextureManager* manager = g_clientWorld.textureManager_;
     if (!woundsTexture) {
         woundsTexture.Assign(manager->FindTypedTexture(kWoundsTextureKind, name));
         if (!woundsTexture) {
@@ -193,9 +193,9 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     char name[0x400];
     if (unit->MapType() == MapObjectType::Hero) std::snprintf(name, sizeof(name), kHeroFace, unit->name.c_str(), prototype->skin);
     else std::snprintf(name, sizeof(name), kFace, unit->name.c_str());
-    CTexture* texture = g_clientWorld->textureManager_->FindOrCreate(kFaceTextureKind, name);
+    CTexture* texture = g_clientWorld.textureManager_->FindOrCreate(kFaceTextureKind, name);
     faceTexture.Assign(texture);
-    g_clientWorld->textureManager_->LoadTexture(faceTexture);
+    g_clientWorld.textureManager_->LoadTexture(faceTexture);
     if (faceTexture->flags_ & TextureFlag::Loaded) return true;
     faceTexture.Reset();
     blinks = 0;

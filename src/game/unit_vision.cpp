@@ -41,10 +41,10 @@ double UnitParams::VisionRange(float daylight) {
 void CUnit::AdvanceTime(float time) {
     if (controller) Controller()->AdvanceTime(time);
     if (!IsTextKey(id_)) return;
-    float daylight = static_cast<float>(g_clientWorld->NightLevel());
+    float daylight = static_cast<float>(g_clientWorld.NightLevel());
     float range = static_cast<float>(params.VisionRange(daylight));
     if (moveMode == 0) range = range;
-    g_clientWorld->MarkFootprintsInSight(&localPosition_.x, range);
+    g_clientWorld.MarkFootprintsInSight(&localPosition_.x, range);
 }
 
 int CMapObject::SetVisibilityLevel(float level) {

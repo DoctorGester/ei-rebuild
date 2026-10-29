@@ -59,7 +59,7 @@ void CViewScreen::CloseScreen() { g_camera->flags_ |= CCamera::kFree; }
 // --- UnitPickInput ------------------------------------------------------------------------------
 
 void UnitPickInput::LeftDown(int, int x, int y) {
-    CWorldClient* world = &g_clientWorld.Get();
+    CWorldClient* world = &g_clientWorld;
     const POINT point = {x, y};
     CUnit* unit = world->UnitAt2(&point);
     if (!interface_->ctrlDown_) {
@@ -90,14 +90,14 @@ void UnitPickInput::LeftDown(int, int x, int y) {
 
 void UnitPickInput::RightDown(int, int, int) {
     lib::FreeStorage(picked_);
-    g_clientWorld->Deselect(nullptr);
+    g_clientWorld.Deselect(nullptr);
 }
 
 void UnitPickInput::KeyDown(int key, int, int) {
     if (key == VK_CONTROL) {
         g_cursor.SetShape(kCursorCtrl);
     } else if (key == VK_SPACE) {
-        GameSetServerPaused(g_serverWorld->paused_ == 0);
+        GameSetServerPaused(g_serverWorld.paused_ == 0);
     }
 }
 

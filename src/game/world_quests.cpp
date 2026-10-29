@@ -54,7 +54,7 @@ PartyUnitRecord& MercRecord(CPlayer* player, int index) { return player->Party()
 constexpr int kKindNoRangeTest = 3;
 
 // The item named `name` (the game builds two unused temporary lists around the creation).
-CItem* CreateNamedItem(std::string_view name) { return g_serverWorld->itemManager_->CreateItem(name); }
+CItem* CreateNamedItem(std::string_view name) { return g_serverWorld.itemManager_->CreateItem(name); }
 
 void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingRecord* record) {
     float experience = record->exp;

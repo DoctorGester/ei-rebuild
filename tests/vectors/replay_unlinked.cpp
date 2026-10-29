@@ -59,8 +59,12 @@ void libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
 double libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
 
 // world_construct.cpp (the server world, g_serverWorld) is not linked: the scripts' replays see a zero world, as they
-// saw the stand-in's zero bytes before C18t named it (no fixture fills it).
-constinit lib::StaticObject<CWorldServer> g_serverWorld = {};
+// saw the stand-in's zero bytes before C18t named it (no fixture fills it). A constructed CWorldServer would pull in
+// its class's vtable and with it the whole world, so the linker resolves the name to zero bytes of its size instead.
+extern "C" {
+alignas(CWorldServer) unsigned char ei_zero_server_world[sizeof(CWorldServer)];
+}
+#pragma comment(linker, "/alternatename:?g_serverWorld@@3VCWorldServer@@A=_ei_zero_server_world")
 
 // The game CRT's rand (crt.cpp's port reads the image's per-thread seed) and the fatal error report (app.cpp).
 int libcrt::Rand() EI_UNLINKED("libcrt::Rand")

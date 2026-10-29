@@ -36,8 +36,8 @@ void FreshKeys(LightningSegment& s, float time, float amplitude) {
 } // namespace
 
 void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool demon) {
-    int ticks = g_clientWorld->tick_;
-    float fraction = g_clientWorld->tickFraction_;
+    int ticks = g_clientWorld.tick_;
+    float fraction = g_clientWorld.tickFraction_;
     float time = static_cast<float>((static_cast<double>(ticks) + fraction) / 4.0f);
     power_ = power;
     const float strength = AbsBits(power);

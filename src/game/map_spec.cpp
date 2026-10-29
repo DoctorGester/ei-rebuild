@@ -72,7 +72,7 @@ std::string* Spec::TypeName(std::string* out) {
 void Spec::Remove() { Apply(); }
 void Spec::Refresh() { Apply(); }
 
-void* Spec::WorldObject() { return g_clientWorld->objectManager_->FindObject(id); }
+void* Spec::WorldObject() { return g_clientWorld.objectManager_->FindObject(id); }
 
 void Spec::Move(float dx, float dy, float dz) {
     position.x = dx + position.x;
@@ -170,7 +170,7 @@ void ObjectSpec::OnChunk() {
 
 void ObjectSpec::Remove() {
     if (object) {
-        g_serverWorld->RemoveObject(id);
+        g_serverWorld.RemoveObject(id);
         object = nullptr;
     }
     Apply();
@@ -184,11 +184,11 @@ void ObjectSpec::Refresh() {
 
 void ObjectSpec::Apply() {
     if (!object) {
-        g_serverWorld->CreateObject(this);
+        g_serverWorld.CreateObject(this);
         return;
     }
-    g_serverWorld->aiMap_.BeginRefresh();
-    g_serverWorld->aiMap_.sectorMap.Remove(MapObject());
+    g_serverWorld.aiMap_.BeginRefresh();
+    g_serverWorld.aiMap_.sectorMap.Remove(MapObject());
     CMapObject* mapObject = MapObject();
     mapObject->localPosition_ = position;
     mapObject->localRotation_ = rotation;
@@ -200,8 +200,8 @@ void ObjectSpec::Apply() {
     else flags &= ~8u;
     MapObject()->MarkChanged(2);
     MapObject()->MarkChanged(1);
-    g_serverWorld->aiMap_.sectorMap.Add(MapObject());
-    g_serverWorld->aiMap_.EndRefresh();
+    g_serverWorld.aiMap_.sectorMap.Add(MapObject());
+    g_serverWorld.aiMap_.EndRefresh();
 }
 
 std::string* ObjectSpec::TypeName(std::string* out) {
@@ -222,10 +222,10 @@ FlameSpec::~FlameSpec() = default;
 
 void FlameSpec::Apply() {
     if (object) {
-        g_serverWorld->RemoveObject(id);
+        g_serverWorld.RemoveObject(id);
         object = nullptr;
     }
-    g_serverWorld->CreateObject(this);
+    g_serverWorld.CreateObject(this);
 }
 
 void FlameSpec::Save() {

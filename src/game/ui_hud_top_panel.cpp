@@ -82,9 +82,9 @@ void CHudTopPanel::Setup(int page, bool shown) {
 void CHudTopPanel::AddPickedUp(CItem* item, bool crippled) {
     std::string name;
     std::string kind;
-    g_clientWorld->texts_->FormatItemName(item, &name);
+    g_clientWorld.texts_->FormatItemName(item, &name);
     const char* key = crippled ? "combat_crippled" : "combat_picked_up";
-    g_clientWorld->texts_->GetString(key, &kind);
+    g_clientWorld.texts_->GetString(key, &kind);
     std::string line = kind;
     line += " ";
     line += name;
@@ -99,8 +99,8 @@ void CHudTopPanel::AddMoney(int money) {
     std::string text;
     std::string picked;
     std::string format;
-    g_clientWorld->texts_->GetString("combat_picked_up", &picked);
-    g_clientWorld->texts_->GetString("format_money", &format);
+    g_clientWorld.texts_->GetString("combat_picked_up", &picked);
+    g_clientWorld.texts_->GetString("format_money", &format);
     text = str::Format(format, money);
     std::string line = picked;
     line += " ";

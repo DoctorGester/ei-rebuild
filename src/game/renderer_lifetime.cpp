@@ -132,12 +132,12 @@ bool CSceneRenderer::RestoreSurfaces() { return device_ != nullptr; }
 int EnsureTextureLoaded(CTexture* texture) {
     if (!texture) return game::FatalError(NullTextureText());
     if (texture->flags_ & TextureFlag::Loaded) return 1;
-    return g_clientWorld->textureManager_->LoadTexture(texture);
+    return g_clientWorld.textureManager_->LoadTexture(texture);
 }
 
 void LoadNamedTexture(Ref<CTexture>& slot, int kind, const char* name) {
     slot.Reset();
-    auto* manager = g_clientWorld->textureManager_;
+    auto* manager = g_clientWorld.textureManager_;
     auto* found = manager->FindTypedTexture(kind, name);
     if (!found) found = manager->NewTextureOfType(kind);
     found->name_ = name;

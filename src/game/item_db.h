@@ -132,8 +132,7 @@ public:
     // The item kind the record makes (CItemConstructor::BeginCreateItem's kind).
     virtual ItemKind Kind() = 0;
 
-    // Not virtual: the records' tables have only Kind.
-    ~ItemRecordHead();
+    virtual ~ItemRecordHead() = default;
 
     // classMask and the category are not copied.
     ItemRecordHead* Assign(const ItemRecordHead* source);
@@ -231,7 +230,6 @@ struct ArmorRecord : ItemRecordHead {
 struct QuickItemRecord : ItemRecordHead {
     QuickItemRecord();
     QuickItemRecord(const QuickItemRecord& from);
-    ~QuickItemRecord();
     ItemKind Kind() override;
     // actionValue and attributeBonus; the category, unreadFields and spellText are not copied (spellText is constructed
     // empty).
@@ -251,7 +249,6 @@ struct QuickItemRecord : ItemRecordHead {
 struct QuestItemRecord : ItemRecordHead {
     QuestItemRecord() {  }
     QuestItemRecord(const QuestItemRecord& from);
-    ~QuestItemRecord();
     ItemKind Kind() override;
     // The category only: the zone list is constructed empty, not copied.
     void CopyOwn(const QuestItemRecord* source);

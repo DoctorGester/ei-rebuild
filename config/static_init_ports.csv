@@ -18,12 +18,6 @@ address,name,file
 00500930,ConstructSceneRenderer,src/game/renderer_lifetime.cpp
 00500950,DestroySceneRenderer,src/game/renderer_lifetime.cpp
 00500A70,CSceneRenderer::CSceneRenderer,src/game/renderer_lifetime.cpp
-00560620,ConstructClientWorld,src/game/world_construct.cpp
-00560640,DestroyClientWorld,src/game/world_construct.cpp
-005612F0,CWorldClient::CWorldClient,src/game/world_construct.cpp
-00589BE0,ConstructServerWorld,src/game/world_construct.cpp
-00589C00,DestroyServerWorld,src/game/world_construct.cpp
-00589ED0,CWorldServer::CWorldServer,src/game/world_construct.cpp
 005B2FB0,InitDampScale,src/game/ai_refresh.cpp
 0066C4F0,CMemoryStream::CMemoryStream,src/game/core_streams.cpp
 006E6106,gameapi::WSAStartup,src/lib/gameapi.h

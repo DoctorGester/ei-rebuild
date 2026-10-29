@@ -138,14 +138,14 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     switch (action) {
     case kActionPause: {
         interface_->PlaySound(kSoundClock);
-        const bool paused = g_clientWorld->paused_;
+        const bool paused = g_clientWorld.paused_;
         GameSendFlag10(paused ? 0 : 1);
         handled_ = true;
         return;
     }
     case kActionNormalSpeed:
     case kActionFastSpeed: {
-        if (g_clientWorld->paused_) return;
+        if (g_clientWorld.paused_) return;
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         interface_->PlaySound(kSoundClock);
         const bool fast = action == kActionFastSpeed;
@@ -186,7 +186,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     case kActionMoveMode + 2:
     case kActionMoveMode + 3: {
         const int mode = action - kActionMoveMode;
-        if (CPlayerClient* view = g_clientWorld->LocalView()) {
+        if (CPlayerClient* view = g_clientWorld.LocalView()) {
             interface_->PlaySound(kSoundClick);
             for (CUnit* unit : party_) {
                 if (unit->flags_ & kUnitSelected) view->SetMoveMode(unit, mode);
@@ -236,7 +236,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
         interface_->PlaySound(kSoundWeapon);
         CUnit* unit = bar->unit_;
         if (!unit) return;
-        g_clientWorld->LocalView()->SetWeapon(unit, slot);
+        g_clientWorld.LocalView()->SetWeapon(unit, slot);
         return;
     }
     case kActionQuickItem:
@@ -291,7 +291,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
         interface_->PlaySound(kSoundOnOff);
         for (int i = 0; i < std::ssize(party_); ++i) {
             MarkPortrait(i);
-            if (CUnit* unit = party_[i]) g_clientWorld->Select(unit);
+            if (CUnit* unit = party_[i]) g_clientWorld.Select(unit);
         }
         if (!party_.empty() && party_[0]) Speech(party_[0]->id_, AckKind::Selected, nullptr);
         RefreshSelection();

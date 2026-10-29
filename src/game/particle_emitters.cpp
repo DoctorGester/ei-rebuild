@@ -75,7 +75,7 @@ void PlaceBoltPoint(CParticleSource* s, int i, Vector3& dir) {
     float cx = static_cast<float>(D(bx) + D(s->origin.x));
     float cy = static_cast<float>(D(by) + D(s->origin.y));
     (void)static_cast<float>(D(bz) + D(s->origin.z));
-    float cz = static_cast<float>(g_clientWorld->RawSurfaceHeightAt(cx, cy) + D(EI_POINT_THREE));
+    float cz = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(cx, cy) + D(EI_POINT_THREE));
     ParticleElement* points = s->elements.data();
     points[i].pos = {cx, cy, cz};
     points[i].bolt.base = {cx, cy, cz};
@@ -412,7 +412,7 @@ int CParticleSource::EmitZoneExit(Particle* p, int) {
     float falloff = static_cast<float>((D(EI_ZONE_EXIT_SPREAD) - D(a) * D(a)) - b * b);
     float x = static_cast<float>((D(a) * D(alpha) * D(turnCos) + D(origin.x)) - b * D(turnSin) * D(typeParam));
     float y = static_cast<float>((D(turnSin) * D(alpha) * D(a) + b * D(turnCos) * D(typeParam)) + D(origin.y));
-    double ground = g_clientWorld->RawSurfaceHeightAt(x, y);
+    double ground = g_clientWorld.RawSurfaceHeightAt(x, y);
     p->pos.x = x;
     p->pos.y = y;
     p->size = 0.0f;
@@ -440,7 +440,7 @@ int CParticleSource::UpdateGroundDust(Particle* p) {
     p->pos.x = static_cast<float>(D(p->velocity.x) + D(p->pos.x));
     p->pos.y = static_cast<float>(D(p->velocity.y) + D(p->pos.y));
     p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
-    double lifted = g_clientWorld->RawSurfaceHeightAt(p->pos.x, p->pos.y) + D(EI_TENTH);
+    double lifted = g_clientWorld.RawSurfaceHeightAt(p->pos.x, p->pos.y) + D(EI_TENTH);
     p->pos.z = static_cast<float>(lifted);
     const auto& plane = elements[0].plane;
     double along = (D(p->pos.x) - D(origin.x)) * D(plane.normal.x) + (D(p->pos.y) - D(origin.y)) * D(plane.normal.y);
@@ -460,7 +460,7 @@ int CParticleSource::UpdateGroundDust(Particle* p) {
 void CParticleSource::TickGroundPlane(ParticleElement* e) {
     if (e->ticks == 0) {
         auto& plane = e->plane;
-        g_clientWorld->platforms_.SurfacePlane(origin.x, origin.y, &plane.normal, &plane.height);
+        g_clientWorld.platforms_.SurfacePlane(origin.x, origin.y, &plane.normal, &plane.height);
         if (plane.normal.z != 0.0f) plane.normal.z = static_cast<float>(D(EI_ONE) / D(plane.normal.z));   // a NaN stays the same NaN
     }
     if (++e->ticks > 1) flags_ &= ~ParticleSourceFlag::Emitting;

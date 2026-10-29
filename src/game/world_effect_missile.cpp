@@ -250,7 +250,7 @@ CEffectMissile::~CEffectMissile() = default;
 
 void CEffectArrowFigure::Reset() {
     CEffectMissile::Reset();
-    if (figure_ != nullptr) g_clientWorld->RemoveObject(figure_->id_);
+    if (figure_ != nullptr) g_clientWorld.RemoveObject(figure_->id_);
     hit_ = DamageInfo{};
     hit_.multiplier = 1.0f;
     figure_.Reset();
@@ -276,7 +276,7 @@ bool CEffectArrowFigure::RunTick() {
 
 void CEffectArrowFigure::MoveParts() {
     if (figure_ == nullptr) return;
-    g_clientWorld->objectGrid_.Move(figure_, &localPosition_.x);
+    g_clientWorld.objectGrid_.Move(figure_, &localPosition_.x);
     figure_->RollTowards(velocity_);
 }
 
@@ -287,8 +287,8 @@ void CEffectArrowFigure::Start(int update) {
     }
     std::string model = game::ArrowFigureModelText();
     std::string texture = game::ArrowFigureTextureText();
-    int id = g_clientWorld->nextClientObjectId_--;
-    auto* object = g_clientWorld->objectManager_->CreateObjectAs<CMapObject>(MapObjectType::StuffObject, id);
+    int id = g_clientWorld.nextClientObjectId_--;
+    auto* object = g_clientWorld.objectManager_->CreateObjectAs<CMapObject>(MapObjectType::StuffObject, id);
     figure_.Assign(object);
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, like the original.
@@ -301,7 +301,7 @@ void CEffectArrowFigure::Start(int update) {
     figure->PlayAnimation(nullptr);
     figure->RestartPose();
     attached->SetSkins(texture, game::kEmptyText);
-    g_clientWorld->AddObject(figure_);
+    g_clientWorld.AddObject(figure_);
 }
 
 int CEffectArrowFigure::Unpack(int update, DeltaField* field) {

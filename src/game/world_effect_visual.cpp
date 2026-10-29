@@ -106,7 +106,7 @@ void WallScorchShape(const Vector3* direction, const float* half, float* angleAn
 void CEffectPointLight::Reset() {
     ClearBase(this);
     if (light_ != nullptr) {
-        g_clientWorld->terrain_->RemoveLight(light_);
+        g_clientWorld.terrain_->RemoveLight(light_);
         light_.Reset();
     }
     color_ = Vector3{0.0f, 0.0f, 0.0f};
@@ -127,19 +127,19 @@ bool CEffectPointLight::RunTick() {
     delta = velocity_;
     if ((FrameCounter() & 0xF) == 0) {
         // Every 16th frame the light is re-registered at its new place.
-        g_clientWorld->terrain_->RemoveLight(light_);
+        g_clientWorld.terrain_->RemoveLight(light_);
         LightPosition(light_) = localPosition_;
-        g_clientWorld->terrain_->AddLight(light_);
+        g_clientWorld.terrain_->AddLight(light_);
         return true;
     }
-    g_clientWorld->terrain_->MoveLight(light_, &delta);
+    g_clientWorld.terrain_->MoveLight(light_, &delta);
     LightPosition(light_) = localPosition_;
     return true;
 }
 
 void CEffectPointLight::Start(int update) {
     if (update == 0) {
-        light_.Assign(g_clientWorld->lightFactory_->CreateLight(0x31));
+        light_.Assign(g_clientWorld.lightFactory_->CreateLight(0x31));
         Vector3 position;
         position.x = localPosition_.x;
         position.y = localPosition_.y;
@@ -151,7 +151,7 @@ void CEffectPointLight::Start(int update) {
         light_->SetPoint(&color, &position);
         SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
         LightFlags(light_) |= lightFlags_;
-        g_clientWorld->terrain_->AddLight(light_);
+        g_clientWorld.terrain_->AddLight(light_);
         if (moving_ != 0) LightFlags(light_) |= LightFlag::Moving;
     } else {
         light_->color_[0] = color_.x;
@@ -169,13 +169,13 @@ void CEffectPointLight::Start(int update) {
             delta.z = static_cast<float>(localPosition_.z - at.z);
             delta.y = static_cast<float>(localPosition_.y - at.y);
             delta.x = static_cast<float>(localPosition_.x - at.x);
-            g_clientWorld->terrain_->MoveLight(light_, &delta);
+            g_clientWorld.terrain_->MoveLight(light_, &delta);
             LightPosition(light_) = localPosition_;
         } else {
-            g_clientWorld->terrain_->RemoveLight(light_);
+            g_clientWorld.terrain_->RemoveLight(light_);
             LightPosition(light_) = localPosition_;
             SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
-            g_clientWorld->terrain_->AddLight(light_);
+            g_clientWorld.terrain_->AddLight(light_);
         }
     }
     // A negative range (or NaN) sets LightFlag::Off.
@@ -313,7 +313,7 @@ void CEffectParticle::Spawn() {
         return;
     }
 
-    source_.Assign(g_clientWorld->particleManager_->CreateSource(type_));
+    source_.Assign(g_clientWorld.particleManager_->CreateSource(type_));
     source_->localPosition_ = localPosition_;
     float baseSize;
     baseSize = source_->baseSize;
@@ -324,7 +324,7 @@ void CEffectParticle::Spawn() {
     Attach();
 
     // Catch up with the ticks since the effect began (at most 30 for lasting types).
-    int age = g_clientWorld->tick_ - startTick_;
+    int age = g_clientWorld.tick_ - startTick_;
     if (!IsOneShotType(type_) && age >= 30) age = 30;
     if (age > 1) {
         for (int left = age - 1; left != 0; --left) source_->RunTick();
@@ -334,15 +334,15 @@ void CEffectParticle::Spawn() {
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         float radius = typeParam_;
         float angle = RandomAngle(((&g_random))->Next());
-        g_clientWorld->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
+        g_clientWorld.AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
     }
     if (ParticleTypeOf(type_) == ParticleType::LightningBlast) {
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         std::uint32_t random = InlineRandom();
         float radius = size_;
         float angle = RandomAngle(random);
-        g_clientWorld->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
-        g_clientWorld->camera_->Shake(&localPosition_, size_, 2.0f, 0.25f);
+        g_clientWorld.AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
+        g_clientWorld.camera_->Shake(&localPosition_, size_, 2.0f, 0.25f);
     }
 }
 
@@ -395,7 +395,7 @@ void CEffectParticle::Attach() {
             return;
         }
     }
-    CObject3D* object = g_clientWorld->objectManager_->FindObjectAs<CObject3D>(static_cast<unsigned>(attachedTo_));
+    CObject3D* object = g_clientWorld.objectManager_->FindObjectAs<CObject3D>(static_cast<unsigned>(attachedTo_));
     Vector3 saved;
     saved = source_->localPosition_;
     source_->Attach(object);
@@ -500,7 +500,7 @@ int CEffectWall::Unpack(int update, DeltaField* field) {
         float shape[2];   // angle, outer
         WallScorchShape(&direction_, &half, shape);
         float inner = static_cast<float>(half + ConstAt(worlddata::ScorchMargin()));
-        g_clientWorld->AddScorchMark(localPosition_.x, localPosition_.y, shape[1], inner, shape[0], alpha);
+        g_clientWorld.AddScorchMark(localPosition_.x, localPosition_.y, shape[1], inner, shape[0], alpha);
     }
     return 1;
 }
@@ -560,7 +560,7 @@ void CEffectLightning::UpdateEnds() {
 
 void CEffectLightning::Start(int update) {
     if (update != 0) return;
-    auto* created = g_clientWorld->listManager_->CreateObjectAs<CLightning>(0, -1);
+    auto* created = g_clientWorld.listManager_->CreateObjectAs<CLightning>(0, -1);
     bolt_.Assign(created);
     UpdateEnds();
     bolt_->Start(&from_, &to_, width_, flag_);

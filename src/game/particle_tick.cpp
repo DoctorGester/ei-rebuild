@@ -236,7 +236,7 @@ void CParticleSource::AddParticle(Particle* p) {
 // alive (ParticleSourceFlag::KeepAlive) or has particles, an attached one while it emits or has particles.
 bool CParticleSource::RunTick() {
     if (hiddenTicks > 0x38 && (flags_ & ParticleSourceFlag::IdlesOffScreen)) return true;
-    const CWorldClient* world = &g_clientWorld.Get();
+    const CWorldClient* world = &g_clientWorld;
     lib::LoadBytes(windDirection, world->windDirection_);
     windStrength = std::bit_cast<float>(world->windStrength_);
     boundsMin.x = kFarBits;

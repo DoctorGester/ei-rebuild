@@ -121,9 +121,9 @@ void CWorldServer::LootDeadUnits() {
         CEngineObject* object = node->second;
         CUnit* unit = UnitOrNull(object);   // no null test here: the map holds no null
         if (unit && unit->IsDead()) {
-            g_serverWorld->Loot(unit, local);
+            g_serverWorld.Loot(unit, local);
             dead.push_back(static_cast<unsigned>(object->id_));
         }
     }
-    for (unsigned id : dead) g_serverWorld->RemoveObject(id);
+    for (unsigned id : dead) g_serverWorld.RemoveObject(id);
 }

@@ -79,7 +79,7 @@ std::string SlotFolder(const char* slot) {
 // The first line of the text `prefix` + `suffix`, or empty when there is none.
 std::string FirstLineOf(const char* prefix, const std::string& suffix) {
     std::string line;
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     bool found = texts->Open(std::string(prefix) + suffix);
     if (found) texts->ReadLine(&line, 1);
     return line;
@@ -141,9 +141,9 @@ void SaveEntry::MakeTitle() {
     std::string quick;
     std::string autoEnter;
     std::string autoExit;
-    g_clientWorld->texts_->GetString(kQuickTitle, &quick);
-    g_clientWorld->texts_->GetString(kAutoEnterTitle, &autoEnter);
-    g_clientWorld->texts_->GetString(kAutoExitTitle, &autoExit);
+    g_clientWorld.texts_->GetString(kQuickTitle, &quick);
+    g_clientWorld.texts_->GetString(kAutoEnterTitle, &autoEnter);
+    g_clientWorld.texts_->GetString(kAutoExitTitle, &autoExit);
     auto& title = title_;
     if (text::CompareIgnoringCase(folder_, kQuickFolder) == 0) {
         title = str::Format(kPlainFormat, quick);
@@ -176,7 +176,7 @@ void CSaveLoadWindow::SaveGame() {
     std::string folder;
     folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_);
     std::string notice;
-    g_clientWorld->texts_->GetString(game::savewords::NotifySaving(), &notice);
+    g_clientWorld.texts_->GetString(game::savewords::NotifySaving(), &notice);
     g_interface.ShowStatusText(notice);
     g_gameFlow.SaveGameThunk(entry->folder_);
     g_cursor.SetShape(3);
@@ -328,9 +328,9 @@ void QuickSave(const char* slot, bool stepFrame) {
     CUiSurface* surface = new CUiSurface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, SurfaceBlend::Opaque, true);
     surface->CaptureScreen();
     g_cursor.SetShape(3);
-    g_interface.serverFlag_ = static_cast<std::uint8_t>(g_serverWorld->paused_);
+    g_interface.serverFlag_ = static_cast<std::uint8_t>(g_serverWorld.paused_);
     std::string notice;
-    g_clientWorld->texts_->GetString(game::savewords::NotifySaving(), &notice);
+    g_clientWorld.texts_->GetString(game::savewords::NotifySaving(), &notice);
     g_interface.ShowStatusText(notice);
     g_gameFlow.SaveGameThunk(slot);
 
@@ -371,7 +371,7 @@ void QuickLoad(const char* slot) {
     std::string folder = SlotFolder(slot);
     if (!lib::FileExists(folder)) return;
     std::string notice;
-    g_clientWorld->texts_->GetString(kNotifyLoading, &notice);
+    g_clientWorld.texts_->GetString(kNotifyLoading, &notice);
     g_interface.ShowStatusText(notice);
     GameStopSounds(1);
     g_gameFlow.RequestLoad(slot, 0);
@@ -381,7 +381,7 @@ void QuickLoad(const char* slot) {
 
 std::string SaveEntry::ZoneTitle() const {
     std::string title = FirstLineOf("zone ", zone_);   // the key has a space
-    if (title.size() == 0) g_clientWorld->texts_->GetString("save_camp", &title);
+    if (title.size() == 0) g_clientWorld.texts_->GetString("save_camp", &title);
     return title;
 }
 
@@ -416,7 +416,7 @@ void CSaveLoadWindow::LoadSelected() {
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     if (entries_.data()[selected].broken_) return;
     std::string notice;
-    g_clientWorld->texts_->GetString(kNotifyLoading, &notice);
+    g_clientWorld.texts_->GetString(kNotifyLoading, &notice);
     g_interface.ShowStatusText(notice);
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk);

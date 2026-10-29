@@ -21,7 +21,7 @@ namespace scriptaddon {
 namespace {
 
 // The world: the player with a number.
-void* GetPlayer(int number) { return g_serverWorld->GetPlayer(number); }
+void* GetPlayer(int number) { return g_serverWorld.GetPlayer(number); }
 
 // A unit's prototype record: its name and, at +4, its model name (the race).
 static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) { return unit->GetPrototype(); }
@@ -48,7 +48,7 @@ template <typename Visit>
 void ForObjectsNear(float x, float y, float radius, Visit visit) {
     std::list<CUnit*> list{};
     Vector3 point = {x, y, 0.0f};
-    g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(&point, &list, radius);
+    g_serverWorld.aiMap_.sectorMap.FindUnitsInRadius(&point, &list, radius);
     for (auto& node : list) visit(node);
 }
 
@@ -65,7 +65,7 @@ bool DataField(Call* call, float UnitStats::* field, const char* function) {
 // 1001B058).
 template <typename Visit>
 void ForWorldObjects(Visit visit) {
-    auto& objects = g_serverWorld->objects_.map;
+    auto& objects = g_serverWorld.objects_.map;
     for (const auto& [id, object] : objects) visit(object);
 }
 

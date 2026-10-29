@@ -89,7 +89,7 @@ GroundPrint::GroundPrint(std::uint8_t visible, int life, float alphaScale, int l
 
 void GroundPrint::SetTexture(const char* name) {
     texture_.name.assign(name, name + std::strlen(name));
-    CTextureManager* textures = g_clientWorld->textureManager_;
+    CTextureManager* textures = g_clientWorld.textureManager_;
     texture_.texture.Assign(textures->FindTexture(name));
     if (texture_.texture) return;
     texture_.texture.Assign(textures->FindOrCreate(kTextureKind, name));
@@ -103,7 +103,7 @@ GroundPrint::GroundPrint(float x, float y, float halfWidth, float halfLength, fl
     halfWidth_ = halfWidth;
     halfLength_ = halfLength;
     Vector3 point{x, y, 0.0f};
-    lit_ = g_clientWorld->terrain_->EdgeFade(&point);
+    lit_ = g_clientWorld.terrain_->EdgeFade(&point);
     int quarter = RandomQuarter();
     uvScale_ = {0.5f, 0.5f};
     uvOffset_.x = static_cast<float>(quarter & 1) * 0.5f;
@@ -172,7 +172,7 @@ int GroundPrint::Draw() {
     if (!visible_) return 1;
     if (!built_) {
         // The quad at the height of the ground or the platform under the point.
-        CWorldClient* world = &g_clientWorld.Get();
+        CWorldClient* world = &g_clientWorld;
         std::vector<VertexPacket> quad;
         Vector3 at{position_.x, position_.y, 0.0f};
         float z = static_cast<float>(world->platforms_.SurfaceHeight(&at, world->ClampedGroundHeight(position_.x, position_.y)));
@@ -234,7 +234,7 @@ Footprint::Footprint(float x, float y, float halfWidth, float halfLength, float 
     halfWidth_ = halfWidth;
     halfLength_ = halfLength;
     Vector3 point{x, y, 0.0f};
-    lit_ = g_clientWorld->terrain_->EdgeFade(&point);
+    lit_ = g_clientWorld.terrain_->EdgeFade(&point);
     // The tile's parts are below 2^16: converted as ints.
     int index = static_cast<int>(tile & 0xFFFF);
     uvOffset_.x = static_cast<float>(index & 7) * kEighth + static_cast<float>(static_cast<int>(tile >> 16)) * kSixteenth;
@@ -273,7 +273,7 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     halfWidth_ = halfSize;
     halfLength_ = halfSize;
     Vector3 point{x, y, 0.0f};
-    lit_ = g_clientWorld->terrain_->EdgeFade(&point);
+    lit_ = g_clientWorld.terrain_->EdgeFade(&point);
     int index = static_cast<int>(tile & 0xFFFF);
     int high = static_cast<int>(tile >> 16);
     uvOffset_.x = static_cast<float>(index & 1) * kQuarter + static_cast<float>(high & 1) * 0.5f;

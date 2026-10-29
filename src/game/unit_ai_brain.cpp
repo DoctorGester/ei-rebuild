@@ -225,11 +225,11 @@ void AIBrain::StandardSentry(const Vector3* point) {
 void AIBrain::CallAllies(const Vector3* point) {
     std::list<CUnit*> units{};
     CUnit* self = owner->unit;
-    g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(&self->localPosition_, &units, callRadius);
+    g_serverWorld.aiMap_.sectorMap.FindUnitsInRadius(&self->localPosition_, &units, callRadius);
     for (auto node = units.begin(); node != units.end();) {
         auto* other = *node;
         ++node;
-        if (other == self || !g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) continue;
+        if (other == self || !g_serverWorld.diplomacy_.IsAllied(self->side, other->side)) continue;
         std::string message;
         AIBrain* ally = &other->ServerController()->brain;
         if (console::g_filterMask & 1) {
@@ -317,7 +317,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
 void AIMemory::Update(CUnitServer* who) {
     std::erase_if(reports, [](AIReport& entry) { return --entry.what < 0; });
     calls.Update(who->unit, this);
-    g_serverWorld->aiMap_.events.Update(who, this);
+    g_serverWorld.aiMap_.events.Update(who, this);
     noticedLevel += noticedKind;
 }
 
@@ -356,8 +356,8 @@ void AIBrain::Load(CStream* stream) {
     stream->ReadValue(move.point);
     LoadLooks(&move.looks, stream);
     stream->ReadValue(actionTime);
-    LoadRef(target, stream, &g_serverWorld.Get());
-    LoadRef(seen, stream, &g_serverWorld.Get());
+    LoadRef(target, stream, &g_serverWorld);
+    LoadRef(seen, stream, &g_serverWorld);
     stream->ReadValue(callRadius);
     stream->ReadValue(nearX);
     stream->ReadValue(nearY);

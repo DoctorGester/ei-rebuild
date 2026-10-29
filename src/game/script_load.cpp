@@ -32,12 +32,12 @@ int StreamVersion(const CStream* stream) { return static_cast<int>(stream->versi
 template <class T>
 T* FindById(int id) {
     if (id == -1) return nullptr;
-    return g_serverWorld->timedObjectManager_->FindObjectAs<T>(id);
+    return g_serverWorld.timedObjectManager_->FindObjectAs<T>(id);
 }
 
 // The world's first script (the only script a savegame holds): block
 // ids resolve in its lists whatever script is loaded.
-const CScript* SavedScript() { return g_serverWorld->MainScript(); }
+const CScript* SavedScript() { return g_serverWorld.MainScript(); }
 
 ScriptDecl* FindBlock(int id) { return SavedScript()->FindBlock(id); }
 

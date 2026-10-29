@@ -72,7 +72,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
     IsaacRandom* random = (&g_random);
     int count = static_cast<int>(random->Next() & 3) + 1;
     Vector3 eye = order->point;
-    eye.z = static_cast<float>(g_serverWorld->aiMap_.TopHeightAt(&eye) + kEyeHeight);
+    eye.z = static_cast<float>(g_serverWorld.aiMap_.TopHeightAt(&eye) + kEyeHeight);
     if (wander >= 0.0f) wander = static_cast<float>(wander * kWanderScale);
     else wander = kDefaultWander;   // also NaN
     if (farGoal) {
@@ -98,7 +98,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
             if (tries-- < 0) break;
             Vector3 reach{static_cast<float>(dx + dx), static_cast<float>(dy + dy), static_cast<float>(direction->z + direction->z)};
             Vector3 to{static_cast<float>(reach.x + eye.x), static_cast<float>(reach.y + eye.y), static_cast<float>(reach.z + eye.z)};
-            float sight = g_serverWorld->aiMap_.LineOfSight(&eye, &to);
+            float sight = g_serverWorld.aiMap_.LineOfSight(&eye, &to);
             EI_NAN_AUDIT(sight);
             if (sight == 1.0f) break;
         }
@@ -131,17 +131,17 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     out->x = static_cast<float>(dx + point->x);
     out->y = static_cast<float>(dy + point->y);
     out->z = 0.0f;
-    CAIMap* map = &g_serverWorld->aiMap_;
+    CAIMap* map = &g_serverWorld.aiMap_;
     if (map->SlopeAt(out) > kMaxSlope) return false;
 
     // No unit of an allied player may stand near it.
     std::list<CUnit*> units;
     InitUnitList(units);
     CUnit* self = owner->unit;
-    g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(out, &units, self->standingHeight * kAllySpace);
+    g_serverWorld.aiMap_.sectorMap.FindUnitsInRadius(out, &units, self->standingHeight * kAllySpace);
     for (auto node = units.begin(); node != units.end(); ++node) {
         auto* other = *node;
-        if (g_serverWorld->diplomacy_.IsAllied(other->side, self->side)) {
+        if (g_serverWorld.diplomacy_.IsAllied(other->side, self->side)) {
             units.clear();
             return false;
         }
@@ -182,7 +182,7 @@ void AIBrain::UpdateFollow() {
     auto* leader = static_cast<CUnit*>(target.Get());
     Vector3 toLeader{static_cast<float>(leader->localPosition_.x - self->localPosition_.x), static_cast<float>(leader->localPosition_.y - self->localPosition_.y),
                      static_cast<float>(leader->localPosition_.z - self->localPosition_.z)};
-    int now = g_serverWorld->tick_;
+    int now = g_serverWorld.tick_;
     float distance = static_cast<float>(
         std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z)));
     CUnitServer* leaderController = leader->ServerController();
@@ -265,7 +265,7 @@ void AIBrain::UpdateFollow() {
 
     AIPath path;
     Vector3 aside{static_cast<float>(passing.x + side.x), static_cast<float>(passing.y + side.y), static_cast<float>(side.z + passing.z)};
-    g_serverWorld->aiMap_.FindPath(self, &aside, &path, kPassRange, 0.0f);
+    g_serverWorld.aiMap_.FindPath(self, &aside, &path, kPassRange, 0.0f);
     double half = 0.5;
     float targetY = static_cast<float>(half * path.targetY);
     float offY = static_cast<float>(aside.y - targetY);
@@ -296,8 +296,8 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     CUnit* unit = brain->owner->unit;
     Vector3 saved = unit->localPosition_;
     float range = static_cast<float>(2.0 * std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
-    g_serverWorld->aiMap_.sectorMap.Move(unit, from);
-    bool found = g_serverWorld->aiMap_.FindPath(unit, to, &path, range, 0.0f);
-    g_serverWorld->aiMap_.sectorMap.Move(unit, &saved);
+    g_serverWorld.aiMap_.sectorMap.Move(unit, from);
+    bool found = g_serverWorld.aiMap_.FindPath(unit, to, &path, range, 0.0f);
+    g_serverWorld.aiMap_.sectorMap.Move(unit, &saved);
     return found;
 }

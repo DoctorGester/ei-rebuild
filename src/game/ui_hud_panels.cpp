@@ -136,7 +136,7 @@ void CHudMovePanel::ToggleFlag() {
     int value = !owner_->party_.empty() && common == 1 ? 0 : 1;
     for (int i = 0; i < std::ssize(owner_->party_); ++i) {
         CUnit* unit = owner_->party_[i];
-        if (unit->flags_ & 0x10) g_clientWorld->LocalView()->SetUnitFightAtWill(unit, value);
+        if (unit->flags_ & 0x10) g_clientWorld.LocalView()->SetUnitFightAtWill(unit, value);
     }
     flag_ = value;
     // The button's frame (the original also has 0.48046875 for any other value; `value` is 0 or 1).
@@ -155,7 +155,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
     static constexpr int kPlaceX[kPlaces] = {0, 0, 64, 64, 64, 64};
     static constexpr int kPlaceY[kPlaces] = {128, 192, 0, 64, 128, 192};
 
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     CUiSurface* surface = surfaces_[0];
     std::string code, text, number;
     int icons[kPlaces], places[kPlaces];
@@ -256,10 +256,10 @@ void CHudTopPanel::ShowPage() {
 }
 
 void CHudTopPanel::ShowItems() {
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     // A local list of the world's copies.
     std::list<CItem*> merged{};
-    CPlayer* player = g_clientWorld->LocalView()->player_;
+    CPlayer* player = g_clientWorld.LocalView()->player_;
     std::string line;
     std::string format;
     for (auto node = player->items_.begin(); node != player->items_.end();) {
@@ -272,7 +272,7 @@ void CHudTopPanel::ShowItems() {
             same->count_ += item->count_;
             continue;
         }
-        CItem* copy = g_clientWorld->MakeCopyOf(item);
+        CItem* copy = g_clientWorld.MakeCopyOf(item);
         copy->count_ = item->count_;
         copy->AddRef();
         merged.push_back(copy);

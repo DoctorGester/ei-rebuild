@@ -96,11 +96,11 @@ net::ServerSession* ActiveServer() {
     return nullptr;
 }
 
-WorldAlarm& Alarm(int index) { return g_serverWorld->alarms_[index]; }
+WorldAlarm& Alarm(int index) { return g_serverWorld.alarms_[index]; }
 
 // GetWorldTime: (time * scale + offset) mod 24.
 float WorldTimeOfDay() {
-    const CWorldServer* world = &g_serverWorld.Get();
+    const CWorldServer* world = &g_serverWorld;
     return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
@@ -223,13 +223,13 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         }
         float x = ObjectSlots(o)->localPosition_.x, y = ObjectSlots(o)->localPosition_.y, z = ObjectSlots(o)->localPosition_.z;
         if (CUnit* unit = UnitOrNull(o)) *result = static_cast<float>(UnitGroundHeight(unit, x, y) + z);   // (o is not null)
-        else *result = g_serverWorld->GridHeight(x, y) + z;
+        else *result = g_serverWorld.GridHeight(x, y) + z;
         return;
     }
     case ScriptFunction::GetLootItemsCount:
     case ScriptFunction::GetMoney: {
         *result = 0.0f;
-        CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
         if (player) *result = static_cast<float>(function == ScriptFunction::GetLootItemsCount ? std::ssize(player->items_) : player->Party()->money_);
         return;
     }
@@ -247,14 +247,14 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             return;
         }
         Vector3 buffer;
-        const Vector3* position = ObjectSlots(o)->PositionAt(&buffer, RoundTimeOffset(g_serverWorld->tick_, f[0]));
+        const Vector3* position = ObjectSlots(o)->PositionAt(&buffer, RoundTimeOffset(g_serverWorld.tick_, f[0]));
         x87::CopyBits(*result, *(function == ScriptFunction::GetFutureX ? &position->x : &position->y));
         return;
     }
     case ScriptFunction::IsUnitInWater: { // IsUnitInWater: flag 0x80 of the AI map cell at the object's position
         CEngineObject* o = objectArgs[0]->object;
         int inWater = 0;
-        if (o) inWater = g_serverWorld->aiMap_.InWaterAt(&ObjectSlots(o)->localPosition_) ? 1 : 0;
+        if (o) inWater = g_serverWorld.aiMap_.InWaterAt(&ObjectSlots(o)->localPosition_) ? 1 : 0;
         *result = static_cast<float>(inWater);
         return;
     }
@@ -275,7 +275,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case ScriptFunction::GetDiplomacy: { // GetDiplomacy: 1 allied, -1 enemies, 0 otherwise
         int b = Ftol(f[1]);
         int a = Ftol(f[0]);
-        int relation = g_serverWorld->diplomacy_.GetRelation(a, b);
+        int relation = g_serverWorld.diplomacy_.GetRelation(a, b);
         *result = 0.0f;
         if (relation == 2) *result = kMinusOne;
         else if (relation == 0) *result = 1.0f;
@@ -403,21 +403,21 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
 
     case ScriptFunction::HaveItem: { // HaveItem(player, item)
         *result = 0.0f;
-        auto* player = g_serverWorld->GetPlayer(Ftol(f[0]));
+        auto* player = g_serverWorld.GetPlayer(Ftol(f[0]));
         if (player && player->HasLoot(Ftol(f[1]))) *result = 1.0f;
         return;
     }
     case ScriptFunction::IsPlayerInDanger:
     case ScriptFunction::IsPlayerInSafety: {
         *result = 0.0f;
-        CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
         if (!player) return;
         int danger = player->Server()->refreshPending_;
         if (function == ScriptFunction::IsPlayerInDanger ? danger == 2 : danger == 0) *result = 1.0f;
         return;
     }
     case ScriptFunction::GetMercsNumber:
-        *result = static_cast<float>(g_serverWorld->CountLivingMercs(Ftol(f[0])));
+        *result = static_cast<float>(g_serverWorld.CountLivingMercs(Ftol(f[0])));
         return;
     case ScriptFunction::GSGetVar: { // GSGetVar(player, name): from the game server in multiplayer, else the player's
         net::ServerSession* server = IsMultiplayerClient() ? ActiveServer() : nullptr;
@@ -427,7 +427,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             return;
         }
         *result = 0.0f;
-        CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
         if (player) *result = player->Party()->variables_.Get(stringArgs[0]);
         return;
     }
@@ -435,7 +435,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = static_cast<float>(static_cast<int>(GameCameraPathPlaying()));
         return;
     case ScriptFunction::IsNight:   // IsNight (the world's day-time value, copied as a float)
-        x87::CopyBits(*result, g_serverWorld->nightLevel_);
+        x87::CopyBits(*result, g_serverWorld.nightLevel_);
         return;
     case ScriptFunction::GetWorldTime:
         *result = WorldTimeOfDay();
@@ -460,16 +460,16 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         CEngineObject* o = objectArgs[0]->object;
         *result = 0.0f;
         if (!o) return;
-        CPlayer* player = g_serverWorld->GetPlayer(0);
+        CPlayer* player = g_serverWorld.GetPlayer(0);
         if (!player) return;
         *result = static_cast<float>(player->Server()->partyUnits_.Contains(o) ? 1 : 0);
         return;
     }
     case ScriptFunction::GetZValue:
-        *result = g_serverWorld->GridHeight(f[0], f[1]);
+        *result = g_serverWorld.GridHeight(f[0], f[1]);
         return;
     case ScriptFunction::GetBSZValue:
-        *result = static_cast<float>(g_serverWorld->RawSurfaceHeightAt(f[0], f[1]));
+        *result = static_cast<float>(g_serverWorld.RawSurfaceHeightAt(f[0], f[1]));
         return;
     case ScriptFunction::IsInArea: { // IsInArea(area, x, y)
         int area = x87::fistp(f[0]);
@@ -516,25 +516,25 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
     const ScriptFunction function = static_cast<ScriptFunction>(id);
     switch (function) {
     case ScriptFunction::ScriptGetObject: { // GetObject(id)
-        CEngineObject* o = g_serverWorld->FindObject(Ftol(floatArgs[0]));
+        CEngineObject* o = g_serverWorld.FindObject(Ftol(floatArgs[0]));
         if (!o) game::DebugLog("Object with ID %d not found in function \"%s\".\n", Ftol(floatArgs[0]), "GetObject");
         (*result)->object = o;
         return;
     }
     case ScriptFunction::GetUnitOfPlayer: { // GetUnitOfPlayer(player, index)
-        CPlayer* player = g_serverWorld->GetPlayer(Ftol(floatArgs[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(Ftol(floatArgs[0]));
         CEngineObject* o = nullptr;
         if (player) {
             const std::vector<PartyUnitRecord>& members = player->Party()->members_;
             int index = x87::fistp(floatArgs[1]);
             if (index >= 0 && index < std::ssize(members))
-                o = g_serverWorld->FindUnit(static_cast<int>(members[index].unitId));
+                o = g_serverWorld.FindUnit(static_cast<int>(members[index].unitId));
         }
         (*result)->object = o;
         return;
     }
     case ScriptFunction::GetObjectByName: {
-        CEngineObject* o = g_serverWorld->FindObject(TextKeyFromName(stringArgs[0]));
+        CEngineObject* o = g_serverWorld.FindObject(TextKeyFromName(stringArgs[0]));
         if (!o)
             game::DebugLog("Object with name %s not found in function \"%s\".\n",
                            stringArgs[0], "GetObjectByName");
@@ -542,7 +542,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         return;
     }
     case ScriptFunction::GetObjectByID: { // GetObjectByID (decimal string)
-        CEngineObject* o = g_serverWorld->FindObject(str::ToInt(stringArgs[0]));
+        CEngineObject* o = g_serverWorld.FindObject(str::ToInt(stringArgs[0]));
         if (!o)
             game::DebugLog("Object with ID %s not found in function \"%s\".\n",
                            stringArgs[0], "GetObjectByID");
@@ -555,11 +555,11 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
             unitId = server->LeaderId();
         } else {
             unitId = 0x3B9AF5CE;
-            CPlayer* player = g_serverWorld->GetPlayer(0);
+            CPlayer* player = g_serverWorld.GetPlayer(0);
             if (player && std::ssize(player->Party()->members_) > 0)
                 unitId = static_cast<int>(player->Party()->members_[0].unitId);
         }
-        (*result)->object = g_serverWorld->FindObject(unitId);
+        (*result)->object = g_serverWorld.FindObject(unitId);
         return;
     }
     default:
@@ -609,14 +609,14 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
     }
     case ScriptFunction::GetPlayerUnits: { // GetPlayerUnits(player): the world's units whose player compares equal
         EI_NAN_AUDIT(floatArgs[0]);
-        for (CEngineObject* o = objects.First(g_serverWorld->objectManager_); o; o = objects.Next()) {
+        for (CEngineObject* o = objects.First(g_serverWorld.objectManager_); o; o = objects.Next()) {
             CUnit* unit = UnitOrNull(o);
             if (unit && static_cast<double>(unit->side) == floatArgs[0]) (*result)->Insert(o);
         }
         break;
     }
     case ScriptFunction::PlayerSee: { // PlayerSee(player): the player's seen objects, its units and what they see
-        CPlayer* player = g_serverWorld->GetPlayer(Ftol(floatArgs[0]));
+        CPlayer* player = g_serverWorld.GetPlayer(Ftol(floatArgs[0]));
         if (!player) {
             (*result)->clear();
             break;

@@ -99,7 +99,7 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     slot->moving = 0;
     slot->id = id;
     slot->removeWhenDone = 0;
-    slot->object = ScriptEffect<CEffectPointLight>(g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectPointLight>(0x4B, -1));
+    slot->object = ScriptEffect<CEffectPointLight>(g_serverWorld.timedObjectManager_->CreateObjectAs<CEffectPointLight>(0x4B, -1));
     CEffectPointLight* object = slot->object.get();
     const float scale = 0.003921569f;   // 1 / 255
     float red = f[5] * scale;
@@ -112,7 +112,7 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     object->localPosition_.y = f[2];
     object->localPosition_.z = f[3];
     x87::CopyBits(object->range_, f[4]);   // radius
-    g_serverWorld->AddTimedObject(object);
+    g_serverWorld.AddTimedObject(object);
     slot->step.x = 0.0f;
     slot->step.y = 0.0f;
     slot->step.z = 0.0f;

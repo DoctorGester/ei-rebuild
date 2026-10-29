@@ -74,7 +74,7 @@ void AIBrain::Think() {
     // An alarm counting down since the brain became alerted.
     if (alerted && alarmCountdown > 0) {
         if (--alarmCountdown == 0 && alarm != 0) {
-            g_serverWorld->InvokeAlarm(alarm, &owner->unit->localPosition_.x, 0);
+            g_serverWorld.InvokeAlarm(alarm, &owner->unit->localPosition_.x, 0);
             owner->voice.Raise(AIRemark::Alarm);
         }
     }
@@ -317,12 +317,12 @@ void AIBrain::UpdateMove() {
     }
     if (actionTime == kLookStarted) {
         if (move.looks.front().stopFirst) o->StopQueued();
-        float end = static_cast<float>(g_serverWorld->tick_) + move.looks.front().wait;
+        float end = static_cast<float>(g_serverWorld.tick_) + move.looks.front().wait;
         actionTime = x87::fistp(end);
         move.looks.erase(move.looks.begin());
         return;
     }
-    if (g_serverWorld->tick_ > actionTime) actionTime = kNoTime;
+    if (g_serverWorld.tick_ > actionTime) actionTime = kNoTime;
 }
 
 void AIBrain::UpdateAttack() {
@@ -422,7 +422,7 @@ void AIBrain::SetSeen(CMapObject* object) {
     if (object) {
         bool allied = false;
         if (CUnit* seenUnit = UnitOrNull(seen)) {
-            allied = g_serverWorld->diplomacy_.IsAllied(owner->unit->side, seenUnit->side);
+            allied = g_serverWorld.diplomacy_.IsAllied(owner->unit->side, seenUnit->side);
         }
         if (!allied) CallAllies(&object->localPosition_);
     } else {

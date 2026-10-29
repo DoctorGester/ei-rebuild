@@ -73,7 +73,7 @@ void CTradePanel::BuildLists() {
     UnitStats* stats = &owner_->HeroRecord()->stats;
     stats->ResetToBase(0.0f);
     owner_->RefreshStats();
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::vector<SkillLevelRecord>& levels = g_skillDatabase.levels;
     perks_.clear();
     learnable_.clear();
@@ -228,7 +228,7 @@ void CTradePanel::Build() {
     AddBlankSprite()->SetRectangle(6.0f, 100.0f, 560.0f, 125.0f, 580.0f, 135.0f, 0x82, 3, 0x96, 0xD);
     AddBlankSprite()->SetRectangle(6.0f, 100.0f, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
 
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string text;
     for (const char* key : {"skills", "perks", "perks_av"}) {
         texts->CTextManager::GetString(key, &text);

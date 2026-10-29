@@ -109,7 +109,7 @@ void LeaveMoveMode(CUnitServer* self) {
         if (!(IsActionKind(kind) && self->CanReachAndPlan(order))) self->SetUnitMoveMode2(kModeRun);
     }
     self->SyncMoveModes();
-    self->waitFrame = g_serverWorld->tick_;
+    self->waitFrame = g_serverWorld.tick_;
 }
 
 // Stand: the idle animation (restarted at a random phase when nothing plays) and the motion
@@ -245,7 +245,7 @@ void CUnitServer::TakeQueuedOrder() {
         }
     }
     SyncMoveModes();
-    waitFrame = g_serverWorld->tick_;
+    waitFrame = g_serverWorld.tick_;
 }
 
 // --- Taking over the queued order ----------------------------------------------------------------
@@ -727,13 +727,13 @@ void CUnitServer::ApproachTarget() {
         }
     }
     float patience = static_cast<float>(unit->ScaledValue(distance) + kFive);
-    CAIMap* aiMap = &g_serverWorld->aiMap_;
+    CAIMap* aiMap = &g_serverWorld.aiMap_;
     std::uint8_t savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
     EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal));
     if (DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal) <= kPointOne) return;   // (sic: the path flag stays cleared)
 
-    g_serverWorld->aiMap_.sectorMap.Remove(chased);
+    g_serverWorld.aiMap_.sectorMap.Remove(chased);
     float farOffset = static_cast<float>(static_cast<double>(goal.y) * kShort);
     double nearX = static_cast<double>(goal.x) * kShort;
     float unitY = static_cast<float>(static_cast<double>(unit->localPosition_.y) * kLong);
@@ -743,7 +743,7 @@ void CUnitServer::ApproachTarget() {
     point.z = goal.z;
     if (!PathTo(&point, static_cast<float>(patience)))
         stoodBlocked = 1;
-    g_serverWorld->aiMap_.sectorMap.Add(chased);
+    g_serverWorld.aiMap_.sectorMap.Add(chased);
 
     double h = kHalfScale;
     float headX = static_cast<float>(h * motion.targetX);
@@ -767,7 +767,7 @@ void CUnitServer::ApproachTarget() {
         state = kStateChasing;
         unit->UpdateSizeClass();
         if (effectObject) {
-            g_serverWorld->RemoveTimedObject(effectObject->id_);
+            g_serverWorld.RemoveTimedObject(effectObject->id_);
             effectObject.Reset();
         }
         stoodBlocked = 1;

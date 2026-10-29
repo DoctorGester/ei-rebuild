@@ -169,7 +169,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     CUnit* self = UnitOf(c);
     CPlayer* selfPlayer = self->player;
     if (selfPlayer && blocker->player == selfPlayer &&
-        blocker->ServerController()->brain.LeaderOrFollowed() == self && g_serverWorld->tick_ < c->waitFrame + 2) {
+        blocker->ServerController()->brain.LeaderOrFollowed() == self && g_serverWorld.tick_ < c->waitFrame + 2) {
         return kBlockedWait;   // a party member following this unit
     }
     if (c->followsLeader && c->followedLeader == blocker) return kBlockedWait;
@@ -289,7 +289,7 @@ void Exhaustion(CUnitServer* c) {
     if (unit->obstacle == 0) return;
     if (c->moveMode.mode != 2 || c->moveMode2.mode != 2) return;
     CPlayer* player = unit->player;
-    if (c->moveMode.wasMode3 && player && player->godMode_ == 0 && g_serverWorld->sessionKind_ != 3) {
+    if (c->moveMode.wasMode3 && player && player->godMode_ == 0 && g_serverWorld.sessionKind_ != 3) {
         UnitVitals& vitals = unit->ServerCompanion()->vitals;
         float* stamina = &vitals.mana;
         const float* rate = &vitals.maxMana;

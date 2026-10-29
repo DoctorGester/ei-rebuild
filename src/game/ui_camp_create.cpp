@@ -303,7 +303,7 @@ void CCampPages::BuildPages() {
     NextHero();
 
     // The pages' titles.
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     std::string title;
     const char* const titleKeys[] = {
         "mode_weapons",
@@ -347,6 +347,6 @@ void CCampPages::BuildPages() {
 
     // The music of the allod the party's zone is on.
     const MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
-    g_clientWorld->music_->PlayConstructor(zone ? std::string_view(zone->allod) : std::string_view("gipat"));
+    g_clientWorld.music_->PlayConstructor(zone ? std::string_view(zone->allod) : std::string_view("gipat"));
 
 }

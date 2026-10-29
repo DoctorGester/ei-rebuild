@@ -167,7 +167,7 @@ private:
 // Frame of a unit that is not in the party: hostile when both relation masks have the local
 // side's bit. The special unit 0xA2C2A counts as hostile in zone gz20g whatever its relations.
 std::int16_t UnitFrame(const CUnit* unit) {
-    int side = g_clientWorld->LocalView()->player_->playerId_;
+    int side = g_clientWorld.LocalView()->player_->playerId_;
     if (unit->id_ == kSpecialUnitId) {
         if (str::Compare(LocalPlayerZone(), "gz20g") == 0) return kFrameHostile;
     }
@@ -266,15 +266,15 @@ double WheelZoomFactor(int delta) {
 
 void CHudMap::BuildMarkers() {
     CUiMesh* mesh = SceneMesh(2);
-    CBaseManager* objects = g_clientWorld->objectManager_;
+    CBaseManager* objects = g_clientWorld.objectManager_;
     // The local view: the ids of the units shown on the map (partyUnitIds_) and, in multiplayer, of the other
     // players' units (otherUnitIds_).
-    CPlayerClient* view = g_clientWorld->LocalView();
+    CPlayerClient* view = g_clientWorld.LocalView();
     int unitCount = view ? std::ssize(view->partyUnitIds_) : 0;
-    CLightFactory* markers = g_clientWorld->lightFactory_;
+    CLightFactory* markers = g_clientWorld.lightFactory_;
     const std::list<int>& marked = markers->litIds_;
     const int markedCount = static_cast<int>(marked.size());
-    int exitCount = static_cast<int>(std::ssize(g_clientWorld->exits_));
+    int exitCount = static_cast<int>(std::ssize(g_clientWorld.exits_));
     int playerCount = IsMultiplayerClient() ? std::ssize(view->otherUnitIds_) : 0;
 
     int quads = markedCount + playerCount + exitCount;   // six indices each
@@ -328,7 +328,7 @@ void CHudMap::BuildMarkers() {
 
     // The zone exits that lead somewhere: squares. (The exit record is copied and the target read from
     // the copy, which shares the string.)
-    CWorldClient* world = &g_clientWorld.Get();
+    CWorldClient* world = &g_clientWorld;
     for (int i = 0; i < exitCount; ++i) {
         out.BeginQuad();
         float x, y;
@@ -364,7 +364,7 @@ void CHudMap::BuildMarkers() {
 // --- The map's polygon clipping ----------------------------------------------------------------------------------
 
 void CHudMap::UpdateView() {
-    if (const CTransformObject* camera = g_clientWorld->camera_) {
+    if (const CTransformObject* camera = g_clientWorld.camera_) {
         centreX_ = g_camera->focus_.x;
         centreY_ = g_camera->focus_.y;
         Vector3 axis;

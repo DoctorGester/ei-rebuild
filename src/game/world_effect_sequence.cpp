@@ -58,7 +58,7 @@ bool SnapshotReadToEnd() {
 // like the original). A new start lists the first name (when not empty) and the others, and starts the
 // sequence with the chooser for their count.
 void CEffectSoundSeq::Start(int update) {
-    CSoundManager* sounds = g_clientWorld->sounds_;
+    CSoundManager* sounds = g_clientWorld.sounds_;
     if (update != 0) {
         sounds->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
         return;

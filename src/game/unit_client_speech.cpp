@@ -45,12 +45,12 @@ bool Important(AckKind kind) {
 
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    CSoundManager* sounds = g_clientWorld->sounds_;
+    CSoundManager* sounds = g_clientWorld.sounds_;
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
 void SetTalking(int unitId, bool talking) {
-    CEngineObject* serverUnit = g_serverWorld->FindUnit(unitId);
+    CEngineObject* serverUnit = g_serverWorld.FindUnit(unitId);
     if (!serverUnit) return;
     if (talking) serverUnit->flags_ |= MapObjectFlag::Blocked;
     else serverUnit->flags_ &= ~MapObjectFlag::Blocked;
@@ -102,7 +102,7 @@ void CUnitClientSpecific::Say(const SpeechRecord* record, AckKind kind) {
 void CUnitClientSpecific::StopSpeech() {
     for (const ClientSpeech& queued : speech) {
         if (queued.talking) SetTalking(unit->id_, false);
-        g_clientWorld->sounds_->StopSound(queued.sound);
+        g_clientWorld.sounds_->StopSound(queued.sound);
     }
     speech.clear();
 }
@@ -110,7 +110,7 @@ void CUnitClientSpecific::StopSpeech() {
 bool CUnitClientSpecific::Speak(ClientSpeech* said) {
     std::uint32_t now = gameapi::timeGetTime();
     if (lastSpeech == said->id && now - lastSpeechTime < kRepeatAfter) return false;
-    said->sound = g_clientWorld->sounds_->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, 0, 0, 1, 0);
+    said->sound = g_clientWorld.sounds_->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, 0, 0, 1, 0);
     lastSpeech = said->id;
     lastSpeechTime = now;
     return true;

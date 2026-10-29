@@ -25,7 +25,7 @@ CMessageBox::CMessageBox(CInterface3D* ui, std::string_view titleKey, const char
                          std::uint32_t flags, std::uint32_t format)
     : CUiContainer(ui), result_(result), flags_(flags), format_(format) {
     std::string text;
-    CTextManager* texts = g_clientWorld->texts_;
+    CTextManager* texts = g_clientWorld.texts_;
     texts->GetString(titleKey, &text);
     title_ = text;
     if (flags_ & kEditField) {

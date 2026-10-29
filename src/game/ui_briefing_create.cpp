@@ -90,11 +90,11 @@ Vector3 NormalisedUnlessZero(const Vector3& v) {
 
 // A mover that took too long is put at its place, facing its direction, at once.
 void PlaceMover(BriefingMover* node) {
-    CUnit* unit = g_serverWorld->FindUnit(node->person->id_);
+    CUnit* unit = g_serverWorld.FindUnit(node->person->id_);
     if (!unit) return;
     CUnitServer* controller = unit->ServerController();
     Vector3 target{node->target.x, node->target.y, node->target.z};
-    g_serverWorld->aiMap_.sectorMap.Move(unit, &target);
+    g_serverWorld.aiMap_.sectorMap.Move(unit, &target);
     Vector3 facing = NormalisedUnlessZero(node->direction);
     unit->SetHeading(&facing.x);
     node->person->SetHeading(&facing.x);
@@ -108,7 +108,7 @@ void StepWalking(BriefingMover* node) {
     float dx = node->target.x - person->localPosition_.x;
     if (LengthSquared2DUnrounded(dx, dy) >= kCloseEnough) return;
     node->state = BriefingMover::kTurning;
-    CUnit* unit = g_serverWorld->FindUnit(node->person->id_);
+    CUnit* unit = g_serverWorld.FindUnit(node->person->id_);
     if (!unit) return;
     Vector3 facing = NormalisedUnlessZero(node->direction);
     unit->ServerController()->brain.TurnTowards(&facing, 1.0f);
@@ -143,7 +143,7 @@ void StopTalking(CUnit* speaker) {
 
 // Whether the voice `handle` has ended (neither playing nor waiting).
 bool VoiceEnded(int handle) {
-    CSoundManager* sounds = g_clientWorld->sounds_;
+    CSoundManager* sounds = g_clientWorld.sounds_;
     return !sounds->FindPlaying(handle) && !sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
@@ -154,7 +154,7 @@ void CBriefingScreen::CreateScreen() {
     autosave_ = false;
     if (g_saveStream.size_ != 0)   // loading a game
         g_saveStream.Resize(0);
-    else if (g_clientWorld->LocalView()->player_->lastScreen_ != kFromCamp)
+    else if (g_clientWorld.LocalView()->player_->lastScreen_ != kFromCamp)
         autosave_ = true;
     MapRecord* map = g_mapDatabase.FindMap(LocalPlayerZone());
     LoadPersonTexts(&personTexts_);
@@ -197,10 +197,10 @@ void CBriefingScreen::CreateScreen() {
     options::g_options->borderFogDistance_ = kEdgeFade;
 
     if (MapRecord* record = g_mapDatabase.FindMap(LocalPlayerZone())) {
-        g_clientWorld->music_->PlayBriefing(record->allod);
+        g_clientWorld.music_->PlayBriefing(record->allod);
         noWalk_ = record->cage;
     } else {
-        g_clientWorld->music_->PlayBriefing(kDefaultAllod);
+        g_clientWorld.music_->PlayBriefing(kDefaultAllod);
         noWalk_ = false;
     }
     GameStartAmbience();
@@ -235,7 +235,7 @@ void CBriefingScreen::CreateScreen() {
 
     // The people of the base: the local player's objects whose ids are text keys. The walk ends
     // at an empty entry.
-    const auto& objects = g_clientWorld->LocalView()->player_->knownObjects_;
+    const auto& objects = g_clientWorld.LocalView()->player_->knownObjects_;
     for (auto node = objects.begin(); node != objects.end() && node->second; ++node) {
         int id = node->second->id_;
         if (IsTextKey(id)) people_.push_back(id);
@@ -341,9 +341,9 @@ void CBriefingScreen::MarkPeople() {
         open.push_back(id);
     }
     for (auto& id : people_) {
-        if (!g_clientWorld->FindUnit(id)) continue;
+        if (!g_clientWorld.FindUnit(id)) continue;
         bool hasTopics = std::find(open.begin(), open.end(), id) != open.end();
-        auto* player = g_serverWorld->GetPlayer(0);
+        auto* player = g_serverWorld.GetPlayer(0);
         if (player && player->Server()) player->Server()->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, id);
     }
     open.clear();

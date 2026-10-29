@@ -148,7 +148,7 @@ int CCamera::OpenFile(const char* name) {
         path = str::Format(kNumberedRecord, last + 1);
         gameapi::MoveFileA(kCurrentRecord, path.c_str());
     }
-    g_clientWorld->flags_ |= WorldClientFlag::RecordingCamera;
+    g_clientWorld.flags_ |= WorldClientFlag::RecordingCamera;
     bool failed;
     {
         std::string folder = kRecordFolder;

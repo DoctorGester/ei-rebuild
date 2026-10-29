@@ -60,7 +60,7 @@ void CUiModel::Play(int animation) {
 void CUiModel::Stop() {
     CObject3D* object = object_;
     std::string name(object->name);
-    object->PlayAnimation(g_clientWorld->objectManager_->FindAnimation(&name, kRestPoseKind));
+    object->PlayAnimation(g_clientWorld.objectManager_->FindAnimation(&name, kRestPoseKind));
 }
 
 // The part named `name` shown or hidden (`show`'s low byte).
@@ -88,7 +88,7 @@ void CUiModel::Draw(CSceneRenderer* pass) {
 }
 
 void CUiModel::Load(const char* name, const char* from, const char* to) {
-    auto* manager = g_clientWorld->MapObjectManager();
+    auto* manager = g_clientWorld.MapObjectManager();
     auto* object = manager->CreateObjectAs<CObject3D>(MapObjectType::Creature, kPreviewId);
     object_ = object;
     ++object->refCount_;

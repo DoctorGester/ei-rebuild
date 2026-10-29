@@ -208,12 +208,12 @@ CUnit* ObjectSpec::Unit() const { return static_cast<CUnit*>(object); }
 
 void UnitSpec::Apply() {
     if (!object) {
-        g_serverWorld->CreateObject(this);
+        g_serverWorld.CreateObject(this);
         return;
     }
     CUnit* unit = Unit();
-    g_serverWorld->aiMap_.sectorMap.Move(unit, &position);
-    g_serverWorld->aiMap_.TurnObject(unit, &rotation);
+    g_serverWorld.aiMap_.sectorMap.Move(unit, &position);
+    g_serverWorld.aiMap_.TurnObject(unit, &rotation);
     unit->localRotation_ = rotation;
     unit->SetFigureScale(&scale.x);
     unit->baseScale = scale;
