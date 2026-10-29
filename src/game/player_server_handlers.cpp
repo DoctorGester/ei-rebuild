@@ -29,7 +29,7 @@
 #include <string>
 #include "lib/text_case.h"
 
-#include "ei/x87.h"
+#include "lib/rounding.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "logic_settings.h"
@@ -122,7 +122,7 @@ void PlayerServer::OnLeaderDied() {
     int oldId = kNoId;
     int newId = kNoId;
     if (std::ssize(party->members) == 1) {
-        int lost = x87::RoundToInt(static_cast<float>(static_cast<float>(party->money) * g_logicSettings.lostMoney));
+        int lost = lib::RoundEven(static_cast<float>(party->money) * g_logicSettings.lostMoney);
         party->money -= lost;
         oldId = static_cast<int>(party->members[0].unitId);
         CUnit* hero = g_serverWorld.FindUnit(oldId);
@@ -142,10 +142,10 @@ void PlayerServer::OnLeaderDied() {
         record.unitId = static_cast<std::uint32_t>(newId);
         auto* stats = &record.stats;
         stats->RestoreSlots();
-        float experience = static_cast<float>(stats->pendingExperience + stats->experience);
+        float experience = stats->pendingExperience + stats->experience;
         auto* npc = g_unitDatabase.npcs.FindByName(record.texts[5]);
         if (npc) {
-            float above = static_cast<float>(experience - npc->experienceFloor);
+            float above = experience - npc->experienceFloor;
             experience = above <= 0.0f ? 0.0f : above;   // a NaN is kept
         }
         stats->TakePendingExperience(g_logicSettings.lostXp * experience);
@@ -170,18 +170,14 @@ void PlayerServer::OnLeaderDied() {
 
 // --- Message 0x36, a use order --------------------------------------------------------
 
-double UseOrderDistanceSquared(const Vector3& a, const Vector3& b) {
-    double dx = a.x - b.x;
-    double dy = a.y - b.y;
-    double dz = a.z - b.z;
-    return LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
+float UseOrderDistanceSquared(const Vector3& a, const Vector3& b) {
+    return vecmath::DistanceSquared<Sum3::ZYX>(a, b);
 }
 
 Vector3* AIPath::TargetPoint(Vector3* out) const {
-    double scale = 0.5;
     out->z = 0.0f;
-    out->x = static_cast<float>(scale * targetX);
-    out->y = static_cast<float>(scale * targetY);
+    out->x = 0.5f * targetX;
+    out->y = 0.5f * targetY;
     return out;
 }
 
@@ -241,10 +237,10 @@ int PlayerServer::OnUseOrder() {
             CUnit* nearest = nullptr;
             int nearestIndex = 0;
             for (int i = 0; i < std::ssize(units); ++i) {
-                double distance = UseOrderDistanceSquared(aim, units[i]->localPosition);
+                const float distance = UseOrderDistanceSquared(aim, units[i]->localPosition);
                 EI_NAN_AUDIT(distance, best);
                 if (distance < best) {
-                    best = static_cast<float>(distance);
+                    best = distance;
                     nearest = units[i];
                     nearestIndex = i;
                 }
@@ -299,22 +295,22 @@ void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* of
     float sumY = 0.0f;
     for (int i = 0; i < count; ++i) {
         const Vector3* at = &(*units)[i]->localPosition;
-        sumX = static_cast<float>(static_cast<double>(sumX) + at->x);
-        sumY = static_cast<float>(static_cast<double>(sumY) + at->y);
+        sumX += at->x;
+        sumY += at->y;
     }
-    float n = static_cast<float>(count);
-    float centreX = static_cast<float>(static_cast<double>(sumX) / n);
-    float centreY = static_cast<float>(static_cast<double>(sumY) / n);
+    const auto n = static_cast<float>(count);
+    const float centreX = sumX / n;
+    const float centreY = sumY / n;
     offsets->resize(count);
     for (int i = 0; i < std::ssize(*units); ++i) {
         const Vector3* at = &(*units)[i]->localPosition;
-        float dx = static_cast<float>(static_cast<double>(at->x) - centreX);
-        float dy = static_cast<float>(static_cast<double>(at->y) - centreY);
-        double length = std::sqrt(LengthSquared2DUnrounded<double>(dx, dy));
-        if (length > 0.0) {   // the original skips zero and NaN
-            double inverse = 1.0 / length;
-            dx = static_cast<float>(dx * inverse);
-            dy = static_cast<float>(dy * inverse);
+        float dx = at->x - centreX;
+        float dy = at->y - centreY;
+        const float length = std::sqrt(LengthSquared2DUnrounded(dx, dy));
+        if (length > 0.0f) {   // the original skips zero and NaN
+            const float inverse = 1.0f / length;
+            dx *= inverse;
+            dy *= inverse;
         }
         (*offsets)[i] = Vector3{dx, dy, 0.0f};
     }

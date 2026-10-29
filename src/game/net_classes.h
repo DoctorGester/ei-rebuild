@@ -585,7 +585,7 @@ struct TradeRecord {
 class ClientSession final : public ClientBase {
 public:
     // A buffer's stream size over the dword at its start.
-    double BufferRatio(GameBuffer* buffer);
+    float BufferRatio(GameBuffer* buffer);
     // Reads a server list reply.
     void ReadServerList(GameBuffer* in);
     void StartParty(RefObject* partner);

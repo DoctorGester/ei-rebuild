@@ -57,13 +57,6 @@ endif()
 # CRT's pow / acos), the terrain's chop rounding; picking reads the camera's, the view's and the projected meshes'.
 # Each group below is the ticket that moves it with the goldens unchanged; a file split from one of these joins it here.
 set(EI_X87_GAME_SOURCES
-    # C30e1: network, sessions and settings
-    game/address_order game/app_helpers game/console_commands game/key_bindings game/map_database game/mob_reader
-    game/net_client_awards game/net_client_commands game/net_connection game/net_connection_life
-    game/net_connection_tick game/net_delta game/net_lobby game/net_server_awards game/net_server_handlers
-    game/net_server_tick game/net_server_vars game/net_session game/net_session_tick game/net_state game/object_tables
-    game/options game/party_items game/party_members game/persistent_globals game/player_client game/player_messages
-    game/player_server_handlers game/player_sync game/random
     # C30e2: scripts
     game/script_addon game/script_addon_commands game/script_addon_math game/script_addon_units game/script_effects
     game/script_eval game/script_exec game/script_exec_helpers game/script_exec_run game/script_parse
@@ -309,11 +302,11 @@ endif()
 add_executable(ei_launch tools/launcher/launch.cpp)
 
 # Replays the recorded function vectors (tests/vectors/vectors.h) against our code without the game:
-# the families' sources, their checks, and a stub of ei::Standalone. build.cmd runs it.
+# the families' sources, their checks, and a stub of ei::Standalone. build.cmd runs it. The game files are built as
+# the game builds them: those of EI_X87_GAME_SOURCES in the executable for x87, the others for SSE2 in a library
+# linked whole after its objects (as ei_sse2, so the x87 code keeps its x87 copies of the inline functions).
 file(GLOB EI_REPLAY_SOURCES CONFIGURE_DEPENDS tests/vectors/replay_*.cpp)
-add_executable(ei_vectors
-    ${EI_REPLAY_SOURCES}
-    tests/vectors/hook_stub.cpp
+set(EI_VECTORS_GAME_SOURCES
     src/game/ai_block_search.cpp
     src/game/ai_grids.cpp
     src/game/ai_join.cpp
@@ -359,9 +352,20 @@ add_executable(ei_vectors
     src/lib/rebirth.cpp
     src/lib/str.cpp
     src/lib/text_case.cpp)
-target_include_directories(ei_vectors PRIVATE include src)
+list(TRANSFORM EI_VECTORS_GAME_SOURCES PREPEND "${CMAKE_SOURCE_DIR}/")
+set(EI_VECTORS_SSE2_SOURCES ${EI_VECTORS_GAME_SOURCES})
+list(REMOVE_ITEM EI_VECTORS_SSE2_SOURCES ${EI_X87_GAME_SOURCES})
+set(EI_VECTORS_X87_SOURCES ${EI_VECTORS_GAME_SOURCES})
+list(REMOVE_ITEM EI_VECTORS_X87_SOURCES ${EI_VECTORS_SSE2_SOURCES})
 # EI_VECTORS_REPLAY: the game's data at fixed addresses comes from the checks' stand-in (src/game/game_data.h).
+add_library(ei_vectors_sse2 STATIC ${EI_VECTORS_SSE2_SOURCES})
+set_target_properties(ei_vectors_sse2 PROPERTIES EI_SSE2 ON)
+target_include_directories(ei_vectors_sse2 PRIVATE include src)
+target_compile_definitions(ei_vectors_sse2 PRIVATE EI_VECTORS_REPLAY)
+add_executable(ei_vectors ${EI_REPLAY_SOURCES} tests/vectors/hook_stub.cpp ${EI_VECTORS_X87_SOURCES})
+target_include_directories(ei_vectors PRIVATE include src)
 target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data" EI_VECTORS_REPLAY)
+target_link_libraries(ei_vectors PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_vectors_sse2>")
 
 # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
 # report against GDI on the game's strings (tools/text_check; GDI only there).

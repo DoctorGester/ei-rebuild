@@ -416,6 +416,28 @@ Each one focused area, one worker session, after C30e4 where it has a transcende
 | C30e14 terrain | 5 | 1,411 | terrain_sector's chop rounding, terrain_landscape's `CiAsin` / `fsin` |
 | C30e15 main loop, game CRT | 2 | 943 | app_main's frame timing (`fexp`, `FromUnsigned`, `Step`), crt_x87.cpp; then the IA32 option and the x87 helpers go |
 
+**C30e1 (network, sessions, settings; 30 files, all moved).** The network clocks: `net::Pump` passes at most 5000
+ms times 2^-10, a float value, so every `Tick(double dt)` adds and subtracts floats; the double members that hold
+the sums (`SessionBase::time`, `Connection::clock`, `SentPacket::time`) keep their type and receive float sums, and
+their differences are float differences (`Age`). net_connection_tick's `D()` registers, the round-trip averages, the
+lobby's and the server's timers, the use order's distance (`(dz dz + dy dy) + dx dx` in float), the formation
+offsets, the stat fractions: float maths. Through the exact helpers: `IsaacRandom::Range` (the draw times the range by
+`lib::RoundedProduct`, then 2^-32), map_database's degrees (an `atof` double times the float factor),
+`ScaledExperience` (the double power times the float amount), the old disk-space product, and the divisions
+`BufferRatio` (int / int, now a float return) and the console's exp share (`lib::RoundedQuotient`,
+lib/rounded_quotient.h: the double quotient, its remainder's sign by two-product). player_client's `std::pow(1.04,
+k)`: the SSE2 call gives the same 256 doubles as the x87 build's `__CIpow`, so it stays `std::pow`. **Precision at
+start-up:** options' loader runs before the device exists (53-bit: its `value * 255` and `value * (1 / 255)` stay
+double maths), the saver at shut-down after it (24-bit: `value * 255` is a float product), so the two now have their
+own helpers (`LoadedTimes255`, `SavedTimes255`); `Ftol` truncates through int64. **ei_vectors** builds each game
+file as the game does: the files of `EI_X87_GAME_SOURCES` in the executable, the rest in `ei_vectors_sse2` linked
+whole after it (Range's vectors, all recorded at control word 007F, replay against the SSE2 code). Equivalence test
+(C30e1's `eq/`, each old expression built /arch:IA32 at PC24 against the new): `RoundedProduct` and
+`RoundedQuotient` 2^28 cases each (random and built on float ties: 36 M and 33 M where double then float differs),
+Range for every draw of three ranges and 2^28 random, `ScaledExperience` 2^28 (each of the 256 powers), the map's
+degrees for every 3-decimal text in [-1000, 1000], `BufferRatio` 2^27, the share 2^26, the saver's product on every
+float: 0 differ. Behaviour change: a signalling NaN in a variable table or an award keeps its bits (SSE2 copies).
+
 ### The whole image on SSE2 (C16 experiment)
 
 What an `/arch:SSE2` image costs against the goldens, and which `x87::` helpers convert for free (2026-10-21). The build switches

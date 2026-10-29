@@ -13,7 +13,6 @@
 #include "lib/crt.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 #include "../hook/log.h"
 #include "game_data.h"
 #include "lib/gameapi.h"
@@ -238,7 +237,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     } else if (query != end) {
         e->state = ServerEntry::kAsked;
         auto count = static_cast<std::uint32_t>(v.list.size());
-        e->timeout = static_cast<float>(x87::FromUnsigned(count) * 0.5f + 20.0f);
+        e->timeout = static_cast<float>(count) * 0.5f + 20.0f;
     } else {
         if (node == servers.end()) return;
         e->state = ServerEntry::kFromList;
@@ -246,7 +245,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     }
     float echoed;
     echoed = std::bit_cast<float>(echo);
-    e->ping = static_cast<float>(time - echoed);
+    e->ping = static_cast<float>(time) - echoed;
     if (node == servers.end()) {
         AppendServer(this, entry);
     } else {
@@ -425,7 +424,7 @@ void ClientBase::Tick(double dt) {
     while (node != servers.end()) {
         ServerEntry* e = node->Get();
         if (e->timeout > 0.0f) {
-            e->timeout = static_cast<float>(static_cast<double>(e->timeout) - dt);
+            e->timeout -= static_cast<float>(dt);
             e = node->Get();
             EI_NAN_AUDIT(e->timeout);
             if (e->timeout <= 0.0f) {
@@ -441,9 +440,8 @@ void ClientBase::Tick(double dt) {
     }
     SessionBase::Tick(dt);
     if (joinState != kAsking) return;
-    double left = static_cast<double>(retryTimer) - dt;
-    retryTimer = static_cast<float>(left);
-    if (left > 0.0) return;
+    retryTimer -= static_cast<float>(dt);
+    if (retryTimer > 0.0f) return;
     if (retryInterval > 3.0f) {
         LogLine("Connection failed");
         joinState = kNotJoined;
@@ -517,9 +515,8 @@ void ServerBase::Tick(double dt) {
     auto node = joins.begin();
     while (node != joins.end()) {
         float& age = node->age;
-        double sum = static_cast<double>(age) + dt;
-        age = static_cast<float>(sum);
-        if (sum > static_cast<double>(60.0f)) {
+        age += static_cast<float>(dt);
+        if (age > 60.0f) {
             LogAddressLine("Accept period elapsed for ", &node->address);
             node = joins.erase(node);
         } else {

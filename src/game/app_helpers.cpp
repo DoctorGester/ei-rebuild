@@ -15,8 +15,7 @@
 #include "world.h"
 
 #include "lib/gameapi.h"
-
-#include "ei/x87.h"
+#include "lib/rounded_ops.h"
 
 #include <cstdint>
 #include <memory>
@@ -34,7 +33,8 @@ using GetDiskFreeSpaceExFn = BOOL(__stdcall*)(const char*, ULARGE_INTEGER*, ULAR
 } // namespace
 
 // The bytes free for the caller on the path's drive: GetDiskFreeSpaceExA when kernel32 has it (looked up on
-// every call), else sectors per cluster x bytes per sector x free clusters. 0 when the call fails.
+// every call), else sectors per cluster x bytes per sector x free clusters, each product rounded to a float as the
+// original's at 24-bit precision (a sector count per cluster is small: exact in a float). 0 when the call fails.
 double DiskFreeSpace(const char* path) {
     auto getEx = reinterpret_cast<GetDiskFreeSpaceExFn>(
         gameapi::GetProcAddress(gameapi::GetModuleHandleA(Kernel32Text()), GetDiskFreeSpaceExText()));
@@ -45,7 +45,8 @@ double DiskFreeSpace(const char* path) {
     }
     DWORD sectorsPerCluster, bytesPerSector, freeClusters, totalClusters;
     if (!gameapi::GetDiskFreeSpaceA(path, &sectorsPerCluster, &bytesPerSector, &freeClusters, &totalClusters)) return 0.0;
-    return x87::FromUnsigned(sectorsPerCluster) * x87::FromUnsigned(bytesPerSector) * x87::FromUnsigned(freeClusters);
+    const float clusterBytes = lib::RoundedProduct(static_cast<float>(sectorsPerCluster), bytesPerSector);
+    return lib::RoundedProduct(clusterBytes, freeClusters);
 }
 
 bool QuitGame(int exitCode) {

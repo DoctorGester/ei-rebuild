@@ -47,7 +47,7 @@ std::string NetAddress::ToString() const { return Format(0); }
 // An empty datagram is only logged; the current session is this one meanwhile.
 void SessionBase::Tick(double dt) {
     g_currentSession = this;
-    time = dt + time;
+    time = static_cast<float>(time) + static_cast<float>(dt);   // a float sum kept in a double
     NetAddress from{};
     GrowingBuffer* buffer = &g_receiveBuffer;
     while (socket.Receive(&from, buffer)) {
@@ -251,7 +251,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     added->address = *address;
     if (rate <= 500) rate = 500;
     else if (rate >= 50000) rate = 50000;
-    added->sendInterval = static_cast<float>(static_cast<double>(250.0f) / static_cast<double>(rate));
+    added->sendInterval = 250.0f / static_cast<float>(rate);
 }
 
 } // namespace net

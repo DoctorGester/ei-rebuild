@@ -9,6 +9,8 @@
 #include "world.h"
 #include "game_singletons.h"
 
+#include "lib/rounded_quotient.h"
+
 #include <cstring>
 
 
@@ -51,8 +53,8 @@ void ClientSession::OnJoined() { g_gameFlow.BeginMultiplayerGame(); }
 // Called by the transfer screen: a buffer's stream size (its base plus the highest written position, from
 // `begin`) over the dword at its start (1 when 0), both as signed integers; 0 for fewer than 4 bytes. Reading
 // the dword moves the read position to 4 (a Seek(0), then a 4-byte read as BufferRead does it).
-// Returned unrounded: the caller multiplies the unrounded result. Plain C++ division (rewrite-guide rule 7).
-double ClientSession::BufferRatio(GameBuffer* buffer) {
+// The quotient rounded once to a float, as the original's division at 24-bit precision (the sizes can pass 2^24).
+float ClientSession::BufferRatio(GameBuffer* buffer) {
     auto streamSize = [buffer] {
         if (buffer->cur > buffer->high) buffer->high = buffer->cur;
         return buffer->PositionOf(buffer->high);
@@ -64,7 +66,7 @@ double ClientSession::BufferRatio(GameBuffer* buffer) {
     std::uint32_t stored;
     buffer->ReadBytes(&stored, 4);
     std::int32_t divisor = stored != 0 ? static_cast<std::int32_t>(stored) : 1;
-    return static_cast<double>(streamSize()) / static_cast<double>(divisor);
+    return lib::RoundedQuotient(streamSize(), divisor);
 }
 
 } // namespace net

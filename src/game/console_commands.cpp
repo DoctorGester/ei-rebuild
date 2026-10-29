@@ -18,10 +18,9 @@
 
 #include "lib/calendar.h"
 #include "lib/file_io.h"
+#include "lib/rounded_quotient.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
-
-#include "ei/x87.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -243,7 +242,7 @@ void LastFps(std::vector<std::string>*) {
     auto* timer = &g_sceneRenderer;
     Stream& os = g_consoleOut << "Current FPS: ";
     unsigned ms = timer->FrameTime();
-    double fps = 1000.0f / x87::FromUnsigned(ms);
+    const float fps = 1000.0f / static_cast<float>(ms);   // a frame's milliseconds: exact in a float
     EndLine(os << fps);
 }
 
@@ -284,8 +283,8 @@ void Give(std::vector<std::string>* args) {
     }
     if (ArgIs(args, 1, "exp") && args->size() > 2) {
         int count = std::ssize(player->Party()->members);
-        // Rounded to float once.
-        float share = static_cast<float>(str::ToDouble((*args)[2]) / count);
+        // The typed number over the count, rounded once to a float (the original's division at 24-bit precision).
+        const float share = lib::RoundedQuotient(str::ToDouble((*args)[2]), count);
         for (int i = 0; i < count; ++i)
             player->Party()->members[i].stats.AddScaledExperience(share);
         return state->SendParty();
