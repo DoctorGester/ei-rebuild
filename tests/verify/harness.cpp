@@ -383,6 +383,7 @@
 #include "harness_crash.h"
 #include "harness_digest.h"
 #include "harness_digest_read.h"   // the class ids
+#include "harness_dropin.h"
 #include "harness_heap.h"
 #include "harness_leftovers.h"
 #include "harness_client_effects.h"
@@ -3033,9 +3034,11 @@ void RunSteps() {
                    s.verb == "moveregion") {
             HeldModifiers held(&s.argument);
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
-        } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" || s.verb == "discprompts") {
+        } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" || s.verb == "discprompts" ||
+                   s.verb == "dropin") {
             std::string error = s.verb == "hudstate" ? HudState(s.argument)
                                 : s.verb == "campputon" ? CampPutOn(s.argument)
+                                : s.verb == "dropin" ? dropin::Step()
                                 : s.verb == "discprompts" ? startup::DiscPromptsStep(s.argument) : starter::ModFileStep(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
@@ -4053,6 +4056,7 @@ struct Harness {
         // Every other module's writes into the install go to the overlay too, and what still reaches an install
         // is refused and fails the run (harness_install.h).
         install::Install({&WritePath, &ReadPath, &InInstall});
+        dropin::Install();   // a drop-in run's game paths: the default settings file's (harness_dropin.h)
         addon::Install();   // EI_ADDON_FLAGS: addon.dll's patches outside the run's Rebirth flags undone (harness_addon.h)
         if (g_deterministic) {
             clock::InstallVirtual(&TickLength());

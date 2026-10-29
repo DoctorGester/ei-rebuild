@@ -817,6 +817,32 @@ class SchedTest(unittest.TestCase):
         self.assertEqual(env['EI_REBIRTH'], 'NivalRegistry,WideScreen')
         self.assertEqual(run_all.GOLDEN_INSTALL['standalone-rebirth'], 'rebirth')
 
+    def test_drop_in(self):
+        """S23a: a scenario with "# drop-in:" (ei_launch makes its image runs drop-in runs) runs on both of the image's
+        installs, never on the original; its folder goes without touching what its junctions name."""
+        self.scenario('boot', 'waitmenu\nquit\n')
+        dropped = self.scenario('dropped', '# drop-in: the exe in a game folder\nwaitmenu\n')
+        self.assertTrue(run_all.drop_in(dropped))
+        plan = lambda *a: run_all.plan(run_all.parse_args(list(a)), root=self.tmp)
+        self.assertEqual(plan('boot', 'dropped'),
+                         [('boot', 'standalone'), ('dropped', 'standalone'), ('dropped', 'standalone-rebirth')])
+        self.assertEqual(plan('--vanilla-only', 'dropped'), [('dropped', 'standalone')])
+        self.assertEqual(plan('--rebirth-only'), [('dropped', 'standalone-rebirth')])
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(plan('--no-hooks', 'boot', 'dropped'), [('boot', 'vanilla')])
+        # A folder left by a killed ei_launch: removed, the junction's target kept
+        import _winapi
+        target = os.path.join(self.tmp, 'install', 'res')
+        os.makedirs(target)
+        open(os.path.join(target, 'kept.res'), 'w').close()
+        out = os.path.join(self.tmp, 'run')
+        os.makedirs(os.path.join(out, 'dropin'))
+        _winapi.CreateJunction(target, os.path.join(out, 'dropin', 'res'))
+        open(os.path.join(out, 'dropin', 'mss32.dll'), 'w').close()
+        run_all.remove_drop_in_folder(out)
+        self.assertFalse(os.path.exists(os.path.join(out, 'dropin')))
+        self.assertTrue(os.path.exists(os.path.join(target, 'kept.res')))
+
     def test_reference_cache(self):
         repo = os.path.join(self.tmp, 'repo')
         env = dict(os.environ, GIT_AUTHOR_NAME='t', GIT_AUTHOR_EMAIL='t@t', GIT_COMMITTER_NAME='t', GIT_COMMITTER_EMAIL='t@t')

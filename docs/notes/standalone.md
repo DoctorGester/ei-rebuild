@@ -1642,6 +1642,22 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   DLLs): the imports load from the exe's folder, the plain folder takes the defaults and WideScreen, the folder with
   EI_Plugin.asi / EI_Plugin.ini the 40 flags of the Rebirth profile with the plugin's players and pause mode,
   ei_settings.ini written beside the exe. The game itself plays in every suite run from the same exe layout.
+- **The drop-in runs** (S23a): `ei_launch --drop-in` (also any `--standalone` run of a scenario with a line
+  `# drop-in:`, which run_all plans on both installs, standalone and standalone-rebirth) makes `<run folder>\dropin` like the `--game` install: each of its folders a
+  junction to the install's, each file a copy but game.exe and our own files (ei_settings.ini, ei_rebirth.ini,
+  ei_hook.log), then the build's ei_standalone.exe (and ASan's runtime). It starts that copy from the run folder with
+  EI_GAME_ROOT and EI_REBIRTH cleared, so EnterGameFolder and the folder's profile run as in a player's folder, and
+  removes the folder when the game has ended (junctions removed, never followed; run_all removes a killed run's too).
+  Nothing is written to the install: making a junction writes only the link, and the harness's guard refuses writes
+  under its working directory (the drop-in folder) and the installs (EI_INSTALL_ROOTS), its redirect sends them to
+  harness_saves. The harness's pinned settings would answer Work path / CD-ROM Path with the snapshot's absolute
+  install folder; in a drop-in run they read `.\` as in the settings file the exe writes, so the data is read through
+  the folder's junctions (harness_dropin.cpp). The harness finds config\harness through EI_HARNESS_SETTINGS, which
+  ei_launch sets to the build's (from the copy, two folders up is the run folder). Scenarios: `dropin_boot` (the menu comes up), `dropin_profile` (the harness's `dropin` step,
+  tests/verify/harness_dropin.h: no EI_GAME_ROOT or EI_REBIRTH, the working directory the exe's folder, and every
+  flag as the folder's profile must set it, worked out from config/ei_rebirth_standalone.ini and the patch list,
+  not taken from the image; on Rebirth EI_Plugin.ini's players and pause too). Not golden scenarios: the plain
+  profile turns WideScreen on. The verify exe runs there (the harness is linked in), not the release one.
 
 ### The harness's homes (S23)
 
