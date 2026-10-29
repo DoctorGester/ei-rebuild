@@ -231,10 +231,14 @@ struct ViewPose {
 // Around a client tick's camera update: the pose before it, then the step it made.
 void NoteViewBeforeTick(const Camera* camera);
 void NoteViewTick(const Camera* camera);
+// A placement of the camera outside its update (a focus, heading or view set, a scripted placement, a load, a
+// recorded path's start): the last step is forgotten, so the next frame draws the placed pose.
+void ForgetViewStep();
 // Once a pass, after the worlds ran: the part of a tick the client has had since its last tick (its backlog over
-// a tick; clamped to 0..1) and the pass's real time in ticks. A pass of up to a tick spreads the step; a longer
-// one (fewer frames than ticks: each frame sees whole ticks anyway) spreads less, and from two ticks on the
-// camera's own pose is drawn.
+// a tick; clamped to 0..1) and the pass's real time in ticks (TickLength's: 27 ms in fast mode). The first pass
+// after a tick sets how much of its step the frames spread: all of it after a pass of up to a tick, less after a
+// longer one (fewer frames than ticks: each frame sees whole ticks anyway), none from two ticks on (the camera's
+// own pose is drawn); later passes only reach further into it, so the drawn view never steps back.
 void SetViewProgress(float reached, float passTicks);
 // The pose the world's draw shows: the camera's own less the part of its last tick's step not reached yet.
 ViewPose DrawnView(const Camera* camera);

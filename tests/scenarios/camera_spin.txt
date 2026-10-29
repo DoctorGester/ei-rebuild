@@ -5,7 +5,9 @@
 # jumps in height at every world tick; the drawn view spreads those jumps (its largest step in height about a quarter
 # of the camera's; what is left are the game's own changes within a frame). Zoomed out, a fast drag with
 # the right button (mousedrag 160: 0.43 rad a tick) turns the camera faster than the drawn view's old cut
-# (0.4 rad or 8 units a tick, shown at once): the drawn view still turns without jumps.
+# (0.4 rad or 8 units a tick, shown at once): the drawn view still turns without jumps, and along the arc: its
+# distance from the focus (reach) changes only as the camera's own does (spread along the chord, it pulled in and out
+# at every tick: 144.6 units of change against the camera's 6.0, R35c).
 # no original: vanilla rebirth (the drawn view is our renderer's; the original draws the camera's own pose)
 timeout 120
 reject Script error
@@ -58,6 +60,7 @@ camsmooth low.camera height jerky
 camsame fast fast.camera turn 0.03
 camsmooth fast turn
 camsmooth fast.camera turn jerky
+camsame fast fast.camera reach 0.03
 frametime 0
 report
 quit

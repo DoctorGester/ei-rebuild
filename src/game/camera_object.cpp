@@ -86,6 +86,7 @@ void Camera::Destroy() { targetId = -1; }
 // three distances / angle as float bit patterns, switches to free placement, and resets views 6 and 7 to the
 // start distance at 45 degrees (the pitch too). Returns 1.
 int Camera::Init(options::GameOptions* newSettings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits) {
+    camera::ForgetViewStep();
     ViewsFromSettings(newSettings);
     settings = newSettings;
     distance = newSettings->cameraDefaultDistance;
@@ -182,6 +183,7 @@ int CameraCloseFile(Camera* self) {
 // Loads the camera state saved by Save. Saves before version 0x6F hold all eight
 // views, later ones views 4..7. A followed target is kept when one is saved (its offsets reset).
 void Camera::Load(ByteStream* stream) {
+    camera::ForgetViewStep();
     stream->ReadValue(focus);
     stream->ReadValue(focusHeight);
     stream->ReadValue(viewRotation);

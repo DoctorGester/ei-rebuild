@@ -505,7 +505,7 @@ bool RunPass() {
 
         // The camera runs on the real time of the pass, a tick at a time; the draw spreads the last tick's
         // step over the part of the next tick the client has had (camera::DrawnView).
-        camera::SetViewProgress(fraction, CameraSeconds(elapsed));
+        camera::SetViewProgress(fraction, static_cast<float>(elapsed) / static_cast<float>(TickLength()));
         Camera* camera = &g_camera;
         std::uint32_t tick = TickLength();
         while (elapsed > tick) {
