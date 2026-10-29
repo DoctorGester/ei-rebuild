@@ -49,7 +49,7 @@ constexpr int kPortraitSprites = 5;   // sprites per portrait; the fifth (4) is 
 void CBattleScreen::CloseScreen() {
     g_camera->flags_ |= CCamera::kFree;
     worlddata::g_updatePeriod = kDefaultUpdatePeriod;
-    g_cursor->SetHeld(0);
+    g_cursor.SetHeld(0);
     GameStopSounds(1);
     GameStopAmbience();
     party_.clear();
@@ -112,7 +112,7 @@ void CBattleScreen::SaveState() {
 
 void CBattleScreen::MarkPortrait(int index) {
     auto* portraits = portraits_;
-    portraits->SceneMesh(index * kPortraitSprites + 4)->visible_ = 1;
+    portraits->SceneMesh(index * kPortraitSprites + 4)->visible_ = true;
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     Quaternion turn;
     portraits->slots_[index].restB_ = *turn.SetAxisAngle(axis, SelectedFaceAngle());

@@ -38,7 +38,7 @@ struct _RTL_CRITICAL_SECTION;   // CRITICAL_SECTION: the render device's lock
 extern lib::StaticObject<GameFlow> g_gameFlow;   // world_game.cpp
 
 // The interface manager (windows, the quest log, status text, the console window).
-extern lib::StaticObject<CInterface3D> g_interface;   // ui_small_members.cpp
+extern CInterface3D g_interface;   // ui_small_members.cpp
 
 extern lib::StaticObject<CWorldClient> g_clientWorld;   // world_construct.cpp
 
@@ -49,7 +49,7 @@ extern lib::StaticObject<CSceneRenderer> g_sceneRenderer;   // renderer_lifetime
 extern _RTL_CRITICAL_SECTION g_deviceLock;   // renderer_lifetime.cpp
 
 // The cursor. The map database. The server world's mission script and sector map. The camera.
-extern lib::StaticObject<CCursor> g_cursor;   // ui_cursor_setup.cpp
+extern CCursor g_cursor;   // ui_cursor_setup.cpp
 extern lib::StaticObject<CMapDatabase> g_mapDatabase;   // map_database.cpp
 CScript* TheMissionScript();
 extern lib::StaticObject<CCamera> g_camera;   // camera_object.cpp

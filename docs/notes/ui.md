@@ -137,7 +137,7 @@ Every scenario reaches the frame, draw, cursor and shutdown code. Not rewritten 
   string pointers), `OnQuestVariable` (at 1 the name's third '.' part becomes savedText_), news for the top window
   (slots 28-32, 36, 37 as `CUiWindow::Virtual*`), the bottom window's slot 40 (save game), the chat overlay's AddLine
   (005F82D0 / 005F82F0 / 005F8310 multiplayer only; S via a slot recorder, removed in C19 batch 20).
-- Cursor (`ui_cursor*.cpp`): `CCursor::Init` / `AddShape`, `ChangeShape` (callers keep `SetShape` through the address),
+- Cursor (`ui_cursor*.cpp`): `CCursor::Init` / `AddShape`, `SetShape`,
   `TakeLock` / `ReleaseLock` (mode 2 only), `Start` (thread 005E52A0 unless mode 1), `UpdatePosition` (frames every
   125 ms; +0x08 the DirectInput mouse, +0x98 the thread). Frame draw, thread and image construct (the blend 005E5C40 is not ported):
   renderer.md (R9c2).

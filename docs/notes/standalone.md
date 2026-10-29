@@ -613,7 +613,7 @@ kinds given.
         volumes, difficulty, paths, master server ...), the mouse position and drag motion (CCursor::position_ /
         motion_: 007C7C50 and 007C7C60 were lone ints before C18k5 named the cursor), the interface's window stack
         (007C7D84 was misnamed PeerList), close-all and sessions flags. The objects whose header only forward-declares
-        their class (g_gameFlow, g_interface, g_cursor) are declared extern in game_singletons.h. **The harness** reads
+        their class (g_gameFlow; g_interface and g_cursor, plain globals since C54g) are declared extern in game_singletons.h. **The harness** reads
         them through tests/verify/harness_objects.h (HarnessOptions / HarnessFlow / HarnessInterface / HarnessCursor: ours
         in the image, `ei::OriginalGameData` at the address in --no-hooks runs); the stats recorder reads the
         difficulty from game.exe's options the same way. Left: CMapDatabase 0079BF00, the renderer
@@ -706,7 +706,8 @@ kinds given.
       party id set, the zone table and the quest files / folders; the prints database, the network's send and receive
       buffers (C50c); the command line's five strings (app_main.cpp), the registry root, start and text folders
       (game_folders.cpp; the disc and data folders stay static objects while the interface spells them with `*`), the
-      chunk archive's class registry, clip's work words and the console's command maps; the draws' work arrays (line
+      chunk archive's class registry, clip's work words and the console's command maps; the interface manager and the
+      cursor (C54g: CInterface3D and CCursor construct themselves); the draws' work arrays (line
       lists, the device's mesh buffers, sprites, strip, terrain projection, the part draws' moved positions, the moved
       packets and offset vertices) and SetSun's sorted sectors, a local (C50d; the unread set 007AB8D8, which only the
       original read, went). Not the game server / client Refs (g_gameServer / g_gameClient 0079B5DC / 0079B5D8): their

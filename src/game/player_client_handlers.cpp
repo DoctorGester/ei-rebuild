@@ -88,11 +88,11 @@ int CPlayerClient::OnGameState() {
     int tick;
     in_.ReadValue(tick);
     if (localSession_) {
-        g_interface->OnKeyDown(-1, kKeyEnter, 0);
+        g_interface.OnKeyDown(-1, kKeyEnter, 0);
         return 1;
     }
     player->sessionKind_ = state;
-    g_interface->CreateScreen(state);
+    g_interface.CreateScreen(state);
     g_clientWorld->tick_ = tick;
     if (state == kGameStateBetweenZones) g_clientWorld->LoadUnitFaces();
     for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node)
@@ -102,14 +102,14 @@ int CPlayerClient::OnGameState() {
 }
 
 int CPlayerClient::OnGameLost() {
-    g_interface->OnGameLost();
+    g_interface.OnGameLost();
     return 1;
 }
 
 int CPlayerClient::OnUnitSpeech() {
     int values[2];
     in_.Read(values, 8);
-    g_interface->OnUnitSpeech(values[0], static_cast<AckKind>(values[1]));
+    g_interface.OnUnitSpeech(values[0], static_cast<AckKind>(values[1]));
     return 1;
 }
 
@@ -309,8 +309,8 @@ int CPlayerClient::OnWorldStream() {
 }
 
 void CPlayerClient::NotifyUnitChanged(CUnit* unit) {
-    if (unit->player) g_interface->OnUnitJoined(unit);
-    else g_interface->OnUnitLeft(unit);
+    if (unit->player) g_interface.OnUnitJoined(unit);
+    else g_interface.OnUnitLeft(unit);
     if (!IsMultiplayerClient()) return;
     CParty* party = player_->Party();
     if (std::ssize(party->members_) != 1 || static_cast<int>(party->members_[0].unitId) != unit->id_) return;

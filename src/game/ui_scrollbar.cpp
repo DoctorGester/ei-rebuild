@@ -17,7 +17,6 @@ constexpr float kThumbInset = 5.0f;
 enum Sprite { kTrack, kThumb, kUpArrow, kDownArrow };
 enum Region { kUpRegion, kDownRegion, kTrackRegion };
 
-CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 float AsFloat(int value) { return static_cast<float>(value); }
 
 constexpr int kDragging = 1;
@@ -61,7 +60,7 @@ void CUiScrollbar::SetPosition(int position) {
     // half, 0, where a C++ cast would give 0x80000000.
     int offset = maximum == 0 ? 0
                               : static_cast<int>(static_cast<double>((track_.bottom - track_.top) * position) / maximum);
-    Sprite(this, kThumb)->Place(static_cast<float>(track_.left + static_cast<double>(kThumbInset)),
+    SceneMesh(kThumb)->Place(static_cast<float>(track_.left + static_cast<double>(kThumbInset)),
                                 static_cast<float>(static_cast<double>(offset) + track_.top), depth_ - kThumbLift);
     thumb_.left = track_.left;
     thumb_.right = track_.left + 10;
@@ -79,13 +78,13 @@ void CUiScrollbar::SetRect(const RECT* rect) {
 
     // The sprites (SetRectangle and the regions' SetRect are Rebirth-patched: through their
     // addresses).
-    Sprite(this, kTrack)->SetRectangle(depth_, 100.0f, AsFloat(rect->right - 8), AsFloat(rect->top + 4),
+    SceneMesh(kTrack)->SetRectangle(depth_, 100.0f, AsFloat(rect->right - 8), AsFloat(rect->top + 4),
                                        AsFloat(rect->right - 2), AsFloat(rect->bottom - 4), 8, 4, 0x20, 0xFC);
-    Sprite(this, kThumb)->SetRectangle(depth_ - kThumbLift, 100.0f, AsFloat(rect->right - 10), AsFloat(rect->top),
+    SceneMesh(kThumb)->SetRectangle(depth_ - kThumbLift, 100.0f, AsFloat(rect->right - 10), AsFloat(rect->top),
                                        AsFloat(rect->right), AsFloat(rect->top + 0x1C), 0x28, 8, 0x50, 0x78);
-    Sprite(this, kUpArrow)->SetRectangle(depth_, 100.0f, AsFloat(rect->right - 10), AsFloat(rect->top),
+    SceneMesh(kUpArrow)->SetRectangle(depth_, 100.0f, AsFloat(rect->right - 10), AsFloat(rect->top),
                                          AsFloat(rect->right), AsFloat(rect->top + 0xC), 0x28, 0xB0, 0x50, 0x80);
-    Sprite(this, kDownArrow)->SetRectangle(depth_, 100.0f, AsFloat(rect->right - 10), AsFloat(rect->bottom - 0xC),
+    SceneMesh(kDownArrow)->SetRectangle(depth_, 100.0f, AsFloat(rect->right - 10), AsFloat(rect->bottom - 0xC),
                                            AsFloat(rect->right), AsFloat(rect->bottom), 0x28, 0x80, 0x50, 0xB0);
 
     regions_[kUpRegion]->SetRect(rect->right - 10, rect->top, rect->right, rect->top + 0xC);
@@ -126,7 +125,7 @@ void CUiSlider::SetPosition(int position) {
     position_ = position;
     // Truncated by _ftol (a zero maximum: 0 / 0, which _ftol makes 0).
     int offset = Truncate(static_cast<double>((track_.right - track_.left) * position) / maximum);
-    Sprite(this, kThumb)->Place(static_cast<float>(track_.left + offset),
+    SceneMesh(kThumb)->Place(static_cast<float>(track_.left + offset),
                                 static_cast<float>(track_.top + static_cast<double>(kThumbInset)), depth_ - kThumbLift);
     thumb_.top = track_.top;
     thumb_.bottom = track_.top + kSliderThumbHeight;

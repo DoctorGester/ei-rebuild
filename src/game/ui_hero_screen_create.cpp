@@ -120,7 +120,7 @@ void CMpHeroScreen::CreateScreen() {
     {
         CUiMesh* frame = sprite(3.0f, 110.0f, 250.0f, 370.0f, 274.0f, 0, 0, 0x100, 0x100);
         plain(frame, kSelectionColour);
-        frame->visible_ = 0;
+        frame->visible_ = false;
     }
     // 3-6: the quarters of the frame around the figure.
     LoadTexture("campm1", kTextureKind);

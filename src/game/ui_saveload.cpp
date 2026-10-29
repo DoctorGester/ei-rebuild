@@ -204,9 +204,9 @@ void CSaveLoadWindow::SaveGame() {
     folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_);
     std::string notice;
     g_clientWorld->texts_->GetString(game::savewords::NotifySaving(), &notice);
-    g_interface->ShowStatusText(notice);
+    g_interface.ShowStatusText(notice);
     g_gameFlow->SaveGameThunk(entry->folder_);
-    g_cursor->ChangeShape(3);
+    g_cursor.SetShape(3);
 
     // info.sav: the new save's entry (the first) with the title being given.
     LocalFileStream info;
@@ -242,7 +242,7 @@ void CSaveLoadWindow::SaveGame() {
         shot.Write(newPicture_.data(), kShotBytes);
         shot.Close();
     }
-    g_cursor->ChangeShape(0);
+    g_cursor.SetShape(0);
     interface_->SetPendingValue(kClosed);
 }
 
@@ -351,13 +351,13 @@ void QuickSave(const char* slot, char stepFrame) {
     if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;
     if (stepFrame) app::FrameStep(false, true);
     // A null surface (no memory) is used all the same, as in the original.
-    CUiSurface* surface = new CUiSurface(&g_interface.Get(), 0, 0, kScreenWidth, kScreenHeight, 4, 1);
+    CUiSurface* surface = new CUiSurface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, 4, 1);
     surface->CaptureScreen();
-    g_cursor->ChangeShape(3);
-    g_interface->serverFlag_ = static_cast<std::uint8_t>(g_serverWorld->paused_);
+    g_cursor.SetShape(3);
+    g_interface.serverFlag_ = static_cast<std::uint8_t>(g_serverWorld->paused_);
     std::string notice;
     g_clientWorld->texts_->GetString(game::savewords::NotifySaving(), &notice);
-    g_interface->ShowStatusText(notice);
+    g_interface.ShowStatusText(notice);
     g_gameFlow->SaveGameThunk(slot);
 
     // info.sav: the "gtime" variable, the zone's map, the zone, the time and an empty title.
@@ -389,7 +389,7 @@ void QuickSave(const char* slot, char stepFrame) {
     if (surface != nullptr) {
         delete surface;
     }
-    g_cursor->ChangeShape(0);
+    g_cursor.SetShape(0);
 }
 
 void QuickLoad(const char* slot) {
@@ -398,7 +398,7 @@ void QuickLoad(const char* slot) {
     if (!lib::FileExists(folder)) return;
     std::string notice;
     g_clientWorld->texts_->GetString(kNotifyLoading, &notice);
-    g_interface->ShowStatusText(notice);
+    g_interface.ShowStatusText(notice);
     GameStopSounds(1);
     g_gameFlow->RequestLoad(slot, 0);
 }
@@ -443,7 +443,7 @@ void CSaveLoadWindow::LoadSelected() {
     if (entries_.data()[selected].broken_) return;
     std::string notice;
     g_clientWorld->texts_->GetString(kNotifyLoading, &notice);
-    g_interface->ShowStatusText(notice);
+    g_interface.ShowStatusText(notice);
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk);
     g_gameFlow->RequestLoad(entries_.data()[selected_].folder_, 0);

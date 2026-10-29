@@ -543,7 +543,7 @@ bool RunPass() {
                 camera->PlaybackStep(static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_));
         }
     }
-    g_interface->Update();
+    g_interface.Update();
     const bool draw = static_cast<char>(g_movieMode) != 0;
     if (auto hook = ei::mainloop::g_harnessHooks.frameStep) hook(draw, true);
     else app::FrameStep(draw, true);
@@ -576,8 +576,8 @@ int RunMainLoop(bool interfaceInput) {
 
 void ShutDown() {
     ForgetComposedTextures();
-    g_interface->Shutdown();
-    g_cursor->Shutdown();
+    g_interface.Shutdown();
+    g_cursor.Shutdown();
     CDirectInputMouse* mouse = g_mouse;
     g_mouse = nullptr;
     if (mouse) ReleaseMouse(mouse);
@@ -664,7 +664,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     g_mouse->Setup(g_mainWindow, instance);
     g_clientWorld->SetUpGraphics(g_sceneRenderer->device_);
     SetUpCursors(options->fpsIndependentCursor_ != 0, g_mouse, 0);
-    g_interface->Create(g_sceneRenderer->device_);
+    g_interface.Create(g_sceneRenderer->device_);
     g_mapDatabase->LoadAll();
     StartFirstMap();
     g_sceneRenderer->SetGamma(options->brightness_, options->contrast_, options->gamma_);

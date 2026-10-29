@@ -167,7 +167,7 @@ void NoGui(std::vector<std::string>* args) {
     g_guiShown = mode == 0;
     g_applyGui = true;
     SayFormat("GUI: %s, cursor: %s", g_guiShown ? "show" : "hide", g_cursorShown ? "show" : "hide");
-    g_cursor->ShowImage(g_cursorShown ? 1 : 0);
+    g_cursor.ShowImage(g_cursorShown);
 }
 
 void Register(CommandMap* map, const char* name, CommandHandler handler) {

@@ -72,24 +72,24 @@ extern char g_pauseMessageKey[12];
 class CInterface3D {
 public:
     // Layout (800x600) to screen and back; the Copy is identical.
-    int ScaleRectToScreen(RECT* rect) const;
-    int ScalePointToScreen(POINT* point) const;
-    int ScaleRectFromScreen(RECT* rect) const;
-    int ScalePointFromScreen(POINT* point) const;
-    int ScalePointFromScreenCopy(POINT* point) const;
+    void ScaleRectToScreen(RECT* rect) const;
+    void ScalePointToScreen(POINT* point) const;
+    void ScaleRectFromScreen(RECT* rect) const;
+    void ScalePointFromScreen(POINT* point) const;
+    void ScalePointFromScreenCopy(POINT* point) const;
 
     // The scaling where Rebirth's WideScreen (widescreen::Active) leaves out the margin: the text surfaces'
     // draw, edit field, connection list, save / load list, chat line, tooltip.
-    int CallScaleRectToScreenNoMargin(RECT* rect) const;
-    int CallScalePointToScreenNoMargin(POINT* point) const;
-    int CallScalePointFromScreenNoMargin(POINT* point) const;
+    void CallScaleRectToScreenNoMargin(RECT* rect) const;
+    void CallScalePointToScreenNoMargin(POINT* point) const;
+    void CallScalePointFromScreenNoMargin(POINT* point) const;
 
     // The scaling as reached with a null interface (WideScreen's callers): then without the margin.
-    int ScaleRectToScreenEntry(RECT* rect) const;
-    int ScalePointToScreenEntry(POINT* point) const;
-    int ScaleRectFromScreenEntry(RECT* rect) const;
-    int ScalePointFromScreenEntry(POINT* point) const;
-    int ScalePointFromScreenCopyEntry(POINT* point) const;
+    void ScaleRectToScreenEntry(RECT* rect) const;
+    void ScalePointToScreenEntry(POINT* point) const;
+    void ScaleRectFromScreenEntry(RECT* rect) const;
+    void ScalePointFromScreenEntry(POINT* point) const;
+    void ScalePointFromScreenCopyEntry(POINT* point) const;
 
     // Once per frame: pending closes, the queued window, the mouse, the top window and the root.
     void Update();
@@ -122,8 +122,8 @@ public:
     // 0x5D one more value; from 0x5F a string.
     void LoadState(CStream* stream);
     // The text of message `id` (0-12: "lmp_player_connected" .. "reserved_02"; others an empty key) from
-    // the text table, formatted with `value` unless 0, into `out`.
-    std::string* MessageText(std::string* out, int id, const char* value);
+    // the text table, formatted with `value` unless 0.
+    std::string MessageText(int id, const char* value);
     // Without `force`, takes the next queued message into the current text or returns when there is
     // none. A non-empty text opens the message window over the others, unless the option is off and it
     // was not forced.
@@ -141,9 +141,7 @@ public:
     void ChatKeyBackspace();
     // The extent of `text` in interface font `font` (ui_font.h's TextExtent) scaled to the layout (cx * 800 /
     // width, cy * 600 / height). Rebirth-patched; WideScreen behind its flag.
-    SIZE* TextExtent(SIZE* out, std::string_view text, int font);
-    // Sets up the stack, lists, map and texts; nothing else is written.
-    CInterface3D* Construct();
+    SIZE TextExtent(std::string_view text, int font) const;
     // When there is a console window.
     void ConsoleAddText(std::string_view text);
     void SetConsoleRect(const RECT* rect);
@@ -205,56 +203,56 @@ public:
     // panel, chat overlay and fade.
     void Create(CTextureDevice* device);
 
-    int width_;                      // screen width
-    int height_;                     // screen height
-    CTextureDevice* renderer_;       // the device
-    void* mouseCapture_;             // input side that took the button press
-    console::ConsoleWindow* console_;
-    CScreenFade* fade_;
-    CChatOverlay* root_;             // the chat overlay; updated after the top window every frame
-    CUiSurface* fpsSurface_;
-    int fpsSpare_;                   // 0 from Create with the frame rate fields; nothing reads it
-    DWORD fpsTime_;
-    int fpsFrames_;
+    int width_ = 0;                  // screen width
+    int height_ = 0;                 // screen height
+    CTextureDevice* renderer_ = nullptr;   // the device
+    void* mouseCapture_ = nullptr;   // input side that took the button press
+    console::ConsoleWindow* console_ = nullptr;
+    CScreenFade* fade_ = nullptr;
+    CChatOverlay* root_ = nullptr;   // the chat overlay; updated after the top window every frame
+    CUiSurface* fpsSurface_ = nullptr;
+    int fpsSpare_ = 0;               // 0 from Create with the frame rate fields; nothing reads it
+    DWORD fpsTime_ = 0;
+    int fpsFrames_ = 0;
     // The windows draw, redraw their surfaces and update their tooltips only while this is set.
-    bool drawing_;
+    bool drawing_ = false;
     std::vector<CUiWindow*> stack_;   // the open windows, the top one last
-    CUiWindow* queuedWindow_;        // activated by the next frame update
-    bool closeAll_;
-    std::uint32_t pendingValue_;
-    bool pendingFlag_;
-    int backdropMode_;               // the backdrop is drawn in modes 2, 3 and 4 (PushWindow sets 3 / 1)
-    CUiSurface* backdrop_;
-    CUiSurface* secondBackdrop_;
-    void* screenCopy_;               // the 256x192 5:6:5 copy of the screen the escape menu saves with (SavePicture); operator delete[]
-    std::uint8_t serverFlag_;        // the server flag kept for the first window (PushWindow)
-    CUiSurface* statusSurface_;      // only while ShowStatusText runs
-    int mouseX_;
-    int mouseY_;
+    CUiWindow* queuedWindow_ = nullptr;   // activated by the next frame update
+    bool closeAll_ = false;
+    std::uint32_t pendingValue_ = 0;
+    bool pendingFlag_ = false;
+    int backdropMode_ = 0;           // the backdrop is drawn in modes 2, 3 and 4 (PushWindow sets 3 / 1)
+    CUiSurface* backdrop_ = nullptr;
+    CUiSurface* secondBackdrop_ = nullptr;
+    void* screenCopy_ = nullptr;     // the 256x192 5:6:5 copy of the screen the escape menu saves with (SavePicture); operator delete[]
+    std::uint8_t serverFlag_ = 0;    // the server flag kept for the first window (PushWindow)
+    CUiSurface* statusSurface_ = nullptr;   // only while ShowStatusText runs
+    int mouseX_ = 0;
+    int mouseY_ = 0;
     // The three interface fonts (Create: "Times New Roman", sized with the screen width).
     UiFont fonts_[3];
     // Set by the key-down handler from the scan codes, cleared by key-up and when the windows change.
-    bool ctrlDown_;
-    std::uint8_t shiftDown_;
-    bool altDown_;
+    bool ctrlDown_ = false;
+    std::uint8_t shiftDown_ = 0;
+    bool altDown_ = false;
     // The left press is a double click (a spell or quick item clicked twice is used at once).
-    bool doubleClick_;
-    bool rightDown_;
+    bool doubleClick_ = false;
+    bool rightDown_ = false;
     // The top window is asked every frame until it agrees ("autosave" sets it).
-    bool pollTop_;
+    bool pollTop_ = false;
     std::list<std::string> messages_;   // queued message texts (ShowMessage takes the first)
-    bool disconnected_;
+    bool disconnected_ = false;
     // The state saved with a game (LoadState), cleared by ResetSavedState. The HUD panels keep theirs
     // here every frame.
-    std::uint8_t hudPanelsIn_[3];    // [0] the unit panel, [1] the top panel, [2] the map
-    int hudBodyPart_;                // CHudUnitPanel::bodyPart_
-    int hudTopPage_;                 // CHudTopPanel::page_
-    int fastGame_;                   // the fast game speed (CHudClock::fast_)
+    std::uint8_t hudPanelsIn_[3] = {};   // [0] the unit panel, [1] the top panel, [2] the map
+    int hudBodyPart_ = 0;            // CHudUnitPanel::bodyPart_
+    int hudTopPage_ = 0;             // CHudTopPanel::page_
+    int fastGame_ = 0;               // the fast game speed (CHudClock::fast_)
     // Help topics seen: name -> times (or the page the help window was closed on; ui_help_window.cpp);
     // config\tutorial.ini "name count" lines, read by Create, written by Shutdown, counted by OpenHelp.
     std::map<std::string, int, str::MbsLess> helpTopics_;
     std::string messageText_;
-    int messageFlag_;                // the message window's page, set when it closes
+    int messageFlag_ = 0;            // the message window's page, set when it closes
     std::string savedText_;         // the current quest (OnQuestVariable); saved from version 0x5F
 
     // Clears the modifier and button flags and deactivates the top window's input side.
@@ -262,8 +260,6 @@ public:
     // The main loop's exit: closes every window, writes the help topics to config\tutorial.ini, saves the
     // key bindings and frees what Create made (the queued window and the fade pointers are not cleared).
     void Shutdown();
-    // The global interface's destructor, run at exit.
-    void DestroyBody();
 
     // Writes what LoadState reads, with an empty obsolete list (count 0).
     void SaveState(CStream* stream);
@@ -271,7 +267,7 @@ public:
     void ResetSavedState();
 };
 
-extern lib::StaticObject<CInterface3D> g_interface;
+extern CInterface3D g_interface;
 
 class CUiRegion;
 struct CUiTooltip;
@@ -285,8 +281,8 @@ struct UiPoint {
 // convex polygon, and an optional tooltip.
 class CUiRegion {
 public:
-    BOOL HitTest(int x, int y) const;
-    BOOL HasActiveTip() const;
+    bool HitTest(int x, int y) const;
+    bool HasActiveTip() const;
     // Also enables the region.
     void SetRect(int left, int top, int right, int bottom);
     // Adds a polygon vertex, growing the bounds; three vertices enable the region.
@@ -336,26 +332,24 @@ public:
     void MoveTo(int x, int y);
     // Word-wraps `text` to the width of `rect` (layout coordinates; breaks at spaces and '\n') and draws up
     // to `maxLines` lines one rect height apart with DrawTextIn. Returns the line count.
-    int DrawWrappedText(std::string_view text, const RECT* rect, int maxLines, int font, COLORREF colour, int format,
-                        int flag);
+    int DrawWrappedText(std::string_view text, const RECT* rect, int maxLines, int font, COLORREF colour, UINT format,
+                        bool shadow);
     // Rebirth-patched (WideScreen behind its flag). `rect` in layout coordinates (empty: the whole surface),
     // grown by two pixels once scaled; `shadow` first draws the text in 0x080808 one pixel right and down.
     // Returns the drawn height in layout units, 0 without a surface.
-    int DrawTextIn(std::string_view text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow);
+    int DrawTextIn(std::string_view text, const RECT* rect, int font, COLORREF colour, UINT format, bool shadow);
     // DrawText of `text` (UTF-8) in `font` in `rect` (surface pixels) by DrawText's `format` (render_text.h's
     // Layout), in `colour`, first in 0x080808 one pixel right and down when `shadow`. Returns DrawText's value
     // (the height laid out, pixels); 0 without a surface or font.
     int DrawTextPixels(const UiFont& font, std::string_view text, const RECT& rect, UINT format, COLORREF colour,
                        bool shadow);
-    // DrawTextIn's line of text (Rebirth-patched).
-    int DrawLine(std::string_view text, RECT* rect, int font, std::uint32_t colour, int format, int shadow);
-    // Sets (`frozen` nonzero) or clears the shown flag: setting it puts kept contents back into a surface;
-    // clearing it with `restore` keeps the contents in memory and releases the surface.
-    void Freeze(int frozen, int restore);
-    // SwapContents: `restore` 0 puts the surface's pixels aside (kept_) and releases the holder; 1 makes the
+    // Sets (`frozen`) or clears the shown flag: setting it puts kept contents back into a surface; clearing it
+    // with `restore` keeps the contents in memory and releases the surface.
+    void Freeze(bool frozen, bool restore);
+    // SwapContents: `restore` false puts the surface's pixels aside (kept_) and releases the holder; true makes the
     // holder again and puts them back. Rgb565Copy returns a new[] block of width * height 5:6:5 pixels
     // (the surface stretched). Greyscale: (2 r + 4 g + b) / 16 per channel.
-    void SwapContents(int restore);
+    void SwapContents(bool restore);
     void CaptureScreen();
     std::uint16_t* Rgb565Copy(int width, int height);
     void Greyscale();
@@ -363,7 +357,6 @@ public:
     bool Shown() const { return (flags_ & kShown) != 0; }
     static constexpr std::uint32_t kShown = 4;   // set and cleared by Freeze
 
-    void CallSwapContents(int restore);
     // With a surface: a one-pixel frame of `colour` around `rect` (layout coordinates; empty: the whole
     // surface).
     void FrameRect(const RECT* rect, COLORREF colour);
@@ -476,7 +469,7 @@ public:
     ~CUiWindow() override;
 
     // The class name is "Sorry, no other way." and the id 0x45.
-    void Create() override;
+    void Create() override {}
     void Destroy() override {}
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -490,7 +483,7 @@ public:
 
     // The first region containing the screen point, or -1.
     int RegionAt(int x, int y) const;
-    BOOL ContainsPoint(int x, int y) const;
+    bool ContainsPoint(int x, int y) const;
     void UpdateRegionTips();
 
     // `notify`: Show(enabled) as well.
@@ -502,7 +495,7 @@ public:
     void RemoveObjectAt(int index);
     void ClearObjects();
 
-    BOOL RemoveSceneObject(CEngineObject* object);
+    bool RemoveSceneObject(CEngineObject* object);
     // Replaces scene object `object` (released) at its place with object `name` of the model manager,
     // given the window's texture 0 and the old one's position, orientation, texture and scale; returns the
     // new one or null.
@@ -557,11 +550,11 @@ public:
     void RedrawRegionTips();
     CUiMesh* SceneMesh(int index) const;   // defined after CUiMesh
 
-    RECT rect_;                               // layout coordinates
-    int enabled_;
-    CEngineObject* blackMaterial_;            // given to every sprite (AddSprite)
-    CEngineObject* whiteMaterial_;
-    CEngineObject* heldObject_;               // released by the destructor (writer not identified)
+    RECT rect_ = {};                          // layout coordinates
+    int enabled_ = 1;
+    CEngineObject* blackMaterial_ = nullptr;  // given to every sprite (AddSprite)
+    CEngineObject* whiteMaterial_ = nullptr;
+    CEngineObject* heldObject_ = nullptr;     // released by the destructor (writer not identified)
     std::vector<CTexture*> objects_;            // the referenced textures
     std::vector<CEngineObject*> sceneObjects_;
     std::vector<CUiSurface*> surfaces_;
@@ -831,7 +824,9 @@ class CUiMesh : public CPlainFigureMesh {
 public:
     CUiMesh();
     ~CUiMesh() override;
+    // The sprite's start: unit scale and tint, the identity orientation at depth 10, opaque black, visible.
     void Create() override;
+    // The material and the texture forgotten (not released), then the figure's own Destroy.
     void Destroy() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -845,19 +840,13 @@ public:
     // corners x, y, z, w), corners_ (MeshCorner per vertex), texCoords_, indices_.
     // Where Place put the sprite (the layout point and the depth; each stored as float).
     void GetPlacement(float* x, float* y, float* depth) const;
-    // Puts the sprite at layout point (x, y) at `depth` in front of the interface camera. Rebirth patches
-    // it; PlaceBody is the body.
-    void Place(float x, float y, float depth);
-    // Rebirth-patched: SetRectangleVanilla.
-    void SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
-                      int u1, int v1);
-    // The shapes' vanilla bodies, Rebirth-patched; with Rebirth's WideScreen every shape's layout x is moved
+    // The shapes, Rebirth-patched: with Rebirth's WideScreen every shape's layout x is moved
     // by the panel offset. A rectangle: texels (u0, v0)-(u1, v1), v upwards, both u one less when u0 > u1,
     // half a texel inwards; position_ the layout centre at `depth`.
-    void SetRectangleVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
+    void SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                              int u1, int v1);
     // A grid of columns x rows cells, each showing the whole picture; position_ the top left corner.
-    void SetGridVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
+    void SetGrid(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
                         int v1, int columns, int rows);
     // A frame `border` wide inside the rectangle, each side showing the whole picture.
     void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border, int u0,
@@ -884,22 +873,19 @@ public:
     // Only the per-vertex arrays: one block (four 0s, four 0s, four 1s, four 1s) and two with four entries
     // (the builders' common start).
     void ResetColours();
-    // `depth` copied as bits. With Rebirth's WideScreen x is moved by the panel offset first; addon's other
-    // code calls it too.
-    void PlaceBody(float x, float y, float depth);
+    // Puts the sprite at layout point (x, y) at `depth` in front of the interface camera (`depth` copied as
+    // bits). Rebirth-patched: with Rebirth's WideScreen x is moved by the panel offset first.
+    void Place(float x, float y, float depth);
     // Copied as bits.
     void SetScale(float scale);
-    // The material and the texture forgotten (not released), then the figure's own Destroy.
-    void DestroySprite();
     void SetScaleYBits(std::uint32_t bits);
-    // When visible; returns 1.
-    int Draw(CSceneRenderer* renderer);
-    void CreateSprite();
+    // When visible.
+    void Draw(CSceneRenderer* renderer);
 
     // CFigureMesh's fields as a sprite uses them: flags_ 0x100 draws in flatColour_ (ARGB), flatSpecular_
     // the HUD buttons' highlight (0xFF404040 / 0xFF000000), textureOffsetU_ / V_ a frame of the sprite
     // sheet, localRotation_ the HUD face models' turn.
-    int visible_;
+    bool visible_;
     float tint_[3];                  // colour factors (the HUD: 1 selected, 0.5 not)
     float tintSpare_[3];             // nothing reads it
     // Applied after the placement; the diagonal is SetScale's scale.

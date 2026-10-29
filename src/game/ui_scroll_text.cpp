@@ -18,12 +18,6 @@ constexpr COLORREF kConstructedColour = 0x1C8DC;     // the format token constru
 constexpr int kDefaultFont = 1;
 constexpr char kEscape = '\a';
 
-SIZE TextExtent(CInterface3D* ui, const std::string& text, int font) {
-    SIZE size;
-    ui->TextExtent(&size, text, font);
-    return size;
-}
-
 void Append(std::vector<UiTextToken*>& tokens, UiTextToken* token) {
     int index = std::ssize(tokens);
     tokens.resize(index + 1);
@@ -133,7 +127,7 @@ void CUiScrollText::Tokenize(const std::string* text) {
         if (format) Append(tokens_, format);
         if (word) {
             auto* w = new UiWordToken();
-            SIZE size = TextExtent(interface_, token, font);
+            SIZE size = interface_->TextExtent(token, font);
             w->width_ = size.cx;
             w->text_ = token;
             Append(tokens_, w);
@@ -162,7 +156,7 @@ void CUiScrollText::DrawLines(int scroll) {
     int heights[kMeasuredFonts];
     for (int font = 0; font < kMeasuredFonts; ++font) {
         std::string sample = FontSampleText();
-        heights[font] = TextExtent(interface_, sample, font).cy;
+        heights[font] = interface_->TextExtent(sample, font).cy;
     }
 
     // The format in effect at the line: the last format token before it (the first token
@@ -302,7 +296,7 @@ void CUiScrollText::Layout() {
     int heights[kFontSlots] = {};
     for (int f = 0; f < kMeasuredFonts; ++f) {
         std::string sample = FontSampleText();
-        heights[f] = TextExtent(interface_, sample, f).cy;
+        heights[f] = interface_->TextExtent(sample, f).cy;
     }
     for (int i = 0; i < std::ssize(lines_); ++i) delete lines_[i];
     lines_.clear();

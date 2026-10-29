@@ -338,7 +338,7 @@ int GameFlow::SaveGame(const std::string& slot) {
     std::string currentFolder;
     if (g_serverWorld->gameResult_ != 1) return 0;
 
-    g_cursor->SetShape(3);
+    g_cursor.SetShape(3);
     slotFolder = str::Format(kSlotFolder, DataFolderText(), slot);
     currentFolder = str::Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(slotFolder);
@@ -360,7 +360,7 @@ int GameFlow::SaveGame(const std::string& slot) {
         opened = file.Open(path, kOpenWrite, 0);
     }
     if (!opened) {
-        g_interface->closeAll_ = 1;
+        g_interface.closeAll_ = 1;
         StartZone(kMainMenu, 2);
         return 0;
     }
@@ -369,9 +369,9 @@ int GameFlow::SaveGame(const std::string& slot) {
     CMemoryStream scenario;
     scenario.version_ = static_cast<std::uint32_t>(kSaveVersion);
     g_partyManager->Save(&scenario);
-    g_interface->SaveState(&scenario);
+    g_interface.SaveState(&scenario);
     ScriptsReset(&g_saveStream.Get());
-    g_interface->SaveWindowState();
+    g_interface.SaveWindowState();
     scenario.WriteSized(&g_saveStream.Get());
     ScriptsReset(&g_saveStream.Get());
     g_camera->Save(&scenario);
@@ -393,7 +393,7 @@ int GameFlow::SaveGame(const std::string& slot) {
         file.Close();
     }
 
-    g_cursor->SetShape(0);
+    g_cursor.SetShape(0);
     console::EndLine(console::g_consoleOut << kSaved << slot);
     return 1;
 }
@@ -473,7 +473,7 @@ int EnterZone(CParty* records) {
 // every target set to "MPGame1", applies its two settings, marks the game a network one and, on a running
 // game server, announces the host and loads the zone's .mob. Returns 1, 0 on failure.
 int StartNetworkZone(const std::string& zone) {
-    g_interface->closeAll_ = 1;
+    g_interface.closeAll_ = 1;
     MapRecord* zoneRecord = FindZone(zone);
     if (!zoneRecord || zoneRecord->kind != 0) return 0;
     g_serverWorld->TeardownZone();
@@ -616,7 +616,7 @@ void GameFlow::BeginMultiplayerGame() {
     zoneSwitchStarted_ = 0;
     net::g_gameClient->player_.Get()->state_ = 1;
     ++net::g_gameClient->player_.Get()->version_;
-    g_interface->disconnected_ = 1;
+    g_interface.disconnected_ = 1;
 }
 
 // ---- Small glue of the flow -----------------------------------------------------------------------
@@ -653,13 +653,13 @@ void GameFlow::RecreateClientSession() {
 int GameFlow::SaveGameThunk(const std::string& slot) { return SaveGame(slot); }
 
 int RequestZone(std::string_view zone, int entrance) {
-    g_interface->closeAll_ = true;
+    g_interface.closeAll_ = true;
     // The local view asks to go to a zone (name, entrance).
     return g_clientWorld->LocalView()->RequestZone(zone, entrance);
 }
 
 void GameFlow::DropSessions() {
-    g_interface->disconnected_ = 0;
+    g_interface.disconnected_ = 0;
     net::g_gameServer.Reset();
     net::g_gameClient.Reset();
 }
@@ -670,7 +670,7 @@ void GameFlow::EndSession() {
 }
 
 void GameFlow::CloseSessions() {
-    g_interface->disconnected_ = 0;
+    g_interface.disconnected_ = 0;
     net::g_gameServer.Reset();
     net::g_gameClient.Reset();
     state_ = 1;
@@ -779,7 +779,7 @@ void GameFlow::SwitchMultiplayerZone() {
         {
             std::string zone;
             MultiplayerZoneInto(&zone);
-            g_interface->closeAll_ = 1;
+            g_interface.closeAll_ = 1;
             g_clientWorld->LocalView()->RequestZone(zone, 0);
         }
         if (host) {
@@ -940,7 +940,7 @@ int LoadMission(CStream* file) {
     if (static_cast<int>(mission.version_) < kVersionScenarioInput) {
         // Old saves: the input state, then the rest goes to the save stream.
         g_saveStream->Resize(0);
-        g_interface->LoadState(&mission);
+        g_interface.LoadState(&mission);
         mission.ReadSized(&g_saveStream.Get());
         g_saveStream->version_ = mission.version_;
     }
@@ -970,9 +970,9 @@ bool NameInList(const char* const* list, std::string_view name) {
 }
 
 void GameFlow::StartZone(std::string_view zone, int mode) {
-    g_cursor->SetShape(3);
+    g_cursor.SetShape(3);
     MapRecord* zoneRecord = nullptr;
-    g_interface->closeAll_ = 1;
+    g_interface.closeAll_ = 1;
     if (text::CompareIgnoringCase(zone, kEndOfGame) == 0) {
         mode = kModeEndOfGame;
     } else {
@@ -998,7 +998,7 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
         // An unknown zone: the error, the network sessions closed, the main menu instead.
         game::FatalError(kZoneNotFound, std::string(zone));
         if (Active(net::g_gameClient)) {
-            g_interface->disconnected_ = 0;
+            g_interface.disconnected_ = 0;
             net::g_gameServer.Reset();
             net::g_gameClient.Reset();
         }
@@ -1046,7 +1046,7 @@ void GameFlow::StartNewGame() {
     // Rebirth's AutoExec #2 (the call redirected): addon's AutoExec lines first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
     console::Execute(kExecAutoexec);
-    g_interface->closeAll_ = 1;
+    g_interface.closeAll_ = 1;
     PartyManagerNewGame(&g_partyManager.Get());
     std::string folder;
     folder = str::Format(kCurrentFolder, DataFolderText());
@@ -1101,14 +1101,14 @@ void GameFlow::ProcessRequest() {
         CParty records;
         ::LeaveZone(&records);
     }
-    g_interface->CloseAll();
+    g_interface.CloseAll();
     g_serverWorld->TeardownZone();
     UseResources(Active(net::g_gameClient));
 
     auto* clientWorld = &g_clientWorld.Get();
     switch (state) {
     case kStateMainMenu:
-        g_interface->closeAll_ = 1;
+        g_interface.closeAll_ = 1;
         StartZone(kMainMenu, 2);
         break;
     case kStateLoad:
@@ -1146,7 +1146,7 @@ void GameFlow::ProcessRequest() {
             if (Active(net::g_gameClient)) {
                 BeginMultiplayerGame();
             } else {
-                g_interface->closeAll_ = 1;
+                g_interface.closeAll_ = 1;
                 StartZone(kMainMenu, 2);
             }
         }
@@ -1173,8 +1173,8 @@ int GameFlow::LoadGame(const std::string& slot) {
     // Rebirth's AutoExec #1 (the call redirected): addon's AutoExec lines first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
     console::Execute(kExecAutoexec);
-    g_cursor->SetShape(3);
-    g_interface->closeAll_ = 1;
+    g_cursor.SetShape(3);
+    g_interface.closeAll_ = 1;
     FileStream file;
     std::string zone;
     std::string slotFolder;
@@ -1188,7 +1188,7 @@ int GameFlow::LoadGame(const std::string& slot) {
         opened = file.Open(path, kOpenRead, 1);
     }
     if (!opened) {
-        g_interface->closeAll_ = 1;
+        g_interface.closeAll_ = 1;
         StartZone(kMainMenu, 2);
         return 0;
     }
@@ -1196,7 +1196,7 @@ int GameFlow::LoadGame(const std::string& slot) {
     // scenario.sav: the party, then (by version) the input, the scripts and the globals.
     CMemoryStream scenario;
     if (!SaveFileRead(&scenario, kMagicScenario, kSaveVersion, kSaveOldestVersion, &file)) {
-        g_interface->closeAll_ = 1;
+        g_interface.closeAll_ = 1;
         StartZone(kMainMenu, 2);
         return 0;
     }
@@ -1204,7 +1204,7 @@ int GameFlow::LoadGame(const std::string& slot) {
     int version = static_cast<int>(scenario.version_);
     if (version >= kVersionScenarioInput) {
         ScriptsReset(&g_saveStream.Get());
-        g_interface->LoadState(&scenario);
+        g_interface.LoadState(&scenario);
         StreamLoadScripts(&scenario, &g_saveStream.Get());
         version = static_cast<int>(scenario.version_);
         g_saveStream->version_ = static_cast<std::uint32_t>(version);

@@ -66,12 +66,12 @@ void CHudUnitPanel::Draw(CSceneRenderer* pass) {
     widescreen::EnterLeftPanel();    // addon's 100232F4
     Quaternion savedOrientation = {1.0f, 0.0f, 0.0f, 0.0f};
     Vector3 savedPosition = {};
-    SceneMesh(kHeightBar)->visible_ = 0;
-    SceneMesh(kMoreMark)->visible_ = 0;
+    SceneMesh(kHeightBar)->visible_ = false;
+    SceneMesh(kMoreMark)->visible_ = false;
     // The background alone, before anything else.
-    SceneMesh(kBackground)->visible_ = 1;
+    SceneMesh(kBackground)->visible_ = true;
     SceneMesh(kBackground)->Draw(pass);
-    SceneMesh(kBackground)->visible_ = 0;
+    SceneMesh(kBackground)->visible_ = false;
 
     // The unit shown while the panel is not slid away: the hover unit, else the selected one.
     CUnit* unit = nullptr;
@@ -88,7 +88,7 @@ void CHudUnitPanel::Draw(CSceneRenderer* pass) {
         if (unit) size = static_cast<float>(unit->AnimationRatio() * size);
     }
 
-    for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) SceneMesh(i)->visible_ = 0;
+    for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) SceneMesh(i)->visible_ = false;
     surfaces_[0]->Clear();
 
     if (unit && unit->Object3D()->attached) {
@@ -161,8 +161,8 @@ void CHudUnitPanel::Draw(CSceneRenderer* pass) {
             bits = std::bit_cast<std::uint32_t>(barScale);
             SceneMesh(kHeightBar)->SetScaleYBits(bits);
             const float barY = static_cast<float>(kPanelHeight - barScale * kPanelHeight);
-            SceneMesh(kHeightBar)->PlaceBody(static_cast<float>(20 - offset_), barY, 4.0f);
-            SceneMesh(kHeightBar)->visible_ = 1;
+            SceneMesh(kHeightBar)->Place(static_cast<float>(20 - offset_), barY, 4.0f);
+            SceneMesh(kHeightBar)->visible_ = true;
             break;
         }
         case 1:

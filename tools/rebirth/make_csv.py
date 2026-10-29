@@ -127,10 +127,10 @@ SITE_STATUS = {
  ('WideScreen', 0x005FC9E0): 'implemented: CUiRegion::SetRect (src/game/ui_window.cpp)',
  ('WideScreen', 0x005FC9F4): 'implemented: CUiRegion::SetRect (src/game/ui_window.cpp)',
  ('WideScreen', 0x005FCA70): 'implemented: CUiRegion::AddPoint (src/game/ui_window.cpp)',
- ('WideScreen', 0x005E6FA0): 'implemented: CUiMesh::PlaceBody (src/game/ui_mesh_draw.cpp)',
+ ('WideScreen', 0x005E6FA0): 'implemented: CUiMesh::Place (src/game/ui_mesh_draw.cpp)',
  # WideScreen, ticket W2.
- ('WideScreen', 0x005E75D1): 'implemented: CUiMesh::SetRectangleVanilla (src/game/ui_mesh_shapes.cpp)',
- ('WideScreen', 0x005E7C8D): 'implemented: CUiMesh::SetGridVanilla (src/game/ui_mesh_shapes.cpp)',
+ ('WideScreen', 0x005E75D1): 'implemented: CUiMesh::SetRectangle (src/game/ui_mesh_shapes.cpp)',
+ ('WideScreen', 0x005E7C8D): 'implemented: CUiMesh::SetGrid (src/game/ui_mesh_shapes.cpp)',
  ('WideScreen', 0x005E835E): 'implemented: CUiMesh::SetFrame (src/game/ui_mesh_shapes.cpp)',
  ('WideScreen', 0x005E9E77): 'implemented: CUiMesh::SetTriangle (src/game/ui_mesh_shapes.cpp)',
  ('WideScreen', 0x005F83CF): 'implemented: CInterface3D::TextExtent (src/game/ui_text_draw.cpp)',

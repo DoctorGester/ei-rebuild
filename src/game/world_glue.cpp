@@ -185,12 +185,12 @@ void GameLeaveThroughExit(int exit) {
 }
 
 void GameSendLeave04(int value) {
-    g_interface->closeAll_ = 1;
+    g_interface.closeAll_ = 1;
     LocalClient()->SendLeave04(value);
 }
 
 void GameRejoin() {
-    g_interface->closeAll_ = 1;
+    g_interface.closeAll_ = 1;
     LocalClient()->Rejoin();
 }
 

@@ -184,7 +184,7 @@ does not need a second pass:
   pointer casts; check_cleanup does not); objects of a manager come typed from
   `CBaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, item records by kind from
   `itemdb::RecordAs<T>`, and a manager's context is a `CManagerContext` (CWorld, CParty; its
-  slots 19, 20 and 22 return `CMapObjectManager*`, `CPlayerManager*` and `CSpellManager*`); a window surface is drawn on through `CUiSurface::GetDC` / `ReleaseDC` / `DrawLine`, not a
+  slots 19, 20 and 22 return `CMapObjectManager*`, `CPlayerManager*` and `CSpellManager*`); a window surface is drawn on through `CUiSurface`'s own members (`DrawTextIn`, `FillRect`, ...), not a
   per-file view struct derived from it. A window class that shares another's layout derives from
   it (CUiItemStrip : CUiItemPanel, CMpHeroScreen : CItemScreen) instead of holding a `CUiWindow
   window` member and being punned; the item panels' owner_ is the CItemScreen. A container's input

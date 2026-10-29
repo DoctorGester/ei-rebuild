@@ -86,12 +86,6 @@ address,name,file
 005DC560,ConstructUnitAcksLogOut,src/game/console_streams.cpp
 005DC5A0,ConstructAllLogOut,src/game/console_streams.cpp
 005DC5E0,ConstructConsoleOut,src/game/console_streams.cpp
-005E4DD0,ConstructGameCursor,src/game/ui_cursor_setup.cpp
-005E4DF0,DestroyGameCursor,src/game/ui_cursor_setup.cpp
-005E51C0,CCursor::Construct,src/game/ui_cursor_setup.cpp
-005F4680,ConstructInterface,src/game/ui_small_members.cpp
-005F46A0,CInterface3D::Construct,src/game/ui_small_members.cpp
-005F4780,DestroyInterface,src/game/ui_small_members.cpp
 0064BE00,ConstructLastQuest,src/game/ui_objectives.cpp
 0064BE20,DestroyLastQuest,src/game/ui_objectives.cpp
 0065F2A0,ConstructSavedParties,src/game/party_file.cpp

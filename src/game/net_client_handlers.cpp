@@ -174,23 +174,23 @@ void ClientDropParty(ClientSession* self) { DropParty(self); }
 // (address_order.h) refreshes the list when players came before the binding, as if it came first.
 void ClientOnBinding(ClientSession* self, BindingMessage* message) {
     AssignRef(&self->binding_, message);
-    if (!self->players_.empty()) g_interface->OnPlayersChanged(1);
+    if (!self->players_.empty()) g_interface.OnPlayersChanged(1);
 }
 void ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&self->binding_); }
 // The players, with the interface's player list refreshed.
 void ClientOnPlayer(ClientSession* self, Message* message) {
     Append(self->players_, message);
-    g_interface->OnPlayersChanged(1);
+    g_interface.OnPlayersChanged(1);
 }
-void ClientOnPlayerChanged(ClientSession*, Message*) { g_interface->OnPlayersChanged(0); }
+void ClientOnPlayerChanged(ClientSession*, Message*) { g_interface.OnPlayersChanged(0); }
 void ClientOnPlayerGone(ClientSession* self, Message* message) {
     RemoveCounted(self->players_, message);
-    g_interface->OnPlayersChanged(1);
+    g_interface.OnPlayersChanged(1);
 }
 // The chat lines, each shown with its number.
 void ClientOnLine(ClientSession* self, LineMessage* message) {
     Append(self->lines_, message);
-    g_interface->OnChatLine(message->text_.data());
+    g_interface.OnChatLine(message->text_.data());
 }
 void ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }
 // The host message kept.
@@ -325,7 +325,7 @@ void ClientOnTradeChanged(ClientSession* self, TradeMessage* message) {
     }
     for (TradeRecord& record : self->tradeRecords_) {
         if (record.revision == b && record.acceptedRevision == a) {
-            g_interface->OnExchangeDone(&record.parties[1], &record.parties[0], &record.parties[2]);
+            g_interface.OnExchangeDone(&record.parties[1], &record.parties[0], &record.parties[2]);
             break;
         }
     }

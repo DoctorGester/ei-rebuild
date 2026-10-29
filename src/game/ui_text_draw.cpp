@@ -31,13 +31,9 @@ int DrawRun(const Surface* holder, render::text::TextFont& font, std::u32string_
 }
 } // namespace
 
-// --- DrawLine -----------------------------------------------------------------------------------------
+// --- DrawTextIn ---------------------------------------------------------------------------------------
 
-int CUiSurface::DrawLine(std::string_view text, RECT* rect, int font, std::uint32_t colour, int format, int shadow) {
-    return DrawTextIn(text, rect, font, colour, format, shadow);
-}
-
-int CUiSurface::DrawTextIn(std::string_view text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow) {
+int CUiSurface::DrawTextIn(std::string_view text, const RECT* rect, int font, COLORREF colour, UINT format, bool shadow) {
     if (!holder_) return 0;
     RECT frame;
     if (gameapi::IsRectEmpty(rect)) {
@@ -50,7 +46,7 @@ int CUiSurface::DrawTextIn(std::string_view text, const RECT* rect, int font, CO
         frame.bottom += kRectSlack;
     }
     // The original scales a point whose x is an unwritten local; only y is used.
-    POINT extent{0, DrawTextPixels(interface_->fonts_[font], text, frame, format, colour, shadow != 0)};
+    POINT extent{0, DrawTextPixels(interface_->fonts_[font], text, frame, format, colour, shadow)};
     interface_->ScalePointFromScreenCopyEntry(&extent);
     return extent.y;
 }
@@ -77,14 +73,10 @@ int CUiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const 
 
 // --- TextExtent ---------------------------------------------------------------------------------------
 
-SIZE* CInterface3D::TextExtent(SIZE* out, std::string_view text, int font) {
+SIZE CInterface3D::TextExtent(std::string_view text, int font) const {
     const SIZE size = ::TextExtent(fonts_[font], text);
-    if (widescreen::Active()) {
-        // WideScreen (addon's replacement): by the 4:3 part's width and the mode's height.
-        *out = widescreen::TextExtentToLayout(size);
-        return out;
-    }
-    out->cx = static_cast<int>(static_cast<unsigned>(size.cx) * kLayoutWidth) / width_;
-    out->cy = static_cast<int>(static_cast<unsigned>(size.cy) * kLayoutHeight) / height_;
-    return out;
+    // WideScreen (addon's replacement): by the 4:3 part's width and the mode's height.
+    if (widescreen::Active()) return widescreen::TextExtentToLayout(size);
+    return SIZE{static_cast<int>(static_cast<unsigned>(size.cx) * kLayoutWidth) / width_,
+                static_cast<int>(static_cast<unsigned>(size.cy) * kLayoutHeight) / height_};
 }

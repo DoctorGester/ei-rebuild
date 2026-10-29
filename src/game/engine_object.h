@@ -143,8 +143,6 @@ public:
     // The world the object belongs to, or null without a context.
     CWorld* World() const;
     CBaseManager* SetOwner(CBaseManager* owner);
-    // The constructor's values again (the interface window's constructor still calls it).
-    void ClearFields();
 
     int refCount_ = 0;
     std::uint32_t flags_ = 0;

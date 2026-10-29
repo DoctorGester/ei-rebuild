@@ -98,8 +98,8 @@ void CMpHeroScreen::DrawExperience() {
 
 void CMpHeroScreen::Draw(CSceneRenderer* pass) {
     if (mode_ == kModeStats) DrawExperience();
-    int x = g_cursor->position_.x;
-    int y = g_cursor->position_.y;
+    int x = g_cursor.position_.x;
+    int y = g_cursor.position_.y;
     hoveredItem_ = nullptr;
     int topic = 0;
     hoveredItem_ = weaponPanel_->ItemAt(x, y, &topic);
@@ -185,14 +185,14 @@ void CMpHeroScreen::DrawHeroList() {
     CUiSurface* surface = surfaces_[0];
     surface->Clear();
     CUiMesh* frame = SceneMesh(kSelectionFrame);
-    frame->visible_ = 0;
+    frame->visible_ = false;
     RECT rect = {12, 13, 265, 33};
     const auto count = static_cast<std::uint32_t>(SavedHeroCount());
     std::uint32_t index = static_cast<std::uint32_t>(heroTop_);
     for (int y = 262; y < 502; y += 24, ++index) {
         if (index >= count) break;
         if (static_cast<int>(index) == heroIndex_) {
-            frame->visible_ = 1;
+            frame->visible_ = true;
             frame->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
         // A hero record is a party; its name the first member's text 0.
@@ -206,7 +206,7 @@ void CMpHeroScreen::DrawVoices() {
     CUiSurface* surface = surfaces_[2];
     surface->Clear();
     CUiMesh* frame = SceneMesh(kSelectionFrame);
-    frame->visible_ = 0;
+    frame->visible_ = false;
     std::string title;
     RECT rect = {10, 5, 190, 20};
     g_clientWorld->texts_->GetString(kVoicesKey, &title);
@@ -217,7 +217,7 @@ void CMpHeroScreen::DrawVoices() {
         const std::vector<MpVoiceEntry>& voices = *voices_;
         if (index >= voices.size()) break;
         if (static_cast<int>(index) == voiceIndex_) {
-            frame->visible_ = 1;
+            frame->visible_ = true;
             float y = static_cast<float>(static_cast<double>(offset) + kVoiceFrameTop);
             frame->Place(97.5f, y, kFrameDepth);
         }

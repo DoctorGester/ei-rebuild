@@ -58,11 +58,11 @@ void CGlobalMap::Deactivate() {
     dragging_ = false;
     selectPending_ = true;
     // The cursor stops being held and goes back to where the drag began.
-    int x = g_cursor->position_.x;
-    int y = g_cursor->position_.y;
-    g_cursor->motion_.y = 0;
-    g_cursor->motion_.x = 0;
-    g_cursor->SetHeld(0);
+    int x = g_cursor.position_.x;
+    int y = g_cursor.position_.y;
+    g_cursor.motion_.y = 0;
+    g_cursor.motion_.x = 0;
+    g_cursor.SetHeld(0);
     gameapi::SetCursorPos(x, y);
 }
 
@@ -72,14 +72,14 @@ void CGlobalMap::RightDown(int, int x, int y) {
     turning_ = 0;
     interface_->ScalePointFromScreenEntry(&dragStart_);
     dragAngle_ = angle_;
-    g_cursor->motion_.y = 0;
-    g_cursor->motion_.x = 0;
-    g_cursor->SetHeld(1);
+    g_cursor.motion_.y = 0;
+    g_cursor.motion_.x = 0;
+    g_cursor.SetHeld(1);
 }
 
 void CGlobalMap::MouseMove(int, int x, int y) {
     if (dragging_) {
-        POINT drag{g_cursor->motion_.x, g_cursor->motion_.y};
+        POINT drag{g_cursor.motion_.x, g_cursor.motion_.y};
         console::EndLine(console::g_graphicsLogOut << static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y));
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         interface_->CallScalePointFromScreenNoMargin(&drag);
@@ -90,8 +90,8 @@ void CGlobalMap::MouseMove(int, int x, int y) {
         tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, 3.1415927f * 0.8f);
         Quaternion turn = TiltTimesSpin(tilt, spin);
         turn_ = turn;
-        g_cursor->motion_.x = 0;
-        g_cursor->motion_.y = 0;
+        g_cursor.motion_.x = 0;
+        g_cursor.motion_.y = 0;
         return;
     }
     bool isLink = false;
@@ -118,8 +118,8 @@ void CGlobalMap::MouseMove(int, int x, int y) {
     SelectZone(index, isLink);
     if (index == -1 || (!isLink && zones_[index].state == 0)) {
         surfaces_[0]->Freeze(0, 0);
-        SceneMesh(markerCount_ + kTipBack)->visible_ = 0;
-        SceneMesh(markerCount_ + kTipFrame)->visible_ = 0;
+        SceneMesh(markerCount_ + kTipBack)->visible_ = false;
+        SceneMesh(markerCount_ + kTipFrame)->visible_ = false;
         shownName_.clear();
         return;
     }
@@ -147,11 +147,11 @@ void CGlobalMap::MouseMove(int, int x, int y) {
     }
     CUiMesh* back = SceneMesh(markerCount_ + kTipBack);
     back->SetRectangle(3.0f, 100.0f, 400.0f, 20.0f, 780.0f, static_cast<float>(lines * kTipLine + 75), 0, 0, 0x100, 0x100);
-    back->visible_ = 1;
+    back->visible_ = true;
     CUiMesh* frame = SceneMesh(markerCount_ + kTipFrame);
     frame->SetFrame(3.0f, 100.0f, 395.0f, 15.0f, 785.0f, static_cast<float>((lines * 5 + 20) * 4), 5.0f, 2, 0xFE, 0xB4,
                     0xF9);
-    frame->visible_ = 1;
+    frame->visible_ = true;
 }
 
 void CGlobalMap::KeyDown(int key, int repeat, int flags) {
@@ -169,8 +169,8 @@ void CGlobalMap::KeyDown(int key, int repeat, int flags) {
 }
 
 void CGlobalMap::MessageResult(int) {
-    int x = g_cursor->position_.x;
-    int y = g_cursor->position_.y;
+    int x = g_cursor.position_.x;
+    int y = g_cursor.position_.y;
     turning_ = 0;
     dragging_ = false;
     selectPending_ = true;

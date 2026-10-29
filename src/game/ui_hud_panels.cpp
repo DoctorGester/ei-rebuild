@@ -38,7 +38,7 @@ void DrawPanelText(CUiWindow* window, std::string_view text, RECT rect, std::uin
 // texture's right edge to (ratio * `width` + 64) / 256 + 1/512 texels, between the rows `top`
 // and `bottom` of the HUD texture.
 void FillBar(CUiMesh* bar, float ratio, float width, float top, float bottom) {
-    bar->visible_ = 1;
+    bar->visible_ = true;
     float u = (ratio * width + 64.0f) * (1.0f / 256.0f) + (1.0f / 512.0f);
     float edge = ratio - 0.5f;
     bar->vertices_[0].x()[2] = edge;
@@ -65,7 +65,7 @@ bool BarRatio(int value, int maximum, float* ratio) {
 // --- Unit panel ----------------------------------------------------------------------------------
 
 void CHudUnitPanel::ShowHealth(CUnit* unit) {
-    SceneMesh(11)->visible_ = 1;
+    SceneMesh(11)->visible_ = true;
     float ratio;
     if (unit->packedVitals.maxHitPoints != 0 && unit->packedVitals.hitPoints > 0 && BarRatio(unit->packedVitals.hitPoints, unit->packedVitals.maxHitPoints, &ratio))
         FillBar(SceneMesh(10), ratio, 100.0f, 0.396484375f, 0.376953125f);
@@ -75,7 +75,7 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
 
     for (int i = 0; i < std::ssize(owner_->party_); ++i) {
         if (owner_->party_[i] != unit) continue;
-        SceneMesh(13)->visible_ = 1;
+        SceneMesh(13)->visible_ = true;
         if (unit->packedVitals.maxMana != 0 && unit->packedVitals.mana != 0 && BarRatio(unit->packedVitals.mana, unit->packedVitals.maxMana, &ratio))
             FillBar(SceneMesh(12), ratio, 100.0f, 0.369140625f, 0.349609375f);
         std::string mana;
@@ -94,14 +94,14 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
     for (int i = 0; i < 6; ++i) {
         const UnitParamsSlot& part = unit->params.slots[i];
         if (part.kind == 0) continue;
-        SceneMesh(15 + 2 * i)->visible_ = 1;
+        SceneMesh(15 + 2 * i)->visible_ = true;
         CUiMesh* bar = SceneMesh(14 + 2 * i);
         float ratio = 0.0f;
         if (part.kind == 3 && part.maximum != 0 && part.current > 0 &&
             BarRatio(part.current, part.maximum, &ratio))
             FillBar(bar, ratio, 50.0f, 0.505859375f, 0.486328125f);
         else
-            bar->visible_ = 0;
+            bar->visible_ = false;
         // The bar's colour row: green above 2/3, yellow above 1/3, else red.
         bar->textureOffsetV_ = ratio > 2.0f / 3.0f ? 0.0f : ratio > 1.0f / 3.0f ? -0.02734375f : -0.0546875f;
 
@@ -163,7 +163,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
     for (int i = 0; i < kPlaces; ++i) icons[i] = places[i] = -1;
     RECT line{40, 35, 155, 50};
 
-    if (std::ssize(unit->effects) > kPlaces) SceneMesh(kMoreMark)->visible_ = 1;
+    if (std::ssize(unit->effects) > kPlaces) SceneMesh(kMoreMark)->visible_ = true;
     // The unit's effects are the map object's records.
     const MapEffect* effects = unit->effects.data();
     for (int i = 0; i < std::ssize(unit->effects) && i < kPlaces; ++i) {
@@ -214,7 +214,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
             effectIcons_[free] = icons[i];
         }
         CUiMesh* icon = SceneMesh(kFirstIcon + i);
-        icon->visible_ = 1;
+        icon->visible_ = true;
         icon->textureOffsetU_ = static_cast<float>(x) * (1.0f / 256.0f);
         icon->textureOffsetV_ = static_cast<float>(y + kIconSize) * (1.0f / 256.0f);
     }
@@ -307,11 +307,11 @@ void CHudTopPanel::ShowItems() {
 void CHudTopPanel::Layout() {
     // Place is Rebirth-patched.
     float offset = static_cast<float>(offset_);
-    SceneMesh(0)->PlaceBody(400.0f, 57.5f - offset, 20.0f);
-    SceneMesh(1)->PlaceBody(400.0f, 10.0f - offset, 20.0f);
-    SceneMesh(3)->PlaceBody(200.0f, 10.0f - offset, 10.0f);
-    SceneMesh(4)->PlaceBody(230.0f, 10.0f - offset, 10.0f);
-    SceneMesh(5)->PlaceBody(400.0f, 47.5f - offset, 18.0f);
+    SceneMesh(0)->Place(400.0f, 57.5f - offset, 20.0f);
+    SceneMesh(1)->Place(400.0f, 10.0f - offset, 20.0f);
+    SceneMesh(3)->Place(200.0f, 10.0f - offset, 10.0f);
+    SceneMesh(4)->Place(230.0f, 10.0f - offset, 10.0f);
+    SceneMesh(5)->Place(400.0f, 47.5f - offset, 18.0f);
     RECT rect{190, 25 - offset_, 610, 89 - offset_};
     owner_->messageLog_->SetRect(&rect);
     for (int i = 1; i < std::ssize(regions_); ++i) {

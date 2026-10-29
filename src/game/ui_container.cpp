@@ -6,12 +6,6 @@
 
 #include "ei/x87.h"
 
-namespace {
-// The scene renderer: the last frame's length in milliseconds.
-std::uint32_t FrameMilliseconds() { return g_sceneRenderer->FrameTime(); }
-
-} // namespace
-
 // --- Construction and destruction --------------------------------------------------------------
 
 CUiContainer::CUiContainer(CInterface3D* ui) : CUiWindow(ui) {
@@ -36,8 +30,8 @@ void CUiContainer::AddInput(UiInputSide* input) {
 
 // --- Per-frame slots ---------------------------------------------------------------------------
 
-// The milliseconds are loaded as an unsigned qword and multiplied by the float 0.001.
-double CUiContainer::FrameTime() { return x87::FromUnsigned(FrameMilliseconds()) * static_cast<double>(0.001f); }
+// The scene renderer's last frame's milliseconds are loaded as an unsigned qword and multiplied by the float 0.001.
+double CUiContainer::FrameTime() { return x87::FromUnsigned(g_sceneRenderer->FrameTime()) * static_cast<double>(0.001f); }
 
 void CUiContainer::UpdateBase() {
     for (int i = 0; i < std::ssize(children_); ++i) children_[i]->Update();

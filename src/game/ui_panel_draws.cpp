@@ -84,10 +84,10 @@ void CHeroQuickStrip::Draw(CSceneRenderer* pass) {
     auto* frame = SceneMesh(0);
     int count = std::ssize(hero->spells);
     if (selected_ >= 0 && selected_ < count) {
-        frame->visible_ = 1;
+        frame->visible_ = true;
         frame->Place(static_cast<float>(selected_ * 100 + 50), static_cast<float>(y_ + 50), 3.0f);
     } else {
-        frame->visible_ = 0;
+        frame->visible_ = false;
     }
     for (int i = 0; i < std::ssize(hero->spells); ++i) {
         ItemCell cell{hero->spells[i], static_cast<float>(i * 100 + 50),
@@ -122,10 +122,10 @@ void CRepairGrid::Draw(CSceneRenderer* pass) {
         int pieces = static_cast<int>(item->count_);   // the stack's count
         if (pieces > 1) {
             RECT r{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23};
-            surface->DrawLine(str::Format("%d", pieces), &r, 1, kTextColour, 2, 1);
+            surface->DrawTextIn(str::Format("%d", pieces), &r, 1, kTextColour, 2, 1);
         }
         RECT r{x + 0x0F, y + 0x41, x + 0x55, y + 0x55};
-        surface->DrawLine(str::Format("%d", owner_->Price(item, 8)), &r, 1, kTextColour, 1, 1);
+        surface->DrawTextIn(str::Format("%d", owner_->Price(item, 8)), &r, 1, kTextColour, 1, 1);
     }
     DrawBase(pass);
     ClearUiDepth(1.0f, &screen, 1);
@@ -181,19 +181,19 @@ void CSpellMakerPage::Draw(CSceneRenderer* pass) {
     RECT second{10, 20, 200, 40};
     if (hasSpell) {
         PartySkill best = owner_->BestPartySkill(school);
-        surface->DrawLine(str::Format(kCostFormat, texts_[0], best.skill, needed), &first, 1, kTextColour, 0, 1);
+        surface->DrawTextIn(str::Format(kCostFormat, texts_[0], best.skill, needed), &first, 1, kTextColour, 0, 1);
         // The larger of the two (the last spell's when the sum is smaller or unordered).
         float shown = manaSum >= lastMana ? manaSum : lastMana;
-        surface->DrawLine(str::Format(kCostFormat, texts_[1], best.mana, static_cast<int>(shown)), &second, 1,
+        surface->DrawTextIn(str::Format(kCostFormat, texts_[1], best.mana, static_cast<int>(shown)), &second, 1,
                           kTextColour, 0, 1);
     } else {
-        surface->DrawLine(texts_[0], &first, 1, kTextColour, 0, 1);
-        surface->DrawLine(texts_[1], &second, 1, kTextColour, 0, 1);
+        surface->DrawTextIn(texts_[0], &first, 1, kTextColour, 0, 1);
+        surface->DrawTextIn(texts_[1], &second, 1, kTextColour, 0, 1);
     }
     DrawBase(pass);
 
     CUiMesh* highlight = SceneMesh(kHighlight);
-    highlight->visible_ = 1;
+    highlight->visible_ = true;
     Pulse pulse = Advance(this);
     if (!hasContainer) {
         if (hasSpell) {
@@ -206,7 +206,7 @@ void CSpellMakerPage::Draw(CSceneRenderer* pass) {
             DrawSprite(highlight, pass, 350.0f, 300.0f);
         }
     }
-    highlight->visible_ = 0;
+    highlight->visible_ = false;
 }
 
 void CConstructorPage::Draw(CSceneRenderer* pass) {
@@ -251,7 +251,7 @@ void CConstructorPage::Draw(CSceneRenderer* pass) {
         }
     }
     CUiMesh* highlight = SceneMesh(kHighlight);
-    highlight->visible_ = 1;
+    highlight->visible_ = true;
     Pulse pulse = Advance(this);
     highlight->flatColour_ = Colour(pulse.alpha, pulse.high, pulse.low);
     if (!hasBlueprint) {
@@ -279,5 +279,5 @@ void CConstructorPage::Draw(CSceneRenderer* pass) {
             }
         }
     }
-    highlight->visible_ = 0;
+    highlight->visible_ = false;
 }

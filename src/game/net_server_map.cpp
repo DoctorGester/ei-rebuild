@@ -50,9 +50,9 @@ void ServerSession::SetMap(const std::string* name) {
     world->RegisterQuests(name->data());
     world->SetNetworkZone(name->data());
     {
-        std::string title, text;
+        std::string title;
         const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
-        Announce((*g_interface->MessageText(&text, 5, mapTitle)), nullptr);
+        Announce(g_interface.MessageText(5, mapTitle), nullptr);
     }
 
     QuestBriefingRecord* entry;

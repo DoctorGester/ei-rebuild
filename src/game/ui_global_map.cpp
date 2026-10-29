@@ -291,7 +291,7 @@ void CGlobalMap::CreateScreen() {
         haze->flags_ |= kPlainSprite;
         CUiMesh* glow = builder.Layer(0, 0x100, 0x100, 2.0f);
         glow->flatColour_ = 0xB9690AC3;
-        glow->visible_ = 0;
+        glow->visible_ = false;
         glow->flags_ |= kPlainSprite;
     }
 
@@ -304,9 +304,9 @@ void CGlobalMap::CreateScreen() {
         shade->texture_ = nullptr;
         shade->flags_ |= kPlainSprite;
         shade->flatColour_ = 0xA0000000;
-        shade->visible_ = 0;
+        shade->visible_ = false;
         CUiMesh* picture = AddBlankSprite();
-        picture->visible_ = 0;
+        picture->visible_ = false;
         picture->texture_ = builder.Texture(3);
     }
     {
@@ -350,7 +350,7 @@ void CGlobalMap::CreateScreen() {
         camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
         camp->texture_ = builder.Texture(3);
         noCamp_ = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable("i.nocamp")))) == 1;
-        if (noCamp_) camp->visible_ = 0;
+        if (noCamp_) camp->visible_ = false;
         CUiMesh* left = AddBlankSprite();
         left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
         left->texture_ = builder.Texture(3);
@@ -447,7 +447,7 @@ void CGlobalMap::Update() {
 
     // The weather is drawn into texture 4 on the GPU (the original wrote its pixels under the device lock).
     if (std::ssize(objects_) > 4) weather_->Draw(objects_[4]->surface_, static_cast<float>(FrameTime()));
-    g_cursor->ChangeShape(dragging_ ? 0x16 : 0);
+    g_cursor.SetShape(dragging_ ? 0x16 : 0);
 }
 
 // --- Draw -------------------------------------------------------------------------------

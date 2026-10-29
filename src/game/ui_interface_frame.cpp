@@ -28,18 +28,6 @@ namespace {
 // The value a window leaves pending that ends the game session (the message boxes' "yes").
 constexpr std::uint32_t kLeaveGame = 0x990001;
 
-void SetCursorShape(int shape) { g_cursor->ChangeShape(shape); }
-
-void ReleaseBackdrop(CUiSurface* surface) {
-    if (!surface) return;
-    delete surface;
-}
-
-int Compare(const std::string& word, const char* text) {
-    return str::Compare(word,
-                           text);
-}
-
 } // namespace
 
 void CInterface3D::Update() {
@@ -48,7 +36,7 @@ void CInterface3D::Update() {
     // server flag to the world server (single player), and the window below gets the value.
     while (pendingFlag_) {
         pendingFlag_ = false;
-        SetCursorShape(3);
+        g_cursor.SetShape(3);
         ctrlDown_ = false;
         altDown_ = false;
         shiftDown_ = 0;
@@ -62,15 +50,15 @@ void CInterface3D::Update() {
         }
         app::PumpMessages();
         if (backdropMode_ == 4) {
-            ReleaseBackdrop(backdrop_);
+            delete backdrop_;
             CUiSurface* next = secondBackdrop_;
             secondBackdrop_ = nullptr;
             backdrop_ = next;
             backdropMode_ = next ? 2 : 0;
-            if (next) next->SwapContents(1);
+            if (next) next->SwapContents(true);
         }
         if (std::ssize(stack_) == 1) {
-            ReleaseBackdrop(backdrop_);
+            delete backdrop_;
             backdrop_ = nullptr;
             if (screenCopy_) delete[] screenCopy_;
             screenCopy_ = nullptr;
@@ -88,12 +76,12 @@ void CInterface3D::Update() {
             g_gameFlow->CloseSessions();
         }
         mouseCapture_ = nullptr;
-        SetCursorShape(0);
+        g_cursor.SetShape(0);
     }
     if (pollTop_ && !stack_.empty()) pollTop_ = !ScreenOf(stack_.back())->ReadyToStopPolling();
     if (closeAll_) {
         closeAll_ = false;
-        SetCursorShape(3);
+        g_cursor.SetShape(3);
         while (!stack_.empty()) {
             stack_.back()->Input()->Deactivate();
             ScreenOf(stack_.back())->CloseScreen();
@@ -108,8 +96,8 @@ void CInterface3D::Update() {
         Activate(queuedWindow_);
         queuedWindow_ = nullptr;
     }
-    mouseX_ = g_cursor->position_.x;
-    mouseY_ = g_cursor->position_.y;
+    mouseX_ = g_cursor.position_.x;
+    mouseY_ = g_cursor.position_.y;
     if (disconnected_ && IsMultiplayerClient() && net::g_gameClient->joinState_ != 2) {
         disconnected_ = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's
@@ -125,7 +113,6 @@ void CInterface3D::Update() {
 
 void CInterface3D::OnStringEvent(std::string_view event) {
     std::vector<std::string> words;
-    std::string unused;
     std::string text(event);
     text::SplitWords(text, &words, ' ');
     str::MakeLower(words[0]);
@@ -143,22 +130,22 @@ void CInterface3D::OnStringEvent(std::string_view event) {
         return;
     }
     auto top = [this]() { return stack_.back(); };
-    if (Compare(words[0], "say") == 0 || Compare(words[0], "say_block") == 0) {
+    if (str::Compare(words[0], "say") == 0 || str::Compare(words[0], "say_block") == 0) {
         // "say" / "say_block" text [key]: the top window shows the text.
         if (words.size() < 2) return;
         int number = words.size() > 2 ? TextKeyFromName(words[2]) : 0;
-        AckKind kind = Compare(words[0], "say_block") != 0 ? AckKind::Scenario : AckKind::ScenarioTalking;
+        AckKind kind = str::Compare(words[0], "say_block") != 0 ? AckKind::Scenario : AckKind::ScenarioTalking;
         if (!stack_.empty())
             ScreenOf(top())->Speech(number, kind, const_cast<char*>(words[1].c_str()));
-    } else if (Compare(words[0], "tutorial") == 0) {   // queued
+    } else if (str::Compare(words[0], "tutorial") == 0) {   // queued
         if (words.size() < 2) return;
         messages_.insert(messages_.end(), words[1]);
-    } else if (Compare(words[0], "briefing") == 0) {
+    } else if (str::Compare(words[0], "briefing") == 0) {
         if (words.size() < 2 || stack_.empty()) return;
         ScreenOf(top())->ShowBriefing(words[1]);
-    } else if (Compare(words[0], "autosave") == 0) {
+    } else if (str::Compare(words[0], "autosave") == 0) {
         pollTop_ = true;
-    } else if (Compare(words[0], "endofgame") == 0) {
+    } else if (str::Compare(words[0], "endofgame") == 0) {
         if (!stack_.empty()) ScreenOf(top())->GameOver(1);
     }
 }

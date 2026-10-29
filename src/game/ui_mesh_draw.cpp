@@ -5,7 +5,6 @@
 #include "render/render.h"   // SetInterfaceDraw
 #include "ui.h"
 #include "ui_widescreen.h"
-#include "world_class_slots.h"   // I3DFigureClassName / Id
 
 #include "lib/crt.h"
 
@@ -26,8 +25,9 @@ constexpr int kStackView = 2;
 constexpr Quaternion kIdentityOrientation = /*007C7CD8*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
 constexpr float kSpriteDepth = 10.0f;
 constexpr std::uint32_t kOpaqueBlack = 0xFF000000;
-const char* SetTextureFailed() { return "CI3DFigure::Draw.\n SetTexture failed.\n"; }
-const char* DrawFailed() { return "CI3DFigure::Draw.\n CFigure::Draw failed.\n"; }
+constexpr const char* kClassName = "CI3DFigure";
+constexpr const char* kSetTextureFailed = "CI3DFigure::Draw.\n SetTexture failed.\n";
+constexpr const char* kDrawFailed = "CI3DFigure::Draw.\n CFigure::Draw failed.\n";
 
 // One component of the tint as a colour byte: the product stored as a float, then rounded to the nearest
 // integer.
@@ -49,7 +49,7 @@ void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
 // The layout's 1 / 400 and 0.75 with the constants above. Rebirth's WideScreen replaces it (addon's
 // 10023151): x moved by the panel offset first (an integer add; 0 outside its panel builders,
 // ui_widescreen.h).
-void CUiMesh::PlaceBody(float x, float y, float depth) {
+void CUiMesh::Place(float x, float y, float depth) {
     if (widescreen::Active()) x += static_cast<float>(widescreen::PanelOffset());
     float placedX = (x * 0.0025f - 1.0f) * 0.48157462f * depth;
     float placedY = (y * 0.0025f - 0.75f) * 0.48157462f * depth;
@@ -61,11 +61,14 @@ void CUiMesh::PlaceBody(float x, float y, float depth) {
 // Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds the placement from the
 // orientation and position, pushes it on the view and world stacks, then the scale matrix on both (the view
 // stack's push inlined), draws the sprite as a figure in its tint (the renderer's colour put back after) with
-// its material, and drops both pushes from both stacks. Returns 1 (or the fatal error's result).
-int CUiMesh::Draw(CSceneRenderer* renderer) {
-    if (!visible_) return 1;
+// its material, and drops both pushes from both stacks.
+void CUiMesh::Draw(CSceneRenderer* renderer) {
+    if (!visible_) return;
     CTransformPipeline* pipeline = renderer->pipeline_;
-    if (!renderer->SetTexture(0, texture_)) return game::FatalError(SetTextureFailed());
+    if (!renderer->SetTexture(0, texture_)) {
+        game::FatalError(kSetTextureFailed);
+        return;
+    }
 
     localRotation_.ToMatrix(worldMatrix_.m);
     worldMatrix_.m[3] = localPosition_.x;
@@ -91,7 +94,10 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     const int drawn = renderer->DrawFigure(this, static_cast<CMaterial*>(material_), 0xFF, nullptr);
     render::SetInterfaceDraw(false);
     renderer->SetColour(saved);
-    if (!drawn) return game::FatalError(DrawFailed());
+    if (!drawn) {
+        game::FatalError(kDrawFailed);
+        return;
+    }
 
     MatrixStack& view = pipeline->stacks_[kStackView];
     MatrixStack& world = pipeline->stacks_[kStackWorld];
@@ -99,10 +105,14 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     Pop(world);
     Pop(view);
     Pop(world);
-    return 1;
 }
 
-void CUiMesh::CreateSprite() {
+// --- The class 0x43's lifetime and slots ---------------------------------------------------
+
+CUiMesh::CUiMesh() {}
+CUiMesh::~CUiMesh() {}
+
+void CUiMesh::Create() {
     CreateMesh();
     material_ = nullptr;
     texture_ = nullptr;
@@ -123,17 +133,16 @@ void CUiMesh::CreateSprite() {
     localPosition_.z = kSpriteDepth;
     flatColour_ = kOpaqueBlack;
     flatSpecular_ = kOpaqueBlack;
-    visible_ = 1;
+    visible_ = true;
 }
 
-// --- The class 0x43's lifetime and slots ---------------------------------------------------
+void CUiMesh::Destroy() {
+    material_ = nullptr;
+    texture_ = nullptr;
+    CPlainFigureMesh::Destroy();
+}
 
-CUiMesh::CUiMesh() {}
-CUiMesh::~CUiMesh() {}
-
-void CUiMesh::Create() { CreateSprite(); }
-void CUiMesh::Destroy() { DestroySprite(); }
-const char* CUiMesh::ClassName() { return I3DFigureClassName(this); }
+const char* CUiMesh::ClassName() { return kClassName; }
 ClassId CUiMesh::GetClassId() { return ClassId::UiMesh; }
 
 // --- The arrays' sizes ---------------------------------

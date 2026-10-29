@@ -80,11 +80,11 @@ public:
     const std::string& Skill(int index) const { return panel_->skillTexts_[index]; }
 
     void Down() { gameapi::OffsetRect(&rect_, 0, 15); }
-    void Text(std::string_view text) { draw->DrawLine(text, &rect_, 0, kText, 0, 1); }
+    void Text(std::string_view text) { draw->DrawTextIn(text, &rect_, 0, kText, 0, 1); }
     void Value(std::string_view text) {
         RECT shifted = rect_;
         gameapi::OffsetRect(&shifted, -10, 0);
-        draw->DrawLine(text, &shifted, 0, kText, 2, 1);
+        draw->DrawTextIn(text, &shifted, 0, kText, 2, 1);
     }
     void Title(std::string_view text) { draw->DrawWrappedText(text, &rect_, 2, 0, kWhite, 0x11, 1); }
     void Wrapped(std::string_view text, int maxLines) {
@@ -209,7 +209,7 @@ void PerkLines(Writer& w, const ItemHoverInfo& info, std::string& title) {
         key += level->name;
         if (texts->Open(key)) texts->ReadLine(&title, 1);
         w.Text(title);
-        if (info.index > i) w.draw->DrawLine(w.Skill(21), &w.rect_, 0, kText, 2, 1);   // learned
+        if (info.index > i) w.draw->DrawTextIn(w.Skill(21), &w.rect_, 0, kText, 2, 1);   // learned
         w.Down();
         int value = static_cast<int>(level->values[7]);
         const char* percent = "     %s %d%%";

@@ -282,8 +282,8 @@ ui_quicksave's 29 frames under `uinative` equal the `uiboth` ones exactly.
 
 ### P2 done (2026-10-29): text through the glyph atlas, `ui_native::Text`
 
-**What is drawn natively.** `CUiSurface::DrawTextIn` 005FDE20 (`ui_text_draw.cpp`; `DrawLine` and `DrawWrappedText`
-005FDFA0 reach it) asks `ui_native::Text` first. On a native surface (any surface `Adopt` gave a canvas, and the screen
+**What is drawn natively.** `CUiSurface::DrawTextIn` 005FDE20 (`ui_text_draw.cpp`; `DrawWrappedText`
+005FDFA0 reaches it) asks `ui_native::Text` first. On a native surface (any surface `Adopt` gave a canvas, and the screen
 copies) the text is laid out by `render::text::Layout` (DrawText's rules, section 2) in `TextFontOf(font)` and drawn
 with `GlyphRun`: the shadow in 0x080808 at +1,+1 first, then the colour. No GDI draws it. Surfaces that are not native
 draw with GDI as before; so without a `ui` word in EI_RENDER nothing changes on screen yet (P3a-d adopt the window
@@ -337,7 +337,7 @@ or moved: the menus' help page, options, boxes, the HUD, camp and base screens) 
 
 **API for P3a-d and P4** (`src/game/ui_native.h`):
 - A window family goes native with `ui_native::Adopt(surface, "<family>")` where the surface is made (one line in the
-  family's file); its `DrawTextIn` / `DrawLine` / `DrawWrappedText` text then follows on its own.
+  family's file); its `DrawTextIn` / `DrawWrappedText` text then follows on its own.
 - Direct `dc->DrawText` users (the console: P4) call `ui_native::Text(surface, font, text, rect,
   format, colour, shadow, &height)` and draw with GDI only when it returns `Gdi` / `AlsoGdi`; any HFONT works
   (`TextFontOf` reads its face, height, weight and quality: the console's Courier New becomes Liberation Mono placed
@@ -435,7 +435,7 @@ for now; the other families have no wide layout of their own). None of these hol
 construction here.
 
 **Still GDI, and why.** The hero screen's and the exchange window's edit fields (`CUiEditField`, their own surfaces): P5 (carets).
-Everything the families' windows draw through the surface functions (Clear, DrawLine, DrawWrappedText, DrawTextIn) is recorded; none
+Everything the families' windows draw through the surface functions (Clear, DrawWrappedText, DrawTextIn) is recorded; none
 of these files uses a pen, FillSolidRect or SetPixel directly.
 
 **Checked** (2026-10-29). `EI_RENDER_EXTRA=uiboth`: the 45 `ui_*` scenarios and `net_pair_zone` pass with 0 differing surfaces

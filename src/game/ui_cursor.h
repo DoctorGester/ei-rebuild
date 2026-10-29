@@ -5,7 +5,6 @@
 #include <cstddef>
 
 #include "lib/containers.h"
-#include "lib/static_object.h"
 
 #include <cstdint>
 
@@ -76,15 +75,18 @@ struct CursorImage {
 
 class CCursor {
 public:
-    int SetShape(int shape) { return ChangeShape(shape); }
+    // Not enabled, no device; the lock made.
+    CCursor();
+    // The lock deleted, the device released.
+    ~CCursor();
+    CCursor(const CCursor&) = delete;
+    CCursor& operator=(const CCursor&) = delete;
 
-    CCursor* Construct();
-    void DestroyBody();
     // Unless no shape is selected yet or the cursor is not enabled (-1): under the lock, shape `shape` and
     // its image become current with the image's current frame as `from_`; returns the previous shape.
-    int ChangeShape(int shape);
-    void ShowImage(int shown);
-    void SetHeld(char held);
+    int SetShape(int shape);
+    void ShowImage(bool shown);
+    void SetHeld(bool held);
     void TakeLock();
     void ReleaseLock();
     // Shape 0 (its image and frame) under the lock; unless in mode 1 the drawing thread started
@@ -98,41 +100,40 @@ public:
     // (or heldPosition_ while held) clamped into the bounds, places rect_ at the previous position less the
     // hot spot (the frame's size, clipped to the bounds, `from_` clipped the same way) and keeps the new
     // position. Returns whether the frame stepped or the position changed.
-    char UpdatePosition();
+    bool UpdatePosition();
 
     // Sets the cursor up on `device` (a reference taken, the old one's dropped) in `mode` with `mouse`;
-    // `smallCursors` (low byte) picks 16-pixel cursors instead of 32. Makes the end event and the bounds (the
-    // screen's size).
-    void Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, int smallCursors);
+    // `smallCursors` picks 16-pixel cursors instead of 32. Makes the end event and the bounds (the screen's size).
+    void Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, bool smallCursors);
     void AddShape(const char* name, int hotX, int hotY);
 
-    int mode_;                       // 2: the background is saved from the primary without an image
-    CTextureDevice* device_;         // referenced
-    CDirectInputMouse* mouse_;       // polled for the motion
-    int imageShown_;                 // an image is shown
-    CursorImage* image_;
-    std::uint32_t imageSpare_;       // 0 from Init and Shutdown (with image_); nothing reads it
-    int shape_;                      // the shape SetShape selected
-    HANDLE stopped_;                 // set when the cursor thread ends
-    RECT drawn_;                     // the rectangle drawn last
-    RECT rect_;                      // the cursor's screen rectangle
-    RECT from_;                      // the part of the image shown
-    RECT bounds_;
+    int mode_ = 0;                   // 2: the background is saved from the primary without an image
+    CTextureDevice* device_ = nullptr;   // referenced
+    CDirectInputMouse* mouse_ = nullptr;   // polled for the motion
+    bool imageShown_ = false;        // an image is shown
+    CursorImage* image_ = nullptr;
+    std::uint32_t imageSpare_ = 0;   // 0 from Init and Shutdown (with image_); nothing reads it
+    int shape_ = 0;                  // the shape SetShape selected
+    HANDLE stopped_ = nullptr;       // set when the cursor thread ends
+    RECT drawn_ = {};                // the rectangle drawn last
+    RECT rect_ = {};                 // the cursor's screen rectangle
+    RECT from_ = {};                 // the part of the image shown
+    RECT bounds_ = {};
     std::vector<CursorImage*> images_;   // the shapes (AddShape)
-    POINT position_;                 // the position drawn last
-    POINT heldPosition_;             // the position kept while held
-    POINT motion_;                   // the mouse motion summed
-    std::uint8_t held_;              // the cursor stays at heldPosition_
-    std::uint8_t enabled_;           // the cursor exists (created)
-    DWORD frameTime_;                // when the image's frame last stepped
-    HANDLE thread_;                  // the drawing thread (lib::StartThread), or null
-    int stop_;                       // asks the cursor thread to end
+    POINT position_ = {};            // the position drawn last
+    POINT heldPosition_ = {};        // the position kept while held
+    POINT motion_ = {};              // the mouse motion summed
+    bool held_ = false;              // the cursor stays at heldPosition_
+    std::uint8_t enabled_ = 0;       // the cursor exists (created)
+    DWORD frameTime_ = 0;            // when the image's frame last stepped
+    HANDLE thread_ = nullptr;        // the drawing thread (lib::StartThread), or null
+    int stop_ = 0;                   // asks the cursor thread to end
     CRITICAL_SECTION lock_;
 };
 // The software cursor drawn into the render target before the present.
 void CursorDrawFrame(CCursor* self);
 
-extern lib::StaticObject<CCursor> g_cursor;
+extern CCursor g_cursor;
 
 void SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors);
 void ResetCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors);

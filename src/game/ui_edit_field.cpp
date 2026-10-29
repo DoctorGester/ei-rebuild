@@ -33,12 +33,6 @@ constexpr std::uint32_t kClassLetter = 2;      // letters and the space
 constexpr std::uint32_t kClassOther = 4;
 constexpr std::uint32_t kClassSeparator = 8;   // '.' and ':'
 
-int TextWidth(CInterface3D* ui, const std::string& text, int font) {
-    SIZE size;
-    ui->TextExtent(&size, text, font);
-    return size.cx;
-}
-
 // The class of typed character `key` that charClasses_ admits or not. A character past ASCII is a code point: a
 // letter when Windows calls it one.
 std::uint32_t CharClass(int key) {
@@ -139,7 +133,7 @@ void CUiEditField::Char(int key, int, int) {
     std::string tail = str::Mid(text, caret_);
     std::string head = str::Left(text, caret_);
     std::string typed = text::Typed(head, key) + tail;
-    if (text::CharacterCount(text) < maxLength_ && TextWidth(interface_, typed, font_) < area_.right - area_.left) {
+    if (text::CharacterCount(text) < maxLength_ && interface_->TextExtent(typed, font_).cx < area_.right - area_.left) {
         text = typed;
         changed_ = true;
         caret_ += text::TypedLength(key);
@@ -186,8 +180,8 @@ void CUiEditField::DrawContentsVanilla() {
     surface->DrawTextIn(text, &box, font_, colour_, centred_ ? DT_NOPREFIX | DT_CENTER : DT_NOPREFIX, 1);
     // The caret stands after the first caret_ characters; a centred text starts half its width left
     // of the middle.
-    int caretX = TextWidth(interface_, str::Left(text, caret_), font_);
-    if (centred_) caretX += width / 2 - TextWidth(interface_, text, font_) / 2;
+    int caretX = interface_->TextExtent(str::Left(text, caret_), font_).cx;
+    if (centred_) caretX += width / 2 - interface_->TextExtent(text, font_).cx / 2;
     if (caretX >= 0 && caretX < width) {
         POINT top{caretX, 0};
         POINT bottom{caretX, height};

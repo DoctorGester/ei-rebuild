@@ -37,7 +37,7 @@ void CInterface3D::ResetInput() {
 }
 
 void CInterface3D::Shutdown() {
-    g_cursor->SetShape(kCursorWait);
+    g_cursor.SetShape(kCursorWait);
     while (!stack_.empty()) {
         stack_.back()->Input()->Deactivate();
         ScreenOf(stack_.back())->CloseScreen();
@@ -84,14 +84,6 @@ void CInterface3D::Shutdown() {
     keybind::SaveKeyBindings();
     for (UiFont& font : fonts_) font = UiFont{};
     delete fade_;   // (the pointer is not cleared)
-}
-
-void CInterface3D::DestroyBody() {
-    std::destroy_at(&savedText_);
-    std::destroy_at(&messageText_);
-    std::destroy_at(&helpTopics_);
-    std::destroy_at(&messages_);
-    std::destroy_at(&stack_);
 }
 
 console::ConsoleWindow::~ConsoleWindow() {

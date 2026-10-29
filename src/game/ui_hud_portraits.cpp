@@ -130,7 +130,7 @@ void CHudPortraits::Wobble(int index, int kind) {
 
 void CHudPortraits::Update() {
     float dt = GamePaused() ? 0.0f : static_cast<float>(CUiContainer::FrameTime());
-    SceneMesh(0)->visible_ = 0;   // the selection marker
+    SceneMesh(0)->visible_ = false;   // the selection marker
 
     for (int i = 0; i < std::ssize(owner_->party_); ++i) {
         if (i >= count_) continue;
@@ -166,12 +166,12 @@ void CHudPortraits::Update() {
         slot.flash_ = slot.flash_ >= 0.0f ? slot.flash_ : 0.0f;
         CEngineObject* flash = object(5);
         if (slot.flash_ > 0.0f) {
-            AsUiMesh(flash)->visible_ = 1;
+            AsUiMesh(flash)->visible_ = true;
             int alpha = static_cast<int>(libcrt::Ftol(D(slot.flash_) * kFlashAlpha));
             std::uint32_t colour = static_cast<std::uint32_t>(alpha) << 24 | 0xFF0000u;
             AsUiMesh(flash)->flatColour_ = colour;
         } else {
-            AsUiMesh(flash)->visible_ = 0;
+            AsUiMesh(flash)->visible_ = false;
         }
 
         // The face picture: a timed one (hit, mode 1) while it lasts, else low mana or normal.
@@ -281,7 +281,7 @@ void CHudPortraits::Update() {
 
         // The selection marker (object 0) sits above the selected unit's portrait (object 5i+4).
         if (g_camera->targetId_ == unit->id_) {
-            SceneMesh(0)->visible_ = 1;
+            SceneMesh(0)->visible_ = true;
             float x, y, depth;
             AsUiMesh(object(4))->GetPlacement(&x, &y, &depth);
             SceneMesh(0)->Place(x, static_cast<float>(D(y) - kMarkerRise), kMarkerDepth);

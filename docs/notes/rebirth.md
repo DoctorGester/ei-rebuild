@@ -294,7 +294,7 @@ function named in the csv's WideScreen rows; WideScreen has no leftovers.
 **Layout and scaling (W1).** The layout is computed from the same settings (read through the game's own RegQueryValueExA import, so
 harness runs can answer them); the two widths are written at hook time (an `EI_STARTUP_ACTION`, `include/ei/hook.h`: runs after the Rebirth
 flags are known and before the hooks are installed); the scaling 005F7CA0 / 005F7D20 / 005F7DA0 / 005F7E00 / 005F7E30, SetRect / AddPoint
-(005FC9E0, 005FCA70) and `CUiMesh::PlaceBody` (005E6FA0). 005F7D60 is a dead copy of 005F7D20.
+(005FC9E0, 005FCA70) and `CUiMesh::Place` (005E6FA0). 005F7D60 is a dead copy of 005F7D20.
 - addon's scaling tests ECX and adds / takes off the margin only when it is nonzero; its entries 005F7D9E / 005F7DFE (in front of 005F7DA0 /
   005F7E00, written over with its 194-byte #93) clear ECX, and its code at 005FDE94 (in 005FDE20, the text surfaces' draw) calls 005F7CA0
   with ECX 0. The five hooks are `__fastcall` entries (`ScaleRectToScreenEntry` etc., ui.h) that take ECX 0 as "no interface": the wide

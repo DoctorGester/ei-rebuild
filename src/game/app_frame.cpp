@@ -35,8 +35,8 @@ bool Running() { return app::g_active != 0 && app::g_interfaceHasScreen != 0; }
 // The software cursor's lock, unless the harness hooks the call (ei/main_loop.h): its frame capture reads the
 // finished frame before the cursor is blitted and the frame flipped (tests/verify/harness_capture.cpp).
 void LockCursorAtCallSite() {
-    if (auto hook = ei::mainloop::g_harnessHooks.cursorLock) hook(&g_cursor.Get());
-    else g_cursor->TakeLock();
+    if (auto hook = ei::mainloop::g_harnessHooks.cursorLock) hook(&g_cursor);
+    else g_cursor.TakeLock();
 }
 
 // The movie list's .ini path: the folder and the file name joined into `a0`.
@@ -49,19 +49,19 @@ std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame 
 // Nothing while the application is inactive (a 50 ms sleep when no window of the interface is active).
 void FrameStep(bool draw, bool cursor) {
     if (!Running()) return;
-    if (!g_interface->GetActiveWindow()) {
+    if (!g_interface.GetActiveWindow()) {
         gameapi::Sleep(50);
         return;
     }
     if (!g_sceneRenderer->BeginScene()) return;
-    g_interface->Draw();
+    g_interface.Draw();
     g_sceneRenderer->EndScene();
-    if (cursor) g_interface->DrawOverlays();
+    if (cursor) g_interface.DrawOverlays();
     if (!draw || !Running()) return;
     LockCursorAtCallSite();
-    CursorDrawFrame(&g_cursor.Get());
+    CursorDrawFrame(&g_cursor);
     if (DevicePresent(g_sceneRenderer->device_)) game::FatalError("Can't flip render surface");   // "Can't flip render surface"
-    g_cursor->ReleaseLock();
+    g_cursor.ReleaseLock();
     if (!app::g_recordingFrames) return;
     char path[256];
     std::snprintf(path, sizeof(path), "%sshot%.4d.bmp", g_movieFolder.c_str(), g_movieFrame);

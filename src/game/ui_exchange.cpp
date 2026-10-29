@@ -144,7 +144,7 @@ void CExchangeScreen::CreateScreen() {
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
     CUiMesh* sprite = AddBlankSprite();
     sprite->SetRectangle(3.0f, 100.0f, 12.0f, 150.0f, 52.0f, 190.0f, 0xA5, 0xAC, 0xCD, 0xD4);
-    sprite->visible_ = 0;
+    sprite->visible_ = false;
     sprite = AddBlankSprite();
     sprite->SetRectangle(3.0f, 100.0f, 740.0f, 460.0f, 780.0f, 490.0f, 0x7D, 0xE0, 0xA5, 0xFE);
     sprite->tint_[0] = 0.5f;
@@ -202,9 +202,9 @@ void CExchangeScreen::Draw(CSceneRenderer* pass) {
     // What is under the mouse: an item of the strip or else of the grid, or a help topic.
     hoveredItem_ = nullptr;
     int topic = 0;
-    hoveredItem_ = strip_->ItemAt(g_cursor->position_.x, g_cursor->position_.y, &topic);
+    hoveredItem_ = strip_->ItemAt(g_cursor.position_.x, g_cursor.position_.y, &topic);
     if (!hoveredItem_ && !topic)
-        hoveredItem_ = grid_->ItemAt(g_cursor->position_.x, g_cursor->position_.y, &topic);
+        hoveredItem_ = grid_->ItemAt(g_cursor.position_.x, g_cursor.position_.y, &topic);
     if (hoveredItem_) {
         if (descPanel_) descPanel_->Describe(hoveredItem_);
     } else if (topic) {

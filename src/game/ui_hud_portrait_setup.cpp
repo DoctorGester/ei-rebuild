@@ -129,12 +129,12 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
     health->SetRectangle(7.0f, barScale, static_cast<float>(x + 3), 587.0f, static_cast<float>(right - 3), 592.0f, 9, 9,
                          0x49, 0x16);
     health->texture_ = objects_[0];
-    if (hasPlayer) health->visible_ = 0;
+    if (hasPlayer) health->visible_ = false;
     CUiMesh* mana = AddBlankSprite();
     mana->SetRectangle(7.0f, barScale, static_cast<float>(x + 3), 592.0f, static_cast<float>(right - 3), 597.0f, 9, 0x23,
                        0x49, 0x30);
     mana->texture_ = objects_[0];
-    if (hasPlayer) mana->visible_ = 0;
+    if (hasPlayer) mana->visible_ = false;
     CUiMesh* frame = AddBlankSprite();
     frame->SetFrame(20.0f, 80.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 600.0f, 3.0f, 0x1B, 0x60, 0x5A,
                     0x65);
@@ -144,9 +144,9 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
                         0x100);
     flash->texture_ = nullptr;
     flash->flags_ |= 0x100;
-    flash->visible_ = 0;
+    flash->visible_ = false;
 
-    AsUiMesh(sceneObjects_[column * 5 + 4])->visible_ = 0;   // the column's frame
+    AsUiMesh(sceneObjects_[column * 5 + 4])->visible_ = false;   // the column's frame
     slots_[column].restB_ = kHudRestRotation;
     ++count_;
     AddRegion()->SetRect(x, 510, right, 600);
@@ -184,7 +184,7 @@ void CHudPortraits::Rebuild(bool wide) {
         AddPortrait(model, picture, wide, false);
 
         if (owner_->party_[i]->flags_ & 0x10) {
-            AsUiMesh(sceneObjects_[i * 5 + 4])->visible_ = 1;
+            AsUiMesh(sceneObjects_[i * 5 + 4])->visible_ = true;
             Quaternion turn;
             slots_[i].restB_ = *turn.SetAxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, kHudQuarterTurn * kSeventh);
         }

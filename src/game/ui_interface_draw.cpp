@@ -122,7 +122,7 @@ void CInterface3D::DrawOverlays() {
         backdropMode_ = 2;
     } else if (backdropMode_ == 3) {
         // A window opens over a window: the screen as it is, the old backdrop put aside.
-        if (backdrop_) backdrop_->CallSwapContents(0);
+        if (backdrop_) backdrop_->SwapContents(false);
         secondBackdrop_ = backdrop_;
         MakeBackdrop(this);
         backdrop_->CaptureScreen();

@@ -114,12 +114,12 @@ void UnitPickInput::RightDown(int, int, int) {
 
 void UnitPickInput::KeyDown(int key, int, int) {
     if (key == kVkControl) {
-        g_cursor->SetShape(kCursorCtrl);
+        g_cursor.SetShape(kCursorCtrl);
     } else if (key == kVkSpace) {
         GameSetServerPaused(g_serverWorld->paused_ == 0);
     }
 }
 
 void UnitPickInput::KeyUp(int key, int, int) {
-    if (key == kVkControl) g_cursor->SetShape(kCursorNormal);
+    if (key == kVkControl) g_cursor.SetShape(kCursorNormal);
 }

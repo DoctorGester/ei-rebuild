@@ -106,9 +106,9 @@ void CCameraInput::RightDown(int, int x, int y) {
     pressLayout_ = POINT{x, y};
     turning_ = true;
     interface_->ScalePointFromScreenEntry(&pressLayout_);
-    g_cursor->motion_.y = 0;
-    g_cursor->motion_.x = 0;
-    g_cursor->SetHeld(1);
+    g_cursor.motion_.y = 0;
+    g_cursor.motion_.x = 0;
+    g_cursor.SetHeld(1);
     handled_ = true;
 }
 
@@ -119,11 +119,11 @@ void CCameraInput::RightUp(int, int, int) {
     camera->SetTiltRate(0.0f);
     Vector3 still = {0.0f, 0.0f, 0.0f};
     camera->Pan(&still);
-    int x = g_cursor->position_.x;
-    int y = g_cursor->position_.y;
-    g_cursor->motion_.y = 0;
-    g_cursor->motion_.x = 0;
-    g_cursor->SetHeld(0);
+    int x = g_cursor.position_.x;
+    int y = g_cursor.position_.y;
+    g_cursor.motion_.y = 0;
+    g_cursor.motion_.x = 0;
+    g_cursor.SetHeld(0);
     gameapi::SetCursorPos(x, y);
     handled_ = true;
 }
@@ -132,7 +132,7 @@ void CCameraInput::MouseMove(int, int x, int y) {
     CCamera* camera = &g_camera.Get();
     if (turning_) {
         POINT point{x, y};
-        POINT drag{g_cursor->motion_.x, g_cursor->motion_.y};
+        POINT drag{g_cursor.motion_.x, g_cursor.motion_.y};
         interface_->ScalePointFromScreenEntry(&point);
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         interface_->CallScalePointFromScreenNoMargin(&drag);
@@ -157,9 +157,9 @@ void CCameraInput::MouseMove(int, int x, int y) {
             Vector3 direction{static_cast<float>(across * speed), static_cast<float>(along * speed), 0.0f};
             camera->Pan(&direction);
         }
-        g_cursor->motion_.y = 0;
-        g_cursor->motion_.x = 0;
-        g_cursor->SetShape(kDragCursor);
+        g_cursor.motion_.y = 0;
+        g_cursor.motion_.x = 0;
+        g_cursor.SetShape(kDragCursor);
         handled_ = true;
         pressLayout_ = point;
         return;
@@ -192,7 +192,7 @@ void CCameraInput::MouseMove(int, int x, int y) {
             direction.x = static_cast<float>(forward + direction.x);
             direction.y = static_cast<float>(left + direction.y);
         }
-        g_cursor->SetShape(EdgeCursor(edges));
+        g_cursor.SetShape(EdgeCursor(edges));
         camera->Pan(&direction);
         if (edges) handled_ = true;
     }
@@ -204,9 +204,9 @@ void CCameraInput::Deactivate() {
     x_ = 0.0f;
     y_ = 0.0f;
     z_ = 0.0f;
-    g_cursor->SetHeld(0);
-    g_cursor->motion_.y = 0;
-    g_cursor->motion_.x = 0;
+    g_cursor.SetHeld(0);
+    g_cursor.motion_.y = 0;
+    g_cursor.motion_.x = 0;
     g_camera->StopMotion();
 }
 

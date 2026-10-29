@@ -28,11 +28,11 @@ int Distance(int a, int b) { return a < b ? b - a : a - b; }
 
 void CBattleScreen::MouseMove(int buttons, int x, int y) {
     if (portraitMode_ != 0) {
-        g_cursor->SetShape(kCursorPickPlayer);
+        g_cursor.SetShape(kCursorPickPlayer);
         if (portraits_) portraits_->Input()->MouseMove(buttons, x, y);
         return;
     }
-    g_cursor->SetShape(kCursorArrow);
+    g_cursor.SetShape(kCursorArrow);
     if (viewPressed_ && options::g_options->cameraFrameSelectionArea_ > 0 && !IsMultiplayerClient()) {
         int threshold = options::g_options->cameraFrameSelectionArea_;
         if (Distance(x, pressX_) > threshold || Distance(y, pressY_) > threshold) boxSelecting_ = true;

@@ -132,7 +132,7 @@ void SpeakerAnimationDone(CUnit* serverUnit) {
     if (!serverUnit) return;
     auto* unit = g_clientWorld->FindUnit(serverUnit->id_);
     if (!unit) return;
-    auto* screen = g_interface->ActiveWindowAs<CBriefingScreen>();
+    auto* screen = g_interface.ActiveWindowAs<CBriefingScreen>();
     for (std::size_t i = 0; i < screen->speakers_.size(); ++i)
         if (screen->speakers_[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
 }

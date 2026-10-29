@@ -79,8 +79,6 @@ constexpr float kSlingOutY = 83.0f;             // y otherwise
 
 } // namespace
 
-void CUiMesh::Place(float x, float y, float depth) { PlaceBody(x, y, depth); }
-
 void CHudClock::Update() {
     interface_->fastGame_ = fast_;
     float hours = TimeOfDay();
@@ -103,7 +101,7 @@ void CHudClock::Update() {
     if (GamePaused()) {
         SetTint(face, static_cast<float>(kBlinkBase - D(pulse)));
         handAngle = static_cast<float>(D(kPi) * kPausedHand);
-        AsUiMesh(objects[1])->visible_ = blink_ > 0.5f ? 1 : 0;
+        AsUiMesh(objects[1])->visible_ = blink_ > 0.5f;
     } else {
         SetTint(face, 1.0f);
         double step;
@@ -115,7 +113,7 @@ void CHudClock::Update() {
             step = CUiContainer::FrameTime() * 0.5f;
         }
         dial_ = static_cast<float>(step + D(dial_));
-        AsUiMesh(objects[1])->visible_ = 1;
+        AsUiMesh(objects[1])->visible_ = true;
     }
 
     // The dial turns by whole notches' worth and wraps.

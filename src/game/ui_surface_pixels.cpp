@@ -31,7 +31,7 @@ void CUiSurface::Greyscale() {
 }
 
 // The canvas goes aside under the surface's own address while it has no holder, and back onto the new one.
-void CUiSurface::SwapContents(int restore) {
+void CUiSurface::SwapContents(bool restore) {
     if (restore) {
         if (!holder_) {
             // A new surface of the surface's size.

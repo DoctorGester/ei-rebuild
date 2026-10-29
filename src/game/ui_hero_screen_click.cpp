@@ -47,7 +47,7 @@ CItem* FirstOf(const std::vector<CItem*>& list) { return !list.empty() ? list[0]
 void BackToMainMenu(CInterface3D* ui) {
     std::string text;
     g_clientWorld->texts_->CTextManager::GetString("reserved_04", &text);
-    g_interface->ShowStatusText(text);
+    g_interface.ShowStatusText(text);
     ui->PlaySound(game::CancelSoundText());
     g_gameFlow->EndSession();
     ui->SetPendingValue(0);

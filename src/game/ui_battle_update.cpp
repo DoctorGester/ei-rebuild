@@ -66,9 +66,9 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         CEngineObject* sprite = sceneObjects_[shownCount_ - 1];
         const float right = widescreen::g_panelRight;
         if (slot < 4)
-            AsUiMesh(sprite)->PlaceBody(right - static_cast<float>(slot * 50), 575.0f, 20.0f);
+            AsUiMesh(sprite)->Place(right - static_cast<float>(slot * 50), 575.0f, 20.0f);
         else
-            AsUiMesh(sprite)->PlaceBody(right - static_cast<float>(slot * 50 - 200), 525.0f, 20.0f);
+            AsUiMesh(sprite)->Place(right - static_cast<float>(slot * 50 - 200), 525.0f, 20.0f);
         int last = shownCount_ - 1;
         regionItem_[slot] = last;
         if (last >= 0 && last < shownCount_) {
@@ -351,12 +351,12 @@ void CBattleScreen::LeftUp(int buttons, int x, int y) {
                     unit->flags_ = flags & ~0x100u;
                     unit->Object3D()->attached->SetLit(0);
                 }
-                marker(i)->visible_ = 0;
+                marker(i)->visible_ = false;
                 slot(i).restB_ = kHudRestRotation;
             }
             for (auto& node : inside) {
                 int i = static_cast<int>(node);
-                marker(i)->visible_ = 1;
+                marker(i)->visible_ = true;
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
                 const float angle = kHudQuarterTurn *
                                     0.14285715f;   // 1/7

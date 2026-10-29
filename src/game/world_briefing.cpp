@@ -207,7 +207,7 @@ void GameFlow::OnVariableChanged(const net::VariableMessage* record) {
                                 flowdata::kQuestVariablePrefix) == 0;
     }
     if (quest) {
-        g_interface->OnQuestVariable(name, value);
+        g_interface.OnQuestVariable(name, value);
         g_clientWorld->OnQuestVariable(name, value);
     }
 }

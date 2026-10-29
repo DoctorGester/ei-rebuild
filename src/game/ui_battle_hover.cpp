@@ -93,17 +93,17 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         Vector3 at = pick();
         int exit;
         if (!g_clientWorld->FindExitAt(&at.x, &exit)) return;
-        g_cursor->SetShape(kCursorExit);
+        g_cursor.SetShape(kCursorExit);
         return;
     }
     for (int i = 0; i < 6; ++i) {
         if (orderKeys_[i]) {
-            g_cursor->SetShape(kCursorFlagBase + i);
+            g_cursor.SetShape(kCursorFlagBase + i);
             return;
         }
     }
     if (interface_->ctrlDown_) {
-        g_cursor->SetShape(kCursorAttack);
+        g_cursor.SetShape(kCursorAttack);
         return;
     }
 
@@ -139,7 +139,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
                 const float one = 1.0f;
                 // equal skips.
                 EI_NAN_AUDIT(value);
-                if (value != one) g_cursor->SetShape(kCursorExit);
+                if (value != one) g_cursor.SetShape(kCursorExit);
             }
             return;
         }
@@ -207,5 +207,5 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     default:
         return;
     }
-    g_cursor->SetShape(shape);
+    g_cursor.SetShape(shape);
 }

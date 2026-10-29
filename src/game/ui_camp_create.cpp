@@ -140,12 +140,12 @@ void CCampPages::BuildPages() {
     sprite->visible_ = spellConstructor_;
     sprite = button(700.0f, 460.0f, 740.0f, 490.0f, 0x54, 0xE0, 0x7C, 0xFE);
     sprite->visible_ = spellConstructor_;
-    if (noConstructor_) sprite->visible_ = 0;
+    if (noConstructor_) sprite->visible_ = false;
     sprite = button(660.0f, 430.0f, 700.0f, 460.0f, 0x2B, 0xC1, 0x53, 0xDF);
     sprite->visible_ = itemConstructor_;
     sprite = button(700.0f, 430.0f, 740.0f, 460.0f, 0x54, 0xC1, 0x7C, 0xDF);
     sprite->visible_ = itemConstructor_;
-    if (noConstructor_) sprite->visible_ = 0;
+    if (noConstructor_) sprite->visible_ = false;
     sprite = button(740.0f, 430.0f, 780.0f, 460.0f, 0x7D, 0xC1, 0xA5, 0xDF);
     sprite->visible_ = itemConstructor_;
     sprite = button(740.0f, 460.0f, 780.0f, 490.0f, 0x7D, 0xE0, 0xA5, 0xFE);

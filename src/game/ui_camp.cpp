@@ -254,13 +254,13 @@ void CCampPages::ShowPage(int page) {
 
     // The hero arrows (scene objects 0/1, regions 0/1) only where a hero can be chosen.
     if (page_ == 0 && (!itemConstructor_ || noConstructor_)) {
-        SceneMesh(0)->visible_ = 0;
-        SceneMesh(1)->visible_ = 0;
+        SceneMesh(0)->visible_ = false;
+        SceneMesh(1)->visible_ = false;
         regions_[0]->SetTip(0);
         regions_[1]->SetTip(0);
     } else {
-        SceneMesh(0)->visible_ = 1;
-        SceneMesh(1)->visible_ = 1;
+        SceneMesh(0)->visible_ = true;
+        SceneMesh(1)->visible_ = true;
         regions_[0]->SetTip(0x4EE8);
         regions_[1]->SetTip(0x4EE9);
     }
@@ -538,8 +538,8 @@ void CCampPages::UpdateAction() {
 }
 
 void CCampPages::Draw(CSceneRenderer* pass) {
-    int x = g_cursor->position_.x;   // the mouse in screen pixels
-    int y = g_cursor->position_.y;
+    int x = g_cursor.position_.x;   // the mouse in screen pixels
+    int y = g_cursor.position_.y;
     hoveredItem_ = nullptr;
     int topic = 0;
     // The page buttons' help topics.

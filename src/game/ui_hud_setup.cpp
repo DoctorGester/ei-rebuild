@@ -74,7 +74,7 @@ void CHudClock::Setup(bool fast) {
         CUiMesh* arrow = AddSprite(kArrowSprite);
         arrow->textureOffsetU_ = 0.22265625f;
         arrow->textureOffsetV_ = 0.140625f;
-        arrow->PlaceBody(1000.0f, 1000.0f, kArrowDepth);
+        arrow->Place(1000.0f, 1000.0f, kArrowDepth);
         arrow->SetScale(0.4f);
     }
     AddBlankSprite()->Disc(8.0f, 80.0f, 800.0f, 600.0f, 32.0f, kDiscPoints, 0xAE, 0x51, 0x20);

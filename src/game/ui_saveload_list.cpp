@@ -43,13 +43,6 @@ constexpr int kMarkerSprite = 4;
 constexpr int kMinutesPerDay = 1440;
 
 
-// The width of `text` in interface font `font` (CInterface3D::TextExtent).
-int TextWidth(CInterface3D* ui, const std::string& text, int font) {
-    SIZE size;
-    ui->TextExtent(&size, text, font);
-    return size.cx;
-}
-
 bool SameFolder(std::string_view folder, std::string_view name) {
     return text::CompareIgnoringCase(folder,
                            name) == 0;
@@ -64,7 +57,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     CUiSurface* surface = surfaces_[0];
     surface->Clear();
     CUiMesh* marker = SceneMesh(kMarkerSprite);
-    marker->visible_ = 0;
+    marker->visible_ = false;
 
     // The rows from the scroll position: the title (the typed name for the selected row of a save
     // window) and, but for a save window's new save, the date.
@@ -79,7 +72,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
             // The caret, unless the save keeps its name (the quick and the automatic saves).
             if (isSave_ && !SameFolder(entry.folder_, kQuickFolder) && !SameFolder(entry.folder_, kAutoFolderA) &&
                 !SameFolder(entry.folder_, kAutoFolderB)) {
-                const int width = TextWidth(interface_, str::Left(name, cursor_), kFont);
+                const int width = interface_->TextExtent(str::Left(name, cursor_), kFont).cx;
                 if (width < titleRect.right - titleRect.left) {
                     POINT top{titleRect.left + width, titleRect.top};
                     POINT bottom{titleRect.left + width, titleRect.bottom - 3};
@@ -90,8 +83,8 @@ void CSaveLoadWindow::RefreshListVanilla() {
                 }
             }
             marker = SceneMesh(kMarkerSprite);
-            marker->visible_ = 1;
-            marker->PlaceBody(239.0f, static_cast<float>(y), 3.0f);
+            marker->visible_ = true;
+            marker->Place(239.0f, static_cast<float>(y), 3.0f);
         } else {
             surface->DrawTextIn(entry.title_, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
         }

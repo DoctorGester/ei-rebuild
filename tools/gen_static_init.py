@@ -773,6 +773,9 @@ UNREAD_EXITS = {}   # initialiser -> the exit function left out with its unread 
 # constructor call and the atexit (or the one call); the object's range and the exit function's guard byte are in no
 # named range or source, and nothing reads them.
 UNUSED_INITIALISERS = {
+    # C54g: the cursor and the interface manager are plain globals of ours.
+    0x005E4DD0: "the cursor 007C7BD8 (exit function 005E4DF0): ui_cursor_setup.cpp's g_cursor",
+    0x005F4680: "the interface manager 007C7D50 (exit function 005F4780): ui_small_members.cpp's g_interface",
     # C50a: plain globals of ours (constructed and destroyed by the C++ runtime) in place of the static objects.
     0x005B31C0: "the unit shape cache 007C2F70 (exit function 005B31E0): ai_movement.cpp's g_unitShapes",
     0x005BF810: "the sector spiral's offsets 007C2FF8 (exit function 005BF830): sector_spiral.cpp's g_spiralOffsets",

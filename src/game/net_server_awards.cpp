@@ -103,9 +103,9 @@ void ServerSession::CompleteZone(const std::string* zone) {
     auto* holder = &map_;
     if (IsLive(holder->ptr)) {
         {
-            std::string title, text;
+            std::string title;
             const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
-            Announce((*g_interface->MessageText(&text, 7, mapTitle)), nullptr);
+            Announce(g_interface.MessageText(7, mapTitle), nullptr);
         }
     }
 
@@ -151,9 +151,9 @@ void ServerSession::LeaveZone() {
     auto* holder = &map_;
     if (IsLive(holder->ptr)) {
         {
-            std::string title, text;
+            std::string title;
             const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
-            Announce((*g_interface->MessageText(&text, 6, mapTitle)), nullptr);
+            Announce(g_interface.MessageText(6, mapTitle), nullptr);
         }
 
         QuestBriefingRecord* entry;
