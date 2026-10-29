@@ -1,0 +1,12 @@
+{
+  "scenario": "render_pick_edges",
+  "install": "vanilla",
+  "recorded": "2026-10-29",
+  "commit": "945f9761c",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 4,
+  "reason": "R30f1: picking at the view's left and bottom edges where the image and the original agree",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
+}

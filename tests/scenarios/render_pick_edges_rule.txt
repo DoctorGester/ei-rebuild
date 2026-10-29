@@ -1,0 +1,44 @@
+# Picking at the bottom edge where the image's rule differs from the original (CTextureDevice::BoundsOfProjected,
+# device_bounds.cpp; docs/notes/renderer.md section 3, "Picking"): a part crossing the edge gets the bounds of its
+# projected positions clamped to the screen, which along the edge can be wider than the original's bounds of the
+# clipped triangles. An ogre stands where the view's bottom edge cuts it (after SetCPFast, the camera on the hero),
+# held still (freeze), and a Ctrl click goes 2-3 pixels (800x600 layout) right of where the original picks it: the
+# image picks the ogre and the hero turns on it; the original picks nothing and the hero stays. The golden is the
+# image's (a regression test of the rule). At the desktop size, the pose and pixels as the original's run has them.
+# no original: vanilla rebirth (the image's picking rule, an accepted difference from the original; renderer.md section 3)
+reject Script error
+resolution desktop
+timeout 120
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+waitwindow 15 battle
+console @SetCPFast(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy"),GetZValue(GSGetVar(0,"hx"),GSGetVar(0,"hy")))
+waitidle 15
+groundview
+
+console @AddUnitToServer("RuleOgre","OgreTutor","RuleOgre",61.5,141,0)
+frames 2
+console @BlockUnit(GetObjectByName("RuleOgre"),1)
+frames 6
+freeze
+frames 3
+click 478 592 ctrl
+frames 3
+move 400 300
+frames 2
+unfreeze
+wait 1500
+console #GetX(GetLeader())
+console #GetY(GetLeader())
+console #HP(GetObjectByName("RuleOgre"))
+console @RemoveUnitFromServer(GetObjectByName("RuleOgre"))
+waitidle 15
+check IsAlive(GetLeader())
+report
+quit
