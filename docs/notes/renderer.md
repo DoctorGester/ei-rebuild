@@ -1280,16 +1280,16 @@ across runs; the goldens check the game state.
      LightVertex 006C31C0, CLight::AddDirectional 0068D310, the sun's ray march SunReaches 006C92C0 and the
      landscape's per-vertex light lists (their 16-byte node pool at 007C8840) and light areas are not ported. The
      landscape keeps only the table of shown point lights (`Terrain::lights`, by id, held: AddLight / RemoveLight),
-     which the hand-over reads. `SectorData::Light` writes each vertex's edge fade into its specular word (the fog
+     which the hand-over reads. `SectorData::Build` writes each vertex's edge fade into its specular word (the fog
      factor, `Terrain::EdgeFade` truncated); on the water Animate writes the wave crests over the colour bytes. The
      water's specular lights are the shader's (`spec`, the larger of them and the crests: the original's crests
      replaced them where the waves ran).
-     **Kept for the goldens: the Lit stage and the relight countdowns** (SetSun spreads them over the LightingFreq
-     interval; RelightTick drops a sector's Lit bit, the next draw lights it again). On the tick a sector's
-     lighting is dropped RunTick skips its tile and wave animation, and AnimateTiles draws from the global ISAAC:
-     without the countdowns 15 goldens differ (levers_key, the net_pair_* set, ui_base_*, zone_base_bz1g, ...: the
-     random group first). The edge fade alone needs none of it (a sector's fade never changes). R34a holds the way
-     out (the terrain's draws apart from the game's ISAAC in both builds).
+     **No relighting (R34a).** A sector's fade never changes, so it is written once, at Build: there is no Lit stage,
+     no relight countdowns (SetSun only keeps the sun and the ambient) and the LightingFreq option is read by nothing.
+     The original dropped a sector's lighting on its countdowns and skipped the tick's tile and wave animation then;
+     its animated tiles drew from the game's ISAAC, so that changed the game's draws. Now the terrain's draws (and
+     every other client effect's) come from `g_clientRandom` (random.h) in both builds, and the harness keeps the
+     original's sectors lit from Build on (harness_client_effects.h, standalone-verification.md section 5).
      Behaviour that differs from the original (R34; the goldens the same): nothing loads or touches sectors for the
      lighting (the ray march loaded the sectors it crossed; the light areas and relights looked sectors up), so the
      sector cache's order and evictions could differ; a specular light whose square reached a vertex outside its

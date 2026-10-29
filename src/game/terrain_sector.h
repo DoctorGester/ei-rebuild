@@ -123,7 +123,6 @@ struct SectorData {
     std::vector<AnimatedTile> animated;
     std::vector<int> classCounts;       // 16 texture classes
     int lastUsed = 0;                   // owner frame of the last use
-    int relightCountdown = 0;           // frames until the lighting is dropped (RelightTick), -1 none
 
     SectorData() = default;
     ~SectorData();
@@ -136,33 +135,28 @@ struct SectorData {
     // Vertex positions and water tiles. Returns 1, or FatalError's result for a missing or malformed file.
     int Load(CMappedResource* archive, int sx, int sy, int pages, int perPage, const char* prefix, Terrain* owner);
 
-    // Builds the vertex records, tile lists, bounding boxes and water materials.
+    // Builds the vertex records, tile lists (the animated tiles' start frames drawn from g_clientRandom),
+    // bounding boxes and water materials; every vertex's specular word becomes its edge fade (the fog factor; the
+    // GPU lights the colours, AnimateWaves writes the wave crests over the water's colour bytes), truncated as
+    // the game's lighting stored it, on the water only where it has a material.
     void Build();
 
     // Raises the water layer by the owner's pending water level changes.
     void ApplyWaterLevels();
 
-    // `wanted`: SectorStage::Built, SectorStage::Lit. Builds what of it is missing.
+    // `wanted`: SectorStage::Built. Builds the sector when it is not yet.
     void Ensure(SectorStage wanted);
 
     // Page `page` to the renderer, the pending water levels applied first; nothing when culled.
     void DrawPage(const CSceneRenderer* renderer, int page);
 
-    // Every vertex's specular word becomes its edge fade (the fog factor; the GPU lights the colours, Animate
-    // writes the wave crests over the water's colour bytes), truncated as the game's lighting stored it (on the
-    // water only where it has a material); the sector is lit and its relight countdown ends.
-    void Light();
-
     // The records and tile lists emptied (the per-quarter arrays keep their sizes); no sector (-1, -1),
     // nothing built, culled, pages / perPage -1, the rest of the scalar state 0. Build sets the boxes and
     // heights again.
     void Clear();
-    // Starts or shortens the relight countdown to `frames`.
-    void ScheduleRelight(int frames);
-    // At 0 the lighting is dropped, so the next draw lights the sector again.
-    void RelightTick();
     // Every third frame, with LandscapeFlag::AnimatedTiles, the animated tiles step to their next frame (one
-    // whose frame is 0 and whose speed is below 1000 only when an ISAAC draw % 1000 + 1 is within the speed).
+    // whose frame is 0 and whose speed is below 1000 only when a client effects draw % 1000 + 1 is within the
+    // speed).
     void AnimateTiles(int frame);
     // With LandscapeFlag::Waves and water, the water vertices move with the waves and the crests get a
     // specular colour.

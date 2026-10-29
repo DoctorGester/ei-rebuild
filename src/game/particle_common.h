@@ -40,10 +40,10 @@ inline std::uint32_t Bits(const void* field) {
     return bits;
 }
 
-inline std::uint32_t Next() { return g_random.Next(); }
+inline std::uint32_t Next() { return g_clientRandom.Next(); }
 
 // IsaacRandom::Range: leaves the result unrounded.
-inline double Range(float min, float max) { return g_random.Range(min, max); }
+inline double Range(float min, float max) { return g_clientRandom.Range(min, max); }
 
 // CWorldClient::RawSurfaceHeightAt(x, y) on the client world (unrounded).
 inline double GroundHeight(float x, float y) { return g_clientWorld.RawSurfaceHeightAt(x, y); }

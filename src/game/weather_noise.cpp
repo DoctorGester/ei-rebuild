@@ -4,8 +4,8 @@
 // The arithmetic is the game's x87 sequence: sums and products stay at the FPU's precision (53
 // bits at start-up) and are rounded to a float only where the game stores one.
 #include "weather_noise.h"
+#include "random.h"
 
-#include "lib/crt.h"
 #include "lib/vecmath.h"
 
 #include <cstdint>
@@ -16,7 +16,7 @@ namespace {
 constexpr float kSmoothingWeight = 0.3f;   // 0.3: the share of the sample's own value
 constexpr float kSampleShare = 0.0078125f;       // 1 / 128
 
-constexpr int kRandCentre = 0x3FFF;   // rand() gives 0..0x7FFF
+constexpr int kRandCentre = 0x3FFF;   // ClientRand() gives 0..0x7FFF
 constexpr int kShift = 20;            // the samples dropped from the front after smoothing
 
 } // namespace
@@ -28,7 +28,7 @@ WeatherNoiseCurve g_swayYByHeight = /*007AD998*/ {};
 WeatherNoiseCurve g_swayXByHeight = /*007AE398*/ {};
 
 void WeatherNoiseCurve::Build(float amplitude) {
-    for (float& sample : samples) sample = static_cast<float>(libcrt::Rand() - kRandCentre);
+    for (float& sample : samples) sample = static_cast<float>(ClientRand() - kRandCentre);
 
     const double weight = kSmoothingWeight;
     const double keep = 1.0 - weight;

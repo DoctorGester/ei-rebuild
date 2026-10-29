@@ -385,6 +385,7 @@
 #include "harness_digest_read.h"   // the class ids
 #include "harness_heap.h"
 #include "harness_leftovers.h"
+#include "harness_client_effects.h"
 #include "harness_save_leftovers.h"
 #include "harness_shadow_turn.h"
 #include "harness_startup.h"
@@ -1371,6 +1372,7 @@ void FillFixedSeed(std::uint32_t* results) {
 }
 using SrandFn = void(__cdecl*)(unsigned);
 void __fastcall FixedIsaacSeed(void* isaac) {
+    if (client_effects::IsClientGenerator(isaac)) return;   // seeded from the game's generator (harness_client_effects.h)
     reinterpret_cast<SrandFn>(0x006E77EA)(12345);
     FillFixedSeed(static_cast<exe::IsaacRandom*>(isaac)->results_);
 }
@@ -4020,6 +4022,7 @@ struct Harness {
         shadow_turn::Install();   // the shadow's turn undone exactly in the original too (harness_shadow_turn.h, SV7b4a)
         if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
         path_cells::Install();   // the original's path cells get plain speed words too (harness_path_cells.h, SV7d2)
+        client_effects::Install();   // the original's terrain sectors lit from Build on (harness_client_effects.h, R34a)
         PatchImport(&ImportTable::AIL_waveOutOpen, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchImport(&ImportTable::PeekMessageA, &PeekMessageHook, g_peekMessage);
         PatchImport(&ImportTable::TranslateMessage, &HarnessTranslateMessage, g_translateMessage);
@@ -4054,7 +4057,7 @@ struct Harness {
             clock::InstallVirtual(&TickLength());
             if (!g_keepHeap) heap::Install();   // the CRT's heap gives the same addresses every run (harness_heap.h)
             if (!g_keepHeap) script_order::Install();   // script groups by object id (harness_script_order.h)
-            if (!g_keepHeap) address_order::Install();   // object sets by id, SetSun by sector (harness_address_order.h)
+            if (!g_keepHeap) address_order::Install();   // object sets by id, draw lists by name (harness_address_order.h)
             if (!g_keepHeap && g_heapTrace) heap::StartTrace(g_selfBase, g_selfEnd);
             if (!g_keepHeap && !g_heapTrace) heap::StartSequence(g_selfBase, g_selfEnd);
             if (ei::Standalone()) image::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
@@ -4062,6 +4065,7 @@ struct Harness {
             PatchImport(&ImportTable::GetSystemTime, &FixedTime, g_getSystemTime);
             if (ei::Standalone()) image::SetFixedSeed(&FillFixedSeed);
             else JumpTo(0x0049F660, reinterpret_cast<const void*>(&FixedIsaacSeed));
+            client_effects::InstallGenerator();   // the client effects draw from their own generator (harness_client_effects.h, R34a)
             Log("harness: deterministic mode (virtual clock)");
         } else if (g_freezeUsed) {
             clock::InstallHeld();

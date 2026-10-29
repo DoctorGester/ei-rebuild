@@ -68,13 +68,11 @@ inline const char* CaveText() { return "Cave"; }
 inline const char* IniSuffixText() { return ".ini"; }
 inline const char* FinalZoneText() { return "gz20g"; }
 inline const char* FinalMusicText() { return "final"; }
-// Options (options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing,
-// LightingFreq (milliseconds; the zone load turns it into frames at 66 ms each) and
-// DefaultWindForce. AudioStreaming / AudioSFX (the sound manager takes them on the client's tenth tick) are read from the options.
+// Options (options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing and DefaultWindForce.
+// AudioStreaming / AudioSFX (the sound manager takes them on the client's tenth tick) are read from the options.
 inline int AudioOption() { return static_cast<const volatile int&>(options::g_options.audio_); }
 inline int WaterWavesOption() { return static_cast<const volatile int&>(options::g_options.enableWaterWaves_); }
 inline int SelfShadowingOption() { return static_cast<const volatile int&>(options::g_options.enableSelfShadowing_); }
-inline int LightingFrequencyOption() { return static_cast<const volatile int&>(options::g_options.lightingFreq_); }
 inline float DefaultWindForceOption() { return static_cast<const volatile float&>(options::g_options.defaultWindForce_); }
 // The hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the next UpdateLighting set it.
 inline float g_lastLitHour = /*0078FF38*/ -1.0f;

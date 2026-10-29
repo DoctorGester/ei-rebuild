@@ -51,6 +51,6 @@ void CGlobalMapClouds::SetRamp(int start, int width, float speed) {
 void CGlobalMapClouds::Generate(render::CloudFrame* frame, int step) {
     if (step < 1 || step > 4) return;
     std::uint32_t* words = frame->words[step - 1];
-    IsaacRandom& random = g_random;
+    IsaacRandom& random = g_clientRandom;
     for (int k = 0; k < 3; ++k) words[k] = random.Next();
 }

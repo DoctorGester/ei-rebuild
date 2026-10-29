@@ -115,7 +115,7 @@ Quaternion AxisAngle(float x, float y, float z, float angle) {
 } // namespace
 
 void CHudPortraits::Wobble(int index, int kind) {
-    slots_[index].wobbleTime_ = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kRandomDelayScale);
+    slots_[index].wobbleTime_ = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomDelayScale);
     slots_[index].wobbleKind_ = kind;
 }
 
@@ -212,16 +212,16 @@ void CHudPortraits::Update() {
         // a turn towards a random target.
         Quaternion wobble = {1.0f, 0.0f, 0.0f, 0.0f};
         if (slot.wobbleKind_ == 0 && dt > 0.0f) {
-            std::uint32_t roll = g_random.Next();
+            std::uint32_t roll = g_clientRandom.Next();
             if (D(dt) * kWobbleRate > x87::FromUnsigned(roll) * kRandomScale32) {
-                slot.wobbleTime_ = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kRandomDelayScale);
+                slot.wobbleTime_ = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomDelayScale);
                 slot.wobbleKind_ = 3;
-                std::uint32_t r1 = g_random.Next();
-                std::uint32_t r2 = g_random.Next();
+                std::uint32_t r1 = g_clientRandom.Next();
+                std::uint32_t r2 = g_clientRandom.Next();
                 Quaternion q1 = AxisAngle(0.0f, 1.0f, 0.0f, RandomTilt(r1));
                 Quaternion q2 = AxisAngle(1.0f, 0.0f, 0.0f, RandomTilt(r2));
                 slot.wobbleTarget_ = TargetProduct(q1, q2);
-                slot.wobbleSpeed_ = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kRandomScale31 + 1.0f);
+                slot.wobbleSpeed_ = static_cast<float>(x87::FromUnsigned(g_clientRandom.Next()) * kRandomScale31 + 1.0f);
             }
         }
         if (slot.wobbleKind_ != 0) {

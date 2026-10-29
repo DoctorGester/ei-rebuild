@@ -9,8 +9,8 @@
 #include "unit.h"
 #include "unit_client_models.h"
 #include "world.h"
+#include "random.h"
 
-#include "lib/crt.h"
 #include "lib/nan_audit.h"
 
 #include "ei/x87.h"
@@ -94,7 +94,7 @@ bool CUnitClientSpecific::RunTick() {
         if (blinkTimer > 0) {
             --blinkTimer;
         } else {
-            blinkTimer = libcrt::RandBelow(8) + 2;
+            blinkTimer = ClientRandBelow(8) + 2;
             if (eyesClosed == 0) BlinkClose(0);
             else BlinkOpen(0);
         }

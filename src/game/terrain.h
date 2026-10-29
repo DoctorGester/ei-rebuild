@@ -52,8 +52,7 @@ inline constexpr bool lib::kBitFlags<LandscapeFlag> = true;
 enum class SectorStage : std::uint32_t {
     None = 0,
     Loaded = 1,  // the vertex positions
-    Built = 2,   // the geometry
-    Lit = 4,     // the edge fade (SectorData::Light); dropped by the relight countdowns
+    Built = 2,   // the geometry and the edge fade
 };
 template <>
 inline constexpr bool lib::kBitFlags<SectorStage> = true;
@@ -95,8 +94,6 @@ public:
     // Takes the light off the table and releases it (also one that was not registered, as the game does).
     void RemoveLight(CLight* light);
 
-    // Negative: no countdown, otherwise the countdown is raised to the interval.
-    void SetLightInterval(int frames);
     // The change is added to the material and to every sector's level table. Nothing for a material the map
     // does not have.
     void SetWaterLevel(int material, float level);
@@ -138,13 +135,10 @@ public:
     // A square of sectors: each bound is (coordinate -/+ radius - 0.5) rounded to nearest / 32, clamped to the map.
     void SetVisibleSectors(float x, float y, float radius);
 
-    // The light and relight countdowns, the ambient sounds, the waves, then the animation of each drawn
-    // visible sector. Returns true.
+    // The ambient sounds, the waves, then the animation of each drawn visible sector. Returns true.
     bool RunTick() override;
 
-    // The sun and the ambient colour (the GPU lighting's); with a light interval the lit sectors get relight
-    // countdowns spread over it (sorted; 0 drops the lighting at once), without one every sector's lighting is
-    // dropped.
+    // The sun and the ambient colour (the GPU lighting's).
     void SetSun(CLight* sun, const Vector4* ambient);
     // With LandscapeFlag::Ambience: the 3x3 sectors around the listener vote a sound class, weighted by
     // distance; up to three classes play a looping circle.wav and random one-shots
@@ -195,8 +189,6 @@ public:
     std::vector<terrain::SectorData*> sectorGrid;      // [sx * sectorsY + sy]: the cached sector, or null
     std::list<terrain::SectorData*> sectorCache;        // most recently used first
     int frame;
-    int lightInterval;              // frames between sun updates
-    int lightCountdown;
     Vector4 ambient;
     CLight* sun;
     lib::HashMap<int, CLight*> lights;   // by id, held

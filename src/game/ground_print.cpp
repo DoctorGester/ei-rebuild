@@ -14,8 +14,8 @@
 #include "terrain.h"
 #include "texture.h"
 #include "world.h"
+#include "random.h"
 
-#include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
@@ -58,7 +58,7 @@ void Write(CStream* stream, T value) {
     stream->WriteValue(value);
 }
 
-int RandomQuarter() { return libcrt::RandBelow(4); }
+int RandomQuarter() { return ClientRandBelow(4); }
 
 // The prints.db entry for the ground at (x, y), or null.
 template <typename Record>
@@ -281,7 +281,7 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     uvOffset_.y = static_cast<float>(index >> 1) * kQuarter + static_cast<float>(high >> 1) * 0.5f;
     uvAngle_ = static_cast<float>(RandomQuarter()) * kHalfPi;
     int steps = x87::fistp(static_cast<float>(kTwoPi * kAngleMilli));
-    angle_ = static_cast<float>(libcrt::RandBelow(steps)) * kMilli;
+    angle_ = static_cast<float>(ClientRandBelow(steps)) * kMilli;
     SetTexture("bloodprints");
     int spread = life / 2;
     if (spread > kMaxSpreadTicks) spread = kMaxSpreadTicks;

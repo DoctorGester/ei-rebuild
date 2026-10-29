@@ -105,7 +105,7 @@ public:
     int enableWaterWaves_;
     int enableSelfShadowing_;
     int enableDynamicLights_;
-    int lightingFreq_;               // LightingFreq of the terrain settings
+    int lightingFreq_;               // LightingFreq of the terrain settings: loaded and saved, read by nothing
     int shadowingFreq_;
     int enableFootprints_;
     int enableBloodprints_;

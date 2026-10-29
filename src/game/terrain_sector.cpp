@@ -204,7 +204,7 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                         tile.frameBase = slot.index;
                         tile.vertices = entry;
                         tile.rotation = rotation;
-                        std::uint32_t draw = g_random.Next();
+                        std::uint32_t draw = g_clientRandom.Next();
                         tile.frames = frames;
                         tile.frame = static_cast<int>(draw % static_cast<std::uint32_t>(frames));
                         tile.speed = kAnimationSpeeds[ClassOf(owner, texture)];
@@ -398,6 +398,13 @@ void SectorData::Build() {
         for (std::uint8_t id : waterMaterials) levels[id] = owner->materials[id].level;
         ApplyWaterLevels();
     }
+    {
+        const x87::ScopedRounding chop(x87::kRoundChop);
+        for (int i = 0; i < std::ssize(records); ++i) {
+            if (i >= kSectorVertices && records[i].waterMaterial == SectorVertex::kNoWaterMaterial) continue;
+            records[i].specular = PackArgb(owner->EdgeFade(vertices[i]), 0, 0, 0);
+        }
+    }
     render::TerrainChanged(this, render::TerrainChange::Rebuilt);   // the pages kept on the GPU
 }
 
@@ -421,17 +428,6 @@ void SectorData::ApplyWaterLevels() {
 void SectorData::Ensure(SectorStage wanted) {
     if (lib::Has(wanted, built)) return;
     if (wanted >= SectorStage::Built && !lib::Has(built, SectorStage::Built)) Build();
-    if (wanted >= SectorStage::Lit && !lib::Has(built, SectorStage::Lit)) Light();
-}
-
-void SectorData::Light() {
-    const x87::ScopedRounding chop(x87::kRoundChop);
-    for (int i = 0; i < std::ssize(records); ++i) {
-        if (i >= kSectorVertices && records[i].waterMaterial == SectorVertex::kNoWaterMaterial) continue;
-        records[i].specular = PackArgb(owner->EdgeFade(vertices[i]), 0, 0, 0);
-    }
-    built |= SectorStage::Lit;
-    relightCountdown = -1;
 }
 
 SectorData::~SectorData() { Clear(); }

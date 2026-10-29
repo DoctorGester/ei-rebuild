@@ -102,7 +102,7 @@ public:
     // A blood print ("bloodprints") of `halfSize` growing to `fullSize` in
     // min(life / 2, 45) ticks: `tile` bits 0 / 16 pick the quarter across, bits 1..15 / 17.. down;
     // tile >> 16 is the kind footprints take from it. A random quarter turn and a random start
-    // angle (rand() twice).
+    // angle (ClientRand() twice).
     BloodPrint(float x, float y, float halfSize, float fullSize, float alphaScale, int life, int lifetime,
                std::uint32_t tile, std::uint32_t colour, std::uint8_t fresh);
 

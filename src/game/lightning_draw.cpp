@@ -38,7 +38,7 @@ void SizePoints() { g_glowPoints.resize(8); }
 
 // A random texture offset: 0, 0.25, 0.5 or 0.75.
 float RandomOffset() {
-    return static_cast<float>(static_cast<int>(g_random.Next() & 3)) * 0.25f;
+    return static_cast<float>(static_cast<int>(g_clientRandom.Next() & 3)) * 0.25f;
 }
 
 } // namespace

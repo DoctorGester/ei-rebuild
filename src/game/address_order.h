@@ -1,9 +1,8 @@
 #pragma once
 
 // Orders the game takes from heap addresses, settled without them in ours (ScriptGroup::After is the same for
-// script groups): the object sets a player is sent, the lit sectors SetSun relights, the client's draw lists and
-// the client's player list. The harness patches the original's sites to do the same. See
-// docs/notes/standalone-verification.md section 5.
+// script groups): the object sets a player is sent, the client's draw lists and the client's player list. The
+// harness patches the original's sites to do the same. See docs/notes/standalone-verification.md section 5.
 
 #include <cstdint>
 

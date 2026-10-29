@@ -198,23 +198,23 @@ void Terrain::PlayAmbience() {
         vote.pan = x87::fistp(pan);
 
         // A one-shot now and then, in a random sector of the class (3x3 draws until one matches).
-        if (static_cast<int>(g_random.Next() % 100 + 1) > soundClass.chance) continue;
+        if (static_cast<int>(g_clientRandom.Next() % 100 + 1) > soundClass.chance) continue;
         const Cell* pick;
         do {
-            std::uint32_t column = g_random.Next() % 3;
-            std::uint32_t row = g_random.Next() % 3;
+            std::uint32_t column = g_clientRandom.Next() % 3;
+            std::uint32_t row = g_clientRandom.Next() % 3;
             pick = &cells[column][row];
         } while (pick->soundClass != vote.soundClass);
         if (soundClass.variants == 0) continue;
-        std::uint32_t variant = g_random.Next();
+        std::uint32_t variant = g_clientRandom.Next();
         const char* time = g_clientWorld.AmbienceTimeOfDay();
         const std::string name = std::format("ambient\\{}\\{}\\{}\\{}.wav", ambientSet, soundClass.name, time,
                                              variant % static_cast<std::uint32_t>(soundClass.variants) + 1);
         Vector3 position = listener + pick->offset;
         float spot = kSpotCells;
         float spotLow = static_cast<float>(-spot);
-        position.x = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_random.Next()) * kTwoToMinus32 + spotLow + position.x);
-        position.y = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_random.Next()) * kTwoToMinus32 + spotLow + position.y);
+        position.x = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_clientRandom.Next()) * kTwoToMinus32 + spotLow + position.x);
+        position.y = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_clientRandom.Next()) * kTwoToMinus32 + spotLow + position.y);
         sounds->Play3D(name, 1, &position.x, static_cast<float>(spot + spot), radius, 0, 0);
     }
 

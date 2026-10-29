@@ -9,6 +9,7 @@
 #include "texture.h"
 #include "game_singletons.h"
 #include "world.h"
+#include "random.h"
 
 #include "ei/x87.h"
 #include "lib/bytes.h"
@@ -278,8 +279,6 @@ void Terrain::Reset() {
     sectorsY = -1;
     perPage = -1;
     frame = 1;
-    lightInterval = -1;
-    lightCountdown = -1;
     for (int i = 0; i < 4; ++i) {
         uvTables[i].clear();
         uvTablesLast[i].clear();
@@ -299,9 +298,9 @@ void Terrain::BuildWavePhases() {
     wavePhases.assign(kSectorVertices, 0.0f);
     float* phases = wavePhases.data();
     for (int ripple = 0; ripple < kRipples; ++ripple) {
-        float centreX = static_cast<float>(libcrt::Rand() % kSectorRow);
-        float centreY = static_cast<float>(libcrt::Rand() % kSectorRow);
-        int radius = libcrt::Rand() % 5 + 1;
+        float centreX = static_cast<float>(ClientRand() % kSectorRow);
+        float centreY = static_cast<float>(ClientRand() % kSectorRow);
+        int radius = ClientRand() % 5 + 1;
         double radiusSquared = static_cast<double>(radius) * radius;
         float* phase = phases;
         for (int row = 0; row < kSectorRow; ++row) {
@@ -485,7 +484,7 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, bool dungeon)
     return 1;
 }
 
-// ---- The point lights, light interval, water levels, tile texture coordinates --------------------------
+// ---- The point lights, water levels, tile texture coordinates -----------------------------------------
 
 void Terrain::AddLight(CLight* light) {
     if (!mapLoaded) return;
@@ -502,12 +501,6 @@ void Terrain::RemoveLight(CLight* light) {
 const float* Terrain::TileUv(int rotation, int index, int page) {
     if (page % LayerPages() >= pages) return uvTablesLast[rotation].data() + index * kUvFloats;
     return uvTables[rotation].data() + index * kUvFloats;
-}
-
-void Terrain::SetLightInterval(int frames) {
-    lightInterval = frames;
-    if (frames < 0) lightCountdown = -1;
-    if (lightCountdown < frames) lightCountdown = frames;
 }
 
 void Terrain::SetWaterLevel(int material, float level) {

@@ -18,7 +18,7 @@
 namespace acks {
 
 struct Speeches : std::vector<SpeechRecord> {
-    // A random speech among those whose chance is at least `roll` (the game's rand()); null, without drawing,
+    // A random speech among those whose chance is at least `roll` (ClientRand()); null, without drawing,
     // when there is none. A null list answers null too.
     const SpeechRecord* Pick(int roll) const;
 };

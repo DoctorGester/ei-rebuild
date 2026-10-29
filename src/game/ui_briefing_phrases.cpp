@@ -20,8 +20,8 @@
 #include "world.h"
 #include "world_data.h"
 #include "world_glue.h"
+#include "random.h"
 
-#include "lib/crt.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
@@ -158,7 +158,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             int number;
             if (words.size() > 2 && (number = str::ToInt(words[2])) > 0) {
                 std::string file;
-                int folder = libcrt::RandBelow(2);
+                int folder = ClientRandBelow(2);
                 file = str::Format(kVoiceFormat, kVoiceFolders[folder], topic_, number);
                 voice_ = g_clientWorld.sounds_->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
             }

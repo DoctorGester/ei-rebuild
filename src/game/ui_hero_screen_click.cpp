@@ -16,8 +16,8 @@
 #include "unit_db.h"
 #include "world.h"
 #include "world_glue.h"
+#include "random.h"
 
-#include "lib/crt.h"
 #include "lib/file_io.h"
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
@@ -390,7 +390,7 @@ void CMpHeroScreen::PlayVoice() {
             if (IsVoice(e) && rank-- == 0) return &e;
         return nullptr;
     };
-    int index = libcrt::RandBelow(count);
+    int index = ClientRandBelow(count);
     for (int tries = 0; tries < count && voiceSound_ == -1; ++tries) {
         voiceSound_ = interface_->PlaySound(nth(index)->speech.sound.c_str());
         index = (index + 1) % count;

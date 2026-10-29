@@ -174,7 +174,7 @@ int StartLoaded(CSoundManager* m, SoundSlot* slot, int loop) {
     if (m->reverbOn != 0) gameapi::AIL_set_sample_reverb(slot->sample, m->reverb[0], m->reverb[1], m->reverb[2]);
     if (m->randomStart != 0) {
         std::uint32_t range = static_cast<std::uint32_t>(m->randomStart) + 1;
-        gameapi::AIL_set_sample_ms_position(slot->sample, g_random.Next() % range);
+        gameapi::AIL_set_sample_ms_position(slot->sample, g_clientRandom.Next() % range);
     }
     gameapi::AIL_start_sample(slot->sample);
     return slot->handle;
@@ -544,7 +544,7 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
         return h != -1 ? 1 : 0;
     }
     if (remaining == 0) return 0;
-    if (random != 0) index = static_cast<std::int32_t>(g_random.Next() % static_cast<std::uint32_t>(names.size()));
+    if (random != 0) index = static_cast<std::int32_t>(g_clientRandom.Next() % static_cast<std::uint32_t>(names.size()));
     int h = manager->Play3D(names[index], priority, &position.x, nearDistance, farDistance, 0, 0);
     handle = h;
     if (h == -1) return 0;
@@ -636,7 +636,7 @@ void SoundSlot::End(CSoundManager* manager) {
 // Every world frame: frees the voices whose sample ended, restarts the highest-priority deferred sounds in
 // free voices, starts the next sound of every sequence whose sound is over, and every 100 ms (GetTickCount)
 // lets the ambient emitters near the listener play a random name of theirs. Emitters and random sequences
-// draw from the game's random generator on the wall clock's schedule.
+// draw from the client effects' generator (g_clientRandom) on the wall clock's schedule.
 void CSoundManager::Tick() {
     if (enabled == 0) return;
     for (int i = 0; i < 15; ++i) {
@@ -716,7 +716,7 @@ void CSoundManager::Tick() {
     std::uint32_t now = gameapi::GetTickCount();
     if (now - emitterTick < 100) return;
     emitterTick = now;
-    IsaacRandom& random = g_random;
+    IsaacRandom& random = g_clientRandom;
     for (int k = 0; k < 16; ++k) {
         SoundEmitter* e = &emitters[k];
         if (e->active == 0) continue;

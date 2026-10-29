@@ -151,11 +151,11 @@ Rewritten (grep the address): `SectorData::Build` 006C1C00 (the random generator
 006BF5F0 (default member initialisers; the projection's work arrays are function-local statics of `Project`, 0x330 vertices),
 `Project` 006BFC80 (RET 4: the pipeline; the pass 006C6460: per quarter not culled, positions at the LOD step through
 004F29F0 against the quarter box (a ClipBounds prefix); records +0x00 projected, +0x10 outcode), `DrawSectorPage` 006BFF40
-(`SectorData::DrawPage(renderer, page)`; the original's two unused arguments and constant return are gone), `Light` 006C3A00
-(terrain_sector.cpp): only the edge fade (the fog factor) into each vertex's specular word, truncated (chop rounding
-through `x87::ScopedRounding`); `ShadeSun` / `LightVertex` 006C36B0 / 006C31C0 are not ported (R26: the GPU lights the
-terrain), nor the water's specular word or the sun's ray march (R34; renderer.md section 13, R16i, says what behaves
-differently and why the Lit stage and relight countdowns stay).
+(`SectorData::DrawPage(renderer, page)`; the original's two unused arguments and constant return are gone). `Light` 006C3A00
+is gone (R34a): `Build` writes only the edge fade (the fog factor) into each vertex's specular word, truncated (chop
+rounding through `x87::ScopedRounding`), once; `ShadeSun` / `LightVertex` 006C36B0 / 006C31C0 are not ported (R26: the GPU
+lights the terrain), nor the water's specular word or the sun's ray march (R34), nor the Lit stage and the relight
+countdowns (R34a; renderer.md section 13, R16i, says what behaves differently).
 
 Facts: in terrain_sector.cpp running x / y, heights in flight and bounding box intermediates are doubles. `DrawSectorPage`
 does nothing for a culled sector; the original's draw statics (007C8848..007C88C8) are never built (render_terrain.cpp
@@ -167,14 +167,14 @@ being lit (read by the forwarded shadow test 006C92C0, which loads the sectors t
 colour, +0x15 specular, +0x37 lit colour; material +0x14 absorption; 007C8908 the water falloff.
 
 Skipped: the other draw functions (R); 006C68B0 and 006D0630 / 006D7620 (Rebirth-patched); point light registration 006CAC10 (global
-node pool), 006C3E80 animated tiles; dead code 006C8990, 006C9560, 006C5EA0, 006C5F50, 006C84E0, 006C4790 / 006C4A40 /
-006C4C90; STLport / MFC instantiations (006B01F0-006B4230, 006BDDD0-006BE300, 006CD540-006CEA10). Risk: the animated-tile path
-draws from the game's random generator (a mistake would shift later draws).
+node pool); dead code 006C8990, 006C9560, 006C5EA0, 006C5F50, 006C84E0, 006C4790 / 006C4A40 /
+006C4C90; STLport / MFC instantiations (006B01F0-006B4230, 006BDDD0-006BE300, 006CD540-006CEA10). The animated tiles' start
+frames and steps draw from the client effects' generator (`g_clientRandom`, R34a), so they no longer move the game's draws.
 
 ## Game code left in 0x006C0000-0x00740000
 
 All of it lies in 006C1390-006E5E30 (beyond is the CRT / MFC). Groups (R = Rebirth-patched, forwarded):
-- **Landscape / sectors** 006C1390-006CCF20: shadow test 006C92C0; animated tiles 006C3E80; light countdown 006C8ED0;
+- **Landscape / sectors** 006C1390-006CCF20: shadow test 006C92C0; animated tiles 006C3E80; light countdown 006C8ED0 (gone, R34a);
   ambience 006CB390 / 006CBC00 / 006CBCD0; map loading 006C68B0 (R; vanilla body ported, A-H26), 006C5AA0, 006C7940 / 006C7D70 / 006C7EB0, 006C5430-006C57E0 (client setup from 00561E50 / 00562B80); draw passes 006C6230 / 006C6330 / 006C6460 /
   006C66E0 / 006C67E0 / 006C42A0 / 006C4310; point lights 006CA5D0-006CAC10, 006CB020; water level 006CC7F0; decal
   triangles 006CCF20; sector parts (Clear 006C3C80, CArray element pairs 006C4EE0-006C5230).
@@ -190,10 +190,9 @@ Ported (grep the address): `Terrain::SetVisibleSectors` 006CA260, `SectorAt` 006
 `acks::AckTable<UnitAcks / ModelAcks / ExtraAcks>::Find` 006D9A30 / 006D9CE0 / 006D9F80 (acks_db.cpp; index operator[], adds a null
 entry for a missing name), `acks::PickSpeech` / `PickEnvironmentSpeech` 006D8780 / 006D88E0, `SayAck` / `SayNamedAck` 006D8430 /
 006D8A40 (call the five above through their addresses), `Terrain::RunTick` 006CB1E0 (slot 6; terrain_animation.cpp), `SetSun`
-006C8ED0 (the sun and the ambient colour; relight countdowns of the lit cached sectors, sorted by (sy, sx) with std::sort:
-one per grid cell; its ray steps are not ported, R34),
-`SectorData::Animate` 006C3E80 (animated tiles, water waves; draws from the game's random generator), `SectorData::Clear` /
-`ResetFields` / `ScheduleRelight` / `RelightTick` 006C3C80, 006C3D70, 006C3E30, 006C3E50, `PlayAmbience` / `StopAmbience` 006CB390 / 006CBCD0
+006C8ED0 (the sun and the ambient colour only: its ray steps are not ported, R34, nor its relight countdowns, R34a),
+`SectorData::Animate` 006C3E80 (animated tiles, water waves; the tiles draw from `g_clientRandom`), `SectorData::Clear` /
+`ResetFields` 006C3C80, 006C3D70 (`ScheduleRelight` / `RelightTick` 006C3E30 / 006C3E50 are gone, R34a), `PlayAmbience` / `StopAmbience` 006CB390 / 006CBCD0
 (terrain_ambience.cpp), `CWorldClient::AmbienceTimeOfDay` 006CBC00, `Terrain::AddDecalTriangles` 006CCF20 (terrain_decal.cpp;
 triangles through the unhooked original 004D8490).
 
@@ -205,10 +204,10 @@ were declared for Say (51) / StopSpeech (52). The original picks through a tempo
 indexes (same draws, no allocation).
 
 Landscape fields (terrain.h / TerrainFields): +0x94 flags (1 waves, 2 animated tiles, 8 ambient sounds); +0x21C / +0x220 light
-interval / countdown; +0x234..+0x248 the sun's ray steps (not kept, R34); +0x274..+0x28C waves (direction, height, glow,
-phase, speed); +0x290 per-vertex wave phases; +0x2A0 a 512-entry sine table. SetSun's qsort comparator (006C8E90) reads
-+0xC / +8 of the array slots, i.e. the pointers three and two slots on, so the original's relight order follows pointer
-values; ours sorts by (sy, sx) and the harness patches the original's site to do the same (address_order.h). Animate's sine index uses 256 / pi as a double (the original divides at run time; a .5 edge may rarely differ).
+interval / countdown (not kept, R34a); +0x234..+0x248 the sun's ray steps (not kept, R34); +0x274..+0x28C waves (direction,
+height, glow, phase, speed); +0x290 per-vertex wave phases; +0x2A0 a 512-entry sine table. SetSun's qsort comparator (006C8E90)
+read +0xC / +8 of the array slots, i.e. the pointers three and two slots on, so the original's relight order followed pointer
+values; the harness's patch of SetSun (harness_client_effects.h) skips that sort now. Animate's sine index uses 256 / pi as a double (the original divides at run time; a .5 edge may rarely differ).
 
 Ambience: sound classes at 007969D0 (16 x 0x18: name, variants, weight, class it counts as, pan limit, chance %; read from
 memory, most have variants -1, so the one-shot index is a draw % 0xFFFFFFFF + 1); loop slots +0xAC8 handles / +0xAD4 classes,
