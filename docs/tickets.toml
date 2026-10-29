@@ -5949,3 +5949,9 @@ title = "C52 rest 2: out-parameters left after C52a"
 group = "cleanup"
 depends = ["C52a"]
 note = "Left on purpose by C52a: CMappedResource::ListFiles/ListFilesPlain/modfolders::ListFiles (Rebirth appends to a reused vector; TextSources::ListKeys relies on it: a return value would change Rebirth's listing), ReadLinkString (keeps the old value on length 0), AIViewer::Noise (null 'at' means the unit's own position), Quaternion::Rotate / MatrixRows::Transform (Vector3* in and out), GetKeyNames/GetList/Tokenize and the item_db_text readers (bool/int results), ItemStock::Generate* and CUnit::CollectItems (accumulate into a shared list), FootstepSound/ActionSound (int result plus string out), map_spec ReadInto(Chunk&, string&) helpers, the other UnitList* / vector* fillers in ai_*, unit_skins, ui_*. Decide each; most need a behaviour decision or an optional/pair result."
+
+[[ticket]]
+id = "C58b"
+title = "CDib: padded row size in AllocateBits, the unused GDI palette gone"
+group = "cleanup"
+note = "Found by C58a. CDib::AllocateBits sizes rows without the 4-byte padding while Write writes imageSize (padded rows), so a capture whose row is not a multiple of 4 bytes reads past the bits (original bug; asan would catch it). Size the bits with the padded stride. Also CDib::MakePalette / palette build a GDI palette nothing reads: delete (P8 removed GDI drawing). Check: Scroll Lock / render_present_shot captures at an odd width, goldens."
