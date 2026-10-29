@@ -404,14 +404,14 @@ void Days(std::vector<std::string>* args) {
             if (month >= 1 && month <= 12) {
                 int day = number(0, 0, 2);
                 if (day >= 1 && day <= 31) {
-                    const std::int32_t from = lib::MakeTime(year, month, day, 6, 0, 0, -1);
+                    const std::int32_t from = lib::MakeTime(year, month, day, 6, 0, 0);
                     int year2 = number(1, 4, 4);
                     if (year2 >= 1900) {
                         int month2 = number(1, 2, 2);
                         if (month2 >= 1 && month2 <= 12) {
                             int day2 = number(1, 0, 2);
                             if (day2 >= 1 && day2 <= 31) {
-                                const std::int32_t to = lib::MakeTime(year2, month2, day2, 7, 1, 1, -1);
+                                const std::int32_t to = lib::MakeTime(year2, month2, day2, 7, 1, 1);
                                 int days = static_cast<int>((to - from) / 86400);
                                 EndLine(g_consoleOut << "Your age: " << days << " days");
                                 return;

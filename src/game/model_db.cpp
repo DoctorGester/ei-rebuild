@@ -109,19 +109,19 @@ void WaterTweens::Save(CStream* stream) const {
     for (int i = 0; i < std::ssize(*this); ++i) stream->WriteValue((*this)[i]);
 }
 
-void WaterTweens::ReadEntries(CStream* stream, int unread) {
-    int count = unread;
+void WaterTweens::ReadEntries(CStream* stream) {
+    int count = 0;
     stream->ReadValue(count);
     resize(count);
     for (int i = 0; i < std::ssize(*this); ++i) stream->ReadValue((*this)[i]);
 }
 
 void WaterTweens::Load(CStream* stream, terrain::Terrain* terrain) {
-    ReadEntries(stream, 0);
+    ReadEntries(stream);
     for (int i = 0; i < std::ssize(*this); ++i) terrain->SetWaterLevel((*this)[i].key, (*this)[i].value);
 }
 
 void WaterTweens::LoadEntries(CStream* stream) {
     // The count is read into an uninitialised local; the game's streams always write it.
-    ReadEntries(stream, 0);
+    ReadEntries(stream);
 }

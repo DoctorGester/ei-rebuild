@@ -23,11 +23,9 @@ void Append(std::vector<CItem*>& list, CItem* item) {
 // Removes the element at `index`, closing the gap.
 void RemoveAt(std::vector<CItem*>& list, int index) { list.erase(list.begin() + index); }
 
-// The world's spell manager (the item's manager context).
-CSpellManager* SpellManagerOf(CItem* item) { return item->WorldContext()->SpellManager(); }
 
 CItem* AddEntry(std::vector<CItem*>& list, CItem* item) {
-    CItem* entry = item->Clone(SpellManagerOf(item));
+    CItem* entry = item->Clone(item->WorldContext()->SpellManager());
     entry->AddRef();
     Append(list, entry);
     return entry;

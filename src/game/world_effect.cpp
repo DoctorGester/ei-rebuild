@@ -118,7 +118,7 @@ bool CEffectSound::RunTick() {
 void CEffectSound::Start(int update) {
     if (update == 0) {
         sound_ = g_clientWorld.sounds_->Play3D(name_, noFade_ != 0 ? 1000 : 0, &localPosition_.x,
-                                            volume_, radius_, looping_, 0);
+                                            volume_, radius_, looping_);
         return;
     }
     g_clientWorld.sounds_->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);

@@ -38,8 +38,7 @@ class CTextureDevice final : public CRendererBase {
 public:
     int SetMaterial(CDeviceMaterial* material);
     int DrawFlatBlocks(const VertexPacket* positions, const void* uvs, int blocks, const std::uint16_t* indices,
-                       int indexCount, std::uint32_t colour, std::uint32_t specular, const ClipBounds* bounds,
-                       float zScale);
+                       int indexCount, std::uint32_t colour, std::uint32_t specular);
     int DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const VertexPacket* positions, int blocks,
                   const NormalPacket* normals, int colourCount, std::uint32_t* colours, std::uint32_t* speculars,
                   const TexCoord* uvs, int unused10, const MeshCorner* corners, int cornerCount,

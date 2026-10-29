@@ -47,7 +47,6 @@ void CopyParty(CParty* to, CParty* from) {
     to->LoadParty(&local, 1);
 }
 
-CParty* RecordParty(PartyRecord* record) { return record->Party(); }
 
 // The archive's contents, the same calls for both directions. The containers' serialisers get an unused third
 // argument (a stack leftover).
@@ -187,7 +186,7 @@ void NamedPartyRecords::BeginRedeploy(CParty* party) {
     NamedFloatTable variables(party->variables_);
     std::string zone = party->zone_;
     for (PartyRecord* record : records) {
-        CParty* target = RecordParty(record);
+        CParty* target = record->Party();
         target->variables_ = variables;
         target->zone_ = zone;
         target->entrance_ = party->entrance_;

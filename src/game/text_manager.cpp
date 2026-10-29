@@ -30,7 +30,7 @@ std::string KeyName(const std::string& name) {
 void ReadItemText(CTextManager* texts, const std::string& key, ItemTexts* out) {
     if (texts->Open(key)) {
         texts->ReadLine(&out->name, 1);
-        texts->ReadToHash(&out->description, 1);
+        texts->ReadToHash(&out->description);
     }
 }
 
@@ -77,7 +77,7 @@ bool CTextManager::GetString(std::string_view name, std::string* out) {
     }
     bool found = Open("string " + std::string(name));
     if (found) {
-        ReadToHash(out, 1);
+        ReadToHash(out);
         str::TrimRight(*out, "\r\n");
     } else if (out->data() != name.data()) {
         // `name` may be out's own text (callers pass a string and its address).

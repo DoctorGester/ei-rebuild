@@ -203,15 +203,15 @@ int ReadTerrainTypes(CAIMap& map) {
         const int index = std::atoi(section);
         {
             std::string name = registry.GetString(section, "Name", std::string(""));
-            const char* text = str::Buffer(name, 0);
+            const char* text = name.c_str();
             std::memcpy(map.materials[index].name, text, std::strlen(text) + 1);
         }
         AITerrainType& type = map.materials[index];
-        type.cost = registry.GetInt2(section, "CostMul", -1);
-        type.speed = registry.GetInt2(section, "Speed", -1);
-        type.look = static_cast<float>(registry.GetInt2(section, "StepLook", 100)) * kHundredth;
-        type.smell = static_cast<float>(registry.GetInt2(section, "StepSmell", 100)) * kHundredth;
-        type.noise = static_cast<float>(registry.GetInt2(section, "StepSound", 100)) * kHundredth;
+        type.cost = registry.GetInt(section, "CostMul", -1);
+        type.speed = registry.GetInt(section, "Speed", -1);
+        type.look = static_cast<float>(registry.GetInt(section, "StepLook", 100)) * kHundredth;
+        type.smell = static_cast<float>(registry.GetInt(section, "StepSmell", 100)) * kHundredth;
+        type.noise = static_cast<float>(registry.GetInt(section, "StepSound", 100)) * kHundredth;
     }
     registry.Close();
     archive.Close(file);
@@ -410,7 +410,7 @@ int CAIMap::LoadTerrain(const char* path) {
     for (int sectorY = 0; sectorY < description.header.sectorsY; ++sectorY) {
         for (int sectorX = 0; sectorX < description.header.sectorsX; ++sectorX) {
             char file[432];
-            std::snprintf(file, sizeof(file), "%s%3.3i%3.3i%s", str::Buffer(name, 0), sectorX, sectorY, kSectorExtension);
+            std::snprintf(file, sizeof(file), "%s%3.3i%3.3i%s", name.c_str(), sectorX, sectorY, kSectorExtension);
             std::uint32_t size;
             void* sector = archive.File(file, &size);
             if (!sector) return game::FatalError("Unable to locate resource: " + std::string(file));

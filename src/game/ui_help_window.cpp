@@ -32,7 +32,7 @@ constexpr char kHelpAction = ';';   // the help key's action (g_keyActions)
 void ReadTutorText(CTextManager* texts, const std::string& key, std::string* text) {
     if (!texts->Open(std::string(kTutorSection) + key)) return;
     std::string read;
-    texts->ReadToHash(&read, 1);
+    texts->ReadToHash(&read);
     str::TrimRight(read, kLineEnds);
     *text = read.c_str();
 }

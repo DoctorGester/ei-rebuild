@@ -167,10 +167,6 @@ int CFileRegistry::GetInt(const char* section, const char* key, int defaultValue
     return defaultValue;
 }
 
-int CFileRegistry::GetInt2(const char* section, const char* key, int defaultValue) {
-    return GetInt(section, key, defaultValue);
-}
-
 double CFileRegistry::GetFloat(const char* section, const char* key, float defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegFloat, nullptr))
         return F32(value);

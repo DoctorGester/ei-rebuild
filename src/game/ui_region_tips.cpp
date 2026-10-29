@@ -35,7 +35,7 @@ void CUiRegion::SetTip(int textId, int command) {
     std::string text;
     text = str::Format(kTipText, textId);
     CTextManager* texts = g_clientWorld.texts_;
-    if (texts->Open(text)) texts->ReadToHash(&text, 1);
+    if (texts->Open(text)) texts->ReadToHash(&text);
     delete tip_;
     tip_ = NewTooltip(this, text, command);
 }

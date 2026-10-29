@@ -68,19 +68,17 @@ bool ServerActive() {
     return server && !(server->flags7_ & CRefCounted::kDetached);
 }
 
-CUnitServer* UnitState(CUnit* unit) { return unit->ServerController(); }
 AIBrain* BrainOf(CUnitServer* state) { return &state->brain; }
 PatrolMode* PatrolOf(CUnitServer* state) { return BrainOf(state)->FindPatrolMode(); }
 UnitStats* StatsOf(CUnitServer* state) { return &state->stats; }
 Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->localPosition_; }
 
 CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs[i]->object; }
-CMapObject* MapObjectArg(const SSCCmd* cmd, int i) { return ObjectSlots(Arg(cmd, i)); }
 const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs[i].c_str(); }
 
 CUnitServer* UnitStateArg(const SSCCmd* cmd) {
     CUnit* unit = cmd->objectArgs[0]->AsUnit();
-    return unit ? UnitState(unit) : nullptr;
+    return unit ? unit->ServerController() : nullptr;
 }
 
 Lever* LeverArg(const SSCCmd* cmd) {
@@ -127,7 +125,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->SetRefreshUnits(0);
         Vector3 point = {f[0], f[1], f[2]};
         map->MoveInSectors(object, point);
-        if (CUnit* unit = UnitOrNull(object)) UnitState(unit)->ResyncWithUnit();
+        if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         map->SetRefreshUnits(1);
         object->MarkChanged(2);
         return;
@@ -136,7 +134,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     Vector3 point = {f[0], f[1], f[2]};
     map->MoveInSectors(object, point);
     if (CUnit* unit = UnitOrNull(object)) {
-        UnitState(unit)->ResyncWithUnit();
+        unit->ServerController()->ResyncWithUnit();
         EI_NAN_AUDIT(oldZ, Position(object)->z);
         if (oldZ != Position(object)->z) object->MarkChanged(2);
         return;
@@ -158,7 +156,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
             free = *Position(unit);
             map->FindFreeCellNear(unit, *Position(unit), &free);
             *Position(unit) = free;
-            UnitState(unit)->ResyncWithUnit();
+            unit->ServerController()->ResyncWithUnit();
         }
         map->AddToSectors(unit);
     }
@@ -238,7 +236,7 @@ void CastSpell(const SSCCmd* cmd, bool atUnit) {
         const float* f = cmd->floatArgs.data();
         Vector3 from = {f[0], f[1], 0.0f};
         if (atUnit) {
-            CMapObject* target = MapObjectArg(cmd, 0);
+            CMapObject* target = ObjectSlots(Arg(cmd, 0));
             if (target) g_serverWorld.CastSpell(spell, 0, from, target, target->localPosition_, 0);
         } else {
             Vector3 to = {f[2], f[3], 0.0f};
@@ -324,7 +322,7 @@ bool ScriptRun::Execute(CScript* script) {
             break;
         case ScriptFunction::SleepUntilIdle: {   // SleepUntilIdle(unit): while the brain has an action
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
-            if (unit && UnitState(unit)->brain.action != 0) cont = 0;
+            if (unit && unit->ServerController()->brain.action != 0) cont = 0;
             break;
         }
         case ScriptFunction::CallScript: {   // a declared script: start an instance with the call's arguments
@@ -458,7 +456,7 @@ bool ScriptRun::Execute(CScript* script) {
             int relation;
             if (f[2] > 0.0f) relation = 0;
             else relation = f[2] < 0.0f ? 2 : 1;
-            g_serverWorld.diplomacy_.SetRelation(Ftol(f[0]), Ftol(f[1]), relation, 1);
+            g_serverWorld.diplomacy_.SetRelation(Ftol(f[0]), Ftol(f[1]), relation);
             break;
         }
         case ScriptFunction::InvokeAlarm: {   // InvokeAlarm(type, x, y)
@@ -665,7 +663,7 @@ bool ScriptRun::Execute(CScript* script) {
             CItem* spell = g_serverWorld.CreateSpellNamed(Text(cmd, 0));
             if (!spell) break;
             unit->AddSpell(spell);
-            CUnitServer* state = UnitState(unit);
+            CUnitServer* state = unit->ServerController();
             state->RefreshEquipment();
             break;
         }
@@ -711,13 +709,13 @@ bool ScriptRun::Execute(CScript* script) {
         }
         case ScriptFunction::Follow: {   // Follow(unit, leader)
             CUnitServer* state = UnitStateArg(cmd);
-            if (state) BrainOf(state)->Follow(MapObjectArg(cmd, 1));
+            if (state) BrainOf(state)->Follow(ObjectSlots(Arg(cmd, 1)));
             break;
         }
         case ScriptFunction::Attack: {   // Attack(unit, target)
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            CMapObject* target = MapObjectArg(cmd, 1);
+            CMapObject* target = ObjectSlots(Arg(cmd, 1));
             if (target) BrainOf(state)->AttackTarget(target);
             break;
         }
@@ -812,7 +810,7 @@ bool ScriptRun::Execute(CScript* script) {
         case ScriptFunction::UMFollow: {   // UMFollow(unit, leader)
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            CMapObject* leader = MapObjectArg(cmd, 1);
+            CMapObject* leader = ObjectSlots(Arg(cmd, 1));
             BrainOf(state)->AddMode(new FollowMode(leader));
             break;
         }

@@ -27,14 +27,12 @@
 
 namespace {
 
-// The spell manager of an item's manager context (of the world or the party).
-CSpellManager* SpellManagerOf(CItem* item) { return item->WorldContext()->SpellManager(); }
 
 // A counted copy of `item` (CItem::Clone with its context's spell manager); `item` is held
 // meanwhile and released after.
 CItem* CountedClone(CItem* item) {
     if (item) item->AddRef();
-    CItem* copy = item->Clone(SpellManagerOf(item));
+    CItem* copy = item->Clone(item->WorldContext()->SpellManager());
     copy->AddRef();
     return copy;
 }
@@ -43,9 +41,6 @@ void Drop(CItem* item) {
     if (item) item->Release();
 }
 
-CItem* MakeItem(CParty* party, std::string_view name) {
-    return party->ItemFactory()->CreateItem(name);
-}
 
 // A weapon name that gives a weapon: not empty and not "none" (_mbsicmp).
 bool Named(const std::string& name) {
@@ -109,14 +104,14 @@ void CParty::FillFromPrototype(PartyUnitRecord* record) {
     // What the prototype lookup copies out of the prototype: armour names, the two weapon names, spell names.
     const std::vector<std::string>& armour = prototype->armourNames;
     for (int i = 0; i < static_cast<int>(armour.size()); ++i) {
-        CItem* item = MakeItem(this, armour.begin()[i]);
+        CItem* item = ItemFactory()->CreateItem(armour.begin()[i]);
         CItem* copy = CountedClone(item);
         lib::SetAtGrow(record->armor, std::ssize(record->armor), copy);
         Drop(item);
     }
     for (const auto* weapon : {&prototype->weaponName, &prototype->secondWeaponName}) {
         if (!Named((*weapon))) continue;
-        CItem* item = MakeItem(this, (*weapon));
+        CItem* item = ItemFactory()->CreateItem(*weapon);
         CItem* copy = CountedClone(item);
         lib::SetAtGrow(record->weapons, std::ssize(record->weapons), copy);
         Drop(item);
@@ -155,14 +150,14 @@ bool CParty::EquipFromPrototype(PartyUnitRecord* record) {
     }
     const std::vector<std::string>& quickNames = npc->startQuickItems;
     for (unsigned i = 0; i < static_cast<unsigned>(quickNames.size()); ++i) {
-        CItem* item = MakeItem(this, quickNames.begin()[i]);
+        CItem* item = ItemFactory()->CreateItem(quickNames.begin()[i]);
         CItem* copy = CountedClone(item);
         lib::SetAtGrow(record->quickItems, std::ssize(record->quickItems), copy);
         Drop(item);
     }
     const std::vector<std::string>& weaponNames = npc->startWeapons;
     for (unsigned i = 0; i < static_cast<unsigned>(weaponNames.size()); ++i) {
-        CItem* item = MakeItem(this, weaponNames.begin()[i]);
+        CItem* item = ItemFactory()->CreateItem(weaponNames.begin()[i]);
         CItem* copy = CountedClone(item);
         lib::SetAtGrow(record->weapons, std::ssize(record->weapons), copy);
         Drop(item);

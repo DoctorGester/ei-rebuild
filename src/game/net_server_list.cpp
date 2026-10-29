@@ -18,9 +18,6 @@ void ReadBytes(GameBuffer* buffer, void* to, unsigned size) {
     else buffer->CopyOut(to, size);
 }
 
-std::int32_t Offset(const GameBuffer& b, const std::uint8_t* p) {
-    return b.PositionOf(p);
-}
 
 } // namespace
 
@@ -38,7 +35,7 @@ void ClientSession::ReadServerList(GameBuffer* in) {
     ReadBytes(in, &size, 4);
     if (in->cur > in->high) in->high = in->cur;
     bool complete = false;
-    if (size == static_cast<std::uint32_t>(Offset(*in, in->high))) {
+    if (size == static_cast<std::uint32_t>(in->PositionOf(in->high))) {
         coder.Decompress(in, &buffer);
         BufferUpdateHigh(&buffer);
         std::uint8_t* begin = buffer.begin;
@@ -46,7 +43,7 @@ void ClientSession::ReadServerList(GameBuffer* in) {
         if (begin > buffer.end) buffer.Grow(0);
         for (;;) {
             if (buffer.cur > buffer.high) buffer.high = buffer.cur;
-            if (Offset(buffer, buffer.cur) >= Offset(buffer, buffer.high) || (buffer.flags & 8)) {
+            if (buffer.PositionOf(buffer.cur) >= buffer.PositionOf(buffer.high) || (buffer.flags & 8)) {
                 complete = true;
                 break;
             }

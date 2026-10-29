@@ -219,7 +219,7 @@ int GroundPrint::Draw() {
     CTextureDevice* device = g_sceneRenderer.device_;
     device->BindNamedTexture(0, &texture_);
     return device->DrawFlatBlocks(positions_.data(), texCoords_.data(), std::ssize(positions_),
-                                  indices_.data(), std::ssize(indices_), colour_, static_cast<std::uint32_t>(lit_) << 24, nullptr, 1.0f);
+                                  indices_.data(), std::ssize(indices_), colour_, static_cast<std::uint32_t>(lit_) << 24);
 }
 
 // ---- Footprint ----------------------------------------------------------------------------------

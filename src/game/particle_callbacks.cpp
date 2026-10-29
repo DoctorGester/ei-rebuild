@@ -905,9 +905,6 @@ constexpr float kDustAxisY[4] = /*0078AAC8*/ {0.707f, -0.707f, 0.707f, -0.707f};
 // The unit's point `index`, and the ground's and the platforms' surface heights there (left unrounded).
 Vector3* UnitPoint(CObject3D* unit, Vector3* out, int index) { return Carrier(unit)->PositionAt(out, index); }
 double TerrainHeight(float x, float y) { return g_clientWorld.RawSurfaceHeightAt(x, y); }
-double PlatformHeight(const Vector3& at, float ground) {
-    return g_clientWorld.platforms_.SurfaceHeight(at, ground);
-}
 
 bool Same(float a, float b) {
     EI_NAN_AUDIT(a, b);
@@ -4047,7 +4044,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     under.y = point.y;
     under.z = 0.0f;
     float ground = static_cast<float>(TerrainHeight(point.x, point.y));
-    double top = PlatformHeight(under, ground);
+    double top = g_clientWorld.platforms_.SurfaceHeight(under, ground);
     p->pos.y = point.y;
     p->size = 0.07f;     // 0.07
     p->pos.x = point.x;

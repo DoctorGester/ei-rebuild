@@ -645,7 +645,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         key += spell->GetPrototype()->code;
         if (texts->Open(key)) {
             texts->ReadLine(&title, 1);
-            texts->ReadToHash(&description, 1);
+            texts->ReadToHash(&description);
         }
     }
     texts->GetString("item_spell", &kindText);

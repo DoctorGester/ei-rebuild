@@ -32,7 +32,6 @@ void WriteInteger(ConsoleStreambuf* buffer, T value) {
     buffer->Write(std::string_view(text, std::to_chars(text, text + sizeof(text), value).ptr - text));
 }
 
-bool NetworkGame() { return IsMultiplayerClient(); }
 
 } // namespace
 
@@ -150,7 +149,7 @@ void Execute(const std::string& text) {
     if (args.empty()) return;
     std::string command = args[0];
     args.erase(args.begin());
-    bool local = !NetworkGame();
+    bool local = !IsMultiplayerClient();
     // Rebirth's AddNewConsoleCommands: addon's commands, registered again on every call like the game's own.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) RegisterAddonCommands();
     char first = command[0];
@@ -187,7 +186,7 @@ void Execute(const std::string& text) {
             return;
         }
     } else if (Command(&g_cheatCommands, command)) {
-        if (!NetworkGame()) (Command(&g_cheatCommands, command))(&args);
+        if (!IsMultiplayerClient()) (Command(&g_cheatCommands, command))(&args);
         return;
     }
     PrintLine("Unknown command");

@@ -140,7 +140,7 @@ bool MobFile::Load(int keepIds) {
     if (ReadChunks(&records, diplomacy, &scripts)) {
         CDiplomacy* table = &g_serverWorld.diplomacy_;
         for (int i = 0; i < 32; ++i)
-            for (int j = 0; j < 32; ++j) table->SetRelation(i, j, diplomacy->relations[i][j], 1);
+            for (int j = 0; j < 32; ++j) table->SetRelation(i, j, diplomacy->relations[i][j]);
     }
 
     // Every record becomes a world object, then is deleted (the map keeps the dangling pointer).

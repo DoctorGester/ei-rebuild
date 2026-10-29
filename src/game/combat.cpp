@@ -103,8 +103,6 @@ float ServerMana(const CUnit* unit) { return unit->ServerCompanion()->vitals.man
 
 std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode_; }
 
-float Radius(CMapObject* object) { return object->Radius(); }
-bool IsDead(CMapObject* object) { return object->IsDead(); }
 void AttackParamsOf(CUnitServer* controller, AttackParams* out) { controller->GetAttackParams(out); }
 
 // A zero-extended dword converted as a 64-bit integer (exact; a plain uint32 conversion would add 2^32 in a step
@@ -305,14 +303,14 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
     }
     if (kind == UnitOrderKind::Use) {
         if (order->Skill() == UseSource::SearchBody) {
-            float part = static_cast<float>(Radius(target) * kPointThree);
-            return static_cast<float>(Radius(unit) + part);
+            float part = static_cast<float>(target->Radius() * kPointThree);
+            return static_cast<float>(unit->Radius() + part);
         }
         if (CUnit* other = UnitOrNull(target)) {
             return static_cast<float>((static_cast<double>(unit->standingHeight) + other->standingHeight) + kPointSix);
         }
-        float own = Radius(unit);
-        return static_cast<float>((Radius(target) + static_cast<double>(own)) - kPointOne);
+        float own = unit->Radius();
+        return static_cast<float>((target->Radius() + static_cast<double>(own)) - kPointOne);
     }
     if (CUnit* other = UnitOrNull(target)) {
         float floor = kMeleeFloor;
@@ -324,15 +322,15 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
     }
     CItemWeapon* weapon = ActiveWeapon(unit);
     float range = weapon ? weapon->reach_ : stats.combat[UnitStats::kReach];
-    float own = Radius(unit);
-    return static_cast<float>((Radius(target) + static_cast<double>(own)) + range);
+    float own = unit->Radius();
+    return static_cast<float>((target->Radius() + static_cast<double>(own)) + range);
 }
 
 bool CUnitServer::CanReachTarget(const AIOrder* order) {
     if (order->kind != UnitOrderKind::Attack && order->kind != UnitOrderKind::Use) return true;
     CUnit* other = UnitOrNull(order->target);
     if (!other) return true;
-    if (IsDead(other) != 0) return true;
+    if (other->IsDead() != 0) return true;
     if (other->sizeClass != 0) return true;
     if (order->kind == UnitOrderKind::Attack) {
         CItemWeapon* weapon = ActiveWeapon(unit);
@@ -438,7 +436,7 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
     double distance = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz));
     float twice = static_cast<float>(distance + distance);
-    double radius = Radius(unit) * static_cast<double>(kDistanceScale);
+    double radius = unit->Radius() * static_cast<double>(kDistanceScale);
     float penalty = static_cast<float>(twice / (radius + radius));
 
     double roll = 0.0;
@@ -520,7 +518,7 @@ void CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
 
 bool CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     CWorldServer* world = ServerWorld();
-    int dead = IsDead(unit);
+    int dead = unit->IsDead();
     bool hadPlayer = unit->player != nullptr;
     // |attackRoll| below FLT_MAX: not resolved yet.
     float roll = std::bit_cast<float>(std::bit_cast<std::uint32_t>(hit->attackRoll) & 0x7FFFFFFFu);
@@ -577,7 +575,7 @@ bool CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
             unit->MarkChanged(4);
             if (!dead) {
                 OnDamaged(attacker, hit->hitKind);
-                if (IsDead(unit) != 0 && source && source->player && !hadPlayer) {
+                if (unit->IsDead() != 0 && source && source->player && !hadPlayer) {
                     const auto* prototype = unit->GetPrototype();
                     if (IsMultiplayerClient()) {
                         world->AwardExperience(nullptr, prototype->experienceValue);

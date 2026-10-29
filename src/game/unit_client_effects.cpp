@@ -143,7 +143,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     if (const char* format = HitSoundFormat(HitSoundKind(unit))) sound = str::Format(format, material);
     if (sound.size() != 0) {
         auto* world = ClientWorld();
-        world->sounds_->Play3D(sound, kSoundPriority, &unit->localPosition_.x, kSoundNear, kSoundFar, 0, 0);
+        world->sounds_->Play3D(sound, kSoundPriority, &unit->localPosition_.x, kSoundNear, kSoundFar, 0);
     }
 
     if (location < 0 || location > 5) return;

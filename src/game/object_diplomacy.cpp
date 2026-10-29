@@ -19,7 +19,7 @@ void CDiplomacy::Reset() {
     for (int i = 0; i < 32; ++i) allied_[i] = 1u << i;
 }
 
-void CDiplomacy::SetRelation(int player, int other, int relation, bool applyToUnits) {
+void CDiplomacy::SetRelation(int player, int other, int relation) {
     std::uint32_t bit = Bit(other);
     switch (relation) {
     case kRelationAllied:
@@ -37,8 +37,6 @@ void CDiplomacy::SetRelation(int player, int other, int relation, bool applyToUn
     default:
         break;
     }
-    if (!applyToUnits) return;
-
     ObjectListIterator it;
     it.manager = nullptr;
     for (CEngineObject* object = it.First(g_serverWorld.objectManager_); object; object = it.Next()) {

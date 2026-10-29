@@ -30,9 +30,9 @@ namespace {
 
 // BinkOpen, as the import slot reaches it: with Rebirth's MoviesPatch (addon's slot) the mod's
 // Movies\ copy when there is one.
-BinkHeader* OpenBink(const char* name, unsigned flags) {
-    if (modfolders::Active(ei::rebirth::Patch::MoviesPatch)) return gameapi::BinkOpen(modfolders::MovieFile(name).c_str(), flags);
-    return gameapi::BinkOpen(name, flags);
+BinkHeader* OpenBink(const char* name) {
+    if (modfolders::Active(ei::rebirth::Patch::MoviesPatch)) return gameapi::BinkOpen(modfolders::MovieFile(name).c_str(), 0);
+    return gameapi::BinkOpen(name, 0);
 }
 
 // The type of the CPU copy of a frame the new renderer gets.
@@ -90,7 +90,7 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
     const char* file = name.c_str();
     if (loadingStep) g_clientWorld.sounds_->StopAll(1);
     if (options::g_options.audio_) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld.sounds_->waveDriver);
-    BinkHeader* bink = OpenBink(file, 0);
+    BinkHeader* bink = OpenBink(file);
     if (!bink) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", file);
         return true;
@@ -175,7 +175,7 @@ void ShowLoadingMovie(int progress) {
         std::string path = DataFolderText();
         path += "Movies\\";
         path += app::g_loadingMovieName;  // progres.bik, or the zone's
-        g_loadingBink = OpenBink(path.c_str(), 0);
+        g_loadingBink = OpenBink(path.c_str());
         if (!g_loadingBink) {
             game::DebugLog("Can't open video file \"%s\"\n", path);
             return;
@@ -219,7 +219,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     if (!options::g_options.video_) return 0;
     if (loadingStep) g_clientWorld.sounds_->StopAll(1);
     if (options::g_options.audio_) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld.sounds_->waveDriver);
-    bink = OpenBink(name, 0);
+    bink = OpenBink(name);
     if (!bink) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", name);
         return 0;

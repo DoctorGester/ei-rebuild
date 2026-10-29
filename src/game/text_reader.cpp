@@ -53,13 +53,13 @@ bool IsComment(const std::string& word) {
     return str::Compare(start, kComment) == 0;
 }
 
-// After a read: the cursor moves past the line (`first`), then past every "##" comment line.
-void SkipToNextLine(CTextManager* t, const AdvanceKind& first, const AdvanceKind& comment) {
+// After a read: the cursor moves past the line, then past every "##" comment line.
+void SkipToNextLine(CTextManager* t) {
     std::string word;
-    Advance(t, first);
+    Advance(t, kAfterRead);
     while (t->PeekWord(&word)) {
         if (!IsComment(word)) break;
-        Advance(t, comment);
+        Advance(t, kInline);
     }
 }
 
@@ -132,11 +132,11 @@ bool CTextManager::ReadLine(std::string* out, bool advance) {
         out->push_back(*p);
         ++p;
     }
-    if (advance) SkipToNextLine(this, kAfterRead, kInline);
+    if (advance) SkipToNextLine(this);
     return true;
 }
 
-bool CTextManager::ReadToHash(std::string* out, bool advance) {
+bool CTextManager::ReadToHash(std::string* out) {
     const char* p = cursor_;
     out->clear();
     if (!Inside(this, p)) return false;
@@ -145,7 +145,7 @@ bool CTextManager::ReadToHash(std::string* out, bool advance) {
         out->push_back(*p);
         ++p;
     }
-    if (advance) cursor_ = p;
+    cursor_ = p;
     return true;
 }
 
@@ -179,7 +179,7 @@ bool CTextManager::Split(std::vector<std::string>* words, bool advance) {
         }
         ++p;
     }
-    if (advance) SkipToNextLine(this, kAfterRead, kInline);
+    if (advance) SkipToNextLine(this);
     return true;
 }
 

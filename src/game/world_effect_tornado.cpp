@@ -144,7 +144,7 @@ void CEffectTornado::Start(int update) {
     }
     if (source_ != nullptr) return;
     if (sound_ == -1) {
-        sound_ = g_clientWorld.sounds_->Play3D(game::TornadoSoundText(), 0, &localPosition_.x, kSoundNear, kSoundFar, 1, 0);
+        sound_ = g_clientWorld.sounds_->Play3D(game::TornadoSoundText(), 0, &localPosition_.x, kSoundNear, kSoundFar, 1);
     }
     CParticleSource* source = g_clientWorld.particleManager_->CreateSource(kTornadoParticles);
     source_.Assign(source);

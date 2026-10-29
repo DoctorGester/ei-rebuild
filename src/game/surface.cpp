@@ -15,8 +15,6 @@
 
 namespace {
 
-// The screen's pixel format of the holder's device.
-render::PixelFormat ScreenFormatOf(const Surface* holder) { return ScreenFormat(holder->device->bitsPerPixel_); }
 
 constexpr std::uint32_t kFormat8888 = 0x8888;
 
@@ -32,7 +30,7 @@ int LoadPicture(Surface* holder, const MmpHeader* picture) {
                                 picture->bitsPerPixel);
     holder->width = width;
     holder->height = height;
-    holder->bitsPerPixel = ScreenFormatOf(holder).bitsPerPixel;
+    holder->bitsPerPixel = ScreenFormat(holder->device->bitsPerPixel_).bitsPerPixel;
     return 1;
 }
 
@@ -136,7 +134,7 @@ Surface::Surface(CTextureDevice* deviceIn, int widthIn, int heightIn) : device(d
     if (widthIn <= 0 || heightIn <= 0) ThrowSurfaceNotMade(widthIn, heightIn);
     width = widthIn;
     height = heightIn;
-    bitsPerPixel = ScreenFormatOf(this).bitsPerPixel;
+    bitsPerPixel = ScreenFormat(device->bitsPerPixel_).bitsPerPixel;
 }
 
 // The renderer keeps the picture's pixels from the file data (render::PictureFromMmp).

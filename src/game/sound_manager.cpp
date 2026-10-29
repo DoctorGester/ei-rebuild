@@ -539,13 +539,13 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
         if (next < 0) return 0;
         index = next & ~kSequenceLoop;
         int h = manager->Play3D(names[index], priority, &position.x, nearDistance, farDistance,
-                                next & kSequenceLoop, 0);
+                                next & kSequenceLoop);
         handle = h;
         return h != -1 ? 1 : 0;
     }
     if (remaining == 0) return 0;
     if (random != 0) index = static_cast<std::int32_t>(g_random.Next() % static_cast<std::uint32_t>(names.size()));
-    int h = manager->Play3D(names[index], priority, &position.x, nearDistance, farDistance, 0, 0);
+    int h = manager->Play3D(names[index], priority, &position.x, nearDistance, farDistance, 0);
     handle = h;
     if (h == -1) return 0;
     index = (index + 1) % static_cast<int>(names.size());
@@ -1084,8 +1084,7 @@ int CSoundManager::Play2D(std::string_view name, int priority, int volume, int p
 // Plays `name` at `position`: full volume inside `nearDist`, silent beyond `farDist`, the pan from the
 // listener (UpdatePositional). Returns the handle or -1 as Play2D. A looping sound without a voice is
 // deferred; the record's volume, base volume, pan and length are left as operator new returned them.
-int CSoundManager::Play3D(std::string_view name, int priority, const float* position, float nearDist, float farDist, int loop,
-                          int speech) {
+int CSoundManager::Play3D(std::string_view name, int priority, const float* position, float nearDist, float farDist, int loop) {
     if (enabled == 0) return -1;
     int index = AllocateVoice(priority);
     if (index == -1) {
@@ -1097,7 +1096,7 @@ int CSoundManager::Play3D(std::string_view name, int priority, const float* posi
         rec->farDistance = farDist;
         rec->flat = 0;
         rec->heightFade = 0;
-        rec->speech = speech;
+        rec->speech = 0;
         rec->priority = priority;
         rec->handle = nextHandle;
         ++nextHandle;
@@ -1113,7 +1112,7 @@ int CSoundManager::Play3D(std::string_view name, int priority, const float* posi
     slot->farDistance = farDist;
     slot->flat = 0;
     slot->heightFade = 0;
-    slot->speech = speech;
+    slot->speech = 0;
     slot->priority = priority;
     UpdatePositional(slot);
     if (slot->volume == 0 && loop == 0) return -1;

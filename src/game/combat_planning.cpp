@@ -68,10 +68,9 @@ struct LocalUnitMotion {
     LocalUnitMotion& operator=(const LocalUnitMotion&) = delete;
 };
 
-CPlayerServer* PlayerConnection(CPlayer* player) { return player->Server(); }
 
 void PathMessage(CUnit* unit, PathOrder* motion, const float* point, int kind, int flag, float limit) {
-    if (unit->player) PlayerConnection(unit->player)->SendPathMessage(unit, motion, point, kind, flag, std::bit_cast<std::uint32_t>(limit));
+    if (unit->player) unit->player->Server()->SendPathMessage(unit, motion, point, kind, flag, std::bit_cast<std::uint32_t>(limit));
 }
 
 } // namespace
@@ -195,7 +194,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
         if (CanReachTarget(order) && CanPlanAction(order)) {
             // The action can be done from here.
             PathMessage(unit, &route, &point.x, 3, 0, kFar);
-            if (IsShoutable(shout) && unit->player) PlayerMessage(PlayerConnection(unit->player), unit, shout);
+            if (IsShoutable(shout) && unit->player) PlayerMessage(unit->player->Server(), unit, shout);
             return true;
         }
         int kind = order->kind == UnitOrderKind::Attack ? 2 : 1;

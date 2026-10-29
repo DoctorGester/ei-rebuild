@@ -99,8 +99,8 @@ int CLinkFigureLoader::CacheBytes() {
 }
 
 CLinkMesh* CLinkFigureLoader::LoadFigure(const std::string* name, const std::vector<std::string>* parts, float s,
-                                     float t, float u, bool fresh) {
-    CLinkMesh* mesh = fresh ? nullptr : FindCached(cache_, name, s, t, u);
+                                     float t, float u) {
+    CLinkMesh* mesh = FindCached(cache_, name, s, t, u);
     if (!mesh) return MakeFigure(name, parts, s, t, u);
     FigureModel* set;
     {
@@ -119,8 +119,8 @@ CLinkMesh* CLinkFigureLoader::LoadFigure(const std::string* name, const std::vec
     return mesh;
 }
 
-CLinkMesh* CLinkFigureLoader::LoadLink(const std::string* name, float s, float t, float u, bool fresh) {
-    CLinkMesh* mesh = fresh ? nullptr : FindCached(cache_, name, s, t, u);
+CLinkMesh* CLinkFigureLoader::LoadLink(const std::string* name, float s, float t, float u) {
+    CLinkMesh* mesh = FindCached(cache_, name, s, t, u);
     return mesh ? mesh : LoadLinkFile(name, s, t, u);
 }
 
@@ -149,7 +149,7 @@ bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const std::string* name) {
 CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u) {
     if (mesh && mesh->refCount_ > 2) {
         std::string meshName = mesh->name_;
-        return LoadLink(&meshName, s, t, u, false);
+        return LoadLink(&meshName, s, t, u);
     }
     if (!mesh) return nullptr;
     std::vector<std::string> names = mesh->PartNames();

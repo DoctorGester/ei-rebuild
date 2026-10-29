@@ -158,8 +158,8 @@ void BufferCursor::ReadBytes(void* to, std::uint32_t size) {
     p += size;
 }
 
-void BufferCursor::Reset(std::uint8_t* at) {
-    p = at;
+void BufferCursor::Reset() {
+    p = nullptr;
     bits = 0;
     bytePtr = nullptr;
 }
@@ -366,7 +366,7 @@ void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
 
 void CoderState::Decompress(GameBuffer* in, GameBuffer* outBuffer) {
     BufferCursor reader;
-    reader.Reset(nullptr);
+    reader.Reset();
     reader.sink = nullptr;
     if (in->cur > in->high) in->high = in->cur;
     reader.BeginRead(in, static_cast<std::int32_t>(in->high - in->cur));

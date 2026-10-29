@@ -69,12 +69,8 @@ bool CWinRegistry::SetFloat(const char* subkey, const char* name, std::uint32_t 
     return SetValue(key_, subkey, name, REG_BINARY, &bits, 4);
 }
 
-bool CWinRegistry::SetStringInt(const char* subkey, const char* name, const std::string& value) {
-    return SetValue(key_, subkey, name, REG_SZ, value.c_str(), static_cast<DWORD>(static_cast<int>(value.size()) + 1));
-}
-
 bool CWinRegistry::SetString(const char* subkey, const char* name, const std::string& value) {
-    return SetStringInt(subkey, name, value);
+    return SetValue(key_, subkey, name, REG_SZ, value.c_str(), static_cast<DWORD>(static_cast<int>(value.size()) + 1));
 }
 
 std::uint32_t CWinRegistry::GetDWord(const char* subkey, const char* name, std::uint32_t defaultValue) {
@@ -101,7 +97,7 @@ double CWinRegistry::GetFloat(const char* subkey, const char* name, std::uint32_
     return value;
 }
 
-std::string CWinRegistry::GetStringInt(const char* subkey, const char* name, const std::string& defaultValue) {
+std::string CWinRegistry::GetString(const char* subkey, const char* name, const std::string& defaultValue) {
     char buffer[0x100];
     DWORD size = sizeof(buffer);
     DWORD type;
@@ -114,8 +110,4 @@ std::string CWinRegistry::GetStringInt(const char* subkey, const char* name, con
     if (status == 0 && type != REG_SZ) game::DebugLog("CWinRegistry::GetStringInt().\nRegistry data type is not SZ.\n");
     if (status != 0 || type != REG_SZ) return defaultValue;
     return longValue.empty() ? std::string(buffer) : std::string(longValue.data());
-}
-
-std::string CWinRegistry::GetString(const char* subkey, const char* name, const std::string& defaultValue) {
-    return GetStringInt(subkey, name, defaultValue);
 }

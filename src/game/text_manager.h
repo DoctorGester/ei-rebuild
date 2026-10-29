@@ -99,7 +99,7 @@ public:
     // then moves to the next line that is not a comment. 0 when the cursor is at the end.
     bool ReadLine(std::string* out, bool advance);
     // The text up to the next '#' into `out`; with `advance` the cursor moves there.
-    bool ReadToHash(std::string* out, bool advance);
+    bool ReadToHash(std::string* out);
     // The current line's words (separated by spaces and tabs; a word still open when the
     // text ends is dropped) into `words`; with `advance` the cursor moves to the next line that is not
     // a comment. 0 when the cursor is at the end.

@@ -197,5 +197,5 @@ void RecordChunks(ChunkArchive* ar, int id, std::vector<Record>* records, Fields
 bool ReadStreamChunk(CStream* in, char* id, CMemoryStream* to);
 // From the start of the stream, the `occurrence`-th chunk `id` into `to`; on a read error or the end, `to` is
 // cleared and false.
-bool FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence);
+bool FindStreamChunk(CStream* in, int id, CMemoryStream* to);
 void WriteStreamChunk(CStream* out, int id, CMemoryStream* from);

@@ -45,14 +45,14 @@ constexpr float kDayFactorRain = 0.9f;
 constexpr float kDayFactorDry = 1.0f;
 
 
-float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(g_random.Next()) * scale); }
+float UniformOnMap() { return static_cast<float>(x87::FromUnsigned(g_random.Next()) * kMapScale); }
 
 // A lightning strike in a storm: a random point of the map, struck from a random point 30 to 70
 // away when the ground there is open and the line between them is not fully free.
 void TryLightningStrike(CWorldServer* world) {
     Vector3 ground;
-    ground.x = Uniform(kMapScale);
-    ground.y = Uniform(kMapScale);
+    ground.x = UniformOnMap();
+    ground.y = UniformOnMap();
     ground.z = 0.0f;
     CAIMap* aiMap = &world->aiMap_;
     int kind = aiMap->MaterialAt(ground);

@@ -65,14 +65,12 @@ bool IsUnit(CMapObject* object) { return object && object->GetClassId() == Class
 bool IsCastKind(UnitOrderKind kind) { return kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn; }
 bool IsActionKind(UnitOrderKind kind) { return kind == UnitOrderKind::Attack || kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn || kind == UnitOrderKind::Use; }
 
-bool IsDead(CMapObject* object) { return object->IsDead(); }
 float PrototypeHeight(CUnit* unit) { return unit->GetPrototype()->height; }
-CPlayerServer* PlayerMessages(CPlayer* player) { return player->Server(); }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 
 void TellParty(CUnit* unit, AckKind kind) {
-    if (unit->player) PlayerMessages(unit->player)->SendObject0B(unit, kind);
+    if (unit->player) unit->player->Server()->SendObject0B(unit, kind);
 }
 
 // UnitAction::Clear followed by the reset of its two extra fields, as callers inline it.
@@ -87,7 +85,7 @@ void ClearAction(UnitAction* order) {
 bool CanStillDo(CUnitServer* self, UnitAction* order) {
     if (order->kind == UnitOrderKind::Attack || order->kind == UnitOrderKind::Use) {
         CUnit* other = UnitOrNull(order->target);
-        if (other && !IsDead(other)) {
+        if (other && !other->IsDead()) {
             if (other->sizeClass == 0 && !(order->kind == UnitOrderKind::Attack && self->HasRangedWeapon())) {
                 double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition_.z;
                 if (height >= kHeightLimit) return false;
@@ -157,7 +155,7 @@ void SetModeInline(CUnit* unit, int mode) {
 bool OutOfReachUp(CUnitServer* self, const AIOrder* order) {
     if (order->kind != UnitOrderKind::Attack && order->kind != UnitOrderKind::Use) return false;
     CUnit* other = UnitOrNull(order->target);
-    if (!other || IsDead(other)) return false;
+    if (!other || other->IsDead()) return false;
     if (other->sizeClass != 0) return false;
     if (order->kind == UnitOrderKind::Attack && self->HasRangedWeapon()) return false;
     double height = static_cast<double>(PrototypeHeight(other)) + other->localPosition_.z;
@@ -433,7 +431,7 @@ void CUnitServer::ContinueAction() {
     bool seen = true;
     CPlayer* player = unit->player;
     if (player && IsUnit(target) && !brain.memory.CanTrack(unit, static_cast<CUnit*>(target)))
-        seen = PlayerMessages(player)->IsPartyUnit(target);
+        seen = player->Server()->IsPartyUnit(target);
 
     bool cast = IsCastKind(action.kind);
     bool carryOn = false;
@@ -443,7 +441,7 @@ void CUnitServer::ContinueAction() {
                 CSpell* spell = SpellOfSource(action.source);
                 carryOn = spell && (spell->targetFlags_ & SpellTargetFlag::AtPoint);
             }
-        } else if (!IsDead(action.target)) {
+        } else if (!action.target->IsDead()) {
             carryOn = true;
         } else if (action.kind == UnitOrderKind::Use && (action.Skill() == UseSource::SearchBody || action.Skill() == UseSource::Use)) {
             carryOn = true;   // talk to or study the dead

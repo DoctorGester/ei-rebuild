@@ -50,8 +50,6 @@ std::vector<SpriteSortRecord> g_records;
 std::vector<SpriteSortRecord*> g_order;
 std::vector<SpriteSortRecord*> g_spare;
 
-TLVertex* CornerData() { return g_corners.data(); }
-std::uint16_t* IndexData() { return g_indices.data(); }
 
 // --- The steps -----------------------------------------------------------------------------------
 
@@ -65,7 +63,7 @@ void SetCorner(TLVertex& v, std::uint32_t color, const float* u, const float* t)
 // The colour and texture coordinates of `count` sprites' corners: (u0,v0), (u1,v0), (u1,v1), (u0,v1).
 void FillCorners(const Sprite* sprite, int count) {
     g_corners.resize(static_cast<std::size_t>(count) * 4);
-    TLVertex* v = CornerData();
+    TLVertex* v = g_corners.data();
     for (int i = 0; i < count; ++i, ++sprite, v += 4) {
         const float* uv = sprite->uv;
         std::uint32_t color = sprite->color;
@@ -121,14 +119,14 @@ int SortBackToFront() {
     }
 
     g_corners.resize(kept * 4);
-    TLVertex* out = CornerData();
+    TLVertex* out = g_corners.data();
     for (int i = 0; i < kept; ++i) std::memcpy(out + i * 4, sorted[i]->corners, 4 * sizeof(TLVertex));
     return kept;
 }
 
 // The batch's triangle list through the device object (fogged by distance when it says so). True.
 bool Draw(CSceneRenderer* renderer, int vertexCount, int indexCount) {
-    return renderer->device_->DrawTlTriangles(CornerData(), vertexCount, IndexData(), indexCount) != 0;
+    return renderer->device_->DrawTlTriangles(g_corners.data(), vertexCount, g_indices.data(), indexCount) != 0;
 }
 
 void SetTriangle(std::uint16_t* tri, int a, int b, int c) {
@@ -140,7 +138,7 @@ void SetTriangle(std::uint16_t* tri, int a, int b, int c) {
 // Two triangles per sprite, (0, 2, 1) and (0, 3, 2); the GPU clips the ones that cross the screen's edges.
 bool DrawQuads(CSceneRenderer* renderer, int sprites) {
     g_indices.resize(static_cast<std::size_t>(sprites) * 6);
-    std::uint16_t* tri = IndexData();
+    std::uint16_t* tri = g_indices.data();
     for (int i = 0; i < sprites * 4; i += 4, tri += 6) {
         SetTriangle(tri, i, i + 2, i + 1);
         SetTriangle(tri + 3, i, i + 3, i + 2);

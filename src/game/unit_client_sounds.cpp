@@ -38,9 +38,6 @@ constexpr int kWeaponCrossbow = 6;
 
 // rand() scaled into 0..n-1.
 
-const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
-    return unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
-}
 
 // The skill sounds by animation (the four SearchBody animations loot).
 const char* SkillSound(SkillAnimation skill) {
@@ -98,7 +95,7 @@ bool SoundBusy(int handle) {
 int CUnitClientSpecific::FootstepSound(int terrain, std::string* out) {
     const auto* prototype = unit->GetPrototype();
     if (!prototype) return 0;
-    const UnitModelRecord* model = ModelOf(prototype);
+    const UnitModelRecord* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     if (!model || model->SoundCounts()[terrain] == 0) return 0;
     CWorldClient* world = &g_clientWorld;
     float x = unit->localPosition_.x;
@@ -122,7 +119,7 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
                                      std::uint8_t miss) {
     const auto* prototype = unit->GetSecondPrototype();
     if (!prototype) return 0;
-    const UnitModelRecord* model = ModelOf(prototype);
+    const UnitModelRecord* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     int frame = animation->soundFrame;
     out->clear();
     if (frame == 0) return 0;
@@ -200,7 +197,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
         if (unit->MapType() == MapObjectType::Hero && unit->actionSound &&
             ActionSound(current, lastAnimationTime, now, &sound, static_cast<std::uint8_t>(unit->actionSound)))
-            sounds->Play3D(sound, kPriorityAction, &position.x, kSoundNear, kSoundFar, 0, 0);
+            sounds->Play3D(sound, kPriorityAction, &position.x, kSoundNear, kSoundFar, 0);
         priority = kPriorityAction;
         action = true;
         break;
@@ -295,11 +292,11 @@ void CUnitClientSpecific::PlayStepSounds() {
         int handle = -1;
         if (kind == AnimationKind::Attack) {
             if (!SoundBusy(speechSound)) {
-                handle = sounds->Play3D(sound, priority, &position.x, kSoundNear, kSoundFar, 0, 0);
+                handle = sounds->Play3D(sound, priority, &position.x, kSoundNear, kSoundFar, 0);
                 speechSound = handle;
             }
         } else {
-            handle = sounds->Play3D(sound, priority, &position.x, kSoundNear, kSoundFar, 0, 0);
+            handle = sounds->Play3D(sound, priority, &position.x, kSoundNear, kSoundFar, 0);
         }
         if (kind == AnimationKind::Idle) idleSound = handle;
     }

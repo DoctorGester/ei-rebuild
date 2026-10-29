@@ -47,10 +47,6 @@ constexpr int kKeyCount = kUiKeyNameCount;
 constexpr int kActionCount = 60;
 
 
-// Opens the bindings file with `mode` (TextFile::Open's).
-bool OpenFile(lib::TextFile& file, const char* mode) {
-    return file.Open(g_dataFolder + "config\\keyboard.ini", mode);
-}
 
 } // namespace
 
@@ -66,7 +62,7 @@ void LoadKeyBindings() {
     std::vector<std::string> words;
     lib::TextFile file;
     std::memset(g_keyActions, 0, 0x200);
-    if (!OpenFile(file, "r")) return;
+    if (!file.Open(g_dataFolder + "config\\keyboard.ini", "r")) return;
     while (file.ReadLine(line)) {
         text::SplitWords(line, &words, ' ');
         if (words.size() <= 1) continue;
@@ -92,7 +88,7 @@ void LoadKeyBindings() {
 void SaveKeyBindings() {
     std::string line;
     lib::TextFile file;
-    if (!OpenFile(file, "w")) return;
+    if (!file.Open(g_dataFolder + "config\\keyboard.ini", "w")) return;
     for (int scan = 0; scan < 0x200; ++scan) {
         signed char id = g_keyActions[scan];
         if (!id) continue;

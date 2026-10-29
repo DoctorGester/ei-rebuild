@@ -26,8 +26,7 @@ public:
     bool SetInt(const char* subkey, const char* name, int value);                // same code
     // The float's bits as a 4-byte REG_BINARY (bits passed as the game pushes them).
     bool SetFloat(const char* subkey, const char* name, std::uint32_t bits);
-    bool SetString(const char* subkey, const char* name, const std::string& value);
-    bool SetStringInt(const char* subkey, const char* name, const std::string& value);  // REG_SZ
+    bool SetString(const char* subkey, const char* name, const std::string& value);   // REG_SZ
 
     // The readers: the value, or `defaultValue` when the subkey or value is missing or of
     // another type (the last also logged).
@@ -35,8 +34,7 @@ public:
     int GetInt(const char* subkey, const char* name, int defaultValue);
     // A 4-byte REG_BINARY returned as a float; the default passed as bits, as the game pushes it.
     double GetFloat(const char* subkey, const char* name, std::uint32_t defaultBits);
-    std::string GetString(const char* subkey, const char* name, const std::string& defaultValue);
-    std::string GetStringInt(const char* subkey, const char* name, const std::string& defaultValue); // REG_SZ
+    std::string GetString(const char* subkey, const char* name, const std::string& defaultValue);   // REG_SZ
 
     void* key_ = nullptr;   // the settings file's key, null when closed
 };

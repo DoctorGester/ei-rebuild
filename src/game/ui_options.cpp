@@ -90,7 +90,7 @@ constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
 // The text `key` up to the next '#', or the key itself without one.
 std::string TipText(const std::string& key) {
     std::string tip = key;
-    if (g_clientWorld.texts_->CTextManager::Open(key.c_str())) g_clientWorld.texts_->ReadToHash(&tip, 1);
+    if (g_clientWorld.texts_->CTextManager::Open(key.c_str())) g_clientWorld.texts_->ReadToHash(&tip);
     return tip;
 }
 

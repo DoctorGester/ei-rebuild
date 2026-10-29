@@ -35,7 +35,6 @@ std::vector<VertexPacket> g_movedPositions;
 // --- Helpers -------------------------------------------------------------------------------------
 
 
-const char* MeshName(CFigureMesh* mesh) { return mesh->GetName(); }
 
 // --- x87 sequences --------------------------------------------------------------------------------
 
@@ -86,7 +85,7 @@ std::uint32_t OffsetBits(float offset) { return std::bit_cast<std::uint32_t>(off
 void FlatColours(Part& part) {
     part.coloursWritten = true;
     if (part.figure) {
-        const char* name = MeshName(part.node->mesh_);
+        const char* name = (part.node->mesh_)->GetName();
         std::string s(name);
         CFigureMesh* mesh = part.node->mesh_;
         part.figure->FlatColours(&s, mesh->flatColour_, mesh->flatSpecular_, &part.Colours(), &part.Speculars());
@@ -132,7 +131,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
     l.emissiveColour[1] = c.emissive.y;
     l.emissiveColour[2] = c.emissive.z;
     l.coefficient = options::g_options.objectsLightingCoeff_;
-    l.crown = options::g_options.floraSpecialLight_ != 0 && text::CompareIgnoringCase(MeshName(part.node->mesh_), "crown") == 0;
+    l.crown = options::g_options.floraSpecialLight_ != 0 && text::CompareIgnoringCase((part.node->mesh_)->GetName(), "crown") == 0;
     g_partLights.clear();
     for (int i = 0; part.lights && i < std::ssize(*part.lights); ++i) {
         const CLight* light = (*part.lights)[i];
@@ -149,7 +148,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
 void Light(Part& part) {
     part.coloursWritten = true;
     if (part.figure) {
-        const char* name = MeshName(part.node->mesh_);
+        const char* name = (part.node->mesh_)->GetName();
         std::string s(name);
         part.figure->LightPart(&s, part.lights, part.material, part.alpha, &part.Colours(), &part.Speculars());
     } else {
@@ -217,7 +216,7 @@ void DrawThroughDevice(Part& part) {
 void DrawThroughFigure(Part& part) {
     CFigureMesh* mesh = part.node->mesh_;
     bool moved = !mesh->offsets_.empty();
-    const char* name = MeshName(mesh);
+    const char* name = mesh->GetName();
     std::string s(name);
     mesh = part.node->mesh_;
     std::uint32_t u = OffsetBits(mesh->textureOffsetU_);
@@ -242,7 +241,7 @@ void DrawThroughFigure(Part& part) {
     render::SetMeshSource(nullptr);
 
     if (part.rect) {
-        std::string key(MeshName(part.node->mesh_));
+        std::string key((part.node->mesh_)->GetName());
         auto node = part.figure->headers_.find(key);
         RECT* own = &part.node->screen_;
         gameapi::CopyRect(own, &node->second.screen);

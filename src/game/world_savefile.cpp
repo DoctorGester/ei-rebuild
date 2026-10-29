@@ -49,7 +49,7 @@ struct LocalBuffer {
 
 } // namespace
 
-void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* data) {
+void SaveFileWrite(CStream* file, unsigned magic, CMemoryStream* data) {
     CoderState coder;
     // A view over the data (flags 2).
     std::uint8_t* begin = data->data_.data();
@@ -59,11 +59,9 @@ void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* da
         LocalBuffer packed;
         std::uint8_t compressed = 1;
         coder.Compress(&view, &packed.b);
-        file->WriteHeader(magic, static_cast<std::uint32_t>(version));
-        if (version > kVersionChecksum) {
-            std::uint32_t sum = Checksum(data->data_.data(), static_cast<std::int32_t>(data->Size()));
-            file->WriteValue(sum);
-        }
+        file->WriteHeader(magic, static_cast<std::uint32_t>(kSaveVersion));
+        std::uint32_t sum = Checksum(data->data_.data(), static_cast<std::int32_t>(data->Size()));
+        file->WriteValue(sum);
         // Decompressed again; the packed data is used only when it gives the input back.
         LocalBuffer check;
         UpdateHigh(packed.b);
@@ -94,10 +92,8 @@ void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* da
     }
 }
 
-bool SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, CStream* file) {
-    // Passed on in the same order: ReadHeader takes (newest, oldest), so `minimum` is really the
-    // newest version accepted (LoadMission passes kSaveVersion, then kSaveOldestVersion).
-    if (!file->ReadHeader(magic, minimum, maximum)) return false;
+bool SaveFileRead(CMemoryStream* out, unsigned magic, CStream* file) {
+    if (!file->ReadHeader(magic, kSaveVersion, kSaveOldestVersion)) return false;
     if (VersionOf(file) <= kSaveLastUncompressedVersion) {
         int start = static_cast<int>(file->Position());
         int size = static_cast<int>(file->Size()) - start;
