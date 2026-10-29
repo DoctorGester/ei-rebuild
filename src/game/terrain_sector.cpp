@@ -269,10 +269,6 @@ void ComputeBounds(SectorData& s) {
     }
 }
 
-double RawHeight(Terrain* terrain, float x, float y, int layer) {
-    return terrain->HeightAt(x, y, layer);   // used unrounded
-}
-
 // The projection's work arrays: the corners in, the projected corners and their outcodes out.
 std::vector<Vector4> g_projectionInput;
 std::vector<Vector4> g_projectionOutput;
@@ -393,7 +389,6 @@ void SectorData::Build() {
     const std::uint8_t* tileWords = BuildRecords(*this);
 
     int pageCount = pages * 2 + 4;
-    static_assert(sizeof(int) == 4);
     int counts[1024] = {};
     int animatedCount = CountTiles(*this, tileWords, counts);
     for (int q = 0; q < 4; ++q) {
@@ -478,8 +473,8 @@ int Terrain::SurfaceClass(float x, float y) {
     int tile = (iy % 32) / 2 * 16 + (ix % 32) / 2;
     if (!sector) return 8;
     if (sector->hasWater && sector->waterTiles[tile] != -1) {
-        float water = static_cast<float>(terrain::RawHeight(this, x, y, 1));
-        const double ground = terrain::RawHeight(this, x, y, 0);
+        float water = HeightAt(x, y, 1);
+        const double ground = HeightAt(x, y, 0);
         EI_NAN_AUDIT(ground, water);
         if (ground < water) return textureClass[sector->tileTextures[tile + 0x100]];
     }
@@ -487,8 +482,8 @@ int Terrain::SurfaceClass(float x, float y) {
 }
 
 void Terrain::GroundAndWaterDepth(float x, float y, float* ground, float* depth) {
-    float water = static_cast<float>(terrain::RawHeight(this, x, y, 1));
-    double g = terrain::RawHeight(this, x, y, 0);
+    float water = HeightAt(x, y, 1);
+    double g = HeightAt(x, y, 0);
     *ground = static_cast<float>(g);
     if (water > g) *depth = static_cast<float>(water - g);
     else *depth = 0.0f;

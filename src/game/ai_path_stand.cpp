@@ -62,9 +62,9 @@ void AIPath::StandAndTrack(int time, const CMapObject* unit, int id, int from, i
     SetTrack(id, from, to);
 }
 
-void AIPath::StandAndTurnUntil(int time, const CMapObject* unit, const Vector3* direction, int a, int b) {
+void AIPath::StandAndTurnUntil(int time, const CMapObject* unit, const Vector3* direction, int fromTime, int toTime) {
     StandAt(this, &time, unit);
-    SetTurnUntil(direction, a, b);
+    SetTurnUntil(direction, fromTime, toTime);
 }
 
 void AIPath::StandStill(const CMapObject* unit) {

@@ -16,17 +16,7 @@ constexpr float kPlainRadius = 0.75f;
 constexpr std::uint16_t kVitalParts = 0x11;     // changed parts 0 and 4: the statistics are repacked
 } // namespace
 
-// --- Empty slots -------------------------------------------------------------------------------------
-
-// No key is accepted.
-bool CMapObject::AcceptsNoKey() { return false; }
-
-// A scaling effect came or went; 1.
-int CMapObject::ScaleEffectChangedDefault() { return 1; }
-
 // --- Slots that read the object ------------------------------------------------------------------------
-
-bool CMapObject::CompanionIsDead() { return companion->IsDead(); }
 
 int CMapObject::NotifyCompanion() {
     companion->Unused14();
@@ -83,15 +73,13 @@ bool CMapObject::IsSynchronised() { return Flag20000() != 0; }
 void CMapObject::ApplyBaseScale() { ResetScale(); }
 void CMapObject::ReceiveHit(DamageInfo*, CUnit*, CUnit*) {}
 int CMapObject::StatsChanged() { return PackVitals(); }
-void CMapObject::ScaleEffectChanged(bool) {
-    ScaleEffectChangedDefault();
-}
+void CMapObject::ScaleEffectChanged(bool) {}
 void CMapObject::SetStats(const UnitStats*) {}
 void CMapObject::UpdateSizeClasses() {}
 bool CMapObject::IsUsable() { return false; }
 bool CMapObject::IsDirectUseBlocked() { return false; }
 std::uint32_t CMapObject::KeyId() { return static_cast<std::uint32_t>(kNoKey); }
-bool CMapObject::AcceptsKey(const LockKey*) { return AcceptsNoKey(); }
+bool CMapObject::AcceptsKey(const LockKey*) { return false; }
 bool CMapObject::KeepsMapFlag() { return true; }
 void CMapObject::UseSpots(std::vector<Vector3>* out, float) { FreeArray(out); }
 std::uint32_t CMapObject::SetStunned(int) { return 0; }
@@ -108,7 +96,7 @@ Vector3* CMapObject::AimPoint(Vector3* out) {
     return out;
 }
 bool CMapObject::IsLargeUnit() { return false; }
-bool CMapObject::IsDead() { return CompanionIsDead(); }
+bool CMapObject::IsDead() { return companion->IsDead(); }
 int CMapObject::ForgetObject(CEngineObject*) { return 0; }
 void CMapObject::UpdateMoveFactors() {}
 void CMapObject::RefreshWounds() {}

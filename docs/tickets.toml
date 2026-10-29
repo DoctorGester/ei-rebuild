@@ -5348,7 +5348,7 @@ id = "C53"
 title = "Layout scaffolding, forwarders and meaningless parameters (G13-G15)"
 group = "cleanup"
 model = "sonnet"
-note = "Style review Tier 2 (build/style_review/REPORT.md; user 2026-10-28: run beside the native UI track P2-P8). Leave src/game/ui_*.* and src/render/render_ui* to the P track (C54 covers them after P8). By subsystem, the compiler as checker, goldens unchanged. G13: sizeof asserts and pad_/unused_ fields only on file/save/packet structs. G14: inline one-line wrappers and misnamed field forwarders. G15: remove parameters every caller passes the same constant; name the rest after their use (no a/b/argN)."
+note = "Style review Tier 2 (build/style_review/REPORT.md; user 2026-10-28: run beside the native UI track P2-P8). Leave src/game/ui_*.* and src/render/render_ui* to the P track (C54 covers them after P8). By subsystem, the compiler as checker, goldens unchanged. G13: sizeof asserts and pad_/unused_ fields only on file/save/packet structs. G14: inline one-line wrappers and misnamed field forwarders. G15: remove parameters every caller passes the same constant; name the rest after their use (no a/b/argN). First batch done: ai_*, sector_*, terrain_*, map_object_* (and map_object.h, terrain.h). Left for C53a: net_*, items/spells, units/combat/unit_ai_*, renderer core, app/scripts. AIMapCell keeps its 9-byte packed layout and sizeof assert: the vector recordings (tests/vectors) read game.exe's cells."
 
 [[ticket]]
 id = "C54"
@@ -5770,3 +5770,11 @@ title = "The options as a plain global; retire the empty global-objects check"
 group = "cleanup"
 depends = ["C50b2"]
 note = "C50b2 follow-up. options::g_options 0079BC70 (options_global.cpp, initialiser 00458700 / exit 00458720 in options_construct.cpp) is the last lib::StaticObject (static_object.h, STATIC_OBJECT_BYTES in named_data.py). Make it a plain global like the camera and the renderer (check what reads it before GameMain and at exit: SaveToRegistry runs in ShutDown), then delete lib::StaticObject. config/global_objects.csv is empty since C50b2: named_data.py's global-objects check (GlobalObject, check_globals, global_problems, --owner) and its docs (standalone.md 'Global objects (C18n)') can go, or keep --owner if something still uses it."
+
+[[ticket]]
+id = "C53a"
+title = "C53 rest: G13-G15 in the network, items/spells, units/combat, renderer core and app/scripts"
+group = "cleanup"
+model = "sonnet"
+depends = ["C53"]
+note = "C53 did the AI (ai_*), sector_*, terrain_* and map_object_* files (and map_object.h, terrain.h). Rest by subsystem, split across workers: net_* (after C49a), item_*/spell_*, unit_*/combat_*/unit_ai_* (ChooseTarget, PlayerModeOf, six Add*Mode, PatrolMode::AddPoint, Walk/LookAround constant parameters, ObjectWorld()), item_stock.cpp field forwarders (PrototypeName returns family, ModifierFactor returns strength), renderer core (not render_ui*), app/scripts/world_*. Each: G13 sizeof asserts and pad_/unused_ only on file/save/packet structs; G14 one-line wrappers inlined, misnamed forwarders renamed; G15 constant-for-every-caller parameters removed (52 int unknown/unused, 28 void* unused serializer parameters), a/b/argN renamed after use. Scratch finder for constant-parameter callers: see C53 report (consts.py in the scratchpad)."
