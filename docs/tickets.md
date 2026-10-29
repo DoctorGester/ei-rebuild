@@ -106,7 +106,7 @@ Our own swap chain without dgVoodoo (renderer.md section 9), in parallel with th
 
 Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src/render, own font loading (user 2026-10-14).
 
-- **P3b** Native HUD (ready; 1 session). Unit-panel name, top panel and message log, tooltips, quick strip, clock. 006462A0 native only in vanilla until W3. After: P2.
+- **P3b** Native HUD (running since 2026-10-29; opus, 1 session). Unit-panel name, top panel and message log, tooltips, quick strip, clock. 006462A0 native only in vanilla until W3. After: P2.
 - **P3c** Native camp, hero, trade and item info (ready; 1.5 sessions). Under Rebirth the camp / hero screens wait for W4. After: P2.
 - **P3d** Native briefing, global map titles, help page, chat (ready; 1 session). Help page and global map wait for W4 under Rebirth. After: P2.
 - **P5** Native edit, chat, connect and save/load lines and carets (ready; 1 session). After: P1, W2.

@@ -4,6 +4,7 @@
 // called through its original address.
 #include "core_streams.h"
 #include "ui.h"
+#include "ui_native.h"
 #include "texture.h"
 #include "ui_camera_keys.h"
 #include "ui_camp.h"
@@ -140,7 +141,9 @@ void CBattleScreen::CreateScreen() {
     movePanel_->AddObject(objects_[2]);
     movePanel_->Build();
 
+    // The message log, native once made (the scroll text draws nothing before its first Draw).
     messageLog_ = new CUiScrollText(interface_, game::kEmptyText, RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f);
+    ui_native::Adopt(messageLog_->surfaces_[0], "messagelog");
     AddChild(messageLog_);
     messageLog_->align_ = 1;
 

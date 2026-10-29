@@ -462,7 +462,7 @@ they depend on.
 
 The interface surfaces drawn on GPU canvases (ticket P1; docs/notes/ui-native.md, "P1"). A surface of a
 family EI_RENDER's "uiboth" / "uinative" lists (render::ui::Listed: backdrop, fps, status, menu, msgbox,
-difficulty, options, objectives, credits so far) gets a canvas for its holder when it is made (Adopt), and
+difficulty, options, objectives, credits, console, debug, unitpanel, messagelog, tooltip, hudmap so far) gets a canvas for its holder when it is made (Adopt), and
 the surface functions record their drawing on it
 beside GDI and the CPU code, which keep drawing the holder's memory: the memory stays the source of
 truth (a lost device brings canvases back black). The blit draws the canvas when
