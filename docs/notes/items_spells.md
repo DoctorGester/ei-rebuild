@@ -81,8 +81,8 @@ one value per field chunk (IntListField, InlineStrings).
   else reads it, and its meaning is unknown.
 - The original's slot 18 (FirstListName) is not in our CItem: nothing called it, and the record lists it read were never
   filled.
-- Open (style review, build/style_review/items.md): L26, one CItem with a kind switch instead of the six classes (needs a
-  decision on the engine factory and the virtual Load / Save); the member naming mix (`CItem::count_`,
+- Decided (user 2026-10-29): the six item subclasses stay (L26 declined: the kinds differ in data and behaviour; revisit
+  later). The same holds for the AI mode classes. Open (style review, build/style_review/items.md): the member naming mix (`CItem::count_`,
   `CItemLink::value`, `ItemStock::party`). The scroll class is `CItemScroll` / `ItemKind::Scroll` / `ClassId::ItemScroll`
   (C61b; `ClassName()` is only the console's listing, never saved).
 
