@@ -6489,3 +6489,11 @@ title = "The GPU's 0.4-0.5 ms wait inside the crowd's sun map: its cause"
 group = "renderer"
 depends = ["R37e1"]
 note = "R37e1: the sun map's draws cost about 0.05 ms of GPU time in the town crowd, but one point of the command stream (a different place by draw count in the town at night and the crowd, holding different meshes) shows a 0.4-0.5 ms gap between two stamps; a Flush after the casters changes nothing, uploads are 8 KB a frame. Likely the GPU idle waiting for the driver's next batch while the main thread is the limit (renderer.md, render_shadows.cpp's R37e1 paragraph). Low value while the main thread is the limit: confirm with a GPU capture (PIX / Nsight) only if the GPU becomes the limit or the overlay's passes mislead. Kit: build/R37e1."
+
+[[ticket]]
+id = "C30e16"
+group = "cleanup"
+title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
+status = "queued"
+note = """C30e3 (src/lib/rounded_ops.h: lib::RoundedProduct(float, double), lib::RoundedSum(double, double)) and C30e4 (src/lib/pc24.h: pc24::Mul / Add / Sub / Div on Unrounded) were written in parallel and overlap: pc24::Mul(x, c) is RoundedProduct, pc24::Add(a, b) is RoundedSum. Keep pc24 (it covers the transcendental shapes), move C30e3's and C30e11's callers (item, hoover_loot, spell_cast, lever_object, magic_trap, map_object GroundPoint / PlaceOnGround / SetTime) to it, delete rounded_ops.h, update docs/notes/cleanup-tooling.md. Check: goldens unchanged, the C30e3 equivalence forms rerun against pc24 (scratchpad C30e3/eq). Small: batch with the next C30e worker."""
+
