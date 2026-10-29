@@ -81,6 +81,10 @@ build/live/scheduler.log) owns the machine's 16 game slots (EI_HARNESS_SLOTS; ru
 - **New code**: the scheduler hashes the main checkout's work_sched.py, run_all.py and work.py; on a change it starts no
   new game and exits once its own games are done; the waiting `test` starts the new one (`WORK_SCHED_CODE` replaces the
   watched files in tests). Queued runs stay queued.
+- **Nothing of a checkout kept for life**: the scheduler lives for hours and runs every checkout's batches, so what
+  run_all reads from a checkout (scenario revisions, the harness digest of the reference key) is reused for 30 s at
+  most, never by `functools.cache`. H34: a digest kept from a batch before R34c's merge gave main's next --no-hooks
+  batch the old key, and the cache served runs of the old harness (111 goldens differed).
 - **Unusable arguments** (an old run_all that cannot parse a newer batch): the batch ends with exit code 2 and a
   summary naming run_all's error.
 - `--golden`, `--widescreen` and `--record` comparisons run in the submitting process after the batch.
