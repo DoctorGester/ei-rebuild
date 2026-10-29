@@ -69,31 +69,30 @@ bool Scaled(const Vector3& s) {
              std::bit_cast<std::uint32_t>(s.z) == kOne);
 }
 
-double LargestScale(const Vector3& s) {
-    return (std::max)((std::max)(std::fabs(static_cast<double>(s.x)), std::fabs(static_cast<double>(s.y))),
-                    (std::max)(std::fabs(static_cast<double>(s.z)), 1.0));
+float LargestScale(const Vector3& s) {
+    return (std::max)((std::max)(std::fabs(s.x), std::fabs(s.y)), (std::max)(std::fabs(s.z), 1.0f));
 }
 
 // The object's bounding sphere in the world (its bounds' centre through its placement and extra
 // scale, the radius by the largest scale); false without valid bounds.
 bool WorldSphere(const CObject3D* object, const Matrix& world, const Vector3& scale, render::ShadowCasterSphere* sphere) {
     if ((object->bounds.flags & kBoundsValid) != kBoundsValid) return false;
-    const double c[3] = {static_cast<double>(object->bounds.center.x) * scale.x, static_cast<double>(object->bounds.center.y) * scale.y,
-                         static_cast<double>(object->bounds.center.z) * scale.z};
+    const Vector3& center = object->bounds.center;
+    const Vector3 c{center.x * scale.x, center.y * scale.y, center.z * scale.z};
     double out[3];
     for (int i = 0; i < 3; ++i) {
         const double* row = world.m + i * 4;
-        out[i] = DotUnrounded<Sum3::XYZ, double>(row[0], row[1], row[2], c[0], c[1], c[2]) + row[3];
+        out[i] = DotUnrounded<Sum3::XYZ, double>(row[0], row[1], row[2], c.x, c.y, c.z) + row[3];
     }
     *sphere = {out[0], out[1], out[2], object->bounds.radius * LargestScale(scale)};
     return std::isfinite(sphere->x) && std::isfinite(sphere->y) && std::isfinite(sphere->z) && std::isfinite(sphere->radius);
 }
 
 // The top of an object's sphere, without its rotation: a bound for the ground rectangle's sweep.
-double TopOf(const CObject3D* object, const Vector3& scale) {
-    const double cx = static_cast<double>(object->bounds.center.x) * scale.x, cy = static_cast<double>(object->bounds.center.y) * scale.y,
-                 cz = static_cast<double>(object->bounds.center.z) * scale.z;
-    return object->localPosition.z + std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(cx, cy, cz)) + object->bounds.radius * LargestScale(scale);
+float TopOf(const CObject3D* object, const Vector3& scale) {
+    const Vector3& center = object->bounds.center;
+    const Vector3 c{center.x * scale.x, center.y * scale.y, center.z * scale.z};
+    return object->localPosition.z + std::sqrt(LengthSquared<Sum3::XYZ>(c)) + object->bounds.radius * LargestScale(scale);
 }
 
 // Part `name`'s element ranges in the figure's arrays (LinkMesh::ranges); null when there is none.
@@ -189,14 +188,14 @@ void HandOverParts(CObject3D* object, Object3DClientSpecific* half, const Matrix
 struct HighestObject {
     const WorldClient* world = nullptr;
     std::uint32_t frames = 0;
-    double top = 0.0, widest = 0.0;
+    float top = 0.0f, widest = 0.0f;
 };
 HighestObject g_highest;
 
 const HighestObject& Highest(const WorldClient* world) {
     if (g_highest.world == world && g_highest.frames++ % kHeightScanEvery != 0) return g_highest;
-    if (g_highest.world != world) g_highest = HighestObject{world, 1, 0.0, 0.0};
-    double top = 0.0, widest = 0.0;   // the ground is above 0
+    if (g_highest.world != world) g_highest = HighestObject{world, 1, 0.0f, 0.0f};
+    float top = 0.0f, widest = 0.0f;   // the ground is above 0
     const SectorGrid& grid = world->objectGrid;
     for (std::uint32_t y = 0; y < grid.height; ++y)
         for (std::uint32_t x = 0; x < grid.width; ++x) {
@@ -282,13 +281,13 @@ void HandOverOutsideCasters(WorldClient* world) {
     } timer;
     render::ShadowCasterRect area;
     const HighestObject& highest = Highest(world);
-    if (!render::ShadowCasterArea(static_cast<float>(highest.top), static_cast<float>(highest.widest), &area)) return;
+    if (!render::ShadowCasterArea(highest.top, highest.widest, &area)) return;
     // Only a multiplayer spectator's view leaves out the units it cannot see.
     const bool allUnits = !(options::g_options.drawVisibleOnly != 0 && world->session->sessionKind == 1);
 
     auto cell = [](float v, std::uint32_t cells) {
         if (!(v > 0.0f)) return 0u;
-        const auto c = static_cast<std::uint32_t>(static_cast<double>(v)) >> kSectorShift;
+        const auto c = static_cast<std::uint32_t>(v) >> kSectorShift;
         return (std::min)(c, cells - 1);
     };
     const std::uint32_t firstX = cell(area.x0, grid.width), lastX = cell(area.x1, grid.width);

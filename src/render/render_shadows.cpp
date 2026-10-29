@@ -667,9 +667,9 @@ bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
     // above the ground by at most highestTop less the lowest ground, so back towards the sun from it by
     // at most that height over the tangent of the sun's elevation (d is never flatter than 20 degrees).
     // The ground's box swept back that far, widened by the widest object's radius.
-    double back = std::max(0.0, static_cast<double>(highestTop) - fit.lowGround.z) / std::fabs(fit.d.z);
+    double back = std::max(0.0, highestTop - fit.lowGround.z) / std::fabs(fit.d.z);
     double towardsX = -fit.d.x * back, towardsY = -fit.d.y * back;
-    double margin = std::max(0.0, static_cast<double>(widest));
+    double margin = std::max<double>(0.0, widest);
     area->x0 = static_cast<float>(fit.lowGround.x + std::min(0.0, towardsX) - margin);
     area->y0 = static_cast<float>(fit.lowGround.y + std::min(0.0, towardsY) - margin);
     area->x1 = static_cast<float>(fit.highGround.x + std::max(0.0, towardsX) + margin);
