@@ -6202,7 +6202,7 @@ title = "The game's old shadow projection replaced by the object's sphere (R16e2
 group = "renderer"
 model = "opus"
 files = ["src/game/map_object_shadow.cpp", "src/game/world_client_draw.cpp"]
-note = "R37: the game's object-shadow work kept only for the projected mesh's bounds (RenderShadow: the parts' points; ProjectDecal: Terrain::AddDecalTriangles, DecalBuilder::ClipStage, decal::ClipTriangle) costs 0.3-1.2 ms a frame, 10-24% of the main thread (zone1 0.76 ms of 2.52, town 0.83 of 2.95, town crowd 1.04 of 5.88; vanilla crowd 1.22 of 6.69). R16e2 (renderer.md section 13, item 5): a sphere around the object's bounds instead of the projected decal for ShadowInView and the shadow lists, the projection dropped. It lists a few more objects off screen for shadows. Needs the user's yes. Check: goldens (prove the lists feed no game state), render_shadows*, render_shadows_outside frames for review. User 2026-10-29: approved if the extra casters add little GPU load; measure GPU shadow pass time and caster draws before/after (R37 probe in build/R37) and report it."
+note = "Done (user's condition met: no GPU growth). DrawShadow fits a sphere from the object's bounds (bounding sphere swept along the lights' direction to the ground, box around it) for ShadowInView; projection, shadow decals and their dead callees (DrawOffset, ProjectPart, ProjectFlat, LightRotation, LightShearMatrix) deleted. R37 probe, Rebirth 4K msaa 8, two runs each, before -> after per frame: main thread zone1 2.05-2.15 -> 1.54-1.61 ms (pitch 30 2.38-2.77 -> 1.59-2.04), town night 2.56-2.74 -> 1.75-1.90, town crowd 4.91-4.94 -> 3.69-4.03; game shadow work 0.64-1.06 -> 0.005-0.015 ms; sun caster draws same (zone1 61+130, town 169+178, crowd 442+130), point caster draws same (town 134, crowd 415); GPU shadow pass (sun + range + point) zone1 0.156-0.160 -> 0.145-0.149, crowd 0.63-0.65 -> 0.62-0.63, town night 0.46-0.49 -> 0.20 (same draws: a stamp gap). Off-screen listed objects up (builds a frame zone1 22->32, town 44->58, crowd 57->70) but they hand over no mesh; the outside walk picks the map's casters. Goldens 121 same / 28 without (vanilla), Rebirth all 94 same; render_shadows* / render_shadows_outside frames pixel-identical to main's (copies in E:/workspace/ei/build/R37f/frames, probe logs in build/R37f/probe)."
 
 [[ticket]]
 id = "R37g"
@@ -6234,3 +6234,10 @@ title = "Point shadow faces: units drawn over a kept still layer without a shade
 group = "renderer"
 depends = ["R37a"]
 note = "R37a keeps faces but a face holding a unit (idle animations move every unit every frame) is drawn whole: town at night 139 of 174 point draws, crowd 417 of 450. Two layers a face (still casters in an image of their own copied into the atlas by an SV_Depth quad, units over it) cut draws to 101 / 378 but the copies cost GPU (point map against the sun map 0.55 -> 0.8). Try the faces as array slices (a 2D array of 6 x 4 slices for both layers; the receivers' point_seen indexes the slice instead of the atlas tile), so a still slice reaches the atlas by CopySubresourceRegion of the whole subresource (allowed for depth) with no shader and the faces clear by ClearDepthStencilView (fast clears). Measure with alternating kept / all-drawn runs normalised by the sun map's time (the machine's noise is large). Check: render_lighting within 8 / 0.01% of main."
+
+[[ticket]]
+id = "R37j"
+title = "Render stats: the object-shadow decal split removed (dead since R37f)"
+group = "renderer"
+depends = ["R37f"]
+note = "Since R37f no object shadow projects a decal: FrameStats::decalShadowMs / decalShadows and BeginDecalTime's shadow flag (render.h, render.cpp, harness_render_image.cpp's renderstats line) always read 0; ProjectDecal passes false. render.h is a harness header (tests/verify/harness.cpp includes it), so do it with the next harness change to avoid a --no-hooks suite of its own."
