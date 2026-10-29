@@ -1,35 +1,30 @@
 // The landscape's per-frame work: the update (Terrain::RunTick), the sun and its staggered relighting
-// (SetSun), the sectors' relight countdowns, animated tiles and water waves (SectorData::Animate), and the
-// sector reset helpers. Waves: every water vertex has a phase offset (owner wavePhases); the phase along
+// (SetSun), the sectors' relight countdowns, animated tiles (SectorData::AnimateTiles) and water waves
+// (SectorData::AnimateWaves). Waves: every water vertex has a phase offset (owner wavePhases); the phase along
 // the wave direction runs from the sector's first water vertex (mod 2 pi) and steps by the direction per
 // vertex. The 512-entry sine table at that phase lifts the vertex (by waveHeight times the material's
-// +0x2C) and gives the crest its specular colour; materials of kind 4 move the vertex sideways (only where
-// its depth is negative), the others up and in a circle driven by the world time (its sines per column and
-// row once per call: CircleSines).
+// priority) and gives the crest its specular colour; materials of kind kKeepsGroundXY move the vertex sideways
+// (only where its depth is negative), the others up and in a circle driven by the world time (its sines per
+// column and row once per call: CircleSines).
+#include "terrain.h"
+#include "terrain_sector.h"
 #include "game_singletons.h"
 #include "random.h"
 #include "render/render.h"
 #include "spell.h"
-#include "terrain.h"
-#include "terrain_sector.h"
 #include "world.h"
 
+#include "ei/x87.h"
 #include "lib/float_select.h"
 #include "lib/vecmath.h"
 
-#include "ei/x87.h"
-
 #include <algorithm>
-#include <bit>
 #include <cmath>
 #include <cstdint>
-#include <cstdlib>
-#include <cstring>
 #include <vector>
 
 namespace terrain {
 namespace {
-
 
 // Table entries per radian: 256 / pi (doubles) as the division leaves it at 24-bit precision (not the folded
 // double).
@@ -40,56 +35,35 @@ constexpr float kGlowScale = 50.0f;
 constexpr float kRiseScale = 0.25f;
 constexpr float kCircleScale = 3.0f;
 constexpr float kMinComponent = 0.01f;
-
-// The world clock: whole ticks and the fraction of the current one.
-// The sun's ray step scale (1 * 95, a static initialiser), and the cell size.
-constexpr float kSunStepScale = /*007C8964*/ 95.0f;
-
+constexpr float kSunStepScale = /*007C8964*/ 95.0f;                     // the sun's ray steps per unit of its direction
+constexpr int kTileFrameEvery = 3;                         // animated tiles step every third frame
+constexpr int kAlwaysSteps = 1000;                         // a tile speed that steps every time
 
 // The sine table entry at `phase` radians: (phase * 256 / pi) stored as a float and rounded to nearest, mod 512.
 inline float Sine(const Terrain* owner, double phase) {
     return owner->sine[x87::fistp(static_cast<float>(phase * kSineIndex)) & 0x1FF];
 }
 
-inline std::uint32_t Byte(double v) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(v))) & 0xFF; }
+inline std::uint32_t ColourByte(double v) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(v))) & 0xFF; }
 
-// The circling waves' sine per column (and per row: the same values) at the world time. The game reads the
-// time and looks both up per vertex; the same expressions run once per call.
+// The circling waves' sine per column (and per row: the same values) at the world time, once per call.
 void CircleSines(const Terrain* owner, float* sines) {
     float time = static_cast<float>((g_clientWorld.tick_ + g_clientWorld.tickFraction_) * kTimeScale);
     for (int i = 0; i < kSectorRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
 }
 
-// The relight order, (sy, sx) of the sectors. The game's comparator meant this, but qsort hands it the
-// addresses of the array slots: it reads +0xC / +0x8 of those, the pointers three and two slots further on
-// (past the end for the last ones), so its order follows the heap. Here the sectors themselves are compared
-// (address_order.h). The cache holds one sector per grid cell (Terrain::SectorAt), so no two are equal and any sort
-// gives the order the game's qsort gives.
+// The relight order, (sy, sx) of the sectors. The cache holds one sector per grid cell (Terrain::SectorAt),
+// so no two are equal and any sort gives the same order.
 bool SectorBefore(const SectorData* x, const SectorData* y) {
     if (x->sy != y->sy) return x->sy < y->sy;
     return x->sx < y->sx;
 }
 
 // A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01
-// with its sign (_copysign of the double 0.01f).
+// with its sign.
 float AwayFromZero(float v) { return std::fabs(v) >= kMinComponent ? v : std::copysign(kMinComponent, v); }
 
 } // namespace
-
-void SectorData::ResetFields() {
-    sx = sy = -1;
-    detail = seamAfter = seamBefore = 0;
-    hasWater = 0;
-    hasWaterTiles = 0;
-    data = nullptr;
-    owner = nullptr;
-    pages = perPage = -1;
-    built = SectorStage::None;
-    lastUsed = 0;
-    relightCountdown = 0;
-    clipMode = 2;
-    hasSpecular = 0;
-}
 
 void SectorData::Clear() {
     records.clear();
@@ -97,7 +71,18 @@ void SectorData::Clear() {
         for (std::vector<std::uint8_t>& flags : tileFlags[quarter]) flags.clear();
         for (std::vector<TileVertex>& list : tiles[quarter]) list.clear();
     }
-    ResetFields();
+    sx = sy = -1;
+    detail = 0;
+    seamAfter = seamBefore = false;
+    hasWater = false;
+    hasWaterTiles = false;
+    data = nullptr;
+    owner = nullptr;
+    pages = perPage = -1;
+    built = SectorStage::None;
+    lastUsed = 0;
+    relightCountdown = 0;
+    clipMode = kCulled;
     render::TerrainChanged(this, render::TerrainChange::Rebuilt);
 }
 
@@ -113,35 +98,34 @@ void SectorData::RelightTick() {
     }
 }
 
-void SectorData::Animate(Terrain* landscape, int frame) {
-    if (frame % 3 == 0 && lib::Has(landscape->landscapeFlags, LandscapeFlag::AnimatedTiles)) {
-        bool stepped = false;
-        for (int i = 0; i < std::ssize(animated); ++i) {
-            AnimatedTile& tile = animated[i];
-            if (tile.frame == 0 && tile.speed < 1000 &&
-                g_random.Next() % 1000 + 1 > static_cast<std::uint32_t>(tile.speed)) {
-                continue;
-            }
-            tile.frame = (tile.frame + 1) % tile.frames;
-            stepped = true;
-            const float* uv = landscape->TileUv(tile.rotation, tile.frameBase + tile.frame, 0);
-            for (int k = 0; k < 9; ++k) {
-                tile.vertices[k].u = uv[k];
-                tile.vertices[k].v = 1.0f - uv[k + 9];
-            }
+void SectorData::AnimateTiles(int frame) {
+    if (frame % kTileFrameEvery != 0 || !lib::Has(owner->landscapeFlags, LandscapeFlag::AnimatedTiles)) return;
+    bool stepped = false;
+    for (AnimatedTile& tile : animated) {
+        if (tile.frame == 0 && tile.speed < kAlwaysSteps &&
+            g_random.Next() % kAlwaysSteps + 1 > static_cast<std::uint32_t>(tile.speed)) {
+            continue;
         }
-        if (stepped) render::TerrainChanged(this, render::TerrainChange::Moved);   // the pages kept on the GPU
+        tile.frame = (tile.frame + 1) % tile.frames;
+        stepped = true;
+        const float* uv = owner->TileUv(tile.rotation, tile.frameBase + tile.frame, 0);
+        for (int k = 0; k < 9; ++k) {
+            tile.vertices[k].u = uv[k];
+            tile.vertices[k].v = 1.0f - uv[k + 9];
+        }
     }
-    if (!hasWater || !lib::Has(landscape->landscapeFlags, LandscapeFlag::Waves)) return;
+    if (stepped) render::TerrainChanged(this, render::TerrainChange::Moved);   // the pages kept on the GPU
+}
+
+void SectorData::AnimateWaves() {
+    if (!hasWater || !lib::Has(owner->landscapeFlags, LandscapeFlag::Waves)) return;
 
     SectorPosition* positions = &vertices[kSectorVertices];
     SectorVertex* water = &records[kSectorVertices];
-    const float* phaseOffset = landscape->wavePhases.data();
-    Vector2 direction = {landscape->waveDirection.x, landscape->waveDirection.y};
-    float stepX = static_cast<float>(direction.x);   // the vertex spacing
-    float stepY = static_cast<float>(direction.y);
-    float height = landscape->waveHeight;
-    float phase = landscape->wavePhase;
+    const float* phaseOffset = owner->wavePhases.data();
+    Vector2 direction = {owner->waveDirection.x, owner->waveDirection.y};
+    float height = owner->waveHeight;
+    float phase = owner->wavePhase;
     float fullTurn = static_cast<float>(kPi + kPi);
     Vector2 first = {positions[0].x, positions[0].y};
     float rowStart = static_cast<float>(std::fmod(Dot2D(direction, first) + fullTurn, static_cast<double>(fullTurn)));
@@ -161,10 +145,10 @@ void SectorData::Animate(Terrain* landscape, int frame) {
             int material = record.waterMaterial;
             if (material != SectorVertex::kNoWaterMaterial) {
                 if (material != lastMaterial) {
-                    const TerrainMaterial& m = landscape->materials[material];
+                    const TerrainMaterial& m = owner->materials[material];
                     amplitude = static_cast<float>(height * m.priority);
                     kind = m.kind;
-                    double glow = landscape->waveGlow * m.priority * kGlowScale;
+                    double glow = owner->waveGlow * m.priority * kGlowScale;
                     crest = {static_cast<float>(glow * m.waveColour.x), static_cast<float>(glow * m.waveColour.y),
                              static_cast<float>(glow * m.waveColour.z)};
                     double turn = std::fmod(static_cast<double>(phase * m.priority), 2.0 * kPi);
@@ -174,17 +158,15 @@ void SectorData::Animate(Terrain* landscape, int frame) {
                     along = static_cast<float>(delta + along);
                     lastMaterial = material;
                 }
-                float s = Sine(landscape, along + *phaseOffset);
-                if (!SignBit(s)) {
-                    std::uint32_t r = Byte(s * crest.x);
-                    std::uint32_t g = Byte(s * crest.y);
-                    std::uint32_t b = Byte(s * crest.z);
-                    record.specular = (record.specular & 0xFF000000u) | r << 16 | g << 8 | b;
+                float wave = Sine(owner, along + *phaseOffset);
+                if (!SignBit(wave)) {
+                    record.specular = PackArgb(record.specular >> 24, ColourByte(wave * crest.x), ColourByte(wave * crest.y),
+                                               ColourByte(wave * crest.z));
                 } else {
                     record.specular &= 0xFF000000u;
                 }
-                double lift = s * amplitude;
-                if (kind == 4) {
+                double lift = wave * amplitude;
+                if (kind == TerrainMaterial::kKeepsGroundXY) {
                     if (SignBit(record.depth)) {
                         position.x = static_cast<float>(lift + record.position.x);
                         position.y = static_cast<float>(lift + record.position.y);
@@ -192,16 +174,16 @@ void SectorData::Animate(Terrain* landscape, int frame) {
                 } else {
                     position.z = static_cast<float>(lift * kRiseScale + record.position.z);
                     if (!circling) {
-                        CircleSines(landscape, circle);
+                        CircleSines(owner, circle);
                         circling = true;
                     }
                     position.x = circle[column] * amplitude * kCircleScale + record.position.x;
                     position.y = circle[row] * amplitude * kCircleScale + record.position.y;
                 }
             }
-            along = static_cast<float>(along + stepX);
+            along = static_cast<float>(along + direction.x);
         }
-        rowStart = static_cast<float>(rowStart + stepY);
+        rowStart = static_cast<float>(rowStart + direction.y);
     }
     render::TerrainChanged(this, render::TerrainChange::WaterMoved);
 }
@@ -227,28 +209,22 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     sunStepY = x87::fistp(static_cast<float>(terrain::kSunStepScale * y));
     sun = light;
     if (lightInterval <= 0) {
-        for (auto& node : sectorCache) node->built &= ~SectorStage::Lit;
+        for (SectorData* sector : sectorCache) sector->built &= ~SectorStage::Lit;
         return;
     }
     // The lit sectors, sorted, get relight countdowns spread evenly over the next interval.
     std::vector<SectorData*> sorted;
-    for (auto& node : sectorCache) {
-        SectorData* sector = node;
-        if (lib::Has(sector->built, SectorStage::Lit)) {
-            int index = std::ssize(sorted);
-            sorted.resize(index + 1);
-            sorted[index] = sector;
-        }
-    }
+    for (SectorData* sector : sectorCache)
+        if (lib::Has(sector->built, SectorStage::Lit)) sorted.push_back(sector);
     std::sort(sorted.begin(), sorted.end(), terrain::SectorBefore);
     if (sorted.empty()) return;
     float step = static_cast<float>(static_cast<double>(lightInterval - 1) / std::ssize(sorted));
     float at = 0.0f;
-    for (int i = 0; i < std::ssize(sorted); ++i) {
+    for (SectorData* sector : sorted) {
         int frames = x87::fistp(at);
         at = static_cast<float>(at + step);
-        sorted[i]->ScheduleRelight(frames);
-        if (frames == 0) sorted[i]->built &= ~SectorStage::Lit;
+        sector->ScheduleRelight(frames);
+        if (frames == 0) sector->built &= ~SectorStage::Lit;
     }
 }
 
@@ -257,18 +233,18 @@ bool Terrain::RunTick() {
         lightCountdown = lightInterval;
         SetSun(sun, &ambient);
     }
-    for (auto node = sectorCache.begin(); node != sectorCache.end();) {
-        SectorData* sector = *node;
-        ++node;
+    for (SectorData* sector : sectorCache)
         if (lib::Has(sector->built, SectorStage::Lit)) sector->RelightTick();
-    }
     if (lib::Has(landscapeFlags, LandscapeFlag::Ambience)) PlayAmbience();
     wavePhase = static_cast<float>(waveSpeed + wavePhase);
     ++frame;
-    for (int row = 0; row < std::ssize(visibleColumnFirst); ++row) {
-        for (int column = visibleColumnFirst[row]; column <= visibleColumnLast[row]; ++column) {
-            SectorData* sector = SectorAt(column, visibleRowFirst + row, SectorStage::Lit, false);
-            if (sector && sector->IsDrawn()) sector->Animate(this, frame);
+    for (int sy = visible.firstY; sy <= visible.lastY; ++sy) {
+        for (int sx = visible.firstX; sx <= visible.lastX; ++sx) {
+            SectorData* sector = SectorAt(sx, sy, SectorStage::Lit, false);
+            if (sector && sector->IsDrawn()) {
+                sector->AnimateTiles(frame);
+                sector->AnimateWaves();
+            }
         }
     }
     return true;

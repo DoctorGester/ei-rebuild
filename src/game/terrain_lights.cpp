@@ -22,8 +22,8 @@ using terrain::SectorVertex;
 
 namespace {
 
-constexpr int kLastVertex = 32;   // the last vertex of a sector row / column
-constexpr int kSectorCells = 32;
+using terrain::kLastVertex;
+using terrain::kSectorCells;
 
 // The pool's two block lists (see LightRefBlock).
 LightRefBlock* g_blocksWithFree = /*007C8840*/ {nullptr};
@@ -42,7 +42,6 @@ void PushFront(LightRefBlock* block, LightRefBlock*& head) {
     head = block;
 }
 
-
 // The vertex range of `area` inside the sector at (sx, sy): the area's first / last vertex in its
 // edge sectors, the whole row or column elsewhere.
 struct VertexRange {
@@ -53,16 +52,47 @@ VertexRange RangeIn(const LightArea* area, int sx, int sy) {
             sx == area->lastSectorX ? area->lastX : kLastVertex, sy == area->lastSectorY ? area->lastY : kLastVertex};
 }
 
-SectorData* BuiltSector(Terrain* terrain, int sx, int sy, SectorStage wanted) {
-    return terrain->SectorAt(sx, sy, wanted, false);
-}
-
 // UpdateVertexLights for every built sector of the area.
 void UpdateArea(Terrain* terrain, CLight* light, const Vector3* position, const LightArea* area, bool remove) {
     for (int sy = area->firstSectorY; sy <= area->lastSectorY; ++sy)
         for (int sx = area->firstSectorX; sx <= area->lastSectorX; ++sx)
-            if (SectorData* sector = BuiltSector(terrain, sx, sy, SectorStage::Built))
+            if (SectorData* sector = terrain->SectorAt(sx, sy, SectorStage::Built, false))
                 terrain::UpdateVertexLights(sector, light, position, area, remove);
+}
+
+// (x0, y0) is clamped to the map; a first vertex on a sector edge counts as vertex 32 of the sector before.
+LightArea SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY) {
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x0 > sectorsX * kSectorCells) x0 = sectorsX * kSectorCells;
+    if (y0 > sectorsY * kSectorCells) y0 = sectorsY * kSectorCells;
+    LightArea area;
+    area.firstSectorX = x0 / kSectorCells;
+    area.firstSectorY = y0 / kSectorCells;
+    area.firstX = x0 % kSectorCells;
+    area.firstY = y0 % kSectorCells;
+    if (area.firstX == 0 && area.firstSectorX > 0) {
+        --area.firstSectorX;
+        area.firstX = kLastVertex;
+    }
+    if (area.firstY == 0 && area.firstSectorY > 0) {
+        --area.firstSectorY;
+        area.firstY = kLastVertex;
+    }
+    area.lastSectorX = x1 / kSectorCells;
+    area.lastSectorY = y1 / kSectorCells;
+    area.lastX = x1 % kSectorCells;
+    area.lastY = y1 % kSectorCells;
+    return area;
+}
+
+// The first vertex truncated, the last rounded.
+LightArea LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY) {
+    int lastY = static_cast<int>(libcrt::Ftol(maxY + 0.5f));
+    int lastX = static_cast<int>(libcrt::Ftol(maxX + 0.5f));
+    int firstY = static_cast<int>(libcrt::Ftol(minY));
+    int firstX = static_cast<int>(libcrt::Ftol(minX));
+    return SetLightArea(firstX, firstY, lastX, lastY, sectorsX, sectorsY);
 }
 
 } // namespace
@@ -158,39 +188,7 @@ void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* positi
 
 } // namespace terrain
 
-void SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, LightArea* area) {
-    if (x0 < 0) x0 = 0;
-    if (y0 < 0) y0 = 0;
-    if (x0 > sectorsX * kSectorCells) x0 = sectorsX * kSectorCells;
-    if (y0 > sectorsY * kSectorCells) y0 = sectorsY * kSectorCells;
-    area->firstSectorX = x0 / kSectorCells;
-    area->firstSectorY = y0 / kSectorCells;
-    area->firstX = x0 % kSectorCells;
-    area->firstY = y0 % kSectorCells;
-    if (area->firstX == 0 && area->firstSectorX > 0) {
-        --area->firstSectorX;
-        area->firstX = kLastVertex;
-    }
-    if (area->firstY == 0 && area->firstSectorY > 0) {
-        --area->firstSectorY;
-        area->firstY = kLastVertex;
-    }
-    area->lastSectorX = x1 / kSectorCells;
-    area->lastSectorY = y1 / kSectorCells;
-    area->lastX = x1 % kSectorCells;
-    area->lastY = y1 % kSectorCells;
-}
-
-void LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY,
-                                    LightArea* area) {
-    int lastY = static_cast<int>(libcrt::Ftol(maxY + 0.5f));
-    int lastX = static_cast<int>(libcrt::Ftol(maxX + 0.5f));
-    int firstY = static_cast<int>(libcrt::Ftol(minY));
-    int firstX = static_cast<int>(libcrt::Ftol(minX));
-    SetLightArea(firstX, firstY, lastX, lastY, sectorsX, sectorsY, area);
-}
-
-void Terrain::LightAreaOf(CLight* light, const Vector3* delta, LightArea* area) {
+LightArea Terrain::LightAreaOf(CLight* light, const Vector3* delta) const {
     float range = light->range_;
     Vector3 position = light->localPosition_;
     float minX = position.x - range;
@@ -203,16 +201,16 @@ void Terrain::LightAreaOf(CLight* light, const Vector3* delta, LightArea* area) 
         if (SignBit(delta->y)) minY = minY + delta->y;
         else maxY = maxY + delta->y;
     }
-    LightAreaFromBounds(sectorsX, sectorsY, minX, minY, maxX, maxY, area);
+    return LightAreaFromBounds(sectorsX, sectorsY, minX, minY, maxX, maxY);
 }
 
 void Terrain::RelightArea(const LightArea* area) {
     for (int sy = area->firstSectorY; sy <= area->lastSectorY; ++sy) {
         for (int sx = area->firstSectorX; sx <= area->lastSectorX; ++sx) {
-            SectorData* sector = BuiltSector(this, sx, sy, SectorStage::Lit);
+            SectorData* sector = SectorAt(sx, sy, SectorStage::Lit, false);
             if (!sector) continue;
             VertexRange range = RangeIn(area, sx, sy);
-            sector->Light(this, true, range.x0, range.y0, range.x1, range.y1);
+            sector->Light(true, range.x0, range.y0, range.x1, range.y1);
         }
     }
 }
@@ -224,10 +222,8 @@ void Terrain::AddLight(CLight* light) {
     light->AddRef();
     LandscapeLight entry;
     entry.light = light;
-    LightAreaOf(light, nullptr, &entry.area);
-    int id = light->id_;
-    if (id > maxLightId) maxLightId = id;
-    lights[id] = entry;
+    entry.area = LightAreaOf(light, nullptr);
+    lights[light->id_] = entry;
     Vector3 position = light->localPosition_;
     UpdateArea(this, light, &position, &entry.area, false);
     RelightArea(&entry.area);
@@ -254,14 +250,14 @@ void Terrain::MoveLight(CLight* light, const Vector3* delta) {
     // writes its area to address 4); this does the same through a null entry.
     auto node = lights.find(light->id_);
     LightArea* area = node != lights.end() ? &node->second.area : nullptr;
-    LightAreaOf(light, delta, area);
+    *area = LightAreaOf(light, delta);
     Vector3 position = light->localPosition_;
     if (delta) position = position + *delta;
     UpdateArea(this, light, &position, area, false);
     Vector3 old = light->localPosition_;
     light->localPosition_ = old + *delta;
     RelightArea(area);
-    LightAreaOf(light, nullptr, area);
+    *area = LightAreaOf(light, nullptr);
     light->localPosition_ = old;
 }
 

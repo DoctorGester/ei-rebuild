@@ -244,7 +244,7 @@ void HandOverSceneLights(CWorldClient* world) {
 
 void HandOverTerrainCasters(CWorldClient* world) {
     Terrain* terrain = world->terrain_;
-    if (!terrain || !terrain->mapLoaded || !lib::Has(terrain->landscapeFlags, LandscapeFlag::SunShadows) || !terrain->sectorGrid) return;
+    if (!terrain || !terrain->mapLoaded || !lib::Has(terrain->landscapeFlags, LandscapeFlag::SunShadows) || terrain->sectorGrid.empty()) return;
     render::ShadowCasterRect area;
     if (!render::ShadowTerrainArea(terrain->heightRange, &area)) return;
     constexpr float kSector = 32.0f;   // vertices a sector side, one unit apart
@@ -257,8 +257,7 @@ void HandOverTerrainCasters(CWorldClient* world) {
     const int firstY = (std::max)(sector(area.y0, terrain->sectorsY) - 1, 0), lastY = sector(area.y1, terrain->sectorsY);
     for (int sx = firstX; sx <= lastX; ++sx)
         for (int sy = firstY; sy <= lastY; ++sy) {
-            const std::list<terrain::SectorData*>::iterator node = terrain->sectorGrid[sx][sy];
-            if (node != std::list<terrain::SectorData*>::iterator{} && *node) render::ShadowTerrainSector(*node);
+            if (const terrain::SectorData* cached = terrain->CachedSector(sx, sy)) render::ShadowTerrainSector(cached);
         }
 }
 

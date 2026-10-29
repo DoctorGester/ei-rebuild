@@ -13,6 +13,8 @@
 #include <cstdint>
 #include <vector>
 
+class CSceneRenderer;
+
 namespace terrain {
 struct SectorData;
 }
@@ -375,7 +377,7 @@ void ClearDepth(float z, const Rect* rects, int count);
 
 // Every sector page the game draws; `renderer`'s transform pipeline holds the current clip matrix; `page`:
 // ground pages 0..pages+1, water pages after them.
-void TerrainPage(const terrain::SectorData* sector, void* renderer, int page);
+void TerrainPage(const terrain::SectorData* sector, const CSceneRenderer* renderer, int page);
 // What the sector's pages are built from changed: Rebuilt, its tile lists and records; Moved, vertices or
 // texture coordinates (animated tiles); WaterMoved, only the water layer's positions.
 enum class TerrainChange { Rebuilt, Moved, WaterMoved };

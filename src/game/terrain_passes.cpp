@@ -1,17 +1,18 @@
 // The landscape's draw passes (terrain.h), called by the client's draw after Terrain::SetVisibleSectors:
 // the ground pages, then (after the objects) the water pages. A pass pushes the landscape's matrix on the
 // renderer's pipeline, prepares every visible sector (level of detail, clip test, seams, projection) and
-// draws the sectors page by page through DrawSectorPage (terrain_draw.cpp). Nothing here talks to the
-// device: the texture goes through the renderer's SetTexture and the vertices through DrawSectorPage.
+// hands the sectors page by page to the renderer (render::TerrainPage, which builds the page's tiles from
+// the sector's data). Nothing here talks to the device: the texture goes through the renderer's SetTexture.
 #include "terrain.h"
 #include "terrain_sector.h"
 #include "camera.h"
-#include "model.h"
-
-#include "lib/vecmath.h"
 #include "game_singletons.h"
-#include "lib/nan_audit.h"
+#include "model.h"
 #include "options.h"
+#include "render/render.h"
+
+#include "lib/nan_audit.h"
+#include "lib/vecmath.h"
 
 #include <cstdint>
 
@@ -19,21 +20,15 @@ using terrain::SectorData;
 
 namespace {
 
-constexpr float kSectorCells = 32.0f;   // a sector's width in cells
 constexpr int kProjectStack = 1;        // the pipeline stack on-screen vertices are projected with
 
-
-// Calls `visit(sector)` for every visible sector (SetVisibleSectors' rows and columns) that is
-// there once lit; a visit returning false ends the walk (false).
+// Calls `visit(sector)` for every visible sector (SetVisibleSectors' rows and columns) that is there once lit.
 template <typename Visit>
-bool ForVisibleSectors(Terrain* terrain, Visit visit) {
-    for (int row = 0; row < std::ssize(terrain->visibleColumnFirst); ++row) {
-        for (int column = terrain->visibleColumnFirst[row]; column <= terrain->visibleColumnLast[row]; ++column) {
-            SectorData* sector = terrain->SectorAt(column, terrain->visibleRowFirst + row, SectorStage::Lit, true);
-            if (sector && !visit(sector)) return false;
-        }
-    }
-    return true;
+void ForVisibleSectors(Terrain* terrain, Visit visit) {
+    const Terrain::SectorRect& visible = terrain->visible;
+    for (int sy = visible.firstY; sy <= visible.lastY; ++sy)
+        for (int sx = visible.firstX; sx <= visible.lastX; ++sx)
+            if (SectorData* sector = terrain->SectorAt(sx, sy, SectorStage::Lit, true)) visit(sector);
 }
 
 bool HasTilesOn(const SectorData* sector, int page) {
@@ -42,10 +37,26 @@ bool HasTilesOn(const SectorData* sector, int page) {
     return false;
 }
 
+// The sector's level of detail from the squared distance of its centre (mid height) to the camera: 0 within
+// the options' lod1, 1 within lod2, else 2.
+void ChooseDetail(const Terrain* terrain, SectorData* sector) {
+    const Vector3 centre = {(static_cast<float>(sector->sx) + 0.5f) * terrain::kSectorCells,
+                            (static_cast<float>(sector->sy) + 0.5f) * terrain::kSectorCells,
+                            (sector->maxZ + sector->minZ) * 0.5f};
+    // (z^2 + y^2) + x^2. The sum is kept unrounded; the passes run on the main thread (24-bit precision),
+    // where the helper's stores change nothing.
+    const float distanceSquared = DistanceSquaredZYX(centre + terrain->localPosition_, g_camera.localPosition_);
+    int level = 2;
+    EI_NAN_AUDIT(distanceSquared);
+    if (distanceSquared < options::g_options.lod1_ * options::g_options.lod1_) level = 0;
+    else if (distanceSquared < options::g_options.lod2_ * options::g_options.lod2_) level = 1;
+    sector->detail = level;
+}
+
 // The body the two passes share: the landscape's matrix (rotation, the position in the last
 // column) on the stacks 2 and 1 around the pages' draw.
 void DrawPass(Terrain* terrain, CSceneRenderer* renderer, int firstPage, int lastPage) {
-    Matrix4& matrix = terrain->drawMatrix;
+    Matrix4 matrix;
     terrain->localRotation_.ToMatrix(matrix.m);
     matrix.m[3] = terrain->localPosition_.x;
     matrix.m[7] = terrain->localPosition_.y;
@@ -79,67 +90,57 @@ void SectorData::ClipTest(CSceneRenderer* renderer) {
 }
 
 void SectorData::FindSeams() {
-    seamAfter = 0;
-    seamBefore = 0;
+    seamAfter = false;
+    seamBefore = false;
     // A lit neighbour drawn at the next coarser level: this sector's edge towards it is drawn with
-    // the seam triangles (terrain_draw.cpp). The lookup does not load anything (create 0).
-    const auto coarser = [&](int nx, int ny, int detail) {
+    // the seam triangles (render_terrain.cpp). The lookup does not load anything.
+    const auto coarser = [&](int nx, int ny, int level) {
         const SectorData* neighbour = owner->SectorAt(nx, ny, SectorStage::Lit, false);
-        return neighbour && neighbour->detail == detail && neighbour->IsDrawn();
+        return neighbour && neighbour->detail == level && neighbour->IsDrawn();
     };
     if (detail == 0) {
-        if (coarser(sx, sy - 1, 1)) seamBefore = 1;
-        if (coarser(sx, sy + 1, 1)) seamAfter = 1;
+        if (coarser(sx, sy - 1, 1)) seamBefore = true;
+        if (coarser(sx, sy + 1, 1)) seamAfter = true;
     }
     if (detail == 1) {
-        if (coarser(sx - 1, sy, 2)) seamBefore = 1;
-        if (coarser(sx + 1, sy, 2)) seamAfter = 1;
+        if (coarser(sx - 1, sy, 2)) seamBefore = true;
+        if (coarser(sx + 1, sy, 2)) seamAfter = true;
     }
 }
 
-void Terrain::ChooseDetail(SectorData* sector) {
-    const Vector3 centre = {(static_cast<float>(sector->sx) + 0.5f) * kSectorCells,
-                            (static_cast<float>(sector->sy) + 0.5f) * kSectorCells,
-                            (sector->maxZ + sector->minZ) * 0.5f};
-    // (z^2 + y^2) + x^2. The sum is kept unrounded; the passes run on the main thread (24-bit precision),
-    // where the helper's stores change nothing.
-    const float distanceSquared = DistanceSquaredZYX(centre + localPosition_, g_camera.localPosition_);
-    int level = 2;
-    EI_NAN_AUDIT(distanceSquared);
-    if (distanceSquared < options::g_options.lod1_ * options::g_options.lod1_ && minDetail <= 0) level = 0;
-    else if (distanceSquared < options::g_options.lod2_ * options::g_options.lod2_ && minDetail <= 1) level = 1;
-    sector->detail = level;
+void SectorData::DrawPage(const CSceneRenderer* renderer, int page) {
+    if (clipMode == terrain::kCulled) return;
+    if (hasWater) ApplyWaterLevels();
+    render::TerrainPage(this, renderer, page);
 }
 
-int Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
-    if (!mapLoaded) return 0;
+// --- The passes ------------------------------------------------------------------------------------
+
+void Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
+    if (!mapLoaded) return;
     ForVisibleSectors(this, [&](SectorData* sector) {
-        ChooseDetail(sector);
+        ChooseDetail(this, sector);
         sector->ClipTest(renderer);
-        return true;
     });
     ForVisibleSectors(this, [&](SectorData* sector) {
         if (sector->IsDrawn()) {
             sector->FindSeams();
             sector->Project(renderer->pipeline_);
         }
-        return true;
     });
     for (int page = firstPage; page <= lastPage; ++page) {
         bool bound = false;
-        bool drawn = ForVisibleSectors(this, [&](SectorData* sector) {
-            if (!sector->IsDrawn() || !HasTilesOn(sector, page)) return true;
+        ForVisibleSectors(this, [&](SectorData* sector) {
+            if (!sector->IsDrawn() || !HasTilesOn(sector, page)) return;
             if (!bound) {
-                renderer->SetTexture(0, pageTextures[page % (pages + 2)]);
+                renderer->SetTexture(0, pageTextures[page % LayerPages()]);
                 bound = true;
             }
-            return sector->DrawPage(renderer, page) != 0;
+            sector->DrawPage(renderer, page);
         });
-        if (!drawn) return 0;
     }
-    return 1;
 }
 
-void Terrain::DrawGround(CSceneRenderer* renderer) { DrawPass(this, renderer, 0, pages + 1); }
+void Terrain::DrawGround(CSceneRenderer* renderer) { DrawPass(this, renderer, 0, LayerPages() - 1); }
 
-void Terrain::DrawWater(CSceneRenderer* renderer) { DrawPass(this, renderer, pages + 2, pages * 2 + 3); }
+void Terrain::DrawWater(CSceneRenderer* renderer) { DrawPass(this, renderer, LayerPages(), 2 * LayerPages() - 1); }

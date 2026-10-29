@@ -801,9 +801,9 @@ public:
     void ProjectDecal(const Vector3& direction, const Vector3& point, float depth, VertexPacket* const* corners,
                       std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
                       std::vector<std::uint16_t>* indices, std::uint8_t skipOnPlatform, std::uint8_t objects);
-    // The ambient sounds' time of day: "day" from 6 to 18 o'clock, "morning" before 6 and
+    // The ambient sounds' time of day: "day" from 6 to 18 o'clock (and for a NaN hour), "morning" before 6 and
     // "evening" after 18 within 2..22, else "night".
-    std::string AmbienceTimeOfDay();
+    const char* AmbienceTimeOfDay() const;
     // Nearest living unit of the local player's group that `unit`'s side can see (the candidate's
     // relation masks); null when none or `unit` is null.
     CUnit* NearestVisibleUnit(CUnit* unit);

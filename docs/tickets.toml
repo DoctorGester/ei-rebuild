@@ -5835,3 +5835,10 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C52"]
 note = "Rest of G12 after C52 batch 1 (see C52's note for what is done and what was left on purpose). Include src/game/ui_* now that C54 is done. Compiler lists callers, one function at a time, goldens unchanged."
+
+[[ticket]]
+id = "C62a"
+title = "Terrain area style: the findings C62 left"
+group = "cleanup"
+model = "opus"
+note = "Rest of build/style_review/terrain.md after C62 (check each against current code first). Design calls: E11 MoveLight on an unregistered light writes through a null LightArea (the original crashes; make it explicit or decide); H1 the LightRef pool (two block lists, hand-written SectorVertex move) as a per-vertex container, keeping the lights' order (AddPoint maxima per channel). Plain work: C3 TileUv as a struct of 9 u / 9 v (BuildTileUv returns it, uvTables of it, no kUvFloats); C5 AddDecalTriangles / DecalBuilder::Begin taking the VertexPacket quad, not float* const*; B3 the int layer of HeightAt / VertexAt as an enum; G2 terrain.h's internals (BuildVertexTiles, SetupPages, LightSector, RelightArea, TileUv, SunReaches, VertexAt, LayerPages...) private or into terrain_sector.h, G3 one namespace for Terrain / LightArea / LandscapeLight; G7 the per-map variant counts out of the mutable g_soundClasses into Terrain; C7 waterLevels one flat vector; D7 one vertex -> (sector, local vertex) helper for VertexAt and the light areas; E2 PlayAmbience's one-shot block as a function; E7 LoadMap's parse apart from its setup; SectorData's copies of the owner's pages / perPage; render_terrain.cpp's raw tile edge bits (1/2/4/8, named in terrain_sector.cpp) and quarter mode 2. Goldens unchanged."
