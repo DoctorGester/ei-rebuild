@@ -308,11 +308,34 @@ class Targets:
                 self.element_sizes[d.name] = sum(code_size(c) for c in codes_of(fmt))
 
 
+_ENUM_NUMBERS = {}
+
+
+def enum_numbers():
+    """Names an initialiser writes for a number, from script.h: `ScriptFunction::Name` (the enum class's values) and
+    `Lex(kLexName)` (ScriptKeyword's punctuation entries: a ScriptLexeme value) -> the number's text."""
+    if not _ENUM_NUMBERS:
+        text = srcscan.blank_comments(open(os.path.join(ROOT, 'src', 'game', 'script.h'), encoding='utf-8').read())
+        body = re.search(r'enum class ScriptFunction\b[^{]*\{(.*?)\};', text, re.S).group(1)
+        for name, value in re.findall(r'(\w+)\s*=\s*(-?\w+)', body):
+            _ENUM_NUMBERS['ScriptFunction::' + name] = value
+        body = re.search(r'enum ScriptLexeme\b[^{]*\{(.*?)\};', text, re.S).group(1)
+        for name, value in re.findall(r'(\w+)\s*=\s*(0[xX][0-9A-Fa-f]+|\d+)', body):
+            _ENUM_NUMBERS['Lex(' + name + ')'] = value
+    return _ENUM_NUMBERS
+
+
+def resolve_enums(code):
+    numbers = enum_numbers()
+    code = code.replace('ScriptFunction{}', '0')
+    return re.sub(r'ScriptFunction::\w+|Lex\(\w+\)', lambda m: numbers.get(m.group(0), m.group(0)), code)
+
+
 def tokens(body):
     """The initialiser's values: ('text', bytes) for a string literal (adjacent ones joined, escapes decoded),
     ('number', int | float), ('name', text), ('element', (name, k)) for `NAME + k`."""
     out = []
-    code = srcscan.blank_comments(body)
+    code = resolve_enums(srcscan.blank_comments(body))
     last_end = None
     for m in TOKEN.finditer(code):
         text, sign, digits, suffix, name, offset = m.groups()

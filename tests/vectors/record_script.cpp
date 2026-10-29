@@ -42,7 +42,7 @@ void ei::vectors::script::OfferFixtures() {
     w.Put(static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(table)));
     w.Put(count);
     for (std::uint32_t i = 0; i < count; ++i) {
-        w.Put<std::int32_t>(table[i].id);
+        w.Put<std::int32_t>(static_cast<std::int32_t>(table[i].id));
         w.PutString(table[i].name);
         w.PutString(table[i].function);
         w.PutString(table[i].command);

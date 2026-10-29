@@ -402,7 +402,7 @@ bool CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
 
         const ScriptKeyword* command = nullptr;
         for (const ScriptKeyword* k = KeywordTable(); k->name; ++k)
-            if (k->id == id && k->command) {
+            if (static_cast<int>(k->id) == id && k->command) {
                 command = k;
                 break;
             }

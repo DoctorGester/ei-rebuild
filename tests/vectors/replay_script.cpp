@@ -52,10 +52,10 @@ bool CheckKeywords(Reader& r, char* detail, std::size_t size) {
         const std::string command = r.String(&commandNull);
         if (!same) continue;
         const ScriptKeyword& ours = kScriptKeywords[i];
-        if (ours.id != id || !SameText(ours.name, name, nameNull) || !SameText(ours.function, function, functionNull) ||
+        if (static_cast<int>(ours.id) != id || !SameText(ours.name, name, nameNull) || !SameText(ours.function, function, functionNull) ||
             !SameText(ours.command, command, commandNull)) {
             std::snprintf(detail, size, "keyword %u: recorded %s %d, ours %s %d", i, name.c_str(), id,
-                          ours.name ? ours.name : "(null)", ours.id);
+                          ours.name ? ours.name : "(null)", static_cast<int>(ours.id));
             same = false;
         }
     }
