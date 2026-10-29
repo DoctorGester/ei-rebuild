@@ -194,7 +194,7 @@ bool Refused(Refusal why) {
 // channel off by more than one counts as a difference); kept for the harness (ReadCursorPresent).
 std::vector<std::uint8_t> g_lastBgr;
 int g_lastWidth = 0, g_lastHeight = 0;
-ID3D11Texture2D* g_readback[2] = {nullptr, nullptr};   // the back buffer and the frame
+StagingCopy g_readback[2];   // the back buffer and the frame
 
 ID3D11Texture2D* TextureOf(ID3D11View* view) {
     ID3D11Resource* resource = nullptr;
@@ -212,37 +212,17 @@ void CheckPresented(const Kit& kit, const Rect& to, const std::vector<std::uint8
         kit.clientWidth != kit.frameWidth || kit.clientHeight != kit.frameHeight)
         return;
     ID3D11Texture2D* sources[2] = {TextureOf(kit.back), TextureOf(kit.frame)};
-    bool ok = sources[0] && sources[1];
-    for (int i = 0; ok && i < 2; ++i) {
-        ID3D11Texture2D*& r = g_readback[i];
-        D3D11_TEXTURE2D_DESC desc{};
-        sources[i]->GetDesc(&desc);
-        if (r) {
-            D3D11_TEXTURE2D_DESC have{};
-            r->GetDesc(&have);
-            if (have.Width != desc.Width || have.Height != desc.Height || have.Format != desc.Format) Release(r);
-        }
-        if (!r) {
-            desc.Usage = D3D11_USAGE_STAGING;
-            desc.BindFlags = 0;
-            desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-            desc.MiscFlags = 0;
-            ok = SUCCEEDED(kit.device->CreateTexture2D(&desc, nullptr, &r));
-        }
-        if (ok) kit.context->CopyResource(r, sources[i]);
-    }
-    D3D11_MAPPED_SUBRESOURCE back{}, frame{};
-    bool mapped0 = ok && SUCCEEDED(kit.context->Map(g_readback[0], 0, D3D11_MAP_READ, 0, &back));
-    bool mapped1 = mapped0 && SUCCEEDED(kit.context->Map(g_readback[1], 0, D3D11_MAP_READ, 0, &frame));
-    if (mapped1) {
+    const auto w = static_cast<unsigned>(kit.frameWidth), h = static_cast<unsigned>(kit.frameHeight);
+    if (sources[0] && sources[1] && g_readback[0].Map(kit.context, sources[0], 0, 0, w, h) &&
+        g_readback[1].Map(kit.context, sources[1], 0, 0, w, h)) {
         int width = kit.frameWidth, height = kit.frameHeight;
         int cw = to.right - to.left;
         int differing = 0;
         g_lastBgr.resize(static_cast<std::size_t>(width) * height * 3);
         const std::uint8_t* table = kit.rampTable;
         for (int y = 0; y < height; ++y) {
-            const auto* b = static_cast<const std::uint8_t*>(back.pData) + static_cast<std::size_t>(y) * back.RowPitch;   // B, G, R, A
-            const auto* f = static_cast<const std::uint8_t*>(frame.pData) + static_cast<std::size_t>(y) * frame.RowPitch;   // R, G, B, A
+            const std::uint8_t* b = g_readback[0].Row(static_cast<unsigned>(y));   // B, G, R, A
+            const std::uint8_t* f = g_readback[1].Row(static_cast<unsigned>(y));   // R, G, B, A
             std::uint8_t* out = &g_lastBgr[static_cast<std::size_t>(y) * width * 3];
             for (int x = 0; x < width; ++x) {
                 const std::uint8_t* want = f + x * 4;
@@ -271,8 +251,8 @@ void CheckPresented(const Kit& kit, const Rect& to, const std::vector<std::uint8
             ei::Log("render: cursor between frames: %d presented frames checked, %d differed", g_info.checks, g_info.mismatches);
         }
     }
-    if (mapped1) kit.context->Unmap(g_readback[1], 0);
-    if (mapped0) kit.context->Unmap(g_readback[0], 0);
+    g_readback[0].Unmap();
+    g_readback[1].Unmap();
     for (ID3D11Texture2D* t : sources)
         if (t) t->Release();
 }
@@ -419,7 +399,7 @@ void DropCursorPresents() {
     DropKit();
     Release(g_deferred);
 #if defined(EI_RENDER_VALIDATION)
-    for (ID3D11Texture2D*& r : g_readback) Release(r);
+    for (StagingCopy& r : g_readback) r.Release();
 #endif
     g_protected = false;
 }

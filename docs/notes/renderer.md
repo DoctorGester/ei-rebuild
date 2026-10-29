@@ -423,6 +423,13 @@ movie (the harness empties movie.ini's lists). Scenario render_movie_present (Pl
 game); 005DA400 runs in every new game; 005E5690 presents only with FpsIndependentCursor (render_cursor_present
 sets it).
 
+Shared helpers (render_internal.h): every read-back of a texture (the frame, the canvases, the composed levels, the
+harness build's upload / ramp / cursor checks, also the cursor thread's) goes through `StagingCopy`
+(render_staging.cpp: a staging texture kept and grown, copied into and mapped; no sokol state touched, so a main-thread
+read resets sokol's state cache after it); `D3DTexture` is a sokol image's texture, `Channel` a pixel format's channel
+(its 8-bit value: `Widen`), `RectParams` / `ApplyRect` the rectangle shaders' vertex block. The .mmp header is
+texture.h's `MmpHeader` on both sides.
+
 Images kept across frames (`render_blit.cpp`): the cursor's composite and the movie frames are dynamic images updated
 with `sg_update_image`, not made per blit. The cursor's composites are a cache of at most 64
 images (one per size, several of a size when one frame draws different contents), each keeping a copy of its pixels: a
@@ -464,7 +471,7 @@ come first, then what holds for the present path (the subsection names are cited
   went with R26 (meshcorners), so none was removed.
   R11d: the blink is a texture patch drawn in the shader (section 7).
 - Trimming after P8 / R28 (R30's survey, build/style_review/renderer_trim.md): R30b the cursor's pictures without
-  the renderer's memory, R30d the duplicate helpers (channels, PixelFormat, MmpFile, staging read-backs), R30e EI_RENDER's no-op words, R30f mesh draws without the CPU clip.
+  the renderer's memory, R30g one PixelFormat for the game and the canvases (after C54a), R30e EI_RENDER's no-op words, R30f mesh draws without the CPU clip.
 - No ticket yet: weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU calls left in game code (bounds at figure load, the terrain's transform before

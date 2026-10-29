@@ -1274,36 +1274,24 @@ SmoothInfo SmoothState() {
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
     if (!g_started || !g_haveFrame || !g_colour.id) return false;
     FpuGuard fpu;
-    sg_d3d11_image_info info = sg_d3d11_query_image_info(g_colour);
-    auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
-    if (!texture) return false;
-    D3D11_TEXTURE2D_DESC desc{};
-    texture->GetDesc(&desc);
-    desc.Usage = D3D11_USAGE_STAGING;
-    desc.BindFlags = 0;
-    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-    desc.MiscFlags = 0;
-    ID3D11Texture2D* staging = nullptr;
-    if (FAILED(g_device->CreateTexture2D(&desc, nullptr, &staging))) return false;
-    g_context->CopyResource(staging, texture);
-    D3D11_MAPPED_SUBRESOURCE mapped{};
-    bool ok = SUCCEEDED(g_context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped));
+    StagingCopy copy;
+    bool ok = copy.Map(g_context, D3DTexture(g_colour));
     if (ok) {
-        *width = static_cast<int>(desc.Width);
-        *height = static_cast<int>(desc.Height);
-        bgr->resize(static_cast<std::size_t>(desc.Width) * desc.Height * 3);
-        for (UINT y = 0; y < desc.Height; ++y) {
-            const auto* row = static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch;
-            std::uint8_t* out = bgr->data() + static_cast<std::size_t>(y) * desc.Width * 3;
-            for (UINT x = 0; x < desc.Width; ++x) {
+        const unsigned w = copy.Width(), h = copy.Height();
+        *width = static_cast<int>(w);
+        *height = static_cast<int>(h);
+        bgr->resize(static_cast<std::size_t>(w) * h * 3);
+        for (unsigned y = 0; y < h; ++y) {
+            const std::uint8_t* row = copy.Row(y);
+            std::uint8_t* out = bgr->data() + static_cast<std::size_t>(y) * w * 3;
+            for (unsigned x = 0; x < w; ++x) {
                 out[x * 3 + 0] = row[x * 4 + 2];
                 out[x * 3 + 1] = row[x * 4 + 1];
                 out[x * 3 + 2] = row[x * 4 + 0];
             }
         }
-        g_context->Unmap(staging, 0);
     }
-    staging->Release();
+    copy.Release();
     sg_reset_state_cache();
     return ok;
 }

@@ -25,10 +25,6 @@ namespace {
 
 using namespace detail;
 
-struct VsParams {
-    float rect[4];
-    float target[4];
-};
 struct FsParams {
     float dest[4];
     float source[4];
@@ -139,38 +135,16 @@ long g_uploads[2] = {0, 0};   // uploads so far, cursor and movie (the read-back
 // Verify build: reads the image back from the GPU and compares it with the pixels just written
 // (what the blit's unchanged shader then draws is exactly these texels).
 void CheckUpload(sg_image image, const std::uint8_t* rgba, int w, int h, const char* what) {
-    sg_d3d11_image_info info = sg_d3d11_query_image_info(image);
-    auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
-    if (!texture) return;
-    ID3D11Device* device = nullptr;
-    texture->GetDevice(&device);
-    if (!device) return;
-    ID3D11DeviceContext* context = nullptr;
-    device->GetImmediateContext(&context);
-    D3D11_TEXTURE2D_DESC desc{};
-    texture->GetDesc(&desc);
-    desc.Usage = D3D11_USAGE_STAGING;
-    desc.BindFlags = 0;
-    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-    desc.MiscFlags = 0;
-    ID3D11Texture2D* staging = nullptr;
-    if (context && SUCCEEDED(device->CreateTexture2D(&desc, nullptr, &staging))) {
-        context->CopyResource(staging, texture);
-        D3D11_MAPPED_SUBRESOURCE mapped{};
-        if (SUCCEEDED(context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped))) {
-            bool same = true;
-            for (int y = 0; y < h && same; ++y)
-                same = std::memcmp(static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch,
-                                   rgba + static_cast<std::size_t>(y) * w * 4, static_cast<std::size_t>(w) * 4) == 0;
-            context->Unmap(staging, 0);
-            ++g_uploadChecks;
-            if (!same && g_uploadMismatches++ < 10)
-                ei::Log("render: MISMATCH: %s image %dx%d read back from the GPU differs from the pixels written", what, w, h);
-        }
-        staging->Release();
+    StagingCopy copy;
+    if (copy.Map(D3DContext(), D3DTexture(image), 0, 0, static_cast<unsigned>(w), static_cast<unsigned>(h))) {
+        bool same = true;
+        for (int y = 0; y < h && same; ++y)
+            same = std::memcmp(copy.Row(static_cast<unsigned>(y)), rgba + static_cast<std::size_t>(y) * w * 4, static_cast<std::size_t>(w) * 4) == 0;
+        ++g_uploadChecks;
+        if (!same && g_uploadMismatches++ < 10)
+            ei::Log("render: MISMATCH: %s image %dx%d read back from the GPU differs from the pixels written", what, w, h);
     }
-    if (context) context->Release();
-    device->Release();
+    copy.Release();
     sg_reset_state_cache();
 }
 #endif
@@ -293,7 +267,7 @@ bool CreateBlitPipeline() {
     sg_shader_desc s{};
     SetBytecode(s, kBlitShader);
     s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = sizeof(VsParams);
+    s.uniform_blocks[0].size = sizeof(RectParams);
     s.uniform_blocks[0].hlsl_register_b_n = 0;
     s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
     s.uniform_blocks[1].size = sizeof(FsParams);
@@ -348,19 +322,15 @@ void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int he
     bind.samplers[0] = g_nearest;
     sg_apply_bindings(&bind);
     CountBindings(bind);
-    VsParams vs{{static_cast<float>(b.destination.left), static_cast<float>(b.destination.top),
-                 static_cast<float>(b.destination.right), static_cast<float>(b.destination.bottom)},
-                {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    ApplyRect(b.destination, width, height);
     FsParams fs{{static_cast<float>(b.destination.left), static_cast<float>(b.destination.top),
                  static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
                 {static_cast<float>(b.source.left), static_cast<float>(b.source.top), static_cast<float>(b.textureWidth),
                  static_cast<float>(b.textureHeight)}};
-    sg_range vr{&vs, sizeof(vs)};
-    sg_apply_uniforms(0, &vr);
     sg_range fr{&fs, sizeof(fs)};
     sg_apply_uniforms(1, &fr);
     sg_draw(0, 6, 1);
-    CountDraw(sizeof(vs) + sizeof(fs));
+    CountDraw(sizeof(RectParams) + sizeof(fs));
 }
 
 void DrawClearDepth(const ClearBatch& clear, int width, int height) {

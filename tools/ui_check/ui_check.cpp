@@ -667,31 +667,20 @@ void CheckPicture() {
 // ---- frame: canvases in the frame, the pass split ---------------------------------------------------------------
 
 bool ReadTarget(std::vector<std::uint32_t>* rgb) {
-    auto* device = static_cast<ID3D11Device*>(const_cast<void*>(sg_d3d11_device()));
     auto* context = static_cast<ID3D11DeviceContext*>(const_cast<void*>(sg_d3d11_device_context()));
-    auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(sg_d3d11_query_image_info(g_target).tex2d));
-    D3D11_TEXTURE2D_DESC desc{};
-    texture->GetDesc(&desc);
-    desc.Usage = D3D11_USAGE_STAGING;
-    desc.BindFlags = 0;
-    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-    desc.MiscFlags = 0;
-    ID3D11Texture2D* staging = nullptr;
-    if (FAILED(device->CreateTexture2D(&desc, nullptr, &staging))) return false;
-    context->CopyResource(staging, texture);
-    D3D11_MAPPED_SUBRESOURCE mapped{};
-    bool ok = SUCCEEDED(context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped));
+    detail::StagingCopy copy;
+    bool ok = copy.Map(context, detail::D3DTexture(g_target));
     if (ok) {
-        rgb->resize(static_cast<std::size_t>(desc.Width) * desc.Height);
-        for (UINT y = 0; y < desc.Height; ++y) {
-            const auto* row = static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch;
-            for (UINT x = 0; x < desc.Width; ++x)
-                (*rgb)[static_cast<std::size_t>(y) * desc.Width + x] =
+        const unsigned w = copy.Width(), h = copy.Height();
+        rgb->resize(static_cast<std::size_t>(w) * h);
+        for (unsigned y = 0; y < h; ++y) {
+            const std::uint8_t* row = copy.Row(y);
+            for (unsigned x = 0; x < w; ++x)
+                (*rgb)[static_cast<std::size_t>(y) * w + x] =
                     (static_cast<std::uint32_t>(row[x * 4]) << 16) | (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) | row[x * 4 + 2];
         }
-        context->Unmap(staging, 0);
     }
-    staging->Release();
+    copy.Release();
     sg_reset_state_cache();
     return ok;
 }

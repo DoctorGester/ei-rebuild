@@ -23,10 +23,6 @@ namespace render::detail {
 
 namespace {
 
-struct VsParams {
-    float rect[4];     // left, top, right, bottom (target texels)
-    float target[4];   // the target's width, height
-};
 struct FsParams {
     std::int32_t offset[4];   // the image texel at target texel (0, 0); z: fill with `colour`; w: the alpha kept
     float colour[4];
@@ -37,7 +33,7 @@ struct CloudParams {
     std::uint32_t blend[4];    // ps_clouds: x
     std::uint32_t ramp[256];   // ps_clouds: one alpha a word
 };
-static_assert(sizeof(VsParams) == 32 && sizeof(FsParams) == 32 && sizeof(CloudParams) == 1088);
+static_assert(sizeof(FsParams) == 32 && sizeof(CloudParams) == 1088);
 
 bool g_tried = false, g_made = false;
 sg_shader g_shader{}, g_cloudFrameShader{}, g_cloudsShader{};
@@ -87,7 +83,7 @@ sg_shader MakeShader(const ShaderBytecode& code, std::size_t fsBytes, int textur
     sg_shader_desc s{};
     SetBytecode(s, code);
     s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = sizeof(VsParams);
+    s.uniform_blocks[0].size = sizeof(RectParams);
     s.uniform_blocks[0].hlsl_register_b_n = 0;
     s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
     s.uniform_blocks[1].size = static_cast<std::uint32_t>(fsBytes);
@@ -200,13 +196,6 @@ std::string Key(const char* name) {
     std::string key = name ? name : "";
     for (char& c : key) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     return key;
-}
-
-void ApplyRect(const Rect& r, int width, int height) {
-    VsParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)},
-                {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
-    sg_range range{&vs, sizeof(vs)};
-    sg_apply_uniforms(0, &range);
 }
 
 // The clouds frame of `frame`'s words as a texture (R8UI): one the GPU built for an earlier composition, else built
@@ -359,7 +348,7 @@ void DrawSteps(const ComposeRecipe& recipe, sg_image target, const ComposeStep* 
     }
     if (recipe.levels > 1) {
         // The levels below the first, from it (a box filter).
-        auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(sg_d3d11_query_image_info(target).tex2d));
+        ID3D11Texture2D* texture = D3DTexture(target);
         ID3D11ShaderResourceView* all = nullptr;
         if (texture && SUCCEEDED(D3DDevice()->CreateShaderResourceView(texture, nullptr, &all))) {
             D3DContext()->GenerateMips(all);
@@ -490,28 +479,15 @@ bool ReadImageLevel(sg_image image, int level, int width, int height, std::vecto
         sg_apply_uniforms(1, &range);
         sg_draw(0, 6, 1);
         sg_end_pass();
-        auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(sg_d3d11_query_image_info(target).tex2d));
-        D3D11_TEXTURE2D_DESC desc{};
-        if (texture) texture->GetDesc(&desc);
-        desc.Usage = D3D11_USAGE_STAGING;
-        desc.BindFlags = 0;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        desc.MiscFlags = 0;
-        ID3D11Texture2D* staging = nullptr;
-        if (texture && SUCCEEDED(D3DDevice()->CreateTexture2D(&desc, nullptr, &staging))) {
-            D3DContext()->CopyResource(staging, texture);
-            D3D11_MAPPED_SUBRESOURCE mapped{};
-            if (SUCCEEDED(D3DContext()->Map(staging, 0, D3D11_MAP_READ, 0, &mapped))) {
-                rgba->resize(static_cast<std::size_t>(width) * height * 4);
-                for (int y = 0; y < height; ++y)
-                    std::memcpy(rgba->data() + static_cast<std::size_t>(y) * width * 4,
-                                static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch,
-                                static_cast<std::size_t>(width) * 4);
-                D3DContext()->Unmap(staging, 0);
-                read = true;
-            }
-            staging->Release();
+        StagingCopy copy;
+        if (copy.Map(D3DContext(), D3DTexture(target))) {
+            rgba->resize(static_cast<std::size_t>(width) * height * 4);
+            for (int y = 0; y < height; ++y)
+                std::memcpy(rgba->data() + static_cast<std::size_t>(y) * width * 4, copy.Row(static_cast<unsigned>(y)),
+                            static_cast<std::size_t>(width) * 4);
+            read = true;
         }
+        copy.Release();
     }
     sg_destroy_view(attachment);
     sg_destroy_image(target);

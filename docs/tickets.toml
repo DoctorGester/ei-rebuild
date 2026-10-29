@@ -868,6 +868,15 @@ group = "renderer"
 size = 1
 note = "R30 survey: build/style_review/renderer_trim.md, R30f: device_mesh.cpp still projects every mesh through 3DfpFPU and clips meshes at the screen edge on the CPU (ClipTriangles, ToScreenClipped) though the GPU draws the unclipped hand-over; the clip only decides whether the passes are handed over and the flag-1 picking rectangle (drawnRect_). Bounds from the projected positions would give both (renderer.md open item). Picking at the screen edge may change: goldens decide. Also device_shadow.cpp's flat draws."
 
+[[ticket]]
+id = "R30g"
+title = "One PixelFormat for the game and the canvases"
+group = "renderer"
+size = 0.25
+depends = ["C54a"]
+files = ["src/render/render_ui.h", "src/game/surface.h", "src/game/ui_surface_create.cpp", "src/game/ui_surface_pixels.cpp"]
+note = "Left from R30d (src/game/ui_* was C54a's): surface.h PixelFormat and render_ui.h render::ui::PixelFormat (bits + masks) are converted field by field at ui_surface_create.cpp and ui_surface_pixels.cpp; PixelAt packs with ui::Pack and unpacks with ChannelLayout::FromNative (one function could return the pixel's 8-bit channels). One type (render::ui taking surface.h's, or the game using the renderer's), no behaviour change. Check: build, ei_ui_check, ui_compare, goldens."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]

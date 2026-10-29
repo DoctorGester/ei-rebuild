@@ -17,6 +17,7 @@ struct ID3D11Buffer;
 struct ID3D11Device;
 struct ID3D11DeviceContext;
 struct ID3D11RenderTargetView;
+struct ID3D11Texture2D;
 struct IDXGISwapChain1;
 struct IDXGIFactory2;
 
@@ -314,6 +315,76 @@ void Start();
 [[noreturn]] void Fatal(const char* format, ...);
 ID3D11Device* D3DDevice();
 ID3D11DeviceContext* D3DContext();
+// The Direct3D 11 texture of a sokol image (no reference taken); null for none.
+inline ID3D11Texture2D* D3DTexture(sg_image image) {
+    return static_cast<ID3D11Texture2D*>(const_cast<void*>(sg_d3d11_query_image_info(image).tex2d));
+}
+
+// A texture's first level, or a region of it, read back: copied into a CPU-readable staging texture of its format
+// and mapped (render_staging.cpp). The staging texture is kept for the next read (made again for a larger region or
+// another format) until Release, which every holder calls (no destructor: some are globals that outlive the device).
+// Touches no sokol state; a read on the main thread resets sokol's state cache after it.
+class StagingCopy {
+public:
+    // The whole level / `width` x `height` texels from (left, top); mapped until Unmap. False, nothing mapped, for no
+    // source or when the copy cannot be made or mapped.
+    bool Map(ID3D11DeviceContext* context, ID3D11Texture2D* source);
+    bool Map(ID3D11DeviceContext* context, ID3D11Texture2D* source, unsigned left, unsigned top, unsigned width,
+             unsigned height);
+    // The mapped region's size and row y (the source's texel format).
+    unsigned Width() const { return mappedWidth_; }
+    unsigned Height() const { return mappedHeight_; }
+    const std::uint8_t* Row(unsigned y) const { return data_ + static_cast<std::size_t>(y) * pitch_; }
+    void Unmap();
+    void Release();
+
+private:
+    ID3D11Texture2D* texture_ = nullptr;
+    unsigned width_ = 0, height_ = 0, format_ = 0;
+    ID3D11DeviceContext* context_ = nullptr;   // while mapped
+    const std::uint8_t* data_ = nullptr;
+    std::size_t pitch_ = 0;
+    unsigned mappedWidth_ = 0, mappedHeight_ = 0;
+};
+
+// The vertex parameters of the rectangle shaders (blit, ui_canvas, texture_compose, texture_clouds): the rectangle
+// (left, top, right, bottom, target pixels) and the target's width and height.
+struct RectParams {
+    float rect[4];
+    float target[4];
+};
+static_assert(sizeof(RectParams) == 32);
+// `r` on a `width` x `height` target as vertex uniform block 0.
+inline void ApplyRect(const Rect& r, int width, int height) {
+    RectParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)},
+                  {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    sg_range range{&vs, sizeof(vs)};
+    sg_apply_uniforms(0, &range);
+}
+
+// The top `bits` of a channel value widened to 8 by repeating them (more than 8: the top 8 of them).
+inline std::uint32_t WidenTop(std::uint32_t top, int bits) {
+    if (bits <= 0) return 0;
+    if (bits >= 8) return (top >> (bits - 8)) & 0xFF;
+    std::uint32_t out = 0;
+    for (int filled = 0; filled < 8; filled += bits) out |= (top << (8 - bits)) >> filled;
+    return out & 0xFF;
+}
+
+// A pixel format's channel: its mask, the shift of the mask's lowest set bit and the run of set bits from there.
+struct Channel {
+    std::uint32_t mask = 0;
+    int shift = 0;
+    int bits = 0;
+    explicit Channel(std::uint32_t m) : mask(m) {
+        if (!m) return;
+        while (!((m >> shift) & 1)) ++shift;
+        while (shift + bits < 32 && ((m >> (shift + bits)) & 1)) ++bits;
+    }
+    // The channel of `pixel` widened to 8 bits; 0 for an empty mask.
+    std::uint32_t Widen(std::uint32_t pixel) const { return WidenTop((pixel & mask) >> shift, bits); }
+};
+
 sg_image FrameImage();
 sg_view FrameTexture();
 bool FrameSize(int* width, int* height);
