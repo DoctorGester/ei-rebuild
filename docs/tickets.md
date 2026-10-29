@@ -105,7 +105,7 @@ Our own swap chain without dgVoodoo (renderer.md section 9), in parallel with th
 
 Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src/render, own font loading (user 2026-10-14).
 
-- **P2** Text through the glyph atlas (ready; 1 session). Files: `src/game/ui_text_draw.cpp`. After: N2, P1, W2.
+- **P2** Text through the glyph atlas (running since 2026-10-29; opus, 1 session). Files: `src/game/ui_text_draw.cpp`. After: N2, P1, W2.
 - **P4** Native console and debug panel (ready; 1 session). After: P1, N2.
 - **P5** Native edit, chat, connect and save/load lines and carets (ready; 1 session). After: P1, W2.
 - **P3a** Native menus and dialogs (waiting on P2; 1 session). Main menu, message box, difficulty, options, objectives, credits text, escape-menu backdrop and save picture.

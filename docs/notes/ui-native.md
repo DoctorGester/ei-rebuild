@@ -261,9 +261,9 @@ Greyscale 005FE440, all in surface pixels after the game's scaling. Text until P
 
 **The memory stays the source of truth.** GDI and the CPU code keep drawing it in both modes (a lost device brings canvases
 back black). Only under `uinative` do the screen copy (no frame read-back) and greying a surface whose memory is behind go
-to the canvas alone; the memory is then behind until `Sync` reads the canvas back (`ReadBack`), which GetDC 005FDC00,
-PixelAt 005FD240, Rgb565Copy 005FD440 and SwapContents' save call first. Under `uiboth` nothing reads back, so the
-per-surface diff compares GDI's own drawing.
+to the canvas alone; the memory is then behind until `Sync` reads the canvas back (`ReadBack`), which PixelAt 005FD240,
+Rgb565Copy 005FD440 and SwapContents' save call first (GetDC 005FDC00 no longer does since P2: see "P2 done"). Under
+`uiboth` nothing reads back, so the per-surface diff compares GDI's own drawing.
 
 **Rule from a real bug.** `DropCanvas` (HolderGone) draws the frame so far first when the canvas's blit is not drawn yet,
 as the window blits' textures outlive their holders: backdrop mode 3 puts the old backdrop away (SwapContents) after the
@@ -278,8 +278,76 @@ through each path; both paths' captures match. Result (2026-10-21): all 43 `ui_*
 differing checks (backdrop, fps, status compared in each that reaches them), and the gallery's, ui_saveload's and
 ui_quicksave's 29 frames under `uinative` equal the `uiboth` ones exactly.
 
-**For P2:** record glyph runs in 005FDE20 instead of `TextDrawn`'s copy (then `uidiff text / block / textlimit` decide), and
-drop the GetDC read-back for surfaces whose text no longer needs the memory.
+### P2 done (2026-10-29): text through the glyph atlas, `ui_native::Text`
+
+**What is drawn natively.** `CUiSurface::DrawTextIn` 005FDE20 (`ui_text_draw.cpp`; `DrawLine` and `DrawWrappedText`
+005FDFA0 reach it) asks `ui_native::Text` first. On a native surface (any surface `Adopt` gave a canvas, and the screen
+copies) the text is laid out by `render::text::Layout` (DrawText's rules, section 2) in `TextFontOf(font)` and drawn
+with `GlyphRun`: the shadow in 0x080808 at +1,+1 first, then the colour. No GDI draws it. Surfaces that are not native
+draw with GDI as before; so without a `ui` word in EI_RENDER nothing changes on screen yet (P3a-d adopt the window
+families, P8 makes it the default).
+
+**The fonts: our glyphs, GDI's places** (`ui_native_fonts.cpp`). `TextFontOf(HFONT)` makes a `render::text::Font`
+whose glyph shapes (coverage and box) come from our font file standing in for the face (Liberation Serif for Times
+New Roman, at the HFONT's -lfHeight) and whose metrics come from the GDI font: ascent, descent, average width, each
+character's advance (GetTextExtentPoint32 less the overhang; control characters as DrawText spaces them) and the
+kerning pairs. These are the inputs N2's `ei_text_check --gdi` fed the layout to match DrawTextA on every game string
+in every font, format and width, so line breaks, alignment, DT_CALCRECT and DrawText's value are GDI's, and
+`CInterface3D::TextExtent` 005F8340 (still GDI's extent) agrees with what is drawn. The layout and wrapping the game
+computes are therefore unchanged in every mode; only the glyphs' shapes are ours, each drawn at GDI's pen position on
+GDI's baseline. Smoothing: off for NONANTIALIASED_QUALITY (the harness's fonts) or when SPI_GETFONTSMOOTHING is off
+(the credits); the atlas is grey coverage, never ClearType's colour fringes. This is the only place native text asks
+GDI anything (a memory DC with its own copy of the font, metrics only, nothing drawn), and the one place to change for
+metrics of our own (section 2's 2026-10-14 decision: then about one string in ten wraps elsewhere, "Liberation versus
+GDI").
+
+**The three paths** (`ui_native::TextPath`, what DrawTextIn still does):
+- `Canvas` (`uinative`, and the screen copies in any mode): canvas only; DrawText's value from the layout (GDI's, see
+  above). The memory lacks the text (`behind`) until a reader calls `Sync`.
+- `AlsoGdi` (`uiboth`): GDI also draws the memory and its value is returned; the per-surface diff compares the two.
+- `Gdi`: not native, the font file is missing, or the format has a bit the layout does not follow (DT_SINGLELINE,
+  DT_END_ELLIPSIS, ...): GDI draws and `TextDrawn` copies its rectangle onto the canvas as in P1 (the memory synced first).
+
+**GetDC no longer reads back.** GDI text no longer lands in a native surface's memory, and nothing copies the memory
+onto the canvas after GDI drew except `TextDrawn` (whose caller syncs first) and SwapContents' restore (whose save syncs
+or puts the canvas aside), so GetDC 005FDC00 drops P1's `Sync`: the frame-rate surface redrawn every frame under
+`uinative` costs no read-back. Rule for P3-P5: drawing a family does through the DC directly (pens, FillSolidRect)
+reaches only the memory; record it on the canvas (P4, P5) or `Sync` before drawing and copy it as `TextDrawn` does.
+
+**The comparison's text settings** (`harness_ui.h`): with GDI's placement the glyphs still differ in shape (the
+frame rate's Times New Roman at 4K: 6.5% of the text pixels per pixel), so the defaults are now 8x8 block averages,
+`text` 64, `textlimit` 0.05; the frame rate's checks differ in about 2.7% of their text, while missing, recoloured or
+moved text still fails. `ui_compare`'s options A/B allows 0.1% of the frame (the frame rate's glyphs are 0.02%).
+Result (2026-10-29): all 45 `ui_*` scenarios pass under `EI_RENDER_EXTRA=uiboth`.
+
+**Frame differences** (2026-10-29, 3840x2160, the harness's fonts without smoothing). Under `uinative` the gallery's,
+ui_saveload's, ui_quicksave's, ui_help_page's and ui_hud's frames equal the default path's exactly except where native
+text is shown: the frame rate in `ui_gallery_game`'s ten frames (0.017-0.022% of each frame). An experiment that adopted
+every surface (not committed: one `Adopt` in the surface's `Finish`) gave the same layout everywhere (no line wrapped
+or moved: the menus' help page, options, boxes, the HUD, camp and base screens) with these shape differences:
+- Our glyphs are unhinted Liberation, GDI's are hinted Times New Roman: stems and serifs differ by a pixel, ours are a
+  little heavier at 4K sizes, and cap tops sit one or two rows lower (same baseline, GDI's hinting rounds cap heights
+  up). Without smoothing both are 1-bit, so edges step differently.
+- With smoothing on (outside the harness) the atlas is grey coverage; GDI's default quality may be ClearType's
+  coloured edges. The composition over black keeps the old dark fringe (section 2).
+- Not text but visible in that experiment: the titles' RichEdit (0065F020) drew nothing on its canvas (it stays CPU:
+  never adopt it), and the pens' lines and carets (P5) were missing, as expected under `uinative`.
+
+**API for P3a-d and P4** (`src/game/ui_native.h`):
+- A window family goes native with `ui_native::Adopt(surface, "<family>")` where the surface is made (one line in the
+  family's file); its `DrawTextIn` / `DrawLine` / `DrawWrappedText` text then follows on its own.
+- Direct `dc->DrawText` users (the console, the debug panel: P4) call `ui_native::Text(surface, font, text, rect,
+  format, colour, shadow, &height)` and draw with GDI only when it returns `Gdi` / `AlsoGdi`; any HFONT works
+  (`TextFontOf` reads its face, height, weight and quality: the console's Courier New becomes Liberation Mono placed
+  by Courier New's metrics; a bold or italic font would still get the regular file's shapes: the game makes none).
+- Formats the layout does not follow fall back to GDI (`Gdi`); add them to `render_text.cpp` (and `ei_text_check`'s
+  cases) when a family needs one. `TextFontOf(font)` also measures (`render::text::TextExtent`, `Layout` with
+  DT_CALCRECT): the same numbers as GDI's extent and DrawText.
+- Check a family with `EI_RENDER_EXTRA=uiboth` (the per-surface diff) and frames under `EI_RENDER_EXTRA=uinative`
+  against the default path's (`tools/compare_frames.py`): only glyph shapes may differ.
+- Font files: `render::text::FontDirectory()` is the source tree's third_party/fonts (EI_FONT_DIR); a missing file
+  makes `Text` fall back to GDI. The product needs the fonts beside the exe and a `SetFontDirectory` at start-up before
+  P8 makes native text the default.
 
 ## 4. Tickets
 
@@ -298,7 +366,7 @@ they depend on.
   window family captured frozen; section 3 "N4: the gallery"). **N5** cursor and per-frame images cached (`render_blit.cpp`).
 - **P1** (done, section 3 "P1 done") surface plumbing (canvas per native surface, blit, Get/ReleaseDC as the metrics DC, Fill / Clear / FrameRect, readback for
   PixelAt / Rgb565Copy / SwapContents, CaptureScreen as a GPU copy, Greyscale; first native surfaces: backdrop, FPS, status; needs
-  N1, N3). **P2** text (005FDE20 records glyph runs, GDI on the metrics DC for the return value; 005FDFA0 unchanged; needs N2, P1).
+  N1, N3). **P2** (done, section 3 "P2 done") text (005FDE20 records glyph runs on native surfaces: our glyphs placed by GDI's metrics; 005FDFA0 unchanged; needs N2, P1).
   **P3a-d** windows by family (menus and dialogs; HUD; camp, hero, trade and item info; briefing, global map titles, help page, chat
   window), mostly native-table entries plus fixes the diff finds; **P4** console and debug panel (direct FillSolidRect / DrawText,
   own fonts, the 2-pixel pen caret); **P5** controls with lines and carets (edit field 0065C2E0, chat typed line 005E3700, connect

@@ -40,10 +40,10 @@ using render::Rect;
 
 struct Settings {
     int tolerance = 0;
-    int text = 24;
-    int block = 1;
+    int text = 64;
+    int block = 8;
     double limit = 0.0;
-    double textLimit = 0.01;
+    double textLimit = 0.05;
     int dumps = 8;
 };
 Settings g_settings;
