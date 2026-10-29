@@ -155,7 +155,7 @@ Rewritten (grep the address; the per-function table is gone). Facts a worker nee
   0x32 reads the path through a delta field; sources 0x2039 / 0x203A-B when 0079BE70 is set, handed to 00535240 unreleased), 0x13
   string event (005F8070 by address, Rebirth-patched), 0x17 (00665550 quest log refresh), 0x15 / 0x18 experience numbers (amount *
   0073E128 ^ (unit +0x33E - 25) through a float, FISTP; std::pow for _CIpow, so a .5 edge may round apart), OnPartyState 00668C50
-  (0x60: old party ids lose unit flag 0x400000 and go into the hash_set 007C8370 (forwarded 0066B400 / 0066B490 / 0066BA70); pause
+  (0x60: old party ids lose unit flag 0x400000 (MapObjectFlag::InParty) and go into the hash_set 007C8370 (forwarded 0066B400 / 0066B490 / 0066BA70); pause
   byte to CWorldClient +0x6C; new ids (+0x50D8, SetSizeDiscard) flagged, new ones fade in (slot 43) under the 007AFCA4 gate;
   +0x6E4; other players' ids (+0x50E8)), OnNewObject 00667EC0 (0x40; multiplayer only, no scenario).
 - Local view orders (`player_client_orders.cpp`): 0x30 walk, 0x3A go to, 0x31 attack, 0x33 / 0x32 spell or quick item (slot |

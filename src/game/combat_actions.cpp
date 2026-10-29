@@ -39,7 +39,6 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 // PropagateHostility's squared call radius: the original rounds it to a float through this global.
 float g_squaredCallRadius = /*007AF40C*/ {};
-constexpr std::uint32_t kSpellOnWeapon = 0x10000;       // CSpell::targetFlags_: cast by the item
 constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
 
 CDiplomacy* DiplomacyOf(CWorldServer* world) { return &world->diplomacy_; }
@@ -153,7 +152,7 @@ void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
     auto* weapon = unit->GetWeapon(unit->activeWeapon);
     if (!weapon) return;
     auto* spell = weapon->spell_;
-    if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) return;
+    if (!spell || !(spell->targetFlags_ & SpellTargetFlag::ItemTriggered)) return;
     float cost = spell->manaCost_;
     if (cost > weapon->charge_) return;
     UseItemCharge(weapon, cost);
@@ -168,7 +167,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         auto* item = unit->armor[slot];
         if (!item) continue;
         auto* spell = item->spell_;
-        if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) continue;
+        if (!spell || !(spell->targetFlags_ & SpellTargetFlag::ItemTriggered)) continue;
         float cost = spell->manaCost_;
         if (cost > item->charge_) continue;
         bool fires = spell->Type() == SpellType::Healing ? onHit == 0 : onHit != 0;   // healing: when not hit

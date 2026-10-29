@@ -114,18 +114,18 @@ void CPlayerServer::SendGameTime() {
     WriteByte(&out_, 0x07);
     WriteDword(&out_, value);
     WriteDword(&out_, static_cast<std::uint32_t>(g_serverWorld->tick_));
-    player_->dirty_ &= ~0x10;
+    player_->dirty_ &= ~PlayerDirty::GameState;
 }
 
 int CPlayerServer::SendState02(CMemoryStream* zone) {
-    player_->dirty_ &= ~0x1;
+    player_->dirty_ &= ~PlayerDirty::Zone;
     WriteByte(&out_, 0x02);
     out_.WriteStream(zone);
     return 1;
 }
 
 int CPlayerServer::SendState70(std::uint8_t a, std::uint16_t b) {
-    player_->dirty_ &= ~0x2;
+    player_->dirty_ &= ~PlayerDirty::Weather;
     std::uint8_t payload[3] = {a, static_cast<std::uint8_t>(b), static_cast<std::uint8_t>(b >> 8)};
     WriteByte(&out_, 0x70);
     Write(&out_, payload, 3);
@@ -133,7 +133,7 @@ int CPlayerServer::SendState70(std::uint8_t a, std::uint16_t b) {
 }
 
 int CPlayerServer::SendState71(std::uint32_t a, std::uint32_t b) {
-    player_->dirty_ &= ~0x4;
+    player_->dirty_ &= ~PlayerDirty::Time;
     std::uint32_t payload[2] = {a, b};
     WriteByte(&out_, 0x71);
     Write(&out_, payload, 8);
@@ -141,7 +141,7 @@ int CPlayerServer::SendState71(std::uint32_t a, std::uint32_t b) {
 }
 
 int CPlayerServer::SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t w) {
-    player_->dirty_ &= ~0x8;
+    player_->dirty_ &= ~PlayerDirty::Wind;
     WriteByte(&out_, 0x72);
     std::uint32_t xyz[3] = {x, y, z};
     Write(&out_, xyz, 12);
@@ -152,7 +152,7 @@ int CPlayerServer::SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z
 void CPlayerServer::SendState73(const WaterTweens* source) {
     WriteByte(&out_, 0x73);
     source->Save(&out_);
-    player_->dirty_ &= ~0x20;
+    player_->dirty_ &= ~PlayerDirty::Countdowns;
 }
 
 int CPlayerServer::SendPosition04(const Vector3* at, std::uint32_t a, std::uint32_t b) {

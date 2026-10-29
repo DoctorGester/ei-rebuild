@@ -51,7 +51,6 @@ constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kSkillSource = 6;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
-constexpr std::uint32_t kSpellNoTarget = 0x20000000;     // CSpell::targetFlags_: aimed at no object
 constexpr int kCastKindNone = 8;
 
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
@@ -168,7 +167,7 @@ void FillCastKind(OrderPlan* plan, CSpell* spell) {
         plan->castKind = kCastKindNone;
         return;
     }
-    if (spell->targetFlags_ & kSpellNoTarget) plan->targetId = -1;
+    if (spell->targetFlags_ & SpellTargetFlag::AtPoint) plan->targetId = -1;
     SpellType type = spell->Type();
     if (type == SpellType::RickMagic) plan->castKind = 1;
     else if (type == SpellType::CurseMagic) plan->castKind = 0;
@@ -355,7 +354,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             predict = true;
             CSpell* missile;
             if (OrderSpell(this, order->source, &missile) && missile &&
-                (missile->targetFlags_ & kSpellNoTarget)) {
+                (missile->targetFlags_ & SpellTargetFlag::AtPoint)) {
                 float flight = missile->speed_;
                 if (Greater(flight, 0.0f)) castDelay = CastDelayTicks(distanceSq, flight);
             }

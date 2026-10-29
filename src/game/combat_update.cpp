@@ -42,7 +42,6 @@ constexpr int kStateWaiting = 4;
 constexpr int kStateActing = 5;       // the planned action runs
 constexpr int kStateChasing = 6;
 constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // CUnit flags_, cleared every update
-constexpr std::uint32_t kSpellNoTarget = 0x20000000;  // CSpell::targetFlags_
 constexpr int kCastEffectKind = 0x4A;                 // the cast's particle effect
 constexpr float kNoRange = 1e38f;   // 1e38: OrderPlan.rangeSq of no plan
 static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
@@ -123,8 +122,6 @@ int TotalDuration(const AnimationSteps& steps) {
     }
     return total;
 }
-
-constexpr std::uint32_t kSpellPeriodic = 0x20000;   // CSpell::targetFlags_
 
 } // namespace
 
@@ -516,7 +513,7 @@ bool CUnitServer::ActionInReach() {
         if (!cast) return false;
         CSpell* spell = SpellOfSource(action.source);
         if (!spell) return false;
-        if ((spell->targetFlags_ & kSpellNoTarget) == 0) return false;
+        if ((spell->targetFlags_ & SpellTargetFlag::AtPoint) == 0) return false;
         // Original bug kept: with no target this reads the target's vtable (null).
     } else if (target->IsDead() != 0) {
         if (kind != UnitOrderKind::Use) return false;
@@ -583,7 +580,7 @@ void CUnitServer::RefreshItemSpells() {
         CItem* item = *node;
         ++node;
         if (item) spell = item->spell_;
-        if (!spell || (spell->targetFlags_ & kSpellPeriodic) == 0) continue;
+        if (!spell || (spell->targetFlags_ & SpellTargetFlag::ItemContinuous) == 0) continue;
         ArmourSpell* found = nullptr;
         for (ArmourSpell& entry : armourSpells) {
             if (entry.worn == 0 && entry.item == item) {

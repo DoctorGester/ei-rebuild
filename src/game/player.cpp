@@ -172,7 +172,7 @@ void CPlayer::ForgetKnownObjects() {
     ReleaseEach(knownObjects_);
     maxObjectId_ = 0;
     if (connection_ != nullptr) connection_->ForgetSentObjects();
-    dirty_ = 0xFFFFFFFFu;
+    dirty_ = kPlayerDirtyAll;
 }
 
 bool CPlayer::IsLeader(const CEngineObject* unit) {

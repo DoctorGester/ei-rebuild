@@ -19,7 +19,6 @@ namespace {
 constexpr int kStandby = 1;                                     // CUnit::fightAtWill: may fight
 constexpr int kAttackHow = 6;
 constexpr int kDirectControl = 2;                               // CPlayerServer::refreshPending_
-constexpr std::uint32_t kChoosingFlag = 0x4000000;              // CEngineObject::flags_ while choosing
 constexpr float kReachScale = 1.1f;
 static_assert(std::bit_cast<std::uint32_t>(kReachScale) == 0x3F8CCCCDu);
 constexpr float kMovingSlack = 2.0f;
@@ -116,9 +115,9 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         node = next;
     }
     AddPartyTargets(brain, &candidates);
-    unit->flags_ |= kChoosingFlag;
+    unit->flags_ |= MapObjectFlag::ChoosingTarget;
     brain->ChooseTarget(&best, &candidates, &unit->localPosition_, 0, 0);
-    unit->flags_ &= ~kChoosingFlag;
+    unit->flags_ &= ~MapObjectFlag::ChoosingTarget;
 
     CUnit* chosen = best.object;
     if (chosen) {

@@ -889,7 +889,7 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
         netlink::NetLink* connection = *node;
         CPlayer* player = players_->CreateSessionPlayer();
         player->Connect(connection);
-        player->dirty_ = 0xFFFFFFFFu;
+        player->dirty_ = kPlayerDirtyAll;
         player->sessionKind_ = sessionKind_;
         player->Server()->lastPosition_ = startPosition_;
         int id = player->playerId_;

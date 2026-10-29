@@ -523,7 +523,7 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
         UnitPrototypeRecord* prototype = g_unitDatabase->prototypes.FindByName(record->texts[5]);
         unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - g_unitDatabase->prototypes.records.data() : -1);
         unit->SetSecondPrototypeByName(record->texts[6]);
-        unit->flags_ |= 0x4000000;
+        unit->flags_ |= MapObjectFlag::Preview;
         if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
         CObject3DClientSpecific* figure = unit->Object3D()->ClientSpecific();
         figure->RegisterPartMaterials();

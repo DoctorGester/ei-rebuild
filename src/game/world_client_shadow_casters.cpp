@@ -28,7 +28,6 @@
 namespace {
 
 constexpr std::uint32_t kPartHidden = 0x80;             // CFigureMesh::flags_: not drawn
-constexpr std::uint32_t kFlagAlwaysDrawn = 0x400000;    // object->flags_: drawn in a spectator's view too
 constexpr std::uint32_t kBoundsValid = 1 | 2;           // CObject3D::boundsFlags
 constexpr double kNearSquared = 1e9;                    // parts farther from the object are not drawn
 constexpr float kLeastStrength = 0.5f;                  // as the map: units fading in cast from half
@@ -295,7 +294,7 @@ void HandOverOutsideCasters(CWorldClient* world) {
                 if (!object || !object->attached) continue;
                 const bool unit = object->GetClassId() == ClassId::Unit;
                 if (!(flags & (unit ? 0x80u : 0x40u))) continue;
-                if (unit && !allUnits && !(object->flags_ & kFlagAlwaysDrawn)) continue;
+                if (unit && !allUnits && !(object->flags_ & MapObjectFlag::InParty)) continue;
                 CObject3DClientSpecific* half = object->ClientSpecific();
                 const Matrix placement = Placement(object->localRotation_, object->localPosition_);
                 render::ShadowCasterSphere sphere{};

@@ -18,7 +18,7 @@ constexpr float kLumaGreen = 0.6f;
 constexpr float kLumaBlue = 0.1f;
 constexpr float kSplitDamage = 4.0f;
 
-// Prototype names of the races the target flags exclude (bits 2..5 of CSpell::targetFlags_).
+// Prototype names of the races the target flags exclude (SpellTargetFlag NoHumans .. NoMoli).
 constexpr const char* kHumanMale = "unhuma";
 constexpr const char* kHumanFemale = "unhufe";
 constexpr const char* kGoblin = "unmogo";         // provisional reading of the names
@@ -49,9 +49,9 @@ void CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
     speed_ = prototype->speed;
     range_ = prototype->range;
     if (prototype->targetKind == 'u') {
-        targetFlags_ = 0x10000000;
+        targetFlags_ = lib::Bits(SpellTargetFlag::AtUnits);
     } else if (prototype->targetKind == 't') {
-        targetFlags_ = 0x20000000;
+        targetFlags_ = lib::Bits(SpellTargetFlag::AtPoint);
     }
     targetCount_ = prototype->targetCount;
     manaCost_ = prototype->mana;
@@ -122,7 +122,7 @@ bool CSpell::IsOffensive() {
 // Site #0 of FixSpellSelfCasting; site #1 is in CBattleScreen::SelectUnit.
 
 bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
-    std::uint32_t flags = targetFlags_ & 0xFFFF;
+    std::uint32_t flags = targetFlags_ & kSpellTargetRestrictions;
     if (flags == 0) return true;
     if (!target || target->GetClassId() != ClassId::Unit) return false;
 
@@ -131,15 +131,15 @@ bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
     if (caster) {
         const CUnit* source = caster;
         bool hostile = Regards(source, unit) || Regards(unit, source);
-        if ((flags & 1) && hostile) return false;     // friends only
-        if ((flags & 2) && !hostile) return false;    // enemies only
+        if ((flags & SpellTargetFlag::FriendsOnly) && hostile) return false;
+        if ((flags & SpellTargetFlag::EnemiesOnly) && !hostile) return false;
     }
 
     const std::string& name = unit->name;   // the prototype name, e.g. "unhuma"
-    if ((flags & 4) && (name == kHumanMale || name == kHumanFemale)) return false;
-    if ((flags & 8) && name == kGoblin) return false;
-    if ((flags & 0x10) && (name == kOrcMale || name == kOrcFemale)) return false;
-    if ((flags & 0x20) && name == kMoli) return false;
+    if ((flags & SpellTargetFlag::NoHumans) && (name == kHumanMale || name == kHumanFemale)) return false;
+    if ((flags & SpellTargetFlag::NoGoblins) && name == kGoblin) return false;
+    if ((flags & SpellTargetFlag::NoOrcs) && (name == kOrcMale || name == kOrcFemale)) return false;
+    if ((flags & SpellTargetFlag::NoMoli) && name == kMoli) return false;
     return true;
 }
 

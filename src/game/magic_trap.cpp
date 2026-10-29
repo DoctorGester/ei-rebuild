@@ -45,7 +45,6 @@ void Append(std::list<CUnit*>* list, CUnit* unit) {
     *node = unit;
 }
 
-constexpr std::uint32_t kSpellAtUnits = 0x10000000;  // targetFlags_: cast at the units
 constexpr float kFar = 1e30f;                        // a squared distance
 
 CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager(); }
@@ -139,7 +138,7 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
     Vector3 from = {origin.x, origin.y, origin.z};
     auto* world = ObjectWorld(this);
     from.z = static_cast<float>(world->RawSurfaceHeightAt(from.x, from.y) + from.z);
-    if (!(spell->targetFlags_ & kSpellAtUnits) && std::ssize(points) != 0) {
+    if (!(spell->targetFlags_ & SpellTargetFlag::AtUnits) && std::ssize(points) != 0) {
         for (int i = 0; i < std::ssize(points); ++i) {
             const TrapPoint& point = points[i];
             Vector3 at = {point.x, point.y, 0.0f};

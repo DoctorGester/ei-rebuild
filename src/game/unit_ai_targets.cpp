@@ -33,7 +33,6 @@ constexpr float kHealGroupBase = 2.0f;
 constexpr float kAllyNear2 = 49.0f;             // allies within 7 of an area target
 constexpr float kPathNear = 30.0f;
 constexpr int kNoHitsKnown = 20;
-constexpr std::uint32_t kSpellNoTarget = 0x20000000;   // CSpell::targetFlags_: aimed at no object
 constexpr int kRejectedReport = 0x14;
 constexpr float kNoScore = -1e30f;
 static_assert(std::bit_cast<std::uint32_t>(kNoScore) == 0xF149F2CAu);
@@ -105,7 +104,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
     // A spell aimed at no object cannot be cast on a large unit of size class 0.
     if (part >= 0) {
         CSpell* spell = self->GetSpellObject(part);
-        if (spell && (spell->targetFlags_ & kSpellNoTarget) && target->sizeClass == 0 &&
+        if (spell && (spell->targetFlags_ & SpellTargetFlag::AtPoint) && target->sizeClass == 0 &&
             PrototypeSize(target) >= 0.5f)
             return false;
     }

@@ -105,9 +105,8 @@ bool CMapObjectClientSpecific::RunTick() {
     for (int i = 0; i < std::ssize(sounds); ++i) {
         EffectSoundRecord* sound = &sounds[i];
         if (sound->kind == SpellType::Stench) {
-            std::uint32_t timer = sound->timer - 1;
-            sound->timer = timer;
-            if (!(timer & 0x80000000u)) continue;
+            --sound->timer;
+            if (static_cast<std::int32_t>(sound->timer) >= 0) continue;
             std::string name;
             std::uint32_t variant = g_random.Next() % 3 + 1;
             if (sound->kind == SpellType::Stench) {

@@ -61,7 +61,6 @@ int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
 
 constexpr std::uint8_t kMessageZone = 0x08;
 constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
-constexpr std::uint32_t kJoinedFlag = 0x10;               // CPlayer::dirty_
 
 // The unit list of the walk / attack orders: a count, then that many ids (missing units and units
 // flagged 0x800000 are left out).
@@ -396,7 +395,7 @@ int CPlayerServer::OnJoined() {
     CPlayer* player = player_;
     player->sessionKind_ = player->ServerWorld()->sessionKind_;
     g_serverWorld->Redeploy(player, &placements_, 1);
-    player->dirty_ |= kJoinedFlag;
+    player->dirty_ |= PlayerDirty::GameState;
     return 1;
 }
 

@@ -29,12 +29,12 @@ constexpr float kFullTurn = /*007AF330*/ 6.2831855f;   // a static initialiser: 
 } // namespace
 
 // Samples the motion at `time`, moves the unit there (on the ground, heightOffset above), snaps its facing
-// once when snapHeading is set, then turns it: at once with unit flag 0x10000000, else blended toward the
+// once when snapHeading is set, then turns it: at once with MapObjectFlag::NoCasting, else blended toward the
 // motion's direction with weight exp(-0.3 rate) on the old heading when `rate` > 0; finally animationSpeed
 // from the motion's speed and the figure's current animation.
 static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     CUnit* unit = self->unit;
-    if (unit->flags_ & 0x4000000) return;
+    if (unit->flags_ & MapObjectFlag::Preview) return;
     float toCells = 2.0f;
     Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
     position.x = toCells * position.x;
@@ -55,7 +55,7 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
         self->snapHeading = 0;
         unit->TurnUpTowards(direction, 0);
     }
-    if (unit->flags_ & 0x10000000) {
+    if (unit->flags_ & MapObjectFlag::NoCasting) {
         unit->TurnUpTowards(direction, 1);
     } else if (rate > 0.0f) {   // only above zero (NaN not)
         Vector3 axis;

@@ -194,8 +194,10 @@ files from CMappedResource::GetFile (reference counts only grow, twice as fast i
 
 ## Spells: rules and construction (scenario spells)
 
-- CanAffect target flags: 1 = not hostile units only, 2 = hostile only, 4 = not humans ("unhuma"/"unhufe"), 8 = not
-  "unmogo", 0x10 = not orcs ("unorma"/"unorfe"), 0x20 = not "unmoli".
+- CanAffect target flags (SpellTargetFlag in spell.h): 1 = not hostile units only, 2 = hostile only, 4 = not humans
+  ("unhuma"/"unhufe"), 8 = not "unmogo", 0x10 = not orcs ("unorma"/"unorfe"), 0x20 = not "unmoli" (modifiers "ff", "fe",
+  "fh", "fg", "fo", "fl"); 0x10000 / 0x20000 the cast-flag modifiers "it" (an item casts it on a hit) / "ic" (an item's
+  lasting spell); 0x10000000 / 0x20000000 the prototype's target kind 'u' / 't'.
 - Damage types (`DamageInfo`, filled by `CSpellEffect::GetDamage` 00683950 and the weapon code 0054F630): spells
   0/3/6/0x27/0x28 deal type 3, 1/4/7/0x29 type 5, 2/5/8 type 4; a hit on several targets scales amount and multiplier by 4/n.
 - Verification: `GetPrototype`, `GetModifierCount`, `GetDamageType` 0068B700, `IsOffensive` 0068B770 (AL), `HasCastFlagModifier`

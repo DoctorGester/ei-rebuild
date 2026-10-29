@@ -80,13 +80,13 @@ int CWorldServer::LoadMap(std::string_view map, std::string_view mob, CStream* g
 
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
-        player->dirty_ = 0xFFFFFFFFu;
+        player->dirty_ = kPlayerDirtyAll;
     if (it.manager) --it.manager->refCount_;
     zoneLoaded_ = 1;
     weather_ = 0;
     weatherStrength_ = 0.0f;
     it.manager = nullptr;
-    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) player->dirty_ |= 2;
+    for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) player->dirty_ |= PlayerDirty::Weather;
     if (it.manager) {
         --it.manager->refCount_;
         it.manager = nullptr;

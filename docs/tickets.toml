@@ -5631,3 +5631,10 @@ model = "opus"
 depends = ["C54a"]
 files = ["src/game/ui_window*.cpp src/game/ui_container*.cpp src/game/ui_font.cpp src/game/ui_text_draw.cpp src/game/ui_mesh_*.cpp src/game/ui_surface_*.cpp src/game/ui_cursor*.* src/game/ui_small_members.cpp src/game/ui_interface*.cpp src/game/ui_layouts.cpp src/game/ui_scroll*.cpp src/game/ui_widescreen.cpp"]
 note = "C54 follow-up. G11: g_interface (ui_small_members.cpp: StaticObject, CInterface3D::Construct, atexit DestroyInterface), g_cursor (ui_cursor_setup.cpp: StaticObject, CCursor::Construct, atexit), CUiWindow's ClearFields (ui_window.cpp) -> real constructors (C50 recipe). C51b's ui part: CUiWindow::Create's UiObjectCreate helper folded. G10: ui_window.cpp BOOL (6, ContainsPoint), ui_container. G12: ui_text_draw / ui_font out-params. G14: ui_scrolling_surface, ui_console_window, ui_input_defaults forwarders. G15: ui_layouts' unused parameters, ui_interface_frame. Goldens unchanged + ei_ui_check; leave src/render/render_ui* to R30."
+
+[[ticket]]
+id = "C45d7a"
+title = "Magic numbers: the interface's copies of the unit and spell bits"
+group = "cleanup"
+depends = ["C54a"]
+note = "C45d7 named MapObjectFlag InParty (0x400000) / Preview (0x4000000) / HelmetHidden (0x40000000), SpellTargetFlag (spell.h), UnitStatsFlag (unit.h), PlayerDirty (player_messages.h) outside src/game/ui_*. Left in the interface (C54a was running there): ui_battle_hover.cpp kFlagShowInPanel, ui_battle_update.cpp:338, ui_flying_hit_points.cpp kUnitPickable (all InParty), ui_model.cpp kPreviewObject (Preview), ui_hud_pick.cpp kSpellOnUnit, ui_hud_tips.cpp:129, ui_item_info.cpp:709 (SpellTargetFlag::AtUnits). Also CUnit::SetFlag40000000Off (its callers are ui_briefing_*): a name from HelmetHidden, e.g. ShowHelmet(bool) (a rename: coordinate with C51). Goldens unchanged."

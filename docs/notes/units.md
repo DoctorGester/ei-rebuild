@@ -121,8 +121,8 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   orientation +0x34 (read: world slots 41 / 51), 3 effects (count byte, then per 0x14-byte effect bytes +0, +1, word +4,
   byte +0x10; read: CArray::SetSize, then the companion +0x170's slot 13 with `first == 0` unless a unit). Units add 4 stats
   block +0x330 (read: stat fractions before / after give controller slot 46 per changed stat, slot 31 when any changed, a
-  hit point drop or flag 0x10 in +0x437 gives the companion's slot 16 with `_ftol(lost * max)`), 5 the 11 equipment ids
-  (weapon -1 with flag 0x40000000; writing refreshes a class 0x3E controller, slot 29), 6 +0x264 / +0x268 / +0x26C (+0x270
+  hit point drop or flag 0x10 (UnitStatsFlag::Struck) in +0x437 gives the companion's slot 16 with `_ftol(lost * max)`), 5 the 11 equipment ids
+  (armour slot 0, the helmet, -1 with flag 0x40000000, MapObjectFlag::HelmetHidden; writing refreshes a class 0x3E controller, slot 29), 6 +0x264 / +0x268 / +0x26C (+0x270
   = +0x26C, slot 25 on a change), 7 packed bits of +0x25C / +0x260 / +0x274 / +0x278, 8 +0x254, +0x255, +0x258, +0x256, 9
   the CString +0x238, 10 path (005C7DB0 / 005C7FC0) and motion speeds, 11 masks, +0x250, player id, 12 +0x4C8, 13 +0x438,
   then re-equip (slots 32 / 33) and refresh (25, 29). The field 3 count is one byte read into a word. The wrapper compares

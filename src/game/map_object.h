@@ -72,12 +72,20 @@ enum class MapObjectFlag : std::uint32_t {
     Disabled = 0x80000,         // levers
     ArmedFresh = 0x100000,      // traps: armed since the last update
     LootTaken = 0x100000,       // units: the loot was collected
+    InParty = 0x400000,         // client units: in the local player's party (CPlayerClient::OnPartyState): their
+                                // hits show their number, their footprints and attached particle sources show, the
+                                // views that draw only the party draw them
     Blocked = 0x800000,         // units: BlockUnit; also set while the unit speaks
     Frozen = 0x1000000,         // units: no updates of orders and animation
     SeeAll = 0x2000000,         // units: sees every unit once
+    ChoosingTarget = 0x4000000, // server units: while a player's unit chooses its target (ScaledValue caps the range)
+    Preview = 0x4000000,        // client units: an interface figure (CreatePartyUnits, CUiModel), not moved along
+                                // its path
     Planned = 0x8000000,        // units: set on the target while a cast is planned
-    NoCasting = 0x10000000,     // units: no spells
+    NoCasting = 0x10000000,     // units: no spells; the client turns such a unit at once along its path
     Shared = 0x20000000,        // on the world's shared list (a shared loot record or unit)
+    HelmetHidden = 0x40000000,  // units: the helmet (armour slot 0) is sent as none (the briefing's leader while
+                                // speaking)
 };
 template <> inline constexpr bool lib::kBitFlags<MapObjectFlag> = true;
 
@@ -295,8 +303,8 @@ public:
     virtual void EffectsChanged(bool) {}
     virtual void Unused14() {}       // empty in both
     virtual int Query(int first, int second);   // (0) in both
-    // A hit of `damage` with the hit-kind bits `kind` (1, 2, 4). Server: empty; client: for a living,
-    // visible-flag (0x400000) object, a message with the object's id.
+    // A hit of `damage` with the hit-kind bits `kind` (UnitStatsFlag Backstab, Head, Electrical). Server: empty;
+    // client: for a living MapObjectFlag::InParty object, a message with the object's id.
     virtual void Hit(int, int) {}
     // Whether the object is dead (server: hit points rounded to 16 bits <= 0; client: the unit's hit points
     // <= 0).

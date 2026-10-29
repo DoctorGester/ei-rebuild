@@ -69,11 +69,10 @@ constexpr int kViewNoAttackSounds = 3;       // the local view player's sessionK
 constexpr double kMinAxisLength = 0.0001;
 constexpr float kCrawlPrintScale = 0.5f;
 constexpr float kWalkPrintScale = 0.75f;
-constexpr std::uint32_t kFlagPrintsShown = 0x400000;   // the unit's flags_
 constexpr int kStepFrames = 4;
 constexpr int kMaxFootPart = 9;
 
-// Footprints show for every unit (else only for units with flags_ 0x400000).
+// Footprints show for every unit (else only for MapObjectFlag::InParty units).
 bool AllFootprintsShown() { return options::g_options->drawVisibleOnly_ == 0; }
 
 // The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; the
@@ -274,7 +273,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (facing.x < 0.0f) turn = -turn;
         float sizeY = foot->box_.bounds.boxMax.y;
         float sizeX = foot->box_.bounds.boxMax.x;
-        int shown = AllFootprintsShown() || (unit->flags_ & kFlagPrintsShown) ? 1 : 0;
+        int shown = AllFootprintsShown() || (unit->flags_ & MapObjectFlag::InParty) ? 1 : 0;
         // The prototype's conspicuity[0] is the footprint scale (read unchecked: a unit without a prototype
         // faults here).
         float scale = prototype->conspicuity[0];

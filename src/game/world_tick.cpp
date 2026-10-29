@@ -60,7 +60,7 @@ void CWorldServer::Tick(char force) {
 
     aiMap_.events.Advance(tick_);
     // Every countdown counted down; true while one still runs.
-    if (countdowns_.Tick()) MarkPlayersDirty(0x20);
+    if (countdowns_.Tick()) MarkPlayersDirty(lib::Bits(PlayerDirty::Countdowns));
 
     // Missiles: those whose Update returns 0 are unlinked and freed.
     auto& missiles = projectiles_;

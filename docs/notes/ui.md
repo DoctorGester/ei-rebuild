@@ -1060,7 +1060,7 @@ phrases at once (StartPhrases), else state 2.
 ### CBriefingScreen::FinishDialogue
 
 The dialogue ends (the rewards taken, or skipped): the voice stops, the music fades in, the shown items go,
-every speaker leaves (the server hears event 2, its blink stops, its server unit's flag 0x40000000 back,
+every speaker leaves (the server hears event 2, its blink stops, its server unit's flag 0x40000000 (HelmetHidden) back,
 height 0, action dropped) and the list is emptied; the leader and the person back to height 0, the third
 speaker walks back to thirdPlace_ (and is forgotten), with noWalk_ the person to personHome_. The first
 "b.*.<topic>" variable (three parts) completes (for player 0). State 0, the server hears event 0 with the
@@ -1070,7 +1070,7 @@ frees it, otherwise it goes back to savedCamera_ / lookAt_.
 ### CBriefingScreen::ShowItem
 
 "#show <name>": a person `name` joins the speakers (moved to the end; the server hears event 1; the leader's
-server unit gets flag 0x40000000; its controller's actionDone the speakers' callback). Anything else with
+server unit gets flag 0x40000000 (HelmetHidden: no helmet shown); its controller's actionDone the speakers' callback). Anything else with
 `index` >= 0 is a loot item ("_" read as " ", lowercased, the loot table's name index): an item of that name
 shown already goes, then slot `index` % 7 (x 300, 500, 200, 400, 600, 75, 725; y 300 or 500) gets a backdrop
 and frame for the first seven, the item's figure "initqu<n>item" (tinted from index 8) with its image

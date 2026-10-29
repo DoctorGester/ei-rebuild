@@ -57,14 +57,14 @@ void CWorld::SetWind(const Vector3* direction, float strength) {
 void CWorldServer::SetTime(float hours) {
     if (KeepsPlayerTimes(sessionKind_)) UpdatePlayerTimes(0.0f);
     CWorld::SetTime(hours);
-    MarkPlayersDirty(4);
+    MarkPlayersDirty(lib::Bits(PlayerDirty::Time));
     UpdateWeather();
 }
 
 void CWorldServer::SetTimeSpeed(float speed) {
     if (KeepsPlayerTimes(sessionKind_)) UpdatePlayerTimes(0.0f);
     CWorld::SetTimeSpeed(speed);
-    MarkPlayersDirty(4);
+    MarkPlayersDirty(lib::Bits(PlayerDirty::Time));
     UpdateWeather();
 }
 
@@ -73,5 +73,5 @@ void CWorldServer::ChangeWind(const Vector3* direction, float strength) {
     float clamped = strength >= 0.0f ? strength : 0.0f;
     if (1.0f < clamped) clamped = 1.0f;
     SetWind(direction, clamped);
-    MarkPlayersDirty(8);
+    MarkPlayersDirty(lib::Bits(PlayerDirty::Wind));
 }

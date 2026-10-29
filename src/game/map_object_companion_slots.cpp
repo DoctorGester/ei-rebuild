@@ -9,7 +9,6 @@
 namespace {
 constexpr const char* kClientClassName = "CMapObjectClientSpecific";
 constexpr const char* kServerClassName = "CMapObjectServer";
-constexpr std::uint32_t kShowsNumbers = 0x400000;   // CMapObject::flags_: hits show their number
 
 } // namespace
 
@@ -29,7 +28,7 @@ int CMapObjectCompanion::Query(int, int) { return 0; }
 
 void CMapObjectClientSpecific::Hit(int damage, int kind) {
     if (owner->IsDead() != 0) return;
-    if (!(owner->flags_ & kShowsNumbers)) return;
+    if (!(owner->flags_ & MapObjectFlag::InParty)) return;
     ClientWorld()->ShowNumber(owner->id_, damage, kind);
 }
 

@@ -175,7 +175,6 @@ constexpr HandlerEntry<CPlayerClient> kClientHandlers[] = {
     {0x83, &CPlayerClient::OnPartyUpdate},
 };
 
-constexpr std::uint32_t kUnitInClientParty = 0x400000;
 constexpr int kSessionKindSingle = 1;
 
 std::unordered_set<int> g_partyIdSet;
@@ -679,7 +678,7 @@ int CPlayerClient::OnPartyState() {
     for (int i = 0; i < std::ssize(partyUnitIds_); ++i) {
         g_partyIdSet.insert(partyUnitIds_[i]);
         CUnit* unit = player->WorldContext()->FindUnit(partyUnitIds_[i]);
-        if (unit != nullptr) unit->flags_ &= ~kUnitInClientParty;
+        if (unit != nullptr) unit->flags_ &= ~MapObjectFlag::InParty;
     }
 
     std::uint8_t paused;
@@ -694,7 +693,7 @@ int CPlayerClient::OnPartyState() {
         partyUnitIds_[i] = id;
         auto* unit = player->WorldContext()->FindUnit(id);
         if (unit == nullptr) continue;
-        unit->flags_ |= kUnitInClientParty;
+        unit->flags_ |= MapObjectFlag::InParty;
         if (!g_partyIdSet.contains(id) && player->sessionKind_ == kSessionKindSingle && unit->player == nullptr &&
             g_clientWorld->ticksRun_ >= 1)
             unit->Controller()->RestartFadeIn();

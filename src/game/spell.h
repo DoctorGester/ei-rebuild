@@ -12,6 +12,7 @@
 #include "maths.h"
 #include "resource_manager.h"
 
+#include "lib/bit_flags.h"
 #include "lib/static_object.h"
 
 #include <list>
@@ -78,6 +79,26 @@ enum class SpellType : int {
     CurseMagic = 0x29,              // "curse_magic", school lightning: lightning (CreateLightning's flag 1)
 };
 
+// The bits of CSpell::targetFlags_ (saved as the number). The low 16 bits restrict the targets (CanAffect; the
+// modifiers "f?" set them; a spell with none and one target is a single missile); "it" / "ic" (the cast-flag
+// modifiers, HasCastFlagModifier) say when an item casts it; the prototype's targetKind sets the aim. The races
+// are the unit prototypes' names (spell.cpp; the goblin's reading is provisional).
+enum class SpellTargetFlag : std::uint32_t {
+    FriendsOnly = 0x1,          // "ff": not at a unit either side regards as hostile
+    EnemiesOnly = 0x2,          // "fe"
+    NoHumans = 0x4,             // "fh": not at "unhuma" / "unhufe"
+    NoGoblins = 0x8,            // "fg": not at "unmogo"
+    NoOrcs = 0x10,              // "fo": not at "unorma" / "unorfe"
+    NoMoli = 0x20,              // "fl": not at "unmoli"
+    ItemTriggered = 0x10000,    // "it": a weapon casts it at what it hits, armour at its wearer when hit (healing:
+                                // when not)
+    ItemContinuous = 0x20000,   // "ic": an item's lasting spell while it is worn (CUnitServer::RefreshItemSpells)
+    AtUnits = 0x10000000,       // targetKind 'u'
+    AtPoint = 0x20000000,       // targetKind 't': aimed at a point; the missile flies at no object
+};
+template <> inline constexpr bool lib::kBitFlags<SpellTargetFlag> = true;
+inline constexpr std::uint32_t kSpellTargetRestrictions = 0xFFFF;   // the low 16 bits
+
 // A spell instance ("CSpell", class id 0x4F). prototypeId_ of CEngineObject is the packed id: spell
 // prototype index << 16.
 class CSpell : public CEngineObject {
@@ -137,7 +158,7 @@ public:
     float speed_;                   // missile speed
     float range_;
     std::uint32_t targetCount_;
-    std::uint32_t targetFlags_;     // low 16 bits: target restrictions (see CanAffect)
+    std::uint32_t targetFlags_;     // SpellTargetFlag bits
     float manaCost_;
     std::uint32_t complexity_;      // +1 per modifier
     float price_;

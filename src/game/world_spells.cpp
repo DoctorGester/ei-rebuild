@@ -20,8 +20,6 @@
 namespace {
 
 constexpr int kKindSinglePlayer = 1;
-constexpr std::uint32_t kSpellAreaFlag = 0x20000000;     // targetFlags_: also hits the target itself
-constexpr std::uint32_t kSpellNoTargetFlag = 0x20000;
 constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 
 // Whether the spell type turns the target against the caster.
@@ -42,7 +40,7 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
     const Vector3* aim = target ? &target->localPosition_ : to;
     Vector3 end;
     end = *aim;
-    if (spell->targetFlags_ & kSpellAreaFlag) target = nullptr;
+    if (spell->targetFlags_ & SpellTargetFlag::AtPoint) target = nullptr;
     end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + 0.3f);
     if (caster) from = caster->localPosition_;
 
@@ -73,7 +71,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
     if (type == SpellType::Possession || type == SpellType::Link || type == SpellType::Charm) return;
     std::uint32_t flags = spell->targetFlags_;
     int targets = static_cast<int>(spell->targetCount_);
-    if (!(flags & 0xFFFF) && targets <= 1) {
+    if (!(flags & kSpellTargetRestrictions) && targets <= 1) {
         CreateMissile(spell, caster, *from, target, to, extra);
         return;
     }
@@ -84,7 +82,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
     if (caster) {
         if (CPlayer* owner = caster->player) heroes = owner->Server();
     }
-    if ((flags & kSpellAreaFlag) && !(flags & kSpellNoTargetFlag)) {
+    if ((flags & SpellTargetFlag::AtPoint) && !(flags & SpellTargetFlag::ItemContinuous)) {
         --targets;
         CreateMissile(spell, caster, *from, target, to, extra);
     }

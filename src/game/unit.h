@@ -26,6 +26,17 @@ class CLight;
 class CParty;
 class CPlayer;
 struct UnitStats;
+
+// The bits of UnitStats::flags; UnitParams::flags sends the low byte to the clients, whose net state shows a
+// hit's number by the first three (CMapObjectCompanion::Hit's kind) and skips StatChanged's effects by Alive.
+enum class UnitStatsFlag : std::uint32_t {
+    Backstab = 0x1,             // the hit's backstab factor was not 1 (DamageSlot)
+    Head = 0x2,                 // a hit at the head, location 0 (ApplyHit)
+    Electrical = 0x4,           // a hit with electrical damage (ApplyHit); the client's sparks (Wound)
+    Alive = 0x8,                // RecomputeHitPoints left hit points
+    Struck = 0x10,              // the defence failed against a hit (CUnitServer); the client shows the hit
+};
+template <> inline constexpr bool lib::kBitFlags<UnitStatsFlag> = true;
 struct UnitParams;
 struct UnitPrototypeRecord;
 struct UnitModelRecord;
@@ -91,7 +102,7 @@ struct UnitParams {
     std::uint8_t attributes[3];
     std::uint8_t skills[8];
     std::uint8_t skillLevels[0x24];
-    std::uint8_t flags;             // (UnitStats::flags, low byte)
+    std::uint8_t flags;             // UnitStatsFlag bits (UnitStats::flags, low byte)
 
     // The sight range at `daylight` (0 night .. 1 day):
     // perception[0] x ((1 - daylight) + perception[1] x daylight x 0.01). Unrounded.
@@ -170,7 +181,7 @@ public:
     virtual void Resettle() {}
     virtual void UpdateMoveFactors() {}
     // A body part's condition changed by `change` (a fraction of its maximum) for stat `stat` (0..5); `flags`
-    // is the unit's Params->flags byte (bit 3 skips it). The client shows text and a particle effect.
+    // is the unit's Params->flags byte (UnitStatsFlag::Alive skips it). The client shows text and a particle effect.
     virtual void StatChanged(int, float, std::uint32_t) {}
     // The hit had the wound flag.
     virtual void Wound() {}
@@ -241,7 +252,7 @@ public:
     void SetPathTimeShift(int shift);
     // Marks part 6.
     void SetMoveModes(int mode, int mode2);
-    // Clears (on) or sets (off) flags_ bit 0x40000000; marks part 5.
+    // Clears (on) or sets (off) MapObjectFlag::HelmetHidden; marks part 5.
     void SetFlag40000000Off(bool on);
     // Sets (stunned) or clears flags_ bit 0x1000000. Returns the new flags.
     std::uint32_t SetStunned(int on) override;
@@ -259,7 +270,8 @@ public:
     double MoveSpeed2();
     // The speed of movement mode `mode` (0..4; other values: the base speed).
     double MoveSpeedFor(int mode);
-    // 3 * value + 10 for units without a player (value capped at 10 when flags_ has 0x4000000), else 1000000.
+    // 3 * value + 10 for units without a player and (value capped at 10) while MapObjectFlag::ChoosingTarget is
+    // set, else 1000000.
     double ScaledValue(float value);
 
     // BaseSpeed scaled by the movement mode: x0.2 when standing or inactive, x0.7 in mode 1.
@@ -597,7 +609,7 @@ struct UnitStats {
     // Recomputes the current values from the bases, the skill levels, the unit's effects, the carried weight and the
     // slots; writes the maxima and hit points into `vitals`.
     void Recompute(UnitVitals* vitals, CUnit* unit);
-    // Only the hit point maximum and the hit points (and flag 8 when alive).
+    // Only the hit point maximum and the hit points (and UnitStatsFlag::Alive when they are above 0).
     void RecomputeHitPoints(UnitVitals* vitals, CUnit* unit);
     // Heals the working-or-disabled slots below their maximum by `amount`, spread by their factors over `scale` (the
     // unit's maximum); a slot back above 0.001 works again.
@@ -646,7 +658,7 @@ struct UnitStats {
     bool RaiseIntelligence(int amount, CUnit* unit);
     double SkillLevelValueCopy(int skill);
 
-    // Applies `hit` (from `weapon`'s attack, may be null): flags 2 (head) / 4, the
+    // Applies `hit` (from `weapon`'s attack, may be null): UnitStatsFlag Head / Electrical, the
     // vitals' protection (scaled by the difficulty for units without a player), wear of the
     // weapon, then the hit location's slot (DamageSlot) or, for location 6, every slot by its
     // share. Returns whether a slot took damage (0 when nothing passed the protection).
@@ -754,8 +766,7 @@ struct UnitStats {
     std::uint8_t attributes[3];
     std::uint8_t skills[8];
     std::uint8_t skillLevels[0x25]; // 1-based level per skill, 0 none
-    std::uint32_t flags;            // 1 multiplied hit, 2 hit at the head, 4, 8 alive
-                                    //        after a recomputation, 0x10 hit landed (combat)
+    std::uint32_t flags;            // UnitStatsFlag bits; RepackStats clears them
     float fixedMaxHitPoints;        // the maximum of units without a text key
     float pendingExperience;
 };
@@ -914,7 +925,7 @@ struct EffectSoundRecord {
     SpellType kind{};           // the effect type
     int spareHandle = -1;       // nothing reads it
     int handle = -1;            // feeble mind's sound sequence, -1 none
-    std::uint32_t timer = 0;    // ticks to the next stench sound
+    std::uint32_t timer = 0;    // ticks to the next stench sound (it plays when the count runs below 0)
     std::uint8_t present = 0;   // set while the effect list is compared
 };
 
@@ -935,7 +946,7 @@ public:
 
     bool IsDead() override;
     bool IsOverkilled() override;
-    // A hit of `damage` with the hit-kind bits `kind` on a living object flagged 0x400000 shows its number
+    // A hit of `damage` with the hit-kind bits `kind` on a living MapObjectFlag::InParty object shows its number
     // over it.
     void Hit(int damage, int kind) override;
 

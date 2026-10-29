@@ -276,7 +276,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
     {
         PlayerIterator it;
         for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
-            player->dirty_ = 0xFFFFFFFFu;
+            player->dirty_ = kPlayerDirtyAll;
     }
 
     stream->Read(windDirection_, 12);

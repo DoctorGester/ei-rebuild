@@ -23,7 +23,6 @@
 #include <string>
 
 namespace {
-constexpr std::uint32_t kFlagNoEffect = 8;            // StatChanged's flags
 constexpr float kMinAmount = 0.0001f;
 constexpr int kNoArmourSlot = 7;
 constexpr std::uint32_t kNoMaterial = 0xFFFF;
@@ -129,7 +128,7 @@ std::uint8_t HitSoundKind(CUnit* unit) {
 } // namespace
 
 void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t flags) {
-    if (flags & kFlagNoEffect) return;
+    if (flags & UnitStatsFlag::Alive) return;
     EI_NAN_AUDIT(amount);
     if (amount <= kMinAmount) return;
     std::string material = ModelOf(unit)->hitMaterial;

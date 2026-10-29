@@ -128,7 +128,7 @@ void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
     }
 
     alarmSlot = static_cast<std::int8_t>(slot);
-    alwaysUpdated = static_cast<std::uint8_t>((record->flags >> 3) & 1);
+    alwaysUpdated = static_cast<std::uint8_t>(lib::Has(record->flags, BehaviourFlag::AlwaysUpdated));
     alarm = static_cast<std::int8_t>(record->alarmKind);
     alerted = 0;
     int delay = static_cast<int>(record->alarmDelay);

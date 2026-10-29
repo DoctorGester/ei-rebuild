@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include "lib/bit_flags.h"
 #include "lib/hash_map.h"
 
 #include <vector>
@@ -59,6 +60,17 @@ struct LeverSetup {
     std::uint8_t cycling;           // (chunk BBAC0004)
 };
 
+// The bits of mapspec::Behaviour::flags. Before format 0x53 (kVersionUnitAlarm) the reaction (Behaviour::alarm) was
+// a bit each; the first set one counts, none is 2 (the reactions: unit_ai_alarm.cpp's Reaction).
+enum class BehaviourFlag : std::uint32_t {
+    OldFight = 0x1,             // reaction 0
+    OldRevenge = 0x2,           // 1
+    OldWatch = 0x4,             // 2
+    AlwaysUpdated = 0x8,        // chunk BBBC000D: the unit is always updated
+    OldWatchFearful = 0x10,     // 3
+};
+template <> inline constexpr bool lib::kBitFlags<BehaviourFlag> = true;
+
 namespace mapspec {
 
 // A waypoint of a unit record's patrol.
@@ -84,7 +96,7 @@ struct Behaviour {
     std::vector<Patrol> patrols;
     Vector3 guard{};             // the unit's position when saved
     std::uint32_t loop = 1;      // a patrol loops; 0: its points are walked back too
-    std::uint32_t flags = 0;     // bit 3: the unit is always updated
+    std::uint32_t flags = 0;     // BehaviourFlag bits
     float guardRadius = 10.0f;
     float unreadChunk = -1.0f;   // chunk BBBC000A; only read and written with the record
     std::uint32_t alarmKind = 0; // the alarm raised when the countdown ends (low byte)

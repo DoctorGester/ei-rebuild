@@ -139,8 +139,8 @@ void BehaviourChunk::OnChunk() {
         break;
     }
     case 0xBBBC000D:
-        if (c.ReadByte() != 0) b->flags |= 8;
-        else b->flags &= ~8u;
+        if (c.ReadByte() != 0) b->flags |= BehaviourFlag::AlwaysUpdated;
+        else b->flags &= ~BehaviourFlag::AlwaysUpdated;
         break;
     case 0xBBBC000E: b->alarm = c.ReadByte(); break;
     case 0xBBBD0000: {
@@ -164,7 +164,7 @@ void BehaviourChunk::Write() {
     c.WriteFloat(0xBBBC000C, std::bit_cast<std::uint32_t>(b->callRadius));
     c.WriteByte(0xBBBC0002, static_cast<std::uint8_t>(b->loop));
     c.WriteByte(0xBBBC000E, static_cast<std::uint8_t>(b->alarm));
-    c.WriteByte(0xBBBC000D, static_cast<std::uint8_t>((b->flags >> 3) & 1));
+    c.WriteByte(0xBBBC000D, static_cast<std::uint8_t>(lib::Has(b->flags, BehaviourFlag::AlwaysUpdated)));
     c.WriteInt(0xBBBC0003, b->type);
     c.WriteFloat(0xBBBC0004, Bits(b->guardRadius));
     c.WriteFloat(0xBBBC000A, Bits(b->unreadChunk));
@@ -313,12 +313,11 @@ void Behaviour::Read(CStream* stream) {
         StreamRead(stream, &alarm, 4);
         return;
     }
-    std::uint32_t oldFlags = flags;
     alarm = 2;
-    if (oldFlags & 1) alarm = 0;
-    else if (oldFlags & 2) alarm = 1;
-    else if (oldFlags & 4) alarm = 2;
-    else if (oldFlags & 0x10) alarm = 3;
+    if (flags & BehaviourFlag::OldFight) alarm = 0;
+    else if (flags & BehaviourFlag::OldRevenge) alarm = 1;
+    else if (flags & BehaviourFlag::OldWatch) alarm = 2;
+    else if (flags & BehaviourFlag::OldWatchFearful) alarm = 3;
 }
 
 // The record to a stream (the same fields).

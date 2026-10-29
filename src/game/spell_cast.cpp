@@ -106,9 +106,9 @@ void CSpellContainer::Build() {
     spell->speed_ = proto->speed;
     spell->range_ = proto->range;
     if (proto->targetKind == 'u') {
-        spell->targetFlags_ = 0x10000000;
+        spell->targetFlags_ = lib::Bits(SpellTargetFlag::AtUnits);
     } else if (proto->targetKind == 't') {
-        spell->targetFlags_ = 0x20000000;
+        spell->targetFlags_ = lib::Bits(SpellTargetFlag::AtPoint);
     }
     spell->targetCount_ = proto->targetCount;
     spell->manaCost_ = proto->mana;
@@ -146,18 +146,18 @@ void CSpellContainer::Build() {
             break;
         case 'f':   // target restrictions
             switch (Letter(modifier, 1)) {
-            case 'e': spell->targetFlags_ |= 2; break;
-            case 'f': spell->targetFlags_ |= 1; break;
-            case 'g': spell->targetFlags_ |= 8; break;
-            case 'h': spell->targetFlags_ |= 4; break;
-            case 'l': spell->targetFlags_ |= 0x20; break;
-            case 'o': spell->targetFlags_ |= 0x10; break;
+            case 'e': spell->targetFlags_ |= SpellTargetFlag::EnemiesOnly; break;
+            case 'f': spell->targetFlags_ |= SpellTargetFlag::FriendsOnly; break;
+            case 'g': spell->targetFlags_ |= SpellTargetFlag::NoGoblins; break;
+            case 'h': spell->targetFlags_ |= SpellTargetFlag::NoHumans; break;
+            case 'l': spell->targetFlags_ |= SpellTargetFlag::NoMoli; break;
+            case 'o': spell->targetFlags_ |= SpellTargetFlag::NoOrcs; break;
             default: break;
             }
             break;
         case 'i':   // cast flags
-            if (Letter(modifier, 1) == 'c') spell->targetFlags_ |= 0x20000;
-            else if (Letter(modifier, 1) == 't') spell->targetFlags_ |= 0x10000;
+            if (Letter(modifier, 1) == 'c') spell->targetFlags_ |= SpellTargetFlag::ItemContinuous;
+            else if (Letter(modifier, 1) == 't') spell->targetFlags_ |= SpellTargetFlag::ItemTriggered;
             break;
         case 'm':   // mana
             AddScaledPositive(spell->manaCost_, strength, prototype_->mana);

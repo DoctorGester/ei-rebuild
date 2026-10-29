@@ -24,7 +24,6 @@ namespace {
 
 constexpr std::uint32_t kFlagVisible = 0x20;
 constexpr std::uint32_t kFlagTouchModel = 0x200;
-constexpr std::uint32_t kFlagAlwaysDrawn = 0x400000;
 
 // The scene's transform pipeline: the picking stack, the clip stack an object's matrix is pushed on to classify it,
 // and the view stack.
@@ -156,7 +155,7 @@ int CWorldClient::CollectVisible(std::list<HeldRef<CMapObject>>* list, const Mat
                     process = false;
                 } else if (animateUnits) {
                     object->AdvanceTime(animTime);
-                    if (!drawAllUnits && !(object->flags_ & kFlagAlwaysDrawn)) process = false;
+                    if (!drawAllUnits && !(object->flags_ & MapObjectFlag::InParty)) process = false;
                 } else {
                     // First pass: units wait on the deferred list (which holds a reference).
                     g_deferredUnits.emplace_back(object);

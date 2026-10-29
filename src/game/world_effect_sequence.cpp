@@ -19,14 +19,14 @@ namespace {
 std::uint32_t NextRandom() { return g_random.Next(); }
 
 // The choosers: called with the previous index and the number of sounds
-// started so far; bit 30 of the result loops the sound. Without a first name any of the n names is
+// started so far; kSequenceLoop in the result loops the sound. Without a first name any of the n names is
 // picked; with one, the first call plays it (index 0) and later calls pick among the n after it.
-int LoopFirst(int, int) { return 0x40000000; }
+int LoopFirst(int, int) { return kSequenceLoop; }
 int AnyOf2(int, int) { return static_cast<int>(NextRandom() & 1); }
 int AnyOf3(int, int) { return static_cast<int>(NextRandom() % 3); }
 int AnyOf4(int, int) { return static_cast<int>(NextRandom() & 3); }
 int AnyOf5(int, int) { return static_cast<int>(NextRandom() % 5); }
-int FirstThenLoop1(int, int played) { return played != 0 ? 0x40000001 : 0; }
+int FirstThenLoop1(int, int played) { return played != 0 ? kSequenceLoop | 1 : 0; }
 int FirstThenOf2(int, int played) { return played != 0 ? static_cast<int>(NextRandom() & 1) + 1 : 0; }
 int FirstThenOf3(int, int played) { return played != 0 ? static_cast<int>(NextRandom() % 3) + 1 : 0; }
 int FirstThenOf4(int, int played) { return played != 0 ? static_cast<int>(NextRandom() & 3) + 1 : 0; }

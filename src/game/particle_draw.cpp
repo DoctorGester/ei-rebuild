@@ -2,6 +2,7 @@
 // into an array, which is sorted far-to-near with the game's sort (lib/intro_sort.h: sources at the same depth
 // keep its order) and drawn in that order. Names are provisional.
 #include "effects.h"
+#include "map_object.h"
 #include "map_object_figures.h"
 
 #include "engine_object.h"
@@ -24,11 +25,11 @@ std::vector<ParticleDepth> g_drawOrder;
 // The camera's orientation.
 const Quaternion& CameraRotation() { return g_camera->localRotation_; }
 
-// A source attached to a unit (class 0x50) is drawn only while the unit has flag 0x400000.
+// A source attached to a unit (class 0x50) is drawn only while the unit has MapObjectFlag::InParty.
 bool AttachedToHiddenUnit(const CParticleSource* s) {
     CEngineObject* object = s->attachedTo;
     if (!object) return false;
-    return object->GetClassId() == ClassId::Unit && !(object->flags_ & 0x400000);
+    return object->GetClassId() == ClassId::Unit && !(object->flags_ & MapObjectFlag::InParty);
 }
 
 } // namespace

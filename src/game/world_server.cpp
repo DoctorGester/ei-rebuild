@@ -120,7 +120,7 @@ void CWorldServer::SetClimate(int value) {
     if (weather_ != 0) {
         weather_ = 0;
         weatherStrength_ = 20.0f;
-        MarkPlayersDirty(2);
+        MarkPlayersDirty(lib::Bits(PlayerDirty::Weather));
     }
     climate_ = value;
 }
@@ -128,7 +128,7 @@ void CWorldServer::SetClimate(int value) {
 void CWorldServer::SetWeather(int weather, float strength) {
     weather_ = weather;
     weatherStrength_ = strength;
-    MarkPlayersDirty(2);
+    MarkPlayersDirty(lib::Bits(PlayerDirty::Weather));
 }
 
 void CWorld::SetPaused(std::uint8_t value) { paused_ = value; }

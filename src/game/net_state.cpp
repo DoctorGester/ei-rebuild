@@ -90,7 +90,7 @@ void CUnit::WriteNetState() {
         std::uint32_t ids[11];
         unit->GetEquipmentIds(ids);
         for (int i = 0; i < 4; ++i) PutWord(field, ids[i]);
-        PutWord(field, (unit->flags_ & 0x40000000) ? 0xFFFFFFFFu : ids[4]);
+        PutWord(field, (unit->flags_ & MapObjectFlag::HelmetHidden) ? 0xFFFFFFFFu : ids[4]);
         for (int i = 5; i < 11; ++i) PutWord(field, ids[i]);
         field->EndField();
         if (unit->controller->GetClassId() == ClassId::UnitServer)
@@ -233,17 +233,16 @@ std::uint32_t CUnit::ReadNetState(int first) {
         }
         float maxHp = static_cast<float>(unit->packedVitals.maxHitPoints);
         float hpNow = static_cast<float>(unit->packedVitals.hitPoints) / maxHp;
-        // A drop (before > now, ordered), or flag 0x10 otherwise.
+        // A drop (before > now, ordered), or UnitStatsFlag::Struck otherwise.
         bool dropped = hpBefore > hpNow;
-        if ((dropped || (unit->params.flags & 0x10)) && first != 0) {
-            std::uint8_t flags = unit->params.flags;
-            int kind = (flags & 2) ? 2 : 0;
-            if (flags & 1) kind |= 1;
-            if (flags & 4) kind |= 4;
+        if ((dropped || (unit->params.flags & UnitStatsFlag::Struck)) && first != 0) {
+            constexpr UnitStatsFlag kHitKinds =
+                UnitStatsFlag::Backstab | UnitStatsFlag::Head | UnitStatsFlag::Electrical;
+            std::uint32_t kind = unit->params.flags & kHitKinds;
             float lost = hpBefore - hpNow;
             int damage = static_cast<int>(static_cast<std::int64_t>(lost * maxHp));   // _ftol
-            unit->companion->Hit(damage, kind);
-            if (kind & 4) {
+            unit->companion->Hit(damage, static_cast<int>(kind));
+            if (kind & UnitStatsFlag::Electrical) {
                 unit->Controller()->Wound();
             }
         }

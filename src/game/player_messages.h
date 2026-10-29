@@ -12,6 +12,7 @@
 #include "party_storage.h"
 #include "script.h"
 
+#include "lib/bit_flags.h"
 #include "lib/containers.h"
 #include "lib/hash_map.h"
 
@@ -184,7 +185,8 @@ public:
     void LeaveToZone(std::string_view zone, int entrance);
     int OnRefreshParty();      // Message 0x02: ForgetKnownObjects, SendParty
     int OnTakeExit();          // Message 0x03: exit index -> GetZoneExit -> LeaveToZone (0 when none)
-    int OnJoined();            // Message 0x05: state 2 -> 1, the session kind, Redeploy with the placements, dirty_ bit 4
+    // Message 0x05: state 2 -> 1, the session kind, Redeploy with the placements, PlayerDirty::GameState.
+    int OnJoined();
     int OnLeaveToZone();       // Message 0x06: zone text, entrance -> LeaveToZone
     int OnBriefingDone();      // Message 0x07: briefing name -> CompleteBriefing(player id)
     // Message 0x08: a party (LoadParty with variables); one of a single record gets a fresh party id
@@ -293,6 +295,19 @@ double UseOrderDistanceSquared(const Vector3* a, const Vector3* b);
 // 2D centroid to each (unnormalised when it is zero). `offsets` is sized to the units.
 void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* offsets);
 
+// The bits of CPlayer::dirty_: the state the server still has to send the player (CWorldServer::SyncPlayer),
+// each cleared by its message. kPlayerDirtyAll after a reset or a load.
+enum class PlayerDirty : std::uint32_t {
+    Zone = 0x1,                 // message 0x02
+    Weather = 0x2,              // 0x70
+    Time = 0x4,                 // 0x71: the time and its speed
+    Wind = 0x8,                 // 0x72
+    GameState = 0x10,           // 0x07: the session kind and the tick (set when the player joined)
+    Countdowns = 0x20,          // 0x73: the water tweens
+};
+template <> inline constexpr bool lib::kBitFlags<PlayerDirty> = true;
+inline constexpr std::uint32_t kPlayerDirtyAll = 0xFFFFFFFFu;
+
 // A world player (CPlayer). The harness's digest reads its fields (tests/verify/harness_digest.cpp), hence the
 // layout asserts.
 class CPlayer final : public CEngineObject {
@@ -329,7 +344,7 @@ public:
     void Connect(netlink::NetLink* link);
     // As Connect without the new link and the ResetState call.
     void Disconnect();
-    // Both known-object maps cleared, the connection's ForgetSentObjects, dirty_ -1.
+    // Both known-object maps cleared, the connection's ForgetSentObjects, dirty_ kPlayerDirtyAll.
     void ForgetKnownObjects();
 
     // Whether `unit` is the party's leader: there are records and its id is the first record's key. 0 for
@@ -384,7 +399,7 @@ public:
     int logTraffic_;                            // logs the size of every flush
     int lastTick_;                              // -1 after Create; the world tick last saved or restored for the player
     std::list<std::uint32_t> recharging_;      // ids of items recharging (saved with the world from version 0x55)
-    std::uint32_t dirty_;                       // state to send (bits the server's state messages clear); -1 after the reset
+    std::uint32_t dirty_;                       // PlayerDirty bits
 };
 
 // The message dispatchers' fatal error: `format` with the previous and the current message type (their low

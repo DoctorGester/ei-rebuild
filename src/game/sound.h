@@ -91,6 +91,9 @@ struct SoundEmitter {
 struct SoundSequence;
 unsigned __stdcall StreamThreadEntry(void* manager);
 
+// The bit of a sequence chooser's result that loops the sound (bit 30).
+inline constexpr int kSequenceLoop = 0x40000000;
+
 // A 3D sound sequence (8): plays its names one after the other (or at random, or as a callback chooses) at one
 // position.
 struct SoundSequence {
@@ -104,8 +107,8 @@ struct SoundSequence {
     std::int32_t index;         // next name
     std::int32_t priority;
     std::int32_t random;        // pick names at random
-    // Returns the next index (bit 30: loop it), < 0 ends; called with the previous index and the number of
-    // sounds started before.
+    // Returns the next index (with kSequenceLoop: loop it), < 0 ends; called with the previous index and the
+    // number of sounds started before.
     int(*chooser)(int previous, int played);
     std::int32_t generation;
     std::int32_t id;            // generation << 8 | slot (-1: free)

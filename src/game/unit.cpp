@@ -145,9 +145,9 @@ void CUnit::SetMoveModes(int mode, int mode2) {
 
 void CUnit::SetFlag40000000Off(bool on) {
     if (on) {
-        flags_ &= ~0x40000000u;
+        flags_ &= ~MapObjectFlag::HelmetHidden;
     } else {
-        flags_ |= 0x40000000u;
+        flags_ |= MapObjectFlag::HelmetHidden;
     }
     MarkChanged(5);
 }
@@ -309,7 +309,7 @@ double CUnit::MoveSpeedFor(int mode) { return ModeSpeedOf(this, static_cast<std:
 
 double CUnit::ScaledValue(float value) {
     if (!player) return value * kThree + kTen;
-    if (flags_ & 0x4000000) {
+    if (flags_ & MapObjectFlag::ChoosingTarget) {
         float capped = value >= kTen ? kTen : value;   // NaN is kept
         return capped * kThree + kTen;
     }

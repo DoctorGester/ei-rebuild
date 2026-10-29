@@ -39,7 +39,6 @@ constexpr int kKindNoRangeTest = 3;
 constexpr int kStormy = 3;                  // climate_: storms with lightning strikes
 constexpr int kRaining = 1;                 // weather_
 constexpr int kTypeLightning = 0x65;
-constexpr std::uint32_t kDirtyWeather = 2;
 constexpr float kRainLight = 20.0f;
 constexpr float kRainHeavy = 40.0f;
 constexpr float kDayFactorRain = 0.9f;
@@ -104,7 +103,7 @@ void UpdateRain(CWorldServer* world) {
         if (previous == 1) world->weatherStrength_ = kRainLight;
         else world->weatherStrength_ = kRainHeavy;
     }
-    world->MarkPlayersDirty(kDirtyWeather);
+    world->MarkPlayersDirty(lib::Bits(PlayerDirty::Weather));
 }
 
 // A bolt in the sky during rain (every 20 ticks at most): a random ground point and one above it.

@@ -402,7 +402,7 @@ public:
     // object flag 0x800 set while it draws.
     void Draw(CSceneRenderer* pass);
     // A new map object (MapObjectType::Creature, id 0x88CA6C00) of the client world's map object manager, referenced,
-    // flag 0x4000000, at (0, 0, 3), with the figure of model `name` (all parts), its textures and
+    // MapObjectFlag::Preview, at (0, 0, 3), with the figure of model `name` (all parts), its textures and
     // animations, and texture `from` swapped for `to`.
     void Load(const char* name, const char* from, const char* to);
     void ShowAllParts(int show);

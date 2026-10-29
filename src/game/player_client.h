@@ -145,9 +145,9 @@ public:
     int OnNewObject();
     // Message 0x13. A text run as the interface's string event.
     int OnStringEvent();
-    // Message 0x60. The party state (CPlayerServer::SendPartyState): the old party units lose unit flag
-    // 0x400000 and their ids go into a set; the world's pause flag (byte); a dword (dropped); the new party
-    // ids (partyUnitIds_ resized without keeping its contents), whose units get the flag and, when new to the
+    // Message 0x60. The party state (CPlayerServer::SendPartyState): the old party units lose
+    // MapObjectFlag::InParty and their ids go into a set; the world's pause flag (byte); a dword (dropped); the new
+    // party ids (partyUnitIds_ resized without keeping its contents), whose units get the flag and, when new to the
     // party, in a session of kind 1 without an owner and with a game-flow condition, their controller's
     // fade-in; the set emptied; the world's partyDanger_; the other players' unit ids.
     int OnPartyState();

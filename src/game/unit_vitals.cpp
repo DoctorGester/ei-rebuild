@@ -346,7 +346,7 @@ void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
     ScaleSlotMaxima(limit);
     double hitPoints = Reduce(vitals->maxHitPoints);
     vitals->hitPoints = static_cast<float>(hitPoints);
-    if (hitPoints > 0.0f) flags |= 8;
+    if (hitPoints > 0.0f) flags |= UnitStatsFlag::Alive;
 }
 
 void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {

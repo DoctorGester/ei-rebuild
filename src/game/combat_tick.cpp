@@ -45,7 +45,6 @@ constexpr std::uint32_t kMinClosingBits = 0x3DCCCCCDu;              // 0.1: the 
 constexpr float kFarBits = 1000000.0f;                     // 1e6: no limit for a path
 
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
-constexpr std::uint32_t kSpellNoTarget = 0x20000000;    // CSpell::targetFlags_
 constexpr int kStateIdle = 0;
 constexpr int kStateTurning = 2;
 constexpr int kStateCasting = 5;
@@ -446,7 +445,7 @@ void CUnitServer::ContinueAction() {
         if (!action.target) {
             if (cast) {
                 CSpell* spell = SpellOfSource(action.source);
-                carryOn = spell && (spell->targetFlags_ & kSpellNoTarget);
+                carryOn = spell && (spell->targetFlags_ & SpellTargetFlag::AtPoint);
             }
         } else if (!IsDead(action.target)) {
             carryOn = true;

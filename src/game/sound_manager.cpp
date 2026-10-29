@@ -537,9 +537,9 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
         int next = chooser(index, played);
         index = next;
         if (next < 0) return 0;
-        index = next & 0xBFFFFFFF;
-        int h = manager->Play3D(names[next & 0xBFFFFFFF], priority, &position.x, nearDistance, farDistance,
-                                next & 0x40000000, 0);
+        index = next & ~kSequenceLoop;
+        int h = manager->Play3D(names[index], priority, &position.x, nearDistance, farDistance,
+                                next & kSequenceLoop, 0);
         handle = h;
         return h != -1 ? 1 : 0;
     }

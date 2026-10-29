@@ -151,16 +151,16 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         }
         console::EndLine(*kHitLog);
     }
-    if (std::memcmp(&hit->backstabFactor, &kOneBits, sizeof(float)) != 0) flags |= 1;
+    if (std::memcmp(&hit->backstabFactor, &kOneBits, sizeof(float)) != 0) flags |= UnitStatsFlag::Backstab;
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     return damaged;
 }
 
 int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CItem* weapon) {
     if (hit->location >= kLocations) return 0;
-    if (hit->location == 0) flags |= 2;
+    if (hit->location == 0) flags |= UnitStatsFlag::Head;
     EI_NAN_AUDIT(hit->typeWeights[5], hit->amount);
-    if (hit->typeWeights[5] != 0.0f) flags |= 4;
+    if (hit->typeWeights[5] != 0.0f) flags |= UnitStatsFlag::Electrical;
     DamageInfo copy = *hit;
     if (copy.amount == 0.0f) return 0;
     float difficulty = unit->player ? 1.0f

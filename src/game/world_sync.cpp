@@ -37,14 +37,6 @@ constexpr float kHearingMargin = 5.0f;    // added to it
 
 constexpr MapObjectType kTypeNoSync = MapObjectType::MagicTrap;   // never sent
 
-// Dirty bits (CPlayer::dirty_) SyncPlayer sends.
-constexpr std::uint32_t kDirtyZone = 0x01;
-constexpr std::uint32_t kDirtyWeather = 0x02;
-constexpr std::uint32_t kDirtyTime = 0x04;
-constexpr std::uint32_t kDirtyWind = 0x08;
-constexpr std::uint32_t kDirtyLeave = 0x10;
-constexpr std::uint32_t kDirtyCountdowns = 0x20;
-
 // CPlayerServer::state_.
 constexpr int kModePlaying = 1;
 constexpr int kModeJoining = 2;
@@ -148,31 +140,31 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
     CPlayerServer* state = player->Server();
     if (state->state_ == kModePlaying && zoneLoaded_ != 0) {
         std::uint32_t dirty = player->dirty_;
-        if (dirty & kDirtyZone) {
+        if (dirty & PlayerDirty::Zone) {
             int sent = SendZone(player);
             if (!sent) return sent;
             state->SetDisconnect();
             state->SendItems();
             return state->Flush();
         }
-        if (dirty & kDirtyWeather) {
+        if (dirty & PlayerDirty::Weather) {
             int strength = x87::fistp(weatherStrength_);
             if (!state->SendState70(static_cast<std::uint8_t>(weather_), static_cast<std::uint16_t>(strength))) return 0;
         }
-        if (player->dirty_ & kDirtyTime) {
+        if (player->dirty_ & PlayerDirty::Time) {
             float time;
             float speed;
             GetTime(&time, &speed);
             if (!state->SendState71(std::bit_cast<std::uint32_t>(time), std::bit_cast<std::uint32_t>(speed))) return 0;
         }
-        if (player->dirty_ & kDirtyWind) {
+        if (player->dirty_ & PlayerDirty::Wind) {
             Vector3 direction;
             lib::LoadBytes(direction, windDirection_);
             if (!state->SendState72(std::bit_cast<std::uint32_t>(direction.x), std::bit_cast<std::uint32_t>(direction.y),
                                     std::bit_cast<std::uint32_t>(direction.z), windStrength_))
                 return 0;
         }
-        if (player->dirty_ & kDirtyCountdowns) state->SendState73(&countdowns_);
+        if (player->dirty_ & PlayerDirty::Countdowns) state->SendState73(&countdowns_);
 
         // Map objects: room for seven entries per world object.
         std::vector<CEngineObject*> collected;
@@ -205,7 +197,7 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
     if ((mode == kModePlaying || mode == kModeJoining) && zoneLoaded_ != 0) state->SendPartyState();
     mode = state->state_;
     if (mode == kModeLeaving) return 1;
-    if (mode != 0 && (player->dirty_ & kDirtyLeave) && mode != kModeGone) state->SendGameTime();
+    if (mode != 0 && (player->dirty_ & PlayerDirty::GameState) && mode != kModeGone) state->SendGameTime();
     return state->Flush();
 }
 

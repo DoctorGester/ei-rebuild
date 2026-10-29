@@ -555,7 +555,7 @@ bool CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     if (hit->backstabFactor > 1.0f) mine.defence = 0;
     EI_NAN_AUDIT(hit->attackRoll);
     if (static_cast<double>(mine.defence) <= hit->attackRoll) {
-        stats.flags |= 0x10;
+        stats.flags |= UnitStatsFlag::Struck;
         unit->MarkChanged(4);
         TriggerItemSpells(1);
         CItem* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;

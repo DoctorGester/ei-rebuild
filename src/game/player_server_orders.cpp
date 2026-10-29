@@ -26,7 +26,6 @@
 namespace {
 
 constexpr std::uint8_t kMessageGameState = 0x07;
-constexpr int kDirtyGameState = 0x10;                 // the player's +0x130
 constexpr int kTextPause = 0xC;                       // the session's announcement for a pause
 constexpr int kStateJoined = 1;
 constexpr int kStateSendingCamera = 2;
@@ -85,7 +84,7 @@ int CPlayerServer::OnGameStateRequest() {
     out_.WriteValue(value);
     value = g_serverWorld->tick_;
     out_.WriteValue(value);
-    player->dirty_ &= ~kDirtyGameState;
+    player->dirty_ &= ~PlayerDirty::GameState;
     state_ = kStateSendingCamera;
     return 1;
 }
