@@ -1099,7 +1099,17 @@ the `--no-hooks` suite) keeps the registry.
   `str::FormatV` (CString::Format's: the text up to the first zero byte); sprintf 006E8715, vsprintf 006ECC47,
   fprintf 006EAEB0 and printf 006E955F have no entry of their own (gamecrt::sprintf and libcrt::Vsprintf went in C35c:
   a call with a literal format and no float conversion is `std::snprintf` into its buffer, the console's "%.6g" and
-  the script's FloatToStr "%.*f" are str::Format). The format is read with VC6 `_output`'s state machine (the
+  the script's FloatToStr "%.*f" are str::Format). Since C35k a `str::Format` with a literal format and no float
+  conversion is `std::format` (171 calls); str::Format keeps the named and run-time formats (the game's texts), the
+  float ones, and eight "%.2d" of database ints (an item's number, a prototype's skin and hair, an armour's number:
+  "%.2d" of -5 is "-05", `{:02}` "-5"; unit_client_models.cpp, unit_skins.cpp, item_model_names.cpp). Moving a call
+  reads its argument types, as `%d` and `{}` differ: a char prints as a character and an unsigned above 0x7FFFFFFF
+  unsigned (cast to int unless it is known small), a null `const char*` throws where %s printed "(null)" (every %s
+  argument moved is a std::string, a `c_str()` / `.data()`, a table's text or a literal), and a std::string prints whole where %s
+  stopped at a zero byte (the strings moved hold none: archive, ini and text strings are assigned from C text, network
+  texts are passed as `.data()`). A precision on an integer (`%3.3i`, `%.4d`) is `{:03}` / `{:04}` only for a value
+  known not negative (a loop index, the screenshot counter); a width with '0' (`%02d`) is `{:02}` for any value.
+  The format is read with VC6 `_output`'s state machine (the
   `__lookuptable` copied from 007476D0), so a malformed conversion prints its characters as VC6 did and the host never
   sees one (the UCRT's invalid-parameter handler would end the game on a run-time format from the game's texts).
   Each integer, character and string conversion is the host's `snprintf` of the same flags, width and precision, with
