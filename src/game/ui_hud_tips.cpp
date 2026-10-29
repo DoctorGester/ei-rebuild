@@ -1,6 +1,7 @@
 // The battle screen panels' tooltips: the weapon bar's unit, a quick item's tip
 // and the action column's unit. See ui.h and docs/notes/ui.md ("Battle screen").
 #include "ui.h"
+#include "ui_float.h"
 
 #include "item.h"
 #include "item_db_text.h"
@@ -16,12 +17,6 @@
 #include "world.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
-
-namespace {
-// The original truncates through _ftol.
-int Truncate(float value) { return static_cast<int>(value); }
-
-} // namespace
 
 // --- The weapon bar's unit -----------------------------------------------------------
 

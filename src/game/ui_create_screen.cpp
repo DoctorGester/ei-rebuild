@@ -90,18 +90,16 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
 }
 } // namespace
 
-void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
+void CInterface3D::PushWindow(CUiWindow* window, bool behind, bool pauseFrame) {
     g_cursor.SetShape(3);
-    bool first = static_cast<std::uint8_t>(a) != 0;
-    bool second = static_cast<std::uint8_t>(b) != 0;
-    if (first && !second) {
+    if (behind && !pauseFrame) {
         backdropMode_ = 3;
         app::FrameStep(false, true);
     }
     if (stack_.size() == 1) {   // one window open
         serverFlag_ = static_cast<std::uint8_t>(g_serverWorld.paused_);
         if (!IsMultiplayerClient()) GameSetServerPaused(1);
-        if (first && second) {
+        if (behind && pauseFrame) {
             backdropMode_ = 1;
             app::FrameStep(false, true);
         }
@@ -153,8 +151,7 @@ void CInterface3D::Activate(CUiWindow* window) {
 
 // --- the message window --------------------------------------------------------------------------
 
-void CInterface3D::ShowMessage(int force) {
-    bool forced = static_cast<std::uint8_t>(force) != 0;
+void CInterface3D::ShowMessage(bool forced) {
     if (!forced) {
         if (messages_.empty()) return;
         std::string text = messages_.front();
@@ -164,12 +161,12 @@ void CInterface3D::ShowMessage(int force) {
     }
     if (messageText_.size() == 0) return;
     if (options::g_options->showTutorial_ == 0 && !forced) return;
-    PushWindow(new CHelpWindow(this, true, messageText_, messageFlag_), 1, 0);
+    PushWindow(new CHelpWindow(this, true, messageText_, messageFlag_), true, false);
 }
 
 // --- the help window -----------------------------------------------------------------------------
 
-void CInterface3D::OpenHelp(int flag) {
+void CInterface3D::OpenHelp(bool forced) {
     if (stack_.empty()) return;
     CUiWindow* active = stack_.back();
     const char* topic = ScreenOf(active)->HelpTopic();
@@ -180,13 +177,12 @@ void CInterface3D::OpenHelp(int flag) {
     auto found = helpTopics_.find(std::string(topic));
     if (found != helpTopics_.end()) seen = found->second;
     else helpTopics_[std::string(topic)] = 0;
-    bool forced = static_cast<std::uint8_t>(flag) != 0;
     if (options::g_options->showTutorial_ != 0) {
         if (!forced && seen >= 0) return;
     } else if (!forced) {
         return;
     }
-    PushWindow(new CHelpWindow(this, false, topic, seen), 1, 0);
+    PushWindow(new CHelpWindow(this, false, topic, seen), true, false);
 }
 
 // --- Screens 8 and 9: constructors -------------------------------------------------------------------

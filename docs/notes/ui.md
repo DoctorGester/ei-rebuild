@@ -512,7 +512,7 @@ every control twice), `Apply` (`ui_options.cpp`; `Call*` forms by address); Buil
 2); Apply: ui_main_menu's OK; key remapping: ui_options_bind (Enter, a taken key's box, cancelled), ui_options_remap (SV8:
 Enter, `dblclickregion`, a taken key's box, OK, then the keys used in the game, the hero's moveMode in the digest) and
 ui_options_remap_load (the keyboard.ini ui_options_remap saves, written by `tools/make_keyboard_ini.py` into the overlay,
-loaded at start: the restart half)); controls (`CUiScrollbar` `TakePosition` S, `Update` also the message log, `CUiSlider::SetRect`
+loaded at start: the restart half)); controls (`CUiScrollbar` `TakeMoved` / `TakePosition` S (a position read plus the moved flag; CUiSpin `TakeChanged` / `TakeValue` the same), `Update` also the message log, `CUiSlider::SetRect`
 slot 26 RET 4: every frame; `CUiTooltip`; `CUiScrollText::Tokenize` / `DrawLines` RET 4 (`ui_scroll_text.cpp`; the message log);
 `CUiEditField::KeyDown` S (`ui_edit_field.cpp`; no scenario types into one); `CUiScrollingSurface::RenderText` 0065F020: the
 titles' RTF text as glyph runs (render_rich_text), ui_main_menu, render_titles_present, ui_titles_scroll); `CObjectivesWindow` (`Build`, `ShowZone`,

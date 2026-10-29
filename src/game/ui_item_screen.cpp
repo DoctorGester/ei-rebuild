@@ -8,6 +8,7 @@
 #include "party.h"
 #include "texture.h"
 #include "ui.h"
+#include "ui_float.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
@@ -20,8 +21,6 @@
 #include <string>
 
 namespace {
-
-inline double D(float f) { return f; }
 
 // Every cached object released, in key order.
 template <typename Object>

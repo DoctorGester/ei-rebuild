@@ -56,7 +56,7 @@ void CSaveLoadWindow::ShowSelection() {
     if (!(firstVisible_ + kListRows > selected)) firstVisible_ = selected - (kListRows - 1);
     if (firstVisible_ > selected) firstVisible_ = selected;
     scrollbar_->SetPosition(firstVisible_);
-    scrollbar_->TakePosition(&firstVisible_);
+    firstVisible_ = scrollbar_->TakePosition();
     TakeSelectedTitle();
     RefreshListVanilla();
     ShowPicture();
@@ -228,7 +228,7 @@ void COptionsWindow::KeyDown(int key, int repeat, int flags) {
             message = str::Format(format, pressed->name_, other->name_);
             // The box's text (a null box is written through, like the original).
             box->text_ = message.c_str();
-            interface_->PushWindow(box, 1, 1);
+            interface_->PushWindow(box, true, true);
             return;
         }
         CommitBinding();
@@ -246,8 +246,7 @@ void COptionsWindow::KeyDown(int key, int repeat, int flags) {
                 handled_ = true;
                 return;
             }
-            int value;
-            row.setting_->spin_->GetValue(&value);
+            const int value = row.setting_->spin_->TakeValue();
             rows_[selectedRow_].setting_->spin_->SetValue(value + 1);
         }
         interface_->PlaySound(game::OkSoundText());
@@ -270,8 +269,7 @@ void COptionsWindow::KeyDown(int key, int repeat, int flags) {
         // The row's bar moves one step; the handled flag stays as it is.
         OptionSetting* setting = rows_[selectedRow_].setting_;
         if (!setting || !setting->bar_) return;
-        int position;
-        setting->bar_->TakePosition(&position);
+        const int position = setting->bar_->TakePosition();
         rows_[selectedRow_].setting_->bar_->SetPosition(key == kKeyLeft ? position - 1 : position + 1);
         return;
     }

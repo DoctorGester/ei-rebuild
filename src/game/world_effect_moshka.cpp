@@ -232,7 +232,7 @@ void CEffectMoshka::Follow(int objectId) {
     bird->RestartPose();
     attached->SetSkins(texture, game::kEmptyText);
     g_clientWorld.AddObject(bird_);
-    attached->SetLit(1);
+    attached->SetLit(true);
     if (FigureAnimation* first = bird->AnimationAt(0)) {
         bird->animation->queue.clear();
         bird->animation->Play(first);

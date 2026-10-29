@@ -368,7 +368,7 @@ void CMapObjectClientSpecific::HideLight() {
     light->flags_ |= LightFlag::Hidden;
     g_clientWorld.terrain_->RemoveLight(light);
     CMapObject* mapObject = CompanionOwner(this);
-    if (mapObject && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(0);
+    if (mapObject && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(false);
 }
 
 void CMapObjectClientSpecific::ShowLight() {
@@ -376,7 +376,7 @@ void CMapObjectClientSpecific::ShowLight() {
     light->flags_ &= ~LightFlag::Hidden;
     g_clientWorld.terrain_->AddLight(light);
     CMapObject* mapObject = CompanionOwner(this);
-    if (mapObject && mapObject->GetClassId() == ClassId::Unit && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(1);
+    if (mapObject && mapObject->GetClassId() == ClassId::Unit && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(true);
 }
 
 void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bool flag) {

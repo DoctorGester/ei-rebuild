@@ -146,7 +146,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             shape = kCursorCantCast;
             break;
         }
-        if (!first || first->CanCastSpell(pendingSlot_) != 0) {
+        if (!first || !first->CanCastSpell(pendingSlot_)) {
             shape = kCursorCantCast;
             break;
         }
@@ -160,15 +160,15 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             shape = kCursorCantCast;
             break;
         }
-        int refused = pendingAction_ == kPendingSpellAtPoint ? first->CanCastSpell(pendingSlot_)
-                                          : first->CanUseQuickItem(pendingSlot_);
-        shape = refused ? kCursorCantCast : kCursorCast;
+        const bool able = pendingAction_ == kPendingSpellAtPoint ? first->CanCastSpell(pendingSlot_)
+                                                                 : first->CanUseQuickItem(pendingSlot_);
+        shape = able ? kCursorCast : kCursorCantCast;
         break;
     }
     case kPendingQuickOnUnit: {   // a potion only on the user itself
         shape = kCursorCantCast;
         if (!unit || unitDead(unit)) break;
-        if (!first || first->CanUseQuickItem(pendingSlot_) != 0) break;
+        if (!first || !first->CanUseQuickItem(pendingSlot_)) break;
         CItem* item = first->GetQuickItem(pendingSlot_);
         if (item && item->GetCategory() == QuickItemCategory::Potion && unit != first) break;
         shape = kCursorCast;

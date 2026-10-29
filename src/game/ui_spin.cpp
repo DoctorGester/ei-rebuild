@@ -31,11 +31,15 @@ CUiSpin::CUiSpin(CInterface3D* ui, RECT rect, const char* text) : CUiWindow(ui) 
 
 void CUiSpin::AddText(std::string_view text) { texts_.emplace_back(text); }
 
-bool CUiSpin::GetValue(int* value) {
-    *value = value_;
+bool CUiSpin::TakeChanged() {
     if (!changed_) return false;
     changed_ = false;
     return true;
+}
+
+int CUiSpin::TakeValue() {
+    changed_ = false;
+    return value_;
 }
 
 void CUiSpin::SetValue(int value) {

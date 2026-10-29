@@ -2,6 +2,7 @@
 // current slide offset, their per-frame updates and their setups. Rebirth patches all of them for its WideScreen layout,
 // reproduced behind the flag (ui_widescreen.h). See ui.h and docs/notes/ui.md, "Battle HUD sliding panels".
 #include "ui.h"
+#include "ui_float.h"
 
 #include "item_db_text.h"
 #include "map_object.h"
@@ -45,14 +46,6 @@ constexpr int kEffects = 6;
 constexpr double kZoomRate = 2.5;                   // the map's zoom changes 2.5 times a second
 constexpr float kSlingDepthBits = 8.106086f;   // 8.106: the sling buttons and the needle
 constexpr float kSlingY = 20.0f;
-
-float FromBits(std::uint32_t bits) {
-    float value;
-    value = std::bit_cast<float>(bits);
-    return value;
-}
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> float FromBits(T) = delete;
 
 // WideScreen's layout constants (addon's operands, exact integers as floats): moved right for the
 // map, left for the unit panel.

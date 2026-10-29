@@ -266,7 +266,7 @@ void CCampPages::ShowPage(int page) {
     // The page buttons (scene objects 2-9) half bright, the current one full.
     for (int i = 2; i < 10; ++i) SetShade(SceneMesh(i), 0.5f);
     SetShade(SceneMesh(page_ + 2), 1.0f);
-    interface_->OpenHelp(0);
+    interface_->OpenHelp(false);
 }
 
 int CCampPages::Price(CItem* item, int kind) {

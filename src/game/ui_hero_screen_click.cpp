@@ -38,7 +38,7 @@ const char* const kRenameSeparator = " | ";
 const char* const kRenameBar = "|";
 
 // Whether `index` is a saved hero's.
-bool IsHero(int index) { return index >= 0 && index < SavedHeroCount(); }
+bool IsHero(int index) { return index >= 0 && index < g_savedParties.Count(); }
 
 // The first entry of one of a hero record's item arrays, or null when it is empty.
 CItem* FirstOf(const std::vector<CItem*>& list) { return !list.empty() ? list[0] : nullptr; }
@@ -56,7 +56,7 @@ void BackToMainMenu(CInterface3D* ui) {
 // A multiplayer hero's name: the text 0 of its party's first member record (read through the members'
 // data pointer).
 std::string& MpHeroName(int index) {
-    auto* hero = SavedHero(index);
+    auto* hero = g_savedParties.Hero(index);
     return hero->Party()->members_.data()->texts[0];
 }
 
@@ -127,7 +127,7 @@ void CMpHeroScreen::FinishRename() {
     str::TrimRight(base);
     typed = base + typed;
     name = typed;
-    SavedHero(heroIndex_)->WriteFile(g_savedParties.folder_);
+    g_savedParties.Hero(heroIndex_)->WriteFile(g_savedParties.folder_);
     CloseRenameEdit();
     ShowHero(heroIndex_);
 }
@@ -314,14 +314,14 @@ void CMpHeroScreen::LeftDown(int flags, int x, int y) {
         ui->PlaySound(game::SelectSoundText());
         if (!IsHero(heroIndex_)) return;
         CUiWindow* box = new CMessageBox(ui, "lmp_deletepers", "lmp_deletepers_msg", 0x10000, 3, 1);
-        ui->PushWindow(box, 1, 1);
+        ui->PushWindow(box, true, true);
         return;
     }
     case 8: {
         // The hero's inventory: the camp screen.
         ui->PlaySound(game::SelectSoundText());
         if (!IsHero(heroIndex_)) return;
-        interface_->PushWindow(new CCampPages(interface_, true), 0, 1);
+        interface_->PushWindow(new CCampPages(interface_, true), false, true);
         return;
     }
     default:
@@ -403,11 +403,11 @@ void CMpHeroScreen::Continue() {
     ui->PlaySound(kSoundOk);
     if (IsHero(heroIndex_)) {
         g_savedParties.SaveAll();
-        ui->PushWindow(new CMpConnectScreen(ui), 1, 1);
+        ui->PushWindow(new CMpConnectScreen(ui), true, true);
         return;
     }
     CUiWindow* box = new CMessageBox(ui, "lmp_no_pers", "lmp_no_pers_msg", 0x20000, 1, 1);
-    ui->PushWindow(box, 1, 1);
+    ui->PushWindow(box, true, true);
 }
 
 // --- The new hero's statistics and its creation --------------------------------------
@@ -474,7 +474,7 @@ void CMpHeroScreen::DeleteHero() {
     std::string path = g_savedParties.folder_ + g_savedParties.entries_[heroIndex_].file;
     gameapi::DeleteFileA(path.c_str());
     g_savedParties.entries_.erase(g_savedParties.entries_.begin() + heroIndex_);
-    if (heroIndex_ >= SavedHeroCount()) heroIndex_ = SavedHeroCount() - 1;
+    if (heroIndex_ >= g_savedParties.Count()) heroIndex_ = g_savedParties.Count() - 1;
     RefreshHeroScroll();
     DrawHeroList();
     ShowHero(heroIndex_);
@@ -482,12 +482,11 @@ void CMpHeroScreen::DeleteHero() {
 
 void CMpHeroScreen::RefreshHeroScroll() {
     CUiScrollbar* bar = heroScroll_;
-    if (SavedHeroCount() > kListRows) {
-        int position;
-        bar->TakePosition(&position);
-        bar->SetMaximum(SavedHeroCount() - kListRows);
+    if (g_savedParties.Count() > kListRows) {
+        const int position = bar->TakePosition();
+        bar->SetMaximum(g_savedParties.Count() - kListRows);
         bar->SetPosition(position);
-        bar->TakePosition(&heroTop_);
+        heroTop_ = bar->TakePosition();
     } else {
         bar->SetMaximum(0);
         heroTop_ = 0;
@@ -497,7 +496,7 @@ void CMpHeroScreen::RefreshHeroScroll() {
 void CMpHeroScreen::MessageResult(int result) {
     if (result == kAnswerOk) DeleteHero();
     if (IsHero(heroIndex_)) {
-        MpHeroRecord* hero = SavedHero(heroIndex_);
+        MpHeroRecord* hero = g_savedParties.Hero(heroIndex_);
         hero->Party()->Assign(LocalPlayerData());
         hero->WriteFile(g_savedParties.folder_);
     }

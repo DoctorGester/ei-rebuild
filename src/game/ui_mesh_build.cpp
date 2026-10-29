@@ -6,6 +6,7 @@
 // stack and never stores; they are computed by the same instruction sequence in inline assembly, so
 // they round the same way whatever the FPU's precision. Constants are read from the exe's memory.
 #include "ui.h"
+#include "ui_float.h"
 
 #include "lib/containers.h"
 #include "world_data.h"
@@ -16,8 +17,6 @@
 #include <vector>
 
 namespace {
-
-inline double D(float f) { return f; }
 
 // The common start: one normal packet (four 0s, four 0s, four 1s, four 1s) and the two 4-entry arrays.
 void ResetVertexColours(CUiMesh* mesh) {

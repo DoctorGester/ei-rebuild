@@ -4,6 +4,7 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "ui.h"
+#include "ui_float.h"
 #include "ui_screens.h"
 
 #include "base_manager.h"
@@ -29,8 +30,6 @@
 #include <new>
 
 namespace {
-
-inline double D(float f) { return f; }
 
 constexpr float kUnitRadius2 = 0.56f;    // units further out (squared) are not shown
 constexpr double kTinyLength2 = 1e-6;

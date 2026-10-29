@@ -665,7 +665,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     CreateRenderer();
     const bool interfaceTakesInput = options->audio_ ? (OpenSound() >> 24) != 0 : true;
 
-    PlayMovies("Start", 1);
+    PlayMovies("Start", true);
     g_loadingMovieName = "Progres.bik";
     ShowLoadingMovie(0);
     CloseLoadingMovie();

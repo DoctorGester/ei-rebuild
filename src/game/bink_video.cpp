@@ -83,17 +83,17 @@ unsigned CBinkVideo::Frame() {
 
 // `frameTime`: ms per frame, or 0 for the movie's own rate. Esc / Space end it (`keysEnd`), Space jumps to the
 // next frame when it does not; the screen is filled black first, a loading screen step first.
-// Plays the movie in a message loop of its own, each frame into its letterboxed rectangle. Returns 0 when Esc ended it.
-char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
-               char loadingStep) {
-    if (!options::g_options->video_) return 1;
+// Plays the movie in a message loop of its own, each frame into its letterboxed rectangle. Returns false when Esc ended it.
+bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool spaceSkips, bool clearScreen,
+               bool loadingStep) {
+    if (!options::g_options->video_) return true;
     const char* file = name.c_str();
     if (loadingStep) g_clientWorld.sounds_->StopAll(1);
     if (options::g_options->audio_) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld.sounds_->waveDriver);
     BinkHeader* bink = OpenBink(file, 0);
     if (!bink) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", file);
-        return 1;
+        return true;
     }
     gameapi::BinkSetVolume(bink, options::g_options->audioStreaming_ * 0x7FF6 / 100);
     g_cursor.ShowImage(0);
@@ -162,7 +162,7 @@ char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char s
     gameapi::BinkClose(bink);
     SetQuitAllowed(1);
     g_cursor.ShowImage(1);
-    return escaped ? 0 : 1;
+    return !escaped;
 }
 
 // `progress` is a frame number. The loading screen's movie (the file named by a global, opened once) is decoded

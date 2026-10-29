@@ -252,28 +252,28 @@ double CUnit::TotalItemWeight() {
     return total;   // unrounded
 }
 
-int CUnit::CanCastSpell(std::uint32_t slot) {
-    if (slot >= 8) return 3;
-    if (HasEffect(SpellType::Feeblemind)) return 4;
+bool CUnit::CanCastSpell(std::uint32_t slot) {
+    if (slot >= 8) return false;
+    if (HasEffect(SpellType::Feeblemind)) return false;
     CSpell* spell = GetSpellObject(slot);
-    if (!spell) return 3;
+    if (!spell) return false;
     float cost = SpellCost(spell);
     float available = static_cast<float>(packedVitals.mana);
     double needed = params.Period() * cost;
     EI_NAN_AUDIT(needed);
-    return available < needed ? 1 : 0;
+    return !(available < needed);   // a NaN cost can cast
 }
 
-int CUnit::CanUseQuickItem(std::uint32_t slot) {
+bool CUnit::CanUseQuickItem(std::uint32_t slot) {
     CItem* object = GetQuickItem(slot);
-    if (!object || object->GetClassId() != ClassId::ItemQuick) return 3;
+    if (!object || object->GetClassId() != ClassId::ItemQuick) return false;
     CItem* item = object;
-    if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return 3;
+    if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return false;
     if (item->GetCategory() == QuickItemCategory::Wand) {
         EI_NAN_AUDIT(item->charge_, SpellCost(item->spell_));
-        if (item->charge_ < SpellCost(item->spell_)) return 1;
+        if (item->charge_ < SpellCost(item->spell_)) return false;
     }
-    return 0;
+    return true;
 }
 
 // --- Movement --------------------------------------------------------------------------------

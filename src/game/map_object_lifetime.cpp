@@ -169,7 +169,7 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
             shown->flags_ |= LightFlag::Hidden;
             g_clientWorld.terrain_->RemoveLight(light);
             if (CUnit* unit = Unit()) {
-                if (CObject3DSpecific* half = unit->Object3D()->attached) half->SetLit(0);
+                if (CObject3DSpecific* half = unit->Object3D()->attached) half->SetLit(false);
             }
         }
         int id = light->id_;

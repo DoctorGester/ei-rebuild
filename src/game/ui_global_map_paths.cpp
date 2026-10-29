@@ -129,7 +129,7 @@ void CGlobalMap::LeftDown(int, int x, int y) {
             SearchWays(zone.name);
             auto* window = new CObjectivesWindow(interface_);
             window->Setup(target_, &arrivals_, true, false);
-            interface_->PushWindow(window, 1, 1);
+            interface_->PushWindow(window, true, true);
             return;
         }
     }

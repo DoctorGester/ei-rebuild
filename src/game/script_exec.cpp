@@ -228,7 +228,7 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
 void PlayMovie(const SSCCmd* cmd) {
     std::string path = g_discFolder + MoviesFolder();
     std::string file = path + cmd->stringArgs[0];
-    ::PlayMovie(file, 0, 1, 1, 1, 1);
+    ::PlayMovie(file, 0, true, true, true, true);
 }
 
 void CastSpell(const SSCCmd* cmd, bool atUnit) {

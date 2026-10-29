@@ -161,7 +161,7 @@ void CSaveLoadWindow::CreateScreen() {
     }
     RefreshListVanilla();
     ShowPicture();
-    if (!sliding_) interface_->OpenHelp(0);
+    if (!sliding_) interface_->OpenHelp(false);
 }
 
 // --- Options window ------------------------------------------------------------------
@@ -218,7 +218,7 @@ void COptionsWindow::CreateScreen() {
     BuildBindings();
     shadowsChanged_ = false;
     ShowGroup(0);
-    if (!sliding_) interface_->OpenHelp(0);
+    if (!sliding_) interface_->OpenHelp(false);
 }
 
 // --- Esc menu ------------------------------------------------------------------------
@@ -283,7 +283,7 @@ void CEscMenu::LeftDown(int buttons, int x, int y) {
         open = false;
         break;
     }
-    if (open) ui->PushWindow(opened, 1, 1);
+    if (open) ui->PushWindow(opened, true, true);
     CUiContainer::LeftDown(buttons, x, y);
 }
 
@@ -296,25 +296,25 @@ void CMainMenu::LeftDown(int buttons, int x, int y) {
     case 0: {
         // A new game: the difficulty question (a message box with its own vtables).
         ui->PlaySound(okSound);
-        ui->PushWindow(new CDifficultyBox(ui), 1, 1);
+        ui->PushWindow(new CDifficultyBox(ui), true, true);
         break;
     }
     case 1: {
         ui->PlaySound(okSound);
-        ui->PushWindow(new CSaveLoadWindow(ui, false, false), 1, 1);
+        ui->PushWindow(new CSaveLoadWindow(ui, false, false), true, true);
         break;
     }
     case 2: {
         {
             std::string path = g_discFolder + "Movies\\Exit.bik";
-            PlayMovie(path, 0, 0, 0, 1, 1);
+            PlayMovie(path, 0, false, false, true, true);
         }
         app::QuitGame(0);
         break;
     }
     case 3: {
         ui->PlaySound(okSound);
-        ui->PushWindow(new COptionsWindow(ui, false), 1, 1);
+        ui->PushWindow(new COptionsWindow(ui, false), true, true);
         break;
     }
     case 4: {
@@ -323,7 +323,7 @@ void CMainMenu::LeftDown(int buttons, int x, int y) {
         GameStopAmbience();
         ui->PlaySound(okSound);
         ClearSurfaces();
-        ui->PushWindow(new CCreditsScreen(ui, true, "Titles"), 0, 1);
+        ui->PushWindow(new CCreditsScreen(ui, true, "Titles"), false, true);
         break;
     }
     case 5: {
@@ -335,7 +335,7 @@ void CMainMenu::LeftDown(int buttons, int x, int y) {
         g_interface.ShowStatusText(text);
         GameSetServerPaused(1);
         ui->PlaySound(okSound);
-        ui->PushWindow(new CMpHeroScreen(ui), 1, 1);
+        ui->PushWindow(new CMpHeroScreen(ui), true, true);
         break;
     }
     default:
@@ -470,7 +470,7 @@ void CCreditsScreen::CreateScreen() {
         g_clientWorld.music_->Stop();
     }
     g_cursor.ShowImage(0);
-    app::PlayMovies((name + "fin"), 0);
+    app::PlayMovies((name + "fin"), false);
     nextLineAt_ = 0.0f;
 
     CMappedResource* archive = &archive_;

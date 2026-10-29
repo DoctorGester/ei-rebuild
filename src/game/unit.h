@@ -262,10 +262,11 @@ public:
     // Writes the item ids of the 4 weapons and then of the 7 armour pieces to `out` (-1 for an empty slot).
     void GetEquipmentIds(std::uint32_t* out);
 
-    // 0 yes, 1 not enough mana, 3 no spell in slot `slot` (0..7), 4 an effect of type 0x20 prevents it.
-    int CanCastSpell(std::uint32_t slot);
-    // 3 none or not a spell carrier, 1 a category 5 item with too little charge, else 0.
-    int CanUseQuickItem(std::uint32_t slot);
+    // Whether the unit can cast the spell in slot `slot` (0..7): false with no spell there, with the
+    // feeblemind effect on it, or with too little mana.
+    bool CanCastSpell(std::uint32_t slot);
+    // Whether quick item `slot` is a wand or potion and a wand has the charge for its spell.
+    bool CanUseQuickItem(std::uint32_t slot);
 
     // Movement speeds for the current movement mode; `backward` scaled by the global.
     void GetMoveSpeeds(float* forward, float* backward);

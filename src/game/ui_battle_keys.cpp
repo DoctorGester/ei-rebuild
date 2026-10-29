@@ -24,21 +24,15 @@
 #include <cstring>
 #include "game_data.h"
 #include "game_singletons.h"
-#include "world_data.h"
 
 
 namespace {
 
-constexpr const char* kSoundClock = "buttons\\battle\\clock.wav";
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
 constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";
 constexpr const char* kSoundOnOff = "buttons\\battle\\on_off.wav";
 constexpr const char* kQuickSaveName = "saveq";
-
-// The world's update period in milliseconds: the game's speed.
-constexpr int kNormalPeriod = 55;
-constexpr int kFastPeriod = 27;
 
 constexpr int kKeyRepeated = 0x4000;            // the key was already down
 constexpr int kScanCodeMask = 0x1FF;
@@ -127,7 +121,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
             SetPendingAction(kPendingNone, -1, -1);
             return;
         }
-        interface_->PushWindow(new CEscMenu(interface_), 1, 1);
+        interface_->PushWindow(new CEscMenu(interface_), true, true);
         handled_ = true;
         return;
     }
@@ -136,9 +130,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     CCamera* camera = &g_camera.Get();
     switch (action) {
     case kActionPause: {
-        interface_->PlaySound(kSoundClock);
-        const bool paused = g_clientWorld.paused_;
-        GameSendFlag10(paused ? 0 : 1);
+        clock_->TogglePause();
         handled_ = true;
         return;
     }
@@ -146,11 +138,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     case kActionFastSpeed: {
         if (g_clientWorld.paused_) return;
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
-        interface_->PlaySound(kSoundClock);
-        const bool fast = action == kActionFastSpeed;
-        clock_->fast_ = fast;
-        worlddata::g_updatePeriod = fast ? kFastPeriod : kNormalPeriod;
-        interface_->fastGame_ = fast;
+        clock_->SetSpeed(action == kActionFastSpeed);
         return;
     }
     case kActionObjectives:
@@ -184,14 +172,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     case kActionMoveMode + 1:
     case kActionMoveMode + 2:
     case kActionMoveMode + 3: {
-        const int mode = action - kActionMoveMode;
-        if (CPlayerClient* view = g_clientWorld.LocalView()) {
-            interface_->PlaySound(kSoundClick);
-            for (CUnit* unit : party_) {
-                if (unit->flags_ & MapObjectFlag::Selected) view->SetMoveMode(unit, mode);
-            }
-            movePanel_->ShowMode(mode);
-        }
+        movePanel_->SetMode(action - kActionMoveMode);
         handled_ = true;
         return;
     }
@@ -296,7 +277,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
         RefreshSelection();
         return;
     case kActionMessage:
-        interface_->ShowMessage(1);
+        interface_->ShowMessage(true);
         handled_ = true;
         return;
     default:

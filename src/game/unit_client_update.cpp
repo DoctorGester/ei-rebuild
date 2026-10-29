@@ -89,7 +89,7 @@ bool CUnitClientSpecific::RunTick() {
         fadeIn = next >= 1.0f ? 1.0f : next;   // the select keeps a NaN
     }
     if (flashCountdown > 0 && --flashCountdown == 0)
-        unit->Object3D()->ClientSpecific()->SetMaterialsLit(0);
+        unit->Object3D()->ClientSpecific()->SetMaterialsLit(false);
 
     if (blinks) {
         if (blinkTimer > 0) {

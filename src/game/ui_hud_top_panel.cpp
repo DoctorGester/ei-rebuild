@@ -2,6 +2,7 @@
 // to page 0 for picked-up items and money. The page display and layout are
 // in ui_hud_panels.cpp. See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
+#include "ui_float.h"
 
 #include "item_db_text.h"
 #include "maths.h"
@@ -16,18 +17,6 @@
 #include "lib/vecmath.h"
 
 #include <concepts>
-
-namespace {
-
-float FloatFromBits(std::uint32_t bits) {
-    float f;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> float FloatFromBits(T) = delete;
-
-} // namespace
 
 void CHudTopPanel::Setup(int page, bool shown) {
     rect_.left = 0xB4;

@@ -103,7 +103,7 @@ void CInterface3D::Update() {
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's
                 static_cast<unsigned>(net::g_gameClient->joinState_));
         CMessageBox* box = new CMessageBox(this, "disconnect", "disconnect_msg", 0x990000, 1, 1);
-        PushWindow(box, 1, 1);
+        PushWindow(box, true, true);
     } else if (!stack_.empty()) {
         stack_.back()->Update();
     }
@@ -126,7 +126,7 @@ void CInterface3D::OnStringEvent(std::string_view event) {
         const std::string_view title = words.size() > 1 ? std::string_view(words[1]) : "game_over";
         const char* message = words.size() > 2 ? words[2].c_str() : "game_over_msg";
         CMessageBox* window = new CMessageBox(this, title, message, 0x20000, 3, 1);
-        PushWindow(window, 1, 1);
+        PushWindow(window, true, true);
         return;
     }
     auto top = [this]() { return stack_.back(); };
@@ -146,6 +146,6 @@ void CInterface3D::OnStringEvent(std::string_view event) {
     } else if (str::Compare(words[0], "autosave") == 0) {
         pollTop_ = true;
     } else if (str::Compare(words[0], "endofgame") == 0) {
-        if (!stack_.empty()) ScreenOf(top())->GameOver(1);
+        if (!stack_.empty()) ScreenOf(top())->GameOver(true);
     }
 }

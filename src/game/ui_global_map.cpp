@@ -356,7 +356,7 @@ void CGlobalMap::CreateScreen() {
     Update();
     windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", true);
     if (autosave && options::g_options->autosave_ != 0) ::QuickSave("saveb", true);
-    interface_->OpenHelp(0);
+    interface_->OpenHelp(false);
 }
 
 // --- Update -----------------------------------------------------------------------------
