@@ -5654,3 +5654,24 @@ title = "C54a rest: the other one-line forwarding overrides of the interface win
 group = "cleanup"
 depends = ["C54a"]
 note = "C54a folded the On* forwarders (input handlers, Draw, and the plain void ones: MessageResult, UnitJoined/Left, Deactivate, CloseScreen -> OnClose, TakeItem, ShowBriefing, Speech, QuestVariable). Left, all in ui_*.h: (1) named non-On bodies behind an override: CHudMap / CHudUnitPanel Update -> UpdateVanilla, the HUD Build -> SetupVanilla, CUiContainer Show / Redraw / RedrawTips / Update -> ShowChildren / RedrawContainer / RedrawChildTips / UpdateBase (check the qualified callers), CTradePanel Update -> UpdateHeld, CConstructorPage / CSpellMakerPage ItemAt -> ItemMakerItemAt / SpellMakerItemAt, CMpHeroScreen RefreshStats / HeroRecord / Weight -> RefreshHero / GetHero / EquipmentWeight, CBattleScreen PlayerList -> SetPortraitMode, CItemInfoPanel Deactivate -> DescribeItem, CExchangeScreen TakeItem -> MoveOffered; CloseScreen -> Close / CloseDialog / RestoreAlphaRef where the named function has no other caller. Fold where the name has no other caller (the compiler finds them), else keep. (2) The converting ones: CMpConnectScreen::MessageResult -> OnBoxResult(uint32) (BoxKind is a uint32 enum: int compare warns at /W4), CBattleScreen::ItemsPicked(void*) -> OnItemsPicked(std::list<CItem*>*), CBriefingScreen::PlayersChanged -> ShowChat(char). Recipe: C:/Users/Kirill/AppData/Local/Temp/claude/E--workspace-ei/68b512f1-2aa8-49c2-bc9c-9e235d7da745/scratchpad/C54a/c54a.py (fold_all). Goldens unchanged (golden suite + ei_ui_check)."
+
+[[ticket]]
+id = "C50e"
+title = "C50d rest in the interface: ClearFields, CBinkVideo, the disc / data folders"
+group = "cleanup"
+depends = ["C50d"]
+note = "C50d follow-up, after C54 (src/game/ui_* was off limits). CEngineObject constructs itself since C50d; CUiWindow's constructor (ui_window.cpp) still calls ClearFields, the last caller: drop the call and CEngineObject::ClearFields (engine_object.h/.cpp). CBinkVideo (bink_video.h) keeps Construct / Destruct for CCreditsScreen's player_ (ui_create_screen.cpp): give it a constructor (bink null) and a destructor (Close, which shows the cursor) and drop the screen's calls. g_dataFolder / g_discFolder (game_folders.cpp) stay lib::StaticObject because the interface spells them *g_x: retype them (whole tree) to plain std::string like g_textFolder, add initialisers 0055E7E0 / 0055E860 to gen_static_init's UNUSED_INITIALISERS (the guard byte 007AF438 and DestroyOnce go with them), drop their static_init_ports rows and run named_data.py --update. Goldens unchanged."
+
+[[ticket]]
+id = "C50d1"
+title = "The console's streambufs and streams as plain globals"
+group = "cleanup"
+depends = ["C50d"]
+note = "C50d follow-up. console_streams.cpp's eight ConsoleStreambufs stay lib::StaticObject with 16 hand-ported initialisers / exit functions (005DC1E0-005DC3F0, 005DC420-005DC5E0) because the eight console::Stream objects are named at their addresses (007C55A8..007C5810) and the log pointers kHitLog 007AF284, kAlarmLog 007C2EB8, kCombatLog 007AF3E8, kAiLog 007C53C4, kModeLog 007C54E8 are constexpr pointers named_data resolves to those addresses. Make the streambufs plain globals and each Stream constinit-initialised with its streambuf (no Attach), drop the addresses of the streams and the log pointers (or make the log pointers plain references), list the initialisers in UNUSED_INITIALISERS and the stream exits' UNREGISTERED_EXITS entry goes. Check that nothing logs after our CRT's exit. Goldens unchanged."
+
+[[ticket]]
+id = "C50d2"
+title = "CSysInfo, the device lock and the logic settings without static-init ports"
+group = "cleanup"
+depends = ["C50d"]
+note = "C50d follow-up. g_sysInfo (sys_info.cpp, lib::StaticObject, its initialiser stubs SysInfoStatic*) collects the machine's information in its constructor through gameapi import slots, and g_deviceLock 007AEE78 (renderer_lifetime.cpp, a CRITICAL_SECTION with ConstructDeviceLock / DestroyDeviceLock) is initialised through gameapi: as plain globals our CRT would run them at DLL load, before the image's import slots are known to be filled; check that (or call Win32 directly), then make them plain globals / a small lock class and retire their initialisers. LogicSettings::Construct (logic_settings.cpp, ConstructLogicSettings 005CDFB0) can become default member initialisers if named_data accepts the definition's values for g_logicSettings 007C53F8. Goldens unchanged."
