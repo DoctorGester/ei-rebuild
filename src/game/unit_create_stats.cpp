@@ -528,7 +528,7 @@ bool UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
     if (intelligence < record->RequiredStat(2)) return false;
     if (NamesRequirement(record->requiredSkillName)) {
         int skill = record->RequiredSkill();
-        if (skill == 0x7FFFFFFF) return false;
+        if (skill == ::SkillLevelRecord::kNoSkill) return false;
         if (static_cast<std::uint32_t>(skills[skill]) < record->RequiredSkillValue()) return false;   // unchecked
     }
     if (NamesRequirement(record->requiredLevelName)) {

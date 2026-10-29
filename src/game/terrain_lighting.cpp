@@ -87,7 +87,7 @@ void SectorData::LightSpecular(const SectorPosition* position, SectorVertex* rec
         Vector3 direction = {static_cast<float>(inverse * offset.x), static_cast<float>(inverse * offset.y),
                              static_cast<float>(inverse * offset.z)};
         const SectorVertex& water = record[kSectorVertices];
-        if (layer == 0 && hasWater && water.waterMaterial != 0xFFFF && !SignBit(record->depth)) {
+        if (layer == 0 && hasWater && water.waterMaterial != SectorVertex::kNoWaterMaterial && !SignBit(record->depth)) {
             float absorption = terrain->materials[water.waterMaterial].absorption;
             double loss = Product(absorption, record->depth, record->depth, direction.z, direction.z, kWaterFalloff);
             attenuation = MaxKeepB(static_cast<float>(1.0 - loss), 0.0f);
@@ -129,7 +129,7 @@ void SectorData::Light(Terrain* terrain, bool skipSun, int x0, int y0, int x1, i
             for (int x = x0; x <= x1; ++x) {
                 terrain->lightingX = x;
                 int i = kSectorVertices + y * kSectorRow + x;
-                if (records[i].waterMaterial == 0xFFFF) continue;
+                if (records[i].waterMaterial == SectorVertex::kNoWaterMaterial) continue;
                 LightSpecular(&vertices[i], &records[i], terrain, 1);
             }
         }

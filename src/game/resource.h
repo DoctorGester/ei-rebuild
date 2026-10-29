@@ -26,7 +26,8 @@ struct ResHeader {
 static_assert(sizeof(ResHeader) == 16);
 
 struct ResEntry {
-    std::int32_t next;          // next entry in the hash chain, -1 = end
+    static constexpr std::int32_t kChainEnd = -1;
+    std::int32_t next;          // next entry in the hash chain, or kChainEnd
     std::uint32_t size;         // data size in bytes
     std::uint32_t offset;       // data offset from the start of the archive
     std::uint32_t time;         // modification time (time_t)

@@ -2,6 +2,7 @@
 // their halves, the animation database lookup and the defaults of an object without a prototype. The object
 // factory is unit_create_object.cpp's.
 #include "base_manager.h"
+#include "figure_manager.h"   // FigureObjectType
 #include "game_strings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -65,8 +66,7 @@ CEngineObject* CMapObjectManager::CreateMapObject(int type, int id) {
     auto* object = static_cast<CMapObject*>(CBaseManager::CreateObject(type, id));
     if (!object) return nullptr;
     auto* figures = manager->ContextAsWorld()->FigureManager();
-    // The animation state is the figure manager's, which numbers it 0x300D as the factory does.
-    object->SetAnimationState(figures->CreateObjectAs<CFigureAnimationState>(MapObjectType::AnimationState, kNoId));
+    object->SetAnimationState(figures->CreateObjectAs<CFigureAnimationState>(FigureObjectType::AnimationState, kNoId));
     CBaseManager* halves = manager->ContextAsWorld()->SpecificManager();
     object->AttachObject(halves->CreateObjectAs<CEngineObject>(SideObjectType::Object3D, kNoId));
     object->AttachObject(halves->CreateObjectAs<CEngineObject>(SideObjectType::MapObject, kNoId));

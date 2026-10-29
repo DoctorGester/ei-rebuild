@@ -2,6 +2,7 @@
 // composed skins after a change. See unit_client_models.h and docs/notes/units.md.
 #include "unit_client_models.h"
 
+#include "item.h"   // kNoItemId
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "texture.h"
@@ -15,7 +16,6 @@
 
 
 namespace {
-constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 constexpr int kArmourSlots = 7;
 constexpr int kWeaponSlots = 4;
 
@@ -61,21 +61,21 @@ int CUnitClientSpecific::RefreshModel() {
 
 void CUnitClientSpecific::SetArmourModels(const std::uint32_t* ids, int count) {
     for (int slot = 0; slot < kArmourSlots; ++slot) ArmourTakenOff(static_cast<std::uint32_t>(slot));
-    for (std::uint32_t& id : armourIds) id = kNone;
+    for (std::uint32_t& id : armourIds) id = kNoItemId;
     int n = static_cast<std::uint32_t>(count) < kArmourSlots ? count : kArmourSlots;
     for (int i = 0; i < n; ++i) ArmourPutOn(ids[i]);
 }
 
 void CUnitClientSpecific::SetWeaponModels(const std::uint32_t* ids, int count) {
-    for (std::uint32_t& id : weaponIds) id = kNone;
+    for (std::uint32_t& id : weaponIds) id = kNoItemId;
     int n = static_cast<std::uint32_t>(count) < kWeaponSlots ? count : kWeaponSlots;
     for (int i = 0; i < n; ++i) WeaponAdded(ids[i]);
 }
 
 bool CUnitClientSpecific::WeaponAdded(std::uint32_t id) {
-    if (id == kNone) return false;
+    if (id == kNoItemId) return false;
     int slot = 0;
-    while (slot < kWeaponSlots && weaponIds[slot] != kNone) ++slot;
+    while (slot < kWeaponSlots && weaponIds[slot] != kNoItemId) ++slot;
     if (slot == kWeaponSlots) return false;
     if ((id & 0xFFFF0000u) == 0xFFFF0000u || (id & 0xFFFFu) == 0xFFFFu) return false;
     weaponIds[slot] = id;
@@ -85,7 +85,7 @@ bool CUnitClientSpecific::WeaponAdded(std::uint32_t id) {
 bool CUnitClientSpecific::RemoveWeaponModel(std::uint32_t id) {
     for (std::uint32_t& slot : weaponIds) {
         if (slot == id) {
-            slot = kNone;
+            slot = kNoItemId;
             return true;
         }
     }

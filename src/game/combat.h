@@ -531,7 +531,8 @@ public:
     std::uint8_t movingAnimation;   // the movement animation is in the queue (cleared when no
                                     // path is found)
     AnimationSteps savedQueue;      // the queue a hit reaction saved (its extra is its time)
-    std::uint32_t hitDirection;     // HitDirection of the last hit that did not kill
+    static constexpr std::uint32_t kNoHitDirection = 0xFFFFFFFFu;   // hitDirection: no hit to react to
+    std::uint32_t hitDirection;     // HitDirection of the last hit that did not kill, or kNoHitDirection
     int state;                      // 0 idle, 5 casting, ...
     MoveModeState moveMode;
     MoveModeState moveMode2;

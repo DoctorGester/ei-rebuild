@@ -100,7 +100,7 @@ std::string CItemArmor::PictureName() {
 // (none in the database; the overlapping strcat that would follow is not reproduced).
 bool WeaponBaseFigure(std::uint32_t index, std::string* out) {
     out->clear();
-    if (index == 0xFFFFFFFFu) return false;
+    if (index == kNoItemId) return false;
     const WeaponRecord* prototype = WeaponAt(index);
     if (!prototype) return false;
     char block[0x24];

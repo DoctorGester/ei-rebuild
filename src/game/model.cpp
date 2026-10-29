@@ -2,6 +2,7 @@
 // test, transform matrices, triangle index buffers and the link-file loader's archive list.
 #include "model.h"
 
+#include "clip.h"   // ClipOutcode
 #include "core_maths.h"
 #include "link_figure.h"   // ITransformPipeline
 #include "resource.h"
@@ -18,7 +19,7 @@ namespace {
 // Combines the codes of a volume's 8 corners: 2 if all corners are outside one plane, 0 if all
 // are inside, -1 if undecided.
 int Classify(const std::uint32_t (&codes)[8]) {
-    std::uint32_t all = codes[0] & 0x3F, any = codes[0];
+    std::uint32_t all = codes[0] & ClipOutcode::All, any = codes[0];
     for (int i = 1; i < 8; ++i) {
         all &= codes[i];
         any |= codes[i];
@@ -39,20 +40,23 @@ std::uint32_t ClipBounds::SetBox(const float* min, const float* max) {
     return flags;
 }
 
-// Clip code of one corner p under matrix m: M * (p, 1), rows x, y and w summed ZXY, z ZYX, each
-// rounded to float. The corner coordinates are kept on the
-// FPU stack (the same at the main thread's 24-bit precision).
-//   bit 0  X + W < 0 (sign)     bit 1  2W < X + W (or unordered)
-//   bit 2  Y + W < 0 (sign)     bit 3  2W < Y + W
-//   bit 4  Z < 0 (sign)         bit 5  W < Z
+// Clip code of one corner p under matrix m (ClipOutcode; the "< 0" tests are sign tests): M * (p, 1), rows x, y and
+// w summed ZXY, z ZYX, each rounded to float. The corner coordinates are kept on the FPU stack (the same at the main
+// thread's 24-bit precision).
 static std::uint32_t ClipCode(const Matrix4& m, const Vector3& p) {
     Vector3 c = TransformColumn<Sum3::ZXY, Sum3::ZXY, Sum3::ZYX>(m, p);
     float cw = TransformColumnW<Sum3::ZXY>(m, p);
     float w2 = static_cast<float>(cw + cw);
     float xw = static_cast<float>(c.x + cw);
     float yw = static_cast<float>(c.y + cw);
-    return (SignBit(xw) ? 1u : 0u) | (SignBit(yw) ? 4u : 0u) | (SignBit(c.z) ? 0x10u : 0u) | (w2 >= xw ? 0u : 2u) | (w2 >= yw ? 0u : 8u) |
-           (cw >= c.z ? 0u : 0x20u);
+    std::uint32_t code = 0;
+    if (SignBit(xw)) code |= ClipOutcode::XLow;
+    if (!(w2 >= xw)) code |= ClipOutcode::XHigh;
+    if (SignBit(yw)) code |= ClipOutcode::YLow;
+    if (!(w2 >= yw)) code |= ClipOutcode::YHigh;
+    if (SignBit(c.z)) code |= ClipOutcode::ZNear;
+    if (!(cw >= c.z)) code |= ClipOutcode::ZFar;
+    return code;
 }
 
 int CTransformPipeline::ClipTest(const ClipBounds* b) const {

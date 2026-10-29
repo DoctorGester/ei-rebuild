@@ -16,6 +16,9 @@ inline constexpr ZeroFill kZeroed{};
 inline void* operator new(std::size_t size, ZeroFill) { return std::memset(::operator new(size), 0, size); }
 inline void operator delete(void* block, ZeroFill) noexcept { ::operator delete(block); }
 
+// CEngineObject::id_ of an object no manager registered; the saves' and messages' "no object".
+inline constexpr int kNoObjectId = -1;
+
 // CEngineObject::GetClassId: the class of an engine object or manager, named kClass + the class's name here
 // (ClassName gives the original's). The effect manager creates its effects by it too. Two classes share
 // 0x0E and two 0x21.
@@ -148,7 +151,7 @@ public:
 
     int refCount_ = 0;
     std::uint32_t flags_ = 0;
-    int id_ = -1;           // -1 until a manager registers the object
+    int id_ = kNoObjectId;  // until a manager registers the object
     int type_ = 0;          // class-specific kind (texture usage for CTexture)
     CBaseManager* owner_ = nullptr;
     // The database prototype: items pack its index (high word) with the material (low word), spells keep the

@@ -10,14 +10,13 @@
 #include "lib/nan_audit.h"
 
 namespace {
-constexpr int kAnimatorClass = 0x300B;            // AnimationTrack's class id
 constexpr std::uint32_t kKeyEndMask = 0xC0000000; // FigureAnimation::key: what happens at the end
 constexpr std::uint32_t kKeyLoops = 0x80000000;
 
 // The bone's animator, made by its manager (counted) on first use.
 AnimationTrack* AnimatorOf(FigureBone* bone) {
     if (!bone->animator) {
-        auto* made = bone->owner_->CreateObjectAs<AnimationTrack>(kAnimatorClass, -1);
+        auto* made = bone->owner_->CreateObjectAs<AnimationTrack>(FigureObjectType::AnimationTrack, -1);
         bone->animator = made;
         made->AddRef();
         bone->animator->bone = bone;

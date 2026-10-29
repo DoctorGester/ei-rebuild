@@ -145,12 +145,23 @@ bool IsTextureFormat(std::uint32_t id);
 // The pixel format of an RGB texture format; none (all zero) for a compressed or unknown one.
 PixelFormat TextureFormat(std::uint32_t id);
 
+// A texture's kind: its type_, the texture manager's object type. Neither the data nor the strings name them; the
+// callers pass a figure part's meshType_ (1..0x10, CObject3DClientSpecific's part sets; 1 and 2 also the units'
+// composed skins "mo%dp" / "mo%ds"), 3 the interface's, 6 the effects', 0xB the terrain pages, 0x1E / 0x20 / 0x21
+// the blank textures' formats (NewTexture) and 0x3D the sky and the faces. CreateObject gives three more kinds their
+// own flag (TextureFlag::Type3E..Type40); nothing creates them.
+enum class TextureKind : int {
+    Type3E = 0x3E,
+    Type3F = 0x3F,
+    Type40 = 0x40,
+};
+
 // The bits of CEngineObject::flags_ on a texture.
 enum class TextureFlag : std::uint32_t {
     Loaded = 0x8,
     // With Loaded the mask that makes a released texture cacheable: nothing in the game sets 0x10 or 0x20.
     Cacheable = 0x38,
-    // The texture manager's CreateObject by the type: 0x3E, 0x3F, 0x40, any other. Nothing reads them.
+    // The texture manager's CreateObject by the kind: TextureKind::Type3E, Type3F, Type40, any other. Nothing reads them.
     Type3E = 0x80,
     Type3F = 0x100,
     Type40 = 0x200,
@@ -243,7 +254,7 @@ public:
     void Create() override;
     // As the destructor up to CResourceManager::Destroy (without SetDevice).
     void Destroy() override;
-    // flags_ by type: TextureFlag::Type3E, Type3F, Type40, any other OtherType (no null check).
+    // flags_ by type (TextureKind): TextureFlag::Type3E, Type3F, Type40, any other OtherType (no null check).
     CEngineObject* CreateObject(int type, int id) override;
     // textures\<name>.bmp on disk if present, else <name>.mmp from the archives, else the composed texture
     // `name` (Compose).

@@ -649,7 +649,7 @@ void CUnitServer::ResetController() {
     pendingHit.multiplier = 1.0f;
     savedQueue = {};
     state = kStateChasing;
-    hitDirection = 0xFFFFFFFFu;
+    hitDirection = kNoHitDirection;
     keepHitDirection = 0;
     stoodBlocked = 0;
     motionChanged = 0;

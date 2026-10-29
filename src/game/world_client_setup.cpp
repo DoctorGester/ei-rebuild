@@ -1,5 +1,6 @@
 // The client world's set-up at startup: SetUpGraphics and the light colours by hour
 // from the lights table (LoadLights; config\LightsGipat.ini). See world.h.
+#include "figure_manager.h"   // FigureObjectType
 #include "material.h"
 #include "options.h"
 #include "world.h"
@@ -75,7 +76,6 @@ void ReadTable(CIniFile& ini, std::vector<std::string>& keys, std::string& hour,
     }
 }
 
-constexpr int kSkyFigureClass = 0x44;
 constexpr int kSkyObjectId = -666;
 constexpr int kSkyMaterialType = 0x12;
 const char* SkyPartName() { return "nask0"; }
@@ -125,7 +125,7 @@ void CWorldClient::LoadSky() {
     if (skyDome_) return;
     skyDome_ = new CSky();
     auto* figures = FigureManager();
-    auto* object = figures->CreateObjectAs<CSkyObject>(kSkyFigureClass, kSkyObjectId);
+    auto* object = figures->CreateObjectAs<CSkyObject>(FigureObjectType::SkyObject, kSkyObjectId);
     if (!object) return;
     object->name_ = SkyPartName();
     object->directory_ = game::kEmptyText;
