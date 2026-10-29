@@ -127,6 +127,12 @@ struct ShadowMesh {
     float uOffset, vOffset;            // added to the texture coordinates
     double model[16];                  // model space to the landscape's, row-major: out = M * (x, y, z, 1)
     const void* texture;               // stage 0's surface holder, or null
+    // The part (MeshSource::owner) and its link figure (MeshSource::shared, else null), and whether the
+    // positions are a copy with the per-vertex offsets added (MeshSource::moved): the renderer keeps the
+    // corners on the GPU by part, read again when MeshChanged says so.
+    const void* owner;
+    const void* shared;
+    bool moved;
 };
 void ShadowCasterMesh(const void* object, const ShadowMesh& mesh);
 // The walk's time counts as the shadow map's CPU time.

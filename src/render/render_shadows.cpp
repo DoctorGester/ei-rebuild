@@ -137,26 +137,19 @@ ShadowInfo g_info, g_lastInfo;
 
 // --- Casters outside the view --------------------------------------------------------------------
 
-// A corner of a caster handed over by ShadowCasterMesh: as a kept mesh's (MeshLayout's cached layout).
-struct CasterVertex {
-    Vector3 position;
-    float u, v;
-    Vector3 normal;   // unused (the kept meshes' layout, MeshLayout)
-};
-static_assert(sizeof(CasterVertex) == kCachedVertexBytes);
-// A mesh of ShadowCasterMesh: its model matrix into the landscape's space and its triangles in the stream.
+// A mesh of ShadowCasterMesh: its model matrix into the landscape's space, its corners kept on the GPU by
+// part (KeepCasterMesh) and its texture offsets.
 struct OutsideCaster {
     double model[16];
-    int firstIndex, indexCount;
+    const CachedMesh* mesh;
+    float uOffset, vOffset;
     sg_view texture;
     bool hasTexture;
     const void* object;
 };
-std::vector<CasterVertex> g_outsideVertices;
-std::vector<std::uint32_t> g_outsideIndices;
 std::vector<OutsideCaster> g_outside;
-// More corners than this in one frame (no present for a long time) are dropped.
-constexpr std::size_t kMostOutsideCorners = 2'000'000;
+// More casters than this in one frame (no present for a long time) are dropped.
+constexpr std::size_t kMostOutside = 100'000;
 std::unordered_set<const void*> g_drawnParts;   // NoteCasterPart, this frame
 // CastsShadow's strengths by object, made at the first CasterStrength of a frame.
 std::unordered_map<const void*, float> g_strengths;
@@ -208,7 +201,6 @@ sg_sampler g_rangeLinear{};   // the receivers read the range filtered
 sg_image g_rangeDummy{};      // the range's 1 x 1 stand-in without a map (an image the filtered read accepts)
 sg_view g_rangeDummyAttachment{}, g_rangeDummyTexture{};
 int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
-StreamBuffer g_outsideVertexBuffer(false, "ei-shadow-outside"), g_outsideIndexBuffer(true, "ei-shadow-outside");
 
 bool MakeCasterPipelines() {
     if (g_casterShader.id) return sg_query_pipeline_state(g_casterPipelines[1]) == SG_RESOURCESTATE_VALID;
@@ -490,6 +482,45 @@ void CollectQueries() {
 
 // --- The map's fit ----------------------------------------------------------------------------------
 
+// A half-space of the landscape's space: a x + b y + c z + d >= 0.
+struct Plane {
+    double a, b, c, d;
+    double Side(const D3& at) const { return a * at.x + b * at.y + c * at.z + d; }
+};
+
+// The camera's view as the fit takes it, in the landscape's space (clip space's rows combined): in front of
+// the camera (w >= 0), its sides widened by 5% (|x|, |y| <= 1.05 w) and before the far plane (z <= w).
+constexpr int kViewPlanes = 6;
+void ViewPlanes(const M4& camera, Plane planes[kViewPlanes]) {
+    auto row = [&](int i) { return Plane{camera.m[i * 4], camera.m[i * 4 + 1], camera.m[i * 4 + 2], camera.m[i * 4 + 3]}; };
+    auto sum = [](const Plane& p, double k, const Plane& q, double l) {
+        return Plane{p.a * k + q.a * l, p.b * k + q.b * l, p.c * k + q.c * l, p.d * k + q.d * l};
+    };
+    const Plane x = row(0), y = row(1), z = row(2), w = row(3);
+    planes[0] = w;
+    planes[1] = sum(w, 1.05, x, -1.0);
+    planes[2] = sum(w, 1.05, x, 1.0);
+    planes[3] = sum(w, 1.05, y, -1.0);
+    planes[4] = sum(w, 1.05, y, 1.0);
+    planes[5] = sum(w, 1.0, z, -1.0);
+}
+
+// Of the view's planes in `asked` (bit k: plane k), those the box low..high crosses; -1 when it is wholly outside
+// one of them: its corners farthest out and farthest in along each plane's normal.
+constexpr int kAllPlanes = (1 << kViewPlanes) - 1;
+int CrossedPlanes(const D3& low, const D3& high, const Plane planes[kViewPlanes], int asked) {
+    int crossed = 0;
+    for (int k = 0; k < kViewPlanes; ++k) {
+        if (!(asked & (1 << k))) continue;
+        const Plane& p = planes[k];
+        const D3 in{p.a >= 0.0 ? high.x : low.x, p.b >= 0.0 ? high.y : low.y, p.c >= 0.0 ? high.z : low.z};
+        const D3 out{p.a >= 0.0 ? low.x : high.x, p.b >= 0.0 ? low.y : high.y, p.c >= 0.0 ? low.z : high.z};
+        if (p.Side(in) < 0.0) return -1;
+        if (p.Side(out) < 0.0) crossed |= 1 << k;
+    }
+    return crossed;
+}
+
 // The map's view from the sun around the visible ground, made once a frame (FitMap): by PrepareShadows,
 // or earlier by the world's draw for its casters outside the view (ShadowCasterArea); made again when
 // more ground was drawn since.
@@ -569,22 +600,48 @@ const Fit& FitMap(Frame& f) {
     x = across < 1e-6 ? D3{1.0, 0.0, 0.0} : D3{x.x / across, x.y / across, 0.0};
     D3 y = Cross(d, x);
 
-    // The visible ground seen from the sun: every second terrain vertex inside the camera's view.
+    // The visible ground seen from the sun, by the terrain pieces' runs of vertices (a piece wholly outside the
+    // view skipped by its box, the planes it lies inside not tested again): a run wholly inside the camera's view
+    // by its box's corners (a box reaches above the run's low ground: seen from the sun its top lies
+    // a little further along y), one the view's sides cross by every second vertex inside them, as the camera
+    // sees it.
+    Plane planes[kViewPlanes];
+    ViewPlanes(camera, planes);
     D3 lo{1e30, 1e30, 1e30}, hi{-1e30, -1e30, -1e30};
     D3 groundLo{1e30, 1e30, 1e30}, groundHi{-1e30, -1e30, -1e30};
     int seen = 0;
-    std::vector<Vector3> visible;
-    TerrainPositions(f, 2, &visible);
-    for (const Vector3& p : visible) {
-        D3 at{p.x, p.y, p.z};
-        D4 c = Transform(camera, D4{at.x, at.y, at.z, 1.0});
-        if (c.w <= 0.0 || std::fabs(c.x) > 1.05 * c.w || std::fabs(c.y) > 1.05 * c.w || c.z > c.w) continue;
+    auto take = [&](const D3& at) {
         D3 l{Dot(x, at), Dot(y, at), Dot(d, at)};
         lo = D3{std::min(lo.x, l.x), std::min(lo.y, l.y), std::min(lo.z, l.z)};
         hi = D3{std::max(hi.x, l.x), std::max(hi.y, l.y), std::max(hi.z, l.z)};
         groundLo = D3{std::min(groundLo.x, at.x), std::min(groundLo.y, at.y), std::min(groundLo.z, at.z)};
         groundHi = D3{std::max(groundHi.x, at.x), std::max(groundHi.y, at.y), std::max(groundHi.z, at.z)};
         ++seen;
+    };
+    static std::vector<Vector3> positions;
+    auto crossedBy = [&](const TerrainGroup& g, int asked) {
+        return CrossedPlanes(D3{g.low.x, g.low.y, g.low.z}, D3{g.high.x, g.high.y, g.high.z}, planes, asked);
+    };
+    for (const TerrainPiece& piece : f.terrainPieces) {
+        const TerrainGroup& whole = TerrainPieceWhole(piece);
+        const int pieceCrossed = whole.count != 0 ? crossedBy(whole, kAllPlanes) : -1;
+        if (pieceCrossed < 0) continue;
+        for (const TerrainGroup& group : TerrainPieceGroups(piece)) {
+            const D3 low{group.low.x, group.low.y, group.low.z}, high{group.high.x, group.high.y, group.high.z};
+            const int crossed = crossedBy(group, pieceCrossed);
+            if (crossed < 0) continue;
+            if (crossed == 0) {
+                for (int i = 0; i < 8; ++i) take(D3{(i & 1) ? high.x : low.x, (i & 2) ? high.y : low.y, (i & 4) ? high.z : low.z});
+                continue;
+            }
+            TerrainGroupPositions(piece, group, 2, &positions);
+            for (const Vector3& p : positions) {
+                const D3 at{p.x, p.y, p.z};
+                bool inside = true;
+                for (int k = 0; k < kViewPlanes && inside; ++k) inside = !(crossed & (1 << k)) || planes[k].Side(at) >= 0.0;
+                if (inside) take(at);
+            }
+        }
     }
     if (seen == 0) return g_fit;
     double extent = std::max(hi.x - lo.x, hi.y - lo.y) + 2.0;
@@ -620,9 +677,9 @@ bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
     // above the ground by at most highestTop less the lowest ground, so back towards the sun from it by
     // at most that height over the tangent of the sun's elevation (d is never flatter than 20 degrees).
     // The ground's box swept back that far, widened by the widest object's radius.
-    double back = std::max(0.0, static_cast<double>(highestTop) - fit.lowGround.z) / std::fabs(fit.d.z);
+    double back = std::max(0.0, highestTop - fit.lowGround.z) / std::fabs(fit.d.z);
     double towardsX = -fit.d.x * back, towardsY = -fit.d.y * back;
-    double margin = std::max(0.0, static_cast<double>(widest));
+    double margin = std::max<double>(0.0, widest);
     area->x0 = static_cast<float>(fit.lowGround.x + std::min(0.0, towardsX) - margin);
     area->y0 = static_cast<float>(fit.lowGround.y + std::min(0.0, towardsY) - margin);
     area->x1 = static_cast<float>(fit.highGround.x + std::max(0.0, towardsX) + margin);
@@ -796,40 +853,19 @@ float CasterStrength(const void* object) {
 }
 
 void ShadowCasterMesh(const void* object, const ShadowMesh& m) {
-    if (!g_outsideOn || !m.positions || !m.corners || !m.indices || m.cornerCount <= 0 || m.indexCount < 3)
-        return;
-    if (g_outsideVertices.size() + static_cast<std::size_t>(m.cornerCount) > kMostOutsideCorners) return;
+    if (!g_outsideOn || m.indexCount < 3 || g_outside.size() >= kMostOutside) return;
     StatsTimer timer(&FrameStats::shadowMs);
-    const std::size_t base = g_outsideVertices.size();
-    for (int i = 0; i < m.cornerCount; ++i) {
-        const std::uint16_t* c = m.corners + i * 3;
-        if (c[0] >= m.positionCount) {
-            g_outsideVertices.resize(base);
-            return;
-        }
-        const float* block = m.positions + (c[0] / 4) * 16;
-        int lane = c[0] % 4;
-        CasterVertex v{{block[lane], block[4 + lane], block[8 + lane]}, m.uOffset, m.vOffset, {}};
-        if (m.uvs && c[2] < m.uvCount) {
-            v.u = m.uOffset + m.uvs[c[2] * 2];
-            v.v = m.vOffset + m.uvs[c[2] * 2 + 1];
-        }
-        g_outsideVertices.push_back(v);
-    }
-    const std::size_t first = g_outsideIndices.size();
-    for (int k = 0; k + 2 < m.indexCount; k += 3) {
-        if (m.indices[k] >= m.cornerCount || m.indices[k + 1] >= m.cornerCount || m.indices[k + 2] >= m.cornerCount) continue;
-        for (int j = 0; j < 3; ++j) g_outsideIndices.push_back(static_cast<std::uint32_t>(base + m.indices[k + j]));
-    }
+    const CachedMesh* kept = KeepCasterMesh(m);
+    if (!kept) return;
     OutsideCaster e{};
     for (int k = 0; k < 16; ++k) e.model[k] = m.model[k];
-    e.firstIndex = static_cast<int>(first);
-    e.indexCount = static_cast<int>(g_outsideIndices.size() - first);
+    e.mesh = kept;
+    e.uOffset = m.uOffset;
+    e.vOffset = m.vOffset;
     e.hasTexture = m.texture != nullptr;
     if (e.hasTexture) e.texture = SurfaceView(m.texture);
     e.object = object;
-    if (e.indexCount > 0) g_outside.push_back(e);
-    else g_outsideVertices.resize(base);
+    g_outside.push_back(e);
 }
 
 void BeginShadowWalk() {
@@ -884,8 +920,6 @@ void NoteCasterPart(const void* part) {
 void ShadowFrameDone() {
     g_lastInfo = g_info;
     g_info = ShadowInfo{};
-    g_outsideVertices.clear();
-    g_outsideIndices.clear();
     g_outside.clear();
     g_drawnParts.clear();
     g_nearestCaster = 1e30;
@@ -1018,13 +1052,6 @@ void DrawShadowMap(Frame& f) {
             f.shadow.on = false;
             g_info.made = false;
         } else {
-            int outsideVertices = -1, outsideIndices = -1;
-            if (!g_outside.empty()) {
-                outsideVertices = g_outsideVertexBuffer.Append(g_outsideVertices.data(),
-                                                               g_outsideVertices.size() * sizeof(CasterVertex));
-                outsideIndices = g_outsideIndexBuffer.Append(g_outsideIndices.data(),
-                                                             g_outsideIndices.size() * sizeof(std::uint32_t));
-            }
             UploadTerrainCasters();
             sg_pass pass{};
             pass.action.depth.load_action = SG_LOADACTION_CLEAR;
@@ -1077,21 +1104,20 @@ void DrawShadowMap(Frame& f) {
                 ++g_info.casterDraws;
                 counted[batch.caster] = true;
             }
-            if (outsideVertices >= 0 && outsideIndices >= 0) {
+            if (!g_outside.empty()) {
                 sg_apply_pipeline(g_casterPipelines[1]);
                 std::unordered_map<const void*, bool> outside;
+                int corners = 0;
                 for (const OutsideCaster& e : g_outside) {
                     sg_bindings b{};
-                    b.vertex_buffers[0] = g_outsideVertexBuffer.Buffer();
-                    b.vertex_buffer_offsets[0] = outsideVertices;
-                    b.index_buffer = g_outsideIndexBuffer.Buffer();
-                    b.index_buffer_offset = outsideIndices;
+                    int first = 0;
+                    if (!BindCachedMesh(*e.mesh, b, &first)) continue;
                     b.views[0] = e.hasTexture && e.texture.id ? e.texture : SurfaceView(nullptr);
                     b.samplers[0] = StageSampler(StageState{});
                     sg_apply_bindings(&b);
                     M4 model;
                     for (int k = 0; k < 16; ++k) model.m[k] = e.model[k];
-                    CasterVs vs{ToMatrix(Multiply(g_fit.light, model)), {0.0f, 0.0f, 0.0f, 0.0f}};
+                    CasterVs vs{ToMatrix(Multiply(g_fit.light, model)), {e.uOffset, e.vOffset, 0.0f, 0.0f}};
                     sg_range vr{&vs, sizeof(vs)};
                     sg_apply_uniforms(0, &vr);
                     CasterFs fs{};
@@ -1103,14 +1129,15 @@ void DrawShadowMap(Frame& f) {
                     }
                     sg_range fr{&fs, sizeof(fs)};
                     sg_apply_uniforms(1, &fr);
-                    sg_draw(e.firstIndex, e.indexCount, 1);
+                    sg_draw(first, CachedIndexCount(*e.mesh), 1);
                     ++g_stats.shadowDraws;
                     ++g_info.outsideDraws;
+                    corners += CachedVertexCount(*e.mesh);
                     outside[e.object] = true;
                     counted[e.object] = true;
                 }
                 g_info.outsideCasters = static_cast<int>(outside.size());
-                g_info.outsideCorners = static_cast<int>(g_outsideVertices.size());
+                g_info.outsideCorners = corners;
             }
             if (TerrainCasterCount() != 0) {
                 Matrix4 light = ToMatrix(g_fit.light);
@@ -1203,8 +1230,6 @@ void DestroyShadows() {
     ReleaseQueries();
 #endif
     DestroyPointShadows();
-    g_outsideVertexBuffer.Destroy();
-    g_outsideIndexBuffer.Destroy();
     DestroyTarget(&g_map, &g_mapAttachment, &g_mapTexture);
     DestroyTarget(&g_rangeDummy, &g_rangeDummyAttachment, &g_rangeDummyTexture);
     DestroyTarget(&g_dummy, &g_dummyAttachment, &g_dummyTexture);

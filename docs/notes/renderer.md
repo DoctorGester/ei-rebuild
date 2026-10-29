@@ -1063,7 +1063,8 @@ across runs; the goldens check the game state.
    page reads them again through its vertices' records and tile entries and uploads the changed range; the visible
    quarters' colours are compared with the records every frame, the changed range uploaded. The pool (at least 128 K vertices) starts again with the frame's
    pages when full (made larger when they need more than half of it); pages not drawn for 600 frames are dropped.
-   The shadow map's fit reads the pieces' positions (`TerrainPositions`, the same vertices in the same order).
+   The shadow map's fit reads a piece's vertices in runs of 72 with their boxes (`TerrainPieceGroups`, made when a
+   page's vertices are built or moved) and, for a run the view's sides cross, its positions (`TerrainGroupPositions`).
    Measured (render_stats, vanilla 4K, per frame): terrain upload before / after menu 268 / 51 KB, zone1 808 / 229,
    fight 808 / 211, town 372 / 74 (indices only when a page is built: none in these scenes); terrain CPU (`renderstats`
    "terrain": hand-over and uploads) zone1 0.44-0.61 ms with every page built and uploaded every frame / 0.24 kept,
@@ -1422,9 +1423,15 @@ across runs; the goldens check the game state.
     `CastsShadow` after its option, class switch and visibility tests; a unit only once faded in to half). Once a
     frame before the first pass (`PrepareShadows`): the camera's matrix is the world's first ground batch's; its
     inverse times a mesh's clip matrix gives the mesh in the landscape's space; an orthographic view from the sun
-    (tilted to at least 20 degrees as 0051CE60's) is fitted around every second terrain vertex inside the view (x, y
-    in steps of 8 units, origin on whole texels; along the light from the nearest caster that reaches it, below),
-    4096 x 4096 D32. The
+    (tilted to at least 20 degrees as 0051CE60's) is fitted around the visible ground (x, y in steps of 8 units,
+    origin on whole texels; along the light from the nearest caster that reaches it, below), 4096 x 4096 D32. The
+    ground is taken in runs of 72 of a terrain piece's vertices (8 tiles at the finest detail; their boxes kept with
+    the page): a run wholly inside the view (widened by 5% at its sides) by its box's corners, one the view's sides
+    cross by every second vertex inside them, tested against the planes it crosses only (R37d: before, every second
+    vertex of every piece went through the camera's matrix each frame). The box's top over a run's low ground
+    widens the fit a little: in render_shadows* the same extents as before, the origin a few texels off. The
+    crossed runs' boxes cut to the view instead of their vertices (as the pieces' quarters' before) grew the extent
+    by a step in 6 of render_shadows*'s 9 shadowchecks: the boxes reach too far above and below the ground. The
     casters' model meshes (first pass of each; alpha-tested or blended passes cut out by stage 0's alpha, read from
     the texture's level 0: a smaller level seen from the sun at a grazing angle averages fronds away;
     render_options_shadows' pine casts a denser shadow so, 0.9% of that frame) go into it in a depth-only pass. Receivers: the ground pages (not water: the ground under it) and the world's model meshes
@@ -1491,7 +1498,10 @@ across runs; the goldens check the game state.
     flagged hidden 0x80 or farther than 0073DE58 skipped; a link figure's part through its ranges, a plain one
     through its buffers, per-vertex offsets added), with its part set's texture; a part the game drew as a
     caster's mesh this frame is left out (`render::CasterPartDrawn`). Cut out by alpha as the on-screen meshes with
-    the same texture were (remembered per texture), else at alpha 0.5. Check: scenario render_shadows_outside
+    the same texture were (remembered per texture), else at alpha 0.5. A part's corners are kept on the GPU by part
+    in the kept meshes' pool and read again only when the game says the part or its link figure moved or was
+    rebuilt (R37c, render_mesh_cache.cpp's KeepCasterMesh); each frame only the part's matrix and texture offsets
+    are handed over. Check: scenario render_shadows_outside
     (image only): zone1's start, the town bz1g, and the town with the camera moved towards the viewer until the
     gate is above the screen; each frozen with the outside casters (`shadowcasters all`, the default), without them
     (`view`, as before R20) and with every caster taken from the walk and none from the game's draws (`walked`: the
@@ -1607,8 +1617,11 @@ of the 0.5-1.6 ms hand-over).
     Follow-ups by expected gain: R37f (the game's projection replaced by a sphere, the user's call: 0.3-1.2 ms;
     done, item 5: 0.5-1.0 ms of main thread saved, no GPU growth), R37a /
     R37b (point shadows kept across frames, their preparation: up to 0.6 ms in the crowd), R37g (the frustum test:
-    0.2-0.5 ms in forests; done, docs/notes/models.md: zone7 -0.27 ms, zone11 -0.12 ms, the same answers), R37c (caster boxes and outside casters kept: 0.2-0.4), R37e (shadow casters' calls: 0.3),
-    R37d (the fit: 0.1-0.25), R37h (the canvases' GPU), R37i (the overlay split per pass, for visibility).
+    0.2-0.5 ms in forests; done, docs/notes/models.md: zone7 -0.27 ms, zone11 -0.12 ms, the same answers), R37c (caster boxes and outside casters kept: 0.2-0.4; done:
+    in-frame old / new, zone1, town night, crowd: outside casters 0.07-0.12 / 0.010-0.016 ms not counting the old
+    stream's upload, boxes 0.005-0.04 / 0.002-0.013), R37e (shadow casters' calls: 0.3),
+    R37d (the fit: 0.1-0.25; done: 0.07-0.13 / 0.04-0.086 ms, most of zone1's runs are crossed by the view's sides
+    and still walked), R37h (the canvases' GPU), R37i (the overlay split per pass, for visibility).
 
 ### Loose .bmp textures (A-I23a)
 
@@ -1860,8 +1873,13 @@ built and uploaded again is what the game says changed:
 - all of it, when the mesh's buffers changed (MeshChanged Rebuilt) or the draw hands over other arrays or counts
   than it was built from. Interface sprites (render::SetInterfaceDraw) and a mesh drawn again in the same frame
   with other data go into the frame's stream. The texture offsets (an animated mesh's frame of its sheet) are the
-  draw's, added in the shader. The harness build compares every kept mesh with a fresh build every 16th frame
-  (`meshcache check`); `meshcache off` builds every mesh into the frame's stream.
+  draw's, added in the shader. A kept mesh also keeps the box of its positions (CachedMeshBox: a caster's box for
+  the point shadows' spheres and the units' fronts), taken again only when they were built or moved. The casters
+  outside the view (render::ShadowCasterMesh) are kept the same way by part (KeepCasterMesh: a map of their own,
+  positions and texture coordinates only, no colours; read at most once a frame), drawn from the pool with the
+  part's matrix and texture offsets. The harness build compares every kept mesh, box and caster with a fresh build
+  every 16th frame (`meshcache check`); `meshcache off` builds every mesh into the frame's stream (and every
+  caster again each frame).
 
 ### render_point_shadows.cpp: point-light shadows
 

@@ -2170,7 +2170,7 @@ bool WindowVtable(const std::string& name, std::uintptr_t* vtable) {
 
 // game.exe's table of the window on top (WindowKind), 0 without one.
 std::uintptr_t TopWindowVtable(void* top) {
-    return top ? ei::OriginalAddress(WindowKind(top)) : 0;
+    return top ? WindowKind(top) : 0;
 }
 
 // Whether the awaited window is on top and takes input (see the step's description).

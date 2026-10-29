@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <memory>
 #include <utility>
+#include <span>
 #include <vector>
 
 class TextureDevice;
@@ -517,13 +518,21 @@ private:
     std::vector<std::uint32_t> absolute;    // scratch: an item's indices made absolute
 };
 
-// The terrain, inside EndFrame's off-screen pass. TerrainPositions: every `step`th position of the frame's
-// terrain vertices in draw order (the shadow map's fit). TerrainFrameDone, after a present, drops pages not
+// The terrain, inside EndFrame's off-screen pass. For the shadow map's fit: TerrainPieceGroups, a piece's
+// vertices in runs (TerrainGroup: kept with the page, made when its vertices are built or moved), and
+// TerrainPieceWhole, all of them as one; TerrainGroupPositions, every `step`th position of a run. TerrainFrameDone, after a present, drops pages not
 // drawn for a long time. DestroyTerrain keeps the pages (placed again at their next draw).
+struct TerrainGroup {
+    Vector3 low, high;              // the box of its positions in the landscape's space
+    std::uint32_t first, count;     // its vertices in the page's
+};
 bool CreateTerrainShader();
 void UploadTerrain(const Frame& frame);
 void DrawTerrainBatch(const Frame& frame, const TerrainBatch& batch);
-void TerrainPositions(const Frame& frame, std::size_t step, std::vector<Vector3>* out);
+std::span<const TerrainGroup> TerrainPieceGroups(const TerrainPiece& piece);
+const TerrainGroup& TerrainPieceWhole(const TerrainPiece& piece);
+void TerrainGroupPositions(const TerrainPiece& piece, const TerrainGroup& group, std::uint32_t step,
+                           std::vector<Vector3>* out);
 void TerrainFrameDone();
 void DestroyTerrain();
 // The ground's casters (render::ShadowTerrainSector). DrawTerrainCasters draws with `pipeline` (vertex buffer
@@ -558,6 +567,15 @@ constexpr std::size_t kCachedVertexBytes = 32;   // a kept corner's geometry: po
 void NoteMeshDraw(const MeshDraw& mesh);
 CachedMesh* KeepMesh(const MeshDraw& mesh);
 int CachedIndexCount(const CachedMesh& mesh);
+int CachedVertexCount(const CachedMesh& mesh);
+// The box of a mesh's positions in model space (low xyz, high xyz); false without positions. CachedMeshBox:
+// the kept mesh's, taken again only when its positions changed (`mesh` is the draw KeepMesh kept it from).
+bool PositionBox(const MeshDraw& mesh, float box[6]);
+void CachedMeshBox(CachedMesh& kept, const MeshDraw& mesh, float box[6]);
+// A caster outside the view (render::ShadowCasterMesh) kept by its part as KeepMesh keeps a drawn mesh (its
+// positions and texture coordinates without the offsets, which the caster pass adds; no colours), read once
+// a frame; null when a corner is out of range or nothing is left to draw.
+CachedMesh* KeepCasterMesh(const ShadowMesh& mesh);
 // Changes whenever the kept mesh's corners (positions, texture coordinates) or triangles change; no two kept
 // meshes ever share one (render_point_shadows.cpp keeps faces drawn from them).
 std::uint32_t CachedMeshVersion(const CachedMesh& mesh);

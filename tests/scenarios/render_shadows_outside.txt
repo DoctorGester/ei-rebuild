@@ -90,5 +90,7 @@ samecapture gate_all gate_all2
 samecapture gate_all gate_walked 8 0.01
 # (R16i: the gate's shadow takes the sun's light only, not the town's fires': lighter where they reach.)
 diffcapture gate_all gate_view 0.003 0.05
+# The walk's casters are kept on the GPU by part (R37c): checked against fresh builds as the drawn meshes.
+meshcache check
 report
 quit
