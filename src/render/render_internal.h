@@ -130,7 +130,7 @@ struct MeshBatch {
     int indexCount;
     PassState state;
     bool distanceFog;
-    float fogNear;            // the transform object's fog start
+    float fogNear;            // the pipeline's fog start
     float fogScale;           // 255 / (end - start)
     bool unclipped;           // the old path projected it without clipping
     float zScale;             // the depth is multiplied by it (1: unchanged)

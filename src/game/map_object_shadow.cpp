@@ -1,38 +1,38 @@
 // The shadow of a 3D object on the client: the renderer's shadow map draws it (CastsShadow); the game's own
 // build still projects the decal, whose sphere decides the shadow's visibility out of view (ShadowInView). See
 // map_object_shadow.h and docs/notes/map_objects.md ("Shadows").
-#include "figure_mesh.h"
-#include "options.h"
 #include "map_object_shadow.h"
 
-#include "link_figure.h"        // CLinkMesh
+#include "figure_mesh.h"
+#include "game_singletons.h"
+#include "link_figure.h"   // CLinkMesh
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "model.h"
-#include "spell.h"              // CLight
-#include "unit.h"               // CUnit
-#include "unit_client_models.h" // CUnitClientSpecific
-#include "view_matrices.h"
 #include "maths.h"
+#include "model.h"
 #include "object.h"
-#include "world.h"              // g_clientWorld
+#include "options.h"
+#include "render/render.h"
+#include "spell.h"                // CLight
+#include "unit.h"                 // CUnit
+#include "unit_client_models.h"   // CUnitClientSpecific
+#include "view_matrices.h"
+#include "world.h"   // g_clientWorld
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/gameapi.h"
+#include "lib/nan_audit.h"
+#include "lib/vecmath.h"
+
+#include "ei/x87.h"
+
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <string>
-
-#include "ei/x87.h"
-#include "lib/vecmath.h"
-#include "render/render.h"
-
-#include <bit>
 #include <vector>
-#include "game_singletons.h"
-#include "lib/nan_audit.h"
-#include "lib/float_select.h"
 
 // The original keeps intermediate values on the FPU stack (double locals here) and rounds where it stores to a
 // float (float locals); the order of every operation is the original's.
@@ -76,8 +76,7 @@ volatile double g_minimumTilt = 20.0;
 // The pipeline's stack the shadow is rendered with.
 constexpr int kShadowStack = 10;
 
-const float* TopMatrix(const CTransformPipeline* pipeline) { return pipeline->Top(kShadowStack)->m; }
-
+const Matrix4& TopMatrix(const CTransformPipeline* pipeline) { return *pipeline->Top(kShadowStack); }
 
 // The light's brightness: 0.1 blue + 0.6 green + 0.3 red, unrounded.
 double Brightness(const CLight* light) {
@@ -245,8 +244,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
             count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets_, TopMatrix(pipeline), &g_points[count],
                                          self->bounds);
         } else {
-            count += PartAt(self->object, i)->DrawOffset(pipeline, TopMatrix(pipeline), &g_points[count],
-                                                         self->bounds);
+            count += PartAt(self->object, i)->DrawOffset(TopMatrix(pipeline), &g_points[count], self->bounds);
         }
         pipeline->PopMatrix(kShadowStack);
     }
@@ -329,7 +327,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
                                &self->vertices, &self->texCoords, &self->indices, static_cast<unsigned char>(0), static_cast<unsigned char>(keyedParts == 0));
 
     if (!self->vertices.empty()) {
-        pipeline->transform_->FitBounds(&self->sphere, self->vertices.data(), std::ssize(self->vertices));
+        self->sphere.Fit(self->vertices.data(), std::ssize(self->vertices));
         const Vector3& position = self->object->localPosition_;
         self->sphere.center.x = static_cast<float>(static_cast<double>(self->sphere.center.x) - position.x);
         self->sphere.center.y = static_cast<float>(static_cast<double>(self->sphere.center.y) - position.y);

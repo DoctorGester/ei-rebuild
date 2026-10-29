@@ -269,8 +269,8 @@ briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every
 `class_template_stock.cpp` (trader_stock, every new game), `script_runtime_helpers.cpp` / `party_script.cpp`,
 `global_map_clouds.cpp` (CGlobalMapClouds; ui_camp, frames_basic), `face_normal.cpp` / `model_names.cpp`, `particle_attach.cpp`
 (particles, spells_cast), `link_figure.cpp` / `link_loader.cpp` (newgame via 00568800, models, ui_hero_screen),
-`sky_object.cpp` (render_scene), `server_specific_manager.cpp`, `model.cpp` (ProjectBlocks 004F2650, ProjectTerrain
-004F29F0: `ITransformPipeline` slots 9 / 14 / 18 / 19), `party_manager.cpp`, `effects_weather.cpp`, `dx_errors.cpp`.
+`sky_object.cpp` (render_scene), `server_specific_manager.cpp`, `model.cpp` (ProjectBlocks 004F2650; ProjectTerrain
+004F29F0 is gone with the terrain's projection, R31), `party_manager.cpp`, `effects_weather.cpp`, `dx_errors.cpp`.
 
 - Stream diff: `ApplyDiff` patches run headers in place and follows a full run of 255 by an empty run of the other kind.
   `ReplaceTagged` 004A4AF0 has no caller in game.exe (Rebirth's EI_Plugin.asi calls it through a thiscall thunk).
@@ -353,7 +353,7 @@ Facts:
 - Link figures: `CLinkMesh` (vtable 0073D790, 0xB0, slots 0-6 declared): part headers STLport map<string, LinkPartHeader 0x50>
   +0x14, morph coefficients +0x30, six aligned arrays +0x3C (vertex packets, normal packets, texture coordinates, 6-byte
   corners (`AlignedArray<IndexTriangle>`), dwords, words), ranges map<string, 0x30> +0x9C, loader +0xA8, pipeline +0xAC
-  (`ITransformPipeline`, 3DfpFPU.dll's; slot 7 FitBounds). The loader (model.h, 7 slots): `figureSets_` +0x10, `renderer_`
+  (3DfpFPU.dll's transform object, slot 7 FitBounds; ours has none: `ClipBounds::Fit`, R31). The loader (model.h, 7 slots): `figureSets_` +0x10, `renderer_`
   +0x24 (the device object, whose +0xAC is the pipeline: `CTextureDevice::pipeline_`), the cache `STLport map<string,
   CLinkMesh*>` +0x28. Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s), lerp(c2,c3,s), t), lerp(lerp(c4,c5,s),
   lerp(c6,c7,s), t), u), old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u) (`MorphFig8Packet`,
@@ -383,7 +383,7 @@ Facts:
 - Clouds: SetRamp's alpha is trunc(255 - pow(width / 255, max(0, i - start)) * 255) >> 4 with the CRT pow (a last-bit pow
   difference matters only on an exact multiple of 16); Draw's blend is trunc((step + phase) / 16 * 254 + 1); the original's
   third SetRamp argument is the fade speed.
-- `CTransformPipeline` (model.h) has `transform_` +0x0C (3DfpFPU's object); 0059F030 (CFigure's destructor body) is
+- `CTransformPipeline` (model.h): the original's +0x0C held 3DfpFPU's object (ours has none since R31); 0059F030 (CFigure's destructor body) is
   `FigureDestructBodyOriginal` (originals_core.h); the figure model forwarders 005A9A50 / 005A9C90 / 005A9EB0 are shared in
   originals_world.h; 004A91B0 is `PartyMapAtOriginal` (originals_gameplay.h); 006617F0 `CParty::ArchiveParty`. Counted
   pointers are released through `CRefCounted` (`delete` = slot 0 with 1); the party map's party is `PartyInPlace` (`PartyStorage`, party_storage.h).

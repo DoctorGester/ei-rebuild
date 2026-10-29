@@ -122,13 +122,13 @@ int CWorldClient::UpdateLighting() {
     if (!(display->flags_ & 1)) return 1;
     UpdateExitMarkers();
     const double now = HourOfDay(this);
-    ITransformPipeline* transform = display->pipeline_->transform_;
+    CTransformPipeline* pipeline = display->pipeline_;
 
     if (cave_ == 1) {
         float stored = static_cast<float>(now);
         const float hour = stored;
         if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
-        transform->SetDepthRange(options::g_options.fogDayStartDistance_, options::g_options.farClipDistance_);
+        pipeline->SetDepthRange(options::g_options.fogDayStartDistance_, options::g_options.farClipDistance_);
         const LightColour sun = sunlight_[0];
         frameSun_.r = sun.r;
         frameSun_.g = sun.g;
@@ -168,7 +168,7 @@ int CWorldClient::UpdateLighting() {
     float stored = static_cast<float>(now);
     const float hour = stored;
     const int index = GameFtol(now);
-    transform->SetDepthRange(FogStart(hour), options::g_options.farClipDistance_);
+    pipeline->SetDepthRange(FogStart(hour), options::g_options.farClipDistance_);
     lightingMark_ = 0x80;
     if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
 

@@ -14,8 +14,8 @@ function is reached by every scenario (startup databases, new game, save / load,
   (`EB` instead of `74` at 00456BB5).
 - Linked in: MFC 4.2 (static), static CRT with old iostreams, STLport (version not identified). The game's own classes
   have no RTTI: classes are recovered from vtables (`config/vtables.csv`). Bink, Miles (MSS), DirectX 7,
-  WSOCK32 by ordinal. `2DintMMX.dll` and `3DfpFPU.dll` (VC6, 2000) are loaded by name and are not
-  rebuilt.
+  WSOCK32 by ordinal. `2DintMMX.dll` and `3DfpFPU.dll` (VC6, 2000) are loaded by name; the rebuild loads neither
+  (R28, R31: their work is plain C++ or the GPU's).
 
 ## Maths and transforms
 

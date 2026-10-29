@@ -2,8 +2,8 @@
 #include "link_figure.h"
 
 #include "model.h"
-#include "texture.h"   // CTextureDevice
 #include "render/render.h"   // MeshChanged
+#include "texture.h"         // CTextureDevice
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
@@ -103,7 +103,6 @@ CLinkMesh::CLinkMesh(CLinkFigureLoader* loader, const std::string* name, float s
     morphWeights_[1] = t;
     morphWeights_[2] = u;
     loader_ = loader;
-    pipeline_ = loader->renderer_->pipeline_->transform_;
 }
 
 CLinkMesh::~CLinkMesh() {
@@ -160,7 +159,7 @@ void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const std::string* name, co
         }
         SetW(packet);
     }
-    if (count) pipeline_->FitBounds(&header->box.bounds, packets.data(), count);
+    if (count) header->box.bounds.Fit(packets.data(), count);
 
     const char* normals = *cursor;
     const char* texCoords = normals + fig.normalCount * static_cast<int>(sizeof(NormalPacket));
@@ -183,7 +182,7 @@ void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const std::string* name, co
 
     std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
-    if (count) pipeline_->FitBounds(&header->box.bounds, packets.data(), count);
+    if (count) header->box.bounds.Fit(packets.data(), count);
 
     // Each array is a count and its elements; a block of 0x34-byte records between the texture
     // coordinates and the corners is skipped.
@@ -220,7 +219,7 @@ void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const std::string* name,
     int count = fig.vertexCount;
     std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) MorphFig8Packet(packets[i], cursor, s, t, u);
-    if (count) pipeline_->FitBounds(&header->box.bounds, packets.data(), count);
+    if (count) header->box.bounds.Fit(packets.data(), count);
     mesh->SetPartVertices(name, packets.data(), static_cast<unsigned>(count));
 }
 
@@ -231,7 +230,7 @@ void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const std::string* name,
     int count = Read<int>(cursor);
     std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
-    if (count) pipeline_->FitBounds(&header->box.bounds, packets.data(), count);
+    if (count) header->box.bounds.Fit(packets.data(), count);
     mesh->SetPartVertices(name, packets.data(), static_cast<unsigned>(count));
 }
 

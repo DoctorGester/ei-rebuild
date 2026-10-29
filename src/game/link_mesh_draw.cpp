@@ -3,21 +3,20 @@
 // callers are the figure part draw (figure_part_draw.cpp) and the shadow
 // (map_object_shadow.cpp), through the vtable only. The old Direct3D 7 path: the two plain draws
 // turn the device's specular on around the draw for a material that keeps its speculars.
-#include "link_figure.h"
-
 #include "core_maths.h"
-#include "material.h"            // CMaterial
-#include "texture.h"             // CTextureDevice
+#include "link_figure.h"
+#include "material.h"        // CMaterial
+#include "render/render.h"   // MeshChanged
+#include "render/render_state.h"
+#include "texture.h"   // CTextureDevice
+
+#include "lib/crt.h"
 
 #include "ei/x87.h"
-#include "lib/crt.h"
-#include "render/render.h"         // MeshChanged
-#include "render/render_state.h"
 
 #include <bit>
-#include <cstdlib>
-
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <vector>
@@ -203,14 +202,14 @@ int CLinkMesh::DrawPartTextured(const std::string* name, int flags, Surface* fir
 // ---- 13 / 14: the shadow ---------------------------------------------------------------------------
 
 // The part's positions (moved by `offsets` when it has any) through
-// the transform object's flat projection; four points per packet.
-int CLinkMesh::ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const float* matrix,
+// the flat projection (ProjectFlat); four points per packet.
+int CLinkMesh::ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const Matrix4& matrix,
                            Vector2* points, float* bounds) {
     auto node = ranges_.find(*name);
     if (node == ranges_.end()) return 0;
     const LinkPartRanges& r = node->second;
     const VertexPacket* positions = vertices_.data() + r.vertices.start;
     if (!offsets->empty()) positions = MovedPositions(positions, r.vertices.count, offsets);
-    pipeline_->ProjectFlat(matrix, positions, points, r.vertices.count, bounds);
+    ProjectFlat(matrix, positions, points, r.vertices.count, bounds);
     return r.vertices.count << 2;
 }

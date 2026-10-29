@@ -6,7 +6,7 @@ src/game/chunk_archive.cpp,0,0,0,0,0,0,0,0,0,0,0,0,3,0
 src/game/device_object.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/figure_load_bounds.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/figure_manager.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0
-src/game/figure_mesh.cpp,0,0,0,0,0,0,0,0,0,0,0,0,2,0
+src/game/figure_mesh.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/ini_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/item_stock.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/link_loader.cpp,0,0,0,0,0,0,0,0,0,0,0,0,4,0
@@ -26,12 +26,10 @@ src/game/player_client_handlers.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/registry.cpp,0,0,0,0,0,0,0,0,0,0,0,0,2,0
 src/game/settings_document.cpp,0,0,0,0,0,0,0,0,0,0,0,0,2,0
 src/game/surface_capture.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0
-src/game/terrain_sector.cpp,0,0,0,0,0,0,0,0,0,0,0,0,3,0
 src/game/world_client_view.cpp,0,0,0,0,0,0,0,0,0,0,0,0,2,0
 src/game/world_effect_internal.h,0,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/world_effect_missile.cpp,0,0,0,0,0,0,0,0,0,0,0,0,6,0
 src/game/world_effect_visibility.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/world_save.cpp,0,0,0,0,0,0,0,0,0,0,0,0,3,0
 src/render/render.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0
-src/render/render_mesh.cpp,0,0,0,0,0,0,0,0,0,0,0,0,2,0
 src/render/render_textures.cpp,0,0,0,0,0,0,0,0,0,0,0,0,5,0

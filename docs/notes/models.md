@@ -8,7 +8,8 @@ file's header comment. Verify: `tests/verify/verify_models.cpp` and one `verify_
 
 ## Map
 
-**004F0000-00500000, the 3D transform library**: 004F0B90 loads `3DfpFPU.dll` / `GetTLPipeline` (once, from 00500540);
+**004F0000-00500000, the 3D transform library**: 004F0B90 loaded `3DfpFPU.dll` / `GetTLPipeline` (once, from 00500540;
+ours loads nothing, R31: the pipeline's projections are plain C++, projection.cpp, renderer.md section 10);
 004F68C0 (Rebirth-patched) is the `CLinkFigureLoader` constructor (vtable 0073D808; opens `figures.res` and `menus.res`
 through 004F6D30); the link / FIG loading 004F7150..004F87D0 is in script.md ("Link figures"); 004F16A0 frustum
 classification of a part's bounds (callers all over the renderer); 004F1330 (Rebirth-patched), 004F1370, 004F13F0, 004F0E80,
@@ -45,8 +46,8 @@ whether the patched code still calls the rewritten functions is unknown.
 ## Renderer (00500B70-005053FF)
 
 The renderer is the global at 007AF060 (vtable 0073D93C). +8 the transform pipeline (matrix stacks as aligned arrays of
-64-byte matrices: data/count at +0x14, +0x1C, +0x24, +0x3C, +0x44, +0x4C, +0x54; +0xC the transform object, whose slots
-project and clip vertices), +0x20 the counted device holder (004E5E50: +8 last HRESULT, +0xC DirectDraw, +0x14 primary
+64-byte matrices: data/count at +0x14, +0x1C, +0x24, +0x3C, +0x44, +0x4C, +0x54; +0xC 3DfpFPU's transform object, whose slots
+projected and clipped vertices), +0x20 the counted device holder (004E5E50: +8 last HRESULT, +0xC DirectDraw, +0x14 primary
 surface, +0x18 render target (+0x14 width, +0x18 height), +0x54 IDirect3DDevice7, +0xAC the pipeline again (its transform
 object's slot 35 sees every vertex batch when +0x158 is set), +0x150 override colour of the mesh draws, +0xE0 vertices sent
 to vertex buffers, +0x16C / +0x170 / +0x174 vertex, triangle and call counters), +0x24 the counted state-block helper
@@ -70,7 +71,9 @@ Facts not in the code comments:
   operator new left in EDX, reproduced by capturing EDX after the same allocation. The depth range call takes two arguments
   (settings +0x264, +0x1E4). The settings argument is `options::GameOptions` (video fields +0x2C..+0x78, FarClipDistance
   +0x1E4, FogDayStartDistance +0x264); `CSceneRenderer` +4 flags, +0x24 a counted `CRenderHelper` (0x118), +0x50 creation
-  time; transform object slots 1 SetViewportSize, 2 AddSun, 4 SetProjection, 5 SetDepthRange, 40 LightMesh.
+  time; the original's transform object slots 1 SetViewportSize, 2 AddSun, 4 SetProjection, 5 SetDepthRange, 40
+  LightMesh (ours: the pipeline's SetViewportSize, SetDepthRange and `projection`; the sun and ambient go to the GPU
+  lighting only).
 - **Layouts** (C9): the figure at CObject3D +0xF0 is a `CLinkMesh` (slots 7-12 draw a mesh part, 13 / 14 project /
   rasterise its shadow); 005A7A70's `this` is a `FigureMeshDrawer` (+0x1C the CFigureMesh, +0x20 its screen rect);
   CFigureMesh +0x94 drawer, +0x98 owner, +0xD4 / +0xD8 flat colour / specular; CLight (a CTransformObject) +0x28 worldPosition_ / +0x108 position / direction
@@ -254,8 +257,8 @@ the three arrays, ours into the caller's, sizes / capacities / used elements com
 The original's statics: the builder 007AF488 and the part points (Vector4 array 007AF478), guard 007AF504, exit
 handlers 0056CE30 / 0056CE10; ours are plain globals (C50b). The platform pass walks the platform faces (an object with several faces
 adds its parts once per face, kept), pushes the object's and each part's matrix on the scene pipeline's stack 14
-(`kDecalStack`), transforms the part's packets with the transposed top through the transform object's slot 26
-(`TransformPoints`) and adds each triangle (AddTriangle through its unhooked original). GetPartData's result is not checked
+(`kDecalStack`), transforms the part's packets with the top (`ToClip`; the original passed the transposed top to
+3DfpFPU's slot 26) and adds each triangle (AddTriangle through its unhooked original). GetPartData's result is not checked
 (kept; ours starts from no part data). The parts are used as CObject3D-like scene nodes (+0x34 orientation, +0x54 matrix),
 which FigurePart's declaration contradicts (C9).
 

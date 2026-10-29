@@ -4,12 +4,12 @@
 #include "renderer_lines.h"
 
 #include "model.h"
+#include "render/render.h"
+#include "render/render_state.h"
 #include "texture.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "render/render.h"
-#include "render/render_state.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -51,5 +51,5 @@ long DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, 
 
 // The line lists' work arrays (renderer_lines.h).
 std::vector<LineVertex> g_lineVertices;
-std::vector<ProjectedPoint> g_lineProjected;
+std::vector<Vector4> g_lineProjected;
 std::vector<std::uint8_t> g_lineOutcodes;

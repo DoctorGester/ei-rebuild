@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-// Four vertex positions in SoA form for the transform library: x[4], y[4], z[4] and w[4] (the loaders set w to
+// Four vertex positions in SoA form for the projections: x[4], y[4], z[4] and w[4] (the loaders set w to
 // 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2. Also the moved positions the part drawers
 // build. `block` is four rows of lanes, not a matrix (check_cleanup skips the name).
 struct VertexPacket {
@@ -69,7 +69,7 @@ inline constexpr std::uint32_t kAnimatedDrawerFlags = /*00790C0C*/ 0x200;
 
 // The material a figure part is drawn with (the draw's fourth argument) is a CMaterial: MaterialFlag::KeepSpecular
 // keeps the speculars (draw flag 8), the lights scale colors.diffuse / colors.specular
-// (CLight::SetLitColors) and the transform object lights with colors.emissive's first three dwords.
+// (CLight::SetLitColors) and the GPU lighting adds colors.emissive (render::MeshLighting).
 class CMaterial;
 
 class CLight;
@@ -133,10 +133,9 @@ public:
         int count;
     };
     void SetOffsets(const OffsetSpan* offsets);
-    // Projects the vertices flat through `pipeline`'s transform object (ProjectFlat: `matrix`, the points out, the
-    // bounds grown) with the vertices moved by offsets_ when there are any (into a shared buffer). Returns the
-    // vertex count (4 per packet).
-    int DrawOffset(CTransformPipeline* pipeline, const float* matrix, Vector2* points, float* bounds);
+    // Projects the vertices flat (ProjectFlat: `matrix`, the points out, the bounds grown) with the vertices moved
+    // by offsets_ when there are any (into a shared buffer). Returns the vertex count (4 per packet).
+    int DrawOffset(const Matrix4& matrix, Vector2* points, float* bounds);
 
     // The create virtual of every figure class: no drawer, flags, buffers or bounds; white flat colours.
     // Returns 1.

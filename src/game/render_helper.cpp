@@ -1,18 +1,10 @@
 // The renderer's helper object (CRenderHelper, model.h: the material presets): its constructor with the nine built-in
-// presets' state lists and its destructor, its preset (the passes it sets in the renderer's render state), and the
-// transform pipeline's constructor and destructor with its matrix stacks'. See docs/notes/renderer.md (sections 5
-// and 12).
-#include "app.h"
-#include "render/render_state.h"
-#include "dx_errors.h"
+// presets' state lists and its destructor, and its preset (the passes it sets in the renderer's render state). See
+// docs/notes/renderer.md (sections 5 and 12).
 #include "model.h"
-#include "texture.h"
-
-#include "lib/crt.h"
-#include "lib/gameapi.h"
+#include "render/render_state.h"
 
 #include <cstdint>
-#include <cstring>
 #include <iterator>
 #include <vector>
 
@@ -87,16 +79,6 @@ std::vector<State> BuiltInStates(unsigned index) {
     return states;
 }
 
-const char* TransformLibraryName() { return "3DfpFPU.dll"; }
-const char* TransformFunctionName() { return "GetTLPipeline"; }
-// The debug messages ("FPU Transform release library loaded." and "Acquiring geometry processor
-// from transform library.") and the errors' texts ("Can't load 3D transform library." and "Loaded
-// 3D transform library have no function "GetTLPipeline"."), each with a newline.
-const char* LibraryLoadedText() { return "FPU Transform release library loaded.\n"; }
-const char* AcquiringText() { return "Acquiring geometry processor from transform library.\n"; }
-const char* NoLibraryText() { return "Can't load 3D transform library.\n"; }
-const char* NoFunctionText() { return "Loaded 3D transform library have no function \"GetTLPipeline\".\n"; }
-
 } // namespace
 
 // ---- The helper -------------------------------------------------------------------------------------
@@ -145,34 +127,4 @@ void CRenderPreset::ApplyPass(int pass) const {
         state.sourceBlend = passState.sourceBlend;
         state.destBlend = passState.destBlend;
     }
-}
-
-// ---- The transform pipeline (CTransformPipeline) -------------------------------------------------------------
-
-// The transform library loaded from the folder and its pipeline taken. A throw unwinds the folder's string, the stacks
-// (from the last) and the base, and `new` frees the memory.
-CTransformPipeline::CTransformPipeline(const char* folder) {
-    std::string path(folder);
-    library_ = gameapi::LoadLibraryA((path + TransformLibraryName()).data());
-    game::DebugLog(LibraryLoadedText());
-    if (!library_) ThrowGameError(NoLibraryText());
-
-    using GetTLPipeline = ITransformPipeline*(*)();
-    auto getPipeline = reinterpret_cast<GetTLPipeline>(
-        gameapi::GetProcAddress(static_cast<HMODULE>(library_), TransformFunctionName()));
-    if (!getPipeline) {
-        gameapi::FreeLibrary(static_cast<HMODULE>(library_));
-        library_ = nullptr;
-        ThrowGameError(NoFunctionText());
-    }
-    game::DebugLog(AcquiringText());
-    transform_ = getPipeline();
-}
-
-// The stacks' blocks go after the body (members), from the last to the first.
-CTransformPipeline::~CTransformPipeline() {
-    void* library = library_;
-    transform_ = nullptr;
-    if (library) gameapi::FreeLibrary(static_cast<HMODULE>(library));
-    library_ = nullptr;
 }

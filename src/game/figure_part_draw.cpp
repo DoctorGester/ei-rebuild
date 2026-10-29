@@ -1,23 +1,25 @@
 // The draw of one figure part: the mesh is clip-tested, advanced when animated, its colours filled (flat meshes)
 // or lit once, then drawn through the device or through the owner's figure. See docs/notes/models.md ("Figure
 // parts").
-#include "ei/x87.h"
 #include "figure_mesh.h"
-#include "lib/text_case.h"
-#include "material.h"
+#include "game_singletons.h"
 #include "link_figure.h"
 #include "map_object_figures.h"
+#include "material.h"
 #include "model.h"
+#include "options.h"
+#include "render/render.h"
 #include "spell.h"
 #include "texture.h"
+#include "world.h"
 #include "world_data.h"
-#include "render/render.h"
+
 #include "lib/containers.h"
 #include "lib/gameapi.h"
-#include "world.h"
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
-#include "options.h"
+#include "lib/text_case.h"
+
+#include "ei/x87.h"
 
 #include <bit>
 #include <cstdint>
@@ -97,7 +99,7 @@ void FlatColours(Part& part) {
 }
 
 // The part's light for the GPU, every draw of a mesh that is not flat: the model matrix, the scene's sun, the
-// transform object's ambient colour, the material's colours, the options' coefficient, the crown and the lights
+// ambient colour (AmbientColour), the material's colours, the options' coefficient, the crown and the lights
 // within the object's reach.
 std::vector<render::MeshLightSource> g_partLights;
 render::MeshLighting g_partLighting;
@@ -119,7 +121,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
         l.sunDirection = sun->direction_;
         for (int k = 0; k < 3; ++k) l.sunColour[k] = sun->color_[k];
     }
-    const float* ambient = TransformAmbientColour();
+    const float* ambient = AmbientColour();
     for (int k = 0; k < 3; ++k) l.ambientColour[k] = ambient[k];
     const MaterialColors& c = part.material->colors;
     l.diffuseColour[0] = c.diffuse.x;
@@ -146,7 +148,6 @@ const render::MeshLighting* PartLighting(const Part& part) {
 // diffuse alpha (white otherwise), the speculars become the alpha unless the material keeps them.
 void Light(Part& part) {
     part.coloursWritten = true;
-    if (CLight* sun = g_sceneRenderer.sun_) part.device->pipeline_->transform_->AddSun(sun);
     if (part.figure) {
         const char* name = MeshName(part.node->mesh_);
         std::string s(name);

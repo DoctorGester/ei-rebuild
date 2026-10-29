@@ -1,18 +1,17 @@
 // The Direct3D device's screen rectangle of a mesh draw (mesh draw flag 1): the bounds of its projected positions
 // clamped to the screen, rounded into the device's drawn rectangle (+0x15C), which the figures' and the 3D library's
 // draws read back for picking. See docs/notes/renderer.md (section 3, "Picking").
-#include "device_buffers.h"  // ProjectedVertex
-#include "texture.h"         // CTextureDevice
+#include "model.h"     // CTransformPipeline
+#include "texture.h"   // CTextureDevice
+
+#include "lib/gameapi.h"
 
 #include "ei/x87.h"
-#include "lib/gameapi.h"
 
 #include <cfloat>
 #include <vector>
 
 namespace {
-
-using devicebuffers::ProjectedVertex;
 
 // The bounds so far: they start inside out, and a coordinate replaces a bound it is not inside of
 // (a NaN never does).
@@ -49,27 +48,25 @@ struct ScreenBounds {
 };
 
 // A clip-space point inside the depth range: in front of the near plane (z = 0) and not past the far plane (z = w).
-bool InDepth(const ProjectedVertex& p) { return p.z >= 0.0f && p.w - p.z >= 0.0f; }
+bool InDepth(const Vector4& p) { return p.z >= 0.0f && p.w - p.z >= 0.0f; }
 
 } // namespace
 
 // The projection leaves screen positions when every one is on screen, clip-space ones when the mesh crosses the view's
-// edges: those count when inside the depth range (nothing behind the camera), mapped as the transform object's ToScreen
-// maps them (x right and y down from the top left corner, the viewport the screen's size). Past a corner of the screen
+// edges: those count when inside the depth range (nothing behind the camera), mapped as the pipeline's ToScreen maps
+// them (x right and y down from the top left corner, the viewport the screen's size). Past a corner of the screen
 // this is larger than the original's rectangle (the bounds of the clipped triangles), and across one edge it can be
 // wider along that edge: an accepted difference (renderer.md section 3).
-void CTextureDevice::BoundsOfProjected(const std::vector<ProjectedVertex>* positions, bool clipSpace) {
+void CTextureDevice::BoundsOfProjected(const std::vector<Vector4>* positions, bool clipSpace) {
     const float width = static_cast<float>(screen_.right - screen_.left);
     const float height = static_cast<float>(screen_.bottom - screen_.top);
-    const float halfWidth = width * 0.5f;
-    const float halfHeight = height * 0.5f;
     ScreenBounds bounds;
-    for (const ProjectedVertex& p : *positions) {
+    for (const Vector4& p : *positions) {
         if (!clipSpace) {
             bounds.Include(p.x, p.y);
         } else if (InDepth(p) && p.w > 0.0f) {
-            const float rhw = 1.0f / p.w;
-            bounds.Include((p.x * rhw + 1.0f) * halfWidth, (1.0f - p.y * rhw) * halfHeight);
+            const Vector4 screen = pipeline_->ToScreen(p);
+            bounds.Include(screen.x, screen.y);
         }
     }
     bounds.Clamp(width, height);

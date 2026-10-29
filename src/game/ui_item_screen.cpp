@@ -8,8 +8,8 @@
 #include "party.h"
 #include "texture.h"
 #include "ui.h"
-#include "ui_float.h"
 #include "ui_camp.h"
+#include "ui_float.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
@@ -81,7 +81,7 @@ void CItemScreen::CreateBase() {
     LoadTexture("modifiers2", TextureKind::Interface);
     LoadTexture("campslots", TextureKind::Interface);
     g_sceneRenderer.fogColour_ = 0;
-    g_sceneRenderer.pipeline_->transform_->SetDepthRange(99.0f, 100.0f);
+    g_sceneRenderer.pipeline_->SetDepthRange(99.0f, 100.0f);
     // The caches keep 30 entries (the game's 20 were for a card with little texture memory).
     textures_.limit = 30;
     TrimItemCache(&textures_);

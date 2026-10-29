@@ -6,18 +6,17 @@
 // are grouped into four 8x8-tile quarters; each quarter keeps, per texture page, a byte array of tile edge
 // flags and a list of tile entries (3x3 vertices each).
 
-#include <cstddef>
-#include <cstdint>
-#include <vector>
-
-#include "model.h"     // ClipBounds
+#include "model.h"   // ClipBounds
 #include "terrain.h"
 
 #include "lib/vecmath.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <vector>
+
 class CLight;
 class CSceneRenderer;
-class CTransformPipeline;
 
 namespace terrain {
 
@@ -85,8 +84,6 @@ struct SectorVertex {
     // Returns the light list's nodes to the pool.
     ~SectorVertex() { ReleaseLights(); }
 
-    Vector4 projected;                  // screen position (Project)
-    std::uint8_t outcode;               // clip flags when the quarter crosses the view, else 0
     std::uint32_t colour;               // A (materialByte) R G B, the lighting stage
     std::uint32_t specular;             // edge fade << 24, then the specular lights' R G B
     Vector3 position;                   // water layer: the vertex position
@@ -207,9 +204,6 @@ struct SectorData {
     // `wanted`: SectorStage::Built, SectorStage::Lit. Builds what of it is missing.
     void Ensure(SectorStage wanted);
 
-    // The quarters not culled, at `detail`, ground then water: each quarter's mode becomes its clip result
-    // (2 for -1); a crossing quarter's records get their outcodes, the others 0.
-    void Project(CTransformPipeline* pipeline);
     // Page `page` to the renderer, the pending water levels applied first; nothing when culled.
     void DrawPage(const CSceneRenderer* renderer, int page);
 

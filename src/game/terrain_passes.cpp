@@ -1,15 +1,15 @@
 // The landscape's draw passes (terrain.h), called by the client's draw after Terrain::SetVisibleSectors:
 // the ground pages, then (after the objects) the water pages. A pass pushes the landscape's matrix on the
-// renderer's pipeline, prepares every visible sector (level of detail, clip test, seams, projection) and
-// hands the sectors page by page to the renderer (render::TerrainPage, which builds the page's tiles from
-// the sector's data). Nothing here talks to the device: the texture goes through the renderer's SetTexture.
-#include "terrain.h"
-#include "terrain_sector.h"
+// renderer's pipeline, prepares every visible sector (level of detail, clip test of the sector and its quarters,
+// seams) and hands the sectors page by page to the renderer (render::TerrainPage, which builds the page's tiles
+// from the sector's data); the GPU clips what crosses the view's edges. Nothing here talks to the device: the texture goes through the renderer's SetTexture.
 #include "camera.h"
 #include "game_singletons.h"
 #include "model.h"
 #include "options.h"
 #include "render/render.h"
+#include "terrain.h"
+#include "terrain_sector.h"
 
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
@@ -123,10 +123,7 @@ void Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
         sector->ClipTest(renderer);
     });
     ForVisibleSectors(this, [&](SectorData* sector) {
-        if (sector->IsDrawn()) {
-            sector->FindSeams();
-            sector->Project(renderer->pipeline_);
-        }
+        if (sector->IsDrawn()) sector->FindSeams();
     });
     for (int page = firstPage; page <= lastPage; ++page) {
         bool bound = false;

@@ -2,15 +2,15 @@
 // direction at a point).
 // More: docs/notes/comments-c22i.md, "renderer_strip.cpp".
 #include "clip.h"
-#include "model.h"
 #include "lightning.h"   // LightningPoint
+#include "model.h"
+#include "render/render.h"
+#include "render/render_state.h"
 #include "texture.h"
 
 #include "lib/containers.h"
-#include "render/render_state.h"
-#include "render/render.h"
-#include "device_buffers.h"
 #include "lib/nan_audit.h"
+#include "lib/vecmath.h"
 
 #include <bit>
 #include <cstdint>
@@ -22,14 +22,12 @@ namespace {
 
 // --- The statics ---------------------------------------------------------------------------------
 
-using devicebuffers::ProjectedVertex;
-
 // The strip's work buffers.
 std::vector<TLVertex> g_strip;          // TL vertices of the points
 std::vector<TLVertex> g_ribbon;         // TL vertices, two per point
-std::vector<ProjectedVertex> g_projected;
+std::vector<Vector4> g_projected;
 std::vector<std::uint16_t> g_indices;
-std::vector<std::uint8_t> g_clipped;    // a flag byte per point
+std::vector<std::uint8_t> g_clipped;   // an outcode per point
 // The texture coordinates of the next cross section: u and the two v values.
 float g_bottomV = /*007AF054*/ {};
 float g_topV = /*007AF058*/ {};
@@ -127,24 +125,23 @@ float* StripDirection(float* out, int index, int mode, const void* array) {
 }
 
 // Draws an indexed triangle list of TL vertices (the new renderer, src/render, takes it); with distanceFog_ set
-// the transform object fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
+// the pipeline fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
 int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices,
                                     int indexCount) {
-    if (distanceFog_) pipeline_->transform_->FogVertices(vertices, vertexCount);
+    if (distanceFog_) pipeline_->FogVertices(vertices, vertexCount);
     render::TlDraw(this, vertices, render::kFvfTextured, vertexCount, indices, indexCount, render::Primitive::TriangleList);
     return 1;
 }
 
 // `points` holds the world points (x, y, z and one more); `width` scales
-// the ribbon's screen width; `mode` 0 projects, 1 projects and clips (points flagged by the transform object
-// are skipped), 2 only sizes the buffers; u runs over `uLength` along the ribbon (0.875 at the start when it
+// the ribbon's screen width; `mode` 0 projects, 1 projects and clips (a section between two points that are
+// both off screen is skipped), 2 only sizes the buffers; u runs over `uLength` along the ribbon (0.875 at the start when it
 // is 0), v from `vStart` over `vSize`. Returns the draw's result (1 when nothing is drawn).
 int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, float width, int mode, float uLength,
                               float vStart, float vSize) {
     const LightningPoint* points = pointArray->data();
     const int pointCount = static_cast<int>(std::ssize(*pointArray));
-    CTransformPipeline* pipeline = pipeline_;
-    ITransformPipeline* transform = pipeline->transform_;
+    const CTransformPipeline* pipeline = pipeline_;
 
     const auto n = static_cast<std::size_t>(pointCount);
     g_projected.resize(n);
@@ -168,10 +165,10 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
 
     int clipped = mode;
     if (mode == 0) {
-        transform->ProjectPoints(pipeline->Top(1), points, g_projected.data(), pointCount);
+        CTransformPipeline::ProjectPoints(*pipeline->Top(1), points, g_projected.data(), pointCount);
     } else {
-        clipped = transform->ProjectPointsClipped(pipeline->Top(CTransformPipeline::kClipStack), points,
-                                                  g_projected.data(), g_clipped.data(), pointCount);
+        clipped = pipeline->ProjectPointsClipped(*pipeline->Top(CTransformPipeline::kClipStack), points,
+                                                 g_projected.data(), g_clipped.data(), pointCount);
         if (clipped == 2) return 1;
     }
 
@@ -201,7 +198,7 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
             AddQuad(count, true);
         }
     } else {
-        transform->ToScreenClipped(g_strip.data(), std::ssize(g_strip));
+        pipeline->ToScreen(g_strip.data(), std::ssize(g_strip));
         bool started = false;
         for (int i = 1; i < std::ssize(g_strip); ++i) {
             const std::uint8_t* flags = g_clipped.data();

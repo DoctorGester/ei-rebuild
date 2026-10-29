@@ -1,17 +1,16 @@
 // The client world's decal projector (object shadows, ground prints). The decal builder (ground_decal.h) is a
 // function-local static of the original game, as is the work array of transformed part points; both are made
 // on first use and freed at exit. See docs/notes/models.md ("Ground prints").
-#include "world.h"
-
-#include "figure_mesh.h"          // VertexPacket, MeshCorner
+#include "figure_mesh.h"   // VertexPacket, MeshCorner
 #include "ground_decal.h"
-#include "link_figure.h"          // CLinkMesh, ITransformPipeline
+#include "link_figure.h"          // CLinkMesh
 #include "map_object.h"           // CMapObject (ObjectWithId)
 #include "map_object_figures.h"   // CObject3D
 #include "model.h"                // CTransformPipeline, ScenePipeline
-#include "terrain.h"
-
 #include "render/render.h"
+#include "terrain.h"
+#include "world.h"
+
 #include "lib/vecmath.h"
 
 #include <cstdint>
@@ -51,13 +50,6 @@ void PushDecalMatrix(CTransformPipeline* pipeline, const float* m) {
     stack.matrices[stack.count - 1].Multiply(stack.matrices[stack.count - 2].m, m);
 }
 
-Matrix4 Transposed(const Matrix4& m) {
-    Matrix4 t;
-    for (int row = 0; row < 4; ++row)
-        for (int column = 0; column < 4; ++column) t.m[column * 4 + row] = m.m[row * 4 + column];
-    return t;
-}
-
 // The part's triangles (its figure's part of the same name), transformed by the pipeline's
 // stack-14 top, added to the decal. As in the original, GetPartData's result is not checked: a missing
 // part leaves the previous part's data in use (ours starts from none).
@@ -77,8 +69,10 @@ void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CFigureMe
     }
     std::vector<Vector4>& points = g_partPoints;
     points.resize(data.blocks * 4);
-    Matrix4 transposed = Transposed(*top);
-    pipeline->transform_->TransformPoints(&transposed, data.vertices, points.data(), data.blocks);
+    for (int i = 0; i < data.blocks * 4; ++i) {
+        const VertexPacket& packet = data.vertices[i >> 2];
+        points[i] = ToClip(*top, packet.block[0][i & 3], packet.block[1][i & 3], packet.block[2][i & 3]);
+    }
     DecalBuilder& builder = g_builder;
     builder.Reserve(data.indexCount * 6);
     for (unsigned i = 0; i < static_cast<unsigned>(data.indexCount); i += 3) {

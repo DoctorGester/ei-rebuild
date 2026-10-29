@@ -10,10 +10,8 @@
 
 namespace devicebuffers {
 
-struct ProjectedVertex : Vector4 {};
-static_assert(sizeof(ProjectedVertex) == 16);
-
-extern std::vector<ProjectedVertex> g_projected;
+// The projected positions (CTransformPipeline::Project / ProjectClipped).
+extern std::vector<Vector4> g_projected;
 // An outcode per projected vertex.
 extern std::vector<std::uint8_t> g_outcodes;
 

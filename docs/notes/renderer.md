@@ -10,9 +10,9 @@ renderer's.
    transforms, figure meshes, terrain sectors, particles, textures, the interface windows' CPU surfaces
    (uploaded as textures), movie frames. Game code makes no Direct3D 7 or DirectDraw call and includes no DirectDraw /
    Direct3D 7 header (R27c; section 9); only the gamma ramp's DDGAMMARAMP is left (renderer_gamma.cpp, R27d).
-2. No Direct3D 7 emulation, no bit-exact rewrite of 3DfpFPU.dll / 2DintMMX.dll, no x87 or compatibility
-   shims in the new code. Results only need to be close (captures are compared with a tolerance); full
-   determinism is out of scope.
+2. No Direct3D 7 emulation and no x87 or compatibility shims in the new renderer. Neither library DLL is loaded:
+   2DintMMX's uses went in R28, and 3DfpFPU's projections are plain C++ in game code (`projection.cpp`, R31, section
+   10). Results only need to be close (captures are compared with a tolerance); full determinism is out of scope.
 
 Backend: **sokol_gfx** (`third_party/sokol`, commit 2e75443, zlib) on **Direct3D 11**. The new renderer draws, in
 the game's order, the terrain (ground and water pages), every mesh the game's own draws (figures, map objects, sky,
@@ -159,8 +159,7 @@ its file has, DXT or RGB, as the original's (section 7, R28c, R28d).
 Their game-side work stays (visibility, LOD, animation, lighting, sorting, water levels); the goldens check it. Not
 handed over directly yet: `figure_part_draw*.cpp` (005A7A70, 005A7640: model matrices and figure data once meshes stop
 going through the old projection), the particle data, materials from the game's data instead of the device state,
-picking rectangles. The 3DfpFPU calls left in game code (bounds at figure load, the terrain's transform before
-clipping) still want plain C++ replacements (section 9); 2DintMMX has no caller since R28.
+picking rectangles. Neither DLL has a caller: 2DintMMX since R28, 3DfpFPU since R31 (section 10).
 
 The interface is overlay, not native: each window surface is uploaded as a texture when its contents changed (checked
 at every blit) and drawn at the blit's place with the colour key as transparency. Native drawing (glyph atlas from the
@@ -486,8 +485,7 @@ come first, then what holds for the present path (the subsection names are cited
   went with R26 (meshcorners), so none was removed.
   R11d: the blink is a texture patch drawn in the shader (section 7).
 - No ticket yet: weather's old draw
-  (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; the 3DfpFPU calls left in game code (bounds at figure load, the terrain's transform before
-  clipping) want plain C++ replacements; several steps (holders, saved pictures, interface
+  (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; several steps (holders, saved pictures, interface
   draws, movies, textures) are checked by goldens and harness scenarios, never by a person in game.
 
 ### R9a: the game without DirectDraw
@@ -752,8 +750,35 @@ resolution must have the machine to themselves and serialised the suites.
   mapping (31-34), vertex fog into the specular alpha (35), lighting into packed colours (39-44), bounds (6, 7, 29).
   **2DintMMX.dll** (`GetGraphicsProcessor`, 13 slots): 8888 to 16-bit conversion (1, 2), skin compositing blends (3-5),
   premultiply (6), mip downsampling (7), shadow triangle rasterisers (8, 9), a 16-bit block operation (10), shadow blur
-  (11, 12). Both DLLs are identical in the GOG and Rebirth installs. The rebuild still loads 3DfpFPU (the transform
-  pipeline); 2DintMMX not since R28, which took its last uses (composition, picture unpacking, 16-bit packing).
+  (11, 12). Both DLLs are identical in the GOG and Rebirth installs. The rebuild loads neither: 2DintMMX since R28,
+  which took its last uses (composition, picture unpacking, 16-bit packing), 3DfpFPU since R31 (below).
+
+### R31: the projections in plain C++
+
+`projection.cpp` holds what the game still called through 3DfpFPU's transform object, as members of
+`CTransformPipeline` (model.h) and two free functions: `ToClip` (clip space, the translation added first in each row;
+the decals' TransformPoints, slot 26, is this with the matrix untransposed), `ProjectClipped` / `ProjectPointsClipped`
+(slots 9 / 8: an outcode per point, `clip.h`'s `ClipCodeOf`, and the batch's verdict, `ClipVerdict`; on screen the
+points go on to `ToScreen`), `Project` / `ProjectPoints` (14 / 13, the screen matrix's division), `ProjectSprites`
+(24), `ToScreen` (32; ToScreenClipped 34 is the same call now), `FogVertices` (35), `ClipBounds::Fit` (7) and
+`ProjectFlat` (29, the shadows' flat projection). The pipeline keeps the viewport's half size, the fog's range and the
+projection matrix itself (`SetViewportSize`, `SetDepthRange`, `projection`). Gone with the DLL: the loader (004F0B90,
+CPUID, the "FPU Transform release library loaded." debug line and the "can't load" errors), the calls nothing read
+back (`AddSun` with its counted hold on the sun, `SetAmbient`; LightMesh had no caller left), and the terrain's own
+projection of every sector vertex (18 / 19) before its quarters were tested.
+
+Verification: a stand-alone program built with the game's flags calls the DLL and the new code on the same random
+inputs at 24-bit precision (3000 rounds: verdicts 0, 1 and 2 all reached, every slot above): bit-identical results.
+The plain float sums in the DLL's order are the same x87 code at that precision.
+
+Behaviour differences (one path for every input; none of them is in a golden):
+- A terrain quarter is culled only by its box's `ClipTest`. The DLL also projected the sector's vertices and culled a
+  quarter whose vertices were all outside one plane; now such a quarter is drawn and the GPU clips it (the box test
+  already culls most of them; the quarter mode only tells the renderer whether the page crosses the view).
+- Ribbon and sprite points at w exactly 0 map with 1 / 0 (infinities) where the DLL's clipped screen mapping used
+  1e6; the GPU clips them either way.
+- The sprites' matrix is the clip stack's top as it is; the original transposed it through the FPU first, which
+  quieted a signalling NaN (no matrix holds one).
 
 ## 11. Verification and frame capture
 
@@ -854,7 +879,7 @@ harness's own waits use real time.
 count and a colour. `AddPoint` (0049B140) appends a point with w 1 and repeats it through the rest of its packet,
 growing the array by one packet when full. `Draw` (0049B780) resizes the two work arrays (the original's
 projected points 007A9CB8 without keeping the contents, the outcodes 007A9CC8; plain globals of ours), projects with the top of the pipeline's
-clip stack through the transform object's `ProjectClipped` and, when that returns 0, hands the points to
+clip stack through the pipeline's `ProjectClipped` and, when that returns 0, hands the points to
 `DeviceDrawLineStrip` (0049B4B0); it never touches the Direct3D device itself. Returns 1. Users: the figure parts'
 debug bounds (005A7290) and the world client's line lists (00569D60); no scenario turns either on, so nothing reaches
 it.
@@ -882,15 +907,13 @@ File map of the device layer (all in `src/game`; the files' headers name the add
   `surface.cpp` (the holder 004EF7B0 / 004EFC60 / 004F0060 / 004EFD20, the channel split 004EDAA0 / 004EDC00 /
   004EDC70); `texture.cpp` (the texture formats in place of the lookups 004E7DA0 / 004E7C40); `device_helpers.cpp` (counted holders, list iterator copies, aligned blocks, deleting destructors, the
   axis swap matrix 004F1330, which Rebirth WideScreen patches: vanilla launch only); `render_helper.cpp` (`CRenderHelper`'s
-  built-in presets, `CTransformPipeline` constructor 004F0B90 / destructor 004F0E10 / matrix stacks 004F0DB0,
-  `DriverAt` 004EE6D0); `link_mesh_draw.cpp` (CLinkMesh slots 7-14, 004F3870..004F4850); `weather_particles.cpp` (rain
+  built-in presets); `projection.cpp` (the transform pipeline's projections, R31, section 10); `link_mesh_draw.cpp` (CLinkMesh slots 7-14, 004F3870..004F4850); `weather_particles.cpp` (rain
   004E4240 and snow 004E4C80); `effects_weather_draw.cpp` (visibility fog draw 004E1EB0, rain / snow buffers 004E3C20);
   `device_bounds.cpp` (screen bounds 004E86B0 / 004E8900); `link_loader_create.cpp` (`CLinkFigureLoader` constructor
   004F68C0, vanilla launch only: ResOverride patches it).
 - Weather: 81 x 81 cells around the point the wind carries a particle to the camera from; a cell's hash and the
   world's time give the particle's cycle, fall and texture frame; corners in packets through `ProjectClipped` (stack
-  2), the ones on screen through the transform object's slot 32 (`ToScreen`) and, with the device's fog flag, slot 35
-  (`FogVertices`), then `render::TlDraw`. Snow sways by five tables of cubics (007ABB98 .. 007AE398, built by the
+  2), the ones on screen through the pipeline's `ToScreen` and, with the device's fog flag, `FogVertices`, then `render::TlDraw`. Snow sways by five tables of cubics (007ABB98 .. 007AE398, built by the
   static initialiser 004E3B20 through 004E3980; evaluated with 004E5660).
 
 Verification: the goldens (the weather draws' scenes: rain in many scenarios, snow in rebirth_flags via `SetWeather`)
@@ -1215,7 +1238,7 @@ across runs; the goldens check the game state.
      times N.L times its falloff, plus the emissive, at most 1, and for a crown part a pull towards the mean over
      the sphere. The part draw (`figure_part_draw.cpp`) now hands that over (`render::MeshLighting`: the model
      matrix (the world stack's top with the scene's camera taken off, `worlddata::SceneCamera`: a static part
-     already lit is not pushed on the object stack, which only the CPU lighting read), the sun, the ambient SetBaseColour last gave the transform object (`TransformAmbientColour`), the
+     already lit is not pushed on the object stack, which only the CPU lighting read), the sun, the ambient colour `CSceneRenderer::SetColour` set last (`AmbientColour`), the
      material's colours times the objects' lighting coefficient, the draw's lights in reach) with the part's normals
      and corner words; `mesh.hlsl` lights each pixel the same way (the crown's mean analytic: 0.6 of the way). The
      colour arrays hold white with the material's alpha (`CMaterial::GpuLitColour`); a mesh kept on the GPU
@@ -1254,7 +1277,7 @@ across runs; the goldens check the game state.
      alpha, so blended parts show flat grey triangles there that are not shadow.
    - **What stays on the CPU, and why.** The blood prints' levels (GroundPrint's `colour_` is saved:
      GroundPrint::Save); the sky's lighting (CSkyObject::Light, small; a candidate); the sun's reference in the
-     part's light list (AddSun: the light's count); the CLight fields only the device read (world position, local
+     part's light list; the CLight fields only the device read (world position, local
      direction, lit colours) are no longer written.
    - **Looks that changed (the user's review).** Point lights cast no shadow (until R16i1, below): the town's fires
      light the inside of the gate's shadow (render_shadows_outside's floor lowered to 0.3%); a point light per pixel
@@ -1640,7 +1663,7 @@ Both walk the 81 x 81 cells (half a unit apart) around the point the wind carrie
 the camera from. A cell's place gives a 16-bit number; with the world's time it gives the cycle
 the cell's particle is in (a rain drop falls for 200 ticks, a snowflake for 1000) and how far it
 has fallen. `density` of 64 cycles show a particle; the cycle also shifts it within the cell and
-picks one of the texture's four frames. The corners go to the transform library as packets of
+picks one of the texture's four frames. The corners go to the pipeline's projection as packets of
 four, the ones on screen become pre-transformed triangles drawn with the device's current state.
 Kept as the game has it: the vertices' colour and specular are never written (what the
 buffer held stays, the distance fog only lowers the specular's alpha), the packets' w neither;

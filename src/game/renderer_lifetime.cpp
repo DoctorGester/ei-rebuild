@@ -2,30 +2,30 @@
 // constructors and destructors, Destroy, the draw colour and sun, the frame clear, texture binding, the
 // figure draws, the line list draw, the gamma getter, the surfaces' restore after a
 // switch back, and the device object's counted holder (docs/notes/renderer.md).
+#include "figure_mesh.h"   // CFigureMesh
+#include "game_singletons.h"
+#include "link_figure.h"   // FigureMeshDrawer
 #include "model.h"         // CSceneRenderer, CTransformPipeline
 #include "renderer_lines.h"
-#include "texture.h"       // CTextureDevice, CTexture, Surface
-
-#include "figure_mesh.h"   // CFigureMesh
-#include "link_figure.h"   // ITransformPipeline, FigureMeshDrawer
-#include "spell.h"         // CLight
+#include "spell.h"     // CLight
+#include "texture.h"   // CTextureDevice, CTexture, Surface
 #include "ui.h"
-#include "game_singletons.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
-#include <cstdint>
+
+#include "ei/x87.h"
 
 #include <bit>
+#include <cstdint>
 
 namespace {
 
 constexpr float kColourScale = 255.0f;
 constexpr float kInverseColourScale = 0.003921569f;   // 1 / 255
 static_assert(std::bit_cast<std::uint32_t>(kInverseColourScale) == 0x3B808081u);
-// TransformAmbientColour: what SetBaseColour gave the transform object last.
-float g_transformAmbientColour[3] = {};
+// AmbientColour: the ambient colour SetColour set last.
+float g_ambientColour[3] = {};
 
 // "Final loading data to NULL texture!" and a newline.
 const char* NullTextureText() { return "Final loading data to NULL texture!\n"; }
@@ -42,30 +42,24 @@ CSceneRenderer::~CSceneRenderer() {
 
 void CSceneRenderer::ReleasePipeline() {
     sun_.Reset();
-    if (pipeline_ && pipeline_->transform_) pipeline_->transform_->AddSun(sun_);
     pipeline_.Reset();
 }
 
 void CSceneRenderer::SetColour(std::uint32_t colour) {
     colour_ = colour;
-    ITransformPipeline* transform = pipeline_->transform_;
-    // Each byte (as a 64-bit integer) times the float constant, stored as the float argument.
+    // Each byte (as a 64-bit integer) times the float constant, stored as a float.
     const int red = static_cast<int>((colour >> 16) & 0xFF);
     const int green = static_cast<int>((colour >> 8) & 0xFF);
     const int blue = static_cast<int>(colour & 0xFF);
-    g_transformAmbientColour[0] = red * kInverseColourScale;
-    g_transformAmbientColour[1] = green * kInverseColourScale;
-    g_transformAmbientColour[2] = blue * kInverseColourScale;
-    transform->SetAmbient(g_transformAmbientColour[0], g_transformAmbientColour[1], g_transformAmbientColour[2]);
+    g_ambientColour[0] = red * kInverseColourScale;
+    g_ambientColour[1] = green * kInverseColourScale;
+    g_ambientColour[2] = blue * kInverseColourScale;
     device_->colour_ = colour;
 }
 
-const float* TransformAmbientColour() { return g_transformAmbientColour; }
+const float* AmbientColour() { return g_ambientColour; }
 
-void CSceneRenderer::SetSun(CLight* light) {
-    sun_.Assign(light);
-    if (pipeline_ && pipeline_->transform_) pipeline_->transform_->AddSun(sun_);
-}
+void CSceneRenderer::SetSun(CLight* light) { sun_.Assign(light); }
 
 void CSceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) {
     SetSun(light);

@@ -174,7 +174,7 @@ after it. See docs/notes/renderer.md ("Pass state").
 The renderer's sprite draw
 with its helpers (indexed draw, a radix sort pass, a
 merge sort pass). Every point (x, y, z and a size) becomes a screen-facing quad: the sprite's
-colour and texture rectangle go to four TL vertices, and the pipeline's transform object
+colour and texture rectangle go to four TL vertices, and the pipeline
 (ProjectSprites) places the corners and sets their outcodes. Batches of up to 511 sprites are sorted back to front
 by the first corner's z (sprites with a negative z are dropped) and drawn as two triangles each;
 when the transform reports that some corners are off screen, every triangle goes through the
