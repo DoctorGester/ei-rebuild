@@ -164,7 +164,7 @@ the two cannot be stacked per file.
   and link mesh draws, world_client_draw / _view), the screens that turn a pixel into a world point, an order or a
   choice (ui_hud, ui_hud_map, ui_hud_pick, ui_battle_hover, ui_battle_commands, ui_view_screen, ui_global_map*, the
   camera keys and mouse), the briefing (camera moves, phrase timing), device_object (sets the 24-bit precision),
-  the terrain's heights, sectors and loading, and sound_manager (below).
+  the terrain's heights, sectors and loading.
 - **Hit tests in whole pixels (C30a3):** the item and figure strips went back to x87 in C30a because the figure strip's
   click `(x - 50) * 0.01f + position`, truncated, picked the neighbouring figure in double (`ui_hero_screen` record 11:
   x 250 is 200 pixels in, 200 * 0.01f is 1.99999996 in double and 2.0 at PC24). The rule since: a hit test is integer
@@ -177,11 +177,15 @@ the two cannot be stacked per file.
 - **Sound:** a speech's handle reaches the game: `UnitClientSpecific::Say` / `SpeechFilter::Finished` clear the server
   unit's talking flag (`MapObjectFlag::Blocked`) when the speech's voice is no longer busy, and Play2D answers -1 when
   every voice plays at the speech's priority or above. Whether a voice is free follows from Play3D's level
-  (`UpdatePositional`, float: a silent one-shot takes no voice), so sound_manager.cpp stays x87. The callers' maths
-  (positions, radii, ambience volumes: terrain_ambience, unit_client_sounds) is on SSE2: it can move a 3D sound's level
-  across 0 only at an exact boundary, and only matters when all 15 voices are taken. Sample lengths (`WaveLength`) are
-  kept on the voice but read by nothing; the harness ends samples by Miles' length on the virtual clock; no save
-  holds music state.
+  (`UpdatePositional`: a silent one-shot takes no voice) and the ambient emitters' distances and intervals (Tick).
+  sound_manager.cpp is on SSE2 since C30a2 because those are basic float operations on floats and small
+  integers: the original's 24-bit (PC24) x87 results, which float maths reproduces exactly (docs/notes/sound.md,
+  "Floating point"). This is the way to move such a file: show that each decision is +, -, *, /, sqrt and compares
+  on floats in the original's order, then round with FISTP's ties to even (`_mm_cvtss_si32`, not `std::lround`). The
+  callers' maths (positions, radii, ambience volumes: terrain_ambience, unit_client_sounds) is on SSE2: it can move a
+  3D sound's level across 0 only at an exact boundary, and only matters when all 15 voices are taken. Sample lengths
+  (`WaveLength`) are kept on the voice but read by nothing; the harness ends samples by Miles' length on the virtual
+  clock; no save holds music state.
 
 ### Plain float maths in the SSE2 files (C30b)
 
