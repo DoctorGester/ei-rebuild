@@ -147,7 +147,7 @@ bool CheckTokenize(Reader& r, char* d, std::size_t n) {
     const std::string source(reinterpret_cast<const char*>(bytes), length);
     std::list<ScriptToken> tokens;
     g_error = ReportedError();
-    const BOOL result = NoScript()->Tokenize(source, &tokens);
+    const int result = NoScript()->Tokenize(source, &tokens);
 
     std::uint64_t all = 0xCBF29CE484222325ull;
     std::uint32_t first = count0;   // the first token that differs

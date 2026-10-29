@@ -13,20 +13,20 @@
 class CIniFile {
 public:
     CIniFile* Construct();                                  // empty path
-    BOOL SetPath(std::string_view path);                          // returns 1
+    void SetPath(std::string_view path);
     void Destruct();                                         // the path's destructor
 
     // The key names of `section` (the part before '=', trimmed) into `out` (emptied
     // first). Returns 0 for an empty or unreadable section.
-    BOOL GetKeyNames(const char* section, std::vector<std::string>* out);
+    bool GetKeyNames(const char* section, std::vector<std::string>* out);
 
     // The value (at most 1023 characters), or `defaultValue`.
     std::string GetString(const char* section, const char* key, const char* defaultValue);
     // Appends the items of the value split at `separator` (trimmed) to `out`. Returns 0
     // when the value is empty.
-    BOOL GetList(const char* section, const char* key, std::vector<std::string>* out, char separator);
+    bool GetList(const char* section, const char* key, std::vector<std::string>* out, char separator);
 
-    BOOL GetIntArray(const char* section, const char* key, std::vector<std::uint32_t>* out);
+    bool GetIntArray(const char* section, const char* key, std::vector<std::uint32_t>* out);
 
     std::string path_;
 };

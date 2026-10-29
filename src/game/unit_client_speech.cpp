@@ -63,8 +63,8 @@ void EraseWhere(std::list<ClientSpeech>& queue, Pick pick) {
 }
 } // namespace
 
-int SpeechFilter::Replaced(const ClientSpeech* queued) const {
-    return Replaces(kind, queued->kind) ? 1 : 0;
+bool SpeechFilter::Replaced(const ClientSpeech* queued) const {
+    return Replaces(kind, queued->kind);
 }
 
 bool SpeechFilter::Finished(const ClientSpeech* queued) const {
@@ -76,7 +76,7 @@ bool SpeechFilter::Finished(const ClientSpeech* queued) const {
 void CUnitClientSpecific::Say(const SpeechRecord* record, AckKind kind) {
     if (!record) return;
     SpeechFilter replacing{0, kind};
-    EraseWhere(speech, [&](const ClientSpeech* queued) { return replacing.Replaced(queued) & 0xFF; });
+    EraseWhere(speech, [&](const ClientSpeech* queued) { return replacing.Replaced(queued); });
     SpeechFilter finishing{unit->id_, AckKind::Selected};
     EraseWhere(speech, [&](const ClientSpeech* queued) { return finishing.Finished(queued); });
     bool empty = speech.empty();

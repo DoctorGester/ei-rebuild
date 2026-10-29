@@ -105,8 +105,8 @@ void CUnit::SetSide(int value) {
     if (controller) MarkChanged(kPartRelations);
 }
 
-std::uint32_t CUnit::IsHostileTo(const CUnit* other) {
-    return (1u << (other->side & 31)) & relationsB & relationsA;
+bool CUnit::IsHostileTo(const CUnit* other) {
+    return ((1u << (other->side & 31)) & relationsB & relationsA) != 0;
 }
 
 // --- Simple state setters --------------------------------------------------------------------
@@ -380,13 +380,13 @@ double UnitParams::Period() { return 25.0f / static_cast<float>(intelligence); }
 
 // --- Map object state ------------------------------------------------------------------------
 
-BOOL CMapObjectServer::IsDead() { return static_cast<std::int16_t>(x87::fistp(vitals.hitPoints)) <= 0; }
+bool CMapObjectServer::IsDead() { return static_cast<std::int16_t>(x87::fistp(vitals.hitPoints)) <= 0; }
 
-BOOL CMapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill > vitals.hitPoints ? 1 : 0; }
+bool CMapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill > vitals.hitPoints; }
 
-BOOL CMapObjectClientSpecific::IsDead() { return Unit()->packedVitals.hitPoints <= 0; }
+bool CMapObjectClientSpecific::IsDead() { return Unit()->packedVitals.hitPoints <= 0; }
 
-BOOL CMapObjectClientSpecific::IsOverkilled() {
+bool CMapObjectClientSpecific::IsOverkilled() {
     int maximum = Unit()->packedVitals.maxHitPoints;
     return Unit()->packedVitals.hitPoints < -maximum * 4 - maximum;
 }

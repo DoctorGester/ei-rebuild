@@ -15,8 +15,6 @@
 #include <unordered_map>
 #include <vector>
 
-// BOOL: these functions return 0/1 in the whole of EAX, and callers test all 32 bits.
-using BOOL = int;
 
 #pragma pack(push, 1)
 struct ResHeader {
@@ -46,7 +44,7 @@ public:
     CMappedFile();
     CMappedFile* Construct();                         // the constructor body
     void Close();                                     // an identical copy of Close's body
-    BOOL Open(const std::string& path, BOOL writable);
+    bool Open(const std::string& path, bool writable);
     void Flush();                                     // write back, stamp modification time
 
     void* file_;         // HANDLE, INVALID_HANDLE_VALUE when closed
@@ -88,8 +86,8 @@ public:
     // The loaded files freed, the archive
     // closed, the maps destroyed, then CResourceBase's (the accelerator table freed).
     ~CMappedResource() override;
-    virtual BOOL OpenResource(const std::string& path, BOOL writable);
-    virtual BOOL OpenFromMemory(const void* image);
+    virtual bool OpenResource(const std::string& path, bool writable);
+    virtual bool OpenFromMemory(const void* image);
     virtual void CloseResource();
     virtual void Flush();                                             // (empty)
     virtual void* GetFile(std::string_view name, std::uint32_t* size);
@@ -123,8 +121,8 @@ public:
     CMMIOResource();
     ~CMMIOResource() override;
 
-    BOOL OpenResource(const std::string& path, BOOL writable) override;
-    BOOL OpenFromMemory(const void* image) override;
+    bool OpenResource(const std::string& path, bool writable) override;
+    bool OpenFromMemory(const void* image) override;
     void CloseResource() override;
     void Flush() override;                                            // (flushes file_)
     void* GetFile(std::string_view name, std::uint32_t* size) override;

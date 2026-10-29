@@ -37,8 +37,8 @@ bool Empty(const exe::Vector<T>& a) {
 }
 
 // 004CF4D0: MOV EAX,FS:[0] (6). Bucket: the result.
-BOOL(__fastcall* s_expect)(OriginalScript*, void*, const OriginalScriptTokenList*, OriginalScriptPos*, int);
-BOOL __fastcall ExpectRecord(OriginalScript* self, void*, const OriginalScriptTokenList* tokens, OriginalScriptPos* pos,
+int(__fastcall* s_expect)(OriginalScript*, void*, const OriginalScriptTokenList*, OriginalScriptPos*, int);
+int __fastcall ExpectRecord(OriginalScript* self, void*, const OriginalScriptTokenList* tokens, OriginalScriptPos* pos,
                              int id) {
     OfferFixtures();
     Writer w;
@@ -46,7 +46,7 @@ BOOL __fastcall ExpectRecord(OriginalScript* self, void*, const OriginalScriptTo
     w.Put<std::int32_t>(id);
     const OriginalScriptPos from = *pos;
     const std::uint16_t cw = ControlWord();
-    const BOOL result = s_expect(self, nullptr, tokens, pos, id);
+    const int result = s_expect(self, nullptr, tokens, pos, id);
     PutRun(w, tokens, from, *pos);
     w.Put<std::int32_t>(result);
     PutError(w, self);
@@ -56,11 +56,11 @@ BOOL __fastcall ExpectRecord(OriginalScript* self, void*, const OriginalScriptTo
 
 // 004CFBC0: PUSH -1; PUSH imm32 (7). Bucket: a plain call, an assignment or a script call, each
 // succeeded or failed.
-BOOL(__fastcall* s_loadFunction)(OriginalScript*, void*, OriginalSSCCmd*, OriginalScriptPos*,
-                                 const OriginalScriptTokenList*, int, OriginalScriptVars*, const char*, BOOL, BOOL);
-BOOL __fastcall LoadFunctionRecord(OriginalScript* self, void*, OriginalSSCCmd* cmd, OriginalScriptPos* pos,
+int(__fastcall* s_loadFunction)(OriginalScript*, void*, OriginalSSCCmd*, OriginalScriptPos*,
+                                 const OriginalScriptTokenList*, int, OriginalScriptVars*, const char*, int, int);
+int __fastcall LoadFunctionRecord(OriginalScript* self, void*, OriginalSSCCmd* cmd, OriginalScriptPos* pos,
                                    const OriginalScriptTokenList* tokens, int id, OriginalScriptVars* locals,
-                                   const char* signature, BOOL assignment, BOOL scriptCall) {
+                                   const char* signature, int assignment, int scriptCall) {
     OfferFixtures();
     const bool empty = Empty(cmd->floatArgs) && Empty(cmd->stringArgs) && Empty(cmd->objectArgs) &&
                        Empty(cmd->groupArgs) && Empty(cmd->localBindings) && Empty(cmd->globalBindings) &&
@@ -79,7 +79,7 @@ BOOL __fastcall LoadFunctionRecord(OriginalScript* self, void*, OriginalSSCCmd* 
     }
     const OriginalScriptPos from = *pos;
     const std::uint16_t cw = ControlWord();
-    const BOOL result = s_loadFunction(self, nullptr, cmd, pos, tokens, id, locals, signature, assignment, scriptCall);
+    const int result = s_loadFunction(self, nullptr, cmd, pos, tokens, id, locals, signature, assignment, scriptCall);
     if (!empty) return result;   // never seen: every caller clears the command
     PutRun(w, tokens, from, *pos);
     w.Put<std::int32_t>(result);
@@ -91,9 +91,9 @@ BOOL __fastcall LoadFunctionRecord(OriginalScript* self, void*, OriginalSSCCmd* 
 }
 
 // 004D1330: PUSH -1; PUSH imm32 (7). Bucket: succeeded or failed, payload up to 4 KB or larger.
-BOOL(__fastcall* s_loadCommands)(OriginalScript*, void*, exe::Vector<OriginalSSCCmd>*, OriginalScriptPos*,
+int(__fastcall* s_loadCommands)(OriginalScript*, void*, exe::Vector<OriginalSSCCmd>*, OriginalScriptPos*,
                                   const OriginalScriptTokenList*, OriginalScriptVars*);
-BOOL __fastcall LoadCommandsRecord(OriginalScript* self, void*, exe::Vector<OriginalSSCCmd>* commands,
+int __fastcall LoadCommandsRecord(OriginalScript* self, void*, exe::Vector<OriginalSSCCmd>* commands,
                                    OriginalScriptPos* pos, const OriginalScriptTokenList* tokens,
                                    OriginalScriptVars* locals) {
     OfferFixtures();
@@ -107,7 +107,7 @@ BOOL __fastcall LoadCommandsRecord(OriginalScript* self, void*, exe::Vector<Orig
     const std::size_t blocksBefore = self->blocks.size();
     const OriginalScriptPos from = *pos;
     const std::uint16_t cw = ControlWord();
-    const BOOL result = s_loadCommands(self, nullptr, commands, pos, tokens, locals);
+    const int result = s_loadCommands(self, nullptr, commands, pos, tokens, locals);
     if (!empty) return result;   // never seen: the arrays are new
     PutRun(w, tokens, from, *pos);
     w.Put<std::int32_t>(result);
@@ -119,8 +119,8 @@ BOOL __fastcall LoadCommandsRecord(OriginalScript* self, void*, exe::Vector<Orig
 }
 
 // 004D23A0: PUSH -1; PUSH imm32 (7). Bucket: succeeded or failed, by the text's size (SourceBucket).
-BOOL(__fastcall* s_load)(OriginalScript*, void*, exe::CString*, BOOL);
-BOOL __fastcall LoadRecord(OriginalScript* self, void*, exe::CString* text, BOOL runWorldScript) {
+int(__fastcall* s_load)(OriginalScript*, void*, exe::CString*, int);
+int __fastcall LoadRecord(OriginalScript* self, void*, exe::CString* text, int runWorldScript) {
     OfferFixtures();
     Writer w;
     PutState(w, self, true);
@@ -134,7 +134,7 @@ BOOL __fastcall LoadRecord(OriginalScript* self, void*, exe::CString* text, BOOL
     const std::size_t worldBlocksBefore = self->worldBlocks.size();
     const std::size_t runs = self->runs.size();
     const std::uint16_t cw = ControlWord();
-    const BOOL result = s_load(self, nullptr, text, runWorldScript);
+    const int result = s_load(self, nullptr, text, runWorldScript);
     w.Put<std::int32_t>(result);
     PutError(w, self);
     w.Put<std::int32_t>(self->loaded);

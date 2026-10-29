@@ -39,17 +39,17 @@ void CResourceManager::Destroy() {
 }
 
 
-BOOL CResourceManager::AddArchive(const std::string& path) {
+bool CResourceManager::AddArchive(const std::string& path) {
     return AddArchiveOf(path, NewMappedResource);
 }
 
-BOOL CResourceManager::AddMmioArchive(const std::string& path) {
+bool CResourceManager::AddMmioArchive(const std::string& path) {
     return AddArchiveOf(path, NewMmioResource);
 }
 
-BOOL CResourceManager::AddArchiveOf(const std::string& path, CMappedResource* (*create)()) {
+bool CResourceManager::AddArchiveOf(const std::string& path, CMappedResource* (*create)()) {
     for (const ArchiveEntry& e : archives_)
-        if (SameName(e.name, path)) return 1;
+        if (SameName(e.name, path)) return true;
 
     CMappedResource* resource = create();
     {
@@ -57,23 +57,23 @@ BOOL CResourceManager::AddArchiveOf(const std::string& path, CMappedResource* (*
     }
     // The result is ignored: a missing archive stays in the list, empty.
     archives_.back().resource->OpenResource(path, 0);
-    return 1;
+    return true;
 }
 
-BOOL CResourceManager::RemoveArchive(const std::string& path) {
+bool CResourceManager::RemoveArchive(const std::string& path) {
     for (auto e = archives_.begin(); e != archives_.end(); ++e) {
         if (!SameName(e->name, path)) continue;
         e->resource->CloseResource();
         delete e->resource;
         archives_.erase(e);
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
-BOOL CResourceManager::RemoveAllArchives() {
+bool CResourceManager::RemoveAllArchives() {
     CloseAll(archives_);
-    return 1;
+    return true;
 }
 
 void* CResourceManager::GetFile(std::string_view name, std::uint32_t* size) {
@@ -88,10 +88,10 @@ bool CResourceManager::CloseFile(void* data) {
     return false;
 }
 
-BOOL CResourceManager::HasFile(std::string_view name) {
+bool CResourceManager::HasFile(std::string_view name) {
     for (ArchiveEntry& e : archives_)
-        if (e.resource->FindEntry(name) != -1) return 1;
-    return 0;
+        if (e.resource->FindEntry(name) != -1) return true;
+    return false;
 }
 
 void CResourceManager::FreeAllFiles() {

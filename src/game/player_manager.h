@@ -20,7 +20,7 @@ public:
     CEngineObject* NewObject(int type) override;
 
     // CBaseManager's Create, its result made 0 / 1.
-    BOOL CreatePlayers();
+    bool CreatePlayers();
     // A new CPlayer (0x134 bytes, CPlayer::Construct) whose type_ is `type`; null when the allocation fails.
     CEngineObject* NewPlayer(int type);
     // A new player (type 0x300A, a free id) with a new connection from the

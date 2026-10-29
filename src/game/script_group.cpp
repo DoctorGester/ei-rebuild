@@ -193,10 +193,10 @@ void ScriptGroup::CopyToList(std::list<CUnit*>* list) const {
     }
 }
 
-BOOL ScriptGroup::Contains(CEngineObject* object) const {
+bool ScriptGroup::Contains(CEngineObject* object) const {
     for (const ScriptObjectRef& ref : *this)
-        if (ref.object == object) return 1;
-    return 0;
+        if (ref.object == object) return true;
+    return false;
 }
 
 void ScriptGroup::Load(CStream* stream) {

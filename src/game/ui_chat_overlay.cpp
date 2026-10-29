@@ -228,7 +228,7 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
         break;
     }
     case VK_RETURN:
-        if (typed_.size() != 0 && (IsMultiplayerClient() & 0xFF)) SendSay(typed_);
+        if (typed_.size() != 0 && IsMultiplayerClient()) SendSay(typed_);
         chatOpen_ = false;
         break;
     case VK_ESCAPE:

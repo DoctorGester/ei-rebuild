@@ -42,7 +42,7 @@ void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
     BrainOf(this)->memory.AddClaim(mask, kCallClaim, text);
 }
 
-BOOL CUnitServer::TakeUpWeapon(int slot) {
+bool CUnitServer::TakeUpWeapon(int slot) {
     auto* weapon = unit->GetWeapon(static_cast<std::uint32_t>(slot));
     int taken = Usable(weapon) ? slot : -1;
     unit->MarkChanged(kPartWeapons);
@@ -50,7 +50,7 @@ BOOL CUnitServer::TakeUpWeapon(int slot) {
     unit->pendingWeapon = taken;
     if (unit->player) BrainOf(this)->attention.Build(unit);
     RefreshItemSpells();
-    return Usable(weapon) ? 1 : 0;
+    return Usable(weapon);
 }
 
 void CUnitServer::OnObjectDeleted(CEngineObject* object) {

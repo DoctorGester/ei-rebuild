@@ -221,18 +221,18 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
 
 // --- Body slots ------------------------------------------------------------------------------
 
-bool UnitStats::HealSlots(float scale, float amount) {
+void UnitStats::HealSlots(float scale, float amount) {
     float magnitude = AbsBits(amount);
     // Kept as the game's test: a NaN amount heals nothing. It occurs in every run: LearnSkill's heal (the
     // default NaN) while a new unit's stats are being set up (the NaN audit).
-    if (!(magnitude > kMinHeal)) return true;
+    if (!(magnitude > kMinHeal)) return;
     double total = 0.0;   // accumulated on the FPU stack
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind > 1) EI_NAN_AUDIT(slot.current, slot.maximum);
         if (slot.kind > 1 && slot.current < slot.maximum) total += slot.factor;
     }
     EI_NAN_AUDIT(total);
-    if (total == 0.0f) return true;
+    if (total == 0.0f) return;
     float share = static_cast<float>(amount / (total * scale));
     for (UnitStatSlot& slot : slots) {
         if (slot.kind <= 1 || slot.current >= slot.maximum) continue;
@@ -243,13 +243,11 @@ bool UnitStats::HealSlots(float scale, float amount) {
         slot.current = healed;
         if (healed >= kRevived) slot.kind = 3;
     }
-    return true;
 }
 
-BOOL UnitStats::Heal(UnitVitals* vitals, float amount) {
+void UnitStats::Heal(UnitVitals* vitals, float amount) {
     HealSlots(vitals->maxHitPoints, amount);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
-    return 1;
 }
 
 void UnitStats::SetSlotMaxima(float maxHitPoints) {
@@ -340,7 +338,7 @@ float ScaleHitPointsByEffects(CUnit* unit, float value) {
 }
 
 void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
-    if (IsTextKey(unit->id_) & 0xFF) {
+    if (IsTextKey(unit->id_)) {
         vitals->maxHitPoints = static_cast<float>(HitPointCurve());
     } else {
         vitals->maxHitPoints = fixedMaxHitPoints;
@@ -354,7 +352,7 @@ void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
 }
 
 void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
-    bool keyed = (IsTextKey(unit->id_) & 0xFF) != 0;
+    bool keyed = IsTextKey(unit->id_);
     strength = strengthBase;
     intelligence = intelligenceBase;
     dexterity = dexterityBase;

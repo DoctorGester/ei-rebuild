@@ -71,12 +71,12 @@ void CMapObject::MarkChanged(int part) {
     if (CWorld* world = World()) changeStamp = UpdateCount(world);
 }
 
-int CMapObject::HasEffect(std::uint32_t type) {
+bool CMapObject::HasEffect(std::uint32_t type) {
     for (int i = 0; i < std::ssize(effects); ++i) {
         MapEffect effect = effects[i];   // the whole record is copied
-        if (effect.type == type) return 1;
+        if (effect.type == type) return true;
     }
-    return 0;
+    return false;
 }
 
 // --- Per-tick update -------------------------------------------------------------------------
@@ -233,8 +233,8 @@ int CMapObject::PackVitals() {
     return 1;
 }
 
-std::uint32_t CMapObject::IsInvisible() { return lib::Has(flags_, MapObjectFlag::Invisible); }
+bool CMapObject::IsInvisible() { return lib::Has(flags_, MapObjectFlag::Invisible); }
 
-std::uint32_t CMapObject::IsStunned() { return lib::Has(flags_, MapObjectFlag::Stunned); }
+bool CMapObject::IsStunned() { return lib::Has(flags_, MapObjectFlag::Stunned); }
 
 std::uint32_t CMapObject::Flag20000() { return lib::Has(flags_, MapObjectFlag::Synchronised); }

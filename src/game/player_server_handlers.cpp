@@ -513,7 +513,7 @@ int CPlayerServer::OnPartyUpdate() {
 
 // --- The login -----------------------------------------------------------------------------
 
-BOOL IsPrintableText(const char* text, int maxLength, int minLength) {
+bool IsPrintableText(const char* text, int maxLength, int minLength) {
     // By character, each a valid UTF-8 sequence of a printable code point, within `maxLength` bytes; `minLength`
     // counts characters. (The original's isprint of each signed byte passed UTF-8's bytes only through the
     // "english" locale's table and the bytes before it.)
@@ -522,9 +522,9 @@ BOOL IsPrintableText(const char* text, int maxLength, int minLength) {
         if (text[i] == 0) return characters >= minLength;
         unsigned c;
         i += text::DecodeUtf8(text + i, static_cast<std::size_t>(maxLength - i), &c);
-        if (!text::IsPrintableCodePoint(c)) return 0;
+        if (!text::IsPrintableCodePoint(c)) return false;
     }
-    return 1;
+    return true;
 }
 
 int CPlayerServer::OnLogin() {

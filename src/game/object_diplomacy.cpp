@@ -19,7 +19,7 @@ void CDiplomacy::Reset() {
     for (int i = 0; i < 32; ++i) allied_[i] = 1u << i;
 }
 
-void CDiplomacy::SetRelation(int player, int other, int relation, BOOL applyToUnits) {
+void CDiplomacy::SetRelation(int player, int other, int relation, bool applyToUnits) {
     std::uint32_t bit = Bit(other);
     switch (relation) {
     case kRelationAllied:

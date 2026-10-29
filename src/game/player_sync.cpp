@@ -325,7 +325,7 @@ int CPlayerServer::ForgetObject(CEngineObject* object) {
     return 1;
 }
 
-BOOL CPlayerServer::IsPartyUnit(CEngineObject* object) { return partyUnits_.Contains(object) != 0; }
+bool CPlayerServer::IsPartyUnit(CEngineObject* object) { return partyUnits_.Contains(object) != 0; }
 
 void CPlayerServer::SendParty() {
     CMemoryStream party;

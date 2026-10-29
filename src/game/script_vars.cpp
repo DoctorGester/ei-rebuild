@@ -71,24 +71,24 @@ void ScriptVars::Clear() {
     groups.names.clear();
 }
 
-BOOL ScriptVars::HasVariable(std::string_view name) const {
-    if (::FindName(floats.names, name) >= 0) return 1;
-    if (::FindName(strings.names, name) >= 0) return 1;
-    if (::FindName(objects.names, name) >= 0) return 1;
-    if (::FindName(groups.names, name) >= 0) return 1;
-    return 0;
+bool ScriptVars::HasVariable(std::string_view name) const {
+    if (::FindName(floats.names, name) >= 0) return true;
+    if (::FindName(strings.names, name) >= 0) return true;
+    if (::FindName(objects.names, name) >= 0) return true;
+    if (::FindName(groups.names, name) >= 0) return true;
+    return false;
 }
 
-BOOL ScriptVars::FindVariable(std::string_view name, int* index, int* type) const {
+bool ScriptVars::FindVariable(std::string_view name, int* index, int* type) const {
     *type = kScriptFloat;
     *index = ::FindName(floats.names, name);
-    if (*index >= 0) return 1;
+    if (*index >= 0) return true;
     *type = kScriptString;
     *index = ::FindName(strings.names, name);
-    if (*index >= 0) return 1;
+    if (*index >= 0) return true;
     *type = kScriptObject;
     *index = ::FindName(objects.names, name);
-    if (*index >= 0) return 1;
+    if (*index >= 0) return true;
     *type = kScriptGroup;
     int found = ::FindName(groups.names, name);
     *index = found;
@@ -103,27 +103,27 @@ void ScriptVars::RemoveDeletedObjects() {
 // ---- ScriptDefinition::AddParameter -------------------------------------------------------------
 
 // An unknown type is accepted and adds no letter.
-BOOL ScriptDefinition::AddParameter(const std::string* parameterName, int type) {
+bool ScriptDefinition::AddParameter(const std::string* parameterName, int type) {
     const std::string& text = *parameterName;
     switch (type) {
     case kScriptFloat:
-        if (!AddVariable(vars.floats, text)) return 0;
+        if (!AddVariable(vars.floats, text)) return false;
         params += "f";
-        return 1;
+        return true;
     case kScriptString:
-        if (!AddVariable(vars.strings, text)) return 0;
+        if (!AddVariable(vars.strings, text)) return false;
         params += "s";
-        return 1;
+        return true;
     case kScriptObject:
-        if (!AddVariable(vars.objects, text)) return 0;
+        if (!AddVariable(vars.objects, text)) return false;
         params += "o";
-        return 1;
+        return true;
     case kScriptGroup:
-        if (!AddVariable(vars.groups, text)) return 0;
+        if (!AddVariable(vars.groups, text)) return false;
         params += "g";
-        return 1;
+        return true;
     default:
-        return 1;
+        return true;
     }
 }
 

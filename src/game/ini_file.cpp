@@ -31,21 +31,20 @@ CIniFile* CIniFile::Construct() {
     return this;
 }
 
-BOOL CIniFile::SetPath(std::string_view path) {
+void CIniFile::SetPath(std::string_view path) {
     path_ = path;
-    return 1;
 }
 
 void CIniFile::Destruct() { std::destroy_at(&path_); }
 
 // --- Readers ---------------------------------------------------------------------------------------
 
-BOOL CIniFile::GetKeyNames(const char* section, std::vector<std::string>* out) {
+bool CIniFile::GetKeyNames(const char* section, std::vector<std::string>* out) {
     std::string item;
     char buffer[0x5000];
     gameapi::GetPrivateProfileSectionA(section, buffer, sizeof(buffer), path_.c_str());
     out->clear();
-    if (buffer[0] == '\0') return 0;
+    if (buffer[0] == '\0') return false;
     const char* start = buffer;
     for (int i = 0; i < static_cast<int>(sizeof(buffer)); ++i) {
         if (buffer[i] != '\0') continue;
@@ -59,9 +58,9 @@ BOOL CIniFile::GetKeyNames(const char* section, std::vector<std::string>* out) {
         }
         out->push_back(item);
         start = buffer + i + 1;
-        if (*start == '\0') return 1;   // the double terminator
+        if (*start == '\0') return true;   // the double terminator
     }
-    return 0;
+    return false;
 }
 
 std::string CIniFile::GetString(const char* section, const char* key, const char* defaultValue) {
@@ -71,10 +70,10 @@ std::string CIniFile::GetString(const char* section, const char* key, const char
     return std::string(buffer);
 }
 
-BOOL CIniFile::GetList(const char* section, const char* key, std::vector<std::string>* out, char separator) {
+bool CIniFile::GetList(const char* section, const char* key, std::vector<std::string>* out, char separator) {
     std::string value = ReadString(this, section, key, game::kEmptyText);
     std::string item;
-    if (value.empty()) return 0;
+    if (value.empty()) return false;
     value += separator;
     int start = 0;
     for (int end = str::Find(value, separator); end != -1; end = str::Find(value, separator, start)) {
@@ -84,14 +83,14 @@ BOOL CIniFile::GetList(const char* section, const char* key, std::vector<std::st
         out->push_back(item);
         start = end + 1;
     }
-    return 1;
+    return true;
 }
 
-BOOL CIniFile::GetIntArray(const char* section, const char* key, std::vector<std::uint32_t>* out) {
+bool CIniFile::GetIntArray(const char* section, const char* key, std::vector<std::uint32_t>* out) {
     std::vector<std::string> codes;
-    if (!GetList(section, key, &codes, kListSeparator)) return 0;
+    if (!GetList(section, key, &codes, kListSeparator)) return false;
     int count = static_cast<int>(codes.size());
     out->resize(count);
     for (int i = 0; i < count; ++i) (*out)[i] = static_cast<std::uint32_t>(str::ToInt(codes[i]));
-    return 1;
+    return true;
 }

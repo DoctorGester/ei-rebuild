@@ -35,7 +35,7 @@ int CWorldServer::Create() {
     Destroy();
     if (!CWorld::Create()) return game::FatalError(CantCreateText());
     std::string folder = *g_textFolder;
-    BOOL opened;
+    bool opened;
     {
         std::string path = folder + kMessagesFileName;
         opened = Messages()->Open(path);

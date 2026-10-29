@@ -32,7 +32,7 @@ std::uint32_t WeaponIn(const CUnitClientSpecific* self, std::uint32_t slot) {
 void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
     CUnit* owner = unit;
     UnitParams* params = ParamsOf(owner);
-    int keyed = IsTextKey(owner->id_) & 0xFF;
+    int keyed = IsTextKey(owner->id_);
     std::uint32_t weapon = WeaponIn(this, owner->activeWeapon);
     if (keyed && weapon != kNoWeapon) {
         out->damageMin = WeaponMinDamage(weapon);

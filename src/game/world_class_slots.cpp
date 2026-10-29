@@ -65,7 +65,7 @@ const char* FigureClientSpecificClassName(CEngineObject*) { return kFigureClient
 int UiObjectCreate(CEngineObject*) { return 1; }
 const char* UiObjectClassName(CEngineObject*) { return kUiObjectName; }
 
-int CWorldServer::IsServer() { return 1; }
+bool CWorldServer::IsServer() { return true; }
 
 const char* CWorldClient::TexturePath() { return texturePath_.c_str(); }
 CMaterialManager* CWorldClient::MaterialManager() { return materialManager_; }

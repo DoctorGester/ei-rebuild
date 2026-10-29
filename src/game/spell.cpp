@@ -46,7 +46,7 @@ int CSpell::Create() {
     return 1;
 }
 
-BOOL CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
+void CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
     speed_ = prototype->speed;
     range_ = prototype->range;
     if (prototype->targetKind == 'u') {
@@ -66,7 +66,6 @@ BOOL CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
     radius_ = prototype->area;
     duration_ = prototype->duration;
     std::memset(modifiers_, 0, sizeof(modifiers_));
-    return 1;
 }
 
 itemdb::SpellRecord* CSpell::GetPrototype() {
@@ -137,7 +136,7 @@ bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
     return true;
 }
 
-BOOL CSpellEffect::GetDamage(DamageInfo* out) {
+void CSpellEffect::GetDamage(DamageInfo* out) {
     std::memset(out, 0, sizeof(*out));
     out->location = 6;
     out->multiplier = 1.0f;
@@ -168,7 +167,6 @@ BOOL CSpellEffect::GetDamage(DamageInfo* out) {
         out->multiplier = kSplitDamage / static_cast<float>(targets);
         out->amount = kSplitDamage / static_cast<float>(static_cast<int>(spell->duration_)) * out->amount;
     }
-    return 1;
 }
 
 float CLight::GetIntensityAt(const Vector3* point) {

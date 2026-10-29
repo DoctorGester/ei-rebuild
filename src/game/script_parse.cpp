@@ -22,8 +22,8 @@
 
 namespace scriptparse {
 
-int IsDigit(int c) { return text::IsDigit(c); }
-int IsSpace(int c) { return text::IsSpace(c); }
+bool IsDigit(int c) { return text::IsDigit(c); }
+bool IsSpace(int c) { return text::IsSpace(c); }
 int Mbscmp(std::string_view a0, std::string_view a1) { return str::Compare(a0, a1); }
 
 } // namespace scriptparse
@@ -358,7 +358,7 @@ const char* KeywordName(int id) {
     return "Unknown command";
 }
 
-BOOL CScript::Tokenize(const std::string& source, std::list<ScriptToken>* tokens) {
+bool CScript::Tokenize(const std::string& source, std::list<ScriptToken>* tokens) {
     const char* p = source.c_str();
 
     tokens->clear();
@@ -423,17 +423,17 @@ BOOL CScript::Tokenize(const std::string& source, std::list<ScriptToken>* tokens
 
         tokens->push_back({text, line});
     }
-    return 1;
+    return true;
 }
 
-BOOL CScript::ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<ScriptToken>::const_iterator* pos, int id) {
+bool CScript::ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<ScriptToken>::const_iterator* pos, int id) {
     if (*pos == tokens->end()) return Error(this, tokens->back().line, 1, "Unexpected end of file");
     const ScriptToken token = *(*pos)++;
     std::string text = token.text;
     int found;
     ClassifyToken(text, &found, nullptr);
     if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text);
-    return 1;
+    return true;
 }
 
 std::string* CScript::QualifyName(std::string* out, const std::string& name) {

@@ -75,15 +75,15 @@ double CItemWeapon::RollDamage() {
            static_cast<double>(low);
 }
 
-BOOL CItemWeapon::IsSameAs(CItem* item) {
-    if (!CItem::IsSameAs(item)) return 0;
+bool CItemWeapon::IsSameAs(CItem* item) {
+    if (!CItem::IsSameAs(item)) return false;
     CItemWeapon* other = AsWeapon(item);   // of this one's type (the base's test)
-    if (other->actionValue_ != actionValue_) return 0;
+    if (other->actionValue_ != actionValue_) return false;
     EI_NAN_AUDIT(other->damage_, damage_, other->damageSpread_, damageSpread_, other->reach_, reach_);
-    if (other->damage_ != damage_) return 0;
-    if (other->damageSpread_ != damageSpread_) return 0;
-    if (other->reach_ != reach_) return 0;
-    return 1;
+    if (other->damage_ != damage_) return false;
+    if (other->damageSpread_ != damageSpread_) return false;
+    if (other->reach_ != reach_) return false;
+    return true;
 }
 
 int CItemArmor::GetType() {

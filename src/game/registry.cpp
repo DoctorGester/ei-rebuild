@@ -47,12 +47,12 @@ std::uint32_t HomeSlot(const char* name, std::uint16_t slots) {
 
 // GetIntArray / GetFloatArray: the values are copied bit for bit.
 template <typename T>
-BOOL GetDwordArray(CFileRegistry* registry, const char* section, const char* key, unsigned type, std::vector<T>* out) {
+bool GetDwordArray(CFileRegistry* registry, const char* section, const char* key, unsigned type, std::vector<T>* out) {
     int isScalar;
     const std::uint8_t* value = registry->FindData(section, key, type, &isScalar);
     if (!value) {
         out->clear();
-        return 0;
+        return false;
     }
     int count;
     if (isScalar) {
@@ -62,12 +62,12 @@ BOOL GetDwordArray(CFileRegistry* registry, const char* section, const char* key
         value += 2;
         if (count == 0) {
             out->clear();
-            return 1;
+            return true;
         }
     }
     out->resize(count);
     for (int i = 0; i < count; ++i) (*out)[i] = static_cast<T>(U32(value + 4 * i));
-    return 1;
+    return true;
 }
 
 } // namespace
@@ -87,27 +87,27 @@ void CFileRegistry::Destroy() {
     file_.Close();                   // the mapped file's destructor
 }
 
-BOOL CFileRegistry::Open(const std::string& path) {
-    if (!file_.Open(path, 0)) return 0;
+bool CFileRegistry::Open(const std::string& path) {
+    if (!file_.Open(path, 0)) return false;
     attached_ = 0;
     data_ = static_cast<const std::uint8_t*>(file_.view_);
-    if (U32(data_) == kRegistryMagic) return 1;
+    if (U32(data_) == kRegistryMagic) return true;
     game::DebugLog(kNotRegistry);
     if (!attached_) file_.Close();
     attached_ = 0;
     data_ = nullptr;
-    return 0;
+    return false;
 }
 
-BOOL CFileRegistry::Attach(const void* image) {
+bool CFileRegistry::Attach(const void* image) {
     attached_ = 1;
     data_ = static_cast<const std::uint8_t*>(image);
-    if (U32(data_) == kRegistryMagic) return 1;
+    if (U32(data_) == kRegistryMagic) return true;
     game::DebugLog(kNotRegistry);
     if (!attached_) file_.Close();
     attached_ = 0;
     data_ = nullptr;
-    return 0;
+    return false;
 }
 
 void CFileRegistry::Close() {
@@ -162,7 +162,7 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
     return value + 3 + (keyLength & 0xFFFF);
 }
 
-BOOL CFileRegistry::GetSectionNames(std::vector<std::string>* out) {
+void CFileRegistry::GetSectionNames(std::vector<std::string>* out) {
     const std::uint8_t* root = data_;
     int count = U16(root + 4);
     out->resize(static_cast<std::size_t>(count));
@@ -170,7 +170,6 @@ BOOL CFileRegistry::GetSectionNames(std::vector<std::string>* out) {
         const std::uint8_t* record = data_ + U32(root + 8 + 6 * i);
         (*out)[i].assign(Chars(record + 4), U16(record + 2));
     }
-    return 1;
 }
 
 int CFileRegistry::GetInt(const char* section, const char* key, int defaultValue) {
@@ -221,20 +220,20 @@ void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* 
     *length = static_cast<int>(std::strlen(buffer));
 }
 
-BOOL CFileRegistry::GetIntArray(const char* section, const char* key, std::vector<std::int32_t>* out) {
+bool CFileRegistry::GetIntArray(const char* section, const char* key, std::vector<std::int32_t>* out) {
     return GetDwordArray(this, section, key, kRegArray | kRegInt, out);
 }
 
-BOOL CFileRegistry::GetFloatArray(const char* section, const char* key, std::vector<std::uint32_t>* out) {
+bool CFileRegistry::GetFloatArray(const char* section, const char* key, std::vector<std::uint32_t>* out) {
     return GetDwordArray(this, section, key, kRegArray | kRegFloat, out);
 }
 
-BOOL CFileRegistry::GetStringArray(const char* section, const char* key, std::vector<std::string>* out) {
+bool CFileRegistry::GetStringArray(const char* section, const char* key, std::vector<std::string>* out) {
     int isScalar;
     const std::uint8_t* value = FindData(section, key, kRegArray | kRegString, &isScalar);
     if (!value) {
         out->clear();
-        return 0;
+        return false;
     }
     int count;
     if (isScalar) {
@@ -249,5 +248,5 @@ BOOL CFileRegistry::GetStringArray(const char* section, const char* key, std::ve
         (*out)[i] = text::FromAssetText(std::string_view(Chars(value + 2), length));
         value += length + 2;
     }
-    return 1;
+    return true;
 }

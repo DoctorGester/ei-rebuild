@@ -20,7 +20,7 @@
 namespace {
 const float kFar = 1e30f;
 
-bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
+bool IsDead(CMapObject* object) { return object->IsDead(); }
 
 // (a - b) squared in 3D, summed z, then x, then y.
 double Distance2(const CUnit* a, const float* b) {

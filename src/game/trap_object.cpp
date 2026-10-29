@@ -84,7 +84,7 @@ bool CTrapObject::ApplyScience(const LockKey* key, CEngineObject*) { return Disa
 
 bool CTrapObject::Slot29True() { return true; }
 
-int CTrapObject::Slot38One() { return 1; }
+bool CTrapObject::Slot38One() { return true; }
 
 const char* CTrapObject::ClassName() { return kTrapName; }
 ClassId CTrapObject::GetClassId() { return ClassId::TrapObject; }

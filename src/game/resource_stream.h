@@ -25,7 +25,7 @@ struct CResourceStream : CResourceBase {
     void Close();                                   // closes the file and the archive
     // Opens `name`: a loose file when one is readable, else the archive entry. Stores
     // the size when `size` is not null. Returns 1 on success.
-    BOOL OpenFile(const std::string& name, std::uint32_t* size);
+    bool OpenFile(const std::string& name, std::uint32_t* size);
     long Read(char* buffer, long size);             // mmioRead; -1 when nothing is open
     long Seek(long offset, int origin);             // mmioSeek relative to the entry
 };

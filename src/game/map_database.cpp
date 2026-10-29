@@ -25,14 +25,14 @@ struct TextReader : CTextManager {
     bool Open(const char* name);                               // finds the text, cursor at its start
     bool NextHeader();                                         // (null key): the next "#" line; false at the end
     int Split(std::vector<std::string>* words, int flag);         // the current line's words
-    bool Close();
+    void Close();
 };
 bool TextReader::Open(const char* key) { return CTextManager::Open(key); }
 bool TextReader::NextHeader() { return FindHeader(); }
 int TextReader::Split(std::vector<std::string>* words, int flag) {
     return CTextManager::Split(words, flag);
 }
-bool TextReader::Close() { return TextClose(this); }
+void TextReader::Close() { TextClose(this); }
 TextReader* TheTextReader() { return static_cast<TextReader*>(g_clientWorld->texts_); }
 
 // *out = float(std::atof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does (the

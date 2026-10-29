@@ -186,9 +186,9 @@ bool Lever::Slot29True() { return true; }
 
 bool Lever::KeepsMapFlagSlot() { return keepsMapFlag != 0; }
 
-int Lever::NeedsKey() {
-    if (flags_ & MapObjectFlag::Disabled) return 0;
-    return lock.mask != 0 ? 1 : 0;
+bool Lever::NeedsKey() {
+    if (flags_ & MapObjectFlag::Disabled) return false;
+    return lock.mask != 0;
 }
 
 std::uint32_t Lever::KeyId() { return (lock.mask & kKeyById) ? lock.id : 0; }
@@ -201,7 +201,7 @@ bool Lever::ApplyKey(const LockKey* key) {
     return true;
 }
 
-BOOL Lever::KeyOpens(const LockKey* key) { return key->Opens(&lock); }
+bool Lever::KeyOpens(const LockKey* key) { return key->Opens(&lock); }
 
 const char* Lever::ClassName() { return kLeverClassName; }
 ClassId Lever::GetClassId() { return ClassId::Lever; }

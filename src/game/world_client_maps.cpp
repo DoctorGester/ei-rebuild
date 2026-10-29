@@ -310,7 +310,7 @@ int CWorldClient::AddObject(CMapObject* object) {
 
     if (std::list<HeldRef<CMapObject>>* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
     if (std::list<HeldRef<CMapObject>>* cell = CellFor(objectGrid_, object)) cell->emplace_back(object);
-    if (object->MapType() == MapObjectType::Hero && (IsTextKey(object->id_) & 0xFF)) heroes_.emplace_back(object);
+    if (object->MapType() == MapObjectType::Hero && IsTextKey(object->id_)) heroes_.emplace_back(object);
     return 1;
 }
 
@@ -431,7 +431,7 @@ void CWorldClient::RemoveObject(int id) {
     auto filed = std::ranges::find_if(objects_, [id](const CMapObject* object) { return object->id_ == id; });
     if (filed == objects_.end()) return;
     CMapObject* object = *filed;
-    if (object->MapType() == MapObjectType::Hero && (IsTextKey(id) & 0xFF)) {
+    if (object->MapType() == MapObjectType::Hero && IsTextKey(id)) {
         RemoveHeld(heroes_, object);
         if (session_->sessionKind_ == 3) static_cast<CUnit*>(object)->ClientController()->DropFaceTexture();
     }

@@ -15,7 +15,10 @@ public:
     CPlayerClient();
     ~CPlayerClient() override;
 
-    int Create() override { return CreateClient(); }
+    int Create() override {
+        CreateClient();
+        return 1;
+    }
     void Destroy() override { Clear(); }
     int RunTick() override { return Pump(); }
     const char* ClassName() override;
@@ -150,7 +153,7 @@ public:
     // fade-in; the set emptied; the world's partyDanger_; the other players' unit ids.
     int OnPartyState();
     // Clear's state, then the handler table: 256 entries, zeroed, and the 40 handlers by message type.
-    BOOL CreateClient();
+    void CreateClient();
     // State 0, partyUnitIds_ freed, both streams emptied, localSession_ and sendParty_ cleared, both coders
     // reset.
     void Clear();

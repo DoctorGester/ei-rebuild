@@ -83,7 +83,7 @@ void WearItem(CItem* item, CUnit* unit, float amount, AckKind brokenRemark, AckK
 }
 
 void WearArmour(CUnit* unit, int location, int layer, float amount) {
-    if (!(IsTextKey(unit->id_) & 0xFF) || layer == 0) return;
+    if (!IsTextKey(unit->id_) || layer == 0) return;
     int outer = layer - 1;
     if (static_cast<std::uint32_t>(location) > 5) return;
     if (location <= 1) {
@@ -103,7 +103,7 @@ void WearArmour(CUnit* unit, int location, int layer, float amount) {
 }
 
 int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CItem* weapon) {
-    bool keyed = (IsTextKey(unit->id_) & 0xFF) != 0;
+    bool keyed = IsTextKey(unit->id_);
     int damaged = 0;
     UnitStatSlot& slot = slots[hit->location];
     if (slot.kind < 2) return 0;
@@ -202,7 +202,7 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     return damaged;
 }
 
-BOOL UnitVitals::TakeHit(const DamageInfo* hit) {
+void UnitVitals::TakeHit(const DamageInfo* hit) {
     for (int type = 0; type < kDamageTypes; ++type) {
         double damage = hit->typeWeights[type] * hit->amount - protection[type].current;
         if (damage > 0.0f) hitPoints = static_cast<float>(hitPoints - damage);
@@ -211,11 +211,10 @@ BOOL UnitVitals::TakeHit(const DamageInfo* hit) {
     float f = floor;
     float hp = hitPoints;
     hitPoints = f >= hp ? f : hp;
-    return 1;
 }
 
-BOOL CUnit::IsBehind(const CMapObject* t) {
-    if (!player) return 0;
+bool CUnit::IsBehind(const CMapObject* t) {
+    if (!player) return false;
     float dx = t->localPosition_.x - localPosition_.x;
     float dy = t->localPosition_.y - localPosition_.y;
     float dz = t->localPosition_.z - localPosition_.z;
@@ -235,8 +234,8 @@ BOOL CUnit::IsBehind(const CMapObject* t) {
         weapon = AsWeapon(weapons[slot]);
     }
     if (weapon) {
-        if (weapon->GetType() == 5) return 0;
-        if (weapon->GetType() == 6) return 0;
+        if (weapon->GetType() == 5) return false;
+        if (weapon->GetType() == 6) return false;
     }
     // The target's facing from its orientation quaternion.
     float a = t->localRotation_.w;
@@ -252,5 +251,5 @@ BOOL CUnit::IsBehind(const CMapObject* t) {
     z = z + z;
     double facing = DotUnrounded<Sum3::ZYX, double>(x, y, z, dx, dy, dz);
     EI_NAN_AUDIT(facing);
-    return facing < kHalfBack ? 1 : 0;
+    return facing < kHalfBack;
 }

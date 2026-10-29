@@ -165,9 +165,9 @@ public:
 
     // The active weapon's reach, else the natural reach.
     float AttackRange();
-    BOOL HasRangedWeapon();
+    bool HasRangedWeapon();
     // A ranged weapon, or (without a weapon) a natural weapon other than 0x10 with a reach above 1.
-    BOOL AttacksFromRange();
+    bool AttacksFromRange();
     // out[1..7]: the weapon's (party units) or the natural attack's damage, scaled, times each weight.
     void GetDamageByType(DamageWords* out);
     // out[0] = 0x7FFF, out[1 + the spell's damage type] = its truncated damage, the rest 0.
@@ -186,7 +186,7 @@ public:
     // The current or the queued order is of `kind`.
     bool HasOrder(UnitOrderKind kind) const { return action.kind == kind || action2.kind == kind; }
     // The point of the first move order (action, then action2). 0/1.
-    BOOL GetMovePoint(float* out);
+    bool GetMovePoint(float* out);
     float ActionDistance(const AIOrder* order);
     // False only for a melee order (kind 3 without a ranged weapon, or 6) on a living unit of size class 0
     // whose prototype height plus its z is 1.5 or more.
@@ -207,13 +207,13 @@ public:
     float AttackRoll(CUnitServer* attacker, bool backstab);
     // Decides whether `hit` (from `attacker`, may be null) hits: attackRoll becomes FLT_MAX (hit) or -FLT_MAX
     // (miss). Elemental hits always hit.
-    BOOL ResolveHit(DamageInfo* hit, CUnit* attacker);
-    // The hit of a weapon (or natural) attack into `out`. Draws from rand() and the ISAAC generator. Returns 1.
-    BOOL BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot);
+    bool ResolveHit(DamageInfo* hit, CUnit* attacker);
+    // The hit of a weapon (or natural) attack into `out`. Draws from rand() and the ISAAC generator.
+    void BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot);
     // `source` (may be null) is whose player gets the experience for a kill. The damage applies when the hit
     // beats the defence, unless the unit's player protects it (returns 1 then); on a miss the victim turns
     // hostile and remembers the attacker.
-    BOOL TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) override;
+    bool TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) override;
     void MoveFactorsChanged() override;
     // Part 4 changed; the server companion's hit points and mana set to their maxima.
     void SetStats(const UnitStats* stats);
@@ -240,7 +240,7 @@ public:
     // Also updates the party's copy of the item.
     void UseItemCharge(CItem* item, float cost);
     // Logs "Unit 12 was healed". Returns 1.
-    BOOL Heal(float amount) override;
+    bool Heal(float amount) override;
     // Reacts to damage. Not dead: the armour spells, diplomacy, the AI memory, hostility claims and the hit
     // direction. Dead: remarks, witnesses, the death state, "Unit 12 damaged to death", the death animation,
     // the AI notification and the party's reaction. Units of types outside 0x32..0x36 only get flags_ bit 1.
@@ -307,13 +307,13 @@ public:
     void StopAction();
     // Does the unit wear an armour piece in slots 3..6 / in the first three (body, trousers, helmet)?
     // CUnit::AcceptsTarget asks for the animation bits 0x10 / 0x20 by them.
-    BOOL HasOtherArmour() override;
-    BOOL HasMainArmour() override;
+    bool HasOtherArmour() override;
+    bool HasMainArmour() override;
 
     // --- The statistics virtuals.
     // The vitals recomputed (with `withHitPoints` the hit points first) in the server companion's block; a
-    // pending attack time is rescaled by the old / new attack rate, rounded; part 0 changed. Returns 1.
-    BOOL RefreshVitals(char withHitPoints) override;
+    // pending attack time is rescaled by the old / new attack rate, rounded; part 0 changed.
+    void RefreshVitals(char withHitPoints) override;
     // Protection[1..7] from the body and protection[0], the defence: a party unit with a weapon its weapon
     // skill bonus, others their defence times the difficulty's factor; truncated.
     void UpdateProtection();
@@ -327,12 +327,12 @@ public:
     // UnitStats::ClearOuterLayers's 0).
     bool RebuildArmourLayers();
     int ClearOuterArmourLayers() override;
-    BOOL RefreshEquipment() override;
+    void RefreshEquipment() override;
     // The claims dropped (claimedHostile) and the calls heard with a hostility mask.
     void HostileMaskChanged() override;
     void CopyStats(UnitStats* out);
     // RefreshVitals(0) after (only CUnitServer's vtable has it), whose 1 it returns.
-    BOOL AddExperience(float amount);
+    void AddExperience(float amount);
 
     // Kind 9 and cleared, then kind 0 (Idle and FinishAction).
     void DropQueuedOrder();
@@ -366,8 +366,8 @@ public:
     // Draws a random number for heroes.
     void BuildCastSteps(struct AnimationSteps* steps, int* duration, UnitOrderKind kind, int value);
     // The hit location (plan->hitLocation) and the height of the blow from both units' heights and the
-    // distance. Draws random numbers. Returns 1.
-    bool BuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CMapObject* target);
+    // distance. Draws random numbers.
+    void BuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CMapObject* target);
 
     // Every tick: takes over the queued order, else follows the path and continues the current order
     // (ContinueAction for actions; a finished move or animation lets the queue on).
@@ -394,7 +394,7 @@ public:
     // Once per world update. A living unit runs its regeneration, AI, item spells, orders, state and animation;
     // a dead one sinks to the ground and, once its death animation is over, reports its death and drops its
     // orders. States: 0 idle, 1 moving, 2 / 4 a hit reaction, 3 the rest of an action's animation then 6, 5
-    // TickAction. Returns 1.
+    // TickAction.
     void UpdateState();
     // Moves the queue on to the world's time and shows its current step on the unit; frozen or reacting units
     // keep their times shifted.
@@ -469,7 +469,7 @@ public:
     // 2) it moves the unit a stage along (1 not hostile to the tamer's side, 2 on that side, 3 in the tamer's
     // party with a tamed mode); a unit with a player or a failed roll is attacked instead (taming by that side
     // undone). 0/1.
-    BOOL TryTame(CUnit* tamer, float roll);
+    bool TryTame(CUnit* tamer, float roll);
     // The tamed mode (8) removed, no player, all relations, the old side back (from stage 2), stage 0.
     void UndoTaming();
     // From the items the unit wears (weapons only the one in use) whose spell is periodic: kept entries keep
@@ -498,7 +498,7 @@ public:
     // The weapon in `slot` (-1, none, when the slot is empty or the weapon's condition rounds to 0 or less)
     // becomes the active and wanted weapon (part 6 changed); a party unit's AI options are rebuilt, the armour
     // spells refreshed. 1 when the weapon was taken up.
-    BOOL TakeUpWeapon(int slot);
+    bool TakeUpWeapon(int slot);
     // Orders aimed at `object` end (the current one reset, then Idle when the queued one is empty; a queued one
     // is emptied unless an animation), a plan aimed at it ends (EndOrder(0)), the brain forgets it and the
     // leader followed is dropped when it is that object.

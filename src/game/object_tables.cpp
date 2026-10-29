@@ -22,8 +22,8 @@ int TextKeyFromName(std::string_view name) {
     return static_cast<int>(h % 1000000000u + 1000000000u);
 }
 
-BOOL IsTextKey(int id) {
-    return id >= 1000000000 && id < 2000000000 ? 1 : 0;
+bool IsTextKey(int id) {
+    return id >= 1000000000 && id < 2000000000;
 }
 
 MapRecord* CMapDatabase::FindMap(std::string_view name) {

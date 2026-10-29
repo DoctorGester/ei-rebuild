@@ -285,13 +285,12 @@ void CPlayerServer::ClearServerState() {
     refreshTimer_ = static_cast<int>(g_random.Next() % 0x385u + 0x384u);
 }
 
-BOOL CPlayerServer::CreateServer() {
+void CPlayerServer::CreateServer() {
     ClearServerState();
     handlers_.resize(kServerHandlerCount);
     std::fill_n(handlers_.data(), std::ssize(handlers_), Handler{});
     for (const auto& entry : kServerHandlers)
         handlers_[entry.type] = entry.handler;
-    return 1;
 }
 
 int CPlayerServer::OnMessage37() { return 0; }

@@ -96,7 +96,7 @@ PartyUnitRecord* CParty::AddMember(std::string_view name, std::string_view proto
     return record;
 }
 
-BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
+void CParty::FillFromPrototype(PartyUnitRecord* record) {
     auto* prototype = g_unitDatabase->prototypes.FindByName(record->texts[5]);
     auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     record->texts[2] = model->figureName;
@@ -132,10 +132,9 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
         Drop(spell);
     }
     record->texts[6] = record->texts[5];
-    return 1;
 }
 
-BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
+bool CParty::EquipFromPrototype(PartyUnitRecord* record) {
     // Each list emptied from the front (the first entry is looked up and found at 0).
     for (std::vector<CItem*>* list : {&record->spells, &record->weapons}) {
         while (!list->empty()) {
@@ -144,7 +143,7 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
         }
     }
     auto* npc = g_unitDatabase->npcs.byName[std::string(record->texts[5])];
-    if (!npc) return 0;
+    if (!npc) return false;
 
     const std::vector<std::string>& spellNames = npc->startSpells;
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
@@ -170,16 +169,16 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     money_ += npc->startMoney;
     record->stats.AddExperience(npc->experienceFloor);
     record->texts[6] = record->texts[5];
-    return 1;
+    return true;
 }
 
-BOOL CParty::RemoveMember(int key) {
+bool CParty::RemoveMember(int key) {
     for (int i = 0; i < std::ssize(members_); ++i) {
         if (static_cast<int>(members_[i].unitId) != key) continue;
         members_.erase(members_.begin() + i);
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 void CParty::OpenEdgeExits() {

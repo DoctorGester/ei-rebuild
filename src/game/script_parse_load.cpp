@@ -72,8 +72,8 @@ const char* kTypeLetter[] = {nullptr, "f", "s", "o", "g"};
 } // namespace
 
 
-BOOL CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, int id, ScriptVars* locals,
-                           const char* signature, BOOL assignment, BOOL scriptCall) {
+bool CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, int id, ScriptVars* locals,
+                           const char* signature, bool assignment, bool scriptCall) {
     int paramIndex = 0;
     int floatCount = 0, stringCount = 0, objectCount = 0, groupCount = 0;
     ScriptToken token;
@@ -110,7 +110,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
             if (scriptaddon::Enabled()) scriptaddon::SignatureStep(cmd, &signature, tokenId);
             if (tokenId == kLexClose) {
                 if (*signature) return Error(this, token.line, 5, "Not enough parameters");
-                return 1;
+                return true;
             }
             if (paramIndex == 0) {
                 if (tokenId != kLexOpen) return Error(this, token.line, 4, "Expected '%s'", KeywordName(kLexOpen));
@@ -122,7 +122,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
             text = token.text;
             ClassifyToken(text, &tokenId, nullptr);
             if (paramIndex == 0 && tokenId == kLexClose) {
-                if (*signature == 0) return 1;
+                if (*signature == 0) return true;
                 return Error(this, token.line, 5, "Not enough parameters");
             }
         }
@@ -221,12 +221,12 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
                 sub.type = local.type;
                 const char* nested = FunctionSignature(tokenId, local.type);
                 if (!nested) return Error(this, token.line, 7, "Parameter of type %s expected", typeName);
-                if (!LoadFunction(sub.cmd.get(), pos, tokens, tokenId, locals, nested, 0, 0)) return 0;
+                if (!LoadFunction(sub.cmd.get(), pos, tokens, tokenId, locals, nested, 0, 0)) return false;
                 cmd->subCalls.push_back(sub);
             }
         }
 
-        if (assignment) return 1;
+        if (assignment) return true;
         ++signature;
         ++paramIndex;
     } while (*pos != tokens->end());
@@ -234,7 +234,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
     return Error(this, LastLine(tokens), 1, "Unexpected end of file");
 }
 
-BOOL CScript::LoadConditions(std::vector<SSCCmd>* conditions, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
+bool CScript::LoadConditions(std::vector<SSCCmd>* conditions, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
                              ScriptVars* locals) {
     ScriptToken token;
     std::string text;
@@ -247,15 +247,15 @@ BOOL CScript::LoadConditions(std::vector<SSCCmd>* conditions, std::list<ScriptTo
         text = token.text;
         int id;
         ClassifyToken(text, &id, nullptr);
-        if (id == kLexClose) return 1;
+        if (id == kLexClose) return true;
         const char* signature = FunctionSignature(id, kScriptFloat);
         if (!signature) return Error(this, token.line, 9, "Function returning float expected");
-        if (!LoadFunction(&cmd, pos, tokens, id, locals, signature, 0, 0)) return 0;
+        if (!LoadFunction(&cmd, pos, tokens, id, locals, signature, 0, 0)) return false;
         conditions->push_back(cmd);
     }
 }
 
-BOOL CScript::LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens) {
+bool CScript::LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens) {
     ScriptToken token;
     std::string text;
     ScriptIfThen pair;
@@ -268,45 +268,45 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::c
         if (id == kLexClose) {
             if (script->ifThen.empty())
                 return Error(this, token.line, 11, "In script %s should be at least one condtion", script->name);
-            return 1;
+            return true;
         }
         if (id != kLexIf) {
             Error(this, token.line, 10, "expected if section");
-            return 0;
+            return false;
         }
         token = NextToken(pos);
         text = token.text;
         ClassifyToken(text, &id, nullptr);
         if (id != kLexOpen) {
             Error(this, token.line, 4, "If section, ( expected");
-            return 0;
+            return false;
         }
         pair.conditions = NewCommandList();
-        if (!LoadConditions(&pair.conditions->commands, pos, tokens, &script->vars)) return 0;
+        if (!LoadConditions(&pair.conditions->commands, pos, tokens, &script->vars)) return false;
         token = NextToken(pos);
         text = token.text;
         ClassifyToken(text, &id, nullptr);
         if (id != kLexThen) {
             Error(this, token.line, 4, "then expected after if");
-            return 0;
+            return false;
         }
         token = NextToken(pos);
         text = token.text;
         ClassifyToken(text, &id, nullptr);
         if (id != kLexOpen) {
             Error(this, token.line, 4, "Expected ( after then");
-            return 0;
+            return false;
         }
         pair.commands = NewCommandList();
-        if (!LoadCommands(&pair.commands->commands, pos, tokens, &script->vars)) return 0;
+        if (!LoadCommands(&pair.commands->commands, pos, tokens, &script->vars)) return false;
         script->ifThen.push_back(pair);
     }
 }
 
-BOOL CScript::LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, ScriptVars* locals,
+bool CScript::LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, ScriptVars* locals,
                                  const std::string* name) {
     cmd->Clear();
-    BOOL ok;
+    bool ok;
     if (*pos == tokens->end()) {
         ok = Error(this, LastLine(tokens), 1, "Unexpected end of file");
     } else {
@@ -316,7 +316,7 @@ BOOL CScript::LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iter
         ClassifyToken(text, &id, nullptr);
         ok = id == kLexAssign ? 1 : Error(this, token.line, 2, "Wrong lexeme %s", text);
     }
-    if (!ok) return 0;
+    if (!ok) return false;
 
     int index, type;
     globals_.FindVariable((*name), &index, &type);
@@ -324,19 +324,19 @@ BOOL CScript::LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iter
     static const std::uint32_t kTypeCode[] = {0, 0x00000000, 0x3F800000, 0x40000000, 0x40400000};
     if (type < 1 || type > 4) {
         game::FatalError("Uknown variable type at CScript::LoadAssignOperator");
-        return 0;
+        return false;
     }
-    BOOL result = LoadFunction(cmd, pos, tokens, kCmdAssign, locals, kTypeLetter[type], 1, 0);
+    bool result = LoadFunction(cmd, pos, tokens, kCmdAssign, locals, kTypeLetter[type], 1, 0);
     StoreBits(&cmd->floatArgs[1], kTypeCode[type]);
     StoreIntAsFloat(&cmd->floatArgs[0], index);
     return result;
 }
 
-BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
-                                       BOOL qualify) {
+bool CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
+                                       bool qualify) {
     ScriptToken token;
     std::string name, typeName;
-    BOOL result = 0;
+    bool result = 0;
     bool first = true;
     while (*pos != tokens->end()) {
         token = NextToken(pos);
@@ -351,7 +351,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<Scrip
             token = NextToken(pos);
             name = token.text;
         }
-        BOOL ok;
+        bool ok;
         if (*pos == tokens->end()) {
             ok = Error(this, LastLine(tokens), 1, "Unexpected end of file");
         } else {
@@ -361,7 +361,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<Scrip
             ClassifyToken(text, &id, nullptr);
             ok = id == kLexColon ? 1 : Error(this, colon.line, 2, "Wrong lexeme %s", text);
         }
-        if (!ok) return 0;
+        if (!ok) return false;
         if (qualify) {
             std::string qualified;
             QualifyName(&qualified, name);
@@ -382,7 +382,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<Scrip
     return result;
 }
 
-BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
+bool CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
                            ScriptVars* locals) {
     ScriptToken token;
     std::string text, qualified;
@@ -398,7 +398,7 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
         text = token.text;
         int id;
         ClassifyToken(text, &id, nullptr);
-        if (id == kLexClose) return 1;
+        if (id == kLexClose) return true;
 
         const ScriptKeyword* command = nullptr;
         for (const ScriptKeyword* k = KeywordTable(); k->name; ++k)
@@ -407,7 +407,7 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
                 break;
             }
 
-        BOOL ok;
+        bool ok;
         if (command) {
             ok = LoadFunction(cmd, pos, tokens, id, locals, command->command, 0, 0);
             if (id == kCmdFor || id == kCmdForIf) {
@@ -415,7 +415,7 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
                 // (with them under Rebirth's AllowScriptArgsInLoops, which passes this call's
                 // `locals`, the empty set when there were none). Parsed even when the loop header
                 // failed.
-                BOOL open;
+                bool open;
                 if (*pos == tokens->end()) {
                     open = Error(this, LastLine(tokens), 1, "Unexpected end of file");
                 } else {
@@ -425,12 +425,12 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
                     ClassifyToken(nextText, &nextId, nullptr);
                     open = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText);
                 }
-                if (!open) return 0;
+                if (!open) return false;
                 ScriptDecl* body = NewCommandList();
                 cmd->calledScript = body;
                 ScriptVars* bodyLocals =
                     ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptArgsInLoops) ? locals : nullptr;
-                if (!LoadCommands(&body->commands, pos, tokens, bodyLocals)) return 0;
+                if (!LoadCommands(&body->commands, pos, tokens, bodyLocals)) return false;
             }
         } else {
             {
@@ -445,7 +445,7 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
             if (index < scripts.size()) {
                 // A call to a declared script: command 8, float 0 = script index, string 0 = name.
                 if (!LoadFunction(cmd, pos, tokens, kCmdCallScript, locals, scripts[index].params.c_str(), 0, 1))
-                    return 0;
+                    return false;
                 cmd->stringArgs[0] = Mbscmp(scripts[index].name, text) == 0 ? text : qualified;
                 StoreIntAsFloat(&cmd->floatArgs[0], static_cast<int>(index));
                 commands->push_back(*cmd);
@@ -459,7 +459,7 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
                 return Error(this, token.line, 3, "Unexpected token '%s'", text);
             }
         }
-        if (!ok) return 0;
+        if (!ok) return false;
         commands->push_back(*cmd);
     }
 }
@@ -468,7 +468,7 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
 // For and ForIf stay the only ones.
 
 
-BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
+bool CScript::Load(std::string* text, bool runWorldScript) {
     std::list<ScriptToken> tokens;
     ScriptDefinition definition;
     ScriptDefinition* decl = &definition;
@@ -512,7 +512,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
         *text = result;
     }
 
-    if (!Tokenize(*text, &tokens)) return 0;
+    if (!Tokenize(*text, &tokens)) return false;
 
     for (std::list<ScriptToken>::const_iterator pos = tokens.begin(); pos != tokens.end();) {
         ScriptToken token = NextToken(&pos);
@@ -521,7 +521,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
         ClassifyToken(word, &id, nullptr);
         switch (id) {
         case kLexWorldScript: {
-            BOOL ok;
+            bool ok;
             if (pos == tokens.end()) {
                 ok = Error(this, LastLine(&tokens), 1, "Unexpected end of file");
             } else {
@@ -531,10 +531,10 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
                 ClassifyToken(nextText, &nextId, nullptr);
                 ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText);
             }
-            if (!ok) return 0;
+            if (!ok) return false;
             if (worldScript) return Error(this, token.line, 14, "Only one WorldScript() per file allowed");
             worldScript = NewWorldScript();
-            if (!LoadCommands(&worldScript->commands, &pos, &tokens, nullptr)) return 0;
+            if (!LoadCommands(&worldScript->commands, &pos, &tokens, nullptr)) return false;
             break;
         }
         case kLexScript: {
@@ -546,19 +546,19 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
                 QualifyName(&name, word);
                 decl->name = name;
             }
-            if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return 0;
+            if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return false;
             const int index = FindScript(decl->name);
             if (index < 0) {
                 // Not declared before: parameters, then the body.
-                if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return 0;
-                if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return 0;
-                if (!LoadScriptBody(decl, &pos, &tokens)) return 0;
+                if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return false;
+                if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return false;
+                if (!LoadScriptBody(decl, &pos, &tokens)) return false;
                 definitions_.push_back(*decl);
             } else {
                 ScriptDefinition* declared = &definitions_[static_cast<std::size_t>(index)];
                 if (!declared->ifThen.empty())
                     return Error(this, token.line, 16, "Multiple declaration of script %s", declared->name);
-                if (!LoadScriptBody(declared, &pos, &tokens)) return 0;
+                if (!LoadScriptBody(declared, &pos, &tokens)) return false;
             }
             break;
         }
@@ -572,14 +572,14 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
                 decl->name = name;
             }
             if (FindScript(decl->name) != -1) return Error(this, token.line, 15, "Duplicate script %s", word);
-            if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return 0;
-            if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return 0;
+            if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return false;
+            if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return false;
             definitions_.push_back(*decl);
             break;
         }
         case kLexGlobalVars: {
             decl->Reset();
-            BOOL ok;
+            bool ok;
             if (pos == tokens.end()) {
                 ok = Error(this, LastLine(&tokens), 1, "Unexpected end of file");
             } else {
@@ -589,9 +589,9 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
                 ClassifyToken(nextText, &nextId, nullptr);
                 ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText);
             }
-            if (!ok) return 0;
+            if (!ok) return false;
             // Declared with qualified names, then added to the global variables.
-            if (!LoadVariableDeclarations(decl, &pos, &tokens, 1)) return 0;
+            if (!LoadVariableDeclarations(decl, &pos, &tokens, 1)) return false;
             decl->vars.ResetValues();
             globals_.AppendFrom(decl->vars);
             break;
@@ -604,10 +604,10 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
     if (worldScript && runWorldScript) RunWorldScript(worldScript);
     loaded_ = 1;
     ++fileCount_;
-    return 1;
+    return true;
 }
 
-BOOL CScript::LoadFile(const std::string& path) {
+bool CScript::LoadFile(const std::string& path) {
     std::string text;
     if (!ReadTextFile(path, &text)) return Error(this, 0, 17, "Unable to read file \"%s\"", path);   // "Unable to read file \"%s\""
     return Load(&text, 1);

@@ -83,25 +83,25 @@ void CSpellContainer::Destroy() {
 
 const char* CSpellContainer::GetName() { return name_.c_str(); }
 
-BOOL CSpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {
+bool CSpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {
     if (!modifier) return game::FatalError(kInvalidRune);
     modifiers_.insert(modifiers_.end(), modifier);
-    return 1;
+    return true;
 }
 
-int CSpellContainer::AllowsModifier(const itemdb::SpellModifierRecord* modifier) {
-    if (!prototype_ || !modifier) return 0;
+bool CSpellContainer::AllowsModifier(const itemdb::SpellModifierRecord* modifier) {
+    if (!prototype_ || !modifier) return false;
     switch (Letter(modifier, 0)) {
     case 'a': return prototype_->allowedModifiers[2];
     case 'd': return prototype_->allowedModifiers[4];
     case 'e': return prototype_->allowedModifiers[3];
     case 'r': return prototype_->allowedModifiers[0];
     case 't': return prototype_->allowedModifiers[1];
-    default: return 1;
+    default: return true;
     }
 }
 
-BOOL CSpellContainer::Build() {
+void CSpellContainer::Build() {
     CSpell* spell = &spell_;
     const itemdb::SpellRecord* proto = prototype_;
     spell->speed_ = proto->speed;
@@ -214,7 +214,6 @@ BOOL CSpellContainer::Build() {
         if (c == 0) break;
         spell->modifiers_[i] = c;
     }
-    return 1;
 }
 
 CSpellContainer* CSpellManager::NewContainer() {
@@ -266,27 +265,27 @@ void CSpellConstructor::SetManager(CSpellManager* manager) {
     if (manager) manager->AddRef();
 }
 
-BOOL CSpellConstructor::BeginConstruct(const itemdb::SpellRecord* prototype) {
+bool CSpellConstructor::BeginConstruct(const itemdb::SpellRecord* prototype) {
     if (!manager_) return game::FatalError(kNoSpellManager);
     if (!prototype) return game::FatalError(kNoSpellPrototype);
     CSpellContainer* container = manager_->NewContainer();
     container_.Assign(container);
     container_->prototype_ = prototype;   // no null check
-    return 1;
+    return true;
 }
 
-BOOL CSpellConstructor::EndConstruct() {
+bool CSpellConstructor::EndConstruct() {
     if (manager_ && container_) {
         container_->Build();
-        return 1;
+        return true;
     }
     return game::FatalError(kNoManagerOrContainer);
 }
 
-BOOL CSpellConstructor::AddModifier(itemdb::SpellModifierRecord* modifier) {
-    if (!container_) return 0;
-    if (!container_->AllowsModifier(modifier)) return 0;
+bool CSpellConstructor::AddModifier(itemdb::SpellModifierRecord* modifier) {
+    if (!container_) return false;
+    if (!container_->AllowsModifier(modifier)) return false;
     container_->AddModifier(modifier);
     container_->Build();
-    return 1;
+    return true;
 }

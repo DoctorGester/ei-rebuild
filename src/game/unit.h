@@ -136,10 +136,10 @@ public:
     virtual void Unused17() = 0;                 // empty everywhere
     virtual void PlayerChanged(void*) {}
     // CUnit's ScaleEffectChanged passes its whole dword argument on; the bodies read the low byte.
-    virtual int RefreshVitals(char withHitPoints);
+    virtual void RefreshVitals(char withHitPoints);
     // Either unit may be null.
-    virtual int TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source);
-    virtual int Heal(float amount);
+    virtual bool TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source);
+    virtual bool Heal(float amount);
     virtual void RepackStats() {}
     virtual void UpdateSizeClasses() {}
     virtual int Level() = 0;
@@ -148,7 +148,7 @@ public:
     virtual bool ArmourTakenOff(std::uint32_t slot) = 0;
     virtual int ClearOuterArmourLayers() { return 0; }
     // After the items changed; the client reloads a hero's two figure textures when their names change.
-    virtual int RefreshEquipment() { return 0; }
+    virtual void RefreshEquipment() {}
     virtual int RefreshModel() { return 0; }     // after a weapon change
     virtual int RefreshWounds() { return 0; }
     // Count capped at 7.
@@ -157,8 +157,8 @@ public:
     virtual void SetWeaponModels(const std::uint32_t*, int) {}
     virtual bool WeaponAdded(std::uint32_t itemId);
     virtual bool RemoveWeaponModel(std::uint32_t itemId);
-    virtual int HasOtherArmour() = 0;
-    virtual int HasMainArmour() = 0;
+    virtual bool HasOtherArmour() = 0;
+    virtual bool HasMainArmour() = 0;
     virtual void HostileMaskChanged() {}
     virtual int TamingStage() { return 0; }
     virtual void AdvanceTime(float) {}
@@ -210,8 +210,8 @@ public:
     // The position predicted along the path at world time `time`, the point the animation acts on.
     Vector3* PositionAt(Vector3* out, int time) override;
     Vector3* AimPoint(Vector3* out) override;
-    int IsLargeUnit() override;
-    int IsDead() override;
+    bool IsLargeUnit() override;
+    bool IsDead() override;
     // The controller's ForgetObject; nothing reads the result (0).
     int ForgetObject(CEngineObject* object) override;
     void UpdateMoveFactors() override;
@@ -231,7 +231,7 @@ public:
     void SetSide(int side);
     // Non-zero when this unit regards `other`'s side as hostile (the bit of other's side in both relation
     // masks).
-    std::uint32_t IsHostileTo(const CUnit* other);
+    bool IsHostileTo(const CUnit* other);
 
     // Marks part 13.
     void SetFightAtWill(int value);
@@ -335,7 +335,7 @@ public:
 
     // For units with a player and no bow or crossbow in hand: is this unit behind `target` (the direction to
     // it against the target's facing below -0.5)? 0/1.
-    BOOL IsBehind(const CMapObject* target);
+    bool IsBehind(const CMapObject* target);
 
     // Puts armour piece `item` (condition rounding above 0) into the armour slot of its type (referenced; the
     // controller's ArmourPutOn gets its id) and releases the piece that was there. Returns that piece (null
@@ -429,7 +429,7 @@ public:
     // As RefreshMotion with the speeds given (the motion's speed scale and base turn rate) and no part
     // marked.
     void SetMotionSpeeds(float speed, float turnRate);
-    int HasPlayer() const;
+    bool HasPlayer() const;
     // Twice above.z, unrounded.
     double DoubleHeight() const;
     CItemArmor* WornItem(int slot) const;
@@ -540,8 +540,8 @@ struct UnitVitals {
     // something may have changed.
     bool Regenerate(UnitStats* stats, CUnit* unit, char inCombat);
     // A hit on a map object that is not a creature: each damage type beyond the protection comes off the hit
-    // points, not below -5 times the maximum. Returns 1.
-    BOOL TakeHit(const DamageInfo* hit);
+    // points, not below -5 times the maximum.
+    void TakeHit(const DamageInfo* hit);
     // Zeroes everything but the first dword.
     void Reset();
     // The values rounded to nearest into `out`.
@@ -602,10 +602,10 @@ struct UnitStats {
     // Only the hit point maximum and the hit points (and flag 8 when alive).
     void RecomputeHitPoints(UnitVitals* vitals, CUnit* unit);
     // Heals the working-or-disabled slots below their maximum by `amount`, spread by their factors over `scale` (the
-    // unit's maximum); a slot back above 0.001 works again. Returns 1.
-    bool HealSlots(float scale, float amount);
-    // HealSlots(vitals' maximum, amount), then the hit points. Returns 1.
-    BOOL Heal(UnitVitals* vitals, float amount);
+    // unit's maximum); a slot back above 0.001 works again.
+    void HealSlots(float scale, float amount);
+    // HealSlots(vitals' maximum, amount), then the hit points.
+    void Heal(UnitVitals* vitals, float amount);
     // Each used slot's maximum becomes `maxHitPoints` times its share relative to the body's; the current
     // value is clamped to it.
     void SetSlotMaxima(float maxHitPoints);
@@ -674,7 +674,7 @@ struct UnitStats {
     // Can the unit learn skill level `record` of the skill database: learnable, the three stats at least the
     // record's, the required attribute and skill level present unless named "none" or empty, no known level
     // of the same skill id in another skill, and the record's own level above the one known. 0/1.
-    BOOL CanLearn(const SkillDatabase* database, const ::SkillLevelRecord* record);
+    bool CanLearn(const SkillDatabase* database, const ::SkillLevelRecord* record);
     // The experience learning skill level `record` (of the level records) costs: what its worth
     // (1.61 ^ (value / Skill Val 2) * Skill Val 1, the school curve) is over the level below's, truncated
     // (the first level of a skill over level 0), times perkPowerBase ^ (the sum of the known skill levels,
@@ -857,7 +857,7 @@ static_assert(offsetof(UnitStats, skillLevels) == 0x6D3);
 // Resets a hit: all weights 1, multiplier 1, attackRoll and amount 3.4e36, location 6, the rest 0.
 std::uint32_t ResetDamageInfo(DamageInfo* info);
 // Has the hit a non-zero weight for damage type 3, 4 or 5 (NaN counts as zero)?
-BOOL HasElementalDamage(const DamageInfo* info);
+bool HasElementalDamage(const DamageInfo* info);
 
 // The server-side state object of map objects (class id 0x39): the hit points.
 class CMapObjectServer : public CMapObjectCompanion {
@@ -868,9 +868,9 @@ public:
     ClassId GetClassId() override;
 
     // Hit points rounded to a 16-bit value are <= 0.
-    BOOL IsDead() override;
+    bool IsDead() override;
     // Hit points below -5 times the maximum.
-    BOOL IsOverkilled() override;
+    bool IsOverkilled() override;
 
     // Per-tick update: counts down the owner's effects and removes the expired ones. Returns 0.
     int RunTick() override;
@@ -878,7 +878,7 @@ public:
     void SetData(const UnitVitals* data);
     // Applies a hit to the vitals; a dead object loses its effects and gets flags_ bit 1. Returns 0 when the
     // vitals take nothing, else 1.
-    virtual BOOL TakeHit(const DamageInfo* hit);
+    virtual bool TakeHit(const DamageInfo* hit);
 
     // The vitals block, the two names and the string array (a count, then each string with its terminator;
     // Load appends to the array).
@@ -935,8 +935,8 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    BOOL IsDead() override;
-    BOOL IsOverkilled() override;
+    bool IsDead() override;
+    bool IsOverkilled() override;
     // A hit of `damage` with the hit-kind bits `kind` on a living object flagged 0x400000 shows its number
     // over it.
     void Hit(int damage, int kind) override;

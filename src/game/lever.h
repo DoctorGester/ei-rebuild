@@ -59,11 +59,11 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     bool IsSynchronised() override { return Slot29True(); }
-    int IsUsable() override { return NeedsKey(); }
-    int IsDirectUseBlocked() override { return directUseBlocked; }
+    bool IsUsable() override { return NeedsKey(); }
+    bool IsDirectUseBlocked() override { return directUseBlocked; }
     // ApplyKey.
     bool ApplyScience(const LockKey* key, CEngineObject* user) override;
-    int AcceptsKey(const LockKey* key) override { return KeyOpens(key); }
+    bool AcceptsKey(const LockKey* key) override { return KeyOpens(key); }
     bool KeepsMapFlag() override { return KeepsMapFlagSlot(); }
     void UseSpots(std::vector<Vector3>* out, float userRadius) override;
     std::uint32_t ReadNetState(int first) override { return ReadLeverNetState(first); }
@@ -108,13 +108,13 @@ public:
     bool Slot29True();
     bool KeepsMapFlagSlot();
     // 0 when disabled, else whether the lock has a mask.
-    int NeedsKey();
+    bool NeedsKey();
     // The lock's id when its mask has bit 3, else 0.
     std::uint32_t KeyId() override;
     // When `key` opens the lock (Rebirth's FixLeversActivate): the next state at the model's default
     // speed, then disabled; true. Else false.
     bool ApplyKey(const LockKey* key);
-    BOOL KeyOpens(const LockKey* key);
+    bool KeyOpens(const LockKey* key);
 
     int state;
     int stateCount;

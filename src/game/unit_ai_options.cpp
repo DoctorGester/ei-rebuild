@@ -119,7 +119,7 @@ void AIAttention::Build(CUnit* unit) {
     auto* server = unit->ServerController();
     weapons.clear();
     spells.clear();
-    if (!(IsTextKey(unit->id_) & 0xFF)) {
+    if (!IsTextKey(unit->id_)) {
         if (server->stats.naturalWeapon != kNaturalSpellsOnly) {
             float range = server->AttackRange();
             weapons.resize(std::ssize(weapons) + 1);

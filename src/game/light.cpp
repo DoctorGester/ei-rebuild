@@ -49,7 +49,7 @@ CLight::CLight() {
 
 CLight::~CLight() = default;
 
-BOOL CLight::SetPoint(const Vector3* color, const Vector3* position) {
+void CLight::SetPoint(const Vector3* color, const Vector3* position) {
     kind_ = kKindPoint;
     color_[0] = color->x;
     color_[1] = color->y;
@@ -57,10 +57,9 @@ BOOL CLight::SetPoint(const Vector3* color, const Vector3* position) {
     pointPosition_ = *position;
     localPosition_ = *position;
     flags_ |= kFlagChanged;
-    return 1;
 }
 
-BOOL CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
+void CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
     kind_ = kKindDirectional;
     color_[0] = color->x;
     color_[1] = color->y;
@@ -69,7 +68,6 @@ BOOL CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
     const Vector3 target = *direction;
     TiltTowards(target);
     flags_ |= kFlagChanged;
-    return 1;
 }
 
 void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,

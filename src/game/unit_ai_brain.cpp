@@ -344,10 +344,10 @@ void AIMemory::Update(CUnitServer* who) {
     noticedLevel += noticedKind;
 }
 
-int AIMemory::IsEnemy(CUnit* self, CEngineObject* other) {
+bool AIMemory::IsEnemy(CUnit* self, CEngineObject* other) {
     auto* unit = static_cast<CUnit*>(other);
-    if (self->side == unit->side || self->player == unit->player) return 1;
-    return lib::Contains(visible, other) ? 1 : 0;
+    if (self->side == unit->side || self->player == unit->player) return true;
+    return lib::Contains(visible, other);
 }
 
 void AIReports::Report(CMapObject* object, int what) {

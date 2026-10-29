@@ -20,8 +20,8 @@ inline constexpr const char* kCommentClose = /*0078BC90*/ "*/";
 inline constexpr const char* kLineComment = /*0078BC94*/ "//";
 
 // Game CRT (locale-dependent ctype functions).
-int IsDigit(int c);
-int IsSpace(int c);
+bool IsDigit(int c);
+bool IsSpace(int c);
 int Mbscmp(std::string_view a, std::string_view b);
 
 

@@ -55,7 +55,7 @@ void UnitStats::RebuildArmourLayers(CUnit* unit) {
 }
 
 void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, DamageWords* out) {
-    bool keyed = (IsTextKey(unit->id_) & 0xFF) != 0;
+    bool keyed = IsTextKey(unit->id_);
     int top = keyed ? 2 : 0;
     const UnitStatSlot& body = slots[kBodySlot];
     for (int k = 0; k < 7; ++k) {
@@ -68,7 +68,7 @@ void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, Damage
 }
 
 double UnitStats::AttributeWithItems(int index, CUnit* unit) {
-    if (!(IsTextKey(unit->id_) & 0xFF)) return attributes[index];   // any index
+    if (!IsTextKey(unit->id_)) return attributes[index];   // any index
     float best = 0.0f;
     for (std::uint32_t i = 0; i < kQuickItems; ++i) {
         CItem* item = unit->GetQuickItem(i);

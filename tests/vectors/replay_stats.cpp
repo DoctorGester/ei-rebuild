@@ -94,7 +94,7 @@ EI_VECTOR_CHECK("UnitStats::ReduceKind1", ReduceCall, CheckReduceKind1);
 
 bool CheckOpens(const OpensCall& v, char* d, std::size_t n) {
     LockKey key = v.key;
-    BOOL result = key.Opens(&v.lock);
+    int result = key.Opens(&v.lock);
     if (result == v.result) return true;
     std::snprintf(d, n, "key %X/%u/%u lock %X/%u/%u: ours %d, original %d", v.key.mask, v.key.id, v.key.level,
                   v.lock.mask, v.lock.id, v.lock.level, result, v.result);
@@ -117,7 +117,7 @@ bool CheckElemental(const ElementalCall& v, char* d, std::size_t n) {
     DamageInfo info;
     std::memset(&info, 0, sizeof(info));
     for (int i = 0; i < 3; ++i) info.typeWeights[3 + i] = v.weights[i];
-    BOOL result = HasElementalDamage(&info);
+    int result = HasElementalDamage(&info);
     if (result == v.result) return true;
     std::snprintf(d, n, "weights %g %g %g: ours %d, original %d", v.weights[0], v.weights[1], v.weights[2], result,
                   v.result);

@@ -23,7 +23,7 @@
 namespace {
 
 
-bool IsDead(CMapObject* unit) { return unit->IsDead() != 0; }
+bool IsDead(CMapObject* unit) { return unit->IsDead(); }
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside.

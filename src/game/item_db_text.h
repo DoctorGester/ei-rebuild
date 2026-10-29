@@ -27,7 +27,7 @@ struct TextSources {
     // CMappedResource under `path` and returns its OpenResource(path, writable); a failed open stays in the
     // list. Remove: closes, deletes and unlinks the archive named `path`, if any. Clear: closes and deletes
     // every archive, then frees the nodes.
-    BOOL Add(const std::string& path, BOOL writable);
+    bool Add(const std::string& path, bool writable);
     void Remove(const std::string& path);
     void Clear();
     // The data of file `key` from the first archive that has it (GetFile: its size written to `size`, which
@@ -56,48 +56,48 @@ public:
 
     // The first word at the cursor (leading spaces and line ends skipped; it ends at a
     // space, tab, CR or LF) into `out`; the cursor does not move. 0 when the cursor is at the end.
-    BOOL PeekWord(std::string* out);
+    bool PeekWord(std::string* out);
 
     // Whether `p` is at or past the end of the current text (signed compare).
-    BOOL IsPastEnd(const char* p);
+    bool IsPastEnd(const char* p);
 
     // Looks up "string " + name and reads it (up to a '#', trailing CR/LF trimmed) into
     // `out`. When there is no such text `out` becomes `name` itself (unless it already holds that
     // very buffer) and the result is 0. Either way the cursor is cleared afterwards.
-    BOOL GetString(std::string_view name, std::string* out);
+    bool GetString(std::string_view name, std::string* out);
 
     // The name, description and kind ("item_weapon", ...) of an item, each looked up
-    // in the texts; parts that are not found stay empty. Always returns 1.
-    BOOL GetItemTexts(CItem* item, std::string* name, std::string* description, std::string* kind);
+    // in the texts; parts that are not found stay empty.
+    void GetItemTexts(CItem* item, std::string* name, std::string* description, std::string* kind);
 
     // The item's display name: "format_item1" (or "format_item2" with the stack count when count_ is above
     // 1) applied to the kind and the name.
-    BOOL FormatItemName(CItem* item, std::string* out);
+    void FormatItemName(CItem* item, std::string* out);
 
     // The line reader.
     // Makes the text `key` current (the first archive whose GetFile knows it), cursor at its
     // start. True when found and not empty.
-    BOOL Open(std::string_view key);
+    bool Open(std::string_view key);
     // Ours: Open for a file that is not text (a quest registry read from the cursor): its bytes as they
     // are, never converted to UTF-8.
-    BOOL OpenData(std::string_view key);
+    bool OpenData(std::string_view key);
     // The rest of the current line (up to CR or LF) into `out`; with `advance` the cursor
     // then moves to the next line that is not a comment. 0 when the cursor is at the end.
-    BOOL ReadLine(std::string* out, BOOL advance);
+    bool ReadLine(std::string* out, bool advance);
     // The text up to the next '#' into `out`; with `advance` the cursor moves there.
-    BOOL ReadToHash(std::string* out, BOOL advance);
+    bool ReadToHash(std::string* out, bool advance);
     // The current line's words (separated by spaces and tabs; a word still open when the
     // text ends is dropped) into `words`; with `advance` the cursor moves to the next line that is not
     // a comment. 0 when the cursor is at the end.
-    BOOL Split(std::vector<std::string>* words, BOOL advance);
+    bool Split(std::vector<std::string>* words, bool advance);
     // Moves the cursor to the line that starts with `key`: one word compares the line's first word; several
     // words (split at spaces) compare the line's words, lower-cased, with them. 1 when found, else 0
     // (cursor at the end).
-    BOOL FindLine(std::string_view key);
+    bool FindLine(std::string_view key);
     // Moves the cursor to the next "#..." header line (not a "##" comment). 1 when found, else 0.
-    BOOL FindHeader();
+    bool FindHeader();
 
-    BOOL AddSource(const std::string& path);
+    bool AddSource(const std::string& path);
     void RemoveSource(const std::string& path);
     void ClearSources();
     // The names matching `pattern` ("pers *") of every archive into `out`.

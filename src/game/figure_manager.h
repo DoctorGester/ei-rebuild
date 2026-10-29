@@ -28,7 +28,7 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
-    BOOL AddArchive(const std::string& path) override { return AddMmioArchive(path); }
+    bool AddArchive(const std::string& path) override { return AddMmioArchive(path); }
     CEngineObject* CreateObject(int type, int id) override { return CreateFigureObject(type, id); }
     const char* GetFolderName() override;
 

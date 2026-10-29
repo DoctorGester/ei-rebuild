@@ -67,7 +67,7 @@ void SectorData::SetDetail(int level) { detail = level; }
 
 // --- The sector's part of the passes -------------------------------------
 
-int SectorData::IsDrawn() const { return clipMode == 0 || clipMode == terrain::kCrossing ? 1 : 0; }
+bool SectorData::IsDrawn() const { return clipMode == 0 || clipMode == terrain::kCrossing; }
 
 void SectorData::ClipTest(CSceneRenderer* renderer) {
     // The verdict as it is stored: -1 counts as outside.

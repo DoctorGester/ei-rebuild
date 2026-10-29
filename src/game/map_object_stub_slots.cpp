@@ -19,14 +19,14 @@ constexpr std::uint16_t kVitalParts = 0x11;     // changed parts 0 and 4: the st
 // --- Empty slots -------------------------------------------------------------------------------------
 
 // No key is accepted.
-int CMapObject::AcceptsNoKey() { return 0; }
+bool CMapObject::AcceptsNoKey() { return false; }
 
 // A scaling effect came or went; 1.
 int CMapObject::ScaleEffectChangedDefault() { return 1; }
 
 // --- Slots that read the object ------------------------------------------------------------------------
 
-int CMapObject::CompanionIsDead() { return companion->IsDead(); }
+bool CMapObject::CompanionIsDead() { return companion->IsDead(); }
 
 int CMapObject::NotifyCompanion() {
     companion->Unused14();
@@ -90,10 +90,10 @@ void CMapObject::ScaleEffectChanged(int) {
 }
 void CMapObject::SetStats(const UnitStats*) {}
 void CMapObject::UpdateSizeClasses() {}
-int CMapObject::IsUsable() { return 0; }
-int CMapObject::IsDirectUseBlocked() { return 0; }
+bool CMapObject::IsUsable() { return false; }
+bool CMapObject::IsDirectUseBlocked() { return false; }
 std::uint32_t CMapObject::KeyId() { return static_cast<std::uint32_t>(kNoKey); }
-int CMapObject::AcceptsKey(const LockKey*) { return AcceptsNoKey(); }
+bool CMapObject::AcceptsKey(const LockKey*) { return AcceptsNoKey(); }
 bool CMapObject::KeepsMapFlag() { return true; }
 void CMapObject::UseSpots(std::vector<Vector3>* out, float) { FreeArray(out); }
 std::uint32_t CMapObject::SetStunned(int) { return 0; }
@@ -109,8 +109,8 @@ Vector3* CMapObject::AimPoint(Vector3* out) {
     GetPosition2(&out->x);
     return out;
 }
-int CMapObject::IsLargeUnit() { return 0; }
-int CMapObject::IsDead() { return CompanionIsDead(); }
+bool CMapObject::IsLargeUnit() { return false; }
+bool CMapObject::IsDead() { return CompanionIsDead(); }
 int CMapObject::ForgetObject(CEngineObject*) { return 0; }
 void CMapObject::UpdateMoveFactors() {}
 void CMapObject::RefreshWounds() {}

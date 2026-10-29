@@ -631,7 +631,7 @@ void CoderState::Reset() {
     Construct();
 }
 
-BOOL CPlayerClient::CreateClient() {
+void CPlayerClient::CreateClient() {
     state_ = 0;
     partyUnitIds_.clear();
     in_.Resize(0);
@@ -644,7 +644,6 @@ BOOL CPlayerClient::CreateClient() {
     std::fill_n(handlers_.data(), std::ssize(handlers_), Handler{});
     for (const auto& entry : kClientHandlers)
         handlers_[entry.type] = entry.handler;
-    return 1;
 }
 
 void CPlayerClient::Clear() {

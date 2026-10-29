@@ -40,7 +40,7 @@ void Deliver(CSpellEffect* effect, DamageInfo* hit, CMapObject* unit) {
 }
 } // namespace
 
-int IsSpellTarget(CUnit* unit) { return AcceptsAreaSpells(unit) ? 1 : 0; }
+bool IsSpellTarget(CUnit* unit) { return AcceptsAreaSpells(unit); }
 
 void CSpellEffect::HitUnit(DamageInfo* hit, CMapObject* unit) { Deliver(this, hit, unit); }
 

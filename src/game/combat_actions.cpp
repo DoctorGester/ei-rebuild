@@ -200,13 +200,13 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     player->ItemUsed(copy);
 }
 
-BOOL CUnitServer::Heal(float amount) {
-    if (!stats.Heal(ServerStatsOf(unit), amount)) return 0;
+bool CUnitServer::Heal(float amount) {
+    stats.Heal(ServerStatsOf(unit), amount);
     stats.Recompute(ServerStatsOf(unit), unit);
     unit->MarkChanged(0);
     unit->MarkChanged(4);
     console::EndLine(*kCombatLog << "Unit " << static_cast<long>(unit->id_) << " was healed");
-    return 1;
+    return true;
 }
 
 std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
@@ -338,7 +338,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     if (CPlayer* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(player, unit))
             member->ServerController()->brain.memory.SeeCorpse(member, unit);   // `member` sees the dead unit
-        if (IsMultiplayerClient() & 0xFF) unit->flags_ |= MapObjectFlag::Shared;
+        if (IsMultiplayerClient()) unit->flags_ |= MapObjectFlag::Shared;
     }
 }
 

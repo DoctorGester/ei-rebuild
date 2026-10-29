@@ -40,7 +40,7 @@ double UnitParams::VisionRange(float daylight) {
 
 void CUnit::AdvanceTime(float time) {
     if (controller) Controller()->AdvanceTime(time);
-    if (!(IsTextKey(id_) & 0xFF)) return;
+    if (!IsTextKey(id_)) return;
     float daylight = static_cast<float>(g_clientWorld->NightLevel());
     float range = static_cast<float>(params.VisionRange(daylight));
     if (moveMode == 0) range = range;

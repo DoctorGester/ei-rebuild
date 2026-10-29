@@ -195,8 +195,8 @@ bool CheckLoadFunction(Reader& r, char* d, std::size_t n) {
     SetError(s, ReadError(r));
     const int id = r.Get<std::int32_t>();
     const std::string signature = r.String();
-    const BOOL assignment = r.Get<std::int32_t>();
-    const BOOL scriptCall = r.Get<std::int32_t>();
+    const bool assignment = r.Get<std::int32_t>();
+    const bool scriptCall = r.Get<std::int32_t>();
     ScriptVars* locals = ReadLocals(r);
     auto* cmd = new SSCCmd;
     cmd->id = r.Get<std::int32_t>();
@@ -256,7 +256,7 @@ bool CheckLoad(Reader& r, char* d, std::size_t n) {
     CScript* s = state.script;
     SetError(s, ReadError(r));
     const std::string source = r.String();
-    const BOOL runWorldScript = r.Get<std::int32_t>();
+    const bool runWorldScript = r.Get<std::int32_t>();
     const int result0 = r.Get<std::int32_t>();
     const Error error0 = ReadError(r);
     const int loaded0 = r.Get<std::int32_t>();

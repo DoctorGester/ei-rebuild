@@ -71,14 +71,14 @@ void CMapObjectServer::SetData(const UnitVitals* data) {
     owner->MarkChanged(0);
 }
 
-BOOL CMapObjectServer::TakeHit(const DamageInfo* hit) {
-    if (!vitals.TakeHit(hit)) return 0;
+bool CMapObjectServer::TakeHit(const DamageInfo* hit) {
+    vitals.TakeHit(hit);
     owner->MarkChanged(0);
     if (IsDead()) {
         owner->ClearEffects();
         owner->flags_ |= MapObjectFlag::Removed;
     }
-    return 1;
+    return true;
 }
 
 int CMapObjectClientSpecific::RunTick() {
@@ -90,7 +90,7 @@ int CMapObjectClientSpecific::RunTick() {
             if (effect.ticksLeft <= 0) continue;
             int left = --effect.ticksLeft;
             if (left >= kEndSoundTicks || effect.ending) continue;
-            if (!(IsTextKey(OwnerOf(this)->id_) & 0xFF)) continue;
+            if (!IsTextKey(OwnerOf(this)->id_)) continue;
             int handle = endSound;
             CSoundManager* soundSystem = g_clientWorld->sounds_;
             if (handle != -1 &&
