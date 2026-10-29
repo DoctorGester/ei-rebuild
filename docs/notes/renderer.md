@@ -1751,32 +1751,50 @@ User 2026-10-22: a small performance overlay in the standalone, switched on from
   (EI_RENDER_VALIDATION) has `render::PerfOverlaySupported()` false, so the value is not even read (the pinned
   settings file lacks it, and a read of a missing value fails a run) and SetPerfOverlay keeps it off.
 - **What it shows** (top left of the game image, refreshed every 250 ms, averages over the last second):
+  ```
+  FPS 144   FRAME 6.96 MS   WORST 9.13
+  GPU 2.10 MS   WORST 2.60
+    SHADOW 0.31 (SUN 0.25  POINT 0.06)
+    WORLD 1.20 (TERRAIN 0.50  OBJECTS 0.40  OTHER 0.30)
+    UI 0.40   PRESENT 0.19
+  CPU SUBMIT 1.10 MS   SHADOW 0.12
+  DRAWS WORLD 370   SUN 120   POINT 80   UI 25
+  ```
   `FPS` and the frame time (between presents, so vsync's wait counts) with the worst frame; `GPU` the frame's draws
-  and the present (worst too), split into `SHADOW` (the shadow map's passes), `WORLD` (the frame's draws up to the
-  end of the world view, the shadow map left out; the interface canvases' and uploads' work queued before it counts
-  here), `UI` (the rest of the frame: the interface) and `PRESENT` (the window's pass: the frame through the gamma
-  ramp, the cursor, the overlay); `CPU SUBMIT` the main thread's time in EndFrame's draws up to the present (the
-  present's wait left out; draws already made by a split earlier in the frame are not in it) and of it `SHADOW` the
-  shadow map's fitting and pass; `DRAWS` FrameStats::draws and the shadow map's draws. `GPU -` until timestamps
-  come back (or when the device has none).
-- **How** (`render_perf.{h,cpp}`, `shaders/perf_overlay.hlsl`): six timestamps a frame (frame begin at the first
-  DrawPending, around DrawShadowMap, after the last world command, before and after DrawToWindow) in a disjoint
-  query; five sets in flight, read with `DONOTFLUSH` when a later frame begins (never waiting; a set not ready waits
-  for a later frame, a disjoint one is dropped). A mark not reached (no shadow map, no world) takes the one before
-  it. The text is a built-in 5 x 7 font of capitals, digits and `.:/-+%()` drawn into an R8 image (digits brighter
+  and the present (worst too), split by pass (R37i; `perf::Pass`, the categories of R37's probe, section 13 item 12):
+  `SUN` the sun's shadow map with its two range passes (and the shadows' preparation), `POINT` the point lights'
+  faces, `TERRAIN` the ground and water pages, `OBJECTS` the models that cast shadows (objects and units), `OTHER`
+  the rest of the world view (the models that cast none, effects, flat decals, pre-transformed draws, depth clears,
+  the uploads, and the passes' clears, copies into the multisampled target and its resolve), `UI` the interface
+  (with the canvases' queued drawing at the frame's start) and `PRESENT` (the window's pass: the frame through the
+  gamma ramp, the cursor, the overlay); `SHADOW` and `WORLD` are their parts' sums. `CPU SUBMIT` the main thread's
+  time in EndFrame's draws up to the present (the present's wait left out; draws already made by a split earlier in
+  the frame are not in it) and of it `SHADOW` the shadow map's fitting and pass; `DRAWS` the frame's draws by pass
+  (FrameStats' draws and shadow draws counted at each change of pass; `WORLD` terrain + objects + other, `UI` with
+  the present's). `GPU -` until timestamps come back (or when the device has none).
+- **How** (`render_perf.{h,cpp}`, `shaders/perf_overlay.hlsl`): `BeginGpuFrame` at the first DrawPending begins the
+  frame in UI, `Enter(pass)` marks each change (DrawPending: uploads, the shadow map, each pass's begin and the
+  multisampled pass's end; DrawCommands: each command's pass; DrawShadowMap: the point faces; EndFrame: the present),
+  `EndGpuFrame` after DrawToWindow. Each change is a timestamp (at most 64 a frame; past them the last stamped pass
+  takes the rest of the frame), the time between two stamps the first one's pass, so the passes add up to the
+  total exactly. A disjoint query around them; five sets in flight, read with `DONOTFLUSH` when a later frame begins
+  (never waiting; a set not ready waits for a later frame, a disjoint one is dropped). A stamp is written when the
+  GPU reaches it, so work still in flight at a change counts in the next pass (what R37e1 measured: section 13).
+  The text is a built-in 5 x 7 font of capitals, digits and `.:/-+%()` drawn into an R8 image (digits brighter
   than labels), uploaded when the text changed, and drawn as one quad by whole-pixel scale (`Scale`: one per 540
   rows of the game image, so 4 at 2160) over a 60% black box, in the present's pass after the frame and the
   cursor (the cursor passes under it).
 - **Never in the frame target**: captures, frame checks, the Scroll Lock screenshot, the movie recorder and the
   escape menu's / save game's pictures read the frame target, which never holds it. The cursor thread's presents
   between frames (a frame later than 40 ms, R9c2) show the last frame without it.
-- **Cost**: off, a flag test at each entry point (the commands' world test only when on). On: six query Ends and a
-  few non-blocking GetData calls a frame, one 6-vertex draw in the present's pass, a CPU text image of about
-  250 x 50 bytes made and uploaded at most four times a second.
+- **Cost**: off, a flag test at each entry point (the commands' pass only when on). On: a query End per change of
+  pass (about 10-20 a frame) and a few non-blocking GetData calls, one 6-vertex draw in the present's pass, a CPU
+  text image of about 330 x 70 bytes made and uploaded at most four times a second.
 - **Check**: `ei_perf_check` (tools/perf_check, run by build.cmd) on a WARP device: the lines of known numbers, the
   font, the image's pixels; the overlay over a cleared BGRA8 target at 720 and 2160 rows against the image scaled up
-  (every pixel); 40 frames of timestamps (the GPU times come back, the passes within the total). No harness
-  scenario: the overlay is never on in a run.
+  (every pixel); 40 frames through every pass (the GPU times come back, the passes add up to the total, also in
+  frames with more changes than stamps; each pass's draws and the draws' line). No harness scenario: the overlay is
+  never on in a run.
 
 ## 15a. The vertical blank switch (R23)
 
@@ -1973,8 +1991,9 @@ every frame and only the changed ones uploaded. A frame keeps the visible quarte
 ### render_perf.h: the performance overlay
 
 The performance overlay (docs/notes/renderer.md, section 15): frames a second, the frame time (average and worst
-over the last second), the GPU time of the frame's passes (timestamp queries, read a few frames late without
-waiting), the renderer's CPU time and the draws, as a few lines of text in the frame's top left corner. Drawn by
+over the last second), the GPU time of the frame's passes (sun map, point faces, terrain, objects, the rest of
+the world, interface, present: a timestamp query at each change, read a few frames late without waiting), the
+renderer's CPU time and the draws by pass, as a few lines of text in the frame's top left corner. Drawn by
 the present into the game window's back buffer after the frame and the cursor (render_window.cpp, DrawToWindow),
 never into the frame target: captures, screenshots, the escape menu's and the save game's pictures and every frame
 check read the frame target, so none of them holds it. Off unless the settings file switches it on

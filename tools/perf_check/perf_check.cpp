@@ -4,8 +4,8 @@
 //   draw    the overlay drawn over a cleared back buffer (as the present draws it: BGRA8, no depth) at 720 and
 //           2160 rows: every pixel against the text image scaled up (text: its brightness; the box: the clear
 //           colour at 40%; outside the box: untouched).
-//   time    frames with the timestamps the renderer takes: the GPU times come back, the passes within the total,
-//           the frame counts kept.
+//   time    frames with the passes the renderer marks: the GPU times come back, the passes add up to the total
+//           (also in a frame with more changes of pass than the frame's timestamps), each pass's draws.
 //   vsync   (R23, the vertical blank switch) the rules for the chain's flags and Present's interval and flags
 //           (tearing wanted or not, supported or not), and on a hidden window's flip-model chain made as the renderer
 //           makes it: the flags it reports, ResizeBuffers with them, a Present with the switch's interval and flags.
@@ -18,7 +18,9 @@
 #include "render/render_internal.h"
 #include "render/render_perf.h"
 
+#include <cmath>
 #include <cstdarg>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -32,6 +34,7 @@ namespace {
 int g_checks = 0, g_failures = 0, g_problems = 0;
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
+std::uint64_t g_frameDraws = 0;   // FrameDrawCount's (the renderer's FrameStats in the game)
 
 void Check(bool ok, const std::string& what) {
     ++g_checks;
@@ -68,9 +71,13 @@ ID3D11Device* D3DDevice() { return g_device; }
 ID3D11DeviceContext* D3DContext() { return g_context; }
 } // namespace render::detail
 
+std::uint64_t render::perf::FrameDrawCount() { return g_frameDraws; }
+
 namespace {
 
 void CheckText() {
+    using perf::Pass;
+    auto slot = [](Pass p) { return static_cast<int>(p); };
     perf::Numbers n;
     n.fps = 143.6;
     n.frameMs = 6.964;
@@ -78,17 +85,27 @@ void CheckText() {
     n.gpu = true;
     n.gpuMs = 2.1;
     n.worstGpuMs = 2.6;
-    n.shadowMs = 0.31;
-    n.worldMs = 1.2;
-    n.uiMs = 0.4;
-    n.presentMs = 0.19;
+    n.passMs[slot(Pass::Sun)] = 0.25;
+    n.passMs[slot(Pass::Point)] = 0.06;
+    n.passMs[slot(Pass::Terrain)] = 0.5;
+    n.passMs[slot(Pass::Objects)] = 0.4;
+    n.passMs[slot(Pass::Other)] = 0.3;
+    n.passMs[slot(Pass::Ui)] = 0.4;
+    n.passMs[slot(Pass::Present)] = 0.19;
     n.submitMs = 1.1;
     n.shadowCpuMs = 0.12;
-    n.draws = 370;
-    n.shadowDraws = 120;
+    n.draws[slot(Pass::Sun)] = 120;
+    n.draws[slot(Pass::Point)] = 80;
+    n.draws[slot(Pass::Terrain)] = 30;
+    n.draws[slot(Pass::Objects)] = 300;
+    n.draws[slot(Pass::Other)] = 40;
+    n.draws[slot(Pass::Ui)] = 24;
+    n.draws[slot(Pass::Present)] = 1;
     const std::vector<std::string> expected = {"FPS 144   FRAME 6.96 MS   WORST 9.13", "GPU 2.10 MS   WORST 2.60",
-                                               "  SHADOW 0.31   WORLD 1.20   UI 0.40   PRESENT 0.19",
-                                               "CPU SUBMIT 1.10 MS   SHADOW 0.12", "DRAWS 370   SHADOW 120"};
+                                               "  SHADOW 0.31 (SUN 0.25  POINT 0.06)",
+                                               "  WORLD 1.20 (TERRAIN 0.50  OBJECTS 0.40  OTHER 0.30)",
+                                               "  UI 0.40   PRESENT 0.19", "CPU SUBMIT 1.10 MS   SHADOW 0.12",
+                                               "DRAWS WORLD 370   SUN 120   POINT 80   UI 25"};
     std::vector<std::string> lines = perf::Lines(n);
     Check(lines == expected, "the lines of known numbers");
     for (const std::string& l : lines) std::printf("  %s\n", l.c_str());
@@ -214,44 +231,65 @@ void CheckDraw(int width, int height) {
     DropTarget(t);
 }
 
+// `draws` draws in `pass` (cleared target passes: GPU work between the stamps).
+void PassWork(const Target& t, perf::Pass pass, int draws) {
+    perf::Enter(pass);
+    BeginTargetPass(t);
+    sg_end_pass();
+    g_frameDraws += static_cast<std::uint64_t>(draws);
+}
+
 void CheckTime() {
+    using perf::Pass;
+    auto slot = [](Pass p) { return static_cast<int>(p); };
     Target t = MakeTarget(640, 360);
     render::Rect placed{0, 0, 640, 360};
     for (int frame = 0; frame < 40; ++frame) {
+        g_frameDraws = 0;
         perf::BeginGpuFrame();
+        PassWork(t, Pass::Ui, 2);   // the canvases' queued drawing
         {
             perf::CpuTimer shadow(perf::Cpu::Shadow);
-            perf::Stamp(perf::Mark::ShadowBegin);
-            BeginTargetPass(t);
-            sg_end_pass();
-            perf::Stamp(perf::Mark::ShadowEnd);
+            PassWork(t, Pass::Sun, 3);
+            PassWork(t, Pass::Point, 2);
         }
         perf::CpuTimer submit(perf::Cpu::Submit);
-        perf::WorldCommand(true);
-        perf::WorldCommand(true);
-        perf::WorldCommand(false);   // the world ends here
-        perf::Stamp(perf::Mark::FrameEnd);
+        PassWork(t, Pass::Other, 0);
+        PassWork(t, Pass::Terrain, 4);
+        PassWork(t, Pass::Objects, 5);
+        PassWork(t, Pass::Other, 1);
+        PassWork(t, Pass::Objects, 1);
+        PassWork(t, Pass::Ui, 3);
+        // Every tenth frame more changes of pass than a frame's timestamps: the rest goes to the last stamped.
+        if (frame % 10 == 9)
+            for (int k = 0; k < 100; ++k) perf::Enter(k % 2 ? Pass::Ui : Pass::Other);
+        perf::Enter(Pass::Present);
         BeginTargetPass(t);
         perf::Draw(640, 360, placed);
         sg_end_pass();
-        perf::Stamp(perf::Mark::PresentEnd);
+        g_frameDraws += 1;
         perf::EndGpuFrame();
         sg_commit();
         submit.Stop();
         g_context->Flush();
         Sleep(2);
-        perf::FrameDone(10, 3);
+        perf::FrameDone();
     }
     perf::Numbers n = perf::Current();
-    std::printf("  %s\n", perf::Lines(n)[0].c_str());
-    std::printf("  %s\n", perf::Lines(n)[1].c_str());
+    std::vector<std::string> lines = perf::Lines(n);
+    for (const std::string& l : lines) std::printf("  %s\n", l.c_str());
     Check(n.fps > 0.0 && n.frameMs >= 2.0 && n.worstFrameMs >= n.frameMs, "the frame times");
-    Check(n.draws == 10.0 && n.shadowDraws == 3.0, "the draws");
+    Check(n.draws[slot(Pass::Sun)] == 3.0 && n.draws[slot(Pass::Point)] == 2.0 && n.draws[slot(Pass::Terrain)] == 4.0 &&
+              n.draws[slot(Pass::Objects)] == 6.0 && n.draws[slot(Pass::Other)] == 1.0 && n.draws[slot(Pass::Ui)] == 5.0 &&
+              n.draws[slot(Pass::Present)] == 1.0,
+          "each pass's draws");
+    Check(lines.back() == "DRAWS WORLD 11   SUN 3   POINT 2   UI 6", "the draws' line");
     Check(n.submitMs > 0.0 && n.shadowCpuMs >= 0.0, "the CPU times");
     Check(n.gpu, "the GPU times came back");
-    double parts = n.shadowMs + n.worldMs + n.uiMs + n.presentMs;
-    Check(n.gpu && n.gpuMs > 0.0 && parts <= n.gpuMs * 1.001 + 0.001 && n.worstGpuMs >= n.gpuMs,
-          "the passes within the GPU total");
+    double parts = 0.0;
+    for (double ms : n.passMs) parts += ms;
+    Check(n.gpu && n.gpuMs > 0.0 && std::abs(parts - n.gpuMs) <= n.gpuMs * 0.001 + 0.0001 && n.worstGpuMs >= n.gpuMs,
+          "the passes add up to the GPU total");
     DropTarget(t);
 }
 

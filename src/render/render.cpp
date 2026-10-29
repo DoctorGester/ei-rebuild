@@ -698,11 +698,22 @@ void EmptyFramePass() {
 }
 #endif
 
+// The performance overlay's pass of command `k` (render_perf.h).
+perf::Pass OverlayPass(const Command& c, std::size_t k) {
+    if (!InWorld(k)) return perf::Pass::Ui;
+    if (c.kind == Command::Terrain) return perf::Pass::Terrain;
+    if (c.kind == Command::Mesh) {
+        const MeshBatch& b = g_frame.meshBatches[static_cast<std::size_t>(c.index)];
+        if (b.model && !b.flat && b.caster) return perf::Pass::Objects;
+    }
+    return perf::Pass::Other;
+}
+
 void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
     for (std::size_t k = from; k < to; ++k) {
         const Command& c = g_frame.commands[k];
         auto i = static_cast<std::size_t>(c.index);
-        if (perf::On()) perf::WorldCommand(InWorld(k));
+        if (perf::On()) perf::Enter(OverlayPass(c, k));
         switch (c.kind) {
         case Command::Terrain: DrawTerrainBatch(g_frame, g_frame.terrainBatches[i]); break;
         case Command::Mesh: {
@@ -727,19 +738,20 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
 // multisampling one pass per run of world and other commands. The interface canvases' queued drawing goes first.
 bool DrawPending() {
     perf::BeginGpuFrame();
+    perf::Enter(perf::Pass::Ui);
     RunCanvasCommands();
     int width = 0, height = 0;
     if (!GameTargetSize(&width, &height) || !EnsureTarget(width, height, g_passes == 0)) return false;
     if (g_passes > 0 && g_drawnCommands == g_frame.commands.size()) return true;
+    perf::Enter(perf::Pass::Other);
     UploadTerrain(g_frame);
     UploadMeshes(g_frame);
     // The sun's shadow map, once a frame before its first pass (the classic option: none).
     if (!g_frame.shadow.prepared) {
         perf::CpuTimer shadowTime(perf::Cpu::Shadow);
-        perf::Stamp(perf::Mark::ShadowBegin);
+        perf::Enter(perf::Pass::Sun);
         PrepareShadows(g_frame);
         DrawShadowMap(g_frame);
-        perf::Stamp(perf::Mark::ShadowEnd);
     }
     // Direct3D 7 puts pixel centres at integer screen coordinates, Direct3D 11 half a pixel further: the 3D
     // draws move their positions by half a pixel (Frame::pixelShift); sokol takes whole pixels only.
@@ -761,9 +773,13 @@ bool DrawPending() {
         bool world = multisampling && k < end && InWorld(k);
         std::size_t stop = k;
         while (stop < end && (multisampling && InWorld(stop)) == world && !(world && stop == split && stop > k)) ++stop;
+        // A pass's clear and copies are its first command's (the rest of the world in a world view), the
+        // multisampled pass's resolve the world's.
+        if (perf::On() && k < end) perf::Enter(InWorld(k) ? perf::Pass::Other : perf::Pass::Ui);
         if (world) BeginMultisampledPass();
         else BeginFramePass();
         DrawCommands(k, stop, width, height);
+        if (world) perf::Enter(perf::Pass::Other);
         sg_end_pass();
         g_passSamples = 1;
         ++g_passes;
@@ -1178,6 +1194,8 @@ GpuWorkAlone::~GpuWorkAlone() { EndWindowPresent(false); }
 
 } // namespace detail
 
+std::uint64_t perf::FrameDrawCount() { return g_stats.draws + g_stats.shadowDraws; }
+
 void EndFrame() {
     if (g_frameDrawn) return;
     Start();
@@ -1192,12 +1210,11 @@ void EndFrame() {
         EndWindowPresent(false);
         return;
     }
-    perf::Stamp(perf::Mark::FrameEnd);
+    perf::Enter(perf::Pass::Present);
     bool toWindow = DrawToWindow(g_frame.haveCursor ? &g_frame.cursor : nullptr);
-    perf::Stamp(perf::Mark::PresentEnd);
+    perf::EndGpuFrame();
     g_frame.haveCursor = false;
     ShadowFrameEnd();
-    perf::EndGpuFrame();
     sg_commit();
     submitTime.Stop();   // the present's wait for the display is not the renderer's work
     ++g_commits;
@@ -1208,7 +1225,7 @@ void EndFrame() {
 
 void Present() {
     EndFrame();
-    perf::FrameDone(g_stats.draws, g_stats.shadowDraws);
+    perf::FrameDone();
     AddFrameStats();
     g_drawnCommands = 0;
     g_passes = 0;

@@ -1,6 +1,7 @@
 // Object shadows through a sun shadow map. See docs/notes/renderer.md, "The renderer's source files".
 #include "render.h"
 #include "render_internal.h"
+#include "render_perf.h"
 
 #include "../hook/log.h"
 
@@ -1231,6 +1232,7 @@ void DrawShadowMap(Frame& f) {
             }
         }
     }
+    perf::Enter(perf::Pass::Point);
     DrawPointShadows(f);
 #if defined(EI_RENDER_VALIDATION)
     if (g_querySlot >= 0) D3DContext()->End(g_queries[g_querySlot].stamps[1]);
