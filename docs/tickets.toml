@@ -5955,3 +5955,9 @@ id = "C58b"
 title = "CDib: padded row size in AllocateBits, the unused GDI palette gone"
 group = "cleanup"
 note = "Found by C58a. CDib::AllocateBits sizes rows without the 4-byte padding while Write writes imageSize (padded rows), so a capture whose row is not a multiple of 4 bytes reads past the bits (original bug; asan would catch it). Size the bits with the padded stride. Also CDib::MakePalette / palette build a GDI palette nothing reads: delete (P8 removed GDI drawing). Check: Scroll Lock / render_present_shot captures at an odd width, goldens."
+
+[[ticket]]
+id = "C61b"
+title = "Items: CItemSpell renamed CItemScroll (ItemKind::Scroll), the other item naming fixes"
+group = "cleanup"
+note = "User 2026-10-29: L28 yes; type and file renames are fine whenever they improve readability. Rename CItemSpell / ItemKind::Spell to CItemScroll / ItemKind::Scroll (whole tree, comments and notes too), and the [7] weapon / armour type-code arrays get a named count. Check: goldens (class names are not saved: confirm), build."
