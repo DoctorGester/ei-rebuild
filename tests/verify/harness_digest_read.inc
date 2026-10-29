@@ -116,15 +116,16 @@ void ReadBrain(AIBrain& brain, Builder& b) {
     b.Float("ai.callRadius", brain.callRadius);
     b.Int("ai.alertMode", brain.alertMode);
     b.Int("ai.alarmCountdown", brain.alarmCountdown);
-    b.Float("ai.near.x", brain.nearX);
-    b.Float("ai.near.y", brain.nearY);
+    // The keys keep the fields' old names (nearX / nearY, noticedKind): the goldens hold them.
+    b.Float("ai.near.x", brain.nearRange);
+    b.Float("ai.near.y", brain.farRange);
     b.Float("ai.decay", brain.decay);
     b.Int("ai.standCooldown", brain.standCooldown);
     b.Int("ai.followTimer", brain.followTimer);
     b.Float("ai.noticed.x", brain.memory.noticedX);
     b.Float("ai.noticed.y", brain.memory.noticedY);
     b.Int("ai.noticedLevel", brain.memory.noticedLevel);
-    b.Int("ai.noticedKind", brain.memory.noticedKind);
+    b.Int("ai.noticedKind", brain.memory.noticedDecay);
     b.Int("ai.nearby", std::ssize(brain.memory.nearby));
     b.Int("ai.visible", std::ssize(brain.memory.visible));
     b.Int("ai.corpses", std::ssize(brain.memory.corpses));
@@ -145,7 +146,7 @@ void ReadController(CUnit* u, Builder& b) {
         return;
     }
     auto* c = static_cast<CUnitServer*>(controller);
-    b.Int("state", c->state);
+    b.Int("state", static_cast<int>(c->state));
     b.Unsigned("busy", c->moveMode2.onGuard);
     b.Unsigned("inCombat", c->orderStopped);
     b.Int("command", static_cast<int>(c->action.kind));

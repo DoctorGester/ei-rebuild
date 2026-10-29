@@ -146,6 +146,17 @@ struct ArmourSpell {
 // each entry from the head takes its item (the item manager's object of the id read, referenced) and countdown.
 void LoadArmourSpells(std::list<ArmourSpell>* list, CStream* stream);
 
+// What a unit controller is doing (CUnitServer::state).
+enum class UnitState : int {
+    Idle = 0,        // no order acts: the motion runs (a changed one plans its path first)
+    Moving = 1,      // the motion runs
+    Turning = 2,     // turning towards a direction or an attack's target
+    Animating = 3,   // an animation order, or the rest of an action's animation, plays
+    Emote = 4,       // an emote plays
+    Acting = 5,      // the planned action (attack, cast, use) runs
+    Stopped = 6,     // the unit stands: the order ended or was dropped, ready for the next one
+};
+
 class CUnitServer : public CUnitController {
 public:
     CUnitServer();
@@ -414,7 +425,7 @@ public:
     void DropEffectObject();
     // Other than 5 (acting) the size class is updated and the effect object dropped; 5 sets actingCheckTime to
     // 10 updates from now.
-    void SetState(int newState);
+    void SetState(UnitState newState);
     // Clears the standing flag, re-registering the unit on the sector map.
     void ClearStanding();
     // The unit stays where it is, facing its direction; standing 0.
@@ -537,7 +548,7 @@ public:
     AnimationSteps savedQueue;      // the queue a hit reaction saved (its extra is its time)
     static constexpr BlowSide kNoHitDirection = static_cast<BlowSide>(0xFFFFFFFFu);   // hitDirection: no hit to react to
     BlowSide hitDirection;          // HitDirection of the last hit that did not kill, or kNoHitDirection
-    int state;                      // 0 idle, 5 casting, ...
+    UnitState state;
     MoveModeState moveMode;
     MoveModeState moveMode2;
     int sneakWait;                  // updates mode 3 was kept without a cheap cell (UpdateSneak)

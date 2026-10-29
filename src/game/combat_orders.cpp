@@ -18,7 +18,6 @@
 
 namespace {
 constexpr float kCastNoiseScale = 2.0f;
-constexpr int kNoiseKind = 0x1A;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kNoSource = 0xFFFFFFFFu;
 constexpr int kWeaponBow = 5;
@@ -121,7 +120,7 @@ void CUnitServer::FinishCast() {
     world->CastSpell(spell, unit, unit->localPosition_, action.target, at, 0);
     if (spell->GetPrototype()->castType != 1) {
         float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kCastNoiseScale);
-        world->aiMap_.events.Noise(this, loudness, kNoiseKind, nullptr);
+        world->aiMap_.events.Noise(this, loudness, AIBrain::kCallDelay, nullptr);
     }
     action.source = kNoSource;
 }

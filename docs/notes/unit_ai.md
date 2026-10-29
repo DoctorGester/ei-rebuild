@@ -42,7 +42,7 @@ Forwarders are in `unit_ai.h`, `unit_ai_modes.cpp`, `originals_ai.h`.
   original's callers pass it as the "kind" of the noise): the call is heard when it runs below 0.
 - Names that were guesses: `AIMemory::CanTrack` (was IsEnemy) answers true for the same side, the same player or a unit in
   sight; `AIReport::ticksLeft` (was what) counts a report down (`AIReports::kCastStoppedTicks` 0xF, `kRejectedTicks` 0x14);
-  `AIMemory::noticedKind` is the noticed level's decay per update (-1..-3); `AIBrain::nearX` / `nearY` are two distances
+  `AIMemory::noticedDecay` is the noticed level's decay per update (-1..-3); `AIBrain::nearX` / `nearY` are two distances
   (35 / 80 plus Guard's radius) that nothing reads but the save, and `decay` only feeds itself and the save.
   `CPlayerServer::danger_` (was refreshPending_) is the party's danger the script's IsPlayerInDanger / IsPlayerInSafety
   read; the Player mode's units act on their own while it is InDanger (`PartyInDanger`; the old name said "the player

@@ -203,7 +203,7 @@ void FearMode::Execute(AIBrain* brain) {
         from = shelter;
     } else if (!flag || brain->memory.noticedLevel <= kKeepLevel) {
         brain->memory.noticedLevel = 0;
-        brain->memory.noticedKind = 0;
+        brain->memory.noticedDecay = 0;
     }
 
     double near2 = DistanceSquaredZYX(*here, from);

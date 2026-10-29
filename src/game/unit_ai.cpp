@@ -23,7 +23,6 @@ constexpr int kCurrentModeBonus = 100;             // the mode in charge keeps i
 constexpr float kMoveTime = 1000000.0f;
 
 // CUnitServer::state while the planned action runs (combat_update.cpp): the brain does not think meanwhile.
-constexpr int kControllerActing = 5;
 
 // The mode names of the "new motivation" message.
 const char* ModeName(AIModeType type) {
@@ -70,7 +69,7 @@ void AIBrain::Think() {
     CUnit* unit = owner->unit;
     memory.seesEnemy = std::ranges::any_of(memory.visible, [unit](CUnit* other) { return unit->IsHostileTo(other) && !other->IsDead(); });
 
-    if (owner->state == kControllerActing) return;
+    if (owner->state == UnitState::Acting) return;
     if (memory.seesEnemy && !alerted && (alertMode == 0 || alertMode == 2)) alerted = 1;
 
     // Choose the mode: the one in charge keeps it with a bonus.

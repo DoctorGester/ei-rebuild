@@ -37,10 +37,10 @@ struct AIViewer {
     // A noise of `loudness` made by `source`'s unit at `at` (null: the unit's position): every unit within 50
     // of the point (the sector map) that is hostile to the source's unit, whose noticed level is below 900
     // and whose hearing (moveFactors[1] x perception[3]) times the loudness reaches past the distance hears a
-    // call of `kind` at the source unit's position (the text "Unit %i heard unit %i from %fm distance" only
-    // with console filter bit 0).
-    void Noise(CUnitServer* source, float loudness, int kind, const Vector3* at);
-    // The noise of a moving unit: Noise of kind 0x1A at the unit, as loud as moveFactors[0] x conspicuity[3] x
+    // call of `delay` at the source unit's position (the text "Unit %i heard unit %i from %fm distance" only
+    // with console filter bit 0). The units' noises pass AIBrain::kCallDelay.
+    void Noise(CUnitServer* source, float loudness, int delay, const Vector3* at);
+    // The noise of a moving unit: Noise (AIBrain::kCallDelay) at the unit, as loud as moveFactors[0] x conspicuity[3] x
     // the noise of the ground at `position` (the AI map's terrain type). Returns 0 (no presence record).
     AIEventPresence* StepNoise(const Vector3& position, CUnitServer* source);
 

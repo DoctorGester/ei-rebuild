@@ -635,7 +635,7 @@ struct AIMemory {
     float noticedX = 0.0f;
     float noticedY = 0.0f;
     int noticedLevel = 0;
-    int noticedKind = 0;            // the decay: added to noticedLevel every update
+    int noticedDecay = 0;            // the decay: added to noticedLevel every update
     int nearbyCountdown = 0;        // updates until the nearby units are listed again
     HeldUnits nearby;               // the units in the sight cells around
     HeldUnits visible;              // units in sight
@@ -660,7 +660,7 @@ struct AIBrain {
     };
     static constexpr int kNoTime = -10000;          // actionTime: no look in progress
     static constexpr int kLookStarted = -9999;      // actionTime: the first queued look is turning
-    static constexpr float kRangeCleared = 100000.0f;  // nearX / nearY without a mode that sets them
+    static constexpr float kRangeCleared = 100000.0f;  // nearRange / farRange without a mode that sets them
     static constexpr float kInitialCallRadius = 10.0f;
 
     // One AI tick: alarm countdown, decay of alertness, perception update, then every mode's Evaluate; the
@@ -772,10 +772,10 @@ struct AIBrain {
     float callRadius = kInitialCallRadius;  // allies within it hear a call for help
     int alertMode = 0;
     int alarmCountdown = 1;
-    // Two distances, not a point: the idle modes set them to 35 and 80 (plus the radius for Guard). Nothing reads
-    // them: they are only saved and loaded.
-    float nearX = kRangeCleared;
-    float nearY = kRangeCleared;
+    // Two distances the idle modes set (35 and 80, plus the radius for Guard). Nothing reads them: they are only
+    // saved and loaded.
+    float nearRange = kRangeCleared;
+    float farRange = kRangeCleared;
     // An alertness decay factor: moved towards 1 every tick and randomised when an idle mode takes charge. Nothing
     // decides by it: it is kept for the save and for the random draw.
     float decay = 1.0f;

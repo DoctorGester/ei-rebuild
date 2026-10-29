@@ -72,8 +72,6 @@ float TimeAsFloat(const int* time) { return static_cast<float>(*time); }
 // --- Accessors -----------------------------------------------------------------------------------
 
 
-constexpr int kStateIdle = 0;
-constexpr int kStateCasting = 5;
 constexpr int kBlockedReplan = 1;
 constexpr int kBlockedWait = 2;
 
@@ -110,7 +108,7 @@ void QueueNextAnimation(CUnitServer* c) {
 // it fits. Returns from the tick.
 void HitWhileTurning(CUnitServer* c) {
     AnimationSteps steps;
-    if (c->moveMode.mode != 0 || c->state != 0) {
+    if (c->moveMode.mode != 0 || c->state != UnitState::Idle) {
         c->BuildDeathAnimation(&steps, c->hitDirection, 0, 0);
         if (c->CanReactFor(steps.Duration())) {
             c->keepHitDirection = 1;
@@ -170,7 +168,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     auto isAction = [](UnitOrderKind kind) { return kind == UnitOrderKind::Attack || kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn; };
     bool sameAttack = blocker->side == self->side && isAction(c->action.kind) &&
                       isAction(other->action.kind) && other->action.target == c->action.target &&
-                      blocker->sizeClass == self->sizeClass && other->state != kStateCasting;
+                      blocker->sizeClass == self->sizeClass && other->state != UnitState::Acting;
     if (sameAttack) {
         CMapObject* target = c->action.target;
         sameAttack = FartherThan(&target->localPosition_.x, &self->localPosition_.x, &worlddata::QueueWaitLimitRef());
@@ -215,7 +213,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3* facing = NegateVector(&back, axis);
         if (c->motion.Start(c->unit->localPosition_, *facing, time)) c->unit->RefreshMotion();
         c->ClearStanding();
-        c->SetState(6);
+        c->SetState(UnitState::Stopped);
         c->stoodBlocked = wasFlag;
         return;
     }
@@ -227,13 +225,13 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3* facing = NegateVector(&back, axis);
         if (c->motion.Start(c->unit->localPosition_, *facing, time)) c->unit->RefreshMotion();
         c->ClearStanding();
-        c->SetState(6);
+        c->SetState(UnitState::Stopped);
         c->stoodBlocked = 0;
         return;
     }
     c->unit->RefreshMotion();
-    int state = c->state;
-    if (state >= 0 && (state <= 1 || state == 2)) return;
+    UnitState state = c->state;
+    if (state == UnitState::Idle || state == UnitState::Moving || state == UnitState::Turning) return;
     c->PlaySteps(c->IdleAnimation());
 }
 
@@ -262,14 +260,14 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
     }
     if (found) {
         c->unit->RefreshMotion();
-        int state = c->state;
-        if (state >= 0 && (state <= 1 || state == 2)) return;
+        UnitState state = c->state;
+        if (state == UnitState::Idle || state == UnitState::Moving || state == UnitState::Turning) return;
         c->PlaySteps(c->IdleAnimation());
         return;
     }
     std::uint8_t wasFlag = c->motion.failed == 1;
     c->StandStill();
-    c->SetState(6);
+    c->SetState(UnitState::Stopped);
     c->stoodBlocked = wasFlag;
 }
 
@@ -368,13 +366,13 @@ void UpdateMotion(CUnitServer* c) {
     // An idle unit standing in a kind-3 occluder (while its motion order started before the AI map's
     // footprintTick and moveMode2's onGuard is clear) replans.
     bool replan = false;
-    if (c->state == kStateIdle && world->aiMap_.HasSpellAreaAt(position) &&
+    if (c->state == UnitState::Idle && world->aiMap_.HasSpellAreaAt(position) &&
         OrderOf(&c->motion)->startTime < world->aiMap_.footprintTick && c->moveMode2.onGuard == 0) {
         blocked = kBlockedReplan;
         replan = true;
     }
     if (!replan && canStand && world->aiMap_.sectorMap.Move(c->unit, position)) {
-        SetObstacle(c, c->state == kStateIdle ? 1 : 0);
+        SetObstacle(c, c->state == UnitState::Idle ? 1 : 0);
         c->unit->SetHeading(&direction.x);
         if (motionOver) MotionOver(c, world);
     } else if (blocked == kBlockedReplan) {

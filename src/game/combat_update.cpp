@@ -32,15 +32,6 @@
 void UpdateMotion(CUnitServer*);
 namespace {
 
-// The controller's state. 6 "chasing": the state an order leaves the unit in when it ends, ready for the next
-// one.
-constexpr int kStateIdle = 0;
-constexpr int kStateMoving = 1;
-constexpr int kStateTurning = 2;
-constexpr int kStateRecovering = 3;   // the rest of an action's animation plays out
-constexpr int kStateWaiting = 4;
-constexpr int kStateActing = 5;       // the planned action runs
-constexpr int kStateChasing = 6;
 constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // CUnit flags_, cleared every update
 constexpr int kCastEffectKind = 0x4A;                 // the cast's particle effect
 constexpr float kNoRange = 1e38f;   // 1e38: OrderPlan.rangeSq of no plan
@@ -156,14 +147,15 @@ bool CUnitServer::RunTick() {
         brain.Think();
         unit->flags_ &= ~kFlagSeen8000;
         PropagateHostility();
-        if ((unit->flags_ & MapObjectFlag::Frozen) == 0 && keepHitDirection == 0 && state >= 0 &&
-            (state <= kStateTurning || state == kStateChasing)) {
+        if ((unit->flags_ & MapObjectFlag::Frozen) == 0 && keepHitDirection == 0 &&
+            (state == UnitState::Idle || state == UnitState::Moving || state == UnitState::Turning ||
+             state == UnitState::Stopped)) {
             UpdateOrders();
             UpdateState();
             AdvanceAnimation();
             return true;
         }
-        if (state == kStateActing && action2.kind == UnitOrderKind::Move) EndOrder(1);
+        if (state == UnitState::Acting && action2.kind == UnitOrderKind::Move) EndOrder(1);
         UpdateState();
         AdvanceAnimation();
         return true;
@@ -204,7 +196,7 @@ bool CUnitServer::RunTick() {
 void CUnitServer::UpdateState() {
     animationHeld = 0;
     frozen = 0;
-    if (state == kStateActing && !ActionInReach()) EndOrder(0);
+    if (state == UnitState::Acting && !ActionInReach()) EndOrder(0);
     if (unit->flags_ & MapObjectFlag::Frozen) {
         frozen = 1;
         hitDirection = kNoHitDirection;
@@ -224,25 +216,25 @@ void CUnitServer::UpdateState() {
         keepHitDirection = 0;
     }
     switch (state) {
-    case kStateIdle:
+    case UnitState::Idle:
         SwitchWeaponIfWanted(unit);
         if (motionChanged == 0 ||
             PathTo(motion.goal, motion.goal.z)) {
             UpdateMotion(this);
         }
         break;
-    case kStateMoving:
+    case UnitState::Moving:
         SwitchWeaponIfWanted(unit);
         UpdateMotion(this);
         break;
-    case kStateTurning:
-    case kStateWaiting:
+    case UnitState::Turning:
+    case UnitState::Emote:
         SwitchWeaponIfWanted(unit);
         if (hitDirection != kNoHitDirection) PlayHitReaction();
         break;
-    case kStateRecovering:
+    case UnitState::Animating:
         if (queue.empty()) {
-            state = kStateChasing;
+            state = UnitState::Stopped;
             unit->UpdateSizeClass();
             DropEffectObject();
             if (auto callback = actionDone) {
@@ -251,7 +243,7 @@ void CUnitServer::UpdateState() {
             }
         }
         break;
-    case kStateActing:
+    case UnitState::Acting:
         TickAction();
         break;
     default:
@@ -348,9 +340,9 @@ void CUnitServer::PlaySteps(const AnimationSteps* steps) {
 
 // --- States -------------------------------------------------------------------------------------
 
-void CUnitServer::SetState(int newState) {
+void CUnitServer::SetState(UnitState newState) {
     state = newState;
-    if (newState != kStateActing) {
+    if (newState != UnitState::Acting) {
         unit->UpdateSizeClass();
         DropEffectObject();
         return;
@@ -373,10 +365,10 @@ void CUnitServer::StandStill() {
 
 void CUnitServer::PlayHitReaction() {
     AnimationSteps reaction;
-    if (moveMode.mode == 0 && state == kStateIdle) return;
+    if (moveMode.mode == 0 && state == UnitState::Idle) return;
     BuildDeathAnimation(&reaction, hitDirection, 0, 0);
     int duration = TotalDuration(reaction);
-    if (action.kind == UnitOrderKind::Attack && state == kStateTurning &&
+    if (action.kind == UnitOrderKind::Attack && state == UnitState::Turning &&
         World()->tick_ + duration > nextAttackTime)
         return;
     keepHitDirection = 1;
@@ -394,7 +386,7 @@ void CUnitServer::EndOrder(char abort) {
     int now = WorldContext()->tick_;
     bool open = HasOpenStep(queue);
     if (abort != 0 || now < currentPlan.startTime || open) {
-        SetState(kStateChasing);
+        SetState(UnitState::Stopped);
     } else {
         // A three-step plan (step out, action, step back): what is left of it is played out.
         if (std::ssize(currentPlan.animation) == 3) {
@@ -420,7 +412,7 @@ void CUnitServer::EndOrder(char abort) {
                 }
             }
         }
-        SetState(kStateRecovering);
+        SetState(UnitState::Animating);
     }
     OrderPlanReset(&currentPlan);
     StandStill();
@@ -462,7 +454,7 @@ void CUnitServer::TickAction() {
         bool turning;
         unit->motion.Sample(context, OrderOf(&motion), static_cast<float>(context->tick_),
                                &turning, &position.x, &direction.x, &speed, &cellX, &cellY);
-        SetStandingFlag(this, state == kStateIdle ? 1 : 0);
+        SetStandingFlag(this, state == UnitState::Idle ? 1 : 0);
         unit->TurnUpTowards(direction, 0);
         return;
     }
@@ -476,8 +468,8 @@ void CUnitServer::TickAction() {
     plan.isCast = 0;
     plan.notSkill = 0;
     plan.castKind = 8;
-    if (state == kStateActing) {
-        state = kStateRecovering;
+    if (state == UnitState::Acting) {
+        state = UnitState::Animating;
         unit->UpdateSizeClass();
         DropEffectObject();
     }

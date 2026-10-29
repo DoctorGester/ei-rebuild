@@ -24,7 +24,7 @@ constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull
 constexpr float kDecayBase = 0.8f;
 
 constexpr float kMoveTime = 1000000.0f;
-constexpr float kNearRange = 35.0f;         // AIBrain::nearX / nearY of the idle modes
+constexpr float kNearRange = 35.0f;         // AIBrain::nearRange / farRange of the idle modes
 constexpr float kFarRange = 80.0f;
 constexpr float kNoWander = -1.0f;
 constexpr float kStandRadius = 5.0f;
@@ -37,8 +37,8 @@ void MaybeRemark(AIBrain* brain, AIRemark what) {
 }
 
 void SetPositions(AIBrain* brain, const Vector3& where, float nearRange, float farRange) {
-    brain->nearX = nearRange;
-    brain->nearY = farRange;
+    brain->nearRange = nearRange;
+    brain->farRange = farRange;
     brain->previousPosition = brain->position;
     brain->position = where;
     if (brain->previousPosition.x == kUnsetCoordinate) brain->previousPosition = where;
@@ -336,7 +336,7 @@ void AggressionMode::Enter(AIBrain* brain) {
 void AggressionMode::Leave(AIBrain* brain) {
     if (!enemy || enemy->IsDead()) {
         brain->memory.noticedLevel = 0;
-        brain->memory.noticedKind = 0;
+        brain->memory.noticedDecay = 0;
     }
     enemy.Reset();
     brain->owner->moveMode2.onGuard = 0;

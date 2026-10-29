@@ -31,12 +31,6 @@
 
 namespace {
 
-constexpr int kStateIdle = 0;
-constexpr int kStateTurning = 2;
-constexpr int kStateAnimation = 3;   // an animation order plays
-constexpr int kStateEmote = 4;       // an emote plays
-constexpr int kStateActing = 5;
-constexpr int kStateChasing = 6;
 constexpr int kModeRun = 2;
 constexpr std::uint32_t kKeyIdle = kAnimationSpecialIdleKey;
 constexpr std::uint8_t kEmoteStand = 0xFE;   // the idle "emote" of a walking hero
@@ -69,7 +63,7 @@ void FaceAndStop(CUnitServer* self) {
     const Vector3* direction = NegateVector(&back, axis);
     if (self->motion.Start(self->unit->localPosition_, *direction, now)) self->unit->RefreshMotion();
     self->ClearStanding();
-    self->SetState(kStateChasing);
+    self->SetState(UnitState::Stopped);
 }
 
 // The unit's movement mode from a record: 3 while it was mode 3 (`wasMode3`), else its mode.
@@ -113,7 +107,7 @@ struct LocalMotionOrder : PathOrder {
 using PartyMap = CPlayer::UnitMap;
 
 // The two variants differ only in the state they set.
-void Play(CUnitServer* self, const AnimationSteps& steps, int newState) {
+void Play(CUnitServer* self, const AnimationSteps& steps, UnitState newState) {
     self->state = newState;
     self->unit->UpdateSizeClass();
     self->DropEffectObject();
@@ -152,7 +146,7 @@ void RecordFromMode(MoveModeState* record, int mode) {
 // --- Small checks -------------------------------------------------------------------------------
 
 bool CUnitServer::CanReactFor(int ticks) {
-    if (action.kind == UnitOrderKind::Attack && state == kStateTurning &&
+    if (action.kind == UnitOrderKind::Attack && state == UnitState::Turning &&
         World()->tick_ + ticks > nextAttackTime)
         return false;
     return true;
@@ -160,9 +154,9 @@ bool CUnitServer::CanReactFor(int ticks) {
 
 // --- Playing an animation ----------------------------------------------------------------------
 
-void CUnitServer::PlayAnimationOrder(const AnimationSteps& steps) { Play(this, steps, kStateAnimation); }
+void CUnitServer::PlayAnimationOrder(const AnimationSteps& steps) { Play(this, steps, UnitState::Animating); }
 
-void CUnitServer::PlayEmoteOrder(const AnimationSteps& steps) { Play(this, steps, kStateEmote); }
+void CUnitServer::PlayEmoteOrder(const AnimationSteps& steps) { Play(this, steps, UnitState::Emote); }
 
 // --- Idle and movement animations --------------------------------------------------------------
 
@@ -180,7 +174,7 @@ AnimationSteps* CUnitServer::IdleAnimation() {
 }
 
 void CUnitServer::PlayIdle() {
-    if (state >= 0 && (state <= 1 || state == kStateTurning)) return;
+    if (state == UnitState::Idle || state == UnitState::Moving || state == UnitState::Turning) return;
     std::uint32_t key = WeaponAndModeBits(this);
     if (idleKey == key) {
         idleAnimation.extra = -1;
@@ -287,7 +281,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
 void CUnitServer::StartAction(char follow, char stepFlags) {
     OrderPlan& plan = currentPlan;
     for (AnimationStep& step : plan.animation) step.flags = static_cast<std::uint8_t>(stepFlags);
-    if (state < 0 || (state > 1 && state != kStateTurning)) {
+    if (state != UnitState::Idle && state != UnitState::Moving && state != UnitState::Turning) {
         std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
         if (idleKey == key) {
             idleAnimation.extra = -1;
@@ -297,7 +291,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
         }
         PlaySteps(&idleAnimation);
     }
-    state = kStateActing;
+    state = UnitState::Acting;
     actingCheckTime = WorldContext()->tick_ + 10;
     if (plan.targetId == -1) {
         int now = World()->tick_;
@@ -399,9 +393,9 @@ bool CUnitServer::ChangeMoveMode() {
         if (self->player) PlayerMessage(self->player->Server(), self, AckKind::CantChangePosition);
         return false;
     }
-    if (state == kStateIdle) {
+    if (state == UnitState::Idle) {
         if (modeChanged) FaceAndStop(this);
-        if (state == kStateIdle && !modeChanged) {
+        if (state == UnitState::Idle && !modeChanged) {
             unit->UpdateSizeClass();
             if (action2.kind == UnitOrderKind::None) action2.Assign(&action);
             return true;
@@ -438,15 +432,15 @@ bool CUnitServer::PathTo(const Vector3& point, float range) {
         std::uint8_t blocked = motion.failed;
         movingAnimation = 0;
         StandStill();
-        SetState(kStateChasing);
+        SetState(UnitState::Stopped);
         stoodBlocked = blocked == 1 ? 1 : 0;
         return false;
     }
     motion.goal.z = range;   // the range (Replan reads it back)
     sneakWait = 0;
     unit->RefreshMotion();
-    if (state < 0 || (state > 1 && state != kStateTurning)) PlaySteps(IdleAnimation());
-    state = kStateIdle;
+    if (state != UnitState::Idle && state != UnitState::Moving && state != UnitState::Turning) PlaySteps(IdleAnimation());
+    state = UnitState::Idle;
     unit->UpdateSizeClass();
     DropEffectObject();
     if (movingAnimation != 0) {
@@ -567,12 +561,12 @@ void CUnitServer::ResyncWithUnit() {
     const Vector3* direction = NegateVector(&back, axis);
     if (motion.Start(unit->localPosition_, *direction, now)) unit->RefreshMotion();
     ClearStanding();
-    SetState(kStateChasing);
+    SetState(UnitState::Stopped);
     unit->UpdateSizeClass();
     unit->pendingWeapon = 0;
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
         unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
-    if (state == kStateTurning) return;
+    if (state == UnitState::Turning) return;
     std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
     if (idleKey == key) {
         idleAnimation.extra = -1;
@@ -590,7 +584,7 @@ void CUnitServer::ResyncWithUnit() {
         ShowCurrentStep();
     }
     StandStill();
-    SetState(kStateTurning);
+    SetState(UnitState::Turning);
 }
 
 // --- Reset ---------------------------------------------------------------------------------------
@@ -626,7 +620,7 @@ void CUnitServer::ResetController() {
     std::memset(&pendingHit, 0, 0x3C);
     pendingHit.multiplier = 1.0f;
     savedQueue = {};
-    state = kStateChasing;
+    state = UnitState::Stopped;
     hitDirection = kNoHitDirection;
     keepHitDirection = 0;
     stoodBlocked = 0;

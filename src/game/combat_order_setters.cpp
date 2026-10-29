@@ -19,7 +19,6 @@
 #include <string>
 
 namespace {
-constexpr int kStateStopped = 6;        // CUnitServer::state after StopAction
 constexpr int kStyleWalk = 2;
 constexpr int kStyleRun = 3;
 // CEngineObject::prototypeId_ (not type_) of a unit that cannot be tamed (0x32, the value type_ has for
@@ -27,7 +26,6 @@ constexpr int kStyleRun = 3;
 constexpr std::uint32_t kUntameable = 0x32;
 
 constexpr std::uint32_t kEmoteKeyBit = AnimationKeyOf(AnimationKeyFlag::Looped);   // FigureAnimation::key: an emote (kind 8)
-constexpr int kStateActing = 5;                       // CUnitServer::state
 
 
 // The shared tail of the kind 6 setters: the queued order (reset first) becomes a use of `target` with
@@ -105,7 +103,7 @@ bool CUnitServer::TargetBusy(CMapObject* target) {
         auto* controller = other->ServerController();
         const UnitAction& order = controller->action;
         if (order.kind == UnitOrderKind::Use && order.Skill() == UseSource::SearchBody && order.target == target &&
-            (controller->state == kStateActing || controller->searchingTarget))
+            (controller->state == UnitState::Acting || controller->searchingTarget))
             return true;
     }
     return false;
@@ -129,7 +127,7 @@ void CUnitServer::PlayAnimation(const char* name) {
 }
 
 void CUnitServer::StopAction() {
-    state = kStateStopped;
+    state = UnitState::Stopped;
     unit->UpdateSizeClass();
     if (effectObject) {
         g_serverWorld.RemoveTimedObject(effectObject->id_);

@@ -74,8 +74,8 @@ void AIBrain::RemoveModesOfType(AIModeType type) {
 void AIBrain::ClearModes() {
     modes.clear();
     current.Reset();
-    nearX = kRangeCleared;
-    nearY = kRangeCleared;
+    nearRange = kRangeCleared;
+    farRange = kRangeCleared;
     decay = 1.0f;
 }
 
@@ -118,7 +118,7 @@ void AIMemory::Reset() {
     nearbyCountdown = 0;
     reports.clear();
     calls.clear();
-    noticedKind = 0;
+    noticedDecay = 0;
 }
 
 // --- Standard mode sets ---------------------------------------------------------------------------
@@ -172,7 +172,7 @@ bool AIMemory::Notice(const Vector3& point, int level, int decay) {
     noticedLevel = level;
     noticedX = point.x;
     noticedY = point.y;
-    noticedKind = decay;
+    noticedDecay = decay;
     return changed;
 }
 
@@ -207,7 +207,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
             memory->noticedX = call->point.x;
             memory->noticedLevel = kNoticeCallLevel;
             memory->noticedY = call->point.y;
-            memory->noticedKind = kNoticeCallDecay;
+            memory->noticedDecay = kNoticeCallDecay;
             if (changed) console::EndLine(kAiLog << "Delayed sound: " << call->text);
         }
         call = erase(call);
@@ -218,7 +218,7 @@ void AIMemory::Update(CUnitServer* who) {
     std::erase_if(reports, [](AIReport& entry) { return --entry.ticksLeft < 0; });
     calls.Update(who->unit, this);
     g_serverWorld.aiMap_.events.Update(who, this);
-    noticedLevel += noticedKind;
+    noticedLevel += noticedDecay;
 }
 
 bool AIMemory::CanTrack(CUnit* self, CUnit* other) {
@@ -252,8 +252,8 @@ void AIBrain::Load(CStream* stream) {
     LoadRef(target, stream, &g_serverWorld);
     LoadRef(seen, stream, &g_serverWorld);
     stream->ReadValue(callRadius);
-    stream->ReadValue(nearX);
-    stream->ReadValue(nearY);
+    stream->ReadValue(nearRange);
+    stream->ReadValue(farRange);
     stream->ReadValue(decay);
     stream->ReadValue(previousPosition);
     stream->ReadValue(position);
@@ -303,8 +303,8 @@ void AIBrain::Save(CStream* stream) {
     SaveRef(target, stream);
     SaveRef(seen, stream);
     stream->WriteValue(callRadius);
-    stream->WriteValue(nearX);
-    stream->WriteValue(nearY);
+    stream->WriteValue(nearRange);
+    stream->WriteValue(farRange);
     stream->WriteValue(decay);
     stream->WriteValue(previousPosition);
     stream->WriteValue(position);

@@ -33,7 +33,6 @@ constexpr float kHealGroupBase = 2.0f;
 constexpr float kAllyNear2 = 49.0f;             // allies within 7 of an area target
 constexpr float kPathNear = 30.0f;
 constexpr int kNoHitsKnown = 20;
-constexpr int kControllerIdle = 0;              // CUnitServer::state: no order runs
 constexpr float kNoScore = -1e30f;
 static_assert(std::bit_cast<std::uint32_t>(kNoScore) == 0xF149F2CAu);
 constexpr float kFloorScore = -1e20f; // and the starting best: -1e20
@@ -189,7 +188,7 @@ double AIAttention::Score(const Vector3& from, CUnit* self, UnitList* group, CEn
         if (option->kind == AIOptionKind::SpellAttack) {
             damage = option->damage.ExcessOver(&candidate->ServerController()->protection);
         } else {
-            if (option->kind == AIOptionKind::LastingArea && control->state == kControllerIdle) return kNoScore;
+            if (option->kind == AIOptionKind::LastingArea && control->state == UnitState::Idle) return kNoScore;
             damage = GroupExcess(option, group, candidate);
             // A lasting area hits once per eighth of its duration (divided as the original does).
             if (option->kind == AIOptionKind::LastingArea) damage *= static_cast<std::uint32_t>(option->effect / 4 / 2);
