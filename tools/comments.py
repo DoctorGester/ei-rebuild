@@ -59,7 +59,8 @@ PAREN_HEAD = re.compile(r'(?<=\()\s*' + TICKET + r'(?:\s*[,/]\s*' + TICKET + r')
 # Words that narrate the decompilation instead of saying what the code does (C41): x87 instruction names, stack
 # slots, "as a dword", "the inlined ...", vtable slot numbers, and in src/game the MFC / STLport operation and class
 # names of code that is now std. They stay out of comments; src/lib keeps the ones that name what a helper
-# emulates (CString's answers, MFC's CFont) and the x87 layer (lib/crt_x87.cpp) its instruction names.
+# emulates (CString's answers, MFC's CFont) and the x87 layers (lib/crt_x87.cpp, and lib/pc24 that emulates the
+# instructions on SSE2) their instruction names.
 BANNED_COMMON = re.compile(
     r"\b(?:FCOMP?P?|FUCOMP?P?|FISTP?|FILD|FIDIV|FLD1?|FLDZ|FSTP?|FADDP?|FMULP?|FSUBR?P?|FDIVR?P?|FXCH|FCHS|FABS|"
     r"FNSTSW|FSQRT|ST0)\b|TEST AH|stack slots?|integer moves?"
@@ -72,7 +73,7 @@ BANNED_COMMON = re.compile(
 BANNED_GAME = re.compile(
     r"\b(?:CList|CPtrList|CObList|CTypedPtrList|CArrays?|CByteArray|CWordArray|CDWordArray|CObArray|CPtrArray|"
     r"CStrings?|RemoveAll|AddHead|RemoveHead|RemoveTail|InsertAt)\b|\bMFC\b")
-BANNED_EXEMPT = ('src/lib/crt_x87.cpp',)
+BANNED_EXEMPT = ('src/lib/crt_x87.cpp', 'src/lib/pc24.cpp', 'src/lib/pc24.h')
 
 HISTORY_RX = re.compile(r'(?i)\b(?:shim|forwarder|ported|rewritten|the hook era|was a |used to |no longer|'
                         r'formerly|previously|registration)\b')

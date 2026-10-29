@@ -12,9 +12,9 @@
 #include <string>
 
 #include "lib/nan_audit.h"
+#include "lib/pc24.h"
 #include "save_versions.h"
 
-#include <cmath>
 #include <memory>
 
 bool ZoneExit::Contains(float x, float y) const {
@@ -25,15 +25,14 @@ bool ZoneExit::Contains(float x, float y) const {
         if (y1 > y) return false;
         return y <= y2;
     }
-    double centerX = (x2 + x1) * 0.5f;
-    float centerY = static_cast<float>((y2 + y1) * 0.5f);
-    float c = static_cast<float>(x87::fcos(static_cast<double>(angle)));
-    float s = static_cast<float>(x87::fsin(static_cast<double>(angle)));
-    float dy = static_cast<float>(y - centerY);
-    double dxExact = x - centerX;
-    float dx = static_cast<float>(dxExact);
-    double turnedX = dxExact * c + dy * s + centerX;
-    float turnedY = static_cast<float>(centerY - dx * s + dy * c);
+    const float centerX = (x2 + x1) * 0.5f;
+    const float centerY = (y2 + y1) * 0.5f;
+    const float c = pc24::Round(pc24::Cos(angle));
+    const float s = pc24::Round(pc24::Sin(angle));
+    const float dy = y - centerY;
+    const float dx = x - centerX;
+    const float turnedX = dx * c + dy * s + centerX;
+    const float turnedY = centerY - dx * s + dy * c;
     EI_NAN_AUDIT(turnedX, x1, turnedY, y2);
     if (turnedX < x1) return false;
     if (turnedX > x2) return false;
