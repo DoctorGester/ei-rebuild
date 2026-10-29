@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash E441E79D n 68
+@ 0 update 20 frame 3 tick 20 zone - hash B2471071 n 68
 + world world
 world tick 20
 world updates 20
@@ -127,7 +127,7 @@ random isaac.b 0xE5190F44
 random isaac.c 0x00000001
 random isaac.results 0x7744D51B
 random isaac.memory 0xB5AE7EF6
-random crt.rand 0x67AB5A6E
+random crt.rand 0x3A6FE55A
 + player0 player
 player0 id 0
 player0 partyId 0
@@ -344,11 +344,11 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 10 tick 40 zone - hash FE6026D2 n 68
+@ 1 update 40 frame 10 tick 40 zone - hash 6C9A7D75 n 68
 world tick 40
 world updates 40
 random isaac.count 123
-random crt.rand 0x60FCE89C
+random crt.rand 0x8F6D939D
 obj2 #vitals 9EA7DF96
 obj129 #ai F1B92960
 obj129 #place 1DBC22DF
@@ -368,11 +368,11 @@ cunit129 #unit 883CBF00
 cunit148 #place A26C30EB
 cunit148 #unit D3E383F0
 cunit187 #place 8FD72F05
-@ 2 update 60 frame 14 tick 60 zone - hash 7CFE830E n 68
+@ 2 update 60 frame 14 tick 60 zone - hash F738ADAC n 68
 world tick 60
 world updates 60
 random isaac.count 83
-random crt.rand 0x3810E017
+random crt.rand 0x8E040985
 obj2 #vitals BB277587
 obj129 #ai D3B6FFF8
 obj129 #place 9BB618AF
@@ -385,11 +385,11 @@ missile0 # AC368F1A
 aievents tick 60
 client tick 60
 client ticksRun 57
-@ 3 update 80 frame 21 tick 80 zone - hash ABCDDCC3 n 68
+@ 3 update 80 frame 21 tick 80 zone - hash C7419A97 n 68
 world tick 80
 world updates 80
 random isaac.count 43
-random crt.rand 0xEB9B4C3F
+random crt.rand 0x99E0097C
 obj2 #vitals CB4D8108
 obj129 #ai 631B6172
 obj129 #place 153EED04

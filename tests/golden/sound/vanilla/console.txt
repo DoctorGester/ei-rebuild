@@ -15,9 +15,9 @@
   Unit 1000012715 sees unit 1000011214 from 6.32456m distance
   Unit 1000012715 new motivation Player with power of 10
   1
+  1
   Unit 1000011214 sees unit 1000012715 from 6.32456m distance
   Unit 1000011214 sees unit 1000012714 from 2.37171m distance
-  1
   Unit 1000012715 hear delayed sound: Unit 1000012714 claims that player 0 are enemies! 
   Unit 1000011214 was attacked by 1000012714 skill=3.40282e+038 damage=9.97 destHL=RLeg
   slashing passed damage = 4.99506
@@ -27,15 +27,11 @@
   0
   0
   0
-  0
   Unit 1000012714 was attacked by 1000011214 skill=3.40282e+038 damage=12.2753 destHL=RLeg
   impaling passed damage = 12.2753 HL was crippled
-  Unit 1000012715 sees unit 1000012714 from 4.13017m distance
-  Unit 1000012714 sees unit 1000012715 from 4.13017m distance
   Unit 1000012714 damaged to death
-  Unit 1000012715 sees corpse of unit 1000012714
-  Unit 1000012715 lost from sight unit 1000012714
   Unit 1000011214 sees corpse of unit 1000012714
   Unit 1000011214 lost from sight unit 1000012714
   1
+  Unit 1000012715 sees corpse of unit 1000012714
   1

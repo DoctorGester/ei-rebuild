@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash DC13F695 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 7B89D335 n 172
 + world world
 world tick 20
 world updates 20
@@ -127,7 +127,7 @@ random isaac.b 0xE5190F44
 random isaac.c 0x00000001
 random isaac.results 0x7744D51B
 random isaac.memory 0xB5AE7EF6
-random crt.rand 0x22130EED
+random crt.rand 0xA53ED23E
 + player0 player
 player0 id 0
 player0 partyId 0
@@ -556,7 +556,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone gz1g hash FDBEA048 n 832
+@ 1 update 40 frame 7 tick 40 zone gz1g hash 751F5B54 n 832
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -585,7 +585,7 @@ random isaac.b 0xE17CADAA
 random isaac.c 0x00000002
 random isaac.results 0xC3B976FE
 random isaac.memory 0x4195ABD6
-random crt.rand 0x654E5EBD
+random crt.rand 0xD314364E
 player0 sessionKind 1
 player0 lastTick 30
 player0 units 1
@@ -2580,14 +2580,14 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz1g hash 56A8C2D2 n 836
+@ 2 update 60 frame 11 tick 60 zone gz1g hash B65DD480 n 836
 world tick 60
 world updates 60
 world objects 817
 world mapObjects 58
 world updateMap 17
 random isaac.count 90
-random crt.rand 0x25A22775
+random crt.rand 0x9D38619F
 player0 objects 10
 obj699 #ai 019BA255
 obj699 #vitals AE7756AD
@@ -2641,7 +2641,7 @@ cunit1000066549 #vitals 8FC93AF9
 cunit1000066550 #place 16CD3F55
 cunit1000066550 #unit 55497142
 cunit1000066550 #vitals 8FC93AF9
-@ 3 update 80 frame 15 tick 80 zone gz1g hash 492B9948 n 834
+@ 3 update 80 frame 15 tick 80 zone gz1g hash 74EB5C72 n 834
 world tick 80
 world updates 80
 world objects 816
@@ -2653,7 +2653,7 @@ random isaac.b 0x4B6758B8
 random isaac.c 0x00000003
 random isaac.results 0x72E27AC6
 random isaac.memory 0x607DD697
-random crt.rand 0xAE47310F
+random crt.rand 0x14AAACE8
 player0 lastTick 67
 player0 objects 9
 player0 var.gtime 6.04444456
@@ -2692,14 +2692,14 @@ cunit1804 #place DF969219
 cunit1804 #unit 618078DC
 - cunit1000066549
 cunit1000066550 #place 886D3723
-@ 4 update 100 frame 19 tick 100 zone gz1g hash 3B4763C1 n 832
+@ 4 update 100 frame 19 tick 100 zone gz1g hash F97B65A2 n 832
 world tick 100
 world updates 100
 world objects 815
 world mapObjects 56
 world updateMap 15
 random isaac.count 115
-random crt.rand 0x1507A439
+random crt.rand 0x97C0E395
 player0 objects 8
 obj699 #ai 0F79C16E
 obj699 #vitals F72D441A

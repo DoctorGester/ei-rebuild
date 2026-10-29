@@ -1,5 +1,5 @@
-# The peer of net_pair_leave: lacks a quest file the host's server offers (z6q2.mq on Rebirth, whose offer is z3q3 z6q2 z7q3 z9q2;
-# z7q1.mq on vanilla, whose offer is z3q1 z6q3 z7q1 and a z9 zone: A-I23, R34a) and joins the host's game (as in net_pair_join), follows the host into
+# The peer of net_pair_leave: lacks a quest file the host's server offers (z6q2.mq on Rebirth,
+# z7q1.mq on vanilla; both offers start with z3q2: A-I23, R34c) and joins the host's game (as in net_pair_join), follows the host into
 # the game zone, then its network is cut there.
 # The desktop's size (H31): a clickground lands where the clicked pixel's ray meets the ground and the leader walks
 # to that exact point, so the walk follows the frame's pixel grid; the goldens are the original's, at the desktop.

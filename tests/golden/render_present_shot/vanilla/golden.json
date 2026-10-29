@@ -2,12 +2,12 @@
   "scenario": "render_present_shot",
   "install": "vanilla",
   "recorded": "2026-10-29",
-  "commit": "aa1afef5e",
+  "commit": "8babcdb85",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
   "repeated_in": 4,
-  "reason": "R34a: image-only golden re-recorded: client-only effects draw from their own generator, so the game's ISAAC / rand() states move; 4 agreeing image runs: plain x2, EI_HEAP_JITTER 1, 2,fill",
+  "reason": "R34c: image-only golden re-recorded: the client's idle animation picks and the hero previews' start frames on the client generator, DelayedProtectionCheck's rand() gone, so the game's rand() state moves; 4 agreeing image runs: plain x2, EI_HEAP_JITTER 1, 2,fill",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
 }

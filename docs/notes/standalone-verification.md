@@ -171,7 +171,7 @@ reach is that failed run's, a lower bound), so goldens come from runs without EI
   (GetDiskFreeSpaceExA through GetProcAddress); Dib's catch handlers (a CFileException from the MFC file's Read / Write:
   a failing disk) and the message boxes they end in. Dib::Read and its helpers run only for a loose
   `textures\<name>.bmp` (A-I23a).
-- Shared files (A-I23): the vanilla offer in net_pair_leave is z3q1 z6q3 z7q1 and a z9 zone (R34a), so its vanilla
+- Shared files (A-I23): the vanilla offer in net_pair_leave has z3q2 and z7q1 (R34c), so its vanilla
   peer hides z7q1.mq (Rebirth's z6q2.mq); the received file is written (0041ECC0 -> 005813A0) and `samefile`
   requires it to be the install's.
 - Dead (SV5c): the fake unit (class 0x39) and its scene loader: no shipped data makes one, no code reaches slot 62, no

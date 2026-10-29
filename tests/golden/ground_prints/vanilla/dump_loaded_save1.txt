@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; dump loaded_save1
 # compact (tools/golden.py): objects as hashes of their fields
-@ 21 update 435 frame 87 tick 376 zone gz1g hash DF9F55CD n 795
+@ 21 update 435 frame 87 tick 376 zone gz1g hash 9A85845A n 795
 + world world
 world tick 376
 world updates 437
@@ -127,7 +127,7 @@ random isaac.b 0x82A6A1D4
 random isaac.c 0x0000000B
 random isaac.results 0x83B48A06
 random isaac.memory 0x1988D31C
-random crt.rand 0x7EC7C011
+random crt.rand 0xA7AD9F8A
 + player0 player
 player0 id 0
 player0 partyId 0
@@ -1857,12 +1857,12 @@ obj1000011214 #vitals 5ADA2E91
 + obj1195532174 80 unanwiwo "PrintWolf1"
 obj1195532174 #ai 30618F2F
 obj1195532174 #place 357A3B85
-obj1195532174 #unit F8820AF9
+obj1195532174 #unit CDA13F6D
 obj1195532174 #vitals 08CEA6E7
 + obj1195532175 80 unanwiwo "PrintWolf2"
 obj1195532175 #ai 30618F2F
 obj1195532175 #place 8779D5D9
-obj1195532175 #unit 54A86ED7
+obj1195532175 #unit 618B5B43
 obj1195532175 #vitals 08CEA6E7
 + missile0 spell 39
 missile0 # E68F535F
@@ -1948,9 +1948,9 @@ cunit1000011214 #unit 7EBB6FE6
 cunit1000011214 #vitals 7D2D89BA
 + cunit1195532174 80 unanwiwo "PrintWolf1"
 cunit1195532174 #place 0E342BCD
-cunit1195532174 #unit BBE45652
+cunit1195532174 #unit BC9C92B1
 cunit1195532174 #vitals 83B80DE4
 + cunit1195532175 80 unanwiwo "PrintWolf2"
 cunit1195532175 #place 9968C201
-cunit1195532175 #unit BC9C92B1
+cunit1195532175 #unit BBE45652
 cunit1195532175 #vitals 83B80DE4
