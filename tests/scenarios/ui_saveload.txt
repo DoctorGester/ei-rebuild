@@ -3,7 +3,6 @@
 # into its texture on the GPU from the escape menu's copy of the screen), a save into it (SaveGame writes shot.sav
 # from the copy the window kept), then the Load window (ShowPicture draws a shot.sav into the picture texture). Captures
 # are the new frames: the picture frame (right upper box) must show the greyed world, not black.
-render new,present
 reject Script error
 waitmenu
 console thingamabob

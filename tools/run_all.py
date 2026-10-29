@@ -8,7 +8,7 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
   default          the standalone image (S21: game.exe only runs the original, docs/notes/standalone.md section 5), as
                    --standalone: ei_launch --standalone, build\\verify\\ei_standalone.exe lays out game.exe's data
                    without its code (it reads no game.exe, S18k1) and loads ei_hook.dll, on the vanilla install's data
-                   with EI_RENDER=new,present (install "standalone", vanilla goldens), and on the Rebirth install's data
+                   (install "standalone", vanilla goldens), and on the Rebirth install's data
                    with the flags of config/ei_rebirth_standalone.ini as EI_REBIRTH (no dgVoodoo, addon.dll or
                    EI_Plugin.asi either way; install "standalone-rebirth", Rebirth goldens). Every scenario runs
                    on the vanilla data; Rebirth's data only on demand (SV9; before releases, not after every merge):
@@ -25,11 +25,12 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    scenario's line "# no original: <install>..." (vanilla, rebirth) leaves its runs there out:
                    checks only our renderer can pass, flags the original lacks (S21a). Since S21c no tool runs
                    our code inside game.exe (--native and --dgvoodoo are gone with it).
-  renderers        The image draws with our renderer (EI_RENDER=new,present: no DirectDraw device, its own swap
-                   chain, no display mode change), so its runs never need the machine to themselves. dgVoodoo
-                   draws the original code (--no-hooks, --widescreen --record's rebirth-nohooks); such a run with
-                   a "resolution" step runs alone, and a scenario at full screen at a mode of its own is left out
-                   (it would switch the display). EI_RENDER never reaches the original code.
+  renderers        The image draws with our renderer (no DirectDraw device, its own swap chain, no display mode
+                   change), so its runs never need the machine to themselves. dgVoodoo draws the original code
+                   (--no-hooks, --widescreen --record's rebirth-nohooks); such a run with a "resolution" step runs
+                   alone, and a scenario at full screen at a mode of its own is left out (it would switch the
+                   display). EI_RENDER reaches no run: a scenario's "render" step sets the image's renderer options
+                   (EI_RENDER_EXTRA adds words to them).
   --fresh          play the original code's runs again instead of taking them from the reference
                    cache (build\\reference in the main checkout: a passed run of the original code,
                    kept by scenario commit, install files, clock and EI_* settings; reference_key)
@@ -185,14 +186,6 @@ def sets_display_mode(scenario):
     with open(scenario, encoding='cp1251', errors='replace') as f:
         return any(re.match(r'\s*resolution\b', line) for line in f)
 
-
-# Our renderer's switch-over (docs/notes/renderer.md section 9): no DirectDraw or Direct3D 7 device, the frame
-# presented through its own swap chain, full screen without a display mode change.
-OUR_RENDERER = 'new,present'
-# --widescreen compares with addon's frames (the game's lighting and shadow decals); the image has only its own
-# (R16i: GPU lighting and the shadow map), so the world view behind the interface differs from addon's.
-WIDESCREEN_RENDERER = OUR_RENDERER
-renderer = OUR_RENDERER   # what run_once gives the image's runs (main sets the widescreen one)
 
 
 def our_code(install):
@@ -415,11 +408,10 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
         # Never the display mode: our renderer whatever the environment says. The image reads no game.exe (S18k1):
         # --game is the install whose data it plays (ei_launch sets EI_GAME_ROOT from it).
         cmd += ['--game', r'F:\games\EvilIslands', '--standalone']
-        env = dict(os.environ if env is None else env, EI_RENDER=renderer)
     elif install == 'standalone-rebirth':
         # ei_launch's default game folder is the Rebirth install's.
         cmd += ['--standalone']
-        env = dict(os.environ if env is None else env, EI_RENDER=renderer, EI_REBIRTH=standalone_rebirth_flags(root))
+        env = dict(os.environ if env is None else env, EI_REBIRTH=standalone_rebirth_flags(root))
     else:
         # The original code only (S21c: no tool runs ours inside game.exe), drawn by dgVoodoo. On the vanilla data
         # ei_launch adds addon.dll's bug fixes (SV9, ADDON_FIXES).
@@ -429,11 +421,11 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
             # Rebirth's engine copied with our own dgVoodoo.conf (tools/setup_rebirth_run.cmd).
             cmd += ['--exe', os.path.join(run_dir(root), 'rebirth', 'game.exe')]
         cmd.append('--no-hooks')
-        environ = os.environ if env is None else env
-        if 'EI_RENDER' in environ:
-            # With the harness's capture taking the new renderer's frame (present), which nothing draws in the
-            # original code, its frames came out empty.
-            env = {k: v for k, v in environ.items() if k != 'EI_RENDER'}
+    environ = os.environ if env is None else env
+    if 'EI_RENDER' in environ:
+        # The image's renderer options are its scenario's "render" step, never the environment's; the original code
+        # has none.
+        env = {k: v for k, v in environ.items() if k != 'EI_RENDER'}
     if clock:
         env = dict(os.environ if env is None else env, EI_HARNESS_CLOCK=clock)
     games = games_of(scenario)
@@ -1104,8 +1096,6 @@ def plan(args, root=ROOT):
     jobs = [(name, install) for name in names for install in installs
             if install not in ('rebirth', 'standalone-rebirth') or name in rebirth]
     if args.widescreen:
-        global renderer
-        renderer = WIDESCREEN_RENDERER
         # addon's WideScreen exists on the Rebirth install only: the image there, or addon's runs to record
         names = args.scenarios or WIDESCREEN_SCENARIOS
         jobs = [(name, 'rebirth-nohooks' if args.record else 'standalone-rebirth') for name in names]

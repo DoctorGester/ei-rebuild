@@ -65,8 +65,7 @@ void ParseSpec(const char* spec) {
         std::string word = s.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
         while (!word.empty() && word.front() == ' ') word.erase(word.begin());
         while (!word.empty() && word.back() == ' ') word.pop_back();
-        if (word == "new" || word == "present" || word == "cpuwindows") {}
-        else if (word == "smooth") g_smooth = true;
+        if (word == "smooth") g_smooth = true;
         else if (word == "smoothcamera") g_smoothCamera = true;
 #if defined(EI_RENDER_VALIDATION)
         else if (word == "removable") g_removable = true;

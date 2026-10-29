@@ -17,14 +17,11 @@ struct TextLayout;
 
 namespace render::ui {
 
-// A surface's pixel format (the screen's): 16 or 32 bits, the colour masks.
-struct PixelFormat {
-    int bitsPerPixel = 32;
-    std::uint32_t redMask = 0xFF0000, greenMask = 0xFF00, blueMask = 0xFF;
-};
-
 // 0x00RRGGBB to a pixel of `format` (the channels' top bits).
 std::uint32_t Pack(std::uint32_t rgb, const PixelFormat& format);
+// 0x00RRGGBB with each channel cut to its top bits in `format` (the low bits 0): what a pixel of the format keeps,
+// each channel at the top of its byte.
+std::uint32_t TopBits(std::uint32_t rgb, const PixelFormat& format);
 
 // The canvas of `holder`: made (or made again at another size or format) all black, as the original's new
 // surface was. False for a size outside 1..8192.

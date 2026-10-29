@@ -8,7 +8,6 @@
 # the meshes were kept on the GPU), and the town at night (its point lights' shadows, R16i1).
 # Counts only, but no terrain page or mesh kept on the GPU may have been found stale.
 # no original: vanilla rebirth (the counts are our renderer's)
-render new,present
 timeout 120
 reject Script error
 waitmenu

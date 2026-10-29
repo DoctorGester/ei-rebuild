@@ -13,7 +13,7 @@
 //   grey    greying against 005FE440's formulas on the packed pixels.
 //   copy    screen copies of a frame texture against the original's stretch (x * source / size) and packing.
 //   picture the save's 5:6:5 picture (ReadRgb565) against the original's stretch ((2 x + 1) * source / (2 size))
-//           and packing; one-pixel reads (ReadPixel); a canvas moved to another key with its queued commands
+//           and packing; one-pixel reads (ReadPixel) and their top bits (TopBits); a canvas moved to another key with its queued commands
 //           (MoveCanvas).
 //   image   pixels written into canvases (clipped, quantised) exactly.
 //   frame   canvases blitted in the frame (keyed, stretched, a source part) against the window blit's
@@ -140,7 +140,7 @@ namespace {
 
 struct Format {
     const char* name;
-    ui::PixelFormat format;
+    render::PixelFormat format;
 };
 const Format kFormats[] = {
     {"5:6:5", {16, 0xF800, 0x7E0, 0x1F}},
@@ -170,18 +170,24 @@ std::uint32_t RefChannel(std::uint32_t v, int bits) {
 struct Bits {
     int r, g, b;
 };
-Bits BitsOf(const ui::PixelFormat& f) {
+Bits BitsOf(const render::PixelFormat& f) {
     if (f.bitsPerPixel == 32) return {8, 8, 8};
     return f.greenMask == 0x7E0 ? Bits{5, 6, 5} : Bits{5, 5, 5};
 }
-std::uint32_t RefQuantise(std::uint32_t rgb, const ui::PixelFormat& f) {
+std::uint32_t RefQuantise(std::uint32_t rgb, const render::PixelFormat& f) {
     Bits b = BitsOf(f);
     return (RefChannel((rgb >> 16) & 0xFF, b.r) << 16) | (RefChannel((rgb >> 8) & 0xFF, b.g) << 8) | RefChannel(rgb & 0xFF, b.b);
+}
+// Each channel's top bits of the format (the low bits 0), as the game's PixelAt gives them.
+std::uint32_t RefTopBits(std::uint32_t rgb, const render::PixelFormat& f) {
+    Bits b = BitsOf(f);
+    auto top = [](std::uint32_t v, int bits) { return v & (0xFFu << (8 - bits)) & 0xFF; };
+    return (top((rgb >> 16) & 0xFF, b.r) << 16) | (top((rgb >> 8) & 0xFF, b.g) << 8) | top(rgb & 0xFF, b.b);
 }
 std::uint32_t RgbOfColorref(COLORREF c) { return ((c & 0xFF) << 16) | (c & 0xFF00) | ((c >> 16) & 0xFF); }
 
 // A canvas read back, each pixel packed in the surface format (empty when it cannot be read).
-std::vector<std::uint32_t> ReadPacked(const void* holder, const ui::PixelFormat& f) {
+std::vector<std::uint32_t> ReadPacked(const void* holder, const render::PixelFormat& f) {
     std::vector<std::uint32_t> pixels;
     if (!ui::ReadPixels(holder, &pixels)) return {};
     for (std::uint32_t& p : pixels) p = ui::Pack(p, f);
@@ -196,7 +202,7 @@ struct Dib {
     HGDIOBJ old = nullptr;
     const std::uint8_t* bits = nullptr;
     int pitch = 0, bitsPerPixel = 0;
-    Dib(int width, int height, const ui::PixelFormat& f) {
+    Dib(int width, int height, const render::PixelFormat& f) {
         struct {
             BITMAPINFOHEADER header;
             DWORD masks[3];
@@ -353,7 +359,7 @@ void CheckGdi() {
 
 // The run drawn onto `pixels` (0x00RRGGBB) by the canvas's rule.
 void RefGlyphRun(std::vector<std::uint32_t>& pixels, int width, int height, text::TextFont& font, const text::TextLayout& layout,
-                 COLORREF colour, const ui::PixelFormat& format) {
+                 COLORREF colour, const render::PixelFormat& format) {
     int x0 = 0, y0 = 0, x1 = width, y1 = height;
     if (layout.clipped) {
         x0 = std::max(x0, layout.clip.left);
@@ -483,7 +489,7 @@ void CheckGlyphs() {
 
 // ---- grey: 005FE440 -------------------------------------------------------------------------------------------
 
-std::uint32_t GreyPacked(std::uint32_t pixel, const ui::PixelFormat& f) {
+std::uint32_t GreyPacked(std::uint32_t pixel, const render::PixelFormat& f) {
     if (f.bitsPerPixel == 16 && f.greenMask == 0x7E0) {
         std::uint32_t grey = (((pixel >> 4) & 0x7E) + ((pixel >> 10) & 0x3E) + (pixel & 0x1F)) >> 4;
         return ((grey << 5 | grey) << 6) | grey;
@@ -643,7 +649,8 @@ void CheckPicture() {
             for (const auto& pt : points) {
                 std::uint32_t one = 0;
                 wrong += !read || !ui::ReadPixel(holder, pt[0], pt[1], &one) ||
-                         one != held[static_cast<std::size_t>(pt[1]) * c.canvasWidth + static_cast<std::size_t>(pt[0])];
+                         one != held[static_cast<std::size_t>(pt[1]) * c.canvasWidth + static_cast<std::size_t>(pt[0])] ||
+                         ui::TopBits(one, f.format) != RefTopBits(one, f.format);
             }
             std::uint32_t outside = 0;
             Check(wrong == 0 && !ui::ReadPixel(holder, c.canvasWidth, 0, &outside),
@@ -720,7 +727,7 @@ void CheckFrame() {
     g_targetDepthView = sg_make_view(&v);
 
     std::vector<std::uint32_t> expected(static_cast<std::size_t>(g_targetWidth) * g_targetHeight, kTargetClearRgb);
-    const ui::PixelFormat f565 = kFormats[0].format;
+    const render::PixelFormat f565 = kFormats[0].format;
     int a = 0, b = 0;
     const void* first = &a;
     const void* second = &b;
@@ -752,7 +759,7 @@ void CheckFrame() {
     RefBlit(expected, changed, 32, 24, Rect{10, 40, 74, 88}, Rect{0, 0, 32, 24}, true, 0);
     // A second canvas made and drawn in the same frame, before its blit (hoisted, no split), keyed on
     // its fill colour (punched out).
-    const ui::PixelFormat f888 = kFormats[2].format;
+    const render::PixelFormat f888 = kFormats[2].format;
     ui::Canvas(second, 40, 30, f888);
     ui::Fill(second, Rect{0, 0, 40, 30}, RGB(1, 2, 3));
     ui::Fill(second, Rect{10, 10, 30, 20}, RGB(200, 200, 200));
@@ -792,7 +799,7 @@ void CheckFrame() {
 
 void CheckLost() {
     if (g_verbose) std::printf("lost:\n");
-    const ui::PixelFormat f565 = kFormats[0].format, f888 = kFormats[2].format;
+    const render::PixelFormat f565 = kFormats[0].format, f888 = kFormats[2].format;
     int drawn = 0, moved = 0, copied = 0, longOne = 0, from = 0;
     // Fills, a frame, lines, a pixel, a picture and a glyph run; one canvas moved to another key.
     ui::Canvas(&drawn, 64, 40, f565);

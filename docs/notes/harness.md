@@ -177,8 +177,8 @@ inside game.exe (docs/notes/standalone.md section 5). Each run writes to its own
 report and `harness_saves`, emptied first, so every run starts without saves or texture cache.
 For parallel runs the harness ignores other game windows (the game otherwise exits when it finds
 one), keeps the game active when it loses focus (it otherwise pauses), and opens data files for
-shared reading. The image draws with our renderer (`EI_RENDER=new,present`, no display mode
-change, so none of its runs needs the machine to itself); dgVoodoo draws the original code (`--no-hooks`,
+shared reading. The image draws with our renderer (no display mode change, so none of its runs
+needs the machine to itself; EI_RENDER reaches no run, a scenario's `render` step sets its options); dgVoodoo draws the original code (`--no-hooks`,
 `--widescreen --record`'s addon runs, compare.py's original side). Passed runs of the original code are cached in
 `build\reference` by scenario commit, install and the harness's sources (run_all.py `harness_files`: tests/verify,
 src/hook and what they include; game.exe's side runs no game code of ours and reads game.exe's objects through its
