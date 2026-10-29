@@ -133,8 +133,7 @@ void TorchObjectClientSpec::SetLightAt(const float* offset, float radius, const 
     const Vector3 rgb = {colour[0], colour[1], colour[2]};
     light->SetPoint(rgb, at);
     light->range = radius;
-    // The square is stored as a float and 1 divided by the unrounded value.
-    const float squared = static_cast<float>(radius * radius);
+    const float squared = radius * radius;
     light->rangeSquared = squared;
     light->inverseRangeSquared = 1.0f / squared;
     g_clientWorld.terrain->AddLight(light);

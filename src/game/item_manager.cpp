@@ -10,10 +10,10 @@
 #include "text_split.h"
 
 #include "lib/crt.h"
+#include "lib/rounded_ops.h"
 #include "lib/str.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 
 #include <cstdint>
 #include <memory>
@@ -63,10 +63,9 @@ void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const M
         record->materialUnits = prototype->materialUnits;
         return;
     }
-    // Price: the prototype's material units (unsigned, through a double) times the material's unit price, plus
-    // the prototype's price.
-    double units = x87::FromUnsigned(prototype->materialUnits);
-    record->price = static_cast<float>(units * material->unitPrice + prototype->price);
+    // Price: the prototype's material units (unsigned; the product rounded once) times the material's unit price,
+    // plus the prototype's price.
+    record->price = lib::RoundedProduct(material->unitPrice, prototype->materialUnits) + prototype->price;
     record->weight = prototype->weight * material->weightFactor;
     record->unreadValue = prototype->unreadValue;
     record->charge = prototype->charge + material->magicPower;
@@ -164,9 +163,9 @@ std::optional<MagicCapacity> MagicCapacityOf(ItemKind kind, const ItemRecordHead
                                              const MaterialRecordHead* material) {
     if (!material) {
         if (NeedsMaterial(kind)) return std::nullopt;
-        return MagicCapacity{static_cast<float>(x87::FromUnsigned(prototype->magicLevel)), prototype->charge};
+        return MagicCapacity{static_cast<float>(static_cast<double>(prototype->magicLevel)), prototype->charge};
     }
-    return MagicCapacity{static_cast<float>(x87::FromUnsigned(prototype->magicLevel + material->magicLevel)),
+    return MagicCapacity{static_cast<float>(static_cast<double>(prototype->magicLevel + material->magicLevel)),
                          prototype->charge + material->magicPower};
 }
 

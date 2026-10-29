@@ -8,6 +8,7 @@
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
+#include "lib/rounding.h"
 
 #include <bit>
 #include <cstring>
@@ -118,5 +119,5 @@ const char* CMaterialManager::GetFolderName() { return kManagerFolder; }
 
 std::uint32_t Material::GpuLitColour() const {
     const float alpha = colors.diffuse.w * 255.0f;
-    return static_cast<std::uint32_t>(x87::fistp(alpha)) << 24 | 0x00FFFFFFu;
+    return static_cast<std::uint32_t>(lib::RoundEven(alpha)) << 24 | 0x00FFFFFFu;
 }

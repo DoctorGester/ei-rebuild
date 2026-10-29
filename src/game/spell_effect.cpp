@@ -8,7 +8,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -56,18 +55,18 @@ void SpellEffect::HitUnitsAlong(const Vector3& direction) {
     // The wall's normal in the ground plane: s = 2 / sqrt(x^2 + y^2) (rounded to float), normal = (s * -y,
     // s * x, 0). The normal has length 2, so the test against 1 accepts the units within 0.5 of the plane.
     float x = direction.x;
-    double minusY = -direction.y;
-    float scale = static_cast<float>(2.0f / std::sqrt(x * x + minusY * minusY));
-    float normalX = static_cast<float>(scale * minusY);
+    float minusY = -direction.y;
+    float scale = 2.0f / std::sqrt(x * x + minusY * minusY);
+    float normalX = scale * minusY;
     float normalY = scale * x;
     float normalZ = 0.0f;
 
     for (CUnit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, Spell()->radius)) {
         const CUnit* at = unit;
-        double dz = at->localPosition.z - position.z;
-        double dy = at->localPosition.y - position.y;
-        double dx = at->localPosition.x - position.x;
-        float distance = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(dx, dy, dz, normalX, normalY, normalZ));
+        float dz = at->localPosition.z - position.z;
+        float dy = at->localPosition.y - position.y;
+        float dx = at->localPosition.x - position.x;
+        float distance = DotUnrounded<Sum3::ZYX>(dx, dy, dz, normalX, normalY, normalZ);
         distance = AbsBits(distance);
         if (distance > kWallHalfWidth) continue;
         if (!AcceptsAreaSpells(unit)) continue;

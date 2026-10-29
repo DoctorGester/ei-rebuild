@@ -15,8 +15,8 @@
 
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-
-#include "ei/x87.h"
+#include "lib/rounded_ops.h"
+#include "lib/rounding.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -33,16 +33,14 @@ void Append(std::vector<Item*>* list, Item* object) {
 }
 
 // One gold roll of the prototype: the amount (the minimum rounded, or a random value between the minimum and
-// a larger maximum, truncated), kept when the percent roll (CRT rand) is within the chance.
+// a larger maximum, truncated), kept when the percent roll (CRT rand) is within the chance. The spread times the
+// random word is rounded once; the original's scale 1 / (2^32 - 1) is the double 2^-32 (1 + 2^-32), and a float
+// times that rounds to the float times 2^-32.
 void RollGold(const UnitGoldRoll& roll, int* gold) {
     float low = roll.minimum;
     float high = roll.maximum;
-    int amount = x87::fistp(low);
-    if (high > low) {
-        double random = x87::FromUnsigned(g_random.Next());
-        const double scale = 2.3283064370807974e-10;   // 1 / 0xFFFFFFFF
-        amount = static_cast<int>(static_cast<double>(high - low) * random * scale + low);
-    }
+    int amount = lib::RoundEven(low);
+    if (high > low) amount = static_cast<int>(lib::RoundedProduct(high - low, g_random.Next()) * 0x1p-32f + low);
     int percent = libcrt::RandBelow(100) + 1;
     EI_NAN_AUDIT(roll.chance);
     if (static_cast<float>(percent) <= roll.chance) *gold += amount;

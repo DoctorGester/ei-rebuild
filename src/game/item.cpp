@@ -10,8 +10,7 @@
 #include "world.h"
 
 #include "lib/nan_audit.h"
-
-#include "ei/x87.h"
+#include "lib/rounded_ops.h"
 
 #include <bit>
 #include <cstdint>
@@ -118,14 +117,14 @@ bool Item::CopyTo(Item* target, CSpellManager* spells) {
     target->Destroy();
     target->prototypeId = prototypeId;
     // The floats bit for bit (a loaded item's values may be any bit pattern).
-    x87::CopyBits(target->condition, condition);
-    x87::CopyBits(target->conditionMax, conditionMax);
-    x87::CopyBits(target->charge, charge);
-    x87::CopyBits(target->chargeMax, chargeMax);
-    x87::CopyBits(target->chargeRate, chargeRate);
-    x87::CopyBits(target->weight, weight);
-    x87::CopyBits(target->price, price);
-    x87::CopyBits(target->unreadValue, unreadValue);
+    target->condition = condition;
+    target->conditionMax = conditionMax;
+    target->charge = charge;
+    target->chargeMax = chargeMax;
+    target->chargeRate = chargeRate;
+    target->weight = weight;
+    target->price = price;
+    target->unreadValue = unreadValue;
     target->magicLevel = magicLevel;
     target->spell.Assign(spell ? spell->Clone(spells) : nullptr);
     target->count = 1;
@@ -234,18 +233,14 @@ void ItemWeapon::GetDamageTypes(float (&out)[kDamageTypeCount]) {
         std::memset(out, 0, sizeof(out));
 }
 
-double ItemWeapon::RollDamage() {
+// ((high - low) * roll) * scale + low, the product with the random word rounded once. The original's scale,
+// about 1 / (2^32 - 1), is the double 2^-32 (1 + 2^-32): a float times that rounds to the float times 2^-32.
+float ItemWeapon::RollDamage() {
     EI_NAN_AUDIT(damageSpread);
     if (damageSpread == 0.0f) return damage;
-    float high = damageSpread + damage;     // stored as float
-    float low = damage;                      // read back from memory for the subtraction and the add
-    std::uint32_t roll = g_random.Next();
-    volatile std::int64_t roll64 = roll;
-    // About 1 / (2^32 - 1).
-    constexpr double kRollScale = 0x1.0000000100000p-32;
-    // ((high - low) * roll) * scale + low, all in double.
-    return (static_cast<double>(high) - static_cast<double>(low)) * static_cast<double>(roll64) * kRollScale +
-           static_cast<double>(low);
+    float high = damageSpread + damage;
+    float low = damage;
+    return lib::RoundedProduct(high - low, g_random.Next()) * 0x1p-32f + low;
 }
 
 void ItemWeapon::InitFromRecord(const ItemRecordHead* record) {
@@ -271,9 +266,9 @@ bool ItemWeapon::CopyTo(Item* target, CSpellManager* spells) {
     if (!Item::CopyTo(target, spells)) return false;
     ItemWeapon* weapon = AsWeapon(target);   // a copy of this weapon
     weapon->actionValue = actionValue;
-    x87::CopyBits(weapon->damage, damage);
-    x87::CopyBits(weapon->damageSpread, damageSpread);
-    x87::CopyBits(weapon->reach, reach);
+    weapon->damage = damage;
+    weapon->damageSpread = damageSpread;
+    weapon->reach = reach;
     return true;
 }
 

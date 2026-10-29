@@ -1,7 +1,6 @@
 // The zone file's effect records: particle sources (kind 4), lights (kind 2) and sounds (kind 3) on their base
 // (map_spec.h). They keep the world object they made and its effect, are kept above the terrain when moved,
 // and save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Rewritten").
-#include "ei/x87.h"
 #include "base_manager.h"
 #include "map_spec.h"
 #include "core_transform.h"
@@ -65,8 +64,8 @@ void EffectSpec::Move(float dx, float dy, float dz) {
     p.x = dx + p.x;
     p.y = dy + p.y;
     p.z = dz + p.z;
-    double ground = g_clientWorld.terrain->HeightAt(p.x, p.y, terrain::Layer::Ground);
-    if (ground > p.z) p.z = static_cast<float>(ground);
+    float ground = g_clientWorld.terrain->HeightAt(p.x, p.y, terrain::Layer::Ground);
+    if (ground > p.z) p.z = ground;
     Apply();
 }
 
@@ -113,7 +112,7 @@ void ParticleSpec::Apply() {
     }
     auto* particle = static_cast<CEffectParticle*>(effect);
     Transform()->localPosition = position;
-    x87::CopyBits(particle->size, scale);
+    particle->size = scale;
     particle->type = type;
     particle->localPosition = position;
     particle->MarkChanged();
@@ -162,7 +161,7 @@ void LightSpec::Apply() {
     }
     auto* light = static_cast<EffectPointLight*>(effect);
     light->color = colour;
-    x87::CopyBits(light->range, radius);
+    light->range = radius;
     light->localPosition = position;
     Transform()->localPosition = position;
     light->MarkChanged();

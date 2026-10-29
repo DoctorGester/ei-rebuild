@@ -14,10 +14,9 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
+#include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
-
-#include "ei/x87.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -49,16 +48,16 @@ void Shuffle(std::vector<T>& v) {
 // turn is taken with a chance by its unitPrice q against the prototype's price p: 10% outside
 // [2p/7 - p/5, p/5], else 110 - |(q - p/7) / (p/7 - p/5)| x 100 percent (truncated). Null when none was taken.
 StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype, const std::vector<StockMaterial*>& candidates) {
-    float seventh = static_cast<float>(prototype->price * stock::kSeventhFactor);
-    float fifth = static_cast<float>(prototype->price * stock::kFifthFactor);
+    float seventh = prototype->price * stock::kSeventhFactor;
+    float fifth = prototype->price * stock::kFifthFactor;
     if (candidates.empty()) return nullptr;
-    float low = static_cast<float>((seventh + seventh) - fifth);
+    float low = (seventh + seventh) - fifth;
     for (StockMaterial* candidate : candidates) {
         int chance = 10;
         float quality = candidate->record->unitPrice;
         EI_NAN_AUDIT(fifth);
         if (quality >= low && quality <= fifth) {
-            float t = static_cast<float>(((quality - seventh) / (seventh - fifth)) * 100.0f);
+            float t = ((quality - seventh) / (seventh - fifth)) * 100.0f;
             chance = static_cast<int>(110.0f - AbsBits(t));
         }
         int roll = libcrt::RandBelow(100) + 1;
@@ -335,13 +334,13 @@ std::vector<HeldRef<CSpell>> ItemStock::GenerateSpells(const float* levels, unsi
             int count = 0;
             itemdb::SpellRecord* prototype = g_spellDatabase.spells.Named(recipe->spell);
             int level = prototype->skill;
-            int budget = x87::fistp(levels[prototype->school]);
+            int budget = lib::RoundEven(levels[prototype->school]);
             float cost = prototype->mana;
             for (const std::string& name : recipe->required) {
                 itemdb::SpellModifierRecord* m = modifierMap[name];
                 if (!m) continue;
                 chosen.push_back(m);
-                cost = static_cast<float>(cost + m->mana);
+                cost = cost + m->mana;
                 ++count;
                 level += m->skill;
             }
@@ -352,7 +351,7 @@ std::vector<HeldRef<CSpell>> ItemStock::GenerateSpells(const float* levels, unsi
                 itemdb::SpellModifierRecord* m = modifierMap[optional[i]];
                 if (!m || budget < m->skill + level) continue;
                 chosen.push_back(m);
-                cost = static_cast<float>(cost + m->mana);
+                cost = cost + m->mana;
                 ++count;
                 level += m->skill;
             }
@@ -364,11 +363,11 @@ std::vector<HeldRef<CSpell>> ItemStock::GenerateSpells(const float* levels, unsi
                     ++count;
                     reached += repeated->skill;
                     if (repeated->code[0] == 'm') {
-                        cost = static_cast<float>(repeated->strength * prototype->mana + cost + repeated->mana);
+                        cost = repeated->strength * prototype->mana + cost + repeated->mana;
                         EI_NAN_AUDIT(cost, prototype->mana);
                         if (cost <= prototype->mana) break;
                     } else {
-                        cost = static_cast<float>(cost + repeated->mana);
+                        cost = cost + repeated->mana;
                     }
                     if (budget < repeated->skill + reached) break;
                 }

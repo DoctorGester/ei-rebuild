@@ -136,10 +136,8 @@ public:
     // The prototype's damage type weights; zeros without a prototype.
     void GetDamageTypes(float (&out)[kDamageTypeCount]);
 
-    // damage + a random fraction of damageSpread (the global ISAAC generator), unrounded: callers round when
-    // they store it. double so the value is not rounded to float on return when the FPU runs at more than
-    // 24-bit precision (it does under Rebirth).
-    double RollDamage();
+    // damage + a random fraction of damageSpread (the global ISAAC generator).
+    float RollDamage();
 
     bool IsSameAs(Item* other) override;
 

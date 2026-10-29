@@ -93,7 +93,8 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    until the cleanup removes them. When an integer or a branch follows from a float that sits on a rounding edge, a rare difference there is
    expected: say so in the notes rather than copying the FPU sequence.
    - The game code builds for SSE2 but CMakeLists' `EI_X87_GAME_SOURCES` (src/render too): there float maths is plain float
-     (`std::sin`, `lib::RoundEven` for FISTP's rounding, no `D()` / `static_cast<double>` registers, no `x87::` helpers;
+     (`std::sin`, `lib::RoundEven` for FISTP's rounding, `lib::RoundedProduct` / `RoundedSum` where the original's operand
+     is an int above 2^24 or a wide double, no `D()` / `static_cast<double>` registers, no `x87::` helpers;
      docs/notes/cleanup-tooling.md, C30a / C30b / C30e). The rest of this rule is for the x87 files, which C30e1-C30e15 move.
    - The build is `/arch:IA32 /fp:precise` (x87): the grouping written is the grouping compiled, and a `static_cast<float>`, a float local or a float
      return is rounded to float (a store, which changes nothing at the main thread's 24 bits). `/fp:fast` had distributed and refolded sums

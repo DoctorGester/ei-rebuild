@@ -9,8 +9,8 @@
 #include "spell.h"
 
 #include "lib/crt.h"
+#include "lib/rounded_ops.h"
 
-#include "ei/x87.h"
 
 #include <cstring>
 #include <iterator>
@@ -28,11 +28,13 @@ const char* const kCantEnd = "Can't end spell construction\n";
 
 
 
-// _ftol of value * factor, the value loaded as an unsigned 64-bit integer.
-int ScaleTruncate(std::uint32_t value, float factor) { return static_cast<int>(libcrt::Ftol(x87::FromUnsigned(value) * factor)); }
+// value * factor (rounded once) truncated as _ftol does: through a 64-bit integer, 0 for a NaN.
+int ScaleTruncate(std::uint32_t value, float factor) {
+    return static_cast<int>(static_cast<std::int64_t>(lib::RoundedProduct(factor, value)));
+}
 
-// sqrt(area / pi) (returned unrounded).
-double AreaToRadius(float area) { return std::sqrt(area / 3.1415927f); }
+// sqrt(area / pi).
+float AreaToRadius(float area) { return std::sqrt(area / 3.1415927f); }
 
 // field += strength * base, stored as a float, then kept only when above zero (a branch-free select: 0 <
 // value or NaN keeps it, anything else gives +0).
@@ -186,7 +188,7 @@ void SpellContainer::Build() {
     }
 
     float area = currentSpell->radius;
-    if (area > 0.0f) currentSpell->radius = static_cast<float>(AreaToRadius(area));
+    if (area > 0.0f) currentSpell->radius = AreaToRadius(area);
 
     // mana = max(prototype's mana, mana): the select keeps the computed value when the prototype's is
     // smaller or either is NaN.

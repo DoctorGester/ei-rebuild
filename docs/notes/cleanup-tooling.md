@@ -293,10 +293,15 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   `x * 0.001f` rounds the constant first. 39 such literals in 29 of the files left (pi, 0.001, 0.01, 1.04, 1.61, 0.7,
   0.9, 0.6, 0.02, 1e-5, 2^-32 ...) and the named double constants they use. Exact form: the operation in double,
   then a fix-up where the double result sits on a float tie (the error term from Dekker's two-product / two-sum
-  says which way the exact result lies): a `lib` helper with an equivalence test against the x87 form at PC24.
-  A constant that is exact in 24 bits (0.5, 100.0, 0.25) is a float constant.
+  says which way the exact result lies): `lib::RoundedProduct(float, double)` and `lib::RoundedSum(double, double)`
+  (lib/rounded_ops.h, SSE2 only; C30e3's test: 50 M cases, a million of them where the double then float rounding
+  differs, 0 differ from the x87 form). A constant that is exact in 24 bits (0.5, 100.0, 0.25) is a float constant.
+  The double 1 / (2^32 - 1) is 2^-32 (1 + 2^-32): a float times it rounds to the float times 2^-32 (`0x1p-32f`).
+  A single operation on two floats done in double and then stored as float is the float operation (53 >= 2 x 24 + 2:
+  double rounding is harmless there); a chain of them in double is not.
 - **ints above 2^24** in float arithmetic: FILD is exact and the operation rounds once; float maths converts first.
-  Only timers and ids reach that (`x87::FromUnsigned`, `ms * 0.001`): check each site.
+  Only timers, ids, random words and data words reach that (`x87::FromUnsigned`, `ms * 0.001`): check each site;
+  the helpers above take the int as a double.
 - **the exponent range**: x87 registers keep a 15-bit exponent, so a product beyond 3.4e38 or below 1.2e-38 inside an
   expression differs. No game value is near either; the equivalence tests cover the operands' real ranges.
 - **transcendentals**: FSIN, FCOS, FPATAN, FYL2X (`x87::flog`) and F2XM1 ignore the precision control and give a
@@ -342,6 +347,14 @@ memory blocks: world_guard, ai_cost_tables, rebirth), the four `lib::RoundEven` 
 changes: `x87::CopyBits` -> `=` (net_messages, script_vars), `x87::fistp` -> `lib::RoundEven` (an item whose
 condition rounds to 0 or below is broken: unit_create, unit_items), renderer_init's three roundings of 50.0f -> the
 colour 0xFF323232, registry's `FloatToInt` through int64. Goldens unchanged (verify and `--rebirth-only`).
+
+**C30e3 (items, spells, world objects; 17 files).** Float maths on floats as they were (prices, conditions, charges,
+the stock's material and spell draws, lights, map specs, levers, torches, traps). Through the helpers: the random
+spreads (hoover_loot's gold, `ItemWeapon::RollDamage`, now a float: the spread times the ISAAC word, then 2^-32), the
+item price's material units, spell_cast's `ScaleTruncate` (then through int64, as `_ftol`), the lever's end tick
+minus the world tick, the magic trap's double height plus z. `CopyBits` -> `=` (item, map_spec_effect),
+`x87::fistp` -> `lib::RoundEven` (gold minimum, spell budget, material alpha). Equivalence test: C30e3's `eq/`
+(each old expression at PC24 against the new one, the light's constants, the wall spell's normal).
 
 **Batches left** (209 files, 57,575 lines; source counts: `double` 1,640, `D(` 472, `x87::` 358, `Ftol(` 120).
 Each one focused area, one worker session, after C30e4 where it has a transcendental:

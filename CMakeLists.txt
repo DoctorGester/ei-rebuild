@@ -67,10 +67,6 @@ set(EI_X87_GAME_SOURCES
     # C30e2: scripts
     game/script_addon game/script_addon_commands game/script_addon_math game/script_addon_units game/script_effects
     game/script_eval game/script_exec game/script_exec_helpers game/script_exec_run game/script_parse
-    # C30e3: items, spells and world objects
-    game/base_manager game/hoover_loot game/item game/item_manager game/item_stock game/lever_object
-    game/lever_table_load game/light game/magic_trap game/map_spec game/map_spec_effect game/material game/spell
-    game/spell_cast game/spell_effect game/torch_client_spec game/vis_fog_manager
     # C30e4: the transcendental helpers and the spell effects
     game/exit_area game/spell_effect_start game/spell_effect_update
     # C30e5: the server world and world effects

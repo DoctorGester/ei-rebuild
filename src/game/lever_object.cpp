@@ -10,6 +10,7 @@
 #include "world.h"
 
 #include "lib/nan_audit.h"
+#include "lib/rounded_ops.h"
 
 #include <initializer_list>
 #include <new>
@@ -58,9 +59,10 @@ bool Lever::RunTick() {
     Update();
     if (WorldContext()->IsServer()) return false;
     Vector3 shown = {scale.x, scale.y, scale.z};
-    double t = (endTick - static_cast<double>(g_clientWorld.tick)) * rate;
-    if (t > 0.0) {
-        shown.y = static_cast<float>(to - (to - from) * t);
+    // The tick (an int) subtracted with one rounding.
+    float t = lib::RoundedSum(endTick, -static_cast<double>(g_clientWorld.tick)) * rate;
+    if (t > 0.0f) {
+        shown.y = to - (to - from) * t;
         Object3D()->SetFigureScale(&shown.x);
         g_clientWorld.RefreshPlatforms(this);
         return true;
@@ -164,7 +166,7 @@ void Lever::SetUp(const LeverSetup* setup) {
     lock = setup->lock;
     directUseBlocked = setup->directUseBlocked;
     keepsMapFlag = setup->keepsMapFlag;
-    if (stateCount > 1) scale.y = static_cast<float>(static_cast<double>(state) / (stateCount - 1));
+    if (stateCount > 1) scale.y = static_cast<float>(state) / static_cast<float>(stateCount - 1);   // states < 256
     else scale.y = 0.0f;
     MarkChanged(kPartScale);
 }

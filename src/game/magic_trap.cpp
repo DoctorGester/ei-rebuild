@@ -15,6 +15,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
+#include "lib/rounded_ops.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -97,7 +98,7 @@ void MagicTrap::CastAtUnits(std::vector<CUnit*>* units) {
     const Vector3& origin = localPosition;
     Vector3 from = {origin.x, origin.y, origin.z};
     auto* world = World();
-    from.z = static_cast<float>(world->RawSurfaceHeightAt(from.x, from.y) + from.z);
+    from.z = lib::RoundedSum(world->RawSurfaceHeightAt(from.x, from.y), from.z);   // the double height: one rounding
     if (!(spell->targetFlags & SpellTargetFlag::AtUnits) && std::ssize(points) != 0) {
         for (int i = 0; i < std::ssize(points); ++i) {
             const TrapPoint& point = points[i];
