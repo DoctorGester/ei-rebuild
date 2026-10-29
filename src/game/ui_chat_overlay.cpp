@@ -209,6 +209,7 @@ void CChatOverlay::DrawTyped() {
         gameapi::MoveToEx(dc, top.x, top.y, nullptr);
         gameapi::LineTo(dc, bottom.x, bottom.y);
         gameapi::SelectObject(dc, oldPen);
+        ui_native::Line(surface, top.x, top.y, bottom.x, bottom.y, 1, kTypedColour);
     }
     UiSurfaceReleaseDC(surface);
 }
@@ -274,7 +275,9 @@ void CChatOverlay::OnChar(int key, int, int) {
 
 // Its own redraw and update; the input side's keys and characters.
 CChatOverlay::CChatOverlay(CInterface3D* ui) : CUiWindow(ui) {
-    AddSurface(new CUiSurface(interface_, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, kTypedFormat, 1));
+    CUiSurface* typed = new CUiSurface(interface_, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, kTypedFormat, 1);
+    ui_native::Adopt(typed, "chat");
+    AddSurface(typed);
     chatOpen_ = false;
     caret_ = 0;
     DrawTyped();

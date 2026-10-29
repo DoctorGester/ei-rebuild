@@ -7,6 +7,7 @@
 
 #include "item_db_text.h"       // CTextManager
 #include "ui_gdi.h"
+#include "ui_native.h"
 #include "game_singletons.h"
 #include "world.h"
 #include "world_glue.h"
@@ -93,6 +94,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
                     gameapi::MoveToEx(dc, top.x, top.y, nullptr);
                     gameapi::LineTo(dc, bottom.x, bottom.y);
                     gameapi::SelectObject(dc, oldPen);
+                    ui_native::Line(surface, top.x, top.y, bottom.x, bottom.y, 1, kCaretColour);
                 }
             }
             marker = SceneMesh(kMarkerSprite);

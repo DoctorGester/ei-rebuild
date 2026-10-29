@@ -6,6 +6,7 @@
 #include "options.h"
 #include "asset_text.h"
 #include "ui.h"
+#include "ui_native.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
@@ -123,7 +124,9 @@ constexpr int kTextureKind = 3;
 constexpr int kScrollbarTexture = 1;   // objects_: 0 "saveload", 1 "scrollbar"
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    return new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
+    CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
+    ui_native::Adopt(surface, "connect");
+    return surface;
 }
 
 // A write the way the box's constructor inlines it: in place (marking the buffer written) when it
