@@ -64,9 +64,6 @@ set(EI_X87_GAME_SOURCES
     game/net_server_tick game/net_server_vars game/net_session game/net_session_tick game/net_state game/object_tables
     game/options game/party_items game/party_members game/persistent_globals game/player_client game/player_messages
     game/player_server_handlers game/player_sync game/random
-    # C30e2: scripts
-    game/script_addon game/script_addon_commands game/script_addon_math game/script_addon_units game/script_effects
-    game/script_eval game/script_exec game/script_exec_helpers game/script_exec_run game/script_parse
     # C30e4: the transcendental helpers and the spell effects
     game/exit_area game/spell_effect_start game/spell_effect_update
     # C30e5: the server world and world effects

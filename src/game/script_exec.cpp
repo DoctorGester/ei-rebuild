@@ -31,9 +31,8 @@
 #include "world_glue.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
-#include "lib/crt.h"
 #include "lib/nan_audit.h"
+#include "lib/rounding.h"
 #include "bink_video.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"
@@ -48,15 +47,13 @@
 
 namespace {
 
-// The game's _ftol: truncating conversion, low 32 bits of the 64-bit result.
-int Ftol(float value) { return static_cast<int>(libcrt::Ftol(value)); }
+// The game's _ftol: truncating conversion, low 32 bits of the 64-bit result (0 for NaN).
+int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 
 bool IsZero(float value) {
     EI_NAN_AUDIT(value);
     return value == 0.0f;
 }
-
-int Round(float value) { return x87::fistp(value); }
 
 const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
 const char* MoviesFolder() { return "Movies\\"; }
@@ -168,7 +165,7 @@ void GiveSkill(const SSCCmd* cmd) {
     for (int i = 0; i < 9; ++i) {
         if (text::CompareIgnoringCase(Text(cmd, 0), kNames[i]) != 0) continue;
         CUnit* owner = state->unit;
-        int value = Ftol(cmd->floatArgs[0]);
+        int value = Truncate(cmd->floatArgs[0]);
         UnitStats* stats = StatsOf(state);
         if (i == 0) stats->RaiseAttribute(kIndex[i], value, owner);
         else stats->RaiseSkill(kIndex[i], value, owner);
@@ -176,7 +173,7 @@ void GiveSkill(const SSCCmd* cmd) {
 }
 
 void RedeployParty(const SSCCmd* cmd) {
-    CPlayer* player = g_serverWorld.GetPlayer(Ftol(cmd->floatArgs[0]));
+    CPlayer* player = g_serverWorld.GetPlayer(Truncate(cmd->floatArgs[0]));
     if (!player) return;
     PlayerServer* state = player->Server();
     std::vector<UnitPlacement> slots;
@@ -193,7 +190,7 @@ void RedeployParty(const SSCCmd* cmd) {
 }
 
 void CopyLoot(const SSCCmd* cmd, bool replace) {
-    if (!g_serverWorld.GetPlayer(Ftol(cmd->floatArgs[0]))) return;
+    if (!g_serverWorld.GetPlayer(Truncate(cmd->floatArgs[0]))) return;
     CParty* from = g_partyManager.records.Find(Text(cmd, 0));
     CParty* to = g_partyManager.records.Find(Text(cmd, 1));
     if (!from || !to) return;
@@ -249,7 +246,7 @@ void UnitModes(const SSCCmd* cmd) {
     brain->RemoveModesOfType(AIModeType::Aggression);
     brain->RemoveModesOfType(AIModeType::CorpseWatcher);
     brain->RemoveModesOfType(AIModeType::Fear);
-    switch (Round(cmd->floatArgs[0])) {
+    switch (lib::RoundEven(cmd->floatArgs[0])) {
     case 0:
         brain->AddMode(std::make_unique<FearMode>(true));
         brain->AddMode(std::make_unique<SuspectionMode>());
@@ -303,13 +300,13 @@ bool ScriptRun::Execute(Script* script) {
         switch (function) {
         case ScriptFunction::Sleep: {   // Sleep(ticks): counts this run's Execute calls from the first one
             if (sleepStart < 0) sleepStart = ticks;
-            int n = Round(f[0]);
+            int n = lib::RoundEven(f[0]);
             if (ticks - sleepStart < n) cont = 0;
             else sleepStart = -1;
             break;
         }
         case ScriptFunction::WaitSegment:     // WaitSegment(ticks): until this run has been executed that often
-            if (ticks < Round(f[0])) cont = 0;
+            if (ticks < lib::RoundEven(f[0])) cont = 0;
             break;
         case ScriptFunction::SleepUntil:     // SleepUntil(condition)
             if (IsZero(f[0])) cont = 0;
@@ -320,7 +317,7 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::CallScript: {   // a declared script: start an instance with the call's arguments
-            int which = Ftol(f[0]);
+            int which = Truncate(f[0]);
             ScriptDefinition* instance = &script->instances.emplace_front(script->definitions[static_cast<std::size_t>(which)]);
             instance->BindCall(cmd);
             instance->index = 0;   // the killed flag
@@ -358,19 +355,19 @@ bool ScriptRun::Execute(Script* script) {
         }
         case ScriptFunction::Assign: {   // global = value: float 0 variable index, float 1 type - 1
             ScriptVars* globals = &script->globals;
-            switch (Ftol(f[1])) {
+            switch (Truncate(f[1])) {
             case 0:
-                x87::CopyBits(globals->floats.values[Ftol(f[0])], f[2]);
+                globals->floats.values[Truncate(f[0])] = f[2];
                 break;
             case 1:
-                globals->strings.values[Ftol(f[0])] = cmd->stringArgs[0];
+                globals->strings.values[Truncate(f[0])] = cmd->stringArgs[0];
                 break;
             case 2: {
-                globals->objects.values[static_cast<std::size_t>(Ftol(f[0]))] = *cmd->objectArgs[0];
+                globals->objects.values[static_cast<std::size_t>(Truncate(f[0]))] = *cmd->objectArgs[0];
                 break;
             }
             case 3: {
-                globals->groups.values[static_cast<std::size_t>(Ftol(f[0]))] = *cmd->groupArgs[0];
+                globals->groups.values[static_cast<std::size_t>(Truncate(f[0]))] = *cmd->groupArgs[0];
                 break;
             }
             default:
@@ -399,34 +396,34 @@ bool ScriptRun::Execute(Script* script) {
             script->ScriptCreateFxSource(cmd);
             break;
         case ScriptFunction::DeleteParticleSource: {   // DeleteParticleSource(id)
-            int id = Round(f[0]);
+            int id = lib::RoundEven(f[0]);
             auto& list = script->particles;
             auto at = std::find_if(list.begin(), list.end(), [id](const ScriptParticleSource& source) { return source.id == id; });
             if (at != list.end()) list.erase(at);
             break;
         }
         case ScriptFunction::AttachParticleSource: {   // AttachParticleSource(id, objectId)
-            int objectId = Round(f[1]);
-            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) entry->object->SetAttachedTo(objectId);
+            int objectId = lib::RoundEven(f[1]);
+            if (ScriptParticleSource* entry = FindParticle(script, lib::RoundEven(f[0]))) entry->object->SetAttachedTo(objectId);
             break;
         }
         case ScriptFunction::AttachParticles: {   // AttachParticles(id, object)
             EngineObject* object = Arg(cmd, 0);
             if (!object) break;
             int objectId = object->id;
-            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) entry->object->SetAttachedTo(objectId);
+            if (ScriptParticleSource* entry = FindParticle(script, lib::RoundEven(f[0]))) entry->object->SetAttachedTo(objectId);
             break;
         }
         case ScriptFunction::SetParticleSourceSize: {   // SetParticleSourceSize(id, size)
-            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) entry->object->SetSize(f[1]);
+            if (ScriptParticleSource* entry = FindParticle(script, lib::RoundEven(f[0]))) entry->object->SetSize(f[1]);
             break;
         }
         case ScriptFunction::DeleteLightning: {   // DeleteLightning(id): every lightning with the id
-            std::erase_if(script->lightning, [f](const ScriptLightning& bolt) { return bolt.id == Ftol(f[0]); });
+            std::erase_if(script->lightning, [f](const ScriptLightning& bolt) { return bolt.id == Truncate(f[0]); });
             break;
         }
         case ScriptFunction::DeleteFXSource: {   // DeleteFXSource(id): the first one with the id
-            int id = Round(f[0]);
+            int id = lib::RoundEven(f[0]);
             auto& list = script->fxSources;
             auto at = std::find_if(list.begin(), list.end(), [id](const ScriptFxSource& source) { return source.id == id; });
             if (at != list.end()) list.erase(at);
@@ -434,26 +431,26 @@ bool ScriptRun::Execute(Script* script) {
         }
 
         case ScriptFunction::SendEvent:   // SendEvent(type, value)
-            g_serverWorld.players->SendValueToAll(Ftol(f[1]));
+            g_serverWorld.players->SendValueToAll(Truncate(f[1]));
             break;
         case ScriptFunction::SendStringEvent:   // SendStringEvent(type, text)
             g_serverWorld.players->SendTextToAll(Text(cmd, 0));
             break;
         case ScriptFunction::GodMode: {   // GodMode(player, on)
-            CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
-            if (player) player->godMode = static_cast<std::uint8_t>(Ftol(f[1]));
+            CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
+            if (player) player->godMode = static_cast<std::uint8_t>(Truncate(f[1]));
             break;
         }
         case ScriptFunction::SetDiplomacy: {   // SetDiplomacy(a, b, value): > 0 allied (0), < 0 enemies (2), else (0 or NaN) neutral (1)
             int relation;
             if (f[2] > 0.0f) relation = 0;
             else relation = f[2] < 0.0f ? 2 : 1;
-            g_serverWorld.diplomacy.SetRelation(Ftol(f[0]), Ftol(f[1]), relation);
+            g_serverWorld.diplomacy.SetRelation(Truncate(f[0]), Truncate(f[1]), relation);
             break;
         }
         case ScriptFunction::InvokeAlarm: {   // InvokeAlarm(type, x, y)
             Vector3 point = {f[1], f[2], 0.0f};
-            g_serverWorld.InvokeAlarm(Ftol(f[0]), &point.x, 1);
+            g_serverWorld.InvokeAlarm(Truncate(f[0]), &point.x, 1);
             break;
         }
         case ScriptFunction::AddUnitToServer: {   // AddUnitToServer(name, prototype, ..., x, y, z)
@@ -492,7 +489,7 @@ bool ScriptRun::Execute(Script* script) {
             g_serverWorld.SetTime(f[0]);
             break;
         case ScriptFunction::SetWaterLevel:   // SetWaterLevel(a, level, b)
-            g_serverWorld.SetWaterLevel(Round(f[0]), f[1], Round(f[2]));
+            g_serverWorld.SetWaterLevel(lib::RoundEven(f[0]), f[1], lib::RoundEven(f[2]));
             break;
         case ScriptFunction::AddMob:   // AddMob(name)
             g_serverWorld.LoadMobFile(Text(cmd, 0));
@@ -510,15 +507,15 @@ bool ScriptRun::Execute(Script* script) {
             console::PrintLine(Text(cmd, 0));
             break;
         case ScriptFunction::AddRectToArea: {   // AddRectToArea(area, x1, y1, x2, y2)
-            script->FindArea(Round(f[0]))->AddRect(f[1], f[2], f[3], f[4]);
+            script->FindArea(lib::RoundEven(f[0]))->AddRect(f[1], f[2], f[3], f[4]);
             break;
         }
         case ScriptFunction::AddRoundToArea: {   // AddRoundToArea(area, x, y, radius)
-            script->FindArea(Round(f[0]))->AddRound(f[1], f[2], f[3]);
+            script->FindArea(lib::RoundEven(f[0]))->AddRound(f[1], f[2], f[3]);
             break;
         }
         case ScriptFunction::DeleteArea:   // DeleteArea(area)
-            script->DeleteArea(Round(f[0]));
+            script->DeleteArea(lib::RoundEven(f[0]));
             break;
         case ScriptFunction::HideObject: {   // HideObject(object, hide): MapObjectFlag::Invisible
             EngineObject* object = Arg(cmd, 0);
@@ -548,7 +545,7 @@ bool ScriptRun::Execute(Script* script) {
             float time;
             if (function == ScriptFunction::SwitchLeverState) time = -10.0f;
             else time = f[1];
-            lever->SetState(Ftol(f[0]), time);
+            lever->SetState(Truncate(f[0]), time);
             break;
         }
         case ScriptFunction::EnableLever: {   // EnableLever(lever, on)
@@ -561,8 +558,8 @@ bool ScriptRun::Execute(Script* script) {
             Lever* lever = LeverArg(cmd);
             if (!lever) break;
             LockKey lock = {1, 0, 0};
-            lock.id = static_cast<std::uint32_t>(Ftol(f[0]));
-            lock.level = static_cast<std::uint32_t>(Ftol(f[1]));
+            lock.id = static_cast<std::uint32_t>(Truncate(f[0]));
+            lock.level = static_cast<std::uint32_t>(Truncate(f[1]));
             lock.mask = 0;
             if (!IsZero(f[2])) lock.mask = 1;
             if (!IsZero(f[3])) lock.mask |= 2;
@@ -582,14 +579,14 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::SetPlayer: {   // SetPlayer(unit, player)
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
-            unit->SetHostileMask(g_serverWorld.diplomacy.GetHostileMask(Ftol(f[0])));
-            unit->SetSide(Ftol(f[0]));
+            unit->SetHostileMask(g_serverWorld.diplomacy.GetHostileMask(Truncate(f[0])));
+            unit->SetSide(Truncate(f[0]));
             break;
         }
         case ScriptFunction::SetEnemy: {   // SetEnemy(unit, player): adds the player to the hostile mask
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
-            int player = Ftol(f[0]);
+            int player = Truncate(f[0]);
             std::uint32_t mask = (1u << (player & 31)) | unit->relationsA;
             unit->AddHostileMask(mask);
             break;
@@ -616,7 +613,7 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::AddUnitUnderControl: {   // AddUnitUnderControl(player, unit)
-            CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (player && unit) unit->SetPlayer(player);
             break;
@@ -632,7 +629,7 @@ bool ScriptRun::Execute(Script* script) {
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             int count = std::ssize(unit->carried);
-            int id = Ftol(f[0]);
+            int id = Truncate(f[0]);
             for (int i = 0; i < count; ++i) {
                 ItemQuest* item = AsQuest(unit->carried[i]);
                 if (static_cast<int>(item->questItemId) == id) {
@@ -668,7 +665,7 @@ bool ScriptRun::Execute(Script* script) {
             UnitServer* state = cmd->objectArgs[0]->GetUnitPerception();
             if (!state) break;
             CUnit* owner = state->unit;
-            int value = Ftol(f[0]);
+            int value = Truncate(f[0]);
             UnitStats* stats = StatsOf(state);
             if (function == ScriptFunction::GiveStrength) stats->RaiseStrength(value, owner);
             else if (function == ScriptFunction::GiveDexterity) stats->RaiseDexterity(value, owner);
@@ -897,7 +894,7 @@ bool ScriptRun::Execute(Script* script) {
                 GSSetVarMultiplayer(cmd);
                 break;
             }
-            CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
             if (player) player->Server()->SetVariable(Text(cmd, 0), std::bit_cast<std::uint32_t>(f[1]));   // the float bits
             break;
         }
@@ -908,20 +905,20 @@ bool ScriptRun::Execute(Script* script) {
                 GSVarMultiplayer(cmd, setMax);
                 break;
             }
-            CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
             if (!player) break;
             if (setMax) player->Server()->SetVariableMax(Text(cmd, 0), f[1]);
             else player->Server()->DeleteVariable(Text(cmd, 0));
             break;
         }
         case ScriptFunction::PlayMusic: {   // PlayMusic(player, name)
-            CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
             if (player) player->Server()->SendText0D(Text(cmd, 0));
             break;
         }
         case ScriptFunction::LeaveToZone: {   // LeaveToZone(player, zone, point)
-            CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
-            if (player) player->Server()->LeaveToZone(Text(cmd, 0), Ftol(f[1]));
+            CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
+            if (player) player->Server()->LeaveToZone(Text(cmd, 0), Truncate(f[1]));
             break;
         }
         case ScriptFunction::RedeployParty:   // RedeployParty(player)
@@ -929,7 +926,7 @@ bool ScriptRun::Execute(Script* script) {
             break;
         case ScriptFunction::AddUnitToParty:     // AddUnitToParty(player, party.unit, prototype)
         case ScriptFunction::RemoveUnitFromParty: {   // RemoveUnitFromParty(player, party.unit)
-            CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
             if (!player) break;
             std::string name = cmd->stringArgs[0];
             CParty* records = PartyForScript(player, &name);
@@ -943,7 +940,7 @@ bool ScriptRun::Execute(Script* script) {
         }
         case ScriptFunction::CopyItems:     // CopyItems(player, from, to)
         case ScriptFunction::CopyStats: {   // CopyStats(player, from, to)
-            CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
             if (!player) break;
             std::string from = cmd->stringArgs[0];
             std::string to = cmd->stringArgs[1];
@@ -962,15 +959,15 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::CreateParty: {   // CreateParty(player, name)
-            if (g_serverWorld.GetPlayer(Ftol(f[0]))) g_partyManager.records.Add(Text(cmd, 0));
+            if (g_serverWorld.GetPlayer(Truncate(f[0]))) g_partyManager.records.Add(Text(cmd, 0));
             break;
         }
         case ScriptFunction::RemoveParty: {   // RemoveParty(player, name)
-            if (g_serverWorld.GetPlayer(Ftol(f[0]))) g_partyManager.records.Remove(Text(cmd, 0));
+            if (g_serverWorld.GetPlayer(Truncate(f[0]))) g_partyManager.records.Remove(Text(cmd, 0));
             break;
         }
         case ScriptFunction::SetCurrentParty: {   // SetCurrentParty(player, name)
-            if (g_serverWorld.GetPlayer(Ftol(f[0])))
+            if (g_serverWorld.GetPlayer(Truncate(f[0])))
                 g_partyManager.records.requestedName = cmd->stringArgs[0];
             break;
         }
@@ -981,16 +978,16 @@ bool ScriptRun::Execute(Script* script) {
             CopyLoot(cmd, true);
             break;
         case ScriptFunction::GiveMoney: {   // GiveMoney(player, amount)
-            CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
             if (!player) break;
             std::vector<Item*> items;
-            player->Party()->money += Ftol(f[1]);
+            player->Party()->money += Truncate(f[1]);
             player->GiveItems(&items, 0);
             break;
         }
         case ScriptFunction::GiveQuestItem:     // GiveQuestItem(player, item)
         case ScriptFunction::GiveItem: {   // GiveItem(player, item)
-            CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
             if (!player) break;
             std::vector<Item*> items;
             Item* item = g_serverWorld.CreateItemNamed(Text(cmd, 0));
@@ -1001,8 +998,8 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::EraseQuestItem: {   // EraseQuestItem(player, id)
-            CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
-            if (player) player->TakeLoot(Ftol(f[1]));
+            CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
+            if (player) player->TakeLoot(Truncate(f[1]));
             break;
         }
         case ScriptFunction::FixItems: {   // FixItems: every item repaired
@@ -1025,7 +1022,7 @@ bool ScriptRun::Execute(Script* script) {
                 }
                 break;
             }
-            CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld.GetPlayer(Truncate(f[0]));
             if (!player) break;
             QuestRecord* quest = g_questDatabase.FindQuest(Text(cmd, 0));
             if (!quest) break;

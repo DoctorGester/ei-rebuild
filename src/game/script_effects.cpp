@@ -8,7 +8,7 @@
 #include "world_effect.h"
 #include "game_singletons.h"
 
-#include "ei/x87.h"
+#include "lib/rounding.h"
 #include "lib/text_case.h"
 
 #include <climits>
@@ -123,8 +123,8 @@ void Script::ScriptCreateFx(const SSCCmd* cmd) {
     auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<EffectSound>(ClassId::EffectSound, -1);
     const float* f = cmd->floatArgs.data();
     sound->localPosition = {f[0], f[1], f[2]};
-    x87::CopyBits(sound->volume, f[3]);
-    x87::CopyBits(sound->radius, f[4]);
+    sound->volume = f[3];
+    sound->radius = f[4];
     sound->looping = 0;
     const char* name = cmd->stringArgs[0].c_str();
     std::memcpy(sound->name, name, Length(name) + 1);
@@ -137,7 +137,7 @@ void Script::ScriptCreateFx(const SSCCmd* cmd) {
 // replace the sound on every tick; INT_MAX keeps the sound, as a positive residue does.
 void Script::ScriptCreateFxSource(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data();
-    int id = x87::RoundToInt(f[0]);
+    int id = lib::RoundEven(f[0]);
     if (id < 0) id = nextFxId--;
 
     ScriptFxSource* source = FindId(fxSources, id);
@@ -152,23 +152,23 @@ void Script::ScriptCreateFxSource(const SSCCmd* cmd) {
     source->position.x = f[1];
     source->position.y = f[2];
     source->position.z = f[3];
-    x87::CopyBits(source->volume, f[4]);
-    x87::CopyBits(source->radius, f[5]);
+    source->volume = f[4];
+    source->radius = f[5];
     source->name = cmd->stringArgs[0];
 
     if (cmd->id != kCommandCreateFxSource) {
-        source->minDelay = x87::RoundToInt(f[6]);
-        source->maxDelay = x87::RoundToInt(f[7]);
+        source->minDelay = lib::RoundEven(f[6]);
+        source->maxDelay = lib::RoundEven(f[7]);
         source->countdown = 0;
-        x87::CopyBits(source->spread, f[8]);
+        source->spread = f[8];
         source->idle = 1;
         return;
     }
     auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<EffectSound>(ClassId::EffectSound, -1);
     source->object = ScriptEffect<EffectSound>(sound);
     sound->localPosition = {source->position.x, source->position.y, source->position.z};
-    x87::CopyBits(sound->volume, source->volume);
-    x87::CopyBits(sound->radius, source->radius);
+    sound->volume = source->volume;
+    sound->radius = source->radius;
     const char* name = source->name.c_str();
     std::memcpy(sound->name, name, Length(name) + 1);
     g_serverWorld.AddTimedObject(sound);
@@ -208,7 +208,7 @@ void Script::ScriptCreateParticleSource(const SSCCmd* cmd) {
     int lifetime = type->lifetime;
 
     const float* f = cmd->floatArgs.data();
-    int id = x87::RoundToInt(f[0]);
+    int id = lib::RoundEven(f[0]);
     if (id < 0) id = nextParticleId--;
 
     ScriptParticleSource* source = FindId(particles, id);
@@ -219,7 +219,7 @@ void Script::ScriptCreateParticleSource(const SSCCmd* cmd) {
     newParticles->type = particleType;
     newParticles->localPosition = {f[1], f[2], f[3]};
     source->object = ScriptEffect<CEffectParticle>(newParticles);
-    x87::CopyBits(newParticles->size, f[4]);
+    newParticles->size = f[4];
     g_serverWorld.AddTimedObject(newParticles);
 
     source->id = id;
@@ -234,11 +234,11 @@ void Script::ScriptCreateParticleSource(const SSCCmd* cmd) {
 // point in `steps` equal steps (one per tick); nothing when no source has the id.
 void Script::ScriptMoveParticleSource(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data();
-    ScriptParticleSource* source = FindId(particles, x87::RoundToInt(f[0]));
+    ScriptParticleSource* source = FindId(particles, lib::RoundEven(f[0]));
     if (!source) return;
     source->moving = 1;
-    source->deleteAfterMove = x87::RoundToInt(f[5]);
-    source->steps = x87::RoundToInt(f[4]);
+    source->deleteAfterMove = lib::RoundEven(f[5]);
+    source->steps = lib::RoundEven(f[4]);
     const Vector3& at = source->object->localPosition;
     float inverse = 1.0f / static_cast<float>(source->steps);
     source->step.x = (f[1] - at.x) * inverse;

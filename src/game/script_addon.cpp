@@ -15,11 +15,9 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 #include "engine_object.h"
 #include "combat.h"
 #include "unit.h"
-#include "lib/crt.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -175,23 +173,16 @@ const Built& Build() {
 // ---- Helpers for the handlers -------------------------------------------------------------------
 
 // CVTTSD2SI (addon.dll's conversion): truncation; NaN and values outside the int range give INT_MIN.
-int Ftol(float value) {
+int TruncateOrMin(float value) {
     const double wide = value;
     if (!(wide > -2147483649.0 && wide < 2147483648.0)) return INT32_MIN;
     return static_cast<int>(wide);
 }
 
-void Store(float* dst, float value) { x87::CopyBits(*dst, value); }
+// The game's _ftol: truncation of the 64-bit value, its low 32 bits (0 for NaN).
+int Truncate(float value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 
-// The game's _ftol: truncation of the 64-bit value, its low 32 bits.
-int TruncateX87(float value) { return static_cast<int>(libcrt::Ftol(value)); }
-
-float Distance(float x0, float y0, float x1, float y1) {
-    const float deltaX = x1 - x0;
-    const float deltaY = y1 - y0;
-    const float squared = static_cast<float>(LengthSquared2DUnrounded<double>(deltaY, deltaX));
-    return static_cast<float>(std::sqrt(squared));
-}
+float Distance(float x0, float y0, float x1, float y1) { return Length2D(Vector2{x1, y1} - Vector2{x0, y0}); }
 
 int Stricmp(const char* a, const char* b) { return AsciiStricmp(a, b); }
 
