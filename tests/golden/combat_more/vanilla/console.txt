@@ -9,7 +9,6 @@
   Unit 1804 new motivation Patrol with power of 50
   Unit 1890 new motivation Patrol with power of 50
   Saved savea
-  Unit 1890 acknowledges with idleSound = AAn4XyU
   1
   Unit 1000066549 sees unit 1000011214 from 2.37171m distance
   Unit 1000066549 new motivation Player with power of 10
@@ -29,8 +28,8 @@
   0
   0
   0
-  Unit 1000066549 was attacked by 1000011214 skill=3.40282e+038 damage=11.7439 destHL=RHand
-  impaling passed damage = 11.7439 HL was crippled
+  Unit 1000066549 was attacked by 1000011214 skill=3.40282e+038 damage=9.79718 destHL=LHand
+  impaling passed damage = 9.79718 HL was crippled
   Unit 1000066549 damaged to death
   Unit 1000011214 sees corpse of unit 1000066549
   Unit 1000011214 lost from sight unit 1000066549
@@ -38,24 +37,35 @@
   1
   Unit 1001324934 sees unit 1000011214 from 1.97454m distance
   Unit 1001324934 new motivation Player with power of 10
-  Unit 1000011214 sees unit 1001324934 from 1.97454m distance
   1
+  Unit 1000011214 sees unit 1001324934 from 1.97454m distance
   1
   Unit 1001324934 sees corpse of unit 1000066549
   38.7939
   0
-  Unit 1000011214 was attacked by 1001324934 skill=3.40282e+038 damage=12.87 destHL=LLeg
-  impaling passed damage = 8.89005
+  Unit 1000011214 was attacked by 1001324934 skill=-3.40282e+038 damage=12.92 destHL=RHand
+  0
+  0
+  Delayed sound: Unit 1000011214 heard unit 1001324934 from 1.974538m distance
+  0
+  0
+  0
+  Unit 1804 acknowledges with idleSound = AAn4XyU
+  0
+  0
+  0
+  0
+  Unit 1000011214 was attacked by 1001324934 skill=3.40282e+038 damage=9.85 destHL=RHand
+  impaling passed damage = 7.86003
   1
-  Unit 1937 acknowledges with idleSound = AAn4XyU
-  30.0534
+  30.9706
   Unit 1000011214 was healed
   38.7939
   0
   Delayed sound: Unit 1000011214 heard unit 1001324934 from 1.974538m distance
   0
-  Unit 1001324934 was attacked by 1000011214 skill=3.40282e+038 damage=9.72151 destHL=Body
-  impaling passed damage = 9.72151 HL was crippled
+  Unit 1001324934 was attacked by 1000011214 skill=3.40282e+038 damage=10.1487 destHL=LLeg
+  impaling passed damage = 10.1487 HL was crippled
   Unit 1000066549 sees unit 1000011214 from 1.97454m distance
   Unit 1000066549 sees unit 1001324934 from 0m distance
   Unit 1001324934 damaged to death
@@ -65,15 +75,15 @@
   1
   Unit 1000010833 sees unit 1000011214 from 1.97454m distance
   Unit 1000010833 new motivation Player with power of 10
-  1
   Unit 1000011214 sees unit 1000010833 from 1.97454m distance
+  1
   Unit 1000010833 sees corpse of unit 1001324934
   Unit 1000010833 sees corpse of unit 1000066549
   Unit 1000011214 lost from sight unit 1000010833
+  Unit 1000011214 sees unit 1000010834 from 1.97454m distance
   Unit 1000010834 sees unit 1000011214 from 1.97454m distance
   Unit 1000010834 new motivation Player with power of 10
   1
-  Unit 1000011214 sees unit 1000010834 from 1.97454m distance
   Unit 1000010834 sees corpse of unit 1001324934
   Unit 1000010834 sees corpse of unit 1000066549
   Unit 1000011214 lost from sight unit 1000010834
@@ -84,10 +94,11 @@
   Unit 1000010835 sees corpse of unit 1001324934
   Unit 1000010835 sees corpse of unit 1000066549
   Unit 1000011214 lost from sight unit 1000010835
+  Unit 1890 acknowledges with idleSound = AAn4XyU
   Unit 1000010836 sees unit 1000011214 from 1.97454m distance
   Unit 1000010836 new motivation Player with power of 10
-  Unit 1000011214 sees unit 1000010836 from 1.97454m distance
   1
+  Unit 1000011214 sees unit 1000010836 from 1.97454m distance
   Unit 1000010836 sees corpse of unit 1001324934
   Unit 1000010836 sees corpse of unit 1000066549
   Unit 1000011214 lost from sight unit 1000010836

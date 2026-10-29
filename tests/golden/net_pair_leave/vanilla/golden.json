@@ -1,11 +1,11 @@
 {
   "scenario": "net_pair_leave",
   "install": "vanilla",
-  "recorded": "2026-10-21",
-  "commit": "d5e62271",
+  "recorded": "2026-10-29",
+  "commit": "aa1afef5e",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 3,
-  "reason": "SV5d2 + A-I23: the vanilla peer lacks z7q2.mq (an offered quest file) and receives it (ClientOnFileChunk, WriteMapFile)"
+  "repeated_in": 2,
+  "reason": "R34a: client-only effects draw from their own generator (the game's ISAAC and rand() streams lose their draws), sectors lit once at Build; net_pair_zone/leave/quest follow the new multiplayer offer"
 }

@@ -1,12 +1,12 @@
 {
   "scenario": "app_record",
   "install": "vanilla",
-  "recorded": "2026-10-21",
-  "commit": "d5e62271",
+  "recorded": "2026-10-29",
+  "commit": "aa1afef5e",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 3,
-  "reason": "A-I23: the frame recorder in a game (WinMain's recorded-frame pass length, the recorder's files)",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 3 runs"
+  "repeated_in": 2,
+  "reason": "R34a: client-only effects draw from their own generator (the game's ISAAC and rand() streams lose their draws), sectors lit once at Build; net_pair_zone/leave/quest follow the new multiplayer offer",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
 }

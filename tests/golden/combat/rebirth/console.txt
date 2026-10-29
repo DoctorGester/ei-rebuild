@@ -13,6 +13,7 @@
   Unit 1000011214 new motivation Player with power of 10
   Unit 1804 new motivation Patrol with power of 50
   Unit 1890 new motivation Patrol with power of 50
+  Unit 1804 acknowledges with idleSound = AAn4XyU
   Saved savea
   1
   Unit 1000275419 sees unit 1000011214 from 2.37171m distance
@@ -33,8 +34,8 @@
   0
   0
   0
-  Unit 1000275419 was attacked by 1000011214 skill=3.40282e+038 damage=12.4803 destHL=RHand
-  impaling passed damage = 12.4803 HL was crippled
+  Unit 1000275419 was attacked by 1000011214 skill=3.40282e+038 damage=12.1082 destHL=RHand
+  impaling passed damage = 12.1082 HL was crippled
   Unit 1000275419 damaged to death
   Unit 1000011214 sees corpse of unit 1000275419
   Unit 1000011214 lost from sight unit 1000275419
@@ -43,13 +44,13 @@
   38.7939
   Unit 1000275420 sees unit 1000011214 from 1.97454m distance
   Unit 1000275420 new motivation Player with power of 10
-  Unit 1000011214 sees unit 1000275420 from 1.97454m distance
   1
+  Unit 1000011214 sees unit 1000275420 from 1.97454m distance
   1
   1
   Unit 1000275420 sees unit 1000275419 with peripheral vision
   Unit 1000275420 sees corpse of unit 1000275419
-  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=12.14 destHL=Head!
+  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=11.75 destHL=Body
   0
   0
   0
@@ -57,23 +58,82 @@
   0
   0
   0
-  Unit 1000011214 was attacked by 1000275420 skill=3.40282e+038 damage=10.17 destHL=LLeg
-  slashing passed damage = 5.19506
-  1
-  33.5729
-  Unit 1000011214 was healed
+  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=11.13 destHL=RLeg
   0
-  Unit 1804 acknowledges with idleSound = AAn4XyU
+  0
   0
   Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
   0
-  Unit 1000275420 was attacked by 1000011214 skill=3.40282e+038 damage=11.5369 destHL=Body
-  impaling passed damage = 11.5369 HL was crippled
+  0
+  0
+  0
+  0
+  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=11.69 destHL=Body
+  0
+  0
+  0
+  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
+  0
+  0
+  0
+  0
+  0
+  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=12.11 destHL=Body
+  0
+  0
+  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
+  0
+  0
+  0
+  0
+  0
+  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=8.26 destHL=RLeg
+  0
+  0
+  0
+  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
+  0
+  0
+  0
+  0
+  0
+  Unit 1000011214 was attacked by 1000275420 skill=3.40282e+038 damage=8.15 destHL=Body
+  slashing passed damage = 5.66253
+  1
+  33.2687
+  Unit 1000011214 was healed
+  0
+  0
+  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
+  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=11.355 destHL=RLeg
+  0
+  0
+  0
+  Delayed sound: Unit 1000275420 heard unit 1000011214 from 1.440063m distance
+  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=10.6287 destHL=LLeg
+  0
+  0
+  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=9.42 destHL=LHand
+  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=12.5798 destHL=Body
+  0
+  0
+  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
+  0
+  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=10.3721 destHL=LHand
+  0
+  0
+  0
+  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=12.1538 destHL=Body
+  0
+  0
+  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=12.19 destHL=LHand
+  Unit 1000275420 was attacked by 1000011214 skill=3.40282e+038 damage=12.4176 destHL=LLeg
+  impaling passed damage = 12.4176 HL was crippled
   Unit 1000275419 sees unit 1000011214 from 1.97454m distance
   Unit 1000275419 sees unit 1000275420 from 0.556578m distance
   Unit 1000275420 damaged to death
+  1
   Unit 1000011214 sees corpse of unit 1000275420
   Unit 1000011214 lost from sight unit 1000275420
-  1
   38.9066
   1

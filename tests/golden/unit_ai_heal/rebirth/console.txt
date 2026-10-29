@@ -13,6 +13,7 @@
   Unit 1000011214 new motivation Player with power of 10
   Unit 1804 new motivation Patrol with power of 50
   Unit 1890 new motivation Patrol with power of 50
+  Unit 1804 acknowledges with idleSound = AAn4XyU
   Saved savea
   1
   1
@@ -56,7 +57,6 @@
   0
   Unit 1000011214 sees unit 1884 from 10.4198m distance
   0
-  Unit 1936 acknowledges with idleSound = AAn4XyU
   0
   Unit 1935 hear delayed sound: Unit 1934 claims that player 0 are enemies! 
   Unit 1000011214 sees unit 699 from 12.3381m distance
@@ -76,7 +76,6 @@
   Unit 1884 sees unit 1000011214 with peripheral vision
   Unit 1884 sees unit 1000011214 from 3.85051m distance
   0
-  Unit 1890 acknowledges with idleSound = AAn4XyU
   0
   0
   Unit 702 lost from sight unit 1000011214
@@ -96,6 +95,7 @@
   Unit 1884 new motivation Sentry with power of 50
   0
   0
+  Unit 1884 acknowledges with idleSound = AAn4XyU
   0
   0
   0
@@ -110,6 +110,7 @@
   Unit 699 new motivation Sentry with power of 50
   Unit 702 new motivation Sentry with power of 50
   Unit 1884 new motivation Sentry with power of 50
+  Unit 1915 acknowledges with idleSound = AAn4XyU
   0
   0
   0
@@ -120,11 +121,10 @@
   0
   1
   Delayed sound: Unit 1000011214 heard unit 1804 from 8.062472m distance
-  Unit 1000011214 was attacked by 1804 skill=3.40282e+038 damage=10.71 destHL=LLeg
+  Unit 1000011214 was attacked by 1804 skill=3.40282e+038 damage=12.62 destHL=Head!
   Delayed sound: Unit 1804 heard unit 1000011214 from 2.603962m distance
-  Unit 1884 acknowledges with idleSound = AAn4XyU
   20
   10
   1
-  Unit 1000011214 was attacked by 1804 skill=-3.40282e+038 damage=9.49 destHL=LLeg
+  Unit 1000011214 was attacked by 1804 skill=-3.40282e+038 damage=11.63 destHL=Head!
   Delayed sound: Unit 1000011214 heard unit 1804 from 2.271138m distance

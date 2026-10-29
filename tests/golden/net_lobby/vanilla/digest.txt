@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 857AF0E3 n 68
+@ 0 update 20 frame 3 tick 20 zone - hash E441E79D n 68
 + world world
 world tick 20
 world updates 20
@@ -121,13 +121,13 @@ world allied31 0x80000000
 world hostile31 0x00000000
 + random random
 random isaac.seeded 1
-random isaac.count 190
-random isaac.a 0x04FD013A
-random isaac.b 0x133CFE05
-random isaac.c 0x0000000F
-random isaac.results 0xEA891960
-random isaac.memory 0x85371991
-random crt.rand 0x39860693
+random isaac.count 163
+random isaac.a 0x9CB583D6
+random isaac.b 0xE5190F44
+random isaac.c 0x00000001
+random isaac.results 0x7744D51B
+random isaac.memory 0xB5AE7EF6
+random crt.rand 0x67AB5A6E
 + player0 player
 player0 id 0
 player0 partyId 0
@@ -163,9 +163,9 @@ obj8 # 6A2302B0
 + obj9 82 nafltr59
 obj9 # 7A827A09
 + obj129 80 unanwibo ""
-obj129 #ai 64B653C3
-obj129 #place 2CCB30EA
-obj129 #unit 8A162422
+obj129 #ai 0E443451
+obj129 #place C7595BD8
+obj129 #unit 0AE15BEA
 obj129 #vitals 9438E29B
 + obj132 84 stst9
 obj132 # 1C6F0FA9
@@ -333,8 +333,8 @@ cunit2 #place 05174B21
 cunit2 #unit CA7CD47D
 cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
-cunit129 #place FB1423E0
-cunit129 #unit BF865974
+cunit129 #place 0B14C5BC
+cunit129 #unit 81590308
 cunit129 #vitals B073BCC9
 + cunit148 80 unanwiwo ""
 cunit148 #place A32411AD
@@ -344,7 +344,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 40 zone - hash 5023A734 n 51
+@ 1 update 40 frame 7 tick 40 zone - hash 4CCFF4EE n 51
 world tick 40
 world updates 40
 world gameResult 0
@@ -355,13 +355,7 @@ world mapObjects 0
 world timedObjects 0
 world updateMap 0
 world projectiles 0
-random isaac.count 177
-random isaac.a 0x59688C84
-random isaac.b 0x05C0F64A
-random isaac.c 0x00000011
-random isaac.results 0x3985745C
-random isaac.memory 0xD598B619
-random crt.rand 0x1A3D81A5
+random isaac.count 148
 - player0
 - obj2
 - obj129
@@ -391,14 +385,13 @@ client synchronised 0
 - cunit129
 - cunit148
 - cunit187
-@ 2 update 60 frame 11 tick 60 zone - hash 4472D527 n 51
+@ 2 update 60 frame 11 tick 60 zone - hash 9B86CCD8 n 51
 world tick 60
 world updates 60
-random isaac.count 102
 aievents tick 60
 client tick 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 80 zone - hash D66877BB n 51
+@ 3 update 80 frame 15 tick 80 zone - hash 099C6E44 n 51
 world tick 80
 world updates 80
 aievents tick 80

@@ -76,12 +76,8 @@
   a  b
   Script error: Unexpected token 'NoSuchCommandX'
   Current FPS: 3.63636
-  Invalid debug info position
-  Invalid debug info position
   Invalid console position
   Invalid parameters
-  Invalid number of parameters for command "show"
-  Invalid parameters in command 'show'
   IMPORTANT: use only from global map
   give [NPlayer] money [NMoney]
   give [NPlayer] exp [NExp]

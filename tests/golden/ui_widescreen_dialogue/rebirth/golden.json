@@ -1,12 +1,12 @@
 {
   "scenario": "ui_widescreen_dialogue",
   "install": "rebirth",
-  "recorded": "2026-10-22",
-  "commit": "e954b213",
+  "recorded": "2026-10-29",
+  "commit": "aa1afef5e",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
   "repeated_in": 2,
-  "reason": "W5: the base dialogue with WideScreen; two agreeing plain --no-hooks --fresh passes",
+  "reason": "R34a: client-only effects draw from their own generator (the game's ISAAC and rand() streams lose their draws), sectors lit once at Build; net_pair_zone/leave/quest follow the new multiplayer offer",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }
