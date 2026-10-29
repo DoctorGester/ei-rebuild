@@ -23,7 +23,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <iterator>
 #include <string>
 #include <vector>
 
@@ -70,7 +69,7 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype, const std::
 
 // The spells generated for an item (held until it is built) and the one it gets (null for none).
 struct RolledSpell {
-    std::list<HeldRef<CSpell>> generated;
+    std::vector<HeldRef<CSpell>> generated;
     CSpell* chosen = nullptr;
 };
 
@@ -88,7 +87,7 @@ RolledSpell RollItemSpell(ItemStock* stock, ItemKind kind, const itemdb::ItemRec
     unsigned count = static_cast<unsigned>(roll.generated.size());
     if (count == 0) return roll;
     unsigned index = count > 1 ? g_random.Next() % count : 0;
-    CSpell* spell = *std::next(roll.generated.begin(), index);
+    CSpell* spell = roll.generated[index];
     EI_NAN_AUDIT(spell->manaCost, capacity->power);
     if (spell->manaCost <= capacity->power) roll.chosen = spell;
     return roll;
@@ -125,7 +124,7 @@ std::vector<int> MagicIndices(const std::vector<Record*>& records, int (*indexOf
 // One instruction item per index: kind ItemKind::Loot with the loot prototype named `prototypeName`, no material,
 // index the index and count a random count.
 void GenerateInstructions(ItemStock* stock, const char* prototypeName, const std::vector<int>& indices, int minCount,
-                          int maxCount, std::list<Item*>* out) {
+                          int maxCount, std::vector<Item*>* out) {
     CItemConstructor* ctor = stock->party->ItemConstructor();
     ItemManager* manager = stock->party->ItemFactory();
     itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(prototypeName);
@@ -180,7 +179,7 @@ constexpr int kScrollTries = 10;
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced. The item is created before its
 // material is drawn (BuildItem would create it after), so a cancelled item still uses up an object id.
 void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, int minCount, int maxCount,
-                              std::list<Item*>* out, const std::vector<itemdb::SpellListRecord>* spellRecipes) {
+                              std::vector<Item*>* out, const std::vector<itemdb::SpellListRecord>* spellRecipes) {
     CItemConstructor* ctor = party->ItemConstructor();
     ItemManager* manager = party->ItemFactory();
     if (spellRecipes) FillSpellMaps(*spellRecipes);
@@ -241,17 +240,17 @@ void ItemStock::SetLevels(const float* base, const float* scroll) {
     std::copy_n(scroll, kSchoolCount, scrollLevels);
 }
 
-void ItemStock::GenerateWeapons(int minCount, int maxCount, std::list<Item*>* out) {
+void ItemStock::GenerateWeapons(int minCount, int maxCount, std::vector<Item*>* out) {
     GenerateItems(&weapons, minCount, maxCount, out, &g_spellDatabase.weaponRecipes);
 }
-void ItemStock::GenerateArmors(int minCount, int maxCount, std::list<Item*>* out) {
+void ItemStock::GenerateArmors(int minCount, int maxCount, std::vector<Item*>* out) {
     GenerateItems(&armors, minCount, maxCount, out, &g_spellDatabase.armorRecipes);
 }
-void ItemStock::GenerateQuickItems(int minCount, int maxCount, std::list<Item*>* out) {
+void ItemStock::GenerateQuickItems(int minCount, int maxCount, std::vector<Item*>* out) {
     GenerateItems(&quickItems, minCount, maxCount, out, nullptr);
 }
 
-void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<Item*>* out) {
+void ItemStock::GenerateMaterials(int minCount, int maxCount, std::vector<Item*>* out) {
     CItemConstructor* ctor = party->ItemConstructor();
     ItemManager* manager = party->ItemFactory();
     int count = RandomCount(minCount, maxCount);
@@ -271,27 +270,27 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<Item*>* 
     }
 }
 
-void ItemStock::GenerateWeaponInstructions(int minCount, int maxCount, std::list<Item*>* out) {
+void ItemStock::GenerateWeaponInstructions(int minCount, int maxCount, std::vector<Item*>* out) {
     GenerateInstructions(this, game::InstructionWeaponText(), ItemIndices(weapons, g_itemDatabase.weapons), minCount,
                          maxCount, out);
 }
 
-void ItemStock::GenerateArmorInstructions(int minCount, int maxCount, std::list<Item*>* out) {
+void ItemStock::GenerateArmorInstructions(int minCount, int maxCount, std::vector<Item*>* out) {
     GenerateInstructions(this, game::InstructionArmorText(), ItemIndices(armors, g_itemDatabase.armors), minCount,
                          maxCount, out);
 }
 
-void ItemStock::GenerateQuickItemInstructions(int minCount, int maxCount, std::list<Item*>* out) {
+void ItemStock::GenerateQuickItemInstructions(int minCount, int maxCount, std::vector<Item*>* out) {
     GenerateInstructions(this, game::InstructionQuickItemText(),
                          ItemIndices(quickItems, g_itemDatabase.quickItems, game::ScrollText()), minCount, maxCount,
                          out);
 }
 
-void ItemStock::GenerateSpellInstructions(int minCount, int maxCount, std::list<Item*>* out) {
+void ItemStock::GenerateSpellInstructions(int minCount, int maxCount, std::vector<Item*>* out) {
     GenerateInstructions(this, game::PrototypeText(), MagicIndices(spells, SpellIndex), minCount, maxCount, out);
 }
 
-void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, std::list<Item*>* out) {
+void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, std::vector<Item*>* out) {
     GenerateInstructions(this, game::RuneText(), MagicIndices(modifiers, ModifierIndex), minCount, maxCount, out);
 }
 
@@ -324,11 +323,11 @@ void ItemStock::FillSpellMaps(const std::vector<itemdb::SpellListRecord>& recipe
     }
 }
 
-std::list<HeldRef<CSpell>> ItemStock::GenerateSpells(const float* levels, unsigned threshold) {
+std::vector<HeldRef<CSpell>> ItemStock::GenerateSpells(const float* levels, unsigned threshold) {
     using stock::kMaxSpellModifiers;
-    std::list<HeldRef<CSpell>> made;
+    std::vector<HeldRef<CSpell>> made;
     CSpellManager* spellManager = party->SpellManager();
-    std::list<itemdb::SpellModifierRecord*> chosen;
+    std::vector<itemdb::SpellModifierRecord*> chosen;
     for (auto& [spellName, recipes] : spellMap) {
         for (const itemdb::SpellListRecord* recipe : recipes) {
             if (g_random.Next() % 101 < threshold) continue;
@@ -436,11 +435,11 @@ void ItemStock::CopyMagic(const ItemStock* other) {
 }
 
 // Original bug kept: a failed build (null item) is dereferenced.
-void ItemStock::GenerateScrolls(std::list<Item*>* out) {
+void ItemStock::GenerateScrolls(std::vector<Item*>* out) {
     CItemConstructor* ctor = party->ItemConstructor();
     ItemManager* manager = party->ItemFactory();
     FillSpellMaps(g_spellDatabase.scrollRecipes);
-    std::list<HeldRef<CSpell>> list;
+    std::vector<HeldRef<CSpell>> list;
     for (int tries = 0; tries < kScrollTries; ++tries) {
         list.clear();   // the last try's spells released before the next are made
         list = GenerateSpells(scrollLevels, 50);

@@ -20,8 +20,6 @@
 #include <unordered_map>
 #include <vector>
 
-class ClassTemplate;
-struct TemplateTable;
 struct LeverRecord;
 class CParty;
 struct PartyManagerEntry;
@@ -123,8 +121,6 @@ public:
     // Vector<PartyManagerEntry>: per entry a chunk 1 with string fields 1 and 2 and a
     // chunk 3 holding one chunk 1 (field 1) per id.
     void SerializePartyEntries(int id, std::vector<PartyManagerEntry>* entries);
-    // The class templates (counted pointers) as object references (field 1 per chunk 1).
-    void SerializeClassTemplates(int id, TemplateTable* templates);
     void IntField(int id, int* value);
 
     // As chunk `id`.

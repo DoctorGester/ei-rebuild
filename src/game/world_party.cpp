@@ -42,12 +42,6 @@ const MapRecord* FindZone(const std::string& name) {
     return g_mapDatabase.FindMap(name);
 }
 
-// AddTail through the game's out-of-line NewNode.
-void AddTail(std::list<Item*>& list, Item* object) {
-    auto node = list.emplace(list.end());
-    *node = object;
-}
-
 bool Contains(const std::vector<int>& ids, int id) {
     for (int i = 0; i < std::ssize(ids); ++i)
         if (ids[i] == id) return true;
@@ -73,7 +67,7 @@ void AddCountedTail(std::list<EngineObject*>* list, EngineObject* object) {
 
 } // namespace
 
-void WorldServer::TakeZoneQuestItems(std::vector<Item*>* items, std::list<Item*>* list) {
+void WorldServer::TakeZoneQuestItems(std::vector<Item*>* items, std::vector<Item*>* list) {
     // The quest ids this zone's objects ask for, each once.
     std::vector<int> wanted{};
     for (auto node = objects.map.begin(); node != objects.map.end() && node->second; ++node) {
@@ -93,19 +87,19 @@ void WorldServer::TakeZoneQuestItems(std::vector<Item*>* items, std::list<Item*>
             bool here = info && NamesZone(info, zoneName.c_str());
             if (!here && !Contains(wanted, static_cast<int>(AsQuest(item)->questItemId))) continue;
         }
-        AddTail(*list, ItemAt(items, i));
+        list->push_back(ItemAt(items, i));
         items->erase(items->begin() + i);
         --i;
     }
 }
 
 void WorldServer::RestorePlayerItems(CPlayer* player) {
-    std::list<Item*> taken;
+    std::vector<Item*> taken;
     if (sessionKind != kKindNetwork) {
         std::vector<Item*>* items = &player->Party()->items;
         if (IsMultiplayerClient()) {
             // A client takes everything back.
-            for (int i = 0; i < std::ssize(*items); ++i) AddTail(taken, ItemAt(items, i));
+            for (int i = 0; i < std::ssize(*items); ++i) taken.push_back(ItemAt(items, i));
             items->clear();
         } else {
             TakeZoneQuestItems(items, &taken);
@@ -113,16 +107,12 @@ void WorldServer::RestorePlayerItems(CPlayer* player) {
         if (player) {
             // Each item is given back as a fresh copy (the world's copy virtual) keeping its count; the old
             // one is released.
-            for (auto node = taken.begin(); node != taken.end();) {
-                auto next = std::next(node);
-                Item* item = *node;
-                std::list<Item*> one;
+            for (Item* item : taken) {
                 Item* fresh = DuplicateItem(item);
                 fresh->count = item->count;
-                AddTail(one, fresh);
+                std::vector<Item*> one{fresh};
                 player->GiveItems(&one, 0);
                 item->Release();
-                node = next;
             }
             taken.clear();
         }

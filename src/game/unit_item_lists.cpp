@@ -4,7 +4,7 @@
 
 #include "item.h"
 
-#include <list>
+#include <vector>
 
 void ItemsAndSpells::Add(Item* item) {
     if (!item) return;

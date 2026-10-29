@@ -34,7 +34,7 @@ constexpr std::uint32_t kDefaultWeights[9] = {kOne, kHalf, kFifth, kTenth, kOne,
 constexpr std::uint32_t kZeroWeights[9] = {};
 
 // One template, appended to the vector through a temporary counted pointer.
-void AddTemplate(TemplateTable* v, int type, std::uint8_t sellsItems, std::uint8_t sellsSpells,
+void AddTemplate(std::vector<HeldRef<ClassTemplate>>* v, int type, std::uint8_t sellsItems, std::uint8_t sellsSpells,
                  const std::uint32_t (&weights)[9]) {
     auto* t = new ClassTemplate();
     t->refs = 0;
@@ -104,7 +104,7 @@ void ClassTemplateFill(ClassTemplate* t) {
 // ---- Building the templates ------------------------------------------------------------------
 
 void TemplateTable::Build(unsigned fourClasses) {
-    TemplateTable* v = this;
+    std::vector<HeldRef<ClassTemplate>>* v = &templates;
     v->clear();
     if (static_cast<std::uint8_t>(fourClasses)) {
         AddTemplate(v, 1, 1, 1, kDefaultWeights);
@@ -123,18 +123,13 @@ void TemplateTable::Build(unsigned fourClasses) {
 // ---- Small members ----------------------------------------------------------------------------------
 
 ClassTemplate* TemplateTable::Find(int type) const {
-    unsigned count = static_cast<unsigned>(size());
-    for (unsigned i = 0; i < count; ++i)
-        if ((*this)[i]->type == type) return (*this)[i];
+    for (const HeldRef<ClassTemplate>& t : templates)
+        if (t->type == type) return t;
     return nullptr;
 }
 
 unsigned ClassTemplatesQuestCompleted(PartyManager* manager) {
-    TemplateTable* v = &manager->templates;
-    unsigned i = 0;
-    while (i < static_cast<unsigned>(v->size())) {
-        ++i;
-        (*v)[i - 1]->restockDue = 1;
-    }
-    return i;
+    const std::vector<HeldRef<ClassTemplate>>& all = manager->templates.All();
+    for (const HeldRef<ClassTemplate>& t : all) t->restockDue = 1;
+    return static_cast<unsigned>(all.size());
 }

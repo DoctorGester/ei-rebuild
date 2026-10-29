@@ -21,23 +21,15 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <string>
 #include <vector>
 
 namespace {
 
-// A list's NewNode(prev, next) (data cleared). The armour and weapons inline it (with the same effects).
-
-void Append(std::list<Item*>* list, Item* object) {
+// `object` appended with a new reference.
+void Append(std::vector<Item*>* list, Item* object) {
     object->AddRef();
-    auto node = list->emplace(list->end());
-    *node = object;
-}
-// The node appended without a new reference (the prototype items on the second list).
-void AppendShared(std::list<Item*>* list, Item* object) {
-    auto node = list->emplace(list->end());
-    *node = object;
+    list->push_back(object);
 }
 
 // One gold roll of the prototype: the amount (the minimum rounded, or a random value between the minimum and
@@ -58,7 +50,7 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
 
 } // namespace
 
-int Hoover::CollectLoot(CWorld* world, CUnit* cunit, std::list<Item*>* drops, std::list<Item*>* items, int* gold) {
+int Hoover::CollectLoot(CWorld* world, CUnit* cunit, std::vector<Item*>* drops, std::vector<Item*>* items, int* gold) {
     bool keyed = IsTextKey(cunit->id);
     if (cunit->flags & MapObjectFlag::LootTaken) return 0;
     ItemManager* manager = world->ItemFactory();
@@ -70,7 +62,7 @@ int Hoover::CollectLoot(CWorld* world, CUnit* cunit, std::list<Item*>* drops, st
             Item* item = manager->CreateItem(itemNames[i]);
             if (!item) continue;
             Append(drops, item);
-            AppendShared(items, item);
+            items->push_back(item);   // without a new reference
         }
         const UnitPrototypeRecord* record = prototype;
         RollGold(record->gold, gold);

@@ -305,7 +305,7 @@ public:
 
 
     const itemdb::SpellRecord* prototype;
-    std::list<itemdb::SpellModifierRecord*> modifiers;
+    std::vector<itemdb::SpellModifierRecord*> modifiers;
     std::string codes;              // modifier index + 1 per modifier
     CSpell spell;
     std::string name;              // always empty
@@ -350,7 +350,7 @@ public:
 
     // Up to 8 modifiers, through the context's spell constructor. Returns the new spell, or a fatal error's
     // result.
-    CSpell* CreateSpell(const itemdb::SpellRecord* prototype, const std::list<itemdb::SpellModifierRecord*>* modifiers);
+    CSpell* CreateSpell(const itemdb::SpellRecord* prototype, const std::vector<itemdb::SpellModifierRecord*>* modifiers);
 
     // Text such as "healing{e2;e2}": the trimmed text before '{' is the prototype name, the ';'-separated
     // names inside the braces are modifiers (empty ones skipped). An unknown name is added to the name map

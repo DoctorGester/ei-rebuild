@@ -16,7 +16,7 @@
 #include "ei/x87.h"
 
 #include <bit>
-#include <list>
+#include <vector>
 
 namespace {
 constexpr int kPartStats = 4;          // MarkChanged parts
@@ -72,7 +72,7 @@ void UnitServer::Shout(AckKind kind) {
 void CUnit::DropBrokenEquipment() {
     CPlayer* ownerObject = player;
     if (!ownerObject) return;   // the empty list's destructor has nothing to free
-    std::list<Item*> broken{};
+    std::vector<Item*> broken{};
     PlayerServer* messages = PlayerMessages(ownerObject);
 
     for (ItemArmor*& slot : armor) {

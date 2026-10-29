@@ -65,12 +65,10 @@ void GiveBriefingRewards(WorldServer* world, CPlayer* player, QuestBriefingRecor
     }
     PartyOf(player)->money += static_cast<int>(libcrt::Ftol(record->money));
 
-    std::list<Item*> items;
+    std::vector<Item*> items;
     for (const std::string& name : record->lists[QuestBriefingRecord::kGiveItems]) {
         Item* item = CreateNamedItem(name);
-        if (!item) continue;
-        auto node = items.emplace(items.end());
-        *node = item;
+        if (item) items.push_back(item);
     }
     if (!items.empty()) player->GiveItems(&items, 0);
 
@@ -478,11 +476,7 @@ void WorldServer::AwardExperience(CPlayer* player, float amount) {
 
 void WorldServer::SyncPartyRecords(CPlayer* player) {
     CParty* party = PartyOf(player);
-    for (auto node = player->items.begin(); node != player->items.end();) {
-        auto next = std::next(node);
-        party->AddItem(*node, 1, 1);
-        node = next;
-    }
+    for (Item* item : player->items) party->AddItem(item, 1, 1);
     std::vector<PartyUnitRecord*> list{};
     for (int i = 0; i < std::ssize(player->Party()->members); ++i) lib::SetAtGrow(list, std::ssize(list), &MercRecord(player, i));
     for (int i = 0; i < std::ssize(list); ++i) {
@@ -549,9 +543,7 @@ void WorldServer::CollectParty(CPlayer* player, std::vector<UnitPlacement>* plac
 
 void WorldServer::StorePlayerItems(CPlayer* player, CParty* party) {
     if (!player) return;
-    for (auto node = player->items.begin(); node != player->items.end();) {
-        Item* item = *node;
-        ++node;
+    for (Item* item : player->items) {
         party->AddItem(item, 1, 1);
         item->Release();
     }

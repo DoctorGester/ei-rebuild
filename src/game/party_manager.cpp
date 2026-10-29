@@ -56,7 +56,7 @@ void ArchiveManager(PartyManager* manager, ChunkArchive* ar) {
     ar->SerializePartyEntries(2, &manager->entries);
     ar->Field(3, &manager->unreadField);
     if (ar->EnterChunk(4)) {
-        ar->SerializeClassTemplates(1, &manager->templates);
+        manager->templates.Serialize(ar, 1);
         ar->LeaveChunk();
     }
     if (ar->EnterChunk(5)) {
@@ -131,8 +131,8 @@ void ChunkArchive::SerializePartyEntries(int id, std::vector<PartyManagerEntry>*
     });
 }
 
-void ChunkArchive::SerializeClassTemplates(int id, TemplateTable* templates) {
-    ObjectRefFields(this, id, templates);
+void TemplateTable::Serialize(ChunkArchive* ar, int id) {
+    ObjectRefFields(ar, id, &templates);
 }
 
 void NamedPartyRecords::Serialize(ChunkArchive* ar) {

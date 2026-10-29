@@ -26,7 +26,7 @@
 #include "lib/nan_audit.h"
 
 #include <cstring>
-#include <list>
+#include <vector>
 
 namespace {
 
@@ -96,7 +96,7 @@ constexpr std::uint8_t kMessageItemsGiven = 0x06;
 constexpr int kStateJoined = 1;
 // SaveListedObjects on a typed list.
 template <typename T>
-void SaveListed(const std::list<T*>* list, ByteStream* stream) {
+void SaveListed(const std::vector<T*>* list, ByteStream* stream) {
     for (T* object : *list) SaveListedObject(object, stream);
     SaveListedObjectsEnd(stream);
 }
@@ -110,10 +110,10 @@ T* NextAs(EngineObject* const*& next) {
 
 } // namespace
 
-void PlayerServer::SendItemsGiven(const std::list<Item*>* items, int flag) {
+void PlayerServer::SendItemsGiven(const std::vector<Item*>* items, int flag) {
     if (state != kStateJoined) return;
     ItemsAndSpells gathered;
-    for (auto node = items->begin(); node != items->end(); ++node) gathered.Add(*node);
+    for (Item* item : *items) gathered.Add(item);
     MemoryStream states;
     SaveListed(&gathered.spells, &states);
     SaveListed(&gathered.items, &states);
@@ -122,8 +122,7 @@ void PlayerServer::SendItemsGiven(const std::list<Item*>* items, int flag) {
     WriteByte(&out, kMessageItemsGiven);
     WriteDword(&out, static_cast<std::uint32_t>(player->Party()->money));
     WriteByte(&out, static_cast<std::uint8_t>(flag));
-    for (auto node = items->begin(); node != items->end(); ++node)
-        WriteDword(&out, static_cast<std::uint32_t>((*node)->id));
+    for (Item* item : *items) WriteDword(&out, static_cast<std::uint32_t>(item->id));
     WriteDword(&out, 0xFFFFFFFFu);
     gathered.items.clear();
     gathered.spells.clear();
@@ -252,11 +251,7 @@ int PlayerServer::SendTimedRemoved(const std::vector<EngineObject*>* objects) {
 
 // The original calls SendObject14 of this object for each item.
 void PlayerServer::SendItems() {
-    auto node = player->recharging.begin();
-    while (node != player->recharging.end()) {
-        auto current = node;
-        ++node;
-        unsigned objectId = *current;
+    for (unsigned objectId : player->recharging) {
         ResourceManager* items = player->Party()->ItemFactory();
         if (EngineObject* item = items->FindObject(objectId)) SendObject14(item);
     }

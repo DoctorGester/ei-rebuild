@@ -356,7 +356,7 @@ int PlayerClient::OnExperience() {
 // --- Items, party, path markers, string events, recording ---------------------------------------
 
 int PlayerClient::OnItemsReceived() {
-    std::list<Item*> items;
+    std::vector<Item*> items;
     int& money = player->Party()->money;
     int before = money;
     in.ReadValue(money);
@@ -372,11 +372,12 @@ int PlayerClient::OnItemsReceived() {
             break;
         }
         auto* manager = g_clientWorld.itemManager;
-        if (Item* item = FindItem(manager, static_cast<unsigned>(objectId))) items.push_front(item);
+        if (Item* item = FindItem(manager, static_cast<unsigned>(objectId))) items.insert(items.begin(), item);
     }
     if (result != 0) {
         player->GiveItems(&items, flag);
-        g_interface.OnItemsPicked(&items, money - before, flag != 0);
+        std::list<Item*> picked(items.begin(), items.end());   // OnItemsPicked takes a list
+        g_interface.OnItemsPicked(&picked, money - before, flag != 0);
     }
     items.clear();
     return result;
@@ -391,7 +392,7 @@ int PlayerClient::OnParty() {
         block.MemoryStream::Seek(0);
         if (in.ok) {
             party->LoadParty(&block, 1);
-            std::list<std::uint32_t>& recharging = player->recharging;
+            std::vector<std::uint32_t>& recharging = player->recharging;
             recharging.clear();
             ObjectListIteratorOf<Item> walk{};
             for (Item* item = walk.First(party->ItemFactory()); item != nullptr; item = walk.Next()) {

@@ -18,7 +18,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <list>
 #include <string>
 #include <vector>
 
@@ -203,8 +202,8 @@ struct ItemsAndSpells {
     // `item` (none for null) joins `items` and its spell, when it has one, `spells`.
     void Add(Item* item);
 
-    std::list<Item*> items;
-    std::list<CSpell*> spells;
+    std::vector<Item*> items;
+    std::vector<CSpell*> spells;
 };
 
 // The prototype name is CObject3D::name, the figure's build its scale.y, the packed vitals (hit points, mana)

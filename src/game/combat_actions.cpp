@@ -28,7 +28,7 @@
 
 #include <bit>
 #include <cstring>
-#include <list>
+#include <vector>
 
 namespace {
 constexpr float kHitNoiseScale = 2.0f;
@@ -383,10 +383,8 @@ void UnitServer::UseSkill(CMapObject* target) {
         if (item) {
             console::EndLine(kCombatLog << "Item has been stolen from");
             if (CPlayer* player = unit->player) {
-                std::list<Item*> list;
-                list.push_front(item);
+                std::vector<Item*> list{item};
                 player->GiveItems(&list, 0);
-                list.clear();
             }
             item->Release();
             return;

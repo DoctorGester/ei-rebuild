@@ -544,23 +544,17 @@ void UnitServer::TickItemSpells() {
 
 void UnitServer::RefreshItemSpells() {
     ItemsAndSpells held = unit->CollectItems();
-    std::list<Item*>& items = held.items;
+    std::vector<Item*>& items = held.items;
     // Weapons other than the one in use do not count.
-    for (auto node = items.begin(); node != items.end();) {
-        std::list<Item*>::iterator current = node;
-        ++node;
-        Item* item = *current;
-        if (item->GetClassId() != ClassId::ItemWeapon || item == unit->GetWeapon(unit->activeWeapon)) continue;
-        items.erase(current);
-    }
+    std::erase_if(items, [this](Item* item) {
+        return item->GetClassId() == ClassId::ItemWeapon && item != unit->GetWeapon(unit->activeWeapon);
+    });
     std::list<ArmourSpell>* list = &armourSpells;
     for (ArmourSpell& entry : armourSpells) entry.worn = 0;
     // Each item with a periodic spell keeps its entry or gets a new one. A missing item reuses the previous
     // item's spell (like the original).
     CSpell* spell = nullptr;
-    for (auto node = items.begin(); node != items.end();) {
-        Item* item = *node;
-        ++node;
+    for (Item* item : items) {
         if (item) spell = item->spell;
         if (!spell || (spell->targetFlags & SpellTargetFlag::ItemContinuous) == 0) continue;
         ArmourSpell* found = nullptr;

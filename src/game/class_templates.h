@@ -44,12 +44,19 @@ public:
 // A new template with no references; the application's start registers it with the class registry as class 1.
 RefCounted* CreateClassTemplate();
 
-// Counted pointers.
-struct TemplateTable : std::vector<HeldRef<ClassTemplate>> {
+// The class templates (counted pointers).
+class TemplateTable {
+public:
     // Releases the templates, then builds new ones: four (classes 1, 3, 4, 5) when `fourClasses` (low byte) is
     // set, else five (1 to 5, the fifth with zero weights).
     void Build(unsigned fourClasses);
     ClassTemplate* Find(int type) const;
+    const std::vector<HeldRef<ClassTemplate>>& All() const { return templates; }
+    // Chunk `id` holding the templates as object references (field 1 per chunk 1); loading replaces them.
+    void Serialize(ChunkArchive* ar, int id);
+
+private:
+    std::vector<HeldRef<ClassTemplate>> templates;
 };
 
 // Adds to the template's lists every weapon, armor, quick item, fourth-kind record, spell and modifier whose

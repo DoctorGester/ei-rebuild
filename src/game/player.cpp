@@ -12,8 +12,9 @@
 #include "lib/crt.h"
 #include "lib/str.h"
 
-#include <list>
+#include <algorithm>
 #include <string>
+#include <vector>
 
 CPlayer::CPlayer() {
     link = nullptr;
@@ -87,11 +88,7 @@ void CPlayer::DestroyPlayer() {
 }
 
 void CPlayer::Clear() {
-    for (auto node = items.begin(); node != items.end();) {
-        EngineObject* item = *node;
-        ++node;
-        item->Release();
-    }
+    for (Item* item : items) item->Release();
     items.clear();
     ReleaseEach(knownTimed);
     maxTimedId = 0;
@@ -132,12 +129,11 @@ void DropLink(netlink::NetLink*& link) {
 // The data word every item class keeps (a quest item's id).
 std::uint32_t ItemWord4C(Item* item) { return AsQuest(item)->questItemId; }
 
-// The first given item `match` accepts: the connection's lookup, its node removed, the item
+// The first given item `match` accepts: the connection's lookup, the item out of the list and
 // released. 1, or 0 when there is none.
 template <typename Match>
 bool TakeFirst(CPlayer* player, Match match) {
-    auto node = player->items.begin();
-    while (node != player->items.end() && !match(*node)) ++node;
+    auto node = std::ranges::find_if(player->items, match);
     if (node == player->items.end()) return false;
     EngineObject* item = *node;
     player->connection->ItemTaken(item);
@@ -180,11 +176,9 @@ bool CPlayer::IsLeader(const EngineObject* unit) {
     return static_cast<std::uint32_t>(unit->id) == members[0].unitId;
 }
 
-void CPlayer::GiveItems(const std::list<Item*>* damaged, int flag) {
-    connection->ItemsGiven(damaged, flag);
-    for (auto node = damaged->begin(); node != damaged->end();) {
-        Item* item = *node;
-        ++node;
+void CPlayer::GiveItems(const std::vector<Item*>* given, int flag) {
+    connection->ItemsGiven(given, flag);
+    for (Item* item : *given) {
         item->AddRef();
         items.push_back(item);
     }
@@ -192,17 +186,13 @@ void CPlayer::GiveItems(const std::list<Item*>* damaged, int flag) {
 
 void CPlayer::TakeAllItems() {
     connection->ItemsTaken();
-    while (!items.empty()) {
-        Item* item = items.front();
-        items.pop_front();
-        item->Release();
-    }
+    for (Item* item : items) item->Release();
     items.clear();
 }
 
 bool CPlayer::HasLoot(int kind) {
-    for (auto node = items.begin(); node != items.end(); ++node)
-        if ((*node)->Kind() == ItemKind::Quest && ItemWord4C(*node) == static_cast<std::uint32_t>(kind)) return true;
+    for (Item* item : items)
+        if (item->Kind() == ItemKind::Quest && ItemWord4C(item) == static_cast<std::uint32_t>(kind)) return true;
     for (auto node = units.begin(); node != units.end() && node->second != nullptr; ++node) {
         CUnit* unit = node->second;
         for (Item* item : unit->carried)
