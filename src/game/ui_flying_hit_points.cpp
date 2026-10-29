@@ -96,12 +96,6 @@ const RECT* UnitScreenRect(CUnit* unit) {
 
 } // namespace
 
-CFlyingHitPoints::CFlyingHitPoints() : texture_(nullptr) {}
-
-CFlyingHitPoints::~CFlyingHitPoints() {
-    if (texture_) texture_->Release();
-}
-
 void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
     if (!target || amount < 0) return;
     std::uint32_t time = (flags & kDelayed) ? gameapi::timeGetTime() + kDelay : gameapi::timeGetTime();
@@ -110,15 +104,18 @@ void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
 
 // --- drawing -------------------------------------------------------------------------------------
 
-int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
+void CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     std::string text;
     DWORD now = gameapi::timeGetTime();
     const RECT& screen = renderer->device_->screen_;
-    if (!texture_) return 0;
-    if (!renderer->SetTexture(0, texture_)) return game::FatalError(game::FlyingHitPointsTextureText());
+    if (!texture_) return;
+    if (!renderer->SetTexture(0, texture_)) {
+        game::FatalError(game::FlyingHitPointsTextureText());
+        return;
+    }
 
     points_.remove_if([now](const FlyingHitPoint& point) { return static_cast<int>(now - point.time) > kLifetime; });
-    if (!options::g_options->drawFlyingHp_) return 1;
+    if (!options::g_options->drawFlyingHp_) return;
 
     const float width = static_cast<float>(screen.right), height = static_cast<float>(screen.bottom);
     for (const FlyingHitPoint& point : points_) {
@@ -203,5 +200,4 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
 
     // Markers are shown once.
     points_.remove_if([](const FlyingHitPoint& point) { return (point.flags & kMarker) != 0; });
-    return 1;
 }

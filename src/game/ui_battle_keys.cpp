@@ -29,14 +29,12 @@
 
 namespace {
 
-const char* ClockSound() { return "buttons\\battle\\clock.wav"; }
-const char* ClickSound() { return "buttons\\battle\\click.wav"; }
-const char* WeaponSound() { return "buttons\\battle\\weapon.wav"; }
-const char* SlingSound() { return "buttons\\battle\\sling.wav"; }
-const char* OnOffSound() { return "buttons\\battle\\on_off.wav"; }
-const char* QuickSaveName() { return "saveq"; }
-const char* FollowName() { return "follow"; }
-const char* ScienceName() { return "science"; }
+constexpr const char* kSoundClock = "buttons\\battle\\clock.wav";
+constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
+constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
+constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";
+constexpr const char* kSoundOnOff = "buttons\\battle\\on_off.wav";
+constexpr const char* kQuickSaveName = "saveq";
 
 // The world's update period in milliseconds: the game's speed.
 constexpr int kNormalPeriod = 55;
@@ -45,7 +43,6 @@ constexpr int kFastPeriod = 27;
 constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a selected party unit
 constexpr int kKeyRepeated = 0x4000;            // the key was already down
 constexpr int kScanCodeMask = 0x1FF;
-constexpr int kQuickSlots = 8;
 
 // The key actions (the key table's values).
 enum KeyAction {
@@ -75,13 +72,10 @@ enum KeyAction {
 // Which orderKeys_ entry each order key action holds (as the key-up handler releases).
 constexpr int kOrderKeyOfAction[6] = {0, 1, 5, 4, 3, 2};
 
-// The screen as the panels know it (the same object; ui.h).
-CBattleScreen* Hud(CBattleScreen* screen) { return screen; }
-CPlayerClient* LocalView() { return g_clientWorld->LocalView(); }
-
-// The action column's button of an action name: "follow" is button 0, any other name button 1
-// (names compared with the constants).
-int ActionButton(const char* name) { return std::strcmp(name, FollowName()) == 0 ? 0 : 1; }
+// The action column's buttons the keys select (the original compares the names "follow" and "science"
+// with "follow").
+constexpr int kFollowButton = 0;
+constexpr int kScienceButton = 1;
 
 // A panel's slide key with a choice (the unit panel's body part, the top panel's page): a panel
 // that is slid away comes back showing the choice; a new choice is shown without a sound; the
@@ -91,16 +85,16 @@ void SlideKey(Panel* panel, int& shown, int choice, Show show) {
     if (panel->slideDirection_ == 1.0f) {
         shown = choice;
         panel->slideDirection_ = -1.0f;
-        panel->sliding_ = 1;
+        panel->sliding_ = true;
     } else if (shown != choice) {
         shown = choice;
         show(panel);
         return;
     } else {
-        panel->sliding_ = 1;
+        panel->sliding_ = true;
         panel->slideDirection_ = 1.0f;
     }
-    panel->interface_->PlaySound(SlingSound());
+    panel->interface_->PlaySound(kSoundSling);
     show(panel);
 }
 
@@ -128,18 +122,10 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     if (handled_) return;
     if (flags & kKeyRepeated) return;
 
-    CBattleScreen* hud = Hud(this);
     if (key == VK_ESCAPE) {
-        if (hud->pendingAction_ != 0) {
+        if (pendingAction_ != kPendingNone) {
             // The pending action is dropped with every panel's highlight.
-            CHudQuickItems* quick = hud->quickItems_;
-            hud->pendingSlot_ = -1;
-            hud->pendingAction_ = 0;
-            hud->pendingItem_ = -1;
-            for (int i = 0; i < kQuickSlots; ++i) quick->Highlight(i, 0);
-            quick->selected_ = -1;
-            hud->spellColumn_->ClearHighlights();
-            hud->actionColumn_->ClearHighlights();
+            SetPendingAction(kPendingNone, -1, -1);
             return;
         }
         interface_->PushWindow(new CEscMenu(interface_), 1, 1);
@@ -151,8 +137,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     CCamera* camera = &g_camera.Get();
     switch (action) {
     case kActionPause: {
-        auto* clock = clock_;
-        clock->interface_->PlaySound(ClockSound());
+        interface_->PlaySound(kSoundClock);
         const bool paused = g_clientWorld->paused_;
         GameSendFlag10(paused ? 0 : 1);
         handled_ = true;
@@ -160,44 +145,34 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     }
     case kActionNormalSpeed:
     case kActionFastSpeed: {
-        auto* clock = clock_;
         if (g_clientWorld->paused_) return;
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
-        clock->interface_->PlaySound(ClockSound());
+        interface_->PlaySound(kSoundClock);
         const bool fast = action == kActionFastSpeed;
-        clock->fast_ = fast ? 1 : 0;
+        clock_->fast_ = fast;
         worlddata::g_updatePeriod = fast ? kFastPeriod : kNormalPeriod;
-        clock->interface_->fastGame_ = clock->fast_;
+        interface_->fastGame_ = fast;
         return;
     }
-    case kActionObjectives: {
-        // The objectives of the zone the local player is in, without buttons or a zone list.
-        auto* clock = clock_;
-        clock->highlight_ = false;
-        clock->interface_->PlaySound(ClickSound());
-        auto* window = new CObjectivesWindow(clock->interface_);
-        window->Setup(LocalPlayerZone(), nullptr, 0, 0);
-        clock->interface_->PushWindow(window, 1, 1);
+    case kActionObjectives:
+        clock_->OpenObjectives();
         handled_ = true;
         return;
-    }
     case kActionCameraToUnit:
         // The camera follows the first selected member, or nobody.
-        for (int i = 0; i < std::ssize(hud->party_); ++i) {
-            if (hud->party_[i]->flags_ & kUnitSelected) {
-                camera->SetTarget(hud->party_[i]);
+        for (int i = 0; i < std::ssize(party_); ++i) {
+            if (party_[i]->flags_ & kUnitSelected) {
+                camera->SetTarget(party_[i]);
                 return;
             }
         }
         camera->SetTargetId(-1);
         return;
-    case kActionCameraNorth: {
-        auto* map = map_;
-        map->interface_->PlaySound(ClickSound());
+    case kActionCameraNorth:
+        interface_->PlaySound(kSoundClick);
         camera->SetHeading(0.0f);
-        map->northTime_ = 0.5f;
+        map_->northTime_ = 0.5f;
         return;
-    }
     case kActionOrderKey:
     case kActionOrderKey + 1:
     case kActionOrderKey + 2:
@@ -210,15 +185,13 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     case kActionMoveMode + 1:
     case kActionMoveMode + 2:
     case kActionMoveMode + 3: {
-        auto* panel = movePanel_;
         const int mode = action - kActionMoveMode;
-        if (g_clientWorld->LocalView()) {
-            panel->interface_->PlaySound(ClickSound());
-            for (int i = 0; i < std::ssize(panel->owner_->party_); ++i) {
-                CUnit* unit = panel->owner_->party_[i];
-                if (unit->flags_ & kUnitSelected) LocalView()->SetMoveMode(unit, mode);
+        if (CPlayerClient* view = g_clientWorld->LocalView()) {
+            interface_->PlaySound(kSoundClick);
+            for (CUnit* unit : party_) {
+                if (unit->flags_ & kUnitSelected) view->SetMoveMode(unit, mode);
             }
-            panel->ShowModeVanilla(mode);
+            movePanel_->ShowMode(mode);
         }
         handled_ = true;
         return;
@@ -228,10 +201,10 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
         handled_ = true;
         return;
     case kActionFollow:
-        hud->actionColumn_->Select(ActionButton(FollowName()));
+        actionColumn_->Select(kFollowButton);
         return;
     case kActionScience:
-        hud->actionColumn_->Select(ActionButton(ScienceName()));
+        actionColumn_->Select(kScienceButton);
         return;
     case kActionSpell:
     case kActionSpell + 1:
@@ -243,27 +216,27 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     case kActionSpell + 7:
         // With Ctrl or Alt the spell is cast at once.
         if (!interface_->ctrlDown_ && !interface_->altDown_)
-            hud->spellColumn_->Click(action - kActionSpell);
+            spellColumn_->Click(action - kActionSpell);
         else
-            hud->spellColumn_->ClickAlternate(action - kActionSpell);
+            spellColumn_->ClickAlternate(action - kActionSpell);
         return;
     case kActionWeapon:
     case kActionWeapon + 1:
     case kActionWeapon + 2:
     case kActionWeapon + 3: {
-        CHudWeaponBar* bar = hud->weaponBar_;
+        CHudWeaponBar* bar = weaponBar_;
         const int slot = action - kActionWeapon;
         const int count = bar->count_;
         if (count <= slot) return;
         const int current = bar->selected_;
         if (current == slot) return;
-        if (current >= 0 && current < count) bar->Highlight(current, 0);
-        bar->Highlight(slot, 1);
+        if (current >= 0 && current < count) bar->Highlight(current, false);
+        bar->Highlight(slot, true);
         bar->selected_ = slot;
-        bar->interface_->PlaySound(WeaponSound());
+        interface_->PlaySound(kSoundWeapon);
         CUnit* unit = bar->unit_;
         if (!unit) return;
-        LocalView()->SetWeapon(unit, slot);
+        g_clientWorld->LocalView()->SetWeapon(unit, slot);
         return;
     }
     case kActionQuickItem:
@@ -272,9 +245,9 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     case kActionQuickItem + 3:
         // With Ctrl or Alt the item is used at once.
         if (!interface_->ctrlDown_ && !interface_->altDown_)
-            hud->quickItems_->Pick(action - kActionQuickItem);
+            quickItems_->Pick(action - kActionQuickItem);
         else
-            hud->quickItems_->UseNow(action - kActionQuickItem);
+            quickItems_->UseNow(action - kActionQuickItem);
         return;
     case kActionBodyPart:
     case kActionBodyPart + 1:
@@ -291,38 +264,36 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
         SlideKey(panel, panel->page_, action - kActionPage, [](CHudTopPanel* shown) { shown->ShowPage(); });
         return;
     }
-    case kActionMapSlide: {
-        auto* map = map_;
-        map->interface_->PlaySound(SlingSound());
-        map->slideDirection_ = -map->slideDirection_;
-        map->sliding_ = 1;
+    case kActionMapSlide:
+        interface_->PlaySound(kSoundSling);
+        map_->slideDirection_ = -map_->slideDirection_;
+        map_->sliding_ = true;
         return;
-    }
     case kActionQuickSave:
-        ::QuickSave(QuickSaveName(), static_cast<char>(0));
+        ::QuickSave(kQuickSaveName, static_cast<char>(0));
         return;
     case kActionQuickLoad:
-        QuickLoad(QuickSaveName());
+        QuickLoad(kQuickSaveName);
         return;
     case kActionMember:
     case kActionMember + 1:
     case kActionMember + 2: {
         const int member = action - kActionMember;
-        interface_->PlaySound(OnOffSound());
+        interface_->PlaySound(kSoundOnOff);
         ToggleMember(member);
         // With Ctrl or Alt the camera follows the member.
-        if ((interface_->ctrlDown_ || interface_->altDown_) && std::ssize(hud->party_) > member)
-            camera->SetTarget(hud->party_[member]);
+        if ((interface_->ctrlDown_ || interface_->altDown_) && std::ssize(party_) > member)
+            camera->SetTarget(party_[member]);
         return;
     }
     case kActionSelectAll:
         if (IsMultiplayerClient()) return;
-        interface_->PlaySound(OnOffSound());
-        for (int i = 0; i < std::ssize(hud->party_); ++i) {
+        interface_->PlaySound(kSoundOnOff);
+        for (int i = 0; i < std::ssize(party_); ++i) {
             MarkPortrait(i);
-            if (CUnit* unit = hud->party_[i]) g_clientWorld->Select(unit);
+            if (CUnit* unit = party_[i]) g_clientWorld->Select(unit);
         }
-        if (!hud->party_.empty() && hud->party_[0]) hud->Speech(hud->party_[0]->id_, AckKind::Selected, nullptr);
+        if (!party_.empty() && party_[0]) Speech(party_[0]->id_, AckKind::Selected, nullptr);
         RefreshSelection();
         return;
     case kActionMessage:

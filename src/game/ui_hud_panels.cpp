@@ -29,12 +29,9 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr char kNewLine[] = {'\n', '\0'};
 constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
 
-// The panel's scene object `index` (the HUD's are interface sprites).
-CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
-
 // Text into the panel's first surface (Rebirth-patched).
-void DrawPanelText(CUiWindow* window, std::string_view text, RECT rect, std::uint32_t colour, int a, int b) {
-    window->surfaces_[0]->DrawTextIn(text, &rect, 0, colour, a, b);
+void DrawPanelText(CUiWindow* window, std::string_view text, RECT rect, std::uint32_t colour, UINT format, int shadow) {
+    window->surfaces_[0]->DrawTextIn(text, &rect, 0, colour, format, shadow);
 }
 
 // A horizontal bar sprite filled to `ratio` (0..1): its right edge moves to ratio - 0.5 and its
@@ -63,27 +60,24 @@ bool BarRatio(int value, int maximum, float* ratio) {
     return *ratio > 0.0f;
 }
 
-// The local view, whose SetUnitFightAtWill sets a unit's flag and sends it to the server.
-CPlayerClient* Orders() { return g_clientWorld->LocalView(); }
-
 } // namespace
 
 // --- Unit panel ----------------------------------------------------------------------------------
 
 void CHudUnitPanel::ShowHealth(CUnit* unit) {
-    Sprite(this, 11)->visible_ = 1;
+    SceneMesh(11)->visible_ = 1;
     float ratio;
     if (unit->packedVitals.maxHitPoints != 0 && unit->packedVitals.hitPoints > 0 && BarRatio(unit->packedVitals.hitPoints, unit->packedVitals.maxHitPoints, &ratio))
-        FillBar(Sprite(this, 10), ratio, 100.0f, 0.396484375f, 0.376953125f);
+        FillBar(SceneMesh(10), ratio, 100.0f, 0.396484375f, 0.376953125f);
     std::string health;
     health = str::Format("%d", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
     DrawPanelText(this, health, RECT{130, 185, 160, 200}, kTextColour, 0, 1);
 
     for (int i = 0; i < std::ssize(owner_->party_); ++i) {
         if (owner_->party_[i] != unit) continue;
-        Sprite(this, 13)->visible_ = 1;
+        SceneMesh(13)->visible_ = 1;
         if (unit->packedVitals.maxMana != 0 && unit->packedVitals.mana != 0 && BarRatio(unit->packedVitals.mana, unit->packedVitals.maxMana, &ratio))
-            FillBar(Sprite(this, 12), ratio, 100.0f, 0.369140625f, 0.349609375f);
+            FillBar(SceneMesh(12), ratio, 100.0f, 0.369140625f, 0.349609375f);
         std::string mana;
         mana = str::Format("%d", static_cast<int>(unit->packedVitals.mana));
         DrawPanelText(this, mana, RECT{130, 200, 160, 215}, kTextColour, 0, 1);
@@ -100,8 +94,8 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
     for (int i = 0; i < 6; ++i) {
         const UnitParamsSlot& part = unit->params.slots[i];
         if (part.kind == 0) continue;
-        Sprite(this, 15 + 2 * i)->visible_ = 1;
-        CUiMesh* bar = Sprite(this, 14 + 2 * i);
+        SceneMesh(15 + 2 * i)->visible_ = 1;
+        CUiMesh* bar = SceneMesh(14 + 2 * i);
         float ratio = 0.0f;
         if (part.kind == 3 && part.maximum != 0 && part.current > 0 &&
             BarRatio(part.current, part.maximum, &ratio))
@@ -142,11 +136,11 @@ void CHudMovePanel::ToggleFlag() {
     int value = !owner_->party_.empty() && common == 1 ? 0 : 1;
     for (int i = 0; i < std::ssize(owner_->party_); ++i) {
         CUnit* unit = owner_->party_[i];
-        if (unit->flags_ & 0x10) Orders()->SetUnitFightAtWill(unit, value);
+        if (unit->flags_ & 0x10) g_clientWorld->LocalView()->SetUnitFightAtWill(unit, value);
     }
     flag_ = value;
     // The button's frame (the original also has 0.48046875 for any other value; `value` is 0 or 1).
-    Sprite(this, 5)->textureOffsetU_ = value == 0 ? 0.3359375f : 0.0f;
+    SceneMesh(5)->textureOffsetU_ = value == 0 ? 0.3359375f : 0.0f;
 }
 
 // --- Unit panel: the effects on the unit -----------------------------------------------
@@ -169,7 +163,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
     for (int i = 0; i < kPlaces; ++i) icons[i] = places[i] = -1;
     RECT line{40, 35, 155, 50};
 
-    if (std::ssize(unit->effects) > kPlaces) Sprite(this, kMoreMark)->visible_ = 1;
+    if (std::ssize(unit->effects) > kPlaces) SceneMesh(kMoreMark)->visible_ = 1;
     // The unit's effects are the map object's records.
     const MapEffect* effects = unit->effects.data();
     for (int i = 0; i < std::ssize(unit->effects) && i < kPlaces; ++i) {
@@ -219,7 +213,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
             CopyImage(objects_[1], picture, kIconSize, kIconSize, kIconSize, kIconSize, x, y);
             effectIcons_[free] = icons[i];
         }
-        CUiMesh* icon = Sprite(this, kFirstIcon + i);
+        CUiMesh* icon = SceneMesh(kFirstIcon + i);
         icon->visible_ = 1;
         icon->textureOffsetU_ = static_cast<float>(x) * (1.0f / 256.0f);
         icon->textureOffsetV_ = static_cast<float>(y + kIconSize) * (1.0f / 256.0f);
@@ -233,7 +227,7 @@ void CHudUnitPanel::ShowBodyPart() {
     constexpr int kPartButtons = 4;
     for (int i = 0; i < kPartButtons; ++i) {
         float tint = bodyPart_ == i ? 1.0f : 0.5f;
-        CUiMesh* button = Sprite(this, kFirstPartButton + i);
+        CUiMesh* button = SceneMesh(kFirstPartButton + i);
         button->tint_[0] = tint;
         button->tint_[1] = tint;
         button->tint_[2] = tint;
@@ -245,12 +239,12 @@ void CHudUnitPanel::ShowBodyPart() {
 void CHudTopPanel::ShowPage() {
     for (int i = 0; i < 2; ++i) {
         float tint = page_ == i ? 1.0f : 0.5f;
-        CUiMesh* button = Sprite(this, 3 + i);
+        CUiMesh* button = SceneMesh(3 + i);
         button->tint_[0] = tint;
         button->tint_[1] = tint;
         button->tint_[2] = tint;
     }
-    CUiScrollText* log = owner_->MessageLog();
+    CUiScrollText* log = owner_->messageLog_;
     if (page_ == 0) {
         log->SetText(pageTexts_[0]);
         log->SetPosition(log->maxPosition_);
@@ -280,7 +274,7 @@ void CHudTopPanel::ShowItems() {
         }
         CItem* copy = g_clientWorld->MakeCopyOf(item);
         copy->count_ = item->count_;
-        ++copy->refCount_;
+        copy->AddRef();
         merged.push_back(copy);
     }
 
@@ -303,7 +297,7 @@ void CHudTopPanel::ShowItems() {
     }
     merged.clear();
     if (page_ == 1) {
-        CUiScrollText* log = owner_->MessageLog();
+        CUiScrollText* log = owner_->messageLog_;
         log->SetText(text);
         log->SetPosition(0);
     }
@@ -319,7 +313,7 @@ void CHudTopPanel::Layout() {
     SceneMesh(4)->PlaceBody(230.0f, 10.0f - offset, 10.0f);
     SceneMesh(5)->PlaceBody(400.0f, 47.5f - offset, 18.0f);
     RECT rect{190, 25 - offset_, 610, 89 - offset_};
-    owner_->MessageLog()->SetRect(&rect);
+    owner_->messageLog_->SetRect(&rect);
     for (int i = 1; i < std::ssize(regions_); ++i) {
         regions_[i]->offsetX_ = 0;
         regions_[i]->offsetY_ = -offset_;

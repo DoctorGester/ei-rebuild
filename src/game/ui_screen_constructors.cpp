@@ -50,7 +50,3 @@ CHudPortraits::CHudPortraits(CInterface3D* ui, CBattleScreen* owner) : CUiWindow
     count_ = 0;
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
 }
-
-// --- Its destructor -----------------------------------------------------------------------------------
-
-CHudPortraits::~CHudPortraits() {}

@@ -39,12 +39,9 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr int kLineHeight = 15;
 constexpr int kLevelDifferenceLimit = 25;
 
-// The world's night level, unrounded.
-double WorldDayTime(CWorld* a0) { return a0->NightLevel(); }
-
 // The speed shown: (a constant * speed) * a constant unrounded, the speed of the mode (mode 3) for a
 // unit outside the group, else from the current one.
-double ShownSpeed(CUnit* unit, int outsideGroup) {
+double ShownSpeed(CUnit* unit, bool outsideGroup) {
     const double speed = outsideGroup ? unit->MoveSpeedFor(3) : unit->MoveSpeed2();
     return speed * 7.5f;
 }
@@ -81,23 +78,22 @@ bool OutsideGroup(CHudUnitPanel* self, CUnit* unit) {
 
 } // namespace
 
-// Draws the info lines of `unit`.
-void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
+void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
     CTextManager* texts = g_clientWorld->texts_;
-    UnitParams* params = &unitIn->params;
+    UnitParams* params = &unit->params;
     std::string suffix;
     Panel panel;
     panel.surface = surfaces_[0];
     panel.labels = texts_.data();
     panel.rect = {5, 0x23, 0x9B, 0x32};
 
-    std::int16_t health = unitIn->packedVitals.hitPoints;
+    std::int16_t health = unit->packedVitals.hitPoints;
     panel.text = str::Format(kValuePair, panel.labels[0], health > 0 ? static_cast<int>(health) : 0,
-                      static_cast<int>(unitIn->packedVitals.maxHitPoints));
+                      static_cast<int>(unit->packedVitals.maxHitPoints));
     panel.DrawLine();
-    bool outside = OutsideGroup(this, unitIn);
-    panel.text = str::Format(kValuePair, panel.labels[1], static_cast<int>(unitIn->packedVitals.mana),
-                      static_cast<int>(unitIn->packedVitals.maxMana));
+    bool outside = OutsideGroup(this, unit);
+    panel.text = str::Format(kValuePair, panel.labels[1], static_cast<int>(unit->packedVitals.mana),
+                      static_cast<int>(unit->packedVitals.maxMana));
     panel.DrawLine();
 
     std::uint8_t moveBonus = params->movementKind;
@@ -107,11 +103,11 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     } else {
         suffix.clear();
     }
-    double speed = ShownSpeed(unitIn, outside);
+    double speed = ShownSpeed(unit, outside);
     panel.text = str::Format(kSpeedLine, panel.labels[2], speed, suffix);
     panel.DrawLine();
 
-    float dayTime = static_cast<float>(WorldDayTime(&g_clientWorld.Get()));
+    float dayTime = static_cast<float>(g_clientWorld->NightLevel());
     int vision = x87::fistp(static_cast<float>(params->VisionRange(dayTime)));
     panel.text = str::Format(kValueUnit, panel.labels[6], vision, panel.labels[13]);
     panel.DrawLine();
@@ -119,7 +115,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     // The controller's attack parameters: attack, defence, the damage type (below 7 unsigned: "dmg_<n>" names
     // it) and range.
     AttackParams combat;
-    unitIn->Controller()->GetAttackParams(&combat);
+    unit->Controller()->GetAttackParams(&combat);
     panel.text = str::Format(kValue, panel.labels[3], combat.attack);
     panel.DrawLine();
     panel.text = str::Format(kValue, panel.labels[4], combat.defence);
@@ -137,18 +133,18 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.DrawLine();
 
     float description[7];
-    params->ProtectionBlock(&unitIn->packedVitals, description, static_cast<unsigned char>(IsTextKey(unitIn->id_)));
+    params->ProtectionBlock(&unit->packedVitals, description, static_cast<unsigned char>(IsTextKey(unit->id_)));
     std::vector<std::string> lines;
     ItemDamageLists(description, &lines, static_cast<char>(1));
     panel.DrawLabelled(10, lines[0]);
     if (outside) {
         if (lines[1].size() != 0) panel.DrawLabelled(11, lines[1]);
-        auto* prototype = unitIn->GetPrototype();
+        auto* prototype = unit->GetPrototype();
         if (prototype->spellNames.end() != prototype->spellNames.begin()) panel.DrawLine(panel.labels[5]);
         CBattleScreen* group = owner_;
         if (!group->party_.empty()) {
             CUnit* leader = group->party_[0];
-            int difference = unitIn->Level() - leader->Level();
+            int difference = unit->Level() - leader->Level();
             if (difference > kLevelDifferenceLimit) {
                 suffix = str::Format(kStronger, kLevelDifferenceLimit);
             } else if (difference < -kLevelDifferenceLimit) {

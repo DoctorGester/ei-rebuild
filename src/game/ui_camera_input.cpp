@@ -20,28 +20,16 @@
 
 namespace {
 
-// The camera speed options (floats in the game's data; the camera keys multiply two of them).
+// The camera speed options (floats in the game's data, read each time).
 float Option(const float& setting) { return static_cast<const volatile float&>(setting); }
-float PanSpeed() { return Option(options::g_options->cameraScroll_.powerKeyboard) * Option(options::g_options->cameraScroll_.speed); }
-float TurnSpeed() { return Option(options::g_options->cameraRotate_.powerKeyboard) * Option(options::g_options->cameraRotate_.speed); }
-float TiltSpeed() { return Option(options::g_options->cameraPitch_.powerKeyboard) * Option(options::g_options->cameraPitch_.speed); }
-float ClimbSpeed() { return Option(options::g_options->cameraZoom_.powerKeyboard) * Option(options::g_options->cameraZoom_.speed); }
-float ZoomSpeed() { return Option(options::g_options->cameraZoom_.powerMouse) * Option(options::g_options->cameraZoom_.speed); }
+// A camera motion's speed with the keys and with the mouse: its power times its speed.
+float KeyboardSpeed(const options::CameraMotionOptions& motion) { return Option(motion.powerKeyboard) * Option(motion.speed); }
+float MouseSpeed(const options::CameraMotionOptions& motion) { return Option(motion.powerMouse) * Option(motion.speed); }
 // The wheel's steps per delta unit (read from the exe, rule 9).
 constexpr float kWheelStep = -0.008333334f;
 
 bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_; }
 
-// The mouse options: the drag's pan speed, its turn and tilt speeds with the mouse factors
-// and the width of the screen edges that pan (0 = off).
-float DragPanSpeed() { return Option(options::g_options->cameraScroll_.powerMouse) * Option(options::g_options->cameraScroll_.speed); }
-float DragTurnSpeed() {
-    return Option(options::g_options->cameraRotate_.powerMouse) * Option(options::g_options->cameraRotate_.speed) * Option(options::g_options->cameraFlipX_);
-}
-float DragTiltSpeed() {
-    return Option(options::g_options->cameraPitch_.powerMouse) * Option(options::g_options->cameraPitch_.speed) * Option(options::g_options->cameraFlipY_);
-}
-int EdgeMargin() { return static_cast<const volatile int&>(options::g_options->cameraBorderScrollArea_); }
 // Layout units to a part of the screen and the rates' scales
 constexpr float kPerWidth = 0.0025f;
 constexpr float kPerHeight = 0.0033333334f;
@@ -71,22 +59,8 @@ int EdgeCursor(unsigned edges) {
 
 constexpr int kScanCodeMask = 0x1FF;
 
-void LetCursorGo() {
-    g_cursor->motion_.y = 0;
-    g_cursor->motion_.x = 0;
-    g_cursor->SetHeld(0);
-}
-
 } // namespace
 
-CCameraInput::CCameraInput(CInterface3D* ui) : UiInputSide(ui) {
-    turning_ = false;
-    y_ = 0.0f;
-    x_ = 0.0f;
-    z_ = 0.0f;
-}
-
-CCameraInput::~CCameraInput() {}
 
 void CCameraInput::KeyUp(int, int, int flags) {
     switch (g_keyActions[flags & kScanCodeMask]) {
@@ -112,19 +86,19 @@ void CCameraInput::KeyUp(int, int, int flags) {
     CCamera* camera = &g_camera.Get();
     if (!ModifierHeld(interface_)) {
         float left = static_cast<float>(-x_);
-        float speed = static_cast<float>(PanSpeed());
+        float speed = KeyboardSpeed(options::g_options->cameraScroll_);
         Vector3 direction = {static_cast<float>(y_ * speed), static_cast<float>(left * speed), 0.0f};
         camera->Pan(&direction);
         camera->SetTurnRate(0.0f);
-        camera->SetZoomTarget(ClimbSpeed() * z_);
+        camera->SetZoomTarget(KeyboardSpeed(options::g_options->cameraZoom_) * z_);
         camera->SetTiltRate(0.0f);
         return;
     }
     Vector3 still = {0.0f, 0.0f, 0.0f};
     camera->Pan(&still);
-    camera->SetTurnRate(TurnSpeed() * y_);
-    camera->SetZoomTarget(ClimbSpeed() * z_);
-    camera->SetTiltRate(TiltSpeed() * x_);
+    camera->SetTurnRate(KeyboardSpeed(options::g_options->cameraRotate_) * y_);
+    camera->SetZoomTarget(KeyboardSpeed(options::g_options->cameraZoom_) * z_);
+    camera->SetTiltRate(KeyboardSpeed(options::g_options->cameraPitch_) * x_);
 }
 
 void CCameraInput::RightDown(int, int x, int y) {
@@ -147,7 +121,9 @@ void CCameraInput::RightUp(int, int, int) {
     camera->Pan(&still);
     int x = g_cursor->position_.x;
     int y = g_cursor->position_.y;
-    LetCursorGo();
+    g_cursor->motion_.y = 0;
+    g_cursor->motion_.x = 0;
+    g_cursor->SetHeld(0);
     gameapi::SetCursorPos(x, y);
     handled_ = true;
 }
@@ -163,17 +139,21 @@ void CCameraInput::MouseMove(int, int x, int y) {
         float across = static_cast<float>(drag.x) * kPerWidth;
         float along = static_cast<float>(static_cast<float>(drag.y) * kPerHeight);
         if (!ModifierHeld(interface_)) {
-            camera->SetTurnRate(DragTurnSpeed() * across * 10.0f);
+            // The turn and tilt speeds times the mouse direction factors.
+            const float turnSpeed = MouseSpeed(options::g_options->cameraRotate_) * Option(options::g_options->cameraFlipX_);
+            camera->SetTurnRate(turnSpeed * across * 10.0f);
             float width = static_cast<float>(drag.x < 0 ? -drag.x : drag.x);
             float height = static_cast<float>(drag.y < 0 ? -drag.y : drag.y);
             // At rest the camera tilts only when the mouse moves more up or down than sideways.
             const float zero = 0.0f;
-            if (Differs(camera->tiltTarget_, zero) || Differs(camera->tiltRate_, zero) || height > width)
-                camera->SetTiltRate(DragTiltSpeed() * along * 500.0f);
-            else
+            if (Differs(camera->tiltTarget_, zero) || Differs(camera->tiltRate_, zero) || height > width) {
+                const float tiltSpeed = MouseSpeed(options::g_options->cameraPitch_) * Option(options::g_options->cameraFlipY_);
+                camera->SetTiltRate(tiltSpeed * along * 500.0f);
+            } else {
                 camera->SetTiltRate(0.0f);
+            }
         } else {
-            float speed = static_cast<float>(DragPanSpeed());
+            float speed = MouseSpeed(options::g_options->cameraScroll_);
             Vector3 direction{static_cast<float>(across * speed), static_cast<float>(along * speed), 0.0f};
             camera->Pan(&direction);
         }
@@ -184,7 +164,8 @@ void CCameraInput::MouseMove(int, int x, int y) {
         pressLayout_ = point;
         return;
     }
-    int margin = EdgeMargin();
+    // The width of the screen edges that pan (0: off).
+    int margin = static_cast<const volatile int&>(options::g_options->cameraBorderScrollArea_);
     if (margin > 0) {
         unsigned edges = 0;
         Vector3 direction{0.0f, 0.0f, 0.0f};
@@ -205,7 +186,7 @@ void CCameraInput::MouseMove(int, int x, int y) {
         if (!ModifierHeld(interface_)) {
             // The keys' pan goes on (KeyUp sets the same).
             float left = static_cast<float>(-x_);
-            float speed = static_cast<float>(PanSpeed());
+            float speed = KeyboardSpeed(options::g_options->cameraScroll_);
             float forward = y_ * speed;
             left = static_cast<float>(left * speed);
             direction.x = static_cast<float>(forward + direction.x);
@@ -231,6 +212,6 @@ void CCameraInput::Deactivate() {
 
 void CCameraInput::Wheel(int, int delta, int, int) {
     int steps = static_cast<short>(delta);
-    g_camera->ZoomBy(ZoomSpeed() * static_cast<float>(steps) * kWheelStep);
+    g_camera->ZoomBy(MouseSpeed(options::g_options->cameraZoom_) * static_cast<float>(steps) * kWheelStep);
 }
 

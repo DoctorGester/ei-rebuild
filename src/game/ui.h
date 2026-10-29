@@ -157,7 +157,7 @@ public:
     // News for the top window (nothing without a window), each reaching its virtual of that name: items
     // picked up, a unit joined / left the party, the game lost, a unit speaks, the players changed, an
     // exchange between players ended; SaveWindowState has the bottom window save its state.
-    void OnItemsPicked(void* items, int money, int crippled);
+    void OnItemsPicked(std::list<CItem*>* items, int money, bool crippled);
     void OnUnitJoined(CUnit* unit);
     void OnUnitLeft(CUnit* unit);
     void OnGameLost();
@@ -654,14 +654,12 @@ public:
     // more regions up to x 240).
     CHudWeaponBar(CInterface3D* ui, CBattleScreen* owner);
     // WideScreen: with the left panels' offset.
-    void Highlight(int index, int on);
+    void Highlight(int index, bool on);
     // The next slot's sprite: `image` copied into the bar's texture, the model `model` turned to face the
     // screen (a plain rectangle without one); shown not highlighted.
     void AddWeapon(std::string_view model, std::string_view image);
     // A sprite (Rebirth-patched) and a tooltip per weapon, then the unit's current weapon highlighted.
     void SetUnit(CUnit* unit);
-
-    ~CHudWeaponBar() override;
 
     CBattleScreen* owner_;
     int count_;                      // slots in use
@@ -683,7 +681,7 @@ public:
     // Every frame: the tooltips of the slots that show an item.
     void Update() override;
     // The item's name and, for a wand (category 5) or a scroll (8) with a spell, its numbers after labels_.
-    void ItemTip(unsigned index, std::string* text);
+    std::string ItemTip(unsigned index);
     // The unit's quick item `slot` (a click on it or its key): a wand or scroll becomes the pending action
     // (3 on a unit for a spell with flag 0x10000000, else 4 at a point); the highlighted slot again, or an
     // empty one, drops it.
@@ -692,8 +690,9 @@ public:
     // CHudSpellColumn::ClickAlternate.
     void UseNow(int slot);
     // With `on` also selected_ = slot.
-    void Highlight(int slot, int on);
-    void HighlightAt(int slot, int on);
+    void Highlight(int slot, bool on);
+    // Every slot off; selected_ = -1.
+    void ClearHighlights();
     // Item of the region at `index` (-1: empty). Not checked: index -1 reads the dword before the array.
     int RegionItem(int index) const {
         const int* items = regionItem_;   // declared below
@@ -714,8 +713,6 @@ public:
         int id;                      // the item's id
         CItem* item;
     };
-
-    ~CHudQuickItems() override;
 
     CBattleScreen* owner_;
     int shownCount_;                 // sprites added (the shown entries)
@@ -740,8 +737,7 @@ public:
     // on the nearest unit it sees (none: the "nomagic" sound). The pending action is dropped after.
     void ClickAlternate(int index);
     // selected_ = index either way.
-    void Highlight(int index, int on);
-    void HighlightAt(int index, int on);
+    void Highlight(int index, bool on);
     // selected_ = -1.
     void ClearHighlights();
     // Rebirth-patched (WideScreen behind its flag: the column at the screen's right edge).
@@ -750,8 +746,6 @@ public:
     void AddSpell(std::string_view model, std::string_view image);
     // A sprite (Rebirth-patched) and a tooltip per spell slot that holds one.
     void SetUnit(CUnit* unit);
-
-    ~CHudSpellColumn() override;
 
     CBattleScreen* owner_;
     int count_;                      // sprites added
@@ -770,17 +764,14 @@ public:
     // Action button `index` (a click or its key) becomes the pending action: 8 (an order on an object) for
     // action 0 (science), else 7 (follow); the highlighted one again drops it.
     void Select(int index);
-    void Highlight(int index, int on);
-    void HighlightAt(int index, int on);
+    void Highlight(int index, bool on);
     void ClearHighlights();
     // Rebirth-patched (WideScreen behind its flag: the column at the screen's left edge).
     CHudActionColumn(CInterface3D* ui, CBattleScreen* owner);
     // The next button, above the ones so far; selected_ = its index.
     void AddAction(std::string_view model, std::string_view image, int action);
-    // With `extra`'s low byte first a "skill0011" button; with a unit the science button.
-    void SetUnit(CUnit* unit, int extra);
-
-    ~CHudActionColumn() override;
+    // With `extra` first a "skill0011" button; with a unit the science button.
+    void SetUnit(CUnit* unit, bool extra);
 
     CBattleScreen* owner_;
     int count_;                      // buttons added
@@ -825,13 +816,14 @@ public:
     // into quarter index % 4 of texture objects_[index / 4 + 1].
     void ShowFace(int index, int state);
     // One portrait per party unit and, in a multiplayer client, one per player without a live unit.
-    void Rebuild(int wide);
-    // 56 wide (multiplayer: 40, or 56 with the low byte of `wide` for the first). The low byte of
-    // `hasPlayer` marks a player's portrait (half tint, no bars).
-    void AddPortrait(const std::string& model, std::string_view picture, int wide, int hasPlayer);
+    void Rebuild(bool wide);
+    // 56 wide (multiplayer: 40, or 56 with `wide` for the first). `hasPlayer` marks a player's portrait (half
+    // tint, no bars).
+    void AddPortrait(const std::string& model, std::string_view picture, bool wide, bool hasPlayer);
+    // Portrait `index` starts wobble `kind` (1 nod, 2 shake) after a short random delay.
+    void Wobble(int index, int kind);
 
     CHudPortraits(CInterface3D* ui, CBattleScreen* owner);
-    ~CHudPortraits() override;
 
     CBattleScreen* owner_;
     int count_;
@@ -949,18 +941,16 @@ public:
     // Every frame, before BuildMarkers: follows the camera and builds the visible-area mesh (scene object 1)
     // clipped to the world, and the world-bounds quad (scene object 0).
     void UpdateView();
-    ~CHudMap() override;
     // Rebirth-patched (WideScreen behind its flag). The parts at the current slide offset.
     void Layout();
-    void Update() override { UpdateVanilla(); }
     // Rebirth-patched (WideScreen behind its flag). Every frame: the zoom (2.5 times a second while a view
     // button is held), the view and markers, the slide (0.3 s for the whole way, eased) and the "camera
     // north" time.
-    void UpdateVanilla();
+    void Update() override;
     // Rebirth-patched (WideScreen behind its flag: the panel at the screen's right edge). The world's extent
     // and picture come from the local player's zone record (32 by 32 and "battle00" without one); `slid`
     // starts the slide at its far end.
-    void SetupVanilla(float zoom, std::uint8_t slid);
+    void Setup(float zoom, bool slid);
 
     CBattleScreen* owner_;
     float centreX_;                  // world point at the map's centre (the camera's)
@@ -976,7 +966,7 @@ public:
     float halfSide_;                 // 80: half the map's side in layout units (a click's offset over it)
     std::vector<UiPointF> viewPolygon_;       // the round map's outline in map units (the disc's corners)
     std::vector<UiPointF> visibleArea_;       // the outline in world units, clipped to the world
-    int sliding_;                    // set when the sling button (or its key) starts the slide
+    bool sliding_;                   // set when the sling button (or its key) starts the slide
     int offset_;                     // current slide offset in pixels (to the right)
     int travel_;                     // full slide distance
     float slide_;                    // 0..1: how far the panel has slid (offset_ = travel_ eased)
@@ -989,7 +979,9 @@ public:
 class CHudUnitPanel : public CUiWindow {
 public:
     CHudUnitPanel(CInterface3D* ui, CBattleScreen* owner);
-    void DrawUnitInfo(CUnit* unitIn);
+    // The info page's lines for `unit`: hit points, mana, speed, vision, attack, defence, damage, rate,
+    // protection and, for a unit outside the party, its level against the leader's.
+    void DrawUnitInfo(CUnit* unit);
     // The mana bar only for a party unit.
     void ShowHealth(CUnit* unit);
     // The name of each present part and, for state 3, its durability bar.
@@ -1002,16 +994,14 @@ public:
     void ShowBodyPart();
     // The first six effects on `unit` (text, time left and picture); scene object 9 shows when there are more.
     void ShowEffects(CUnit* unit);
-    ~CHudUnitPanel() override;
     // Rebirth-patched (WideScreen behind its flag). The parts at the current slide offset.
     void Layout();
-    void Update() override { UpdateVanilla(); }
     // Rebirth-patched (WideScreen behind its flag). Every frame: the slide (as the map's); a dead hover unit
     // is forgotten.
-    void UpdateVanilla();
+    void Update() override;
     // Rebirth-patched (WideScreen behind its flag: the panel at the screen's left edge, rectangle (-133,
-    // 0)-(52, 225) and sliding_ 0, addon's constants). `slid` starts the panel at the far end of its slide.
-    void SetupVanilla(int bodyPart, std::uint8_t slid);
+    // 0)-(52, 225) and no slide, addon's constants). `slid` starts the panel at the far end of its slide.
+    void Setup(int bodyPart, bool slid);
     // Rebirth-patched (WideScreen behind its flag). The hover unit, else the selected one, while the panel
     // is not slid away: its model (not on info page 2) over a depth buffer cleared to 0 around the panel,
     // its name, bars and texts.
@@ -1025,7 +1015,7 @@ public:
     float viewHeight_[2];            // how far up the panel the model stands, in units of its size
     float viewSize_[2];              // the model's size: it is drawn 1 / size (times its animation's ratio)
     std::string strings_[2];        // the selected and the hover unit's names
-    int sliding_;                    // set when the sling button starts the slide
+    bool sliding_;                   // set when the sling button starts the slide
     int offset_;                     // current slide offset in pixels (to the left)
     int travel_;                     // full slide distance
     float slide_;                    // 0..1: how far the panel has slid (offset_ = travel_ eased)
@@ -1051,12 +1041,12 @@ public:
     void OpenObjectives();
     // Rebirth-patched (WideScreen behind its flag: the clock at the screen's right edge). Regions 0-2 the
     // pause, normal and fast sectors, 3 the objectives quarter disc.
-    void SetupVanilla(int fast);
+    void Setup(bool fast);
 
     CBattleScreen* owner_;           // the clock does not read it
     float blink_;                    // 0..1, the pause blink phase
     float dial_;                     // speed dial angle (wraps at pi / 6)
-    int fast_;                       // fast game speed (copied to CInterface3D::fastGame_)
+    bool fast_;                      // fast game speed (copied to CInterface3D::fastGame_)
     bool highlight_;                 // the pause button pulses (scene object 6)
 };
 
@@ -1072,10 +1062,9 @@ public:
     // Region 0 (and its key): the selected party units' flag becomes 0 when all have 1, else 1.
     void ToggleFlag();
     // WideScreen behind its flag (the left panels' offset). A negative mode hides the marker.
-    void ShowModeVanilla(int mode);
+    void ShowMode(int mode);
     // Rebirth-patched (WideScreen behind its flag: the panel at the screen's left edge).
-    void SetupVanilla();
-    void Build() override { SetupVanilla(); }
+    void Build() override;
 
     CBattleScreen* owner_;
     int mode_;                       // the shown movement mode (-1, -2: none, mixed)
@@ -1098,17 +1087,16 @@ public:
     void Layout();
     // Page 1's text: the party's money and the local player's items merged by kind, one per line.
     void ShowItems();
-    ~CHudTopPanel() override;
-    // Slid in when the low byte of `shown` is set.
-    void Build(int page, int shown);
-    // Appends "<combat_picked_up or, with the low byte of `crippled`, combat_crippled> <item name>" and a
-    // newline to page 0's text, and to the message log when page 0 is up.
-    void AddPickedUp(CItem* item, int crippled);
+    // Slid in when `shown`.
+    void Setup(int page, bool shown);
+    // Appends "<combat_picked_up or, when `crippled`, combat_crippled> <item name>" and a newline to page 0's
+    // text, and to the message log when page 0 is up.
+    void AddPickedUp(CItem* item, bool crippled);
     // The same with the money ("format_money"), for money > 0.
     void AddMoney(int money);
 
     CBattleScreen* owner_;
-    int sliding_;
+    bool sliding_;
     int offset_;                     // current slide offset in pixels
     int travel_;                     // full slide distance
     float slide_;                    // 0 (out) .. 1 (in)
@@ -1140,7 +1128,7 @@ public:
     virtual void CreateScreen();
     virtual void CloseScreen();
     virtual void MessageResult(int) {}                                 // the value a window above left pending when it closed
-    virtual void ItemsPicked(void*, int, int) {}                       // items picked up (items, money, crippled)
+    virtual void ItemsPicked(std::list<CItem*>*, int, bool) {}         // items picked up (items, money, crippled)
     virtual void UnitJoined(CUnit*) {}
     virtual void UnitLeft(CUnit*) {}
     virtual void GameOver(int) {}
@@ -1192,6 +1180,19 @@ inline CUiContainer* ScreenOf(CUiWindow* window) { return static_cast<CUiContain
 
 // --- Battle screen ---
 
+// What the next click on the view does (CBattleScreen::pendingAction_, SelectUnit).
+enum PendingAction : int {
+    kPendingNone = 0,           // select, attack or move
+    kPendingSpellOnUnit = 1,    // the pending spell
+    kPendingSpellAtPoint = 2,
+    kPendingQuickOnUnit = 3,    // the pending quick item
+    kPendingQuickAtPoint = 4,
+    kPendingItemOnObject = 5,   // an item (pendingItem_) used on an object
+    kPendingKeyOnObject = 6,    // one of the player's items (its key in itemUseKey_) used on an object
+    kPendingFollow = 7,         // the action buttons
+    kPendingOrder = 8,          // an order on an object (the science button)
+};
+
 // The in-game screen (CreateScreen id 1); its Create builds the HUD panels as children in order: weapon
 // bar, quick items, spell column, action column, portraits, unit panel, map, clock, movement panel, message
 // log, top panel. See docs/notes/ui.md, section 6.
@@ -1205,12 +1206,12 @@ public:
     void SelectUnit(CUnit* unit, int x, int y);
     // The unit panel's hover unit, and with party members selected the cursor for what a click would do.
     void HoverUnit(CUnit* unit, int x, int y);
-    // Orders the selected party units to the point; a point on a zone exit whose "z.<zone>" variable is not
-    // 1 is remembered (exitPending_). `mode` 0 a click on the ground, 1 with a modifier.
-    void OrderAt(float x, float y, float z, int mode, int ctrl);
+    // Orders the selected party units to the point (`goTo`: with a modifier, else a walk); a point on a zone
+    // exit whose "z.<zone>" variable is not 1 is remembered (exitPending_).
+    void OrderAt(Vector3 point, bool goTo, bool run);
     // The pending action becomes `mode` on `slot` with `item`, the panels' highlights move to `slot` in the
-    // panel of that mode. Mode 0 with slot and item -1 cancels.
-    void SetPendingAction(int mode, int slot, int item);
+    // panel of that mode. kPendingNone with slot and item -1 cancels.
+    void SetPendingAction(PendingAction mode, int slot, int item);
 
     // Reads the screen's saved state when a game is being loaded, else remembers the local player's first
     // hero.
@@ -1242,7 +1243,7 @@ public:
     void Wheel(int flags, int delta, int x, int y) override;
     // Its GetName when not empty; for a unit whose id is a text key, its "pers" text; otherwise the first
     // line of the text "unit " + the prototype's name with spaces as '_'.
-    void UnitName(CUnit* unit, std::string* out);
+    std::string UnitName(CUnit* unit);
     // A "q." player variable changed: a quest line to the top panel's text and the message log; the clock
     // pulses. Details: docs/notes/ui.md, "Behaviour moved out of ui.h comments".
     void QuestVariable(std::string_view name, float value) override;
@@ -1255,24 +1256,24 @@ public:
     void ToggleMember(int index);
     // The order kind is the first order key held (6 for none); a member more than five levels below the
     // target speaks (speech event 10).
-    void AttackUnit(CUnit* target, int ctrl);
+    void AttackUnit(CUnit* target, bool ctrl);
     // The same for a dead `target` (no kind, no levels).
-    void OrderDeadUnit(CUnit* target, int ctrl);
-    // The pending spell (`quick` 0) or quick item used on `target` by each selected member; the pending
-    // action is dropped after.
-    void UseOnUnit(CUnit* target, char quick, int ctrl);
+    void OrderDeadUnit(CUnit* target, bool ctrl);
+    // The pending spell (or with `quick` the quick item) used on `target` by each selected member; the
+    // pending action is dropped after.
+    void UseOnUnit(CUnit* target, bool quick, bool ctrl);
     // The same at the point. For the member that is `unit` itself the point first moves 0.1 behind it, for
     // it and the members after it.
-    void UseAtPoint(float x, float y, float z, CUnit* unit, char quick);
+    void UseAtPoint(Vector3 point, CUnit* unit, bool quick);
     // The unit's speech line goes to the top panel's text and the message log; the kind Kill shows its timed
     // face, the kinds NoWayToAttack..Injured shake its portrait.
     void Speech(int id, AckKind kind, char* extra) override;
 
-    void Close();
+    void CloseScreen() override;
     // Polled every frame by the interface until it answers true. After a new game (hasHero_): the camera
     // follows the first party unit and the autosave "savea" when the option is on.
-    bool PollShown();
-    void OnItemsPicked(std::list<CItem*>* items, int money, int crippled);
+    bool ReadyToStopPolling() override;
+    void ItemsPicked(std::list<CItem*>* items, int money, bool crippled) override;
     // A network client instead empties the top panel's page-0 text.
     void UnitLeft(CUnit* unit) override;
     // The count and ids of the selected party units, the map's zoom, the server flag (a byte), the local
@@ -1291,15 +1292,9 @@ public:
     // Lost (`won` 0): the box "game_over" (result 0x20000); won: "end_of_game" (0xFFFF0000).
     void GameOver(int won) override;
     // A portrait click picks a player while it is not 0.
-    void SetPortraitMode(int mode);
+    void PlayerList(int mode) override { portraitMode_ = mode; }
     explicit CBattleScreen(CInterface3D* ui);
     ~CBattleScreen() override;
-    void CloseScreen() override { Close(); }
-    void ItemsPicked(void* items, int money, int crippled) override {
-        OnItemsPicked(static_cast<std::list<CItem*>*>(items), money, crippled);
-    }
-    bool ReadyToStopPolling() override { return PollShown(); }
-    void PlayerList(int mode) override { SetPortraitMode(mode); }
 
     struct PartyIds {
         // Both id vectors hold the same ids in the same order (the camera's id is not compared).
@@ -1314,13 +1309,13 @@ public:
     std::vector<CUnit*> party_;      // shown as portraits
     // The pending action: what the next click on the view does (SelectUnit), its spell, quick item
     // or action button, and the player's item id (mode 6) or the action (7, 8).
-    int pendingAction_;
+    PendingAction pendingAction_;
     int pendingSlot_;
     int pendingItem_;
     // A zone exit OrderAt found under the clicked point; the update asks about leaving while exitPending_ is
     // set. Saved with the game (version 0x62).
     int pendingExit_;
-    std::uint8_t exitPending_;
+    bool exitPending_;
     // Key actions 0x11..0x16 held; AttackUnit's order kind is the first one set.
     std::uint8_t orderKeys_[6];
     CHudWeaponBar* weaponBar_;
@@ -1334,7 +1329,6 @@ public:
     CHudMovePanel* movePanel_;
     CUiScrollText* messageLog_;
     CHudTopPanel* topPanel_;
-    CUiScrollText* MessageLog() const;
     bool viewPressed_;               // the left button went down on the view
     bool boxSelecting_;              // a selection box is being dragged
     int pressX_;                     // where the button went down on the view (screen)
@@ -1478,8 +1472,6 @@ private:
     void DeleteTokens();
 };
 
-// The tenth child window (messageLog_).
-inline CUiScrollText* CBattleScreen::MessageLog() const { return static_cast<CUiScrollText*>(children_[9]); }
 
 // A spin control of the options window: a window stepping through its texts (the on / off settings).
 class CUiSpin : public CUiWindow {

@@ -2,11 +2,12 @@
 
 // The numbers that fly up from units hit (the world client's).
 
-#include <cstddef>
 #include <cstdint>
 #include <list>
 
-class CTexture;
+#include "ref.h"
+#include "texture.h"
+
 class CSceneRenderer;
 
 struct FlyingHitPoint {
@@ -21,23 +22,17 @@ struct FlyingHitPoint {
 
 class CFlyingHitPoints {
 public:
-    // No texture, an empty list.
-    CFlyingHitPoints();
-    // The texture released, the list's nodes and sentinel freed.
-    ~CFlyingHitPoints();
-    CFlyingHitPoints(const CFlyingHitPoints&) = delete;
-    CFlyingHitPoints& operator=(const CFlyingHitPoints&) = delete;
     // Appends a number for `target` (nonzero) and `amount` (not negative),
     // starting now, or 0.5 s from now with flag 8; nothing otherwise.
     void Add(int target, int amount, std::uint32_t flags);
-    // No texture object: 0. Binds it (failure is fatal), erases the entries older than 3 s, and with
+    // Nothing without a texture. Binds it (failure is fatal), erases the entries older than 3 s, and with
     // ShowHitNumbersOption draws each started entry (0..3 s) over its unit (shown, on screen, pickable; the
     // screen rectangle of its "hd", "bd" or "hp" part): the amount in 8-pixel digits rising 100 pixels and
     // drifting 120 to the right while it fades (green, red for a player's unit, cyan with flag 8) with the
     // flags' label rows, or a 32x10 marker 20 pixels above the middle for flag 31, kept inside the render
-    // target. Then entries with flag 31 are erased. Returns 1.
-    int Draw(CSceneRenderer* renderer);
+    // target. Then entries with flag 31 are erased.
+    void Draw(CSceneRenderer* renderer);
 
-    CTexture* texture_;   // the digits texture (counted)
+    Ref<CTexture> texture_;   // the digits texture
     std::list<FlyingHitPoint> points_;
 };

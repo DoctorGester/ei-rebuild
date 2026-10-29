@@ -44,7 +44,7 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
 - Downcasts that stay should go through one named accessor where the class is known by construction
   (`CMapObject::ServerCompanion()`, `CUnit::GetWeapon` / `AsWeapon` (item.h), `FindItem`, `UnitWithId` for a
   unit's id, `CLightFactory::LightWithId`, `AIBrain::FindPlayerMode` / `FindPatrolMode`,
-  `CBattleScreen::MessageLog()`, `UnitOrNull` after a class test, `ObjectSlots` where a generic lookup is a
+  `UnitOrNull` after a class test, `ObjectSlots` where a generic lookup is a
   map object; `CWorld::ObjectWithId` and `CWorldServer::FindObject` already return `CMapObject*`, and the server
   world's id maps but `timedObjects_` are `MapObjectIdMap`s of `CMapObject*`; a network session's message
   lists are `std::list<SharedRefTo<T>>` / `std::list<CountedRefTo<T>>` (core_refcount.h: `element.Get()`); `FigureManagerOf(object)` / `OwningFigureManager(object)` (figure_manager.h) for the world's or

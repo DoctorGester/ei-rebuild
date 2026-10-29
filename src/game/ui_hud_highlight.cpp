@@ -19,15 +19,12 @@ constexpr float kQuickScaleOff = 0.55f;
 constexpr float kOwnScaleOn = 1.0f;       // the player's items (top row)
 constexpr float kOwnScaleOff = 0.85f;
 constexpr int kBottomRow = 4;             // slots 0-3
-
-CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
-
-void SetSpriteScale(CUiMesh* sprite, float scale) { sprite->SetScale(scale); }
+constexpr int kQuickSlots = 8;
 
 // The columns' button highlight (both columns share the code).
-void HighlightButton(CUiWindow* column, int* selected, int index, int on) {
-    CUiMesh* sprite = Sprite(column, index);
-    SetSpriteScale(sprite, on ? kButtonScaleOn : kButtonScaleOff);
+void HighlightButton(CUiWindow* column, int* selected, int index, bool on) {
+    CUiMesh* sprite = column->SceneMesh(index);
+    sprite->SetScale(on ? kButtonScaleOn : kButtonScaleOff);
     sprite->flatSpecular_ = on ? kColourOn : kColourOff;
     *selected = index;
 }
@@ -36,8 +33,8 @@ void HighlightButton(CUiWindow* column, int* selected, int index, int on) {
 // each index, then -1.
 void ClearButtons(CUiWindow* column, int count, int* selected) {
     for (int i = 0; i < count; ++i) {
-        CUiMesh* sprite = Sprite(column, i);
-        SetSpriteScale(sprite, kButtonScaleOff);
+        CUiMesh* sprite = column->SceneMesh(i);
+        sprite->SetScale(kButtonScaleOff);
         sprite->flatSpecular_ = kColourOff;
         *selected = i;
     }
@@ -57,14 +54,14 @@ void CUiMesh::SetScale(float scale) {
 
 // --- A quick item slot ---------------------------------------------------------------
 
-void CHudQuickItems::Highlight(int slot, int on) {
+void CHudQuickItems::Highlight(int slot, bool on) {
     int sprite = regionItem_[slot];
     if (sprite < 0 || sprite >= shownCount_) return;
-    CUiMesh* mesh = Sprite(this, sprite);
+    CUiMesh* mesh = SceneMesh(sprite);
     if (slot < kBottomRow)
-        SetSpriteScale(mesh, on ? kQuickScaleOn : kQuickScaleOff);
+        mesh->SetScale(on ? kQuickScaleOn : kQuickScaleOff);
     else
-        SetSpriteScale(mesh, on ? kOwnScaleOn : kOwnScaleOff);
+        mesh->SetScale(on ? kOwnScaleOn : kOwnScaleOff);
     if (on) {
         mesh->flatSpecular_ = kColourOn;
         selected_ = slot;
@@ -73,11 +70,16 @@ void CHudQuickItems::Highlight(int slot, int on) {
     }
 }
 
+void CHudQuickItems::ClearHighlights() {
+    for (int i = 0; i < kQuickSlots; ++i) Highlight(i, false);
+    selected_ = -1;
+}
+
 // --- The columns' buttons -----------------------------------------------------------------
 
-void CHudSpellColumn::Highlight(int index, int on) { HighlightButton(this, &selected_, index, on); }
+void CHudSpellColumn::Highlight(int index, bool on) { HighlightButton(this, &selected_, index, on); }
 
-void CHudActionColumn::Highlight(int index, int on) { HighlightButton(this, &selected_, index, on); }
+void CHudActionColumn::Highlight(int index, bool on) { HighlightButton(this, &selected_, index, on); }
 
 void CHudSpellColumn::ClearHighlights() { ClearButtons(this, count_, &selected_); }
 

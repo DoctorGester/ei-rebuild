@@ -108,9 +108,8 @@ void CWorldClient::SetUpGraphics(CTextureDevice* device) {
     numbers_ = new CFlyingHitPoints();
     auto* texture = TextureManager()->FindOrCreate(kNumbersKind, NumbersName());
     if (texture) {
-        texture->AddRef();
+        numbers_->texture_.Assign(texture);
         TextureManager()->LoadTexture(texture);
-        numbers_->texture_ = texture;
         texture->flags_ |= kTextureKeep;
     }
     CLinkFigureLoader* loader;

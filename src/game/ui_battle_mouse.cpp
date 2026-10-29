@@ -74,28 +74,19 @@ void CBattleScreen::LeftDown(int buttons, int x, int y) {
 
 // --- a unit's name line --------------------------------------------------------------------------
 
-void CBattleScreen::UnitName(CUnit* unit, std::string* out) {
+// Each text is copied up to its first NUL.
+std::string CBattleScreen::UnitName(CUnit* unit) {
     CTextManager* texts = g_clientWorld->texts_;
-    std::string name;
-    name = unit->GetName();
-    if (name.size() != 0) {
-        *out = name.c_str();
-        return;
-    }
+    std::string name = unit->GetName();
+    if (name.size() != 0) return name.c_str();
     if (IsTextKey(unit->id_)) {
         auto node = personTexts_.find(unit->id_);
-        if (node == personTexts_.end())
-            out->clear();
-        else
-            *out = node->second.c_str();
-        return;
+        return node == personTexts_.end() ? std::string() : std::string(node->second.c_str());
     }
-    out->clear();
     name = unit->GetPrototype()->name;
     text::ReplaceChar(&name, ' ', '_');
-    if (texts->Open((std::string(kUnitTextPrefix) + name))) {
-        std::string line;
-        texts->ReadLine(&line, 1);
-        *out = line.c_str();
-    }
+    if (!texts->Open(std::string(kUnitTextPrefix) + name)) return {};
+    std::string line;
+    texts->ReadLine(&line, 1);
+    return line.c_str();
 }

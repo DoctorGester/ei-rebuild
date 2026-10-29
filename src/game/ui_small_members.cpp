@@ -49,7 +49,6 @@ const char* CGlobalMap::HelpTopic() { return noCamp_ == 1 ? "global_map_nocamp" 
 
 // --- One-line setters and readers ------------------------------------------------------------------------
 
-void CBattleScreen::SetPortraitMode(int mode) { portraitMode_ = mode; }
 
 void CBriefingScreen::SetChatActive(int mode) { chatActive_ = mode; }
 

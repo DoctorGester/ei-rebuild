@@ -35,13 +35,6 @@ constexpr int kCursorFlagBase = 0x10;   // + the first set flag of +0x18D..+0x19
 constexpr int kCursorCantCast = 0x17;
 constexpr int kCursorOrder = 0x18;
 
-// The mouse cursor; selects shape `shape`.
-void SetCursor(int shape) { g_cursor->SetShape(shape); }
-
-static const UnitPrototypeRecord* HoverPrototype(CUnit* unit) {
-    return unit->GetPrototype();
-}
-
 // fcomp with 0.0 and: true for zero (either sign).
 bool IsZero(float value) {
     EI_NAN_AUDIT(value);
@@ -51,7 +44,7 @@ bool IsZero(float value) {
 } // namespace
 
 void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
-    auto unitDead = [](CUnit* u) { return u->IsDead() != 0; };
+    auto unitDead = [](CUnit* u) { return u->IsDead(); };
     auto pick = [x, y]() {
         Vector3 out;
         Vector3* p = g_clientWorld->PickSurface(&out, x, y);
@@ -75,9 +68,9 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     if (unit && !unitDead(unit)) {
         if (unit != panel->hoverUnit_) {
             panel->hoverUnit_ = unit;
-            panel->viewSize_[1] = HoverPrototype(unit)->panelViewSize;
-            panel->viewHeight_[1] = std::bit_cast<float>(HoverPrototype(panel->hoverUnit_)->height);
-            panel->owner_->UnitName(panel->hoverUnit_, &panel->strings_[1]);
+            panel->viewSize_[1] = unit->GetPrototype()->panelViewSize;
+            panel->viewHeight_[1] = std::bit_cast<float>(panel->hoverUnit_->GetPrototype()->height);
+            panel->strings_[1] = UnitName(panel->hoverUnit_);
         }
     } else if (panel->hoverUnit_) {
         panel->hoverUnit_ = nullptr;
@@ -100,22 +93,22 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         Vector3 at = pick();
         int exit;
         if (!g_clientWorld->FindExitAt(&at.x, &exit)) return;
-        SetCursor(kCursorExit);
+        g_cursor->SetShape(kCursorExit);
         return;
     }
     for (int i = 0; i < 6; ++i) {
         if (orderKeys_[i]) {
-            SetCursor(kCursorFlagBase + i);
+            g_cursor->SetShape(kCursorFlagBase + i);
             return;
         }
     }
     if (interface_->ctrlDown_) {
-        SetCursor(kCursorAttack);
+        g_cursor->SetShape(kCursorAttack);
         return;
     }
 
     switch (pendingAction_) {
-    case 0:   // plain
+    case kPendingNone:
         if (unit) {
             if (unitDead(unit)) {
                 shape = kCursorUse;
@@ -146,11 +139,11 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
                 const float one = 1.0f;
                 // equal skips.
                 EI_NAN_AUDIT(value);
-                if (value != one) SetCursor(kCursorExit);
+                if (value != one) g_cursor->SetShape(kCursorExit);
             }
             return;
         }
-    case 1: {   // a spell on a unit
+    case kPendingSpellOnUnit: {
         if (!unit || unitDead(unit)) {
             shape = kCursorCantCast;
             break;
@@ -162,19 +155,19 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         shape = kCursorCast;
         break;
     }
-    case 2:   // a spell on a point
-    case 4: {   // a quick item on a point
+    case kPendingSpellAtPoint:
+    case kPendingQuickAtPoint: {
         Vector3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
         if ((IsZero(at.x) && IsZero(at.y)) || !first) {
             shape = kCursorCantCast;
             break;
         }
-        int refused = pendingAction_ == 2 ? first->CanCastSpell(pendingSlot_)
+        int refused = pendingAction_ == kPendingSpellAtPoint ? first->CanCastSpell(pendingSlot_)
                                           : first->CanUseQuickItem(pendingSlot_);
         shape = refused ? kCursorCantCast : kCursorCast;
         break;
     }
-    case 3: {   // a quick item on a unit (a potion only on the user itself)
+    case kPendingQuickOnUnit: {   // a potion only on the user itself
         shape = kCursorCantCast;
         if (!unit || unitDead(unit)) break;
         if (!first || first->CanUseQuickItem(pendingSlot_) != 0) break;
@@ -183,22 +176,22 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         shape = kCursorCast;
         break;
     }
-    case 5: {   // an item on an object
+    case kPendingItemOnObject: {
         CUnit* target = unit ? unit : objectAt();
         shape = (target && first && target->IsUsable() != 0) ? kCursorUse : kCursorNo;
         break;
     }
-    case 6: {   // a spell on an object
+    case kPendingKeyOnObject: {
         CUnit* target = unit ? unit : objectAt();
         shape = (target && first && target->IsUsable() != 0 && target->AcceptsKey(&itemUseKey_) != 0)
                     ? kCursorUse
                     : kCursorNo;
         break;
     }
-    case 7:   // follow
+    case kPendingFollow:
         shape = (first && unit && !unitDead(unit)) ? kCursorExit : kCursorNo;
         break;
-    case 8: {   // an order on an object
+    case kPendingOrder: {
         if (unit) {
             shape = kCursorNo;
             if (!first) break;
@@ -214,5 +207,5 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     default:
         return;
     }
-    SetCursor(shape);
+    g_cursor->SetShape(shape);
 }

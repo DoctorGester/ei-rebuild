@@ -49,10 +49,6 @@ constexpr std::int16_t kFrameNeutral = 1;   // other units; zone exits
 constexpr std::int16_t kFrameHostile = 2;
 constexpr std::int16_t kFrameMarked = 3;    // marked objects
 
-// The local view (CWorldClient::LocalView): the ids of the units shown on the map (partyUnitIds_)
-// and, in multiplayer, of the other players' units (otherUnitIds_).
-CPlayerClient* LocalView() { return g_clientWorld->LocalView(); }
-int LocalSide() { return LocalView()->player_->playerId_; }
 
 // Builds the mesh entries in order. Each entry is one quad block (positions), four vertex
 // records and its indices: three for a unit (one triangle), six for the other markers.
@@ -171,7 +167,7 @@ private:
 // Frame of a unit that is not in the party: hostile when both relation masks have the local
 // side's bit. The special unit 0xA2C2A counts as hostile in zone gz20g whatever its relations.
 std::int16_t UnitFrame(const CUnit* unit) {
-    int side = LocalSide();
+    int side = g_clientWorld->LocalView()->player_->playerId_;
     if (unit->id_ == kSpecialUnitId) {
         if (str::Compare(LocalPlayerZone(), "gz20g") == 0) return kFrameHostile;
     }
@@ -223,16 +219,6 @@ void PutArrow(VertexPacket& b, const CUnit* unit, float x, float y) {
     b.y()[3] = static_cast<float>(D(rightY) * kArrowWing + D(y));
 }
 
-const CTransformObject* Camera() { return g_clientWorld->camera_; }
-std::uint32_t Bits(const float& f) {
-    std::uint32_t bits;
-    bits = std::bit_cast<std::uint32_t>(f);
-    return bits;
-}
-std::uint32_t CameraTargetXBits() { return Bits(g_camera->focus_.x); }
-std::uint32_t CameraTargetYBits() { return Bits(g_camera->focus_.y); }
-
-void SetBits(float* f, std::uint32_t bits) { *f = std::bit_cast<float>(bits); }
 
 // Whether the edge from `prev` to `cur` crosses the line v = edge (coordinate values of the two points).
 bool Crosses(float prev, float cur, float edge) {
@@ -281,7 +267,9 @@ double WheelZoomFactor(int delta) {
 void CHudMap::BuildMarkers() {
     CUiMesh* mesh = SceneMesh(2);
     CBaseManager* objects = g_clientWorld->objectManager_;
-    CPlayerClient* view = LocalView();
+    // The local view: the ids of the units shown on the map (partyUnitIds_) and, in multiplayer, of the other
+    // players' units (otherUnitIds_).
+    CPlayerClient* view = g_clientWorld->LocalView();
     int unitCount = view ? std::ssize(view->partyUnitIds_) : 0;
     CLightFactory* markers = g_clientWorld->lightFactory_;
     const std::list<int>& marked = markers->litIds_;
@@ -299,7 +287,7 @@ void CHudMap::BuildMarkers() {
     for (int i = 0; i < unitCount; ++i) {
         out.BeginUnit();
         CUnit* unit = UnitWithId(objects, view->partyUnitIds_[i]);
-        if (!unit || unit->IsDead() != 0) {
+        if (!unit || unit->IsDead()) {
             out.Hide();
             continue;
         }
@@ -376,9 +364,9 @@ void CHudMap::BuildMarkers() {
 // --- The map's polygon clipping ----------------------------------------------------------------------------------
 
 void CHudMap::UpdateView() {
-    if (const CTransformObject* camera = Camera()) {
-        SetBits(&centreX_, CameraTargetXBits());
-        SetBits(&centreY_, CameraTargetYBits());
+    if (const CTransformObject* camera = g_clientWorld->camera_) {
+        centreX_ = g_camera->focus_.x;
+        centreY_ = g_camera->focus_.y;
         Vector3 axis;
         camera->localRotation_.AxisZ(&axis);
         facingX_ = axis.x;
