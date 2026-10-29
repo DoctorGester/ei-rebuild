@@ -257,7 +257,7 @@ public:
     void PropagateHostility();
     // Where `attacker` stands relative to the unit: 0x800000 in front, 0x400000 behind, 0xC00000 / 0x1000000
     // to the sides; 0 without an attacker or with a non-zero `hitKind`.
-    std::uint32_t HitDirection(CUnit* attacker, int hitKind);
+    BlowSide HitDirection(CUnit* attacker, int hitKind);
     // A UnitOrderKind::Use: UseSource::SearchBody loots the body; else science (UseSource::Use) and stealing.
     void UseSkill(CMapObject* target);
     // Drops the queued order unless it is of kind 7 or 8 or there is no current order; the queued order ends
@@ -517,7 +517,7 @@ public:
     // The death (or fall) animation for a blow from `direction` (HitDirection's bits): `dying` adds the death
     // bits, `fall` (lying down) stops the steps with kind 2 and may pick a side at random. Only the low bytes of
     // `dying` and `fall` count.
-    void BuildDeathAnimation(struct AnimationSteps* steps, std::uint32_t direction, int dying, int fall);
+    void BuildDeathAnimation(struct AnimationSteps* steps, BlowSide direction, int dying, int fall);
 
     std::uint8_t frozen;            // the unit is frozen: the animation and the orders wait (UpdateState)
     std::uint8_t animationHeld;     // a hit reaction plays (or no size classes): the times shift
@@ -531,8 +531,8 @@ public:
     std::uint8_t movingAnimation;   // the movement animation is in the queue (cleared when no
                                     // path is found)
     AnimationSteps savedQueue;      // the queue a hit reaction saved (its extra is its time)
-    static constexpr std::uint32_t kNoHitDirection = 0xFFFFFFFFu;   // hitDirection: no hit to react to
-    std::uint32_t hitDirection;     // HitDirection of the last hit that did not kill, or kNoHitDirection
+    static constexpr BlowSide kNoHitDirection = static_cast<BlowSide>(0xFFFFFFFFu);   // hitDirection: no hit to react to
+    BlowSide hitDirection;          // HitDirection of the last hit that did not kill, or kNoHitDirection
     int state;                      // 0 idle, 5 casting, ...
     MoveModeState moveMode;
     MoveModeState moveMode2;

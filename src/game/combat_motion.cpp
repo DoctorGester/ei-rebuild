@@ -38,7 +38,7 @@ constexpr int kStateEmote = 4;       // an emote plays
 constexpr int kStateActing = 5;
 constexpr int kStateChasing = 6;
 constexpr int kModeRun = 2;
-constexpr std::uint32_t kKeyIdle = 0x80580000;
+constexpr std::uint32_t kKeyIdle = kAnimationSpecialIdleKey;
 constexpr std::uint8_t kEmoteStand = 0xFE;   // the idle "emote" of a walking hero
 constexpr float kNoRange = 1e38f;
 static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);

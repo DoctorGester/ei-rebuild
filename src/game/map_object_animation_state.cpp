@@ -10,8 +10,8 @@
 #include "lib/nan_audit.h"
 
 namespace {
-constexpr std::uint32_t kKeyEndMask = 0xC0000000; // FigureAnimation::key: what happens at the end
-constexpr std::uint32_t kKeyLoops = 0x80000000;
+constexpr std::uint32_t kKeyEndMask = AnimationKeyOf(AnimationKeyFlag::Once | AnimationKeyFlag::Looped);   // what happens at the end
+constexpr std::uint32_t kKeyLoops = AnimationKeyOf(AnimationKeyFlag::Looped);
 
 // The bone's animator, made by its manager (counted) on first use.
 AnimationTrack* AnimatorOf(FigureBone* bone) {
