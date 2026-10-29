@@ -537,7 +537,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00743EAC,22,,game,006A3AD0,006A3B10,CItemQuick,src/game/item.h,quick item (potions and wands)
 00743F04,22,,game,006A43A0,006A4400,CItemQuest,src/game/item.h,quest item
 00743F5C,22,,game,006A49A0,006A49E0,CItemLoot,src/game/item.h,loot
-00743FB4,22,,game,006A56E0,006A5720,CItemSpell,src/game/item.h,scroll
+00743FB4,22,,game,006A56E0,006A5720,CItemScroll,src/game/item.h,scroll
 00744020,13,,game,006A5AB0 006A5B20,006A5B00,CItemConstructor,src/game/item_manager.h,item constructor
 00744054,1,,game,006A5D60 006A8790 006A9B00 006AAED0 006AC520 006AC640,006A6470,LootItemRecord,src/game/item_db.h,a loot item record
 00744058,1,,game,006A5D60 006A85A0 006A9830 006AAB80 006AC240 006AC3B0,006A6460,QuestItemRecord,src/game/item_db.h,a quest item record

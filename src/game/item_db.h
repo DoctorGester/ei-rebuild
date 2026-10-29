@@ -22,7 +22,7 @@ enum class ItemKind : int {
     Armor = 0x3005,
     Quick = 0x3006,
     Loot = 0x3007,
-    Spell = 0x3008,  // a spell container; prototype in the quick item database
+    Scroll = 0x3008,  // a scroll ("spell container"); prototype in the quick item database
     Quest = 0x3009,
 };
 
@@ -280,12 +280,14 @@ struct MaterialRecordHead {
 };
 
 // The two-letter type codes of weapons and armours, by type (the model and picture names).
-inline constexpr const char* kWeaponCodes[7] = {"sw", "ax", "dg", "sp", "hm", "bw", "cb"};
-inline constexpr const char* kArmorCodes[7] = {"hl", "pl", "lg", "sh", "pt", "bt", "gl"};
+// The number of weapon types and of armour types (the length of the two code tables).
+inline constexpr int kItemTypeCodeCount = 7;
+inline constexpr const char* kWeaponCodes[kItemTypeCodeCount] = {"sw", "ax", "dg", "sp", "hm", "bw", "cb"};
+inline constexpr const char* kArmorCodes[kItemTypeCodeCount] = {"hl", "pl", "lg", "sh", "pt", "bt", "gl"};
 // The code of `type`; "" for a type without one (none in the databases; the original formats an uninitialised
 // stack buffer then).
-inline const char* TypeCode(const char* const (&codes)[7], int type) {
-    return type >= 0 && type < 7 ? codes[type] : "";
+inline const char* TypeCode(const char* const (&codes)[kItemTypeCodeCount], int type) {
+    return type >= 0 && type < kItemTypeCodeCount ? codes[type] : "";
 }
 
 // A table of the item database (materials, weapons, armors, quick items, quest items, loot): the records and

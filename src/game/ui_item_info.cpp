@@ -356,7 +356,7 @@ void CItemInfoPanel::DescribeItem() {
         DescribeQuickItem();
         return;
     }
-    if ((interface_->ctrlDown_ && item->spell_) || kind == ItemKind::Spell) {
+    if ((interface_->ctrlDown_ && item->spell_) || kind == ItemKind::Scroll) {
         DescribeCarriedSpell();
         return;
     }

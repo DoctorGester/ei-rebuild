@@ -55,7 +55,7 @@ bool IsModifier(const CItem* item) {
 }
 
 bool IsSpellContainer(const CItem* item) {
-    return item->Kind() == ItemKind::Spell;
+    return item->Kind() == ItemKind::Scroll;
 }
 
 bool IsPart(const CItem* item) {
@@ -137,7 +137,7 @@ int CUiItemStrip::ItemTab(const CItem* item) {
     if (IsPart(item) || IsMaterial(item)) return 0;
     if (IsSpell(item) || IsModifier(item)) return 1;
     ItemKind type = item->Kind();
-    if (type == ItemKind::Weapon || type == ItemKind::Armor || type == ItemKind::Quick || type == ItemKind::Spell) return 2;
+    if (type == ItemKind::Weapon || type == ItemKind::Armor || type == ItemKind::Quick || type == ItemKind::Scroll) return 2;
     if (type == ItemKind::Loot) return 3;
     return (type != ItemKind::Quest) + 4;
 }
@@ -446,7 +446,7 @@ void CMpHeroScreen::TakeItem(CItem* item, int mode) {
             quickItem_ = item;
             weaponPanel_->ShowQuickItem(item);
             break;
-        case ItemKind::Spell:
+        case ItemKind::Scroll:
             spellContainer_ = item;
             spellPanel_->ShowEntry(item);
             break;
@@ -460,7 +460,7 @@ void CMpHeroScreen::TakeItem(CItem* item, int mode) {
 }
 
 bool CMpHeroScreen::CanEquip(CItem* item, int) {
-    if (item->Kind() != ItemKind::Spell) return true;
+    if (item->Kind() != ItemKind::Scroll) return true;
     CSpell* spell = item->spell_;
     if (!spell) return true;
     return HeroCanUseSpell(&HeroRecord()->stats, spell);

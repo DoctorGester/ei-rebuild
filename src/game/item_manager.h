@@ -85,7 +85,7 @@ struct CItemManager : CResourceManager {
     const char* GetFolderName() override;    // "items"
 
     // The item factory: a new constructed item for kind ItemKind::Weapon weapon, ItemKind::Armor armour, ItemKind::Quick quick, ItemKind::Loot
-    // loot, ItemKind::Spell scroll, ItemKind::Quest quest, its type_ set to the kind; null for another kind or without memory.
+    // loot, ItemKind::Scroll scroll, ItemKind::Quest quest, its type_ set to the kind; null for another kind or without memory.
     CEngineObject* NewObject(int kind) override;
 
     // An item of `kind` built by the context's item constructor (BeginCreateItem with `kind`)
@@ -102,7 +102,7 @@ struct CItemManager : CResourceManager {
     // FixCreateItem returns null in both cases without FatalError.
     CItem* CreateItem(std::string_view name);
 
-    // A scroll ("spell container", kind ItemKind::Spell) holding the spell that `spells` builds from `spellText`;
+    // A scroll ("spell container", kind ItemKind::Scroll) holding the spell that `spells` builds from `spellText`;
     // null when the spell or the item cannot be made (the spell is then left as it is).
     CItem* CreateSpellItem(std::string_view spellText, CSpellManager* spells);
 

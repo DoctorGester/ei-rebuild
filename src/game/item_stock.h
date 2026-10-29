@@ -89,7 +89,7 @@ struct ItemStock {
     void GenerateSpellInstructions(int minCount, int maxCount, std::list<CItem*>* out);
     void GenerateModifierInstructions(int minCount, int maxCount, std::list<CItem*>* out);
 
-    // Scrolls ("spell container", kind ItemKind::Spell) of the spells the stock offers: the recipe maps for scrolls, then
+    // Scrolls ("spell container", kind ItemKind::Scroll) of the spells the stock offers: the recipe maps for scrolls, then
     // up to 10 tries at a spell list (GenerateSpells with scrollLevels and threshold 50) until it holds at least
     // as many spells as `spells`; a scroll per spell of the last try into `out`.
     void GenerateScrolls(std::list<CItem*>* out);

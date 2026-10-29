@@ -219,7 +219,7 @@ def read_item_of(r, kind):
         for layer in range(2):
             for i in range(7):
                 r.f32(f'absorb{layer}.{i}')
-    elif kind in (0x3006, 0x3008):   # CItemQuick::Save (006A3CA0; CItemSpell's slot 10 too)
+    elif kind in (0x3006, 0x3008):   # CItemQuick::Save (006A3CA0; CItemScroll's slot 10 too)
         r.u32('actionValue')
     elif kind == 0x3007:     # CItemLoot::Save (006A5680)
         r.u32('kind')

@@ -232,7 +232,7 @@ public:
 };
 
 // A scroll, a spell container: a quick item with its own names, class name and id.
-class CItemSpell : public CItemQuick {
+class CItemScroll : public CItemQuick {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;

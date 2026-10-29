@@ -437,7 +437,7 @@ void ItemStock::GenerateScrolls(std::list<CItem*>* out) {
     }
     itemdb::QuickItemRecord* prototype = g_itemDatabase.quickItems.Named(game::SpellContainerText());
     for (CSpell* spell : list) {
-        CItem* item = ctor->BuildItem(manager, ItemKind::Spell, prototype, nullptr, spell);
+        CItem* item = ctor->BuildItem(manager, ItemKind::Scroll, prototype, nullptr, spell);
         item->AddRef();
         out->push_back(item);
     }
