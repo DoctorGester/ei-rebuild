@@ -1,7 +1,6 @@
 // The unit AI's Fear mode: how afraid the unit is (Evaluate) and running
 // away or taking shelter (Execute); and the brain taking up a chosen attack.
 #include "ai_map.h"
-#include "ai_scoped_path.h"
 #include "combat.h"
 #include "game_singletons.h"
 #include "logic_settings.h"
@@ -89,16 +88,16 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     Vector3 back = me - away;
     Vector3 dest{static_cast<float>(static_cast<double>(back.x) + jitterX), static_cast<float>(static_cast<double>(back.y) + jitterY), back.z};
 
-    ScopedPath local;
+    AIPath path;
     double way = DistanceZXY(dest, me);
     float wayRounded = static_cast<float>(way);
     float range = static_cast<float>(way * kThree + kRangeBase);
-    if (!g_serverWorld->aiMap_.FindPath(self, &dest, &local.path, range, kMinDistance)) return false;
+    if (!g_serverWorld->aiMap_.FindPath(self, &dest, &path, range, kMinDistance)) return false;
     double scale = 0.5;
     double limit = 1.0f / scale * wayRounded * kSmoothingScale;
     EI_NAN_AUDIT(limit);
-    if (limit < static_cast<double>(local.path.smoothing)) return false;
-    Vector3 end{static_cast<float>(scale * local.path.targetX), static_cast<float>(scale * local.path.targetY), 0.0f};
+    if (limit < static_cast<double>(path.smoothing)) return false;
+    Vector3 end{static_cast<float>(scale * path.targetX), static_cast<float>(scale * path.targetY), 0.0f};
 
     AIOrder order;
     order.Clear();
@@ -258,10 +257,10 @@ void FearMode::Execute(AIBrain* brain) {
             dest.y = static_cast<float>(backY + jitterY);
             dest.z = backZ;
         }
-        ScopedPath local;
+        AIPath path;
         double way = DistanceZYX(dest, *here);
         float range = static_cast<float>(way * kThree + kRangeBase);
-        if (g_serverWorld->aiMap_.FindPath(brain->owner->unit, &dest, &local.path, range, kMinDistance)) {
+        if (g_serverWorld->aiMap_.FindPath(brain->owner->unit, &dest, &path, range, kMinDistance)) {
             brain->action = AIBrain::kActionWalk;
             brain->owner->OrderMove(&dest, 0, 0, kMoveTime);
         }

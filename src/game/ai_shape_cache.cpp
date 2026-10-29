@@ -22,15 +22,11 @@ CRefObject* UnitShapeCache::Get(void* handleIn) {
 
 CRefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle* handle) { return CreateUnitShape(handle); }
 
-UnitShapeCache* UnitShapeCache::Construct() { return new (this) UnitShapeCache; }
-
-void UnitShapeCache::Destruct() { std::destroy_at(&shapes); }
-
 namespace {
-void DestroyUnitShapes() { g_unitShapes->Destruct(); }
+void DestroyUnitShapes() { g_unitShapes.Destroy(); }
 } // namespace
 
 void ConstructUnitShapes() {
-    g_unitShapes->Construct();
+    g_unitShapes.Construct();
     std::atexit(DestroyUnitShapes);
 }

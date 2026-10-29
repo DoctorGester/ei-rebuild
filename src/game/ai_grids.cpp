@@ -1,6 +1,6 @@
-// The AI map's grid template instantiations and the small constructors of the map's members: the local
-// search, the unit layers' base, the event table the dirty rectangle's reset; and the terrain types'
-// open-cell marks. See ai_map.h and docs/notes/ai.md.
+// The AI map's grid allocators and the small constructors of the map's members: the local and block searches, the
+// event table, the dirty rectangle's reset; and the terrain types' open-cell marks. See ai_map.h and
+// docs/notes/ai.md.
 #include "ai_grids.h"
 
 #include "ai_unit_layer.h"
@@ -16,10 +16,6 @@ extern "C" int _purecall();
 
 // ---- Allocate / free ------------------------------------------------------------------------------
 
-void AllocateNodeGrid(SearchGrid<SearchNode>* grid) { AllocateGrid(*grid); }
-
-void AllocateByteGrid(SearchGrid<std::uint8_t>* grid) { AllocateGrid(*grid); }
-
 void AllocateEdgeGrid(SearchGrid<std::int16_t>* grid) {
     constexpr int kEdges = 8;
     AllocateGrid(*grid, kEdges);
@@ -32,8 +28,6 @@ void AllocateZeroedByteGrid(SearchGrid<std::uint8_t>* grid) {
     int count = grid->width * grid->height;
     for (int i = 0; i < count; ++i) grid->data[i] = 0;
 }
-
-void AllocateRegionGrid(SearchGrid<std::uint16_t>* grid) { AllocateGrid(*grid); }
 
 void AllocateCellGrid(SearchGrid<AIMapCell>* grid) {
     AllocateGrid(*grid);
@@ -53,85 +47,14 @@ void AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid) {
     for (int i = 0; i < count; ++i) grid->data[i] = (grid->data[i] & ~(occluder::kTypeMask | occluder::kChained)) | occluder::kNone;
 }
 
-template <> void SearchGrid<std::uint8_t>::Resize(int newWidth, int newHeight) {
-    if (width == newWidth && height == newHeight) return;
-    FreeGrid(*this);
-    width = newWidth;
-    height = newHeight;
-    AllocateGrid(*this);
-}
-
 // ---- Constructors ---------------------------------------------------------------------------------
 
-template <> SearchGrid<std::int8_t>* SearchGrid<std::int8_t>::Construct(int newWidth, int newHeight) {
-    width = newWidth;
-    height = newHeight;
-    AllocateGrid(*this);
-    return this;
+LocalSearch::LocalSearch() {
+    ResizeGrid(nodes, 1, 1);
+    ResizeGrid(levels, 1, 1);
 }
 
-template <> SearchGrid<SearchNode>* SearchGrid<SearchNode>::Construct(int newWidth, int newHeight) {
-    width = newWidth;
-    height = newHeight;
-    AllocateGrid(*this);
-    return this;
-}
-
-template <> SearchGrid<AIMapCell>* SearchGrid<AIMapCell>::Construct(int newWidth, int newHeight) {
-    height = newHeight;
-    width = newWidth;
-    AllocateCellGrid(this);
-    return this;
-}
-
-template <> SearchGrid<std::uint32_t>* SearchGrid<std::uint32_t>::Construct(int newWidth, int newHeight) {
-    height = newHeight;
-    width = newWidth;
-    AllocateOccluderGrid(this);
-    return this;
-}
-
-void ConstructEdgeGrid(SearchGrid<std::int16_t>* grid) {
-    grid->width = 1;
-    grid->height = 1;
-    AllocateEdgeGrid(grid);
-}
-
-void ConstructRepresentativeGrid(SearchGrid<std::uint8_t>* grid) {
-    grid->width = 1;
-    grid->height = 1;
-    AllocateZeroedByteGrid(grid);
-}
-
-void ConstructRegionGrid(SearchGrid<std::uint16_t>* grid) {
-    grid->width = 1;
-    grid->height = 1;
-    AllocateGrid(*grid);
-}
-
-LocalSearch* LocalSearch::Construct(CAIMap* owner) {
-    nodes.width = 1;
-    nodes.height = 1;
-    AllocateGrid(nodes);
-    levels.width = 1;
-    levels.height = 1;
-    AllocateGrid(levels);
-    map = nullptr;
-    if (owner) Attach(owner, false);
-    return this;
-}
-
-void LocalSearch::Destruct() {
-    FreeGrid(levels);
-    FreeGrid(nodes);
-}
-
-CUnitLayer::CUnitLayer() {
-    for (UnitLayerNode*& bucket : buckets) bucket = nullptr;
-    freeNodes = nullptr;
-}
-
-CUnitLayer::~CUnitLayer() = default;
+BlockSearch::BlockSearch() { ResizeGrid(records, 1, 1); }
 
 void AIDirtyRect::Reset() {
     minX = 10000;
@@ -164,12 +87,22 @@ int CostBand(int cost) {
 
 } // namespace
 
-AIEventTable* AIEventTable::Construct() {
-    width = 1;
-    height = 1;
+AIEventTable::AIEventTable() {
     AllocateEventCells(this);
     Clear();
-    return this;
+}
+
+AIEventTable::~AIEventTable() {
+    for (auto& slot : slots) {
+        for (AIEvent* head : slot) {
+            for (AIEvent* event = head; event; event = event->nextInSlot) {
+                event->next = g_freeEvents;
+                g_freeEvents = event;
+            }
+        }
+    }
+    delete[] cells;
+    delete[] rows;
 }
 
 void AIEventTable::Clear() {
@@ -183,19 +116,6 @@ void AIEventTable::Clear() {
         AllocateEventCells(this);
     }
     std::memset(rows[0], 0, sizeof(AIEventCell));
-}
-
-void AIEventTable::Destroy() {
-    for (auto& slot : slots) {
-        for (AIEvent* head : slot) {
-            for (AIEvent* event = head; event; event = event->nextInSlot) {
-                event->next = g_freeEvents;
-                g_freeEvents = event;
-            }
-        }
-    }
-    delete[] cells;
-    delete[] rows;
 }
 
 // ---- Terrain types --------------------------------------------------------------------------------

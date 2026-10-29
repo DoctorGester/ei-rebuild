@@ -9,22 +9,16 @@
 #include <cstdint>
 #include <unordered_map>
 
-// A handle into the cache: the cache and the object it resolved to, or the height to look up.
+// A handle into the cache: the cache and the object it resolved to, or the height to look up. It starts with
+// nothing resolved: no reference, no cache.
 struct ShapeCacheHandle {
-    void* cache;
+    void* cache = nullptr;
     union {
-        CRefObject* ref;
+        CRefObject* ref = nullptr;
         RefPtr counted;   // the same dword as the owning pointer it is (Assign adds a reference)
     };
-    float height;
+    float height = 0.0f;
 };
-
-// A handle that has resolved nothing: no reference, no cache (the height is left as it is).
-inline ShapeCacheHandle* InitShapeHandle(ShapeCacheHandle* self) {
-    self->ref = nullptr;
-    self->cache = nullptr;
-    return self;
-}
 
 class UnitShapeCache {
 public:
@@ -32,9 +26,6 @@ public:
 
     virtual CRefObject* CreateShape(const ShapeCacheHandle* handle);
 
-    // The static initialiser calls it on the global: the cache built in place, no shapes; returns this.
-    UnitShapeCache* Construct();
-    void Destruct();
     // The shape for the handle's height: the stored one, else a new one from CreateShape, stored for the height
     // (shared). The handle then holds it (one more reference) and this cache.
     CRefObject* Resolve(ShapeCacheHandle* handle) {

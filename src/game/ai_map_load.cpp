@@ -240,20 +240,6 @@ constexpr float kAltitudeUnit = 32769.0f / 2147483648.0f;
 static_assert(std::bit_cast<std::uint32_t>(kAltitudeUnit) == 0x37800100u);
 static_assert(static_cast<double>(kAltitudeUnit) == 32769.0 / 2147483648.0);
 
-// A grid of the map sized for it: reallocated (and filled as its element type's Allocate fills
-// it) unless it has that size already.
-template <typename T>
-void ResizeGrid(SearchGrid<T>& grid, int width, int height, void(*allocate)(SearchGrid<T>*)) {
-    if (grid.width == width && grid.height == height) return;
-    FreeGrid(grid);
-    grid.width = width;
-    grid.height = height;
-    allocate(&grid);
-}
-
-// The grids of plain bytes (the marks; the water depths' is the same code inline) are left as allocated.
-void AllocateBytes(SearchGrid<std::int8_t>* grid) { AllocateGrid(*grid); }
-
 constexpr float kQuarter = 0.25f;
 
 // The heights follow the original's x87 sequence value by value: a float below is one it stores, a double one
@@ -431,7 +417,7 @@ int CAIMap::LoadTerrain(const char* path) {
     const int cellsY = description.header.sectorsY * kSectorCells;
     ResizeGrid(cells, cellsX, cellsY, AllocateCellGrid);
     ResizeGrid(occluders, cellsX, cellsY, AllocateOccluderGrid);
-    ResizeGrid(marks, cellsX, cellsY, AllocateBytes);
+    ResizeGrid(marks, cellsX, cellsY);
     for (int sectorY = 0; sectorY < description.header.sectorsY; ++sectorY) {
         for (int sectorX = 0; sectorX < description.header.sectorsX; ++sectorX) {
             char file[432];
@@ -453,7 +439,7 @@ void CAIMap::AttachTerrain() {
     BuildOpenMarks();
     InitCostTables(this);
     SearchGrid<std::int8_t>& water = waterDepth;
-    ResizeGrid(water, cells.width, cells.height, AllocateBytes);
+    ResizeGrid(water, cells.width, cells.height);
     std::memset(water.data, 0, static_cast<std::size_t>(water.height * water.width));
     forwardSearch.Attach(this, false);
     backwardSearch.Attach(this, true);

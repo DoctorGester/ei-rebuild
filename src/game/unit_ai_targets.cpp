@@ -2,7 +2,6 @@
 // option may be used, choosing the best target, and the orders it checks
 // and whether the unit can get at a target.
 #include "ai_map.h"
-#include "ai_scoped_path.h"
 #include "combat.h"
 #include "game_singletons.h"
 #include "map_object.h"
@@ -99,7 +98,7 @@ void AIOrder::MakeCast(int spell, CMapObject* object) {
 }
 
 bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fromHere) {
-    ScopedPath local;
+    AIPath path;
     CUnit* self = brain->owner->unit;
     CUnit* target = choice->object;
     int part = choice->part;
@@ -126,10 +125,10 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         CWorldServer* server = &g_serverWorld.Get();
         // The target is lifted off the sector map so it does not block its own cell.
         server->aiMap_.sectorMap.Remove(target);
-        if (server->aiMap_.FindPath(self, &target->localPosition_, &local.path, range, minDistance)) {
+        if (server->aiMap_.FindPath(self, &target->localPosition_, &path, range, minDistance)) {
             float scale = 0.5f;
-            point.x = static_cast<float>(scale * local.path.targetX);
-            point.y = static_cast<float>(scale * local.path.targetY);
+            point.x = static_cast<float>(scale * path.targetX);
+            point.y = static_cast<float>(scale * path.targetY);
             point.z = 0.0f;
         } else {
             point = self->localPosition_;

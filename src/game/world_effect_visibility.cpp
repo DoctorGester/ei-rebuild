@@ -22,11 +22,10 @@ CEffectShowVisibility::CEffectShowVisibility() {
     seerId_ = -1;
 }
 
-// The destructor body resets twice (inline, then the virtual), frees the grid and destroys the base.
+// The destructor body resets twice (inline, then the virtual); the grid frees itself.
 CEffectShowVisibility::~CEffectShowVisibility() {
     Reset();
     Reset();
-    FreeGrid(grid_.cells);
 }
 
 // The base is not reset: only the grid (taken out of the fog first), the units and the fog.

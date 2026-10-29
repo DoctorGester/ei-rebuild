@@ -27,19 +27,9 @@ int CellOf(float world) { return x87::fistp(static_cast<float>(2.0 * world - 0.5
 constexpr float kShapeMinHeight = 0.2f;
 constexpr int kExpensive = 12000;           // cost above which a step is flagged 2
 
-void AllocateGrid(SearchGrid<std::uint8_t>* grid) {
-    grid->data = new std::uint8_t[grid->width * grid->height];
-    grid->rows = new std::uint8_t*[grid->height];
-    for (int i = 0; i < grid->height; ++i) grid->rows[i] = grid->data + i * grid->width;
-}
 // A square grid of `size`: reallocated when the size differs, then cleared.
 void ResizeCleared(SearchGrid<std::uint8_t>* grid, int size) {
-    if (grid->width != size || grid->height != size) {
-        FreeGrid(*grid);
-        grid->width = size;
-        grid->height = size;
-        AllocateGrid(grid);
-    }
+    ResizeGrid(*grid, size, size);
     std::memset(grid->data, 0, static_cast<std::size_t>(grid->width * grid->height));
 }
 
@@ -74,7 +64,6 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         int otherY = CellOf(other->localPosition_.y);
         float otherHeight = other->standingHeight;
         ShapeCacheHandle handle;
-        InitShapeHandle(&handle);
         const CUnitShape* shape = nullptr;
         EI_NAN_AUDIT(otherHeight);
         if (otherHeight <= kShapeMinHeight) {
@@ -180,9 +169,9 @@ void FogGrid::Grow(int x, int y, int n) {
     if (bottom <= y0 + height - 1) bottom = y0 + height - 1;
     if (!grow) return;
     int size = (bottom - top > right - left ? bottom - top : right - left) + 1;
-    // A copy of the old marks (block and row table), moved into the cleared grid.
-    SearchGrid<std::uint8_t> old = cells;
-    AllocateGrid(&old);
+    // A copy of the old marks, moved into the cleared grid.
+    SearchGrid<std::uint8_t> old;
+    ResizeGrid(old, cells.width, cells.height);
     std::memcpy(old.data, cells.data, static_cast<std::size_t>(old.width * old.height));
     ResizeCleared(&cells, size);
     for (int row = 0; row < old.height; ++row)
@@ -190,7 +179,6 @@ void FogGrid::Grow(int x, int y, int n) {
             cells.rows[row - top + y0][col - left + x0] = old.rows[row][col];
     x0 = left;
     y0 = top;
-    FreeGrid(old);
 }
 
 void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit,
@@ -236,8 +224,6 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
 
 void* CAIMap::UnitShape(float standingHeight) {
     ShapeCacheHandle handle;
-    handle.cache = nullptr;
-    handle.ref = nullptr;
     EI_NAN_AUDIT(standingHeight);
     if (standingHeight <= kShapeMinHeight) return nullptr;
     int tenths = x87::fistp(static_cast<float>(static_cast<double>(standingHeight) * 10.0f + 1.0f));

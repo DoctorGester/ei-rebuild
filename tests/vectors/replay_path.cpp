@@ -136,7 +136,6 @@ bool CheckTables(Reader& r, char* d, std::size_t n) {
     if (!r.ok()) return true;   // RunBytes reports the short payload
 
     static SmoothTable ours[kSmoothTableCount];
-    for (SmoothTable& t : ours) t.Construct();
     BuildSmoothTablesAt(ours);
     for (int i = 0; i < kSmoothTableCount; ++i) {
         if (SameArray(ours[i].copies, tables[i].copies) && SameArray(ours[i].steps, tables[i].steps) &&
@@ -267,9 +266,9 @@ void BuildMap(const SavedMap& s) {
         SizeGrid(r.cells[c], s.representatives[c].width, s.representatives[c].height);
         SizeGrid(r.regions[c], s.regions[c].width, s.regions[c].height);
     }
-    r.local.Construct(map);
-    map->forwardSearch.Construct(map);
-    map->backwardSearch.Construct(nullptr);
+    std::construct_at(&r.local);
+    std::construct_at(&map->forwardSearch);
+    std::construct_at(&map->backwardSearch);
     g_map = map;
     g_mapOf = &s;
 }

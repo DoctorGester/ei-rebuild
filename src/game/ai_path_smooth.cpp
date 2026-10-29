@@ -66,7 +66,7 @@ void MakeSmoothStep(SmoothStep* step, const SmoothEdge* from, const SmoothEdge* 
 // The tables destroyed, the last one first (the `eh vector destructor iterator`).
 void DestroySmoothTables() {
     SmoothTable* tables = g_smoothTables.Get();
-    for (int i = kStates * kStates; i-- > 0;) tables[i].Destruct();
+    for (int i = kStates * kStates; i-- > 0;) std::destroy_at(&tables[i]);
 }
 void DestroySmoothPool() { g_smoothPool.Destroy(); }
 
@@ -251,20 +251,6 @@ void SmoothEdges::BuildEdges(int direction, bool incoming) {
     for (int i = 0; i < std::ssize(*edges); ++i) (*edges)[i].index = i;
 }
 
-// The tables live in raw storage (a StaticObject, the replay's own): their arrays are built and destroyed here.
-SmoothTable* SmoothTable::Construct() {
-    std::construct_at(&copies);
-    std::construct_at(&steps);
-    std::construct_at(&chained);
-    return this;
-}
-
-void SmoothTable::Destruct() {
-    std::destroy_at(&chained);
-    std::destroy_at(&steps);
-    std::destroy_at(&copies);
-}
-
 void SmoothTable::Build(const SmoothEdges* from, const SmoothEdges* to) {
     copies.clear();
     steps.clear();
@@ -331,7 +317,7 @@ constinit lib::StaticObject<SmoothPool> g_smoothPool = /*007C3038*/ {};
 constinit lib::StaticObject<SmoothTable[81]> g_smoothTables = /*007C3058*/ {};
 
 void ConstructSmoothTables() {
-    for (SmoothTable& table : g_smoothTables.Get()) table.Construct();
+    for (SmoothTable& table : g_smoothTables.Get()) std::construct_at(&table);
     std::atexit(DestroySmoothTables);
 }
 

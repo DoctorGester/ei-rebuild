@@ -382,8 +382,8 @@ bool LocalSearch::Recenter(int x0, int y0, int x1, int y1, bool settleInside) {
     if (!PlaceWindow(x0, y0, x1, y1)) return false;
     FillCellRows(this);
     if (CdqAbs(originX - oldX) >= 31 || CdqAbs(originY - oldY) >= 31) return false;
-    SearchGrid<SearchNode> old{nullptr, nullptr, nodes.width, nodes.height};
-    AllocateGrid(old);
+    SearchGrid<SearchNode> old;
+    ResizeGrid(old, nodes.width, nodes.height);
     if (old.width * old.height > 0) std::memcpy(old.data, nodes.data, old.width * old.height * sizeof(SearchNode));
     int shiftX = originX - oldX, shiftY = originY - oldY;
     // Shift the nodes; remember the cheapest one kept on the old window's inner ring.
@@ -432,6 +432,5 @@ bool LocalSearch::Recenter(int x0, int y0, int x1, int y1, bool settleInside) {
         }
     }
     PickCurrent();
-    FreeGrid(old);
     return true;
 }
