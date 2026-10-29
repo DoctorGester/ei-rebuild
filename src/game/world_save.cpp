@@ -82,7 +82,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
             world->aiMap_.sectorMap.Remove(unit);
             Vector3 from = unit->localPosition_;
             Vector3 to = unit->localPosition_;
-            world->aiMap_.FindFreeCellNear(unit, &from, &to);
+            world->aiMap_.FindFreeCellNear(unit, from, &to);
             unit->localPosition_ = to;
             world->aiMap_.sectorMap.Add(unit);
             unit->ServerController()->ResyncWithUnit();

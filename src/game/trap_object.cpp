@@ -40,9 +40,8 @@ bool CTrapObject::RunTick() {
     Update();
     if (!(flags_ & MapObjectFlag::Armed)) return false;
     if (!WorldContext()->IsServer()) return false;
-    std::list<CUnit*> units{};
     auto* world = ServerWorld();
-    world->aiMap_.sectorMap.FindUnitsInRadius(&localPosition_, &units, kTriggerRadius);
+    std::list<CUnit*> units = world->aiMap_.sectorMap.FindUnitsInRadius(localPosition_, kTriggerRadius);
     if ((flags_ & MapObjectFlag::ArmedFresh) && units.empty()) {
         flags_ &= ~MapObjectFlag::ArmedFresh;
     } else if (!units.empty()) {

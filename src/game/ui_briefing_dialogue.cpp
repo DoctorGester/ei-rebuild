@@ -194,7 +194,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
     at.x = static_cast<float>(eye.x + alongX);
     at.y = static_cast<float>(eye.y + alongY);
     at.z = static_cast<float>(eye.z + height);
-    g_serverWorld.GetPlayer(0)->Server()->SendPosition0F(&at, &eye, 1);
+    g_serverWorld.GetPlayer(0)->Server()->SendPosition0F(at, eye, 1);
 }
 
 void CBriefingScreen::ViewPreset(int preset) {

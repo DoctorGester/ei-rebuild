@@ -138,7 +138,7 @@ void AddDefaultLight(CSceneRenderer* renderer) {
     CLight* light = g_clientWorld.lightFactory_->CreateLight(0x2E);
     Vector3 colour = {1.0f, 1.0f, 1.0f};
     Vector3 position = {5.0f, 5.0f, -8.0f};
-    light->SetDirectional(&colour, &position);
+    light->SetDirectional(colour, position);
     const std::uint32_t range = 0x49742400, rangeSquared = 0x5368D4A5, inverseRangeSquared = 0x2B8CBCCC;
     light->range_ = std::bit_cast<float>(range);
     light->rangeSquared_ = std::bit_cast<float>(rangeSquared);

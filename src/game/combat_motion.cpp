@@ -77,7 +77,7 @@ void FaceAndStop(CUnitServer* self) {
     self->unit->localRotation_.AxisY(&axis);
     Vector3 back;
     const Vector3* direction = NegateVector(&back, axis);
-    if (self->motion.Start(&self->unit->localPosition_, direction, now)) self->unit->RefreshMotion();
+    if (self->motion.Start(self->unit->localPosition_, *direction, now)) self->unit->RefreshMotion();
     self->ClearStanding();
     self->SetState(kStateChasing);
 }
@@ -137,7 +137,7 @@ void Play(CUnitServer* self, const AnimationSteps& steps, int newState) {
     Vector3 axis;
     self->unit->localRotation_.AxisY(&axis);
     Vector3 back = -axis;
-    if (self->motion.Start(&self->unit->localPosition_, &back, now)) self->unit->RefreshMotion();
+    if (self->motion.Start(self->unit->localPosition_, back, now)) self->unit->RefreshMotion();
     CWorldServer* world = self->ServerWorld();
     if (self->unit->obstacle != 0) {
         CSectorMap* sectors = &world->aiMap_.sectorMap;
@@ -312,7 +312,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
     actingCheckTime = WorldContext()->tick_ + 10;
     if (plan.targetId == -1) {
         int now = World()->tick_;
-        motion.StandAndTurnUntil(now, unit, &plan.direction, plan.endTime, plan.startTime);
+        motion.StandAndTurnUntil(now, unit, plan.direction, plan.endTime, plan.startTime);
     } else {
         int until = follow ? plan.endTime : 0;
         int now = World()->tick_;
@@ -432,7 +432,7 @@ bool CUnitServer::ChangeMoveMode() {
 
 // --- Paths --------------------------------------------------------------------------------------
 
-bool CUnitServer::PathTo(const Vector3* point, float range) {
+bool CUnitServer::PathTo(const Vector3& point, float range) {
     UpdateSneak();
     motionChanged = 0;
     stoodBlocked = 0;
@@ -474,21 +474,21 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
     return true;
 }
 
-void CUnitServer::LiftNearby(std::list<CUnit*>* list, const Vector3* point, char moving) {
+std::list<CUnit*> CUnitServer::LiftNearby(const Vector3& point, char moving) {
     CWorldServer* world = ServerWorld();
     CPlayer* player = unit->player;
-    list->clear();
-    if (!player || player->sessionKind_ != 1) return;
+    std::list<CUnit*> list;
+    if (!player || player->sessionKind_ != 1) return list;
     // Away from the point: the units near it that are not in the player's group are lifted off the sector map
     // and stay in the list.
-    float dx = point->x - unit->localPosition_.x;
-    float dy = point->y - unit->localPosition_.y;
-    float dz = point->z - unit->localPosition_.z;
+    float dx = point.x - unit->localPosition_.x;
+    float dy = point.y - unit->localPosition_.y;
+    float dz = point.z - unit->localPosition_.z;
     if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f) {
         CSectorMap* sectors = &world->aiMap_.sectorMap;
-        sectors->FindUnitsInRadius(point, list, 4.0f);
+        list = sectors->FindUnitsInRadius(point, 4.0f);
         const ScriptGroup* group = &player->Server()->partyUnits_;
-        for (auto node = list->begin(); node != list->end();) {
+        for (auto node = list.begin(); node != list.end();) {
             std::list<CUnit*>::iterator  current = node;
             ++node;
             CUnit* other = *current;
@@ -496,7 +496,7 @@ void CUnitServer::LiftNearby(std::list<CUnit*>* list, const Vector3* point, char
                 sectors->Remove(other);
                 continue;
             }
-            list->erase(current);
+            list.erase(current);
         }
     }
     // The party members moving (when `moving`) or following this unit are lifted and listed too.
@@ -509,10 +509,11 @@ void CUnitServer::LiftNearby(std::list<CUnit*>* list, const Vector3* point, char
         bool lift = moving && (controller->action.kind == UnitOrderKind::Move || controller->action2.kind == UnitOrderKind::Move);
         if (!lift) lift = controller->brain.LeaderOrFollowed() == unit;
         if (!lift) continue;
-        auto added = list->emplace(list->end());
+        auto added = list.emplace(list.end());
         *added = member;
         g_serverWorld.aiMap_.sectorMap.Remove(member);
     }
+    return list;
 }
 
 void CUnitServer::ReportPath(AIPath* path, char partial) {
@@ -575,7 +576,7 @@ void CUnitServer::ResyncWithUnit() {
     unit->localRotation_.AxisY(&axis);
     Vector3 back;
     const Vector3* direction = NegateVector(&back, axis);
-    if (motion.Start(&unit->localPosition_, direction, now)) unit->RefreshMotion();
+    if (motion.Start(unit->localPosition_, *direction, now)) unit->RefreshMotion();
     ClearStanding();
     SetState(kStateChasing);
     unit->UpdateSizeClass();

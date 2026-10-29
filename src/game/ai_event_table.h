@@ -42,7 +42,7 @@ struct AIViewer {
     void Noise(CUnitServer* source, float loudness, int kind, const Vector3* at);
     // The noise of a moving unit: Noise of kind 0x1A at the unit, as loud as moveFactors[0] x conspicuity[3] x
     // the noise of the ground at `position` (the AI map's terrain type). Returns 0 (no presence record).
-    AIEventPresence* StepNoise(const Vector3* position, CUnitServer* source);
+    AIEventPresence* StepNoise(const Vector3& position, CUnitServer* source);
 
     CAIMap* map = nullptr;
     int tick = 0;                   // the world's event table: its tick (AIEventTable::Advance)

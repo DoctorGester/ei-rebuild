@@ -55,9 +55,9 @@ void TryLightningStrike(CWorldServer* world) {
     ground.y = Uniform(kMapScale);
     ground.z = 0.0f;
     CAIMap* aiMap = &world->aiMap_;
-    int kind = aiMap->MaterialAt(&ground);
+    int kind = aiMap->MaterialAt(ground);
     if (kind != 3 && kind != 1) return;
-    if (aiMap->InWaterAt(&ground)) return;
+    if (aiMap->InWaterAt(ground)) return;
 
     float dx = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kOffsetScale - kOffsetCentre);
     double dyRaw = x87::FromUnsigned(g_random.Next()) * kOffsetScale - kOffsetCentre;
@@ -68,14 +68,14 @@ void TryLightningStrike(CWorldServer* world) {
     sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
     sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
     sky.z = ground.z;
-    if (aiMap->LargestStepAlong(&ground, &sky) >= 1.0f) return;   // NaN goes on (C0 set)
+    if (aiMap->LargestStepAlong(ground, sky) >= 1.0f) return;   // NaN goes on (C0 set)
 
     CBaseManager* manager = world->TimedObjectManager();
     auto* lightning = manager->CreateObjectAs<CEffectTornado>(kTypeLightning, -1);
     sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
     sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
     sky.z = ground.z;
-    lightning->Launch(&ground, &sky);
+    lightning->Launch(ground, sky);
     lightning->startTick_ = world->tick_;
     lightning->AddRef();
     lightning->MarkChanged();

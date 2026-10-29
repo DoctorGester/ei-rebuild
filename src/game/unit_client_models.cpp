@@ -221,8 +221,7 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
             if (hair == -1) continue;
             part = str::Format("hr.%.2d", hair);
         }
-        std::vector<CFigureMesh*> parts;
-        unit->CollectPartsByPrefix(part, &parts);
+        std::vector<CFigureMesh*> parts = unit->CollectPartsByPrefix(part);
         if (std::ssize(parts) == 1) {
             // One part of that name: replaced only when it is not the plain part already.
             if (str::Compare(part, parts[0]->GetName()) != 0) {
@@ -233,7 +232,6 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
             for (int k = 0; k < std::ssize(parts); ++k) unit->RemovePart(parts[k]);
             unit->LoadPart(part);
         }
-        lib::FreeStorage(parts);
     }
     return true;
 }
@@ -241,20 +239,17 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
 int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     std::uint32_t previous = WeaponIdOf(this, unit->activeWeapon);
     std::uint32_t next = WeaponIdOf(this, slot);
-    std::vector<std::string> names;
     {
         std::string name = unit->name;
         g_clientWorld.figureManager_->FindModel(&name);   // loads and caches the model
     }
     if (previous != kNoItemId) {
-        WeaponModelParts(previous >> 16, &names);
-        for (const std::string& name : names) unit->RemovePartNamed(name);
+        for (const std::string& name : WeaponModelParts(previous >> 16)) unit->RemovePartNamed(name);
     }
     unit->activeWeapon = slot;
     weaponHidden = 0;
     if (next != kNoItemId) {
-        WeaponModelParts(next >> 16, &names);
-        for (const std::string& name : names) {
+        for (const std::string& name : WeaponModelParts(next >> 16)) {
             CEngineObject* part = unit->LoadPart(name);
             if (part) unit->AttachPartMesh(part);
         }
@@ -278,7 +273,7 @@ void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
     if (weaponHidden == static_cast<std::uint8_t>(hidden)) return;
     std::uint32_t hand = WeaponIdOf(this, unit->activeWeapon);
     std::vector<std::string> names;
-    if (hand != kNoItemId) WeaponModelParts(hand >> 16, &names);
+    if (hand != kNoItemId) names = WeaponModelParts(hand >> 16);
     for (const std::string& name : names) {
         if (CEngineObject* part = unit->FindPart(name)) {
             if (hidden) part->flags_ |= FigureMeshFlag::Hidden;

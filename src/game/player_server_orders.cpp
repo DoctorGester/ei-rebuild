@@ -136,7 +136,7 @@ int CPlayerServer::OnCastAtPoint() {
         AIBrain* brain = &unit->ServerController()->brain;
         if (PlayerMode* mode = brain->FindPlayerMode()) {
             const Vector3 point = message.point;
-            mode->CommandCastAt(brain, message.spell, &point);
+            mode->CommandCastAt(brain, message.spell, point);
         }
     }
     return 1;

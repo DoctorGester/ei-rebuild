@@ -201,15 +201,16 @@ void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMapped
 
 // Rebirth redirects its ListFiles call; this is the vanilla body. From the unit database's sound counts, on
 // the game's main thread.
-void CSoundManager::ListWaveFiles(std::vector<std::string>* out, const char* pattern) {
-    out->clear();
+std::vector<std::string> CSoundManager::ListWaveFiles(const char* pattern) {
+    std::vector<std::string> waves;
     std::vector<std::string> names;
     for (auto node = waveSources.begin(); node != waveSources.end();) {
         CMappedResource* source = *node;
         ++node;
         source->ListFiles(&names, pattern);
-        out->insert(out->end(), names.begin(), names.end());
+        waves.insert(waves.end(), names.begin(), names.end());
     }
+    return waves;
 }
 
 // Called at startup.

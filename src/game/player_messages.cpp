@@ -154,24 +154,24 @@ void CPlayerServer::SendState73(const WaterTweens* source) {
     player_->dirty_ &= ~PlayerDirty::Countdowns;
 }
 
-int CPlayerServer::SendPosition04(const Vector3* at, std::uint32_t a, std::uint32_t b) {
+int CPlayerServer::SendPosition04(const Vector3& at, std::uint32_t a, std::uint32_t b) {
     WriteByte(&out_, 0x04);
-    Write(&out_, at, 12);
+    Write(&out_, &at, 12);
     WriteDword(&out_, a);
     WriteDword(&out_, b);
-    lastPosition_ = *at;
+    lastPosition_ = at;
     return 1;
 }
 
-std::uint32_t CPlayerServer::SendPosition0F(const Vector3* at, const Vector3* other, std::uint8_t flag) {
+std::uint32_t CPlayerServer::SendPosition0F(const Vector3& at, const Vector3& other, std::uint8_t flag) {
     WriteByte(&out_, 0x0F);
-    Write(&out_, at, 12);
-    Write(&out_, other, 12);
+    Write(&out_, &at, 12);
+    Write(&out_, &other, 12);
     Write(&out_, &flag, 1);
-    lastPosition_ = *at;
+    lastPosition_ = at;
     // EAX is left holding the position's z.
     std::uint32_t z;
-    z = std::bit_cast<std::uint32_t>(at->z);
+    z = std::bit_cast<std::uint32_t>(at.z);
     return z;
 }
 

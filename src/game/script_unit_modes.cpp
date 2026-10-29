@@ -21,7 +21,7 @@ AIMode::~AIMode() {}
 
 AIActionMode::~AIActionMode() {}
 
-GuardMode::GuardMode(const Vector3* newPoint, float newRadius, float newWander) { Set(newPoint, newRadius, newWander); }
+GuardMode::GuardMode(const Vector3& newPoint, float newRadius, float newWander) { Set(newPoint, newRadius, newWander); }
 
 GuardMode::~GuardMode() {}
 
@@ -39,7 +39,7 @@ GuardMode* GuardMode::Clone() {
     return copy;
 }
 
-SentryMode::SentryMode(const Vector3* newPoint) { Set(newPoint); }
+SentryMode::SentryMode(const Vector3& newPoint) { Set(newPoint); }
 
 SentryMode::~SentryMode() {}
 

@@ -223,7 +223,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         aiMap_.sectorMap.Remove(unit);
         Vector3 free;
         std::memcpy(&free, &unit->localPosition_.x, sizeof(free));
-        aiMap_.FindFreeCellNear(unit, &position, &free);
+        aiMap_.FindFreeCellNear(unit, position, &free);
         std::memcpy(&unit->localPosition_.x, &free, sizeof(free));
         aiMap_.sectorMap.Add(unit);
 
@@ -257,7 +257,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         script += line;
         if (sessionKind_ == kKindSinglePlayer && !atStart) unit->moveMode2 = record->moveMode2;
         if (placement) {
-            bool flagged = aiMap_.IsPassableForClass(1, &unit->localPosition_);
+            bool flagged = aiMap_.IsPassableForClass(1, unit->localPosition_);
             if (flagged) unit->SetMoveModes(placement->moveMode, placement->moveMode);
             else unit->moveMode2 = static_cast<int>(placement->moveMode);
         }
@@ -370,8 +370,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             at.x = flame->offset.x + base.position.x;
             CSpell* spell = SpellManager()->CreateSpellFromText(worlddata::CampfireText());
             if (spell) spell->AddRef();
-            CastSpell(spell, nullptr, const_cast<const Vector3*>(&at), nullptr,
-                                   const_cast<const Vector3*>(&at), 0);
+            CastSpell(spell, nullptr, at, nullptr, at, 0);
             if (spell) spell->Release();
         }
         base.object = object;

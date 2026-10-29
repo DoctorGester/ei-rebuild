@@ -95,8 +95,8 @@ class CWorldServer;
 // Whether the spell may hit: spells whose prototype has needsSight need a line of sight of at least 0.1 from
 // `from` (z = the caster's ground + BaseSpeed, a height) to the target (z = its ground + ModeSpeed), or to `at`
 // one unit above the water surface when there is no target.
-bool SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* from,
-                                    CUnit* target, const Vector3* at);
+bool SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3& from,
+                                    CUnit* target, const Vector3& at);
 
 struct MoveModeState {
     int mode;                   // 0..2 (3 is stored as 2 with `wasMode3`)
@@ -275,13 +275,13 @@ public:
     // Kind 1 (move) to `point`: source = `walk` != 0, modifier = `run`, the point's z replaced by `range`
     // (sic). A party unit with a real point (z not -1313) gets param 1 while the world is not paused, else
     // plans the move within `range`.
-    void OrderMove(const Vector3* point, int run, int walk, float range);
+    void OrderMove(const Vector3& point, int run, int walk, float range);
     // Kind 3 at body part `location` (6, all, unless the target's part kind is 3); modifier = `calledShot`.
     // Dropped when the target is out of reach (message 0x0C) or the planner refuses.
     void OrderAttack(CMapObject* target, int location, int calledShot, AckKind planArg);
     // Kind 4 (cast at a point). A scroll (quick item of category 8) is cast at once. A party unit needs the
     // spell's skill for a spell of its own; message 0x13 if not, or while flags_ has 0x10000000.
-    void OrderCastAt(std::uint32_t source, const Vector3* point, int run);
+    void OrderCastAt(std::uint32_t source, const Vector3& point, int run);
     void OrderCast(std::uint32_t source, CMapObject* target, int run);
     // Unless the current order is of kind 11: the queued order becomes kind 11 (stop).
     void StopQueued();
@@ -356,7 +356,7 @@ public:
     // False for an attack without a ranged weapon, or a skill, on a living unit of size class 0 that is too
     // high to reach (its prototype's height plus its z at 1.5 or above); else CanPlanAction.
     bool CanReachAndPlan(const AIOrder* order);
-    bool CanReachAndPlanFrom(const AIOrder* order, const Vector3* point);
+    bool CanReachAndPlanFrom(const AIOrder* order, const Vector3& point);
 
     // --- The animation steps of an order. The unit's animation entries are looked up by a key of weapon,
     // movement and action bits.
@@ -458,11 +458,11 @@ public:
     bool ChangeMoveMode();
     // FindPath within `range`: no path stands the unit still (state 6, stoodBlocked from the path's failed
     // flag); a path makes it idle (state 0) with its movement animation going on.
-    bool PathTo(const Vector3* point, float range);
-    // Fills `list` with the units lifted off the sector map for a path: away from `point`, those near it
+    bool PathTo(const Vector3& point, float range);
+    // The units lifted off the sector map for a path: away from `point`, those near it
     // outside the player's group; the party members that move (with `moving`) or follow this unit. Only for a
     // player's units with sessionKind_ 1.
-    void LiftNearby(std::list<CUnit*>* list, const Vector3* point, char moving);
+    std::list<CUnit*> LiftNearby(const Vector3& point, char moving);
     // Messages 0x0E / 0x01 to a party unit's player, unless the brain's mode is 6.
     void ReportPath(AIPath* path, char partial);
     // Every field to its start value (constructor and Load).
@@ -495,7 +495,7 @@ public:
     bool PlanOrderRoute(UnitAction* order, AckKind shout);
     // A party unit's move: the units in the way lifted (LiftNearby), a runner planning as walking where it can,
     // FindPath within `range` (the order's z bits), the units put back and the result reported.
-    void PlanMove(const Vector3* point, int moving, int run, float range);
+    void PlanMove(const Vector3& point, int moving, int run, float range);
 
     // `claimant` claims the players in `mask` are enemies of this unit: they join claimedHostile and the AI
     // memory hears a call of kind 0x1E carrying the mask.

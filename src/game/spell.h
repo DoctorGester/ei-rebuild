@@ -201,7 +201,7 @@ public:
 
     // The units within `radius` that lie within 1 of the vertical plane through `position` along
     // `direction` (only x and y are used): the wall spells.
-    void HitUnitsAlong(const Vector3* direction);
+    void HitUnitsAlong(const Vector3& direction);
 
     // The casting state of spell `type` (the prototype index): its effect objects, the instant hits, the
     // next state (1 missile, 2 lasting, 3 done; some failed casts leave it at 0) and the timer.
@@ -212,21 +212,21 @@ public:
     // Nothing without a visual or for other types.
     void UpdateFootprint(SpellType type, int stamp);
     // It becomes the visual.
-    void CreateArrow(const Vector3* from, CEngineObject* target, int particleType, float power, const char* sound,
-                     const Vector3* color, float range);
+    void CreateArrow(const Vector3& from, CEngineObject* target, int particleType, float power, const char* sound,
+                     const Vector3& color, float range);
     // Types 0x2010 and 0x2014 are walls. `keep`: it becomes the visual, else it is only added to the world's
     // timed objects.
-    CEffectParticle* CreateParticle(int keep, int particleType, const Vector3* position, float size, float alpha,
-                                    const Vector3* velocity, CEngineObject* attachTo);
+    CEffectParticle* CreateParticle(int keep, int particleType, const Vector3& position, float size, float alpha,
+                                    const Vector3& velocity, CEngineObject* attachTo);
     // Nothing without a target; it becomes the visual.
-    void CreateLightning(const Vector3* from, CMapObject* target, CEngineObject* source, float power, int flag);
+    void CreateLightning(const Vector3& from, CMapObject* target, CEngineObject* source, float power, int flag);
     // A one-shot sound effect (the effect does not keep it).
-    void CreateSound(const char* name, const Vector3* position, const Vector3* velocity, float volume, float radius);
+    void CreateSound(const char* name, const Vector3& position, const Vector3& velocity, float volume, float radius);
     // `first`, then `pattern` itself (count < 1) or `pattern` formatted with 1..count. It becomes the sound.
-    void CreateSoundSequence(const Vector3* position, const Vector3* velocity, const char* first,
+    void CreateSoundSequence(const Vector3& position, const Vector3& velocity, const char* first,
                              const char* pattern, int count);
     // Light flags Specular | Strong; it becomes the light.
-    void CreatePointLight(const Vector3* position, const Vector3* color, float range, const Vector3* velocity);
+    void CreatePointLight(const Vector3& position, const Vector3& color, float range, const Vector3& velocity);
 
     // One tick. Returns 0 when the effect has ended (the world then removes it) or without a world.
     int Update();
@@ -239,8 +239,8 @@ public:
     void ReleaseSound();
     void ReleaseLight();
 
-    void Init(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* position, CMapObject* target,
-              const Vector3* targetPoint, std::uint8_t newSilentEnd);
+    void Init(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3& position, CMapObject* target,
+              const Vector3& targetPoint, std::uint8_t newSilentEnd);
     // 0 when `object` is the target (the world then drops the effect).
     bool Forget(CEngineObject* object);
 
@@ -358,8 +358,8 @@ public:
     CSpell* CreateSpellFromText(std::string_view text);
 
     // `this` is not used.
-    void ListSpellNames(std::vector<std::string>* names);
-    void ListModifierNames(std::vector<std::string>* names);
+    std::vector<std::string> ListSpellNames();
+    std::vector<std::string> ListModifierNames();
 
     // By the high half of a packed id. Its entries are only the null ones CreateSpellObject's lookup adds, so the
     // destructor's walk (which stops at a null entry) deletes nothing in any order.
@@ -416,7 +416,7 @@ template <> inline constexpr bool lib::kBitFlags<LightFlag> = true;
 class CLight : public CTransformObject {
 public:
     // Luminance of the colour, falling off with the squared distance for point lights.
-    float GetIntensityAt(const Vector3* point);
+    float GetIntensityAt(const Vector3& point);
 
     // The range is sqrt(FLT_MAX).
     CLight();
@@ -426,14 +426,14 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     // Kind 1; LightFlag::Changed.
-    void SetPoint(const Vector3* color, const Vector3* position);
+    void SetPoint(const Vector3& color, const Vector3& position);
     // Kind 3; the light also tilts towards `direction`; LightFlag::Changed.
-    void SetDirectional(const Vector3* color, const Vector3* direction);
+    void SetDirectional(const Vector3& color, const Vector3& direction);
     // The terrain water layer's specular lighting: `base` plus the light's colour times `scale` and a factor,
     // each channel clamped at 1; w is then not written (the callers do not read it). Unlit, `out` is `base`. The
     // factor: 1 - distance^2 / range^2 (unlit below 0), times 1 + the cosine between `normal` and `toLight` when
     // that is not above 0.
-    void AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
+    void AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3& normal, const Vector3& toLight,
                   float distance) const;
 
     int kind_;                      // 1 point, 3 directional

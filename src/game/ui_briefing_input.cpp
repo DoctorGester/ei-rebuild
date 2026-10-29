@@ -83,7 +83,7 @@ static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, bool run) {
     if (!screen->leader_) return;
     CUnit* unit = g_serverWorld.FindUnit(screen->leader_->id_);
     if (!unit || (unit->flags_ & MapObjectFlag::Blocked)) return;
-    unit->ServerController()->brain.Walk(&point, run);
+    unit->ServerController()->brain.Walk(point, run);
 }
 
 

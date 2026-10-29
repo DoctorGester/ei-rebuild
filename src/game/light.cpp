@@ -45,35 +45,35 @@ CLight::CLight() {
 
 CLight::~CLight() = default;
 
-void CLight::SetPoint(const Vector3* color, const Vector3* position) {
+void CLight::SetPoint(const Vector3& color, const Vector3& position) {
     kind_ = kKindPoint;
-    color_[0] = color->x;
-    color_[1] = color->y;
-    color_[2] = color->z;
-    pointPosition_ = *position;
-    localPosition_ = *position;
+    color_[0] = color.x;
+    color_[1] = color.y;
+    color_[2] = color.z;
+    pointPosition_ = position;
+    localPosition_ = position;
     flags_ |= LightFlag::Changed;
 }
 
-void CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
+void CLight::SetDirectional(const Vector3& color, const Vector3& direction) {
     kind_ = kKindDirectional;
-    color_[0] = color->x;
-    color_[1] = color->y;
-    color_[2] = color->z;
-    direction_ = *direction;
-    const Vector3 target = *direction;
+    color_[0] = color.x;
+    color_[1] = color.y;
+    color_[2] = color.z;
+    direction_ = direction;
+    const Vector3 target = direction;
     TiltTowards(target);
     flags_ |= LightFlag::Changed;
 }
 
-void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
+void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3& normal, const Vector3& toLight,
                       float distance) const {
     const float falloff = 1.0f - distance * inverseRangeSquared_ * distance;
     if (falloff < 0.0f) {
         *out = *base;
         return;
     }
-    const float cosine = vecmath::Dot<Sum3::ZYX>(*normal, *toLight);
+    const float cosine = vecmath::Dot<Sum3::ZYX>(normal, toLight);
     const float facing = cosine <= 0.0f ? cosine + 1.0f : 1.0f;
     const float amount = facing * falloff * scale;
     const float red = Lit(base->x, amount, color_[0]);

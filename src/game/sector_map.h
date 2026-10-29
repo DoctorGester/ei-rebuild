@@ -105,14 +105,14 @@ public:
     // Undone again if the footprint does not fit.
     bool Add(CMapObject* object);
 
-    // Fills `result` (cleared first) with the units within `radius` of `position`,
-    // nearest sectors first; each match is inserted at the head of the list.
-    void FindUnitsInRadius(const Vector3* position, std::list<CUnit*>* result, float radius);
+    // The units within `radius` of `position`, nearest sectors first; each match is inserted at the head of
+    // the list.
+    std::list<CUnit*> FindUnitsInRadius(const Vector3& position, float radius);
 
     // Moves `object` to `position`, re-stamping its footprint (restored on failure) and
     // moving it between sector lists when it crosses into another sector. Rebirth's FixMoveObject
     // first refuses a position with x or y below 0 (or NaN).
-    bool Move(CMapObject* object, const Vector3* position);
+    bool Move(CMapObject* object, const Vector3& position);
 
     // The unit list of sector (sx, sy), null outside the map.
     std::list<CUnit*>* UnitsAt(int sx, int sy);

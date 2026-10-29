@@ -50,8 +50,6 @@ public:
     // original's: converted to UTF-8 where it is read and back where it is written (asset_text.h).
     // Bytes up to a zero or a failed read (in UTF-8).
     std::string ReadString();
-    // A text read as ReadString reads it, assigned to `out`.
-    void ReadInto(std::string* out);
     // `text` up to its first zero, in the asset code page (a character it has no byte for as '?'), and a zero.
     void WriteString(std::string_view text);
 

@@ -158,7 +158,7 @@ void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
     CUnit* self = unit;
     Vector3 point;
     const Vector3* at = target->AimPoint(&point);
-    g_serverWorld.CastSpell(spell, self, &self->localPosition_, target, at, 0);
+    g_serverWorld.CastSpell(spell, self, self->localPosition_, target, *at, 0);
 }
 
 void CUnitServer::TriggerItemSpells(char onHit) {
@@ -173,7 +173,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!fires) continue;
         UseItemCharge(item, cost);
         CUnit* self = unit;
-        g_serverWorld.CastSpell(spell, self, &self->localPosition_, self, &self->localPosition_, 0);
+        g_serverWorld.CastSpell(spell, self, self->localPosition_, self, self->localPosition_, 0);
     }
 }
 

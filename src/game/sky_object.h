@@ -54,7 +54,7 @@ struct CSky {
     // about +z by the world time / 3000 when `turns` is set, its world matrix built from both and
     // pushed onto the pipeline's stacks 2 and 1; then the texture bound to stage 0 and the object
     // drawn (the renderer's draw with alpha 0xFF), and both stacks popped (when not empty).
-    void Draw(CSceneRenderer* renderer, const Vector3* eye);
+    void Draw(CSceneRenderer* renderer, const Vector3& eye);
 
     Ref<CSkyObject> object;   // null until the zone's sky is loaded
     Ref<CEngineObject> material;   // type 0x12, by CWorldClient::LoadSky

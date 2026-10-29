@@ -78,7 +78,7 @@ void ClassTemplateFill(ClassTemplate* t) {
     }
 
     // Spells and modifiers: the name's code is the key; allowed ones go to both lists.
-    spells->ListSpellNames(&names);
+    names = spells->ListSpellNames();
     for (const std::string& name : names) {
         const char* code = SpellCodeByName(name);
         std::string key(code);
@@ -88,7 +88,7 @@ void ClassTemplateFill(ClassTemplate* t) {
             AllList(t)->AddSpell(record);
         }
     }
-    spells->ListModifierNames(&names);
+    names = spells->ListModifierNames();
     for (const std::string& name : names) {
         const char* code = SpellModifierCodeByName(name);
         std::string key(code);

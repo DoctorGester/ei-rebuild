@@ -248,14 +248,14 @@ void CSaveLoadWindow::FillEntries() {
             if (info.ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
                 info.ReadValue(entry->gameTime_);
                 entry->map_ = info.ReadString();
-                info.ReadInto(&entry->zone_);
+                entry->zone_ = info.ReadString();
                 // The version the header read.
                 if (static_cast<int>(info.version_) > 1) {
                     std::int32_t savedAt;
                     info.ReadValue(savedAt);
                     entry->savedAt_ = savedAt;
                 }
-                if (static_cast<int>(info.version_) > 2) info.ReadInto(&entry->title_);
+                if (static_cast<int>(info.version_) > 2) entry->title_ = info.ReadString();
             }
             info.Close();
             if (entry->title_.size() == 0) entry->MakeTitle();

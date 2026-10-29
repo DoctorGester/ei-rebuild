@@ -188,7 +188,7 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
     lightning.object = ScriptEffect<CEffectLightning>(bolt);
     Vector3 to{f[4], f[5], f[6]};
     Vector3 from{f[1], f[2], f[3]};
-    bolt->SetEnds(&from, &to, f[7]);
+    bolt->SetEnds(from, to, f[7]);
     g_serverWorld.AddTimedObject(bolt);
 }
 
@@ -298,7 +298,7 @@ void ScriptPointLight::Load(CStream* stream) {
 void ScriptFxSource::Load(CStream* stream) {
     object = ReadObject<CEffectSound>(stream);
     stream->ReadValue(id);
-    stream->ReadInto(&name);
+    name = stream->ReadString();
     stream->ReadValue(position);
     stream->ReadValue(volume);
     stream->ReadValue(radius);

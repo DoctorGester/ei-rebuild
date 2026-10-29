@@ -20,11 +20,6 @@ namespace {
 void Read(CStream* stream, void* to, int size) { stream->Read(to, static_cast<std::uint32_t>(size)); }
 int Version(const CStream* stream) { return static_cast<int>(stream->version_); }
 
-// A string read into a temporary, assigned to `field`.
-void ReadInto(CStream* stream, std::string* field) {
-    *field = stream->ReadString();
-}
-
 const char* const kMessageKeys[13] = {
     "lmp_player_connected",
     "lmp_player_disconnected",
@@ -58,14 +53,14 @@ void CInterface3D::LoadState(CStream* stream) {
     int count;
     stream->ReadValue(count);
     for (int i = 0; i < count; ++i) {
-        ReadInto(stream, &last);
+        last = stream->ReadString();
         int value;
         stream->ReadValue(value);
     }
-    ReadInto(stream, &messageText_);
+    messageText_ = stream->ReadString();
     if (Version(stream) >= kVersionMessageFlag) {
         stream->ReadValue(messageFlag_);
-        if (Version(stream) >= kVersionSavedText) ReadInto(stream, &savedText_);
+        if (Version(stream) >= kVersionSavedText) savedText_ = stream->ReadString();
     }
 }
 

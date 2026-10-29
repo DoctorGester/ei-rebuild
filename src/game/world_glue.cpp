@@ -110,7 +110,7 @@ void GameSetUnitHeight(int id, float z) {
     EI_NAN_AUDIT(unit->localPosition_.z, z);
     if (unit->localPosition_.z == z) return;
     Vector3 target = {unit->localPosition_.x, unit->localPosition_.y, z};
-    world->aiMap_.sectorMap.Move(unit, &target);
+    world->aiMap_.sectorMap.Move(unit, target);
     unit->MarkChanged(2);
 }
 

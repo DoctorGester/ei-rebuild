@@ -47,7 +47,7 @@ public:
     // Flags bit 1 (changed) and the change stamp (global).
     void MarkChanged();
     // Sets the velocity (moving_ as in UpdateMoving) and marks the effect changed.
-    void SetVelocity(const Vector3* velocity);
+    void SetVelocity(const Vector3& velocity);
 
     int startTick_;            // game tick the effect began (particles: warm-up and lifetime)
     Vector3 velocity_;         // added to the position every tick while moving_
@@ -168,7 +168,7 @@ public:
     void SetAttachedTo(int objectId);
     void SetSize(float size);
     void SetColors(float a, float b);
-    void SetTarget(const Vector3* target);
+    void SetTarget(const Vector3& target);
     void Attach();                                // attaches the source to attachedTo_
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
@@ -193,7 +193,7 @@ public:
     CEffectWall();
     ~CEffectWall() override;
     void Reset() override;
-    void SetDirection(const Vector3* direction);
+    void SetDirection(const Vector3& direction);
     int Unpack(int update, DeltaField* field) override;
     void Pack(DeltaField* field) override;
     void Load(CStream* stream) override;
@@ -214,7 +214,7 @@ public:
     void Start(int update) override;
     int Unpack(int update, DeltaField* field) override;
     void Pack(DeltaField* field) override;
-    void SetEnds(const Vector3* from, const Vector3* to, float width);
+    void SetEnds(const Vector3& from, const Vector3& to, float width);
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     void SetObjects(int fromObject, int toObject);
@@ -343,7 +343,7 @@ public:
     bool RunTick() override;                                   // Update(game tick), returns 0
     // A perch seen from 1.5 above `from`: random directions at distance 50 (then 5 less each try, at least 4)
     // and height 30 (3 more each try) until the AI map's line of sight to it is above 0.5.
-    Vector3* FindPerch(Vector3* out, const Vector3* from);
+    Vector3* FindPerch(Vector3* out, const Vector3& from);
     // The frame's step: `now` is the animation time (frames).
     void Update(float now);
     // Follows object `objectId`: when it exists, a new figure at a perch near it (filed in the client's
@@ -376,7 +376,7 @@ public:
     void Reset() override;                                 // source cleared and released, sound stopped
     // From `from` towards `to` at a random speed 0.096 .. 0.216 per tick; the ticks to go are the
     // distance over the speed (rounded, at least 0; 0 when the points meet).
-    void Launch(const Vector3* from, const Vector3* to);
+    void Launch(const Vector3& from, const Vector3& to);
     bool RunTick() override;                                   // 0 once the ticks are used up
     int Unpack(int update, DeltaField* field) override;
     void Pack(DeltaField* field) override;

@@ -93,7 +93,7 @@ static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
     auto* world = unit->ServerWorld();
     if (world->IsServer()) {
         Vector3 point = {offset.x + unit->localPosition_.x, offset.y + unit->localPosition_.y, offset.z + unit->localPosition_.z};
-        if (!world->aiMap_.IsPassableForClass(3, &point)) {
+        if (!world->aiMap_.IsPassableForClass(3, point)) {
             CopyPosition(out, unit);
             return out;
         }

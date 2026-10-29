@@ -123,7 +123,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
             EI_NAN_AUDIT(coneLimit, distance, along);
             if (static_cast<double>(coneLimit) * distance <= along) {
                 Vector3 to = eye + d;
-                seen = map->LineOfSight(&eye, &to) * sight > distance;
+                seen = map->LineOfSight(eye, to) * sight > distance;
             }
         }
         bool alive = !dead;
@@ -226,9 +226,9 @@ void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     float radius = 0.0f < sight ? sight : 0.0f;
     float height = static_cast<float>(observer->ModeSpeed());
     CAIMap* map = &g_serverWorld.aiMap_;
-    map->MarkVisibleCells(&eye, radius, &look, cone, height, grid);
+    map->MarkVisibleCells(eye, radius, look, cone, height, grid);
     double hearing = static_cast<double>(mine->stats.perception[2].current) * theirs->stats.conspicuity[2].current;
-    if (!IsZero(hearing)) map->MarkVisibleCells(&eye, static_cast<float>(hearing), &look, kNoCone, kNoLineOfSight, grid);
+    if (!IsZero(hearing)) map->MarkVisibleCells(eye, static_cast<float>(hearing), look, kNoCone, kNoLineOfSight, grid);
     float peripheral = mine->stats.peripheralRange;
-    if (!IsZero(peripheral)) map->MarkVisibleCells(&eye, peripheral, &look, 0.0f, kNoLineOfSight, grid);
+    if (!IsZero(peripheral)) map->MarkVisibleCells(eye, peripheral, look, 0.0f, kNoLineOfSight, grid);
 }

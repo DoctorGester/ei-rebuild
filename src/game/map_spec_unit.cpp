@@ -208,7 +208,7 @@ void UnitSpec::Apply() {
         return;
     }
     CUnit* unit = Unit();
-    g_serverWorld.aiMap_.sectorMap.Move(unit, &position);
+    g_serverWorld.aiMap_.sectorMap.Move(unit, position);
     g_serverWorld.aiMap_.TurnObject(unit, &rotation);
     unit->localRotation_ = rotation;
     unit->SetFigureScale(&scale.x);

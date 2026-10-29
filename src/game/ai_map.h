@@ -95,8 +95,8 @@ struct FootprintCell {
 
 // A growable array of FootprintCell with a 16-bucket hash on (x + y).
 struct FootprintCellSet {
-    void AlongDirection(CAIMap* map, const Vector3* position, const Vector3* direction);
-    void DiscAt(CAIMap* map, const Vector3* position, float radius);
+    void AlongDirection(CAIMap* map, const Vector3& position, const Vector3& direction);
+    void DiscAt(CAIMap* map, const Vector3& position, float radius);
     // Resizes the array to `size`.
     void SetSize(int size);
 
@@ -202,12 +202,12 @@ struct PathOrder {
     int Reset();
     // Stand at world `position` facing `direction` from world time `time`; the steps are
     // emptied. False if the unit already stood there that way.
-    bool Start(const Vector3* position, const Vector3* direction, int time);
+    bool Start(const Vector3& position, const Vector3& direction, int time);
     // Follow the steps to (x, y) (half-cells).
     void SetTarget(float x, float y);
     // Turn to `direction` (kind 1 at `rateBits`, a float's bits kept as given; kind 4 until `until`).
-    void SetTurn(const Vector3* direction, std::uint32_t rateBits);
-    void SetTurnUntil(const Vector3* direction, int fromTime, int toTime);
+    void SetTurn(const Vector3& direction, std::uint32_t rateBits);
+    void SetTurnUntil(const Vector3& direction, int fromTime, int toTime);
     void SetTrack(int id, int from, int to);
     void ForgetObject(int id);
     void ShiftTime(int delta);
@@ -236,9 +236,9 @@ struct AIPath : PathOrder {
     AIPath() { Clear(); }
     void LoadPath(CStream* stream);
     void SavePath(CStream* stream);
-    void StandAndTurn(int time, const CMapObject* unit, const Vector3* direction, std::uint32_t rateBits);
+    void StandAndTurn(int time, const CMapObject* unit, const Vector3& direction, std::uint32_t rateBits);
     void StandAndTrack(int time, const CMapObject* unit, int id, int from, int to);
-    void StandAndTurnUntil(int time, const CMapObject* unit, const Vector3* direction, int fromTime, int toTime);
+    void StandAndTurnUntil(int time, const CMapObject* unit, const Vector3& direction, int fromTime, int toTime);
     void StandStill(const CMapObject* unit);
     void Clear();
     // The path as a motion order in `out` (its step list constructed): the order, the steps; and for an order that
@@ -448,8 +448,8 @@ struct CRegionMap {
     // Floods `label` over the blocks connected through open edges, breadth first from `frontier`.
     void FloodRegionFrom(int sizeClass, std::vector<BlockPoint>* frontier, std::vector<BlockPoint>* next, int label);
     // The 3x3 blocks around cell (x, y) whose representative cell the local search reaches from it, as {block x,
-    // block y, cost} into `out` (emptied first).
-    void NearbyBlocks(int sizeClass, bool flag, int x, int y, std::list<BlockCost>* out);
+    // block y, cost}.
+    std::list<BlockCost> NearbyBlocks(int sizeClass, bool flag, int x, int y);
 
     // Re-measures blocks [x0, x1) x [y0, y1) (clamped to the grid): representative cells, then edges, row by
     // row (reporting progress), then the edge clamp, the two block searches and the regions.
@@ -667,8 +667,8 @@ public:
     bool AddToSectors(CMapObject* object);
     bool RemoveFromSectors(CMapObject* object);
     // CSectorMap::Move (Rebirth patches it).
-    bool MoveInSectors(CMapObject* object, const Vector3* position);
-    void FindUnitsInRadius(const Vector3* position, std::list<CUnit*>* result, float radius);
+    bool MoveInSectors(CMapObject* object, const Vector3& position);
+    std::list<CUnit*> FindUnitsInRadius(const Vector3& position, float radius);
 
     // Can `unit` stand on cell (x, y)? `reason` gets 0 (ok or not a unit), 1 (cell level
     // too high) or 2 (water too deep).
@@ -679,12 +679,12 @@ public:
 
     // IsPassable at the cell of world `position`, with the unit's own footprint lifted
     // (the unit is taken out of the sector map and put back).
-    bool IsPassableWithoutSelf(CUnit* unit, const Vector3* position);
+    bool IsPassableWithoutSelf(CUnit* unit, const Vector3& position);
 
     bool IsUnitCellPassable(CUnit* unit);
 
     // Is the cell at world `position` passable for size class `sizeClass` (0..7)?
-    bool IsPassableForClass(std::uint8_t sizeClass, const Vector3* position);
+    bool IsPassableForClass(std::uint8_t sizeClass, const Vector3& position);
 
     // Can the unit leave its cell: is the cell or one of its 8 neighbours passable and
     // reachable with a positive climb cost?
@@ -692,14 +692,14 @@ public:
 
     // Moves `target` to the nearest cell (spiralling out from it) where `unit` can stand and that lies in the
     // unit's region; false if there is none. `target` is unchanged when its own cell qualifies.
-    bool FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target);
+    bool FindFreeCellNear(CUnit* unit, const Vector3& from, Vector3* target);
 
     // Moves `target` (world in, half-cell units out) to a cell `unit` can stand on: the
     // target cell itself, else the first good cell walking back towards the unit, at least
     // `minDistance` from the target. With `sameRegion`, only cells that reach the unit's region.
     bool SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float minDistance);
 
-    bool FindPath(CUnit* unit, const Vector3* target, AIPath* path, float range, float minDistance);
+    bool FindPath(CUnit* unit, const Vector3& target, AIPath* path, float range, float minDistance);
     // The long-range plan from cell (fromX, fromY) to (toX, toY): region chain,
     // local-search legs between the regions' representative cells, then the cells into path->cells. On a failed
     // leg: aim at the best reached cell when it is far enough from the start, else (with `retry`) exclude the
@@ -712,23 +712,23 @@ public:
 
     // Visibility from `from` to `to` (world positions): 0 when terrain blocks the line,
     // else the product of the transparencies of the objects it passes (at least 0.0001).
-    float LineOfSight(const Vector3* from, const Vector3* to);
+    float LineOfSight(const Vector3& from, const Vector3& to);
 
     float GroundHeight(int x, int y);
     // Terrain height plus the water's depth, at `position`.
-    float TopHeightAt(const Vector3* position);
+    float TopHeightAt(const Vector3& position);
     // Largest height step to the 4 neighbours of the cell at `position` (0 at the edge).
-    float SlopeAt(const Vector3* position);
+    float SlopeAt(const Vector3& position);
     // Is the cell at `position` under water (kCellWater)? False outside the map.
-    bool InWaterAt(const Vector3* position);
+    bool InWaterAt(const Vector3& position);
     // Does a spell's wall or cloud (OccluderKind::SpellArea) stand on the cell? HasSpellAreaAt: false outside the map.
     bool HasSpellArea(int x, int y);
-    bool HasSpellAreaAt(const Vector3* position);
+    bool HasSpellAreaAt(const Vector3& position);
     // Material index (0..31) of the cell at `position`, -1 outside the map.
-    int MaterialAt(const Vector3* position);
+    int MaterialAt(const Vector3& position);
     void TurnObject(CMapObject* object, const Quaternion* rotation);
     // The cell's terrain type (AITerrainType); the first one outside the map.
-    AITerrainType* MaterialRecordAt(const Vector3* position);
+    AITerrainType* MaterialRecordAt(const Vector3& position);
     // Has cell (x, y) a bridge occluder? `height` (optional) gets the highest deck.
     bool BridgeDeckAt(int x, int y, int* height);
 
@@ -750,7 +750,7 @@ public:
     // Occupancy shape for standing height `height` rounded up to tenths (cached; null at 0.2 or below).
     void* UnitShape(float standingHeight);
     // The first unit near world `position` whose occupancy shape blocks `unit` there; null if none.
-    CUnit* BlockingUnitAt(CUnit* unit, const Vector3* position);
+    CUnit* BlockingUnitAt(CUnit* unit, const Vector3& position);
     // Fills each step's speed word (cost table / climb cost, in 1/512) and flag word.
     void SetStepSpeeds(CUnit* unit, PathCells* steps);
     // The passability cost tables for size class `sizeClass`; returns the climb table's middle.
@@ -764,19 +764,19 @@ public:
     // Marks in `grid` the cells within `radius` of `eye` that it sees: inside the cone around `look` (cos >=
     // `cosLimit`; none when cosLimit <= -1) and, unless `targetHeight` is below -100, with a line of sight to
     // the cell's ground raised by `targetHeight` that reaches at least `radius` * visibility.
-    void MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit, float targetHeight,
+    void MarkVisibleCells(const Vector3& eye, float radius, const Vector3& look, float cosLimit, float targetHeight,
                           FogGrid* grid);
 
     bool ApplyBridgeDecks(FootprintCellSet* set, bool remove);
     // The largest ground step between consecutive cells on the line, in world height; 1.0 for a zero-length line,
     // 100.0 when an end is off the map.
-    double LargestStepAlong(const Vector3* from, const Vector3* to);
+    double LargestStepAlong(const Vector3& from, const Vector3& to);
     // Joins the forward and backward local searches where they meet; false when they cannot.
     bool JoinLocalSearches(PathCells* cells, int* cost);
     // The path to cell (x, y) walked back along the direction marks into `path` (emptied first).
     void BuildCellsTo(int x, int y, PathCells* path);
     // Adds (or lifts) the water depths around `position` as a pseudo unit of the small-unit layer.
-    void StampWaterPatch(const Vector3* position, bool add);
+    void StampWaterPatch(const Vector3& position, bool add);
     bool AddOccluderRecord(FootprintCell* cell);
     bool ClearOccluderRecord(FootprintCell* cell);
     void RefreshArea(int minX, int maxX, int minY, int maxY);

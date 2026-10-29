@@ -318,7 +318,7 @@ public:
     // those with an expired one.
     void TickSleepingEffects();
     // Puts every unit in the sectors within `radius` of `position` (x, y) in the update map.
-    void WakeUnitsAround(const Vector3* position, float radius);
+    void WakeUnitsAround(const Vector3& position, float radius);
     // Raises alarm `index` (0..4) at `point` unless it is already raised (`force` raises it again; alarm 0 with
     // `force` clears all five first), tells every AI unit without a player and wakes those that react. Script
     // InvokeAlarm.
@@ -407,12 +407,12 @@ public:
     // Casts `spell` from `caster` (or from `from`): one missile at `target` / `to`, or, for a spell with several
     // targets or area flags, at the nearest living units within its radius the caster may hit, the requested target
     // first. Network clients cast nothing with a caster.
-    void CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, CMapObject* target,
-                   const Vector3* to, int extra);
+    void CastSpell(CSpell* spell, CUnit* caster, const Vector3& from, CMapObject* target,
+                   const Vector3& to, int extra);
     // One missile of `spell` from the caster (or `from`) to the target (or `to`, on the ground there);
     // kept on the missile list unless its first update ends it. A hostile spell turns the target unit
     // against the caster.
-    void CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMapObject* target, const Vector3* to,
+    void CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMapObject* target, const Vector3& to,
                        int extra);
 
     // `player` takes what `object` holds: a shared loot record (flags_ 0x20000000, removed afterwards) or what the
@@ -571,7 +571,7 @@ public:
 
     // Max(height, z of every platform surface whose area contains the point); the point is projected
     // onto each platform plane along z.
-    float SurfaceHeight(const Vector3* point, float height);
+    float SurfaceHeight(const Vector3& point, float height);
     // Whether (x, y) lies on some platform (with a 0.1 margin).
     bool Contains(float x, float y);
     // The highest platform surface above 0 at (x, y) (with a 0.5 margin): *height its z and *normal its
@@ -581,12 +581,12 @@ public:
     // unit axes (b - a) / |b - a| and (c - a) / |c - a|, the two lengths, the normal; *out = the new
     // record (its id, centre and radius are the caller's), null when the face is too steep. Returns 1
     // when added.
-    int AddFace(const Vector3* a, const Vector3* b, const Vector3* c, const Vector3* normal, Platform** out);
+    int AddFace(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& normal, Platform** out);
     // The platform item `item` (offset, radius, the box's corners, pivot) of object `id` placed at
     // `position` with the rotation quaternion `rotation` (w, x, y, z): the box's corners and the six
     // face normals rotated, and every face that points up added with the id, the centre
     // R (pivot + offset) + position and the radius.
-    void AddBox(int id, const FootprintPart* item, const Vector3* position, const Quaternion* rotation);
+    void AddBox(int id, const FootprintPart* item, const Vector3& position, const Quaternion* rotation);
 
     std::list<Platform> list;                    // the faces, the newest first
 };
@@ -945,7 +945,7 @@ public:
     // whose (x, y) lies within radius + hypot(rangeX_, rangeY_) of the point. The cell range (truncated
     // and clamped to the terrain) and the walk's cursor are left in rangeFirstX_ .. rangeY_. The
     // original's z difference is the point's z minus itself (0, kept).
-    void ObjectsInRange(const Vector3* point, float radius, std::list<CObject3D*>* out);
+    void ObjectsInRange(const Vector3& point, float radius, std::list<CObject3D*>* out);
     // Reads the light colours from config\<file> (an .ini, LightsGipat.ini): each key of [sunlight],
     // [ambient] and [sky] names its hour in characters 4..5 ("hour07") and holds "r, g, b" (0..255,
     // scaled by 1/255, alpha 1); the hours between two keys in file order are filled by linear steps

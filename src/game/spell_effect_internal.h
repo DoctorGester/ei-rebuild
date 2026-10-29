@@ -135,8 +135,8 @@ inline void HeightPlusProduct(CWorld* world, double (CWorld::*height)(float, flo
 }
 
 // *out = (float)sqrt(y*y + x*x).
-inline void PlanarLength(const Vector3* v, float* out) {
-    *out = static_cast<float>(std::sqrt(LengthSquared2DUnrounded<double>(v->y, v->x)));
+inline void PlanarLength(const Vector3& v, float* out) {
+    *out = static_cast<float>(std::sqrt(LengthSquared2DUnrounded<double>(v.y, v.x)));
 }
 
 // The fireball's velocity: v *= (speed * 1/15) / sqrt((y*y + x*x) + z*z), the factor unrounded,
@@ -157,10 +157,10 @@ inline int FlightTicks(const float* distance, const float* speed) {
 // The walls' extent: the normal (-d.y, d.x, 0) in the ground plane scaled to length `radius`: k =
 // (float)(radius / sqrt(n.y*n.y + n.x*n.x)), then each component (float)(component * k). The normal is
 // written to `out` first (d.x copied as bits) and read back.
-inline void WallSpan(const Vector3* direction, const float* radius, Vector3* out) {
-    const double nx = -static_cast<double>(direction->y);
+inline void WallSpan(const Vector3& direction, const float* radius, Vector3* out) {
+    const double nx = -static_cast<double>(direction.y);
     out->x = static_cast<float>(nx);
-    out->y = direction->x;
+    out->y = direction.x;
     out->z = 0.0f;
     const double length = std::sqrt(LengthSquared2DUnrounded<double>(out->y, nx));
     const float k = static_cast<float>(*radius / length);
@@ -214,8 +214,8 @@ void Assign(CSpellEffect* e, T** slot, T* object) {
     if (old) old->Release();
 }
 
-inline void SetPosition(CTransformObject* object, const Vector3* position) {
-    object->localPosition_ = *position;
+inline void SetPosition(CTransformObject* object, const Vector3& position) {
+    object->localPosition_ = position;
 }
 
 // The fields of the spell prototype the casts read.
@@ -265,10 +265,9 @@ inline float LightRiseScaled(CSpellEffect* e, const float& scale) {
 // Every unit within the radius of the effect's position that IsSpellTarget accepts gets the
 // effect's damage (a list on the stack, walked node by node).
 inline void HitAreaTargets(CSpellEffect* e) {
-    std::list<CUnit*> units;
     DamageInfo hit;
     e->GetDamage(&hit);
-    e->world->aiMap_.sectorMap.FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
+    std::list<CUnit*> units = e->world->aiMap_.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius_);
     for (auto node = units.begin(); node != units.end();) {
         CUnit* unit = *node;
         ++node;
@@ -288,9 +287,9 @@ inline float GroundMinus(CSpellEffect* e, double (CWorld::*height)(float, float)
 }
 
 // The light every lasting spell puts at its point: the prototype's colour and range.
-inline void PrototypeLight(CSpellEffect* e, const Vector3* at, float range, const Vector3* velocity) {
+inline void PrototypeLight(CSpellEffect* e, const Vector3& at, float range, const Vector3& velocity) {
     Vector3 color = PrototypeColor(e);
-    e->CreatePointLight(at, &color, range, velocity);
+    e->CreatePointLight(at, color, range, velocity);
 }
 
 enum class Next { Done, Set, Leave };   // state 3; state set by the case; leave the state alone

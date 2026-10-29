@@ -123,13 +123,13 @@ void AIMemory::Reset() {
 
 // --- Standard mode sets ---------------------------------------------------------------------------
 
-void AIBrain::StandardGuard(const Vector3* point, float radius) {
+void AIBrain::StandardGuard(const Vector3& point, float radius) {
     ClearModes();
     AddMode(new GuardMode(point, radius, -1.0f));
     AddAlertModes(this);
 }
 
-void AIBrain::StandardSentry(const Vector3* point) {
+void AIBrain::StandardSentry(const Vector3& point) {
     ClearModes();
     AddMode(new SentryMode(point));
     AddAlertModes(this);
@@ -137,10 +137,9 @@ void AIBrain::StandardSentry(const Vector3* point) {
 
 // --- Calls for help -------------------------------------------------------------------------------
 
-void AIBrain::CallAllies(const Vector3* point) {
-    UnitList units;
+void AIBrain::CallAllies(const Vector3& point) {
     CUnit* self = owner->unit;
-    g_serverWorld.aiMap_.sectorMap.FindUnitsInRadius(&self->localPosition_, &units, callRadius);
+    UnitList units = g_serverWorld.aiMap_.sectorMap.FindUnitsInRadius(self->localPosition_, callRadius);
     for (auto node = units.begin(); node != units.end();) {
         auto* other = *node;
         ++node;
@@ -160,19 +159,19 @@ void AIBrain::CallAllies(const Vector3* point) {
 
 // --- Perception memory ----------------------------------------------------------------------------
 
-bool AIMemory::Notice(const Vector3* point, int level, int decay) {
+bool AIMemory::Notice(const Vector3& point, int level, int decay) {
     if (level <= noticedLevel) return false;
     bool changed = true;
     if (static_cast<int>(static_cast<unsigned>(level) - static_cast<unsigned>(noticedLevel)) <= 100) {
-        double dx = point->x - noticedX;
-        double dy = point->y - noticedY;
-        double z = point->z;
+        double dx = point.x - noticedX;
+        double dy = point.y - noticedY;
+        double z = point.z;
         // Farther than the limit; NaN is not.
         changed = z * z + dy * dy + dx * dx > 10.0;
     }
     noticedLevel = level;
-    noticedX = point->x;
-    noticedY = point->y;
+    noticedX = point.x;
+    noticedY = point.y;
     noticedKind = decay;
     return changed;
 }

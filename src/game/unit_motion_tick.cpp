@@ -213,7 +213,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3 axis, back;
         c->unit->localRotation_.AxisY(&axis);
         Vector3* facing = NegateVector(&back, axis);
-        if (c->motion.Start(&c->unit->localPosition_, facing, time)) c->unit->RefreshMotion();
+        if (c->motion.Start(c->unit->localPosition_, *facing, time)) c->unit->RefreshMotion();
         c->ClearStanding();
         c->SetState(6);
         c->stoodBlocked = wasFlag;
@@ -225,7 +225,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3 axis, back;
         c->unit->localRotation_.AxisY(&axis);
         Vector3* facing = NegateVector(&back, axis);
-        if (c->motion.Start(&c->unit->localPosition_, facing, time)) c->unit->RefreshMotion();
+        if (c->motion.Start(c->unit->localPosition_, *facing, time)) c->unit->RefreshMotion();
         c->ClearStanding();
         c->SetState(6);
         c->stoodBlocked = 0;
@@ -239,7 +239,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
 
 // Replans the path to the order's goal (its z holds the range PathTo asked for), with the units around the
 // blocked step lifted when `liftBlocker`.
-void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3* position) {
+void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3& position) {
     if (liftBlocker) {
         world->aiMap_.sectorMap.Remove(c->unit);
         world->aiMap_.StampWaterPatch(position, 1);
@@ -253,7 +253,7 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
     c->motion.mayExcludeRegions = c->unit->player ? 0 : 1;
     std::uint32_t current = c->unit->altPassCosts;
     c->unit->altPassCosts = saved;
-    bool found = context->aiMap_.FindPath(c->unit, &c->motion.goal, &c->motion, range, 0.0f);
+    bool found = context->aiMap_.FindPath(c->unit, c->motion.goal, &c->motion, range, 0.0f);
     c->unit->altPassCosts = current;
     if (liftBlocker) {
         world->aiMap_.sectorMap.Remove(c->unit);
@@ -354,7 +354,7 @@ void UpdateMotion(CUnitServer* c) {
         sectors->Remove(c->unit);
         canStand = world->aiMap_.CanStandAtFromHere(c->unit, cellX, cellY, &blocked);
         if (!canStand) {
-            CUnit* blocker = world->aiMap_.BlockingUnitAt(c->unit, &position);
+            CUnit* blocker = world->aiMap_.BlockingUnitAt(c->unit, position);
             if (!blocker) {
                 canStand = true;
             } else {
@@ -368,17 +368,17 @@ void UpdateMotion(CUnitServer* c) {
     // An idle unit standing in a kind-3 occluder (while its motion order started before the AI map's
     // footprintTick and moveMode2's onGuard is clear) replans.
     bool replan = false;
-    if (c->state == kStateIdle && world->aiMap_.HasSpellAreaAt(&position) &&
+    if (c->state == kStateIdle && world->aiMap_.HasSpellAreaAt(position) &&
         OrderOf(&c->motion)->startTime < world->aiMap_.footprintTick && c->moveMode2.onGuard == 0) {
         blocked = kBlockedReplan;
         replan = true;
     }
-    if (!replan && canStand && world->aiMap_.sectorMap.Move(c->unit, &position)) {
+    if (!replan && canStand && world->aiMap_.sectorMap.Move(c->unit, position)) {
         SetObstacle(c, c->state == kStateIdle ? 1 : 0);
         c->unit->SetHeading(&direction.x);
         if (motionOver) MotionOver(c, world);
     } else if (blocked == kBlockedReplan) {
-        Replan(c, world, liftBlocker, &position);
+        Replan(c, world, liftBlocker, position);
     } else if (blocked == kBlockedWait) {
         if (c->stats.movementKind == 2) c->animationHeld = 1;
         else c->frozen = 1;

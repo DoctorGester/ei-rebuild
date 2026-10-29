@@ -81,17 +81,17 @@ void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
 
     switch (record->type) {
     case kGuard: {
-        AddMode(new GuardMode(&record->guard, record->guardRadius, kNoWander));
+        AddMode(new GuardMode(record->guard, record->guardRadius, kNoWander));
         break;
     }
     case kGuardAlarm: {
         const WorldAlarm& alarmAt = g_serverWorld.alarms_[slot];
         Vector3 point{alarmAt.x, alarmAt.y, 0.0f};
-        AddMode(new GuardMode(&point, record->guardRadius, kNoWander));
+        AddMode(new GuardMode(point, record->guardRadius, kNoWander));
         break;
     }
     case kSentry: {
-        AddMode(new SentryMode(&record->guard));
+        AddMode(new SentryMode(record->guard));
         break;
     }
     case kParty: {

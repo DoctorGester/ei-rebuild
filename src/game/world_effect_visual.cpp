@@ -50,9 +50,9 @@ Vector3& LightPosition(CLight* light) { return light->localPosition_; }
 // The particle tick's step towards the target, in x87 order: speed = |velocity|
 // ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);
 // otherwise t = speed / (dist < speed (or NaN) ? speed : dist), rounded to float.
-int StepFraction(const Vector3* velocity, const Vector3* dxdy, float* t) {
-    const double speed = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*velocity));
-    const double dist = std::sqrt(LengthSquared2DUnrounded<double>(dxdy->y, dxdy->x));
+int StepFraction(const Vector3& velocity, const Vector3& dxdy, float* t) {
+    const double speed = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(velocity));
+    const double dist = std::sqrt(LengthSquared2DUnrounded<double>(dxdy.y, dxdy.x));
     // On only when above.
     EI_NAN_AUDIT(dist);
     if (dist <= 0.0f) return 0;
@@ -94,9 +94,9 @@ std::uint32_t InlineRandom() {
 
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
 // sqrt(x*x + y*y) + half + 0.3, both rounded to float only when stored, in x87 order.
-void WallScorchShape(const Vector3* direction, const float* half, float* angleAndOuter) {
-    angleAndOuter[0] = static_cast<float>(x87::fpatan(direction->y, direction->x));
-    const double outer = std::sqrt(LengthSquared2DUnrounded<double>(direction->x, direction->y));
+void WallScorchShape(const Vector3& direction, const float* half, float* angleAndOuter) {
+    angleAndOuter[0] = static_cast<float>(x87::fpatan(direction.y, direction.x));
+    const double outer = std::sqrt(LengthSquared2DUnrounded<double>(direction.x, direction.y));
     angleAndOuter[1] = static_cast<float>((outer + *half) + 0.3f);
 }
 
@@ -137,7 +137,7 @@ void CEffectPointLight::Start(int update) {
         color.x = color_.x;
         color.y = color_.y;
         color.z = color_.z;
-        light_->SetPoint(&color, &position);
+        light_->SetPoint(color, position);
         SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
         LightFlags(light_) |= lightFlags_;
         g_clientWorld.terrain_->AddLight(light_);
@@ -178,7 +178,7 @@ int CEffectPointLight::Unpack(int update, DeltaField* field) {
 
 void CEffectPointLight::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    field->WritePosition(&position);
+    field->WritePosition(position);
     field->WriteFloat16x3(&color_.x);
     field->WriteFloat16(Bits(range_));
     field->WriteFloat16x3(&velocity_.x);
@@ -319,13 +319,13 @@ void CEffectParticle::Spawn() {
         float radius = size_;
         float angle = RandomAngle(random);
         g_clientWorld.AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
-        g_clientWorld.camera_->Shake(&localPosition_, size_, 2.0f, 0.25f);
+        g_clientWorld.camera_->Shake(localPosition_, size_, 2.0f, 0.25f);
     }
 }
 
 void CEffectParticle::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    field->WritePosition(&position);
+    field->WritePosition(position);
     int value = startTick_;
     field->WriteDelta(&value, 4);
     field->WriteDelta(&type_, 4);
@@ -333,7 +333,7 @@ void CEffectParticle::Pack(DeltaField* field) {
     value = attachedTo_;
     field->WriteDelta(&value, 4);
     field->WriteFloat16x3(&velocity_.x);
-    field->WritePosition(&target_);
+    field->WritePosition(target_);
     value = unitId_;
     field->WriteDelta(&value, 4);
     field->WriteFloat16(Bits(alpha_));
@@ -356,8 +356,8 @@ void CEffectParticle::SetColors(float a, float b) {
     MarkChanged();
 }
 
-void CEffectParticle::SetTarget(const Vector3* target) {
-    target_ = *target;
+void CEffectParticle::SetTarget(const Vector3& target) {
+    target_ = target;
     MarkChanged();
 }
 
@@ -416,7 +416,7 @@ bool CEffectParticle::RunTick() {
         d.y = static_cast<float>(target_.y - localPosition_.y);
         d.z = static_cast<float>(target_.z - localPosition_.z);
         float t;
-        if (StepFraction(&velocity_, &d, &t) != 0) {
+        if (StepFraction(velocity_, d, &t) != 0) {
             // Keeps the target's height above the ground while moving towards it.
             float aboveGround = static_cast<float>(target_.z - WorldOf(this)->RawSurfaceHeightAt(target_.x, target_.y));
             float stepY = static_cast<float>(t * d.y);
@@ -460,8 +460,8 @@ void CEffectWall::Reset() {
     direction_ = Vector3{0.0f, 0.0f, 0.0f};
 }
 
-void CEffectWall::SetDirection(const Vector3* direction) {
-    direction_ = *direction;
+void CEffectWall::SetDirection(const Vector3& direction) {
+    direction_ = direction;
     MarkChanged();
 }
 
@@ -475,7 +475,7 @@ int CEffectWall::Unpack(int update, DeltaField* field) {
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         float half = static_cast<float>(size_ * ConstAt(worlddata::HalfRef()));
         float shape[2];   // angle, outer
-        WallScorchShape(&direction_, &half, shape);
+        WallScorchShape(direction_, &half, shape);
         float inner = static_cast<float>(half + ConstAt(worlddata::ScorchMargin()));
         g_clientWorld.AddScorchMark(localPosition_.x, localPosition_.y, shape[1], inner, shape[0], alpha);
     }
@@ -484,7 +484,7 @@ int CEffectWall::Unpack(int update, DeltaField* field) {
 
 void CEffectWall::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    field->WritePosition(&position);
+    field->WritePosition(position);
     int value = startTick_;
     field->WriteDelta(&value, 4);
     field->WriteDelta(&type_, 4);
@@ -492,7 +492,7 @@ void CEffectWall::Pack(DeltaField* field) {
     value = attachedTo_;
     field->WriteDelta(&value, 4);
     field->WriteFloat16x3(&velocity_.x);
-    field->WritePosition(&target_);
+    field->WritePosition(target_);
     value = unitId_;
     field->WriteDelta(&value, 4);
     field->WriteFloat16(Bits(alpha_));
@@ -561,9 +561,9 @@ int CEffectLightning::Unpack(int update, DeltaField* field) {
 
 void CEffectLightning::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    field->WritePosition(&position);
-    field->WritePosition(&from_);
-    field->WritePosition(&to_);
+    field->WritePosition(position);
+    field->WritePosition(from_);
+    field->WritePosition(to_);
     field->WriteFloat16(Bits(width_));
     field->WriteDelta(&flag_, 1);
     int value = toObject_;
@@ -572,9 +572,9 @@ void CEffectLightning::Pack(DeltaField* field) {
     field->WriteDelta(&value, 4);
 }
 
-void CEffectLightning::SetEnds(const Vector3* from, const Vector3* to, float width) {
-    from_ = *from;
-    to_ = *to;
+void CEffectLightning::SetEnds(const Vector3& from, const Vector3& to, float width) {
+    from_ = from;
+    to_ = to;
     width_ = width;
     // The midpoint: the x sum stays on the FPU, the y and z sums are rounded first.
     float half = ConstAt(worlddata::HalfRef());

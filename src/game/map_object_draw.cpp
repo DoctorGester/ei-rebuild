@@ -56,11 +56,11 @@ void Finish(ObjectListIterator& lights, std::vector<CLight*>& list) {
 }
 } // namespace
 
-void ObjectWorldMatrix(const Quaternion* orientation, const Vector3* position, Matrix4* out) {
+void ObjectWorldMatrix(const Quaternion* orientation, const Vector3& position, Matrix4* out) {
     orientation->ToMatrix(out->m);
-    out->m[11] = position->z;
-    out->m[3] = position->x;
-    out->m[7] = position->y;
+    out->m[11] = position.z;
+    out->m[3] = position.x;
+    out->m[7] = position.y;
     std::memset(&out->m[12], 0, 3 * sizeof(float));
     out->m[15] = std::bit_cast<float>(kOne);
 }
@@ -93,7 +93,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     }
 
     // The object's matrix, and its extra scale when it has one.
-    ObjectWorldMatrix(&object->localRotation_, &object->localPosition_, &object->worldMatrix);
+    ObjectWorldMatrix(&object->localRotation_, object->localPosition_, &object->worldMatrix);
     Matrix4 m = object->worldMatrix;
     pipeline->PushMatrix(m.m, kStackView);
     pipeline->PushMatrix(m.m, kStackWorld);
@@ -140,7 +140,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
                 if (PartTooFar(part)) continue;
                 if (!(object->flags_ & MapObjectFlag::Static)) part->flags_ &= ~FigureMeshFlag::Lit;
                 bool pushed = !(part->flags_ & FigureMeshFlag::Lit);
-                ObjectWorldMatrix(&part->localRotation_, &part->localPosition_, &part->worldMatrix_);
+                ObjectWorldMatrix(&part->localRotation_, part->localPosition_, &part->worldMatrix_);
                 m = part->worldMatrix_;
                 pipeline->PushMatrix(m.m, kStackView);
                 pipeline->PushMatrix(m.m, kStackWorld);

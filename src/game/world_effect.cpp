@@ -81,8 +81,8 @@ void CEffect::Create() {
 
 void CEffect::Destroy() { Reset(); }
 
-void CEffect::SetVelocity(const Vector3* velocity) {
-    velocity_ = *velocity;
+void CEffect::SetVelocity(const Vector3& velocity) {
+    velocity_ = velocity;
     moving_ = IsMoving(velocity_);
     MarkChanged();
 }
@@ -142,7 +142,7 @@ int CEffectSound::Unpack(int update, DeltaField* field) {
 
 void CEffectSound::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    field->WritePosition(&position);
+    field->WritePosition(position);
     int looping = looping_;
     field->WriteDelta(&looping, 4);
     field->WriteStringBoth(name_);
@@ -200,7 +200,7 @@ bool CEffectSoundSeq::RunTick() {
 
 void CEffectSoundSeq::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    field->WritePosition(&position);
+    field->WritePosition(position);
     field->WriteStringBoth(name_);
     int count = static_cast<int>(names_.size());
     field->WriteDelta(&count, 4);
@@ -214,7 +214,7 @@ void CEffectSoundSeq::Pack(DeltaField* field) {
 void CEffectSoundSeq::Load(CStream* stream) {
     stream->ReadValue(localPosition_);
     stream->ReadValue(velocity_);
-    stream->ReadInto(&name_);
+    name_ = stream->ReadString();
     ReadSavedStrings(&names_, stream);
     stream->ReadValue(volume_);
     stream->ReadValue(radius_);
@@ -278,7 +278,7 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
 
 void CEffectAmbientSound::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    field->WritePosition(&position);
+    field->WritePosition(position);
     std::uint8_t count = static_cast<std::uint8_t>(names_.size());
     field->WriteDelta(&count, 1);
     for (const std::string& name : names_) field->WriteStringBoth(name);

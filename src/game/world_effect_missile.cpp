@@ -146,7 +146,7 @@ void CEffectArrow::Start(int update) {
     light_.color_ = lightColor_;
     light_.range_ = lightRange_;
     Vector3 drift{kLightDrift, 0.0f, 0.0f};
-    light_.SetVelocity(&drift);
+    light_.SetVelocity(drift);
     light_.lightFlags_ = kLightFlags;
     const char* name = soundName_.c_str();
     std::memcpy(sound_.name_, name, std::strlen(name) + 1);   // unbounded, like the original
@@ -194,7 +194,7 @@ void CEffectArrow::Pack(DeltaField* field) {
     field->WriteFloat16(Bits(lightRange_));
     field->WriteDelta(&particleType_, 4);
     field->WriteFloat16(Bits(particleSize_));
-    field->WritePosition(&position);
+    field->WritePosition(position);
     field->WriteFloat16x3(&velocity_.x);
     field->WriteDelta(&fromCaster_, 1);
 }
@@ -204,7 +204,7 @@ void CEffectArrow::Load(CStream* s) {
     s->ReadValue(targetId_);
     s->ReadValue(velocity_);
     s->ReadValue(arrived_);
-    s->ReadInto(&soundName_);
+    soundName_ = s->ReadString();
     s->ReadValue(lightColor_);
     s->ReadValue(lightRange_);
     s->ReadValue(particleType_);
@@ -328,7 +328,7 @@ void CEffectArrowFigure::Pack(DeltaField* field) {
     field->WriteDelta(&value, 4);
     value = casterId_;
     field->WriteDelta(&value, 4);
-    field->WritePosition(&position);
+    field->WritePosition(position);
     field->WriteFloat16x3(&velocity_.x);
     field->WriteDelta(&fromCaster_, 1);
 }

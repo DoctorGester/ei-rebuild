@@ -13,11 +13,11 @@
 #include <cstdint>
 #include <cstring>
 
-void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
+void CAIMap::StampWaterPatch(const Vector3& position, bool add) {
     double scale = 1.0 /
                    (0.5f);
-    int x = static_cast<int>(scale * position->x);
-    int y = static_cast<int>(scale * position->y);
+    int x = static_cast<int>(scale * position.x);
+    int y = static_cast<int>(scale * position.y);
     static Ref<CUnitShape> patch;
     if (!patch || (patch->flags7_ & CRefObject::kDetached)) patch.Assign(new CUnitShape());
     int key = ((y + 0x800) << 16) + x;

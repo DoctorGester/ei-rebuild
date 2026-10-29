@@ -175,7 +175,7 @@ int GroundPrint::Draw() {
         CWorldClient* world = &g_clientWorld;
         std::vector<VertexPacket> quad;
         Vector3 at{position_.x, position_.y, 0.0f};
-        float z = static_cast<float>(world->platforms_.SurfaceHeight(&at, world->ClampedGroundHeight(position_.x, position_.y)));
+        float z = static_cast<float>(world->platforms_.SurfaceHeight(at, world->ClampedGroundHeight(position_.x, position_.y)));
         quad.resize(1);
         double c = x87::fcos(angle_);
         double s = x87::fsin(angle_);

@@ -62,16 +62,16 @@ const char* CWorldClient::AmbienceTimeOfDay() const {
     return hour < 6.0f ? "morning" : "evening";
 }
 
-float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
+float PlatformSet::SurfaceHeight(const Vector3& point, float height) {
     for (auto& node : list) {
         const Platform& p = node;
-        float dx = point->x - p.x;
-        float dy = point->y - p.y;
+        float dx = point.x - p.x;
+        float dy = point.y - p.y;
         EI_NAN_AUDIT(p.radius, dy, dx);
         if (p.radius * p.radius < LengthSquared2DUnrounded(dy, dx)) continue;
-        float a = point->x - p.origin.x;
-        float b = point->y - p.origin.y;
-        float c = point->z - p.origin.z;
+        float a = point.x - p.origin.x;
+        float b = point.y - p.origin.y;
+        float c = point.z - p.origin.z;
         // Project onto the platform plane along z, then into its (u, v) frame.
         c = c - DotUnrounded<Sum3::XYZ, float>(p.normal.x, p.normal.y, p.normal.z, a, b, c) / p.normal.z;
         float u = static_cast<float>(DotUnrounded<Sum3::XYZ, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
@@ -412,7 +412,7 @@ bool CWorldClient::RunTick() {
                 // the reference point and the lights whose range reaches the effect's point.
                 CLight* sun = g_sceneRenderer.sun_;
                 for (BloodPrint& effect : bloodPrints_) {
-                    float level = sun->GetIntensityAt(&worlddata::kOrigin);
+                    float level = sun->GetIntensityAt(worlddata::kOrigin);
                     ObjectListIteratorOf<CLight> lights{};
                     for (CLight* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
                         if (light == sun || (light->flags_ & LightFlag::Hidden)) continue;
@@ -424,7 +424,7 @@ bool CWorldClient::RunTick() {
                         if (squared > radius) continue;
                         Vector3 point = {nodeX, nodeY, 0.0f};
                         point.z = static_cast<float>(terrain_->HeightAt(nodeX, nodeY, 0));
-                        float intensity = light->GetIntensityAt(&point);
+                        float intensity = light->GetIntensityAt(point);
                         level = SelectLess(level, intensity, intensity, level);
                     }
                     float clamped = SelectLess(1.0f, level, 1.0f, level);

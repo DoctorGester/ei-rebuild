@@ -92,7 +92,7 @@ void PlaceMover(BriefingMover* node) {
     if (!unit) return;
     CUnitServer* controller = unit->ServerController();
     Vector3 target{node->target.x, node->target.y, node->target.z};
-    g_serverWorld.aiMap_.sectorMap.Move(unit, &target);
+    g_serverWorld.aiMap_.sectorMap.Move(unit, target);
     Vector3 facing = NormalisedUnlessZero(node->direction);
     unit->SetHeading(&facing.x);
     node->person->SetHeading(&facing.x);
@@ -109,7 +109,7 @@ void StepWalking(BriefingMover* node) {
     CUnit* unit = g_serverWorld.FindUnit(node->person->id_);
     if (!unit) return;
     Vector3 facing = NormalisedUnlessZero(node->direction);
-    unit->ServerController()->brain.TurnTowards(&facing, 1.0f);
+    unit->ServerController()->brain.TurnTowards(facing, 1.0f);
 }
 
 // A turning mover whose facing (the client unit's -y axis, flat) is near its direction is done.
@@ -215,7 +215,7 @@ void CBriefingScreen::CreateScreen() {
     camera->flags_ &= ~CCamera::kFree;
     if (map->restricted) {
         Vector3 centre{map->restrictX, map->restrictY, 0.0f};
-        camera->SetBounds(&centre, map->restrictRadius);
+        camera->SetBounds(centre, map->restrictRadius);
     }
     camera->flags_ |= CCamera::kAlternate;
     camera->SetTargetId(-1);

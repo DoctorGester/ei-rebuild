@@ -56,9 +56,9 @@ static_assert(sizeof(CameraKey) == 0x24);
 
 // Average, lowest and highest surface height on a grid of `step` spacing over
 // [p.x - halfX, p.x + halfX] x [p.y - halfY, p.y + halfY] (points off the map skipped; the centre
-// counts once more). The two unused pointers are always the zero vector.
-void SampleTerrain(const Vector3* p, const Vector3* unused1, const Vector3* unused2, float step,
-                             float halfX, float halfY, float* average, float* minimum, float* maximum);
+// counts once more).
+void SampleTerrain(const Vector3& p, float step, float halfX, float halfY, float* average, float* minimum,
+                   float* maximum);
 
 // The camera ("CCamera"). flags_: 0x8 following the target, 0x10 a camera file is open, 0x20 playing a
 // camera file, 0x40 free (scripted) placement, 0x100 focus kept inside a circle, 0x200 the alternate limits.
@@ -94,9 +94,9 @@ public:
     // the pitch, then lifts it over objects and re-aims at the focus when it was lifted.
     void ApplyView();
     // Moves the focus to `p`, its height set from the terrain around it.
-    void SetFocus(const Vector3* p);
+    void SetFocus(const Vector3& p);
     // Pan velocity target from a screen-space direction (x right, y up the screen).
-    void Pan(const Vector3* direction);
+    void Pan(const Vector3& direction);
     void StopMotion();
     // Zoom by 1.05^steps, clamped to the current limits.
     void ZoomBy(float steps);
@@ -115,9 +115,9 @@ public:
     void SetFree(bool on);
     // Free placement at `from` looking at `to`.
     void LookFrom(const Vector3& from, const Vector3& to);
-    void SetBounds(const Vector3* center, float radius);
+    void SetBounds(const Vector3& center, float radius);
     // Starts a shake from an event at `source` (ignored 20 or more away).
-    void Shake(const Vector3* source, float duration, float amplitude, float decay);
+    void Shake(const Vector3& source, float duration, float amplitude, float decay);
     // Recorded camera path: jump to the first key / interpolate at `time` (0 when finished or not playing).
     int PlaybackStart();
     int PlaybackStep(float time);

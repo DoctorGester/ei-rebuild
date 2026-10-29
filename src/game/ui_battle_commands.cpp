@@ -156,11 +156,11 @@ void CBattleScreen::UseAtPoint(Vector3 point, CUnit* unit, bool quick) {
         }
         bool able;
         if (quick) {
-            g_clientWorld.LocalView()->SendItemAtPoint(pendingSlot_, member, &point, 0);
+            g_clientWorld.LocalView()->SendItemAtPoint(pendingSlot_, member, point, 0);
             quickItems_->SetUnit(member);
             able = member->CanUseQuickItem(pendingSlot_);
         } else {
-            g_clientWorld.LocalView()->SendCastAtPoint(pendingSlot_, member, &point, 0);
+            g_clientWorld.LocalView()->SendCastAtPoint(pendingSlot_, member, point, 0);
             able = member->CanCastSpell(pendingSlot_);
         }
         if (able) portraits_->Wobble(i, kWobbleNod);

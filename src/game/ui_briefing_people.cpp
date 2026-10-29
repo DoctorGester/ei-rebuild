@@ -70,7 +70,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, const Vector3& place, const Vector
     if (!controller) return;
     Vector3 target{place.x, place.y, serverUnit->localPosition_.z};
     if (immediate) {
-        g_serverWorld.aiMap_.sectorMap.Move(serverUnit, &target);
+        g_serverWorld.aiMap_.sectorMap.Move(serverUnit, target);
         Vector3 facing = Normalised(direction);
         serverUnit->SetHeading(&facing.x);
         unit->SetHeading(&facing.x);
@@ -79,7 +79,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, const Vector3& place, const Vector
     }
     if (serverUnit->flags_ & kUnitBlocked) return;
     movers_.push_front(BriefingMover{target, direction, BriefingMover::kWalking, unit, waited, 0.0f});
-    controller->brain.Walk(&target, run);
+    controller->brain.Walk(target, run);
 }
 
 void CBriefingScreen::ShowItem(std::string_view name, int index) {

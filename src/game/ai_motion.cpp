@@ -116,14 +116,14 @@ int PathOrder::Reset() {
     return 0;
 }
 
-bool PathOrder::Start(const Vector3* position, const Vector3* direction, int time) {
+bool PathOrder::Start(const Vector3& position, const Vector3& direction, int time) {
     MotionOrder* order = OrderOf(this);
-    double dx = direction->x;
-    float dy = direction->y;
+    double dx = direction.x;
+    float dy = direction.y;
     double length = std::sqrt(LengthSquared2DUnrounded<double>(dy, dx));
     double angle = length > 0.0 ? x87::fpatan(dy / length, dx / length) : 0.0;
-    double x = kHalfCellScale * position->x;
-    float y = static_cast<float>(kHalfCellScale * position->y);
+    double x = kHalfCellScale * position.x;
+    float y = static_cast<float>(kHalfCellScale * position.y);
     EI_NAN_AUDIT(order->angle, angle, x, order->x, order->y, y);
     bool same = order->kind == 0 && order->angle == angle && x == order->x && order->y == y;
     order->x = static_cast<float>(x);
@@ -135,10 +135,10 @@ bool PathOrder::Start(const Vector3* position, const Vector3* direction, int tim
     return !same;
 }
 
-void PathOrder::SetTurn(const Vector3* direction, std::uint32_t rateBits) {
+void PathOrder::SetTurn(const Vector3& direction, std::uint32_t rateBits) {
     MotionOrder* order = OrderOf(this);
     order->kind = 1;
-    float angle = static_cast<float>(x87::fpatan(direction->y, direction->x));
+    float angle = static_cast<float>(x87::fpatan(direction.y, direction.x));
     order->arg6 = rateBits;
     order->arg5 = std::bit_cast<std::uint32_t>(angle);
 }
@@ -151,11 +151,11 @@ void PathOrder::SetTrack(int id, int from, int to) {
     order->arg7 = static_cast<std::uint32_t>(to);
 }
 
-void PathOrder::SetTurnUntil(const Vector3* direction, int fromTime, int toTime) {
+void PathOrder::SetTurnUntil(const Vector3& direction, int fromTime, int toTime) {
     MotionOrder* order = OrderOf(this);
     order->kind = 4;
     order->arg7 = static_cast<std::uint32_t>(toTime);
-    float angle = static_cast<float>(x87::fpatan(direction->y, direction->x));
+    float angle = static_cast<float>(x87::fpatan(direction.y, direction.x));
     order->arg6 = static_cast<std::uint32_t>(fromTime);
     order->arg5 = std::bit_cast<std::uint32_t>(angle);
 }

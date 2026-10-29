@@ -81,7 +81,7 @@ bool CMapObject::IsDirectUseBlocked() { return false; }
 std::uint32_t CMapObject::KeyId() { return static_cast<std::uint32_t>(kNoKey); }
 bool CMapObject::AcceptsKey(const LockKey*) { return false; }
 bool CMapObject::KeepsMapFlag() { return true; }
-void CMapObject::UseSpots(std::vector<Vector3>* out, float) { FreeArray(out); }
+std::vector<Vector3> CMapObject::UseSpots(float) { return {}; }
 std::uint32_t CMapObject::SetStunned(int) { return 0; }
 Vector3* CMapObject::EyePoint(Vector3* out) {
     GroundPoint(&out->x);

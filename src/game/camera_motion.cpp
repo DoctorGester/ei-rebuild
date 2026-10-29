@@ -131,10 +131,9 @@ void CCamera::AlignToTarget() {
 void CCamera::ClampAboveObjects() {
     Vector3* p = &localPosition_;
     float average, lowest, highest;
-    const Vector3* zero = &camera::kZeroVector;
-    SampleTerrain(p, zero, zero, 1.0f, 2.0f, 2.0f, &average, &lowest, &highest);
+    SampleTerrain(*p, 1.0f, 2.0f, 2.0f, &average, &lowest, &highest);
     std::list<CObject3D*> list;
-    g_clientWorld.ObjectsInRange(p, 16.0f, &list);
+    g_clientWorld.ObjectsInRange(*p, 16.0f, &list);
     float best = 0.0f;
     for (auto& node : list) {
         const CObject3D* object = node;

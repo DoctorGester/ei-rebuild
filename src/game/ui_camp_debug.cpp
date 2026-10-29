@@ -100,10 +100,10 @@ void CCampPages::DebugFill() {
 
     if (CParty* spells = spellParts_[0]) {
         spells->Clear(1, 0);
-        g_clientWorld.spellManager_->ListModifierNames(&names);
+        names = g_clientWorld.spellManager_->ListModifierNames();
         for (int i = 0; i < static_cast<int>(names.size()); ++i)
             AddNamed(spells, "Rune", static_cast<std::uint32_t>(i), kInstructionCount);
-        g_clientWorld.spellManager_->ListSpellNames(&names);
+        names = g_clientWorld.spellManager_->ListSpellNames();
         for (int i = 0; i < static_cast<int>(names.size()); ++i)
             AddNamed(spells, "Prototype", static_cast<std::uint32_t>(i), kInstructionCount);
     }

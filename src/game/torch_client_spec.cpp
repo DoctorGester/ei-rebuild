@@ -131,7 +131,7 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
     CLight* light = g_clientWorld.lightFactory_->CreateLight(kPointLightClass);
     light_.Assign(light);
     const Vector3 rgb = {colour[0], colour[1], colour[2]};
-    light_->SetPoint(&rgb, &at);
+    light_->SetPoint(rgb, at);
     light_->range_ = radius;
     // The square is stored as a float and 1 divided by the unrounded value.
     const float squared = static_cast<float>(radius * radius);

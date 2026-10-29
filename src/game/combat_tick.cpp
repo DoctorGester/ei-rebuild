@@ -249,7 +249,6 @@ void CUnitServer::TakeQueuedOrder() {
 
 bool CUnitServer::StartMove() {
     CWorldServer* world = ServerWorld();
-    std::list<CUnit*> lifted;
     orderStopped = 0;
     TakeOver(this);
     LeaveMoveMode(this);
@@ -270,10 +269,10 @@ bool CUnitServer::StartMove() {
         return result;
     }
     // Plan the way with the units near the goal lifted off the sector map.
-    LiftNearby(&lifted, &action.point, action.source != 0);
+    std::list<CUnit*> lifted = LiftNearby(action.point, action.source != 0);
     CAIMap* map = &ServerWorld()->aiMap_;
-    unit->altPassCosts = map->InWaterAt(&unit->localPosition_);
-    bool found = PathTo(&action.point, action.point.z);
+    unit->altPassCosts = map->InWaterAt(unit->localPosition_);
+    bool found = PathTo(action.point, action.point.z);
     for (auto node = lifted.begin(); node != lifted.end();) {
         CUnit* current = *node;
         ++node;
@@ -325,7 +324,7 @@ bool CUnitServer::StartQueuedOrder() {
         LeaveMoveMode(this);
         int time = action.param;
         int now = WorldContext()->tick_;
-        motion.StandAndTurn(now, unit, &action.point, static_cast<std::uint32_t>(time));
+        motion.StandAndTurn(now, unit, action.point, static_cast<std::uint32_t>(time));
         unit->RefreshMotion();
         PlayIdle();
         SetState(1);
@@ -485,12 +484,12 @@ bool CUnitServer::CanReachAndPlan(const AIOrder* order) {
     return CanPlanAction(order);
 }
 
-bool CUnitServer::CanReachAndPlanFrom(const AIOrder* order, const Vector3* point) {
+bool CUnitServer::CanReachAndPlanFrom(const AIOrder* order, const Vector3& point) {
     if (OutOfReachUp(this, order)) return false;
     // The position is swapped bitwise, like the original.
     Vector3 saved;
     saved = unit->localPosition_;
-    unit->localPosition_ = *point;
+    unit->localPosition_ = point;
     bool result = CanPlanAction(order);
     unit->localPosition_ = saved;
     return result;
@@ -597,7 +596,7 @@ void CUnitServer::ApproachTarget() {
             EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(goal, motion.goal));
             if (DistanceSquaredXYUnrounded<double>(goal, motion.goal) <= kNearPoint) return;
         }
-        if (PathTo(&goal, kFarBits)) {
+        if (PathTo(goal, kFarBits)) {
             double h = kHalfScale;
             Vector3 heading;
             heading.x = static_cast<float>(h * motion.targetX);
@@ -738,7 +737,7 @@ void CUnitServer::ApproachTarget() {
     point.x = static_cast<float>(static_cast<double>(unit->localPosition_.x) * kLong + nearX);
     point.y = static_cast<float>(static_cast<double>(unitY) + farOffset);
     point.z = goal.z;
-    if (!PathTo(&point, static_cast<float>(patience)))
+    if (!PathTo(point, static_cast<float>(patience)))
         stoodBlocked = 1;
     g_serverWorld.aiMap_.sectorMap.Add(chased);
 
@@ -759,7 +758,7 @@ void CUnitServer::ApproachTarget() {
         back.x = -axis.x;
         back.y = -axis.y;
         back.z = -axis.z;
-        if (path->Start(&unit->localPosition_, &back, time)) unit->RefreshMotion();
+        if (path->Start(unit->localPosition_, back, time)) unit->RefreshMotion();
         ClearStanding();
         state = kStateChasing;
         unit->UpdateSizeClass();

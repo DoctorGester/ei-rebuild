@@ -74,12 +74,12 @@ void CWorldServer::Tick(char force) {
     UpdateUnits();
 }
 
-void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
+void CWorldServer::WakeUnitsAround(const Vector3& position, float radius) {
     static SpiralCache cache{0, -1.0f};
     int count;
     const std::int16_t* offsets = cache.Get(radius * 0.03125f, &count);   // radius in sectors
-    int sx = SectorOf(position->x);
-    int sy = SectorOf(position->y);
+    int sx = SectorOf(position.x);
+    int sy = SectorOf(position.y);
     CSectorMap* sectors = &aiMap_.sectorMap;
     for (int i = 0; i < count; ++i, offsets += 2) {
         auto* units = SectorUnits(sectors, offsets[0] + sx, offsets[1] + sy);

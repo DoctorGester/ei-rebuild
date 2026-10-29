@@ -47,12 +47,12 @@ void StandAt(AIPath* path, const int* time, const CMapObject* object) {
     path->targetY = static_cast<float>(scale * object->localPosition_.y);
     Vector3 facing;
     FacingFromQuaternion(&object->localRotation_.w, &facing.x);
-    path->Start(&object->localPosition_, &facing, *time);
+    path->Start(object->localPosition_, facing, *time);
 }
 
 } // namespace
 
-void AIPath::StandAndTurn(int time, const CMapObject* unit, const Vector3* direction, std::uint32_t rateBits) {
+void AIPath::StandAndTurn(int time, const CMapObject* unit, const Vector3& direction, std::uint32_t rateBits) {
     StandAt(this, &time, unit);
     SetTurn(direction, rateBits);
 }
@@ -62,7 +62,7 @@ void AIPath::StandAndTrack(int time, const CMapObject* unit, int id, int from, i
     SetTrack(id, from, to);
 }
 
-void AIPath::StandAndTurnUntil(int time, const CMapObject* unit, const Vector3* direction, int fromTime, int toTime) {
+void AIPath::StandAndTurnUntil(int time, const CMapObject* unit, const Vector3& direction, int fromTime, int toTime) {
     StandAt(this, &time, unit);
     SetTurnUntil(direction, fromTime, toTime);
 }

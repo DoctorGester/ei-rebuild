@@ -37,7 +37,7 @@ struct TextSources {
     // (ResOverride redirects the call).
     void* Find(std::string_view key, std::uint32_t* size);
     void* FindKeyText(std::string_view key, std::uint32_t* size);
-    void ListKeys(std::vector<std::string>* out, const char* pattern);
+    std::vector<std::string> ListKeys(const char* pattern);
 
     std::list<TextSource> archives;
 };
@@ -112,8 +112,8 @@ public:
     bool AddSource(const std::string& path);
     void RemoveSource(const std::string& path);
     void ClearSources();
-    // The names matching `pattern` ("pers *") of every archive into `out`.
-    void ListKeys(std::vector<std::string>* out, const char* pattern);
+    // The names matching `pattern` ("pers *") of every archive.
+    std::vector<std::string> ListKeys(const char* pattern);
 
     TextSources sources_;
     const char* cursor_;    // read position in the current text

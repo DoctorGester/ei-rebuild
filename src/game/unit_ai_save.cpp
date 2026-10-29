@@ -66,7 +66,7 @@ void AIMemory::Load(CStream* stream) {
         call.hostileMask = 0;
         stream->ReadValue(call.point);
         stream->ReadValue(call.delay);
-        stream->ReadInto(&call.text);
+        call.text = stream->ReadString();
         stream->ReadValue(call.hostileMask);
     }
     stream->ReadValue(noticedKind);

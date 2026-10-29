@@ -118,7 +118,7 @@ void CUnitServer::FinishCast() {
         CompanionOwner(ServerObjectOf(unit))->MarkChanged(0);
         unit->MarkChanged(0);
     }
-    world->CastSpell(spell, unit, &unit->localPosition_, action.target, &at, 0);
+    world->CastSpell(spell, unit, unit->localPosition_, action.target, at, 0);
     if (spell->GetPrototype()->castType != 1) {
         float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kCastNoiseScale);
         world->aiMap_.events.Noise(this, loudness, kNoiseKind, nullptr);
@@ -135,18 +135,18 @@ void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
     action2.param = static_cast<int>(time);
 }
 
-void CUnitServer::OrderMove(const Vector3* point, int run, int walk, float range) {
+void CUnitServer::OrderMove(const Vector3& point, int run, int walk, float range) {
     const CWorld* world = WorldContext();
     ResetOrder(&action2);
     action2.kind = UnitOrderKind::Move;
-    action2.point = *point;
+    action2.point = point;
     ReleaseTarget(&action2);
     action2.source = static_cast<std::uint8_t>(walk) != 0 ? 1 : 0;
     action2.point.z = range;
     action2.modifier = static_cast<std::uint8_t>(run);
     action2.param = 0;
     if (!unit->player) return;
-    if (std::bit_cast<std::uint32_t>(point->z) == kNoPointZ) return;
+    if (std::bit_cast<std::uint32_t>(point.z) == kNoPointZ) return;
     if (world->paused_ == 0) {
         action2.param = 1;
         return;
@@ -193,9 +193,9 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
     if (!PlanOrderRoute(&action2, planArg)) ResetOrder(&action2);
 }
 
-void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int run) {
+void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3& point, int run) {
     Vector3 at;
-    at = *point;
+    at = point;
     if (source & kQuickItemSource) {
         std::uint32_t slot = source & ~kQuickItemSource;
         auto* item = unit->GetQuickItem(slot);
@@ -207,7 +207,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int ru
             if (!scroll || !scroll->count_) return;
             CItem* carrier = SpellCarrier(source);
             if (!carrier || !carrier->spell_) return;
-            world->CastSpell(carrier->spell_, unit, &unit->localPosition_, nullptr, point, 0);
+            world->CastSpell(carrier->spell_, unit, unit->localPosition_, nullptr, point, 0);
             world->UseItemUp(unit, scroll);
             return;
         }
@@ -240,8 +240,8 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
             if (!scroll || !scroll->count_) return;
             CItem* spellCarrier = SpellCarrier(source);
             if (!spellCarrier || !spellCarrier->spell_) return;
-            world->CastSpell(spellCarrier->spell_, unit, &unit->localPosition_, target,
-                                   &target->localPosition_, 0);
+            world->CastSpell(spellCarrier->spell_, unit, unit->localPosition_, target,
+                                   target->localPosition_, 0);
             world->UseItemUp(unit, scroll);
             return;
         }

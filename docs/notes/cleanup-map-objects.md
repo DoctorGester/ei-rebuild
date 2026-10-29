@@ -10,7 +10,7 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
   `above`). Slots 13-61 are declared virtual in vtable order; a slot declared as `void Name()` keeps only its place. The slots the rewrite owns
   are the virtuals themselves, each registered through a `...Hook` shim: AttachObject 19, RecomputeScale 27, TakePrototype 34, SetServerData 36,
   ApplyScience 41, AddEffect 45, PlaceOnGround 51; `Lever::KeyId` (40) and `MagicTrap::ForgetObject` (56) are overrides, also registered through
-  shims. `Lever::UseSpots` is `CollectUseSpots` (not a slot). `CMapObjectVirtuals` is an alias of CMapObject,
+  shims. `Lever::UseSpots` returns the spots (not a slot). `CMapObjectVirtuals` is an alias of CMapObject,
   `ObjectSlots()` returns `CMapObject*`; member +0x178 is `animationSpeed`, the same field as `CUnit::animationSpeed`.
 - `CMapObjectCompanion` (novtable, 0073DC54; slots 13-19, `owner` at +0x1C) is the base of `CMapObjectServer` (0073DD6C) and
   `CMapObjectClientSpecific` (0073DBEC; reads the owner as a unit through `Unit()`). Both classes' IsDead / IsOverkilled (slots 17 / 18) are
