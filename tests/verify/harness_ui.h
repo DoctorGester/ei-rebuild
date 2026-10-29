@@ -4,8 +4,9 @@
 // "Verification"). Under "render ...,uiboth" every surface with a canvas (render_ui.h) is drawn twice, by GDI
 // into its memory and on its canvas; after each frame the canvases whose commands or memory changed since
 // their last check are read back (render::ui::ReadPixels) and compared with the memory, pixel by pixel:
-// exactly (or within `tolerance`) outside the glyph runs' rectangles, within `text` inside them (our own
-// fonts draw text a little differently). A surface over its limit is logged with its name (the window's
+// exactly (or within `tolerance`) outside the glyph runs' rectangles, within `text` inside them (the canvas
+// draws text in our own fonts, whose glyphs differ from GDI's by a pixel here and there: the defaults
+// compare 8x8 averages, which still find missing, recoloured or moved text). A surface over its limit is logged with its name (the window's
 // vtable and the surface's index, "W00740F28#2", or the interface's own: backdrop, backdrop2, fps, status,
 // console), its pair of pictures written to frames\uidiff<n>_<name>_gdi.bmp / _canvas.bmp, and the run fails
 // unless a "uidiffcheck" step expected it. A native surface (src/game/ui_native.h) is also compared as it goes
@@ -21,9 +22,9 @@
 //   uidiff [tolerance <n>] [text <n>] [block <n>] [limit <f>] [textlimit <f>] [dumps <n>]
 //                             the comparison's settings: a pixel outside the glyph runs differs when a channel
 //                             differs by more than `tolerance` (default 0), inside them when the `block` x
-//                             `block` averages (default 1) differ by more than `text` (default 24); a surface
+//                             `block` averages (default 8) differ by more than `text` (default 64); a surface
 //                             differs when more than `limit` (default 0) of the first or `textlimit` (default
-//                             0.01) of the second differ; at most `dumps` (default 8) pairs written
+//                             0.05) of the second differ; at most `dumps` (default 8) pairs written
 //   uidiffcheck <least> [most]
 //                             require the surface checks that differed since the last uidiffcheck to number
 //                             <least>..<most> (default: exactly <least>); they no longer fail the run

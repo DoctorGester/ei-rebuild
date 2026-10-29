@@ -1,7 +1,8 @@
 // Text on the interface's surfaces: CUiSurface's DrawText and the interface's text
 // extent. Rebirth's WideScreen patches both (the rectangle scaled without the margin; the
 // extent scaled by the 4:3 part), which these reproduce behind the flag (ticket W2, ui_widescreen.h).
-// See docs/notes/ui.md, section 3.
+// A native surface's text goes through the glyph atlas onto its canvas instead of GDI (ticket P2,
+// ui_native.h). See docs/notes/ui.md, section 3.
 #include "ui.h"
 #include "ui_gdi.h"
 #include "ui_native.h"
@@ -35,26 +36,32 @@ int CUiSurface::DrawTextIn(std::string_view text, const RECT* rect, int font, CO
         frame.right += kRectSlack;
         frame.bottom += kRectSlack;
     }
-    HGDIOBJ oldFont = gameapi::SelectObject(dc, interface_->fonts_[font].get());
-    gameapi::SetBkMode(dc, TRANSPARENT);
-    // Where the text lands: DrawText clips to its rectangle (and draws nothing for DT_CALCRECT).
-    RECT inked = frame;
-    if (shadow) {
-        gameapi::SetTextColor(dc, kShadowColour);
-        RECT shifted = frame;
-        gameapi::OffsetRect(&shifted, 1, 1);
-        ++inked.right;   // with the shadow's rectangle, one pixel lower and to the right
-        ++inked.bottom;
-        RECT drawn = shifted;
-        gameapi::DrawTextA(dc, text.data(), static_cast<int>(text.size()), &drawn, format);
-    }
-    gameapi::SetTextColor(dc, colour);
+    HFONT textFont = interface_->fonts_[font].get();
     // The original scales a point whose x is an unwritten local; only y is used.
     POINT extent{0, 0};
-    extent.y = gameapi::DrawTextA(dc, text.data(), static_cast<int>(text.size()), &frame, format);
-    gameapi::SelectObject(dc, oldFont);
-    // A native surface's canvas gets the text from the memory (text recorded on the canvas: P2).
-    if (!(format & DT_CALCRECT)) ui_native::TextDrawn(this, inked, !(format & DT_NOCLIP));
+    int laidOut = 0;
+    const ui_native::TextPath path = ui_native::Text(this, textFont, text, frame, format, colour, shadow != 0, &laidOut);
+    if (path == ui_native::TextPath::Canvas) {
+        extent.y = laidOut;
+    } else {
+        HGDIOBJ oldFont = gameapi::SelectObject(dc, textFont);
+        gameapi::SetBkMode(dc, TRANSPARENT);
+        // Where the text lands: DrawText clips to its rectangle (and draws nothing for DT_CALCRECT).
+        RECT inked = frame;
+        if (shadow) {
+            gameapi::SetTextColor(dc, kShadowColour);
+            RECT shifted = frame;
+            gameapi::OffsetRect(&shifted, 1, 1);
+            ++inked.right;   // with the shadow's rectangle, one pixel lower and to the right
+            ++inked.bottom;
+            RECT drawn = shifted;
+            gameapi::DrawTextA(dc, text.data(), static_cast<int>(text.size()), &drawn, format);
+        }
+        gameapi::SetTextColor(dc, colour);
+        extent.y = gameapi::DrawTextA(dc, text.data(), static_cast<int>(text.size()), &frame, format);
+        gameapi::SelectObject(dc, oldFont);
+        if (path == ui_native::TextPath::Gdi && !(format & DT_CALCRECT)) ui_native::TextDrawn(this, inked, !(format & DT_NOCLIP));
+    }
     interface_->ScalePointFromScreenCopyEntry(&extent);
     return extent.y;
 }
