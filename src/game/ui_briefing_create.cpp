@@ -211,7 +211,7 @@ void CBriefingScreen::CreateScreen() {
 
     // The camera: no longer free, kept within the zone's circle (the first lookup's record,
     // not checked for null), the alternate limits, no target.
-    CCamera* camera = &g_camera.Get();
+    CCamera* camera = &g_camera;
     camera->flags_ &= ~CCamera::kFree;
     if (map->restricted) {
         Vector3 centre{map->restrictX, map->restrictY, 0.0f};

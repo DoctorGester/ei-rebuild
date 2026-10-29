@@ -13,9 +13,7 @@
 
 #include <bit>
 #include <cstdint>
-#include <cstdlib>
 #include <cstring>
-#include <new>
 #include <string>
 
 namespace {
@@ -69,18 +67,9 @@ CCamera::~CCamera() {
     targetId_ = -1;
 }
 
-// The camera, zero at the start: built by its static initialiser and destroyed by the exit function it registers.
-constinit lib::StaticObject<CCamera> g_camera = /*0079B2A8*/ {};
-
-// A second block: it uses g_camera (defined above).
-namespace {
-void DestroyCamera() { g_camera.Destroy(); }
-} // namespace
-
-void ConstructCamera() {
-    g_camera.Construct();
-    std::atexit(DestroyCamera);
-}
+// The camera: constructed by the C++ runtime and destroyed after the game's exit functions (the worlds' destructors
+// do not touch it: EmptyWorlds, app_main.cpp, has emptied them by then).
+CCamera g_camera;
 
 const char* CCamera::ClassName() { return "CCamera"; }
 ClassId CCamera::GetClassId() { return ClassId::Camera; }

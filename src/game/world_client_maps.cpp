@@ -121,7 +121,7 @@ CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
 
     // Front to back (DepthLess with the top of the view stack); hits at the same depth keep the game's sort's
     // order, and the first that takes the click wins.
-    DepthLess depth{g_sceneRenderer->pipeline_->Top(CTransformPipeline::kViewStack)->m, client->MapObjectManager()};
+    DepthLess depth{g_sceneRenderer.pipeline_->Top(CTransformPipeline::kViewStack)->m, client->MapObjectManager()};
     lib::IntroSort(hits.data(), hits.data() + hits.size(),
                    [depth](const ScreenEntry& a, const ScreenEntry& b) { return depth.Less(&a, &b); });
     ScreenEntry*& cursor = client->hitCursor_;
@@ -667,7 +667,7 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
 }
 
 void CWorldClient::Destroy() {
-    g_camera->SetTarget(nullptr);
+    g_camera.SetTarget(nullptr);
     delete numbers_;
     numbers_ = nullptr;
     delete skyDome_;

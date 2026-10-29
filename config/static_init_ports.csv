@@ -1,7 +1,4 @@
 address,name,file
-0040C880,ConstructCamera,src/game/camera_object.cpp
-0040C8A0,DestroyCamera,src/game/camera_object.cpp
-0040C8B0,CCamera::CCamera,src/game/camera_object.cpp
 00412230,InitGameServerPointer,src/game/net_session.cpp
 00412250,ReleaseGameServer,src/game/net_session.cpp
 00412280,InitGameClientPointer,src/game/net_session.cpp
@@ -15,9 +12,6 @@ address,name,file
 004DA7F0,GrowingBuffer::GrowingBuffer,src/game/game_buffer.cpp
 004E3980,WeatherNoiseCurve::Build,src/game/weather_noise.cpp
 004E3B20,BuildWeatherNoise,src/game/weather_noise.cpp
-00500930,ConstructSceneRenderer,src/game/renderer_lifetime.cpp
-00500950,DestroySceneRenderer,src/game/renderer_lifetime.cpp
-00500A70,CSceneRenderer::CSceneRenderer,src/game/renderer_lifetime.cpp
 005B2FB0,InitDampScale,src/game/ai_refresh.cpp
 0066C4F0,CMemoryStream::CMemoryStream,src/game/core_streams.cpp
 006E6106,gameapi::WSAStartup,src/lib/gameapi.h

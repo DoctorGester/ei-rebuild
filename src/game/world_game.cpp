@@ -361,7 +361,7 @@ int GameFlow::SaveGame(const std::string& slot) {
     g_interface.SaveWindowState();
     scenario.WriteSized(&g_saveStream);
     ScriptsReset(&g_saveStream);
-    g_camera->Save(&scenario);
+    g_camera.Save(&scenario);
     SaveFileWrite(&file, kMagicScenario, kSaveVersion, &scenario);
     file.Close();
 
@@ -526,8 +526,8 @@ int LeaveZone(CParty* records) {
     g_serverWorld.ZoneNameInto(&zone);
     // `path` must be destroyed after `zone`: it is declared first.
 
-    if (g_serverWorld.sessionKind_ == 1) g_camera->SaveView(7);
-    else if (g_serverWorld.sessionKind_ == 3) g_camera->SaveView(6);
+    if (g_serverWorld.sessionKind_ == 1) g_camera.SaveView(7);
+    else if (g_serverWorld.sessionKind_ == 3) g_camera.SaveView(6);
     path = str::Format(kCurrentFolder, DataFolderText());
     {
         std::string fileName = zone + kSaveExtension;
@@ -923,7 +923,7 @@ int LoadMission(CStream* file) {
                       kSaveOldestVersion, file))
         return 0;
     int version = static_cast<int>(mission.version_);
-    if (version < kVersionScenarioGlobals) g_camera->Load(&mission);
+    if (version < kVersionScenarioGlobals) g_camera.Load(&mission);
     if (static_cast<int>(mission.version_) < kVersionScenarioInput) {
         // Old saves: the input state, then the rest goes to the save stream.
         g_saveStream.Resize(0);
@@ -1196,7 +1196,7 @@ int GameFlow::LoadGame(const std::string& slot) {
         version = static_cast<int>(scenario.version_);
         g_saveStream.version_ = static_cast<std::uint32_t>(version);
     }
-    if (version >= kVersionScenarioGlobals) g_camera->Load(&scenario);
+    if (version >= kVersionScenarioGlobals) g_camera.Load(&scenario);
     file.Close();
 
     // The visited zones of the current map (and bz7g) come back into saves\current; every other

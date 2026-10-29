@@ -56,7 +56,7 @@ render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.righ
 
 
 // A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the present.
-void PresentMovieFrame() { DevicePresent(g_sceneRenderer->device_); }
+void PresentMovieFrame() { DevicePresent(g_sceneRenderer.device_); }
 
 int g_movieKey;   // the blocking player's movie in the new renderer
 
@@ -101,7 +101,7 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
     // frames fill the screen themselves, render::Fill below.)
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
-    gameapi::CopyRect(&screen, &g_sceneRenderer->device_->screen_);
+    gameapi::CopyRect(&screen, &g_sceneRenderer.device_->screen_);
     // The frame's rectangle: mode 2 stretched to the screen's width (aspect kept), otherwise
     // centred at its size; both centred vertically (divisions round towards zero).
     RECT to;
@@ -180,7 +180,7 @@ void ShowLoadingMovie(int progress) {
             game::DebugLog("Can't open video file \"%s\"\n", path);
             return;
         }
-        g_loadingScreen = g_sceneRenderer->device_->screen_;
+        g_loadingScreen = g_sceneRenderer.device_->screen_;
     }
     BinkHeader* bink = g_loadingBink;
     int last = static_cast<int>(bink->frames) - 1;
@@ -227,7 +227,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     g_cursor.ShowImage(0);
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
-    gameapi::CopyRect(&screen, &g_sceneRenderer->device_->screen_);
+    gameapi::CopyRect(&screen, &g_sceneRenderer.device_->screen_);
     if (options::g_options->video_ == 1) {
         int x = (screen.right - width - screen.left) / 2;
         int y = (screen.bottom - height - screen.top) / 2;

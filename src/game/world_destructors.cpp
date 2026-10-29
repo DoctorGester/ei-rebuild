@@ -1,6 +1,8 @@
 // The destructors the compiler wrote for the world's classes: the bodies the exe's vtables reach through the
-// scalar deleting destructors, the members destroyed last to first after the class's own teardown. The
-// containers are std's. See docs/notes/standalone.md.
+// scalar deleting destructors, the members destroyed last to first. The worlds' own teardown (Destroy) is not
+// repeated: EmptyWorlds (app_main.cpp) has emptied both before their destructors run, which also keeps them from
+// touching the camera and the scene renderer, plain globals that may be destroyed first. The containers are std's.
+// See docs/notes/standalone.md.
 #include "effects.h"
 #include "ground_print.h"
 #include "model.h"
@@ -16,7 +18,6 @@
 #include <memory>
 
 CWorld::~CWorld() {
-    CWorld::Destroy();
     netSession_.Destroy();
     worldHandle_.Destroy();
     figureLoader_.Reset();
@@ -39,7 +40,6 @@ Sector::~Sector() {
 }
 
 CWorldClient::~CWorldClient() {
-    CWorldClient::Destroy();
     handle_.Destroy();
     scorchMarks_.clear();
     footprints_.clear();
@@ -53,7 +53,6 @@ CWorldClient::~CWorldClient() {
 }
 
 CWorldServer::~CWorldServer() {
-    CWorldServer::Destroy();
     sharedObjects_.clear();
     ReleaseAndClear(counted_);
     projectiles_.clear();

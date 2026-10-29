@@ -110,10 +110,10 @@ void CGlobalMap::RefreshSelection() {
     surfaces_[1]->Hide(false);
     surfaces_[0]->Hide(false);
     ShowAllButZones(false);
-    std::uint32_t colour = g_sceneRenderer->fogColour_;
-    g_sceneRenderer->fogColour_ = 0;
+    std::uint32_t colour = g_sceneRenderer.fogColour_;
+    g_sceneRenderer.fogColour_ = 0;
     app::FrameStep(false, false);
-    g_sceneRenderer->fogColour_ = colour;
+    g_sceneRenderer.fogColour_ = colour;
     surfaces_[1]->Show();
     ShowAllButZones(true);
     SceneMesh(MarkerCount() + 6)->visible_ = false;

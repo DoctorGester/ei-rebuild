@@ -334,12 +334,13 @@ kinds given.
   A `char` buffer is `char g_x[256] = /*addr*/ {""};` (the tool packs char arrays as names), a function pointer
   `void* g_hook = /*addr*/ {nullptr};` cast at the call.
 - **Global objects (C18n)**: `--check` refuses a named range inside a singleton the code reaches by field offset
-  (config/global_objects.csv: address, size, name, class; g_camera 0079B2A8 +0x308, g_sceneRenderer) and says which
-  object and field. The worlds were such objects until C50b1 made them plain globals with no address: C18i's 007C2CC4
+  (config/global_objects.csv: address, size, name, class; empty since C50b2) and says which object and field. The
+  worlds (C50b1), the camera 0079B2A8 and the scene renderer 007AF060 (C50b2) were such objects until they became plain
+  globals with no address: C18i's 007C2CC4
   is the server world's sessionKind_ (007AFF60 + 0x12D64), which also held TheMissionScript 007C27D4 (commandsA_),
   007C29CC (commandsB_), TheSectorMap 007B01F4 (sectorMap_), the AI map 007B00D0 and the diplomacy 007C2BC4. Naming the
   whole object is allowed. `python tools/named_data.py --owner BEGIN [END]` asks the same of any address. The CSV's sizes
-  come from `static_assert(sizeof(T) == N)` where the sources have one (checked against it); CCamera 0x308 and CSceneRenderer 0x5C have none and were read off the compiler. A new GamePointer<T>(addr) accessor in
+  come from `static_assert(sizeof(T) == N)` where the sources have one (checked against it). A new GamePointer<T>(addr) accessor in
   game_singletons.h must lie in a listed object. Before naming a lone address, `--owner` it.
 - **C18h (the small areas)**: three kinds of reads went away. (1) Members of blocks read by their base: the logic
   settings 007C53F8 (`GameLogicSettings()`: guard / follow radii, the hit point curve's hpVal, skillVal, lost money /
@@ -586,7 +587,7 @@ kinds given.
       - The exit function: ported on the name, outside any anonymous namespace, with a row in
         config/static_init_ports.csv (function_sizes.inc already has it, gen_static_init wrote it there); the initialiser's atexit stays at its
         place in the list as `std::atexit(Name)` and gen_static_init leaves the ported function out of static_exit.cpp. It goes next to the definition
-        (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles, camera_object.cpp's DestroyCamera).
+        (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles, options_construct.cpp's DestroyGameOptions).
       - A constructor whose result is no constant (CString's empty string: a copy of 00796E48, a run-time pointer;
         `CString(const char*)` allocates) runs in list order: the initialiser is ported on the name and registered at
         its address (a row in config/extra_function_sizes.csv and function_sizes.inc: Ghidra has no function there),
@@ -600,7 +601,7 @@ kinds given.
         without one is `constinit lib::StaticObject<Class> g_x = /*ADDR*/ {};` and the initialiser calls the class's
         own `Construct(...)`. named_data needs the class's size (STATIC_OBJECT_BYTES in tools/named_data.py maps the
         T of a StaticObject<T> to it; a template deeper than one level gets an alias, `using IntSet = ...`). Every
-        access goes through the name or a member (`g_camera->`); a raw address inside the
+        access goes through the name or a member (`options::g_options->`); a raw address inside the
         range is refused. Named: ui_objectives' last quest string 007C8178, the
         protection checks / driver / deferred-unit lists (static_lists.cpp), the spell / item / quest / print / speech
         databases (database_globals.cpp), the lever table, the unit and skill databases (unit_db_globals.cpp; plain globals
@@ -708,7 +709,7 @@ kinds given.
       buffers (C50c); the command line's five strings (app_main.cpp), the registry root, start and text folders
       (game_folders.cpp; the disc and data folders too since C50e: plain std::string), the
       chunk archive's class registry, clip's work words and the console's command maps; the interface manager and the
-      cursor (C54g: CInterface3D and CCursor construct themselves); the flow, the party manager, the saved parties and
+      cursor (C54g: CInterface3D and CCursor construct themselves); the camera and the scene renderer (C50b2, with the worlds below); the flow, the party manager, the saved parties and
       the save stream (C54g1); the two worlds (C50b1, below); the draws' work arrays (line
       lists, the device's mesh buffers, sprites, strip, terrain projection, the part draws' moved positions, the moved
       packets and offset vertices) and SetSun's sorted sectors, a local (C50d; the unread set 007AB8D8, which only the
@@ -729,7 +730,8 @@ kinds given.
       they are emptied in the game's exit order, not by their destructors: GameMain registers `EmptyWorlds` (both
       Destroys, ShutDown's last step too) with atexit before it creates them, so it runs before every exit function of
       the list (as the original's world exit functions, the list's last, did) also on an exit that skips ShutDown (a
-      fatal error). Their destructors then find them empty. The vector replay links no world: replay_unlinked.cpp
+      fatal error). Their destructors then find them empty and do not call Destroy again (C50b2: the client's Destroy
+      clears the camera's target, and the camera, a plain global of another file, may be destroyed first). The vector replay links no world: replay_unlinked.cpp
       resolves g_serverWorld to zero bytes of its size (`/alternatename`). Their initialisers are UNUSED_INITIALISERS (the exit
       functions go with them); a function whose port builds none of the original's function-local statics is in
       RETIRED_STATICS (Aggression's candidates, LabelRegions' flood lists, ReachesRegion's block list,
@@ -760,7 +762,9 @@ kinds given.
       cells 007AF284 / 007C2EB8 / 007AF3E8 / 007C53C4 / 007C54E8 are unread data (REVIEWED_READ: only the original's
       ported code read them).
     - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the camera 0079B2A8, the scene renderer 007AF060
-      (renderer_lifetime.cpp) and the received messages 007C83D0 (with its destroyed flag 007C83C8) are `lib::StaticObject` with their
+      (renderer_lifetime.cpp; both plain since C50b2, initialisers 0040C880 / 00500930 unused: the renderer's destructor only
+      drops counts, ShutDown's DestroyRenderer has released the device by then, and the device object's destructor makes no
+      device or window call) and the received messages 007C83D0 (with its destroyed flag 007C83C8) were `lib::StaticObject` with their
       initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
       out of line. Plain globals: the main window 0079BC28 (app::g_mainWindow, which the renderer reads too), the loading
       movie's 007C5520 / 007C554C-54, the network buffer flags 0079B8FC, the damping scale 007C2F8C (its initialiser

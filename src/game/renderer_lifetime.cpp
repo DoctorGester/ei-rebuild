@@ -17,10 +17,7 @@
 #include "lib/crt.h"
 #include <cstdint>
 
-#include <cstdlib>
-
 #include <bit>
-#include <new>
 
 namespace {
 
@@ -79,18 +76,10 @@ void CSceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) 
     SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
 }
 
-// The scene renderer, zero at the start: built by its static initialiser in the list's order and destroyed by the
-// exit function that registers (docs/notes/standalone.md, "The static initialisers' objects").
-constinit lib::StaticObject<CSceneRenderer> g_sceneRenderer = /*007AF060*/ {};
-
-namespace {
-void DestroySceneRenderer() { g_sceneRenderer.Destroy(); }
-} // namespace
-
-void ConstructSceneRenderer() {
-    g_sceneRenderer.Construct();
-    std::atexit(DestroySceneRenderer);
-}
+// The scene renderer: constructed by the C++ runtime and destroyed after the game's exit functions. ShutDown's
+// DestroyRenderer has released its holders by then; on an exit that skips ShutDown its destructor drops the counts
+// (the device object's destructor releases only the pipeline and the material: no device or window call).
+CSceneRenderer g_sceneRenderer;
 
 void CSceneRenderer::DestroyRenderer() {
     ReleasePipeline();

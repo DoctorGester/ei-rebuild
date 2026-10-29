@@ -60,10 +60,10 @@ LRESULT OnActivate(WPARAM wParam) {
     g_activationChanged = 1;
     gameapi::ShowWindow(g_mainWindow, SW_RESTORE);
     if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(true);
-    CTextureDevice* device = g_sceneRenderer->device_;
+    CTextureDevice* device = g_sceneRenderer.device_;
     if (device && device->fullScreen_) {
-        g_sceneRenderer->RestoreSurfaces();
-        device = g_sceneRenderer->device_;
+        g_sceneRenderer.RestoreSurfaces();
+        device = g_sceneRenderer.device_;
         if (device) {
             // ResetCursors after the device was restored. The context is the mouse.
             ResetCursors(options::g_options->fpsIndependentCursor_ != 0, g_mouse, 0);

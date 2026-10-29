@@ -40,7 +40,7 @@ void CViewScreen::CreateScreen() {
     AddInput(new UnitPickInput(interface_));
     AddInput(new CCameraInput(interface_));
 
-    CCamera* camera = &g_camera.Get();
+    CCamera* camera = &g_camera;
     camera->flags_ &= ~CCamera::kFree;
     Vector3 focus{30.0f, 30.0f, 0.0f};
     camera->SetFocus(&focus);
@@ -54,7 +54,7 @@ void CViewScreen::Draw(CSceneRenderer*) {
     GameRender();
 }
 
-void CViewScreen::CloseScreen() { g_camera->flags_ |= CCamera::kFree; }
+void CViewScreen::CloseScreen() { g_camera.flags_ |= CCamera::kFree; }
 
 // --- UnitPickInput ------------------------------------------------------------------------------
 

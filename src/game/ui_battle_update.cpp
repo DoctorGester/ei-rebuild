@@ -184,7 +184,7 @@ void RebuildClientParty(CBattleScreen* screen) {
         }
         screen->portraits_->Rebuild(cameraFirst);
         if (screen->clientParty_.camera != ids.camera) {
-            g_camera->SetTargetId(ids.camera);
+            g_camera.SetTargetId(ids.camera);
             screen->RefreshSelection();
         }
         screen->clientParty_.withUnit = ids.withUnit;

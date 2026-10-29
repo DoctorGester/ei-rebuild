@@ -1,6 +1,6 @@
 // CWorldClient's draw path: Render and DrawPass, with Rebirth's LandscapeDrawRadius and ObjectsDrawRadius
 // behind their flags. See world.h and docs/notes/world.md. Both set the renderer's render state
-// (render/render_state.h) and the scene pipeline's matrix stacks (g_sceneRenderer->pipeline_) in the original's
+// (render/render_state.h) and the scene pipeline's matrix stacks (g_sceneRenderer.pipeline_) in the original's
 // order.
 #include "address_order.h"
 #include "camera.h"
@@ -149,15 +149,15 @@ void DrawEach(FrameList list, Draw draw) {
 // new renderer learns which object the meshes of a figure draw belong to (its shadow map's casters).
 constexpr auto kDraw = [](CMapObject* object) {
     render::BeginCaster(object, false);
-    object->DrawFigure(&g_sceneRenderer.Get());
+    object->DrawFigure(&g_sceneRenderer);
     render::EndCaster();
 };
 constexpr auto kDrawUnit = [](CMapObject* object) {
     render::BeginCaster(object, true);
-    object->DrawCollectDirty(&g_sceneRenderer.Get());
+    object->DrawCollectDirty(&g_sceneRenderer);
     render::EndCaster();
 };
-constexpr auto kDrawShadow = [](CMapObject* object) { object->DrawFigureShadow(&g_sceneRenderer.Get()); };
+constexpr auto kDrawShadow = [](CMapObject* object) { object->DrawFigureShadow(&g_sceneRenderer); };
 
 // Calls the ground print draw on the value of every node of an effect list (the ground print lists).
 template <typename T>
@@ -185,8 +185,8 @@ int CWorldClient::Render() {
     // The world view for the new renderer's smooth option (multisampled, models sampled
     // anisotropically); the interface draws after it.
     render::BeginWorld();
-    CTextureDevice* renderer = g_sceneRenderer->device_;
-    CTransformPipeline* device = g_sceneRenderer->pipeline_;
+    CTextureDevice* renderer = g_sceneRenderer.device_;
+    CTransformPipeline* device = g_sceneRenderer.pipeline_;
     UpdateLighting();
     // The sun the new renderer's shadow map is drawn from: the terrain's (Terrain::SetSun), as this
     // frame's lighting turned it; the GPU lighting's sun, ambient and point lights.
@@ -197,7 +197,7 @@ int CWorldClient::Render() {
     }
     HandOverSceneLights(this);
     Matrix4 view;
-    view::CameraViewMatrix(view.m, &g_camera.Get());   // (the result is not read)
+    view::CameraViewMatrix(view.m, &g_camera);   // (the result is not read)
     PopMatrix(device->stacks_[kStackView]);
     PushMatrix(device->stacks_[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;
@@ -216,7 +216,7 @@ int CWorldClient::Render() {
         state.cull = render::Cull::None;
         state.specular = true;
         renderer->distanceFog_ = 0;
-        skyDome_->Draw(&g_sceneRenderer.Get(), &camera_->localPosition_);
+        skyDome_->Draw(&g_sceneRenderer, &camera_->localPosition_);
         renderer->distanceFog_ = 1;
         state.cull = render::Cull::Clockwise;
         state.specular = false;
@@ -229,7 +229,7 @@ int CWorldClient::Render() {
         CCamera* camera = camera_;
         terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
         state.stages[0].combiner = kTerrainStage;
-        terrain_->DrawGround(&g_sceneRenderer.Get());
+        terrain_->DrawGround(&g_sceneRenderer);
     }
     DrawPass();
     net::Pump();
@@ -240,7 +240,7 @@ int CWorldClient::Render() {
         terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
         state.alphaTest = false;
         state.stages[0].combiner = kSceneStage;
-        terrain_->DrawWater(&g_sceneRenderer.Get());
+        terrain_->DrawWater(&g_sceneRenderer);
     }
     // The shadow map's casters the game did not draw (the map is fitted to the ground drawn above),
     // and the ground's own.
@@ -254,18 +254,18 @@ int CWorldClient::Render() {
         state.sourceBlend = render::Blend::SourceAlpha;
         state.destBlend = render::Blend::InvSourceAlpha;
         state.depthWrite = false;
-        arrayManager_->Draw(&g_sceneRenderer.Get());
+        arrayManager_->Draw(&g_sceneRenderer);
         state.sourceBlend = render::Blend::SourceAlpha;
         state.destBlend = render::Blend::InvSourceAlpha;
         state.depthWrite = false;
         CParticleManager* particles = ClientParticleManager();
-        particles->DrawAll(&g_sceneRenderer.Get());
+        particles->DrawAll(&g_sceneRenderer);
         state.sourceBlend = render::Blend::SourceAlpha;
         state.destBlend = render::Blend::InvSourceAlpha;
-        listManager_->DrawAll(&g_sceneRenderer.Get());
+        listManager_->DrawAll(&g_sceneRenderer);
         state.sourceBlend = render::Blend::SourceAlpha;
         state.destBlend = render::Blend::InvSourceAlpha;
-        rainSnow_.Draw(&g_sceneRenderer.Get());
+        rainSnow_.Draw(&g_sceneRenderer);
         state.depthWrite = true;
     }
     state.stages[0].combiner = kSceneStage;
@@ -279,7 +279,7 @@ int CWorldClient::Render() {
         state.depthTest = false;
         state.stages[0].combiner = kAlphaPassStage;
         renderer->distanceFog_ = 0;
-        numbers_->Draw(&g_sceneRenderer.Get());
+        numbers_->Draw(&g_sceneRenderer);
         renderer->distanceFog_ = 1;
         state.depthTest = true;
     }
@@ -288,7 +288,7 @@ int CWorldClient::Render() {
 }
 
 int CWorldClient::DrawLineLists() {
-    for (auto& node : lineLists_) node.second->Draw(g_sceneRenderer->pipeline_, g_sceneRenderer->device_);
+    for (auto& node : lineLists_) node.second->Draw(g_sceneRenderer.pipeline_, g_sceneRenderer.device_);
     return 1;
 }
 
@@ -296,7 +296,7 @@ int CWorldClient::DrawPass() {
     render::RenderState& state = render::g_renderState;
     Terrain* terrain = terrain_;
     if (!terrain || !terrain->mapLoaded) return 0;
-    CTransformPipeline* device = g_sceneRenderer->pipeline_;
+    CTransformPipeline* device = g_sceneRenderer.pipeline_;
     std::uint32_t now = gameapi::timeGetTime();
     const Matrix4* view = device->Top(kStackView);
     g_deferredUnits.clear();
@@ -416,7 +416,7 @@ int CWorldClient::DrawPass() {
         matrix.m[5] = 1.0f;
         matrix.m[0] = 1.0f;
         Vector3 sun;
-        g_camera->localRotation_.AxisZ(&sun);
+        g_camera.localRotation_.AxisZ(&sun);
         const float scale = kShadowLength;
         float product = sun.x * scale;
         matrix.m[3] = product;
@@ -444,7 +444,7 @@ int CWorldClient::DrawPass() {
     std::list<int>& selected = selectedIds_;
     if (!selected.empty() && options::g_options->selectionType_ == 1 && (flags_ & WorldClientFlag::DrawUnits)) {
         state.alphaTest = false;
-        g_sceneRenderer->SetTexture(0, nullptr);
+        g_sceneRenderer.SetTexture(0, nullptr);
         CMapObjectManager* manager = objectManager_;
         for (std::list<int>::iterator node = selected.begin(); node != selected.end();) {
             std::list<int>::iterator next = std::next(node);
@@ -464,7 +464,7 @@ int CWorldClient::DrawPass() {
                     Vector3 axisY, axisX;
                     orientation->AxisY(&axisY);
                     orientation->AxisX(&axisX);
-                    g_sceneRenderer->DrawSelectionMarker(&point, 0.5f, &axisX, &axisY);
+                    g_sceneRenderer.DrawSelectionMarker(&point, 0.5f, &axisX, &axisY);
                 } else {
                     if (object->flags_ & MapObjectFlag::Selected) {
                         object->flags_ &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);

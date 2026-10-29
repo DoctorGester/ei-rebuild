@@ -83,7 +83,7 @@ void CCameraInput::KeyUp(int, int, int flags) {
         break;
     }
     if (!handled_) return;
-    CCamera* camera = &g_camera.Get();
+    CCamera* camera = &g_camera;
     if (!ModifierHeld(interface_)) {
         float left = static_cast<float>(-x_);
         float speed = KeyboardSpeed(options::g_options->cameraScroll_);
@@ -114,7 +114,7 @@ void CCameraInput::RightDown(int, int x, int y) {
 
 void CCameraInput::RightUp(int, int, int) {
     turning_ = false;
-    CCamera* camera = &g_camera.Get();
+    CCamera* camera = &g_camera;
     camera->SetTurnRate(0.0f);
     camera->SetTiltRate(0.0f);
     Vector3 still = {0.0f, 0.0f, 0.0f};
@@ -129,7 +129,7 @@ void CCameraInput::RightUp(int, int, int) {
 }
 
 void CCameraInput::MouseMove(int, int x, int y) {
-    CCamera* camera = &g_camera.Get();
+    CCamera* camera = &g_camera;
     if (turning_) {
         POINT point{x, y};
         POINT drag{g_cursor.motion_.x, g_cursor.motion_.y};
@@ -207,11 +207,11 @@ void CCameraInput::Deactivate() {
     g_cursor.SetHeld(0);
     g_cursor.motion_.y = 0;
     g_cursor.motion_.x = 0;
-    g_camera->StopMotion();
+    g_camera.StopMotion();
 }
 
 void CCameraInput::Wheel(int, int delta, int, int) {
     int steps = static_cast<short>(delta);
-    g_camera->ZoomBy(MouseSpeed(options::g_options->cameraZoom_) * static_cast<float>(steps) * kWheelStep);
+    g_camera.ZoomBy(MouseSpeed(options::g_options->cameraZoom_) * static_cast<float>(steps) * kWheelStep);
 }
 

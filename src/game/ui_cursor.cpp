@@ -40,7 +40,7 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     CTextureManager* manager = g_clientWorld.textureManager_;
     MmpHeader* picture = manager->GetFileData(name);
     // (A throw passes the exception on; that ends the game.)
-    holder = new Surface(g_sceneRenderer->device_, picture);
+    holder = new Surface(g_sceneRenderer.device_, picture);
     ++holder->refs_;
 
     // The holder took the picture's size and the screen's pixel size or threw.

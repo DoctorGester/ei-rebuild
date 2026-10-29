@@ -240,7 +240,7 @@ void LoadVar(std::vector<std::string>* args) {
 
 // "Current FPS: " 1000 / last frame time (printed as float).
 void LastFps(std::vector<std::string>*) {
-    auto* timer = &g_sceneRenderer.Get();
+    auto* timer = &g_sceneRenderer;
     Stream& os = g_consoleOut << "Current FPS: ";
     unsigned ms = timer->FrameTime();
     double fps = 1000.0f / x87::FromUnsigned(ms);

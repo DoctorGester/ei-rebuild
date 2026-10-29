@@ -18,7 +18,7 @@ namespace {
 constexpr DWORD kThreadPeriod = 41;                  // ms between the thread's redraws
 
 // The renderer object; its flags' bit 0 is the software cursor display option.
-bool SoftwareCursor() { return (g_sceneRenderer->flags_ & 1) != 0; }
+bool SoftwareCursor() { return (g_sceneRenderer.flags_ & 1) != 0; }
 
 render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
 

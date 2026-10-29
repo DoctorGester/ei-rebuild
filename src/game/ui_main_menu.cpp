@@ -130,7 +130,7 @@ void CMainMenu::Update() {
         if (hour == kRainStartHour) GameSetWeather(kWeatherRain, kWeatherStrength);
         else if (hour == kRainEndHour) GameSetWeather(kWeatherClear, kWeatherStrength);
     }
-    if (!daylight_ && rain_ && hour < kLightningBeforeHour && (g_sceneRenderer->flags_ & 1) != 0) {
+    if (!daylight_ && rain_ && hour < kLightningBeforeHour && (g_sceneRenderer.flags_ & 1) != 0) {
         std::uint32_t now = gameapi::GetTickCount();
         if (now > g_nextLightningTick) {
             g_nextLightningTick = now + 100;

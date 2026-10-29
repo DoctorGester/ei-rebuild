@@ -116,7 +116,7 @@ void CBriefingScreen::KeyDown(int key, int repeat, int flags) {
         OpenObjectives(interface_);
         break;
     case kActionLeader:
-        if (leader_) g_camera->SetTarget(leader_);
+        if (leader_) g_camera.SetTarget(leader_);
         handled_ = true;
         break;
     case kActionQuickSave:

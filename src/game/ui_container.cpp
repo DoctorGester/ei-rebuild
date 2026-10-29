@@ -27,7 +27,7 @@ void CUiContainer::AddInput(UiInputSide* input) {
 // --- Per-frame slots ---------------------------------------------------------------------------
 
 // The scene renderer's last frame's milliseconds are loaded as an unsigned qword and multiplied by the float 0.001.
-double CUiContainer::FrameTime() { return x87::FromUnsigned(g_sceneRenderer->FrameTime()) * static_cast<double>(0.001f); }
+double CUiContainer::FrameTime() { return x87::FromUnsigned(g_sceneRenderer.FrameTime()) * static_cast<double>(0.001f); }
 
 void CUiContainer::Update() {
     for (int i = 0; i < std::ssize(children_); ++i) children_[i]->Update();

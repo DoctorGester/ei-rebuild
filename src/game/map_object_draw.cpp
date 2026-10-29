@@ -132,7 +132,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
         }
         // The first set takes the wounds material as stage 0's texture.
         WoundsMaterial* wounds = woundsMaterial;
-        g_sceneRenderer->device_->SetMaterial(k == 0 ? wounds : nullptr);
+        g_sceneRenderer.device_->SetMaterial(k == 0 ? wounds : nullptr);
         set = partSets[k];
         for (int g = 0; g < std::ssize(set->groups); ++g) {
             for (int p = 0; p < std::ssize(set->groups[g]->parts); ++p) {
@@ -189,7 +189,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     }
     if (anyDrawn) object->flags_ |= MapObjectFlag::Shown;
     else object->flags_ &= ~MapObjectFlag::Shown;
-    g_sceneRenderer->device_->SetMaterial(nullptr);
+    g_sceneRenderer.device_->SetMaterial(nullptr);
     Finish(lights, list);
     return 1;
 }

@@ -127,7 +127,7 @@ void CBattleScreen::KeyDown(int key, int repeat, int flags) {
     }
 
     const int action = g_keyActions[flags & kScanCodeMask];
-    CCamera* camera = &g_camera.Get();
+    CCamera* camera = &g_camera;
     switch (action) {
     case kActionPause: {
         clock_->TogglePause();

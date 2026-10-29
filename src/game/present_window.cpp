@@ -15,7 +15,7 @@ namespace present_window {
 namespace {
 
 HWND Window() {
-    CTextureDevice* device = g_sceneRenderer->device_;
+    CTextureDevice* device = g_sceneRenderer.device_;
     return device ? device->window_ : nullptr;
 }
 

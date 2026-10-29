@@ -20,7 +20,7 @@ namespace {
 
 // The scene renderer's transform object (in 3DfpFPU.dll, a global): fits `bounds` to the vertices.
 void FitBounds(ClipBounds* bounds, VertexPacket* vertices, int count) {
-    auto* renderer = &g_sceneRenderer.Get();
+    auto* renderer = &g_sceneRenderer;
     renderer->pipeline_->transform_->FitBounds(bounds, vertices, count);
 }
 

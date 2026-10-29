@@ -81,7 +81,7 @@ void CBriefingScreen::StartPhrases() {
     if (server) server->SendPair19(kEventPhrases, 0);
 
     // The camera's position, and that plus its rotation's z axis (third column of the matrix).
-    const CCamera* camera = &g_camera.Get();
+    const CCamera* camera = &g_camera;
     savedCamera_ = camera->localPosition_;
     const Quaternion& q = camera->localRotation_;
     double zz = q.z * q.z;

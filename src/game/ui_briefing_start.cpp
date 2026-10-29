@@ -256,7 +256,7 @@ void CBriefingScreen::FinishDialogue() {
     Vector3 at = leader_->localPosition_;
     if (briefingStarted_) {
         g_serverWorld.GetPlayer(0)->Server()->SendPosition04(&at, 0, 1);
-        g_camera->flags_ &= ~CCamera::kFree;
+        g_camera.flags_ &= ~CCamera::kFree;
         briefingStarted_ = false;
     } else {
         g_serverWorld.GetPlayer(0)->Server()->SendPosition0F(&savedCamera_, &lookAt_, 0);

@@ -158,7 +158,7 @@ void CBattleScreen::CreateScreen() {
 
     AddInput(new CCameraInput(interface_));
 
-    g_camera->flags_ &= ~0x40u;
+    g_camera.flags_ &= ~0x40u;
     pendingAction_ = kPendingNone;
     pendingSlot_ = -1;
     GameSetWeather(0, 0.0f);   // clear weather

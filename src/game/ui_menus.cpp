@@ -169,7 +169,7 @@ void COptionsWindow::RestoreSettings() {
     g_clientWorld.sounds_->SetMusicVolume(options::g_options->audioStreaming_);
     g_clientWorld.sounds_->SetSpeechVolume(options::g_options->audioSpeech_);
     // The scene renderer's gamma.
-    g_sceneRenderer->SetGamma(options::g_options->brightness_, options::g_options->contrast_,
+    g_sceneRenderer.SetGamma(options::g_options->brightness_, options::g_options->contrast_,
                               options::g_options->gamma_);
 }
 
@@ -284,7 +284,7 @@ void COptionsWindow::Update() {
                 float r = static_cast<float>(static_cast<double>(gamma[0].value_) * kGammaScale - 1.0f);
                 float g = static_cast<float>(static_cast<double>(gamma[1].value_) * kGammaScale - 1.0f);
                 float b = static_cast<float>(static_cast<double>(gamma[2].value_) * kGammaScale - 1.0f);
-                g_sceneRenderer->SetGamma(r, g, b);
+                g_sceneRenderer.SetGamma(r, g, b);
             }
         }
         if (settings_[i].spin_ && settings_[i].spin_->TakeChanged()) {

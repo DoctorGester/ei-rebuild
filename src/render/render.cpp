@@ -93,7 +93,7 @@ void EnsureConfigured() {
 
 // --- Game memory -----------------------------------------------------------------------------------
 
-std::uint32_t GameClearColour() { return g_sceneRenderer->fogColour_; }
+std::uint32_t GameClearColour() { return g_sceneRenderer.fogColour_; }
 
 sg_color FromD3DColour(std::uint32_t c) {
     return sg_color{static_cast<float>((c >> 16) & 0xFF) / 255.0f, static_cast<float>((c >> 8) & 0xFF) / 255.0f,
@@ -920,7 +920,7 @@ bool FrameSize(int* width, int* height) {
     return g_colour.id != 0;
 }
 
-CTextureDevice* DeviceObject() { return g_sceneRenderer->device_; }
+CTextureDevice* DeviceObject() { return g_sceneRenderer.device_; }
 
 // The size of the game's screen (the device object's).
 bool GameTargetSize(int* width, int* height) {

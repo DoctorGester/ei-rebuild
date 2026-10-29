@@ -175,7 +175,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
     }
     if (!woundsMaterial) {
         woundsMaterial.Assign(new WoundsMaterial());
-        CRenderHelper* helper = g_sceneRenderer->helper_;
+        CRenderHelper* helper = g_sceneRenderer.helper_;
         woundsMaterial->preset.Assign(helper->Preset(kWoundsPreset));
         woundsMaterial->stages.push_back(MaterialStage(partSets[0]->texture));
         woundsMaterial->stages.push_back(MaterialStage(woundsTexture));
