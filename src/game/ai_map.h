@@ -852,6 +852,8 @@ struct SpiralCache {
 int WorldToCell(float world);
 
 void InitCostTables(CAIMap* map);
+// The map's six area lists (areaLists) from the level tables.
+void FillAreaLists(CAIMap* map);
 // Standing level of size class `sizeClass` (0..7): (2 - height) * 16, at least 0. Outside 0..7 the original
 // returns only the low byte 0 (the rest of the result is the argument), reproduced here.
 int LevelForSizeClass(int sizeClass);

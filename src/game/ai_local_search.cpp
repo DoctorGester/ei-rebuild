@@ -2,7 +2,6 @@
 // for short paths (CAIMap::JoinLocalSearches runs a forward and a backward one until they meet),
 // the long-range planner's legs and the region map's block measurements. See docs/notes/ai.md.
 #include "ai_map.h"
-#include "ai_grids.h"
 
 #include "lib/crt.h"
 #include <cstdint>
@@ -16,7 +15,7 @@ constexpr int kWindow = 0x22;       // 34 cells, the outer ring never entered
 constexpr int kStraight = 0x400;
 constexpr int kDiagonal = 0x5A8;
 
-SearchNode* NodeAt(LocalSearch* search, int wx, int wy) { return search->nodes.rows[wy] + wx; }
+SearchNode* NodeAt(LocalSearch* search, int wx, int wy) { return search->nodes[wy] + wx; }
 
 void ResetNode(SearchNode* node) {
     node->cost = kUnreached;
@@ -203,7 +202,7 @@ void LocalSearch::ExpandAll() {
 bool LocalSearch::ExpandUntil(int x, int y) {
     if (!active) return false;
     // The row pointer is formed without a bounds check; it is only compared.
-    const SearchNode* target = nodes.rows[y - originY] + (x - originX);
+    const SearchNode* target = nodes[y - originY] + (x - originX);
     while (current && current != target) Expand();
     return current != nullptr;
 }
@@ -305,22 +304,17 @@ void LocalSearch::CommitDirections() {
         for (int wx = r.x0; wx <= r.x1; ++wx) {
             const SearchNode* node = NodeAt(this, wx, wy);
             if (node->cost >= kUnreached) continue;
-            std::int8_t& mark = map->marks.rows[originY + wy][originX + wx];
+            std::int8_t& mark = map->marks[originY + wy][originX + wx];
             if (mark == 0) mark = node->direction;
         }
     }
 }
 
 void LocalSearch::SaveLevels() {
-    if (levels.width != kWindow || levels.height != kWindow) {
-        FreeGrid(levels);
-        levels.width = kWindow;
-        levels.height = kWindow;
-        AllocateGrid(levels);
-    }
+    levels.Resize(kWindow, kWindow);
     WindowRange r = OnMapRange(this);
     for (int wy = r.y0; wy <= r.y1; ++wy) {
-        for (int wx = r.x0; wx <= r.x1; ++wx) levels.rows[wy][wx] = map->cells[originY + wy][originX + wx].level;
+        for (int wx = r.x0; wx <= r.x1; ++wx) levels[wy][wx] = map->cells[originY + wy][originX + wx].level;
     }
     for (int wy = r.y0; wy <= r.y1; ++wy) {
         for (int wx = r.x0; wx <= r.x1; ++wx) map->cells[originY + wy][originX + wx].level = 0;
@@ -331,7 +325,7 @@ void LocalSearch::SaveLevels() {
 void LocalSearch::RestoreLevels() {
     WindowRange r = OnMapRange(this);
     for (int wy = r.y0; wy <= r.y1; ++wy) {
-        for (int wx = r.x0; wx <= r.x1; ++wx) map->cells[originY + wy][originX + wx].level = levels.rows[wy][wx];
+        for (int wx = r.x0; wx <= r.x1; ++wx) map->cells[originY + wy][originX + wx].level = levels[wy][wx];
     }
     levelsSaved = false;
 }
@@ -351,12 +345,7 @@ void CAIMap::CostContextFor(CUnit* unit, PassCostContext* out) {
 void LocalSearch::Attach(CAIMap* mapArg, bool backwardArg) {
     map = mapArg;
     backward = backwardArg;
-    if (nodes.width != kWindow || nodes.height != kWindow) {
-        FreeGrid(nodes);
-        nodes.width = kWindow;
-        nodes.height = kWindow;
-        AllocateGrid(nodes);
-    }
+    nodes.Resize(kWindow, kWindow);
     for (int wy = 0; wy < kWindow; ++wy) {
         for (int wx = 0; wx < kWindow; ++wx) {
             SearchNode* node = NodeAt(this, wx, wy);
@@ -380,9 +369,7 @@ bool LocalSearch::Recenter(int x0, int y0, int x1, int y1, bool settleInside) {
     if (!PlaceWindow(x0, y0, x1, y1)) return false;
     FillCellRows(this);
     if (CdqAbs(originX - oldX) >= 31 || CdqAbs(originY - oldY) >= 31) return false;
-    SearchGrid<SearchNode> old;
-    ResizeGrid(old, nodes.width, nodes.height);
-    if (old.width * old.height > 0) std::memcpy(old.data, nodes.data, old.width * old.height * sizeof(SearchNode));
+    const SearchGrid<SearchNode> old = nodes;
     int shiftX = originX - oldX, shiftY = originY - oldY;
     // Shift the nodes; remember the cheapest one kept on the old window's inner ring.
     int cheapestBorder = kUnreached;
@@ -396,7 +383,7 @@ bool LocalSearch::Recenter(int x0, int y0, int x1, int y1, bool settleInside) {
                 node->settled = false;
                 node->direction = 0;
             } else {
-                const SearchNode& from = old.rows[oy][ox];
+                const SearchNode& from = old[oy][ox];
                 if ((ox == 1 || ox == 32 || oy == 1 || oy == 32) && from.cost <= cheapestBorder) cheapestBorder = from.cost;
                 *node = from;
                 node->x = static_cast<std::int16_t>(wx);

@@ -1,6 +1,6 @@
 // CEffectShowVisibility: a unit's sight shown in the fog of war (clairvoyance). See world_effect.h
 // and docs/notes/effects.md ("Missiles and visibility").
-#include "ai_grids.h"
+#include "ai_map.h"
 #include "map_object.h"
 #include "unit.h"
 #include "unit_ai.h"
@@ -12,12 +12,7 @@
 #include <cstring>
 
 CEffectShowVisibility::CEffectShowVisibility() {
-    SearchGrid<std::uint8_t>& cells = grid_.cells;
-    cells.width = 1;
-    cells.height = 1;
-    cells.data = new std::uint8_t[1];
-    cells.rows = new std::uint8_t*[cells.height];
-    for (int row = 0; row < cells.height; ++row) cells.rows[row] = cells.data + row * cells.width;
+    grid_.cells.Resize(1, 1);
     observerId_ = -1;
     seerId_ = -1;
 }

@@ -1,6 +1,5 @@
 // CAIMap::Load (Rebirth patches it): the navigation grid of a map from its archive. See docs/notes/ai.md, "The
 // map archive".
-#include "ai_grids.h"
 #include "ai_map.h"
 #include "console.h"
 #include "registry.h"
@@ -405,9 +404,9 @@ int CAIMap::LoadTerrain(const char* path) {
 
     const int cellsX = description.header.sectorsX * kSectorCells;
     const int cellsY = description.header.sectorsY * kSectorCells;
-    ResizeGrid(cells, cellsX, cellsY, AllocateCellGrid);
-    ResizeGrid(occluders, cellsX, cellsY, AllocateOccluderGrid);
-    ResizeGrid(marks, cellsX, cellsY);
+    cells.Resize(cellsX, cellsY);
+    occluders.Resize(cellsX, cellsY, occluder::kNone);
+    marks.Resize(cellsX, cellsY);
     for (int sectorY = 0; sectorY < description.header.sectorsY; ++sectorY) {
         for (int sectorX = 0; sectorX < description.header.sectorsX; ++sectorX) {
             char file[432];
@@ -429,8 +428,8 @@ void CAIMap::AttachTerrain() {
     BuildOpenMarks();
     InitCostTables(this);
     SearchGrid<std::int8_t>& water = waterDepth;
-    ResizeGrid(water, cells.width, cells.height);
-    std::memset(water.data, 0, static_cast<std::size_t>(water.height * water.width));
+    water.Resize(cells.width, cells.height);
+    water.data.assign(water.data.size(), 0);
     forwardSearch.Attach(this, false);
     backwardSearch.Attach(this, true);
     regionMap.Attach(this);

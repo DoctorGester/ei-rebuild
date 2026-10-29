@@ -1,6 +1,5 @@
 // Per-tick movement checks on the AI map: which unit blocks a moving unit, and the speed costs of
 // the steps a unit is about to walk.
-#include "ai_grids.h"
 #include "ai_map.h"
 #include "effects.h"
 
@@ -29,8 +28,8 @@ constexpr int kExpensive = 12000;           // cost above which a step is flagge
 
 // A square grid of `size`: reallocated when the size differs, then cleared.
 void ResizeCleared(SearchGrid<std::uint8_t>* grid, int size) {
-    ResizeGrid(*grid, size, size);
-    std::memset(grid->data, 0, static_cast<std::size_t>(grid->width * grid->height));
+    grid->Resize(size, size);
+    grid->data.assign(grid->data.size(), 0);
 }
 
 } // namespace
@@ -161,13 +160,11 @@ void FogGrid::Grow(int x, int y, int n) {
     if (!grow) return;
     int size = (bottom - top > right - left ? bottom - top : right - left) + 1;
     // A copy of the old marks, moved into the cleared grid.
-    SearchGrid<std::uint8_t> old;
-    ResizeGrid(old, cells.width, cells.height);
-    std::memcpy(old.data, cells.data, static_cast<std::size_t>(old.width * old.height));
+    const SearchGrid<std::uint8_t> old = cells;
     ResizeCleared(&cells, size);
     for (int row = 0; row < old.height; ++row)
         for (int col = 0; col < old.width; ++col)
-            cells.rows[row - top + y0][col - left + x0] = old.rows[row][col];
+            cells[row - top + y0][col - left + x0] = old[row][col];
     x0 = left;
     y0 = top;
 }
@@ -208,7 +205,7 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
                 EI_NAN_AUDIT(seen, distance);
                 if (seen < distance) continue;
             }
-            grid->cells.rows[gy][gx] = 1;
+            grid->cells[gy][gx] = 1;
         }
     }
 }

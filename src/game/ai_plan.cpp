@@ -44,7 +44,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     int curX = fromX, curY = fromY;
     int bestX = fromX, bestY = fromY;
     std::list<Waypoint> waypoints;
-    std::uint8_t** cellRows = regionMap.cells[sizeClass].rows;
+    SearchGrid<std::uint8_t>& cellRows = regionMap.cells[sizeClass];
     PathCells::iterator previous = chain.begin();
     for (PathCells::iterator node = chain.begin(); node != chain.end(); ++node) {
         PathCells::iterator owner = previous;
@@ -160,7 +160,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     }
 
     if (result) {
-        marks.rows[fromY][fromX] = 0;
+        marks[fromY][fromX] = 0;
         BuildCellsTo(toX, toY, &path->cells);
         auto first = path->cells.begin();
         if (first->x != fromX || first->y != fromY) result = false;

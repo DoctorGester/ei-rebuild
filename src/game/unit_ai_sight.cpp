@@ -1,6 +1,5 @@
 // The AI's eye (the world server's aiEvents_): what a unit sees each brain tick, the
 // nearby units, seeing new ones and the eye's height and facing.
-#include "ai_grids.h"
 #include "ai_map.h"
 #include "combat.h"
 #include "console.h"
@@ -219,8 +218,8 @@ void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     seer->EyePoint(&eye);
     grid->x0 = kNoGridOrigin;
     grid->y0 = kNoGridOrigin;
-    ResizeGrid(grid->cells, 1, 1);
-    std::memset(grid->cells.data, 0, static_cast<std::size_t>(grid->cells.height * grid->cells.width));
+    grid->cells.Resize(1, 1);
+    grid->cells.data.assign(grid->cells.data.size(), 0);
 
     CUnitServer* mine = seer->ServerController();
     CUnitServer* theirs = observer->ServerController();

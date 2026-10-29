@@ -53,7 +53,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
         if (y0 < 0) y0 = 0;
         if (cells.height < y1) y1 = cells.height;
         for (int y = y0; y < y1; ++y) {
-            for (int x = x0; x < x1; ++x) marks.rows[y][x] = 0;
+            for (int x = x0; x < x1; ++x) marks[y][x] = 0;
         }
     }
 
@@ -101,7 +101,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
                 if (!CanStandAt(unit, cx, cy, &reason) || !IsCellPassable(this, unit, cx, cy)) continue;
             }
             if (sameRegion) {
-                std::uint8_t mark = static_cast<std::uint8_t>(marks.rows[cy][cx]);
+                std::uint8_t mark = static_cast<std::uint8_t>(marks[cy][cx]);
                 if (mark != 1) {
                     if (mark == 2) continue;
                     if (!regionMap.ReachesRegion(sizeClass, cx, cy, region, &marks)) continue;

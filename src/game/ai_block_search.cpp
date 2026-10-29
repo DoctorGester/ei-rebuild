@@ -1,7 +1,6 @@
 // The region map's block searches (BlockSearch, ai_map.h): Dijkstra over the 8x8-cell blocks of one size
 // class along the edge words, open records in eight buckets by x & 7 sorted by cost. And the region map's
 // block update, which re-measures the blocks after the AI map changed. See docs/notes/ai.md.
-#include "ai_grids.h"
 #include "ai_map.h"
 
 #include "lib/crt.h"
@@ -20,17 +19,10 @@ void BlockSearch::Attach(CRegionMap* regionMap, bool fromTargetSide) {
     int height = regionMap->edges[0].height;
     map = regionMap;
     fromTarget = fromTargetSide;
-    if (records.width != width || records.height != height) {
-        FreeGrid(records);
-        records.width = width;
-        records.height = height;
-        records.data = new BlockRecord[records.width * records.height];
-        records.rows = new BlockRecord*[records.height];
-        for (int y = 0; y < records.height; ++y) records.rows[y] = records.data + y * records.width;
-    }
+    records.Resize(width, height);
     for (int y = 0; y < records.height; ++y)
         for (int x = 0; x < records.width; ++x) {
-            BlockRecord& r = records.rows[y][x];
+            BlockRecord& r = records[y][x];
             r.settled = false;
             r.cost = kUnreached;
             r.x = static_cast<std::int16_t>(x);
@@ -72,9 +64,9 @@ void BlockSearch::Requeue(BlockRecord* record) {
 
 void BlockSearch::Relax(int direction, int back) {
     int bx = best->x, by = best->y;
-    int edge = edges->rows[by][bx * 8 + direction - 1];
+    int edge = (*edges)[by][bx * 8 + direction - 1];
     if (edge < 0) return;
-    BlockRecord* record = &records.rows[by + kDirectionDy[direction]][bx + kDirectionDx[direction]];
+    BlockRecord* record = &records[by + kDirectionDy[direction]][bx + kDirectionDx[direction]];
     if (bestCost >= record->cost) return;
     int cost = bestCost + edge;
     if (cost >= record->cost) return;
@@ -112,7 +104,7 @@ bool CRegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x
     NearbyBlocks(sizeClass, flag, x, y, &blocks);
     for (auto& node : blocks) {
         int cost = node.cost / 128;
-        BlockRecord* record = &search->records.rows[node.y][node.x];
+        BlockRecord* record = &search->records[node.y][node.x];
         if (cost > record->cost) continue;
         record->cost = cost;
         search->Requeue(record);

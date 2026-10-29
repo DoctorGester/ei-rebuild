@@ -2,7 +2,6 @@
 // a run of {a, b} pairs ended by a = 100. The last list appends through its Add, the others through SetSize.
 // See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
-#include "ai_grids.h"
 
 #include <cstdint>
 #include <vector>

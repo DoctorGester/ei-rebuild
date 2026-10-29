@@ -1,7 +1,7 @@
-// The AI map's grid allocators and the small constructors of the map's members: the local and block searches, the
-// event table, the dirty rectangle's reset; and the terrain types' open-cell marks. See ai_map.h and
+// The small constructors of the AI map's members: the local and block searches, the event table, the dirty
+// rectangle's reset; and the terrain types' open-cell marks. See ai_map.h and
 // docs/notes/ai.md.
-#include "ai_grids.h"
+#include "ai_map.h"
 
 #include "ai_unit_layer.h"
 #include "unit_ai.h"
@@ -14,47 +14,14 @@
 
 extern "C" int _purecall();
 
-// ---- Allocate / free ------------------------------------------------------------------------------
-
-void AllocateEdgeGrid(SearchGrid<std::int16_t>* grid) {
-    constexpr int kEdges = 8;
-    AllocateGrid(*grid, kEdges);
-    int count = grid->width * grid->height * kEdges;
-    for (int i = 0; i < count; ++i) grid->data[i] = -1;
-}
-
-void AllocateZeroedByteGrid(SearchGrid<std::uint8_t>* grid) {
-    AllocateGrid(*grid);
-    int count = grid->width * grid->height;
-    for (int i = 0; i < count; ++i) grid->data[i] = 0;
-}
-
-void AllocateCellGrid(SearchGrid<AIMapCell>* grid) {
-    AllocateGrid(*grid);
-    int count = grid->width * grid->height;
-    for (int i = 0; i < count; ++i) {
-        AIMapCell& cell = grid->data[i];
-        cell.flags = 0;
-        cell.passable = 0;
-        cell.groundLevel = 0;
-        cell.level = 0;
-    }
-}
-
-void AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid) {
-    AllocateGrid(*grid);
-    int count = grid->width * grid->height;
-    for (int i = 0; i < count; ++i) grid->data[i] = (grid->data[i] & ~(occluder::kTypeMask | occluder::kChained)) | occluder::kNone;
-}
-
 // ---- Constructors ---------------------------------------------------------------------------------
 
 LocalSearch::LocalSearch() {
-    ResizeGrid(nodes, 1, 1);
-    ResizeGrid(levels, 1, 1);
+    nodes.Resize(1, 1);
+    levels.Resize(1, 1);
 }
 
-BlockSearch::BlockSearch() { ResizeGrid(records, 1, 1); }
+BlockSearch::BlockSearch() { records.Resize(1, 1); }
 
 void AIDirtyRect::Reset() {
     minX = 10000;
@@ -69,12 +36,6 @@ AIEvent* g_freeEvents = /*007C53F0*/ {nullptr};
 
 namespace {
 
-void AllocateEventCells(AIEventTable* table) {
-    table->cells = new AIEventCell[static_cast<std::size_t>(table->width * table->height)];
-    table->rows = new AIEventCell*[static_cast<std::size_t>(table->height)];
-    for (int i = 0; i < table->height; ++i) table->rows[i] = table->cells + i * table->width;
-}
-
 // The mark table's rows are 16 wide; column 10 is the open-cell mark of a cost band.
 int OpenMark(int band) { return static_cast<int>(worlddata::kMarkTable[band * 16 + 10]); }
 
@@ -87,10 +48,7 @@ int CostBand(int cost) {
 
 } // namespace
 
-AIEventTable::AIEventTable() {
-    AllocateEventCells(this);
-    Clear();
-}
+AIEventTable::AIEventTable() { Clear(); }
 
 AIEventTable::~AIEventTable() {
     for (auto& slot : slots) {
@@ -101,21 +59,14 @@ AIEventTable::~AIEventTable() {
             }
         }
     }
-    delete[] cells;
-    delete[] rows;
 }
 
 void AIEventTable::Clear() {
     tick = -1;
     std::memset(slots, 0, sizeof(slots));
-    if (width != 1 || height != 1) {
-        delete[] cells;
-        delete[] rows;
-        width = 1;
-        height = 1;
-        AllocateEventCells(this);
-    }
-    std::memset(rows[0], 0, sizeof(AIEventCell));
+    width = 1;
+    height = 1;
+    cells.assign(1, AIEventCell{});
 }
 
 // ---- Terrain types --------------------------------------------------------------------------------

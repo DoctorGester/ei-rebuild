@@ -205,7 +205,7 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
     for (auto& [key, cell] : cells) cell.visible = 0;
     for (int row = 0; row < grid->cells.height; ++row) {
         for (int col = 0; col < grid->cells.width; ++col) {
-            if (grid->cells.rows[row][col] == 0) continue;
+            if (grid->cells[row][col] == 0) continue;
             std::uint32_t key = ((grid->y0 + row) << 16) + grid->x0 + col;
             if (auto found = cells.find(key); found != cells.end()) {
                 found->second.visible = 1;

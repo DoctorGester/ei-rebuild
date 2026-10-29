@@ -45,12 +45,12 @@ std::uint8_t g_normalTable[kNormalTableSize] = /*007C43C4*/ {};   // the 4096 by
 
 } // namespace
 
-AIEventCell* AIEventTable::CellOf(const AIEvent* event) const {
+AIEventCell* AIEventTable::CellOf(const AIEvent* event) {
     // Each coordinate is scaled, stored to a float and rounded to nearest.
     const int x = x87::fistp(event->x * kCellScale);
     const int y = x87::fistp(event->y * kCellScale);
     if (x < 0 || y < 0 || x >= width || y >= height) return nullptr;
-    return rows[y] + x;
+    return &cells[y * width + x];
 }
 
 void AIEventTable::Free(AIEvent* event, int side) {
@@ -134,7 +134,7 @@ void AIEventTable::Save(CStream* stream) {
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             for (int side = 0; side < kSides; ++side) {
-                for (AIEvent* event = rows[y][x].bySide[side]; event; event = event->next) {
+                for (AIEvent* event = cells[y * width + x].bySide[side]; event; event = event->next) {
                     const char more = 1;
                     stream->WriteValue(more);
                     stream->Write(&event->x, 8);
@@ -162,16 +162,9 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     const float scale = (-0.125f);
     const int newWidth = 1 - static_cast<int>(libcrt::Ftol(sizeX * scale));
     const int newHeight = 1 - static_cast<int>(libcrt::Ftol(sizeY * scale));
-    if (width != newWidth || height != newHeight) {
-        delete[] cells;
-        delete[] rows;
-        height = newHeight;
-        width = newWidth;
-        cells = new AIEventCell[static_cast<std::size_t>(newHeight * newWidth)];
-        rows = new AIEventCell*[static_cast<std::size_t>(height)];
-        for (int i = 0; i < height; ++i) rows[i] = cells + width * i;
-    }
-    std::memset(cells, 0, static_cast<std::size_t>(height * width) * sizeof(AIEventCell));
+    width = newWidth;
+    height = newHeight;
+    cells.assign(static_cast<std::size_t>(width * height), AIEventCell{});
 
     lib::InPlace<CMappedResource> storage;
     CMappedResource* archive = storage.Get();
