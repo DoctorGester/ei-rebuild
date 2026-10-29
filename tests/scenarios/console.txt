@@ -96,15 +96,6 @@ console console top
 console history
 expect Invalid parameters
 console history 60
-console show fps
-expect Invalid number of parameters for command "show"
-console show bogus on
-expect Invalid parameters in command 'show'
-console show fps on
-console show fps off
-console show world_data 1
-console show world_data 0
-console show fps sideways
 console fps on
 console fps off
 console give

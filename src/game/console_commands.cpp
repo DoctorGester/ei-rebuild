@@ -181,30 +181,6 @@ void Filter(std::vector<std::string>* args) {
     }
 }
 
-// Show fps|managers|render_info|world_data 1|on|0|off (anything else: nothing).
-void Show(std::vector<std::string>* args) {
-    if (args->size() < 2) return PrintLine("Invalid number of parameters for command \"show\"");
-    void (CWorldClient::*on)();
-    void (CWorldClient::*off)();
-    if (ArgIs(args, 0, "fps")) {
-        on = &CWorldClient::ShowFps;
-        off = &CWorldClient::HideFps;
-    } else if (ArgIs(args, 0, "managers")) {
-        on = &CWorldClient::ShowManagers;
-        off = &CWorldClient::HideManagers;
-    } else if (ArgIs(args, 0, "render_info")) {
-        on = &CWorldClient::ShowRenderInfo;
-        off = &CWorldClient::HideRenderInfo;
-    } else if (ArgIs(args, 0, "world_data")) {
-        on = &CWorldClient::ShowWorldData;
-        off = &CWorldClient::HideWorldData;
-    } else {
-        return PrintLine("Invalid parameters in command 'show'");
-    }
-    if (ArgOn(args, 1)) (g_clientWorld.Get().*on)();
-    else if (ArgOff(args, 1)) (g_clientWorld.Get().*off)();
-}
-
 // Listvar <player> [file]: prints the player's global variables ("name = value") and
 // writes them to the file ("%s %g") when one is given. In a network game the local player is used.
 void ListVar(std::vector<std::string>* args) {

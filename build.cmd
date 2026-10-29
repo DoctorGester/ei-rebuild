@@ -49,6 +49,8 @@ rem hand, a harness route on a slot), the named ranges' csv and their rules, the
 python "%~dp0tools\gen_iat.py" --check || exit /b 1
 python "%~dp0tools\named_data.py" --check || exit /b 1
 python "%~dp0tools\gen_image_cells.py" --check || exit /b 1
+rem Every row of config/static_init_ports.csv names a definition in its file (tools/gen_static_init.py, C56).
+python "%~dp0tools\gen_static_init.py" --check-ports || exit /b 1
 rem Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
 "%OUT%\ei_vectors.exe" || exit /b 1
 rem The interface canvases (src/render/render_ui) on a WARP device against CPU rules and GDI (tools/ui_check).

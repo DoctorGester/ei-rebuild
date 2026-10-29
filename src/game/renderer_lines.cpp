@@ -19,10 +19,9 @@
 
 namespace {
 
-// The draw itself, to the new renderer, and the device's counters.
+// The draw itself, to the new renderer.
 void DrawStrip(CTextureDevice* device, LineVertex* vertices, int count) {
     render::TlDraw(device, vertices, render::kFvfUntextured, count, nullptr, 0, render::Primitive::LineStrip);
-    device->drawCount_ += 1;
 }
 
 void SetStage0Ops(render::TextureOp op) {

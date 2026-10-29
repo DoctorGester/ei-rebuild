@@ -98,6 +98,21 @@ KNOWN = {}   # SV2b (zone1's script variable i between our runs under Rebirth) f
 # comparisons unless --strict, so the goldens' saves need no re-recording when the ticket lands; drop the entry then.
 SAVES_KNOWN = {
 }
+# Console commands the image removed on purpose, each with the ticket that removed it: the console lines the
+# original prints for them (the help screen's two lines, the answers to the scenario's old calls). Both transcripts
+# of a comparison lose these lines (without_removed), so the goldens keep game.exe's text and the original's run
+# still passes. Add the command's lines here when a ticket deletes a console command, with the scenario's calls of it.
+REMOVED_CONSOLE = {
+    'C55: DEBUGINFO (the debug panel)': (
+        'DEBUGINFO [pos]',
+        'change debug info position; <pos> = l<eft>, r<ight>, rt, righttop, lt, lefttop',
+        'Invalid debug info position',
+    ),
+    'C57: show (the debug display switches nothing reads)': (
+        'Invalid number of parameters for command "show"',
+        "Invalid parameters in command 'show'",
+    ),
+}
 HEADER = re.compile(r'@ (\d+) update (\d+) frame (\d+) tick (-?\d+) zone (\S+) hash ([0-9A-F]{8})')
 COMPACT = '# compact'
 SAVES = 'harness_saves'
@@ -456,6 +471,12 @@ def console(folder):
     return [l for l in lines if l.startswith('  ')]
 
 
+def without_removed(lines):
+    """The console lines but the ones REMOVED_CONSOLE names (compared stripped)."""
+    removed = {text for texts in REMOVED_CONSOLE.values() for text in texts}
+    return [l for l in lines if l.strip() not in removed]
+
+
 def dumps(folder):
     """{name: path} of a run folder's (or a golden's) dump_<name>.txt files."""
     return {os.path.basename(p)[5:-4]: p for p in sorted(glob.glob(os.path.join(folder, 'dump_*.txt')))}
@@ -586,6 +607,7 @@ def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=A
     else:
         expected = console(a)
     actual = console(b)
+    expected, actual = without_removed(expected), without_removed(actual)
     if expected != actual:
         lines.append(first_line_difference('console', expected, actual, name_a, name_b))
     digest_a, digest_b = os.path.join(a, 'digest.txt'), os.path.join(b, 'digest.txt')

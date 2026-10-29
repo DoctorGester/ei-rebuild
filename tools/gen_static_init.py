@@ -17,7 +17,7 @@ The result is one function, RunStaticInitialisers, that the standalone runs befo
 registrations and the guard bit (static_init.h). Statements are written `d.Operation(...)` inside this script (the
 analysis below matches them); `plain` turns them into the code that is written.
 
-usage: python tools/gen_static_init.py [--exe game.exe]
+usage: python tools/gen_static_init.py [--exe game.exe] [--check-ports]
 """
 import argparse, bisect, collections, csv, os, re, struct, sys
 
@@ -1247,6 +1247,38 @@ class Names:
             self.resolved[address] = self.resolve(address)
         return self.resolved[address]
 
+    def method(self, port):
+        """A method: Class::Method with the class declared in a header (the csv's qualified name): (expression,
+        header, None), else None."""
+        parts = port.name.split('::')
+        last, qual = parts[-1], parts[:-1]
+        scope = [x for x in self.scopes(port.path).namespace_at(port.offset) or [] if x]
+        if qual:
+            named = [(h, p) for h, p in self.classes.get(qual[-1], []) if (p + qual[-1:])[-len(qual):] == qual]
+            found = [(h, p) for h, p in named if len(qual) > 1 or p == scope[:len(p)]] or                     (named if len({tuple(p) for _, p in named}) == 1 else [])
+            if found:
+                h, p = max(found, key=lambda x: len(x[1]))
+                return '&' + '::'.join(p + [qual[-1], last]), h, None
+        return None
+
+    def definitions(self, port):
+        """A free function's definitions in the csv's file: [(namespace path, head, parameters)]."""
+        parts = port.name.split('::')
+        last, qual = parts[-1], parts[:-1]
+        code, scopes = self.code(port.path), self.scopes(port.path)
+        defs = []
+        for m in re.finditer(r'(?<![\w.>~])((?:\w+::)*)' + re.escape(last) + r'\s*\(([^;{}()]*)\)\s*(?:noexcept\s*)?\{',
+                             code):
+            path = scopes.namespace_at(m.start())
+            if path is None:
+                continue
+            full = [x for x in path] + [x for x in m.group(1).split('::') if x]
+            if qual and [x for x in full if x][-len(qual):] != qual:
+                continue
+            head = code[max(code.rfind(c, 0, m.start()) for c in ';{}') + 1:m.start()].strip()
+            defs.append((full, head, m.group(2).strip()))
+        return defs
+
     def resolve(self, a):
         if a in self.exits:   # this tool's own exit functions (static_exit.cpp)
             if self.exits[a] == 'nothing':
@@ -1264,28 +1296,10 @@ class Names:
             return None
         parts = port.name.split('::')
         last, qual = parts[-1], parts[:-1]
-        scope = [x for x in self.scopes(port.path).namespace_at(port.offset) or [] if x]
-        # A method: Class::Method with the class declared in a header (the csv's qualified name).
-        if qual:
-            named = [(h, p) for h, p in self.classes.get(qual[-1], []) if (p + qual[-1:])[-len(qual):] == qual]
-            found = [(h, p) for h, p in named if len(qual) > 1 or p == scope[:len(p)]] or \
-                    (named if len({tuple(p) for _, p in named}) == 1 else [])
-            if found:
-                h, p = max(found, key=lambda x: len(x[1]))
-                return '&' + '::'.join(p + [qual[-1], last]), h, None
-        # A free function: its definition in the csv's file.
-        code, scopes = self.code(port.path), self.scopes(port.path)
-        defs = []
-        for m in re.finditer(r'(?<![\w.>~])((?:\w+::)*)' + re.escape(last) + r'\s*\(([^;{}()]*)\)\s*(?:noexcept\s*)?\{',
-                             code):
-            path = scopes.namespace_at(m.start())
-            if path is None:
-                continue
-            full = [x for x in path] + [x for x in m.group(1).split('::') if x]
-            if qual and [x for x in full if x][-len(qual):] != qual:
-                continue
-            head = code[max(code.rfind(c, 0, m.start()) for c in ';{}') + 1:m.start()].strip()
-            defs.append((full, head, m.group(2).strip()))
+        method = self.method(port)
+        if method is not None:
+            return method
+        defs = self.definitions(port)
         if len(defs) != 1:
             self.problems.append(f'{rel}: {port.name} ({a:08X}): {len(defs)} definition(s) found')
             return None
@@ -1421,10 +1435,31 @@ def render(decoded, names):
             '\n'.join(body) + FOOTER)
 
 
+def check_ports():
+    """Every row of config/static_init_ports.csv names a file and a definition in it (the build runs this)."""
+    names, problems = Names(), []
+    for a, port in sorted(names.ports.items()):
+        rel = os.path.relpath(port.path, ROOT).replace(os.sep, '/')
+        if port.name.startswith('gameapi::'):
+            continue
+        if not os.path.exists(port.path):
+            problems.append(f'{rel}: {port.name} ({a:08X}): no such file (config/static_init_ports.csv)')
+        elif names.method(port) is None and not names.definitions(port):
+            problems.append(f'{rel}: {port.name} ({a:08X}): no definition found (config/static_init_ports.csv)')
+    if problems:
+        print('\n'.join(problems))
+        return 1
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--exe')   # default: tools/exe_path.py
+    ap.add_argument('--check-ports', action='store_true',
+                    help='only check that every row of config/static_init_ports.csv names one definition (no game.exe)')
     args = ap.parse_args()
+    if args.check_ports:
+        return check_ports()
     args.exe = exe_path.resolve(args.exe)
     decoded, exits, unread, problems = generate(Image(args.exe))
     if problems:

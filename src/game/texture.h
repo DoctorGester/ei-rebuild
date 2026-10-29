@@ -78,9 +78,6 @@ public:
     // The draws fog their screen vertices by distance when set; cleared around the sky and hit point draws.
     int distanceFog_ = 0;
     RECT drawnRect_ = {};       // the screen rectangle of the last mesh draw
-    // The frame's counts, cleared by the renderer's BeginScene.
-    int drawCount_ = 0;
-    int textureChanges_ = 0;
 };
 
 // Texture stage 0's three setups the world's and the interface's draws switch between: the scene's (texture x

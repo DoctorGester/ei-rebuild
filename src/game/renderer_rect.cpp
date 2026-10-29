@@ -16,10 +16,6 @@ void SetStage0Ops(render::TextureOp op) {
     render::g_renderState.stages[0].combiner.alphaOp = op;
 }
 
-void Count(CTextureDevice* device) {
-    device->drawCount_ += 1;
-}
-
 } // namespace
 
 // Returns 0 when the rectangle is inverted (right < left or bottom < top), else 1.
@@ -42,12 +38,8 @@ int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int 
     };
     const std::uint16_t indices[6] = {0, 1, 2, 0, 2, 3};
 
-    if (device->stageSurfaces_[0]) {   // no texture on stage 0
-        device->stageSurfaces_[0] = nullptr;
-        ++device->textureChanges_;
-    }
+    device->stageSurfaces_[0] = nullptr;   // no texture on stage 0
     render::ScreenDraw(device, v, 4, indices, 6);
-    Count(device);
     if (!outline) return 1;
 
     // The frame: white, on the rectangle's own edges, the texture stage off.
@@ -59,7 +51,6 @@ int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int 
     v[4].x = x0, v[4].y = y0;
     SetStage0Ops(render::TextureOp::Disable);
     render::ScreenDraw(device, v, 5, nullptr, 0);
-    Count(device);
     SetStage0Ops(render::TextureOp::Modulate);
     return 1;
 }

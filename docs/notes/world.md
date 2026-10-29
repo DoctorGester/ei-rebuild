@@ -290,8 +290,7 @@ Facts a worker needs that the code comments do not say:
   (LoadLights 00563930). `UpdateExitMarkers` 00567680 turns the exit particle sources red when "z.<zone>" is 1.
 - `SaveWorld` 00597BD0: 00661C10 XORs gold with a fresh random word, so a comparison must restore the random generator.
 - `CWorldClient` +0x1B4 `numbers_` is the `CFlyingHitPoints*` (Construct 005E1710 / Destruct 005E17E0), +0x6F4 the `CRainSnow`
-  (abstract like every engine object, so the world keeps its 0xC8 bytes and `RainSnow()` is the object), +0x88
-  `debugFlags_` (the eight debug display switches 00566360..005665F0), +0x108 `lineLists_` (DrawLineLists 00569D60).
+  (abstract like every engine object, so the world keeps its 0xC8 bytes and `RainSnow()` is the object), +0x108 `lineLists_` (DrawLineLists 00569D60).
 - `CWorld::NightLevel` 0055FC50: 1 before 8, 0 until 20, then (hours - 20) / 4. `CWorld::SetPaused` is the old
   CWorldServer::SetUnknown6C (the client copy 00566350).
 - `CUnitShape` (ai_unit_layer.h; a real class since C28e): constructor 005B3440 (disc levels), OnShutdown 005B3540, Clone 005B34F0,

@@ -30,13 +30,6 @@ void SetMaterialBlend(const CDeviceMaterial* material) {
     state.destBlend = material->destBlend;
 }
 
-// One pass: the mesh handed over to the renderer (src/render, device_mesh.cpp) gets it with the device's
-// current state; the call counter.
-void Draw(CTextureDevice* device) {
-    render::MeshPass(device);
-    device->drawCount_ += 1;
-}
-
 // Single pass: the stage's texture, looked up by name on first use (an inline counted assignment);
 // a stage without one unbinds the device's texture of that stage (stageSurfaces_) once.
 void SetSinglePassStage(CTextureDevice* device, int stage, MaterialStage& s) {
@@ -53,11 +46,7 @@ void SetSinglePassStage(CTextureDevice* device, int stage, MaterialStage& s) {
         device->BindSurface(stage, s.texture ? TextureSurface(s.texture) : nullptr);
         return;
     }
-    Surface*& bound = device->stageSurfaces_[stage];
-    if (bound) {
-        bound = nullptr;
-        ++device->textureChanges_;
-    }
+    device->stageSurfaces_[stage] = nullptr;
 }
 
 // First of several passes: every stage of the first pass.
@@ -92,23 +81,15 @@ void DrawPasses(CTextureDevice* device, CRenderPreset* preset) {
     SetMaterialBlend(CurrentMaterial(device));
     preset->ApplyPass(0);
     for (int stage = 0; stage < preset->stages_; ++stage) SetFirstPassStage(device, stage, CurrentMaterial(device)->stages[stage]);
-    Draw(device);
+    render::MeshPass(device);
     for (int pass = 1; pass < preset->PassCount(); ++pass) {
         preset->ApplyPass(pass);
         SetLaterPassStage(device, CurrentMaterial(device)->stages[preset->stages_ + pass - 1]);
-        Draw(device);
+        render::MeshPass(device);
     }
     state.blend = savedBlend;
     state.sourceBlend = savedSource;
     state.destBlend = savedDest;
-}
-
-// Stage 0's holder, as the surface bind does it: when it changes, kept for the new renderer (stageSurfaces_) and the
-// change counted.
-void BindStage0(CTextureDevice* device, Surface* holder) {
-    if (device->stageSurfaces_[0] == holder) return;
-    device->stageSurfaces_[0] = holder;
-    ++device->textureChanges_;
 }
 
 } // namespace
@@ -127,20 +108,20 @@ int CTextureDevice::DrawIndexed() {
         preset->ApplyPass(0);
         for (int stage = 0; stage < preset->stages_; ++stage) SetSinglePassStage(this, stage, material->stages[stage]);
     }
-    Draw(this);
+    render::MeshPass(this);
     return 1;
 }
 
 // Draws the indexed primitives with `first` on stage 0, then again blended (source
 // alpha / inverse source alpha, blending on) with `second` and texture coordinates 0. Returns 1.
 int CTextureDevice::DrawTwoTextures(Surface* first, Surface* second) {
-    BindStage0(this, first);
-    Draw(this);
+    stageSurfaces_[0] = first;
+    render::MeshPass(this);
     render::RenderState& state = render::g_renderState;
     state.sourceBlend = render::Blend::SourceAlpha;
     state.destBlend = render::Blend::InvSourceAlpha;
     state.blend = true;
-    BindStage0(this, second);
-    Draw(this);
+    stageSurfaces_[0] = second;
+    render::MeshPass(this);
     return 1;
 }
