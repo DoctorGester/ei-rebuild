@@ -780,6 +780,31 @@ Behaviour differences (one path for every input; none of them is in a golden):
 - The sprites' matrix is the clip stack's top as it is; the original transposed it through the FPU first, which
   quieted a signalling NaN (no matrix holds one).
 
+### R31a: sprites clipped by the GPU
+
+The sprite draw (`renderer_sprites.cpp`, 00502CA0) was the last draw clipped on the CPU: ProjectSprites wrote an
+outcode per corner and a crossing batch's triangles went through the screen clipper (clip.cpp, 0042D910..0042E4D0)
+before the TL draw. Now every batch is two triangles per sprite and the GPU clips x and y. A TL draw keeps z inside
+the depth range (the shader clamps it, as Direct3D 7 drew pre-transformed vertices), so the depth range is the
+sort's test: a sprite is kept when its z (all four corners share it) lies in 0..1, which is what the clipper's two z
+planes left of a sprite. Behind the camera 1 / w is negative and z / w lies above 1 (the projection's z row is
+Q (z - n) with Q = f / (f - n) above 1), at w 0 it is infinite or NaN: both dropped.
+
+Behaviour differences (one path for every sprite):
+- The original's outcodes moved the centre's clip x and y by `size` / w where the corners lie `size` clip units
+  away (a factor w short), so a sprite whose centre was just past an edge counted as outside although its quad
+  reached onto the screen: the clipper dropped it (sprites popped in and out at the screen's edges), and a batch whose
+  points all lay past one edge was not drawn at all. Those sprites are drawn now. Measured with a temporary A/B
+  switch in one frozen moment (ten fire and smoke sources around the hero, vanilla): 15 crossing batches, 180
+  on-screen sprites the outcodes dropped; the frames differ on 4.3% of the pixels (0.12% by more than 8, largest
+  36), along the top and bottom edges where smoke and fire cross them.
+- Sprites past the far plane are dropped before the sort, not by the clipper after it: the merge sort's order of
+  sprites at exactly the same depth may differ in such a batch.
+- A sprite at z exactly +0 is drawn (the clipper's near plane kept z above 0 out when the batch crossed).
+- A call with more than 511 sprites lost the colour and texture coordinates of some corners of its second and later
+  batches (the corner vector was resized after they were written, zeroing what lay past the last batch's kept
+  sprites): each batch is sized before it is filled now.
+
 ## 11. Verification and frame capture
 
 - **Frames are checked within one run**, at a frozen moment: `samecapture` (frames_basic, render_scene, render_present,

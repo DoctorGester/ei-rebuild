@@ -916,7 +916,8 @@ UNUSED_INITIALISERS = {
     # C50d: plain globals of ours in place of the static objects.
     0x00408D30: "the chunk archive's class registry 0079B270 (exit function 00408D50): chunk_archive.cpp's "
                 "g_classRegistry",
-    0x0042D8E0: "the clip work words 0079B668 (exit function 0042D900): clip.cpp's g_workWords",
+    0x0042D8E0: "the clip work words 0079B668 (exit function 0042D900) that only the original's screen clipper "
+                "used (clip.cpp went in R31a)",
     0x00455CE0: "the camera file 0079BA1C (exit function 00455D00): app_main.cpp's app::g_cameraFile",
     0x00455D10: "the command line's script 0079BA18 (exit function 00455D30): app_main.cpp's app::g_commandLineScript",
     0x00455D40: "the command line's mob file 0079BA14 (exit function 00455D60): app_main.cpp's app::g_commandLineMob",

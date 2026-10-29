@@ -217,7 +217,7 @@ them back; reached in single player through the loopback.
   float (sign, exponent - 0x40 in 7 bits, 8 rounded mantissa bits).
 - `CEffectShowVisibility` (vision fog spell, effect 0x17) replicates through `WriteStreamBoth` / `ReadStream`
   (slots 00743874 / 00743870); no scenario is known to reach it.
-- Floats: `net_delta.cpp` and `clip.cpp` keep `float_control(precise, on)`; values the original rounds through a
+- Floats: values the original rounds through a
   float before FISTP go through `StoreFloat` and `x87::fistp`; FPU copies (a signalling NaN becomes quiet) go
   through `FpuCopyBits`; floats only moved as bytes are declared as uint32.
 - Kept: `PackFloat16` (a mantissa rounding past 8 bits wraps to 0 without raising the exponent; exponents

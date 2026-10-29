@@ -175,10 +175,9 @@ The renderer's sprite draw
 with its helpers (indexed draw, a radix sort pass, a
 merge sort pass). Every point (x, y, z and a size) becomes a screen-facing quad: the sprite's
 colour and texture rectangle go to four TL vertices, and the pipeline
-(ProjectSprites) places the corners and sets their outcodes. Batches of up to 511 sprites are sorted back to front
-by the first corner's z (sprites with a negative z are dropped) and drawn as two triangles each;
-when the transform reports that some corners are off screen, every triangle goes through the
-screen clipper first. Particles draw through it, with additive blending when
+(ProjectSprites) places the corners. Batches of up to 511 sprites are sorted back to front
+by the first corner's z (sprites whose z is outside 0..1 are dropped) and drawn as two triangles each;
+the GPU clips the ones crossing the screen's edges. Particles draw through it, with additive blending when
 their source asks for it. Buffers are function-local statics. See
 docs/notes/models.md ("Renderer").
 

@@ -129,8 +129,6 @@ address,size,name,file
 0079B604,4,g_lastPumpTime,src/game/net_session.cpp
 0079B608,4,g_variableSerial,src/game/net_messages.h
 0079B60C,4,g_playerSerial,src/game/net_server_join.cpp
-0079B664,4,g_lastRatio,src/game/clip.h
-0079B68C,4,g_bufferCount,src/game/clip.h
 0079B6B0,136,g_offsetBits,src/game/net_coder.cpp
 0079B738,136,g_offsetCodes,src/game/net_coder.cpp
 0079B7C0,136,g_lengthBits,src/game/net_coder.cpp
