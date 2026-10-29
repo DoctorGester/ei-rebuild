@@ -6128,3 +6128,75 @@ title = "Drawn view: no backward jerk after a slow frame, no zoom pulse on fast 
 group = "renderer"
 model = "opus"
 note = "V30 review (build/reviews/v30_b.md), checked against camera.cpp. (1) SetViewProgress scales back by clamp(2 - passTicks) of the current frame, so after a 100 ms hitch back is ~0.16 and the next 8 ms frame ~0.75: the view jumps back ~0.6 of a step then forward; take the fade once per tick (NoteViewTick) or never let back grow between ticks. (2) DrawnView moves position linearly but turns rotation along the arc, so mid-step the camera is nearer the focus by d(1 - cos(theta/2)) (distance 40, 1 rad/tick: ~4.9 units pulse 18x/s; 0.43 rad: ~0.9): rebuild the position from the spread focus, heading, pitch and distance, or spread the focus offset along the arc; camera_spin should measure the distance to the focus, not only jumps. (3) g_viewStep is not reset on a zone change / load / scripted camera placement (one frame of the old step). (4) passTicks uses CameraSeconds (fixed 55 ms) while fast mode ticks every 27 ms: use elapsed / TickLength(). (5) Test gap: harness passes are 5 ticks so the spread is always 0 there; add one golden scenario with frametime 8 and a pan so the drawn view (Shown flags, visible / shadow lists, picking) is covered. Goldens of the existing set unchanged."
+
+[[ticket]]
+id = "R37a"
+title = "Point shadows kept across frames: redraw a face only when its light or a caster in it moved"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_point_shadows.cpp"]
+note = "R37 (docs/notes/renderer.md section 13, item 12): every point light's cube is drawn again every frame though the town's lamps, campfire and buildings never move; only units do. Town at night with a crowd of 12 (Rebirth, 4K, msaa 8): 4 lights mapped, 4.25 faces each, 453 point draws a frame (113 per light, most 397), CPU submission 0.23 ms, GPU 0.19 ms; the still town 175 draws. Keep each light's atlas row across frames (rows keyed by light: the strongest-first order can reshuffle); a face is drawn again when its light moved or changed range, or the set of casters in it changed, or one of them moved (model matrix or kept mesh changed); clear only the faces drawn. Expected: point draws 453 -> ~150 in the crowd, ~0 in the still town; CPU 0.23 -> ~0.07 ms, GPU 0.19 -> ~0.05 ms. Check: render_lighting frames the same as main at 8 / 0.01%; renderstats' shadow map draws lower; goldens unchanged."
+
+[[ticket]]
+id = "R37b"
+title = "PreparePointShadows without per-frame maps and repeated spheres"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_point_shadows.cpp"]
+note = "R37: PreparePointShadows costs 0.44 ms a frame in the town at night with a crowd of 12 (0.14 ms in the still town; Rebirth, 4K), the largest single renderer step on the CPU. Per frame it builds unordered_maps (strengths, models, holding per light, fronts with a vector per unit), computes BoxSphere (8 corner transforms) for every caster mesh and again for every unit mesh, and multiplies each mesh's matrix into landscape space in double. Keep the containers across frames, compute each mesh's sphere once (the caster and unit loops share it), the unit fronts once per object, and drop casters by light reach before the face tests. Expected 0.44 -> ~0.1 ms (crowd). Sibling of R37a (same file: one worker can take both). Check: render_lighting frames identical (0 pixels differ)."
+
+[[ticket]]
+id = "R37c"
+title = "Caster boxes and outside casters kept across frames"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_mesh.cpp", "src/render/render_mesh_cache.cpp", "src/render/render_shadows.cpp", "src/game/world_client_shadow_casters.cpp"]
+note = "R37 profile (main thread self samples, Rebirth, 4K): PositionBox (render_mesh.cpp: the model-space box of every caster mesh's positions, at every BeginMesh) 3.6% of all samples, 4.8% in the crowd; ShadowCasterMesh (R20's outside casters: corners copied into the frame's caster stream every frame) 3.1%, 4.3% in the open zones. Keep the box with the kept mesh (made when its positions are built or moved: MeshChanged Positions / Rebuilt) and the outside casters' corners per part in the GPU pool (uploaded once, drawn with the part's matrix each frame). Expected 0.2-0.4 ms a frame of the main thread. Check: render_shadows_outside / render_shadows frames the same (0 pixels differ), shadowcheck counts, meshcache check 0 stale."
+
+[[ticket]]
+id = "R37d"
+title = "Sun map fit from the visible pages' boxes, not every second terrain vertex"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_shadows.cpp", "src/render/render_terrain.cpp"]
+note = "R37 profile: FitMap (render_shadows.cpp) 4.3% of the main thread's samples (5.6% in the open zones), with its matrix Transform another 1.3-2%: it walks every second terrain vertex in view each frame (TerrainPositions). Fit around each visible piece's box (kept with the page) clipped to the view, or keep per-page extremes; the map's extent and origin steps (8 units, whole texels) must stay as steady as now (render_shadows_shimmer). Expected 0.1-0.25 ms a frame. The fit may move by a step, so render_shadows* and render_shadows_shimmer frames for review against main, shadowcheck; goldens unchanged."
+
+[[ticket]]
+id = "R37e"
+title = "Shadow casters drawn with fewer calls (per-caster data in one buffer)"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_shadows.cpp", "src/render/render_point_shadows.cpp", "src/render/shaders"]
+note = "R37: shadow draws are 50-65% of all draws (town crowd: 571 world + 573 sun map + 453 point draws). Each caster draw is its own apply_bindings (2 vertex buffers, index buffer, 2 SRVs, 2 samplers) and two uniform blocks (two constant buffer updates). Submission CPU in the crowd: sun 0.32 ms, point 0.23 ms; d3d11.dll and the driver are 10% of the main thread's samples. Put the frame's per-caster data (light x model matrix, uv offset, alpha cut) into one structured buffer uploaded once and read by an instance index, bind the pool buffers once per layout and a texture only when it changes (casters sorted by texture). Expected sun + point submission 0.55 -> ~0.2 ms in the crowd. Measure again after R37a before starting. Check: render_shadows*, render_lighting frames identical."
+
+[[ticket]]
+id = "R37f"
+title = "The game's old shadow projection replaced by the object's sphere (R16e2; the user's call)"
+group = "renderer"
+model = "opus"
+files = ["src/game/map_object_shadow.cpp", "src/game/world_client_draw.cpp"]
+note = "R37: the game's object-shadow work kept only for the projected mesh's bounds (RenderShadow: the parts' points; ProjectDecal: Terrain::AddDecalTriangles, DecalBuilder::ClipStage, decal::ClipTriangle) costs 0.3-1.2 ms a frame, 10-24% of the main thread (zone1 0.76 ms of 2.52, town 0.83 of 2.95, town crowd 1.04 of 5.88; vanilla crowd 1.22 of 6.69). R16e2 (renderer.md section 13, item 5): a sphere around the object's bounds instead of the projected decal for ShadowInView and the shadow lists, the projection dropped. It lists a few more objects off screen for shadows. Needs the user's yes. Check: goldens (prove the lists feed no game state), render_shadows*, render_shadows_outside frames for review."
+
+[[ticket]]
+id = "R37g"
+title = "The game's frustum test cheaper with the same answers"
+group = "renderer"
+model = "opus"
+files = ["src/game/model.cpp"]
+note = "R37 profile: ClipCode (TransformPipeline::ClipTest, model.cpp: 8 corners of the part's cube and 8 of its box, each a full 4x4 transform) is 7.8% of the main thread's samples, 13.7% in the open zones (forests with flora). Test the sphere against the six planes first (inside by a margin: all codes 0; outside one plane by a margin: culled) and compute the corner codes only near an edge, so every answer equals the old one (prove it: a harness-build check comparing old and new on every call over the render and zone scenarios, 0 differences). Expected 0.2-0.5 ms a frame in the forests. Goldens unchanged; ei_vectors."
+
+[[ticket]]
+id = "R37h"
+title = "The battle screen's 0.3 ms of GPU at the frame's start (interface canvases): measure, then fix"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_ui.cpp", "src/render/render_perf.cpp"]
+note = "R37: on the battle screen (zones; not the town's brief screen) the timestamps put 0.27-0.38 ms of GPU time on RunCanvasCommands at the frame's start (13 draws, 0.02 ms CPU), 15-20% of the GPU frame. Either the canvases' passes really cost that (large canvas images at 4K loaded and stored) or it is an idle gap between two stamps (a flush). Find out with a GPU capture (PIX / Nsight / RenderDoc on the release build) or stamps around each canvas pass; fix if real (fewer passes, smaller canvases), else note it. Ties in with the native interface (P track)."
+
+[[ticket]]
+id = "R37i"
+title = "Perf overlay split per pass (GPU and draws: sun / point / terrain / objects / interface)"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_perf.cpp", "src/render/render.cpp"]
+note = "R37: the overlay's SHADOW / WORLD / UI GPU split and its one draw count hide where the frame goes, and the user reads the overlay. Add timestamps at the category changes R37's probe used (sun map, point map, terrain, objects and units, the rest of the world, interface, present; renderer.md section 13 item 12 describes the probe) and show draws as world / sun / point. Product build only (the harness keeps it off). No performance gain: visibility. Check: ei_perf_check (tools/perf_check) lines and pixels."

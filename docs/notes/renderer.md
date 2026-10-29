@@ -1558,6 +1558,44 @@ across runs; the goldens check the game state.
 Not worth a ticket now: pipeline and texture-binding changes (2-13 / 4-66 a frame) and the state reads per pass (part
 of the 0.5-1.6 ms hand-over).
 
+12. **R37 Profile of the heaviest scenes (2026-10-29; follow-ups R37a-R37i).** The user's play settings: 3840 x 2160
+    (`resolution desktop`, windowed), msaa 8, anisotropy 16, flora shadows on (switched on in the options window as
+    render_shadows_mound does), Rebirth's draw radii, `frametime 8`; zone1, zone7 (forest), zone11 (snow forest),
+    zone19 (16 x 16 sectors), the town bz1g, the camera at its default, at pitch 30 (the settings' least: the lowest
+    the player can tilt toward the horizon) and 15, distance 50; noon and 23:00; the town at night with render_stats'
+    crowd of 12 fighting. One game alone; 120 frames a scene. How: the harness build made release-like for the run
+    (sokol's validation off, `ReadBackDue` false, the cache checks off) with a temporary probe (not committed): a
+    timestamp query at each change of category of the frame's work (sun map, range passes, point map, terrain,
+    water, objects, units, other models, flat, pre-transformed, interface, passes, present), the QPC time per
+    category inside EndFrame, `sg_query_stats` counts per category (draws, pipelines, bindings, uniforms, the D3D11
+    calls) after `sg_enable_stats`, triangles from a count in `sg_draw`; casters per light from DrawShadowMap /
+    DrawPointShadows; a harness step setting `Camera::pitch` (radians: degrees x CAM_DEGREE; 15 looks at the horizon,
+    60-75 top down) and `distance`. CPU hot spots: `EI_PROFILE=1` (self samples only; the totals' stack scan is not
+    reliable). Results (Rebirth; vanilla within 10-20%):
+    - **The main thread is the limit**: 1.7-3.8 ms a frame in the zones and the town, 5.9-7.4 ms with the crowd; the
+      GPU frame 1.5-2.6 ms (msaa 1: about 0.5 ms less). Wall time equals CPU time (no GPU waits).
+    - **Shadows are 33-57% of the main thread**: the renderer's shadow CPU (`shadowMs`: fit, the walk of outside
+      casters, the passes' submission, point shadows) 0.5-1.9 ms, plus the game's object-shadow projection kept for
+      its bounds (`decalShadowMs` + `shadowBuildMs`) 0.3-1.2 ms. In the crowd: PreparePointShadows 0.44 ms, sun map
+      submission 0.32 ms (573 draws), point map submission 0.23 ms (453 draws), the fit and walk in the world's draw
+      about 0.4 ms. Self samples over all scenes: driver and runtime 18% (d3d11 7%, ntdll 8%), the map's fit / walk /
+      caster boxes 13% (FitMap 4.3, PositionBox 3.6, ShadowCasterMesh 3.1), the game's frustum test 12.7% (ClipCode
+      7.8%, 13.7% in the forests), the game's decal projection 10.8%.
+    - **Draws**: shadow draws are 50-65% of all (town crowd: 571 world + 573 sun + 453 point). Each draw is one
+      bindings call (2 SRVs, 2 samplers) and two uniform blocks (two constant buffer updates); triangles are few
+      (25-60 K a frame). Tilting low raises world draws 1.5-1.7x in zone1 and the town; the map's extent stays
+      104-136 units (zones), 72-88 (town).
+    - **GPU per pass** (ms): terrain 0.35-0.7, objects 0.16-0.6, msaa 8's resolve and copies 0.3-0.42, sun map
+      0.05-0.35 plus the range passes 0.09, point map up to 0.19 (crowd), present 0.15; on the battle screen 0.27-0.38
+      at the frame's start on the interface canvases' 13 draws, possibly a gap between stamps (R37h).
+    - **Casters per light**: sun 83-290 objects, 190-570 caster draws (in view + outside); the town's 4 mapped point
+      lights 4.25 faces each, 44 draws a light (crowd 113, most 397), redrawn every frame though lamps and buildings
+      never move (R37a).
+    Follow-ups by expected gain: R37f (the game's projection replaced by a sphere, the user's call: 0.3-1.2 ms), R37a /
+    R37b (point shadows kept across frames, their preparation: up to 0.6 ms in the crowd), R37g (the frustum test:
+    0.2-0.5 ms in forests), R37c (caster boxes and outside casters kept: 0.2-0.4), R37e (shadow casters' calls: 0.3),
+    R37d (the fit: 0.1-0.25), R37h (the canvases' GPU), R37i (the overlay split per pass, for visibility).
+
 ### Loose .bmp textures (A-I23a)
 
 - Scenario `render_loose_bmp` (vanilla golden from three agreeing original runs): `# prepare: make_loose_bmp.py`
