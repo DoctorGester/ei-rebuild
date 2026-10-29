@@ -3,33 +3,33 @@
 #include "unit_ai.h"
 #include "world.h"
 
-AITargetChoice AIAttention::CurrentAttack(AIBrain* brain) {
+AITargetChoice AIBrain::CurrentAttack() {
     AITargetChoice choice;
-    if (brain->action == AIBrain::kActionAttack) {
+    if (action == kActionAttack) {
         choice.part = kWeaponPart;
-    } else if (brain->action == AIBrain::kActionCast) {
-        choice.part = brain->actionTime;     // the spell being cast
+    } else if (action == kActionCast) {
+        choice.part = actionTime;     // the spell being cast
     } else {
         return choice;
     }
-    choice.object = UnitOrNull(brain->target);
+    choice.object = UnitOrNull(target);
     return choice;
 }
 
-void AIAttention::LookAround(AIBrain* brain) {
+void AIBrain::LookAround() {
     UnitList candidates;
-    Vector3 from = brain->owner->unit->localPosition_;
-    AITargetChoice best = Choose(brain, &candidates, from, true, false);
-    ApplyAttack(brain, &best);
+    Vector3 from = owner->unit->localPosition_;
+    AITargetChoice best = Choose(&candidates, from, true, false);
+    ApplyAttack(&best);
 }
 
-void AIAttention::ApplyAttack(AIBrain* brain, const AITargetChoice* choice) {
+void AIBrain::ApplyAttack(const AITargetChoice* choice) {
     CUnit* object = choice->object;
     if (!object) return;
-    AITargetChoice now = CurrentAttack(brain);
+    AITargetChoice now = CurrentAttack();
     if (object == now.object && choice->part == now.part) return;
     if (choice->part == kWeaponPart)
-        brain->AttackTarget(object);
+        AttackTarget(object);
     else
-        brain->CastOn(choice->part, object, 0);
+        CastOn(choice->part, object, 0);
 }

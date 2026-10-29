@@ -510,38 +510,8 @@ struct AIAttackOption {
 // The count, the array sized to it, then each option.
 void LoadAttackOptions(std::vector<AIAttackOption>* options, CStream* stream);
 
-// The brain's attention: the unit's attack options and choosing a target.
+// The brain's attention: the unit's attack options (AIBrain::Choose picks a target with them).
 struct AIAttention {
-    // The best {part, object} to attack or help: the current attack scored first, then (without
-    // `alliesOnly`) every weapon against every candidate and every spell against the unit and its allies in
-    // sight; the best that scores above the current one and passes IsUsable, the order check (with
-    // `alliesOnly`, for targets not near the path) and CanReach wins; a rejected one seen once is reported
-    // (20). {kWeaponPart, null} without options.
-    AITargetChoice Choose(AIBrain* brain, UnitList* candidates, const Vector3& from, bool alliesOnly, bool fromHere);
-    // False when the part has no option or an area option (kinds 2, 3) would also hit an ally near the target
-    // or the unit itself; true without an object.
-    bool IsUsable(AIBrain* brain, const AITargetChoice* choice);
-    // How good `option` is against `candidate` (`group` the others it would hit or help): by kind, minus 25
-    // per unit of distance beyond the range (x10 outside kinds 0..4) when it reached `threshold`, minus twice
-    // the hits needed for attacks. -1e30 when it cannot apply. Unrounded.
-    double Score(const Vector3& from, CUnit* self, UnitList* group, CEngineObject* current, CUnit* candidate,
-                 float threshold, const AIAttackOption* option);
-    // False for a spell aimed at no object against a large unit of size class 0; else the order is checked
-    // from the unit's place when `fromHere` is set or the target is the unit itself, otherwise from the end
-    // of a path search to the target (range ScaledValue of the distance, the target lifted off the sector map
-    // meanwhile), or the unit's place without one.
-    bool CanReach(AIBrain* brain, const AITargetChoice* choice, bool fromHere);
-
-    // Chooses the best target in sight (Choose from the unit's position, allies only) and takes it up
-    // (ApplyAttack).
-    void LookAround(AIBrain* brain);
-    // The brain's current attack as {part, object}: action 3 {kWeaponPart, target}, action 4 {spell, target},
-    // the object only when it is a unit; otherwise {kWeaponPart, null}.
-    AITargetChoice CurrentAttack(AIBrain* brain);
-    // Takes up {part, object} unless there is no object or it is the current attack: kWeaponPart AttackTarget,
-    // else CastOn.
-    void ApplyAttack(AIBrain* brain, const AITargetChoice* choice);
-
     const AIAttackOption* FindOption(int part) const;
 
     // Lists the unit's options: its weapon (unless its natural weapon is 0x10, "spells only") and attack
@@ -551,8 +521,6 @@ struct AIAttention {
     void InitOption(AIAttackOption* option, AIOptionKind kind, int part, float range, int maxCount, float radius, int effect);
     DamageWords* AddWeaponOption(AIOptionKind kind, int part, float range, int maxCount, float radius, int effect);
     DamageWords* AddSpellOption(AIOptionKind kind, int part, float range, int maxCount, float radius, int effect);
-    // The option kind of a spell by its type: 1..7, 8 for none; 0 without a spell.
-    AIOptionKind SpellKind(const CSpell* spell);
 
     std::vector<AIAttackOption> weapons;
     std::vector<AIAttackOption> spells;
@@ -696,6 +664,30 @@ struct AIBrain {
     void HearAlarm(int slot);
     // The perception memory emptied, then the behaviour record of alarmSlot applied again.
     void ResetBehaviour();
+
+    // The best {part, object} to attack or help: the current attack scored first, then (without `alliesOnly`)
+    // every weapon against every candidate and every spell against the unit and its allies in sight; the best
+    // that scores above the current one and passes IsUsable, the order check (with `alliesOnly`, for targets not
+    // near the path) and CanReach wins; a rejected one seen once is reported (20). {kWeaponPart, null} without
+    // options.
+    AITargetChoice Choose(UnitList* candidates, const Vector3& from, bool alliesOnly, bool fromHere);
+    // False when the part has no option or an area option (kinds 2, 3) would also hit an ally near the target
+    // or the unit itself; true without an object.
+    bool IsUsable(const AITargetChoice* choice);
+    // False for a spell aimed at no object against a large unit of size class 0; else the order is checked
+    // from the unit's place when `fromHere` is set or the target is the unit itself, otherwise from the end
+    // of a path search to the target (range ScaledValue of the distance, the target lifted off the sector map
+    // meanwhile), or the unit's place without one.
+    bool CanReach(const AITargetChoice* choice, bool fromHere);
+    // Chooses the best target in sight (Choose from the unit's position, allies only) and takes it up
+    // (ApplyAttack).
+    void LookAround();
+    // The current attack as {part, object}: action 3 {kWeaponPart, target}, action 4 {spell, target}, the object
+    // only when it is a unit; otherwise {kWeaponPart, null}.
+    AITargetChoice CurrentAttack();
+    // Takes up {part, object} unless there is no object or it is the current attack: kWeaponPart AttackTarget,
+    // else CastOn.
+    void ApplyAttack(const AITargetChoice* choice);
 
     // Action 2 (move) after arrival: run the queued looks, each turning then waiting.
     void UpdateMove();

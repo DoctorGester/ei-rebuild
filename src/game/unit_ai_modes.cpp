@@ -61,7 +61,7 @@ int AIMode::Evaluate(AIBrain*) { return kPriorityIdle; }
 
 void AIMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, AIRemark::Idle);
-    brain->attention.LookAround(brain);
+    brain->LookAround();
 }
 
 void AIMode::Enter(AIBrain* brain) {
@@ -318,7 +318,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     }
     if (!brain->memory.seesEnemy) return kPriorityNone;
     UnitList candidates = brain->memory.FindEnemies(self);
-    chosen = brain->attention.Choose(brain, &candidates, self->localPosition_, false, false);
+    chosen = brain->Choose(&candidates, self->localPosition_, false, false);
     enemy.Assign(chosen.object);
     return chosen.object ? kPriorityFight : kPriorityNone;
 }
@@ -327,7 +327,7 @@ void AggressionMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, AIRemark::FightingIdle);
     if (!chosen.object) return;
     brain->CallAllies(chosen.object->localPosition_);
-    brain->attention.ApplyAttack(brain, &chosen);
+    brain->ApplyAttack(&chosen);
 }
 
 void AggressionMode::Enter(AIBrain* brain) {

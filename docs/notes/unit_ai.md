@@ -12,7 +12,7 @@ Forwarders are in `unit_ai.h`, `unit_ai_modes.cpp`, `originals_ai.h`.
 | Range | Contents |
 |---|---|
 | 005CA000-005CFFFF | the AI's eye (`AIViewer`), perception memory, heard calls, attention / attack options |
-| 005D0030 | target choice among candidates (`AIAttention::Choose`, on brain + 0xA4), used by Aggression |
+| 005D0030 | target choice among candidates (`AIBrain::Choose`; the original's on brain + 0xA4), used by Aggression |
 | 005D0A50-005D3760 | modes Guard, Patrol, Sentry, Follow, Suspection, Aggression, CorpseWatcher, Fear (Tamed, type 8, has its vtable elsewhere) |
 | 005D37A0-005D4DB0 | Player mode (party units, type 6, vtable 0073F0F8): commands, tick, combat 005D4170, formation check 005D4860, load / save |
 | 005D4DF0-005D5F20 | brain: UMClear, reset / init, SetOwner, IsNearPath, Think, OnObjectDeleted, alarm groups, CallAllies, PlanLooks, AddMode, mode lookups |
@@ -71,7 +71,7 @@ address in its source comment; the per-function table that used to be here is go
   Patrol (LastPoint, Evaluate), Suspection (Evaluate 005D1E90, Execute, Enter, Leave), Aggression Evaluate (10000 with chosen = enemy,
   or -1000) / Execute / Enter / Leave, CorpseWatcher Evaluate 005D27D0. `unit_ai_fear.cpp`: FearMode 005D2850-005D3680 (script UMFear /
   UMAg, alarm assembly; fields `distance`, `spread`, `shelter`, `fleePoint` (z 1 while a checked flight point is pending)),
-  AIAttention::ApplyAttack 005CF170 (Fear's fight-back). `unit_ai_player.cpp`: PlayerMode / FollowMode OnObjectDeleted, PlayerMode::Execute
+  AIBrain::ApplyAttack 005CF170 (Fear's fight-back). `unit_ai_player.cpp`: PlayerMode / FollowMode OnObjectDeleted, PlayerMode::Execute
   (every tick for party units), CommandWalk, GoTo, Attack, Use, Cast, CastAt, PathClear, SetLeader (a leader chain back to the unit stops
   the unit's own Player mode following first), UpdateCombat 005D4170, AddPartyTargets 005D3F50, CollectParty 005D4600, StaysWithParty 005D4860.
 - `unit_ai_brain.cpp`: AddMode 005D5F60, RemoveModesOfType, ClearModes, Reset, Init, AIMemory::Reset 005CB0F0; the script's StandardGuard
@@ -87,8 +87,8 @@ address in its source comment; the per-function table that used to be here is go
   show-visibility effect). `unit_ai_hearing.cpp`: AIViewer::Noise 005C98C0 (attacks, skills, explosions: hostile units within 50 whose
   hearing x loudness reaches hear kind at the source's position), heard calls Hear 005CCD40 / AddClaim 005CCEA0 / RemoveClaims, the
   memory's HearCall / AddClaim 005CBBA0 / 005CBBC0.
-- `unit_ai_attention.cpp` / `unit_ai_targets.cpp`: AIAttention::CurrentAttack 005CF220, LookAround 005CFE40 (`this` the attention +0xA4, brain passed),
-  AIAttention::Choose 005D0030, Score, IsUsable, AIOrder Clear / MakeAttack / MakeCast, CanReach 005CF3C0 (spell aimed at
+- `unit_ai_attention.cpp` / `unit_ai_targets.cpp`: AIBrain::CurrentAttack 005CF220, LookAround 005CFE40 (the original's `this` is the attention +0xA4 with the brain passed; ours are AIBrain members),
+  AIBrain::Choose 005D0030, Score, IsUsable, AIOrder Clear / MakeAttack / MakeCast, CanReach 005CF3C0 (spell aimed at
   no object vs a large size-class-0 unit: no; else the order check from the unit, or from the end of a path search with the target
   lifted). `unit_ai_options.cpp`: AIAttention::Build 005CEED0 (the option lists, when a unit's controller is set up (005535F0 / 00553610)
   and by 005D6630), InitOption, AddWeaponOption / AddSpellOption, SpellKind (spell type -> kind table), AIAttackOption::Weight, SetSize,

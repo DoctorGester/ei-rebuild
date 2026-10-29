@@ -255,8 +255,8 @@ void FearMode::Execute(AIBrain* brain) {
         // Fight back when there is something worth it (helping allies too).
         UnitList candidates;
         Vector3 at = brain->owner->unit->localPosition_;
-        AITargetChoice best = brain->attention.Choose(brain, &candidates, at, true, true);
-        brain->attention.ApplyAttack(brain, &best);
+        AITargetChoice best = brain->Choose(&candidates, at, true, true);
+        brain->ApplyAttack(&best);
 
         if (brain->action == AIBrain::kActionNone) {
             // Stand still and look away from the danger.

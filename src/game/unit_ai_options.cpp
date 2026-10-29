@@ -32,6 +32,12 @@ double OptionWeight(const AIAttackOption*);
 
 double OptionWeight(const AIAttackOption* option) { return option->Weight(); }
 
+// The option kind of a spell by its type: 1..7, 8 for none; 0 without a spell.
+AIOptionKind SpellKind(const CSpell* spell) {
+    if (!spell) return AIOptionKind::Weapon;
+    unsigned type = static_cast<unsigned>(spell->Type());
+    return type < std::size(kSpellKinds) ? kSpellKinds[type] : AIOptionKind::Unused;
+}
 } // namespace
 
 double AIAttackOption::Weight() const {
@@ -108,11 +114,6 @@ DamageWords* AIAttention::AddSpellOption(AIOptionKind kind, int part, float rang
     return &option.damage;
 }
 
-AIOptionKind AIAttention::SpellKind(const CSpell* spell) {
-    if (!spell) return AIOptionKind::Weapon;
-    unsigned type = static_cast<unsigned>(spell->Type());
-    return type < std::size(kSpellKinds) ? kSpellKinds[type] : AIOptionKind::Unused;
-}
 
 void AIAttention::Build(CUnit* unit) {
     auto* server = unit->ServerController();
