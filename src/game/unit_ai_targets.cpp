@@ -40,9 +40,6 @@ constexpr float kFloorScore = -1e20f; // and the starting best: -1e20
 static_assert(std::bit_cast<std::uint32_t>(kFloorScore) == 0xE0AD78ECu);
 constexpr float kSmallHeight = 0.5f;            // prototypes below this height count as small units
 
-std::uint32_t Excess(const AIAttackOption* option, const CUnit* target) {
-    return option->damage.ExcessOver(&target->ServerController()->protection);
-}
 
 // An area attack's damage: summed over the group members within the option's radius of the candidate (NaN
 // distances count).
@@ -54,7 +51,7 @@ std::uint32_t GroupExcess(const AIAttackOption* option, UnitList* group, CUnit* 
         auto* member = *node;
         double distance2 = DistanceSquaredXYUnrounded<double>(member->localPosition_, candidate->localPosition_);
         EI_NAN_AUDIT(distance2, radius2);
-        if (distance2 <= radius2) sum += Excess(option, member);
+        if (distance2 <= radius2) sum += option->damage.ExcessOver(&member->ServerController()->protection);
     }
     return sum;
 }
@@ -183,14 +180,14 @@ double AIAttention::Score(const Vector3& from, CUnit* self, UnitList* group, CEn
     std::uint32_t damage = 0;   // only the low 16 bits count
     switch (option->kind) {
     case AIOptionKind::Weapon:
-        damage = Excess(option, candidate);
+        damage = option->damage.ExcessOver(&candidate->ServerController()->protection);
         score = static_cast<float>(static_cast<double>(static_cast<int>(damage & 0xFFFF)) * kDamageWeight + score);
         break;
     case AIOptionKind::SpellAttack:
     case AIOptionKind::AreaAttack:
     case AIOptionKind::LastingArea: {
         if (option->kind == AIOptionKind::SpellAttack) {
-            damage = Excess(option, candidate);
+            damage = option->damage.ExcessOver(&candidate->ServerController()->protection);
         } else {
             if (option->kind == AIOptionKind::LastingArea && control->state == kControllerIdle) return kNoScore;
             damage = GroupExcess(option, group, candidate);

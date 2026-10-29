@@ -215,7 +215,7 @@ void Terrain::PlayAmbience() {
         float spotLow = static_cast<float>(-spot);
         position.x = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_random.Next()) * kTwoToMinus32 + spotLow + position.x);
         position.y = static_cast<float>((spot - spotLow) * x87::FromUnsigned(g_random.Next()) * kTwoToMinus32 + spotLow + position.y);
-        sounds->Play3D(name, 1, &position.x, static_cast<float>(spot + spot), radius, 0, 0);
+        sounds->Play3D(name, 1, &position.x, static_cast<float>(spot + spot), radius, 0);
     }
 
     // The loops: a class already playing keeps its sound (volume and pan updated), a new one starts.

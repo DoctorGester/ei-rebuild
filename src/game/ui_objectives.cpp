@@ -265,7 +265,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
             }
             if (foundText) {
                 g_clientWorld.texts_->ReadLine(&title, 1);
-                g_clientWorld.texts_->ReadToHash(&text, 1);
+                g_clientWorld.texts_->ReadToHash(&text);
                 CUiSurface* surface = surfaces_[1];
                 surface->Clear();
                 RECT titleRect = {0, 5, 340, 25};
@@ -312,7 +312,7 @@ void CObjectivesWindow::ShowQuest() {
     // The text: a colour code, the quest's description, its rewards, then each sub-objective the
     // player has (q.<zone>.<quest>.<objective> not 0) with "completed" (2) or "failed" (3).
     texts->NextLine();
-    texts->ReadToHash(&text, 1);
+    texts->ReadToHash(&text);
     {
         std::string colour("\007C\344\327\247 ");
         text = colour + text;
@@ -352,7 +352,7 @@ void CObjectivesWindow::ShowQuest() {
             text += failed;
         }
         text += "\n \n \007C\344\327\247";
-        texts->ReadToHash(&line, 1);
+        texts->ReadToHash(&line);
         text += line;
         text += "\n \n ";
     }

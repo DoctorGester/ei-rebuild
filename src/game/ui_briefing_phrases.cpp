@@ -147,7 +147,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 speaker = node == personTexts_.end() ? words[1] : node->second;
             }
         }
-        texts->ReadToHash(&phrase, 1);
+        texts->ReadToHash(&phrase);
         phrase = std::string(kPhraseHead) + speaker + (lips ? kPhraseBodyLips : kPhraseBodyNoLips) + phrase + kLineEnd;
         dialogueText_ += phrase;
         const char* cursor = texts->cursor_;

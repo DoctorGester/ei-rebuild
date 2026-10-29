@@ -1260,8 +1260,8 @@ int LoadMission(CStream* file);
 // SaveFileWrite writes the header, at version > 0x6B a checksum, then a flag byte and the LZ-compressed data
 // (or, when decompressing it does not give the data back, 0 and the raw data). SaveFileRead reads one back
 // (versions up to kSaveLastUncompressedVersion uncompressed); false on a bad header or checksum.
-void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* data);
-bool SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, CStream* file);
+void SaveFileWrite(CStream* file, unsigned magic, CMemoryStream* data);
+bool SaveFileRead(CMemoryStream* out, unsigned magic, CStream* file);
 inline constexpr int kSaveVersion = /*00790260*/ 116;
 inline constexpr int kSaveLastUncompressedVersion = /*00790264*/ 100;
 inline constexpr int kSaveOldestVersion = /*00790268*/ 66;

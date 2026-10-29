@@ -269,14 +269,11 @@ bool ReadStreamChunk(CStream* in, char* id, CMemoryStream* to) {
 }
 
 // ReadStreamChunk is inlined here; Open inlines all of this for the index and the records.
-bool FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence) {
+bool FindStreamChunk(CStream* in, int id, CMemoryStream* to) {
     in->Rewind();
     char readId;
     while (ReadStreamChunk(in, &readId, to)) {
-        if (readId == static_cast<char>(id)) {
-            if (occurrence == 1) return true;
-            --occurrence;
-        }
+        if (readId == static_cast<char>(id)) return true;
     }
     to->Clear();
     return false;
@@ -308,8 +305,8 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
         version_ = version;
         return;
     }
-    FindStreamChunk(stream, 0, index, 1);
-    FindStreamChunk(stream, 2, data, 1);
+    FindStreamChunk(stream, 0, index);
+    FindStreamChunk(stream, 2, data);
     Current()->size = static_cast<std::int32_t>(data->Size());
 
     // The index: per object its class id and the key its record is stored under.
@@ -346,7 +343,7 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
         LeaveChunk();
     }
     Current()->Reset();
-    FindStreamChunk(stream, 1, data, 1);
+    FindStreamChunk(stream, 1, data);
     Current()->size = static_cast<std::int32_t>(data->Size());
 }
 

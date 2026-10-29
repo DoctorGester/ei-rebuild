@@ -10,9 +10,6 @@
 namespace {
 constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
 
-bool Accepts(CObject3D* object, const FigureAnimation* animation) {
-    return object->AcceptsAnimation(animation);
-}
 
 } // namespace
 
@@ -27,7 +24,7 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
         bool variant =
             wanted == 0 ? (entryKey & kAnimationVariantBits) == 0 : (~entryKey & key & kAnimationVariantBits) == 0;
         if (!variant || ((entryKey ^ key) & kKeyKindBits) != 0) continue;
-        if (Accepts(this, entry)) candidates.push_back(entry);
+        if (AcceptsAnimation(entry)) candidates.push_back(entry);
     }
     FigureAnimation** list = candidates.data();
     int count = std::ssize(candidates);
@@ -55,7 +52,7 @@ FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
     for (int i = 0; i < static_cast<int>(animations->count); ++i) {
         FigureAnimation* entry = &animations->animations[i];
         if (((entry->key ^ key) & kKeyKindBits) != 0) continue;
-        if (!Accepts(this, entry)) continue;
+        if (!AcceptsAnimation(entry)) continue;
         int index = std::ssize(candidates);
         candidates.resize(index + 1);
         candidates[index] = entry;

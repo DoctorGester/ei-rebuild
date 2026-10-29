@@ -23,7 +23,6 @@
 namespace {
 
 
-bool IsDead(CMapObject* unit) { return unit->IsDead(); }
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside.
@@ -35,7 +34,7 @@ bool StaysInside(MagicTrap* trap, CMapObject* unit) {
     for (int i = 0; i < count; ++i, ++circle) {
         float dx = x - circle->x;
         float dy = y - circle->y;
-        if (circle->radius * circle->radius > LengthSquared2DUnrounded(dy, dx)) return !IsDead(unit);
+        if (circle->radius * circle->radius > LengthSquared2DUnrounded(dy, dx)) return !unit->IsDead();
     }
     return false;
 }
@@ -47,7 +46,6 @@ void Append(std::list<CUnit*>* list, CUnit* unit) {
 
 constexpr float kFar = 1e30f;                        // a squared distance
 
-CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager(); }
 
 // The units inside: the list emptied, as SetUp, the constructor and the destructor all do it (each
 // element's reference released and cleared, the list emptied, its blocks freed).
@@ -123,7 +121,7 @@ void FindTrapVictims(CWorldServer* context, const std::vector<TrapCircle>* area,
         for (auto node = found.begin(); node != found.end();) {
             CUnit* unit = *node;
             ++node;
-            if (IsDead(unit)) continue;
+            if (unit->IsDead()) continue;
             int side = unit->side;
             if (sides & (1u << (side & 31))) out->push_back(unit);   // SHL by CL: the count is taken mod 32
         }
@@ -171,7 +169,7 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
 
 void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
-    CSpellManager* manager = SpellManagerOf(WorldContext());
+    CSpellManager* manager = WorldContext()->SpellManager();
     CSpell* made = manager->CreateSpellFromText(record->spell);
     spell.Assign(made);
     std::memcpy(&localPosition_.x, &record->position, sizeof(record->position));   // bit for bit
@@ -239,7 +237,7 @@ void MagicTrap::SaveTrap(CStream* stream) {
 
 void MagicTrap::LoadTrap(CStream* stream) {
     LoadMapObject(stream);
-    CSpellManager* manager = SpellManagerOf(WorldContext());
+    CSpellManager* manager = WorldContext()->SpellManager();
     // The id and the two counts are read into one local: a read that fails leaves the previous value.
     std::int32_t value = 0;
     stream->ReadValue(value);

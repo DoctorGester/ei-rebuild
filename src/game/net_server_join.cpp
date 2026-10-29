@@ -81,16 +81,12 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     self->Announce(g_interface.MessageText(0, name->data()), nullptr);
 }
 
-// The player record of a login, through its binding.
-PlayerMessage* PlayerOf(LoginMessage* login) {
-    return login->binding_.Get()->Player();
-}
 
 // Channel 1: the client's login changed: its player record takes the state and id, and its version goes up.
 void ServerOnPlayerChanged(ServerSession*, LoginMessage* message) {
-    PlayerOf(message)->state_ = message->state_;
-    PlayerOf(message)->id_ = message->id_;
-    PlayerMessage* player = PlayerOf(message);
+    message->binding_.Get()->Player()->state_ = message->state_;
+    message->binding_.Get()->Player()->id_ = message->id_;
+    PlayerMessage* player = message->binding_.Get()->Player();
     ++player->version_;
 }
 

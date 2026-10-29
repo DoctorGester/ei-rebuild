@@ -152,7 +152,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
         const LeverRecord* record = g_leverTable.Named(name);
         EI_NAN_AUDIT(from, to);
         if (record && from != to)
-            g_clientWorld.sounds_->Play3D(record->sound, 0, &localPosition_.x, kSoundNear, kSoundFar, 0, 0);
+            g_clientWorld.sounds_->Play3D(record->sound, 0, &localPosition_.x, kSoundNear, kSoundFar, 0);
     }
     return complete;
 }

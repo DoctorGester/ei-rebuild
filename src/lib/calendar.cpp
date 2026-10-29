@@ -7,7 +7,7 @@
 
 namespace lib {
 
-std::int32_t MakeTime(int year, int month, int day, int hour, int minute, int second, int dst) {
+std::int32_t MakeTime(int year, int month, int day, int hour, int minute, int second) {
     std::tm at{};
     at.tm_sec = second;
     at.tm_min = minute;
@@ -15,14 +15,14 @@ std::int32_t MakeTime(int year, int month, int day, int hour, int minute, int se
     at.tm_mday = day;
     at.tm_mon = month - 1;
     at.tm_year = year - 1900;
-    at.tm_isdst = dst;
+    at.tm_isdst = -1;
     return static_cast<std::int32_t>(_mktime32(&at));
 }
 
 std::int32_t CurrentTime() {
     SYSTEMTIME local;
     gameapi::GetLocalTime(&local);
-    return MakeTime(local.wYear, local.wMonth, local.wDay, local.wHour, local.wMinute, local.wSecond, -1);
+    return MakeTime(local.wYear, local.wMonth, local.wDay, local.wHour, local.wMinute, local.wSecond);
 }
 
 std::string FormatTime(std::int32_t time, const char* format) {

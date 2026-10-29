@@ -238,7 +238,7 @@ void CHelpWindow::ShowPage() {
             row.top = y;
             row.bottom = y + kRowHeight;
             text.clear();
-            if (texts->Open(std::string(kTutorSection) + entry.key.data())) texts->ReadToHash(&text, 1);
+            if (texts->Open(std::string(kTutorSection) + entry.key.data())) texts->ReadToHash(&text);
             str::TrimRight(text, kLineEnds);
             int height = body->DrawWrappedText(text, &row, 100, 1, kTextColour, kWrapFormat, 1) * kRowHeight;
             // A text with a picture is at least as high as the picture's place.

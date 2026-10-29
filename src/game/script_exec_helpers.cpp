@@ -21,7 +21,6 @@
 
 namespace {
 
-ScriptPointLight* Lights(CScript* script) { return script->pointLights_.data(); }
 int LightCount(CScript* script) { return static_cast<int>(script->pointLights_.size()); }
 
 // MovePointLight's step: (target - position) / steps per axis. The x difference stays in the FPU,
@@ -37,7 +36,6 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
     light->step.z = static_cast<float>(static_cast<double>(dz) * inverse);
 }
 
-ScriptQuestObjective* QuestObjectives() { return g_scriptQuestObjectives.data(); }
 int QuestObjectiveCount() { return static_cast<int>(g_scriptQuestObjectives.size()); }
 
 
@@ -77,11 +75,11 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     // a free slot is not found).
     int i = 0;
     for (; i < LightCount(this); ++i) {
-        ScriptPointLight* light = &Lights(this)[i];
+        ScriptPointLight* light = &pointLights_[i];
         if (!light->object) break;
         if (light->id == id) break;
     }
-    ScriptPointLight* slot = &Lights(this)[i];
+    ScriptPointLight* slot = &pointLights_[i];
     slot->object.reset();
     slot->moving = 0;
     slot->id = id;
@@ -112,10 +110,10 @@ void CScript::MovePointLight(const SSCCmd* cmd) {
     int i = 0;
     for (;; ++i) {
         if (i >= LightCount(this)) return;
-        ScriptPointLight* light = &Lights(this)[i];
+        ScriptPointLight* light = &pointLights_[i];
         if (light->object && light->id == id) break;
     }
-    ScriptPointLight* light = &Lights(this)[i];
+    ScriptPointLight* light = &pointLights_[i];
     light->moving = 1;
     light->removeWhenDone = x87::fistp(f[5]);
     light->steps = x87::fistp(f[4]);
@@ -159,7 +157,7 @@ void ScriptQuestFinish(CScript* script) {
         } else {
             tail = std::format("GSSetVar(0,\"q.{}.{}.{}\",1)\n)\n)\n", quest, quest, i + 2);
         }
-        const ScriptQuestObjective& objective = QuestObjectives()[i];
+        const ScriptQuestObjective& objective = g_scriptQuestObjectives[i];
         const std::string& argument = objective.text;
         switch (static_cast<ScriptFunction>(objective.type)) {
         case ScriptFunction::QObjArea:

@@ -61,7 +61,7 @@ void LogicSettings::Load(const std::string& path) {
     read("RPG", "Consider Modifier", considerModifier);
     read("RPG", "Consider Log Base", considerLogBase);
     read("RPG", "Item Durability Critical", itemDurabilityCritical);
-    questsToRespawn = reg.GetInt2("Scenario", "QuestsToRespawn", questsToRespawn);
+    questsToRespawn = reg.GetInt("Scenario", "QuestsToRespawn", questsToRespawn);
     read("LMP", "Lost Money", lostMoney);
     read("LMP", "Lost XP", lostXp);
     for (int i = 0; i < 3; ++i) {

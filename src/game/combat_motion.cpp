@@ -110,7 +110,6 @@ void FillIdle(CUnitServer* self, AnimationSteps* steps) {
     if (entry) AddEmote(steps, entry->index);
 }
 
-std::uint32_t IdleKeyNow(CUnitServer* self) { return WeaponAndModeBits(self); }
 
 // A motion order on the stack, as AIPath::ToMotionOrder fills it. The header is zeroed (the original leaves it
 // uninitialised).
@@ -180,7 +179,7 @@ void CUnitServer::PlayEmoteOrder(const AnimationSteps& steps) { Play(this, steps
 void CUnitServer::BuildIdle(AnimationSteps* steps) { FillIdle(this, steps); }
 
 AnimationSteps* CUnitServer::IdleAnimation() {
-    std::uint32_t key = IdleKeyNow(this);
+    std::uint32_t key = WeaponAndModeBits(this);
     if (idleKey == key) {
         idleAnimation.extra = -1;
     } else {
@@ -192,7 +191,7 @@ AnimationSteps* CUnitServer::IdleAnimation() {
 
 void CUnitServer::PlayIdle() {
     if (state >= 0 && (state <= 1 || state == kStateTurning)) return;
-    std::uint32_t key = IdleKeyNow(this);
+    std::uint32_t key = WeaponAndModeBits(this);
     if (idleKey == key) {
         idleAnimation.extra = -1;
     } else {

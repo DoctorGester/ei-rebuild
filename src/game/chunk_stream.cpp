@@ -24,7 +24,6 @@ constexpr int kHeader = 8;
 
 std::uint32_t FileRead(lib::File* file, void* data, std::uint32_t size) { return file->Read(data, size); }
 void FileWrite(lib::File* file, const void* data, std::uint32_t size) { file->Write(data, size); }
-std::uint32_t FilePosition(lib::File* file) { return file->GetPosition(); }
 void FileSeek(lib::File* file, std::int32_t offset, std::uint32_t from) { file->Seek(offset, from); }
 
 // A chunk holding one value: header, then the value (counted with the header).
@@ -60,7 +59,7 @@ lib::File* Chunk::File() { return parent_ ? parent_->File() : nullptr; }
 
 void Chunk::BeginWrite(std::uint32_t id) {
     FileWrite(File(), &id, 4);
-    start_ = FilePosition(File());
+    start_ = File()->GetPosition();
     FileWrite(File(), &size_, 4);
     consumed_ = 0;
     if (parent_) parent_->Advance(kHeader);
@@ -68,7 +67,7 @@ void Chunk::BeginWrite(std::uint32_t id) {
 }
 
 void Chunk::EndWrite() {
-    std::uint32_t end = FilePosition(File());
+    std::uint32_t end = File()->GetPosition();
     FileSeek(File(), static_cast<std::int32_t>(start_), 0);
     FileWrite(File(), &consumed_, 4);
     FileSeek(File(), static_cast<std::int32_t>(end), 0);
@@ -241,7 +240,7 @@ void Chunk::WriteString(std::uint32_t id, std::string text) {
     consumed_ += size;
     int length = text.size();
     lib::File* file = File();
-    FileWrite(file, str::Buffer(text, 0), static_cast<std::uint32_t>(length));
+    FileWrite(file, text.data(), static_cast<std::uint32_t>(length));
 }
 
 // The array is emptied, then `count` string chunks are read through a child chunk (its constructor

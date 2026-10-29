@@ -30,7 +30,6 @@ namespace net {
 
 namespace {
 
-ServerEntry* EntryOf(std::list<SharedRef<ServerEntry>>::iterator node) { return node->Get(); }
 
 constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
 constexpr float kFirstRetry = 0.1f;
@@ -55,7 +54,7 @@ bool SameAddress(const NetAddress* a, const NetAddress* b) { return std::memcmp(
 std::list<SharedRef<ServerEntry>>::iterator FindServer(ClientBase* self, const NetAddress* address) {
     auto end = self->servers_.end();
     auto node = self->servers_.begin();
-    while (node != end && !SameAddress(&EntryOf(node)->address_, address)) ++node;
+    while (node != end && !SameAddress(&node->Get()->address_, address)) ++node;
     return node;
 }
 // The query with `address`, or the end.
@@ -255,7 +254,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
         auto q = FindQuery(v, from);
         if (q != v.list.end()) {
             BufferCursor c;
-            c.Reset(nullptr);
+            c.Reset();
             c.sink = nullptr;
             GameBuffer& r = q->reply;
             r.high = r.begin;
@@ -317,7 +316,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
         if (r.cur > r.high) r.high = r.cur;
         if (r.PositionOf(r.high) != 0) {
             BufferCursor c;
-            c.Reset(nullptr);
+            c.Reset();
             c.sink = nullptr;
             r.Seek(0);
             BufferUpdateHigh(&r);
@@ -355,7 +354,7 @@ void ClientBase::Ask(const NetAddress* address) {
     }
     auto node = FindServer(this, address);
     if (node != servers_.end()) {
-        EntryOf(node)->state_ = ServerEntry::kAsked;
+        node->Get()->state_ = ServerEntry::kAsked;
         return;
     }
     SharedRef<ServerEntry> entry;
@@ -374,7 +373,7 @@ void ClientBase::Forget(const NetAddress* address) {
     if (q != v.end()) v.erase(q);
     auto node = servers_.begin();
     while (node != servers_.end()) {
-        if (SameAddress(&EntryOf(node)->address_, address)) {
+        if (SameAddress(&node->Get()->address_, address)) {
             node = servers_.erase(node);
         } else {
             ++node;
@@ -415,7 +414,7 @@ ServerEntry* ClientBase::ServerAt(int index) {
         ++node;
     }
     if (node == sentinel) return nullptr;
-    return EntryOf(node);
+    return node->Get();
 }
 
 // Counts the servers' timeouts down; a server whose time ran out is dropped
@@ -424,10 +423,10 @@ ServerEntry* ClientBase::ServerAt(int index) {
 void ClientBase::Tick(double dt) {
     auto node = servers_.begin();
     while (node != servers_.end()) {
-        ServerEntry* e = EntryOf(node);
+        ServerEntry* e = node->Get();
         if (e->timeout_ > 0.0f) {
             e->timeout_ = static_cast<float>(static_cast<double>(e->timeout_) - dt);
-            e = EntryOf(node);
+            e = node->Get();
             EI_NAN_AUDIT(e->timeout_);
             if (e->timeout_ <= 0.0f) {
                 ClientQueries& v = queries_;

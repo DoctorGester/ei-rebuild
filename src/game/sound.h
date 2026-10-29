@@ -312,8 +312,7 @@ struct CSoundManager : CEngineObject {
     void DeleteDeferred();
 
     void StreamNotify();                                                          // empty
-    int Play3D(std::string_view name, int priority, const float* position, float nearDist, float farDist, int loop,
-               int speech);
+    int Play3D(std::string_view name, int priority, const float* position, float nearDist, float farDist, int loop);
     int Play2D(std::string_view name, int priority, int volume, int pan, int loop, int heightFade, int speech,
                int compressed);
     // From the cache, or read from the archives (with `compressed` an MP3 decompressed through the ASI codec);

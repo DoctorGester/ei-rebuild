@@ -31,16 +31,6 @@ namespace {
 
 // --- Tables --------------------------------------------------------------------------------------
 
-// The unit prototypes, models and armours by index; an index past the end gives null.
-const UnitPrototypeRecord* UnitPrototype(std::uint32_t index) {
-    return unitdb::PrototypeRecord(index);
-}
-const UnitModelRecord* UnitModel(std::uint32_t index) {
-    return unitdb::ModelRecord(index);
-}
-const itemdb::ArmorRecord* Armour(std::uint32_t index) {
-    return itemdb::ArmorAt(index);
-}
 
 // The texture records' kind and item type of an empty record.
 constexpr std::uint32_t kNoRecordField = 0xFFFFFFFFu;
@@ -90,8 +80,8 @@ void AddItem(SkinRequest& set, const UnitModelRecord* model, std::uint32_t id) {
 // The weapons (items 1 and 2): the one whose armour layer is lower first when both exist.
 void AddWeapons(SkinRequest& set, const UnitModelRecord* model, const std::uint32_t* items) {
     if (items[1] != kNoItemId && items[2] != kNoItemId) {
-        const itemdb::ArmorRecord* second = Armour(items[2] >> 16);
-        const itemdb::ArmorRecord* first = Armour(items[1] >> 16);
+        const itemdb::ArmorRecord* second = itemdb::ArmorAt(items[2] >> 16);
+        const itemdb::ArmorRecord* first = itemdb::ArmorAt(items[1] >> 16);
         if (second->layer < first->layer) {
             AddItem(set, model, items[2]);
             AddItem(set, model, items[1]);
@@ -126,8 +116,8 @@ void Compose(CWorldClient* self, std::string& out, SkinRequest& set, const std::
 }
 
 void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
-    const UnitPrototypeRecord* prototype = UnitPrototype(record->prototype);
-    const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
+    const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(record->prototype);
+    const UnitModelRecord* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     std::vector<TextureRecord> list;
     SkinRequest set{};
 
@@ -176,8 +166,8 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 // --- The other units -----------------------------------------------------------------------------
 
 void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
-    const UnitPrototypeRecord* prototype = UnitPrototype(record->prototype);
-    const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
+    const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(record->prototype);
+    const UnitModelRecord* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     std::vector<std::string> first;
     std::vector<std::string> second;
 
@@ -193,7 +183,7 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     {
         std::string name(model->figureName.c_str());
         // The figure loader's LoadFigure (not fresh).
-        self->figureLoader_->LoadFigure(&name, &first, record->morphS, record->morphT, record->morphU, false);
+        self->figureLoader_->LoadFigure(&name, &first, record->morphS, record->morphT, record->morphU);
     }
 }
 } // namespace
@@ -226,7 +216,7 @@ void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<
             if (ids[i] == kNoItemId) continue;
             out[i + 1].id = ids[i];
             out[i + 1].kind = static_cast<std::uint32_t>(ItemKind::Armor);
-            out[i + 1].itemType = static_cast<std::uint32_t>(Armour(ids[i] >> 16)->type);
+            out[i + 1].itemType = static_cast<std::uint32_t>(itemdb::ArmorAt(ids[i] >> 16)->type);
         }
         return;
     }
@@ -235,7 +225,7 @@ void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<
     if (ids[0] != kNoItemId) {
         out[0].id = ids[0];
         out[0].kind = static_cast<std::uint32_t>(ItemKind::Armor);
-        out[0].itemType = static_cast<std::uint32_t>(Armour(ids[0] >> 16)->type);
+        out[0].itemType = static_cast<std::uint32_t>(itemdb::ArmorAt(ids[0] >> 16)->type);
     }
     auto& extra = const_cast<std::vector<std::uint32_t>&>(record->extraWeapons);
     const auto count = static_cast<std::uint32_t>(extra.size());

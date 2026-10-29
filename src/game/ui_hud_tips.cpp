@@ -178,7 +178,7 @@ void CHudActionColumn::SetUnit(CUnit* unit, bool extra) {
     title = "Science";
     if (g_clientWorld.texts_->CTextManager::Open(std::string("perk ") + title)) g_clientWorld.texts_->ReadLine(&tip, 1);
     title = std::format("{} {}\n", labels_[0], shown->params.attributes[0]);
-    if (g_clientWorld.texts_->CTextManager::Open("tip 10511") != 0) g_clientWorld.texts_->ReadToHash(&hint, 1);
+    if (g_clientWorld.texts_->CTextManager::Open("tip 10511") != 0) g_clientWorld.texts_->ReadToHash(&hint);
     tip = tip + "\n" + title + hint;
     regions_[count_ - 1]->SetTipString(tip, 0x1D);
 }

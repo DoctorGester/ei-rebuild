@@ -190,7 +190,7 @@ void COptionsWindow::CreateScreen() {
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
         text = std::format("tip option_group_{}", OptionGroupName(k));
-        if (g_clientWorld.texts_->Open(text) != 0) g_clientWorld.texts_->ReadToHash(&text, 1);
+        if (g_clientWorld.texts_->Open(text) != 0) g_clientWorld.texts_->ReadToHash(&text);
         region->SetTipString(text);
         {
             std::string prefix("option_group_");
@@ -411,7 +411,7 @@ void CDifficultyBox::CreateScreen() {
     std::string explanation;
     int textHeight = 0;
     if (g_clientWorld.texts_->Open("tip option_difficulty") != 0) {
-        g_clientWorld.texts_->ReadToHash(&explanation, 1);
+        g_clientWorld.texts_->ReadToHash(&explanation);
         str::TrimRight(explanation, "\r\n");
         rect = RECT{15, 0, 385, 300};
         textHeight = surface->DrawTextIn(explanation, &rect, 1, 0, 0x410, 1);

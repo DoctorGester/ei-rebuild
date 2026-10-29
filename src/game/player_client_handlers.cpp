@@ -40,7 +40,6 @@ const char* FixedViewZone() { return "gz20g"; }
 // An identity rotation.
 constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};   // the identity (a static initialiser)
 
-CUnit* FindClientUnit(int id) { return g_clientWorld.FindUnit(id); }
 
 
 } // namespace
@@ -172,7 +171,7 @@ int CPlayerClient::OnWeaponRemoved() {
     PartyUnitRecord* record = player_->Party()->Find(unitId);
     if (record && std::ssize(record->weapons) > index)
         record->RemoveWeapon(record->weapons[index]);
-    if (CUnit* unit = FindClientUnit(unitId)) unit->Controller()->ShowWeapon(0xFFFFFFFFu);
+    if (CUnit* unit = g_clientWorld.FindUnit(unitId)) unit->Controller()->ShowWeapon(0xFFFFFFFFu);
     return 1;
 }
 
@@ -181,7 +180,7 @@ int CPlayerClient::OnUnitControl() {
     in_.Read(&kind, 1);
     int unitId;
     in_.ReadValue(unitId);
-    auto* unit = FindClientUnit(unitId);
+    auto* unit = g_clientWorld.FindUnit(unitId);
     switch (kind) {
     case 0:
         if (unit) g_clientWorld.Select(unit);

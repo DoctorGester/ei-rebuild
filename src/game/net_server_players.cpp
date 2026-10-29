@@ -16,13 +16,12 @@ namespace {
 constexpr std::size_t kPasswordSize = 0x14;
 
 PlayerMessage* PlayerOf(BindingMessage* binding) { return binding->Player(); }
-Connection* ConnectionOf(BindingMessage* binding) { return binding->ConnectionRef().Get(); }
 
 // The connection of the first binding whose player is live and the host, or null.
 Connection* HostConnection(const std::list<SharedRef<BindingMessage>>& bindings) {
     for (auto& node : bindings) {
         PlayerMessage* player = PlayerOf(node.Get());
-        if (IsLive(player) && player->host_) return ConnectionOf(node.Get());
+        if (IsLive(player) && player->host_) return node.Get()->ConnectionRef().Get();
     }
     return nullptr;
 }
@@ -86,17 +85,17 @@ Connection* ServerSession::FindGuestConnection(const std::string* name) {
         auto first = bindings.begin();
         for (auto binding = first; binding != bindings.end(); ++binding) {
             if (PlayerOf(binding->Get()) != player) continue;
-            Connection* connection = ConnectionOf(binding->Get());
+            Connection* connection = binding->Get()->ConnectionRef().Get();
             bool hostsToo = false;
             for (auto other = first; other != bindings.end(); ++other) {
-                if (ConnectionOf(other->Get()) != connection) continue;
+                if (other->Get()->ConnectionRef().Get() != connection) continue;
                 PlayerMessage* owner = PlayerOf(other->Get());
                 if (owner && !(owner->flags7_ & CRefObject::kDetached) && owner->host_) {
                     hostsToo = true;
                     break;
                 }
             }
-            if (!hostsToo) return ConnectionOf(binding->Get());
+            if (!hostsToo) return binding->Get()->ConnectionRef().Get();
             break;
         }
     }
@@ -107,7 +106,7 @@ Connection* ServerSession::FindGuestConnection(const std::string* name) {
 Connection* ServerSession::FindConnectionBySerial(int serial) {
     const auto& bindings = bindings_;
     for (auto node = bindings.begin(); node != bindings.end(); ++node)
-        if (PlayerOf(node->Get())->serial_ == serial) return ConnectionOf(node->Get());
+        if (PlayerOf(node->Get())->serial_ == serial) return node->Get()->ConnectionRef().Get();
     return nullptr;
 }
 
@@ -135,7 +134,7 @@ void ServerSession::Kick(Connection* connection) {
     Connection* host = HostConnection(bindings);
     if (connection == host) return;
     for (auto& node : bindings) {
-        if (ConnectionOf(node.Get()) != connection) continue;
+        if (node.Get()->ConnectionRef().Get() != connection) continue;
         BindingMessage* binding = node.Get();
         if (binding) {
             PlayerMessage* player = PlayerOf(binding);
@@ -154,7 +153,7 @@ void ServerSession::Ban(Connection* connection) {
     Connection* host = HostConnection(bindings);
     if (connection == host) return;
     for (auto& node : bindings) {
-        if (ConnectionOf(node.Get()) != connection) continue;
+        if (node.Get()->ConnectionRef().Get() != connection) continue;
         BindingMessage* binding = node.Get();
         if (binding) {
             PlayerMessage* player = PlayerOf(binding);
@@ -172,7 +171,7 @@ void ServerSession::ReportDeparture(Connection* connection, int text) {
     if (!IsLive(connection)) return;
     const auto& bindings = bindings_;
     for (auto& node : bindings) {
-        if (ConnectionOf(node.Get()) != connection) continue;
+        if (node.Get()->ConnectionRef().Get() != connection) continue;
         BindingMessage* binding = node.Get();
         if (!IsLive(binding)) return;
         PlayerMessage* player = PlayerOf(binding);

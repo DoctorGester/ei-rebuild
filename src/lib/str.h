@@ -71,7 +71,6 @@ void TrimLeft(std::string& s);
 void TrimLeft(std::string& s, char target);
 
 // Room for at least `minLength` characters (the text kept); the characters to write into.
-char* Buffer(std::string& s, int minLength);
 // The text up to its first zero byte (after writing into Buffer).
 void CutAtNull(std::string& s);
 // The text resized to `length` characters; the characters to write into.

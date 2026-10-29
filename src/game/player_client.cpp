@@ -144,9 +144,6 @@ const char* TextNone() { return "none"; }
 
 bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
-const UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
-    return unitdb::PrototypeRecord(index);
-}
 
 // FindPart, then RemovePart when there is one (the original inlines both calls).
 void RemovePartNamed(CObject3D* object, const char* name) {
@@ -534,7 +531,7 @@ int CPlayerClient::OnNewObject() {
     object->name2 = secondName.c_str();
     if (isUnit) {
         CUnit* unit = UnitOrNull(created);
-        const UnitPrototypeRecord* prototype = PrototypeRecord(header.prototype);
+        const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(header.prototype);
         auto* modelRecord = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
         unit->defaultScale.x = 0.0f;
         unit->defaultScale.y = modelRecord->height;
@@ -548,7 +545,7 @@ int CPlayerClient::OnNewObject() {
         // The head part takes the prototype's hair, or goes without one.
         for (std::size_t i = 0; i < parts.size(); ++i) {
             if (str::Compare(parts[i], TextHairPart()) != 0) continue;
-            int hair = PrototypeRecord(header.prototype)->hair;
+            int hair = unitdb::PrototypeRecord(header.prototype)->hair;
             if (hair == -1) parts.erase(parts.begin() + static_cast<std::ptrdiff_t>(i));
             else parts[i] = str::Format(TextHairFormat(), hair);
             break;
@@ -558,7 +555,7 @@ int CPlayerClient::OnNewObject() {
     if (Same(model, TextGoblin())) {
         RemovePartNamed(figure, TextAxePart());
         RemovePartNamed(figure, TextSwordPart());
-        bool pike = static_cast<int>(PrototypeRecord(created->prototypeId_)->naturalWeapon) == kWeaponPike;
+        bool pike = static_cast<int>(unitdb::PrototypeRecord(created->prototypeId_)->naturalWeapon) == kWeaponPike;
         RemovePartNamed(figure, pike ? TextPikePart() : TextSlingPart());
     }
     if (Same(model, TextWisp())) {

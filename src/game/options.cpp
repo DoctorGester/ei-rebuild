@@ -39,10 +39,10 @@ constexpr std::uint32_t kMinusOneBits = 0xBF800000u;   // -1.0f
 
 std::uint32_t Bits(float value) { return std::bit_cast<std::uint32_t>(value); }
 
-// _ftol(value * factor): the product rounded only by the FPU's precision, then truncated by the
+// _ftol(value * 255): the product rounded only by the FPU's precision, then truncated by the
 // game's _ftol.
-int FtolProduct(float value, float factor) {
-    return static_cast<int>(libcrt::Ftol(static_cast<double>(value) * factor));
+int FtolTimes255(float value) {
+    return static_cast<int>(libcrt::Ftol(static_cast<double>(value) * kTimes255));
 }
 // _ftol(value).
 int Ftol(float value) { return static_cast<int>(libcrt::Ftol(value)); }
@@ -285,7 +285,7 @@ public:
     void ReadLight(LightOptions& light, const char* const (&names)[4]) {
         for (int c = 0; c < 3; ++c) {
             float& channel = light.*kLightChannels[c];
-            int value = key_.GetDWord(Key(&GameOptions::keyGame_), names[c], FtolProduct(channel, kTimes255));
+            int value = key_.GetDWord(Key(&GameOptions::keyGame_), names[c], FtolTimes255(channel));
             channel = UnsignedProduct(static_cast<std::uint32_t>(value), kOver255);
         }
         int radius = key_.GetDWord(Key(&GameOptions::keyGame_), names[3], Ftol(light.radius));
@@ -344,7 +344,7 @@ public:
     // The colour channels as _ftol(value * 255), the radius as _ftol(radius).
     void WriteLight(const LightOptions& light, const char* const (&names)[4]) {
         for (int c = 0; c < 3; ++c)
-            key_.SetDWord(Key(&GameOptions::keyGame_), names[c], FtolProduct(light.*kLightChannels[c], kTimes255));
+            key_.SetDWord(Key(&GameOptions::keyGame_), names[c], FtolTimes255(light.*kLightChannels[c]));
         key_.SetDWord(Key(&GameOptions::keyGame_), names[3], Ftol(light.radius));
     }
 

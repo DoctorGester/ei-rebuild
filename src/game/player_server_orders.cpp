@@ -35,10 +35,6 @@ constexpr int kStateSendingCamera = 2;
 // message 12). EI_Plugin's Pause writes it: '2' for a pause, '3' ("reserved_03") for a resume.
 void SetPauseTextDigit(std::uint8_t pause) { g_pauseMessageKey[10] = static_cast<char>('3' - pause); }
 
-// A unit of the player's world (the server's).
-CUnit* FindUnit(CPlayer* player, int id) {
-    return player->WorldContext()->FindUnit(id);
-}
 bool Alive(CUnit* unit) { return unit->IsDead() == 0; }
 bool Able(CUnit* unit) { return unit && !(unit->flags_ & MapObjectFlag::Blocked) && Alive(unit); }
 
@@ -119,7 +115,7 @@ int CPlayerServer::OnCastAtObject() {
     g_receivedMessages.ReadValue(message);
     CPlayer* player = player_;
     CMapObject* target = player->WorldContext()->ObjectWithId(message.targetId);
-    CUnit* unit = FindUnit(player, message.unitId);
+    CUnit* unit = player->WorldContext()->FindUnit(message.unitId);
     if (target && Able(unit)) {
         AIBrain* brain = &unit->ServerController()->brain;
         if (PlayerMode* mode = brain->FindPlayerMode())
@@ -131,7 +127,7 @@ int CPlayerServer::OnCastAtObject() {
 int CPlayerServer::OnCastAtPoint() {
     CastAtPoint message;
     g_receivedMessages.ReadValue(message);
-    CUnit* unit = FindUnit(player_, message.unitId);
+    CUnit* unit = player_->WorldContext()->FindUnit(message.unitId);
     if (Able(unit)) {
         AIBrain* brain = &unit->ServerController()->brain;
         if (PlayerMode* mode = brain->FindPlayerMode()) {
@@ -145,7 +141,7 @@ int CPlayerServer::OnCastAtPoint() {
 int CPlayerServer::OnWantedWeapon() {
     UnitByte message;
     g_receivedMessages.ReadValue(message);
-    CUnit* unit = FindUnit(player_, message.unitId);
+    CUnit* unit = player_->WorldContext()->FindUnit(message.unitId);
     if (Able(unit)) unit->ServerController()->SetWantedWeapon(message.value);
     return 1;
 }
@@ -153,7 +149,7 @@ int CPlayerServer::OnWantedWeapon() {
 int CPlayerServer::OnMoveStyle() {
     UnitByte message;
     g_receivedMessages.ReadValue(message);
-    CUnit* unit = FindUnit(player_, message.unitId);
+    CUnit* unit = player_->WorldContext()->FindUnit(message.unitId);
     if (unit && Alive(unit)) unit->ServerController()->SetMoveStyle(message.value);
     return 1;
 }
@@ -162,7 +158,7 @@ int CPlayerServer::OnUnitLookup() {
     int values[2];
     g_receivedMessages.ReadValue(values[0]);
     g_receivedMessages.ReadValue(values[1]);
-    FindUnit(player_, values[0]);
+    player_->WorldContext()->FindUnit(values[0]);
     return 1;
 }
 
@@ -170,9 +166,9 @@ int CPlayerServer::OnFollow() {
     int ids[2];   // unit, leader
     g_receivedMessages.Read(ids, 8);
     CPlayer* player = player_;
-    CUnit* unit = FindUnit(player, ids[0]);
+    CUnit* unit = player->WorldContext()->FindUnit(ids[0]);
     if (!unit) return 1;
-    CUnit* leader = FindUnit(player, ids[1]);
+    CUnit* leader = player->WorldContext()->FindUnit(ids[1]);
     AIBrain* brain = &unit->ServerController()->brain;
     if (PlayerMode* mode = brain->FindPlayerMode()) mode->SetLeader(brain, leader);
     return 1;
@@ -181,7 +177,7 @@ int CPlayerServer::OnFollow() {
 int CPlayerServer::OnFightAtWill() {
     int id;
     g_receivedMessages.ReadValue(id);
-    CUnit* unit = FindUnit(player_, id);
+    CUnit* unit = player_->WorldContext()->FindUnit(id);
     std::int8_t value = 0;
     g_receivedMessages.ReadValue(value);
     if (unit) unit->SetFightAtWill(value);

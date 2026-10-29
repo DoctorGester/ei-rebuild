@@ -43,7 +43,6 @@ constexpr int kPathBuffer = 0x11C;
 // rand() % 512 as the game computes it (rand() is never negative).
 int RandomBelow512() { return libcrt::Rand() & 0x1FF; }
 
-bool Matches(const lib::FileFind& finder, unsigned long mask) { return finder.MatchesMask(mask); }
 
 // The reference ISAAC mix of the eight randinit words.
 struct InitMix {
@@ -135,8 +134,8 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
     while (more) {
         more = finder.FindNext();
         if (finder.IsDots()) continue;
-        if (Matches(finder, kAttributeSystem) || Matches(finder, kAttributeHidden)) continue;
-        if (Matches(finder, kAttributeDirectory)) {
+        if (finder.MatchesMask(kAttributeSystem) || finder.MatchesMask(kAttributeHidden)) continue;
+        if (finder.MatchesMask(kAttributeDirectory)) {
             int found;
             {
                 // The game's string result calls (GetFilePath, operator+) construct these.

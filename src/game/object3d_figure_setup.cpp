@@ -33,9 +33,6 @@ constexpr const char* kNoFigureManager = "CObject3D::LoadFigures.\n No valid fig
 constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create object \"%s\" with bodypart \"%s\".\n";
 
 
-CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
-    return object->WorldContext()->FigureLoader();
-}
 
 } // namespace
 
@@ -219,14 +216,14 @@ int CObject3D::MakeFigure(std::string_view model, std::vector<std::string>* name
     if (names->empty() && animation) {
         *names = animation->BoneNames();
         std::string key(model);
-        CLinkMesh* made = FigureLoaderOf(this)->LoadLink(&key, scale.x, scale.y, scale.z, false);
+        CLinkMesh* made = WorldContext()->FigureLoader()->LoadLink(&key, scale.x, scale.y, scale.z);
         figure.Assign(made);
     } else {
         // The piece names as the loader's LoadFigure reads them.
         std::vector<std::string> pieces = *names;
         {
             std::string key(model);
-            CLinkMesh* made = FigureLoaderOf(this)->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z, false);
+            CLinkMesh* made = WorldContext()->FigureLoader()->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z);
             figure.Assign(made);
         }
     }

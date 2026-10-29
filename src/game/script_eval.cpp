@@ -80,14 +80,7 @@ float FromBool(bool b) { return static_cast<float>(b ? 1 : 0); }
 
 // ---- Game state reached by the functions --------------------------------------------------------
 
-// The companion holding a map object's vitals. Scripts run on the server, so it is the
-// CMapObjectServer (not checked).
-CMapObjectServer* ServerHalf(CEngineObject* object) {
-    return ObjectSlots(object)->ServerCompanion();
-}
 
-// The ground (or water surface) height under (x, y) for the unit; the result stays unrounded.
-double UnitGroundHeight(CUnit* unit, float x, float y) { return unit->GroundHeight(x, y); }
 
 // The game server session when one runs and is not shut down.
 net::ServerSession* ActiveServer() {
@@ -195,7 +188,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case ScriptFunction::Mana:
     case ScriptFunction::MaxMana: {
         CEngineObject* o = objectArgs[0]->object;
-        CMapObjectServer* stats = o ? ServerHalf(o) : nullptr;
+        CMapObjectServer* stats = o ? ObjectSlots(o)->ServerCompanion() : nullptr;
         if (stats) {
             const UnitVitals& vitals = stats->vitals;
             const float* value = function == ScriptFunction::HP ? &vitals.hitPoints
@@ -222,7 +215,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             return;
         }
         float x = ObjectSlots(o)->localPosition_.x, y = ObjectSlots(o)->localPosition_.y, z = ObjectSlots(o)->localPosition_.z;
-        if (CUnit* unit = UnitOrNull(o)) *result = static_cast<float>(UnitGroundHeight(unit, x, y) + z);   // (o is not null)
+        if (CUnit* unit = UnitOrNull(o)) *result = static_cast<float>(unit->GroundHeight(x, y) + z);   // (o is not null)
         else *result = g_serverWorld.GridHeight(x, y) + z;
         return;
     }

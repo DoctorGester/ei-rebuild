@@ -37,10 +37,6 @@ constexpr int kBackstabLevelBase = 0x41;
 // The stat range GetFactors divides by (a static initialiser: 35 - 15).
 constexpr float kFactorStatRange = /*007AF280*/ 20.0f;
 
-// The skill level record `index`, or null when there is none.
-const SkillLevelRecord* LevelRecord(std::uint32_t index) {
-    return unitdb::SkillLevelAt(index);
-}
 
 } // namespace
 
@@ -91,7 +87,7 @@ float UnitStats::WeaponSkill(int type) {
 double UnitStats::SkillLevelValue(int index) {
     std::uint8_t level = skillLevels[index];
     if (level != 0) {
-        const ::SkillLevelRecord* record = LevelRecord(static_cast<std::uint32_t>(index * 3 - 1 + level));
+        const ::SkillLevelRecord* record = unitdb::SkillLevelAt(static_cast<std::uint32_t>(index * 3 - 1 + level));
         if (record) return record->Value();
     }
     return 0.0f;
@@ -101,7 +97,7 @@ double UnitStats::ScaledStrength() {
     double scaledStrength = strength * kTwelve;   // kept on the FPU stack
     std::uint8_t level = skillLevels[kScaledStrengthSkill];
     if (level != 0) {
-        const ::SkillLevelRecord* record = LevelRecord(level + kScaledStrengthLevelBase);
+        const ::SkillLevelRecord* record = unitdb::SkillLevelAt(level + kScaledStrengthLevelBase);
         if (record) {
             return (record->Value() * kPercent + 1.0f) * scaledStrength;
         }
@@ -113,7 +109,7 @@ double UnitStats::BackstabFactor() {
     double base = g_logicSettings.backstabAdd;
     std::uint8_t level = skillLevels[kBackstabSkill];
     if (level != 0) {
-        const ::SkillLevelRecord* record = LevelRecord(level + kBackstabLevelBase);
+        const ::SkillLevelRecord* record = unitdb::SkillLevelAt(level + kBackstabLevelBase);
         if (record) {
             return record->Value() * kPercent + base;
         }

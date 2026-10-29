@@ -145,11 +145,6 @@ void TrimLeft(std::string& s, char target) {
     s.erase(0, static_cast<std::size_t>(p - s.c_str()));
 }
 
-char* Buffer(std::string& s, int minLength) {
-    if (minLength > Length(s)) s.resize(static_cast<std::size_t>(minLength));
-    return s.data();
-}
-
 void CutAtNull(std::string& s) { s.resize(std::strlen(s.c_str())); }
 
 char* SetLength(std::string& s, int length) {

@@ -23,21 +23,17 @@ namespace {
 // The world: the player with a number.
 void* GetPlayer(int number) { return g_serverWorld.GetPlayer(number); }
 
-// A unit's prototype record: its name and, at +4, its model name (the race).
-static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) { return unit->GetPrototype(); }
 // The unit's parameters: the 7-value block filled from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).
 
 ScriptObjectRef* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]; }
 
-// CMapObject::IsDead of any object: 0 alive, 1 dead (addon's handler).
-int DeathState(CEngineObject* unit) { return ObjectSlots(unit)->IsDead(); }
 
 // The filter of NearestUnit and UnitsNearPoint (10011421, 10013076): units pass with flag 1,
 // other objects with flag 2, and with flag 4 any living object with a text-key id.
 bool PassesFilter(CEngineObject* object, bool units, bool others, bool living) {
     bool unit = IsUnit(object);
-    bool alive = object->id_ >= 1000000000 && DeathState(object) == 0;
+    bool alive = object->id_ >= 1000000000 && ObjectSlots(object)->IsDead() == 0;
     if (unit ? units : others) return true;
     return alive && living;
 }
@@ -237,7 +233,7 @@ bool GetPerk(Call* call) {
 bool GetPrototype(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
     if (!data) return InvalidArguments("GetPrototype");
-    const UnitPrototypeRecord* prototype = UnitPrototype(data->unit);
+    const UnitPrototypeRecord* prototype = data->unit->GetPrototype();
     *call->result.text = prototype->name.c_str();
     return true;
 }
@@ -245,7 +241,7 @@ bool GetPrototype(Call* call) {
 bool GetRace(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
     if (!data) return InvalidArguments("GetRace");
-    const UnitPrototypeRecord* prototype = UnitPrototype(data->unit);
+    const UnitPrototypeRecord* prototype = data->unit->GetPrototype();
     *call->result.text = prototype->modelName.c_str();
     return true;
 }
@@ -295,14 +291,14 @@ bool IsPlayer(Call* call) {
 bool IsDead(Call* call) {
     *call->result.number = 0.0f;
     CEngineObject* unit = ObjectArg(call, 0)->object;
-    if (unit && IsUnit(unit)) Store(call->result.number, DeathState(unit) == 1 ? 1.0f : 0.0f);
+    if (unit && IsUnit(unit)) Store(call->result.number, ObjectSlots(unit)->IsDead() == 1 ? 1.0f : 0.0f);
     return true;
 }
 
 bool IsAlive(Call* call) {
     *call->result.number = 0.0f;
     CEngineObject* unit = ObjectArg(call, 0)->object;
-    if (unit && IsUnit(unit)) Store(call->result.number, DeathState(unit) == 0 ? 1.0f : 0.0f);
+    if (unit && IsUnit(unit)) Store(call->result.number, ObjectSlots(unit)->IsDead() == 0 ? 1.0f : 0.0f);
     return true;
 }
 

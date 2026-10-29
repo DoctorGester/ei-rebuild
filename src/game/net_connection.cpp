@@ -136,7 +136,7 @@ bool Connection::SendUpdate(int budget) {
     bool complete = true;
     CollectChanges();
     BufferCursor c;
-    c.Reset(nullptr);
+    c.Reset();
     c.sink = nullptr;
     GameBuffer* out = &g_sendBuffer;
     out->Seek(0);

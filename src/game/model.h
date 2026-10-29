@@ -404,9 +404,9 @@ public:
     // coefficients, given the parts it lacks; otherwise a new one (MakeFigure). No reference is added for the
     // caller.
     virtual CLinkMesh* LoadFigure(const std::string* name, const std::vector<std::string>* parts, float s, float t,
-                                  float u, bool fresh);
+                                  float u);
     // The same for a .lnk figure: a cached one, or LoadLinkFile.
-    virtual CLinkMesh* LoadLink(const std::string* name, float s, float t, float u, bool fresh);
+    virtual CLinkMesh* LoadLink(const std::string* name, float s, float t, float u);
     virtual void ClearCache();
     // `mesh` with new coefficients: a mesh others also hold (more than two references) is looked up again by
     // its name; otherwise its parts are morphed in place (SetMorph, then per part). Null stays null.

@@ -92,7 +92,7 @@ bool CMapObjectClientSpecific::RunTick() {
                 (soundSystem->FindPlaying(handle) || soundSystem->FindDeferred(handle)))
                 continue;
             endSound = g_clientWorld.sounds_->Play3D(kEndSoundName, 0, &CompanionOwner(this)->localPosition_.x,
-                                                  kEndSoundNear, kEndSoundFar, 0, 0);
+                                                  kEndSoundNear, kEndSoundFar, 0);
         }
     }
 
@@ -109,7 +109,7 @@ bool CMapObjectClientSpecific::RunTick() {
                 name = str::Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            g_clientWorld.sounds_->Play3D(name, 0, &CompanionOwner(this)->localPosition_.x, kStenchNear, kStenchFar, 0, 0);
+            g_clientWorld.sounds_->Play3D(name, 0, &CompanionOwner(this)->localPosition_.x, kStenchNear, kStenchFar, 0);
         } else if (sound->kind == SpellType::Feeblemind && sound->handle != -1) {
             g_clientWorld.sounds_->MoveSequence(sound->handle, &CompanionOwner(this)->localPosition_.x);
         }

@@ -146,7 +146,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
         return 0;
     }
     CMemoryStream data;
-    if (!SaveFileRead(&data, kMagicMission, kSaveVersion, kSaveOldestVersion, &file)) {
+    if (!SaveFileRead(&data, kMagicMission, &file)) {
         game::FatalError(kCorruptSave, fileName);
         failed = true;
         return 0;
@@ -341,7 +341,7 @@ int GameFlow::SaveGame(const std::string& slot) {
     scenario.WriteSized(&g_saveStream);
     ScriptsReset(&g_saveStream);
     g_camera.Save(&scenario);
-    SaveFileWrite(&file, kMagicScenario, kSaveVersion, &scenario);
+    SaveFileWrite(&file, kMagicScenario, &scenario);
     file.Close();
 
     // mission.sav: the world, except in zones without one (kind 1: cutscenes).
@@ -355,7 +355,7 @@ int GameFlow::SaveGame(const std::string& slot) {
         CMemoryStream mission;
         mission.version_ = static_cast<std::uint32_t>(kSaveVersion);
         g_serverWorld.SaveWorld(&mission);
-        SaveFileWrite(&file, kMagicMission, kSaveVersion, &mission);
+        SaveFileWrite(&file, kMagicMission, &mission);
         file.Close();
     }
 
@@ -455,8 +455,7 @@ int StartNetworkZone(const std::string& zone) {
     }
     if (opened) {
         CMemoryStream data;
-        bool loaded = SaveFileRead(&data, kMagicMission, kSaveVersion, kSaveOldestVersion,
-                                   &file) &&
+        bool loaded = SaveFileRead(&data, kMagicMission, &file) &&
                       g_serverWorld.LoadSave(&data, nullptr) != 0;
         if (loaded) file.Close();
         if (!loaded) return 0;
@@ -513,7 +512,7 @@ int LeaveZone(CParty* records) {
     CMemoryStream data;
     data.version_ = static_cast<std::uint32_t>(kSaveVersion);
     g_serverWorld.SaveWorld(&data);
-    SaveFileWrite(&file, kMagicMission, kSaveVersion, &data);
+    SaveFileWrite(&file, kMagicMission, &data);
     file.Close();
 
     NamedFloatTable* variables = &records->variables_;
@@ -872,8 +871,7 @@ std::vector<std::string> PickZones(int id, const char* exclude) {
 int LoadMission(CStream* file) {
     g_clientWorld.sounds_->StopAll(1);
     CMemoryStream mission;
-    if (!SaveFileRead(&mission, kMagicMissionFile, kSaveVersion,
-                      kSaveOldestVersion, file))
+    if (!SaveFileRead(&mission, kMagicMissionFile, file))
         return 0;
     int version = static_cast<int>(mission.version_);
     if (version < kVersionScenarioGlobals) g_camera.Load(&mission);
@@ -1135,7 +1133,7 @@ int GameFlow::LoadGame(const std::string& slot) {
 
     // scenario.sav: the party, then (by version) the input, the scripts and the globals.
     CMemoryStream scenario;
-    if (!SaveFileRead(&scenario, kMagicScenario, kSaveVersion, kSaveOldestVersion, &file)) {
+    if (!SaveFileRead(&scenario, kMagicScenario, &file)) {
         g_interface.closeAll_ = 1;
         StartZone(kMainMenu, 2);
         return 0;

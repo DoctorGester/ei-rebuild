@@ -82,7 +82,6 @@ constexpr int kSwitchAfterFade = 2;
 const char* const kLoopMarkers = "Markers2";
 const char* const kSwitchMarkers = "Markers1";
 
-int CodecRead(CSoundManager* m, std::uint8_t* to, int bytes) { return m->streamCodec->process(m->streamFile, to, bytes); }
 void CodecSeek(CSoundManager* m, int position) { m->streamCodec->seek(m->streamFile, position); }
 // The codec's attribute `name` (one of its handles) of the open file.
 int CodecAttribute(CSoundManager* m, void* AsiStage::*name) {
@@ -98,7 +97,7 @@ void Silence(CSoundManager* m, std::uint8_t* to, int bytes) {
 }
 // `bytes` of the file; what it does not give is silence.
 void ReadOrSilence(CSoundManager* m, std::uint8_t* to, int bytes) {
-    int got = CodecRead(m, to, bytes);
+    int got = m->streamCodec->process(m->streamFile, to, bytes);
     if (got < bytes) Silence(m, to + got, bytes - got);
 }
 
@@ -418,7 +417,7 @@ void CSoundManager::ReadStreamVanilla() {
         restBytes = streamBufferSize;
         again = false;
     } else {
-        int got = CodecRead(this, buffer, currentBytes);
+        int got = streamCodec->process(streamFile, buffer, currentBytes);
         if (got < currentBytes) {
             if (streamState == kStateSwitching && switchMode == kSwitchAtEnd) {
                 // The file ended: the next one from here.
