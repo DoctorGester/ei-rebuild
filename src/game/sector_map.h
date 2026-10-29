@@ -54,7 +54,7 @@ struct Sector {
     // Unlinks the first record equal to (top, bottom, kind, transparency) from
     // the chain starting at `head` (its low 16 bits; negative: no chain) and puts it on the free
     // list. Returns the chain's head afterwards, sign-extended from 16 bits.
-    int RemoveOccluder(int head, int bottom, int top, int kind, int transparency);
+    int RemoveOccluder(int head, int bottom, int top, OccluderKind kind, int transparency);
     // Puts record `index` on the free list.
     void FreeOccluder(int index);
 

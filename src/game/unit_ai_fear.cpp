@@ -159,11 +159,11 @@ int FearMode::Evaluate(AIBrain* brain) {
     if (brain->memory.seesEnemy) return kSeesEnemy;
     const Vector3* here = &self->localPosition_;
     EI_NAN_AUDIT(PrototypeSize(self));
-    if (g_serverWorld->aiMap_.HasKind3OccluderAt(here) && (self->sizeClass != 0 || PrototypeSize(self) < 0.5f)) {
+    if (g_serverWorld->aiMap_.HasSpellAreaAt(here) && (self->sizeClass != 0 || PrototypeSize(self) < 0.5f)) {
         shelter = *here;
         return kShelter;
     }
-    if (!IsUnset(shelter) && g_serverWorld->aiMap_.HasKind3OccluderAt(&shelter)) return kShelter;
+    if (!IsUnset(shelter) && g_serverWorld->aiMap_.HasSpellAreaAt(&shelter)) return kShelter;
 
     if (flag) {
         // The nearest player unit in sight (2D).
@@ -213,9 +213,9 @@ void FearMode::Execute(AIBrain* brain) {
             from = enemy->localPosition_;
             brain->CallAllies(&enemy->localPosition_);
         }
-    } else if (g_serverWorld->aiMap_.HasKind3OccluderAt(here)) {
+    } else if (g_serverWorld->aiMap_.HasSpellAreaAt(here)) {
         from = *here;
-    } else if (!IsUnset(shelter) && g_serverWorld->aiMap_.HasKind3OccluderAt(&shelter)) {
+    } else if (!IsUnset(shelter) && g_serverWorld->aiMap_.HasSpellAreaAt(&shelter)) {
         from = shelter;
     } else if (!flag || brain->memory.noticedLevel <= kKeepLevel) {
         brain->memory.noticedLevel = 0;

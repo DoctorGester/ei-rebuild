@@ -141,12 +141,12 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
     int x = CellOf(unit->localPosition_.x);
     int y = CellOf(unit->localPosition_.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
-    if (HasKind3Occluder(x, y)) {
+    if (HasSpellArea(x, y)) {
         int sizeClass = unit->sizeClass;
         int level = x87::fistp(static_cast<float>(static_cast<double>(kLevelHeights[sizeClass]) * heightScale));
-        std::uint32_t passability[6];
-        CellMark(passability, sizeClass, level, x, y);
-        return static_cast<int>(passability[3]) < kExpensive;
+        CellMarkState mark;
+        CellMark(&mark, sizeClass, level, x, y);
+        return mark.cost < kExpensive;
     }
     int cost = context.costs[cells[y][x].Passability(context.shift)];
     return cost > 0 && cost < kExpensive;

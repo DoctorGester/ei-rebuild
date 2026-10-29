@@ -58,7 +58,7 @@ void TryLightningStrike(CWorldServer* world) {
     CAIMap* aiMap = &world->aiMap_;
     int kind = aiMap->MaterialAt(&ground);
     if (kind != 3 && kind != 1) return;
-    if (aiMap->CellFlag80At(&ground)) return;
+    if (aiMap->InWaterAt(&ground)) return;
 
     float dx = static_cast<float>(x87::FromUnsigned(g_random.Next()) * kOffsetScale - kOffsetCentre);
     double dyRaw = x87::FromUnsigned(g_random.Next()) * kOffsetScale - kOffsetCentre;

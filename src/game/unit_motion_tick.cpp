@@ -378,7 +378,7 @@ void UpdateMotion(CUnitServer* c) {
     // An idle unit standing in a kind-3 occluder (while its motion order started before the AI map's
     // footprintTick and moveMode2's onGuard is clear) replans.
     bool replan = false;
-    if (c->state == kStateIdle && world->aiMap_.HasKind3OccluderAt(&position) &&
+    if (c->state == kStateIdle && world->aiMap_.HasSpellAreaAt(&position) &&
         OrderOf(MotionPathOf(c))->startTime < world->aiMap_.footprintTick && c->moveMode2.onGuard == 0) {
         blocked = kBlockedReplan;
         replan = true;

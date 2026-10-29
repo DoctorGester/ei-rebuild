@@ -49,12 +49,12 @@ region grid is cleared, and every block still 0 starts a new region (1, 2, ...) 
   The large-unit layer's Set / Merge also write signed bytes into `waterDepth`'s rows (the small layer writes
   the cells' `level` byte).
 - The packed words have names in ai_map.h (C45d1): AIMapCell::flags is the water's depth (kCellDepthMask, set by
-  the map load; the old "object height" was wrong), kCellBridge and kCellWater (CellFlag80At is "in water");
+  the map load; the old "object height" was wrong), kCellBridge and kCellWater (InWaterAt);
   AIMapCell::Passability reads a size class's nibble; namespace `occluder` reads and writes the occluder word;
   RepresentativeX / Y the region map's cells. The occluder kinds (sector_map.h OccluderKind) come from the part
   names (model.h BoundsFlag: "CROWN" kind 2, "BASE" a bridge, "EMPTY" no footprint), the spells' walls and clouds
-  (kind 3) and ApplyBridgeDecks (kind 4); no part gives kind 1, whose cost-table entries (20, damping 2) are unused.
-  Open: CellFlag80At and HasKind3Occluder keep their names until a ticket may change signatures.
+  (kind 3, HasSpellArea) and ApplyBridgeDecks (kind 4); no part gives kind 1, whose cost-table entries (20, damping 2)
+  are unused.
 - CUnitLayer (CAIMap + 0x27C small, + 0x12A4 large; 0x1028 bytes): MFC CList of every node ever
   allocated, 1024 hash buckets by (block x * 17 + block y), 4x4 blocks; vtable 0073FD74 (small) /
   0073FD6C (large), slots 0 Set / 1 Merge. Shape cache: owner 007C2F70, hash_map 007C2F78, shapes

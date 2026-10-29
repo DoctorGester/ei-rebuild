@@ -38,8 +38,10 @@ enum class BoundsFlag : std::uint32_t {
 };
 template <> inline constexpr bool lib::kBitFlags<BoundsFlag> = true;
 
-// A part's occluder kind (sector_map.h's OccluderKind) and transparency (index into the transparency table).
-inline std::int8_t BoundsOccluderKind(std::uint32_t flags) { return static_cast<std::int8_t>((flags >> 3) & 7); }
+enum class OccluderKind : std::int8_t;   // sector_map.h
+
+// A part's occluder kind and transparency (index into the transparency table).
+inline OccluderKind BoundsOccluderKind(std::uint32_t flags) { return static_cast<OccluderKind>((flags >> 3) & 7); }
 inline std::int8_t BoundsTransparency(std::uint32_t flags) { return static_cast<std::int8_t>((flags >> 6) & 0xF); }
 
 // Bounding volume of a figure part, tested against the view frustum.

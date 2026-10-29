@@ -60,12 +60,12 @@ int Sector::NewOccluder() {
     return std::ssize(occluders) - 1;
 }
 
-int Sector::RemoveOccluder(int head, int bottom, int top, int kind, int transparency) {
+int Sector::RemoveOccluder(int head, int bottom, int top, OccluderKind kind, int transparency) {
     std::int16_t first = static_cast<std::int16_t>(head);
     std::int16_t* link = &first;
     for (std::int16_t index = first; index >= 0;) {
         SectorOccluder& record = occluders[index];
-        if (record.top == top && record.bottom == bottom && static_cast<int>(record.kind) == kind && record.transparency == transparency) {
+        if (record.top == top && record.bottom == bottom && record.kind == kind && record.transparency == transparency) {
             std::int16_t next = record.next;
             record.next = static_cast<std::int16_t>(freeOccluder);
             freeOccluder = *link;   // the record's own index

@@ -285,7 +285,7 @@ void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float rang
         if (!map->CanLeaveCell(unit)) unit->moveMode = mode;
         sectors->Add(unit);
     }
-    std::uint32_t flag = map->CellFlag80At(&unit->localPosition_);
+    std::uint32_t flag = map->InWaterAt(&unit->localPosition_);
     CWorldServer* world2 = ServerWorld();
     path.mayExcludeRegions = unit->player == nullptr;
     std::uint32_t savedAltPassCosts = unit->altPassCosts;

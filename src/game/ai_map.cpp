@@ -171,13 +171,13 @@ float CAIMap::SlopeAt(const Vector3* position) {
     return static_cast<float>(slope) / heightScale;
 }
 
-bool CAIMap::CellFlag80At(const Vector3* position) {
+bool CAIMap::InWaterAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return cells[y][x].InWater();
 }
 
-bool CAIMap::HasKind3Occluder(int x, int y) {
+bool CAIMap::HasSpellArea(int x, int y) {
     std::uint32_t word = occluders[y][x];
     if (word & occluder::kNone) return false;
     if (!(word & occluder::kChained)) return occluder::Kind(word) == OccluderKind::SpellArea;
@@ -188,10 +188,10 @@ bool CAIMap::HasKind3Occluder(int x, int y) {
     return false;
 }
 
-bool CAIMap::HasKind3OccluderAt(const Vector3* position) {
+bool CAIMap::HasSpellAreaAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
-    return HasKind3Occluder(x, y);
+    return HasSpellArea(x, y);
 }
 
 int CAIMap::MaterialAt(const Vector3* position) {

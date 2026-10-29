@@ -52,26 +52,25 @@ void ResetCellSet(FootprintCellSet* set) {
 
 void FootprintCellSet::SetSize(int size) { cells.resize(static_cast<std::size_t>(size)); }
 
-void FootprintCellSet::AddTop(int x, int y, int height, std::int8_t kind, std::int8_t transparency) {
+void FootprintCellSet::AddTop(int x, int y, int height, OccluderKind kind, std::int8_t transparency) {
     hashed = true;
-    const auto partKind = static_cast<OccluderKind>(kind);
     if (FootprintCell* cell = FindCell(this, x, y)) {
         if (!(cell->high > height)) cell->high = height;
-        if (partKind < cell->kind) cell->kind = partKind;
+        if (kind < cell->kind) cell->kind = kind;
         if (transparency < cell->transparency) cell->transparency = transparency;
         return;
     }
-    FootprintCell cell{x, y, 0x7FFFFFFF, height, partKind, transparency, 0, 0, 0};
+    FootprintCell cell{x, y, 0x7FFFFFFF, height, kind, transparency, 0, 0, 0};
     AppendCell(this, cell);
 }
 
-void FootprintCellSet::AddBottom(int x, int y, int height, std::int8_t kind, std::int8_t transparency) {
+void FootprintCellSet::AddBottom(int x, int y, int height, OccluderKind kind, std::int8_t transparency) {
     hashed = true;
     if (FootprintCell* cell = FindCell(this, x, y)) {
         if (!(cell->low < height)) cell->low = height;
         return;
     }
-    FootprintCell cell{x, y, height, 0, static_cast<OccluderKind>(kind), transparency, 0, 0, 0};
+    FootprintCell cell{x, y, height, 0, kind, transparency, 0, 0, 0};
     AppendCell(this, cell);
 }
 
@@ -119,7 +118,7 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
         const FootprintPart* part = &object->partBoxes[index];
         std::uint32_t flags = part->bounds.flags;
         if (lib::Has(flags, BoundsFlag::NoFootprint)) continue;
-        std::int8_t kind = BoundsOccluderKind(flags);
+        OccluderKind kind = BoundsOccluderKind(flags);
         std::int8_t transparency = BoundsTransparency(flags);
         FootprintCellSet* set = footprintSet;
         if (lib::Has(flags, BoundsFlag::Base)) {

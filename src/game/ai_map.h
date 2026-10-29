@@ -20,7 +20,7 @@ constexpr std::uint32_t kPassabilityMask = 0xF;
 // AIMapCell::flags: bits 0-5 the water's depth over the ground (AI height units, at most 0x3F), then two bits.
 constexpr std::uint8_t kCellDepthMask = 0x3F;
 constexpr std::uint8_t kCellBridge = 0x40;   // under a bridge (its deck height in CAIMap::bridgeHeights)
-constexpr std::uint8_t kCellWater = 0x80;    // under water (CAIMap::CellFlag80At)
+constexpr std::uint8_t kCellWater = 0x80;    // under water (CAIMap::InWaterAt)
 
 // One AI map cell: a 4-bit passability per unit size class, then heights.
 #pragma pack(push, 1)
@@ -102,11 +102,11 @@ struct FootprintCellSet {
 
     // Adds a top-face sample: raises `high` of the cell (x, y) to `height`, lowering the
     // kind and transparency to the given ones; a new cell gets low = 0x7FFFFFFF.
-    void AddTop(int x, int y, int height, std::int8_t kind, std::int8_t transparency);
+    void AddTop(int x, int y, int height, OccluderKind kind, std::int8_t transparency);
 
     // Adds a bottom-face sample: lowers `low` of the cell (x, y) to `height`; a new cell
     // gets high = 0 and the given kind and transparency.
-    void AddBottom(int x, int y, int height, std::int8_t kind, std::int8_t transparency);
+    void AddBottom(int x, int y, int height, OccluderKind kind, std::int8_t transparency);
 
     // Bounding box of the cells: {minX, maxX, minY, maxY}; {100000, 0, 100000, 0} if empty.
     void GetBounds(int* bounds) const;
@@ -634,6 +634,17 @@ struct AIDirtyRect {
     int minY = 10000, maxY = 0;
 };
 
+// The column CAIMap::CellMark measures against a cell's occluders; a cell with no occluder and no water leaves it
+// untouched.
+struct CellMarkState {
+    int bottom;
+    int top;
+    int passage;            // 0x400 open, damped by occluders; negative: blocked
+    int cost;
+    int ceiling;            // the room above the bottom (0x7F8 on open ground)
+    std::uint8_t doubled;   // the cost counts twice (OccluderKind::SpellArea)
+};
+
 // The navigation grid of the current map (Rebirth patches Load).
 class CAIMap {
 public:
@@ -713,9 +724,10 @@ public:
     // Largest height step to the 4 neighbours of the cell at `position` (0 at the edge).
     float SlopeAt(const Vector3* position);
     // Is the cell at `position` under water (kCellWater)? False outside the map.
-    bool CellFlag80At(const Vector3* position);
-    bool HasKind3Occluder(int x, int y);
-    bool HasKind3OccluderAt(const Vector3* position);
+    bool InWaterAt(const Vector3* position);
+    // Does a spell's wall or cloud (OccluderKind::SpellArea) stand on the cell? HasSpellAreaAt: false outside the map.
+    bool HasSpellArea(int x, int y);
+    bool HasSpellAreaAt(const Vector3* position);
     // Material index (0..31) of the cell at `position`, -1 outside the map.
     int MaterialAt(const Vector3* position);
     void TurnObject(CMapObject* object, const Quaternion* rotation);
@@ -773,8 +785,8 @@ public:
     bool ClearOccluderRecord(FootprintCell* cell);
     void RefreshArea(int minX, int maxX, int minY, int maxY);
     // The passability mark of cell (x, y) for a standing level from the terrain type, the water depth and the
-    // occluders over the cell, looked up in the mark table.
-    std::uint32_t CellMark(void* scratch, int level, int levelHeight, int x, int y);
+    // occluders over the cell, looked up in the mark table. `scratch` keeps the column it measured.
+    std::uint32_t CellMark(CellMarkState* scratch, int level, int levelHeight, int x, int y);
     // Refresh's second pass over [x0, x1] x [y0, y1] (kept 2 cells from the border): a cell whose step to a direct
     // neighbour exceeds what size class 0 can climb becomes impassable, one beyond the larger classes keeps only
     // class 0; either way nibbles 5-6 of one neighbour and nibble 7 of 13 cells around it are cleared.

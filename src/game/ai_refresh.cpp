@@ -32,16 +32,6 @@ std::uint32_t& CellWord(CAIMap* map, int x, int y) {
     return map->cells[y][x].passable;
 }
 
-// The scratch state CellMark builds (0x18 bytes used).
-struct MarkState {
-    int bottom;
-    int top;
-    int passage;         // 0x400 open, damped by occluders; negative: blocked
-    int cost;
-    int ceiling;                        // the room above the bottom (0x7F8 on open ground)
-    std::uint8_t doubled;   // the cost counts twice (OccluderKind::SpellArea)
-};
-
 // passage * e^(table * a * b) as the original's x87 sequence computes it, stored to a float and rounded.
 int Damp(int table, float a, float b, int passage) {
     const float damped = static_cast<float>(x87::fexp(static_cast<double>(table) * a * b) * passage);
@@ -52,7 +42,7 @@ int TableInt(const int* table, int i) { return table[i]; }
 
 // One occluder of kind `type` spanning heights [lowest, highest] against the cell's column.
 // `sectorOrder`: the order of the two factors of the exponent (the two callers differ).
-void Occlude(MarkState* s, OccluderKind type, int lowest, int highest, bool sectorOrder) {
+void Occlude(CellMarkState* s, OccluderKind type, int lowest, int highest, bool sectorOrder) {
     switch (type) {
     case OccluderKind::Crown:
     case OccluderKind::BridgeDeck:
@@ -107,7 +97,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (cells.width - 1 < ox1) ox1 = cells.width - 1;
     if (cells.height - 1 < oy1) oy1 = cells.height - 1;
 
-    alignas(4) std::uint8_t scratch[0x34];
+    CellMarkState scratch;
     for (int level = 0; level < kLevels; ++level) {
         float h = static_cast<float>(static_cast<double>(kLevelHeights[level]) *
                                                 heightScale);
@@ -115,7 +105,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         for (int y = oy0; y <= oy1; ++y)
             for (int x = ox0; x <= ox1; ++x) {
                 std::int8_t* row = marks.rows[y];
-                row[x] = static_cast<std::int8_t>(CellMark(scratch, level, levelHeight, x, y));
+                row[x] = static_cast<std::int8_t>(CellMark(&scratch, level, levelHeight, x, y));
             }
         int shift = level * 4;
         std::uint32_t keep = ~(0xFu << shift);
@@ -182,8 +172,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
 
 // ---- CellMark ---------------------------------------------------------------------------------
 
-std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x, int y) {
-    auto* s = static_cast<MarkState*>(scratch);
+std::uint32_t CAIMap::CellMark(CellMarkState* s, int level, int levelHeight, int x, int y) {
     AIMapCell* cell = &cells[y][x];
     std::uint32_t* occluder = &occluders[y][x];
     AITerrainType* terrain = &materials[occluder::Type(*occluder)];

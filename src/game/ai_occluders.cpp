@@ -66,7 +66,7 @@ bool CAIMap::ClearOccluderRecord(FootprintCell* cell) {
     }
     Sector* sector = SectorOf(this, x, y);
     int head = occluder::Head(word);
-    int index = sector->RemoveOccluder(head, cell->low, cell->high, static_cast<int>(cell->kind), cell->transparency);
+    int index = sector->RemoveOccluder(head, cell->low, cell->high, cell->kind, cell->transparency);
     word = occluder::WithHead(word, index);
     index = occluder::Head(word);
     SectorOccluder& last = sector->occluders[index];
