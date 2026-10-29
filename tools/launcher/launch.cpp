@@ -2,20 +2,21 @@
 // game.exe the same way the Rebirth starter does (exe from starter\Engine, working directory = game
 // root), or <game>\game.exe for a plain install. Nothing in the game folder is modified.
 //
-// usage: ei_launch [--game <dir>] [--exe <game.exe outside the game dir>] [--dll <ei_hook.dll>]
+// usage: ei_launch [--game <dir>] [--exe <game.exe outside the game dir>] [--dll <ei_harness.dll>]
 //                  [--harness <scenario.txt>] [--wait] [--no-hooks] [--rebirth <spec>] [--out <dir>]
 //                  [--standalone] [game args...]
 // --out puts what the run writes (ei_hook.log, the harness report and saves, ...) in <dir> instead
-// of next to ei_hook.dll (EI_OUT_DIR), so several runs can go at once.
+// of next to ei_launch.exe (EI_OUT_DIR), so several runs can go at once.
 // game.exe is always the original game (the original's harness: goldens, EI_VECTORS recording, addon's
-// WideScreen frames): ei_hook.dll is loaded into it before the game's own code runs, so the harness
+// WideScreen frames): ei_harness.dll is loaded into it before the game's own code runs, so the harness
 // runs, with EI_NO_HOOKS=1, so none of our code is installed (InstallHooks installs only the vector
 // recorders there, with EI_VECTORS=1). --no-hooks says the same and is kept for the
 // tools' command lines; since S21e nothing starts game.exe with our rewrites.
 // --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; include/ei/rebirth.h):
 // "all", or patch names separated by commas, each optionally =0/=1.
 // --standalone runs ei_standalone.exe (next to ei_launch.exe; src/standalone/host.cpp) instead of game.exe:
-// it runs without game.exe (S18k; --exe only places the shared host copy of a launch without a scenario) and loads ei_hook.dll itself (--run), with the same
+// it runs without game.exe (S18k; --exe only places the shared copy of a launch without a scenario), the game and
+// (verify build) the harness linked in (S23), with the same
 // environment, working directory, output folder, job object and time limits as a game.exe run. Its own
 // output (imports, the INT3 hit) comes through ei_launch's. Game args go after "--" (WinMain gets them as
 // game.exe would). EI_LAUNCH_STANDALONE=1 in the environment does the same as --standalone (a test batch's
@@ -572,7 +573,7 @@ int wmain(int argc, wchar_t** argv) {
     GetModuleFileNameW(nullptr, self, MAX_PATH);
 
     std::wstring gameDir = kRebirthInstall;
-    std::wstring dll = Dir(self) + L"\\ei_hook.dll";
+    std::wstring dll = Dir(self) + L"\\ei_harness.dll";
     std::wstring exeOverride;
     std::wstring harness;
     std::wstring outDir;
@@ -598,7 +599,7 @@ int wmain(int argc, wchar_t** argv) {
     GetFullPathNameW(dll.c_str(), MAX_PATH, full, nullptr);
     dll = full;
     if (outDir.empty()) {
-        outDir = Dir(dll);
+        outDir = Dir(self);
     } else {
         GetFullPathNameW(outDir.c_str(), MAX_PATH, full, nullptr);
         outDir = full;
@@ -611,7 +612,7 @@ int wmain(int argc, wchar_t** argv) {
     std::wstring exe = gameDir + L"\\starter\\Engine\\game.exe";
     if (GetFileAttributesW(exe.c_str()) == INVALID_FILE_ATTRIBUTES) exe = gameDir + L"\\game.exe";
     if (!exeOverride.empty()) {
-        // An exe outside the game folder (e.g. run\vanilla): tell ei_hook where the game data is,
+        // An exe outside the game folder (e.g. run\vanilla): tell the harness where the game data is,
         // so the game's registry path lookups point there instead of at another install.
         exe = exeOverride;
         SetEnvironmentVariableW(L"EI_GAME_ROOT", gameDir.c_str());
@@ -675,7 +676,7 @@ int wmain(int argc, wchar_t** argv) {
         const std::wstring built = Dir(self) + L"\\ei_standalone.exe";
         // The shared copy needs --exe: the run folder it sits in is found from there (never from the install's).
         program = harness.empty() && !exeOverride.empty() ? SharedStandaloneHost(built, full) : built;
-        cmd = L"\"" + program + L"\" --dll \"" + dll + L"\" --run";   // the host reads no game.exe (S18k)
+        cmd = L"\"" + program + L"\"";   // the exe reads no game.exe (S18k) and has the game linked in (S23)
         if (!gameArgs.empty()) cmd += L" --" + gameArgs;
         // The host's own lines (imports it cannot resolve, its exit) go to ei_launch's output.
         si.dwFlags = STARTF_USESTDHANDLES;
@@ -750,14 +751,14 @@ int wmain(int argc, wchar_t** argv) {
         if (job && !AssignProcessToJobObject(job, game.pi.hProcess))
             std::fwprintf(stderr, L"ei_launch: warning: the game could not be put in the job object (error %lu)\n",
                           GetLastError());
-        // The standalone host loads ei_hook.dll itself; game.exe gets it before its own code runs.
+        // The standalone exe has the harness linked in; game.exe gets ei_harness.dll before its own code runs.
         if (!standalone) {
             if (const int failed = InjectDll(game.pi.hProcess, dll)) {
                 for (Game& started : games)
                     if (started.running) EndGame(started.pi.hProcess, job, started.pi.dwProcessId, 1);
                 return failed;
             }
-            // After ei_hook.dll, whose harness answers the loader's registry reads (harness_settings.h).
+            // After ei_harness.dll, whose harness answers the loader's registry reads (harness_settings.h).
             if (!addonLoader.empty())
                 if (const int failed = InjectDll(game.pi.hProcess, addonLoader)) {
                     for (Game& started : games)
@@ -768,8 +769,9 @@ int wmain(int argc, wchar_t** argv) {
     }
     for (Game& game : games) {
         ResumeThread(game.pi.hThread);
-        std::wprintf(L"ei_launch: started %s%s (pid %lu) with %s\n", game.label.c_str(),
-                     standalone ? L"ei_standalone.exe" : L"game.exe", game.pi.dwProcessId, dll.c_str());
+        std::wprintf(L"ei_launch: started %s%s (pid %lu)%s%s\n", game.label.c_str(),
+                     standalone ? L"ei_standalone.exe" : L"game.exe", game.pi.dwProcessId, standalone ? L"" : L" with ",
+                     standalone ? L"" : dll.c_str());
         CloseHandle(game.pi.hThread);
     }
     if (!wait) {

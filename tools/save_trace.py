@@ -135,7 +135,7 @@ def diff(args):
 
     def name(address):
         if not address: return '-'
-        if address >= 0x10000000: return f'ei_hook+{address - 0x10000000:X}'
+        if address >= 0x10000000: return f'ours+{address - 0x10000000:X}'   # our module's code (harness_savetrace.cpp)
         i = bisect.bisect_right(starts, address) - 1
         return f'{labels[i]}+{address - starts[i]:X}' if i >= 0 else f'{address:08X}'
 

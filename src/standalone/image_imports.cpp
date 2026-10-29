@@ -1,4 +1,4 @@
-// game.exe's imports resolved into ei_hook.dll's storage, from image_data.cpp's mover. See
+// game.exe's imports resolved into the image's storage, from image_data.cpp's mover. See
 // docs/notes/standalone.md, "The image's source files".
 #include "ei/hook.h"
 #include "game/game_data.h"
@@ -64,7 +64,7 @@ LONG CALLBACK OnTrap(EXCEPTION_POINTERS* e) {
                   static_cast<unsigned>(slot),
                   i && !i->reached ? "no code was found to call (rerun python tools/gen_iat.py)" : "did not resolve",
                   caller);
-    std::fprintf(stderr, "ei_hook: %s\n", what);
+    std::fprintf(stderr, "ei_standalone: %s\n", what);
     std::fflush(stderr);
     ReportImageFailure(what);
     TerminateProcess(GetCurrentProcess(), 3);
@@ -84,7 +84,7 @@ HMODULE LoadImport(const char* name) {
 }
 
 void Fail(const char* what) {
-    std::fprintf(stderr, "ei_hook: %s\n", what);
+    std::fprintf(stderr, "ei_standalone: %s\n", what);
     std::fflush(stderr);
     Log("standalone: %s", what);
 }
@@ -139,7 +139,7 @@ void ResolveImageImports() {
         ++resolved;
         routed += route != nullptr;
     }
-    Log("standalone: game.exe's %d import slots in ei_hook.dll's table at %08X: %d resolved (%d routed), %d missing, "
+    Log("standalone: game.exe's %d import slots in the image's table at %08X: %d resolved (%d routed), %d missing, "
         "%d traps (no call reaches them); %d DLLs loaded; game.exe's own table guarded",
         static_cast<int>(sizeof(kImports) / sizeof(kImports[0])), static_cast<unsigned>(GameAddress(kImportsBegin)),
         resolved, routed, g_missing, traps, loaded);

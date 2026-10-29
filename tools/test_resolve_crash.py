@@ -1,4 +1,4 @@
-"""Tests of resolve_crash.py (X40a) without games: a made-up ei_hook.dll and game.exe (a few functions with
+"""Tests of resolve_crash.py (X40a) without games: a made-up ei_standalone.exe and game.exe (a few functions with
 calls between them), their map and function lists, and a crash log with the stack words of a throw plus stale
 words around it.
 
@@ -38,7 +38,7 @@ class FakeImage:
         return bytes(self.code[rva:rva + n])
 
 
-MAP = """ ei_hook
+MAP = """ ei_standalone
 
  Timestamp is 6ad15282 (Fri Oct 16 00:24:02 2026)
 
@@ -82,7 +82,7 @@ def make_log(words):
              '[00:00:01.000] harness: 5 MB free on the run folder\'s disk',
              '[00:00:01.000]   in C:\\Windows\\System32\\KERNELBASE.dll+13B702 (thread 1)']
     for kind, a in words:
-        lines.append('[00:00:01.000]   stack ' + (f'ei_hook+{a:X}' if kind == 'ei' else f'{a:08X} (game.exe)'))
+        lines.append('[00:00:01.000]   stack ' + (f'ei_standalone+{a:X}' if kind == 'ei' else f'{a:08X} (game.exe)'))
     return '\n'.join(lines) + '\n'
 
 
@@ -94,7 +94,7 @@ class Fixture(unittest.TestCase):
         os.makedirs(os.path.join(self.root, 'tests', 'coverage'))
         write(os.path.join(self.root, 'config', 'functions.csv'), FUNCTIONS)
         write(os.path.join(self.root, 'tests', 'coverage', 'coverage.csv'), COVERAGE)
-        self.map = os.path.join(self.root, 'ei_hook.map')
+        self.map = os.path.join(self.root, 'ei_standalone.map')
         write(self.map, MAP)
 
         ei = FakeImage(0)
@@ -181,7 +181,7 @@ class Chain(Fixture):
     def test_a_throw_free_crash_starts_at_its_address(self):
         words = [('ei', self.ra_write), ('ei', self.ra_compose), ('game', self.ra_dress)]   # the first is stale: Write called the throw
         lines = make_log(words).splitlines()
-        lines.insert(3, '[00:00:01.000]   at ei_hook+210')
+        lines.insert(3, '[00:00:01.000]   at ei_standalone+210')
         got = [(k, a) for _, k, a in rc.frames(rc.stack_words(lines, 0), self.stack())]
         self.assertEqual(got, [('ei', 0x210), ('ei', self.ra_compose), ('game', self.ra_dress)])
 
@@ -225,7 +225,7 @@ class RealRun(unittest.TestCase):
 
     def test_disk_full_stack(self):
         d = os.path.join(rc.ROOT, 'build', 'verify', 'runs', 'harness_disk_full-standalone')
-        if not all(os.path.exists(os.path.join(rc.ROOT, 'build', 'verify', f)) for f in ('ei_hook.map', 'ei_hook.dll'))                 or not os.path.exists(os.path.join(d, 'ei_hook.log')):
+        if not all(os.path.exists(os.path.join(rc.ROOT, 'build', 'verify', f)) for f in ('ei_standalone.map', 'ei_standalone.exe'))                 or not os.path.exists(os.path.join(d, 'ei_hook.log')):
             self.skipTest('no verify build or run of harness_disk_full here')
         text = rc.named_stack(d)
         names = text.split(' -> ')

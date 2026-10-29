@@ -8,7 +8,8 @@ callee disagreeing on the stack and crashes far from the cause):
 - the EI_ORIGINAL forwarders (tests/verify, tests/vectors): our harness calls the original through them;
 - the rewrite each EI_RECORD names (its last argument: the function the vectors' replays call with the arguments
   recorded from the original, tests/vectors/replay_*.cpp): the recorded call frame must fit it.
-This takes the C++ declaration from build/verify/ei_hook.map (undecorated with undname), computes how many
+This takes the C++ declaration from build/verify's maps (ei_standalone.map: the rewrites; ei_harness.map: the
+recorders and the harness in game.exe; undecorated with undname), computes how many
 bytes of stack arguments the calling convention leaves for the callee to pop, and compares that
 with the RET n instructions of the original function in game.exe.
 
@@ -26,7 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import exe_path  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MAP = os.path.join(ROOT, 'build', 'verify', 'ei_hook.map')
+MAPS = tuple(os.path.join(ROOT, 'build', 'verify', name) for name in ('ei_standalone.map', 'ei_harness.map'))
 
 
 def load_sizes():
@@ -163,11 +164,12 @@ def arg_bytes(und):
     return None if None in sizes else sum(sizes)
 
 
-def declarations(map_path=MAP):
-    """Qualified function name -> [(undecorated signature, object file)] from the linker map. An inline function's
+def declarations(map_paths=MAPS):
+    """Qualified function name -> [(undecorated signature, object file)] from the linker maps. An inline function's
     copy (flag i) is the linker's pick among every object file that instantiated it: its object file is '' (any)."""
-    entries = re.findall(r'^\s*[0-9a-f]{4}:[0-9a-f]{8}\s+(\?\S+)\s+[0-9a-f]{8}\s+(?:f\s+)?(i\s+)?(\S+)\s*$',
-                         open(map_path, errors='replace').read(), re.M)
+    entries = sorted({e for path in map_paths for e in
+                      re.findall(r'^\s*[0-9a-f]{4}:[0-9a-f]{8}\s+(\?\S+)\s+[0-9a-f]{8}\s+(?:f\s+)?(i\s+)?(\S+)\s*$',
+                                 open(path, errors='replace').read(), re.M)})
     und = undecorate({d for d, _, _ in entries})
     by_name = {}
     for dec, inline, obj in entries:

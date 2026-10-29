@@ -3,7 +3,7 @@ pointer cells of game.exe's data that point into the range the image moves (src/
 committed and reviewed; image_data.cpp fixes them up when it moves the range), and the range's initial bytes
 (written into the build folder by the build from the committed cells alone, no game.exe: --bytes).
 
-The moved range is 0073B000-007CD000: .rdata (its import address table first, whose slots ei_hook.dll fills itself:
+The moved range is 0073B000-007CD000: .rdata (its import address table first, whose slots the image fills itself:
 S18f) and .data with its zero-filled tail. game.exe has no relocations, so the cells are found by a scan: every
 aligned dword of .rdata (past the import table) and .data (as the file holds them; the zero-filled tail holds none)
 whose value lies in the moved range, less text that happens to read as an address: the tails of strings (the
@@ -56,7 +56,7 @@ IMPORTS = (0x0073B000, 0x0073B820)
 TEXT_SECTION = (0x00401000, 0x0073B000)
 CODE = (0x00401000, 0x0073A670)   # .text's bytes (include/ei/hook.h's kGameTextBegin / kGameTextEnd)
 # The targets by section, and the data that can hold cells (as the file holds it: .data's raw bytes end at 0079C000;
-# the import table's file bytes are not the image's: ei_hook.dll fills its own slots).
+# the import table's file bytes are not the image's: the image fills its own slots).
 SECTIONS = {'rdata': (0x0073B000, 0x00783000), 'data': (0x00783000, 0x007CD000)}
 SCANNED = [('rdata', IMPORTS[1], 0x00783000), ('data', 0x00783000, 0x0079C000)]
 
@@ -480,7 +480,7 @@ def write_bytes(path):
     for cell, value in cells.items():
         struct.pack_into('<I', data, cell - lo, value)
     what = f'zero but the {len(cells)} cells of image_cells.inc'
-    data[:IMPORTS[1] - IMPORTS[0]] = bytes(IMPORTS[1] - IMPORTS[0])   # our slots, filled by ei_hook.dll
+    data[:IMPORTS[1] - IMPORTS[0]] = bytes(IMPORTS[1] - IMPORTS[0])   # our slots, filled by the image
     for a, n in named:   # named globals of ours now (C18): nothing reads these bytes
         b, e = a - lo, min(a - lo + n, len(data))   # a range in the zero-filled tail past the file's bytes: nothing
         if b < e:

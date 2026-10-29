@@ -1,4 +1,4 @@
-// game.exe's .rdata and .data in ei_hook.dll's own storage, moved before every other static constructor
+// game.exe's .rdata and .data in the image's own storage, moved before every other static constructor
 // (init_seg(compiler)). See docs/notes/standalone.md, "The image's source files".
 #include "ei/hook.h"
 #include "game/game_data.h"
@@ -22,6 +22,7 @@ std::uintptr_t g_dataShift = 0;
 void DescribeCode(std::uintptr_t address, char* out, std::size_t size);
 void ReportImageFailure(const char* what);
 void ResolveImageImports();
+void EnterGameFolder();   // standalone_main.cpp
 // "<dll>!<function>" of game.exe's import slot `slot` into `out`.
 void DescribeImportSlot(std::uintptr_t slot, char* out, std::size_t size);
 
@@ -64,7 +65,7 @@ LONG CALLBACK OnOldData(EXCEPTION_POINTERS* e) {
     if (data - kImportsBegin < kImportsEnd - kImportsBegin) {
         DescribeImportSlot(data & ~std::uintptr_t{3}, import, sizeof(import));
         std::snprintf(what, sizeof(what),
-                      "%s of game.exe's own import slot %08X (%s) by %s: the image's slots are ei_hook.dll's table, a "
+                      "%s of game.exe's own import slot %08X (%s) by %s: the image's slots are a table of its own, a "
                       "use that missed the data seam (GameAddress, game_data.h)",
                       access, static_cast<unsigned>(data), import, code);
     } else {
@@ -72,7 +73,7 @@ LONG CALLBACK OnOldData(EXCEPTION_POINTERS* e) {
                       "%s of game.exe's %s at %08X by %s: a use that missed the data seam (GameAddress, game_data.h)",
                       access, data < kDataBegin ? ".rdata" : ".data", static_cast<unsigned>(data), code);
     }
-    std::fprintf(stderr, "ei_hook: %s\n", what);
+    std::fprintf(stderr, "ei_standalone: %s\n", what);
     std::fflush(stderr);
     ReportImageFailure(what);
     TerminateProcess(GetCurrentProcess(), 3);
@@ -81,6 +82,7 @@ LONG CALLBACK OnOldData(EXCEPTION_POINTERS* e) {
 
 void MoveData() {
     if (!Standalone()) return;   // game.exe
+    EnterGameFolder();   // the imports' DLLs (ResolveImageImports) are the game folder's
     const auto storage = reinterpret_cast<std::uintptr_t>(g_dataStorage);
     const std::uintptr_t begin = storage + ((kMovedBegin - storage) & kKeptBits);
     std::memcpy(reinterpret_cast<void*>(begin), kInitialData, sizeof(kInitialData));
@@ -116,7 +118,7 @@ void StrayGameAddress(std::uintptr_t address) {
     std::snprintf(what, sizeof(what),
                   "the data seam was asked for game.exe's %s at %08X (by %s): the image has nothing of game.exe there",
                   part, static_cast<unsigned>(address), code);
-    std::fprintf(stderr, "ei_hook: %s\n", what);
+    std::fprintf(stderr, "ei_standalone: %s\n", what);
     std::fflush(stderr);
     ReportImageFailure(what);
     TerminateProcess(GetCurrentProcess(), 3);

@@ -89,7 +89,7 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
 - AddressSanitizer: `build.cmd asan` is the verify build with `/fsanitize=address` (every target; the runtime DLL
   copied beside them) into `build\asan`; the product builds never have it. Run the suite on it with
   `set EI_BUILD_DIR=<checkout>\build\asan` then `python tools\work.py test <ID> --golden --jobs 4` (any run_all
-  arguments). ei_hook.dll sends the reports to `asan.<pid>` in the run's folder (tests/verify/image/asan_report.cpp;
+  arguments). The exe sends the reports to `asan.<pid>` in the run's folder (tests/verify/image/asan_report.cpp;
   `ASAN_OPTIONS` still works for other options): the first heap error (use after free, double free, overflow of a heap, stack or global block, a
   new / delete mismatch) ends the game with its report, symbolised from the PDB, and run_all fails
   the run with the error and its first frames. For a flaky heap crash this finds the cause in one run: a freed

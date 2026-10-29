@@ -256,7 +256,7 @@ void Install() {
                        reinterpret_cast<LPCSTR>(&Install), &self);
     ModuleRange(self, g_selfBase, g_selfEnd);
     AddVectoredExceptionHandler(1, Handler);
-    std::fprintf(g_file, "# watch %s %08X (addon %08X, ei_hook %08X)\n", g_slot ? "dword" : g_flags ? "cunit flags" : "cunit orientation",
+    std::fprintf(g_file, "# watch %s %08X (addon %08X, ours %08X)\n", g_slot ? "dword" : g_flags ? "cunit flags" : "cunit orientation",
                  unsigned(g_slot ? g_slot : g_id), unsigned(g_addonBase), unsigned(g_selfBase));
     Log("harness: watching %s (EI_WATCH_ADDR / EI_WATCH_CUNIT, watch.txt)", g_slot ? "a dword" : "a unit's orientation");
 }

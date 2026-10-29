@@ -353,7 +353,7 @@ ATOM WINAPI RegisterClassExA(const WNDCLASSEXA* windowClass) {
 }
 
 // The wide calls themselves (the same arguments). Our own functions rather than the exports' addresses: the
-// routes are read during ei_hook.dll's static initialisation, before an import's address could be stored.
+// routes are read during the image's static initialisation, before an import's address could be stored.
 LRESULT WINAPI DefWindowProcA(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
     return ::DefWindowProcW(window, message, wParam, lParam);
 }

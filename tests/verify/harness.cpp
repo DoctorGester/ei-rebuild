@@ -658,13 +658,13 @@ decltype(&::PeekMessageA) g_peekMessage;
 
 
 // Crash diagnostics: logs access violations and other fatal exceptions with the faulting address
-// and the code addresses found on the stack (game.exe addresses as is, ours as ei_hook+offset).
+// and the code addresses found on the stack (game.exe addresses as is, ours as <module>+offset: ei::OwnModuleName).
 // First-chance, so exceptions the game handles itself show up too; only the first few are logged.
 std::uintptr_t g_selfBase, g_selfEnd;
 
 void LogCodeAddress(const char* label, std::uintptr_t a) {
     if (a >= 0x00401000 && a < 0x00730000) Log("  %s %08X (game.exe)", label, unsigned(a));
-    else if (a >= g_selfBase && a < g_selfEnd) Log("  %s ei_hook+%X", label, unsigned(a - g_selfBase));
+    else if (a >= g_selfBase && a < g_selfEnd) Log("  %s %s+%X", label, ei::OwnModuleName(), unsigned(a - g_selfBase));
     else {   // Direct3D and DXGI frames too (R9c5: crashes inside d3d11on12.dll and the driver)
         HMODULE m = nullptr;
         char name[MAX_PATH] = "";
@@ -3413,7 +3413,7 @@ void RunSteps() {
             StartMouseGlide(ms, x0, y0, x1, y1);
         } else if (s.verb == "stall") {
             DWORD ms = std::strtoul(s.argument.c_str(), nullptr, 10);
-            Sleep(ms);   // ei_hook's own Sleep: real time, the game's clocks are not touched
+            Sleep(ms);   // the harness's own Sleep: real time, the game's clocks are not touched
             Log("harness: stall: the main thread was away for %lu ms", ms);
         } else if (s.verb == "cursormark") {
             g_cursorMark = HarnessCursorPresents().presents;

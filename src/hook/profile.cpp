@@ -2,7 +2,7 @@
 // suspended and its EIP and the return addresses on its stack are written to profile.txt in the
 // output folder. tools/profile_report.py turns that into time per function between harness steps.
 // The stack is scanned, not walked (the game's code omits frame pointers), so a stale return address
-// can show up as a caller; only words that follow a CALL instruction in game.exe or ei_hook count.
+// can show up as a caller; only words that follow a CALL instruction in game.exe or our module count.
 #include "ei/hook.h"
 #include "log.h"
 
@@ -107,7 +107,7 @@ DWORD WINAPI Sampler(void*) {
 
 } // namespace
 
-// From WinMain's hook (game.exe) or EiStandaloneMain before WinMain (the image): the main thread.
+// From WinMain's hook (game.exe) or StandaloneMain before WinMain (the image): the main thread.
 void InstallProfiler() {
     char value[4];
     if (!GetEnvironmentVariableA("EI_PROFILE", value, sizeof value) || value[0] != '1') return;

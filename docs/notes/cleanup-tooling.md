@@ -25,15 +25,15 @@ and asan about 56-58 s, debug 53 s), a no-op 3 s, one touched .cpp 7 s, a touche
 is the whole of it: ninja runs 34 jobs and keeps them all busy until the last few seconds; about 1,700 s of compiler time,
 577 `src/game` files at 2-5 s each. In a file the front end is ~90% (headers ~1.1 s: `windows.h` 0.25 s through
 `lib/import_table.h`, `<string>` 0.19 s, `game/map_object_figures.h`, `ai_map.h`, `unit.h`, `ai_event_table.h` ~0.35 s
-each), the back end ~0.1 s. The link of ei_hook.dll is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0.8 s.
+each), the back end ~0.1 s. The link of ei_standalone.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0.8 s.
 - How to see it: `.ninja_log` in the build folder (start and end ms per step); `-Bt+ -d1reportTime` on one cl command
-  (from `ninja -t commands ei_hook.dll`) gives the front / back end split and every header's inclusive time.
+  (from `ninja -t commands ei_standalone.exe`) gives the front / back end split and every header's inclusive time.
 - Tried, no gain: the 64-bit hosted compiler (`vcvarsamd64_x86`: the same code, the same time); `/Z7` (+4-8 s).
 - A precompiled header of the standard headers saves ~18% of a clean build (58 -> 47 s) but is not used: it changes
   the inlining of `std::basic_string` members in ~120 objects (code compared with `dumpbin /disasm` per function), so
   x87 code around them could round differently. Game headers in it break the harness's views (tests/verify) and
   per-file names.
-- ei_hook.dll links with `/OPT:REF /OPT:NOICF`: unreferenced code goes (static objects' initialisers stay: .CRT$XCU
+- ei_standalone.exe links with `/OPT:REF /OPT:NOICF`: unreferenced code goes (static objects' initialisers stay: .CRT$XCU
   references them). `/OPT:ICF` would save another 6% but gives identical functions one address.
 
 ## `progress.py` cleanup artefacts

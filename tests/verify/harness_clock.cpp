@@ -39,7 +39,7 @@ void PatchSlot(std::uintptr_t address, T replacement, T& original) {
 }
 
 // The process's first thread: the one with the earliest creation time. ei_launch starts the game
-// suspended and loads ei_hook.dll from a thread of its own, so at that point the first thread is
+// suspended and loads ei_harness.dll from a thread of its own, so at that point the first thread is
 // the one that will run WinMain. The process's threads come from ntdll's NtGetNextThread: a toolhelp
 // snapshot lists every thread of the machine (SV10b: 16,000 with the suite's games: 70-130 ms of
 // each run's start-up).
@@ -69,13 +69,13 @@ DWORD FindMainThread() {
 
 DWORD g_mainThread = 0;
 FILE* g_randomFile = nullptr;   // the random trace (InstallRandomTrace)
-std::uintptr_t g_selfBase = 0, g_selfEnd = 0;   // ei_hook.dll's image (set with it)
+std::uintptr_t g_selfBase = 0, g_selfEnd = 0;   // our module's image (set with it)
 // game.exe's code (none runs in the standalone image, whose code section is guarded: S18i).
 bool InGameCode(std::uintptr_t a) { return !ei::Standalone() && a >= 0x00401000 && a < 0x00730000; }
 bool InHookCode(std::uintptr_t a) { return a >= g_selfBase + 0x1000 && a < g_selfEnd; }
 
 // The calls on the current stack (random trace notes): the game has no frame pointers, so every word
-// that points into game.exe's or ei_hook.dll's code just after a call instruction.
+// that points into game.exe's or our module's code just after a call instruction.
 void CallerStack(char* out, std::size_t size) {
     int used = 0;
     out[0] = 0;
@@ -86,7 +86,7 @@ void CallerStack(char* out, std::size_t size) {
         const auto* code = reinterpret_cast<const unsigned char*>(a);
         if (!(code[-5] == 0xE8 || code[-6] == 0xFF || code[-2] == 0xFF || code[-3] == 0xFF)) continue;
         if (InGameCode(a)) used += std::snprintf(out + used, size - used, " %08X", unsigned(a));
-        else used += std::snprintf(out + used, size - used, " ei_hook+%X", unsigned(a - g_selfBase));
+        else used += std::snprintf(out + used, size - used, " %s+%X", ei::OwnModuleName(), unsigned(a - g_selfBase));
     }
 }
 
@@ -655,7 +655,7 @@ void TraceModuleImports(HMODULE module) {
     Log("clocktrace: %d imports of %s wrapped", wrapped, path);
 }
 
-// The DLLs to trace: those outside the Windows folder, other than game.exe and ei_hook.dll.
+// The DLLs to trace: those outside the Windows folder, other than the main module and ours (ei_harness.dll).
 void TraceModules() {
     HMODULE modules[512];
     DWORD bytes = 0;
@@ -780,7 +780,7 @@ const unsigned* g_traceFrames = nullptr;
 unsigned g_randomFrame = ~0u;
 CRITICAL_SECTION g_randomLock;
 
-// One draw: "<frame> [(other thread) ][ei_hook+]<caller> <value>[ <what>] #<where>". <where> is the
+// One draw: "<frame> [(other thread) ][<module>+]<caller> <value>[ <what>] #<where>" (<module>: ei::OwnModuleName). <where> is the
 // generator's state after the draw: ISAAC's position in its stream (cc * 256 + 255 - count; cc
 // counts the refills), rand()'s seed. Where a function ran the original on live state besides ours (the verify
 // wrappers until S21d), the generators were put back between them, so one draw could show up twice; the position tells a repeat from a new draw
@@ -793,8 +793,9 @@ void WriteDraw(std::uintptr_t caller, std::uint32_t value, const char* what, std
         std::fflush(g_randomFile);
         g_randomFrame = frame;
     }
-    std::fprintf(g_randomFile, "%u %s%s%X %08X%s #%X\n", frame, OnMainThread() ? "" : "(other thread) ", ours ? "ei_hook+" : "",
-                 unsigned(ours ? caller - g_selfBase : caller), value, what, unsigned(where));
+    std::fprintf(g_randomFile, "%u %s%s%s%X %08X%s #%X\n", frame, OnMainThread() ? "" : "(other thread) ",
+                 ours ? ei::OwnModuleName() : "", ours ? "+" : "", unsigned(ours ? caller - g_selfBase : caller), value,
+                 what, unsigned(where));
     LeaveCriticalSection(&g_randomLock);
 }
 

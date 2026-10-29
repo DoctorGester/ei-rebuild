@@ -94,7 +94,7 @@ void Flush();
 // a key directly: the settings file's.
 long ReadValue(const char* path, const char* name, unsigned long* type, void* data, unsigned long* size);
 
-// A change of each value read (the harness's and ei_hook.dll's redirects of the game paths, hook/paths.cpp):
+// A change of each value read (the harness's and the start-up's redirects of the game paths, standalone_main.cpp):
 // called in the order added with the value's name, type and bytes, which it may change.
 using ReadFilter = void (*)(const char* name, unsigned long type, std::string& data);
 void AddReadFilter(ReadFilter filter);

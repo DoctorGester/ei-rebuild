@@ -1,7 +1,8 @@
+// The hook framework's game.exe side (ei_harness.dll; the standalone image links it in its verify build only, where
+// the shared harness names it): the vector recorders' installation (EI_VECTORS=1), the harness's patches of game.exe's
+// code and the WinMain hook that installs them.
 #include "ei/hook.h"
-#include "ei/rebirth.h"
 #include "log.h"
-#include "rebirth_hook.h"
 
 #include <windows.h>
 
@@ -21,12 +22,6 @@ HookRegistrar::HookRegistrar(std::uintptr_t address, void* recorder, const char*
                              void** original)
     : entry{address, recorder, name, g_hooks, stolen, original} {
     g_hooks = &entry;
-}
-
-static StartupAction* g_startupActions = nullptr;
-
-StartupActionRegistrar::StartupActionRegistrar(void (*run)(), const char* name) : entry{run, name, g_startupActions} {
-    g_startupActions = &entry;
 }
 
 // Copies the first `stolen` bytes of the original function into executable memory followed by a
@@ -173,31 +168,6 @@ private:
     std::vector<Region> m_regions;
 };
 
-// The Rebirth flags in the standalone image: ei_rebirth.ini next to the DLL, EI_REBIRTH and the harness's
-// specs (rebirth::LoadSettings); no addon.dll or EI_Plugin.asi to follow (rebirth_hook::SettingsOnly).
-static void LoadRebirthSettings() {
-    char ini[MAX_PATH];
-    HMODULE self = nullptr;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCSTR>(&LoadRebirthSettings), &self);
-    GetModuleFileNameA(self, ini, MAX_PATH);
-    if (char* slash = std::strrchr(ini, '\\')) strcpy_s(slash + 1, ini + MAX_PATH - (slash + 1), "ei_rebirth.ini");
-    rebirth::LoadSettings(ini);
-    if (rebirth::PluginSecondMaster()[0]) Log("Rebirth: NewMaster's second master server: %s", rebirth::PluginSecondMaster());
-    rebirth_hook::SettingsOnly(ini);
-}
-
-void RunStartupActions() {
-    LoadRebirthSettings();
-    unsigned short cw;
-    __asm fnstcw cw
-    Log("FPU control word at WinMain: %04X", cw);
-    for (StartupAction* action = g_startupActions; action; action = action->next) {
-        Log("startup action %s", action->name);
-        action->run();
-    }
-}
-
 int InstallHooks() {
     // game.exe runs only as the original game (ei_launch sets EI_NO_HOOKS=1 for it), so nothing of ours is
     // installed there, except with EI_VECTORS=1 the vector recorders (tests/vectors): each runs the original through
@@ -285,7 +255,7 @@ int InstallHooks() {
 // game.exe (the original game's harness): the recorders (EI_VECTORS), the coverage breakpoints (EI_COVER)
 // and the profiler (EI_PROFILE) go in when WinMain starts, not when the DLL loads, after Rebirth's addon
 // has applied its own patches from a hook on the WinMain call. The standalone image runs its start-up from
-// EiStandaloneMain (standalone_main.cpp).
+// StandaloneMain (src/standalone/standalone_main.cpp).
 void InstallCoverage();
 static unsigned char g_winMainBytes[5];
 static void (*g_originalWinMainAction)();
@@ -294,7 +264,7 @@ void SetOriginalWinMainAction(void (*action)()) { g_originalWinMainAction = acti
 
 static void __stdcall OnWinMain() {
     // System DPI aware before the game makes its window, as the HIGHDPIAWARE compatibility flag on
-    // run/vanilla and run/rebirth already makes it (the standalone host does the same in EiStandaloneMain).
+    // run/vanilla and run/rebirth already makes it (the standalone image does the same in StandaloneMain).
     SetProcessDPIAware();
     DWORD old;
     auto* p = reinterpret_cast<unsigned char*>(kGameWinMain);

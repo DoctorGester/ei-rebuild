@@ -1,13 +1,14 @@
 """Resolves the harness crash log in ei_hook.log to function names (tickets X40, X40a).
 
 The harness logs fatal exceptions with the code addresses found on the stack: game.exe addresses
-as is ("stack 006936BE (game.exe)"), ei_hook.dll ones as ei_hook+offset. This names each with the
-ei_hook.map symbol (undecorated) or the game function list (tests/coverage/coverage.csv names the
+as is ("stack 006936BE (game.exe)"), ours as <module>+offset: ei_standalone+offset in the image (the game and the
+harness linked into ei_standalone.exe), ei_harness+offset in game.exe (ei_harness.dll). This names each with the
+module's .map symbol (undecorated) or the game function list (tests/coverage/coverage.csv names the
 rewritten functions, config/functions.csv the rest).
 
 The raw stack scan also holds words that are no return address (saved registers, a function
 pointer, return addresses of calls that finished long ago, whole stale call chains). A word counts as
-a frame when the code before it is a call (read from the build's ei_hook.dll or the run's game.exe)
+a frame when the code before it is a call (read from the build's exe or DLL or the run's game.exe)
 that reaches the function of the frame before it (through jump thunks, tail calls and forwarders to
 the original game functions; where that cannot be told, an indirect call or a hooked function with a
 differing name, the word waits until a later word links to it). Words before the throw's own function
@@ -21,6 +22,8 @@ import bisect, csv, os, re, struct, subprocess, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOISE_PREFIXES = ('__ehhandler$', '__catch$', '__unwind$', '__tryend$', '__ehfuncinfo$', '??_C@')
+# An address in our code as the harness logs it: <module>+offset (ei_standalone, ei_harness; ei_hook in older logs).
+OWN_ADDRESS = re.compile(r'\b(ei_(?:standalone|harness|hook))\+([0-9A-F]+)')
 
 
 def code_sections(path):
@@ -302,13 +305,22 @@ def stack_words(lines, start):
             if out or 'harness: ' not in line:      # the free-space line may sit between the crash line and its words
                 break
             continue
-        m = re.search(r'ei_hook\+([0-9A-F]+)', line)
+        m = OWN_ADDRESS.search(line)
         g = re.search(r'([0-9A-F]{8}) \(game\.exe\)', line)
         if m:
-            out.append((line, 'ei', int(m.group(1), 16)))
+            out.append((line, 'ei', int(m.group(2), 16)))
         elif g:
             out.append((line, 'game', int(g.group(1), 16)))
     return out
+
+
+def own_module(lines, start):
+    """The name of our module the crash at lines[start] names (ei_standalone, ei_harness; ei_hook in older logs)."""
+    for line in lines[start:]:
+        m = OWN_ADDRESS.search(line)
+        if m:
+            return m.group(1)
+    return 'ei_standalone'
 
 
 def find_crash(lines):
@@ -329,23 +341,25 @@ def guess_game_exe(logdir, root=ROOT):
 
 def resolve(logdir, build=None, game_exe=None, raw=False, root=ROOT):
     """Lines of the named stack of the last crash in logdir/ei_hook.log (see the module text), or
-    ['no crash logged']. build: the folder with ei_hook.map and ei_hook.dll (default: logdir when it holds
-    the map, else build/verify). game_exe: the run's game.exe (default: run/<install>/game.exe by the
-    folder's name). Without the dll or the exe the words of that module are not judged."""
-    build = build or (logdir if os.path.exists(os.path.join(logdir, 'ei_hook.map')) else os.path.join(root, 'build', 'verify'))
+    ['no crash logged']. build: the folder with our module's map and binary (<module>.map and .exe or .dll; default:
+    logdir when it holds the map, else build/verify). game_exe: the run's game.exe (default: run/<install>/game.exe by
+    the folder's name). Without our binary or the exe the words of that module are not judged."""
     with open(os.path.join(logdir, 'ei_hook.log'), errors='replace') as f:
         lines = f.read().splitlines()
     start = find_crash(lines)
     if start is None:
         return ['no crash logged']
+    own = own_module(lines, start)
+    build = build or (logdir if os.path.exists(os.path.join(logdir, own + '.map')) else os.path.join(root, 'build', 'verify'))
     images = {}
-    dll = os.path.join(build, 'ei_hook.dll')
-    if os.path.exists(dll):
-        images['ei'] = Image(dll, 0)
+    for binary in (own + '.exe', own + '.dll'):
+        if os.path.exists(os.path.join(build, binary)):
+            images['ei'] = Image(os.path.join(build, binary), 0)
+            break
     exe = game_exe or guess_game_exe(logdir, root)
     if exe and os.path.exists(exe):
         images['game'] = Image(exe)
-    stack = Stack(os.path.join(build, 'ei_hook.map'), images, root)
+    stack = Stack(os.path.join(build, own + '.map'), images, root)
     words = stack_words(lines, start)
     kept = words if raw else frames(words, stack)
     out = [lines[start]]

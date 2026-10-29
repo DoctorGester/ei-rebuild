@@ -36,7 +36,8 @@ void SettingsOnly(const char* iniPath) {
     // Rebirth's bug fixes are on by default on either install: only the other flags make it Rebirth's.
     for (int i = 0; i < rebirth::kPatchCount; ++i)
         g_rebirthLaunch |= rebirth::Enabled(static_cast<Patch>(i)) && !rebirth::DefaultOn(static_cast<Patch>(i));
-    Log("Rebirth: standalone image: the flags are ei_rebirth.ini's alone (no addon.dll, no EI_Plugin.asi)");
+    Log("Rebirth: standalone image: the flags are ei_rebirth.ini's or the game folder's profile alone (no addon.dll, no "
+        "EI_Plugin.asi)");
     LogFlagsOn();
 }
 

@@ -1,10 +1,9 @@
-// ei_hook.dll inside ei_standalone.exe (src/standalone/host.cpp; docs/notes/standalone.md section 2): the image's
-// start-up, which only the image runs (the run's kind and what both runs use: standalone.cpp).
-// The host is an ordinary exe that reads no game.exe; the DLL's static
-// initialisation has put .rdata, .data and the import slots in its own storage (image_data.cpp,
+// The standalone image's start-up (docs/notes/standalone.md section 2), called by the exe's main (host.cpp): what
+// both runs of the harness use is in src/hook/standalone.cpp. The exe reads no game.exe; its static initialisation has
+// entered the game folder and put .rdata, .data and the import slots in its own storage (image_data.cpp,
 // image_imports.cpp); here the start-up actions run, then the static initialisers and WinMain (app::GameMain).
 #include "ei/hook.h"
-#include "log.h"
+#include "hook/log.h"
 #include "game/app.h"
 #include "standalone/static_init.h"
 #include "game/game_data.h"
@@ -24,7 +23,6 @@
 namespace ei {
 
 int ImageImportsMissing();   // standalone/image_imports.cpp
-
 
 // A code address as the log names it (standalone.cpp).
 void DescribeCode(std::uintptr_t address, char* out, std::size_t size);
@@ -65,7 +63,7 @@ LONG CALLBACK OnOldCode(EXCEPTION_POINTERS* e) {
     DescribeCode(at, code, sizeof(code));
     std::snprintf(what, sizeof(what), "%s of game.exe's code at %08X by %s: the image's code section is guarded",
                   r->ExceptionInformation[0] == 1 ? "write" : "read", static_cast<unsigned>(data), code);
-    std::fprintf(stderr, "ei_hook: %s\n", what);
+    std::fprintf(stderr, "ei_standalone: %s\n", what);
     std::fflush(stderr);
     ReportImageFailure(what);
     TerminateProcess(GetCurrentProcess(), 3);
@@ -136,19 +134,52 @@ bool RouteMilesLoads() {
 
 } // namespace
 
-// The settings file's reads filtered (paths.cpp: the game's paths in the image's settings file).
-void RedirectSettingsReads(void (*filter)(const char* name, unsigned long type, std::string& data)) {
-    settings_file::AddReadFilter(filter);
+namespace {
+
+char g_gameRoot[MAX_PATH];   // EI_GAME_ROOT with a trailing backslash
+
+// The settings file's game paths (Work path, CD-ROM Path) read as EI_GAME_ROOT.
+void RedirectedPath(const char* name, unsigned long, std::string& data) {
+    if (_stricmp(name, "Work path") == 0 || _stricmp(name, "CD-ROM Path") == 0)
+        data.assign(g_gameRoot, std::strlen(g_gameRoot) + 1);
 }
 
-} // namespace ei
+// Under ei_launch, which names the data folder in EI_GAME_ROOT (the exe is the build's), the settings file's game
+// paths are that folder (game.exe's runs redirect the registry's the same way: src/hook/paths.cpp).
+void RedirectSettingsPaths() {
+    const DWORD n = GetEnvironmentVariableA("EI_GAME_ROOT", g_gameRoot, MAX_PATH);
+    if (n == 0 || n >= MAX_PATH - 2) {
+        g_gameRoot[0] = 0;
+        return;
+    }
+    if (g_gameRoot[n - 1] != '\\') strcat_s(g_gameRoot, "\\");
+    settings_file::AddReadFilter(&RedirectedPath);
+    Log("game paths redirected to %s (the settings file's)", g_gameRoot);
+}
 
-// Called by the host once ei_hook.dll is loaded, with the game's arguments (what followed "--" on the host's
-// command line, as typed). `run` 0: run the start-up actions and route the image's calls, then return (0 when all of
-// it is right). `run` 1: then run WinMain.
-extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const char* arguments) {
-    using namespace ei;
+} // namespace
+
+// The game folder is the working directory: the game's paths (Work path and CD-ROM Path ".\", ".\res\", the saves) and
+// game.exe's DLL imports (image_imports.cpp) are found there. ei_launch starts the exe in the data folder it names
+// (EI_GAME_ROOT); otherwise the exe is the drop-in one in the game folder, started from anywhere (a shortcut's
+// "Start in", a shell in another folder): its own folder. Runs first in the image's static initialisation
+// (image_data.cpp's mover).
+void EnterGameFolder() {
+    if (GetEnvironmentVariableA("EI_GAME_ROOT", nullptr, 0) != 0) return;
+    char self[MAX_PATH];
+    const DWORD n = GetModuleFileNameA(nullptr, self, MAX_PATH);
+    if (n == 0 || n >= MAX_PATH) return;
+    if (char* slash = std::strrchr(self, '\\')) *slash = 0;
+    if (!SetCurrentDirectoryA(self)) Log("standalone: cannot enter the exe's folder %s (error %lu)", self, GetLastError());
+}
+
+// Called by the exe's main with the game's arguments (what followed "--" on its command line, as typed). `run`
+// false: run the start-up actions and route the image's calls, then return (0 when all of it is right). `run` true:
+// then run WinMain.
+int StandaloneMain(bool run, const char* arguments) {
     g_arguments = arguments ? arguments : "";
+    Log("ei_standalone started, pid %lu", GetCurrentProcessId());
+    RedirectSettingsPaths();
     SetProcessDPIAware();
     // The missing-code report first: the start-up actions run before WinMain (WideScreen's parses its resolution),
     // so a jump into game.exe's code there is named too, not a silent end.
@@ -164,14 +195,15 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
         return 1;
     }
     // As the CRT's start-up: the static initialisers, WinMain, then exit with its result (the CRT's exit runs the
-    // functions the initialisers registered with atexit). The multibyte code page (__initmbctable, the C
-    // initialiser) is the host CRT's, set at its own start-up; here a single-byte one, so the host's _splitpath
-    // sees no lead bytes whatever the system's ANSI code page (the text is UTF-8).
+    // functions the initialisers registered with atexit). The multibyte code page (__initmbctable, game.exe's C
+    // initialiser) is the CRT's, set at its own start-up; here a single-byte one, so _splitpath sees no lead bytes
+    // whatever the system's ANSI code page (the text is UTF-8).
     _setmbcp(_MB_CP_SBCS);
     InstallProfiler();   // EI_PROFILE=1: samples this thread from the start-up on
     render::PrepareDevice();   // the renderer's device made while the game starts up
     static_init::RunStaticInitialisers();
     const int result = app::GameMain(GetModuleHandleA(nullptr), nullptr, g_arguments.data(), SW_SHOWNORMAL);
     std::exit(result);
-    return result;
 }
+
+} // namespace ei

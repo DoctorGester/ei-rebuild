@@ -5,7 +5,7 @@ usage: python tools/profile_report.py <run folder> [--top N] [--min-ms MS]
 The run folder holds profile.txt and ei_hook.log. The run is cut at the harness steps in the log;
 for every stretch of at least --min-ms the report lists where the main thread was (self: the
 function it was in; total: functions anywhere on its stack, scanned, so a stale return address can
-add a little). game.exe names come from config/functions.csv, ei_hook's from its .map file,
+add a little). game.exe names come from config/functions.csv, ours (ei_standalone.exe, ei_harness.dll) from its .map file,
 other modules show by name only.
 """
 import argparse
@@ -17,6 +17,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OWN_MODULES = ('ei_standalone.exe', 'ei_harness.dll')   # our code: the image's exe, the harness in game.exe
 
 
 def ms_of_day(stamp):
@@ -41,7 +42,7 @@ class Symbols:
                     self.own.append((int(m.group(2), 16), self.pretty(m.group(1))))
         self.own.sort()
         self.own_starts = [a for a, _ in self.own]
-        self.own_base = next((b for b, s, n in self.modules if n.lower().endswith('ei_hook.dll')), None)
+        self.own_base = next((b for b, s, n in self.modules if os.path.basename(n).lower() in OWN_MODULES), None)
         self.preferred = preferred
         self.cache = {}
 
@@ -96,7 +97,8 @@ def main():
         elif line.startswith('T '):
             start = ms_of_day(line.split()[1])
     build = os.path.dirname(os.path.dirname(os.path.abspath(args.run)))
-    symbols = Symbols(modules, os.path.join(build, 'ei_hook.map'))
+    own = next((os.path.basename(n) for b, s, n in modules if os.path.basename(n).lower() in OWN_MODULES), 'ei_standalone.exe')
+    symbols = Symbols(modules, os.path.join(build, os.path.splitext(own)[0] + '.map'))
     # The harness steps, as times since the profile started.
     marks = [(0.0, 'start (WinMain)')]
     for line in open(os.path.join(args.run, 'ei_hook.log'), encoding='latin-1'):
