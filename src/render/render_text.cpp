@@ -448,12 +448,15 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
         LineMaker::Line line = maker.Next(at, rectWidth);
         int width = maker.Width(line.begin, line.end);
         // DT_END_ELLIPSIS: a line wider than the rectangle loses characters from its end until it fits with "..."
-        // after it.
+        // after it (the fit measured without the kerning between the last character kept and the dots, which the
+        // drawing has: DrawText draws the shortened text whole).
         bool ellipsis = false;
+        int dotsKerning = 0;
         if ((format & kEndEllipsis) && width > rectWidth) {
             const int dots = EllipsisWidth(font);
             while (line.end > line.begin && maker.Width(line.begin, line.end) + dots > rectWidth) --line.end;
-            width = maker.Width(line.begin, line.end) + dots;
+            if (line.end > line.begin) dotsKerning = font.Kerning(text[line.end - 1], U'.');
+            width = maker.Width(line.begin, line.end) + dotsKerning + dots;
             ellipsis = true;
         }
         widest = std::max(widest, width);
@@ -491,6 +494,7 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
                     underlineWidth = advance;
                 });
             flush();
+            lineEnd += dotsKerning;
             for (int dot = 0; ellipsis && dot < 3; ++dot) {
                 place(U'.', lineEnd);
                 lineEnd += font.Advance(U'.') + (dot < 2 ? font.Kerning(U'.', U'.') : 0);

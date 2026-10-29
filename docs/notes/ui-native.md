@@ -668,6 +668,10 @@ cases in tools/text_check check each of them):
   is empty; with DT_VCENTER its top is the rectangle's top plus half the room left (height less the line's), rounded
   towards zero, also when the room is negative. DT_VCENTER's return value and DT_CALCRECT's bottom count from the
   rectangle's top to the line's bottom.
+- DT_END_ELLIPSIS (P8): a line wider than the rectangle loses characters from its end until its width plus "..."'s
+  (three dots' advances and their kerning) is at most the rectangle's; the dots are drawn after it, kerned with the
+  last character kept (DrawText draws the shortened text whole, but leaves that pair out of the fit). `ei_text_check
+  --gdi` font 0: every layout and every game string's pixels the same as DrawText's.
 - Drawing stops after the first line whose bottom is below the rectangle (unless DT_NOCLIP); the
   return value is the height of the lines drawn (one line more when it stopped early and the
   text ends with a line break). DT_CALCRECT lays out every line, returns their height and sets right = left +
