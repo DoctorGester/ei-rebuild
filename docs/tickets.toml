@@ -2388,6 +2388,13 @@ title = "Original suite: info.sav's save time follows the machine's current dayl
 group = "harness"
 note = "Found by C18 (2026-10-27): the --no-hooks suite (fresh, harness headers changed) gives 96 golden differences, all info.sav's last dword (rest): 0x3ABF2130 in the run vs 0x3ABF1320 in the goldens, exactly 3600 s. The harness's FixedTime gives 2001-03-26 12:00 local; the conversion to a time_t in game.exe takes the current daylight bias (FileTimeToLocalFileTime / LocalFileTimeToFileTime use the bias in force now, not the date's), and the machine left summer time on 2026-10-25 (goldens recorded 2026-10-22). The image suite gives the golden value. Fix in the harness (fix the bias, e.g. patch GetTimeZoneInformation / the conversion slot in game.exe runs as FixedTime does) or make golden.py ignore the field; no re-record."
 
+[[ticket]]
+id = "H31"
+title = "Standalone runs at 1280x720 by default"
+group = "harness"
+model = "opus"
+note = "User 2026-10-29: try it. Our runs no longer compare frames with the original's (samecapture and uiboth compare within a run); only the WideScreen scenarios' references (recorded from addon at the desktop's 4K) need the desktop's size. Make the image's runs answer VideoResolution 1280x720 (windowed, no display mode change) unless the scenario says 'resolution', and keep the WideScreen scenarios at desktop. The original's --no-hooks references stay at the desktop. Then run the golden suite: list every golden that moves and why (screen-size-dependent logic: culling, on-screen checks, click positions); fix scenario coordinates that assumed 4K, and report any game logic that depends on the screen size before changing a golden. Retune frame thresholds that were measured at 4K (renderer scenarios, ui_compare). Report capture size and suite wall time before and after."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
