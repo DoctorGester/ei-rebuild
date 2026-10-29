@@ -71,7 +71,7 @@ void CWorld::Create() {
     ShareAssignOwned(worldHandle, new WorldHandle());
     g_random.Init();
     g_clientRandom.InitFrom(g_random);
-    countdowns.clear();
+    countdowns.entries.clear();
 }
 
 CWorld::CWorld() {

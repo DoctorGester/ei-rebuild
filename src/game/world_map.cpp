@@ -114,7 +114,7 @@ int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream*
 void WorldServer::ResetZone() {
     sharedObjects.clear();
     mobFiles.clear();
-    countdowns.clear();
+    countdowns.entries.clear();
     exits.clear();
     ScriptReset(MainScript());
     ScriptReset(SecondScript());

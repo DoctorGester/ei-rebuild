@@ -126,7 +126,7 @@ void WorldServer::ClearMapObjects() {
 
     ReleaseAndClear(counted);
 
-    countdowns.clear();
+    countdowns.entries.clear();
 }
 
 void WorldServer::SaveMapObjects(ByteStream* out) {
