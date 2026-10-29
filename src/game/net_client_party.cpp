@@ -32,8 +32,8 @@ std::vector<HeldRef<CRefObject>>::iterator FindSameMessage(std::vector<HeldRef<C
         CMemoryStream* element = StreamOf(first->Get());
         std::uint32_t size = element->Size();
         if (stream->Size() != size) continue;
-        const void* a = element->data_;
-        const void* b = message->stream_.data_;
+        const void* a = element->data_.data();
+        const void* b = message->stream_.data_.data();
         if (std::memcmp(a, b, stream->Size()) == 0) break;
     }
     return first;

@@ -104,7 +104,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         int levelHeight = x87::fistp(h);
         for (int y = oy0; y <= oy1; ++y)
             for (int x = ox0; x <= ox1; ++x) {
-                std::int8_t* row = marks.rows[y];
+                std::int8_t* row = marks[y];
                 row[x] = static_cast<std::int8_t>(CellMark(&scratch, level, levelHeight, x, y));
             }
         int shift = level * 4;
@@ -112,7 +112,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         for (int y = iy0; y <= iy1; ++y)
             for (int x = ix0; x <= ix1; ++x) {
                 CellWord(this, x, y) &= keep;
-                int mark = marks.rows[y][x];
+                int mark = marks[y][x];
                 CellWord(this, x, y) |= static_cast<std::uint32_t>(mark << shift);
             }
         const std::vector<AreaOffset>& areas = areaLists[AreaList(level)];
@@ -287,5 +287,5 @@ void CAIMap::ClearUnmarkedArea(int level, int dx, int dy, int x0, int x1, int y0
     std::uint32_t keep = ~(0xFu << ((level * 4) & 31));
     for (int y = y0; y <= y1; ++y)
         for (int x = x0; x <= x1; ++x)
-            if (marks.rows[y + dy][x + dx] == 0) cells[y][x].passable &= keep;
+            if (marks[y + dy][x + dx] == 0) cells[y][x].passable &= keep;
 }

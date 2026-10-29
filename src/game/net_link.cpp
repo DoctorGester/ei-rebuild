@@ -114,12 +114,12 @@ void NetLink::CloseRecording() {
 LoopbackLink::LoopbackLink() = default;
 
 // The game's queue copy is kept: each copy is a new stream of the source's size whose Read takes the source's
-// buffer, so the new stream's fresh bytes are read into the source (both then hold them).
+// buffer, so the new stream's fresh bytes (zeros here) are read into the source (both then hold them).
 LoopbackLink::LoopbackLink(const LoopbackLink& other) : NetLink(other) {
     for (const CMemoryStream& source : other.queue_) {
         CMemoryStream& copy = queue_.emplace_back();
         copy.SetSize(source.size_);
-        copy.Read(source.data_, copy.size_);
+        copy.Read(const_cast<std::uint8_t*>(source.data_.data()), copy.size_);
     }
     peer_.Assign(other.peer_);
 }
@@ -195,11 +195,11 @@ void LoopbackLink::Disconnect() {
 FramedLink::FramedLink() {}
 
 // The original reads the copy's new buffer (never written) into the source's inbox instead of the other way
-// round: the copy's bytes are whatever the allocation held and the source's are overwritten with them. Kept.
+// round: the copy's bytes are whatever the allocation held (zeros here) and the source's are overwritten with them. Kept.
 FramedLink::FramedLink(const FramedLink& other) : NetLink(other) {
     inbox_.SetSize(other.inbox_.size_);
     CStream* stream = &inbox_;
-    stream->Read(other.inbox_.data_, inbox_.size_);
+    stream->Read(const_cast<std::uint8_t*>(other.inbox_.data_.data()), inbox_.size_);
 }
 
 FramedLink::~FramedLink() {}
@@ -216,7 +216,7 @@ void FramedLink::TakeAll(CStream* out) {
     out->Clear();
     CStream* inbox = &inbox_;
     if (inbox->Size() == 0) return;
-    const void* data = inbox_.data_;
+    const void* data = inbox_.data_.data();
     std::uint32_t size = inbox->Size();
     out->Write(data, size);
     inbox->Clear();
@@ -279,9 +279,9 @@ bool FramedLink::Receive(CMemoryStream* stream) {
     inbox->ReadValue(length);
     if (inbox->Size() < length + 4) return false;
     stream->Resize(length);
-    inbox->Read(stream->data_, length);
+    inbox->Read(stream->data_.data(), length);
     std::uint32_t rest = inbox->Size() - 4 - length;
-    std::uint8_t* data = inbox_.data_;
+    std::uint8_t* data = inbox_.data_.data();
     std::memmove(data, data + length + 4, rest);
     inbox_.Resize(rest);
     return true;
@@ -306,7 +306,7 @@ void DriverLink::Disconnect() {
         CStream* stream = &pending;
         stream->Write(player_.Get()->reliableIn_.begin, count);
         player_.Get()->reliableIn_.Seek(0);
-        BufferPut(&player_.Get()->reliableIn_, pending.data_, pending.size_);
+        BufferPut(&player_.Get()->reliableIn_, pending.data_.data(), pending.size_);
     }
     player_.Reset();
 }

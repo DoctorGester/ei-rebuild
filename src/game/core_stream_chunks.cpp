@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 bool CStream::ReadTagged(std::uint32_t* tag, CStream* out) {
     std::uint32_t size = 0;
@@ -14,14 +15,10 @@ bool CStream::ReadTagged(std::uint32_t* tag, CStream* out) {
     size -= 8;
     out->Clear();
     out->reading_ = 0;
-    auto* block = new std::uint8_t[size];
-    if (Read(block, size) != size) {
-        delete[] block;
-        return false;
-    }
-    out->Write(block, size);
+    std::vector<std::uint8_t> block(size);
+    if (Read(block.data(), size) != size) return false;
+    out->Write(block.data(), size);
     out->Seek(0);
-    delete[] block;
     return true;
 }
 

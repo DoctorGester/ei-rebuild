@@ -36,7 +36,7 @@ std::uint32_t BufferLength(GameBuffer& b) {
 // `out`'s (Resize, Seek 0, Write, Seek 0). The view is destroyed (its base vtable) before the buffer.
 void CodeStream(CMemoryStream* self, CoderState* coder, CMemoryStream* out, void (CoderState::*code)(GameBuffer*, GameBuffer*)) {
     GrowingBuffer result;
-    std::uint8_t* data = self->data_;
+    std::uint8_t* data = self->data_.data();
     std::uint8_t* last = data + self->Size();
     BufferView view(data, last);
     (coder->*code)(&view, &result);
@@ -107,7 +107,7 @@ void RebuildHeader(DeltaState* state, int channel, std::uint16_t mask) {
         CMemoryStream& out = state->fields_[i].out[channel];
         header.EndBits();
         out.Seek(0);
-        const std::uint8_t* data = out.data_;
+        const std::uint8_t* data = out.data_.data();
         header.Write(data, out.Size());
     }
 }
@@ -140,7 +140,7 @@ void CMemoryStream::WriteStream(CMemoryStream* from) {
         header |= 1;
         WriteValue(header);
     }
-    std::uint8_t* data = from->data_;
+    std::uint8_t* data = from->data_.data();
     Write(data, from->Size());
 }
 
@@ -151,7 +151,7 @@ int CMemoryStream::ReadStream(CMemoryStream* to) {
     length >>= 1;
     if (length > kMaxStreamLength) return 0;
     to->SetSize(length);
-    if (Read(to->data_, length) != length) return 0;
+    if (Read(to->data_.data(), length) != length) return 0;
     to->Seek(0);
     to->ok_ = 1;
     return 1;
@@ -219,7 +219,7 @@ void WriteDeltaChannel(CMemoryStream* snapshot, const void* data, std::uint32_t 
         snapshot->Write(data, size);
         return;
     }
-    std::uint8_t* buffer = snapshot->data_;
+    std::uint8_t* buffer = snapshot->data_.data();
     std::uint8_t* current = buffer + snapshot->Position();
     WriteDiff(current, bytes, size, out);
     if (keepSnapshot) std::memcpy(current, data, size);
@@ -263,7 +263,7 @@ void DeltaField::WriteDelta(const void* data, std::uint32_t size) {
 void DeltaField::ReadDelta(void* data, std::uint32_t size) {
     std::uint32_t position = delta::g_readSnapshot->Position();
     CMemoryStream* reader = delta::g_received;
-    const std::uint8_t* current = delta::g_readSnapshot->data_ + position;
+    const std::uint8_t* current = delta::g_readSnapshot->data_.data() + position;
     auto* p = static_cast<std::uint8_t*>(data);
     if (reader->GetBit()) {
         std::memcpy(p, current, size);
@@ -365,7 +365,7 @@ void DeltaField::WritePosition2D(const float* position) {
 std::uint16_t DeltaField::ReadWord() {
     std::uint32_t at = delta::g_readSnapshot->Position();
     CMemoryStream* reader = delta::g_received;
-    const std::uint8_t* current = delta::g_readSnapshot->data_ + at;
+    const std::uint8_t* current = delta::g_readSnapshot->data_.data() + at;
     std::uint16_t q;
     if (reader->GetBit()) {
         std::memcpy(&q, current, 2);
@@ -385,7 +385,7 @@ void DeltaField::ReadPosition(Vector3* position) {
     std::uint32_t at = delta::g_readSnapshot->Position();
     CMemoryStream* reader = delta::g_received;
     std::uint16_t q;
-    if (delta::ReadDiff(delta::g_readSnapshot->data_ + at, &q, 2, reader)) {
+    if (delta::ReadDiff(delta::g_readSnapshot->data_.data() + at, &q, 2, reader)) {
         snapshot[1].Seek(at);
         snapshot[1].WriteValue(q);
     }

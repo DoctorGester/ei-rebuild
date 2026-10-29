@@ -1,6 +1,5 @@
 // CRegionMap::ReachesRegion and LabelRegions, and the region map's block grids. See ai_map.h and
 // docs/notes/ai.md ("Regions").
-#include "ai_grids.h"
 #include "ai_map.h"
 #include "core_streams.h"
 
@@ -14,6 +13,8 @@
 namespace {
 
 constexpr int kUnreached = 0x7FFFFFFF;
+constexpr std::int16_t kNoWay = -1;     // an edge word no path crosses
+constexpr int kEdgesPerBlock = 8;       // the edge words of a block, one per direction
 
 // The block grid's size: the first size class's edge grid.
 int BlocksWide(const CRegionMap* map) { return map->edges[0].width; }
@@ -41,7 +42,7 @@ void PrepareSearch(BlockSearch& search, int sizeClass) {
     search.best = nullptr;
 }
 void Exclude(BlockSearch& search, int x, int y) {
-    BlockRecord* record = &search.records.rows[y][x];
+    BlockRecord* record = &search.records[y][x];
     if (record->cost < kUnreached) return;
     record->cost = -1;
     record->next = search.touched;
@@ -75,7 +76,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
         }
     }
 
-    std::uint16_t** regionRows = regions[sizeClass].rows;
+    SearchGrid<std::uint16_t>& regionRows = regions[sizeClass];
     auto inRegion = [&](int xx, int yy) {
         return regionRows[yy][xx] == static_cast<std::uint16_t>(region);
     };
@@ -87,7 +88,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
         }
     if (!any) {
         for (int row = by * 8; row < by * 8 + 8; ++row)
-            for (int col = bx * 8; col < bx * 8 + 8; ++col) marks->rows[row][col] = 2;
+            for (int col = bx * 8; col < bx * 8 + 8; ++col) (*marks)[row][col] = 2;
         return false;
     }
 
@@ -99,7 +100,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     search->ExpandAll();
     search->RestoreLevels();
 
-    std::uint8_t** cellRows = cells[sizeClass].rows;
+    SearchGrid<std::uint8_t>& cellRows = cells[sizeClass];
     bool found = false;
     for (int k = 0; k < std::ssize(blocks); ++k) {
         int xx = blocks[k].x, yy = blocks[k].y;
@@ -112,7 +113,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     std::uint8_t mark = found ? 1 : 2;
     for (int row = y0; row < y1; ++row)
         for (int col = x0; col < x1; ++col)
-            if (search->CostAt(col, row) < kUnreached) marks->rows[row][col] = static_cast<std::int8_t>(mark);
+            if (search->CostAt(col, row) < kUnreached) (*marks)[row][col] = static_cast<std::int8_t>(mark);
     search->Reset();
     return found;
 }
@@ -122,12 +123,12 @@ void CRegionMap::LabelRegions() {
     std::vector<BlockPoint> second;
     for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {
         SearchGrid<std::uint16_t>& grid = regions[sizeClass];
-        std::memset(grid.data, 0, static_cast<std::size_t>(grid.height * grid.width * 2));
+        grid.data.assign(grid.data.size(), 0);
         int label = 1;
         for (int by = 0; by < BlocksHigh(this); ++by)
             for (int bx = 0; bx < BlocksWide(this); ++bx) {
-                if (grid.rows[by][bx] != 0) continue;
-                grid.rows[by][bx] = static_cast<std::uint16_t>(label);
+                if (grid[by][bx] != 0) continue;
+                grid[by][bx] = static_cast<std::uint16_t>(label);
                 int n = std::ssize(queue);
                 queue.resize(n + 1);
                 queue[n].x = bx;
@@ -152,7 +153,7 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, std::list<
     search->SaveLevels();
     search->ExpandAll();
     search->RestoreLevels();
-    std::uint8_t** cellRows = cells[sizeClass].rows;
+    SearchGrid<std::uint8_t>& cellRows = cells[sizeClass];
     for (int yy = by - 1; yy < by + 2; ++yy) {
         if (yy < 0 || yy >= BlocksHigh(this)) continue;
         for (int xx = bx - 1; xx < bx + 2; ++xx) {
@@ -175,16 +176,16 @@ void CRegionMap::ClampEdgeCosts() {
     // No way out of the map: the directions leaving the first and last column and row are -1.
     for (int by = 0; by < BlocksHigh(this); ++by)
         for (int c = 0; c < 8; ++c) {
-            std::int16_t* row = grid(c).rows[by];
+            std::int16_t* row = grid(c)[by];
             row[1] = row[2] = row[3] = -1;
             std::int16_t* last = row + grid(c).width * 8 - 8;
             last[5] = last[6] = last[7] = -1;
         }
     for (int bx = 0; bx < BlocksWide(this); ++bx)
         for (int c = 0; c < 8; ++c) {
-            std::int16_t* first = grid(c).rows[0] + bx * 8;
+            std::int16_t* first = grid(c)[0] + bx * 8;
             first[7] = first[0] = first[1] = -1;
-            std::int16_t* last = grid(c).rows[grid(c).height - 1] + bx * 8;
+            std::int16_t* last = grid(c)[grid(c).height - 1] + bx * 8;
             last[3] = last[4] = last[5] = -1;
         }
     // Each edge between neighbouring blocks takes the smaller of its two directions.
@@ -195,8 +196,8 @@ void CRegionMap::ClampEdgeCosts() {
                 if (nx < 0 || ny < 0 || nx >= BlocksWide(this) || ny >= BlocksHigh(this)) continue;
                 int opposite = (dir - 4) & 7;
                 for (int c = 0; c < 8; ++c) {
-                    std::int16_t& a = grid(c).rows[by][bx * 8 + dir];
-                    std::int16_t& b = grid(c).rows[ny][nx * 8 + opposite];
+                    std::int16_t& a = grid(c)[by][bx * 8 + dir];
+                    std::int16_t& b = grid(c)[ny][nx * 8 + opposite];
                     std::int16_t m = a < b ? a : b;
                     a = m;
                     b = m;
@@ -214,13 +215,13 @@ bool CRegionMap::LoadBlocks(CStream* stream) {
         SearchGrid<std::int16_t>& edgeGrid = edges[c];
         SearchGrid<std::uint8_t>& cellGrid = cells[c];
         SearchGrid<std::uint16_t>& regionGrid = regions[c];
-        ResizeGrid(edgeGrid, width, height, &AllocateEdgeGrid);
-        ResizeGrid(cellGrid, width, height, &AllocateZeroedByteGrid);
-        ResizeGrid(regionGrid, width, height);
+        edgeGrid.Resize(width, height, kNoWay, kEdgesPerBlock);
+        cellGrid.Resize(width, height);
+        regionGrid.Resize(width, height);
         for (int y = 0; y < BlocksHigh(this); ++y) {
-            read(edgeGrid.rows[y], width * 16);
-            read(cellGrid.rows[y], width);
-            read(regionGrid.rows[y], width * 2);
+            read(edgeGrid[y], width * 16);
+            read(cellGrid[y], width);
+            read(regionGrid[y], width * 2);
         }
     }
     forward.Attach(this, false);
@@ -237,16 +238,16 @@ void CRegionMap::SaveBlocks(CStream* stream) {
     auto rowBytes = static_cast<std::uint32_t>(width);
     for (int c = 0; c < 8; ++c) {
         for (int y = 0; y < BlocksHigh(this); ++y) {
-            stream->Write(edges[c].rows[y], rowBytes * 16);
-            stream->Write(cells[c].rows[y], rowBytes);
-            stream->Write(regions[c].rows[y], rowBytes * 2);
+            stream->Write(edges[c][y], rowBytes * 16);
+            stream->Write(cells[c][y], rowBytes);
+            stream->Write(regions[c][y], rowBytes * 2);
         }
     }
 }
 
 void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
     for (int c = 0; c < 8; ++c) {
-        std::uint8_t& cell = cells[c].rows[by][bx];
+        std::uint8_t& cell = cells[c][by][bx];
         // (3, 3); the original sets only x's two low bits.
         cell = WithRepresentativeX(cell, RepresentativeX(cell) | 3);
         cell = WithRepresentativeY(cell, 3);
@@ -299,7 +300,7 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     std::uint16_t seen[9];
     int counts[9];
     int distinct = 0;
-    std::uint16_t** rows = regions[sizeClass].rows;
+    SearchGrid<std::uint16_t>& rows = regions[sizeClass];
     for (auto& n : blocks) {
         std::uint16_t region = rows[n.y][n.x];
         int i = 0;
@@ -324,7 +325,7 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
 
 bool CRegionMap::JoinBlockSearches(PathCells* chain) {
     auto meets = [](BlockSearch& other, int x, int y) {
-        const BlockRecord& r = other.records.rows[y][x];
+        const BlockRecord& r = other.records[y][x];
         return r.settled && r.cost < kUnreached;
     };
     bool ok = true;
@@ -372,7 +373,7 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCells* 
         return c;
     };
     // Walk back along the stored directions (1..8; 0 ends), each cell added at the head.
-    while (int dir = search.records.rows[y][x].backDirection) {
+    while (int dir = search.records[y][x].backDirection) {
         path->push_front(cellAt(x, y));
         switch (dir) {
         case 1: --y; break;
@@ -394,8 +395,8 @@ void CRegionMap::MeasureBlockEdges(int bx, int by) {
     const int* dy = StepY();
     LocalSearch* search = &local;
     for (int c = 0; c < 8; ++c) {
-        std::uint8_t** cellRows = cells[c].rows;
-        std::int16_t** edgeRows = edges[c].rows;
+        SearchGrid<std::uint8_t>& cellRows = cells[c];
+        SearchGrid<std::int16_t>& edgeRows = edges[c];
         std::uint8_t own = cellRows[by][bx];
         local.backward = false;
         search->BeginInRectForClass(c, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, RepresentativeX(own) + bx * 8,
@@ -425,27 +426,18 @@ void CRegionMap::Attach(CAIMap* map) {
     local.Attach(map, false);
     int width = map->cells.width / 8, height = map->cells.height / 8;
     for (int c = 0; c < 8; ++c) {
-        ResizeGrid(edges[c], width, height, &AllocateEdgeGrid);
-        ResizeGrid(cells[c], width, height, &AllocateZeroedByteGrid);
-        // The region grid's allocation is inlined here: u16 per block, rows of `width`.
-        SearchGrid<std::uint16_t>& grid = regions[c];
-        if (grid.width == width && grid.height == height) continue;
-        FreeGrid(grid);
-        grid.width = width;
-        grid.height = height;
-        auto* data = new std::uint16_t[static_cast<std::size_t>(height * width)];
-        grid.data = data;
-        grid.rows = new std::uint16_t*[static_cast<std::size_t>(grid.height)];
-        for (int y = 0; y < grid.height; ++y) grid.rows[y] = data + grid.width * y;
+        edges[c].Resize(width, height, kNoWay, kEdgesPerBlock);
+        cells[c].Resize(width, height);
+        regions[c].Resize(width, height);
     }
     forward.Attach(this, false);
     backward.Attach(this, true);
 }
 
 CRegionMap::CRegionMap() {
-    for (SearchGrid<std::int16_t>& grid : edges) ResizeGrid(grid, 1, 1, &AllocateEdgeGrid);
-    for (SearchGrid<std::uint8_t>& grid : cells) ResizeGrid(grid, 1, 1, &AllocateZeroedByteGrid);
-    for (SearchGrid<std::uint16_t>& grid : regions) ResizeGrid(grid, 1, 1);
+    for (SearchGrid<std::int16_t>& grid : edges) grid.Resize(1, 1, kNoWay, kEdgesPerBlock);
+    for (SearchGrid<std::uint8_t>& grid : cells) grid.Resize(1, 1);
+    for (SearchGrid<std::uint16_t>& grid : regions) grid.Resize(1, 1);
     forward.Attach(this, false);
     backward.Attach(this, true);
 }
@@ -480,8 +472,8 @@ bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy)
 void CRegionMap::FloodRegionFrom(int sizeClass, std::vector<BlockPoint>* frontier, std::vector<BlockPoint>* next, int label) {
     const int* dx = StepX();
     const int* dy = StepY();
-    std::int16_t** edgeRows = edges[sizeClass].rows;
-    std::uint16_t** regionRows = regions[sizeClass].rows;
+    SearchGrid<std::int16_t>& edgeRows = edges[sizeClass];
+    SearchGrid<std::uint16_t>& regionRows = regions[sizeClass];
     for (;;) {
         lib::FreeStorage(*next);
         // Every open edge (word >= 0) of a frontier block leads to a neighbour; an unlabelled one

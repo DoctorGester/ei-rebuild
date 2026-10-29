@@ -97,7 +97,6 @@ void CInterface3D::Create(CTextureDevice* device) {
     mouseCapture_ = nullptr;
     backdrop_ = nullptr;
     secondBackdrop_ = nullptr;
-    screenCopy_ = nullptr;
     backdropMode_ = 0;
     closeAll_ = false;
     queuedWindow_ = nullptr;

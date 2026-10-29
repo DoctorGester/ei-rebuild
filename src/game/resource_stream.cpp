@@ -67,14 +67,8 @@ void CResourceStream::Close() {
             file_ = nullptr;
         }
     }
-    if (entries_ != nullptr) {
-        delete[] entries_;
-        entries_ = nullptr;
-    }
-    if (names_ != nullptr) {
-        delete[] names_;
-        names_ = nullptr;
-    }
+    entries_ = nullptr;
+    names_ = nullptr;
     header_ = ResHeader{};
     if (archive_ != nullptr) {
         gameapi::mmioClose(static_cast<HMMIO>(archive_), 0);

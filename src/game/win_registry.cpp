@@ -10,6 +10,7 @@
 #include <cstring>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -104,25 +105,15 @@ std::string CWinRegistry::GetStringInt(const char* subkey, const char* name, con
     char buffer[0x100];
     DWORD size = sizeof(buffer);
     DWORD type;
-    char* longValue = nullptr;
+    std::vector<char> longValue;
     LONG status = settings_file::Query(key_, subkey, name, &type, buffer, &size);
     if (status == ERROR_MORE_DATA) {
-        longValue = new char[size];
-        status = settings_file::Query(key_, subkey, name, &type, longValue, &size);
+        longValue.resize(size);
+        status = settings_file::Query(key_, subkey, name, &type, longValue.data(), &size);
     }
     if (status == 0 && type != REG_SZ) game::DebugLog("CWinRegistry::GetStringInt().\nRegistry data type is not SZ.\n");
-    if (status != 0 || type != REG_SZ) {
-        delete[] longValue;
-        return defaultValue;
-    }
-    std::string text;
-    if (longValue) {
-        text = longValue;
-        delete[] longValue;
-    } else {
-        text = buffer;
-    }
-    return text;
+    if (status != 0 || type != REG_SZ) return defaultValue;
+    return longValue.empty() ? std::string(buffer) : std::string(longValue.data());
 }
 
 std::string CWinRegistry::GetString(const char* subkey, const char* name, const std::string& defaultValue) {

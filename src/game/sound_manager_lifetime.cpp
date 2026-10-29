@@ -469,7 +469,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     gameapi::AIL_set_DirectSound_HWND(waveDriver, window);
     if (OpenStream(waveDriver) != 0)
         streamThread = lib::StartThread(StreamThreadEntry, this, kStreamThreadPriority);
-    slots = new SoundSlot[kVoiceCount];
+    slots = std::make_unique<SoundSlot[]>(kVoiceCount);
     for (int i = 0; i < kVoiceCount; ++i) {
         SoundSlot& slot = slots[i];
         slot.sample = nullptr;
@@ -505,7 +505,7 @@ void CSoundManager::Close() {
             if (slots[i].playing != 0) EndSlot(&slots[i]);
             if (slots[i].sample != nullptr) gameapi::AIL_release_sample_handle(slots[i].sample);
         }
-        delete[] slots;
+        slots.reset();
     }
     DeleteDeferred();
     while (!cacheList.empty()) {

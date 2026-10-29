@@ -25,7 +25,7 @@ the `__declspec(novtable)` classes and `...Hook` slot shims still here are C28's
 - `CBaseManager`: the whole layout named (tables each followed by their highest key), slots 13-24 virtual in order; `ObjectListIterator` lives
   here. `CResourceManager : CBaseManager` (slots 3 and 16-22 overrides; `CloseFile` returns `bool`).
 - `CStream` (all eight slots; `reading_`, `ok_`, `version_`; `Rewind()`), `CMemoryStream : CStream` (slots 1-7 overrides; `bits_`, `bitMask_`
-  (was misnamed `growBy_`: the bit writer's mask), `bitsIndex_`, `capacity_`; `Resize` / `SetSize` / `Seek` forwarders), `BitStream` = `CMemoryStream`,
+  (was misnamed `growBy_`: the bit writer's mask), `bitsIndex_`, `data_` (a `std::vector` whose size is the capacity, C58); `Resize` / `SetSize` / `Seek` forwarders), `BitStream` = `CMemoryStream`,
   `ScriptStream` and `WorldStream` = `CStream`. `Chunk` (slot 0 `OnChunk`, slot 1 `File`), `RootChunk` (`file_`, `Open`, `Destruct`),
   `ChunkArchive` laid out whole (`indexStream_`, `dataStream_`, `stack_`, `version_`, `loading_`, `objects_`, `saved_`; `ClassRegistry` at 0079B270 declared
   once). `CRefObject` slot 1 is `Serialize(ChunkArchive*)`; `PrintRecord` slot 0 `Serialize` is virtual. `CCamera` (`camera.h`) has named members for

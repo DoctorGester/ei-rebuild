@@ -191,29 +191,27 @@ void CMapObjectClientSpecific::EffectsChanged(bool first) {
 void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
     CMapObject* mapObject = CompanionOwner(this);
     // The effects, those of the merging types once each with the highest power.
-    MapEffect* wanted = nullptr;
-    int wantedCount = 0;
+    std::vector<MapEffect> wanted;
     if (std::ssize(mapObject->effects) > 0) {
-        wanted = new MapEffect[std::ssize(mapObject->effects)];
         for (int i = 0; i < std::ssize(mapObject->effects); ++i) {
             const MapEffect& effect = mapObject->effects[i];
             bool merged = false;
             if (MergesParticles(effect.Type())) {
-                for (int j = 0; j < wantedCount; ++j) {
+                for (int j = 0; j < std::ssize(wanted); ++j) {
                     if (wanted[j].type != effect.type) continue;
                     if (effect.power > wanted[j].power) wanted[j].power = effect.power;
                     merged = true;
                     break;
                 }
             }
-            if (!merged) std::memcpy(&wanted[wantedCount++], &effect, sizeof(MapEffect));
+            if (!merged) wanted.push_back(effect);
             mapObject = CompanionOwner(this);
         }
     }
 
     for (int i = 0; i < std::ssize(particles); ++i) particles[i].present = 0;
 
-    for (int w = 0; w < wantedCount; ++w) {
+    for (int w = 0; w < std::ssize(wanted); ++w) {
         SpellType type = wanted[w].Type();
         int power = wanted[w].power;
         // The same effect at the same power keeps its record.
@@ -300,8 +298,6 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         particles.erase(particles.begin() + i);
         --i;
     }
-
-    if (wanted) delete[] wanted;
 }
 
 void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {

@@ -6,7 +6,6 @@
 // GetClassId gives the recorded class (CUnit::GetMoveSpeeds is defined here and gives the recorded
 // speeds). The sector map's Add and Remove, which FindPath calls around its search, change nothing
 // here: FindPath's map was recorded with the unit already taken out.
-#include "../../src/game/ai_grids.h"
 #include "../../src/game/ai_map.h"
 #include "../../src/game/game_data.h"
 #include "../../src/game/game_singletons.h"
@@ -239,14 +238,13 @@ const SavedMap* g_mapOf = nullptr;
 
 template <typename T>
 void SizeGrid(SearchGrid<T>& grid, int width, int height, int perCell = 1) {
-    grid.width = width;
-    grid.height = height;
-    AllocateGrid(grid, perCell);
+    grid = {};
+    grid.Resize(width, height, T{}, perCell);
 }
 
 template <typename T>
 void CopyGrid(SearchGrid<T>& grid, const Grid& from) {
-    if (!from.bytes.empty()) std::memcpy(grid.data, from.bytes.data(), from.bytes.size());
+    if (!from.bytes.empty()) std::memcpy(grid.data.data(), from.bytes.data(), from.bytes.size());
 }
 
 void FillClimb(std::vector<int>& table, const std::vector<int>& values) { table.assign(values.begin(), values.end()); }
@@ -296,11 +294,11 @@ bool PrepareMap(const SavedMap& s, Reader& r) {
     const std::uint8_t planes = r.Get<std::uint8_t>();
     bool ok = r.ok() && !(planes & ~kCallAll);
     if (ok && (planes & kCallCells))
-        ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->cells.data), static_cast<std::uint32_t>(s.cells.bytes.size() / 9), 9);
+        ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->cells.data.data()), static_cast<std::uint32_t>(s.cells.bytes.size() / 9), 9);
     if (ok && (planes & kCallWater))
-        ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->waterDepth.data), static_cast<std::uint32_t>(s.water.bytes.size()), 1);
+        ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->waterDepth.data.data()), static_cast<std::uint32_t>(s.water.bytes.size()), 1);
     if (ok && (planes & kCallMarks))
-        ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->marks.data), static_cast<std::uint32_t>(s.marks.bytes.size()), 1);
+        ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->marks.data.data()), static_cast<std::uint32_t>(s.marks.bytes.size()), 1);
     if (ok && (planes & kCallRegions))
         ok = ApplyDiff(r, regions.data(), static_cast<std::uint32_t>(regions.size()), 1);
     if (!ok) return false;
@@ -311,9 +309,9 @@ bool PrepareMap(const SavedMap& s, Reader& r) {
             std::memcpy(to, regions.data() + at, size);
             at += size;
         };
-        put(rm.edges[c].data, s.edges[c].bytes.size());
-        put(rm.cells[c].data, s.representatives[c].bytes.size());
-        put(rm.regions[c].data, s.regions[c].bytes.size());
+        put(rm.edges[c].data.data(), s.edges[c].bytes.size());
+        put(rm.cells[c].data.data(), s.representatives[c].bytes.size());
+        put(rm.regions[c].data.data(), s.regions[c].bytes.size());
     }
     rm.forward.Attach(&rm, false);
     rm.backward.Attach(&rm, true);
@@ -449,7 +447,7 @@ bool Guarded(Fn& fn, char* d, std::size_t n, const char* what) {
 
 // ---- The marks -------------------------------------------------------------------------------------
 
-std::uint8_t* MarkData() { return reinterpret_cast<std::uint8_t*>(g_map->marks.data); }
+std::uint8_t* MarkData() { return reinterpret_cast<std::uint8_t*>(g_map->marks.data.data()); }
 std::uint32_t MarkCount() { return static_cast<std::uint32_t>(g_map->marks.width * g_map->marks.height); }
 
 // The marks the original left: the record's map's marks with the recorded changes.

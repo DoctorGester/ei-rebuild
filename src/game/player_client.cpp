@@ -700,6 +700,6 @@ void CPlayerClient::AppendReceived(CMemoryStream* source) {
     in_.Seek(in_.Size());
     in_.EndBits();
     source->Seek(0);
-    in_.Write(source->data_, source->Size());
+    in_.Write(source->data_.data(), source->Size());
     in_.Seek(position);
 }

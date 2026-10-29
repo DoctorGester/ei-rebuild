@@ -74,7 +74,8 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    `libcrt::SetRandObserver`), never an address. Only tests/verify's game.exe side and the vector
    recorders call game.exe's code by address (`tests/verify/harness_original.h`).
 6. **Memory and CRT:** `new T(...)` / `delete p` (the host's heap): a class built by hand on a raw block
-   gets its constructor and destructor; plain arrays are `new T[n]` / `delete[]`, a block of a byte count
+   gets its constructor and destructor; an owned array is a `std::vector<T>` (`std::unique_ptr<T[]>` where its
+   address is handed out and must not move, the sound voices), not `new T[n]` / `delete[]`; a block of a byte count
    other than its type's (a header with what follows it) `::operator new(bytes)` / `::operator delete`. An
    engine object whose constructor leaves fields the game reads is `new (kZeroed) T(...)` (engine_object.h).
    A heap helper the original freed by hand that becomes a local with a destructor (PlayerIterator drops its

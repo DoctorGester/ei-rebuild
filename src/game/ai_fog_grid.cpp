@@ -1,6 +1,6 @@
 // FogGrid (effects.h): the squares a seer sees, rows of bytes (Clear, Read, Write); used by
 // CEffectShowVisibility (world_effect_visibility.cpp). See docs/notes/world.md.
-#include "ai_grids.h"
+#include "ai_map.h"
 #include "effects.h"
 
 #include "core_streams.h"
@@ -13,23 +13,13 @@ namespace {
 
 constexpr int kNoOrigin = 0x7FFFFFFF;
 
-// The cells and the row table freed and made again for `width` x `height` (not cleared).
-void Reallocate(SearchGrid<std::uint8_t>* grid, int width, int height) {
-    FreeGrid(*grid);
-    grid->width = width;
-    grid->height = height;
-    grid->data = new std::uint8_t[static_cast<std::size_t>(width * height)];
-    grid->rows = new std::uint8_t*[static_cast<std::size_t>(grid->height)];
-    for (int row = 0; row < grid->height; ++row) grid->rows[row] = grid->data + grid->width * row;
-}
-
 } // namespace
 
 void FogGrid::Clear() {
     x0 = kNoOrigin;
     y0 = kNoOrigin;
-    if (cells.width != 1 || cells.height != 1) Reallocate(&cells, 1, 1);
-    std::memset(cells.data, 0, static_cast<std::size_t>(cells.height * cells.width));
+    cells.Resize(1, 1);
+    cells.data.assign(cells.data.size(), 0);
 }
 
 void FogGrid::Read(CMemoryStream* stream) {
@@ -40,8 +30,8 @@ void FogGrid::Read(CMemoryStream* stream) {
     int newHeight = 0;
     stream->ReadValue(newWidth);
     stream->ReadValue(newHeight);
-    if (cells.width != newWidth || cells.height != newHeight) Reallocate(&cells, newWidth, newHeight);
-    stream->Read(cells.data, static_cast<std::uint32_t>(newHeight * newWidth));
+    cells.Resize(newWidth, newHeight);
+    stream->Read(cells.data.data(), static_cast<std::uint32_t>(newHeight * newWidth));
 }
 
 void FogGrid::Write(CMemoryStream* stream) {
@@ -55,5 +45,5 @@ void FogGrid::Write(CMemoryStream* stream) {
     stream->WriteValue(value);
     value = h;
     stream->WriteValue(value);
-    stream->Write(cells.data, static_cast<std::uint32_t>(h * w));
+    stream->Write(cells.data.data(), static_cast<std::uint32_t>(h * w));
 }

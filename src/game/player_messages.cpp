@@ -342,6 +342,6 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const 
     out_.EndBits();
     CMemoryStream& written = field.out[0];
     written.Seek(0);
-    std::uint8_t* data = written.data_;
+    std::uint8_t* data = written.data_.data();
     out_.Write(data, written.Size());
 }

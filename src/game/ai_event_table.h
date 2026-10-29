@@ -10,6 +10,7 @@
 #include <cstdint>
 
 #include <list>
+#include <vector>
 
 struct AIEventPresence;
 struct AIMemory;
@@ -82,9 +83,9 @@ extern AIEvent* g_freeEvents;
 // The world's AI events (its viewer part makes the noises): a time wheel of 1024 ticks x 16 sides and a grid of 8 x 8
 // cells (rows of width cells). Its tick is the viewer's `tick` (Advance sets it).
 struct AIEventTable : AIViewer {
-    // A 1 x 1 grid, then Clear.
+    // Clear (a 1 x 1 grid).
     AIEventTable();
-    // Every event of the wheel goes to the free list; the grid is freed.
+    // Every event of the wheel goes to the free list.
     ~AIEventTable();
     AIEventTable(const AIEventTable&) = delete;
     AIEventTable& operator=(const AIEventTable&) = delete;
@@ -100,21 +101,19 @@ struct AIEventTable : AIViewer {
     // payload, source, side), then byte 0.
     void Load(CStream* stream);
     void Save(CStream* stream);
-    // Tick -1, the wheel emptied (its events are not freed), the grid back to 1 x 1 (reallocated unless it
-    // is) and its cell emptied.
+    // Tick -1, the wheel emptied (its events are not freed), the grid back to 1 x 1 and its cell emptied.
     void Clear();
     // The table for a map of sizeX x sizeY: Clear, the map kept, the grid 1 - trunc(size * -0.125) cells each
-    // way (reallocated unless it has that size) and emptied. Then the 4096 bytes of "normal.dat" in the text
+    // way, emptied. Then the 4096 bytes of "normal.dat" in the text
     // resources' "aiinfo.res" are copied. Returns 1; a missing archive or file is a fatal error, whose result
     // is returned.
     int Setup(CAIMap* aiMap, float sizeX, float sizeY);
 
-    AIEventCell* CellOf(const AIEvent* event) const;
+    AIEventCell* CellOf(const AIEvent* event);
     void Free(AIEvent* event, int side);
 
     AIEvent* slots[0x400][16];      // by tick & 0x3FF, then side
-    AIEventCell* cells = nullptr;   // the grid's block
-    AIEventCell** rows = nullptr;   // the grid rows (each `width` cells)
-    int width = 1;
-    int height = 1;
+    std::vector<AIEventCell> cells; // the grid, rows of `width` cells
+    int width = 0;
+    int height = 0;
 };

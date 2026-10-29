@@ -18,11 +18,10 @@ void CUiSurface::CaptureScreen() {
 
 // The original stretched the surface into a new surface of the wanted size, then packed it pixel by pixel;
 // the GPU does both and only the picture is read back.
-std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
-    if (!holder_) return nullptr;
-    int count = static_cast<int>(static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height));
-    auto* pixels = new std::uint16_t[static_cast<std::size_t>(count)]();
-    render::ui::ReadRgb565(holder_, width, height, pixels);
+std::vector<std::uint16_t> CUiSurface::Rgb565Copy(int width, int height) {
+    if (!holder_) return {};
+    std::vector<std::uint16_t> pixels(static_cast<std::size_t>(static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height)));
+    render::ui::ReadRgb565(holder_, width, height, pixels.data());
     return pixels;
 }
 

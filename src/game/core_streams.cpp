@@ -46,21 +46,17 @@ void CStream::WriteString(std::string_view text) {
 // --- CMemoryStream (its Read, Write, Seek and CopyFrom; Resize and SetSize are in core_memory_stream.cpp) --------
 
 CMemoryStream::CMemoryStream() {
-    data_ = nullptr;
-    capacity_ = 0;
     position_ = 0;
     size_ = 0;
     bitMask_ = 0x80;
     bitsIndex_ = -1;
 }
 
-CMemoryStream::~CMemoryStream() {
-    if (data_) delete[] data_;
-}
+CMemoryStream::~CMemoryStream() = default;
 
 CMemoryStream::CMemoryStream(CMemoryStream&& other) noexcept
     : bits_(other.bits_), bitMask_(other.bitMask_), bitsIndex_(other.bitsIndex_),
-      data_(std::exchange(other.data_, nullptr)), capacity_(std::exchange(other.capacity_, 0)),
+      data_(std::exchange(other.data_, {})),
       position_(std::exchange(other.position_, 0)), size_(std::exchange(other.size_, 0)) {
     reading_ = other.reading_;
     ok_ = other.ok_;
@@ -68,9 +64,7 @@ CMemoryStream::CMemoryStream(CMemoryStream&& other) noexcept
 }
 
 void CMemoryStream::Clear() {
-    if (data_) delete[] data_;
-    data_ = nullptr;
-    capacity_ = 0;
+    data_ = {};
     position_ = 0;
     size_ = 0;
     ok_ = 1;

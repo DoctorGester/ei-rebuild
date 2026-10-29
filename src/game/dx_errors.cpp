@@ -36,14 +36,6 @@ constexpr const char* kUnrecognized = "Unrecognized error value.\n";
 // The stack buffer (wvsprintf writes at most 1024 characters).
 constexpr std::size_t kBuffer = 0x400;
 
-// The message: an operator new copy of `text`.
-char* CopyMessage(const char* text) {
-    std::size_t size = std::strlen(text) + 1;
-    auto* message = new char[size];
-    std::memcpy(message, text, size);
-    return message;
-}
-
 } // namespace
 
 const char* DirectXErrorText(long result) {
@@ -56,14 +48,12 @@ const char* DirectXErrorText(long result) {
 // ---- The thrown error object ---------------------------------------------------
 
 
-CGameException::~CGameException() {
-    if (message) delete[] message;
-}
+CGameException::~CGameException() = default;
 
 CDXException::CDXException(const char* format, va_list args) {
     char text[kBuffer];
     gameapi::wvsprintfA(text, format, args);
-    message = CopyMessage(text);
+    message = text;
 }
 
 CDXException::~CDXException() = default;

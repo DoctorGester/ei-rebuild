@@ -384,12 +384,12 @@ void TradeMessage::Read(BufferCursor* cursor) {
 
 // PartyMemberMessage.
 
-// Original bug kept: the copy's stream is sized like ours, then its (uninitialised) bytes are
-// read into ours instead of ours being written into it.
+// Original bug kept: the copy's stream is sized like ours, then its fresh bytes (uninitialised in the original,
+// zeros here) are read into ours instead of ours being written into it.
 PartyMemberMessage::PartyMemberMessage(const PartyMemberMessage& other) : Message(other) {
     stream_.SetSize(other.stream_.size_);
     CStream* copy = &stream_;
-    copy->Read(other.stream_.data_, stream_.size_);
+    copy->Read(const_cast<std::uint8_t*>(other.stream_.data_.data()), stream_.size_);
 }
 
 Message* PartyMemberMessage::Create() { return NewCounted<PartyMemberMessage>(); }
@@ -403,13 +403,13 @@ void PartyMemberMessage::Write(BufferCursor* cursor) {
     CStream* stream = &stream_;
     std::uint32_t size = stream->Size();
     Put(cursor, static_cast<std::uint16_t>(size));
-    PutBytes(cursor, stream_.data_, size & 0xFFFF);
+    PutBytes(cursor, stream_.data_.data(), size & 0xFFFF);
 }
 void PartyMemberMessage::Read(BufferCursor* cursor) {
     std::uint16_t n;
     Take(cursor, n);
     stream_.Resize(n);
-    TakeBytes(cursor, stream_.data_, n);
+    TakeBytes(cursor, stream_.data_.data(), n);
 }
 
 // PartyMessage.

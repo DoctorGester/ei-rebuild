@@ -44,7 +44,9 @@ region grid is cleared, and every block still 0 starts a new region (1, 2, ...) 
 
 ## Facts
 
-- The map's grids are `SearchGrid` members (search_grid.h; `grid[y][x]` reads a row): `waterDepth` (+0x1F4),
+- The map's grids are `SearchGrid` members (search_grid.h: a `std::vector` of `height` rows of `rowLength` elements, sized
+  by `Resize(width, height, fill, perCell)`, which leaves a grid of that size alone; `grid[y][x]` reads a row; the
+  original's row pointer table and the cells it left as allocated are gone: new cells are `fill`, 0 by default): `waterDepth` (+0x1F4),
   `cells` (+0x2698, the map's size is `cells.width` x `cells.height`), `occluders` (+0x26A8), `marks` (+0x26B8).
   The large-unit layer's Set / Merge also write signed bytes into `waterDepth`'s rows (the small layer writes
   the cells' `level` byte).

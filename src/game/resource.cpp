@@ -66,12 +66,10 @@ CMappedResource::~CMappedResource() {
         CloseHandle(handle_);
         handle_ = INVALID_HANDLE_VALUE;
     }
-    if (!image_) {
-        if (entries_) delete[] entries_;
-        if (!image_ && names_) delete[] names_;
-    }
     entries_ = nullptr;
     names_ = nullptr;
+    entryTable = {};
+    nameTable = {};
     image_ = nullptr;
     header_ = ResHeader{};
     // ~CResourceBase follows.
@@ -100,8 +98,10 @@ bool CMappedResource::OpenResource(const std::string& path, bool writable) {
             return false;
         }
         unsigned tableSize = header_.count * sizeof(ResEntry);
-        entries_ = new ResEntry[header_.count];
-        names_ = new char[header_.namesSize];
+        entryTable.resize(header_.count);
+        nameTable.resize(header_.namesSize);
+        entries_ = entryTable.data();
+        names_ = nameTable.data();
         if (ReadAt(handle_, header_.tableOffset, entries_, tableSize) &&
             ReadAt(handle_, header_.tableOffset + tableSize, names_, header_.namesSize))
             return true;
@@ -132,13 +132,10 @@ void CMappedResource::CloseResource() {
         CloseHandle(handle_);
         handle_ = INVALID_HANDLE_VALUE;
     }
-    // The table and names were read into memory by OpenResource unless the archive is an image.
-    if (!image_) {
-        if (entries_) delete[] entries_;
-        if (!image_ && names_) delete[] names_;
-    }
     entries_ = nullptr;
     names_ = nullptr;
+    entryTable = {};
+    nameTable = {};
     image_ = nullptr;
     header_ = ResHeader{};
 }

@@ -67,7 +67,7 @@ void WriteDword(CMemoryStream* out, std::uint32_t value) { out->WriteValue(value
 void WriteStateStream(CMemoryStream* out, CMemoryStream* from) {
     out->EndBits();
     from->Seek(0);
-    std::uint8_t* data = from->data_;
+    std::uint8_t* data = from->data_.data();
     out->Write(data, from->Size());
 }
 

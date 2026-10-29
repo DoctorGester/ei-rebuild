@@ -2,15 +2,14 @@
 // themselves; the constructor sizes the map's own grids 1 x 1 and fills the area lists. See ai_map.h and
 // docs/notes/ai.md.
 #include "ai_map.h"
-#include "ai_grids.h"
 
 #include <new>
 
 CAIMap::CAIMap() {
-    ResizeGrid(waterDepth, 1, 1);
-    ResizeGrid(cells, 1, 1, &AllocateCellGrid);
-    ResizeGrid(occluders, 1, 1, &AllocateOccluderGrid);
-    ResizeGrid(marks, 1, 1);
+    waterDepth.Resize(1, 1);
+    cells.Resize(1, 1);
+    occluders.Resize(1, 1, occluder::kNone);
+    marks.Resize(1, 1);
     FillAreaLists(this);
 }
 

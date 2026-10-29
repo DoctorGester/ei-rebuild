@@ -71,8 +71,7 @@ void CInterface3D::Shutdown() {
     backdrop_ = nullptr;
     DeleteSurface(secondBackdrop_);
     secondBackdrop_ = nullptr;
-    if (screenCopy_) delete[] screenCopy_;
-    screenCopy_ = nullptr;
+    screenCopy_ = {};
     if (root_) {
         delete root_;
         root_ = nullptr;

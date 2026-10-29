@@ -76,7 +76,6 @@ void CCursor::AddShape(const char* name, int hotX, int hotY) {
 // --- The cursor's life cycle and state ---------------------------------------
 
 CursorImage::~CursorImage() {
-    delete[] saved;
     if (holder) holder->Release();
 }
 

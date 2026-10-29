@@ -13,10 +13,8 @@ void ReadPrefixedName(std::string* out, const std::uint8_t** cursor) {
         out->clear();
         return;
     }
-    auto* text = new char[static_cast<std::size_t>(length) + 2];
-    std::memcpy(text, *cursor, static_cast<std::size_t>(length));
-    text[length] = 0;
-    *out = text;
-    delete[] text;
+    // Up to the first zero byte, as the original's copy through a C string.
+    const auto* text = reinterpret_cast<const char*>(*cursor);
+    out->assign(text, strnlen(text, static_cast<std::size_t>(length)));
     *cursor += length;
 }

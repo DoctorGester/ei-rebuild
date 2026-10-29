@@ -73,7 +73,7 @@ double HeightFactor(float h) {
 
 // The voice loop of the volume setters and SetListener.
 void RefreshVoices(CSoundManager* m) {
-    SoundSlot* slot = m->slots;
+    SoundSlot* slot = m->slots.get();
     for (int i = 0; i < 15; ++i, ++slot) {
         if (slot->playing == 0) continue;
         if (slot->flat == 0) m->UpdatePositional(slot);

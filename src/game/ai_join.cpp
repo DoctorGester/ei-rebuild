@@ -68,7 +68,7 @@ void CAIMap::BuildCellsTo(int x, int y, PathCells* path) {
         return c;
     };
     // Walk back along the marks (directions 1..8; 0 ends), each cell added at the head.
-    while (int dir = marks.rows[y][x]) {
+    while (int dir = marks[y][x]) {
         path->push_front(cellAt(x, y));
         switch (dir) {
         case 1: --y; break;
