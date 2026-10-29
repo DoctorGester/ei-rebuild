@@ -693,13 +693,12 @@ kinds given.
       vectors). TheMatrixDevice was the scene pipeline (ScenePipeline()), 007AFDB0 the origin (worlddata::kOrigin),
       007C5488 / 007C548C the logic settings' considerModifier / considerLogBase. Check a lone address with
       `named_data.py --owner` and against the logic settings (007C53F8) and the options (0079BC70) first.
-    - **Whole objects with a hand-ported initialiser**: the logic settings (g_logicSettings, its initialiser 005CDFB0;
-      TYPES `LogicSettings`; the stats recorder reads game.exe's copy), and the constructed statics as
+    - **Whole objects with a hand-ported initialiser**: the constructed statics as
       `lib::StaticObject<T>` (zero storage, STATIC_OBJECT_BYTES) whose initialiser and exit function are ported on the
       name and registered at their addresses, each with a row in extra_function_sizes.csv / function_sizes.inc. A
       function-local static's exit
       function is ported beside it and the port registers its own (`GameAtExit(DestroyX)`).
-    - **Plain globals and locals instead (C50, C50a-d)**: an object of ours that needs no game order is a plain
+    - **Plain globals and locals instead (C50, C50a-d2)**: an object of ours that needs no game order is a plain
       global (constructed and destroyed by the C++ runtime), a function-local static or a local, with no address: the
       unit shape cache (ai_movement.cpp), the AI events' pool (ai_events.cpp; the free list 007C53F0 stays named), the
       spells' footprint set, the sector spiral's tables and the smoother's pool and tables (the tables built on first
@@ -714,7 +713,16 @@ kinds given.
       the save stream (C54g1); the draws' work arrays (line
       lists, the device's mesh buffers, sprites, strip, terrain projection, the part draws' moved positions, the moved
       packets and offset vertices) and SetSun's sorted sectors, a local (C50d; the unread set 007AB8D8, which only the
-      original read, went). Not the game server / client Refs (g_gameServer / g_gameClient 0079B5DC / 0079B5D8): their
+      original read, went); the console's eight streambufs and streams (C50d1, below); the logic settings
+      (g_logicSettings, C50d2: its defaults are member initialisers, the initialiser 005CDFB0 unused; the stats recorder
+      reads game.exe's copy). Gone as unread (C50d2): the system information CSysInfo 007AB8F8 (it collected the
+      machine's version, memory and names; with it the CPUID report 007CAED0 and four pi constants), the device lock
+      007AEE78 (only game.exe's DirectDraw device took it). A plain global's constructor may call gameapi: ei_hook.dll's
+      import slots are resolved by the data move (image_data.cpp, `init_seg(compiler)`) before every other static
+      constructor, and in game.exe the remote LoadLibraryW thread runs the loader's process start (game.exe's imports)
+      before the DLL's. The streambufs are built when the DLL loads and destroyed after every exit function of the
+      game's list (the runtime runs the DLL's atexit table backwards), so a line logged by a later exit function (the
+      session Refs' release) still finds them. Not the game server / client Refs (g_gameServer / g_gameClient 0079B5DC / 0079B5D8): their
       exit functions (net_session.cpp) release the sessions, which send leave packets, so they keep the game's exit
       order; at our CRT's exit the harness's network pair has ended (net_pair_zone's mailbox overflowed). Their initialisers are UNUSED_INITIALISERS (the exit
       functions go with them); a function whose port builds none of the original's function-local statics is in
@@ -729,25 +737,25 @@ kinds given.
       a new empty one); their initialisers 00684360 / 006A6540 / 006ADF10 / 006D7080 / 005399F0 / 0051FAF0 / 0045E6C0
       and the folders' 0055E7E0 / 0055E860 are UNUSED_INITIALISERS (the guard byte 007AF438 went).
     - **gen_static_init**: REVIEWED_SPLIT splits one initialiser's stores where they are two objects (005229C0: the hit
-      log pointer 007AF284 is read, the ln folds above it are not); RETIRED_STATICS lists functions whose port builds
+      log pointer 007AF284 is a group of its own, unread since C50d1, the ln folds above it too); an unused initialiser's
+      exit function needs no pattern (decode_exits); RETIRED_STATICS lists functions whose port builds
       none of the original's function-local statics, so their runtime atexit sites never run (006BFF40, the terrain
       draw: its tile arrays 007C8848..007C88C8); a fold of ln in an unread object is `????????` in unread_data.csv.
       Winsock's exit function 0047C330 is ported without the wait (only dead code counts the threads 007A9774).
     - **Addon sites**: named_data.py's NAMED_ADDON_SITES lets a named range hold the site of a Rebirth patch disabled
       here (SetDefaultRate's 00783E34: net::g_remoteRate, a plain int a flag can write); addon_sites.inc still names
       it for the harness in game.exe.
-    - **The console's streams and command maps (C18s, 121 -> 90)**: console_streams.cpp names the eight streambufs
-      (`lib::StaticObject<ConsoleStreambuf>`, 0x454 bytes, 0x458 apart), the eight ostreams (`console::Stream` since C35d,
-      a plain `constinit` object naming its streambuf; TYPES 'Stream' keeps the original's 0x58 bytes), with their 16 initialisers
-      (005DC1E0-005DC3F0, 005DC420-005DC5E0) and 16 exit functions ported on the names and
-      registered (rows in extra_function_sizes.csv / function_sizes.inc). The log pointers are `constexpr` pointers whose
-      initialiser names the stream (`{&console::g_aiLogOut}`: named_data takes a qualified name of a range): unit_hits'
-      kHitLog 007AF284, ai_alarm's kAlarmLog 007C2EB8, combat's kCombatLog 007AF3E8, unit_ai's kAiLog 007C53C4 and
-      kModeLog 007C54E8; the files write to them as `console::Stream&`.
+    - **The console's streams and command maps (C18s, 121 -> 90; plain since C50d1)**: console_streams.cpp's eight
+      streambufs (game.exe's 007C5868..007C76D0) are plain globals with their filters, the eight streams
+      (`console::Stream`, game.exe's ostreams 007C55A8..007C5810) `constinit` on them; none has an address. Their 16
+      initialisers (005DC1E0-005DC3F0, 005DC420-005DC5E0) are UNUSED_INITIALISERS (rows stay in
+      extra_function_sizes.csv: no Ghidra function). The log pointers are `constexpr console::Stream&` constants of
+      the stream (unit_hits' kHitLog, ai_alarm's kAlarmLog, combat's kCombatLog, unit_ai's kAiLog and kModeLog); game.exe's
+      cells 007AF284 / 007C2EB8 / 007AF3E8 / 007C53C4 / 007C54E8 are unread data (REVIEWED_READ: only the original's
+      ported code read them).
     - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the worlds (g_serverWorld 007AFF60, g_clientWorld
-      007AF5B8, world_construct.cpp), the camera 0079B2A8, the scene renderer 007AF060 and the device lock 007AEE78
-      (renderer_lifetime.cpp), the save stream
-      007AFDF8 and the received messages 007C83D0 (with its destroyed flag 007C83C8) are `lib::StaticObject` with their
+      007AF5B8, world_construct.cpp), the camera 0079B2A8, the scene renderer 007AF060
+      (renderer_lifetime.cpp) and the received messages 007C83D0 (with its destroyed flag 007C83C8) are `lib::StaticObject` with their
       initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
       out of line. Plain globals: the main window 0079BC28 (app::g_mainWindow, which the renderer reads too), the loading
       movie's 007C5520 / 007C554C-54, the network buffer flags 0079B8FC, the damping scale 007C2F8C (its initialiser
@@ -761,7 +769,7 @@ kinds given.
       zero start instead of refusing the unknown store). Only the guard is generated now (static_init.h's `Once` takes
       a `std::uint8_t&`; the generator stops at an operation static_init.h lacks). Each entry must start a range of named_data.csv (the
       generator says so otherwise). Named this way: the function-local statics' guard 007CAEE4
-      (`lib::g_emptyStaticGuard`, static_object.h: 175 generated tests and CSysInfo's). MFC's globals that only the
+      (`lib::g_emptyStaticGuard`, static_object.h: 176 generated tests). MFC's globals that only the
       initialisers and exit functions reached (_simpleUserException 007C8BC0, the thread / process locals 007C90BC,
       007C90C0, 007CAA84, 007CAA88, 007CAA8C, _afxDBCS 007CAA98) went in C14zi: their initialisers (and the locals'
       atexits) are UNUSED_INITIALISERS. C18r had added the objects hand code reads too, whose initialisers are
@@ -1252,7 +1260,7 @@ camera view stack that nothing ever pushed to is deleted.
 
 ### Compiler-written helpers of game types (S3b, S3c, S7a, S13, S13a, S13b)
 
-The global constructors only static initialisers call (logic settings 005CDFC0, SavedParties,
+The global constructors only static initialisers call (SavedParties,
 both worlds: world_construct.cpp; the databases' are their classes' own since C50c), the exit callees (the worlds'
 and Terrain / Sector / particle manager destructors in world_destructors.cpp), record destructors / copies /
 assignments (record_lifetime.h, gone with C14n) and the script lists' by-value copies (game_lists). Bodies that are library rows are called

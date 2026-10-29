@@ -51,8 +51,8 @@ const char* const kDead = " HL is dead";
 constexpr int kArmourPieces[24] = /*0073E09C*/ {7, 7, 0, 7, 3, 7, 1, 7, 3, 6, 1, 7, 3, 6, 1, 7, 4, 5, 2, 7, 4, 5, 2, 7};
 
 
-// The hit log: the rpg stream (its static initialiser stores the address).
-constexpr console::Stream* kHitLog = /*007AF284*/ {&console::g_rpgLogOut};
+// The hit log: the rpg stream.
+constexpr console::Stream& kHitLog = console::g_rpgLogOut;
 
 void Remark(CUnit* unit, AckKind kind) {
     if (unit->controller->GetClassId() == ClassId::UnitServer) unit->ServerController()->Shout(kind);
@@ -143,13 +143,13 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         } else if (current <= 0.0f) {
             slot.kind = 2;
         }
-        *kHitLog << kTypeNames[type] << kPassedDamage << typeDamage;
+        kHitLog << kTypeNames[type] << kPassedDamage << typeDamage;
         if (slot.kind == 1) {
-            *kHitLog << kCrippled;
+            kHitLog << kCrippled;
         } else if (slot.kind == 2) {
-            *kHitLog << kDead;
+            kHitLog << kDead;
         }
-        console::EndLine(*kHitLog);
+        console::EndLine(kHitLog);
     }
     if (std::memcmp(&hit->backstabFactor, &kOneBits, sizeof(float)) != 0) flags |= UnitStatsFlag::Backstab;
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));

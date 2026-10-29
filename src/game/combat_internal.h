@@ -8,7 +8,7 @@
 class CPlayerServer;
 
 // The combat log: the AI stream.
-inline constexpr console::Stream* kCombatLog = /*007AF3E8*/ {&console::g_aiLogOut};
+inline constexpr console::Stream& kCombatLog = console::g_aiLogOut;
 
 // The unit's server object (CUnit + 0x170, a CMapObjectServer) and the stats block at its +0x20.
 inline CEngineObject* ServerObjectOf(CUnit* unit) { return unit->companion; }

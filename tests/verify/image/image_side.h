@@ -79,7 +79,7 @@ bool ScreenFade(bool* running, float* alpha);   // false without one
 int CampaignMode();                             // the server world's session kind
 void* ClientWorldObject();                      // the client world
 void* SceneDevice();                            // the scene renderer's device, null before it is made
-void* DeviceLock();                             // the device's lock (a CRITICAL_SECTION)
+void* DeviceLock();                             // null: our renderer has no device lock
 
 // ---- the steps' calls of the game (harness.cpp; image/harness_objects_image.cpp)
 

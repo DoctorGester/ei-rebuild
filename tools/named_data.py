@@ -107,11 +107,8 @@ TYPES = {
     'ScriptKeyword': 'PiPP',                 # script.h: name, id, function signature, command signature
     # A char array field is one code 'Ns' (a tuple of codes then): a string literal, zero padded (fewer than N chars).
     'UiKeyName': ('i', 'P', '64s'),          # ui.h: scan code, the file's name, GetKeyNameTextA's text (key_bindings.cpp)
-    'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
-    'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection
     'std::size_t': 'I',
     'Ld12': 'H' * 6,                         # crt_format.cpp: a 12-byte long double, six words
-    'LogicSettings': 'B' * 4 + 'f' * 39 + 'if' + 'f' * 9,   # logic_settings.h: loaded and padding, 39 floats, questsToRespawn, 10 floats
     # Containers a static initialiser zeroes and an exit function frees (C18k): pointers that start null, compared as
     # numbers. A template's arguments do not change the layout: TYPES names the template (element_format).
     'lib::AlignedArray': 'Iiii',   # containers.h: data, size, capacity, growBy (game.exe's; our std::vector: below)
@@ -122,8 +119,6 @@ TYPES = {
     # A global constructed by its hand-ported static initialiser (lib/static_object.h): zero storage before it.
     # A string's is game.exe's CString, one pointer (ours is a std::string; the range is the original's).
     'lib::StaticObject<std::string>': 'I',
-    # console.h: game.exe's ostream and its ios; ours names its streambuf, null until the initialiser attaches it
-    'Stream': 'B' * 0x58,
 }
 # `T name[dims] = /*address*/ {` (T may be a template instantiation: `lib::AlignedArray<TLVertex> g_x = /*addr*/ {};`), for one pointer `const char* const name = /*address*/ "text";`, for one number
 # `constexpr float kX = /*address*/ 0.5f;` (a .data object a static initialiser sets, C18j). A pointer
@@ -179,9 +174,9 @@ STATIC_OBJECT_BYTES = {
     'CCursor': 0xB8, 'CInterface3D': 0xB0, 'GameFlow': 0x84, 'options::GameOptions': 0x26C,
     # game.exe's CArrays are 0x14 bytes and its CLists 0x1C; ours (std::vector 12, std::list 8) start zero all the same
     'std::vector<int>': 0x14, 'std::vector<std::uint8_t>': 0x14, 'std::vector<std::uint16_t>': 0x14, 
-    'CSysInfo': 0x108, 'UnitList': 0x1C, 
+    'UnitList': 0x1C, 
     'std::vector<ScriptQuestObjective>': 0x14,
-    'CommandMap': 0xC, 'ConsoleStreambuf': 0x454,   # game.exe's streambuf (ours has no lock or get area)
+    'CommandMap': 0xC,
     'CCamera': 0x308, 'CSceneRenderer': 0x5C, 'CWorldServer': 0x12E7C, 'CWorldClient': 0x7E4, 'CMapDatabase': 0x28,
     'CMemoryStream': 0x28, 'GameBuffer': 0x1C, 'GrowingBuffer': 0x1C, 'ChunkArchive::ClassRegistry': 0x28,
 }

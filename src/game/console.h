@@ -4,7 +4,6 @@
 // command maps, the "@"/"#"/"$" script lines and the command handlers. See docs/notes/console.md.
 
 #include "ui_font.h"
-#include "lib/static_object.h"
 #include "lib/str.h"
 
 #include <cstddef>
@@ -54,11 +53,10 @@ private:
 
 // One of the console's eight output streams (MSVC 6's ostream as the game used it: no width, flags,
 // precision or tie ever set): text, characters and numbers into its streambuf; Flush is the streambuf's
-// sync. Zero until its static initialiser attaches it to its streambuf.
+// sync.
 class Stream {
 public:
-    constexpr Stream() = default;
-    void Attach(ConsoleStreambuf* buffer) { buffer_ = buffer; }
+    constexpr explicit Stream(ConsoleStreambuf& buffer) : buffer_(&buffer) {}
 
     Stream& operator<<(const char* text);
     Stream& operator<<(const std::string& text);
@@ -71,10 +69,10 @@ public:
     Stream& Flush();
 
 private:
-    ConsoleStreambuf* buffer_ = nullptr;
+    ConsoleStreambuf* buffer_;
 };
 
-// The streams, one per message filter (their streambufs below): the console itself, then all, unitacks (the AI
+// The streams, one per message filter (each on its own streambuf, console_streams.cpp): the console itself, then all, unitacks (the AI
 // alarm's log), net (the network log), rpg (the hit log), graphics (the battle screen's "Terrain Coords" of a click
 // on the ground), event, ai (combat's and the AI's logs).
 extern Stream g_consoleOut;
@@ -92,16 +90,6 @@ void PrintLine(const char* text);
 // The harness's view of the console (verify builds): sync's line, after overflow(EOF) and before the
 // console window gets it. In the original-game run the harness hooks the original's sync instead.
 extern void (*g_consoleLineObserver)(const char* line);
-
-// The streambufs, one per message filter (zero until their static initialisers construct them).
-extern lib::StaticObject<ConsoleStreambuf> g_consoleBuf;       // filter 0
-extern lib::StaticObject<ConsoleStreambuf> g_allLogBuf;        // -1
-extern lib::StaticObject<ConsoleStreambuf> g_netLogBuf;        // 0x20
-extern lib::StaticObject<ConsoleStreambuf> g_unitAcksLogBuf;   // 0x10
-extern lib::StaticObject<ConsoleStreambuf> g_rpgLogBuf;        // 8
-extern lib::StaticObject<ConsoleStreambuf> g_graphicsLogBuf;   // 4
-extern lib::StaticObject<ConsoleStreambuf> g_eventLogBuf;      // 2
-extern lib::StaticObject<ConsoleStreambuf> g_aiLogBuf;         // 1
 
 // The message categories shown (bit per filter, "filter" command).
 inline unsigned g_filterMask = /*007C7B68*/ {};

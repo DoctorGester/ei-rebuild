@@ -152,7 +152,7 @@ does not need a second pass:
 - no new forwarders (rule 5);
 - no one-line getter that only returns a field or a global under another spelling (C38): callers read the public
   field or the named global (`g_random`, `net::g_gameClient`, `g_logicSettings`), also through a dereference or an
-  address (`g_itemDatabase.weapons`, `&g_deviceLock`, `unit->brain.memory`; C38a: a
+  address (`g_itemDatabase.weapons`, `&g_camera`, `unit->brain.memory`; C38a: a
   `lib::StaticObject` is built by its static initialiser either way). Getters stay where they are virtual
   (ClassName, the manager context's slots), compute or convert (`return this`, `&stack_.back()`), give a base
   class's shared field its meaning in a subclass (a pair message's `ConnectionRef()` for `second_`), or are the

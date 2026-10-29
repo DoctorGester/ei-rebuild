@@ -6,7 +6,6 @@
 #include "render/render_state.h"
 #include "dx_errors.h"
 #include "model.h"
-#include "sys_info.h"
 #include "texture.h"
 
 #include "lib/crt.h"
@@ -150,11 +149,10 @@ void CRenderPreset::ApplyPass(int pass) const {
 
 // ---- The transform pipeline (CTransformPipeline) -------------------------------------------------------------
 
-// The processor's CPUID function 1 into the globals (as the renderer does again). A throw unwinds the
-// folder's string, the stacks (from the last) and the base, and `new` frees the memory.
+// The transform library loaded from the folder and its pipeline taken. A throw unwinds the folder's string, the stacks
+// (from the last) and the base, and `new` frees the memory.
 CTransformPipeline::CTransformPipeline(const char* folder) {
     std::string path(folder);
-    ReadProcessorInfo();
     library_ = gameapi::LoadLibraryA((path + TransformLibraryName()).data());
     game::DebugLog(LibraryLoadedText());
     if (!library_) ThrowGameError(NoLibraryText());

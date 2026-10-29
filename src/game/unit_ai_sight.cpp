@@ -48,7 +48,7 @@ bool IsZero(double v) {
 
 // "Unit <self> <text> <other>" (no line end).
 console::Stream& LogPair(CUnit* self, const char* text, CEngineObject* other) {
-    return *kAiLog << "Unit " << self->id_ << text << other->id_;
+    return kAiLog << "Unit " << self->id_ << text << other->id_;
 }
 
 // The noticed point taken over inline (Notice's copy).
@@ -144,7 +144,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
                 if (dead) continue;
                 EI_NAN_AUDIT(theirs->stats.conspicuity[2].current, ours->stats.perception[2].current, distance);
                 if (static_cast<double>(theirs->stats.conspicuity[2].current) * ours->stats.perception[2].current <= distance) continue;
-                *kAiLog << "using sense life ";
+                kAiLog << "using sense life ";
                 alive = true;
             }
         }
@@ -160,7 +160,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
             double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
             double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
             LogPair(self, " sees unit ", other) << " from ";
-            console::EndLine(*kAiLog << std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) << "m distance");
+            console::EndLine(kAiLog << std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) << "m distance");
         }
     }
 }

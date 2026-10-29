@@ -9,13 +9,12 @@
 #include "figure_mesh.h"   // CFigureMesh
 #include "link_figure.h"   // ITransformPipeline, FigureMeshDrawer
 #include "spell.h"         // CLight
-#include "ui.h"            // GameDeviceLock, UiTextureManager
+#include "ui.h"
 #include "game_singletons.h"
 #include "world.h"
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
 #include <cstdint>
 
 #include <cstdlib>
@@ -80,25 +79,17 @@ void CSceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) 
     SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
 }
 
-// The scene renderer and the device's lock, zero at the start: built by their static initialisers
-// in the list's order and destroyed by the exit functions those register (docs/notes/standalone.md, "The static
-// initialisers' objects").
+// The scene renderer, zero at the start: built by its static initialiser in the list's order and destroyed by the
+// exit function that registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CSceneRenderer> g_sceneRenderer = /*007AF060*/ {};
-constinit CRITICAL_SECTION g_deviceLock = /*007AEE78*/ {};
 
-// A second block: it uses g_sceneRenderer and g_deviceLock (defined above).
 namespace {
 void DestroySceneRenderer() { g_sceneRenderer.Destroy(); }
-void DestroyDeviceLock() { gameapi::DeleteCriticalSection(&g_deviceLock); }
 } // namespace
 
 void ConstructSceneRenderer() {
     g_sceneRenderer.Construct();
     std::atexit(DestroySceneRenderer);
-}
-void ConstructDeviceLock() {
-    gameapi::InitializeCriticalSection(&g_deviceLock);
-    std::atexit(DestroyDeviceLock);
 }
 
 void CSceneRenderer::DestroyRenderer() {

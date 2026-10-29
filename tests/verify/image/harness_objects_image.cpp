@@ -96,7 +96,8 @@ bool ScreenFade(bool* running, float* alpha) {
 int CampaignMode() { return g_serverWorld->sessionKind_; }
 void* ClientWorldObject() { return &g_clientWorld.Get(); }
 void* SceneDevice() { return g_sceneRenderer->device_.Get(); }
-void* DeviceLock() { return &g_deviceLock; }
+// Our renderer takes no device lock: the harness locks game.exe's only (in its original run).
+void* DeviceLock() { return nullptr; }
 
 int ServerUpdate(void* server) {
     static_cast<CWorldServer*>(server)->Update();

@@ -192,7 +192,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073D558,19,,game,004D6970 004D6BA0 0052D0D0 0052D1D0,004D6B80,CTorchObjectSpec,src/game/server_specific_manager.h,
 0073D5B8,24,,game,004D9110,004D9290,CSkyObject,src/game/sky_object.h,
 0073D624,7,,game,004DA7F0 004DA910 004DA9E0,004DA630,GrowingBuffer,src/game/net_coder.h,the growing byte buffer
-0073D644,13,,game,004DDD6F 004DDE75,004DE8B0,CSysInfo,src/game/sys_info.h,the system information (CSysInfo)
+0073D644,13,,game,004DDD6F 004DDE75,004DE8B0,CSysInfo,-,"the system information: stored only by game.exe's 004DDD6F / 004DDE75 (its constructor and destructor); nothing of ours read it, so it is not made"
 0073D6B4,13,,game,004E2290 004E24E0,004E24C0,CVisibilityFog,src/game/effects.h,the visibility fog (CVisibilityFog)
 0073D760,1,,game,004E5E50 004E68A0,004E6880,CTextureDevice,src/game/texture.h,the device object (CTextureDevice)
 0073D764,1,,game,004E72A0 004E76B0 004E7700,004E7690,dead render object,-,stored only by dead code 004E72A0 / 004E76B0 / 004E7700 (config/dead_code.csv)
