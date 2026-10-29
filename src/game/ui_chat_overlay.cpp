@@ -276,5 +276,5 @@ void CChatOverlay::Redraw() {
         line.surface->Blit();
         y += kLineHeight;
     }
-    RedrawBase();
+    CUiWindow::Redraw();
 }

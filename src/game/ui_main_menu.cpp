@@ -124,7 +124,7 @@ void CMainMenu::CreateScreen() {
 // --- Update (every frame) ---------------------------------------------------
 
 void CMainMenu::Update() {
-    UpdateBase();
+    CUiContainer::Update();
     int hour = static_cast<int>(GameServerTimeOfDay());
     if (hour != static_cast<int>(hour_) && rain_) {
         if (hour == kRainStartHour) GameSetWeather(kWeatherRain, kWeatherStrength);

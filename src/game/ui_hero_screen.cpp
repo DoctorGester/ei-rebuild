@@ -135,7 +135,7 @@ void CMpHeroScreen::Draw(CSceneRenderer* pass) {
 // --- Update ----------------------------------------------------------------------------
 
 void CMpHeroScreen::Update() {
-    UpdateBase();
+    CUiContainer::Update();
     if (rotating_ == 1 || rotating_ == 2) {
         double step = FrameTime();
         step += step;

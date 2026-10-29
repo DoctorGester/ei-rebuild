@@ -247,7 +247,7 @@ void CBriefingScreen::CreateScreen() {
 void CBriefingScreen::Update() {
     markPhase_ = static_cast<float>(FrameTime() + markPhase_);
     while (markPhase_ >= 1.0f) markPhase_ = static_cast<float>(markPhase_ - 1.0f);
-    UpdateBase();
+    CUiContainer::Update();
     SetMeshesVisible(this, 0);
     for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Freeze(0, 0);
     children_[kTopicBarChild]->SetEnabled(false);

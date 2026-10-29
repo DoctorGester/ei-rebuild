@@ -192,7 +192,6 @@ struct TradeStatsRecord {
 class CTradePanel : public CUiItemPanel {
 public:
     CTradePanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) {}
-    void Update() override { UpdateHeld(); }
     // One statistics record per party member; the selected record -1.
     void Build() override;
     // The schools, the held perks (a level byte per group of three skill records) and every first-level perk
@@ -231,7 +230,7 @@ public:
     void LeftUp(int buttons, int x, int y) override;
     // From 0.25 s of a hold on, every frame buys the row's next level again (the record is not marked
     // bought) until it cannot. The hold time is not reset after a purchase.
-    void UpdateHeld();
+    void Update() override;
     bool Bought() const { return Record().bought; }
     const TradeStatsRecord& Record() const { return records_[recordIndex_]; }
 
@@ -498,16 +497,12 @@ public:
 class CConstructorPage : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
-    CItem* ItemAt(int x, int y, int* topic) override { return ItemMakerItemAt(x, y, topic); }
     void BuildItemMaker(CParty* slots);
     // Without a blueprint or a container, a pulsing highlight shows where the next part goes.
     void Draw(CSceneRenderer* pass) override;
-    // Region 0 the first spell container (topic 0x13), 1 the first spell (0x14), 2-9 modifier region - 2
-    // (0x15), 10 / 11 the cost lines (0x1A / 0x1B, no item).
-    CItem* SpellMakerItemAt(int x, int y, int* topic);
     // Region 0 the first item that can be taken apart (0xD), 1 the first part (0xE), 2 the first spell
     // container (0x10), from 3 material region - 3 (0xF).
-    CItem* ItemMakerItemAt(int x, int y, int* topic);
+    CItem* ItemAt(int x, int y, int* topic) override;
 
     CParty* slots_ = nullptr;
     float pulse_ = 0.0f;             // the highlight's time
@@ -515,7 +510,9 @@ public:
 class CSpellMakerPage : public CConstructorPage {
 public:
     using CConstructorPage::CConstructorPage;
-    CItem* ItemAt(int x, int y, int* topic) override { return SpellMakerItemAt(x, y, topic); }
+    // Region 0 the first spell container (topic 0x13), 1 the first spell (0x14), 2-9 modifier region - 2
+    // (0x15), 10 / 11 the cost lines (0x1A / 0x1B, no item).
+    CItem* ItemAt(int x, int y, int* topic) override;
     void BuildSpellMaker(CParty* slots);
     // The cost lines: "<text 0> <best skill> (<needed>)" and "<text 1> <most mana> (<the larger of the summed
     // and the last spell's mana>)" with a spell. Without a container, a pulsing highlight shows where the

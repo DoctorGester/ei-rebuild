@@ -71,7 +71,7 @@ Counts are vanilla / Rebirth.
 **Fonts made:** Times New Roman, six heights per resolution (h-49 to h-71, plus h-200 for the credits), all from 005F4990, made again at each Create; Courier New h-24 for the console.
 
 **Readers.** Besides the per-frame blit 005FDA80 (a Lock), these read surface pixels:
-- every window's `CUiWindow::ShowSurfaces` 006002C0 swaps every surface out and back (`SwapContents` 005FD7A0) when the window is hidden or shown; `CUiSurface::Freeze` 005FD760 does the same for the hero screen;
+- every window's `CUiWindow::Show` 006002C0 swaps every surface out and back (`SwapContents` 005FD7A0) when the window is hidden or shown; `CUiSurface::Freeze` 005FD760 does the same for the hero screen;
 - the backdrop: `DrawOverlays` 005F5320 captures the screen into it (CaptureScreen), turns it grey (Greyscale) and copies it at 16 bits (Rgb565Copy) when a window that shows the screen behind it opens (the escape menu among them);
 - the save picture: `QuickSave` 006570E0 captures the screen and copies it at 16 bits, at every new game's autosave;
 - the global map: `CGlobalMap::RefreshSelection` 00630670 captures the pick picture, and the mouse moves read it with PixelAt (ours under vanilla, the game's 00630010 under Rebirth).

@@ -158,7 +158,7 @@ void CMpConnectScreen::Update() {
         }
     }
     joining_ = asking;
-    UpdateBase();
+    CUiContainer::Update();
 
     double elapsed = FrameTime() + refreshTimer_;
     refreshTimer_ = static_cast<float>(elapsed);

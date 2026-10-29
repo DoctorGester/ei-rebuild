@@ -213,7 +213,7 @@ void CObjectivesWindow::RefreshQuests() {
 }
 
 void CObjectivesWindow::Update() {
-    UpdateBase();
+    CUiContainer::Update();
     int first;
     if (bar_->TakePosition(&first)) {
         firstRow_ = first;

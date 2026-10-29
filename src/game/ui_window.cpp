@@ -162,7 +162,7 @@ void CUiWindow::UpdateRegionTips() {
 }
 
 // The same per region, each tooltip then redrawn (the tooltip is re-read).
-void CUiWindow::RedrawRegionTips() {
+void CUiWindow::RedrawTips() {
     POINT mouse{interface_->mouseX_, interface_->mouseY_};
     interface_->ScalePointFromScreenEntry(&mouse);
     for (int i = 0; i < std::ssize(regions_); ++i) {
@@ -178,7 +178,7 @@ void CUiWindow::DrawBase(CSceneRenderer* pass) {
     for (int i = 0; i < std::ssize(models_); ++i) models_[i]->Draw(pass);
 }
 
-void CUiWindow::RedrawBase() {
+void CUiWindow::Redraw() {
     for (int i = 0; i < std::ssize(surfaces_); ++i) {
         CUiSurface* surface = surfaces_[i];
         if (surface->Shown()) surface->Blit();
@@ -281,7 +281,7 @@ CTexture* CUiWindow::CreateTexture(int width, int height, int kind) {
     return texture;
 }
 
-void CUiWindow::ShowSurfaces(int show) {
+void CUiWindow::Show(int show) {
     for (int i = 0; i < std::ssize(surfaces_); ++i) {
         CUiSurface* surface = surfaces_[i];
         if (show == 0 || surface->Shown()) surface->SwapContents(show != 0);

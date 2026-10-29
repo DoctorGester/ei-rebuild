@@ -70,7 +70,7 @@ void CExchangeScreen::CloseScreen() {
 // --- the update ----------------------------------------------------------------------------------
 
 void CExchangeScreen::Update() {
-    UpdateBase();
+    CUiContainer::Update();
     if (!LiveOffer()) {
         ReturnAll(LocalPlayerData(), ownOffer_);
         GameRejoin();

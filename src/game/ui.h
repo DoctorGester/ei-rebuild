@@ -472,11 +472,13 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     virtual void Build() {}
-    virtual void Show(int show) { ShowSurfaces(show); }
+    // `show` 0: every surface keeps its contents in memory and lets its DirectDraw surface go; otherwise the
+    // shown surfaces get theirs back.
+    virtual void Show(int show);
     virtual void Draw(CSceneRenderer* pass) { DrawBase(pass); }
     virtual void DrawChild(CSceneRenderer*) { UpdateRegionTips(); }
-    virtual void Redraw() { RedrawBase(); }
-    virtual void RedrawTips() { RedrawRegionTips(); }
+    virtual void Redraw();
+    virtual void RedrawTips();
     virtual void Update() {}
 
     // The first region containing the screen point, or -1.
@@ -536,16 +538,11 @@ public:
     CTexture* LoadTexture(std::string_view name, int kind);
     // A new CPU-filled texture (flag 0x40000) kept with the referenced objects; null when none is made.
     CTexture* CreateTexture(int width, int height, int kind);
-    // `show` 0: every surface keeps its contents in memory and lets its DirectDraw surface go; otherwise the
-    // shown surfaces get theirs back.
-    void ShowSurfaces(int show);
     // Object `name` of the model manager added to the scene objects with the black material and the first
     // referenced object as its texture; null when the manager makes none. AddBlankSprite: a new CUiMesh.
     CUiMesh* AddSprite(std::string_view name);
     CUiMesh* AddBlankSprite();
     CUiMesh* AddSceneObject(CFigureMesh* object);   // AddSprite's shared end: listed, black material, texture 0
-    void RedrawBase();
-    void RedrawRegionTips();
     CUiMesh* SceneMesh(int index) const;   // defined after CUiMesh
 
     RECT rect_ = {};                          // layout coordinates
@@ -1096,14 +1093,16 @@ public:
     explicit CUiContainer(CInterface3D* ui) : CUiWindow(ui) {}
     ~CUiContainer() override;
 
-    void Show(int show) override { ShowChildren(show); }
+    // The window's own surfaces, then every enabled child's.
+    void Show(int show) override;
     // Only while the interface draws: the window's own draw, then every enabled child's.
     void Draw(CSceneRenderer* pass) override;
     // Alpha reference 1 around the region tips and every enabled child's draw, while the interface draws.
     void DrawChild(CSceneRenderer* pass) override;
-    void Redraw() override { RedrawContainer(); }
-    void RedrawTips() override { RedrawChildTips(); }
-    void Update() override { UpdateBase(); }
+    // Only while the interface draws: the window's own, then every enabled child's.
+    void Redraw() override;
+    void RedrawTips() override;
+    void Update() override;
     // The screens' virtuals the interface calls (CInterface3D); the defaults do nothing.
     virtual void CreateScreen();
     virtual void CloseScreen();
@@ -1138,15 +1137,9 @@ public:
 
     // Seconds since the last frame (milliseconds * 0.001f, left unrounded).
     static double FrameTime();
-    void UpdateBase();
-    // Only while the interface draws: the window's own, then every enabled child's.
-    void RedrawContainer();
-    void RedrawChildTips();
     // Null is ignored.
     void AddChild(CUiWindow* child);
     void AddInput(UiInputSide* input);
-    // The window's own surfaces, then every enabled child's.
-    void ShowChildren(int show);
 
     std::vector<CUiWindow*> children_;
     std::vector<UiInputSide*> inputs_;        // extra input sides

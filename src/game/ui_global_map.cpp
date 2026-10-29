@@ -388,7 +388,7 @@ void CGlobalMap::CreateScreen() {
 // --- Update -----------------------------------------------------------------------------
 
 void CGlobalMap::Update() {
-    UpdateBase();
+    CUiContainer::Update();
     if (dragging_ && turning_ == 0) {
         POINT cursor;
         gameapi::GetCursorPos(&cursor);

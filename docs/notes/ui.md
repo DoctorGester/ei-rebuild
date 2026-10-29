@@ -103,7 +103,7 @@ plus a master server link at +0x180; `MpAddressEntry` is 0x34 bytes; 0062EDA0 is
 the top window); mouse input (`ui_interface_input.cpp`: to the capture, else the top window; +0x7F double click, +0x80
 right button; S on stand-in vtables). `CUiWindow::CopyImage` (005FFFB0, S), `SaveState`/`LoadState` (005F85C0 S through
 a stream recorder, every save), `MessageText` (S), `OpenHelp` (005F86F0), the battle camera's key input
-(`ui_camera_keys.cpp`, S). `CUiContainer::RedrawContainer` / `RedrawChildTips` do nothing unless CInterface3D +0x30.
+(`ui_camera_keys.cpp`, S). `CUiContainer::Redraw` / `RedrawTips` do nothing unless the interface is drawing (`drawing_`).
 
 ### Container input dispatch (`ui_container.cpp`; scenario `ui_container_input`)
 
@@ -264,7 +264,7 @@ lists 0069908x-006992xx with the sold records; cost_ off except page 1), `Decons
 modifier), `DeconstructItem` ("Instruction Weapon / Armor / Quick Item", "material.<key>" built with one
 operator+ instead of two, a "spell container" through 00613820 instead of the inlined map insert) (`ui_camp_deals.cpp`); `PutOn`,
 `TakeOff`, `TakeItem` (42, RET 8), `PutOnFromStrip` (RET 4), `Update` (turn via `_CIfmod`), `BestPartySkill` (45, P),
-`TopicClicked` (44). Constructor slots `SpellMakerItemAt` / `ItemMakerItemAt` (`ui_constructor_slots.cpp`; pages 3 and 5).
+`TopicClicked` (44). Constructor slots `CSpellMakerPage::ItemAt` / `CConstructorPage::ItemAt` (`ui_constructor_slots.cpp`; pages 3 and 5).
 
 Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `ui_stats_rows.cpp`, `ui_equip_panels.cpp`,
 `ui_panel_draws.cpp`, `ui_hero_panels.cpp`, `ui_trade_panel*.cpp`, `ui_item_strip*.cpp`):
