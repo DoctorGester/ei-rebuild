@@ -23,6 +23,10 @@ struct IDirectInputDevice7A;
 
 unsigned __stdcall CursorThreadEntry(void* cursor);
 
+// The harness's view of the DirectInput object (verify builds): CDirectInputMouse::Setup passes it each one it
+// makes, before the mouse device. In game.exe's runs the harness routes the original's import slot instead.
+extern void (*g_directInputObserver)(IDirectInput7A* input);
+
 // The DirectInput mouse (made by the application's start, which also sets it up).
 class CDirectInputMouse final {
 public:

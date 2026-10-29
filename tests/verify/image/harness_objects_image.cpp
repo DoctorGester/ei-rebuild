@@ -112,6 +112,7 @@ void ConsoleExecute(const char* text) { console::Execute(text); }
 void SendLeave04(int id) { GameSendLeave04(id); }
 void SetConstructionVariable(std::uint32_t value) { GameSetConstructionVariable(value); }
 void ObserveConsoleLines(void (*observer)(const char* line)) { console::g_consoleLineObserver = observer; }
+void ObserveDirectInput(void (*observer)(IDirectInput7A* input)) { g_directInputObserver = observer; }
 unsigned& UpdatePeriod() { return reinterpret_cast<unsigned&>(worlddata::g_updatePeriod); }
 const char* DataFolder() { return DataFolderText(); }
 void SetFixedSeed(void (*fill)(std::uint32_t* results)) {

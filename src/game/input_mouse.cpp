@@ -5,7 +5,6 @@
 #include "ui_cursor.h"
 
 #include "lib/crt.h"
-#include "lib/gameapi.h"
 
 #include <dinput.h>
 
@@ -29,6 +28,18 @@ const char* const kNoAcquire = "Can't acquire mouse device\n";      // "Can't ac
 
 constexpr DWORD kInputVersion = 0x0700;
 
+// DirectInputCreateEx of the system's dinput.dll (System32: Rebirth's dinput.dll in the game folder is a proxy that
+// loads addon.dll, which patches game.exe's code), loaded on the first call; null when it is missing. The SDK has
+// no import library of DirectInput 7's dinput.dll.
+decltype(&::DirectInputCreateEx) SystemDirectInputCreate() {
+    static const auto create = [] {
+        HMODULE dinput = LoadLibraryExW(L"dinput.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        return dinput ? reinterpret_cast<decltype(&::DirectInputCreateEx)>(GetProcAddress(dinput, "DirectInputCreateEx"))
+                      : nullptr;
+    }();
+    return create;
+}
+
 // A counted pointer taking `value` (the game's smart pointer assignment, then the temporary's
 // release, which is not null-checked).
 template <typename T>
@@ -51,6 +62,8 @@ int Reported(HRESULT result, const char* text) { return app::FatalErrorCode(resu
 
 } // namespace
 
+void (*g_directInputObserver)(IDirectInput7A* input) = nullptr;
+
 const void* CDirectInputMouse::MouseDataFormat() {
     constexpr DWORD kOptional = 0x80000000;   // DIDFT_OPTIONAL (DirectInput 8's headers only)
     static DIOBJECTDATAFORMAT objects[] = {
@@ -69,8 +82,11 @@ const void* CDirectInputMouse::MouseDataFormat() {
 
 int CDirectInputMouse::Setup(HWND window, HINSTANCE instance) {
     void* input = nullptr;
-    HRESULT result = gameapi::DirectInputCreateEx(instance, kInputVersion, &kIidDirectInput7, &input, nullptr);
+    const auto create = SystemDirectInputCreate();
+    HRESULT result = create ? create(instance, kInputVersion, kIidDirectInput7, &input, nullptr)
+                            : HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
     if (result < 0) return Reported(result, kNoInput);
+    if (g_directInputObserver) g_directInputObserver(static_cast<IDirectInput7A*>(input));
     Adopt(input_, static_cast<IDirectInput7A*>(input));
 
     void* device = nullptr;

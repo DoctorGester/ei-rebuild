@@ -195,14 +195,14 @@ each step green on the goldens and removing a measured tie:
   ImportTable member, DLL, function or ordinal) and gameapi.h, all committed; build.cmd runs it with `--check`.
   Right after the move (same init_seg(compiler) object, before the harness's static
   constructor takes its slots) `ResolveImageImports` loads each DLL (the working directory, else System32;
-  dinput always the system's; game.exe's folder came first until S18k) and fills our reached slots (S22, below);
+  game.exe's folder came first until S18k) and fills our reached slots (S22, below);
   a text call's slot gets its UTF-8 version there (`text::SystemRoute`; the command-line, resource, module and
   DirectInput wrappers are gone: S18j, S22). Our code names no slot by address (C18): it calls through `ei::Imports().X` (gameapi.h's
   routed imports and every import of src/lib/import_prototypes.h, the static initialisers'
   `Import(&ei::ImportTable::Sleep, ...)`) or the Windows function itself (below). Every member is typed (C18p): the
   SDK's `decltype(&::X)`, or for what the SDK lacks the `ei::import_fn::X` of import_prototypes.h (Miles with typed
   handles `miles::Sample*` / `Sequence*` / `DigitalDriver*` / `MidiDriver*`, Bink, Winsock 1.1 with SOCKET as
-  `std::uint32_t`, DirectInput, DirectDraw, DirectSound's enumerator, the common controls, comdlg32, the print
+  `std::uint32_t`, DirectInput, DirectDraw, the common controls, comdlg32, the print
   spooler, GetVersion, the Interlocked pair); gen_iat.py fails on an import with neither. The harness names its
   slots by member too: tests/verify/harness_imports.h's `PatchImport(&ImportTable::X, hook, original)` (clock,
   heap, Winsock, Miles, window, files, profile, registry), `TraceSlot<T>(&ImportTable::X)`, `crash::WatchWrites()`;
@@ -218,9 +218,11 @@ each step green on the goldens and removing a measured tie:
   (`#pragma comment(lib)` for the eight DLLs). A harness route on a new slot makes `gen_iat.py --check` (build.cmd; it reads the committed import files) fail until
   gen_iat.py is rerun (that one needs game.exe), which moves that function back to the slot. In game.exe our code does not run (S21), except
   hook/paths.cpp and the harness, which keep the slots they patch. Rebirth's only import slot patch (MoviesPatch,
-  BinkOpen 0073B720) is ours behind its flag in the image (mod_folders.cpp); Miles, Bink, Winsock, DirectInput,
-  DirectDraw and DirectSound stay table calls: the table loads them from the game folder (Miles, Bink, dgVoodoo's
-  DDraw) or the system (dinput), which ei_hook.dll's own imports would not. The table is still needed as it is:
+  BinkOpen 0073B720) is ours behind its flag in the image (mod_folders.cpp); Miles, Bink and Winsock stay table
+  calls: the table loads them from the game folder (Miles, Bink), which ei_hook.dll's own imports would not.
+  DirectSound's enumerator is the Windows function (S22a, dsound.lib); DirectInputCreateEx is the System32 dinput.dll's
+  export, loaded by input_mouse.cpp (S22b: the SDK has no import library of DirectInput 7's dinput.dll, and a static
+  import would take Rebirth's proxy dinput.dll beside the exe, which loads addon.dll). The table is still needed as it is:
   the harness patches it and those families call through it; the slots of the direct functions are only resolved
   (and could go once the harness names its routes by import).
   **game.exe's own table** is not there, as the rest of the old .rdata (S18h, S18k) (the read of an old slot names its
@@ -926,7 +928,7 @@ strips `CUiItemStrip` (26 `RebuildList`, pure), `CForwardingStrip` and `CFigureS
   bytes, C18q) or the add-on's, which script_addon.cpp builds from it under the flag.
   `AddonPanelOffset` returns none.
 - **DirectInput**: DirectInputCreateEx refuses an instance that is not a loaded module; the image's hInstance is the
-  host's module, so the import is called as it is (S18j). c_dfDIMouse (00745D00) points into game.exe's code section, so
+  host's module, so the import is called as it is (S18j), from System32's dinput.dll (S22b). c_dfDIMouse (00745D00) points into game.exe's code section, so
   `CDirectInputMouse::MouseDataFormat` is our copy of the seven objects. Other dinput.lib data in .text would need
   the same.
 - **Rebirth**: RunStartupActions calls `rebirth_hook::SettingsOnly`: flags from ei_rebirth.ini and EI_REBIRTH,
@@ -1572,9 +1574,10 @@ game.exe runs only as the original game, for the harness's references; none of o
   image's functions `ours:`.
 - **The user's real mouse is kept out of both games** (tests/verify/harness_input.cpp / .h): the game window's subclass
   (AlwaysActiveWindowProc) answers WM_NCHITTEST with HTNOWHERE, so the real cursor over it makes only non-client messages;
-  the harness's posted messages never hit-test. DirectInputCreateEx's import slot (0073B044) is routed at the game's
-  CreateWindowExA (routing it at the harness's start came before the image's own routing and broke DirectInput): the
-  game's GetDeviceState for GUID_SysMouse is wrapped and the state zeroed after each read. The report's `MOUSE:` line
+  the harness's posted messages never hit-test. In game.exe DirectInputCreateEx's import slot (0073B044) is routed at
+  the game's CreateWindowExA; in the image the harness takes our seam `g_directInputObserver` (ui_cursor.h; S22b: our
+  code calls the system's dinput.dll directly, its slot is a trap): the game's DirectInput object's CreateDeviceEx is
+  wrapped, and through it the GetDeviceState for GUID_SysMouse is wrapped and the state zeroed after each read. The report's `MOUSE:` line
   counts reads, real moves left out and hit tests. Without it the original's goldens did not repeat: dgVoodoo's window
   covers the desktop and is not cloaked, so the resting cursor sent WM_MOUSEMOVE to it and scrolled the camera.
 
