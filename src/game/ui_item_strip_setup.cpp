@@ -42,7 +42,7 @@ void CUiItemStrip::Setup(std::vector<CItem*>* source, bool top) {
     source_ = source;
 }
 
-void CUiItemStrip::SetupFigures(std::vector<std::string>* names, bool top, bool noArrowTips) {
+void CFigureStrip::SetupFigures(std::vector<std::string>* names, bool top, bool noArrowTips) {
     figures_ = names;
     LoadTexture(kFigureTexture, TextureKind::Interface);
     Build(top);

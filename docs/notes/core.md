@@ -317,8 +317,8 @@ instantiations were, for reading game.exe (config/library.csv names them):
     and so are element counts taken from a byte difference (the hero screen counted its voices as
     `(end - begin bytes) >> 3`): grep `reinterpret_cast<...*>(` of the object's pointer, `>> 3`, `/ 0x..` and
     `reinterpret_cast<char*>(...end())` near the class's containers. A class held by value grows with its member (CParty
-    sits in CPlayer, ClassTemplate, PartyRecord, ClientSession, TradeRecord and MpHeroRecord through
-    `lib::InPlace<CParty>`): grep the embedders too.
+    sits in CPlayer, ClassTemplate, PartyRecord, ClientSession and TradeRecord through
+    `lib::InPlace<CParty>`, in MpHeroRecord as a plain member): grep the embedders too.
   - Casts hide retypes: a `std::string*` compiles through a cast or a `void*` parameter and is then read as another
     string layout (`ComposeSkin`'s `void*` target crashed in every scenario with a hero); a function returning a
     `const T&` of a retyped member can return a reference to a temporary (`RecordMob` / `RecordMap` handed

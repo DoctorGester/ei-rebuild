@@ -18,6 +18,7 @@
 #include "ei/rebirth.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
+#include "maths.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -321,8 +322,6 @@ void CItemInfoPanel::Draw(CSceneRenderer* pass) {
 }
 
 // --- A hero's face -----------------------------------------------------------------------------
-
-Quaternion* MultiplyQuaternions(Quaternion*, const Quaternion*, const Quaternion*);
 
 namespace {
 

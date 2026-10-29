@@ -71,9 +71,6 @@ bool IsVoice(const acks::EnvironmentSpeech& entry) {
     return (entry.environment & kVoiceFlags) == kVoiceFlags && entry.speech.chance != 0;
 }
 
-// The points the three attributes must add up to (a float in the exe's data).
-constexpr float kAttributePoints = 75.0f;
-
 constexpr int kListRows = 10;
 constexpr int kAnswerOk = 0x10001;
 
@@ -461,16 +458,14 @@ void CMpHeroScreen::ShowFirstEquipment() {
 }
 // --- A hero deleted, the message box's answer ------------------------------------------
 
-MpHeroRecord::MpHeroRecord() { new (Party()) CParty(); }
-MpHeroRecord::MpHeroRecord(const MpHeroRecord& other) : file(other.file) {
-    new (Party()) CParty(*const_cast<MpHeroRecord&>(other).Party());
-}
+MpHeroRecord::MpHeroRecord() {}
+MpHeroRecord::MpHeroRecord(const MpHeroRecord& other) : party(const_cast<MpHeroRecord&>(other).party), file(other.file) {}
 MpHeroRecord& MpHeroRecord::operator=(const MpHeroRecord& other) {
     Party()->Assign(const_cast<MpHeroRecord&>(other).Party());
     file = other.file;
     return *this;
 }
-MpHeroRecord::~MpHeroRecord() { Party()->~CParty(); }
+MpHeroRecord::~MpHeroRecord() {}
 
 void SavedParties::Select(const MpHeroRecord* hero) { outsideGame_ = *hero; }
 

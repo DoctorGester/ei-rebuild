@@ -31,27 +31,6 @@ void ReleaseCachedObjects(ItemObjectCache<Object>* cache) {
 
 } // namespace
 
-// While the cache holds more than its limit: the least recently used entry (used before now) has
-// its object released and is erased. Spins while every entry was
-// used at or after now.
-template <typename Object>
-void TrimItemCache(ItemObjectCache<Object>* cache) {
-    while (cache->map.size() > cache->limit) {
-        std::uint32_t oldestTime = gameapi::timeGetTime();
-        auto oldest = cache->map.end();
-        for (auto node = cache->map.begin(); node != cache->map.end(); ++node) {
-            if (node->second.lastUse < oldestTime) {
-                oldestTime = node->second.lastUse;
-                oldest = node;
-            }
-        }
-        if (oldest != cache->map.end()) {
-            oldest->second.object->Release();
-            cache->map.erase(oldest);
-        }
-    }
-}
-
 // --- The icon window's frame -------------------------------------------------------------
 
 void CItemIconWindow::Build() {

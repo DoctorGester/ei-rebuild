@@ -38,8 +38,6 @@ const char* const kCurrentExpKey = "camp_current_exp";
 const char* const kLabelFormat = "%s %d";
 const char* const kSelectVoiceKey = "lmp_select_voice";
 
-// The points a new hero's three attributes must add up to before it can be created.
-constexpr float kNewHeroPoints = 75.0f;
 // The preview's full turn (2 pi), the modulus of its angle.
 constexpr float kFullTurn = /*007C7F10*/ 6.2831855f;   // a static initialiser: pi + pi
 
@@ -157,7 +155,7 @@ void CMpHeroScreen::Update() {
     std::string name = nameEdit_->text_;
     const UnitStats* stats = &HeroRecord()->stats;
     double points = static_cast<double>(stats->intelligenceBase) + stats->dexterityBase + stats->strengthBase;
-    float target = kNewHeroPoints;
+    float target = kAttributePoints;
     EI_NAN_AUDIT(points, target);
     bool equal = points == target;
     bool ready = equal && !name.empty();

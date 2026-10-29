@@ -64,9 +64,6 @@ public:
     // strip built, the arrows' tips 0x4FB0 / 0x4FB1, two text surfaces (x 50..750, y top_ + 15..35 and top_ + 65..85), nine
     // slots and the source list.
     void Setup(std::vector<CItem*>* source, bool top);
-    // The figure strips (the hero screen's two, the exchange window's): the name list, the texture "InventoryM01", Build, the
-    // arrows' tips 0x9DD0 / 0x9DD1 unless `noArrowTips`, no tabs, the six tab buttons' sprites (scene objects 2..7) hidden.
-    void SetupFigures(std::vector<std::string>* names, bool top, bool noArrowTips);
     // Lays the strip out along the top edge (`top`: y 0, scale 8) or the bottom (y 500, scale 4): the scroll state cleared, nine
     // regions (arrows, six tab buttons, the items), the ends' and tab buttons' sprites, the highlight frame, the background
     // cells; tab 5.
@@ -113,10 +110,7 @@ public:
     int count_;                 // visible list size after the last rebuild
     bool tabsEnabled_;
     int hovered_;               // -1
-    union {
-        int filter_;                // 0 items, 1 spells, 2 armour
-        std::vector<std::string>* figures_;   // the figure strips: the figure names
-    };
+    int filter_;                // 0 items, 1 spells, 2 armour
     std::vector<CItem*> list_;          // the visible items
     std::vector<CItem*>* source_; // all the items (a party's item list, PartyItemArray)
     int slots_;                 // 9
@@ -142,6 +136,9 @@ public:
 class CFigureStrip : public CUiItemStrip {
 public:
     using CUiItemStrip::CUiItemStrip;
+    // The figure strips (the hero screen's two, the exchange window's): the name list, the texture "InventoryM01", Build, the
+    // arrows' tips 0x9DD0 / 0x9DD1 unless `noArrowTips`, no tabs, the six tab buttons' sprites (scene objects 2..7) hidden.
+    void SetupFigures(std::vector<std::string>* names, bool top, bool noArrowTips);
     // The end faces dimmed where it can scroll on, the background and cells placed by the current tab's fraction, the frame
     // (scene object 8) on selected_ when in view, the window's sprites, then each visible name's hero face through the owner.
     void Draw(CSceneRenderer* pass) override;
@@ -152,6 +149,8 @@ public:
     // The strip's own click, then on the items (region 8) the figure under the point picked: the "on_off" sound and the
     // owner's choose-figure virtual with its name.
     void LeftDown(int buttons, int x, int y) override;
+
+    std::vector<std::string>* figures_ = nullptr;   // the figure names
 };
 
 // --- Camp screen ------------------------------------------------------------------------------
@@ -178,6 +177,8 @@ public:
     static constexpr int kModeList = 9;
     static constexpr int kModeNewHero = 10;
     static constexpr int kModeStats = 11;
+    // The points a new hero's three attributes must add up to before it can be created (a float in the exe's data).
+    static constexpr float kAttributePoints = 75.0f;
 
     // Built inline by the main menu's Multiplayer click.
     explicit CMpHeroScreen(CInterface3D* ui) : CItemScreen(ui) {}
@@ -280,7 +281,7 @@ public:
     CHeroStatsPanel* statsPanel_;
     CHeroEquipPanel* weaponPanel_;  // shows the weapon and the quick item
     CHeroQuickStrip* spellPanel_;
-    CUiItemStrip* figureStrips_[2]; // the figures of defaults_ (voices voiceLists_[0]) and of names_ (voiceLists_[1])
+    CFigureStrip* figureStrips_[2]; // the figures of defaults_ (voices voiceLists_[0]) and of names_ (voiceLists_[1])
     CTradePanel* tradePanel_;
     std::vector<std::string> defaults_;   // the men's figures; its first entry goes to ChooseFigure for a new hero
     std::vector<std::string> names_;      // the women's figures
@@ -606,7 +607,7 @@ public:
     CParty* partnerOffer_;           // the client's parties_[1]
     CParty* ownOffer_;               // the client's parties_[0]
     CUiItemStrip* strip_;            // the local party's items (forwarding strip, mode 1)
-    CUiItemStrip* figures_;          // the players (figure strip)
+    CFigureStrip* figures_;          // the players (figure strip)
     CTradeGrid* grid_;               // the two offers (mode 5)
     CUiEditField* moneyField_;       // the money offered
     std::vector<std::string> names_;           // the figure strip's names
