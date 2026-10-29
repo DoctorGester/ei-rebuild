@@ -2,7 +2,7 @@
 
 // The standalone's settings file (docs/notes/standalone.md, "Settings file"). The game keeps its settings
 // under HKEY_CURRENT_USER: Software\Nival Interactive\EvilIslands (the options, options.cpp) and Rebirth's
-// Software\Gipat.Ru\EI_Starter (its game settings and the starter's switches). ei_standalone.exe keeps the same
+// Software\Gipat.Ru\EI_Starter (its game settings and the starter's switches). ei-rebuild.exe keeps the same
 // keys and values in ei_settings.ini next to the exe instead (or in %LOCALAPPDATA%\EvilIslands\ei_settings.ini when
 // the exe's folder has none and cannot be written): WinRegistry (win_registry.cpp) and the direct readers
 // (ReadValue) use it there, and never read or write the registry. When the file is missing, the first use writes it

@@ -8,7 +8,7 @@
 // When the game opens a *.sav file for writing (the harness's CreateFileA redirection), every
 // stream of more than 2 KB is written to savetrace.txt in the run folder ("# save <path> stream
 // <address> <bytes>", then one line per write: position, size, callers; ours as 0x10000000 + offset
-// into our module, ei_standalone.exe or ei_harness.dll). The save's plain bytes come from build\SV7a's save decoder or golden.py; the
+// into our module, ei-rebuild.exe or ei_harness.dll). The save's plain bytes come from build\SV7a's save decoder or golden.py; the
 // trace maps the bytes that differ between two runs to their writers. Off by default; it never
 // touches the game's heap (our own CRT's).
 

@@ -79,7 +79,7 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   (`wait`, `waitfor`, `frames`, ...) count virtual time, each with a real-time safety limit. A
   `realtime` line puts a scenario on the real clock; `EI_HARNESS_CLOCK` (or `run_all.py` /
   `compare.py --clock`) overrides: `virtual` or `real`, plus `clocktrace` (every clock read and wait
-  by function, caller and thread, in `ei_hook.log`) and `randtrace` (every random draw with its frame
+  by function, caller and thread, in `ei-rebuild.log`) and `randtrace` (every random draw with its frame
   and caller, in `randtrace.txt`; `compare.py --clock virtual,randtrace` to find where two runs part).
   On the virtual clock the CRT heap also gives the same addresses every run, and the harness makes
   the original's address- and leftover-dependent behaviour canonical (`lfheap` keeps the game's own
@@ -94,7 +94,7 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   new / delete mismatch) ends the game with its report, symbolised from the PDB, and run_all fails
   the run with the error and its first frames. For a flaky heap crash this finds the cause in one run: a freed
   block stays poisoned in the quarantine, so the write that only sometimes hit live memory always reports. The
-  runtime takes part of game.exe's range before the host's main (ei_hook.log's "NOT all guarded" line): the image's
+  runtime takes part of game.exe's range before the host's main (ei-rebuild.log's "NOT all guarded" line): the image's
   guard has holes there in this build only. The host is large-address-aware in this build (with 2 GB the shadow and
   quarantine left too little: 4K frame buffers failed to allocate). The whole suite takes about 6 to 8 minutes at
   `--jobs 4`; the scenarios that wait on real time (frame counts, `render_stats`, `camera_smooth`, `app_record`,
@@ -158,8 +158,8 @@ no running thread left and was still ending in the kernel (driver teardown). A m
 `AIL_waveOutClose` -> DSOUND means the Windows audio service was stalled. Such a stall hits every game on the machine at
 once: the games quitting then hang in DSound's close, and the games starting then hang for their whole time limit in
 Miles' `AIL_waveOutOpen` (step 0, main thread in DSOUND under mss32). A retry passes. ei_launch's own output and exit code go to the run's `ei_launch.txt`; a report left at
-`RESULT: RUNNING` with no failure (the game died without a line in `ei_hook.log`) fails with its exit code. When the game crashes,
-the stack is in `ei_hook.log`; run_all prints it by function names under the run's line (`stack: ... -> QuickSave -> lib::File::Write -> CxxThrowException`, outermost first, stale words dropped) and `python tools\resolve_crash.py <run folder>` prints the named stack (`--raw`: every logged word). A run that exceeds its time
+`RESULT: RUNNING` with no failure (the game died without a line in `ei-rebuild.log`) fails with its exit code. When the game crashes,
+the stack is in `ei-rebuild.log`; run_all prints it by function names under the run's line (`stack: ... -> QuickSave -> lib::File::Write -> CxxThrowException`, outermost first, stale words dropped) and `python tools\resolve_crash.py <run folder>` prints the named stack (`--raw`: every logged word). A run that exceeds its time
 limit logs where the main thread waits (instruction pointer and return addresses, as module+offset). No game outlives its limit:
 the watchdog thread in the game ends it at the scenario's `timeout` (60 s unless the scenario says more); if that
 thread cannot run, `ei_launch` ends the game 20 s later (and the game runs in a job object that dies with
@@ -173,7 +173,7 @@ default 16; the whole suite takes about 2 minutes). These are runs of the standa
 `--no-hooks` runs game.exe with the original code (but on the installs a scenario's `# no original: vanilla
 rebirth` line names: checks only our renderer passes, Rebirth's flags on the vanilla data). Nothing runs our code
 inside game.exe (docs/notes/standalone.md section 5). Each run writes to its own folder,
-`build\verify\runs\<scenario>-<install>` (`ei_launch --out`, `EI_OUT_DIR`): its `ei_hook.log`,
+`build\verify\runs\<scenario>-<install>` (`ei_launch --out`, `EI_OUT_DIR`): its `ei-rebuild.log`,
 report and `harness_saves`, emptied first, so every run starts without saves or texture cache.
 For parallel runs the harness ignores other game windows (the game otherwise exits when it finds
 one), keeps the game active when it loses focus (it otherwise pauses), and opens data files for
@@ -184,7 +184,7 @@ needs the machine to itself; EI_RENDER reaches no run, a scenario's `render` ste
 src/hook and what they include; game.exe's side runs no game code of ours and reads game.exe's objects through its
 own views, tests/verify/exe_objects.h, so no game header is in it: docs/notes/standalone-verification.md), so they
 play again only when the harness changes (`--fresh`: always).
-The standalone runs (the default, or `--standalone`) start `ei_standalone.exe` instead of game.exe (install
+The standalone runs (the default, or `--standalone`) start `ei-rebuild.exe` instead of game.exe (install
 `standalone`: the image on the vanilla data, our renderer; `ei_launch --standalone` with `--game` the install, no game.exe: the image reads none since S18k) and on the Rebirth install (`standalone-rebirth`:
 the Rebirth data and
 goldens, the flags of `config/ei_rebirth_standalone.ini`; only on demand: `--rebirth` adds the smoke set of

@@ -1,5 +1,5 @@
 @echo off
-rem Builds the standalone image (ei_standalone.exe, ei_hook.dll), ei_launch.exe and the tools (32-bit) with
+rem Builds the standalone image (ei-rebuild.exe, with ei_harness.dll in the verify build), ei_launch.exe and the tools (32-bit) with
 rem the VS 2022 Build Tools.
 rem usage: build.cmd [release|verify|debug|play|asan]
 rem   release  the product: the standalone image

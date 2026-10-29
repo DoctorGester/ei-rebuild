@@ -1,11 +1,11 @@
-// ei_launch: starts the standalone image (--standalone: ei_standalone.exe, our code) or the original
+// ei_launch: starts the standalone image (--standalone: ei-rebuild.exe, our code) or the original
 // game.exe the same way the Rebirth starter does (exe from starter\Engine, working directory = game
 // root), or <game>\game.exe for a plain install. Nothing in the game folder is modified.
 //
 // usage: ei_launch [--game <dir>] [--exe <game.exe outside the game dir>] [--dll <ei_harness.dll>]
 //                  [--harness <scenario.txt>] [--wait] [--no-hooks] [--rebirth <spec>] [--out <dir>]
 //                  [--standalone] [--drop-in] [game args...]
-// --out puts what the run writes (ei_hook.log, the harness report and saves, ...) in <dir> instead
+// --out puts what the run writes (ei-rebuild.log, the harness report and saves, ...) in <dir> instead
 // of next to ei_launch.exe (EI_OUT_DIR), so several runs can go at once.
 // game.exe is always the original game (the original's harness: goldens, EI_VECTORS recording, addon's
 // WideScreen frames): ei_harness.dll is loaded into it before the game's own code runs, so the harness
@@ -14,7 +14,7 @@
 // tools' command lines; since S21e nothing starts game.exe with our rewrites.
 // --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; include/ei/rebirth.h):
 // "all", or patch names separated by commas, each optionally =0/=1.
-// --standalone runs ei_standalone.exe (next to ei_launch.exe; src/standalone/host.cpp) instead of game.exe:
+// --standalone runs ei-rebuild.exe (next to ei_launch.exe; src/standalone/host.cpp) instead of game.exe:
 // it runs without game.exe (S18k; --exe only places the shared copy of a launch without a scenario), the game and
 // (verify build) the harness linked in (S23), with the same
 // environment, working directory, output folder, job object and time limits as a game.exe run. Its own
@@ -23,7 +23,7 @@
 // environment reaches ei_launch when the scheduler's run_all does not know the install yet; S19).
 // --drop-in runs the image as an exe dropped into the game folder (S23a; docs/notes/standalone.md, "The drop-in exe"):
 // ei_launch makes <out>\dropin like the --game install (DropInFolder: nothing is written to the install) with a copy
-// of the build's ei_standalone.exe, and starts that copy from the output folder with no EI_GAME_ROOT and no EI_REBIRTH,
+// of the build's ei-rebuild.exe, and starts that copy from the output folder with no EI_GAME_ROOT and no EI_REBIRTH,
 // so the exe enters its own folder and takes the folder's profile. EI_DROPIN names the install for the harness's
 // "dropin" step (tests/verify/harness_dropin.h). The folder is removed when the game has ended. A --standalone run of
 // a scenario with a line "# drop-in: <why>" is one too (run_all's runs of tests/scenarios/dropin_*.txt).
@@ -68,9 +68,9 @@ static bool SameFile(const std::wstring& a, const std::wstring& b) {
 }
 
 // Windows Firewall asks about every new program path that listens outside loopback, and each worktree builds
-// its own ei_standalone.exe. A launch without a scenario (a game to play, which hosts on every address) starts
+// its own ei-rebuild.exe. A launch without a scenario (a game to play, which hosts on every address) starts
 // one shared copy instead, in the resolved run folder that holds game.exe's install folder
-// (run\standalone\ei_standalone.exe), so the firewall asks once. The copy is refreshed when the built host
+// (run\standalone\ei-rebuild.exe), so the firewall asks once. The copy is refreshed when the built host
 // differs; while a running game still holds an older copy, the launch uses its own build's host. Harness runs
 // start their build's own host: they bind on 127.0.0.1 only (WB14, tests/verify/harness_net.h), which the
 // firewall never asks about, and runs of several worktrees' builds would keep replacing the shared copy.
@@ -86,7 +86,7 @@ static std::wstring SharedStandaloneHost(const std::wstring& built, const std::w
     if (dir.rfind(L"\\\\?\\", 0) == 0 && dir.rfind(L"\\\\?\\UNC\\", 0) != 0) dir = dir.substr(4);
     dir += L"\\standalone";
     CreateDirectoryW(dir.c_str(), nullptr);
-    const std::wstring shared = dir + L"\\ei_standalone.exe";
+    const std::wstring shared = dir + L"\\ei-rebuild.exe";
     if (SameFile(built, shared)) return shared;
     const std::wstring temp = shared + L"." + std::to_wstring(GetCurrentProcessId()) + L".tmp";
     if (CopyFileW(built.c_str(), temp.c_str(), FALSE) && MoveFileExW(temp.c_str(), shared.c_str(), MOVEFILE_REPLACE_EXISTING))
@@ -185,7 +185,7 @@ static std::wstring DropInFolder(const std::wstring& folder, const std::wstring&
             continue;
         }
         bool ours = false;
-        for (const wchar_t* skipped : {L"game.exe", L"ei_standalone.exe", L"ei_settings.ini", L"ei_rebirth.ini", L"ei_hook.log"})
+        for (const wchar_t* skipped : {L"game.exe", L"ei-rebuild.exe", L"ei_settings.ini", L"ei_rebirth.ini", L"ei-rebuild.log"})
             ours = ours || _wcsicmp(name.c_str(), skipped) == 0;
         if (!ours && !CopyFileW(from.c_str(), to.c_str(), FALSE)) {
             std::fwprintf(stderr, L"ei_launch: cannot copy %s (error %lu)\n", from.c_str(), GetLastError());
@@ -193,7 +193,7 @@ static std::wstring DropInFolder(const std::wstring& folder, const std::wstring&
         }
     } while (FindNextFileW(f, &found));
     FindClose(f);
-    const std::wstring exe = folder + L"\\ei_standalone.exe";
+    const std::wstring exe = folder + L"\\ei-rebuild.exe";
     if (!CopyFileW(builtExe.c_str(), exe.c_str(), FALSE)) {
         std::fwprintf(stderr, L"ei_launch: cannot copy %s (error %lu)\n", builtExe.c_str(), GetLastError());
         ok = false;
@@ -536,7 +536,7 @@ static void ReportSilentEnd(const Game& game, bool standalone) {
         if (game.code == static_cast<DWORD>(EXCEPTION_BREAKPOINT))
             std::snprintf(why, sizeof(why), "FAILED: the game ended on a breakpoint (exit code %08lX) before the harness "
                                             "wrote its result%s\n", game.code,
-                          standalone ? ": an INT3 of the standalone image with no code there (ei_hook.log, the run notes)" : "");
+                          standalone ? ": an INT3 of the standalone image with no code there (ei-rebuild.log, the run notes)" : "");
         else
             std::snprintf(why, sizeof(why), "FAILED: the game ended (exit code %lu, %08lX) before the harness wrote its "
                                             "result\n", game.code, game.code);
@@ -765,7 +765,7 @@ int wmain(int argc, wchar_t** argv) {
         std::wstring install = full;
         while (install.size() > 3 && install.back() == L'\\') install.pop_back();
         dropInFolder = outDir + L"\\dropin";
-        dropInExe = DropInFolder(dropInFolder, install, Dir(self) + L"\\ei_standalone.exe");
+        dropInExe = DropInFolder(dropInFolder, install, Dir(self) + L"\\ei-rebuild.exe");
         if (dropInExe.empty()) return 2;
         // The harness finds the checkout's config\harness two folders above its module (harness_settings.cpp): from
         // the copy, the build's.
@@ -832,7 +832,7 @@ int wmain(int argc, wchar_t** argv) {
     BOOL inherit = FALSE;
     if (standalone) {
         GetFullPathNameW(exe.c_str(), MAX_PATH, full, nullptr);
-        const std::wstring built = Dir(self) + L"\\ei_standalone.exe";
+        const std::wstring built = Dir(self) + L"\\ei-rebuild.exe";
         // The shared copy needs --exe: the run folder it sits in is found from there (never from the install's).
         program = dropIn ? dropInExe : harness.empty() && !exeOverride.empty() ? SharedStandaloneHost(built, full) : built;
         cmd = L"\"" + program + L"\"";   // the exe reads no game.exe (S18k) and has the game linked in (S23)
@@ -930,7 +930,7 @@ int wmain(int argc, wchar_t** argv) {
     for (Game& game : games) {
         ResumeThread(game.pi.hThread);
         std::wprintf(L"ei_launch: started %s%s (pid %lu)%s%s\n", game.label.c_str(),
-                     standalone ? L"ei_standalone.exe" : L"game.exe", game.pi.dwProcessId, standalone ? L"" : L" with ",
+                     standalone ? L"ei-rebuild.exe" : L"game.exe", game.pi.dwProcessId, standalone ? L"" : L" with ",
                      standalone ? L"" : dll.c_str());
         CloseHandle(game.pi.hThread);
     }
@@ -1016,10 +1016,10 @@ int wmain(int argc, wchar_t** argv) {
     if (peerSlot) CloseHandle(peerSlot);
     DWORD code = games[0].code;
     if (harness.empty()) {
-        // The image's one-instance check ends the game with exit code -1 (ei_hook.log: "another game window exists").
+        // The image's one-instance check ends the game with exit code -1 (ei-rebuild.log: "another game window exists").
         if (code == 0xFFFFFFFFu)
             std::fwprintf(stderr, L"ei_launch: the game ended with exit code -1: another game window exists "
-                                  L"(the one-instance check; ei_hook.log names it)\n");
+                                  L"(the one-instance check; ei-rebuild.log names it)\n");
         return static_cast<int>(code);
     }
     if (!timedOut && !unkillable)

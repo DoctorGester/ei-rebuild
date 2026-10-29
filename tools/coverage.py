@@ -4,7 +4,7 @@ reaches, and whether a golden run (SV3) or function vectors (SV4) check them wit
 Reach (tests/coverage/reach.txt): which scenarios run each rewritten function's original. Since A-I23 it comes
 from runs of the original code (--no-hooks) with `EI_COVER=<file>`: every address the file lists (`addresses`
 writes reach.txt's: the rewritten functions as the function-to-original map had them until C20l, with their
-names) gets a one-shot INT3 (src/hook/cover.cpp) and the run's ei_hook.log names each one the
+names) gets a one-shot INT3 (src/hook/cover.cpp) and the run's ei-rebuild.log names each one the
 run executed (a call the original inlined is not seen, so "reached" is a lower bound for small functions).
 Scenarios collected before S21c came from game.exe with our hooks (EI_COVER=hooks: the hook addresses and our
 replacements' first bytes); `collect --add` keeps them until their scenarios run again.
@@ -148,7 +148,7 @@ def collect(args):
     cover_line = re.compile(r'\] cover ([0-9A-F]{8})\b')
     reached = {}
     for folder in sorted(glob.glob(os.path.join(args.runs, f'*-{INSTALL}'))):
-        logs = [os.path.join(folder, 'ei_hook.log'), os.path.join(folder, 'peer', 'ei_hook.log')]
+        logs = [os.path.join(folder, 'ei-rebuild.log'), os.path.join(folder, 'peer', 'ei-rebuild.log')]
         texts = [open(p, encoding='cp1251', errors='replace').read() for p in logs if os.path.exists(p)]
         if not texts or not re.search(r'cover: \d+ address\(es\) from', texts[0]):
             continue

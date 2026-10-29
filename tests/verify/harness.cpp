@@ -189,7 +189,7 @@
 //   quit                      write the report and exit the game through the console
 //   realtime, deterministic   the game on real time, or (the default) on the virtual game clock
 //                             with fixed seeds, where runs repeat exactly (see below)
-//   clocktrace, randtrace     log every clock read and wait (ei_hook.log), every random draw
+//   clocktrace, randtrace     log every clock read and wait (ei-rebuild.log), every random draw
 //                             (randtrace.txt; harness_clock.h)
 //   vanilla <step>, rebirth <step>   run the step only in that install
 //   rebirthflags <spec>       turn Rebirth patch flags on for this run (include/ei/rebirth.h): "all",
@@ -1272,7 +1272,7 @@ void WriteReport() {
     if (std::string written = install::Failure(); !written.empty()) failures.push_back(written);   // harness_install.h
     if (std::string patched = addon::Failure(); !patched.empty()) failures.push_back("addon: " + patched);   // harness_addon.h
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
-        failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
+        failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei-rebuild.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
     std::fprintf(f, "RESULT: %s\n", !failures.empty() ? "FAIL" : "PASS");
     std::fclose(f);
@@ -2225,7 +2225,7 @@ constexpr DWORD kMsvcThrow = 0xE06D7363;
 // Unhandled exceptions end the run with a failure. Installed at start and re-asserted every step:
 // the game (and Rebirth) install their own filters, which can leave a crashed game hanging. The
 // failure names a C++ throw's type and contents and, when it is low, the run disk's free space
-// (harness_crash.h); ei_hook.log gets the code addresses on the stack.
+// (harness_crash.h); ei-rebuild.log gets the code addresses on the stack.
 LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
     char head[64];
     std::snprintf(head, sizeof(head), "the game crashed: exception %08lX at %08lX", e->ExceptionRecord->ExceptionCode,
@@ -2235,7 +2235,7 @@ LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
     const long long freeMb = crash::FreeMegabytes(g_savesDir);
     if (freeMb >= 0 && (freeMb < kLowDiskMb || e->ExceptionRecord->ExceptionCode == kMsvcThrow))
         what += "; " + std::to_string(freeMb) + " MB free on the run folder's disk";
-    what += " (stack in ei_hook.log)";
+    what += " (stack in ei-rebuild.log)";
     Log("harness: %s", what.c_str());
     Log("harness: %lld MB free on the run folder's disk", freeMb);
     LogModuleOf(e->ContextRecord->Eip);
@@ -2261,7 +2261,7 @@ LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
 // The standalone image reached game code with no rewrite (src/hook/standalone_main.cpp, which ends the process
 // after this): the run fails naming the address.
 void EndRunOnMissingCode(const char* what) {
-    g_failures.push_back(std::string("standalone: ") + what + " (ei_hook.log)");
+    g_failures.push_back(std::string("standalone: ") + what + " (ei-rebuild.log)");
     if (HANDLE writer = CreateThread(nullptr, 0, [](void*) -> DWORD { WriteReport(); return 0; }, nullptr, 0, nullptr)) {
         WaitForSingleObject(writer, 3000);
         CloseHandle(writer);
@@ -2271,7 +2271,7 @@ void EndRunOnMissingCode(const char* what) {
 // A message box in a harness run is a failure nobody is there to close: the CRT's abort() ("abnormal
 // program termination", from game.exe's own CRT or Rebirth's), a pure virtual call, the game's error
 // box. user32's MessageBoxA / MessageBoxW are hot-patched (the CRT finds MessageBoxA through
-// GetProcAddress, so an import slot would miss it): the text and the stack go to ei_hook.log and
+// GetProcAddress, so an import slot would miss it): the text and the stack go to ei-rebuild.log and
 // the run ends at once. During the run that is a failure; after "quit" the report is already
 // written, so an "EXIT:" line is added to it (run_all.py lists those runs).
 void EndRunOnMessageBox(const std::string& caption, const std::string& text) {
@@ -2286,12 +2286,12 @@ void EndRunOnMessageBox(const std::string& caption, const std::string& text) {
     for (int i = 0; i < 256 && stack + i < stackEnd; ++i) LogCodeAddress("stack", stack[i]);
     if (g_quitting) {
         if (FILE* f = nullptr; fopen_s(&f, g_reportPath, "a") == 0 && f) {
-            std::fprintf(f, "EXIT: %s (stack in ei_hook.log)\n", what.c_str());
+            std::fprintf(f, "EXIT: %s (stack in ei-rebuild.log)\n", what.c_str());
             std::fclose(f);
         }
         TerminateProcess(GetCurrentProcess(), 0);
     }
-    g_failures.push_back(what + " (stack in ei_hook.log)");
+    g_failures.push_back(what + " (stack in ei-rebuild.log)");
     WriteReport();
     TerminateProcess(GetCurrentProcess(), 4);
 }
@@ -3483,7 +3483,7 @@ void RunSteps() {
 constexpr DWORD kDefaultTimeLimitMs = 60000;
 DWORD g_budget = kDefaultTimeLimitMs;
 
-// A timed-out run: where the main thread (the process's oldest thread) is, for ei_hook.log: its
+// A timed-out run: where the main thread (the process's oldest thread) is, for ei-rebuild.log: its
 // instruction pointer and the return addresses on its stack (words after a CALL, in any loaded
 // module), as module+offset.
 bool DescribeAddress(std::uintptr_t a, char* out, std::size_t size) {
@@ -3954,7 +3954,7 @@ struct Harness {
         char path[MAX_PATH];
         DWORD n = GetEnvironmentVariableA("EI_HARNESS", path, MAX_PATH);
         if (n == 0 || n >= MAX_PATH) return;
-        // Report next to ei_hook.log. It exists from the start ("RESULT: RUNNING"), so ei_launch can
+        // Report next to ei-rebuild.log. It exists from the start ("RESULT: RUNNING"), so ei_launch can
         // tell a run whose harness never started from one that is still going.
         ei::OutputPath("harness_report.txt", g_reportPath);
         FILE* report = nullptr;

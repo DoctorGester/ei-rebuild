@@ -81,7 +81,7 @@ MIGRATIONS = [
         hooks     INTEGER NOT NULL DEFAULT 1,
         alone     INTEGER NOT NULL DEFAULT 0,   -- sets the display mode: runs with no other game
         expected  REAL,                  -- seconds from run_times.json (longest first)
-        folder    TEXT,                  -- the run folder (ei_hook.log, harness_report.txt)
+        folder    TEXT,                  -- the run folder (ei-rebuild.log, harness_report.txt)
         state     TEXT NOT NULL DEFAULT 'queued'
                   CHECK (state IN ('queued', 'running', 'finished', 'cancelled')),
         attempt   INTEGER NOT NULL DEFAULT 0,   -- retries so far

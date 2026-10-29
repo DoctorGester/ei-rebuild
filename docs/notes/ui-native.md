@@ -469,12 +469,12 @@ the same places), its zone tip 0.08% and ways 0.30%.
 
 ### P2a done (2026-10-29): the fonts inside the executable
 
-The two Liberation files are byte arrays built into the executable (ei_render, so ei_standalone.exe and the tools): CMakeLists.txt runs
+The two Liberation files are byte arrays built into the executable (ei_render, so ei-rebuild.exe and the tools): CMakeLists.txt runs
 `src/render/embed.cmake` on each at build time into fonts/ in the build folder (not committed, no Windows resource, so a port
 keeps it); `render_fonts.cpp` includes them and `render::text::FontForFace(face)` gives the bytes (Liberation Mono for Courier New,
 Liberation Serif else). `LoadFont(data, pixels)` reads memory. EI_FONT_DIR, FontDirectory / SetFontDirectory, text_check's
 `--fonts` and the "font file missing" fall-back to GDI are gone (`Text` still falls back for a format the layout does not follow).
-ei_hook.dll grows by 712,704 bytes (7,173,632 to 7,886,336, release); ei_standalone.exe is unchanged.
+ei_hook.dll grows by 712,704 bytes (7,173,632 to 7,886,336, release); ei-rebuild.exe is unchanged.
 
 **Notices.** Every build writes `third_party_notices.txt` beside the executables (configure time, from third_party's README and
 LICENSE files: the fonts' SIL Open Font License, sokol's zlib licence, stb's note); play.cmd copies it into run\play; README's

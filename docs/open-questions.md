@@ -99,7 +99,7 @@ Likely cause (from reading the code, not yet confirmed by a run; docs/notes/worl
 with a NaN view depth (+0x30) makes Less(x, x) true and STLport's unguarded partition walks off the
 front of the vector. 0056AFE0 also reads the view matrix from an unchecked view stack depth, a
 possible source of NaN depths while a new game loads. The verify build logs both ("not orderable",
-"view stack depth" in ei_hook.log).
+"view stack depth" in ei-rebuild.log).
 
 Update (2026-10-03, full run): the diagnostic logged "IntroSortByModel: element 41 of -11 is not
 orderable" (a range with first > last) and one "MISMATCH IntroSortByModel: n 49" in 937,548 calls.

@@ -6,7 +6,7 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
        python tools/run_all.py --widescreen [--record] [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
   default          the standalone image (S21: game.exe only runs the original, docs/notes/standalone.md section 5), as
-                   --standalone: ei_launch --standalone, build\\verify\\ei_standalone.exe lays out game.exe's data
+                   --standalone: ei_launch --standalone, build\\verify\\ei-rebuild.exe lays out game.exe's data
                    without its code (it reads no game.exe, S18k1), the game and the harness linked in (S23), on the vanilla install's data
                    (install "standalone", vanilla goldens), and on the Rebirth install's data
                    with the flags of config/ei_rebirth_standalone.ini as EI_REBIRTH (no dgVoodoo, addon.dll or
@@ -18,7 +18,7 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    with no rewrite ends the run: "standalone: no code at ...".
   drop-in          a scenario with a line "# drop-in: <why>" (tests/scenarios/dropin_*.txt) checks the exe dropped
                    into a game folder (S23a; docs/notes/standalone.md, "The drop-in exe"): ei_launch sees the line and
-                   (as with --drop-in) copies the build's ei_standalone.exe into <run folder>\\dropin, a folder made
+                   (as with --drop-in) copies the build's ei-rebuild.exe into <run folder>\\dropin, a folder made
                    like the install (its folders junctions, its files copies, no game.exe; nothing is written to the
                    install), and starts it from the run folder with no EI_GAME_ROOT, EI_REBIRTH or ei_rebirth.ini.
                    On both of the image's installs (standalone, standalone-rebirth) by default (--vanilla-only /
@@ -55,7 +55,7 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    when a scenario's steps change (a comment does not count; the comparison names it)
   --jobs N         games running at once (default 16); all runs on the machine together never
                    exceed EI_HARNESS_SLOTS (default 16) games, whatever --jobs says. Each run writes to its own folder,
-                   build\\verify\\runs\\<scenario>-<install> (ei_hook.log, harness_report.txt and
+                   build\\verify\\runs\\<scenario>-<install> (ei-rebuild.log, harness_report.txt and
                    harness_saves, emptied first, so every run starts without saves or texture cache).
   --retries N      re-run a failed scenario up to N times (default 1); fights against spawned
                    enemies are random, and the hero occasionally loses one on the original too.
@@ -497,7 +497,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
     result = next((l[8:] for l in report.splitlines() if l.startswith('RESULT: ')), 'NO REPORT')
     failures = [l[8:] for l in report.splitlines() if l.startswith('FAILED: ')]
-    # ei_launch's own output beside the run's log (C36b: a game that died with no line in ei_hook.log left a report
+    # ei_launch's own output beside the run's log (C36b: a game that died with no line in ei-rebuild.log left a report
     # saying RUNNING and nothing else to tell why).
     with contextlib.suppress(OSError):
         with open(os.path.join(out, 'ei_launch.txt'), 'w', encoding='utf8', errors='replace') as f:
@@ -510,7 +510,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     counts = {}
     notes = [l for l in (proc.stdout + proc.stderr).splitlines()
              if 'terminating' in l or 'not found' in l or 'open window' in l or 'still alive' in l
-             or l.startswith('ei_standalone: ') and 'imports resolved, 0 missing' not in l]
+             or l.startswith('ei-rebuild: ') and 'imports resolved, 0 missing' not in l]
     if proc.returncode in (TIMEOUT_EXIT, UNKILLABLE_EXIT) or any(f.startswith(IN_GAME_TIMEOUT) for f in failures):
         result = 'TIMEOUT'
         if not failures:
@@ -765,7 +765,7 @@ def console_of(folder, build=BUILD):
     return [l for l in lines if l.startswith('  ')]
 
 
-ATTEMPT_FILES = ('ei_hook.log', 'harness_report.txt')
+ATTEMPT_FILES = ('ei-rebuild.log', 'harness_report.txt')
 
 
 def keep_attempt(folder, attempt, build=BUILD):
@@ -1252,7 +1252,7 @@ def summary(jobs, results, args, elapsed, out=None, root=ROOT, build=BUILD):
             print(line(n, i, *results[(n, i)], root=root, build=build), file=out)
     exits = [(n, i) for n, i in jobs if any(x.startswith('EXIT: ') for x in results[(n, i)][3])]
     if exits:
-        print(f'\n{len(exits)} run(s) showed a message box after the scenario quit (EXIT: lines; stack in ei_hook.log): '
+        print(f'\n{len(exits)} run(s) showed a message box after the scenario quit (EXIT: lines; stack in ei-rebuild.log): '
               + ', '.join(f'{n}-{i}' for n, i in exits), file=out)
     window_check(jobs, out, build)
     net_check(jobs, out, build)

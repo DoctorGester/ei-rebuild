@@ -2,10 +2,10 @@
 
 usage: python tools/profile_report.py <run folder> [--top N] [--min-ms MS]
 
-The run folder holds profile.txt and ei_hook.log. The run is cut at the harness steps in the log;
+The run folder holds profile.txt and ei-rebuild.log. The run is cut at the harness steps in the log;
 for every stretch of at least --min-ms the report lists where the main thread was (self: the
 function it was in; total: functions anywhere on its stack, scanned, so a stale return address can
-add a little). game.exe names come from config/functions.csv, ours (ei_standalone.exe, ei_harness.dll) from its .map file,
+add a little). game.exe names come from config/functions.csv, ours (ei-rebuild.exe, ei_harness.dll) from its .map file,
 other modules show by name only.
 """
 import argparse
@@ -17,7 +17,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OWN_MODULES = ('ei_standalone.exe', 'ei_harness.dll')   # our code: the image's exe, the harness in game.exe
+OWN_MODULES = ('ei-rebuild.exe', 'ei_harness.dll')   # our code: the image's exe, the harness in game.exe
 
 
 def ms_of_day(stamp):
@@ -97,11 +97,11 @@ def main():
         elif line.startswith('T '):
             start = ms_of_day(line.split()[1])
     build = os.path.dirname(os.path.dirname(os.path.abspath(args.run)))
-    own = next((os.path.basename(n) for b, s, n in modules if os.path.basename(n).lower() in OWN_MODULES), 'ei_standalone.exe')
+    own = next((os.path.basename(n) for b, s, n in modules if os.path.basename(n).lower() in OWN_MODULES), 'ei-rebuild.exe')
     symbols = Symbols(modules, os.path.join(build, os.path.splitext(own)[0] + '.map'))
     # The harness steps, as times since the profile started.
     marks = [(0.0, 'start (WinMain)')]
-    for line in open(os.path.join(args.run, 'ei_hook.log'), encoding='latin-1'):
+    for line in open(os.path.join(args.run, 'ei-rebuild.log'), encoding='latin-1'):
         m = re.match(r'\[(\d\d:\d\d:\d\d\.\d+)\] harness: (.*)', line)
         if m and not m.group(2).startswith(('saves and', 'steps from')) and re.match(r'\d+ steps', m.group(2)) is None:
             marks.append((ms_of_day(m.group(1)) - start, m.group(2)[:90]))

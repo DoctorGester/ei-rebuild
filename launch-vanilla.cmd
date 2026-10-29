@@ -9,7 +9,7 @@ setlocal
 if not defined EI_GAME_VANILLA set "EI_GAME_VANILLA=F:\games\EvilIslands"
 set PLAY=%~dp0run\play
 if not exist "%PLAY%" mkdir "%PLAY%"
-for %%f in (ei_launch.exe ei_launch.pdb ei_standalone.exe ei_standalone.pdb) do (
+for %%f in (ei_launch.exe ei_launch.pdb ei-rebuild.exe ei-rebuild.pdb) do (
     copy /y "%~dp0build\release\%%f" "%PLAY%\%%f" >nul 2>&1 || echo launch-vanilla: %%f in use, playing the copy already there
 )
 rem The default Rebirth flags (play.cmd may have left an ei_rebirth.ini there).
@@ -17,5 +17,5 @@ del "%PLAY%\ei_rebirth.ini" 2>nul
 rem The renderer's default options (play.cmd turns on the smooth option and the smooth camera).
 set EI_RENDER=
 cd /d "%PLAY%"
-rem No --exe: ei_launch starts the ei_standalone.exe next to it.
+rem No --exe: ei_launch starts the ei-rebuild.exe next to it.
 "%PLAY%\ei_launch.exe" --game "%EI_GAME_VANILLA%" --standalone %*

@@ -337,7 +337,7 @@ happen (the harness logs "share id" if one does).
   ei_launch sets to both installs) opened for writing (write access or any disposition but FILE_OPEN), created,
   renamed, linked or deleted is refused and fails the run (`install: write refused: <call> <path> (<module>+<offset>)`).
   The report's stack lists return addresses (words just after a call) from the refused call up, e.g.
-  `ei_standalone.exe+B8AA5, addon.dll+7BD60, ...`; `ei_standalone.map` (`ei_harness.map` in game.exe) names ours. The game's root itself is written to the
+  `ei-rebuild.exe+B8AA5, addon.dll+7BD60, ...`; `ei-rebuild.map` (`ei_harness.map` in game.exe) names ours. The game's root itself is written to the
   overlay's root (emptying mp\ the game deletes every entry FindFirstFile lists, `mp\..` too: a directory, the delete
   fails in both). A log (*.log) or a file over 16 MB is not copied into the overlay before a keeping write (the write
   starts empty). Checked (2026-10-20) by adding the run's own `harness_saves\Starter` as a root for one Rebirth
@@ -355,12 +355,12 @@ happen (the harness logs "share id" if one does).
 
 - `EI_HARNESS_CLOCK=virtual,randtrace`: every random draw with its frame, caller and generator position (`#<n>`) in
   randtrace.txt, plus clock moves and sound ends; `tools/randtrace.py A B` reports the first draw B makes in no frame or
-  another. `clocktrace`: every clock read and wait in ei_hook.log. Through `work.py test`, set it in the environment.
+  another. `clocktrace`: every clock read and wait in ei-rebuild.log. Through `work.py test`, set it in the environment.
 - `golden.py diff A B [--ulps N] [--ignore F] [--records K]`, `golden.py state A --record N`: where two runs' digests
   part, field by field; with `digest 1` and `randtrace` on the scenario this finds the first update and draw.
 - `heaptrace` (EI_HARNESS_CLOCK) writes every CRT heap call with callers until world update `EI_HEAPTRACE` (default 40),
   then every object's place; `EI_HEAPSEQ=<update>` keeps the events in memory and writes heapseq.txt (faster).
-- `EI_HEAP_FILL=<spec>` (or `heapfill.txt` beside our module, ei_standalone.exe or ei_harness.dll, since a variable of its own moves the blocks: the CRT
+- `EI_HEAP_FILL=<spec>` (or `heapfill.txt` beside our module, ei-rebuild.exe or ei_harness.dll, since a variable of its own moves the blocks: the CRT
   copies the environment onto its heap): fill chosen blocks (by number), byte ranges and resized tails with a byte or
   seeded bytes; bisect the block number, then the offset, to name an uninitialised field (how SV7b7 was found).
 - `EI_WATCH_CUNIT=<id>[,flags]` (a client unit's orientation or flags writes, by debug registers), `EI_WATCH_ADDR=<hex>
@@ -451,7 +451,7 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
   d3dcompiler_47's at run time to the byte but the recorded flags and the checksum, so frames do not change); the
   harness found the main thread (harness_clock.cpp FindMainThread) in a toolhelp snapshot, which lists every thread
   of the machine (16,000 with the suite's games: 70-130 ms a run), now ntdll's NtGetNextThread over the process's
-  own (under 1 ms); InstallHooks' 9,350 "hooked" lines go to ei_hook.log in one write (each Log line is flushed:
+  own (under 1 ms); InstallHooks' 9,350 "hooked" lines go to ei-rebuild.log in one write (each Log line is flushed:
   15-25 ms); the renderer's Direct3D 11 device is made on a thread of its own from the image's start
   (render::PrepareDevice, standalone.cpp) while the game's own start-up runs: its first use waits 4-10 ms instead
   of 70-190 ms (boot alternately with and without it, 6 each: the probe no slower beside it). Suites with the
@@ -465,7 +465,7 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
   most sensitive to load. Now run_all runs the image from run\vanilla-clean / run\rebirth-clean
   (run_all.clean_run_dir, before each image run: hard links of run\<install>'s files but dgVoodoo's, a link made again
   when the source changes), as a player's clean folder: DirectDraw is the system's, PF3's native path takes DirectX 7
-  as given (ei_hook.log: "app: native run"), in every image run. run\<install> is untouched (the original's runs,
+  as given (ei-rebuild.log: "app: native run"), in every image run. run\<install> is untouched (the original's runs,
   dgVoodoo). The install's other files load as before: mss32, binkw32, mp3dec.asi (the clean folder or the install
   root, the working directory); Rebirth's dinput.dll stays in the clean folder and the host never loads it. How it
   was checked before the merge: `work.py test` games run main's run_all (the scheduler's code), so the worktree's

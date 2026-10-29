@@ -1,6 +1,6 @@
 # Standalone exe: the address image, the library ports, UTF-8
 
-The product is the standalone image: `ei_standalone.exe` lays out game.exe's data without its code and runs our
+The product is the standalone image: `ei-rebuild.exe` lays out game.exe's data without its code and runs our
 code, all of it linked into the exe (S23: dropped into a game folder it plays; "The drop-in exe"). game.exe runs only
 as the original game (the harness's references, with the harness in ei_harness.dll). This file holds how
 the image works, where the library code lives and what it must keep, the UTF-8 plan and game.exe's role. How
@@ -37,7 +37,7 @@ copy or compare the text, none compares the pointer). Keep a string by address o
 
 ### How it runs
 
-- **Host and image** (S1, src/standalone/host.cpp, src/hook/standalone.cpp). `ei_standalone.exe` is an ordinary exe
+- **Host and image** (S1, src/standalone/host.cpp, src/hook/standalone.cpp). `ei-rebuild.exe` is an ordinary exe
   (S18k: relocatable, ASLR as any exe; it may load anywhere, game.exe's range included) that reads no game.exe and
   reserves nothing of game.exe's range (C48 removed the reservation, its guard log and the fixed base: with no raw game
   address left, the guard was a safety net only). A stray game address faults when the memory is free and is named by
@@ -53,14 +53,14 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   (`src/standalone/host.rc`, committed, linked by CMake's RC language); the game's strings are literals in our code
   (the window title "Evil Islands" and class "EIGAME" in app_main.cpp); the bitmaps, dialogs, cursors and icons were never loaded, and the window class has
   no icon (C24). WinMain's hInstance and GetModuleHandleA(NULL) are the host, so DirectInput needs no wrapper;
-  GetModuleFileNameA(NULL) names ei_standalone.exe (the
+  GetModuleFileNameA(NULL) names ei-rebuild.exe (the
   message box title).
   Its static initialisation enters the game folder, keeps .rdata (with the import slots) and .data in its own storage
   and resolves the imports of game.exe our code still calls through a slot (S18f, S22; since S18k mss32 and binkw32 from the working
   directory, the game folder, else System32, so Rebirth's dinput proxy and addon.dll stay out; "Own data" below);
   then main calls `StandaloneMain` (standalone_main.cpp): the start-up actions run (`RunStartupActions`: the Rebirth
   flags, WideScreen's resolution), the static initialisers and WinMain (`app::GameMain`, called by name: "Code",
-  below). Nothing runs in or jumps through game.exe's code. `ei_standalone [--check] [-- <game args>]`, from anywhere
+  below). Nothing runs in or jumps through game.exe's code. `ei-rebuild [--check] [-- <game args>]`, from anywhere
   (it enters its own folder; ei_launch names another with EI_GAME_ROOT); with `--check` it builds the image, checks
   the routes and the imports and exits.
 - **What comes from game.exe at build time** (S18k: nothing at run time): the sections' bytes
@@ -166,7 +166,7 @@ each step green on the goldens and removing a measured tie:
   frame handler read them.
   **The guard**: nothing at the old range (free memory, "Host and image"): a use that missed the seam ends the run with
   `standalone: read|write of game.exe's .rdata|.data at <data> by <code>: ...` (in the import table:
-  `... of game.exe's own import slot <slot> (<dll>!<function>) by <code>`) in ei_hook.log, on stderr and in the
+  `... of game.exe's own import slot <slot> (<dll>!<function>) by <code>`) in ei-rebuild.log, on stderr and in the
   harness's report (`OnOldData`; resolve the code address with the map, as for an INT3 hit). ei_vectors.exe's
   `GameAddress` stays the address.
   **Addresses read back from objects** (a vtable, a string pointer) are the storage's in the image: the harness
@@ -322,7 +322,7 @@ each step green on the goldens and removing a measured tie:
 | S18g | .rdata sealed: vtables (SetVtable through the seam), tables, the harness's vtable tables | raw .rdata uses 365 -> 0 |
 | S18h | .rdata moves into the storage with .data (one range, one shift): bytes from the build, 5531 cells (4460 into .rdata: walked EH / RTTI / MFC structures, reviewed string tables), guarded, old import slots under the guard | the host's copy of .rdata |
 | S18i | code pointers in our sections fixed up to our functions (21,636 code cells; a stub reports an unregistered one), static init calls, forwarders and code literals through CodeAddress, .text guarded | the jumps in .text |
-| S18j | game.exe's resources built into ei_standalone.exe (a .res from the build; C23 replaced it with a VERSIONINFO of the host's own), the module handle the host's, no header copy (the page guarded) | game.exe loaded as a data file, the resource / module / DirectInput wrappers, the headers at 0x400000 |
+| S18j | game.exe's resources built into ei-rebuild.exe (a .res from the build; C23 replaced it with a VERSIONINFO of the host's own), the module handle the host's, no header copy (the page guarded) | game.exe loaded as a data file, the resource / module / DirectInput wrappers, the headers at 0x400000 |
 | S18k | an ordinary host (no fixed base, no range in its image; C48: nothing reserved), no read of game.exe (dispatch bytes from the build, imports from the game folder), stray game addresses reported by the seam | the address image (dashboard "image ties" 5 -> 0) |
 
 Not on this path: named, typed globals in place of a section's bytes (C18, below) and vtables as real virtual
@@ -930,7 +930,7 @@ strips `UiItemStrip` (26 `RebuildList`, pure), `ForwardingStrip` and `FigureStri
   "EIGAME"; its `cursorcheck` frames show the game's cursor, which is game data, not a resource).
 - **game.exe at run time**: none since S18k ("What comes from game.exe at build time", above). The harness's run_all
   hands ei_launch none (S18k1).
-- **Command line**: `ei_standalone ... -- <game args>` is WinMain's line. No code of the image calls
+- **Command line**: `ei-rebuild ... -- <game args>` is WinMain's line. No code of the image calls
   GetCommandLineA (its slot is a trap since S22; the host's own call reads the host's line).
 - **Code bytes read as data**: none left (R9b3). app_frame's cursor lock (004580D7) calls our rewrite directly; the
   harness reaches it and WinMain's camera (00457595), server update (00457314) and client segment (00457368) calls
@@ -964,7 +964,7 @@ strips `UiItemStrip` (26 `RebuildList`, pure), `ForwardingStrip` and `FigureStri
 ### Settings file (ST1, 2026-10-22)
 
 The image keeps the settings game.exe keeps under HKEY_CURRENT_USER in **ei_settings.ini next to
-ei_standalone.exe** and never reads or writes the registry (src/game/settings_file.{h,cpp}). game.exe (the original
+ei-rebuild.exe** and never reads or writes the registry (src/game/settings_file.{h,cpp}). game.exe (the original
 game, the `--no-hooks` suite) keeps the registry.
 - **Where (S24b)**: the first place that holds a file: next to the exe, then `%LOCALAPPDATA%\EvilIslands\ei_settings.ini`
   (the LOCALAPPDATA variable). With neither, the defaults are written to the first place that takes them: next to the
@@ -1035,7 +1035,7 @@ game, the `--no-hooks` suite) keeps the registry.
   runs never meet, and a harness run never meets the user's), and now give the game window the title "<title>
   (harness)" (CreateWithoutActivating; nothing reads the title, goldens do not record it), so the play launch's real
   check matches nothing. This covers game.exe's harness runs too (the same hook). When the check does end a game it
-  logs `app: another game window exists (window .. of process ..)` in ei_hook.log, and ei_launch (no harness) says
+  logs `app: another game window exists (window .. of process ..)` in ei-rebuild.log, and ei_launch (no harness) says
   so on stderr for exit code -1.
 - **Checks (ST1a)**: the product's two file paths, which a read-only pinned run does not reach, are checked without
   the user's registry.
@@ -1612,7 +1612,7 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
 
 ### The drop-in exe (S23)
 
-`ei_standalone.exe` is the whole game: dropped into an original game folder (GOG's vanilla 1.06 or Rebirth's) it plays
+`ei-rebuild.exe` is the whole game: dropped into an original game folder (GOG's vanilla 1.06 or Rebirth's) it plays
 from there, started from anywhere, with no ei_launch, no DLL of ours and no file of ours beside it.
 - **What a play needs** (release build): the exe alone. From the game folder, as game.exe used them: the data (res,
   maps, camera, movies, stream, ...), `mss32.dll`, `binkw32.dll` and Miles's `*.asi` (mp3dec.asi; EI_Plugin.asi is
@@ -1620,7 +1620,7 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
   (render_fonts.cpp), game.exe's .rdata / .data bytes (image_data_bytes.inc) and import table (image_imports.inc,
   gen_iat.py), the Rebirth profile (below), the version resource. Written by the game when missing: `ei_settings.ini`
   (defaults, "Settings file"; the per-user fallback when the folder is not writable). Optional: `ei_rebirth.ini`
-  (flags). Written as output: `ei_hook.log` (beside the exe; EI_OUT_DIR under the harness), the saves.
+  (flags). Written as output: `ei-rebuild.log` (beside the exe; EI_OUT_DIR under the harness), the saves.
   `third_party_notices.txt` is the licences' text, shipped beside the exe (play.cmd copies it), not read.
 - **Not needed any more**: ei_hook.dll (the game is linked in), ei_launch (the exe enters its own folder: "The game
   folder" below), `--run` (the exe runs the game by default; `--check` only checks), a console (a windowed program
@@ -1645,7 +1645,7 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
 - **The drop-in runs** (S23a): `ei_launch --drop-in` (also any `--standalone` run of a scenario with a line
   `# drop-in:`, which run_all plans on both installs, standalone and standalone-rebirth) makes `<run folder>\dropin` like the `--game` install: each of its folders a
   junction to the install's, each file a copy but game.exe and our own files (ei_settings.ini, ei_rebirth.ini,
-  ei_hook.log), then the build's ei_standalone.exe (and ASan's runtime). It starts that copy from the run folder with
+  ei-rebuild.log), then the build's ei-rebuild.exe (and ASan's runtime). It starts that copy from the run folder with
   EI_GAME_ROOT and EI_REBIRTH cleared, so EnterGameFolder and the folder's profile run as in a player's folder, and
   removes the folder when the game has ended (junctions removed, never followed; run_all removes a killed run's too).
   Nothing is written to the install: making a junction writes only the link, and the harness's guard refuses writes
@@ -1663,7 +1663,7 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
 
 The harness (tests/verify) runs in both games and so lives in two places, built once (CMake object library
 `ei_harness_shared`: tests/verify/*.cpp, src/hook/hook.cpp and cover.cpp, tests/vectors/vectors_record.cpp):
-- **The image** (verify and asan builds): linked into ei_standalone.exe with its image side (tests/verify/image), which
+- **The image** (verify and asan builds): linked into ei-rebuild.exe with its image side (tests/verify/image), which
   calls our code by name. The release and play builds have none of it.
 - **game.exe**: `ei_harness.dll`, which ei_launch injects before game.exe's code runs: the shared harness, the hook
   framework's game.exe side (src/hook: DllMain, the recorders' installation, the registry path redirect, the log),
@@ -1684,9 +1684,10 @@ The harness (tests/verify) runs in both games and so lives in two places, built 
   through image_side.h); the import slots it routes (harness_imports.h over lib/import_table.h: clock, heap, files,
   registry, sockets, messages); the data seam (game_data.h); `ei::SetMissingCodeHandler`; the log (hook/log.h). In
   game.exe it reaches game.exe's code by address only (harness_original.h, exe_objects.h).
-- **Logs**: our code's addresses are `<module>+offset`, `ei::OwnModuleName()`: `ei_standalone+` in the image,
-  `ei_harness+` in game.exe; resolve_crash.py, randtrace.py and profile_report.py take the module's .map
-  (ei_standalone.map, ei_harness.map); check_x87.py reads ei_standalone.exe, check_signatures.py both maps.
+- **Logs**: our code's addresses are `<module>+offset`, `ei::OwnModuleName()`: `ei-rebuild+` in the image,
+  `ei_harness+` in game.exe (the user chose the names ei-rebuild.exe and ei-rebuild.log, S23b; the harness DLL keeps its name,
+  the log name is shared code so game.exe's runs write ei-rebuild.log too; resolve_crash.py still reads older logs' ei_standalone+ and ei_hook+); resolve_crash.py, randtrace.py and profile_report.py take the module's .map
+  (ei-rebuild.map, ei_harness.map); check_x87.py reads ei-rebuild.exe, check_signatures.py both maps.
 
 ## 5. game.exe's role
 
@@ -1718,7 +1719,7 @@ Moved from the files' headers.
 
 ### host.cpp
 
-ei_standalone: the rebuilt game without game.exe (docs/notes/standalone.md section 2), main's file. An ordinary
+ei-rebuild: the rebuilt game without game.exe (docs/notes/standalone.md section 2), main's file. An ordinary
 exe with the whole game linked in: it neither reads game.exe nor lays out anything at game.exe's addresses. The
 game's hInstance is this module, whose one resource is its version information (host.rc; the game's strings are
 literals in our code, no icon yet); its static initialisation enters the game folder, keeps game.exe's .rdata and

@@ -25,15 +25,15 @@ and asan about 56-58 s, debug 53 s), a no-op 3 s, one touched .cpp 7 s, a touche
 is the whole of it: ninja runs 34 jobs and keeps them all busy until the last few seconds; about 1,700 s of compiler time,
 577 `src/game` files at 2-5 s each. In a file the front end is ~90% (headers ~1.1 s: `windows.h` 0.25 s through
 `lib/import_table.h`, `<string>` 0.19 s, `game/map_object_figures.h`, `ai_map.h`, `unit.h`, `ai_event_table.h` ~0.35 s
-each), the back end ~0.1 s. The link of ei_standalone.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0.8 s.
+each), the back end ~0.1 s. The link of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0.8 s.
 - How to see it: `.ninja_log` in the build folder (start and end ms per step); `-Bt+ -d1reportTime` on one cl command
-  (from `ninja -t commands ei_standalone.exe`) gives the front / back end split and every header's inclusive time.
+  (from `ninja -t commands ei-rebuild.exe`) gives the front / back end split and every header's inclusive time.
 - Tried, no gain: the 64-bit hosted compiler (`vcvarsamd64_x86`: the same code, the same time); `/Z7` (+4-8 s).
 - A precompiled header of the standard headers saves ~18% of a clean build (58 -> 47 s) but is not used: it changes
   the inlining of `std::basic_string` members in ~120 objects (code compared with `dumpbin /disasm` per function), so
   x87 code around them could round differently. Game headers in it break the harness's views (tests/verify) and
   per-file names.
-- ei_standalone.exe links with `/OPT:REF /OPT:NOICF`: unreferenced code goes (static objects' initialisers stay: .CRT$XCU
+- ei-rebuild.exe links with `/OPT:REF /OPT:NOICF`: unreferenced code goes (static objects' initialisers stay: .CRT$XCU
   references them). `/OPT:ICF` would save another 6% but gives identical functions one address.
 
 ## `progress.py` cleanup artefacts
@@ -223,7 +223,7 @@ checks) the check stays (`x87::IsNaN`): none of the ~116 sites was one, so `IsNa
   `Equal`, `Differs`, zone variables against 1, quest states, hash key heights), less-than selects (`MinOf`, `MaxZero`, `AtMost`,
   the larger of two extents or reaches), the script comparisons (`IsEqual`, `IsLess`, `IsInSquare`, `IsInArea`, `GetPlayerUnits`:
   `static_cast<double>(side) == f`, the FILD compare). Each has `EI_NAN_AUDIT(values...)` (`src/lib/nan_audit.h`): in the verify and
-  debug builds (`EI_NAN_AUDIT_LOG`, CMake) the first NaN per site writes `NaN audit: a NaN compared at <file>:<line>` to ei_hook.log;
+  debug builds (`EI_NAN_AUDIT_LOG`, CMake) the first NaN per site writes `NaN audit: a NaN compared at <file>:<line>` to ei-rebuild.log;
   in release it is nothing.
 - **Plain, NaN result the same (about 25):** where an equally plain form keeps the original's result: the ordered tests (`a > b` for
   TEST AH,0x41 jump-if-clear: `Exceeds`, the HP drop, `rate > 0`, `duration > 0`, `IsGreater`), `h >= kHeightSilent`, `limit >= distance`,
@@ -239,7 +239,7 @@ checks) the check stays (`x87::IsNaN`): none of the ~116 sites was one, so `IsNa
   instead of left alone, a NaN zone variable counts as "not visited", a NaN script argument is "not zero" and "not equal", a NaN
   height marks a moved object changed, a NaN hash key height never matches (each lookup adds an entry), `Camera::StopMotion` keeps
   a NaN turn / tilt rate where the inlined SetTurnRate(0) replaced it. The suite has none: goldens identical (110), and the audit
-  line appears in no run's ei_hook.log.
+  line appears in no run's ei-rebuild.log.
 - **The `!(a >= b)` helpers (C16e).** The earlier port's NaN-keeping helpers are gone (`LessOrUnordered`, `ZeroOrUnordered`,
   `NonZero`, `IsNonZero`, `Equal` / `EqualOrUnordered` / `EqualOrNaN`, `IsZeroOrNaN`, the `ZeroOrNaN` bit tests, `Below`, the `same`
   lambdas, world_client's `NaN`; 44 files). A test is the plain `<` / `==` / `!=` with `EI_NAN_AUDIT` (about 70 sites), or the

@@ -15,7 +15,7 @@
 // Clock trace ("clocktrace"): every clock read and wait the game makes through its import table,
 // and those of the DLLs in the game's folder (Miles, Bink, dgVoodoo, Rebirth), counted by function,
 // caller and thread; new combinations are logged as they appear and the busiest ones every second
-// (ei_hook.log, "clocktrace:").
+// (ei-rebuild.log, "clocktrace:").
 
 #include <windows.h>
 

@@ -740,8 +740,8 @@ class SchedTest(unittest.TestCase):
             if not is_game(cmd):
                 return REAL_RUN(cmd, **kw)
             seen.append((cmd, kw.get('env')))
-            return subprocess.CompletedProcess(cmd, 0, 'ei_standalone: 504 imports resolved, 0 missing\n'
-                                               'ei_standalone: the game returned 0\n', '')
+            return subprocess.CompletedProcess(cmd, 0, 'ei-rebuild: 504 imports resolved, 0 missing\n'
+                                               'ei-rebuild: the game returned 0\n', '')
         self.scenario('boot', 'waitmenu\nquit\n')
         wide = self.scenario('wide', 'render smooth\nresolution 800x600\nfullscreen 1\n')
         # The vanilla data only unless the Rebirth data is asked for (SV9)
@@ -799,7 +799,7 @@ class SchedTest(unittest.TestCase):
         self.assertNotIn('--exe', cmd)                  # the image reads no game.exe: --game is its data (EI_GAME_ROOT)
         self.assertEqual(cmd[cmd.index('--game') + 1], r'F:\games\EvilIslands')
         self.assertNotIn('EI_RENDER', env)
-        self.assertEqual(notes, ['ei_standalone: the game returned 0'])
+        self.assertEqual(notes, ['ei-rebuild: the game returned 0'])
         # standalone-rebirth: ei_launch's default (Rebirth) game folder, the ini's flags
         os.makedirs(os.path.join(self.tmp, 'config'), exist_ok=True)
         with open(os.path.join(self.tmp, 'config', 'ei_rebirth_standalone.ini'), 'w') as f:

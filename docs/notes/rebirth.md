@@ -234,7 +234,7 @@ harness run of game.exe on the vanilla data (not with `EI_VECTORS=1`, not with `
 harness keeps addon's sites of the patches whose flag is on in the run (`tests/verify/addon_sites.inc`, `tools/rebirth/make_addon_sites.py` from the CSV) and
 writes game.exe's bytes back over the others (an import slot gets the import's address). It then fails the run ("addon: ...") unless every kept site is live
 and .text / .rdata hold no other change than the kept sites, addon's `HookWinMain` CALL (006EC301) and the harness's own patches (`NoteHarnessPatch`; non-import
-slots too). ei_hook.log: "addon: kept FixLeversActivate ... (15 sites live), undid 203 site(s) of the other patches; nothing else differs from game.exe".
+slots too). ei-rebuild.log: "addon: kept FixLeversActivate ... (15 sites live), undid 203 site(s) of the other patches; nothing else differs from game.exe".
 addon's log and dumps land in the overlay (`harness_saves\rebirth_install\`). Such a run counts as the vanilla install.
 
 **Goldens** (2026-10-20): every vanilla golden (101) came out the same from the fix profile, so none was re-recorded: the suite reaches no

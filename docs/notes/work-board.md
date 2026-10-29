@@ -122,7 +122,7 @@ Windows twice with NVIDIA TDR storms (System log 153 nvlddmkm / 4101 Display, la
 
 **Measuring**: `python tools/game_load.py run --games N --ticket ID --out build/<ID>/x.jsonl [--scenarios K | --probe
 PREFIX] [-- run_all args]` samples the machine every ~1.1 s (tools/game_load_sample.ps1: nvidia-smi, the GPU Process
-Memory / GPU Engine / processor / memory counters, every ei_standalone.exe and game.exe started since) while `work.py
+Memory / GPU Engine / processor / memory counters, every ei-rebuild.exe and game.exe started since) while `work.py
 test` plays the batch; with N under the slots it holds the others itself (run_all's lock files, from the top; it lets
 them go while a batch gathers every slot), so it can only lower the number of games. It prints medians by the number
 of games running and the TDR events since its start (exit 2 when there are any); `report FILE...` and `tdr --since`

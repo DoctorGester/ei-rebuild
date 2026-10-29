@@ -73,7 +73,7 @@ LONG CALLBACK OnOldData(EXCEPTION_POINTERS* e) {
                       "%s of game.exe's %s at %08X by %s: a use that missed the data seam (GameAddress, game_data.h)",
                       access, data < kDataBegin ? ".rdata" : ".data", static_cast<unsigned>(data), code);
     }
-    std::fprintf(stderr, "ei_standalone: %s\n", what);
+    std::fprintf(stderr, "ei-rebuild: %s\n", what);
     std::fflush(stderr);
     ReportImageFailure(what);
     TerminateProcess(GetCurrentProcess(), 3);
@@ -118,7 +118,7 @@ void StrayGameAddress(std::uintptr_t address) {
     std::snprintf(what, sizeof(what),
                   "the data seam was asked for game.exe's %s at %08X (by %s): the image has nothing of game.exe there",
                   part, static_cast<unsigned>(address), code);
-    std::fprintf(stderr, "ei_standalone: %s\n", what);
+    std::fprintf(stderr, "ei-rebuild: %s\n", what);
     std::fflush(stderr);
     ReportImageFailure(what);
     TerminateProcess(GetCurrentProcess(), 3);

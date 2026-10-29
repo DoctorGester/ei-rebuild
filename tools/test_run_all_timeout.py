@@ -62,7 +62,7 @@ class Run(unittest.TestCase):
         self.assertTrue(any('terminating' in n for n in notes))
 
     def test_silent_end_names_ei_launch_exit_code(self):
-        # C36b: the game died with no line in ei_hook.log and the report still said RUNNING.
+        # C36b: the game died with no line in ei-rebuild.log and the report still said RUNNING.
         result, _, failures, _, _ = self.run_scenario('quit\n', 1, 'RESULT: RUNNING\n', stdout='ei_launch: started\n')
         self.assertEqual(result, 'RUNNING')
         self.assertEqual(len(failures), 1)
@@ -105,7 +105,7 @@ class Retries(unittest.TestCase):
             def runner(name, install, folder_name):
                 calls.append(1)
                 if len(calls) == 1:
-                    with open(os.path.join(folder, 'ei_hook.log'), 'w') as f:
+                    with open(os.path.join(folder, 'ei-rebuild.log'), 'w') as f:
                         f.write('first attempt\n')
                     return 'FAIL', 1.0, ['a check'], {}, []
                 shutil.rmtree(folder, ignore_errors=True)   # what run_once does
@@ -116,16 +116,16 @@ class Retries(unittest.TestCase):
             result, _, failures, _, _ = run_all.run_with_retries('x', 'vanilla', 1, 'x-vanilla', runner, keep)
             self.assertEqual(result, 'PASS*')
             self.assertIn('x-vanilla-attempt1', failures[0])
-            with open(os.path.join(build, 'runs', 'x-vanilla-attempt1', 'ei_hook.log')) as f:
+            with open(os.path.join(build, 'runs', 'x-vanilla-attempt1', 'ei-rebuild.log')) as f:
                 self.assertEqual(f.read(), 'first attempt\n')
-            self.assertFalse(os.path.exists(os.path.join(folder, 'ei_hook.log')))
+            self.assertFalse(os.path.exists(os.path.join(folder, 'ei-rebuild.log')))
 
 
     def test_whole_attempt_is_kept(self):
         with tempfile.TemporaryDirectory() as build:
             folder = os.path.join(build, 'runs', 'x-vanilla')
             os.makedirs(os.path.join(folder, 'harness_saves'))
-            for name in ('ei_hook.log', 'digest.txt', os.path.join('harness_saves', 'a.mmp')):
+            for name in ('ei-rebuild.log', 'digest.txt', os.path.join('harness_saves', 'a.mmp')):
                 with open(os.path.join(folder, name), 'w') as f:
                     f.write(name)
             self.assertEqual(run_all.keep_attempt('x-vanilla', 1, build=build), 'x-vanilla-attempt1')
