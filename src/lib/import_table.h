@@ -13,6 +13,7 @@
 #include <mmsystem.h>
 #include <shellapi.h>
 #include <objbase.h>
+#include <dsound.h>
 
 #include <cstdint>
 
@@ -43,7 +44,7 @@ struct ImportTable {
     std::uint32_t DDRAW_end;   // zero: the end of DDRAW.dll's slots
     import_fn::DirectInputCreateEx DirectInputCreateEx;   // DINPUT.dll!DirectInputCreateEx
     std::uint32_t DINPUT_end;   // zero: the end of DINPUT.dll's slots
-    import_fn::DirectSoundEnumerateA DirectSoundEnumerateA;   // DSOUND.dll!#2
+    decltype(&::DirectSoundEnumerateA) DirectSoundEnumerateA;   // DSOUND.dll!#2
     std::uint32_t DSOUND_end;   // zero: the end of DSOUND.dll's slots
     decltype(&::CreateRectRgnIndirect) CreateRectRgnIndirect;   // GDI32.dll!CreateRectRgnIndirect
     decltype(&::CombineRgn) CombineRgn;   // GDI32.dll!CombineRgn

@@ -373,7 +373,8 @@ unsigned __stdcall StreamThreadEntry(void* manager) {
 
 // kDeviceCallback: DirectSoundEnumerateA's callback in Open. The device's GUID pointer is appended to the
 // aligned array `devices` (its SetSize by one); the enumeration goes on (TRUE).
-int __stdcall AddSoundDevice(void* guid, const char*, const char*, std::vector<int>* list) {
+BOOL CALLBACK AddSoundDevice(LPGUID guid, LPCSTR, LPCSTR, LPVOID devices) {
+    auto* list = static_cast<std::vector<int>*>(devices);
     const int at = std::ssize(*list);
     list->resize(at + 1);
     (*list)[at] = static_cast<int>(reinterpret_cast<std::intptr_t>(guid));
@@ -453,7 +454,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     int device = waveOut ? kWaveMapper : 0;
     if (deviceIndex >= 0) {
         std::vector<int> devices;
-        if (gameapi::DirectSoundEnumerateA(reinterpret_cast<void*>(AddSoundDevice), &devices) == 0 && deviceIndex < std::ssize(devices))
+        if (gameapi::DirectSoundEnumerateA(&AddSoundDevice, &devices) == 0 && deviceIndex < std::ssize(devices))
             device = devices[deviceIndex];
     }
     reverbOn = useReverb;

@@ -215,7 +215,7 @@ each step green on the goldens and removing a measured tie:
   game.exe). Those gameapi.h functions are `inline auto& X = ei::Imports().X;` (68, with gen_iat's KEEP:
   GetVersionExA, deprecated in the SDK: a direct call warns), and so are the 91 of import_prototypes.h (no import
   library; not the Interlocked pair, which our code takes as the compiler's intrinsics); the other 343 are `using ::X;`, the Windows function through ei_hook.dll's own imports
-  (`#pragma comment(lib)` for the seven DLLs). A harness route on a new slot makes `gen_iat.py --check` (build.cmd; it reads the committed import files) fail until
+  (`#pragma comment(lib)` for the eight DLLs). A harness route on a new slot makes `gen_iat.py --check` (build.cmd; it reads the committed import files) fail until
   gen_iat.py is rerun (that one needs game.exe), which moves that function back to the slot. In game.exe our code does not run (S21), except
   hook/paths.cpp and the harness, which keep the slots they patch. Rebirth's only import slot patch (MoviesPatch,
   BinkOpen 0073B720) is ours behind its flag in the image (mod_folders.cpp); Miles, Bink, Winsock, DirectInput,

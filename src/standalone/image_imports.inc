@@ -84,7 +84,7 @@
 {offsetof(ei::ImportTable, htons), "WSOCK32.dll", nullptr, 9, true},
 {offsetof(ei::ImportTable, ioctlsocket), "WSOCK32.dll", nullptr, 12, true},
 {offsetof(ei::ImportTable, sendto), "WSOCK32.dll", nullptr, 20, true},
-{offsetof(ei::ImportTable, DirectSoundEnumerateA), "DSOUND.dll", nullptr, 2, true},
+{offsetof(ei::ImportTable, DirectSoundEnumerateA), "DSOUND.dll", nullptr, 2, false},
 {offsetof(ei::ImportTable, DirectDrawEnumerateExA), "DDRAW.dll", "DirectDrawEnumerateExA", 0, false},
 {offsetof(ei::ImportTable, DirectDrawCreateEx), "DDRAW.dll", "DirectDrawCreateEx", 0, false},
 {offsetof(ei::ImportTable, DirectInputCreateEx), "DINPUT.dll", "DirectInputCreateEx", 0, true},

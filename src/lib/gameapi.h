@@ -11,6 +11,7 @@
 #include "lib/import_table.h"
 
 #pragma comment(lib, "advapi32.lib")
+#pragma comment(lib, "dsound.lib")
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "kernel32.lib")
 #pragma comment(lib, "shell32.lib")
@@ -101,7 +102,7 @@ inline auto& gethostbyname = ei::Imports().gethostbyname;  // WSOCK32.dll, throu
 inline auto& htons = ei::Imports().htons;  // WSOCK32.dll, through the slot
 inline auto& ioctlsocket = ei::Imports().ioctlsocket;  // WSOCK32.dll, through the slot
 inline auto& sendto = ei::Imports().sendto;  // WSOCK32.dll, through the slot
-inline auto& DirectSoundEnumerateA = ei::Imports().DirectSoundEnumerateA;  // DSOUND.dll, through the slot
+using ::DirectSoundEnumerateA;  // DSOUND.dll
 inline auto& DirectDrawEnumerateExA = ei::Imports().DirectDrawEnumerateExA;  // DDRAW.dll, through the slot
 inline auto& DirectDrawCreateEx = ei::Imports().DirectDrawCreateEx;  // DDRAW.dll, through the slot
 inline auto& DirectInputCreateEx = ei::Imports().DirectInputCreateEx;  // DINPUT.dll, through the slot
