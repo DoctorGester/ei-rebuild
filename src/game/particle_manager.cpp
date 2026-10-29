@@ -6,11 +6,6 @@
 
 namespace {
 
-// The source types that start without emitting while quietStart is set.
-constexpr int kStoppedTypeA = 0x2001;
-constexpr int kStoppedTypeB = 0x2003;
-constexpr int kStoppedTypeC = 0x2004;
-
 // The iterator destructor: the manager's count drops without a release.
 void EndWalk(ObjectListIterator& it) {
     if (it.manager) --it.manager->refCount_;
@@ -65,8 +60,9 @@ CParticleSource* CParticleManager::CreateSource(int type) {
     if (id > maxHeldId_) maxHeldId_ = id;
     held_[id] = source;
     if (quietStart != 0) {
-        int kind = source->type_;
-        if (kind == kStoppedTypeA || kind == kStoppedTypeC || kind == kStoppedTypeB) source->StopEmitting();
+        // CampFire, Fire and Smoke start without emitting.
+        const ParticleType kind = ParticleTypeOf(source->type_);
+        if (kind == ParticleType::CampFire || kind == ParticleType::Smoke || kind == ParticleType::Fire) source->StopEmitting();
     }
     return source;
 }

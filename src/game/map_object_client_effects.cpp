@@ -42,9 +42,9 @@ constexpr int kFeebleMind = 0x20;
 constexpr int kEnlarge = 0x25;
 constexpr int kShrink = 0x26;
 
-constexpr int kRingSource = 0x2018;        // Lichdom's ring
-constexpr int kScaleRingSource = 0x201B;   // strengthen / weaken
-constexpr int kFallbackSource = 0x2013;
+constexpr int kRingSource = static_cast<int>(ParticleType::ClayRing);        // Lichdom's ring
+constexpr int kScaleRingSource = static_cast<int>(ParticleType::Modifier1);   // strengthen / weaken
+constexpr int kFallbackSource = static_cast<int>(ParticleType::BlueGas);
 
 // The sound distances (10 and 50), read from the exe.
 constexpr float kSoundNear = 10.0f;
@@ -64,19 +64,19 @@ bool MergesParticles(int type) {
 // The particle source type of a lasting effect source; unknown types log and take 0x2013.
 int ParticleSourceType(int type) {
     switch (type) {
-    case 0x09: return 0x2017;
-    case 0x0A: return 0x2016;
-    case 0x0B: return 0x2015;
-    case 0x0C: return 0x2044;
-    case 0x0D: return 0x2045;
-    case 0x0E: return 0x2046;
-    case 0x10: return 0x204C;
-    case 0x13: return 0x2013;
-    case 0x1A: return 0x201A;
-    case 0x1F: return 0x2048;
-    case 0x20: return 0x2049;
-    case 0x21: return 0x204B;
-    case 0x22: return 0x204A;
+    case 0x09: return static_cast<int>(ParticleType::SphereFire);
+    case 0x0A: return static_cast<int>(ParticleType::SphereElectricity);
+    case 0x0B: return static_cast<int>(ParticleType::SphereAcid);
+    case 0x0C: return static_cast<int>(ParticleType::VisionStar1);
+    case 0x0D: return static_cast<int>(ParticleType::VisionStar2);
+    case 0x0E: return static_cast<int>(ParticleType::VisionStar3);
+    case 0x10: return static_cast<int>(ParticleType::VisionStar4);
+    case 0x13: return static_cast<int>(ParticleType::BlueGas);
+    case 0x1A: return static_cast<int>(ParticleType::Antimagic);
+    case 0x1F: return static_cast<int>(ParticleType::Silence);
+    case 0x20: return static_cast<int>(ParticleType::FeebleMind);
+    case 0x21: return static_cast<int>(ParticleType::FeetCloud2);
+    case 0x22: return static_cast<int>(ParticleType::FeetCloud1);
     default:
         game::DebugLog("ERROR: Spell effect on map object with unknown particle effect");
         return kFallbackSource;

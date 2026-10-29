@@ -99,8 +99,8 @@ bool IsQuestVariable(const std::string& name) {
 }
 
 constexpr int kKindNoPath = 3;               // OnPathMarker: no path to read
-constexpr int kPathParticles = 0x2039;
-constexpr int kMarkerParticles = 0x203A;     // 0x203B with the flag
+constexpr int kPathParticles = static_cast<int>(ParticleType::ShapeChange);
+constexpr int kMarkerParticles = static_cast<int>(ParticleType::GroundDust1);     // 0x203B with the flag
 constexpr float kMarkerSpeedA = 0.5f;
 constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
 constexpr std::uint8_t kRequestRecording = 2;
@@ -114,7 +114,7 @@ constexpr std::uint32_t kFlagNoParts = 0x200;
 constexpr std::uint32_t kFlagCow = 0x10000000;
 constexpr std::uint32_t kPartFlagFigure = 8;
 constexpr int kWeaponPike = 5;
-constexpr int kWispParticles = 0x204D;
+constexpr int kWispParticles = static_cast<int>(ParticleType::Stun);
 constexpr float kWispSize = 0.05f;
 constexpr int kTextSize = 0x100;
 constexpr int kSessionClient = 3;

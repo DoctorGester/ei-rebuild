@@ -32,7 +32,7 @@ Next StartFireArrow(CSpellEffect* e, int type, const Vector3& from) {
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
     float power = Power(e);
-    e->CreateArrow(&from, e->target, type == 0 ? 0x2011 : 0x204E, power, "magic\\Firearrow\\circle.wav", &color, range);
+    e->CreateArrow(&from, e->target, type == 0 ? static_cast<int>(ParticleType::FireArrow) : static_cast<int>(ParticleType::RikArrowSmoke), power, "magic\\Firearrow\\circle.wav", &color, range);
     e->CreateSound(0, "magic\\Firearrow\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
     e->state = 1;
     return Next::Set;
@@ -62,7 +62,7 @@ Next StartAcidRay(CSpellEffect* e, const Vector3& from) {
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
     float power = PowerScaled(e, worlddata::AcidRayScale());
-    e->CreateArrow(&from, e->target, 0x2012, power, "magic\\Acidray\\circle.wav", &color, range);
+    e->CreateArrow(&from, e->target, static_cast<int>(ParticleType::AcidRay), power, "magic\\Acidray\\circle.wav", &color, range);
     e->CreateSound(0, "magic\\Acidray\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
     e->state = 1;
     return Next::Set;
@@ -83,7 +83,7 @@ Next StartFireball(CSpellEffect* e, const Vector3& from) {
     ScaleToSpeed(&velocity, &speed);
 
     float size = PowerScaled(e, worlddata::FireballScale());
-    CEffectParticle* particle = e->CreateParticle(1, 0x2000, &from, size, 1.0f, &velocity, nullptr);   // the visual
+    CEffectParticle* particle = e->CreateParticle(1, static_cast<int>(ParticleType::FireBall), &from, size, 1.0f, &velocity, nullptr);   // the visual
     if (e->caster) particle->unitId_ = e->caster->id_;   // the particle's unit (no null check)
     e->targetPoint.z = GroundPlus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::OneRef()));
     particle->SetTarget(&e->targetPoint);
@@ -112,7 +112,7 @@ Next StartLightStrike(CSpellEffect* e) {
     e->SetVisual(bolt);
 
     float alpha = Power(e);
-    e->CreateParticle(0, 0x2030, &e->targetPoint, e->Spell()->radius_, alpha, &kZeroVector, nullptr);
+    e->CreateParticle(0, static_cast<int>(ParticleType::LightningBlast), &e->targetPoint, e->Spell()->radius_, alpha, &kZeroVector, nullptr);
     e->CreateSound(0, "magic\\InvokeLight\\start.wav", &e->position, &kZeroVector, kLoud, kLoud);
     e->targetPoint.z = e->targetPoint.z + ConstAt(worlddata::LightAbove());
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
@@ -127,7 +127,7 @@ Next StartLightStrike(CSpellEffect* e) {
 // 5: the acid column at the target point.
 Next StartAcidColumn(CSpellEffect* e) {
     e->position = e->targetPoint;
-    e->CreateParticle(0, 0x200C, &e->targetPoint, 1.0f, 1.0f, &kZeroVector, nullptr);
+    e->CreateParticle(0, static_cast<int>(ParticleType::Nuke), &e->targetPoint, 1.0f, 1.0f, &kZeroVector, nullptr);
     e->CreateSound(0, "magic\\Acidcolumn\\start.wav", &e->targetPoint, &kZeroVector, kVolume, kHearing);
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
     PrototypeLight(e, &e->targetPoint, PrototypeRange(e), &rise);
@@ -153,7 +153,7 @@ Next StartFireWall(CSpellEffect* e, const Vector3& from) {
     Vector3 centre = e->targetPoint;
     float alpha = Power(e);
     float size = Power(e);
-    e->CreateParticle(1, 0x2010, &centre, size, alpha, &kZeroVector, nullptr);
+    e->CreateParticle(1, static_cast<int>(ParticleType::Tendril), &centre, size, alpha, &kZeroVector, nullptr);
     Vector3 direction = WallDirection(centre, from);
     Vector3 span;
     WallSpan(&direction, &e->Spell()->radius_, &span);
@@ -203,7 +203,7 @@ Next StartPoisonCloud(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float alpha = Power(e);
-    e->CreateParticle(1, 0x2007, &centre, e->Spell()->radius_, alpha, &kZeroVector, nullptr);
+    e->CreateParticle(1, static_cast<int>(ParticleType::PoisonFog), &centre, e->Spell()->radius_, alpha, &kZeroVector, nullptr);
     e->CreateSoundSequence(&centre, &kZeroVector, "magic\\poison\\start.wav", "magic\\poison\\circle.wav", -1, kVolume, kHearing);
     float radius = e->Spell()->radius_;
     float range = PrototypeRange(e);
@@ -229,7 +229,7 @@ Next StartFirework(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float size = Power(e);
-    e->CreateParticle(1, 0x2009, &centre, size, 1.0f, &kZeroVector, nullptr);
+    e->CreateParticle(1, static_cast<int>(ParticleType::Geyser), &centre, size, 1.0f, &kZeroVector, nullptr);
     PrototypeLight(e, &centre, PrototypeRange(e), &kZeroVector);
     e->CreateSoundSequence(&centre, &kZeroVector, game::kEmptyText, "magic\\Firework\\%i.wav", 5, kVolume, kHearing);
     e->position = centre;
@@ -241,7 +241,7 @@ Next StartClairvoyance(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
     e->position = centre;
-    e->CreateParticle(0, 0x2018, &e->targetPoint, e->Spell()->radius_, 1.0f, &kZeroVector, nullptr);
+    e->CreateParticle(0, static_cast<int>(ParticleType::ClayRing), &e->targetPoint, e->Spell()->radius_, 1.0f, &kZeroVector, nullptr);
     PrototypeLight(e, &centre, e->Spell()->radius_, &kZeroVector);
     e->CreateSound(0, "magic\\Clairvoyence\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
     return Next::Set;
@@ -277,7 +277,7 @@ Next StartHealing(CSpellEffect* e) {
     CUnit* unit = TargetUnit(e);
     unit->Controller()->Heal(e->Spell()->damage_);
     float size = Power(e);
-    e->CreateParticle(0, 0x2006, &kZeroVector, size, 1.0f, &kZeroVector, unit);
+    e->CreateParticle(0, static_cast<int>(ParticleType::Healing), &kZeroVector, size, 1.0f, &kZeroVector, unit);
     bool full = unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints;
     if (e->silentEnd == 0 || !full) {
         e->CreateSound(0, "magic\\Healing\\start.wav", &unit->localPosition_, &kZeroVector, kVolume, kHearing);
@@ -304,7 +304,7 @@ Next StartLink(CSpellEffect* e) {
     const Vector3* casterAt = EyePointOf(e->caster, &scratch);
     Vector3 from = *casterAt;
     e->position = *casterAt;
-    e->CreateParticle(1, 0x2014, &from, 1.0f, 1.0f, &kZeroVector, nullptr);
+    e->CreateParticle(1, static_cast<int>(ParticleType::Link), &from, 1.0f, 1.0f, &kZeroVector, nullptr);
     if (e->visual) {
         const Vector3* to = EyePointOf(e->target, &scratch);
         Vector3 direction;
@@ -322,10 +322,10 @@ Next StartTeleport(CSpellEffect* e) {
     const Vector3* source = e->caster ? &e->caster->localPosition_ : &e->position;
     Vector3 point = *source;
     point.z = GroundPlus(e, kGridHeight, point, &point.z);
-    e->CreateParticle(1, 0x2019, &point, 1.0f, 1.0f, &kZeroVector, nullptr);
+    e->CreateParticle(1, static_cast<int>(ParticleType::Teleport), &point, 1.0f, 1.0f, &kZeroVector, nullptr);
     point = e->targetPoint;
     point.z = GroundMinus(e, kGridHeight, point, ConstPtr(worlddata::TeleportDepth()));
-    e->CreateParticle(0, 0x2019, &point, -1.0f, 1.0f, &kZeroVector, nullptr);
+    e->CreateParticle(0, static_cast<int>(ParticleType::Teleport), &point, -1.0f, 1.0f, &kZeroVector, nullptr);
     e->CreateSound(0, "magic\\Teleport\\start.wav", &point, &kZeroVector, kVolume, kHearing);
     PrototypeLight(e, &point, PrototypeRange(e), &kZeroVector);
     int duration = static_cast<int>(e->Spell()->duration_);
@@ -469,7 +469,7 @@ void CSpellEffect::CreateArrow(const Vector3* from, CEngineObject* missileTarget
 
 CEffectParticle* CSpellEffect::CreateParticle(int keep, int particleType, const Vector3* at, float size, float alpha,
                                               const Vector3* velocity, CEngineObject* attachTo) {
-    ClassId classId = (particleType == 0x2010 || particleType == 0x2014) ? ClassId::EffectWall : ClassId::EffectParticle;
+    ClassId classId = (ParticleTypeOf(particleType) == ParticleType::Tendril || ParticleTypeOf(particleType) == ParticleType::Link) ? ClassId::EffectWall : ClassId::EffectParticle;
     auto* particle = CreateObject<CEffectParticle>(this, classId);   // a CEffectWall for the walls
     particle->type_ = particleType;
     SetPosition(particle, at);

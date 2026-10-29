@@ -79,7 +79,7 @@ void SetupSmoke(CParticleSource* s) {
     s->height = 0.3f;
     s->growth = 0.85f;
     SetCallbacks(s, &CParticleSource::EmitSmoke, &CParticleSource::UpdateSmoke, nullptr);
-    if (s->type_ == 0x2010) {
+    if (ParticleTypeOf(s->type_) == ParticleType::Tendril) {
         s->emitCount = 20;
         s->maxParticles = 1500;
         s->elements.resize(1);
@@ -225,11 +225,11 @@ void SetupWeather(CParticleSource* s) {
     SetCallbacks(s, &CParticleSource::EmitShower, &CParticleSource::UpdateShower, &CParticleSource::TickShower);
     s->elements.resize(1);
     s->elements[0].ray.age = -100;
-    switch (s->type_) {
-    case 0x200F: s->elements[0].ticks = 12; break;
-    case 0x2031: s->elements[0].ticks = 13; break;
-    case 0x2032: s->elements[0].ticks = 14; break;
-    case 0x2033: s->elements[0].ticks = 15; break;
+    switch (ParticleTypeOf(s->type_)) {
+    case ParticleType::Shower1: s->elements[0].ticks = 12; break;
+    case ParticleType::Shower2: s->elements[0].ticks = 13; break;
+    case ParticleType::Shower3: s->elements[0].ticks = 14; break;
+    case ParticleType::Shower4: s->elements[0].ticks = 15; break;
     }
 }
 
@@ -283,10 +283,10 @@ void SetupGroundPlane(CParticleSource* s) {
     s->flags_ |= 9;
     s->elements.resize(1);
     s->elements[0].ticks = 0;
-    if (s->type_ == 0x203A) {
+    if (ParticleTypeOf(s->type_) == ParticleType::GroundDust1) {
         s->emitCount = 128;
         s->elements[0].plane.color = 0x40FF40;
-    } else if (s->type_ == 0x203B) {
+    } else if (ParticleTypeOf(s->type_) == ParticleType::GroundDust2) {
         s->emitCount = 256;
         s->elements[0].plane.color = 0xFF4040;
     }
@@ -342,8 +342,8 @@ void SetupFeetCloud(CParticleSource* s) {
         s->elements[i].foot.radius = 0.0f;
     }
     SetCallbacks(s, &CParticleSource::EmitFeetCloud, &CParticleSource::UpdateFeetCloud, &CParticleSource::TickFeetCloud);
-    if (s->type_ == 0x204A) s->lifetime = 0xFF;
-    else if (s->type_ == 0x204B) s->lifetime = 0xFF0000;
+    if (ParticleTypeOf(s->type_) == ParticleType::FeetCloud1) s->lifetime = 0xFF;
+    else if (ParticleTypeOf(s->type_) == ParticleType::FeetCloud2) s->lifetime = 0xFF0000;
 }
 
 // StartTrans (0x2051): one element with a 30-tick countdown.
@@ -361,9 +361,9 @@ void SetupStartTrans(CParticleSource* s) {
 
 // Fills the type's parameters; returns the texture name, or null for an unknown type.
 const char* SetupType(CParticleSource* s) {
-    const int type = s->type_;
+    const ParticleType type = ParticleTypeOf(s->type_);
     switch (type) {
-    case 0x2000:        // FireSmoke
+    case ParticleType::FireBall:        // FireSmoke
         s->lifetime = 15;
         s->frameCount = 15;
         SetSpread(s, -0.2f, -0.2f, -1.0f, 0.2f, 0.2f, 0.0f);
@@ -375,13 +375,13 @@ const char* SetupType(CParticleSource* s) {
         s->growth = 0.94f;
         SetCallbacks(s, &CParticleSource::EmitFireBall, &CParticleSource::UpdateFireBall, nullptr);
         return "FireSmoke";
-    case 0x2001: case 0x2003: case 0x2004: case 0x2010:
+    case ParticleType::CampFire: case ParticleType::Fire: case ParticleType::Smoke: case ParticleType::Tendril:
         SetupSmoke(s);
         return "TendriSmoke";
-    case 0x2002:
+    case ParticleType::FireBlast:
         SetupExplosion(s);
         return "Explosion";
-    case 0x2005:        // Vulkan
+    case ParticleType::VulcanSmoke:        // Vulkan
         SetSpread(s, 0.2f, 0.5f, 0.0f, 0.3f, 4.0f, 0.0f);
         s->emitChance = 88;
         s->emitCount = 2;
@@ -393,7 +393,7 @@ const char* SetupType(CParticleSource* s) {
         s->growth = 0.99f;
         SetCallbacks(s, &CParticleSource::EmitVulkan, &CParticleSource::UpdateVulkan, nullptr);
         return "Vulkan";
-    case 0x2006:        // Healing
+    case ParticleType::Healing:        // Healing
         s->flags_ |= 2;
         SetBits(&s->additiveBlend, 1);
         s->emitCount = 0x7FFFFFFF;
@@ -402,7 +402,7 @@ const char* SetupType(CParticleSource* s) {
         s->size = 0.5f;
         SetCallbacks(s, &CParticleSource::EmitHealing, &CParticleSource::UpdateHealing, &CParticleSource::TickHealing);
         return "Healing";
-    case 0x2007: case 0x2008:   // PoisonFog
+    case ParticleType::PoisonFog: case ParticleType::PoisonCloud:   // PoisonFog
         s->emitChance = 50;
         s->emitCount = 1;
         s->maxParticles = 0x7FFFFFFF;
@@ -411,23 +411,23 @@ const char* SetupType(CParticleSource* s) {
         s->frameDelay = 1;
         SetCallbacks(s, &CParticleSource::EmitPoisonFog, &CParticleSource::UpdateCloud, nullptr);
         return "PoisonCloud";
-    case 0x2009:
+    case ParticleType::Geyser:
         SetupFireworks(s);
         return "Fireworks";
-    case 0x200A:
+    case ParticleType::Tornado:
         SetupTornado(s);
         return "Tornado";
-    case 0x200B:
+    case ParticleType::Casting:
         s->flags_ |= 3;
         s->emitCount = 0x7FFFFFFF;
         s->lifetime = -1;
         s->frameDelay = 1;
         SetCallbacks(s, &CParticleSource::EmitCastRing, &CParticleSource::UpdateCastRing, &CParticleSource::TickCastRing);
         return "FireSmoke";
-    case 0x200C:
+    case ParticleType::Nuke:
         SetupNuke(s);
         return "AcidRay";
-    case 0x200D:        // Banshee
+    case ParticleType::Banshee:        // Banshee
         s->flags_ |= 3;
         s->emitCount = 0x7FFFFFFF;
         s->lifetime = -1;
@@ -435,18 +435,18 @@ const char* SetupType(CParticleSource* s) {
         SetCallbacks(s, &CParticleSource::EmitBanshee, &CParticleSource::UpdateBanshee, &CParticleSource::TickBanshee);
         s->elements.resize(0);
         return "Banshee";
-    case 0x200E: case 0x2052:   // Mushroom, Transform
+    case ParticleType::Mushroom: case ParticleType::Transform:   // Mushroom, Transform
         s->emitCount = 10;
         s->maxParticles = 4000;
         s->lifetime = -1;
         s->frameDelay = 1;
         s->height = 1.0f;
         SetCallbacks(s, &CParticleSource::EmitMushroom, &CParticleSource::UpdateMushroom, &CParticleSource::TickMushroom);
-        return type == 0x2002 ? "Explosion" : "ChangeHero";   // the test never holds here
-    case 0x200F: case 0x2031: case 0x2032: case 0x2033:
+        return type == ParticleType::FireBlast ? "Explosion" : "ChangeHero";   // the test never holds here
+    case ParticleType::Shower1: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4:
         SetupWeather(s);
         return "RainSnow";
-    case 0x2011: case 0x204E:   // arrow smoke
+    case ParticleType::FireArrow: case ParticleType::RikArrowSmoke:   // arrow smoke
         s->lifetime = 15;
         s->frameCount = 15;
         SetSpread(s, -0.2f, -0.2f, -0.2f, 0.2f, 0.2f, 0.2f);
@@ -457,8 +457,8 @@ const char* SetupType(CParticleSource* s) {
         s->growth = 1.03f;
         s->emitState = 0.0f;
         SetCallbacks(s, &CParticleSource::EmitArrowSmoke, &CParticleSource::UpdateArrowSmoke, nullptr);
-        return type == 0x204E ? "RikArrowSmoke" : "FireArrowSmoke";
-    case 0x2012:
+        return type == ParticleType::RikArrowSmoke ? "RikArrowSmoke" : "FireArrowSmoke";
+    case ParticleType::AcidRay:
         s->lifetime = 15;
         s->frameCount = 15;
         SetSpread(s, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f);
@@ -468,7 +468,7 @@ const char* SetupType(CParticleSource* s) {
         s->size = 0.3f;
         SetCallbacks(s, &CParticleSource::EmitAcidRay, &CParticleSource::UpdateAcidRay, nullptr);
         return "AcidRay";
-    case 0x2013:        // Stench
+    case ParticleType::BlueGas:        // Stench
         s->flags_ |= 2;
         SetSpread(s, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f);
         s->emitChance = 80;
@@ -479,7 +479,7 @@ const char* SetupType(CParticleSource* s) {
         s->size = 1.0f;
         SetCallbacks(s, &CParticleSource::EmitStench, &CParticleSource::UpdateStench, &CParticleSource::TickNone);
         return "Stench";
-    case 0x2014:        // Link
+    case ParticleType::Link:        // Link
         SetSpread(s, -0.2f, -0.2f, -0.2f, 0.2f, 0.2f, 0.2f);
         s->emitChance = 80;
         s->extent = {-10.0f, 0.0f, 0.0f};
@@ -490,50 +490,50 @@ const char* SetupType(CParticleSource* s) {
         s->size = 1.0f;
         SetCallbacks(s, &CParticleSource::EmitLink, &CParticleSource::UpdateLink, &CParticleSource::TickLink);
         return "Link";
-    case 0x2015: case 0x2016: case 0x2017: case 0x201A:   // protection spheres, AntiMagic
+    case ParticleType::SphereAcid: case ParticleType::SphereElectricity: case ParticleType::SphereFire: case ParticleType::Antimagic:   // protection spheres, AntiMagic
         s->flags_ |= 2;
         SetBits(&s->additiveBlend, 1);
         s->emitChance = 90;
         s->emitCount = 1;
-        s->lifetime = type == 0x201A ? 4 : 15;
+        s->lifetime = type == ParticleType::Antimagic ? 4 : 15;
         s->frameCount = 15;
         SetSpread(s, -0.2f, -0.2f, -1.0f, 0.2f, 0.2f, 0.0f);
         s->frameDelay = 1;
         s->size = 1.0f;
         SetCallbacks(s, &CParticleSource::EmitOrbit, &CParticleSource::UpdateOrbit, &CParticleSource::TickNone);
-        if (type == 0x2017) return "ProtectionF";
-        if (type == 0x2016) return "ProtectionE";
-        if (type == 0x201A) return "AntiMagic";
+        if (type == ParticleType::SphereFire) return "ProtectionF";
+        if (type == ParticleType::SphereElectricity) return "ProtectionE";
+        if (type == ParticleType::Antimagic) return "AntiMagic";
         return "ProtectionA";
-    case 0x2018:
+    case ParticleType::ClayRing:
         SetupClayRing(s);
         return "ClayRing";
-    case 0x2019:
+    case ParticleType::Teleport:
         SetupTeleport(s);
         return "Teleport";
-    case 0x201B: case 0x201C: case 0x201D: case 0x201E: case 0x201F: case 0x2020:
-    case 0x2021: case 0x2022: case 0x2023: case 0x2024: case 0x2025: case 0x2026:   // Modifier1-12
+    case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3: case ParticleType::Modifier4: case ParticleType::Modifier5: case ParticleType::Modifier6:
+    case ParticleType::Modifier7: case ParticleType::Modifier8: case ParticleType::Modifier9: case ParticleType::Modifier10: case ParticleType::Modifier11: case ParticleType::Modifier12:   // Modifier1-12
         s->emitCount = 80;
         s->flags_ |= 3;
         s->lifetime = 14;
         s->frameDelay = 2;
         SetCallbacks(s, &CParticleSource::EmitModifier, &CParticleSource::UpdateModifier, &CParticleSource::TickModifier);
         return "Stun";
-    case 0x2027: case 0x2028: case 0x2029: case 0x202A:
+    case ParticleType::CastingFire: case ParticleType::CastingElectricity: case ParticleType::CastingAcid: case ParticleType::CastingDivination:
         s->flags_ |= 0x13;
         s->attachPoint = 0;
         SetCallbacks(s, &CParticleSource::EmitCasting, &CParticleSource::UpdateCasting, &CParticleSource::TickCasting);
         s->lifetime = 5;
         s->emitCount = 20;
-        if (type == 0x2027) {
+        if (type == ParticleType::CastingFire) {
             s->frameDelay = 5;
             return "FireSmoke";
         }
-        if (type == 0x2028) {
+        if (type == ParticleType::CastingElectricity) {
             s->frameDelay = 1;
             return "Casting8";
         }
-        if (type == 0x2029) {
+        if (type == ParticleType::CastingAcid) {
             s->frameDelay = 5;
             return "Casting7";
         }
@@ -542,35 +542,35 @@ const char* SetupType(CParticleSource* s) {
         s->attachPoint = 2;
         SetBits(&s->additiveBlend, 1);
         return "Casting4";
-    case 0x202B: case 0x202C: case 0x202D: case 0x202E:
+    case ParticleType::CastingIllusion: case ParticleType::CastingDomination: case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
         s->flags_ |= 3;
         SetSpread(s, -0.04f, -0.04f, -0.04f, 0.04f, 0.04f, 0.04f);
         s->emitCount = 10;
         s->frameDelay = 1;
         s->maxParticles = 600;
         SetCallbacks(s, &CParticleSource::EmitCastSwirl, &CParticleSource::UpdateCastSwirl, &CParticleSource::TickCastSwirl);
-        if (type == 0x202B) {
+        if (type == ParticleType::CastingIllusion) {
             s->lifetime = 2;
             return "Casting2";
         }
-        if (type == 0x202C) {
+        if (type == ParticleType::CastingDomination) {
             s->lifetime = 1;
             return "Casting3";
         }
-        if (type == 0x202D) {
+        if (type == ParticleType::CastingEnchantment) {
             s->lifetime = 2;
             return "Casting6";
         }
         s->lifetime = 1;
         return "Casting1";
-    case 0x202F:
+    case ParticleType::TeleportRing:
         s->emitCount = 25;
         s->flags_ |= 3;
         s->lifetime = 14;
         s->frameDelay = 1;
         SetCallbacks(s, &CParticleSource::EmitColumn, &CParticleSource::UpdateColumn, &CParticleSource::TickColumn);
         return "Teleport";
-    case 0x2030:        // LightningBlast
+    case ParticleType::LightningBlast:        // LightningBlast
         s->lifetime = 15;
         s->frameCount = 15;
         SetSpread(s, -0.2f, -0.2f, -0.2f, 0.2f, 0.2f, 0.2f);
@@ -582,10 +582,10 @@ const char* SetupType(CParticleSource* s) {
         SetCallbacks(s, &CParticleSource::EmitLightning, &CParticleSource::UpdateLightning, &CParticleSource::TickLightning);
         SetBits(&s->additiveBlend, 1);
         return "TendriLight";
-    case 0x2034: case 0x2035: case 0x2036: case 0x2037:
+    case ParticleType::Falling1: case ParticleType::Falling2: case ParticleType::Falling3: case ParticleType::Falling4:
         SetupFalling(s);
         return "RainSnow";
-    case 0x2038:        // ZoneExit
+    case ParticleType::ZoneExit:        // ZoneExit
         s->emitCount = 10;
         s->maxParticles = 600;
         s->alpha = 5.0f;
@@ -593,7 +593,7 @@ const char* SetupType(CParticleSource* s) {
         s->flags_ |= 0x21;
         SetCallbacks(s, &CParticleSource::EmitZoneExit, &CParticleSource::UpdateZoneExit, &CParticleSource::TickNone);
         return "ZoneExit";
-    case 0x2039:
+    case ParticleType::ShapeChange:
         s->emitFn = &CParticleSource::EmitGlow;
         s->flags_ |= 9;
         s->emitCount = 2500;
@@ -601,31 +601,31 @@ const char* SetupType(CParticleSource* s) {
         s->updateFn = &CParticleSource::UpdateGlow;
         s->elementFn = &CParticleSource::TickGlow;
         return "ShapeChange";
-    case 0x203A: case 0x203B:
+    case ParticleType::GroundDust1: case ParticleType::GroundDust2:
         SetupGroundPlane(s);
         return "ShapeChange";
-    case 0x203C:
+    case ParticleType::Bag:
         SetupBag(s);
         return "Bag";
-    case 0x203D:
+    case ParticleType::PortalStar:
         s->emitCount = 1;
         s->maxParticles = 1;
         SetCallbacks(s, &CParticleSource::EmitPortalStar, &CParticleSource::UpdatePortalStar, &CParticleSource::TickNone);
         return "Casting6";
-    case 0x203E:
+    case ParticleType::Portal:
         SetupPortal(s);
         return "Teleport";
-    case 0x203F: case 0x2040:
+    case ParticleType::Cylinder1: case ParticleType::Cylinder2:
         SetupCastingCircle(s);
-        return type == 0x203F ? "Casting2" : "Casting1";
-    case 0x2041: case 0x2042:
+        return type == ParticleType::Cylinder1 ? "Casting2" : "Casting1";
+    case ParticleType::FireStar: case ParticleType::AcidStar:
         s->flags_ |= 0x13;
         s->attachPoint = 7;
         s->emitCount = 1;
         SetCallbacks(s, &CParticleSource::EmitFireStar, &CParticleSource::UpdateFireStar, &CParticleSource::TickNone);
         s->lifetime = 15;
-        return type == 0x2041 ? "FireArrowSmoke" : "AcidRay";
-    case 0x2043:        // Sparks
+        return type == ParticleType::FireStar ? "FireArrowSmoke" : "AcidRay";
+    case ParticleType::Sparks:        // Sparks
         SetBits(&s->additiveBlend, 1);
         s->flags_ |= 0x13;
         s->attachPoint = 7;
@@ -633,25 +633,25 @@ const char* SetupType(CParticleSource* s) {
         s->maxParticles = 300;
         SetCallbacks(s, &CParticleSource::EmitSparks, &CParticleSource::UpdateSparks, &CParticleSource::TickNone);
         return "Casting6";
-    case 0x2044: case 0x2045: case 0x2046: case 0x204C:
+    case ParticleType::VisionStar1: case ParticleType::VisionStar2: case ParticleType::VisionStar3: case ParticleType::VisionStar4:
         s->flags_ |= 0x13;
         SetBits(&s->additiveBlend, 1);
         s->attachPoint = 2;
         s->emitCount = 3;
         SetCallbacks(s, &CParticleSource::EmitVisionStar, &CParticleSource::UpdateVisionStar, &CParticleSource::TickNone);
-        if (type == 0x2044) s->lifetime = 0;
-        else if (type == 0x2045) s->lifetime = 1;
-        else if (type == 0x2046) s->lifetime = 2;
+        if (type == ParticleType::VisionStar1) s->lifetime = 0;
+        else if (type == ParticleType::VisionStar2) s->lifetime = 1;
+        else if (type == ParticleType::VisionStar3) s->lifetime = 2;
         else s->lifetime = 3;
         return "Stun";
-    case 0x2047:
+    case ParticleType::Regeneration:
         SetBits(&s->additiveBlend, 1);
         s->flags_ |= 0x13;
         s->attachPoint = 7;
         s->emitCount = 2;
         SetCallbacks(s, &CParticleSource::EmitRegeneration, &CParticleSource::UpdateRegeneration, &CParticleSource::TickNone);
         return "Stun";
-    case 0x2048:
+    case ParticleType::Silence:
         SetBits(&s->additiveBlend, 1);
         s->flags_ |= 0x13;
         s->attachPoint = 7;
@@ -659,7 +659,7 @@ const char* SetupType(CParticleSource* s) {
         s->maxParticles = 300;
         SetCallbacks(s, &CParticleSource::EmitSilence, &CParticleSource::UpdateSilence, &CParticleSource::TickNone);
         return "Stun";
-    case 0x2049:        // FeebleMind
+    case ParticleType::FeebleMind:        // FeebleMind
         SetBits(&s->additiveBlend, 1);
         s->flags_ |= 0x13;
         s->attachPoint = 1;
@@ -667,10 +667,10 @@ const char* SetupType(CParticleSource* s) {
         s->maxParticles = 300;
         SetCallbacks(s, &CParticleSource::EmitFeebleMind, &CParticleSource::UpdateFeebleMind, &CParticleSource::TickNone);
         return "Link";
-    case 0x204A: case 0x204B:
+    case ParticleType::FeetCloud1: case ParticleType::FeetCloud2:
         SetupFeetCloud(s);
         return "VisionFog";
-    case 0x204D:
+    case ParticleType::Stun:
         SetBits(&s->additiveBlend, 1);
         s->flags_ |= 0x13;
         s->attachPoint = 0;
@@ -678,7 +678,7 @@ const char* SetupType(CParticleSource* s) {
         s->maxParticles = 300;
         SetCallbacks(s, &CParticleSource::EmitStun, &CParticleSource::UpdateStun, &CParticleSource::TickNone);
         return "Stun";
-    case 0x204F:
+    case ParticleType::CurseStars:
         SetBits(&s->additiveBlend, 1);
         s->flags_ |= 0x13;
         s->attachPoint = 7;
@@ -686,10 +686,10 @@ const char* SetupType(CParticleSource* s) {
         s->maxParticles = 300;
         SetCallbacks(s, &CParticleSource::EmitCurseStars, &CParticleSource::UpdateCurseStars, &CParticleSource::TickNone);
         return "Healing";
-    case 0x2050:
+    case ParticleType::CurseHolder:
         SetupCurseHolder(s);
         return "Tornado";
-    case 0x2051:
+    case ParticleType::StartTrans:
         SetupStartTrans(s);
         return "ZoneExit";
     default:

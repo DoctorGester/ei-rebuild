@@ -143,7 +143,7 @@ void UnitSetDiplomacy(CUnit* a0, int a2) { a0->SetHostileMask((std::uint32_t)a2)
 // The timed objects' types (world_effect.h).
 constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B, kTimedParticle = 0x4A;
 constexpr std::uint32_t kGrey = 0x3F4CCCCD, kOne = 0x3F800000;
-constexpr std::uint32_t kTorchLightKind = 0x2001;   // the torch's smoke particles
+constexpr std::uint32_t kTorchLightKind = static_cast<std::uint32_t>(ParticleType::CampFire);   // the torch's smoke particles
 
 int UpdateCountdown(const CEngineObject* object) { return CWorldServer::UpdateCountdownFor(object); }
 
