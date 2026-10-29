@@ -636,7 +636,7 @@ MasterRequestBox::MasterRequestBox(Interface3D* ui, std::string_view titleKey, c
 }
 
 void MasterRequestBox::Update() {
-    float right = static_cast<float>(net::g_gameClient->BufferRatio(&link.in)) * kBarWidth + kBarLeft;
+    float right = net::g_gameClient->BufferRatio(&link.in) * kBarWidth + kBarLeft;
     bar->SetRectangle(2.5f, 100.0f, 220.0f, 280.0f, right, 300.0f, 0, 0, 0x100, 0x100);
     if (net::MasterLinkTick(&link) == net::MasterLink::kDone) net::g_gameClient->ReadServerList(&link.in);
     if (net::MasterLinkTick(&link) == net::MasterLink::kDone || net::MasterLinkTick(&link) == net::MasterLink::kClosed)

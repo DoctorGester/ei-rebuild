@@ -10,7 +10,6 @@
 #include "player_messages.h"
 #include "world.h"
 
-#include "lib/crt.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -47,7 +46,8 @@ void ClientSession::ApplyAwards() {
         }
         case 1: {
             std::vector<Item*> none;
-            localPlayer->Party()->money += static_cast<int>(libcrt::Ftol(award->value));
+            // Truncated as _ftol does: through 64 bits, so a NaN or a value beyond the int range gives 0.
+            localPlayer->Party()->money += static_cast<int>(static_cast<std::int64_t>(award->value));
             localPlayer->GiveItems(&none, 0);
             break;
         }
@@ -99,10 +99,9 @@ void ClientSession::Tick(double dt) {
     const float step = static_cast<float>(dt);
     for (auto node = self->timers.begin(); node != self->timers.end();) {
         float& seconds = node->seconds;
-        const double left = static_cast<double>(seconds) - step;
-        seconds = static_cast<float>(left);
-        EI_NAN_AUDIT(left);
-        if (left < 0.0f) {
+        seconds -= step;
+        EI_NAN_AUDIT(seconds);
+        if (seconds < 0.0f) {
             node = self->timers.erase(node);
         } else {
             ++node;

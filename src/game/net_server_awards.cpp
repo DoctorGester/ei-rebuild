@@ -14,7 +14,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/x87.h"
 
 #include <cstring>
 #include <string>
@@ -38,7 +37,7 @@ void ServerSession::QueueAward(RefObject* connection, int textKind, float value,
     auto* award = NewCounted<AwardMessage>();
     award->connection.Assign(connection);
     award->kind = static_cast<std::uint32_t>(textKind);
-    x87::CopyBits(award->value, value);
+    award->value = value;
 
     // The text, assigned in place (string::operator= inlined: overwrite, then cut or append).
     award->text = text;
@@ -99,12 +98,11 @@ void ServerSession::CompleteZone(const std::string* zone) {
     if (entry) {
         int count = static_cast<int>(clients.size());
         int share = count < 1 ? 1 : count;
-        float value0, value1;
-        x87::CopyBits(value0, entry->exp);
-        x87::CopyBits(value1, entry->money);
-        const double divisor = share;
-        float award0 = static_cast<float>(value0 / divisor);
-        float award1 = static_cast<float>(value1 / divisor);
+        const float value0 = entry->exp;
+        const float value1 = entry->money;
+        const auto divisor = static_cast<float>(share);
+        const float award0 = value0 / divisor;
+        const float award1 = value1 / divisor;
 
         for (auto& node : clients) {
             RefObject* connection = node.Get();

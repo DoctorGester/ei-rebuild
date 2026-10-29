@@ -291,8 +291,8 @@ static_assert(sizeof(PlayerLoginMessage) == 0x88);
 // original took the game's isprint of each signed char.)
 bool IsPrintableText(const char* text);
 
-// |a - b| squared, unrounded (the use order's nearest-unit test).
-double UseOrderDistanceSquared(const Vector3& a, const Vector3& b);
+// |a - b| squared, summed z, y, x (the use order's nearest-unit test).
+float UseOrderDistanceSquared(const Vector3& a, const Vector3& b);
 // The walk orders' formation: one unit gets (0, 0, 0); several get the unit vector (x, y, 0) from the units'
 // 2D centroid to each (unnormalised when it is zero). `offsets` is sized to the units.
 void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* offsets);

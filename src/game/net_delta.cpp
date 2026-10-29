@@ -8,8 +8,8 @@
 #include <cstring>
 #include <string>
 
-#include "ei/x87.h"
 #include "lib/bytes.h"
+#include "lib/rounding.h"
 
 #include <bit>
 #include <memory>
@@ -87,7 +87,7 @@ constexpr float kReadScale2D = 0.016601816f;
 static_assert(std::bit_cast<std::uint32_t>(kReadScale2D) == 0x3C880088u);
 constexpr float kReadOffset2D = 32.0f;
 
-int Quantize(float v, float offset, float scale) { return x87::fistp(static_cast<float>((v - offset) * scale)); }
+int Quantize(float v, float offset, float scale) { return lib::RoundEven((v - offset) * scale); }
 
 float Dequantize(std::uint16_t q, float scale, float offset) { return static_cast<float>(static_cast<int>(q)) * scale - offset; }
 
@@ -401,12 +401,12 @@ void DeltaField::ReadPosition2D(float* position) {
 // Ranged values.
 
 void DeltaField::WriteRanged(float value, float min, float max) {
-    int q = x87::fistp(static_cast<float>((value - min) * (kRangeSteps / (max - min))));
+    int q = lib::RoundEven((value - min) * (kRangeSteps / (max - min)));
     WriteDelta(&q, 2);
 }
 
 void DeltaField::ReadRanged(float* value, float min, float max) {
-    float step = static_cast<float>((max - min) * kRangeStep);
+    float step = (max - min) * kRangeStep;
     std::uint16_t q = ReadWord();
     *value = static_cast<float>(static_cast<int>(q)) * step + min;
 }

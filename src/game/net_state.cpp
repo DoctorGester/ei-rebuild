@@ -11,7 +11,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/x87.h"
 
 #include <cstdint>
 #include <cstring>
@@ -35,7 +34,7 @@ constexpr float kStatEpsilon = 1e-4f;
 // A body part's condition as current / maximum (signed 16-bit over unsigned 16-bit), as a float.
 float StatFraction(CUnit* unit, int k) {
     const UnitParamsSlot& part = unit->params.slots[k];   // + k * 0x1C: current, maximum
-    return static_cast<float>(static_cast<double>(part.current) / part.maximum);
+    return static_cast<float>(part.current) / static_cast<float>(part.maximum);
 }
 
 // fabs(v) > epsilon (false for a NaN).
@@ -202,7 +201,7 @@ std::uint32_t CMapObject::ReadNetState(int first) {
 
 std::uint32_t CUnit::ReadNetState(int first) {
     CUnit* unit = this;
-    float hpBefore = static_cast<float>(static_cast<double>(unit->packedVitals.hitPoints) / unit->packedVitals.maxHitPoints);
+    float hpBefore = static_cast<float>(unit->packedVitals.hitPoints) / static_cast<float>(unit->packedVitals.maxHitPoints);
     std::uint32_t complete = CMapObject::ReadNetState(first);
     DeltaState* state = &netState;
     bool gotItems = false;

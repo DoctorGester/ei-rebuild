@@ -10,6 +10,7 @@
 #include "object_tables.h"
 #include "world.h"
 
+#include "lib/rounded_ops.h"
 #include "lib/text_case.h"
 
 #include <cstdlib>
@@ -19,12 +20,9 @@
 namespace mapdb {
 namespace {
 
-// *out = float(std::atof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does (the
-// factor is the product of two doubles, rounded by the FPU).
-void StoreRadians(float* out, const char* text) {
-    const double degrees = std::atof(text);
-    *out = static_cast<float>(degrees * ei::kRadiansPerDegree);
-}
+// *out = std::atof(text) * (pi * 1/180): degrees to radians, the double times the float factor rounded once to a
+// float as the original's multiply at 24-bit precision (the map database loads after the device exists).
+void StoreRadians(float* out, const char* text) { *out = lib::RoundedProduct(ei::kRadiansPerDegree, std::atof(text)); }
 
 bool Is(const char* word, const char* text) {
     return std::strcmp(word, text) == 0;

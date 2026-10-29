@@ -18,8 +18,6 @@
 #include "lib/bytes.h"
 #include "lib/nan_audit.h"
 
-#include "ei/x87.h"
-
 #include <algorithm>
 #include <bit>
 #include <cstring>
@@ -28,7 +26,7 @@ namespace {
 
 // The variables table (object_tables.cpp).
 void VariableSet(NamedFloatTable* table, std::string_view name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
-double VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
+float VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
 
 void Write(MemoryStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
 void WriteByte(MemoryStream* out, std::uint8_t value) { Write(out, &value, 1); }
@@ -84,8 +82,7 @@ void PlayerServer::SetVariable(std::string_view name, std::uint32_t value) {
 }
 
 void PlayerServer::SetVariableMax(std::string_view name, float value) {
-    // Rounded to float before any comparison.
-    float stored = static_cast<float>(VariableGet(Variables(player), name));
+    float stored = VariableGet(Variables(player), name);
     float current = stored;
     std::uint32_t currentBits, valueBits;
     currentBits = std::bit_cast<std::uint32_t>(current);

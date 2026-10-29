@@ -3,11 +3,11 @@
 #include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "lib/rounded_ops.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
 
-#include <bit>
 #include <intrin.h>
 
 // The game's generator: unseeded (the static initialiser zeroes seeded; Init seeds it on first use).
@@ -18,14 +18,9 @@ namespace {
 IsaacRandom::SeedHook g_seedHook;
 IsaacRandom::DrawObserver g_drawObserver;
 
-// The 2^-32 scale of Range; its last bit is set (sic).
-constexpr double kRangeScale = std::bit_cast<double>(0x3DF0000000100000ull);
-
-// A zero-extended dword as a double (exact).
-double Unsigned(std::uint32_t value) {
-    volatile std::int64_t wide = value;
-    return static_cast<double>(wide);
-}
+// The 2^-32 scale of Range. The original's double constant has its last bit set (2^-32 + 2^-64, sic), but times a
+// 24-bit product rounded to 24 bits that bit never shows.
+constexpr float kRangeScale = 0x1p-32f;
 
 // The search strings: the drive's files and the sub-directory suffix.
 constexpr const char* kSeedSearchPattern = /*0073D080*/ "C:\\*.*";
@@ -89,7 +84,9 @@ std::uint32_t IsaacRandom::Next() {
 
 // Defined here so that the function vectors link it.
 float IsaacRandom::Range(float min, float max) {
-    return static_cast<float>(Unsigned(Next()) * (max - min) * kRangeScale + min);
+    // The draw (a 32-bit integer) times the range, rounded once to a float as the original's multiply at 24-bit
+    // precision; the scale is exact (in the normal float range); the sum is the float sum.
+    return lib::RoundedProduct(max - min, static_cast<double>(Next())) * kRangeScale + min;
 }
 
 void IsaacRandom::Refill() {

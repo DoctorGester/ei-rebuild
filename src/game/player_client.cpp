@@ -27,9 +27,9 @@
 #include "unit_db.h"
 #include "world.h"
 
+#include "lib/rounded_ops.h"
+#include "lib/rounding.h"
 #include "lib/str.h"
-
-#include "ei/x87.h"
 
 #include <algorithm>
 #include <bit>
@@ -81,12 +81,12 @@ void RefreshQuestLog() { g_interface.OnItemsPicked({}, 0, false); }
 // The client world shows a number over a unit (id, value, kind).
 constexpr int kNumberExperience = 8;
 
-// The experience shown for `amount`, rounded to the nearest integer through a float.
+// The experience shown for `amount`: amount times 1.04 ^ (intelligence - 25), the double power times the float
+// rounded once to a float (the original's multiply at 24-bit precision), then to the nearest integer. std::pow
+// here gives the same 256 doubles as the x87 build's (an equivalence test, docs/notes/cleanup-tooling.md).
 int ScaledExperience(const CUnit* unit, float amount) {
-    double base = 1.04;
-    float offset = 25.0f;
-    float scaled = static_cast<float>(std::pow(base, static_cast<double>(unit->params.intelligence) - offset) * amount);
-    return x87::RoundToInt(scaled);
+    const double power = std::pow(1.04, static_cast<float>(unit->params.intelligence) - 25.0f);
+    return lib::RoundEven(lib::RoundedProduct(amount, power));
 }
 
 bool IsQuestVariable(const std::string& name) {

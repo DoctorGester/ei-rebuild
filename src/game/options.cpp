@@ -9,7 +9,6 @@
 #include "lib/str.h"
 
 #include "ei/rebirth.h"
-#include "ei/x87.h"
 
 #include <bit>
 #include <cstdio>
@@ -28,18 +27,15 @@ constexpr std::uint32_t kMinusOneBits = 0xBF800000u;   // -1.0f
 
 std::uint32_t Bits(float value) { return std::bit_cast<std::uint32_t>(value); }
 
-// _ftol(value * 255): the product rounded only by the FPU's precision, then truncated by the
-// game's _ftol.
-int FtolTimes255(float value) {
-    return static_cast<int>(libcrt::Ftol(static_cast<double>(value) * kTimes255));
-}
-// _ftol(value).
-int Ftol(float value) { return static_cast<int>(libcrt::Ftol(value)); }
-// `value` as an unsigned 64-bit integer times factor: the product rounded
-// by the FPU's precision, then once to float.
-float UnsignedProduct(std::uint32_t value, float factor) { return static_cast<float>(x87::FromUnsigned(value) * factor); }
-// `value` as an unsigned 64-bit integer, as a float.
-float Unsigned(std::uint32_t value) { return static_cast<float>(x87::FromUnsigned(value)); }
+// The game's _ftol: truncated through 64 bits, so a NaN or a value beyond the int range gives 0 (the registry's
+// floats can be anything).
+int Ftol(double value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
+// The loader runs at start-up, before the D3D device sets the main thread's 24-bit precision: its products are the
+// original's 53-bit ones, double maths (value * 255 exact, then truncated; `value` times factor rounded to a double,
+// then to a float). The saver runs at shut-down, at 24-bit precision: value * 255 is a float product there.
+int LoadedTimes255(float value) { return Ftol(static_cast<double>(value) * kTimes255); }
+int SavedTimes255(float value) { return Ftol(value * kTimes255); }
+float UnsignedProduct(std::uint32_t value, float factor) { return static_cast<float>(static_cast<double>(value) * factor); }
 
 // One value: the subkey field, the value name, the field it goes to (and whose value is the default): `number`
 // for an integer (GetInt / SetInt), `real` for a float. Kept: a pointer-to-member type.
@@ -265,11 +261,11 @@ public:
     void ReadLight(LightOptions& light, const char* const (&names)[4]) {
         for (int c = 0; c < 3; ++c) {
             float& channel = light.*kLightChannels[c];
-            int value = key.GetInt(Key(&GameOptions::keyGame), names[c], FtolTimes255(channel));
+            int value = key.GetInt(Key(&GameOptions::keyGame), names[c], LoadedTimes255(channel));
             channel = UnsignedProduct(static_cast<std::uint32_t>(value), kOver255);
         }
         int radius = key.GetInt(Key(&GameOptions::keyGame), names[3], Ftol(light.radius));
-        light.radius = Unsigned(static_cast<std::uint32_t>(radius));
+        light.radius = static_cast<float>(static_cast<std::uint32_t>(radius));
     }
 
 private:
@@ -320,7 +316,7 @@ public:
     // The colour channels as _ftol(value * 255), the radius as _ftol(radius).
     void WriteLight(const LightOptions& light, const char* const (&names)[4]) {
         for (int c = 0; c < 3; ++c)
-            key.SetInt(Key(&GameOptions::keyGame), names[c], FtolTimes255(light.*kLightChannels[c]));
+            key.SetInt(Key(&GameOptions::keyGame), names[c], SavedTimes255(light.*kLightChannels[c]));
         key.SetInt(Key(&GameOptions::keyGame), names[3], Ftol(light.radius));
     }
 

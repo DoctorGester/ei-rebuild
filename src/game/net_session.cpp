@@ -1,5 +1,4 @@
 // The network pump. See net_session.h.
-#include "ei/x87.h"
 #include "net_session.h"
 #include "world.h"
 
@@ -24,8 +23,8 @@ constexpr float kMillisecondsToSeconds = 0.0009765625f;
 void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
     if (!session) return;
     if (session->flags7 & RefCounted::kDetached) return;
-    // The zero-extended 64-bit value times the float constant, passed as a double.
-    double seconds = x87::FromUnsigned(elapsed) * kMillisecondsToSeconds;
+    // At most 5000 milliseconds (Pump): exact in a float, as is the product.
+    const float seconds = static_cast<float>(elapsed) * kMillisecondsToSeconds;
     session->Tick(seconds);
 }
 

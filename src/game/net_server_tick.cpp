@@ -10,7 +10,6 @@
 
 #include "lib/nan_audit.h"
 
-#include "ei/x87.h"
 
 #include <cstring>
 
@@ -40,18 +39,18 @@ void CountDown(List& list, float dt) {
 
 // The base layer's tick, then the timed entries of the finished trades and the awards count down by `dt` (as
 // a float), and when the game is public the announcement timer does too: when it runs out it is reset and,
-// with a master server host set, the game is announced. A timer that lands within rounding of zero may expire
-// one tick apart from the original (x87 versus plain float maths).
+// with a master server host set, the game is announced. `dt` holds a float value (net::Pump), so the float
+// subtractions are the original's at 24-bit precision.
 void ServerSession::Tick(double dt) {
     ServerBase::Tick(dt);
     float step = static_cast<float>(dt);
     CountDown(finishedTrades, step);
     CountDown(awards, step);
     if (!announced) return;
-    announceTimer = static_cast<float>(announceTimer - dt);
+    announceTimer -= step;
     EI_NAN_AUDIT(announceTimer);
     if (announceTimer < 0.0f) {    // run out
-        x87::CopyBits(announceTimer, worlddata::AnnouncePeriodRef());
+        announceTimer = worlddata::AnnouncePeriodRef();
         const char* host = MasterHost();
         if (std::strcmp(host, game::kEmptyText) != 0) AnnounceToMaster();
     }

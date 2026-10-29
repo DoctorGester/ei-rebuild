@@ -1,14 +1,13 @@
 // A connection's tick: clocks, lost-packet detection, sending, delayed id reuse and the
-// timeout. See net_connection.h and docs/notes/network.md. Floating point follows the original's x87 code:
-// `double` for values the original keeps on the FPU stack, static_cast<float> where it stores to a float.
+// timeout. See net_connection.h and docs/notes/network.md. Float maths: the original's sums round at the main
+// thread's 24-bit precision, so its double clocks hold float values (docs/notes/cleanup-tooling.md, "The x87 files
+// to SSE2").
 #include "net_connection.h"
 
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
 
-#include "ei/x87.h"
-
-#include <bit>
+#include <cmath>
 #include <cstring>
 #include <iterator>
 #include <vector>
@@ -17,16 +16,8 @@ namespace net {
 
 namespace {
 
-inline double D(float f) { return f; }
-
-
-// The clocks are doubles read and written as their 8 bytes.
-double Get(const double* d) {
-    double v;
-    v = *d;
-    return v;
-}
-void Set(double* d, double v) { *d = v; }
+// The time from `then` to `now` on a connection's clock (doubles holding float values).
+float Age(double now, double then) { return static_cast<float>(now) - static_cast<float>(then); }
 
 // The reliable stream's size (the buffer's high mark follows its position first).
 std::int32_t ReliableSize(GameBuffer* b) {
@@ -46,53 +37,43 @@ constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sam
 // timeout or the reliable stream holds 32000 bytes.
 bool Connection::Tick(double dt) {
     g_currentConnection = this;
-    idleTime = static_cast<float>(D(idleTime) + dt);
-    Set(&clock, dt + Get(&clock));
-    float spread = static_cast<float>(D(roundTrip) * D(roundTrip) - D(roundTripSquare));
-    spread = AbsBits(spread);
-    float loss = static_cast<float>(std::sqrt(spread) * D(3.0f) + D(roundTrip));
-    float tenth;
-    tenth = 0.1f;
+    const float step = static_cast<float>(dt);
+    idleTime += step;
+    clock = static_cast<float>(clock) + step;
+    const float spread = AbsBits(roundTrip * roundTrip - roundTripSquare);
+    float loss = std::sqrt(spread) * 3.0f + roundTrip;
+    const float tenth = 0.1f;
     loss = loss >= tenth ? loss : tenth;
-    float longest = static_cast<float>(static_cast<double>(g_currentSession->maxRoundTrip));
+    const auto longest = static_cast<float>(g_currentSession->maxRoundTrip);
     loss = longest >= loss ? loss : longest;
-    float kept = static_cast<float>(static_cast<double>(g_currentSession->maxRoundTrip));
+    const auto kept = static_cast<float>(g_currentSession->maxRoundTrip);
 
     auto lost = history.begin();
     for (; lost != history.end(); ++lost) {
-        double age = Get(&clock) - Get(&lost->time);
+        const float age = Age(clock, lost->time);
         EI_NAN_AUDIT(loss, age);
-        if (D(loss) >= age) break;
+        if (loss >= age) break;
         RollBack(&*lost);
     }
     acknowledged.insert(acknowledged.end(), std::make_move_iterator(history.begin()), std::make_move_iterator(lost));
     history.erase(history.begin(), lost);
     std::erase_if(acknowledged, [&](const SentPacket& packet) {
-        double age = Get(&clock) - Get(&packet.time);
-        return D(kept) < age;   // NaN: kept
+        return kept < Age(clock, packet.time);   // NaN: kept
     });
 
-    double timer = D(sendTimer) + dt;
-    sendTimer = static_cast<float>(timer);
-    if (timer > D(sendInterval)) {
+    sendTimer += step;
+    if (sendTimer > sendInterval) {
         do {
-            sendTimer = static_cast<float>(D(sendTimer) - D(sendInterval));
+            sendTimer -= sendInterval;
             if (SendUpdate(static_cast<int>(updateBudget)) && headers.empty()) {
                 if (ReliableSize(&reliableOut) == 0) break;
             }
         } while (sendTimer > sendInterval);
     }
-    if (sendTimer > sendInterval) {
-        double rest;
-        do {
-            rest = D(sendTimer) - D(sendInterval);
-            sendTimer = static_cast<float>(rest);
-        } while (rest > D(sendInterval));
-    }
+    while (sendTimer > sendInterval) sendTimer -= sendInterval;
 
-    double freedTime = D(freedTimer) + dt;
-    freedTimer = static_cast<float>(freedTime);
-    if (freedTime > static_cast<double>(g_currentSession->idReuseTime)) {
+    freedTimer += step;
+    if (freedTimer > static_cast<float>(g_currentSession->idReuseTime)) {
         freedTimer = 0.0f;
         std::vector<FreedId>& oldest = freedIds.front();
         for (auto& e : oldest) {
@@ -106,7 +87,7 @@ bool Connection::Tick(double dt) {
     }
 
     bool alive = false;
-    if (static_cast<double>(g_currentSession->timeout) > D(idleTime)) alive = ReliableSize(&reliableOut) < 32000;
+    if (static_cast<float>(g_currentSession->timeout) > idleTime) alive = ReliableSize(&reliableOut) < 32000;
     g_currentConnection = nullptr;
     return alive;
 }
@@ -116,13 +97,9 @@ bool Connection::Tick(double dt) {
 namespace net {
 
 void Connection::Delivered(SentPacket* packet) {
-    double sample = Get(&clock) - Get(&packet->time);
-    double kept = D(kRttKeep) * D(roundTrip);
-    roundTrip = static_cast<float>(kept);
-    roundTrip = static_cast<float>((1.0 - D(kRttKeep)) * sample + kept);
-    double keptSquare = D(kRttKeep) * D(roundTripSquare);
-    roundTripSquare = static_cast<float>(keptSquare);
-    roundTripSquare = static_cast<float>((1.0 - D(kRttKeep)) * sample * sample + keptSquare);
+    const float sample = Age(clock, packet->time);
+    roundTrip = (1.0f - kRttKeep) * sample + kRttKeep * roundTrip;
+    roundTripSquare = (1.0f - kRttKeep) * sample * sample + kRttKeep * roundTripSquare;
     for (SentItem& sent : packet->items) {
         SentItem* item = &sent;
         auto action = static_cast<std::int32_t>(item->action);

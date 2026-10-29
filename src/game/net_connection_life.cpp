@@ -50,17 +50,17 @@ Connection::Connection(std::uint32_t newId) {
     id = 0;
     SessionBase* session = g_currentSession;
     if (session) {
-        roundTrip = static_cast<float>(static_cast<double>(session->maxRoundTrip));
+        roundTrip = static_cast<float>(session->maxRoundTrip);
     } else {
         roundTrip = 5.0f;
     }
-    double old = roundTripSquare;    // never written before: whatever the allocation held
+    const float old = roundTripSquare;    // never written before: whatever the allocation held
     sendSequence = static_cast<std::uint16_t>(tick);
     Put32(&sendInterval, 0, 0x3D23D70A);    // 0.04f
     sendTimer = 0.0f;
     idleTime = 0.0f;
     updateBudget = 0xDC;
-    roundTripSquare = static_cast<float>(old * old);
+    roundTripSquare = old * old;
     lastReceived = 0;
     sequenceHigh = 0x10000;
     freedIds.resize(2);
