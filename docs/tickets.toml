@@ -1014,7 +1014,7 @@ id = "P2a"
 title = "Font files with the product"
 group = "native-ui"
 depends = ["P2"]
-note = "Native text loads Liberation from EI_FONT_DIR (the source tree's third_party/fonts). Install the fonts beside ei_standalone.exe (build.cmd, play.cmd's build\\play) and call render::text::SetFontDirectory at start-up before P8 makes native text the default; a missing file falls back to GDI today (ui-native.md, P2 done)."
+note = "User 2026-10-29: ship the fonts inside the executable, not beside it. The two Liberation fonts (third_party/fonts, ~700 KB, OFL: its LICENSE goes with the product's notices) become byte arrays generated at build (a small CMake step, like the generated section bytes; not committed, not a Windows .rc, so the port keeps it), and glyphs::LoadFont takes memory instead of a path. EI_FONT_DIR, FontDirectory/SetFontDirectory and the missing-file GDI fallback go. play.cmd keeps working."
 
 # ---------------------------------------------------------------- widescreen
 
