@@ -351,7 +351,7 @@ const char* KeywordName(int id) {
     return "Unknown command";
 }
 
-bool Script::Tokenize(const std::string& source, std::list<ScriptToken>* tokens) {
+bool Script::Tokenize(const std::string& source, std::vector<ScriptToken>* tokens) {
     const char* p = source.c_str();
 
     tokens->clear();
@@ -419,7 +419,7 @@ bool Script::Tokenize(const std::string& source, std::list<ScriptToken>* tokens)
     return true;
 }
 
-bool Script::ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<ScriptToken>::const_iterator* pos, int id) {
+bool Script::ExpectLexeme(const std::vector<ScriptToken>* tokens, std::vector<ScriptToken>::const_iterator* pos, int id) {
     if (*pos == tokens->end()) return Error(this, tokens->back().line, 1, "Unexpected end of file");
     const ScriptToken token = *(*pos)++;
     std::string text = token.text;
@@ -449,7 +449,7 @@ int Script::FindScript(std::string_view name) {
 
 // ---- #define ------------------------------------------------------------------------------------
 
-void AddDefine(std::list<ScriptDefine>* defines, const ScriptDefine* define) {
+void AddDefine(std::vector<ScriptDefine>* defines, const ScriptDefine* define) {
     if (defines->empty()) {
         defines->push_back(*define);
         return;
@@ -460,7 +460,7 @@ void AddDefine(std::list<ScriptDefine>* defines, const ScriptDefine* define) {
     defines->insert(before, *define);
 }
 
-void ApplyDefines(std::string* line, const std::list<ScriptDefine>* defines) {
+void ApplyDefines(std::string* line, const std::vector<ScriptDefine>* defines) {
     for (const ScriptDefine& define : *defines) {
         // Replaces from the start again after each replacement (a value containing its own name
         // never ends; kept).

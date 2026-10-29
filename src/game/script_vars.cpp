@@ -57,7 +57,7 @@ void ScriptVars::ResetValues() {
     for (float& value : floats.values) value = 0.0f;
     for (std::string& value : strings.values) value = game::kEmptyText;
     for (ScriptObjectRef& value : objects.values) value.object = nullptr;
-    for (ScriptGroup& group : groups.values) group.clear();
+    for (ScriptGroup& group : groups.values) group.Clear();
 }
 
 void ScriptVars::Clear() {

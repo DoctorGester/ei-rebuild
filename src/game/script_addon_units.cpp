@@ -156,7 +156,7 @@ bool UnitsNearPoint(Call* call) {
     Store(&radius, f[2]);
     int filter = TruncateX87(f[3]);
     bool units = (filter & 1) != 0, others = ((filter >> 1) & 1) != 0, living = ((filter >> 2) & 1) != 0;
-    call->GroupResult()->clear();
+    call->GroupResult()->Clear();
     ForObjectsNear(x, y, radius, [&](EngineObject* object) {
         if (PassesFilter(object, units, others, living)) call->GroupResult()->Insert(object);
     });
@@ -255,7 +255,7 @@ bool GetObjectTypeID(Call* call) {
 // whose class id is one of the (truncated) arguments.
 bool GetObjectsOnMap(Call* call) {
     ScriptGroup* group = call->GroupResult();
-    group->clear();
+    group->Clear();
     const std::vector<float>& classes = call->cmd->floatArgs;
     bool all = classes.size() == 1 && classes[0] == -1.0f;
     ForWorldObjects([&](EngineObject* object) {

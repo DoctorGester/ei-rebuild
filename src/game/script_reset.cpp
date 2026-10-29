@@ -19,7 +19,7 @@ void ScriptReset(Script* script) {
 
     // Temporaries: every entry but one dropped, the last one emptied.
     script->tempGroups.resize(1);
-    script->tempGroups.front().clear();
+    script->tempGroups.front().Clear();
     script->tempObjects.resize(1);
     script->tempObjects.front().object = nullptr;
 

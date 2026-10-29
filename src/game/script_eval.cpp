@@ -587,14 +587,14 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
         group->Intersection(*groupArgs[0], *groupArgs[1]);
         break;
     case ScriptFunction::UnitSee: { // UnitSee(unit)
-        group->clear();
+        group->Clear();
         CUnit* unit = objectArgs[0]->AsUnit();
         if (!unit) break;
         if (UnitServer* controller = unit->ServerController()) InsertSeen(*result, controller);
         break;
     }
     case ScriptFunction::GroupSee: { // GroupSee(group): what its units see
-        group->clear();
+        group->Clear();
         for (const ScriptObjectRef& member : *groupArgs[0]) {
             CUnit* unit = member.AsUnit();
             if (!unit) continue;
@@ -613,7 +613,7 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
     case ScriptFunction::PlayerSee: { // PlayerSee(player): the player's seen objects, its units and what they see
         CPlayer* player = g_serverWorld.GetPlayer(Ftol(floatArgs[0]));
         if (!player) {
-            (*result)->clear();
+            (*result)->Clear();
             break;
         }
         **result = player->Server()->possessedGroup;

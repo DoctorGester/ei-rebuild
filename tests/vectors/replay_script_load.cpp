@@ -15,7 +15,6 @@
 #include <cstring>
 #include <deque>
 #include <iterator>
-#include <list>
 #include <string>
 #include <utility>
 #include <vector>
@@ -122,9 +121,9 @@ ScriptDecl* ReadBlockRef(Reader& r) {
 // when a run reaches the end, the list's last token is the original's tail (the last consumed token, or
 // this one when none was).
 struct Run {
-    std::list<ScriptToken> list;
-    std::list<ScriptToken>::const_iterator start;
-    std::list<ScriptToken>::const_iterator end;
+    std::vector<ScriptToken> list;
+    std::vector<ScriptToken>::const_iterator start;
+    std::vector<ScriptToken>::const_iterator end;
 };
 
 ScriptToken ReadToken(Reader& r) {
@@ -174,7 +173,7 @@ bool CheckExpect(Reader& r, char* d, std::size_t n) {
     const int result0 = r.Get<std::int32_t>();
     const Error error0 = ReadError(r);
     if (!r.ok()) return true;
-    std::list<ScriptToken>::const_iterator pos = run.start;
+    std::vector<ScriptToken>::const_iterator pos = run.start;
     const int result = s->ExpectLexeme(&run.list, &pos, id);
     const Error error = TakeError(s);
     const bool ok = result == result0 && SameError(error, error0) && pos == run.end;
@@ -207,7 +206,7 @@ bool CheckLoadFunction(Reader& r, char* d, std::size_t n) {
     const Error error0 = ReadError(r);
     const std::uint64_t cmd0 = r.Get<std::uint64_t>();
     if (!r.ok()) return true;
-    std::list<ScriptToken>::const_iterator pos = run.start;
+    std::vector<ScriptToken>::const_iterator pos = run.start;
     const int result = s->LoadFunction(cmd, &pos, &run.list, id, locals, signature.c_str(), assignment, scriptCall);
     const Error error = TakeError(s);
     const bool sameCmd = HashOf([&](Writer& h) { PutCmd(h, *cmd); }) == cmd0;
@@ -236,7 +235,7 @@ bool CheckLoadCommands(Reader& r, char* d, std::size_t n) {
     const std::uint64_t commands0 = r.Get<std::uint64_t>();
     const std::uint64_t blocks0 = r.Get<std::uint64_t>();
     if (!r.ok()) return true;
-    std::list<ScriptToken>::const_iterator pos = run.start;
+    std::vector<ScriptToken>::const_iterator pos = run.start;
     const int result = s->LoadCommands(&commands, &pos, &run.list, locals);
     const Error error = TakeError(s);
     const bool sameCommands = HashOf([&](Writer& h) { PutCmds(h, commands); }) == commands0;
