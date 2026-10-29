@@ -106,8 +106,8 @@ public:
     // match `pattern` (drive, directory, name and extension matched separately with * and ?), or
     // with every name when `pattern` is null.
     void ListFiles(std::vector<std::string>* names, const char* pattern) const;
-    // ListFiles without Rebirth's ResOverride (see GetFilePlain).
-    void ListFilesPlain(std::vector<std::string>* names, const char* pattern) const;
+    // The names ListFiles fills in, without Rebirth's ResOverride (see GetFilePlain).
+    std::vector<std::string> ListFilesPlain(const char* pattern) const;
 
     void* handle_;               // the archive's file (a HANDLE), INVALID_HANDLE_VALUE when closed
     char* image_;                // archive image when opened with OpenFromMemory

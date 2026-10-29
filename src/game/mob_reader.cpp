@@ -73,9 +73,7 @@ void ReadWeather(Chunk* parent) {
     Chunk chunk(parent);
     Vector3 direction = {0.0f, 1.0f, 0.0f};
     chunk.ReadHeader();
-    Vector3 read;
-    chunk.ReadVector3(&read);
-    direction = read;
+    direction = chunk.ReadVector3();
     chunk.ReadHeader();
     float strength = chunk.ReadFloat();
     chunk.ReadHeader();

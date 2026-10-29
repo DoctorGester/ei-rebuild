@@ -97,11 +97,11 @@ void CMappedResource::ListFiles(std::vector<std::string>* names, const char* pat
         modfolders::ListFiles(this, names, pattern);
         return;
     }
-    ListFilesPlain(names, pattern);
+    *names = ListFilesPlain(pattern);
 }
 
-void CMappedResource::ListFilesPlain(std::vector<std::string>* names, const char* pattern) const {
-    names->clear();
+std::vector<std::string> CMappedResource::ListFilesPlain(const char* pattern) const {
+    std::vector<std::string> names;
     for (std::uint32_t i = 0; i < header_.count; ++i) {
         const ResEntry& entry = entries_[i];
         char name[0x400];
@@ -118,8 +118,9 @@ void CMappedResource::ListFilesPlain(std::vector<std::string>* names, const char
             // An empty name pattern only matches an empty name; an empty extension pattern anything.
             if (WildcardMatch(nameBase, patternBase, 0) == 0 || WildcardMatch(nameExt, patternExt, 1) == 0) continue;
         }
-        names->push_back(name);
+        names.push_back(name);
     }
+    return names;
 }
 
 

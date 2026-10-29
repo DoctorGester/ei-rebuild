@@ -18,15 +18,15 @@
 #include <new>
 #include <vector>
 
-void ReadLinkString(std::string* out, const char** cursor) {
+std::optional<std::string> ReadLinkString(const char** cursor) {
     std::uint32_t length;
     lib::LoadBytes(length, *cursor);
     *cursor += 4;
-    if (length == 0) return;
+    if (length == 0) return std::nullopt;
     const char* text = *cursor;
     const void* zero = std::memchr(text, 0, length);
-    out->assign(text, zero ? static_cast<const char*>(zero) : text + length);
     *cursor += length;
+    return std::string(text, zero ? static_cast<const char*>(zero) : text + length);
 }
 
 namespace {
@@ -183,10 +183,9 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const std::string* name, float s, flo
     lib::LoadBytes(count, data);
     const char* cursor = data + 4;
     std::string part;
-    std::string unused;
     for (; count != 0; --count) {
-        ReadLinkString(&part, &cursor);
-        ReadLinkString(&unused, &cursor);
+        if (std::optional<std::string> read = ReadLinkString(&cursor)) part = std::move(*read);
+        ReadLinkString(&cursor);   // unused
         if (!set) {
             LoadArchivePart(mesh, &part, s, t, u);
         } else if (const char* record = FileData(set->mesh, part.data())) {

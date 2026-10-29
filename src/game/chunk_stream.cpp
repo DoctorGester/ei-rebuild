@@ -167,20 +167,13 @@ std::uint8_t Chunk::ReadByte() {
     return value;
 }
 
-// x and z are copied through the FPU, y as an integer.
-Vector3* Chunk::ReadVector3(Vector3* out) {
+// The three floats' bits as read.
+Vector3 Chunk::ReadVector3() {
     std::uint32_t v[3];
     ReadCounted(this, &v[0], 4);
     ReadCounted(this, &v[1], 4);
     ReadCounted(this, &v[2], 4);
-    std::uint32_t x;
-    x = v[0];
-    out->x = std::bit_cast<float>(x);
-    std::uint32_t z;
-    z = v[2];
-    out->z = std::bit_cast<float>(z);
-    out->y = std::bit_cast<float>(v[1]);
-    return out;
+    return {std::bit_cast<float>(v[0]), std::bit_cast<float>(v[1]), std::bit_cast<float>(v[2])};
 }
 
 // A short read leaves the defaults (1, 0, 0, 0) in place.

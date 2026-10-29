@@ -31,8 +31,6 @@ std::uint32_t Bits(float f) {
     return b;
 }
 
-// A string chunk into `field` (through a temporary).
-void ReadInto(Chunk& c, std::string& field) { field = c.ReadString(); }
 bool ReadFlag(Chunk& c) { return c.ReadByte() == 1; }
 
 // The chunk's file.
@@ -129,15 +127,11 @@ void ObjectSpec::OnChunk() {
     switch (c.id_) {
     case 0xB002: id = c.ReadInt(); break;
     case 0xB003: parentId = c.ReadInt(); break;
-    case 0xB004: ReadInto(c, name); break;
-    case 0xB006: ReadInto(c, texture); break;
-    case 0xB007: ReadInto(c, parentIname); break;
-    case 0xB008: ReadInto(c, skinTexture); break;
-    case 0xB009: {
-        Vector3 v;
-        position = *c.ReadVector3(&v);
-        break;
-    }
+    case 0xB004: name = c.ReadString(); break;
+    case 0xB006: texture = c.ReadString(); break;
+    case 0xB007: parentIname = c.ReadString(); break;
+    case 0xB008: skinTexture = c.ReadString(); break;
+    case 0xB009: position = c.ReadVector3(); break;
     case 0xB00A: {
         Quaternion q;
         std::memcpy(&rotation, c.ReadQuaternion(&q.w), sizeof(Quaternion));
@@ -149,13 +143,13 @@ void ObjectSpec::OnChunk() {
         scale.z = c.ReadFloat();
         break;
     case 0xB00D: c.ReadStringArray(&parts); break;
-    case 0xB00E: ReadInto(c, primaryTexture); break;
-    case 0xB00F: ReadInto(c, comment); break;
+    case 0xB00E: primaryTexture = c.ReadString(); break;
+    case 0xB00F: comment = c.ReadString(); break;
     case 0xB011: side = c.ReadByte(); break;
     case 0xB012: player = c.ReadInt(); break;
     case 0xB013: shadow = ReadFlag(c); break;
     case 0xB014: visible = ReadFlag(c); break;
-    case 0xB016: ReadInto(c, model); break;
+    case 0xB016: model = c.ReadString(); break;
     default: break;
     }
 }
@@ -226,12 +220,8 @@ void FlameSpec::OnChunk() {
     Chunk& c = *this;
     switch (c.id_) {
     case 0xBBBF0001: volume = c.ReadFloat(); break;
-    case 0xBBBF0002: {
-        Vector3 v;
-        offset = *c.ReadVector3(&v);
-        break;
-    }
-    case 0xBBBF0003: ReadInto(c, sound); break;
+    case 0xBBBF0002: offset = c.ReadVector3(); break;
+    case 0xBBBF0003: sound = c.ReadString(); break;
     default: ObjectSpec::OnChunk(); break;
     }
 }
@@ -268,7 +258,7 @@ void TrapSpec::OnChunk() {
     Chunk& c = *this;
     switch (c.id_) {
     case 0xBBAB0001: trap.sides = static_cast<std::uint32_t>(c.ReadInt()); break;
-    case 0xBBAB0002: ReadInto(c, trap.spell); break;
+    case 0xBBAB0002: trap.spell = c.ReadString(); break;
     case 0xBBAB0003: {
         std::uint32_t n = static_cast<std::uint32_t>(c.ReadInt());
         trap.area.resize(static_cast<int>(n));
@@ -336,19 +326,16 @@ void LeverSpec::OnChunk() {
 
 } // namespace mapspec
 
-// `out` = `v` rotated by the quaternion: (w^2 - |q|^2) v + 2w (q x v) + 2 (q . v) q.
-Vector3* Quaternion::Rotate(Vector3* out, const Vector3* v) const {
-    float dot = DotUnrounded<Sum3::ZXY>(x * 2.0f, y * 2.0f, z * 2.0f, v->x, v->y, v->z);   // 2(q . v): doubling is exact
+// `v` rotated by the quaternion: (w^2 - |q|^2) v + 2w (q x v) + 2 (q . v) q.
+Vector3 Quaternion::Rotate(const Vector3& v) const {
+    float dot = DotUnrounded<Sum3::ZXY>(x * 2.0f, y * 2.0f, z * 2.0f, v.x, v.y, v.z);   // 2(q . v): doubling is exact
     float ax = dot * x, ay = dot * y, az = dot * z;
     float w2 = w + w;
-    float bx = (y * v->z - z * v->y) * w2;
-    float by = (z * v->x - x * v->z) * w2;
-    float bz = (x * v->y - y * v->x) * w2;
+    float bx = (y * v.z - z * v.y) * w2;
+    float by = (z * v.x - x * v.z) * w2;
+    float bz = (x * v.y - y * v.x) * w2;
     float m = w * w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z);
-    out->x = (m * v->x + bx) + ax;
-    out->y = (m * v->y + by) + ay;
-    out->z = (m * v->z + bz) + az;
-    return out;
+    return {(m * v.x + bx) + ax, (m * v.y + by) + ay, (m * v.z + bz) + az};
 }
 
 namespace mapspec {

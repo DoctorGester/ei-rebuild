@@ -130,11 +130,8 @@ void PlatformSet::SurfacePlane(float x, float y, Vector3* normal, float* height)
     }
 }
 
-// x is summed ZYX, y and z ZXY; every component is computed before the stores (out may be v).
-Vector3* MatrixRows::Transform(Vector3* out, const Vector3* v) const {
-    *out = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY>(*this, *v);
-    return out;
-}
+// x is summed ZYX, y and z ZXY.
+Vector3 MatrixRows::Transform(const Vector3& v) const { return TransformColumnNormal<Sum3::ZYX, Sum3::ZXY>(*this, v); }
 
 // ---- Units and players ---------------------------------------------------------------------------
 

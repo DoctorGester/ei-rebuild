@@ -71,9 +71,7 @@ public:
     }
     Vector3 ModelPoint(const Vector3& local) const {
         Vector3 centre = Centre();
-        Vector3 turned;
-        map_->turn_.Rotate(&turned, &local);
-        return centre + turned;
+        return centre + map_->turn_.Rotate(local);
     }
     void Turn(CUiMesh* sprite) const { sprite->localRotation_ = map_->turn_; }
     CTexture* Texture(int index) const { return map_->objects_[index]; }

@@ -654,9 +654,7 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3& posit
         Platform* record;
         if (!AddFace(corners[i + 1], corners[i], corners[i + 2], normals[i], &record)) continue;
         record->id = id;
-        Vector3 moved = pivot + offset;
-        Vector3 rotated;
-        m.Transform(&rotated, &moved);
+        Vector3 rotated = m.Transform(pivot + offset);
         record->x = rotated.x + position.x;
         record->y = rotated.y + position.y;
         record->z = rotated.z + position.z;

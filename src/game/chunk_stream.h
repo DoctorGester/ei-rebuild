@@ -38,7 +38,7 @@ public:
     float ReadFloat();
     int ReadInt();
     std::uint8_t ReadByte();
-    Vector3* ReadVector3(Vector3* out);
+    Vector3 ReadVector3();
     float* ReadQuaternion(float* out);      // 16 bytes (default 1, 0, 0, 0); returns out
     void ReadBytes(void* data, int size);
     // Whole chunks holding one value. Floats are taken as their bits (stack arguments), so the

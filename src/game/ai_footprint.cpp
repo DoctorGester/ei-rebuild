@@ -155,18 +155,12 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
             p.x = x;
             p.y = y + placed->bounds.center.y;
             p.z = z + placed->bounds.center.z;
-            Vector3 world;
-            object->worldMatrix.rows.Transform(&world, &p);
-            p = world;
+            p = object->worldMatrix.rows.Transform(p);
             p.x = position.x + p.x;
             p.y = position.y + p.y;
             p.z = position.z + p.z;
         }
-        for (Vector3& v : normal) {
-            Vector3 world;
-            object->worldMatrix.rows.Transform(&world, &v);
-            v = world;
-        }
+        for (Vector3& v : normal) v = object->worldMatrix.rows.Transform(v);
 
         // Sample each face on a grid fine enough to hit every cell it covers.
         for (int k = 0; k < 6; ++k) {

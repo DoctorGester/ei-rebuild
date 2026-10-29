@@ -144,7 +144,7 @@ void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
     TriggerWeaponSpell(target);
     if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
         float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kHitNoiseScale);
-        world->aiMap_.events.Noise(this, loudness, kNoiseKind, nullptr);
+        world->aiMap_.events.Noise(this, loudness, kNoiseKind, unit->localPosition_);
     }
 }
 
@@ -338,7 +338,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         if (CPlayer* player = unit->player) g_serverWorld.Loot(looted, player);
         g_serverWorld.RemoveObject(target->id_);
         float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kSkillNoiseScale);
-        world->aiMap_.events.Noise(this, loudness, kNoiseKind, nullptr);
+        world->aiMap_.events.Noise(this, loudness, kNoiseKind, unit->localPosition_);
         return;
     }
     UseSource skill = action.Skill();

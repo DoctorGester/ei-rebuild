@@ -12,6 +12,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <optional>
+#include <string>
 #include <vector>
 #include <windows.h>
 
@@ -221,7 +223,7 @@ public:
 // corners_ is indexed in whole triangles: one element is one 6-byte MeshCorner.
 static_assert(sizeof(MeshCorner) == 6);
 
-// A length-prefixed string of a .lnk file (a four-byte length, then the characters) at *cursor; `out` gets
-// the characters up to the first zero byte (copied through a static buffer) and keeps its old text for length
-// 0. The cursor moves past the record.
-void ReadLinkString(std::string* out, const char** cursor);
+// A length-prefixed string of a .lnk file (a four-byte length, then the characters) at *cursor: the characters
+// up to the first zero byte, or none for length 0 (the reader keeps its old text then). The cursor moves past
+// the record.
+std::optional<std::string> ReadLinkString(const char** cursor);

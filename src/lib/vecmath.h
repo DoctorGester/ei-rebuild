@@ -81,8 +81,8 @@ struct Quaternion {
     // (elements 0-2, 4-6, 8-10; the others are left as they are).
     void ToMatrix(float* out) const;
 
-    // `out` = `v` rotated by the quaternion; returns `out`.
-    Vector3* Rotate(Vector3* out, const Vector3* v) const;
+    // `v` rotated by the quaternion.
+    Vector3 Rotate(const Vector3& v) const;
 };
 static_assert(sizeof(Quaternion) == 16);
 
@@ -94,8 +94,8 @@ static_assert(sizeof(Quaternion) == 16);
 struct MatrixRows {
     float m[12];
 
-    // Out = rows * v, (m2 * z + m1 * y) + x * m0 per row (no translation). Returns out.
-    Vector3* Transform(Vector3* out, const Vector3* v) const;
+    // rows * v, (m2 * z + m1 * y) + x * m0 per row (no translation).
+    Vector3 Transform(const Vector3& v) const;
 };
 static_assert(sizeof(MatrixRows) == 48);
 
