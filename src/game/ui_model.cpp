@@ -85,7 +85,7 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     auto* manager = g_clientWorld.MapObjectManager();
     auto* object = manager->CreateObjectAs<CObject3D>(MapObjectType::Creature, kPreviewId);
     object_ = object;
-    ++object->refCount_;
+    object->AddRef();
     object->flags_ |= MapObjectFlag::Preview;
     object->localPosition_.x = 0.0f;
     object->localPosition_.y = 0.0f;

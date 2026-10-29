@@ -1,6 +1,7 @@
 // The network session base class: construction, the message type registry and
 // the handler tables. See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
+#include "net_connection.h"
 #include "net_messages.h"
 
 #include "core_refcount.h"
@@ -43,12 +44,10 @@ void SessionBase::AddHandler(int channel, std::uint32_t type, MessageHandler han
 }
 
 void SessionBase::AddHandlerForPrototype(Message* prototype, int channel, MessageHandler handler) {
-    RefPtr ref;
-    ref.ShareReturn(prototype);
-    const std::uint32_t key = TypeRegistry::KeyOf(ref.ptr);
+    SharedRef<Message> ref(prototype);
+    const std::uint32_t key = TypeRegistry::KeyOf(ref);
     int type = types_.TypeOf(&key);
     AddHandler(channel, static_cast<std::uint32_t>(type), handler);
-    ref.Destroy();
 }
 
 void SessionBase::RegisterMessageTypes() {

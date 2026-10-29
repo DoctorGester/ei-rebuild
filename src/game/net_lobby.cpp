@@ -30,7 +30,7 @@ namespace net {
 
 namespace {
 
-ServerEntry* EntryOf(std::list<SharedRefTo<ServerEntry>>::iterator node) { return node->Get(); }
+ServerEntry* EntryOf(std::list<SharedRef<ServerEntry>>::iterator node) { return node->Get(); }
 
 constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
 constexpr float kFirstRetry = 0.1f;
@@ -52,7 +52,7 @@ void SetBits(float& f, std::uint32_t bits) { f = std::bit_cast<float>(bits); }
 bool SameAddress(const NetAddress* a, const NetAddress* b) { return std::memcmp(a, b, sizeof(NetAddress)) == 0; }
 
 // The servers list node whose entry has `address`, or the end.
-std::list<SharedRefTo<ServerEntry>>::iterator FindServer(ClientBase* self, const NetAddress* address) {
+std::list<SharedRef<ServerEntry>>::iterator FindServer(ClientBase* self, const NetAddress* address) {
     auto end = self->servers_.end();
     auto node = self->servers_.begin();
     while (node != end && !SameAddress(&EntryOf(node)->address_, address)) ++node;
@@ -89,11 +89,10 @@ void EndCursor(BufferCursor& c) {
 
 // Hands `entry` (non-null) over to a new node at the end of the servers list: the reference the local pointer
 // held is dropped without release (the copy-on-share mark cleared), and the list shares the raw pointer.
-void AppendServer(ClientBase* self, RefPtr& entry) {
-    CRefObject* raw = entry.ptr;
+void AppendServer(ClientBase* self, Ref<ServerEntry>& entry) {
+    ServerEntry* raw = entry.Take();
     --raw->refs_;
     raw->flags6_ &= static_cast<std::uint8_t>(~CRefCounted::kCopyOnShare);
-    entry.ptr = nullptr;
     self->servers_.emplace_back(raw);
 }
 
@@ -218,21 +217,15 @@ void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
 // others from the list never; unknown servers neither local nor asked are ignored. A known server's entry is
 // replaced (and its reply kept in its query, if asked); a new one is appended.
 void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
-    RefPtrTo<ServerEntry> entry{nullptr};
+    SharedRef<ServerEntry> entry;
     std::uint32_t echo, magic;
     cursor->ReadBytes(&echo, 4);
     cursor->ReadBytes(&magic, 4);
-    if (((magic ^ magic_) & 0xFFFFFF00u) != 0) {
-        entry.Destroy();
-        return;
-    }
+    if (((magic ^ magic_) & 0xFFFFFF00u) != 0) return;
     auto node = FindServer(this, from);
     CreateEntry(&entry);
     entry.Get()->Read(cursor);
-    if (!entry.ptr) {
-        entry.Destroy();
-        return;
-    }
+    if (!entry) return;
     ServerEntry* e = entry.Get();
     e->address_ = *from;
     e->foreign_ = magic != magic_;   // another version (low byte differs): Connect refuses it
@@ -248,10 +241,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
         auto count = static_cast<std::uint32_t>(v.list.size());
         e->timeout_ = static_cast<float>(x87::FromUnsigned(count) * 0.5f + 20.0f);
     } else {
-        if (node == servers_.end()) {
-            entry.Destroy();
-            return;
-        }
+        if (node == servers_.end()) return;
         e->state_ = ServerEntry::kFromList;
         SetBits(e->timeout_, kNever);
     }
@@ -261,11 +251,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     if (node == servers_.end()) {
         AppendServer(this, entry);
     } else {
-        RefPtr& slot = *node;
-        if (entry.ptr != slot.ptr) {
-            slot.Destroy();
-            slot.Share(entry.ptr);
-        }
+        ShareAssignOwned(*node, entry.Get());
         auto q = FindQuery(v, from);
         if (q != v.list.end()) {
             BufferCursor c;
@@ -280,11 +266,10 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
             EndCursor(c);
         }
     }
-    entry.Destroy();
 }
 
 // Removes a connection; when none is left the connection to the host is lost.
-void ClientBase::RemoveClient(std::list<SharedRefTo<Connection>>::iterator node) {
+void ClientBase::RemoveClient(std::list<SharedRef<Connection>>::iterator node) {
     if (node == clients_.end()) return;
     SessionBase::RemoveClient(node);
     if (!clients_.empty()) return;
@@ -327,7 +312,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
     for (unsigned i = 0; i < static_cast<unsigned>(v.size()); ++i) {
         Query* q = &v[i];
         if (FindServer(this, &q->address) != servers_.end()) continue;
-        RefPtrTo<ServerEntry> entry{nullptr};
+        SharedRef<ServerEntry> entry;
         GameBuffer& r = q->reply;
         if (r.cur > r.high) r.high = r.cur;
         if (r.PositionOf(r.high) != 0) {
@@ -347,10 +332,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
         } else {
             CreateEntry(&entry);
         }
-        if (!entry.ptr) {
-            entry.Destroy();
-            continue;
-        }
+        if (!entry) continue;
         ServerEntry* e = entry.Get();
         e->state_ = ServerEntry::kAsked;
         e->address_ = q->address;
@@ -376,20 +358,13 @@ void ClientBase::Ask(const NetAddress* address) {
         EntryOf(node)->state_ = ServerEntry::kAsked;
         return;
     }
-    RefPtrTo<ServerEntry> entry{nullptr};
+    SharedRef<ServerEntry> entry;
     CreateEntry(&entry);
-    if (entry.ptr) {
+    if (entry.Get()) {
         ServerEntry* e = entry.Get();
         e->address_ = *address;
         e->state_ = ServerEntry::kAsked;
         AppendServer(this, entry);
-    }
-    if (entry.ptr) {
-        if (entry.ptr->refs_ != 1) {
-            entry.ptr->flags7_ |= CRefObject::kDetached;
-            entry.ptr->Shutdown();
-        }
-        entry.ptr->Release();
     }
 }
 
@@ -485,9 +460,9 @@ void ClientBase::Tick(double dt) {
 void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
     GrowingBuffer b;
     GameBuffer* buffer = &b;   // writes go through the vtable
-    RefPtrTo<ServerEntry> entry{nullptr};
+    SharedRef<ServerEntry> entry;
     Describe(&entry);
-    if (entry.ptr) {
+    if (entry.Get()) {
         std::uint8_t kind = 5;
         if (b.cur + 1 <= b.end) {
             b.flags |= 1;
@@ -512,7 +487,6 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
         entry.Get()->Write(&c);
         EndCursor(c);
         Send(address, &b);
-        entry.Destroy();
     }
 }
 

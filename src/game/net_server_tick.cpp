@@ -63,7 +63,7 @@ bool ServerSession::PlayerStateIs3(const Connection* connection) {
     if (!IsLive(connection)) return false;
     for (auto& node : bindings_) {
         auto* binding = node.Get();
-        if (binding->ConnectionRef().ptr != connection) continue;
+        if (binding->ConnectionRef().Get() != connection) continue;
         if (!IsLive(binding)) return false;
         auto* player = binding->Player();
         if (!IsLive(player)) return false;

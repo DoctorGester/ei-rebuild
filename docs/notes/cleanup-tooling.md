@@ -47,7 +47,7 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
   `UnitOrNull` after a class test, `ObjectSlots` where a generic lookup is a
   map object; `CWorld::ObjectWithId` and `CWorldServer::FindObject` already return `CMapObject*`, and the server
   world's id maps but `timedObjects_` are `MapObjectIdMap`s of `CMapObject*`; a network session's message
-  lists are `std::list<SharedRefTo<T>>` / `std::list<CountedRefTo<T>>` (core_refcount.h: `element.Get()`); `FigureManagerOf(object)` / `OwningFigureManager(object)` (figure_manager.h) for the world's or
+  lists are `std::list<SharedRef<T>>` / `std::list<HeldRef<T>>` (core_refcount.h, ref.h: `element.Get()`); `FigureManagerOf(object)` / `OwningFigureManager(object)` (figure_manager.h) for the world's or
   the owning figure manager; `CMapObject::ClientCompanion()` on the client as `ServerCompanion()` on the server;
   `CUnit::Controller()` for the controller's own slots (also from inside CUnitClientSpecific, which is not
   declared as a CUnitController); `itemdb::WeaponOrArmorAt(weapon, index)` for the record head both share;

@@ -72,7 +72,7 @@ public:
 
     int listed_;
     int portraits_;
-    std::vector<CountedPtr<CRefObject>> players_;   // PlayerMessage records
+    std::vector<HeldRef<CRefObject>> players_;   // PlayerMessage records
     std::vector<std::string> texts_;
 };
 

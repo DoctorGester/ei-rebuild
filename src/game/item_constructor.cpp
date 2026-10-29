@@ -202,19 +202,9 @@ void CItem::InitFromRecord(const ItemRecordHead* head) {
 }
 
 void CItem::AttachSpell(CSpell* spell) {
-    CSpell* previous = spell_;
-    if (previous) price_ = price_ - std::bit_cast<float>(previous->price_);
-    spell_ = spell;
-    if (spell) spell->AddRef();
-    if (previous) previous->Release();
+    if (CSpell* previous = spell_) price_ = price_ - std::bit_cast<float>(previous->price_);
+    spell_.Assign(spell);
     if (spell_) price_ = spell_->price_ + price_;
-}
-
-void CItem::SetSpell(CSpell* spell) {
-    CSpell* previous = spell_;
-    spell_ = spell;
-    if (spell) spell->AddRef();
-    if (previous) previous->Release();
 }
 
 void CItem::SetLink(CRefObject* link) {
@@ -304,7 +294,7 @@ bool CItemConstructor::Build() {
         CSpellManager* spellManager = manager_->context_->SpellManager();
         CSpell* spell = spellManager->CreateSpellFromText((RecordAs<QuickItemRecord>(prototype)->spellText));
         spell_ = spell;
-        item_->SetSpell(spell);
+        item_->spell_.Assign(spell);
     } else if (spell_) {
         item_->AttachSpell(spell_);
     }

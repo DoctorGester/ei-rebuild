@@ -16,14 +16,14 @@ namespace net {
 
 // Makes `*out` a new server entry: the name, the kind, the current map's title as the description when a map
 // message is held (else empty), the number of clients, the maximum and whether a password is set.
-void ServerSession::Describe(RefPtr* out) {
+void ServerSession::Describe(Ref<ServerEntry>* out) {
     auto* entry = NewCounted<ServerEntry>();
     entry->name_ = name_;
     entry->kind_ = kind_;
     std::string* description = &entry->description_;
     description->assign(game::kEmptyText);
 
-    CRefObject* map = map_.ptr;
+    CRefObject* map = map_.Get();
     if (map && !(map->flags7_ & CRefObject::kDetached)) {
         std::string title;
         description->assign(*SessionMapNameInto(&title));   // inlined: overwrite, then cut or append
@@ -33,16 +33,7 @@ void ServerSession::Describe(RefPtr* out) {
     entry->maxPlayers_ = static_cast<std::uint8_t>(maxPlayers_);
     entry->password_ = password_[0] != 0;
 
-    if (entry != out->ptr) {
-        if (CRefObject* old = out->ptr) {
-            if (old->refs_ != 1) {
-                old->flags7_ |= CRefObject::kDetached;
-                old->Shutdown();
-            }
-            out->ptr->Release();
-        }
-        out->Share(entry);
-    }
+    ShareAssignOwned(*out, entry);
 }
 // When announced, the master's address is set from the host name and port 28004.
 void ServerSession::SetPublic(bool announce) {

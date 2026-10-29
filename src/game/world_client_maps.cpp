@@ -694,14 +694,7 @@ void CWorldClient::Destroy() {
         session->Release();
         session_ = nullptr;
     }
-    if (CRefObject* handle = handle_.ptr) {
-        if (handle->refs_ != 1) {
-            handle->flags7_ |= CRefCounted::kDetached;
-            handle->Shutdown();
-        }
-        handle_.ptr->Release();
-        handle_.Share(nullptr);
-    }
+    DestroyOwned(handle_);
     CWorld::Destroy();
     DeleteOwned(listManager_);
     DeleteOwned(arrayManager_);
@@ -814,17 +807,7 @@ void CWorldClient::Create() {
 
     session_ = players_->CreateSessionPlayer();
 
-    CRefObject* created = new CClientHandle();
-    if (created != handle_.ptr) {
-        if (CRefObject* old = handle_.ptr) {
-            if (old->refs_ != 1) {
-                old->flags7_ |= CRefCounted::kDetached;
-                old->Shutdown();
-            }
-            handle_.ptr->Release();
-        }
-        handle_.Share(created);
-    }
+    ShareAssignOwned(handle_, new CClientHandle());
     terrain_->Create();
     sounds_->Create();
     texts_->Create();

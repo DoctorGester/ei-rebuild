@@ -4,6 +4,7 @@
 #include "effects.h"
 #include "ground_print.h"
 #include "model.h"
+#include "net_link.h"
 #include "registry.h"
 #include "script.h"
 #include "sector_map.h"
@@ -17,8 +18,8 @@
 
 CWorld::~CWorld() {
     CWorld::Destroy();
-    netSession_.Destroy();
-    worldHandle_.Destroy();
+    DestroyOwned(netSession_);
+    DestroyOwned(worldHandle_);
     figureLoader_.Reset();
 }
 
@@ -40,7 +41,7 @@ Sector::~Sector() {
 
 CWorldClient::~CWorldClient() {
     CWorldClient::Destroy();
-    handle_.Destroy();
+    DestroyOwned(handle_);
     scorchMarks_.clear();
     footprints_.clear();
     bloodPrints_.clear();

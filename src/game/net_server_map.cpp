@@ -37,11 +37,7 @@ void ServerSession::SetMap(const std::string* name) {
     }
 
     auto* mapMessage = NewCounted<MapMessage>();
-    RefPtr* holder = &map_;
-    if (mapMessage != holder->ptr) {
-        holder->Destroy();
-        holder->Share(mapMessage);
-    }
+    ShareAssignOwned(map_, mapMessage);
     MapMessage* current = map_.Get();
     if (name != &current->text_) current->text_ = *name;
     if (name != &mapName_) mapName_ = *name;
@@ -117,14 +113,7 @@ bool ServerSession::FinishMap(const std::string* name) {
     const std::string* held = &map->text_;
     if (!(*held == *name)) return false;
 
-    if (CRefObject* object = holder->ptr) {
-        if (object->refs_ != 1) {
-            object->flags7_ |= CRefObject::kDetached;
-            object->Shutdown();
-        }
-        holder->ptr->Release();
-        holder->Share(nullptr);
-    }
+    DestroyOwned(*holder);
     queuedMaps_.clear();
 
     std::string messageName = *name + game::ZoneSuffix3Text();

@@ -69,15 +69,7 @@ bool CItem::CopyTo(CItem* target, CSpellManager* spells) {
     target->prototypeId_ = prototypeId_;
     // +0x20..+0x40 copied bit for bit.
     std::memcpy(&target->condition_, &condition_, offsetof(CItem, spell_) - offsetof(CItem, condition_));
-    CSpell* previous = target->spell_;
-    if (spell_) {
-        CSpell* spell = spell_->Clone(spells);
-        target->spell_ = spell;
-        if (spell) spell->AddRef();
-    } else {
-        target->spell_ = nullptr;
-    }
-    if (previous) previous->Release();
+    target->spell_.Assign(spell_ ? spell_->Clone(spells) : nullptr);
     target->count_ = 1;
     return true;
 }

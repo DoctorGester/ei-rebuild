@@ -376,7 +376,7 @@ void AIBrain::Load(CStream* stream) {
         AIMode* mode = NewModeOfType(type);
         if (!mode) return;      // an unknown type leaves Load at once (the switch's default)
         mode->Load(stream);
-        // Appends a node holding the mode (RefPtr::ShareAssign).
+        // Appends a node holding the mode (ShareAssignOwned).
         auto node = modes.emplace(modes.end());
         ShareAssignOwned(*node, mode);
         if (i == currentIndex) current.Assign(modes.back());

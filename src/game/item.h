@@ -81,8 +81,6 @@ public:
     // previous spell's to the new one's.
     void AttachSpell(CSpell* spell);
 
-    // Attaches `spell` (counted; the previous one released); the price is left alone.
-    void SetSpell(CSpell* spell);
     void Repair() { condition_ = conditionMax_; }
     float Weight() const { return weight_; }
 
@@ -105,7 +103,7 @@ public:
     // the level of spell the item can hold (the prototype's magicLevel plus the material's;
     // CItemConstructor::MagicCapacity).
     std::uint32_t magicLevel_;
-    CSpell* spell_;               // the spell carried by the item (scrolls, wands); counted
+    Ref<CSpell> spell_;           // the spell carried by the item (scrolls, wands)
     std::uint32_t count_;         // the stack's count
 };
 

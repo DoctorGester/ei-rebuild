@@ -5,6 +5,7 @@
 #include "figure_manager.h"
 #include "item.h"
 #include "model.h"
+#include "net_link.h"
 #include "player_manager.h"
 #include "resource_manager.h"
 #include "spell.h"
@@ -23,13 +24,6 @@ void DeleteManager(T*& manager) {
     manager = nullptr;
 }
 
-// A shared pointer's release (RefPtr::Destroy) and reset (RefPtr::Share(nullptr)).
-void DropShared(RefPtr* slot) {
-    if (!slot->ptr) return;
-    slot->Destroy();
-    slot->Share(nullptr);
-}
-
 constexpr const char* kPlayerManagerName = "CPlayerManager";
 constexpr const char* kEffectManagerName = "CEffectManager";
 constexpr const char* kItemManagerName = "CItemManager";
@@ -44,8 +38,8 @@ void CWorld::Destroy() {
         if (objects.manager) --objects.manager->refCount_;
     }
     DeleteManager(players_);
-    DropShared(&worldHandle_);
-    DropShared(&netSession_);
+    DestroyOwned(worldHandle_);
+    DestroyOwned(netSession_);
     DeleteManager(objectManager_);
     DeleteManager(figureManager_);
     figureLoader_.Reset();

@@ -11,6 +11,13 @@
 
 namespace ei::verify::pair {
 
+// The object a server list element holds: game.exe's views keep it in .ptr, the image's SharedRef gives Get().
+template <class Held>
+const void* HeldObject(const Held& held) {
+    if constexpr (requires { held.ptr; }) return held.ptr;
+    else return held.Get();
+}
+
 template <class Entry, class Server, class Client>
 std::vector<std::string> NetLines(const Server* server, const Client* client) {
     std::vector<std::string> lines;
@@ -34,7 +41,7 @@ std::vector<std::string> NetLines(const Server* server, const Client* client) {
                   static_cast<unsigned>(client->joinState_), listed);
     lines.push_back(line);
     for (const auto& held : servers) {
-        const auto* entry = static_cast<const Entry*>(held.ptr);
+        const auto* entry = static_cast<const Entry*>(HeldObject(held));
         if (!entry) continue;
         const auto* ip = reinterpret_cast<const std::uint8_t*>(&entry->address_.ip);
         const unsigned port = (entry->address_.port >> 8 | entry->address_.port << 8) & 0xFFFF;

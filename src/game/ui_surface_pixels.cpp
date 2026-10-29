@@ -36,7 +36,7 @@ void CUiSurface::SwapContents(bool restore) {
         if (!holder_) {
             // A new surface of the surface's size.
             holder_ = new Surface(interface_->renderer_, width_, height_);
-            ++holder_->refs_;
+            holder_->AddRef();
         }
         if (kept_) {
             render::ui::MoveCanvas(this, holder_);

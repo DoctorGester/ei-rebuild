@@ -30,7 +30,7 @@ void CItem::Load(CStream* stream) {
     std::int32_t id = 0;
     stream->ReadValue(id);
     CSpell* spell = id == kNoObjectId ? nullptr : spells->FindObjectAs<CSpell>(static_cast<unsigned>(id));
-    SetSpell(spell);
+    spell_.Assign(spell);
     stream->ReadValue(count_);
     stream->ReadValue(magicLevel_);
 }

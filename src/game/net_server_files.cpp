@@ -17,7 +17,7 @@ constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::
 // Shares `data` (read from its start to its highest position) under `name` unless a file of that name is
 // listed already: a file message (chunk count, size, name) with a chunk message (the file, its index, up to
 // 64 bytes) per 64 bytes. The vector is first filled with one shared chunk (a copy per element when shared,
-// as RefPtr copies are), whose elements are then filled in turn.
+// as SharedRef copies are), whose elements are then filled in turn.
 void ServerSession::ShareFile(const std::string* name, GameBuffer* data) {
     for (auto node = files_.begin(); node != files_.end(); ++node)
         if (node->Get()->name_ == *name) return;
@@ -33,12 +33,12 @@ void ServerSession::ShareFile(const std::string* name, GameBuffer* data) {
 
     // Filled with shares of one chunk: each element a clone of it (it is marked copy-on-share by the first share).
     auto& chunks = file->chunks_;
-    chunks.resize(static_cast<std::size_t>(chunkCount), SharedRefPtr(NewCounted<FileChunkMessage>()));
+    chunks.resize(static_cast<std::size_t>(chunkCount), SharedRef<CRefObject>(NewCounted<FileChunkMessage>()));
 
     data->Seek(0);
     std::int32_t remaining = size;
     for (std::int32_t i = 0; i < chunkCount; ++i) {
-        auto* piece = static_cast<FileChunkMessage*>(chunks[i].ptr);
+        auto* piece = static_cast<FileChunkMessage*>(chunks[i].Get());
         piece->file_.Assign(file);
         piece->index_ = static_cast<std::uint16_t>(i);
         unsigned n = static_cast<unsigned>(remaining > kChunkSize ? kChunkSize : remaining);

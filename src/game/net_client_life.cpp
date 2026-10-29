@@ -28,16 +28,10 @@ ClientSession::~ClientSession() {
     if (trade_) trade_->Release();
     tradeRecords_.clear();   // here, where the original destroys it
     offers_.clear();
-    party_.Destroy();
+    DestroyOwned(party_);
     awards_.clear();
     timers_.clear();
-    if (auto* local = player_.ptr) {
-        if (local->refs_ != 1) {
-            local->flags7_ |= CRefObject::kDetached;
-            local->Shutdown();
-        }
-        player_.ptr->Release();
-    }
+    DestroyOwned(player_);
     variables_.clear();
     zones_.clear();
     ReleaseInline(map_);

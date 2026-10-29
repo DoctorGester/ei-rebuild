@@ -50,7 +50,7 @@ CMaterial* NewGlowMaterial(float value) {
     material->colors.emissive.x = value;
     material->colors.emissive.y = value;
     material->colors.emissive.z = value;
-    ++material->refCount_;
+    material->AddRef();
     return material;
 }
 
@@ -190,7 +190,7 @@ void CUiWindow::SetEnabled(bool enabled, bool notify) {
 void CUiWindow::AddObject(CTexture* texture) {
     if (!texture) return;
     objects_.push_back(texture);
-    ++texture->refCount_;
+    texture->AddRef();
 }
 
 void CUiWindow::RemoveObject(CTexture* texture) {
@@ -263,7 +263,7 @@ CTexture* CUiWindow::LoadTexture(std::string_view name, TextureKind kind) {
     int loaded = manager->LoadTexture(texture);
     if (!loaded) return nullptr;
     objects_.push_back(texture);
-    ++texture->refCount_;
+    texture->AddRef();
     return texture;
 }
 
@@ -274,7 +274,7 @@ CTexture* CUiWindow::CreateTexture(int width, int height, TextureKind kind) {
     objects_.resize(index + 1);
     objects_[index] = texture;
     texture->flags_ |= TextureFlag::Keep;
-    ++texture->refCount_;
+    texture->AddRef();
     return texture;
 }
 
@@ -326,7 +326,7 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, std::string_
         if (sceneObjects_[i] != object) continue;
         CFigureMesh* made = NewModelObject(name);
         if (!made) return nullptr;
-        ++made->refCount_;
+        made->AddRef();
         made->SetObject(this);
         auto* sprite = AsUiMesh(made);
         auto* old = AsUiMesh(object);
@@ -363,7 +363,7 @@ CUiMesh* CUiWindow::AddSceneObject(CFigureMesh* object) {
     for (int i = 0; i < std::ssize(sceneObjects_) && !listed; ++i) listed = sceneObjects_[i] == object;
     if (!listed) {
         lib::SetAtGrow(sceneObjects_, std::ssize(sceneObjects_), object);
-        ++object->refCount_;
+        object->AddRef();
         object->SetObject(this);
     }
     auto* sprite = AsUiMesh(object);

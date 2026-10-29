@@ -26,10 +26,10 @@ CMemoryStream* StreamOf(CRefObject* member) { return &static_cast<PartyMemberMes
 
 // The first element in [first, last) whose member stream holds the same bytes as
 // `message`'s (sizes, then a byte compare).
-std::vector<CountedRefPtr>::iterator FindSameMessage(std::vector<CountedRefPtr>::iterator first, std::vector<CountedRefPtr>::iterator last, PartyMemberMessage* message) {
+std::vector<HeldRef<CRefObject>>::iterator FindSameMessage(std::vector<HeldRef<CRefObject>>::iterator first, std::vector<HeldRef<CRefObject>>::iterator last, PartyMemberMessage* message) {
     CStream* stream = &message->stream_;
     for (; first != last; ++first) {
-        CMemoryStream* element = StreamOf(first->ptr);
+        CMemoryStream* element = StreamOf(first->Get());
         std::uint32_t size = element->Size();
         if (stream->Size() != size) continue;
         const void* a = element->data_;
@@ -52,14 +52,14 @@ void ClientPublishParty(ClientSession* self) {
     auto state = [self] { return self->party_.Get(); };
     if (!state()) return;
     // A copy of the old messages, then the list emptied.
-    std::vector<CountedRefPtr> previous = state()->members_;
+    std::vector<HeldRef<CRefObject>> previous = state()->members_;
     state()->members_.clear();
     state()->money_ = static_cast<std::uint32_t>(party->money_);
 
     std::uint32_t scratch = 0;
     for (int i = 0; i < std::ssize(party->items_); ++i) {
         auto* message = NewCounted<PartyMemberMessage>();
-        CountedRefPtr ref(message);
+        HeldRef<CRefObject> ref(message);
         CStream* stream = &message->stream_;
         CItem* item = party->items_[i];
         stream->Clear();
@@ -98,7 +98,7 @@ PartyMessage* ClientFindParty(ClientSession* self) {
     if (!ours) return nullptr;
     for (auto& node : self->offers_) {
         auto* other = node.Get();
-        if (other->partner_.ptr != ours->player_.ptr || other->player_.ptr != ours->partner_.ptr) continue;
+        if (other->partner_.Get() != ours->player_.Get() || other->player_.Get() != ours->partner_.Get()) continue;
         if (other && !(other->flags7_ & CRefObject::kDetached)) return other;
     }
     return nullptr;
@@ -122,7 +122,7 @@ void ClientApplyParty(ClientSession* self) {
     if (!remote) return;
     auto count = [remote] { return static_cast<std::uint32_t>(remote->members_.size()); };
     for (std::uint32_t i = 0; i < count(); ++i) {
-        CRefObject* message = remote->members_[i].ptr;
+        CRefObject* message = remote->members_[i].Get();
         if (!message || (message->flags7_ & CRefObject::kDetached)) return;
         if (StreamOf(message)->Size() == 0) return;
     }
@@ -132,7 +132,7 @@ void ClientApplyParty(ClientSession* self) {
     party->money_ = static_cast<int>(remote->money_);
     std::vector<CEngineObject*> items;   // each holds a reference
     for (std::uint32_t i = 0; i < count(); ++i) {
-        CStream* stream = StreamOf(remote->members_[i].ptr);
+        CStream* stream = StreamOf(remote->members_[i].Get());
         stream->Seek(0);
         std::int32_t id;
         std::uint32_t type, packedId;

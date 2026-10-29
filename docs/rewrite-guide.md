@@ -192,16 +192,16 @@ does not need a second pass:
   `CItemScreen::Virtual*` (VirtualHeroRecord, VirtualPrice, ...), a panel's Build through
   `CUiWindow::VirtualBuild`, not a `VirtualSlot` with a local function type; three pointers that
   are a vector are a `std::vector<T>` member. The interface's active screen is
-  `CInterface3D::ActiveWindowAs<Screen>()`; a counted helper a world holds is a `RefPtrTo<T>` field
-  read with `Get()`; the new connections a player source hands over are a `JoinedLinks`
+  `CInterface3D::ActiveWindowAs<Screen>()`; a counted helper a world holds is a `Ref<T>` field
+  released with `DestroyOwned`; the new connections a player source hands over are a `JoinedLinks`
   (`std::list<netlink::NetLink*>`); a window's handled flag is
   its `handled_` member (UiInputSide). A counted object is tested with `IsLive(object)` (core_refcount.h: set and
   not detached), not a per-file `Live(const void*)`; the server session's connections are `Connection*`
   and its player records `PlayerMessage*` (FindGuestConnection, FindPlayer, Kick, Ban); a file
   written by a transform slot is a `lib::File*`, and so is a chunk's `Chunk::File()`. A use order's spots
   are a `UseSpotArray` (map_object.h, `std::vector<Vector3>`: slot 44, the levers, FindUseSpot); a pair message's
-  connection is a `RefPtrTo<Connection>`; a session's message lists are
-  `std::list<SharedRefTo<T>>` / `std::list<CountedRefTo<T>>`; a map object's
+  connection is a `Ref<Connection>`; a session's message lists are
+  `std::list<SharedRef<T>>` / `std::list<HeldRef<T>>`; a map object's
   slots are called on the typed object or through `ObjectSlots(object)`, not a hand-written vtable call or a cast per file.
 - one typed view instead of a cast per accessor (C15): an object embedded in another and built by
   the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure

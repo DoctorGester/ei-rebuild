@@ -18,18 +18,6 @@ namespace {
 // The empty text the server entry's reset assigns.
 const char* EmptyText() { return "?"; }
 
-// Counted pointers as the classes inline them.
-void CopyCounted(RefPtr& to, const RefPtr& from) {
-    to.ptr = from.ptr;
-    if (to.ptr) to.ptr->AddRef();
-}
-void ReleaseCounted(RefPtr& ref) {
-    CRefObject* object = ref.ptr;
-    if (!object) return;
-    --object->refs_;
-    if (object->refs_ == 0 && object) delete object;
-}
-
 void AssignEmptyText(std::string& s) {
     const char* text = EmptyText();
     s.assign(text, text + std::strlen(text));
@@ -67,8 +55,14 @@ void TakeString(BufferCursor* cursor, std::string& s) {
     cursor->p += length + 1;
 }
 // Object references through the connection being written or read.
-void PutObject(BufferCursor* cursor, const RefPtr& ref) { g_currentConnection->WriteObjectRef(cursor, ref.ptr); }
-void TakeObject(BufferCursor* cursor, RefPtr& ref) { ref.Assign(g_currentConnection->ReadObjectRef(cursor)); }
+template <typename T>
+void PutObject(BufferCursor* cursor, const Ref<T>& ref) {
+    g_currentConnection->WriteObjectRef(cursor, ref.Get());
+}
+template <typename T>
+void TakeObject(BufferCursor* cursor, Ref<T>& ref) {
+    ref.Assign(static_cast<T*>(g_currentConnection->ReadObjectRef(cursor)));
+}
 
 } // namespace
 
@@ -84,9 +78,9 @@ LoginMessage::LoginMessage() {}
 LoginMessage::LoginMessage(const LoginMessage& other)
     : Message(other), name_(other.name_), text_(other.text_), host_(other.host_), state_(other.state_),
       id_(other.id_) {
-    CopyCounted(binding_, other.binding_);
+    binding_.Assign(other.binding_);
 }
-LoginMessage::~LoginMessage() { ReleaseCounted(binding_); }
+LoginMessage::~LoginMessage() {}
 
 Message* LoginMessage::Create() { return NewCounted<LoginMessage>(); }
 LoginMessage* LoginMessage::Clone() { return NewCounted<LoginMessage>(*this); }
@@ -163,14 +157,12 @@ void CommandMessage::Read(BufferCursor* cursor) {
 
 // PairMessage: BindingMessage, FileRequestMessage.
 
+PairMessage::PairMessage() {}
 PairMessage::PairMessage(const PairMessage& other) : Message(other) {
-    CopyCounted(first_, other.first_);
-    CopyCounted(second_, other.second_);
+    first_.Assign(other.first_);
+    second_.Assign(other.second_);
 }
-PairMessage::~PairMessage() {
-    ReleaseCounted(second_);
-    ReleaseCounted(first_);
-}
+PairMessage::~PairMessage() {}
 void PairMessage::WriteFirst(BufferCursor* cursor) { PutObject(cursor, first_); }
 void PairMessage::ReadFirst(BufferCursor* cursor) { TakeObject(cursor, first_); }
 
@@ -225,9 +217,9 @@ void PlayerMessage::Read(BufferCursor* cursor) {
 
 LineMessage::LineMessage() {}
 LineMessage::LineMessage(const LineMessage& other) : Message(other), number_(other.number_), text_(other.text_) {
-    CopyCounted(connection_, other.connection_);
+    connection_.Assign(other.connection_);
 }
-LineMessage::~LineMessage() { ReleaseCounted(connection_); }
+LineMessage::~LineMessage() {}
 
 Message* LineMessage::Create() { return NewCounted<LineMessage>(); }
 LineMessage* LineMessage::Clone() { return NewCounted<LineMessage>(*this); }
@@ -312,11 +304,11 @@ void FileMessage::Read(BufferCursor* cursor) {
 // FileChunkMessage.
 
 FileChunkMessage::FileChunkMessage(const FileChunkMessage& other) : Message(other) {
-    CopyCounted(file_, other.file_);
+    file_.Assign(other.file_);
     index_ = other.index_;
     std::memcpy(data_, other.data_, kDataSize);
 }
-FileChunkMessage::~FileChunkMessage() { ReleaseCounted(file_); }
+FileChunkMessage::~FileChunkMessage() {}
 
 Message* FileChunkMessage::Create() { return NewCounted<FileChunkMessage>(); }
 FileChunkMessage* FileChunkMessage::Clone() { return NewCounted<FileChunkMessage>(*this); }
@@ -338,11 +330,10 @@ void FileChunkMessage::Read(BufferCursor* cursor) {
 
 AwardMessage::AwardMessage() {}
 AwardMessage::AwardMessage(const AwardMessage& other) : Message(other), kind_(other.kind_), text_(other.text_) {
-    CopyCounted(connection_, other.connection_);
+    connection_.Assign(other.connection_);
     x87::CopyBits(value_, other.value_);
 }
-// The original frees the text before it releases the receiver; ours after (the text is a member).
-AwardMessage::~AwardMessage() { ReleaseCounted(connection_); }
+AwardMessage::~AwardMessage() {}
 
 Message* AwardMessage::Create() { return NewCounted<AwardMessage>(); }
 AwardMessage* AwardMessage::Clone() { return NewCounted<AwardMessage>(*this); }
@@ -364,17 +355,12 @@ void AwardMessage::Read(BufferCursor* cursor) {
 
 TradeMessage::TradeMessage(const TradeMessage& other)
     : Message(other), done_(other.done_), revision_(other.revision_), partnerRevision_(other.partnerRevision_) {
-    CopyCounted(player_, other.player_);
-    CopyCounted(partner_, other.partner_);
-    CopyCounted(offer_, other.offer_);
-    CopyCounted(partnerOffer_, other.partnerOffer_);
+    player_.Assign(other.player_);
+    partner_.Assign(other.partner_);
+    offer_.Assign(other.offer_);
+    partnerOffer_.Assign(other.partnerOffer_);
 }
-TradeMessage::~TradeMessage() {
-    ReleaseCounted(partnerOffer_);
-    ReleaseCounted(offer_);
-    ReleaseCounted(partner_);
-    ReleaseCounted(player_);
-}
+TradeMessage::~TradeMessage() {}
 
 Message* TradeMessage::Create() { return NewCounted<TradeMessage>(); }
 TradeMessage* TradeMessage::Clone() { return NewCounted<TradeMessage>(*this); }
@@ -432,13 +418,10 @@ PartyMessage::PartyMessage() {}
 PartyMessage::PartyMessage(const PartyMessage& other)
     : Message(other), members_(other.members_), money_(other.money_), accepted_(other.accepted_),
       acceptedRevision_(other.acceptedRevision_), revision_(other.revision_), trading_(other.trading_) {
-    CopyCounted(player_, other.player_);
-    CopyCounted(partner_, other.partner_);
+    player_.Assign(other.player_);
+    partner_.Assign(other.partner_);
 }
-PartyMessage::~PartyMessage() {
-    ReleaseCounted(partner_);
-    ReleaseCounted(player_);
-}
+PartyMessage::~PartyMessage() {}
 
 Message* PartyMessage::Create() { return NewCounted<PartyMessage>(); }
 PartyMessage* PartyMessage::Clone() { return NewCounted<PartyMessage>(*this); }

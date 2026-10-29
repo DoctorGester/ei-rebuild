@@ -38,7 +38,7 @@ bool Is(const std::string& s, const char* t) {
 bool ServerSession::IsHostConnection(const Connection* connection) {
     for (auto& node : bindings_) {
         auto* binding = node.Get();
-        if (binding->ConnectionRef().ptr != connection) continue;
+        if (binding->ConnectionRef().Get() != connection) continue;
         auto* player = binding->Player();
         if (IsLive(player) && player->host_) return true;
     }
@@ -48,14 +48,7 @@ bool ServerSession::IsHostConnection(const Connection* connection) {
 // File requests: the request keeps its sender's connection and is listed on fileRequests_ (dropped again on
 // removal).
 void ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
-    CRefObject* connection = g_currentConnection;
-    CRefObject* previous = message->ConnectionRef().ptr;
-    message->ConnectionRef().ptr = connection;
-    if (connection) connection->AddRef();
-    if (previous) {
-        --previous->refs_;
-        if (previous->refs_ == 0) delete previous;
-    }
+    message->ConnectionRef().Assign(g_currentConnection);
     self->fileRequests_.emplace_back(message);
 }
 

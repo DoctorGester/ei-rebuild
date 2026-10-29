@@ -120,8 +120,8 @@ void CChatWindow::ShowPlayers() {
     const auto& players = client->players_;
     for (auto node = players.begin(); node != players.end(); ++node) {
         if (!Live(client->binding_)) continue;
-        CRefObject* player = node->ptr;
-        bool own = client->binding_->PlayerRef().ptr == player;
+        CRefObject* player = node->Get();
+        bool own = client->binding_->PlayerRef().Get() == player;
         if (own)
             players_.emplace(players_.begin(), player);
         else
@@ -183,10 +183,10 @@ void CChatWindow::Update() {
         }
         offer.clear();
         auto* own = client->party_.Get();
-        if (own && own->partner_.ptr == *p) offer = texts_[kWeOffer];
+        if (own && own->partner_.Get() == *p) offer = texts_[kWeOffer];
         const auto& offers = client->offers_;
         for (auto& node : offers) {
-            if (node.Get()->player_.ptr == *p) {
+            if (node.Get()->player_.Get() == *p) {
                 offer = texts_[kTheyOffer];
                 break;
             }
@@ -225,9 +225,9 @@ void CChatWindow::LeftDown(int, int x, int y) {
     net::ClientSession* client = net::g_gameClient;
     CRefObject* player = players_[index];
     // The binding is not checked for null here.
-    if (client->binding_->PlayerRef().ptr == player) return;
+    if (client->binding_->PlayerRef().Get() == player) return;
     auto* own = client->party_.Get();
-    if (own && own->partner_.ptr == player) {
+    if (own && own->partner_.Get() == player) {
         net::ClientDropParty(client);
         return;
     }

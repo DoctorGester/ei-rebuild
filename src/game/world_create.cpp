@@ -67,14 +67,12 @@ void CWorld::Create() {
     itemManager_ = MakeNew<CItemManager>();
     Attach(itemManager_, this);
 
-    worldHandle_.ShareAssign(new CWorldHandle());
+    ShareAssignOwned(worldHandle_, new CWorldHandle());
     g_random.Init();
     countdowns_.clear();
 }
 
 CWorld::CWorld() {
-    worldHandle_.ptr = nullptr;
-    netSession_.ptr = nullptr;
     players_ = nullptr;
     figureManager_ = nullptr;
     objectManager_ = nullptr;

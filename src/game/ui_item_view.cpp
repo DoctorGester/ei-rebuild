@@ -390,7 +390,7 @@ CTexture* ItemFigureTexture(std::string_view name) {
     CTextureManager* manager = g_clientWorld.textureManager_;
     CTexture* texture = manager->NewTexture(0x100, 0x100, TextureKind::Blank1555);
     if (!texture) return nullptr;
-    ++texture->refCount_;
+    texture->AddRef();
     const std::string file = std::string(name) + ".mmp";
     std::uint32_t size = 0;
     const auto* image = static_cast<const MmpHeader*>(manager->GetFile(file, &size));

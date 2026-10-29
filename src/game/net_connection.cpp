@@ -188,8 +188,8 @@ bool Connection::SendUpdate(int budget) {
             } else {
                 alive = false;
                 if (entry->id_ == 0) continue;
-                if (entry->object_.ptr) {
-                    CRefObject* key = entry->object_.ptr;
+                if (entry->object_.Get()) {
+                    CRefObject* key = entry->object_.Get();
                     byObject_.erase(key);
                     entry->object_.Assign(nullptr);
                     entry->version_ = 0;
@@ -256,18 +256,15 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
             LogLine(game::nettexts::SkipRemove());
             return true;
         }
-        RefPtr* slot = &found->second.object;
-        if (slot->ptr) {
-            CRefObject* object = slot->ptr;
+        Ref<CRefObject>* slot = &found->second.object;
+        if (slot->Get()) {
+            CRefObject* object = slot->Get();
             attached_.erase(object);
-            object = slot->ptr;
+            object = slot->Get();
             session = g_currentSession;
             CallHandlers(session, 2, type, object);
         }
-        if (slot->ptr) {
-            slot->Destroy();
-            slot->Share(nullptr);
-        }
+        DestroyOwned(*slot);
         found->second.version = version;
         return true;
     }
@@ -277,7 +274,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
         Record& record = records_[key];
         CRefObject* object = session->types_.Create(type & 0xFF);
         if (!object) return false;
-        record.object.AssignObject(object);
+        ShareAssignOwned(record.object, object);
         record.version = 0;
         AttachRecord(object, type, key);
         ReadObject(object, cursor);
@@ -289,29 +286,24 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     if (found->second.version >= version) {
         // Older than what was applied: read it into a throwaway object to skip its bytes.
         LogLine(game::nettexts::SkipUpdate());
-        RefPtr scratch;
-        scratch.Share(g_currentSession->types_.Create(type & 0xFF));
-        ReadObject(scratch.ptr, cursor);
-        scratch.Destroy();
+        SharedRef<CRefObject> scratch(g_currentSession->types_.Create(type & 0xFF));
+        ReadObject(scratch, cursor);
         return true;
     }
 
-    RefPtr* slot = &found->second.object;
-    if (!slot->ptr) {
+    Ref<CRefObject>* slot = &found->second.object;
+    if (!slot->Get()) {
         CRefObject* object = g_currentSession->types_.Create(type & 0xFF);
         if (object) {
-            slot->AssignObject(object);
+            ShareAssignOwned(*slot, object);
             found->second.version = 0;
             AttachRecord(object, type, key);
         }
-        if (object != slot->ptr) {
-            slot->Destroy();
-            slot->Share(object);
-        }
-        if (!slot->ptr) return false;
+        ShareAssignOwned(*slot, object);
+        if (!slot->Get()) return false;
     }
-    ReadObject(slot->ptr, cursor);
-    CRefObject* object = slot->ptr;
+    ReadObject(slot->Get(), cursor);
+    CRefObject* object = slot->Get();
     CallHandlers(g_currentSession, found->second.version == 0 ? 0 : 1, type, object);
     found->second.version = version;
     return true;
@@ -330,10 +322,7 @@ void Connection::Track(Replicated* item) {
     byObject_[item->object] = entry;
     priorities_[static_cast<std::int8_t>(item->priority)][entry->serial_] = entry;
     entry->type_ = static_cast<std::uint8_t>(type);
-    CRefObject* previous = entry->object_.ptr;
-    entry->object_.ptr = item->object;
-    if (entry->object_.ptr) entry->object_.ptr->AddRef();
-    if (previous) previous->Release();
+    entry->object_.Assign(item->object);
     entry->flags_ = static_cast<std::uint8_t>((entry->flags_ & 1) | (item->priority << 1));
     std::uint8_t reliable = g_currentSession->reliable_[type];
     entry->flags_ = static_cast<std::uint8_t>(((reliable ^ entry->flags_) & 1) ^ entry->flags_);
@@ -357,7 +346,7 @@ void Connection::CollectChanges() {
         if (!listed.contains(object)) gone.push_back(entry.Get());
     std::sort(gone.begin(), gone.end(), [](const ReplicaEntry* a, const ReplicaEntry* b) { return a->serial_ < b->serial_; });
     for (ReplicaEntry* entry : gone) {
-        auto node = byObject_.find(entry->object_.ptr);
+        auto node = byObject_.find(entry->object_.Get());
         if (entry->id_ == 0) {
             priorities_[entry->flags_ >> 1].erase(entry->serial_);
         } else {
@@ -441,31 +430,25 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     if (sent) {
         auto node = bySentId_.find(key);
         if (node == bySentId_.end()) return nullptr;
-        return node->second->object_.ptr;
+        return node->second->object_.Get();
     }
     auto found = records_.find(key);
     if (found == records_.end()) {
         Record* record = &records_[key];
         CRefObject* object = g_currentSession->types_.Create(type & 0xFF);
         if (!object) return nullptr;
-        if (object != record->object.ptr) {
-            record->object.Destroy();
-            record->object.Share(object);
-        }
+        ShareAssignOwned(record->object, object);
         record->version = 0;
         AttachRecord(object, type & 0xFF, key);
         return object;
     }
-    if (IsLive(found->second.object.ptr)) return found->second.object.ptr;
+    if (IsLive(found->second.object.Get())) return found->second.object.Get();
     std::uint32_t typeKey = type & 0xFF;
     MessageFactory factory = g_currentSession->types_.byType[typeKey];
     CRefObject* object = factory ? factory() : nullptr;
     if (!object) return nullptr;
-    RefPtr* slot = &found->second.object;
-    if (object != slot->ptr) {
-        slot->Destroy();
-        slot->Share(object);
-    }
+    Ref<CRefObject>* slot = &found->second.object;
+    ShareAssignOwned(*slot, object);
     found->second.version = 0;
     AttachedId* attachedId = &attached_[object];
     attachedId->id = static_cast<std::uint16_t>(key);
@@ -616,17 +599,14 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
 void Connection::Close() {
     g_currentConnection = this;
     for (auto& it : records_) {
-        RefPtr* slot = &it.second.object;
-        if (CRefObject* object = slot->ptr) {
+        Ref<CRefObject>* slot = &it.second.object;
+        if (CRefObject* object = slot->Get()) {
             SessionBase* session = g_currentSession;
             auto found = session->types_.byVtable.find(TypeRegistry::KeyOf(object));
             std::uint32_t type = found != session->types_.byVtable.end() ? found->second : 0xFFFFFFFFu;
             CallHandlers(session, 2, type, object);
         }
-        if (slot->ptr) {
-            slot->Destroy();
-            slot->ptr = nullptr;
-        }
+        DestroyOwned(*slot);
     }
     g_currentConnection = nullptr;
 }

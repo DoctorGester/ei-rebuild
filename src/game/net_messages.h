@@ -40,7 +40,7 @@ public:
     std::uint8_t host_ = 0;         // asks to host (honoured with a local client)
     std::uint32_t state_ = 4;       // the player record's state
     std::int32_t id_ = -1;          // the player record's id
-    RefPtrTo<BindingMessage> binding_{};   // the server's binding for this login (not sent)
+    Ref<BindingMessage> binding_{};   // the server's binding for this login (not sent)
 };
 
 // One string: the base of SayMessage, ZoneMessage and MapMessage, which differ only in their classes.
@@ -93,11 +93,11 @@ public:
 // FileRequestMessage, which differ only in their classes and the names of the pointers.
 class PairMessage : public Message {
 public:
-    RefPtr first_{};
-    RefPtrTo<Connection> second_{};   // the connection on the server (not sent)
+    Ref<CRefObject> first_{};
+    Ref<Connection> second_{};   // the connection on the server (not sent)
 
 protected:
-    PairMessage() {}
+    PairMessage();
     PairMessage(const PairMessage& other);
     ~PairMessage() override;
     void WriteFirst(BufferCursor* cursor);
@@ -119,8 +119,8 @@ public:
 
     static Message* Create();
 
-    RefPtr& FileRef() { return first_; }
-    RefPtrTo<Connection>& ConnectionRef() { return second_; }
+    Ref<CRefObject>& FileRef() { return first_; }
+    Ref<Connection>& ConnectionRef() { return second_; }
 };
 
 // Type 15: a trade offer, the party a player offers to a partner.
@@ -137,13 +137,13 @@ public:
 
     static Message* Create();
 
-    std::vector<CountedRefPtr> members_;              // PartyMemberMessages
+    std::vector<HeldRef<CRefObject>> members_;              // PartyMemberMessages
     std::uint32_t money_ = 0;        // the offered party's money (CParty::Money)
     std::uint8_t accepted_ = 0;      // the partner's offer is accepted
     std::uint32_t acceptedRevision_ = 0;   // the partner's revision accepted
     std::uint32_t revision_ = 1;
-    RefPtrTo<PlayerMessage> player_{};     // the offering player's record
-    RefPtrTo<PlayerMessage> partner_{};    // the partner's record
+    Ref<PlayerMessage> player_{};     // the offering player's record
+    Ref<PlayerMessage> partner_{};    // the partner's record
     std::uint8_t trading_ = 0;       // in a trade (server side; not sent)
 };
 
@@ -206,7 +206,7 @@ public:
 
     std::uint32_t number_;
     std::string text_;
-    RefPtr connection_{};           // the only receiver (null: everyone; not sent)
+    Ref<CRefObject> connection_{};           // the only receiver (null: everyone; not sent)
 };
 
 // Type 3: where the host's game is (built by AnnounceHost).
@@ -241,9 +241,9 @@ public:
 
     static Message* Create();
 
-    RefPtr& PlayerRef() { return first_; }
-    RefPtrTo<Connection>& ConnectionRef() { return second_; }
-    PlayerMessage* Player() const { return static_cast<PlayerMessage*>(first_.ptr); }
+    Ref<CRefObject>& PlayerRef() { return first_; }
+    Ref<Connection>& ConnectionRef() { return second_; }
+    PlayerMessage* Player() const { return static_cast<PlayerMessage*>(first_.Get()); }
 };
 
 // Type 8: a zone the host may pick next.
@@ -312,7 +312,7 @@ public:
     std::uint16_t chunkCount_;
     std::int32_t size_;          // in bytes
     std::string name_;
-    std::vector<SharedRefPtr> chunks_;   // the chunk messages (not sent)
+    std::vector<SharedRef<CRefObject>> chunks_;   // the chunk messages (not sent)
 };
 
 // Type 12: 64 bytes of a shared file.
@@ -331,7 +331,7 @@ public:
 
     static Message* Create();
 
-    RefPtrTo<FileMessage> file_{};
+    Ref<FileMessage> file_{};
     std::uint16_t index_;
     std::uint8_t data_[kDataSize];
 };
@@ -350,7 +350,7 @@ public:
 
     static Message* Create();
 
-    RefPtr connection_{};        // the receiver (not sent)
+    Ref<CRefObject> connection_{};        // the receiver (not sent)
     std::uint32_t kind_;         // 0 experience, 1 gold, 2 item, 3 remove item, 4 quest reset
     float value_;
     std::string text_;           // the item's name
@@ -370,10 +370,10 @@ public:
 
     static Message* Create();
 
-    RefPtrTo<PlayerMessage> player_{};       // the first offer's player (not sent)
-    RefPtrTo<PlayerMessage> partner_{};      // its partner (not sent)
-    RefPtrTo<PartyMessage> offer_{};
-    RefPtrTo<PartyMessage> partnerOffer_{};
+    Ref<PlayerMessage> player_{};       // the first offer's player (not sent)
+    Ref<PlayerMessage> partner_{};      // its partner (not sent)
+    Ref<PartyMessage> offer_{};
+    Ref<PartyMessage> partnerOffer_{};
     std::uint8_t done_ = 0;                  // both sides accepted
     std::uint32_t revision_ = 0;             // the first offer's revision traded
     std::uint32_t partnerRevision_ = 0;      // the second's

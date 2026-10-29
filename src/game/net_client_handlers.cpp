@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <type_traits>
 #include <vector>
 
 namespace net {
@@ -34,14 +35,15 @@ template <typename List>
 void RemoveValue(List& list, const void* value) {
     for (auto node = list.begin(); node != list.end();) {
         auto next = std::next(node);
-        if (node->ptr == value) list.erase(node);
+        if (node->Get() == value) list.erase(node);
         node = next;
     }
 }
 // The message appended (the list's element takes its own reference or share).
 template <typename List>
 void Append(List& list, Message* message) {
-    list.emplace_back(message);
+    using Element = std::remove_pointer_t<decltype(list.front().Get())>;
+    list.emplace_back(static_cast<Element*>(message));
 }
 template <typename List>
 void RemoveRaw(List& list, Message* message) {
@@ -65,7 +67,6 @@ void AssignRef(T** slot, typename SlotOf<T>::Type* object) {
         if (previous->refs_ == 0) delete previous;
     }
 }
-void AssignRef(RefPtr* slot, CRefObject* object) { AssignRef(&slot->ptr, object); }
 template <typename T>
 void ClearRef(T** slot) {
     T*& holder = *slot;
@@ -86,25 +87,14 @@ void RemoveCounted(List& list, Message* message) {
 void DropRequestsFor(ClientSession* self, const Message* file) {
     for (auto node = self->fileRequests_.begin(); node != self->fileRequests_.end();) {
         auto next = std::next(node);
-        if (node->Get()->FileRef().ptr == file) self->fileRequests_.erase(node);
+        if (node->Get()->FileRef().Get() == file) self->fileRequests_.erase(node);
         node = next;
     }
 }
 
 // The owner's release of the party description as the handlers inline it, then null.
 void DropParty(ClientSession* self) {
-    auto* state = self->party_.ptr;
-    if (!state) return;
-    if (state->refs_ != 1) {
-        state->flags7_ |= CRefObject::kDetached;
-        state->AddRef();
-        state->OnShutdown();
-        --state->refs_;
-    }
-    auto* held = self->party_.ptr;
-    --held->refs_;
-    if (held->refs_ == 0 && held) delete held;
-    self->party_.ptr = nullptr;
+    DestroyOwned(self->party_);
 }
 
 // The trade records emptied.
@@ -120,7 +110,7 @@ void ClearTradeRecords(ClientSession* self) { self->tradeRecords_.clear(); }
 void ClientSession::RecordTrade(const void* party) {
     PartyMessage* remote = ClientFindParty(this);
     if (!remote) return;
-    if (!party_.ptr) return;
+    if (!party_.Get()) return;
     auto* ours = party_.Get();
     ours->accepted_ = 1;
     ours->acceptedRevision_ = remote->revision_;
@@ -147,21 +137,10 @@ void ClientSession::RecordTrade(const void* party) {
 void ClientSession::StartParty(CRefObject* partner) {
     BindingMessage* binding = binding_;
     if (!IsLive(binding)) return;
-    if (!IsLive(binding->PlayerRef().ptr)) return;
-    auto* party = NewCounted<PartyMessage>();
-    auto* holder = &party_;
-    if (party != holder->ptr) {
-        if (CRefObject* old = holder->ptr) {
-            if (old->refs_ != 1) {
-                old->flags7_ |= CRefObject::kDetached;
-                old->Shutdown();
-            }
-            holder->ptr->Release();
-        }
-        holder->Share(party);
-    }
-    AssignRef(&party_.Get()->player_, binding_->PlayerRef().ptr);
-    AssignRef(&party_.Get()->partner_, partner);
+    if (!IsLive(binding->PlayerRef().Get())) return;
+    ShareAssignOwned(party_, NewCounted<PartyMessage>());
+    party_->player_.Assign(static_cast<PlayerMessage*>(binding_->PlayerRef().Get()));
+    party_->partner_.Assign(static_cast<PlayerMessage*>(partner));
 }
 
 // Drops the party description.
@@ -229,7 +208,7 @@ void ClientOnFile(ClientSession* self, FileMessage* message) {
     Append(self->files_, message);
     if (MapFileExists(message->name_.data())) return;
     auto* request = NewCounted<FileRequestMessage>();
-    AssignRef(&request->FileRef(), message);
+    request->FileRef().Assign(message);
     Append(self->fileRequests_, request);
 }
 void ClientOnFileGone(ClientSession* self, Message* message) {
@@ -254,7 +233,7 @@ void ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
     int count = 0;
     for (auto& node : self->chunks_) {
         auto* chunk = node.Get();
-        if (chunk->file_.ptr != file) continue;
+        if (chunk->file_.Get() != file) continue;
         ++count;
         chunks.push_back(chunk);
     }
@@ -316,7 +295,7 @@ void ClientOnTrade(ClientSession* self, TradeMessage* message) {
 void ClientOnTradeChanged(ClientSession* self, TradeMessage* message) {
     if (!message->done_ || message != self->trade_) return;
     std::uint32_t a, b;
-    if (message->offer_.ptr == self->party_.ptr) {
+    if (message->offer_.Get() == self->party_.Get()) {
         b = message->revision_;
         a = message->partnerRevision_;
     } else {

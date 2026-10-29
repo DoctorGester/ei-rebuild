@@ -45,22 +45,25 @@ RollTowards 00401B50, Rotate(axis, angle) 00401E50, TurnUpTowards 00401F00, SetH
 
 ## Reference counting
 
-File `core_refcount.cpp`, `refptr_copies.cpp`.
+File `core_refcount.cpp`, `core_refcount.h`.
 
 - `CRefCounted` (vtable 0073BB68: 16-bit count at +4, copy-on-share flag at +6 bit 0, detached flag at
   +7 bit 7, slot 0 deleting destructor, slot 1 Serialize). `CRefObject` (0073BB58) derives from it
   and adds slot 2 shutdown, slot 3 clone. The network sessions derive from the root because their
-  slot 2 is RemoveClient. `RefPtr` is the one-dword owning pointer.
+  slot 2 is RemoveClient. The original's `RefPtr` is the one-dword owning pointer: ours is a `Ref<T>` with the
+  owner's operations as free functions (`DestroyOwned`, `ShareOwned`, `ShareAssignOwned`) and `SharedRef<T>` as
+  the container element that owns its share.
 - Rewritten: 0040A3A0 `CRefObject::Release`, 00417DF0 `Shutdown`, 00419CD0 `RefPtr::Assign`, 00418BE0
   `Share`, 00413270 `Destroy` (dry run on stand-in objects whose vtable records the destructor /
   shutdown / clone calls: headers, call records, return value and pointer compared).
 - The compiler emitted ~100 out-of-line copies of these helpers all over 0x400000-0x480000 (21 of
-  `Destroy`, 21 of the 28-byte release, 9 `RefPtrShareReturn`, ...): all in `refptr_copies.cpp`, verified
-  with the same dry run. The release copies cannot have a trampoline (short jump at +4); one copy of
-  their identical 28-byte body is made when the DLL loads. The scalar deleting destructors that only call their
-  body (the counted pointer holders, the sessions, the network messages) are their classes' C++ virtual destructors.
-- Kept: Release / RefPtr helpers test the pointer for null after already using it (omitted, same
-  behaviour); `Destroy` leaves the pointer set.
+  `Destroy`, 21 of the 28-byte release, 9 `RefPtrShareReturn`, ...): ours are the templates' inline code. The
+  scalar deleting destructors that only call their body (the counted pointer holders, the sessions, the network
+  messages) are their classes' C++ virtual destructors.
+- Differences: our release tests the pointer for null after the shutdown (the original's helpers use it first; same
+  behaviour); the original's `Destroy` leaves the pointer set, `DestroyOwned` empties the Ref (every caller set it
+  again with Share or dropped it). A Ref's `Assign` does nothing when it holds the object already (the original's
+  added and dropped a reference: the same count).
 
 ### Counted pointers
 
@@ -80,11 +83,14 @@ File `core_refcount.cpp`, `refptr_copies.cpp`.
   moved.
 - Ids: `SaveRef(object, stream)` writes the id (-1: none), `LoadRef(ref, stream, world)` looks it up in the world's map
   objects (engine_object.h, counted_ref.cpp).
-- Not merged yet: the network family (`RefPtr`, `RefPtrTo<T>`, `CountedRefPtr` / `CountedRefTo<T>`, `SharedRefPtr` /
-  `SharedRefTo<T>`; the interface track's files read their `.ptr`), `ScriptEffect<T>` (its reset removes the timed object
-  first), and the raw counted fields the interface files read as plain pointers: CItem's `spell_` (SetSpell) and `link_`
-  (SetLink), CObject3D's `parts` (CopyFigure copies them uncounted). `CountedPtr` remains as an alias for the
-  interface files.
+- Shared objects (core_refcount.h): a field that owns its share of a CRefObject is a `Ref<T>` released with
+  `DestroyOwned` (a still-shared object is detached and shut down first, then the Ref emptied) and set with `ShareOwned` /
+  `ShareAssignOwned` (a clone of a copy-on-share object; the object held is marked copy-on-share); a container element
+  that owns its share is a `SharedRef<T>` (copy: share, destructor: DestroyOwned). The network messages' plain counted
+  fields are `Ref<T>` (the copy constructors Assign), their plain lists `HeldRef<T>`. The AI's mode list still holds
+  raw pointers through the T*& overloads.
+- Not merged yet: `ScriptEffect<T>` (its reset removes the timed object first), the game client's raw counted fields
+  (`info_`, `binding_`, `map_`, `trade_`: AssignRef / ClearRef in net_client_handlers.cpp).
 - Counted lists outside the interface: the world's missiles, a CObject3D's effect sources, the joined links (TakeNew)
   and the AI memory's four unit lists (`HeldUnits`: nearby, visible, seen corpses, corpses) are lists of `HeldRef`; a
   removal that must release after a later step moves the element out first (RemoveEffectSource detaches before the
@@ -403,9 +409,9 @@ instantiations were, for reading game.exe (config/library.csv names them):
 
 - Records have real special members or none (the compiler's); the layout only matters for the tests' game.exe views.
 - Counted elements are RAII types: `HeldRef<T>` (ref.h; any class with AddRef / Release: CRefCounted's refs_, CEngineObject's
-  refCount_ and owner release) and `CountedRefPtr` / `SharedRefPtr` (a RefPtr holding a plain reference / owning a share: copy
-  FromRawCounted / Share, destroy the plain release / Destroy). A move hands the
-  reference over, so a reallocation takes and drops none. A SharedRefPtr copy of a copy-on-share object is a clone, as
+  refCount_ and owner release) and `SharedRef<T>` (core_refcount.h: owning a share: copy ShareOwned, destroy
+  DestroyOwned). A move hands the
+  reference over, so a reallocation takes and drops none. A SharedRef copy of a copy-on-share object is a clone, as
   STLport's fill insert made it (the file message's chunks).
 - The record databases' tables hold their records in a `std::vector` member (`records`); the chunk serializers share
   `RecordChunks` (chunk_archive.h: chunk `id` with one chunk 1 per record, `occurrence` set before each).
@@ -421,7 +427,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
 
 - net::Connection's five trees are `std::map` members (Reset destroys them by hand before the placement rebuild): the
   entries by sent id, by object and per priority (`std::array` of 11) hold `EntryRef` (`HeldRef<ReplicaEntry>`), the
-  records `Record` (a `SharedRefPtr` and the version: copied with Share, released as the owner), the attached ids plain
+  records `Record` (a `SharedRef<CRefObject>` and the version: copied with Share, released as the owner), the attached ids plain
   values. Pointer keys compare as the game's unsigned compares, the sent ids signed. The destructor is the compiler's:
   the original's teardown is the reverse member order (the reliable streams, the chunk lists, the maps, the packet
   lists, the freed-id batches). operator[] (`bySentId_[key] = entry`) takes the new reference before dropping the old,
@@ -518,14 +524,13 @@ instantiations were, for reading game.exe (config/library.csv names them):
 
 ## Containers: the net lists and the last node-pool users (C14t)
 
-- The sessions' message lists are `std::list<SharedRefTo<T>>` (copied with Share, released as the owner) and
-  `std::list<CountedRefTo<T>>` (a plain reference), core_refcount.h's SharedRefPtr / CountedRefPtr read typed with
-  `Get()`. An insert of a raw-held pointer is `emplace_back(object)`: the element's constructor is the policy's copy.
-- The timed lists are `std::list<TimedEntry<SharedRefPtr / CountedRefPtr>>` (net_classes.h; the key's bits, then the
+- The sessions' message lists are `std::list<SharedRef<T>>` (copied with Share, released as the owner) and
+  `std::list<HeldRef<T>>` (a plain reference). An insert of a raw-held pointer is `emplace_back(object)`: the element's constructor is the policy's copy.
+- The timed lists are `std::list<TimedEntry<SharedRef<CRefObject> / HeldRef<CRefObject>>>` (net_classes.h; the key's bits, then the
   reference). The queueing code keeps the original's temporaries: a share of a share of a copy-on-share object is a
   clone, so the client's timers and the server's awards hold a clone of the entry's share (the awards a clone of a
-  clone). `TimedEntry(bits, Ref)` takes the reference by value (one share, moved in).
-- The connections are `ClientList` (`std::list<SharedRefTo<Connection>>`): FindClient returns an iterator (end() for
+  clone). `TimedEntry(bits, Holder)` takes the reference by value (one share, moved in).
+- The connections are `ClientList` (`std::list<SharedRef<Connection>>`): FindClient returns an iterator (end() for
   none; RemoveClient ignores end()). The driver session's drivers_ / holders_ are std::list members; OnShutdown clears
   the holders, then the drivers, as the destructor (reverse member order).
 - The sessions' destructors clear the lists in their bodies where the original released them, between the counted
@@ -536,4 +541,4 @@ instantiations were, for reading game.exe (config/library.csv names them):
   extra input sides (`std::vector<UiInputSide*> inputs_`), the world's local id lists (std::list<unsigned>). The
   original's node allocator has no port (standalone.md, "STLport"); `lib::IntroSort` (lib/intro_sort.h) is the sort.
 - The harness's netstate reader walks both sides with begin / end (game.exe's view of the server's connections is a
-  StlpList<RefPtr>, exe_objects.h).
+  StlpList<RefPtr>, exe_objects.h; `HeldObject` reads either side's element).

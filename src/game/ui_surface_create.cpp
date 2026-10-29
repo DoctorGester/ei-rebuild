@@ -43,7 +43,7 @@ CUiSurface::CUiSurface(CInterface3D* ui, int left, int top, int right, int botto
     height_ = rect_.bottom - rect_.top;
     // (The interface's renderer is the device object.)
     holder_ = new Surface(interface_->renderer_, width_, height_);
-    ++holder_->refs_;
+    holder_->AddRef();
     MakeCanvas();
 }
 

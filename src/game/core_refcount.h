@@ -53,24 +53,6 @@ public:
     void Shutdown();
 };
 
-struct RefPtr {
-    RefPtr* FromRawCounted(CRefObject* object);
-    RefPtr* AssignObject(CRefObject* object);
-    CRefObject* ptr;
-
-    void Assign(CRefObject* object);
-    // Initialises to share `object`: null for a null or detached object, a clone for a
-    // copy-on-share one. The result is marked copy-on-share.
-    void Share(CRefObject* object);
-    // Share, returning this.
-    RefPtr* ShareReturn(CRefObject* object);
-    // The owner's release: a still-shared object is detached and shut down first. The
-    // pointer itself is left as it was.
-    void Destroy();
-    // The AI mode list's element assignment: unless already `object`, Destroy, then Share(object).
-    RefPtr* ShareAssign(CRefObject* object);
-};
-
 // A typed pointer slot holding a counted object: `object` gains a reference, the old one loses one. Only the
 // interface's item view still stores into a raw slot with it; everything else holds a Ref.
 template <typename T>
@@ -81,12 +63,70 @@ void AssignCounted(T*& slot, std::type_identity_t<T>* object) {
     if (old) old->Release();
 }
 
-// The name ui_briefing.h gives HeldRef until the interface track's files are converted.
-template <typename T>
-using CountedPtr = HeldRef<T>;
+// Ownership of a shared object. An owner holds its own share of an object others may hold too: sharing a
+// copy-on-share object hands out a clone, and the owner's release of a still-shared object detaches it and shuts
+// it down first (the others see it is gone with IsLive). The network messages, sessions, server entries and links
+// and the AI's modes and unit shapes are held this way: a field as a Ref (released with DestroyOwned), a container
+// element as a SharedRef; the AI's mode list holds raw pointers (the T*& overloads).
 
-// The owner's release of a typed slot (RefPtr::Destroy): a still-shared object is detached and shut down first,
-// then the slot's content (reloaded: the shutdown may have changed it) is released.
+// The owner's release: a still-shared object is detached and shut down first, then the slot's content (reloaded:
+// the shutdown may have changed it) is released and the slot emptied.
+template <typename T>
+void DestroyOwned(Ref<T>& slot) {
+    static_assert(std::is_base_of_v<CRefObject, T>);
+    T* object = slot;
+    if (!object) return;
+    if (object->refs_ != 1) {
+        object->flags7_ |= CRefCounted::kDetached;
+        object->AddRef();
+        object->OnShutdown();
+        --object->refs_;
+    }
+    slot.Reset();
+}
+
+// The owner's share into an empty slot: nothing for a null or detached object, a clone for a copy-on-share one;
+// the object held is marked copy-on-share.
+template <typename T>
+void ShareOwned(Ref<T>& slot, std::type_identity_t<T>* object) {
+    static_assert(std::is_base_of_v<CRefObject, T>);
+    if (!object || (object->flags7_ & CRefCounted::kDetached)) return;
+    if (object->flags6_ & CRefCounted::kCopyOnShare) object = static_cast<T*>(object->Clone());
+    slot.Assign(object);
+    object->flags6_ |= CRefCounted::kCopyOnShare;
+}
+
+// Unless the slot already holds `object`: DestroyOwned, then ShareOwned.
+template <typename T>
+void ShareAssignOwned(Ref<T>& slot, std::type_identity_t<T>* object) {
+    if (object == slot.Get()) return;
+    DestroyOwned(slot);
+    ShareOwned(slot, object);
+}
+
+// A Ref that owns its share (a container's element): made from a pointer or copied it shares the object
+// (ShareOwned), an assignment ShareAssignOwned, and its destructor is the owner's release (DestroyOwned). A move
+// hands the share over.
+template <typename T>
+class SharedRef : public Ref<T> {
+public:
+    SharedRef() = default;
+    explicit SharedRef(T* object) { ShareOwned(*this, object); }
+    SharedRef(const SharedRef& other) { ShareOwned(*this, other.Get()); }
+    SharedRef(SharedRef&& other) noexcept { this->object_ = other.Take(); }
+    SharedRef& operator=(const SharedRef& other) {
+        ShareAssignOwned(*this, other.Get());
+        return *this;
+    }
+    SharedRef& operator=(SharedRef&& other) noexcept {
+        std::swap(this->object_, other.object_);
+        return *this;
+    }
+    ~SharedRef() { DestroyOwned(*this); }
+};
+
+// The same three on a raw slot (the AI's mode list). DestroyOwned leaves the slot as it was; ShareOwned stores
+// null for a null or detached object.
 template <typename T>
 void DestroyOwned(T*& slot) {
     static_assert(std::is_base_of_v<CRefObject, T>);
@@ -100,9 +140,6 @@ void DestroyOwned(T*& slot) {
     }
     if (T* reloaded = slot) reloaded->Release();
 }
-
-// The owner's share into a typed slot (RefPtr::Share): null for a null or detached object, a clone for a
-// copy-on-share one; the result is marked copy-on-share.
 template <typename T>
 void ShareOwned(T*& slot, T* object) {
     static_assert(std::is_base_of_v<CRefObject, T>);
@@ -115,71 +152,9 @@ void ShareOwned(T*& slot, T* object) {
     object->AddRef();
     object->flags6_ |= CRefCounted::kCopyOnShare;
 }
-
-// RefPtr::ShareAssign on a typed slot: unless it already holds `object`, DestroyOwned, then ShareOwned.
 template <typename T>
 void ShareAssignOwned(T*& slot, T* object) {
     if (object == slot) return;
     DestroyOwned(slot);
     ShareOwned(slot, object);
 }
-
-// A RefPtr field whose object is always a T (a network message of one class): RefPtr's layout
-// and operations, the object read typed.
-template <typename T>
-struct RefPtrTo : RefPtr {
-    T* Get() const { return static_cast<T*>(ptr); }
-};
-
-// A RefPtr that holds a plain reference (a container's element): a copy takes one (FromRawCounted), the destructor
-// drops it (the plain release), an assignment takes the new reference before the old one is dropped (Assign). A
-// move hands the reference over.
-struct CountedRefPtr : RefPtr {
-    CountedRefPtr() : RefPtr{nullptr} {}
-    explicit CountedRefPtr(CRefObject* object) : RefPtr{nullptr} { FromRawCounted(object); }
-    CountedRefPtr(const CountedRefPtr& other) : RefPtr{nullptr} { FromRawCounted(other.ptr); }
-    CountedRefPtr(CountedRefPtr&& other) noexcept : RefPtr{std::exchange(other.ptr, nullptr)} {}
-    CountedRefPtr& operator=(const CountedRefPtr& other) {
-        Assign(other.ptr);
-        return *this;
-    }
-    CountedRefPtr& operator=(CountedRefPtr&& other) noexcept {
-        std::swap(ptr, other.ptr);
-        return *this;
-    }
-    ~CountedRefPtr() {
-        if (ptr) ptr->Release();
-    }
-};
-
-// A RefPtr that owns its share (a container's element): a copy shares the object (Share: a clone of a
-// copy-on-share one), the destructor is the owner's release (Destroy), an assignment ShareAssign. A move hands
-// the share over.
-struct SharedRefPtr : RefPtr {
-    SharedRefPtr() : RefPtr{nullptr} {}
-    explicit SharedRefPtr(CRefObject* object) : RefPtr{nullptr} { Share(object); }
-    SharedRefPtr(const SharedRefPtr& other) : RefPtr{nullptr} { Share(other.ptr); }
-    SharedRefPtr(SharedRefPtr&& other) noexcept : RefPtr{std::exchange(other.ptr, nullptr)} {}
-    SharedRefPtr& operator=(const SharedRefPtr& other) {
-        ShareAssign(other.ptr);
-        return *this;
-    }
-    SharedRefPtr& operator=(SharedRefPtr&& other) noexcept {
-        std::swap(ptr, other.ptr);
-        return *this;
-    }
-    ~SharedRefPtr() { Destroy(); }
-};
-
-// A SharedRefPtr / CountedRefPtr whose object is always a T (the element of a list of one network message
-// class): the same copies and releases, the object read typed.
-template <typename T>
-struct SharedRefTo : SharedRefPtr {
-    using SharedRefPtr::SharedRefPtr;
-    T* Get() const { return static_cast<T*>(ptr); }
-};
-template <typename T>
-struct CountedRefTo : CountedRefPtr {
-    using CountedRefPtr::CountedRefPtr;
-    T* Get() const { return static_cast<T*>(ptr); }
-};
