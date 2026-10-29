@@ -227,3 +227,20 @@ double WorldServer::RawSurfaceHeightAt(float x, float y) {
 double WorldServer::GroundHeightAt(float x, float y) { return GridHeightAt(x, y); }
 
 double WorldServer::SurfaceHeightAt(float x, float y) { return RawSurfaceHeightAt(x, y); }
+
+// --- Class name and id ------------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kWorldServerClassName = "CWorldServer";
+} // namespace
+
+const char* WorldServer::ClassName() { return kWorldServerClassName; }
+ClassId WorldServer::GetClassId() { return ClassId::WorldServer; }
+
+bool WorldServer::IsServer() { return true; }
+
+// --- The water level, which other code reaches through the world --------------------------------------
+
+void WorldServer::SetWaterLevel(int key, float target, int steps) {
+    countdowns.SetTarget(key, target, steps);
+}

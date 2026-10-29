@@ -100,3 +100,13 @@ void FigureMesh::LoadFromMemory(char** cursor) {
     else LoadOld(cursor);
     flags |= FigureMeshFlag::Loaded;
 }
+
+// --- Class name and id ------------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kCFigureManagerClassName = "CFigureManager";
+} // namespace
+
+const char* CFigureManager::ClassName() { return kCFigureManagerClassName; }
+ClassId CFigureManager::GetClassId() { return ClassId::FigureManager; }
+const char* CFigureManager::GetFolderName() { return "figures"; }

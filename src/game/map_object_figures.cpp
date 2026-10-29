@@ -1,18 +1,28 @@
 // The 3D object base under CMapObject: loading the figure's parts, rescaling them and their
-// bounding box. See map_object_figures.h and docs/notes/map_objects.md ("Figures").
+// bounding box; its lifetime, Create / Destroy, effect sources, attached half and small virtuals. See
+// map_object_figures.h and docs/notes/map_objects.md ("Figures").
+#include "map_object_figures.h"
+
+#include "ai_map.h"   // FootprintPart
+#include "core_transform.h"
+#include "effects.h"
+#include "ei/x87.h"
 #include "figure_manager.h"
 #include "figure_mesh.h"
-#include "map_object_figures.h"
+#include "lib/bytes.h"
+#include "lib/crt.h"
+#include "lib/file_io.h"
+#include "lib/gameapi.h"
+#include "lib/nan_audit.h"
 #include "link_figure.h"   // LinkHeaderMap: the figure's pieces
+#include "map_object_shadow.h"   // WoundsMaterial: the client half's
+#include "model.h"               // RenderPreset: the wounds material's
 #include "world.h"   // CWorld: the figure manager and cache
 
-#include "ei/x87.h"
-#include "lib/bytes.h"
-#include "lib/nan_audit.h"
-
-#include <concepts>
 #include <bit>
+#include <concepts>
 #include <cstring>
+#include <memory>
 
 // The bounds must keep the original's order of operations, its float stores and its NaN behaviour: values it
 // keeps on the FPU stack are double locals, values it stores are floats.
@@ -143,4 +153,203 @@ void CObject3D::LoadFigures() {
     }
     attached->ApplyMaterials();
     flags |= MapObjectFlag::FiguresLoaded;
+}
+
+// --- Lifetime ------------------------------------------------------------------------------------
+
+void CObject3D::ClearBounds() {
+    std::memset(&bounds, 0, sizeof(bounds));
+    eyeHeight = 0;
+}
+
+CObject3D::CObject3D() {
+    localRotation.SetIdentity();
+    worldRotation.SetIdentity();
+    ClearBounds();
+    attached = nullptr;
+    animation = nullptr;
+    scale = {};
+    defaultScale = kDefaultFigureScale;
+    // The original leaves the view position as the heap held it, and the draw sorts read it for an object listed
+    // only for its shadow before it was ever in view (a NaN there made the draw order irreflexive). It starts at
+    // zero here, and in the original through a harness patch (harness_leftovers.cpp).
+    worldPosition = {};
+}
+
+// The name is destroyed after the body, then EngineObject's part.
+CObject3D::~CObject3D() {
+    Destroy3D();
+    figure.Reset();
+    lib::FreeStorage(parts);
+}
+
+// --- Create / Destroy and the effect sources ------------------------------------------------------
+
+namespace {
+// Globals the game fills at startup: the identity quaternion and the default figure scale.
+constexpr Quaternion kIdentityOrientation = /*007AF1C0*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
+} // namespace
+
+void CObject3D::Create3D() {
+    localPosition = {};
+    localRotation = kIdentityOrientation;
+    attached = nullptr;
+    flags = 0;
+    animations = nullptr;
+    scale = {};
+    figure.Reset();
+    defaultScale = kDefaultFigureScale;
+    ClearBounds();
+    std::vector<FootprintPart>().swap(partBoxes);
+}
+
+void CObject3D::Destroy3D() {
+    figure.Reset();
+    RemoveAllEffectSources();
+    if (animation) {
+        animation->DetachMeshes();
+        if (animation) {
+            animation->owner = nullptr;
+            animation->Release();
+        }
+        animation = nullptr;
+    }
+    for (HeldRef<FigureMesh>& part : parts)
+        if (FigureMesh* forgotten = part.Take()) forgotten->ForgetReference();
+    parts.clear();
+    if (attached) attached->Release();
+    attached = nullptr;
+    animations = nullptr;
+    flags = 0;
+}
+
+void CObject3D::AddEffectSource(ParticleSource* source) {
+    if (std::ranges::find(effectSources, source, &Ref<ParticleSource>::Get) != effectSources.end()) return;
+    effectSources.emplace_back(source);
+    if (source) source->Attach(this);
+}
+
+void CObject3D::RemoveEffectSource(ParticleSource* source) {
+    auto node = std::ranges::find(effectSources, source, &Ref<ParticleSource>::Get);
+    if (node == effectSources.end()) return;
+    HeldRef<ParticleSource> held = std::move(*node);   // released after the detach
+    effectSources.erase(node);
+    if (source) source->Attach(nullptr);
+}
+
+// --- Virtuals shared by every map object's vtable: the world rotation, copying a figure, the side half, the
+// effect sources and the drawing slots.
+
+// The same body as the base's.
+void CObject3D::CombineRotation(const Quaternion& parent) { TransformObject::CombineRotation(parent); }
+
+// TransformObject's functions, called directly.
+void CObject3D::SaveTransform(lib::File* file) { TransformObject::SaveTransform(file); }
+
+void CObject3D::LoadTransform(lib::File* file) { TransformObject::LoadTransform(file); }
+
+// The parts are copied uncounted, as the original copies the pointers: the old ones are dropped without a release
+// and the copies take no reference.
+void CObject3D::CopyFigure(const CObject3D* other) {
+    for (HeldRef<FigureMesh>& part : parts) part.Take();
+    parts = other->parts;
+    for (FigureMesh* part : parts)
+        if (part) part->ForgetReference();
+    TransformObject::CopyTransform(*other);
+}
+
+void CObject3D::AttachSpecific(EngineObject* half) {
+    if (!half || SideTypeOf(half) != SideObjectType::Object3D) return;
+    if (attached) {
+        attached->object = nullptr;
+        attached->Release();
+    }
+    attached = static_cast<Object3DSpecific*>(half);
+    attached->object = this;
+    attached->AddRef();
+}
+
+void CObject3D::RemoveAllEffectSources() {
+    while (!effectSources.empty()) RemoveEffectSource(effectSources.front());
+}
+
+int CObject3D::DrawFigure(SceneRenderer* context) { return attached ? attached->DrawParts(context, nullptr) : 1; }
+
+int CObject3D::DrawCollectDirty(SceneRenderer* context) {
+    gameapi::SetRectEmpty(&dirtyRect);
+    return attached ? attached->DrawParts(context, &dirtyRect) : 1;
+}
+
+int CObject3D::DrawFigureShadow(SceneRenderer* context) { return attached ? attached->DrawPartsShadow(context) : 1; }
+
+// --- Small virtuals ----------------------------------------------------------------------------
+
+bool CObject3D::AcceptsAnimation(const FigureAnimation*) { return true; }
+void CObject3D::AttachObject(EngineObject* object) {
+    AttachSpecific(object);
+}
+bool CObject3D::InvisibleSlot() { return false; }
+void CObject3D::AdvanceTime(float) {}
+
+// --- The attached half and animation state, and the setters that reach every part --------------------
+
+namespace {
+constexpr float kFirstFrame = 0.0f;
+
+FigureMesh* PartAt(const CObject3D* object, int index) { return object->parts[index]; }
+} // namespace
+
+void CObject3D::SetSpecific(Object3DSpecific* half) {
+    if (attached) {
+        attached->object = nullptr;
+        attached->Release();
+    }
+    attached = half;
+    if (half) {
+        half->object = this;
+        attached->AddRef();
+    }
+}
+
+void CObject3D::SetPartFlags(std::uint32_t mask) {
+    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flags |= mask;
+}
+
+void CObject3D::ClearPartFlags(std::uint32_t mask) {
+    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flags &= ~mask;
+}
+
+void CObject3D::SetPartsFlatColour(std::uint32_t value) {
+    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flatColour = value;
+}
+
+void CObject3D::SetPartsFlatSpecular(std::uint32_t value) {
+    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flatSpecular = value;
+}
+
+void CObject3D::SetAnimationState(FigureAnimationState* state) {
+    if (animation) {
+        animation->owner = nullptr;
+        animation->Release();
+    }
+    animation = state;
+    if (state) {
+        state->AddRef();
+        animation->owner = this;
+    }
+}
+
+void CObject3D::PlayAnimation(FigureAnimation* figureAnimation) {
+    if (animation) animation->Play(figureAnimation);
+}
+
+int CObject3D::AttachPartMesh(EngineObject* part) {
+    if (!animation) return 0;
+    return animation->AttachMesh(part);
+}
+
+void CObject3D::RestartPose() {
+    if (!animation) return;
+    animation->SetTime(kFirstFrame);
+    animation->PlaceIfChanged();
 }

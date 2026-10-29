@@ -4,9 +4,11 @@
 #include "party_manager.h"
 
 #include "chunk_archive.h"
+#include "class_templates.h"
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "party.h"
+#include "party_records.h"
 #include "resource_local.h"   // FillStream
 
 
@@ -218,3 +220,32 @@ void PartyManager::Save(MemoryStream* to) {
     archive.Close(&local);
     to->WriteSized(&local);
 }
+
+// --- The class registry's creators: id 1 a class template, id 2 a named party record (made when a saved
+// party manager is loaded) --------------------------------------------------------------------------------
+
+RefCounted* CreatePartyRecord() {
+    auto* record = new PartyRecord();
+    record->refs = 0;
+    record->flags6 = 0;
+    record->flags7 = 0;
+    return record;
+}
+
+RefCounted* CreateClassTemplate() {
+    auto* created = new ClassTemplate();
+    created->refs = 0;
+    created->flags6 = 0;
+    created->flags7 = 0;
+    return created;
+}
+
+// --- The party record ------------------------------------------------------------------------------
+
+PartyRecord::PartyRecord() { party.Create(); }
+
+PartyRecord::~PartyRecord() { party.Destroy(); }
+
+// --- The manager (the C runtime runs its destructor at exit) -------------------------------------------
+
+PartyManager g_partyManager;

@@ -45,7 +45,7 @@ struct FigureMeshDrawer : FigureDrawerBase {
     // The vtable: EngineObject's but for 0, 2, 3, 11 and 12.
     void Create() override;
     void Destroy() override;
-    const char* ClassName() override;   // "CFigureClientSpecific" (world_class_slots.cpp)
+    const char* ClassName() override;   // "CFigureClientSpecific" (figure_drawer.cpp)
     ClassId GetClassId() override;
 
     // No mesh, no flags.

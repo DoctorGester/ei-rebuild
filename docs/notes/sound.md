@@ -75,7 +75,7 @@ and UpdateMusic's draws follow the virtual clock only). A virtual-time stream th
 ## Rewritten (names provisional)
 
 Every function carries its address in its source comment (grep it); the per-function table that used to be here is gone. All in
-`sound_manager.cpp` except the MusicSystem functions (`sound_music.cpp`) and the lifetime ones (`sound_manager_lifetime.cpp`).
+`sound_manager.cpp` except the MusicSystem functions (`sound_music.cpp`) and the lifetime ones (`sound_manager.cpp`).
 - Voices and positions: `UpdatePositional` 006B7FC0, `SoundFader` Update / SetHold / Recalc 006B5EE0 / 006B5E80 / 006B5FF0, FindDeferred
   006B7CB0, MoveEmitter / RemoveEmitter 006B9A30 / 006B9AA0, SetReverb 006B69E0, FadeOutStream / FadeInStream 006BAFA0 / 006BAFE0,
   SetEffectsVolume / SetSpeechVolume / SetListener 006B7740 / 006B78A0 / 006B9750, FindPlaying 006B7C10, SetSoundVolume /

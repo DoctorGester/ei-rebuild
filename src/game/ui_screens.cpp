@@ -570,3 +570,5 @@ void ExchangeScreen::KeyDown(int key, int repeat, int modifiers) {
         break;
     }
 }
+
+void EscMenu::CloseScreen() { models[0]->Play(SkillAnimation::Briefing01); }

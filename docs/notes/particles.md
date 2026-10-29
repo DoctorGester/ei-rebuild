@@ -45,7 +45,7 @@ Every function carries its address in its source comment (grep it); the per-func
   00497FC0-00498630: slot 2 `Create`, slot 3 `Destroy` (held sources released, pooled particles deleted, then the base's), `CreateSource`
   (CreateObject(type, -1), one reference held; flag +0xE4 stops 0x2001/3/4), `TickSources` (slot 6 of every source; paused: only flag 8; a
   held source whose tick returned 0 is released), `ReleaseUnheld` (held sources with refCount 1; the client's zone load). 004981A0, the
-  manager's own part of its constructor (quietStart cleared), is `ParticleManagerClearQuietStart` in small_accessors.cpp; world_client_maps.cpp
+  manager's own part of its constructor (quietStart cleared), is `ParticleManagerClearQuietStart` in particle_manager.cpp; world_client_maps.cpp
   reaches it through its forwarder when the client world sets its managers up. `ParticleSource` slots 11 / 12 ("CParticle" 0078B020,
   class id 12) 004982D0 / 004982E0, slot 0 `DeletingDestruct` 004982F0.
 - `Clear` 00484710, `Reset` 004847E0, `WorldPosition` 00484AE0, `Create` 00485540 (slot 2; a 13 KB switch).
@@ -101,5 +101,5 @@ the unordered case the same way. Remaining differences only at 64-bit precision 
 - Not rewritten: the dead 3DS readers. The procedural texture class 0049A090 / 0049A220 is the
   global map's clouds (rewritten, script.md); 0049BEA0 and its helpers are dead.
 - A-E1: 004981A0, the manager's own part of its constructor (quietStart cleared), is
-  `ParticleManagerClearQuietStart` in small_accessors.cpp; side by side. world_client_maps.cpp reaches it through its
+  `ParticleManagerClearQuietStart` in particle_manager.cpp; side by side. world_client_maps.cpp reaches it through its
   forwarder when the client world sets its managers up.

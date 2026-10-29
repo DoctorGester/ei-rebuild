@@ -3,7 +3,7 @@
 Code: `src/game/map_object.h/.cpp` (CMapObject, MapEffect: layouts, per-slot comments),
 `map_object_companion.cpp` (MapObjectServer / MapObjectClientSpecific), `map_object_figures.*`, `map_object_parts.cpp`
 (CObject3D figure parts, scale, bounds), `map_object_shadow.*`, `map_object_draw.cpp`,
-`map_object_animation.*`, `map_object_cage.*`, `map_object_lifetime.cpp` (constructors, destructor
+`map_object_animation.*`, `map_object_cage.*`, `map_object.cpp` (constructors, destructor
 bodies), `map_object_create.cpp` (slot 2 of units / torches). Verify: `tests/verify/verify_map_object*.cpp`.
 Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and every spawn).
 
@@ -86,7 +86,7 @@ here is gone. Facts a worker needs:
   t) / length, 1 for a 0 / NaN length), FindPartIndex 00517990 (_mbscmp over +0x114). Constructs: CObject3D 0x170, CMapObject 0x238, CUnit
   0x4DC, MapObjectServer 0x94, MapObjectClientSpecific 0x54 (destructor bodies leave the engine object base state: vtable
   0073B8E0, no owner). CObject3D slots 14 CombineRotation3D (0040CB80's body), 20 CopyFigure, 19 AttachSpecific, 5
-  RemoveAllEffectSources, 22-24 DrawFigure / DrawCollectDirty / DrawFigureShadow (object3d_slots.cpp). Map object Load / Save
+  RemoveAllEffectSources, 22-24 DrawFigure / DrawCollectDirty / DrawFigureShadow (map_object_figures.cpp). Map object Load / Save
   0050F7A0 / 0050F900, server 005159D0 / 00515AC0 (slots 9 / 10); MapObjectServer Create / Destroy 005157C0 / 005157E0 (2 / 3),
   UnitClientSpecific HasWeaponModels / HasArmourModels 005391B0 / 005391E0 (36 / 37),
   ApplyScience 0050F0F0 (41: logs, false) / FreeArray (44), CreateClientCompanion 00510770 (2), DeleteClient 00533E80 (0).
@@ -118,7 +118,7 @@ here is gone. Facts a worker needs:
 - SceneRenderer: DrawShadow 0051CE60 and Draw 0051B7E0 (client half), BeginScene / EndScene 00503F40 / 005040A0
   (slots 4 / 5; DrawTexture 00504860, slot 21, had no caller and is deleted (R26b); renderer_scene.cpp: the frame time; the frame statistics and the device counters only the debug panel read are gone, C55 / C57), DrawSelectionMarker 00503A40 (the green arrow under selected units; renderer_marker.cpp),
   SetGamma 00504A60 (slot 22: the options' brightness / contrast / gamma as the primary surface's gamma ramp; renderer_gamma.cpp),
-  lifetime and small slots (renderer_lifetime.cpp: base class vtable 0073D8A0: ctor, deleting dtor, dtor, DestroyBase,
+  lifetime and small slots (renderer_scene.cpp: base class vtable 0073D8A0: ctor, deleting dtor, dtor, DestroyBase,
   SetBaseColour; slots 3 DestroyRenderer, 8 ClearFrame and 9 ZEnable (gone in ours, R27c: nothing to clear or ask), 11 SetTexture, 7 SetColour, 15 DrawLineList, 14 DrawFigure, 13
   DrawFigureLit, 23 GetGamma, 24 RestoreSurfaces). AlignedArray copies registered on the template: TLVertex SetSize /
   SetSizeDiscardStep, SpriteSortRecord, its pointers, the index Add, the bones' Matrix4 SetSizeDiscardStep.
@@ -237,21 +237,21 @@ each one is in the head comment of its verify file.
   ShadowsShown, ShadowInView, MatrixSetIdentity, the server half's name / id / Create; the rest ours only (zone load,
   equipment changes, highlighting, wounds). The older files of the client unit (unit_client_*.cpp, map_object_draw /
   shadow / client_effects, world_rules.cpp) now call these directly instead of through local forwarders.
-- **The map object's small slots** (`map_object_stub_slots.cpp`; `verify_map_object_stub_slots.cpp`): the empty and
+- **The map object's small slots** (`map_object.cpp`; `verify_map_object_stub_slots.cpp`): the empty and
   constant slots (0050E400-0050E560, 0050E760, 0050F0C0-0050F110), NotifyCompanion 0050E930 (the deleting destructor 0050E560 is
   ~CMapObject's since C28h),
   ScaleEffectChanged 0050E960, TakePrototype 0050E9B0, the network state wrappers 0050EA40 / 0050EA70 / 0050EAB0,
   SetSecondName 0050F150, the transform slots 00516350 / 00516360. Side by side: CompanionIsDead, KeyId,
   ScaleEffectChanged, MoveSpeed, Radius; the rest ours only (plain objects of any zone). The one-byte slots cannot be
   hooked.
-- **The manager, the companions, the 3D object** (`map_object_manager.cpp`, `map_object_companion_slots.cpp`,
-  `object3d_small_methods.cpp`; `verify_map_object_manager.cpp`): CMapObjectManager's lifetime, names, CreateManager,
+- **The manager, the companions, the 3D object** (`map_object_manager.cpp`, `map_object_companion.cpp`,
+  `map_object_figures.cpp`; `verify_map_object_manager.cpp`): CMapObjectManager's lifetime, names, CreateManager,
   CreateMapObject, FindAnimation, GiveDefaults, PrototypeEquipment (005125E0-00512660, 00512A30, 00512B20, 00513630,
   005143E0); the companions' lifetime and small slots (005104B0-00510760, 00510340, 00511290, 005117F0, 00512490,
   005156E0-00515810); CObject3D's small methods (00515D50, 005161A0, 005174E0, 00517910, 00517950, 005187B0-00518860,
   00519500, 00519530). Side by side: the class names / ids and the folder; the rest ours only (game start, zone load,
   hits and effects on a hosted game's objects, interface models).
-- **0x00500000-0x0050E000** (`small_slots_500.cpp`, `renderer_base_create.cpp`,
+- **0x00500000-0x0050E000** (`map_object_animation.cpp`, `renderer_base_create.cpp`,
   `renderer_init.cpp`; `verify_small_slots_500.cpp`): the animation classes' names and ids (0050A6E0, 0050A6F0,
   0050B180-0050B1A0, 0050C6F0, 0050C700), VectorCopy 00503F20, RendererFrameTime 00500A90, SceneRenderer::CreateBase 00500540
   (the transform pipeline, CPUID(1) into the globals at 007CAED0, the MMX check and `2DintMMX.dll` from the work path; it

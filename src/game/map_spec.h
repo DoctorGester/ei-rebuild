@@ -61,7 +61,7 @@ struct LeverSetup {
 };
 
 // The bits of mapspec::Behaviour::flags. Before format 0x53 (kVersionUnitAlarm) the reaction (Behaviour::alarm) was
-// a bit each; the first set one counts, none is 2 (the reactions: unit_ai_alarm.cpp's Reaction).
+// a bit each; the first set one counts, none is 2 (the reactions: unit_ai.cpp's Reaction).
 enum class BehaviourFlag : std::uint32_t {
     OldFight = 0x1,             // reaction 0
     OldRevenge = 0x2,           // 1

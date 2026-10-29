@@ -22,6 +22,9 @@ namespace {
 constexpr int kPartStats = 4;          // MarkChanged parts
 constexpr int kPartEquipment = 5;
 constexpr int kPartWeapons = 6;
+constexpr float kTenth = 0.1f;
+constexpr float kThreeQuarters = 0.75f;
+constexpr float kHalf = 0.5f;
 
 PlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); }
 
@@ -114,4 +117,68 @@ void CUnit::DropBrokenEquipment() {
         MarkChanged(kPartEquipment);
     }
     broken.clear();
+}
+
+// --- The unit's lifetime ---------------------------------------------------------------------------
+
+CUnit::CUnit() {
+    // The unit's motion: two arrays, then the step speeds and the segment part.
+    UnitMotion* m = &motion;
+    // (The segment part's constructor only returns it.)
+    std::memset(&m->curveX, 0, sizeof(m->curveX));
+    std::memset(&m->curveY, 0, sizeof(m->curveY));
+    m->segment = -1;
+    m->Clear();
+    m->speedScale = kTenth;
+    m->baseTurnRate = kTenth;
+    controller = nullptr;
+    player = nullptr;
+    Reset();
+}
+
+void CUnit::Reset() {
+    scriptName.clear();
+    secondPrototype = -1;
+    heightOffset = 0.0f;
+    sizeClass = 3;
+    unitRadius = kThreeQuarters;
+    standingHeight = kHalf;
+    relationsA = 0;
+    relationsB = 0xFFFFFFFFu;
+    side = 0;
+    if (controller) {
+        ServerController()->unit = nullptr;
+        controller->Release();
+    }
+    animationEntry = -1;
+    secondEntry = -1;
+    controller = nullptr;
+    player = nullptr;
+    actionSound = 0;
+    animationStart = 0;
+    motionMode = 0;
+    pathTimeShift = 0;
+    moveMode = 2;
+    moveMode2 = 2;
+    pendingWeapon = -1;
+    dead = 0;
+    obstacle = 0;
+    activeWeapon = 0xFFFFFFFFu;
+    params.Reset();
+    std::memset(weapons, 0, sizeof(weapons));
+    std::memset(quickItems, 0, sizeof(quickItems));
+    std::memset(armor, 0, sizeof(armor));
+    std::memset(spells, 0, sizeof(spells));
+    carried.clear();
+    altPassCosts = 0;
+    MapObject()->netState.Reset();
+    fightAtWill = 1;
+}
+
+CUnit::~CUnit() {
+    // The release-from-the-player virtual, called directly like the original (through the vtable's memory, not
+    // the object's).
+    ReleaseUnit();
+    DestroyMapObject();
+    Reset();
 }

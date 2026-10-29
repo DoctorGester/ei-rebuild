@@ -137,7 +137,7 @@ public:
 
     CWorld* ThisWorld() override { return this; }
     BaseManager* TimedObjectManager() override { return timedObjectManager; }
-    BaseManager* FigureManager() override;   // figureManager (world_class_slots.cpp: CFigureManager is complete there)
+    BaseManager* FigureManager() override;   // figureManager (world_managers.cpp: CFigureManager is complete there)
     CItemConstructor* ItemConstructor() override { return itemConstructor; }
     CSpellConstructor* SpellConstructor() override { return spellConstructor; }
     ItemManager* ItemFactory() override { return itemManager; }

@@ -1,4 +1,5 @@
 // WorldClient: terrain and platform height queries, unit and exit lookups. See world.h.
+#include "camera.h"
 #include "core_maths.h"
 #include "effects.h"
 #include "game_data.h"
@@ -7,6 +8,8 @@
 #include "hash_tables_400.h"
 #include "map_object.h"
 #include "map_object_figures.h"
+#include "material.h"
+#include "model.h"
 #include "net_classes.h"
 #include "net_link.h"
 #include "object_tables.h"
@@ -439,3 +442,58 @@ bool WorldClient::RunTick() {
     EndWalk(objectsIt);
     return true;
 }
+
+// --- Class name and id ------------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kWorldClientClassName = "CWorldClient";
+} // namespace
+
+const char* WorldClient::ClassName() { return kWorldClientClassName; }
+ClassId WorldClient::GetClassId() { return ClassId::WorldClient; }
+
+// --- Getters and small calls other code reaches through the world: the managers, the new texture /
+// material, the camera, the value of message 0x12 and the water levels of message 0x73 --------------------
+
+const char* WorldClient::TexturePath() { return texturePath.c_str(); }
+CMaterialManager* WorldClient::MaterialManager() { return materialManager; }
+CTextureManager* WorldClient::TextureManager() { return textureManager; }
+BaseManager* WorldClient::ClientLightManager() { return lightFactory; }
+ParticleManager* WorldClient::ClientParticleManager() { return particleManager; }
+
+void WorldClient::MoveObject(CMapObject* object, const float* position) {
+    objectGrid.Move(object, position);
+}
+void WorldClient::MoveObject2(CMapObject* object, const float* position) {
+    secondGrid.Move(object, position);
+}
+
+CTexture* WorldClient::NewTexture(int textureType) {
+    if (!textureManager) return nullptr;
+    return textureManager->NewTextureOfType(textureType);
+}
+
+Material* WorldClient::NewMaterial(int materialType) {
+    if (!materialManager) return nullptr;
+    return materialManager->NewMaterial(materialType);
+}
+
+void WorldClient::SetCamera(Camera* newCamera) {
+    if (camera) --camera->refCount;
+    camera = newCamera;
+    if (newCamera) newCamera->AddRef();
+}
+
+void WorldClient::SetWorldValue(int value) { worldValue = value; }
+
+int WorldClient::ReadWaterLevels(ByteStream* stream) {
+    countdowns.Load(stream, terrain);
+    return 1;
+}
+
+namespace {
+constexpr const char* kBridgeManagerName = "CBridgeManager";
+} // namespace
+
+const char* PlatformSet::ClassName() { return kBridgeManagerName; }
+ClassId PlatformSet::GetClassId() { return ClassId::PlatformSet; }

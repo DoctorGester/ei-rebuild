@@ -127,3 +127,8 @@ void DifficultyBox::KeyDown(int key, int repeat, int modifiers) {
     }
     handled = true;
 }
+
+void MessageWindow::CloseScreen() {
+    ClearSceneObjects();
+    ClearSurfaces();
+}

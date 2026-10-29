@@ -188,7 +188,7 @@ address in its source comment (grep the address); the per-function table that us
   `unit_figure_queries.cpp` / `unit_points.cpp` / `unit_client_path.cpp`, `map_object_create.cpp` / `unit_controller.cpp` /
   `unit_prototype_stats.cpp`, `unit_vision.cpp`, the client half `unit_client_*.cpp` (update, models, equipment, sounds,
   animation, effects, lifetime, blink, speech, wounds), `object3d_figure_setup.cpp` / `object3d_animations.cpp` /
-  `object3d_specific_slots.cpp`, `unit_lever.cpp` / `lever_object.cpp`, `magic_trap.cpp`, `torch_object.cpp` / `torch_spec.cpp` /
+  `object3d_halves.cpp`, `unit_lever.cpp` / `lever_object.cpp`, `magic_trap.cpp`, `torch_object.cpp` / `torch_spec.cpp` /
   `torch_client_spec.cpp`, `map_object_kinds.cpp` / `counted_ref.cpp` / `trap_object.cpp`, `refptr_copies.cpp`.
 - Facts about specific groups: `CUnit` virtual slots (Tick returns 1; LoadUnitFigures sets `flags` 0x80; AttachCompanion
   returns the reference count). Unit database loading: the records are read twice by the original verify (ours first, then
@@ -322,12 +322,12 @@ After this ticket nothing in 0x00520000-0x00540000 is unported. Scenarios per wr
   0052E0D0, SkillDatabase::SkillAt / LevelAt (00526FF0, 00524FA0), UnitModelAt 00539280, UnitPrototypeAt 0053AD30. All
   side by side except the field wrappers (ours only; no scenario, the state writers are rewritten and call the field
   themselves). SchoolPrice truncates a difference of powers: one apart on a rounding edge is accepted (rule 7).
-- **The controllers' base** (`unit_controller_slots.cpp`): the abstract controller's lifetime (00533D90, 00533DB0,
+- **The controllers' base** (`unit_controller.cpp`): the abstract controller's lifetime (00533D90, 00533DB0,
   00533DD0, 00533DE0) and its empty / constant slots (00533B90-00533D80, 00534130, 00535580; most under five bytes, not
   hookable), the client controller's path, class name and id (00533DF0, 00533E00, 00533E10),
   UnitClientSpecific::SetMarkers 00535240 and DropFaceTexture 00538EA0. Side by side: the names / ids and
   FiguresLoaded; the rest ours only.
-- **The unit** (`unit_small_methods.cpp`, `unit_client_path.cpp`, `counted_ref.cpp`): the class name / id (0052E280,
+- **The unit** (`unit.cpp`, `unit_client_path.cpp`, `counted_ref.cpp`): the class name / id (0052E280,
   0052E290), MotionSegmentConstruct 0052E230, CUnit::SetMotionSpeeds 0052EA40, HasPlayer 005301A0, DoubleHeight
   00530560, WornItem 00530830, ClientMotionChanged 00535B20, CountedListLoad 0052AF20 (a saved game with magic traps or
   brains). Side by side: the names, HasPlayer, DoubleHeight, WornItem; the rest ours only.

@@ -1,8 +1,8 @@
 // A spell effect's casting state (SpellEffect::Update state 0) and the helpers that create its effect
 // objects. Every spell type starts differently: missiles get a EffectArrow or a particle source and go to
 // state 1, the lasting spells get particles, lights and sound sequences and go to state 2, the instant ones
-// (lightning, the light strike, buffs, charm) deal or apply their effect here. See
-// docs/notes/items_spells.md.
+// (lightning, the light strike, buffs, charm) deal or apply their effect here. Also the cast spell's
+// lifetime. See docs/notes/items_spells.md.
 #include "ai_map.h"
 #include "map_object.h"
 #include "spell.h"
@@ -546,4 +546,47 @@ void SpellEffect::CreatePointLight(const Vector3& at, const Vector3& color, floa
     effect->lightFlags = kPointLightFlags;
     Assign(this, &light, effect);
     world->AddTimedObject(effect);
+}
+
+// --- The cast spell's lifetime, start values and the object it forgets ----------------------------
+
+namespace {
+
+// A counted pointer's destructor and the counted pointer assignment of null: the old object loses a
+// reference.
+template <class T>
+void Drop(T*& field) {
+    T* old = field;
+    field = nullptr;
+    if (old) old->Release();
+}
+
+} // namespace
+
+SpellEffect::SpellEffect() = default;
+
+SpellEffect::~SpellEffect() {
+    if (footprintStamped) UpdateFootprint(Spell()->Type(), 0);
+    if (visual) world->RemoveTimedObject(static_cast<unsigned>(visual->id));
+    Drop(visual);
+    ReleaseSound();
+    ReleaseLight();
+}
+
+void SpellEffect::Init(WorldServer* newWorld, CSpell* newSpell, CUnit* newCaster, const Vector3& newPosition,
+                        CMapObject* newTarget, const Vector3& newTargetPoint, std::uint8_t newSilentEnd) {
+    newSpell->CopyTo(Spell());
+    world = newWorld;
+    position = newPosition;
+    caster.Assign(newCaster);
+    target.Assign(newTarget);
+    targetPoint = newTargetPoint;
+    state = 0;
+    silentEnd = newSilentEnd;
+}
+
+bool SpellEffect::Forget(EngineObject* object) {
+    if (target == object) return false;
+    if (caster == object && caster) caster.Reset();
+    return true;
 }

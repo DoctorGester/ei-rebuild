@@ -125,7 +125,7 @@ public:
     // Draws every bolt it owns (its object list), then drops the references of the new-bolt list and
     // empties it. Returns 1.
     int DrawAll(SceneRenderer* device);
-    // Create (class_slots.cpp): loads the noise table on the first call, then the base manager's Create.
+    // Create (lightning.cpp): loads the noise table on the first call, then the base manager's Create.
     void Create() override;
 
     std::list<Lightning*> newBolts;    // (each entry holds a reference)

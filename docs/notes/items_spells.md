@@ -379,7 +379,7 @@ from a surface description; its one caller 00691D50 is dead) are dead. `FindType
 they move to (never released; the wrappers drop their second run's); a DXT file / surface pair without a decode mode passes the
 mip level as the mode.
 
-**Texture manager lifetime (A-H23; texture_manager_lifetime.cpp, verify_texture_manager_lifetime: O, names P).** 00691140
+**Texture manager lifetime (A-H23; texture.cpp, verify_texture_manager_lifetime: O, names P).** 00691140
 constructor, 00691250 / 00691230 destructors, 00691630 Destroy (slot 3), 00691AA0 CreateObject (slot 23: flags |= 0x80 /
 0x100 / 0x200 for types 0x3E / 0x3F / 0x40, else 0x40; no null check), 00691200 slot 25 ("textures"). Destroy and the
 destructor release the shadow surface, destroy and delete every cached texture, delete the composed textures and drop the
@@ -481,8 +481,8 @@ and pops them) are a `std::vector<MaterialEntry>` now. Not hookable: 0068DCF0 (s
 NewMaterial returns null on a failed creation (the original faults).
 
 **Small slots and copies (A-H24).** The name / id slots (11 / 12) of CParty, the twelve CEffect* classes
-(world_effect_lifetime.cpp), CSpell, CTexture, the six CItem* classes and CItemConstructor (P, verify_class_names_640.cpp); 00688940 the spell
-manager's folder, 0067E150 the effect manager's Create (world_managers.cpp, O). Party containers (party_lifetime.cpp, O):
+(world_effect.cpp), CSpell, CTexture, the six CItem* classes and CItemConstructor (P, verify_class_names_640.cpp); 00688940 the spell
+manager's folder, 0067E150 the effect manager's Create (world_managers.cpp, O). Party containers (party.cpp, O):
 `CArray<PartyUnitRecord>` destructor body / slot 0, DestructElements, the record's deleting destructor; ui_hero_screen_click.cpp:
 MpHeroRecord's deleting destructor, copy() of hero records (Assign each). Byte-identical copies registered beside their
 rewrites: 00664910 / 00671240 AllocateDwords, 0069FD50 RefPtrRelease, 00689810 / 00689880 CleanupClear8. Left (under 5 bytes):
@@ -502,7 +502,7 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   original reads past its code table), `ItemScroll::PictureName` ("initqi1item"), `ItemQuest::GetUse` (slot 21: kind 8, the
   value at +0x4C, 0; P).
 - Effects and textures: `SpellEffect::Init` (every cast) / `Forget` (an object leaving the world during a cast; O),
-  `MapEffect::Tick` (S), `MmpHeader::SetNoFormat / SetFormat5551 / 4444` (texture_slots.cpp; S; SetFormat8888 00693910 had no caller: R30a), `CTexture::Create` (slot 2; block_ cleared, not freed) / Destroy (slot 3) / FreeBlock /
+  `MapEffect::Tick` (S), `MmpHeader::SetNoFormat / SetFormat5551 / 4444` (texture.cpp; S; SetFormat8888 00693910 had no caller: R30a), `CTexture::Create` (slot 2; block_ cleared, not freed) / Destroy (slot 3) / FreeBlock /
   DestructBody / DeletingDestruct (O), `CTextureManager::GetFileData / NewTextureOfType / FindOrCreate (named, not loaded; no
   null check) / FindOrLoad` (O), `ReloadAll` (after a lost device: no scenario), `TrimCache` (cached bytes against
   videoMemoryTenth_, signed; every 32 client ticks; O), the effect base's out-of-line destructor, slot 0, constructor, missile
@@ -561,8 +561,8 @@ obvious.
 
 - 0066C180 `PlayerManager::CreateSessionPlayer` (player_manager.cpp; O): a player 0x300A with a connection 0x49 of the
   world's specific manager, refCount + 1, player id 0. 00691500 `CTextureManager::Create` (slot 2,
-  texture_manager_lifetime.cpp; O): "textures.res", "redress.res", "menus.res" of the text folder (007AF45C) all tried, 1 only
-  when all three opened. 006B7110 `SoundManager::ListWaveFiles` (sound_manager_lifetime.cpp; S): runs on the game's main
+  texture.cpp; O): "textures.res", "redress.res", "menus.res" of the text folder (007AF45C) all tried, 1 only
+  when all three opened. 006B7110 `SoundManager::ListWaveFiles` (sound_manager.cpp; S): runs on the game's main
   thread (only caller 0053A8E0, UnitDatabase::CountSoundFiles).
 - Database loads (O: counts, every record's key leads to a record of that key; every start and each switch of the resource
   database (0057CB50)): 00684550 `SpellDatabase::Load` ("spells.sdb": spells, modifiers, three lists) and 006A67A0
@@ -608,7 +608,7 @@ obvious.
   "tutorial_<picture>" into 64-pixel cells of referenced object 1, at most 16), surface 2 neighbours' titles and
   "show_tutorial_key"; regions 0-2 the buttons (tips 0x7595, 0x7594, 0x7596). With a row count in "#position" the measuring
   pass is skipped and with it the pictures; with sixteen pictures every text is laid out unindented in the second pass.
-- 006BB3A0 `SoundManager::ReadStreamVanilla` (sound_manager_lifetime.cpp; +0x120 `streamBufferFrames`, +0x138 `streamLoopAt`,
+- 006BB3A0 `SoundManager::ReadStreamVanilla` (sound_manager.cpp; +0x120 `streamBufferFrames`, +0x138 `streamLoopAt`,
   +0x13C `streamFrameBytes`, +0x140 `streamSilence`; O: it decodes as it goes, so it cannot run twice): fills the spare
   buffer through the ASI codec (slots 1 read, 2 seek, 3 close, 0 open, 4 attribute; names at 11 / 12 / 13: output rate, bits,
   channels) up to the loop point (the first "Markers2" value; then seek 0) or the switch point (mode 2: the whole buffer once

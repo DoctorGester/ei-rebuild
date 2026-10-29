@@ -429,12 +429,12 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310; ported b
 - 004B3200 `ScriptGroup::CopyToList` (script_group.cpp): the group's objects replace a pointer list of counted references
   (each old element released, the list emptied, one counted element per object). The only caller is the server's party
   sync of a player without a party copy (player_sync.cpp, through `ScriptGroupToListOriginal`).
-- app_lifetime.cpp: the creators the application's start registers with the class registry 0079B270 (00457850 a class
+- party_manager.cpp: the creators the application's start registers with the class registry 0079B270 (00457850 a class
   template as class 1, 00457740 a party record as class 2; both clear the count's dword before the null check, as the
   original), the party record's destructor (004577E0, slot 0 004577C0) and the party manager's exit-time destructor (004A5700:
   templates and records released, the strings, the entries, every party through the map's own node deleter 004ABA70, the
   bucket array). The creators are reached when a saved party manager is loaded.
-- small_accessors.cpp: the accessors the interpreter calls out of line, as `__fastcall` shims: 004B2520 (the referenced map
+- The accessors the interpreter calls out of line, as `__fastcall` shims: 004B2520 (the referenced map
   object's companion, null without an object), 004B9F50 / 004B9F60 (bits of the object's flags set / cleared), 004B9F90
   (the map object's position), 004B9FD0 (a counted object exists and is not detached; asked of the game server), 004BA010
   (FISTP of a number), 004BA030 (`Item::Repair`), 004BA060 (the unit's controller), 004BA070 / 004BA080 (the carried

@@ -1,28 +1,14 @@
-// Parties and their unit records: the records' constructor and destructor bodies and item clear,
-// the record array (the array's resize and element construction), the party's constructor,
-// destructor, Create / Destroy / Clear, and the constructors of the managers a party makes. The
-// record's item lists are aligned pointer arrays; four more copies of their SetSize are
-// here. See party.h and docs/notes/items_spells.md ("Party").
+// The party: its constructor and destructor, Create / Destroy (the managers and constructors it makes) and
+// Clear. See party.h and docs/notes/items_spells.md ("Party").
+#include "party.h"
+
 #include "game_strings.h"
 #include "item.h"
 #include "item_manager.h"
-#include "party.h"
 #include "spell.h"
 #include "unit.h"
 
-#include "lib/crt.h"
-
-#include <cstring>
-#include <initializer_list>
-#include <memory>
-#include <new>
-#include <utility>
-
 namespace {
-
-void ReleaseAll(const std::vector<Item*>& list) {
-    for (int i = 0; i < std::ssize(list); ++i) list[i]->Release();
-}
 
 // A counted object the party owns: its count dropped and the object deleted, whatever the count, and the
 // pointer cleared.
@@ -39,35 +25,6 @@ void ReleaseItems(const std::vector<Item*>& items) {
 }
 
 } // namespace
-
-PartyUnitRecord& PartyUnitRecord::operator=(PartyUnitRecord&& from) noexcept {
-    if (this != &from) {
-        std::destroy_at(this);
-        std::construct_at(this, std::move(from));
-    }
-    return *this;
-}
-
-void PartyUnitRecord::ClearItems() {
-    ReleaseAll(weapons);
-    ReleaseAll(quickItems);
-    ReleaseAll(armor);
-    ReleaseAll(spells);
-    weapons.clear();
-    quickItems.clear();
-    armor.clear();
-    spells.clear();
-}
-
-// --- The managers and constructors a party makes ------------------------------------------------
-
-CSpellConstructor::CSpellConstructor() {
-    manager = nullptr;
-}
-
-CSpellManager::CSpellManager() {
-    maxSequenceKey = 0;
-}
 
 CParty::CParty() = default;
 

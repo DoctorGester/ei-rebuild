@@ -32,7 +32,7 @@ struct AnimationTrack : EngineObject {
     // The vtable: EngineObject's but for 0, 2, 3, 11 and 12.
     void Create() override;
     void Destroy() override;
-    const char* ClassName() override;   // "CAnimationTrack" (small_slots_500.cpp)
+    const char* ClassName() override;   // "CAnimationTrack" (map_object_animation.cpp)
     ClassId GetClassId() override;
 
     // The key frames from the model entry at *cursor (advanced past them): the rotations (a count, then that

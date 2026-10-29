@@ -238,6 +238,10 @@ CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const s
     return spell;
 }
 
+CSpellConstructor::CSpellConstructor() {
+    manager = nullptr;
+}
+
 CSpellConstructor::~CSpellConstructor() { CSpellConstructor::Destroy(); }
 
 const char* CSpellConstructor::ClassName() { return "CSpellConstructor"; }

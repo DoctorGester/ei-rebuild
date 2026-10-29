@@ -53,8 +53,8 @@ void CWorld::Destroy() {
 }
 
 // ---- The managers' own small virtuals -------------------------------------
-// ClassName / GetClassId and the destructors of the player manager, the effect manager and the item manager
-// (the item manager's folder name "items" is in world_class_slots.cpp). The deleting destructor adds the delete.
+// ClassName / GetClassId and the destructors of the player manager, the effect manager and the item manager. The deleting
+// destructor adds the delete.
 
 PlayerManager::PlayerManager() {}
 PlayerManager::~PlayerManager() {}
@@ -71,3 +71,5 @@ ItemManager::~ItemManager() {}
 const char* ItemManager::ClassName() { return kItemManagerName; }
 ClassId ItemManager::GetClassId() { return ClassId::ItemManager; }
 const char* ItemManager::GetFolderName() { return kItemsFolderName; }
+
+BaseManager* CWorld::FigureManager() { return figureManager; }

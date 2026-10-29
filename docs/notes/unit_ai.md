@@ -69,34 +69,34 @@ address in its source comment; the per-function table that used to be here is go
   SetOwner 005D5080.
 - `unit_ai_modes.cpp`: AIMode::Evaluate 005D0A80 (50), AIMode::Enter 005D0AF0 (random decay in [0.8, 1.2]), AIActionMode::Enter, Guard / Sentry Set / Execute,
   Patrol (LastPoint, Evaluate), Suspection (Evaluate 005D1E90, Execute, Enter, Leave), Aggression Evaluate (10000 with chosen = enemy,
-  or -1000) / Execute / Enter / Leave, CorpseWatcher Evaluate 005D27D0. `unit_ai_fear.cpp`: FearMode 005D2850-005D3680 (script UMFear /
+  or -1000) / Execute / Enter / Leave, CorpseWatcher Evaluate 005D27D0. `unit_ai_modes.cpp`: FearMode 005D2850-005D3680 (script UMFear /
   UMAg, alarm assembly; fields `distance`, `spread`, `shelter`, `fleePoint` (z 1 while a checked flight point is pending)),
-  AIBrain::ApplyAttack 005CF170 (Fear's fight-back). `unit_ai_player.cpp`: PlayerMode / FollowMode OnObjectDeleted, PlayerMode::Execute
+  AIBrain::ApplyAttack 005CF170 (Fear's fight-back). `unit_ai_modes.cpp`: PlayerMode / FollowMode OnObjectDeleted, PlayerMode::Execute
   (every tick for party units), CommandWalk, GoTo, Attack, Use, Cast, CastAt, PathClear, SetLeader (a leader chain back to the unit stops
   the unit's own Player mode following first), UpdateCombat 005D4170, AddPartyTargets 005D3F50, CollectParty 005D4600, StaysWithParty 005D4860.
-- `unit_ai_brain.cpp`: AddMode 005D5F60, RemoveModesOfType, ClearModes, Reset, Init, AIMemory::Reset 005CB0F0; the script's StandardGuard
+- `unit_ai.cpp`: AddMode 005D5F60, RemoveModesOfType, ClearModes, Reset, Init, AIMemory::Reset 005CB0F0; the script's StandardGuard
   005D6230 / StandardSentry 005D64E0 (exactly the five modes in order) with AddGuardMode, AddSuspectionMode, AddAggressionMode,
-  AddCorpseWatcherMode, AddFearMode, AddSentryMode (only those two call them); `unit_ai_alarm.cpp` ApplyBehaviour 005D6630,
+  AddCorpseWatcherMode, AddFearMode, AddSentryMode (only those two call them); `unit_ai.cpp` ApplyBehaviour 005D6630,
   SetAlarmRecords 005D6D20 (the .mob loader), the records' SetSize (every zone load, an alarm heard); heard calls: AIHeardCalls::Update
   005CC9D0 (each tick), AICallRecord::Destruct 00558D00, SetSize / Add on the template.
-- `unit_ai_memory.cpp` (`AIMemory`; Notice, Forget, Update, CanTrack and AIReports in `unit_ai_brain.cpp`): CallAllies
+- `unit_ai_senses.cpp` (`AIMemory`; Notice, Forget, Update, CanTrack and AIReports in `unit_ai.cpp`): CallAllies
   005D5990, Notice 005CBBE0 (Fear's Evaluate, spell effects), Forget, AIReports Report / Contains (+0x94), Update 005CB700
   (each Think), CanTrack 005CB7F0, FindEnemies 005CB260, FindEnemiesNear, NearestEnemy, ForceSee ("is
   forced to see unit"), AddCountedTail, MeasureExposure 005CB850 (each server tick: five exposure ratios into CUnit + 0x4C8), SeeCorpse
-  005CBE90 (OnDamaged). `unit_ai_sight.cpp`: AIViewer Update 005CAA00, Refresh, See, Prepare, MarkSightCells 005CD210 (the
-  show-visibility effect). `unit_ai_hearing.cpp`: AIViewer::Noise 005C98C0 (attacks, skills, explosions: hostile units within 50 whose
+  005CBE90 (OnDamaged). `unit_ai_senses.cpp`: AIViewer Update 005CAA00, Refresh, See, Prepare, MarkSightCells 005CD210 (the
+  show-visibility effect). `unit_ai_senses.cpp`: AIViewer::Noise 005C98C0 (attacks, skills, explosions: hostile units within 50 whose
   hearing x loudness reaches hear kind at the source's position), heard calls Hear 005CCD40 / AddClaim 005CCEA0 / RemoveClaims, the
   memory's HearCall / AddClaim 005CBBA0 / 005CBBC0.
-- `unit_ai_attention.cpp` / `unit_ai_targets.cpp`: AIBrain::CurrentAttack 005CF220, LookAround 005CFE40 (the original's `this` is the attention +0xA4 with the brain passed; ours are AIBrain members),
+- `unit_ai.cpp` / `unit_ai_targets.cpp`: AIBrain::CurrentAttack 005CF220, LookAround 005CFE40 (the original's `this` is the attention +0xA4 with the brain passed; ours are AIBrain members),
   AIBrain::Choose 005D0030, Score, IsUsable, AIOrder Clear / MakeAttack / MakeCast, CanReach 005CF3C0 (spell aimed at
   no object vs a large size-class-0 unit: no; else the order check from the unit, or from the end of a path search with the target
-  lifted). `unit_ai_options.cpp`: AIAttention::Build 005CEED0 (the option lists, when a unit's controller is set up (005535F0 / 00553610)
+  lifted). `unit_ai_targets.cpp`: AIAttention::Build 005CEED0 (the option lists, when a unit's controller is set up (005535F0 / 00553610)
   and by 005D6630), InitOption, AddWeaponOption / AddSpellOption, SpellKind (spell type -> kind table), AIAttackOption::Weight, SetSize,
-  Load / Save, LoadAttackOptions 005D9B80. `unit_ai_moves.cpp`: PlanLooks 005D5B40, FindStandPoint 005D7F80. `unit_ai_looks.cpp`:
+  Load / Save, LoadAttackOptions 005D9B80. `unit_ai_modes.cpp`: PlanLooks 005D5B40, FindStandPoint 005D7F80. `unit_ai_modes.cpp`:
   CArray<AILook> and the patrol point array (AppendPoint 005D12B0).
 - The modes' constructors, shutdowns (`Detach`), types and priorities (the original's 004BA1C0-004BA990, 005D0F90 / 005D2880
   clones, 00551E10-00552180 Player / Tamed slots) are in `unit_ai.h` and `unit_ai_modes.cpp`; the clones are gone (never
-  called). `unit_ai_save.cpp`: brain Load / Save 005D8310 / 005D8860 (`unit_ai.h` has the order), memory and looks load / save,
+  called). `unit_ai.cpp`: brain Load / Save 005D8310 / 005D8860 (`unit_ai.h` has the order), memory and looks load / save,
   `RefPtr::ShareAssign` (`core_refcount.cpp`); slots 11 / 12 are the modes' Load / Save (Guard, Sentry, Suspection, Fear; Save only:
   Follow, Aggression, Player).
 

@@ -27,7 +27,7 @@ the aligned array's SetSize replacing FootprintCellSet's own copy (a `std::vecto
   release).
 - **Part names in CollectFootprint** come from the server companion's string array (`MapObjectServer` +0x80) or the object's own, read as
   `std::vector<std::string>` members in `unit.h` and `map_object_figures.h`.
-- **The party in danger** (`PartyInDanger`, `unit_ai_player.cpp`) is `CPlayer::connection` -> `PlayerServer::danger == InDanger`.
+- **The party in danger** (`PartyInDanger`, `unit_ai_modes.cpp`) is `CPlayer::connection` -> `PlayerServer::danger == InDanger`.
   `CUnit::player` is still `char*` (`unit.h`).
 
 ## Left

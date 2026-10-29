@@ -179,11 +179,11 @@ here is gone. What it covered, by file:
 - AnimationSteps is a `std::vector<AnimationStep>` with `extra` (C14za); a default step is the blank step (0xFF, 0xFF, 0,
   padding 0, duration -1, kind 0). The original's by-value lists, copy-construct-then-free locals and queues assigned twice
   are plain copies and assignments.
-- Lifetime (`combat_lifetime.cpp`, every spawn): the constructors UnitServer 00545580, AIBrain 00545990 and the destructors
+- Lifetime (`combat.cpp`, every spawn): the constructors UnitServer 00545580, AIBrain 00545990 and the destructors
   AIMemory 00545CB0 (the brain's memory, + 0xD0), AIBrain 005457E0 (only from unwind funclets), AIPath 00546100 (from
   PlayerServer::OnUseOrder) are ours: default member initialisers (the values AIBrain::Init and AIMemory::Reset set) and
   the members' own destructors; the controller's constructor and destructor run ResetController, which empties the
-  brain (Init) and drops every reference. Destructors through 00546230 run at zone changes. `combat_server_slots.cpp`: UnitServer class name /
+  brain (Init) and drops every reference. Destructors through 00546230 run at zone changes. `combat.cpp`: UnitServer class name /
   id 005460C0 / 005460D0, DeletingDestruct 005460E0, MotionSlot, slot 16 / 17, slot 53 = UpdateMoveFactors 00552F30, the UnitAction /
   AnimationStep constructors. Player / tamed AI mode slots 00551E10-00552180 (`unit_ai.h`: priorities 10 /
   100000000, types 6 / 8).
@@ -248,7 +248,7 @@ here is gone. What it covered, by file:
 - Library (config/library.csv): containers, CArchive lists (00556E10-00558700), the AnimationSteps copies 0054B260 / 005483C0 /
   00556870 / 00556950, list constructors / destructors, MFC template functions in 0x5576C0-0x559000, and the EH-only helpers 005461E0 /
   00545FD0 (an order's target release), 00546200, 00556AA0, 00545B80, 005576B0 (an STLport count decrement). 0054B220 (WorldTick, 4 bytes,
-  not hookable) is called only by the rewritten 0054A900. The small records (`combat_small_records.cpp`) cover MotionSegmentInit
+  not hookable) is called only by the rewritten 0054A900. The small records (`combat.cpp`) cover MotionSegmentInit
   0054E5D0, PathConstructSteps 0054EAC0 (PlanOrderRoute, the AI's test paths), ArmourSpell::Assign 00558840 and the counted
   reference / call record deleting destructors 00558CA0 / 00558CC0. Nothing else in 0x00540000-0x00560000 is unported except
   0055E1B0-0055FF90's small slots (world.md).

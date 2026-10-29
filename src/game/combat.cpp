@@ -1,35 +1,47 @@
 // Combat: UnitServer's weapon and spell queries, the attack hit (damage calculation), the attack
-// roll and hit resolution. See combat.h and docs/notes/combat.md.
+// roll and hit resolution; the controller's lifetime, its reactions to other objects and its
+// statistics. See combat.h and docs/notes/combat.md.
 #include "combat.h"
-#include "console.h"
-#include "options.h"
-#include "combat_internal.h"
 
+#include "ai_map.h"
+#include "combat_internal.h"
+#include "combat_plan.h"
+#include "console.h"
+#include "core_refcount.h"
+#include "ei/rebirth.h"
+#include "ei/x87.h"
+#include "game_data.h"
+#include "game_singletons.h"
 #include "item.h"
 #include "item_db.h"
+#include "lib/bytes.h"
+#include "lib/crt.h"
+#include "lib/float_select.h"
+#include "lib/nan_audit.h"
+#include "logic_settings.h"
 #include "map_object.h"
-#include "object_tables.h"
+#include "map_object_figures.h"
 #include "object_diplomacy.h"
+#include "object_tables.h"
+#include "options.h"
 #include "player_messages.h"
 #include "random.h"
+#include "sector_map.h"
 #include "spell.h"
+#include "ui.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
 
-#include "lib/bytes.h"
-#include "lib/crt.h"
-
-#include "ei/rebirth.h"
-#include "ei/x87.h"
-#include "game_data.h"
-#include "lib/nan_audit.h"
-#include "logic_settings.h"
-#include "lib/float_select.h"
-
 #include <bit>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
+#include <format>
+#include <list>
+#include <string>
 
 // Values the original keeps unrounded are double locals, values it stores (to memory) are float
 // locals.
@@ -654,4 +666,209 @@ void UnitServer::UpdateMoveFactors() {
     else if (speed > kPointThree) speedClass = 3;
     else if (speed > kSpeedSlow) speedClass = 7;
     else speedClass = 15;
+}
+
+namespace {
+const char* const kServerName = "CUnitServer";
+constexpr float kNoRange = 1e38f;
+static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
+} // namespace
+
+// --- UnitServer's lifetime, class name and id -----------------------------------------------------
+
+UnitServer::UnitServer() { ResetController(); }
+
+// ResetController empties the brain (Init) and releases every reference the controller holds.
+UnitServer::~UnitServer() { ResetController(); }
+
+const char* UnitServer::ClassName() { return kServerName; }
+ClassId UnitServer::GetClassId() { return ClassId::UnitServer; }
+
+void UnitServer::MoveFactorsChanged() { UpdateMoveFactors(); }
+
+// --- OrderPlan ----------------------------------------------------------------------------------
+
+void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
+    targetId = -1;
+    startTime = start;
+    hitLocation = 1;
+    rangeSq = kNoRange;
+    isCast = 0;
+    notSkill = 0;
+    castKind = 8;
+    endTime = start + duration;
+    animation = std::move(steps);
+}
+
+// --- Other objects and the unit's own setup: hostility claims, taking up a weapon, an object being deleted,
+// settling the unit again.
+
+namespace {
+constexpr int kCallClaim = 0x1E;        // the kind of the AI memory's call for a claim
+constexpr int kPartWeapons = 6;         // CUnit::MarkChanged part
+
+
+// The weapon's condition (Item +0x20, a float) rounded to nearest is above 0.
+bool Usable(const Item* weapon) { return weapon && x87::RoundToInt(weapon->condition) > 0; }
+} // namespace
+
+void UnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
+    claimedHostile |= mask;
+    std::string text;
+    for (int player = 0; player < 32; ++player) {
+        if (!(mask & (1u << player))) continue;
+        std::string piece;
+        piece = std::format("Unit {} claims that player {} are enemies! ", claimant->id, player);
+        text += piece;
+    }
+    brain.memory.AddClaim(mask, kCallClaim, text);
+}
+
+bool UnitServer::TakeUpWeapon(int slot) {
+    auto* weapon = unit->GetWeapon(static_cast<std::uint32_t>(slot));
+    int taken = Usable(weapon) ? slot : -1;
+    unit->MarkChanged(kPartWeapons);
+    unit->activeWeapon = static_cast<std::uint32_t>(taken);
+    unit->pendingWeapon = taken;
+    if (unit->player) brain.attention.Build(unit);
+    RefreshItemSpells();
+    return Usable(weapon);
+}
+
+void UnitServer::OnObjectDeleted(EngineObject* object) {
+    if (!object) return;
+    if (action.target == object) {
+        action.Reset();
+        if (action2.kind == UnitOrderKind::None) Idle();
+    }
+    if (action2.target == object && action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote)
+        DropQueuedOrder();
+    if (currentPlan.targetId == object->id) EndOrder(0);
+    brain.OnObjectDeleted(object);
+    if (followedLeader == object) {
+        followsLeader = 0;
+        followedLeader.Reset();
+    }
+}
+
+void UnitServer::Resettle() {
+    if (unit->IsDead()) return;
+    auto* world = ServerWorld();
+    world->aiMap.sectorMap.Remove(unit);
+    unit->Object3D()->SetUpAnimatedFigure(unit->name);
+    unit->UpdateSizeClasses();
+    unit->UpdateSizeClass();
+    AIMap* map = &world->aiMap;
+    if (!map->CanLeaveCell(unit)) {
+        auto* position = &unit->localPosition;
+        Vector3 spot;
+        spot = *position;
+        if (map->FindFreeCellNear(unit, *position, &spot)) {
+            *position = spot;
+        } else {
+            DamageInfo hit;
+            ResetDamageInfo(&hit);
+            TakeHit(&hit, nullptr, nullptr);
+            g_serverWorld.aiMap.sectorMap.Add(unit);
+            return;
+        }
+    }
+    g_serverWorld.aiMap.sectorMap.Add(unit);
+}
+
+void UnitServer::Create() {
+    ResetController();
+    brain.SetOwner(this);
+}
+
+void UnitServer::ClearState() { ResetController(); }
+
+void UnitServer::Destroy() { ResetController(); }
+
+int UnitServer::TamingStage() { return tameStage; }
+
+// --- Statistics: the vitals and the protection recomputed, the statistics repacked, the armour layers, the
+// equipment's AI options, experience.
+
+namespace {
+// The defence factor of units without a player, per difficulty (options::g_options.difficulty).
+inline const float* DefenceFactors() { return g_logicSettings.defence; }
+
+UnitVitals& VitalsOf(CUnit* unit) { return unit->ServerCompanion()->vitals; }
+
+
+} // namespace
+
+void UnitServer::RefreshVitals(bool withHitPoints) {
+    int now = WorldContext()->tick;
+    float oldRate = stats.rate;
+    if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
+    stats.Recompute(&VitalsOf(unit), unit);
+    if (nextAttackTime > now) {
+        float scaled = static_cast<float>(static_cast<double>(nextAttackTime - now) * oldRate / stats.rate);
+        nextAttackTime = x87::RoundToInt(scaled) + now;
+    }
+    unit->MarkChanged(0);
+}
+
+void UnitServer::UpdateProtection() {
+    stats.PackBodyProtection(unit, &VitalsOf(unit), &protection);
+    float factor = unit->player ? 1.0f : DefenceFactors()[options::g_options.difficulty];
+    ItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
+    if (unit->player && weapon) {
+        double bonus = stats.WeaponSkillBonus(weapon->GetType(), unit);
+        protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(bonus * factor));
+    } else {
+        protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(static_cast<double>(factor) * stats.combat[UnitStats::kDefence]));
+    }
+}
+
+void UnitServer::RepackStats() {
+    std::uint8_t speedsBefore[sizeof(unit->params.modeSpeeds)];
+    std::memcpy(speedsBefore, unit->params.modeSpeeds, sizeof(speedsBefore));
+    stats.Pack(&unit->params);
+    stats.flags = 0;
+    UpdateProtection();
+    unit->MarkChanged(4);
+    if (std::memcmp(speedsBefore, unit->params.modeSpeeds, sizeof(speedsBefore)) != 0) motionChanged = 1;
+}
+
+bool UnitServer::ArmourPutOn(std::uint32_t key) {
+    // A key out of range gives no record; the original then faults reading its type, as this does.
+    auto* record = itemdb::ArmorAt(key >> 16);
+    stats.AddArmourLayer(unit->armor[record->type]);
+    return false;
+}
+
+bool UnitServer::RebuildArmourLayers() {
+    stats.RebuildArmourLayers(unit);
+    return true;
+}
+
+int UnitServer::ClearOuterArmourLayers() { return stats.ClearOuterLayers(); }
+
+void UnitServer::RefreshEquipment() {
+    RefreshItemSpells();
+    brain.attention.Build(unit);
+}
+
+void UnitServer::HostileMaskChanged() {
+    claimedHostile = 0;
+    brain.memory.calls.RemoveClaims();
+}
+
+void UnitServer::CopyStats(UnitStats* out) { std::memcpy(out, &stats, sizeof(UnitStats)); }
+
+void UnitServer::AddExperience(float amount) {
+    stats.GainExperience(unit, amount);
+    RefreshVitals(false);
+}
+
+// --- The armour spell record ---------------------------------------------------------------------
+
+ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {
+    item.Assign(other->item);
+    countdown = other->countdown;
+    worn = other->worn;
+    return this;
 }

@@ -14,3 +14,8 @@ void UiItemPanel::LeftDown(int, int x, int y) {
     }
     if (topic) owner->TopicClicked(topic);
 }
+
+Item* UiItemPanel::ItemAt(int, int, int* topic) {
+    *topic = 0;
+    return nullptr;
+}

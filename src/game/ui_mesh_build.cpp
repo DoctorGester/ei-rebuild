@@ -304,3 +304,5 @@ void UiMesh::Ring(float depth, float scale, float x, float y, float outerRadius,
 }
 
 void UiMesh::ResetColours() { ResetVertexColours(this); }
+
+void UiMesh::SetScaleYBits(std::uint32_t bits) { scaleMatrix.m[5] = std::bit_cast<float>(bits); }

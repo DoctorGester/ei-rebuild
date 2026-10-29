@@ -2,32 +2,32 @@
 // unit_client_models.h and docs/notes/units.md ("Creation, databases, save").
 #include "unit_client_models.h"
 
+#include "ai_map.h"
+#include "effects.h"
+#include "ei/x87.h"
 #include "figure_manager.h"
 #include "game_singletons.h"
 #include "item.h"
 #include "item_db.h"
 #include "item_names.h"
+#include "lib/containers.h"
+#include "lib/crt.h"
+#include "lib/nan_audit.h"
+#include "lib/str.h"
 #include "map_object_figures.h"
 #include "resource.h"
 #include "texture.h"
 #include "unit.h"
 #include "unit_db.h"
 
-#include "lib/containers.h"
-#include "lib/crt.h"
-#include "lib/nan_audit.h"
-#include "lib/str.h"
-
-#include "ei/x87.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <format>
 #include <new>
 #include <string>
 #include <vector>
-#include <format>
 
 namespace {
 
@@ -410,4 +410,89 @@ void* UnitClientSpecific::ComposeSkin(int detailed, void* target) {
         lib::FreeStorage(request.layers);
     }
     return result;
+}
+
+// --- The client controller's Create and Destroy ----------------------------------------------------
+
+namespace {
+constexpr int kNone = -1;
+constexpr std::uint32_t kNoModel = 0xFFFFFFFFu;
+constexpr int kDressedArmourSlots = 3;   // body, trousers, helmet
+
+// Takes the face texture and releases it.
+void ReleaseFace(UnitClientSpecific* self) {
+    self->faceTexture.Reset();
+}
+} // namespace
+
+void UnitClientSpecific::Create() {
+    sources[0] = nullptr;
+    sources[1] = nullptr;
+    sources[2] = nullptr;
+    lastTime = 0.0f;
+    motion.Reset();
+    lastAnimationTime = 0.0f;
+    lastAnimation = nullptr;
+    weaponHidden = 0;
+    arrowHidden = 0;
+    snapHeading = 1;
+    fadeIn = 1.0f;
+    idleSound = kNone;
+    otherSound = kNone;
+    speechSound = kNone;
+    lastSpeech = nullptr;
+    lastSpeechTime = 0;
+    flashCountdown = 0;
+    footprintRepeats = kNone;
+    footprint = kNone;
+    blinks = 0;
+    blinkTimer = 0;
+    eyesClosed = 0;
+    for (std::uint32_t& armourId : armourIds) armourId = kNoModel;
+    for (std::uint32_t& weaponId : weaponIds) weaponId = kNoModel;
+    ReleaseFace(this);
+    blinks = 0;
+}
+
+void UnitClientSpecific::Destroy() {
+    for (ParticleSource*& source : sources) {
+        if (!source) continue;
+        source->Stop();
+        source->Release();
+        source = nullptr;
+    }
+    ReleaseFace(this);
+    blinks = 0;
+}
+
+UnitClientSpecific::~UnitClientSpecific() {
+    for (ParticleSource*& source : sources) {
+        if (!source) continue;
+        source->Stop();
+        source->Release();
+        source = nullptr;
+    }
+    ReleaseFace(this);   // with null; the release test after it finds null
+    blinks = 0;
+    motion.steps.clear();
+}
+
+UnitClientSpecific::UnitClientSpecific() {
+    fadeIn = 1.0f;
+}
+
+// --- Worn armour ------------------------------------------------------------------------------------
+
+// The game's function reads armourIds[3..6] (+0xAC..+0xB8), the slots after the three dressed ones, not
+// weaponIds: the name is provisional. Found when zone bz1g's units mismatched.
+bool UnitClientSpecific::HasOtherArmour() {
+    for (int slot = 3; slot < 7; ++slot)
+        if (armourIds[slot] != kNoModel) return true;
+    return false;
+}
+
+bool UnitClientSpecific::HasMainArmour() {
+    for (int slot = 0; slot < kDressedArmourSlots; ++slot)
+        if (armourIds[slot] != kNoModel) return true;
+    return false;
 }

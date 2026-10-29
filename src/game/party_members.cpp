@@ -22,7 +22,9 @@
 #include <cstddef>
 #include <cstring>
 #include <initializer_list>
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -39,6 +41,10 @@ Item* CountedClone(Item* item) {
 
 void Drop(Item* item) {
     if (item) item->Release();
+}
+
+void ReleaseAll(const std::vector<Item*>& list) {
+    for (int i = 0; i < std::ssize(list); ++i) list[i]->Release();
 }
 
 
@@ -190,4 +196,25 @@ void CParty::OpenEdgeExits() {
         EI_NAN_AUDIT(value);
         if (value == 0.0f) currentVariables.Set(variable, kOpened);
     }
+}
+
+// --- The record's move assignment and item clear ---------------------------------------------------
+
+PartyUnitRecord& PartyUnitRecord::operator=(PartyUnitRecord&& from) noexcept {
+    if (this != &from) {
+        std::destroy_at(this);
+        std::construct_at(this, std::move(from));
+    }
+    return *this;
+}
+
+void PartyUnitRecord::ClearItems() {
+    ReleaseAll(weapons);
+    ReleaseAll(quickItems);
+    ReleaseAll(armor);
+    ReleaseAll(spells);
+    weapons.clear();
+    quickItems.clear();
+    armor.clear();
+    spells.clear();
 }

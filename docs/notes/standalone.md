@@ -639,7 +639,7 @@ kinds given.
         since C50c1), the party manager 007AA5A0, saved parties 007C82A0, the spell footprint set 007C8478, the party id set 007C8370
         and the unread set 007AB8D8. C18k5 (1,717 -> 1,651 game data addresses) named the last four without a vtable: the options
         0079BC70 (options_construct.cpp: the vector replay links it with its constructor), GameFlow 007AFE20 (world_game.cpp), Cursor 007C7BD8 (ui_cursor_setup.cpp) and Interface3D 007C7D50
-        (ui_small_members.cpp). Their raw reads became members: the options' 80 reads (camera speeds, shadows, prints,
+        (ui_interface_glue.cpp). Their raw reads became members: the options' 80 reads (camera speeds, shadows, prints,
         volumes, difficulty, paths, master server ...), the mouse position and drag motion (Cursor::position /
         motion: 007C7C50 and 007C7C60 were lone ints before C18k5 named the cursor), the interface's window stack
         (007C7D84 was misnamed PeerList), close-all and sessions flags. The objects whose header only forward-declares
@@ -790,7 +790,7 @@ kinds given.
       cells 007AF284 / 007C2EB8 / 007AF3E8 / 007C53C4 / 007C54E8 are unread data (REVIEWED_READ: only the original's
       ported code read them).
     - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the camera 0079B2A8, the scene renderer 007AF060
-      (renderer_lifetime.cpp; both plain since C50b2, initialisers 0040C880 / 00500930 unused: the renderer's destructor only
+      (renderer_scene.cpp; both plain since C50b2, initialisers 0040C880 / 00500930 unused: the renderer's destructor only
       drops counts, ShutDown's DestroyRenderer has released the device by then, and the device object's destructor makes no
       device or window call) and the received messages 007C83D0 (with its destroyed flag 007C83C8) were `lib::StaticObject` with their
       initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
@@ -905,7 +905,7 @@ destructor, the slot bodies the virtual overrides (base calls qualified), class 
   Construct / Destruct bodies build it is a `lib::InPlace<X>` member (PartyStorage, party_storage.h); a local is a
   plain `X x;`.
 - A constructor or destructor whose address is still called (an EI_ORIGINAL forwarder, C29) keeps a registered
-  `__fastcall` shim that calls it (party_lifetime.cpp's DestroyPartyInPlace at 006611D0).
+  `__fastcall` shim that calls it (party.cpp's DestroyPartyInPlace at 006611D0).
 - check_signatures accepts a destructor named by an EI_RECORD whose original pops 4 more (the scalar deleting
   destructor's flags argument).
 - Members must be trivially default-constructible or initialised in the constructor's list as the original does: a
@@ -1568,7 +1568,7 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
   sites and the files' own `WriteText` helpers), every text it reads through `ByteStream::ReadString` / `ReadInto`
   (to UTF-8) or `ReadText` (to UTF-8, cut to its buffer at a character's end). Chunk's `WriteString` /
   `WriteStringArray` convert as its `ReadString` does. So a save written by the image is byte-identical to
-  vanilla's (the top panel's text, `ui_battle_slots.cpp`, and the save's title were the two that differed under the
+  vanilla's (the top panel's text, `ui_battle_setup.cpp`, and the save's title were the two that differed under the
   old switch), and a Cyrillic title typed outside 1251 comes back with '?' for those characters. What a stream
   writes as fixed-size bytes (`EffectSound`'s 256-byte name) stays bytes: those are ASCII file names.
 - **Network**: the same streams carry the world's messages (the deltas' `WriteStringBoth` / `ReadString`, the

@@ -126,3 +126,9 @@ void HeroStatsPanel::LeftDown(int, int x, int y) {
         owner->NextHero();
     }
 }
+
+void HeroStatsPanel::LeftUp(int, int, int) {
+    ui->mouseCapture = nullptr;
+    heldRegion = -1;
+    holdTime = 0.0f;
+}

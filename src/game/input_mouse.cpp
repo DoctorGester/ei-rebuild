@@ -127,3 +127,11 @@ const LONG* DirectInputMouse::Poll() {
     if (device->GetDeviceState(sizeof(state), state) < 0) std::memset(state, 0, sizeof(state));
     return state;
 }
+
+// Run when the application drops the mouse at exit.
+DirectInputMouse::~DirectInputMouse() {
+    Shutdown();
+    // The two counted pointers' own destructors (Shutdown has cleared both).
+    if (device) device->Release();
+    if (input) input->Release();
+}

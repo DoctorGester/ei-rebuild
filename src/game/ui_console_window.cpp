@@ -340,3 +340,7 @@ void ConsoleWindow::DrawInput() {
 }
 
 } // namespace console
+
+void console::ConsoleWindow::Blit() {
+    if (surface) surface->Blit();
+}

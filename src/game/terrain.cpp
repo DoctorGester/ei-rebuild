@@ -133,3 +133,12 @@ int Terrain::SurfaceClass(float x, float y) {
 }
 
 } // namespace terrain
+
+// --- Class name and id ------------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kTerrainClassName = "CTerrain";
+} // namespace
+
+const char* terrain::Terrain::ClassName() { return kTerrainClassName; }
+ClassId terrain::Terrain::GetClassId() { return ClassId::Terrain; }

@@ -122,3 +122,15 @@ void Interface3D::ShowStatusText(std::string_view text) {
     }
     statusSurface = nullptr;
 }
+
+// --- The interface manager and its chat keys ---------------------------------------------------------
+
+Interface3D g_interface;
+
+void Interface3D::ChatKeyEnter() {
+    if (!root->chatOpen) root->SetOpen(true);
+}
+
+void Interface3D::ChatKeyBackspace() {
+    if (!root->chatOpen) root->ClearLines();
+}

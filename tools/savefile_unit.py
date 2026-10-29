@@ -180,7 +180,7 @@ def read_damage_info(r, name):
         r.raw('pad39', 3)   # zeroed with the record by ResetController (memset); the builders write fields
 
 
-# ---- the AI brain (AIBrain::Save 005D8860, unit_ai_brain.cpp) --------------------------------------------
+# ---- the AI brain (AIBrain::Save 005D8860, unit_ai.cpp) --------------------------------------------
 
 def read_look(r, name):
     with r.scope(name):
@@ -244,7 +244,7 @@ def read_id_list(r, name):
 
 
 def read_memory(r):
-    """AIMemory::Save (005CC350, unit_ai_save.cpp): the perception memory."""
+    """AIMemory::Save (005CC350, unit_ai.cpp): the perception memory."""
     with r.scope('memory'):
         read_id_list(r, 'nearby')
         read_id_list(r, 'visible')
@@ -297,7 +297,7 @@ def read_behaviour(r, name):
 
 
 def read_attack_option(r, name):
-    """AIAttackOption::Save (005CE920, unit_ai_options.cpp)."""
+    """AIAttackOption::Save (005CE920, unit_ai_targets.cpp)."""
     with r.scope(name):
         r.i32('kind')
         r.i32('part')
@@ -311,7 +311,7 @@ def read_attack_option(r, name):
 
 
 def read_brain(r):
-    """AIBrain::Save (005D8860, unit_ai_brain.cpp)."""
+    """AIBrain::Save (005D8860, unit_ai.cpp)."""
     with r.scope('brain'):
         r.i32('action')
         r.vec('actionPoint')

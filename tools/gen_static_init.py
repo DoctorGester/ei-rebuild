@@ -785,12 +785,12 @@ UNUSED_INITIALISERS = {
     0x00458700: "the options 0079BC70 (exit function 00458720): options_construct.cpp's g_options",
     # C50b2: the camera and the scene renderer are plain globals of ours.
     0x0040C880: "the camera 0079B2A8 (exit function 0040C8A0): camera_object.cpp's g_camera",
-    0x00500930: "the scene renderer 007AF060 (exit function 00500950): renderer_lifetime.cpp's g_sceneRenderer",
+    0x00500930: "the scene renderer 007AF060 (exit function 00500950): renderer_scene.cpp's g_sceneRenderer",
     # C50b1: the worlds are plain globals of ours (GameMain registers EmptyWorlds for the exit order).
     0x00560620: "the client world 007AF5B8 (exit function 00560640): world_construct.cpp's g_clientWorld",
     0x00589BE0: "the server world 007AFF60 (exit function 00589C00): world_construct.cpp's g_serverWorld",
     # C54g1: the party manager, the flow, the save stream and the saved parties are plain globals of ours.
-    0x004A56D0: "the party manager 007AA5A0 (exit function 004A56F0): app_lifetime.cpp's g_partyManager",
+    0x004A56D0: "the party manager 007AA5A0 (exit function 004A56F0): party_manager.cpp's g_partyManager",
     0x00578440: "the flow 007AFE20 (exit function 005784C0): world_game.cpp's g_gameFlow",
     0x00578530: "the save stream 007AFDF8 (exit function 00578550): world_game.cpp's g_saveStream",
     0x0065F2A0: "the saved parties 007C82A0 (exit function 0065F2C0): party_file.cpp's g_savedParties",
@@ -806,7 +806,7 @@ UNUSED_INITIALISERS = {
     0x006D7080: "the speeches database 007C8A60 (exit function 006D70A0): database_globals.cpp's g_ackDatabase",
     # C54g: the cursor and the interface manager are plain globals of ours.
     0x005E4DD0: "the cursor 007C7BD8 (exit function 005E4DF0): ui_cursor_setup.cpp's g_cursor",
-    0x005F4680: "the interface manager 007C7D50 (exit function 005F4780): ui_small_members.cpp's g_interface",
+    0x005F4680: "the interface manager 007C7D50 (exit function 005F4780): ui_interface_glue.cpp's g_interface",
     # C50a: plain globals of ours (constructed and destroyed by the C++ runtime) in place of the static objects.
     0x005B31C0: "the unit shape cache 007C2F70 (exit function 005B31E0): ai_movement.cpp's g_unitShapes",
     0x005BF810: "the sector spiral's offsets 007C2FF8 (exit function 005BF830): sector_spiral.cpp's g_spiralOffsets",

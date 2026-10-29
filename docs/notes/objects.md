@@ -278,7 +278,7 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   the list), 00458570 (hash_map registration): mapped, not rewritten.
 
 
-## A-E1: small slots (class_slots.cpp)
+## A-E1: small slots (lightning.cpp, unit.cpp, map_object.cpp)
 
 `__fastcall` shims on the slots' addresses, as object.cpp's getters:
 
@@ -292,14 +292,14 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
 - Checks: the names, ids, Hoover's Create and the forward speed side by side; the rest ours only (they free,
   create or make one call that must not run twice). All are reached through vtables; which scenarios call them
   was not established (no run).
-- Three more (class_slots.cpp): 004467C0 (slot 47 of the unit and nine other map object
+- Three more (map_object.cpp, unit.cpp): 004467C0 (slot 47 of the unit and nine other map object
   classes, RET 4: the mode handed to the companion's slot 19, `SetLightMode`; EAX passed on), 00446810 (the
   unit's slot 58: a tail jump to the controller's slot 31, `RefreshWounds`, now declared with its int result)
   and 00446870 (slot 57: a tail jump to the controller's slot 53, declared as `MoveFactorsChanged`; the
   server's is 00552F30). `MapObjectCompanion` gained slots 18 and 19. Ours only (one virtual call each). By
   reading, not run: slot 58 is called when a unit's hit points change in a state update and slot 47 by the
   vision update, so the combat scenarios should reach both; no caller of slot 57 is known.
-- Item's base slots (vtables 00743DA4 and 0073C474; class_slots.cpp): 17-20 are four identical copies
+- Item's base slots (vtables 00743DA4 and 0073C474): 17-20 are four identical copies
   (00462300, 00462330, 00462360, 00462390) returning an empty text, 21 (004623C0) zeroes the caller's ItemUse;
   every class but the quest item keeps slot 21. Side by side (the original into the caller's result, ours into
   a local). Slot 16 (004622F0) is four bytes.

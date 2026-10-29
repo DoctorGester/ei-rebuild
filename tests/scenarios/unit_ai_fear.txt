@@ -1,4 +1,4 @@
-# Fear mode (src/game/unit_ai_fear.cpp): a wolf with only a Fear mode (flag 1) next to a hostile
+# Fear mode (src/game/unit_ai_modes.cpp): a wolf with only a Fear mode (flag 1) next to a hostile
 # wolf runs from it (FearMode::Evaluate 3000 while it sees an enemy, FearMode::Execute, ApplyAttack
 # when it fights back). Every zone1 unit with the standard Guard / Sentry set evaluates Fear too.
 reject Script error

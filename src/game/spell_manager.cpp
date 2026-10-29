@@ -77,6 +77,10 @@ void CSpellManager::Destroy() {
     ResourceManager::Destroy();
 }
 
+CSpellManager::CSpellManager() {
+    maxSequenceKey = 0;
+}
+
 CSpellManager::~CSpellManager() {
     for (auto& [key, sequence] : sequences) {
         if (!sequence) break;

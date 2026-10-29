@@ -83,3 +83,12 @@ int ClientArrayManager::Draw(SceneRenderer* renderer) {
     for (EngineObject* fog : list) static_cast<VisibilityFog*>(fog)->Draw(renderer);   // its result not read
     return 1;
 }
+
+// --- Class name and id ------------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kClientArrayManagerClassName = "CVisFogManager";
+} // namespace
+
+const char* ClientArrayManager::ClassName() { return kClientArrayManagerClassName; }
+ClassId ClientArrayManager::GetClassId() { return ClassId::ClientArrayManager; }

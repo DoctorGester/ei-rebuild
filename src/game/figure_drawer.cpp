@@ -2,7 +2,6 @@
 // constructor, destructor bodies and the create / destroy virtuals. See link_figure.h.
 #include "engine_object.h"
 #include "link_figure.h"
-#include "world_class_slots.h"   // FigureClientSpecificClassName / ClassId
 
 #include "lib/crt.h"
 
@@ -61,5 +60,5 @@ void FigureMeshDrawer::DestroyDrawer() {
 
 void FigureMeshDrawer::Create() { flags = 0; }
 void FigureMeshDrawer::Destroy() { DestroyDrawer(); }
-const char* FigureMeshDrawer::ClassName() { return FigureClientSpecificClassName(this); }
+const char* FigureMeshDrawer::ClassName() { return "CFigureClientSpecific"; }
 ClassId FigureMeshDrawer::GetClassId() { return ClassId::FigureMeshDrawer; }

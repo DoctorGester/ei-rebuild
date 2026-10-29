@@ -6,14 +6,14 @@
 #include "core_maths.h"
 #include "figure_manager.h"
 #include "figure_mesh.h"
+#include "lib/str.h"
 #include "map_object_animation.h"
 #include "map_object_figures.h"
 #include "world.h"
 
-#include "lib/str.h"
-
 #include <cstdint>
 #include <cstring>
+#include <new>
 #include <string>
 #include <vector>
 
@@ -269,3 +269,65 @@ int FigureAnimationState::LoadBoneTracks(MappedResource* part, const FigureAnima
     }
     return 1;
 }
+
+// --- The bone's lifetime (class 0x300C, 0xA0 bytes; FigureBone in map_object_figures.h). The figure
+// factory makes bones; the animation state links them.
+
+namespace {
+
+// The mesh is a counted engine object (its release virtual).
+void ReleaseMesh(FigureMesh* mesh) { mesh->Release(); }
+
+} // namespace
+
+// The names are members (empty strings before the body).
+FigureBone::FigureBone() {
+    rotation = {1.0f, 0.0f, 0.0f, 0.0f};
+    CreateBone();
+}
+
+void FigureBone::CreateBone() {
+    // The original assigns "none" to all three names, not an empty string.
+    name = "none";
+    name2 = "none";
+    name3 = "none";
+    parent = nullptr;
+    children.clear();
+    mesh = nullptr;
+    pose = nullptr;
+    animator = nullptr;
+    position = kTrackDefaultPosition;
+    rotation = kTrackDefaultRotation;
+    matrices.clear();
+    morphS = 0.0f;
+    morphT = 0.0f;
+    morphU = 0.0f;
+}
+
+void FigureBone::DestroyBone() {
+    FigureMesh* placed = mesh;
+    mesh = nullptr;
+    if (placed) ReleaseMesh(placed);
+    pose = nullptr;
+    if (animator) animator->Release();
+    animator = nullptr;
+    CreateBone();
+}
+
+// The names go after the body (name3, name2, name), then the engine object's part.
+FigureBone::~FigureBone() {
+    DestroyBone();   // its reset empties the matrices here, the same SetSize
+    // The child list's destructor: its vtable, emptied again.
+    children.clear();
+}
+
+void FigureBone::Create() { CreateBone(); }
+void FigureBone::Destroy() { DestroyBone(); }
+
+namespace {
+constexpr const char* kBoneClassName = "CAnimationNode";
+} // namespace
+
+const char* FigureBone::GetName() { return name.c_str(); }
+const char* FigureBone::ClassName() { return kBoneClassName; }
+ClassId FigureBone::GetClassId() { return ClassId::FigureBone; }

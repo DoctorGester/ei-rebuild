@@ -165,3 +165,12 @@ std::string TextManager::FormatItemName(Item* item) {
     if (static_cast<int>(item->count) > 1) return str::Format(GetString("format_item2"), texts.kind, texts.name, item->count);
     return str::Format(GetString("format_item1"), texts.kind, texts.name);
 }
+
+// --- Class name and id ------------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kTextManagerClassName = "CTextManager";
+} // namespace
+
+const char* TextManager::ClassName() { return kTextManagerClassName; }
+ClassId TextManager::GetClassId() { return ClassId::TextManager; }

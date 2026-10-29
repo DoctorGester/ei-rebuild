@@ -538,3 +538,11 @@ void DeltaState::Finish() {
     mode = kIdle;
     reader = nullptr;
 }
+
+// --- The state's lifetime --------------------------------------------------------------------------
+
+DeltaState::DeltaState() { Reset(); }
+
+DeltaState::~DeltaState() = default;
+
+void DeltaState::SetFieldCount(int count) { fields.resize(count); }

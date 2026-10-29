@@ -264,7 +264,7 @@ lists 0069908x-006992xx with the sold records; cost off except page 1), `Deconst
 modifier), `DeconstructItem` ("Instruction Weapon / Armor / Quick Item", "material.<key>" built with one
 operator+ instead of two, a "spell container" through 00613820 instead of the inlined map insert) (`ui_camp_deals.cpp`); `PutOn`,
 `TakeOff`, `TakeItem` (42, RET 8), `PutOnFromStrip` (RET 4), `Update` (turn via `_CIfmod`), `BestPartySkill` (45, P),
-`TopicClicked` (44). Constructor slots `SpellMakerPage::ItemAt` / `ConstructorPage::ItemAt` (`ui_constructor_slots.cpp`; pages 3 and 5).
+`TopicClicked` (44). Constructor slots `SpellMakerPage::ItemAt` / `ConstructorPage::ItemAt` (`ui_hero_panels.cpp`; pages 3 and 5).
 
 Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `ui_stats_rows.cpp`, `ui_equip_panels.cpp`,
 `ui_panel_draws.cpp`, `ui_hero_panels.cpp`, `ui_trade_panel*.cpp`, `ui_item_strip*.cpp`):
@@ -391,7 +391,7 @@ and so are the rewritten ones with wrappers (00637DC0, 006379E0, 00637190, 00637
 
 Entry points: `BattleScreen::Update` (00638280, every frame, O) and `RefreshSelection` (00637DC0); the panels' `SetUnit`s
 (S); `MouseMove` (00639D60 S), `UnitName` (0063B920, RET 8), `LeftUp` / `LeftDown` (O; ui_hud, world_client,
-ui_describe); the message slots in `ui_battle_slots.cpp` (`SaveState` 40 S through a recorder, `CloseScreen` 26,
+ui_describe); the message slots in `ui_battle_setup.cpp` (`SaveState` 40 S through a recorder, `CloseScreen` 26,
 `ReadyToStopPolling` 35 AL, `ItemsPicked` 28, `UnitLeft` 30, `UnitJoined` 29: placed by the local player's record order, selected by the record's
 +0x778, `MessageResult` 27, `GameOver` 31; 27 / 28 / 30 / 31 not reached by a scenario); orders `OrderAt` (RET 0x14),
 `ToggleMember` (RET 4), `AttackUnit`, `OrderDeadUnit` (RET 8), `UseOnUnit` (RET 0xC), `UseAtPoint` (RET 0x14); `Speech` (32),

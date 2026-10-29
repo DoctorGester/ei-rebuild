@@ -250,8 +250,8 @@ be here are gone. Where things live: `world_server.cpp` (lookups, setters, objec
 (server Setup / Teardown, slots 2 / 3; `hoover` +0x140 is a Hoover), `world_update.cpp` (Tick, Update, AcceptNewPlayers),
 `world_save.cpp` / `world_map.cpp` / `world_create.cpp` (zone load and save, NewZone, EnsureZone, FindUnit),
 `world_quests.cpp`, `world_party.cpp`, `party_items.cpp`, `world_time.cpp`, `world_game.cpp` (GameFlow), `world_glue.cpp` (the small glue objects), `world_briefing.cpp`,
-`world_map_files.cpp`, `world_savefile.cpp`, `world_sessions.cpp`, `world_class_slots.cpp`, `world_deleting_destructors.cpp`,
-`world_small_calls.cpp`, `world_client*.cpp` (frame, maps, setup, lights, draw, view, session), `figure_mesh*.cpp`,
+`world_map_files.cpp`, `world_savefile.cpp`, `world_sessions.cpp`, `world_deleting_destructors.cpp`,
+`world_client*.cpp` (frame, maps, setup, lights, draw, view, session), `figure_mesh*.cpp`,
 `figure_manager.cpp`, `figure_drawer.cpp`, the AI grids in `ai_grids.cpp` / `ai_unit_shape.cpp` / `ai_map_load.cpp` /
 `ai_path_smooth.cpp` / `ai_shape_cache.cpp` / `ai_fog_grid.cpp` / `ai_path_save.cpp` / `sector_map.cpp`, `buffered_file.cpp`,
 `bink_video.cpp`, `console_commands.cpp` (`generateacks`), `logic_settings.h`, `cursor_setup.cpp`.

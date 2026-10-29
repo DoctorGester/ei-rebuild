@@ -1,27 +1,28 @@
 // The companions of map objects (map_object.h): MapObjectServer (class id 0x39) and MapObjectClientSpecific
 // (0x3A). Both classes are declared in unit.h; each holds the map object it belongs to.
-
+#include "effects.h"   // ParticleSource
+#include "game_singletons.h"
+#include "lib/bytes.h"
+#include "lib/nan_audit.h"
+#include "lib/str.h"
 #include "map_object.h"
+#include "net_delta.h"
 #include "object_tables.h"
 #include "random.h"
 #include "sound.h"
+#include "terrain.h"
 #include "spell.h"    // CLight
 #include "unit.h"
+#include "world.h"
 
 #include <cstdint>
 #include <cstring>
 #include <string>
 
-#include "game_singletons.h"
-#include "world.h"
-#include "lib/bytes.h"
-#include "lib/nan_audit.h"
-#include "lib/str.h"
-
-
 // The light's distance test and position must round like the original's.
 
 namespace {
+constexpr int kNoSound = -1;
 constexpr int kEndSoundTicks = 0x1E;                 // end sound when fewer ticks are left
 constexpr std::uint32_t kStenchPeriod = 0x10;
 constexpr float kLightHeight = 2.0f;
@@ -135,3 +136,97 @@ bool MapObjectClientSpecific::RunTick() {
     }
     return true;
 }
+
+// --- The companions' lifetime ----------------------------------------------------------------------
+
+MapObjectServer::MapObjectServer() {
+    vitals.Reset();
+}
+
+MapObjectServer::~MapObjectServer() {
+    vitals.Reset();
+    strings.clear();
+    owner = nullptr;
+}
+
+MapObjectClientSpecific::MapObjectClientSpecific() {
+    lightStateA = 0;
+    lightStateB = 0;
+}
+
+MapObjectClientSpecific::~MapObjectClientSpecific() {
+    lightStateA = 0;
+    lightStateB = 0;
+    particles.clear();
+    if (light) {
+        light->flags &= ~LightFlag::Held;
+        if (CLight* shown = light; shown && !(shown->flags & LightFlag::Hidden) && !(shown->flags & LightFlag::Held)) {
+            shown->flags |= LightFlag::Hidden;
+            g_clientWorld.terrain->RemoveLight(light);
+            if (CUnit* unit = Unit()) {
+                if (Object3DSpecific* half = unit->Object3D()->attached) half->SetLit(false);
+            }
+        }
+        int lightId = light->id;
+        g_clientWorld.lightFactory->litIds.remove(lightId);
+        light.Reset();
+    }
+    owner = nullptr;
+}
+
+namespace {
+constexpr const char* kClientClassName = "CMapObjectClientSpecific";
+constexpr const char* kServerClassName = "CMapObjectServer";
+} // namespace
+
+// --- Create and Destroy -----------------------------------------------------------------------------
+
+void MapObjectClientSpecific::Create() {
+    lightStateA = 0;
+    lightStateB = 0;
+    particles.clear();
+    endSound = kNoSound;
+    owner = nullptr;
+}
+
+void MapObjectServer::Create() {
+    owner = nullptr;
+    vitals.Reset();
+}
+
+void MapObjectServer::Destroy() {
+    vitals.Reset();
+    strings.clear();
+    owner = nullptr;
+}
+
+// --- The base companion's small virtuals (what the server's MapObjectServer mostly keeps) ---------------
+
+MapObjectCompanion::~MapObjectCompanion() { owner = nullptr; }
+
+void MapObjectCompanion::Create() {
+    owner = nullptr;
+}
+void MapObjectCompanion::Destroy() { owner = nullptr; }
+
+// --- The client's and the server's small virtuals ------------------------------------------------------
+
+void MapObjectClientSpecific::Hit(int damage, int kind) {
+    if (owner->IsDead() != 0) return;
+    if (!(owner->flags & MapObjectFlag::InParty)) return;
+    ClientWorld()->ShowNumber(owner->id, damage, kind);
+}
+
+// Class name and id.
+const char* MapObjectClientSpecific::ClassName() { return kClientClassName; }
+ClassId MapObjectClientSpecific::GetClassId() { return ClassId::MapObjectClientSpecific; }
+
+// The client companion's particle records.
+EffectParticle::EffectParticle(EffectParticle&&) noexcept = default;
+EffectParticle& EffectParticle::operator=(EffectParticle&&) noexcept = default;
+EffectParticle::~EffectParticle() = default;
+
+const char* MapObjectServer::ClassName() { return kServerClassName; }
+ClassId MapObjectServer::GetClassId() { return ClassId::MapObjectServer; }
+
+// --- The client companion's particle records and the network records ---------------------------------

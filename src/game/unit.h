@@ -915,7 +915,7 @@ class ParticleSource;
 
 // One effect particle record of the client companion.
 struct EffectParticle {
-    // Out of line (map_object_companion_slots.cpp): releasing the source needs the complete ParticleSource.
+    // Out of line (map_object_companion.cpp): releasing the source needs the complete ParticleSource.
     EffectParticle() = default;
     EffectParticle(EffectParticle&&) noexcept;
     EffectParticle& operator=(EffectParticle&&) noexcept;

@@ -82,11 +82,11 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   and compares the databases in depth after `LoadAll`.
 - 004645A0 `ChunkArchive::~ChunkArchive` (the out-of-line destructor the database loaders call):
   ours only, both streams must carry the stream base's vtable afterwards.
-- app_lifetime.cpp: the DirectInput mouse's destructor (004578D0: Shutdown, the two counted pointers'
+- party_manager.cpp: the DirectInput mouse's destructor (004578D0: Shutdown, the two counted pointers'
   releases, the root vtable 0073C368; slot 0 004578B0) and the root class's slot 0 (00457950). Ours only; the
   application drops the mouse at exit. The party record and class template creators and the party manager's
   destructor in the same file are described in script.md.
-- small_accessors.cpp: the counted pointer's destructor (00455C80, with the identical copies 00455610 and
+- The counted pointer's destructor (00455C80, with the identical copies 00455610 and
   004BB050): one reference dropped (`--refCount`, no delete), the pointer cleared. Ours only (its prologue is a
   short jump); the world server's tick and the object list iterators' owners call it. 00455610 is called by
   unwind funclets only.

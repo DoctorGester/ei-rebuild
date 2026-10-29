@@ -423,3 +423,26 @@ int LightningManager::DrawAll(SceneRenderer* device) {
     newBolts.clear();
     return 1;
 }
+
+// --- The manager's Create: the noise table loaded once --------------------------------------------
+
+namespace {
+int g_lightningNoiseLoaded = /*007A9694*/ {};
+} // namespace
+
+void LightningManager::Create() {
+    if (!g_lightningNoiseLoaded) {
+        g_lightningNoiseLoaded = 1;
+        LoadLightningNoise();
+    }
+    BaseManager::Create();
+}
+
+// --- Class name and id ------------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kLightningManagerClassName = "CLightningManager";
+} // namespace
+
+const char* LightningManager::ClassName() { return kLightningManagerClassName; }
+ClassId LightningManager::GetClassId() { return ClassId::LightningManager; }

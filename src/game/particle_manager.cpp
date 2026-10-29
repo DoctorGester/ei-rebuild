@@ -81,3 +81,18 @@ int ParticleManager::TickSources(char paused) {
 void ParticleManager::ReleaseUnheld() {
     ReleaseHeld(this, [](EngineObject* object) { return object->refCount == 1; });
 }
+
+// --- Class name and id ------------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kParticleManagerClassName = "CParticleManager";
+} // namespace
+
+const char* ParticleManager::ClassName() { return kParticleManagerClassName; }
+ClassId ParticleManager::GetClassId() { return ClassId::ParticleManager; }
+
+// The manager's own part of its constructor (the client world's manager set-up calls it after the base
+// manager's): quietStart cleared.
+void ParticleManagerClearQuietStart(ParticleManager* manager) {
+    manager->quietStart = 0;
+}

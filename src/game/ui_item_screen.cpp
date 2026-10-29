@@ -141,3 +141,17 @@ Item* ItemScreen::ReturnAll(CParty* to, CParty* from) {
     }
     return moved;
 }
+
+// --- Default answers of the item screen's slots ------------------------------------------------------
+
+bool ItemScreen::CanEquip(Item*, int) { return false; }
+
+PartySkill ItemScreen::BestPartySkill(int) { return {}; }
+
+CUnit* ItemScreen::HeroUnit(int) { return nullptr; }
+
+double ItemScreen::Weight() { return 0.0; }
+
+int ItemScreen::Price(Item*, int) { return 0; }
+
+void ItemTurn::OnShutdown() {}

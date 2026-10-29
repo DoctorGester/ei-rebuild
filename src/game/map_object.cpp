@@ -1,20 +1,24 @@
 #include "map_object.h"
+
+#include "core_transform.h"
+#include "ei/rebirth.h"
+#include "lib/crt.h"
+#include "lib/nan_audit.h"
+#include "map_object_figures.h"
+#include "net_delta.h"
 #include "spell.h"    // SpellType
 #include "unit.h"     // MapObjectServer
+#include "unit_create.h"
 #include "world.h"    // CWorld
 
-#include "lib/crt.h"
-
-#include "ei/rebirth.h"
-#include "lib/nan_audit.h"
-
-#include <concepts>
 #include <bit>
+#include <concepts>
 #include <cstring>
 
 // The scale formulas must keep the original's order of operations and its NaN behaviour.
 
 namespace {
+constexpr float kOne = 1.0f;
 constexpr float kScaleStep = 0.4f;
 static_assert(std::bit_cast<std::uint32_t>(kScaleStep) == 0x3ECCCCCDu);
 
@@ -236,3 +240,127 @@ bool CMapObject::IsInvisible() { return lib::Has(flags, MapObjectFlag::Invisible
 bool CMapObject::IsStunned() { return lib::Has(flags, MapObjectFlag::Stunned); }
 
 std::uint32_t CMapObject::Flag20000() { return lib::Has(flags, MapObjectFlag::Synchronised); }
+
+// --- Lifetime ------------------------------------------------------------------------------------
+
+CMapObject::CMapObject() {
+    companion = nullptr;
+    packedVitals.Reset();
+    sectorCellX = -1;
+    sectorCellY = -1;
+    animationSpeed = kOne;
+}
+
+CMapObject::~CMapObject() = default;
+
+// --- Small virtuals: the ones a plain object leaves empty (units, levers, traps and torches override them) and
+// the network state's write / read wrappers.
+
+namespace {
+constexpr int kNoKey = -123;                    // the object asks for no key
+constexpr float kNoSpeed = 0.0f;
+constexpr float kPlainRadius = 0.75f;
+constexpr std::uint16_t kVitalParts = 0x11;     // changed parts 0 and 4: the statistics are repacked
+} // namespace
+
+// --- Slots that read the object ------------------------------------------------------------------------
+
+int CMapObject::NotifyCompanion() {
+    companion->Unused14();
+    return 1;
+}
+
+void CMapObject::TakePrototype(std::string_view prototype) {
+    // Zeroed: the builder leaves the vitals alone when the prototype exists (it wants statistics too), and the
+    // original then packs what its stack held; the harness zeroes them there too (a determinism fix,
+    // harness_leftovers.h).
+    UnitVitals vitals{};
+    MapObjectManagerOf(this)->BuildFromPrototype(&vitals, nullptr, prototype);
+    vitals.Pack(&packedVitals);
+}
+
+void CMapObject::WriteFullState() {
+    DeltaState* state = &netState;
+    state->SetWriteMode(0);
+    WriteNetState();
+    state->Finish();
+    flags &= ~MapObjectFlag::Changed;
+}
+
+void CMapObject::WriteChangedState() {
+    if (netState.mask & kVitalParts) StatsChanged();
+    DeltaState* state = &netState;
+    state->SetWriteMode(1);
+    WriteNetState();
+    state->Finish();
+    flags &= ~MapObjectFlag::Changed;
+}
+
+std::uint32_t CMapObject::ReadState(int first, MemoryStream* reader) {
+    DeltaState* state = &netState;
+    state->BeginRead(first, reader);
+    std::uint32_t result = ReadNetState(first);
+    state->Finish();
+    return result;
+}
+
+std::string* CMapObject::SetSecondName(const char* text) {
+    name2 = text;
+    return &name2;
+}
+
+// --- The virtuals for the compiler's tables ----------------------------------------------------------------
+// The bodies above and in map_object*.cpp, called without dispatch.
+
+void CMapObject::Load(ByteStream* stream) { LoadMapObject(stream); }
+void CMapObject::Save(ByteStream* stream) { SaveMapObject(stream); }
+bool CMapObject::InvisibleSlot() { return IsInvisible() != 0; }
+void CMapObject::EffectsChanged() {}
+bool CMapObject::IsSynchronised() { return Flag20000() != 0; }
+void CMapObject::ApplyBaseScale() { ResetScale(); }
+void CMapObject::ReceiveHit(DamageInfo*, CUnit*, CUnit*) {}
+int CMapObject::StatsChanged() { return PackVitals(); }
+void CMapObject::ScaleEffectChanged(bool) {}
+void CMapObject::SetStats(const UnitStats*) {}
+void CMapObject::UpdateSizeClasses() {}
+bool CMapObject::IsUsable() { return false; }
+bool CMapObject::IsDirectUseBlocked() { return false; }
+std::uint32_t CMapObject::KeyId() { return static_cast<std::uint32_t>(kNoKey); }
+bool CMapObject::AcceptsKey(const LockKey*) { return false; }
+bool CMapObject::KeepsMapFlag() { return true; }
+std::vector<Vector3> CMapObject::UseSpots(float) { return {}; }
+std::uint32_t CMapObject::SetStunned(int) { return 0; }
+Vector3* CMapObject::EyePoint(Vector3* out) {
+    GroundPoint(&out->x);
+    return out;
+}
+Vector3* CMapObject::PositionAt(Vector3* out, int) {
+    GetPosition(&out->x);
+    return out;
+}
+Vector3* CMapObject::AimPoint(Vector3* out) {
+    GetPosition2(&out->x);
+    return out;
+}
+bool CMapObject::IsLargeUnit() { return false; }
+bool CMapObject::IsDead() { return companion->IsDead(); }
+int CMapObject::ForgetObject(EngineObject*) { return 0; }
+void CMapObject::UpdateMoveFactors() {}
+void CMapObject::RefreshWounds() {}
+double CMapObject::MoveSpeed() { return kNoSpeed; }
+float CMapObject::Radius() { return kPlainRadius; }
+void CMapObject::SetScriptName(std::string_view) {}
+
+// --- Visibility and science -------------------------------------------------------------------------
+
+// Of the unit and nine other map object classes: the visibility mode is handed to the companion
+// (the client's shows or hides the object's light); whatever it returns is passed on.
+int CMapObject::SetVisibilityMode(int mode) {
+    companion->SetLightMode(mode);
+    return 0;
+}
+
+bool CMapObject::ApplyScience(const LockKey*, EngineObject*) {
+    game::DebugLog("Science is applied on wrong object");
+    return false;
+}

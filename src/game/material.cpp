@@ -115,3 +115,8 @@ int CMaterialManager::FillMaterial(Material* material, unsigned key) {
 const char* CMaterialManager::ClassName() { return kManagerClassName; }
 ClassId CMaterialManager::GetClassId() { return ClassId::MaterialManager; }
 const char* CMaterialManager::GetFolderName() { return kManagerFolder; }
+
+std::uint32_t Material::GpuLitColour() const {
+    const float alpha = colors.diffuse.w * 255.0f;
+    return static_cast<std::uint32_t>(x87::fistp(alpha)) << 24 | 0x00FFFFFFu;
+}

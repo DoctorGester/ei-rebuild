@@ -99,3 +99,5 @@ void FigureStrip::LeftDown(int buttons, int x, int y) {
     ui->PlaySound(kOnOffSound);
     owner->ChooseFigure((*figures)[index]);     // the hero screen: the new hero's figure
 }
+
+Item* FigureStrip::ItemAt(int, int, int*) { return nullptr; }

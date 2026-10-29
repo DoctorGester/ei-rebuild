@@ -29,7 +29,7 @@ sin / cos (particle_callbacks.cpp most), `float a[3]` / `[4]` / `[16]` / `[12]` 
 (`Store`, `StoreFloat`, `RoundToFloat`; all `static_cast<float>` since SV7d1a1), local `D(float)` helpers and naked `Fpatan` /
 `CIacos` / `CIasin` copies. Orders in source were written from the disassembly by the porting workers; VC6's inliner and
 scheduler produced them, so they do not follow from the original source (two neighbouring functions differ:
-unit_ai_memory.cpp NearestEnemy is ZXY, ForceSee is ZYX).
+unit_ai_senses.cpp NearestEnemy is ZXY, ForceSee is ZYX).
 
 ## 3. Orders checked against the disassembly
 

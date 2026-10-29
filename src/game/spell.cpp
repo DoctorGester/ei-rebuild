@@ -6,6 +6,7 @@
 #include "lib/nan_audit.h"
 #include "lib/text_case.h"
 
+#include <bit>
 #include <cfloat>
 #include <cstring>
 
@@ -215,4 +216,54 @@ char* SpellModifierCodeByName(std::string_view name) {
         }
     }
     return nullptr;
+}
+
+// --- The spell's effect record, lifetime, class name and id ---------------------------------------
+
+MapEffect CSpell::Effect() const {
+    MapEffect record;
+    record.type = prototypeIndex;
+    record.power = effectPower;
+    record.ticksLeft = static_cast<int>(duration);
+    record.value = std::bit_cast<std::uint32_t>(damage);
+    record.strength = std::bit_cast<std::uint32_t>(radius);
+    return record;
+}
+
+void CSpell::SetEffect(const MapEffect& record) {
+    prototypeIndex = record.type;
+    effectPower = record.power;
+    duration = static_cast<std::uint32_t>(record.ticksLeft);
+    damage = std::bit_cast<float>(record.value);
+    radius = std::bit_cast<float>(record.strength);
+}
+
+CSpell::CSpell() {
+    prototypeIndex = 0;
+    effectPower = 0;
+    duration = 0;
+    damage = 0;
+    radius = 0;
+    speed = 0;
+    range = 0;
+    targetCount = 0;
+    targetFlags = 0;
+    manaCost = 0;
+    complexity = 0;
+    price = 0;
+    castTime = 0;
+    skillNeeded = 1;
+    std::memset(modifiers, 0, sizeof(modifiers));
+}
+
+CSpell::~CSpell() { CSpell::Destroy(); }
+
+const char* CSpell::ClassName() { return "CSpell"; }
+ClassId CSpell::GetClassId() { return ClassId::Spell; }
+
+// --- An effect's tick ----------------------------------------------------------------------------
+
+int MapEffect::Tick() {
+    --ticksLeft;
+    return ticksLeft > 0 ? 1 : 0;
 }

@@ -98,3 +98,12 @@ void FigureAnimationState::SetTime(float frame) {
 }
 
 void FigureAnimationState::Advance(float frames) { SetTime(frames + time); }
+
+// --- Class name and id -----------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kStateClassName = "CAnimationSystem2";
+} // namespace
+
+const char* FigureAnimationState::ClassName() { return kStateClassName; }
+ClassId FigureAnimationState::GetClassId() { return ClassId::FigureAnimationState; }

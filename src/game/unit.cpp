@@ -1,15 +1,15 @@
 #include "unit.h"
 
+#include "ai_map.h"      // AIPath
+#include "ai_motion.h"   // UnitMotion
+#include "ei/x87.h"
 #include "item.h"
+#include "lib/nan_audit.h"
 #include "logic_settings.h"
 #include "party.h"
 #include "player_messages.h"
 #include "spell.h"
 #include "unit_db.h"
-
-#include "lib/nan_audit.h"
-
-#include "ei/x87.h"
 
 #include <bit>
 #include <cstring>
@@ -397,3 +397,36 @@ bool MapObjectClientSpecific::IsOverkilled() {
     int maximum = Unit()->packedVitals.maxHitPoints;
     return Unit()->packedVitals.hitPoints < -maximum * 4 - maximum;
 }
+
+// --- The class name and id, the motion given its speeds, the player test, twice the height above the
+// centre and a worn armour piece.
+
+void CUnit::SetMotionSpeeds(float speed, float turnRate) {
+    PathOrder* path = Controller()->Path();
+    path->ForgetObject(id);
+    UnitMotion* unitMotion = &motion;
+    unitMotion->segment = -1;
+    unitMotion->speedScale = speed;
+    unitMotion->baseTurnRate = turnRate;
+    unitMotion->Build(path);
+}
+
+bool CUnit::HasPlayer() const { return player != nullptr; }
+
+double CUnit::DoubleHeight() const { return bounds.boxMax.z + bounds.boxMax.z; }
+
+ItemArmor* CUnit::WornItem(int slot) const { return armor[slot]; }
+
+// --- Hits, forgotten objects and the script name ----------------------------------------------------
+
+void CUnit::ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster) {
+    Controller()->TakeHit(hit, attacker, caster);
+}
+
+// Nothing reads the result.
+int CUnit::ForgetObject(EngineObject* object) {
+    Controller()->ObjectDeleted(object);
+    return 0;
+}
+
+void CUnit::SetScriptName(std::string_view newName) { scriptName = newName; }

@@ -35,14 +35,14 @@ struct PartyManager;
 extern GameFlow g_gameFlow;   // world_game.cpp
 
 // The interface manager (windows, the quest log, status text, the console window).
-extern Interface3D g_interface;   // ui_small_members.cpp
+extern Interface3D g_interface;   // ui_interface_glue.cpp
 
 extern WorldClient g_clientWorld;   // world_construct.cpp
 
 extern WorldServer g_serverWorld;   // world_construct.cpp
 
 // The scene renderer.
-extern SceneRenderer g_sceneRenderer;   // renderer_lifetime.cpp
+extern SceneRenderer g_sceneRenderer;   // renderer_scene.cpp
 
 // The cursor. The map database. The server world's mission script and sector map. The camera.
 extern Cursor g_cursor;   // ui_cursor_setup.cpp
@@ -51,7 +51,7 @@ Script* TheMissionScript();
 extern Camera g_camera;   // camera_object.cpp
 
 // The party manager (the parties by key, the named records and the class templates).
-extern PartyManager g_partyManager;   // app_lifetime.cpp
+extern PartyManager g_partyManager;   // party_manager.cpp
 
 // The registry key of the options and the game's folders (game_folders.cpp): where the game was started,
 // the disc's (the base folder), the text resources' and the data folder (with its trailing backslash; DataFolderText()

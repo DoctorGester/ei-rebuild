@@ -2,26 +2,26 @@
 // See docs/notes/ui.md ("Camp, global map, hero screens").
 // Floating point follows the x87 code of the original game: `double` for values it keeps on the FPU
 // stack, static_cast<float> where it stores to a float. Constants are read from memory.
-#include "item_manager.h"
-#include "ui.h"
-#include "ui_float.h"
-#include "ui_camp.h"
-
+#include "combat.h"
 #include "console.h"
-#include "text_manager.h"
-
+#include "game_singletons.h"
+#include "item.h"
+#include "item_manager.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include <cstdint>
-#include <string>
-
-#include <cstring>
-#include <initializer_list>
-#include "unit.h"
-#include "combat.h"
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "party.h"
+#include "text_manager.h"
+#include "ui.h"
+#include "ui_camp.h"
+#include "ui_float.h"
+#include "unit.h"
+
+#include <cstdint>
+#include <cstring>
 #include <format>
+#include <initializer_list>
+#include <string>
 
 namespace {
 
@@ -464,4 +464,80 @@ void ConstructorPage::BuildItemMaker(CParty* party) {
     AddRect(this, RECT{300, 300, 400, 400});
     BuildMakerPage(this);
     AddMakerPictures(this);
+}
+
+// --- The constructors' second pages (ConstructorPage, ui_camp.h): the slot item under a point which the
+// camp's hover and help ask every panel for; the spell maker, the item maker.
+
+namespace {
+
+// Help topics.
+constexpr int kTopicNone = 0;
+constexpr int kTopicSpellContainer = 0x13;
+constexpr int kTopicSpell = 0x14;
+constexpr int kTopicModifier = 0x15;
+constexpr int kTopicSkillLine = 0x1A;
+constexpr int kTopicManaLine = 0x1B;
+constexpr int kTopicBuildable = 0xD;
+constexpr int kTopicPart = 0xE;
+constexpr int kTopicMaterial = 0xF;
+constexpr int kTopicItemContainer = 0x10;
+
+// The `nth` (from 0) of the slots' items that `matches`, or null.
+template <typename Predicate>
+Item* NthSlot(CParty* slots, int nth, Predicate matches) {
+    const auto& items = slots->items;
+    int found = 0;
+    for (int i = 0; i < std::ssize(items); ++i) {
+        if (!matches(items[i])) continue;
+        if (found == nth) return items[i];
+        ++found;
+    }
+    return nullptr;
+}
+
+} // namespace
+
+Item* SpellMakerPage::ItemAt(int x, int y, int* topic) {
+    *topic = kTopicNone;
+    if (!enabled) return nullptr;
+    int region = RegionAt(x, y);
+    if (region == 0) {
+        *topic = kTopicSpellContainer;
+        return NthSlot(slots, 0, IsSpellContainer);
+    }
+    if (region == 1) {
+        *topic = kTopicSpell;
+        return NthSlot(slots, 0, IsSpell);
+    }
+    if (region >= 2 && region < 10) {
+        *topic = kTopicModifier;
+        if (Item* item = NthSlot(slots, region - 2, IsModifier)) return item;
+    }
+    if (region == 10) *topic = kTopicSkillLine;
+    else if (region == 11) *topic = kTopicManaLine;
+    return nullptr;
+}
+
+Item* ConstructorPage::ItemAt(int x, int y, int* topic) {
+    *topic = kTopicNone;
+    if (!enabled) return nullptr;
+    int region = RegionAt(x, y);
+    if (region == 0) {
+        *topic = kTopicBuildable;
+        return NthSlot(slots, 0, IsBuildable);
+    }
+    if (region == 1) {
+        *topic = kTopicPart;
+        return NthSlot(slots, 0, IsPart);
+    }
+    if (region == 2) {
+        *topic = kTopicItemContainer;
+        return NthSlot(slots, 0, IsSpellContainer);
+    }
+    if (region > 2) {
+        *topic = kTopicMaterial;
+        return NthSlot(slots, region - 3, IsMaterial);
+    }
+    return nullptr;
 }
