@@ -36,14 +36,14 @@ public:
     void OnShutdown() override;              // Reset: the object let go, version and id cleared
     ReplicaEntry* Clone() override;
 
-    Message* Object() const { return object_.Get(); }
+    Message* Object() const { return object.Get(); }
 
-    std::uint32_t version_;    // the object's version last sent (1: removal sent)
-    std::uint16_t id_;         // 0 until first sent
-    std::uint8_t type_;        // message type of the object
-    std::uint8_t flags_;       // bit 0 reliable; bits 1..7 priority (0..10)
-    Ref<Message> object_;   // the object (null once it is gone)
-    std::uint32_t serial_ = 0;   // the connection's count of tracked entries when this one was made: its key in priorities_
+    std::uint32_t version;     // the object's version last sent (1: removal sent)
+    std::uint16_t id;          // 0 until first sent
+    std::uint8_t type;         // message type of the object
+    std::uint8_t flags;        // bit 0 reliable; bits 1..7 priority (0..10)
+    Ref<Message> object;    // the object (null once it is gone)
+    std::uint32_t serial = 0;    // the connection's count of tracked entries when this one was made: its key in priorities
 };
 
 // A counted reference to a replica entry (the connection's maps' values, a sent item's entry). Kept: the name of
@@ -81,19 +81,19 @@ struct SentPacket {
     std::uint8_t rolledBack = 0;
 };
 
-// A batch of freed ids (an element of freedIds_).
+// A batch of freed ids (an element of freedIds).
 struct FreedId {
     std::uint16_t id;
     std::uint8_t type;
 };
 
-// An object received from the peer (the value of records_): its share (copied with Share, released as its owner).
+// An object received from the peer (the value of records): its share (copied with Share, released as its owner).
 struct Record {
     SharedRef<CRefObject> object;
     std::uint32_t version = 0;   // the version last applied
 };
 
-// The (type, id) a received object came with (the value of attached_).
+// The (type, id) a received object came with (the value of attached).
 struct AttachedId {
     std::uint16_t id;
     std::uint8_t type;
@@ -114,10 +114,10 @@ public:
     // Builds and sends one update packet of at most `budget` entry bytes. False when entries had to be left
     // out (or the send failed).
     bool SendUpdate(int budget);
-    // Reads one entry of an update (created / changed or removed) into `records_` and calls the session's
+    // Reads one entry of an update (created / changed or removed) into `records` and calls the session's
     // handlers (channel 0 created, 1 changed, 2 removed). False when the object could not be created.
     bool ReadRecord(BufferCursor* cursor, std::uint32_t version);
-    // Remembers which (type, id) the received object has (attached_).
+    // Remembers which (type, id) the received object has (attached).
     void AttachRecord(CRefObject* object, std::uint32_t type, std::int32_t key);
     // Writes a reference to `object`: a 0 bit, type and id for an object this side replicates (an id is
     // assigned on first use), a 1 bit, type and id for one received from the peer, or a 0 bit and zeros.
@@ -139,7 +139,7 @@ public:
     // then new objects get an entry (Track) in the list's order.
     void CollectChanges();
     // Starts tracking `item` (an {object, priority} pair): a new entry for the object (the next serial),
-    // kept in byObject_ and its priority map.
+    // kept in byObject and its priority map.
     void Track(Replicated* item);
     // Clocks, lost packets, sending, delayed id reuse; false when the peer timed out or the reliable stream
     // overflowed.
@@ -163,40 +163,40 @@ public:
     // and is released.
     void Close();
 
-    std::uint16_t sendSequence_;        // starts at GetTickCount()
-    std::uint32_t lastReceived_;        // sequence of the newest packet received
-    std::uint32_t sequenceHigh_;        // 0x10000: the upper bits of the received sequences
-    std::vector<std::int32_t> received_;   // sequences received recently
-    std::uint32_t id_;                  // the connection id (sent with a leave packet)
-    float roundTrip_;                   // average round trip (seconds)
-    float roundTripSquare_;             // average of its square
-    NetAddress address_;                // the peer
-    float sendInterval_;                // 0.04
-    float sendTimer_;
-    float idleTime_;                    // seconds since the peer was last heard
-    double clock_;                      // seconds since the connection started
-    std::uint32_t updateBudget_;        // 220: bytes per update
-    IdPool idPools_[kMessageTypes];     // one per message type
-    std::list<std::vector<FreedId>> freedIds_;     // batches of ids returned to the pools later
-    float freedTimer_;
-    std::map<std::int32_t, EntryRef> bySentId_;    // type << 16 | id -> entry
+    std::uint16_t sendSequence;         // starts at GetTickCount()
+    std::uint32_t lastReceived;         // sequence of the newest packet received
+    std::uint32_t sequenceHigh;         // 0x10000: the upper bits of the received sequences
+    std::vector<std::int32_t> received;    // sequences received recently
+    std::uint32_t id;                   // the connection id (sent with a leave packet)
+    float roundTrip;                    // average round trip (seconds)
+    float roundTripSquare;              // average of its square
+    NetAddress address;                 // the peer
+    float sendInterval;                 // 0.04
+    float sendTimer;
+    float idleTime;                     // seconds since the peer was last heard
+    double clock;                       // seconds since the connection started
+    std::uint32_t updateBudget;         // 220: bytes per update
+    IdPool idPools[kMessageTypes];      // one per message type
+    std::list<std::vector<FreedId>> freedIds;      // batches of ids returned to the pools later
+    float freedTimer;
+    std::map<std::int32_t, EntryRef> bySentId;     // type << 16 | id -> entry
     // Lookups only; nothing walks it. The original keys both by address (an ordered map each); the priority
     // maps are walked to send, so ours key them by the entry's serial (the order entries were tracked in).
-    std::unordered_map<CRefObject*, EntryRef> byObject_;     // object -> entry
-    std::array<std::map<std::uint32_t, EntryRef>, 11> priorities_;          // per priority: entry serial -> entry
-    std::uint32_t entriesTracked_ = 0;   // the last serial handed out
-    std::list<SentPacket> history_;    // packets sent, waiting for an acknowledgement
-    std::list<SentPacket> acknowledged_;   // lost packets, kept a while for late acknowledgements
-    std::map<std::int32_t, Record> records_;                 // objects received (key type << 16 | id)
-    std::unordered_map<CRefObject*, AttachedId> attached_;   // received object -> (type, id); lookups only
-    std::uint16_t headerSequence_;      // sequence of the next reliable chunk sent
-    std::uint16_t incomingSequence_;    // sequence of the next reliable chunk expected
-    std::list<ReliableChunk> headers_;    // reliable chunks waiting to be sent
-    std::list<ReliableChunk> incoming_;   // reliable chunks received ahead of their turn
-    std::uint32_t ackMask_;             // bit k: packet ackBase_ - 1 - k acknowledged already
-    std::uint16_t ackBase_;             // the peer's newest acknowledged sequence
-    GrowingBuffer reliableOut_;
-    GrowingBuffer reliableIn_;
+    std::unordered_map<CRefObject*, EntryRef> byObject;      // object -> entry
+    std::array<std::map<std::uint32_t, EntryRef>, 11> priorities;           // per priority: entry serial -> entry
+    std::uint32_t entriesTracked = 0;    // the last serial handed out
+    std::list<SentPacket> history;     // packets sent, waiting for an acknowledgement
+    std::list<SentPacket> acknowledged;    // lost packets, kept a while for late acknowledgements
+    std::map<std::int32_t, Record> records;                  // objects received (key type << 16 | id)
+    std::unordered_map<CRefObject*, AttachedId> attached;    // received object -> (type, id); lookups only
+    std::uint16_t headerSequence;       // sequence of the next reliable chunk sent
+    std::uint16_t incomingSequence;     // sequence of the next reliable chunk expected
+    std::list<ReliableChunk> headers;     // reliable chunks waiting to be sent
+    std::list<ReliableChunk> incoming;    // reliable chunks received ahead of their turn
+    std::uint32_t ackMask;              // bit k: packet ackBase - 1 - k acknowledged already
+    std::uint16_t ackBase;              // the peer's newest acknowledged sequence
+    GrowingBuffer reliableOut;
+    GrowingBuffer reliableIn;
     std::uint32_t padding_1164;
 };
 } // namespace net

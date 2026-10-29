@@ -28,7 +28,7 @@ float MouseSpeed(const options::CameraMotionOptions& motion) { return Option(mot
 // The wheel's steps per delta unit (read from the exe, rule 9).
 constexpr float kWheelStep = -0.008333334f;
 
-bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_; }
+bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown || ui->altDown; }
 
 // Layout units to a part of the screen and the rates' scales
 constexpr float kPerWidth = 0.0025f;
@@ -66,152 +66,152 @@ void CCameraInput::KeyUp(int, int, int flags) {
     switch (g_keyActions[flags & kScanCodeMask]) {
     case 5:
     case 6:
-        x_ = 0.0f;
-        handled_ = true;
+        x = 0.0f;
+        handled = true;
         break;
     case 7:
     case 8:
-        y_ = 0.0f;
-        handled_ = true;
+        y = 0.0f;
+        handled = true;
         break;
     case 9:
     case 10:
-        z_ = 0.0f;
-        handled_ = true;
+        z = 0.0f;
+        handled = true;
         break;
     default:
         break;
     }
-    if (!handled_) return;
+    if (!handled) return;
     CCamera* camera = &g_camera;
-    if (!ModifierHeld(interface_)) {
-        float left = static_cast<float>(-x_);
-        float speed = KeyboardSpeed(options::g_options.cameraScroll_);
-        Vector3 direction = {static_cast<float>(y_ * speed), static_cast<float>(left * speed), 0.0f};
+    if (!ModifierHeld(ui)) {
+        float left = static_cast<float>(-x);
+        float speed = KeyboardSpeed(options::g_options.cameraScroll);
+        Vector3 direction = {static_cast<float>(y * speed), static_cast<float>(left * speed), 0.0f};
         camera->Pan(direction);
         camera->SetTurnRate(0.0f);
-        camera->SetZoomTarget(KeyboardSpeed(options::g_options.cameraZoom_) * z_);
+        camera->SetZoomTarget(KeyboardSpeed(options::g_options.cameraZoom) * z);
         camera->SetTiltRate(0.0f);
         return;
     }
     Vector3 still = {0.0f, 0.0f, 0.0f};
     camera->Pan(still);
-    camera->SetTurnRate(KeyboardSpeed(options::g_options.cameraRotate_) * y_);
-    camera->SetZoomTarget(KeyboardSpeed(options::g_options.cameraZoom_) * z_);
-    camera->SetTiltRate(KeyboardSpeed(options::g_options.cameraPitch_) * x_);
+    camera->SetTurnRate(KeyboardSpeed(options::g_options.cameraRotate) * y);
+    camera->SetZoomTarget(KeyboardSpeed(options::g_options.cameraZoom) * z);
+    camera->SetTiltRate(KeyboardSpeed(options::g_options.cameraPitch) * x);
 }
 
-void CCameraInput::RightDown(int, int x, int y) {
-    pressScreen_ = POINT{x, y};
-    pressLayout_ = POINT{x, y};
-    turning_ = true;
-    interface_->ScalePointFromScreenEntry(&pressLayout_);
-    g_cursor.motion_.y = 0;
-    g_cursor.motion_.x = 0;
+void CCameraInput::RightDown(int, int atX, int atY) {
+    pressScreen = POINT{atX, atY};
+    pressLayout = POINT{atX, atY};
+    turning = true;
+    ui->ScalePointFromScreenEntry(&pressLayout);
+    g_cursor.motion.y = 0;
+    g_cursor.motion.x = 0;
     g_cursor.SetHeld(1);
-    handled_ = true;
+    handled = true;
 }
 
 void CCameraInput::RightUp(int, int, int) {
-    turning_ = false;
+    turning = false;
     CCamera* camera = &g_camera;
     camera->SetTurnRate(0.0f);
     camera->SetTiltRate(0.0f);
     Vector3 still = {0.0f, 0.0f, 0.0f};
     camera->Pan(still);
-    int x = g_cursor.position_.x;
-    int y = g_cursor.position_.y;
-    g_cursor.motion_.y = 0;
-    g_cursor.motion_.x = 0;
+    int positionX = g_cursor.position.x;
+    int positionY = g_cursor.position.y;
+    g_cursor.motion.y = 0;
+    g_cursor.motion.x = 0;
     g_cursor.SetHeld(0);
-    gameapi::SetCursorPos(x, y);
-    handled_ = true;
+    gameapi::SetCursorPos(positionX, positionY);
+    handled = true;
 }
 
-void CCameraInput::MouseMove(int, int x, int y) {
+void CCameraInput::MouseMove(int, int atX, int atY) {
     CCamera* camera = &g_camera;
-    if (turning_) {
-        POINT point{x, y};
-        POINT drag{g_cursor.motion_.x, g_cursor.motion_.y};
-        interface_->ScalePointFromScreenEntry(&point);
+    if (turning) {
+        POINT point{atX, atY};
+        POINT drag{g_cursor.motion.x, g_cursor.motion.y};
+        ui->ScalePointFromScreenEntry(&point);
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
-        interface_->CallScalePointFromScreenNoMargin(&drag);
+        ui->CallScalePointFromScreenNoMargin(&drag);
         float across = static_cast<float>(drag.x) * kPerWidth;
         float along = static_cast<float>(static_cast<float>(drag.y) * kPerHeight);
-        if (!ModifierHeld(interface_)) {
+        if (!ModifierHeld(ui)) {
             // The turn and tilt speeds times the mouse direction factors.
-            const float turnSpeed = MouseSpeed(options::g_options.cameraRotate_) * Option(options::g_options.cameraFlipX_);
+            const float turnSpeed = MouseSpeed(options::g_options.cameraRotate) * Option(options::g_options.cameraFlipX);
             camera->SetTurnRate(turnSpeed * across * 10.0f);
             float width = static_cast<float>(drag.x < 0 ? -drag.x : drag.x);
             float height = static_cast<float>(drag.y < 0 ? -drag.y : drag.y);
             // At rest the camera tilts only when the mouse moves more up or down than sideways.
             const float zero = 0.0f;
-            if (Differs(camera->tiltTarget_, zero) || Differs(camera->tiltRate_, zero) || height > width) {
-                const float tiltSpeed = MouseSpeed(options::g_options.cameraPitch_) * Option(options::g_options.cameraFlipY_);
+            if (Differs(camera->tiltTarget, zero) || Differs(camera->tiltRate, zero) || height > width) {
+                const float tiltSpeed = MouseSpeed(options::g_options.cameraPitch) * Option(options::g_options.cameraFlipY);
                 camera->SetTiltRate(tiltSpeed * along * 500.0f);
             } else {
                 camera->SetTiltRate(0.0f);
             }
         } else {
-            float speed = MouseSpeed(options::g_options.cameraScroll_);
+            float speed = MouseSpeed(options::g_options.cameraScroll);
             Vector3 direction{static_cast<float>(across * speed), static_cast<float>(along * speed), 0.0f};
             camera->Pan(direction);
         }
-        g_cursor.motion_.y = 0;
-        g_cursor.motion_.x = 0;
+        g_cursor.motion.y = 0;
+        g_cursor.motion.x = 0;
         g_cursor.SetShape(kDragCursor);
-        handled_ = true;
-        pressLayout_ = point;
+        handled = true;
+        pressLayout = point;
         return;
     }
     // The width of the screen edges that pan (0: off).
-    int margin = static_cast<const volatile int&>(options::g_options.cameraBorderScrollArea_);
+    int margin = static_cast<const volatile int&>(options::g_options.cameraBorderScrollArea);
     if (margin > 0) {
         unsigned edges = 0;
         Vector3 direction{0.0f, 0.0f, 0.0f};
-        if (x < margin) {
+        if (atX < margin) {
             direction.x = -1.0f;
             edges = kLeft;
-        } else if (x >= interface_->width_ - margin) {
+        } else if (atX >= ui->width - margin) {
             direction.x = 1.0f;
             edges = kRight;
         }
-        if (y < margin) {
+        if (atY < margin) {
             direction.y = -1.0f;
             edges |= kTop;
-        } else if (y >= interface_->height_ - margin) {
+        } else if (atY >= ui->height - margin) {
             direction.y = 1.0f;
             edges |= kBottom;
         }
-        if (!ModifierHeld(interface_)) {
+        if (!ModifierHeld(ui)) {
             // The keys' pan goes on (KeyUp sets the same).
-            float left = static_cast<float>(-x_);
-            float speed = KeyboardSpeed(options::g_options.cameraScroll_);
-            float forward = y_ * speed;
+            float left = static_cast<float>(-x);
+            float speed = KeyboardSpeed(options::g_options.cameraScroll);
+            float forward = y * speed;
             left = static_cast<float>(left * speed);
             direction.x = static_cast<float>(forward + direction.x);
             direction.y = static_cast<float>(left + direction.y);
         }
         g_cursor.SetShape(EdgeCursor(edges));
         camera->Pan(direction);
-        if (edges) handled_ = true;
+        if (edges) handled = true;
     }
-    pressLayout_ = POINT{x, y};
+    pressLayout = POINT{atX, atY};
 }
 
 void CCameraInput::Deactivate() {
-    turning_ = false;
-    x_ = 0.0f;
-    y_ = 0.0f;
-    z_ = 0.0f;
+    turning = false;
+    x = 0.0f;
+    y = 0.0f;
+    z = 0.0f;
     g_cursor.SetHeld(0);
-    g_cursor.motion_.y = 0;
-    g_cursor.motion_.x = 0;
+    g_cursor.motion.y = 0;
+    g_cursor.motion.x = 0;
     g_camera.StopMotion();
 }
 
 void CCameraInput::Wheel(int, int delta, int, int) {
     int steps = static_cast<short>(delta);
-    g_camera.ZoomBy(MouseSpeed(options::g_options.cameraZoom_) * static_cast<float>(steps) * kWheelStep);
+    g_camera.ZoomBy(MouseSpeed(options::g_options.cameraZoom) * static_cast<float>(steps) * kWheelStep);
 }
 

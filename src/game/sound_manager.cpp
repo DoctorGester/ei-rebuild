@@ -583,18 +583,18 @@ int CSoundManager::AddSequence(const std::vector<std::string>* names, int priori
     return -1;
 }
 
-int CSoundManager::MoveSequence(std::uint32_t id, const float* position) {
-    if (enabled == 0 || (id & 0xFF) >= 8) return 0;
-    SoundSequence* s = SequenceForId(this, id);
+int CSoundManager::MoveSequence(std::uint32_t sequenceId, const float* position) {
+    if (enabled == 0 || (sequenceId & 0xFF) >= 8) return 0;
+    SoundSequence* s = SequenceForId(this, sequenceId);
     if (s == nullptr) return 0;
     lib::LoadBytes(s->position, position);
     if (enabled != 0) MoveSequenceSound(this, s->handle, position, s->nearDistance, s->farDistance);
     return 1;
 }
 
-int CSoundManager::UpdateSequence(std::uint32_t id, const float* position, float nearDist, float farDist, int count) {
-    if (enabled == 0 || (id & 0xFF) >= 8) return 0;
-    SoundSequence* s = SequenceForId(this, id);
+int CSoundManager::UpdateSequence(std::uint32_t sequenceId, const float* position, float nearDist, float farDist, int count) {
+    if (enabled == 0 || (sequenceId & 0xFF) >= 8) return 0;
+    SoundSequence* s = SequenceForId(this, sequenceId);
     if (s == nullptr) return 0;
     lib::LoadBytes(s->position, position);
     s->nearDistance = nearDist;
@@ -605,9 +605,9 @@ int CSoundManager::UpdateSequence(std::uint32_t id, const float* position, float
 }
 
 // Always -1.
-int CSoundManager::RemoveSequence(std::uint32_t id) {
-    if (enabled == 0 || (id & 0xFF) >= 8) return -1;
-    SoundSequence* s = SequenceForId(this, id);
+int CSoundManager::RemoveSequence(std::uint32_t sequenceId) {
+    if (enabled == 0 || (sequenceId & 0xFF) >= 8) return -1;
+    SoundSequence* s = SequenceForId(this, sequenceId);
     if (s == nullptr) return -1;
     int handle = s->handle;
     s->active = 0;

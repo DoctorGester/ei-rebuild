@@ -26,7 +26,7 @@ Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and eve
   runs the companion's. Server: statistics block at +0x20 (0x58 bytes, hit points +0x28 / +0x2C).
   Client: looping effect sounds at +0x40 (0x14 each: kind, -1, handle, timer, present), effect
   particles +0x2C (0x10 each), light +0x50, end-sound handle +0x54.
-- flags_: 1 dead/destroyed (TakeHit), 2 dirty, 8 (network part 2), 0x10000 invisible, 0x40000 stunned
+- flags: 1 dead/destroyed (TakeHit), 2 dirty, 8 (network part 2), 0x10000 invisible, 0x40000 stunned
   (client, effect 0x19).
 - MarkChanged and HasEffect are CMapObject methods but stay rewritten on CUnit (unit.cpp); CMapObject
   reaches them via forwarders to 0050E9F0 / 0050F630. Standalone: move them to CMapObject and derive
@@ -51,7 +51,7 @@ Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and eve
 - **Figures**: layouts in `map_object_figures.h`; LoadFigures reads the model named at +0xA4
   through the figure manager (ManagerContext slot 15, 005AA5F0); SetFigureScale rebuilds the figure
   only when the scale changes (ManagerContext slots 23 / 6); the figure (+0xF0) is a CLinkMesh
-  (link_figure.h) and its piece map is `headers_` (+0x14, map<string, LinkPartHeader>; find 005197B0).
+  (link_figure.h) and its piece map is `headers` (+0x14, map<string, LinkPartHeader>; find 005197B0).
 - The side half at +0x94 (`CObject3DSpecific`: client 0x37 vtable 0073DE90, server 0x38 0073DFBC) is declared as an interface;
   slot 18 GetScale gives the client's +0xF0..+0xF8 or 1, 1, 1 on the server. Scenarios reaching the part code: units, unit_create, combat
   (weapon / armour models), spells_cast, effects (EffectPoint, particle callbacks).
@@ -74,7 +74,7 @@ here is gone. Facts a worker needs:
   GetPosition2 0050E4D0 (53, RET 4), GroundPoint 0050F730 (48), PlaceOnGround 0050F020 (51; the original's wrapper runs through a
   naked stub repeating its first three instructions PUSH ESI; MOV ESI,ECX; CALL 00455950 and jumping to 0050F028), SetServerData
   0050F050 (36), AttachObject 0050E890 (19, type 0x47), PackVitals 0050E970 (32), TakeHit 00515980 (20; ours returns 1; a dead
-  object has no effects and `flags_` bit 1), CreateMapObject / DestroyMapObject 0050E770 / 0050E840 (2 / 3), Create3D / Destroy3D
+  object has no effects and `flags` bit 1), CreateMapObject / DestroyMapObject 0050E770 / 0050E840 (2 / 3), Create3D / Destroy3D
   00515F70 / 00516080 (2 / 3; Destroy3D drops the parts' references without releasing them), AddEffectSource / RemoveEffectSource
   (particle sources at +0xA8, attached through 004849F0).
 - CObject3D: ComputeBounds 00518310 (+0x124..+0x150 and EAX), FindPartByPrefix 00516A80 (strstr at the name's start,
@@ -114,7 +114,7 @@ here is gone. Facts a worker needs:
   0051CCA0 / 0051CD60, ShowWounds 0051C3D0 (unit_client_wounds.cpp: the wounds texture (kind 6) found / made, reloaded unless its
   .mmp extra block is unchanged; the material WoundsMaterial: blend 5 / 6, helper preset 4, stages: part set texture, wounds
   texture), picking slots 22-24 (0051C130, 0051C160, 0051C1D0: dirtyRect / own-mesh parts' screen rects; PtInRect, IntersectRect +
-  IsRectEmpty), part lookups 16 / 17 (CObject3D::FindPart / FindPartOfType: type_, parts then pending).
+  IsRectEmpty), part lookups 16 / 17 (CObject3D::FindPart / FindPartOfType: type, parts then pending).
 - CSceneRenderer: DrawShadow 0051CE60 and Draw 0051B7E0 (client half), BeginScene / EndScene 00503F40 / 005040A0
   (slots 4 / 5; DrawTexture 00504860, slot 21, had no caller and is deleted (R26b); renderer_scene.cpp: the frame time; the frame statistics and the device counters only the debug panel read are gone, C55 / C57), DrawSelectionMarker 00503A40 (the green arrow under selected units; renderer_marker.cpp),
   SetGamma 00504A60 (slot 22: the options' brightness / contrast / gamma as the primary surface's gamma ramp; renderer_gamma.cpp),
@@ -207,14 +207,14 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
   they parse.
 
 A-U2: the effect / string counts of Load are read into the argument's stack slot (a failed read leaves the stream
-pointer as the count; ours starts the local with it); the flags_ read starts from stack garbage (ours: the current
+pointer as the count; ours starts the local with it); the flags read starts from stack garbage (ours: the current
 flags). CMapObjectServer now declares its vitals block (+0x20, UnitVitals), names and string array.
 
 ## Virtual slot names with low confidence (DR-C2)
 
 The placeholder slots of map_object.h, unit.h, world.h, map_object_figures.h and party.h were named from the vtables
 (evidence in the headers' comments). Guesses to re-check when a caller needs them: CMapObjectVirtuals 29
-`IsSynchronised` (flags_ 0x20000, set by the zone loader for records with +0x6C or a script name; units, levers, traps,
+`IsSynchronised` (flags 0x20000, set by the zone loader for records with +0x6C or a script name; units, levers, traps,
 torches answer 1; SendFreshObjects moves the objects answering 0 out of the map-object maps), 39 `IsDirectUseBlocked`
 (levers: byte +0x260; a plain click uses an object only when 38 IsUsable is set and 39 is 0), 43 `KeepsMapFlag` (levers:
 byte +0x261); CMapObjectCompanion 14 `Unused14`; CUnitController 15 / 17 `Unused*`, 36 `HasOtherArmour` (server: armour

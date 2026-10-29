@@ -50,7 +50,7 @@ std::vector<std::uint32_t> ReadPixels(int width, int height, const std::uint8_t*
 // file is silent. No texture format: the error for a surface that cannot be made (the staging
 // surface's: sizes zero) ends the game.
 int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath) {
-    if (flags_ & TextureFlag::Loaded) return 1;
+    if (flags & TextureFlag::Loaded) return 1;
     lib::File file;
     lib::File alphaFile;
     CDib colour;
@@ -63,7 +63,7 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     file.Close();
     SIZE size;
     colour.Size(&size);
-    const int width = size.cx, height = size.cy;
+    const int bmpWidth = size.cx, bmpHeight = size.cy;
     bool withAlpha = false;
     if (alphaFile.Open(alphaPath, lib::File::modeRead)) {
         alpha.Read(&alphaFile);
@@ -74,16 +74,16 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
         else
             game::DebugLog(AlphaNot8BitText(), alphaPath, static_cast<unsigned>(bits));
     }
-    height_ = static_cast<std::uint32_t>(height);
-    width_ = static_cast<std::uint32_t>(width);
+    height = static_cast<std::uint32_t>(bmpHeight);
+    width = static_cast<std::uint32_t>(bmpWidth);
     const std::uint8_t* alphaBits = withAlpha ? alpha.bits.data() : nullptr;
 
     // Drawn into the texture on the GPU.
-    TakeBlankHolder(device, width, height, true);
-    const std::vector<std::uint32_t> pixels = ReadPixels(width, height, colour.bits.data(), alphaBits);
-    const render::TextureImage image{nullptr, pixels.data(), static_cast<std::uint32_t>(pixels.size() * 4), width, height,
+    TakeBlankHolder(device, bmpWidth, bmpHeight, true);
+    const std::vector<std::uint32_t> pixels = ReadPixels(bmpWidth, bmpHeight, colour.bits.data(), alphaBits);
+    const render::TextureImage image{nullptr, pixels.data(), static_cast<std::uint32_t>(pixels.size() * 4), bmpWidth, bmpHeight,
                                      render::ImageLayout::Argb};
-    render::DrawIntoTexture(surface_, &image, 0, 0, width, height);
-    flags_ |= TextureFlag::Loaded;
+    render::DrawIntoTexture(surface, &image, 0, 0, bmpWidth, bmpHeight);
+    flags |= TextureFlag::Loaded;
     return 1;
 }

@@ -45,7 +45,7 @@ struct Vector3 {
     float x, y, z;
 
     // The constructor Vector3(x, y, z): callers use the returned `this`.
-    Vector3* Construct(float x_, float y_, float z_);
+    Vector3* Construct(float x, float y, float z);
     float Length() const;                           // XYZ
     const Vector3* AddInPlace(const Vector3& v);    // returns &v
     void DivideInPlace(float d);

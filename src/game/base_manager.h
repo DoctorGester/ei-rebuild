@@ -90,26 +90,26 @@ protected:
     CBaseManager();
 
 public:
-    ObjectMap objects_;             // registered objects by id
-    int maxId_;                     // highest id registered
-    std::list<CEngineObject*> objectList_;         // registered objects in registration order (saved so)
-    std::unordered_map<int, std::list<CEngineObject*>::iterator> positions_;         // id -> its node in objectList_
-    int maxPositionId_;             // highest key of positions_ (kept by RegisterInstant)
-    SpareMap spares_;               // type -> list of spare objects (allocated per type)
-    int maxSpareType_;              // highest key of spares_
-    std::unordered_map<int, int> spareCounts_;     // type -> number of spares
-    int maxSpareCountType_;         // highest key of spareCounts_
-    int idLow_;                     // automatic ids come from [idLow_, idHigh_)
-    int idHigh_;                    // 2000000000
-    int reservedA_;                 // -1 when constructed, 0 after Create; nothing reads it
-    int reservedB_;                 // -1 when constructed, 300 after Create; nothing reads it
-    int lastId_;                    // id most recently registered (-1 when constructed)
-    CManagerContext* context_;      // set by Init / SetContext (the world for its managers, a party for its own)
-    // context_ as the world, for the world's managers (a party's item manager has the party).
-    template <class World = CWorld> World* ContextAsWorld() const { return static_cast<World*>(context_); }
+    ObjectMap objects;              // registered objects by id
+    int maxId;                      // highest id registered
+    std::list<CEngineObject*> objectList;          // registered objects in registration order (saved so)
+    std::unordered_map<int, std::list<CEngineObject*>::iterator> positions;          // id -> its node in objectList
+    int maxPositionId;              // highest key of positions (kept by RegisterInstant)
+    SpareMap spares;                // type -> list of spare objects (allocated per type)
+    int maxSpareType;               // highest key of spares
+    std::unordered_map<int, int> spareCounts;      // type -> number of spares
+    int maxSpareCountType;          // highest key of spareCounts
+    int idLow;                      // automatic ids come from [idLow, idHigh)
+    int idHigh;                     // 2000000000
+    int reservedA;                  // -1 when constructed, 0 after Create; nothing reads it
+    int reservedB;                  // -1 when constructed, 300 after Create; nothing reads it
+    int lastId;                     // id most recently registered (-1 when constructed)
+    CManagerContext* context;       // set by Init / SetContext (the world for its managers, a party for its own)
+    // context as the world, for the world's managers (a party's item manager has the party).
+    template <class World = CWorld> World* ContextAsWorld() const { return static_cast<World*>(context); }
 };
 
-// Walks a manager's objectList_. While iterating it holds a reference on the manager (refCount_ + 1); the
+// Walks a manager's objectList. While iterating it holds a reference on the manager (refCount + 1); the
 // owner drops it afterwards with `manager->ForgetReference()` (the destructor).
 struct ObjectListIterator {
     CBaseManager* manager;
@@ -127,7 +127,7 @@ struct ObjectListIteratorOf : ObjectListIterator {
     T* Next() { return static_cast<T*>(ObjectListIterator::Next()); }
 };
 
-// The types of the side-specific manager's objects (CEngineObject::type_; the client's factory spells them 'E'..'K').
+// The types of the side-specific manager's objects (CEngineObject::type; the client's factory spells them 'E'..'K').
 // The server's manager makes no Drawer (0x45); nothing has 0x4A.
 enum class SideObjectType : int {
     Drawer = 0x45,       // FigureMeshDrawer
@@ -138,8 +138,8 @@ enum class SideObjectType : int {
     Torch = 0x4B,        // CTorchObjectClientSpec / CTorchObjectSpec
 };
 
-// type_ of a side-specific half.
-inline SideObjectType SideTypeOf(const CEngineObject* object) { return static_cast<SideObjectType>(object->type_); }
+// type of a side-specific half.
+inline SideObjectType SideTypeOf(const CEngineObject* object) { return static_cast<SideObjectType>(object->type); }
 
 class CClientSpecificManager : public CBaseManager {
 public:

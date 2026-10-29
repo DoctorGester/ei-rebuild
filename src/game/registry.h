@@ -50,9 +50,9 @@ public:
     // A string array (or a single string) into `out`. Without the key `out` is emptied and the result is 0.
     bool GetStringArray(const char* section, const char* key, std::vector<std::string>* out);
 
-    bool attached_ = false;       // 1: the data is not ours (Attach)
-    CMappedFile file_;
-    const std::uint8_t* data_ = nullptr;
+    bool attached = false;        // 1: the data is not ours (Attach)
+    CMappedFile file;
+    const std::uint8_t* data = nullptr;
 };
 
 constexpr std::uint32_t kRegistryMagic = 0x45AB3EFB;

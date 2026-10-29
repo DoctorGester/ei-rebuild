@@ -13,7 +13,7 @@ namespace terrain {
 
 std::uint8_t Terrain::EdgeFade(const Vector3& point) {
     if (!lib::Has(landscapeFlags, LandscapeFlag::EdgeFade)) return 0xFF;
-    const float fade = options::g_options.borderFogDistance_;
+    const float fade = options::g_options.borderFogDistance;
     // How far inside the band's inner border the point is, per edge (negative: in the band).
     float left = static_cast<float>(point.x - fade - 1.0f);
     float bottom = static_cast<float>(point.y - fade - 1.0f);

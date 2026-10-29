@@ -23,8 +23,8 @@ constexpr std::uint32_t kDefaultVersion = 2000000000;
 // --- CStream -----------------------------------------------------------------------------------
 
 CStream::CStream() {
-    version_ = kDefaultVersion;
-    ok_ = 1;
+    version = kDefaultVersion;
+    ok = 1;
 }
 
 
@@ -46,28 +46,28 @@ void CStream::WriteString(std::string_view text) {
 // --- CMemoryStream (its Read, Write, Seek and CopyFrom; Resize and SetSize are in core_memory_stream.cpp) --------
 
 CMemoryStream::CMemoryStream() {
-    position_ = 0;
-    size_ = 0;
-    bitMask_ = 0x80;
-    bitsIndex_ = -1;
+    position = 0;
+    size = 0;
+    bitMask = 0x80;
+    bitsIndex = -1;
 }
 
 CMemoryStream::~CMemoryStream() = default;
 
 CMemoryStream::CMemoryStream(CMemoryStream&& other) noexcept
-    : bits_(other.bits_), bitMask_(other.bitMask_), bitsIndex_(other.bitsIndex_),
-      data_(std::exchange(other.data_, {})),
-      position_(std::exchange(other.position_, 0)), size_(std::exchange(other.size_, 0)) {
-    reading_ = other.reading_;
-    ok_ = other.ok_;
-    version_ = other.version_;
+    : bits(other.bits), bitMask(other.bitMask), bitsIndex(other.bitsIndex),
+      data(std::exchange(other.data, {})),
+      position(std::exchange(other.position, 0)), size(std::exchange(other.size, 0)) {
+    reading = other.reading;
+    ok = other.ok;
+    version = other.version;
 }
 
 void CMemoryStream::Clear() {
-    data_ = {};
-    position_ = 0;
-    size_ = 0;
-    ok_ = 1;
-    bitMask_ = 0x80;
-    bitsIndex_ = -1;
+    data = {};
+    position = 0;
+    size = 0;
+    ok = 1;
+    bitMask = 0x80;
+    bitsIndex = -1;
 }

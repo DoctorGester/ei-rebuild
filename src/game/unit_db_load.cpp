@@ -129,7 +129,7 @@ int SkillDatabase::Load(const std::string& folder, const std::string& archive) {
         // clear and the record's chunk out of line.
         if (ar.EnterChunk(kSkillLevelsChunk)) {
             int count;
-            if (ar.loading_) {
+            if (ar.loading) {
                 levels.clear();
                 count = ar.CountChunks(kRecordChunk);
                 levels.resize(static_cast<std::uint32_t>(count));

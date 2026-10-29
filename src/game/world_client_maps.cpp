@@ -103,29 +103,29 @@ void SessionPlayerClear(CPlayer* session) { session->Clear(); }
 
 
 std::list<HeldRef<CMapObject>>* CellFor(SectorGrid& grid, CMapObject* object) {
-    std::uint32_t x = CellOf(object->localPosition_.x);
-    std::uint32_t y = CellOf(object->localPosition_.y);
-    if (x >= grid.width_ || y >= grid.height_) return nullptr;
-    return &grid.rows_[y][x];
+    std::uint32_t x = CellOf(object->localPosition.x);
+    std::uint32_t y = CellOf(object->localPosition.y);
+    if (x >= grid.width || y >= grid.height) return nullptr;
+    return &grid.rows[y][x];
 }
 
 using Collect = HitCollector* (HitCollector::*)(std::list<ScreenEntry>::iterator, std::list<ScreenEntry>::iterator, std::vector<ScreenEntry>*, long, long,
                                                 CMapObjectManager*);
 CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
-    std::vector<ScreenEntry>& hits = client->hits_;
+    std::vector<ScreenEntry>& hits = client->hits;
     hits.clear();
     CMapObjectManager* manager = client->MapObjectManager();
-    std::list<ScreenEntry>& screen = client->screenEntries_;
+    std::list<ScreenEntry>& screen = client->screenEntries;
     HitCollector functor;
     (functor.*collect)(screen.begin(), screen.end(), &hits, point->x, point->y, manager);
     if (hits.empty()) return nullptr;
 
     // Front to back (DepthLess with the top of the view stack); hits at the same depth keep the game's sort's
     // order, and the first that takes the click wins.
-    DepthLess depth{g_sceneRenderer.pipeline_->Top(CTransformPipeline::kViewStack)->m, client->MapObjectManager()};
+    DepthLess depth{g_sceneRenderer.pipeline->Top(CTransformPipeline::kViewStack)->m, client->MapObjectManager()};
     lib::IntroSort(hits.data(), hits.data() + hits.size(),
                    [depth](const ScreenEntry& a, const ScreenEntry& b) { return depth.Less(&a, &b); });
-    ScreenEntry*& cursor = client->hitCursor_;
+    ScreenEntry*& cursor = client->hitCursor;
     for (cursor = hits.data(); cursor != hits.data() + hits.size(); ++cursor) {
         if (CMapObject* object = manager->FindMapObject(cursor->objectId)) return object;
     }
@@ -137,8 +137,8 @@ CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
 CUnit* FirstUnitHit(CWorldClient* client, CMapObject* object) {
     while (object->GetClassId() != ClassId::Unit) {
         do {
-            if (++client->hitCursor_ == client->hits_.data() + client->hits_.size()) return nullptr;
-            object = client->objectManager_->FindMapObject(client->hitCursor_->objectId);
+            if (++client->hitCursor == client->hits.data() + client->hits.size()) return nullptr;
+            object = client->objectManager->FindMapObject(client->hitCursor->objectId);
         } while (!object);
     }
     return static_cast<CUnit*>(object);
@@ -162,7 +162,7 @@ void DeleteOwned(T*& slot) {
 template <typename T>
 void DropAndDelete(T*& slot) {
     if (slot) {
-        --slot->refCount_;
+        --slot->refCount;
         CEngineObject* object = slot;
         if (object) delete object;
         slot = nullptr;
@@ -172,7 +172,7 @@ void DropAndDelete(T*& slot) {
 // The selection highlight off: Selected and BoxMarked cleared, the side half's empty virtual and SetLit
 // with 0 (its light goes off).
 void Unhighlight(CMapObject* object) {
-    object->flags_ &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);
+    object->flags &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);
     CObject3DSpecific* half = object->attached;
     half->Unused25(0);
     half = object->attached;
@@ -191,21 +191,21 @@ T* NewCounted() {
 // resize inlined).
 void GridToFour(SectorGrid& grid) {
     grid.Resize(1, 1);
-    grid.width_ = 4;
-    grid.height_ = 4;
+    grid.width = 4;
+    grid.height = 4;
     grid.Resize(4, 4);
 }
 
 void ReferenceEveryObject(CBaseManager* manager) {
     ObjectListIterator walk{};
     for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) object->AddRef();
-    if (CBaseManager* held = walk.manager) --held->refCount_;
+    if (CBaseManager* held = walk.manager) --held->refCount;
 }
 
 void ReleaseEveryObject(CBaseManager* manager) {
     ObjectListIterator walk{};
     for (CEngineObject* object = walk.First(manager); object; object = walk.Next()) object->Release();
-    if (CBaseManager* held = walk.manager) --held->refCount_;
+    if (CBaseManager* held = walk.manager) --held->refCount;
 }
 
 constexpr int kSkyTextureKind = static_cast<int>(TextureKind::SkyFace);
@@ -227,8 +227,8 @@ void FitGrid(SectorGrid& grid, const terrain::Terrain* terrain) {
     const std::uint32_t height = static_cast<std::uint32_t>(x87::fistp(terrain->height));
     const std::uint32_t width = static_cast<std::uint32_t>(x87::fistp(terrain->width));
     grid.Resize(1, 1);
-    grid.height_ = height >> 4;
-    grid.width_ = width >> 4;
+    grid.height = height >> 4;
+    grid.width = width >> 4;
     grid.Resize(static_cast<int>(width >> 4), static_cast<int>(height >> 4));
 }
 
@@ -243,7 +243,7 @@ bool InFinalZone() {
 } // namespace
 
 void SectorGrid::Move(CMapObject* object, const float* position) {
-    float* stored = &object->localPosition_.x;   // x, y, z
+    float* stored = &object->localPosition.x;    // x, y, z
     std::uint32_t oldX = CellOf(stored[0]);
     std::uint32_t oldY = CellOf(stored[1]);
     std::uint32_t newX = CellOf(position[0]);
@@ -252,9 +252,9 @@ void SectorGrid::Move(CMapObject* object, const float* position) {
         std::memcpy(stored, position, 12);
         return;
     }
-    if (oldX < width_ && oldY < height_) RemoveHeld(rows_[oldY][oldX], object);
+    if (oldX < width && oldY < height) RemoveHeld(rows[oldY][oldX], object);
     std::memcpy(stored, position, 12);
-    if (newX < width_ && newY < height_) rows_[newY][newX].emplace_back(object);
+    if (newX < width && newY < height) rows[newY][newX].emplace_back(object);
 }
 
 HitCollector* HitCollector::CollectBounds(std::list<ScreenEntry>::iterator first, std::list<ScreenEntry>::iterator last, std::vector<ScreenEntry>* found, LONG x,
@@ -275,123 +275,123 @@ int PendingIndex::Lookup(const std::uint32_t* key, std::list<CMapObject*>::itera
 }
 
 int CWorldClient::AddObject(CMapObject* object) {
-    for (CMapObject* filed : objects_) {
-        if (filed->id_ == object->id_) {
+    for (CMapObject* filed : objects) {
+        if (filed->id == object->id) {
             object->AddRef();
             object->Release();
             return 1;
         }
     }
-    auto entry = dynamicNodes_.find(static_cast<std::uint32_t>(object->id_));
-    if (entry == dynamicNodes_.end() && object->IsSynchronised()) {
-        std::list<CMapObject*>& kept = dynamicObjects_;
+    auto entry = dynamicNodes.find(static_cast<std::uint32_t>(object->id));
+    if (entry == dynamicNodes.end() && object->IsSynchronised()) {
+        std::list<CMapObject*>& kept = dynamicObjects;
         auto node = kept.emplace(kept.end(), object);
-        int key = object->id_;
-        hash400::Entry(dynamicNodes_, dynamicMaxId_, key) = node;
+        int key = object->id;
+        hash400::Entry(dynamicNodes, dynamicMaxId, key) = node;
     }
     ClassId kind = object->GetClassId();
     if (kind == ClassId::Building || object->GetClassId() == ClassId::Lever) {
         CObject3D* figure = object->Object3D();
         for (int i = 0; i < std::ssize(figure->parts); ++i) {
             if ((figure->PartBox(i)->bounds.flags >> 10) & 1) {
-                int id = object->id_;
-                platforms_.AddBox(id, figure->PartBox(i), object->localPosition_, &object->localRotation_);
+                int objectId = object->id;
+                platforms.AddBox(objectId, figure->PartBox(i), object->localPosition, &object->localRotation);
             }
         }
     }
     CUnit* unit = UnitOrNull(object);
-    if (unit && session_->sessionKind_ == 1) {
-        if (unit->player == nullptr && ticksRun_ >= 1) unit->Controller()->RestartFadeIn();
+    if (unit && session->sessionKind == 1) {
+        if (unit->player == nullptr && ticksRun >= 1) unit->Controller()->RestartFadeIn();
     }
 
     object->AddRef();
-    objects_.push_back(object);
+    objects.push_back(object);
 
-    if (std::list<HeldRef<CMapObject>>* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
-    if (std::list<HeldRef<CMapObject>>* cell = CellFor(objectGrid_, object)) cell->emplace_back(object);
-    if (object->MapType() == MapObjectType::Hero && IsTextKey(object->id_)) heroes_.emplace_back(object);
+    if (std::list<HeldRef<CMapObject>>* cell = CellFor(objectGrid, object)) RemoveHeld(*cell, object);
+    if (std::list<HeldRef<CMapObject>>* cell = CellFor(objectGrid, object)) cell->emplace_back(object);
+    if (object->MapType() == MapObjectType::Hero && IsTextKey(object->id)) heroes.emplace_back(object);
     return 1;
 }
 
 void CWorldClient::RefreshPlatforms(CMapObject* object) {
-    const int id = object->id_;
-    if (std::ranges::none_of(objects_, [id](const CMapObject* filed) { return filed->id_ == id; })) return;
-    std::list<Platform>& platforms = platforms_.list;
-    for (auto node = platforms.begin(); node != platforms.end();) {
+    const int objectId = object->id;
+    if (std::ranges::none_of(objects, [objectId](const CMapObject* filed) { return filed->id == objectId; })) return;
+    std::list<Platform>& newPlatforms = platforms.list;
+    for (auto node = newPlatforms.begin(); node != newPlatforms.end();) {
         auto next = std::next(node);
-        if (node->id == id) platforms.erase(node);
+        if (node->id == objectId) newPlatforms.erase(node);
         node = next;
     }
     if (object->GetClassId() != ClassId::Building && object->GetClassId() != ClassId::Lever) return;
     CObject3D* figure = object->Object3D();
     for (int i = 0; i < std::ssize(figure->parts); ++i) {
         if (!((figure->PartBox(i)->bounds.flags >> 10) & 1)) continue;
-        platforms_.AddBox(object->id_, figure->PartBox(i), object->localPosition_, &object->localRotation_);
+        platforms.AddBox(object->id, figure->PartBox(i), object->localPosition, &object->localRotation);
     }
 }
 
 bool CWorldClient::QueueSynchronised(CMapObject* object) {
-    if (dynamicNodes_.contains(static_cast<std::uint32_t>(object->id_))) return false;
-    std::list<CMapObject*>& kept = dynamicObjects_;
+    if (dynamicNodes.contains(static_cast<std::uint32_t>(object->id))) return false;
+    std::list<CMapObject*>& kept = dynamicObjects;
     auto node = kept.emplace(kept.end(), object);
-    int key = object->id_;
-    hash400::Entry(dynamicNodes_, dynamicMaxId_, key) = node;
+    int key = object->id;
+    hash400::Entry(dynamicNodes, dynamicMaxId, key) = node;
     return true;
 }
 
 void CWorldClient::MarkFootprintsInSight(const float* point, float range) {
-    // A footprint is made visible when hypot(position - point) <= its scale_ * range.
-    for (Footprint& print : footprints_) {
-        double dx = print.position_.x - point[0];
-        double dy = print.position_.y - point[1];
+    // A footprint is made visible when hypot(position - point) <= its scale * range.
+    for (Footprint& print : footprints) {
+        double dx = print.position.x - point[0];
+        double dy = print.position.y - point[1];
         double distance = libcrt::Hypot(dx, dy);
-        float limit = print.scale_ * range;
+        float limit = print.scale * range;
         EI_NAN_AUDIT(distance, limit);
-        if (distance <= static_cast<double>(limit)) print.visible_ = 1;
+        if (distance <= static_cast<double>(limit)) print.visible = 1;
     }
 }
 
 void CWorldClient::ApplyWind(const Vector3& direction, float strength) {
     SetWind(direction, strength);
-    if (terrain_) terrain_->SetWaves(direction, strength);
-    rainSnow_.SetWind(direction, strength);
+    if (terrain) terrain->SetWaves(direction, strength);
+    rainSnow.SetWind(direction, strength);
 }
 
 int CWorldClient::CentreOn(const Vector3& point) {
     Vector3 focus = point;
-    focus.z = camera_->focus_.z;
-    camera_->SetFocus(focus);
-    camera_->ApplyView();
-    camera_->ClampAboveObjects();
+    focus.z = camera->focus.z;
+    camera->SetFocus(focus);
+    camera->ApplyView();
+    camera->ClampAboveObjects();
     return 1;
 }
 
 double CWorldClient::GroundHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
     float height = static_cast<float>(GridHeightAt(x, y));
-    return platforms_.SurfaceHeight(point, height);
+    return platforms.SurfaceHeight(point, height);
 }
 
 double CWorldClient::SurfaceHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
     float height = static_cast<float>(RawSurfaceHeightAt(x, y));
-    return platforms_.SurfaceHeight(point, height);
+    return platforms.SurfaceHeight(point, height);
 }
 
-void CWorldClient::ShowNumber(int id, int value, std::uint32_t kind) {
-    CEngineObject* object = MapObjectManager()->FindObject(static_cast<unsigned>(id));
+void CWorldClient::ShowNumber(int objectId, int value, std::uint32_t kind) {
+    CEngineObject* object = MapObjectManager()->FindObject(static_cast<unsigned>(objectId));
     if (!object || object->GetClassId() != ClassId::Unit) return;
-    if (numbers_) numbers_->Add(id, value, kind);
+    if (numbers) numbers->Add(objectId, value, kind);
 }
 
 void CWorldClient::LoadUnitFaces() {
-    for (CMapObject* object : objects_) {
+    for (CMapObject* object : objects) {
         // The pointer is tested after the class call (the list holds no null).
         if (CUnit* unit = UnitOrNull(object)) unit->ClientController()->LoadFaceTexture();
     }
 }
 
-const char* CWorldClient::ExitTarget(int index) { return exits_[index].target.c_str(); }
+const char* CWorldClient::ExitTarget(int index) { return exits[index].target.c_str(); }
 
 void CWorldClient::RemoveUnitsOf(const std::vector<PartyUnitRecord*>* records) {
     for (int i = 0; i < std::ssize(*records); ++i)
@@ -403,69 +403,69 @@ int CWorldClient::SendFlag10(int value) {
 }
 
 void CWorldClient::DropShadows() {
-    for (CMapObject* object : objects_) {
+    for (CMapObject* object : objects) {
         CObject3DClientSpecific* half = object->ClientSpecific();
         // Only the low byte is tested (ShadowsShown's "off" leaves the setting's upper bytes).
         if (!static_cast<std::uint8_t>(half->ShadowsShown())) half->ClearShadow();
     }
 }
 
-void CWorldClient::RemoveObject(int id) {
-    std::list<Platform>& platforms = platforms_.list;
-    for (auto node = platforms.begin(); node != platforms.end();) {
+void CWorldClient::RemoveObject(int objectId) {
+    std::list<Platform>& newPlatforms = platforms.list;
+    for (auto node = newPlatforms.begin(); node != newPlatforms.end();) {
         auto next = std::next(node);
-        if (node->id == id) platforms.erase(node);
+        if (node->id == objectId) newPlatforms.erase(node);
         node = next;
     }
-    PendingIndex& ids = dynamicNodes_;
-    if (auto entry = ids.find(static_cast<std::uint32_t>(id)); entry != ids.end()) {
-        std::list<CMapObject*>& kept = dynamicObjects_;
+    PendingIndex& ids = dynamicNodes;
+    if (auto entry = ids.find(static_cast<std::uint32_t>(objectId)); entry != ids.end()) {
+        std::list<CMapObject*>& kept = dynamicObjects;
         std::list<CMapObject*>::iterator node = entry->second;
         kept.erase(node);
-        if (auto again = ids.find(static_cast<std::uint32_t>(id)); again != ids.end()) ids.erase(again);
+        if (auto again = ids.find(static_cast<std::uint32_t>(objectId)); again != ids.end()) ids.erase(again);
     }
-    auto filed = std::ranges::find_if(objects_, [id](const CMapObject* object) { return object->id_ == id; });
-    if (filed == objects_.end()) return;
+    auto filed = std::ranges::find_if(objects, [objectId](const CMapObject* object) { return object->id == objectId; });
+    if (filed == objects.end()) return;
     CMapObject* object = *filed;
-    if (object->MapType() == MapObjectType::Hero && IsTextKey(id)) {
-        RemoveHeld(heroes_, object);
-        if (session_->sessionKind_ == 3) static_cast<CUnit*>(object)->ClientController()->DropFaceTexture();
+    if (object->MapType() == MapObjectType::Hero && IsTextKey(objectId)) {
+        RemoveHeld(heroes, object);
+        if (session->sessionKind == 3) static_cast<CUnit*>(object)->ClientController()->DropFaceTexture();
     }
-    if (std::list<HeldRef<CMapObject>>* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
-    objects_.erase(filed);
+    if (std::list<HeldRef<CMapObject>>* cell = CellFor(objectGrid, object)) RemoveHeld(*cell, object);
+    objects.erase(filed);
     object->Release();
 }
 
 void CWorldClient::ClearMaps() {
-    SectorGrid& second = secondGrid_;
-    for (int x = 0; x < static_cast<int>(second.width_); ++x)
-        for (int y = 0; y < static_cast<int>(second.height_); ++y)
-            second.rows_[y][x].clear();
-    SectorGrid& grid = objectGrid_;
-    for (int x = 0; x < static_cast<int>(grid.width_); ++x)
-        for (int y = 0; y < static_cast<int>(grid.height_); ++y)
-            grid.rows_[y][x].clear();
+    SectorGrid& second = secondGrid;
+    for (int x = 0; x < static_cast<int>(second.width); ++x)
+        for (int y = 0; y < static_cast<int>(second.height); ++y)
+            second.rows[y][x].clear();
+    SectorGrid& grid = objectGrid;
+    for (int x = 0; x < static_cast<int>(grid.width); ++x)
+        for (int y = 0; y < static_cast<int>(grid.height); ++y)
+            grid.rows[y][x].clear();
 
     // Both emptied: the platform faces and the dynamic objects (the elements need no destruction).
-    platforms_.list.clear();
-    dynamicObjects_.clear();
-    dynamicNodes_.clear();
-    dynamicMaxId_ = 0;
+    platforms.list.clear();
+    dynamicObjects.clear();
+    dynamicNodes.clear();
+    dynamicMaxId = 0;
 
-    selectedIds_.clear();
+    selectedIds.clear();
 
-    heroes_.clear();
+    heroes.clear();
     // The objects with a positive id released and unfiled.
-    std::erase_if(objects_, [](CMapObject* object) {
-        if (object->id_ <= 0) return false;
+    std::erase_if(objects, [](CMapObject* object) {
+        if (object->id <= 0) return false;
         object->Release();
         return true;
     });
-    SessionPlayerClear(session_);
-    if (CLinkFigureLoader* loader = figureLoader_) loader->ClearCache();
-    figureManager_->FreeSpares();
-    objectManager_->FreeSpares();
-    specificManager_->FreeSpares();
+    SessionPlayerClear(session);
+    if (CLinkFigureLoader* loader = figureLoader) loader->ClearCache();
+    figureManager->FreeSpares();
+    objectManager->FreeSpares();
+    specificManager->FreeSpares();
 }
 
 CMapObject* CWorldClient::PickAt(const POINT* point) { return Pick(this, point, &HitCollector::CollectBounds); }
@@ -486,8 +486,8 @@ CUnit* CWorldClient::UnitAt2(const POINT* point) {
 
 std::list<CMapObject*> CWorldClient::UnitsInBox(const tagRECT* rect) {
     std::list<CMapObject*> inside;
-    for (auto& node : screenEntries_) {
-        CMapObject* object = objectManager_->FindMapObject(node.objectId);
+    for (auto& node : screenEntries) {
+        CMapObject* object = objectManager->FindMapObject(node.objectId);
         if (!object) continue;
         if (!object->Object3D()->attached->PartsIntersectRect(rect)) continue;
         inside.push_back(object);
@@ -519,9 +519,9 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
         auto* unit = manager->CreateObjectAs<CUnit>(MapObjectType::Hero, static_cast<int>(record->unitId));
         if (!unit) return;   // (leaving the loop is the same as returning here)
         UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(record->texts[5]);
-        unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - g_unitDatabase.prototypes.records.data() : -1);
+        unit->prototypeId = static_cast<std::uint32_t>(prototype ? prototype - g_unitDatabase.prototypes.records.data() : -1);
         unit->SetSecondPrototypeByName(record->texts[6]);
-        unit->flags_ |= MapObjectFlag::Preview;
+        unit->flags |= MapObjectFlag::Preview;
         if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
         CObject3DClientSpecific* figure = unit->Object3D()->ClientSpecific();
         figure->RegisterPartMaterials();
@@ -555,29 +555,29 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
 
 std::list<CObject3D*> CWorldClient::ObjectsInRange(const Vector3& point, float radius) {
     std::list<CObject3D*> found;
-    float maxX = terrain_->width - 1.0f;
-    float maxY = terrain_->height - 1.0f;
+    float maxX = terrain->width - 1.0f;
+    float maxY = terrain->height - 1.0f;
     float y1 = MinKeepB(MaxKeepA(0.0f, point.y + radius), maxY);
     float x1 = MinKeepB(MaxKeepA(0.0f, point.x + radius), maxX);
     float y0 = MaxKeepA(0.0f, MinKeepB(MaxKeepA(0.0f, point.y - radius), maxY));
     float x0 = MaxKeepA(0.0f, MinKeepB(MaxKeepA(0.0f, point.x - radius), maxX));
-    std::uint32_t& firstX = rangeFirstX_;
-    std::uint32_t& firstY = rangeFirstY_;
-    std::uint32_t& lastX = rangeLastX_;
-    std::uint32_t& lastY = rangeLastY_;
-    std::uint32_t& x = rangeX_;
-    std::uint32_t& y = rangeY_;
+    std::uint32_t& firstX = rangeFirstX;
+    std::uint32_t& firstY = rangeFirstY;
+    std::uint32_t& lastX = rangeLastX;
+    std::uint32_t& lastY = rangeLastY;
+    std::uint32_t& x = rangeX;
+    std::uint32_t& y = rangeY;
     firstX = x = Ftol(x0) >> 4;
     firstY = y = Ftol(y0) >> 4;
     lastX = Ftol(x1) >> 4;
     lastY = Ftol(y1) >> 4;
 
-    SectorGrid& grid = objectGrid_;
-    for (std::list<HeldRef<CMapObject>>* cell = &grid.rows_[y][x]; cell;) {
+    SectorGrid& grid = objectGrid;
+    for (std::list<HeldRef<CMapObject>>* cell = &grid.rows[y][x]; cell;) {
         for (CMapObject* object : *cell) {
             float pz = point.z;
-            float ox = object->localPosition_.x + object->bounds.center.x;
-            float oy = object->localPosition_.y + object->bounds.center.y;
+            float ox = object->localPosition.x + object->bounds.center.x;
+            float oy = object->localPosition.y + object->bounds.center.y;
             double reach = libcrt::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y) + radius;
             float dx = ox - point.x;
             float dy = oy - point.y;
@@ -591,7 +591,7 @@ std::list<CObject3D*> CWorldClient::ObjectsInRange(const Vector3& point, float r
             x = firstX;
             if (++y > lastY) return found;
         }
-        cell = &grid.rows_[y][x];
+        cell = &grid.rows[y][x];
     }
     return found;
 }
@@ -620,7 +620,7 @@ int PlatformSet::AddFace(const Vector3& a, const Vector3& b, const Vector3& c, c
     return 1;
 }
 
-void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3& position, const Quaternion* rotation) {
+void PlatformSet::AddBox(int newId, const FootprintPart* item, const Vector3& position, const Quaternion* rotation) {
     const Vector3& offset = item->bounds.center;
     const Vector3& low = item->bounds.boxMin;
     const Vector3& high = item->bounds.boxMax;
@@ -653,7 +653,7 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3& posit
     for (int i = 0; i < 6; ++i) {
         Platform* record;
         if (!AddFace(corners[i + 1], corners[i], corners[i + 2], normals[i], &record)) continue;
-        record->id = id;
+        record->id = newId;
         Vector3 rotated = m.Transform(pivot + offset);
         record->x = rotated.x + position.x;
         record->y = rotated.y + position.y;
@@ -664,99 +664,99 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3& posit
 
 void CWorldClient::Destroy() {
     g_camera.SetTarget(nullptr);
-    delete numbers_;
-    numbers_ = nullptr;
-    delete skyDome_;
-    skyDome_ = nullptr;
-    DeleteOwned(bird_);
+    delete numbers;
+    numbers = nullptr;
+    delete skyDome;
+    skyDome = nullptr;
+    DeleteOwned(bird);
     ReleaseItemsAndSpells();
-    exitMarkers_.clear();
-    bloodPrints_.clear();
-    footprints_.clear();
-    scorchMarks_.clear();
-    rainSnow_.Destroy();
-    platforms_.Destroy();
-    platforms_.list.clear();
-    SectorGrid& grid = objectGrid_;
-    for (int x = 0; x < static_cast<int>(grid.width_); ++x)
-        for (int y = 0; y < static_cast<int>(grid.height_); ++y)
-            grid.rows_[y][x].clear();
-    selectedIds_.clear();
-    heroes_.clear();
-    for (CMapObject* object : objects_)
+    exitMarkers.clear();
+    bloodPrints.clear();
+    footprints.clear();
+    scorchMarks.clear();
+    rainSnow.Destroy();
+    platforms.Destroy();
+    platforms.list.clear();
+    SectorGrid& grid = objectGrid;
+    for (int x = 0; x < static_cast<int>(grid.width); ++x)
+        for (int y = 0; y < static_cast<int>(grid.height); ++y)
+            grid.rows[y][x].clear();
+    selectedIds.clear();
+    heroes.clear();
+    for (CMapObject* object : objects)
         if (object) object->Release();
-    objects_.clear();
-    if (CPlayer* session = session_) {
-        session->Release();
-        session_ = nullptr;
+    objects.clear();
+    if (CPlayer* currentSession = session) {
+        currentSession->Release();
+        session = nullptr;
     }
-    DestroyOwned(handle_);
+    DestroyOwned(handle);
     CWorld::Destroy();
-    DeleteOwned(listManager_);
-    DeleteOwned(arrayManager_);
-    DropAndDelete(particleManager_);
-    DropAndDelete(terrain_);
-    DropAndDelete(lightFactory_);
-    DropAndDelete(materialManager_);
-    DropAndDelete(textureManager_);
-    DeleteOwned(music_);
-    DropAndDelete(sounds_);
-    DropAndDelete(texts_);
+    DeleteOwned(listManager);
+    DeleteOwned(arrayManager);
+    DropAndDelete(particleManager);
+    DropAndDelete(terrain);
+    DropAndDelete(lightFactory);
+    DropAndDelete(materialManager);
+    DropAndDelete(textureManager);
+    DeleteOwned(music);
+    DropAndDelete(sounds);
+    DropAndDelete(texts);
 }
 
 void CWorldClient::ResetZoneObjects() {
-    exitMarkers_.clear();
+    exitMarkers.clear();
     // The second grid's cells emptied (each object released).
-    SectorGrid& second = secondGrid_;
-    for (int x = 0; x < static_cast<int>(second.width_); ++x)
-        for (int y = 0; y < static_cast<int>(second.height_); ++y)
-            second.rows_[y][x].clear();
+    SectorGrid& second = secondGrid;
+    for (int x = 0; x < static_cast<int>(second.width); ++x)
+        for (int y = 0; y < static_cast<int>(second.height); ++y)
+            second.rows[y][x].clear();
     ObjectListIterator it{nullptr, {}};
     for (CEngineObject* object = it.First(TimedObjectManager()); object; object = it.Next()) object->Release();
-    if (bird_) bird_->Reset();
-    if (it.manager) --it.manager->refCount_;
+    if (bird) bird->Reset();
+    if (it.manager) --it.manager->refCount;
 }
 
 void CWorldClient::Deselect() {
-    for (int id : selectedIds_) {
-        CMapObject* found = objectManager_->FindMapObject(static_cast<unsigned>(id));
-        if (found && (found->flags_ & MapObjectFlag::Selected)) Unhighlight(found);
+    for (int objectId : selectedIds) {
+        CMapObject* found = objectManager->FindMapObject(static_cast<unsigned>(objectId));
+        if (found && (found->flags & MapObjectFlag::Selected)) Unhighlight(found);
     }
-    selectedIds_.clear();
+    selectedIds.clear();
 }
 
 void CWorldClient::Select(CMapObject* object) {
     if (!object) return;
     object->Object3D()->UpdatePartBounds();
-    if (!(object->flags_ & MapObjectFlag::Selected)) {
-        if (!(object->flags_ & MapObjectFlag::BoxMarked)) object->attached->SetLit(true);
-        object->flags_ |= MapObjectFlag::Selected;
+    if (!(object->flags & MapObjectFlag::Selected)) {
+        if (!(object->flags & MapObjectFlag::BoxMarked)) object->attached->SetLit(true);
+        object->flags |= MapObjectFlag::Selected;
         object->attached->Unused25(1);
     }
-    std::list<int>& selected = selectedIds_;
-    const int id = object->id_;
+    std::list<int>& selected = selectedIds;
+    const int objectId = object->id;
     std::list<int>::iterator node = selected.begin();
-    while (node != selected.end() && (*node) != id) ++node;
+    while (node != selected.end() && (*node) != objectId) ++node;
     if (node != selected.end()) return;
-    selected.insert(selected.end(), id);
+    selected.insert(selected.end(), objectId);
 }
 
 void SectorGrid::Allocate() {
-    cells_ = std::make_unique<std::list<HeldRef<CMapObject>>[]>(static_cast<std::size_t>(allocatedWidth_) * allocatedHeight_);
-    rows_ = std::make_unique<std::list<HeldRef<CMapObject>>*[]>(static_cast<std::size_t>(allocatedHeight_));
-    for (int y = 0; y < allocatedHeight_; ++y) rows_[y] = cells_.get() + y * allocatedWidth_;
+    cells = std::make_unique<std::list<HeldRef<CMapObject>>[]>(static_cast<std::size_t>(allocatedWidth) * allocatedHeight);
+    rows = std::make_unique<std::list<HeldRef<CMapObject>>*[]>(static_cast<std::size_t>(allocatedHeight));
+    for (int y = 0; y < allocatedHeight; ++y) rows[y] = cells.get() + y * allocatedWidth;
 }
 
 void SectorGrid::Free() {
-    cells_.reset();
-    rows_.reset();
+    cells.reset();
+    rows.reset();
 }
 
-void SectorGrid::Resize(int width, int height) {
-    if (allocatedWidth_ == width && allocatedHeight_ == height) return;
+void SectorGrid::Resize(int newWidth, int newHeight) {
+    if (allocatedWidth == newWidth && allocatedHeight == newHeight) return;
     Free();
-    allocatedWidth_ = width;
-    allocatedHeight_ = height;
+    allocatedWidth = newWidth;
+    allocatedHeight = newHeight;
     Allocate();
 }
 
@@ -764,79 +764,79 @@ void CWorldClient::Create() {
     CWorld::Create();
     {
         std::string path = g_dataFolder + worlddata::TexturesFolderText();
-        texturePath_ = path;
+        texturePath = path;
     }
     LoadLights(worlddata::LightsTableText());
-    lightingMark_ = 0;
-    sounds_ = NewCounted<CSoundManager>();
+    lightingMark = 0;
+    sounds = NewCounted<CSoundManager>();
 
-    texts_ = new CTextManager();
-    texts_->AddRef();
-    terrain_ = new terrain::Terrain();
-    terrain_->AddRef();
-    zoneName_ = worlddata::GipathText();
+    texts = new CTextManager();
+    texts->AddRef();
+    terrain = new terrain::Terrain();
+    terrain->AddRef();
+    zoneName = worlddata::GipathText();
 
-    specificManager_ = NewCounted<CClientSpecificManager>();
-    specificManager_->Init(this);
-    textureManager_ = NewCounted<CTextureManager>();
-    textureManager_->CBaseManager::Init(this);
-    materialManager_ = NewCounted<CMaterialManager>();
-    materialManager_->Init(this);
-    lightFactory_ = NewCounted<CLightFactory>();
-    lightFactory_->Init(this);
+    specificManager = NewCounted<CClientSpecificManager>();
+    specificManager->Init(this);
+    textureManager = NewCounted<CTextureManager>();
+    textureManager->CBaseManager::Init(this);
+    materialManager = NewCounted<CMaterialManager>();
+    materialManager->Init(this);
+    lightFactory = NewCounted<CLightFactory>();
+    lightFactory->Init(this);
 
     auto* manager = new CParticleManager();
-    particleManager_ = manager;
+    particleManager = manager;
     manager->AddRef();
     manager->Init(this);
 
-    session_ = players_->CreateSessionPlayer();
+    session = players->CreateSessionPlayer();
 
-    ShareAssignOwned(handle_, new CClientHandle());
-    terrain_->Create();
-    sounds_->Create();
-    texts_->Create();
+    ShareAssignOwned(handle, new CClientHandle());
+    terrain->Create();
+    sounds->Create();
+    texts->Create();
     {
         std::string path = g_textFolder + worlddata::TextsFileText();
-        texts_->AddSource(path);
+        texts->AddSource(path);
     }
     {
         std::string path = g_textFolder + worlddata::TextsLmpFileText();
-        texts_->AddSource(path);
+        texts->AddSource(path);
     }
 
     auto* lists = new CLightningManager();
-    listManager_ = lists;
+    listManager = lists;
     lists->Init(this);
     auto* arrays = new ClientArrayManager();
-    arrayManager_ = arrays;
+    arrayManager = arrays;
     arrays->Init(this);
     auto* owned = new CMusicSystem();
-    music_ = owned;
+    music = owned;
     owned->Create();
 
-    rainSnow_.PrepareBuffers();
-    rainSnow_.world = this;
-    platforms_.Create();
+    rainSnow.PrepareBuffers();
+    rainSnow.world = this;
+    platforms.Create();
     if (worlddata::ShadowSetting() > 0)
-        flags_ |= WorldClientFlag::DrawShadows;
+        flags |= WorldClientFlag::DrawShadows;
     else
-        flags_ &= ~WorldClientFlag::DrawShadows;
+        flags &= ~WorldClientFlag::DrawShadows;
     {
         std::string path = g_dataFolder + worlddata::CursorFileText();
-        cursor_ = text::utf8::LoadCursorFromFileA(path.c_str());
+        cursor = text::utf8::LoadCursorFromFileA(path.c_str());
     }
 
     if (SpellManager()) ReferenceEveryObject(SpellManager());
 
-    hits_.reserve(400);
-    nextClientObjectId_ = -100000;
-    cave_ = 0;
-    partyDanger_ = 0;
-    GridToFour(secondGrid_);
-    GridToFour(objectGrid_);
-    ticksRun_ = 0;
-    lightLevelsCountdown_ = 0;
+    hits.reserve(400);
+    nextClientObjectId = -100000;
+    cave = 0;
+    partyDanger = 0;
+    GridToFour(secondGrid);
+    GridToFour(objectGrid);
+    ticksRun = 0;
+    lightLevelsCountdown = 0;
 }
 
 void CWorldClient::ReferenceItemsAndSpells() {
@@ -859,10 +859,10 @@ void CWorldClient::ReleaseItemsAndSpells() {
 int CWorldClient::LoadItemsAndSpells(CStream* block) {
     ReleaseItemsAndSpells();
     if (block->Size() != 0) {
-        spellManager_->Load(block);
-        itemManager_->Load(block);
-        spellManager_->LoadObjects(block);
-        itemManager_->LoadObjects(block);
+        spellManager->Load(block);
+        itemManager->Load(block);
+        spellManager->LoadObjects(block);
+        itemManager->LoadObjects(block);
         ReferenceItemsAndSpells();
     }
     return 1;
@@ -873,7 +873,7 @@ int LoadManagerObjects(CBaseManager* manager, CStream* stream) {
         std::uint8_t more;
         stream->ReadValue(more);
         if (more == 0) return 1;
-        if (!stream->ok_) return 0;
+        if (!stream->ok) return 0;
         int id;
         int type;
         std::uint32_t extra;
@@ -881,11 +881,11 @@ int LoadManagerObjects(CBaseManager* manager, CStream* stream) {
         stream->ReadValue(type);
         stream->ReadValue(extra);
         if (CEngineObject* old = manager->FindObject(static_cast<unsigned>(id))) {
-            if (old->refCount_ == 0) old->refCount_ = 1;
+            if (old->refCount == 0) old->refCount = 1;
             old->Release();
         }
         CEngineObject* object = manager->CreateObject(type, id);
-        object->prototypeId_ = extra;
+        object->prototypeId = extra;
         object->Load(stream);
         object->AddRef();
     }
@@ -893,7 +893,7 @@ int LoadManagerObjects(CBaseManager* manager, CStream* stream) {
 
 int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
     block->Seek(0);
-    block->ok_ = 1;
+    block->ok = 1;
     if (!LoadManagerObjects(SpellManager(), block)) return 0;
     return LoadManagerObjects(ItemFactory(), block) != 0;
 }
@@ -913,11 +913,11 @@ PlatformSet::~PlatformSet() {
 void SaveListedObject(CEngineObject* object, CStream* stream) {
     std::uint8_t more = 1;
     stream->WriteValue(more);
-    int id = object->id_;
+    int id = object->id;
     stream->WriteValue(id);
-    int type = object->type_;
+    int type = object->type;
     stream->WriteValue(type);
-    std::uint32_t extra = object->prototypeId_;
+    std::uint32_t extra = object->prototypeId;
     stream->WriteValue(extra);
     object->Save(stream);
 }
@@ -931,9 +931,9 @@ CLightningManager::CLightningManager() {
 }
 
 CLightningManager::~CLightningManager() {
-    for (auto node = newBolts_.begin(); node != newBolts_.end(); ++node)
+    for (auto node = newBolts.begin(); node != newBolts.end(); ++node)
         if (*node) (*node)->Release();
-    newBolts_.clear();
+    newBolts.clear();
 }
 
 ClientArrayManager::ClientArrayManager() {}
@@ -947,41 +947,41 @@ int CWorldClient::LoadZone(CStream* block) {
     g_gameFlow.UpdateAndAcknowledge();
     std::string map;
     std::string mob;
-    sounds_->SetEffectsVolume(0);
-    sounds_->StopAll(1);
-    partyDanger_ = 0;
+    sounds->SetEffectsVolume(0);
+    sounds->StopAll(1);
+    partyDanger = 0;
 
     // The block: the tick, the map and .mob names, the exits, the cave flag, the unit looks.
-    block->ReadValue(tick_);
+    block->ReadValue(tick);
     map = block->ReadString();
     mob = block->ReadString();
     int exitCount;
     block->ReadValue(exitCount);
-    exits_.resize(exitCount);
-    for (ZoneExit& exit : exits_) exit.Read(block);
-    int cave;
-    block->ReadValue(cave);
+    exits.resize(exitCount);
+    for (ZoneExit& exit : exits) exit.Read(block);
+    int newCave;
+    block->ReadValue(newCave);
     UnitLooks looks;
     ReadUnitLooks(block, &looks.figured, &looks.dressed);
-    cave_ = cave;
+    cave = newCave;
     GameEnsureZone(map, mob);
     ShowLoadingMovie(kProgressBlockRead);
 
-    bloodPrints_.clear();
-    footprints_.clear();
-    scorchMarks_.clear();
+    bloodPrints.clear();
+    footprints.clear();
+    scorchMarks.clear();
     ResetZoneObjects();
     ClearMaps();
     ReleaseItemsAndSpells();
     ClientParticleManager()->ReleaseUnheld();
-    session_->sessionKind_ = 0;
+    session->sessionKind = 0;
     ShowLoadingMovie(kProgressZoneCleared);
-    terrain::Terrain* terrain = terrain_;
+    terrain::Terrain* currentTerrain = terrain;
     if (static_cast<int>(map.size()) > 1 && map[1] != ':') {
         modfolders::SelectMaps(map, modfolders::MapsSite::ClientLoadZone);
         map = MapsFolder() + map;
     }
-    terrain->ClearMap();
+    currentTerrain->ClearMap();
     // The texture manager is fetched for both calls; the first does not use it.
     ForgetComposedTextures();
     TextureManager()->FreeCache();
@@ -989,35 +989,35 @@ int CWorldClient::LoadZone(CStream* block) {
 
     // The allod of the local player's zone names the texture pages, the lights and the music.
     const MapRecord* zone = LocalZoneRecord();
-    std::string& allod = zoneName_;
+    std::string& allod = zoneName;
     allod = worlddata::DefaultAllodText();
     if (zone) allod = zone->allod;
     str::MakeLower(allod);
-    if (!terrain->LoadMap(map, allod, cave == kCave))
+    if (!currentTerrain->LoadMap(map, allod, newCave == kCave))
         return game::FatalError(worlddata::CantLoadTerrainFormat(), map);
 
-    FitGrid(objectGrid_, terrain);
-    FitGrid(secondGrid_, terrain);
-    if (!worlddata::WaterWavesOption()) terrain->landscapeFlags &= ~terrain::LandscapeFlag::Waves;
-    if (cave == kCave) terrain->landscapeFlags |= terrain::LandscapeFlag::Waves;
-    if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~terrain::LandscapeFlag::SunShadows;
-    if (skyDome_) {
-        Ref<CTexture>& sky = skyDome_->texture;
-        if (cave == kCave) {
-            LoadNamedTexture(sky, kSkyTextureKind, worlddata::CaveSkyText());
-            skyDome_->turns = 0;
+    FitGrid(objectGrid, currentTerrain);
+    FitGrid(secondGrid, currentTerrain);
+    if (!worlddata::WaterWavesOption()) currentTerrain->landscapeFlags &= ~terrain::LandscapeFlag::Waves;
+    if (newCave == kCave) currentTerrain->landscapeFlags |= terrain::LandscapeFlag::Waves;
+    if (!worlddata::SelfShadowingOption()) currentTerrain->landscapeFlags &= ~terrain::LandscapeFlag::SunShadows;
+    if (skyDome) {
+        Ref<CTexture>& skyColour = skyDome->texture;
+        if (newCave == kCave) {
+            LoadNamedTexture(skyColour, kSkyTextureKind, worlddata::CaveSkyText());
+            skyDome->turns = 0;
         } else {
-            LoadNamedTexture(sky, kSkyTextureKind, worlddata::OpenSkyText());
-            skyDome_->turns = 1;
+            LoadNamedTexture(skyColour, kSkyTextureKind, worlddata::OpenSkyText());
+            skyDome->turns = 1;
         }
     }
     std::string lights = worlddata::LightsPrefixText();
-    const bool effects = worlddata::AudioOption() && options::g_options.audioSfx_;
-    if (cave_ == kCave) {
+    const bool effects = worlddata::AudioOption() && options::g_options.audioSfx;
+    if (cave == kCave) {
         lights += worlddata::CaveText();
-        if (effects) sounds_->SetReverb(kCaveReverbRoom, kCaveReverbLevel, kCaveReverbTime);
+        if (effects) sounds->SetReverb(kCaveReverbRoom, kCaveReverbLevel, kCaveReverbTime);
     } else if (effects) {
-        sounds_->reverb[0] = 0.0f;
+        sounds->reverb[0] = 0.0f;
     }
     {
         std::string table = lights + allod;
@@ -1027,19 +1027,19 @@ int CWorldClient::LoadZone(CStream* block) {
     CreateExitMarkers();
     worlddata::g_lastLitHour = -1.0f;
     UpdateLighting();
-    if (worlddata::AudioOption() && options::g_options.audioStreaming_) {
-        if (InFinalZone()) music_->SetZoneMode(worlddata::FinalMusicText(), cave_ == kCave);
-        else music_->SetZoneMode(allod, cave_ == kCave);
+    if (worlddata::AudioOption() && options::g_options.audioStreaming) {
+        if (InFinalZone()) music->SetZoneMode(worlddata::FinalMusicText(), cave == kCave);
+        else music->SetZoneMode(allod, cave == kCave);
     }
 
     // The local server's pending messages follow this block in the view's stream.
-    LocalView()->AppendReceived(&g_serverWorld.zoneHeader_);
-    ticksRun_ = 0;
+    LocalView()->AppendReceived(&g_serverWorld.zoneHeader);
+    ticksRun = 0;
     BuildUnitSkins(&looks.figured, &looks.dressed);
     // A wind option other than 0 sets the waves.
     const float wind = worlddata::DefaultWindForceOption();
     EI_NAN_AUDIT(wind);
-    if (wind != 0.0f) g_clientWorld.terrain_->SetWaveStrength(wind);
+    if (wind != 0.0f) g_clientWorld.terrain->SetWaveStrength(wind);
     ShowLoadingMovie(kProgressZoneReady);
     LocalView()->SendResume();
     CloseLoadingMovie();

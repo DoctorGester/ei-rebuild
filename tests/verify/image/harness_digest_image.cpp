@@ -34,17 +34,17 @@ CWorldClient* ClientWorld() { return &g_clientWorld; }
 // The generators: ours (named globals, C18l).
 void ReadRandom(Builder& b) {
     const IsaacRandom& r = g_random;
-    b.Unsigned("isaac.seeded", r.seeded_);
-    b.Unsigned("isaac.count", r.count_);
-    b.Bits("isaac.a", r.a_);
-    b.Bits("isaac.b", r.b_);
-    b.Bits("isaac.c", r.c_);
-    b.Bits("isaac.results", HashWords(r.results_, 256));
-    b.Bits("isaac.memory", HashWords(r.memory_, 256));
+    b.Unsigned("isaac.seeded", r.seeded);
+    b.Unsigned("isaac.count", r.count);
+    b.Bits("isaac.a", r.aa);
+    b.Bits("isaac.b", r.bb);
+    b.Bits("isaac.c", r.cc);
+    b.Bits("isaac.results", HashWords(r.results, 256));
+    b.Bits("isaac.memory", HashWords(r.memory, 256));
     b.Bits("crt.rand", libcrt::RandState());
 }
 
-int PartyItemCount(CParty* party) { return static_cast<int>(party->items_.size()); }
+int PartyItemCount(CParty* party) { return static_cast<int>(party->items.size()); }
 
 // An AI mode's id: its kind's (ModeKindId, by GetType: the kinds' order with Follow's 10 last), else its table's
 // address (none: 0).

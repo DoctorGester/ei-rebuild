@@ -35,31 +35,31 @@ const char* NullTextureText() { return "Final loading data to NULL texture!\n"; 
 // --- The renderer -----------------------------------
 
 CSceneRenderer::~CSceneRenderer() {
-    device_.Reset();
-    helper_.Reset();
+    device.Reset();
+    helper.Reset();
     ReleasePipeline();
 }
 
 void CSceneRenderer::ReleasePipeline() {
-    sun_.Reset();
-    pipeline_.Reset();
+    sun.Reset();
+    pipeline.Reset();
 }
 
-void CSceneRenderer::SetColour(std::uint32_t colour) {
-    colour_ = colour;
+void CSceneRenderer::SetColour(std::uint32_t newColour) {
+    colour = newColour;
     // Each byte (as a 64-bit integer) times the float constant, stored as a float.
-    const int red = static_cast<int>((colour >> 16) & 0xFF);
-    const int green = static_cast<int>((colour >> 8) & 0xFF);
-    const int blue = static_cast<int>(colour & 0xFF);
+    const int red = static_cast<int>((newColour >> 16) & 0xFF);
+    const int green = static_cast<int>((newColour >> 8) & 0xFF);
+    const int blue = static_cast<int>(newColour & 0xFF);
     g_ambientColour[0] = red * kInverseColourScale;
     g_ambientColour[1] = green * kInverseColourScale;
     g_ambientColour[2] = blue * kInverseColourScale;
-    device_->colour_ = colour;
+    device->colour = newColour;
 }
 
 const float* AmbientColour() { return g_ambientColour; }
 
-void CSceneRenderer::SetSun(CLight* light) { sun_.Assign(light); }
+void CSceneRenderer::SetSun(CLight* light) { sun.Assign(light); }
 
 void CSceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) {
     SetSun(light);
@@ -77,52 +77,52 @@ CSceneRenderer g_sceneRenderer;
 
 void CSceneRenderer::DestroyRenderer() {
     ReleasePipeline();
-    flags_ &= ~2u;
-    helper_.Reset();
-    device_.Reset();
+    flags &= ~2u;
+    helper.Reset();
+    device.Reset();
 }
 
 // The holder is stored (the new renderer draws with it); no device lock.
 int CSceneRenderer::SetTexture(int stage, CTexture* texture) {
-    device_->stageSurfaces_[stage] = texture ? texture->surface_.Get() : nullptr;
+    device->stageSurfaces[stage] = texture ? texture->surface.Get() : nullptr;
     return 1;
 }
 
-void CSceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline_, device_); }
+void CSceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline, device); }
 
 int CSceneRenderer::DrawFigure(CFigureMesh* mesh, CMaterial* material, int alpha, tagRECT* screen) {
-    if (mesh->flags_ & FigureMeshFlag::Hidden) return 1;
-    return mesh->drawer_->DrawPlain(device_, material, alpha, screen);
+    if (mesh->flags & FigureMeshFlag::Hidden) return 1;
+    return mesh->drawer->DrawPlain(device, material, alpha, screen);
 }
 
 int CSceneRenderer::DrawFigureLit(CFigureMesh* mesh, const std::vector<CLight*>* lights, CMaterial* material, int alpha, tagRECT* screen,
                                   CTexture* textureA, CTexture* textureB) {
-    if (mesh->flags_ & FigureMeshFlag::Hidden) return 1;
-    return mesh->drawer_->DrawLit(device_, lights, material, alpha, screen, textureA, textureB);
+    if (mesh->flags & FigureMeshFlag::Hidden) return 1;
+    return mesh->drawer->DrawLit(device, lights, material, alpha, screen, textureA, textureB);
 }
 
-void CSceneRenderer::GetGamma(float* brightness, float* contrast, float* gamma) const {
-    *brightness = brightness_;
-    *contrast = contrast_;
-    *gamma = gamma_;
+void CSceneRenderer::GetGamma(float* outBrightness, float* outContrast, float* outGamma) const {
+    *outBrightness = brightness;
+    *outContrast = contrast;
+    *outGamma = gamma;
 }
 
 // There are no DirectDraw surfaces to lose nor a display mode to set again.
-bool CSceneRenderer::RestoreSurfaces() { return device_ != nullptr; }
+bool CSceneRenderer::RestoreSurfaces() { return device != nullptr; }
 
 // --- Texture holders -----------------------------------------------------------------------------
 
 int EnsureTextureLoaded(CTexture* texture) {
     if (!texture) return game::FatalError(NullTextureText());
-    if (texture->flags_ & TextureFlag::Loaded) return 1;
-    return g_clientWorld.textureManager_->LoadTexture(texture);
+    if (texture->flags & TextureFlag::Loaded) return 1;
+    return g_clientWorld.textureManager->LoadTexture(texture);
 }
 
 void LoadNamedTexture(Ref<CTexture>& slot, int kind, const char* name) {
     slot.Reset();
-    auto* manager = g_clientWorld.textureManager_;
+    auto* manager = g_clientWorld.textureManager;
     auto* found = manager->FindTypedTexture(kind, name);
     if (!found) found = manager->NewTextureOfType(kind);
-    found->name_ = name;
+    found->name = name;
     slot.Assign(found);
 }

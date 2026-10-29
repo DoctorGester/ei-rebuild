@@ -139,7 +139,7 @@ public:
     void BlinkClose(bool force);
     void BlinkOpen(bool force);
     // The face texture the blink uses, loaded once: the texture manager's texture of kind 0x3D named
-    // "<model>mouth_<skin, 2 digits>" (heroes) or "<model>mouth"; one that did not load (flags_ bit 8 clear)
+    // "<model>mouth_<skin, 2 digits>" (heroes) or "<model>mouth"; one that did not load (flags bit 8 clear)
     // is dropped and blinking stops. False without a prototype or a loaded face.
     bool LoadFaceTexture();
     int FiguresLoaded() override;
@@ -149,7 +149,7 @@ public:
     int Level() override;
     // When the wounds texture is needed the client half shows "mo<unit id>w", else none.
     void RefreshWounds() override;
-    // Hides (`hidden`) or shows the figure parts of the weapon in hand (flags_ 0x80) unless weaponHidden
+    // Hides (`hidden`) or shows the figure parts of the weapon in hand (flags 0x80) unless weaponHidden
     // already says so; weaponHidden and arrowHidden take the new state.
     void ShowWeaponParts(bool hidden);
     // For heroes with a bow in hand: the arrow part "rh3.arrow00" shows when the animation (flag 1) passes
@@ -163,7 +163,7 @@ public:
     // (then the animation speed is 1), and advances the animation by the step (times the animation speed in
     // motion mode 2; not in mode 1).
     void AdvanceTime(float time) override;
-    // Unless the unit is frozen (flags_ 0x10000000) the animation queue is emptied and the unit's animations
+    // Unless the unit is frozen (flags 0x10000000) the animation queue is emptied and the unit's animations
     // start again: the special idle (StartIdleAnimation(1)) for secondEntry -2, else animationEntry (played)
     // and secondEntry (queued behind it, or played alone); then the animation is advanced to `time` + 1 -
     // animationStart when that is above 0, the last time becoming animationStart plus it.
@@ -206,7 +206,7 @@ public:
 
     // For heroes the composed skins are renewed: the detailed one (ComposeSkin(1)) into the first part set's
     // texture (read unchecked) and the simple one (ComposeSkin(0)) into the second's (skipped when missing).
-    // A texture takes the new name and is reloaded (flags_ 8 cleared, its manager's LoadTexture) when
+    // A texture takes the new name and is reloaded (flags 8 cleared, its manager's LoadTexture) when
     // ComposeSkin returned non-zero or the name differs.
     void RefreshEquipment() override;
     int RefreshModel() override;

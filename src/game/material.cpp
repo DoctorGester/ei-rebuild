@@ -74,41 +74,41 @@ void CMaterialManager::Create() {
     AddArchive((folder + "materials.res"));
 
     for (const MaterialKindFile& kind : kMaterialKindFiles) {
-        MaterialColors colors;
-        std::memset(&colors, 0, sizeof(colors));
+        MaterialColors lit;
+        std::memset(&lit, 0, sizeof(lit));
         void* data = GetFile(kind.file, nullptr);
         if (!data) {
-            colors.diffuse = {0.3f, 0.3f, 0.3f, 1.0f};
-            colors.ambient.x = colors.ambient.y = colors.ambient.z = 0.7f;
-            colors.specular.x = colors.specular.y = colors.specular.z = 0.2f;
-            colors.power = 5.0f;
+            lit.diffuse = {0.3f, 0.3f, 0.3f, 1.0f};
+            lit.ambient.x = lit.ambient.y = lit.ambient.z = 0.7f;
+            lit.specular.x = lit.specular.y = lit.specular.z = 0.2f;
+            lit.power = 5.0f;
         } else {
-            lib::LoadBytes(colors, MaterialFileColors(data));
+            lib::LoadBytes(lit, MaterialFileColors(data));
         }
         CloseFile(data);
-        if (kind.kind == kMagicMaterialKind) colors.emissive.x = colors.emissive.y = colors.emissive.z = 1.0f;
-        colors_[static_cast<unsigned>(kind.kind)] = colors;
+        if (kind.kind == kMagicMaterialKind) lit.emissive.x = lit.emissive.y = lit.emissive.z = 1.0f;
+        colors[static_cast<unsigned>(kind.kind)] = lit;
     }
 }
 
-CEngineObject* CMaterialManager::NewObject(int type) {
+CEngineObject* CMaterialManager::NewObject(int objectType) {
     auto* material = new CMaterial();
-    material->type_ = type;
+    material->type = objectType;
     return material;
 }
 
-CMaterial* CMaterialManager::NewMaterial(int type) {
-    auto* material = CreateObjectAs<CMaterial>(type, -1);
+CMaterial* CMaterialManager::NewMaterial(int materialType) {
+    auto* material = CreateObjectAs<CMaterial>(materialType, -1);
     // The game sets the flag before its null check, so a failed creation faults there.
     if (!material) return nullptr;
-    material->flags_ |= MaterialFlag::Keyed;
-    material->colors = EnterKey(colors_, static_cast<unsigned>(material->type_));
+    material->flags |= MaterialFlag::Keyed;
+    material->colors = EnterKey(colors, static_cast<unsigned>(material->type));
     return material;
 }
 
 int CMaterialManager::FillMaterial(CMaterial* material, unsigned key) {
     if (!material) return 0;
-    material->colors = EnterKey(colors_, key);
+    material->colors = EnterKey(colors, key);
     return 1;
 }
 

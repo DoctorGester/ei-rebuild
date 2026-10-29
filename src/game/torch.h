@@ -2,7 +2,7 @@
 
 // Torches (ClassName "CTorchObject", class id 0x57): a map
 // object holding its light / flame description, a CTorchObjectSpec (server_specific_manager.h,
-// type_ 0x4B),. Names provisional; torch_object.cpp; Create is in
+// type 0x4B),. Names provisional; torch_object.cpp; Create is in
 // map_object_create.cpp. A real virtual class: the compiler makes its vtable.
 
 #include "map_object.h"
@@ -40,7 +40,7 @@ public:
     // (its Load / Save; the spec must exist).
     void LoadTorch(CStream* stream);
     void SaveTorch(CStream* stream);
-    // A SideObjectType::Torch object (its type_ read before any null test) becomes
+    // A SideObjectType::Torch object (its type read before any null test) becomes
     // the spec (a reference taken, the old one released) and points back here. Anything else goes to the map
     // object's AttachObject.
     void AttachTorchObject(CEngineObject* object);

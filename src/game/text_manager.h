@@ -26,7 +26,7 @@ struct TextSource {
     CMappedResource* source;
 };
 
-// The archive list (CTextManager::sources_).
+// The archive list (CTextManager::sources).
 struct TextSources {
     // Add: unless an archive of that exact name is listed (then 1), appends a new
     // CMappedResource under `path` and returns its OpenResource(path, writable); a failed open stays in the
@@ -82,11 +82,11 @@ public:
     // The name, description and kind of an item, each looked up in the texts.
     ItemTexts GetItemTexts(CItem* item);
 
-    // The item's display name: "format_item1" (or "format_item2" with the stack count when count_ is above
+    // The item's display name: "format_item1" (or "format_item2" with the stack count when count is above
     // 1) applied to the kind and the name.
     std::string FormatItemName(CItem* item);
 
-    // The line reader (text_reader.cpp): finds a text in the resource archives and walks its lines with cursor_.
+    // The line reader (text_reader.cpp): finds a text in the resource archives and walks its lines with cursor.
     // Texts are MBCS: a character is one byte, or a lead byte (_ismbblead) and a trail byte. Lines end with LF
     // (CR also ends the line's content); a line whose first word starts with "##" is a comment.
     // Makes the text `key` current (the first archive whose GetFile knows it), cursor at its
@@ -121,8 +121,8 @@ public:
     // The names matching `pattern` ("pers *") of every archive.
     std::vector<std::string> ListKeys(const char* pattern);
 
-    TextSources sources_;
-    const char* cursor_;    // read position in the current text
-    const char* text_;      // start of the current text (null: none)
-    std::uint32_t length_;  // size of the current text, written by GetFile
+    TextSources sources;
+    const char* cursor;     // read position in the current text
+    const char* text;       // start of the current text (null: none)
+    std::uint32_t length;   // size of the current text, written by GetFile
 };

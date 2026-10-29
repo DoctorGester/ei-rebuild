@@ -276,8 +276,8 @@ void PutCallMap(Writer& w, const OriginalAIMap* map, std::uint8_t planes = kCall
 UnitState StateOf(exe::CUnit* unit) {
     auto s = Zeroed<UnitState>();
     s.classId = unit->GetClassId();
-    std::memcpy(s.position, &unit->localPosition_, sizeof(s.position));
-    std::memcpy(s.orientation, &unit->localRotation_, sizeof(s.orientation));
+    std::memcpy(s.position, &unit->localPosition, sizeof(s.position));
+    std::memcpy(s.orientation, &unit->localRotation, sizeof(s.orientation));
     s.sizeClass = unit->sizeClass;
     s.standingHeight = unit->standingHeight;
     s.altPassCosts = unit->altPassCosts;
@@ -337,7 +337,7 @@ bool __fastcall FindPathRecord(OriginalAIMap* self, void*, exe::CUnit* unit, con
     OfferTables();
     Writer head;
     head.Put(StateOf(unit));
-    head.Put<std::int32_t>(ei::OriginalGameData<exe::CWorldServer>(0x007AFF60).tick_);   // game.exe's world
+    head.Put<std::int32_t>(ei::OriginalGameData<exe::CWorldServer>(0x007AFF60).tick);    // game.exe's world
     head.Put(*target);
     head.Put(range);
     head.Put(minDistance);

@@ -430,7 +430,7 @@ constexpr CountdownSite kCountdownSites[] = {
 };
 
 // Each site's `SAR r,5 / AND r,0xF` (6 bytes) becomes `MOV r,[r+0xC] / AND r,0xF`: the object's id
-// (CEngineObject::id_) instead of its address, as CWorldServer::UpdateCountdownFor does.
+// (CEngineObject::id) instead of its address, as CWorldServer::UpdateCountdownFor does.
 // The standalone image has none of these sites (no game.exe code): there the eight functions are ours,
 // which always take the id (CWorldServer::UpdateCountdownFor).
 void SpreadCountdownsById() {

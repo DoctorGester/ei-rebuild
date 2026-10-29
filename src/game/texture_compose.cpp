@@ -114,36 +114,36 @@ int CTextureManager::Compose(std::string* out, const SkinRequest* request, const
 }
 
 int CTexture::CreateComposed(CTextureDevice* device, const ComposedTexture& composed, unsigned mip) {
-    if (flags_ & TextureFlag::Loaded) return 1;
+    if (flags & TextureFlag::Loaded) return 1;
     const MmpHeader& header = composed.header;
     unsigned levels = header.mipCount - mip;
-    if (!options::g_options.mipmapping_) levels = 1;
-    width_ = header.width >> (mip & 31);
-    height_ = header.height >> (mip & 31);
-    Surface* holder = NewDecodedTextureHolder(device, static_cast<int>(width_), static_cast<int>(height_),
-                                              TextureFormat(format_).bitsPerPixel);
+    if (!options::g_options.mipmapping) levels = 1;
+    width = header.width >> (mip & 31);
+    height = header.height >> (mip & 31);
+    Surface* holder = NewDecodedTextureHolder(device, static_cast<int>(width), static_cast<int>(height),
+                                              TextureFormat(format).bitsPerPixel);
     if (!holder) ThrowSurfaceNotMade(0, 0);
     // The layers' pixels from the archives, drawn over each other by the GPU.
     CTextureManager* manager = Manager();
     std::vector<render::TextureImage> images;
     std::vector<void*> files;
-    for (const std::string& name : composed.layers) {
+    for (const std::string& layer : composed.layers) {
         std::uint32_t size = 0;
-        auto* data = static_cast<MmpHeader*>(manager->GetFile(name, &size));
+        auto* data = static_cast<MmpHeader*>(manager->GetFile(layer, &size));
         if (!data) continue;
         files.push_back(data);
         const std::uint32_t skipped = static_cast<std::uint32_t>(sizeof(MmpHeader)) + data->extraSize;
         const render::ImageLayout layout = data->format == kMmpFormatPnt3 ? render::ImageLayout::Pnt3 : render::ImageLayout::Argb;
-        images.push_back(render::TextureImage{name.c_str(), reinterpret_cast<const std::uint8_t*>(data) + skipped,
+        images.push_back(render::TextureImage{layer.c_str(), reinterpret_cast<const std::uint8_t*>(data) + skipped,
                                               size > skipped ? size - skipped : 0, static_cast<int>(data->width),
                                               static_cast<int>(data->height), layout});
     }
     render::ComposeTexture(holder, static_cast<int>(header.width), mip, levels, images.data(),
                            static_cast<int>(images.size()));
     for (void* file : files) manager->CloseFile(file);
-    surface_.Assign(holder);
-    uploadResult_ = static_cast<int>(header.FilledBytes(format_, mip, levels));
+    surface.Assign(holder);
+    uploadResult = static_cast<int>(header.FilledBytes(format, mip, levels));
     MarkLoaded(&header);
-    extra_ = composed.extra;
+    extra = composed.extra;
     return 1;
 }

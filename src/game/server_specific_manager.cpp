@@ -25,8 +25,8 @@ ClassId CServerSpecificManager::GetClassId() { return ClassId::ServerSpecificMan
 
 // Every object starts zeroed (kZeroed): CUnitServer's constructor leaves waitFrame,
 // which ResolveBlocker reads, and others the saves write.
-CEngineObject* CServerSpecificManager::NewObject(int type) {
-    switch (static_cast<SideObjectType>(type)) {
+CEngineObject* CServerSpecificManager::NewObject(int objectType) {
+    switch (static_cast<SideObjectType>(objectType)) {
     case SideObjectType::Object3D:
         return new (kZeroed) CObject3DServer();
     case SideObjectType::MapObject:
@@ -43,7 +43,7 @@ CEngineObject* CServerSpecificManager::NewObject(int type) {
 }
 
 CTorchObjectSpec::CTorchObjectSpec() {
-    torch_ = nullptr;
+    torch = nullptr;
     CreateSpec();
 }
 

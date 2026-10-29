@@ -21,34 +21,34 @@ std::string ReadText(CStream* stream) { return stream->ReadString(); }
 void CMapObject::LoadMapObject(CStream* stream) {
     companion->Load(stream);
     stream->ReadValue(animationSpeed);
-    stream->Read(&localPosition_.x, 3 * sizeof(float));
-    stream->ReadValue(localRotation_);
+    stream->Read(&localPosition.x, 3 * sizeof(float));
+    stream->ReadValue(localRotation);
     name = ReadText(stream);
     stream->ReadValue(scale);
     int count = 0;
     stream->ReadValue(count);
     SetEffectCount(count);
     for (int i = 0; i < std::ssize(effects); ++i) effects[i].Load(stream);
-    std::uint32_t flags = flags_;   // the original's local starts as stack garbage
-    stream->ReadValue(flags);
-    flags_ = flags;
+    std::uint32_t currentFlags = flags;    // the original's local starts as stack garbage
+    stream->ReadValue(currentFlags);
+    flags = currentFlags;
     name2 = ReadText(stream);
-    if (stream->version_ > kVersionBaseScale) stream->ReadValue(baseScale);
+    if (stream->version > kVersionBaseScale) stream->ReadValue(baseScale);
 }
 
 void CMapObject::SaveMapObject(CStream* stream) {
     companion->Save(stream);
     float speed = animationSpeed;
     stream->WriteValue(speed);
-    stream->Write(&localPosition_.x, 3 * sizeof(float));
-    stream->WriteValue(localRotation_);
+    stream->Write(&localPosition.x, 3 * sizeof(float));
+    stream->WriteValue(localRotation);
     stream->WriteString(name);
     stream->WriteValue(scale);
     int count = std::ssize(effects);
     stream->WriteValue(count);
     for (int i = 0; i < std::ssize(effects); ++i) effects[i].Save(stream);
-    std::uint32_t flags = flags_;
-    stream->WriteValue(flags);
+    std::uint32_t currentFlags = flags;
+    stream->WriteValue(currentFlags);
     stream->WriteString(name2);
     stream->WriteValue(baseScale);
 }

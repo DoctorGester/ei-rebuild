@@ -16,7 +16,7 @@ inline constexpr ZeroFill kZeroed{};
 inline void* operator new(std::size_t size, ZeroFill) { return std::memset(::operator new(size), 0, size); }
 inline void operator delete(void* block, ZeroFill) noexcept { ::operator delete(block); }
 
-// CEngineObject::id_ of an object no manager registered; the saves' and messages' "no object".
+// CEngineObject::id of an object no manager registered; the saves' and messages' "no object".
 inline constexpr int kNoObjectId = -1;
 
 // CEngineObject::GetClassId: the class of an engine object or manager, named kClass + the class's name here
@@ -120,7 +120,7 @@ class CEngineObject {
 public:
     CEngineObject() = default;
     virtual ~CEngineObject();
-    virtual void CopyFrom(const CEngineObject& other); // flags_, type_, prototypeId_
+    virtual void CopyFrom(const CEngineObject& other); // flags, type, prototypeId
     virtual void Create() = 0;
     virtual void Destroy() = 0;
     virtual void Release();                            // refcount; the owner releases it at 0
@@ -133,9 +133,9 @@ public:
     virtual const char* ClassName() = 0;
     virtual ClassId GetClassId() = 0;
 
-    void AddRef() { ++refCount_; }
+    void AddRef() { ++refCount; }
     // Drops a reference without the release at zero, where the original did (sic): the object stays.
-    void ForgetReference() { --refCount_; }
+    void ForgetReference() { --refCount; }
 
     CManagerContext* ManagerContext() const;
     // The manager context as the world, for the world's objects (a party's items have the party instead).
@@ -147,14 +147,14 @@ public:
     CWorld* World() const;
     CBaseManager* SetOwner(CBaseManager* owner);
 
-    int refCount_ = 0;
-    std::uint32_t flags_ = 0;
-    int id_ = kNoObjectId;  // until a manager registers the object
-    int type_ = 0;          // class-specific kind (texture usage for CTexture)
-    CBaseManager* owner_ = nullptr;
+    int refCount = 0;
+    std::uint32_t flags = 0;
+    int id = kNoObjectId;   // until a manager registers the object
+    int type = 0;           // class-specific kind (texture usage for CTexture)
+    CBaseManager* owner = nullptr;
     // The database prototype: items pack its index (high word) with the material (low word), spells keep the
     // index in the high word, units the plain index.
-    std::uint32_t prototypeId_ = 0;
+    std::uint32_t prototypeId = 0;
 };
 
 // A counted engine object's id saved (-1: none) or read back: -1 resets `ref`, any other id is looked up in

@@ -19,7 +19,7 @@ void CAIMap::StampWaterPatch(const Vector3& position, bool add) {
     int x = static_cast<int>(scale * position.x);
     int y = static_cast<int>(scale * position.y);
     static Ref<CUnitShape> patch;
-    if (!patch || (patch->flags7_ & CRefObject::kDetached)) patch.Assign(new CUnitShape());
+    if (!patch || (patch->flags7 & CRefObject::kDetached)) patch.Assign(new CUnitShape());
     int key = ((y + 0x800) << 16) + x;
     int x0 = x - 7 < 0 ? 0 : x - 7;
     int y0 = y - 7 < 0 ? 0 : y - 7;

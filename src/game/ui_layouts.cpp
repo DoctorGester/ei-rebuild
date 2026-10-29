@@ -61,9 +61,9 @@ void Frame(CUiWindow* window, float depth, float left, float top, float right, f
 void Shade(CUiWindow* window, float depth, float left, float top, float right, float bottom) {
     CUiMesh* sprite = window->AddBlankSprite();
     sprite->SetRectangle(depth, 100.0f, left, top, right, bottom, 0, 0, 0x100, 0x100);
-    sprite->texture_ = nullptr;
-    sprite->flags_ |= FigureMeshFlag::Flat;
-    sprite->flatColour_ = 0xA0000000;
+    sprite->texture = nullptr;
+    sprite->flags |= FigureMeshFlag::Flat;
+    sprite->flatColour = 0xA0000000;
 }
 
 // The window's 3D model: the stone menu (`escMenu00`) turned about x.
@@ -78,7 +78,7 @@ CUiModel* AddMenuModel(CUiWindow* window, float angle) {
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
     turn.SetAxisAngle(axis, angle);
-    model->object_->localRotation_ = turn;
+    model->object->localRotation = turn;
     return model;
 }
 
@@ -101,7 +101,7 @@ struct TitlesTokenizer : TextTokenizer {
 // --- Save/load window -------------------------------------------------------------
 
 void CSaveLoadWindow::CreateScreen() {
-    rect_ = RECT{0, 0, 800, 600};
+    rect = RECT{0, 0, 800, 600};
     LoadTexture("saveload", TextureKind::Interface);
     // The selected save's picture (5:6:5).
     CreateTexture(0x100, 0x100, TextureKind::Blank565);
@@ -109,19 +109,19 @@ void CSaveLoadWindow::CreateScreen() {
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, 526.0f, 437.0f, 574.0f, 2, 2, 0x4C, 0x32);
-    AddRect(this, 163, 526, 237, 574)->SetTip(isSave_ ? 0xEAC4 : 0xEAC5);
+    AddRect(this, 163, 526, 237, 574)->SetTip(isSave ? 0xEAC4 : 0xEAC5);
     AddRect(this, 563, 526, 637, 574)->SetTip(0xEAC7);
     AddRect(this, 363, 526, 437, 574)->SetTip(0xEAC6);
 
     // The picture of the selected save (texture of the window's second texture object).
     CUiMesh* picture = AddBlankSprite();
     picture->SetRectangle(3.0f, 100.0f, 410.0f, 100.0f, 700.0f, 320.0f, 0, 0x100, 0x100, 0x40);
-    picture->texture_ = nullptr;
+    picture->texture = nullptr;
     CUiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 108.0f, 108.0f, 370.0f, 132.0f, 0, 0, 0x100, 0x100);
-    highlight->texture_ = nullptr;
-    highlight->flatColour_ = 0xC8A06800;
-    highlight->flags_ |= FigureMeshFlag::Flat;
+    highlight->texture = nullptr;
+    highlight->flatColour = 0xC8A06800;
+    highlight->flags |= FigureMeshFlag::Flat;
     Frame(this, 2.0f, 95.0f, 95.0f, 395.0f, 505.0f);     // the list
     Frame(this, 2.0f, 405.0f, 95.0f, 705.0f, 325.0f);    // the picture
     Frame(this, 2.0f, 405.0f, 335.0f, 705.0f, 505.0f);   // the description
@@ -131,15 +131,15 @@ void CSaveLoadWindow::CreateScreen() {
 
     for (int top = 108; top < 492; top += 24) AddRect(this, 108, top, 370, top + 24);
 
-    CUiSurface* list = NewSurface(interface_, 100, 100, 700, 500);
+    CUiSurface* list = NewSurface(ui, 100, 100, 700, 500);
     AddSurface(list);
-    scrollbar_ = NewScrollbar(interface_, 108, 108, 384, 492);
-    AddChild(scrollbar_);
+    scrollbar = NewScrollbar(ui, 108, 108, 384, 492);
+    AddChild(scrollbar);
 
     CUiModel* model = AddMenuModel(this, kSaveLoadTilt);
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     model->ShowAllParts(0);
-    if (isSave_) {
+    if (isSave) {
         model->ShowPart("save", 1);
         model->ShowPart("savelabel", 1);
     } else {
@@ -147,29 +147,29 @@ void CSaveLoadWindow::CreateScreen() {
         model->ShowPart("loadlabel", 1);
     }
 
-    dialog_ = nullptr;
-    if (sliding_) slide_ = 0.0f;
+    dialog = nullptr;
+    if (sliding) slide = 0.0f;
     FillEntries();
-    if (isSave_) {
+    if (isSave) {
         // Saving: the first save is selected and its title offered as the name.
-        selected_ = 0;
+        selected = 0;
         if (EntryCount() != 0) {
-            nameTyped_ = false;
-            name_ = entries_.front().title_;
-            cursor_ = name_.size();
+            nameTyped = false;
+            name = entries.front().title;
+            cursor = name.size();
         }
     } else {
-        selected_ = EntryCount() != 0 ? 0 : -1;
+        selected = EntryCount() != 0 ? 0 : -1;
     }
     RefreshListVanilla();
     ShowPicture();
-    if (!sliding_) interface_->OpenHelp(false);
+    if (!sliding) ui->OpenHelp(false);
 }
 
 // --- Options window ------------------------------------------------------------------
 
 void COptionsWindow::CreateScreen() {
-    rect_ = RECT{0, 0, 800, 600};
+    rect = RECT{0, 0, 800, 600};
     LoadTexture("saveload", TextureKind::Interface);
     CreateTexture(0x100, 0x100, TextureKind::Blank565);
 
@@ -179,9 +179,9 @@ void COptionsWindow::CreateScreen() {
     AddRect(this, 513, 526, 587, 574)->SetTip(0x111D5);
     CUiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 250.0f, 108.0f, 692.0f, 132.0f, 0, 0, 0x100, 0x100);
-    highlight->texture_ = nullptr;
-    highlight->flatColour_ = 0xC8A06800;
-    highlight->flags_ |= FigureMeshFlag::Flat;
+    highlight->texture = nullptr;
+    highlight->flatColour = 0xC8A06800;
+    highlight->flags |= FigureMeshFlag::Flat;
 
     // Regions 2-12: the option groups, each with its button sprite, tooltip and title.
     std::string text;
@@ -190,20 +190,20 @@ void COptionsWindow::CreateScreen() {
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
         text = std::format("tip option_group_{}", OptionGroupName(k));
-        if (g_clientWorld.texts_->Open(text) != 0) text = g_clientWorld.texts_->ReadToHash();
+        if (g_clientWorld.texts->Open(text) != 0) text = g_clientWorld.texts->ReadToHash();
         region->SetTipString(text);
         {
             std::string prefix("option_group_");
             std::string key = prefix + OptionGroupName(k);
-            text = g_clientWorld.texts_->GetString(key);
+            text = g_clientWorld.texts->GetString(key);
         }
-        groupNames_.push_back(text);
+        groupNames.push_back(text);
     }
 
     Frame(this, 2.0f, 95.0f, 95.0f, 705.0f, 505.0f);
     Shade(this, 5.0f, 100.0f, 100.0f, 700.0f, 500.0f);
     for (int top = 156; top < 492; top += 24) AddRect(this, 250, top, 520, top + 24);
-    CUiSurface* surface = NewSurface(interface_, 100, 100, 700, 500);
+    CUiSurface* surface = NewSurface(ui, 100, 100, 700, 500);
     AddSurface(surface);
 
     CUiModel* model = AddMenuModel(this, kOptionsTilt);
@@ -212,50 +212,50 @@ void COptionsWindow::CreateScreen() {
     model->ShowPart("options", 1);
     model->ShowPart("optionslabel", 1);
 
-    if (sliding_) slide_ = 0.0f;
-    waitingForKey_ = false;
-    pressedKey_ = nullptr;
+    if (sliding) slide = 0.0f;
+    waitingForKey = false;
+    pressedKey = nullptr;
     BuildSettings();
     LoadSettings();
     BuildBindings();
-    shadowsChanged_ = false;
+    shadowsChanged = false;
     ShowGroup(0);
-    if (!sliding_) interface_->OpenHelp(false);
+    if (!sliding) ui->OpenHelp(false);
 }
 
 // --- Esc menu ------------------------------------------------------------------------
 
 void CEscMenu::CreateScreen() {
-    rect_ = RECT{0, 0, 800, 600};
+    rect = RECT{0, 0, 800, 600};
     CUiModel* model = AddModel();
     model->Load("unmoco1", "escMenu00", "escMenu00labels");
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
     turn.SetAxisAngle(axis, kEscMenuTilt);
-    model->object_->localRotation_ = turn;
+    model->object->localRotation = turn;
 
     // Regions 0-4 (save, load, resume, quit, options) from the menus.reg rectangles; the
     // original goes through SetRect with a RECT by value.
     const RECT* rects = g_menuRects + kMainMenuRects;
     for (const RECT* source = rects; source < rects + 5; ++source) {
         CUiRegion* region = AddRegion();
-        RECT rect;
-        gameapi::CopyRect(&rect, source);
-        region->SetRect(rect.left, rect.top, rect.right, rect.bottom);
+        RECT area;
+        gameapi::CopyRect(&area, source);
+        region->SetRect(area.left, area.top, area.right, area.bottom);
     }
-    models_[0]->Play(SkillAnimation::Briefing02);
-    interface_->PlaySound("buttons\\menu\\shift.wav");
+    models[0]->Play(SkillAnimation::Briefing02);
+    ui->PlaySound("buttons\\menu\\shift.wav");
 }
 
 // --- Esc menu clicks -------------------------------------------------------------------
 
 void CEscMenu::LeftDown(int buttons, int x, int y) {
-    CInterface3D* ui = interface_;
+    CInterface3D* currentUi = ui;
     int region = RegionAt(x, y);
     if (region >= 0) {
-        ui->PlaySound("buttons\\menu\\ok.wav");
-        handled_ = true;
+        currentUi->PlaySound("buttons\\menu\\ok.wav");
+        handled = true;
     }
     CUiWindow* opened = nullptr;
     bool open = true;
@@ -266,44 +266,44 @@ void CEscMenu::LeftDown(int buttons, int x, int y) {
             open = false;
             break;
         }
-        opened = new CSaveLoadWindow(ui, region == 0, true);
+        opened = new CSaveLoadWindow(currentUi, region == 0, true);
         break;
     }
     case 2:   // resume
-        ui->SetPendingValue(0);
+        currentUi->SetPendingValue(0);
         open = false;
         break;
     case 3: { // quit: the message box
-        opened = new CMessageBox(ui, "quit", "quit_msg", 0x10000, 3, 1);
+        opened = new CMessageBox(currentUi, "quit", "quit_msg", 0x10000, 3, 1);
         break;
     }
     case 4: { // options
-        opened = new COptionsWindow(ui, true);
+        opened = new COptionsWindow(currentUi, true);
         break;
     }
     default:
         open = false;
         break;
     }
-    if (open) ui->PushWindow(opened, true, true);
+    if (open) currentUi->PushWindow(opened, true, true);
     CUiContainer::LeftDown(buttons, x, y);
 }
 
 // --- Main menu clicks ------------------------------------------------------------
 
 void CMainMenu::LeftDown(int buttons, int x, int y) {
-    CInterface3D* ui = interface_;
+    CInterface3D* currentUi = ui;
     const char* okSound = "buttons\\menu\\ok.wav";
     switch (RegionAt(x, y)) {
     case 0: {
         // A new game: the difficulty question (a message box with its own vtables).
-        ui->PlaySound(okSound);
-        ui->PushWindow(new CDifficultyBox(ui), true, true);
+        currentUi->PlaySound(okSound);
+        currentUi->PushWindow(new CDifficultyBox(currentUi), true, true);
         break;
     }
     case 1: {
-        ui->PlaySound(okSound);
-        ui->PushWindow(new CSaveLoadWindow(ui, false, false), true, true);
+        currentUi->PlaySound(okSound);
+        currentUi->PushWindow(new CSaveLoadWindow(currentUi, false, false), true, true);
         break;
     }
     case 2: {
@@ -315,28 +315,28 @@ void CMainMenu::LeftDown(int buttons, int x, int y) {
         break;
     }
     case 3: {
-        ui->PlaySound(okSound);
-        ui->PushWindow(new COptionsWindow(ui, false), true, true);
+        currentUi->PlaySound(okSound);
+        currentUi->PushWindow(new COptionsWindow(currentUi, false), true, true);
         break;
     }
     case 4: {
         // The titles (opened over a cleared menu, not as a dialog).
         GameStopSounds(0);
         GameStopAmbience();
-        ui->PlaySound(okSound);
+        currentUi->PlaySound(okSound);
         ClearSurfaces();
-        ui->PushWindow(new CCreditsScreen(ui, true, "Titles"), false, true);
+        currentUi->PushWindow(new CCreditsScreen(currentUi, true, "Titles"), false, true);
         break;
     }
     case 5: {
         // Multiplayer: the hero screen (a server session starts). EI_Plugin's NewMaster first looks up its
         // second master server.
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
-        std::string text = g_clientWorld.texts_->CTextManager::GetString("reserved_04");
+        std::string text = g_clientWorld.texts->CTextManager::GetString("reserved_04");
         g_interface.ShowStatusText(text);
         GameSetServerPaused(1);
-        ui->PlaySound(okSound);
-        ui->PushWindow(new CMpHeroScreen(ui), true, true);
+        currentUi->PlaySound(okSound);
+        currentUi->PushWindow(new CMpHeroScreen(currentUi), true, true);
         break;
     }
     default:
@@ -349,30 +349,30 @@ void CMainMenu::LeftDown(int buttons, int x, int y) {
 
 void CMessageBox::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
-    CUiSurface* surface = NewSurface(interface_, 200, 50, 600, 500);
+    CUiSurface* surface = NewSurface(ui, 200, 50, 600, 500);
     AddSurface(surface);
-    int font = result_ != 0xFFFF0000u ? 2 : 1;
+    int font = result != 0xFFFF0000u ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
-    RECT rect = {15, 0, 385, 200};
-    int titleHeight = surface->DrawTextIn(title_, &rect, 2, 0, 0x411, 1);
-    rect = RECT{15, 0, 385, 400};
-    int textHeight = surface->DrawTextIn(text_, &rect, font, 0, 0x411, 1);
+    RECT area = {15, 0, 385, 200};
+    int titleHeight = surface->DrawTextIn(title, &area, 2, 0, 0x411, 1);
+    area = RECT{15, 0, 385, 400};
+    int textHeight = surface->DrawTextIn(text, &area, font, 0, 0x411, 1);
     // An edit field takes one line of the font (the extent of "A").
-    if (flags_ & 4)
+    if (flags & 4)
         textHeight =
-            interface_->TextExtent("A", font).cy;
+            ui->TextExtent("A", font).cy;
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
-    rect = RECT{15, top - 35, 385, 450};
-    surface->DrawTextIn(title_, &rect, 2, 0x31B3FF, 0x11, 1);
-    if (flags_ & 4) {
-        edit_ = new CUiEditField(interface_, RECT{215, top + titleHeight + 30, 585, height + top + 30});
-        edit_->SetLook(15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
-        edit_->SetText(editText_);
-        AddChild(edit_);
+    area = RECT{15, top - 35, 385, 450};
+    surface->DrawTextIn(title, &area, 2, 0x31B3FF, 0x11, 1);
+    if (flags & 4) {
+        edit = new CUiEditField(ui, RECT{215, top + titleHeight + 30, 585, height + top + 30});
+        edit->SetLook(15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
+        edit->SetText(editText);
+        AddChild(edit);
     } else {
-        rect = RECT{15, top + titleHeight - 20, 385, 450};
-        surface->DrawTextIn(text_, &rect, font, 0xA7D7E4, static_cast<int>(format_ | 0x10), 1);
+        area = RECT{15, top + titleHeight - 20, 385, 450};
+        surface->DrawTextIn(text, &area, font, 0xA7D7E4, static_cast<int>(format | 0x10), 1);
     }
 
     int bottom = top + height + 0x3C;
@@ -382,12 +382,12 @@ void CMessageBox::CreateScreen() {
     // The buttons, 48 high below the block: OK (texels 0x51..0x9B) and cancel (0xA0..0xEA).
     float buttonTop = static_cast<float>(bottom + 0x1A);
     float buttonBottom = static_cast<float>(bottom + 0x4A);
-    if ((flags_ & 2) && (flags_ & 1)) {
+    if ((flags & 2) && (flags & 1)) {
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
         AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A)->SetTip(0xC3B4);
         AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A)->SetTip(0xC3B5);
-    } else if (!(flags_ & 2) && (flags_ & 1)) {
+    } else if (!(flags & 2) && (flags & 1)) {
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, buttonTop, 437.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
         AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B4);
     } else {
@@ -402,40 +402,40 @@ void CMessageBox::CreateScreen() {
 
 void CDifficultyBox::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
-    CUiSurface* surface = NewSurface(interface_, 200, 100, 600, 500);
+    CUiSurface* surface = NewSurface(ui, 200, 100, 600, 500);
     AddSurface(surface);
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
-    RECT rect = {15, 0, 385, 200};
-    int titleHeight = surface->DrawTextIn(title_, &rect, 2, 0, 0x411, 1);
+    RECT area = {15, 0, 385, 200};
+    int titleHeight = surface->DrawTextIn(title, &area, 2, 0, 0x411, 1);
     std::string explanation;
     int textHeight = 0;
-    if (g_clientWorld.texts_->Open("tip option_difficulty") != 0) {
-        explanation = g_clientWorld.texts_->ReadToHash();
+    if (g_clientWorld.texts->Open("tip option_difficulty") != 0) {
+        explanation = g_clientWorld.texts->ReadToHash();
         str::TrimRight(explanation, "\r\n");
-        rect = RECT{15, 0, 385, 300};
-        textHeight = surface->DrawTextIn(explanation, &rect, 1, 0, 0x410, 1);
+        area = RECT{15, 0, 385, 300};
+        textHeight = surface->DrawTextIn(explanation, &area, 1, 0, 0x410, 1);
     }
     int total = textHeight + titleHeight + 0x6C;
     int top = (0x226 - total) / 2;   // the block centred in 550 pixels
-    rect = RECT{15, top - 0x55, 385, 450};
-    surface->DrawTextIn(title_, &rect, 2, 0x31B3FF, 0x11, 1);
-    rect = RECT{15, titleHeight + top - 7, 385, 450};
-    surface->DrawTextIn(explanation, &rect, 1, 0xA7D7E4, 0x10, 1);
+    area = RECT{15, top - 0x55, 385, 450};
+    surface->DrawTextIn(title, &area, 2, 0x31B3FF, 0x11, 1);
+    area = RECT{15, titleHeight + top - 7, 385, 450};
+    surface->DrawTextIn(explanation, &area, 1, 0xA7D7E4, 0x10, 1);
 
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
-    std::string easy;
+    std::string newEasy;
     std::string hard;
-    easy = g_clientWorld.texts_->GetString("difficulty_easy");
-    hard = g_clientWorld.texts_->GetString("difficulty_hard");
-    SIZE easySize = interface_->TextExtent(easy, 2);
-    SIZE hardSize = interface_->TextExtent(hard, 2);
+    newEasy = g_clientWorld.texts->GetString("difficulty_easy");
+    hard = g_clientWorld.texts->GetString("difficulty_hard");
+    SIZE easySize = ui->TextExtent(newEasy, 2);
+    SIZE hardSize = ui->TextExtent(hard, 2);
     int half = ((easySize.cx + hardSize.cx) / 2 + 0x1E) / 2;
     int row = titleHeight + top + 0x1E;   // layout y of the easy row (the surface starts at 100)
-    rect = RECT{0xE6 - half, row - 100, 385, 450};
-    surface->DrawTextIn(easy, &rect, 2, 0xA7D7E4, 0, 1);
-    rect = RECT{0xE6 - half, row - 0x4C, 385, 450};
-    surface->DrawTextIn(hard, &rect, 2, 0xA7D7E4, 0, 1);
-    easy_ = 0;
+    area = RECT{0xE6 - half, row - 100, 385, 450};
+    surface->DrawTextIn(newEasy, &area, 2, 0xA7D7E4, 0, 1);
+    area = RECT{0xE6 - half, row - 0x4C, 385, 450};
+    surface->DrawTextIn(hard, &area, 2, 0xA7D7E4, 0, 1);
+    easy = 0;
 
     // The check boxes (texels 0xD1..0xE6 x 0x37..0x4C); the hard one checked (its texture shifted by
     // the sprite's U offset, as the button handler does).
@@ -446,7 +446,7 @@ void CDifficultyBox::CreateScreen() {
     CUiMesh* hardBox = AddBlankSprite();
     hardBox->SetRectangle(2.5f, 100.0f, static_cast<float>(boxLeft), static_cast<float>(row + 0x18),
                           static_cast<float>(boxRight), static_cast<float>(row + 0x2D), 0xD1, 0x37, 0xE6, 0x4C);
-    hardBox->textureOffsetU_ = kCheckedOffset;
+    hardBox->textureOffsetU = kCheckedOffset;
 
     int bottom = top + total;
     Shade(this, 3.0f, 200.0f, static_cast<float>(top), 600.0f, static_cast<float>(bottom));
@@ -464,32 +464,32 @@ void CDifficultyBox::CreateScreen() {
 // --- Titles ----------------------------------------------------------------------------
 
 void CCreditsScreen::CreateScreen() {
-    CInterface3D* ui = interface_;
-    const std::string& name = name_;
-    if (!fromGame_) {
-        g_clientWorld.sounds_->StopAll(1);
-        g_clientWorld.music_->Stop();
+    CInterface3D* currentUi = ui;
+    const std::string& currentName = name;
+    if (!fromGame) {
+        g_clientWorld.sounds->StopAll(1);
+        g_clientWorld.music->Stop();
     }
     g_cursor.ShowImage(0);
-    app::PlayMovies((name + "fin"), false);
-    nextLineAt_ = 0.0f;
+    app::PlayMovies((currentName + "fin"), false);
+    nextLineAt = 0.0f;
 
-    CMappedResource* archive = &archive_;
-    archive->OpenResource((options::g_options.resourcesPath_ + "outro.res"), 0);
+    CMappedResource* currentArchive = &archive;
+    currentArchive->OpenResource((options::g_options.resourcesPath + "outro.res"), 0);
     std::uint32_t size = 0;
-    void* data = archive->GetFile("credits.scr", &size);
+    void* data = currentArchive->GetFile("credits.scr", &size);
     if (!data) {
-        currentLine_ = lines_.end();
+        currentLine = lines.end();
     } else {
         std::string script;
         std::memmove(str::SetLength(script, static_cast<int>(size)), data, size);
         str::CutAtNull(script);
         text::FromAssetText(&script);   // the headers' text in UTF-8 (the pages are RTF)
         RemoveCarriageReturns(&script);
-        TitlesTokenizer lines{{0, &script, "\n"}};
-        lines.Start();
-        while (lines.position != -1) {
-            std::string line = lines.word;
+        TitlesTokenizer newLines{{0, &script, "\n"}};
+        newLines.Start();
+        while (newLines.position != -1) {
+            std::string line = newLines.word;
             TitlesTokenizer words{{0, &line, " "}};
             words.Start();
             TitleLine record{};
@@ -505,29 +505,29 @@ void CCreditsScreen::CreateScreen() {
             record.style = words.WordOrEmpty();
             words.Next();
             record.text = words.WordOrEmpty();
-            lines_.push_back(record);
-            lines.Next();
+            lines.push_back(record);
+            newLines.Next();
         }
-        currentLine_ = lines_.begin();
-        archive->CloseFile(data);
+        currentLine = lines.begin();
+        currentArchive->CloseFile(data);
     }
 
     // The scrolling text (10..790 x 150..450) and the header (10..790 x 110..140), frozen.
     {
-        RECT rect = {10, 0x96, 0x316, 0x1C2};
-        textSurface_ = new CUiScrollingSurface(ui, &rect);
-        AddSurface(textSurface_);
-        textSurface_->Hide(false);
+        RECT area = {10, 0x96, 0x316, 0x1C2};
+        textSurface = new CUiScrollingSurface(currentUi, &area);
+        AddSurface(textSurface);
+        textSurface->Hide(false);
     }
     {
-        RECT rect = {10, 0x6E, 0x316, 0x8C};
-        headerSurface_ = AddSurface(new CUiSurface(ui, &rect, SurfaceBlend::Keyed));
-        headerSurface_->Hide(false);
+        RECT area = {10, 0x6E, 0x316, 0x8C};
+        headerSurface = AddSurface(new CUiSurface(currentUi, &area, SurfaceBlend::Keyed));
+        headerSurface->Hide(false);
     }
-    if (fromGame_) GameSetServerPaused(0);
-    savedDisplay_ = static_cast<int>(g_sceneRenderer.fogColour_);
-    g_sceneRenderer.fogColour_ = 0;
-    player_.Open((g_discFolder + "Movies\\" + name + ".bik").c_str(),   // "<folder>Movies\<name>.bik"
+    if (fromGame) GameSetServerPaused(0);
+    savedDisplay = static_cast<int>(g_sceneRenderer.fogColour);
+    g_sceneRenderer.fogColour = 0;
+    player.Open((g_discFolder + "Movies\\" + currentName + ".bik").c_str(),    // "<folder>Movies\<name>.bik"
                                              0);
-    finished_ = false;
+    finished = false;
 }

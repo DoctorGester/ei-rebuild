@@ -93,10 +93,10 @@ void FootprintCellSet::GetBounds(int* bounds) const {
 bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet, FootprintCellSet* bridgeSet) {
     // The object's transform: rotation from its orientation, translation from its position.
     float* matrix = object->worldMatrix.m;
-    object->localRotation_.ToMatrix((float*)matrix);
-    matrix[11] = object->localPosition_.z;
-    matrix[3] = object->localPosition_.x;
-    matrix[7] = object->localPosition_.y;
+    object->localRotation.ToMatrix((float*)matrix);
+    matrix[11] = object->localPosition.z;
+    matrix[3] = object->localPosition.x;
+    matrix[7] = object->localPosition.y;
     matrix[14] = 0.0f;
     matrix[13] = 0.0f;
     matrix[12] = 0.0f;
@@ -133,10 +133,10 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
                              {hi.x, hi.y, hi.z}, {hi.x, lo.y, hi.z}, {hi.x, lo.y, lo.z}, {lo.x, lo.y, lo.z}};
         Vector3 normal[6] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
         Vector3 position;
-        position = object->localPosition_;
+        position = object->localPosition;
 
         // Stand the object on the ground (or bridge deck) under its centre.
-        int cx = WorldToCell(object->localPosition_.x), cy = WorldToCell(object->localPosition_.y);
+        int cx = WorldToCell(object->localPosition.x), cy = WorldToCell(object->localPosition.y);
         float ground;
         if (cx < 0 || cy < 0 || cx >= cells.width || cy >= cells.height) {
             ground = 0.0f;
@@ -216,8 +216,8 @@ void CAIMap::QueueRefresh(int minX, int maxX, int minY, int maxY) {
 }
 
 bool CAIMap::MarkFootprint(CMapObject* object, bool remove) {
-    int cellX = WorldToCell(object->localPosition_.x);
-    int cellY = WorldToCell(object->localPosition_.y);
+    int cellX = WorldToCell(object->localPosition.x);
+    int cellY = WorldToCell(object->localPosition.y);
     ResetCellSet(&footprint);
     ResetCellSet(&bridges);
 

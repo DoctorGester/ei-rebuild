@@ -34,8 +34,8 @@ enum ScriptType : int {
     kScriptGroup = 4,
 };
 
-// A counted reference to a world object: holding one keeps the object's refCount_ raised. Objects
-// deleted from the world stay allocated while referenced and have bit 0 of flags_ set.
+// A counted reference to a world object: holding one keeps the object's refCount raised. Objects
+// deleted from the world stay allocated while referenced and have bit 0 of flags set.
 struct ScriptObjectRef {
     // Null for anything but a unit.
     CUnit* AsUnit() const;
@@ -54,7 +54,7 @@ struct ScriptObjectRef {
 // layout; ours sorts by object id instead, and the harness patches the original to do the same
 // (tests/verify/harness_script_order.cpp).
 struct ScriptGroup : std::vector<ScriptObjectRef> {
-    // The id order: null before every object, then CEngineObject::id_ (signed). World objects' ids are
+    // The id order: null before every object, then CEngineObject::id (signed). World objects' ids are
     // unique and never handed out again while an object lives (CBaseManager::NextFreeId counts up from the
     // highest id), so two members never tie.
     static bool After(const CEngineObject* x, const CEngineObject* y);
@@ -169,33 +169,33 @@ template <class T>
 class ScriptEffect {
 public:
     ScriptEffect() = default;
-    explicit ScriptEffect(T* object) : object_(object) {
-        if (object_) object_->AddRef();
+    explicit ScriptEffect(T* newObject) : object(newObject) {
+        if (object) object->AddRef();
     }
-    ScriptEffect(ScriptEffect&& other) noexcept : object_(std::exchange(other.object_, nullptr)) {}
+    ScriptEffect(ScriptEffect&& other) noexcept : object(std::exchange(other.object, nullptr)) {}
     ScriptEffect& operator=(ScriptEffect&& other) noexcept {
         if (this != &other) {
             reset();
-            object_ = std::exchange(other.object_, nullptr);
+            object = std::exchange(other.object, nullptr);
         }
         return *this;
     }
     ~ScriptEffect() { reset(); }
 
     void reset() {
-        if (CEngineObject* object = std::exchange(object_, nullptr)) ScriptDropEffect(object);
+        if (CEngineObject* dropped = std::exchange(object, nullptr)) ScriptDropEffect(dropped);
     }
-    T* get() const { return static_cast<T*>(object_); }
+    T* get() const { return static_cast<T*>(object); }
     T* operator->() const { return get(); }
-    explicit operator bool() const { return object_ != nullptr; }
+    explicit operator bool() const { return object != nullptr; }
     // The object's id as the savers write it (-1: none).
-    int SavedId() const { return object_ ? object_->id_ : -1; }
+    int SavedId() const { return object ? object->id : -1; }
 
 private:
-    CEngineObject* object_ = nullptr;
+    CEngineObject* object = nullptr;
 };
 
-// A point light slot (CScript::pointLights_, 256 slots); a free slot is all zero.
+// A point light slot (CScript::pointLights, 256 slots); a free slot is all zero.
 struct ScriptPointLight {
     // The effect object's id (-1: none), then the fields in order.
     void Save(CStream* stream) const;
@@ -255,7 +255,7 @@ struct ScriptLightning {
 // One particle type CreateParticleSource accepts (64 entries).
 struct ScriptParticleType {
     const char* name;
-    int type;               // CEffectParticle::type_ (0x2000..)
+    int type;               // CEffectParticle::type (0x2000..)
     int lifetime;           // ticks, -1 forever
 };
 constexpr int kScriptParticleTypeCount = 64;
@@ -436,16 +436,16 @@ public:
     // CreateFX(x, y, z, volume, radius, name): a sound the script keeps nothing of.
     void ScriptCreateFx(const SSCCmd* cmd);
     // CreateFXSource(id, x, y, z, volume, radius, name) and CreateRandomizedFXSource (the same, then min
-    // delay, max delay, spread): a negative id takes nextFxId_; an existing source has its sound dropped.
+    // delay, max delay, spread): a negative id takes nextFxId; an existing source has its sound dropped.
     // CreateFXSource (command 0x16) makes the sound at once; the other waits (idle 1). For a new id
     // CreateFXSource leaves spread, the delays and the countdown as stack residue in the original; here they
     // are 0, 0, 0 and INT_MAX (docs/notes/script.md).
     void ScriptCreateFxSource(const SSCCmd* cmd);
-    // CreateLightning(id, from xyz, to xyz, width): a negative or NaN id takes nextParticleId_; existing ids
+    // CreateLightning(id, from xyz, to xyz, width): a negative or NaN id takes nextParticleId; existing ids
     // are not looked up.
     void ScriptCreateLightning(const SSCCmd* cmd);
     // CreateParticleSource(id, x, y, z, size, type name): the type by name (case-insensitive; nothing for an
-    // unknown one); a negative id takes nextParticleId_; an existing source has its effect dropped.
+    // unknown one); a negative id takes nextParticleId; an existing source has its effect dropped.
     void ScriptCreateParticleSource(const SSCCmd* cmd);
     // MoveParticleSource(id, x, y, z, steps, delete when done).
     void ScriptMoveParticleSource(const SSCCmd* cmd);
@@ -500,27 +500,27 @@ public:
     // It first executes on the next tick.
     void RunWorldScript(ScriptDecl* block);
 
-    std::vector<ScriptPointLight> pointLights_;     // 256 slots
-    std::list<ScriptParticleSource> particles_;
-    std::list<ScriptFxSource> fxSources_;
-    std::list<ScriptLightning> lightning_;
-    int nextParticleId_ = -2;   // the next automatic particle source / lightning id (-2, -3, ...)
-    int nextFxId_ = -2;         // the next automatic FX source id
-    std::list<ScriptDecl> blocks_;
-    std::vector<ScriptDefinition> definitions_;     // Script / DeclareScript definitions
-    ScriptVars globals_;
-    std::list<ScriptDefinition> instances_;
-    std::list<ScriptRun> runs_;                     // waiting runs
-    std::list<ScriptDecl> worldBlocks_;
-    std::vector<ScriptArea> areas_;
-    int loaded_ = 0;
-    int fileCount_ = 0;
-    std::list<ScriptGroup> tempGroups_;             // one is kept
-    std::list<ScriptObjectRef> tempObjects_;        // one is kept
-    int forDepth_ = 0;          // nesting of running For loops
-    std::string errorText_;
-    int errorCode_ = 0;
-    int errorLine_ = 0;
+    std::vector<ScriptPointLight> pointLights;      // 256 slots
+    std::list<ScriptParticleSource> particles;
+    std::list<ScriptFxSource> fxSources;
+    std::list<ScriptLightning> lightning;
+    int nextParticleId = -2;    // the next automatic particle source / lightning id (-2, -3, ...)
+    int nextFxId = -2;          // the next automatic FX source id
+    std::list<ScriptDecl> blocks;
+    std::vector<ScriptDefinition> definitions;      // Script / DeclareScript definitions
+    ScriptVars globals;
+    std::list<ScriptDefinition> instances;
+    std::list<ScriptRun> runs;                      // waiting runs
+    std::list<ScriptDecl> worldBlocks;
+    std::vector<ScriptArea> areas;
+    int loaded = 0;
+    int fileCount = 0;
+    std::list<ScriptGroup> tempGroups;              // one is kept
+    std::list<ScriptObjectRef> tempObjects;         // one is kept
+    int forDepth = 0;           // nesting of running For loops
+    std::string errorText;
+    int errorCode = 0;
+    int errorLine = 0;
 };
 
 // The id of a command or function (ScriptKeyword::id, SSCCmd::id; the names are the table's). 1..68 are the

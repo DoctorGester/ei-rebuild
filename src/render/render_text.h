@@ -74,37 +74,37 @@ public:
     // `smoothing` false thresholds coverage at one half (GDI's non-antialiased look).
     GlyphAtlas(const Font& font, bool smoothing);
     const AtlasGlyph& Get(char32_t ch);
-    int Width() const { return width_; }
-    int Height() const { return height_; }
-    const std::uint8_t* Pixels() const { return pixels_.data(); }
-    unsigned Generation() const { return generation_; }
+    int Width() const { return width; }
+    int Height() const { return height; }
+    const std::uint8_t* Pixels() const { return pixels.data(); }
+    unsigned Generation() const { return generation; }
 
 private:
     void Place(AtlasGlyph& glyph, char32_t ch);
-    const Font& font_;
-    bool smoothing_;
-    int width_, height_ = 0;
-    int shelfX_ = 0, shelfY_ = 0, shelfHeight_ = 0;
-    unsigned generation_ = 0;
-    std::vector<std::uint8_t> pixels_;
-    std::unordered_map<char32_t, AtlasGlyph> glyphs_;
+    const Font& font;
+    bool smoothing;
+    int width, height = 0;
+    int shelfX = 0, shelfY = 0, shelfHeight = 0;
+    unsigned generation = 0;
+    std::vector<std::uint8_t> pixels;
+    std::unordered_map<char32_t, AtlasGlyph> glyphs;
 };
 
 // A font with its atlas and an advance cache: what layout and drawing take.
 class TextFont {
 public:
     TextFont(std::unique_ptr<Font> font, bool smoothing);
-    const FontMetrics& Metrics() const { return font_->Metrics(); }
-    GlyphAtlas& Atlas() { return atlas_; }
+    const FontMetrics& Metrics() const { return font->Metrics(); }
+    GlyphAtlas& Atlas() { return atlas; }
     int Advance(char32_t ch);
     int Kerning(char32_t left, char32_t right);
 
 private:
-    std::unique_ptr<Font> font_;
-    GlyphAtlas atlas_;
-    std::vector<int> lowAdvances_;   // Latin and Cyrillic; -1 until asked
-    std::unordered_map<char32_t, int> advances_;
-    std::unordered_map<std::uint64_t, int> kerning_;
+    std::unique_ptr<Font> font;
+    GlyphAtlas atlas;
+    std::vector<int> lowAdvances;    // Latin and Cyrillic; -1 until asked
+    std::unordered_map<char32_t, int> advances;
+    std::unordered_map<std::uint64_t, int> kerning;
 };
 
 // The process-wide font for a GDI face name and em height in pixels (loaded on first use). Not thread-safe:

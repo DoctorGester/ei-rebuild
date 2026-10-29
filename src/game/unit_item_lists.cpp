@@ -9,7 +9,7 @@
 void ItemsAndSpells::Add(CItem* item) {
     if (!item) return;
     items.push_back(item);
-    if (CSpell* spell = item->spell_) spells.push_back(spell);
+    if (CSpell* spell = item->spell) spells.push_back(spell);
 }
 
 namespace {

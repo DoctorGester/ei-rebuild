@@ -59,8 +59,8 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
 } // namespace
 
 int CHoover::CollectLoot(CWorld* world, CUnit* cunit, std::list<CItem*>* drops, std::list<CItem*>* items, int* gold) {
-    bool keyed = IsTextKey(cunit->id_);
-    if (cunit->flags_ & MapObjectFlag::LootTaken) return 0;
+    bool keyed = IsTextKey(cunit->id);
+    if (cunit->flags & MapObjectFlag::LootTaken) return 0;
     CItemManager* manager = world->ItemFactory();
     const UnitPrototypeRecord* prototype = cunit->GetPrototype();
     *gold = 0;
@@ -99,6 +99,6 @@ int CHoover::CollectLoot(CWorld* world, CUnit* cunit, std::list<CItem*>* drops, 
             cunit->RemoveWeapon(slot);
         }
     }
-    cunit->flags_ |= MapObjectFlag::LootTaken;
+    cunit->flags |= MapObjectFlag::LootTaken;
     return 1;
 }

@@ -91,16 +91,16 @@ public:
     // "SmtgLight", or the "Demon" pair).
     void Start(const Vector3& from, const Vector3& to, float power, bool demon);
 
-    Ref<CTexture> texture_;
-    Ref<CTexture> glowTexture_;
+    Ref<CTexture> texture;
+    Ref<CTexture> glowTexture;
     // The bounds the renderer clips by: flags 3 once set, the box relative to the centre.
-    ClipBounds bounds_;
-    Vector3 boundsSpare_;               // cleared with the bounds, never read
-    LightningSegment main_;
-    LightningSegment branches_[6];
-    float branchPos_[6];                // where each branch leaves the main segment (0..1)
-    float power_;                       // sign selects the look (0: parallel bolts)
-    float amplitude_;                   // noise amplitude of the branch sway
+    ClipBounds bounds;
+    Vector3 boundsSpare;                // cleared with the bounds, never read
+    LightningSegment main;
+    LightningSegment branches[6];
+    float branchPos[6];                 // where each branch leaves the main segment (0..1)
+    float power;                        // sign selects the look (0: parallel bolts)
+    float amplitude;                    // noise amplitude of the branch sway
 };
 
 // The noise table, 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the
@@ -128,5 +128,5 @@ public:
     // Create (class_slots.cpp): loads the noise table on the first call, then the base manager's Create.
     void Create() override;
 
-    std::list<CLightning*> newBolts_;   // (each entry holds a reference)
+    std::list<CLightning*> newBolts;    // (each entry holds a reference)
 };

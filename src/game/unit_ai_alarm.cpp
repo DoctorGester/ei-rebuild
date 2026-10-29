@@ -86,7 +86,7 @@ void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
         break;
     }
     case kGuardAlarm: {
-        const WorldAlarm& alarmAt = g_serverWorld.alarms_[slot];
+        const WorldAlarm& alarmAt = g_serverWorld.alarms[slot];
         Vector3 point{alarmAt.x, alarmAt.y, 0.0f};
         AddMode(std::make_unique<GuardMode>(point, record->guardRadius, kNoWander));
         break;

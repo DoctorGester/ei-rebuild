@@ -33,7 +33,7 @@ void PutLocals(Writer& w, const OriginalScriptVars* locals) {
 // No elements and no storage.
 template <typename T>
 bool Empty(const exe::Vector<T>& a) {
-    return a.empty() && a.maxSize_ == 0 && !a.data();
+    return a.empty() && a.maxSize == 0 && !a.data();
 }
 
 // 004CF4D0: MOV EAX,FS:[0] (6). Bucket: the result.

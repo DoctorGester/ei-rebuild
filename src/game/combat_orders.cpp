@@ -56,18 +56,18 @@ bool MayCast(CUnitServer* self, std::uint32_t source) {
     CSpell* spell;
     if (source & kQuickItemSource) {
         CItem* carrier = self->SpellCarrier(source);
-        if (!carrier) return !(self->unit->flags_ & MapObjectFlag::NoCasting);
-        spell = carrier->spell_;
+        if (!carrier) return !(self->unit->flags & MapObjectFlag::NoCasting);
+        spell = carrier->spell;
     } else {
         spell = self->unit->GetSpellObject(source);
     }
     if (spell && self->unit->player && !(source & kQuickItemSource)) {
-        int needed = static_cast<int>(spell->skillNeeded_);
+        int needed = static_cast<int>(spell->skillNeeded);
         float skill = static_cast<float>(
             self->stats.SpellSchoolSkill(spell->GetPrototype()->school));
         if (x87::fistp(skill) < needed) return false;
     }
-    return !(self->unit->flags_ & MapObjectFlag::NoCasting);
+    return !(self->unit->flags & MapObjectFlag::NoCasting);
 }
 
 } // namespace
@@ -82,7 +82,7 @@ void CUnitServer::FinishCast() {
         if (!item || item->GetClassId() != ClassId::ItemQuick) return;
         if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return;
         carrier = item;
-        spell = item->spell_;
+        spell = item->spell;
     } else {
         spell = unit->GetSpellObject(source);
     }
@@ -95,14 +95,14 @@ void CUnitServer::FinishCast() {
         at = *action.target->AimPoint(&point);
     }
     if (carrier) {
-        float cost = spell->manaCost_;
-        if (cost > carrier->charge_) {
+        float cost = spell->manaCost;
+        if (cost > carrier->charge) {
             action.source = kNoSource;
             return;
         }
         UseItemCharge(carrier, cost);
     } else if (unit->player) {
-        float cost = spell->manaCost_;
+        float cost = spell->manaCost;
         UnitVitals* vitals = ServerStatsOf(unit);
         double needed = static_cast<double>(stats.Period20()) * cost;
         float maximum;
@@ -117,10 +117,10 @@ void CUnitServer::FinishCast() {
         CompanionOwner(ServerObjectOf(unit))->MarkChanged(0);
         unit->MarkChanged(0);
     }
-    world->CastSpell(spell, unit, unit->localPosition_, action.target, at, 0);
+    world->CastSpell(spell, unit, unit->localPosition, action.target, at, 0);
     if (spell->GetPrototype()->castType != 1) {
         float loudness = static_cast<float>(static_cast<double>(stats.conspicuity[3].current) * kCastNoiseScale);
-        world->aiMap_.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition_);
+        world->aiMap.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition);
     }
     action.source = kNoSource;
 }
@@ -146,7 +146,7 @@ void CUnitServer::OrderMove(const Vector3& point, int run, int walk, float range
     action2.param = 0;
     if (!unit->player) return;
     if (std::bit_cast<std::uint32_t>(point.z) == kNoPointZ) return;
-    if (world->paused_ == 0) {
+    if (world->paused == 0) {
         action2.param = 1;
         return;
     }
@@ -176,7 +176,7 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
             }
             if (!ranged) {
                 double height =
-                    static_cast<double>(std::bit_cast<float>(other->GetPrototype()->height)) + other->localPosition_.z;
+                    static_cast<double>(std::bit_cast<float>(other->GetPrototype()->height)) + other->localPosition.z;
                 if (height >= kReachHeight) {
                     TellParty(unit, AckKind::OutOfReach);
                     action2.kind = UnitOrderKind::None;
@@ -203,10 +203,10 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3& point, int ru
             item->GetCategory() == QuickItemCategory::Potion) {
             CWorldServer* world = ServerWorld();
             auto* scroll = unit->GetQuickItem(slot);
-            if (!scroll || !scroll->count_) return;
+            if (!scroll || !scroll->count) return;
             CItem* carrier = SpellCarrier(source);
-            if (!carrier || !carrier->spell_) return;
-            world->CastSpell(carrier->spell_, unit, unit->localPosition_, nullptr, point, 0);
+            if (!carrier || !carrier->spell) return;
+            world->CastSpell(carrier->spell, unit, unit->localPosition, nullptr, point, 0);
             world->UseItemUp(unit, scroll);
             return;
         }
@@ -236,11 +236,11 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
         if (carrier && carrier->GetCategory() == QuickItemCategory::Potion) {
             CWorldServer* world = ServerWorld();
             auto* scroll = unit->GetQuickItem(source & ~kQuickItemSource);
-            if (!scroll || !scroll->count_) return;
+            if (!scroll || !scroll->count) return;
             CItem* spellCarrier = SpellCarrier(source);
-            if (!spellCarrier || !spellCarrier->spell_) return;
-            world->CastSpell(spellCarrier->spell_, unit, unit->localPosition_, target,
-                                   target->localPosition_, 0);
+            if (!spellCarrier || !spellCarrier->spell) return;
+            world->CastSpell(spellCarrier->spell, unit, unit->localPosition, target,
+                                   target->localPosition, 0);
             world->UseItemUp(unit, scroll);
             return;
         }

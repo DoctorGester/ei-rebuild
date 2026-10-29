@@ -38,76 +38,76 @@ const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
 
 } // namespace
 
-void CHudSpellColumn::SetUnit(CUnit* unit) {
+void CHudSpellColumn::SetUnit(CUnit* newUnit) {
     std::string tip;
     std::string description;
-    unit_ = unit;
+    unit = newUnit;
     ClearSceneObjects();
     ClearRegions();
-    count_ = 0;
-    selected_ = -1;
-    if (!unit_) return;
+    count = 0;
+    selected = -1;
+    if (!unit) return;
 
     for (unsigned i = 0; i < 8; ++i) {
-        CItem* spell = unit_->GetSpell(i);
+        CItem* spell = unit->GetSpell(i);
         if (!spell) continue;
         {
             std::string image = spell->FigureName();
             std::string model = spell->PictureName();
             AddSpell(model, image);
         }
-        tip = g_clientWorld.texts_->GetItemTexts(spell).name;
+        tip = g_clientWorld.texts->GetItemTexts(spell).name;
 
         // The spell's numbers below its name: one line per label of the panel's table.
-        CSpell* data = spell->spell_;   // the spell item's spell
+        CSpell* data = spell->spell;    // the spell item's spell
         if (data) {
-            const std::vector<std::string>& labels = labels_;
+            const std::vector<std::string>& currentLabels = labels;
             std::string line;
             tip += " \n";   // " \n"
-            line = std::format("{} {}  ", labels[0], Truncate(Get<float>(data, 0x40)));
+            line = std::format("{} {}  ", currentLabels[0], Truncate(Get<float>(data, 0x40)));
             tip += line;
             line = "Unknown";
             description = std::format("school_{}", SpellPrototypeOf(data)->castType);
-            line = g_clientWorld.texts_->CTextManager::GetString(description);
-            line = labels[1] + " " + line + " \n";
+            line = g_clientWorld.texts->CTextManager::GetString(description);
+            line = currentLabels[1] + " " + line + " \n";
             tip += line;
             if (SpellPrototypeOf(data)->allowedModifiers[3] == 0)
-                line = std::format("{} {}  ", labels[2], labels[12]);
+                line = std::format("{} {}  ", currentLabels[2], currentLabels[12]);
             else
-                line = std::format("{} {}  ", labels[2], Truncate(Get<float>(data, 0x24)));
+                line = std::format("{} {}  ", currentLabels[2], Truncate(Get<float>(data, 0x24)));
             tip += line;
             const float one = 1.0f;
             float duration = Get<float>(data, 0x30);
             EI_NAN_AUDIT(duration);
             if (duration < one)
-                line = std::format("{} {} \n", labels[3], labels[8]);
+                line = std::format("{} {} \n", currentLabels[3], currentLabels[8]);
             else
-                line = std::format("{} {} \n", labels[3], Truncate(duration));
+                line = std::format("{} {} \n", currentLabels[3], Truncate(duration));
             tip += line;
-            line = std::format("{} {}{}  ", labels[4], Truncate(Get<float>(data, 0x34)), labels[10]);
+            line = std::format("{} {}{}  ", currentLabels[4], Truncate(Get<float>(data, 0x34)), currentLabels[10]);
             tip += line;
             if (Get<std::uint32_t>(data, 0x3C) & 0x10000000) {
-                line = std::format("{} {} \n", labels[5], labels[9]);
+                line = std::format("{} {} \n", currentLabels[5], currentLabels[9]);
             } else {
                 // The area: radius squared times pi (a float).
                 float radius = Get<float>(data, 0x28);
                 double area = static_cast<double>(radius) * radius * 3.1415927f;
-                line = str::Format("%s %.1f%s \n", labels[5], area, labels[10]);   // "%s %.1f%s \n"
+                line = str::Format("%s %.1f%s \n", currentLabels[5], area, currentLabels[10]);   // "%s %.1f%s \n"
             }
             tip += line;
             std::uint32_t ticks = Get<std::uint32_t>(data, 0x20);
             if (ticks < 2) {
-                line = std::format("{} {}  ", labels[6], labels[8]);
+                line = std::format("{} {}  ", currentLabels[6], currentLabels[8]);
             } else {
                 // Ticks to seconds (1/15).
                 double seconds = x87::FromUnsigned(ticks) * 0.06666667f;
-                line = str::Format("%s %.1f%s  ", labels[6], seconds, labels[11]);
+                line = str::Format("%s %.1f%s  ", currentLabels[6], seconds, currentLabels[11]);
             }
             tip += line;
-            line = std::format("{} {} \n", labels[7], Get<int>(data, 0x38));
+            line = std::format("{} {} \n", currentLabels[7], Get<int>(data, 0x38));
             tip += line;
         }
         // The region of the spell's index (the original does not count the missing ones).
-        regions_[i]->SetTipString(tip, static_cast<int>(i) + 0x1E);
+        regions[i]->SetTipString(tip, static_cast<int>(i) + 0x1E);
     }
 }

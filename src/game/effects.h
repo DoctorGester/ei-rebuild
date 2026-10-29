@@ -26,11 +26,11 @@
 
 struct VertexPacket;
 
-// The particle source / effect types (CEngineObject::type_ of a CParticleSource and a CEffectParticle). The names
+// The particle source / effect types (CEngineObject::type of a CParticleSource and a CEffectParticle). The names
 // are the script table's (script_effects.cpp kScriptParticleTypes) and the texture SetupType returns; a type neither
 // names is described: Shower1-4 (the RainSnow texture, texture frames 12-15), Falling1-4 (a gust of RainSnow),
 // GroundDust1 / 2, TeleportRing (the Teleport texture), VisionStar4 (the fourth vision star, lifetime 3), Stun (the
-// Stun texture), PoisonCloud (the second PoisonFog type, the poison spell's cloud). type_ stays a plain int in the
+// Stun texture), PoisonCloud (the second PoisonFog type, the poison spell's cloud). type stays a plain int in the
 // objects; ParticleTypeOf reads it.
 enum class ParticleType : int {
     FireBall = 0x2000,
@@ -376,7 +376,7 @@ void ParticleManagerClearQuietStart(CParticleManager* manager);
 
 // The particle manager: a CBaseManager whose objects are the sources. It keeps a pool of free particles (taken
 // from the head, returned to the tail), and holds one reference on every source made through CreateSource
-// (`held_`, by id) until the source's tick ends it (TickSources) or nobody else holds it (ReleaseUnheld).
+// (`held`, by id) until the source's tick ends it (TickSources) or nobody else holds it (ReleaseUnheld).
 class CParticleManager : public CBaseManager {
 public:
     // Kept order: Destroy releases the sources in it, which sends them to the spares and their textures' releases
@@ -399,15 +399,15 @@ public:
     // 0x2004 start without emitting.
     CParticleSource* CreateSource(int type);
     // Every source's tick (with `paused` only the ones with ParticleSourceFlag::TicksWhilePaused); a held source whose tick returned 0 is
-    // released and leaves `held_`. Returns 0.
+    // released and leaves `held`. Returns 0.
     int TickSources(char paused);
-    // Every held source nobody else references (refCount_ 1) is released and leaves `held_` (the client's zone
+    // Every held source nobody else references (refCount 1) is released and leaves `held` (the client's zone
     // load).
     void ReleaseUnheld();
 
     std::list<Particle*> freeParticles;
-    HeldMap held_;                                  // id -> source holding a reference
-    int maxHeldId_;                                 // highest key of held_
+    HeldMap held;                                   // id -> source holding a reference
+    int maxHeldId;                                  // highest key of held
     int quietStart;                                 // see CreateSource; never set non-zero in src
 };
 
@@ -422,7 +422,7 @@ struct SourceFrame {
     float u0, v0, u1, v1;
 };
 
-// The bits of CEngineObject::flags_ on a particle source (the types' setups in particle_create.cpp set them).
+// The bits of CEngineObject::flags on a particle source (the types' setups in particle_create.cpp set them).
 enum class ParticleSourceFlag : std::uint32_t {
     Emitting = 0x1,
     AttachedOnly = 0x2,     // emits only while attached
@@ -434,7 +434,7 @@ enum class ParticleSourceFlag : std::uint32_t {
 };
 template <> inline constexpr bool lib::kBitFlags<ParticleSourceFlag> = true;
 
-// A particle source: localPosition_ is where it emits relative to what it is attached to, localRotation_ the
+// A particle source: localPosition is where it emits relative to what it is attached to, localRotation the
 // identity after Reset.
 class CParticleSource final : public CTransformObject {
 public:
@@ -446,7 +446,7 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    CParticleManager* Manager() const { return static_cast<CParticleManager*>(owner_); }
+    CParticleManager* Manager() const { return static_cast<CParticleManager*>(owner); }
     // Fills the shared vertex / sprite arrays and draws through the renderer. 1 when there is
     // nothing to draw or it is off screen.
     int Draw(CSceneRenderer* renderer);
@@ -612,7 +612,7 @@ public:
     void StopAndClear();
     void ReleaseAllParticles();
 
-    // CEngineObject's flags_: the ParticleSourceFlag bits; type_ 0x2000.. (the effect names in the type name
+    // CEngineObject's flags: the ParticleSourceFlag bits; type 0x2000.. (the effect names in the type name
     // table).
     CObject3D* attachedTo;          // the object followed, null: none
     Vector3 origin;                 // world emission point

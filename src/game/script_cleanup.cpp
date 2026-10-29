@@ -9,16 +9,16 @@
 // variables drop deleted objects (object variables released, group members removed), then the
 // evaluation temporaries are freed.
 void ScriptPurgeDeletedObjects(CScript* script) {
-    for (ScriptRun& run : script->runs_) run.vars.RemoveDeletedObjects();
-    for (ScriptDefinition& instance : script->instances_) instance.vars.RemoveDeletedObjects();
-    script->globals_.RemoveDeletedObjects();
+    for (ScriptRun& run : script->runs) run.vars.RemoveDeletedObjects();
+    for (ScriptDefinition& instance : script->instances) instance.vars.RemoveDeletedObjects();
+    script->globals.RemoveDeletedObjects();
     ScriptFreeTemporaries(script);
 }
 
 // Every instance, then every run, destroyed.
 void ScriptDropInstancesAndRuns(CScript* script) {
-    script->instances_.clear();
-    script->runs_.clear();
+    script->instances.clear();
+    script->runs.clear();
 }
 
 // When the party enters a zone: instances and runs dropped, the For depth and the
@@ -26,14 +26,14 @@ void ScriptDropInstancesAndRuns(CScript* script) {
 // lightning lists emptied), the global values reset, and every WorldScript block run again.
 void ScriptResetZone(CScript* script) {
     ScriptDropInstancesAndRuns(script);
-    script->forDepth_ = 0;
+    script->forDepth = 0;
     ScriptFreeTemporaries(script);
 
-    for (ScriptPointLight& light : script->pointLights_) light = {};
-    script->fxSources_.clear();
-    script->particles_.clear();
-    script->lightning_.clear();
+    for (ScriptPointLight& light : script->pointLights) light = {};
+    script->fxSources.clear();
+    script->particles.clear();
+    script->lightning.clear();
 
-    script->globals_.ResetValues();
-    for (ScriptDecl& block : script->worldBlocks_) script->RunWorldScript(&block);
+    script->globals.ResetValues();
+    for (ScriptDecl& block : script->worldBlocks) script->RunWorldScript(&block);
 }

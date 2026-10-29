@@ -1,6 +1,6 @@
 #pragma once
 
-// The context a manager belongs to (CBaseManager::context_, set by Init / SetContext): the world (CWorld) or
+// The context a manager belongs to (CBaseManager::context, set by Init / SetContext): the world (CWorld) or
 // a party (CParty), the two classes deriving from it. Its getters return null (the party's base table); the
 // world answers them all (world.h), a party only the item and spell ones. Names and evidence:
 // docs/notes/map_objects.md ("Virtual slot names"). No data of its own.
@@ -23,8 +23,8 @@ public:
     void Create() override;
 
     virtual CWorld* ThisWorld() { return nullptr; }                      // the world (returns this)
-    virtual CBaseManager* TimedObjectManager() { return nullptr; }       // the world's timedObjectManager_ (the client's Segment ticks its objects)
-    virtual CBaseManager* FigureManager() { return nullptr; }            // the world's figureManager_
+    virtual CBaseManager* TimedObjectManager() { return nullptr; }       // the world's timedObjectManager (the client's Segment ticks its objects)
+    virtual CBaseManager* FigureManager() { return nullptr; }            // the world's figureManager
     virtual CItemConstructor* ItemConstructor() { return nullptr; }
     virtual CSpellConstructor* SpellConstructor() { return nullptr; }
     virtual CItemManager* ItemFactory() { return nullptr; }

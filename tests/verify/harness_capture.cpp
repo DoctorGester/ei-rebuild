@@ -236,10 +236,10 @@ void Capture() {
         g_state = State::Done;
         return;
     }
-    // game.exe's render target (the device's renderTarget_ holder's surface); the image's holders have no DirectDraw
+    // game.exe's render target (the device's renderTarget holder's surface); the image's holders have no DirectDraw
     // surface.
     auto* device = ei::Standalone() ? nullptr : static_cast<exe::CTextureDevice*>(HarnessSceneDevice());
-    exe::CDXSurface* target = device ? device->renderTarget_ : nullptr;
+    exe::CDXSurface* target = device ? device->renderTarget : nullptr;
     auto* surface = target ? static_cast<IDirectDrawSurface7*>(target->surface) : nullptr;
     if (!surface) {
         g_state = State::Failed;

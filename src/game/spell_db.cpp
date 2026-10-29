@@ -28,7 +28,7 @@ constexpr int kWeaponRecipesChunk = 5;
 void IntListField(ChunkArchive* ar, int id, std::vector<int>* values) {
     if (!ar->EnterChunk(id)) return;
     int count;
-    if (ar->loading_) {
+    if (ar->loading) {
         count = ar->CountChunks(1);
         values->assign(static_cast<std::size_t>(count), 0);
     } else {

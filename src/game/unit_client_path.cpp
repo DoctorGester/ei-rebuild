@@ -34,9 +34,9 @@ constexpr float kFullTurn = /*007AF330*/ 6.2831855f;   // a static initialiser: 
 // from the motion's speed and the figure's current animation.
 static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     CUnit* unit = self->unit;
-    if (unit->flags_ & MapObjectFlag::Preview) return;
+    if (unit->flags & MapObjectFlag::Preview) return;
     float toCells = 2.0f;
-    Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
+    Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
     position.x = toCells * position.x;
     position.y = toCells * position.y;
     Vector3 direction;
@@ -55,11 +55,11 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
         self->snapHeading = 0;
         unit->TurnUpTowards(direction, 0);
     }
-    if (unit->flags_ & MapObjectFlag::NoCasting) {
+    if (unit->flags & MapObjectFlag::NoCasting) {
         unit->TurnUpTowards(direction, 1);
     } else if (rate > 0.0f) {   // only above zero (NaN not)
         Vector3 axis;
-        unit->localRotation_.AxisY(&axis);
+        unit->localRotation.AxisY(&axis);
         // Both angles are stored as floats. Left unrounded they shift the heading by a float ULP in about one
         // call in ten, and at a heading of +-pi (where jumps from one quaternion sign to the other) that
         // flipped the orientation's sign once in the ui_hud run.

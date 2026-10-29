@@ -20,7 +20,7 @@ const char* const kHeader = "#";
 
 // The cursor `p` is inside the text (signed compare, as every inlined test).
 bool Inside(const CTextManager* t, const char* p) {
-    return static_cast<int>(p - t->text_) < static_cast<int>(t->length_);
+    return static_cast<int>(p - t->text) < static_cast<int>(t->length);
 }
 
 // How one inlined "move the cursor past the next LF" tests the end and reads characters.
@@ -36,10 +36,10 @@ bool InsideBy(CTextManager* t, const char* p, Test test) {
 }
 
 void Advance(CTextManager* t, const AdvanceKind& kind) {
-    const char* p = t->cursor_;
+    const char* p = t->cursor;
     if (!InsideBy(t, p, kind.entry)) return;
     while (InsideBy(t, p, kind.loopEnd) && *p != '\n') ++p;
-    t->cursor_ = InsideBy(t, p, kind.exit) ? p + 1 : p;
+    t->cursor = InsideBy(t, p, kind.exit) ? p + 1 : p;
 }
 
 constexpr AdvanceKind kAfterRead{Test::Inline, Test::Inline, Test::Call};     // ReadLine / Split
@@ -66,35 +66,35 @@ void SkipToNextLine(CTextManager* t) {
 } // namespace
 
 bool CTextManager::Open(std::string_view key) {
-    if (text_) {
-        text_ = nullptr;
-        cursor_ = nullptr;
+    if (text) {
+        text = nullptr;
+        cursor = nullptr;
     }
-    // The first archive that has `key` (TextSources::FindKeyText: the text's size written to length_).
-    const char* text = static_cast<const char*>(sources_.FindKeyText(key, &length_));
-    cursor_ = text;
-    text_ = text;
-    return text && length_ != 0;
+    // The first archive that has `key` (TextSources::FindKeyText: the text's size written to length).
+    const char* line = static_cast<const char*>(sources.FindKeyText(key, &length));
+    cursor = line;
+    text = line;
+    return line && length != 0;
 }
 
 bool CTextManager::OpenData(std::string_view key) {
-    if (text_) {
-        text_ = nullptr;
-        cursor_ = nullptr;
+    if (text) {
+        text = nullptr;
+        cursor = nullptr;
     }
-    const char* data = static_cast<const char*>(sources_.Find(key, &length_));
-    cursor_ = data;
-    text_ = data;
-    return data && length_ != 0;
+    const char* data = static_cast<const char*>(sources.Find(key, &length));
+    cursor = data;
+    text = data;
+    return data && length != 0;
 }
 
 void CTextManager::Close() {
-    text_ = nullptr;
-    cursor_ = nullptr;
+    text = nullptr;
+    cursor = nullptr;
 }
 
 std::optional<std::string> CTextManager::PeekWord() {
-    const char* p = cursor_;
+    const char* p = cursor;
     bool started = false;
     if (!Inside(this, p)) return std::nullopt;
     std::string word;
@@ -122,7 +122,7 @@ bool CTextManager::NextLine() {
 }
 
 std::string CTextManager::ReadLine(bool advance) {
-    const char* p = cursor_;
+    const char* p = cursor;
     std::string line;
     if (!Inside(this, p)) return line;
     while (Inside(this, p)) {
@@ -136,23 +136,23 @@ std::string CTextManager::ReadLine(bool advance) {
 }
 
 std::string CTextManager::ReadToHash() {
-    const char* p = cursor_;
-    std::string text;
-    if (!Inside(this, p)) return text;
+    const char* p = cursor;
+    std::string line;
+    if (!Inside(this, p)) return line;
     while (Inside(this, p)) {
         if (*p == '#') break;
-        text.push_back(*p);
+        line.push_back(*p);
         ++p;
     }
-    cursor_ = p;
-    return text;
+    cursor = p;
+    return line;
 }
 
 std::vector<std::string> CTextManager::Split(bool advance) {
     std::vector<std::string> words;
     std::string word;
     bool inWord = false;
-    const char* p = cursor_;
+    const char* p = cursor;
     if (!Inside(this, p)) return words;
     while (Inside(this, p)) {
         const char code = *p;
@@ -211,7 +211,7 @@ bool CTextManager::FindLine(std::string_view key) {
     }
     // Several words: the line whose first words, lower-cased, are the key's words.
     std::string word;
-    while (Inside(this, cursor_)) {
+    while (Inside(this, cursor)) {
         const std::vector<std::string> lineWords = Split(false);
         if (lineWords.size() >= keyWords.size()) {
             std::size_t i = 0;

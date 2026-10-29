@@ -44,9 +44,9 @@ ReplicaEntry in one of 11 priority maps. Each update packet carries, highest pri
 entries whose object version differs from the version last sent (a 1 bit, type, id, then the
 object's own Write) or whose object went away (a 0 bit, type, id). Every packet is remembered in
 the send history with what it carried, so an acknowledgement (or its absence) can mark entries as
-delivered or resend them. A reliable byte stream (reliableOut_, reliableIn_) travels in front of
+delivered or resend them. A reliable byte stream (reliableOut, reliableIn) travels in front of
 the entries in chunks of up to 255 bytes ("headers"). The peer keeps the objects it received in
-`records_` (key type << 16 | id).
+`records` (key type << 16 | id).
 
 ## net_link.h
 
@@ -106,7 +106,7 @@ stays empty.
 ## particle_create.cpp
 
 CParticleSource set-up: Create, Reset and Clear. Names are provisional. Create resets the source, then fills
-the per-type parameters by `type_` (0x2000-0x2052; the script names are a table in the game's data):
+the per-type parameters by `type` (0x2000-0x2052; the script names are a table in the game's data):
 emission rates, lifetime, spread, sizes, the three callbacks (emit, update, element), the element array
 some types keep, and the texture. Last it loads the texture (kind 6, by name) and builds one UV rectangle
 per texture frame (the frames are a grid of `frameColumns` columns). The callbacks are member pointers to

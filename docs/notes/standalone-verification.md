@@ -54,7 +54,7 @@ world update, frame, tick, zone, hashes) and the fields that changed. `dump <nam
   objects one `#`; script one hash per kind (`#run`, `#inst`, `#global`, `#gobject`, `#fx`, ...). A golden compares only
   the groups it has, so an older digest still compares.
 - Left out on purpose: a unit's motion floats before its first path (never written).
-- Scenarios that load a save take `dump loaded_<save>` once the load is done, so the loaded world is compared field
+- Scenarios that load a save take `dump loaded<save>` once the load is done, so the loaded world is compared field
   by field (SV3).
 
 **Saves** (SV7d; tools/savefile.py with savefile_objects / _unit / _items / _players / _scenario.py; `show`, `diff`,
@@ -385,7 +385,7 @@ happen (the harness logs "share id" if one does).
   hash the capture scenarios' frames against a plain pass. A positive control must move something (the light's
   positions, SV7b6a's field, moved 12 frames of frames_basic / ui_saveload).
 - **Transform positions** (SV7b6b): CTransformObject's constructor (00453400) and its inlined copies leave
-  localPosition_ / worldPosition_ (+0x1C..+0x34). Only the light reads them unset (SV7b6a, zeroed). Poisoned at the
+  localPosition / worldPosition (+0x1C..+0x34). Only the light reads them unset (SV7b6a, zeroed). Poisoned at the
   camera (0040C8B0), terrain (in 00561E50), figure meshes and parts (005AABC0), sky (004D9110), scene meshes,
   every effect (CEffect base), CObject3D (00515C21) and particle sources: 175 goldens and 174 frames the same.
   Why: every effect's Reset zeroes the position in its constructor (ClearBase; CEffectShowVisibility sets it from
@@ -394,7 +394,7 @@ happen (the harness logs "share id" if one does).
   get theirs on placement / load. The 3DS readers' stack figure (004A0350) is unported dead code.
 - **Address order**: a sort or hash walk by pointer that reaches behaviour, a save or a frame gets an id or name order
   in ours and a harness patch in the original. Pointer-keyed containers that reach no output
-  (CMappedResource::filesByData_, mod_folders' sets, ChunkArchive::numbers_, text_sources' converted texts, ui_native's
+  (CMappedResource::filesByData, mod_folders' sets, ChunkArchive::numbers, text_sources' converted texts, ui_native's
   surfaces, the renderer's caches) need nothing. Net replication (SV7b5) sends by entry serial in ours (network.md,
   "Original bugs kept (rest)"); the original's runs keep the address order unpatched, as no golden reads it.
 - **Allocation order** (SV2f, SV2h1b): the game reads the heap's address order in places, and before the

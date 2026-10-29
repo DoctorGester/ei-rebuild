@@ -34,33 +34,33 @@ namespace net {
 
 // Queues an award message for `connection` on the pending awards with a 60 second delay. `text` is the
 // caller's string (made in the argument slot), destroyed here as the callee destroys a by-value argument.
-void ServerSession::QueueAward(CRefObject* connection, int kind, float value, std::string text) {
+void ServerSession::QueueAward(CRefObject* connection, int textKind, float value, std::string text) {
     auto* award = NewCounted<AwardMessage>();
-    award->connection_.Assign(connection);
-    award->kind_ = static_cast<std::uint32_t>(kind);
-    x87::CopyBits(award->value_, value);
+    award->connection.Assign(connection);
+    award->kind = static_cast<std::uint32_t>(textKind);
+    x87::CopyBits(award->value, value);
 
     // The text, assigned in place (string::operator= inlined: overwrite, then cut or append).
-    award->text_ = text;
+    award->text = text;
 
     // Shared three times over: the list keeps a clone of the entry's clone (each share marks the object
     // copy-on-share); the entry's and then the first share are destroyed.
     SharedRef<CRefObject> shared(award);
     TimedEntry<SharedRef<CRefObject>> entry(kAwardDelay, shared);
-    awards_.push_back(entry);
+    awards.push_back(entry);
 }
 
 // Finds the host (the first binding whose player is live and has the host flag) and,
 // when its connection is live, queues a kind 2 award for each item name of `entry` (its given items)
 // and, with `withFinal`, a kind 4 award with an empty text.
 void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) {
-    auto sentinel = bindings_.end();
-    auto node = bindings_.begin();
+    auto sentinel = bindings.end();
+    auto node = bindings.begin();
     for (;;) {
         if (node == sentinel) return;
         auto* binding = node->Get();
         auto* player = binding->Player();
-        if (IsLive(player) && player->host_) break;
+        if (IsLive(player) && player->host) break;
         ++node;
     }
     CRefObject* connection = node->Get()->ConnectionRef().Get();
@@ -84,9 +84,9 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
 // when a map message is held, then, when the map registry knows "zone_3", queues for every client
 // its share of the entry's two values (exp as kind 0, money as kind 1, divided by the number of
 // clients, at least 1) and the host's items with the final award. Then drops the map message and
-// empties queuedMaps_, variables_ and files_, and queues the following zones
+// empties queuedMaps, variables and files, and queues the following zones
 void ServerSession::CompleteZone(const std::string* zone) {
-    auto* holder = &map_;
+    auto* holder = &map;
     if (IsLive(holder->Get())) {
         Announce(g_interface.MessageText(7, SessionMapName().c_str()), nullptr);
     }
@@ -97,7 +97,7 @@ void ServerSession::CompleteZone(const std::string* zone) {
         entry = worlddata::QuestBriefings()[key];
     }
     if (entry) {
-        int count = static_cast<int>(clients_.size());
+        int count = static_cast<int>(clients.size());
         int share = count < 1 ? 1 : count;
         float value0, value1;
         x87::CopyBits(value0, entry->exp);
@@ -106,7 +106,7 @@ void ServerSession::CompleteZone(const std::string* zone) {
         float award0 = static_cast<float>(value0 / divisor);
         float award1 = static_cast<float>(value1 / divisor);
 
-        for (auto& node : clients_) {
+        for (auto& node : clients) {
             CRefObject* connection = node.Get();
             const char* empty = game::kEmptyText;
             QueueAward(connection, 0, award0, std::string(empty));
@@ -116,24 +116,24 @@ void ServerSession::CompleteZone(const std::string* zone) {
     }
 
     DestroyOwned(*holder);
-    queuedMaps_.clear();
-    variables_.clear();
-    files_.clear();
+    queuedMaps.clear();
+    variables.clear();
+    files.clear();
     QueueMapList();
 }
 
 // The zone leaving command ("<zone>_2"). When a map message is held: announces the map's title (text 6) and,
 // when the map registry knows "<map>_1", queues the host's items with the final award. Then drops the map
-// message, empties queuedMaps_, variables_ and files_, queues the following zones and clears the
+// message, empties queuedMaps, variables and files, queues the following zones and clears the
 // world's map (with null).
 void ServerSession::LeaveZone() {
-    auto* holder = &map_;
+    auto* holder = &map;
     if (IsLive(holder->Get())) {
         Announce(g_interface.MessageText(6, SessionMapName().c_str()), nullptr);
 
         QuestBriefingRecord* entry;
         {
-            std::string key = holder->Get()->text_ + game::ZoneSuffix1Text();
+            std::string key = holder->Get()->text + game::ZoneSuffix1Text();
             std::string lookup(key.data());
             entry = worlddata::QuestBriefings()[lookup];
         }
@@ -141,9 +141,9 @@ void ServerSession::LeaveZone() {
     }
 
     DestroyOwned(*holder);
-    queuedMaps_.clear();
-    variables_.clear();
-    files_.clear();
+    queuedMaps.clear();
+    variables.clear();
+    files.clear();
     QueueMapList();
     g_gameFlow.SetNetworkZone(nullptr);
 }

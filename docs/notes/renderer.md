@@ -144,7 +144,7 @@ its file has, DXT or RGB, as the original's (section 7, R28c, R28d).
 | Clip matrix of the current draw | transform pipeline (renderer 007AF060 +8): stacks of 64-byte row-major matrices, `+0x24/+0x28` clip space (axis swap * projection * view * model), `+0x1C` the same times the viewport, `+0x5C/+0x60` view stack | read at hand-over time | used |
 | Terrain sectors | SectorData (`terrain_sector.h`): `vertices` (33x33 per layer, water after ground), `records` (SectorVertex: normal, material colour and byte, the specular word: edge fade, on the water the crests), tile lists per quarter and page `tiles`, edge flags `tileFlags`, quarter verdicts `quarterMode`, `detail`, `seamBefore` / `seamAfter`, `owner`; page textures `Terrain::pageTextures`; the lights `Terrain::lights` | DrawSectorPage 006BFF40 (`SectorData::DrawPage`, terrain_passes.cpp) -> `render::TerrainPage`; `HandOverSceneLights` (world_client_shadow_casters.cpp) -> `render::SceneLighting` | drawn |
 | Meshes (figures, objects, sky, interface sprites and previews) | positions in blocks of four (morphed by the game), corners, colours as lit by the game (005A7A70 step 3; flag 4: device flat colour +0x150), texture coordinates; matrix = top of the screen stack converted back to clip space; distance fog switch +0x158 and range | DeviceDrawMesh 004E9010 / 004E9A50 (`device_mesh.cpp`) -> `render::BeginMesh` / `EndMesh` | drawn |
-| Pass state | per pass of a mesh (material technique 004EB550, or two textures 004EB370): blend, alpha test, depth, culling, specular, fog, texture factor, two stages, filters, addressing, bound holders (CTextureDevice::stageSurfaces_) | `device_draw.cpp` -> `render::MeshPass` (section 5); per terrain page (blend, depth, culling: the pipeline) at `render::TerrainPage` | drawn |
+| Pass state | per pass of a mesh (material technique 004EB550, or two textures 004EB370): blend, alpha test, depth, culling, specular, fog, texture factor, two stages, filters, addressing, bound holders (CTextureDevice::stageSurfaces) | `device_draw.cpp` -> `render::MeshPass` (section 5); per terrain page (blend, depth, culling: the pipeline) at `render::TerrainPage` | drawn |
 | Depth clears | 00636020, hero preview 005EC300, trade grid 00627390, hero equipment 00622420, screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
 | Shadows | the sun's shadow map (R16j, section 13): which object a mesh belongs to, which objects cast, the sun; the game's 64x64 shadow textures (2DintMMX) and decals are not ported (R26), their projection (the shadow's sphere) still runs | `world_client_draw.cpp` (00569E40 `render::ShadowSun`, 0056AFE0 `BeginCaster` / `EndCaster`), `map_object_shadow.cpp` (0051CE60 `CastsShadow`) | drawn (the map only) |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`CTextureDevice::DrawTlTriangles`, `renderer_strip.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
@@ -198,7 +198,7 @@ They are constants in texture.h; the 007AEDD4 one (texture x diffuse, alpha text
 | 007AEDD0 | `kSceneStage` | texture x diffuse | diffuse (SELECTARG1) |
 
 A material's preset (`CRenderPreset`, model.h; render_helper.cpp; the original's 004FD2A0 recorded state blocks)
-keeps its state list: `ApplyPass(0)` sets the combiners of its first `stages_` stages (the enabled ones) and turns
+keeps its state list: `ApplyPass(0)` sets the combiners of its first `stages` stages (the enabled ones) and turns
 the next stage off; pass n > 0 sets that state's blend factors (device_draw.cpp's multi-pass draw puts the blend
 back afterwards).
 
@@ -231,7 +231,7 @@ replaced `CDXSurface` and its always-null DirectDraw surface pointer): the holde
 of 004F0060 (cursor images via 004EFC60 from 005E4EB0: size only, no memory; dead picture windows) and the textures
 (section 7); no Lock / Unlock, GetDC, Blt or colour fill. A window of no size is not made: the original's DDSurface
 error is thrown (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFormat` of the device object's colour depth
-(`bitsPerPixel_`: 16 bits 5:6:5, else X8R8G8B8): a canvas quantises to it. If the renderer fails later the game ends
+(`bitsPerPixel`: 16 bits 5:6:5, else X8R8G8B8): a canvas quantises to it. If the renderer fails later the game ends
 (section 1, "When the renderer fails").
 
 | Address | Name / change |
@@ -252,7 +252,7 @@ are not ported: config/dead_code.csv, R11b). The original quirks kept (failed Lo
 lock held, the 24-bit clear ignoring the pitch, ...) are in the functions' comments.
 
 **Save / load screen's pictures** (`ui_saveload.cpp`): two 256x256 5:6:5 textures made by 005FF0B0 (-> 00691D80 ->
-0068F6C0): objects_[1] filled by 00656E10 (ShowPicture: the selected save's shot.sav) and +0x184 (the new save's
+0068F6C0): objects[1] filled by 00656E10 (ShowPicture: the selected save's shot.sav) and +0x184 (the new save's
 picture) filled by 00655D40 (FillEntries, from the escape menu's 256x192 copy, interface +0x5C) and written to shot.sav
 by 00655550 (SaveGame; the autosave 006570E0 writes it from a window surface). 00656464 is not a function (inside
 00655D40; a false vtable entry 0074718C). Both are drawn into on the GPU (section 7, R28b); SaveGame writes the copy the window kept.
@@ -277,7 +277,7 @@ target (x * source / size, as DirectDraw's Blt and the old CPU copy picked), the
 format's own bits, 005FE440's formulas), and the blit draws the canvas. Rgb565Copy 005FD440 draws the canvas into an
 R16_UINT target of the picture's size (`ps_rgb565`: the pixel under each centre, (2x+1) * source / (2 * size), each
 channel's top bits) and reads only that back (`render::ui::ReadRgb565`, a row copy): the escape menu's 256x192
-`screenCopy_` and the quick save's shot.sav keep their 5:6:5 format. PixelAt 005FD240 on such a surface reads its
+`screenCopy` and the quick save's shot.sav keep their 5:6:5 format. PixelAt 005FD240 on such a surface reads its
 one pixel from the GPU (`ReadPixel`, each channel cut to the screen format's top bits by `render::ui::TopBits`: the
 pick picture's zone colours exact), and
 SwapContents 005FD7A0 (the camp's backdrop put aside in mode 3) moves the canvas aside under the surface's address
@@ -291,7 +291,7 @@ map_escmenu frames, ui_compare and `ei_ui_check` ("picture", "lost").
 No texture has memory the game writes (R28b): .mmp textures have only their decoded copy; the composed ones, the
 textures 00691D80 makes (kinds 0x1E, 0x20, 0x21) and the .bmp textures only the texture the GPU drew. The texture fills 0068FA10 / 00690970 / 00690B30 / 00690D30 are not ported (config/dead_code.csv).
 
-**Texture formats (R27b).** A texture keeps the id of the format it is held in (`CTexture::format_`: 0x5650, 0x5551,
+**Texture formats (R27b).** A texture keeps the id of the format it is held in (`CTexture::format`: 0x5650, 0x5551,
 0x4444, 0x8888 or a DXT1..DXT5 code; 0 none). The list is fixed (texture.cpp `IsTextureFormat`, what the old device
 offered; DXT5 must stay: Rebirth's battle00 and footprints are DXT5) and `TextureFormat(id)` gives an RGB one's
 `render::PixelFormat` (bits and channel masks, render.h; the interface canvases take the same type). An .mmp file
@@ -347,7 +347,7 @@ Users of the CPU-written textures: 005FF0B0 (`CUiWindow::CreateTexture`, from th
 figure textures); writers 005FFFB0 CopyImage and 005EC020 draw on the GPU (R28, below), the save / load pictures and
 the global map's weather 0062F050 too (R28b, below). The binders (004EB300, 004EBAF0, 00501AF0, 004EB370's inline
 one) pass null to SetTexture (the old device draws nothing in the switch-over; the renderer reads the bound holder,
-CTextureDevice::stageSurfaces_). Renderer side (`render_textures.cpp`): decoded textures (`StoreDecoded`) are keyed by
+CTextureDevice::stageSurfaces). Renderer side (`render_textures.cpp`): decoded textures (`StoreDecoded`) are keyed by
 the holder; a holder with neither surface nor memory shows its decoded texture until it goes (`HolderGone` retires its
 texture and window entries).
 
@@ -389,9 +389,9 @@ by hand under the device lock. Colours are 8-bit now (the picture's own instead 
 
 **Save / load pictures and the global map's clouds on the GPU (R28b).** The textures 00691D80 makes for them (kinds
 0x1E, 5:6:5, and 0x21, 4:4:4:4) are blank textures like the item pictures. The save / load pictures: a 256x192 5:6:5
-picture (shot.sav's bytes as stored, or the escape menu's copy `screenCopy_`) is drawn into the texture's top with
+picture (shot.sav's bytes as stored, or the escape menu's copy `screenCopy`) is drawn into the texture's top with
 `DrawIntoTexture` (`ImageLayout::Rgb565`, decoded to RGBA8 for the draw; an image without a name is not shared); the
-save window keeps the copy (`CSaveLoadWindow::newPicture_`) and writes shot.sav from it, so the file's bytes are as
+save window keeps the copy (`CSaveLoadWindow::newPicture`) and writes shot.sav from it, so the file's bytes are as
 before. The clouds (`CGlobalMapClouds`, global_map_clouds.cpp): the CPU keeps only the three random words of each of
 a frame's four layers (`render::CloudFrame`, taken at build steps 1-4 as 00499F10's layers took them: the game's
 random numbers are drawn as before), and `render::DrawClouds` each frame draws the texture from two frames, the blend
@@ -504,19 +504,19 @@ no stand-in for any of them (R27c):
   options' driver, refresh rate and depth / stencil bits choose nothing. No display mode list (nothing read it), no
   video FourCC probing, no format table (R27b: texture.cpp's fixed list, section 7). Where the game read the primary's
   or the render target's size (`GameTargetSize`, the cursor's bounds, the interface's size, the sprites' clip and the
-  hit points' screen) it reads `screen_` (R27f); the screenshot and the movie recorder copy the renderer's last frame
+  hit points' screen) it reads `screen` (R27f); the screenshot and the movie recorder copy the renderer's last frame
   at the screen's size and depth (`CaptureScreen`, surface_capture.cpp).
 - What the game read from the old device's capabilities is constant now, with the values the game saw on dgVoodoo:
   the material presets take every stage of their states (`CRenderHelper::Record`: eight stages, every texture
-  operation); the texture manager loads textures up to their size (`limitTo512_` 0: 4096-pixel textures) and caches
+  operation); the texture manager loads textures up to their size (`limitTo512` 0: 4096-pixel textures) and caches
   released ones up to a tenth of 256 MB (`CTextureManager::kCacheLimit`); mipmapping stays as the options say (the
   device had mipmaps); the little-memory branches (the interface backdrop at 400x300, the item screen's caches of 20)
   are gone (256 MB was never little); start-up's "the interface takes the input" byte, which held the top byte of the
   free non-local video memory without sound, is 1 there (`GameMain`).
 - No scene bracket, viewport, clears or texture binds on a device: `CSceneRenderer::BeginScene` / `EndScene` keep the
-  last frame's time, a texture bind only records the stage's holder (`stageSurfaces_`, which
+  last frame's time, a texture bind only records the stage's holder (`stageSurfaces`, which
   the renderer draws with), the interface's depth clears go to `render::ClearDepth`
-  (`ClearUiDepth`, ui.h), and the frame clear is the renderer's (its clear colour is the scene renderer's `fogColour_`).
+  (`ClearUiDepth`, ui.h), and the frame clear is the renderer's (its clear colour is the scene renderer's `fogColour`).
   The deactivation's RestoreDisplayMode, the activation's RestoreAllSurfaces, the message box's FlipToGDISurface and
   the movie list's screen clears are gone. The harness's RestoreAfterMinimise calls game.exe's own IDirectDraw7 in
   the original's runs; in the image `image::RestoreSurfaces` has nothing to restore. The vertex-buffer batches are gone
@@ -555,7 +555,7 @@ no stand-in for any of them (R27c):
   MISMATCH gamma ramp"). Both read-backs (this and the image uploads below) stall on the GPU, so they are sampled (SV10e,
   `ReadBackDue`): the first 64 of each kind (cursor / fill uploads, movie uploads, ramps), then every 16th; the
   render_* scenarios (not render_stats, which measures) say `checkall` in their `render` line for every one.
-- Full screen (device flags_ bit 0, registry FullScreen 1) without a display mode change (`present_window.cpp`, called
+- Full screen (device flags bit 0, registry FullScreen 1) without a display mode change (`present_window.cpp`, called
   from each present in device_present.cpp): the WS_POPUP window is moved over the monitor it is on (not while
   minimised; again after someone else resized it), and the frame is scaled into it; a window resized by the user
   scales the frame the same way; a resolution below the desktop's shows in the window.
@@ -1122,7 +1122,7 @@ across runs; the goldens check the game state.
    drawn through the figure part draws (DrawLit 005A7A70 and DrawPlain 005A7640, either through the device or a link
    figure's part) is kept under the mesh: its corners' model-space positions and texture coordinates (20 bytes), the
    colour and specular pair (8 bytes, a stream of its own) and the valid triangles; the draw binds the pool with the
-   mesh's first index, the texture offset (`textureOffsetU_` / `V_`, animated water and lava) a shader constant. The
+   mesh's first index, the texture offset (`textureOffsetU` / `V_`, animated water and lava) a shader constant. The
    game says what changed (`render::SetMeshSource` around the device's draw; `render::MeshChanged`): an entry is built
    again when an array or count it was built from differs or the mesh or link figure was rebuilt (loaded, cleared,
    mirrored, copied, a part added or removed: `MeshChange::Rebuilt`); its positions are read again when the
@@ -1178,7 +1178,7 @@ across runs; the goldens check the game state.
    +0.03 / +0.06 ms. EI_PROFILE=1 agrees (the town with the map, 7.3 ms frames): DrawShadow 30% of the samples,
    RenderShadow 25% (ProjectDecal 7.7: Terrain::AddDecalTriangles 7.2, DecalBuilder::ClipStage 6.3,
    AddTerrainTriangle 5.4; CLinkMesh::RasterisePartImpl 6.8), DrawFlatBlocks 5.4; zone1 9.5 / 9.2 / 4.2, fight
-   7.0 / 6.7 / 3.5. A ground print is projected once (GroundPrint::Draw's `built_`), so what a GPU decal path takes
+   7.0 / 6.7 / 3.5. A ground print is projected once (GroundPrint::Draw's `built`), so what a GPU decal path takes
    is the prints' and markers' flat draws: under 0.07 ms. The object shadows' projection
    (0.34-0.63 ms) stays either way: its mesh's bounds are the shadow's sphere (`CObject3DClientSpecific::sphere`,
    FitBounds in RenderShadow), which ShadowInView 0051E300 tests for objects out of view (listed for shadows,
@@ -1336,7 +1336,7 @@ across runs; the goldens check the game state.
      and night: creatures, the hero, a townsman, the gate's shadow, the shop; zone1). The harness's spawned
      creatures draw untextured (white), the town's people textured. The shadow view writes the mesh's own
      alpha, so blended parts show flat grey triangles there that are not shadow.
-   - **What stays on the CPU, and why.** The blood prints' levels (GroundPrint's `colour_` is saved:
+   - **What stays on the CPU, and why.** The blood prints' levels (GroundPrint's `colour` is saved:
      GroundPrint::Save); the sky's lighting (CSkyObject::Light, small; a candidate); the sun's reference in the
      part's light list; the terrain's edge fade (the fog factor, also read by the
      figures' draws and the ground prints). The CLight fields only the device read (world position, local

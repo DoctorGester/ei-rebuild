@@ -49,16 +49,16 @@ struct BoxBits {
 };
 
 // (x * x + y * y) + z * z of the part's position, unrounded.
-double DistanceSquared(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition_); }
+double DistanceSquared(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition); }
 
 // A placed part: its piece's box moved by its position and the piece's offset.
 void AddPlacedPart(BoxBits& box, const CFigureMesh* p) {
-    box.low[0] = KeepLower(box.low[0], Sum3(p->box_.bounds.boxMin.x, p->localPosition_.x, p->box_.bounds.center.x));
-    box.high[0] = KeepHigher(box.high[0], Sum3(p->box_.bounds.boxMax.x, p->localPosition_.x, p->box_.bounds.center.x));
-    box.low[1] = KeepLower(box.low[1], Sum3(p->box_.bounds.boxMin.y, p->localPosition_.y, p->box_.bounds.center.y));
-    box.high[1] = KeepHigher(box.high[1], Sum3(p->box_.bounds.boxMax.y, p->localPosition_.y, p->box_.bounds.center.y));
-    box.low[2] = KeepLower(box.low[2], Sum3(p->box_.bounds.boxMin.z, p->localPosition_.z, p->box_.bounds.center.z));
-    box.high[2] = KeepHigher(box.high[2], Sum3(p->box_.bounds.boxMax.z, p->localPosition_.z, p->box_.bounds.center.z));
+    box.low[0] = KeepLower(box.low[0], Sum3(p->box.bounds.boxMin.x, p->localPosition.x, p->box.bounds.center.x));
+    box.high[0] = KeepHigher(box.high[0], Sum3(p->box.bounds.boxMax.x, p->localPosition.x, p->box.bounds.center.x));
+    box.low[1] = KeepLower(box.low[1], Sum3(p->box.bounds.boxMin.y, p->localPosition.y, p->box.bounds.center.y));
+    box.high[1] = KeepHigher(box.high[1], Sum3(p->box.bounds.boxMax.y, p->localPosition.y, p->box.bounds.center.y));
+    box.low[2] = KeepLower(box.low[2], Sum3(p->box.bounds.boxMin.z, p->localPosition.z, p->box.bounds.center.z));
+    box.high[2] = KeepHigher(box.high[2], Sum3(p->box.bounds.boxMax.z, p->localPosition.z, p->box.bounds.center.z));
 }
 
 } // namespace
@@ -117,14 +117,14 @@ void CObject3D::SetFigureScale(const float* newScale) {
             std::map<std::string, LinkPartHeader>::const_iterator piece;
             {
                 std::string key(pieceName);
-                piece = figure->headers_.find(key);
+                piece = figure->headers.find(key);
             }
             part = parts[i];
             const ClipBounds& fitted = piece->second.box.bounds;
-            part->box_.bounds.center = fitted.center;
-            part->box_.bounds.boxMin = fitted.boxMin;
-            part->box_.bounds.boxMax = fitted.boxMax;
-            part->box_.bounds.radius = fitted.radius;
+            part->box.bounds.center = fitted.center;
+            part->box.bounds.boxMin = fitted.boxMin;
+            part->box.bounds.boxMax = fitted.boxMax;
+            part->box.bounds.radius = fitted.radius;
         }
     }
     if (animation) AnimationSetScale(animation, scale.x, scale.y, scale.z);
@@ -132,15 +132,15 @@ void CObject3D::SetFigureScale(const float* newScale) {
 }
 
 void CObject3D::LoadFigures() {
-    if (flags_ & MapObjectFlag::FiguresLoaded) return;
+    if (flags & MapObjectFlag::FiguresLoaded) return;
     {
         std::string key(name);
         FigureManagerOf(this)->FindModel(&key);
     }
     if (GetClassId() != ClassId::Unit) {
-        for (int i = 0; i < std::ssize(parts); ++i) parts[i]->flags_ |= FigureMeshFlag::Stationary;
-        flags_ |= MapObjectFlag::Stationary;
+        for (int i = 0; i < std::ssize(parts); ++i) parts[i]->flags |= FigureMeshFlag::Stationary;
+        flags |= MapObjectFlag::Stationary;
     }
     attached->ApplyMaterials();
-    flags_ |= MapObjectFlag::FiguresLoaded;
+    flags |= MapObjectFlag::FiguresLoaded;
 }

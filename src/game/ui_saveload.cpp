@@ -53,7 +53,7 @@ constexpr int kVisibleRows = 16;
 void DrawPicture(CTexture* texture, const void* pixels, std::uint32_t bytes) {
     const int rows = static_cast<int>(bytes / (kShotWidth * 2));
     const render::TextureImage picture{nullptr, pixels, bytes, kShotWidth, rows, render::ImageLayout::Rgb565};
-    if (rows > 0) render::DrawIntoTexture(texture->surface_, &picture, 0, 0, kShotWidth, rows);
+    if (rows > 0) render::DrawIntoTexture(texture->surface, &picture, 0, 0, kShotWidth, rows);
 }
 
 constexpr const char* kQuickFolder = "saveq";
@@ -77,7 +77,7 @@ std::string SlotFolder(const char* slot) {
 // The first line of the text `prefix` + `suffix`, or empty when there is none.
 std::string FirstLineOf(const char* prefix, const std::string& suffix) {
     std::string line;
-    CTextManager* texts = g_clientWorld.texts_;
+    CTextManager* texts = g_clientWorld.texts;
     bool found = texts->Open(std::string(prefix) + suffix);
     if (found) line = texts->ReadLine(true);
     return line;
@@ -100,19 +100,19 @@ void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
 
 
 void CSaveLoadWindow::ShowPicture() {
-    SceneMesh(3)->visible_ = false;
-    int selected = selected_;
-    if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
-    SaveEntry* entry = entries_.data() + selected;
-    if (entry->broken_) return;
-    if (isSave_ && selected == 0) {
+    SceneMesh(3)->visible = false;
+    int currentSelected = selected;
+    if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
+    SaveEntry* entry = entries.data() + currentSelected;
+    if (entry->broken) return;
+    if (isSave && currentSelected == 0) {
         // The new save: the game's picture.
-        if (!dialog_) return;
-        SceneMesh(3)->visible_ = true;
-        SceneMesh(3)->texture_ = dialog_;
+        if (!dialog) return;
+        SceneMesh(3)->visible = true;
+        SceneMesh(3)->texture = dialog;
         return;
     }
-    std::string folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_);
+    std::string folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder);
     lib::FileFind find;
     bool found;
     {
@@ -129,51 +129,51 @@ void CSaveLoadWindow::ShowPicture() {
     }
     const unsigned read = file.Read(picture.data(), kShotBytes);
     file.Close();
-    DrawPicture(objects_[1], picture.data(), read);
-    SceneMesh(3)->visible_ = true;
-    SceneMesh(3)->texture_ = objects_[1];
+    DrawPicture(objects[1], picture.data(), read);
+    SceneMesh(3)->visible = true;
+    SceneMesh(3)->texture = objects[1];
 }
 
 void SaveEntry::MakeTitle() {
     std::string quick;
     std::string autoEnter;
     std::string autoExit;
-    quick = g_clientWorld.texts_->GetString(kQuickTitle);
-    autoEnter = g_clientWorld.texts_->GetString(kAutoEnterTitle);
-    autoExit = g_clientWorld.texts_->GetString(kAutoExitTitle);
-    auto& title = title_;
-    if (text::CompareIgnoringCase(folder_, kQuickFolder) == 0) {
-        title = str::Format(kPlainFormat, quick);
-    } else if (text::CompareIgnoringCase(folder_, kAutoFolderA) == 0) {
-        title = str::Format(kPlainFormat, autoEnter);
-    } else if (text::CompareIgnoringCase(folder_, kAutoFolderB) == 0) {
-        title = str::Format(kPlainFormat, autoExit);
+    quick = g_clientWorld.texts->GetString(kQuickTitle);
+    autoEnter = g_clientWorld.texts->GetString(kAutoEnterTitle);
+    autoExit = g_clientWorld.texts->GetString(kAutoExitTitle);
+    auto& currentTitle = title;
+    if (text::CompareIgnoringCase(folder, kQuickFolder) == 0) {
+        currentTitle = str::Format(kPlainFormat, quick);
+    } else if (text::CompareIgnoringCase(folder, kAutoFolderA) == 0) {
+        currentTitle = str::Format(kPlainFormat, autoEnter);
+    } else if (text::CompareIgnoringCase(folder, kAutoFolderB) == 0) {
+        currentTitle = str::Format(kPlainFormat, autoExit);
     } else {
-        // The zone name ("zone" + zone_ in the texts, else "save_camp").
+        // The zone name ("zone" + zone in the texts, else "save_camp").
         const std::string name = ZoneTitle();
-        title = str::Format(kPlainFormat, name);
+        currentTitle = str::Format(kPlainFormat, name);
     }
 }
 
 void CSaveLoadWindow::SaveGame() {
-    int selected = selected_;
-    if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
-    SaveEntry* entry = entries_.data() + selected;
+    int currentSelected = selected;
+    if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
+    SaveEntry* entry = entries.data() + currentSelected;
     double space = app::DiskFreeSpace(DataFolderText());
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
     if (space != 0.0) {
         int needed = CurrentSaveSize();
         if (static_cast<double>(needed) > space) {
-            CUiWindow* box = new CMessageBox(interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1);
-            interface_->PushWindow(box, true, true);
+            CUiWindow* box = new CMessageBox(ui, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1);
+            ui->PushWindow(box, true, true);
             return;
         }
     }
-    std::string folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_);
-    std::string notice = g_clientWorld.texts_->GetString(game::savewords::NotifySaving());
+    std::string folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder);
+    std::string notice = g_clientWorld.texts->GetString(game::savewords::NotifySaving());
     g_interface.ShowStatusText(notice);
-    g_gameFlow.SaveGameThunk(entry->folder_);
+    g_gameFlow.SaveGameThunk(entry->folder);
     g_cursor.SetShape(3);
 
     // info.sav: the new save's entry (the first) with the title being given.
@@ -182,50 +182,50 @@ void CSaveLoadWindow::SaveGame() {
         std::string path = folder + game::savewords::InfoFile();
         info.Open(path, kOpenWrite, 0);
     }
-    if (nameTyped_)
-        entries_.data()->title_ = name_;
-    else if (selected_ == 0)
-        entries_.data()->title_.clear();
+    if (nameTyped)
+        entries.data()->title = name;
+    else if (selected == 0)
+        entries.data()->title.clear();
     else
-        entries_.data()->title_ = entry->title_;
-    entries_.data()->savedAt_ = lib::CurrentTime();
-    SaveEntry* first = entries_.data();
+        entries.data()->title = entry->title;
+    entries.data()->savedAt = lib::CurrentTime();
+    SaveEntry* first = entries.data();
     info.WriteHeader(kInfoMagic, kInfoVersion);
-    float gameTime = first->gameTime_;
+    float gameTime = first->gameTime;
     info.WriteValue(gameTime);
-    info.WriteString(first->map_);
-    info.WriteString(first->zone_);
-    std::int32_t savedAt = first->savedAt_;
+    info.WriteString(first->map);
+    info.WriteString(first->zone);
+    std::int32_t savedAt = first->savedAt;
     info.WriteValue(savedAt);
-    info.WriteString(first->title_);
+    info.WriteString(first->title);
     info.Close();
 
     // shot.sav: the game's picture.
-    if (dialog_) {
+    if (dialog) {
         lib::File shot;
         {
             std::string path = folder + game::savewords::ShotFile();
             shot.Open(path, kOpenWrite);
         }
-        shot.Write(newPicture_.data(), kShotBytes);
+        shot.Write(newPicture.data(), kShotBytes);
         shot.Close();
     }
     g_cursor.SetShape(0);
-    interface_->SetPendingValue(kClosed);
+    ui->SetPendingValue(kClosed);
 }
 
 void CSaveLoadWindow::FillEntries() {
     std::string pattern = str::Format(game::savewords::SavePattern(), DataFolderText());
     lib::FileFind find;
-    entries_.clear();
+    entries.clear();
     int highest = 0;     // the highest number after "save" in the folder names
     bool more = find.FindFile(pattern);
     while (more) {
         more = find.FindNext();
         if (find.IsDots() || !find.MatchesMask(FILE_ATTRIBUTE_DIRECTORY)) continue;
         // A new entry (the original copies a stack temporary whose numbers are left as the stack held them).
-        SaveEntry* entry = &entries_.emplace_back();
-        entry->folder_ = find.GetFileName();
+        SaveEntry* entry = &entries.emplace_back();
+        entry->folder = find.GetFileName();
         lib::FileFind infoFind;
         bool hasInfo;
         {
@@ -234,31 +234,31 @@ void CSaveLoadWindow::FillEntries() {
             hasInfo = infoFind.FindFile(path);
         }
         if (!hasInfo) {
-            entry->broken_ = true;
-            entry->title_ = game::savewords::BrokenTitle();
+            entry->broken = true;
+            entry->title = game::savewords::BrokenTitle();
         } else {
             infoFind.FindNext();
             netlink::FileStream info;
             info.Open(infoFind.GetFilePath(), 0, 1);
             if (info.ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
-                info.ReadValue(entry->gameTime_);
-                entry->map_ = info.ReadString();
-                entry->zone_ = info.ReadString();
+                info.ReadValue(entry->gameTime);
+                entry->map = info.ReadString();
+                entry->zone = info.ReadString();
                 // The version the header read.
-                if (static_cast<int>(info.version_) > 1) {
+                if (static_cast<int>(info.version) > 1) {
                     std::int32_t savedAt;
                     info.ReadValue(savedAt);
-                    entry->savedAt_ = savedAt;
+                    entry->savedAt = savedAt;
                 }
-                if (static_cast<int>(info.version_) > 2) entry->title_ = info.ReadString();
+                if (static_cast<int>(info.version) > 2) entry->title = info.ReadString();
             }
             info.Close();
-            if (entry->title_.size() == 0) entry->MakeTitle();
-            entry->broken_ = false;
+            if (entry->title.size() == 0) entry->MakeTitle();
+            entry->broken = false;
         }
         infoFind.Close();
-        if (static_cast<int>(entry->folder_.size()) > 4) {
-            int number = str::ToInt(str::Mid(entry->folder_, 4));
+        if (static_cast<int>(entry->folder.size()) > 4) {
+            int number = str::ToInt(str::Mid(entry->folder, 4));
             if (!(highest > number)) highest = number;
         }
     }
@@ -266,43 +266,43 @@ void CSaveLoadWindow::FillEntries() {
     // The newest first: the order is "not older than" (!(a < b)), so saves of the same time compare true both ways
     // (not a strict weak ordering: the game's sort, whose unguarded scans can then run off the range as in the
     // game, and the order it leaves such saves in).
-    lib::IntroSort(entries_.data(), entries_.data() + entries_.size(),
-                   [](const SaveEntry& a, const SaveEntry& b) { return !(a.savedAt_ < b.savedAt_); });
+    lib::IntroSort(entries.data(), entries.data() + entries.size(),
+                   [](const SaveEntry& a, const SaveEntry& b) { return !(a.savedAt < b.savedAt); });
 
-    if (isSave_) {
+    if (isSave) {
         // The new save first.
-        SaveEntry* entry = &*entries_.emplace(entries_.begin());
-        entry->folder_ = str::Format(game::savewords::NewFolder(), highest + 1);
-        entry->gameTime_ = LocalPlayerVariable(game::savewords::GameTime());
-        entry->zone_ = LocalPlayerZone();
-        if (MapRecord* record = g_mapDatabase.FindMap(entry->zone_))
-            entry->map_ = record->allod;
+        SaveEntry* entry = &*entries.emplace(entries.begin());
+        entry->folder = str::Format(game::savewords::NewFolder(), highest + 1);
+        entry->gameTime = LocalPlayerVariable(game::savewords::GameTime());
+        entry->zone = LocalPlayerZone();
+        if (MapRecord* record = g_mapDatabase.FindMap(entry->zone))
+            entry->map = record->allod;
         entry->MakeTitle();
-        entry->broken_ = false;
+        entry->broken = false;
 
         // The game's picture: a new texture drawn from the escape menu's copy of the screen, the copy kept for shot.sav.
-        if (dialog_) dialog_->Release();
-        dialog_ = nullptr;
+        if (dialog) dialog->Release();
+        dialog = nullptr;
         // The escape menu's 256x192 5:6:5 copy of the screen, or null.
-        if (!interface_->screenCopy_.empty()) {
-            const auto* copy = reinterpret_cast<const std::uint8_t*>(interface_->screenCopy_.data());
+        if (!ui->screenCopy.empty()) {
+            const auto* copy = reinterpret_cast<const std::uint8_t*>(ui->screenCopy.data());
             CTexture* shot = CreateTexture(0x100, 0x100, TextureKind::Blank565);
-            dialog_ = shot;
+            dialog = shot;
             shot->AddRef();
-            RemoveObjectAt(std::ssize(objects_) - 1);
-            newPicture_.assign(copy, copy + kShotBytes);
-            DrawPicture(dialog_, newPicture_.data(), kShotBytes);
+            RemoveObjectAt(std::ssize(objects) - 1);
+            newPicture.assign(copy, copy + kShotBytes);
+            DrawPicture(dialog, newPicture.data(), kShotBytes);
         }
     }
 
     if (static_cast<unsigned>(EntryCount()) > static_cast<unsigned>(kVisibleRows)) {
-        const int position = scrollbar_->TakePosition();
-        scrollbar_->SetMaximum(EntryCount() - kVisibleRows);
-        scrollbar_->SetPosition(position);
+        const int position = scrollbar->TakePosition();
+        scrollbar->SetMaximum(EntryCount() - kVisibleRows);
+        scrollbar->SetPosition(position);
     } else {
-        scrollbar_->SetMaximum(0);
+        scrollbar->SetMaximum(0);
     }
-    firstVisible_ = 0;
+    firstVisible = 0;
 }
 
 // --- Quick and automatic saves ------------------------------------------------------------------------
@@ -318,8 +318,8 @@ void QuickSave(const char* slot, bool stepFrame) {
     CUiSurface* surface = new CUiSurface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, SurfaceBlend::Opaque, true);
     surface->CaptureScreen();
     g_cursor.SetShape(3);
-    g_interface.serverFlag_ = static_cast<std::uint8_t>(g_serverWorld.paused_);
-    std::string notice = g_clientWorld.texts_->GetString(game::savewords::NotifySaving());
+    g_interface.serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
+    std::string notice = g_clientWorld.texts->GetString(game::savewords::NotifySaving());
     g_interface.ShowStatusText(notice);
     g_gameFlow.SaveGameThunk(slot);
 
@@ -358,7 +358,7 @@ void QuickLoad(const char* slot) {
     if (IsMultiplayerClient()) return;
     std::string folder = SlotFolder(slot);
     if (!lib::FileExists(folder)) return;
-    std::string notice = g_clientWorld.texts_->GetString(kNotifyLoading);
+    std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
     GameStopSounds(1);
     g_gameFlow.RequestLoad(slot, 0);
@@ -367,52 +367,52 @@ void QuickLoad(const char* slot) {
 // --- Entry titles, OK / Delete / load / delete ----------------------------------------------
 
 std::string SaveEntry::ZoneTitle() const {
-    std::string title = FirstLineOf("zone ", zone_);   // the key has a space
-    if (title.size() == 0) title = g_clientWorld.texts_->GetString("save_camp");
-    return title;
+    std::string titleText = FirstLineOf("zone ", zone);    // the key has a space
+    if (titleText.size() == 0) titleText = g_clientWorld.texts->GetString("save_camp");
+    return titleText;
 }
 
 std::string SaveEntry::AllodTitle() const {
-    std::string title = FirstLineOf("allod ", map_);  // the key has a space
-    if (title.size() == 0) title = "Unknown";
-    return title;
+    std::string titleText = FirstLineOf("allod ", map);   // the key has a space
+    if (titleText.size() == 0) titleText = "Unknown";
+    return titleText;
 }
 
 void CSaveLoadWindow::Confirm() {
-    if (selected_ < 0) return;
-    if (!isSave_) {
+    if (selected < 0) return;
+    if (!isSave) {
         LoadSelected();
         return;
     }
-    interface_->PlaySound(kSoundOk);
-    if (selected_ == 0) {
+    ui->PlaySound(kSoundOk);
+    if (selected == 0) {
         SaveGame();
         return;
     }
-    Ask(interface_, "overwrite", "overwrite_msg", kAskOverwrite);
+    Ask(ui, "overwrite", "overwrite_msg", kAskOverwrite);
 }
 
 void CSaveLoadWindow::AskDelete() {
-    if (selected_ < 0 || (isSave_ && selected_ == 0)) return;
-    interface_->PlaySound(kSoundDelete);
-    Ask(interface_, "delete", "delete_msg", kAskDelete);
+    if (selected < 0 || (isSave && selected == 0)) return;
+    ui->PlaySound(kSoundDelete);
+    Ask(ui, "delete", "delete_msg", kAskDelete);
 }
 
 void CSaveLoadWindow::LoadSelected() {
-    int selected = selected_;
-    if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
-    if (entries_.data()[selected].broken_) return;
-    std::string notice = g_clientWorld.texts_->GetString(kNotifyLoading);
+    int currentSelected = selected;
+    if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
+    if (entries.data()[currentSelected].broken) return;
+    std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
     GameStopSounds(1);
-    interface_->PlaySound(kSoundOk);
-    g_gameFlow.RequestLoad(entries_.data()[selected_].folder_, 0);
+    ui->PlaySound(kSoundOk);
+    g_gameFlow.RequestLoad(entries.data()[selected].folder, 0);
 }
 
 void CSaveLoadWindow::DeleteSave() {
-    int selected = selected_;
-    if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
-    std::string folder = str::Format(kFolderFormat, DataFolderText(), entries_[selected].folder_);
+    int currentSelected = selected;
+    if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
+    std::string folder = str::Format(kFolderFormat, DataFolderText(), entries[currentSelected].folder);
     lib::FileFind find;
     bool more = find.FindFile(folder + kEveryFile);
     while (more) {
@@ -423,7 +423,7 @@ void CSaveLoadWindow::DeleteSave() {
     gameapi::RemoveDirectoryA(folder.c_str());
     FillEntries();
     int count = EntryCount();
-    if (static_cast<unsigned>(selected_) >= static_cast<unsigned>(count)) selected_ = count - 1;
+    if (static_cast<unsigned>(selected) >= static_cast<unsigned>(count)) selected = count - 1;
     TakeSelectedTitle();
     RefreshListVanilla();
     ShowPicture();

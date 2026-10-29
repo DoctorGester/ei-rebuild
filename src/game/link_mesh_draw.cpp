@@ -79,11 +79,11 @@ struct PartDraw {
     // packets, normals and count, colours, speculars, texture coordinates and count, corners and
     // count, words and count, indices and count, the texture offsets, alpha, flags.
     int Draw(CTextureDevice* device, Surface* first, Surface* second, bool textured) const {
-        auto* indices = reinterpret_cast<std::uint16_t*>(mesh->indices_.data() + r.indices.start);
-        const auto* words = mesh->words_.data() + r.words.start;
-        const auto* corners = mesh->corners_.data() + r.corners.start;
-        const auto* texCoords = mesh->texCoords_.data() + r.texCoords.start;
-        const auto* normals = mesh->normals_.data() + r.normals.start;
+        auto* indices = reinterpret_cast<std::uint16_t*>(mesh->indices.data() + r.indices.start);
+        const auto* words = mesh->words.data() + r.words.start;
+        const auto* corners = mesh->corners.data() + r.corners.start;
+        const auto* texCoords = mesh->texCoords.data() + r.texCoords.start;
+        const auto* normals = mesh->normals.data() + r.normals.start;
         const float uOffset = std::bit_cast<float>(u);
         const float vOffset = std::bit_cast<float>(v);
         if (textured) {
@@ -102,11 +102,11 @@ struct PartDraw {
 // drawn) or the empty one.
 void KeepScreen(CLinkMesh* mesh, const std::string* name, int flags, int result) {
     if ((flags & kDrawScreenRect) && result != kNothingDrawn) {
-        const RECT& drawn = mesh->loader_->renderer_->drawnRect_;
-        mesh->headers_[*name].screen = drawn;
+        const RECT& drawn = mesh->loader->renderer->drawnRect;
+        mesh->headers[*name].screen = drawn;
         return;
     }
-    mesh->headers_[*name].screen = kNoScreen;
+    mesh->headers[*name].screen = kNoScreen;
 }
 
 // The four draws: `offsets` (null: none asked) moves the positions when it has any; without
@@ -114,16 +114,16 @@ void KeepScreen(CLinkMesh* mesh, const std::string* name, int flags, int result)
 int DrawPartCommon(CLinkMesh* mesh, const std::string* name, int flags, Surface* first, Surface* second,
                    bool textured, std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                    const std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
-    auto node = mesh->ranges_.find(*name);
-    if (node == mesh->ranges_.end()) return kNothingDrawn;
+    auto node = mesh->ranges.find(*name);
+    if (node == mesh->ranges.end()) return kNothingDrawn;
     const LinkPartRanges& r = node->second;
-    const VertexPacket* positions = mesh->vertices_.data() + r.vertices.start;
+    const VertexPacket* positions = mesh->vertices.data() + r.vertices.start;
     if (offsets && !offsets->empty()) positions = MovedPositions(positions, r.vertices.count, offsets);
 
     const bool specular = !textured && (flags & kDrawSpecular) != 0;
     if (specular) render::g_renderState.specular = true;
     const PartDraw draw{mesh, r, positions, colours, speculars, u, v, flags};
-    const int result = draw.Draw(mesh->loader_->renderer_, first, second, textured);
+    const int result = draw.Draw(mesh->loader->renderer, first, second, textured);
     if (specular) render::g_renderState.specular = false;
     KeepScreen(mesh, name, flags, result);
     return result;
@@ -134,10 +134,10 @@ int DrawPartCommon(CLinkMesh* mesh, const std::string* name, int flags, Surface*
 // ---- 7 / 8: the colours ----------------------------------------------------------------------------
 
 // Both arrays sized to four per normal packet (their contents dropped), then filled.
-bool CLinkMesh::FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
+bool CLinkMesh::FlatColours(const std::string* partName, std::uint32_t colour, std::uint32_t specular,
                             std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) {
-    auto node = ranges_.find(*name);
-    if (node == ranges_.end()) return false;
+    auto node = ranges.find(*partName);
+    if (node == ranges.end()) return false;
     colours->resize(node->second.normals.count * 4);
     speculars->resize(node->second.normals.count * 4);
     Fill(*colours, colour);
@@ -150,10 +150,10 @@ bool CLinkMesh::FlatColours(const std::string* name, std::uint32_t colour, std::
 // (CMaterial::GpuLitColour; the transform object's LightMesh lit them before); every specular is the alpha
 // byte in the top byte, over the material's specular colour (components times 255, truncated by
 // _ftol and OR-ed in unmasked) when the material keeps its speculars.
-bool CLinkMesh::LightPart(const std::string* name, const std::vector<CLight*>* lights, CMaterial* material, int alpha,
+bool CLinkMesh::LightPart(const std::string* partName, const std::vector<CLight*>* lights, CMaterial* material, int alpha,
                           std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) {
-    auto node = ranges_.find(*name);
-    if (node == ranges_.end()) return false;
+    auto node = ranges.find(*partName);
+    if (node == ranges.end()) return false;
     const LinkPartRanges& r = node->second;
     colours->resize(r.normals.count * 4);
     speculars->resize(r.normals.count * 4);
@@ -162,7 +162,7 @@ bool CLinkMesh::LightPart(const std::string* name, const std::vector<CLight*>* l
     Fill(*colours, material->GpuLitColour());
 
     const std::uint32_t alphaByte = static_cast<std::uint32_t>(alpha) & 0xFF;
-    if (material->flags_ & kMaterialKeepsSpecular) {
+    if (material->flags & kMaterialKeepsSpecular) {
         std::uint32_t packed = libcrt::Ftol(material->colors.specular.x * kByteScale) | (alphaByte << 8);
         packed <<= 8;
         packed |= libcrt::Ftol(material->colors.specular.y * kByteScale);
@@ -178,37 +178,37 @@ bool CLinkMesh::LightPart(const std::string* name, const std::vector<CLight*>* l
 
 // ---- 9-12: the draws -------------------------------------------------------------------------------
 
-int CLinkMesh::DrawPartMoved(const std::string* name, int flags, std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
+int CLinkMesh::DrawPartMoved(const std::string* partName, int flags, std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                              std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
-    return DrawPartCommon(this, name, flags, nullptr, nullptr, false, colours, speculars, offsets, u, v);
+    return DrawPartCommon(this, partName, flags, nullptr, nullptr, false, colours, speculars, offsets, u, v);
 }
 
-int CLinkMesh::DrawPart(const std::string* name, int flags, std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
+int CLinkMesh::DrawPart(const std::string* partName, int flags, std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                         std::uint32_t u, std::uint32_t v) {
-    return DrawPartCommon(this, name, flags, nullptr, nullptr, false, colours, speculars, nullptr, u, v);
+    return DrawPartCommon(this, partName, flags, nullptr, nullptr, false, colours, speculars, nullptr, u, v);
 }
 
-int CLinkMesh::DrawPartMovedTextured(const std::string* name, int flags, Surface* first, Surface* second,
+int CLinkMesh::DrawPartMovedTextured(const std::string* partName, int flags, Surface* first, Surface* second,
                                      std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                                      std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
-    return DrawPartCommon(this, name, flags, first, second, true, colours, speculars, offsets, u, v);
+    return DrawPartCommon(this, partName, flags, first, second, true, colours, speculars, offsets, u, v);
 }
 
-int CLinkMesh::DrawPartTextured(const std::string* name, int flags, Surface* first, Surface* second,
+int CLinkMesh::DrawPartTextured(const std::string* partName, int flags, Surface* first, Surface* second,
                                 std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) {
-    return DrawPartCommon(this, name, flags, first, second, true, colours, speculars, nullptr, u, v);
+    return DrawPartCommon(this, partName, flags, first, second, true, colours, speculars, nullptr, u, v);
 }
 
 // ---- 13 / 14: the shadow ---------------------------------------------------------------------------
 
 // The part's positions (moved by `offsets` when it has any) through
 // the flat projection (ProjectFlat); four points per packet.
-int CLinkMesh::ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const Matrix4& matrix,
+int CLinkMesh::ProjectPart(const std::string* partName, std::vector<Vector3>* offsets, const Matrix4& matrix,
                            Vector2* points, float* bounds) {
-    auto node = ranges_.find(*name);
-    if (node == ranges_.end()) return 0;
+    auto node = ranges.find(*partName);
+    if (node == ranges.end()) return 0;
     const LinkPartRanges& r = node->second;
-    const VertexPacket* positions = vertices_.data() + r.vertices.start;
+    const VertexPacket* positions = vertices.data() + r.vertices.start;
     if (!offsets->empty()) positions = MovedPositions(positions, r.vertices.count, offsets);
     ProjectFlat(matrix, positions, points, r.vertices.count, bounds);
     return r.vertices.count << 2;

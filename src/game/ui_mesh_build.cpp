@@ -20,10 +20,10 @@ namespace {
 
 // The common start: one normal packet (four 0s, four 0s, four 1s, four 1s) and the two 4-entry arrays.
 void ResetVertexColours(CUiMesh* mesh) {
-    mesh->normals_.resize(1);
-    mesh->colorsA_.resize(4);
-    mesh->colorsB_.resize(4);
-    NormalPacket& block = mesh->normals_[0];
+    mesh->normals.resize(1);
+    mesh->colorsA.resize(4);
+    mesh->colorsB.resize(4);
+    NormalPacket& block = mesh->normals[0];
     for (int i = 0; i < 4; ++i) {
         block.block[0][i] = 0.0f;
         block.block[1][i] = 0.0f;
@@ -34,7 +34,7 @@ void ResetVertexColours(CUiMesh* mesh) {
 
 // A vertex record: the position it uses, 0, and the texture coordinates' index.
 void SetVertex(CUiMesh* mesh, int index, int position, int uv) {
-    MeshCorner& v = mesh->corners_[index];
+    MeshCorner& v = mesh->corners[index];
     v.position = static_cast<std::uint16_t>(position);
     v.normal = 0;
     v.texCoord = static_cast<std::uint16_t>(uv);
@@ -43,18 +43,18 @@ void SetVertex(CUiMesh* mesh, int index, int position, int uv) {
 // Appends index `value` (the array's SetSize to size + 1, then the store, or its SetAtGrow; the
 // original mixes both).
 void AppendBySize(std::vector<std::uint16_t>* indices, CUiMesh* mesh, int value) {
-    int at = std::ssize(mesh->indices_);
+    int at = std::ssize(mesh->indices);
     indices->resize(at + 1);
-    mesh->indices_[at] = static_cast<std::uint16_t>(value);
+    mesh->indices[at] = static_cast<std::uint16_t>(value);
 }
-void AppendByGrow(std::vector<std::uint16_t>* indices, CUiMesh* mesh, int value) { lib::SetAtGrow(*indices, std::ssize(mesh->indices_), static_cast<std::uint16_t>(value)); }
+void AppendByGrow(std::vector<std::uint16_t>* indices, CUiMesh* mesh, int value) { lib::SetAtGrow(*indices, std::ssize(mesh->indices), static_cast<std::uint16_t>(value)); }
 
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
 void NudgeAndCommit(CUiMesh* mesh) {
     double half = D(worlddata::kHalfTexel);
-    for (int i = 0; i < std::ssize(mesh->texCoords_); ++i) {
-        mesh->texCoords_[i].u = static_cast<float>(D(mesh->texCoords_[i].u) + half);
-        mesh->texCoords_[i].v = static_cast<float>(D(mesh->texCoords_[i].v) - half);
+    for (int i = 0; i < std::ssize(mesh->texCoords); ++i) {
+        mesh->texCoords[i].u = static_cast<float>(D(mesh->texCoords[i].u) + half);
+        mesh->texCoords[i].v = static_cast<float>(D(mesh->texCoords[i].v) - half);
     }
     mesh->RefreshBuffers();
 }
@@ -70,9 +70,9 @@ void SetBuildScale(CUiMesh* mesh, float depth, float scale) {
 // The position from a layout point: ((x * 2/1600 - 1) * 0.48157 * depth, (y / 400 - 0.75) *
 // 0.48157 * depth, depth) (the rectangle builder adds the two edges first).
 void SetPosition(CUiMesh* mesh, double x, double y, float depth) {
-    mesh->localPosition_.x = static_cast<float>((x - 1.0) * D(worlddata::kInterfaceView) * D(depth));
-    mesh->localPosition_.y = static_cast<float>((y - D(worlddata::kThreeQuarters)) * D(worlddata::kInterfaceView) * D(depth));
-    mesh->localPosition_.z = depth;
+    mesh->localPosition.x = static_cast<float>((x - 1.0) * D(worlddata::kInterfaceView) * D(depth));
+    mesh->localPosition.y = static_cast<float>((y - D(worlddata::kThreeQuarters)) * D(worlddata::kInterfaceView) * D(depth));
+    mesh->localPosition.z = depth;
 }
 
 // --- Points on a circle, computed on the FPU ---------------------------------------------------------
@@ -119,7 +119,7 @@ void CUiMesh::Framed(float depth, float scale, float left, float top, float righ
     SetUvCount(8);
     double texel = D(worlddata::kTexel);
     double one = 1.0;
-    TexCoord* uv = texCoords_.data();
+    TexCoord* uv = texCoords.data();
     float outerV0 = static_cast<float>(one - static_cast<double>(v0) * texel);
     float outerV1 = static_cast<float>(one - static_cast<double>(v1) * texel);
     uv[0].u = static_cast<float>(static_cast<double>(u0) * texel);
@@ -141,10 +141,10 @@ void CUiMesh::Framed(float depth, float scale, float left, float top, float righ
     uv[7].v = uv[5].v;
 
     // The frame's eight triangles between the outer (0-3) and inner (4-7) corners.
-    auto* indices = &indices_;
-    indices->clear();
+    auto* currentIndices = &indices;
+    currentIndices->clear();
     static const int kFrame[24] = {0, 4, 2, 4, 6, 2, 2, 6, 3, 6, 7, 3, 3, 7, 1, 7, 5, 1, 1, 5, 0, 5, 4, 0};
-    for (int index : kFrame) AppendByGrow(indices, this, index);
+    for (int index : kFrame) AppendByGrow(currentIndices, this, index);
 
     SetVertexCount(8);
     for (int i = 0; i < 8; ++i) SetVertex(this, i, i, i);
@@ -153,8 +153,8 @@ void CUiMesh::Framed(float depth, float scale, float left, float top, float righ
     SetQuadCount(2);
     for (int q = 0; q < 2; ++q) {
         for (int i = 0; i < 4; ++i) {
-            vertices_[q].z()[i] = 0.0f;
-            vertices_[q].w()[i] = 1.0f;
+            vertices[q].z()[i] = 0.0f;
+            vertices[q].w()[i] = 1.0f;
         }
     }
     double half = 0.5;
@@ -164,7 +164,7 @@ void CUiMesh::Framed(float depth, float scale, float left, float top, float righ
     float outerY = static_cast<float>(halfHeight / D(scale));
     float innerX = static_cast<float>((D(static_cast<float>(halfWidth)) - D(border)) / D(scale));
     float innerY = static_cast<float>((halfHeight - D(border)) / D(scale));
-    VertexPacket& outer = vertices_[0];
+    VertexPacket& outer = vertices[0];
     outer.x()[0] = static_cast<float>(-outerX);
     outer.y()[0] = -outerY;
     outer.x()[1] = static_cast<float>(-outerX);
@@ -173,7 +173,7 @@ void CUiMesh::Framed(float depth, float scale, float left, float top, float righ
     outer.y()[2] = -outerY;
     outer.x()[3] = static_cast<float>(outerX);
     outer.y()[3] = outerY;
-    VertexPacket& inner = vertices_[1];
+    VertexPacket& inner = vertices[1];
     inner.x()[0] = -innerX;
     inner.y()[0] = -innerY;
     inner.x()[1] = -innerX;
@@ -190,23 +190,23 @@ void CUiMesh::Framed(float depth, float scale, float left, float top, float righ
     NudgeAndCommit(this);
 }
 
-void CUiMesh::Disc(float depth, float scale, float x, float y, float radius, int count, int u, int v,
+void CUiMesh::Disc(float depth, float scale, float x, float y, float outerRadius, int count, int u, int v,
                           int uvRadius) {
     ResetVertexColours(this);
     SetVertexCount(count);
     for (int i = 0; i < count; ++i) SetVertex(this, i, i, i);
     SetUvCount(count);
     for (int i = 0; i < count; ++i) {
-        texCoords_[i].u = CircleTexel(i, count, false, uvRadius, u);
-        texCoords_[i].v = CircleTexel(i, count, true, uvRadius, v);
+        texCoords[i].u = CircleTexel(i, count, false, uvRadius, u);
+        texCoords[i].v = CircleTexel(i, count, true, uvRadius, v);
     }
     // A fan around point 0.
-    auto* indices = &indices_;
-    indices->clear();
+    auto* currentIndices = &indices;
+    currentIndices->clear();
     for (int i = 1; i < count - 1; ++i) {
-        AppendByGrow(indices, this, 0);
-        AppendByGrow(indices, this, i + 1);
-        AppendByGrow(indices, this, i);
+        AppendByGrow(currentIndices, this, 0);
+        AppendByGrow(currentIndices, this, i + 1);
+        AppendByGrow(currentIndices, this, i);
     }
     // The points, four per quad (count / 4 quads, rounded towards zero).
     int quadCount = count / 4;
@@ -214,9 +214,9 @@ void CUiMesh::Disc(float depth, float scale, float x, float y, float radius, int
     int j = 0;
     for (int q = 0; q < quadCount; ++q) {
         for (int i = 0; i < 4; ++i, ++j) {
-            VertexPacket& block = vertices_[q];
-            block.x()[i] = CircleScaled(j, count, false, &radius, &scale);
-            block.y()[i] = CircleScaled(j, count, true, &radius, &scale);
+            VertexPacket& block = vertices[q];
+            block.x()[i] = CircleScaled(j, count, false, &outerRadius, &scale);
+            block.y()[i] = CircleScaled(j, count, true, &outerRadius, &scale);
             block.z()[i] = 0.0f;
             block.w()[i] = 1.0f;
         }
@@ -228,7 +228,7 @@ void CUiMesh::Disc(float depth, float scale, float x, float y, float radius, int
     NudgeAndCommit(this);
 }
 
-void CUiMesh::Ring(float depth, float scale, float x, float y, float radius, int count, float width, int u0,
+void CUiMesh::Ring(float depth, float scale, float x, float y, float outerRadius, int count, float width, int u0,
                           int v0, int u1, int v1) {
     ResetVertexColours(this);
     // Four vertices per segment: outer and inner point of its start and of its end (texture corners
@@ -241,33 +241,33 @@ void CUiMesh::Ring(float depth, float scale, float x, float y, float radius, int
         SetVertex(this, 4 * i + 3, 2 * i + 3, 3);
     }
     // (Written even without segments, before the array, like the original.)
-    corners_[count * 4 - 2].position = 0;
-    corners_[count * 4 - 1].position = 1;
+    corners[count * 4 - 2].position = 0;
+    corners[count * 4 - 1].position = 1;
 
     SetUvCount(4);
     double texel = D(worlddata::kTexel);
     double one = 1.0;
     float outerV0 = static_cast<float>(one - static_cast<double>(v0) * texel);
-    texCoords_[0].u = static_cast<float>(static_cast<double>(u0) * texel);
-    texCoords_[0].v = outerV0;
-    texCoords_[1].u = texCoords_[0].u;
-    texCoords_[1].v = static_cast<float>(one - static_cast<double>(v1) * texel);
-    texCoords_[2].u = static_cast<float>(static_cast<double>(u1) * texel);
-    texCoords_[2].v = outerV0;
-    texCoords_[3].u = texCoords_[2].u;
-    texCoords_[3].v = texCoords_[1].v;
+    texCoords[0].u = static_cast<float>(static_cast<double>(u0) * texel);
+    texCoords[0].v = outerV0;
+    texCoords[1].u = texCoords[0].u;
+    texCoords[1].v = static_cast<float>(one - static_cast<double>(v1) * texel);
+    texCoords[2].u = static_cast<float>(static_cast<double>(u1) * texel);
+    texCoords[2].v = outerV0;
+    texCoords[3].u = texCoords[2].u;
+    texCoords[3].v = texCoords[1].v;
 
     // Two triangles per segment.
-    auto* indices = &indices_;
-    indices->clear();
+    auto* currentIndices = &indices;
+    currentIndices->clear();
     for (int i = 0; i < count; ++i) {
         int base = 4 * i;
-        AppendBySize(indices, this, base);
-        AppendBySize(indices, this, base + 1);
-        AppendBySize(indices, this, base + 2);
-        AppendByGrow(indices, this, base + 1);
-        AppendByGrow(indices, this, base + 3);
-        AppendBySize(indices, this, base + 2);
+        AppendBySize(currentIndices, this, base);
+        AppendBySize(currentIndices, this, base + 1);
+        AppendBySize(currentIndices, this, base + 2);
+        AppendByGrow(currentIndices, this, base + 1);
+        AppendByGrow(currentIndices, this, base + 3);
+        AppendBySize(currentIndices, this, base + 2);
     }
 
     // count / 2 quads: points j and j + 1 at the outer and the inner radius.
@@ -275,24 +275,24 @@ void CUiMesh::Ring(float depth, float scale, float x, float y, float radius, int
     SetQuadCount(quadCount);
     int j = 0;
     for (int q = 0; q < quadCount; ++q) {
-        VertexPacket& block = vertices_[q];
+        VertexPacket& block = vertices[q];
         float* z = block.z();
         float* w = block.w();
-        block.x()[0] = CircleScaled(j, count, false, &radius, &scale);
-        block.y()[0] = CircleScaled(j, count, true, &radius, &scale);
+        block.x()[0] = CircleScaled(j, count, false, &outerRadius, &scale);
+        block.y()[0] = CircleScaled(j, count, true, &outerRadius, &scale);
         z[0] = 0.0f;
         w[0] = 1.0f;
-        block.x()[1] = CircleScaledInner(j, count, false, &radius, &width, &scale);
-        block.y()[1] = CircleScaledInner(j, count, true, &radius, &width, &scale);
+        block.x()[1] = CircleScaledInner(j, count, false, &outerRadius, &width, &scale);
+        block.y()[1] = CircleScaledInner(j, count, true, &outerRadius, &width, &scale);
         z[1] = 0.0f;
         w[1] = 1.0f;
         ++j;
-        block.x()[2] = CircleScaled(j, count, false, &radius, &scale);
-        block.y()[2] = CircleScaled(j, count, true, &radius, &scale);
+        block.x()[2] = CircleScaled(j, count, false, &outerRadius, &scale);
+        block.y()[2] = CircleScaled(j, count, true, &outerRadius, &scale);
         z[2] = 0.0f;
         w[2] = 1.0f;
-        block.x()[3] = CircleScaledInner(j, count, false, &radius, &width, &scale);
-        block.y()[3] = CircleScaledInner(j, count, true, &radius, &width, &scale);
+        block.x()[3] = CircleScaledInner(j, count, false, &outerRadius, &width, &scale);
+        block.y()[3] = CircleScaledInner(j, count, true, &outerRadius, &width, &scale);
         z[3] = 0.0f;
         w[3] = 1.0f;
         ++j;

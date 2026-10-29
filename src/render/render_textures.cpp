@@ -482,7 +482,7 @@ const Picture* PictureOf(const void* holder) {
 
 sg_view TextureView(const void* texture) {
     if (!texture) return White().view;
-    return SurfaceView(static_cast<const CTexture*>(texture)->surface_);
+    return SurfaceView(static_cast<const CTexture*>(texture)->surface);
 }
 
 sg_sampler LinearSampler() {

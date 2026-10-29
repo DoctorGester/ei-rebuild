@@ -21,15 +21,15 @@ constexpr std::uint32_t kFinishedDelay = 0x42700000;   // 60.0f
 PartyMessage* FindPartnerOffer(const std::list<HeldRef<PartyMessage>>& list, PartyMessage* offer) {
     for (auto& node : list) {
         auto* other = node.Get();
-        if (other->player_.Get() == offer->partner_.Get() && other->partner_.Get() == offer->player_.Get()) return node.Get();
+        if (other->player.Get() == offer->partner.Get() && other->partner.Get() == offer->player.Get()) return node.Get();
     }
     return nullptr;
 }
 
 // The partner is told a trade was offered (text 10) or withdrawn (text 11), with the player's name.
 void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
-    CRefObject* partner = offer->partner_.Get();
-    const char* name = offer->player_.Get()->name_.data();
+    CRefObject* partner = offer->partner.Get();
+    const char* name = offer->player.Get()->name.data();
     self->Announce(g_interface.MessageText(text, name), partner);
 }
 
@@ -41,10 +41,10 @@ namespace net {
 
 // The trade between the two offers (in either order), or null.
 TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMessage* other) {
-    for (auto& node : trades_) {
+    for (auto& node : trades) {
         TradeMessage* trade = node.Get();
-        const CRefObject* first = trade->offer_.Get();
-        if ((first == offer && trade->partnerOffer_.Get() == other) || (first == other && trade->partnerOffer_.Get() == offer))
+        const CRefObject* first = trade->offer.Get();
+        if ((first == offer && trade->partnerOffer.Get() == other) || (first == other && trade->partnerOffer.Get() == offer))
             return trade;
     }
     return nullptr;
@@ -52,9 +52,9 @@ TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMes
 
 // Removed file request: drops `message`.
 void ServerOnObjectRemoved(ServerSession* self, Message* message) {
-    for (auto node = self->fileRequests_.begin(); node != self->fileRequests_.end();) {
+    for (auto node = self->fileRequests.begin(); node != self->fileRequests.end();) {
         auto next = std::next(node);
-        if (node->Get() == message) self->fileRequests_.erase(node);
+        if (node->Get() == message) self->fileRequests.erase(node);
         node = next;
     }
 }
@@ -62,64 +62,64 @@ void ServerOnObjectRemoved(ServerSession* self, Message* message) {
 // Offer created: lists the offer; when the partner's offer is listed, a trade of the two
 // is made (both marked paired), else the partner is told of the offer.
 void ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
-    self->offers_.emplace_back(message);
+    self->offers.emplace_back(message);
 
-    PartyMessage* other = FindPartnerOffer(self->offers_, message);
+    PartyMessage* other = FindPartnerOffer(self->offers, message);
     if (!other) {
         TellPartner(self, message, 10);
         return;
     }
     auto* trade = NewCounted<TradeMessage>();
-    trade->offer_.Assign(message);
-    trade->partnerOffer_.Assign(other);
-    trade->player_.Assign(message->player_.Get());
-    trade->partner_.Assign(message->partner_.Get());
-    self->trades_.emplace_back(trade);
-    message->trading_ = 1;
-    other->trading_ = 1;
+    trade->offer.Assign(message);
+    trade->partnerOffer.Assign(other);
+    trade->player.Assign(message->player.Get());
+    trade->partner.Assign(message->partner.Get());
+    self->trades.emplace_back(trade);
+    message->trading = 1;
+    other->trading = 1;
 }
 
 // Offer updated: the offer's version moves on; when both offers of its trade are live, accepted and agree
 // crosswise (each one accepted the other's current revision), the trade is done with the two revisions.
 void ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) {
-    ++message->version_;
-    PartyMessage* other = FindPartnerOffer(self->offers_, message);
+    ++message->version;
+    PartyMessage* other = FindPartnerOffer(self->offers, message);
     TradeMessage* trade = self->FindTrade(message, other);
     if (!IsLive(trade)) return;
-    auto* first = trade->offer_.Get();
+    auto* first = trade->offer.Get();
     if (!IsLive(first)) return;
-    auto* second = trade->partnerOffer_.Get();
+    auto* second = trade->partnerOffer.Get();
     if (!IsLive(second)) return;
-    if (!first->accepted_ || first->acceptedRevision_ != second->revision_) return;
-    if (!second->accepted_ || second->acceptedRevision_ != first->revision_) return;
-    trade->done_ = 1;
-    trade->revision_ = first->revision_;
-    trade->partnerRevision_ = second->revision_;
-    ++trade->version_;
+    if (!first->accepted || first->acceptedRevision != second->revision) return;
+    if (!second->accepted || second->acceptedRevision != first->revision) return;
+    trade->done = 1;
+    trade->revision = first->revision;
+    trade->partnerRevision = second->revision;
+    ++trade->version;
 }
 
 // Offer removed: drops the offer; an unpaired offer's partner is told it was withdrawn.
-// Its trade, when live, is dropped, a done one first kept on finishedTrades_ for 60 seconds.
+// Its trade, when live, is dropped, a done one first kept on finishedTrades for 60 seconds.
 void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
-    for (auto node = self->offers_.begin(); node != self->offers_.end();) {
+    for (auto node = self->offers.begin(); node != self->offers.end();) {
         auto next = std::next(node);
-        if (node->Get() == message) self->offers_.erase(node);
+        if (node->Get() == message) self->offers.erase(node);
         node = next;
     }
-    PartyMessage* other = FindPartnerOffer(self->offers_, message);
+    PartyMessage* other = FindPartnerOffer(self->offers, message);
     TradeMessage* trade = self->FindTrade(message, other);
-    if (!message->trading_) TellPartner(self, message, 11);
+    if (!message->trading) TellPartner(self, message, 11);
     if (!IsLive(trade)) return;
-    if (trade->done_) {
+    if (trade->done) {
         HeldRef<CRefObject> held(trade);
         TimedEntry<HeldRef<CRefObject>> entry(kFinishedDelay, held);
-        self->finishedTrades_.push_back(entry);
+        self->finishedTrades.push_back(entry);
     }
     // remove(trade): each element holding it erased as the walk reaches it, the trade held meanwhile.
     HeldRef<CRefObject> removing(trade);
-    for (auto node = self->trades_.begin(); node != self->trades_.end();) {
+    for (auto node = self->trades.begin(); node != self->trades.end();) {
         auto next = std::next(node);
-        if (node->Get() == removing.Get()) self->trades_.erase(node);
+        if (node->Get() == removing.Get()) self->trades.erase(node);
         node = next;
     }
 }

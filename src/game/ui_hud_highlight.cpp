@@ -25,17 +25,17 @@ constexpr int kQuickSlots = 8;
 void HighlightButton(CUiWindow* column, int* selected, int index, bool on) {
     CUiMesh* sprite = column->SceneMesh(index);
     sprite->SetScale(on ? kButtonScaleOn : kButtonScaleOff);
-    sprite->flatSpecular_ = on ? kColourOn : kColourOff;
+    sprite->flatSpecular = on ? kColourOn : kColourOff;
     *selected = index;
 }
 
-// The columns' clearing: every button off, selected_ passing through
+// The columns' clearing: every button off, selected passing through
 // each index, then -1.
 void ClearButtons(CUiWindow* column, int count, int* selected) {
     for (int i = 0; i < count; ++i) {
         CUiMesh* sprite = column->SceneMesh(i);
         sprite->SetScale(kButtonScaleOff);
-        sprite->flatSpecular_ = kColourOff;
+        sprite->flatSpecular = kColourOff;
         *selected = i;
     }
     *selected = -1;
@@ -55,32 +55,32 @@ void CUiMesh::SetScale(float scale) {
 // --- A quick item slot ---------------------------------------------------------------
 
 void CHudQuickItems::Highlight(int slot, bool on) {
-    int sprite = regionItem_[slot];
-    if (sprite < 0 || sprite >= shownCount_) return;
+    int sprite = regionItem[slot];
+    if (sprite < 0 || sprite >= shownCount) return;
     CUiMesh* mesh = SceneMesh(sprite);
     if (slot < kBottomRow)
         mesh->SetScale(on ? kQuickScaleOn : kQuickScaleOff);
     else
         mesh->SetScale(on ? kOwnScaleOn : kOwnScaleOff);
     if (on) {
-        mesh->flatSpecular_ = kColourOn;
-        selected_ = slot;
+        mesh->flatSpecular = kColourOn;
+        selected = slot;
     } else {
-        mesh->flatSpecular_ = kColourOff;
+        mesh->flatSpecular = kColourOff;
     }
 }
 
 void CHudQuickItems::ClearHighlights() {
     for (int i = 0; i < kQuickSlots; ++i) Highlight(i, false);
-    selected_ = -1;
+    selected = -1;
 }
 
 // --- The columns' buttons -----------------------------------------------------------------
 
-void CHudSpellColumn::Highlight(int index, bool on) { HighlightButton(this, &selected_, index, on); }
+void CHudSpellColumn::Highlight(int index, bool on) { HighlightButton(this, &selected, index, on); }
 
-void CHudActionColumn::Highlight(int index, bool on) { HighlightButton(this, &selected_, index, on); }
+void CHudActionColumn::Highlight(int index, bool on) { HighlightButton(this, &selected, index, on); }
 
-void CHudSpellColumn::ClearHighlights() { ClearButtons(this, count_, &selected_); }
+void CHudSpellColumn::ClearHighlights() { ClearButtons(this, count, &selected); }
 
-void CHudActionColumn::ClearHighlights() { ClearButtons(this, count_, &selected_); }
+void CHudActionColumn::ClearHighlights() { ClearButtons(this, count, &selected); }

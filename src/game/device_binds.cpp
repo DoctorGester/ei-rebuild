@@ -10,19 +10,19 @@
 #include "lib/gameapi.h"
 
 int CTextureDevice::BindSurface(int stage, Surface* holder) {
-    stageSurfaces_[stage] = holder;
+    stageSurfaces[stage] = holder;
     return 1;
 }
 
 // The same body as BindSurface's, for a texture and for none.
 int CTextureDevice::BindTexture(int stage, CTexture* texture) {
-    return BindSurface(stage, texture ? texture->surface_.Get() : nullptr);
+    return BindSurface(stage, texture ? texture->surface.Get() : nullptr);
 }
 
 int CTextureDevice::BindNamedTexture(int stage, NamedTexture* named) {
     if (!named->texture && named->name.size() != 0) {
-        CTexture* found = g_clientWorld.textureManager_->FindTexture(named->name.data());
+        CTexture* found = g_clientWorld.textureManager->FindTexture(named->name.data());
         named->texture.Assign(found);
     }
-    return BindSurface(stage, named->texture ? named->texture->surface_.Get() : nullptr);
+    return BindSurface(stage, named->texture ? named->texture->surface.Get() : nullptr);
 }

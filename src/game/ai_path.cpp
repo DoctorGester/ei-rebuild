@@ -37,7 +37,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     }
 
     Vector3 from;
-    from = unit->localPosition_;
+    from = unit->localPosition;
     int ux = WorldToCell(from.x), uy = WorldToCell(from.y);
     int sizeClass = unit->sizeClass;
     int region = 0;
@@ -126,11 +126,11 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
 
 void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     path->Reset();
-    int count = g_serverWorld.tick_;
+    int count = g_serverWorld.tick;
     Vector3 facing;
-    unit->localRotation_.AxisY(&facing);
+    unit->localRotation.AxisY(&facing);
     Vector3 backwards = {-facing.x, -facing.y, -facing.z};
-    path->Start(unit->localPosition_, backwards, count - 1);
+    path->Start(unit->localPosition, backwards, count - 1);
 
     PathCells& pathCells = path->cells;
     PathCells& steps = path->steps;
@@ -158,7 +158,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
 
 bool CAIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float range, float minDistance) {
     Vector3 from, goal;
-    from = unit->localPosition_;
+    from = unit->localPosition;
     goal = target;
     path->goal = target;
     if (LengthSquared2DUnrounded(target.x, target.y) > 100000000.0) return false;   // NaN goes on
@@ -251,7 +251,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3& target, AIPath* path, float ra
 
         // Smooth the start of the path, entering from the side the unit faces.
         Vector3 facing;
-        unit->localRotation_.AxisY(&facing);
+        unit->localRotation.AxisY(&facing);
         float bx = -facing.x, by = -facing.y;
         float px;
         px = path->targetX;

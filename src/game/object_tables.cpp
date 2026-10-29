@@ -93,7 +93,7 @@ void* FindCommandByKey(int key) {
     for (int slot = 0; slot < 0x200; ++slot) {
         if (keys[slot] != key) continue;
         for (UiKeyName& entry : g_keyNames)
-            if (entry.scan_ == slot) return entry.name_;
+            if (entry.scan == slot) return entry.name;
     }
     return nullptr;
 }

@@ -101,8 +101,8 @@ constexpr int kHeroScreenSprites = 21;   // the hero screen's 19 and the two cur
 constexpr int kHeroListMode = 9;
 
 void SetCurtainLook(CUiMesh* curtain, int visible) {
-    curtain->tint_[0] = curtain->tint_[1] = curtain->tint_[2] = 0.3f;
-    curtain->visible_ = visible;
+    curtain->tint[0] = curtain->tint[1] = curtain->tint[2] = 0.3f;
+    curtain->visible = visible;
 }
 
 } // namespace
@@ -198,10 +198,10 @@ void AddCurtains(CUiWindow* window, int visible) {
 }
 
 void ShowHeroCurtains(CUiWindow* window, int mode) {
-    if (!Active() || std::ssize(window->sceneObjects_) != kHeroScreenSprites) return;
+    if (!Active() || std::ssize(window->sceneObjects) != kHeroScreenSprites) return;
     const int shown = mode != kHeroListMode ? 1 : 0;
-    window->SceneMesh(kHeroScreenSprites - 2)->visible_ = shown;
-    window->SceneMesh(kHeroScreenSprites - 1)->visible_ = shown;
+    window->SceneMesh(kHeroScreenSprites - 2)->visible = shown;
+    window->SceneMesh(kHeroScreenSprites - 1)->visible = shown;
 }
 
 // addon's apply function: 0x320 + extra written at one operand, -0x320 - extra at the other.

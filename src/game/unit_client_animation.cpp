@@ -15,7 +15,7 @@
 #include <cmath>
 
 namespace {
-constexpr std::uint32_t kFlagFrozen = 0x10000000;     // the unit's flags_
+constexpr std::uint32_t kFlagFrozen = 0x10000000;     // the unit's flags
 constexpr std::int8_t kModeSpecialIdle = -2;          // CUnit::secondEntry
 constexpr std::int8_t kNoEntry = -1;                  // CUnit::secondEntry
 constexpr float kLongStep = 500.0f;
@@ -56,7 +56,7 @@ void CObject3DClientSpecific::StunnedPulse(float frames) {
         part->colors.specular.x = value;
         part->colors.specular.y = 0.0f;
         part->colors.specular.z = 0.0f;
-        part->flags_ |= MaterialFlag::KeepSpecular;
+        part->flags |= MaterialFlag::KeepSpecular;
     }
 }
 
@@ -65,7 +65,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     float step = stored;
     EI_NAN_AUDIT(step);
     if (step < 0.0f) {   // back in time: only put back on the ground
-        Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
+        Vector3 position = {unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
         position.z = static_cast<float>(unit->GroundHeight(position.x, position.y) +
                                         unit->heightOffset);
         World()->MoveObject(unit, &position.x);
@@ -86,7 +86,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
 }
 
 void CUnitClientSpecific::RestartAnimation(float time) {
-    if (unit->flags_ & kFlagFrozen) return;
+    if (unit->flags & kFlagFrozen) return;
     CFigureAnimationState* state = unit->Object3D()->animation;
     state->queue.clear();
     if (unit->secondEntry == kModeSpecialIdle) {
@@ -120,7 +120,7 @@ void CUnitClientSpecific::RestartAnimation(float time) {
 }
 
 void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
-    if (unit->flags_ & kFlagFrozen) return;
+    if (unit->flags & kFlagFrozen) return;
     std::uint32_t key = 0;
     std::uint32_t weapon = unit->activeWeapon < 4 ? weaponIds[unit->activeWeapon] : kNoWeapon;
     if (weapon != kNoWeapon) {

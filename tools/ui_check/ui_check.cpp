@@ -129,7 +129,7 @@ void SplitFrame() {
 void RunCanvasesNow() { RunCanvasCommands(); }
 GpuWorkAlone::GpuWorkAlone() {}
 GpuWorkAlone::~GpuWorkAlone() {}
-FpuGuard::FpuGuard() : saved_(0) {}
+FpuGuard::FpuGuard() : saved(0) {}
 FpuGuard::~FpuGuard() {}
 } // namespace detail
 } // namespace render

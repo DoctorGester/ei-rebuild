@@ -30,23 +30,23 @@ Message* TypeRegistry::Create(std::uint32_t type) {
 }
 
 SessionBase::SessionBase() {
-    time_ = 0.0;
-    frame_ = 1;
-    magic_ = 0;
-    timeout_ = 0x3C;
-    maxRoundTrip_ = 5;
-    idReuseTime_ = 0x4B;
+    time = 0.0;
+    frame = 1;
+    magic = 0;
+    timeout = 0x3C;
+    maxRoundTrip = 5;
+    idReuseTime = 0x4B;
 }
 
 void SessionBase::AddHandler(int channel, std::uint32_t type, MessageHandler handler) {
     if (channel < 0 || channel >= kChannels) return;
-    handlers_[channel][type & 0xFF].push_back(handler);
+    handlers[channel][type & 0xFF].push_back(handler);
 }
 
 void SessionBase::AddHandlerForPrototype(Message* prototype, int channel, MessageHandler handler) {
     SharedRef<Message> ref(prototype);
     const std::uint32_t key = TypeRegistry::KeyOf(ref);
-    int type = types_.TypeOf(&key);
+    int type = types.TypeOf(&key);
     AddHandler(channel, static_cast<std::uint32_t>(type), handler);
 }
 
@@ -59,11 +59,11 @@ void SessionBase::RegisterMessageTypes() {
         FileRequestMessage::Create, AwardMessage::Create, PartyMessage::Create, PartyMemberMessage::Create,
         TradeMessage::Create};
     for (std::uint32_t type = 1; type <= 17; ++type) {
-        reliable_[type] = 0;
-        types_.Register(type, kFactories[type - 1]);
+        reliable[type] = 0;
+        types.Register(type, kFactories[type - 1]);
     }
 }
 
-std::uint32_t SessionBase::ClientCount() const { return static_cast<std::uint32_t>(clients_.size()); }
+std::uint32_t SessionBase::ClientCount() const { return static_cast<std::uint32_t>(clients.size()); }
 
 } // namespace net

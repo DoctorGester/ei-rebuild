@@ -21,8 +21,8 @@
 namespace {
 constexpr int kStyleWalk = 2;
 constexpr int kStyleRun = 3;
-// CEngineObject::prototypeId_ (not type_) of a unit that cannot be tamed (0x32, the value type_ has for
-// heroes; the original compares prototypeId_).
+// CEngineObject::prototypeId (not type) of a unit that cannot be tamed (0x32, the value type has for
+// heroes; the original compares prototypeId).
 constexpr std::uint32_t kUntameable = 0x32;
 
 constexpr std::uint32_t kEmoteKeyBit = AnimationKeyOf(AnimationKeyFlag::Looped);   // FigureAnimation::key: an emote (kind 8)
@@ -45,7 +45,7 @@ void QueueUse(CUnitServer* self, CMapObject* target, UseSource source, int spot,
 bool CUnitServer::FitsMoveMode(int mode) {
     int stored = mode == kStyleRun ? kStyleWalk : mode;
     if (stored == moveMode.mode) return true;
-    CAIMap* map = &g_serverWorld.aiMap_;
+    CAIMap* map = &g_serverWorld.aiMap;
     int saved = unit->moveMode;
     map->sectorMap.Remove(unit);
     unit->moveMode = mode;
@@ -80,7 +80,7 @@ void CUnitServer::OrderSteal(CMapObject* target, int run) {
 void CUnitServer::OrderTame(CMapObject* target, int run) {
     if (!target || target->IsDead() != 0 || target == unit) return;
     auto* other = static_cast<CUnit*>(target);
-    if (other->player == unit->player || other->prototypeId_ == kUntameable) return;
+    if (other->player == unit->player || other->prototypeId == kUntameable) return;
     QueueUse(this, target, UseSource::Tame, 0, run, AckKind::UseObject);
 }
 
@@ -95,7 +95,7 @@ void CUnitServer::OrderSearchBody(CMapObject* target, int run) {
 }
 
 bool CUnitServer::TargetBusy(CMapObject* target) {
-    if (target->flags_ & MapObjectFlag::Shared) return !g_serverWorld.IsObjectShared(target->id_, unit->id_);
+    if (target->flags & MapObjectFlag::Shared) return !g_serverWorld.IsObjectShared(target->id, unit->id);
     AIBrain* ai = &brain;
     for (auto& node : ai->memory.nearby) {
         CUnit* other = node;
@@ -130,7 +130,7 @@ void CUnitServer::StopAction() {
     state = UnitState::Stopped;
     unit->UpdateSizeClass();
     if (effectObject) {
-        g_serverWorld.RemoveTimedObject(effectObject->id_);
+        g_serverWorld.RemoveTimedObject(effectObject->id);
         effectObject.Reset();
     }
     OrderPlanReset(&currentPlan);   // SetSize(0, -1) instead of the free, like the original

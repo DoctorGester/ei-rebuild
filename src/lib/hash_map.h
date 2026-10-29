@@ -60,12 +60,12 @@ class HashMap {
         Iterator() = default;
         // (a template, so the copy constructor stays the implicit one)
         template <bool C = Const, std::enable_if_t<C, int> = 0>
-        Iterator(const Iterator<false>& other) : node_(other.node_), map_(other.map_) {}
+        Iterator(const Iterator<false>& other) : node(other.node), map(other.map) {}
 
-        reference operator*() const { return node_->value; }
-        pointer operator->() const { return &node_->value; }
+        reference operator*() const { return node->value; }
+        pointer operator->() const { return &node->value; }
         Iterator& operator++() {
-            node_ = map_->After(node_);
+            node = map->After(node);
             return *this;
         }
         Iterator operator++(int) {
@@ -73,14 +73,14 @@ class HashMap {
             ++*this;
             return old;
         }
-        friend bool operator==(const Iterator& a, const Iterator& b) { return a.node_ == b.node_; }
+        friend bool operator==(const Iterator& a, const Iterator& b) { return a.node == b.node; }
 
     private:
         friend class HashMap;
         template <bool> friend class Iterator;
-        Iterator(Node* node, const HashMap* map) : node_(node), map_(map) {}
-        Node* node_ = nullptr;
-        const HashMap* map_ = nullptr;
+        Iterator(Node* newNode, const HashMap* newMap) : node(newNode), map(newMap) {}
+        Node* node = nullptr;
+        const HashMap* map = nullptr;
     };
 
     // One bucket's chain from its head.
@@ -94,18 +94,18 @@ class HashMap {
         using reference = std::conditional_t<Const, const value_type&, value_type&>;
 
         LocalIterator() = default;
-        reference operator*() const { return node_->value; }
-        pointer operator->() const { return &node_->value; }
+        reference operator*() const { return node->value; }
+        pointer operator->() const { return &node->value; }
         LocalIterator& operator++() {
-            node_ = node_->next;
+            node = node->next;
             return *this;
         }
-        friend bool operator==(const LocalIterator& a, const LocalIterator& b) { return a.node_ == b.node_; }
+        friend bool operator==(const LocalIterator& a, const LocalIterator& b) { return a.node == b.node; }
 
     private:
         friend class HashMap;
-        explicit LocalIterator(Node* node) : node_(node) {}
-        Node* node_ = nullptr;
+        explicit LocalIterator(Node* newNode) : node(newNode) {}
+        Node* node = nullptr;
     };
 
 public:
@@ -118,27 +118,27 @@ public:
     using local_iterator = LocalIterator<false>;
     using const_local_iterator = LocalIterator<true>;
 
-    explicit HashMap(size_type hint = 100) : buckets_(HashPrime(hint), nullptr) {}
+    explicit HashMap(size_type hint = 100) : buckets(HashPrime(hint), nullptr) {}
     // The same buckets, each chain copied in order.
-    HashMap(const HashMap& other) : buckets_(other.buckets_.size(), nullptr), count_(other.count_) { CopyChains(other); }
-    HashMap(HashMap&& other) noexcept : buckets_(std::move(other.buckets_)), count_(other.count_) {
-        other.buckets_.clear();
-        other.count_ = 0;
+    HashMap(const HashMap& other) : buckets(other.buckets.size(), nullptr), elementCount(other.elementCount) { CopyChains(other); }
+    HashMap(HashMap&& other) noexcept : buckets(std::move(other.buckets)), elementCount(other.elementCount) {
+        other.buckets.clear();
+        other.elementCount = 0;
     }
     HashMap& operator=(const HashMap& other) {
         if (&other == this) return *this;
         clear();
-        buckets_.assign(other.buckets_.size(), nullptr);
-        count_ = other.count_;
+        buckets.assign(other.buckets.size(), nullptr);
+        elementCount = other.elementCount;
         CopyChains(other);
         return *this;
     }
     HashMap& operator=(HashMap&& other) noexcept {
         if (&other == this) return *this;
         clear();
-        buckets_.swap(other.buckets_);
-        count_ = other.count_;
-        other.count_ = 0;
+        buckets.swap(other.buckets);
+        elementCount = other.elementCount;
+        other.elementCount = 0;
         return *this;
     }
     ~HashMap() { clear(); }
@@ -147,13 +147,13 @@ public:
     const_iterator begin() const { return {First(), this}; }
     iterator end() { return {}; }
     const_iterator end() const { return {}; }
-    size_type size() const { return count_; }
-    bool empty() const { return count_ == 0; }
+    size_type size() const { return elementCount; }
+    bool empty() const { return elementCount == 0; }
 
-    size_type bucket_count() const { return buckets_.size(); }
-    size_type bucket(const K& key) const { return Hash()(key) % buckets_.size(); }
-    local_iterator begin(size_type b) { return local_iterator(buckets_[b]); }
-    const_local_iterator begin(size_type b) const { return const_local_iterator(buckets_[b]); }
+    size_type bucket_count() const { return buckets.size(); }
+    size_type bucket(const K& key) const { return Hash()(key) % buckets.size(); }
+    local_iterator begin(size_type b) { return local_iterator(buckets[b]); }
+    const_local_iterator begin(size_type b) const { return const_local_iterator(buckets[b]); }
     local_iterator end(size_type) { return {}; }
     const_local_iterator end(size_type) const { return {}; }
 
@@ -167,14 +167,14 @@ public:
     V& operator[](const K& key) requires(!Multi) { return try_emplace(key).first->second; }
     template <typename... A>
     std::pair<iterator, bool> try_emplace(const K& key, A&&... arguments) requires(!Multi) {
-        reserve(count_ + 1);
+        reserve(elementCount + 1);
         size_type b = bucket(key);
-        for (Node* n = buckets_[b]; n; n = n->next)
+        for (Node* n = buckets[b]; n; n = n->next)
             if (n->value.first == key) return {iterator(n, this), false};
-        Node* n = new Node{buckets_[b], std::pair<const K, V>(std::piecewise_construct, std::forward_as_tuple(key),
+        Node* n = new Node{buckets[b], std::pair<const K, V>(std::piecewise_construct, std::forward_as_tuple(key),
                                                               std::forward_as_tuple(std::forward<A>(arguments)...))};
-        buckets_[b] = n;
-        ++count_;
+        buckets[b] = n;
+        ++elementCount;
         return {iterator(n, this), true};
     }
     std::pair<iterator, bool> insert(const value_type& value) requires(!Multi) {
@@ -183,14 +183,14 @@ public:
     // hash_multimap's insert (insert_equal): the table grows for one more entry, then the value goes right after
     // the first entry with its key, else to the head of its bucket.
     iterator insert(const value_type& value) requires Multi {
-        reserve(count_ + 1);
-        Node** head = &buckets_[bucket(value.first)];
+        reserve(elementCount + 1);
+        Node** head = &buckets[bucket(value.first)];
         Node* same = *head;
         while (same && !(same->value.first == value.first)) same = same->next;
         Node*& link = same ? same->next : *head;
         Node* n = new Node{link, value};
         link = n;
-        ++count_;
+        ++elementCount;
         return {n, this};
     }
     // The entries with `key` (next to each other in their chain); the end is the entry after them in walk order.
@@ -204,13 +204,13 @@ public:
 
     // Erases the entry; the one after it in walk order.
     iterator erase(const_iterator position) {
-        Node* node = position.node_;
+        Node* node = position.node;
         Node* next = After(node);
-        Node** slot = &buckets_[bucket(node->value.first)];
+        Node** slot = &buckets[bucket(node->value.first)];
         while (*slot != node) slot = &(*slot)->next;
         *slot = node->next;
         delete node;
-        --count_;
+        --elementCount;
         return {next, this};
     }
     iterator erase(iterator position) { return erase(const_iterator(position)); }
@@ -222,7 +222,7 @@ public:
     }
     // Every chain freed from its head; the buckets stay.
     void clear() {
-        for (Node*& head : buckets_) {
+        for (Node*& head : buckets) {
             for (Node* n = head; n;) {
                 Node* next = n->next;
                 delete n;
@@ -230,18 +230,18 @@ public:
             }
             head = nullptr;
         }
-        count_ = 0;
+        elementCount = 0;
     }
 
     // STLport's resize(hint): HashPrime(hint) buckets when that is more than there are, each old chain moved
     // head first to the head of its new bucket.
     void reserve(size_type hint) {
-        size_type old = buckets_.size();
+        size_type old = buckets.size();
         if (hint <= old) return;
         size_type n = HashPrime(hint);
         if (n <= old) return;
         std::vector<Node*> fresh(n, nullptr);
-        for (Node*& head : buckets_) {
+        for (Node*& head : buckets) {
             while (Node* first = head) {
                 size_type to = Hash()(first->value.first) % n;
                 head = first->next;
@@ -249,39 +249,39 @@ public:
                 fresh[to] = first;
             }
         }
-        buckets_.swap(fresh);
+        buckets.swap(fresh);
     }
 
 private:
     Node* FindNode(const K& key) const {
-        if (buckets_.empty()) return nullptr;
-        for (Node* n = buckets_[bucket(key)]; n; n = n->next)
+        if (buckets.empty()) return nullptr;
+        for (Node* n = buckets[bucket(key)]; n; n = n->next)
             if (n->value.first == key) return n;
         return nullptr;
     }
     Node* First() const {
-        for (Node* head : buckets_)
+        for (Node* head : buckets)
             if (head) return head;
         return nullptr;
     }
     Node* After(const Node* node) const {
         if (node->next) return node->next;
-        for (size_type b = bucket(node->value.first) + 1; b < buckets_.size(); ++b)
-            if (buckets_[b]) return buckets_[b];
+        for (size_type b = bucket(node->value.first) + 1; b < buckets.size(); ++b)
+            if (buckets[b]) return buckets[b];
         return nullptr;
     }
     void CopyChains(const HashMap& other) {
-        for (size_type b = 0; b < other.buckets_.size(); ++b) {
-            Node** tail = &buckets_[b];
-            for (const Node* n = other.buckets_[b]; n; n = n->next) {
+        for (size_type b = 0; b < other.buckets.size(); ++b) {
+            Node** tail = &buckets[b];
+            for (const Node* n = other.buckets[b]; n; n = n->next) {
                 *tail = new Node{nullptr, n->value};
                 tail = &(*tail)->next;
             }
         }
     }
 
-    std::vector<Node*> buckets_;
-    size_type count_ = 0;
+    std::vector<Node*> buckets;
+    size_type elementCount = 0;
 };
 
 template <typename K, typename V, typename Hash = DwordHash>

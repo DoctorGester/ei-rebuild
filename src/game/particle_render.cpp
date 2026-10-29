@@ -38,8 +38,8 @@ constexpr int kReserve = 0x1000;
 
 // How far the frame is between the last tick and the next, clamped to [0, 1] (NaN gives 1).
 float Interpolation() {
-    double ticks = g_clientWorld.tick_;
-    float fraction = static_cast<float>((ticks + D(g_clientWorld.tickFraction_)) - ticks);
+    double ticks = g_clientWorld.tick;
+    float fraction = static_cast<float>((ticks + D(g_clientWorld.tickFraction)) - ticks);
     float one;
     one = 1.0f;
     float clamped = fraction <= one ? fraction : one;
@@ -63,7 +63,7 @@ int CSceneRenderer::BindLoadedTexture(int stage, CTexture* texture) {
 // and drawn; 0 when the texture cannot be bound.
 int CParticleSource::Draw(CSceneRenderer* renderer) {
     if (particles.empty()) return 1;
-    if (renderer->pipeline_->ClipTest(&clip) == 2) {
+    if (renderer->pipeline->ClipTest(&clip) == 2) {
         ++hiddenTicks;
         return 1;
     }

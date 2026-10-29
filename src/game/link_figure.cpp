@@ -93,44 +93,44 @@ constexpr int kNoRect = 2000000000;
 
 
 // No references is the base's.
-CLinkMeshBase::CLinkMeshBase(const std::string* name) : refCount_(0), name_(*name) {}
+CLinkMeshBase::CLinkMeshBase(const std::string* newName) : refCount(0), name(*newName) {}
 
 CLinkMeshBase::~CLinkMeshBase() = default;
 
-CLinkMesh::CLinkMesh(CLinkFigureLoader* loader, const std::string* name, float s, float t, float u)
+CLinkMesh::CLinkMesh(CLinkFigureLoader* newLoader, const std::string* name, float s, float t, float u)
     : CLinkMeshBase(name) {
-    morphWeights_[0] = s;
-    morphWeights_[1] = t;
-    morphWeights_[2] = u;
-    loader_ = loader;
+    morphWeights[0] = s;
+    morphWeights[1] = t;
+    morphWeights[2] = u;
+    loader = newLoader;
 }
 
 CLinkMesh::~CLinkMesh() {
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
 }
 
-bool CLinkMesh::AddPart(const std::string* name, const VertexPacket* vertices, int vertexCount,
-                        const NormalPacket* normals, int normalCount, const TexCoord* texCoords, int texCoordCount,
-                        const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
-                        const std::uint16_t* indices, int indexCount) {
+bool CLinkMesh::AddPart(const std::string* newName, const VertexPacket* newVertices, int vertexCount,
+                        const NormalPacket* newNormals, int normalCount, const TexCoord* newTexCoords, int texCoordCount,
+                        const MeshCorner* newCorners, int cornerCount, const std::uint32_t* newWords, int wordCount,
+                        const std::uint16_t* newIndices, int indexCount) {
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
-    if (ranges_.find(*name) != ranges_.end()) return false;
+    if (ranges.find(*newName) != ranges.end()) return false;
 
-    LinkPartRanges ranges{};
-    ranges.vertices = {Append(vertices_, vertices, vertexCount), vertexCount};
-    ranges.normals = {Append(normals_, normals, normalCount), normalCount};
-    ranges.texCoords = {Append(texCoords_, texCoords, texCoordCount), texCoordCount};
+    LinkPartRanges newRanges{};
+    newRanges.vertices = {Append(vertices, newVertices, vertexCount), vertexCount};
+    newRanges.normals = {Append(normals, newNormals, normalCount), normalCount};
+    newRanges.texCoords = {Append(texCoords, newTexCoords, texCoordCount), texCoordCount};
 
-    int start = std::ssize(corners_);
-    corners_.resize(start + cornerCount);
-    std::memcpy(corners_.data() + start, corners, static_cast<std::size_t>(cornerCount) * sizeof(MeshCorner));
-    ranges.corners = {start, cornerCount};
+    int start = std::ssize(corners);
+    corners.resize(start + cornerCount);
+    std::memcpy(corners.data() + start, newCorners, static_cast<std::size_t>(cornerCount) * sizeof(MeshCorner));
+    newRanges.corners = {start, cornerCount};
 
     // The out-of-line SetSize(n, -1) for these two.
-    ranges.words = {Append(words_, words, wordCount), wordCount};
-    ranges.indices = {Append(indices_, indices, indexCount), indexCount};
+    newRanges.words = {Append(words, newWords, wordCount), wordCount};
+    newRanges.indices = {Append(indices, newIndices, indexCount), indexCount};
 
-    ranges_[*name] = ranges;
+    ranges[*newName] = newRanges;
     return true;
 }
 
@@ -138,7 +138,7 @@ bool CLinkMesh::AddPart(const std::string* name, const VertexPacket* vertices, i
 
 void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t,
                                     float u) {
-    LinkPartHeader* header = &mesh->headers_[*name];
+    LinkPartHeader* header = &mesh->headers[*name];
     FigHeader fig = Read<FigHeader>(cursor);
     header->materialValue = Read<std::uint32_t>(cursor);
     header->meshType = Read<std::uint32_t>(cursor);
@@ -174,7 +174,7 @@ void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const std::string* name, co
 
 void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t,
                                     float u) {
-    LinkPartHeader* header = &mesh->headers_[*name];
+    LinkPartHeader* header = &mesh->headers[*name];
     header->materialValue = Read<std::uint32_t>(cursor);
     header->meshType = Read<std::uint32_t>(cursor);
     *cursor += 0xF0;   // the morphed bounds
@@ -212,7 +212,7 @@ void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const std::string* name, co
 
 void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s,
                                        float t, float u) {
-    LinkPartHeader* header = &mesh->headers_[*name];
+    LinkPartHeader* header = &mesh->headers[*name];
     FigHeader fig;
     lib::LoadBytes(fig, *cursor);
     *cursor += 0x168;   // the header, two dwords and the FIG8 bounds (a plain FIG is read as FIG8 too)
@@ -225,7 +225,7 @@ void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const std::string* name,
 
 void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s,
                                        float t, float u) {
-    LinkPartHeader* header = &mesh->headers_[*name];
+    LinkPartHeader* header = &mesh->headers[*name];
     *cursor += 0xF8;   // two dwords and the morphed bounds
     int count = Read<int>(cursor);
     std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
@@ -235,17 +235,17 @@ void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const std::string* name,
 }
 
 int CLinkMesh::MemoryBytes() const {
-    const int parts = static_cast<int>(ranges_.size());
-    const int inner = std::ssize(texCoords_) + 8 * (std::ssize(vertices_) + std::ssize(normals_)) + 6 * parts;
-    return 2 * (std::ssize(indices_) + 3 * std::ssize(corners_) + 2 * (std::ssize(words_) + 0x2C + 2 * inner));
+    const int parts = static_cast<int>(ranges.size());
+    const int inner = std::ssize(texCoords) + 8 * (std::ssize(vertices) + std::ssize(normals)) + 6 * parts;
+    return 2 * (std::ssize(indices) + 3 * std::ssize(corners) + 2 * (std::ssize(words) + 0x2C + 2 * inner));
 }
 
-bool CLinkMesh::SetPartVertices(const std::string* name, const VertexPacket* vertices, unsigned count) {
-    auto node = ranges_.find(*name);
-    if (node == ranges_.end()) return false;
+bool CLinkMesh::SetPartVertices(const std::string* newName, const VertexPacket* newVertices, unsigned count) {
+    auto node = ranges.find(*newName);
+    if (node == ranges.end()) return false;
     const LinkPartRanges& r = node->second;
     unsigned n = static_cast<unsigned>(r.vertices.count) < count ? static_cast<unsigned>(r.vertices.count) : count;
-    std::memcpy(vertices_.data() + r.vertices.start, vertices, static_cast<std::size_t>(n) * sizeof(VertexPacket));
+    std::memcpy(vertices.data() + r.vertices.start, newVertices, static_cast<std::size_t>(n) * sizeof(VertexPacket));
     render::MeshChanged(this, render::MeshChange::Positions);   // the parts the new renderer keeps
     return true;
 }
@@ -253,48 +253,48 @@ bool CLinkMesh::SetPartVertices(const std::string* name, const VertexPacket* ver
 // ---- CLinkMesh's slots ----------------------------------------------------------------------------
 
 void CLinkMesh::SetMorph(float s, float t, float u) {
-    morphWeights_[0] = s;
-    morphWeights_[1] = t;
-    morphWeights_[2] = u;
+    morphWeights[0] = s;
+    morphWeights[1] = t;
+    morphWeights[2] = u;
 }
 
 void CLinkMesh::UpdateScreenRect() {
-    gameapi::SetRect(&screenRect_, kNoRect, kNoRect, -kNoRect, -kNoRect);
-    for (const auto& [part_name, header] : headers_) {
+    gameapi::SetRect(&screenRect, kNoRect, kNoRect, -kNoRect, -kNoRect);
+    for (const auto& [part_name, header] : headers) {
         const RECT& part = header.screen;
         if (gameapi::IsRectEmpty(&part)) continue;
-        if (part.left < screenRect_.left) screenRect_.left = part.left;
-        if (screenRect_.right < part.right) screenRect_.right = part.right;
-        if (part.top < screenRect_.top) screenRect_.top = part.top;
-        if (screenRect_.bottom < part.bottom) screenRect_.bottom = part.bottom;
+        if (part.left < screenRect.left) screenRect.left = part.left;
+        if (screenRect.right < part.right) screenRect.right = part.right;
+        if (part.top < screenRect.top) screenRect.top = part.top;
+        if (screenRect.bottom < part.bottom) screenRect.bottom = part.bottom;
     }
 }
 
-bool CLinkMesh::HasPart(const std::string* name) { return ranges_.find(*name) != ranges_.end(); }
+bool CLinkMesh::HasPart(const std::string* partName) { return ranges.find(*partName) != ranges.end(); }
 
 std::vector<std::string> CLinkMesh::PartNames() {
     std::vector<std::string> names;
-    for (const auto& part : ranges_) names.push_back(part.first);
+    for (const auto& part : ranges) names.push_back(part.first);
     return names;
 }
 
-bool CLinkMesh::LoadPart(const std::string* name) { return loader_->LoadPartInto(this, name); }
+bool CLinkMesh::LoadPart(const std::string* newName) { return loader->LoadPartInto(this, newName); }
 
-bool CLinkMesh::RemovePart(const std::string* name) {
-    auto node = ranges_.find(*name);
-    if (node == ranges_.end()) return false;
+bool CLinkMesh::RemovePart(const std::string* partName) {
+    auto node = ranges.find(*partName);
+    if (node == ranges.end()) return false;
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
     LinkPartRanges removed = node->second;
-    ranges_.erase(node);
+    ranges.erase(node);
 
-    CloseGap(vertices_, removed.vertices.start, removed.vertices.count);
-    CloseGap(normals_, removed.normals.start, removed.normals.count);
-    CloseGap(texCoords_, removed.texCoords.start, removed.texCoords.count);
-    CloseGap(corners_, removed.corners.start, removed.corners.count);
-    CloseGap(words_, removed.words.start, removed.words.count);
-    CloseGap(indices_, removed.indices.start, removed.indices.count);
+    CloseGap(vertices, removed.vertices.start, removed.vertices.count);
+    CloseGap(normals, removed.normals.start, removed.normals.count);
+    CloseGap(texCoords, removed.texCoords.start, removed.texCoords.count);
+    CloseGap(corners, removed.corners.start, removed.corners.count);
+    CloseGap(words, removed.words.start, removed.words.count);
+    CloseGap(indices, removed.indices.start, removed.indices.count);
 
-    for (auto& [part, r] : ranges_) {
+    for (auto& [part, r] : ranges) {
         if (!(static_cast<std::uint32_t>(r.indices.start) > static_cast<std::uint32_t>(removed.indices.start))) continue;
         r.vertices.start -= removed.vertices.start;
         r.normals.start -= removed.normals.start;
@@ -306,14 +306,14 @@ bool CLinkMesh::RemovePart(const std::string* name) {
     return true;
 }
 
-bool CLinkMesh::GetPartData(const std::string* name, VertexPacket** vertices, MeshCorner** corners,
-                            std::uint16_t** indices, int* vertexCount, int* indexCount) {
-    auto node = ranges_.find(*name);
-    if (node == ranges_.end()) return false;
+bool CLinkMesh::GetPartData(const std::string* partName, VertexPacket** outVertices, MeshCorner** outCorners,
+                            std::uint16_t** outIndices, int* vertexCount, int* indexCount) {
+    auto node = ranges.find(*partName);
+    if (node == ranges.end()) return false;
     const LinkPartRanges& r = node->second;
-    *vertices = vertices_.data() + r.vertices.start;
-    *corners = corners_.data() + r.corners.start;
-    *indices = indices_.data() + r.indices.start;
+    *outVertices = vertices.data() + r.vertices.start;
+    *outCorners = corners.data() + r.corners.start;
+    *outIndices = indices.data() + r.indices.start;
     *indexCount = r.indices.count;
     *vertexCount = r.vertices.count;
     return true;

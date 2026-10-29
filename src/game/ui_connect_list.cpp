@@ -54,7 +54,7 @@ constexpr std::size_t kExtendedTextSize = 90;
 constexpr int kExtendedNameRight = 140;    // the servers' names are drawn within this column
 constexpr int kDetailsNameLines = 3;
 
-// Where the sort arrow stands for each column pair of sortKey_.
+// Where the sort arrow stands for each column pair of sortKey.
 float SortArrowX(int column) {
     switch (column) {
     case 0: return 112.0f;
@@ -82,31 +82,31 @@ void Down(RECT* rect, int dy = kRowHeight) { gameapi::OffsetRect(rect, 0, dy); }
 
 void CMpConnectScreen::DrawListVanilla() {
     auto sprite = [this](int index) { return SceneMesh(index); };
-    auto label = [this](int index) -> const char* { return texts_[index].c_str(); };
-    auto allod = [this](int index) -> const char* { return allodNames_[index].c_str(); };
+    auto label = [this](int index) -> const char* { return texts[index].c_str(); };
+    auto allod = [this](int index) -> const char* { return allodNames[index].c_str(); };
 
-    const bool newGame = selected_ == 0;
+    const bool newGame = selected == 0;
     const int show = newGame ? 1 : 0;
-    playersSlider_->SetEnabled(show);
-    nameEdit_->SetEnabled(show);
-    nameEdit_->SetFocused(show != 0);
-    sprite(kSpriteUnlisted)->visible_ = show;
-    sprite(kSpritePassword)->visible_ = show;
+    playersSlider->SetEnabled(show);
+    nameEdit->SetEnabled(show);
+    nameEdit->SetFocused(show != 0);
+    sprite(kSpriteUnlisted)->visible = show;
+    sprite(kSpritePassword)->visible = show;
     if (!newGame) {
-        regions_[kRegionUnlisted]->SetTip(0);
-        regions_[kRegionPassword]->SetTip(0);
-    } else if (!newGameTips_) {
-        regions_[kRegionUnlisted]->SetTip(kTipUnlisted);
-        regions_[kRegionPassword]->SetTip(kTipPassword);
+        regions[kRegionUnlisted]->SetTip(0);
+        regions[kRegionPassword]->SetTip(0);
+    } else if (!newGameTips) {
+        regions[kRegionUnlisted]->SetTip(kTipUnlisted);
+        regions[kRegionPassword]->SetTip(kTipPassword);
     }
-    newGameTips_ = newGame;
+    newGameTips = newGame;
 
     const bool extended = ei::rebirth::Enabled(ei::rebirth::Patch::ExtendedServerName);
     const Layout& layout = extended ? kExtendedLayout : kVanillaLayout;
     std::string text;
-    CUiSurface* surface = surfaces_[0];
+    CUiSurface* surface = surfaces[0];
     surface->Clear();
-    sprite(kSpriteSelection)->visible_ = false;
+    sprite(kSpriteSelection)->visible = false;
     // The two buttons' texts.
     RECT button{390, 345, 520, 365};
     DrawLabel(surface, label(10), &button, kFormatCentre);
@@ -124,35 +124,35 @@ void CMpConnectScreen::DrawListVanilla() {
     row.left = 12;
     row.right = layout.rowRight;
     CUiMesh* arrow = sprite(kSpriteSortArrow);
-    if (sortKey_ % 2 == 0)
+    if (sortKey % 2 == 0)
         arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
     else
         arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
-    if (sortKey_ != 0) {
-        arrow->visible_ = true;
-        arrow->Place(SortArrowX((sortKey_ - 1) / 2), 116.0f, 4.0f);
+    if (sortKey != 0) {
+        arrow->visible = true;
+        arrow->Place(SortArrowX((sortKey - 1) / 2), 116.0f, 4.0f);
     }
     // The line under the titles.
     POINT from{8, row.bottom - 2};
     POINT to{layout.lineRight, row.bottom - 2};
     // WideScreen: without the margin.
-    interface_->CallScalePointToScreenNoMargin(&from);
-    interface_->CallScalePointToScreenNoMargin(&to);
+    ui->CallScalePointToScreenNoMargin(&from);
+    ui->CallScalePointToScreenNoMargin(&to);
     surface->Line(from.x, from.y, to.x, to.y, 1, g_connectTextColour);
     Down(&row, 27);
 
-    unsigned index = static_cast<unsigned>(scrollTop_);
+    unsigned index = static_cast<unsigned>(scrollTop);
     for (int y = kRowsTop; y < kRowsBottom; y += kRowHeight, ++index) {
-        if (index >= static_cast<unsigned>(entries_.size())) break;
-        if (index == static_cast<unsigned>(selected_)) {
-            sprite(kSpriteSelection)->visible_ = true;
+        if (index >= static_cast<unsigned>(entries.size())) break;
+        if (index == static_cast<unsigned>(selected)) {
+            sprite(kSpriteSelection)->visible = true;
             sprite(kSpriteSelection)->Place(layout.selectionX, static_cast<float>(y), 3.0f);
         }
-        const MpAddressEntry& entry = entries_[index];
+        const MpAddressEntry& entry = entries[index];
         g_connectTextColour = entry.state == kStateAsked ? kColourAsked : entry.state == kState2 ? kColourState2 : kColourPlain;
         if (index == 0) {
             // The new game: its name as typed.
-            text = std::format("{} {}", label(7), nameEdit_->text_);
+            text = std::format("{} {}", label(7), nameEdit->text);
             if (extended)
                 DrawEllipsis(surface, text, &row, kFormatNoPrefix);
             else
@@ -182,18 +182,18 @@ void CMpConnectScreen::DrawListVanilla() {
         Down(&row);
     }
 
-    for (int i = kSpriteTabFirst; i < kSpriteTabEnd; ++i) sprite(i)->visible_ = false;
-    if (selected_ >= 0 && static_cast<unsigned>(selected_) < static_cast<unsigned>(entries_.size())) {
+    for (int i = kSpriteTabFirst; i < kSpriteTabEnd; ++i) sprite(i)->visible = false;
+    if (selected >= 0 && static_cast<unsigned>(selected) < static_cast<unsigned>(entries.size())) {
         // The selected entry's details.
         g_connectTextColour = kColourPlain;
-        const MpAddressEntry& entry = entries_[selected_];
+        const MpAddressEntry& entry = entries[selected];
         row = RECT{340, 20, 590, 44};
-        if (selected_ == 0) {
-            for (int i = kSpriteTabFirst; i < kSpriteTabEnd; ++i) sprite(i)->visible_ = true;
+        if (selected == 0) {
+            for (int i = kSpriteTabFirst; i < kSpriteTabEnd; ++i) sprite(i)->visible = true;
             DrawLabel(surface, label(0), &row, 0);
             Down(&row);
             Down(&row);
-            text = std::format("{} {}", label(2), maxPlayers_);
+            text = std::format("{} {}", label(2), maxPlayers);
             DrawLabel(surface, text, &row, 0);
             Down(&row);
             Down(&row);
@@ -224,7 +224,7 @@ void CMpConnectScreen::DrawListVanilla() {
             DrawLabel(surface, text, &row, 0);
             Down(&row);
             if (entry.gameType == kNewGameType)
-                text = texts_[3] + " ?";
+                text = texts[3] + " ?";
             else
                 text = std::format("{} {}", label(3), allod(entry.gameType));
             DrawLabel(surface, text, &row, 0);

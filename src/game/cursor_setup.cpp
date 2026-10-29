@@ -48,7 +48,7 @@ const CursorShape kShapes[] = {
 // `smallCursors` (low byte tested) go to the cursor's Init.
 void SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors) {
     const bool useSmall = static_cast<std::uint8_t>(smallCursors) != 0;
-    g_cursor.Init(g_sceneRenderer.device_, modeTwo ? 2 : 1, context, useSmall);
+    g_cursor.Init(g_sceneRenderer.device, modeTwo ? 2 : 1, context, useSmall);
     for (const CursorShape& shape : kShapes)
         g_cursor.AddShape(useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY);
     g_cursor.Start();

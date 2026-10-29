@@ -19,7 +19,7 @@
 #include <cstdio>
 
 namespace {
-constexpr std::uint32_t kFlagNotDrawn = 8;            // the unit's flags_
+constexpr std::uint32_t kFlagNotDrawn = 8;            // the unit's flags
 constexpr int kDeadShownTicks = 50;                   // after the unit's +0x254
 constexpr std::uint32_t kKeyMovement = kAnimationMoveMask;
 constexpr std::uint32_t kKeyMovementStill = AnimationKeyOf(AnimationMoveBits::Mode0);
@@ -30,15 +30,15 @@ constexpr int kIdleRestartBelow = 3;                  // CFigureAnimationState::
 // Is sound `handle` still playing or waiting to play?
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    CSoundManager* sounds = g_clientWorld.sounds_;
+    CSoundManager* sounds = g_clientWorld.sounds;
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
 void SetTalking(const CUnit* unit, bool talking) {
-    CEngineObject* serverUnit = g_serverWorld.FindUnit(unit->id_);
+    CEngineObject* serverUnit = g_serverWorld.FindUnit(unit->id);
     if (!serverUnit) return;
-    if (talking) serverUnit->flags_ |= MapObjectFlag::Blocked;
-    else serverUnit->flags_ &= ~MapObjectFlag::Blocked;
+    if (talking) serverUnit->flags |= MapObjectFlag::Blocked;
+    else serverUnit->flags &= ~MapObjectFlag::Blocked;
 }
 
 // The drawn parts take `alpha`.
@@ -69,15 +69,15 @@ bool CUnitClientSpecific::RunTick() {
     if (current) ShowWeaponParts((current->key & kAnimationVariantBits) == 0);
 
     bool drawn;
-    if (unit->dead && World()->tick_ >
+    if (unit->dead && World()->tick >
                           static_cast<std::uint8_t>(unit->animationEntry) + kDeadShownTicks) {
         drawn = false;
     } else {
         drawn =
             current && ((current->key & kKeyMovement) != kKeyMovementStill || current->Kind() == AnimationKind::Cross);
     }
-    if (drawn) unit->flags_ &= ~kFlagNotDrawn;
-    else unit->flags_ |= kFlagNotDrawn;
+    if (drawn) unit->flags &= ~kFlagNotDrawn;
+    else unit->flags |= kFlagNotDrawn;
 
     EI_NAN_AUDIT(fadeIn);
     if (fadeIn < 1.0f) {
@@ -147,7 +147,7 @@ int CUnitClientSpecific::Level() {
 void CUnitClientSpecific::RefreshWounds() {
     if (ComposeWoundsTexture()) {
         char name[0x80];
-        std::snprintf(name, sizeof(name), "mo%dw", unit->id_);
+        std::snprintf(name, sizeof(name), "mo%dw", unit->id);
         unit->ClientSpecific()->ShowWounds(name);
     } else {
         unit->ClientSpecific()->HideWounds();

@@ -18,16 +18,16 @@
 
 #include <concepts>
 
-void CHudTopPanel::Setup(int page, bool shown) {
-    rect_.left = 0xB4;
-    offset_ = shown ? 0x5F : 0;
-    rect_.top = 0;
-    slide_ = shown ? 1.0f : 0.0f;
-    rect_.right = 0x26C;
-    rect_.bottom = 100;
-    sliding_ = true;
-    travel_ = 0x5F;
-    slideDirection_ = shown ? 1.0f : -1.0f;
+void CHudTopPanel::Setup(int newPage, bool shown) {
+    rect.left = 0xB4;
+    offset = shown ? 0x5F : 0;
+    rect.top = 0;
+    slide = shown ? 1.0f : 0.0f;
+    rect.right = 0x26C;
+    rect.bottom = 100;
+    sliding = true;
+    travel = 0x5F;
+    slideDirection = shown ? 1.0f : -1.0f;
 
     CUiRegion* region = AddRegion();
     region->SetRect(0x181, 0, 0x19F, 0x14);   // the slide button
@@ -42,20 +42,20 @@ void CHudTopPanel::Setup(int page, bool shown) {
 
     CUiMesh* back = AddBlankSprite();
     back->SetRectangle(20.0f, 100.0f, 180.0f, 20.0f, 620.0f, 95.0f, 0, 0, 0x100, 0x100);
-    back->texture_ = nullptr;
-    back->flags_ |= FigureMeshFlag::Flat;
-    back->flatColour_ = 0x50000000;
+    back->texture = nullptr;
+    back->flags |= FigureMeshFlag::Flat;
+    back->flatColour = 0x50000000;
     CUiMesh* bar = AddBlankSprite();
     bar->SetRectangle(20.0f, 100.0f, 180.0f, 0.0f, 620.0f, 20.0f, 0, 0, 0x100, 0x100);
-    bar->texture_ = nullptr;
-    bar->flags_ |= FigureMeshFlag::Flat;
-    bar->flatColour_ = 0xB4000000;
+    bar->texture = nullptr;
+    bar->flags |= FigureMeshFlag::Flat;
+    bar->flatColour = 0xB4000000;
 
     CUiMesh* arrow = AddSprite("in25arrow");
-    arrow->textureOffsetU_ = 0.22265625f;
-    arrow->textureOffsetV_ = 0.140625f;
+    arrow->textureOffsetU = 0.22265625f;
+    arrow->textureOffsetV = 0.140625f;
     Quaternion turn;
-    arrow->localRotation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
+    arrow->localRotation = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
     arrow->Place(400.0f, -52.0f, FloatFromBits(0x4101B287));
     arrow->SetScale(0.8f);
 
@@ -63,7 +63,7 @@ void CHudTopPanel::Setup(int page, bool shown) {
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 215.0f, 0.0f, 245.0f, 20.0f, 2, 0x96, 0x20, 0xAA);
     AddBlankSprite()->SetFrame(18.0f, 80.0f, 180.0f, -5.0f, 620.0f, 100.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
 
-    page_ = page;
+    page = newPage;
     ShowPage();
     Layout();
 }
@@ -71,16 +71,16 @@ void CHudTopPanel::Setup(int page, bool shown) {
 void CHudTopPanel::AddPickedUp(CItem* item, bool crippled) {
     std::string name;
     std::string kind;
-    name = g_clientWorld.texts_->FormatItemName(item);
+    name = g_clientWorld.texts->FormatItemName(item);
     const char* key = crippled ? "combat_crippled" : "combat_picked_up";
-    kind = g_clientWorld.texts_->GetString(key);
+    kind = g_clientWorld.texts->GetString(key);
     std::string line = kind;
     line += " ";
     line += name;
     line += "\n";   // "\n"
     name = line;
-    pageTexts_[0] += name;
-    if (page_ == 0) owner_->messageLog_->AddText(name);
+    pageTexts[0] += name;
+    if (page == 0) owner->messageLog->AddText(name);
 }
 
 void CHudTopPanel::AddMoney(int money) {
@@ -88,14 +88,14 @@ void CHudTopPanel::AddMoney(int money) {
     std::string text;
     std::string picked;
     std::string format;
-    picked = g_clientWorld.texts_->GetString("combat_picked_up");
-    format = g_clientWorld.texts_->GetString("format_money");
+    picked = g_clientWorld.texts->GetString("combat_picked_up");
+    format = g_clientWorld.texts->GetString("format_money");
     text = str::Format(format, money);
     std::string line = picked;
     line += " ";
     line += text;
     line += "\n";   // "\n"
     text = line;
-    pageTexts_[0] += text;
-    if (page_ == 0) owner_->messageLog_->AddText(text);
+    pageTexts[0] += text;
+    if (page == 0) owner->messageLog->AddText(text);
 }

@@ -22,10 +22,10 @@
 namespace {
 
 // The local player record through the client's local view (no null checks).
-CPlayer* LocalPlayer() { return g_clientWorld.LocalView()->player_; }
+CPlayer* LocalPlayer() { return g_clientWorld.LocalView()->player; }
 
-// A player's named float variable (its party's variables_).
-float Variable(CPlayer* player, std::string_view name) { return player->Party()->variables_.Get(name); }
+// A player's named float variable (its party's variables).
+float Variable(CPlayer* player, std::string_view name) { return player->Party()->variables.Get(name); }
 
 } // namespace
 
@@ -38,8 +38,8 @@ bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) const {
     // The matrix's row 2: the depth axis and its offset.
     const Vector3 normal{view[8], view[9], view[10]};
     float offset = view[11];
-    float da = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(first->localPosition_, normal) + offset);
-    float db = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(second->localPosition_, normal) + offset);
+    float da = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(first->localPosition, normal) + offset);
+    float db = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(second->localPosition, normal) + offset);
     // Living objects come before dead ones; within each kind, by depth. The game asks each object again at
     // every step, so the calls are repeated here in the same order.
     if ((first->IsDead() == 0 && second->IsDead() == 0) ||
@@ -54,18 +54,18 @@ bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) const {
 
 bool IsMultiplayerClient() {
     net::ClientSession* client = net::g_gameClient;
-    if (client && !(client->flags7_ & CRefCounted::kDetached)) return true;
+    if (client && !(client->flags7 & CRefCounted::kDetached)) return true;
     return false;
 }
 
 float GameTime() {
     CWorldClient* client = &g_clientWorld;
-    return static_cast<float>(client->tick_) + client->tickFraction_;
+    return static_cast<float>(client->tick) + client->tickFraction;
 }
 
 CParty* LocalPlayerData() { return LocalPlayer()->Party(); }
 
-std::string LocalPlayerZone() { return LocalPlayer()->Party()->zone_; }
+std::string LocalPlayerZone() { return LocalPlayer()->Party()->zone; }
 
 float LocalPlayerVariable(std::string_view name) { return Variable(LocalPlayer(), name); }
 

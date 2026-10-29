@@ -37,7 +37,7 @@ void CUnit::EffectsChanged() {
 void CUnit::ApplyBaseScale() { SetFigureScale(&baseScale.x); }
 
 void CUnit::LoadFigures() {
-    if (flags_ & MapObjectFlag::FiguresLoaded) return;
+    if (flags & MapObjectFlag::FiguresLoaded) return;
     CObject3D::LoadFigures();
     Controller()->FiguresLoaded();
 }
@@ -77,14 +77,14 @@ void CUnit::UpdateSizeClasses() {
 }
 
 float* CUnit::StandPoint(float* out) {
-    float x = localPosition_.x;
-    float y = localPosition_.y;
+    float x = localPosition.x;
+    float y = localPosition.y;
     float lift = static_cast<float>(ModeSpeed());   // inlined
     CWorld* world = World();
     double height;
     if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == ClassId::UnitServer) {
-            height = world->SurfaceHeightAt(x, y) + localPosition_.z;
+            height = world->SurfaceHeightAt(x, y) + localPosition.z;
         } else {
             height = world->SurfaceHeightAt(x, y) + heightOffset;
         }
@@ -98,18 +98,18 @@ float* CUnit::StandPoint(float* out) {
 }
 
 void CUnit::PlaceOnGround(float offset) {
-    float x = localPosition_.x;
-    float y = localPosition_.y;
+    float x = localPosition.x;
+    float y = localPosition.y;
     heightOffset = offset;
     CWorld* world = World();
     if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == ClassId::UnitServer) {
-            localPosition_.z = static_cast<float>(world->SurfaceHeightAt(x, y) + localPosition_.z);
+            localPosition.z = static_cast<float>(world->SurfaceHeightAt(x, y) + localPosition.z);
         } else {
-            localPosition_.z = static_cast<float>(world->SurfaceHeightAt(x, y) + heightOffset);
+            localPosition.z = static_cast<float>(world->SurfaceHeightAt(x, y) + heightOffset);
         }
     } else {
-        localPosition_.z = static_cast<float>(world->GroundHeightAt(x, y));
+        localPosition.z = static_cast<float>(world->GroundHeightAt(x, y));
     }
 }
 
@@ -122,9 +122,9 @@ void CUnit::SetFromStats(UnitStats* stats) {
 }
 
 int CUnit::Level() {
-    if (IsTextKey(id_)) return Controller()->Level();
+    if (IsTextKey(id)) return Controller()->Level();
     const auto* prototype =
-        unitdb::PrototypeRecord(prototypeId_);
+        unitdb::PrototypeRecord(prototypeId);
     return static_cast<int>(prototype->level);
 }
 

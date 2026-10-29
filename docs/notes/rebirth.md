@@ -318,7 +318,7 @@ player game (the overlay's root is drawn only for network clients): the harness'
   right edge 370 -> 381.5 (0061B5CE), the name field's rectangle and the players slider's rectangle right edge 650 -> 680 (0061BB51), and the
   name field's `SetLook(3, 0, 1, 10, ...)` -> `SetLook(15, 0, 0, 50, ...)` (0061BC0E classes, 0061BC0B font, 0061BC09 length; the trimming of
   the hero's name to 10 characters stays). EI_Plugin's NPlayers also lies in the function: the slider's maximum (0061BAF7+1, `push 5`)
-  becomes `max(n, 7) - 1` and its position (0061BB82) `max(n, 1) - 1`; `maxPlayers_` stays 6. `ei::rebirth::PluginNPlayers()` carries n from
+  becomes `max(n, 7) - 1` and its position (0061BB82) `max(n, 1) - 1`; `maxPlayers` stays 6. `ei::rebirth::PluginNPlayers()` carries n from
   the hook's ini reading (default 7, the plugin's).
 
 **Battle screen panels (W3)**: the map 00641F20 (setup) / 00642930 (layout) / 00642B40 (update) / 00645210 (mouse up), the unit panel
@@ -331,7 +331,7 @@ while Active, else 0) added to or taken off the layout constants. As with addon 
 layouts inside the setups, ShowMode inside the movement panel's setup, Highlight inside AddWeapon); the mid-function handlers are kept where
 they are: the unit panel's setup sets it at +39 (after the SEH frame), the action column's constructor at +78 (after the vtables), the map's
 layout clears it at +1D9 (before the regions' offsets), the unit panel's draw at +87D (before the window's base draw).
-- The unit panel's setup writes addon's own rectangle (-133, 0)-(52, 225) and `sliding_` 0 (the original: (0, 0)-(185, 225), 1), whatever
+- The unit panel's setup writes addon's own rectangle (-133, 0)-(52, 225) and `sliding` 0 (the original: (0, 0)-(185, 225), 1), whatever
   the margin.
 - The weapon bar's constructor starts its regions at 80 - extra but still loops while x < 240 (addon changed `MOV EDI,0x50` only): at 3840 x
   2160 (extra 134) eight regions, tips on the first four. AddWeapon's two FADDs read addon's floats written over SetRect's dead code at
@@ -356,7 +356,7 @@ computes the floats it writes into the code:
   (2.0, 100.0, 800, 0, 800 + margin, 600, ...) with the texture coordinates (0xE3, 0x3E)-(0x100, 0xB0) and mirrored, tint 0.3, shown on the
   camp, hidden on the hero screen; `widescreen::AddCurtains`. The hero screen's mode 00615D30 (ui_hero_screen_mode.cpp, addon's 100236C3
   after it) shows them in every mode but the hero list (9) when the screen has its 21 sprites: `widescreen::ShowHeroCurtains`.
-- The help page 00659420+574 (ui_help_page.cpp): a tutorial message's frames (`message_` set) named `"<text>:<page>"` in addon's two lists
+- The help page 00659420+574 (ui_help_page.cpp): a tutorial message's frames (`message` set) named `"<text>:<page>"` in addon's two lists
   move to the screen's edges: zt9:0, zt12:0, zt12:1, zt13:0, zt14:0, zt14:2, zt17:0, zt20:0, zt22:0 by `-extra`, zt3:2, zt4:0, zt4:1, zt7:0,
   zt10:0, zt10:1, zt18:0 by `+extra` (both of the `#rectangle` line's x values; addon's 10023702 changes the locals before the first
   AddSprite); `TutorialFrameShift`.

@@ -61,7 +61,7 @@ constexpr float kSunk = -100.0f;
 
 // A speaker who is not in the picture is moved below the ground.
 void Sink(CUnit* unit) {
-    if (unit) GameSetUnitHeight(unit->id_, kSunk);
+    if (unit) GameSetUnitHeight(unit->id, kSunk);
 }
 
 constexpr int kEventLeaves = 2;
@@ -70,13 +70,13 @@ constexpr int kEventLeaves = 2;
 
 
 void CBriefingScreen::StartPhrases() {
-    if (voice_ != -1) g_clientWorld.sounds_->StopSound(voice_);
-    voice_ = -1;
-    g_clientWorld.music_->FadeOut();
+    if (voice != -1) g_clientWorld.sounds->StopSound(voice);
+    voice = -1;
+    g_clientWorld.music->FadeOut();
     std::string key = kBriefingSection;
-    key += topic_;
-    if (!g_clientWorld.texts_->CTextManager::Open(key)) {
-        state_ = 0;
+    key += topic;
+    if (!g_clientWorld.texts->CTextManager::Open(key)) {
+        state = 0;
         return;
     }
     CPlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
@@ -84,38 +84,38 @@ void CBriefingScreen::StartPhrases() {
 
     // The camera's position, and that plus its rotation's z axis (third column of the matrix).
     const CCamera* camera = &g_camera;
-    savedCamera_ = camera->localPosition_;
-    const Quaternion& q = camera->localRotation_;
+    savedCamera = camera->localPosition;
+    const Quaternion& q = camera->localRotation;
     double zz = q.z * q.z;
     double axisZ = (q.w * q.w - (LengthSquared2DUnrounded(q.x, q.y) + zz)) + (zz + zz);
     float axisY = static_cast<float>((q.y * q.z - q.x * q.w) * 2.0);
     // x and y are doubled before multiplying; here the compiler doubles z instead of x,
     // which gives the same value (doubling is exact). Dot2D(x, y, z, w) * 2.0 would regroup the sum.
     float axisX = static_cast<float>(Dot2DUnrounded<double>(q.x * 2.0, q.y * 2.0, q.z, q.w));
-    lookAt_.x = static_cast<float>(savedCamera_.x + axisX);
-    lookAt_.y = static_cast<float>(savedCamera_.y + axisY);
-    lookAt_.z = static_cast<float>(axisZ + savedCamera_.z);
+    lookAt.x = static_cast<float>(savedCamera.x + axisX);
+    lookAt.y = static_cast<float>(savedCamera.y + axisY);
+    lookAt.z = static_cast<float>(axisZ + savedCamera.z);
 
-    dialogueText_.clear();
-    text_->SetText(game::kEmptyText);
-    state_ = kStatePhrases;
-    firstPhrase_ = true;
+    dialogueText.clear();
+    text->SetText(game::kEmptyText);
+    state = kStatePhrases;
+    firstPhrase = true;
     NextPhrase(false);
 }
 
-void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
+void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool thirdPerson) {
     // (The name is compared through a copy.)
     bool human = str::Compare(unit->name, kHumanPrototype) == 0;
     SkillAnimation number;
     if (talking) {
-        if (third)
+        if (thirdPerson)
             number = kTalkThird;
         else
             number = human ? kHumanTalk[g_clientRandom.Next() & 3] : kTalk;
     } else {
         number = human ? kHumanListen[g_clientRandom.Next() & 3] : kListen;
     }
-    auto* serverUnit = g_serverWorld.FindUnit(unit->id_);
+    auto* serverUnit = g_serverWorld.FindUnit(unit->id);
     if (!serverUnit) return;
     auto* controller = serverUnit->ServerController();
     controller->StopAction();
@@ -130,11 +130,11 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
 // briefing screen unchecked; the count is read again after each call.
 void SpeakerAnimationDone(CUnit* serverUnit) {
     if (!serverUnit) return;
-    auto* unit = g_clientWorld.FindUnit(serverUnit->id_);
+    auto* unit = g_clientWorld.FindUnit(serverUnit->id);
     if (!unit) return;
     auto* screen = g_interface.ActiveWindowAs<CBriefingScreen>();
-    for (std::size_t i = 0; i < screen->speakers_.size(); ++i)
-        if (screen->speakers_[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
+    for (std::size_t i = 0; i < screen->speakers.size(); ++i)
+        if (screen->speakers[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
 }
 
 void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float height) {
@@ -145,29 +145,29 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
     double y;
     if (!unit) {
         // The middle of the first two places, looked at across the line between them.
-        double sumX = places_[kPersonPlace].x + places_[kLeaderPlace].x;
-        float sumY = static_cast<float>(places_[kPersonPlace].y + places_[kLeaderPlace].y);
-        float sumZ = static_cast<float>(places_[kPersonPlace].z + places_[kLeaderPlace].z);
+        double sumX = places[kPersonPlace].x + places[kLeaderPlace].x;
+        float sumY = static_cast<float>(places[kPersonPlace].y + places[kLeaderPlace].y);
+        float sumZ = static_cast<float>(places[kPersonPlace].z + places[kLeaderPlace].z);
         eye.x = static_cast<float>(sumX * 0.5);
         eye.y = static_cast<float>(sumY * 0.5f);
         eye.z = static_cast<float>(sumZ * 0.5f);
-        x = static_cast<double>(places_[kLeaderPlace].y) - places_[kPersonPlace].y;
-        y = static_cast<double>(places_[kPersonPlace].x) - places_[kLeaderPlace].x;
+        x = static_cast<double>(places[kLeaderPlace].y) - places[kPersonPlace].y;
+        y = static_cast<double>(places[kPersonPlace].x) - places[kLeaderPlace].x;
     } else {
-        Vector3 place{unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
+        Vector3 place{unit->localPosition.x, unit->localPosition.y, unit->localPosition.z};
         Vector3 axis;
-        unit->localRotation_.AxisY(&axis);
+        unit->localRotation.AxisY(&axis);
         Vector3 facing{-axis.x, -axis.y, -axis.z};
         int index = -1;
-        if (unit == leader_)
+        if (unit == leader)
             index = kLeaderPlace;
-        else if (unit == person_)
+        else if (unit == person)
             index = kPersonPlace;
-        else if (unit == third_)
+        else if (unit == third)
             index = kThirdPlace;
         if (index >= 0) {
-            place = places_[index];
-            facing = directions_[index];
+            place = places[index];
+            facing = directions[index];
         }
         auto* prototype = unit->GetPrototype();
         float reach = prototype->viewDistance;
@@ -198,8 +198,8 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
 }
 
 void CBriefingScreen::ViewPreset(int preset) {
-    double dx = static_cast<double>(places_[kLeaderPlace].x) - places_[kPersonPlace].x;
-    double dy = static_cast<double>(places_[kLeaderPlace].y) - places_[kPersonPlace].y;
+    double dx = static_cast<double>(places[kLeaderPlace].x) - places[kPersonPlace].x;
+    double dy = static_cast<double>(places[kLeaderPlace].y) - places[kPersonPlace].y;
     float apart = static_cast<float>(std::sqrt(LengthSquared2DUnrounded(dy, dx)));
     auto view = [this](CUnit* unit, float angle, float distance, float height) {
         ViewSpeaker(unit, static_cast<float>(angle), static_cast<float>(distance), height);
@@ -209,86 +209,86 @@ void CBriefingScreen::ViewPreset(int preset) {
         view(nullptr, 0.0f, apart * 3.0f, 1.5f);
         break;
     case 2:
-        Sink(person_);
-        if (leader_) view(leader_, kPi * -kSixth, 4.0f, 1.5f);
+        Sink(person);
+        if (leader) view(leader, kPi * -kSixth, 4.0f, 1.5f);
         break;
     case 3:
-        Sink(leader_);
-        if (person_) view(person_, kPi * kSixth, 4.0f, 1.5f);
+        Sink(leader);
+        if (person) view(person, kPi * kSixth, 4.0f, 1.5f);
         break;
     case 4:
-        if (third_) view(third_, 0.0f, 4.0f, 1.5f);
+        if (third) view(third, 0.0f, 4.0f, 1.5f);
         break;
     case 5:
         view(nullptr, kPi * kTwelfth, apart * 2.7f, 3.0f);
         break;
     case 6:
-        Sink(person_);
-        if (leader_) view(leader_, kPi * -kQuarter, 3.5f, 3.0f);
+        Sink(person);
+        if (leader) view(leader, kPi * -kQuarter, 3.5f, 3.0f);
         break;
     case 7:
-        Sink(leader_);
-        if (person_) view(person_, kPi * kQuarter, 3.5f, 3.0f);
+        Sink(leader);
+        if (person) view(person, kPi * kQuarter, 3.5f, 3.0f);
         break;
     case 8:
-        if (third_) view(third_, kPi * kTwelfth, 3.5f, 3.0f);
+        if (third) view(third, kPi * kTwelfth, 3.5f, 3.0f);
         break;
     case 9:
         view(nullptr, kPi * -kTwelfth, apart * 2.4f, 3.0f);
         break;
     case 10:
-        if (leader_) view(leader_, kPi * -kTwelfth, 3.0f, 1.0f);
+        if (leader) view(leader, kPi * -kTwelfth, 3.0f, 1.0f);
         break;
     case 11:
-        if (person_) view(person_, kPi * kTwelfth, 3.0f, 1.0f);
+        if (person) view(person, kPi * kTwelfth, 3.0f, 1.0f);
         break;
     case 12:
-        Sink(person_);
-        Sink(leader_);
-        if (third_) view(third_, kPi * -kTwelfth, 3.0f, 1.0f);
+        Sink(person);
+        Sink(leader);
+        if (third) view(third, kPi * -kTwelfth, 3.0f, 1.0f);
         break;
     default:
         break;
     }
 }
 
-void CBriefingScreen::HideSpeaker(std::string_view name, bool immediate, bool run) {
-    auto* person = GameFindClientUnit(TextKeyFromName(name));
-    if (!person) {
-        for (auto node = shown_.begin(); node != shown_.end(); ++node) {
+void CBriefingScreen::HideSpeaker(std::string_view name, bool immediately, bool run) {
+    auto* speaker = GameFindClientUnit(TextKeyFromName(name));
+    if (!speaker) {
+        for (auto node = shown.begin(); node != shown.end(); ++node) {
             if (text::CompareIgnoringCase(node->name,
                                 name) != 0)
                 continue;
             if (node->item) {
-                RemoveObject(node->item->texture_);
+                RemoveObject(node->item->texture);
                 RemoveSceneObject(node->item);
             }
             if (node->back) RemoveSceneObject(node->back);
             if (node->frame) RemoveSceneObject(node->frame);
-            shown_.erase(node);
+            shown.erase(node);
             return;
         }
         return;
     }
-    auto entry = std::find_if(speakers_.begin(), speakers_.end(), [person](const BriefingSpeaker& s) { return s.unit == person; });
-    if (entry != speakers_.end()) {
+    auto entry = std::find_if(speakers.begin(), speakers.end(), [speaker](const BriefingSpeaker& s) { return s.unit == speaker; });
+    if (entry != speakers.end()) {
         CPlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
-        if (server) server->SendPair19(kEventLeaves, person->id_);
-        CUnitClientSpecific* model = person->ClientController();
+        if (server) server->SendPair19(kEventLeaves, speaker->id);
+        CUnitClientSpecific* model = speaker->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);
-        if (auto* serverUnit = g_serverWorld.FindUnit(person->id_)) {
+        if (auto* serverUnit = g_serverWorld.FindUnit(speaker->id)) {
             serverUnit->ShowHelmet(true);
-            GameSetUnitHeight(person->id_, 0.0f);
+            GameSetUnitHeight(speaker->id, 0.0f);
             auto* controller = serverUnit->ServerController();
             controller->actionDone = nullptr;
             controller->StopAction();
             // (The person is then looked up among the party's first members; the result is not used.)
         }
-        speakers_.erase(entry);
+        speakers.erase(entry);
     }
-    if (person == third_) {
-        MovePerson(person, thirdPlace_, thirdDirection_, false, immediate, run);
-        third_ = nullptr;
+    if (speaker == third) {
+        MovePerson(speaker, thirdPlace, thirdDirection, false, immediately, run);
+        third = nullptr;
     }
 }

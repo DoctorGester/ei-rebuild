@@ -58,40 +58,40 @@ bool SnapshotReadToEnd() {
 // like the original). A new start lists the first name (when not empty) and the others, and starts the
 // sequence with the chooser for their count.
 void CEffectSoundSeq::Start(int update) {
-    CSoundManager* sounds = g_clientWorld.sounds_;
+    CSoundManager* sounds = g_clientWorld.sounds;
     if (update != 0) {
-        sounds->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
+        sounds->SetSoundPosition(sound, &localPosition.x, volume, radius);
         return;
     }
     std::vector<std::string> list;
-    const std::string& first = name_;
-    const std::vector<std::string>& others = names_;
+    const std::string& first = name;
+    const std::vector<std::string>& others = names;
     bool withFirst = str::Compare(first, "") != 0;
     if (withFirst) list.push_back(first);
     Chooser chooser = ChooserFor(static_cast<int>(others.size()), withFirst);
     for (const std::string& other : others) list.push_back(other);
-    sound_ = sounds->AddSequence(&list, noFade_ != 0 ? 1000 : 0,
-                                 &localPosition_.x, volume_, radius_, 0, -1, chooser);
+    sound = sounds->AddSequence(&list, noFade != 0 ? 1000 : 0,
+                                 &localPosition.x, volume, radius, 0, -1, chooser);
 }
 
 int CEffectSoundSeq::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
-    name_ = field->ReadString();
+    name = field->ReadString();
     // The count is read into the storage of `field` (ReadDelta always stores it).
     int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(field));
     field->ReadDelta(&count, 4);
-    std::vector<std::string>& others = names_;
+    std::vector<std::string>& others = names;
     others.resize(static_cast<std::size_t>(count));
     for (std::string& other : others) other = field->ReadString();
-    field->ReadFloat16(&volume_);
-    field->ReadFloat16(&radius_);
-    field->ReadFloat16x3(&velocity_.x);
-    field->ReadDelta(&noFade_, 1);
-    EI_NAN_AUDIT(velocity_.x, velocity_.y, velocity_.z);
-    moving_ = velocity_.x == 0.0f && velocity_.y == 0.0f && velocity_.z == 0.0f ? 0 : 1;
+    field->ReadFloat16(&volume);
+    field->ReadFloat16(&radius);
+    field->ReadFloat16x3(&velocity.x);
+    field->ReadDelta(&noFade, 1);
+    EI_NAN_AUDIT(velocity.x, velocity.y, velocity.z);
+    moving = velocity.x == 0.0f && velocity.y == 0.0f && velocity.z == 0.0f ? 0 : 1;
     if (!SnapshotReadToEnd()) return 0;
-    localPosition_ = position;
+    localPosition = position;
     Start(update);
     return 1;
 }

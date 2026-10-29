@@ -221,7 +221,7 @@ PassState ReadPassState(char* device) {
         st.addressV = static_cast<std::uint8_t>(from.addressV);
         // The surface holder the game bound to the stage.
         if (!device) continue;
-        const void* holder = reinterpret_cast<const CTextureDevice*>(device)->stageSurfaces_[stage];
+        const void* holder = reinterpret_cast<const CTextureDevice*>(device)->stageSurfaces[stage];
         st.hasTexture = holder != nullptr;
         st.texture = SurfaceView(holder);
         if (stage == 0) s.patch = PatchOf(holder);
@@ -542,7 +542,7 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     }
     // The distance fog's range: the pipeline's (its start and 255 / length).
     g_pending.distanceFog = mesh.distanceFog;
-    if (const CTransformPipeline* pipeline = reinterpret_cast<const CTextureDevice*>(g_pending.device)->pipeline_) {
+    if (const CTransformPipeline* pipeline = reinterpret_cast<const CTextureDevice*>(g_pending.device)->pipeline) {
         g_pending.fogNear = pipeline->fogStart;
         g_pending.fogScale = pipeline->fogScale;
     } else {

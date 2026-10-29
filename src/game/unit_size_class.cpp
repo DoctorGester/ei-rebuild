@@ -47,8 +47,8 @@ void CUnit::UpdateSizeClass() {
     float limited = standingHeight;
     standingHeight = kMaxHeight >= limited ? limited : kMaxHeight;
     if (sizeClass != 0) return;
-    // The prototype by prototypeId_; out of range it reads address 0x24 (kept).
-    auto* prototype = unitdb::PrototypeRecord(prototypeId_);
+    // The prototype by prototypeId; out of range it reads address 0x24 (kept).
+    auto* prototype = unitdb::PrototypeRecord(prototypeId);
     // Only for a value above 1.5 (NaN not).
     if (prototype->height > kDeepPrototype) standingHeight = kShallowHeight;
 }

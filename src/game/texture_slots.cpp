@@ -37,74 +37,74 @@ void MmpHeader::SetFormat4444() {
 namespace {
 // The counted surface pointer set to null: the holder loses a reference (deleted at 0).
 void DropSurface(CTexture* texture) {
-    texture->surface_.Reset();
+    texture->surface.Reset();
 }
 
 } // namespace
 
-const char* CTexture::GetName() { return name_.c_str(); }
+const char* CTexture::GetName() { return name.c_str(); }
 const char* CTexture::ClassName() { return "CTexture"; }
 ClassId CTexture::GetClassId() { return ClassId::Texture; }
 
 void CTexture::Create() {
-    name_.clear();
+    name.clear();
     DropSurface(this);
-    height_ = 0;
-    width_ = 0;
-    uploadResult_ = 0;
-    format_ = 0;
-    extra_.clear();
+    height = 0;
+    width = 0;
+    uploadResult = 0;
+    format = 0;
+    extra.clear();
 }
 
 void CTexture::Destroy() {
     DropSurface(this);
-    flags_ = 0;
+    flags = 0;
 }
 
 CTexture::CTexture() {
-    name_.clear();
+    name.clear();
     DropSurface(this);
-    height_ = 0;
-    width_ = 0;
-    uploadResult_ = 0;
-    format_ = 0;
-    extra_.clear();
+    height = 0;
+    width = 0;
+    uploadResult = 0;
+    format = 0;
+    extra.clear();
 }
 
 // The name goes after the body (its destructor), then CEngineObject's.
 CTexture::~CTexture() {
     DropSurface(this);
-    flags_ = 0;
+    flags = 0;
 }
 
 MmpHeader* CTextureManager::GetFileData(std::string_view name) { return static_cast<MmpHeader*>(GetFile(name, nullptr)); }
 
-CTexture* CTextureManager::NewTextureOfType(int type) { return CreateObjectAs<CTexture>(type, -1); }
+CTexture* CTextureManager::NewTextureOfType(int textureType) { return CreateObjectAs<CTexture>(textureType, -1); }
 
-CTexture* CTextureManager::FindOrCreate(int type, std::string_view name) {
-    CTexture* texture = FindTypedTexture(type, name);
-    if (!texture) texture = NewTextureOfType(type);
-    texture->name_ = name;
+CTexture* CTextureManager::FindOrCreate(int textureType, std::string_view name) {
+    CTexture* texture = FindTypedTexture(textureType, name);
+    if (!texture) texture = NewTextureOfType(textureType);
+    texture->name = name;
     return texture;
 }
 
-CTexture* CTextureManager::FindOrLoad(int type, std::string_view name) {
+CTexture* CTextureManager::FindOrLoad(int textureType, std::string_view name) {
     if (CTexture* found = FindTexture(name)) return found;
-    CTexture* texture = FindTypedTexture(type, name);
-    if (!texture) texture = NewTextureOfType(type);
-    texture->name_ = name;
+    CTexture* texture = FindTypedTexture(textureType, name);
+    if (!texture) texture = NewTextureOfType(textureType);
+    texture->name = name;
     LoadTexture(texture);
     return texture;
 }
 
 void CTextureManager::TrimCache() {
-    const auto overLimit = [this] { return cachedBytes_ > kCacheLimit; };
+    const auto overLimit = [this] { return cachedBytes > kCacheLimit; };
     if (!overLimit()) return;
-    for (auto node = cache_.begin(); node != cache_.end();) {
+    for (auto node = cache.begin(); node != cache.end();) {
         auto next = std::next(node);
         CTexture* texture = *node;
-        cache_.erase(node);
-        cachedBytes_ -= texture->uploadResult_;
+        cache.erase(node);
+        cachedBytes -= texture->uploadResult;
         if (texture) delete texture;
         if (!overLimit()) return;
         node = next;

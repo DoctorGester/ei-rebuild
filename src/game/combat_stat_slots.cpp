@@ -16,7 +16,7 @@
 #include <cstring>
 
 namespace {
-// The defence factor of units without a player, per difficulty (options::g_options.difficulty_).
+// The defence factor of units without a player, per difficulty (options::g_options.difficulty).
 inline const float* DefenceFactors() { return g_logicSettings.defence; }
 
 UnitVitals& VitalsOf(CUnit* unit) { return unit->ServerCompanion()->vitals; }
@@ -25,7 +25,7 @@ UnitVitals& VitalsOf(CUnit* unit) { return unit->ServerCompanion()->vitals; }
 } // namespace
 
 void CUnitServer::RefreshVitals(bool withHitPoints) {
-    int now = WorldContext()->tick_;
+    int now = WorldContext()->tick;
     float oldRate = stats.rate;
     if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
     stats.Recompute(&VitalsOf(unit), unit);
@@ -38,7 +38,7 @@ void CUnitServer::RefreshVitals(bool withHitPoints) {
 
 void CUnitServer::UpdateProtection() {
     stats.PackBodyProtection(unit, &VitalsOf(unit), &protection);
-    float factor = unit->player ? 1.0f : DefenceFactors()[options::g_options.difficulty_];
+    float factor = unit->player ? 1.0f : DefenceFactors()[options::g_options.difficulty];
     CItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
     if (unit->player && weapon) {
         double bonus = stats.WeaponSkillBonus(weapon->GetType(), unit);

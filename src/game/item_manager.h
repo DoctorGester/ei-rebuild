@@ -61,12 +61,12 @@ public:
     // Releases the item; records and spell cleared.
     void Cancel();
 
-    CBaseManager* manager_ = nullptr;   // the item manager; counted but never released
-    itemdb::MaterialRecordHead* material_ = nullptr;
-    itemdb::ItemRecordHead* prototype_ = nullptr;
-    Ref<CItem> item_;
-    CSpell* spell_ = nullptr;           // not counted
-    int count_;                         // copied to the item's count_; set by BeginCreateItem
+    CBaseManager* manager = nullptr;    // the item manager; counted but never released
+    itemdb::MaterialRecordHead* material = nullptr;
+    itemdb::ItemRecordHead* prototype = nullptr;
+    Ref<CItem> item;
+    CSpell* spell = nullptr;            // not counted
+    int count;                          // copied to the item's count; set by BeginCreateItem
 
 private:
     // Fills the item from a temporary database record: the prototype's values combined with the material's,
@@ -75,7 +75,7 @@ private:
     bool FillItem();
 };
 
-// The item manager (the world and every party make one); context_ holds its item constructor and its spell
+// The item manager (the world and every party make one); context holds its item constructor and its spell
 // manager.
 struct CItemManager : CResourceManager {
     CItemManager();
@@ -85,7 +85,7 @@ struct CItemManager : CResourceManager {
     const char* GetFolderName() override;    // "items"
 
     // The item factory: a new constructed item for kind ItemKind::Weapon weapon, ItemKind::Armor armour, ItemKind::Quick quick, ItemKind::Loot
-    // loot, ItemKind::Scroll scroll, ItemKind::Quest quest, its type_ set to the kind; null for another kind or without memory.
+    // loot, ItemKind::Scroll scroll, ItemKind::Quest quest, its type set to the kind; null for another kind or without memory.
     CEngineObject* NewObject(int kind) override;
 
     // An item of `kind` built by the context's item constructor (BeginCreateItem with `kind`)
@@ -98,7 +98,7 @@ struct CItemManager : CResourceManager {
     // scroll; otherwise the prototype is looked up in the weapon, armor, quick, quest and loot tables (none:
     // FatalError, null) and built with the material, the bracket part as a spell (or, for prototypes named
     // "material", as the count); a loot item standing for a record gets the table index of the second name
-    // part as index_. A failed build reports FatalError and the game crashes; Rebirth's
+    // part as index. A failed build reports FatalError and the game crashes; Rebirth's
     // FixCreateItem returns null in both cases without FatalError.
     CItem* CreateItem(std::string_view name);
 

@@ -31,16 +31,16 @@ void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, const std::vector<CItem*>
         int x = (i % 4) * 100;
         int y = (i / 4) * 100;
         ItemCell cell{list[i], static_cast<float>(x) + 250.0f, static_cast<float>(y) + yOffset,
-                      i <= 3 ? bigSize : smallSize, 100.0f, grid->mode_};
-        grid->owner_->DrawItem(pass, cell);
-        int pieces = static_cast<int>(cell.item->count_);
+                      i <= 3 ? bigSize : smallSize, 100.0f, grid->mode};
+        grid->owner->DrawItem(pass, cell);
+        int pieces = static_cast<int>(cell.item->count);
         if (pieces > 1) {
             RECT r{x + 15, y + countTop, x + 0x55, y + countTop + 20};
             surface->DrawTextIn(std::format("{}", pieces), &r, 1, kTextColour, 2, 1);
         }
-        if (!grid->exchange_) {
+        if (!grid->exchange) {
             RECT r{x + 15, y + priceTop, x + 0x55, y + priceTop + 20};
-            surface->DrawTextIn(std::format("{}", grid->owner_->Price(cell.item, kind)), &r, 1, kTextColour, 1, 1);
+            surface->DrawTextIn(std::format("{}", grid->owner->Price(cell.item, kind)), &r, 1, kTextColour, 1, 1);
         }
     }
 }
@@ -48,17 +48,17 @@ void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, const std::vector<CItem*>
 } // namespace
 
 void CTradeGrid::Draw(CSceneRenderer* pass) {
-    CInterface3D* ui = interface_;
+    CInterface3D* currentUi = ui;
     RECT grid{200, 100, 600, 500};
-    ui->ScaleRectToScreenEntry(&grid);
-    RECT screen{0, 0, ui->width_, ui->height_};
+    currentUi->ScaleRectToScreenEntry(&grid);
+    RECT screen{0, 0, currentUi->width, currentUi->height};
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);
     DrawBase(pass);
 
-    CUiSurface* surface = surfaces_[0];
+    CUiSurface* surface = surfaces[0];
     surface->Clear();
-    DrawItems(this, pass, *bought_, surface, 150.0f, 48.0f, 24.0f, 0x0F, 0x41, buyKind_);
-    DrawItems(this, pass, *sold_, surface, 350.0f, 12.0f, 6.0f, 0xD7, 0x109, sellKind_);
+    DrawItems(this, pass, *bought, surface, 150.0f, 48.0f, 24.0f, 0x0F, 0x41, buyKind);
+    DrawItems(this, pass, *sold, surface, 350.0f, 12.0f, 6.0f, 0xD7, 0x109, sellKind);
     ClearUiDepth(1.0f, &screen, 1);
 }

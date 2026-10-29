@@ -13,7 +13,7 @@
 namespace {
 
 // The stream's format version, compared signed.
-int VersionOf(const CStream* stream) { return static_cast<int>(stream->version_); }
+int VersionOf(const CStream* stream) { return static_cast<int>(stream->version); }
 
 // The growing buffer's Seek when it has to grow.
 inline void BufferSeek(GrowingBuffer* buffer, int at) { buffer->Grow(static_cast<std::uint32_t>(at)); }
@@ -52,7 +52,7 @@ struct LocalBuffer {
 void SaveFileWrite(CStream* file, unsigned magic, CMemoryStream* data) {
     CoderState coder;
     // A view over the data (flags 2).
-    std::uint8_t* begin = data->data_.data();
+    std::uint8_t* begin = data->data.data();
     std::uint8_t* last = begin + data->Size();
     BufferView view(begin, last);
     {
@@ -60,7 +60,7 @@ void SaveFileWrite(CStream* file, unsigned magic, CMemoryStream* data) {
         std::uint8_t compressed = 1;
         coder.Compress(&view, &packed.b);
         file->WriteHeader(magic, static_cast<std::uint32_t>(kSaveVersion));
-        std::uint32_t sum = Checksum(data->data_.data(), static_cast<std::int32_t>(data->Size()));
+        std::uint32_t sum = Checksum(data->data.data(), static_cast<std::int32_t>(data->Size()));
         file->WriteValue(sum);
         // Decompressed again; the packed data is used only when it gives the input back.
         LocalBuffer check;
@@ -75,7 +75,7 @@ void SaveFileWrite(CStream* file, unsigned magic, CMemoryStream* data) {
             bool same = check.b.base - reinterpret_cast<std::intptr_t>(check.b.begin) +
                                 reinterpret_cast<std::intptr_t>(check.b.high) == size;
             if (same) {
-                std::uint8_t* original = data->data_.data();
+                std::uint8_t* original = data->data.data();
                 same = std::memcmp(original, check.b.begin, static_cast<std::size_t>(data->Size())) == 0;
             }
             if (same) {
@@ -85,7 +85,7 @@ void SaveFileWrite(CStream* file, unsigned magic, CMemoryStream* data) {
             } else {
                 compressed = 0;
                 file->WriteValue(compressed);
-                std::uint8_t* raw = data->data_.data();
+                std::uint8_t* raw = data->data.data();
                 file->Write(raw, data->Size());
             }
         }   // the decoder's cursor ends here, then `check` and `packed` go
@@ -98,7 +98,7 @@ bool SaveFileRead(CMemoryStream* out, unsigned magic, CStream* file) {
         int start = static_cast<int>(file->Position());
         int size = static_cast<int>(file->Size()) - start;
         out->Resize(static_cast<std::uint32_t>(size));
-        file->Read(out->data_.data(), static_cast<std::uint32_t>(size));
+        file->Read(out->data.data(), static_cast<std::uint32_t>(size));
         out->Seek(0);
     } else {
         std::uint8_t compressed = 1;
@@ -128,6 +128,6 @@ bool SaveFileRead(CMemoryStream* out, unsigned magic, CStream* file) {
         out->Write(plain.b.begin, static_cast<std::uint32_t>(Length(plain.b)));
         out->Seek(0);
     }
-    out->version_ = file->version_;
+    out->version = file->version;
     return true;
 }

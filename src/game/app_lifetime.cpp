@@ -23,17 +23,17 @@
 
 CRefCounted* CreatePartyRecord() {
     auto* record = new PartyRecord();
-    record->refs_ = 0;
-    record->flags6_ = 0;
-    record->flags7_ = 0;
+    record->refs = 0;
+    record->flags6 = 0;
+    record->flags7 = 0;
     return record;
 }
 
 CRefCounted* CreateClassTemplate() {
     auto* created = new ClassTemplate();
-    created->refs_ = 0;
-    created->flags6_ = 0;
-    created->flags7_ = 0;
+    created->refs = 0;
+    created->flags6 = 0;
+    created->flags7 = 0;
     return created;
 }
 
@@ -49,8 +49,8 @@ PartyRecord::~PartyRecord() { party.Destroy(); }
 CDirectInputMouse::~CDirectInputMouse() {
     Shutdown();
     // The two counted pointers' own destructors (Shutdown has cleared both).
-    if (device_) device_->Release();
-    if (input_) input_->Release();
+    if (device) device->Release();
+    if (input) input->Release();
 }
 
 // ---- The party manager ----------------------------------------------------------------------------

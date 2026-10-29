@@ -35,18 +35,18 @@ public:
 
     static Message* Create();
 
-    std::string name_;
-    std::string text_;
-    std::uint8_t host_ = 0;         // asks to host (honoured with a local client)
-    std::uint32_t state_ = 4;       // the player record's state
-    std::int32_t id_ = -1;          // the player record's id
-    Ref<BindingMessage> binding_{};   // the server's binding for this login (not sent)
+    std::string name;
+    std::string text;
+    std::uint8_t host = 0;          // asks to host (honoured with a local client)
+    std::uint32_t state = 4;        // the player record's state
+    std::int32_t id = -1;           // the player record's id
+    Ref<BindingMessage> binding{};    // the server's binding for this login (not sent)
 };
 
 // One string: the base of SayMessage, ZoneMessage and MapMessage, which differ only in their classes.
 class TextMessage : public Message {
 public:
-    std::string text_;
+    std::string text;
 
 protected:
     TextMessage();
@@ -74,7 +74,7 @@ public:
 // Type 7: a command for the server (ClientSession::SendCommand).
 class CommandMessage final : public Message {
 public:
-    CommandMessage();                                // kind_ is not set
+    CommandMessage();                                // kind is not set
     CommandMessage(const CommandMessage& other);
     ~CommandMessage() override {}
 
@@ -85,16 +85,16 @@ public:
 
     static Message* Create();
 
-    std::uint32_t kind_;
-    std::string text_;
+    std::uint32_t kind;
+    std::string text;
 };
 
 // Two counted pointers; only the first is sent. The base of BindingMessage and
 // FileRequestMessage, which differ only in their classes and the names of the pointers.
 class PairMessage : public Message {
 public:
-    Ref<CRefObject> first_{};
-    Ref<Connection> second_{};   // the connection on the server (not sent)
+    Ref<CRefObject> first{};
+    Ref<Connection> second{};    // the connection on the server (not sent)
 
 protected:
     PairMessage();
@@ -104,7 +104,7 @@ protected:
     void ReadFirst(BufferCursor* cursor);
 };
 
-// Type 13: a client's request for a shared file (first_ the file message, second_ the
+// Type 13: a client's request for a shared file (first the file message, second the
 // requesting connection on the server).
 class FileRequestMessage final : public PairMessage {
 public:
@@ -119,8 +119,8 @@ public:
 
     static Message* Create();
 
-    Ref<CRefObject>& FileRef() { return first_; }
-    Ref<Connection>& ConnectionRef() { return second_; }
+    Ref<CRefObject>& FileRef() { return first; }
+    Ref<Connection>& ConnectionRef() { return second; }
 };
 
 // Type 15: a trade offer, the party a player offers to a partner.
@@ -137,14 +137,14 @@ public:
 
     static Message* Create();
 
-    std::vector<HeldRef<CRefObject>> members_;              // PartyMemberMessages
-    std::uint32_t money_ = 0;        // the offered party's money (CParty::Money)
-    std::uint8_t accepted_ = 0;      // the partner's offer is accepted
-    std::uint32_t acceptedRevision_ = 0;   // the partner's revision accepted
-    std::uint32_t revision_ = 1;
-    Ref<PlayerMessage> player_{};     // the offering player's record
-    Ref<PlayerMessage> partner_{};    // the partner's record
-    std::uint8_t trading_ = 0;       // in a trade (server side; not sent)
+    std::vector<HeldRef<CRefObject>> members;               // PartyMemberMessages
+    std::uint32_t money = 0;         // the offered party's money (CParty::Money)
+    std::uint8_t accepted = 0;       // the partner's offer is accepted
+    std::uint32_t acceptedRevision = 0;    // the partner's revision accepted
+    std::uint32_t revision = 1;
+    Ref<PlayerMessage> player{};      // the offering player's record
+    Ref<PlayerMessage> partner{};     // the partner's record
+    std::uint8_t trading = 0;        // in a trade (server side; not sent)
 };
 
 // Type 16: one member of an offered party, serialised into a memory stream.
@@ -161,7 +161,7 @@ public:
 
     static Message* Create();
 
-    CMemoryStream stream_;
+    CMemoryStream stream;
 };
 
 // ---- Server to client ---------------------------------------------------------------------------
@@ -180,20 +180,20 @@ public:
 
     static Message* Create();
 
-    std::string name_;
-    std::string text_;
-    std::uint32_t state_ = 1;       // from the login
-    std::uint8_t host_ = 0;         // the hosting player
-    std::int32_t id_ = -1;          // from the login
-    std::int32_t serial_ = -1;      // from the server's player serial (not sent)
-    std::int32_t number_ = -1;      // the lowest number free when joining (not sent)
-    std::uint32_t firstLine_;       // the first chat line it receives (not sent)
+    std::string name;
+    std::string text;
+    std::uint32_t state = 1;        // from the login
+    std::uint8_t host = 0;          // the hosting player
+    std::int32_t id = -1;           // from the login
+    std::int32_t serial = -1;       // from the server's player serial (not sent)
+    std::int32_t number = -1;       // the lowest number free when joining (not sent)
+    std::uint32_t firstLine;        // the first chat line it receives (not sent)
 };
 
 // Type 2: a chat or system line.
 class LineMessage final : public Message {
 public:
-    LineMessage();                               // number_ is not set
+    LineMessage();                               // number is not set
     LineMessage(const LineMessage& other);
     ~LineMessage() override;
 
@@ -204,9 +204,9 @@ public:
 
     static Message* Create();
 
-    std::uint32_t number_;
-    std::string text_;
-    Ref<CRefObject> connection_{};           // the only receiver (null: everyone; not sent)
+    std::uint32_t number;
+    std::string text;
+    Ref<CRefObject> connection{};            // the only receiver (null: everyone; not sent)
 };
 
 // Type 3: where the host's game is (built by AnnounceHost).
@@ -223,11 +223,11 @@ public:
 
     static Message* Create();
 
-    std::string address_;           // "host:port"
-    std::string zone_;
+    std::string address;            // "host:port"
+    std::string zone;
 };
 
-// Type 4: binds a player record (first_) to its connection (second_, not sent).
+// Type 4: binds a player record (first) to its connection (second, not sent).
 class BindingMessage final : public PairMessage {
 public:
     BindingMessage();
@@ -241,9 +241,9 @@ public:
 
     static Message* Create();
 
-    Ref<CRefObject>& PlayerRef() { return first_; }
-    Ref<Connection>& ConnectionRef() { return second_; }
-    PlayerMessage* Player() const { return static_cast<PlayerMessage*>(first_.Get()); }
+    Ref<CRefObject>& PlayerRef() { return first; }
+    Ref<Connection>& ConnectionRef() { return second; }
+    PlayerMessage* Player() const { return static_cast<PlayerMessage*>(first.Get()); }
 };
 
 // Type 8: a zone the host may pick next.
@@ -279,7 +279,7 @@ public:
 // Type 10: a script variable.
 class VariableMessage final : public Message {
 public:
-    VariableMessage();                                 // value_ and serial_ are not set
+    VariableMessage();                                 // value and serial are not set
     VariableMessage(const VariableMessage& other);
     ~VariableMessage() override {}
 
@@ -290,9 +290,9 @@ public:
 
     static Message* Create();
 
-    std::string name_;
-    float value_;
-    std::uint32_t serial_;       // from g_variableSerial
+    std::string name;
+    float value;
+    std::uint32_t serial;        // from g_variableSerial
 };
 
 // Type 11: a shared file.
@@ -309,10 +309,10 @@ public:
 
     static Message* Create();
 
-    std::uint16_t chunkCount_;
-    std::int32_t size_;          // in bytes
-    std::string name_;
-    std::vector<SharedRef<CRefObject>> chunks_;   // the chunk messages (not sent)
+    std::uint16_t chunkCount;
+    std::int32_t size;           // in bytes
+    std::string name;
+    std::vector<SharedRef<CRefObject>> chunks;    // the chunk messages (not sent)
 };
 
 // Type 12: 64 bytes of a shared file.
@@ -331,9 +331,9 @@ public:
 
     static Message* Create();
 
-    Ref<FileMessage> file_{};
-    std::uint16_t index_;
-    std::uint8_t data_[kDataSize];
+    Ref<FileMessage> file{};
+    std::uint16_t index;
+    std::uint8_t data[kDataSize];
 };
 
 // Type 14: an award for one connection (the server queues it with a delay; ClientSession::ApplyAwards).
@@ -350,10 +350,10 @@ public:
 
     static Message* Create();
 
-    Ref<CRefObject> connection_{};        // the receiver (not sent)
-    std::uint32_t kind_;         // 0 experience, 1 gold, 2 item, 3 remove item, 4 quest reset
-    float value_;
-    std::string text_;           // the item's name
+    Ref<CRefObject> connection{};         // the receiver (not sent)
+    std::uint32_t kind;          // 0 experience, 1 gold, 2 item, 3 remove item, 4 quest reset
+    float value;
+    std::string text;            // the item's name
 };
 
 // Type 17: a trade between two offers.
@@ -370,13 +370,13 @@ public:
 
     static Message* Create();
 
-    Ref<PlayerMessage> player_{};       // the first offer's player (not sent)
-    Ref<PlayerMessage> partner_{};      // its partner (not sent)
-    Ref<PartyMessage> offer_{};
-    Ref<PartyMessage> partnerOffer_{};
-    std::uint8_t done_ = 0;                  // both sides accepted
-    std::uint32_t revision_ = 0;             // the first offer's revision traded
-    std::uint32_t partnerRevision_ = 0;      // the second's
+    Ref<PlayerMessage> player{};        // the first offer's player (not sent)
+    Ref<PlayerMessage> partner{};       // its partner (not sent)
+    Ref<PartyMessage> offer{};
+    Ref<PartyMessage> partnerOffer{};
+    std::uint8_t done = 0;                   // both sides accepted
+    std::uint32_t revision = 0;              // the first offer's revision traded
+    std::uint32_t partnerRevision = 0;       // the second's
 };
 
 // The serial the server's next variable or map record gets.

@@ -28,7 +28,7 @@ constexpr float kFrameDepth = 3.0f;
 constexpr float kScale = 100.0f;
 
 void ShowSprites(CMpHeroScreen* screen, int first, int end, int visible) {
-    for (int i = first; i < end; ++i) screen->SceneMesh(i)->visible_ = visible;
+    for (int i = first; i < end; ++i) screen->SceneMesh(i)->visible = visible;
 }
 
 // A quarter of the frame around the figure: texels (u0, 0x1C)-(u1, 0xE4).
@@ -53,94 +53,94 @@ void AddRows(CMpHeroScreen* screen, int left, int right, int top, int height) {
 
 } // namespace
 
-void CMpHeroScreen::SetMode(int mode) {
-    CUiModel* menu = CUiWindow::models_[0];   // the window's models (CItemScreen::models_ is the item cache)
+void CMpHeroScreen::SetMode(int newMode) {
+    CUiModel* menu = CUiWindow::models[0];    // the window's models (CItemScreen::models is the item cache)
     menu->ShowAllParts(0);
-    weaponPanel_->SetEnabled(false);
-    spellPanel_->SetEnabled(false);
-    tradePanel_->SetEnabled(false);
-    statsPanel_->SetEnabled(false);
-    figureStrips_[0]->SetEnabled(false);
-    figureStrips_[1]->SetEnabled(false);
-    heroScroll_->SetEnabled(false);
-    voiceScroll_->SetEnabled(false);
-    iconWindow_->SetEnabled(false);
-    ShowSprites(this, 0, static_cast<int>(std::ssize(sceneObjects_)), 0);
-    for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Hide(true);
-    while (std::ssize(regions_) > kFixedRegions) RemoveRegionAt(kFixedRegions);
-    for (int i = 0; i < std::ssize(regions_); ++i) regions_[i]->SetTip(0);
+    weaponPanel->SetEnabled(false);
+    spellPanel->SetEnabled(false);
+    tradePanel->SetEnabled(false);
+    statsPanel->SetEnabled(false);
+    figureStrips[0]->SetEnabled(false);
+    figureStrips[1]->SetEnabled(false);
+    heroScroll->SetEnabled(false);
+    voiceScroll->SetEnabled(false);
+    iconWindow->SetEnabled(false);
+    ShowSprites(this, 0, static_cast<int>(std::ssize(sceneObjects)), 0);
+    for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide(true);
+    while (std::ssize(regions) > kFixedRegions) RemoveRegionAt(kFixedRegions);
+    for (int i = 0; i < std::ssize(regions); ++i) regions[i]->SetTip(0);
 
-    CUiRegion** regions = regions_.data();
-    if (mode == kModeList) {
+    CUiRegion** newRegions = regions.data();
+    if (newMode == kModeList) {
         menu->ShowPart("but03", 1);
         menu->ShowPart("button03_multiplayer", 1);
-        heroScroll_->SetEnabled(true);
-        ShowSprites(this, 0, static_cast<int>(std::ssize(sceneObjects_)), 1);
+        heroScroll->SetEnabled(true);
+        ShowSprites(this, 0, static_cast<int>(std::ssize(sceneObjects)), 1);
         ShowSprites(this, kFirstNewHeroSprite, kSpritesEnd, 0);
         SetQuarter(this, 0, 410.0f, 100.0f, 555.0f, 300.0f, 0x53, 0xE4);
         SetQuarter(this, 1, 555.0f, 100.0f, 700.0f, 300.0f, 0x1C, 0xAD);
         SetQuarter(this, 2, 410.0f, 300.0f, 555.0f, 500.0f, 0x53, 0xE4);
         SetQuarter(this, 3, 555.0f, 300.0f, 700.0f, 500.0f, 0x1C, 0xAD);
-        regions[0]->SetRect(563, 526, 637, 574);
-        regions[1]->SetRect(163, 526, 237, 574);
-        regions[2]->SetRect(455, 470, 485, 500);
-        regions[3]->SetRect(625, 470, 655, 500);
-        regions[0]->SetTip(0x9CA5);
-        regions[1]->SetTip(0x9CA4);
-        for (int i = 5; i < kFixedRegions; ++i) regions[i]->SetTip(i + 0x9D03);
-        surfaces_[0]->Show();
-        surfaces_[1]->Show();
-        nameEdit_->SetEnabled(false);
-        nameEdit_->SetFocused(false);
+        newRegions[0]->SetRect(563, 526, 637, 574);
+        newRegions[1]->SetRect(163, 526, 237, 574);
+        newRegions[2]->SetRect(455, 470, 485, 500);
+        newRegions[3]->SetRect(625, 470, 655, 500);
+        newRegions[0]->SetTip(0x9CA5);
+        newRegions[1]->SetTip(0x9CA4);
+        for (int i = 5; i < kFixedRegions; ++i) newRegions[i]->SetTip(i + 0x9D03);
+        surfaces[0]->Show();
+        surfaces[1]->Show();
+        nameEdit->SetEnabled(false);
+        nameEdit->SetFocused(false);
         SetSelectionFrame(this, 110.0f, 250.0f, 370.0f, 274.0f);
         AddRows(this, 110, 370, 250, 24);
-        ShowHero(heroIndex_);
-    } else if (mode == kModeNewHero) {
-        voiceScroll_->SetEnabled(true);
+        ShowHero(heroIndex);
+    } else if (newMode == kModeNewHero) {
+        voiceScroll->SetEnabled(true);
         ShowSprites(this, kFirstQuarter, kSpritesEnd, 1);
         SetQuarter(this, 0, 200.0f, 100.0f, 400.0f, 300.0f, 0x1C, 0xE4);
         SetQuarter(this, 1, 400.0f, 100.0f, 600.0f, 300.0f, 0x1C, 0xE4);
         SetQuarter(this, 2, 200.0f, 300.0f, 400.0f, 500.0f, 0x1C, 0xE4);
         SetQuarter(this, 3, 400.0f, 300.0f, 600.0f, 500.0f, 0x1C, 0xE4);
-        iconWindow_->SetEnabled(true);
-        iconWindow_->PlaceBars(300);
-        statsPanel_->SetEnabled(true);
-        figureStrips_[0]->SetEnabled(true);
-        figureStrips_[1]->SetEnabled(true);
-        regions[0]->SetRect(620, 430, 660, 470);
-        regions[1]->SetRect(740, 430, 780, 470);
-        regions[2]->SetRect(300, 470, 330, 500);
-        regions[3]->SetRect(470, 470, 500, 500);
-        regions[0]->SetTip(0x9D6D);
-        regions[1]->SetTip(0x9D6C);
-        regions[4]->SetTip(0x9D6E);
-        nameEdit_->SetEnabled(true);
-        nameEdit_->SetFocused(true);
-        surfaces_[2]->Show();
+        iconWindow->SetEnabled(true);
+        iconWindow->PlaceBars(300);
+        statsPanel->SetEnabled(true);
+        figureStrips[0]->SetEnabled(true);
+        figureStrips[1]->SetEnabled(true);
+        newRegions[0]->SetRect(620, 430, 660, 470);
+        newRegions[1]->SetRect(740, 430, 780, 470);
+        newRegions[2]->SetRect(300, 470, 330, 500);
+        newRegions[3]->SetRect(470, 470, 500, 500);
+        newRegions[0]->SetTip(0x9D6D);
+        newRegions[1]->SetTip(0x9D6C);
+        newRegions[4]->SetTip(0x9D6E);
+        nameEdit->SetEnabled(true);
+        nameEdit->SetFocused(true);
+        surfaces[2]->Show();
         SetSelectionFrame(this, 15.0f, 310.0f, 180.0f, 325.0f);
         AddRows(this, 10, 180, 325, 15);
         DrawVoices();
-    } else if (mode == kModeStats) {
+    } else if (newMode == kModeStats) {
         ShowSprites(this, kFirstNewHeroSprite, kSpritesEnd, 1);
-        iconWindow_->SetEnabled(true);
-        iconWindow_->PlaceBars(400);
-        weaponPanel_->SetEnabled(true);
-        spellPanel_->SetEnabled(true);
-        tradePanel_->SetEnabled(true);
-        statsPanel_->SetEnabled(true);
-        regions[0]->SetRect(620, 430, 660, 470);
-        regions[1]->SetRect(740, 430, 780, 470);
-        regions[0]->SetTip(0x9E35);
-        regions[1]->SetTip(0x9E34);
-        regions[4]->SetTip(0x9E36);
-        surfaces_[2]->Show();
-        nameEdit_->SetEnabled(false);
-        nameEdit_->SetFocused(false);
-        tradePanel_->SelectHero(0);
+        iconWindow->SetEnabled(true);
+        iconWindow->PlaceBars(400);
+        weaponPanel->SetEnabled(true);
+        spellPanel->SetEnabled(true);
+        tradePanel->SetEnabled(true);
+        statsPanel->SetEnabled(true);
+        newRegions[0]->SetRect(620, 430, 660, 470);
+        newRegions[1]->SetRect(740, 430, 780, 470);
+        newRegions[0]->SetTip(0x9E35);
+        newRegions[1]->SetTip(0x9E34);
+        newRegions[4]->SetTip(0x9E36);
+        surfaces[2]->Show();
+        nameEdit->SetEnabled(false);
+        nameEdit->SetFocused(false);
+        tradePanel->SelectHero(0);
     }
-    descPanel_->Describe(nullptr);
-    statsPanel_->ShowStats(mode);
-    mode_ = mode;
+    descPanel->Describe(nullptr);
+    statsPanel->ShowStats(newMode);
+    mode = newMode;
     // Rebirth's WideScreen: the curtains shown but on the list.
-    widescreen::ShowHeroCurtains(this, mode);
+    widescreen::ShowHeroCurtains(this, newMode);
 }

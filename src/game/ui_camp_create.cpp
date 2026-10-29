@@ -43,7 +43,7 @@ constexpr std::uint32_t kRecordBias = 100000000;   // added to the records' ids 
 constexpr SkillAnimation kIdleAnimation = SkillAnimation::Special14;    // what the heroes play in the camp
 constexpr int kPriceWeights = 9;
 
-// The pages (CCampPages::page_) and the strips' action modes.
+// The pages (CCampPages::page) and the strips' action modes.
 constexpr int kPageEquipment = 0;
 constexpr int kPageSpellConstructor = 2;
 constexpr int kPageItemConstructor = 4;
@@ -79,30 +79,30 @@ void CCampPages::CreateScreen() {
 }
 
 void CCampPages::BuildPages() {
-    spellConstructor_ = false;
-    itemConstructor_ = false;
-    spellParts_[0] = nullptr;
-    itemParts_[0] = nullptr;
+    spellConstructor = false;
+    itemConstructor = false;
+    spellParts[0] = nullptr;
+    itemParts[0] = nullptr;
     GameSetServerPaused(1);
-    constructor_ = nullptr;
-    int constructor = static_cast<int>(libcrt::Ftol(LocalPlayerVariable("constr.current")));
-    if (constructor > 0) {
-        constructor_ = g_partyManager.templates.Find(constructor);
-        if (!constructor_) {
+    constructor = nullptr;
+    int maker = static_cast<int>(libcrt::Ftol(LocalPlayerVariable("constr.current")));
+    if (maker > 0) {
+        constructor = g_partyManager.templates.Find(maker);
+        if (!constructor) {
             GameRejoin();
             return;
         }
-        spellConstructor_ = constructor_->sellsSpells != 0;
-        itemConstructor_ = constructor_->sellsItems != 0;
-        std::memcpy(priceWeights_, constructor_->weights, kPriceWeights * sizeof(float));   // the dwords as they are
-        spellParts_[0] = constructor_->SpellsParty();
-        itemParts_[0] = constructor_->ItemsParty();
+        spellConstructor = constructor->sellsSpells != 0;
+        itemConstructor = constructor->sellsItems != 0;
+        std::memcpy(priceWeights, constructor->weights, kPriceWeights * sizeof(float));     // the dwords as they are
+        spellParts[0] = constructor->SpellsParty();
+        itemParts[0] = constructor->ItemsParty();
     }
-    noConstructor_ = PlayerSwitch("i.noconstr");
-    if (PlayerSwitch("i.offspellconstr")) spellConstructor_ = false;
-    if (PlayerSwitch("i.onspellconstr")) spellConstructor_ = true;
-    if (PlayerSwitch("i.offitemconstr")) itemConstructor_ = false;
-    if (PlayerSwitch("i.onitemconstr")) itemConstructor_ = true;
+    noConstructor = PlayerSwitch("i.noconstr");
+    if (PlayerSwitch("i.offspellconstr")) spellConstructor = false;
+    if (PlayerSwitch("i.onspellconstr")) spellConstructor = true;
+    if (PlayerSwitch("i.offitemconstr")) itemConstructor = false;
+    if (PlayerSwitch("i.onitemconstr")) itemConstructor = true;
 
     LoadTexture("campinfo", TextureKind::Interface);
     // The regions: the two action buttons, the two hero turn areas, the eight page buttons (a
@@ -118,11 +118,11 @@ void CCampPages::BuildPages() {
     region(470, 470, 500, 500, 0);
     region(620, 430, 660, 460, 0x4E84);
     region(620, 460, 660, 490, 0x4E85);
-    region(660, 460, 700, 490, spellConstructor_ ? 0x4E89 : 0);
-    region(700, 460, 740, 490, spellConstructor_ && !noConstructor_ ? 0x4E8A : 0);
-    region(660, 430, 700, 460, itemConstructor_ ? 0x4E86 : 0);
-    region(700, 430, 740, 460, itemConstructor_ && !noConstructor_ ? 0x4E87 : 0);
-    region(740, 430, 780, 460, itemConstructor_ ? 0x4E88 : 0);
+    region(660, 460, 700, 490, spellConstructor ? 0x4E89 : 0);
+    region(700, 460, 740, 490, spellConstructor && !noConstructor ? 0x4E8A : 0);
+    region(660, 430, 700, 460, itemConstructor ? 0x4E86 : 0);
+    region(700, 430, 740, 460, itemConstructor && !noConstructor ? 0x4E87 : 0);
+    region(740, 430, 780, 460, itemConstructor ? 0x4E88 : 0);
     region(740, 460, 780, 490, 0x4E8B);
 
     // The buttons' sprites, in the regions' order without the turn areas.
@@ -136,147 +136,147 @@ void CCampPages::BuildPages() {
     button(620.0f, 430.0f, 660.0f, 460.0f, 0x02, 0xC1, 0x2A, 0xDF);
     button(620.0f, 460.0f, 660.0f, 490.0f, 0x02, 0xE0, 0x2A, 0xFE);
     CUiMesh* sprite = button(660.0f, 460.0f, 700.0f, 490.0f, 0x2B, 0xE0, 0x53, 0xFE);
-    sprite->visible_ = spellConstructor_;
+    sprite->visible = spellConstructor;
     sprite = button(700.0f, 460.0f, 740.0f, 490.0f, 0x54, 0xE0, 0x7C, 0xFE);
-    sprite->visible_ = spellConstructor_;
-    if (noConstructor_) sprite->visible_ = false;
+    sprite->visible = spellConstructor;
+    if (noConstructor) sprite->visible = false;
     sprite = button(660.0f, 430.0f, 700.0f, 460.0f, 0x2B, 0xC1, 0x53, 0xDF);
-    sprite->visible_ = itemConstructor_;
+    sprite->visible = itemConstructor;
     sprite = button(700.0f, 430.0f, 740.0f, 460.0f, 0x54, 0xC1, 0x7C, 0xDF);
-    sprite->visible_ = itemConstructor_;
-    if (noConstructor_) sprite->visible_ = false;
+    sprite->visible = itemConstructor;
+    if (noConstructor) sprite->visible = false;
     sprite = button(740.0f, 430.0f, 780.0f, 460.0f, 0x7D, 0xC1, 0xA5, 0xDF);
-    sprite->visible_ = itemConstructor_;
+    sprite->visible = itemConstructor;
     sprite = button(740.0f, 460.0f, 780.0f, 490.0f, 0x7D, 0xE0, 0xA5, 0xFE);
-    sprite->tint_[0] = 0.5f;
-    sprite->tint_[1] = 0.5f;
-    sprite->tint_[2] = 0.5f;
+    sprite->tint[0] = 0.5f;
+    sprite->tint[1] = 0.5f;
+    sprite->tint[2] = 0.5f;
 
     CreateBase();
-    AddSurface(NewSurface(interface_, 0, 400, 200, 500));
-    AddSurface(NewSurface(interface_, 600, 400, 800, 430));
+    AddSurface(NewSurface(ui, 0, 400, 200, 500));
+    AddSurface(NewSurface(ui, 600, 400, 800, 430));
 
     // The constructors' lists (the first of each is the class template's).
-    spellParts_[1] = NewItemList();
-    spellParts_[2] = NewItemList();
-    spellResults_ = NewItemList();
-    itemParts_[1] = NewItemList();
-    itemParts_[2] = NewItemList();
-    itemResults_ = NewItemList();
-    itemExtra_ = NewItemList();
+    spellParts[1] = NewItemList();
+    spellParts[2] = NewItemList();
+    spellResults = NewItemList();
+    itemParts[1] = NewItemList();
+    itemParts[2] = NewItemList();
+    itemResults = NewItemList();
+    itemExtra = NewItemList();
 
     // The description panel on the right.
-    CItemInfoPanel* info = new CItemInfoPanel(interface_, this);
-    descPanel_ = info;
+    CItemInfoPanel* info = new CItemInfoPanel(ui, this);
+    descPanel = info;
     AddChild(info);
-    descPanel_->Build(600, 100);
+    descPanel->Build(600, 100);
 
     // The hero's statistics.
-    auto* stats = new CHeroStatsPanel(interface_, this);
-    statsPanel_ = stats;
+    auto* stats = new CHeroStatsPanel(ui, this);
+    statsPanel = stats;
     AddChild(stats);
-    statsPanel_->AddObject(objects_[0]);
-    statsPanel_->Build();
+    statsPanel->AddObject(objects[0]);
+    statsPanel->Build();
 
     // The help panel on the left.
-    info = new CItemInfoPanel(interface_, this);
-    helpPanel_ = info;
+    info = new CItemInfoPanel(ui, this);
+    helpPanel = info;
     AddChild(info);
-    helpPanel_->Build(0, 100);
+    helpPanel->Build(0, 100);
 
     // The party's items.
-    CUiItemStrip* strip = new CForwardingStrip(interface_, this);
-    itemStrip_ = strip;
+    CUiItemStrip* strip = new CForwardingStrip(ui, this);
+    itemStrip = strip;
     AddChild(strip);
-    itemStrip_->Setup(&LocalPlayerData()->items_, false);
-    itemStrip_->mode_ = kActionEquip;
-    itemStrip_->SetFilter(kFilterItems);
+    itemStrip->Setup(&LocalPlayerData()->items, false);
+    itemStrip->mode = kActionEquip;
+    itemStrip->SetFilter(kFilterItems);
 
     // The hero's equipment (with the body) and quick items.
-    auto* equipment = new CHeroEquipPanel(interface_, this);
-    equipment_ = equipment;
-    AddChild(equipment);
-    equipment_->AddObject(objects_[2]);
-    equipment_->Build(true);
+    auto* equipPanel = new CHeroEquipPanel(ui, this);
+    equipment = equipPanel;
+    AddChild(equipPanel);
+    equipment->AddObject(objects[2]);
+    equipment->Build(true);
 
-    auto* quick = new CHeroQuickStrip(interface_, this);
-    equipment2_ = quick;
+    auto* quick = new CHeroQuickStrip(ui, this);
+    equipment2 = quick;
     AddChild(quick);
-    equipment2_->AddObject(objects_[2]);
-    equipment2_->Build(true);
+    equipment2->AddObject(objects[2]);
+    equipment2->Build(true);
 
     // The skills for experience.
-    auto* trade = new CTradePanel(interface_, this);
-    trade_ = trade;
-    AddChild(trade);
-    trade_->AddObject(objects_[0]);
-    trade_->Build();
+    auto* tradeWith = new CTradePanel(ui, this);
+    trade = tradeWith;
+    AddChild(tradeWith);
+    trade->AddObject(objects[0]);
+    trade->Build();
 
-    if (spellConstructor_) {
-        strip = new CForwardingStrip(interface_, this);
-        spellStrip_ = strip;
+    if (spellConstructor) {
+        strip = new CForwardingStrip(ui, this);
+        spellStrip = strip;
         AddChild(strip);
-        spellStrip_->Setup(&spellParts_[0]->items_, true);
-        spellStrip_->mode_ = kActionSpellParts;
-        spellStrip_->SetFilter(kFilterSpells);
-        spellStrip_->slots_ = 0;
+        spellStrip->Setup(&spellParts[0]->items, true);
+        spellStrip->mode = kActionSpellParts;
+        spellStrip->SetFilter(kFilterSpells);
+        spellStrip->slots = 0;
 
-        auto* grid = new CTradeGrid(interface_, this);
-        spellConstructor1_ = grid;
+        auto* grid = new CTradeGrid(ui, this);
+        spellConstructor1 = grid;
         AddChild(grid);
-        spellConstructor1_->Build(&spellParts_[1]->items_, &spellParts_[2]->items_, true, false);
-        spellConstructor1_->mode_ = kModeSpellTrade;
+        spellConstructor1->Build(&spellParts[1]->items, &spellParts[2]->items, true, false);
+        spellConstructor1->mode = kModeSpellTrade;
 
-        auto* maker = new CSpellMakerPage(interface_, this);
-        spellConstructor2_ = maker;
-        AddChild(maker);
-        spellConstructor2_->BuildSpellMaker(spellResults_);
+        auto* makerPage = new CSpellMakerPage(ui, this);
+        spellConstructor2 = makerPage;
+        AddChild(makerPage);
+        spellConstructor2->BuildSpellMaker(spellResults);
     }
 
-    if (itemConstructor_) {
-        strip = new CForwardingStrip(interface_, this);
-        partStrip_ = strip;
+    if (itemConstructor) {
+        strip = new CForwardingStrip(ui, this);
+        partStrip = strip;
         AddChild(strip);
-        partStrip_->Setup(&itemParts_[0]->items_, true);
-        partStrip_->mode_ = kActionItemParts;
-        partStrip_->SetFilter(kFilterArmour);
-        partStrip_->slots_ = 4;
+        partStrip->Setup(&itemParts[0]->items, true);
+        partStrip->mode = kActionItemParts;
+        partStrip->SetFilter(kFilterArmour);
+        partStrip->slots = 4;
 
-        auto* grid = new CTradeGrid(interface_, this);
-        itemConstructor1_ = grid;
+        auto* grid = new CTradeGrid(ui, this);
+        itemConstructor1 = grid;
         AddChild(grid);
-        itemConstructor1_->Build(&itemParts_[1]->items_, &itemParts_[2]->items_, false, false);
-        itemConstructor1_->mode_ = kModeItemTrade;
+        itemConstructor1->Build(&itemParts[1]->items, &itemParts[2]->items, false, false);
+        itemConstructor1->mode = kModeItemTrade;
 
-        auto* maker = new CConstructorPage(interface_, this);
-        itemConstructor2_ = maker;
-        AddChild(maker);
-        itemConstructor2_->BuildItemMaker(itemResults_);
+        auto* makerPage = new CConstructorPage(ui, this);
+        itemConstructor2 = makerPage;
+        AddChild(makerPage);
+        itemConstructor2->BuildItemMaker(itemResults);
 
-        auto* repairs = new CRepairGrid(interface_, this);
-        itemConstructor3_ = repairs;
+        auto* repairs = new CRepairGrid(ui, this);
+        itemConstructor3 = repairs;
         AddChild(repairs);
-        itemConstructor3_->Build(&itemExtra_->items_);
+        itemConstructor3->Build(&itemExtra->items);
     }
 
     // The party's heroes become units of the client world: every record's id is raised while the
     // world takes the hero records, and put back after the units were set up.
-    heroTurn_ = 0.0f;
-    turning_ = 0;
+    heroTurn = 0.0f;
+    turning = 0;
     std::vector<PartyUnitRecord*> records;
     CParty* player = LocalPlayerData();
-    const int count = std::ssize(player->members_);
-    for (PartyUnitRecord& record : player->members_) {
+    const int count = std::ssize(player->members);
+    for (PartyUnitRecord& record : player->members) {
         record.unitId += kRecordBias;
         if (PrototypeObjectClass(record.texts[5]) == MapObjectType::Hero) records.push_back(&record);
     }
     GameCreatePartyUnits(&records, 1);
 
-    heroes_.assign(count, nullptr);
+    heroes.assign(count, nullptr);
     for (int i = 0; i < count; ++i) {
-        if (PrototypeObjectClass(player->members_[i].texts[5]) != MapObjectType::Hero) continue;
-        auto* unit = GameFindClientUnit(player->members_[i].unitId);
-        heroes_[i] = unit;
+        if (PrototypeObjectClass(player->members[i].texts[5]) != MapObjectType::Hero) continue;
+        auto* unit = GameFindClientUnit(player->members[i].unitId);
+        heroes[i] = unit;
         // The idle animation from a random frame (up to 50 back).
         if (FigureAnimation* animation = unit->FindSkillAnimation(kIdleAnimation)) {
             std::uint32_t random = g_random.Next();
@@ -288,7 +288,7 @@ void CCampPages::BuildPages() {
         unit->Controller()->RefreshModel();
         CUnitController* controller = unit->Controller();
         controller->RestartAnimation(static_cast<float>(FramesNow()));
-        PartyUnitRecord* record = &player->members_[i];
+        PartyUnitRecord* record = &player->members[i];
         unit->SetFromStats(&record->stats);
         unit->Controller()->RefreshWounds();
         // The armour the record wears.
@@ -297,13 +297,13 @@ void CCampPages::BuildPages() {
         for (int piece = 0; piece < std::ssize(record->armor); ++piece)
             heroStats->AddArmourLayer(AsArmor(record->armor[piece]));
     }
-    for (int i = 0; i < count; ++i) player->members_[i].unitId -= kRecordBias;
+    for (int i = 0; i < count; ++i) player->members[i].unitId -= kRecordBias;
 
-    hero_ = -1;
+    hero = -1;
     NextHero();
 
     // The pages' titles.
-    CTextManager* texts = g_clientWorld.texts_;
+    CTextManager* texts = g_clientWorld.texts;
     std::string title;
     const char* const titleKeys[] = {
         "mode_weapons",
@@ -316,37 +316,37 @@ void CCampPages::BuildPages() {
     };
     for (const char* key : titleKeys) {
         title = texts->GetString(key);
-        pageTitles_.push_back(title);
+        pageTitles.push_back(title);
     }
-    pageTitles_.push_back("quit");
+    pageTitles.push_back("quit");
 
-    page_ = itemConstructor_ ? kPageItemConstructor : spellConstructor_ ? kPageSpellConstructor : kPageEquipment;
-    ShowPage(page_);
+    page = itemConstructor ? kPageItemConstructor : spellConstructor ? kPageSpellConstructor : kPageEquipment;
+    ShowPage(page);
     UpdateAction();
 
     // A constructor's stock on the first visit: from the party's lowest and highest skill in each
     // spell school.
-    if (constructor_ && constructor_->restockDue) {
+    if (constructor && constructor->restockDue) {
         float lowest[kSchoolCount];
         float highest[kSchoolCount];
         for (int school = 0; school < kSchoolCount; ++school) {
             lowest[school] = 1e20f;
             highest[school] = -1e20f;
-            for (int i = 0; i < std::ssize(LocalPlayerData()->members_); ++i) {
-                auto* memberStats = &LocalPlayerData()->members_[i].stats;
+            for (int i = 0; i < std::ssize(LocalPlayerData()->members); ++i) {
+                auto* memberStats = &LocalPlayerData()->members[i].stats;
                 float skill = static_cast<float>(memberStats->SpellSchoolSkill(school));
                 if (skill < lowest[school]) lowest[school] = skill;
                 if (highest[school] < skill) highest[school] = skill;
             }
         }
-        constructor_->SetLevels(lowest, highest);
-        ClassTemplateGenerateMagic(constructor_);
-        ClassTemplateGenerateItems(constructor_);
-        constructor_->restockDue = 0;
+        constructor->SetLevels(lowest, highest);
+        ClassTemplateGenerateMagic(constructor);
+        ClassTemplateGenerateItems(constructor);
+        constructor->restockDue = 0;
     }
 
     // The music of the allod the party's zone is on.
     const MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
-    g_clientWorld.music_->PlayConstructor(zone ? std::string_view(zone->allod) : std::string_view("gipat"));
+    g_clientWorld.music->PlayConstructor(zone ? std::string_view(zone->allod) : std::string_view("gipat"));
 
 }

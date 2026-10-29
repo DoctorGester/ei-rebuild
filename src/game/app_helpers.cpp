@@ -65,6 +65,6 @@ void DelayedProtectionCheck() { static_cast<void>(libcrt::RandBelow(100)); }
 } // namespace app
 
 CWorld* CEngineObject::World() const {
-    auto* context = owner_->context_;
+    auto* context = owner->context;
     return context ? context->ThisWorld() : nullptr;
 }

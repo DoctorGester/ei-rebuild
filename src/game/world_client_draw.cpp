@@ -1,6 +1,6 @@
 // CWorldClient's draw path: Render and DrawPass, with Rebirth's LandscapeDrawRadius and ObjectsDrawRadius
 // behind their flags. See world.h and docs/notes/world.md. Both set the renderer's render state
-// (render/render_state.h) and the scene pipeline's matrix stacks (g_sceneRenderer.pipeline_) in the original's
+// (render/render_state.h) and the scene pipeline's matrix stacks (g_sceneRenderer.pipeline) in the original's
 // order.
 #include "address_order.h"
 #include "camera.h"
@@ -110,9 +110,9 @@ constexpr float kShadowLength = -0.02f;
 // The light effect settings (the blood print, footprint and scorch mark lists) and the game mode (1
 // single player).
 int LightEffectsSetting(const int& setting) { return setting; }
-int LightEffects1B8() { return LightEffectsSetting(options::g_options.enableBloodprints_); }
-int LightEffects1BC() { return LightEffectsSetting(options::g_options.enableFootprints_); }
-int LightEffects1C0() { return LightEffectsSetting(options::g_options.enableFireprints_); }
+int LightEffects1B8() { return LightEffectsSetting(options::g_options.enableBloodprints); }
+int LightEffects1BC() { return LightEffectsSetting(options::g_options.enableFootprints); }
+int LightEffects1C0() { return LightEffectsSetting(options::g_options.enableFireprints); }
 const char* MarkerPartName() { return "hp"; }
 
 float AddRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) + b); }
@@ -129,7 +129,7 @@ int Ftol(float v) { return static_cast<int>(libcrt::Ftol(v)); }
 // The client world's time: (float)(int)tick + the tick's fraction, rounded once.
 float AnimationTime() {
     const CWorldClient* world = &g_clientWorld;
-    return static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
+    return static_cast<float>(static_cast<double>(world->tick) + world->tickFraction);
 }
 
 // Sorts one draw list by the first part set's texture, then the figure, then the view depth (the game's
@@ -170,11 +170,11 @@ void DrawLightEffects(std::list<T>& list) {
 const Matrix4* worlddata::SceneCamera() { return g_haveSceneCamera ? &g_sceneCamera : nullptr; }
 
 int QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued) {
-    if (!(object->flags_ & MapObjectFlag::Shown) || (object->flags_ & MapObjectFlag::NotDrawn)) return 0;
+    if (!(object->flags & MapObjectFlag::Shown) || (object->flags & MapObjectFlag::NotDrawn)) return 0;
     const CObject3D* figure = object;
     ScreenEntry entry;
     entry.classId = object->GetClassId();
-    entry.objectId = static_cast<unsigned>(object->id_);
+    entry.objectId = static_cast<unsigned>(object->id);
     entry.rect = figure->dirtyRect;
     queued->insert(queued->end(), entry);
     return 1;
@@ -189,74 +189,74 @@ int CWorldClient::Render() {
     // by the camera (camera::FrameView).
     camera::TakeFrameView(&g_camera);
     const camera::ViewPose& drawn = camera::FrameView();
-    CTextureDevice* renderer = g_sceneRenderer.device_;
-    CTransformPipeline* device = g_sceneRenderer.pipeline_;
+    CTextureDevice* renderer = g_sceneRenderer.device;
+    CTransformPipeline* device = g_sceneRenderer.pipeline;
     UpdateLighting();
     // The sun the new renderer's shadow map is drawn from: the terrain's (Terrain::SetSun), as this
     // frame's lighting turned it; the GPU lighting's sun, ambient and point lights.
-    if (terrain_ && terrain_->sun) {
-        const Vector3& d = terrain_->sun->direction_;
+    if (terrain && terrain->sun) {
+        const Vector3& d = terrain->sun->direction;
         const float direction[3] = {d.x, d.y, d.z};
         render::ShadowSun(direction);
     }
     HandOverSceneLights(this);
     Matrix4 view;
     view::ViewMatrix(view.m, drawn.position, drawn.rotation);
-    PopMatrix(device->stacks_[kStackView]);
-    PushMatrix(device->stacks_[kStackView], view.m);
+    PopMatrix(device->stacks[kStackView]);
+    PushMatrix(device->stacks[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;
     device->PushMatrix(top, kStackScene2);
     device->PushMatrix(top, kStackScene1);
-    PushMatrix(device->stacks_[kStackWorld], device->Top(kStackView)->m);
+    PushMatrix(device->stacks[kStackWorld], device->Top(kStackView)->m);
     g_sceneCamera = *device->Top(kStackScene1);
     g_haveSceneCamera = true;
 
-    std::uint32_t flags = flags_;
-    void* sky = skyDome_;
-    if ((flags & WorldClientFlag::DrawSky) && sky) {
+    std::uint32_t currentFlags = flags;
+    void* skyColour = skyDome;
+    if ((currentFlags & WorldClientFlag::DrawSky) && skyColour) {
         state.alphaTest = false;
         state.stages[0].combiner = kSceneStage;
         state.depthWrite = false;
         state.cull = render::Cull::None;
         state.specular = true;
-        renderer->distanceFog_ = 0;
-        skyDome_->Draw(&g_sceneRenderer, drawn.position);
-        renderer->distanceFog_ = 1;
+        renderer->distanceFog = 0;
+        skyDome->Draw(&g_sceneRenderer, drawn.position);
+        renderer->distanceFog = 1;
         state.cull = render::Cull::Clockwise;
         state.specular = false;
         state.depthWrite = true;
     }
     net::Pump();
-    if ((flags_ & WorldClientFlag::DrawTerrain) && terrain_) {
+    if ((flags & WorldClientFlag::DrawTerrain) && terrain) {
         Vector3 frame;
-        camera_->GroundPoint(&frame);
-        terrain_->SetVisibleSectors(camera_->localPosition_.x, camera_->localPosition_.y, LandscapeDrawRadius());
+        camera->GroundPoint(&frame);
+        terrain->SetVisibleSectors(camera->localPosition.x, camera->localPosition.y, LandscapeDrawRadius());
         state.stages[0].combiner = kTerrainStage;
-        terrain_->DrawGround(&g_sceneRenderer);
+        terrain->DrawGround(&g_sceneRenderer);
     }
     DrawPass();
     net::Pump();
-    if ((flags_ & WorldClientFlag::DrawTerrain) && terrain_) {
+    if ((flags & WorldClientFlag::DrawTerrain) && terrain) {
         Vector3 frame;
-        camera_->GroundPoint(&frame);
-        terrain_->SetVisibleSectors(camera_->localPosition_.x, camera_->localPosition_.y, LandscapeDrawRadius());
+        camera->GroundPoint(&frame);
+        terrain->SetVisibleSectors(camera->localPosition.x, camera->localPosition.y, LandscapeDrawRadius());
         state.alphaTest = false;
         state.stages[0].combiner = kSceneStage;
-        terrain_->DrawWater(&g_sceneRenderer);
+        terrain->DrawWater(&g_sceneRenderer);
     }
     // The shadow map's casters the game did not draw (the map is fitted to the ground drawn above),
     // and the ground's own.
-    if (flags_ & WorldClientFlag::DrawTerrain) HandOverTerrainCasters(this);
+    if (flags & WorldClientFlag::DrawTerrain) HandOverTerrainCasters(this);
     HandOverOutsideCasters(this);
     net::Pump();
-    if (flags_ & WorldClientFlag::DrawEffects) {
+    if (flags & WorldClientFlag::DrawEffects) {
         state.stages[0].combiner = kAlphaPassStage;
         state.blend = true;
         state.alphaTest = false;
         state.sourceBlend = render::Blend::SourceAlpha;
         state.destBlend = render::Blend::InvSourceAlpha;
         state.depthWrite = false;
-        arrayManager_->Draw(&g_sceneRenderer);
+        arrayManager->Draw(&g_sceneRenderer);
         state.sourceBlend = render::Blend::SourceAlpha;
         state.destBlend = render::Blend::InvSourceAlpha;
         state.depthWrite = false;
@@ -264,25 +264,25 @@ int CWorldClient::Render() {
         particles->DrawAll(&g_sceneRenderer);
         state.sourceBlend = render::Blend::SourceAlpha;
         state.destBlend = render::Blend::InvSourceAlpha;
-        listManager_->DrawAll(&g_sceneRenderer);
+        listManager->DrawAll(&g_sceneRenderer);
         state.sourceBlend = render::Blend::SourceAlpha;
         state.destBlend = render::Blend::InvSourceAlpha;
-        rainSnow_.Draw(&g_sceneRenderer);
+        rainSnow.Draw(&g_sceneRenderer);
         state.depthWrite = true;
     }
     state.stages[0].combiner = kSceneStage;
     net::Pump();
     DrawLineLists();
-    PopMatrix(device->stacks_[kStackWorld]);
-    PopMatrix(device->stacks_[kStackScene2]);
-    PopMatrix(device->stacks_[kStackScene1]);
+    PopMatrix(device->stacks[kStackWorld]);
+    PopMatrix(device->stacks[kStackScene2]);
+    PopMatrix(device->stacks[kStackScene1]);
     g_haveSceneCamera = false;
-    if (flags_ & WorldClientFlag::DrawNumbers) {
+    if (flags & WorldClientFlag::DrawNumbers) {
         state.depthTest = false;
         state.stages[0].combiner = kAlphaPassStage;
-        renderer->distanceFog_ = 0;
-        numbers_->Draw(&g_sceneRenderer);
-        renderer->distanceFog_ = 1;
+        renderer->distanceFog = 0;
+        numbers->Draw(&g_sceneRenderer);
+        renderer->distanceFog = 1;
         state.depthTest = true;
     }
     render::EndWorld();
@@ -290,15 +290,15 @@ int CWorldClient::Render() {
 }
 
 int CWorldClient::DrawLineLists() {
-    for (auto& node : lineLists_) node.second->Draw(g_sceneRenderer.pipeline_, g_sceneRenderer.device_);
+    for (auto& node : lineLists) node.second->Draw(g_sceneRenderer.pipeline, g_sceneRenderer.device);
     return 1;
 }
 
 int CWorldClient::DrawPass() {
     render::RenderState& state = render::g_renderState;
-    terrain::Terrain* terrain = terrain_;
-    if (!terrain || !terrain->mapLoaded) return 0;
-    CTransformPipeline* device = g_sceneRenderer.pipeline_;
+    terrain::Terrain* currentTerrain = terrain;
+    if (!currentTerrain || !currentTerrain->mapLoaded) return 0;
+    CTransformPipeline* device = g_sceneRenderer.pipeline;
     std::uint32_t now = gameapi::timeGetTime();
     const Matrix4* view = device->Top(kStackView);
     g_deferredUnits.clear();
@@ -308,45 +308,45 @@ int CWorldClient::DrawPass() {
                                          FrameList::ShadowTrees, FrameList::TouchedModels};
     for (FrameList list : kCleared) VectorClear(&FrameObjects(list));
     float animTime = AnimationTime();
-    const float* position = &CameraAnchor(camera_)->x;
-    if (bird_) bird_->Update(animTime);
+    const float* position = &CameraAnchor(camera)->x;
+    if (bird) bird->Update(animTime);
 
     // The sectors around the camera: the position widened by the margin, clamped to the map
     // (size - 1) and to 0, in 16-unit sectors.
     const float margin = ObjectsDrawRadius();
     const float edge = kMapEdgeMargin;
-    terrain = terrain_;
-    float yHi = MinKeepB(AddRounded(position[1], margin), SubRounded(terrain->height, edge));
-    float xMax = SubRounded(terrain_->width, edge);
+    currentTerrain = terrain;
+    float yHi = MinKeepB(AddRounded(position[1], margin), SubRounded(currentTerrain->height, edge));
+    float xMax = SubRounded(terrain->width, edge);
     float xHi = MinKeepB(AddRounded(position[0], margin), xMax);
-    float yMax = SubRounded(terrain_->height, edge);
+    float yMax = SubRounded(terrain->height, edge);
     float yLo = MaxKeepA(0.0f, Reload(MinKeepB(SubRounded(position[1], margin), yMax)));
-    float xMax2 = SubRounded(terrain_->width, edge);
+    float xMax2 = SubRounded(terrain->width, edge);
     float xLo = MaxKeepA(0.0f, Reload(MinKeepB(SubRounded(position[0], margin), xMax2)));
     std::uint32_t sx0 = static_cast<std::uint32_t>(Ftol(xLo)) >> 4;
-    rangeFirstX_ = sx0;
-    rangeX_ = sx0;
+    rangeFirstX = sx0;
+    rangeX = sx0;
     std::uint32_t sy0 = static_cast<std::uint32_t>(Ftol(yLo)) >> 4;
-    rangeFirstY_ = sy0;
-    rangeY_ = sy0;
-    rangeLastX_ = static_cast<std::uint32_t>(Ftol(xHi)) >> 4;
-    rangeLastY_ = static_cast<std::uint32_t>(Ftol(yHi)) >> 4;
+    rangeFirstY = sy0;
+    rangeY = sy0;
+    rangeLastX = static_cast<std::uint32_t>(Ftol(xHi)) >> 4;
+    rangeLastY = static_cast<std::uint32_t>(Ftol(yHi)) >> 4;
 
     int touched = 0;
-    std::list<HeldRef<CMapObject>>* sector = &objectGrid_.rows_[sy0][sx0];
+    std::list<HeldRef<CMapObject>>* sector = &objectGrid.rows[sy0][sx0];
     while (sector) {
         touched += CollectVisible(sector, view, animTime, now, 0, 0);
-        std::uint32_t x = ++rangeX_;
-        if (x > rangeLastX_) {
-            rangeX_ = rangeFirstX_;
-            std::uint32_t y = ++rangeY_;
-            if (y > rangeLastY_) break;
+        std::uint32_t x = ++rangeX;
+        if (x > rangeLastX) {
+            rangeX = rangeFirstX;
+            std::uint32_t y = ++rangeY;
+            if (y > rangeLastY) break;
         }
-        sector = &objectGrid_.rows_[rangeY_][rangeX_];
+        sector = &objectGrid.rows[rangeY][rangeX];
     }
     touched += CollectVisible(&g_deferredUnits, view, animTime, now, 1, 0);
     g_deferredUnits.clear();
-    touched += CollectVisible(&heroes_, view, animTime, now, 1, 1);
+    touched += CollectVisible(&heroes, view, animTime, now, 1, 1);
 
     // Models in view stay loaded: the most recently used max(10, n / 8) lose MapObjectFlag::Static.
     std::vector<CMapObject*>& models = FrameObjects(FrameList::TouchedModels);
@@ -359,13 +359,13 @@ int CWorldClient::DrawPass() {
         if (count < 10) count = 10;
         for (CMapObject** p = models.data(); p != models.data() + models.size() && count != 0; --count) {
             CMapObject* object = *p++;
-            object->flags_ &= ~MapObjectFlag::Static;
+            object->flags &= ~MapObjectFlag::Static;
         }
     }
 
     // The frame's window rectangles (an STLport list of 32-byte nodes).
-    std::list<ScreenEntry>& queued = screenEntries_;
-    if (flags_ & (WorldClientFlag::DrawObjects | WorldClientFlag::DrawUnits)) {
+    std::list<ScreenEntry>& queued = screenEntries;
+    if (flags & (WorldClientFlag::DrawObjects | WorldClientFlag::DrawUnits)) {
         state.stages[0].combiner = kAlphaPassStage;
         queued.clear();
         state.sourceBlend = render::Blend::SourceAlpha;
@@ -373,7 +373,7 @@ int CWorldClient::DrawPass() {
         state.blend = true;
         state.alphaTest = true;
     }
-    if (flags_ & WorldClientFlag::DrawObjects) {
+    if (flags & WorldClientFlag::DrawObjects) {
         SortByModel(FrameList::VisibleBuildings);
         SortByModel(FrameList::VisibleOther);
         SortByModel(FrameList::VisibleLevers);
@@ -386,7 +386,7 @@ int CWorldClient::DrawPass() {
         DrawEach(FrameList::VisibleBuildings, kDraw);
         DrawEach(FrameList::VisibleTrees, kDraw);
     }
-    if ((flags_ & WorldClientFlag::DrawUnits) && FrameObjects(FrameList::VisibleUnits).begin() != FrameObjects(FrameList::VisibleUnits).end()) {
+    if ((flags & WorldClientFlag::DrawUnits) && FrameObjects(FrameList::VisibleUnits).begin() != FrameObjects(FrameList::VisibleUnits).end()) {
         SortByModel(FrameList::VisibleUnits);
         state.alphaReference = 10;
         state.stages[0].combiner = kAlphaPassStage;
@@ -396,18 +396,18 @@ int CWorldClient::DrawPass() {
     }
 
     // Light effects (three lists of the client, each behind its setting).
-    if (!bloodPrints_.empty() || !footprints_.empty() || !scorchMarks_.empty()) {
+    if (!bloodPrints.empty() || !footprints.empty() || !scorchMarks.empty()) {
         state.stages[0].combiner = kAlphaPassStage;
         state.alphaTest = false;
         state.depthWrite = false;
-        if (LightEffects1B8()) DrawLightEffects(bloodPrints_);
-        if (LightEffects1BC()) DrawLightEffects(footprints_);
-        if (LightEffects1C0()) DrawLightEffects(scorchMarks_);
+        if (LightEffects1B8()) DrawLightEffects(bloodPrints);
+        if (LightEffects1BC()) DrawLightEffects(footprints);
+        if (LightEffects1C0()) DrawLightEffects(scorchMarks);
         state.depthWrite = true;
     }
 
     // Shadows: projected along the camera's Z axis (its rotation) scaled by a constant.
-    if (flags_ & WorldClientFlag::DrawShadows) {
+    if (flags & WorldClientFlag::DrawShadows) {
         SortByModel(FrameList::ShadowBuildings);
         SortByModel(FrameList::ShadowOther);
         SortByModel(FrameList::ShadowLevers);
@@ -437,39 +437,39 @@ int CWorldClient::DrawPass() {
         DrawEach(FrameList::ShadowTrees, kDrawShadow);
         DrawEach(FrameList::ShadowUnits, kDrawShadow);
         state.depthWrite = true;
-        PopMatrix(device->stacks_[kStackScene2]);
-        PopMatrix(device->stacks_[kStackScene1]);
+        PopMatrix(device->stacks[kStackScene2]);
+        PopMatrix(device->stacks[kStackScene1]);
     }
 
-    // Selection markers (selectedIds_ of object ids) in single-player mode 1 with units drawn: a marker at
+    // Selection markers (selectedIds of object ids) in single-player mode 1 with units drawn: a marker at
     // each living object (at its named part when it has one); dead ones leave the list.
-    std::list<int>& selected = selectedIds_;
-    if (!selected.empty() && options::g_options.selectionType_ == 1 && (flags_ & WorldClientFlag::DrawUnits)) {
+    std::list<int>& selected = selectedIds;
+    if (!selected.empty() && options::g_options.selectionType == 1 && (flags & WorldClientFlag::DrawUnits)) {
         state.alphaTest = false;
         g_sceneRenderer.SetTexture(0, nullptr);
-        CMapObjectManager* manager = objectManager_;
+        CMapObjectManager* manager = objectManager;
         for (std::list<int>::iterator node = selected.begin(); node != selected.end();) {
             std::list<int>::iterator next = std::next(node);
-            int id = (*node);
-            auto* object = manager->FindObjectAs<CMapObject>(static_cast<unsigned>(id));
+            int objectId = (*node);
+            auto* object = manager->FindObjectAs<CMapObject>(static_cast<unsigned>(objectId));
             if (object) {
                 if (object->IsDead() == 0) {
                     Vector3 point;
-                    point = object->localPosition_;
+                    point = object->localPosition;
                     if (CFigureMesh* part = object->FindPartByPrefix(MarkerPartName())) {
                         Vector3 scratch;
                         const float* at = object->PartWorldPosition(&scratch.x, part);
                         lib::LoadBytes(point, at);
-                        point.z = Reload(object->localPosition_.z);
+                        point.z = Reload(object->localPosition.z);
                     }
-                    const Quaternion* orientation = &object->localRotation_;
+                    const Quaternion* orientation = &object->localRotation;
                     Vector3 axisY, axisX;
                     orientation->AxisY(&axisY);
                     orientation->AxisX(&axisX);
                     g_sceneRenderer.DrawSelectionMarker(point, 0.5f, axisX, axisY);
                 } else {
-                    if (object->flags_ & MapObjectFlag::Selected) {
-                        object->flags_ &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);
+                    if (object->flags & MapObjectFlag::Selected) {
+                        object->flags &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);
                         // The side half's empty virtual and SetLit with 0: the marker light goes off.
                         object->attached->Unused25(0);
                         object->attached->SetLit(false);

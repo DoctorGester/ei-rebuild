@@ -192,8 +192,8 @@ int __cdecl ClientRandForOriginal() {
 void __fastcall InitForOriginal(IsaacRandom* random) {
     using InitFn = void(__thiscall*)(IsaacRandom*);
     OriginalCode<InitFn>(kInit)(random);
-    if (g_client.seeded_ != 0) return;
-    std::memcpy(g_client.results_, random->memory_, sizeof(g_client.results_));
+    if (g_client.seeded != 0) return;
+    std::memcpy(g_client.results, random->memory, sizeof(g_client.results));
     OriginalCode<InitFn>(kInit)(&g_client);
 }
 

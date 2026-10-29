@@ -106,7 +106,7 @@ ParticleFrame Begin(CRainSnow& layer, float sink, float rise) {
     frame.wind = layer.wind;
     frame.wind.z = static_cast<float>(layer.wind.z - sink);
     const CWorldClient* world = layer.world;
-    frame.time = static_cast<float>(static_cast<float>(world->tick_) + world->tickFraction_);
+    frame.time = static_cast<float>(static_cast<float>(world->tick) + world->tickFraction);
     const Vector3 eye = camera::FrameView().position;
     // The time a particle takes from `rise` above the camera, and where it starts from then.
     const float time = static_cast<float>((eye.z - rise) / frame.wind.z);
@@ -139,7 +139,7 @@ void Project(CRainSnow& layer, CSceneRenderer* renderer) {
     layer.positions.resize((layer.particleCount + 3) >> 2);
     layer.projected.resize(std::ssize(layer.positions) * 4);
     layer.outcodes.resize(std::ssize(layer.positions) * 4);
-    const CTransformPipeline* pipeline = renderer->pipeline_;
+    const CTransformPipeline* pipeline = renderer->pipeline;
     pipeline->ProjectClipped(*pipeline->Top(CTransformPipeline::kClipStack), layer.positions.data(),
                              layer.projected.data(), layer.outcodes.data(), std::ssize(layer.positions));
 }
@@ -160,7 +160,7 @@ void SetFrame(TLVertex* triangle, std::uint8_t frame, float top, float bottom) {
 // The vertices kept (three per particle on screen) and taken to the screen.
 int Finish(CRainSnow& layer, CSceneRenderer* renderer, int used) {
     layer.vertices.resize(used);
-    if (used != 0) renderer->pipeline_->ToScreen(layer.vertices.data(), std::ssize(layer.vertices));
+    if (used != 0) renderer->pipeline->ToScreen(layer.vertices.data(), std::ssize(layer.vertices));
     return used;
 }
 
@@ -302,7 +302,7 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
 }
 
 void CRainSnow::DrawParticles(CSceneRenderer* renderer, int vertexCount) {
-    renderer->device_->DrawTlTriangles(vertices.data(), std::ssize(vertices), indices.data(), vertexCount);
+    renderer->device->DrawTlTriangles(vertices.data(), std::ssize(vertices), indices.data(), vertexCount);
 }
 
 int CRainSnow::DrawRain(CSceneRenderer* renderer) {

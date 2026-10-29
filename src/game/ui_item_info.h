@@ -1,8 +1,8 @@
 #pragma once
 
 // The item description panel of the camp, the multiplayer hero screen and the exchange window
-// (docs/notes/ui.md, "Item descriptions"). A CUiWindow with one surface (200 x 300 at the layout point x_,
-// y_) on which it writes what the mouse is over: an item (DescribeItem), a statistic of the hero or the
+// (docs/notes/ui.md, "Item descriptions"). A CUiWindow with one surface (200 x 300 at the layout point x,
+// y) on which it writes what the mouse is over: an item (DescribeItem), a statistic of the hero or the
 // level-up page, or a camp help topic. Its draw draws the described item's model through the owner screen.
 // Every description writes the title wrapped in white at (15, 10)-(185, 25), then lines 15 pixels apart in
 // 0xA7D7E4, the description text wrapped last.
@@ -68,7 +68,7 @@ struct ItemCacheEntry {
     std::uint32_t lastUse;
 };
 
-// A cache of the item screens (models_ and textures_): a map from a name to {object, time of last use}, and
+// A cache of the item screens (models and textures): a map from a name to {object, time of last use}, and
 // how many entries it keeps (30; 20 when an option byte is set). TrimItemCache releases the least recently
 // used objects beyond that.
 template <typename Object>
@@ -99,13 +99,13 @@ inline void TrimItemCache(ItemObjectCache<Object>* cache) {
     }
 }
 
-// An item's turning state, a counted object in the item's link_: made by the item draw and the moves.
+// An item's turning state, a counted object in the item's link: made by the item draw and the moves.
 class ItemTurn : public CRefObject {
 public:
     ItemTurn() {
-        refs_ = 0;
-        flags6_ = 0;
-        flags7_ = 0;
+        refs = 0;
+        flags6 = 0;
+        flags7 = 0;
     }
     void OnShutdown() override;
     ItemTurn* Clone() override;
@@ -115,7 +115,7 @@ public:
     bool flag = false;       // set by a move into a list shown turning
     float glow = 0.0f;       // phase of the spell glow
 };
-inline ItemTurn* ItemTurnOf(CItem* item) { return static_cast<ItemTurn*>(item->link_.Get()); }
+inline ItemTurn* ItemTurnOf(CItem* item) { return static_cast<ItemTurn*>(item->link.Get()); }
 // An item a constructor made: a move into a list shown turning sets its turn's flag.
 inline bool IsMade(CItem* item) {
     const ItemTurn* turn = ItemTurnOf(item);
@@ -173,7 +173,7 @@ public:
     // "f" for "unhufe", else nothing), both cached as the items are, tilted back by (y - 300) / 1000
     // radians, over the cell frame.
     void DrawHeroFace(CSceneRenderer* pass, const HeroFaceCell& cell);
-    // The screens' common Create: the icon window (iconWindow_, a child with the screen's texture 0, built), textures
+    // The screens' common Create: the icon window (iconWindow, a child with the screen's texture 0, built), textures
     // "modifiers2" and "campslots", the display's settings, and the caches' limits (30, or 20 with an option byte
     // set).
     void CreateBase();
@@ -186,11 +186,11 @@ public:
     // Moves every item of `from` into `to` (whole stacks, merged); returns the last item `to` took, or null
     // when `from` was empty.
     CItem* ReturnAll(CParty* to, CParty* from);
-    CItemInfoPanel* descPanel_ = nullptr;
-    CItem* hoveredItem_ = nullptr;   // the item under the mouse (turns)
-    CItemIconWindow* iconWindow_ = nullptr;
-    ItemModelCache models_;
-    ItemTextureCache textures_;
+    CItemInfoPanel* descPanel = nullptr;
+    CItem* hoveredItem = nullptr;    // the item under the mouse (turns)
+    CItemIconWindow* iconWindow = nullptr;
+    ItemModelCache models;
+    ItemTextureCache textures;
 
 protected:
     explicit CItemScreen(CInterface3D* ui) : CUiContainer(ui) {}
@@ -255,11 +255,11 @@ public:
     void Build(int x, int y);
 
     // The described item: the first of the list, or null.
-    CItem* FirstItem() { return itemParty_.items_.empty() ? nullptr : itemParty_.items_[0]; }
+    CItem* FirstItem() { return itemParty.items.empty() ? nullptr : itemParty.items[0]; }
 
-    CParty itemParty_;               // the described item's list
-    int x_ = 0;                      // layout position of the surface
-    int y_ = 0;
-    std::vector<std::string> itemTexts_;    // "infoitem_0" .. "infoitem_44"
-    std::vector<std::string> skillTexts_;   // "infoskill_0" .. "infoskill_24"
+    CParty itemParty;                // the described item's list
+    int x = 0;                       // layout position of the surface
+    int y = 0;
+    std::vector<std::string> itemTexts;     // "infoitem_0" .. "infoitem_44"
+    std::vector<std::string> skillTexts;    // "infoskill_0" .. "infoskill_24"
 };

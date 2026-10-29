@@ -1,4 +1,4 @@
-// The game server's chat and system lines: kept on lines_ for the clients, at most 50. See net_classes.h and
+// The game server's chat and system lines: kept on lines for the clients, at most 50. See net_classes.h and
 // docs/notes/network.md.
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -22,16 +22,16 @@ constexpr std::uint32_t kMaxLines = 50;
 // null for the server's own lines) and drops the oldest past 50.
 void ServerSession::Announce(std::string_view text, CRefObject* player) {
     auto* line = NewCounted<LineMessage>();
-    lines_.emplace_back(line);
+    lines.emplace_back(line);
 
-    auto* added = lines_.back().Get();
-    added->text_.assign(text);
-    added->number_ = nextLine_;
-    ++nextLine_;
+    auto* added = lines.back().Get();
+    added->text.assign(text);
+    added->number = nextLine;
+    ++nextLine;
 
     CRefObject* connection = nullptr;
-    if (player && !(player->flags7_ & CRefObject::kDetached)) {
-        for (auto& node : bindings_) {
+    if (player && !(player->flags7 & CRefObject::kDetached)) {
+        for (auto& node : bindings) {
             auto* binding = node.Get();
             if (binding->PlayerRef().Get() == player) {
                 connection = binding->ConnectionRef().Get();
@@ -39,14 +39,14 @@ void ServerSession::Announce(std::string_view text, CRefObject* player) {
             }
         }
     }
-    added->connection_.Assign(connection);
+    added->connection.Assign(connection);
 
-    if (lines_.size() > kMaxLines) lines_.erase(lines_.begin());
+    if (lines.size() > kMaxLines) lines.erase(lines.begin());
 }
 
 // Announce with text `kind` of the text table formatted with `text`.
-void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player) {
-    Announce(g_interface.MessageText(kind, text), player);
+void ServerSession::AnnounceText(int textKind, const char* text, CRefObject* player) {
+    Announce(g_interface.MessageText(textKind, text), player);
 }
 
 } // namespace net

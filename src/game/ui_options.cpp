@@ -90,169 +90,169 @@ constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
 // The text `key` up to the next '#', or the key itself without one.
 std::string TipText(const std::string& key) {
     std::string tip = key;
-    if (g_clientWorld.texts_->CTextManager::Open(key.c_str())) tip = g_clientWorld.texts_->ReadToHash();
+    if (g_clientWorld.texts->CTextManager::Open(key.c_str())) tip = g_clientWorld.texts->ReadToHash();
     return tip;
 }
 
 // The text `prefix` + `name`, or the name itself without one.
 std::string ShownName(const char* prefix, const char* name) {
-    return g_clientWorld.texts_->FindString(std::string(prefix) + name).value_or(name);
+    return g_clientWorld.texts->FindString(std::string(prefix) + name).value_or(name);
 }
 
 void RebuildKeysText(OptionBinding& binding) {
-    binding.keysText_.clear();
-    for (std::size_t k = 0; k < binding.keys_.size(); ++k) {
-        binding.keysText_ += binding.keys_[k]->name_;
-        binding.keysText_ += kTextKeySeparator;
+    binding.keysText.clear();
+    for (std::size_t k = 0; k < binding.keys.size(); ++k) {
+        binding.keysText += binding.keys[k]->name;
+        binding.keysText += kTextKeySeparator;
     }
-    str::TrimRight(binding.keysText_, kTextKeyTrim);
+    str::TrimRight(binding.keysText, kTextKeyTrim);
 }
 
 void TurnQuarter(CUiMesh* sprite) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
-    sprite->localRotation_ = *turn.SetAxisAngle(axis, kQuarterTurn);
+    sprite->localRotation = *turn.SetAxisAngle(axis, kQuarterTurn);
 }
 
 } // namespace
 
 void COptionsWindow::RefreshRows() {
-    CUiSurface* surface = surfaces_[0];
+    CUiSurface* surface = surfaces[0];
     surface->Clear();
-    SceneMesh(kHighlightSprite)->visible_ = false;
+    SceneMesh(kHighlightSprite)->visible = false;
 
     RECT title = {10, 60, 140, 80};
-    for (int group = 0; group < kOptionGroups; ++group) {
-        CUiMesh* button = SceneMesh(kFirstGroupSprite + group);
-        float tint = group == group_ ? 1.0f : 0.5f;
-        button->tint_[0] = tint;
-        button->tint_[1] = tint;
-        button->tint_[2] = tint;
-        surface->DrawTextIn(groupNames_[group], &title, 1, group == group_ ? kColourText : kColourDim, 1, 1);
+    for (int groupIndex = 0; groupIndex < kOptionGroups; ++groupIndex) {
+        CUiMesh* button = SceneMesh(kFirstGroupSprite + groupIndex);
+        float tint = groupIndex == group ? 1.0f : 0.5f;
+        button->tint[0] = tint;
+        button->tint[1] = tint;
+        button->tint[2] = tint;
+        surface->DrawTextIn(groupNames[groupIndex], &title, 1, groupIndex == group ? kColourText : kColourDim, 1, 1);
         gameapi::OffsetRect(&title, 0, 24);
     }
     RECT heading = {0, 10, 600, 34};
-    surface->DrawTextIn(groupNames_[group_], &heading, 2, kColourText, 1, 1);
+    surface->DrawTextIn(groupNames[group], &heading, 2, kColourText, 1, 1);
 
     RECT name = {160, 60, 420, 80};
     RECT keys = {430, 60, 590, 80};
     for (int row = 0, y = 168; y < 504; ++row, y += 24) {
-        if (row == selectedRow_) {
+        if (row == selectedRow) {
             CUiMesh* highlight = SceneMesh(kHighlightSprite);
-            highlight->visible_ = true;
+            highlight->visible = true;
             highlight->Place(471.0f, static_cast<float>(y), 3.0f);
         }
-        if (OptionBinding* binding = rows_[row].binding_) {
-            COLORREF colour = row == selectedRow_ && waitingForKey_ ? kColourWaiting : kColourText;
-            surface->DrawTextIn(binding->name_, &name, 1, colour, 0, 1);
-            surface->DrawTextIn(binding->keysText_, &keys, 1, colour, 0, 1);
-        } else if (OptionSetting* setting = rows_[row].setting_) {
-            surface->DrawTextIn(setting->text_, &name, 1, kColourText, 0, 1);
+        if (OptionBinding* binding = rows[row].binding) {
+            COLORREF colour = row == selectedRow && waitingForKey ? kColourWaiting : kColourText;
+            surface->DrawTextIn(binding->name, &name, 1, colour, 0, 1);
+            surface->DrawTextIn(binding->keysText, &keys, 1, colour, 0, 1);
+        } else if (OptionSetting* setting = rows[row].setting) {
+            surface->DrawTextIn(setting->text, &name, 1, kColourText, 0, 1);
         }
         gameapi::OffsetRect(&name, 0, 24);
         gameapi::OffsetRect(&keys, 0, 24);
     }
 }
 
-void COptionsWindow::ShowGroup(int group) {
-    if (group < 0)
-        group = 0;
-    else if (group >= kOptionGroups)
-        group = kOptionGroups - 1;
-    group_ = group;
+void COptionsWindow::ShowGroup(int groupIndex) {
+    if (groupIndex < 0)
+        groupIndex = 0;
+    else if (groupIndex >= kOptionGroups)
+        groupIndex = kOptionGroups - 1;
+    group = groupIndex;
 
     for (int row = 0; row < kOptionRows; ++row) {
-        rows_[row].binding_ = nullptr;
-        rows_[row].setting_ = nullptr;
-        regions_[kFirstRowRegion + row]->SetTip(0);
+        rows[row].binding = nullptr;
+        rows[row].setting = nullptr;
+        regions[kFirstRowRegion + row]->SetTip(0);
     }
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
         const OptionDefinition& definition = kOptionDefinitions[i];
-        if (definition.group_ != group) continue;
-        rows_[definition.row_].setting_ = &settings_[i];
-        regions_[kFirstRowRegion + definition.row_]->SetTipString(TipText(str::Format(kTextTipOption, definition.name_)));
+        if (definition.group != groupIndex) continue;
+        rows[definition.row].setting = &settings[i];
+        regions[kFirstRowRegion + definition.row]->SetTipString(TipText(str::Format(kTextTipOption, definition.name)));
     }
     for (int i = 0; i < kActionDefinitionCount; ++i) {
         const ActionDefinition& action = kActionDefinitions[i + 1];
-        if (action.group_ != group) continue;
-        rows_[action.row_].binding_ = &bindings_[i];
-        regions_[kFirstRowRegion + action.row_]->SetTipString(TipText(str::Format(kTextTipAction, action.name_)));
+        if (action.group != groupIndex) continue;
+        rows[action.row].binding = &bindings[i];
+        regions[kFirstRowRegion + action.row]->SetTipString(TipText(str::Format(kTextTipAction, action.name)));
     }
 
     for (int i = 0; i < kOptionDefinitionCount; ++i)
-        if (settings_[i].bar_) settings_[i].bar_->SetEnabled(false);
+        if (settings[i].bar) settings[i].bar->SetEnabled(false);
     for (int i = 0; i < kOptionDefinitionCount; ++i)
-        if (settings_[i].spin_) settings_[i].spin_->SetEnabled(false);
+        if (settings[i].spin) settings[i].spin->SetEnabled(false);
     for (int row = 0; row < kOptionRows; ++row) {
-        OptionSetting* setting = rows_[row].setting_;
+        OptionSetting* setting = rows[row].setting;
         if (!setting) continue;
-        if (setting->bar_) setting->bar_->SetEnabled(true);
-        if (setting->spin_) setting->spin_->SetEnabled(true);
+        if (setting->bar) setting->bar->SetEnabled(true);
+        if (setting->spin) setting->spin->SetEnabled(true);
     }
 
-    selectedRow_ = -1;
+    selectedRow = -1;
     int row = 0;
-    while (row < kOptionRows && !rows_[row].binding_ && !rows_[row].setting_) ++row;
+    while (row < kOptionRows && !rows[row].binding && !rows[row].setting) ++row;
     if (row < kOptionRows) {
-        selectedRow_ = row;
+        selectedRow = row;
         RefreshRows();
     }
-    if (selectedRow_ == -1) selectedRow_ = 0;
-    waitingForKey_ = false;
+    if (selectedRow == -1) selectedRow = 0;
+    waitingForKey = false;
     RefreshRows();
 }
 
 void COptionsWindow::BuildSettings() {
-    settings_.clear();   // copy and destructors inlined
+    settings.clear();    // copy and destructors inlined
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
         // The original's temporary has only its string constructed; its other fields are copied
         // as the stack left them and all written below for both kinds.
         OptionSetting blank{};
-        settings_.push_back(blank);
-        OptionSetting& setting = settings_.back();
+        settings.push_back(blank);
+        OptionSetting& setting = settings.back();
         const OptionDefinition* definition = &kOptionDefinitions[i];
-        setting.value_ = 0;
-        setting.definition_ = definition;
-        setting.text_ = ShownName(kTextOptionPrefix, definition->name_);
+        setting.value = 0;
+        setting.definition = definition;
+        setting.text = ShownName(kTextOptionPrefix, definition->name);
 
-        int top = definition->row_ * 24;
-        if (definition->kind_ == kSliderKind) {
-            auto* slider = new CUiSlider(interface_, RECT{0, 0, 100, 100}, 3.0f, definition->maximum_, 1.0f);
-            setting.bar_ = slider;
-            RECT rect = {530, top + 163, 680, top + 173};
-            slider->SetRect(&rect);   // (a failed allocation is called through, as in the original)
+        int top = definition->row * 24;
+        if (definition->kind == kSliderKind) {
+            auto* slider = new CUiSlider(ui, RECT{0, 0, 100, 100}, 3.0f, definition->maximum, 1.0f);
+            setting.bar = slider;
+            RECT area = {530, top + 163, 680, top + 173};
+            slider->SetRect(&area);   // (a failed allocation is called through, as in the original)
             AddChild(slider);
-            setting.spin_ = nullptr;
-        } else if (definition->kind_ == kSpinKind) {
+            setting.spin = nullptr;
+        } else if (definition->kind == kSpinKind) {
             std::string text = kTextOffDefault;
-            text = g_clientWorld.texts_->GetString(kTextOptionOff);
-            if (i == kDifficultySetting) text = g_clientWorld.texts_->GetString(kTextDifficultyHard);
-            setting.spin_ = new CUiSpin(interface_, RECT{530, top + 160, 690, top + 176}, text.c_str());
+            text = g_clientWorld.texts->GetString(kTextOptionOff);
+            if (i == kDifficultySetting) text = g_clientWorld.texts->GetString(kTextDifficultyHard);
+            setting.spin = new CUiSpin(ui, RECT{530, top + 160, 690, top + 176}, text.c_str());
             text = kTextOnDefault;
-            text = g_clientWorld.texts_->GetString(kTextOptionOn);
-            if (i == kDifficultySetting) text = g_clientWorld.texts_->GetString(kTextDifficultyEasy);
-            setting.spin_->AddText(text);
-            AddChild(setting.spin_);
-            setting.bar_ = nullptr;
+            text = g_clientWorld.texts->GetString(kTextOptionOn);
+            if (i == kDifficultySetting) text = g_clientWorld.texts->GetString(kTextDifficultyEasy);
+            setting.spin->AddText(text);
+            AddChild(setting.spin);
+            setting.bar = nullptr;
         }
     }
 }
 
 void COptionsWindow::BuildBindings() {
-    bindings_.clear();
+    bindings.clear();
 
     for (int i = 0; i < kActionDefinitionCount; ++i) {
         const ActionDefinition* action = &kActionDefinitions[i + 1];
-        OptionBinding& binding = bindings_.emplace_back();
-        binding.action_ = action;
-        binding.name_ = ShownName(kTextActionPrefix, action->name_);
+        OptionBinding& binding = bindings.emplace_back();
+        binding.action = action;
+        binding.name = ShownName(kTextActionPrefix, action->name);
 
-        binding.keys_.clear();
+        binding.keys.clear();
         for (int scan = 0; scan < kKeyActionCount; ++scan) {
-            if (keyOfScan_[scan] != action->id_) continue;
+            if (keyOfScan[scan] != action->id) continue;
             for (int k = 0; k < kUiKeyNameCount; ++k) {
                 const UiKeyName* name = &g_keyNames[k];
-                if (name->scan_ == scan && binding.keys_.size() < 1) binding.keys_.push_back(name);
+                if (name->scan == scan && binding.keys.size() < 1) binding.keys.push_back(name);
             }
         }
         RebuildKeysText(binding);
@@ -260,163 +260,163 @@ void COptionsWindow::BuildBindings() {
 }
 
 void COptionsWindow::CommitBinding() {
-    if (!pressedKey_) return;
-    OptionBinding* binding = rows_[selectedRow_].binding_;
+    if (!pressedKey) return;
+    OptionBinding* binding = rows[selectedRow].binding;
     if (!binding) return;
-    const int boundAction = keyOfScan_[pressedKey_->scan_];
+    const int boundAction = keyOfScan[pressedKey->scan];
     OptionBinding* other = nullptr;
-    for (OptionBinding& b : bindings_) {
-        if (b.action_->id_ == boundAction) {
+    for (OptionBinding& b : bindings) {
+        if (b.action->id == boundAction) {
             other = &b;
             break;
         }
     }
     if (binding != other) {
-        if (binding->keys_.size() != 0) {
-            for (const UiKeyName* key : binding->keys_) keyOfScan_[key->scan_] = 0;
-            binding->keys_.clear();   // erase(begin, end): copies nothing
+        if (binding->keys.size() != 0) {
+            for (const UiKeyName* key : binding->keys) keyOfScan[key->scan] = 0;
+            binding->keys.clear();    // erase(begin, end): copies nothing
         }
-        binding->keys_.push_back(pressedKey_);   // on overflow
+        binding->keys.push_back(pressedKey);     // on overflow
         RebuildKeysText(*binding);
         if (other) {
-            for (auto key = other->keys_.begin(); key != other->keys_.end(); ++key) {
-                if (*key != pressedKey_) continue;
-                other->keys_.erase(key);
+            for (auto key = other->keys.begin(); key != other->keys.end(); ++key) {
+                if (*key != pressedKey) continue;
+                other->keys.erase(key);
                 RebuildKeysText(*other);
                 break;
             }
         }
     }
-    keyOfScan_[pressedKey_->scan_] = static_cast<signed char>(binding->action_->id_);
+    keyOfScan[pressedKey->scan] = static_cast<signed char>(binding->action->id);
 }
 
 void COptionsWindow::LoadSettings() {
-    std::memcpy(keyOfScan_, g_keyActions, sizeof(keyOfScan_));
-    OptionSetting* s = settings_.data();
+    std::memcpy(keyOfScan, g_keyActions, sizeof(keyOfScan));
+    OptionSetting* s = settings.data();
     const double fromStep = kFromStep;
     const float one = 1.0f;
-    s[0].value_ = options::g_options.audioSfx_;
-    s[1].value_ = options::g_options.audioStreaming_;
-    s[2].value_ = options::g_options.audioSpeech_;
-    s[24].value_ = options::g_options.reverseStereo_;
+    s[0].value = options::g_options.audioSfx;
+    s[1].value = options::g_options.audioStreaming;
+    s[2].value = options::g_options.audioSpeech;
+    s[24].value = options::g_options.reverseStereo;
     // _ftol: truncation.
-    s[3].value_ = static_cast<int>(options::g_options.cameraScroll_.powerKeyboard * fromStep);
-    s[4].value_ = static_cast<int>(options::g_options.cameraScroll_.powerMouse * fromStep);
+    s[3].value = static_cast<int>(options::g_options.cameraScroll.powerKeyboard * fromStep);
+    s[4].value = static_cast<int>(options::g_options.cameraScroll.powerMouse * fromStep);
     // Equal gives 0.
-    float sign22 = options::g_options.cameraFlipX_;
-    float sign23 = options::g_options.cameraFlipY_;
+    float sign22 = options::g_options.cameraFlipX;
+    float sign23 = options::g_options.cameraFlipY;
     EI_NAN_AUDIT(sign22, sign23);
-    s[22].value_ = sign22 == one ? 0 : 1;
-    s[23].value_ = sign23 == one ? 0 : 1;
-    s[5].value_ = options::g_options.cameraBorderScrollArea_;
-    s[6].value_ = options::g_options.cameraFrameSelectionArea_ / 10;
-    s[20].value_ = static_cast<int>(options::g_options.toolTipTime_ * static_cast<double>(kScrollFrom));
-    s[7].value_ = options::g_options.unitShadow_;
-    s[8].value_ = options::g_options.buildingShadow_;
-    s[9].value_ = options::g_options.floraShadow_;
-    s[10].value_ = options::g_options.enableBloodprints_;
-    s[11].value_ = options::g_options.enableFootprints_;
-    s[12].value_ = options::g_options.selectionType_;
-    s[13].value_ = options::g_options.drawPath_;
-    s[17].value_ = options::g_options.drawFlyingHp_;
-    s[18].value_ = options::g_options.showTutorial_;
-    s[19].value_ = options::g_options.autosave_;
-    s[21].value_ = options::g_options.switchFilters_;
-    s[14].value_ = static_cast<int>((static_cast<double>(options::g_options.brightness_) + one) * fromStep);
-    s[15].value_ = static_cast<int>((static_cast<double>(options::g_options.contrast_) + one) * fromStep);
-    s[16].value_ = static_cast<int>((static_cast<double>(options::g_options.gamma_) + one) * fromStep);
-    s[25].value_ = options::g_options.difficulty_;
+    s[22].value = sign22 == one ? 0 : 1;
+    s[23].value = sign23 == one ? 0 : 1;
+    s[5].value = options::g_options.cameraBorderScrollArea;
+    s[6].value = options::g_options.cameraFrameSelectionArea / 10;
+    s[20].value = static_cast<int>(options::g_options.toolTipTime * static_cast<double>(kScrollFrom));
+    s[7].value = options::g_options.unitShadow;
+    s[8].value = options::g_options.buildingShadow;
+    s[9].value = options::g_options.floraShadow;
+    s[10].value = options::g_options.enableBloodprints;
+    s[11].value = options::g_options.enableFootprints;
+    s[12].value = options::g_options.selectionType;
+    s[13].value = options::g_options.drawPath;
+    s[17].value = options::g_options.drawFlyingHp;
+    s[18].value = options::g_options.showTutorial;
+    s[19].value = options::g_options.autosave;
+    s[21].value = options::g_options.switchFilters;
+    s[14].value = static_cast<int>((static_cast<double>(options::g_options.brightness) + one) * fromStep);
+    s[15].value = static_cast<int>((static_cast<double>(options::g_options.contrast) + one) * fromStep);
+    s[16].value = static_cast<int>((static_cast<double>(options::g_options.gamma) + one) * fromStep);
+    s[25].value = options::g_options.difficulty;
 
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
-        if (s[i].bar_)
-            s[i].bar_->SetPosition(s[i].value_);
-        else if (s[i].spin_)
-            s[i].spin_->SetValue(s[i].value_);
+        if (s[i].bar)
+            s[i].bar->SetPosition(s[i].value);
+        else if (s[i].spin)
+            s[i].spin->SetValue(s[i].value);
     }
 }
 
 void COptionsWindow::Apply() {
-    std::memcpy(g_keyActions, keyOfScan_, sizeof(keyOfScan_));
-    const OptionSetting* s = settings_.data();
+    std::memcpy(g_keyActions, keyOfScan, sizeof(keyOfScan));
+    const OptionSetting* s = settings.data();
     const double toStep = kToStep;
     const float one = 1.0f;
-    options::g_options.audioSfx_ = s[0].value_;
-    options::g_options.audioStreaming_ = s[1].value_;
-    options::g_options.audioSpeech_ = s[2].value_;
-    options::g_options.reverseStereo_ = s[24].value_;
+    options::g_options.audioSfx = s[0].value;
+    options::g_options.audioStreaming = s[1].value;
+    options::g_options.audioSpeech = s[2].value;
+    options::g_options.reverseStereo = s[24].value;
     // Each product is rounded once by its float stores.
-    float speedA = static_cast<float>(s[3].value_ * toStep);
-    float speedB = static_cast<float>(s[4].value_ * toStep);
-    options::g_options.cameraScroll_.powerKeyboard = speedA;
-    options::g_options.cameraPitch_.powerKeyboard = speedA;
-    options::g_options.cameraZoom_.powerKeyboard = speedA;
-    options::g_options.cameraRotate_.powerKeyboard = speedA;
-    options::g_options.cameraScroll_.powerMouse = speedB;
-    options::g_options.cameraPitch_.powerMouse = speedB;
-    options::g_options.cameraZoom_.powerMouse = speedB;
-    options::g_options.cameraRotate_.powerMouse = speedB;
-    options::g_options.cameraFlipX_ = s[22].value_ == 1 ? -1.0f : 1.0f;
-    options::g_options.cameraFlipY_ = s[23].value_ == 1 ? -1.0f : 1.0f;
-    options::g_options.cameraBorderScrollArea_ = s[5].value_;
-    options::g_options.cameraFrameSelectionArea_ = s[6].value_ * 10;
-    options::g_options.toolTipTime_ = static_cast<float>(s[20].value_ * static_cast<double>(kScrollTo));
-    options::g_options.unitShadow_ = s[7].value_;
-    options::g_options.buildingShadow_ = s[8].value_;
-    options::g_options.floraShadow_ = s[9].value_;
-    options::g_options.enableBloodprints_ = s[10].value_;
-    options::g_options.enableFootprints_ = s[11].value_;
-    options::g_options.selectionType_ = s[12].value_;
-    options::g_options.drawPath_ = s[13].value_;
-    options::g_options.drawFlyingHp_ = s[17].value_;
-    options::g_options.showTutorial_ = s[18].value_;
-    options::g_options.autosave_ = s[19].value_;
-    options::g_options.switchFilters_ = s[21].value_;
-    options::g_options.brightness_ = static_cast<float>(s[14].value_ * toStep - one);
-    options::g_options.contrast_ = static_cast<float>(s[15].value_ * toStep - one);
-    options::g_options.gamma_ = static_cast<float>(s[16].value_ * toStep - one);
+    float speedA = static_cast<float>(s[3].value * toStep);
+    float speedB = static_cast<float>(s[4].value * toStep);
+    options::g_options.cameraScroll.powerKeyboard = speedA;
+    options::g_options.cameraPitch.powerKeyboard = speedA;
+    options::g_options.cameraZoom.powerKeyboard = speedA;
+    options::g_options.cameraRotate.powerKeyboard = speedA;
+    options::g_options.cameraScroll.powerMouse = speedB;
+    options::g_options.cameraPitch.powerMouse = speedB;
+    options::g_options.cameraZoom.powerMouse = speedB;
+    options::g_options.cameraRotate.powerMouse = speedB;
+    options::g_options.cameraFlipX = s[22].value == 1 ? -1.0f : 1.0f;
+    options::g_options.cameraFlipY = s[23].value == 1 ? -1.0f : 1.0f;
+    options::g_options.cameraBorderScrollArea = s[5].value;
+    options::g_options.cameraFrameSelectionArea = s[6].value * 10;
+    options::g_options.toolTipTime = static_cast<float>(s[20].value * static_cast<double>(kScrollTo));
+    options::g_options.unitShadow = s[7].value;
+    options::g_options.buildingShadow = s[8].value;
+    options::g_options.floraShadow = s[9].value;
+    options::g_options.enableBloodprints = s[10].value;
+    options::g_options.enableFootprints = s[11].value;
+    options::g_options.selectionType = s[12].value;
+    options::g_options.drawPath = s[13].value;
+    options::g_options.drawFlyingHp = s[17].value;
+    options::g_options.showTutorial = s[18].value;
+    options::g_options.autosave = s[19].value;
+    options::g_options.switchFilters = s[21].value;
+    options::g_options.brightness = static_cast<float>(s[14].value * toStep - one);
+    options::g_options.contrast = static_cast<float>(s[15].value * toStep - one);
+    options::g_options.gamma = static_cast<float>(s[16].value * toStep - one);
     if (!IsMultiplayerClient()) {
-        options::g_options.difficultyStored_ = s[25].value_;
-        options::g_options.difficulty_ = s[25].value_;
+        options::g_options.difficultyStored = s[25].value;
+        options::g_options.difficulty = s[25].value;
     }
-    if (shadowsChanged_) g_clientWorld.DropShadows();
+    if (shadowsChanged) g_clientWorld.DropShadows();
 }
 
 // --- The slider's virtual ------------------------------------------------------------------
 
-void CUiSlider::SetRect(const RECT* rect) {
-    rect_ = *rect;
-    track_.top = rect->bottom - 10;
-    track_.bottom = rect->bottom;
-    track_.left = rect->left + 26;
-    track_.right = rect->right - 26;
+void CUiSlider::SetRect(const RECT* newRect) {
+    rect = *newRect;
+    track.top = newRect->bottom - 10;
+    track.bottom = newRect->bottom;
+    track.left = newRect->left + 26;
+    track.right = newRect->right - 26;
 
-    CUiMesh* track = SceneMesh(0);
-    track->SetRectangle(depth_, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(rect->right - rect->left - 8), 8, 4, 0x20,
+    CUiMesh* trackMesh = SceneMesh(0);
+    trackMesh->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->right - newRect->left - 8), 8, 4, 0x20,
                         0xFC);
-    track->Place(static_cast<float>((rect->right + rect->left) * 0.5),
-                 static_cast<float>(rect->bottom - 5), depth_);
-    TurnQuarter(track);
+    trackMesh->Place(static_cast<float>((newRect->right + newRect->left) * 0.5),
+                 static_cast<float>(newRect->bottom - 5), depth);
+    TurnQuarter(trackMesh);
 
-    CUiMesh* thumb = SceneMesh(1);
-    thumb->SetRectangle(depth_ - kThumbLift, 100.0f, 0.0f, 0.0f, 10.0f, 30.0f, 0x28, 8, 0x50, 0x78);
-    TurnQuarter(thumb);
+    CUiMesh* thumbMesh = SceneMesh(1);
+    thumbMesh->SetRectangle(depth - kThumbLift, 100.0f, 0.0f, 0.0f, 10.0f, 30.0f, 0x28, 8, 0x50, 0x78);
+    TurnQuarter(thumbMesh);
 
     CUiMesh* right = SceneMesh(2);
-    right->SetRectangle(depth_, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
-    right->Place(static_cast<float>(rect->right - 6), static_cast<float>(rect->bottom - 5), depth_);
+    right->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
+    right->Place(static_cast<float>(newRect->right - 6), static_cast<float>(newRect->bottom - 5), depth);
     TurnQuarter(right);
 
     CUiMesh* left = SceneMesh(3);
-    left->SetRectangle(depth_, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
-    left->Place(static_cast<float>(rect->left + 6), static_cast<float>(rect->bottom - 5), depth_);
+    left->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
+    left->Place(static_cast<float>(newRect->left + 6), static_cast<float>(newRect->bottom - 5), depth);
     TurnQuarter(left);
 
-    regions_[0]->SetRect(rect->left, rect->bottom - 10, rect->left + 12, rect->bottom);
-    regions_[1]->SetRect(rect->right - 12, rect->bottom - 10, rect->right, rect->bottom);
-    regions_[2]->SetRect(rect->left, rect->top, rect->right, rect->bottom - 10);
+    regions[0]->SetRect(newRect->left, newRect->bottom - 10, newRect->left + 12, newRect->bottom);
+    regions[1]->SetRect(newRect->right - 12, newRect->bottom - 10, newRect->right, newRect->bottom);
+    regions[2]->SetRect(newRect->left, newRect->top, newRect->right, newRect->bottom - 10);
 
     // The position set again (one below first, so the change virtual sees a change).
-    int position = position_;
-    position_ = position - 1;
-    SetPosition(position);
+    int currentPosition = position;
+    position = currentPosition - 1;
+    SetPosition(currentPosition);
 }

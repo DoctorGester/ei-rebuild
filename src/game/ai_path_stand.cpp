@@ -43,11 +43,11 @@ void StandAt(AIPath* path, const int* time, const CMapObject* object) {
     path->reached = true;
     double scale = 1.0 /
                    (0.5f);
-    path->targetX = static_cast<float>(scale * object->localPosition_.x);
-    path->targetY = static_cast<float>(scale * object->localPosition_.y);
+    path->targetX = static_cast<float>(scale * object->localPosition.x);
+    path->targetY = static_cast<float>(scale * object->localPosition.y);
     Vector3 facing;
-    FacingFromQuaternion(&object->localRotation_.w, &facing.x);
-    path->Start(object->localPosition_, facing, *time);
+    FacingFromQuaternion(&object->localRotation.w, &facing.x);
+    path->Start(object->localPosition, facing, *time);
 }
 
 } // namespace

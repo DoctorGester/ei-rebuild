@@ -9,19 +9,19 @@
 #include "net_link.h"
 
 void CWorldHandle::TakeNew(std::list<HeldRef<netlink::NetLink>>* joined) {
-    if (pendingLink_) joined->emplace_back(pendingLink_.Get());
-    pendingLink_.Reset();
+    if (pendingLink) joined->emplace_back(pendingLink.Get());
+    pendingLink.Reset();
 }
 
 namespace netlink {
 
 void DriverSession::TakeNew(std::list<HeldRef<netlink::NetLink>>* list) {
-    for (const auto& holder : holders_) {
+    for (const auto& holder : holders) {
         DriverLink* link = holder.Get();
-        if (link && !(link->flags7_ & CRefCounted::kDetached)) list->emplace_back(link);
+        if (link && !(link->flags7 & CRefCounted::kDetached)) list->emplace_back(link);
     }
     // Each reference dropped.
-    holders_.clear();
+    holders.clear();
 }
 
 } // namespace netlink

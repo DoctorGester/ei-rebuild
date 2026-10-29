@@ -42,24 +42,24 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
         return false;   // a living unit of a player
     }
 
-    if (unit->flags_ & MapObjectFlag::Shared) {
+    if (unit->flags & MapObjectFlag::Shared) {
         // The shared-object list's entry for the object (SharedObject: its unknown_08 is the gold).
-        std::list<SharedObject>& list = sharedObjects_;
-        auto node = std::ranges::find(list, unit->id_, &SharedObject::objectId);
+        std::list<SharedObject>& list = sharedObjects;
+        auto node = std::ranges::find(list, unit->id, &SharedObject::objectId);
         if (node == list.end()) {
             abandon();
             return false;
         }
         // The entry's references go with the items (the original frees the node without releasing them).
         for (HeldRef<CItem>& item : node->objects) items.push_back(item.Take());
-        player->Party()->money_ += static_cast<int>(node->money);
+        player->Party()->money += static_cast<int>(node->money);
         player->GiveItems(&items, 0);
         list.erase(node);
         abandon();
         return true;
     }
 
-    if (!hoover_->CollectLoot(this, unit, &items, &second, &gold)) {
+    if (!hoover->CollectLoot(this, unit, &items, &second, &gold)) {
         destroy();
         return false;
     }
@@ -69,7 +69,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
         {
             PlayerIterator it;
             for (CPlayer* p = it.First(PlayerList()); p; p = it.Next()) {
-                if (p->playerId_ == 0) {
+                if (p->playerId == 0) {
                     first = p;
                     break;
                 }
@@ -91,7 +91,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
                 item->Release();
         }
     }
-    player->Party()->money_ += gold;
+    player->Party()->money += gold;
     player->GiveItems(&items, 0);
     for (CItem* item : items)
         item->Release();
@@ -104,12 +104,12 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
 
 void CWorldServer::LootDeadUnits() {
     // The walk starts before the player is looked up; unlike most walks it does not stop at an empty entry.
-    auto node = objects_.map.begin();
+    auto node = objects.map.begin();
     CPlayer* local = nullptr;
     {
         PlayerIterator it;
         for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
-            if (player->playerId_ == 0) {
+            if (player->playerId == 0) {
                 local = player;
                 break;
             }
@@ -117,13 +117,13 @@ void CWorldServer::LootDeadUnits() {
     if (!local) return;
 
     std::list<unsigned> dead;
-    for (; node != objects_.map.end(); ++node) {
+    for (; node != objects.map.end(); ++node) {
         CEngineObject* object = node->second;
         CUnit* unit = UnitOrNull(object);   // no null test here: the map holds no null
         if (unit && unit->IsDead()) {
             g_serverWorld.Loot(unit, local);
-            dead.push_back(static_cast<unsigned>(object->id_));
+            dead.push_back(static_cast<unsigned>(object->id));
         }
     }
-    for (unsigned id : dead) g_serverWorld.RemoveObject(id);
+    for (unsigned objectId : dead) g_serverWorld.RemoveObject(objectId);
 }

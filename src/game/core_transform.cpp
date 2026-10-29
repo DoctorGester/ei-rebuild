@@ -12,20 +12,20 @@
 #include <cmath>
 
 CTransformObject* CTransformObject::CopyTransform(const CTransformObject& other) {
-    std::memmove(&localPosition_, &other.localPosition_, sizeof(CTransformObject) - offsetof(CTransformObject, localPosition_));
+    std::memmove(&localPosition, &other.localPosition, sizeof(CTransformObject) - offsetof(CTransformObject, localPosition));
     return this;
 }
 
 void CTransformObject::CombineRotation(const Quaternion& g) {
-    const Quaternion& f = localRotation_;
+    const Quaternion& f = localRotation;
     float w = f.w * g.w - DotUnrounded<Sum3::XYZ>(f.x, f.y, f.z, g.x, g.y, g.z);
     float x = ((f.z * g.y - f.y * g.z) + f.x * g.w) + f.w * g.x;
     float y = ((f.x * g.z - f.z * g.x) + f.y * g.w) + f.w * g.y;
     float z = ((f.y * g.x - f.x * g.y) + f.z * g.w) + f.w * g.z;
-    worldRotation_.w = w;
-    worldRotation_.x = x;
-    worldRotation_.y = y;
-    worldRotation_.z = z;
+    worldRotation.w = w;
+    worldRotation.x = x;
+    worldRotation.y = y;
+    worldRotation.z = z;
 }
 
 // world = parent + rotate(parentRotation, local), with the rotation expanded as
@@ -37,7 +37,7 @@ void CTransformObject::CombineRotation(const Quaternion& g) {
 void CTransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
     CombineRotation(q);
     const float ux = q.x, uy = q.y, uz = q.z;
-    const Vector3& l = localPosition_;
+    const Vector3& l = localPosition;
 #define EI_DOT2 DotUnrounded<Sum3::ZXY>(ux * 2.0f, uy * 2.0f, uz * 2.0f, l.x, l.y, l.z)
     Vector3 along = {static_cast<float>(EI_DOT2 * ux), static_cast<float>(uy * EI_DOT2), static_cast<float>(uz * EI_DOT2)};
 #undef EI_DOT2
@@ -54,24 +54,24 @@ void CTransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
     float x = sum2.x + p.x;
     float y = sum2.y + p.y;
     float z = sum2.z + p.z;
-    worldPosition_.x = x;
-    worldPosition_.y = y;
-    worldPosition_.z = z;
+    worldPosition.x = x;
+    worldPosition.y = y;
+    worldPosition.z = z;
 }
 
 void CTransformObject::SaveTransform(lib::File* file) {
-    file->WriteValue(localPosition_);
-    file->WriteValue(localRotation_);
+    file->WriteValue(localPosition);
+    file->WriteValue(localRotation);
 }
 
 void CTransformObject::LoadTransform(lib::File* file) {
-    file->ReadValue(localPosition_);
-    file->ReadValue(localRotation_);
+    file->ReadValue(localPosition);
+    file->ReadValue(localRotation);
 }
 
 void CCamera::GroundPoint(Vector3* out) const {
-    const Quaternion& r = localRotation_;
-    const Vector3& pos = localPosition_;
+    const Quaternion& r = localRotation;
+    const Vector3& pos = localPosition;
     // The rotated Z axis (AxisZ's order), every component rounded to float.
     const Vector3 axis = RotatedAxisZ(r);
     float ax = axis.x;
@@ -90,31 +90,31 @@ void CCamera::GroundPoint(Vector3* out) const {
 }
 
 void CCamera::SetTurnRate(float rate) {
-    turnTarget_ = rate;
-    EI_NAN_AUDIT(turnRate_, rate);
-    if (std::fabs(turnRate_) < std::fabs(rate)) turnRate_ = turnTarget_;
+    turnTarget = rate;
+    EI_NAN_AUDIT(turnRate, rate);
+    if (std::fabs(turnRate) < std::fabs(rate)) turnRate = turnTarget;
 }
 
 void CCamera::SetTiltRate(float rate) {
-    tiltTarget_ = rate;
-    EI_NAN_AUDIT(tiltRate_, rate);
-    if (std::fabs(tiltRate_) < std::fabs(rate)) tiltRate_ = tiltTarget_;
+    tiltTarget = rate;
+    EI_NAN_AUDIT(tiltRate, rate);
+    if (std::fabs(tiltRate) < std::fabs(rate)) tiltRate = tiltTarget;
 }
 
-void CCamera::SetZoomTarget(float value) { zoomTarget_ = value; }
+void CCamera::SetZoomTarget(float value) { zoomTarget = value; }
 
 void CCamera::SetTarget(const CEngineObject* target) {
     if (!target) {
-        targetId_ = -1;
+        targetId = -1;
         return;
     }
-    SetTargetId(target->id_);
+    SetTargetId(target->id);
 }
 
-void CCamera::SetTargetId(int id) {
-    targetId_ = id;
-    if (id != -1) {
-        panTarget_ = camera::kZeroVector;
-        panVelocity_ = camera::kZeroVector;
+void CCamera::SetTargetId(int newId) {
+    targetId = newId;
+    if (newId != -1) {
+        panTarget = camera::kZeroVector;
+        panVelocity = camera::kZeroVector;
     }
 }

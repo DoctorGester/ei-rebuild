@@ -14,7 +14,7 @@ Sampler g_next("random", "IsaacRandom::Next", sizeof(random::Next), 12, 2);
 Sampler g_range("random", "IsaacRandom::Range", sizeof(random::Range), 256);
 Sampler g_refill("random", "IsaacRandom::Refill", sizeof(random::Refill), 8);
 
-// 004667F0. Bucket 1: the call that refilled (count_ was 0).
+// 004667F0. Bucket 1: the call that refilled (count was 0).
 std::uint32_t(__fastcall* s_next)(IsaacRandom*);
 std::uint32_t __fastcall NextRecord(IsaacRandom* rng) {
     random::Next v;   // no padding: every byte is written
@@ -23,7 +23,7 @@ std::uint32_t __fastcall NextRecord(IsaacRandom* rng) {
     std::uint32_t value = s_next(rng);
     std::memcpy(&v.after, rng, sizeof(IsaacRandom));
     v.value = value;
-    g_next.Offer(v, cw, v.before.count_ == 0 ? 1 : 0, false);
+    g_next.Offer(v, cw, v.before.count == 0 ? 1 : 0, false);
     return value;
 }
 
@@ -38,7 +38,7 @@ void __fastcall RefillRecord(IsaacRandom* rng) {
     g_refill.Offer(v, cw, 0, false);
 }
 
-// 00488970. The draw is results_[count_] afterwards (Next's own rule); the result is the float the
+// 00488970. The draw is results[count] afterwards (Next's own rule); the result is the float the
 // callers' stores see.
 float(__fastcall* s_range)(IsaacRandom*, void*, float, float);
 float __fastcall RangeRecord(IsaacRandom* rng, void*, float min, float max) {
@@ -48,7 +48,7 @@ float __fastcall RangeRecord(IsaacRandom* rng, void*, float min, float max) {
     std::uint16_t cw = ControlWord();
     float result = s_range(rng, nullptr, min, max);
     v.result = result;
-    v.value = rng->results_[rng->count_ & 0xFF];
+    v.value = rng->results[rng->count & 0xFF];
     g_range.Offer(v, cw);
     return result;
 }

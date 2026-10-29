@@ -49,7 +49,7 @@ Forwarders are in `unit_ai.h`, `unit_ai_modes.cpp`, `originals_ai.h`.
   sight; `AIReport::ticksLeft` (was what) counts a report down (`AIReports::kCastStoppedTicks` 0xF, `kRejectedTicks` 0x14);
   `AIMemory::noticedDecay` is the noticed level's decay per update (-1..-3); `AIBrain::nearRange` / `farRange` (were nearX / nearY; the digest keys keep the old names) are two distances
   (35 / 80 plus Guard's radius) that nothing reads but the save, and `decay` only feeds itself and the save.
-  `CPlayerServer::danger_` (was refreshPending_) is the party's danger the script's IsPlayerInDanger / IsPlayerInSafety
+  `CPlayerServer::danger` (was refreshPending_) is the party's danger the script's IsPlayerInDanger / IsPlayerInSafety
   read; the Player mode's units act on their own while it is InDanger (`PartyInDanger`; the old name said "the player
   controls the unit directly").
 - The AI's eye `AIViewer` (world server + 0x2838; map, eye, facing, cell, ready): 005CAA00 Update, 005CA1D0 Refresh (nearby

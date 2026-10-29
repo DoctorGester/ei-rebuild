@@ -25,7 +25,7 @@ void WriteItemIds(CStream* stream, const std::vector<CItem*>& list) {
     stream->WriteValue(std::ssize(list));
     for (int i = 0; i < std::ssize(list); ++i) {
         const CItem* item = list[i];
-        stream->WriteValue(item != nullptr ? item->id_ : -1);
+        stream->WriteValue(item != nullptr ? item->id : -1);
     }
 }
 
@@ -49,7 +49,7 @@ constexpr int kVersionRecord77C = 0x5B;
 constexpr int kVersionRecord780 = 0x61;
 constexpr int kVersionRecordText6 = 0x6B;
 
-int Version(const CStream* stream) { return static_cast<int>(stream->version_); }
+int Version(const CStream* stream) { return static_cast<int>(stream->version); }
 
 void CopyThrough(CParty* target, CParty* source) {
     // Through an empty memory stream, freed afterwards.
@@ -118,48 +118,48 @@ void PartyUnitRecord::Save(CStream* stream) {
 }
 
 void CParty::LoadParty(CStream* stream, int loadVariables) {
-    if (itemManager_ == nullptr) Create();
+    if (itemManager == nullptr) Create();
     g_loadingParty = this;
     Clear(loadVariables, 0);
-    zone_ = stream->ReadString();
-    stream->ReadValue(entrance_);
-    itemManager_->Load(stream);
-    spellManager_->Load(stream);
-    itemManager_->LoadObjects(stream);
-    spellManager_->LoadObjects(stream);
-    ReadItemIds(stream, items_, ItemFactory());
+    zone = stream->ReadString();
+    stream->ReadValue(entrance);
+    itemManager->Load(stream);
+    spellManager->Load(stream);
+    itemManager->LoadObjects(stream);
+    spellManager->LoadObjects(stream);
+    ReadItemIds(stream, items, ItemFactory());
     int records;
     stream->ReadValue(records);
-    members_.resize(records);
-    for (int i = 0; i < records; ++i) members_[i].Load(stream);
-    if (loadVariables != 0) variables_.Load(stream);
+    members.resize(records);
+    for (int i = 0; i < records; ++i) members[i].Load(stream);
+    if (loadVariables != 0) variables.Load(stream);
     g_loadingParty = nullptr;
-    money_ = 0;
-    stream->ReadValue(money_);
+    money = 0;
+    stream->ReadValue(money);
     if (Version(stream) > kVersionPartyKey) {
         std::uint32_t key;
         stream->ReadValue(key);
-        money_ ^= key;
+        money ^= key;
     }
-    itemManager_->ReleaseUnused();
-    spellManager_->ReleaseUnused();
+    itemManager->ReleaseUnused();
+    spellManager->ReleaseUnused();
 }
 
 void CParty::SaveParty(CStream* stream, int saveVariables) {
-    if (itemManager_ == nullptr) Create();
-    stream->WriteString(zone_);
-    stream->WriteValue(entrance_);
-    itemManager_->Save(stream);
-    spellManager_->Save(stream);
-    itemManager_->SaveObjects(stream);
-    spellManager_->SaveObjects(stream);
-    WriteItemIds(stream, items_);
-    int records = std::ssize(members_);
+    if (itemManager == nullptr) Create();
+    stream->WriteString(zone);
+    stream->WriteValue(entrance);
+    itemManager->Save(stream);
+    spellManager->Save(stream);
+    itemManager->SaveObjects(stream);
+    spellManager->SaveObjects(stream);
+    WriteItemIds(stream, items);
+    int records = std::ssize(members);
     stream->WriteValue(records);
-    for (int i = 0; i < records; ++i) members_[i].Save(stream);
-    if (saveVariables != 0) variables_.Save(stream);
+    for (int i = 0; i < records; ++i) members[i].Save(stream);
+    if (saveVariables != 0) variables.Save(stream);
     std::uint32_t key = g_random.Next();
-    stream->WriteValue(money_ ^ key);
+    stream->WriteValue(money ^ key);
     stream->WriteValue(key);
 }
 
@@ -176,9 +176,9 @@ CParty::CParty(CParty& source) : CParty() { CopyThrough(this, &source); }
 void CParty::ArchiveParty(ChunkArchive* ar) {
     constexpr int kStreamField = 1;
     CMemoryStream held;
-    if (ar->loading_) {
+    if (ar->loading) {
         ar->StreamField(kStreamField, &held);
-        held.version_ = static_cast<std::uint32_t>(ar->version_);
+        held.version = static_cast<std::uint32_t>(ar->version);
         LoadParty(&held, 1);
     } else {
         SaveParty(&held, 1);

@@ -16,35 +16,35 @@ constexpr int kSteps = 16;
 } // namespace
 
 void CGlobalMapClouds::Start() {
-    for (int step = 0; step < kSteps; ++step) Generate(&frames_[0], step);
-    for (int step = 0; step < kSteps; ++step) Generate(&frames_[1], step);
+    for (int frameStep = 0; frameStep < kSteps; ++frameStep) Generate(&frames[0], frameStep);
+    for (int frameStep = 0; frameStep < kSteps; ++frameStep) Generate(&frames[1], frameStep);
 }
 
 void CGlobalMapClouds::Draw(const void* holder, float seconds) {
-    phase_ = seconds * speed_ + phase_;
-    EI_NAN_AUDIT(phase_);
-    while (phase_ >= 1.0f) {   // a NaN phase ends it (it looped for ever in the game)
-        phase_ = phase_ - 1.0f;
-        Generate(&frames_[2], step_);
-        if (step_ == kSteps - 1) {
-            std::swap(frames_[0], frames_[1]);
-            std::swap(frames_[1], frames_[2]);
-            step_ = 0;
+    phase = seconds * speed + phase;
+    EI_NAN_AUDIT(phase);
+    while (phase >= 1.0f) {    // a NaN phase ends it (it looped for ever in the game)
+        phase = phase - 1.0f;
+        Generate(&frames[2], step);
+        if (step == kSteps - 1) {
+            std::swap(frames[0], frames[1]);
+            std::swap(frames[1], frames[2]);
+            step = 0;
         } else {
-            ++step_;
+            ++step;
         }
     }
-    const int blend = static_cast<int>((static_cast<float>(step_) + phase_) * 0.0625f * 254.0f + 1.0f);
-    render::DrawClouds(holder, frames_[0], frames_[1], blend, ramp_);
+    const int blend = static_cast<int>((static_cast<float>(step) + phase) * 0.0625f * 254.0f + 1.0f);
+    render::DrawClouds(holder, frames[0], frames[1], blend, ramp);
 }
 
-void CGlobalMapClouds::SetRamp(int start, int width, float speed) {
+void CGlobalMapClouds::SetRamp(int start, int width, float newSpeed) {
     float base = static_cast<float>(width) * (1.0f / 255.0f);
-    speed_ = speed;
+    speed = newSpeed;
     for (int i = 0; i < 0x100; ++i) {
         const int exponent = i - start < 0 ? 0 : i - start;
         const double value = 255.0 - std::pow(static_cast<double>(base), static_cast<double>(exponent)) * 255.0;
-        ramp_[i] = static_cast<std::uint8_t>(static_cast<int>(value));
+        ramp[i] = static_cast<std::uint8_t>(static_cast<int>(value));
     }
 }
 

@@ -29,52 +29,52 @@ double KeyboardSpeedProduct(const options::CameraMotionOptions& motion) {
     return D(GameFloat(motion.powerKeyboard)) * D(GameFloat(motion.speed));
 }
 
-bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_; }
+bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown || ui->altDown; }
 
 } // namespace
 
 void CCameraInput::KeyDown(int, int, int flags) {
     int character = g_keyActions[flags & 0x1FF];
     switch (character) {
-    case 5: x_ = 1.0f; handled_ = true; break;
-    case 6: x_ = -1.0f; handled_ = true; break;
-    case 7: y_ = -1.0f; handled_ = true; break;
-    case 8: y_ = 1.0f; handled_ = true; break;
-    case 9: z_ = -1.0f; handled_ = true; break;
-    case 10: z_ = 1.0f; handled_ = true; break;
+    case 5: x = 1.0f; handled = true; break;
+    case 6: x = -1.0f; handled = true; break;
+    case 7: y = -1.0f; handled = true; break;
+    case 8: y = 1.0f; handled = true; break;
+    case 9: z = -1.0f; handled = true; break;
+    case 10: z = 1.0f; handled = true; break;
     case 13:
     case 14:
     case 15:
     case 16: {
         unsigned slot = static_cast<unsigned>(character - 13);
-        if (ModifierHeld(interface_))
+        if (ModifierHeld(ui))
             g_camera.SaveView(slot);
         else
             g_camera.RestoreView(slot);
-        handled_ = true;
+        handled = true;
         return;
     }
     default:
         break;
     }
-    if (!handled_) return;
+    if (!handled) return;
     Vector3 direction = {0.0f, 0.0f, 0.0f};
-    if (!ModifierHeld(interface_)) {
+    if (!ModifierHeld(ui)) {
         // Pan along (y, -x) at the pan speed; no turning or tilting.
-        float left = -x_;
-        float speed = static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraScroll_));
-        direction.x = static_cast<float>(D(y_) * D(speed));
+        float left = -x;
+        float speed = static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraScroll));
+        direction.x = static_cast<float>(D(y) * D(speed));
         direction.y = static_cast<float>(D(left) * D(speed));
         g_camera.Pan(direction);
         g_camera.SetTurnRate(0.0f);
-        g_camera.SetZoomTarget(static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraZoom_) * D(z_)));
+        g_camera.SetZoomTarget(static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraZoom) * D(z)));
         g_camera.SetTiltRate(0.0f);
         return;
     }
     // With a modifier: no panning; turn by y, tilt by x (times 50).
     g_camera.Pan(direction);
-    g_camera.SetTurnRate(static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraRotate_) * D(y_)));
-    g_camera.SetZoomTarget(static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraZoom_) * D(z_)));
+    g_camera.SetTurnRate(static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraRotate) * D(y)));
+    g_camera.SetZoomTarget(static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraZoom) * D(z)));
     g_camera.SetTiltRate(
-        static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraPitch_) * D(x_) * D(50.0f)));
+        static_cast<float>(KeyboardSpeedProduct(options::g_options.cameraPitch) * D(x) * D(50.0f)));
 }

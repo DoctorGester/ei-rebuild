@@ -44,9 +44,9 @@ bool CMapObjectServer::RunTick() {
     int i = 0;
     do {
         if (!owner->effects[i].Tick()) {
-            SpellType type = owner->effects[i].Type();
+            SpellType spellType = owner->effects[i].Type();
             owner->effects.erase(owner->effects.begin() + i);
-            bool scaleEffect = IsScaleEffect(type);
+            bool scaleEffect = IsScaleEffect(spellType);
             if (scaleEffect) owner->RecomputeScale();
             owner->MarkChanged(3);
             owner->ScaleEffectChanged(scaleEffect);
@@ -71,7 +71,7 @@ bool CMapObjectServer::TakeHit(const DamageInfo* hit) {
     owner->MarkChanged(0);
     if (IsDead()) {
         owner->ClearEffects();
-        owner->flags_ |= MapObjectFlag::Removed;
+        owner->flags |= MapObjectFlag::Removed;
     }
     return true;
 }
@@ -85,13 +85,13 @@ bool CMapObjectClientSpecific::RunTick() {
             if (effect.ticksLeft <= 0) continue;
             int left = --effect.ticksLeft;
             if (left >= kEndSoundTicks || effect.ending) continue;
-            if (!IsTextKey(CompanionOwner(this)->id_)) continue;
+            if (!IsTextKey(CompanionOwner(this)->id)) continue;
             int handle = endSound;
-            CSoundManager* soundSystem = g_clientWorld.sounds_;
+            CSoundManager* soundSystem = g_clientWorld.sounds;
             if (handle != -1 &&
                 (soundSystem->FindPlaying(handle) || soundSystem->FindDeferred(handle)))
                 continue;
-            endSound = g_clientWorld.sounds_->Play3D(kEndSoundName, 0, &CompanionOwner(this)->localPosition_.x,
+            endSound = g_clientWorld.sounds->Play3D(kEndSoundName, 0, &CompanionOwner(this)->localPosition.x,
                                                   kEndSoundNear, kEndSoundFar, 0);
         }
     }
@@ -109,28 +109,28 @@ bool CMapObjectClientSpecific::RunTick() {
                 name = str::Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            g_clientWorld.sounds_->Play3D(name, 0, &CompanionOwner(this)->localPosition_.x, kStenchNear, kStenchFar, 0);
+            g_clientWorld.sounds->Play3D(name, 0, &CompanionOwner(this)->localPosition.x, kStenchNear, kStenchFar, 0);
         } else if (sound->kind == SpellType::Feeblemind && sound->handle != -1) {
-            g_clientWorld.sounds_->MoveSequence(sound->handle, &CompanionOwner(this)->localPosition_.x);
+            g_clientWorld.sounds->MoveSequence(sound->handle, &CompanionOwner(this)->localPosition.x);
         }
     }
 
     // The light follows the object, kLightHeight above it, aimed down at it.
     CLight* lamp = light;
-    if (lamp && !(lamp->flags_ & LightFlag::Hidden)) {
+    if (lamp && !(lamp->flags & LightFlag::Hidden)) {
         Vector3 lightPosition;
-        lib::LoadBytes(lightPosition, &lamp->localPosition_.x);
+        lib::LoadBytes(lightPosition, &lamp->localPosition.x);
         float lightZ = lightPosition.z - kLightHeight;   // stored as a float
         CMapObject* followed = CompanionOwner(this);
-        double dx = static_cast<double>(lightPosition.x) - followed->localPosition_.x;
-        double dy = static_cast<double>(lightPosition.y) - followed->localPosition_.y;
-        double dz = static_cast<double>(lightZ) - followed->localPosition_.z;
+        double dx = static_cast<double>(lightPosition.x) - followed->localPosition.x;
+        double dy = static_cast<double>(lightPosition.y) - followed->localPosition.y;
+        double dz = static_cast<double>(lightZ) - followed->localPosition.z;
         double distance2 = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
         EI_NAN_AUDIT(distance2);
         if (distance2 != 0.0) {
-            float* position = &light->localPosition_.x;
-            std::memcpy(position, &followed->localPosition_.x, 2 * sizeof(float));
-            position[2] = static_cast<float>(static_cast<double>(kLightHeight) + followed->localPosition_.z);
+            float* position = &light->localPosition.x;
+            std::memcpy(position, &followed->localPosition.x, 2 * sizeof(float));
+            position[2] = static_cast<float>(static_cast<double>(kLightHeight) + followed->localPosition.z);
         }
     }
     return true;

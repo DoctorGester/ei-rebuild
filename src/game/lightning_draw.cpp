@@ -46,8 +46,8 @@ float RandomOffset() {
 // `position` the glow's centre, `size` its radius; the frame argument the caller computes is not
 // used (the frame comes from the position and the world's counter).
 void CLightning::DrawGlow(CSceneRenderer* device, const Vector3& position, float size) {
-    EnsureTextureLoaded(glowTexture_);
-    if (!device->SetTexture(0, glowTexture_)) return;
+    EnsureTextureLoaded(glowTexture);
+    if (!device->SetTexture(0, glowTexture)) return;
 
     // The 15 frames of the 4 x 4 glow texture: (u0, v0, u1, v1).
     float frames[15][4];
@@ -69,7 +69,7 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3& position, float
     if (length != 0.0f) towards /= length;
     float scaled = position.x * 15.0f;
     int shift = x87::fistp(scaled);
-    int frame = (World()->tick_ + shift) % 15;
+    int frame = (World()->tick + shift) % 15;
     for (int j = 0; j < 8; ++j) {
         float t = static_cast<float>(j) * 0.125f;   // 1/8
         Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};
@@ -88,42 +88,42 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3& position, float
 
 // 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
 int CLightning::Draw(CSceneRenderer* device) {
-    EnsureTextureLoaded(texture_);
+    EnsureTextureLoaded(texture);
     CSceneRenderer* renderer = device;
-    if (!renderer->SetTexture(0, texture_)) return 0;
-    int visibility = renderer->pipeline_->ClipTest(&bounds_);
+    if (!renderer->SetTexture(0, texture)) return 0;
+    int visibility = renderer->pipeline->ClipTest(&bounds);
     if (visibility == 2) return 1;
     const float zero = 0.0f;
-    if (power_ >= zero) Animate();
+    if (power >= zero) Animate();
     const float slant = 0.25f;
-    EI_NAN_AUDIT(power_);
-    if (power_ < zero) {   // negative: untextured lengthwise
-        renderer->DrawStrip(&main_.points, main_.width, visibility, 0.0f, 0.0f, slant);
-        for (LightningSegment& b : branches_) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
+    EI_NAN_AUDIT(power);
+    if (power < zero) {    // negative: untextured lengthwise
+        renderer->DrawStrip(&main.points, main.width, visibility, 0.0f, 0.0f, slant);
+        for (LightningSegment& b : branches) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
     } else {
         float offset = RandomOffset();
-        float span = LengthZXY(main_.step) * static_cast<float>(std::ssize(main_.points)) * 0.6f;
-        renderer->DrawStrip(&main_.points, main_.width, visibility, span, offset, slant);
-        for (LightningSegment& b : branches_) {
+        float span = LengthZXY(main.step) * static_cast<float>(std::ssize(main.points)) * 0.6f;
+        renderer->DrawStrip(&main.points, main.width, visibility, span, offset, slant);
+        for (LightningSegment& b : branches) {
             offset = RandomOffset();
             span = LengthZXY(b.step) * static_cast<float>(std::ssize(b.points)) * 0.6f;
             renderer->DrawStrip(&b.points, b.width, visibility, span, offset, slant);
         }
     }
 
-    float count = static_cast<float>(std::ssize(main_.points));
-    Vector3 start = main_.start;
-    Vector3 run{count * main_.step.x, count * main_.step.y, count * main_.step.z};
+    float count = static_cast<float>(std::ssize(main.points));
+    Vector3 start = main.start;
+    Vector3 run{count * main.step.x, count * main.step.y, count * main.step.z};
     Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};
     float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
     float size = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f);
-    if (power_ > zero) {
+    if (power > zero) {
         // Clamped to [0.5, 1.2] with selects (NaN keeps the size).
         float low = 0.5f, high = 1.2f;
         size = low >= size ? low : size;
         size = size >= high ? high : size;
     }
-    if (power_ >= zero) DrawGlow(device, end, size);
-    if (power_ == zero) DrawGlow(device, start, size);
+    if (power >= zero) DrawGlow(device, end, size);
+    if (power == zero) DrawGlow(device, start, size);
     return 1;
 }

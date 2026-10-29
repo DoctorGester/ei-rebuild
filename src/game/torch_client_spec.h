@@ -7,9 +7,9 @@
 // particle source, a point light and a looping sound, all placed relative to the torch. The
 // spec's setters are overridden to rebuild them; its show and hide virtuals act on them.
 // torch_client_spec.cpp.
-// The spec's fields, as the client reads them: unknown_20 the particle type, colours_[0] its offset
-// and values_[0] its size scale; colours_[1] the light's offset, values_[1] its radius
-// (also the sound's far distance divided by 5 / 3) and values_[2..5] its colour; name_ the
+// The spec's fields, as the client reads them: unknown_20 the particle type, colours[0] its offset
+// and values[0] its size scale; colours[1] the light's offset, values[1] its radius
+// (also the sound's far distance divided by 5 / 3) and values[2..5] its colour; name the
 // sound.
 
 #include "server_specific_manager.h"   // CTorchObjectSpec
@@ -25,7 +25,7 @@ public:
     CTorchObjectClientSpec();
     ~CTorchObjectClientSpec() override;
 
-    // CreateSpec, the light and particles dropped (released), sound_ 0.
+    // CreateSpec, the light and particles dropped (released), sound 0.
     void Create() override;
     void Destroy() override { DestroyClient(); }
     bool RunTick() override;                             // true
@@ -35,18 +35,18 @@ public:
     void HideEffectsSlot() override { HideEffects(); }
     void WarmUpParticlesSlot() override { WarmUpParticles(); }
     void SetLightSlot(std::uint32_t kind, const float* colour, float value) override { SetParticles(kind, colour, value); }
-    void SetFlameSlot(const float* colour, float value, const float* values) override { SetLightAt(colour, value, values); }
-    void SetNameSlot(const char* name) override { SetSound(name); }
+    void SetFlameSlot(const float* colour, float value, const float* newValues) override { SetLightAt(colour, value, newValues); }
+    void SetNameSlot(const char* newName) override { SetSound(newName); }
 
     // HideEffects (through the vtable), the light dropped, the particles stopped
     // and dropped, DestroySpec.
     void DestroyClient();
-    // The particles emit, a hidden light (flags_ bit 7) is shown again (the
+    // The particles emit, a hidden light (flags bit 7) is shown again (the
     // light manager adds it), the sound restarts (stopped, then played looping at the torch with far
-    // distance values_[1] * 3).
+    // distance values[1] * 3).
     void ShowEffects();
-    // The particles stop emitting, a shown light is hidden (flags_ bit 7 set,
-    // removed from the light manager), the sound stops (sound_ 0).
+    // The particles stop emitting, a shown light is hidden (flags bit 7 set,
+    // removed from the light manager), the sound stops (sound 0).
     void HideEffects();
     // The particle source ticks 60 times (its tick) when there is one.
     void WarmUpParticles();
@@ -60,10 +60,10 @@ public:
     // manager.
     void SetLightAt(const float* offset, float radius, const float* colour);
     // The spec's SetName, then the sound restarts as ShowEffects starts
-    // it, with far distance values_[1] * 5.
+    // it, with far distance values[1] * 5.
     void SetSound(const char* name);
 
-    Ref<CLight> light_;
-    CParticleSource* particles_;    // counted
-    int sound_;                     // the looping sound's handle, 0 when none
+    Ref<CLight> light;
+    CParticleSource* particles;     // counted
+    int sound;                      // the looping sound's handle, 0 when none
 };

@@ -48,10 +48,10 @@ public:
     bool Open(const std::string& path, bool writable);
     void Flush();                                     // write back, stamp modification time
 
-    void* file_;                  // HANDLE, INVALID_HANDLE_VALUE when closed
-    void* mapping_ = nullptr;     // HANDLE
-    void* view_ = nullptr;        // mapped base address
-    std::uint32_t size_ = 0;
+    void* file;                   // HANDLE, INVALID_HANDLE_VALUE when closed
+    void* mapping = nullptr;      // HANDLE
+    void* view = nullptr;         // mapped base address
+    std::uint32_t size = 0;
 };
 
 // A file loaded from an archive by CMappedResource::GetFile. 0x1C bytes, allocated with operator new.
@@ -74,9 +74,9 @@ public:
     // Index of the entry named `name` (case-insensitive), or -1.
     int FindEntry(std::string_view name) const;
 
-    ResHeader header_;
-    ResEntry* entries_;
-    char* names_;
+    ResHeader header;
+    ResEntry* entries;
+    char* names;
 };
 
 // Reads an archive with low-level file I/O, loading individual files into memory on request.
@@ -109,13 +109,13 @@ public:
     // The names ListFiles fills in, without Rebirth's ResOverride (see GetFilePlain).
     std::vector<std::string> ListFilesPlain(const char* pattern) const;
 
-    void* handle_;               // the archive's file (a HANDLE), INVALID_HANDLE_VALUE when closed
-    char* image_;                // archive image when opened with OpenFromMemory
-    std::vector<ResEntry> entryTable;   // the tables OpenResource reads (entries_ and names_ point into them)
+    void* handle;                // the archive's file (a HANDLE), INVALID_HANDLE_VALUE when closed
+    char* image;                 // archive image when opened with OpenFromMemory
+    std::vector<ResEntry> entryTable;   // the tables OpenResource reads (entries and names point into them)
     std::vector<char> nameTable;
-    std::uint32_t writable_;
-    std::unordered_map<void*, LoadedFile*> filesByData_;
-    std::unordered_map<std::string, LoadedFile*> filesByName_;
+    std::uint32_t writable;
+    std::unordered_map<void*, LoadedFile*> filesByData;
+    std::unordered_map<std::string, LoadedFile*> filesByName;
 };
 
 // Maps the whole archive into memory; GetFile returns pointers into the mapping. A real virtual class.
@@ -127,11 +127,11 @@ public:
     bool OpenResource(const std::string& path, bool writable) override;
     bool OpenFromMemory(const void* image) override;
     void CloseResource() override;
-    void Flush() override;                                            // (flushes file_)
+    void Flush() override;                                            // (flushes file)
     void* GetFile(std::string_view name, std::uint32_t* size) override;
     bool CloseFile(void* data) override;                              // (nothing to free)
     void FreeAllFiles() override;                                     // (empty)
 
-    CMappedFile file_;
-    char* mappedImage_;          // base of the mapped archive
+    CMappedFile file;
+    char* mappedImage;           // base of the mapped archive
 };

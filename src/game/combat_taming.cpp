@@ -36,7 +36,7 @@ bool CUnitServer::TryTame(CUnit* tamer, float roll) {
     if (unit->player || limit >= roll) {   // not taken (the taming succeeds) when the limit is below the roll or NaN
         // A unit with a player cannot be tamed; a roll not above the limit fails. Either way an attack.
         UndoIfTamedBy(this, tamer);
-        ServerWorld()->diplomacy_.OnAttack(tamer, unit);
+        ServerWorld()->diplomacy.OnAttack(tamer, unit);
         return false;
     }
     CPlayer* tamerPlayer = tamer->player;

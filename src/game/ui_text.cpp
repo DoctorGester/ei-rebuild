@@ -10,7 +10,7 @@
 #include <string_view>
 #include <vector>
 
-std::vector<std::string> CInterface3D::WrapText(std::string_view text, int width, int font) const {
+std::vector<std::string> CInterface3D::WrapText(std::string_view text, int maxWidth, int font) const {
     std::string ch, word, line;
     std::string source(text);
     source += game::NewLineText();
@@ -21,7 +21,7 @@ std::vector<std::string> CInterface3D::WrapText(std::string_view text, int width
         const char c = *p;
         ch.assign(1, c);
         if (c == '\n') {
-            if (TextExtent(line + word, font).cx > width) {
+            if (TextExtent(line + word, font).cx > maxWidth) {
                 lines.push_back(line);
                 lines.push_back(word);
             } else {
@@ -31,7 +31,7 @@ std::vector<std::string> CInterface3D::WrapText(std::string_view text, int width
             line.clear();
             word.clear();
         } else if (c == ' ') {
-            if (TextExtent(line + word, font).cx > width) {
+            if (TextExtent(line + word, font).cx > maxWidth) {
                 lines.push_back(line);
                 line = word + game::SpaceText();
             } else {
@@ -46,16 +46,16 @@ std::vector<std::string> CInterface3D::WrapText(std::string_view text, int width
     return lines;
 }
 
-int CUiSurface::DrawWrappedText(std::string_view text, const RECT* rect, int maxLines, int font, COLORREF colour,
+int CUiSurface::DrawWrappedText(std::string_view text, const RECT* area, int maxLines, int font, COLORREF colour,
                                 UINT format, bool shadow) {
-    if (!holder_) return 0;
-    const std::vector<std::string> lines = interface_->WrapText(text, rect->right - rect->left, font);
-    RECT at = *rect;
-    int height = rect->bottom - rect->top;
+    if (!holder) return 0;
+    const std::vector<std::string> lines = ui->WrapText(text, area->right - area->left, font);
+    RECT at = *area;
+    int boxHeight = area->bottom - area->top;
     const int count = static_cast<int>(lines.size());
     for (int i = 0; i < maxLines && i < count; ++i) {
         DrawTextIn(lines[i], &at, font, colour, format, shadow);
-        gameapi::OffsetRect(&at, 0, height);
+        gameapi::OffsetRect(&at, 0, boxHeight);
     }
     return count;
 }

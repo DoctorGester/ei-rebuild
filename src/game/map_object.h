@@ -55,7 +55,7 @@ struct UnitVitalsPacked {
 };
 static_assert(sizeof(UnitVitalsPacked) == 0x18);
 
-// The bits of CEngineObject::flags_ on the map objects (the word is saved and sent as the number). Bits that mean
+// The bits of CEngineObject::flags on the map objects (the word is saved and sent as the number). Bits that mean
 // something else per class have one name each (the same number).
 enum class MapObjectFlag : std::uint32_t {
     Removed = 0x1,              // gone from the world: its id is sent on
@@ -125,7 +125,7 @@ public:
     virtual void RecomputeScale();
     // Empty (units override it).
     virtual void EffectsChanged();
-    // flags_ 0x20000 (bit 17 as 0 / 1); units, levers, traps, torches 1. False ones leave the server's map-object
+    // flags 0x20000 (bit 17 as 0 / 1); units, levers, traps, torches 1. False ones leave the server's map-object
     // maps after the zone loads (SendFreshObjects). The world server creates such objects only with one flag set,
     // the others with another.
     virtual bool IsSynchronised();
@@ -166,7 +166,7 @@ public:
     virtual void AddEffect(const MapEffect* effect);
     // The effect array's SetSize(count, -1).
     void SetEffectCount(int count);
-    virtual std::uint32_t SetStunned(int on);   // ignores it (0); units: the new flags_
+    virtual std::uint32_t SetStunned(int on);   // ignores it (0); units: the new flags
     virtual int SetVisibilityMode(int mode);    // hands it to the companion
     virtual Vector3* EyePoint(Vector3* out);        // where the object sees from (GroundPoint)
     virtual std::uint32_t ReadNetState(int first);   // (units override)
@@ -189,7 +189,7 @@ public:
     // Units keep `name` as their script name; empty here.
     virtual void SetScriptName(std::string_view name);
 
-    // Records that part `part` (0..15; negative: none) of the object changed, marks it dirty (flags_ bit 1) and
+    // Records that part `part` (0..15; negative: none) of the object changed, marks it dirty (flags bit 1) and
     // stamps it with the world's change counter.
     void MarkChanged(int part);
     // Has the object an active effect of type `type` (compared with MapEffect::type)?
@@ -226,7 +226,7 @@ public:
     // A CMapObjectServer companion (class 0x39) gets the base of each protection (7 pairs) zeroed.
     void ClearProtectionBases();
 
-    // Bits 16 (invisible: set by the client for effect 0x0F), 18 (stunned: effect 0x19) and 17 of flags_;
+    // Bits 16 (invisible: set by the client for effect 0x0F), 18 (stunned: effect 0x19) and 17 of flags;
     // IsInvisible and the bit-17 test are virtuals.
     bool IsInvisible();
     bool IsStunned();
@@ -236,7 +236,7 @@ public:
     void DestroyMapObject();
 
     // Load: the companion's Load, then animationSpeed, the position, the orientation, the name, the scale, the
-    // effects (count, then MapEffect::Load each), flags_, the second name and, from version 0x4F, the base scale.
+    // effects (count, then MapEffect::Load each), flags, the second name and, from version 0x4F, the base scale.
     void LoadMapObject(CStream* stream);
     // Save: the same fields (names with their terminators; the base scale always).
     void SaveMapObject(CStream* stream);
@@ -247,7 +247,7 @@ public:
     // The sector map's Remove. The companion's virtual (empty in both); returns 1.
     int NotifyCompanion();
     // The network state written in full / only its changed parts (the statistics, repacked first when part 0 or 4
-    // changed): the write mode, the write virtual, the state finished; flags_ bit 1 cleared.
+    // changed): the write mode, the write virtual, the state finished; flags bit 1 cleared.
     void WriteFullState();
     void WriteChangedState();
     // The network state read from `reader`: BeginRead, ReadNetState with `first`, the state finished.
@@ -273,7 +273,7 @@ public:
     int sectorCellX;
     int sectorCellY;
     int changeStamp;                // the world's change counter when last changed
-    DeltaState netState_;           // the network state; its mask_ is the parts changed since the last send (bit
+    DeltaState netState;            // the network state; its mask is the parts changed since the last send (bit
                                     // per part: MarkChanged)
 
 protected:

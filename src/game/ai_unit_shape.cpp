@@ -18,9 +18,9 @@ constexpr int kMiddle = 8;
 
 // No references, no flags.
 CUnitShape::CUnitShape(float newRadius) {
-    refs_ = 0;
-    flags6_ = 0;
-    flags7_ = 0;
+    refs = 0;
+    flags6 = 0;
+    flags7 = 0;
     radius = newRadius;
     std::memset(levels, 0, sizeof(levels));
     for (int dy = -kMiddle; dy < kMiddle; ++dy) {
@@ -35,9 +35,9 @@ CUnitShape::CUnitShape(float newRadius) {
 }
 
 CUnitShape::CUnitShape() {
-    refs_ = 0;
-    flags6_ = 0;
-    flags7_ = 0;
+    refs = 0;
+    flags6 = 0;
+    flags7 = 0;
     OnShutdown();
 }
 

@@ -46,8 +46,8 @@ void CObject3D::ClearBounds() {
 }
 
 CObject3D::CObject3D() {
-    localRotation_.SetIdentity();
-    worldRotation_.SetIdentity();
+    localRotation.SetIdentity();
+    worldRotation.SetIdentity();
     ClearBounds();
     attached = nullptr;
     animation = nullptr;
@@ -56,7 +56,7 @@ CObject3D::CObject3D() {
     // The original leaves the view position as the heap held it, and the draw sorts read it for an object listed
     // only for its shadow before it was ever in view (a NaN there made the draw order irreflexive). It starts at
     // zero here, and in the original through a harness patch (harness_leftovers.cpp).
-    worldPosition_ = {};
+    worldPosition = {};
 }
 
 // The name is destroyed after the body, then CEngineObject's part.
@@ -70,7 +70,7 @@ DeltaState::DeltaState() { Reset(); }
 
 DeltaState::~DeltaState() = default;
 
-void DeltaState::SetFieldCount(int count) { fields_.resize(count); }
+void DeltaState::SetFieldCount(int count) { fields.resize(count); }
 
 CMapObject::CMapObject() {
     companion = nullptr;
@@ -132,7 +132,7 @@ void CUnit::Reset() {
     std::memset(spells, 0, sizeof(spells));
     carried.clear();
     altPassCosts = 0;
-    MapObject()->netState_.Reset();
+    MapObject()->netState.Reset();
     fightAtWill = 1;
 }
 
@@ -164,16 +164,16 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
     lightStateB = 0;
     particles.clear();
     if (light) {
-        light->flags_ &= ~LightFlag::Held;
-        if (CLight* shown = light; shown && !(shown->flags_ & LightFlag::Hidden) && !(shown->flags_ & LightFlag::Held)) {
-            shown->flags_ |= LightFlag::Hidden;
-            g_clientWorld.terrain_->RemoveLight(light);
+        light->flags &= ~LightFlag::Held;
+        if (CLight* shown = light; shown && !(shown->flags & LightFlag::Hidden) && !(shown->flags & LightFlag::Held)) {
+            shown->flags |= LightFlag::Hidden;
+            g_clientWorld.terrain->RemoveLight(light);
             if (CUnit* unit = Unit()) {
                 if (CObject3DSpecific* half = unit->Object3D()->attached) half->SetLit(false);
             }
         }
-        int id = light->id_;
-        g_clientWorld.lightFactory_->litIds_.remove(id);
+        int lightId = light->id;
+        g_clientWorld.lightFactory->litIds.remove(lightId);
         light.Reset();
     }
     owner = nullptr;

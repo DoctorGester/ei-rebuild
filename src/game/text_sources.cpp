@@ -97,12 +97,12 @@ void TextSources::Clear() {
 }
 
 bool CTextManager::AddSource(const std::string& path) {
-    return sources_.Add(path, 0);
+    return sources.Add(path, 0);
 }
 
-void CTextManager::RemoveSource(const std::string& path) { sources_.Remove(path); }
+void CTextManager::RemoveSource(const std::string& path) { sources.Remove(path); }
 
-void CTextManager::ClearSources() { sources_.Clear(); }
+void CTextManager::ClearSources() { sources.Clear(); }
 
 CTextManager::CTextManager() {
     CTextManager::Create();
@@ -131,7 +131,7 @@ std::vector<std::string> TextSources::ListKeys(const char* pattern) {
 }
 
 std::vector<std::string> CTextManager::ListKeys(const char* pattern) {
-    std::vector<std::string> keys = sources_.ListKeys(pattern);
+    std::vector<std::string> keys = sources.ListKeys(pattern);
     // The names in UTF-8, as Find takes them (one person's key holds Cyrillic).
     for (std::string& name : keys) text::FromAssetText(&name);
     return keys;

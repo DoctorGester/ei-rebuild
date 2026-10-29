@@ -10,11 +10,11 @@ namespace ei::verify::image {
 void* ClientUnit(unsigned id, std::uint32_t** flags, std::uint32_t** rotation) {
     CWorldClient* c = &g_clientWorld;
     if (!c) return nullptr;
-    for (CMapObject* object : c->objects_) {
-        if (object && static_cast<unsigned>(object->id_) == id && object->GetClassId() == ClassId::Unit) {
+    for (CMapObject* object : c->objects) {
+        if (object && static_cast<unsigned>(object->id) == id && object->GetClassId() == ClassId::Unit) {
             auto* unit = static_cast<CUnit*>(object);
-            *flags = reinterpret_cast<std::uint32_t*>(&unit->flags_);
-            *rotation = reinterpret_cast<std::uint32_t*>(&unit->localRotation_);
+            *flags = reinterpret_cast<std::uint32_t*>(&unit->flags);
+            *rotation = reinterpret_cast<std::uint32_t*>(&unit->localRotation);
             return unit;
         }
     }

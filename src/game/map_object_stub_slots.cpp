@@ -33,24 +33,24 @@ void CMapObject::TakePrototype(std::string_view prototype) {
 }
 
 void CMapObject::WriteFullState() {
-    DeltaState* state = &netState_;
+    DeltaState* state = &netState;
     state->SetWriteMode(0);
     WriteNetState();
     state->Finish();
-    flags_ &= ~MapObjectFlag::Changed;
+    flags &= ~MapObjectFlag::Changed;
 }
 
 void CMapObject::WriteChangedState() {
-    if (netState_.mask_ & kVitalParts) StatsChanged();
-    DeltaState* state = &netState_;
+    if (netState.mask & kVitalParts) StatsChanged();
+    DeltaState* state = &netState;
     state->SetWriteMode(1);
     WriteNetState();
     state->Finish();
-    flags_ &= ~MapObjectFlag::Changed;
+    flags &= ~MapObjectFlag::Changed;
 }
 
 std::uint32_t CMapObject::ReadState(int first, CMemoryStream* reader) {
-    DeltaState* state = &netState_;
+    DeltaState* state = &netState;
     state->BeginRead(first, reader);
     std::uint32_t result = ReadNetState(first);
     state->Finish();

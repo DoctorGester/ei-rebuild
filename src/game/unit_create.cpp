@@ -27,7 +27,7 @@ CPlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); 
 
 // The item's condition rounds to nothing.
 bool IsBroken(const CItem* item) {
-    return x87::fistp(item->condition_) <= 0;
+    return x87::fistp(item->condition) <= 0;
 }
 
 } // namespace
@@ -67,10 +67,10 @@ void CUnitServer::Shout(AckKind kind) {
 // --- Broken equipment -------------------------------------------------------------------------
 
 void CUnit::DropBrokenEquipment() {
-    CPlayer* owner = player;
-    if (!owner) return;   // the empty list's destructor has nothing to free
+    CPlayer* ownerObject = player;
+    if (!ownerObject) return;   // the empty list's destructor has nothing to free
     std::list<CItem*> broken{};
-    CPlayerServer* messages = PlayerMessages(owner);
+    CPlayerServer* messages = PlayerMessages(ownerObject);
 
     for (CItemArmor*& slot : armor) {
         if (!slot || !IsBroken(slot)) continue;
@@ -90,7 +90,7 @@ void CUnit::DropBrokenEquipment() {
     for (int i = 3; i >= 0; --i) {
         CItem*& slot = weapons[i];
         if (!slot || !IsBroken(slot)) continue;
-        messages->SendPair16(static_cast<std::uint32_t>(id_), static_cast<std::uint32_t>(i));
+        messages->SendPair16(static_cast<std::uint32_t>(id), static_cast<std::uint32_t>(i));
         slot->AddRef();
         broken.push_back(slot);
         CEngineObject* weapon = slot;
@@ -105,7 +105,7 @@ void CUnit::DropBrokenEquipment() {
     if (weaponLost) Controller()->ShowWeapon(0xFFFFFFFFu);   // re-pick the active weapon
 
     if (!broken.empty()) {
-        owner->GiveItems(&broken, 1);
+        ownerObject->GiveItems(&broken, 1);
         for (auto node = broken.begin(); node != broken.end();) {
             auto next = std::next(node);
             (*node)->Release();

@@ -15,8 +15,8 @@ class CRefCounted {
 public:
 
     enum : std::uint8_t {
-        kCopyOnShare = 0x01,    // flags6_: sharing makes a copy (the copy is marked too)
-        kDetached = 0x80,       // flags7_: shut down by its owner; not shared any more
+        kCopyOnShare = 0x01,    // flags6: sharing makes a copy (the copy is marked too)
+        kDetached = 0x80,       // flags7: shut down by its owner; not shared any more
     };
 
     // The count and the flags are the creator's to set (a class rebuilt in place keeps them).
@@ -26,19 +26,19 @@ public:
     virtual ~CRefCounted() {}
     virtual void Serialize(ChunkArchive*) {}
 
-    void AddRef() { ++refs_; }
+    void AddRef() { ++refs; }
     // Drops a reference; the last one deletes the object.
     void Release() {
-        if (--refs_ == 0) delete this;
+        if (--refs == 0) delete this;
     }
 
-    std::int16_t refs_;
-    std::uint8_t flags6_;
-    std::uint8_t flags7_;
+    std::int16_t refs;
+    std::uint8_t flags6;
+    std::uint8_t flags7;
 };
 
 // The test the network code inlines before using a counted object: set and not detached.
-inline bool IsLive(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
+inline bool IsLive(const CRefCounted* object) { return object && !(object->flags7 & CRefCounted::kDetached); }
 
 // Reference-counted objects of the engine core (script values, network records and messages, AI shapes).
 class CRefObject : public CRefCounted {
@@ -66,11 +66,11 @@ void DestroyOwned(Ref<T>& slot) {
     static_assert(std::is_base_of_v<CRefObject, T>);
     T* object = slot;
     if (!object) return;
-    if (object->refs_ != 1) {
-        object->flags7_ |= CRefCounted::kDetached;
+    if (object->refs != 1) {
+        object->flags7 |= CRefCounted::kDetached;
         object->AddRef();
         object->OnShutdown();
-        --object->refs_;
+        --object->refs;
     }
     slot.Reset();
 }
@@ -80,10 +80,10 @@ void DestroyOwned(Ref<T>& slot) {
 template <typename T>
 void ShareOwned(Ref<T>& slot, std::type_identity_t<T>* object) {
     static_assert(std::is_base_of_v<CRefObject, T>);
-    if (!object || (object->flags7_ & CRefCounted::kDetached)) return;
-    if (object->flags6_ & CRefCounted::kCopyOnShare) object = static_cast<T*>(object->Clone());
+    if (!object || (object->flags7 & CRefCounted::kDetached)) return;
+    if (object->flags6 & CRefCounted::kCopyOnShare) object = static_cast<T*>(object->Clone());
     slot.Assign(object);
-    object->flags6_ |= CRefCounted::kCopyOnShare;
+    object->flags6 |= CRefCounted::kCopyOnShare;
 }
 
 // Unless the slot already holds `object`: DestroyOwned, then ShareOwned.
@@ -103,13 +103,13 @@ public:
     SharedRef() = default;
     explicit SharedRef(T* object) { ShareOwned(*this, object); }
     SharedRef(const SharedRef& other) { ShareOwned(*this, other.Get()); }
-    SharedRef(SharedRef&& other) noexcept { this->object_ = other.Take(); }
+    SharedRef(SharedRef&& other) noexcept { this->object = other.Take(); }
     SharedRef& operator=(const SharedRef& other) {
         ShareAssignOwned(*this, other.Get());
         return *this;
     }
     SharedRef& operator=(SharedRef&& other) noexcept {
-        std::swap(this->object_, other.object_);
+        std::swap(this->object, other.object);
         return *this;
     }
     ~SharedRef() { DestroyOwned(*this); }

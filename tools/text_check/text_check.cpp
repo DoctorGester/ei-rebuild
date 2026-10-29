@@ -94,20 +94,20 @@ constexpr int kCell = 10;
 class FixedFont final : public Font {
 public:
     FixedFont() {
-        metrics_.ascent = 14;
-        metrics_.descent = 4;
-        metrics_.height = 18;
-        metrics_.averageWidth = kCell;
+        metrics.ascent = 14;
+        metrics.descent = 4;
+        metrics.height = 18;
+        metrics.averageWidth = kCell;
     }
-    const FontMetrics& Metrics() const override { return metrics_; }
+    const FontMetrics& Metrics() const override { return metrics; }
     GlyphMetrics Glyph(char32_t ch) const override {
         GlyphMetrics glyph;
         if (ch < 0x20) return glyph;
         glyph.advance = kCell;
         if (ch != U' ') {
-            glyph.top = -metrics_.ascent;
+            glyph.top = -metrics.ascent;
             glyph.width = kCell;
-            glyph.height = metrics_.height;
+            glyph.height = metrics.height;
         }
         return glyph;
     }
@@ -118,7 +118,7 @@ public:
     }
 
 private:
-    FontMetrics metrics_;
+    FontMetrics metrics;
 };
 
 struct RuleCase {
@@ -451,32 +451,32 @@ HFONT MakeGdiFont(const char* face, int pixels, BYTE quality) {
 // compared with DrawTextA exactly.
 class GdiFont final : public Font {
 public:
-    explicit GdiFont(HFONT font) : scratch_(1, 1) {
-        SelectObject(scratch_.dc, font);
+    explicit GdiFont(HFONT font) : scratch(1, 1) {
+        SelectObject(scratch.dc, font);
         TEXTMETRICW tm;
-        GetTextMetricsW(scratch_.dc, &tm);
-        overhang_ = tm.tmOverhang;
-        metrics_.ascent = tm.tmAscent;
-        metrics_.descent = tm.tmDescent;
-        metrics_.height = tm.tmHeight;
-        metrics_.lineGap = tm.tmExternalLeading;
-        metrics_.cellAscent = tm.tmAscent;
-        metrics_.cellDescent = tm.tmDescent;
-        metrics_.averageWidth = tm.tmAveCharWidth;
-        pad_ = tm.tmHeight;
-        glyphDib_ = std::make_unique<Dib>(tm.tmMaxCharWidth + 4 * pad_, tm.tmHeight + 2 * pad_);
-        SelectObject(glyphDib_->dc, font);
-        const DWORD pairs = GetKerningPairsW(scratch_.dc, 0, nullptr);
+        GetTextMetricsW(scratch.dc, &tm);
+        overhang = tm.tmOverhang;
+        metrics.ascent = tm.tmAscent;
+        metrics.descent = tm.tmDescent;
+        metrics.height = tm.tmHeight;
+        metrics.lineGap = tm.tmExternalLeading;
+        metrics.cellAscent = tm.tmAscent;
+        metrics.cellDescent = tm.tmDescent;
+        metrics.averageWidth = tm.tmAveCharWidth;
+        pad = tm.tmHeight;
+        glyphDib = std::make_unique<Dib>(tm.tmMaxCharWidth + 4 * pad, tm.tmHeight + 2 * pad);
+        SelectObject(glyphDib->dc, font);
+        const DWORD pairs = GetKerningPairsW(scratch.dc, 0, nullptr);
         std::vector<KERNINGPAIR> table(pairs);
-        if (pairs) GetKerningPairsW(scratch_.dc, pairs, table.data());
+        if (pairs) GetKerningPairsW(scratch.dc, pairs, table.data());
         for (const KERNINGPAIR& pair : table)
-            if (pair.iKernAmount) kerning_[(std::uint64_t(pair.wFirst) << 32) | pair.wSecond] = pair.iKernAmount;
+            if (pair.iKernAmount) kerning[(std::uint64_t(pair.wFirst) << 32) | pair.wSecond] = pair.iKernAmount;
     }
-    const FontMetrics& Metrics() const override { return metrics_; }
+    const FontMetrics& Metrics() const override { return metrics; }
     GlyphMetrics Glyph(char32_t ch) const override { return Entry(ch).metrics; }
     int Kerning(char32_t left, char32_t right) const override {
-        auto found = kerning_.find((std::uint64_t(left) << 32) | right);
-        return found == kerning_.end() ? 0 : found->second;
+        auto found = kerning.find((std::uint64_t(left) << 32) | right);
+        return found == kerning.end() ? 0 : found->second;
     }
     void Rasterise(char32_t ch, std::uint8_t* out, int pitch) const override {
         const GlyphEntry& entry = Entry(ch);
@@ -490,25 +490,25 @@ private:
         std::vector<std::uint8_t> coverage;
     };
     const GlyphEntry& Entry(char32_t ch) const {
-        auto found = glyphs_.find(ch);
-        if (found != glyphs_.end()) return found->second;
-        GlyphEntry& entry = glyphs_[ch];
+        auto found = glyphs.find(ch);
+        if (found != glyphs.end()) return found->second;
+        GlyphEntry& entry = glyphs[ch];
         const wchar_t wide = static_cast<wchar_t>(ch);
         SIZE size{};
-        GetTextExtentPoint32W(scratch_.dc, &wide, 1, &size);
-        entry.metrics.advance = size.cx - overhang_;
+        GetTextExtentPoint32W(scratch.dc, &wide, 1, &size);
+        entry.metrics.advance = size.cx - overhang;
         if (ch < 0x20) {
             // DrawText (Uniscribe) gives control characters their own width, not GetTextExtentPoint32's.
             const wchar_t with[3] = {L'a', wide, L'a'};
             RECT a{0, 0, 10000, 100}, b{0, 0, 10000, 100};
-            DrawTextW(scratch_.dc, with, 3, &a, DT_CALCRECT | DT_NOPREFIX | DT_SINGLELINE);
+            DrawTextW(scratch.dc, with, 3, &a, DT_CALCRECT | DT_NOPREFIX | DT_SINGLELINE);
             const wchar_t without[2] = {L'a', L'a'};
-            DrawTextW(scratch_.dc, without, 2, &b, DT_CALCRECT | DT_NOPREFIX | DT_SINGLELINE);
+            DrawTextW(scratch.dc, without, 2, &b, DT_CALCRECT | DT_NOPREFIX | DT_SINGLELINE);
             entry.metrics.advance = a.right - b.right;
         }
-        Dib& dib = *glyphDib_;
+        Dib& dib = *glyphDib;
         dib.Clear();
-        TextOutW(dib.dc, pad_, pad_, &wide, 1);
+        TextOutW(dib.dc, pad, pad, &wide, 1);
         GdiFlush();
         int x0 = dib.width, y0 = dib.height, x1 = -1, y1 = -1;
         for (int y = 0; y < dib.height; ++y)
@@ -520,8 +520,8 @@ private:
                     y1 = std::max(y1, y);
                 }
         if (x1 >= x0) {
-            entry.metrics.left = x0 - pad_;
-            entry.metrics.top = y0 - pad_ - metrics_.ascent;
+            entry.metrics.left = x0 - pad;
+            entry.metrics.top = y0 - pad - metrics.ascent;
             entry.metrics.width = x1 - x0 + 1;
             entry.metrics.height = y1 - y0 + 1;
             entry.coverage.resize(static_cast<std::size_t>(entry.metrics.width * entry.metrics.height));
@@ -535,12 +535,12 @@ private:
         return entry;
     }
 
-    Dib scratch_;
-    std::unique_ptr<Dib> glyphDib_;
-    int pad_ = 0, overhang_ = 0;
-    FontMetrics metrics_;
-    mutable std::map<char32_t, GlyphEntry> glyphs_;
-    std::map<std::uint64_t, int> kerning_;
+    Dib scratch;
+    std::unique_ptr<Dib> glyphDib;
+    int pad = 0, overhang = 0;
+    FontMetrics metrics;
+    mutable std::map<char32_t, GlyphEntry> glyphs;
+    std::map<std::uint64_t, int> kerning;
 };
 
 // ---- The cases ----------------------------------------------------------------------------------------

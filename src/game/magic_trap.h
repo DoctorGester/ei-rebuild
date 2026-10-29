@@ -18,7 +18,7 @@ public:
     MagicTrap();
     ~MagicTrap() override;
 
-    // The map object's Create, then sides -1, flags_ |= 0x80040, no spell, no circles, points or units, period
+    // The map object's Create, then sides -1, flags |= 0x80040, no spell, no circles, points or units, period
     // 10, countdown and singleTarget 0.
     void Create() override;
     void Destroy() override { DestroyTrap(); }

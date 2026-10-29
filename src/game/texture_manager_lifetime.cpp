@@ -27,25 +27,25 @@ TextureFlag CreateFlag(int type) {
 } // namespace
 
 CTextureManager::CTextureManager() {
-    device_ = nullptr;
-    cachedBytes_ = 0;
-    mipLevel_ = 0;
-    limitTo512_ = 0;
+    device = nullptr;
+    cachedBytes = 0;
+    mipLevel = 0;
+    limitTo512 = 0;
 }
 
 // The part Destroy and the destructor share: the cache, the composed textures and the device.
 static void ReleaseTextures(CTextureManager* manager) {
-    for (auto node = manager->cache_.begin(); node != manager->cache_.end();) {
+    for (auto node = manager->cache.begin(); node != manager->cache.end();) {
         CTexture* texture = *node;
         ++node;
         texture->Destroy();
         if (texture) delete texture;
     }
-    manager->cache_.clear();
-    manager->cachedBytes_ = 0;
+    manager->cache.clear();
+    manager->cachedBytes = 0;
     ForgetComposedTextures();
-    CTextureDevice* device = manager->device_;
-    manager->device_ = nullptr;
+    CTextureDevice* device = manager->device;
+    manager->device = nullptr;
     if (device) device->Release();
 }
 
@@ -56,7 +56,7 @@ void CTextureManager::Create() {
     bool opened = AddArchive((folder + "textures.res"));
     opened = AddArchive((folder + "redress.res")) && opened;
     if (!AddArchive((folder + "menus.res")) || !opened) {
-        context_ = nullptr;   // the original's Init cleared the context after this failed Create
+        context = nullptr;    // the original's Init cleared the context after this failed Create
         return;
     }
     // Rebirth's ResOverride: when all three opened, the mod's texture archives follow.
@@ -75,12 +75,12 @@ CTextureManager::~CTextureManager() {
     CResourceManager::Destroy();
     SetDevice(nullptr);
     // The members' destructors: both counted pointers are empty by now; the cache's.
-    cache_.clear();
+    cache.clear();
 }
 
-CEngineObject* CTextureManager::CreateObject(int type, int id) {
-    CEngineObject* object = CBaseManager::CreateObject(type, id);
-    object->flags_ |= CreateFlag(type);
+CEngineObject* CTextureManager::CreateObject(int newType, int newId) {
+    CEngineObject* object = CBaseManager::CreateObject(newType, newId);
+    object->flags |= CreateFlag(newType);
     return object;
 }
 

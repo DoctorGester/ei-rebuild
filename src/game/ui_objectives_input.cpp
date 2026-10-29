@@ -54,79 +54,79 @@ constexpr float kAlphaScale = 255.0f;
 void CObjectivesWindow::LeftDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
     int region = RegionAt(x, y);
-    std::uint32_t zoneCount = static_cast<std::uint32_t>(zones_.end() - zones_.begin());
+    std::uint32_t zoneCount = static_cast<std::uint32_t>(zones.end() - zones.begin());
     switch (region) {
     case kRegionOk:
-        interface_->PlaySound(kOkSound);
-        if (!twoButtons_) {
-            interface_->SetPendingValue(0);
-        } else if (nearestExit_ >= 0) {
-            const ObjectiveExit& exit = exits_[nearestExit_];
-            int index = exit.exit_;
-            GamePassTime(exit.distance_);
-            RequestZone(shownZone_, index);
+        ui->PlaySound(kOkSound);
+        if (!twoButtons) {
+            ui->SetPendingValue(0);
+        } else if (nearestExit >= 0) {
+            const ObjectiveExit& exit = exits[nearestExit];
+            int index = exit.exit;
+            GamePassTime(exit.distance);
+            RequestZone(shownZone, index);
         }
         return;
     case kRegionCancel:
-        if (twoButtons_) {
-            interface_->PlaySound(kCancelSound);
-            interface_->SetPendingValue(0);
+        if (twoButtons) {
+            ui->PlaySound(kCancelSound);
+            ui->SetPendingValue(0);
         }
         return;
     case kRegionPreviousZone:
-        if (!listZones_ || zoneCount <= 1) return;
-        if (--zoneIndex_ < 0) zoneIndex_ = static_cast<int>(zoneCount) - 1;
-        ShowZone(zones_[zoneIndex_]);
+        if (!listZones || zoneCount <= 1) return;
+        if (--zoneIndex < 0) zoneIndex = static_cast<int>(zoneCount) - 1;
+        ShowZone(zones[zoneIndex]);
         return;
     case kRegionNextZone:
-        if (!listZones_ || zoneCount <= 1) return;
-        if (static_cast<std::uint32_t>(++zoneIndex_) >= zoneCount) zoneIndex_ = 0;
-        ShowZone(zones_[zoneIndex_]);
+        if (!listZones || zoneCount <= 1) return;
+        if (static_cast<std::uint32_t>(++zoneIndex) >= zoneCount) zoneIndex = 0;
+        ShowZone(zones[zoneIndex]);
         return;
     default:
         break;
     }
     if (region < kRegionFirstRow) return;
     if (region < kRegionFirstExit) {
-        int row = firstRow_ + region - kRegionFirstRow;
-        if (row >= 0 && row < static_cast<int>(quests_.size())) {
-            interface_->PlaySound(kSelectSound);
-            selectedQuest_ = row;
+        int row = firstRow + region - kRegionFirstRow;
+        if (row >= 0 && row < static_cast<int>(quests.size())) {
+            ui->PlaySound(kSelectSound);
+            selectedQuest = row;
             DrawQuestList();
             ShowQuest();
         }
         return;
     }
-    if (region >= std::ssize(exits_) + kRegionFirstExit) return;
+    if (region >= std::ssize(exits) + kRegionFirstExit) return;
     int exit = region - kRegionFirstExit;
-    if (twoButtons_ && exits_[exit].flag_) {
-        interface_->PlaySound(kEnterSound);
+    if (twoButtons && exits[exit].flag) {
+        ui->PlaySound(kEnterSound);
         SelectExit(exit);
         return;
     }
-    interface_->PlaySound(kCancelSound);
+    ui->PlaySound(kCancelSound);
 }
 
-void CObjectivesWindow::KeyDown(int key, int repeat, int flags) {
-    CUiContainer::KeyDown(key, repeat, flags);
+void CObjectivesWindow::KeyDown(int key, int repeat, int modifiers) {
+    CUiContainer::KeyDown(key, repeat, modifiers);
     int step = 0;
     switch (key) {
     case kKeyEnter:
-        interface_->PlaySound(kOkSound);
-        if (!twoButtons_) {
-            interface_->SetPendingValue(0);
-        } else if (nearestExit_ >= 0) {
-            const ObjectiveExit& exit = exits_[nearestExit_];
-            int index = exit.exit_;
-            GamePassTime(exit.distance_);
-            RequestZone(shownZone_, index);
+        ui->PlaySound(kOkSound);
+        if (!twoButtons) {
+            ui->SetPendingValue(0);
+        } else if (nearestExit >= 0) {
+            const ObjectiveExit& exit = exits[nearestExit];
+            int index = exit.exit;
+            GamePassTime(exit.distance);
+            RequestZone(shownZone, index);
         }
-        handled_ = true;
+        handled = true;
         break;
     case kKeyEsc:
-        interface_->PlaySound(!twoButtons_ ? kOkSound : kCancelSound);
-        interface_->SetPendingValue(0);
-        handled_ = true;
+        ui->PlaySound(!twoButtons ? kOkSound : kCancelSound);
+        ui->SetPendingValue(0);
+        handled = true;
         break;
     case kKeyPageUp: step = -5; break;
     case kKeyPageDown: step = 5; break;
@@ -135,19 +135,19 @@ void CObjectivesWindow::KeyDown(int key, int repeat, int flags) {
     default: break;
     }
     if (step != 0) {
-        interface_->PlaySound(kSelectSound);
-        selectedQuest_ += step;
+        ui->PlaySound(kSelectSound);
+        selectedQuest += step;
         RefreshQuests();
-        handled_ = true;
+        handled = true;
     }
-    if (!handled_ && g_keyActions[flags & 0x1FF] == kActionObjectives && !twoButtons_) {
-        interface_->PlaySound(kMessageOkSound);
-        interface_->SetPendingValue(0);
+    if (!handled && g_keyActions[modifiers & 0x1FF] == kActionObjectives && !twoButtons) {
+        ui->PlaySound(kMessageOkSound);
+        ui->SetPendingValue(0);
     }
 }
 
 void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
-    std::vector<UiPointF>& places = questPlaces_;
+    std::vector<UiPointF>& places = questPlaces;
     places.clear();
     if (IsMultiplayerClient()) {
         // (The index's operator[] adds a null entry for a new name.)
@@ -159,7 +159,7 @@ void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
     }
     std::string header;
     std::vector<std::string> words;
-    CTextManager* texts = g_clientWorld.texts_;
+    CTextManager* texts = g_clientWorld.texts;
     texts->Open(kMapText);
     header = str::Format(kQuestHeader, std::string(name));
     if (texts->FindLine(header)) {
@@ -181,55 +181,55 @@ void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
 // --- Quest list handlers --------------------------------------------------------
 
 void CObjectivesWindow::SelectExit(int index) {
-    nearestExit_ = index;
-    for (int i = 0; i < std::ssize(exits_); ++i) {
+    nearestExit = index;
+    for (int i = 0; i < std::ssize(exits); ++i) {
         CUiMesh* marker = SceneMesh(kFirstExitSprite + i);
         if (i == index) {
-            marker->SetScale(markerScale_ * kNearestScale);
-            marker->textureOffsetU_ = 0.0f;
-            blinkTime_ = 0.0f;
+            marker->SetScale(markerScale * kNearestScale);
+            marker->textureOffsetU = 0.0f;
+            blinkTime = 0.0f;
         } else {
-            marker->SetScale(markerScale_);
-            marker->textureOffsetU_ = exits_[i].flag_ ? 0.0f : kOtherExitU;
+            marker->SetScale(markerScale);
+            marker->textureOffsetU = exits[i].flag ? 0.0f : kOtherExitU;
         }
     }
-    SceneMesh(4)->visible_ = false;
-    SceneMesh(5)->visible_ = false;
+    SceneMesh(4)->visible = false;
+    SceneMesh(5)->visible = false;
 }
 
 void CObjectivesWindow::RefreshQuests() {
-    const auto& quests = quests_;
-    if (static_cast<int>(quests.size()) == 0) return;
-    if (selectedQuest_ < 0) selectedQuest_ = 0;
-    if (selectedQuest_ >= static_cast<int>(quests.size())) selectedQuest_ = static_cast<int>(quests.size()) - 1;
-    const int row = selectedQuest_;
-    if (firstRow_ + kVisibleRows <= row) firstRow_ = row - (kVisibleRows - 1);
-    if (row < firstRow_) firstRow_ = row;
-    bar_->SetPosition(firstRow_);
-    firstRow_ = bar_->TakePosition();
+    const auto& currentQuests = quests;
+    if (static_cast<int>(currentQuests.size()) == 0) return;
+    if (selectedQuest < 0) selectedQuest = 0;
+    if (selectedQuest >= static_cast<int>(currentQuests.size())) selectedQuest = static_cast<int>(currentQuests.size()) - 1;
+    const int row = selectedQuest;
+    if (firstRow + kVisibleRows <= row) firstRow = row - (kVisibleRows - 1);
+    if (row < firstRow) firstRow = row;
+    bar->SetPosition(firstRow);
+    firstRow = bar->TakePosition();
     DrawQuestList();
     ShowQuest();
 }
 
 void CObjectivesWindow::Update() {
     CUiContainer::Update();
-    if (bar_->TakeMoved()) {
-        firstRow_ = bar_->Position();
+    if (bar->TakeMoved()) {
+        firstRow = bar->Position();
         DrawQuestList();
     }
     // The sum stays unrounded for the alphas; the stored time is rounded to a float.
-    const double time = FrameTime() + blinkTime_;
-    blinkTime_ = static_cast<float>(time);
+    const double time = FrameTime() + blinkTime;
+    blinkTime = static_cast<float>(time);
     const std::uint32_t slow = libcrt::Ftol((x87::fcos(time * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
     const std::uint32_t fast = libcrt::Ftol((x87::fcos(time * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
-    for (int i = std::ssize(exits_) + kFirstExitSprite; i < std::ssize(sceneObjects_); ++i) {
+    for (int i = std::ssize(exits) + kFirstExitSprite; i < std::ssize(sceneObjects); ++i) {
         CUiMesh* place = SceneMesh(i);
-        place->flags_ |= FigureMeshFlag::Flat;
-        place->flatColour_ = fast << 24 | 0xFF0000u;
+        place->flags |= FigureMeshFlag::Flat;
+        place->flatColour = fast << 24 | 0xFF0000u;
     }
-    for (int i = 0; i < std::ssize(exits_); ++i) {
+    for (int i = 0; i < std::ssize(exits); ++i) {
         CUiMesh* marker = SceneMesh(kFirstExitSprite + i);
-        marker->flags_ |= FigureMeshFlag::Flat;
-        marker->flatColour_ = i == nearestExit_ ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;
+        marker->flags |= FigureMeshFlag::Flat;
+        marker->flatColour = i == nearestExit ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;
     }
 }

@@ -22,7 +22,7 @@ constexpr int kTopicItemContainer = 0x10;
 // The `nth` (from 0) of the slots' items that `matches`, or null.
 template <typename Predicate>
 CItem* NthSlot(CParty* slots, int nth, Predicate matches) {
-    const auto& items = slots->items_;
+    const auto& items = slots->items;
     int found = 0;
     for (int i = 0; i < std::ssize(items); ++i) {
         if (!matches(items[i])) continue;
@@ -36,19 +36,19 @@ CItem* NthSlot(CParty* slots, int nth, Predicate matches) {
 
 CItem* CSpellMakerPage::ItemAt(int x, int y, int* topic) {
     *topic = kTopicNone;
-    if (!enabled_) return nullptr;
+    if (!enabled) return nullptr;
     int region = RegionAt(x, y);
     if (region == 0) {
         *topic = kTopicSpellContainer;
-        return NthSlot(slots_, 0, IsSpellContainer);
+        return NthSlot(slots, 0, IsSpellContainer);
     }
     if (region == 1) {
         *topic = kTopicSpell;
-        return NthSlot(slots_, 0, IsSpell);
+        return NthSlot(slots, 0, IsSpell);
     }
     if (region >= 2 && region < 10) {
         *topic = kTopicModifier;
-        if (CItem* item = NthSlot(slots_, region - 2, IsModifier)) return item;
+        if (CItem* item = NthSlot(slots, region - 2, IsModifier)) return item;
     }
     if (region == 10) *topic = kTopicSkillLine;
     else if (region == 11) *topic = kTopicManaLine;
@@ -57,23 +57,23 @@ CItem* CSpellMakerPage::ItemAt(int x, int y, int* topic) {
 
 CItem* CConstructorPage::ItemAt(int x, int y, int* topic) {
     *topic = kTopicNone;
-    if (!enabled_) return nullptr;
+    if (!enabled) return nullptr;
     int region = RegionAt(x, y);
     if (region == 0) {
         *topic = kTopicBuildable;
-        return NthSlot(slots_, 0, IsBuildable);
+        return NthSlot(slots, 0, IsBuildable);
     }
     if (region == 1) {
         *topic = kTopicPart;
-        return NthSlot(slots_, 0, IsPart);
+        return NthSlot(slots, 0, IsPart);
     }
     if (region == 2) {
         *topic = kTopicItemContainer;
-        return NthSlot(slots_, 0, IsSpellContainer);
+        return NthSlot(slots, 0, IsSpellContainer);
     }
     if (region > 2) {
         *topic = kTopicMaterial;
-        return NthSlot(slots_, region - 3, IsMaterial);
+        return NthSlot(slots, region - 3, IsMaterial);
     }
     return nullptr;
 }

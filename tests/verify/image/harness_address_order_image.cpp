@@ -9,12 +9,12 @@ namespace ei::verify::image {
 
 bool BriefingPlayerList(void* briefing, PlayerList* list) {
     const net::ClientSession* client = net::g_gameClient;
-    const CChatWindow* chat = static_cast<CBriefingScreen*>(briefing)->chat_;
+    const CChatWindow* chat = static_cast<CBriefingScreen*>(briefing)->chat;
     if (!client || !chat) return false;
-    list->players = static_cast<int>(client->players_.size());
-    const CRefObject* binding = client->binding_;
-    list->bound = binding && !(binding->flags7_ & CRefObject::kDetached);
-    list->listed = chat->listed_;
+    list->players = static_cast<int>(client->players.size());
+    const CRefObject* binding = client->binding;
+    list->bound = binding && !(binding->flags7 & CRefObject::kDetached);
+    list->listed = chat->listed;
     return true;
 }
 

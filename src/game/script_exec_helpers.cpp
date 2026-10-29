@@ -21,7 +21,7 @@
 
 namespace {
 
-int LightCount(CScript* script) { return static_cast<int>(script->pointLights_.size()); }
+int LightCount(CScript* script) { return static_cast<int>(script->pointLights.size()); }
 
 // MovePointLight's step: (target - position) / steps per axis. The x difference stays in the FPU,
 // the y and z differences are rounded to float first (the goldens depend on it).
@@ -63,7 +63,7 @@ void ScriptArea::AddRound(float x, float y, float radius) {
 
 // Every area with the id.
 void CScript::DeleteArea(int id) {
-    std::erase_if(areas_, [id](const ScriptArea& area) { return area.id == id; });
+    std::erase_if(areas, [id](const ScriptArea& area) { return area.id == id; });
 }
 
 // ---- Point lights -------------------------------------------------------------------------------
@@ -75,28 +75,28 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     // a free slot is not found).
     int i = 0;
     for (; i < LightCount(this); ++i) {
-        ScriptPointLight* light = &pointLights_[i];
+        ScriptPointLight* light = &pointLights[i];
         if (!light->object) break;
         if (light->id == id) break;
     }
-    ScriptPointLight* slot = &pointLights_[i];
+    ScriptPointLight* slot = &pointLights[i];
     slot->object.reset();
     slot->moving = 0;
     slot->id = id;
     slot->removeWhenDone = 0;
-    slot->object = ScriptEffect<CEffectPointLight>(g_serverWorld.timedObjectManager_->CreateObjectAs<CEffectPointLight>(0x4B, -1));
+    slot->object = ScriptEffect<CEffectPointLight>(g_serverWorld.timedObjectManager->CreateObjectAs<CEffectPointLight>(0x4B, -1));
     CEffectPointLight* object = slot->object.get();
     const float scale = 0.003921569f;   // 1 / 255
     float red = f[5] * scale;
     float green = f[6] * scale;
     float blue = f[7] * scale;
-    object->color_.x = red;
-    object->color_.y = green;
-    object->color_.z = blue;
-    object->localPosition_.x = f[1];
-    object->localPosition_.y = f[2];
-    object->localPosition_.z = f[3];
-    x87::CopyBits(object->range_, f[4]);   // radius
+    object->color.x = red;
+    object->color.y = green;
+    object->color.z = blue;
+    object->localPosition.x = f[1];
+    object->localPosition.y = f[2];
+    object->localPosition.z = f[3];
+    x87::CopyBits(object->range, f[4]);    // radius
     g_serverWorld.AddTimedObject(object);
     slot->step.x = 0.0f;
     slot->step.y = 0.0f;
@@ -110,19 +110,19 @@ void CScript::MovePointLight(const SSCCmd* cmd) {
     int i = 0;
     for (;; ++i) {
         if (i >= LightCount(this)) return;
-        ScriptPointLight* light = &pointLights_[i];
+        ScriptPointLight* light = &pointLights[i];
         if (light->object && light->id == id) break;
     }
-    ScriptPointLight* light = &pointLights_[i];
+    ScriptPointLight* light = &pointLights[i];
     light->moving = 1;
     light->removeWhenDone = x87::fistp(f[5]);
     light->steps = x87::fistp(f[4]);
-    LightStep(light, &f[1], &light->object->localPosition_.x);
+    LightStep(light, &f[1], &light->object->localPosition.x);
 }
 
 void CScript::DeletePointLight(const SSCCmd* cmd) {
     int id = x87::fistp(cmd->floatArgs[0]);
-    for (ScriptPointLight& light : pointLights_) {
+    for (ScriptPointLight& light : pointLights) {
         if (!light.object || light.id != id) continue;
         light.object.reset();
         return;

@@ -9,8 +9,8 @@ void CUiItemPanel::LeftDown(int, int x, int y) {
     // The address of the x argument is the topic out-parameter, like the original.
     int topic = x;
     if (CItem* item = ItemAt(x, y, &topic)) {
-        owner_->TakeItem(item, mode_);
+        owner->TakeItem(item, mode);
         return;
     }
-    if (topic) owner_->TopicClicked(topic);
+    if (topic) owner->TopicClicked(topic);
 }

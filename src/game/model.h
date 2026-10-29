@@ -61,7 +61,7 @@ struct ClipBounds {
 };
 
 // A box of an object's model that blocks the AI map: the part's bounds with the part's position when it was
-// loaded. A figure mesh has one (CFigureMesh::box_), copied whole from the piece's header into the object's
+// loaded. A figure mesh has one (CFigureMesh::box), copied whole from the piece's header into the object's
 // part boxes (CObject3D::partBoxes).
 struct FootprintPart {
 
@@ -118,7 +118,7 @@ public:
     // PushMatrix as the draw code inlines it: the new top by Matrix4::Multiply, whose elements sum in
     // another order.
     void PushMatrixProduct(const Matrix4& m, int index) {
-        MatrixStack& stack = stacks_[index];
+        MatrixStack& stack = stacks[index];
         if (stack.count == 0) {
             stack.count = 1;
             stack.matrices[0] = m;
@@ -128,9 +128,9 @@ public:
         stack.matrices[depth - 1].Multiply(stack.matrices[depth - 2].m, m.m);
     }
     // The top of stack `index` (matrices[count - 1], computed even when empty).
-    const Matrix4* Top(int index) const { return stacks_[index].matrices.data() + (stacks_[index].count - 1); }
+    const Matrix4* Top(int index) const { return stacks[index].matrices.data() + (stacks[index].count - 1); }
     void PopMatrix(int index) {
-        if (stacks_[index].count != 0) --stacks_[index].count;
+        if (stacks[index].count != 0) --stacks[index].count;
     }
 
     // The viewport the projections map clip space to: the screen's size.
@@ -163,7 +163,7 @@ public:
 
     // Counted (CRendererBase): holders drop a reference, and the last one deletes it.
 
-    MatrixStack stacks_[16];    // (models.md: stacks 0-2, 5-10 and 14 are in use)
+    MatrixStack stacks[16];     // (models.md: stacks 0-2, 5-10 and 14 are in use)
     float halfWidth = 0.0f;     // the viewport's half size (SetViewportSize)
     float halfHeight = 0.0f;
     float fogStart = 0.0f;   // the fog's depth range's start, and 255 over its length (SetDepthRange)
@@ -181,8 +181,8 @@ class CMaterial;
 struct LineBatch;
 
 // A render state preset the renderer's helper keeps (counted): the passes of a material's draw. The first pass
-// sets the texture stages of the first `stages_` states and turns the next stage off; each further pass is one of
-// the states from `stages_` on, with its blend factors.
+// sets the texture stages of the first `stages` states and turns the next stage off; each further pass is one of
+// the states from `stages` on, with its blend factors.
 class CRenderPreset final {
 public:
     // One texture stage's operations and the blend factors of its pass.
@@ -194,24 +194,24 @@ public:
         render::Blend destBlend;
     };
 
-    CRenderPreset(const std::vector<State>& states, int stages) : states_(states), stages_(stages) {}
+    CRenderPreset(const std::vector<State>& newStates, int newStages) : states(newStates), stages(newStages) {}
 
     CRenderPreset(const CRenderPreset&) = delete;
     CRenderPreset& operator=(const CRenderPreset&) = delete;
 
-    int PassCount() const { return static_cast<int>(states_.size()) - stages_ + 1; }
+    int PassCount() const { return static_cast<int>(states.size()) - stages + 1; }
     // Pass `pass`'s states set in the renderer's render state (render/render_state.h).
     void ApplyPass(int pass) const;
 
-    void AddRef() { ++refs_; }
+    void AddRef() { ++refs; }
     // Drops a reference; the last one deletes the preset.
     void Release() {
-        if (--refs_ == 0) delete this;
+        if (--refs == 0) delete this;
     }
 
-    int refs_ = 0;
-    std::vector<State> states_;
-    int stages_;                         // texture stages the first pass sets
+    int refs = 0;
+    std::vector<State> states;
+    int stages;                          // texture stages the first pass sets
 };
 
 // The renderer's counted helper: the nine built-in render state presets of the materials.
@@ -223,24 +223,24 @@ public:
     explicit CRenderHelper(std::uint32_t flag);
     ~CRenderHelper();
     // Preset `index` of the nine, or null beyond them.
-    CRenderPreset* Preset(unsigned index) const { return index < kPresetCount ? presets_[index] : nullptr; }
+    CRenderPreset* Preset(unsigned index) const { return index < kPresetCount ? presets[index] : nullptr; }
 
     CRenderHelper(const CRenderHelper&) = delete;
     CRenderHelper& operator=(const CRenderHelper&) = delete;
 
-    void AddRef() { ++refs_; }
+    void AddRef() { ++refs; }
     // Drops a reference; the last one deletes the helper.
     void Release() {
-        if (--refs_ == 0) delete this;
+        if (--refs == 0) delete this;
     }
 
-    int refs_ = 0;
+    int refs = 0;
 
 private:
     // Preset `index` made of `states`. `singleStage`: at most one texture stage.
     void Record(const std::vector<CRenderPreset::State>& states, unsigned index, bool singleStage);
 
-    CRenderPreset* presets_[kPresetCount] = {};   // counted
+    CRenderPreset* presets[kPresetCount] = {};    // counted
 };
 
 // The ambient colour (r, g, b in 0..1) CSceneRenderer::SetColour set last (one for every renderer): the figure
@@ -260,13 +260,13 @@ public:
     void CreateRenderer(void* window, options::GameOptions* settings);
     // Drops the sun, the pipeline, the helper and the device object.
     void DestroyRenderer();
-    // 0 unless flags_ bit 0 is set. Takes the frame time, clears the frame and begins the scene (a
+    // 0 unless flags bit 0 is set. Takes the frame time, clears the frame and begins the scene (a
     // scene still open is ended first; other failures are fatal). Returns 1.
     int BeginScene();
     // Ends the scene. Returns 1.
     int EndScene();
-    std::uint32_t FrameTime() const { return frameTime_; }
-    // Sets the colour the next draws are tinted with (colour_ and the device object's colour_) and the transform
+    std::uint32_t FrameTime() const { return frameTime; }
+    // Sets the colour the next draws are tinted with (colour and the device object's colour) and the transform
     // object's ambient from it.
     void SetColour(std::uint32_t colour);
     // Sets SRCBLEND, then DESTBLEND.
@@ -316,22 +316,22 @@ public:
     // SetSun, then the colour from r, g, b in 0..1, packed as SetFogColour packs them.
     void SetSunAndAmbient(CLight* light, float r, float g, float b);
 
-    std::uint32_t flags_ = 0;                  // bit 0: the software cursor option; bit 1 set by the creation
-    Ref<CTransformPipeline> pipeline_;
-    std::uint32_t fogColour_ = 0;              // also the colour the frame is cleared with
-    std::uint32_t colour_ = 0;                 // the draw colour
+    std::uint32_t flags = 0;                   // bit 0: the software cursor option; bit 1 set by the creation
+    Ref<CTransformPipeline> pipeline;
+    std::uint32_t fogColour = 0;               // also the colour the frame is cleared with
+    std::uint32_t colour = 0;                  // the draw colour
     // The sun (counted; set together with the ambient colour, the client's lighting moves it every frame).
-    Ref<CLight> sun_;
-    Ref<CTextureDevice> device_;               // the device object
-    Ref<CRenderHelper> helper_;
+    Ref<CLight> sun;
+    Ref<CTextureDevice> device;                // the device object
+    Ref<CRenderHelper> helper;
     // The display settings SetGamma last applied, as given.
-    float brightness_ = 0.0f;
-    float contrast_ = 0.0f;
-    float gamma_ = 0.0f;
+    float brightness = 0.0f;
+    float contrast = 0.0f;
+    float gamma = 0.0f;
     // The frame time (milliseconds; BeginScene / EndScene).
-    std::uint32_t frameTime_ = 0;              // the last frame's
-    std::uint32_t frameStart_ = 0;             // timeGetTime at this frame's BeginScene
-    std::uint32_t lastFrameStart_ = 0;         // the previous frame's (the creation: its time)
+    std::uint32_t frameTime = 0;               // the last frame's
+    std::uint32_t frameStart = 0;              // timeGetTime at this frame's BeginScene
+    std::uint32_t lastFrameStart = 0;          // the previous frame's (the creation: its time)
 
 private:
     // The creation's first step: a new transform pipeline.
@@ -365,7 +365,7 @@ struct LinkArchive {
 };
 
 // A figure's cached model: the mesh, bones and animation archives of "<name>.mod / .bon / .anm" (null when
-// missing), and the animations read from the last by name. CFigureManager::models_ and the link figure
+// missing), and the animations read from the last by name. CFigureManager::models and the link figure
 // loader's figure sets cache them by name.
 struct FigureModel {
     // An empty animation map, then the three archives as new CMMIOResources.
@@ -412,10 +412,10 @@ public:
     // its name; otherwise its parts are morphed in place (SetMorph, then per part). Null stays null.
     virtual CLinkMesh* Remorph(CLinkMesh* mesh, float s, float t, float u);
 
-    void AddRef() { ++refCount_; }
+    void AddRef() { ++refCount; }
     // Drops a reference; the last one deletes the loader.
     void Release() {
-        if (--refCount_ == 0) delete this;
+        if (--refCount == 0) delete this;
     }
 
     CLinkFigureLoader(const CLinkFigureLoader&) = delete;
@@ -454,11 +454,11 @@ public:
     void RemorphFigPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
     void RemorphOldPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
 
-    int refCount_ = 0;
-    std::list<LinkArchive> archives_;
-    std::unordered_map<std::string, FigureModel*> figureSets_;    // by figure name
-    Ref<CTextureDevice> renderer_;                                // the device object
-    std::multimap<std::string, CLinkMesh*> cache_;    // each entry holds a reference
+    int refCount = 0;
+    std::list<LinkArchive> archives;
+    std::unordered_map<std::string, FigureModel*> figureSets;     // by figure name
+    Ref<CTextureDevice> renderer;                                 // the device object
+    std::multimap<std::string, CLinkMesh*> cache;     // each entry holds a reference
 };
 
 // What chunks 2 and 3 of both prints.db record types hold: a print's alpha and its life and lifetime in ticks

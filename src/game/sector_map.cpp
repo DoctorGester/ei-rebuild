@@ -72,8 +72,8 @@ CSectorMap::CSectorMap() {
 CSectorMap::~CSectorMap() = default;
 
 bool CSectorMap::Add(CMapObject* object) {
-    int cellX = x87::fistp(2.0f * object->localPosition_.x - 0.5f);
-    int cellY = x87::fistp(2.0f * object->localPosition_.y - 0.5f);
+    int cellX = x87::fistp(2.0f * object->localPosition.x - 0.5f);
+    int cellY = x87::fistp(2.0f * object->localPosition.y - 0.5f);
     int sx = cellX / 32, sy = cellY / 32;
     if (sx >= width || sy >= height || sx < 0 || sy < 0) return false;
 
@@ -84,7 +84,7 @@ bool CSectorMap::Add(CMapObject* object) {
     bool fits = aiMap->MarkFootprint(object, false);
     if (fits) {
         ++added;
-        object->flags_ |= kInSectorMap;
+        object->flags |= kInSectorMap;
         object->sectorCellY = cellY;
         object->sectorCellX = cellX;
         return true;
@@ -150,7 +150,7 @@ std::list<CUnit*> CSectorMap::FindUnitsInRadius(const Vector3& position, float r
         for (auto node = sector.units.begin(); node != sector.units.end();) {
             CUnit* unit = *node;
             ++node;
-            float dx = unit->localPosition_.x - px, dy = unit->localPosition_.y - py;
+            float dx = unit->localPosition.x - px, dy = unit->localPosition.y - py;
             const auto distance = LengthSquared2DUnrounded(dy, dx);
             EI_NAN_AUDIT(distance);
             if (distance < radiusSquared) result.push_front(unit);
@@ -164,7 +164,7 @@ bool CSectorMap::Move(CMapObject* object, const Vector3& position) {
     // (It also logs the refusal and failed moves to addon.log; nothing the game shows.)
     if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position.x >= 0.0f) || !(position.y >= 0.0f)))
         return false;
-    Vector3& current = object->localPosition_;
+    Vector3& current = object->localPosition;
     int cellX = x87::fistp(2.0f * position.x - 0.5f);
     int cellY = x87::fistp(2.0f * position.y - 0.5f);
     Vector3 saved;
@@ -199,7 +199,7 @@ bool CSectorMap::Move(CMapObject* object, const Vector3& position) {
             to.objects.push_back(object);
         }
     }
-    object->flags_ |= kInSectorMap;
+    object->flags |= kInSectorMap;
     object->sectorCellY = cellY;
     object->sectorCellX = cellX;
     return true;

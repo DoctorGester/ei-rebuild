@@ -52,7 +52,7 @@ void StackPush(MatrixStack& stack, const Matrix4* m) {
 }
 const Matrix4* StackTop(const MatrixStack& stack) { return stack.matrices.data() + (stack.count - 1); }
 
-// The pipeline's stacks (CTransformPipeline::stacks_) the creation fills.
+// The pipeline's stacks (CTransformPipeline::stacks) the creation fills.
 constexpr int kProjection = 6;
 constexpr int kViewport = 8;
 constexpr int kAxisSwap = 7;
@@ -64,19 +64,19 @@ constexpr int kProductStacks[2] = {kStackA, kStackB};
 constexpr int kSwapStacks[2] = {kStackC, kStackD};
 
 void FillMatrixStacks(CSceneRenderer* renderer) {
-    CTransformPipeline* pipeline = renderer->pipeline_;
-    MatrixStack* stacks = pipeline->stacks_;
+    CTransformPipeline* pipeline = renderer->pipeline;
+    MatrixStack* stacks = pipeline->stacks;
     // The camera's near and far distances and field of view.
     const CCamera* cam = &g_camera;
     float zNear, zFar, fov;
-    zNear = cam->nearDistance_;
-    zFar = cam->farDistance_;
-    fov = cam->fieldOfView_;
+    zNear = cam->nearDistance;
+    zFar = cam->farDistance;
+    fov = cam->fieldOfView;
     Matrix4 m;
     static_assert(std::bit_cast<std::uint32_t>(1.3333334f) == 0x3FAAAAABu);
     ProjectionMatrix(&m, fov, 1.3333334f, zNear, zFar);   // aspect 4/3
     StackPush(stacks[kProjection], &m);
-    ViewportMatrix(&m, &renderer->device_->screen_);
+    ViewportMatrix(&m, &renderer->device->screen);
     StackPush(stacks[kViewport], &m);
     AxisSwapMatrix(&m);
     StackPush(stacks[kAxisSwap], &m);
@@ -95,23 +95,23 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
 
 // The pipeline's viewport size and depth range (the options' fog start and far clip distances).
 void SetViewport(CSceneRenderer* renderer, const GameOptions* settings) {
-    const RECT& screen = renderer->device_->screen_;
+    const RECT& screen = renderer->device->screen;
     float width = static_cast<float>(screen.right - screen.left);
     float height = static_cast<float>(screen.bottom - screen.top);
-    renderer->pipeline_->SetViewportSize(width, height);
-    renderer->pipeline_->SetDepthRange(settings->fogDayStartDistance_, settings->farClipDistance_);
+    renderer->pipeline->SetViewportSize(width, height);
+    renderer->pipeline->SetDepthRange(settings->fogDayStartDistance, settings->farClipDistance);
 }
 
 // The texture filters of the stages: Filtering picks point (0) or linear (1, 2) min / mag filters; the mip filter
 // is point with Mipmapping, else none.
 void SetTextureFilters(const GameOptions* settings) {
     for (render::TextureStage& stage : render::g_renderState.stages) {
-        int filter = settings->filtering_;
+        int filter = settings->filtering;
         if (filter == 0 || filter == 1 || filter == 2) {
             stage.minFilter = stage.magFilter = filter == 0 ? render::Filter::Point : render::Filter::Linear;
-            if (settings->mipmapping_) stage.mipFilter = render::MipFilter::Point;
+            if (settings->mipmapping) stage.mipFilter = render::MipFilter::Point;
         }
-        if (settings->mipmapping_ == 0) stage.mipFilter = render::MipFilter::None;
+        if (settings->mipmapping == 0) stage.mipFilter = render::MipFilter::None;
     }
 }
 
@@ -127,7 +127,7 @@ void SetRenderState(const GameOptions* settings) {
     state.sourceBlend = render::Blend::One;
     state.destBlend = render::Blend::Zero;
     state.cull = render::Cull::Clockwise;
-    state.specular = settings->specular_ != 0;
+    state.specular = settings->specular != 0;
     state.fog = true;
     state.fogColour = 0;
 }
@@ -135,22 +135,22 @@ void SetRenderState(const GameOptions* settings) {
 // The default light: class 0x2E of the light factory, white, at (5, 5, -8), range 1e6,
 // +0x100 = 1e12, +0x104 = 1e-12.
 void AddDefaultLight(CSceneRenderer* renderer) {
-    CLight* light = g_clientWorld.lightFactory_->CreateLight(0x2E);
+    CLight* light = g_clientWorld.lightFactory->CreateLight(0x2E);
     Vector3 colour = {1.0f, 1.0f, 1.0f};
     Vector3 position = {5.0f, 5.0f, -8.0f};
     light->SetDirectional(colour, position);
     const std::uint32_t range = 0x49742400, rangeSquared = 0x5368D4A5, inverseRangeSquared = 0x2B8CBCCC;
-    light->range_ = std::bit_cast<float>(range);
-    light->rangeSquared_ = std::bit_cast<float>(rangeSquared);
-    light->inverseRangeSquared_ = std::bit_cast<float>(inverseRangeSquared);
+    light->range = std::bit_cast<float>(range);
+    light->rangeSquared = std::bit_cast<float>(rangeSquared);
+    light->inverseRangeSquared = std::bit_cast<float>(inverseRangeSquared);
     renderer->SetSun(light);
 }
 
 // The counted helper object. The flag is a byte argument: only its low byte is read (the caller
 // pushes it with the rest of the register left over from operator new).
 void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
-    const std::uint32_t flag = settings->driverIndex_ != 0 ? 1u : 0u;
-    renderer->helper_.Assign(new CRenderHelper(flag));
+    const std::uint32_t flag = settings->driverIndex != 0 ? 1u : 0u;
+    renderer->helper.Assign(new CRenderHelper(flag));
 }
 
 } // namespace
@@ -159,10 +159,10 @@ void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     render::g_renderState = {};   // a new device's
     CreatePipeline();
     // (The options' driver, refresh rate and depth buffer bits choose nothing: the new renderer draws.)
-    CTextureDevice* device = new CTextureDevice(static_cast<HWND>(window), settings->fullScreen_ != 0,
-                                                settings->resolutionX_, settings->resolutionY_, settings->colourDepth_);
-    device_.Assign(device);
-    DeviceSetPipeline(&device_->pipeline_, pipeline_);
+    CTextureDevice* newDevice = new CTextureDevice(static_cast<HWND>(window), settings->fullScreen != 0,
+                                                settings->resolutionX, settings->resolutionY, settings->colourDepth);
+    device.Assign(newDevice);
+    DeviceSetPipeline(&device->pipeline, pipeline);
 
     FillMatrixStacks(this);
     SetViewport(this, settings);
@@ -172,9 +172,9 @@ void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     SetTextureFilters(settings);
     SetRenderState(settings);
 
-    frameTime_ = 0;
-    flags_ |= 2;
-    lastFrameStart_ = gameapi::timeGetTime();
+    frameTime = 0;
+    flags |= 2;
+    lastFrameStart = gameapi::timeGetTime();
     AddDefaultLight(this);
 
     // The ambient colour: grey 50 from three FISTPs of 50.0.

@@ -29,7 +29,7 @@ void ReleaseAll(const std::vector<CItem*>& list) {
 template <typename T>
 void Drop(T*& object) {
     if (object == nullptr) return;
-    --object->refCount_;
+    --object->refCount;
     delete object;
     object = nullptr;
 }
@@ -62,11 +62,11 @@ void PartyUnitRecord::ClearItems() {
 // --- The managers and constructors a party makes ------------------------------------------------
 
 CSpellConstructor::CSpellConstructor() {
-    manager_ = nullptr;
+    manager = nullptr;
 }
 
 CSpellManager::CSpellManager() {
-    maxSequenceKey_ = 0;
+    maxSequenceKey = 0;
 }
 
 CParty::CParty() = default;
@@ -79,52 +79,52 @@ CParty::~CParty() {
 const char* CParty::ClassName() { return "CParty"; }
 ClassId CParty::GetClassId() { return ClassId::Party; }
 
-CItemConstructor* CParty::ItemConstructor() { return itemConstructor_; }
-CSpellConstructor* CParty::SpellConstructor() { return spellConstructor_; }
-CItemManager* CParty::ItemFactory() { return itemManager_; }
-CSpellManager* CParty::SpellManager() { return spellManager_; }
+CItemConstructor* CParty::ItemConstructor() { return itemConstructor; }
+CSpellConstructor* CParty::SpellConstructor() { return spellConstructor; }
+CItemManager* CParty::ItemFactory() { return itemManager; }
+CSpellManager* CParty::SpellManager() { return spellManager; }
 
 void CParty::Create() {
-    itemManager_ = new CItemManager();
-    itemManager_->AddRef();   // not tested for null
-    itemManager_->Init(this);
+    itemManager = new CItemManager();
+    itemManager->AddRef();    // not tested for null
+    itemManager->Init(this);
 
-    spellManager_ = new CSpellManager();
-    spellManager_->AddRef();
-    spellManager_->Init(this);
+    spellManager = new CSpellManager();
+    spellManager->AddRef();
+    spellManager->Init(this);
 
-    itemConstructor_ = new CItemConstructor();
-    itemConstructor_->AddRef();
-    itemConstructor_->Create();
+    itemConstructor = new CItemConstructor();
+    itemConstructor->AddRef();
+    itemConstructor->Create();
 
-    spellConstructor_ = new CSpellConstructor();
-    spellConstructor_->AddRef();
-    spellConstructor_->Create();
+    spellConstructor = new CSpellConstructor();
+    spellConstructor->AddRef();
+    spellConstructor->Create();
 
     Clear(1, 0);
 }
 
 void CParty::Destroy() {
-    members_.clear();
-    ReleaseItems(items_);
-    items_.clear();
-    Drop(itemConstructor_);
-    Drop(spellConstructor_);
-    Drop(itemManager_);
-    Drop(spellManager_);
+    members.clear();
+    ReleaseItems(items);
+    items.clear();
+    Drop(itemConstructor);
+    Drop(spellConstructor);
+    Drop(itemManager);
+    Drop(spellManager);
 }
 
 void CParty::Clear(int clearVariables, int keepSpells) {
-    ReleaseItems(items_);
-    items_.clear();
-    if (itemManager_ != nullptr) itemManager_->DestroyAll();
-    if (spellManager_ != nullptr) {
-        spellManager_->Destroy();
-        if (keepSpells == 0) spellManager_->Init(this);
+    ReleaseItems(items);
+    items.clear();
+    if (itemManager != nullptr) itemManager->DestroyAll();
+    if (spellManager != nullptr) {
+        spellManager->Destroy();
+        if (keepSpells == 0) spellManager->Init(this);
     }
-    members_.clear();
-    if (clearVariables != 0) variables_.clear();
-    zone_ = game::kEmptyText;
-    entrance_ = 0;
-    money_ = 0;
+    members.clear();
+    if (clearVariables != 0) variables.clear();
+    zone = game::kEmptyText;
+    entrance = 0;
+    money = 0;
 }

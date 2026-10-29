@@ -8,7 +8,7 @@
 // Insert 004B2EF0, the merges of Union 004B2620, Difference 004B2920 and Intersection 004B2B60. Which
 // unit a script's "first / n-th of group" gets therefore follows the heap layout (SV7a: gobject.i
 // 702 or 1884 under EI_HEAP_JITTER). In harness runs both sides order by object id instead (null
-// first, then CEngineObject::id_), the way the update countdown already uses the id (harness_heap.h):
+// first, then CEngineObject::id), the way the update countdown already uses the id (harness_heap.h):
 //
 //   - ours: always (ScriptGroup::After, the standalone);
 //   - the original: the comparator's start jumps to an id comparison, and each of the four inline

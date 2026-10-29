@@ -21,17 +21,17 @@
 // No object of the base alone exists.
 struct FigureDrawerBase : CEngineObject {
 
-    CFigureMesh* mesh_;         // the mesh it draws
+    CFigureMesh* mesh;          // the mesh it draws
 
 protected:
     FigureDrawerBase();
     ~FigureDrawerBase() override;
 };
 
-// The drawer of a figure mesh (CFigureMesh::drawer_). It is an engine object of class 0x36,
+// The drawer of a figure mesh (CFigureMesh::drawer). It is an engine object of class 0x36,
 // "CFigureClientSpecific": the client-specific manager's factory makes one
 // for type 0x45 and CFigureManager::CreateFigureObject gives it to every new figure. A real virtual
-// class. flags_ gets the bits
+// class. flags gets the bits
 // of the animated-mesh flag word when the mesh is animated.
 struct FigureMeshDrawer : FigureDrawerBase {
     int DrawPlain(CTextureDevice* device, CMaterial*, int alpha, RECT* rect);
@@ -57,7 +57,7 @@ struct FigureMeshDrawer : FigureDrawerBase {
     // 4 x 4 sheet, 16 32 frames of 8 x 4 (u = column / 4 or / 8, v = 1 - row / 4); 15 none.
     void Animate(float time);
 
-    RECT screen_;               // where the mesh was last drawn
+    RECT screen;                // where the mesh was last drawn
 };
 
 class CTextureDevice;
@@ -67,8 +67,8 @@ struct Surface;
 // A part's header in the mesh's header map (map<string, LinkPartHeader>; 0x50 bytes, zeroed when the
 // map inserts it).
 struct LinkPartHeader {
-    // The second / first dword after the FIG header: the part's CFigureMesh::meshType_ and
-    // materialValue_ (an object's part copies them and the box, CObject3D::LoadPart).
+    // The second / first dword after the FIG header: the part's CFigureMesh::meshType and
+    // materialValue (an object's part copies them and the box, CObject3D::LoadPart).
     std::uint32_t meshType;
     std::uint32_t materialValue;
     FootprintPart box;          // the bounds fitted to the part's morphed vertices, the part's position when loaded
@@ -142,15 +142,15 @@ public:
     virtual int ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const Matrix4& matrix,
                             Vector2* points, float* bounds) = 0;
 
-    void AddRef() { ++refCount_; }
+    void AddRef() { ++refCount; }
     // Drops a reference; the last one deletes the mesh.
     void Release() {
-        if (--refCount_ == 0) delete this;
+        if (--refCount == 0) delete this;
     }
 
-    int refCount_;
-    std::string name_;
-    std::map<std::string, LinkPartHeader> headers_;
+    int refCount;
+    std::string name;
+    std::map<std::string, LinkPartHeader> headers;
 
 protected:
     explicit CLinkMeshBase(const std::string* name);
@@ -209,18 +209,18 @@ public:
                 int cornerCount, const std::uint32_t* words, int wordCount, const std::uint16_t* indices,
                 int indexCount);
 
-    RECT screenRect_;
-    float morphWeights_[3];           // the morph coefficients (s, t, u) the figure was loaded with
-    std::vector<VertexPacket> vertices_;
-    std::vector<NormalPacket> normals_;
-    std::vector<TexCoord> texCoords_;
-    std::vector<MeshCorner> corners_;            // 6-byte triangle corners (MeshCorner)
-    std::vector<std::uint32_t> words_;
-    std::vector<std::uint16_t> indices_;
-    std::map<std::string, LinkPartRanges> ranges_;
-    CLinkFigureLoader* loader_;
+    RECT screenRect;
+    float morphWeights[3];            // the morph coefficients (s, t, u) the figure was loaded with
+    std::vector<VertexPacket> vertices;
+    std::vector<NormalPacket> normals;
+    std::vector<TexCoord> texCoords;
+    std::vector<MeshCorner> corners;             // 6-byte triangle corners (MeshCorner)
+    std::vector<std::uint32_t> words;
+    std::vector<std::uint16_t> indices;
+    std::map<std::string, LinkPartRanges> ranges;
+    CLinkFigureLoader* loader;
 };
-// corners_ is indexed in whole triangles: one element is one 6-byte MeshCorner.
+// corners is indexed in whole triangles: one element is one 6-byte MeshCorner.
 static_assert(sizeof(MeshCorner) == 6);
 
 // A length-prefixed string of a .lnk file (a four-byte length, then the characters) at *cursor: the characters

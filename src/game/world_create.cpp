@@ -2,10 +2,10 @@
 // of their base). See docs/notes/combat.md ("Rewritten"), the managers.
 // The world's paths are taken from the command line globals; every manager is made, referenced and
 // attached to the world (ThisWorld with the world, or the base); a 0x0C-byte helper goes into a
-// counted pointer (worldHandle_); then the ISAAC generator is seeded and countdowns_ set up.
+// counted pointer (worldHandle); then the ISAAC generator is seeded and countdowns set up.
 #include "item_manager.h"
 #include "world.h"
-#include "model.h"   // TweenArray (countdowns_)
+#include "model.h"   // TweenArray (countdowns)
 #include "world_data.h"
 
 #include "base_manager.h"
@@ -40,60 +40,60 @@ void Attach(CBaseManager* manager, CWorld* world) { manager->Init(world); }
 } // namespace
 
 void CWorld::Create() {
-    paused_ = 0;
+    paused = 0;
     g_dataFolder = worlddata::ConfiguredDataPath();
     g_textFolder = worlddata::ConfiguredTextPath();
     g_discFolder = worlddata::ConfiguredBasePath();
-    tick_ = 0;
+    tick = 0;
     // The wind: along x, no strength.
     const float direction[3] = {1.0f, 0.0f, 0.0f};
-    std::memcpy(windDirection_, direction, sizeof(direction));
-    updateCount_ = 0;
-    windStrength_ = 0;
+    std::memcpy(windDirection, direction, sizeof(direction));
+    updateCount = 0;
+    windStrength = 0;
 
-    players_ = MakeNew<CPlayerManager>();
-    Attach(players_, this);
-    objectManager_ = MakeNew<CMapObjectManager>();
-    Attach(objectManager_, this);
-    figureManager_ = MakeNew<CFigureManager>();
-    Attach(figureManager_, this);
-    timedObjectManager_ = MakeNew<CEffectManager>();
-    Attach(timedObjectManager_, this);
-    spellConstructor_ = MakeNew<CSpellConstructor>();
-    spellConstructor_->Create();
-    spellManager_ = MakeNew<CSpellManager>();
-    Attach(spellManager_, this);
-    itemConstructor_ = MakeNew<CItemConstructor>();
-    itemConstructor_->Create();
-    itemManager_ = MakeNew<CItemManager>();
-    Attach(itemManager_, this);
+    players = MakeNew<CPlayerManager>();
+    Attach(players, this);
+    objectManager = MakeNew<CMapObjectManager>();
+    Attach(objectManager, this);
+    figureManager = MakeNew<CFigureManager>();
+    Attach(figureManager, this);
+    timedObjectManager = MakeNew<CEffectManager>();
+    Attach(timedObjectManager, this);
+    spellConstructor = MakeNew<CSpellConstructor>();
+    spellConstructor->Create();
+    spellManager = MakeNew<CSpellManager>();
+    Attach(spellManager, this);
+    itemConstructor = MakeNew<CItemConstructor>();
+    itemConstructor->Create();
+    itemManager = MakeNew<CItemManager>();
+    Attach(itemManager, this);
 
-    ShareAssignOwned(worldHandle_, new CWorldHandle());
+    ShareAssignOwned(worldHandle, new CWorldHandle());
     g_random.Init();
     g_clientRandom.InitFrom(g_random);
-    countdowns_.clear();
+    countdowns.clear();
 }
 
 CWorld::CWorld() {
-    players_ = nullptr;
-    figureManager_ = nullptr;
-    objectManager_ = nullptr;
-    specificManager_ = nullptr;
-    timedObjectManager_ = nullptr;
-    spellManager_ = nullptr;
-    spellConstructor_ = nullptr;
-    itemManager_ = nullptr;
-    itemConstructor_ = nullptr;
-    timeBase_ = 0.0f;
-    secondsPerTick_ = 0.0f;
+    players = nullptr;
+    figureManager = nullptr;
+    objectManager = nullptr;
+    specificManager = nullptr;
+    timedObjectManager = nullptr;
+    spellManager = nullptr;
+    spellConstructor = nullptr;
+    itemManager = nullptr;
+    itemConstructor = nullptr;
+    timeBase = 0.0f;
+    secondsPerTick = 0.0f;
 }
 
 bool CWorld::RunTick() { return true; }
 
-CUnit* CWorld::FindUnit(int id) {
-    return UnitOrNull(ObjectWithId(id));
+CUnit* CWorld::FindUnit(int unitId) {
+    return UnitOrNull(ObjectWithId(unitId));
 }
 
-CMapObject* CWorld::ObjectWithId(int id) {
-    return MapObjectManager()->FindMapObject(static_cast<unsigned>(id));
+CMapObject* CWorld::ObjectWithId(int objectId) {
+    return MapObjectManager()->FindMapObject(static_cast<unsigned>(objectId));
 }

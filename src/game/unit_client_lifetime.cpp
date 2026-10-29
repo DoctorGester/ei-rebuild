@@ -38,8 +38,8 @@ void CUnitClientSpecific::Create() {
     blinks = 0;
     blinkTimer = 0;
     eyesClosed = 0;
-    for (std::uint32_t& id : armourIds) id = kNoModel;
-    for (std::uint32_t& id : weaponIds) id = kNoModel;
+    for (std::uint32_t& armourId : armourIds) armourId = kNoModel;
+    for (std::uint32_t& weaponId : weaponIds) weaponId = kNoModel;
     ReleaseFace(this);
     blinks = 0;
 }

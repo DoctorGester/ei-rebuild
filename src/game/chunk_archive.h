@@ -1,7 +1,7 @@
 #pragma once
 
 // The tagged-chunk serialisation archive the databases of database.res are stored in. Reading and writing go
-// through the same Serialize functions; loading_ selects the direction. A chunk's content is a run of
+// through the same Serialize functions; loading selects the direction. A chunk's content is a run of
 // children, each an id byte, a length byte (len << 1) or, when bit 0 is set, a dword (len << 1 | 1), and len
 // bytes. A stream holding an archive has three top-level chunks of the same form: 0 the index (per object:
 // its class id and the key its record is stored under), 1 the data of the archive's root chunk, 2 the object
@@ -50,7 +50,7 @@ public:
     // occurrence of a child id the next search for it takes.
     struct Ref {
         std::uint8_t id;
-        std::int32_t offset;     // of the content in dataStream_
+        std::int32_t offset;     // of the content in dataStream
         std::int32_t size;
         std::int32_t occurrence;
 
@@ -70,10 +70,10 @@ public:
         std::unordered_map<std::uint32_t, Factory> factories;    // class id -> factory
     };
 
-    Ref* Current() { return &stack_.back(); }
+    Ref* Current() { return &stack.back(); }
     // The current chunk's parent.
-    Ref* Parent() { return &*std::prev(stack_.end(), 2); }
-    void PushChunk() { stack_.emplace_back().Reset(); }
+    Ref* Parent() { return &*std::prev(stack.end(), 2); }
+    void PushChunk() { stack.emplace_back().Reset(); }
     // Drops the current chunk, as LeaveChunk does after a load.
     void PopChunk();
 
@@ -155,16 +155,16 @@ public:
     ChunkArchive(const ChunkArchive&) = delete;
     ChunkArchive& operator=(const ChunkArchive&) = delete;
 
-    CMemoryStream indexStream_;    // chunk 0
-    CMemoryStream dataStream_;     // the chunk data (chunk 2 while loading the records)
-    std::list<Ref> stack_;                  // the last chunk is the current one
-    std::int32_t version_;         // 1 when constructed; field 2 of the root chunk
-    std::uint8_t loading_;         // Open stores the low byte of its argument
-    LoadedObjects loaded_;
+    CMemoryStream indexStream;     // chunk 0
+    CMemoryStream dataStream;      // the chunk data (chunk 2 while loading the records)
+    std::list<Ref> stack;                   // the last chunk is the current one
+    std::int32_t version;          // 1 when constructed; field 2 of the root chunk
+    std::uint8_t loading;          // Open stores the low byte of its argument
+    LoadedObjects loaded;
     // While saving: the objects already listed -> their number by first save (1, 2, ...), written as the key
     // instead of the object's address.
-    std::unordered_map<const CRefCounted*, std::uint32_t> numbers_;
-    std::list<CRefCounted*> saved_;              // the objects whose records Close writes
+    std::unordered_map<const CRefCounted*, std::uint32_t> numbers;
+    std::list<CRefCounted*> saved;               // the objects whose records Close writes
 };
 extern ChunkArchive::ClassRegistry g_classRegistry;   // chunk_archive.cpp
 
@@ -175,7 +175,7 @@ template <typename Record, typename Fields>
 void RecordChunks(ChunkArchive* ar, int id, std::vector<Record>* records, Fields fields) {
     if (!ar->EnterChunk(id)) return;
     int count;
-    if (ar->loading_) {
+    if (ar->loading) {
         records->clear();
         count = ar->CountChunks(1);
         records->resize(static_cast<std::size_t>(count));

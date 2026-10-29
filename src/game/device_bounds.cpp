@@ -43,7 +43,7 @@ struct ScreenBounds {
         const int right = x87::fistp(maxX);
         const int top = x87::fistp(minY);
         const int left = x87::fistp(minX);
-        gameapi::SetRect(&device->drawnRect_, left, top, right, bottom);
+        gameapi::SetRect(&device->drawnRect, left, top, right, bottom);
     }
 };
 
@@ -58,15 +58,15 @@ bool InDepth(const Vector4& p) { return p.z >= 0.0f && p.w - p.z >= 0.0f; }
 // this is larger than the original's rectangle (the bounds of the clipped triangles), and across one edge it can be
 // wider along that edge: an accepted difference (renderer.md section 3).
 void CTextureDevice::BoundsOfProjected(const std::vector<Vector4>* positions, bool clipSpace) {
-    const float width = static_cast<float>(screen_.right - screen_.left);
-    const float height = static_cast<float>(screen_.bottom - screen_.top);
+    const float width = static_cast<float>(screen.right - screen.left);
+    const float height = static_cast<float>(screen.bottom - screen.top);
     ScreenBounds bounds;
     for (const Vector4& p : *positions) {
         if (!clipSpace) {
             bounds.Include(p.x, p.y);
         } else if (InDepth(p) && p.w > 0.0f) {
-            const Vector4 screen = pipeline_->ToScreen(p);
-            bounds.Include(screen.x, screen.y);
+            const Vector4 newScreen = pipeline->ToScreen(p);
+            bounds.Include(newScreen.x, newScreen.y);
         }
     }
     bounds.Clamp(width, height);

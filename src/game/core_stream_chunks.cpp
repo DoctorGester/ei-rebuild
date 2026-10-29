@@ -14,7 +14,7 @@ bool CStream::ReadTagged(std::uint32_t* tag, CStream* out) {
     if (!Read(&size, 4)) return false;
     size -= 8;
     out->Clear();
-    out->reading_ = 0;
+    out->reading = 0;
     std::vector<std::uint8_t> block(size);
     if (Read(block.data(), size) != size) return false;
     out->Write(block.data(), size);
@@ -24,7 +24,7 @@ bool CStream::ReadTagged(std::uint32_t* tag, CStream* out) {
 
 bool CStream::FindTagged(std::uint32_t id, CStream* out) {
     Seek(0);
-    reading_ = 1;
+    reading = 1;
     std::uint32_t tag;
     while (ReadTagged(&tag, out)) {
         if (tag == id) return true;

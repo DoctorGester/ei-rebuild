@@ -47,5 +47,5 @@ private:
     bool AddArchiveOf(const std::string& path, CMappedResource* (*create)());
 
 public:
-    std::vector<ArchiveEntry> archives_;
+    std::vector<ArchiveEntry> archives;
 };

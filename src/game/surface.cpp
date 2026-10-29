@@ -30,7 +30,7 @@ int LoadPicture(Surface* holder, const MmpHeader* picture) {
                                 picture->bitsPerPixel);
     holder->width = width;
     holder->height = height;
-    holder->bitsPerPixel = ScreenFormat(holder->device->bitsPerPixel_).bitsPerPixel;
+    holder->bitsPerPixel = ScreenFormat(holder->device->bitsPerPixel).bitsPerPixel;
     return 1;
 }
 
@@ -134,7 +134,7 @@ Surface::Surface(CTextureDevice* deviceIn, int widthIn, int heightIn) : device(d
     if (widthIn <= 0 || heightIn <= 0) ThrowSurfaceNotMade(widthIn, heightIn);
     width = widthIn;
     height = heightIn;
-    bitsPerPixel = ScreenFormat(device->bitsPerPixel_).bitsPerPixel;
+    bitsPerPixel = ScreenFormat(device->bitsPerPixel).bitsPerPixel;
 }
 
 // The renderer keeps the picture's pixels from the file data (render::PictureFromMmp).

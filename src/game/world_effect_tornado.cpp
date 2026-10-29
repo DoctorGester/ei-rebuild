@@ -56,7 +56,7 @@ bool SnapshotReadToEnd() {
 } // namespace
 
 CEffectTornado::CEffectTornado() {
-    sound_ = -1;
+    sound = -1;
     Reset();   // inline
 }
 
@@ -67,16 +67,16 @@ CEffectTornado::~CEffectTornado() {
 
 void CEffectTornado::Reset() {
     CEffect::Reset();
-    if (source_ != nullptr) source_->StopAndClear();
-    if (sound_ != -1) g_clientWorld.sounds_->StopSound(sound_);
-    sound_ = -1;
-    source_.Reset();
+    if (source != nullptr) source->StopAndClear();
+    if (sound != -1) g_clientWorld.sounds->StopSound(sound);
+    sound = -1;
+    source.Reset();
 }
 
 void CEffectTornado::Launch(const Vector3& from, const Vector3& to) {
     double speed = x87::FromUnsigned(g_random.Next()) * kRandomScale * kSpeedRange + kSpeedMin;
     Vector3 way{static_cast<float>(to.x - from.x), static_cast<float>(to.y - from.y), static_cast<float>(to.z - from.z)};
-    framesLeft_ = 0;
+    framesLeft = 0;
     double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(way));
     if (length > 0.0) {
         double scale = speed / length;
@@ -85,26 +85,26 @@ void CEffectTornado::Launch(const Vector3& from, const Vector3& to) {
         way.z = static_cast<float>(way.z * scale);
         float ticks = static_cast<float>(length / speed);
         long rounded = x87::RoundToInt(ticks);
-        framesLeft_ = rounded < 0 ? 0 : static_cast<int>(rounded);
+        framesLeft = rounded < 0 ? 0 : static_cast<int>(rounded);
     }
-    velocity_ = way;
-    moving_ = effect::IsMoving(velocity_);
+    velocity = way;
+    moving = effect::IsMoving(velocity);
     MarkChanged();
-    localPosition_ = from;
-    launchTick_ = WorldContext()->tick_;
+    localPosition = from;
+    launchTick = WorldContext()->tick;
 }
 
 bool CEffectTornado::RunTick() {
-    if (moving_ != 0) {
-        localPosition_ = Vector3{static_cast<float>(localPosition_.x + velocity_.x), static_cast<float>(localPosition_.y + velocity_.y),
-                                 static_cast<float>(localPosition_.z + velocity_.z)};
-        if (source_ != nullptr) source_->localPosition_ = localPosition_;
-        if (sound_ != -1) g_clientWorld.sounds_->SetSoundPosition(sound_, &localPosition_.x, kSoundNear, kSoundFar);
+    if (moving != 0) {
+        localPosition = Vector3{static_cast<float>(localPosition.x + velocity.x), static_cast<float>(localPosition.y + velocity.y),
+                                 static_cast<float>(localPosition.z + velocity.z)};
+        if (source != nullptr) source->localPosition = localPosition;
+        if (sound != -1) g_clientWorld.sounds->SetSoundPosition(sound, &localPosition.x, kSoundNear, kSoundFar);
     }
-    if (framesLeft_ <= kStopEmittingTicks && source_ != nullptr) source_->Stop();
+    if (framesLeft <= kStopEmittingTicks && source != nullptr) source->Stop();
     CWorld* world = WorldContext();
-    if (world->IsServer() && framesLeft_ > kHurtUntil && (framesLeft_ & (kHurtEvery - 1)) == 0) {
-        std::list<CUnit*> units = ServerWorld()->aiMap_.sectorMap.FindUnitsInRadius(localPosition_, kHurtRadius);
+    if (world->IsServer() && framesLeft > kHurtUntil && (framesLeft & (kHurtEvery - 1)) == 0) {
+        std::list<CUnit*> units = ServerWorld()->aiMap.sectorMap.FindUnitsInRadius(localPosition, kHurtRadius);
         DamageInfo hit = TornadoHit();
         for (auto node = units.begin(); node != units.end();) {
             auto* unit = *node;
@@ -113,60 +113,60 @@ bool CEffectTornado::RunTick() {
         }
         units.clear();
     }
-    --framesLeft_;
-    return framesLeft_ >= 0;
+    --framesLeft;
+    return framesLeft >= 0;
 }
 
 int CEffectTornado::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadDelta(&position, 12);
-    field->ReadDelta(&framesLeft_, 4);
-    field->ReadDelta(&velocity_, 12);
-    moving_ = effect::IsMoving(velocity_);
+    field->ReadDelta(&framesLeft, 4);
+    field->ReadDelta(&velocity, 12);
+    moving = effect::IsMoving(velocity);
     if (!SnapshotReadToEnd()) return 0;
-    localPosition_ = position;
+    localPosition = position;
     Start(update);   // through the virtual
     return 1;
 }
 
 void CEffectTornado::Pack(DeltaField* field) {
-    Vector3 position = localPosition_;
+    Vector3 position = localPosition;
     field->WriteDelta(&position, 12);
-    int ticks = framesLeft_;
+    int ticks = framesLeft;
     field->WriteDelta(&ticks, 4);
-    field->WriteDelta(&velocity_, 12);
+    field->WriteDelta(&velocity, 12);
 }
 
 void CEffectTornado::Start(int update) {
-    if (update == 0 && source_ != nullptr) {
-        source_->Stop();
-        source_.Reset();
+    if (update == 0 && source != nullptr) {
+        source->Stop();
+        source.Reset();
     }
-    if (source_ != nullptr) return;
-    if (sound_ == -1) {
-        sound_ = g_clientWorld.sounds_->Play3D(game::TornadoSoundText(), 0, &localPosition_.x, kSoundNear, kSoundFar, 1);
+    if (source != nullptr) return;
+    if (sound == -1) {
+        sound = g_clientWorld.sounds->Play3D(game::TornadoSoundText(), 0, &localPosition.x, kSoundNear, kSoundFar, 1);
     }
-    CParticleSource* source = g_clientWorld.particleManager_->CreateSource(kTornadoParticles);
-    source_.Assign(source);
-    source_->localPosition_ = localPosition_;
-    source_->ScaleSize(1.0f);
-    int behind = g_clientWorld.tick_ - launchTick_;
+    CParticleSource* particles = g_clientWorld.particleManager->CreateSource(kTornadoParticles);
+    source.Assign(particles);
+    source->localPosition = localPosition;
+    source->ScaleSize(1.0f);
+    int behind = g_clientWorld.tick - launchTick;
     if (behind >= kMaxCatchUp) behind = kMaxCatchUp;
-    for (int i = 1; i < behind; ++i) source_->RunTick();
+    for (int i = 1; i < behind; ++i) source->RunTick();
 }
 
 void CEffectTornado::Load(CStream* s) {
-    s->ReadValue(localPosition_);
-    s->ReadValue(velocity_);
-    s->ReadValue(framesLeft_);
-    s->ReadValue(launchTick_);
+    s->ReadValue(localPosition);
+    s->ReadValue(velocity);
+    s->ReadValue(framesLeft);
+    s->ReadValue(launchTick);
 }
 
 void CEffectTornado::Save(CStream* s) {
-    s->WriteValue(localPosition_);
-    s->WriteValue(velocity_);
-    int copy = framesLeft_;
+    s->WriteValue(localPosition);
+    s->WriteValue(velocity);
+    int copy = framesLeft;
     s->WriteValue(copy);
-    copy = launchTick_;
+    copy = launchTick;
     s->WriteValue(copy);
 }

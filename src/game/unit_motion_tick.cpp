@@ -90,15 +90,15 @@ void SetObstacle(CUnitServer* c, int obstacle) {
     CWorldServer* world = c->ServerWorld();
     CUnit* unit = c->unit;
     if (static_cast<int>(unit->obstacle) == obstacle) return;
-    world->aiMap_.sectorMap.Remove(unit);
+    world->aiMap.sectorMap.Remove(unit);
     c->unit->obstacle = static_cast<std::uint32_t>(obstacle);
-    world->aiMap_.sectorMap.Add(c->unit);
+    world->aiMap.sectorMap.Add(c->unit);
     c->unit->MarkChanged(7);
 }
 
 void QueueNextAnimation(CUnitServer* c) {
     *&c->queue = *c->NextAnimation();
-    if (c->queue.extra == -1) c->queue.extra = c->World()->tick_;
+    if (c->queue.extra == -1) c->queue.extra = c->World()->tick;
     c->PopFinishedSteps();
     c->ShowCurrentStep();
     c->movingAnimation = 1;
@@ -128,7 +128,7 @@ void HitWhileMoving(CUnitServer* c) {
         const FigureAnimation* entry = c->unit->AnimationEntry(key);
         if (entry && entry->Kind() == AnimationKind::Hit) {
             std::uint32_t ends = entry->frameCount + static_cast<std::uint32_t>(c->queue.extra);
-            if (ends > static_cast<std::uint32_t>(c->World()->tick_)) return;
+            if (ends > static_cast<std::uint32_t>(c->World()->tick)) return;
         }
     }
     AnimationSteps current;
@@ -147,7 +147,7 @@ void HitWhileMoving(CUnitServer* c) {
         }
     }
     *&c->queue = fall;
-    if (c->queue.extra == -1) c->queue.extra = c->World()->tick_;
+    if (c->queue.extra == -1) c->queue.extra = c->World()->tick;
     c->PopFinishedSteps();
     c->ShowCurrentStep();
 }
@@ -159,7 +159,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     CUnit* self = c->unit;
     CPlayer* selfPlayer = self->player;
     if (selfPlayer && blocker->player == selfPlayer &&
-        blocker->ServerController()->brain.LeaderOrFollowed() == self && g_serverWorld.tick_ < c->waitFrame + 2) {
+        blocker->ServerController()->brain.LeaderOrFollowed() == self && g_serverWorld.tick < c->waitFrame + 2) {
         return kBlockedWait;   // a party member following this unit
     }
     if (c->followsLeader && c->followedLeader == blocker) return kBlockedWait;
@@ -171,7 +171,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
                       blocker->sizeClass == self->sizeClass && other->state != UnitState::Acting;
     if (sameAttack) {
         CMapObject* target = c->action.target;
-        sameAttack = FartherThan(&target->localPosition_.x, &self->localPosition_.x, &worlddata::QueueWaitLimitRef());
+        sameAttack = FartherThan(&target->localPosition.x, &self->localPosition.x, &worlddata::QueueWaitLimitRef());
     }
     if (sameAttack) {
         // Both go for the same target: wait behind the other unless the waiting would go round in a
@@ -207,23 +207,23 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
     if (c->motion.reached) {
         std::uint8_t wasFlag = c->motion.failed == 1;
         c->motion.Clear();
-        int time = c->World()->tick_;
+        int time = c->World()->tick;
         Vector3 axis, back;
-        c->unit->localRotation_.AxisY(&axis);
+        c->unit->localRotation.AxisY(&axis);
         Vector3* facing = NegateVector(&back, axis);
-        if (c->motion.Start(c->unit->localPosition_, *facing, time)) c->unit->RefreshMotion();
+        if (c->motion.Start(c->unit->localPosition, *facing, time)) c->unit->RefreshMotion();
         c->ClearStanding();
         c->SetState(UnitState::Stopped);
         c->stoodBlocked = wasFlag;
         return;
     }
-    if (!world->aiMap_.ContinuePath(unit, &c->motion)) {
+    if (!world->aiMap.ContinuePath(unit, &c->motion)) {
         c->motion.Clear();
-        int time = c->World()->tick_;
+        int time = c->World()->tick;
         Vector3 axis, back;
-        c->unit->localRotation_.AxisY(&axis);
+        c->unit->localRotation.AxisY(&axis);
         Vector3* facing = NegateVector(&back, axis);
-        if (c->motion.Start(c->unit->localPosition_, *facing, time)) c->unit->RefreshMotion();
+        if (c->motion.Start(c->unit->localPosition, *facing, time)) c->unit->RefreshMotion();
         c->ClearStanding();
         c->SetState(UnitState::Stopped);
         c->stoodBlocked = 0;
@@ -239,9 +239,9 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
 // blocked step lifted when `liftBlocker`.
 void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3& position) {
     if (liftBlocker) {
-        world->aiMap_.sectorMap.Remove(c->unit);
-        world->aiMap_.StampWaterPatch(position, 1);
-        world->aiMap_.sectorMap.Add(c->unit);
+        world->aiMap.sectorMap.Remove(c->unit);
+        world->aiMap.StampWaterPatch(position, 1);
+        world->aiMap.sectorMap.Add(c->unit);
     }
     c->motion.cells.clear();
 
@@ -251,12 +251,12 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
     c->motion.mayExcludeRegions = c->unit->player ? 0 : 1;
     std::uint32_t current = c->unit->altPassCosts;
     c->unit->altPassCosts = saved;
-    bool found = context->aiMap_.FindPath(c->unit, c->motion.goal, &c->motion, range, 0.0f);
+    bool found = context->aiMap.FindPath(c->unit, c->motion.goal, &c->motion, range, 0.0f);
     c->unit->altPassCosts = current;
     if (liftBlocker) {
-        world->aiMap_.sectorMap.Remove(c->unit);
-        world->aiMap_.StampWaterPatch(position, 0);
-        world->aiMap_.sectorMap.Add(c->unit);
+        world->aiMap.sectorMap.Remove(c->unit);
+        world->aiMap.StampWaterPatch(position, 0);
+        world->aiMap.sectorMap.Add(c->unit);
     }
     if (found) {
         c->unit->RefreshMotion();
@@ -279,7 +279,7 @@ void Exhaustion(CUnitServer* c) {
     if (unit->obstacle == 0) return;
     if (c->moveMode.mode != 2 || c->moveMode2.mode != 2) return;
     CPlayer* player = unit->player;
-    if (c->moveMode.wasMode3 && player && player->godMode_ == 0 && g_serverWorld.sessionKind_ != 3) {
+    if (c->moveMode.wasMode3 && player && player->godMode == 0 && g_serverWorld.sessionKind != 3) {
         UnitVitals& vitals = unit->ServerCompanion()->vitals;
         float* stamina = &vitals.mana;
         const float* rate = &vitals.maxMana;
@@ -316,9 +316,9 @@ void Exhaustion(CUnitServer* c) {
 void UpdateMotion(CUnitServer* c) {
     CWorldServer* world = c->ServerWorld();
     Vector3 position;
-    std::memcpy(&position, &c->unit->localPosition_.x, 12);
+    std::memcpy(&position, &c->unit->localPosition.x, 12);
     ToHalfCells(&position.x);
-    int time = world->tick_;
+    int time = world->tick;
     bool turning = false;
     Vector3 direction;
     float speed;
@@ -348,11 +348,11 @@ void UpdateMotion(CUnitServer* c) {
     if (cellX < 0) {
         canStand = true;
     } else {
-        CSectorMap* sectors = &world->aiMap_.sectorMap;
+        CSectorMap* sectors = &world->aiMap.sectorMap;
         sectors->Remove(c->unit);
-        canStand = world->aiMap_.CanStandAtFromHere(c->unit, cellX, cellY, &blocked);
+        canStand = world->aiMap.CanStandAtFromHere(c->unit, cellX, cellY, &blocked);
         if (!canStand) {
-            CUnit* blocker = world->aiMap_.BlockingUnitAt(c->unit, position);
+            CUnit* blocker = world->aiMap.BlockingUnitAt(c->unit, position);
             if (!blocker) {
                 canStand = true;
             } else {
@@ -366,12 +366,12 @@ void UpdateMotion(CUnitServer* c) {
     // An idle unit standing in a kind-3 occluder (while its motion order started before the AI map's
     // footprintTick and moveMode2's onGuard is clear) replans.
     bool replan = false;
-    if (c->state == UnitState::Idle && world->aiMap_.HasSpellAreaAt(position) &&
-        OrderOf(&c->motion)->startTime < world->aiMap_.footprintTick && c->moveMode2.onGuard == 0) {
+    if (c->state == UnitState::Idle && world->aiMap.HasSpellAreaAt(position) &&
+        OrderOf(&c->motion)->startTime < world->aiMap.footprintTick && c->moveMode2.onGuard == 0) {
         blocked = kBlockedReplan;
         replan = true;
     }
-    if (!replan && canStand && world->aiMap_.sectorMap.Move(c->unit, position)) {
+    if (!replan && canStand && world->aiMap.sectorMap.Move(c->unit, position)) {
         SetObstacle(c, c->state == UnitState::Idle ? 1 : 0);
         c->unit->SetHeading(&direction.x);
         if (motionOver) MotionOver(c, world);

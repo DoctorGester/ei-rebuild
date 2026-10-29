@@ -23,7 +23,7 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
   PushMatrixProduct, PopMatrix on stacks 1-3); the shadow uses stack 10. `FigurePart` has `orientation` (+0x34) and `worldMatrix` (+0x54);
   `ObjectWorldMatrix` is shared by the draw and the shadow. `CTorchObject::Create` is a member (`map_object_create.cpp`).
   `CObject3D::figure` is a `Ref<CLinkMesh>` (`figure.Assign` is 00519580) and `DirtyRect()` replaces hand-made casts. `LightManager()` is one copy in map_object.h; the
-  client file uses spell.h's `TheLightFactory()->litIds_`. The shadow's naked `Fpatan` is `x87::fpatan`.
+  client file uses spell.h's `TheLightFactory()->litIds`. The shadow's naked `Fpatan` is `x87::fpatan`.
 
 ## Behaviour notes
 
@@ -37,8 +37,8 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
 
 - Remaining VCalls: `map_object_figures.cpp` (the figure cache's slot 6, because slot 5 is unknown); `map_object_shadow.cpp` (the 2DintMMX
   device's slots 11 and 12, +0x2C / +0x30).
-- `CObject3D : CTransformObject` (C15 batch 9): the transform fields are `localPosition_` (+0x1C), `worldPosition_` (+0x28, the
-  position in view space after CWorldClient::CollectVisible), `localRotation_` (+0x34) and `worldRotation_` (+0x44); CObject3D overrides
+- `CObject3D : CTransformObject` (C15 batch 9): the transform fields are `localPosition` (+0x1C), `worldPosition` (+0x28, the
+  position in view space after CWorldClient::CollectVisible), `localRotation` (+0x34) and `worldRotation` (+0x44); CObject3D overrides
   only slot 14 (CombineRotation, 00516370). CParticleSource derives from CTransformObject too. CMapObject's `SaveTransformSlot` /
   `LoadTransformSlot` (00516350 / 00516360) stay non-virtual bodies.
 - The effect array is `CMapObject::effects`, a `std::vector<MapEffect>`. `CMapObject::updateCountdown` (+0x174, 5 after Create): world updates until the effects are next looked at. `MaterialStage::

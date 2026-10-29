@@ -70,7 +70,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     if (wide) {
         for (int i = 0; i < 6; ++i) {
             RECT r{kWideClearLeft[i], kWideClearTop[i], kWideClearRight[i], kWideClearBottom[i]};
-            interface_->ScaleRectToScreenEntry(&r);
+            ui->ScaleRectToScreenEntry(&r);
             rects[i] = r;
         }
         ClearUiDepth(1.0f, rects, 6);
@@ -80,7 +80,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
             r = {410, 100, 700, 500};
         else
             r = {200, 100, 600, 500};
-        interface_->ScaleRectToScreenEntry(&r);
+        ui->ScaleRectToScreenEntry(&r);
         rects[0] = r;
         ClearUiDepth(1.0f, rects, 1);
     }
@@ -88,13 +88,13 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     // Kept to put back afterwards: the position, the orientation and the pass's colour.
     Vector3 savedPosition;
     Quaternion savedOrientation;
-    savedPosition = model->localPosition_;
-    savedOrientation = model->localRotation_;
+    savedPosition = model->localPosition;
+    savedOrientation = model->localRotation;
     CSceneRenderer* renderer = pass;
-    std::uint32_t savedColour = renderer->colour_;
+    std::uint32_t savedColour = renderer->colour;
     // White: 255.0 converted three times, packed as 0xFF rr gg bb.
     renderer->SetColour(0xFFFFFFFFu);
-    model->flags_ |= MapObjectFlag::NoEdgeFade;
+    model->flags |= MapObjectFlag::NoEdgeFade;
     {
         std::uint32_t now = gameapi::timeGetTime();
         float time = static_cast<float>(x87::FromUnsigned(now) * D(0.0009765625f) * D(15.0f));
@@ -119,9 +119,9 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     float px = static_cast<float>(D(rotated.x) + dx);
     float py = static_cast<float>(D(rotated.y) + dy);
     float pz = static_cast<float>(D(rotated.z) + D(6.0f));
-    model->localPosition_.x = px;
-    model->localPosition_.y = py;
-    model->localPosition_.z = pz;
+    model->localPosition.x = px;
+    model->localPosition.y = py;
+    model->localPosition.z = pz;
     // The orientation: the turn, then a fixed tilt about x, and in the wide layout a turn about -z.
     Vector3 xAxis = {1.0f, 0.0f, 0.0f};
     Quaternion tilt;
@@ -134,7 +134,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
                                                     static_cast<float>(D(kTilt) * D(0.15f))),
                     true);
     }
-    model->localRotation_ = q;
+    model->localRotation = q;
 
     // Drawn brighter (1.2) with texture stage 0's mip filter off, then everything put back.
     CObject3DClientSpecific* drawn = model->ClientSpecific();
@@ -150,8 +150,8 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     drawn->figureScale.x = 1.0f;
     drawn->figureScale.y = 1.0f;
     drawn->figureScale.z = 1.0f;
-    model->localPosition_ = savedPosition;
-    model->localRotation_ = savedOrientation;
-    model->flags_ &= ~MapObjectFlag::NoEdgeFade;
+    model->localPosition = savedPosition;
+    model->localRotation = savedOrientation;
+    model->flags &= ~MapObjectFlag::NoEdgeFade;
     renderer->SetColour(savedColour);
 }

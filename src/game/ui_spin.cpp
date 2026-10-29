@@ -19,43 +19,43 @@ const char* const kOkSound = "buttons\\messbox\\ok.wav";
 } // namespace
 
 // The window's virtuals; the input side's click and a left double click that does nothing.
-CUiSpin::CUiSpin(CInterface3D* ui, RECT rect, const char* text) : CUiWindow(ui) {
-    rect_ = rect;
-    CUiSurface* surface = new CUiSurface(ui, &rect, SurfaceBlend::Keyed);
+CUiSpin::CUiSpin(CInterface3D* ui, RECT newRect, const char* text) : CUiWindow(ui) {
+    rect = newRect;
+    CUiSurface* surface = new CUiSurface(ui, &newRect, SurfaceBlend::Keyed);
     AddSurface(surface);
-    texts_.push_back(text ? text : game::kEmptyText);
-    changed_ = false;
-    layout_ = rect;
+    texts.push_back(text ? text : game::kEmptyText);
+    changed = false;
+    layout = newRect;
     SetValue(0);
 }
 
-void CUiSpin::AddText(std::string_view text) { texts_.emplace_back(text); }
+void CUiSpin::AddText(std::string_view text) { texts.emplace_back(text); }
 
 bool CUiSpin::TakeChanged() {
-    if (!changed_) return false;
-    changed_ = false;
+    if (!changed) return false;
+    changed = false;
     return true;
 }
 
 int CUiSpin::TakeValue() {
-    changed_ = false;
-    return value_;
+    changed = false;
+    return value;
 }
 
-void CUiSpin::SetValue(int value) {
-    value_ = value < static_cast<int>(texts_.size()) ? value : 0;
-    CUiSurface* surface = surfaces_[0];
+void CUiSpin::SetValue(int newValue) {
+    value = newValue < static_cast<int>(texts.size()) ? newValue : 0;
+    CUiSurface* surface = surfaces[0];
     surface->Clear();
-    RECT rect = layout_;
-    gameapi::OffsetRect(&rect, -layout_.left, -layout_.top);
+    RECT area = layout;
+    gameapi::OffsetRect(&area, -layout.left, -layout.top);
     // DrawText is Rebirth-patched: through its address.
-    surface->DrawTextIn(texts_[value_], &rect, kTextFormat, kTextColour, 0, 1);
-    changed_ = true;
+    surface->DrawTextIn(texts[value], &area, kTextFormat, kTextColour, 0, 1);
+    changed = true;
 }
 
 // --- A click steps the value ------------------------------------------------------------------------
 
 void CUiSpin::LeftDown(int, int, int) {
-    interface_->PlaySound(kOkSound);
-    SetValue(value_ + 1);
+    ui->PlaySound(kOkSound);
+    SetValue(value + 1);
 }

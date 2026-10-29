@@ -29,7 +29,7 @@ template <typename Text>
 void InlineStrings(ChunkArchive* ar, int id, std::vector<Text>* strings) {
     if (!ar->EnterChunk(id)) return;
     int count;
-    if (ar->loading_) {
+    if (ar->loading) {
         strings->clear();
         count = ar->CountChunks(1);
         strings->resize(static_cast<std::uint32_t>(count));

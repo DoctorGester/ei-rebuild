@@ -41,9 +41,9 @@ void Pop(MatrixStack& stack) {
 } // namespace
 
 void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
-    *x = (localPosition_.x / localPosition_.z / 0.48157462f + 1.0f) * 400.0f;
-    *y = localPosition_.y / localPosition_.z / 0.48157462f * 400.0f + 300.0f;
-    *depth = localPosition_.z;
+    *x = (localPosition.x / localPosition.z / 0.48157462f + 1.0f) * 400.0f;
+    *y = localPosition.y / localPosition.z / 0.48157462f * 400.0f + 300.0f;
+    *depth = localPosition.z;
 }
 
 // The layout's 1 / 400 and 0.75 with the constants above. Rebirth's WideScreen replaces it (addon's
@@ -53,9 +53,9 @@ void CUiMesh::Place(float x, float y, float depth) {
     if (widescreen::Active()) x += static_cast<float>(widescreen::PanelOffset());
     float placedX = (x * 0.0025f - 1.0f) * 0.48157462f * depth;
     float placedY = (y * 0.0025f - 0.75f) * 0.48157462f * depth;
-    localPosition_.x = placedX;
-    localPosition_.y = placedY;
-    localPosition_.z = depth;
+    localPosition.x = placedX;
+    localPosition.y = placedY;
+    localPosition.z = depth;
 }
 
 // Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds the placement from the
@@ -63,35 +63,35 @@ void CUiMesh::Place(float x, float y, float depth) {
 // stack's push inlined), draws the sprite as a figure in its tint (the renderer's colour put back after) with
 // its material, and drops both pushes from both stacks.
 void CUiMesh::Draw(CSceneRenderer* renderer) {
-    if (!visible_) return;
-    CTransformPipeline* pipeline = renderer->pipeline_;
-    if (!renderer->SetTexture(0, texture_)) {
+    if (!visible) return;
+    CTransformPipeline* pipeline = renderer->pipeline;
+    if (!renderer->SetTexture(0, texture)) {
         game::FatalError(kSetTextureFailed);
         return;
     }
 
-    localRotation_.ToMatrix(worldMatrix_.m);
-    worldMatrix_.m[3] = localPosition_.x;
-    worldMatrix_.m[7] = localPosition_.y;
-    worldMatrix_.m[11] = localPosition_.z;
-    worldMatrix_.m[12] = 0.0f;
-    worldMatrix_.m[13] = 0.0f;
-    worldMatrix_.m[14] = 0.0f;
-    worldMatrix_.m[15] = kOne;
+    localRotation.ToMatrix(worldMatrix.m);
+    worldMatrix.m[3] = localPosition.x;
+    worldMatrix.m[7] = localPosition.y;
+    worldMatrix.m[11] = localPosition.z;
+    worldMatrix.m[12] = 0.0f;
+    worldMatrix.m[13] = 0.0f;
+    worldMatrix.m[14] = 0.0f;
+    worldMatrix.m[15] = kOne;
     Matrix4 placement;
-    std::memcpy(&placement, &worldMatrix_, sizeof(placement));
+    std::memcpy(&placement, &worldMatrix, sizeof(placement));
     pipeline->PushMatrix(placement.m, kStackView);
     pipeline->PushMatrix(placement.m, kStackWorld);
-    pipeline->PushMatrix(scaleMatrix_.m, kStackView);
-    pipeline->PushMatrix(scaleMatrix_.m, kStackWorld);
+    pipeline->PushMatrix(scaleMatrix.m, kStackView);
+    pipeline->PushMatrix(scaleMatrix.m, kStackWorld);
 
-    const std::uint32_t saved = renderer->colour_;
-    const std::uint32_t red = ColourByte(tint_[0]);
-    const std::uint32_t green = ColourByte(tint_[1]);
-    const std::uint32_t blue = ColourByte(tint_[2]);
+    const std::uint32_t saved = renderer->colour;
+    const std::uint32_t red = ColourByte(tint[0]);
+    const std::uint32_t green = ColourByte(tint[1]);
+    const std::uint32_t blue = ColourByte(tint[2]);
     renderer->SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
     render::SetInterfaceDraw(true);   // the new renderer streams interface sprites
-    const int drawn = renderer->DrawFigure(this, static_cast<CMaterial*>(material_), 0xFF, nullptr);
+    const int drawn = renderer->DrawFigure(this, static_cast<CMaterial*>(material), 0xFF, nullptr);
     render::SetInterfaceDraw(false);
     renderer->SetColour(saved);
     if (!drawn) {
@@ -99,8 +99,8 @@ void CUiMesh::Draw(CSceneRenderer* renderer) {
         return;
     }
 
-    MatrixStack& view = pipeline->stacks_[kStackView];
-    MatrixStack& world = pipeline->stacks_[kStackWorld];
+    MatrixStack& view = pipeline->stacks[kStackView];
+    MatrixStack& world = pipeline->stacks[kStackWorld];
     Pop(view);
     Pop(world);
     Pop(view);
@@ -114,31 +114,31 @@ CUiMesh::~CUiMesh() {}
 
 void CUiMesh::Create() {
     CreateMesh();
-    material_ = nullptr;
-    texture_ = nullptr;
-    std::memset(&scaleMatrix_, 0, sizeof(scaleMatrix_));
-    scaleMatrix_.m[15] = 1.0f;
-    scaleMatrix_.m[10] = 1.0f;
-    scaleMatrix_.m[5] = 1.0f;
-    scaleMatrix_.m[0] = 1.0f;
-    tint_[0] = 1.0f;
-    tint_[1] = 1.0f;
-    tint_[2] = 1.0f;
-    tintSpare_[0] = 0.0f;
-    tintSpare_[1] = 0.0f;
-    tintSpare_[2] = 0.0f;
-    localRotation_ = kIdentityOrientation;
-    localPosition_.x = 0.0f;
-    localPosition_.y = 0.0f;
-    localPosition_.z = kSpriteDepth;
-    flatColour_ = kOpaqueBlack;
-    flatSpecular_ = kOpaqueBlack;
-    visible_ = true;
+    material = nullptr;
+    texture = nullptr;
+    std::memset(&scaleMatrix, 0, sizeof(scaleMatrix));
+    scaleMatrix.m[15] = 1.0f;
+    scaleMatrix.m[10] = 1.0f;
+    scaleMatrix.m[5] = 1.0f;
+    scaleMatrix.m[0] = 1.0f;
+    tint[0] = 1.0f;
+    tint[1] = 1.0f;
+    tint[2] = 1.0f;
+    tintSpare[0] = 0.0f;
+    tintSpare[1] = 0.0f;
+    tintSpare[2] = 0.0f;
+    localRotation = kIdentityOrientation;
+    localPosition.x = 0.0f;
+    localPosition.y = 0.0f;
+    localPosition.z = kSpriteDepth;
+    flatColour = kOpaqueBlack;
+    flatSpecular = kOpaqueBlack;
+    visible = true;
 }
 
 void CUiMesh::Destroy() {
-    material_ = nullptr;
-    texture_ = nullptr;
+    material = nullptr;
+    texture = nullptr;
     CPlainFigureMesh::Destroy();
 }
 
@@ -148,19 +148,19 @@ ClassId CUiMesh::GetClassId() { return ClassId::UiMesh; }
 // --- The arrays' sizes ---------------------------------
 
 void CUiMesh::SetQuadCount(int count) {
-    vertices_.resize(count);
+    vertices.resize(count);
     for (int i = 0; i < count; ++i)
         for (int k = 0; k < 4; ++k) {
-            vertices_[i].z()[k] = 0.0f;
-            vertices_[i].w()[k] = 1.0f;
+            vertices[i].z()[k] = 0.0f;
+            vertices[i].w()[k] = 1.0f;
         }
 }
 
 void CUiMesh::SetVertexCount(int count) {
-    corners_.resize(count);
-    for (int i = 0; i < count; ++i) corners_[i].normal = 0;
+    corners.resize(count);
+    for (int i = 0; i < count; ++i) corners[i].normal = 0;
 }
 
-void CUiMesh::SetIndexCount(int count) { indices_.resize(count); }
+void CUiMesh::SetIndexCount(int count) { indices.resize(count); }
 
-void CUiMesh::SetUvCount(int count) { texCoords_.resize(count); }
+void CUiMesh::SetUvCount(int count) { texCoords.resize(count); }

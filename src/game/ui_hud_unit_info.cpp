@@ -67,9 +67,9 @@ struct Panel {
 
 // Whether `unit` is not in the group (the battle screen's party).
 bool OutsideGroup(CHudUnitPanel* self, CUnit* unit) {
-    CBattleScreen* group = self->owner_;
-    int count = std::ssize(group->party_);
-    CUnit** units = group->party_.data();
+    CBattleScreen* group = self->owner;
+    int count = std::ssize(group->party);
+    CUnit** units = group->party.data();
     for (int i = 0; i < count; ++i) {
         if (units[i] == unit) return false;
     }
@@ -79,12 +79,12 @@ bool OutsideGroup(CHudUnitPanel* self, CUnit* unit) {
 } // namespace
 
 void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
-    CTextManager* texts = g_clientWorld.texts_;
+    CTextManager* clientWorldTexts = g_clientWorld.texts;
     UnitParams* params = &unit->params;
     std::string suffix;
     Panel panel;
-    panel.surface = surfaces_[0];
-    panel.labels = texts_.data();
+    panel.surface = surfaces[0];
+    panel.labels = texts.data();
     panel.rect = {5, 0x23, 0x9B, 0x32};
 
     std::int16_t health = unit->packedVitals.hitPoints;
@@ -99,7 +99,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
     std::uint8_t moveBonus = params->movementKind;
     if (moveBonus > 1) {
         panel.text = str::Format(kMoveKey, moveBonus - 1);
-        suffix = texts->CTextManager::GetString(panel.text);
+        suffix = clientWorldTexts->CTextManager::GetString(panel.text);
     } else {
         suffix.clear();
     }
@@ -122,7 +122,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
     panel.DrawLine();
     if (static_cast<std::uint32_t>(combat.damageType) < 7) {
         panel.text = str::Format(kDamageKey, combat.damageType);
-        suffix = texts->CTextManager::GetString(panel.text);   // else the move text stays
+        suffix = clientWorldTexts->CTextManager::GetString(panel.text);   // else the move text stays
     }
     int damageMax = static_cast<int>(combat.damageMax);
     int damageMin = static_cast<int>(combat.damageMin);
@@ -133,16 +133,16 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
     panel.DrawLine();
 
     float description[7];
-    params->ProtectionBlock(&unit->packedVitals, description, static_cast<unsigned char>(IsTextKey(unit->id_)));
+    params->ProtectionBlock(&unit->packedVitals, description, static_cast<unsigned char>(IsTextKey(unit->id)));
     const DamageLists lines = ItemDamageLists(description, true);
     panel.DrawLabelled(10, lines.threshold);
     if (outside) {
         if (!lines.above.empty()) panel.DrawLabelled(11, lines.above);
         auto* prototype = unit->GetPrototype();
         if (prototype->spellNames.end() != prototype->spellNames.begin()) panel.DrawLine(panel.labels[5]);
-        CBattleScreen* group = owner_;
-        if (!group->party_.empty()) {
-            CUnit* leader = group->party_[0];
+        CBattleScreen* group = owner;
+        if (!group->party.empty()) {
+            CUnit* leader = group->party[0];
             int difference = unit->Level() - leader->Level();
             if (difference > kLevelDifferenceLimit) {
                 suffix = str::Format(kStronger, kLevelDifferenceLimit);
@@ -153,7 +153,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
             } else {
                 suffix = str::Format(kWeaker, -difference);
             }
-            suffix = texts->CTextManager::GetString(suffix);
+            suffix = clientWorldTexts->CTextManager::GetString(suffix);
             panel.text = str::Format(kTwoTexts, panel.labels[16], suffix);
             panel.DrawLine();
         }
@@ -162,7 +162,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unit) {
     }
 
     if (IsMultiplayerClient() && !outside) {
-        suffix = texts->CTextManager::GetString(kCampExp);
+        suffix = clientWorldTexts->CTextManager::GetString(kCampExp);
         panel.text = str::Format(kValue, suffix, params->unspentExperience);
         panel.DrawLine();
     }

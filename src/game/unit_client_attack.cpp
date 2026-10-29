@@ -29,10 +29,10 @@ std::uint32_t WeaponIn(const CUnitClientSpecific* self, std::uint32_t slot) {
 } // namespace
 
 void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
-    CUnit* owner = unit;
-    UnitParams* params = &owner->params;
-    int keyed = IsTextKey(owner->id_);
-    std::uint32_t weapon = WeaponIn(this, owner->activeWeapon);
+    CUnit* ownerObject = unit;
+    UnitParams* params = &ownerObject->params;
+    int keyed = IsTextKey(ownerObject->id);
+    std::uint32_t weapon = WeaponIn(this, ownerObject->activeWeapon);
     if (keyed && weapon != kNoWeapon) {
         out->damageMin = WeaponMinDamage(weapon);
         out->damageMax = WeaponMaxDamage(weapon);
@@ -52,13 +52,13 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
         out->attack = params->combat[1];
         out->defence = params->combat[3];
         out->speed = params->combat[4];
-        weapon = WeaponIn(this, owner->activeWeapon);
+        weapon = WeaponIn(this, ownerObject->activeWeapon);
         if (weapon != kNoWeapon) {
             out->weaponType = WeaponType(weapon);
             out->damageType = WeaponDamageType(weapon);
         } else {
             out->weaponType = kTypeNoWeapon;
-            auto* model = owner->GetPrototypeModel();
+            auto* model = ownerObject->GetPrototypeModel();
             // The first damage type whose weight is not zero; left as it was when there is none.
             for (int i = 0; i < kDamageTypes; ++i) {
                 float weight = model->damageWeights[i];
@@ -71,8 +71,8 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
         }
     }
     if (out->weaponType == kWeaponBow || out->weaponType == kWeaponCrossbow) out->defence = 0;
-    out->damageMax = ScaleDamageByEffects(owner, out->damageMax);   // (not read)
-    out->damageMin = ScaleDamageByEffects(owner, out->damageMin);
+    out->damageMax = ScaleDamageByEffects(ownerObject, out->damageMax);   // (not read)
+    out->damageMin = ScaleDamageByEffects(ownerObject, out->damageMin);
     out->attackSpread = params->combat[2];
     out->ScaleForDifficulty(keyed);
 }

@@ -91,20 +91,20 @@ std::string ClipboardText() {
 
 // A shown window gets a surface over its rectangle (format 4) if it has none and is
 // drawn; hiding releases the surface.
-void ConsoleWindow::Show(bool shown) {
-    shown_ = shown;
-    if (shown) {
-        if (!surface_) {
-            surface_ = new CUiSurface(screen_, &rect_, SurfaceBlend::Opaque);
+void ConsoleWindow::Show(bool newShown) {
+    shown = newShown;
+    if (newShown) {
+        if (!surface) {
+            surface = new CUiSurface(screen, &rect, SurfaceBlend::Opaque);
         }
         DrawLines();
         DrawInput();
         return;
     }
-    if (CUiSurface* surface = surface_) {
-        delete surface;
+    if (CUiSurface* currentSurface = surface) {
+        delete currentSurface;
     }
-    surface_ = nullptr;
+    surface = nullptr;
 }
 
 // Keys while the window is shown. Shift (0x10) and Ctrl (0x11) are remembered; with
@@ -114,73 +114,73 @@ void ConsoleWindow::Show(bool shown) {
 void ConsoleWindow::OnKeyDown(int key, int, int) {
     switch (key) {
     case VK_SHIFT:
-        shift_ = true;
+        shift = true;
         return;
     case VK_CONTROL:
-        ctrl_ = true;
+        ctrl = true;
         return;
     case VK_PRIOR:
-        scroll_ = ctrl_ ? scroll_ + visibleLines_ : scroll_ + 1;
+        scroll = ctrl ? scroll + visibleLines : scroll + 1;
         break;
     case VK_NEXT:
-        scroll_ = ctrl_ ? scroll_ - visibleLines_ : scroll_ - 1;
+        scroll = ctrl ? scroll - visibleLines : scroll - 1;
         break;
     case VK_END:
-        if (!ctrl_) {
-            caret_ = input_.size();
-            if (!shift_) anchor_ = caret_;
+        if (!ctrl) {
+            caret = input.size();
+            if (!shift) anchor = caret;
             DrawInput();
             return;
         }
-        scroll_ = 0;
+        scroll = 0;
         break;
     case VK_HOME:
-        if (!ctrl_) {
-            caret_ = 0;
-            if (!shift_) anchor_ = 0;
+        if (!ctrl) {
+            caret = 0;
+            if (!shift) anchor = 0;
             DrawInput();
             return;
         }
         {
-            int first = static_cast<int>(lines_.size()) - visibleLines_;
-            scroll_ = first < 0 ? 0 : first;
+            int first = static_cast<int>(lines.size()) - visibleLines;
+            scroll = first < 0 ? 0 : first;
         }
         break;
     case VK_LEFT:
     case VK_RIGHT:   // by character
-        caret_ = key == VK_LEFT ? ::text::PreviousCharacter(input_, caret_) : ::text::NextCharacter(input_, caret_);
-        if (!shift_) anchor_ = caret_;
+        caret = key == VK_LEFT ? ::text::PreviousCharacter(input, caret) : ::text::NextCharacter(input, caret);
+        if (!shift) anchor = caret;
         DrawInput();
         return;
     case VK_UP:
     case VK_DOWN:
         if (key == VK_UP) {
-            if (commandIndex_ < static_cast<int>(commands_.size())) ++commandIndex_;
-        } else if (commandIndex_ >= 0) {
-            --commandIndex_;
+            if (commandIndex < static_cast<int>(commands.size())) ++commandIndex;
+        } else if (commandIndex >= 0) {
+            --commandIndex;
         }
-        if (commandIndex_ >= 0 && commandIndex_ < static_cast<int>(commands_.size()))
-            input_ = commands_[commandIndex_];
+        if (commandIndex >= 0 && commandIndex < static_cast<int>(commands.size()))
+            input = commands[commandIndex];
         else
-            input_.clear();
-        caret_ = input_.size();
-        anchor_ = caret_;
+            input.clear();
+        caret = input.size();
+        anchor = caret;
         DrawInput();
         return;
     case VK_DELETE:
-        if (anchor_ == caret_) {
-            if (caret_ < static_cast<int>(input_.size())) {
-                std::string rest = str::Mid(input_, ::text::NextCharacter(input_, caret_));
-                input_ = str::Left(input_, caret_) + rest;
+        if (anchor == caret) {
+            if (caret < static_cast<int>(input.size())) {
+                std::string rest = str::Mid(input, ::text::NextCharacter(input, caret));
+                input = str::Left(input, caret) + rest;
                 DrawInput();
             }
         } else {
-            int low = anchor_ < caret_ ? anchor_ : caret_;
-            int high = anchor_ > caret_ ? anchor_ : caret_;
-            std::string rest = str::Mid(input_, high);
-            input_ = str::Left(input_, low) + rest;
-            caret_ = low;
-            anchor_ = low;
+            int low = anchor < caret ? anchor : caret;
+            int high = anchor > caret ? anchor : caret;
+            std::string rest = str::Mid(input, high);
+            input = str::Left(input, low) + rest;
+            caret = low;
+            anchor = low;
             DrawInput();
         }
         return;
@@ -199,24 +199,24 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
 // held. Rebirth's ImproveConsole skips the history for a line equal to the last one and adds
 // Ctrl+A / C / X / V (select all, copy, cut, paste: the first line of the clipboard).
 void ConsoleWindow::OnChar(int key, int, int) {
-    int low = caret_ < anchor_ ? caret_ : anchor_;
-    int high = anchor_ > caret_ ? anchor_ : caret_;
+    int low = caret < anchor ? caret : anchor;
+    int high = anchor > caret ? anchor : caret;
     switch (key) {
     case 8: {   // Backspace
-        if (anchor_ != caret_) {
-            int first = anchor_ < caret_ ? anchor_ : caret_;
-            int last = anchor_ > caret_ ? anchor_ : caret_;
-            std::string rest = str::Mid(input_, last);
-            input_ = str::Left(input_, first) + rest;
-            caret_ = first;
-            anchor_ = first;
+        if (anchor != caret) {
+            int first = anchor < caret ? anchor : caret;
+            int last = anchor > caret ? anchor : caret;
+            std::string rest = str::Mid(input, last);
+            input = str::Left(input, first) + rest;
+            caret = first;
+            anchor = first;
         } else {
-            if (caret_ == 0) return;
-            const int previous = ::text::PreviousCharacter(input_, caret_);
-            std::string rest = str::Mid(input_, caret_);
-            input_ = str::Left(input_, previous) + rest;
-            caret_ = previous;
-            anchor_ = caret_;
+            if (caret == 0) return;
+            const int previous = ::text::PreviousCharacter(input, caret);
+            std::string rest = str::Mid(input, caret);
+            input = str::Left(input, previous) + rest;
+            caret = previous;
+            anchor = caret;
         }
         DrawInput();
         return;
@@ -224,67 +224,67 @@ void ConsoleWindow::OnChar(int key, int, int) {
     case 9:
         return;
     case 13: {   // Enter
-        bool repeated = ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole) && !commands_.empty() &&
-                        str::Compare(input_, commands_[0]) == 0;
+        bool repeated = ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole) && !commands.empty() &&
+                        str::Compare(input, commands[0]) == 0;
         if (!repeated) {
-            commands_.insert(commands_.begin(), input_);
-            if (commands_.size() > kHistoryDepth) commands_.pop_back();
+            commands.insert(commands.begin(), input);
+            if (commands.size() > kHistoryDepth) commands.pop_back();
         }
-        commandIndex_ = -1;
-        input_.clear();
-        caret_ = 0;
-        anchor_ = 0;
+        commandIndex = -1;
+        input.clear();
+        caret = 0;
+        anchor = 0;
         DrawInput();
-        AddText((game::consoletexts::Prompt() + commands_[0] + game::NewLineText()));
-        Execute(commands_[0]);
+        AddText((game::consoletexts::Prompt() + commands[0] + game::NewLineText()));
+        Execute(commands[0]);
         return;
     }
     case 27:   // Escape
-        input_.clear();
-        caret_ = 0;
-        anchor_ = 0;
+        input.clear();
+        caret = 0;
+        anchor = 0;
         DrawInput();
         return;
     default:
         break;
     }
-    if (ctrl_ && !shift_ && ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole)) {
+    if (ctrl && !shift && ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole)) {
         char letter = static_cast<char>(static_cast<std::uint8_t>(key) + 0x60);
         if (letter == 'a') {
-            anchor_ = 0;
-            caret_ = input_.size();
+            anchor = 0;
+            caret = input.size();
             DrawInput();
         } else if ((letter == 'c' || letter == 'x') && low != high) {
-            const char* text = input_.c_str();
+            const char* text = input.c_str();
             CopyToClipboard(text + low, text + high);
             if (letter == 'x') {
-                std::string rest = str::Mid(input_, high);
-                std::string head = str::Left(input_, low);
-                input_ = head + rest;
-                caret_ = low;
-                anchor_ = low;
+                std::string rest = str::Mid(input, high);
+                std::string head = str::Left(input, low);
+                input = head + rest;
+                caret = low;
+                anchor = low;
                 DrawInput();
             }
         } else if (letter == 'v') {
             std::string clip = ClipboardText();
             int cut = str::FindOneOf(clip, "\r\n");
             if (cut >= 0) clip = str::Left(clip, cut);
-            std::string rest = str::Mid(input_, high);
-            std::string head = str::Left(input_, low);
-            input_ = (head + clip) + rest;
-            int position = static_cast<int>(clip.size()) - (anchor_ != caret_ ? 1 : 0) + high;
-            position = ::text::CharacterStart(input_, position);   // never inside a character
-            caret_ = position;
-            anchor_ = position;
+            std::string rest = str::Mid(input, high);
+            std::string head = str::Left(input, low);
+            input = (head + clip) + rest;
+            int position = static_cast<int>(clip.size()) - (anchor != caret ? 1 : 0) + high;
+            position = ::text::CharacterStart(input, position);    // never inside a character
+            caret = position;
+            anchor = position;
             DrawInput();
         }
     }
-    if (ctrl_) return;
-    std::string rest = str::Mid(input_, high);
-    std::string head = str::Left(input_, low);
-    input_ = ::text::Typed(head, key) + rest;
-    caret_ = low + ::text::TypedLength(key);
-    anchor_ = caret_;
+    if (ctrl) return;
+    std::string rest = str::Mid(input, high);
+    std::string head = str::Left(input, low);
+    input = ::text::Typed(head, key) + rest;
+    caret = low + ::text::TypedLength(key);
+    anchor = caret;
     DrawInput();
 }
 
@@ -292,27 +292,27 @@ void ConsoleWindow::OnChar(int key, int, int) {
 // the area above the input strip and draws the visible lines bottom up, 15 pixels apart, with a
 // "+" at the top right when there is more above and at the bottom right when scrolled back.
 void ConsoleWindow::DrawLines() {
-    const int lineCount = static_cast<int>(lines_.size());
-    if (scroll_ > lineCount - visibleLines_) scroll_ = lineCount - visibleLines_;
-    if (scroll_ < 0) scroll_ = 0;
-    if (!surface_ || !font_) return;
-    CUiSurface* surface = surface_;
-    FillArea(surface, 0, 0, width_, height_ - kInputHeight, kBackground);
-    int line = lineCount - scroll_ - 1;
-    for (int i = 0, y = 0; i < visibleLines_ && line >= 0; ++i, y += kLineHeight, --line) {
-        RECT rect{8, height_ - y - 0x2E, width_ - 0x12, height_ - y - 0x1A};
-        const std::string& text = lines_[line];
-        surface->DrawTextPixels(font_, text, rect, kDrawLine, kLineText, false);
+    const int lineCount = static_cast<int>(lines.size());
+    if (scroll > lineCount - visibleLines) scroll = lineCount - visibleLines;
+    if (scroll < 0) scroll = 0;
+    if (!surface || !font) return;
+    CUiSurface* currentSurface = surface;
+    FillArea(currentSurface, 0, 0, width, height - kInputHeight, kBackground);
+    int line = lineCount - scroll - 1;
+    for (int i = 0, y = 0; i < visibleLines && line >= 0; ++i, y += kLineHeight, --line) {
+        RECT area{8, height - y - 0x2E, width - 0x12, height - y - 0x1A};
+        const std::string& text = lines[line];
+        currentSurface->DrawTextPixels(font, text, area, kDrawLine, kLineText, false);
     }
-    if (scroll_ > 0) {
+    if (scroll > 0) {
         std::string mark = game::consoletexts::More();
-        RECT rect{width_ - 0x12, height_ - 0x2E, width_ - 8, height_ - kInputHeight};
-        surface->DrawTextPixels(font_, mark, rect, kDrawMark, kLineText, false);
+        RECT area{width - 0x12, height - 0x2E, width - 8, height - kInputHeight};
+        currentSurface->DrawTextPixels(font, mark, area, kDrawMark, kLineText, false);
     }
-    if (scroll_ < lineCount - visibleLines_) {
+    if (scroll < lineCount - visibleLines) {
         std::string mark = game::consoletexts::More();
-        RECT rect{width_ - 0x12, 8, width_ - 8, 0x17};
-        surface->DrawTextPixels(font_, mark, rect, kDrawMark, kLineText, false);
+        RECT area{width - 0x12, 8, width - 8, 0x17};
+        currentSurface->DrawTextPixels(font, mark, area, kDrawMark, kLineText, false);
     }
 }
 
@@ -320,23 +320,23 @@ void ConsoleWindow::DrawLines() {
 // the input strip, shades the selection (clipped 16 pixels before the right edge), draws "> " and
 // the input, and a 2-pixel caret line when it lies left of that limit.
 void ConsoleWindow::DrawInput() {
-    caret_ = Clamp(caret_, input_.size());
-    anchor_ = Clamp(anchor_, input_.size());
-    if (!surface_ || !font_) return;
-    CUiSurface* surface = surface_;
-    FillArea(surface, 0, height_ - kInputHeight, width_, kInputHeight, kBackground);
-    int caretX = PromptWidth(font_, input_, caret_);
-    if (anchor_ != caret_) {
-        int anchorX = PromptWidth(font_, input_, anchor_);
+    caret = Clamp(caret, input.size());
+    anchor = Clamp(anchor, input.size());
+    if (!surface || !font) return;
+    CUiSurface* currentSurface = surface;
+    FillArea(currentSurface, 0, height - kInputHeight, width, kInputHeight, kBackground);
+    int caretX = PromptWidth(font, input, caret);
+    if (anchor != caret) {
+        int anchorX = PromptWidth(font, input, anchor);
         int low = caretX < anchorX ? caretX : anchorX;
         int high = caretX > anchorX ? caretX : anchorX;
-        if (high > width_ - 0x10) high = width_ - 0x10;
-        if (low < high) FillArea(surface, low + 8, height_ - 0x17, high - low, 0xF, kSelection);
+        if (high > width - 0x10) high = width - 0x10;
+        if (low < high) FillArea(currentSurface, low + 8, height - 0x17, high - low, 0xF, kSelection);
     }
-    RECT rect{8, height_ - 0x17, width_ - 8, height_ - 3};
-    std::string text = std::string(game::consoletexts::Prompt()) + input_;
-    surface->DrawTextPixels(font_, text, rect, kDrawLine, kInputText, false);
-    if (caretX < width_ - 0x10) surface->Line(caretX + 8, height_ - 0x17, caretX + 8, height_ - 8, 2, kInputText);
+    RECT area{8, height - 0x17, width - 8, height - 3};
+    std::string text = std::string(game::consoletexts::Prompt()) + input;
+    currentSurface->DrawTextPixels(font, text, area, kDrawLine, kInputText, false);
+    if (caretX < width - 0x10) currentSurface->Line(caretX + 8, height - 0x17, caretX + 8, height - 8, 2, kInputText);
 }
 
 } // namespace console

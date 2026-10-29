@@ -41,10 +41,10 @@ void CInterface3D::ScaleRectToScreen(RECT* rect) const {
         widescreen::RectToScreen(rect, true);
         return;
     }
-    rect->left = Mul(rect->left, width_) / kLayoutWidth;
-    rect->top = Mul(height_, rect->top) / kLayoutHeight;
-    rect->right = Mul(rect->right, width_) / kLayoutWidth;
-    rect->bottom = Mul(rect->bottom, height_) / kLayoutHeight;
+    rect->left = Mul(rect->left, width) / kLayoutWidth;
+    rect->top = Mul(height, rect->top) / kLayoutHeight;
+    rect->right = Mul(rect->right, width) / kLayoutWidth;
+    rect->bottom = Mul(rect->bottom, height) / kLayoutHeight;
 }
 
 // An identical copy of this function exists in the game that nothing calls; addon points it at the same code
@@ -54,8 +54,8 @@ void CInterface3D::ScalePointToScreen(POINT* point) const {
         widescreen::PointToScreen(point, true);
         return;
     }
-    point->x = Mul(point->x, width_) / kLayoutWidth;
-    point->y = Mul(height_, point->y) / kLayoutHeight;
+    point->x = Mul(point->x, width) / kLayoutWidth;
+    point->y = Mul(height, point->y) / kLayoutHeight;
 }
 
 void CInterface3D::ScaleRectFromScreen(RECT* rect) const {
@@ -63,10 +63,10 @@ void CInterface3D::ScaleRectFromScreen(RECT* rect) const {
         widescreen::RectFromScreen(rect, true);
         return;
     }
-    rect->left = Mul(rect->left, kLayoutWidth) / width_;
-    rect->top = Mul(rect->top, kLayoutHeight) / height_;
-    rect->right = Mul(rect->right, kLayoutWidth) / width_;
-    rect->bottom = Mul(rect->bottom, kLayoutHeight) / height_;
+    rect->left = Mul(rect->left, kLayoutWidth) / width;
+    rect->top = Mul(rect->top, kLayoutHeight) / height;
+    rect->right = Mul(rect->right, kLayoutWidth) / width;
+    rect->bottom = Mul(rect->bottom, kLayoutHeight) / height;
 }
 
 void CInterface3D::ScalePointFromScreen(POINT* point) const {
@@ -74,8 +74,8 @@ void CInterface3D::ScalePointFromScreen(POINT* point) const {
         widescreen::PointFromScreen(point, true);
         return;
     }
-    point->x = Mul(point->x, kLayoutWidth) / width_;
-    point->y = Mul(point->y, kLayoutHeight) / height_;
+    point->x = Mul(point->x, kLayoutWidth) / width;
+    point->y = Mul(point->y, kLayoutHeight) / height;
 }
 
 void CInterface3D::ScalePointFromScreenCopy(POINT* point) const { ScalePointFromScreen(point); }
@@ -113,33 +113,33 @@ void CInterface3D::ScalePointFromScreenEntry(POINT* point) const {
 }
 
 CUiWindow* CInterface3D::GetActiveWindow() const {
-    return stack_.begin() != stack_.end() ? stack_.end()[-1] : nullptr;
+    return stack.begin() != stack.end() ? stack.end()[-1] : nullptr;
 }
 
 void CInterface3D::SetPendingValue(std::uint32_t value) {
-    pendingFlag_ = true;
-    pendingValue_ = value;
+    pendingFlag = true;
+    pendingValue = value;
 }
 
 // --- CUiSurface ------------------------------------------------------------------------------
 
 void CUiSurface::SetRect(int left, int top, int right, int bottom) {
-    rect_.left = left;
-    rect_.top = top;
-    rect_.right = right;
-    rect_.bottom = bottom;
-    interface_->ScaleRectToScreenEntry(&rect_);
+    rect.left = left;
+    rect.top = top;
+    rect.right = right;
+    rect.bottom = bottom;
+    ui->ScaleRectToScreenEntry(&rect);
 }
 
 void CUiSurface::MoveTo(int x, int y) {
     POINT point{x, y};
-    interface_->ScalePointToScreenEntry(&point);
-    int width = rect_.right - rect_.left;
-    int height = rect_.bottom - rect_.top;
-    rect_.left = point.x;
-    rect_.top = point.y;
-    rect_.right = width + point.x;
-    rect_.bottom = height + point.y;
+    ui->ScalePointToScreenEntry(&point);
+    int rectWidth = rect.right - rect.left;
+    int rectHeight = rect.bottom - rect.top;
+    rect.left = point.x;
+    rect.top = point.y;
+    rect.right = rectWidth + point.x;
+    rect.bottom = rectHeight + point.y;
 }
 
 // --- CUiModel --------------------------------------------------------------------------------
@@ -151,7 +151,7 @@ void CUiModel::SetScreenPosition(float x, float y, float depth) {
     constexpr float kViewScale = 0x1.ed21e6p-2f;
     float px = (x * kLayoutScale - 1.0f) * kViewScale * depth;
     float py = (y * kLayoutScale - 0.75f) * kViewScale * depth;
-    Vector3& position = object_->localPosition_;
+    Vector3& position = object->localPosition;
     float value = px;
     position.x = value;
     value = py;

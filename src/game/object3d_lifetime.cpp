@@ -15,10 +15,10 @@ constexpr Quaternion kIdentityOrientation = /*007AF1C0*/ {1.0f, 0.0f, 0.0f, 0.0f
 } // namespace
 
 void CObject3D::Create3D() {
-    localPosition_ = {};
-    localRotation_ = kIdentityOrientation;
+    localPosition = {};
+    localRotation = kIdentityOrientation;
     attached = nullptr;
-    flags_ = 0;
+    flags = 0;
     animations = nullptr;
     scale = {};
     figure.Reset();
@@ -44,7 +44,7 @@ void CObject3D::Destroy3D() {
     if (attached) attached->Release();
     attached = nullptr;
     animations = nullptr;
-    flags_ = 0;
+    flags = 0;
 }
 
 void CObject3D::AddEffectSource(CParticleSource* source) {

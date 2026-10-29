@@ -30,8 +30,8 @@ constexpr int kEndedTimer = -80;                       // the effects linger thi
 void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool arrow) {
     auto* missile = e->Visual<CEffectMissile>();
     if (!missile) return;
-    e->position = missile->localPosition_;
-    if (missile->arrived_ == 0) return;
+    e->position = missile->localPosition;
+    if (missile->arrived == 0) return;
 
     DamageInfo hit;
     e->GetDamage(&hit);
@@ -41,9 +41,9 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     e->ReleaseLight();
 
     CUnit* target = TargetUnit(e);   // no null check
-    e->targetPoint = target->localPosition_;
+    e->targetPoint = target->localPosition;
     Vector3 at;
-    at = target->localPosition_;
+    at = target->localPosition;
     at.z = static_cast<float>(target->ModeSpeed());
     at.z = GroundPlus(e, kGridHeight, e->targetPoint, &at.z);
     float size = PowerScaled(e, worlddata::SplashScale());
@@ -83,10 +83,10 @@ void FireballFlight(CSpellEffect* e) {
         Vector3 at = e->targetPoint;
         float power = Power(e);
         float curve;
-        AreaCurve(&e->Spell()->radius_, &Prototype(e)->area, &curve);
+        AreaCurve(&e->Spell()->radius, &Prototype(e)->area, &curve);
         float size = curve >= power ? curve : power;
         CEffectParticle* blast = e->CreateParticle(0, static_cast<int>(ParticleType::FireBlast), at, size, 1.0f, kZeroVector, nullptr);
-        float radius = e->Spell()->radius_;
+        float radius = e->Spell()->radius;
         float alpha = Power(e);
         blast->SetColors(alpha, radius);
         e->CreateSound("magic\\fireball\\end.wav", at, kZeroVector, kVolume, kHearing);
@@ -95,7 +95,7 @@ void FireballFlight(CSpellEffect* e) {
         Vector3 color = PrototypeColor(e);
         e->CreatePointLight(at, color, range * ConstAt(worlddata::RiseScale()), velocity);
         if (IsUnit(e->caster)) {
-            e->world->aiMap_.events.Noise(ControllerOf(e->caster), kExplosionLoudness, FtolOf(ConstPtr(worlddata::NoiseKind())), e->targetPoint);
+            e->world->aiMap.events.Noise(ControllerOf(e->caster), kExplosionLoudness, FtolOf(ConstPtr(worlddata::NoiseKind())), e->targetPoint);
         }
         e->timer = 0x23;
         e->state = 2;
@@ -159,7 +159,7 @@ void FireWall(CSpellEffect* e) {
     int ticks = e->timer;
     if (ticks >= 0) {
         if ((ticks & 3) == 0 && e->visual) {
-            e->HitUnitsAlong(e->Visual<CEffectWall>()->direction_);
+            e->HitUnitsAlong(e->Visual<CEffectWall>()->direction);
             e->flags |= 1;
         }
         e->timer = e->timer - 1;
@@ -167,7 +167,7 @@ void FireWall(CSpellEffect* e) {
     }
     if (ticks == -1) {
         Vector3 at = e->position;
-        if (e->sound) at = e->sound->localPosition_;
+        if (e->sound) at = e->sound->localPosition;
         e->UpdateFootprint(SpellType::FireWall, 0);
         e->ReleaseSound();
         e->ReleaseVisual();
@@ -184,9 +184,9 @@ void LightWall(CSpellEffect* e) {
         if ((ticks & 3) == 0 && e->visual) {
             auto* bolt = e->Visual<CEffectLightning>();
             Vector3 along;
-            along.x = bolt->to_.x - bolt->from_.x;
-            along.y = bolt->to_.y - bolt->from_.y;
-            along.z = bolt->to_.z - bolt->from_.z;
+            along.x = bolt->to.x - bolt->from.x;
+            along.y = bolt->to.y - bolt->from.y;
+            along.z = bolt->to.z - bolt->from.z;
             e->HitUnitsAlong(along);
             e->flags |= 1;
         }
@@ -236,13 +236,13 @@ void Fireworks(CSpellEffect* e) {
     int ticks = e->timer - 1;
     e->timer = ticks;
     if (ticks >= 0) {
-        float wake = e->Spell()->radius_ + ConstAt(worlddata::ImpactWakeMargin());
+        float wake = e->Spell()->radius + ConstAt(worlddata::ImpactWakeMargin());
         e->world->WakeUnitsAround(e->position, wake);
-        std::list<CUnit*> units = e->world->aiMap_.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius_);
+        std::list<CUnit*> units = e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius);
         for (auto node = units.begin(); node != units.end();) {
             CUnit* unit = *node;
             ++node;
-            int duration = static_cast<int>(e->Spell()->duration_);
+            int duration = static_cast<int>(e->Spell()->duration);
             int level = FrightLevel(&e->timer, &duration);
             ControllerOf(unit)->brain.memory.Notice(e->position, level, -1);
         }
@@ -263,22 +263,22 @@ void Clairvoyance(CSpellEffect* e) {
     if (IsUnit(e->caster)) {
         auto* player = e->caster->player;
         if (player) {
-            ScriptGroup* group = &player->Server()->possessedGroup_;
-            std::list<CUnit*> units = e->world->aiMap_.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius_);
+            ScriptGroup* group = &player->Server()->possessedGroup;
+            std::list<CUnit*> units = e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius);
             for (auto node = units.begin(); node != units.end();) {
                 CUnit* unit = *node;
                 ++node;
                 group->Insert(unit);
             }
         }
-        float wake = e->Spell()->radius_ + ConstAt(worlddata::ImpactWakeMargin());
+        float wake = e->Spell()->radius + ConstAt(worlddata::ImpactWakeMargin());
         e->world->WakeUnitsAround(e->position, wake);
     }
     int ticks = e->timer - 1;
     e->timer = ticks;
     if (ticks < 0 || !e->caster) e->state = 3;
     if (ticks == 10) {
-        e->CreateParticle(0, static_cast<int>(ParticleType::ClayRing), e->targetPoint, -e->Spell()->radius_, 1.0f, kZeroVector, nullptr);
+        e->CreateParticle(0, static_cast<int>(ParticleType::ClayRing), e->targetPoint, -e->Spell()->radius, 1.0f, kZeroVector, nullptr);
         e->CreateSound("magic\\Clairvoyence\\end.wav", e->position, kZeroVector, kVolume, kHearing);
     }
 }
@@ -294,18 +294,18 @@ void Possession(CSpellEffect* e) {
     if (player && e->target->GetClassId() == ClassId::Unit) {   // no null check on the target
         CMapObject* target = e->target;
         CUnitServer* server = ControllerOf(TargetUnit(e));
-        ScriptGroup* group = &player->Server()->possessedGroup_;
+        ScriptGroup* group = &player->Server()->possessedGroup;
         group->Insert(target);
         group->InsertAll(&server->brain.memory.visible);
         group->InsertAll(&server->brain.memory.seenCorpses);
-        player->Server()->possessedId_ = target->id_;
-        target->flags_ |= MapObjectFlag::SeeAll;
+        player->Server()->possessedId = target->id;
+        target->flags |= MapObjectFlag::SeeAll;
         float sight = server->moveFactors[3] * server->stats.perception[0].current;
         float floor = server->stats.perception[2].current;
         float reach = sight >= floor ? sight : floor;
         float wake;
         MultiplyAdd(&reach, ConstPtr(worlddata::PossessWake()), ConstPtr(worlddata::PossessWakeBase()), &wake);
-        e->world->WakeUnitsAround(target->localPosition_, wake);
+        e->world->WakeUnitsAround(target->localPosition, wake);
     }
     int ticks = e->timer - 1;
     e->timer = ticks;
@@ -347,15 +347,15 @@ void Teleport(CSpellEffect* e) {
         e->state = 3;
         return;
     }
-    int arrival = static_cast<int>(e->Spell()->duration_);
+    int arrival = static_cast<int>(e->Spell()->duration);
     if (arrival < 1) arrival = 1;
     if (e->timer != arrival) return;
-    e->targetPoint.z = e->caster->localPosition_.z;
-    if (!e->world->aiMap_.IsPassableWithoutSelf(e->caster, e->targetPoint)) {
+    e->targetPoint.z = e->caster->localPosition.z;
+    if (!e->world->aiMap.IsPassableWithoutSelf(e->caster, e->targetPoint)) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(AckKind::CantTeleport);
         return;
     }
-    e->world->aiMap_.sectorMap.Move(e->caster, e->targetPoint);
+    e->world->aiMap.sectorMap.Move(e->caster, e->targetPoint);
     e->ReleaseVisual();
     e->ReleaseSound();
     if (!IsUnit(e->caster)) return;

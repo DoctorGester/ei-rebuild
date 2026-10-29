@@ -47,7 +47,7 @@ bool Exceeds(float v) {
 } // namespace
 
 void CMapObject::WriteNetState() {
-    DeltaState* state = &netState_;
+    DeltaState* state = &netState;
     if (DeltaField* field = state->BeginField(0)) {
         field->WriteDelta(&packedVitals, 0x18);
         field->EndField();
@@ -57,9 +57,9 @@ void CMapObject::WriteNetState() {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(2)) {
-        PutByte(field, static_cast<std::uint8_t>((flags_ >> 3) & 1));
-        field->WriteDelta(&localPosition_.x, 0xC);
-        field->WriteDelta(&localRotation_, 0x10);
+        PutByte(field, static_cast<std::uint8_t>((flags >> 3) & 1));
+        field->WriteDelta(&localPosition.x, 0xC);
+        field->WriteDelta(&localRotation, 0x10);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(3)) {
@@ -78,7 +78,7 @@ void CMapObject::WriteNetState() {
 void CUnit::WriteNetState() {
     CMapObject::WriteNetState();
     CUnit* unit = this;
-    DeltaState* state = &netState_;
+    DeltaState* state = &netState;
     if (DeltaField* field = state->BeginField(4)) {
         field->WriteDelta(&unit->params, 0x108);
         field->EndField();
@@ -87,7 +87,7 @@ void CUnit::WriteNetState() {
         std::uint32_t ids[11];
         unit->GetEquipmentIds(ids);
         for (int i = 0; i < 4; ++i) PutWord(field, ids[i]);
-        PutWord(field, (unit->flags_ & MapObjectFlag::HelmetHidden) ? 0xFFFFFFFFu : ids[4]);
+        PutWord(field, (unit->flags & MapObjectFlag::HelmetHidden) ? 0xFFFFFFFFu : ids[4]);
         for (int i = 5; i < 11; ++i) PutWord(field, ids[i]);
         field->EndField();
         if (unit->controller->GetClassId() == ClassId::UnitServer)
@@ -129,10 +129,10 @@ void CUnit::WriteNetState() {
     }
     if (DeltaField* field = state->BeginField(11)) {
         CPlayer* target = unit->player;
-        std::uint32_t id = target ? static_cast<std::uint32_t>(target->id_) : 0xFFFFFFFFu;
+        std::uint32_t objectId = target ? static_cast<std::uint32_t>(target->id) : 0xFFFFFFFFu;
         PutWord(field, unit->relationsB & unit->relationsA);
         PutByte(field, static_cast<std::uint8_t>(unit->side));
-        PutWord(field, id);
+        PutWord(field, objectId);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(12)) {
@@ -147,7 +147,7 @@ void CUnit::WriteNetState() {
 
 
 std::uint32_t CMapObject::ReadNetState(int first) {
-    DeltaState* state = &netState_;
+    DeltaState* state = &netState;
     std::uint32_t complete = 1;
     if (DeltaField* field = state->BeginField(0)) {
         short before = packedVitals.hitPoints;
@@ -167,15 +167,15 @@ std::uint32_t CMapObject::ReadNetState(int first) {
         char hidden;
         field->ReadDelta(&hidden, 1);
         if (hidden)
-            flags_ |= 8;
+            flags |= 8;
         else
-            flags_ &= ~8u;
+            flags &= ~8u;
         Vector3 position;
         field->ReadDelta(&position, 0xC);
-        field->ReadDelta(&localRotation_, 0x10);
+        field->ReadDelta(&localRotation, 0x10);
         CWorld* world = World();
         world->MoveObject(this, &position.x);
-        PlaceOnGround(localPosition_.z);
+        PlaceOnGround(localPosition.z);
         complete &= SnapshotConsumed();
         field->EndField();
     }
@@ -204,7 +204,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
     CUnit* unit = this;
     float hpBefore = static_cast<float>(static_cast<double>(unit->packedVitals.hitPoints) / unit->packedVitals.maxHitPoints);
     std::uint32_t complete = CMapObject::ReadNetState(first);
-    DeltaState* state = &netState_;
+    DeltaState* state = &netState;
     bool gotItems = false;
     bool changed = false;
     std::uint32_t ids4[4];
@@ -248,8 +248,8 @@ std::uint32_t CUnit::ReadNetState(int first) {
     }
     if (DeltaField* field = state->BeginField(5)) {
         unit->ReleaseAllItems();
-        for (auto& id : ids4) field->ReadDelta(&id, 4);
-        for (auto& id : ids7) field->ReadDelta(&id, 4);
+        for (auto& fieldId : ids4) field->ReadDelta(&fieldId, 4);
+        for (auto& fieldId : ids7) field->ReadDelta(&fieldId, 4);
         gotItems = true;
         changed = true;
         complete &= SnapshotConsumed();
@@ -282,7 +282,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         field->ReadDelta(&unit->animationStart, 4);
         field->ReadDelta(&unit->actionSound, 1);
         if (unit->motionMode == 1) --unit->animationStart;
-        float time = static_cast<float>(unit->World()->tick_);
+        float time = static_cast<float>(unit->World()->tick);
         unit->Controller()->RestartAnimation(time);
         field->EndField();
     }
@@ -296,7 +296,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         path->ReadState(field);
         if (unit->pathTimeShift == 1) path->ShiftTime(-1);
         PathOrder* path2 = unit->Controller()->Path();
-        path2->ForgetObject(unit->id_);
+        path2->ForgetObject(unit->id);
         float walk, run;
         unit->GetMoveSpeeds(&walk, &run);
         UnitMotion* walker = &unit->motion;
@@ -313,10 +313,10 @@ std::uint32_t CUnit::ReadNetState(int first) {
         field->ReadDelta(&unit->relationsA, 4);
         unit->side = 0;
         field->ReadDelta(&unit->side, 1);
-        int id;
-        field->ReadDelta(&id, 4);
+        int objectId;
+        field->ReadDelta(&objectId, 4);
         CPlayer* current = unit->player;
-        if (id == -1) {
+        if (objectId == -1) {
             if (current) {
                 unit->player = nullptr;
                 current->RemoveUnit(unit);
@@ -324,10 +324,10 @@ std::uint32_t CUnit::ReadNetState(int first) {
                 unit->MarkChanged(11);
                 if (unit->controller) unit->Controller()->PlayerChanged(nullptr);
             }
-        } else if (!current || current->id_ != id) {
+        } else if (!current || current->id != objectId) {
             CPlayerClient* view = unit->ClientWorld()->LocalView();
-            CPlayer* local = view->player_;
-            if ((local->id_ == id || view->localSession_) && unit->player != local) {
+            CPlayer* local = view->player;
+            if ((local->id == objectId || view->localSession) && unit->player != local) {
                 CPlayer* old = unit->player;
                 unit->player = local;
                 if (old) old->RemoveUnit(unit);

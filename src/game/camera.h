@@ -36,7 +36,7 @@ struct CameraView {
 };
 static_assert(sizeof(CameraView) == 0x18);
 
-// A shake of the camera (CCamera::shakes_).
+// A shake of the camera (CCamera::shakes).
 struct CameraShake {
     float elapsed;
     float duration;
@@ -60,7 +60,7 @@ static_assert(sizeof(CameraKey) == 0x24);
 void SampleTerrain(const Vector3& p, float step, float halfX, float halfY, float* average, float* minimum,
                    float* maximum);
 
-// The camera ("CCamera"). flags_: 0x8 following the target, 0x10 a camera file is open, 0x20 playing a
+// The camera ("CCamera"). flags: 0x8 following the target, 0x10 a camera file is open, 0x20 playing a
 // camera file, 0x40 free (scripted) placement, 0x100 focus kept inside a circle, 0x200 the alternate limits.
 class CCamera final : public CTransformObject {
 public:
@@ -90,7 +90,7 @@ public:
 
     // Per-frame update: listener, target tracking, pan / turn / tilt / zoom motion, limits, ApplyView, shake.
     void Update(float dt);
-    // Places the camera at `distance_` from the focus along the view rotation tilted by
+    // Places the camera at `distance` from the focus along the view rotation tilted by
     // the pitch, then lifts it over objects and re-aims at the focus when it was lifted.
     void ApplyView();
     // Moves the focus to `p`, its height set from the terrain around it.
@@ -123,7 +123,7 @@ public:
     int PlaybackStep(float time);
 
     // Views and start placement from the settings; the near / far distances and the field of view (floats
-    // passed as their dword bit patterns) kept in nearDistance_..fieldOfView_.
+    // passed as their dword bit patterns) kept in nearDistance..fieldOfView.
     int Init(options::GameOptions* settings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits);
 
     // Lifts the camera over the terrain and the objects within 16 of it.
@@ -147,42 +147,42 @@ public:
     void SetTarget(const CEngineObject* target);
     void SetTargetId(int id);
 
-    options::GameOptions* settings_;   // the game options: heights, start placement, limits, saved views
-    Vector3 panVelocity_;       // pan velocity
-    Vector3 panTarget_;         // pan velocity target
-    float panResponse_;
-    float turnRate_;
-    float turnTarget_;
-    float turnResponse_;
-    float tiltRate_;
-    float tiltTarget_;
-    float tiltResponse_;
-    float zoomRate_;
-    float zoomTarget_;          // the zoom rate target (SetZoomTarget)
-    float zoomResponse_;
-    Vector3 focus_;             // the point looked at
-    float focusHeight_;         // above the ground
-    float distance_;
-    Quaternion viewRotation_;   // heading
-    float pitch_;               // degrees
-    std::list<CameraShake> shakes_;
-    Vector3 boundsCenter_;
-    float boundsRadius_;
-    int targetId_;
-    CameraView views_[8];
-    float nearDistance_;        // (renderer_init reads the three as zNear / zFar / fov)
-    float farDistance_;
-    float fieldOfView_;
-    std::string fileName_;     // the camera file being recorded
+    options::GameOptions* settings;    // the game options: heights, start placement, limits, saved views
+    Vector3 panVelocity;        // pan velocity
+    Vector3 panTarget;          // pan velocity target
+    float panResponse;
+    float turnRate;
+    float turnTarget;
+    float turnResponse;
+    float tiltRate;
+    float tiltTarget;
+    float tiltResponse;
+    float zoomRate;
+    float zoomTarget;           // the zoom rate target (SetZoomTarget)
+    float zoomResponse;
+    Vector3 focus;              // the point looked at
+    float focusHeight;          // above the ground
+    float distance;
+    Quaternion viewRotation;    // heading
+    float pitch;                // degrees
+    std::list<CameraShake> shakes;
+    Vector3 boundsCenter;
+    float boundsRadius;
+    int targetId;
+    CameraView views[8];
+    float nearDistance;         // (renderer_init reads the three as zNear / zFar / fov)
+    float farDistance;
+    float fieldOfView;
+    std::string fileName;      // the camera file being recorded
     // Rebirth patches it. Reads the recorded path <data folder>camera\<name> into the keys (as many as the
     // file holds whole). With `settle` above 1 and below the key count, the keys before the first gap of more
     // than 500 time units among the first `settle` take the pose of the key after the gap. Returns 0 when the
     // file does not open, else 1.
     int LoadPath(const char* name, int settle);
     // the recorded path's keys
-    std::vector<CameraKey> keys_;
-    float timeOffset_;
-    int keyIndex_;
+    std::vector<CameraKey> keys;
+    float timeOffset;
+    int keyIndex;
 };
 
 // The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
@@ -222,9 +222,9 @@ inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 
 // moves it by a tick, each frame by its time), and the world's draw shows its pose less the part of the last
 // tick's step the frame has not reached yet, so the tick's jump is spread over the frames up to the next tick.
 struct ViewPose {
-    Vector3 position;       // CTransformObject::localPosition_
-    Quaternion rotation;    // CTransformObject::localRotation_
-    Vector3 focus;          // focus_, heading viewRotation_ and distance_: what the harness's camtrace reads
+    Vector3 position;       // CTransformObject::localPosition
+    Quaternion rotation;    // CTransformObject::localRotation
+    Vector3 focus;          // focus, heading viewRotation and distance: what the harness's camtrace reads
     Quaternion heading;
     float distance;
 };

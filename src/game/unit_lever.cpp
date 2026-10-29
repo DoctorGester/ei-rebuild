@@ -40,15 +40,15 @@ void Lever::SetState(int wanted, float duration) {
 
     auto* world = ServerWorld();
     if (!world->IsServer()) return;
-    CSectorMap* sectors = &world->aiMap_.sectorMap;
+    CSectorMap* sectors = &world->aiMap.sectorMap;
     float reach = bounds.radius + 0.5f;
-    std::list<CUnit*> around = sectors->FindUnitsInRadius(localPosition_, reach);
+    std::list<CUnit*> around = sectors->FindUnitsInRadius(localPosition, reach);
     for (auto node = around.begin(); node != around.end();) {
         auto next = std::next(node);
         sectors->Remove(*node);
         node = next;
     }
-    CAIMap* map = &world->aiMap_;
+    CAIMap* map = &world->aiMap;
     map->refreshUnits = keepsMapFlag;   // the byte as it is
     map->BeginRefresh();
     sectors->Remove(this);
@@ -58,7 +58,7 @@ void Lever::SetState(int wanted, float duration) {
     if (duration > 0.0f) {
         to = travel;
         from = scale.y;   // bit for bit
-        endTick = (static_cast<float>(world->tick_) + duration) + 1.0f;
+        endTick = (static_cast<float>(world->tick) + duration) + 1.0f;
         rate = 1.0f / duration;
     } else {
         to = travel;
@@ -77,7 +77,7 @@ void Lever::SetState(int wanted, float duration) {
         auto next = std::next(node);
         CUnit* unit = *node;
         if (!map->CanLeaveCell(unit)) {
-            Vector3* at = &unit->localPosition_;
+            Vector3* at = &unit->localPosition;
             Vector3 free = {at->x, at->y, at->z};
             map->FindFreeCellNear(unit, *at, &free);
             *at = free;
@@ -93,11 +93,11 @@ std::vector<Vector3> Lever::UseSpots(float userRadius) {
     std::vector<Vector3> spots;
     const LeverRecord* record = g_leverTable.Named(name);
     if (!record || record->spotCount == 0) return spots;
-    const Quaternion& facing = localRotation_;
+    const Quaternion& facing = localRotation;
     // The count is read again each time; a count above 2 reads on into the record (sic).
     for (std::uint32_t i = 0; i < record->spotCount; ++i) {
         const float* spot = &record->spots[0][0] + 2 * i;
-        Vector3 at{localPosition_.x, localPosition_.y, localPosition_.z};
+        Vector3 at{localPosition.x, localPosition.y, localPosition.z};
         float along = spot[0];
         float across = spot[1];
         float length = static_cast<float>(std::sqrt(across * across + along * along));

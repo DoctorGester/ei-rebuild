@@ -12,7 +12,7 @@ DrawWriter g_write = nullptr;
 
 void ObservedDraw(IsaacRandom& random, std::uint32_t value, const void* caller) {
     g_write(reinterpret_cast<std::uintptr_t>(caller), value, &random == &g_random ? "" : " (another generator)",
-            random.c_ * 256u + 255u - random.count_);
+            random.cc * 256u + 255u - random.count);
 }
 
 void ObservedRand(int value, const void* caller) {

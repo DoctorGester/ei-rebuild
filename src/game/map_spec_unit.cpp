@@ -76,7 +76,7 @@ void StreamWrite(CStream* stream, const void* data, unsigned size) { stream->Wri
 void WaypointChunk::OnChunk() {
     Waypoint* w = target;
     Chunk& c = *this;
-    switch (c.id_) {
+    switch (c.id) {
     case 0xBBBE0001: target->position = c.ReadVector3(); break;
     case 0xBBBE0002: w->lookWait = static_cast<std::int16_t>(c.ReadInt()); break;
     case 0xBBBE0003: target->time = c.ReadFloat(); break;
@@ -88,11 +88,11 @@ void WaypointChunk::OnChunk() {
 // A patrol's start, or a waypoint appended and read (OnChunk).
 void PatrolChunk::OnChunk() {
     Chunk& c = *this;
-    if (c.id_ == 0xBBBD0001) {
+    if (c.id == 0xBBBD0001) {
         target->position = c.ReadVector3();
         return;
     }
-    if (c.id_ != 0xBBBE0000) return;
+    if (c.id != 0xBBBE0000) return;
     WaypointChunk child(this);
     Patrol* patrol = target;
     patrol->waypoints.resize(std::ssize(patrol->waypoints) + 1);
@@ -107,7 +107,7 @@ void PatrolChunk::OnChunk() {
 void BehaviourChunk::OnChunk() {
     Chunk& c = *this;
     Behaviour* b = target;
-    switch (c.id_) {
+    switch (c.id) {
     case 0xBBBC0001:
         if (c.ReadByte() != 0 && static_cast<std::int32_t>(b->alarm) > 0) b->alarm = 0;
         break;
@@ -203,13 +203,13 @@ void UnitSpec::Apply() {
         return;
     }
     CUnit* unit = Unit();
-    g_serverWorld.aiMap_.sectorMap.Move(unit, position);
-    g_serverWorld.aiMap_.TurnObject(unit, &rotation);
-    unit->localRotation_ = rotation;
+    g_serverWorld.aiMap.sectorMap.Move(unit, position);
+    g_serverWorld.aiMap.TurnObject(unit, &rotation);
+    unit->localRotation = rotation;
     unit->SetFigureScale(&scale.x);
     unit->baseScale = scale;
     unit->ApplyBaseScale();
-    std::uint32_t& flags = unit->flags_;
+    std::uint32_t& flags = unit->flags;
     if (!visible) flags |= 8;
     else flags &= ~8u;
     unit->ServerController()->ResyncWithUnit();
@@ -237,14 +237,14 @@ void UnitSpec::Save() {
 // left unset (4) becomes 0.
 void UnitSpec::OnChunk() {
     Chunk& c = *this;
-    switch (c.id_) {
+    switch (c.id) {
     case 0xBBBB0002: prototype = c.ReadString(); break;
     case 0xBBBB0004: c.ReadBytes(&record.stats, sizeof(record.stats)); break;
     case 0xBBBB0005:
     case 0xBBBB0006:
     case 0xBBBB0007:
     case 0xBBBB0008:
-    case 0xBBBB0009: record.lists[c.id_ - 0xBBBB0005] = c.ReadStringArray(); break;
+    case 0xBBBB0009: record.lists[c.id - 0xBBBB0005] = c.ReadStringArray(); break;
     case 0xBBBB000A: record.applyStats = c.ReadByte(); break;
     case 0xBBBC0000: {
         BehaviourChunk reader(this);
@@ -300,7 +300,7 @@ void Behaviour::Read(CStream* stream) {
     StreamRead(stream, &callRadius, 4);
     StreamRead(stream, &alertMode, 4);
     StreamRead(stream, &alarmDelay, 4);
-    if (static_cast<std::int32_t>(stream->version_) >= kVersionUnitAlarm) {
+    if (static_cast<std::int32_t>(stream->version) >= kVersionUnitAlarm) {
         StreamRead(stream, &alarm, 4);
         return;
     }

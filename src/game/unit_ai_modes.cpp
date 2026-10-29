@@ -97,7 +97,7 @@ void GuardMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
     if (!brain->FindStandPoint(point, radius, &order.point)) {
         if (++failures <= 100) return;
-        if (!brain->FindStandPoint(brain->owner->unit->localPosition_, radius, &order.point)) return;
+        if (!brain->FindStandPoint(brain->owner->unit->localPosition, radius, &order.point)) return;
     }
     failures = 0;
     float dx = order.point.x - point.x;
@@ -121,7 +121,7 @@ void GuardMode::Load(CStream* stream) {
     stream->ReadValue(radius);
     stream->ReadValue(wander);
     stream->ReadValue(point);
-    if (stream->version_ >= kVersionGuardFailures) stream->ReadValue(failures);
+    if (stream->version >= kVersionGuardFailures) stream->ReadValue(failures);
 }
 
 void GuardMode::Save(CStream* stream) {
@@ -135,8 +135,8 @@ void GuardMode::Save(CStream* stream) {
 
 int PatrolMode::Evaluate(AIBrain* brain) {
     if (!points.empty()) return kPriorityIdle;
-    game::FatalError("Unit %i has no patrol points, switching to guard", brain->owner->unit->id_);
-    AppendPoint(brain->owner->unit->localPosition_);
+    game::FatalError("Unit %i has no patrol points, switching to guard", brain->owner->unit->id);
+    AppendPoint(brain->owner->unit->localPosition);
     return kPriorityNone;
 }
 
@@ -222,7 +222,7 @@ void FollowMode::Save(CStream* stream) { SaveRef(leader, stream); }
 
 int SuspectionMode::Evaluate(AIBrain* brain) {
     if (brain->seen && !brain->IsAlliedUnit(brain->seen))
-        brain->memory.Notice(brain->seen->localPosition_, kNoticeSeenLevel, kNoticeSeenDecay);
+        brain->memory.Notice(brain->seen->localPosition, kNoticeSeenLevel, kNoticeSeenDecay);
     EI_NAN_AUDIT(brain->memory.noticedX, point.x, brain->memory.noticedY, point.y);
     if (brain->memory.noticedX == point.x && brain->memory.noticedY == point.y) {
         level = (std::min)(level, brain->memory.noticedLevel);
@@ -242,7 +242,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
         // A new move only when the distance is greater.
         EI_NAN_AUDIT(dx, dy);
         if (LengthSquared2DUnrounded(dx, dy) <= kArrivedSq) {
-            const Vector3& at = brain->owner->unit->localPosition_;
+            const Vector3& at = brain->owner->unit->localPosition;
             double ux = at.x - point.x;
             double uy = at.y - point.y;
             double uz = at.z - point.z;
@@ -318,7 +318,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     }
     if (!brain->memory.seesEnemy) return kPriorityNone;
     UnitList candidates = brain->memory.FindEnemies(self);
-    chosen = brain->Choose(&candidates, self->localPosition_, false, false);
+    chosen = brain->Choose(&candidates, self->localPosition, false, false);
     enemy.Assign(chosen.object);
     return chosen.object ? kPriorityFight : kPriorityNone;
 }
@@ -326,7 +326,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
 void AggressionMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, AIRemark::FightingIdle);
     if (!chosen.object) return;
-    brain->CallAllies(chosen.object->localPosition_);
+    brain->CallAllies(chosen.object->localPosition);
     brain->ApplyAttack(&chosen);
 }
 
@@ -372,7 +372,7 @@ int CorpseWatcherMode::Evaluate(AIBrain* brain) {
     if (!brain->memory.corpses.empty()) {
         HeldRef<CUnit> corpse = std::move(brain->memory.corpses.front());   // the list's reference, now ours
         brain->memory.corpses.pop_front();
-        brain->memory.Notice(corpse->localPosition_, kNoticeCorpseLevel, kNoticeCorpseDecay);
+        brain->memory.Notice(corpse->localPosition, kNoticeCorpseLevel, kNoticeCorpseDecay);
     }
     return kPriorityNone;
 }
@@ -398,9 +398,9 @@ void FearMode::Load(CStream* stream) {
     stream->ReadValue(distance);
     stream->ReadValue(spread);
     stream->ReadValue(shelter);
-    if (stream->version_ >= kVersionFearFlag) {
+    if (stream->version >= kVersionFearFlag) {
         stream->ReadValue(watchful);
-        if (stream->version_ >= kVersionFleePoint) stream->ReadValue(fleePoint);
+        if (stream->version >= kVersionFleePoint) stream->ReadValue(fleePoint);
     }
 }
 
@@ -556,7 +556,7 @@ void PlayerMode::Load(CStream* stream) {
     LoadRef(leader, stream, &g_serverWorld);
     stream->ReadValue(point);
     stream->ReadValue(state);
-    if (stream->version_ >= kVersionPlayerGroup && stream->version_ < kVersionPlayerModeGroupDropped) {
+    if (stream->version >= kVersionPlayerGroup && stream->version < kVersionPlayerModeGroupDropped) {
         ScriptGroup group;
         group.Load(stream);
     }

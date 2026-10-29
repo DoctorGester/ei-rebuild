@@ -22,8 +22,8 @@ std::string ReadString(const CIniFile* ini, const char* section, const char* key
 
 } // namespace
 
-void CIniFile::SetPath(std::string_view path) {
-    path_ = path;
+void CIniFile::SetPath(std::string_view newPath) {
+    path = newPath;
 }
 
 // --- Readers ---------------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ std::vector<std::string> CIniFile::GetKeyNames(const char* section) {
     std::vector<std::string> names;
     std::string item;
     char buffer[0x5000];
-    gameapi::GetPrivateProfileSectionA(section, buffer, sizeof(buffer), path_.c_str());
+    gameapi::GetPrivateProfileSectionA(section, buffer, sizeof(buffer), path.c_str());
     if (buffer[0] == '\0') return names;
     const char* start = buffer;
     for (int i = 0; i < static_cast<int>(sizeof(buffer)); ++i) {
@@ -55,7 +55,7 @@ std::vector<std::string> CIniFile::GetKeyNames(const char* section) {
 std::string CIniFile::GetString(const char* section, const char* key, const char* defaultValue) {
     char buffer[0x400];
     std::memset(buffer, 0, 4);
-    gameapi::GetPrivateProfileStringA(section, key, defaultValue, buffer, 0x3FF, path_.c_str());
+    gameapi::GetPrivateProfileStringA(section, key, defaultValue, buffer, 0x3FF, path.c_str());
     return std::string(buffer);
 }
 

@@ -89,8 +89,8 @@ RolledSpell RollItemSpell(ItemStock* stock, ItemKind kind, const itemdb::ItemRec
     if (count == 0) return roll;
     unsigned index = count > 1 ? g_random.Next() % count : 0;
     CSpell* spell = *std::next(roll.generated.begin(), index);
-    EI_NAN_AUDIT(spell->manaCost_, capacity->power);
-    if (spell->manaCost_ <= capacity->power) roll.chosen = spell;
+    EI_NAN_AUDIT(spell->manaCost, capacity->power);
+    if (spell->manaCost <= capacity->power) roll.chosen = spell;
     return roll;
 }
 
@@ -123,7 +123,7 @@ std::vector<int> MagicIndices(const std::vector<Record*>& records, int (*indexOf
 }
 
 // One instruction item per index: kind ItemKind::Loot with the loot prototype named `prototypeName`, no material,
-// index_ the index and count_ a random count.
+// index the index and count a random count.
 void GenerateInstructions(ItemStock* stock, const char* prototypeName, const std::vector<int>& indices, int minCount,
                           int maxCount, std::list<CItem*>* out) {
     CItemConstructor* ctor = stock->party->ItemConstructor();
@@ -131,8 +131,8 @@ void GenerateInstructions(ItemStock* stock, const char* prototypeName, const std
     itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(prototypeName);
     for (int index : indices) {
         CItem* item = ctor->BuildItem(manager, ItemKind::Loot, prototype);
-        AsLoot(item)->index_ = static_cast<std::uint32_t>(index);
-        item->count_ = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
+        AsLoot(item)->index = static_cast<std::uint32_t>(index);
+        item->count = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
         item->AddRef();
         out->push_back(item);
     }
@@ -199,7 +199,7 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
         if (prototype->family == game::WandText()) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(prototype->Kind());
-        ctor->prototype_ = prototype;
+        ctor->prototype = prototype;
         bool needsMaterial = text::CompareIgnoringCase(prototype->materialClass.c_str(), game::NoneText()) != 0;
         candidates.clear();
         if (needsMaterial) {
@@ -220,18 +220,18 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
             chosen = candidates.front();
         }
         if (chosen) chosen->left -= static_cast<int>(prototype->materialUnits);
-        ctor->material_ = chosen ? chosen->record : nullptr;
+        ctor->material = chosen ? chosen->record : nullptr;
 
         RolledSpell roll;   // its spells released after the build
         if (spellRecipes) {
-            roll = RollItemSpell(this, prototype->Kind(), prototype, ctor->material_);
-            if (roll.chosen) ctor->spell_ = roll.chosen;
+            roll = RollItemSpell(this, prototype->Kind(), prototype, ctor->material);
+            if (roll.chosen) ctor->spell = roll.chosen;
         }
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         item->AddRef();
         if (item->Kind() == ItemKind::Quick && item->GetCategory() == QuickItemCategory::Potion)
-            item->count_ = static_cast<std::uint32_t>(libcrt::RandBelow(30) + 20);
+            item->count = static_cast<std::uint32_t>(libcrt::RandBelow(30) + 20);
         out->push_back(item);
     }
 }

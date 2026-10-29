@@ -35,7 +35,7 @@ constexpr int kStateSendingCamera = 2;
 // message 12). EI_Plugin's Pause writes it: '2' for a pause, '3' ("reserved_03") for a resume.
 void SetPauseTextDigit(std::uint8_t pause) { g_pauseMessageKey[10] = static_cast<char>('3' - pause); }
 
-bool Able(CUnit* unit) { return unit && !(unit->flags_ & MapObjectFlag::Blocked) && !unit->IsDead(); }
+bool Able(CUnit* unit) { return unit && !(unit->flags & MapObjectFlag::Blocked) && !unit->IsDead(); }
 
 // The cast messages' layouts as they arrive (0xD / 0x15 bytes).
 #pragma pack(push, 1)
@@ -66,21 +66,21 @@ int CPlayerServer::OnLeave() {
 }
 
 int CPlayerServer::OnGameStateRequest() {
-    if (state_ != kStateJoined) return 0;
-    CPlayer* player = player_;
-    int state;
-    g_receivedMessages.ReadValue(state);
-    player->sessionKind_ = state;
-    g_serverWorld.CollectParty(player, &placements_);
+    if (state != kStateJoined) return 0;
+    CPlayer* currentPlayer = player;
+    int gameState;
+    g_receivedMessages.ReadValue(gameState);
+    currentPlayer->sessionKind = gameState;
+    g_serverWorld.CollectParty(currentPlayer, &placements);
     SendParty();
-    std::uint8_t type = kMessageGameState;
-    out_.WriteValue(type);
-    int value = player->sessionKind_;
-    out_.WriteValue(value);
-    value = g_serverWorld.tick_;
-    out_.WriteValue(value);
-    player->dirty_ &= ~PlayerDirty::GameState;
-    state_ = kStateSendingCamera;
+    std::uint8_t messageType = kMessageGameState;
+    out.WriteValue(messageType);
+    int value = currentPlayer->sessionKind;
+    out.WriteValue(value);
+    value = g_serverWorld.tick;
+    out.WriteValue(value);
+    currentPlayer->dirty &= ~PlayerDirty::GameState;
+    state = kStateSendingCamera;
     return 1;
 }
 
@@ -93,28 +93,28 @@ int CPlayerServer::OnPause() {
     // test by the pausing player's own leader; 3 skips the announcement.
     const int mode = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginPause) ? ei::rebirth::PluginPause() : 0;
     const bool announceResume = mode == 1 || mode == 2;
-    if (IsMultiplayerClient() && server && !(server->flags7_ & CRefCounted::kDetached) && (pause || announceResume)) {
+    if (IsMultiplayerClient() && server && !(server->flags7 & CRefCounted::kDetached) && (pause || announceResume)) {
         if (announceResume) SetPauseTextDigit(pause);
         int leader = server->LeaderId();
-        const int own = static_cast<int>(player_->Party()->members_[0].unitId);
+        const int own = static_cast<int>(player->Party()->members[0].unitId);
         if (mode == 2)
             leader = own;
         else if (own != leader)
             return 1;
         net::PlayerMessage* record = server->FindPlayer(leader);
         if (IsLive(record) && mode != 3)
-            server->AnnounceText(kTextPause, record->name_.data(), nullptr);
+            server->AnnounceText(kTextPause, record->name.data(), nullptr);
     }
-    player_->ServerWorld()->SetServerPaused(pause != 0 ? 1 : 0);
+    player->ServerWorld()->SetServerPaused(pause != 0 ? 1 : 0);
     return 1;
 }
 
 int CPlayerServer::OnCastAtObject() {
     CastAtObject message;
     g_receivedMessages.ReadValue(message);
-    CPlayer* player = player_;
-    CMapObject* target = player->WorldContext()->ObjectWithId(message.targetId);
-    CUnit* unit = player->WorldContext()->FindUnit(message.unitId);
+    CPlayer* currentPlayer = player;
+    CMapObject* target = currentPlayer->WorldContext()->ObjectWithId(message.targetId);
+    CUnit* unit = currentPlayer->WorldContext()->FindUnit(message.unitId);
     if (target && Able(unit)) {
         AIBrain* brain = &unit->ServerController()->brain;
         if (PlayerMode* mode = brain->FindPlayerMode())
@@ -126,7 +126,7 @@ int CPlayerServer::OnCastAtObject() {
 int CPlayerServer::OnCastAtPoint() {
     CastAtPoint message;
     g_receivedMessages.ReadValue(message);
-    CUnit* unit = player_->WorldContext()->FindUnit(message.unitId);
+    CUnit* unit = player->WorldContext()->FindUnit(message.unitId);
     if (Able(unit)) {
         AIBrain* brain = &unit->ServerController()->brain;
         if (PlayerMode* mode = brain->FindPlayerMode()) {
@@ -140,7 +140,7 @@ int CPlayerServer::OnCastAtPoint() {
 int CPlayerServer::OnWantedWeapon() {
     UnitByte message;
     g_receivedMessages.ReadValue(message);
-    CUnit* unit = player_->WorldContext()->FindUnit(message.unitId);
+    CUnit* unit = player->WorldContext()->FindUnit(message.unitId);
     if (Able(unit)) unit->ServerController()->SetWantedWeapon(message.value);
     return 1;
 }
@@ -148,7 +148,7 @@ int CPlayerServer::OnWantedWeapon() {
 int CPlayerServer::OnMoveStyle() {
     UnitByte message;
     g_receivedMessages.ReadValue(message);
-    CUnit* unit = player_->WorldContext()->FindUnit(message.unitId);
+    CUnit* unit = player->WorldContext()->FindUnit(message.unitId);
     if (unit && !unit->IsDead()) unit->ServerController()->SetMoveStyle(message.value);
     return 1;
 }
@@ -157,26 +157,26 @@ int CPlayerServer::OnUnitLookup() {
     int values[2];
     g_receivedMessages.ReadValue(values[0]);
     g_receivedMessages.ReadValue(values[1]);
-    player_->WorldContext()->FindUnit(values[0]);
+    player->WorldContext()->FindUnit(values[0]);
     return 1;
 }
 
 int CPlayerServer::OnFollow() {
     int ids[2];   // unit, leader
     g_receivedMessages.Read(ids, 8);
-    CPlayer* player = player_;
-    CUnit* unit = player->WorldContext()->FindUnit(ids[0]);
+    CPlayer* currentPlayer = player;
+    CUnit* unit = currentPlayer->WorldContext()->FindUnit(ids[0]);
     if (!unit) return 1;
-    CUnit* leader = player->WorldContext()->FindUnit(ids[1]);
+    CUnit* leader = currentPlayer->WorldContext()->FindUnit(ids[1]);
     AIBrain* brain = &unit->ServerController()->brain;
     if (PlayerMode* mode = brain->FindPlayerMode()) mode->SetLeader(brain, leader);
     return 1;
 }
 
 int CPlayerServer::OnFightAtWill() {
-    int id;
-    g_receivedMessages.ReadValue(id);
-    CUnit* unit = player_->WorldContext()->FindUnit(id);
+    int objectId;
+    g_receivedMessages.ReadValue(objectId);
+    CUnit* unit = player->WorldContext()->FindUnit(objectId);
     std::int8_t value = 0;
     g_receivedMessages.ReadValue(value);
     if (unit) unit->SetFightAtWill(value);
@@ -186,7 +186,7 @@ int CPlayerServer::OnFightAtWill() {
 int CPlayerServer::OnLastPosition() {
     std::uint32_t xy[2];   // bit for bit
     g_receivedMessages.Read(xy, 8);
-    lastPosition_.x = std::bit_cast<float>(xy[0]);
-    lastPosition_.y = std::bit_cast<float>(xy[1]);
+    lastPosition.x = std::bit_cast<float>(xy[0]);
+    lastPosition.y = std::bit_cast<float>(xy[1]);
     return 1;
 }

@@ -33,6 +33,6 @@ public:
     // target. Then entries with flag 31 are erased.
     void Draw(CSceneRenderer* renderer);
 
-    Ref<CTexture> texture_;   // the digits texture
-    std::list<FlyingHitPoint> points_;
+    Ref<CTexture> texture;    // the digits texture
+    std::list<FlyingHitPoint> points;
 };

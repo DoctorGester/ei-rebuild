@@ -2,7 +2,7 @@
 // figure part meshes built on the common base: 0x41 with two empty arrays (CSharedFigureMesh), 0x42 with four
 // more (CPlainFigureMesh), 0x43 the same (CUiMesh, ui.h); the original inlines their constructors. 0x44 and
 // 0x300B-0x300D (AnimationTrack, FigureBone, CFigureAnimationState) have their own. All are C++ classes,
-// allocated at the game's sizes. The new object's type_ gets the class id; an unknown id or a failed
+// allocated at the game's sizes. The new object's type gets the class id; an unknown id or a failed
 // allocation returns null. See docs/notes/models.md.
 #include "engine_object.h"   // CEngineObject
 #include "figure_manager.h"   // FigureObjectType
@@ -45,6 +45,6 @@ void* Create(int classId) {
 void* CreateFigureObject(int classId) {
     void* object = Create(classId);
     if (!object) return nullptr;
-    static_cast<CEngineObject*>(object)->type_ = classId;
+    static_cast<CEngineObject*>(object)->type = classId;
     return object;
 }

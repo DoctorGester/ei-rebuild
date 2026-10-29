@@ -27,7 +27,7 @@ public:
     void ResetState() override { Clear(); }
     int Receive() override { return ReceiveMessages(); }
 
-    // The local view's orders, queued for the server (out_), each a type byte and a payload; all return 1.
+    // The local view's orders, queued for the server (out), each a type byte and a payload; all return 1.
     // Units go as their ids (-1 for a null entry).
     // 0x30 walk / 0x3A go to: the units, `run`, the point.
     int SendWalk(const std::vector<CUnit*>* units, const Vector3& to, int run);
@@ -73,22 +73,22 @@ public:
     // 0x09 (resume).
     int SendResume();
 
-    // State 0: once the link is connected, the party (message 8, with the variables, when sendParty_ is set)
-    // and the login (message 0: version 100, "Tango", "Very top secret", the player's partyId_) are queued,
+    // State 0: once the link is connected, the party (message 8, with the variables, when sendParty is set)
+    // and the login (message 0: version 100, "Tango", "Very top secret", the player's partyId) are queued,
     // state 1, and everything is sent (SendToServer's result); without a connected link 1. State 1: 1.
     // State 2: the camera's anchor x, y as message 0x40, then sent. Other states: sent.
     bool Pump();
     // Compresses the queued requests and sends them on the link; the queue is emptied unless there is no
     // link. 1 without a link, 0 when it is not connected, else the send's result.
     bool SendToServer();
-    // Runs every message of in_ (from its start) through the handlers by type. 1 at the end of the stream;
+    // Runs every message of in (from its start) through the handlers by type. 1 at the end of the stream;
     // a read past the end, a type without a handler or a refusing handler ends in the fatal error (its
     // result returned).
     int DispatchMessages();
     // The client world's frame, with the local server's stream. Appends the bytes of `source` (rewound) to
     // the received stream, whose pending bits are stored first; its read position stays.
     void AppendReceived(CMemoryStream* source);
-    // One packet from the link, decompressed into in_ and dispatched: 1 when there was none or it ran
+    // One packet from the link, decompressed into in and dispatched: 1 when there was none or it ran
     // through, 0 without a link, when the receive failed or the dispatch returned 0.
     int ReceiveMessages();
 
@@ -145,13 +145,13 @@ public:
     int OnStringEvent();
     // Message 0x60. The party state (CPlayerServer::SendPartyState): the old party units lose
     // MapObjectFlag::InParty and their ids go into a set; the world's pause flag (byte); a dword (dropped); the new
-    // party ids (partyUnitIds_ resized without keeping its contents), whose units get the flag and, when new to the
+    // party ids (partyUnitIds resized without keeping its contents), whose units get the flag and, when new to the
     // party, in a session of kind 1 without an owner and with a game-flow condition, their controller's
-    // fade-in; the set emptied; the world's partyDanger_; the other players' unit ids.
+    // fade-in; the set emptied; the world's partyDanger; the other players' unit ids.
     int OnPartyState();
     // Clear's state, then the handler table: 256 entries, zeroed, and the 40 handlers by message type.
     void CreateClient();
-    // State 0, partyUnitIds_ freed, both streams emptied, localSession_ and sendParty_ cleared, both coders
+    // State 0, partyUnitIds freed, both streams emptied, localSession and sendParty cleared, both coders
     // reset.
     void Clear();
     // With a link: request 2 is queued and the link records into `path` (NetLink::OpenRecording) / the link
@@ -159,7 +159,7 @@ public:
     void StartRecording(const char* path);
     void StopRecording();
 
-    // Message 0x00. Login accepted: a dword, state 2, the player's owner_ gives the player that id
+    // Message 0x00. Login accepted: a dword, state 2, the player's owner gives the player that id
     // (CPlayerManager::ChangeId).
     int OnLoginAccepted();
     // Message 0x01. The player disconnects (CPlayer::Disconnect).
@@ -168,8 +168,8 @@ public:
     // party's zone "gz20g" the camera takes distance 23 and a 30-degree pitch (SetDistancePitch), elsewhere
     // view 6 (mode 3) or 7 (RestoreView); then SetHeading. Returns the last Read's byte count.
     int OnCameraPlacement();
-    // Message 0x07. The game state and the world tick: the player's lastScreen_ keeps the old state. While
-    // localSession_ is set only an Enter key-down goes to the interface; otherwise the state is stored, the
+    // Message 0x07. The game state and the world tick: the player's lastScreen keeps the old state. While
+    // localSession is set only an Enter key-down goes to the interface; otherwise the state is stored, the
     // interface makes its screen, the tick is set, state 3 refreshes the client world's units, every unit
     // of the player goes through UnitChanged (the walk stops at a null one) and a multiplayer client
     // updates from the server.
@@ -220,23 +220,23 @@ public:
     // has one member, `unit`, puts its id (-1 when it left) in the login record and raises its version.
     void NotifyUnitChanged(CUnit* unit);
 
-    // The base's state_: 0 connecting, 1 logged in, 2 sending the camera, 3 between zones.
+    // The base's state: 0 connecting, 1 logged in, 2 sending the camera, 3 between zones.
     using Handler = int (CPlayerClient::*)();
-    std::vector<Handler> handlers_;   // by message type (null: refused; 256 of them)
-    CMemoryStream in_;                  // the server's messages being run
-    CMemoryStream out_;                 // requests for the server
+    std::vector<Handler> handlers;    // by message type (null: refused; 256 of them)
+    CMemoryStream in;                   // the server's messages being run
+    CMemoryStream out;                  // requests for the server
     // A local session (GameStartLocalSession sets it): a unit's network owner becomes the local
     // player whatever its id (CUnit::ReadNetState), and the game-state message only presses Enter.
-    std::uint8_t localSession_;
+    std::uint8_t localSession;
     // The login sends the party first: the flow sets it once the local player took the requested party,
     // clears it for a new zone.
-    std::uint8_t sendParty_;
-    CoderState compressor_;         // for the requests sent
-    CoderState decompressor_;       // for the messages received
+    std::uint8_t sendParty;
+    CoderState compressor;          // for the requests sent
+    CoderState decompressor;        // for the messages received
     // The ids of the party's units (message 0x60; the HUD's map and the client world's NearestVisibleUnit
     // read them).
-    std::vector<int> partyUnitIds_;
+    std::vector<int> partyUnitIds;
     // The ids of the other players' units the map shows (message 0x60).
-    std::vector<int> otherUnitIds_;
+    std::vector<int> otherUnitIds;
 };
 

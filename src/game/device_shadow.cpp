@@ -33,7 +33,7 @@ void HandOver(CTextureDevice* device, const VertexPacket* positions, const void*
     m.cornerCount = count;
     m.indices = indices;
     m.indexCount = indexCount;
-    m.matrix = device->pipeline_->Top(kScreenStack);
+    m.matrix = device->pipeline->Top(kScreenStack);
     m.screenMatrix = true;
     m.clipped = clipped;
     m.distanceFog = false;   // no fog pass here
@@ -43,7 +43,7 @@ void HandOver(CTextureDevice* device, const VertexPacket* positions, const void*
 
 int DrawFlat(CTextureDevice* device, const VertexPacket* positions, const void* uvs, int blocks,
              const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular) {
-    CTransformPipeline* pipeline = device->pipeline_;
+    CTransformPipeline* pipeline = device->pipeline;
     int count = blocks * 4;
     std::uint32_t colours[2] = {colour, specular};
     g_projected.resize(count);
@@ -62,10 +62,10 @@ int DrawFlat(CTextureDevice* device, const VertexPacket* positions, const void* 
 // `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex. Returns 2 when
 // nothing is visible, else 0.
 int CTextureDevice::DrawFlatBlocks(const VertexPacket* positions, const void* uvs, int blocks,
-                                   const std::uint16_t* indices, int indexCount, std::uint32_t colour,
+                                   const std::uint16_t* indices, int indexCount, std::uint32_t fillColour,
                                    std::uint32_t specular) {
     render::BeginFlatDrawTime(blocks * 4);
-    int result = DrawFlat(this, positions, uvs, blocks, indices, indexCount, colour, specular);
+    int result = DrawFlat(this, positions, uvs, blocks, indices, indexCount, fillColour, specular);
     render::EndMesh();
     render::EndFlatDrawTime();
     return result;

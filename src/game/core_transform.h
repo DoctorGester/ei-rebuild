@@ -34,8 +34,8 @@ public:
     void TurnUpTowards(const Vector3& dir, int reduced); // up axis towards dir (0.4 of it if reduced)
     void SetHeading(const float* dir);                   // turn about +Z by atan2(dir[1], dir[0])
 
-    Vector3 localPosition_;
-    Vector3 worldPosition_;
-    Quaternion localRotation_;
-    Quaternion worldRotation_;
+    Vector3 localPosition;
+    Vector3 worldPosition;
+    Quaternion localRotation;
+    Quaternion worldRotation;
 };

@@ -10,12 +10,12 @@ public:
     virtual ~CRendererBase();
 
 
-    void AddRef() { ++refs_; }
+    void AddRef() { ++refs; }
     void Release() {
-        if (--refs_ == 0) delete this;
+        if (--refs == 0) delete this;
     }
 
-    int refs_ = 0;
+    int refs = 0;
 
 protected:
     CRendererBase() {}

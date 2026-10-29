@@ -64,7 +64,7 @@ constexpr HitPart kHitParts[6] = {{"hd", 1}, {"bd", 7}, {"lh2", 3}, {"rh2", 4}, 
 constexpr int kBloodParticles[8] = {static_cast<int>(ParticleType::Shower1), static_cast<int>(ParticleType::Shower2), static_cast<int>(ParticleType::Shower3), static_cast<int>(ParticleType::Shower4), static_cast<int>(ParticleType::Shower1), static_cast<int>(ParticleType::Shower2), static_cast<int>(ParticleType::Shower3), static_cast<int>(ParticleType::Shower4)};
 
 // The party light (r, g, b; radius).
-const float* PartyLightColour() { return &options::g_options.heroLight_.red; }
+const float* PartyLightColour() { return &options::g_options.heroLight.red; }
 
 // The hit sound's folder by the weapon class (kinds 7 and 8 and above 15 have none).
 const char* HitSoundFormat(std::uint8_t kind) {
@@ -124,8 +124,8 @@ std::uint8_t HitSoundKind(CUnit* unit) {
 }
 } // namespace
 
-void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t flags) {
-    if (flags & UnitStatsFlag::Alive) return;
+void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t statFlags) {
+    if (statFlags & UnitStatsFlag::Alive) return;
     EI_NAN_AUDIT(amount);
     if (amount <= kMinAmount) return;
     std::string material = unit->GetPrototypeModel()->hitMaterial;
@@ -143,18 +143,18 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     if (const char* format = HitSoundFormat(HitSoundKind(unit))) sound = str::Format(format, material);
     if (sound.size() != 0) {
         auto* world = ClientWorld();
-        world->sounds_->Play3D(sound, kSoundPriority, &unit->localPosition_.x, kSoundNear, kSoundFar, 0);
+        world->sounds->Play3D(sound, kSoundPriority, &unit->localPosition.x, kSoundNear, kSoundFar, 0);
     }
 
     if (location < 0 || location > 5) return;
     const HitPart& hit = kHitParts[location];
     auto* part = unit->FindPartByPrefix(hit.name);
-    if (!part || !(unit->flags_ & MapObjectFlag::FiguresLoaded)) return;
+    if (!part || !(unit->flags & MapObjectFlag::FiguresLoaded)) return;
     std::uint32_t blood = unit->GetPrototypeModel()->bloodKind;
     if (blood >= 1 && blood <= 8) {
-        auto* source = g_clientWorld.particleManager_->CreateSource(kBloodParticles[blood - 1]);
-        source->localPosition_ = {0.0f, 0.0f, kBloodHeight};
-        source->ScaleSize(part->box_.bounds.radius * kBloodScale);
+        auto* source = g_clientWorld.particleManager->CreateSource(kBloodParticles[blood - 1]);
+        source->localPosition = {0.0f, 0.0f, kBloodHeight};
+        source->ScaleSize(part->box.bounds.radius * kBloodScale);
         source->typeParam = kBloodRate;
         float alpha = amount;
         if (alpha < kBloodMinAlpha) alpha = kBloodMinAlpha;
@@ -166,7 +166,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     if (blood == 0 || blood > kLastDecalBlood) return;
     float smaller = SmallerExtent(unit);
     float reach = 1.0f >= smaller ? 1.0f : smaller;
-    float sizeStored = (part->box_.bounds.boxMax.y + part->box_.bounds.boxMax.x) * 0.5f * kDecalScale;
+    float sizeStored = (part->box.bounds.boxMax.y + part->box.bounds.boxMax.x) * 0.5f * kDecalScale;
     float size = sizeStored;
     Vector3 at;
     unit->PartWorldPosition(&at.x, part);
@@ -181,8 +181,8 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
 }
 
 void CUnitClientSpecific::Wound() {
-    auto* source = g_clientWorld.particleManager_->CreateSource(kSparks);
-    source->localPosition_ = {0.0f, 0.0f, 0.0f};
+    auto* source = g_clientWorld.particleManager->CreateSource(kSparks);
+    source->localPosition = {0.0f, 0.0f, 0.0f};
     source->ScaleSize(unit->bounds.radius);
     source->alpha = kSparkAlpha;
     source->Attach(unit);
@@ -199,15 +199,15 @@ void CUnitClientSpecific::Died() {
     Vector3 at;
     float size;
     if (auto* body = unit->FindPartByPrefix("bd")) {
-        float stored = (body->box_.bounds.boxMax.y + body->box_.bounds.boxMax.x) * 0.5f;
+        float stored = (body->box.bounds.boxMax.y + body->box.bounds.boxMax.x) * 0.5f;
         size = stored;
         unit->PartWorldPosition(&at.x, body);
     } else {
         float stored = static_cast<float>(SmallerExtent(unit) * kDeathDecalScale);
         size = stored;
-        at.x = unit->localPosition_.x;
-        at.y = unit->localPosition_.y;
-        at.z = unit->localPosition_.z;
+        at.x = unit->localPosition.x;
+        at.y = unit->localPosition.y;
+        at.z = unit->localPosition.z;
     }
     std::uint32_t variant = DecalVariant() + kDeathVariantBase;
     g_clientWorld.AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
@@ -217,5 +217,5 @@ void CUnitClientSpecific::PlayerChanged(void* player) {
     if (!player) return;
     const float* rgb = PartyLightColour();
     float colour[4] = {rgb[0], rgb[1], rgb[2], 1.0f};
-    unit->MapObject()->ClientCompanion()->CreateLight(colour, options::g_options.heroLight_.radius, false);
+    unit->MapObject()->ClientCompanion()->CreateLight(colour, options::g_options.heroLight.radius, false);
 }

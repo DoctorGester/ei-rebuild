@@ -15,14 +15,14 @@ namespace {
 // The owning manager's context (object.cpp; the world, an engine object), and appending a point.
 CEngineObject* ContextOf(FigureMeshDrawer* node) { return reinterpret_cast<CEngineObject*>(node->ManagerContext()); }
 
-constexpr std::uint32_t kShowBounds = 0x4000;   // the context's flags_
+constexpr std::uint32_t kShowBounds = 0x4000;   // the context's flags
 
 } // namespace
 
 void FigureMeshDrawer::DrawBounds(CSceneRenderer* renderer) {
-    if (!(ContextOf(this)->flags_ & kShowBounds)) return;
+    if (!(ContextOf(this)->flags & kShowBounds)) return;
     LineBatch lines{{}, 0, 0xFFFF0000u};
-    const ClipBounds& bounds = mesh_->box_.bounds;
+    const ClipBounds& bounds = mesh->box.bounds;
     const float* origin = &bounds.center.x;
     const float* nearExtent = &bounds.boxMin.x;
     const float* farExtent = &bounds.boxMax.x;

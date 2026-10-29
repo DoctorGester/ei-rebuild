@@ -29,7 +29,7 @@ class CEffectParticle;
 class CEffectPointLight;
 
 // The spell types: the spell prototype index (the order of the spell database in database.res, CSpell's
-// prototypeId_ >> 16), also an active effect's type (MapEffect::type: a buff copies its spell's). Names from the
+// prototypeId >> 16), also an active effect's type (MapEffect::type: a buff copies its spell's). Names from the
 // prototypes' names (the code name where it differs), the sound folders under magic\ and the Start* functions. The
 // 1.06 database and Rebirth's both have all 42. Shapechange and Comprehend start nothing; Teleport's record on the
 // caster stuns it like Stun's (the client draws no particles for it). MapEffect::Type() reads the byte.
@@ -78,7 +78,7 @@ enum class SpellType : int {
     CurseMagic = 0x29,              // "curse_magic", school lightning: lightning (CreateLightning's flag 1)
 };
 
-// The bits of CSpell::targetFlags_ (saved as the number). The low 16 bits restrict the targets (CanAffect; the
+// The bits of CSpell::targetFlags (saved as the number). The low 16 bits restrict the targets (CanAffect; the
 // modifiers "f?" set them; a spell with none and one target is a single missile); "it" / "ic" (the cast-flag
 // modifiers, HasCastFlagModifier) say when an item casts it; the prototype's targetKind sets the aim. The races
 // are the unit prototypes' names (spell.cpp; the goblin's reading is provisional).
@@ -98,7 +98,7 @@ enum class SpellTargetFlag : std::uint32_t {
 template <> inline constexpr bool lib::kBitFlags<SpellTargetFlag> = true;
 inline constexpr std::uint32_t kSpellTargetRestrictions = 0xFFFF;   // the low 16 bits
 
-// A spell instance ("CSpell", class id 0x4F). prototypeId_ of CEngineObject is the packed id: spell
+// A spell instance ("CSpell", class id 0x4F). prototypeId of CEngineObject is the packed id: spell
 // prototype index << 16.
 class CSpell : public CEngineObject {
 public:
@@ -107,7 +107,7 @@ public:
 
     void Create() override;
     void Destroy() override;
-    // The effect record, the parameters, the modifiers, flags_ and the last field. Load clears the modifiers
+    // The effect record, the parameters, the modifiers, flags and the last field. Load clears the modifiers
     // first.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
@@ -120,7 +120,7 @@ public:
     itemdb::SpellRecord* GetPrototype();
 
     // The prototype index of the packed id.
-    SpellType Type() const { return static_cast<SpellType>(prototypeId_ >> 16); }
+    SpellType Type() const { return static_cast<SpellType>(prototypeId >> 16); }
 
     // At most 8.
     int GetModifierCount();
@@ -135,7 +135,7 @@ public:
     // Shrink; with Rebirth's FixSpellSelfCasting also RickMagic and CurseMagic).
     bool IsOffensive();
 
-    // By the target flags in the low 16 bits of flags_; either may be null.
+    // By the target flags in the low 16 bits of flags; either may be null.
     bool CanAffect(const CUnit* caster, CMapObject* target) const;
 
     // `target`'s Destroy runs first.
@@ -144,26 +144,26 @@ public:
     CSpell* Clone(class CSpellManager* manager);
 
     // The spell's first fields are an active effect record (map_object.h), which a buff copies: its type, power,
-    // ticks (duration_), value (damage_) and strength (radius_). Effect() builds the record, SetEffect() stores one
+    // ticks (duration), value (damage) and strength (radius). Effect() builds the record, SetEffect() stores one
     // (its `ending` is not kept).
     MapEffect Effect() const;
     void SetEffect(const MapEffect& record);
 
-    std::uint8_t prototypeIndex_;
-    std::uint8_t effectPower_;      // the effect record's power, set to 0x10
-    std::uint32_t duration_;
-    float damage_;
-    float radius_;                  // the prototype's area; Build makes it a radius
-    float speed_;                   // missile speed
-    float range_;
-    std::uint32_t targetCount_;
-    std::uint32_t targetFlags_;     // SpellTargetFlag bits
-    float manaCost_;
-    std::uint32_t complexity_;      // +1 per modifier
-    float price_;
-    std::uint32_t castTime_;  // only loaded and saved
-    std::uint32_t skillNeeded_;     // the prototype's plus the modifiers'
-    std::int8_t modifiers_[8];      // spell modifier index + 1 each, 0 ends the list
+    std::uint8_t prototypeIndex;
+    std::uint8_t effectPower;       // the effect record's power, set to 0x10
+    std::uint32_t duration;
+    float damage;
+    float radius;                   // the prototype's area; Build makes it a radius
+    float speed;                    // missile speed
+    float range;
+    std::uint32_t targetCount;
+    std::uint32_t targetFlags;      // SpellTargetFlag bits
+    float manaCost;
+    std::uint32_t complexity;       // +1 per modifier
+    float price;
+    std::uint32_t castTime;   // only loaded and saved
+    std::uint32_t skillNeeded;      // the prototype's plus the modifiers'
+    std::int8_t modifiers[8];       // spell modifier index + 1 each, 0 ends the list
 };
 
 // The damage a hit deals, filled by the spell effects and the weapon code.
@@ -257,7 +257,7 @@ public:
     Ref<CUnit> caster;      // null for traps and scripts
     Vector3 targetPoint;
     int state;                  // 0 casting, 1 missile, 2 lasting, else ends
-    CSpell spell_;
+    CSpell spell;
     CEffect* visual = nullptr;            // particle source, wall, lightning or missile (counted)
     CEffect* sound = nullptr;             // a sound or a sound sequence (counted)
     CEffectPointLight* light = nullptr;   // counted
@@ -268,8 +268,8 @@ public:
     // The visual as the effect class its spell type creates.
     template <class T> T* Visual() const { return static_cast<T*>(visual); }
 
-    CSpell* Spell() { return &spell_; }
-    const CSpell* Spell() const { return &spell_; }
+    CSpell* Spell() { return &spell; }
+    const CSpell* Spell() const { return &spell; }
 };
 
 // Whether area spells hit `unit`: units with a size class, and those whose prototype's height is below 0.5
@@ -304,11 +304,11 @@ public:
     void Build();
 
 
-    const itemdb::SpellRecord* prototype_;
-    std::list<itemdb::SpellModifierRecord*> modifiers_;
-    std::string codes_;             // modifier index + 1 per modifier
-    CSpell spell_;
-    std::string name_;             // always empty
+    const itemdb::SpellRecord* prototype;
+    std::list<itemdb::SpellModifierRecord*> modifiers;
+    std::string codes;              // modifier index + 1 per modifier
+    CSpell spell;
+    std::string name;              // always empty
 };
 
 // The spell manager's "sequences" (keyed by the high half of a packed spell id): containers keyed by the low
@@ -322,13 +322,13 @@ struct SpellSequence {
     std::uint32_t maxLow;
 };
 
-// The spell manager's object types (CreateObject / type_).
+// The spell manager's object types (CreateObject / type).
 enum class SpellObjectType : int {
     Spell = 0x3002,      // CSpell
     Container = 0x3003,  // CSpellContainer
 };
 
-// The spell manager; context_ gives the spell constructor.
+// The spell manager; context gives the spell constructor.
 class CSpellManager : public CResourceManager {
 public:
     CSpellManager();
@@ -363,8 +363,8 @@ public:
 
     // By the high half of a packed id. Its entries are only the null ones CreateSpellObject's lookup adds, so the
     // destructor's walk (which stops at a null entry) deletes nothing in any order.
-    std::unordered_map<std::uint32_t, SpellSequence*> sequences_;
-    std::uint32_t maxSequenceKey_;   // the largest key asked for
+    std::unordered_map<std::uint32_t, SpellSequence*> sequences;
+    std::uint32_t maxSequenceKey;    // the largest key asked for
 };
 
 class CSpellConstructor : public CEngineObject {
@@ -391,11 +391,11 @@ public:
     // Rebuilds when the prototype accepts it.
     bool AddModifier(itemdb::SpellModifierRecord* modifier);
 
-    CSpellManager* manager_;        // counted but never released
-    Ref<CSpellContainer> container_;
+    CSpellManager* manager;         // counted but never released
+    Ref<CSpellContainer> container;
 };
 
-// The bits of CEngineObject::flags_ on a light. A point light effect's lightFlags_ (saved) are ored in: the spells'
+// The bits of CEngineObject::flags on a light. A point light effect's lightFlags (saved) are ored in: the spells'
 // and missiles' lights take Specular | Strong.
 enum class LightFlag : std::uint32_t {
     Changed = 0x8,          // SetPoint / SetDirectional; nothing reads it
@@ -411,8 +411,8 @@ enum class LightFlag : std::uint32_t {
 };
 template <> inline constexpr bool lib::kBitFlags<LightFlag> = true;
 
-// A light. type_ 0x31 is a point light. localPosition_ is the light's position (where a directional light is
-// drawn from); worldPosition_ holds it in the space of the mesh being lit.
+// A light. type 0x31 is a point light. localPosition is the light's position (where a directional light is
+// drawn from); worldPosition holds it in the space of the mesh being lit.
 class CLight : public CTransformObject {
 public:
     // Luminance of the colour, falling off with the squared distance for point lights.
@@ -436,15 +436,15 @@ public:
     void AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3& normal, const Vector3& toLight,
                   float distance) const;
 
-    int kind_;                      // 1 point, 3 directional
-    float color_[3];                // r, g, b
-    Vector3 pointPosition_;         // SetPoint's position
-    Vector3 direction_;             // a directional light's (the sun's) direction
-    float range_;
-    float rangeSquared_;
-    float inverseRangeSquared_;
-    Vector3 localDirection_;        // direction_ in the space of the mesh being lit
-    float litColors_[2][4];
+    int kind;                       // 1 point, 3 directional
+    float color[3];                 // r, g, b
+    Vector3 pointPosition;          // SetPoint's position
+    Vector3 direction;              // a directional light's (the sun's) direction
+    float range;
+    float rangeSquared;
+    float inverseRangeSquared;
+    Vector3 localDirection;         // direction in the space of the mesh being lit
+    float litColors[2][4];
 };
 
 // The light factory ("CLightManager"): lights of class 0x2E (the renderer's default light) and 0x31 (point
@@ -460,11 +460,11 @@ public:
     CEngineObject* NewObject(int type) override;
     // LightFlag::Hidden cleared (no null check).
     CEngineObject* CreateObject(int type, int id) override;
-    CLight* LightWithId(unsigned id) const { return FindObjectAs<CLight>(id); }
-    CLight* CreateLight(int type, int id = -1) { return CreateObjectAs<CLight>(type, id); }
+    CLight* LightWithId(unsigned lightId) const { return FindObjectAs<CLight>(lightId); }
+    CLight* CreateLight(int lightType, int lightId = -1) { return CreateObjectAs<CLight>(lightType, lightId); }
 
-    CEngineObject* held_;           // released by the destructor
-    std::list<int> litIds_;
+    CEngineObject* held;            // released by the destructor
+    std::list<int> litIds;
 };
 
 // Case-insensitive; null if none.

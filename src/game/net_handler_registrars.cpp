@@ -16,7 +16,7 @@ namespace {
 void RegisterHandler(SessionBase* self, int channel, MessageHandler handler, Message* (*factory)()) {
     SharedRef<Message> prototype(factory());
     const std::uint32_t key = TypeRegistry::KeyOf(prototype);
-    int type = self->types_.TypeOf(&key);
+    int type = self->types.TypeOf(&key);
     self->AddHandler(channel, static_cast<std::uint32_t>(type), handler);
 }
 

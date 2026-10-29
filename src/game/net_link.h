@@ -29,7 +29,7 @@ public:
     // A fresh stream; `other` is not read.
     FileStream(const FileStream& other);
     ~FileStream() override;
-    std::uint32_t Read(void* buffer, std::uint32_t size) override;     // a short read clears ok_
+    std::uint32_t Read(void* buffer, std::uint32_t size) override;     // a short read clears ok
     void Write(const void* buffer, std::uint32_t size) override;
     void Seek(std::uint32_t position) override;                        // SeekFrom
     std::uint32_t Size() override;
@@ -38,21 +38,21 @@ public:
 
     // Seeks from the start; returns the file's position.
     long SeekFrom(long position);
-    // ok_ again, back to the start; returns the seek's result.
+    // ok again, back to the start; returns the seek's result.
     long Restart();
 
-    // The direction byte, then the file's Open; ok_ tells whether it opened.
-    bool Open(std::string_view path, unsigned flags, std::uint8_t reading) {
-        reading_ = reading;
-        ok_ = file_.Open(path, flags);
-        return ok_ != 0;
+    // The direction byte, then the file's Open; ok tells whether it opened.
+    bool Open(std::string_view path, unsigned flags, std::uint8_t newReading) {
+        reading = newReading;
+        ok = file.Open(path, flags);
+        return ok != 0;
     }
-    void Close() { file_.Close(); }
+    void Close() { file.Close(); }
 
     static constexpr unsigned kOpenRead = lib::File::modeRead;
     static constexpr unsigned kOpenWrite = lib::File::modeCreate | lib::File::modeWrite;
 
-    lib::File file_;
+    lib::File file;
 };
 
 class NetLink : public CRefObject {
@@ -75,12 +75,12 @@ public:
     // are written to the file with their size.
     void Record(CStream* stream);
 
-    std::uint8_t recording_;
-    std::uint8_t skipNext_;      // the next recorded message is dropped (set by OpenRecording)
-    FileStream record_;
+    std::uint8_t recording;
+    std::uint8_t skipNext;       // the next recorded message is dropped (set by OpenRecording)
+    FileStream record;
 
 protected:
-    // The record stream, not recording (the count and skipNext_ are the creator's).
+    // The record stream, not recording (the count and skipNext are the creator's).
     NetLink();
     // `source`'s recording flags, a fresh record stream (the file is not shared).
     NetLink(const NetLink& source);
@@ -106,8 +106,8 @@ public:
     // Two links joined to each other; the first goes to the player's link, the second is returned.
     static LoopbackLink* CreatePair(CWorldHandle* player);
 
-    std::list<CMemoryStream> queue_;
-    Ref<LoopbackLink> peer_;
+    std::list<CMemoryStream> queue;
+    Ref<LoopbackLink> peer;
 };
 
 class ReplayLink final : public NetLink {
@@ -115,7 +115,7 @@ public:
 
     bool Connected() override { return false; }
 
-    FileStream replay_;          // the recording played back
+    FileStream replay;           // the recording played back
 };
 
 // A link that frames its messages in a byte inbox.
@@ -134,7 +134,7 @@ public:
     // `out` emptied, then given everything in the inbox, which is emptied.
     void TakeAll(CStream* out);
 
-    CMemoryStream inbox_;        // received bytes: {uint32 length, bytes} per message
+    CMemoryStream inbox;         // received bytes: {uint32 length, bytes} per message
 
 protected:
     FramedLink();
@@ -158,7 +158,7 @@ public:
     void Disconnect() override;                 // the unread bytes given back
     bool SendBytes(const void* data, std::uint32_t size) override;
 
-    Ref<net::Connection> player_;
+    Ref<net::Connection> player;
 };
 
 // The network session (made by CWorld::OpenSession): a player source with two lists of drivers.
@@ -172,8 +172,8 @@ public:
     bool Query() override { return true; }
     void TakeNew(std::list<HeldRef<netlink::NetLink>>* joined) override;   // the live holders' links appended
 
-    std::list<SharedRef<DriverLink>> drivers_;    // owning
-    std::list<HeldRef<DriverLink>> holders_;   // plain holders (released, not detached)
+    std::list<SharedRef<DriverLink>> drivers;     // owning
+    std::list<HeldRef<DriverLink>> holders;    // plain holders (released, not detached)
 
     // A driver for every new connection of `session` (the game client or server) with something queued;
     // then each driver pumped, and those whose player is gone erased.

@@ -24,7 +24,7 @@ void LoadRef(Ref<T>& ref, CStream* stream, CWorld* world) {
 }
 
 void SaveRef(const CEngineObject* object, CStream* stream) {
-    int id = object ? object->id_ : kNoObject;
+    int id = object ? object->id : kNoObject;
     stream->WriteValue(id);
 }
 

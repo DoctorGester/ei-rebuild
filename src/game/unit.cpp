@@ -36,7 +36,7 @@ constexpr int kPartEquipment = 5;
 
 float ItemWeight(const CItem* item) { return item->Weight(); }
 
-float SpellCost(const CSpell* spell) { return spell->manaCost_; }
+float SpellCost(const CSpell* spell) { return spell->manaCost; }
 
 // The party of the unit's player.
 CParty* RecordsOf(CPlayer* player) { return player->Party(); }
@@ -91,7 +91,7 @@ void CUnit::AddHostileMask(std::uint32_t mask) {
     std::uint32_t merged = relationsA | mask;
     if (relationsA == merged) return;
     relationsA = merged;
-    flags_ |= MapObjectFlag::RelationsChanged;
+    flags |= MapObjectFlag::RelationsChanged;
     MarkChanged(kPartRelations);
 }
 
@@ -102,7 +102,7 @@ void CUnit::SetRelationsB(std::uint32_t mask) {
 
 void CUnit::SetSide(int value) {
     side = value;
-    flags_ |= MapObjectFlag::RelationsChanged;
+    flags |= MapObjectFlag::RelationsChanged;
     if (controller) MarkChanged(kPartRelations);
 }
 
@@ -145,30 +145,30 @@ void CUnit::SetMoveModes(int mode, int mode2) {
 
 void CUnit::ShowHelmet(bool show) {
     if (show) {
-        flags_ &= ~MapObjectFlag::HelmetHidden;
+        flags &= ~MapObjectFlag::HelmetHidden;
     } else {
-        flags_ |= MapObjectFlag::HelmetHidden;
+        flags |= MapObjectFlag::HelmetHidden;
     }
     MarkChanged(5);
 }
 
 std::uint32_t CUnit::SetStunned(int on) {
     if (on) {
-        flags_ |= MapObjectFlag::Frozen;
+        flags |= MapObjectFlag::Frozen;
     } else {
-        flags_ &= ~MapObjectFlag::Frozen;
+        flags &= ~MapObjectFlag::Frozen;
     }
-    return flags_;
+    return flags;
 }
 
 // --- Equipment -------------------------------------------------------------------------------
 
 void CUnit::GetEquipmentIds(std::uint32_t* out) {
     for (int i = 0; i < 4; ++i) {
-        out[i] = weapons[i] ? weapons[i]->prototypeId_ : 0xFFFFFFFFu;
+        out[i] = weapons[i] ? weapons[i]->prototypeId : 0xFFFFFFFFu;
     }
     for (int i = 0; i < 7; ++i) {
-        out[4 + i] = armor[i] ? armor[i]->prototypeId_ : 0xFFFFFFFFu;
+        out[4 + i] = armor[i] ? armor[i]->prototypeId : 0xFFFFFFFFu;
     }
 }
 
@@ -194,7 +194,7 @@ void CUnit::RemoveQuickItem(std::uint32_t slot) { RemoveFromSlots(this, quickIte
 CItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
-        PartyUnitRecord* record = RecordsOf(player)->Find(id_);
+        PartyUnitRecord* record = RecordsOf(player)->Find(id);
         if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->weapons))) return nullptr;
         return AsWeapon(record->weapons[slot]);
     }
@@ -204,10 +204,10 @@ CItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
 CItem* CUnit::GetQuickItem(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
-        PartyUnitRecord* record = RecordsOf(player)->Find(id_);
+        PartyUnitRecord* record = RecordsOf(player)->Find(id);
         if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->quickItems))) return nullptr;
         CItem* item = record->quickItems[slot];
-        if (!item || static_cast<int>(item->count_) < 1) return nullptr;
+        if (!item || static_cast<int>(item->count) < 1) return nullptr;
         return item;
     }
     return slot < 4 ? quickItems[slot] : nullptr;
@@ -216,7 +216,7 @@ CItem* CUnit::GetQuickItem(std::uint32_t slot) {
 CItem* CUnit::GetSpell(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
-        PartyUnitRecord* record = RecordsOf(player)->Find(id_);
+        PartyUnitRecord* record = RecordsOf(player)->Find(id);
         if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->spells))) return nullptr;
         return record->spells[slot];
     }
@@ -226,13 +226,13 @@ CItem* CUnit::GetSpell(std::uint32_t slot) {
 CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
-        PartyUnitRecord* record = RecordsOf(player)->Find(id_);
+        PartyUnitRecord* record = RecordsOf(player)->Find(id);
         if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->spells))) return nullptr;
         // No null check on the item here.
-        return record->spells[slot]->spell_;
+        return record->spells[slot]->spell;
     }
     if (slot >= 8 || !spells[slot]) return nullptr;
-    return spells[slot]->spell_;
+    return spells[slot]->spell;
 }
 
 double CUnit::TotalItemWeight() {
@@ -270,8 +270,8 @@ bool CUnit::CanUseQuickItem(std::uint32_t slot) {
     CItem* item = object;
     if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return false;
     if (item->GetCategory() == QuickItemCategory::Wand) {
-        EI_NAN_AUDIT(item->charge_, SpellCost(item->spell_));
-        if (item->charge_ < SpellCost(item->spell_)) return false;
+        EI_NAN_AUDIT(item->charge, SpellCost(item->spell));
+        if (item->charge < SpellCost(item->spell)) return false;
     }
     return true;
 }
@@ -309,7 +309,7 @@ double CUnit::MoveSpeedFor(int mode) { return ModeSpeedOf(this, static_cast<std:
 
 double CUnit::ScaledValue(float value) {
     if (!player) return value * kThree + kTen;
-    if (flags_ & MapObjectFlag::ChoosingTarget) {
+    if (flags & MapObjectFlag::ChoosingTarget) {
         float capped = value >= kTen ? kTen : value;   // NaN is kept
         return capped * kThree + kTen;
     }
@@ -332,10 +332,10 @@ double CUnit::ModeSpeed() {
 
 // --- Prototypes ------------------------------------------------------------------------------
 
-UnitPrototypeRecord* CUnit::GetPrototype() { return unitdb::PrototypeRecord(prototypeId_); }
+UnitPrototypeRecord* CUnit::GetPrototype() { return unitdb::PrototypeRecord(prototypeId); }
 
 UnitModelRecord* CUnit::GetPrototypeModel() {
-    const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(prototypeId_);
+    const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(prototypeId);
     if (!prototype) return nullptr;
     return unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
 }

@@ -46,7 +46,7 @@ void (*g_fill)(std::uint32_t* results) = nullptr;
 
 void FixedSeed(IsaacRandom& random) {
     libcrt::Srand(12345);
-    g_fill(random.results_);
+    g_fill(random.results);
 }
 
 // The unit's slots (thiscall, RET 4) and a weapon's kind, for harness_hud_read.inc.
@@ -64,19 +64,19 @@ void* MainWindow() { return app::g_mainWindow; }
 std::uint8_t& InterfaceHasScreen() { return app::g_interfaceHasScreen; }
 std::uint8_t& RecordingFrames() { return app::g_recordingFrames; }
 bool AppActive() { return app::g_active != 0; }
-int& FlowState() { return g_gameFlow.state_; }
-void SetLoadTarget(const char* slot) { g_gameFlow.requestTarget_ = slot; }
-void ClearShowTutorial() { options::g_options.showTutorial_ = 0; }
-void SetMasterHost(const char* host) { options::g_options.masterServerName_ = host; }
-void SetWaterWaves(bool on) { options::g_options.enableWaterWaves_ = on; }
+int& FlowState() { return g_gameFlow.state; }
+void SetLoadTarget(const char* slot) { g_gameFlow.requestTarget = slot; }
+void ClearShowTutorial() { options::g_options.showTutorial = 0; }
+void SetMasterHost(const char* host) { options::g_options.masterServerName = host; }
+void SetWaterWaves(bool on) { options::g_options.enableWaterWaves = on; }
 
 CursorState Cursor() {
     const CCursor* cursor = &g_cursor;
     CursorState state;
-    state.mode = cursor->mode_;
-    state.thread = cursor->thread_ != nullptr;
-    state.imageShown = cursor->imageShown_;
-    if (const CursorImage* image = cursor->image_) {
+    state.mode = cursor->mode;
+    state.thread = cursor->thread != nullptr;
+    state.imageShown = cursor->imageShown;
+    if (const CursorImage* image = cursor->image) {
         state.image = true;
         state.hotX = image->hotX;
         state.hotY = image->hotY;
@@ -84,18 +84,18 @@ CursorState Cursor() {
     return state;
 }
 
-void* QueuedWindow() { return g_interface.queuedWindow_; }
-bool CloseAllPending() { return g_interface.closeAll_; }
+void* QueuedWindow() { return g_interface.queuedWindow; }
+bool CloseAllPending() { return g_interface.closeAll; }
 bool ScreenFade(bool* running, float* alpha) {
-    const CScreenFade* fade = g_interface.fade_;
+    const CScreenFade* fade = g_interface.fade;
     if (!fade) return false;
-    *running = fade->active_ != 0;
-    *alpha = fade->alpha_;
+    *running = fade->active != 0;
+    *alpha = fade->alpha;
     return true;
 }
-int CampaignMode() { return g_serverWorld.sessionKind_; }
+int CampaignMode() { return g_serverWorld.sessionKind; }
 void* ClientWorldObject() { return &g_clientWorld; }
-void* SceneDevice() { return g_sceneRenderer.device_.Get(); }
+void* SceneDevice() { return g_sceneRenderer.device.Get(); }
 // Our renderer takes no device lock: the harness locks game.exe's only (in its original run).
 void* DeviceLock() { return nullptr; }
 
@@ -121,8 +121,8 @@ void SetFixedSeed(void (*fill)(std::uint32_t* results)) {
 }
 int TextKey(const char* name) { return TextKeyFromName(name); }
 void* LocalWorldPlayer(int player) { return g_serverWorld.GetPlayer(player); }
-void* WorldHandle() { return g_serverWorld.worldHandle_.Get(); }
-const char* ServerZoneName() { return g_serverWorld.zoneName_.c_str(); }
+void* WorldHandle() { return g_serverWorld.worldHandle.Get(); }
+const char* ServerZoneName() { return g_serverWorld.zoneName.c_str(); }
 
 void* PickAt2(void* world, int x, int y) {
     const POINT p{x, y};
@@ -134,26 +134,26 @@ void* UnitAt(void* world, int x, int y) {
 }
 int ScreenRect(void* world, int id, RECT* rect) {
     int found = 0;
-    for (const ScreenEntry& entry : static_cast<CWorldClient*>(world)->screenEntries_) {
+    for (const ScreenEntry& entry : static_cast<CWorldClient*>(world)->screenEntries) {
         if (static_cast<int>(entry.objectId) != id) continue;
         *rect = entry.rect;
         found = 1;
     }
     return found;
 }
-int ObjectId(const void* object) { return static_cast<const CEngineObject*>(object)->id_; }
-std::uint32_t ObjectFlags(const void* object) { return static_cast<const CEngineObject*>(object)->flags_; }
-void* PlayerConnection(void* player) { return static_cast<CPlayer*>(player)->connection_; }
-int ConnectionState(void* connection) { return static_cast<CPlayerConnection*>(connection)->state_; }
+int ObjectId(const void* object) { return static_cast<const CEngineObject*>(object)->id; }
+std::uint32_t ObjectFlags(const void* object) { return static_cast<const CEngineObject*>(object)->flags; }
+void* PlayerConnection(void* player) { return static_cast<CPlayer*>(player)->connection; }
+int ConnectionState(void* connection) { return static_cast<CPlayerConnection*>(connection)->state; }
 bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<unsigned>* types) {
     auto* pages = static_cast<CCampPages*>(static_cast<CUiWindow*>(camp));
-    *page = pages->page_;
-    const std::vector<CItem*>* source = pages->itemStrip_ ? pages->itemStrip_->source_ : nullptr;
+    *page = pages->page;
+    const std::vector<CItem*>* source = pages->itemStrip ? pages->itemStrip->source : nullptr;
     if (!source) return false;
     for (int i = 0; i < std::ssize(*source); ++i) {
         CItem* item = (*source)[i];
         items->push_back(item);
-        types->push_back(item ? static_cast<unsigned>(item->type_) : 0);
+        types->push_back(item ? static_cast<unsigned>(item->type) : 0);
     }
     return true;
 }
@@ -170,7 +170,7 @@ void BlinkClose(void* half) { static_cast<CUnitClientSpecific*>(half)->BlinkClos
 bool UnitFaceHalves(std::vector<void*>* halves) {
     CWorldClient* world = &g_clientWorld;
     if (!world) return false;
-    for (CMapObject* object : world->objects_) {
+    for (CMapObject* object : world->objects) {
         if (!object || object->GetClassId() != ClassId::Unit) continue;
         auto* half = reinterpret_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller);
         if (half && half->faceTexture) halves->push_back(half);
@@ -178,17 +178,17 @@ bool UnitFaceHalves(std::vector<void*>* halves) {
     return true;
 }
 
-int RegionCount(void* window) { return std::ssize(static_cast<CUiWindow*>(window)->regions_); }
+int RegionCount(void* window) { return std::ssize(static_cast<CUiWindow*>(window)->regions); }
 bool Region(void* window, int index, RegionInfo* region) {
-    const CUiRegion* found = static_cast<CUiWindow*>(window)->regions_[index];
+    const CUiRegion* found = static_cast<CUiWindow*>(window)->regions[index];
     if (!found) return false;
-    region->left = found->bounds_.left;
-    region->top = found->bounds_.top;
-    region->right = found->bounds_.right;
-    region->bottom = found->bounds_.bottom;
-    region->offsetX = found->offsetX_;
-    region->offsetY = found->offsetY_;
-    region->enabled = found->enabled_;
+    region->left = found->bounds.left;
+    region->top = found->bounds.top;
+    region->right = found->bounds.right;
+    region->bottom = found->bounds.bottom;
+    region->offsetX = found->offsetX;
+    region->offsetY = found->offsetY;
+    region->enabled = found->enabled;
     return true;
 }
 void ScaleToScreen(long* x, long* y) {
@@ -198,14 +198,14 @@ void ScaleToScreen(long* x, long* y) {
     *y = point.y;
 }
 void InterfaceSize(int* width, int* height) {
-    *width = g_interface.width_;
-    *height = g_interface.height_;
+    *width = g_interface.width;
+    *height = g_interface.height;
 }
-bool SaveLoadSliding(void* window) { return static_cast<CSaveLoadWindow*>(window)->sliding_; }
-bool OptionsSliding(void* window) { return static_cast<COptionsWindow*>(window)->sliding_; }
-bool HasChatOverlay() { return g_interface.root_ != nullptr; }
+bool SaveLoadSliding(void* window) { return static_cast<CSaveLoadWindow*>(window)->sliding; }
+bool OptionsSliding(void* window) { return static_cast<COptionsWindow*>(window)->sliding; }
+bool HasChatOverlay() { return g_interface.root != nullptr; }
 void ChatKeyEnter() { g_interface.ChatKeyEnter(); }
-void CloseChat() { g_interface.root_->SetOpen(false); }
+void CloseChat() { g_interface.root->SetOpen(false); }
 bool HasClassTemplate(int id) { return g_partyManager.templates.Find(id) != nullptr; }
 const void* FindMap(const char* name) { return g_mapDatabase.FindMap(name); }
 int MapKind(const void* record) { return static_cast<const MapRecord*>(record)->kind; }
@@ -214,7 +214,7 @@ void LeaveToZone(void* connection, const char* name, int exit) {
 }
 
 bool RestoreSurfaces(long* result) {
-    if (!g_sceneRenderer.device_.Get()) return false;
+    if (!g_sceneRenderer.device.Get()) return false;
     *result = 0;   // the image has no DirectDraw surfaces: nothing to restore
     return true;
 }
@@ -275,9 +275,9 @@ CameraPose PoseOf(const camera::ViewPose& v) {
 CameraState Camera(const void* camera) {
     const auto* c = static_cast<const CCamera*>(camera);
     CameraState state;
-    state.own = PoseOf(camera::ViewPose{c->localPosition_, c->localRotation_, c->focus_, c->viewRotation_, c->distance_});
+    state.own = PoseOf(camera::ViewPose{c->localPosition, c->localRotation, c->focus, c->viewRotation, c->distance});
     state.drawn = PoseOf(camera::DrawnView(c));
-    state.flags = c->flags_;
+    state.flags = c->flags;
     return state;
 }
 

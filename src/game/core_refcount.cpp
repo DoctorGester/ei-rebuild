@@ -1,7 +1,7 @@
 #include "core_refcount.h"
 
 void CRefObject::Shutdown() {
-    ++refs_;
+    ++refs;
     OnShutdown();
-    --refs_;
+    --refs;
 }

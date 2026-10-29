@@ -18,8 +18,8 @@ CClientSpecificManager::~CClientSpecificManager() {}
 const char* CClientSpecificManager::ClassName() { return "CClientSpecificManager"; }
 ClassId CClientSpecificManager::GetClassId() { return ClassId::ClientSpecificManager; }
 
-CEngineObject* CClientSpecificManager::NewObject(int type) {
-    switch (static_cast<SideObjectType>(type)) {
+CEngineObject* CClientSpecificManager::NewObject(int objectType) {
+    switch (static_cast<SideObjectType>(objectType)) {
     case SideObjectType::Drawer: return new FigureMeshDrawer();
     case SideObjectType::Object3D: return new CObject3DClientSpecific();
     case SideObjectType::MapObject: return new CMapObjectClientSpecific();

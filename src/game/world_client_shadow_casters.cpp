@@ -93,13 +93,13 @@ bool WorldSphere(const CObject3D* object, const Matrix& world, const Vector3& sc
 double TopOf(const CObject3D* object, const Vector3& scale) {
     const double cx = static_cast<double>(object->bounds.center.x) * scale.x, cy = static_cast<double>(object->bounds.center.y) * scale.y,
                  cz = static_cast<double>(object->bounds.center.z) * scale.z;
-    return object->localPosition_.z + std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(cx, cy, cz)) + object->bounds.radius * LargestScale(scale);
+    return object->localPosition.z + std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(cx, cy, cz)) + object->bounds.radius * LargestScale(scale);
 }
 
-// Part `name`'s element ranges in the figure's arrays (CLinkMesh::ranges_); null when there is none.
+// Part `name`'s element ranges in the figure's arrays (CLinkMesh::ranges); null when there is none.
 const LinkPartRanges* RangesOf(const CLinkMesh* figure, const char* name) {
-    auto node = figure->ranges_.find(std::string(name));
-    return node == figure->ranges_.end() ? nullptr : &node->second;
+    auto node = figure->ranges.find(std::string(name));
+    return node == figure->ranges.end() ? nullptr : &node->second;
 }
 
 // The part's positions with its per-vertex offsets added (as the draws add them), in `moved`.
@@ -133,13 +133,13 @@ void HandOverParts(CObject3D* object, CObject3DClientSpecific* half, const Matri
     CLinkMesh* figure = object->figure;
     for (TextureParts* set : half->partSets) {
         if (!set) continue;
-        const void* holder = set->texture ? set->texture->surface_.Get() : nullptr;
+        const void* holder = set->texture ? set->texture->surface.Get() : nullptr;
         for (int g = 0; g < std::ssize(set->groups); ++g) {
             const PartGroup* group = set->groups[g];
             for (int p = 0; p < std::ssize(group->parts); ++p) {
                 CFigureMesh* part = group->parts[p];
-                if (!part || (part->flags_ & FigureMeshFlag::Hidden)) continue;
-                if (LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition_) > kNearSquared) continue;
+                if (!part || (part->flags & FigureMeshFlag::Hidden)) continue;
+                if (LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition) > kNearSquared) continue;
                 if (render::CasterPartDrawn(part)) continue;
                 render::ShadowMesh mesh{};
                 const VertexPacket* positions = nullptr;
@@ -147,16 +147,16 @@ void HandOverParts(CObject3D* object, CObject3DClientSpecific* half, const Matri
                 if (figure) {
                     const LinkPartRanges* r = RangesOf(figure, part->GetName());
                     if (!r) continue;
-                    positions = figure->vertices_.data() + r->vertices.start;
+                    positions = figure->vertices.data() + r->vertices.start;
                     packets = r->vertices.count;
-                    mesh.uvs = reinterpret_cast<const float*>(figure->texCoords_.data() + r->texCoords.start);
+                    mesh.uvs = reinterpret_cast<const float*>(figure->texCoords.data() + r->texCoords.start);
                     mesh.uvCount = r->texCoords.count;
-                    mesh.corners = reinterpret_cast<const std::uint16_t*>(figure->corners_.data() + r->corners.start);
+                    mesh.corners = reinterpret_cast<const std::uint16_t*>(figure->corners.data() + r->corners.start);
                     mesh.cornerCount = r->corners.count;
-                    mesh.indices = figure->indices_.data() + r->indices.start;
+                    mesh.indices = figure->indices.data() + r->indices.start;
                     mesh.indexCount = r->indices.count;
                 } else {
-                    const MeshBuffers& b = part->buffers_;
+                    const MeshBuffers& b = part->buffers;
                     positions = b.vertices;
                     packets = b.vertexCount;
                     mesh.uvs = &b.texCoords->u;
@@ -167,12 +167,12 @@ void HandOverParts(CObject3D* object, CObject3DClientSpecific* half, const Matri
                     mesh.indexCount = b.indexCount;
                 }
                 if (!positions || packets <= 0) continue;
-                mesh.positions = !part->offsets_.empty() ? MovedPositions(positions, packets, part->offsets_, moved)
+                mesh.positions = !part->offsets.empty() ? MovedPositions(positions, packets, part->offsets, moved)
                                                           : &positions->block[0][0];
                 mesh.positionCount = packets * 4;
-                mesh.uOffset = part->textureOffsetU_;
-                mesh.vOffset = part->textureOffsetV_;
-                const Matrix model = Multiply(objectMatrix, Placement(part->localRotation_, part->localPosition_));
+                mesh.uOffset = part->textureOffsetU;
+                mesh.vOffset = part->textureOffsetV;
+                const Matrix model = Multiply(objectMatrix, Placement(part->localRotation, part->localPosition));
                 for (int k = 0; k < 16; ++k) mesh.model[k] = model.m[k];
                 mesh.texture = holder;
                 render::ShadowCasterMesh(object, mesh);
@@ -194,10 +194,10 @@ const HighestObject& Highest(const CWorldClient* world) {
     if (g_highest.world == world && g_highest.frames++ % kHeightScanEvery != 0) return g_highest;
     if (g_highest.world != world) g_highest = HighestObject{world, 1, 0.0, 0.0};
     double top = 0.0, widest = 0.0;   // the ground is above 0
-    const SectorGrid& grid = world->objectGrid_;
-    for (std::uint32_t y = 0; y < grid.height_; ++y)
-        for (std::uint32_t x = 0; x < grid.width_; ++x) {
-            const std::list<HeldRef<CMapObject>>& cell = grid.rows_[y][x];
+    const SectorGrid& grid = world->objectGrid;
+    for (std::uint32_t y = 0; y < grid.height; ++y)
+        for (std::uint32_t x = 0; x < grid.width; ++x) {
+            const std::list<HeldRef<CMapObject>>& cell = grid.rows[y][x];
             for (const CMapObject* object : cell) {
                 if (!object || !object->attached || (object->bounds.flags & kBoundsValid) != kBoundsValid) continue;
                 const Vector3& scale = object->ClientSpecific()->figureScale;
@@ -213,8 +213,8 @@ const HighestObject& Highest(const CWorldClient* world) {
 } // namespace
 
 void HandOverSceneLights(CWorldClient* world) {
-    terrain::Terrain* terrain = world->terrain_;
-    CLight* sun = terrain && terrain->sun ? terrain->sun : g_sceneRenderer.sun_;
+    terrain::Terrain* terrain = world->terrain;
+    CLight* sun = terrain && terrain->sun ? terrain->sun : g_sceneRenderer.sun;
     if (!sun) return;
     static std::vector<render::ScenePointLight> points;
     points.clear();
@@ -223,30 +223,30 @@ void HandOverSceneLights(CWorldClient* world) {
             const CLight* light = node.second;
             if (!light) continue;
             render::ScenePointLight p{};
-            p.position = light->localPosition_;
-            p.inverseRangeSquared = light->inverseRangeSquared_;
-            for (int k = 0; k < 3; ++k) p.colour[k] = light->color_[k];
-            p.specular = lib::Has(light->flags_, LightFlag::Specular);
+            p.position = light->localPosition;
+            p.inverseRangeSquared = light->inverseRangeSquared;
+            for (int k = 0; k < 3; ++k) p.colour[k] = light->color[k];
+            p.specular = lib::Has(light->flags, LightFlag::Specular);
             // An object's own light (a party unit's at night, a quest light: CMapObjectClientSpecific::CreateLight)
             // is Off, which the game's own shadows skip too: it casts no point shadow.
-            p.shadows = !lib::Has(light->flags_, LightFlag::Off);
+            p.shadows = !lib::Has(light->flags, LightFlag::Off);
             points.push_back(p);
         }
     }
     render::SceneLights s{};
-    for (int k = 0; k < 3; ++k) s.sunColour[k] = sun->color_[k];
-    s.sunDirection = sun->direction_;
-    s.ambientColour[0] = world->frameAmbient_.r;
-    s.ambientColour[1] = world->frameAmbient_.g;
-    s.ambientColour[2] = world->frameAmbient_.b;
-    if (world->camera_) s.camera = camera::FrameView().position;
+    for (int k = 0; k < 3; ++k) s.sunColour[k] = sun->color[k];
+    s.sunDirection = sun->direction;
+    s.ambientColour[0] = world->frameAmbient.r;
+    s.ambientColour[1] = world->frameAmbient.g;
+    s.ambientColour[2] = world->frameAmbient.b;
+    if (world->camera) s.camera = camera::FrameView().position;
     s.points = points.data();
     s.pointCount = static_cast<int>(points.size());
     render::SceneLighting(s);
 }
 
 void HandOverTerrainCasters(CWorldClient* world) {
-    terrain::Terrain* terrain = world->terrain_;
+    terrain::Terrain* terrain = world->terrain;
     if (!terrain || !terrain->mapLoaded || !lib::Has(terrain->landscapeFlags, terrain::LandscapeFlag::SunShadows) || terrain->sectorGrid.empty()) return;
     render::ShadowCasterRect area;
     if (!render::ShadowTerrainArea(terrain->heightRange, &area)) return;
@@ -265,12 +265,12 @@ void HandOverTerrainCasters(CWorldClient* world) {
 }
 
 void HandOverOutsideCasters(CWorldClient* world) {
-    const std::uint32_t flags = world->flags_;
+    const std::uint32_t flags = world->flags;
     if (!(flags & WorldClientFlag::DrawShadows) || !(flags & (WorldClientFlag::DrawObjects | WorldClientFlag::DrawUnits)) ||
-        !world->terrain_)
+        !world->terrain)
         return;   // no shadows, no objects drawn
-    const SectorGrid& grid = world->objectGrid_;
-    if (!grid.rows_ || grid.width_ == 0 || grid.height_ == 0) return;
+    const SectorGrid& grid = world->objectGrid;
+    if (!grid.rows || grid.width == 0 || grid.height == 0) return;
     struct WalkTimer {
         WalkTimer() { render::BeginShadowWalk(); }
         ~WalkTimer() { render::EndShadowWalk(); }
@@ -281,25 +281,25 @@ void HandOverOutsideCasters(CWorldClient* world) {
     const HighestObject& highest = Highest(world);
     if (!render::ShadowCasterArea(static_cast<float>(highest.top), static_cast<float>(highest.widest), &area)) return;
     // Only a multiplayer spectator's view leaves out the units it cannot see.
-    const bool allUnits = !(options::g_options.drawVisibleOnly_ != 0 && world->session_->sessionKind_ == 1);
+    const bool allUnits = !(options::g_options.drawVisibleOnly != 0 && world->session->sessionKind == 1);
 
     auto cell = [](float v, std::uint32_t cells) {
         if (!(v > 0.0f)) return 0u;
         const auto c = static_cast<std::uint32_t>(static_cast<double>(v)) >> kSectorShift;
         return (std::min)(c, cells - 1);
     };
-    const std::uint32_t firstX = cell(area.x0, grid.width_), lastX = cell(area.x1, grid.width_);
-    const std::uint32_t firstY = cell(area.y0, grid.height_), lastY = cell(area.y1, grid.height_);
+    const std::uint32_t firstX = cell(area.x0, grid.width), lastX = cell(area.x1, grid.width);
+    const std::uint32_t firstY = cell(area.y0, grid.height), lastY = cell(area.y1, grid.height);
     for (std::uint32_t y = firstY; y <= lastY; ++y)
         for (std::uint32_t x = firstX; x <= lastX; ++x) {
-            const std::list<HeldRef<CMapObject>>& list = grid.rows_[y][x];
+            const std::list<HeldRef<CMapObject>>& list = grid.rows[y][x];
             for (CMapObject* object : list) {
                 if (!object || !object->attached) continue;
                 const bool unit = object->GetClassId() == ClassId::Unit;
                 if (!(flags & (unit ? WorldClientFlag::DrawUnits : WorldClientFlag::DrawObjects))) continue;
-                if (unit && !allUnits && !(object->flags_ & MapObjectFlag::InParty)) continue;
+                if (unit && !allUnits && !(object->flags & MapObjectFlag::InParty)) continue;
                 CObject3DClientSpecific* half = object->ClientSpecific();
-                const Matrix placement = Placement(object->localRotation_, object->localPosition_);
+                const Matrix placement = Placement(object->localRotation, object->localPosition);
                 render::ShadowCasterSphere sphere{};
                 if (!WorldSphere(object, placement, half->figureScale, &sphere)) continue;
                 if (!render::ShadowCasterReaches(sphere)) {

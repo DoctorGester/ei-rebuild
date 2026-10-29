@@ -4,14 +4,14 @@
 
 #include "world_glue.h"
 
-CScript::CScript() : pointLights_(0x100), tempGroups_(1), tempObjects_(1) { ScriptReset(this); }
+CScript::CScript() : pointLights(0x100), tempGroups(1), tempObjects(1) { ScriptReset(this); }
 
 // The reset leaves no effect (the point light slots are zeroed), so the members' destructors drop none.
 CScript::~CScript() { ScriptReset(this); }
 
 ScriptErrorInfo* CScript::GetError(ScriptErrorInfo* out) {
-    out->text = errorText_;
-    out->code = errorCode_;
-    out->line = errorLine_;
+    out->text = errorText;
+    out->code = errorCode;
+    out->line = errorLine;
     return out;
 }

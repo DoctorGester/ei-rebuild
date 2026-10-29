@@ -173,9 +173,9 @@ inline void WallSpan(const Vector3& direction, const float* radius, Vector3* out
 // halving, y and z are rounded first.
 inline void HalfSpan(const CEffectLightning* bolt, Vector3* out) {
     const double half = 0.5;
-    const double dx = static_cast<double>(bolt->to_.x) - bolt->from_.x;
-    out->y = static_cast<float>(static_cast<double>(bolt->to_.y) - bolt->from_.y);
-    out->z = static_cast<float>(static_cast<double>(bolt->to_.z) - bolt->from_.z);
+    const double dx = static_cast<double>(bolt->to.x) - bolt->from.x;
+    out->y = static_cast<float>(static_cast<double>(bolt->to.y) - bolt->from.y);
+    out->z = static_cast<float>(static_cast<double>(bolt->to.z) - bolt->from.z);
     out->x = static_cast<float>(dx * half);
     out->y = static_cast<float>(static_cast<double>(out->y) * half);
     out->z = static_cast<float>(static_cast<double>(out->z) * half);
@@ -207,7 +207,7 @@ T* CreateObject(CSpellEffect* e, ClassId classId) {
 // objects and is released, the new one is counted.
 template <class T>
 void Assign(CSpellEffect* e, T** slot, T* object) {
-    if (*slot) e->world->RemoveTimedObject((*slot)->id_);
+    if (*slot) e->world->RemoveTimedObject((*slot)->id);
     T* old = *slot;
     *slot = object;
     if (object) object->AddRef();
@@ -215,7 +215,7 @@ void Assign(CSpellEffect* e, T** slot, T* object) {
 }
 
 inline void SetPosition(CTransformObject* object, const Vector3& position) {
-    object->localPosition_ = position;
+    object->localPosition = position;
 }
 
 // The fields of the spell prototype the casts read.
@@ -233,12 +233,12 @@ inline float PrototypeRange(CSpellEffect* e) {
 
 inline float Power(CSpellEffect* e) {
     float out;
-    PowerToFloat(&e->Spell()->damage_, &Prototype(e)->damage, &out);
+    PowerToFloat(&e->Spell()->damage, &Prototype(e)->damage, &out);
     return out;
 }
 inline float PowerScaled(CSpellEffect* e, const float& scale) {
     float out;
-    PowerScaledToFloat(&e->Spell()->damage_, &Prototype(e)->damage, ConstPtr(scale), &out);
+    PowerScaledToFloat(&e->Spell()->damage, &Prototype(e)->damage, ConstPtr(scale), &out);
     return out;
 }
 
@@ -267,7 +267,7 @@ inline float LightRiseScaled(CSpellEffect* e, const float& scale) {
 inline void HitAreaTargets(CSpellEffect* e) {
     DamageInfo hit;
     e->GetDamage(&hit);
-    std::list<CUnit*> units = e->world->aiMap_.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius_);
+    std::list<CUnit*> units = e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->Spell()->radius);
     for (auto node = units.begin(); node != units.end();) {
         CUnit* unit = *node;
         ++node;

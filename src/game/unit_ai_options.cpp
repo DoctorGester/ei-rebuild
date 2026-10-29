@@ -60,7 +60,7 @@ double AIAttackOption::Weight() const {
 }
 
 void AIAttackOption::Load(CStream* stream) {
-    if (stream->version_ < kVersionSpellOptions) {
+    if (stream->version < kVersionSpellOptions) {
         stream->ReadValue(part);
         std::uint32_t dropped;
         stream->ReadValue(dropped);
@@ -119,7 +119,7 @@ void AIAttention::Build(CUnit* unit) {
     auto* server = unit->ServerController();
     weapons.clear();
     spells.clear();
-    if (!IsTextKey(unit->id_)) {
+    if (!IsTextKey(unit->id)) {
         if (server->stats.naturalWeapon != kNaturalSpellsOnly) {
             float range = server->AttackRange();
             weapons.resize(std::ssize(weapons) + 1);
@@ -132,19 +132,19 @@ void AIAttention::Build(CUnit* unit) {
             if (!spell) continue;
             AIOptionKind kind = SpellKind(spell);
             if (kind == AIOptionKind::Unused) continue;
-            float range = spell->range_;
+            float range = spell->range;
             if (server->stats.naturalWeapon == kNaturalSpellsOnly) range = server->stats.combat[UnitStats::kReach];
-            std::uint32_t count = spell->targetCount_;
+            std::uint32_t count = spell->targetCount;
             int maxCount = static_cast<int>((count < 1 ? 1 : count) - 1);
             float radius = 0.0f;
             int effect = 0;
             switch (kind) {
             case AIOptionKind::AreaAttack:
-                radius = spell->radius_;
+                radius = spell->radius;
                 break;
             case AIOptionKind::LastingArea:
-                radius = spell->radius_;
-                effect = static_cast<int>(spell->duration_);
+                radius = spell->radius;
+                effect = static_cast<int>(spell->duration);
                 break;
             case AIOptionKind::Curse:
             case AIOptionKind::Protect:
@@ -152,7 +152,7 @@ void AIAttention::Build(CUnit* unit) {
                 effect = static_cast<int>(spell->Type());
                 break;
             case AIOptionKind::Heal:
-                radius = spell->damage_;
+                radius = spell->damage;
                 break;
             default:
                 break;

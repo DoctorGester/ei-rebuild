@@ -24,9 +24,9 @@ private:
     // (where the original filled the frame's rows from the layers) do nothing.
     static void Generate(render::CloudFrame* frame, int step);
 
-    float speed_ = 0.0f;
-    std::uint8_t ramp_[256] = {};
-    render::CloudFrame frames_[3] = {};   // shown from, shown to, being built
-    float phase_ = 0.0f;                  // fade position within a step (0..1)
-    int step_ = 0;                        // build step of frames_[2] (0..15)
+    float speed = 0.0f;
+    std::uint8_t ramp[256] = {};
+    render::CloudFrame frames[3] = {};    // shown from, shown to, being built
+    float phase = 0.0f;                   // fade position within a step (0..1)
+    int step = 0;                         // build step of frames[2] (0..15)
 };

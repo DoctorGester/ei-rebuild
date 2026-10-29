@@ -37,10 +37,10 @@ void BuildMask(const MmpHeader* picture, int bitsPerPixel, std::uint8_t* mask) {
 CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     holder = nullptr;
     frame = 0;
-    CTextureManager* manager = g_clientWorld.textureManager_;
+    CTextureManager* manager = g_clientWorld.textureManager;
     MmpHeader* picture = manager->GetFileData(name);
     // (A throw passes the exception on; that ends the game.)
-    holder = new Surface(g_sceneRenderer.device_, picture);
+    holder = new Surface(g_sceneRenderer.device, picture);
     holder->AddRef();
 
     // The holder took the picture's size and the screen's pixel size or threw.

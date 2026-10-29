@@ -25,7 +25,7 @@ constexpr const char* kNoneText = "none";
 // "Adding new primary texture set with one exist\nFor object \"%s\" with ID=%d!\n"
 constexpr const char* kSecondPrimarySetText = "Adding new primary texture set with one exist\nFor object \"%s\" with ID=%d!\n";
 
-// The texture kinds (a part's meshType_, TextureKind) whose parts make the first part set; any other kind makes the
+// The texture kinds (a part's meshType, TextureKind) whose parts make the first part set; any other kind makes the
 // second. The data does not say what they have in common.
 constexpr int kPrimaryKinds[] = {1, 3, 4, 6, 7, 8, 9, 0xB, 0xD, 0xE, 0xF, 0x10};
 
@@ -88,7 +88,7 @@ CObject3DClientSpecific::CObject3DClientSpecific() {
 
 void CObject3DClientSpecific::Create() {
     materialCursor = -1;
-    flags_ = 0;
+    flags = 0;
     shadowMade = false;
     woundsTexture.Reset();
     ClearWoundsMaterial();
@@ -128,7 +128,7 @@ void CObject3DClientSpecific::Destroy() {
     materials.clear();
     object = nullptr;
     touchTime = 0;
-    flags_ = 0;
+    flags = 0;
 }
 
 CObject3DClientSpecific::~CObject3DClientSpecific() { CObject3DClientSpecific::Destroy(); }
@@ -137,7 +137,7 @@ CObject3DClientSpecific::~CObject3DClientSpecific() { CObject3DClientSpecific::D
 
 CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
     for (int i = 0; i < std::ssize(textures); ++i)
-        if (textures[i]->type_ == kind) return textures[i];
+        if (textures[i]->type == kind) return textures[i];
     int k = IsPrimaryKind(kind) ? 0 : 1;
     TextureParts* set;
     if (!partSets[k]) {
@@ -149,21 +149,21 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
         textures[count] = set->texture;
         set->texture->AddRef();
     } else {
-        if (k == 0) game::DebugLog(kSecondPrimarySetText, object->name, object->id_);
-        partSets[k]->texture->type_ = kind;
+        if (k == 0) game::DebugLog(kSecondPrimarySetText, object->name, object->id);
+        partSets[k]->texture->type = kind;
         set = partSets[k];
     }
-    if (object->MapType() == MapObjectType::Tree) set->texture->flags_ |= TextureFlag::Tree;
+    if (object->MapType() == MapObjectType::Tree) set->texture->flags |= TextureFlag::Tree;
     return set->texture;
 }
 
 CMaterial* CObject3DClientSpecific::FindMaterial(int textureKind, int materialKind) {
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = partSets[k];
-        if (!set || !set->texture || set->texture->type_ != textureKind) continue;
+        if (!set || !set->texture || set->texture->type != textureKind) continue;
         for (int g = 0; g < std::ssize(set->groups); ++g) {
             CMaterial* material = set->groups[g]->material;
-            if (material && material->type_ == materialKind) return partSets[k]->groups[g]->material;
+            if (material && material->type == materialKind) return partSets[k]->groups[g]->material;
         }
     }
     return nullptr;
@@ -171,13 +171,13 @@ CMaterial* CObject3DClientSpecific::FindMaterial(int textureKind, int materialKi
 
 CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int materialKind) {
     int k = 0;
-    while (!partSets[k] || !partSets[k]->texture || partSets[k]->texture->type_ != textureKind) {
+    while (!partSets[k] || !partSets[k]->texture || partSets[k]->texture->type != textureKind) {
         if (++k > 1) return nullptr;
     }
     TextureParts* set = partSets[k];
     for (int g = 0; g < std::ssize(set->groups); ++g) {
         CMaterial* material = set->groups[g]->material;
-        if (material && material->type_ == materialKind) return set->groups[g]->material;
+        if (material && material->type == materialKind) return set->groups[g]->material;
     }
     PartGroup* group = new PartGroup();
     CMaterial* material = ClientWorld()->NewMaterial(materialKind);
@@ -195,24 +195,24 @@ CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int mater
 }
 
 int CObject3DClientSpecific::OnPartAdded(CFigureMesh* part) {
-    int materialKind = static_cast<int>(part->materialValue_);
-    int textureKind = static_cast<int>(part->meshType_);
+    int materialKind = static_cast<int>(part->materialValue);
+    int textureKind = static_cast<int>(part->meshType);
     bool known = false;
     for (int i = 0; i < std::ssize(textures); ++i) {
-        if (textures[i]->type_ != textureKind) continue;
+        if (textures[i]->type != textureKind) continue;
         known = textures[i] != nullptr;
         break;
     }
     if (!known) FindOrAddTexture(textureKind);
     if (!FindMaterial(textureKind, materialKind)) FindOrAddMaterial(textureKind, materialKind);
     int k = 0;
-    while (!partSets[k] || partSets[k]->texture->type_ != textureKind) {
+    while (!partSets[k] || partSets[k]->texture->type != textureKind) {
         if (++k >= 2) return 0;
     }
     TextureParts* set = partSets[k];
     for (int g = 0; g < std::ssize(set->groups); ++g) {
         PartGroup* group = set->groups[g];
-        if (!group->material || group->material->type_ != materialKind) continue;
+        if (!group->material || group->material->type != materialKind) continue;
         for (int i = 0; i < std::ssize(group->parts); ++i)
             if (group->parts[i] == part) return 1;
         int count = std::ssize(group->parts);
@@ -236,7 +236,7 @@ CTexture* CObject3DClientSpecific::ReplaceTexture(CTexture* replacement) {
     if (!replacement) return nullptr;
     CTexture* old = nullptr;
     for (int i = 0; i < std::ssize(textures); ++i) {
-        if (textures[i]->type_ != replacement->type_) continue;
+        if (textures[i]->type != replacement->type) continue;
         old = textures[i];
         textures[i] = replacement;
         textures[i]->AddRef();
@@ -244,7 +244,7 @@ CTexture* CObject3DClientSpecific::ReplaceTexture(CTexture* replacement) {
         break;
     }
     for (int k = 0; k < 2; ++k) {
-        if (!partSets[k] || partSets[k]->texture->type_ != replacement->type_) continue;
+        if (!partSets[k] || partSets[k]->texture->type != replacement->type) continue;
         partSets[k]->texture = replacement;
         break;
     }
@@ -264,7 +264,7 @@ int CObject3DClientSpecific::SetSkins(std::optional<std::string_view> first, std
         if (text::CompareIgnoringCase(name, kNoneText) == 0) continue;
         TextureParts* set = partSets[k];
         if (set && set->texture) {
-            auto* found = manager->FindTypedTexture(set->texture->type_, name);
+            auto* found = manager->FindTypedTexture(set->texture->type, name);
             if (found) {
                 ReplaceTexture(found);
                 continue;
@@ -273,7 +273,7 @@ int CObject3DClientSpecific::SetSkins(std::optional<std::string_view> first, std
         set = partSets[k];
         if (!set || !set->texture) continue;
         CTexture* skin = set->texture;
-        skin->name_ = name;
+        skin->name = name;
         manager->LoadTexture(skin);
     }
     return 1;
@@ -286,7 +286,7 @@ void CObject3DClientSpecific::ApplyMaterials() {
     } else {
         materialCursor = 0;
         for (CMaterial* material = materials[0]; material;) {
-            manager->FillMaterial(material, static_cast<std::uint32_t>(material->type_));
+            manager->FillMaterial(material, static_cast<std::uint32_t>(material->type));
             ++materialCursor;
             if (std::ssize(materials) <= materialCursor) break;
             material = materials[materialCursor];

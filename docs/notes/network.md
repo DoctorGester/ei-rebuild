@@ -46,7 +46,7 @@ function does; this file keeps what is not visible in the code.
   briefing "b.<speaker>.<zone>_1" (MarkBriefing), so the zones are the speaker's topics (Nsheriff on
   bz1mpg; a network client's topics are sorted by _stricmp). Finishing one sends command 1 "<zone>_1"
   (CompleteBriefing -> RequestBriefing); the host's server then runs SetMap: the queued "<zone>_2", the Map
-  message, SetNetworkZone (multiplayerZone_). Which zones are offered differs by install (vanilla z3q1 first,
+  message, SetNetworkZone (multiplayerZone). Which zones are offered differs by install (vanilla z3q1 first,
   Rebirth z3q3).
 - Leaving: a client may leave while "z.MPGame1" is not 1 (UpdateMultiplayerVariable 0057F190: the host
   once it has the Map, a joiner once it has the Host message); the leader walking into exit 1's remove
@@ -56,7 +56,7 @@ function does; this file keeps what is not visible in the code.
   connection to the host's world (no new socket; the Host message's "host:8000" address is not used).
 - Exchange: a click on another player's face sends a Party offer (StartParty 0041E270); the partner's
   click on the offerer's face opens the exchange window on both; both accepting completes the Trade.
-- Kick / ban: console `kick` / `ban` without a name opens the host's player pick (chatActive_ 1 / 2; a
+- Kick / ban: console `kick` / `ban` without a name opens the host's player pick (chatActive 1 / 2; a
   face click sends command 4 / 5 with the serial); with a name, command 2 / 3 (guests whose name starts
   with it). The dropped game shows the lost server box; a banned address's join is refused (the
   refusal box).
@@ -73,7 +73,7 @@ function does; this file keeps what is not visible in the code.
   net_pair_quest rejects z9q3 at once to be offered z9q2). The sheriff's topics after the map choice: "about
   life in the village", the map's reject briefing ("<zone>_2"), "talk later".
 - Back to the base: the game zone's exit 1 (z3q1 / z3q2: remove rectangle 0 130 20 147, next to the deploy
-  rectangle) asks the leave box (yes: 00578AC0 -> SwitchMultiplayerZone's second call, zoneSwitchStarted_ set: the client
+  rectangle) asks the leave box (yes: 00578AC0 -> SwitchMultiplayerZone's second call, zoneSwitchStarted set: the client
   state 1 and the start zone again; the host also sends command 9 with the announced zone to its guests and
   drops the Host message). The base is local again; the zone's map message stays held.
 - The reject topic sends command 1 "<zone>_2": LeaveZone (text 6 announced, AwardHost with the final award for
@@ -258,11 +258,11 @@ dropped, true), 9 Receive / record, 10 pump (00478010, empty), 11 disconnect, 12
 
 `SendUpdate`: an entry that overflows the budget stays in the packet uncounted, the rest of that priority waits,
 lower priorities are still tried. Within a priority the original's entries go in the order of their addresses
-(`priorities_` keyed by `ReplicaEntry*`, and `CollectChanges` tracks new objects in their address order), so which
+(`priorities` keyed by `ReplicaEntry*`, and `CollectChanges` tracks new objects in their address order), so which
 object the client reads first, and which net id an object gets, follows the server's heap. Ours (SV7b5) keys the
 priority maps by the entry's serial, handed out as `CollectChanges` tracks the session's list in its order (players,
 variables, the binding, chat lines, files, ...), so the send order and the ids follow the session's lists;
-`byObject_` / `attached_` are lookup-only hash maps. The original's runs keep their address order (no harness patch:
+`byObject` / `attached` are lookup-only hash maps. The original's runs keep their address order (no harness patch:
 the goldens hold no net ids or send order, and UB1 below takes the one order the game state read). The client's player
 list (`CChatWindow::ShowPlayers`) lists nobody while the binding is missing and the original's binding handler
 0041E430 does not refresh it: players read before the binding left the base screen without faces and statuses
@@ -293,8 +293,8 @@ messages inline.
 
 ## A-E1: the leftovers of the delta code and the links
 
-- `DeltaState::Finish` (0047FE90, net_delta.cpp): ends a write or a read. After a delta write the written mask joins `sentMask_` and
-  becomes `lastMask_`, and both headers are rebuilt (the mask as 2 bytes, then each field's output of that channel, byte aligned). After
+- `DeltaState::Finish` (0047FE90, net_delta.cpp): ends a write or a read. After a delta write the written mask joins `sentMask` and
+  becomes `lastMask`, and both headers are rebuilt (the mask as 2 bytes, then each field's output of that channel, byte aligned). After
   a full write the headers and the three masks are emptied. Reached by every scenario with a server world. The forwarders other files
   keep (`DeltaStateFinishOriginal` in originals_engine.h, `ReadText` in world_effect_internal.h) reach the hooked code.
 - `DeltaField::ReadText` (0047E340): `ReadString` into a caller's buffer; a string of `size - 1` characters or more leaves the buffer

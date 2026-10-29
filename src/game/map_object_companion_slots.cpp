@@ -25,8 +25,8 @@ void CMapObjectCompanion::Destroy() { owner = nullptr; }
 
 void CMapObjectClientSpecific::Hit(int damage, int kind) {
     if (owner->IsDead() != 0) return;
-    if (!(owner->flags_ & MapObjectFlag::InParty)) return;
-    ClientWorld()->ShowNumber(owner->id_, damage, kind);
+    if (!(owner->flags & MapObjectFlag::InParty)) return;
+    ClientWorld()->ShowNumber(owner->id, damage, kind);
 }
 
 // Class name and id.

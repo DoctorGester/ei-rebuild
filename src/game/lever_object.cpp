@@ -31,7 +31,7 @@ void ResetLever(Lever* self) {
     self->endTick = 0.0f;
     self->to = 0.0f;
     self->from = 0.0f;
-    self->netState_.SetFieldCount(kLeverNetFields);
+    self->netState.SetFieldCount(kLeverNetFields);
     self->lock = LockKey{1, 0, 0};
     self->state = 0;
     self->stateCount = 1;
@@ -58,7 +58,7 @@ bool Lever::RunTick() {
     Update();
     if (WorldContext()->IsServer()) return false;
     Vector3 shown = {scale.x, scale.y, scale.z};
-    double t = (endTick - static_cast<double>(g_clientWorld.tick_)) * rate;
+    double t = (endTick - static_cast<double>(g_clientWorld.tick)) * rate;
     if (t > 0.0) {
         shown.y = static_cast<float>(to - (to - from) * t);
         Object3D()->SetFigureScale(&shown.x);
@@ -115,7 +115,7 @@ void LockKey::WriteTo(CStream* stream) const {
 
 void Lever::WriteLeverNetState() {
     CMapObject::WriteNetState();
-    DeltaField* field = netState_.BeginField(kLeverField);
+    DeltaField* field = netState.BeginField(kLeverField);
     if (!field) return;
     EI_NAN_AUDIT(to, scale.y);
     if (to != scale.y) {
@@ -124,14 +124,14 @@ void Lever::WriteLeverNetState() {
     }
     field->WriteDelta(&lock, sizeof(LockKey));
     for (float value : {from, to, endTick, rate}) field->WriteDelta(&value, 4);
-    std::uint8_t disabled = lib::Has(flags_, MapObjectFlag::Disabled);
+    std::uint8_t disabled = lib::Has(flags, MapObjectFlag::Disabled);
     field->WriteDelta(&disabled, 1);
     field->EndField();
 }
 
 std::uint32_t Lever::ReadLeverNetState(int first) {
     std::uint32_t complete = CMapObject::ReadNetState(first);
-    DeltaField* field = netState_.BeginField(kLeverField);
+    DeltaField* field = netState.BeginField(kLeverField);
     if (!field) return complete;
     field->ReadDelta(&lock, sizeof(LockKey));
     field->ReadDelta(&from, 4);
@@ -145,14 +145,14 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     std::uint32_t size = delta::g_readSnapshot->Size();
     complete &= readTo == size ? 1u : 0u;
     field->EndField();
-    if (disabled) flags_ |= MapObjectFlag::Disabled;
-    else flags_ &= ~MapObjectFlag::Disabled;
+    if (disabled) flags |= MapObjectFlag::Disabled;
+    else flags &= ~MapObjectFlag::Disabled;
     g_clientWorld.QueueSynchronised(this);
     if (first == 1) {
         const LeverRecord* record = g_leverTable.Named(name);
         EI_NAN_AUDIT(from, to);
         if (record && from != to)
-            g_clientWorld.sounds_->Play3D(record->sound, 0, &localPosition_.x, kSoundNear, kSoundFar, 0);
+            g_clientWorld.sounds->Play3D(record->sound, 0, &localPosition.x, kSoundNear, kSoundFar, 0);
     }
     return complete;
 }
@@ -170,8 +170,8 @@ void Lever::SetUp(const LeverSetup* setup) {
 }
 
 void Lever::Enable(bool on) {
-    if (on) flags_ &= ~MapObjectFlag::Disabled;
-    else flags_ |= MapObjectFlag::Disabled;
+    if (on) flags &= ~MapObjectFlag::Disabled;
+    else flags |= MapObjectFlag::Disabled;
     MarkChanged(kLeverField);
 }
 
@@ -182,7 +182,7 @@ void Lever::SetLock(const LockKey* key) {
 
 
 bool Lever::NeedsKey() {
-    if (flags_ & MapObjectFlag::Disabled) return false;
+    if (flags & MapObjectFlag::Disabled) return false;
     return lock.mask != 0;
 }
 
@@ -191,7 +191,7 @@ std::uint32_t Lever::KeyId() { return (lock.mask & kKeyById) ? lock.id : 0; }
 bool Lever::ApplyKey(const LockKey* key) {
     if (!key->Opens(&lock)) return false;
     SetState(-1, kNextStateDuration);
-    flags_ |= MapObjectFlag::Disabled;
+    flags |= MapObjectFlag::Disabled;
     MarkChanged(kLeverField);
     return true;
 }

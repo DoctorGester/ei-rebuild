@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <unordered_map>
 
-// The figure manager's object types (CreateObject / type_), named after their classes.
+// The figure manager's object types (CreateObject / type), named after their classes.
 enum class FigureObjectType : int {
     SharedFigureMesh = 0x41,      // CSharedFigureMesh: a part whose buffers point into the file data
     PlainFigureMesh = 0x42,       // CPlainFigureMesh: an attached part, owning its buffers
@@ -22,7 +22,7 @@ enum class FigureObjectType : int {
     AnimationState = 0x300D,      // CFigureAnimationState: a map object's skeleton
 };
 
-// The figure factory: a new object of figure type `classId` with type_ set, or null for another type.
+// The figure factory: a new object of figure type `classId` with type set, or null for another type.
 void* CreateFigureObject(int classId);
 
 // The menus' button rectangles (menus.reg): the main menu's six (new game, load, exit, options, credits,
@@ -43,7 +43,7 @@ public:
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
     bool AddArchive(const std::string& path) override { return AddMmioArchive(path); }
-    CEngineObject* CreateObject(int type, int id) override { return CreateFigureObject(type, id); }
+    CEngineObject* CreateObject(int newType, int newId) override { return CreateFigureObject(newType, newId); }
     const char* GetFolderName() override;
 
     int LoadSkeletonLinks(CFigureAnimationState* state, std::string_view name);
@@ -72,14 +72,14 @@ public:
     // file. The path is built in a 0x200-byte buffer without a bounds check; the data is not closed.
     int LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation);
 
-    std::unordered_map<std::string, FigureModel*> models_;    // the cached models by name
+    std::unordered_map<std::string, FigureModel*> models;     // the cached models by name
 };
 
 // The figure manager of `object`'s world (every world's is a CFigureManager).
 inline CFigureManager* FigureManagerOf(const CEngineObject* object) {
     return static_cast<CFigureManager*>(object->WorldContext()->FigureManager());
 }
-// The figure manager that made `object` (a bone or an animation track, CEngineObject::owner_).
+// The figure manager that made `object` (a bone or an animation track, CEngineObject::owner).
 inline CFigureManager* OwningFigureManager(const CEngineObject* object) {
-    return static_cast<CFigureManager*>(object->owner_);
+    return static_cast<CFigureManager*>(object->owner);
 }

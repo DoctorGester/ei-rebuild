@@ -26,12 +26,12 @@ bool g_tieLogged = false;
 // Whether member `x` sorts after member `y` (two different pointers) in the id order (1 or 0). The
 // stubs below call it with EAX, ECX and EDX saved.
 static int __stdcall IdAfterForOriginal(const CEngineObject* x, const CEngineObject* y) {
-    if (x && y && x->id_ == y->id_ && !g_tieLogged) {
+    if (x && y && x->id == y->id && !g_tieLogged) {
         g_tieLogged = true;
-        ei::Log("harness: script group members %p and %p share id %d: the id order cannot settle them", x, y, x->id_);
+        ei::Log("harness: script group members %p and %p share id %d: the id order cannot settle them", x, y, x->id);
     }
     if (!x || !y) return x != nullptr ? 1 : 0;   // as ScriptGroup::After
-    return x->id_ > y->id_ ? 1 : 0;
+    return x->id > y->id ? 1 : 0;
 }
 
 // 004B2D80, the comparator of Sort and Load (cdecl, two ScriptObjectRef*): -1 / 0 / 1 by id.

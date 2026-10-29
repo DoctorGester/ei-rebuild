@@ -8,7 +8,7 @@ namespace {
 
 int UnitStats::LoadFrom(CStream* stream) {
     pendingExperience = 0.0f;
-    int version = stream->version_;
+    int version = stream->version;
     unsigned size;
     if (version < kVersionStatsPastFlags) size = offsetof(UnitStats, flags);
     else if (version < kVersionFixedMaxHitPoints) size = offsetof(UnitStats, fixedMaxHitPoints);

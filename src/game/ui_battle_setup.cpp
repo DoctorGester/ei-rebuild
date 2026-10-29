@@ -35,24 +35,24 @@
 
 namespace {
 // The game's save stream's version and a game being loaded (the save stream holds its data).
-int SaveVersion() { return static_cast<int>(g_saveStream.version_); }
-bool LoadingGame() { return g_saveStream.size_ != 0; }
+int SaveVersion() { return static_cast<int>(g_saveStream.version); }
+bool LoadingGame() { return g_saveStream.size != 0; }
 
 
 } // namespace
 
 // The panels Create builds inline (they have no constructors of their own).
-CHudUnitPanel::CHudUnitPanel(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {}
+CHudUnitPanel::CHudUnitPanel(CInterface3D* ui, CBattleScreen* newOwner) : CUiWindow(ui), owner(newOwner) {}
 
-CHudMap::CHudMap(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {}
+CHudMap::CHudMap(CInterface3D* ui, CBattleScreen* newOwner) : CUiWindow(ui), owner(newOwner) {}
 
 void CBattleScreen::CreateScreen() {
     float mapZoom = 1.0f;
-    portraitMode_ = 0;
+    portraitMode = 0;
     std::string savedText;
-    hasHero_ = false;
-    pendingExit_ = -1;
-    exitPending_ = false;
+    hasHero = false;
+    pendingExit = -1;
+    exitPending = false;
 
     if (LoadingGame()) {
         // The screen's part of the saved game.
@@ -60,8 +60,8 @@ void CBattleScreen::CreateScreen() {
         stream->Seek(0);
         int count;
         stream->ReadValue(count);
-        heroes_.resize(count);
-        for (int i = 0; i < std::ssize(heroes_); ++i) stream->ReadValue(heroes_[i]);
+        heroes.resize(count);
+        for (int i = 0; i < std::ssize(heroes); ++i) stream->ReadValue(heroes[i]);
         stream->ReadValue(mapZoom);
         std::uint8_t serverFlag;
         stream->ReadValue(serverFlag);
@@ -72,26 +72,26 @@ void CBattleScreen::CreateScreen() {
             savedText = stream->ReadString();
         }
         if (SaveVersion() >= kVersionPendingExit) {
-            std::uint8_t exitPending;   // a byte
-            stream->ReadValue(exitPending);
-            exitPending_ = exitPending != 0;
-            stream->ReadValue(pendingExit_);
+            std::uint8_t newExitPending;   // a byte
+            stream->ReadValue(newExitPending);
+            exitPending = newExitPending != 0;
+            stream->ReadValue(pendingExit);
         }
         stream->Resize(0);
     } else {
         // A new game: the local player's first hero.
-        if (std::ssize(LocalPlayerData()->members_) > 0) {
+        if (std::ssize(LocalPlayerData()->members) > 0) {
             CParty* player = LocalPlayerData();
-            int index = std::ssize(heroes_);
-            std::uint32_t hero = player->members_[0].unitId;
-            heroes_.resize(index + 1);
-            heroes_[index] = hero;
-            hasHero_ = true;
+            int index = std::ssize(heroes);
+            std::uint32_t hero = player->members[0].unitId;
+            heroes.resize(index + 1);
+            heroes[index] = hero;
+            hasHero = true;
         }
     }
 
     // The screen's own input handler.
-    UiInputSide* input = new UiInertInput(interface_);
+    UiInputSide* input = new UiInertInput(ui);
     AddInput(input);
 
     CreateTexture(0x100, 0x100, TextureKind::Blank1555);
@@ -99,90 +99,90 @@ void CBattleScreen::CreateScreen() {
     LoadTexture("battle00", TextureKind::Interface);
 
     // Panels built by their own constructors (Rebirth-patched: reproduced behind its flags, rule 9).
-    weaponBar_ = new CHudWeaponBar(interface_, this);
-    AddChild(weaponBar_);
-    weaponBar_->AddObject(objects_[0]);
+    weaponBar = new CHudWeaponBar(ui, this);
+    AddChild(weaponBar);
+    weaponBar->AddObject(objects[0]);
 
-    quickItems_ = new CHudQuickItems(interface_, this);
-    AddChild(quickItems_);
-    quickItems_->AddObject(objects_[0]);
+    quickItems = new CHudQuickItems(ui, this);
+    AddChild(quickItems);
+    quickItems->AddObject(objects[0]);
 
-    spellColumn_ = new CHudSpellColumn(interface_, this);
-    AddChild(spellColumn_);
-    spellColumn_->AddObject(objects_[1]);
+    spellColumn = new CHudSpellColumn(ui, this);
+    AddChild(spellColumn);
+    spellColumn->AddObject(objects[1]);
 
-    actionColumn_ = new CHudActionColumn(interface_, this);
-    AddChild(actionColumn_);
-    actionColumn_->AddObject(objects_[1]);
+    actionColumn = new CHudActionColumn(ui, this);
+    AddChild(actionColumn);
+    actionColumn->AddObject(objects[1]);
 
-    portraits_ = new CHudPortraits(interface_, this);
-    AddChild(portraits_);
-    portraits_->AddObject(objects_[2]);
+    portraits = new CHudPortraits(ui, this);
+    AddChild(portraits);
+    portraits->AddObject(objects[2]);
 
-    unitPanel_ = new CHudUnitPanel(interface_, this);
-    AddChild(unitPanel_);
-    unitPanel_->AddObject(objects_[2]);
-    unitPanel_->AddObject(objects_[1]);
-    unitPanel_->Setup(interface_->hudBodyPart_, interface_->hudPanelsIn_[0] != 0);
+    unitPanel = new CHudUnitPanel(ui, this);
+    AddChild(unitPanel);
+    unitPanel->AddObject(objects[2]);
+    unitPanel->AddObject(objects[1]);
+    unitPanel->Setup(ui->hudBodyPart, ui->hudPanelsIn[0] != 0);
 
-    map_ = new CHudMap(interface_, this);
-    AddChild(map_);
-    map_->AddObject(objects_[2]);
-    map_->Setup(mapZoom, interface_->hudPanelsIn_[2] != 0);
+    map = new CHudMap(ui, this);
+    AddChild(map);
+    map->AddObject(objects[2]);
+    map->Setup(mapZoom, ui->hudPanelsIn[2] != 0);
 
-    clock_ = new CHudClock(interface_, this);
-    AddChild(clock_);
-    clock_->AddObject(objects_[2]);
-    clock_->Setup(interface_->fastGame_ != 0);
+    clock = new CHudClock(ui, this);
+    AddChild(clock);
+    clock->AddObject(objects[2]);
+    clock->Setup(ui->fastGame != 0);
 
-    movePanel_ = new CHudMovePanel(interface_, this);
-    AddChild(movePanel_);
-    movePanel_->AddObject(objects_[2]);
-    movePanel_->Build();
+    movePanel = new CHudMovePanel(ui, this);
+    AddChild(movePanel);
+    movePanel->AddObject(objects[2]);
+    movePanel->Build();
 
     // The message log.
-    messageLog_ = new CUiScrollText(interface_, game::kEmptyText, RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f);
-    AddChild(messageLog_);
-    messageLog_->align_ = 1;
+    messageLog = new CUiScrollText(ui, game::kEmptyText, RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f);
+    AddChild(messageLog);
+    messageLog->align = 1;
 
-    topPanel_ = new CHudTopPanel(interface_, this);
-    AddChild(topPanel_);
-    topPanel_->AddObject(objects_[2]);
-    topPanel_->Setup(interface_->hudTopPage_, interface_->hudPanelsIn_[1] != 0);
+    topPanel = new CHudTopPanel(ui, this);
+    AddChild(topPanel);
+    topPanel->AddObject(objects[2]);
+    topPanel->Setup(ui->hudTopPage, ui->hudPanelsIn[1] != 0);
     // The saved message text goes back to the top panel and, when it shows page 0, the log.
-    topPanel_->pageTexts_[0] += savedText;
-    if (topPanel_->page_ == 0) messageLog_->AddText(savedText);
-    topPanel_->ShowItems();
+    topPanel->pageTexts[0] += savedText;
+    if (topPanel->page == 0) messageLog->AddText(savedText);
+    topPanel->ShowItems();
 
-    AddInput(new CCameraInput(interface_));
+    AddInput(new CCameraInput(ui));
 
-    g_camera.flags_ &= ~0x40u;
-    pendingAction_ = kPendingNone;
-    pendingSlot_ = -1;
+    g_camera.flags &= ~0x40u;
+    pendingAction = kPendingNone;
+    pendingSlot = -1;
     GameSetWeather(0, 0.0f);   // clear weather
     GameStartAmbience();
-    party_.clear();
-    viewPressed_ = false;
-    boxSelecting_ = false;
-    std::memset(orderKeys_, 0, 6);   // dword and +0x191 word
-    questSound_ = 0;
+    party.clear();
+    viewPressed = false;
+    boxSelecting = false;
+    std::memset(orderKeys, 0, 6);    // dword and +0x191 word
+    questSound = 0;
 
     // The "pers <name>" texts: one line per person, by the person's text key.
-    LoadPersonTexts(&personTexts_);
-    spare_ = 0;
+    LoadPersonTexts(&personTexts);
+    spare = 0;
     if (IsMultiplayerClient()) {
         PlayersChanged(1);
     }
-    clientParty_.camera = -1;
+    clientParty.camera = -1;
 }
 
 void CBattleScreen::Draw(CSceneRenderer* pass) {
     GameRender();
-    if (boxSelecting_) {   // the selection box, a dark rectangle with an outline
-        pass->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
-                                                            selectionBox_.bottom, 0x40, 1);
+    if (boxSelecting) {    // the selection box, a dark rectangle with an outline
+        pass->DrawRectangle(selectionBox.left, selectionBox.top, selectionBox.right,
+                                                            selectionBox.bottom, 0x40, 1);
     }
-    Input()->MouseMove(0, g_cursor.position_.x, g_cursor.position_.y);
+    Input()->MouseMove(0, g_cursor.position.x, g_cursor.position.y);
     // The depth buffer is cleared before the panels draw.
     ClearUiDepth(1.0f);
     // Rebirth's AddNewConsoleCommands (call redirected): "nogui" shows or hides the

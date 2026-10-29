@@ -5,14 +5,14 @@
 // the game.
 //
 // Record mode (EI_VECTORS=1, verify build): every function with a recorder (EI_RECORD in
-// tests/vectors/record_<family>.cpp) runs the original through it. The recorder fills a payload (the
+// tests/vectors/record<family>.cpp) runs the original through it. The recorder fills a payload (the
 // arguments, the state the function reads, the result and the state afterwards) and offers it to its
 // Sampler, which keeps a deterministic sample: repeats are dropped, and of the distinct calls a
 // reservoir of `cap` per bucket is kept (a bucket is a path the function must not lose among
 // common calls, such as the generator's refill). At the end of a harness run they are written to
 // <run folder>/vectors/<family>/<function>.vec; tools/vectors.py merges runs into tests/vectors/data.
 //
-// Replay (ei_vectors.exe, tests/vectors/replay_<family>.cpp): each file's records go to the check
+// Replay (ei_vectors.exe, tests/vectors/replay<family>.cpp): each file's records go to the check
 // registered under the file's function name, under the x87 control word recorded with the call.
 //
 // File: FileHeader, then `count` records, each a RecordHeader followed by `payloadSize` bytes. A
@@ -83,7 +83,7 @@ public:
     }
     void PutBytes(const void* data, std::size_t size) {
         const auto* p = static_cast<const unsigned char*>(data);
-        bytes_.insert(bytes_.end(), p, p + size);
+        bytes.insert(bytes.end(), p, p + size);
     }
     // A string: its length (uint32, 0xFFFFFFFF for null) and characters.
     void PutString(const char* text) {
@@ -91,20 +91,20 @@ public:
         Put(length);
         if (text) PutBytes(text, length);
     }
-    const unsigned char* data() const { return bytes_.data(); }
-    std::uint32_t size() const { return static_cast<std::uint32_t>(bytes_.size()); }
+    const unsigned char* data() const { return bytes.data(); }
+    std::uint32_t size() const { return static_cast<std::uint32_t>(bytes.size()); }
 
     static constexpr std::uint32_t kNullString = 0xFFFFFFFFu;
 
 private:
-    std::vector<unsigned char> bytes_;
+    std::vector<unsigned char> bytes;
 };
 
 // Reads a variable-size payload in the order Writer wrote it. Reading past the end gives zeros and
 // clears ok().
 class Reader {
 public:
-    Reader(const void* data, std::uint32_t size) : p_(static_cast<const unsigned char*>(data)), left_(size) {}
+    Reader(const void* data, std::uint32_t size) : cursor(static_cast<const unsigned char*>(data)), remaining(size) {}
 
     template <typename T>
     T Get() {
@@ -116,14 +116,14 @@ public:
     }
     // The next `size` bytes, or null (and ok() false) when fewer are left.
     const unsigned char* Bytes(std::size_t size) {
-        if (size > left_) {
-            ok_ = false;
-            left_ = 0;
+        if (size > remaining) {
+            good = false;
+            remaining = 0;
             return nullptr;
         }
-        const unsigned char* p = p_;
-        p_ += size;
-        left_ -= size;
+        const unsigned char* p = cursor;
+        cursor += size;
+        remaining -= size;
         return p;
     }
     // A string written by PutString (`isNull` set for a null one).
@@ -134,13 +134,13 @@ public:
         const unsigned char* p = Bytes(length);
         return p ? std::string(reinterpret_cast<const char*>(p), length) : std::string();
     }
-    bool ok() const { return ok_; }
-    std::size_t left() const { return left_; }
+    bool ok() const { return good; }
+    std::size_t left() const { return remaining; }
 
 private:
-    const unsigned char* p_;
-    std::size_t left_;
-    bool ok_ = true;
+    const unsigned char* cursor;
+    std::size_t remaining;
+    bool good = true;
 };
 
 // ---- Record side (verify build) ----
@@ -174,13 +174,13 @@ public:
 private:
     friend void Flush();
     void Keep(const void* payload, std::uint32_t size, std::uint16_t controlWord, unsigned bucket, bool dedupe);
-    const char* family_;
-    const char* function_;
-    std::uint32_t payloadSize_;
-    std::uint32_t cap_;
-    unsigned buckets_;
-    State* state_ = nullptr;
-    Sampler* next_;
+    const char* family;
+    const char* function;
+    std::uint32_t payloadSize;
+    std::uint32_t cap;
+    unsigned buckets;
+    State* state = nullptr;
+    Sampler* next;
 };
 
 // Writes every sampler's records to <output folder>/vectors (the harness calls it with its report).

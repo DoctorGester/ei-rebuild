@@ -45,9 +45,9 @@ Vector3* CParticleSource::PartPoint(Vector3* out, CObject3D* object, const char*
         *out = point;
         return out;
     }
-    out->x = object->localPosition_.x;
-    out->y = object->localPosition_.y;
-    out->z = object->localPosition_.z + object->bounds.boxMax.z;
+    out->x = object->localPosition.x;
+    out->y = object->localPosition.y;
+    out->z = object->localPosition.z + object->bounds.boxMax.z;
     return out;
 }
 
@@ -58,8 +58,8 @@ Vector3* CParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
         out->z = 0.0f;
         return out;
     }
-    if (!(flags_ & ParticleSourceFlag::OnPart)) {
-        SetPosition(out, &object->localPosition_.x);
+    if (!(flags & ParticleSourceFlag::OnPart)) {
+        SetPosition(out, &object->localPosition.x);
         return out;
     }
     const auto point = static_cast<std::uint32_t>(attachPoint);
@@ -71,9 +71,9 @@ Vector3* CParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
     }
     float rise = lib::Has(object->bounds.flags, BoundsFlag::Sphere) ? object->bounds.radius * 1.6f
                                                                   : object->bounds.boxMax.z - object->bounds.boxMin.z;
-    out->x = object->localPosition_.x;
-    out->y = object->localPosition_.y;
-    out->z = rise + object->localPosition_.z;
+    out->x = object->localPosition.x;
+    out->y = object->localPosition.y;
+    out->z = rise + object->localPosition.z;
     return out;
 }
 
@@ -104,7 +104,7 @@ Vector3* CParticleSource::AttachmentOffset(Vector3* out, float* radius) {
 void CParticleSource::Attach(CObject3D* object) {
     CObject3D* old = attachedTo;
     if (old == object) {
-        if (!old) origin = localPosition_;
+        if (!old) origin = localPosition;
         return;
     }
     attachedTo = nullptr;
@@ -113,19 +113,19 @@ void CParticleSource::Attach(CObject3D* object) {
             // Let go where the source is: the attachment point becomes part of the position.
             Vector3 point;
             AttachmentPoint(&point, old);
-            float x = point.x + localPosition_.x;
-            float y = localPosition_.y + point.y;
-            float z = localPosition_.z + point.z;
-            localPosition_.x = x;
-            localPosition_.y = y;
-            localPosition_.z = z;
+            float x = point.x + localPosition.x;
+            float y = localPosition.y + point.y;
+            float z = localPosition.z + point.z;
+            localPosition.x = x;
+            localPosition.y = y;
+            localPosition.z = z;
         }
         // Drops the source and calls Attach(null) again (nothing to do then but the origin).
         old->RemoveEffectSource(this);
     }
     attachedTo = object;
     if (!object) {
-        origin = localPosition_;
+        origin = localPosition;
         return;
     }
     object->ComputeBounds();
@@ -138,6 +138,6 @@ void CParticleSource::Attach(CObject3D* object) {
 
 void CParticleSource::StopAndClear() {
     ReleaseAllParticles();
-    flags_ &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
+    flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
     Attach(nullptr);
 }

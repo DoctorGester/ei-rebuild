@@ -21,7 +21,7 @@ struct UnitVitals;
 struct UnitPrototypeRecord;
 struct UnitNpcRecord;
 
-// The types the map object manager's factory (NewObject) makes, as CEngineObject::type_ holds them (saved and sent
+// The types the map object manager's factory (NewObject) makes, as CEngineObject::type holds them (saved and sent
 // as the number). Units are 0x32..0x34 (Hero: the player's own units, "mo%d" skins; 0x33 is what a prototype
 // without a model gets), 0x39 is the retired fake unit (none made). The animation state is the figure manager's.
 enum class MapObjectType : int {
@@ -122,7 +122,7 @@ struct CMapObjectManager : CResourceManager {
 };
 
 inline CMapObjectManager* MapObjectManagerOf(const CEngineObject* object) {
-    return static_cast<CMapObjectManager*>(object->owner_);
+    return static_cast<CMapObjectManager*>(object->owner);
 }
 
 namespace unitdb {

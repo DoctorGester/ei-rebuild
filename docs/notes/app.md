@@ -87,7 +87,7 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   application drops the mouse at exit. The party record and class template creators and the party manager's
   destructor in the same file are described in script.md.
 - small_accessors.cpp: the counted pointer's destructor (00455C80, with the identical copies 00455610 and
-  004BB050): one reference dropped (`--refCount_`, no delete), the pointer cleared. Ours only (its prologue is a
+  004BB050): one reference dropped (`--refCount`, no delete), the pointer cleared. Ours only (its prologue is a
   short jump); the world server's tick and the object list iterators' owners call it. 00455610 is called by
   unwind funclets only.
 - A-E1 library rows (config/library.csv, 60 rows; each row says why): STLport instantiations, MFC template helpers (element

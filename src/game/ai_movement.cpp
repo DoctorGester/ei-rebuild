@@ -44,15 +44,15 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3& position) {
         ++node;
         if (other == unit) continue;
         double reach = static_cast<double>(other->standingHeight) + unitHeight;
-        double dy = static_cast<double>(position.y) - other->localPosition_.y;
-        double dx = static_cast<double>(position.x) - other->localPosition_.x;
+        double dy = static_cast<double>(position.y) - other->localPosition.y;
+        double dx = static_cast<double>(position.x) - other->localPosition.x;
         if (LengthSquared2DUnrounded(dx, dy) >= reach * reach) continue;
         if (other->IsDead() != 0) continue;
 
-        int unitX = CellOf(unit->localPosition_.x);
-        int unitY = CellOf(unit->localPosition_.y);
-        int otherX = CellOf(other->localPosition_.x);
-        int otherY = CellOf(other->localPosition_.y);
+        int unitX = CellOf(unit->localPosition.x);
+        int unitY = CellOf(unit->localPosition.y);
+        int otherX = CellOf(other->localPosition.x);
+        int otherY = CellOf(other->localPosition.y);
         float otherHeight = other->standingHeight;
         ShapeCacheHandle handle;
         const CUnitShape* shape = nullptr;
@@ -127,8 +127,8 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
     PassCostContext context;
     CostContext(unit->sizeClass, &context);
     // The original also asks the unit for its movement speeds and ignores them.
-    int x = CellOf(unit->localPosition_.x);
-    int y = CellOf(unit->localPosition_.y);
+    int x = CellOf(unit->localPosition.x);
+    int y = CellOf(unit->localPosition.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     if (HasSpellArea(x, y)) {
         int sizeClass = unit->sizeClass;

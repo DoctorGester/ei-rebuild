@@ -40,7 +40,7 @@ void BuildNodeMatrix(const Quaternion& rotation, const Vector3& position, Matrix
 // Pushes `m` onto the pipeline's decal stack: the product goes through a library call whose terms sum
 // in another order than PushMatrix's.
 void PushDecalMatrix(CTransformPipeline* pipeline, const float* m) {
-    MatrixStack& stack = pipeline->stacks_[CTransformPipeline::kDecalStack];
+    MatrixStack& stack = pipeline->stacks[CTransformPipeline::kDecalStack];
     if (stack.count == 0) {
         stack.count = 1;
         std::memcpy(stack.matrices.data(), m, sizeof(Matrix4));
@@ -91,34 +91,34 @@ void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CFigureMe
 void CWorldClient::ProjectDecal(const Vector3& direction, const Vector3& point, float depth,
                                 const VertexPacket& quad, std::vector<VertexPacket>* points,
                                 std::vector<DecalTexCoord>* texCoords, std::vector<std::uint16_t>* indices,
-                                std::uint8_t skipOnPlatform, std::uint8_t objects) {
+                                std::uint8_t skipOnPlatform, std::uint8_t withObjects) {
     render::BeginDecalTime(!skipOnPlatform);   // the ground prints skip the ground under a platform
     DecalBuilder& builder = g_builder;
     builder.Begin(points, texCoords, indices, quad, direction, point, depth);
-    if (!skipOnPlatform || !platforms_.Contains(point.x, point.y)) terrain_->AddDecalTriangles(&builder, quad);
+    if (!skipOnPlatform || !platforms.Contains(point.x, point.y)) terrain->AddDecalTriangles(&builder, quad);
 
-    CTransformPipeline* pipeline = g_sceneRenderer.pipeline_;
-    if (objects) {
+    CTransformPipeline* pipeline = g_sceneRenderer.pipeline;
+    if (withObjects) {
         PartData data;
-        for (auto face = platforms_.list.begin(); face != platforms_.list.end();) {
+        for (auto face = platforms.list.begin(); face != platforms.list.end();) {
             auto next = std::next(face);
             CObject3D* object = ObjectWithId(face->id);
             face = next;
             if (!object) continue;
             // The object's bounding sphere about its origin, then about its centre.
-            if (!builder.Touches(object->localPosition_, Length<Sum3::XYZ>(object->bounds.center) + object->bounds.radius))
+            if (!builder.Touches(object->localPosition, Length<Sum3::XYZ>(object->bounds.center) + object->bounds.radius))
                 continue;
-            BuildNodeMatrix(object->localRotation_, object->localPosition_, object->worldMatrix);
+            BuildNodeMatrix(object->localRotation, object->localPosition, object->worldMatrix);
             Vector3 centre = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY, Sum3::ZXY>(object->worldMatrix, object->bounds.center) +
-                             object->localPosition_;
+                             object->localPosition;
             if (!builder.Touches(centre, object->bounds.radius)) continue;
             PushDecalMatrix(pipeline, object->worldMatrix.m);
             CLinkMesh* figure = object->figure;
             if (figure) {
                 for (int i = 0; i < std::ssize(object->parts); ++i) {
                     CFigureMesh* part = object->parts[i];
-                    BuildNodeMatrix(part->localRotation_, part->localPosition_, part->worldMatrix_);
-                    PushDecalMatrix(pipeline, part->worldMatrix_.m);
+                    BuildNodeMatrix(part->localRotation, part->localPosition, part->worldMatrix);
+                    PushDecalMatrix(pipeline, part->worldMatrix.m);
                     AddPartTriangles(pipeline, figure, part, data);
                     pipeline->PopMatrix(CTransformPipeline::kDecalStack);
                 }

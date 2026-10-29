@@ -151,18 +151,18 @@ void AIBrain::StandardSentry(const Vector3& point) {
 
 void AIBrain::CallAllies(const Vector3& point) {
     CUnit* self = owner->unit;
-    UnitList units = g_serverWorld.aiMap_.sectorMap.FindUnitsInRadius(self->localPosition_, callRadius);
+    UnitList units = g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(self->localPosition, callRadius);
     for (auto node = units.begin(); node != units.end();) {
         auto* other = *node;
         ++node;
-        if (other == self || !g_serverWorld.diplomacy_.IsAllied(self->side, other->side)) continue;
+        if (other == self || !g_serverWorld.diplomacy.IsAllied(self->side, other->side)) continue;
         std::string message;
         AIBrain* ally = &other->ServerController()->brain;
         if (console::g_filterMask & 1) {
-            double dz = self->localPosition_.z - other->localPosition_.z;
-            double dy = self->localPosition_.y - other->localPosition_.y;
-            double dx = self->localPosition_.x - other->localPosition_.x;
-            message = str::Format("Unit %i call for help unit %i from %fm distance", self->id_, other->id_,
+            double dz = self->localPosition.z - other->localPosition.z;
+            double dy = self->localPosition.y - other->localPosition.y;
+            double dx = self->localPosition.x - other->localPosition.x;
+            message = str::Format("Unit %i call for help unit %i from %fm distance", self->id, other->id,
                            std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         }
         ally->memory.HearCall(point, kCallDelay, message);
@@ -204,7 +204,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
             continue;
         }
         if (call->hostileMask != 0) {
-            console::EndLine(kAiLog << "Unit " << unit->id_ << " hear delayed sound: " << call->text);
+            console::EndLine(kAiLog << "Unit " << unit->id << " hear delayed sound: " << call->text);
             unit->AddHostileMask(static_cast<std::uint32_t>(call->hostileMask));
         } else if (memory->noticedLevel < kNoticeCallLevel) {
             // Notice's work in float: logged when the level rises by more than 100 or the point is more than
@@ -229,7 +229,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
 void AIMemory::Update(CUnitServer* who) {
     std::erase_if(reports, [](AIReport& entry) { return --entry.ticksLeft < 0; });
     calls.Update(who->unit, this);
-    g_serverWorld.aiMap_.events.Update(who, this);
+    g_serverWorld.aiMap.events.Update(who, this);
     noticedLevel += noticedDecay;
 }
 
@@ -296,14 +296,14 @@ void AIBrain::Load(CStream* stream) {
     if (callRadius == settings.callForHelpRadiusDefault)
         callRadius = settings.callForHelpRadius;
     stream->ReadValue(alwaysUpdated);
-    if (stream->version_ < kVersionAttackOptions) return;
+    if (stream->version < kVersionAttackOptions) return;
     attention.healWeight = 0.0f;
     LoadAttackOptions(&attention.weapons, stream);
-    if (stream->version_ >= kVersionSpellOptions) {
+    if (stream->version >= kVersionSpellOptions) {
         LoadAttackOptions(&attention.spells, stream);
         stream->ReadValue(attention.healWeight);
     }
-    if (stream->version_ < kVersionAlarmSlot) return;
+    if (stream->version < kVersionAlarmSlot) return;
     stream->ReadValue(alarmSlot);
 }
 

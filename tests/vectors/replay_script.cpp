@@ -207,9 +207,9 @@ int CScript::Error(CScript* script, int line, int code, const char* format, ...)
     g_error.reported = true;
     g_error.line = line;
     g_error.code = code;
-    script->errorLine_ = line;
-    script->errorText_ = g_error.text;
-    script->errorCode_ = code;
+    script->errorLine = line;
+    script->errorText = g_error.text;
+    script->errorCode = code;
     return 0;
 }
 

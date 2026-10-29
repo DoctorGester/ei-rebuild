@@ -21,7 +21,7 @@ The frame order is this. `CInterface3D::Draw` 005F5220 (inside BeginScene..EndSc
 | Single pixel | `CUiSurface::Dot` | the HUD map's marker (`CHudMap::Setup` 00641F20) | canvas command |
 | Screen copy into a surface | 005FD3D0 `CaptureScreen` (`ui_surface_pixels.cpp`) | escape-menu backdrop (`ui_interface_draw.cpp`), global-map pick picture (`ui_global_map_places.cpp`) | GPU copy (`ps_copy`, R28a) |
 | Greyscale, (2r+4g+b)/16 | 005FE440 | escape-menu backdrop | GPU (`ps_grey`) |
-| Save picture | 005FD440 `Rgb565Copy` → `render::ui::ReadRgb565` | escape-menu `screenCopy_` (256x192), QuickSave 006570E0, SaveGame 00655550 | GPU, 5:6:5 read back |
+| Save picture | 005FD440 `Rgb565Copy` → `render::ui::ReadRgb565` | escape-menu `screenCopy` (256x192), QuickSave 006570E0, SaveGame 00655550 | GPU, 5:6:5 read back |
 | Pixel read | 005FD240 `PixelAt` → `render::ui::ReadPixel` | global-map click (`ui_global_map_input.cpp`) and FindPaths (`ui_global_map_paths.cpp`): zone = (pixel>>4)&0xF − 1 | GPU read back of one pixel |
 | Swap / freeze | 005FD7A0 `SwapContents` → `render::ui::MoveCanvas`, 005FD760 `CUiSurface::Show` / `Hide` | camp, menus, backdrop modes 3 / 4, every window's `CUiWindow::Show` 006002C0 | the canvas moved aside and back |
 | Titles' RTF text | 0065F020 `CUiScrollingSurface::RenderText` (`render_rich_text.cpp` lays it out) | titles / credits | glyph runs (P8a) |
@@ -42,7 +42,7 @@ built into the executable), laid out by `render::text` (render_text.cpp; the Dra
 drawn as glyph runs on the canvases; no GDI. The user's call (2026-10-14): not pixel-exact against GDI, but wrapping
 and drawing use one set of metrics. What follows is the original's behaviour that the layout follows.
 
-**Fonts.** `CInterface3D::Create` 005F4990 (`ui_interface_create.cpp`) makes `fonts_[0..2]` as the original's
+**Fonts.** `CInterface3D::Create` 005F4990 (`ui_interface_create.cpp`) makes `fonts[0..2]` as the original's
 `CFont::CreatePointFont` 0070BBE5 sized them: "Times New Roman" at width·{104, 112, 144}/800/scale. The scale is the
 pixel height of a 75-point font. So the font size depends on resolution; with WideScreen the scale's 0.01 becomes
 width·0.0075/height (addon's float at 005F4F81, `widescreen::FontScale`; W4).
@@ -429,7 +429,7 @@ the briefing are unchanged.
 | Family | Surfaces (file) |
 |---|---|
 | `briefing` | the base screen's topic rows and person's label (`CBriefingScreen`'s setup, ui_briefing_create.cpp) and its text, a `CUiScrollText` adopted right after it is made |
-| `globalmap` | the zone tip with its quests (surface 0) and the allod's title and clock (ui_global_map.cpp); not the pick picture `backdrop_` (P6) |
+| `globalmap` | the zone tip with its quests (surface 0) and the allod's title and clock (ui_global_map.cpp); not the pick picture `backdrop` (P6) |
 | `help` | the help page's header, body and footer (`NewSurface`, ui_help_page.cpp): over the options, the objectives and the zone tutorials |
 | `chat` | the player list (`CChatWindow`, ui_chat_window.cpp) and the chat overlay's line surfaces (ui_chat_overlay.cpp; the typed line is P5's) |
 
@@ -451,7 +451,7 @@ frame (the help page's native glyphs are 2%).
 rule: end point left out):
 | Family | Surface (file) | Line |
 |---|---|---|
-| `edit` | every `CUiEditField`'s (ui_edit_field.cpp): the message box's, new hero's, hero screen's, exchange's and connection screen's fields | the caret in `caretColour_` |
+| `edit` | every `CUiEditField`'s (ui_edit_field.cpp): the message box's, new hero's, hero screen's, exchange's and connection screen's fields | the caret in `caretColour` |
 | `chat` | the chat overlay's typed line (ui_chat_overlay.cpp) | the caret in white |
 | `connect` | the connection screen's game list and its "connecting" note (`NewSurface`, ui_connect_screen.cpp) | the line under the column titles (ui_connect_list.cpp) |
 | `saveload` | the save / load window's list (`CSaveLoadWindow::CreateScreen`, ui_layouts.cpp) | the save name's caret (ui_saveload_list.cpp) |
@@ -554,7 +554,7 @@ at, and it no longer runs off the bottom of the screen.
 no longer loads Riched20.dll or makes a RichEdit control, and has no DIB page or memory DC. `LoadRtf` reads the RTF
 block with `render::text::ReadRtf` and lays it out once at the surface's width with `LayoutRichText`
 (src/render/render_rich_text.{h,cpp}, no Windows calls); `RenderText` fills the canvas white (the key) and draws the
-lines the surface shows as glyph runs (`RichDraws`: one `GlyphRun` per font and colour), its top `offset_` twips
+lines the surface shows as glyph runs (`RichDraws`: one `GlyphRun` per font and colour), its top `offset` twips
 above the surface's. The speed, the offsets in twips and the end are the original's: the whole text fitting above
 1000 twips below the surface keeps the offset, and 1000 twips plus the height past it stop the scroll; "fits" is
 the text's pixel bottom at most the page bottom's (`TwipsToPixels`, MulDiv's rounding), which is where RichEdit's

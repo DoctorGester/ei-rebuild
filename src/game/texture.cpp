@@ -15,7 +15,7 @@
 
 namespace {
 // Game-wide paths set at startup. Names provisional.
-const std::string& GameRoot() { return options::g_options.workPath_; }
+const std::string& GameRoot() { return options::g_options.workPath; }
 
 constexpr std::uint32_t kDxtCode = 'D' | ('X' << 8) | ('T' << 16);   // a DXT format's code without its digit
 constexpr std::uint32_t kFormat565 = 0x5650, kFormat1555 = 0x5551, kFormat4444 = 0x4444, kFormat8888 = 0x8888;
@@ -67,7 +67,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         game::DebugLog("CTextureManager::LoadTexture.\n Can't load texture to NULL pointer.\n");
         return 0;
     }
-    if (texture->flags_ & TextureFlag::Loaded) {
+    if (texture->flags & TextureFlag::Loaded) {
         game::DebugLog("Load already loaded texture \"%s\".\n", texture->GetName());
         return 1;
     }
@@ -78,19 +78,19 @@ int CTextureManager::LoadTexture(CTexture* texture) {
 
     if (finder.FindFile(path)) {
         // A loose .bmp overrides the archived texture.
-        texture->format_ = BmpFormatFor(texture->type_);
-        return texture->LoadBmp(device_, path.c_str());
+        texture->format = BmpFormatFor(texture->type);
+        return texture->LoadBmp(device, path.c_str());
     }
 
     path = std::string(texture->GetName()) + ".mmp";
     if (auto* header = static_cast<MmpHeader*>(GetFile(path, nullptr))) {
-        texture->format_ = header->HeldFormat();
-        if (!texture->format_)
+        texture->format = header->HeldFormat();
+        if (!texture->format)
             return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
                                     texture->GetName());
-        unsigned mip = mipLevel_;
+        unsigned mip = mipLevel;
         if (mip >= header->mipCount) mip = header->mipCount - 1;
-        result = texture->CreateFromMmp(device_, header, mip);
+        result = texture->CreateFromMmp(device, header, mip);
         CloseFile(header);
         return result;
     }
@@ -101,35 +101,35 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         game::DebugLog("CTextureManager::LoadTexture.\n Can't find texture \"%s\"\n", texture->GetName());
         return 1;
     }
-    texture->format_ = composed->header.HeldFormat();
-    if (!texture->format_)
+    texture->format = composed->header.HeldFormat();
+    if (!texture->format)
         return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
                                 texture->GetName());
-    texture->CreateComposed(device_, *composed, mipLevel_);
+    texture->CreateComposed(device, *composed, mipLevel);
     return 1;
 }
 
-void CTextureManager::SetDevice(CTextureDevice* device) {
-    CTextureDevice* old = device_;
-    device_ = device;
-    if (device) device->AddRef();
+void CTextureManager::SetDevice(CTextureDevice* newDevice) {
+    CTextureDevice* old = device;
+    device = newDevice;
+    if (newDevice) newDevice->AddRef();
     if (old) old->Release();
-    if (!device_) {
-        limitTo512_ = 1;
-        mipLevel_ = 2;
+    if (!device) {
+        limitTo512 = 1;
+        mipLevel = 2;
         return;
     }
-    switch (options::g_options.textureQuality_) {
-    case 0: mipLevel_ = 0; break;
-    case 1: mipLevel_ = 1; break;
-    case 2: mipLevel_ = 2; break;
-    default: mipLevel_ = 3; break;
+    switch (options::g_options.textureQuality) {
+    case 0: mipLevel = 0; break;
+    case 1: mipLevel = 1; break;
+    case 2: mipLevel = 2; break;
+    default: mipLevel = 3; break;
     }
-    limitTo512_ = 0;   // (the game set 1 for a card whose textures were at most 256 pixels wide or high)
+    limitTo512 = 0;    // (the game set 1 for a card whose textures were at most 256 pixels wide or high)
 }
 
-CEngineObject* CTextureManager::NewObject(int type) {
+CEngineObject* CTextureManager::NewObject(int textureType) {
     auto* texture = new CTexture();
-    texture->type_ = type;
+    texture->type = textureType;
     return texture;
 }

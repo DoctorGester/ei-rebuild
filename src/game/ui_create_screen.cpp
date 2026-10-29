@@ -75,7 +75,7 @@ namespace {
 // interface draws with (blending by source alpha, the alpha test against 0x80), the window created, the messages
 // pumped, the mouse released.
 void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
-    ui->stack_.push_back(window);
+    ui->stack.push_back(window);
     render::RenderState& state = render::g_renderState;
     state.blend = true;
     state.alphaTest = true;
@@ -85,7 +85,7 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
     app::g_interfaceHasScreen = 1;
     ScreenOf(window)->CreateScreen();
     app::PumpMessages();
-    ui->mouseCapture_ = nullptr;
+    ui->mouseCapture = nullptr;
     g_cursor.SetShape(0);
 }
 } // namespace
@@ -93,25 +93,25 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
 void CInterface3D::PushWindow(CUiWindow* window, bool behind, bool pauseFrame) {
     g_cursor.SetShape(3);
     if (behind && !pauseFrame) {
-        backdropMode_ = 3;
+        backdropMode = 3;
         app::FrameStep(false, true);
     }
-    if (stack_.size() == 1) {   // one window open
-        serverFlag_ = static_cast<std::uint8_t>(g_serverWorld.paused_);
+    if (stack.size() == 1) {    // one window open
+        serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
         if (!IsMultiplayerClient()) GameSetServerPaused(1);
         if (behind && pauseFrame) {
-            backdropMode_ = 1;
+            backdropMode = 1;
             app::FrameStep(false, true);
         }
     }
-    ctrlDown_ = false;
-    altDown_ = false;
-    shiftDown_ = 0;
-    rightDown_ = false;
-    doubleClick_ = false;
-    if (!stack_.empty()) stack_.back()->Input()->Deactivate();
-    if (!stack_.empty()) {
-        stack_.back()->Show(false);
+    ctrlDown = false;
+    altDown = false;
+    shiftDown = 0;
+    rightDown = false;
+    doubleClick = false;
+    if (!stack.empty()) stack.back()->Input()->Deactivate();
+    if (!stack.empty()) {
+        stack.back()->Show(false);
     }
     if (!window) game::FatalError("Cannot activate NULL interface screen\n");
     OpenOnTop(this, window);
@@ -120,24 +120,24 @@ void CInterface3D::PushWindow(CUiWindow* window, bool behind, bool pauseFrame) {
 // --- Activate ------------------------------------------------------------------------------------
 
 void CInterface3D::Activate(CUiWindow* window) {
-    if (closeAll_) {
-        closeAll_ = false;
+    if (closeAll) {
+        closeAll = false;
         CloseAll();
     }
     g_cursor.SetShape(3);
-    delete backdrop_;
-    backdrop_ = nullptr;
-    delete secondBackdrop_;
-    secondBackdrop_ = nullptr;
-    backdropMode_ = 0;
-    serverFlag_ = 0;
+    delete backdrop;
+    backdrop = nullptr;
+    delete secondBackdrop;
+    secondBackdrop = nullptr;
+    backdropMode = 0;
+    serverFlag = 0;
     GameSetServerPaused(0);
     g_cursor.SetShape(3);
-    while (!stack_.empty()) {
-        stack_.back()->Input()->Deactivate();
-        ScreenOf(stack_.back())->CloseScreen();
-        delete stack_.back();
-        stack_.pop_back();
+    while (!stack.empty()) {
+        stack.back()->Input()->Deactivate();
+        ScreenOf(stack.back())->CloseScreen();
+        delete stack.back();
+        stack.pop_back();
     }
     ResetInput();
     app::PumpMessages();
@@ -153,31 +153,31 @@ void CInterface3D::Activate(CUiWindow* window) {
 
 void CInterface3D::ShowMessage(bool forced) {
     if (!forced) {
-        if (messages_.empty()) return;
-        std::string text = messages_.front();
-        messages_.pop_front();
-        messageText_ = text;
-        messageFlag_ = 0;
+        if (messages.empty()) return;
+        std::string text = messages.front();
+        messages.pop_front();
+        messageText = text;
+        messageFlag = 0;
     }
-    if (messageText_.size() == 0) return;
-    if (options::g_options.showTutorial_ == 0 && !forced) return;
-    PushWindow(new CHelpWindow(this, true, messageText_, messageFlag_), true, false);
+    if (messageText.size() == 0) return;
+    if (options::g_options.showTutorial == 0 && !forced) return;
+    PushWindow(new CHelpWindow(this, true, messageText, messageFlag), true, false);
 }
 
 // --- the help window -----------------------------------------------------------------------------
 
 void CInterface3D::OpenHelp(bool forced) {
-    if (stack_.empty()) return;
-    CUiWindow* active = stack_.back();
+    if (stack.empty()) return;
+    CUiWindow* active = stack.back();
     const char* topic = ScreenOf(active)->HelpTopic();
     if (!topic) return;
     int seen = -1;
     // The seen-topics map (find; operator[], lower_bound an insert at that
     // hint).
-    auto found = helpTopics_.find(std::string(topic));
-    if (found != helpTopics_.end()) seen = found->second;
-    else helpTopics_[std::string(topic)] = 0;
-    if (options::g_options.showTutorial_ != 0) {
+    auto found = helpTopics.find(std::string(topic));
+    if (found != helpTopics.end()) seen = found->second;
+    else helpTopics[std::string(topic)] = 0;
+    if (options::g_options.showTutorial != 0) {
         if (!forced && seen >= 0) return;
     } else if (!forced) {
         return;
@@ -189,5 +189,5 @@ void CInterface3D::OpenHelp(bool forced) {
 
 CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {}
 
-CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name)
-    : CUiContainer(ui), name_(name), fromGame_(fromGame) {}
+CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool newFromGame, const char* newName)
+    : CUiContainer(ui), name(newName), fromGame(newFromGame) {}

@@ -481,31 +481,31 @@ void* LocalWorldPlayer() {
     return ei::Standalone() ? image::LocalWorldPlayer(kLocalPlayer)
                             : OriginalCode<void*(__thiscall*)(void*, int)>(0x00594180)(exe::ServerWorld(), kLocalPlayer);
 }
-// Its server connection (the world player's connection_, a CPlayerServer in single player; StateOf in
+// Its server connection (the world player's connection, a CPlayerServer in single player; StateOf in
 // script_exec.cpp) or null, and the connection's state (1 in the world, 3 leaving the zone).
 void* LocalConnection() {
     void* player = LocalWorldPlayer();
     if (!player) return nullptr;
-    return ei::Standalone() ? image::PlayerConnection(player) : static_cast<exe::CPlayer*>(player)->connection_;
+    return ei::Standalone() ? image::PlayerConnection(player) : static_cast<exe::CPlayer*>(player)->connection;
 }
 int ConnectionState(void* connection) {
-    return ei::Standalone() ? image::ConnectionState(connection) : static_cast<exe::CPlayerConnection*>(connection)->state_;
+    return ei::Standalone() ? image::ConnectionState(connection) : static_cast<exe::CPlayerConnection*>(connection)->state;
 }
 // What the zone steps read, for the log and failure messages.
 std::string DescribeLocalPlayer() {
     void* player = LocalWorldPlayer();
     void* connection = LocalConnection();
     char text[200];
-    // The server world's +0x5C (worldHandle_), which the flow passes to the client world's SetPlayer (00566CE0). It is
+    // The server world's +0x5C (worldHandle), which the flow passes to the client world's SetPlayer (00566CE0). It is
     // not the server's player number: the first X9 run found no player with it (logged by the steps).
     std::snprintf(text, sizeof(text), "player %d -> %p, connection %p, state %d (world +0x5C = %p)", kLocalPlayer, player,
                   connection, connection ? ConnectionState(connection) : -1,
-                  ei::Standalone() ? image::WorldHandle() : exe::ServerWorld()->worldHandle_.ptr);
+                  ei::Standalone() ? image::WorldHandle() : exe::ServerWorld()->worldHandle.ptr);
     return text;
 }
 // The server world's zone (+0x120, the map database name NewZone 00595480 stores), or "".
 const char* ServerZoneName() {
-    const char* name = ei::Standalone() ? image::ServerZoneName() : exe::ServerWorld()->zoneName_.text;
+    const char* name = ei::Standalone() ? image::ServerZoneName() : exe::ServerWorld()->zoneName.text;
     return name ? name : "";
 }
 
@@ -1376,7 +1376,7 @@ using SrandFn = void(__cdecl*)(unsigned);
 void __fastcall FixedIsaacSeed(void* isaac) {
     if (client_effects::IsClientGenerator(isaac)) return;   // seeded from the game's generator (harness_client_effects.h)
     reinterpret_cast<SrandFn>(0x006E77EA)(12345);
-    FillFixedSeed(static_cast<exe::IsaacRandom*>(isaac)->results_);
+    FillFixedSeed(static_cast<exe::IsaacRandom*>(isaac)->results);
 }
 
 // game.exe's function at `from` replaced by `to`: a JMP written there (game.exe's runs only).
@@ -1456,14 +1456,14 @@ struct HeldModifiers {
             if (begin == std::string::npos) break;   // a single word is the argument itself
             unsigned one = ModifierWord(rest.substr(begin + 1, end - begin));
             if (!one) break;
-            mods_ |= one;
+            mods |= one;
             rest.erase(begin);
         }
         *argument = rest;
-        PostModifiers(mods_, true);
+        PostModifiers(mods, true);
     }
-    ~HeldModifiers() { PostModifiers(mods_, false); }
-    unsigned mods_ = 0;
+    ~HeldModifiers() { PostModifiers(mods, false); }
+    unsigned mods = 0;
 };
 
 // The game's TranslateMessage (import slot 0073B450; WinMain's loop and the movie loop call it). Windows makes a
@@ -1748,8 +1748,8 @@ void PostRegionMouse(const std::string& verb, int index) {
     } else {
         exe::CInterface3D* ui = harness_objects::Interface();
         OriginalCode<int(__thiscall*)(exe::CInterface3D*, POINT*)>(0x005F7D20)(ui, &point);
-        width = ui->width_;
-        height = ui->height_;
+        width = ui->width;
+        height = ui->height;
     }
     RECT client = GameClient();
     if (width > 0 && height > 0) {
@@ -1776,7 +1776,7 @@ void PostRegionMouse(const std::string& verb, int index) {
 
 // --- clickunit <name> [l|r|move] [mods] (ticket I8; the modifiers are HeldModifiers') -------------------------------------------
 // A click on a unit's body, placed where the game's own picking finds it. The client world
-// (007AF5B8) keeps a list (screenEntries_: the object's class id, its id and its screen rectangle) of
+// (007AF5B8) keeps a list (screenEntries: the object's class id, its id and its screen rectangle) of
 // the objects drawn this frame with the rectangles of their projected vertices (written by the object
 // draw, 004E8900 / 005A7A70).
 // 00565E40 (the world's thiscall, RET 4) is the unit at a point that the battle screen's left
@@ -1804,7 +1804,7 @@ void* HarnessUnitAt(void* world, const POINT* p) {
 // not drawn, -1 without a list.
 int ScreenRect(void* world, int id, RECT* rect) {
     if (ei::Standalone()) return image::ScreenRect(world, id, rect);
-    const auto& entries = static_cast<exe::CWorldClient*>(world)->screenEntries_;
+    const auto& entries = static_cast<exe::CWorldClient*>(world)->screenEntries;
     if (!entries.head) return -1;
     int found = 0;
     for (const auto* node = entries.First(); node && node != entries.End(); node = node->next) {
@@ -1814,12 +1814,12 @@ int ScreenRect(void* world, int id, RECT* rect) {
     }
     return found;
 }
-// A picked object's id and flags (the CEngineObject's id_ and flags_).
+// A picked object's id and flags (the CEngineObject's id and flags).
 int PickedId(const void* object) {
-    return ei::Standalone() ? image::ObjectId(object) : static_cast<const exe::CEngineObject*>(object)->id_;
+    return ei::Standalone() ? image::ObjectId(object) : static_cast<const exe::CEngineObject*>(object)->id;
 }
 std::uint32_t PickedFlags(const void* object) {
-    return ei::Standalone() ? image::ObjectFlags(object) : static_cast<const exe::CEngineObject*>(object)->flags_;
+    return ei::Standalone() ? image::ObjectFlags(object) : static_cast<const exe::CEngineObject*>(object)->flags;
 }
 std::string FindUnitPoint(const char* name, const char* what, POINT* point, void** unit) {
     std::string label = std::string(what ? what : "waitunit") + " " + name;
@@ -1935,8 +1935,8 @@ void HarnessBlinkClose(void* half) {
 // The client halves of game.exe's client world's units with a face texture; false without a client world.
 bool ExeUnitFaceHalves(std::vector<void*>* halves) {
     const exe::CWorldClient* world = exe::ClientWorld();
-    if (!world->objects_.head) return false;
-    for (auto* node = world->objects_.First(); node != world->objects_.End(); node = node->next) {
+    if (!world->objects.head) return false;
+    for (auto* node = world->objects.First(); node != world->objects.End(); node = node->next) {
         exe::CMapObject* object = node->data;
         if (!object || digest::ClassOf(object) != digest::kClassUnit) continue;
         auto* half = reinterpret_cast<exe::CUnitClientSpecific*>(static_cast<exe::CUnit*>(object)->controller);
@@ -2045,7 +2045,7 @@ std::string LookAt(const std::string& argument) {
 
 // --- hudstate [minquick] (ticket I9) ----------------------------------------------------------
 // Logs the battle screen's state (the window on top): the pending action (+0x17C, +0x180), each
-// party member's selection (flags_ 0x10) and quick items (CUnit::GetQuickItem 00531920, slots
+// party member's selection (flags 0x10) and quick items (CUnit::GetQuickItem 00531920, slots
 // 0-3), and the quick item panel's (+0x198) unit, entries shown and region items, the spell
 // column's (+0x19C) count and highlight. With <minquick>, fails when the quick item panel shows
 // fewer than that many of its unit's own quick items (regions 0-3).
@@ -2074,8 +2074,8 @@ std::string HudState(const std::string& argument) {
 
 // --- campputon <type> <count> (ticket I9) -----------------------------------------------------
 // With the camp on top (screen 5, page 0): the first <count> items of class type <type> (hex,
-// item type_: 0x3004 weapon, 0x3005 armour, 0x3006 quick item, 0x3008 spell container) in the
-// item strip's source list (the camp's itemStrip_, its source_: the player's items) are put on the hero as
+// item type: 0x3004 weapon, 0x3005 armour, 0x3006 quick item, 0x3008 spell container) in the
+// item strip's source list (the camp's itemStrip, its source: the player's items) are put on the hero as
 // a click on them in the strip does: the camp's virtual slot 42 (TakeItem: MoveItem 00610AD0) with mode 1
 // (PutOnFromStrip -> PutOn 0060FCA0). The strip's tabs do not matter. Logs every source item's
 // type; fails when fewer than <count> items of the type are found or the camp is not on top.
@@ -2095,13 +2095,13 @@ std::string CampPutOn(const std::string& argument) {
         if (!image::CampItems(camp, &page, &items, &types)) return "campputon: the camp has no item strip source";
     } else {
         auto* pages = static_cast<exe::CCampPages*>(camp);
-        page = pages->page_;
-        const exe::AlignedArray<exe::CItem*>* source = pages->itemStrip_ ? pages->itemStrip_->source_ : nullptr;
+        page = pages->page;
+        const exe::AlignedArray<exe::CItem*>* source = pages->itemStrip ? pages->itemStrip->source : nullptr;
         if (!source) return "campputon: the camp has no item strip source";
         for (int i = 0; i < source->size; ++i) {
             exe::CItem* item = source->data[i];
             items.push_back(item);
-            types.push_back(item ? static_cast<unsigned>(item->type_) : 0);
+            types.push_back(item ? static_cast<unsigned>(item->type) : 0);
         }
     }
     std::vector<void*> chosen;
@@ -2179,9 +2179,9 @@ bool WindowReady(std::uintptr_t vtable) {
     const std::uintptr_t real = TopWindowVtable(top);
     if (real != vtable) return false;
     if (real == KnownWindowVtable("saveload"))
-        return !(ei::Standalone() ? image::SaveLoadSliding(top) : static_cast<exe::CSaveLoadWindow*>(top)->sliding_);
+        return !(ei::Standalone() ? image::SaveLoadSliding(top) : static_cast<exe::CSaveLoadWindow*>(top)->sliding);
     if (real == KnownWindowVtable("options"))
-        return !(ei::Standalone() ? image::OptionsSliding(top) : static_cast<exe::COptionsWindow*>(top)->sliding_);
+        return !(ei::Standalone() ? image::OptionsSliding(top) : static_cast<exe::COptionsWindow*>(top)->sliding);
     return true;
 }
 
@@ -3085,14 +3085,14 @@ void RunSteps() {
             // The chat line (the interface's root, CChatOverlay) opened as a multiplayer client's Enter
             // opens it (005F7C60: SetOpen 005E36C0, which draws it, 005E3700), or closed.
             exe::CInterface3D* ui = harness_objects::Interface();
-            if (!(ei::Standalone() ? image::HasChatOverlay() : ui->root_ != nullptr)) {
+            if (!(ei::Standalone() ? image::HasChatOverlay() : ui->root != nullptr)) {
                 g_failures.push_back("chat: the interface has no chat overlay");
             } else if (std::atoi(s.argument.c_str()) != 0) {
                 if (ei::Standalone()) image::ChatKeyEnter();
                 else OriginalCode<void(__thiscall*)(exe::CInterface3D*)>(0x005F7C60)(ui);
             } else {
                 if (ei::Standalone()) image::CloseChat();
-                else OriginalCode<void(__thiscall*)(void*, int)>(0x005E36C0)(ui->root_, 0);
+                else OriginalCode<void(__thiscall*)(void*, int)>(0x005E36C0)(ui->root, 0);
             }
         } else if (s.verb == "typeunicode") {
             if (std::string failure = utf8typing::Type(GameWindow(), s.argument); !failure.empty())
@@ -3648,7 +3648,7 @@ WNDPROC g_gameWindowProc;
 // harness notes the minimise (WM_SIZE, sent from inside a PeekMessageA while dgVoodoo handles the
 // deactivation) and, once that PeekMessageA has returned and dgVoodoo is done, puts the window back
 // without activating it and restores the surfaces as that code does (under the device lock, the
-// result in the device's lastLoadResult_), after every peek for the next 50 (surfaces still lost
+// result in the device's lastLoadResult), after every peek for the next 50 (surfaces still lost
 // right after the minimise were seen to fail the next BeginScene even so). Seen so far, though, the
 // minimise always came twice within ~100 ms, and the second took the exclusive mode as well.
 HWND g_minimised;
@@ -3658,11 +3658,11 @@ int g_restoresLeft;
 bool RestoreSurfaces(long* result) {
     if (ei::Standalone()) return image::RestoreSurfaces(result);
     auto* device = static_cast<exe::CTextureDevice*>(HarnessSceneDevice());
-    if (!device || !device->ddraw_) return false;
+    if (!device || !device->ddraw) return false;
     auto* lock = HarnessDeviceLock();   // the render device's lock
     EnterCriticalSection(lock);
-    *result = static_cast<IDirectDraw7*>(device->ddraw_)->RestoreAllSurfaces();
-    device->lastLoadResult_ = *result;
+    *result = static_cast<IDirectDraw7*>(device->ddraw)->RestoreAllSurfaces();
+    device->lastLoadResult = *result;
     LeaveCriticalSection(lock);
     return true;
 }

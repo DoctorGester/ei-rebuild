@@ -37,13 +37,13 @@ constexpr float kHearingMargin = 5.0f;    // added to it
 
 constexpr MapObjectType kTypeNoSync = MapObjectType::MagicTrap;   // never sent
 
-// CPlayerServer::state_.
+// CPlayerServer::state.
 constexpr int kModePlaying = 1;
 constexpr int kModeJoining = 2;
 constexpr int kModeLeaving = 3;
 constexpr int kModeGone = 4;
 
-constexpr int kKindSinglePlayer = 1;         // CWorldServer::sessionKind_
+constexpr int kKindSinglePlayer = 1;         // CWorldServer::sessionKind
 constexpr int kKindNoRangeTest = 3;
 
 // Compares the ids in `known` with the objects in `current`; fills `added`, `kept` and `removed`.
@@ -55,8 +55,8 @@ void DiffSets(std::vector<CEngineObject*>* known, std::vector<CEngineObject*>* c
 // Whether (x, y) lies outside the camera's view range around (cx, cy); NaN counts as inside. The squared distance
 // and the squared range stay on the FPU (dy^2 + dx^2, in that order).
 bool OutOfView(const float* point, const CPlayerServer* state) {
-    double dx = static_cast<double>(point[0]) - state->lastPosition_.x;
-    double dy = static_cast<double>(point[1]) - state->lastPosition_.y;
+    double dx = static_cast<double>(point[0]) - state->lastPosition.x;
+    double dy = static_cast<double>(point[1]) - state->lastPosition.y;
     double distance = LengthSquared2DUnrounded(dy, dx);
     double range = static_cast<double>(kViewRange) * kViewRange;
     return distance >= range;
@@ -66,12 +66,12 @@ bool OutOfView(const float* point, const CPlayerServer* state) {
 // objects named in scripts, and every unit within hearing range of one of its units. `out` is the
 // write cursor into the collected array.
 CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerServer* state, CEngineObject** out) {
-    if (world->sessionKind_ == kKindSinglePlayer && options::g_options.drawVisibleOnly_ == 0) {
+    if (world->sessionKind == kKindSinglePlayer && options::g_options.drawVisibleOnly == 0) {
         // Every map object near the camera, and the player's units anywhere; nothing else.
-        for (auto node = world->mapObjects_.map.begin(); node != world->mapObjects_.map.end() && node->second; ++node) {
+        for (auto node = world->mapObjects.map.begin(); node != world->mapObjects.map.end() && node->second; ++node) {
             CMapObject* object = node->second;
             if (object->MapType() == kTypeNoSync) continue;
-            if (!OutOfView(&object->localPosition_.x, state)) {
+            if (!OutOfView(&object->localPosition.x, state)) {
                 *out++ = object;
                 continue;
             }
@@ -80,28 +80,28 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         return out;
     }
 
-    MapObjectIdMap& source = world->sessionKind_ == kKindSinglePlayer ? world->otherMapObjects_ : world->mapObjects_;
-    if (world->sessionKind_ == kKindNoRangeTest) {
+    MapObjectIdMap& source = world->sessionKind == kKindSinglePlayer ? world->otherMapObjects : world->mapObjects;
+    if (world->sessionKind == kKindNoRangeTest) {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
             CMapObject* object = node->second;
-            if (object->MapType() != kTypeNoSync && !(object->flags_ & MapObjectFlag::Invisible)) *out++ = object;
+            if (object->MapType() != kTypeNoSync && !(object->flags & MapObjectFlag::Invisible)) *out++ = object;
         }
     } else {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
             CMapObject* object = node->second;
-            if (object->MapType() != kTypeNoSync && !OutOfView(&object->localPosition_.x, state)) *out++ = object;
+            if (object->MapType() != kTypeNoSync && !OutOfView(&object->localPosition.x, state)) *out++ = object;
         }
     }
-    if (world->sessionKind_ != kKindSinglePlayer) return out;
+    if (world->sessionKind != kKindSinglePlayer) return out;
 
     // The units always sent.
-    for (const ScriptObjectRef& unit : state->partyUnits_) *out++ = unit.object;
-    for (auto node = world->namedObjects_.map.begin(); node != world->namedObjects_.map.end() && node->second; ++node)
+    for (const ScriptObjectRef& unit : state->partyUnits) *out++ = unit.object;
+    for (auto node = world->namedObjects.map.begin(); node != world->namedObjects.map.end() && node->second; ++node)
         *out++ = node->second;
 
     // The units each of the player's units can hear: max(perception * factor, minimum) * scale +
     // margin around it (the server half's movement factor 3 and statistics B0 values 0 and 2).
-    auto& units = player->units_;
+    auto& units = player->units;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
         CUnit* unit = node->second;
         auto* controller = unit->ServerController();
@@ -109,7 +109,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         float minimum = controller->stats.perception[2].current;
         float range = perception >= minimum ? perception : minimum;   // branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * kHearingScale + kHearingMargin);
-        std::list<CUnit*> heard = world->aiMap_.sectorMap.FindUnitsInRadius(unit->localPosition_, radius);
+        std::list<CUnit*> heard = world->aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, radius);
         for (auto& entry : heard) *out++ = entry;
         heard.clear();
     }
@@ -119,12 +119,12 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
 // The timed objects (spells, effects) a player should know: those whose reach (a virtual, squared) covers its
 // camera.
 CEngineObject** CollectTimedObjects(CWorldServer* world, CPlayerServer* state, CEngineObject** out) {
-    for (auto node = world->timedObjects_.map.begin(); node != world->timedObjects_.map.end() && node->second; ++node) {
+    for (auto node = world->timedObjects.map.begin(); node != world->timedObjects.map.end() && node->second; ++node) {
         CEngineObject* object = node->second;
         auto* timed = static_cast<CEffect*>(object);
-        const Vector3* position = timed->Position(&state->partyUnits_);
-        double dx = static_cast<double>(position->x) - state->lastPosition_.x;
-        double dy = static_cast<double>(position->y) - state->lastPosition_.y;
+        const Vector3* position = timed->Position(&state->partyUnits);
+        double dx = static_cast<double>(position->x) - state->lastPosition.x;
+        double dy = static_cast<double>(position->y) - state->lastPosition.y;
         float distance = static_cast<float>(LengthSquared2DUnrounded(dy, dx));
         float reach = static_cast<float>(timed->Radius());
         double reach2 = timed->Radius() * reach;
@@ -137,8 +137,8 @@ CEngineObject** CollectTimedObjects(CWorldServer* world, CPlayerServer* state, C
 
 int CWorldServer::SyncPlayer(CPlayer* player) {
     CPlayerServer* state = player->Server();
-    if (state->state_ == kModePlaying && zoneLoaded_ != 0) {
-        std::uint32_t dirty = player->dirty_;
+    if (state->state == kModePlaying && zoneLoaded != 0) {
+        std::uint32_t dirty = player->dirty;
         if (dirty & PlayerDirty::Zone) {
             int sent = SendZone(player);
             if (!sent) return sent;
@@ -147,56 +147,56 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
             return state->Flush();
         }
         if (dirty & PlayerDirty::Weather) {
-            int strength = x87::fistp(weatherStrength_);
-            if (!state->SendState70(static_cast<std::uint8_t>(weather_), static_cast<std::uint16_t>(strength))) return 0;
+            int strength = x87::fistp(weatherStrength);
+            if (!state->SendState70(static_cast<std::uint8_t>(weather), static_cast<std::uint16_t>(strength))) return 0;
         }
-        if (player->dirty_ & PlayerDirty::Time) {
+        if (player->dirty & PlayerDirty::Time) {
             float time;
             float speed;
             GetTime(&time, &speed);
             if (!state->SendState71(std::bit_cast<std::uint32_t>(time), std::bit_cast<std::uint32_t>(speed))) return 0;
         }
-        if (player->dirty_ & PlayerDirty::Wind) {
+        if (player->dirty & PlayerDirty::Wind) {
             Vector3 direction;
-            lib::LoadBytes(direction, windDirection_);
+            lib::LoadBytes(direction, windDirection);
             if (!state->SendState72(std::bit_cast<std::uint32_t>(direction.x), std::bit_cast<std::uint32_t>(direction.y),
-                                    std::bit_cast<std::uint32_t>(direction.z), windStrength_))
+                                    std::bit_cast<std::uint32_t>(direction.z), windStrength))
                 return 0;
         }
-        if (player->dirty_ & PlayerDirty::Countdowns) state->SendState73(&countdowns_);
+        if (player->dirty & PlayerDirty::Countdowns) state->SendState73(&countdowns);
 
         // Map objects: room for seven entries per world object.
         std::vector<CEngineObject*> collected;
         std::vector<CEngineObject*> added;
         std::vector<CEngineObject*> kept;
         std::vector<CEngineObject*> removed;
-        collected.resize(static_cast<int>(objects_.map.size()) * 7);
+        collected.resize(static_cast<int>(objects.map.size()) * 7);
         CEngineObject** end = CollectMapObjects(this, player, state, collected.data());
         collected.resize(static_cast<int>(end - collected.data()));
-        DiffSets(&state->sentObjects_, &collected, &added, &kept, &removed);
+        DiffSets(&state->sentObjects, &collected, &added, &kept, &removed);
         state->SendObjectsRemoved(&kept);
         state->SendObjectsAdded(&added);
         state->SendObjectsChanged(&removed);
 
-        collected.resize(static_cast<int>(timedObjects_.map.size()));
+        collected.resize(static_cast<int>(timedObjects.map.size()));
         end = CollectTimedObjects(this, state, collected.data());
         collected.resize(static_cast<int>(end - collected.data()));
-        DiffSets(&state->sentTimed_, &collected, &added, &kept, &removed);
+        DiffSets(&state->sentTimed, &collected, &added, &kept, &removed);
         state->SendTimedRemoved(&kept);
         state->SendTimedAdded(&added);
         state->SendTimedChanged(&removed);
 
-        if (sessionKind_ == kKindSinglePlayer && IsMultiplayerClient()) {
-            int& timer = state->refreshTimer_;
-            if (--timer <= 0 && state->danger_ == CPlayerServer::PartyDanger::Safe) state->ResendParty();
+        if (sessionKind == kKindSinglePlayer && IsMultiplayerClient()) {
+            int& timer = state->refreshTimer;
+            if (--timer <= 0 && state->danger == CPlayerServer::PartyDanger::Safe) state->ResendParty();
         }
     }
 
-    int mode = state->state_;
-    if ((mode == kModePlaying || mode == kModeJoining) && zoneLoaded_ != 0) state->SendPartyState();
-    mode = state->state_;
+    int mode = state->state;
+    if ((mode == kModePlaying || mode == kModeJoining) && zoneLoaded != 0) state->SendPartyState();
+    mode = state->state;
     if (mode == kModeLeaving) return 1;
-    if (mode != 0 && (player->dirty_ & PlayerDirty::GameState) && mode != kModeGone) state->SendGameTime();
+    if (mode != 0 && (player->dirty & PlayerDirty::GameState) && mode != kModeGone) state->SendGameTime();
     return state->Flush();
 }
 
@@ -205,38 +205,38 @@ int CWorldServer::SendZone(CPlayer* player) {
 
     CPlayerServer* state = player->Server();
     int result;
-    if (state->state_ != kModePlaying) {
+    if (state->state != kModePlaying) {
         result = 1;
     } else {
         CStream* stream = &message;
         auto write = [&](const void* data, unsigned size) { stream->Write(data, size); };
-        int previousTick = tick_ - 1;
+        int previousTick = tick - 1;
         write(&previousTick, 4);
-        write(mapName_.c_str(), static_cast<unsigned>(mapName_.size() + 1));
-        write(mobName_.c_str(), static_cast<unsigned>(mobName_.size() + 1));
-        int exits = static_cast<int>(std::ssize(exits_));
-        write(&exits, 4);
-        for (const ZoneExit& exit : exits_) exit.Write(&message);
-        write(&cave_, 4);
+        write(mapName.c_str(), static_cast<unsigned>(mapName.size() + 1));
+        write(mobName.c_str(), static_cast<unsigned>(mobName.size() + 1));
+        int exitCount = static_cast<int>(std::ssize(exits));
+        write(&exitCount, 4);
+        for (const ZoneExit& exit : exits) exit.Write(&message);
+        write(&cave, 4);
 
         UnitSet units;
-        for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end() && node->second; ++node)
+        for (auto node = mapObjects.map.begin(); node != mapObjects.map.end() && node->second; ++node)
             if (CUnit* unit = UnitOrNull(node->second)) units.Add(unit);
         units.Write(&message);
 
         result = state->SendState02(&message);
-        if (result != 0 && sendsStartPosition_ != 0) {
+        if (result != 0 && sendsStartPosition != 0) {
             result = 1;
-            if (player->units_.size() != 0) {
+            if (player->units.size() != 0) {
                 // The player starts at its first unit, on the ground there.
-                const float* at = &player->units_.begin()->second->localPosition_.x;
+                const float* at = &player->units.begin()->second->localPosition.x;
                 Vector3 start;
                 lib::LoadBytes(start, at);
                 start.z = static_cast<float>(RawSurfaceHeightAt(start.x, start.y));
-                result = state->SendPosition04(start, 0, sessionKind_);
+                result = state->SendPosition04(start, 0, sessionKind);
             }
         }
-        if (result != 0) player->connection_->ItemsGiven(&player->items_, 0);
+        if (result != 0) player->connection->ItemsGiven(&player->items, 0);
     }
     return result;
 }

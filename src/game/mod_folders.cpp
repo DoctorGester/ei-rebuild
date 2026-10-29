@@ -116,7 +116,7 @@ ResConfig ReadResConfig() {
 
     CFileRegistry registry;
     const std::string file = mod + "config.reg";
-    if (!registry.Open(file) || (registry.data_[4] | (registry.data_[5] << 8)) == 0) {
+    if (!registry.Open(file) || (registry.data[4] | (registry.data[5] << 8)) == 0) {
         return config;
     }
     // The game's archives addon knows (its table at 10009100): an archive's mod entries override it,

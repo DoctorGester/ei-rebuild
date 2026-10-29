@@ -76,7 +76,7 @@ bool OrderSpell(CUnitServer* self, std::uint32_t source, CSpell** spell) {
     if (source & kQuickItemSource) {
         CItem* carrier = self->SpellCarrier(source);
         if (!carrier) return false;
-        *spell = carrier->spell_;
+        *spell = carrier->spell;
         return true;
     }
     *spell = self->unit->GetSpellObject(source);
@@ -93,8 +93,8 @@ bool OutOfSightRange(CUnitServer* self, const float* point) {
     float chosen = std::bit_cast<float>(chosenBits);
     double reach = static_cast<double>(chosen) * kRangeSlack;
     CUnit* unit = self->unit;
-    double dy = static_cast<double>(unit->localPosition_.y) - point[1];
-    double dx = static_cast<double>(unit->localPosition_.x) - point[0];
+    double dy = static_cast<double>(unit->localPosition.y) - point[1];
+    double dx = static_cast<double>(unit->localPosition.x) - point[0];
     EI_NAN_AUDIT(reach, dx, dy);
     return reach * reach < LengthSquared2DUnrounded(dx, dy);
 }
@@ -104,9 +104,9 @@ bool OutOfSightRange(CUnitServer* self, const float* point) {
 // and less than 0.3 to the side.
 bool SomeoneInTheWay(CUnitServer* self, const AIOrder* order, const float* point, int time) {
     CUnit* unit = self->unit;
-    float dx = point[0] - unit->localPosition_.x;
-    float dy = point[1] - unit->localPosition_.y;
-    float dz = point[2] - unit->localPosition_.z;
+    float dx = point[0] - unit->localPosition.x;
+    float dy = point[1] - unit->localPosition.y;
+    float dz = point[2] - unit->localPosition.z;
     double lengthSq = LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
     float ux = static_cast<float>(dx / lengthSq);
     float uy = static_cast<float>(dy / lengthSq);
@@ -125,9 +125,9 @@ bool SomeoneInTheWay(CUnitServer* self, const AIOrder* order, const float* point
         if (other->IsDead() != 0) continue;
         Vector3 scratch;
         const Vector3* p = other->PositionAt(&scratch, time);
-        double a = static_cast<double>(p->x) - unit->localPosition_.x;
-        double b = static_cast<double>(p->y) - unit->localPosition_.y;
-        double c = static_cast<double>(p->z) - unit->localPosition_.z;
+        double a = static_cast<double>(p->x) - unit->localPosition.x;
+        double b = static_cast<double>(p->y) - unit->localPosition.y;
+        double c = static_cast<double>(p->z) - unit->localPosition.z;
         float along = static_cast<float>(c * uz + b * uy + a * ux);
         float across = static_cast<float>(c * vz + b * vy + a * vx);
         if (Greater(along, kPointOne) && along < kPointNine && Greater(across, kMinusPointThree) &&
@@ -144,17 +144,17 @@ bool NeedsClearWay(CUnitServer* self, const AIOrder* order) {
     CItemWeapon* weapon = self->unit->ActiveWeapon();
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return false;
     weapon = self->unit->ActiveWeapon();
-    float reach = weapon ? weapon->reach_ : self->stats.combat[UnitStats::kReach];
+    float reach = weapon ? weapon->reach : self->stats.combat[UnitStats::kReach];
     EI_NAN_AUDIT(reach);
     return reach < kMeleeReach;
 }
 
-// The quick item or spell value the cast animation is built with: the spell's castTime_ scaled by
+// The quick item or spell value the cast animation is built with: the spell's castTime scaled by
 // 15 / stats.rate (unscaled when that is 0), rounded.
 int CastValue(CUnitServer* self, CSpell* spell) {
     double scale = self->stats.rate;
     if (scale != 0.0) scale = kFifteen / scale;   // a NaN stays the same NaN
-    volatile std::int64_t wide = spell->castTime_;
+    volatile std::int64_t wide = spell->castTime;
     float value = static_cast<float>(static_cast<double>(wide) * scale);
     return x87::fistp(value);
 }
@@ -165,7 +165,7 @@ void FillCastKind(OrderPlan* plan, CSpell* spell) {
         plan->castKind = kCastKindNone;
         return;
     }
-    if (spell->targetFlags_ & SpellTargetFlag::AtPoint) plan->targetId = -1;
+    if (spell->targetFlags & SpellTargetFlag::AtPoint) plan->targetId = -1;
     SpellType type = spell->Type();
     if (type == SpellType::RickMagic) plan->castKind = 1;
     else if (type == SpellType::CurseMagic) plan->castKind = 0;
@@ -219,7 +219,7 @@ bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time)
     if (!unit->player && order->target && OutOfSightRange(this, point)) return false;
 
     if (order->kind == UnitOrderKind::CastAt || order->kind == UnitOrderKind::CastOn) {
-        if (unit->flags_ & MapObjectFlag::NoCasting) return false;
+        if (unit->flags & MapObjectFlag::NoCasting) return false;
     } else if (NeedsClearWay(this, order) && SomeoneInTheWay(this, order, point, time)) {
         return false;
     }
@@ -234,16 +234,16 @@ bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time)
         sight.unit = nullptr;
         // (The original then asks a remaining sight.unit for a virtual; it is always null here.)
     }
-    double apartSq = DistanceSquaredXYUnrounded<double>(sight.point, unit->localPosition_);
+    double apartSq = DistanceSquaredXYUnrounded<double>(sight.point, unit->localPosition);
     EI_NAN_AUDIT(apartSq, sight.minDistanceSq);
     if (apartSq < sight.minDistanceSq) return true;
 
     Vector3 eye;
-    eye.x = unit->localPosition_.x;
-    eye.y = unit->localPosition_.y;
-    eye.z = unit->localPosition_.z;
+    eye.x = unit->localPosition.x;
+    eye.y = unit->localPosition.y;
+    eye.z = unit->localPosition.z;
     eye.z = static_cast<float>(unit->GroundHeight(eye.x, eye.y) + sight.eyeHeight);
-    CAIMap* map = &ServerWorld()->aiMap_;
+    CAIMap* map = &ServerWorld()->aiMap;
     double visibility = map->LineOfSight(eye, sight.point);
     return visibility >= kPointOne;
 }
@@ -253,14 +253,14 @@ bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time)
 bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     AnimationSteps steps;
     Vector3 origin;
-    std::memcpy(&origin, &unit->localPosition_.x, sizeof(origin));
-    int now = World()->tick_;
+    std::memcpy(&origin, &unit->localPosition.x, sizeof(origin));
+    int now = World()->tick;
     CSpell* spell = nullptr;
 
     if (order->pointIsUseSpot) {
         double distance = ActionDistance(order);
         double limitSq = distance * distance;
-        double apartSq = DistanceSquaredXYUnrounded<double>(order->point, unit->localPosition_);
+        double apartSq = DistanceSquaredXYUnrounded<double>(order->point, unit->localPosition);
         EI_NAN_AUDIT(limitSq, apartSq);
         if (limitSq < apartSq) return false;
     }
@@ -295,7 +295,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
 
     // The unit's heading and how many ticks a half turn takes.
     Vector3 axis;
-    unit->localRotation_.AxisY(&axis);
+    unit->localRotation.AxisY(&axis);
     Vector3 facing = {-axis.x, -axis.y, -axis.z};
     float heading = static_cast<float>(x87::fpatan(facing.y, facing.x));
     float forward, turnSpeed;
@@ -352,8 +352,8 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             predict = true;
             CSpell* missile;
             if (OrderSpell(this, order->source, &missile) && missile &&
-                (missile->targetFlags_ & SpellTargetFlag::AtPoint)) {
-                float flight = missile->speed_;
+                (missile->targetFlags & SpellTargetFlag::AtPoint)) {
+                float flight = missile->speed;
                 if (Greater(flight, 0.0f)) castDelay = CastDelayTicks(distanceSq, flight);
             }
         }
@@ -385,7 +385,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
         if (tryHere) {
             EI_NAN_AUDIT(delta.x, delta.y);
             bool facingIt = (delta.x == 0.0f && delta.y == 0.0f) ||
-                            (targetUnit && targetUnit->id_ == unit->id_);
+                            (targetUnit && targetUnit->id == unit->id);
             int turnTicks = -1;
             if (!facingIt) {
                 float turn = static_cast<float>(x87::fpatan(delta.y, delta.x) - heading);
@@ -401,7 +401,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             }
             if (facingIt) {
                 if (!CanActFrom(order, &aim.x, tick + duration + now)) break;
-                plan->targetId = order->target ? order->target->id_ : -1;
+                plan->targetId = order->target ? order->target->id : -1;
                 plan->startTime = tick + now;
                 plan->endTime = tick + now + duration;
                 plan->animation = steps;
@@ -421,8 +421,8 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
 bool CUnitServer::CanPlanAction(const AIOrder* order) {
     OrderPlan plan{};
     CMapObject* target = order->target;
-    if (IsUnit(target)) target->flags_ |= MapObjectFlag::Planned;
+    if (IsUnit(target)) target->flags |= MapObjectFlag::Planned;
     bool result = PlanAction(order, &plan);
-    if (IsUnit(target)) target->flags_ &= ~MapObjectFlag::Planned;
+    if (IsUnit(target)) target->flags &= ~MapObjectFlag::Planned;
     return result;
 }

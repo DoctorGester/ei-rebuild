@@ -54,8 +54,8 @@ public:
     // 16-18: the setters below; the client half rebuilds its effects there. Callers reach them
     // through the vtable (the network read, the world server's CreateObject).
     virtual void SetLightSlot(std::uint32_t kind, const float* colour, float value) { SetLight(kind, colour, value); }
-    virtual void SetFlameSlot(const float* colour, float value, const float* values) { SetFlame(colour, value, values); }
-    virtual void SetNameSlot(const char* name) { SetName(name); }
+    virtual void SetFlameSlot(const float* colour, float value, const float* newValues) { SetFlame(colour, value, newValues); }
+    virtual void SetNameSlot(const char* newName) { SetName(newName); }
 
     // torch_spec.cpp. Create / Destroy (other names so they are no
     // overrides): Create clears +0x1C / +0x20 and the name, values 1, 10, 1, 1, 1, 1, both colours
@@ -71,14 +71,14 @@ public:
     void SetFlame(const float* colour, float value, const float* values);
     void SetName(const char* name);
     // torch_spec.cpp: the torch's network read. Reads the kind,
-    // values_[0], values_[1], values_[2..5], both vectors and the name from `field`, then applies them
+    // values[0], values[1], values[2..5], both vectors and the name from `field`, then applies them
     // through the virtual setters (a client half rebuilds its effects there), shows the
     // effects and warms the particles up.
     void ReadNetState(DeltaField* field);
 
-    CMapObject* torch_;         // the torch it belongs to (set by the torch's attach); null when constructed
-    std::uint32_t lightKind_;   // the light's kind (SetLight; saved and sent)
-    std::string name_;
-    float values_[6];           // Create: 1, 10, 1, 1, 1, 1
-    float colours_[2][3];       // Create: both black
+    CMapObject* torch;          // the torch it belongs to (set by the torch's attach); null when constructed
+    std::uint32_t lightKind;    // the light's kind (SetLight; saved and sent)
+    std::string name;
+    float values[6];            // Create: 1, 10, 1, 1, 1, 1
+    float colours[2][3];        // Create: both black
 };

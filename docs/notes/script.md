@@ -14,8 +14,8 @@ The layouts below are game.exe's (the harness and the vector recorders read them
 records in std containers (core.md, "MFC CArray and CList to std", batch 3).
 
 - Value types (numbering used everywhere): 1 float, 2 string (CString), 3 object, 4 group.
-- `ScriptObjectRef` (4 bytes): counted reference to a world object (`refCount_` at +4; Release is slot 4); a world object
-  deleted while referenced has bit 0 of `flags_`. `ScriptGroup`: `CArray<ScriptObjectRef>` (vtable 0073D110, its destructor
+- `ScriptObjectRef` (4 bytes): counted reference to a world object (`refCount` at +4; Release is slot 4); a world object
+  deleted while referenced has bit 0 of `flags`. `ScriptGroup`: `CArray<ScriptObjectRef>` (vtable 0073D110, its destructor
   sets 0073D11C), kept sorted by object address (unsigned) without duplicates; `SetSize` is 004C2050.
 - `ScriptVars` (0xA0): per type a value CArray and a CStringArray of names: floats +0x00 / names +0x14, strings +0x28 /
   +0x3C, objects +0x50 / +0x64, groups (0x14 each) +0x78 / +0x8C.
@@ -123,7 +123,7 @@ arguments into its variables (FatalError "Wrong number of script %s float parame
 waiting run runs its pairs in the same tick, one started by another instance's commands from the next tick. Assignment
 (0x78): float 1 selects floats (copied as bits), strings, objects (reference) or groups (CArray Copy 004C1290).
 Unit fields the commands touch: +0x240 server state (+0x980 AI brain, +0x1E0 skills / stats, +0x1C owner object), +0x244
-hostile mask, +0x250 side, +0x4A0 / +0x4A4 quest items; `flags_` 0x800000 blocked, 0x10000 hidden, 0x80000 trap active.
+hostile mask, +0x250 side, +0x4A0 / +0x4A4 quest items; `flags` 0x800000 blocked, 0x10000 hidden, 0x80000 trap active.
 Players: +0x20 quest variable / music / zone object, +0xC0 money, +0x108 god mode byte.
 
 ## Savegame writer and reader
@@ -287,7 +287,7 @@ briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every
   `ItemStock::Construct` 004A66C0 (193-bucket maps).
 - Script runtime helpers: `PartyForScript` 004BAEC0 ("owner::name"), `CAIMap::SetRefreshUnits` 004BA090, the sector map
   wrappers 004BA0A0..004BA100 (Move by address: Rebirth), ConsoleFloat's float output 004BA9D0 (`console::Stream << f`),
-  `CSceneRenderer::SetFogColour` 004BA120 (slot 0 00501AB0, `fogColour_` +0x14).
+  `CSceneRenderer::SetFogColour` 004BA120 (slot 0 00501AB0, `fogColour` +0x14).
 - Party manager archive (A-S9): `PartyManager::Save` / `Load` 004A8560 / 004A8310 (the manager 007AA5A0: parties
   hash_map<int, CParty> +0x00, entries +0x14, field +0x20, records +0x24, templates +0x38); `ChunkArchive::SerializeParties`
   / `SerializePartyEntries` / `SerializeClassTemplates` / `IntField` 004ACEC0 / 004AD0C0 / 004ACDC0 / 004AD2C0,
@@ -318,8 +318,8 @@ briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every
 
 Facts:
 - Memory stream: Write grows to (capacity + size) * 2 copying the old capacity's bytes; Resize grows to size * 1.5 + 0x10
-  copying the old size's bytes and flushes the pending bits byte only when it grows; SetSize resets only bitMask_
-  (bitsIndex_ stays); a short Read zero-fills the whole request before copying what is left. Growing buffer: every growth
+  copying the old size's bytes and flushes the pending bits byte only when it grows; SetSize resets only bitMask
+  (bitsIndex stays); a short Read zero-fills the whole request before copying what is left. Growing buffer: every growth
   makes a block of 2 * (needed end, counted from `base`) + 0x40 bytes and copies the old capacity's bytes; Reserve and
   WriteMore grow without testing the room (callers test); Seek returns the new capacity in EAX when it grew. ReadString
   inlines the string assign (overwrite and cut, or overwrite and append through 0040C2A0).
@@ -354,8 +354,8 @@ Facts:
 - Link figures: `CLinkMesh` (vtable 0073D790, 0xB0, slots 0-6 declared): part headers STLport map<string, LinkPartHeader 0x50>
   +0x14, morph coefficients +0x30, six aligned arrays +0x3C (vertex packets, normal packets, texture coordinates, 6-byte
   corners (`AlignedArray<IndexTriangle>`), dwords, words), ranges map<string, 0x30> +0x9C, loader +0xA8, pipeline +0xAC
-  (3DfpFPU.dll's transform object, slot 7 FitBounds; ours has none: `ClipBounds::Fit`, R31). The loader (model.h, 7 slots): `figureSets_` +0x10, `renderer_`
-  +0x24 (the device object, whose +0xAC is the pipeline: `CTextureDevice::pipeline_`), the cache `STLport map<string,
+  (3DfpFPU.dll's transform object, slot 7 FitBounds; ours has none: `ClipBounds::Fit`, R31). The loader (model.h, 7 slots): `figureSets` +0x10, `renderer`
+  +0x24 (the device object, whose +0xAC is the pipeline: `CTextureDevice::pipeline`), the cache `STLport map<string,
   CLinkMesh*>` +0x28. Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s), lerp(c2,c3,s), t), lerp(lerp(c4,c5,s),
   lerp(c6,c7,s), t), u), old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u) (`MorphFig8Packet`,
   `MorphOldPacket`). Forwarders: 004F9E50, 004FBD80 (the cache's insert_equal; 004F7B10 inlines the descent and calls
@@ -412,7 +412,7 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310; ported b
 ### A-E1: the script leftovers below 0x004C0000
 
 - 004BD310 `ScriptCreateFxSource` (`script_effects.cpp`; CreateFXSource 0x16 and CreateRandomizedFXSource 0x18). The id is
-  FISTP-rounded, a negative one takes `nextFxId_` (then counted down). An existing source's sound is dropped; a new source
+  FISTP-rounded, a negative one takes `nextFxId` (then counted down). An existing source's sound is dropped; a new source
   is a `NewNode` at the tail. 0x16 makes the sound at once (class 0x48 from the effect manager, added to the timed objects,
   one more reference) and clears `idle`; 0x18 keeps no sound, takes min delay, max delay (FISTP) and spread, countdown 0,
   idle 1. Decision: for a new id 0x16 leaves spread, the delays and the countdown as whatever the stack held (the temporary

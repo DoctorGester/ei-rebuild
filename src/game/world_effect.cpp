@@ -19,43 +19,43 @@ namespace {
 // What every Reset does to the base part first: position, field streams, start tick, velocity, moving
 // flag and stamp.
 void ClearBase(CEffect* e) {
-    e->localPosition_ = Vector3{0.0f, 0.0f, 0.0f};
-    EmptyField(&e->state_);
-    e->velocity_ = Vector3{0.0f, 0.0f, 0.0f};
-    e->startTick_ = 0;
-    e->moving_ = 0;
-    e->changeStamp_ = -1;
+    e->localPosition = Vector3{0.0f, 0.0f, 0.0f};
+    EmptyField(&e->state);
+    e->velocity = Vector3{0.0f, 0.0f, 0.0f};
+    e->startTick = 0;
+    e->moving = 0;
+    e->changeStamp = -1;
 }
 
 // The local position moved by the velocity (each sum rounded to float, as stored).
 void MoveByVelocity(CEffect* e) {
-    float x = e->localPosition_.x + e->velocity_.x;
-    float y = e->localPosition_.y + e->velocity_.y;
-    float z = e->localPosition_.z + e->velocity_.z;
-    e->localPosition_.x = x;
-    e->localPosition_.y = y;
-    e->localPosition_.z = z;
+    float x = e->localPosition.x + e->velocity.x;
+    float y = e->localPosition.y + e->velocity.y;
+    float z = e->localPosition.z + e->velocity.z;
+    e->localPosition.x = x;
+    e->localPosition.y = y;
+    e->localPosition.z = z;
 }
 
 } // namespace
 
 
 void CEffect::SendFull() {
-    DeltaField* field = state_.BeginWriteB(0);
+    DeltaField* field = state.BeginWriteB(0);
     Pack(field);
-    state_.EndField();
+    state.EndField();
 }
 
 void CEffect::SendDelta() {
-    DeltaField* field = state_.BeginWriteB(1);
+    DeltaField* field = state.BeginWriteB(1);
     Pack(field);
-    state_.EndField();
+    state.EndField();
 }
 
 int CEffect::Receive(int update, CMemoryStream* reader) {
-    DeltaField* field = state_.BeginReadB(update, reader);
+    DeltaField* field = state.BeginReadB(update, reader);
     int result = Unpack(update, field);
-    state_.EndField();
+    state.EndField();
     return result;
 }
 
@@ -70,8 +70,8 @@ void ReadSavedStrings(std::vector<std::string>* array, CStream* stream) {
 }
 
 void CEffect::MarkChanged() {
-    flags_ |= 2;
-    changeStamp_ = g_serverWorld.updateCount_;
+    flags |= 2;
+    changeStamp = g_serverWorld.updateCount;
 }
 
 void CEffect::Create() {
@@ -81,181 +81,181 @@ void CEffect::Create() {
 
 void CEffect::Destroy() { Reset(); }
 
-void CEffect::SetVelocity(const Vector3& velocity) {
-    velocity_ = velocity;
-    moving_ = IsMoving(velocity_);
+void CEffect::SetVelocity(const Vector3& newVelocity) {
+    velocity = newVelocity;
+    moving = IsMoving(velocity);
     MarkChanged();
 }
 
-Vector3* CEffect::Position(const ScriptGroup*) { return &localPosition_; }
+Vector3* CEffect::Position(const ScriptGroup*) { return &localPosition; }
 
 double CEffect::Radius() { return ConstAt(worlddata::DefaultRadius()); }
 
 
 void CEffectSound::Reset() {
     ClearBase(this);
-    if (sound_ != -1 && looping_ != 0) g_clientWorld.sounds_->StopSound(sound_);
-    sound_ = -1;
-    looping_ = 1;
-    std::memset(name_, 0, sizeof(name_));   // the original clears name_[0] only (the harness all of it)
-    volume_ = 0.0f;
-    radius_ = 0.0f;
-    noFade_ = 0;
-    fresh_ = 1;
+    if (sound != -1 && looping != 0) g_clientWorld.sounds->StopSound(sound);
+    sound = -1;
+    looping = 1;
+    std::memset(name, 0, sizeof(name));     // the original clears name[0] only (the harness all of it)
+    volume = 0.0f;
+    radius = 0.0f;
+    noFade = 0;
+    fresh = 1;
 }
 
 bool CEffectSound::RunTick() {
-    std::uint8_t wasFresh = fresh_;
-    fresh_ = 0;
-    if (moving_ != 0) {
+    std::uint8_t wasFresh = fresh;
+    fresh = 0;
+    if (moving != 0) {
         MoveByVelocity(this);
         // Tests the handle against 0, not -1 (a stopped sound is moved too).
-        if (sound_ != 0) g_clientWorld.sounds_->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
+        if (sound != 0) g_clientWorld.sounds->SetSoundPosition(sound, &localPosition.x, volume, radius);
     }
-    return looping_ != 0 || wasFresh != 0;
+    return looping != 0 || wasFresh != 0;
 }
 
 void CEffectSound::Start(int update) {
     if (update == 0) {
-        sound_ = g_clientWorld.sounds_->Play3D(name_, noFade_ != 0 ? 1000 : 0, &localPosition_.x,
-                                            volume_, radius_, looping_);
+        sound = g_clientWorld.sounds->Play3D(name, noFade != 0 ? 1000 : 0, &localPosition.x,
+                                            volume, radius, looping);
         return;
     }
-    g_clientWorld.sounds_->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
+    g_clientWorld.sounds->SetSoundPosition(sound, &localPosition.x, volume, radius);
 }
 
 int CEffectSound::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
-    field->ReadDelta(&looping_, 4);
-    field->ReadText(name_, 0xFF);
-    field->ReadFloat16(&volume_);
-    field->ReadFloat16(&radius_);
-    field->ReadFloat16x3(&velocity_.x);
-    field->ReadDelta(&noFade_, 1);
-    moving_ = IsMoving(velocity_);
+    field->ReadDelta(&looping, 4);
+    field->ReadText(name, 0xFF);
+    field->ReadFloat16(&volume);
+    field->ReadFloat16(&radius);
+    field->ReadFloat16x3(&velocity.x);
+    field->ReadDelta(&noFade, 1);
+    moving = IsMoving(velocity);
     if (!SnapshotReadToEnd()) return 0;
-    localPosition_ = position;
+    localPosition = position;
     Start(update);
     return 1;
 }
 
 void CEffectSound::Pack(DeltaField* field) {
-    Vector3 position = localPosition_;
+    Vector3 position = localPosition;
     field->WritePosition(position);
-    int looping = looping_;
-    field->WriteDelta(&looping, 4);
-    field->WriteStringBoth(name_);
-    field->WriteFloat16(Bits(volume_));
-    field->WriteFloat16(Bits(radius_));
-    field->WriteFloat16x3(&velocity_.x);
-    field->WriteDelta(&noFade_, 1);
+    int currentLooping = looping;
+    field->WriteDelta(&currentLooping, 4);
+    field->WriteStringBoth(name);
+    field->WriteFloat16(Bits(volume));
+    field->WriteFloat16(Bits(radius));
+    field->WriteFloat16x3(&velocity.x);
+    field->WriteDelta(&noFade, 1);
 }
 
 void CEffectSound::Load(CStream* stream) {
-    stream->ReadValue(localPosition_);
-    Read(stream, name_, 0x100);
-    stream->ReadValue(volume_);
-    stream->ReadValue(radius_);
-    stream->ReadValue(velocity_);
-    moving_ = IsMoving(velocity_);
+    stream->ReadValue(localPosition);
+    Read(stream, name, 0x100);
+    stream->ReadValue(volume);
+    stream->ReadValue(radius);
+    stream->ReadValue(velocity);
+    moving = IsMoving(velocity);
     if (Version(stream) < kVersionSoundLooping) return;
-    stream->ReadValue(looping_);
+    stream->ReadValue(looping);
     if (Version(stream) < kVersionSoundNoFade) return;
-    stream->ReadValue(noFade_);
+    stream->ReadValue(noFade);
 }
 
 void CEffectSound::Save(CStream* stream) {
-    stream->WriteValue(localPosition_);
-    Write(stream, name_, 0x100);
-    stream->WriteValue(volume_);
-    stream->WriteValue(radius_);
-    stream->WriteValue(velocity_);
-    stream->WriteValue(looping_);
-    stream->WriteValue(noFade_);
+    stream->WriteValue(localPosition);
+    Write(stream, name, 0x100);
+    stream->WriteValue(volume);
+    stream->WriteValue(radius);
+    stream->WriteValue(velocity);
+    stream->WriteValue(looping);
+    stream->WriteValue(noFade);
 }
 
-double CEffectSound::Radius() { return radius_; }
+double CEffectSound::Radius() { return radius; }
 
 
 void CEffectSoundSeq::Reset() {
     ClearBase(this);
-    if (sound_ != -1) g_clientWorld.sounds_->RemoveSequence(sound_);
-    sound_ = -1;
-    volume_ = 0.0f;
-    radius_ = 0.0f;
-    name_ = game::kEmptyText;
-    names_.clear();
-    noFade_ = 0;
+    if (sound != -1) g_clientWorld.sounds->RemoveSequence(sound);
+    sound = -1;
+    volume = 0.0f;
+    radius = 0.0f;
+    name = game::kEmptyText;
+    names.clear();
+    noFade = 0;
 }
 
 bool CEffectSoundSeq::RunTick() {
-    if (moving_ != 0) {
+    if (moving != 0) {
         MoveByVelocity(this);
-        if (sound_ != 0)
-            g_clientWorld.sounds_->UpdateSequence(sound_, &localPosition_.x, volume_, radius_, -1);
+        if (sound != 0)
+            g_clientWorld.sounds->UpdateSequence(sound, &localPosition.x, volume, radius, -1);
     }
     return true;
 }
 
 void CEffectSoundSeq::Pack(DeltaField* field) {
-    Vector3 position = localPosition_;
+    Vector3 position = localPosition;
     field->WritePosition(position);
-    field->WriteStringBoth(name_);
-    int count = static_cast<int>(names_.size());
+    field->WriteStringBoth(name);
+    int count = static_cast<int>(names.size());
     field->WriteDelta(&count, 4);
-    for (const std::string& name : names_) field->WriteStringBoth(name);
-    field->WriteFloat16(Bits(volume_));
-    field->WriteFloat16(Bits(radius_));
-    field->WriteFloat16x3(&velocity_.x);
-    field->WriteDelta(&noFade_, 1);
+    for (const std::string& entry : names) field->WriteStringBoth(entry);
+    field->WriteFloat16(Bits(volume));
+    field->WriteFloat16(Bits(radius));
+    field->WriteFloat16x3(&velocity.x);
+    field->WriteDelta(&noFade, 1);
 }
 
 void CEffectSoundSeq::Load(CStream* stream) {
-    stream->ReadValue(localPosition_);
-    stream->ReadValue(velocity_);
-    name_ = stream->ReadString();
-    ReadSavedStrings(&names_, stream);
-    stream->ReadValue(volume_);
-    stream->ReadValue(radius_);
-    moving_ = IsMoving(velocity_);
+    stream->ReadValue(localPosition);
+    stream->ReadValue(velocity);
+    name = stream->ReadString();
+    ReadSavedStrings(&names, stream);
+    stream->ReadValue(volume);
+    stream->ReadValue(radius);
+    moving = IsMoving(velocity);
     if (Version(stream) < kVersionSoundNoFade) return;
-    stream->ReadValue(noFade_);
+    stream->ReadValue(noFade);
 }
 
 void CEffectSoundSeq::Save(CStream* stream) {
-    stream->WriteValue(localPosition_);
-    stream->WriteValue(velocity_);
-    stream->WriteString(name_);
-    int count = static_cast<int>(names_.size());
+    stream->WriteValue(localPosition);
+    stream->WriteValue(velocity);
+    stream->WriteString(name);
+    int count = static_cast<int>(names.size());
     stream->WriteValue(count);
-    for (const std::string& name : names_) stream->WriteString(name);
-    stream->WriteValue(volume_);
-    stream->WriteValue(radius_);
-    stream->WriteValue(noFade_);
+    for (const std::string& entry : names) stream->WriteString(entry);
+    stream->WriteValue(volume);
+    stream->WriteValue(radius);
+    stream->WriteValue(noFade);
 }
 
-double CEffectSoundSeq::Radius() { return radius_; }
+double CEffectSoundSeq::Radius() { return radius; }
 
 
 void CEffectAmbientSound::Reset() {
     ClearBase(this);
-    if (sound_ != -1) sound_ = g_clientWorld.sounds_->RemoveEmitter(sound_);
-    names_.clear();
-    volume_ = 0.0f;
-    radius_ = 0.0f;
-    minInterval_ = 0;
-    maxInterval_ = 0;
+    if (sound != -1) sound = g_clientWorld.sounds->RemoveEmitter(sound);
+    names.clear();
+    volume = 0.0f;
+    radius = 0.0f;
+    minInterval = 0;
+    maxInterval = 0;
 }
 
 void CEffectAmbientSound::Start(int update) {
     if (update == 0) {
-        sound_ = g_clientWorld.sounds_->AddEmitter(&names_, &localPosition_.x, volume_, radius_,
-                             minInterval_, maxInterval_);
+        sound = g_clientWorld.sounds->AddEmitter(&names, &localPosition.x, volume, radius,
+                             minInterval, maxInterval);
         return;
     }
-    g_clientWorld.sounds_->MoveEmitter(sound_, &localPosition_.x, volume_, radius_, minInterval_,
-                maxInterval_);
+    g_clientWorld.sounds->MoveEmitter(sound, &localPosition.x, volume, radius, minInterval,
+                maxInterval);
 }
 
 int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
@@ -264,50 +264,50 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     // The count is read into the low byte of the argument slot that held `field`.
     std::uint32_t countSlot = reinterpret_cast<std::uintptr_t>(field);
     field->ReadDelta(&countSlot, 1);
-    names_.resize(countSlot & 0xFF);
-    for (std::string& name : names_) name = field->ReadString();
-    field->ReadFloat16(&volume_);
-    field->ReadFloat16(&radius_);
-    field->ReadDelta(&minInterval_, 4);
-    field->ReadDelta(&maxInterval_, 4);
+    names.resize(countSlot & 0xFF);
+    for (std::string& name : names) name = field->ReadString();
+    field->ReadFloat16(&volume);
+    field->ReadFloat16(&radius);
+    field->ReadDelta(&minInterval, 4);
+    field->ReadDelta(&maxInterval, 4);
     if (!SnapshotReadToEnd()) return 0;
-    localPosition_ = position;
+    localPosition = position;
     Start(update);
     return 1;
 }
 
 void CEffectAmbientSound::Pack(DeltaField* field) {
-    Vector3 position = localPosition_;
+    Vector3 position = localPosition;
     field->WritePosition(position);
-    std::uint8_t count = static_cast<std::uint8_t>(names_.size());
+    std::uint8_t count = static_cast<std::uint8_t>(names.size());
     field->WriteDelta(&count, 1);
-    for (const std::string& name : names_) field->WriteStringBoth(name);
-    field->WriteFloat16(Bits(volume_));
-    field->WriteFloat16(Bits(radius_));
-    int value = minInterval_;
+    for (const std::string& name : names) field->WriteStringBoth(name);
+    field->WriteFloat16(Bits(volume));
+    field->WriteFloat16(Bits(radius));
+    int value = minInterval;
     field->WriteDelta(&value, 4);
-    value = maxInterval_;
+    value = maxInterval;
     field->WriteDelta(&value, 4);
 }
 
 void CEffectAmbientSound::Load(CStream* stream) {
-    stream->ReadValue(localPosition_);
-    ReadSavedStrings(&names_, stream);
-    stream->ReadValue(volume_);
-    stream->ReadValue(radius_);
-    stream->ReadValue(minInterval_);
-    stream->ReadValue(maxInterval_);
+    stream->ReadValue(localPosition);
+    ReadSavedStrings(&names, stream);
+    stream->ReadValue(volume);
+    stream->ReadValue(radius);
+    stream->ReadValue(minInterval);
+    stream->ReadValue(maxInterval);
 }
 
 void CEffectAmbientSound::Save(CStream* stream) {
-    stream->WriteValue(localPosition_);
-    int count = static_cast<int>(names_.size());
+    stream->WriteValue(localPosition);
+    int count = static_cast<int>(names.size());
     stream->WriteValue(count);
-    for (const std::string& name : names_) stream->WriteString(name);
-    stream->WriteValue(volume_);
-    stream->WriteValue(radius_);
-    stream->WriteValue(minInterval_);
-    stream->WriteValue(maxInterval_);
+    for (const std::string& name : names) stream->WriteString(name);
+    stream->WriteValue(volume);
+    stream->WriteValue(radius);
+    stream->WriteValue(minInterval);
+    stream->WriteValue(maxInterval);
 }
 
-double CEffectAmbientSound::Radius() { return radius_; }
+double CEffectAmbientSound::Radius() { return radius; }

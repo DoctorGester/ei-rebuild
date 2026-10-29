@@ -84,7 +84,7 @@ struct ItemStock {
     void CopyMagic(const ItemStock* other);
 
     // One instruction item (kind ItemKind::Loot, the loot prototype "prototype" / "rune") per offered spell /
-    // modifier, with index_ the record's index in its table (found by code; -1 when missing) and count_ a random
+    // modifier, with index the record's index in its table (found by code; -1 when missing) and count a random
     // count in [minCount, maxCount], into `out`.
     void GenerateSpellInstructions(int minCount, int maxCount, std::list<CItem*>* out);
     void GenerateModifierInstructions(int minCount, int maxCount, std::list<CItem*>* out);
@@ -110,7 +110,7 @@ struct ItemStock {
 
     // One instruction item (kind ItemKind::Loot, the loot prototype "instruction weapon" / "instruction armor" /
     // "instruction quick item") per weapon / armor / quick item record of the stock (quick items of the family
-    // "scroll" skipped), with index_ the record's index in its table and count_ a random count in [minCount,
+    // "scroll" skipped), with index the record's index in its table and count a random count in [minCount,
     // maxCount].
     void GenerateWeaponInstructions(int minCount, int maxCount, std::list<CItem*>* out);
     void GenerateArmorInstructions(int minCount, int maxCount, std::list<CItem*>* out);

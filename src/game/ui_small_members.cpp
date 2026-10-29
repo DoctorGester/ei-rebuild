@@ -37,7 +37,7 @@ CItem* CFigureStrip::ItemAt(int, int, int*) { return nullptr; }
 
 // --- One-line setters and readers ------------------------------------------------------------------------
 
-void CUiMesh::SetScaleYBits(std::uint32_t bits) { scaleMatrix_.m[5] = std::bit_cast<float>(bits); }
+void CUiMesh::SetScaleYBits(std::uint32_t bits) { scaleMatrix.m[5] = std::bit_cast<float>(bits); }
 
 
 // --- Member constructors and destructors -----------------------------------------------------------------
@@ -50,24 +50,24 @@ void ItemTurn::OnShutdown() {}
 // --- Handlers ----------------------------------------------------------------------------------------------
 
 void console::ConsoleWindow::Blit() {
-    if (surface_) surface_->Blit();
+    if (surface) surface->Blit();
 }
 
 void CInterface3D::ChatKeyEnter() {
-    if (!root_->chatOpen_) root_->SetOpen(true);
+    if (!root->chatOpen) root->SetOpen(true);
 }
 
 void CInterface3D::ChatKeyBackspace() {
-    if (!root_->chatOpen_) root_->ClearLines();
+    if (!root->chatOpen) root->ClearLines();
 }
 
 void CHeroStatsPanel::LeftUp(int, int, int) {
-    interface_->mouseCapture_ = nullptr;
-    heldRegion_ = -1;
-    holdTime_ = 0.0f;
+    ui->mouseCapture = nullptr;
+    heldRegion = -1;
+    holdTime = 0.0f;
 }
 
-void CEscMenu::CloseScreen() { models_[0]->Play(SkillAnimation::Briefing01); }
+void CEscMenu::CloseScreen() { models[0]->Play(SkillAnimation::Briefing01); }
 
 void CMessageBox::CloseScreen() {
     ClearSceneObjects();

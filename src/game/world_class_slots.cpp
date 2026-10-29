@@ -61,16 +61,16 @@ const char* FigureClientSpecificClassName(CEngineObject*) { return kFigureClient
 
 bool CWorldServer::IsServer() { return true; }
 
-const char* CWorldClient::TexturePath() { return texturePath_.c_str(); }
-CMaterialManager* CWorldClient::MaterialManager() { return materialManager_; }
-CTextureManager* CWorldClient::TextureManager() { return textureManager_; }
-CBaseManager* CWorldClient::ClientLightManager() { return lightFactory_; }
-CBaseManager* CWorld::FigureManager() { return figureManager_; }
-CParticleManager* CWorldClient::ClientParticleManager() { return particleManager_; }
+const char* CWorldClient::TexturePath() { return texturePath.c_str(); }
+CMaterialManager* CWorldClient::MaterialManager() { return materialManager; }
+CTextureManager* CWorldClient::TextureManager() { return textureManager; }
+CBaseManager* CWorldClient::ClientLightManager() { return lightFactory; }
+CBaseManager* CWorld::FigureManager() { return figureManager; }
+CParticleManager* CWorldClient::ClientParticleManager() { return particleManager; }
 
 void CWorldClient::MoveObject(CMapObject* object, const float* position) {
-    objectGrid_.Move(object, position);
+    objectGrid.Move(object, position);
 }
 void CWorldClient::MoveObject2(CMapObject* object, const float* position) {
-    secondGrid_.Move(object, position);
+    secondGrid.Move(object, position);
 }

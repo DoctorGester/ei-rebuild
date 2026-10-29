@@ -154,8 +154,8 @@ does not need a second pass:
 - no one-line getter that only returns a field or a global under another spelling (C38): callers read the public
   field or the named global (`g_random`, `net::g_gameClient`, `g_logicSettings`), also through a dereference or an
   address (`g_itemDatabase.weapons`, `&g_camera`, `unit->brain.memory`). Getters stay where they are virtual
-  (ClassName, the manager context's slots), compute or convert (`return this`, `&stack_.back()`), give a base
-  class's shared field its meaning in a subclass (a pair message's `ConnectionRef()` for `second_`), or are the
+  (ClassName, the manager context's slots), compute or convert (`return this`, `&stack.back()`), give a base
+  class's shared field its meaning in a subclass (a pair message's `ConnectionRef()` for `second`), or are the
   only const view of a file's state (the renderer's `FrameNumber()`). A field is named by what it means, not
   through a getter (C40);
 - no member named after its offset or format id (`flag18`, `field1B`, `spareDC_`, `unknown08_`; C40): a field
@@ -187,7 +187,7 @@ does not need a second pass:
   slots 19, 20 and 22 return `CMapObjectManager*`, `CPlayerManager*` and `CSpellManager*`); a window surface is drawn on through `CUiSurface`'s own members (`DrawTextIn`, `FillRect`, ...), not a
   per-file view struct derived from it. A window class that shares another's layout derives from
   it (CUiItemStrip : CUiItemPanel, CMpHeroScreen : CItemScreen) instead of holding a `CUiWindow
-  window` member and being punned; the item panels' owner_ is the CItemScreen. A container's input
+  window` member and being punned; the item panels' owner is the CItemScreen. A container's input
   side is `CUiContainer::ContainerInput()`. An item screen's slots 42-54 are called through
   `CItemScreen::Virtual*` (VirtualHeroRecord, VirtualPrice, ...), a panel's Build through
   `CUiWindow::VirtualBuild`, not a `VirtualSlot` with a local function type; three pointers that
@@ -195,7 +195,7 @@ does not need a second pass:
   `CInterface3D::ActiveWindowAs<Screen>()`; a counted helper a world holds is a `Ref<T>` field
   released with `DestroyOwned`; the new connections a player source hands over are a `JoinedLinks`
   (`std::list<netlink::NetLink*>`); a window's handled flag is
-  its `handled_` member (UiInputSide). A counted object is tested with `IsLive(object)` (core_refcount.h: set and
+  its `handled` member (UiInputSide). A counted object is tested with `IsLive(object)` (core_refcount.h: set and
   not detached), not a per-file `Live(const void*)`; the server session's connections are `Connection*`
   and its player records `PlayerMessage*` (FindGuestConnection, FindPlayer, Kick, Ban); a file
   written by a transform slot is a `lib::File*`, and so is a chunk's `Chunk::File()`. A use order's spots
@@ -207,7 +207,7 @@ does not need a second pass:
   the owner's code is a `lib::InPlace<T>` member (`src/lib/in_place.h`), not a byte array with a casting accessor. A counted
   pointer field is a `Ref<T>` (src/game/ref.h: Assign and Reset count, reads see the object, there is no plain store),
   a container element that holds its reference a `HeldRef<T>`, not a `T*` field counted by hand; a site that keeps a
-  raw pointer counts with T's `AddRef()` / `Release()`, not `++refCount_` (docs/notes/core.md, "Counted pointers"); a record that starts with another struct's
+  raw pointer counts with T's `AddRef()` / `Release()`, not `++refCount` (docs/notes/core.md, "Counted pointers"); a record that starts with another struct's
   fields derives from it (UnitAction : AIOrder, SectorBox : ClipBounds) and the functions that
   read only the prefix take the base.
 `build.cmd` runs `tools/check_cleanup.py`: per file, the counts of these patterns may only go down

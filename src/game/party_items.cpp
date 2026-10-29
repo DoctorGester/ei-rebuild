@@ -55,47 +55,47 @@ void AddListWeight(float& weight, const std::vector<CItem*>& list) {
 
 CItem* CParty::AddItem(CItem* item, int keepCount, int merge) {
     if (!item) return nullptr;
-    int count = ByteFlag(keepCount) ? static_cast<int>(item->count_) : 1;
+    int count = ByteFlag(keepCount) ? static_cast<int>(item->count) : 1;
     if (ByteFlag(merge)) {
-        for (int i = 0; i < std::ssize(items_); ++i) {
-            CItem* existing = items_[i];
+        for (int i = 0; i < std::ssize(items); ++i) {
+            CItem* existing = items[i];
             if (!existing->IsSameAs(item)) continue;
-            existing->count_ += static_cast<std::uint32_t>(count);
+            existing->count += static_cast<std::uint32_t>(count);
             return existing;
         }
     }
     CItem* copy = CopyItem(item);
-    copy->count_ = static_cast<std::uint32_t>(count);
-    Append(items_, copy);
+    copy->count = static_cast<std::uint32_t>(count);
+    Append(items, copy);
     copy->AddRef();
     return copy;
 }
 
 CItem* CParty::RemoveItem(CItem* item, int all) {
-    for (int i = 0; i < std::ssize(items_); ++i) {
-        if (items_[i] != item) continue;
-        CItem* entry = items_[i];
-        if (static_cast<int>(entry->count_) > 1 && !ByteFlag(all)) {
-            --entry->count_;
+    for (int i = 0; i < std::ssize(items); ++i) {
+        if (items[i] != item) continue;
+        CItem* entry = items[i];
+        if (static_cast<int>(entry->count) > 1 && !ByteFlag(all)) {
+            --entry->count;
             return entry;
         }
         entry->Release();
-        RemoveAt(items_, i);
+        RemoveAt(items, i);
         return nullptr;
     }
     return nullptr;
 }
 
 void CParty::RemoveQuestItems() {
-    for (int i = std::ssize(items_) - 1; i >= 0; --i) {
-        CItem* item = items_[i];
+    for (int i = std::ssize(items) - 1; i >= 0; --i) {
+        CItem* item = items[i];
         if (item->GetClassId() == ClassId::ItemQuest) RemoveItem(item, 1);
     }
 }
 
 void CParty::ReleaseAllItems() {
-    for (int i = 0; i < std::ssize(items_); ++i) items_[i]->Release();
-    items_.clear();
+    for (int i = 0; i < std::ssize(items); ++i) items[i]->Release();
+    items.clear();
 }
 
 // --- The party unit records' item lists ---------------------------------------------------------

@@ -25,21 +25,21 @@ constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
 void ClientSession::AddTimed(CRefObject* object, std::uint32_t seconds) {
     // The list's copy shares the entry's share: a clone, as sharing marked the object copy-on-share.
     TimedEntry<SharedRef<CRefObject>> entry(seconds, SharedRef<CRefObject>(object));
-    timers_.push_back(entry);
+    timers.push_back(entry);
 }
 
 // Sends the server a command message, kept 60 seconds on the timers list.
 void ClientSession::SendCommand(int kind, std::string_view text) {
     ClientSession* self = this;
     auto* command = NewCounted<CommandMessage>();
-    command->kind_ = static_cast<std::uint32_t>(kind);
+    command->kind = static_cast<std::uint32_t>(kind);
     // The assign of a C string: copied over the current characters, the rest cut (the
     // terminator moved down) or appended.
-    command->text_.assign(text);
+    command->text.assign(text);
 
     // As AddTimed: the list keeps a clone of the entry's share.
     TimedEntry<SharedRef<CRefObject>> entry(kCommandLifetime, SharedRef<CRefObject>(command));
-    self->timers_.push_back(entry);
+    self->timers.push_back(entry);
 }
 
 // Makes `*out` an empty server entry (no name or description, kind 4, no players).

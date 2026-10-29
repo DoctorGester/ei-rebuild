@@ -29,7 +29,7 @@ int NextPlayerNumber(CPlayer* self, int id) {
     int highest = -1;
     ForEachPlayer(players, [&](CPlayer* other) {
         if (other == self) return;
-        const int number = other->playerId_;
+        const int number = other->playerId;
         if (number > highest) highest = number;
     });
     return highest >= 0 ? highest + 1 : id;
@@ -37,11 +37,11 @@ int NextPlayerNumber(CPlayer* self, int id) {
 
 } // namespace
 
-CEngineObject* CPlayerManager::NewObject(int type) { return NewPlayer(type); }
+CEngineObject* CPlayerManager::NewObject(int playerType) { return NewPlayer(playerType); }
 
-CEngineObject* CPlayerManager::NewPlayer(int type) {
+CEngineObject* CPlayerManager::NewPlayer(int playerType) {
     CPlayer* player = new CPlayer();
-    player->type_ = type;
+    player->type = playerType;
     return player;
 }
 
@@ -52,7 +52,7 @@ CPlayer* CPlayerManager::CreateSessionPlayer() {
     player->SetConnection(specific->CreateObjectAs<CPlayerConnection>(SideObjectType::Player, -1));
     player->AddRef();
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PlayerNumbers))
-        player->playerId_ = NextPlayerNumber(player, 0);
+        player->playerId = NextPlayerNumber(player, 0);
     else
         player->SetPlayerId(0);
     return player;
@@ -60,11 +60,11 @@ CPlayer* CPlayerManager::CreateSessionPlayer() {
 
 void CPlayerManager::ReleasePlayer(CEngineObject* player) { player->Release(); }
 
-void CPlayerManager::ChangeId(CEngineObject* object, int id) {
-    if (auto old = objects_.find(static_cast<unsigned>(object->id_)); old != objects_.end()) objects_.erase(old);
-    object->id_ = id;
-    if (id > maxId_) maxId_ = id;
-    objects_[static_cast<unsigned>(id)] = object;
+void CPlayerManager::ChangeId(CEngineObject* object, int newId) {
+    if (auto old = objects.find(static_cast<unsigned>(object->id)); old != objects.end()) objects.erase(old);
+    object->id = newId;
+    if (newId > maxId) maxId = newId;
+    objects[static_cast<unsigned>(newId)] = object;
 }
 
 void CPlayerManager::SendValueToAll(int value) {

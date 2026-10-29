@@ -189,7 +189,7 @@ bool CheckPush(const PushMatrixCall& v, char* d, std::size_t n) {
     alignas(4) static unsigned char storage[sizeof(CTransformPipeline)];
     std::memset(storage, 0, sizeof(storage));
     auto* pipeline = reinterpret_cast<CTransformPipeline*>(storage);
-    MatrixStack& stack = pipeline->stacks_[0];
+    MatrixStack& stack = pipeline->stacks[0];
     Matrix4* matrices = stack.matrices.data();
     stack.count = v.empty ? 0 : 1;
     if (!v.empty) std::memcpy(matrices[0].m, v.top, sizeof(v.top));

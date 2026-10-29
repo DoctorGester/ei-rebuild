@@ -28,21 +28,21 @@ void DeleteSurface(CUiSurface* surface) {
 } // namespace
 
 void CInterface3D::ResetInput() {
-    ctrlDown_ = false;
-    altDown_ = false;
-    shiftDown_ = 0;
-    rightDown_ = false;
-    doubleClick_ = false;
-    if (!stack_.empty()) stack_.back()->Input()->Deactivate();
+    ctrlDown = false;
+    altDown = false;
+    shiftDown = 0;
+    rightDown = false;
+    doubleClick = false;
+    if (!stack.empty()) stack.back()->Input()->Deactivate();
 }
 
 void CInterface3D::Shutdown() {
     g_cursor.SetShape(kCursorWait);
-    while (!stack_.empty()) {
-        stack_.back()->Input()->Deactivate();
-        ScreenOf(stack_.back())->CloseScreen();
-        delete stack_.back();
-        stack_.pop_back();
+    while (!stack.empty()) {
+        stack.back()->Input()->Deactivate();
+        ScreenOf(stack.back())->CloseScreen();
+        delete stack.back();
+        stack.pop_back();
     }
     ResetInput();
     app::PumpMessages();
@@ -56,37 +56,37 @@ void CInterface3D::Shutdown() {
     }
     if (opened) {
         std::string line;
-        for (const auto& [topic, page] : helpTopics_) {
+        for (const auto& [topic, page] : helpTopics) {
             line = str::Format(game::TutorialLineFormat(), topic, page);
             file.WriteString(line);
         }
         file.Close();
     }
 
-    DeleteSurface(fpsSurface_);
-    fpsSurface_ = nullptr;
+    DeleteSurface(fpsSurface);
+    fpsSurface = nullptr;
     // The queued window is deleted but its pointer kept (like the original).
-    delete queuedWindow_;
-    DeleteSurface(backdrop_);
-    backdrop_ = nullptr;
-    DeleteSurface(secondBackdrop_);
-    secondBackdrop_ = nullptr;
-    screenCopy_ = {};
-    if (root_) {
-        delete root_;
-        root_ = nullptr;
+    delete queuedWindow;
+    DeleteSurface(backdrop);
+    backdrop = nullptr;
+    DeleteSurface(secondBackdrop);
+    secondBackdrop = nullptr;
+    screenCopy = {};
+    if (root) {
+        delete root;
+        root = nullptr;
     }
-    if (console_) {
-        delete console_;
-        console_ = nullptr;
+    if (console) {
+        delete console;
+        console = nullptr;
     }
     keybind::SaveKeyBindings();
-    for (UiFont& font : fonts_) font = UiFont{};
-    delete fade_;   // (the pointer is not cleared)
+    for (UiFont& font : fonts) font = UiFont{};
+    delete fade;    // (the pointer is not cleared)
 }
 
 console::ConsoleWindow::~ConsoleWindow() {
-    DeleteSurface(surface_);
-    surface_ = nullptr;
-    font_ = UiFont{};
+    DeleteSurface(surface);
+    surface = nullptr;
+    font = UiFont{};
 }

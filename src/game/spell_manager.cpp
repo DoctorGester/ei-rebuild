@@ -34,19 +34,19 @@ SpellSequence::~SpellSequence() {
     }
 }
 
-CSpell* CSpellManager::CreateSpellObject(int id) {
+CSpell* CSpellManager::CreateSpellObject(int newId) {
     auto* spell = CreateObjectAs<CSpell>(SpellObjectType::Spell, -1);
-    if (id == -1) return spell;
-    const auto packed = static_cast<std::uint32_t>(id);
+    if (newId == -1) return spell;
+    const auto packed = static_cast<std::uint32_t>(newId);
     const std::uint32_t low = packed & 0xFFFF;
-    spell->prototypeId_ = packed;
+    spell->prototypeId = packed;
     if (low == 0) {
         spell->InitFromPrototype(itemdb::SpellAt(packed >> 16));
         return spell;
     }
     const std::uint32_t key = packed & 0xFFFF0000;
-    if (key > maxSequenceKey_) maxSequenceKey_ = key;
-    SpellSequence* sequence = sequences_[key];
+    if (key > maxSequenceKey) maxSequenceKey = key;
+    SpellSequence* sequence = sequences[key];
     if (!sequence) {
         game::FatalError(kNoSequenceMessage);
         return spell;
@@ -54,12 +54,12 @@ CSpell* CSpellManager::CreateSpellObject(int id) {
     if (low > sequence->maxLow) sequence->maxLow = low;
     // A new entry has no container: CopyTo then faults (this = 0x30), as the game does.
     CSpellContainer* container = sequence->containers[low];
-    container->spell_.CopyTo(spell);
+    container->spell.CopyTo(spell);
     return spell;
 }
 
-CEngineObject* CSpellManager::NewObject(int type) {
-    switch (static_cast<SpellObjectType>(type)) {
+CEngineObject* CSpellManager::NewObject(int objectType) {
+    switch (static_cast<SpellObjectType>(objectType)) {
     case SpellObjectType::Spell: return new CSpell();
     case SpellObjectType::Container: return new CSpellContainer();
     default: break;
@@ -68,22 +68,22 @@ CEngineObject* CSpellManager::NewObject(int type) {
 }
 
 void CSpellManager::Destroy() {
-    for (auto& [key, sequence] : sequences_) {
+    for (auto& [key, sequence] : sequences) {
         if (!sequence) break;
         delete sequence;
     }
-    sequences_.clear();
-    maxSequenceKey_ = 0;
+    sequences.clear();
+    maxSequenceKey = 0;
     CResourceManager::Destroy();
 }
 
 CSpellManager::~CSpellManager() {
-    for (auto& [key, sequence] : sequences_) {
+    for (auto& [key, sequence] : sequences) {
         if (!sequence) break;
         delete sequence;
     }
-    sequences_.clear();
-    maxSequenceKey_ = 0;
+    sequences.clear();
+    maxSequenceKey = 0;
     CResourceManager::Destroy();
 }
 
@@ -103,9 +103,9 @@ CSpellContainer::CSpellContainer() {
 
 CSpellContainer::~CSpellContainer() {
     // (ClearState is empty and called directly here.)
-    prototype_ = nullptr;
-    modifiers_.clear();
-    spell_.Destroy();
+    prototype = nullptr;
+    modifiers.clear();
+    spell.Destroy();
 }
 
 const char* CSpellContainer::ClassName() { return "CSpellContainer"; }

@@ -31,7 +31,7 @@ struct MaterialEntry {
     Vector4 emissive;
 };
 
-// The bits of CEngineObject::flags_ on a material.
+// The bits of CEngineObject::flags on a material.
 enum class MaterialFlag : std::uint32_t {
     Keyed = 0x8,            // set by CMaterialManager::NewMaterial (its colours from the table by type); nothing reads it
     KeepSpecular = 0x10,    // a figure part drawn with it keeps its speculars (draw flag 8; the stun / light pulses set it)
@@ -85,16 +85,16 @@ public:
     // (after its name: a 16-bit length and the text), or, without the file, diffuse 0.3 (alpha 1), ambient
     // 0.7, specular 0.2, power 5 and the rest 0; kind 0x17's emissive colour is 1 either way. Returns 1.
     void Create() override;
-    // A new CMaterial with type_ = `type`; null when the allocation fails.
+    // A new CMaterial with type = `type`; null when the allocation fails.
     CEngineObject* NewObject(int type) override;
     // A material of `type` (created with id -1, MaterialFlag::Keyed set before the null check) given the table's colours
-    // for its type_ (an absent key is entered first, its colours the key's bits in every dword).
+    // for its type (an absent key is entered first, its colours the key's bits in every dword).
     CMaterial* NewMaterial(int type);
     // The table's colours for `key` (entered as NewMaterial does when absent)
     // into `material`; 1, or 0 for a null material.
     int FillMaterial(CMaterial* material, unsigned key);
 
-    std::unordered_map<unsigned, MaterialColors> colors_;
+    std::unordered_map<unsigned, MaterialColors> colors;
 };
 
 // A kind the manager's Create enters and its file (material.cpp's kMaterialKindFiles).

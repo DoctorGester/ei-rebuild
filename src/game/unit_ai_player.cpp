@@ -36,7 +36,7 @@ CUnit* LeaderOf(const CUnit* unit) {
 
 bool PartyInDanger(const CUnit* unit) {
     CPlayer* player = unit->player;
-    return player && player->Server()->danger_ == CPlayerServer::PartyDanger::InDanger;
+    return player && player->Server()->danger == CPlayerServer::PartyDanger::InDanger;
 }
 
 void PlayerMode::UpdateCombat(AIBrain* brain) {
@@ -70,15 +70,15 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         EI_NAN_AUDIT(sight, hearing);
         float reach = sight < hearing ? hearing : sight;
         double limit = static_cast<double>(reach) * kReachScale;
-        double dy = static_cast<double>(other->localPosition_.y) - unit->localPosition_.y;
-        double dx = static_cast<double>(other->localPosition_.x) - unit->localPosition_.x;
+        double dy = static_cast<double>(other->localPosition.y) - unit->localPosition.y;
+        double dx = static_cast<double>(other->localPosition.x) - unit->localPosition.x;
         if (limit * limit < LengthSquared2DUnrounded(dx, dy)) candidates.erase(node);
         node = next;
     }
     AddPartyTargets(brain, &candidates);
-    unit->flags_ |= MapObjectFlag::ChoosingTarget;
-    AITargetChoice best = brain->Choose(&candidates, unit->localPosition_, false, false);
-    unit->flags_ &= ~MapObjectFlag::ChoosingTarget;
+    unit->flags |= MapObjectFlag::ChoosingTarget;
+    AITargetChoice best = brain->Choose(&candidates, unit->localPosition, false, false);
+    unit->flags &= ~MapObjectFlag::ChoosingTarget;
 
     CUnit* chosen = best.object;
     if (chosen) {
@@ -104,7 +104,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
 
 void PlayerMode::AddPartyTargets(AIBrain* brain, UnitList* targets) {
     CUnit* unit = brain->owner->unit;
-    UnitList nearby = g_serverWorld.aiMap_.sectorMap.FindUnitsInRadius(unit->localPosition_, g_logicSettings.playerCallForHelp);
+    UnitList nearby = g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, g_logicSettings.playerCallForHelp);
     for (auto node = nearby.begin(); node != nearby.end();) {
         auto* other = *node;
         ++node;
@@ -137,7 +137,7 @@ UnitList PlayerMode::CollectParty(AIBrain* brain) {
     bool added;
     do {
         added = false;
-        for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
+        for (auto node = player->units.begin(); node != player->units.end() && node->second; ++node) {
             CUnit* member = node->second;
             CUnit* followed = LeaderOf(member);
             if (!lib::Contains(party, followed) || lib::Contains(party, member)) continue;
@@ -153,14 +153,14 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     CUnit* unit = brain->owner->unit;
     CPlayer* player = unit->player;
     if (!player) return true;
-    for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
+    for (auto node = player->units.begin(); node != player->units.end() && node->second; ++node) {
         CUnit* member = node->second;
         PlayerMode* mode = member->ServerController()->brain.FindPlayerMode();
         // A unit without a Player mode would have its leader read at address 0x0C (a crash).
         if (!mode || mode->leader != unit) continue;
-        double dx = static_cast<double>(member->localPosition_.x) - unit->localPosition_.x;
-        double dy = static_cast<double>(member->localPosition_.y) - unit->localPosition_.y;
-        double dz = static_cast<double>(member->localPosition_.z) - unit->localPosition_.z;
+        double dx = static_cast<double>(member->localPosition.x) - unit->localPosition.x;
+        double dy = static_cast<double>(member->localPosition.y) - unit->localPosition.y;
+        double dz = static_cast<double>(member->localPosition.z) - unit->localPosition.z;
         double limit = static_cast<double>(g_logicSettings.followMaxDist) * slack + 1.0f;
         EI_NAN_AUDIT(limit, dx, dy, dz);
         if (limit * limit < LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) return false;

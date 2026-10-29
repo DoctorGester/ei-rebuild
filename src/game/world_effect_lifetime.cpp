@@ -14,11 +14,11 @@ namespace {
 
 CEffect::CEffect() {
     // Identity rotations (w first); the positions are not initialised.
-    localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
-    worldRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
-    velocity_ = Vector3{0.0f, 0.0f, 0.0f};
-    startTick_ = 0;
-    moving_ = 0;
+    localRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+    worldRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+    velocity = Vector3{0.0f, 0.0f, 0.0f};
+    startTick = 0;
+    moving = 0;
 }
 
 CEffect::~CEffect() = default;
@@ -53,21 +53,21 @@ const char* CEffectTornado::ClassName() { return "CEffectTornado"; }
 ClassId CEffectTornado::GetClassId() { return ClassId::EffectTornado; }
 
 CEffectSound::CEffectSound() {
-    sound_ = -1;
+    sound = -1;
     Reset();
 }
 
 CEffectSound::~CEffectSound() { Reset(); }
 
 CEffectSoundSeq::CEffectSoundSeq() {
-    sound_ = -1;
+    sound = -1;
     Reset();
 }
 
 CEffectSoundSeq::~CEffectSoundSeq() { Reset(); }
 
 CEffectAmbientSound::CEffectAmbientSound() {
-    sound_ = -1;
+    sound = -1;
     Reset();
 }
 
@@ -95,17 +95,17 @@ CEffectWall::~CEffectWall() { Reset(); }
 
 // No Reset: only the width and the flag.
 CEffectLightning::CEffectLightning() {
-    width_ = 0.0f;
-    flag_ = 0;
+    width = 0.0f;
+    flag = 0;
 }
 
 CEffectLightning::~CEffectLightning() { Reset(); }
 
 // --- The effect manager's factory ----------------------------------------------------------------
 
-CEngineObject* CEffectManager::NewObject(int type) {
+CEngineObject* CEffectManager::NewObject(int objectType) {
     CEngineObject* object;
-    switch (static_cast<ClassId>(type)) {
+    switch (static_cast<ClassId>(objectType)) {
     case ClassId::EffectSound: object = new CEffectSound(); break;
     case ClassId::EffectAmbientSound: object = new CEffectAmbientSound(); break;
     case ClassId::EffectParticle: object = new CEffectParticle(); break;
@@ -120,7 +120,7 @@ CEngineObject* CEffectManager::NewObject(int type) {
     case ClassId::EffectTornado: object = new CEffectTornado(); break;
     default: return nullptr;
     }
-    if (object != nullptr) object->type_ = type;
+    if (object != nullptr) object->type = objectType;
     return object;
 }
 

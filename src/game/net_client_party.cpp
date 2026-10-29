@@ -23,18 +23,18 @@ void WriteDword(CStream* stream, std::uint32_t* scratch, std::uint32_t value) {
     *scratch = value;
     stream->Write(scratch, 4u);
 }
-CMemoryStream* StreamOf(CRefObject* member) { return &static_cast<PartyMemberMessage*>(member)->stream_; }
+CMemoryStream* StreamOf(CRefObject* member) { return &static_cast<PartyMemberMessage*>(member)->stream; }
 
 // The first element in [first, last) whose member stream holds the same bytes as
 // `message`'s (sizes, then a byte compare).
 std::vector<HeldRef<CRefObject>>::iterator FindSameMessage(std::vector<HeldRef<CRefObject>>::iterator first, std::vector<HeldRef<CRefObject>>::iterator last, PartyMemberMessage* message) {
-    CStream* stream = &message->stream_;
+    CStream* stream = &message->stream;
     for (; first != last; ++first) {
         CMemoryStream* element = StreamOf(first->Get());
         std::uint32_t size = element->Size();
         if (stream->Size() != size) continue;
-        const void* a = element->data_.data();
-        const void* b = message->stream_.data_.data();
+        const void* a = element->data.data();
+        const void* b = message->stream.data.data();
         if (std::memcmp(a, b, stream->Size()) == 0) break;
     }
     return first;
@@ -48,69 +48,69 @@ std::vector<HeldRef<CRefObject>>::iterator FindSameMessage(std::vector<HeldRef<C
 // one of the previous messages is replaced by that one (so unchanged members keep their object).
 // The offer takes the party's money; then its counters move on and its accepted flag is cleared.
 void ClientPublishParty(ClientSession* self) {
-    CParty* party = self->parties_[0].Get();
+    CParty* party = self->parties[0].Get();
     // Read again at each use.
-    auto state = [self] { return self->party_.Get(); };
+    auto state = [self] { return self->party.Get(); };
     if (!state()) return;
     // A copy of the old messages, then the list emptied.
-    std::vector<HeldRef<CRefObject>> previous = state()->members_;
-    state()->members_.clear();
-    state()->money_ = static_cast<std::uint32_t>(party->money_);
+    std::vector<HeldRef<CRefObject>> previous = state()->members;
+    state()->members.clear();
+    state()->money = static_cast<std::uint32_t>(party->money);
 
     std::uint32_t scratch = 0;
-    for (int i = 0; i < std::ssize(party->items_); ++i) {
+    for (int i = 0; i < std::ssize(party->items); ++i) {
         auto* message = NewCounted<PartyMemberMessage>();
         HeldRef<CRefObject> ref(message);
-        CStream* stream = &message->stream_;
-        CItem* item = party->items_[i];
+        CStream* stream = &message->stream;
+        CItem* item = party->items[i];
         stream->Clear();
-        CSpell* spell = item->spell_;
+        CSpell* spell = item->spell;
         if (spell) {
-            WriteDword(stream, &scratch, static_cast<std::uint32_t>(spell->id_));
-            WriteDword(stream, &scratch, static_cast<std::uint32_t>(spell->type_));
-            WriteDword(stream, &scratch, spell->prototypeId_);
+            WriteDword(stream, &scratch, static_cast<std::uint32_t>(spell->id));
+            WriteDword(stream, &scratch, static_cast<std::uint32_t>(spell->type));
+            WriteDword(stream, &scratch, spell->prototypeId);
             spell->Save(stream);
         } else {
             WriteDword(stream, &scratch, 0xFFFFFFFFu);
         }
-        WriteDword(stream, &scratch, static_cast<std::uint32_t>(item->type_));
-        WriteDword(stream, &scratch, item->prototypeId_);
+        WriteDword(stream, &scratch, static_cast<std::uint32_t>(item->type));
+        WriteDword(stream, &scratch, item->prototypeId);
         item->Save(stream);
 
         auto same = FindSameMessage(previous.begin(), previous.end(), message);
         PartyMessage* current = state();
         if (same != previous.end()) {
-            current->members_.push_back(*same);
+            current->members.push_back(*same);
             previous.erase(same);
         } else {
-            current->members_.push_back(ref);
+            current->members.push_back(ref);
         }
     }
 
-    ++state()->revision_;
-    state()->accepted_ = 0;
-    ++state()->version_;
+    ++state()->revision;
+    state()->accepted = 0;
+    ++state()->version;
 }
 
 // The received offer that pairs with ours: its partner is our
 // player and its player our partner, and it is live. Null without one.
 PartyMessage* ClientFindParty(ClientSession* self) {
-    auto* ours = self->party_.Get();
+    auto* ours = self->party.Get();
     if (!ours) return nullptr;
-    for (auto& node : self->offers_) {
+    for (auto& node : self->offers) {
         auto* other = node.Get();
-        if (other->partner_.Get() != ours->player_.Get() || other->player_.Get() != ours->partner_.Get()) continue;
-        if (other && !(other->flags7_ & CRefObject::kDetached)) return other;
+        if (other->partner.Get() != ours->player.Get() || other->player.Get() != ours->partner.Get()) continue;
+        if (other && !(other->flags7 & CRefObject::kDetached)) return other;
     }
     return nullptr;
 }
 
 // An accepted offer is unaccepted with its version moved on, so it is sent again.
 void ClientCommitParty(ClientSession* self) {
-    auto* state = self->party_.Get();
-    if (!state || !state->accepted_) return;
-    state->accepted_ = 0;
-    ++self->party_.Get()->version_;
+    auto* state = self->party.Get();
+    if (!state || !state->accepted) return;
+    state->accepted = 0;
+    ++self->party.Get()->version;
 }
 
 // Rebuilds the partner's party from the paired offer, once every member message of it holds data. Each
@@ -121,19 +121,19 @@ void ClientCommitParty(ClientSession* self) {
 void ClientApplyParty(ClientSession* self) {
     PartyMessage* remote = ClientFindParty(self);
     if (!remote) return;
-    auto count = [remote] { return static_cast<std::uint32_t>(remote->members_.size()); };
+    auto count = [remote] { return static_cast<std::uint32_t>(remote->members.size()); };
     for (std::uint32_t i = 0; i < count(); ++i) {
-        CRefObject* message = remote->members_[i].Get();
-        if (!message || (message->flags7_ & CRefObject::kDetached)) return;
+        CRefObject* message = remote->members[i].Get();
+        if (!message || (message->flags7 & CRefObject::kDetached)) return;
         if (StreamOf(message)->Size() == 0) return;
     }
 
-    CParty* party = self->parties_[1].Get();
+    CParty* party = self->parties[1].Get();
     party->Clear(1, 0);
-    party->money_ = static_cast<int>(remote->money_);
+    party->money = static_cast<int>(remote->money);
     std::vector<CEngineObject*> items;   // each holds a reference
     for (std::uint32_t i = 0; i < count(); ++i) {
-        CStream* stream = StreamOf(remote->members_[i].Get());
+        CStream* stream = StreamOf(remote->members[i].Get());
         stream->Seek(0);
         std::int32_t id;
         std::uint32_t type, packedId;
@@ -142,21 +142,21 @@ void ClientApplyParty(ClientSession* self) {
             stream->ReadValue(type);
             stream->ReadValue(packedId);
             CEngineObject* spell = party->SpellManager()->CreateObject(static_cast<int>(type), id);
-            spell->prototypeId_ = packedId;
+            spell->prototypeId = packedId;
             spell->Load(stream);
         }
         stream->ReadValue(type);
         stream->ReadValue(packedId);
         CEngineObject* item = party->ItemFactory()->CreateObject(static_cast<int>(type), -1);
-        item->prototypeId_ = packedId;
+        item->prototypeId = packedId;
         item->Load(stream);
         if (item) item->AddRef();
         items.push_back(item);
     }
     for (std::uint32_t i = 0; i < count(); ++i) party->AddItem(static_cast<CItem*>(items[i]), 1, 1);
 
-    std::int32_t revision = static_cast<std::int32_t>(remote->revision_);
-    std::list<TradeRecord>& records = self->tradeRecords_;
+    std::int32_t revision = static_cast<std::int32_t>(remote->revision);
+    std::list<TradeRecord>& records = self->tradeRecords;
     for (auto record = records.begin(); record != records.end();)
         record = static_cast<std::int32_t>(record->acceptedRevision) < revision ? records.erase(record) : std::next(record);
     for (CEngineObject* item : items)

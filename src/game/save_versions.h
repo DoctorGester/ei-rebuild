@@ -1,6 +1,6 @@
 #pragma once
 
-// The save versions the loads test (CStream::version_ of the stream being read): each names what that version
+// The save versions the loads test (CStream::version of the stream being read): each names what that version
 // added, and a load reads the field from that version on unless the comment says otherwise. Saves are written at
 // kSaveVersion; the oldest the game reads is kSaveOldestVersion (world.h).
 

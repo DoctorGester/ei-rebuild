@@ -16,7 +16,7 @@
 class CStream;
 class ChunkArchive;
 
-// CEngineObject::type_ of an item: which database its prototype lives in.
+// CEngineObject::type of an item: which database its prototype lives in.
 enum class ItemKind : int {
     Weapon = 0x3004,
     Armor = 0x3005,
@@ -39,10 +39,10 @@ enum class QuickItemCategory : int {
     NoPrototype = 0x7FFFFFFF,  // CItem::GetCategory of an item without a prototype
 };
 
-// What a loot item stands for (a loot prototype's category, CItemLoot::kind_): itself (its own price), a material,
+// What a loot item stands for (a loot prototype's category, CItemLoot::kind): itself (its own price), a material,
 // or a record of another database (LootKind::Record, the record type saying which).
 enum class LootKind : std::uint32_t { Self = 0, Material = 1, Record = 2 };
-// The database of a LootKind::Record loot item's record (LootItemRecord::recordType, CItemLoot::recordType_): the
+// The database of a LootKind::Record loot item's record (LootItemRecord::recordType, CItemLoot::recordType): the
 // weapon, armour and quick item blueprints ("instruction ..."), spells and spell modifiers.
 enum class LootRecordType : std::uint32_t {
     Weapon = 0,
@@ -76,12 +76,12 @@ struct SpellRecord {
     std::uint32_t complexity;           // +1 per modifier in the spell
     float speed;                        // missile speed (the item info's "power")
     float range;
-    float area;                         // the spell's radius_ (sqrt(area / pi) once built with modifiers)
+    float area;                         // the spell's radius (sqrt(area / pi) once built with modifiers)
     float damage;                       // the effect's power (the item info's level)
     std::uint32_t targetKind;           // 'u' a unit, 't' a point (target flags 0x10000000 / 0x20000000)
     std::uint32_t targetCount;
     std::uint32_t duration;             // ticks
-    std::uint32_t castTime;             // CSpell::castTime_ (CUnitServer::CastValue: ticks of the cast animation)
+    std::uint32_t castTime;             // CSpell::castTime (CUnitServer::CastValue: ticks of the cast animation)
     int needsSight;                    // needs a line of sight to its target
     int skill;                          // the school skill it needs
     std::vector<int> unreadIdListA;    // archive chunk 16; nothing reads it
@@ -146,13 +146,13 @@ public:
     std::uint32_t unreadHeadField;      // archive field 4 (4 bytes); nothing reads it
     int number;                         // the number in the item's text keys and names ("item%04d")
     int variant;                        // the model variant
-    float price;                        // CItem::price_ (plus materialUnits times the material's unitPrice)
-    // CItem::weight_, times the material's weightFactor; also what WeaponWeight returns, which the unit's attack
+    float price;                        // CItem::price (plus materialUnits times the material's unitPrice)
+    // CItem::weight, times the material's weightFactor; also what WeaponWeight returns, which the unit's attack
     // info shows as the weapon's speed.
     float weight;
-    float unreadValue;                  // CItem::unreadValue_ (archive field 9, nothing else reads it)
+    float unreadValue;                  // CItem::unreadValue (archive field 9, nothing else reads it)
     float charge;                       // item charge and maximum
-    std::uint32_t magicLevel;           // CItem::magicLevel_ (plus the material's)
+    std::uint32_t magicLevel;           // CItem::magicLevel (plus the material's)
     float condition;                    // item condition and maximum (times the material's conditionFactor)
     std::uint32_t materialUnits;        // units of material (the price; the trader stock takes them)
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
@@ -190,7 +190,7 @@ struct WeaponRecord : ItemRecordHead {
     std::uint8_t unused_7D[0x84 - 0x7D] = {};
     float attackBonus;                  // added to the wielder's attack (WeaponAttackBonus)
     float defenceBonus;                 // added to the wielder's defence (WeaponDefenceBonus; 0 for types 5, 6)
-    float reach;                        // CItemWeapon::reach_
+    float reach;                        // CItemWeapon::reach
     float damage;                       // minimum damage (times the material's damageFactor)
     float damageSpread;                 // maximum damage = damage + spread
     float damageTypes[kDamageTypeCount];   // weight of each damage type
@@ -207,10 +207,10 @@ struct ArmorRecord : ItemRecordHead {
     // Two rows of nine dwords: a factor (the first row's is the head's category), the absorption
     // per damage type (each times the row's factor and the material's absorbFactors) and flags
     // (the material's armourFlags or'ed in).
-    float absorbFirst[kDamageTypeCount];   // item absorb_[0]
+    float absorbFirst[kDamageTypeCount];   // item absorb[0]
     std::uint32_t firstFlags;
     float othersFactor;
-    float absorbOthers[kDamageTypeCount];  // item absorb_[1]
+    float absorbOthers[kDamageTypeCount];  // item absorb[1]
     std::uint32_t othersFlags;
     std::uint8_t showsWounds;           // 0: the piece hides the wounds of the parts it covers
     std::uint32_t layer;                // the lower one's texture goes first (ArmorLayer)
@@ -225,7 +225,7 @@ struct QuickItemRecord : ItemRecordHead {
     // (0x1A) and unreadFields (0x1B).
     void Serialize(ChunkArchive* ar);
 
-    std::uint32_t actionValue;              // CItemQuick::actionValue_
+    std::uint32_t actionValue;              // CItemQuick::actionValue
     // archive fields 0x17 (4 bytes), 0x18 (4) and 0x1B (8); nothing reads them
     std::uint8_t unreadFields[16];
     std::string spellText;                // the spell text of a QuickItemCategory::Potion item (CItemConstructor::FillItem)

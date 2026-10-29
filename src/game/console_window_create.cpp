@@ -13,20 +13,20 @@ constexpr int kHistory = 0x100;
 constexpr int kNoCommand = -1;
 } // namespace
 
-ConsoleWindow::ConsoleWindow(CInterface3D* screen) {
-    screen_ = screen;
-    surface_ = nullptr;
-    commandIndex_ = kNoCommand;
-    caret_ = 0;
-    anchor_ = 0;
-    scroll_ = 0;
-    shown_ = false;
-    ctrl_ = false;
-    shift_ = false;
-    font_ = PointFont(kFontSize, kFontFace);
-    RECT rect = kInitialRect;
-    SetRect(&rect);
-    history_ = kHistory;
+ConsoleWindow::ConsoleWindow(CInterface3D* newScreen) {
+    screen = newScreen;
+    surface = nullptr;
+    commandIndex = kNoCommand;
+    caret = 0;
+    anchor = 0;
+    scroll = 0;
+    shown = false;
+    ctrl = false;
+    shift = false;
+    font = PointFont(kFontSize, kFontFace);
+    RECT area = kInitialRect;
+    SetRect(&area);
+    history = kHistory;
     DropOldLines(kHistory);
     DrawLines();
 }

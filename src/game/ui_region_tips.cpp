@@ -19,7 +19,7 @@ constexpr const char* kTipText = "tip %d";
 
 // A new tooltip of `region` (null when the allocation fails).
 CUiTooltip* NewTooltip(CUiRegion* region, std::string_view text, int command) {
-    return new CUiTooltip(region->interface_, region, text, command);
+    return new CUiTooltip(region->ui, region, text, command);
 }
 
 } // namespace
@@ -28,28 +28,28 @@ CUiTooltip* NewTooltip(CUiRegion* region, std::string_view text, int command) {
 
 void CUiRegion::SetTip(int textId, int command) {
     if (textId == 0) {
-        delete tip_;
-        tip_ = NewTooltip(this, "", 0);
+        delete tip;
+        tip = NewTooltip(this, "", 0);
         return;
     }
     std::string text = str::Format(kTipText, textId);
-    CTextManager* texts = g_clientWorld.texts_;
+    CTextManager* texts = g_clientWorld.texts;
     if (texts->Open(text)) text = texts->ReadToHash();
-    delete tip_;
-    tip_ = NewTooltip(this, text, command);
+    delete tip;
+    tip = NewTooltip(this, text, command);
 }
 
 void CUiRegion::SetTipString(std::string_view text, int command) {
-    delete tip_;
-    tip_ = NewTooltip(this, text, command);
+    delete tip;
+    tip = NewTooltip(this, text, command);
 }
 
 // --- The tooltip's text --------------------------------------------------------------
 
 void CUiRegion::SetTipText(std::string_view text) {
-    if (tip_) tip_->SetText(text);
+    if (tip) tip->SetText(text);
 }
 
 // --- The destructor body --------------------------------------------------------------
 
-CUiRegion::~CUiRegion() { delete tip_; }
+CUiRegion::~CUiRegion() { delete tip; }

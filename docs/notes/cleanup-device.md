@@ -10,10 +10,10 @@ files.
   projection.cpp project, clip-test, map to the screen and fog (renderer.md section 10).
 - `CDeviceMaterial` (`device_material.h`, 0x24 bytes): reference count, blend, source / dest blend, the
   render preset and the `MaterialStage` list (`texCoordIndex` was `unknown_00`). `WoundsMaterial`
-  (map_object_shadow.h) derives from it; `CTextureDevice::material_` points at one. device_draw.cpp's
+  (map_object_shadow.h) derives from it; `CTextureDevice::material` points at one. device_draw.cpp's
   own Material / Technique copies are gone (Technique was `CRenderPreset`).
 - `CPixelConverter` (texture.h): slot 10 `DecodeDxt` added (R28: the class is gone with the DLL's load).
-- `CTextureDevice::distanceFog_` was `unknown_158`.
+- `CTextureDevice::distanceFog` was `unknown_158`.
 - Entry points take `CSceneRenderer*` / `CTextureDevice*` (renderer_lines.h's `LineBatch::Draw` too). There is no
   Direct3D / DirectDraw device or device.h since R27c (renderer.md section 9).
 

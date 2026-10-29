@@ -137,9 +137,9 @@ int ReadCount(char** cursor) {
 // The part both old-format loaders share: header words, bounds, vertices and records (the records' second colour
 // array is set to opaque black).
 void LoadOldCommon(CFigureMesh* mesh, char** cursor) {
-    mesh->materialValue_ = Read<std::uint32_t>(*cursor);
-    mesh->meshType_ = Read<std::uint32_t>(*cursor);
-    ClipBounds& bounds = mesh->box_.bounds;
+    mesh->materialValue = Read<std::uint32_t>(*cursor);
+    mesh->meshType = Read<std::uint32_t>(*cursor);
+    ClipBounds& bounds = mesh->box.bounds;
     ReadFirstVersion(bounds.center, cursor, kOldVersions);
     ReadFirstVersion(bounds.boxMin, cursor, kOldVersions);
     ReadFirstVersion(bounds.boxMax, cursor, kOldVersions);
@@ -148,18 +148,18 @@ void LoadOldCommon(CFigureMesh* mesh, char** cursor) {
     bounds.flags |= BoundsFlag::Box;
 
     int count = ReadCount(cursor);
-    mesh->vertices_.resize(count);
-    LoadVertices(mesh->vertices_, cursor, kOldVersions);
-    if (!mesh->vertices_.empty()) bounds.Fit(mesh->vertices_.data(), std::ssize(mesh->vertices_));
+    mesh->vertices.resize(count);
+    LoadVertices(mesh->vertices, cursor, kOldVersions);
+    if (!mesh->vertices.empty()) bounds.Fit(mesh->vertices.data(), std::ssize(mesh->vertices));
 
     count = ReadCount(cursor);
-    mesh->normals_.resize(count);
-    mesh->colorsA_.resize(count * 4);
-    mesh->colorsB_.resize(count * 4);
+    mesh->normals.resize(count);
+    mesh->colorsA.resize(count * 4);
+    mesh->colorsB.resize(count * 4);
     if (count != 0) {
-        std::memcpy(mesh->normals_.data(), *cursor, static_cast<std::size_t>(count) * sizeof(NormalPacket));
+        std::memcpy(mesh->normals.data(), *cursor, static_cast<std::size_t>(count) * sizeof(NormalPacket));
         *cursor += count * 0x40;
-        for (int i = 0; i < std::ssize(mesh->colorsB_); ++i) mesh->colorsB_[i] = 0xFF000000;
+        for (int i = 0; i < std::ssize(mesh->colorsB); ++i) mesh->colorsB[i] = 0xFF000000;
     }
 }
 
@@ -208,14 +208,14 @@ std::vector<VertexPacket> g_offsetVertices;
 
 void CFigureMesh::LoadBounds(char** cursor, std::uint32_t magic) {
     const int versions = magic == kFig8Magic ? kFig8Versions : 1;
-    ReadFirstVersion(center_, cursor, versions);
-    ReadFirstVersion(boxMin_, cursor, versions);
-    ReadFirstVersion(boxMax_, cursor, versions);
-    ReadFirstVersion(radius_, cursor, versions);
-    box_.bounds.center = center_;
-    box_.bounds.flags |= BoundsFlag::Sphere;
-    box_.bounds.radius = radius_;
-    box_.bounds.SetBox(&boxMin_.x, &boxMax_.x);
+    ReadFirstVersion(center, cursor, versions);
+    ReadFirstVersion(boxMin, cursor, versions);
+    ReadFirstVersion(boxMax, cursor, versions);
+    ReadFirstVersion(radius, cursor, versions);
+    box.bounds.center = center;
+    box.bounds.flags |= BoundsFlag::Sphere;
+    box.bounds.radius = radius;
+    box.bounds.SetBox(&boxMin.x, &boxMax.x);
 }
 
 void MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, float u, std::uint32_t magic) {
@@ -258,146 +258,146 @@ void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, fl
 }
 
 void CPlainFigureMesh::LoadFig(char** cursor) {
-    if (flags_ & FigureMeshFlag::Loaded) return;
+    if (flags & FigureMeshFlag::Loaded) return;
     FigHeader header;
     lib::LoadBytes(header, *cursor);
     *cursor += sizeof(header);
-    materialValue_ = Read<std::uint32_t>(*cursor);
-    meshType_ = Read<std::uint32_t>(*cursor);
+    materialValue = Read<std::uint32_t>(*cursor);
+    meshType = Read<std::uint32_t>(*cursor);
     LoadBounds(cursor, header.magic);
 
-    vertices_.resize(header.vertexCount);
-    LoadVertices(vertices_, cursor, header.magic == kFig8Magic ? kFig8Versions : 1);
-    if (!vertices_.empty()) box_.bounds.Fit(vertices_.data(), std::ssize(vertices_));
+    vertices.resize(header.vertexCount);
+    LoadVertices(vertices, cursor, header.magic == kFig8Magic ? kFig8Versions : 1);
+    if (!vertices.empty()) box.bounds.Fit(vertices.data(), std::ssize(vertices));
 
-    normals_.resize(header.normalCount);
-    colorsA_.resize(header.normalCount * 4);
-    colorsB_.resize(header.normalCount * 4);
+    normals.resize(header.normalCount);
+    colorsA.resize(header.normalCount * 4);
+    colorsB.resize(header.normalCount * 4);
     if (header.normalCount != 0) {
-        std::memcpy(normals_.data(), *cursor, static_cast<std::size_t>(header.normalCount) * sizeof(NormalPacket));
+        std::memcpy(normals.data(), *cursor, static_cast<std::size_t>(header.normalCount) * sizeof(NormalPacket));
         *cursor += header.normalCount * 0x40;
     }
-    LoadArray(texCoords_, cursor, header.texCoordCount);
-    LoadArray(indices_, cursor, header.indexCount);
-    LoadArray(corners_, cursor, header.cornerCount);
-    LoadArray(words_, cursor, header.wordCount);
+    LoadArray(texCoords, cursor, header.texCoordCount);
+    LoadArray(indices, cursor, header.indexCount);
+    LoadArray(corners, cursor, header.cornerCount);
+    LoadArray(words, cursor, header.wordCount);
 
     BuffersChanged();
-    buffers_.vertices = vertices_.data();
-    buffers_.vertexCount = std::ssize(vertices_);
-    buffers_.normals = normals_.data();
-    buffers_.normalCount = std::ssize(normals_);
-    colorsA_.resize(std::ssize(normals_) * 4);
-    colorsB_.resize(std::ssize(normals_) * 4);
-    buffers_.texCoords = texCoords_.data();
-    buffers_.texCoordCount = std::ssize(texCoords_);
-    buffers_.indices = indices_.data();
-    buffers_.indexCount = std::ssize(indices_);
-    buffers_.corners = corners_.data();
-    buffers_.cornerCount = std::ssize(corners_);
-    buffers_.wordCount = std::ssize(words_);
-    buffers_.words = words_.data();
-    flags_ |= FigureMeshFlag::Loaded;
+    buffers.vertices = vertices.data();
+    buffers.vertexCount = std::ssize(vertices);
+    buffers.normals = normals.data();
+    buffers.normalCount = std::ssize(normals);
+    colorsA.resize(std::ssize(normals) * 4);
+    colorsB.resize(std::ssize(normals) * 4);
+    buffers.texCoords = texCoords.data();
+    buffers.texCoordCount = std::ssize(texCoords);
+    buffers.indices = indices.data();
+    buffers.indexCount = std::ssize(indices);
+    buffers.corners = corners.data();
+    buffers.cornerCount = std::ssize(corners);
+    buffers.wordCount = std::ssize(words);
+    buffers.words = words.data();
+    flags |= FigureMeshFlag::Loaded;
 }
 
 void CSharedFigureMesh::LoadFig(char** cursor) {
-    if (flags_ & FigureMeshFlag::Loaded) return;
+    if (flags & FigureMeshFlag::Loaded) return;
     FigHeader header;
     lib::LoadBytes(header, *cursor);
     *cursor += sizeof(header);
-    materialValue_ = Read<std::uint32_t>(*cursor);
-    meshType_ = Read<std::uint32_t>(*cursor);
+    materialValue = Read<std::uint32_t>(*cursor);
+    meshType = Read<std::uint32_t>(*cursor);
     LoadBounds(cursor, header.magic);
 
-    vertices_.resize(header.vertexCount);
-    LoadVertices(vertices_, cursor, header.magic == kFig8Magic ? kFig8Versions : 1);
-    if (!vertices_.empty()) box_.bounds.Fit(vertices_.data(), std::ssize(vertices_));
+    vertices.resize(header.vertexCount);
+    LoadVertices(vertices, cursor, header.magic == kFig8Magic ? kFig8Versions : 1);
+    if (!vertices.empty()) box.bounds.Fit(vertices.data(), std::ssize(vertices));
 
-    normals_.resize(header.normalCount);
-    colorsA_.resize(header.normalCount * 4);
-    colorsB_.resize(header.normalCount * 4);
+    normals.resize(header.normalCount);
+    colorsA.resize(header.normalCount * 4);
+    colorsB.resize(header.normalCount * 4);
     if (header.normalCount != 0) {
-        std::memcpy(normals_.data(), *cursor, static_cast<std::size_t>(header.normalCount) * sizeof(NormalPacket));
+        std::memcpy(normals.data(), *cursor, static_cast<std::size_t>(header.normalCount) * sizeof(NormalPacket));
         *cursor += header.normalCount * 0x40;
     }
     // The rest stays in the file data.
-    buffers_.texCoords = InFile<TexCoord>(cursor, header.texCoordCount);
-    buffers_.texCoordCount = header.texCoordCount;
-    buffers_.indices = InFile<std::uint16_t>(cursor, header.indexCount);
-    buffers_.indexCount = header.indexCount;
-    buffers_.corners = InFile<MeshCorner>(cursor, header.cornerCount);
-    buffers_.cornerCount = header.cornerCount;
-    buffers_.words = InFile<std::uint32_t>(cursor, header.wordCount);
-    buffers_.wordCount = header.wordCount;
+    buffers.texCoords = InFile<TexCoord>(cursor, header.texCoordCount);
+    buffers.texCoordCount = header.texCoordCount;
+    buffers.indices = InFile<std::uint16_t>(cursor, header.indexCount);
+    buffers.indexCount = header.indexCount;
+    buffers.corners = InFile<MeshCorner>(cursor, header.cornerCount);
+    buffers.cornerCount = header.cornerCount;
+    buffers.words = InFile<std::uint32_t>(cursor, header.wordCount);
+    buffers.wordCount = header.wordCount;
 
     BuffersChanged();
-    buffers_.vertices = vertices_.data();
-    buffers_.vertexCount = std::ssize(vertices_);
-    buffers_.normals = normals_.data();
-    buffers_.normalCount = std::ssize(normals_);
-    colorsA_.resize(std::ssize(normals_) * 4);
-    colorsB_.resize(std::ssize(normals_) * 4);
-    flags_ |= FigureMeshFlag::Loaded;
+    buffers.vertices = vertices.data();
+    buffers.vertexCount = std::ssize(vertices);
+    buffers.normals = normals.data();
+    buffers.normalCount = std::ssize(normals);
+    colorsA.resize(std::ssize(normals) * 4);
+    colorsB.resize(std::ssize(normals) * 4);
+    flags |= FigureMeshFlag::Loaded;
 }
 
 // ---- Old (non-FIG) format -----------------------------------------------------------------------
 
 void CPlainFigureMesh::LoadOld(char** cursor) {
-    if (flags_ & FigureMeshFlag::Loaded) return;
+    if (flags & FigureMeshFlag::Loaded) return;
     LoadOldCommon(this, cursor);
-    LoadArray(texCoords_, cursor, ReadCount(cursor));
+    LoadArray(texCoords, cursor, ReadCount(cursor));
     SkipRecords34(cursor);
-    LoadArray(corners_, cursor, ReadCount(cursor));
-    LoadArray(words_, cursor, ReadCount(cursor));
-    LoadArray(indices_, cursor, ReadCount(cursor));
+    LoadArray(corners, cursor, ReadCount(cursor));
+    LoadArray(words, cursor, ReadCount(cursor));
+    LoadArray(indices, cursor, ReadCount(cursor));
 
     BuffersChanged();
-    buffers_.vertices = vertices_.data();
-    buffers_.vertexCount = std::ssize(vertices_);
-    buffers_.normals = normals_.data();
-    buffers_.normalCount = std::ssize(normals_);
-    colorsA_.resize(std::ssize(normals_) * 4);
-    colorsB_.resize(std::ssize(normals_) * 4);
-    buffers_.texCoords = texCoords_.data();
-    buffers_.texCoordCount = std::ssize(texCoords_);
-    buffers_.corners = corners_.data();
-    buffers_.cornerCount = std::ssize(corners_);
-    buffers_.words = words_.data();
-    buffers_.wordCount = std::ssize(words_);
-    buffers_.indexCount = std::ssize(indices_);
-    buffers_.indices = indices_.data();
-    flags_ |= FigureMeshFlag::Loaded;
+    buffers.vertices = vertices.data();
+    buffers.vertexCount = std::ssize(vertices);
+    buffers.normals = normals.data();
+    buffers.normalCount = std::ssize(normals);
+    colorsA.resize(std::ssize(normals) * 4);
+    colorsB.resize(std::ssize(normals) * 4);
+    buffers.texCoords = texCoords.data();
+    buffers.texCoordCount = std::ssize(texCoords);
+    buffers.corners = corners.data();
+    buffers.cornerCount = std::ssize(corners);
+    buffers.words = words.data();
+    buffers.wordCount = std::ssize(words);
+    buffers.indexCount = std::ssize(indices);
+    buffers.indices = indices.data();
+    flags |= FigureMeshFlag::Loaded;
 }
 
 void CSharedFigureMesh::LoadOld(char** cursor) {
     // Unlike the other three loaders, this one does not test the loaded flag.
     LoadOldCommon(this, cursor);
     // The rest stays in the file data.
-    buffers_.texCoordCount = ReadCount(cursor);
-    buffers_.texCoords = InFile<TexCoord>(cursor, buffers_.texCoordCount);
+    buffers.texCoordCount = ReadCount(cursor);
+    buffers.texCoords = InFile<TexCoord>(cursor, buffers.texCoordCount);
     SkipRecords34(cursor);
-    buffers_.cornerCount = ReadCount(cursor);
-    buffers_.corners = InFile<MeshCorner>(cursor, buffers_.cornerCount);
-    buffers_.wordCount = ReadCount(cursor);
-    buffers_.words = InFile<std::uint32_t>(cursor, buffers_.wordCount);
-    buffers_.indexCount = ReadCount(cursor);
-    buffers_.indices = InFile<std::uint16_t>(cursor, buffers_.indexCount);
+    buffers.cornerCount = ReadCount(cursor);
+    buffers.corners = InFile<MeshCorner>(cursor, buffers.cornerCount);
+    buffers.wordCount = ReadCount(cursor);
+    buffers.words = InFile<std::uint32_t>(cursor, buffers.wordCount);
+    buffers.indexCount = ReadCount(cursor);
+    buffers.indices = InFile<std::uint16_t>(cursor, buffers.indexCount);
 
     BuffersChanged();
-    buffers_.vertices = vertices_.data();
-    buffers_.vertexCount = std::ssize(vertices_);
-    buffers_.normals = normals_.data();
-    buffers_.normalCount = std::ssize(normals_);
-    colorsA_.resize(std::ssize(normals_) * 4);
-    colorsB_.resize(std::ssize(normals_) * 4);
-    flags_ |= FigureMeshFlag::Loaded;
+    buffers.vertices = vertices.data();
+    buffers.vertexCount = std::ssize(vertices);
+    buffers.normals = normals.data();
+    buffers.normalCount = std::ssize(normals);
+    colorsA.resize(std::ssize(normals) * 4);
+    colorsB.resize(std::ssize(normals) * 4);
+    flags |= FigureMeshFlag::Loaded;
 }
 
 // ---- World-space box ----------------------------------------------------------------------------
 
 void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const {
     // ((x*x + y*y) + z*z) of the position, on the FPU; NaN passes.
-    double distance = LengthSquaredXYZ(localPosition_);
+    double distance = LengthSquaredXYZ(localPosition);
     if (distance > kFarLimit) return;
 
     Matrix4 m = {};
@@ -406,9 +406,9 @@ void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* m
     // The 8 corners of the box (centre + minimum / maximum), maximum x first, times the matrix as
     // a row vector (ZYX, translation last); each transformed coordinate is stored. The corner
     // sums stay on the FPU in the original (the same at the main thread's 24-bit precision).
-    const Vector3& c = box_.bounds.center;
-    const Vector3& lo = box_.bounds.boxMin;
-    const Vector3& hi = box_.bounds.boxMax;
+    const Vector3& c = box.bounds.center;
+    const Vector3& lo = box.bounds.boxMin;
+    const Vector3& hi = box.bounds.boxMax;
     for (int corner = 0; corner < 8; ++corner) {
         Vector3 p = {((corner & 4) ? lo : hi).x + c.x, ((corner & 2) ? lo : hi).y + c.y, ((corner & 1) ? lo : hi).z + c.z};
         Vector3 w = TransformRow<Sum3::ZYX>(m, p);
@@ -421,66 +421,66 @@ void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* m
 // ---- Mirroring, buffers, vertex offsets ---------------------------------------------------------
 
 void CPlainFigureMesh::MirrorX() {
-    NegateBlock(vertices_, 0);
-    NegateBlock(normals_, 0);
-    ReverseWinding(indices_);
+    NegateBlock(vertices, 0);
+    NegateBlock(normals, 0);
+    ReverseWinding(indices);
     BuffersChanged();
 }
 
 void CFigureMesh::FitVertexBounds() {
-    if (!vertices_.empty()) box_.bounds.Fit(vertices_.data(), std::ssize(vertices_));
+    if (!vertices.empty()) box.bounds.Fit(vertices.data(), std::ssize(vertices));
 }
 
 void CPlainFigureMesh::MirrorY() {
-    NegateBlock(vertices_, 1);
-    NegateBlock(normals_, 1);
-    ReverseWinding(indices_);
+    NegateBlock(vertices, 1);
+    NegateBlock(normals, 1);
+    ReverseWinding(indices);
     BuffersChanged();
 }
 
 void CPlainFigureMesh::RefreshBuffers() {
     BuffersChanged();
-    buffers_.vertices = vertices_.data();
-    buffers_.vertexCount = std::ssize(vertices_);
-    buffers_.normals = normals_.data();
-    buffers_.normalCount = std::ssize(normals_);
-    colorsA_.resize(std::ssize(normals_) * 4);
-    colorsB_.resize(std::ssize(normals_) * 4);
-    buffers_.texCoords = texCoords_.data();
-    buffers_.texCoordCount = std::ssize(texCoords_);
-    buffers_.corners = corners_.data();
-    buffers_.cornerCount = std::ssize(corners_);
-    buffers_.words = words_.data();
-    buffers_.wordCount = std::ssize(words_);
-    buffers_.indices = indices_.data();
-    buffers_.indexCount = std::ssize(indices_);
+    buffers.vertices = vertices.data();
+    buffers.vertexCount = std::ssize(vertices);
+    buffers.normals = normals.data();
+    buffers.normalCount = std::ssize(normals);
+    colorsA.resize(std::ssize(normals) * 4);
+    colorsB.resize(std::ssize(normals) * 4);
+    buffers.texCoords = texCoords.data();
+    buffers.texCoordCount = std::ssize(texCoords);
+    buffers.corners = corners.data();
+    buffers.cornerCount = std::ssize(corners);
+    buffers.words = words.data();
+    buffers.wordCount = std::ssize(words);
+    buffers.indices = indices.data();
+    buffers.indexCount = std::ssize(indices);
 }
 
-void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
+void CFigureMesh::SetOffsets(const OffsetSpan* newOffsets) {
     // The positions the new renderer keeps on the GPU move with new offsets: the animation's frame.
-    const bool same = std::ssize(offsets_) == offsets->count &&
-                      (offsets->count == 0 ||
-                       std::memcmp(offsets_.data(), offsets->data, static_cast<std::size_t>(offsets->count) * sizeof(Vector3)) == 0);
-    offsets_.resize(offsets->count);
-    std::memcpy(offsets_.data(), offsets->data, static_cast<std::size_t>(offsets->count) * sizeof(Vector3));
+    const bool same = std::ssize(offsets) == newOffsets->count &&
+                      (newOffsets->count == 0 ||
+                       std::memcmp(offsets.data(), newOffsets->data, static_cast<std::size_t>(newOffsets->count) * sizeof(Vector3)) == 0);
+    offsets.resize(newOffsets->count);
+    std::memcpy(offsets.data(), newOffsets->data, static_cast<std::size_t>(newOffsets->count) * sizeof(Vector3));
     if (!same) render::MeshChanged(this, render::MeshChange::Positions);
 }
 
 void CFigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChange::Rebuilt); }
 
 int CFigureMesh::DrawOffset(const Matrix4& matrix, Vector2* points, float* bounds) {
-    const VertexPacket* vertices = buffers_.vertices;
-    if (!offsets_.empty()) {
-        const VertexPacket* source = buffers_.vertices;
+    const VertexPacket* buffersVertices = buffers.vertices;
+    if (!offsets.empty()) {
+        const VertexPacket* source = buffers.vertices;
         std::vector<VertexPacket>& moved = g_offsetVertices;
         // Every element is rewritten below.
-        moved.resize(static_cast<std::size_t>(buffers_.vertexCount));
+        moved.resize(static_cast<std::size_t>(buffers.vertexCount));
         // Vertex i is component i & 3 of packet i >> 2; each coordinate is offset + source.
         for (int i = 0; i < std::ssize(moved) * 4; ++i) {
             const float* from = &source[i >> 2].block[0][i & 3];
             float* to = &moved[i >> 2].block[0][i & 3];
-            if (i < std::ssize(offsets_)) {
-                const Vector3& d = offsets_[i];
+            if (i < std::ssize(offsets)) {
+                const Vector3& d = offsets[i];
                 to[0] = d.x + from[0];
                 to[4] = d.y + from[4];
                 to[8] = d.z + from[8];
@@ -490,8 +490,8 @@ int CFigureMesh::DrawOffset(const Matrix4& matrix, Vector2* points, float* bound
                 x87::CopyBits(to[8], from[8]);
             }
         }
-        vertices = moved.data();
+        buffersVertices = moved.data();
     }
-    ProjectFlat(matrix, vertices, points, buffers_.vertexCount, bounds);
-    return buffers_.vertexCount << 2;
+    ProjectFlat(matrix, buffersVertices, points, buffers.vertexCount, bounds);
+    return buffers.vertexCount << 2;
 }

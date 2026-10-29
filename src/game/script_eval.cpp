@@ -85,16 +85,16 @@ float FromBool(bool b) { return static_cast<float>(b ? 1 : 0); }
 // The game server session when one runs and is not shut down.
 net::ServerSession* ActiveServer() {
     net::ServerSession* server = net::g_gameServer;
-    if (server && !(server->flags7_ & CRefCounted::kDetached)) return server;
+    if (server && !(server->flags7 & CRefCounted::kDetached)) return server;
     return nullptr;
 }
 
-WorldAlarm& Alarm(int index) { return g_serverWorld.alarms_[index]; }
+WorldAlarm& Alarm(int index) { return g_serverWorld.alarms[index]; }
 
 // GetWorldTime: (time * scale + offset) mod 24.
 float WorldTimeOfDay() {
     const CWorldServer* world = &g_serverWorld;
-    return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
+    return static_cast<float>(std::fmod(static_cast<double>(world->tick) * world->secondsPerTick + world->timeBase, 24.0));
 }
 
 // What a unit sees: the AI brain's visible list.
@@ -111,7 +111,7 @@ void InsertSeen(ScriptGroup* group, CUnitServer* controller) {
 
 void SSCCmd::PrepareArguments(CScript* script, ScriptVars* vars) {
     SetParameters(localBindings, vars);
-    SetParameters(globalBindings, &script->globals_);
+    SetParameters(globalBindings, &script->globals);
     for (int i = 0; i < std::ssize(subCalls); ++i) CalcParameters(script, vars, &subCalls[i]);
 }
 
@@ -204,7 +204,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case ScriptFunction::GetX:
     case ScriptFunction::GetY: {
         CEngineObject* o = objectArgs[0]->object;
-        if (o) x87::CopyBits(*result, function == ScriptFunction::GetX ? ObjectSlots(o)->localPosition_.x : ObjectSlots(o)->localPosition_.y);
+        if (o) x87::CopyBits(*result, function == ScriptFunction::GetX ? ObjectSlots(o)->localPosition.x : ObjectSlots(o)->localPosition.y);
         else *result = 0.0f;
         return;
     }
@@ -214,7 +214,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             *result = 0.0f;
             return;
         }
-        float x = ObjectSlots(o)->localPosition_.x, y = ObjectSlots(o)->localPosition_.y, z = ObjectSlots(o)->localPosition_.z;
+        float x = ObjectSlots(o)->localPosition.x, y = ObjectSlots(o)->localPosition.y, z = ObjectSlots(o)->localPosition.z;
         if (CUnit* unit = UnitOrNull(o)) *result = static_cast<float>(unit->GroundHeight(x, y) + z);   // (o is not null)
         else *result = g_serverWorld.GridHeight(x, y) + z;
         return;
@@ -223,13 +223,13 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case ScriptFunction::GetMoney: {
         *result = 0.0f;
         CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
-        if (player) *result = static_cast<float>(function == ScriptFunction::GetLootItemsCount ? std::ssize(player->items_) : player->Party()->money_);
+        if (player) *result = static_cast<float>(function == ScriptFunction::GetLootItemsCount ? std::ssize(player->items) : player->Party()->money);
         return;
     }
     case ScriptFunction::WasLooted: {
         *result = 1.0f;
         CEngineObject* o = objectArgs[0]->object;
-        if (o) *result = static_cast<float>(lib::Has(o->flags_, MapObjectFlag::LootTaken));
+        if (o) *result = static_cast<float>(lib::Has(o->flags, MapObjectFlag::LootTaken));
         return;
     }
     case ScriptFunction::GetFutureX:
@@ -240,14 +240,14 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             return;
         }
         Vector3 buffer;
-        const Vector3* position = ObjectSlots(o)->PositionAt(&buffer, RoundTimeOffset(g_serverWorld.tick_, f[0]));
+        const Vector3* position = ObjectSlots(o)->PositionAt(&buffer, RoundTimeOffset(g_serverWorld.tick, f[0]));
         x87::CopyBits(*result, *(function == ScriptFunction::GetFutureX ? &position->x : &position->y));
         return;
     }
     case ScriptFunction::IsUnitInWater: { // IsUnitInWater: flag 0x80 of the AI map cell at the object's position
         CEngineObject* o = objectArgs[0]->object;
         int inWater = 0;
-        if (o) inWater = g_serverWorld.aiMap_.InWaterAt(ObjectSlots(o)->localPosition_) ? 1 : 0;
+        if (o) inWater = g_serverWorld.aiMap.InWaterAt(ObjectSlots(o)->localPosition) ? 1 : 0;
         *result = static_cast<float>(inWater);
         return;
     }
@@ -268,7 +268,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case ScriptFunction::GetDiplomacy: { // GetDiplomacy: 1 allied, -1 enemies, 0 otherwise
         int b = Ftol(f[1]);
         int a = Ftol(f[0]);
-        int relation = g_serverWorld.diplomacy_.GetRelation(a, b);
+        int relation = g_serverWorld.diplomacy.GetRelation(a, b);
         *result = 0.0f;
         if (relation == 2) *result = kMinusOne;
         else if (relation == 0) *result = 1.0f;
@@ -316,7 +316,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case ScriptFunction::GetObjectID: {
         CEngineObject* o = objectArgs[0]->object;
         *result = 0.0f;
-        if (o) *result = static_cast<float>(o->id_);
+        if (o) *result = static_cast<float>(o->id);
         return;
     }
     case ScriptFunction::IsAlarm:
@@ -334,13 +334,13 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case ScriptFunction::DistanceUnitUnit: {
         CEngineObject* a = objectArgs[0]->object;
         CEngineObject* b = objectArgs[1]->object;
-        if (a && b) *result = Distance(ObjectSlots(a)->localPosition_.x, ObjectSlots(a)->localPosition_.y, ObjectSlots(b)->localPosition_.x, ObjectSlots(b)->localPosition_.y);
+        if (a && b) *result = Distance(ObjectSlots(a)->localPosition.x, ObjectSlots(a)->localPosition.y, ObjectSlots(b)->localPosition.x, ObjectSlots(b)->localPosition.y);
         else *result = kFar;
         return;
     }
     case ScriptFunction::DistanceUnitPoint: {
         CEngineObject* o = objectArgs[0]->object;
-        if (o) *result = Distance(ObjectSlots(o)->localPosition_.x, ObjectSlots(o)->localPosition_.y, f[0], f[1]);
+        if (o) *result = Distance(ObjectSlots(o)->localPosition.x, ObjectSlots(o)->localPosition.y, f[0], f[1]);
         else *result = kFar;
         return;
     }
@@ -405,7 +405,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = 0.0f;
         CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
         if (!player) return;
-        CPlayerServer::PartyDanger danger = player->Server()->danger_;
+        CPlayerServer::PartyDanger danger = player->Server()->danger;
         if (function == ScriptFunction::IsPlayerInDanger ? danger == CPlayerServer::PartyDanger::InDanger
                                                          : danger == CPlayerServer::PartyDanger::Safe)
             *result = 1.0f;
@@ -423,14 +423,14 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         }
         *result = 0.0f;
         CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
-        if (player) *result = player->Party()->variables_.Get(stringArgs[0]);
+        if (player) *result = player->Party()->variables.Get(stringArgs[0]);
         return;
     }
     case ScriptFunction::IsCameraPlaying:
         *result = static_cast<float>(static_cast<int>(GameCameraPathPlaying()));
         return;
     case ScriptFunction::IsNight:   // IsNight (the world's day-time value, copied as a float)
-        x87::CopyBits(*result, g_serverWorld.nightLevel_);
+        x87::CopyBits(*result, g_serverWorld.nightLevel);
         return;
     case ScriptFunction::GetWorldTime:
         *result = WorldTimeOfDay();
@@ -445,7 +445,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         CEngineObject* o = objectArgs[0]->object;
         *result = 0.0f;
         if (!o) return;
-        float x = ObjectSlots(o)->localPosition_.x, y = ObjectSlots(o)->localPosition_.y;
+        float x = ObjectSlots(o)->localPosition.x, y = ObjectSlots(o)->localPosition.y;
         EI_NAN_AUDIT(x, y, f[0], f[1], f[2], f[3]);
         bool inside = x >= f[0] && x <= f[2] && y >= f[1] && y <= f[3];
         *result = static_cast<float>(inside ? 1 : 0);
@@ -457,7 +457,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         if (!o) return;
         CPlayer* player = g_serverWorld.GetPlayer(0);
         if (!player) return;
-        *result = static_cast<float>(player->Server()->partyUnits_.Contains(o) ? 1 : 0);
+        *result = static_cast<float>(player->Server()->partyUnits.Contains(o) ? 1 : 0);
         return;
     }
     case ScriptFunction::GetZValue:
@@ -492,7 +492,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case ScriptFunction::IsUnitBlocked: {
         CEngineObject* o = objectArgs[0]->object;
         *result = 0.0f;
-        if (o) *result = static_cast<float>(lib::Has(o->flags_, MapObjectFlag::Blocked));
+        if (o) *result = static_cast<float>(lib::Has(o->flags, MapObjectFlag::Blocked));
         return;
     }
     default:
@@ -520,7 +520,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         CPlayer* player = g_serverWorld.GetPlayer(Ftol(floatArgs[0]));
         CEngineObject* o = nullptr;
         if (player) {
-            const std::vector<PartyUnitRecord>& members = player->Party()->members_;
+            const std::vector<PartyUnitRecord>& members = player->Party()->members;
             int index = x87::fistp(floatArgs[1]);
             if (index >= 0 && index < std::ssize(members))
                 o = g_serverWorld.FindUnit(static_cast<int>(members[index].unitId));
@@ -551,8 +551,8 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         } else {
             unitId = 0x3B9AF5CE;
             CPlayer* player = g_serverWorld.GetPlayer(0);
-            if (player && std::ssize(player->Party()->members_) > 0)
-                unitId = static_cast<int>(player->Party()->members_[0].unitId);
+            if (player && std::ssize(player->Party()->members) > 0)
+                unitId = static_cast<int>(player->Party()->members[0].unitId);
         }
         (*result)->object = g_serverWorld.FindObject(unitId);
         return;
@@ -567,7 +567,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
     ObjectListIterator objects;
     objects.manager = nullptr;
     PrepareArguments(script, vars);
-    *result = &script->tempGroups_.emplace_back();
+    *result = &script->tempGroups.emplace_back();
     ScriptGroup* group = *result;
     bool done = false;
     if (scriptaddon::Enabled()) {
@@ -604,7 +604,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
     }
     case ScriptFunction::GetPlayerUnits: { // GetPlayerUnits(player): the world's units whose player compares equal
         EI_NAN_AUDIT(floatArgs[0]);
-        for (CEngineObject* o = objects.First(g_serverWorld.objectManager_); o; o = objects.Next()) {
+        for (CEngineObject* o = objects.First(g_serverWorld.objectManager); o; o = objects.Next()) {
             CUnit* unit = UnitOrNull(o);
             if (unit && static_cast<double>(unit->side) == floatArgs[0]) (*result)->Insert(o);
         }
@@ -616,8 +616,8 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
             (*result)->clear();
             break;
         }
-        **result = player->Server()->possessedGroup_;
-        const auto& units = player->units_;
+        **result = player->Server()->possessedGroup;
+        const auto& units = player->units;
         for (auto& node : units) {
             CUnit* unit = node.second;
             if (!unit) break;
@@ -630,5 +630,5 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         game::FatalError("Function does not return string at SSCCmd::CalcFunction");
         break;
     }
-    if (objects.manager) --objects.manager->refCount_;   // the iterator's destructor
+    if (objects.manager) --objects.manager->refCount;    // the iterator's destructor
 }

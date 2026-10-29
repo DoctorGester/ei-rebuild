@@ -6,16 +6,16 @@ reach other classes after the cleanup, and what is left. The classes themselves 
 ## Declarations
 
 - World effects: `CEffect` (world_effect.h; a real class since C28f) declares slots 18-23 (`Reset`, `Radius`, `Position`, `Unpack`,
-  `Pack`, `Start`). `CEffectPointLight::light_` is a `CLight*`, `CEffectParticle::source_` a
-  `CParticleSource*`, `CEffectLightning::bolt_` a `CLightning*`, `CEffectSoundSeq::name_` a `std::string`. world_effect_internal.h has `WorldOf` /
+  `Pack`, `Start`). `CEffectPointLight::light` is a `CLight*`, `CEffectParticle::source` a
+  `CParticleSource*`, `CEffectLightning::bolt` a `CLightning*`, `CEffectSoundSeq::name` a `std::string`. world_effect_internal.h has `WorldOf` /
   `ContextWorld` (a `CWorld*`); the stream helpers go through `CStream`.
-- Spells: `CSpellEffect::world` is a `CWorldServer*` (`aiMap_`, `aiMap_.events`, `Sectors()`, `tick_`). The buff record a unit gets is a `MapEffect`
+- Spells: `CSpellEffect::world` is a `CWorldServer*` (`aiMap`, `aiMap.events`, `Sectors()`, `tick`). The buff record a unit gets is a `MapEffect`
   (`power`, `ending`), built by 00688510 through its address. Units go through `ObjectSlots` (`EyePoint`, `AddEffect`, `IsLargeUnit`, `IsDead`,
   `ReceiveHit`); controllers are `CUnitServer` (`Brain()->memory / visible / unknown_12C`, `unit->player`); the possessing player's server is
-  `CPlayer::connection_` as `CPlayerServer` (`possessedGroup_`, `unknown24_`). Spell records go through `SpellRecord` / `SpellModifierRecord`.
+  `CPlayer::connection` as `CPlayerServer` (`possessedGroup`, `unknown24_`). Spell records go through `SpellRecord` / `SpellModifierRecord`.
   `CManagerContext` slot 17 (item.h) returns the `CSpellConstructor*`.
-- `CSceneRenderer` slot 16 (model.h) is `DrawStrip`; the lightning reaches slots 11 / 16 / 17 and `pipeline_` through it, and the manager walks
-  `CBaseManager::objectList_`. Particle callbacks read element values through `ParticleElement`'s per-type views (`fragment`, `flames`, `orbiter`,
+- `CSceneRenderer` slot 16 (model.h) is `DrawStrip`; the lightning reaches slots 11 / 16 / 17 and `pipeline` through it, and the manager walks
+  `CBaseManager::objectList`. Particle callbacks read element values through `ParticleElement`'s per-type views (`fragment`, `flames`, `orbiter`,
   `funnel`, `star`, ...; effects.h asserts each offset), `value` / `word` only where a set-up clears a slot no view reads; carriers are `CObject3D` (`orientation`,
   `radius`, `position`, `above`); `moveMode` is read from `CUnit`.
 
@@ -27,7 +27,7 @@ reach other classes after the cleanup, and what is left. The classes themselves 
   TrimRight / TrimLeft: spell_text.cpp, ini_file.cpp, item_manager.cpp, originals_library.h).
 - The naked x87 helpers in spell_effect_internal.h call the world's height slots 27 / 28 by number. (The prototype's hidden offsets are typed
   fields now, and world.h's `Projectile` became `CSpellEffect` (C15).)
-- `CSpellEffect::spell_` stays bytes with `Spell()` casting it: CSpell is abstract, so `lib::InPlace` cannot hold it. world_effect.h's embedded
+- `CSpellEffect::spell` stays bytes with `Spell()` casting it: CSpell is abstract, so `lib::InPlace` cannot hold it. world_effect.h's embedded
   effects have the same problem.
 - The bounds the renderer clips by are `ClipBounds` in CParticleSource (`clip`), CVisibilityFog and CLightning (`bounds`), so `ClipTest` takes them
   with no cast (C15).
@@ -38,7 +38,7 @@ reach other classes after the cleanup, and what is left. The classes themselves 
   target count, +0x40 mana cost, +0x44 complexity (+1 per modifier), +0x4C (prototype +0x3C, only loaded and saved), +0x50 skill needed.
 - `CSpellEffect::targetCount` (+0x54) is the embedded spell's +0x20, which is the duration, so that existing name is probably wrong.
 - `CParticleManager::quietStart` (+0xE4; `ParticleManagerClearQuietStart`) is never set non-zero in src.
-- `CSkyObject` +0x94..+0x21F are named after `CFigureMesh`, whose code runs on it. `CTrapObject::savedValue_` (+0x238) is only loaded and saved;
+- `CSkyObject` +0x94..+0x21F are named after `CFigureMesh`, whose code runs on it. `CTrapObject::savedValue` (+0x238) is only loaded and saved;
   nothing sets it. Constructor-only fields stay `unused_`: CLight +0xE4 / +0xE8 / +0xFC, CLightFactory +0xB0..+0xD0.
-- `CSpellEffect::target` / `caster` are `Ref<CMapObject>` / `Ref<CUnit>`, the missile's `figure_` and the moshka's `bird_` are
-  `Ref<CMapObject>`, the point light's `light_` and the particle effect's `source_` are `Ref<CLight>` / `Ref<CParticleSource>`.
+- `CSpellEffect::target` / `caster` are `Ref<CMapObject>` / `Ref<CUnit>`, the missile's `figure` and the moshka's `bird` are
+  `Ref<CMapObject>`, the point light's `light` and the particle effect's `source` are `Ref<CLight>` / `Ref<CParticleSource>`.

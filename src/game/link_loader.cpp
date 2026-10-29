@@ -60,9 +60,9 @@ const char* FindInArchives(const std::list<LinkArchive>& archives, const char* n
 
 // Whether `mesh`'s coefficients are close enough to (s, t, u) to share it.
 bool SameMorph(const CLinkMesh* mesh, float s, float t, float u) {
-    float ds = mesh->morphWeights_[0] - s;
-    float dt = mesh->morphWeights_[1] - t;
-    float du = mesh->morphWeights_[2] - u;
+    float ds = mesh->morphWeights[0] - s;
+    float dt = mesh->morphWeights[1] - t;
+    float du = mesh->morphWeights[2] - u;
     const float distance = ds * ds + dt * dt + du * du;
     EI_NAN_AUDIT(distance);
     return distance < kSameMorph;
@@ -90,26 +90,26 @@ void ReleaseMesh(CLinkMesh* mesh) {
 
 } // namespace
 
-int CLinkFigureLoader::CacheSize() { return static_cast<int>(cache_.size()); }
+int CLinkFigureLoader::CacheSize() { return static_cast<int>(cache.size()); }
 
 int CLinkFigureLoader::CacheBytes() {
     int bytes = 0;
-    for (const auto& entry : cache_) bytes += entry.second->MemoryBytes();
+    for (const auto& entry : cache) bytes += entry.second->MemoryBytes();
     return bytes;
 }
 
 CLinkMesh* CLinkFigureLoader::LoadFigure(const std::string* name, const std::vector<std::string>* parts, float s,
                                      float t, float u) {
-    CLinkMesh* mesh = FindCached(cache_, name, s, t, u);
+    CLinkMesh* mesh = FindCached(cache, name, s, t, u);
     if (!mesh) return MakeFigure(name, parts, s, t, u);
     FigureModel* set;
     {
-        std::string meshName = mesh->name_;
+        std::string meshName = mesh->name;
         set = FindFigureSet(&meshName);
     }
     for (const std::string* part = parts->data(); part != parts->data() + parts->size(); ++part) {
         if (mesh->HasPart(part)) continue;
-        const float ms = mesh->morphWeights_[0], mt = mesh->morphWeights_[1], mu = mesh->morphWeights_[2];
+        const float ms = mesh->morphWeights[0], mt = mesh->morphWeights[1], mu = mesh->morphWeights[2];
         if (!set) {
             LoadArchivePart(mesh, part, ms, mt, mu);
         } else if (const char* data = FileData(set->mesh, part->data())) {
@@ -120,25 +120,25 @@ CLinkMesh* CLinkFigureLoader::LoadFigure(const std::string* name, const std::vec
 }
 
 CLinkMesh* CLinkFigureLoader::LoadLink(const std::string* name, float s, float t, float u) {
-    CLinkMesh* mesh = FindCached(cache_, name, s, t, u);
+    CLinkMesh* mesh = FindCached(cache, name, s, t, u);
     return mesh ? mesh : LoadLinkFile(name, s, t, u);
 }
 
 // Each entry's reference dropped, last key first (the order the tree's erase freed its nodes in), then the
 // entries erased.
 void CLinkFigureLoader::ClearCache() {
-    for (auto entry = cache_.rbegin(); entry != cache_.rend(); ++entry) ReleaseMesh(entry->second);
-    cache_.clear();
+    for (auto entry = cache.rbegin(); entry != cache.rend(); ++entry) ReleaseMesh(entry->second);
+    cache.clear();
 }
 
 bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const std::string* name) {
     if (mesh->HasPart(name)) return true;
     FigureModel* set;
     {
-        std::string meshName = mesh->name_;
+        std::string meshName = mesh->name;
         set = FindFigureSet(&meshName);
     }
-    const float s = mesh->morphWeights_[0], t = mesh->morphWeights_[1], u = mesh->morphWeights_[2];
+    const float s = mesh->morphWeights[0], t = mesh->morphWeights[1], u = mesh->morphWeights[2];
     if (!set) return LoadArchivePart(mesh, name, s, t, u) != 0;
     const char* data = FileData(set->mesh, name->data());
     if (!data) return false;
@@ -147,8 +147,8 @@ bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const std::string* name) {
 }
 
 CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u) {
-    if (mesh && mesh->refCount_ > 2) {
-        std::string meshName = mesh->name_;
+    if (mesh && mesh->refCount > 2) {
+        std::string meshName = mesh->name;
         return LoadLink(&meshName, s, t, u);
     }
     if (!mesh) return nullptr;
@@ -156,7 +156,7 @@ CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u
     mesh->SetMorph(s, t, u);
     FigureModel* set;
     {
-        std::string meshName = mesh->name_;
+        std::string meshName = mesh->name;
         set = FindFigureSet(&meshName);
     }
     for (std::string* part = names.data(); part != names.data() + names.size(); ++part)
@@ -173,7 +173,7 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const std::string* name, float s, flo
     } else {
         std::string file(*name);
         file.append(".lnk", ".lnk" + 4);
-        data = FindInArchives(archives_, file.data());
+        data = FindInArchives(archives, file.data());
     }
     if (!data) {
         game::FatalError("Can't find link file for \"%s\"\n", name->data());
@@ -192,7 +192,7 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const std::string* name, float s, flo
             LoadPartRecord(this, mesh, &part, record, s, t, u);
         }
     }
-    AddToCache(&cache_, name, mesh);
+    AddToCache(&cache, name, mesh);
     return mesh;
 }
 
@@ -207,17 +207,17 @@ CLinkMesh* CLinkFigureLoader::MakeFigure(const std::string* name, const std::vec
             LoadPartRecord(this, mesh, part, data, s, t, u);
         }
     }
-    AddToCache(&cache_, name, mesh);
+    AddToCache(&cache, name, mesh);
     return mesh;
 }
 
 int CLinkFigureLoader::LoadArchivePart(CLinkMesh* mesh, const std::string* name, float s, float t, float u) {
     const char* data;
     {
-        std::string file = mesh->name_;
+        std::string file = mesh->name;
         file.append(name->data(), name->data() + name->size());
         file.append(".fig", ".fig" + 4);
-        data = FindInArchives(archives_, file.data());
+        data = FindInArchives(archives, file.data());
     }
     if (!data) return 0;
     LoadPartRecord(this, mesh, name, data, s, t, u);
@@ -225,7 +225,7 @@ int CLinkFigureLoader::LoadArchivePart(CLinkMesh* mesh, const std::string* name,
 }
 
 FigureModel* CLinkFigureLoader::FindFigureSet(const std::string* name) {
-    if (auto found = figureSets_.find(*name); found != figureSets_.end()) return found->second;
+    if (auto found = figureSets.find(*name); found != figureSets.end()) return found->second;
     // "<name>" plus each suffix in a 512-byte buffer (strcpy / strcat, no length check).
     char path[512];
     const char* files[3];
@@ -234,26 +234,26 @@ FigureModel* CLinkFigureLoader::FindFigureSet(const std::string* name) {
     for (int i = 0; i < 3; ++i) {
         std::memcpy(path, name->data(), length);
         std::memcpy(path + length, suffixes[i], 5);
-        files[i] = FindInArchives(archives_, path);
+        files[i] = FindInArchives(archives, path);
     }
     if (!files[0]) return nullptr;
     auto* set = new FigureModel();
-    figureSets_[*name] = set;
+    figureSets[*name] = set;
     // The map is indexed a second time (resize for one more element included).
-    figureSets_[*name]->Open(files[0], files[1], files[2]);
-    auto found = figureSets_.find(*name);
-    return found != figureSets_.end() ? found->second : nullptr;
+    figureSets[*name]->Open(files[0], files[1], files[2]);
+    auto found = figureSets.find(*name);
+    return found != figureSets.end() ? found->second : nullptr;
 }
 
 CLinkFigureLoader::~CLinkFigureLoader() {
-    for (LinkArchive& archive : archives_) {
+    for (LinkArchive& archive : archives) {
         archive.resource->CloseResource();
         if (archive.resource) delete archive.resource;
     }
-    for (auto& [name, set] : figureSets_) {
+    for (auto& [name, set] : figureSets) {
         delete set;
     }
-    renderer_.Reset();
+    renderer.Reset();
     CLinkFigureLoader::ClearCache();
 }
 
@@ -263,10 +263,10 @@ bool CLinkFigureLoader::RemorphPart(CLinkMesh* mesh, FigureModel* set, const std
     if (set) {
         data = FileData(set->mesh, name->data());
     } else {
-        std::string file = mesh->name_;
+        std::string file = mesh->name;
         file.append(name->data(), name->data() + name->size());
         file.append(".fig", ".fig" + 4);
-        data = FindInArchives(archives_, file.data());
+        data = FindInArchives(archives, file.data());
     }
     if (!data) return false;
     std::uint32_t tag;

@@ -66,13 +66,13 @@ constexpr float kColourScale = 0.003921569f;
 
 bool ServerActive() {
     net::ServerSession* server = net::g_gameServer;
-    return server && !(server->flags7_ & CRefCounted::kDetached);
+    return server && !(server->flags7 & CRefCounted::kDetached);
 }
 
 AIBrain* BrainOf(CUnitServer* state) { return &state->brain; }
 PatrolMode* PatrolOf(CUnitServer* state) { return BrainOf(state)->FindPatrolMode(); }
 UnitStats* StatsOf(CUnitServer* state) { return &state->stats; }
-Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->localPosition_; }
+Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->localPosition; }
 
 CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs[i]->object; }
 const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs[i].c_str(); }
@@ -88,7 +88,7 @@ Lever* LeverArg(const SSCCmd* cmd) {
 }
 
 ScriptParticleSource* FindParticle(CScript* script, int id) {
-    for (ScriptParticleSource& source : script->particles_)
+    for (ScriptParticleSource& source : script->particles)
         if (source.id == id) return &source;
     return nullptr;
 }
@@ -115,13 +115,13 @@ void RunBody(ScriptRun* run, CScript* script, ScriptDecl* body) {
 
 void SetLoopCounter(const SSCCmd* cmd, int i) { *cmd->objectArgs[0] = (*cmd->groupArgs[0])[static_cast<std::size_t>(i)]; }
 
-int& ForDepth(CScript* script) { return script->forDepth_; }
+int& ForDepth(CScript* script) { return script->forDepth; }
 
 void SetCP(const SSCCmd* cmd, bool fast) {
     CMapObject* object = ObjectSlots(Arg(cmd, 0));   // a unit or another map object
     if (!object) return;
     const float* f = cmd->floatArgs.data();
-    CAIMap* map = &g_serverWorld.aiMap_;
+    CAIMap* map = &g_serverWorld.aiMap;
     if (fast) {
         map->SetRefreshUnits(0);
         Vector3 point = {f[0], f[1], f[2]};
@@ -192,10 +192,10 @@ void RedeployParty(const SSCCmd* cmd) {
     g_partyManager.BeginRedeploy(party);
     g_partyManager.EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
-    const std::vector<PartyUnitRecord>& members = player->Party()->members_;
+    const std::vector<PartyUnitRecord>& members = player->Party()->members;
     if (slots.size() == 1 && std::ssize(members) == 1) slots[0].id = static_cast<int>(members[0].unitId);
     state->SendParty();
-    player->Server()->lastPosition_.z = -1313.0f;
+    player->Server()->lastPosition.z = -1313.0f;
     g_serverWorld.Redeploy(player, &slots, 0);
 }
 
@@ -205,12 +205,12 @@ void CopyLoot(const SSCCmd* cmd, bool replace) {
     CParty* to = g_partyManager.records.Find(Text(cmd, 1));
     if (!from || !to) return;
     if (replace) {
-        while (!to->items_.empty()) to->RemoveItem(to->items_[0], 1);
+        while (!to->items.empty()) to->RemoveItem(to->items[0], 1);
     }
-    for (int i = 0; i < std::ssize(from->items_); ++i)
-        to->AddItem(from->items_[i], 1, 1);
-    if (replace) to->money_ = from->money_;
-    else to->money_ += from->money_;
+    for (int i = 0; i < std::ssize(from->items); ++i)
+        to->AddItem(from->items[i], 1, 1);
+    if (replace) to->money = from->money;
+    else to->money += from->money;
 }
 
 void GSSetVarMultiplayer(const SSCCmd* cmd) {
@@ -231,14 +231,14 @@ void PlayMovie(const SSCCmd* cmd) {
 }
 
 void CastSpell(const SSCCmd* cmd, bool atUnit) {
-    CSpell* spell = g_serverWorld.spellManager_->CreateSpellFromText(Text(cmd, 0));
+    CSpell* spell = g_serverWorld.spellManager->CreateSpellFromText(Text(cmd, 0));
     if (spell) spell->AddRef();
     if (spell) {
         const float* f = cmd->floatArgs.data();
         Vector3 from = {f[0], f[1], 0.0f};
         if (atUnit) {
             CMapObject* target = ObjectSlots(Arg(cmd, 0));
-            if (target) g_serverWorld.CastSpell(spell, 0, from, target, target->localPosition_, 0);
+            if (target) g_serverWorld.CastSpell(spell, 0, from, target, target->localPosition, 0);
         } else {
             Vector3 to = {f[2], f[3], 0.0f};
             g_serverWorld.CastSpell(spell, 0, from, nullptr, to, 0);
@@ -295,7 +295,7 @@ bool ScriptRun::Execute(CScript* script) {
         if (!cont) return true;
         SSCCmd* cmd = &block->commands[index];
         cmd->SetParameters(cmd->localBindings, &vars);
-        cmd->SetParameters(cmd->globalBindings, &script->globals_);
+        cmd->SetParameters(cmd->globalBindings, &script->globals);
         for (int i = 0; i < std::ssize(cmd->subCalls); ++i)
             cmd->CalcParameters(script, &vars, &cmd->subCalls[i]);
         cont = 1;
@@ -328,7 +328,7 @@ bool ScriptRun::Execute(CScript* script) {
         }
         case ScriptFunction::CallScript: {   // a declared script: start an instance with the call's arguments
             int which = Ftol(f[0]);
-            ScriptDefinition* instance = &script->instances_.emplace_front(script->definitions_[static_cast<std::size_t>(which)]);
+            ScriptDefinition* instance = &script->instances.emplace_front(script->definitions[static_cast<std::size_t>(which)]);
             instance->BindCall(cmd);
             instance->index = 0;   // the killed flag
             break;
@@ -364,7 +364,7 @@ bool ScriptRun::Execute(CScript* script) {
             break;
         }
         case ScriptFunction::Assign: {   // global = value: float 0 variable index, float 1 type - 1
-            ScriptVars* globals = &script->globals_;
+            ScriptVars* globals = &script->globals;
             switch (Ftol(f[1])) {
             case 0:
                 x87::CopyBits(globals->floats.values[Ftol(f[0])], f[2]);
@@ -409,7 +409,7 @@ bool ScriptRun::Execute(CScript* script) {
             break;
         case ScriptFunction::DeleteParticleSource: {   // DeleteParticleSource(id)
             int id = Round(f[0]);
-            auto& list = script->particles_;
+            auto& list = script->particles;
             auto at = std::find_if(list.begin(), list.end(), [id](const ScriptParticleSource& source) { return source.id == id; });
             if (at != list.end()) list.erase(at);
             break;
@@ -422,7 +422,7 @@ bool ScriptRun::Execute(CScript* script) {
         case ScriptFunction::AttachParticles: {   // AttachParticles(id, object)
             CEngineObject* object = Arg(cmd, 0);
             if (!object) break;
-            int objectId = object->id_;
+            int objectId = object->id;
             if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) entry->object->SetAttachedTo(objectId);
             break;
         }
@@ -431,33 +431,33 @@ bool ScriptRun::Execute(CScript* script) {
             break;
         }
         case ScriptFunction::DeleteLightning: {   // DeleteLightning(id): every lightning with the id
-            std::erase_if(script->lightning_, [f](const ScriptLightning& bolt) { return bolt.id == Ftol(f[0]); });
+            std::erase_if(script->lightning, [f](const ScriptLightning& bolt) { return bolt.id == Ftol(f[0]); });
             break;
         }
         case ScriptFunction::DeleteFXSource: {   // DeleteFXSource(id): the first one with the id
             int id = Round(f[0]);
-            auto& list = script->fxSources_;
+            auto& list = script->fxSources;
             auto at = std::find_if(list.begin(), list.end(), [id](const ScriptFxSource& source) { return source.id == id; });
             if (at != list.end()) list.erase(at);
             break;
         }
 
         case ScriptFunction::SendEvent:   // SendEvent(type, value)
-            g_serverWorld.players_->SendValueToAll(Ftol(f[1]));
+            g_serverWorld.players->SendValueToAll(Ftol(f[1]));
             break;
         case ScriptFunction::SendStringEvent:   // SendStringEvent(type, text)
-            g_serverWorld.players_->SendTextToAll(Text(cmd, 0));
+            g_serverWorld.players->SendTextToAll(Text(cmd, 0));
             break;
         case ScriptFunction::GodMode: {   // GodMode(player, on)
             CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
-            if (player) player->godMode_ = static_cast<std::uint8_t>(Ftol(f[1]));
+            if (player) player->godMode = static_cast<std::uint8_t>(Ftol(f[1]));
             break;
         }
         case ScriptFunction::SetDiplomacy: {   // SetDiplomacy(a, b, value): > 0 allied (0), < 0 enemies (2), else (0 or NaN) neutral (1)
             int relation;
             if (f[2] > 0.0f) relation = 0;
             else relation = f[2] < 0.0f ? 2 : 1;
-            g_serverWorld.diplomacy_.SetRelation(Ftol(f[0]), Ftol(f[1]), relation);
+            g_serverWorld.diplomacy.SetRelation(Ftol(f[0]), Ftol(f[1]), relation);
             break;
         }
         case ScriptFunction::InvokeAlarm: {   // InvokeAlarm(type, x, y)
@@ -473,7 +473,7 @@ bool ScriptRun::Execute(CScript* script) {
         case ScriptFunction::RemoveUnitFromServer:     // RemoveUnitFromServer(object)
         case ScriptFunction::RemoveObjectFromServer: {   // RemoveObjectFromServer(object)
             CEngineObject* object = Arg(cmd, 0);
-            if (object) g_serverWorld.RemoveObject(object->id_);   // Rebirth patches it
+            if (object) g_serverWorld.RemoveObject(object->id);    // Rebirth patches it
             break;
         }
         case ScriptFunction::RecalcMercBriefings:
@@ -493,7 +493,7 @@ bool ScriptRun::Execute(CScript* script) {
             break;
         }
         case ScriptFunction::RunWorldTime:   // RunWorldTime(time): the configured speed (int)
-            g_serverWorld.SetTimeSpeed(static_cast<float>(options::g_options.defaultTimeScale_));
+            g_serverWorld.SetTimeSpeed(static_cast<float>(options::g_options.defaultTimeScale));
             g_serverWorld.SetTime(f[0]);
             break;
         case ScriptFunction::FixWorldTime:   // FixWorldTime(time)
@@ -532,15 +532,15 @@ bool ScriptRun::Execute(CScript* script) {
         case ScriptFunction::HideObject: {   // HideObject(object, hide): MapObjectFlag::Invisible
             CEngineObject* object = Arg(cmd, 0);
             if (!object) break;
-            if (IsZero(f[0])) object->flags_ &= ~MapObjectFlag::Invisible;
-            else object->flags_ |= MapObjectFlag::Invisible;
+            if (IsZero(f[0])) object->flags &= ~MapObjectFlag::Invisible;
+            else object->flags |= MapObjectFlag::Invisible;
             break;
         }
         case ScriptFunction::ActivateTrap: {   // ActivateTrap(object, on): MapObjectFlag::Armed
             CEngineObject* object = Arg(cmd, 0);
             if (!object) break;
-            if (IsZero(f[0])) object->flags_ &= ~MapObjectFlag::Armed;
-            else object->flags_ |= MapObjectFlag::Armed;
+            if (IsZero(f[0])) object->flags &= ~MapObjectFlag::Armed;
+            else object->flags |= MapObjectFlag::Armed;
             break;
         }
         case ScriptFunction::SetCP:   // SetCP(object, x, y, z)
@@ -584,14 +584,14 @@ bool ScriptRun::Execute(CScript* script) {
         case ScriptFunction::BlockUnit: {   // BlockUnit(unit, on): MapObjectFlag::Blocked
             CEngineObject* unit = Arg(cmd, 0);
             if (!unit || unit->GetClassId() != ClassId::Unit) break;
-            if (IsZero(f[0])) unit->flags_ &= ~MapObjectFlag::Blocked;
-            else unit->flags_ |= MapObjectFlag::Blocked;
+            if (IsZero(f[0])) unit->flags &= ~MapObjectFlag::Blocked;
+            else unit->flags |= MapObjectFlag::Blocked;
             break;
         }
         case ScriptFunction::SetPlayer: {   // SetPlayer(unit, player)
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
-            unit->SetHostileMask(g_serverWorld.diplomacy_.GetHostileMask(Ftol(f[0])));
+            unit->SetHostileMask(g_serverWorld.diplomacy.GetHostileMask(Ftol(f[0])));
             unit->SetSide(Ftol(f[0]));
             break;
         }
@@ -644,7 +644,7 @@ bool ScriptRun::Execute(CScript* script) {
             int id = Ftol(f[0]);
             for (int i = 0; i < count; ++i) {
                 CItemQuest* item = AsQuest(unit->carried[i]);
-                if (static_cast<int>(item->questItemId_) == id) {
+                if (static_cast<int>(item->questItemId) == id) {
                     unit->RemoveCarried(i);
                     break;
                 }
@@ -993,7 +993,7 @@ bool ScriptRun::Execute(CScript* script) {
             CPlayer* player = g_serverWorld.GetPlayer(Ftol(f[0]));
             if (!player) break;
             std::list<CItem*> items;
-            player->Party()->money_ += Ftol(f[1]);
+            player->Party()->money += Ftol(f[1]);
             player->GiveItems(&items, 0);
             break;
         }
@@ -1015,12 +1015,12 @@ bool ScriptRun::Execute(CScript* script) {
             break;
         }
         case ScriptFunction::FixItems: {   // FixItems: every item repaired
-            auto* list = g_serverWorld.itemManager_;
+            auto* list = g_serverWorld.itemManager;
             ObjectListIteratorOf<CItem> it;
             it.manager = nullptr;
             for (CItem* item = it.First(list); item; item = it.Next()) item->Repair();
             if (it.manager) {   // destructor
-                --it.manager->refCount_;
+                --it.manager->refCount;
                 it.manager = nullptr;
             }
             break;

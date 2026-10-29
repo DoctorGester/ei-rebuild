@@ -38,8 +38,8 @@ void CMapObject::CreateMapObject() {
     packedVitals.Reset();
     animationSpeed = 1.0f;
     packedVitals.Reset();
-    netState_.SetFieldCount(kMapObjectNetFields);
-    netState_.Reset();
+    netState.SetFieldCount(kMapObjectNetFields);
+    netState.Reset();
     changeStamp = -1;
     effects = {};
     updateCountdown = kInitialCountdown;
@@ -58,7 +58,7 @@ void CMapObject::DestroyMapObject() {
 void CUnit::Create() {
     CreateMapObject();
     Reset();
-    MapObject()->netState_.SetFieldCount(kUnitNetFields);
+    MapObject()->netState.SetFieldCount(kUnitNetFields);
 }
 
 void CTorchObject::Create() {
@@ -66,7 +66,7 @@ void CTorchObject::Create() {
     CTorchObjectSpec* old = spec;
     spec = nullptr;
     if (old) old->Release();
-    DeltaState* state = &netState_;
+    DeltaState* state = &netState;
     state->SetFieldCount(kTorchNetFields);
     state->Reset();
 }

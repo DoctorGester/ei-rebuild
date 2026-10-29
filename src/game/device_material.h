@@ -1,6 +1,6 @@
 #pragma once
 
-// The material the device draws with (CTextureDevice::material_): set in device_states.cpp,
+// The material the device draws with (CTextureDevice::material): set in device_states.cpp,
 // applied by the indexed draw. See docs/notes/models.md ("Material draw").
 
 #include "engine_object.h"

@@ -781,7 +781,7 @@ unsigned g_randomFrame = ~0u;
 CRITICAL_SECTION g_randomLock;
 
 // One draw: "<frame> [(other thread) ][ei_hook+]<caller> <value>[ <what>] #<where>". <where> is the
-// generator's state after the draw: ISAAC's position in its stream (c_ * 256 + 255 - count_; c_
+// generator's state after the draw: ISAAC's position in its stream (cc * 256 + 255 - count; cc
 // counts the refills), rand()'s seed. Where a function ran the original on live state besides ours (the verify
 // wrappers until S21d), the generators were put back between them, so one draw could show up twice; the position tells a repeat from a new draw
 // (tools/randtrace.py, SV1g).
@@ -800,13 +800,13 @@ void WriteDraw(std::uintptr_t caller, std::uint32_t value, const char* what, std
 
 // game.exe: the generator's Next (004667F0), which jumps here; its refill is game.exe's own.
 std::uint32_t __fastcall TracedNext(exe::IsaacRandom* self, void*) {
-    if (self->count_-- == 0) {
+    if (self->count-- == 0) {
         ei::verify::OriginalCode<void(__thiscall*)(exe::IsaacRandom*)>(kIsaacRefill)(self);
-        self->count_ = 255;
+        self->count = 255;
     }
-    const std::uint32_t value = self->results_[self->count_];
+    const std::uint32_t value = self->results[self->count];
     WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), value, self == &exe::Random() ? "" : " (another generator)",
-              self->c_ * 256u + 255u - self->count_);
+              self->cc * 256u + 255u - self->count);
     return value;
 }
 

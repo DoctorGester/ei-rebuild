@@ -130,8 +130,8 @@ void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& r
 CItem* MakeItem(CWorldServer* world, CItem* itemRecord) {
     CItem* item = world->DuplicateItem(itemRecord);
     auto* record = new CItemLink();
-    record->value = static_cast<std::uint32_t>(itemRecord->id_);
-    item->link_.Assign(record);
+    record->value = static_cast<std::uint32_t>(itemRecord->id);
+    item->link.Assign(record);
     return item;
 }
 
@@ -161,7 +161,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
 
     // A hero created next to the start of zone1 plays its arrival animation.
     bool atStart = false;
-    if (text::CompareIgnoringCase(mapName_.c_str(), worlddata::StartZoneText(), 5) == 0) {
+    if (text::CompareIgnoringCase(mapName.c_str(), worlddata::StartZoneText(), 5) == 0) {
         double dz = position.z;
         double dy = static_cast<double>(position.y) - worlddata::kHeroStartY;
         double dx = static_cast<double>(position.x) - worlddata::kHeroStartX;
@@ -186,13 +186,13 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         message->skinTexture = record->texts[4];
         message->parts.clear();
         const char* prototypeName = record->texts[5].c_str();
-        MapObjectType type = PrototypeObjectClass(prototypeName);
-        message->parentId = static_cast<int>(type);
-        if (type == MapObjectType::Hero) FillHeroParts(message, prototypeName, line);
+        MapObjectType objectClass = PrototypeObjectClass(prototypeName);
+        message->parentId = static_cast<int>(objectClass);
+        if (objectClass == MapObjectType::Hero) FillHeroParts(message, prototypeName, line);
 
-        int id = static_cast<int>(record->unitId);
-        message->id = id;
-        if (ObjectWithId(id)) RemoveObject(message->id);
+        int unitId = static_cast<int>(record->unitId);
+        message->id = unitId;
+        if (ObjectWithId(unitId)) RemoveObject(message->id);
 
         UnitPlacement* placement = nullptr;
         if (placements) {
@@ -220,12 +220,12 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         brain->ClearModes();
         brain->AddMode(std::make_unique<PlayerMode>());
         brain->StopAction();
-        aiMap_.sectorMap.Remove(unit);
+        aiMap.sectorMap.Remove(unit);
         Vector3 free;
-        std::memcpy(&free, &unit->localPosition_.x, sizeof(free));
-        aiMap_.FindFreeCellNear(unit, position, &free);
-        std::memcpy(&unit->localPosition_.x, &free, sizeof(free));
-        aiMap_.sectorMap.Add(unit);
+        std::memcpy(&free, &unit->localPosition.x, sizeof(free));
+        aiMap.FindFreeCellNear(unit, position, &free);
+        std::memcpy(&unit->localPosition.x, &free, sizeof(free));
+        aiMap.sectorMap.Add(unit);
 
         unit->SetPlayer(player);
         slots->SetScriptName(record->texts[0]);
@@ -243,8 +243,8 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
             unit->EquipArmour(MakeItem(this, record->armor[n]));
         for (int n = 0; n < std::ssize(record->quickItems); ++n) {
             CItem* item = MakeItem(this, record->quickItems[n]);
-            item->count_ = record->quickItems[n]->count_;
-            item->charge_ = item->chargeMax_;
+            item->count = record->quickItems[n]->count;
+            item->charge = item->chargeMax;
             unit->AddQuickItem(item);
         }
         for (int n = 0; n < std::ssize(record->spells); ++n)
@@ -253,22 +253,22 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         slots->UpdateSizeClasses();
         slots->ScaleEffectChanged(false);
         unit->SetSecondPrototypeByName(record->texts[6]);
-        line = str::Format(worlddata::AddToHeroesFormat(), unit->id_);
+        line = str::Format(worlddata::AddToHeroesFormat(), unit->id);
         script += line;
-        if (sessionKind_ == kKindSinglePlayer && !atStart) unit->moveMode2 = record->moveMode2;
+        if (sessionKind == kKindSinglePlayer && !atStart) unit->moveMode2 = record->moveMode2;
         if (placement) {
-            bool flagged = aiMap_.IsPassableForClass(1, unit->localPosition_);
+            bool flagged = aiMap.IsPassableForClass(1, unit->localPosition);
             if (flagged) unit->SetMoveModes(placement->moveMode, placement->moveMode);
             else unit->moveMode2 = static_cast<int>(placement->moveMode);
         }
         controller->ResyncWithUnit();
-        if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest)
+        if (sessionKind == kKindSinglePlayer || sessionKind == kKindNoRangeTest)
             unit->pendingWeapon = static_cast<int>(record->weaponIndex);
-        if (placement && sessionKind_ != kKindNoRangeTest) unit->pendingWeapon = static_cast<int>(placement->weapon);
+        if (placement && sessionKind != kKindNoRangeTest) unit->pendingWeapon = static_cast<int>(placement->weapon);
     }
 
     // Followers follow their leaders.
-    if (sessionKind_ == kKindSinglePlayer) {
+    if (sessionKind == kKindSinglePlayer) {
         for (int i = 0; i < std::ssize(*records); ++i) {
             auto* record = (*records)[i];
             CUnit* unit = FindUnit(static_cast<int>(record->unitId));
@@ -282,7 +282,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         }
     }
 
-    if (atStart && gameResult_ != kGameResultLost) script += worlddata::HeroArrivalText();
+    if (atStart && gameResult != kGameResultLost) script += worlddata::HeroArrivalText();
     script += worlddata::ScriptEndText();
     if (player) MainScript()->Load(&script, 1);
 }
@@ -297,11 +297,11 @@ void CWorldServer::UseQuickItem(CUnit* unit) {
     message.parentId = static_cast<std::int32_t>(kQuickEffectFlags);
     message.scale.y = 0.0f;
     // At the unit's position, on the ground.
-    std::memcpy(&message.position, &unit->localPosition_.x, 12);
+    std::memcpy(&message.position, &unit->localPosition.x, 12);
     message.position.z = 0.0f;
-    int id = CreateObject(&message);
-    CEngineObject* effect = ObjectWithId(id);
-    effect->flags_ |= kFlagsNewEffect;
+    int objectId = CreateObject(&message);
+    CEngineObject* effect = ObjectWithId(objectId);
+    effect->flags |= kFlagsNewEffect;
 }
 
 int CWorldServer::CreateObject(mapspec::Spec* message) {
@@ -314,7 +314,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         return MapObjectManager()->CreateObjectAs<T>(static_cast<MapObjectType>(spec->parentId), spec->id);
     };
     auto allowed = [this](CMapObject* object) {
-        return (object->IsSynchronised() ? loadedFresh_ : keepsState_) != 0;
+        return (object->IsSynchronised() ? loadedFresh : keepsState) != 0;
     };
     auto refuse = [](CMapObject* object) {
         object->AddRef();
@@ -337,27 +337,27 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         object->SetFigureScale(&spec->scale.x);
         Copy(&object->baseScale, &spec->scale, 12);
         object->ApplyBaseScale();
-        Copy(&object->localPosition_.x, &spec->position, 12);
-        Copy(&object->localRotation_, &spec->rotation, 16);
+        Copy(&object->localPosition.x, &spec->position, 12);
+        Copy(&object->localRotation, &spec->rotation, 16);
     };
     auto timed = [this](CEffect* object) {
-        object->startTick_ = tick_;
+        object->startTick = tick;
         object->AddRef();
         object->MarkChanged();
-        timedObjects_.Set(static_cast<unsigned>(object->id_), object);
-        return object->id_;
+        timedObjects.Set(static_cast<unsigned>(object->id), object);
+        return object->id;
     };
-    CBaseManager* timedManager = timedObjectManager_;
-    CMapObjectManager* objectManager = MapObjectManager();
+    CBaseManager* timedManager = timedObjectManager;
+    CMapObjectManager* newObjectManager = MapObjectManager();
 
     switch (base.kind) {
     case 6: {   // a torch (flame) with its state object (a campfire when it stands on the ground)
         auto* flame = static_cast<mapspec::FlameSpec*>(message);
         CTorchObject* object = created(std::type_identity<CTorchObject>{});
         if (!allowed(object)) return refuse(object);
-        int id = object->id_;
-        if (id == -1) return -1;
-        if (base.id == -1) base.id = id;
+        int objectId = object->id;
+        if (objectId == -1) return -1;
+        if (base.id == -1) base.id = objectId;
         // |ground height + z| below 0.7 (a NaN counts as below).
         float height = flame->offset.z + base.position.z;
         float sum = height;
@@ -388,39 +388,39 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         place(object);
         object->MarkChanged(2);
         object->MarkChanged(4);
-        if (spec->visible == 0) object->flags_ |= MapObjectFlag::Hidden;
-        objectManager->GiveDefaults(object);
+        if (spec->visible == 0) object->flags |= MapObjectFlag::Hidden;
+        newObjectManager->GiveDefaults(object);
         if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         object->SetUpAnimatedFigure(spec->texture);
-        id = object->id_;
-        objects_.Set(static_cast<unsigned>(id), object);
-        mapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        if (object->GetClassId() != ClassId::Unit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
+        objectId = object->id;
+        objects.Set(static_cast<unsigned>(objectId), object);
+        mapObjects.Set(static_cast<unsigned>(object->id), object);
+        if (object->GetClassId() != ClassId::Unit) otherMapObjects.Set(static_cast<unsigned>(object->id), object);
         object->updateCountdown = UpdateCountdown(object);
-        updateMap_.Set(static_cast<unsigned>(object->id_), object);
-        aiMap_.sectorMap.Add(object);
-        int result = object->id_;
-        if (object->flags_ & MapObjectFlag::Changed) object->WriteChangedState();
+        updateMap.Set(static_cast<unsigned>(object->id), object);
+        aiMap.sectorMap.Add(object);
+        int result = object->id;
+        if (object->flags & MapObjectFlag::Changed) object->WriteChangedState();
         return result;
     }
     case 7: {   // a magic trap: updated every tick (no texts, not in the sector map)
         MagicTrap* object = created(std::type_identity<MagicTrap>{});
         if (!allowed(object)) return refuse(object);
-        int id = object->id_;
-        if (id == -1) return -1;
-        if (base.id == -1) base.id = id;
+        int objectId = object->id;
+        if (objectId == -1) return -1;
+        if (base.id == -1) base.id = objectId;
         base.object = object;
         object->AddRef();
         object->WriteFullState();
         object->MarkChanged(2);
-        object->flags_ |= MapObjectFlag::Hidden;
-        objects_.Set(static_cast<unsigned>(object->id_), object);
-        mapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        if (object->GetClassId() != ClassId::Unit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
+        object->flags |= MapObjectFlag::Hidden;
+        objects.Set(static_cast<unsigned>(object->id), object);
+        mapObjects.Set(static_cast<unsigned>(object->id), object);
+        if (object->GetClassId() != ClassId::Unit) otherMapObjects.Set(static_cast<unsigned>(object->id), object);
         object->updateCountdown = UpdateCountdown(object);
-        updateMap_.Set(static_cast<unsigned>(object->id_), object);
-        int result = object->id_;
-        if (object->flags_ & MapObjectFlag::Changed) object->WriteChangedState();
+        updateMap.Set(static_cast<unsigned>(object->id), object);
+        int result = object->id;
+        if (object->flags & MapObjectFlag::Changed) object->WriteChangedState();
         object->SetUp(&static_cast<mapspec::TrapSpec*>(message)->trap);
         return result;
     }
@@ -437,14 +437,14 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             object = lever = created(std::type_identity<Lever>{});
         else
             object = created(std::type_identity<CMapObject>{});
-        if (spec->shadow) object->flags_ |= MapObjectFlag::Synchronised;
+        if (spec->shadow) object->flags |= MapObjectFlag::Synchronised;
         if (str::Compare(spec->model,
                             game::kEmptyText) != 0)
-            object->flags_ |= MapObjectFlag::Synchronised;
+            object->flags |= MapObjectFlag::Synchronised;
         if (!allowed(object)) return refuse(object);
-        int id = object->id_;
-        if (id == -1) return -1;
-        if (base.id == -1) base.id = id;
+        int objectId = object->id;
+        if (objectId == -1) return -1;
+        if (base.id == -1) base.id = objectId;
         base.object = object;
         auto* companion = object->ServerCompanion();
         object->name = spec->texture;
@@ -452,14 +452,14 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         companionTexts(companion);
         race(object);
         object->ScaleEffectChanged(false);
-        int type = base.kind;
-        if (type == 5) {
+        int baseKind = base.kind;
+        if (baseKind == 5) {
             auto* unitSpec = static_cast<UnitSpec*>(message);
             unit->SetPlayer(nullptr);
             unit->SetSide(spec->side);
-            unit->SetHostileMask(static_cast<std::uint32_t>(diplomacy_.GetHostileMask(spec->side)));
-            objectManager->ApplyPrototype(object, unitSpec->prototype);
-            objectManager->GiveStartingEquipment(unit, unitSpec->prototype);
+            unit->SetHostileMask(static_cast<std::uint32_t>(diplomacy.GetHostileMask(spec->side)));
+            newObjectManager->ApplyPrototype(object, unitSpec->prototype);
+            newObjectManager->GiveStartingEquipment(unit, unitSpec->prototype);
             for (const std::string& name : unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems])
                 unit->AddQuickItem(ItemFactory()->CreateItem(name));
             unitSpec->record.ApplyTo(unit);
@@ -486,45 +486,45 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             object->MarkChanged(5);
             object->MarkChanged(6);
             object->MarkChanged(0xB);
-        } else if (type == 8) {
+        } else if (baseKind == 8) {
             lever->SetUp(&static_cast<mapspec::LeverSpec*>(message)->lever);
             object->MarkChanged(5);
         } else {
-            objectManager->GiveDefaults(object);
+            newObjectManager->GiveDefaults(object);
         }
         place(object);
         object->MarkChanged(2);
         object->MarkChanged(6);
         object->MarkChanged(7);
         object->MarkChanged(8);
-        if (spec->visible == 0) object->flags_ |= MapObjectFlag::Hidden;
+        if (spec->visible == 0) object->flags |= MapObjectFlag::Hidden;
         object->SetUpAnimatedFigure(spec->texture);
         object->UpdateSizeClasses();
         if (CUnit* asUnit = UnitOrNull(object)) asUnit->ServerController()->ResyncWithUnit();
-        objects_.Set(static_cast<unsigned>(object->id_), object);
-        mapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        if (object->GetClassId() != ClassId::Unit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        aiMap_.sectorMap.Add(object);
-        int result = object->id_;
-        if (object->flags_ & MapObjectFlag::Changed) object->WriteChangedState();
-        if (type >= 8 && type <= 9) {
+        objects.Set(static_cast<unsigned>(object->id), object);
+        mapObjects.Set(static_cast<unsigned>(object->id), object);
+        if (object->GetClassId() != ClassId::Unit) otherMapObjects.Set(static_cast<unsigned>(object->id), object);
+        aiMap.sectorMap.Add(object);
+        int result = object->id;
+        if (object->flags & MapObjectFlag::Changed) object->WriteChangedState();
+        if (baseKind >= 8 && baseKind <= 9) {
             object->updateCountdown = UpdateCountdown(object);
-            updateMap_.Set(static_cast<unsigned>(object->id_), object);
+            updateMap.Set(static_cast<unsigned>(object->id), object);
         }
-        if (!object->name2.empty()) namedObjects_.Set(static_cast<unsigned>(object->id_), object);
+        if (!object->name2.empty()) namedObjects.Set(static_cast<unsigned>(object->id), object);
         return result;
     }
     case 3: {   // a sound
-        if (!loadedFresh_) return -1;
+        if (!loadedFresh) return -1;
         auto* sound = static_cast<mapspec::SoundSpec*>(message);
         if (sound->ambient) {
             auto* ambient = timedManager->CreateObjectAs<CEffectAmbientSound>(kTimedAmbientSound, base.id);
-            ambient->names_ = sound->sounds;
-            Copy(&ambient->localPosition_, &base.position, 12);
-            ambient->volume_ = static_cast<float>(sound->volume);
-            ambient->radius_ = static_cast<float>(sound->radius);
-            ambient->minInterval_ = sound->minInterval;
-            ambient->maxInterval_ = sound->maxInterval;
+            ambient->names = sound->sounds;
+            Copy(&ambient->localPosition, &base.position, 12);
+            ambient->volume = static_cast<float>(sound->volume);
+            ambient->radius = static_cast<float>(sound->radius);
+            ambient->minInterval = sound->minInterval;
+            ambient->maxInterval = sound->maxInterval;
             return timed(ambient);
         }
         auto* plain = timedManager->CreateObjectAs<CEffectSound>(kTimedSound, base.id);
@@ -532,29 +532,29 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             app::ShowLibraryMessageBox(worlddata::NoWaveNameText());
         } else {
             const char* wave = sound->sounds[0].c_str();
-            std::memcpy(plain->name_, wave, std::strlen(wave) + 1);
+            std::memcpy(plain->name, wave, std::strlen(wave) + 1);
         }
-        Copy(&plain->localPosition_, &base.position, 12);
-        plain->volume_ = static_cast<float>(sound->volume);
-        plain->radius_ = static_cast<float>(sound->radius);
+        Copy(&plain->localPosition, &base.position, 12);
+        plain->volume = static_cast<float>(sound->volume);
+        plain->radius = static_cast<float>(sound->radius);
         return timed(plain);
     }
     case 2: {   // a light
-        if (!loadedFresh_) return -1;
+        if (!loadedFresh) return -1;
         auto* lightSpec = static_cast<mapspec::LightSpec*>(message);
         auto* light = timedManager->CreateObjectAs<CEffectPointLight>(kTimedLight, base.id);
-        Copy(&light->localPosition_, &base.position, 12);
-        Copy(&light->range_, &lightSpec->radius, 4);
-        Copy(&light->color_, &lightSpec->colour, 12);
+        Copy(&light->localPosition, &base.position, 12);
+        Copy(&light->range, &lightSpec->radius, 4);
+        Copy(&light->color, &lightSpec->colour, 12);
         return timed(light);
     }
     case 4: {   // a particle source
-        if (!loadedFresh_) return -1;
+        if (!loadedFresh) return -1;
         auto* particleSpec = static_cast<mapspec::ParticleSpec*>(message);
         auto* particle = timedManager->CreateObjectAs<CEffectParticle>(kTimedParticle, base.id);
-        Copy(&particle->localPosition_, &base.position, 12);
-        Copy(&particle->type_, &particleSpec->type, 4);
-        Copy(&particle->size_, &particleSpec->scale, 4);
+        Copy(&particle->localPosition, &base.position, 12);
+        Copy(&particle->type, &particleSpec->type, 4);
+        Copy(&particle->size, &particleSpec->scale, 4);
         return timed(particle);
     }
     default:

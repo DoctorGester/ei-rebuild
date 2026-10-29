@@ -30,7 +30,7 @@ void StoreBits(float& field, std::uint32_t bits) { field = std::bit_cast<float>(
 double GroundHeight(CWorld* world, float x, float y) { return world->GridHeightAt(x, y); }
 
 // The change stamp: the world's update count.
-int UpdateCount(const CWorld* world) { return world->updateCount_; }
+int UpdateCount(const CWorld* world) { return world->updateCount; }
 
 constexpr int kRebirthMaxEffects = 20;
 constexpr double kRebirthSameStrength = 0.001;   // addon.dll's constant (a double)
@@ -64,16 +64,16 @@ void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
 // --- Change tracking -------------------------------------------------------------------------
 
 void CMapObject::MarkChanged(int part) {
-    if (part >= 0) netState_.mask_ = static_cast<std::uint16_t>(netState_.mask_ | (1u << (part & 31)));
-    flags_ |= MapObjectFlag::Changed;
-    if (refCount_ == 0) return;
+    if (part >= 0) netState.mask = static_cast<std::uint16_t>(netState.mask | (1u << (part & 31)));
+    flags |= MapObjectFlag::Changed;
+    if (refCount == 0) return;
     if (CWorld* world = World()) changeStamp = UpdateCount(world);
 }
 
-bool CMapObject::HasEffect(SpellType type) {
+bool CMapObject::HasEffect(SpellType spellType) {
     for (int i = 0; i < std::ssize(effects); ++i) {
         MapEffect effect = effects[i];   // the whole record is copied
-        if (effect.Type() == type) return true;
+        if (effect.Type() == spellType) return true;
     }
     return false;
 }
@@ -94,16 +94,16 @@ void CMapObject::AddEffect(const MapEffect* effect) {
     int count = std::ssize(effects);
     SetEffectCount(count + 1);
     std::memcpy(&effects[count], effect, sizeof(MapEffect));
-    netState_.mask_ = static_cast<std::uint16_t>(netState_.mask_ | 8);   // part 3
-    flags_ |= MapObjectFlag::Changed;
-    if (refCount_ != 0) {
+    netState.mask = static_cast<std::uint16_t>(netState.mask | 8);       // part 3
+    flags |= MapObjectFlag::Changed;
+    if (refCount != 0) {
         if (CWorld* world = World()) changeStamp = UpdateCount(world);
     }
-    SpellType type = effect->Type();
-    bool scales = type == SpellType::Strengthen || type == SpellType::Weaken || type == SpellType::Enlarge ||
-                  type == SpellType::Shrink;
+    SpellType spellType = effect->Type();
+    bool scales = spellType == SpellType::Strengthen || spellType == SpellType::Weaken || spellType == SpellType::Enlarge ||
+                  spellType == SpellType::Shrink;
     ScaleEffectChanged(scales);
-    if (type == SpellType::Stun || type == SpellType::Teleport) SetStunned(1);
+    if (spellType == SpellType::Stun || spellType == SpellType::Teleport) SetStunned(1);
     EffectsChanged();
     if (scales) RecomputeScale();
     if (rebirth && effect->ticksLeft > 1) RemoveOutdatedEffects(this, effect);
@@ -113,9 +113,9 @@ void CMapObject::AddEffect(const MapEffect* effect) {
 
 void CMapObject::ClearEffects() {
     effects = {};
-    netState_.mask_ = static_cast<std::uint16_t>(netState_.mask_ | 8);   // part 3
-    flags_ |= MapObjectFlag::Changed;
-    if (refCount_ != 0) {
+    netState.mask = static_cast<std::uint16_t>(netState.mask | 8);       // part 3
+    flags |= MapObjectFlag::Changed;
+    if (refCount != 0) {
         if (CWorld* world = World()) changeStamp = UpdateCount(world);
     }
     ScaleEffectChanged(true);
@@ -123,11 +123,11 @@ void CMapObject::ClearEffects() {
     RecomputeScale();
 }
 
-float CMapObject::EffectValue(SpellType type) {
+float CMapObject::EffectValue(SpellType spellType) {
     std::uint32_t best = 0;
     for (int i = 0; i < std::ssize(effects); ++i) {
         MapEffect effect = effects[i];   // the record is copied twice
-        if (effect.Type() != type) continue;   // the record's first dword & 0xFF
+        if (effect.Type() != spellType) continue;   // the record's first dword & 0xFF
         float current = std::bit_cast<float>(best);
         float value = std::bit_cast<float>(effect.value);
         best = current >= value ? best : effect.value;   // the C0 mask: a NaN takes the value
@@ -159,28 +159,28 @@ void CMapObject::RecomputeScale() {
         StoreBits(scale.y, ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale.y)));
         StoreBits(scale.z, ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale.z)));
     }
-    netState_.mask_ = static_cast<std::uint16_t>(netState_.mask_ | 2);   // part 1
-    flags_ |= MapObjectFlag::Changed;
-    if (refCount_ == 0) return;
+    netState.mask = static_cast<std::uint16_t>(netState.mask | 2);       // part 1
+    flags |= MapObjectFlag::Changed;
+    if (refCount == 0) return;
     if (CWorld* world = World()) changeStamp = UpdateCount(world);
 }
 
 void CMapObject::ResetScale() { scale = baseScale; }
 
 float* CMapObject::GetPosition(float* out) {
-    std::memcpy(out, &localPosition_.x, 3 * sizeof(float));
+    std::memcpy(out, &localPosition.x, 3 * sizeof(float));
     return out;
 }
 
 float* CMapObject::GetPosition2(float* out) {
-    std::memcpy(out, &localPosition_.x, 3 * sizeof(float));
+    std::memcpy(out, &localPosition.x, 3 * sizeof(float));
     return out;
 }
 
 float* CMapObject::GroundPoint(float* out) {
-    float x = localPosition_.x + bounds.center.x;   // each stored to a float local
-    float y = localPosition_.y + bounds.center.y;
-    float z = localPosition_.z + bounds.center.z;
+    float x = localPosition.x + bounds.center.x;    // each stored to a float local
+    float y = localPosition.y + bounds.center.y;
+    float z = localPosition.z + bounds.center.z;
     double height = GroundHeight(World(), x, y);
     out[0] = x;
     out[1] = y;
@@ -189,8 +189,8 @@ float* CMapObject::GroundPoint(float* out) {
 }
 
 void CMapObject::PlaceOnGround(float offset) {
-    double height = GroundHeight(World(), localPosition_.x, localPosition_.y);
-    localPosition_.z = static_cast<float>(height + offset);
+    double height = GroundHeight(World(), localPosition.x, localPosition.y);
+    localPosition.z = static_cast<float>(height + offset);
 }
 
 void CMapObject::SetServerData(const UnitVitals* data) {
@@ -231,8 +231,8 @@ int CMapObject::PackVitals() {
     return 1;
 }
 
-bool CMapObject::IsInvisible() { return lib::Has(flags_, MapObjectFlag::Invisible); }
+bool CMapObject::IsInvisible() { return lib::Has(flags, MapObjectFlag::Invisible); }
 
-bool CMapObject::IsStunned() { return lib::Has(flags_, MapObjectFlag::Stunned); }
+bool CMapObject::IsStunned() { return lib::Has(flags, MapObjectFlag::Stunned); }
 
-std::uint32_t CMapObject::Flag20000() { return lib::Has(flags_, MapObjectFlag::Synchronised); }
+std::uint32_t CMapObject::Flag20000() { return lib::Has(flags, MapObjectFlag::Synchronised); }

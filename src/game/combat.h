@@ -214,7 +214,7 @@ public:
     std::uint32_t MoveModeMask(const MoveModeState* mode);
     // log(experience / considerModifier) / log(considerLogBase), rounded.
     int Level() override;
-    // Sets the unit's flags_ bit 0x10000000 when it has an effect of type 0x20 and a natural weapon other than
+    // Sets the unit's flags bit 0x10000000 when it has an effect of type 0x20 and a natural weapon other than
     // 0x10, else clears it.
     void EffectsChanged() override;
     void GetAttackParams(AttackParams* out) override;
@@ -259,11 +259,11 @@ public:
     bool Heal(float amount) override;
     // Reacts to damage. Not dead: the armour spells, diplomacy, the AI memory, hostility claims and the hit
     // direction. Dead: remarks, witnesses, the death state, "Unit 12 damaged to death", the death animation,
-    // the AI notification and the party's reaction. Units of types outside 0x32..0x36 only get flags_ bit 1.
+    // the AI notification and the party's reaction. Units of types outside 0x32..0x36 only get flags bit 1.
     void OnDamaged(CUnit* attacker, int hitKind);
     // The allied witnesses that see `victim` add `murderer` to their visible list and turn hostile to it.
     void WitnessMurder(const std::list<HeldRef<CUnit>>* witnesses, CUnit* victim, CUnit* murderer);
-    // When the unit's flags_ have 0x80000: clears it, adds its hostile mask to claimedHostile and swaps
+    // When the unit's flags have 0x80000: clears it, adds its hostile mask to claimedHostile and swaps
     // hostility claims with the allied units nearby.
     void PropagateHostility();
     // Where `attacker` stands relative to the unit: 0x800000 in front, 0x400000 behind, 0xC00000 / 0x1000000
@@ -291,7 +291,7 @@ public:
     // Dropped when the target is out of reach (message 0x0C) or the planner refuses.
     void OrderAttack(CMapObject* target, int location, int calledShot, AckKind planArg);
     // Kind 4 (cast at a point). A scroll (quick item of category 8) is cast at once. A party unit needs the
-    // spell's skill for a spell of its own; message 0x13 if not, or while flags_ has 0x10000000.
+    // spell's skill for a spell of its own; message 0x13 if not, or while flags has 0x10000000.
     void OrderCastAt(std::uint32_t source, const Vector3& point, int run);
     void OrderCast(std::uint32_t source, CMapObject* target, int run);
     // Unless the current order is of kind 11: the queued order becomes kind 11 (stop).
@@ -312,7 +312,7 @@ public:
     void OrderTame(CMapObject* target, int run);
     void OrderUse(CMapObject* target, int spot, int run);
     void OrderSearchBody(CMapObject* target, int run);
-    // Is `target` (a body to search) taken: with flags_ bit 0x20000000, when the world does not share it with
+    // Is `target` (a body to search) taken: with flags bit 0x20000000, when the world does not share it with
     // this unit's id; else when a living unit of the brain's nearby list is searching it (UnitOrderKind::Use,
     // UseSource::SearchBody) while Acting or with its flag set.
     bool TargetBusy(CMapObject* target);
@@ -362,7 +362,7 @@ public:
     // Builds the animation (which draws random numbers), then looks for the first moment at which the target
     // is in reach, the unit can turn to it in time, and CanActFrom holds; fills `plan` then.
     bool PlanAction(const AIOrder* order, struct OrderPlan* plan);
-    // With the target unit's flags_ bit 0x8000000 set meanwhile.
+    // With the target unit's flags bit 0x8000000 set meanwhile.
     bool CanPlanAction(const AIOrder* order);
     // False for an attack without a ranged weapon, or a skill, on a living unit of size class 0 that is too
     // high to reach (its prototype's height plus its z at 1.5 or above); else CanPlanAction.
@@ -476,7 +476,7 @@ public:
     bool PathTo(const Vector3& point, float range);
     // The units lifted off the sector map for a path: away from `point`, those near it
     // outside the player's group; the party members that move (with `moving`) or follow this unit. Only for a
-    // player's units with sessionKind_ 1.
+    // player's units with sessionKind 1.
     std::list<CUnit*> LiftNearby(const Vector3& point, char moving);
     // Messages 0x0E / 0x01 to a party unit's player, unless the brain's mode is 6.
     void ReportPath(AIPath* path, char partial);

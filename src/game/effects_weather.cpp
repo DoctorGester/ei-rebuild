@@ -61,19 +61,19 @@ void CRainSnow::UpdateFade(float now) {
     EI_NAN_AUDIT(now, fadeStart);
     if (fadeDuration == 0.0f) {   // no fade running
         mode = targetMode;
-        if (targetMode == 1 && sound) g_clientWorld.sounds_->SetSoundVolume(sound, 100, 0);
+        if (targetMode == 1 && sound) g_clientWorld.sounds->SetSoundVolume(sound, 100, 0);
     } else if ((now - fadeStart) / fadeDuration <= 1.0f) {
         double c = x87::fcos((now - fadeStart) / fadeDuration * kFadePi);
         float level = static_cast<float>((targetMode == 0 ? c + 1.0f : 1.0f - c) * 0.5f);
-        if (sound) g_clientWorld.sounds_->SetSoundVolume(sound, x87::fistp(level * kVolumeScale), 0);
+        if (sound) g_clientWorld.sounds->SetSoundVolume(sound, x87::fistp(level * kVolumeScale), 0);
         density = x87::fistp(level * kDensityScale);
         return;
     } else {
         mode = targetMode;
-        if (targetMode == 1 && sound) g_clientWorld.sounds_->SetSoundVolume(sound, 100, 0);
+        if (targetMode == 1 && sound) g_clientWorld.sounds->SetSoundVolume(sound, 100, 0);
     }
     if (mode == 0 && sound) {
-        g_clientWorld.sounds_->StopSound(sound);
+        g_clientWorld.sounds->StopSound(sound);
         sound = 0;
     }
     density = 64;
@@ -91,7 +91,7 @@ void CRainSnow::SetWind(const Vector3& direction, float strength) {
 
 void CRainSnow::Clear() {
     if (sound) {
-        g_clientWorld.sounds_->StopSound(sound);
+        g_clientWorld.sounds->StopSound(sound);
         sound = 0;
     }
     texture.Reset();
@@ -108,14 +108,14 @@ void CRainSnow::Clear() {
 void CRainSnow::Start(int newMode, float duration) {
     LoadNamedTexture(texture, kWeatherTextureKind, WeatherTextureName());
     if (sound && newMode) {
-        g_clientWorld.sounds_->StopSound(sound);
+        g_clientWorld.sounds->StopSound(sound);
         sound = 0;
     }
-    if (newMode == 1) sound = g_clientWorld.sounds_->Play2D(RainSoundName(), kRainPriority, 0, 0, newMode, 0, 0, 0);
+    if (newMode == 1) sound = g_clientWorld.sounds->Play2D(RainSoundName(), kRainPriority, 0, 0, newMode, 0, 0, 0);
     targetMode = newMode;
     if (mode == 0) mode = newMode;
     fadeDuration = duration;
-    fadeStart = static_cast<float>(world->tick_);
+    fadeStart = static_cast<float>(world->tick);
 }
 
 CRainSnow::CRainSnow() {
@@ -196,7 +196,7 @@ bool CVisibilityFog::RunTick() {
         cell.frame = static_cast<std::int8_t>((cell.frame + 1) % 15);
     }
     for (const std::uint32_t key : dead) cells.erase(key);
-    return refCount_ > 1 || cells.size() != 0;
+    return refCount > 1 || cells.size() != 0;
 }
 
 // Marks the cells of the visible squares (adding new ones, transparent, at a jittered point on

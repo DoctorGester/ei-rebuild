@@ -116,7 +116,7 @@ constexpr std::uint32_t kBackColour = 0xA0000000;
 constexpr int kTextCount = 22;
 constexpr int kTextConnecting = 8;
 constexpr int kNameLength = 10;
-constexpr int kScrollbarObject = 1;   // objects_: 0 "saveload", 1 "scrollbar"
+constexpr int kScrollbarObject = 1;   // objects: 0 "saveload", 1 "scrollbar"
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
     CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
@@ -140,50 +140,50 @@ __declspec(noinline) void BufferPut(GameBuffer* b, const void* from, unsigned si
 
 void CMpConnectScreen::Update() {
     net::ClientSession* client = net::g_gameClient;
-    bool asking = client->joinState_ == net::ClientBase::kAsking;
+    bool asking = client->joinState == net::ClientBase::kAsking;
     if (asking) {
-        surfaces_[kSurfaceConnecting]->Show();
+        surfaces[kSurfaceConnecting]->Show();
     } else {
-        surfaces_[kSurfaceConnecting]->Hide(false);
-        if (joining_) {
-            joining_ = false;
-            std::string key = RefusalKey(client->refusal_);
+        surfaces[kSurfaceConnecting]->Hide(false);
+        if (joining) {
+            joining = false;
+            std::string key = RefusalKey(client->refusal);
             std::string text = key + kMessageSuffix;
-            interface_->PushWindow(new CMessageBox(interface_, key, text.c_str(), kBoxNotice, kBoxFlagsOk, kBoxFormat), true, true);
+            ui->PushWindow(new CMessageBox(ui, key, text.c_str(), kBoxNotice, kBoxFlagsOk, kBoxFormat), true, true);
             return;
         }
     }
-    joining_ = asking;
+    joining = asking;
     CUiContainer::Update();
 
-    double elapsed = FrameTime() + refreshTimer_;
-    refreshTimer_ = static_cast<float>(elapsed);
+    double elapsed = FrameTime() + refreshTimer;
+    refreshTimer = static_cast<float>(elapsed);
     float period = kRefreshPeriod;
     if (elapsed > period) {
-        float timer = refreshTimer_;
+        float timer = refreshTimer;
         do {
             timer -= period;
         } while (timer > period);
-        refreshTimer_ = timer;
+        refreshTimer = timer;
         net::NetAddress none{};
         const net::NetAddress* ask = &none;
-        if (selected_ >= 1 && static_cast<unsigned>(selected_) < entries_.size()) ask = &entries_[selected_].address;
+        if (selected >= 1 && static_cast<unsigned>(selected) < entries.size()) ask = &entries[selected].address;
         net::g_gameClient->SetAlwaysAsk(ask);
         net::g_gameClient->Refresh();
         RebuildList();
         DrawListVanilla();
     }
 
-    if (scroll_->TakeMoved()) {
-        scrollTop_ = scroll_->Position();
+    if (scroll->TakeMoved()) {
+        scrollTop = scroll->Position();
         DrawListVanilla();
     }
-    if (playersSlider_->TakeMoved()) {
-        maxPlayers_ = playersSlider_->Position() + 1;
+    if (playersSlider->TakeMoved()) {
+        maxPlayers = playersSlider->Position() + 1;
         DrawListVanilla();
     }
-    bool renamed = nameEdit_->changed_;
-    nameEdit_->changed_ = false;
+    bool renamed = nameEdit->changed;
+    nameEdit->changed = false;
     if (renamed) DrawListVanilla();
 }
 
@@ -193,16 +193,16 @@ void CMpConnectScreen::MessageResult(int answer) {
         DrawListVanilla();
     } else if (result == (kBoxAddress | kAnswerOk)) {
         net::NetAddress address{};
-        if (address.Parse(boxText_, net::g_gamePort)) net::g_gameClient->Ask(&address);
+        if (address.Parse(boxText, net::g_gamePort)) net::g_gameClient->Ask(&address);
         SaveAddressBook();
         DrawListVanilla();
     } else if (result == (kBoxPassword | kAnswerOk) || result == (kBoxPassword | kAnswerCancel)) {
-        hostPassword_ = boxText_;
+        hostPassword = boxText;
         auto* sprite = SceneMesh(kSpritePassword);
-        sprite->textureOffsetU_ = hostPassword_.size() == 0 ? kFrameOff : kFrameOn;
+        sprite->textureOffsetU = hostPassword.size() == 0 ? kFrameOff : kFrameOn;
     } else if (result == (kBoxJoinPassword | kAnswerOk)) {
-        g_gameFlow.JoinServer(&entries_[selected_].address, boxText_);
-        net::g_gameClient->gameType_ = entries_[selected_].gameType;
+        g_gameFlow.JoinServer(&entries[selected].address, boxText);
+        net::g_gameClient->gameType = entries[selected].gameType;
     }
 }
 
@@ -215,10 +215,10 @@ void CMpConnectScreen::LeftDown(int buttons, int x, int y) {
         Connect();
         break;
     case kRegionBack:
-        interface_->PlaySound(kCancelSound);
+        ui->PlaySound(kCancelSound);
         SaveAddressBook();
         g_gameFlow.DropSessions();
-        interface_->SetPendingValue(kLeaveScreen);
+        ui->SetPendingValue(kLeaveScreen);
         break;
     case kRegionMaster:
         MasterRequest();
@@ -227,18 +227,18 @@ void CMpConnectScreen::LeftDown(int buttons, int x, int y) {
         EditAddress();
         break;
     case kRegionUnlisted: {
-        unlisted_ = !unlisted_;
+        unlisted = !unlisted;
         auto* sprite = SceneMesh(kSpriteUnlisted);
-        sprite->textureOffsetU_ = unlisted_ ? kFrameOn : kFrameOff;
+        sprite->textureOffsetU = unlisted ? kFrameOn : kFrameOff;
         break;
     }
     case kRegionPassword:
-        if (hostPassword_.size() == 0) {
-            CopyText(boxText_, hostPassword_.c_str());
-            OpenBox(interface_, texts_[kTextPassword], boxText_, kBoxPassword, kBoxFlagsEdit);
+        if (hostPassword.size() == 0) {
+            CopyText(boxText, hostPassword.c_str());
+            OpenBox(ui, texts[kTextPassword], boxText, kBoxPassword, kBoxFlagsEdit);
         } else {
-            hostPassword_.clear();
-            SceneMesh(kSpritePassword)->textureOffsetU_ = 0.0f;
+            hostPassword.clear();
+            SceneMesh(kSpritePassword)->textureOffsetU = 0.0f;
         }
         break;
     case kRegionSortFirst:
@@ -247,25 +247,25 @@ void CMpConnectScreen::LeftDown(int buttons, int x, int y) {
     case kRegionSortFirst + 3: {
         // Column c sorts by key 2c + 1, a second click by 2c + 2.
         int ascending = 2 * (region - kRegionSortFirst) + 1;
-        sortKey_ = sortKey_ == ascending ? ascending + 1 : ascending;
+        sortKey = sortKey == ascending ? ascending + 1 : ascending;
         RebuildList();
         DrawListVanilla();
         break;
     }
     default:
         if (region >= kRegionTabFirst && region < kRegionRowFirst) {
-            if (selected_ == 0) {
-                gameType_ = region - kRegionTabFirst;
+            if (selected == 0) {
+                gameType = region - kRegionTabFirst;
                 for (int i = 0; i < kTabs; ++i)
-                    SceneMesh(kSpriteTabFirst + i)->textureOffsetU_ = 0.0f;
-                SceneMesh(kSpriteTabFirst + gameType_)->textureOffsetU_ = kTabSelected;
+                    SceneMesh(kSpriteTabFirst + i)->textureOffsetU = 0.0f;
+                SceneMesh(kSpriteTabFirst + gameType)->textureOffsetU = kTabSelected;
             }
         } else if (region >= kRegionRowFirst) {
-            unsigned row = static_cast<unsigned>(scrollTop_ + region - kRegionRowFirst);
-            if (row < entries_.size()) {
-                interface_->PlaySound(kSelectSound);
-                selected_ = static_cast<int>(row);
-                selectedAddress_ = entries_[row].address;
+            unsigned row = static_cast<unsigned>(scrollTop + region - kRegionRowFirst);
+            if (row < entries.size()) {
+                ui->PlaySound(kSelectSound);
+                selected = static_cast<int>(row);
+                selectedAddress = entries[row].address;
                 DrawListVanilla();
             }
         }
@@ -277,29 +277,29 @@ void CMpConnectScreen::LeftDown(int buttons, int x, int y) {
 void CMpConnectScreen::LeftDouble(int buttons, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= kRegionRowFirst) {
-        unsigned row = static_cast<unsigned>(scrollTop_ + region - kRegionRowFirst);
-        if (row < entries_.size()) {
-            selected_ = static_cast<int>(row);
-            selectedAddress_ = entries_[row].address;
+        unsigned row = static_cast<unsigned>(scrollTop + region - kRegionRowFirst);
+        if (row < entries.size()) {
+            selected = static_cast<int>(row);
+            selectedAddress = entries[row].address;
             Connect();
         }
     }
     CUiContainer::LeftDouble(buttons, x, y);
 }
 
-void CMpConnectScreen::KeyDown(int key, int repeat, int flags) {
-    CUiContainer::KeyDown(key, repeat, flags);
+void CMpConnectScreen::KeyDown(int key, int repeat, int modifiers) {
+    CUiContainer::KeyDown(key, repeat, modifiers);
     int step;
     switch (key) {
     case VK_RETURN:
         Connect();
-        handled_ = true;
+        handled = true;
         return;
     case VK_ESCAPE:
-        interface_->PlaySound(kCancelSound);
+        ui->PlaySound(kCancelSound);
         g_gameFlow.DropSessions();
-        interface_->SetPendingValue(kLeaveScreen);
-        handled_ = true;
+        ui->SetPendingValue(kLeaveScreen);
+        handled = true;
         return;
     case VK_UP: step = -1; break;
     case VK_DOWN: step = 1; break;
@@ -307,78 +307,78 @@ void CMpConnectScreen::KeyDown(int key, int repeat, int flags) {
     case VK_NEXT: step = kRows; break;
     default: return;
     }
-    interface_->PlaySound(kSelectSound);
-    selected_ += step;
+    ui->PlaySound(kSelectSound);
+    selected += step;
     SelectAndScroll();
-    handled_ = true;
+    handled = true;
 }
 
 void CMpConnectScreen::SelectAndScroll() {
-    if (selected_ < 0) selected_ = 0;
-    if (static_cast<unsigned>(selected_) >= entries_.size()) selected_ = static_cast<int>(entries_.size()) - 1;
-    int row = selected_;
-    selectedAddress_ = entries_[row].address;
-    if (!(scrollTop_ + kRows > row)) scrollTop_ = row - (kRows - 1);
-    if (scrollTop_ > row) scrollTop_ = row;
-    scroll_->SetPosition(scrollTop_);
-    scrollTop_ = scroll_->TakePosition();
+    if (selected < 0) selected = 0;
+    if (static_cast<unsigned>(selected) >= entries.size()) selected = static_cast<int>(entries.size()) - 1;
+    int row = selected;
+    selectedAddress = entries[row].address;
+    if (!(scrollTop + kRows > row)) scrollTop = row - (kRows - 1);
+    if (scrollTop > row) scrollTop = row;
+    scroll->SetPosition(scrollTop);
+    scrollTop = scroll->TakePosition();
     DrawListVanilla();
 }
 
 void CMpConnectScreen::Connect() {
-    interface_->PlaySound(kOkSound);
-    int row = selected_;
+    ui->PlaySound(kOkSound);
+    int row = selected;
     if (row == 0) {
-        const int players = playersSlider_->TakePosition() + 1;
-        std::string name = nameEdit_->text_;
+        const int players = playersSlider->TakePosition() + 1;
+        std::string name = nameEdit->text;
         if (name.size() == 0) name = kDefaultGameName;
         SaveAddressBook();
-        g_gameFlow.StartServer(name.c_str(), players, gameType_, hostPassword_.c_str(), unlisted_,
-                                   static_cast<int>(net::g_gameClient->queries_.extra));
+        g_gameFlow.StartServer(name.c_str(), players, gameType, hostPassword.c_str(), unlisted,
+                                   static_cast<int>(net::g_gameClient->queries.extra));
         return;
     }
-    if (row < 0 || static_cast<unsigned>(row) >= entries_.size()) return;
-    if (entries_[row].foreign) {
-        OpenBox(interface_, kWrongProtocolKey, kWrongProtocolTextKey, kBoxNotice, kBoxFlagsOk);
+    if (row < 0 || static_cast<unsigned>(row) >= entries.size()) return;
+    if (entries[row].foreign) {
+        OpenBox(ui, kWrongProtocolKey, kWrongProtocolTextKey, kBoxNotice, kBoxFlagsOk);
         return;
     }
     SaveAddressBook();
-    if (entries_[selected_].password) {
-        boxText_[0] = '\0';
-        OpenBox(interface_, texts_[kTextPassword], boxText_, kBoxJoinPassword, kBoxFlagsEdit);
+    if (entries[selected].password) {
+        boxText[0] = '\0';
+        OpenBox(ui, texts[kTextPassword], boxText, kBoxJoinPassword, kBoxFlagsEdit);
     }
-    g_gameFlow.JoinServer(&entries_[selected_].address, kEmptyText);
-    net::g_gameClient->gameType_ = entries_[selected_].gameType;
+    g_gameFlow.JoinServer(&entries[selected].address, kEmptyText);
+    net::g_gameClient->gameType = entries[selected].gameType;
 }
 
 void CMpConnectScreen::EditAddress() {
-    int row = selected_;
-    if (row < 0 || static_cast<unsigned>(row) >= entries_.size()) return;
-    MpAddressEntry& entry = entries_[row];
+    int row = selected;
+    if (row < 0 || static_cast<unsigned>(row) >= entries.size()) return;
+    MpAddressEntry& entry = entries[row];
     if (entry.state == kStateAsked) {
         net::g_gameClient->Forget(&entry.address);
         SaveAddressBook();
         return;
     }
-    boxText_[0] = '\0';
-    if (row > 0 && static_cast<unsigned>(row) < entries_.size()) {
+    boxText[0] = '\0';
+    if (row > 0 && static_cast<unsigned>(row) < entries.size()) {
         std::string text = entry.address.ToString();
-        CopyText(boxText_, text.data());
+        CopyText(boxText, text.data());
     }
-    OpenBox(interface_, texts_[kTextAddress], boxText_, kBoxAddress, kBoxFlagsEdit);
+    OpenBox(ui, texts[kTextAddress], boxText, kBoxAddress, kBoxFlagsEdit);
 }
 
 void CMpConnectScreen::MasterRequest() {
-    CopyText(boxText_, kEmptyText);
+    CopyText(boxText, kEmptyText);
     net::NetAddress master{};
     // EI_Plugin's NewMaster: with a second master set, the master is tried first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) && net::second_master::Configured())
-        net::second_master::ParseMaster(&master, options::g_options.masterServerName_.c_str(), kMasterPort);
+        net::second_master::ParseMaster(&master, options::g_options.masterServerName.c_str(), kMasterPort);
     else
-        master.Parse(options::g_options.masterServerName_.c_str(), kMasterPort);
+        master.Parse(options::g_options.masterServerName.c_str(), kMasterPort);
     net::ClientSession* client = net::g_gameClient;
-    std::uint32_t extra = client ? client->queries_.extra : 0;
-    interface_->PushWindow(new CMasterRequestBox(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra), true,
+    std::uint32_t extra = client ? client->queries.extra : 0;
+    ui->PushWindow(new CMasterRequestBox(ui, texts[kTextMaster], boxText, kBoxMaster, &master, extra), true,
                            true);
 }
 
@@ -387,7 +387,7 @@ void CMpConnectScreen::SaveAddressBook() {
     netlink::FileStream file;
     if (!file.Open(g_dataFolder + kAddressBookFile, netlink::FileStream::kOpenWrite, 0)) return;
     archive.Open(&file, 0, 1);
-    net::ClientQueries* queries = &net::g_gameClient->queries_;
+    net::ClientQueries* queries = &net::g_gameClient->queries;
     if (archive.EnterChunk(1)) {
         queries->Serialize(&archive);
         archive.LeaveChunk();
@@ -397,28 +397,28 @@ void CMpConnectScreen::SaveAddressBook() {
 }
 
 void CMpConnectScreen::RebuildList() {
-    entries_.clear();
+    entries.clear();
     unsigned index = 0;
     for (net::ServerEntry* server = net::g_gameClient->ServerAt(0); server;
          server = net::g_gameClient->ServerAt(static_cast<int>(++index))) {
-        MpAddressEntry& entry = entries_.emplace_back();
-        entry.address = server->address_;
-        entry.gameType = static_cast<int>(server->kind_);
+        MpAddressEntry& entry = entries.emplace_back();
+        entry.address = server->address;
+        entry.gameType = static_cast<int>(server->kind);
         if (entry.gameType < 0 || entry.gameType > 3) entry.gameType = 0;
-        entry.name = server->name_.data();
-        entry.description = server->description_.data();
-        entry.players = static_cast<signed char>(server->players_);
-        entry.maxPlayers = static_cast<signed char>(server->maxPlayers_);
-        entry.ping = x87::fistp(server->ping_ * kMillisecondsPerSecond);
-        entry.foreign = server->foreign_ != 0;
-        entry.state = static_cast<int>(server->state_);
-        entry.password = server->password_ != 0;
+        entry.name = server->name.data();
+        entry.description = server->description.data();
+        entry.players = static_cast<signed char>(server->players);
+        entry.maxPlayers = static_cast<signed char>(server->maxPlayers);
+        entry.ping = x87::fistp(server->ping * kMillisecondsPerSecond);
+        entry.foreign = server->foreign != 0;
+        entry.state = static_cast<int>(server->state);
+        entry.password = server->password != 0;
     }
 
     // By the sort key: 1 / 2 the name ascending / descending (_mbscmp), 3 / 4 the players, 5 / 6 the game type,
     // 7 / 8 the ping, anything else the state, ascending. Servers with the same value keep the game's sort's order.
-    const int key = sortKey_;
-    lib::IntroSort(entries_.data(), entries_.data() + entries_.size(),
+    const int key = sortKey;
+    lib::IntroSort(entries.data(), entries.data() + entries.size(),
                    [key](const MpAddressEntry& a, const MpAddressEntry& b) {
         switch (key) {
         case 1: return str::Compare(a.name, b.name) < 0;
@@ -433,7 +433,7 @@ void CMpConnectScreen::RebuildList() {
         }
     });
 
-    MpAddressEntry& newGame = *entries_.emplace(entries_.begin());
+    MpAddressEntry& newGame = *entries.emplace(entries.begin());
     newGame.address = net::NetAddress{};
     newGame.gameType = kNewGameType;
     newGame.name = kNewGameText;
@@ -443,25 +443,25 @@ void CMpConnectScreen::RebuildList() {
     newGame.maxPlayers = 0;
     newGame.foreign = false;
     newGame.state = 0;
-    selected_ = 0;
-    for (unsigned row = 1; row < entries_.size(); ++row)
-        if (std::memcmp(&entries_[row].address, &selectedAddress_, sizeof(net::NetAddress)) == 0)
-            selected_ = static_cast<int>(row);
-    if (selected_ == 0) selectedAddress_ = net::NetAddress{};
+    selected = 0;
+    for (unsigned row = 1; row < entries.size(); ++row)
+        if (std::memcmp(&entries[row].address, &selectedAddress, sizeof(net::NetAddress)) == 0)
+            selected = static_cast<int>(row);
+    if (selected == 0) selectedAddress = net::NetAddress{};
 
-    unsigned rows = static_cast<unsigned>(entries_.size());
+    unsigned rows = static_cast<unsigned>(entries.size());
     if (rows > static_cast<unsigned>(kRows)) {
-        const int position = scroll_->TakePosition();
-        scroll_->SetMaximum(static_cast<int>(entries_.size()) - kRows);
-        scroll_->SetPosition(position);
+        const int position = scroll->TakePosition();
+        scroll->SetMaximum(static_cast<int>(entries.size()) - kRows);
+        scroll->SetPosition(position);
     } else {
-        scroll_->SetMaximum(0);
+        scroll->SetMaximum(0);
     }
-    scrollTop_ = 0;
+    scrollTop = 0;
 }
 
 void CMpConnectScreen::CreateScreen() {
-    rect_ = RECT{0, 0, 800, 600};
+    rect = RECT{0, 0, 800, 600};
     LoadTexture(kSaveLoadTexture, TextureKind::Interface);
     LoadTexture(kScrollbarTexture, TextureKind::Interface);
     CUiModel* model = AddModel();
@@ -470,7 +470,7 @@ void CMpConnectScreen::CreateScreen() {
     {
         const Vector3 axis = {1.0f, 0.0f, 0.0f};
         Quaternion turn;
-        model->object_->localRotation_ = *turn.SetAxisAngle(axis, MenuTurn());
+        model->object->localRotation = *turn.SetAxisAngle(axis, MenuTurn());
     }
     model->ShowAllParts(0);
     model->ShowPart(kMenuButtonPart, 1);
@@ -498,9 +498,9 @@ void CMpConnectScreen::CreateScreen() {
         return added;
     };
     auto plain = [](CUiMesh* mesh, std::uint32_t colour) {
-        mesh->texture_ = nullptr;
-        mesh->flags_ |= FigureMeshFlag::Flat;
-        mesh->flatColour_ = colour;
+        mesh->texture = nullptr;
+        mesh->flags |= FigureMeshFlag::Flat;
+        mesh->flatColour = colour;
     };
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
@@ -510,27 +510,27 @@ void CMpConnectScreen::CreateScreen() {
           kSelectionColour);
     {
         CUiMesh* arrow = AddBlankSprite();
-        arrow->texture_ = objects_[kScrollbarObject];
+        arrow->texture = objects[kScrollbarObject];
         arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
-        arrow->visible_ = false;
+        arrow->visible = false;
     }
-    sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->textureOffsetU_ = -kTabSelected;
+    sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->textureOffsetU = -kTabSelected;
     sprite(4.0f, 440.0f, 370.0f, 461.0f, 391.0f, 0xD1, 0x37, 0xE6, 0x4C);
 
-    CTextManager* texts = g_clientWorld.texts_;
+    CTextManager* clientWorldTexts = g_clientWorld.texts;
     std::string text;
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
         text = str::Format(kAllodNameFormat, i);
-        text = texts->CTextManager::GetString(text);
-        allodNames_.push_back(text);
+        text = clientWorldTexts->CTextManager::GetString(text);
+        allodNames.push_back(text);
         const int bottom = top + 21;
         sprite(4.0f, 460.0f, static_cast<float>(top), 481.0f, static_cast<float>(bottom), 0xD1, 0x37, 0xE6, 0x4C);
         region(460, top, 670, bottom, 0);
     }
-    SceneMesh(kSpriteTabFirst)->textureOffsetU_ = kTabSelected;
-    gameType_ = 0;
-    unlisted_ = true;
-    hostPassword_.clear();
+    SceneMesh(kSpriteTabFirst)->textureOffsetU = kTabSelected;
+    gameType = 0;
+    unlisted = true;
+    hostPassword.clear();
     for (int top = 444; top < 492; top += 24)
         sprite(3.0f, 490.0f, static_cast<float>(top), 620.0f, static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
     AddBlankSprite()->SetFrame(2.0f, 100.0f, 95.0f, 95.0f, 395.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
@@ -541,10 +541,10 @@ void CMpConnectScreen::CreateScreen() {
     plain(sprite(5.0f, 410.0f, 430.0f, 700.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
     for (int top = 132; top < 492; top += 24) region(108, top, 370, top + 24, 0);   // the rows
 
-    AddSurface(NewSurface(interface_, 100, 100, 700, 500));
+    AddSurface(NewSurface(ui, 100, 100, 700, 500));
     {
-        scroll_ = new CUiScrollbar(interface_, RECT{108, 132, 384, 492}, 3.0f, 0, 1.0f);
-        AddChild(scroll_);
+        scroll = new CUiScrollbar(ui, RECT{108, 132, 384, 492}, 3.0f, 0, 1.0f);
+        AddChild(scroll);
     }
     {
         // EI_Plugin's NPlayers: the slider's maximum is max(players, 7) - 1 and its
@@ -555,39 +555,39 @@ void CMpConnectScreen::CreateScreen() {
         const int maximum = plugin ? (players < 7 ? 7 : players) - 1 : 5;
         const int position = plugin ? (players < 1 ? 1 : players) - 1 : 5;
         const int right = extended ? kExtendedFieldRight : 650;
-        playersSlider_ = new CUiSlider(interface_, RECT{450, 196, 650, 206}, 3.0f, maximum, 1.0f);
-        AddChild(playersSlider_);
-        RECT rect{450, 196, right, 206};
-        playersSlider_->SetRect(&rect);
-        playersSlider_->SetPosition(position);
-        maxPlayers_ = 6;
+        playersSlider = new CUiSlider(ui, RECT{450, 196, 650, 206}, 3.0f, maximum, 1.0f);
+        AddChild(playersSlider);
+        RECT area{450, 196, right, 206};
+        playersSlider->SetRect(&area);
+        playersSlider->SetPosition(position);
+        maxPlayers = 6;
     }
     {
-        nameEdit_ = new CUiEditField(interface_, RECT{450, 144, extended ? kExtendedFieldRight : 650, 160});
-        AddChild(nameEdit_);
+        nameEdit = new CUiEditField(ui, RECT{450, 144, extended ? kExtendedFieldRight : 650, 160});
+        AddChild(nameEdit);
         // ExtendedServerName: the classes 15, font 0, at most 50 characters (the name taken from the hero
         // below still stops at 10).
         if (extended)
-            nameEdit_->SetLook(15, 0, 0, kExtendedNameLength, g_connectTextColour, kCaretColour);
+            nameEdit->SetLook(15, 0, 0, kExtendedNameLength, g_connectTextColour, kCaretColour);
         else
-            nameEdit_->SetLook(3, 0, 1, kNameLength, g_connectTextColour, kCaretColour);
+            nameEdit->SetLook(3, 0, 1, kNameLength, g_connectTextColour, kCaretColour);
     }
     // The new game's name: the first hero's, to its '|', at most 10 characters.
-    std::string name = LocalPlayerData()->members_[0].texts[0];
+    std::string name = LocalPlayerData()->members[0].texts[0];
     {
         const int end = str::Find(name, kNameEnd);
         if (end >= 0) name = str::Left(name, end);
         if (text::CharacterCount(name) > kNameLength) name = str::Left(name, text::CharacterBytes(name, kNameLength));
         str::TrimLeft(name);
         str::TrimRight(name);
-        nameEdit_->SetText(name);
-        nameEdit_->SetEnabled(false);
-        nameEdit_->SetFocused(false);
+        nameEdit->SetText(name);
+        nameEdit->SetEnabled(false);
+        nameEdit->SetFocused(false);
     }
     for (int i = 0; i < kTextCount; ++i) {
         text = str::Format(kConnectionTextFormat, i);
-        text = texts->CTextManager::GetString(text);
-        texts_.push_back(text);
+        text = clientWorldTexts->CTextManager::GetString(text);
+        texts.push_back(text);
     }
 
     g_gameFlow.StartClient();
@@ -609,38 +609,38 @@ void CMpConnectScreen::CreateScreen() {
         net::g_gameClient->SetQueries(&queries);
     }
 
-    sortKey_ = 0;
-    joining_ = false;
-    selected_ = 0;
-    newGameTips_ = false;
-    selectedAddress_ = net::NetAddress{};
+    sortKey = 0;
+    joining = false;
+    selected = 0;
+    newGameTips = false;
+    selectedAddress = net::NetAddress{};
     RebuildList();
     DrawListVanilla();
-    interface_->OpenHelp(false);
-    refreshTimer_ = 0.0f;
-    CUiSurface* note = AddSurface(NewSurface(interface_, 0, 0, 300, 20));
+    ui->OpenHelp(false);
+    refreshTimer = 0.0f;
+    CUiSurface* note = AddSurface(NewSurface(ui, 0, 0, 300, 20));
     note->Clear();
-    RECT rect{0, 0, 300, 20};
-    note->DrawTextIn(texts_[kTextConnecting], &rect, 2, g_connectTextColour, 0, 1);
+    RECT area{0, 0, 300, 20};
+    note->DrawTextIn(texts[kTextConnecting], &area, 2, g_connectTextColour, 0, 1);
 }
 
 // --- the master request box ----------------------------------------------------------------------
 
 CMasterRequestBox::CMasterRequestBox(CInterface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result,
                                      const net::NetAddress* address, std::uint32_t extra)
-    : CMessageBox(ui, titleKey, textKey, result, kBoxFlagsCancel, kBoxFormat), link_(address) {
-    bar_ = AddBlankSprite();
-    bar_->texture_ = nullptr;
-    bar_->flags_ |= FigureMeshFlag::Flat;
-    bar_->flatColour_ = kBarColour;
-    BufferPut(&link_.out, &extra, sizeof(extra));
+    : CMessageBox(ui, titleKey, textKey, result, kBoxFlagsCancel, kBoxFormat), link(address) {
+    bar = AddBlankSprite();
+    bar->texture = nullptr;
+    bar->flags |= FigureMeshFlag::Flat;
+    bar->flatColour = kBarColour;
+    BufferPut(&link.out, &extra, sizeof(extra));
 }
 
 void CMasterRequestBox::Update() {
-    double share = net::g_gameClient->BufferRatio(&link_.in);
+    double share = net::g_gameClient->BufferRatio(&link.in);
     float right = static_cast<float>(share * kBarWidth + kBarLeft);
-    bar_->SetRectangle(2.5f, 100.0f, 220.0f, 280.0f, right, 300.0f, 0, 0, 0x100, 0x100);
-    if (net::MasterLinkTick(&link_) == net::MasterLink::kDone) net::g_gameClient->ReadServerList(&link_.in);
-    if (net::MasterLinkTick(&link_) == net::MasterLink::kDone || net::MasterLinkTick(&link_) == net::MasterLink::kClosed)
-        interface_->SetPendingValue(CMpConnectScreen::kBoxMaster | kAnswerCancel);
+    bar->SetRectangle(2.5f, 100.0f, 220.0f, 280.0f, right, 300.0f, 0, 0, 0x100, 0x100);
+    if (net::MasterLinkTick(&link) == net::MasterLink::kDone) net::g_gameClient->ReadServerList(&link.in);
+    if (net::MasterLinkTick(&link) == net::MasterLink::kDone || net::MasterLinkTick(&link) == net::MasterLink::kClosed)
+        ui->SetPendingValue(CMpConnectScreen::kBoxMaster | kAnswerCancel);
 }

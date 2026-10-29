@@ -400,12 +400,12 @@ public:
 class CObject3D : public CTransformObject {
 public:
     ~CObject3D() override;
-    // type_ as the map object factory's type.
-    MapObjectType MapType() const { return static_cast<MapObjectType>(type_); }
+    // type as the map object factory's type.
+    MapObjectType MapType() const { return static_cast<MapObjectType>(type); }
     void Create() override { Create3D(); }
     void Destroy() override { Destroy3D(); }
     void ClearState() override { RemoveAllEffectSources(); }
-    // worldRotation_ = parent * localRotation_.
+    // worldRotation = parent * localRotation.
     void CombineRotation(const Quaternion& parent) override;
     void SaveTransform(lib::File* file) override;
     void LoadTransform(lib::File* file) override;
@@ -426,7 +426,7 @@ public:
     // Empty; units override it.
     virtual void AdvanceTime(float time);
     // Loads the model named by the object's name into the figure manager; non-units mark every part and themselves
-    // (flags_ 8 / 0x200). Then the half's LoadFigures-done virtual and flags_ 0x80. Nothing when already loaded.
+    // (flags 8 / 0x200). Then the half's LoadFigures-done virtual and flags 0x80. Nothing when already loaded.
     virtual void LoadFigures();
 
     // The bounding box of the parts (only those within 1e9 squared of the object) into the bounds: centre, box
@@ -443,7 +443,7 @@ public:
     CFigureMesh* FindPartByPrefix(std::string_view prefix);
     // The first part named exactly `partName`, or null.
     CFigureMesh* FindPart(std::string_view partName);
-    // The first part whose engine object type_ is `type`, or null.
+    // The first part whose engine object type is `type`, or null.
     CFigureMesh* FindPartOfType(int type);
     // Every part whose name starts with `prefix`.
     std::vector<CFigureMesh*> CollectPartsByPrefix(std::string_view prefix);
@@ -486,16 +486,16 @@ public:
     // The object's figure becomes `model` and each name of `partList` is loaded by LoadPart
     // (failures logged). Without a figure manager: FatalError. Returns 1.
     int LoadParts(std::string_view model, const std::vector<std::string>* partList);
-    // When a unit becomes the controlled one (world client): with the figure loaded (flags_ 0x80) the parts'
+    // When a unit becomes the controlled one (world client): with the figure loaded (flags 0x80) the parts'
     // world transforms are updated and the bounds recomputed from their world boxes.
     void UpdatePartBounds();
     // Builds the figure of the model for the part names `partList` (none: the animation
-    // state's parts and the whole figure), then LoadParts and the bounds; flags_ 0x80 set unless both `arg`
+    // state's parts and the whole figure), then LoadParts and the bounds; flags 0x80 set unless both `arg`
     // and the figure are 0. Returns 1.
     int MakeFigure(std::string_view model, std::vector<std::string>* partList, std::uint32_t arg);
     // The index of the part name equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(std::string_view partName);
-    // The box (CFigureMesh::bounds_) of part `index`.
+    // The box (CFigureMesh::bounds) of part `index`.
     FootprintPart* PartBox(int index);
 
     // Create (named apart so it is no override): back to an empty object, the figure released.
@@ -518,7 +518,7 @@ public:
     // `half` (of any type, or null) replaces the attached half: the old one is detached and released, the new
     // one points back here and gains a reference.
     void SetSpecific(CObject3DSpecific* half);
-    // Every part's flags_ gains / loses the bits of `mask`.
+    // Every part's flags gains / loses the bits of `mask`.
     void SetPartFlags(std::uint32_t mask);
     void ClearPartFlags(std::uint32_t mask);
     // Every part's flatColour / flatSpecular becomes `value`.

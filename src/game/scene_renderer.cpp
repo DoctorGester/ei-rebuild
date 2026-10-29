@@ -14,7 +14,7 @@ void CSceneRenderer::SetFogColour(float r, float g, float b) {
     const std::uint32_t red = static_cast<std::uint32_t>(x87::fistp(r * kColourScale));
     const std::uint32_t green = static_cast<std::uint32_t>(x87::fistp(g * kColourScale));
     const std::uint32_t blue = static_cast<std::uint32_t>(x87::fistp(b * kColourScale));
-    const std::uint32_t colour = (((red | 0xFFFFFF00u) << 8 | green) << 8) | blue;
-    fogColour_ = colour;
-    SetFogColourState(colour);
+    const std::uint32_t packed = (((red | 0xFFFFFF00u) << 8 | green) << 8) | blue;
+    fogColour = packed;
+    SetFogColourState(packed);
 }

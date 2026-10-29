@@ -67,17 +67,17 @@ public:
     CTextureDevice(HWND window, bool fullScreen, int width, int height, int bitsPerPixel);
     ~CTextureDevice() override;
 
-    bool fullScreen_ = false;   // the window covers the monitor
-    RECT screen_ = {};          // (0, 0, width, height): the screen's size
-    HWND window_ = nullptr;
-    int bitsPerPixel_ = 32;     // the screen's colour depth (16 or 32): the surfaces' format (ScreenFormat)
-    CTransformPipeline* pipeline_ = nullptr;
-    Surface* stageSurfaces_[8] = {};   // the holder bound to each texture stage
-    CDeviceMaterial* material_ = nullptr;
-    std::uint32_t colour_ = 0xFF000000;   // the renderer's draw colour (mesh draw flag 4)
+    bool fullScreen = false;    // the window covers the monitor
+    RECT screen = {};           // (0, 0, width, height): the screen's size
+    HWND window = nullptr;
+    int bitsPerPixel = 32;      // the screen's colour depth (16 or 32): the surfaces' format (ScreenFormat)
+    CTransformPipeline* pipeline = nullptr;
+    Surface* stageSurfaces[8] = {};    // the holder bound to each texture stage
+    CDeviceMaterial* material = nullptr;
+    std::uint32_t colour = 0xFF000000;    // the renderer's draw colour (mesh draw flag 4)
     // The draws fog their screen vertices by distance when set; cleared around the sky and hit point draws.
-    int distanceFog_ = 0;
-    RECT drawnRect_ = {};       // the screen rectangle of the last mesh draw
+    int distanceFog = 0;
+    RECT drawnRect = {};        // the screen rectangle of the last mesh draw
 };
 
 // Texture stage 0's three setups the world's and the interface's draws switch between: the scene's (texture x
@@ -144,8 +144,8 @@ bool IsTextureFormat(std::uint32_t id);
 // The pixel format of an RGB texture format; none (all zero) for a compressed or unknown one.
 render::PixelFormat TextureFormat(std::uint32_t id);
 
-// A texture's kind: its type_, the texture manager's object type. Neither the data nor the strings name them; the
-// callers pass a figure part's meshType_ (1..0x10, CObject3DClientSpecific's part sets; 1 and 2 also the units'
+// A texture's kind: its type, the texture manager's object type. Neither the data nor the strings name them; the
+// callers pass a figure part's meshType (1..0x10, CObject3DClientSpecific's part sets; 1 and 2 also the units'
 // composed skins "mo%dp" / "mo%ds") or one of these. CreateObject gives three more kinds their own flag
 // (TextureFlag::Type3E..Type40); nothing creates them.
 enum class TextureKind : int {
@@ -161,7 +161,7 @@ enum class TextureKind : int {
     Type40 = 0x40,
 };
 
-// The bits of CEngineObject::flags_ on a texture.
+// The bits of CEngineObject::flags on a texture.
 enum class TextureFlag : std::uint32_t {
     Loaded = 0x8,
     // With Loaded the mask that makes a released texture cacheable: nothing in the game sets 0x10 or 0x20.
@@ -201,9 +201,9 @@ public:
     // A square texture header->width wide (the height is not read) the game draws into on the GPU (TakeBlankHolder).
     // Returns 1.
     int CreateBlank(CTextureDevice* device, const MmpHeader* header);
-    // A new holder in surface_ of a `width` x `height` texture the game draws into on the GPU (render::BlankTexture),
-    // keeping what format_ keeps of the alpha; with `mipmapped` its levels made after each draw. The game's error for
-    // a surface that cannot be made when format_ is none.
+    // A new holder in surface of a `width` x `height` texture the game draws into on the GPU (render::BlankTexture),
+    // keeping what format keeps of the alpha; with `mipmapped` its levels made after each draw. The game's error for
+    // a surface that cannot be made when format is none.
     void TakeBlankHolder(CTextureDevice* device, int width, int height, bool mipmapped);
     // A 24-bit .bmp and, when `alphaPath` is an 8-bit .bmp, its alpha. 1 (also when already loaded); 0 when
     // the .bmp cannot be opened.
@@ -216,13 +216,13 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    std::string name_;
-    std::uint32_t width_;
-    std::uint32_t height_;
-    int uploadResult_;          // the surface fill's byte count (MmpHeader::FilledBytes); 0 after CreateBlank
-    std::vector<std::uint8_t> extra_;       // the .mmp file's extra block
-    std::uint32_t format_;      // the texture format it is held in (TextureFormat); 0 none
-    Ref<Surface> surface_;
+    std::string name;
+    std::uint32_t width;
+    std::uint32_t height;
+    int uploadResult;           // the surface fill's byte count (MmpHeader::FilledBytes); 0 after CreateBlank
+    std::vector<std::uint8_t> extra;        // the .mmp file's extra block
+    std::uint32_t format;       // the texture format it is held in (TextureFormat); 0 none
+    Ref<Surface> surface;
 
     CTextureManager* Manager() const;
 };
@@ -259,7 +259,7 @@ public:
     void Create() override;
     // As the destructor up to CResourceManager::Destroy (without SetDevice).
     void Destroy() override;
-    // flags_ by type (TextureKind): TextureFlag::Type3E, Type3F, Type40, any other OtherType (no null check).
+    // flags by type (TextureKind): TextureFlag::Type3E, Type3F, Type40, any other OtherType (no null check).
     CEngineObject* CreateObject(int type, int id) override;
     // textures\<name>.bmp on disk if present, else <name>.mmp from the archives, else the composed texture
     // `name` (Compose).
@@ -281,7 +281,7 @@ public:
     void SetDevice(CTextureDevice* device);
     // Taken out of the cache and registered again; null when there is none.
     CTexture* TakeFromCache(int type, std::string_view name);
-    // The registered texture, else a cached one taken back as TakeFromCache does (but cachedBytes_ is not
+    // The registered texture, else a cached one taken back as TakeFromCache does (but cachedBytes is not
     // lowered).
     CTexture* FindTexture(std::string_view name);
     CTexture* FindTypedTexture(int type, std::string_view name);
@@ -308,10 +308,10 @@ public:
     // Deletes the oldest cached textures while the cache holds more than kCacheLimit.
     void TrimCache();
 
-    std::list<CTexture*> cache_;   // released textures kept for reuse
-    int cachedBytes_;           // the cached textures' CTexture::uploadResult_
-    CTextureDevice* device_;
-    std::uint16_t mipLevel_;    // first mip level to load
-    int limitTo512_;            // nonzero: textures are loaded at most 511 pixels wide and high
+    std::list<CTexture*> cache;    // released textures kept for reuse
+    int cachedBytes;            // the cached textures' CTexture::uploadResult
+    CTextureDevice* device;
+    std::uint16_t mipLevel;     // first mip level to load
+    int limitTo512;             // nonzero: textures are loaded at most 511 pixels wide and high
 };
-inline CTextureManager* CTexture::Manager() const { return static_cast<CTextureManager*>(owner_); }
+inline CTextureManager* CTexture::Manager() const { return static_cast<CTextureManager*>(owner); }

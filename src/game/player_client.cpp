@@ -59,7 +59,7 @@ struct LoginRequest {
     int version;
     char name[64];
     char password[64];
-    std::uint32_t partyId; // the player's partyId_
+    std::uint32_t partyId; // the player's partyId
 };
 static_assert(sizeof(LoginRequest) == 0x88);
 
@@ -106,7 +106,7 @@ constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
 constexpr std::uint8_t kRequestRecording = 2;
 
 // Path markers are shown.
-bool MarkersShown() { return options::g_options.drawPath_ != 0; }
+bool MarkersShown() { return options::g_options.drawPath != 0; }
 const char* TextPartyReceived() { return "party received on client"; }
 
 constexpr std::uint32_t kHeaderFlagHidden = 8;
@@ -121,7 +121,7 @@ constexpr int kSessionClient = 3;
 struct NewObjectHeader {
     int id;
     int type;
-    std::uint32_t prototype;   // the object's prototypeId_
+    std::uint32_t prototype;   // the object's prototypeId
     std::uint32_t flags;
 };
 
@@ -182,32 +182,32 @@ int ReadDword(CMemoryStream* in) {
 } // namespace
 
 bool CPlayerClient::Pump() {
-    netlink::NetLink* link = player_->link_;
-    switch (state_) {
+    netlink::NetLink* link = player->link;
+    switch (state) {
     case kStateConnecting: {
         if (link == nullptr || !link->Connected()) return true;
-        if (sendParty_) {
-            WriteByte(&out_, kRequestParty);
-            player_->Party()->SaveParty(&out_, 1);
+        if (sendParty) {
+            WriteByte(&out, kRequestParty);
+            player->Party()->SaveParty(&out, 1);
         }
         LoginRequest login;
         std::memset(&login, 0, sizeof(login));
         login.version = kLoginVersion;
         std::memcpy(login.name, TextLoginName(), std::strlen(TextLoginName()) + 1);
         std::memcpy(login.password, TextLoginPassword(), std::strlen(TextLoginPassword()) + 1);
-        login.partyId = player_->partyId_;
-        WriteByte(&out_, kRequestLogin);
-        out_.WriteValue(login);
-        state_ = kStateLoggedIn;
+        login.partyId = player->partyId;
+        WriteByte(&out, kRequestLogin);
+        out.WriteValue(login);
+        state = kStateLoggedIn;
         return SendToServer();
     }
     case kStateLoggedIn:
         return true;
     case kStateSendingCamera: {
-        const Vector3* anchor = CameraAnchor(g_clientWorld.camera_);
+        const Vector3* anchor = CameraAnchor(g_clientWorld.camera);
         float point[2] = {anchor->x, anchor->y};
-        WriteByte(&out_, kRequestCamera);
-        out_.Write(point, sizeof(point));
+        WriteByte(&out, kRequestCamera);
+        out.Write(point, sizeof(point));
         return SendToServer();
     }
     default:
@@ -216,54 +216,54 @@ bool CPlayerClient::Pump() {
 }
 
 bool CPlayerClient::SendToServer() {
-    netlink::NetLink* link = player_->link_;
+    netlink::NetLink* link = player->link;
     if (link == nullptr) return true;
     bool sent = false;
     if (link->Connected()) {
         CMemoryStream packed;
-        out_.CompressTo(&compressor_, &packed);
-        if (player_->logTraffic_ != 0) {
-            std::uint32_t packedSize = packed.size_;
-            std::uint32_t size = out_.Size();
+        out.CompressTo(&compressor, &packed);
+        if (player->logTraffic != 0) {
+            std::uint32_t packedSize = packed.size;
+            std::uint32_t size = out.Size();
             console::EndLine(console::g_netLogOut << TextClientToServer() << size << TextSqueezedSize() << packedSize);
         }
         sent = link->Send(&packed);
     }
-    out_.Resize(0);
+    out.Resize(0);
     return sent;
 }
 
 int CPlayerClient::DispatchMessages() {
-    in_.Seek(0);
-    in_.ok_ = 1;
-    std::uint8_t type = 0xFF;
+    in.Seek(0);
+    in.ok = 1;
+    std::uint8_t messageType = 0xFF;
     std::uint8_t previous = 0xFF;
     for (;;) {
-        if (!in_.ok_) return PlayerMessageError(TextReadPastEnd(), previous, type);
-        previous = type;
-        if (in_.Read(&type, 1) == 0) return 1;
-        if (static_cast<int>(type) >= std::ssize(handlers_)) return PlayerMessageError(TextUnknownType(), previous, type);
-        auto handler = handlers_[type];
-        if (handler == nullptr) return PlayerMessageError(TextNoHandler(), previous, type);
-        if (!(this->*handler)()) return PlayerMessageError(TextHandlerFailed(), previous, type);
+        if (!in.ok) return PlayerMessageError(TextReadPastEnd(), previous, messageType);
+        previous = messageType;
+        if (in.Read(&messageType, 1) == 0) return 1;
+        if (static_cast<int>(messageType) >= std::ssize(handlers)) return PlayerMessageError(TextUnknownType(), previous, messageType);
+        auto handler = handlers[messageType];
+        if (handler == nullptr) return PlayerMessageError(TextNoHandler(), previous, messageType);
+        if (!(this->*handler)()) return PlayerMessageError(TextHandlerFailed(), previous, messageType);
     }
 }
 
 int CPlayerClient::ReceiveMessages() {
-    netlink::NetLink* link = player_->link_;
+    netlink::NetLink* link = player->link;
     if (link == nullptr) return 0;
     if (!link->HasIncoming()) return 1;
     CMemoryStream packet;
     if (!link->Receive(&packet)) return 0;
-    packet.DecompressTo(&decompressor_, &in_);
+    packet.DecompressTo(&decompressor, &in);
     return DispatchMessages() != 0 ? 1 : 0;
 }
 
 int CPlayerClient::OnSetVariable() {
-    std::string name = in_.ReadString();
+    std::string name = in.ReadString();
     std::uint32_t value;
-    in_.ReadValue(value);
-    NamedFloatTable& variables = player_->Party()->variables_;
+    in.ReadValue(value);
+    NamedFloatTable& variables = player->Party()->variables;
     variables.Get(name);
     variables.Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
@@ -274,8 +274,8 @@ int CPlayerClient::OnSetVariable() {
 }
 
 int CPlayerClient::OnDeleteVariable() {
-    std::string name = in_.ReadString();
-    player_->Party()->variables_.Remove(name);
+    std::string name = in.ReadString();
+    player->Party()->variables.Remove(name);
     if (IsQuestVariable(name)) {
         g_interface.OnQuestVariable(name, 0.0f);
         g_clientWorld.OnQuestVariable(name, 0.0f);
@@ -284,73 +284,73 @@ int CPlayerClient::OnDeleteVariable() {
 }
 
 int CPlayerClient::OnZoneChange() {
-    std::string zone = in_.ReadString();
+    std::string zone = in.ReadString();
     int entrance;
-    in_.ReadValue(entrance);
+    in.ReadValue(entrance);
     g_gameFlow.RequestZoneChange(zone, entrance);
     return 1;
 }
 
 int CPlayerClient::OnJingle() {
-    std::string name = in_.ReadString();
-    g_clientWorld.music_->PlayJingle(name);
+    std::string name = in.ReadString();
+    g_clientWorld.music->PlayJingle(name);
     return 1;
 }
 
 int CPlayerClient::OnZone() {
     CMemoryStream block;
-    if (in_.ReadStream(&block) == 0) return 0;
-    player_->Clear();
+    if (in.ReadStream(&block) == 0) return 0;
+    player->Clear();
     g_clientWorld.LoadZone(&block);
     return 1;
 }
 
 int CPlayerClient::OnWorldBlock3() {
     CMemoryStream block;
-    if (in_.ReadStream(&block) == 0) return 0;
+    if (in.ReadStream(&block) == 0) return 0;
     g_clientWorld.LoadItemsAndSpells(&block);
     return 1;
 }
 
 int CPlayerClient::OnWorldBlock5() {
     CMemoryStream block;
-    if (in_.ReadStream(&block) == 0) return 0;
+    if (in.ReadStream(&block) == 0) return 0;
     g_clientWorld.LoadNewItemsAndSpells(&block);
     return 1;
 }
 
 int CPlayerClient::OnItemRemoved() {
-    int id;
-    in_.ReadValue(id);
-    player_->TakeItem(id);
+    int objectId;
+    in.ReadValue(objectId);
+    player->TakeItem(objectId);
     RefreshQuestLog();
     return 1;
 }
 
 int CPlayerClient::OnQuestItemsChanged() {
-    player_->TakeAllItems();
+    player->TakeAllItems();
     RefreshQuestLog();
     return 1;
 }
 
 int CPlayerClient::OnExperienceAll() {
     float amount;
-    in_.ReadValue(amount);
-    CPlayer::UnitMap& units = player_->units_;
+    in.ReadValue(amount);
+    CPlayer::UnitMap& units = player->units;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
         CUnit* unit = node->second;
-        g_clientWorld.ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
+        g_clientWorld.ShowNumber(unit->id, ScaledExperience(unit, amount), kNumberExperience);
     }
     return 1;
 }
 
 int CPlayerClient::OnExperience() {
-    int id;
+    int objectId;
     float amount;
-    in_.ReadValue(id);
-    in_.ReadValue(amount);
-    auto* unit = g_clientWorld.FindUnit(id);
-    if (unit != nullptr) g_clientWorld.ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
+    in.ReadValue(objectId);
+    in.ReadValue(amount);
+    auto* unit = g_clientWorld.FindUnit(objectId);
+    if (unit != nullptr) g_clientWorld.ShowNumber(objectId, ScaledExperience(unit, amount), kNumberExperience);
     return 1;
 }
 
@@ -358,25 +358,25 @@ int CPlayerClient::OnExperience() {
 
 int CPlayerClient::OnItemsReceived() {
     std::list<CItem*> items;
-    int& money = player_->Party()->money_;
+    int& money = player->Party()->money;
     int before = money;
-    in_.ReadValue(money);
+    in.ReadValue(money);
     std::uint8_t flag = 0;   // the original passes this byte with three bytes of stack memory above it
-    in_.ReadValue(flag);
+    in.ReadValue(flag);
     int result = 1;
     for (;;) {
-        int id;
-        in_.ReadValue(id);
-        if (id == -1) break;
-        if (!in_.ok_) {
+        int objectId;
+        in.ReadValue(objectId);
+        if (objectId == -1) break;
+        if (!in.ok) {
             result = 0;
             break;
         }
-        auto* manager = g_clientWorld.itemManager_;
-        if (CItem* item = FindItem(manager, static_cast<unsigned>(id))) items.push_front(item);
+        auto* manager = g_clientWorld.itemManager;
+        if (CItem* item = FindItem(manager, static_cast<unsigned>(objectId))) items.push_front(item);
     }
     if (result != 0) {
-        player_->GiveItems(&items, flag);
+        player->GiveItems(&items, flag);
         g_interface.OnItemsPicked(&items, money - before, flag != 0);
     }
     items.clear();
@@ -384,26 +384,26 @@ int CPlayerClient::OnItemsReceived() {
 }
 
 int CPlayerClient::OnParty() {
-    CParty* party = player_->Party();
-    NamedFloatTable saved(party->variables_);
+    CParty* party = player->Party();
+    NamedFloatTable saved(party->variables);
     {
         CMemoryStream block;
-        in_.ReadSized(&block);
+        in.ReadSized(&block);
         block.CMemoryStream::Seek(0);
-        if (in_.ok_) {
+        if (in.ok) {
             party->LoadParty(&block, 1);
-            std::list<std::uint32_t>& recharging = player_->recharging_;
+            std::list<std::uint32_t>& recharging = player->recharging;
             recharging.clear();
             ObjectListIteratorOf<CItem> walk{};
             for (CItem* item = walk.First(party->ItemFactory()); item != nullptr; item = walk.Next()) {
-                if (item->chargeMax_ > item->charge_)
-                    recharging.push_back(static_cast<std::uint32_t>(item->id_));
+                if (item->chargeMax > item->charge)
+                    recharging.push_back(static_cast<std::uint32_t>(item->id));
             }
-            if (walk.manager != nullptr) --walk.manager->refCount_;   // the iterator's destructor
+            if (walk.manager != nullptr) --walk.manager->refCount;    // the iterator's destructor
         }
         if (IsMultiplayerClient()) {
             // A multiplayer client keeps its variables.
-            party->variables_ = saved;
+            party->variables = saved;
         }
         g_clientWorld.ApplyObjectVariables();
         console::EndLine(console::g_netLogOut << TextPartyReceived());
@@ -414,9 +414,9 @@ int CPlayerClient::OnParty() {
 
 int CPlayerClient::OnPartyUpdate() {
     CMemoryStream block;
-    in_.ReadSized(&block);
+    in.ReadSized(&block);
     block.CMemoryStream::Seek(0);
-    if (in_.ok_) player_->Party()->LoadParty(&block, 0);
+    if (in.ok) player->Party()->LoadParty(&block, 0);
     return 1;
 }
 
@@ -424,29 +424,29 @@ int CPlayerClient::OnPathMarker() {
     DeltaField field;
     CParticleSource* pathSource = nullptr;
     int kind;
-    in_.ReadValue(kind);
+    in.ReadValue(kind);
     int flag;
-    in_.ReadValue(flag);
+    in.ReadValue(flag);
     Vector3 at{0.0f, 0.0f, 0.0f};
-    in_.ReadValue(at.x);
-    in_.ReadValue(at.y);
+    in.ReadValue(at.x);
+    in.ReadValue(at.y);
     int unitId;
-    in_.ReadValue(unitId);
+    in.ReadValue(unitId);
     float value;
-    in_.ReadValue(value);
+    in.ReadValue(value);
     if (kind != kKindNoPath) {
-        auto* walker = g_clientWorld.objectManager_->CreateObjectAs<CUnit>(MapObjectType::Hero, -1);
+        auto* walker = g_clientWorld.objectManager->CreateObjectAs<CUnit>(MapObjectType::Hero, -1);
         walker->AddRef();
         PathOrder* path = &walker->ClientController()->motion;
         DeltaField* writing = field.BeginWriteB(0);
         path->WriteState(writing);
         writing->EndField();
-        DeltaField* reading = field.BeginReadB(0, &in_);
+        DeltaField* reading = field.BeginReadB(0, &in);
         path->ReadState(reading);
         reading->EndField();
         if (MarkersShown()) {
             walker->SetMotionSpeeds(kMarkerSpeedA, std::bit_cast<float>(kMarkerSpeedB));
-            auto* source = g_clientWorld.particleManager_->CreateSource(kPathParticles);
+            auto* source = g_clientWorld.particleManager->CreateSource(kPathParticles);
             pathSource = source;
             source->Attach(walker);
             source->typeParam = value;
@@ -459,30 +459,30 @@ int CPlayerClient::OnPathMarker() {
         walker->Release();
     }
     if (MarkersShown()) {
-        auto* marker = g_clientWorld.particleManager_->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
-        marker->localPosition_ = at;
-        CEngineObject* owner = player_;
-        CUnit* unit = owner->WorldContext()->FindUnit(unitId);
+        auto* marker = g_clientWorld.particleManager->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
+        marker->localPosition = at;
+        CEngineObject* ownerObject = player;
+        CUnit* unit = ownerObject->WorldContext()->FindUnit(unitId);
         if (unit != nullptr) unit->ClientController()->SetMarkers(pathSource, marker);
     }
     return 1;
 }
 
 int CPlayerClient::OnStringEvent() {
-    std::string text = in_.ReadString();
+    std::string text = in.ReadString();
     g_interface.OnStringEvent(text);
     return 1;
 }
 
 void CPlayerClient::StartRecording(const char* path) {
-    netlink::NetLink* link = player_->link_;
+    netlink::NetLink* link = player->link;
     if (link == nullptr) return;
-    WriteByte(&out_, kRequestRecording);
+    WriteByte(&out, kRequestRecording);
     link->OpenRecording(path);
 }
 
 void CPlayerClient::StopRecording() {
-    netlink::NetLink* link = player_->link_;
+    netlink::NetLink* link = player->link;
     if (link != nullptr) link->CloseRecording();
 }
 
@@ -494,37 +494,37 @@ int CPlayerClient::OnNewObject() {
     std::string scriptName;
     std::string secondName;
     NewObjectHeader header;
-    in_.ReadValue(header);
+    in.ReadValue(header);
     Vector3 scale;
-    in_.ReadValue(scale);
-    secondName = in_.ReadString();
-    if (!in_.ok_) return 0;
+    in.ReadValue(scale);
+    secondName = in.ReadString();
+    if (!in.ok) return 0;
     char model[kTextSize];
     char textureFrom[kTextSize];
     char textureTo[kTextSize];
     char part[kTextSize];
-    in_.ReadText(model, kTextSize);
-    in_.ReadText(textureFrom, kTextSize);
-    in_.ReadText(textureTo, kTextSize);
+    in.ReadText(model, kTextSize);
+    in.ReadText(textureFrom, kTextSize);
+    in.ReadText(textureTo, kTextSize);
     std::uint16_t count = 0;   // read into the low half of a stack dword
-    in_.ReadValue(count);
+    in.ReadValue(count);
     parts.resize(count);
     for (std::uint16_t i = 0; i < count; ++i) {
-        in_.ReadText(part, kTextSize);
+        in.ReadText(part, kTextSize);
         parts[i] = part;
     }
-    scriptName = in_.ReadString();
+    scriptName = in.ReadString();
     int prototypeValue;
-    in_.ReadValue(prototypeValue);
+    in.ReadValue(prototypeValue);
 
-    auto* world = player_->WorldContext();
-    CMapObject* created = world->objectManager_->CreateObjectAs<CMapObject>(static_cast<MapObjectType>(header.type), header.id);
+    auto* world = player->WorldContext();
+    CMapObject* created = world->objectManager->CreateObjectAs<CMapObject>(static_cast<MapObjectType>(header.type), header.id);
     if (created == nullptr) return 0;
     CMapObject* object = created;
     CObject3D* figure = object;
     object->name = model;
     bool isUnit = created->GetClassId() == ClassId::Unit;
-    created->prototypeId_ = header.prototype;
+    created->prototypeId = header.prototype;
     figure->SetFigureScale(&scale.x);
     object->baseScale = scale;
     object->ApplyBaseScale();
@@ -539,8 +539,8 @@ int CPlayerClient::OnNewObject() {
         std::memcpy(unit->actionSpeeds, modelRecord->actionSpeeds, sizeof(unit->actionSpeeds));
         unit->SetSecondPrototypeIndex(prototypeValue);
     }
-    if (header.flags & kHeaderFlagHidden) created->flags_ |= kHeaderFlagHidden;
-    if (Same(model, TextCow1()) || Same(model, TextCow2())) created->flags_ |= kFlagCow;
+    if (header.flags & kHeaderFlagHidden) created->flags |= kHeaderFlagHidden;
+    if (Same(model, TextCow1()) || Same(model, TextCow2())) created->flags |= kFlagCow;
     if (created->MapType() == MapObjectType::Hero && (Same(model, TextHuman()) || Same(model, TextHumanFemale()))) {
         // The head part takes the prototype's hair, or goes without one.
         for (std::size_t i = 0; i < parts.size(); ++i) {
@@ -555,19 +555,19 @@ int CPlayerClient::OnNewObject() {
     if (Same(model, TextGoblin())) {
         RemovePartNamed(figure, TextAxePart());
         RemovePartNamed(figure, TextSwordPart());
-        bool pike = static_cast<int>(unitdb::PrototypeRecord(created->prototypeId_)->naturalWeapon) == kWeaponPike;
+        bool pike = static_cast<int>(unitdb::PrototypeRecord(created->prototypeId)->naturalWeapon) == kWeaponPike;
         RemovePartNamed(figure, pike ? TextPikePart() : TextSlingPart());
     }
     if (Same(model, TextWisp())) {
         auto* source =
-            g_clientWorld.particleManager_->CreateSource(kWispParticles);
+            g_clientWorld.particleManager->CreateSource(kWispParticles);
         source->Attach(object);
         source->ScaleSize(kWispSize / source->baseSize);
         source->attachPoint = 0;
     }
     if (!isUnit) {
-        for (int i = 0; i < std::ssize(figure->parts); ++i) figure->parts[i]->flags_ |= FigureMeshFlag::Stationary;
-        created->flags_ |= MapObjectFlag::Stationary;
+        for (int i = 0; i < std::ssize(figure->parts); ++i) figure->parts[i]->flags |= FigureMeshFlag::Stationary;
+        created->flags |= MapObjectFlag::Stationary;
     }
     CObject3DClientSpecific* attached = figure->ClientSpecific();
     attached->RegisterPartMaterials();
@@ -576,8 +576,8 @@ int CPlayerClient::OnNewObject() {
     figure->RestartPose();
     std::optional<std::string_view> to = std::string_view(textureTo);
     if (created->MapType() == MapObjectType::Hero) {
-        std::snprintf(textureFrom, sizeof(textureFrom), TextSkinFrom(), created->id_);
-        std::snprintf(textureTo, sizeof(textureTo), TextSkinTo(), created->id_);
+        std::snprintf(textureFrom, sizeof(textureFrom), TextSkinFrom(), created->id);
+        std::snprintf(textureTo, sizeof(textureTo), TextSkinTo(), created->id);
     } else if (Same(textureTo, TextNone())) {
         to = std::nullopt;
     }
@@ -585,22 +585,22 @@ int CPlayerClient::OnNewObject() {
     if (isUnit) created->SetScriptName(scriptName);
 
     // The player keeps it, counted.
-    CPlayer* player = player_;
-    if (header.id > player->maxObjectId_) player->maxObjectId_ = header.id;
-    player->knownObjects_[header.id] = object;
+    CPlayer* currentPlayer = player;
+    if (header.id > currentPlayer->maxObjectId) currentPlayer->maxObjectId = header.id;
+    currentPlayer->knownObjects[header.id] = object;
     created->AddRef();
     if (CUnit* unit = UnitOrNull(created))
         object->TakePrototype(unit->GetPrototype()->name);
     else
         object->TakePrototype(model);
     object->WriteFullState();
-    if (object->ReadState(0, &in_) == 0) return 0;
+    if (object->ReadState(0, &in) == 0) return 0;
     g_clientWorld.AddObject(object);
     if (object->name2[0] != 0) {
         const std::string variable = g_clientWorld.ObjectVariableName(object->name2);
-        object->SetVisibilityLevel(player->Party()->variables_.Get(variable));
+        object->SetVisibilityLevel(currentPlayer->Party()->variables.Get(variable));
     }
-    if (player->sessionKind_ == kSessionClient) {
+    if (currentPlayer->sessionKind == kSessionClient) {
         if (CUnit* unit = UnitOrNull(created)) unit->ClientController()->LoadFaceTexture();
     }
     return 1;
@@ -609,38 +609,38 @@ int CPlayerClient::OnNewObject() {
 // --- Clearing the connection ---------------------------------------------------------------
 
 void CPlayerClient::CreateClient() {
-    state_ = 0;
-    partyUnitIds_.clear();
-    in_.Resize(0);
-    out_.Resize(0);
-    localSession_ = 0;
-    sendParty_ = 0;
-    compressor_.Reset();
-    decompressor_.Reset();
-    handlers_.resize(kClientHandlerCount);
-    std::fill_n(handlers_.data(), std::ssize(handlers_), Handler{});
+    state = 0;
+    partyUnitIds.clear();
+    in.Resize(0);
+    out.Resize(0);
+    localSession = 0;
+    sendParty = 0;
+    compressor.Reset();
+    decompressor.Reset();
+    handlers.resize(kClientHandlerCount);
+    std::fill_n(handlers.data(), std::ssize(handlers), Handler{});
     for (const auto& entry : kClientHandlers)
-        handlers_[entry.type] = entry.handler;
+        handlers[entry.type] = entry.handler;
 }
 
 void CPlayerClient::Clear() {
-    state_ = 0;
-    partyUnitIds_.clear();
-    in_.Resize(0);
-    out_.Resize(0);
-    localSession_ = 0;
-    sendParty_ = 0;
-    compressor_.Reset();
-    decompressor_.Reset();
+    state = 0;
+    partyUnitIds.clear();
+    in.Resize(0);
+    out.Resize(0);
+    localSession = 0;
+    sendParty = 0;
+    compressor.Reset();
+    decompressor.Reset();
 }
 
 // --- Constructor and destructor ------------------------------------------------------------
 
 CPlayerConnection::CPlayerConnection() {
-    player_ = nullptr;
+    player = nullptr;
 }
 
-CPlayerConnection::~CPlayerConnection() { player_ = nullptr; }
+CPlayerConnection::~CPlayerConnection() { player = nullptr; }
 
 // The streams are members (constructed before the body; the original builds them after the handler table).
 CPlayerClient::CPlayerClient() {
@@ -658,46 +658,46 @@ ClassId CPlayerClient::GetClassId() { return ClassId::PlayerClient; }
 // --- The party state ---------------------------------------------------------------------
 
 int CPlayerClient::OnPartyState() {
-    CPlayer* player = player_;
-    for (int i = 0; i < std::ssize(partyUnitIds_); ++i) {
-        g_partyIdSet.insert(partyUnitIds_[i]);
-        CUnit* unit = player->WorldContext()->FindUnit(partyUnitIds_[i]);
-        if (unit != nullptr) unit->flags_ &= ~MapObjectFlag::InParty;
+    CPlayer* currentPlayer = player;
+    for (int i = 0; i < std::ssize(partyUnitIds); ++i) {
+        g_partyIdSet.insert(partyUnitIds[i]);
+        CUnit* unit = currentPlayer->WorldContext()->FindUnit(partyUnitIds[i]);
+        if (unit != nullptr) unit->flags &= ~MapObjectFlag::InParty;
     }
 
     std::uint8_t paused;
-    in_.ReadValue(paused);
-    player->ClientWorld()->paused_ = paused != 0 ? 1 : 0;
-    ReadDword(&in_);   // the server's possessedId_, not used
+    in.ReadValue(paused);
+    currentPlayer->ClientWorld()->paused = paused != 0 ? 1 : 0;
+    ReadDword(&in);    // the server's possessedId, not used
 
-    int count = ReadDword(&in_);
-    partyUnitIds_.resize(count);
+    int count = ReadDword(&in);
+    partyUnitIds.resize(count);
     for (int i = 0; i < count; ++i) {
-        int id = ReadDword(&in_);
-        partyUnitIds_[i] = id;
-        auto* unit = player->WorldContext()->FindUnit(id);
+        int objectId = ReadDword(&in);
+        partyUnitIds[i] = objectId;
+        auto* unit = currentPlayer->WorldContext()->FindUnit(objectId);
         if (unit == nullptr) continue;
-        unit->flags_ |= MapObjectFlag::InParty;
-        if (!g_partyIdSet.contains(id) && player->sessionKind_ == kSessionKindSingle && unit->player == nullptr &&
-            g_clientWorld.ticksRun_ >= 1)
+        unit->flags |= MapObjectFlag::InParty;
+        if (!g_partyIdSet.contains(objectId) && currentPlayer->sessionKind == kSessionKindSingle && unit->player == nullptr &&
+            g_clientWorld.ticksRun >= 1)
             unit->Controller()->RestartFadeIn();
     }
     g_partyIdSet.clear();
 
-    player->ClientWorld()->partyDanger_ = ReadDword(&in_);
-    int others = ReadDword(&in_);
-    otherUnitIds_.resize(others);
-    for (int i = 0; i < others; ++i) in_.ReadValue(otherUnitIds_[i]);
+    currentPlayer->ClientWorld()->partyDanger = ReadDword(&in);
+    int others = ReadDword(&in);
+    otherUnitIds.resize(others);
+    for (int i = 0; i < others; ++i) in.ReadValue(otherUnitIds[i]);
     return 1;
 }
 
 // --- Messages appended to the received stream -----------------------------------------------
 
 void CPlayerClient::AppendReceived(CMemoryStream* source) {
-    const std::uint32_t position = in_.Position();
-    in_.Seek(in_.Size());
-    in_.EndBits();
+    const std::uint32_t position = in.Position();
+    in.Seek(in.Size());
+    in.EndBits();
     source->Seek(0);
-    in_.Write(source->data_.data(), source->Size());
-    in_.Seek(position);
+    in.Write(source->data.data(), source->Size());
+    in.Seek(position);
 }

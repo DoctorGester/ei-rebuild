@@ -57,22 +57,22 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int delay, const Vecto
         // A unit that noticed something at least as loud as a call hears nothing.
         if (brain->memory.noticedLevel >= kNoticeCallLevel) continue;
         const double hearing = static_cast<double>(control->moveFactors[1]) * control->stats.perception[3].current;
-        const float distance = vecmath::Distance<Sum3::XYZ>(at, other->localPosition_);
+        const float distance = vecmath::Distance<Sum3::XYZ>(at, other->localPosition);
         EI_NAN_AUDIT(hearing, loudness, distance);
         if (hearing * loudness <= distance) continue;
         std::string text;
         if (console::g_filterMask & 1) {
-            const double between = vecmath::Distance<Sum3::XYZ>(other->localPosition_, unit->localPosition_);
-            text = str::Format(kHeardFormat, other->id_, unit->id_, between);
+            const double between = vecmath::Distance<Sum3::XYZ>(other->localPosition, unit->localPosition);
+            text = str::Format(kHeardFormat, other->id, unit->id, between);
         }
-        brain->memory.calls.Hear(unit->localPosition_, delay, text);
+        brain->memory.calls.Hear(unit->localPosition, delay, text);
     }
 }
 
 AIEventPresence* AIViewer::StepNoise(const Vector3& position, CUnitServer* source) {
-    const AITerrainType* ground = g_serverWorld.aiMap_.MaterialRecordAt(position);
+    const AITerrainType* ground = g_serverWorld.aiMap.MaterialRecordAt(position);
     float loudness = source->moveFactors[0] * source->stats.conspicuity[3].current;
     loudness *= ground->noise;
-    Noise(source, loudness, AIBrain::kCallDelay, source->unit->localPosition_);
+    Noise(source, loudness, AIBrain::kCallDelay, source->unit->localPosition);
     return nullptr;
 }

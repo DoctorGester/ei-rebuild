@@ -104,7 +104,7 @@ others their stats scaled by difficulty (0052E0D0); no defence with a bow or cro
 - Update: UnitVitals::Regenerate, AI events (world + 0x2838, 005C9770) every (+0x914 + 1)-th frame, armour periodic spells
   (00552B90), a party unit's perception memory (+0xA50, 005CB850), boredom (+0x938; past 500 one ISAAC draw in 1001 sends
   remark 0x29 and sets 400, or 0 when the player's +0x5120 is set), alarm, AIBrain::Think, PropagateHostility, then
-  UpdateOrders unless frozen (flags_ 0x1000000) or reacting to a hit, UpdateState (005499F0) and AdvanceAnimation. A dead
+  UpdateOrders unless frozen (flags 0x1000000) or reacting to a hit, UpdateState (005499F0) and AdvanceAnimation. A dead
   unit's body sinks (z -= +0x8F4, growing by 0073C548 per update) and once the queue is empty death is reported once
   (+0x18D: 00593AF0, 005300D0, brain / alarm resets).
 - Movement tick (`UpdateMotion`, called twice by 005499F0; the AI-side chain is in `ai.md` "How a unit moves"): samples the
@@ -113,8 +113,8 @@ others their stats scaled by difficulty (0052E0D0); no defence with a bow or cro
   casting at the same target, or replans with nearby units lifted (links leading back clear both; a slower blocker with
   reason 2, water, also replans); else CSectorMap::Move. Running party units drain "stamina": the server object's
   vitals.mana (+0x14) -= vitals.maxMana (+0x18) * 0073F088; below 0: message 0x1D, walk.
-- OnDamaged(attacker, hitKind): types outside 0x32..0x36 only get flags_ bit 1. Living: armour spells, attacker hostile and
-  remembered (005D7E90), flags_ 0x80000, PropagateHostility (allied units within the brain's +0x38 radius exchange claims
+- OnDamaged(attacker, hitKind): types outside 0x32..0x36 only get flags bit 1. Living: armour spells, attacker hostile and
+  remembered (005D7E90), flags 0x80000, PropagateHostility (allied units within the brain's +0x38 radius exchange claims
   through 00552D00), hit direction to +0x160 unless +0x144. Dead: the killer's party gets message 0x30, WitnessMurder on both
   nearby lists (brain + 0xF4), effects cleared, SetDead(1), "Unit 12 damaged to death", death animation (00550A80,
   00548DE0), AI death notice (005C97B0), party memory (005CBE90). HitDirection: |side| < |front| (or NaN) gives 0x800000
@@ -146,8 +146,8 @@ net_state have no offsets / VCalls left (the __asm / float_control blocks, magic
 Text(0x...) strings stay; next by count: unit_create_stats.cpp). map_object.h slot 44 `UseSpots(void* out, float
 userRadius)`, 55 IsDead (units return +0x274), 59 `double MoveSpeed()` (ST0); CUnitController slots 21-50 (ShowWeapon
 25, TamingStage 39, GetAttackParams 50, 48 empty); `SpellRecord::unknown_10` (+0x10: 1 casts without noise / slowing the
-caster); `ArmorRecord::layer` (+0xB8); tick globals 007AFFC4 / 007B00D2 / 007B01F4 / 007B2798 = WorldServer()->tick_,
-aiMap_.refreshUnits, Sectors(), aiMap_.events; unit_skins' zone records DressedUnitRecord 0x24 / FiguredUnitRecord 0x3C, its
+caster); `ArmorRecord::layer` (+0xB8); tick globals 007AFFC4 / 007B00D2 / 007B01F4 / 007B2798 = WorldServer()->tick,
+aiMap.refreshUnits, Sectors(), aiMap.events; unit_skins' zone records DressedUnitRecord 0x24 / FiguredUnitRecord 0x3C, its
 figure maker call CLinkFigureLoader::LoadFigure (morph floats as floats).
 
 ## Rewritten
@@ -215,7 +215,7 @@ here is gone. What it covered, by file:
   OrderCast ignores the aim point it asks for; OrderCastAt checks category 5 or 8 then 8; WitnessMurder takes the diplomacy
   table from the unit's manager and the one it changes from the controller's; PropagateHostility compares squared distance
   and radius as ints; OnDamaged's death branch asks for ManagerContext and ignores it; SetMoveStyle sends message 9 when the
-  style fits (even the current one); OrderTame compares the target's +0x18 (not type_) with 0x32; OrderSearchBody wants a
+  style fits (even the current one); OrderTame compares the target's +0x18 (not type) with 0x32; OrderSearchBody wants a
   dead target; PlayAnimation reads the entry's index byte as a dword; StopAction always ends with the queued order of kind 0.
 - Update and animation: UpdateState / PlayHitReaction copy the saved / new animation into the queue twice, PlaySteps resizes
   and copies twice, EndOrder / TickAction assign the new queue twice; ActionInReach: a cast whose target is gone but whose

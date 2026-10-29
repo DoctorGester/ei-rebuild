@@ -100,7 +100,7 @@ bool CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
 
     if (*pos == tokens->end()) return Error(this, LastLine(tokens), 4, "Expected '%s'", KeywordName(kLexOpen));
 
-    ScriptVars* globals = &globals_;
+    ScriptVars* vars = &globals;
     do {
         token = NextToken(pos);
         text = token.text;
@@ -140,8 +140,8 @@ bool CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
             local.type = kScriptFloat;
             global.type = kScriptFloat;
             local.varIndex = FindName(locals->floats.names, text);
-            global.varIndex = FindName(globals->floats.names, text);
-            if (global.varIndex < 0) global.varIndex = FindName(globals->floats.names, qualified);
+            global.varIndex = FindName(vars->floats.names, text);
+            if (global.varIndex < 0) global.varIndex = FindName(vars->floats.names, qualified);
             local.argIndex = floatCount;
             global.argIndex = floatCount;
             if (tokenId == kLexNumber) {
@@ -155,8 +155,8 @@ bool CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
             local.type = kScriptString;
             global.type = kScriptString;
             local.varIndex = FindName(locals->strings.names, text);
-            global.varIndex = FindName(globals->strings.names, text);
-            if (global.varIndex < 0) global.varIndex = FindName(globals->strings.names, qualified);
+            global.varIndex = FindName(vars->strings.names, text);
+            if (global.varIndex < 0) global.varIndex = FindName(vars->strings.names, qualified);
             local.argIndex = stringCount;
             global.argIndex = stringCount;
             if (tokenId == kLexString) {
@@ -170,8 +170,8 @@ bool CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
             local.type = kScriptObject;
             global.type = kScriptObject;
             local.varIndex = FindName(locals->objects.names, text);
-            global.varIndex = FindName(globals->objects.names, text);
-            if (global.varIndex < 0) global.varIndex = FindName(globals->objects.names, qualified);
+            global.varIndex = FindName(vars->objects.names, text);
+            if (global.varIndex < 0) global.varIndex = FindName(vars->objects.names, qualified);
             local.argIndex = objectCount;
             global.argIndex = objectCount;
             ++objectCount;
@@ -181,9 +181,9 @@ bool CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
             // Loop counter of For/ForIf/Every/Any/Sum: must be a global object variable.
             local.varIndex = -1;
             global.type = kScriptObject;
-            global.varIndex = FindName(globals->objects.names, text);
+            global.varIndex = FindName(vars->objects.names, text);
             if (global.varIndex < 0) {
-                global.varIndex = FindName(globals->objects.names, qualified);
+                global.varIndex = FindName(vars->objects.names, qualified);
                 if (global.varIndex < 0)
                     return Error(this, token.line, 8, "Only global variables are allowed to be loop counters");
             }
@@ -195,8 +195,8 @@ bool CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
             local.type = kScriptGroup;
             global.type = kScriptGroup;
             local.varIndex = FindName(locals->groups.names, text);
-            global.varIndex = FindName(globals->groups.names, text);
-            if (global.varIndex < 0) global.varIndex = FindName(globals->groups.names, qualified);
+            global.varIndex = FindName(vars->groups.names, text);
+            if (global.varIndex < 0) global.varIndex = FindName(vars->groups.names, qualified);
             local.argIndex = groupCount;
             global.argIndex = groupCount;
             ++groupCount;
@@ -316,7 +316,7 @@ bool CScript::LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iter
     if (!ok) return false;
 
     int index, type;
-    globals_.FindVariable((*name), &index, &type);
+    globals.FindVariable((*name), &index, &type);
     // The value is parsed as the single parameter of command 0x78; float 1 holds the type - 1.
     static const std::uint32_t kTypeCode[] = {0, 0x00000000, 0x3F800000, 0x40000000, 0x40400000};
     if (type < 1 || type > 4) {
@@ -429,7 +429,7 @@ bool CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
             }
         } else {
             qualified = QualifyName(text);
-            std::vector<ScriptDefinition>& scripts = definitions_;
+            std::vector<ScriptDefinition>& scripts = definitions;
             std::size_t index = 0;
             for (; index < scripts.size(); ++index)
                 if (str::Compare(scripts[index].name, text) == 0 || str::Compare(scripts[index].name, qualified) == 0) break;
@@ -442,9 +442,9 @@ bool CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
                 commands->push_back(*cmd);
                 continue;
             }
-            if (globals_.HasVariable(text)) {
+            if (globals.HasVariable(text)) {
                 ok = LoadAssignOperator(cmd, pos, tokens, locals, &text);
-            } else if (globals_.HasVariable(qualified)) {
+            } else if (globals.HasVariable(qualified)) {
                 ok = LoadAssignOperator(cmd, pos, tokens, locals, &qualified);
             } else {
                 return Error(this, token.line, 3, "Unexpected token '%s'", text);
@@ -465,9 +465,9 @@ bool CScript::Load(std::string* text, bool runWorldScript) {
     ScriptDefinition* decl = &definition;
     ScriptDecl* worldScript = nullptr;
 
-    errorLine_ = 0;
-    errorCode_ = 0;
-    errorText_ = "No errors found";
+    errorLine = 0;
+    errorCode = 0;
+    errorText = "No errors found";
 
     // Preprocess line by line: "#define name value" lines are collected (and become empty), the
     // other lines get the defines substituted. The text is replaced by the result.
@@ -540,9 +540,9 @@ bool CScript::Load(std::string* text, bool runWorldScript) {
                 if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return false;
                 if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return false;
                 if (!LoadScriptBody(decl, &pos, &tokens)) return false;
-                definitions_.push_back(*decl);
+                definitions.push_back(*decl);
             } else {
-                ScriptDefinition* declared = &definitions_[static_cast<std::size_t>(index)];
+                ScriptDefinition* declared = &definitions[static_cast<std::size_t>(index)];
                 if (!declared->ifThen.empty())
                     return Error(this, token.line, 16, "Multiple declaration of script %s", declared->name);
                 if (!LoadScriptBody(declared, &pos, &tokens)) return false;
@@ -557,7 +557,7 @@ bool CScript::Load(std::string* text, bool runWorldScript) {
             if (FindScript(decl->name) != -1) return Error(this, token.line, 15, "Duplicate script %s", word);
             if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return false;
             if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return false;
-            definitions_.push_back(*decl);
+            definitions.push_back(*decl);
             break;
         }
         case kLexGlobalVars: {
@@ -576,7 +576,7 @@ bool CScript::Load(std::string* text, bool runWorldScript) {
             // Declared with qualified names, then added to the global variables.
             if (!LoadVariableDeclarations(decl, &pos, &tokens, 1)) return false;
             decl->vars.ResetValues();
-            globals_.AppendFrom(decl->vars);
+            globals.AppendFrom(decl->vars);
             break;
         }
         default:
@@ -585,8 +585,8 @@ bool CScript::Load(std::string* text, bool runWorldScript) {
     }
 
     if (worldScript && runWorldScript) RunWorldScript(worldScript);
-    loaded_ = 1;
-    ++fileCount_;
+    loaded = 1;
+    ++fileCount;
     return true;
 }
 

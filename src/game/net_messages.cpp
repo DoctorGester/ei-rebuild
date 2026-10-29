@@ -76,9 +76,9 @@ Message::~Message() {}
 
 LoginMessage::LoginMessage() {}
 LoginMessage::LoginMessage(const LoginMessage& other)
-    : Message(other), name_(other.name_), text_(other.text_), host_(other.host_), state_(other.state_),
-      id_(other.id_) {
-    binding_.Assign(other.binding_);
+    : Message(other), name(other.name), text(other.text), host(other.host), state(other.state),
+      id(other.id) {
+    binding.Assign(other.binding);
 }
 LoginMessage::~LoginMessage() {}
 
@@ -88,27 +88,27 @@ void LoginMessage::OnShutdown() {
     Rebuild(this);
 }
 void LoginMessage::Write(BufferCursor* cursor) {
-    PutString(cursor, name_);
-    PutString(cursor, text_);
-    Put(cursor, state_);
-    Put(cursor, host_);
-    Put(cursor, id_);
+    PutString(cursor, name);
+    PutString(cursor, text);
+    Put(cursor, state);
+    Put(cursor, host);
+    Put(cursor, id);
 }
 void LoginMessage::Read(BufferCursor* cursor) {
-    TakeString(cursor, name_);
-    TakeString(cursor, text_);
-    Take(cursor, state_);
-    Take(cursor, host_);
-    Take(cursor, id_);
+    TakeString(cursor, name);
+    TakeString(cursor, text);
+    Take(cursor, state);
+    Take(cursor, host);
+    Take(cursor, id);
 }
 
 // TextMessage: SayMessage, ZoneMessage, MapMessage.
 
 TextMessage::TextMessage() {}
-TextMessage::TextMessage(const TextMessage& other) : Message(other), text_(other.text_) {}
+TextMessage::TextMessage(const TextMessage& other) : Message(other), text(other.text) {}
 TextMessage::~TextMessage() {}
-void TextMessage::WriteText(BufferCursor* cursor) { PutString(cursor, text_); }
-void TextMessage::ReadText(BufferCursor* cursor) { TakeString(cursor, text_); }
+void TextMessage::WriteText(BufferCursor* cursor) { PutString(cursor, text); }
+void TextMessage::ReadText(BufferCursor* cursor) { TakeString(cursor, text); }
 
 SayMessage::SayMessage() {}
 Message* SayMessage::Create() { return NewCounted<SayMessage>(); }
@@ -139,7 +139,7 @@ void MapMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 // CommandMessage.
 
 CommandMessage::CommandMessage() {}
-CommandMessage::CommandMessage(const CommandMessage& other) : Message(other), kind_(other.kind_), text_(other.text_) {}
+CommandMessage::CommandMessage(const CommandMessage& other) : Message(other), kind(other.kind), text(other.text) {}
 
 Message* CommandMessage::Create() { return NewCounted<CommandMessage>(); }
 CommandMessage* CommandMessage::Clone() { return NewCounted<CommandMessage>(*this); }
@@ -147,24 +147,24 @@ void CommandMessage::OnShutdown() {
     Rebuild(this);
 }
 void CommandMessage::Write(BufferCursor* cursor) {
-    Put(cursor, kind_);
-    PutString(cursor, text_);
+    Put(cursor, kind);
+    PutString(cursor, text);
 }
 void CommandMessage::Read(BufferCursor* cursor) {
-    Take(cursor, kind_);
-    TakeString(cursor, text_);
+    Take(cursor, kind);
+    TakeString(cursor, text);
 }
 
 // PairMessage: BindingMessage, FileRequestMessage.
 
 PairMessage::PairMessage() {}
 PairMessage::PairMessage(const PairMessage& other) : Message(other) {
-    first_.Assign(other.first_);
-    second_.Assign(other.second_);
+    first.Assign(other.first);
+    second.Assign(other.second);
 }
 PairMessage::~PairMessage() {}
-void PairMessage::WriteFirst(BufferCursor* cursor) { PutObject(cursor, first_); }
-void PairMessage::ReadFirst(BufferCursor* cursor) { TakeObject(cursor, first_); }
+void PairMessage::WriteFirst(BufferCursor* cursor) { PutObject(cursor, first); }
+void PairMessage::ReadFirst(BufferCursor* cursor) { TakeObject(cursor, first); }
 
 BindingMessage::BindingMessage() {}
 Message* BindingMessage::Create() { return NewCounted<BindingMessage>(); }
@@ -188,8 +188,8 @@ void FileRequestMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
 
 PlayerMessage::PlayerMessage() {}
 PlayerMessage::PlayerMessage(const PlayerMessage& other)
-    : Message(other), name_(other.name_), text_(other.text_), state_(other.state_), host_(other.host_),
-      id_(other.id_), serial_(other.serial_), number_(other.number_), firstLine_(other.firstLine_) {}
+    : Message(other), name(other.name), text(other.text), state(other.state), host(other.host),
+      id(other.id), serial(other.serial), number(other.number), firstLine(other.firstLine) {}
 
 Message* PlayerMessage::Create() { return NewCounted<PlayerMessage>(); }
 PlayerMessage* PlayerMessage::Clone() { return NewCounted<PlayerMessage>(*this); }
@@ -197,27 +197,27 @@ void PlayerMessage::OnShutdown() {
     Rebuild(this);
 }
 void PlayerMessage::Write(BufferCursor* cursor) {
-    PutString(cursor, name_);
-    PutString(cursor, text_);
-    Put(cursor, state_);
-    Put(cursor, host_);
-    Put(cursor, id_);
-    Put(cursor, serial_);
+    PutString(cursor, name);
+    PutString(cursor, text);
+    Put(cursor, state);
+    Put(cursor, host);
+    Put(cursor, id);
+    Put(cursor, serial);
 }
 void PlayerMessage::Read(BufferCursor* cursor) {
-    TakeString(cursor, name_);
-    TakeString(cursor, text_);
-    Take(cursor, state_);
-    Take(cursor, host_);
-    Take(cursor, id_);
-    Take(cursor, serial_);
+    TakeString(cursor, name);
+    TakeString(cursor, text);
+    Take(cursor, state);
+    Take(cursor, host);
+    Take(cursor, id);
+    Take(cursor, serial);
 }
 
 // LineMessage.
 
 LineMessage::LineMessage() {}
-LineMessage::LineMessage(const LineMessage& other) : Message(other), number_(other.number_), text_(other.text_) {
-    connection_.Assign(other.connection_);
+LineMessage::LineMessage(const LineMessage& other) : Message(other), number(other.number), text(other.text) {
+    connection.Assign(other.connection);
 }
 LineMessage::~LineMessage() {}
 
@@ -227,18 +227,18 @@ void LineMessage::OnShutdown() {
     Rebuild(this);
 }
 void LineMessage::Write(BufferCursor* cursor) {
-    Put(cursor, number_);
-    PutString(cursor, text_);
+    Put(cursor, number);
+    PutString(cursor, text);
 }
 void LineMessage::Read(BufferCursor* cursor) {
-    Take(cursor, number_);
-    TakeString(cursor, text_);
+    Take(cursor, number);
+    TakeString(cursor, text);
 }
 
 // HostMessage.
 
 HostMessage::HostMessage() {}
-HostMessage::HostMessage(const HostMessage& other) : Message(other), address_(other.address_), zone_(other.zone_) {}
+HostMessage::HostMessage(const HostMessage& other) : Message(other), address(other.address), zone(other.zone) {}
 
 Message* HostMessage::Create() { return NewCounted<HostMessage>(); }
 HostMessage* HostMessage::Clone() { return NewCounted<HostMessage>(*this); }
@@ -246,20 +246,20 @@ void HostMessage::OnShutdown() {
     Rebuild(this);
 }
 void HostMessage::Write(BufferCursor* cursor) {
-    PutString(cursor, address_);
-    PutString(cursor, zone_);
+    PutString(cursor, address);
+    PutString(cursor, zone);
 }
 void HostMessage::Read(BufferCursor* cursor) {
-    TakeString(cursor, address_);
-    TakeString(cursor, zone_);
+    TakeString(cursor, address);
+    TakeString(cursor, zone);
 }
 
 // VariableMessage.
 
 VariableMessage::VariableMessage() {}
-VariableMessage::VariableMessage(const VariableMessage& other) : Message(other), name_(other.name_) {
-    x87::CopyBits(value_, other.value_);
-    serial_ = other.serial_;
+VariableMessage::VariableMessage(const VariableMessage& other) : Message(other), name(other.name) {
+    x87::CopyBits(value, other.value);
+    serial = other.serial;
 }
 
 Message* VariableMessage::Create() { return NewCounted<VariableMessage>(); }
@@ -268,21 +268,21 @@ void VariableMessage::OnShutdown() {
     Rebuild(this);
 }
 void VariableMessage::Write(BufferCursor* cursor) {
-    PutString(cursor, name_);
-    PutBytes(cursor, &value_, 4);
-    Put(cursor, serial_);
+    PutString(cursor, name);
+    PutBytes(cursor, &value, 4);
+    Put(cursor, serial);
 }
 void VariableMessage::Read(BufferCursor* cursor) {
-    TakeString(cursor, name_);
-    TakeBytes(cursor, &value_, 4);
-    Take(cursor, serial_);
+    TakeString(cursor, name);
+    TakeBytes(cursor, &value, 4);
+    Take(cursor, serial);
 }
 
 // FileMessage.
 
 FileMessage::FileMessage() {}
 FileMessage::FileMessage(const FileMessage& other)
-    : Message(other), chunkCount_(other.chunkCount_), size_(other.size_), name_(other.name_), chunks_(other.chunks_) {}
+    : Message(other), chunkCount(other.chunkCount), size(other.size), name(other.name), chunks(other.chunks) {}
 FileMessage::~FileMessage() {}
 
 Message* FileMessage::Create() { return NewCounted<FileMessage>(); }
@@ -291,22 +291,22 @@ void FileMessage::OnShutdown() {
     Rebuild(this);
 }
 void FileMessage::Write(BufferCursor* cursor) {
-    Put(cursor, chunkCount_);
-    Put(cursor, size_);
-    PutString(cursor, name_);
+    Put(cursor, chunkCount);
+    Put(cursor, size);
+    PutString(cursor, name);
 }
 void FileMessage::Read(BufferCursor* cursor) {
-    Take(cursor, chunkCount_);
-    Take(cursor, size_);
-    TakeString(cursor, name_);
+    Take(cursor, chunkCount);
+    Take(cursor, size);
+    TakeString(cursor, name);
 }
 
 // FileChunkMessage.
 
 FileChunkMessage::FileChunkMessage(const FileChunkMessage& other) : Message(other) {
-    file_.Assign(other.file_);
-    index_ = other.index_;
-    std::memcpy(data_, other.data_, kDataSize);
+    file.Assign(other.file);
+    index = other.index;
+    std::memcpy(data, other.data, kDataSize);
 }
 FileChunkMessage::~FileChunkMessage() {}
 
@@ -316,22 +316,22 @@ void FileChunkMessage::OnShutdown() {
     Rebuild(this);
 }
 void FileChunkMessage::Write(BufferCursor* cursor) {
-    PutObject(cursor, file_);
-    Put(cursor, index_);
-    PutBytes(cursor, data_, kDataSize);
+    PutObject(cursor, file);
+    Put(cursor, index);
+    PutBytes(cursor, data, kDataSize);
 }
 void FileChunkMessage::Read(BufferCursor* cursor) {
-    TakeObject(cursor, file_);
-    Take(cursor, index_);
-    TakeBytes(cursor, data_, kDataSize);
+    TakeObject(cursor, file);
+    Take(cursor, index);
+    TakeBytes(cursor, data, kDataSize);
 }
 
 // AwardMessage.
 
 AwardMessage::AwardMessage() {}
-AwardMessage::AwardMessage(const AwardMessage& other) : Message(other), kind_(other.kind_), text_(other.text_) {
-    connection_.Assign(other.connection_);
-    x87::CopyBits(value_, other.value_);
+AwardMessage::AwardMessage(const AwardMessage& other) : Message(other), kind(other.kind), text(other.text) {
+    connection.Assign(other.connection);
+    x87::CopyBits(value, other.value);
 }
 AwardMessage::~AwardMessage() {}
 
@@ -341,24 +341,24 @@ void AwardMessage::OnShutdown() {
     Rebuild(this);
 }
 void AwardMessage::Write(BufferCursor* cursor) {
-    Put(cursor, kind_);
-    PutBytes(cursor, &value_, 4);
-    PutString(cursor, text_);
+    Put(cursor, kind);
+    PutBytes(cursor, &value, 4);
+    PutString(cursor, text);
 }
 void AwardMessage::Read(BufferCursor* cursor) {
-    Take(cursor, kind_);
-    TakeBytes(cursor, &value_, 4);
-    TakeString(cursor, text_);
+    Take(cursor, kind);
+    TakeBytes(cursor, &value, 4);
+    TakeString(cursor, text);
 }
 
 // TradeMessage.
 
 TradeMessage::TradeMessage(const TradeMessage& other)
-    : Message(other), done_(other.done_), revision_(other.revision_), partnerRevision_(other.partnerRevision_) {
-    player_.Assign(other.player_);
-    partner_.Assign(other.partner_);
-    offer_.Assign(other.offer_);
-    partnerOffer_.Assign(other.partnerOffer_);
+    : Message(other), done(other.done), revision(other.revision), partnerRevision(other.partnerRevision) {
+    player.Assign(other.player);
+    partner.Assign(other.partner);
+    offer.Assign(other.offer);
+    partnerOffer.Assign(other.partnerOffer);
 }
 TradeMessage::~TradeMessage() {}
 
@@ -368,18 +368,18 @@ void TradeMessage::OnShutdown() {
     Rebuild(this);
 }
 void TradeMessage::Write(BufferCursor* cursor) {
-    PutObject(cursor, offer_);
-    PutObject(cursor, partnerOffer_);
-    Put(cursor, done_);
-    Put(cursor, revision_);
-    Put(cursor, partnerRevision_);
+    PutObject(cursor, offer);
+    PutObject(cursor, partnerOffer);
+    Put(cursor, done);
+    Put(cursor, revision);
+    Put(cursor, partnerRevision);
 }
 void TradeMessage::Read(BufferCursor* cursor) {
-    TakeObject(cursor, offer_);
-    TakeObject(cursor, partnerOffer_);
-    Take(cursor, done_);
-    Take(cursor, revision_);
-    Take(cursor, partnerRevision_);
+    TakeObject(cursor, offer);
+    TakeObject(cursor, partnerOffer);
+    Take(cursor, done);
+    Take(cursor, revision);
+    Take(cursor, partnerRevision);
 }
 
 // PartyMemberMessage.
@@ -387,9 +387,9 @@ void TradeMessage::Read(BufferCursor* cursor) {
 // Original bug kept: the copy's stream is sized like ours, then its fresh bytes (uninitialised in the original,
 // zeros here) are read into ours instead of ours being written into it.
 PartyMemberMessage::PartyMemberMessage(const PartyMemberMessage& other) : Message(other) {
-    stream_.SetSize(other.stream_.size_);
-    CStream* copy = &stream_;
-    copy->Read(const_cast<std::uint8_t*>(other.stream_.data_.data()), stream_.size_);
+    stream.SetSize(other.stream.size);
+    CStream* copy = &stream;
+    copy->Read(const_cast<std::uint8_t*>(other.stream.data.data()), stream.size);
 }
 
 Message* PartyMemberMessage::Create() { return NewCounted<PartyMemberMessage>(); }
@@ -400,26 +400,26 @@ void PartyMemberMessage::OnShutdown() {
     Rebuild(this);
 }
 void PartyMemberMessage::Write(BufferCursor* cursor) {
-    CStream* stream = &stream_;
-    std::uint32_t size = stream->Size();
+    CStream* currentStream = &stream;
+    std::uint32_t size = currentStream->Size();
     Put(cursor, static_cast<std::uint16_t>(size));
-    PutBytes(cursor, stream_.data_.data(), size & 0xFFFF);
+    PutBytes(cursor, stream.data.data(), size & 0xFFFF);
 }
 void PartyMemberMessage::Read(BufferCursor* cursor) {
     std::uint16_t n;
     Take(cursor, n);
-    stream_.Resize(n);
-    TakeBytes(cursor, stream_.data_.data(), n);
+    stream.Resize(n);
+    TakeBytes(cursor, stream.data.data(), n);
 }
 
 // PartyMessage.
 
 PartyMessage::PartyMessage() {}
 PartyMessage::PartyMessage(const PartyMessage& other)
-    : Message(other), members_(other.members_), money_(other.money_), accepted_(other.accepted_),
-      acceptedRevision_(other.acceptedRevision_), revision_(other.revision_), trading_(other.trading_) {
-    player_.Assign(other.player_);
-    partner_.Assign(other.partner_);
+    : Message(other), members(other.members), money(other.money), accepted(other.accepted),
+      acceptedRevision(other.acceptedRevision), revision(other.revision), trading(other.trading) {
+    player.Assign(other.player);
+    partner.Assign(other.partner);
 }
 PartyMessage::~PartyMessage() {}
 
@@ -429,70 +429,70 @@ void PartyMessage::OnShutdown() {
     Rebuild(this);
 }
 void PartyMessage::Write(BufferCursor* cursor) {
-    std::int32_t count = static_cast<std::int32_t>(members_.size());
+    std::int32_t count = static_cast<std::int32_t>(members.size());
     Put(cursor, count);
-    for (std::int32_t i = 0; i < count; ++i) PutObject(cursor, members_[i]);
-    Put(cursor, money_);
-    Put(cursor, accepted_);
-    Put(cursor, acceptedRevision_);
-    Put(cursor, revision_);
-    PutObject(cursor, player_);
-    PutObject(cursor, partner_);
+    for (std::int32_t i = 0; i < count; ++i) PutObject(cursor, members[i]);
+    Put(cursor, money);
+    Put(cursor, accepted);
+    Put(cursor, acceptedRevision);
+    Put(cursor, revision);
+    PutObject(cursor, player);
+    PutObject(cursor, partner);
 }
 void PartyMessage::Read(BufferCursor* cursor) {
     std::int32_t count;
     Take(cursor, count);
-    members_.resize(static_cast<std::size_t>(count));
-    for (std::int32_t i = 0; i < count; ++i) members_[i].Assign(g_currentConnection->ReadObjectRef(cursor));
-    Take(cursor, money_);
-    Take(cursor, accepted_);
-    Take(cursor, acceptedRevision_);
-    Take(cursor, revision_);
-    TakeObject(cursor, player_);
-    TakeObject(cursor, partner_);
+    members.resize(static_cast<std::size_t>(count));
+    for (std::int32_t i = 0; i < count; ++i) members[i].Assign(g_currentConnection->ReadObjectRef(cursor));
+    Take(cursor, money);
+    Take(cursor, accepted);
+    Take(cursor, acceptedRevision);
+    Take(cursor, revision);
+    TakeObject(cursor, player);
+    TakeObject(cursor, partner);
 }
 
 // ServerEntryBase and ServerEntry (net_classes.h): made by the server list code.
 
-ServerEntryBase::ServerEntryBase(const ServerEntryBase& other) : CRefObject(), address_(other.address_) {
-    x87::CopyBits(timeout_, other.timeout_);   // the floats copied bit for bit
-    x87::CopyBits(ping_, other.ping_);
-    foreign_ = other.foreign_;
-    state_ = other.state_;
+ServerEntryBase::ServerEntryBase(const ServerEntryBase& other) : CRefObject(), address(other.address) {
+    x87::CopyBits(timeout, other.timeout);     // the floats copied bit for bit
+    x87::CopyBits(ping, other.ping);
+    foreign = other.foreign;
+    state = other.state;
 }
 ServerEntryBase::~ServerEntryBase() {}
 
 ServerEntry::ServerEntry() {
-    AssignEmptyText(name_);
-    kind_ = 4;
-    AssignEmptyText(description_);
-    players_ = 0;
-    maxPlayers_ = 0;
-    password_ = 0;
+    AssignEmptyText(name);
+    kind = 4;
+    AssignEmptyText(description);
+    players = 0;
+    maxPlayers = 0;
+    password = 0;
 }
 ServerEntry::ServerEntry(const ServerEntry& other)
-    : ServerEntryBase(other), name_(other.name_), kind_(other.kind_), description_(other.description_),
-      players_(other.players_), maxPlayers_(other.maxPlayers_), password_(other.password_) {}
+    : ServerEntryBase(other), name(other.name), kind(other.kind), description(other.description),
+      players(other.players), maxPlayers(other.maxPlayers), password(other.password) {}
 
 ServerEntry* ServerEntry::Clone() { return NewCounted<ServerEntry>(*this); }
 void ServerEntry::OnShutdown() {
     Rebuild(this);
 }
 void ServerEntry::Write(BufferCursor* cursor) {
-    PutString(cursor, name_);
-    Put(cursor, kind_);
-    PutString(cursor, description_);
-    Put(cursor, players_);
-    Put(cursor, maxPlayers_);
-    Put(cursor, password_);
+    PutString(cursor, name);
+    Put(cursor, kind);
+    PutString(cursor, description);
+    Put(cursor, players);
+    Put(cursor, maxPlayers);
+    Put(cursor, password);
 }
 void ServerEntry::Read(BufferCursor* cursor) {
-    TakeString(cursor, name_);
-    Take(cursor, kind_);
-    TakeString(cursor, description_);
-    Take(cursor, players_);
-    Take(cursor, maxPlayers_);
-    Take(cursor, password_);
+    TakeString(cursor, name);
+    Take(cursor, kind);
+    TakeString(cursor, description);
+    Take(cursor, players);
+    Take(cursor, maxPlayers);
+    Take(cursor, password);
 }
 
 } // namespace net

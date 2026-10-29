@@ -55,7 +55,7 @@ CSpell* CSpellManager::CreateSpellFromText(std::string_view source) {
     std::vector<std::string> codes;
     ParseSpellText(text, codes);
 
-    CSpellConstructor* constructor = context_->SpellConstructor();
+    CSpellConstructor* constructor = context->SpellConstructor();
     if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
     constructor->SetManager(this);
 
@@ -73,7 +73,7 @@ CSpell* CSpellManager::CreateSpellFromText(std::string_view source) {
     }
 
     if (!constructor->EndConstruct()) return game::FatalErrorAs<CSpell>(kCantEnd);
-    CSpell* spell = constructor->container_->spell_.Clone(this);
+    CSpell* spell = constructor->container->spell.Clone(this);
     constructor->SetManager(nullptr);
     return spell;
 }

@@ -24,13 +24,13 @@ void ReleaseSlots(Item** slots, int count) {
 void CUnit::SetHostileMask(std::uint32_t mask) {
     relationsA = mask;
     Controller()->HostileMaskChanged();
-    flags_ |= MapObjectFlag::RelationsChanged;
+    flags |= MapObjectFlag::RelationsChanged;
     MarkChanged(kPartRelations);
 }
 
 void CUnit::RefreshMotion() {
     PathOrder* path = Controller()->Path();
-    path->ForgetObject(id_);
+    path->ForgetObject(id);
     float speed, turnRate;
     GetMoveSpeeds(&speed, &turnRate);
     UnitMotion* unitMotion = &motion;

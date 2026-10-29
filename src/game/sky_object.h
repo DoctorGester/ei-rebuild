@@ -29,17 +29,17 @@ public:
     const char* ClassName() override;   // "CSkyObject"
     ClassId GetClassId() override;
 
-    // Lights the vertices. Each vertex's haze (distances_) is recomputed
+    // Lights the vertices. Each vertex's haze (distances) is recomputed
     // when the vertex count changed: 0 below the horizon (vertex z < 1), else sqrt(-normal z).
     // A vertex without haze gets `ambient` as its diffuse colour (alpha 0) and no specular; the
     // others get it with alpha 0xFF and a specular of alpha haze * 255 and `light` * max(0,
     // normal . direction)^2 * 150. Components truncated (_ftol). The colours
-    // are the mesh's colorsA_ (diffuse) and colorsB_ (specular), one per vertex.
+    // are the mesh's colorsA (diffuse) and colorsB (specular), one per vertex.
     void Light(const float* direction, SkyColour ambient, SkyColour light);
 
-    // The mesh's fields (CFigureMesh): worldMatrix_ the world matrix CSky::Draw builds, name_
-    // "nask0", directory_ emptied by LoadSky, the vertices and normals four per packet.
-    std::vector<float> distances_;            // haze per vertex
+    // The mesh's fields (CFigureMesh): worldMatrix the world matrix CSky::Draw builds, name
+    // "nask0", directory emptied by LoadSky, the vertices and normals four per packet.
+    std::vector<float> distances;             // haze per vertex
 };
 
 // The world view's sky.

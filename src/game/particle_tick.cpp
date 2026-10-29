@@ -83,9 +83,9 @@ struct TickSteps {
         if (s->attachedTo) {
             Vector3 point;
             const Vector3* a = s->AttachmentPoint(&point, s->attachedTo);
-            float wx = static_cast<float>(D(a->x) + D(s->localPosition_.x));
-            float wy = static_cast<float>(D(a->y) + D(s->localPosition_.y));
-            float wz = static_cast<float>(D(a->z) + D(s->localPosition_.z));
+            float wx = static_cast<float>(D(a->x) + D(s->localPosition.x));
+            float wy = static_cast<float>(D(a->y) + D(s->localPosition.y));
+            float wz = static_cast<float>(D(a->z) + D(s->localPosition.z));
             s->motion.x = static_cast<float>(D(wx) - D(s->origin.x));
             s->motion.y = static_cast<float>(D(wy) - D(s->origin.y));
             s->motion.z = static_cast<float>(D(wz) - D(s->origin.z));
@@ -93,10 +93,10 @@ struct TickSteps {
             s->origin.y = wy;
             s->origin.z = wz;
         } else {
-            s->motion.x = static_cast<float>(D(s->localPosition_.x) - D(s->origin.x));
-            s->motion.y = static_cast<float>(D(s->localPosition_.y) - D(s->origin.y));
-            s->motion.z = static_cast<float>(D(s->localPosition_.z) - D(s->origin.z));
-            s->origin = s->localPosition_;
+            s->motion.x = static_cast<float>(D(s->localPosition.x) - D(s->origin.x));
+            s->motion.y = static_cast<float>(D(s->localPosition.y) - D(s->origin.y));
+            s->motion.z = static_cast<float>(D(s->localPosition.z) - D(s->origin.z));
+            s->origin = s->localPosition;
         }
     }
 
@@ -177,8 +177,8 @@ struct TickSteps {
     void Emit() {
         int tries = x87::fistp(static_cast<float>(D(s->distance) / D(s->emitSpacing)));
         if (tries <= s->emitCount) tries = s->emitCount;
-        if (!(s->flags_ & ParticleSourceFlag::Emitting)) return;
-        if ((s->flags_ & ParticleSourceFlag::AttachedOnly) && !s->attachedTo) return;
+        if (!(s->flags & ParticleSourceFlag::Emitting)) return;
+        if ((s->flags & ParticleSourceFlag::AttachedOnly) && !s->attachedTo) return;
         int emitted = 0;
         if (tries > 0) {
             for (int i = 0; i < tries; ++i) {
@@ -235,17 +235,17 @@ void CParticleSource::AddParticle(Particle* p) {
 // Returns 1 while the source is still needed: a free source while it keeps
 // alive (ParticleSourceFlag::KeepAlive) or has particles, an attached one while it emits or has particles.
 bool CParticleSource::RunTick() {
-    if (hiddenTicks > 0x38 && (flags_ & ParticleSourceFlag::IdlesOffScreen)) return true;
+    if (hiddenTicks > 0x38 && (flags & ParticleSourceFlag::IdlesOffScreen)) return true;
     const CWorldClient* world = &g_clientWorld;
-    lib::LoadBytes(windDirection, world->windDirection_);
-    windStrength = std::bit_cast<float>(world->windStrength_);
+    lib::LoadBytes(windDirection, world->windDirection);
+    windStrength = std::bit_cast<float>(world->windStrength);
     boundsMin.x = kFarBits;
     boundsMin.y = kFarBits;
     boundsMin.z = kFarBits;
     boundsMax.x = kNearBits;
     boundsMax.y = kNearBits;
     boundsMax.z = kNearBits;
-    if (attachedTo && (attachedTo->flags_ & MapObjectFlag::Removed)) Attach(nullptr);
+    if (attachedTo && (attachedTo->flags & MapObjectFlag::Removed)) Attach(nullptr);
 
     TickSteps steps{this};
     steps.Follow();
@@ -256,9 +256,9 @@ bool CParticleSource::RunTick() {
     steps.FinishBounds();
 
     if (!attachedTo) {
-        if (flags_ & ParticleSourceFlag::KeepAlive) return true;
+        if (flags & ParticleSourceFlag::KeepAlive) return true;
         return !particles.empty();
     }
-    if (flags_ & ParticleSourceFlag::Emitting) return true;
+    if (flags & ParticleSourceFlag::Emitting) return true;
     return !particles.empty();
 }

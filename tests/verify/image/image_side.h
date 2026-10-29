@@ -45,7 +45,7 @@ bool BriefingPlayerList(void* briefing, PlayerList* list);
 
 // ---- the orientation watch (harness_watch.cpp; image/harness_watch_image.cpp)
 
-// The client world's unit `id` (null without one), with the addresses of its flags_ and its localRotation_.
+// The client world's unit `id` (null without one), with the addresses of its flags and its localRotation.
 void* ClientUnit(unsigned id, std::uint32_t** flags, std::uint32_t** rotation);
 
 // ---- the "netstate" step (harness_netstate.cpp; image/harness_netstate_image.cpp)
@@ -60,8 +60,8 @@ void* MainWindow();                    // app::g_mainWindow (an HWND)
 std::uint8_t& InterfaceHasScreen();    // app::g_interfaceHasScreen
 std::uint8_t& RecordingFrames();       // app::g_recordingFrames
 bool AppActive();                      // app::g_active
-int& FlowState();                      // GameFlow::state_
-void SetLoadTarget(const char* slot);  // GameFlow::requestTarget_
+int& FlowState();                      // GameFlow::state
+void SetLoadTarget(const char* slot);  // GameFlow::requestTarget
 void ClearShowTutorial();
 void SetMasterHost(const char* host);
 void SetWaterWaves(bool on);
@@ -96,19 +96,19 @@ const char* DataFolder();                       // the data folder's text, may b
 void SetFixedSeed(void (*fill)(std::uint32_t* results));
 int TextKey(const char* name);                  // TextKeyFromName
 void* LocalWorldPlayer(int player);             // CWorldServer::GetPlayer
-void* WorldHandle();                          // the server world's worldHandle_
+void* WorldHandle();                          // the server world's worldHandle
 const char* ServerZoneName();                   // the server world's zone, may be null
 void* PickAt2(void* world, int x, int y);       // CWorldClient::PickAt2, as its CEngineObject
 void* UnitAt(void* world, int x, int y);        // CWorldClient::UnitAt, as its CEngineObject
-// The client world's rectangle of object `id` in this frame's screen list (screenEntries_; the last entry for it):
+// The client world's rectangle of object `id` in this frame's screen list (screenEntries; the last entry for it):
 // 1, 0 when it is not drawn, -1 without a list.
 int ScreenRect(void* world, int id, RECT* rect);
-int ObjectId(const void* object);               // a CEngineObject's id_ (what PickAt2 and UnitAt give)
-std::uint32_t ObjectFlags(const void* object);  // its flags_
-void* PlayerConnection(void* player);           // a CPlayer's connection_ (CPlayerServer / CPlayerClient)
-int ConnectionState(void* connection);          // its state_
+int ObjectId(const void* object);               // a CEngineObject's id (what PickAt2 and UnitAt give)
+std::uint32_t ObjectFlags(const void* object);  // its flags
+void* PlayerConnection(void* player);           // a CPlayer's connection (CPlayerServer / CPlayerClient)
+int ConnectionState(void* connection);          // its state
 // The camp `camp` (the window on top, CCampPages): its page and its item strip's source items (null ones too) with
-// their types (CEngineObject::type_); false without a source.
+// their types (CEngineObject::type); false without a source.
 bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<unsigned>* types);
 void CampTakeItem(void* camp, void* item, int mode);   // CCampPages::TakeItem (slot 42, MoveItem)
 void PickSurface(void* world, float* out, int x, int y);

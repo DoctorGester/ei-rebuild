@@ -34,7 +34,7 @@ struct MeshArgs {
     const float* uOffset;         // the arguments themselves (their bits are compared and added)
     const float* vOffset;
     int alpha;                    // the low byte, with flag 4
-    int flags;                    // 1 screen bounds, 2 clip, 4 colours from the device (colour_) and alpha
+    int flags;                    // 1 screen bounds, 2 clip, 4 colours from the device (colour) and alpha
 };
 
 struct Textures {
@@ -53,9 +53,9 @@ constexpr int kClipStack = 2;
 
 // --- The steps -----------------------------------------------------------------------------------
 
-// Flag 4: every colour becomes the device's (colour_), every specular the alpha byte alone.
+// Flag 4: every colour becomes the device's (colour), every specular the alpha byte alone.
 void OverrideColours(CTextureDevice* device, const MeshArgs& a) {
-    std::uint32_t colour = device->colour_;
+    std::uint32_t colour = device->colour;
     std::uint32_t specular = (static_cast<std::uint32_t>(a.alpha) & 0xFF) << 24;
     int count = a.colourCount * 4;
     for (int i = 0; i < count; ++i) a.colours[i] = colour;
@@ -97,9 +97,9 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
     // viewport mapping, so it also places meshes drawn into a part of the screen (the interface's
     // previews). Both stacks get the same pushes.
     m.screenMatrix = true;
-    m.matrix = device->pipeline_->Top(kScreenStack);
+    m.matrix = device->pipeline->Top(kScreenStack);
     m.clipped = (a.flags & 2) != 0;
-    m.distanceFog = device->distanceFog_ != 0;
+    m.distanceFog = device->distanceFog != 0;
     m.zScale = 1.0f;
     m.coloursWritten = (a.flags & 4) != 0;   // OverrideColours
     // A figure part lit on the GPU needs its normals.
@@ -113,7 +113,7 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
 // Returns the projection's verdict: 2 nothing on screen, 1 crossing the edges, 0 on screen (drawn: 1). Without flag
 // 2 the mesh is projected with the screen stack and counts as on screen.
 int ProjectAndDraw(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
-    const CTransformPipeline* pipeline = device->pipeline_;
+    const CTransformPipeline* pipeline = device->pipeline;
     g_projected.resize(a.blocks * 4);
     int visibility = 0;
     if (a.flags & 2) {

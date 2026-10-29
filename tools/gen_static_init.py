@@ -37,7 +37,7 @@ BASE = 0x400000
 LIST_BEGIN, LIST_END = 0x00783004, 0x00783BB0   # inclusive
 ATEXIT = 0x006E727B
 TEXT = (0x00401000, 0x0073A670)
-LOCAL_MAX = 0x400   # src/standalone/static_init.h, Run::frame_
+LOCAL_MAX = 0x400   # src/standalone/static_init.h, Run::frame
 
 
 class Image:
@@ -229,7 +229,7 @@ class Interpreter:
                     raise Unknown(f'{x.address:08X}: second local frame')
                 self.local = imm(ops[1])
                 if self.local > LOCAL_MAX:
-                    raise Unknown(f'{x.address:08X}: a stack frame over {LOCAL_MAX:#x} bytes (Run::frame_)')
+                    raise Unknown(f'{x.address:08X}: a stack frame over {LOCAL_MAX:#x} bytes (Run::frame)')
                 self.stack.append(('frame',))
             elif m == 'add' and ops[0] == 'esp':
                 n = imm(ops[1])

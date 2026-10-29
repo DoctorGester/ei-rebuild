@@ -41,128 +41,128 @@ constexpr POINT kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 } // namespace
 
 // The virtuals: drawn and redrawn only while shown; the input side's defaults.
-CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, std::string_view text, int command) : CUiWindow(ui) {
-    timer_ = 0.0f;
-    region_ = region;
+CUiTooltip::CUiTooltip(CInterface3D* ownerUi, CUiRegion* newRegion, std::string_view text, int command) : CUiWindow(ownerUi) {
+    timer = 0.0f;
+    region = newRegion;
     // An empty text leaves the measurements and the two arguments unwritten.
     if (text.empty()) return;
-    lines_ = text::Split(text, kLineSeparator);
-    width_ = 0;
-    height_ = 0;
-    lineHeight_ = 0;
-    extra_ = command;
-    keyName_ = nullptr;
-    keyWidth_ = 0;
-    for (int i = 0; i < static_cast<int>(lines_.size()); ++i) {
+    lines = text::Split(text, kLineSeparator);
+    width = 0;
+    height = 0;
+    lineHeight = 0;
+    extra = command;
+    keyName = nullptr;
+    keyWidth = 0;
+    for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
         // An empty line (but the last) is as high as the sample and has no width.
         SIZE size;
-        int width;
-        if (lines_[i].empty() && i < static_cast<int>(lines_.size()) - 1) {
-            size = interface_->TextExtent(std::string(EmptyLineSample()), kFont);
-            width = 0;
+        int textWidth;
+        if (lines[i].empty() && i < static_cast<int>(lines.size()) - 1) {
+            size = ui->TextExtent(std::string(EmptyLineSample()), kFont);
+            textWidth = 0;
         } else {
-            size = interface_->TextExtent(lines_[i], kFont);
-            width = size.cx;
+            size = ui->TextExtent(lines[i], kFont);
+            textWidth = size.cx;
         }
-        if (width > width_) width_ = width;
+        if (textWidth > width) width = textWidth;
         if (size.cy > 0) {
-            lineHeight_ = size.cy;
-            height_ += size.cy;
+            lineHeight = size.cy;
+            height += size.cy;
         }
     }
-    width_ += kPaddingX;
-    height_ += kPaddingY;
+    width += kPaddingX;
+    height += kPaddingY;
 }
 
 CUiTooltip::~CUiTooltip() = default;
 
 void CUiTooltip::SetText(std::string_view text) {
     if (text.empty()) return;
-    lines_ = text::Split(text, kLineSeparator);
+    lines = text::Split(text, kLineSeparator);
     DrawLines();
 }
 
 void CUiTooltip::DrawLines() {
-    if (!(!surfaces_.empty())) return;
-    CUiSurface* surface = surfaces_[0];
+    if (!(!surfaces.empty())) return;
+    CUiSurface* surface = surfaces[0];
     if (!surface) return;
     surface->Fill(kBackground);
     RECT whole{0, 0, 0, 0};   // empty: the whole surface
     surface->FrameRect(&whole, kTitleColour);
-    int right = width_ > keyWidth_ ? width_ : keyWidth_;
-    int step = lineHeight_;
+    int right = width > keyWidth ? width : keyWidth;
+    int step = lineHeight;
     RECT row{kTextLeft, kTextTop, right - kTextLeft, step + kTextTop};
-    for (int i = 0; i < static_cast<int>(lines_.size()); ++i) {
+    for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
         COLORREF colour = i > 0 ? kTextColour : kTitleColour;
-        if (i == 0 && keyName_) {
-            std::string text = lines_[0] + KeyOpen() + keyName_ + KeyClose();
+        if (i == 0 && keyName) {
+            std::string text = lines[0] + KeyOpen() + keyName + KeyClose();
             surface->DrawTextIn(text, &row, kFont, colour, 0, 0);
         } else {
-            surface->DrawTextIn(lines_[i], &row, kFont, colour, 0, 0);
+            surface->DrawTextIn(lines[i], &row, kFont, colour, 0, 0);
         }
         gameapi::OffsetRect(&row, 0, step);
     }
 }
 
 void CUiTooltip::OnMouseMove(int x, int y) {
-    switch (state_) {
+    switch (state) {
     case State::Hovered: {
-        const float delay = options::g_options.toolTipTime_;
-        if (lines_.empty() || delay == 0.0f) {
-            state_ = State::Idle;
+        const float delay = options::g_options.toolTipTime;
+        if (lines.empty() || delay == 0.0f) {
+            state = State::Idle;
             return;
         }
-        if (timer_ < delay) {
-            timer_ = static_cast<float>(CUiContainer::FrameTime() + timer_);
+        if (timer < delay) {
+            timer = static_cast<float>(CUiContainer::FrameTime() + timer);
             return;
         }
         // Shown: the first line is measured again with the key of the tooltip's command.
-        keyWidth_ = 0;
-        if (extra_) {
-            keyName_ = static_cast<const char*>(FindCommandByKey(extra_));
-            if (keyName_) {
-                keyWidth_ = interface_->TextExtent(lines_[0] + KeyOpen() + keyName_ + KeyClose(), kFont).cx + kPaddingX;
+        keyWidth = 0;
+        if (extra) {
+            keyName = static_cast<const char*>(FindCommandByKey(extra));
+            if (keyName) {
+                keyWidth = ui->TextExtent(lines[0] + KeyOpen() + keyName + KeyClose(), kFont).cx + kPaddingX;
             }
         }
-        state_ = State::Appearing;
-        timer_ = 0.0f;
-        RECT rect{0, 0, width_ > keyWidth_ ? width_ : keyWidth_, height_};
+        state = State::Appearing;
+        timer = 0.0f;
+        RECT area{0, 0, width > keyWidth ? width : keyWidth, height};
         POINT offset = kCursorOffset;
         // WideScreen: without the margin; the layout's right edge 800 + extra (addon's operands).
-        interface_->CallScalePointFromScreenNoMargin(&offset);
+        ui->CallScalePointFromScreenNoMargin(&offset);
         const int layoutRight = widescreen::Active() ? widescreen::LayoutRight() : kLayoutWidth;
-        gameapi::OffsetRect(&rect, offset.x, offset.y);
-        gameapi::OffsetRect(&rect, x, y);
+        gameapi::OffsetRect(&area, offset.x, offset.y);
+        gameapi::OffsetRect(&area, x, y);
         // Kept on the layout: pushed left from the right edge, and above the mouse at the bottom.
-        if (rect.right > layoutRight) {
-            gameapi::OffsetRect(&rect, -(rect.right - layoutRight), 0);
-            if (rect.left < 0) gameapi::OffsetRect(&rect, -rect.left, 0);
+        if (area.right > layoutRight) {
+            gameapi::OffsetRect(&area, -(area.right - layoutRight), 0);
+            if (area.left < 0) gameapi::OffsetRect(&area, -area.left, 0);
         }
-        if (rect.bottom > kLayoutHeight) {
-            gameapi::OffsetRect(&rect, 0, -(rect.bottom - y));
-            if (rect.top < 0) gameapi::OffsetRect(&rect, 0, -rect.top);
+        if (area.bottom > kLayoutHeight) {
+            gameapi::OffsetRect(&area, 0, -(area.bottom - y));
+            if (area.top < 0) gameapi::OffsetRect(&area, 0, -area.top);
         }
-        CUiSurface* surface = new CUiSurface(interface_, &rect, SurfaceBlend::Keyed);
+        CUiSurface* surface = new CUiSurface(ui, &area, SurfaceBlend::Keyed);
         AddSurface(surface);
         return;
     }
     case State::Appearing:
         // The appearing time is zero in the exe: the tooltip is fully shown on the next call.
-        if (timer_ < kAppearTime) {
+        if (timer < kAppearTime) {
             DrawLines();
-            timer_ = static_cast<float>(CUiContainer::FrameTime() + timer_);
+            timer = static_cast<float>(CUiContainer::FrameTime() + timer);
         } else {
-            state_ = State::Shown;
-            timer_ = kAppearTime;
+            state = State::Shown;
+            timer = kAppearTime;
             DrawLines();
         }
         return;
     case State::Disappearing:
-        if (timer_ > 0.0f) {
+        if (timer > 0.0f) {
             DrawLines();
-            timer_ = static_cast<float>(timer_ - CUiContainer::FrameTime());
+            timer = static_cast<float>(timer - CUiContainer::FrameTime());
         } else {
-            state_ = State::Idle;
+            state = State::Idle;
             ClearSceneObjects();
             ClearSurfaces();
         }

@@ -1,5 +1,5 @@
 // The effects a mission script places in the world: point lights, particle sources, sound (FX)
-// sources and lightning bolts (CScript::pointLights_, particles_, fxSources_, lightning_). Saving
+// sources and lightning bolts (CScript::pointLights, particles, fxSources, lightning). Saving
 // and loading them with the savegame. See script.h and docs/notes/script.md.
 #include "script.h"
 
@@ -97,7 +97,7 @@ ScriptEffect<T> ReadObject(CStream* stream) {
     int id;
     stream->ReadValue(id);
     if (id == -1) return {};
-    return ScriptEffect<T>(g_serverWorld.timedObjectManager_->FindObjectAs<T>(id));
+    return ScriptEffect<T>(g_serverWorld.timedObjectManager->FindObjectAs<T>(id));
 }
 
 std::size_t Length(const char* s) { return std::strlen(s); }
@@ -114,20 +114,20 @@ T* FindId(std::list<T>& list, int id) {
 
 // Takes the effect object out of the world's timed objects and drops the reference to it.
 void ScriptDropEffect(CEngineObject* object) {
-    g_serverWorld.RemoveTimedObject(object->id_);
+    g_serverWorld.RemoveTimedObject(object->id);
     object->Release();
 }
 
 // CreateFX(x, y, z, volume, radius, name), a sound played once.
 void CScript::ScriptCreateFx(const SSCCmd* cmd) {
-    auto* sound = g_serverWorld.timedObjectManager_->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
+    auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
     const float* f = cmd->floatArgs.data();
-    sound->localPosition_ = {f[0], f[1], f[2]};
-    x87::CopyBits(sound->volume_, f[3]);
-    x87::CopyBits(sound->radius_, f[4]);
-    sound->looping_ = 0;
+    sound->localPosition = {f[0], f[1], f[2]};
+    x87::CopyBits(sound->volume, f[3]);
+    x87::CopyBits(sound->radius, f[4]);
+    sound->looping = 0;
     const char* name = cmd->stringArgs[0].c_str();
-    std::memcpy(sound->name_, name, Length(name) + 1);
+    std::memcpy(sound->name, name, Length(name) + 1);
     g_serverWorld.AddTimedObject(sound);
 }
 
@@ -138,13 +138,13 @@ void CScript::ScriptCreateFx(const SSCCmd* cmd) {
 void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data();
     int id = x87::RoundToInt(f[0]);
-    if (id < 0) id = nextFxId_--;
+    if (id < 0) id = nextFxId--;
 
-    ScriptFxSource* source = FindId(fxSources_, id);
+    ScriptFxSource* source = FindId(fxSources, id);
     if (source) {
         source->object.reset();
     } else {
-        source = &fxSources_.emplace_back();
+        source = &fxSources.emplace_back();
         source->countdown = INT_MAX;
     }
 
@@ -164,13 +164,13 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
         source->idle = 1;
         return;
     }
-    auto* sound = g_serverWorld.timedObjectManager_->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
+    auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
     source->object = ScriptEffect<CEffectSound>(sound);
-    sound->localPosition_ = {source->position.x, source->position.y, source->position.z};
-    x87::CopyBits(sound->volume_, source->volume);
-    x87::CopyBits(sound->radius_, source->radius);
+    sound->localPosition = {source->position.x, source->position.y, source->position.z};
+    x87::CopyBits(sound->volume, source->volume);
+    x87::CopyBits(sound->radius, source->radius);
     const char* name = source->name.c_str();
-    std::memcpy(sound->name_, name, Length(name) + 1);
+    std::memcpy(sound->name, name, Length(name) + 1);
     g_serverWorld.AddTimedObject(sound);
     source->idle = 0;
 }
@@ -178,14 +178,14 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
 // CreateLightning(id, x1, y1, z1, x2, y2, z2, width). A negative (or NaN) id takes the
 // next automatic one; others are truncated. The bolt is always added, even when the id exists.
 void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
-    ScriptLightning& lightning = lightning_.emplace_back();
+    ScriptLightning& newLightning = lightning.emplace_back();
 
     const float* f = cmd->floatArgs.data();
-    if (f[0] >= 0.0f) lightning.id = static_cast<int>(f[0]);
-    else lightning.id = nextParticleId_--;   // also NaN
+    if (f[0] >= 0.0f) newLightning.id = static_cast<int>(f[0]);
+    else newLightning.id = nextParticleId--;    // also NaN
 
-    auto* bolt = g_serverWorld.timedObjectManager_->CreateObjectAs<CEffectLightning>(ClassId::EffectLightning, -1);
-    lightning.object = ScriptEffect<CEffectLightning>(bolt);
+    auto* bolt = g_serverWorld.timedObjectManager->CreateObjectAs<CEffectLightning>(ClassId::EffectLightning, -1);
+    newLightning.object = ScriptEffect<CEffectLightning>(bolt);
     Vector3 to{f[4], f[5], f[6]};
     Vector3 from{f[1], f[2], f[3]};
     bolt->SetEnds(from, to, f[7]);
@@ -209,18 +209,18 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
 
     const float* f = cmd->floatArgs.data();
     int id = x87::RoundToInt(f[0]);
-    if (id < 0) id = nextParticleId_--;
+    if (id < 0) id = nextParticleId--;
 
-    ScriptParticleSource* source = FindId(particles_, id);
+    ScriptParticleSource* source = FindId(particles, id);
     if (source) source->object.reset();
-    else source = &particles_.emplace_back();
+    else source = &particles.emplace_back();
 
-    auto* particles = g_serverWorld.timedObjectManager_->CreateObjectAs<CEffectParticle>(ClassId::EffectParticle, -1);
-    particles->type_ = particleType;
-    particles->localPosition_ = {f[1], f[2], f[3]};
-    source->object = ScriptEffect<CEffectParticle>(particles);
-    x87::CopyBits(particles->size_, f[4]);
-    g_serverWorld.AddTimedObject(particles);
+    auto* newParticles = g_serverWorld.timedObjectManager->CreateObjectAs<CEffectParticle>(ClassId::EffectParticle, -1);
+    newParticles->type = particleType;
+    newParticles->localPosition = {f[1], f[2], f[3]};
+    source->object = ScriptEffect<CEffectParticle>(newParticles);
+    x87::CopyBits(newParticles->size, f[4]);
+    g_serverWorld.AddTimedObject(newParticles);
 
     source->id = id;
     source->deleteAfterMove = 0;
@@ -234,12 +234,12 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
 // point in `steps` equal steps (one per tick); nothing when no source has the id.
 void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data();
-    ScriptParticleSource* source = FindId(particles_, x87::RoundToInt(f[0]));
+    ScriptParticleSource* source = FindId(particles, x87::RoundToInt(f[0]));
     if (!source) return;
     source->moving = 1;
     source->deleteAfterMove = x87::RoundToInt(f[5]);
     source->steps = x87::RoundToInt(f[4]);
-    const Vector3& at = source->object->localPosition_;
+    const Vector3& at = source->object->localPosition;
     float inverse = 1.0f / static_cast<float>(source->steps);
     source->step.x = (f[1] - at.x) * inverse;
     source->step.y = (f[2] - at.y) * inverse;

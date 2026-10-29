@@ -44,7 +44,7 @@ LRESULT OnActivate(WPARAM wParam) {
         g_active = 0;
         return 1;
     }
-    auto* sounds = g_clientWorld.sounds_;
+    auto* sounds = g_clientWorld.sounds;
     unsigned state = wParam & 0xFFFF;
     if (state == 0) {   // WA_INACTIVE
         g_active = 0;
@@ -60,13 +60,13 @@ LRESULT OnActivate(WPARAM wParam) {
     g_activationChanged = 1;
     gameapi::ShowWindow(g_mainWindow, SW_RESTORE);
     if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(true);
-    CTextureDevice* device = g_sceneRenderer.device_;
-    if (device && device->fullScreen_) {
+    CTextureDevice* device = g_sceneRenderer.device;
+    if (device && device->fullScreen) {
         g_sceneRenderer.RestoreSurfaces();
-        device = g_sceneRenderer.device_;
+        device = g_sceneRenderer.device;
         if (device) {
             // ResetCursors after the device was restored. The context is the mouse.
-            ResetCursors(options::g_options.fpsIndependentCursor_ != 0, g_mouse, 0);
+            ResetCursors(options::g_options.fpsIndependentCursor != 0, g_mouse, 0);
         }
     }
     g_cursor.ShowImage(1);
@@ -241,7 +241,7 @@ int StartFirstMap() {
     const auto& cmdMode = g_commandLineMob;   // empty: main menu
     const auto& cmdScript = g_commandLineScript;
     std::string map;
-    map = cmdMap.size() != 0 ? cmdMap : options::g_options.defaultMapName_;
+    map = cmdMap.size() != 0 ? cmdMap : options::g_options.defaultMapName;
     if (str::Compare(cmdMode,
                         game::kEmptyText) == 0) {
         g_gameFlow.CloseSessions();
@@ -253,9 +253,9 @@ int StartFirstMap() {
         return game::FatalError("Can't load map \"%s\".\n", map);
     world->SetGameResult(1);
     CWorldClient* client = &g_clientWorld;
-    client->SetPlayer(g_serverWorld.worldHandle_.Get());
-    client->LocalView()->sendParty_ = 0;
-    g_serverWorld.sessionKind_ = 7;
+    client->SetPlayer(g_serverWorld.worldHandle.Get());
+    client->LocalView()->sendParty = 0;
+    g_serverWorld.sessionKind = 7;
     if (cmdScript.size() == 0) return 1;
     CScript* script = TheMissionScript();
     BOOL loaded;

@@ -3,7 +3,7 @@
 // CWinRegistry (the name from its own messages): the Windows registry
 // wrapper the options loader and writer use. The object is one open key; every
 // getter and setter reads or writes one value of `subkey` below it. The keys and values are the settings
-// file's (settings_file.h), never the registry's: key_ is a settings_file::CreateKey handle, and Close
+// file's (settings_file.h), never the registry's: key is a settings_file::CreateKey handle, and Close
 // writes the file when a value changed. A value of another type goes to the game's debug message
 // and gives the default.
 
@@ -33,5 +33,5 @@ public:
     double GetFloat(const char* subkey, const char* name, std::uint32_t defaultBits);
     std::string GetString(const char* subkey, const char* name, const std::string& defaultValue);   // REG_SZ
 
-    void* key_ = nullptr;   // the settings file's key, null when closed
+    void* key = nullptr;    // the settings file's key, null when closed
 };

@@ -24,8 +24,8 @@ int CTexture::LoadBmp(CTextureDevice* device, const char* path) {
     std::string file;
     std::string alphaPath;
     std::vector<std::string> pieces;
-    if ((flags_ & TextureFlag::Loaded) &&
-        str::Compare(name_, path) == 0) {
+    if ((flags & TextureFlag::Loaded) &&
+        str::Compare(name, path) == 0) {
         game::DebugLog(AlreadyLoadedText(), path);
         return 1;
     }

@@ -154,8 +154,8 @@ int CFigureAnimationState::AttachMesh(CEngineObject* part) {
     bone->mesh = AsMesh(part);
     if (part) {
         part->AddRef();
-        bone->mesh->localPosition_ = bone->position;
-        bone->mesh->localRotation_ = bone->rotation;
+        bone->mesh->localPosition = bone->position;
+        bone->mesh->localRotation = bone->rotation;
     }
     if (old) old->Release();
     return 1;

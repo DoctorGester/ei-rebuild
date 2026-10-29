@@ -4,13 +4,13 @@
 #include "base_manager.h"
 
 void CEngineObject::CopyFrom(const CEngineObject& other) {
-    flags_ = other.flags_;
-    type_ = other.type_;
-    prototypeId_ = other.prototypeId_;
+    flags = other.flags;
+    type = other.type;
+    prototypeId = other.prototypeId;
 }
 
 // The default slots: the destructor lets go of the owner; 1 is CopyFrom, 5 / 9 / 10 empty, 6 returns 0.
-CEngineObject::~CEngineObject() { owner_ = nullptr; }
+CEngineObject::~CEngineObject() { owner = nullptr; }
 void CEngineObject::ClearState() {}
 bool CEngineObject::RunTick() { return false; }
 void CEngineObject::Load(CStream*) {}
@@ -20,16 +20,16 @@ void CEngineObject::Save(CStream*) {}
 // CBaseManager::ReleaseObject). The result is `this`, or what the manager's call
 // leaves there; no caller reads it.
 void CEngineObject::Release() {
-    if (--refCount_ == 0) owner_->ReleaseObject(this);
+    if (--refCount == 0) owner->ReleaseObject(this);
 }
 
 const char* CEngineObject::GetName() { return "noname"; }
 const char* CEngineObject::GetDescription() { return "nodesc"; }
 
-CManagerContext* CEngineObject::ManagerContext() const { return owner_->context_; }
+CManagerContext* CEngineObject::ManagerContext() const { return owner->context; }
 
-CBaseManager* CEngineObject::SetOwner(CBaseManager* owner) {
-    CBaseManager* previous = owner_;
-    owner_ = owner;
+CBaseManager* CEngineObject::SetOwner(CBaseManager* newOwner) {
+    CBaseManager* previous = owner;
+    owner = newOwner;
     return previous;
 }

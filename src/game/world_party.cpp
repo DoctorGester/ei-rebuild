@@ -76,11 +76,11 @@ void AddCountedTail(std::list<CEngineObject*>* list, CEngineObject* object) {
 void CWorldServer::TakeZoneQuestItems(std::vector<CItem*>* items, std::list<CItem*>* list) {
     // The quest ids this zone's objects ask for, each once.
     std::vector<int> wanted{};
-    for (auto node = objects_.map.begin(); node != objects_.map.end() && node->second; ++node) {
+    for (auto node = objects.map.begin(); node != objects.map.end() && node->second; ++node) {
         CMapObject* object = node->second;
         if (!object->IsUsable()) continue;
-        int id = object->KeyId();
-        if (!Contains(wanted, id)) lib::SetAtGrow(wanted, std::ssize(wanted), id);
+        int objectId = object->KeyId();
+        if (!Contains(wanted, objectId)) lib::SetAtGrow(wanted, std::ssize(wanted), objectId);
     }
 
     // Quest items move from the array to the list: in single player only those whose
@@ -89,9 +89,9 @@ void CWorldServer::TakeZoneQuestItems(std::vector<CItem*>* items, std::list<CIte
         if (ItemAt(items, i)->GetClassId() != ClassId::ItemQuest) continue;
         CItem* item = ItemAt(items, i);
         itemdb::QuestItemRecord* info = itemdb::RecordAs<itemdb::QuestItemRecord>(item->GetPrototype());
-        if (sessionKind_ == kKindSinglePlayer && !IsMultiplayerClient()) {
-            bool here = info && NamesZone(info, zoneName_.c_str());
-            if (!here && !Contains(wanted, static_cast<int>(AsQuest(item)->questItemId_))) continue;
+        if (sessionKind == kKindSinglePlayer && !IsMultiplayerClient()) {
+            bool here = info && NamesZone(info, zoneName.c_str());
+            if (!here && !Contains(wanted, static_cast<int>(AsQuest(item)->questItemId))) continue;
         }
         AddTail(*list, ItemAt(items, i));
         items->erase(items->begin() + i);
@@ -101,8 +101,8 @@ void CWorldServer::TakeZoneQuestItems(std::vector<CItem*>* items, std::list<CIte
 
 void CWorldServer::RestorePlayerItems(CPlayer* player) {
     std::list<CItem*> taken;
-    if (sessionKind_ != kKindNetwork) {
-        std::vector<CItem*>* items = &player->Party()->items_;
+    if (sessionKind != kKindNetwork) {
+        std::vector<CItem*>* items = &player->Party()->items;
         if (IsMultiplayerClient()) {
             // A client takes everything back.
             for (int i = 0; i < std::ssize(*items); ++i) AddTail(taken, ItemAt(items, i));
@@ -118,7 +118,7 @@ void CWorldServer::RestorePlayerItems(CPlayer* player) {
                 CItem* item = *node;
                 std::list<CItem*> one;
                 CItem* fresh = DuplicateItem(item);
-                fresh->count_ = item->count_;
+                fresh->count = item->count;
                 AddTail(one, fresh);
                 player->GiveItems(&one, 0);
                 item->Release();
@@ -134,33 +134,33 @@ void CWorldServer::RestorePlayerItems(CPlayer* player) {
 void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placements, char runScripts) {
     if (!player) return;
     RestorePlayerItems(player);
-    if (!(sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
+    if (!(sessionKind == kKindSinglePlayer || sessionKind == kKindNoRangeTest) || zoneLoaded == 0) return;
 
     CParty* party = player->Party();
     std::vector<PartyUnitRecord*> records{};
-    for (int i = 0; i < std::ssize(party->members_); ++i) {
+    for (int i = 0; i < std::ssize(party->members); ++i) {
         int index = std::ssize(records);
         records.resize(index + 1);
-        records[index] = &party->members_[i];
+        records[index] = &party->members[i];
     }
     // A lost game sends the party back to this zone's first exit.
-    if (gameResult_ == kGameResultLost) {
-        party->zone_ = zoneName_;
-        party->entrance_ = 0;
+    if (gameResult == kGameResultLost) {
+        party->zone = zoneName;
+        party->entrance = 0;
     }
 
     // The party arrives at the centre of its entrance's deploy rectangle (the target zone's exit
-    // `entrance_`), facing away from the map's centre unless the exit gives a heading.
+    // `entrance`), facing away from the map's centre unless the exit gives a heading.
     double cell = 0.5;
-    float centreX = static_cast<float>(aiMap_.cells.width * cell * 0.5f);
-    float centreY = static_cast<float>(aiMap_.cells.height * cell * 0.5f);
+    float centreX = static_cast<float>(aiMap.cells.width * cell * 0.5f);
+    float centreY = static_cast<float>(aiMap.cells.height * cell * 0.5f);
     Quaternion rotation;
     rotation = kNewUnitRotation;
     Vector3 start{0.0f, 0.0f, 0.0f};
     std::uint32_t startValue = 0;
     const ZoneExit* exit = nullptr;
-    const MapRecord* zone = FindZone(party->zone_);
-    int entrance = static_cast<int>(party->entrance_);
+    const MapRecord* zone = FindZone(party->zone);
+    int entrance = static_cast<int>(party->entrance);
     if (zone && entrance >= 0 && entrance < std::ssize(zone->exits)) {
         exit = &zone->exits[entrance];
         start.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * 0.5f);
@@ -178,15 +178,15 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
     if (placements) placements->clear();
     CPlayerServer* state = player->Server();
     std::uint32_t lastZ;
-    lastZ = std::bit_cast<std::uint32_t>(state->lastPosition_.z);
+    lastZ = std::bit_cast<std::uint32_t>(state->lastPosition.z);
     if (lastZ != kNoStart) {
-        state->lastPosition_ = start;
-        state->SendPosition04(start, startValue, sessionKind_);
+        state->lastPosition = start;
+        state->SendPosition04(start, startValue, sessionKind);
     }
-    player->lastTick_ = tick_;
-    if (sessionKind_ == kKindNoRangeTest) UpdateMercBriefings();
+    player->lastTick = tick;
+    if (sessionKind == kKindNoRangeTest) UpdateMercBriefings();
     if (runScripts) {
-        scriptsActive_ = 1;
+        scriptsActive = 1;
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
     }
 }
@@ -195,43 +195,43 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
 
 CItem* CWorldServer::CopyItem(CItem* source) {
     // The game also builds and frees two empty CPtrLists here, unused.
-    std::uint32_t packed = source->prototypeId_;
-    ItemKind type = source->Kind();
+    std::uint32_t packed = source->prototypeId;
+    ItemKind itemKind = source->Kind();
     CItemManager* factory = ItemFactory();
-    CItem* copy = factory->MakeItem(type, static_cast<int>(packed >> 16), static_cast<int>(packed & 0xFFFF));
+    CItem* copy = factory->MakeItem(itemKind, static_cast<int>(packed >> 16), static_cast<int>(packed & 0xFFFF));
     source->CopyTo(copy, SpellManager());
-    copy->charge_ = source->charge_;
+    copy->charge = source->charge;
     // An item below its maximum is kept on the counted list (once).
-    float current = source->charge_;
-    float maximum = source->chargeMax_;
-    if (maximum > current && copy && !lib::Contains(counted_, copy)) AddCountedTail(&counted_, copy);
+    float current = source->charge;
+    float maximum = source->chargeMax;
+    if (maximum > current && copy && !lib::Contains(counted, copy)) AddCountedTail(&counted, copy);
     return copy;
 }
 
 // ---- Items and spells by name -------------------------------------------------------------------
 
 // As in CopyItem, the game also builds and frees two empty CPtrLists around the call.
-CItem* CWorldServer::CreateItemNamed(const char* name) { return g_serverWorld.itemManager_->CreateItem(name); }
+CItem* CWorldServer::CreateItemNamed(const char* name) { return g_serverWorld.itemManager->CreateItem(name); }
 
 CItem* CWorldServer::CreateSpellNamed(const char* name) {
-    CItemManager* manager = g_serverWorld.itemManager_;   // read first
+    CItemManager* manager = g_serverWorld.itemManager;    // read first
     return manager->CreateSpellItem(name, SpellManager());
 }
 
 void CWorldServer::AddCounted(CEngineObject* item) {
-    if (!item || lib::Contains(counted_, item)) return;
-    AddCountedTail(&counted_, item);
+    if (!item || lib::Contains(counted, item)) return;
+    AddCountedTail(&counted, item);
 }
 
 void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
     if (unit->player) {
         if (CItemLink* link = item->ServerLink()) {
             CParty* party = unit->player->Party();
-            if (party->Find(unit->id_)) {
+            if (party->Find(unit->id)) {
                 CItem* source = FindItem(party->ItemFactory(), link->value);
-                if (source) --source->count_;
+                if (source) --source->count;
             }
         }
     }
-    --item->count_;
+    --item->count;
 }

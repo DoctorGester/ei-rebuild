@@ -406,7 +406,7 @@ protected:
     explicit PlayerMode(AIModeType modeType) : AIActionMode(modeType) {}
 };
 
-// True when the unit's player's party is in danger (CPlayerServer::danger_ InDanger: a party unit fights or is an
+// True when the unit's player's party is in danger (CPlayerServer::danger InDanger: a party unit fights or is an
 // enemy's target). Its units then fight on their own: they keep their leader on a walk command, do not wait for
 // the followers and do not stop the others to fight.
 bool PartyInDanger(const CUnit* unit);

@@ -56,7 +56,7 @@ void FrameStep(bool draw, bool cursor) {
     if (!draw || !Running()) return;
     LockCursorAtCallSite();
     CursorDrawFrame(&g_cursor);
-    if (DevicePresent(g_sceneRenderer.device_)) game::FatalError("Can't flip render surface");   // "Can't flip render surface"
+    if (DevicePresent(g_sceneRenderer.device)) game::FatalError("Can't flip render surface");    // "Can't flip render surface"
     g_cursor.ReleaseLock();
     if (!app::g_recordingFrames) return;
     char path[256];
@@ -67,7 +67,7 @@ void FrameStep(bool draw, bool cursor) {
         app::g_recordingFrames = 0;
         return;
     }
-    CDib* bitmap = CaptureScreen(g_sceneRenderer.device_);
+    CDib* bitmap = CaptureScreen(g_sceneRenderer.device);
     if (bitmap) bitmap->Write(&file);
     delete bitmap;
     file.Close();

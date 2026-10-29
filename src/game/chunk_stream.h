@@ -15,7 +15,7 @@
 
 class Chunk {
 public:
-    explicit Chunk(Chunk* parent) : id_(0), consumed_(0), size_(0), start_(0), parent_(parent) {}
+    explicit Chunk(Chunk* newParent) : id(0), consumed(0), size(0), start(0), parent(newParent) {}
     ~Chunk();
 
     // Called by ForEachChild for each child header read; the readers read the chunk's value by its id.
@@ -57,11 +57,11 @@ public:
     std::vector<std::string> ReadStringArray();
     void WriteStringArray(std::uint32_t id, const std::vector<std::string>* array);
 
-    std::uint32_t id_;
-    std::int32_t consumed_;  // bytes of the chunk read or written so far, header included
-    std::int32_t size_;      // size from the header, header included
-    std::uint32_t start_;    // file position of the size field while writing
-    Chunk* parent_;
+    std::uint32_t id;
+    std::int32_t consumed;   // bytes of the chunk read or written so far, header included
+    std::int32_t size;       // size from the header, header included
+    std::uint32_t start;     // file position of the size field while writing
+    Chunk* parent;
 };
 
 // The root chunk of a file: File() returns its file.
@@ -76,5 +76,5 @@ public:
     // Opens the file: lib::File::Open with the low 16 bits of `flags`.
     int Open(const std::string& path, unsigned flags);
 
-    lib::File file_;
+    lib::File file;
 };

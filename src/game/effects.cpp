@@ -87,12 +87,12 @@ void CParticleSource::ScaleSize(float factor) {
     emitSpacing = factor * emitSpacing;
 }
 
-void CParticleSource::StopEmitting() { flags_ = (flags_ & ~ParticleSourceFlag::Emitting) | ParticleSourceFlag::KeepAlive; }
+void CParticleSource::StopEmitting() { flags = (flags & ~ParticleSourceFlag::Emitting) | ParticleSourceFlag::KeepAlive; }
 
-void CParticleSource::StartEmitting() { flags_ |= ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive; }
+void CParticleSource::StartEmitting() { flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive; }
 
 void CParticleSource::Stop() {
-    flags_ &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
+    flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
     Attach(nullptr);
 }
 
@@ -121,12 +121,12 @@ int CParticleSource::UpdateCloud(Particle* p) {
         if (++p->frame >= frameCount) p->frame = 0;
         p->frameTimer = frameDelay;
     }
-    if (flags_ & ParticleSourceFlag::Emitting) return 1;
+    if (flags & ParticleSourceFlag::Emitting) return 1;
     std::uint32_t a = p->color >> 24;
     if (a <= 9) return 0;
     int step = x87::fistp(alpha * kCloudAlpha);
     if (step < 1) step = 1;
-    std::uint32_t rgb = ParticleTypeOf(type_) == ParticleType::PoisonCloud ? 0xFFAF7Fu : 0xFFFFFFu;
+    std::uint32_t rgb = ParticleTypeOf(type) == ParticleType::PoisonCloud ? 0xFFAF7Fu : 0xFFFFFFu;
     p->color = ((static_cast<std::uint32_t>(step) * 255 + a) << 24) | rgb;
     return 1;
 }
@@ -140,7 +140,7 @@ int CParticleSource::UpdateSmoke(Particle* p) {
         if (frame >= frameCount) return 0;
         p->frameTimer = frameDelay;
         if (frame > 7) {
-            if (ParticleTypeOf(type_) == ParticleType::Fire || ParticleTypeOf(type_) == ParticleType::Tendril) return 0;
+            if (ParticleTypeOf(type) == ParticleType::Fire || ParticleTypeOf(type) == ParticleType::Tendril) return 0;
             p->frameTimer = frameDelay << 2;
             if ((g_clientRandom.Next() & 3) == 0) return 0;
         }
@@ -174,7 +174,7 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     float extra = 0.0f;
     p->color = 0xFFFFFFFFu;
     p->life = lifetime;
-    p->frame = ParticleTypeOf(type_) != ParticleType::Smoke ? 0 : 8;
+    p->frame = ParticleTypeOf(type) != ParticleType::Smoke ? 0 : 8;
     p->frameTimer = frameDelay;
     p->size = size;
     if (g_clientRandom.Next() % 100 + 1 <= 40) {
@@ -275,7 +275,7 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     p->pos.y = offset.y + by;
     p->pos.z = offset.z + bz;
     p->pos.x = px;
-    switch (ParticleTypeOf(type_)) {
+    switch (ParticleTypeOf(type)) {
     case ParticleType::SphereFire:
         p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * p->drift.x * scale * 2.0f;
         break;
@@ -298,7 +298,7 @@ int CParticleSource::UpdateOrbit(Particle* p) {
 void CParticleSource::TickNuke(ParticleElement* e) {
     ++e->ticks;
     if (emitCount > 8) emitCount = emitCount / 2;
-    if (e->ticks == 13) flags_ &= ~ParticleSourceFlag::Emitting;
+    if (e->ticks == 13) flags &= ~ParticleSourceFlag::Emitting;
 }
 
 // Tendril smoke: emission proportional to the length of `extent`, at least 6, at most a 16th of
@@ -314,10 +314,10 @@ void CParticleSource::TickTendril(ParticleElement*) {
 // Mushroom cloud: the cap widens with ln(ticks + 1) and rises; the Mushroom shakes the camera on
 // its first tick; emission stops after 30 ticks.
 void CParticleSource::TickMushroom(ParticleElement* e) {
-    if (ParticleTypeOf(type_) == ParticleType::Mushroom && e->ticks == 0 && e == elements.data())
+    if (ParticleTypeOf(type) == ParticleType::Mushroom && e->ticks == 0 && e == elements.data())
         g_camera.Shake(origin, 5.0f, size, 0.25f);
     int ticks = ++e->ticks;
     e->pos.x = static_cast<float>(x87::flog(ticks + 1) * size * kMushroomWidth);
     e->pos.z = size * kMushroomRise + e->pos.z;
-    if (ticks == 30) flags_ &= ~ParticleSourceFlag::Emitting;
+    if (ticks == 30) flags &= ~ParticleSourceFlag::Emitting;
 }

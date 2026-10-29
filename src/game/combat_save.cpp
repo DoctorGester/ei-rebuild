@@ -21,7 +21,7 @@ namespace {
 
 constexpr int kSavedConstant = 2;             // written after +0x180, read back and dropped
 
-int IdOrNone(const CEngineObject* object) { return object ? object->id_ : -1; }
+int IdOrNone(const CEngineObject* object) { return object ? object->id : -1; }
 
 // Resolves an id read from the stream in `manager` (-1: none).
 CEngineObject* ReadObject(CStream* stream, const CBaseManager* manager) {
@@ -47,7 +47,7 @@ void LoadOrder(CStream* stream, UnitAction* order) {
     stream->ReadValue(order->point);
     stream->ReadValue(order->param);
     stream->ReadValue(order->modifier);
-    if (stream->version_ >= kVersionPlanDirection) stream->ReadValue(order->pointIsUseSpot);
+    if (stream->version >= kVersionPlanDirection) stream->ReadValue(order->pointIsUseSpot);
 }
 
 void SaveOrder(CStream* stream, UnitAction* order) {
@@ -70,7 +70,7 @@ void LoadPlanFields(CStream* stream, OrderPlan* plan) {
     stream->ReadValue(plan->isCast);
     stream->ReadValue(plan->notSkill);
     stream->ReadValue(plan->castKind);
-    if (stream->version_ >= kVersionPlanDirection) stream->ReadValue(plan->direction);
+    if (stream->version >= kVersionPlanDirection) stream->ReadValue(plan->direction);
 }
 
 void SavePlanFields(CStream* stream, OrderPlan* plan) {
@@ -107,7 +107,7 @@ void LoadArmourSpells(std::list<ArmourSpell>* list, CStream* stream) {
     for (auto node = list->begin(); node != list->end();) {
         auto current = node;
         ++node;
-        current->item.Assign(ReadItem(stream, g_serverWorld.itemManager_));
+        current->item.Assign(ReadItem(stream, g_serverWorld.itemManager));
         stream->ReadValue(current->countdown);
     }
 }
@@ -135,7 +135,7 @@ void CUnitServer::Load(CStream* stream) {
     LoadOrder(stream, &action);
     LoadOrder(stream, &action2);
     stats.LoadFrom(stream);
-    if (stream->version_ < kVersionFixedMaxHitPoints)
+    if (stream->version < kVersionFixedMaxHitPoints)
         stats.fixedMaxHitPoints = unit->ServerCompanion()->vitals.maxHitPoints;
     for (int i = 0; i < 4; ++i) stream->ReadValue(moveFactors[i]);
     stream->ReadValue(tameStage);
@@ -153,22 +153,22 @@ void CUnitServer::Load(CStream* stream) {
     effectObject.Assign(ReadObject(stream, effects));
     LoadArmourSpells(&armourSpells, stream);
     stream->ReadValue(followsLeader);
-    followedLeader.Assign(ReadUnit(stream, g_serverWorld.objectManager_));
+    followedLeader.Assign(ReadUnit(stream, g_serverWorld.objectManager));
 
-    if (stream->version_ < kVersionActingCheckTime) return;
+    if (stream->version < kVersionActingCheckTime) return;
     stream->ReadValue(actingCheckTime);
-    if (stream->version_ < kVersionUnusedDword) return;
+    if (stream->version < kVersionUnusedDword) return;
     int unused;
     stream->ReadValue(unused);
-    if (stream->version_ < kVersionSearchingTarget) return;
+    if (stream->version < kVersionSearchingTarget) return;
     stream->ReadValue(searchingTarget);
-    if (stream->version_ < kVersionProtection) return;
+    if (stream->version < kVersionProtection) return;
     stream->ReadValue(protection);
-    if (stream->version_ < kVersionBoredTicks) return;
+    if (stream->version < kVersionBoredTicks) return;
     stream->ReadValue(boredTicks);
-    if (stream->version_ < kVersionPendingHit) return;
+    if (stream->version < kVersionPendingHit) return;
     stream->ReadValue(pendingHit);
-    if (stream->version_ < kVersionWaitFrame) return;
+    if (stream->version < kVersionWaitFrame) return;
     stream->WriteValue(waitFrame);    // sic: written, not read
 }
 

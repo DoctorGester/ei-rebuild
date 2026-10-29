@@ -56,7 +56,7 @@ void CopyList(std::vector<CItem*>& list, const std::vector<CItem*>& source, CPar
         CItem* item = source[i];
         list[i] = party->CopyItem(item);
         CItem* copy = list[i];
-        copy->count_ = item->count_;
+        copy->count = item->count;
         copy->AddRef();
     }
 }
@@ -78,12 +78,12 @@ void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, CParty* party
 }
 
 PartyUnitRecord* CParty::AddMember(std::string_view name, std::string_view prototype, std::string_view extra) {
-    if (!itemManager_) Create();
+    if (!itemManager) Create();
     // The game assigned a constructed stack record to the new entry. Ours is value-initialised: the record's
     // defaults leave the statistics, and BuildNpcStats' reset leaves some of theirs (the layers' spare values, ...),
     // which the game took from its stack and saved with the party (a determinism fix; the harness zeroes the
     // game's too, harness_leftovers.h).
-    PartyUnitRecord* record = &members_.emplace_back();
+    PartyUnitRecord* record = &members.emplace_back();
     record->texts[1] = name;
     record->unitId = name.empty() ? 0xFFFFFFFFu : static_cast<std::uint32_t>(TextKeyFromName(name));
     record->texts[5] = prototype;
@@ -118,8 +118,8 @@ void CParty::FillFromPrototype(PartyUnitRecord* record) {
     }
     const std::vector<std::string>& spellNames = prototype->spellNames;
     for (int i = 0; i < static_cast<int>(spellNames.size()); ++i) {
-        CSpellManager* owner = SpellManager();
-        auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], owner);
+        CSpellManager* spellOwner = SpellManager();
+        auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], spellOwner);
         CItem* copy = CountedClone(spell);
         std::vector<CItem*>& list = record->spells;
         int index = std::ssize(list);
@@ -143,8 +143,8 @@ bool CParty::EquipFromPrototype(PartyUnitRecord* record) {
 
     const std::vector<std::string>& spellNames = npc->startSpells;
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
-        CSpellManager* owner = SpellManager();
-        auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], owner);
+        CSpellManager* spellOwner = SpellManager();
+        auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], spellOwner);
         record->spells.push_back(CountedClone(spell));
         Drop(spell);
     }
@@ -162,16 +162,16 @@ bool CParty::EquipFromPrototype(PartyUnitRecord* record) {
         lib::SetAtGrow(record->weapons, std::ssize(record->weapons), copy);
         Drop(item);
     }
-    money_ += npc->startMoney;
+    money += npc->startMoney;
     record->stats.AddExperience(npc->experienceFloor);
     record->texts[6] = record->texts[5];
     return true;
 }
 
 bool CParty::RemoveMember(int key) {
-    for (int i = 0; i < std::ssize(members_); ++i) {
-        if (static_cast<int>(members_[i].unitId) != key) continue;
-        members_.erase(members_.begin() + i);
+    for (int i = 0; i < std::ssize(members); ++i) {
+        if (static_cast<int>(members[i].unitId) != key) continue;
+        members.erase(members.begin() + i);
         return true;
     }
     return false;
@@ -179,15 +179,15 @@ bool CParty::RemoveMember(int key) {
 
 void CParty::OpenEdgeExits() {
     std::string variable;
-    MapRecord* zone = g_mapDatabase.FindMap(zone_);
-    if (zone == nullptr || zone->kind != kZoneKindEdge) return;
-    NamedFloatTable& variables = variables_;
-    for (int i = 0; i < std::ssize(zone->exits); ++i) {
-        MapRecord* target = g_mapDatabase.FindMap(zone->exits[i].target);
+    MapRecord* newZone = g_mapDatabase.FindMap(zone);
+    if (newZone == nullptr || newZone->kind != kZoneKindEdge) return;
+    NamedFloatTable& currentVariables = variables;
+    for (int i = 0; i < std::ssize(newZone->exits); ++i) {
+        MapRecord* target = g_mapDatabase.FindMap(newZone->exits[i].target);
         if (target == nullptr || target->kind != kZoneKindGame) continue;
         variable = str::Format(ZoneVariableFormat(), target->name);
-        float value = variables.Get(variable);
+        float value = currentVariables.Get(variable);
         EI_NAN_AUDIT(value);
-        if (value == 0.0f) variables.Set(variable, kOpened);
+        if (value == 0.0f) currentVariables.Set(variable, kOpened);
     }
 }

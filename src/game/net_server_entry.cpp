@@ -18,24 +18,24 @@ namespace net {
 // message is held (else empty), the number of clients, the maximum and whether a password is set.
 void ServerSession::Describe(Ref<ServerEntry>* out) {
     auto* entry = NewCounted<ServerEntry>();
-    entry->name_ = name_;
-    entry->kind_ = kind_;
-    std::string* description = &entry->description_;
+    entry->name = name;
+    entry->kind = kind;
+    std::string* description = &entry->description;
     description->assign(game::kEmptyText);
 
-    CRefObject* map = map_.Get();
-    if (map && !(map->flags7_ & CRefObject::kDetached)) description->assign(SessionMapName());   // overwrite, then cut or append
+    CRefObject* newMap = map.Get();
+    if (newMap && !(newMap->flags7 & CRefObject::kDetached)) description->assign(SessionMapName());    // overwrite, then cut or append
 
-    entry->players_ = static_cast<std::uint8_t>(ClientCount());
-    entry->maxPlayers_ = static_cast<std::uint8_t>(maxPlayers_);
-    entry->password_ = password_[0] != 0;
+    entry->players = static_cast<std::uint8_t>(ClientCount());
+    entry->maxPlayers = static_cast<std::uint8_t>(maxPlayers);
+    entry->password = password[0] != 0;
 
     ShareAssignOwned(*out, entry);
 }
 // When announced, the master's address is set from the host name and port 28004.
 void ServerSession::SetPublic(bool announce) {
-    public_ = announce;
-    if (announce) masterAddress_.Parse(options::g_options.masterServerName_.c_str(), 0x6D64);
+    announced = announce;
+    if (announce) masterAddress.Parse(options::g_options.masterServerName.c_str(), 0x6D64);
 }
 
 } // namespace net

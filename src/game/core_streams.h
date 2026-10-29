@@ -75,46 +75,46 @@ public:
     // from `diff` (at its position), until base's size is reached or `diff` runs out.
     void ApplyDiff(CStream* base, CStream* diff);
     // Tagged blocks (a four-byte tag, the size including these eight bytes, then the content). Reads the next
-    // block's tag into *tag and its content into `out` (emptied, reading_ cleared, written, sought to 0).
+    // block's tag into *tag and its content into `out` (emptied, reading cleared, written, sought to 0).
     // False when the tag, the size or the content cannot be read (`out` is then already emptied once the size
     // was read).
     bool ReadTagged(std::uint32_t* tag, CStream* out);
-    // From the start (reading_ set), reads blocks until one has tag `id`;
+    // From the start (reading set), reads blocks until one has tag `id`;
     // when none has, `out` is emptied and the result is false.
     bool FindTagged(std::uint32_t id, CStream* out);
     // Reads bytes into `buffer` until a zero or `capacity` bytes; buffer[capacity - 1] is always set to zero. The
     // text then in UTF-8, cut at a character's end when it no longer fits.
     void ReadText(char* buffer, int capacity);
-    // Reads the magic number and the version (four bytes each, into one variable); true and version_ set when
+    // Reads the magic number and the version (four bytes each, into one variable); true and version set when
     // the magic matches and oldest <= version <= newest (signed).
     bool ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::int32_t oldestVersion);
     void WriteHeader(std::uint32_t magic, std::uint32_t version);
 
     void Rewind() {
-        ok_ = 1;
+        ok = 1;
         Seek(0);
-        reading_ = 1;
+        reading = 1;
     }
 
-    std::uint8_t reading_ = 0;      // 1 reading, 0 writing (CopyFrom clears it; never read)
-    std::uint8_t ok_;               // cleared when a read runs past the end
-    std::uint32_t version_;         // format version (the save game's); 2000000000 when constructed
+    std::uint8_t reading = 0;       // 1 reading, 0 writing (CopyFrom clears it; never read)
+    std::uint8_t ok;                // cleared when a read runs past the end
+    std::uint32_t version;          // format version (the save game's); 2000000000 when constructed
 };
 
-// A growable memory stream that can also pack bits. The bit writer assembles bits in bits_ and stores the
-// byte at data_[bitsIndex_] when a new one starts; Seek, Resize and SetSize flush and reset that state.
+// A growable memory stream that can also pack bits. The bit writer assembles bits in bits and stores the
+// byte at data[bitsIndex] when a new one starts; Seek, Resize and SetSize flush and reset that state.
 class CMemoryStream : public CStream {
 public:
     CMemoryStream();
     ~CMemoryStream() override;
     // The buffer and the bit state move; `other` is left empty.
     CMemoryStream(CMemoryStream&& other) noexcept;
-    std::uint32_t Read(void* buffer, std::uint32_t size) override;     // a short read zero-fills, clears ok_
+    std::uint32_t Read(void* buffer, std::uint32_t size) override;     // a short read zero-fills, clears ok
     // Grows to (capacity + size) * 2. The harness's observer (verify builds) is told first.
     void Write(const void* buffer, std::uint32_t size) override;
     void Seek(std::uint32_t position) override;                        // then EndBits
-    std::uint32_t Size() override { return size_; }
-    std::uint32_t Position() override { return position_; }
+    std::uint32_t Size() override { return size; }
+    std::uint32_t Position() override { return position; }
     void Clear() override;
     void CopyFrom(CStream* source) override;                           // one Read into a resized buffer
 
@@ -122,16 +122,16 @@ public:
     // and gets the pending bits byte (EndBits). Within the capacity the bits state is left alone.
     void Resize(std::uint32_t size);
     // Size `size`, position 0; a larger buffer (exactly `size`) does not keep them and
-    // only bitMask_ is reset (bitsIndex_ stays).
+    // only bitMask is reset (bitsIndex stays).
     void SetSize(std::uint32_t size);
 
     // The bit writer / reader of the delta code. Appends one bit (a new byte is started after eight).
     void PutBit(bool bit);
     // The readers' inline bit read: true when the next bit is set (reads a byte after eight).
     bool GetBit();
-    // Stores bits_, appends a zero byte for the next bits, bitMask_ = 1.
+    // Stores bits, appends a zero byte for the next bits, bitMask = 1.
     void StartByte();
-    // Stores bits_, no pending byte, bitMask_ = 0x80.
+    // Stores bits, no pending byte, bitMask = 0x80.
     void EndBits();
     // `from`'s pending bits stored first (EndBits), then its size times two, in one byte when that is below
     // 0x100 (a signed compare), otherwise in four bytes with bit 0 set; then its bytes.
@@ -145,12 +145,12 @@ public:
     void CompressTo(CoderState* coder, CMemoryStream* out);
     void DecompressTo(CoderState* coder, CMemoryStream* out);
 
-    std::uint8_t bits_ = 0;         // byte being assembled by the bit writer
-    std::int32_t bitMask_;          // bit of the last bit written (0x80: start a new byte)
-    std::int32_t bitsIndex_;        // where bits_ goes in the data (-1: nowhere yet)
-    std::vector<std::uint8_t> data_;    // the buffer: its size is the capacity
-    std::uint32_t position_;        // read / write position
-    std::uint32_t size_;            // end of the data
+    std::uint8_t bits = 0;          // byte being assembled by the bit writer
+    std::int32_t bitMask;           // bit of the last bit written (0x80: start a new byte)
+    std::int32_t bitsIndex;         // where bits goes in the data (-1: nowhere yet)
+    std::vector<std::uint8_t> data;     // the buffer: its size is the capacity
+    std::uint32_t position;         // read / write position
+    std::uint32_t size;             // end of the data
 };
 
 // The saved game's stream (world_game.cpp).

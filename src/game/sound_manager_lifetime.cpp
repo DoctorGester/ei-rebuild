@@ -450,7 +450,7 @@ void __stdcall SoundEndOfSample(miles::Sample* sample) {
 
 int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate) {
     Destroy();   // Close
-    const bool waveOut = options::g_options.audio_ == kWaveOutMode;
+    const bool waveOut = options::g_options.audio == kWaveOutMode;
     int device = waveOut ? kWaveMapper : 0;
     if (deviceIndex >= 0) {
         std::vector<int> devices;

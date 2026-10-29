@@ -198,7 +198,7 @@ void SetBits(void* dst, std::uint32_t bits) { lib::StoreBytes(dst, bits); }
 Vector3 ModifierAxis(CParticleSource* s, float twiceRadius) {
     Vector3 axis;
     axis = {};
-    switch (s->type_ - static_cast<int>(ParticleType::Modifier1)) {
+    switch (s->type - static_cast<int>(ParticleType::Modifier1)) {
     case 0:
         axis.z = 1.0f;
         break;
@@ -216,7 +216,7 @@ Vector3 ModifierAxis(CParticleSource* s, float twiceRadius) {
     case 6:
     case 7: {
         Vector3 y;
-        s->attachedTo->localRotation_.AxisY(&y);
+        s->attachedTo->localRotation.AxisY(&y);
         axis = y;
         break;
     }
@@ -349,7 +349,7 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
     const int fade = points[0].ticks;
     p->color = (static_cast<std::uint32_t>(kFadeAlpha[fade]) << 24) | 0xFFFFFF;
     if (points[0].ticks == 0 && index < std::ssize(elements)) {
-        unsigned kind = static_cast<unsigned>(type_ - static_cast<int>(ParticleType::Modifier1));
+        unsigned kind = static_cast<unsigned>(type - static_cast<int>(ParticleType::Modifier1));
         if (kind <= 11) p->frame = static_cast<int>(kind);
         p->state = index;
         p->pos = points[index].pos;
@@ -458,17 +458,17 @@ int CParticleSource::UpdateGroundDust(Particle* p) {
 void CParticleSource::TickGroundPlane(ParticleElement* e) {
     if (e->ticks == 0) {
         auto& plane = e->plane;
-        g_clientWorld.platforms_.SurfacePlane(origin.x, origin.y, &plane.normal, &plane.height);
+        g_clientWorld.platforms.SurfacePlane(origin.x, origin.y, &plane.normal, &plane.height);
         if (plane.normal.z != 0.0f) plane.normal.z = static_cast<float>(D(EI_ONE) / D(plane.normal.z));   // a NaN stays the same NaN
     }
-    if (++e->ticks > 1) flags_ &= ~ParticleSourceFlag::Emitting;
+    if (++e->ticks > 1) flags &= ~ParticleSourceFlag::Emitting;
 }
 
 // Portal: particles spiral up (their offset rotated by the turn in velocity.x/y each tick) and fade above 8
 // units; the spare ones (state set) flicker in size while the portal is on.
 int CParticleSource::UpdatePortal(Particle* p) {
     if (p->state != 0) {
-        if (!(flags_ & ParticleSourceFlag::Emitting)) return 0;
+        if (!(flags & ParticleSourceFlag::Emitting)) return 0;
         EI_NAN_AUDIT(size);
         if (size < EI_ONE) {
             p->size = 0.0f;
@@ -610,7 +610,7 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
 void CParticleSource::TickStartTrans(ParticleElement* e) {
     int ticks = e->ticks--;
     if (ticks < 0) {
-        flags_ &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
+        flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
         Attach(nullptr);
     }
     e->trans.scale = static_cast<float>(D(size) * D(EI_TRANS_GROWTH) + D(e->trans.scale));

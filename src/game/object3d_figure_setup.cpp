@@ -106,12 +106,12 @@ void CObject3D::SetUpAnimatedFigure(std::string_view model) {
 // --- Bounds of the placed parts -----------------------------------------------------------------
 
 void CObject3D::UpdatePartBounds() {
-    if (!(flags_ & MapObjectFlag::FiguresLoaded)) return;
+    if (!(flags & MapObjectFlag::FiguresLoaded)) return;
     float highX = -FLT_MAX, highY = -FLT_MAX, highZ = -FLT_MAX;
     float lowX = FLT_MAX, lowY = FLT_MAX, lowZ = FLT_MAX;
     for (int i = 0; i < std::ssize(parts); ++i) {
         // A part is a figure mesh (figure_mesh.h) on a CTransformObject.
-        parts[i]->UpdateWorld(localRotation_, localPosition_);
+        parts[i]->UpdateWorld(localRotation, localPosition);
         parts[i]->ExtendWorldBox(&highX, &highY, &highZ, &lowX, &lowY, &lowZ);
     }
     // The x sum stays on the FPU stack; the y and z sums are stored first.
@@ -127,9 +127,9 @@ void CObject3D::UpdatePartBounds() {
     bounds.flags |= BoundsFlag::Box;
     bounds.flags |= BoundsFlag::Sphere;
     bounds.radius = LengthZYX(bounds.boxMin);
-    bounds.center.x = centreX - localPosition_.x;
-    bounds.center.y = centreY - localPosition_.y;
-    bounds.center.z = centreZ - localPosition_.z;
+    bounds.center.x = centreX - localPosition.x;
+    bounds.center.y = centreY - localPosition.y;
+    bounds.center.z = centreZ - localPosition.z;
 }
 
 // --- Parts by name prefix -----------------------------------------------------------------------
@@ -150,7 +150,7 @@ std::vector<CFigureMesh*> CObject3D::CollectPartsByPrefix(std::string_view prefi
 
 CFigureMesh* CObject3D::LoadPart(std::string_view partName) {
     CFigureManager* manager = FigureManagerOf(this);
-    CFigureMesh* part = manager->NewPart(name, partName, flags_ & MapObjectFlag::Detached);
+    CFigureMesh* part = manager->NewPart(name, partName, flags & MapObjectFlag::Detached);
     if (!part) {
         game::DebugLog(kCantLoadPart, std::string(partName), name);
         return nullptr;
@@ -163,17 +163,17 @@ CFigureMesh* CObject3D::LoadPart(std::string_view partName) {
             loaded = current->LoadPart(&key);
         }
         if (!loaded) return nullptr;   // the part is kept, unreleased (as in the game)
-        const LinkPartHeader& piece = current->headers_.find(std::string(partName))->second;
-        part->materialValue_ = piece.materialValue;
-        part->meshType_ = piece.meshType;
+        const LinkPartHeader& piece = current->headers.find(std::string(partName))->second;
+        part->materialValue = piece.materialValue;
+        part->meshType = piece.meshType;
         // The box and the pivot.
-        part->box_ = piece.box;
+        part->box = piece.box;
     }
-    if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) part->box_.bounds.flags |= BoundsFlag::Base;
-    if (text::CompareIgnoringCase(partName.substr(0, 5), "CROWN") == 0) part->box_.bounds.flags |= BoundsFlag::Crown;
+    if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) part->box.bounds.flags |= BoundsFlag::Base;
+    if (text::CompareIgnoringCase(partName.substr(0, 5), "CROWN") == 0) part->box.bounds.flags |= BoundsFlag::Crown;
     if (text::CompareIgnoringCase(partName.substr(0, 5), "EMPTY") == 0) {
-        part->box_.bounds.flags |= BoundsFlag::NoFootprint;
-        part->box_.bounds.flags |= BoundsFlag::Crown;
+        part->box.bounds.flags |= BoundsFlag::NoFootprint;
+        part->box.bounds.flags |= BoundsFlag::Crown;
     }
     // Joins the parts unless it is there (appended).
     bool present = false;
@@ -184,10 +184,10 @@ CFigureMesh* CObject3D::LoadPart(std::string_view partName) {
         if (animation) animation->AttachMesh(part);
         if (attached) attached->OnPartAdded(part);
     }
-    part->box_.pivot.x = part->localPosition_.x;
-    part->box_.pivot.y = part->localPosition_.y;
-    part->box_.bounds.flags |= BoundsFlag::Loaded;
-    part->box_.pivot.z = part->localPosition_.z;
+    part->box.pivot.x = part->localPosition.x;
+    part->box.pivot.y = part->localPosition.y;
+    part->box.bounds.flags |= BoundsFlag::Loaded;
+    part->box.pivot.z = part->localPosition.z;
     return part;
 }
 
@@ -234,7 +234,7 @@ int CObject3D::MakeFigure(std::string_view model, std::vector<std::string>* name
         animation->UpdatePose();
     }
     ComputeBounds();
-    if (arg == 0 && !figure) flags_ &= ~MapObjectFlag::FiguresLoaded;
-    else flags_ |= MapObjectFlag::FiguresLoaded;
+    if (arg == 0 && !figure) flags &= ~MapObjectFlag::FiguresLoaded;
+    else flags |= MapObjectFlag::FiguresLoaded;
     return 1;
 }

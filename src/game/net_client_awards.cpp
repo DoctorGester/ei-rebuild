@@ -33,44 +33,44 @@ CPlayer* LocalPlayer() { return g_serverWorld.GetPlayer(0); }
 // removed and every given quest item (class 0x14) taken.
 void ClientSession::ApplyAwards() {
     ClientSession* self = this;
-    CPlayer* player = LocalPlayer();
-    if (!player) return;
-    for (auto& node : self->awards_) {
+    CPlayer* localPlayer = LocalPlayer();
+    if (!localPlayer) return;
+    for (auto& node : self->awards) {
         auto* award = node.Get();
-        const char* name = award->text_.data();
-        switch (award->kind_) {
+        const char* name = award->text.data();
+        switch (award->kind) {
         case 0: {
             std::uint32_t bits;
-            bits = std::bit_cast<std::uint32_t>(award->value_);
+            bits = std::bit_cast<std::uint32_t>(award->value);
             g_serverWorld.AwardExperience(nullptr, std::bit_cast<float>(bits));
             break;
         }
         case 1: {
             std::list<CItem*> none;
-            player->Party()->money_ += static_cast<int>(libcrt::Ftol(award->value_));
-            player->GiveItems(&none, 0);
+            localPlayer->Party()->money += static_cast<int>(libcrt::Ftol(award->value));
+            localPlayer->GiveItems(&none, 0);
             none.clear();
             break;
         }
         case 2: {
             std::list<CItem*> items;
-            CItem* item = player->Party()->ItemFactory()->CreateItem(name);
+            CItem* item = localPlayer->Party()->ItemFactory()->CreateItem(name);
             if (item) item->AddRef();
             items.push_back(item);
-            player->GiveItems(&items, 0);
+            localPlayer->GiveItems(&items, 0);
             ReleaseAndClear(items);
             break;
         }
         case 3: {
-            auto* item = player->Party()->ItemFactory()->CreateItem(name);
+            auto* item = localPlayer->Party()->ItemFactory()->CreateItem(name);
             if (item) item->AddRef();
-            for (auto position = player->items_.begin(); position != player->items_.end();) {
+            for (auto position = localPlayer->items.begin(); position != localPlayer->items.end();) {
                 std::list<CItem*>::iterator  current = position;
                 ++position;
                 CItem* owned = *current;
                 if (!owned->IsSameAs(item)) {
-                    std::int32_t id = owned->id_;
-                    if (id >= 0) player->TakeItem(id);
+                    std::int32_t id = owned->id;
+                    if (id >= 0) localPlayer->TakeItem(id);
                     break;
                 }
             }
@@ -78,12 +78,12 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 4:
-            player->Party()->RemoveQuestItems();
-            for (auto position = player->items_.begin(); position != player->items_.end();) {
+            localPlayer->Party()->RemoveQuestItems();
+            for (auto position = localPlayer->items.begin(); position != localPlayer->items.end();) {
                 std::list<CItem*>::iterator  current = position;
                 ++position;
                 CEngineObject* owned = *current;
-                if (owned->GetClassId() == ClassId::ItemQuest) player->TakeItem(owned->id_);
+                if (owned->GetClassId() == ClassId::ItemQuest) localPlayer->TakeItem(owned->id);
             }
             break;
         default:
@@ -92,7 +92,7 @@ void ClientSession::ApplyAwards() {
     }
 
     // The list emptied inline: each award released, each node back to the 16-byte pool list.
-    self->awards_.clear();
+    self->awards.clear();
 }
 
 // The client base tick, then the timers count down by `dt` (as a float) and those below zero are dropped. Awards
@@ -100,8 +100,8 @@ void ClientSession::ApplyAwards() {
 void ClientSession::Tick(double dt) {
     ClientSession* self = this;
     self->ClientBase::Tick(dt);
-    auto sentinel = self->timers_.end();
-    auto node = self->timers_.begin();
+    auto sentinel = self->timers.end();
+    auto node = self->timers.begin();
     if (node != sentinel) {
         const float step = static_cast<float>(dt);
         do {
@@ -111,12 +111,12 @@ void ClientSession::Tick(double dt) {
             const double left = static_cast<double>(seconds) - step;
             seconds = static_cast<float>(left);
             EI_NAN_AUDIT(left);
-            if (left < 0.0f) self->timers_.erase(current);
+            if (left < 0.0f) self->timers.erase(current);
         } while (node != sentinel);
     }
-    if (self->awards_.begin() == self->awards_.end() || g_serverWorld.sessionKind_ != 3) return;
-    CPlayer* player = LocalPlayer();
-    if (!player || player->connection_->state_ != 1 || !g_serverWorld.zoneLoaded_) return;
+    if (self->awards.begin() == self->awards.end() || g_serverWorld.sessionKind != 3) return;
+    CPlayer* localPlayer = LocalPlayer();
+    if (!localPlayer || localPlayer->connection->state != 1 || !g_serverWorld.zoneLoaded) return;
     ApplyAwards();
 }
 

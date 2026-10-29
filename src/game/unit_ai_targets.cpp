@@ -49,7 +49,7 @@ std::uint32_t GroupExcess(const AIAttackOption* option, UnitList* group, CUnit* 
     float radius2 = static_cast<float>(option->radius * option->radius);
     for (auto node = group->begin(); node != group->end(); ++node) {
         auto* member = *node;
-        double distance2 = DistanceSquaredXYUnrounded<double>(member->localPosition_, candidate->localPosition_);
+        double distance2 = DistanceSquaredXYUnrounded<double>(member->localPosition, candidate->localPosition);
         EI_NAN_AUDIT(distance2, radius2);
         if (distance2 <= radius2) sum += option->damage.ExcessOver(&member->ServerController()->protection);
     }
@@ -103,7 +103,7 @@ bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {
     // A spell aimed at no object cannot be cast on a large unit of size class 0.
     if (part >= 0) {
         CSpell* spell = self->GetSpellObject(part);
-        if (spell && (spell->targetFlags_ & SpellTargetFlag::AtPoint) && object->sizeClass == 0 &&
+        if (spell && (spell->targetFlags & SpellTargetFlag::AtPoint) && object->sizeClass == 0 &&
             object->GetPrototype()->height >= kSmallHeight)
             return false;
     }
@@ -111,27 +111,27 @@ bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {
     // Where the order is checked from: the unit's place, or the end of a path towards the target.
     Vector3 point;
     if (self == object || fromHere) {
-        point = self->localPosition_;
+        point = self->localPosition;
     } else {
-        double dz = static_cast<double>(self->localPosition_.z) - object->localPosition_.z;
-        double dy = static_cast<double>(self->localPosition_.y) - object->localPosition_.y;
-        double dx = static_cast<double>(self->localPosition_.x) - object->localPosition_.x;
+        double dz = static_cast<double>(self->localPosition.z) - object->localPosition.z;
+        double dy = static_cast<double>(self->localPosition.y) - object->localPosition.y;
+        double dx = static_cast<double>(self->localPosition.x) - object->localPosition.x;
         float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         float range = static_cast<float>(self->ScaledValue(distance));
         float targetRadius = static_cast<float>(object->Radius());
         float minDistance = static_cast<float>(static_cast<double>(self->Radius()) + targetRadius);
         CWorldServer* server = &g_serverWorld;
         // The target is lifted off the sector map so it does not block its own cell.
-        server->aiMap_.sectorMap.Remove(object);
-        if (server->aiMap_.FindPath(self, object->localPosition_, &path, range, minDistance)) {
+        server->aiMap.sectorMap.Remove(object);
+        if (server->aiMap.FindPath(self, object->localPosition, &path, range, minDistance)) {
             float scale = 0.5f;
             point.x = static_cast<float>(scale * path.targetX);
             point.y = static_cast<float>(scale * path.targetY);
             point.z = 0.0f;
         } else {
-            point = self->localPosition_;
+            point = self->localPosition;
         }
-        server->aiMap_.sectorMap.Add(object);
+        server->aiMap.sectorMap.Add(object);
     }
     return OrderAllowedFrom(this, choice, point);
 }
@@ -153,19 +153,19 @@ bool AIBrain::IsUsable(const AITargetChoice* choice) {
     if (option->kind != AIOptionKind::AreaAttack && option->kind != AIOptionKind::LastingArea) return true;
     EI_NAN_AUDIT(self->GetPrototype()->height);
     if (self->sizeClass == 0 && self->GetPrototype()->height >= kSmallHeight) return true;
-    Vector3 at = object->localPosition_;
+    Vector3 at = object->localPosition;
     for (auto& node : memory.nearby) {
         CUnit* other = node;
-        double dy = static_cast<double>(at.y) - other->localPosition_.y;
-        double dx = static_cast<double>(at.x) - other->localPosition_.x;
+        double dy = static_cast<double>(at.y) - other->localPosition.y;
+        double dx = static_cast<double>(at.x) - other->localPosition.x;
         EI_NAN_AUDIT(dx, dy, other->GetPrototype()->height);
-        if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && g_serverWorld.diplomacy_.IsAllied(other->side, self->side)) {
+        if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && g_serverWorld.diplomacy.IsAllied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
             if (other->GetPrototype()->height < kSmallHeight) return false;
         }
     }
-    double dy = static_cast<double>(self->localPosition_.y) - at.y;
-    double dx = static_cast<double>(self->localPosition_.x) - at.x;
+    double dy = static_cast<double>(self->localPosition.y) - at.y;
+    double dx = static_cast<double>(self->localPosition.x) - at.x;
     double radius = option->radius;
     EI_NAN_AUDIT(radius, dx, dy);
     return radius * radius < LengthSquared2DUnrounded(dx, dy);
@@ -243,7 +243,7 @@ double Score(const Vector3& from, CUnit* self, UnitList* group, CEngineObject* c
         reach = option->range;
         scale = 10.0f;
     }
-    float beyond = static_cast<float>(std::sqrt(DistanceSquaredXYUnrounded<double>(candidate->localPosition_, from)) - reach);
+    float beyond = static_cast<float>(std::sqrt(DistanceSquaredXYUnrounded<double>(candidate->localPosition, from)) - reach);
     float penalty = 0.0f >= beyond ? 0.0f : beyond;
     double result = static_cast<double>(score) - static_cast<double>(penalty) * kDistanceWeight * scale;
     EI_NAN_AUDIT(result);
@@ -297,7 +297,7 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
         allies.push_back(self);
         for (auto& node : memory.nearby) {
             CUnit* other = node;
-            if (other->IsDead() == 0 && !memory.reports.Contains(other) && g_serverWorld.diplomacy_.IsAllied(self->side, other->side))
+            if (other->IsDead() == 0 && !memory.reports.Contains(other) && g_serverWorld.diplomacy.IsAllied(self->side, other->side))
                 allies.push_back(other);
         }
         for (auto& node : allies) {
@@ -328,8 +328,8 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
         CUnit* object = choice.object;
         if (IsUsable(&choice)) {
             // Allies only: a target off the path must be in reach from here.
-            bool allowed = !alliesOnly || IsNearPath(object->localPosition_, kPathNear) ||
-                           OrderAllowedFrom(this, &choice, self->localPosition_);
+            bool allowed = !alliesOnly || IsNearPath(object->localPosition, kPathNear) ||
+                           OrderAllowedFrom(this, &choice, self->localPosition);
             if (allowed && CanReach(&choice, fromHere)) return choice;
         }
         // Rejected: an object scored only once (and not the current target) is reported.

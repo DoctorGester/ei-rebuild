@@ -62,16 +62,16 @@ struct State {
 State ReadState(Reader& r, std::vector<int>* pairs = nullptr) {
     State state;
     CScript* s = state.script = new CScript;
-    s->fileCount_ = r.Get<std::int32_t>();
-    s->loaded_ = r.Get<std::int32_t>();
+    s->fileCount = r.Get<std::int32_t>();
+    s->loaded = r.Get<std::int32_t>();
     state.blocks = r.Get<std::uint32_t>();
     state.worldBlocks = r.Get<std::uint32_t>();
     if (state.blocks > kMaxBlocks || state.worldBlocks > kMaxBlocks) return state;   // a broken payload
-    s->blocks_.resize(state.blocks);
-    s->worldBlocks_.resize(state.worldBlocks);
+    s->blocks.resize(state.blocks);
+    s->worldBlocks.resize(state.worldBlocks);
     if (r.Get<std::uint8_t>()) {
-        s->definitions_.resize(static_cast<std::size_t>(r.Get<std::int32_t>()));
-        for (ScriptDefinition& d : s->definitions_) {
+        s->definitions.resize(static_cast<std::size_t>(r.Get<std::int32_t>()));
+        for (ScriptDefinition& d : s->definitions) {
             if (!r.ok()) break;
             d.index = r.Get<std::int32_t>();
             d.name = r.String();
@@ -81,7 +81,7 @@ State ReadState(Reader& r, std::vector<int>* pairs = nullptr) {
             ReadVars(r, &d.vars);
         }
     }
-    ReadVars(r, &s->globals_);
+    ReadVars(r, &s->globals);
     return state;
 }
 
@@ -99,12 +99,12 @@ Error ReadError(Reader& r) {
 }
 
 void SetError(CScript* s, const Error& e) {
-    s->errorCode_ = e.code;
-    s->errorLine_ = e.line;
-    s->errorText_ = e.text.c_str();
+    s->errorCode = e.code;
+    s->errorLine = e.line;
+    s->errorText = e.text.c_str();
 }
 
-Error TakeError(CScript* s) { return {s->errorCode_, s->errorLine_, s->errorText_.c_str()}; }
+Error TakeError(CScript* s) { return {s->errorCode, s->errorLine, s->errorText.c_str()}; }
 
 bool SameError(const Error& a, const Error& b) { return a.code == b.code && a.line == b.line && a.text == b.text; }
 
@@ -240,7 +240,7 @@ bool CheckLoadCommands(Reader& r, char* d, std::size_t n) {
     const int result = s->LoadCommands(&commands, &pos, &run.list, locals);
     const Error error = TakeError(s);
     const bool sameCommands = HashOf([&](Writer& h) { PutCmds(h, commands); }) == commands0;
-    const bool sameBlocks = HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks_, state.blocks); }) == blocks0;
+    const bool sameBlocks = HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks, state.blocks); }) == blocks0;
     const bool ok = result == result0 && SameError(error, error0) && pos == run.end && sameCommands && sameBlocks;
     if (!ok)
         Describe(d, n, "LoadCommands", result0, result, error0, error,
@@ -273,10 +273,10 @@ bool CheckLoad(Reader& r, char* d, std::size_t n) {
     const Error error = TakeError(s);
     const std::uint64_t hashes[5] = {
         HashOf([&](Writer& h) { PutText(h, text); }),
-        HashOf([&](Writer& h) { PutDefinitionsAfter(h, s->definitions_, pairs); }),
-        HashOf([&](Writer& h) { PutVars(h, s->globals_); }),
-        HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks_, state.blocks); }),
-        HashOf([&](Writer& h) { PutBlocksAfter(h, s->worldBlocks_, state.worldBlocks); }),
+        HashOf([&](Writer& h) { PutDefinitionsAfter(h, s->definitions, pairs); }),
+        HashOf([&](Writer& h) { PutVars(h, s->globals); }),
+        HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks, state.blocks); }),
+        HashOf([&](Writer& h) { PutBlocksAfter(h, s->worldBlocks, state.worldBlocks); }),
     };
     static const char* const kParts[5] = {"the text", "the definitions", "the globals", "the new blocks",
                                           "the new WorldScript blocks"};
@@ -284,12 +284,12 @@ bool CheckLoad(Reader& r, char* d, std::size_t n) {
     for (int i = 0; i < 5 && !differs; ++i)
         if (hashes[i] != hashes0[i]) differs = kParts[i];
     const bool sameRun = g_ranWorld == ran0 && (!ran0 || g_ranWorldId == ranId0);
-    const bool ok = result == result0 && SameError(error, error0) && s->loaded_ == loaded0 &&
-                    s->fileCount_ == files0 && !differs && sameRun;
+    const bool ok = result == result0 && SameError(error, error0) && s->loaded == loaded0 &&
+                    s->fileCount == files0 && !differs && sameRun;
     if (!ok) {
         char extra[160];
-        std::snprintf(extra, sizeof(extra), "; loaded %d / %d, files %d / %d%s%s%s", s->loaded_, loaded0,
-                      s->fileCount_, files0, differs ? "; differs: " : "", differs ? differs : "",
+        std::snprintf(extra, sizeof(extra), "; loaded %d / %d, files %d / %d%s%s%s", s->loaded, loaded0,
+                      s->fileCount, files0, differs ? "; differs: " : "", differs ? differs : "",
                       sameRun ? "" : "; RunWorldScript differs");
         char what[96];
         std::snprintf(what, sizeof(what), "Load of %u bytes", static_cast<unsigned>(source.size()));

@@ -6,7 +6,7 @@
 
 void CUnit::SetMotionSpeeds(float speed, float turnRate) {
     PathOrder* path = Controller()->Path();
-    path->ForgetObject(id_);
+    path->ForgetObject(id);
     UnitMotion* unitMotion = &motion;
     unitMotion->segment = -1;
     unitMotion->speedScale = speed;

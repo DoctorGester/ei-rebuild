@@ -48,7 +48,7 @@ static std::uint32_t ClipCode(const Matrix4& m, const Vector3& p) {
 }
 
 int CTransformPipeline::ClipTest(const ClipBounds* b) const {
-    const MatrixStack& stack = stacks_[kClipStack];
+    const MatrixStack& stack = stacks[kClipStack];
     const Matrix4& m = stack.matrices[stack.count - 1];
 
     if (b->flags & 1) {
@@ -125,17 +125,17 @@ Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, fl
 }
 
 int CLinkFigureLoader::AddArchive(const std::string* path) {
-    for (const LinkArchive& archive : archives_)
+    for (const LinkArchive& archive : archives)
         if (archive.name == *path) return 1;
 
-    LinkArchive& archive = archives_.emplace_back(*path);
+    LinkArchive& archive = archives.emplace_back(*path);
     CMappedResource* resource = new CMMIOResource();
     archive.resource = resource;
     if (resource->OpenResource(path->data(), 0)) return 1;
 
     // Failure: drop the archive again (the resource object is leaked) and log. (The original passed STLport's
     // string object by value to "%s": its first word, the text pointer, is what printed.)
-    archives_.pop_back();
+    archives.pop_back();
     game::DebugLog("Can't open resource file \"%s\"\n", *path);
     return 0;
 }

@@ -18,7 +18,7 @@ namespace net {
 
 namespace {
 
-const char* MasterHost() { return options::g_options.masterServerName_.c_str(); }   // the master server's host name
+const char* MasterHost() { return options::g_options.masterServerName.c_str(); }    // the master server's host name
 
 // Timed entries {seconds left (float), object}: each loses `dt`; those below zero are
 // erased. The end is read again after every entry.
@@ -45,13 +45,13 @@ void CountDown(List& list, float dt) {
 void ServerSession::Tick(double dt) {
     ServerBase::Tick(dt);
     float step = static_cast<float>(dt);
-    CountDown(finishedTrades_, step);
-    CountDown(awards_, step);
-    if (!public_) return;
-    announceTimer_ = static_cast<float>(announceTimer_ - dt);
-    EI_NAN_AUDIT(announceTimer_);
-    if (announceTimer_ < 0.0f) {   // run out
-        x87::CopyBits(announceTimer_, worlddata::AnnouncePeriodRef());
+    CountDown(finishedTrades, step);
+    CountDown(awards, step);
+    if (!announced) return;
+    announceTimer = static_cast<float>(announceTimer - dt);
+    EI_NAN_AUDIT(announceTimer);
+    if (announceTimer < 0.0f) {    // run out
+        x87::CopyBits(announceTimer, worlddata::AnnouncePeriodRef());
         const char* host = MasterHost();
         if (std::strcmp(host, game::kEmptyText) != 0) AnnounceToMaster();
     }
@@ -61,13 +61,13 @@ void ServerSession::Tick(double dt) {
 // False for a dead connection, binding or player.
 bool ServerSession::PlayerStateIs3(const Connection* connection) {
     if (!IsLive(connection)) return false;
-    for (auto& node : bindings_) {
+    for (auto& node : bindings) {
         auto* binding = node.Get();
         if (binding->ConnectionRef().Get() != connection) continue;
         if (!IsLive(binding)) return false;
         auto* player = binding->Player();
         if (!IsLive(player)) return false;
-        return player->state_ == 3;
+        return player->state == 3;
     }
     return false;
 }

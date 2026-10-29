@@ -51,8 +51,8 @@ unsigned long QualitySetting(const char* name, unsigned long fallback) {
 
 } // namespace
 
-CTextureDevice::CTextureDevice(HWND window, bool fullScreen, int width, int height, int bitsPerPixel)
-    : fullScreen_(fullScreen), screen_{0, 0, width, height}, window_(window), bitsPerPixel_(bitsPerPixel) {
+CTextureDevice::CTextureDevice(HWND newWindow, bool newFullScreen, int width, int height, int newBitsPerPixel)
+    : fullScreen(newFullScreen), screen{0, 0, width, height}, window(newWindow), bitsPerPixel(newBitsPerPixel) {
     // (The original required MMX and loaded 2DintMMX.dll, its pixel converter, here; nothing needs it now.)
     // The new renderer presents; when it cannot start, the game ends there (render::detail::Fatal).
     render::StartPresenting();
@@ -71,6 +71,6 @@ CTextureDevice::CTextureDevice(HWND window, bool fullScreen, int width, int heig
 }
 
 CTextureDevice::~CTextureDevice() {
-    if (pipeline_) pipeline_->Release();
-    if (material_) material_->Release();
+    if (pipeline) pipeline->Release();
+    if (material) material->Release();
 }

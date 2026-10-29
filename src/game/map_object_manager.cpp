@@ -46,7 +46,7 @@ CMapObjectManager::~CMapObjectManager() {}
 const char* CMapObjectManager::GetFolderName() { return kFolderName; }
 const char* CMapObjectManager::ClassName() { return kClassName; }
 ClassId CMapObjectManager::GetClassId() { return ClassId::MapObjectManager; }
-CEngineObject* CMapObjectManager::CreateObject(int type, int id) { return CreateMapObject(type, id); }
+CEngineObject* CMapObjectManager::CreateObject(int newType, int newId) { return CreateMapObject(newType, newId); }
 
 void CMapObjectManager::Create() {
     std::string folder = g_textFolder;
@@ -54,13 +54,13 @@ void CMapObjectManager::Create() {
     AddArchive((folder + "database.res"));
 }
 
-CMapObject* CMapObjectManager::FindMapObject(unsigned id) const { return FindObjectAs<CMapObject>(id); }
+CMapObject* CMapObjectManager::FindMapObject(unsigned objectId) const { return FindObjectAs<CMapObject>(objectId); }
 
-CEngineObject* CMapObjectManager::CreateMapObject(int type, int id) {
+CEngineObject* CMapObjectManager::CreateMapObject(int newType, int newId) {
     CResourceManager* manager = this;
-    const auto kind = static_cast<MapObjectType>(type);
+    const auto kind = static_cast<MapObjectType>(newType);
     // The base's CreateObject, not the virtual (that one is this function's caller).
-    auto* object = static_cast<CMapObject*>(CBaseManager::CreateObject(type, id));
+    auto* object = static_cast<CMapObject*>(CBaseManager::CreateObject(newType, newId));
     if (!object) return nullptr;
     auto* figures = manager->ContextAsWorld()->FigureManager();
     object->SetAnimationState(figures->CreateObjectAs<CFigureAnimationState>(FigureObjectType::AnimationState, kNoObjectId));
@@ -105,5 +105,5 @@ void CMapObjectManager::GiveDefaults(CMapObject* object) {
         object->SetStats(&stats);
     }
     object->ScaleEffectChanged(false);
-    object->prototypeId_ = 0;
+    object->prototypeId = 0;
 }

@@ -27,7 +27,7 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
             state->active = state->pending;
             state->timer = 20;
             CUnit* unit = server->unit;
-            kAlarmLog << "Unit " << static_cast<long>(unit->id_) << " acknowledges with ";
+            kAlarmLog << "Unit " << static_cast<long>(unit->id) << " acknowledges with ";
             const char* what;
             switch (state->active) {
             case AIRemark::Idle: world->TellParties(server->unit, AckKind::Rest); what = "idleSound = AAn4XyU"; break;
@@ -55,7 +55,7 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
     int side = server->unit->side;
     for (auto& node : server->brain.memory.nearby) {
         CUnit* member = node;
-        if (!world->diplomacy_.IsAllied(side, member->side)) continue;
+        if (!world->diplomacy.IsAllied(side, member->side)) continue;
         AIRemark& alarm = member->ServerController()->voice.level;
         if (alarm <= active) alarm = active;
     }

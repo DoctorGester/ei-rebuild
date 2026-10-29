@@ -248,7 +248,7 @@ public:
     // Adds `mask` to the hostile mask (relationsA); marks part 11 changed when it grows.
     void AddHostileMask(std::uint32_t mask);
     void SetRelationsB(std::uint32_t mask);
-    // Sets the side; flags_ bit 0x80000; marks part 11 when the unit has a controller.
+    // Sets the side; flags bit 0x80000; marks part 11 when the unit has a controller.
     void SetSide(int side);
     // Non-zero when this unit regards `other`'s side as hostile (the bit of other's side in both relation
     // masks).
@@ -265,7 +265,7 @@ public:
     void SetMoveModes(int mode, int mode2);
     // Shows the helmet (clears MapObjectFlag::HelmetHidden) or hides it (sets it); marks part 5.
     void ShowHelmet(bool show);
-    // Sets (stunned) or clears flags_ bit 0x1000000. Returns the new flags.
+    // Sets (stunned) or clears flags bit 0x1000000. Returns the new flags.
     std::uint32_t SetStunned(int on) override;
 
     // Writes the item ids of the 4 weapons and then of the 7 armour pieces to `out` (-1 for an empty slot).
@@ -335,7 +335,7 @@ public:
     void EffectsChanged() override;
     // The figures take the base scale again.
     void ApplyBaseScale() override;
-    // Loads the figures (unless flags_ has 0x80) and tells the controller.
+    // Loads the figures (unless flags has 0x80) and tells the controller.
     void LoadFigures() override;
     // A companion of type SideObjectType::Unit becomes the controller (the old one is detached and released); others go to the map object's AttachObject.
     void AttachObject(CEngineObject* object) override;
@@ -397,7 +397,7 @@ public:
     void DropBrokenEquipment();
 
     // The map object part, the controller, the unit's name, relations, player, movement fields, items by id
-    // (counted references), the carried items, and from version 0x4D the prototype names (prototypeId_ /
+    // (counted references), the carried items, and from version 0x4D the prototype names (prototypeId /
     // secondPrototype).
     void LoadUnit(CStream* stream);
     // The same fields in the same order (the active weapon twice), items as ids (-1 for none), the prototype
@@ -416,7 +416,7 @@ public:
     // changes then).
     CItem* TakeRandomItem();
 
-    // An animation entry of the unit's figure for `key` (bits: docs/notes/combat.md), only for units (type_
+    // An animation entry of the unit's figure for `key` (bits: docs/notes/combat.md), only for units (type
     // 0x32..0x34): a random entry matching the key, else one matching the key without its low 15 bits, else
     // for movement bits 0x8000 (alone among 0x38000) one without movement bits or with 0x10000 in place of
     // 0x8000; then, when `anyOfKind`, a random entry of the key's kind. Null when none.
@@ -437,7 +437,7 @@ public:
     // the notes).
     Vector3* EffectPoint(Vector3* out);
 
-    // Sets the hostile mask (relationsA), tells the controller, sets flags_ 0x80000 and marks part 11 changed.
+    // Sets the hostile mask (relationsA), tells the controller, sets flags 0x80000 and marks part 11 changed.
     void SetHostileMask(std::uint32_t mask);
     // After the controller's path changed: the path forgets this unit as a tracked object, the motion takes the
     // movement speeds, its segment -1, and is rebuilt for the path; marks part 10.
@@ -511,7 +511,7 @@ inline CUnit* UnitOrNull(CEngineObject* object) {
 // a unit without a class test.
 inline CUnit* UnitWithId(const CBaseManager* objects, unsigned id) { return objects->FindObjectAs<CUnit>(id); }
 
-constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_
+constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags
 
 // Unit prototypes (global vectors; see item_db.h for the lookup rule).
 namespace unitdb {
@@ -841,17 +841,17 @@ struct PartyUnitRecord {
     float scaleY = 0.2f;                // ... y; height is z
     float height = 1.0f;            // the hero's height (the hero screen shows it * 100)
     std::vector<CItem*> weapons;
-    std::vector<CItem*> quickItems;   // (an entry counts only with count_ > 0)
+    std::vector<CItem*> quickItems;   // (an entry counts only with count > 0)
     std::vector<CItem*> armor;
     std::vector<CItem*> spells;
     int moveMode2 = 2;                  // the unit's moveMode2
     std::uint32_t weaponIndex = 0;  // the weapon shown in the camp
-    std::uint8_t selected = 0;          // the unit is selected (flags_ bit 4)
+    std::uint8_t selected = 0;          // the unit is selected (flags bit 4)
     int leaderId = -1;                  // the unit it follows (-1 none)
     int fightAtWill = 1;                // the unit's fightAtWill
 };
 
-// Wears `item` by `amount` (shared by its count_ pieces); the owner says `brokenRemark` when its condition
+// Wears `item` by `amount` (shared by its count pieces); the owner says `brokenRemark` when its condition
 // rounds to 0 or less, `wornRemark` when it drops below the itemDurabilityCritical share of its maximum.
 void WearItem(CItem* item, CUnit* unit, float amount, AckKind brokenRemark, AckKind wornRemark);
 // Text-key units: the armour pieces covering hit location `location` at layer `layer` (1 or 2) wear by
@@ -892,7 +892,7 @@ public:
     bool RunTick() override;
     // Copies the vitals block (0x58 bytes) from `data` and marks the owner's part 0 changed.
     void SetData(const UnitVitals* data);
-    // Applies a hit to the vitals; a dead object loses its effects and gets flags_ bit 1. Returns 0 when the
+    // Applies a hit to the vitals; a dead object loses its effects and gets flags bit 1. Returns 0 when the
     // vitals take nothing, else 1.
     virtual bool TakeHit(const DamageInfo* hit);
 
@@ -968,7 +968,7 @@ public:
     // rings are left out).
     void EffectsChanged(bool first) override;
     // One particle record per effect (types merged to the highest power); records still matching are kept (a power
-    // change rescales the source), new ones make the source of their type (0x0F invisibility and 0x19 stun set flags_
+    // change rescales the source), new ones make the source of their type (0x0F invisibility and 0x19 stun set flags
     // 0x10000 / 0x40000 on the object; 0x11 / 0x1D / 0x1E only spawn a ring); records whose effect is gone stop their
     // source and undo their flag when no other record of the type is left.
     void UpdateEffectParticles(bool first);
@@ -976,15 +976,15 @@ public:
     // "<sound>\end.wav" (unless the object is dead) and is removed.
     void UpdateEffectSounds(bool first);
     // A new point light (the light factory's class 0x31) of `colour` (rgb of an rgba) and `radius`, 2 above
-    // the object, replaces the light (the old one hidden first); flags_ 0x580 (0x40 more with `flag`), then
+    // the object, replaces the light (the old one hidden first); flags 0x580 (0x40 more with `flag`), then
     // shown.
     void CreateLight(const float* colour, float radius, bool flag);
-    // A hidden light (flags_ 0x80) that is not held (0x200) is shown: the light manager adds it and a unit's
+    // A hidden light (flags 0x80) that is not held (0x200) is shown: the light manager adds it and a unit's
     // client half lights its figure.
     void ShowLight();
     // A shown light not held is hidden: the light manager drops it and the client half unlights the figure.
     void HideLight();
-    // Mode 1: the light (a new default one when there is none) is shown and held (flags_ 0x200), its id added
+    // Mode 1: the light (a new default one when there is none) is shown and held (flags 0x200), its id added
     // to the light factory's list; mode 2: a light is hidden, its id removed from the list and the light
     // released.
     void SetLightMode(int mode) override;

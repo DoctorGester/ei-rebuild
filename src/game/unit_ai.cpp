@@ -59,7 +59,7 @@ void AIBrain::Think() {
     // An alarm counting down since the brain became alerted.
     if (alerted && alarmCountdown > 0) {
         if (--alarmCountdown == 0 && alarm != 0) {
-            g_serverWorld.InvokeAlarm(alarm, &owner->unit->localPosition_.x, 0);
+            g_serverWorld.InvokeAlarm(alarm, &owner->unit->localPosition.x, 0);
             owner->voice.Raise(AIRemark::Alarm);
         }
     }
@@ -93,7 +93,7 @@ void AIBrain::Think() {
 
     if (best != current) {
         if (best) {
-            console::EndLine(kAiLog << str::Format("Unit %i new motivation %s with power of %i", owner->unit->id_,
+            console::EndLine(kAiLog << str::Format("Unit %i new motivation %s with power of %i", owner->unit->id,
                                                    ModeName(best->type), bestPriority));
             if (IsAlertMode(best->type) && alertMode == 2 && !alerted) alerted = true;
         }
@@ -201,7 +201,7 @@ bool AIBrain::IsNearPath(const Vector3& point, float radius) {
 
 bool AIBrain::IsAlliedUnit(CEngineObject* object) {
     CUnit* unit = UnitOrNull(object);
-    return unit && g_serverWorld.diplomacy_.IsAllied(owner->unit->side, unit->side);
+    return unit && g_serverWorld.diplomacy.IsAllied(owner->unit->side, unit->side);
 }
 
 void AIBrain::SetOwner(CUnitServer* newOwner) {
@@ -224,8 +224,8 @@ void AIBrain::UpdateMove() {
     if (owner->HasOrder(UnitOrderKind::Move) || owner->HasOrder(UnitOrderKind::Turn)) return;
     if (owner->orderStopped) {
         CUnit* unit = owner->unit;
-        double dy = move.point.y - unit->localPosition_.y;     // kept on the FPU stack
-        double dx = move.point.x - unit->localPosition_.x;
+        double dy = move.point.y - unit->localPosition.y;      // kept on the FPU stack
+        double dx = move.point.x - unit->localPosition.x;
         if (LengthSquared2DUnrounded(dx, dy) > kArrivedDistanceSq) {
             StopAction();
             return;
@@ -248,12 +248,12 @@ void AIBrain::UpdateMove() {
     }
     if (actionTime == kLookStarted) {
         if (move.looks.front().stopFirst) owner->StopQueued();
-        float end = static_cast<float>(g_serverWorld.tick_) + move.looks.front().wait;
+        float end = static_cast<float>(g_serverWorld.tick) + move.looks.front().wait;
         actionTime = x87::fistp(end);
         move.looks.erase(move.looks.begin());
         return;
     }
-    if (g_serverWorld.tick_ > actionTime) actionTime = kNoTime;
+    if (g_serverWorld.tick > actionTime) actionTime = kNoTime;
 }
 
 void AIBrain::UpdateAttack() {
@@ -264,7 +264,7 @@ void AIBrain::UpdateAttack() {
     // A unit without a player gives up a unit it can no longer keep track of and remembers where it was.
     CUnit* unit = UnitOrNull(target);
     if (unit && !owner->unit->player && !memory.CanTrack(owner->unit, unit)) {
-        memory.Notice(target->localPosition_, kNoticeSeenLevel, kNoticeSeenDecay);
+        memory.Notice(target->localPosition, kNoticeSeenLevel, kNoticeSeenDecay);
         action = kActionNone;
         return;
     }
@@ -353,9 +353,9 @@ void AIBrain::Follow(CMapObject* object) {
 void AIBrain::SetSeen(CMapObject* object) {
     seen.Assign(object);
     if (!object) {
-        CallAllies(owner->unit->localPosition_);
+        CallAllies(owner->unit->localPosition);
     } else if (!IsAlliedUnit(object)) {
-        CallAllies(object->localPosition_);
+        CallAllies(object->localPosition);
     }
     if (!alerted && alertMode == 1) alerted = true;
     if (CUnit* unit = UnitOrNull(object)) memory.ForceSee(owner->unit, unit);

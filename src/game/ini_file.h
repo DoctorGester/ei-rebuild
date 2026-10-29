@@ -25,5 +25,5 @@ public:
     // The comma-separated list's items as integers; none when the value is empty.
     std::vector<std::uint32_t> GetIntArray(const char* section, const char* key);
 
-    std::string path_;
+    std::string path;
 };

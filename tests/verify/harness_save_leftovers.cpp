@@ -60,7 +60,7 @@ const InlineSite kInlineSites[] = {
     {0x004B209F, 5, {0xC6, 0x44, 0x24, 0x10, 0x00}, 16,
      {0xC7, 0x44, 0x24, 0x10, 0x00, 0x00, 0x00, 0x00, 0xC7, 0x44, 0x24, 0x20, 0x00, 0x00, 0x00, 0x00},
      "a round script area part's padding and y2 zeroed (AddRound), SV7b2a"},
-    // CEffectSound::Reset: MOV byte [ESI+0x14C],BL (BL 0) -> the whole name_ zeroed (EDI, ECX, EAX kept).
+    // CEffectSound::Reset: MOV byte [ESI+0x14C],BL (BL 0) -> the whole name zeroed (EDI, ECX, EAX kept).
     {0x006762C4, 6, {0x88, 0x9E, 0x4C, 0x01, 0x00, 0x00}, 21,
      {0x57, 0x51, 0x50, 0x8D, 0xBE, 0x4C, 0x01, 0x00, 0x00, 0xB9, 0x40, 0x00, 0x00, 0x00, 0x33, 0xC0, 0xF3, 0xAB,
       0x58, 0x59, 0x5F},
@@ -170,11 +170,11 @@ bool __fastcall NumberedAppendChild(void* archive, void*, void* chunk, int id, c
 // archive's numbering ends with it. The index stream is the archive's first member.
 bool __fastcall NumberedIndexWrite(void* out, int id, ei::verify::exe::CMemoryStream* index) {
     const void* archive = index;
-    for (std::uint32_t at = 4; at + 4 <= index->size_; at += 8) {
+    for (std::uint32_t at = 4; at + 4 <= index->size; at += 8) {
         std::uint32_t object;
-        std::memcpy(&object, index->data_ + at, 4);
+        std::memcpy(&object, index->data + at, 4);
         std::uint32_t number = Number(archive, object);
-        std::memcpy(index->data_ + at, &number, 4);
+        std::memcpy(index->data + at, &number, 4);
     }
     for (Numbering& n : g_numberings)
         if (n.archive == archive) n.archive = nullptr;

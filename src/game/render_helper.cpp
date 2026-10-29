@@ -92,7 +92,7 @@ void CRenderHelper::Record(const std::vector<State>& states, unsigned index, boo
     const int stages = singleStage && count > 1 ? 1 : count;
     auto* preset = new CRenderPreset(states, stages);
     preset->AddRef();
-    presets_[index] = preset;
+    presets[index] = preset;
 }
 
 CRenderHelper::CRenderHelper(std::uint32_t flag) {
@@ -101,7 +101,7 @@ CRenderHelper::CRenderHelper(std::uint32_t flag) {
 }
 
 CRenderHelper::~CRenderHelper() {
-    for (CRenderPreset*& preset : presets_) {
+    for (CRenderPreset*& preset : presets) {
         if (preset) preset->Release();
         preset = nullptr;
     }
@@ -114,15 +114,15 @@ void CRenderPreset::ApplyPass(int pass) const {
     render::RenderState& state = render::g_renderState;
     constexpr int kStages = static_cast<int>(std::size(state.stages));
     if (pass == 0) {
-        for (int i = 0; i < stages_ && i < kStages; ++i)
-            if (states_[i].enabled) state.stages[i].combiner = states_[i].combiner;
-        if (stages_ < kStages) {
-            state.stages[stages_].combiner.colourOp = render::TextureOp::Disable;
-            state.stages[stages_].combiner.alphaOp = render::TextureOp::Disable;
+        for (int i = 0; i < stages && i < kStages; ++i)
+            if (states[i].enabled) state.stages[i].combiner = states[i].combiner;
+        if (stages < kStages) {
+            state.stages[stages].combiner.colourOp = render::TextureOp::Disable;
+            state.stages[stages].combiner.alphaOp = render::TextureOp::Disable;
         }
         return;
     }
-    const State& passState = states_[stages_ + pass - 1];
+    const State& passState = states[stages + pass - 1];
     if (passState.blend) {
         state.sourceBlend = passState.sourceBlend;
         state.destBlend = passState.destBlend;

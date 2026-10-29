@@ -150,7 +150,7 @@ Quaternion ProductB(const Quaternion& a, const Quaternion& b) {   // other items
 bool IsRecordLoot(const CItem* item, LootRecordType recordType) {
     if (item->Kind() != ItemKind::Loot) return false;
     const auto* loot = AsLoot(item);
-    return loot->kind_ == LootKind::Record && loot->recordType_ == recordType;
+    return loot->kind == LootKind::Record && loot->recordType == recordType;
 }
 
 bool LiesFlat(CItem* item) {
@@ -159,9 +159,9 @@ bool LiesFlat(CItem* item) {
 }
 
 void SetShade(CUiMesh* sprite, float grey) {
-    sprite->tint_[0] = grey;
-    sprite->tint_[1] = grey;
-    sprite->tint_[2] = grey;
+    sprite->tint[0] = grey;
+    sprite->tint[1] = grey;
+    sprite->tint[2] = grey;
 }
 
 constexpr std::uint32_t kPnt3 = kMmpFormatPnt3;
@@ -179,32 +179,32 @@ render::TextureImage PictureOf(const std::string& file, const MmpHeader* image, 
 
 void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
     CItem* item = cell.item;
-    CUiMesh* model = CachedObject(&models_, item->PictureName(), ItemModel);
-    CTexture* texture = CachedObject(&textures_, item->FigureName(), ItemFigureTexture);
+    CUiMesh* model = CachedObject(&models, item->PictureName(), ItemModel);
+    CTexture* texture = CachedObject(&textures, item->FigureName(), ItemFigureTexture);
     if (!model || !texture) return;
 
-    model->texture_ = texture;
+    model->texture = texture;
     model->Place(cell.x, cell.y, cell.depth);
     model->SetScale(static_cast<float>(D(0.48157462f) * D(cell.size) * D(cell.depth) * D(0.0009375f)));
-    model->material_ = blackMaterial_;
+    model->material = blackMaterial;
 
     if (ItemTurnOf(item) == nullptr) {
         auto* turn = new ItemTurn();
         turn->glow = RandomPhase(g_clientRandom.Next());
-        item->link_.Assign(turn);
+        item->link.Assign(turn);
     }
 
     if (cell.mode == 9) {
         // Greyed: half bright, lying still, scaled to fit the cell by the model's larger extent.
         SetShade(model, 0.5f);
-        model->localRotation_ = LiesFlat(item) ? HalfTurn(0.0f, 0.0f, 1.0f) : HalfTurn(1.0f, 0.0f, 0.0f);
+        model->localRotation = LiesFlat(item) ? HalfTurn(0.0f, 0.0f, 1.0f) : HalfTurn(1.0f, 0.0f, 0.0f);
         // The larger of the box's x and y extents: y when x is below it (or NaN), selected by their bits.
-        const Vector3& extents = model->box_.bounds.boxMax;
+        const Vector3& extents = model->box.bounds.boxMax;
         EI_NAN_AUDIT(extents.y, extents.x);
         float extent = extents.x < extents.y ? extents.y : extents.x;
         double half = 0.5;
-        float y = static_cast<float>(D(model->box_.bounds.center.y) * D(cell.size) * half + D(cell.y));
-        float x = static_cast<float>(D(cell.x) - D(model->box_.bounds.center.x) * D(cell.size) * half);
+        float y = static_cast<float>(D(model->box.bounds.center.y) * D(cell.size) * half + D(cell.y));
+        float x = static_cast<float>(D(cell.x) - D(model->box.bounds.center.x) * D(cell.size) * half);
         model->Place(x, y, cell.depth);
         model->SetScale(static_cast<float>(D(0.48157462f) * D(cell.size) * D(cell.depth) *
                                         D(0.00125f) / D(extent)));
@@ -213,34 +213,34 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
         float dt = static_cast<float>(FrameTime());
         ItemTurn* turn = ItemTurnOf(item);
         ItemKind kind = item->Kind();
-        CSpell* spell = item->spell_;
+        CSpell* spell = item->spell;
         if (spell && (kind == ItemKind::Weapon || kind == ItemKind::Armor)) {
             int school = spell->GetPrototype()->school;
             if (school < 8)
-                model->flatSpecular_ = Glow(dt, turn, kSchoolGlow[school]);
+                model->flatSpecular = Glow(dt, turn, kSchoolGlow[school]);
             else
                 turn->glow = 0.0f;
         }
-        Turn(turn, dt, item == hoveredItem_);
+        Turn(turn, dt, item == hoveredItem);
 
         if (LiesFlat(item)) {
-            model->localRotation_ = HalfTurn(0.0f, 0.0f, 1.0f);
+            model->localRotation = HalfTurn(0.0f, 0.0f, 1.0f);
         } else if (kind == ItemKind::Weapon) {
             // Weapons turn about (1, 1, 0) after a half turn about x.
             Quaternion a = HalfTurn(1.0f, 0.0f, 0.0f);
             const Vector3 axis = {1.0f, 1.0f, 0.0f};
             Quaternion b;
             b.SetAxisAngle(axis, turn->angle);
-            model->localRotation_ = ProductA(a, b);
+            model->localRotation = ProductA(a, b);
         } else if (IsRecordLoot(item, LootRecordType::Weapon) || IsRecordLoot(item, LootRecordType::Armor) || IsRecordLoot(item, LootRecordType::Quick)) {
-            model->localRotation_ = HalfTurn(1.0f, 0.0f, 0.0f);   // blueprints lie still
+            model->localRotation = HalfTurn(1.0f, 0.0f, 0.0f);    // blueprints lie still
         } else {
             // Others turn about y after a half turn about x.
             Quaternion a = HalfTurn(1.0f, 0.0f, 0.0f);
             const Vector3 axis = {0.0f, 1.0f, 0.0f};
             Quaternion b;
             b.SetAxisAngle(axis, turn->angle);
-            model->localRotation_ = ProductB(a, b);
+            model->localRotation = ProductB(a, b);
         }
 
         float frameDepth = static_cast<float>(D(cell.depth) * D(1.3f));
@@ -248,34 +248,34 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
         double half = D(35.0f);
         frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell.x) - half), static_cast<float>(D(cell.y) - half),
                             static_cast<float>(D(cell.x) + half), static_cast<float>(D(cell.y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
-        frame->texture_ = objects_[2];
+        frame->texture = objects[2];
         frame->Draw(pass);
         RemoveSceneObject(frame);
     }
 
-    model->flatColour_ = PackColour(model->tint_);
-    model->flags_ |= FigureMeshFlag::Flat;
-    if (item->spell_) render::g_renderState.specular = true;
+    model->flatColour = PackColour(model->tint);
+    model->flags |= FigureMeshFlag::Flat;
+    if (item->spell) render::g_renderState.specular = true;
     model->Draw(pass);
-    if (item->spell_) render::g_renderState.specular = false;
+    if (item->spell) render::g_renderState.specular = false;
 
-    CSpell* spell = item->spell_;
+    CSpell* spell = item->spell;
     if (item->Kind() == ItemKind::Scroll && spell && spell->GetModifierCount() > 0) {
         float px, py, pz;
         model->GetPlacement(&px, &py, &pz);
-        float scale = model->scaleMatrix_.m[0];
+        float scale = model->scaleMatrix.m[0];
         CUiMesh* mark = AddBlankSprite();
         mark->SetRectangle(static_cast<float>(D(pz) * D(0.9f)), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
                            0x20, 0x20);
-        mark->texture_ = objects_[1];
+        mark->texture = objects[1];
         mark->SetScale(scale);
         SetShade(mark, cell.mode == 9 ? 0.5f : 1.0f);
         float step = static_cast<float>(D(scale) * D(550.0f));
         for (int i = 0; i < spell->GetModifierCount(); ++i) {
-            int code = spell->modifiers_[i] - 1;   // the modifier's index (stored as index + 1)
+            int code = spell->modifiers[i] - 1;    // the modifier's index (stored as index + 1)
             double cellSize = D(0.125f);
-            mark->textureOffsetU_ = static_cast<float>(static_cast<double>(code & 7) * cellSize);
-            mark->textureOffsetV_ = static_cast<float>(static_cast<double>(-(code >> 3)) * cellSize);
+            mark->textureOffsetU = static_cast<float>(static_cast<double>(code & 7) * cellSize);
+            mark->textureOffsetV = static_cast<float>(static_cast<double>(-(code >> 3)) * cellSize);
             double d = D(step) / D(pz);
             float dx;
             if (i == 0 || i == 4)
@@ -305,9 +305,9 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
         double half = D(35.0f);
         shade->SetRectangle(depth, 100.0f, static_cast<float>(D(cell.x) - half), static_cast<float>(D(cell.y) - half),
                             static_cast<float>(D(cell.x) + half), static_cast<float>(D(cell.y) + half), 0, 0, 0x100, 0x100);
-        shade->texture_ = nullptr;
-        shade->flags_ |= FigureMeshFlag::Flat;
-        shade->flatColour_ = 0x82804040;
+        shade->texture = nullptr;
+        shade->flags |= FigureMeshFlag::Flat;
+        shade->flatColour = 0x82804040;
         shade->Draw(pass);
         RemoveSceneObject(shade);
     }
@@ -315,9 +315,9 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, const ItemCell& cell) {
 
 void CItemInfoPanel::Draw(CSceneRenderer* pass) {
     if (CItem* item = FirstItem()) {
-        const ItemCell cell{item, static_cast<float>(static_cast<double>(x_) + D(100.0f)),
-                            static_cast<float>(static_cast<double>(y_) + D(200.0f)), 3.0f, 120.0f, 9};
-        owner_->DrawItem(pass, cell);
+        const ItemCell cell{item, static_cast<float>(static_cast<double>(x) + D(100.0f)),
+                            static_cast<float>(static_cast<double>(y) + D(200.0f)), 3.0f, 120.0f, 9};
+        owner->DrawItem(pass, cell);
     }
 }
 
@@ -356,28 +356,28 @@ HeroFaceNames FaceNames(const char* prototype) {
 
 void CItemScreen::DrawHeroFace(CSceneRenderer* pass, const HeroFaceCell& cell) {
     const HeroFaceNames names = FaceNames(cell.prototype);
-    CUiMesh* model = CachedObject(&models_, names.model, ItemModel);
-    CTexture* texture = CachedObject(&textures_, names.texture, ItemFigureTexture);
+    CUiMesh* model = CachedObject(&models, names.model, ItemModel);
+    CTexture* texture = CachedObject(&textures, names.texture, ItemFigureTexture);
     if (!model || !texture) return;
 
-    model->texture_ = texture;
+    model->texture = texture;
     model->Place(cell.x, cell.y, cell.depth);
     model->SetScale(static_cast<float>(D(cell.size) * D(cell.depth) * D(0.48157462f) * D(0.0009375f)));
-    model->material_ = blackMaterial_;
+    model->material = blackMaterial;
     SetShade(model, 1.0f);
     Quaternion turn = HalfTurn(1.0f, 0.0f, 0.0f);
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     Quaternion tilt;
     tilt.SetAxisAngle(axis, static_cast<float>((D(cell.y) - D(300.0f)) * D(0.001f)));
     Quaternion orientation;
-    model->localRotation_ = *MultiplyQuaternions(&orientation, &tilt, &turn);
+    model->localRotation = *MultiplyQuaternions(&orientation, &tilt, &turn);
 
     float frameDepth = static_cast<float>(D(cell.depth) * D(1.3f));
     CUiMesh* frame = AddBlankSprite();
     double half = D(35.0f);
     frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell.x) - half), static_cast<float>(D(cell.y) - half),
                         static_cast<float>(D(cell.x) + half), static_cast<float>(D(cell.y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
-    frame->texture_ = objects_[2];
+    frame->texture = objects[2];
     frame->Draw(pass);
     RemoveSceneObject(frame);
     model->Draw(pass);
@@ -386,7 +386,7 @@ void CItemScreen::DrawHeroFace(CSceneRenderer* pass, const HeroFaceCell& cell) {
 // --- An item's figure texture -------------------------------------------------------------
 
 CTexture* ItemFigureTexture(std::string_view name) {
-    CTextureManager* manager = g_clientWorld.textureManager_;
+    CTextureManager* manager = g_clientWorld.textureManager;
     CTexture* texture = manager->NewTexture(0x100, 0x100, TextureKind::Blank1555);
     if (!texture) return nullptr;
     texture->AddRef();
@@ -395,12 +395,12 @@ CTexture* ItemFigureTexture(std::string_view name) {
     const auto* image = static_cast<const MmpHeader*>(manager->GetFile(file, &size));
     if (!image) {
         // No picture: the whole texture white.
-        render::DrawIntoTexture(texture->surface_, nullptr, 0, 0, 0x100, 0x100);
+        render::DrawIntoTexture(texture->surface, nullptr, 0, 0, 0x100, 0x100);
     } else {
         // The picture at the texture's bottom left.
         const int width = static_cast<int>(image->width), height = static_cast<int>(image->height);
         const render::TextureImage picture = PictureOf(file, image, size, width, height);
-        render::DrawIntoTexture(texture->surface_, &picture, 0, 0x100 - height, width, height);
+        render::DrawIntoTexture(texture->surface, &picture, 0, 0x100 - height, width, height);
     }
     manager->FreeAllFiles();
     return texture;
@@ -410,15 +410,15 @@ CTexture* ItemFigureTexture(std::string_view name) {
 
 bool CUiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width,
                          int height, int x, int y) {
-    CTextureManager* manager = g_clientWorld.textureManager_;
+    CTextureManager* manager = g_clientWorld.textureManager;
     const std::string file = std::string(name) + ".mmp";
     std::uint32_t size = 0;
     const auto* image = static_cast<const MmpHeader*>(manager->GetFile(file, &size));
     if (!image) {
-        render::DrawIntoTexture(texture->surface_, nullptr, x, y, width, height);   // white
+        render::DrawIntoTexture(texture->surface, nullptr, x, y, width, height);    // white
     } else {
         const render::TextureImage picture = PictureOf(file, image, size, imageWidth, imageHeight);
-        render::DrawIntoTexture(texture->surface_, &picture, x, y, width, height);
+        render::DrawIntoTexture(texture->surface, &picture, x, y, width, height);
     }
     manager->FreeAllFiles();
     return image != nullptr;

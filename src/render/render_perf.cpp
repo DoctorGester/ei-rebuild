@@ -381,14 +381,14 @@ void EndGpuFrame() {
     g_open = -1;
 }
 
-CpuTimer::CpuTimer(Cpu part) : part_(part), start_(g_on ? Now() : 0) {}
+CpuTimer::CpuTimer(Cpu newPart) : part(newPart), start(g_on ? Now() : 0) {}
 
 CpuTimer::~CpuTimer() { Stop(); }
 
 void CpuTimer::Stop() {
-    if (!start_) return;
-    g_cpu[static_cast<int>(part_)] += static_cast<double>(Now() - start_) * MsPerTick();
-    start_ = 0;
+    if (!start) return;
+    g_cpu[static_cast<int>(part)] += static_cast<double>(Now() - start) * MsPerTick();
+    start = 0;
 }
 
 void FrameDone(std::uint64_t draws, std::uint64_t shadowDraws) {

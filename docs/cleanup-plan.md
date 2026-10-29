@@ -125,6 +125,6 @@ Two rules in the rewrite guide come from how VC6's x87 code behaves, not from Ni
   suite with `--golden` (`python tools/work.py test <ID> --golden`). The original suite
   (`--no-hooks --golden --fresh`) only when the change touches the harness's game.exe side.
 - Names: the original's where known (RTTI, strings, Rebirth's and the community's names), else
-  descriptive; `CClassName` for game classes (Nival style), members `name_`, no Hungarian
+  descriptive; `CClassName` for game classes (Nival style), members `name`, no Hungarian
   additions of our own.
 - Notes go to `docs/notes/` rather than long comments in code.

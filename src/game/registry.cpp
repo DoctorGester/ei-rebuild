@@ -74,36 +74,36 @@ bool GetDwordArray(CFileRegistry* registry, const char* section, const char* key
 
 
 bool CFileRegistry::Open(const std::string& path) {
-    if (!file_.Open(path, 0)) return false;
-    attached_ = 0;
-    data_ = static_cast<const std::uint8_t*>(file_.view_);
-    if (U32(data_) == kRegistryMagic) return true;
+    if (!file.Open(path, 0)) return false;
+    attached = 0;
+    data = static_cast<const std::uint8_t*>(file.view);
+    if (U32(data) == kRegistryMagic) return true;
     game::DebugLog(kNotRegistry);
-    if (!attached_) file_.Close();
-    attached_ = 0;
-    data_ = nullptr;
+    if (!attached) file.Close();
+    attached = 0;
+    data = nullptr;
     return false;
 }
 
 bool CFileRegistry::Attach(const void* image) {
-    attached_ = 1;
-    data_ = static_cast<const std::uint8_t*>(image);
-    if (U32(data_) == kRegistryMagic) return true;
+    attached = 1;
+    data = static_cast<const std::uint8_t*>(image);
+    if (U32(data) == kRegistryMagic) return true;
     game::DebugLog(kNotRegistry);
-    if (!attached_) file_.Close();
-    attached_ = 0;
-    data_ = nullptr;
+    if (!attached) file.Close();
+    attached = 0;
+    data = nullptr;
     return false;
 }
 
 void CFileRegistry::Close() {
-    if (!attached_) file_.Close();
-    attached_ = 0;
-    data_ = nullptr;
+    if (!attached) file.Close();
+    attached = 0;
+    data = nullptr;
 }
 
 const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key, unsigned type, int* isScalar) {
-    const std::uint8_t* root = data_;
+    const std::uint8_t* root = data;
     if (!root) return nullptr;
 
     // The section: chained 6-byte slots after the u16 count at +4.
@@ -112,7 +112,7 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
     const std::uint8_t* record;
     for (;;) {
         const std::uint8_t* entry = root + 6 + 6 * (slot & 0xFFFF);
-        record = data_ + U32(entry + 2);
+        record = data + U32(entry + 2);
         if (U16(record + 2) == static_cast<std::uint16_t>(sectionLength) &&
             text::CompareIgnoringCase(Chars(record + 4), section, sectionLength & 0xFFFF, false) == 0)
             break;
@@ -149,11 +149,11 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
 }
 
 std::vector<std::string> CFileRegistry::SectionNames() {
-    const std::uint8_t* root = data_;
+    const std::uint8_t* root = data;
     int count = U16(root + 4);
     std::vector<std::string> names(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) {
-        const std::uint8_t* record = data_ + U32(root + 8 + 6 * i);
+        const std::uint8_t* record = data + U32(root + 8 + 6 * i);
         names[i].assign(Chars(record + 4), U16(record + 2));
     }
     return names;

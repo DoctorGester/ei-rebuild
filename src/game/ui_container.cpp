@@ -9,9 +9,9 @@
 // --- Construction and destruction --------------------------------------------------------------
 
 CUiContainer::~CUiContainer() {
-    for (UiInputSide* side : inputs_) delete side;
-    for (int i = 0; i < std::ssize(children_); ++i) delete children_[i];
-    children_.clear();
+    for (UiInputSide* side : inputs) delete side;
+    for (int i = 0; i < std::ssize(children); ++i) delete children[i];
+    children.clear();
 }
 
 extern "C" int _purecall();
@@ -21,7 +21,7 @@ void CUiContainer::CreateScreen() { _purecall(); }
 void CUiContainer::CloseScreen() { _purecall(); }
 
 void CUiContainer::AddInput(UiInputSide* input) {
-    if (input) inputs_.push_back(input);
+    if (input) inputs.push_back(input);
 }
 
 // --- Per-frame slots ---------------------------------------------------------------------------
@@ -30,32 +30,32 @@ void CUiContainer::AddInput(UiInputSide* input) {
 double CUiContainer::FrameTime() { return x87::FromUnsigned(g_sceneRenderer.FrameTime()) * static_cast<double>(0.001f); }
 
 void CUiContainer::Update() {
-    for (int i = 0; i < std::ssize(children_); ++i) children_[i]->Update();
+    for (int i = 0; i < std::ssize(children); ++i) children[i]->Update();
 }
 
 void CUiContainer::Redraw() {
-    if (!interface_->drawing_) return;
+    if (!ui->drawing) return;
     CUiWindow::Redraw();
-    for (int i = 0; i < std::ssize(children_); ++i) {
-        CUiWindow* child = children_[i];
-        if (child->enabled_) child->Redraw();
+    for (int i = 0; i < std::ssize(children); ++i) {
+        CUiWindow* child = children[i];
+        if (child->enabled) child->Redraw();
     }
 }
 
 void CUiContainer::RedrawTips() {
-    if (!interface_->drawing_) return;
+    if (!ui->drawing) return;
     CUiWindow::RedrawTips();
-    for (int i = 0; i < std::ssize(children_); ++i) {
-        CUiWindow* child = children_[i];
-        if (child->enabled_) child->RedrawTips();
+    for (int i = 0; i < std::ssize(children); ++i) {
+        CUiWindow* child = children[i];
+        if (child->enabled) child->RedrawTips();
     }
 }
 
 void CUiContainer::Show(bool show) {
     CUiWindow::Show(show);
-    for (int i = 0; i < std::ssize(children_); ++i) {
-        CUiWindow* child = children_[i];
-        if (child->enabled_) child->Show(show);
+    for (int i = 0; i < std::ssize(children); ++i) {
+        CUiWindow* child = children[i];
+        if (child->enabled) child->Show(show);
     }
 }
 
@@ -63,24 +63,24 @@ void CUiContainer::Show(bool show) {
 
 void CUiContainer::Dispatch(int slot, int a, int b, int c, bool atPoint) {
     CUiContainer* self = this;
-    handled_ = false;
-    for (auto& side : self->inputs_) {
-        side->handled_ = false;
+    handled = false;
+    for (auto& side : self->inputs) {
+        side->handled = false;
         side->Event(slot, a, b, c);
-        if (side->handled_) {
-            handled_ = true;
+        if (side->handled) {
+            handled = true;
             return;
         }
     }
-    for (int i = 0; i < std::ssize(self->children_); ++i) {
-        CUiWindow* child = self->children_[i];
-        if (!child->enabled_) continue;
+    for (int i = 0; i < std::ssize(self->children); ++i) {
+        CUiWindow* child = self->children[i];
+        if (!child->enabled) continue;
         if (atPoint && !child->ContainsPoint(b, c)) continue;
-        child = self->children_[i];
-        child->handled_ = false;
+        child = self->children[i];
+        child->handled = false;
         child->Input()->Event(slot, a, b, c);
-        if (self->children_[i]->handled_) {
-            handled_ = true;
+        if (self->children[i]->handled) {
+            handled = true;
             return;
         }
     }
@@ -88,8 +88,8 @@ void CUiContainer::Dispatch(int slot, int a, int b, int c, bool atPoint) {
 
 void CUiContainer::Deactivate() {
     CUiContainer* self = this;
-    for (auto& side : self->inputs_) side->Deactivate();
-    for (int i = 0; i < std::ssize(self->children_); ++i) self->children_[i]->Input()->Deactivate();
+    for (auto& side : self->inputs) side->Deactivate();
+    for (int i = 0; i < std::ssize(self->children); ++i) self->children[i]->Input()->Deactivate();
 }
 
 void CUiContainer::LeftDown(int buttons, int x, int y) {
@@ -121,38 +121,38 @@ void CUiContainer::RightDouble(int buttons, int x, int y) {
 }
 
 // Key events reach every enabled child, wherever the mouse is.
-void CUiContainer::KeyDown(int key, int repeat, int flags) {
-    Dispatch(kEventKeyDown, key, repeat, flags, false);
+void CUiContainer::KeyDown(int key, int repeat, int modifiers) {
+    Dispatch(kEventKeyDown, key, repeat, modifiers, false);
 }
 
-void CUiContainer::Char(int key, int repeat, int flags) {
-    Dispatch(kEventChar, key, repeat, flags, false);
+void CUiContainer::Char(int key, int repeat, int modifiers) {
+    Dispatch(kEventChar, key, repeat, modifiers, false);
 }
 
-void CUiContainer::KeyUp(int key, int repeat, int flags) {
-    Dispatch(kEventKeyUp, key, repeat, flags, false);
+void CUiContainer::KeyUp(int key, int repeat, int modifiers) {
+    Dispatch(kEventKeyUp, key, repeat, modifiers, false);
 }
 
 // The wheel's four arguments go on unchanged; the children are tested at (x, y).
-void CUiContainer::Wheel(int flags, int delta, int x, int y) {
+void CUiContainer::Wheel(int modifiers, int delta, int x, int y) {
     CUiContainer* self = this;
-    handled_ = false;
-    for (auto& side : self->inputs_) {
-        side->handled_ = false;
-        side->Wheel(flags, delta, x, y);
-        if (side->handled_) {
-            handled_ = true;
+    handled = false;
+    for (auto& side : self->inputs) {
+        side->handled = false;
+        side->Wheel(modifiers, delta, x, y);
+        if (side->handled) {
+            handled = true;
             return;
         }
     }
-    for (int i = 0; i < std::ssize(self->children_); ++i) {
-        CUiWindow* child = self->children_[i];
-        if (!child->enabled_ || !child->ContainsPoint(x, y)) continue;
-        child = self->children_[i];
-        child->handled_ = false;
-        child->Input()->Wheel(flags, delta, x, y);
-        if (self->children_[i]->handled_) {
-            handled_ = true;
+    for (int i = 0; i < std::ssize(self->children); ++i) {
+        CUiWindow* child = self->children[i];
+        if (!child->enabled || !child->ContainsPoint(x, y)) continue;
+        child = self->children[i];
+        child->handled = false;
+        child->Input()->Wheel(modifiers, delta, x, y);
+        if (self->children[i]->handled) {
+            handled = true;
             return;
         }
     }

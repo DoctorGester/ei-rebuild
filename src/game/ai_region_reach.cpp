@@ -228,7 +228,7 @@ bool CRegionMap::LoadBlocks(CStream* stream) {
     forward.Attach(this, false);
     backward.Attach(this, true);
     bool ok;
-    std::memcpy(&ok, &stream->ok_, sizeof(ok));
+    std::memcpy(&ok, &stream->ok, sizeof(ok));
     return ok;
 }
 

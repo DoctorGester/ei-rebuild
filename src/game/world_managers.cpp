@@ -20,7 +20,7 @@ namespace {
 template <typename T>
 void DeleteManager(T*& manager) {
     if (!manager) return;
-    --manager->refCount_;
+    --manager->refCount;
     delete manager;
     manager = nullptr;
 }
@@ -36,20 +36,20 @@ void CWorld::Destroy() {
     if (SpellManager()) {
         ObjectListIterator objects{nullptr, {}};
         for (CEngineObject* object = objects.First(SpellManager()); object; object = objects.Next()) object->ClearState();
-        if (objects.manager) --objects.manager->refCount_;
+        if (objects.manager) --objects.manager->refCount;
     }
-    DeleteManager(players_);
-    DestroyOwned(worldHandle_);
-    DestroyOwned(netSession_);
-    DeleteManager(objectManager_);
-    DeleteManager(figureManager_);
-    figureLoader_.Reset();
-    DeleteManager(specificManager_);
-    DeleteManager(itemConstructor_);
-    DeleteManager(itemManager_);
-    DeleteManager(spellConstructor_);
-    DeleteManager(spellManager_);
-    DeleteManager(timedObjectManager_);
+    DeleteManager(players);
+    DestroyOwned(worldHandle);
+    DestroyOwned(netSession);
+    DeleteManager(objectManager);
+    DeleteManager(figureManager);
+    figureLoader.Reset();
+    DeleteManager(specificManager);
+    DeleteManager(itemConstructor);
+    DeleteManager(itemManager);
+    DeleteManager(spellConstructor);
+    DeleteManager(spellManager);
+    DeleteManager(timedObjectManager);
 }
 
 // ---- The managers' own small virtuals -------------------------------------

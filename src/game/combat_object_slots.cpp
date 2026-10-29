@@ -26,7 +26,7 @@ constexpr int kPartWeapons = 6;         // CUnit::MarkChanged part
 
 
 // The weapon's condition (CItem +0x20, a float) rounded to nearest is above 0.
-bool Usable(const CItem* weapon) { return weapon && x87::RoundToInt(weapon->condition_) > 0; }
+bool Usable(const CItem* weapon) { return weapon && x87::RoundToInt(weapon->condition) > 0; }
 } // namespace
 
 void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
@@ -35,7 +35,7 @@ void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
     for (int player = 0; player < 32; ++player) {
         if (!(mask & (1u << player))) continue;
         std::string piece;
-        piece = std::format("Unit {} claims that player {} are enemies! ", claimant->id_, player);
+        piece = std::format("Unit {} claims that player {} are enemies! ", claimant->id, player);
         text += piece;
     }
     brain.memory.AddClaim(mask, kCallClaim, text);
@@ -60,7 +60,7 @@ void CUnitServer::OnObjectDeleted(CEngineObject* object) {
     }
     if (action2.target == object && action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote)
         DropQueuedOrder();
-    if (currentPlan.targetId == object->id_) EndOrder(0);
+    if (currentPlan.targetId == object->id) EndOrder(0);
     brain.OnObjectDeleted(object);
     if (followedLeader == object) {
         followsLeader = 0;
@@ -71,13 +71,13 @@ void CUnitServer::OnObjectDeleted(CEngineObject* object) {
 void CUnitServer::Resettle() {
     if (unit->IsDead()) return;
     auto* world = ServerWorld();
-    world->aiMap_.sectorMap.Remove(unit);
+    world->aiMap.sectorMap.Remove(unit);
     unit->Object3D()->SetUpAnimatedFigure(unit->name);
     unit->UpdateSizeClasses();
     unit->UpdateSizeClass();
-    CAIMap* map = &world->aiMap_;
+    CAIMap* map = &world->aiMap;
     if (!map->CanLeaveCell(unit)) {
-        auto* position = &unit->localPosition_;
+        auto* position = &unit->localPosition;
         Vector3 spot;
         spot = *position;
         if (map->FindFreeCellNear(unit, *position, &spot)) {
@@ -86,11 +86,11 @@ void CUnitServer::Resettle() {
             DamageInfo hit;
             ResetDamageInfo(&hit);
             TakeHit(&hit, nullptr, nullptr);
-            g_serverWorld.aiMap_.sectorMap.Add(unit);
+            g_serverWorld.aiMap.sectorMap.Add(unit);
             return;
         }
     }
-    g_serverWorld.aiMap_.sectorMap.Add(unit);
+    g_serverWorld.aiMap.sectorMap.Add(unit);
 }
 
 void CUnitServer::Create() {

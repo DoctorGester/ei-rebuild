@@ -34,15 +34,15 @@ bool PartMatches(const char* name, const char* pattern) {
 
 
 CResourceBase::CResourceBase() {
-    header_ = ResHeader{};
-    entries_ = nullptr;
-    names_ = nullptr;
+    header = ResHeader{};
+    entries = nullptr;
+    names = nullptr;
 }
 
 CResourceBase::~CResourceBase() {
-    header_ = ResHeader{};
-    entries_ = nullptr;
-    names_ = nullptr;
+    header = ResHeader{};
+    entries = nullptr;
+    names = nullptr;
 }
 
 
@@ -92,20 +92,20 @@ int WildcardMatch(const char* name, const char* pattern, int emptyPatternResult)
 }
 
 // Rebirth's ResOverride sends every call to addon.
-void CMappedResource::ListFiles(std::vector<std::string>* names, const char* pattern) const {
+void CMappedResource::ListFiles(std::vector<std::string>* fileNames, const char* pattern) const {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
-        modfolders::ListFiles(this, names, pattern);
+        modfolders::ListFiles(this, fileNames, pattern);
         return;
     }
-    *names = ListFilesPlain(pattern);
+    *fileNames = ListFilesPlain(pattern);
 }
 
 std::vector<std::string> CMappedResource::ListFilesPlain(const char* pattern) const {
-    std::vector<std::string> names;
-    for (std::uint32_t i = 0; i < header_.count; ++i) {
-        const ResEntry& entry = entries_[i];
+    std::vector<std::string> fileNames;
+    for (std::uint32_t i = 0; i < header.count; ++i) {
+        const ResEntry& entry = entries[i];
         char name[0x400];
-        std::memcpy(name, names_ + entry.nameOffset, entry.nameLength);
+        std::memcpy(name, names + entry.nameOffset, entry.nameLength);
         name[entry.nameLength] = '\0';
         if (pattern != nullptr) {
             char nameDrive[4], patternDrive[4];
@@ -118,20 +118,20 @@ std::vector<std::string> CMappedResource::ListFilesPlain(const char* pattern) co
             // An empty name pattern only matches an empty name; an empty extension pattern anything.
             if (WildcardMatch(nameBase, patternBase, 0) == 0 || WildcardMatch(nameExt, patternExt, 1) == 0) continue;
         }
-        names.push_back(name);
+        fileNames.push_back(name);
     }
-    return names;
+    return fileNames;
 }
 
 
 // The mapped file is constructed as a member (CMappedFile's constructor).
-CMMIOResource::CMMIOResource() { mappedImage_ = nullptr; }
+CMMIOResource::CMMIOResource() { mappedImage = nullptr; }
 
 CMMIOResource::~CMMIOResource() {
     // CloseResource, inlined (is CMappedFile::Close's copy).
-    file_.Close();
-    entries_ = nullptr;
-    names_ = nullptr;
-    mappedImage_ = nullptr;
-    header_ = ResHeader{};
+    file.Close();
+    entries = nullptr;
+    names = nullptr;
+    mappedImage = nullptr;
+    header = ResHeader{};
 }

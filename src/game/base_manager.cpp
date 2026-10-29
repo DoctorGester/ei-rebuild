@@ -45,13 +45,13 @@ std::list<CEngineObject*>::iterator AddTail(std::list<CEngineObject*>* list, CEn
     return std::prev(list->end());
 }
 
-// The id of an object registered without one: maxId_ + 1 while that stays inside [idLow_,
-// idHigh_), else a random one in that range that `find` does not find (100000 tries; then the
+// The id of an object registered without one: maxId + 1 while that stays inside [idLow,
+// idHigh), else a random one in that range that `find` does not find (100000 tries; then the
 // fatal "out of ids" message and -1).
 int NextFreeId(CBaseManager* m) {
-    int limit = m->idHigh_;
-    int current = m->maxId_;
-    int low = m->idLow_;
+    int limit = m->idHigh;
+    int current = m->maxId;
+    int low = m->idLow;
     int id;
     if (current < limit && current >= low) {
         id = current + 1;
@@ -63,7 +63,7 @@ int NextFreeId(CBaseManager* m) {
             r += libcrt::Rand();
             int candidate = r % range + low;
             if (candidate == 0) continue;
-            if (!m->objects_.contains(static_cast<unsigned>(candidate))) {
+            if (!m->objects.contains(static_cast<unsigned>(candidate))) {
                 id = candidate;
                 break;
             }
@@ -76,11 +76,11 @@ int NextFreeId(CBaseManager* m) {
 // The positions entry of `id` (the id's node in the object list) erased and the node removed from
 // the list (inlined RemoveAt).
 void ForgetPosition(CBaseManager* m, int id) {
-    auto found = m->positions_.find(id);
-    if (found == m->positions_.end()) return;
+    auto found = m->positions.find(id);
+    if (found == m->positions.end()) return;
     std::list<CEngineObject*>::iterator node = found->second;
-    m->positions_.erase(found);
-    if (node != std::list<CEngineObject*>::iterator{}) m->objectList_.erase(node);
+    m->positions.erase(found);
+    if (node != std::list<CEngineObject*>::iterator{}) m->objectList.erase(node);
 }
 
 } // namespace
@@ -88,79 +88,79 @@ void ForgetPosition(CBaseManager* m, int id) {
 // --- Construction and destruction ---------------------------------------------------------------
 
 CBaseManager::CBaseManager() {
-    maxId_ = 0;
-    maxPositionId_ = 0;
-    maxSpareType_ = 0;
-    maxSpareCountType_ = 0;
-    idLow_ = 0;
-    context_ = nullptr;
-    idHigh_ = 2000000000;
-    reservedA_ = -1;
-    reservedB_ = -1;
-    lastId_ = -1;
+    maxId = 0;
+    maxPositionId = 0;
+    maxSpareType = 0;
+    maxSpareCountType = 0;
+    idLow = 0;
+    context = nullptr;
+    idHigh = 2000000000;
+    reservedA = -1;
+    reservedB = -1;
+    lastId = -1;
 }
 
 CBaseManager::~CBaseManager() {
     CBaseManager::Destroy();
-    objectList_.clear();
+    objectList.clear();
 }
 
 // --- Create and destroy -------------------------------------------------------------------------
 
 void CBaseManager::Create() {
-    idLow_ = 0;
-    idHigh_ = 2000000000;
-    ResetTable(objects_, maxId_, 0x400);
-    ResetTable(positions_, maxPositionId_, 0x400);
-    ResetTable(spares_, maxSpareType_, 0x100);
-    ResetTable(spareCounts_, maxSpareCountType_, 0x100);
-    reservedA_ = 0;
-    reservedB_ = 300;
+    idLow = 0;
+    idHigh = 2000000000;
+    ResetTable(objects, maxId, 0x400);
+    ResetTable(positions, maxPositionId, 0x400);
+    ResetTable(spares, maxSpareType, 0x100);
+    ResetTable(spareCounts, maxSpareCountType, 0x100);
+    reservedA = 0;
+    reservedB = 300;
 }
 
 // Every object gets a reference, then its own Destroy; then every object still registered under the ids
 // collected is released; the object list is emptied; every object left is deleted; then the tables are cleared.
 void CBaseManager::Destroy() {
-    ForEachObject(objects_, [](CEngineObject* o) { o->AddRef(); });
+    ForEachObject(objects, [](CEngineObject* o) { o->AddRef(); });
     std::list<int> ids;
-    ForEachObject(objects_, [&ids](CEngineObject* o) {
-        ids.push_back(o->id_);
+    ForEachObject(objects, [&ids](CEngineObject* o) {
+        ids.push_back(o->id);
         o->Destroy();
     });
-    for (const auto id : ids) {
-        if (auto found = objects_.find(static_cast<unsigned>(id)); found != objects_.end()) found->second->Release();
+    for (const auto objectId : ids) {
+        if (auto found = objects.find(static_cast<unsigned>(objectId)); found != objects.end()) found->second->Release();
     }
     ids.clear();
-    objectList_.clear();
-    ForEachObject(objects_, [](CEngineObject* o) { delete o; });
-    objects_.clear();
-    maxId_ = 0;
-    positions_.clear();
-    maxPositionId_ = 0;
+    objectList.clear();
+    ForEachObject(objects, [](CEngineObject* o) { delete o; });
+    objects.clear();
+    maxId = 0;
+    positions.clear();
+    maxPositionId = 0;
     FreeSpares();
-    spares_.clear();
-    maxSpareType_ = 0;
-    spareCounts_.clear();
-    maxSpareCountType_ = 0;
-    context_ = nullptr;
+    spares.clear();
+    maxSpareType = 0;
+    spareCounts.clear();
+    maxSpareCountType = 0;
+    context = nullptr;
 }
 
-void CBaseManager::Init(CManagerContext* context) {
-    context_ = context;
+void CBaseManager::Init(CManagerContext* newContext) {
+    context = newContext;
     Create();
 }
 
 // Every object gets a reference, then is destroyed, then released (objects nothing else holds go back to the
 // spares). Then the objects table, the object list and the positions are emptied.
 void CBaseManager::DestroyAll() {
-    ForEachObject(objects_, [](CEngineObject* o) { o->AddRef(); });
-    ForEachObject(objects_, [](CEngineObject* o) { o->Destroy(); });
-    ForEachObject(objects_, [](CEngineObject* o) { o->Release(); });
-    maxId_ = 0;
-    objects_.clear();
-    objectList_.clear();
-    maxPositionId_ = 0;
-    positions_.clear();
+    ForEachObject(objects, [](CEngineObject* o) { o->AddRef(); });
+    ForEachObject(objects, [](CEngineObject* o) { o->Destroy(); });
+    ForEachObject(objects, [](CEngineObject* o) { o->Release(); });
+    maxId = 0;
+    objects.clear();
+    objectList.clear();
+    maxPositionId = 0;
+    positions.clear();
 }
 
 // --- No archives --------------------------------------------------------------------------------
@@ -175,40 +175,40 @@ void CBaseManager::FreeAllFiles() {}
 
 // --- Objects in and out -------------------------------------------------------------------------
 
-CEngineObject* CBaseManager::CreateObject(int type, int id) {
+CEngineObject* CBaseManager::CreateObject(int newType, int newId) {
     CEngineObject* object = nullptr;
-    if (hash400::Entry(spareCounts_, maxSpareCountType_, type) > 0) {
-        if (auto found = spares_.find(type); found != spares_.end()) {
-            std::list<CEngineObject*>* spares = found->second;
-            if (!spares->empty()) {
-                object = spares->front();
-                spares->pop_front();
+    if (hash400::Entry(spareCounts, maxSpareCountType, newType) > 0) {
+        if (auto found = spares.find(newType); found != spares.end()) {
+            std::list<CEngineObject*>* spareList = found->second;
+            if (!spareList->empty()) {
+                object = spareList->front();
+                spareList->pop_front();
             }
         }
     }
     if (!object) {
-        object = NewObject(type);
+        object = NewObject(newType);
         if (!object) return nullptr;
     }
-    object->flags_ = 0;
-    object->type_ = type;
-    if (id == -1) {
+    object->flags = 0;
+    object->type = newType;
+    if (newId == -1) {
         int chosen = NextFreeId(this);
-        if (!objects_.contains(static_cast<unsigned>(chosen))) {   // Lookup
-            hash400::Entry(positions_, maxPositionId_, chosen) = AddTail(&objectList_, object);
+        if (!objects.contains(static_cast<unsigned>(chosen))) {    // Lookup
+            hash400::Entry(positions, maxPositionId, chosen) = AddTail(&objectList, object);
         }
-        hash400::SetAt(objects_, maxId_, chosen, object);
-        object->id_ = chosen;
-        lastId_ = chosen;
+        hash400::SetAt(objects, maxId, chosen, object);
+        object->id = chosen;
+        lastId = chosen;
     } else {
-        if (!objects_.contains(static_cast<unsigned>(id))) {
-            std::list<CEngineObject*>::iterator position = AddTail(&objectList_, object);
-            hash400::Entry(positions_, maxPositionId_, id) = position;
+        if (!objects.contains(static_cast<unsigned>(newId))) {
+            std::list<CEngineObject*>::iterator position = AddTail(&objectList, object);
+            hash400::Entry(positions, maxPositionId, newId) = position;
         }
-        if (id > maxId_) maxId_ = id;
-        objects_[static_cast<unsigned>(id)] = object;
-        object->id_ = id;
-        lastId_ = id;
+        if (newId > maxId) maxId = newId;
+        objects[static_cast<unsigned>(newId)] = object;
+        object->id = newId;
+        lastId = newId;
     }
     object->SetOwner(this);
     object->Create();
@@ -216,8 +216,8 @@ CEngineObject* CBaseManager::CreateObject(int type, int id) {
 }
 
 int CBaseManager::ReleaseObject(CEngineObject* object) {
-    if (!object || object->refCount_ != 0) return 0;
-    ForgetPosition(this, object->id_);
+    if (!object || object->refCount != 0) return 0;
+    ForgetPosition(this, object->id);
     object->Destroy();
     object->SetOwner(nullptr);
     return RemoveObject(object);
@@ -225,108 +225,108 @@ int CBaseManager::ReleaseObject(CEngineObject* object) {
 
 // --- Registration (non-virtual) -----------------------------------------------------------------
 
-CEngineObject* CBaseManager::FindObject(unsigned id) const {
-    auto node = objects_.find(id);
-    return node != objects_.end() ? node->second : nullptr;
+CEngineObject* CBaseManager::FindObject(unsigned objectId) const {
+    auto node = objects.find(objectId);
+    return node != objects.end() ? node->second : nullptr;
 }
 
-void CBaseManager::SetContext(CManagerContext* context) { context_ = context; }
+void CBaseManager::SetContext(CManagerContext* newContext) { context = newContext; }
 
-CEngineObject* CBaseManager::Unregister(int id) {
-    auto found = objects_.find(static_cast<unsigned>(id));
-    if (found == objects_.end()) return nullptr;
+CEngineObject* CBaseManager::Unregister(int objectId) {
+    auto found = objects.find(static_cast<unsigned>(objectId));
+    if (found == objects.end()) return nullptr;
     CEngineObject* object = found->second;
-    if ((found = objects_.find(static_cast<unsigned>(id))) != objects_.end()) objects_.erase(found);
-    ForgetPosition(this, id);
+    if ((found = objects.find(static_cast<unsigned>(objectId))) != objects.end()) objects.erase(found);
+    ForgetPosition(this, objectId);
     return object;
 }
 
 int CBaseManager::RegisterInstant(CEngineObject* object) {
-    int id = NextFreeId(this);
-    if (!objects_.contains(static_cast<unsigned>(id))) {
-        std::list<CEngineObject*>::iterator position = AddTail(&objectList_, object);
-        if (id > maxPositionId_) maxPositionId_ = id;
-        positions_[id] = position;
+    int objectId = NextFreeId(this);
+    if (!objects.contains(static_cast<unsigned>(objectId))) {
+        std::list<CEngineObject*>::iterator position = AddTail(&objectList, object);
+        if (objectId > maxPositionId) maxPositionId = objectId;
+        positions[objectId] = position;
     }
-    if (id > maxId_) maxId_ = id;
-    objects_[static_cast<unsigned>(id)] = object;
-    object->id_ = id;
-    lastId_ = id;
+    if (objectId > maxId) maxId = objectId;
+    objects[static_cast<unsigned>(objectId)] = object;
+    object->id = objectId;
+    lastId = objectId;
     object->SetOwner(this);
-    return id;
+    return objectId;
 }
 
 int CBaseManager::RemoveObject(CEngineObject* object) {
-    int id = object->id_;
-    int type = object->type_;
-    auto found = objects_.find(static_cast<unsigned>(id));
-    if (found != objects_.end() && found->second == object) {
-        if (objects_.contains(static_cast<unsigned>(id))) {   // Lookup
-            hash400::RemoveKey(objects_, static_cast<unsigned>(id));
-            if (auto position = hash400::RemoveKey(positions_, id); position != std::list<CEngineObject*>::iterator{})
-                objectList_.erase(position);
+    int objectId = object->id;
+    int objectType = object->type;
+    auto found = objects.find(static_cast<unsigned>(objectId));
+    if (found != objects.end() && found->second == object) {
+        if (objects.contains(static_cast<unsigned>(objectId))) {    // Lookup
+            hash400::RemoveKey(objects, static_cast<unsigned>(objectId));
+            if (auto position = hash400::RemoveKey(positions, objectId); position != std::list<CEngineObject*>::iterator{})
+                objectList.erase(position);
         }
     }
-    if (auto spare = spares_.find(type); spare != spares_.end()) {
+    if (auto spare = spares.find(objectType); spare != spares.end()) {
         AddTail(spare->second, object);
-        object->id_ = -1;
-        int count = hash400::Entry(spareCounts_, maxSpareCountType_, type) + 1;
-        if (type > maxSpareCountType_) maxSpareCountType_ = type;
-        spareCounts_[type] = count;
+        object->id = -1;
+        int count = hash400::Entry(spareCounts, maxSpareCountType, objectType) + 1;
+        if (objectType > maxSpareCountType) maxSpareCountType = objectType;
+        spareCounts[objectType] = count;
         return 0;
     }
     auto* list = new std::list<CEngineObject*>;
-    if (type > maxSpareType_) maxSpareType_ = type;
-    spares_[type] = list;
+    if (objectType > maxSpareType) maxSpareType = objectType;
+    spares[objectType] = list;
     AddTail(list, object);
-    object->id_ = -1;
-    if (type > maxSpareCountType_) maxSpareCountType_ = type;
-    int count = spareCounts_[type] + 1;
-    if (type > maxSpareCountType_) maxSpareCountType_ = type;
-    spareCounts_[type] = count;
+    object->id = -1;
+    if (objectType > maxSpareCountType) maxSpareCountType = objectType;
+    int count = spareCounts[objectType] + 1;
+    if (objectType > maxSpareCountType) maxSpareCountType = objectType;
+    spareCounts[objectType] = count;
     return 0;
 }
 
 // Each type's list deletes its objects, is emptied and deleted; then the spares and spare counts tables are
 // emptied.
 void CBaseManager::FreeSpares() {
-    for (auto& [type, list] : spares_) {
+    for (auto& [objectType, list] : spares) {
         if (!list) break;
         for (CEngineObject* object : *list) delete object;
         delete list;
     }
-    maxSpareType_ = 0;
-    spares_.clear();
-    maxSpareCountType_ = 0;
-    spareCounts_.clear();
+    maxSpareType = 0;
+    spares.clear();
+    maxSpareCountType = 0;
+    spareCounts.clear();
 }
 
 // --- Saving and loading -------------------------------------------------------------------------
 
-// The spares are freed; then `count` records {id, type, prototypeId_} each create an object (CreateObject).
+// The spares are freed; then `count` records {id, type, prototypeId} each create an object (CreateObject).
 void CBaseManager::Load(CStream* in) {
     FreeSpares();
     int count;
     in->ReadValue(count);
     for (int i = 0; i < count; ++i) {
-        int id, type, extra;
-        in->ReadValue(id);
-        in->ReadValue(type);
+        int objectId, objectType, extra;
+        in->ReadValue(objectId);
+        in->ReadValue(objectType);
         in->ReadValue(extra);
-        CEngineObject* object = CreateObject(type, id);
-        object->prototypeId_ = static_cast<std::uint32_t>(extra);
+        CEngineObject* object = CreateObject(objectType, objectId);
+        object->prototypeId = static_cast<std::uint32_t>(extra);
     }
 }
 
 void CBaseManager::Save(CStream* out) {
-    int count = static_cast<int>(objectList_.size());
+    int count = static_cast<int>(objectList.size());
     out->WriteValue(count);
-    for (CEngineObject* object : objectList_) {
-        int value = object->id_;
+    for (CEngineObject* object : objectList) {
+        int value = object->id;
         out->WriteValue(value);
-        value = object->type_;
+        value = object->type;
         out->WriteValue(value);
-        value = static_cast<int>(object->prototypeId_);
+        value = static_cast<int>(object->prototypeId);
         out->WriteValue(value);
     }
 }
@@ -335,14 +335,14 @@ void CBaseManager::Save(CStream* out) {
 // mark is an object id after all); stops at an id not registered (FindObject inlined).
 void CBaseManager::LoadObjects(CStream* in) {
     for (;;) {
-        int id;
-        in->ReadValue(id);
-        if (id == kEndOfObjects) {
+        int objectId;
+        in->ReadValue(objectId);
+        if (objectId == kEndOfObjects) {
             char more;
             in->ReadValue(more);
             if (!more) return;
         }
-        CEngineObject* object = FindObject(static_cast<unsigned>(id));
+        CEngineObject* object = FindObject(static_cast<unsigned>(objectId));
         if (!object) return;
         object->Load(in);
     }
@@ -351,10 +351,10 @@ void CBaseManager::LoadObjects(CStream* in) {
 // {id, [1 byte if the id is the end mark], the object's Save data} per object in list order, then
 // the end mark and a 0 byte.
 void CBaseManager::SaveObjects(CStream* out) {
-    for (CEngineObject* object : objectList_) {
-        int id = object->id_;
-        out->WriteValue(id);
-        if (object->id_ == kEndOfObjects) {
+    for (CEngineObject* object : objectList) {
+        int objectId = object->id;
+        out->WriteValue(objectId);
+        if (object->id == kEndOfObjects) {
             char one = 1;
             out->WriteValue(one);
         }
@@ -367,11 +367,11 @@ void CBaseManager::SaveObjects(CStream* out) {
 }
 
 void CBaseManager::ReleaseUnused() {
-    for (std::list<CEngineObject*>::iterator node = objectList_.begin(); node != objectList_.end();) {
+    for (std::list<CEngineObject*>::iterator node = objectList.begin(); node != objectList.end();) {
         CEngineObject* object = *node;
         ++node;
-        if (object->refCount_ == 0) {
-            object->refCount_ = 1;
+        if (object->refCount == 0) {
+            object->refCount = 1;
             object->Release();
         }
     }
@@ -385,11 +385,11 @@ CEngineObject* ObjectListIterator::First(CBaseManager* list) {
     if (manager) manager->ForgetReference();
     manager = list;
     if (list) list->AddRef();
-    position = manager->objectList_.begin();
+    position = manager->objectList.begin();
     return Next();
 }
 
 CEngineObject* ObjectListIterator::Next() {
-    if (!manager || position == manager->objectList_.end()) return nullptr;
+    if (!manager || position == manager->objectList.end()) return nullptr;
     return *position++;
 }

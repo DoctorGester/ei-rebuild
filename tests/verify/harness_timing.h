@@ -22,8 +22,8 @@ public:
     Scope& operator=(const Scope&) = delete;
 
 private:
-    Part part_;
-    int outer_;   // the part this scope interrupted (-1: none), resumed at its end
+    Part part;
+    int outer;    // the part this scope interrupted (-1: none), resumed at its end
 };
 
 // A frame of the main loop has ended (the after-frame peek, before a pair's turn is handed on).

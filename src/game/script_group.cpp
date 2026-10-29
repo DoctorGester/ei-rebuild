@@ -26,7 +26,7 @@ bool MemberBefore(const ScriptObjectRef& a, const ScriptObjectRef& b) { return S
 
 bool ScriptGroup::After(const CEngineObject* x, const CEngineObject* y) {
     if (!x || !y) return x != nullptr;
-    return x->id_ > y->id_;
+    return x->id > y->id;
 }
 
 CUnit* ScriptObjectRef::AsUnit() const {
@@ -39,7 +39,7 @@ CUnitServer* ScriptObjectRef::GetUnitPerception() const {
 }
 
 void ScriptObjectRef::ReleaseIfDeleted() {
-    if (object && (object->flags_ & MapObjectFlag::Removed)) object = nullptr;
+    if (object && (object->flags & MapObjectFlag::Removed)) object = nullptr;
 }
 
 void ScriptObjectRef::Load(CStream* stream) {
@@ -50,7 +50,7 @@ void ScriptObjectRef::Load(CStream* stream) {
 
 void ScriptObjectRef::Save(CStream* stream) const {
     int id = -1;
-    if (object) id = object->id_;
+    if (object) id = object->id;
     stream->WriteValue(id);
 }
 

@@ -241,90 +241,90 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
 // --- CLightning --------------------------------------------------------------------------------
 
 void CLightning::Destroy() {
-    power_ = 1.0f;
-    amplitude_ = FromBits(0x3DCCCCCD);   // 0.1f
-    texture_.Reset();
-    glowTexture_.Reset();
+    power = 1.0f;
+    amplitude = FromBits(0x3DCCCCCD);    // 0.1f
+    texture.Reset();
+    glowTexture.Reset();
 }
 
 void CLightning::Create() {
     Destroy();
-    auto* manager = static_cast<CLightningManager*>(owner_);
-    manager->newBolts_.push_back(this);
-    ++refCount_;
+    auto* manager = static_cast<CLightningManager*>(owner);
+    manager->newBolts.push_back(this);
+    ++refCount;
 }
 
 void CLightning::ExpandBounds(const LightningSegment* segment) {
     for (int i = 0; i < std::ssize(segment->points); ++i) {
         const LightningPoint& p = segment->points[i];
         // Minimum: the point when it is smaller or unordered; maximum likewise.
-        bounds_.boxMin.x = p.x >= bounds_.boxMin.x ? bounds_.boxMin.x : p.x;
-        bounds_.boxMin.y = p.y >= bounds_.boxMin.y ? bounds_.boxMin.y : p.y;
-        bounds_.boxMin.z = p.z >= bounds_.boxMin.z ? bounds_.boxMin.z : p.z;
-        bounds_.boxMax.x = bounds_.boxMax.x >= p.x ? bounds_.boxMax.x : p.x;
-        bounds_.boxMax.y = bounds_.boxMax.y >= p.y ? bounds_.boxMax.y : p.y;
-        bounds_.boxMax.z = bounds_.boxMax.z >= p.z ? bounds_.boxMax.z : p.z;
+        bounds.boxMin.x = p.x >= bounds.boxMin.x ? bounds.boxMin.x : p.x;
+        bounds.boxMin.y = p.y >= bounds.boxMin.y ? bounds.boxMin.y : p.y;
+        bounds.boxMin.z = p.z >= bounds.boxMin.z ? bounds.boxMin.z : p.z;
+        bounds.boxMax.x = bounds.boxMax.x >= p.x ? bounds.boxMax.x : p.x;
+        bounds.boxMax.y = bounds.boxMax.y >= p.y ? bounds.boxMax.y : p.y;
+        bounds.boxMax.z = bounds.boxMax.z >= p.z ? bounds.boxMax.z : p.z;
     }
 }
 
 void CLightning::UpdateBounds() {
     const float largest = FromBits(0x7149F2CA);      // 1e30
     const float lowest = FromBits(0xF149F2CA);    // -1e30
-    bounds_.boxMin.x = largest;
-    bounds_.boxMin.y = largest;
-    bounds_.boxMin.z = largest;
-    bounds_.boxMax.x = lowest;
-    bounds_.boxMax.y = lowest;
-    bounds_.boxMax.z = lowest;
-    ExpandBounds(&main_);
-    for (int i = 0; i < 6; ++i) ExpandBounds(&branches_[i]);
+    bounds.boxMin.x = largest;
+    bounds.boxMin.y = largest;
+    bounds.boxMin.z = largest;
+    bounds.boxMax.x = lowest;
+    bounds.boxMax.y = lowest;
+    bounds.boxMax.z = lowest;
+    ExpandBounds(&main);
+    for (int i = 0; i < 6; ++i) ExpandBounds(&branches[i]);
 
-    double sumX = static_cast<double>(bounds_.boxMin.x) + bounds_.boxMax.x;
-    float sumY = static_cast<float>(static_cast<double>(bounds_.boxMin.y) + bounds_.boxMax.y);
-    float sumZ = static_cast<float>(static_cast<double>(bounds_.boxMin.z) + bounds_.boxMax.z);
-    bounds_.center.x = static_cast<float>(sumX * 0.5);
-    bounds_.center.y = static_cast<float>(static_cast<double>(sumY) * 0.5);
-    bounds_.center.z = static_cast<float>(static_cast<double>(sumZ) * 0.5);
-    boundsSpare_.x = 0.0f;
-    boundsSpare_.y = 0.0f;
-    boundsSpare_.z = 0.0f;
-    bounds_.boxMin.x = static_cast<float>(static_cast<double>(bounds_.boxMin.x) - bounds_.center.x);
-    bounds_.boxMin.y = static_cast<float>(static_cast<double>(bounds_.boxMin.y) - bounds_.center.y);
-    bounds_.boxMin.z = static_cast<float>(static_cast<double>(bounds_.boxMin.z) - bounds_.center.z);
-    bounds_.boxMax.x = static_cast<float>(static_cast<double>(bounds_.boxMax.x) - bounds_.center.x);
-    bounds_.boxMax.y = static_cast<float>(static_cast<double>(bounds_.boxMax.y) - bounds_.center.y);
-    bounds_.boxMax.z = static_cast<float>(static_cast<double>(bounds_.boxMax.z) - bounds_.center.z);
-    bounds_.flags = lib::Bits(BoundsFlag::Sphere | BoundsFlag::Box);
-    bounds_.radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(bounds_.boxMax)));
+    double sumX = static_cast<double>(bounds.boxMin.x) + bounds.boxMax.x;
+    float sumY = static_cast<float>(static_cast<double>(bounds.boxMin.y) + bounds.boxMax.y);
+    float sumZ = static_cast<float>(static_cast<double>(bounds.boxMin.z) + bounds.boxMax.z);
+    bounds.center.x = static_cast<float>(sumX * 0.5);
+    bounds.center.y = static_cast<float>(static_cast<double>(sumY) * 0.5);
+    bounds.center.z = static_cast<float>(static_cast<double>(sumZ) * 0.5);
+    boundsSpare.x = 0.0f;
+    boundsSpare.y = 0.0f;
+    boundsSpare.z = 0.0f;
+    bounds.boxMin.x = static_cast<float>(static_cast<double>(bounds.boxMin.x) - bounds.center.x);
+    bounds.boxMin.y = static_cast<float>(static_cast<double>(bounds.boxMin.y) - bounds.center.y);
+    bounds.boxMin.z = static_cast<float>(static_cast<double>(bounds.boxMin.z) - bounds.center.z);
+    bounds.boxMax.x = static_cast<float>(static_cast<double>(bounds.boxMax.x) - bounds.center.x);
+    bounds.boxMax.y = static_cast<float>(static_cast<double>(bounds.boxMax.y) - bounds.center.y);
+    bounds.boxMax.z = static_cast<float>(static_cast<double>(bounds.boxMax.z) - bounds.center.z);
+    bounds.flags = lib::Bits(BoundsFlag::Sphere | BoundsFlag::Box);
+    bounds.radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(bounds.boxMax)));
 }
 
 void CLightning::Animate() {
-    float sway = amplitude_;
-    float time = static_cast<float>((static_cast<double>(g_clientWorld.tick_) + g_clientWorld.tickFraction_) / 4.0);
-    main_.Animate(time, NoiseAmplitude(power_));
-    EI_NAN_AUDIT(power_);
-    if (power_ != 0.0f) {
+    float sway = amplitude;
+    float time = static_cast<float>((static_cast<double>(g_clientWorld.tick) + g_clientWorld.tickFraction) / 4.0);
+    main.Animate(time, NoiseAmplitude(power));
+    EI_NAN_AUDIT(power);
+    if (power != 0.0f) {
         // The branches follow the main segment: each starts at its point of the bolt and ends near
         // the bolt's end, swaying on two sines.
-        double n = std::ssize(main_.points);
+        double n = std::ssize(main.points);
         Vector3 length;
-        length.x = static_cast<float>(n * main_.step.x);
-        length.y = static_cast<float>(n * main_.step.y);
-        length.z = static_cast<float>(n * main_.step.z);
+        length.x = static_cast<float>(n * main.step.x);
+        length.y = static_cast<float>(n * main.step.y);
+        length.z = static_cast<float>(n * main.step.z);
         Vector3 end;
-        AddVectors(&end, main_.start, length);
+        AddVectors(&end, main.start, length);
         const float* frequency = kBranchFrequencies;
         for (int i = 0; i < 6; ++i) {
-            LightningSegment& branch = branches_[i];
-            double reach = static_cast<double>(sway) * branchPos_[i];
+            LightningSegment& branch = branches[i];
+            double reach = static_cast<double>(sway) * branchPos[i];
             float sideSway = static_cast<float>(x87::fsin(static_cast<double>(time) * frequency[2 * i] * 0.25) * reach);
             double upSway = x87::fsin(static_cast<double>(time) * frequency[2 * i + 1] * 0.25) * reach;
-            float ux = static_cast<float>(upSway * main_.up.x);
-            float uy = static_cast<float>(upSway * main_.up.y);
-            double uz = upSway * main_.up.z;
-            double sx = static_cast<double>(sideSway) * main_.side.x;
-            float sy = static_cast<float>(static_cast<double>(sideSway) * main_.side.y);
-            float sz = static_cast<float>(static_cast<double>(sideSway) * main_.side.z);
+            float ux = static_cast<float>(upSway * main.up.x);
+            float uy = static_cast<float>(upSway * main.up.y);
+            double uz = upSway * main.up.z;
+            double sx = static_cast<double>(sideSway) * main.side.x;
+            float sy = static_cast<float>(static_cast<double>(sideSway) * main.side.y);
+            float sz = static_cast<float>(static_cast<double>(sideSway) * main.side.z);
             double wx = sx + end.x;
             float wy = static_cast<float>(static_cast<double>(end.y) + sy);
             float wz = static_cast<float>(static_cast<double>(end.z) + sz);
@@ -332,10 +332,10 @@ void CLightning::Animate() {
             float targetY = static_cast<float>(static_cast<double>(wy) + uy);
             float targetZ = static_cast<float>(static_cast<double>(wz) + uz);
 
-            int index = x87::fistp(static_cast<float>((1.0 - branchPos_[i]) * std::ssize(main_.points)));
-            int last = std::ssize(main_.points) - 1;
+            int index = x87::fistp(static_cast<float>((1.0 - branchPos[i]) * std::ssize(main.points)));
+            int last = std::ssize(main.points) - 1;
             if (index >= last) index = last;
-            const LightningPoint& origin = main_.points[index];
+            const LightningPoint& origin = main.points[index];
             branch.start.x = origin.x;
             branch.start.y = origin.y;
             branch.start.z = origin.z;
@@ -351,16 +351,16 @@ void CLightning::Animate() {
             branch.step.z = stepZ;
         }
     }
-    for (int i = 0; i < 6; ++i) branches_[i].Animate(time, NoiseAmplitude(power_));
+    for (int i = 0; i < 6; ++i) branches[i].Animate(time, NoiseAmplitude(power));
 }
 
 void CLightning::SetEndpoints(const Vector3& from, const Vector3& to) {
-    main_.Init(from, to);
-    EI_NAN_AUDIT(power_);
-    if (power_ != 0.0f) {
+    main.Init(from, to);
+    EI_NAN_AUDIT(power);
+    if (power != 0.0f) {
         // Each branch runs from its point of the bolt to the end.
         for (int i = 0; i < 6; ++i) {
-            double along = branchPos_[i];
+            double along = branchPos[i];
             double rest = 1.0 - along;
             float ax = static_cast<float>(rest * to.x);
             float ay = static_cast<float>(rest * to.y);
@@ -372,7 +372,7 @@ void CLightning::SetEndpoints(const Vector3& from, const Vector3& to) {
             origin.x = static_cast<float>(static_cast<double>(bx) + ax);
             origin.y = static_cast<float>(static_cast<double>(by) + ay);
             origin.z = static_cast<float>(bz + az);
-            branches_[i].Init(origin, to);
+            branches[i].Init(origin, to);
         }
     } else {
         // Power 0: six more bolts parallel to the main one, shifted by a random offset of up to
@@ -399,11 +399,11 @@ void CLightning::SetEndpoints(const Vector3& from, const Vector3& to) {
             shiftedFrom.z = static_cast<float>(static_cast<double>(oz) + from.z);
             shiftedFrom.y = static_cast<float>(static_cast<double>(oy) + from.y);
             shiftedFrom.x = static_cast<float>(static_cast<double>(ox) + from.x);
-            branches_[i].Init(shiftedFrom, shiftedTo);
+            branches[i].Init(shiftedFrom, shiftedTo);
         }
     }
-    EI_NAN_AUDIT(power_);
-    if (power_ < 0.0f) Animate();
+    EI_NAN_AUDIT(power);
+    if (power < 0.0f) Animate();
     UpdateBounds();
 }
 
@@ -411,15 +411,15 @@ void CLightning::SetEndpoints(const Vector3& from, const Vector3& to) {
 
 int CLightningManager::DrawAll(CSceneRenderer* device) {
     // The manager's object list (the bolts, in creation order).
-    auto node = objectList_.begin();
-    while (node != objectList_.end()) {
+    auto node = objectList.begin();
+    while (node != objectList.end()) {
         std::list<CEngineObject*>::iterator  current = node;
         ++node;
         static_cast<CLightning*>(*current)->Draw(device);
     }
-    for (auto& n : newBolts_) {
+    for (auto& n : newBolts) {
         if (n) n->Release();
     }
-    newBolts_.clear();
+    newBolts.clear();
     return 1;
 }

@@ -37,7 +37,7 @@ void SetAttribute(float& base, float& current, float value) {
 } // namespace
 
 bool CHeroStatsPanel::StepPoint(int region) {
-    PartyUnitRecord* hero = owner_->HeroRecord();
+    PartyUnitRecord* hero = owner->HeroRecord();
     UnitStats* stats = &hero->stats;
     int total = static_cast<int>(stats->strengthBase) + static_cast<int>(stats->intelligenceBase) +
                 static_cast<int>(stats->dexterityBase);
@@ -59,9 +59,9 @@ bool CHeroStatsPanel::StepPoint(int region) {
         SetAttribute(stats->intelligenceBase, stats->intelligence, stats->intelligenceBase - kStep);
         return true;
     case 3:
-        if (points_ < 1) return false;
-        --points_;
-        hero->height = static_cast<float>(points_) * kHeightScale;
+        if (points < 1) return false;
+        --points;
+        hero->height = static_cast<float>(points) * kHeightScale;
         return true;
     case 4:
         if (stats->strengthBase >= kMaxAttribute || !roomLeft) return false;
@@ -76,9 +76,9 @@ bool CHeroStatsPanel::StepPoint(int region) {
         SetAttribute(stats->intelligenceBase, stats->intelligence, stats->intelligenceBase + kStep);
         return true;
     case 7:
-        if (points_ > kMaxHeight) return false;
-        ++points_;
-        hero->height = static_cast<float>(points_) * kHeightScale;
+        if (points > kMaxHeight) return false;
+        ++points;
+        hero->height = static_cast<float>(points) * kHeightScale;
         return true;
     default:
         return false;
@@ -88,16 +88,16 @@ bool CHeroStatsPanel::StepPoint(int region) {
 // --- Update --------------------------------------------------------------------------------------
 
 void CHeroStatsPanel::Update() {
-    if (page_ != kNewHeroPage || heldRegion_ < 0) return;
-    double held = CUiContainer::FrameTime() + holdTime_;
-    holdTime_ = static_cast<float>(held);
+    if (page != kNewHeroPage || heldRegion < 0) return;
+    double held = CUiContainer::FrameTime() + holdTime;
+    holdTime = static_cast<float>(held);
     if (held < kRepeatDelay) return;   // less (a NaN goes on)
-    bool stepped = StepPoint(heldRegion_);
-    owner_->RefreshStats();
+    bool stepped = StepPoint(heldRegion);
+    owner->RefreshStats();
     if (!stepped) {
-        interface_->mouseCapture_ = nullptr;
-        heldRegion_ = -1;
-        holdTime_ = 0.0f;
+        ui->mouseCapture = nullptr;
+        heldRegion = -1;
+        holdTime = 0.0f;
     }
 }
 
@@ -105,24 +105,24 @@ void CHeroStatsPanel::Update() {
 
 void CHeroStatsPanel::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
-    if (page_ == kNewHeroPage) {
-        heldRegion_ = -1;
-        if (StepPoint(region)) heldRegion_ = region;
+    if (page == kNewHeroPage) {
+        heldRegion = -1;
+        if (StepPoint(region)) heldRegion = region;
         if (region >= kFirstButton && region < kButtonEnd) {
-            interface_->PlaySound(kPerkSound);
-            owner_->RefreshStats();
+            ui->PlaySound(kPerkSound);
+            owner->RefreshStats();
         }
-        if (heldRegion_ > 0) {
-            holdTime_ = kFirstHold;
+        if (heldRegion > 0) {
+            holdTime = kFirstHold;
             CaptureMouse();
         }
         return;
     }
     if (region == kPreviousHero) {
-        interface_->PlaySound(kHeroSound);
-        owner_->PreviousHero();
+        ui->PlaySound(kHeroSound);
+        owner->PreviousHero();
     } else if (region == kNextHero) {
-        interface_->PlaySound(kHeroSound);
-        owner_->NextHero();
+        ui->PlaySound(kHeroSound);
+        owner->NextHero();
     }
 }

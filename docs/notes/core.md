@@ -72,9 +72,9 @@ File `core_refcount.cpp`, `core_refcount.h`.
 
 ### Counted pointers
 
-- Every counted class has `AddRef()` and `Release()`: CEngineObject (int refCount_; at 0 the owner's ReleaseObject),
-  CRefCounted (int16 refs_; deleted at 0), CLinkMeshBase, CLinkFigureLoader, CDeviceMaterial, CRenderPreset,
-  CRenderHelper and CRendererBase (deleted at 0). A site that keeps a raw pointer counts with these, not `++refCount_`.
+- Every counted class has `AddRef()` and `Release()`: CEngineObject (int refCount; at 0 the owner's ReleaseObject),
+  CRefCounted (int16 refs; deleted at 0), CLinkMeshBase, CLinkFigureLoader, CDeviceMaterial, CRenderPreset,
+  CRenderHelper and CRendererBase (deleted at 0). A site that keeps a raw pointer counts with these, not `++refCount`.
   The original's drops without the release at zero (sic: the object-list iterators' manager, the constructor's handed-back
   item, the figure's parts) are `CEngineObject::ForgetReference()`.
 - A counted field is a `Ref<T>` (src/game/ref.h): `Assign(p)` takes p's reference first, then drops the old one (nothing
@@ -94,12 +94,12 @@ File `core_refcount.cpp`, `core_refcount.h`.
   that owns its share is a `SharedRef<T>` (copy: share, destructor: DestroyOwned). The network messages' plain counted
   fields are `Ref<T>` (the copy constructors Assign), their plain lists `HeldRef<T>`. The AI brain's `modes` are a
   `std::list<SharedRef<AIMode>>` (AddMode and Load emplace_back the new mode; erase and clear release).
-- CItem's `spell_` (Ref<CSpell>) and `link_` (Ref<CRefObject>: the server's CItemLink or the interface's ItemTurn) are
+- CItem's `spell` (Ref<CSpell>) and `link` (Ref<CRefObject>: the server's CItemLink or the interface's ItemTurn) are
   Refs. CObject3D's `parts` are a `std::vector<HeldRef<CFigureMesh>>` whose references the original never releases
   through the vector: CopyFigure copies the pointers uncounted (the old ones taken without a release, each copy's
   reference forgotten again), Destroy3D takes each and forgets its reference, RemovePart takes the element and releases
   it after the detach.
-- The game client's `info_`, `binding_`, `map_` and `trade_` are plain `Ref<T>` (the handlers Assign / Reset; the
+- The game client's `info`, `binding`, `map` and `trade` are plain `Ref<T>` (the handlers Assign / Reset; the
   destructor resets them in the original's order between the lists' clears).
 - Not merged: `ScriptEffect<T>` (its reset removes the timed object first).
 - Counted lists outside the interface: the world's missiles, a CObject3D's effect sources, the joined links (TakeNew)
@@ -163,7 +163,7 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
   loader uses vtable 0073FAD4) owns the file (a `lib::File`): Open 0042D160, constructor 0042D1C0, Destruct 0042D270.
   `ChunkArchive` is a different format over two memory streams (below).
 - `ChunkArchive` (0x74, constructor 0053A7B0): +0 index stream, +0x28 data stream, +0x54 version (1),
-  +0x5C hash_map of loaded objects (ours: `loaded_`, key -> object, plus `numbers_`, object -> its number by first save, while saving; the original shared one map), +0x70 list of objects to save; class tables 0079B284 (class id ->
+  +0x5C hash_map of loaded objects (ours: `loaded`, key -> object, plus `numbers`, object -> its number by first save, while saving; the original shared one map), +0x70 list of objects to save; class tables 0079B284 (class id ->
   factory) and 0079B270 (vtable -> class id). A saved archive has three top-level chunks: 1 (scratch
   data, read back on load), 0 (index: class id and key per object), 2 (data: one child 1 per object with
   child 0 = key, child 1 = the object's fields). A loaded archive's Close gives every loaded object one
@@ -292,7 +292,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   ei_vectors links only some of src/game (CMakeLists.txt's ei_vectors sources): a replayed function that calls a
   helper defined elsewhere fails to link there; use a local helper.
 - The device's mesh buffers (the original's 007AEDE0-007AEE3C; plain globals of ours): `src/game/device_buffers.h`. src/render reads the clip stack through
-  the typed `CTransformPipeline::stacks_`; render_terrain.cpp once read it at pipeline +0x24 / +0x28 and drew no
+  the typed `CTransformPipeline::stacks`; render_terrain.cpp once read it at pipeline +0x24 / +0x28 and drew no
   terrain after a layout change (the goldens did not notice, the render_shadows* / render_terrain_seams /
   render_loose_bmp checks did: run the render_* scenarios after a layout change).
 
@@ -409,8 +409,8 @@ instantiations were, for reading game.exe (config/library.csv names them):
 ## Containers: the kept vectors and lists (C14n)
 
 - Records have real special members or none (the compiler's); the layout only matters for the tests' game.exe views.
-- Counted elements are RAII types: `HeldRef<T>` (ref.h; any class with AddRef / Release: CRefCounted's refs_, CEngineObject's
-  refCount_ and owner release) and `SharedRef<T>` (core_refcount.h: owning a share: copy ShareOwned, destroy
+- Counted elements are RAII types: `HeldRef<T>` (ref.h; any class with AddRef / Release: CRefCounted's refs, CEngineObject's
+  refCount and owner release) and `SharedRef<T>` (core_refcount.h: owning a share: copy ShareOwned, destroy
   DestroyOwned). A move hands the
   reference over, so a reallocation takes and drops none. A SharedRef copy of a copy-on-share object is a clone, as
   STLport's fill insert made it (the file message's chunks).
@@ -431,13 +431,13 @@ instantiations were, for reading game.exe (config/library.csv names them):
   records `Record` (a `SharedRef<CRefObject>` and the version: copied with Share, released as the owner), the attached ids plain
   values. Pointer keys compare as the game's unsigned compares, the sent ids signed. The destructor is the compiler's:
   the original's teardown is the reverse member order (the reliable streams, the chunk lists, the maps, the packet
-  lists, the freed-id batches). operator[] (`bySentId_[key] = entry`) takes the new reference before dropping the old,
+  lists, the freed-id batches). operator[] (`bySentId[key] = entry`) takes the new reference before dropping the old,
   as the inlined Assign did.
 - `UnitShapeCache::Resolve` is the find-or-create both callers inline.
 
 ## Containers: the record and held lists (C14s)
 
-- The sector grids' cells, the client's heroes_ and the frame's deferred units are `SectorList`
+- The sector grids' cells, the client's heroes and the frame's deferred units are `SectorList`
   (`std::list<HeldRef<CMapObject>>`, world.h): an insert takes a reference, an erase or clear drops it. `RemoveHeld`
   (world_client_maps.cpp) holds the object while its entries are erased, as the game's remove(value) did. A grid is
   `unique_ptr` cells and row pointers; `SectorGrid::Free` destroys the cells from the last, and the client's destructor
@@ -531,14 +531,14 @@ instantiations were, for reading game.exe (config/library.csv names them):
   clone, so the client's timers and the server's awards hold a clone of the entry's share (the awards a clone of a
   clone). `TimedEntry(bits, Holder)` takes the reference by value (one share, moved in).
 - The connections are `ClientList` (`std::list<SharedRef<Connection>>`): FindClient returns an iterator (end() for
-  none; RemoveClient ignores end()). The driver session's drivers_ / holders_ are std::list members; OnShutdown clears
+  none; RemoveClient ignores end()). The driver session's drivers / holders are std::list members; OnShutdown clears
   the holders, then the drivers, as the destructor (reverse member order).
 - The sessions' destructors clear the lists in their bodies where the original released them, between the counted
   pointers' releases (the compiler's destructor then frees empty lists); ClientBase's list is the compiler's.
 - The flow's changed variables (UpdateFromServer) are sorted with std::stable_sort by stamp: the server gives every
   set its own serial (g_variableSerial), so no two variables share one and the STLport introsort's order is the same.
-- Also std: the briefing screen's movers_ and shown_ (std::list members, built with push_front), the container's
-  extra input sides (`std::vector<UiInputSide*> inputs_`), the world's local id lists (std::list<unsigned>). The
+- Also std: the briefing screen's movers and shown (std::list members, built with push_front), the container's
+  extra input sides (`std::vector<UiInputSide*> inputs`), the world's local id lists (std::list<unsigned>). The
   original's node allocator has no port (standalone.md, "STLport"); `lib::IntroSort` (lib/intro_sort.h) is the sort.
 - The harness's netstate reader walks both sides with begin / end (game.exe's view of the server's connections is a
   StlpList<RefPtr>, exe_objects.h; `HeldObject` reads either side's element).

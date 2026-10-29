@@ -18,16 +18,16 @@ the `__declspec(novtable)` classes and `...Hook` slot shims still here are C28's
 
 ## Declarations
 
-- `CEngineObject`: slots 2, 3, 11, 12 pure (`_purecall` in 0073B8E0), `owner_` a `CBaseManager*`, non-virtual `DeletingDestruct` (00402D20); a
+- `CEngineObject`: slots 2, 3, 11, 12 pure (`_purecall` in 0073B8E0), `owner` a `CBaseManager*`, non-virtual `DeletingDestruct` (00402D20); a
   constructor of default member initialisers (the stores the original inlines in every derived constructor, C50d). A spare
   that a manager hands out again is not constructed again (CreateObject sets its fields). `ClearFields` went with
   its last caller, the interface window's constructor (C54g).
 - `CBaseManager`: the whole layout named (tables each followed by their highest key), slots 13-24 virtual in order; `ObjectListIterator` lives
   here. `CResourceManager : CBaseManager` (slots 3 and 16-22 overrides; `CloseFile` returns `bool`).
-- `CStream` (all eight slots; `reading_`, `ok_`, `version_`; `Rewind()`), `CMemoryStream : CStream` (slots 1-7 overrides; `bits_`, `bitMask_`
-  (was misnamed `growBy_`: the bit writer's mask), `bitsIndex_`, `data_` (a `std::vector` whose size is the capacity, C58); `Resize` / `SetSize` / `Seek` forwarders), `BitStream` = `CMemoryStream`,
-  `ScriptStream` and `WorldStream` = `CStream`. `Chunk` (slot 0 `OnChunk`, slot 1 `File`), `RootChunk` (`file_`, `Open`, `Destruct`),
-  `ChunkArchive` laid out whole (`indexStream_`, `dataStream_`, `stack_`, `version_`, `loading_`, `objects_`, `saved_`; `ClassRegistry` at 0079B270 declared
+- `CStream` (all eight slots; `reading`, `ok_`, `version`; `Rewind()`), `CMemoryStream : CStream` (slots 1-7 overrides; `bits`, `bitMask`
+  (was misnamed `growBy`: the bit writer's mask), `bitsIndex`, `data` (a `std::vector` whose size is the capacity, C58); `Resize` / `SetSize` / `Seek` forwarders), `BitStream` = `CMemoryStream`,
+  `ScriptStream` and `WorldStream` = `CStream`. `Chunk` (slot 0 `OnChunk`, slot 1 `File`), `RootChunk` (`file`, `Open`, `Destruct`),
+  `ChunkArchive` laid out whole (`indexStream`, `dataStream`, `stack`, `version`, `loading`, `objects`, `saved`; `ClassRegistry` at 0079B270 declared
   once). `CRefObject` slot 1 is `Serialize(ChunkArchive*)`; `PrintRecord` slot 0 `Serialize` is virtual. `CCamera` (`camera.h`) has named members for
   what was raw offsets (view stack, near / far / fov, file name, flags), `LoadState` / `SaveState` take a `CStream*`.
 
@@ -35,7 +35,7 @@ the `__declspec(novtable)` classes and `...Hook` slot shims still here are C28's
 
 - `unit.h` and `object.h` disagree on the unit's names at +0x24C (`party` / `player`) and +0x250 (`player` / `side`); units ticket.
   `object_tables.cpp` `FindCommandByKey` reads the key-binding tables (0079BF70, 007857B0) by address (belongs with `key_bindings.cpp`).
-- C5 (folded): `UnitStream` and the unit_ai `AIStream` are `CStream` (members `reading_` / `version_`; the verify capture, recording and replay
+- C5 (folded): `UnitStream` and the unit_ai `AIStream` are `CStream` (members `reading` / `version`; the verify capture, recording and replay
   streams derive from `FakeStream`); the `SaveStream` structs of `ui_battle_setup.cpp` / `ui_global_map.cpp` are `CMemoryStream` at 007AFDF8;
   `verify_magic_trap`'s `ReadRecorder` is `unitverify::ReadRecorder`; the 101 per-file string helpers (`Text`, `GameText`, `GameString`,
   `TextAt`, `Letter`, and `console::GameText` / `device::Text` / script_parse's / spell_effect_internal's) are `game::Text` (`game_strings.h`).
@@ -51,14 +51,14 @@ Offset access, `VCall`, byte offset arithmetic, per-file vector struct and `Slot
 (4 byte arithmetic, renderer ticket). Duplicate forwarders stay 0. Every new virtual call must be checked in the release objects (dumpbin):
 none may be devirtualised.
 
-- `app_frame`: the device object is `CTextureDevice` (`RenderDeviceObject()`: `screen_`,
-  `lastLoadResult_`); the screen clear calls `IDirectDrawSurface7::Blt` with a `DDBLTFX`; the captured `CDib` is deleted
+- `app_frame`: the device object is `CTextureDevice` (`RenderDeviceObject()`: `screen`,
+  `lastLoadResult`); the screen clear calls `IDirectDrawSurface7::Blt` with a `DDBLTFX`; the captured `CDib` is deleted
   with `delete` (`CDib` is a real class).
 - `app_registry`: prototypes and counted pointers are `CRefCounted` (`delete` = slot 0 with 1, as `core_refcount.cpp`); WinMain's COM
   pointers are `IUnknown`. Signatures (`void*`) kept for the verify wrappers.
 - Files are `lib::File` (`chunk_stream`, `core_transform`'s Save / LoadTransform, `camera_object`); `FreeSpares` deletes the
   spare list with `delete`.
-- `refptr_copies`: `RefPtrRelease` deletes on `CRefCounted`; the object holders take `CEngineObject**` (`Release()` slot 4, `refCount_`),
+- `refptr_copies`: `RefPtrRelease` deletes on `CRefCounted`; the object holders take `CEngineObject**` (`Release()` slot 4, `refCount`),
   `world_deleting_destructors.cpp` and the verify wrappers follow. `party_records`: the record's party `Create()` (slot 2) and `delete` on the
   record as a `CRefCounted` (base vtable 0073BB68).
 - Named slots: `CPixelConverter` 1 `SetChannelMasks`, 10 `DecodeDxt` (8 / 9 the DLL's triangle rasterisers, `Unused8` / `Unused9`; R28 removed the class); `CFigureCache` 5 `Clear` (004F7020), 6
@@ -69,7 +69,7 @@ none may be devirtualised.
 - `menu_rects` calls the owner's `CBaseManager::GetFile` (slot 19), `text_reader` the archive's `CMappedResource::GetFile` (slot 5),
   `effects_weather` the world's `SurfaceHeightAt` (slot 30; the double result plus 0.5 rounded once, as the original adds in ST0 and stores).
 - `CParticleSource::orientation` (+0x34, the identity after Reset); the emitters read the attachment's `CObject3D::orientation`; the sound
-  manager's `emitters[index]`; `app_device_list` reads `ChunkArchive::loading_` and `Current()->occurrence`.
+  manager's `emitters[index]`; `app_device_list` reads `ChunkArchive::loading` and `Current()->occurrence`.
 - `LeverRecord` (lever.h) is the only declaration of the lever table's record (CString members, spots as floats). bink_video.cpp's
-  `SoundSystem` view is `CSoundManager` (`waveDriver`, +0x1C); `LocalViewData::partyTaken` was `CPlayerClient::sendParty_`
+  `SoundSystem` view is `CSoundManager` (`waveDriver`, +0x1C); `LocalViewData::partyTaken` was `CPlayerClient::sendParty`
   (LocalViewData is gone: `CWorldClient::LocalView()` returns the CPlayerClient).

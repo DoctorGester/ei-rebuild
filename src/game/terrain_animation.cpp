@@ -44,7 +44,7 @@ inline std::uint32_t ColourByte(double v) { return static_cast<std::uint32_t>(x8
 
 // The circling waves' sine per column (and per row: the same values) at the world time, once per call.
 void CircleSines(const Terrain* owner, float* sines) {
-    float time = static_cast<float>((g_clientWorld.tick_ + g_clientWorld.tickFraction_) * kTimeScale);
+    float time = static_cast<float>((g_clientWorld.tick + g_clientWorld.tickFraction) * kTimeScale);
     for (int i = 0; i < kSectorRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
 }
 

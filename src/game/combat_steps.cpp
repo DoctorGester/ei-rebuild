@@ -365,9 +365,9 @@ void CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     order.source = 6;
     order.target.Assign(target);
 
-    float x = unit->localPosition_.x;
-    float y = unit->localPosition_.y;
-    float z = unit->localPosition_.z;
+    float x = unit->localPosition.x;
+    float y = unit->localPosition.y;
+    float z = unit->localPosition.z;
     Vector3 aim;
     target->AimPoint(&aim);
     double dz = static_cast<double>(z) - aim.z;

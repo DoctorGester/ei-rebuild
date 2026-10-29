@@ -40,7 +40,7 @@ std::int32_t BufferedSize(GameBuffer* b) {
 // The handlers registered for message `type` on `channel` (called with the session and the message). The end
 // is read again after each call.
 void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObject* message) {
-    std::vector<MessageHandler>& v = session->handlers_[channel][type & 0xFF];
+    std::vector<MessageHandler>& v = session->handlers[channel][type & 0xFF];
     for (auto& h : v) h(session, message);
 }
 
@@ -57,13 +57,13 @@ std::uint16_t IdPool::Allocate() {
 }
 
 void Connection::WriteAcks(std::uint8_t** p) {
-    std::uint16_t base = static_cast<std::uint16_t>(lastReceived_);
+    std::uint16_t base = static_cast<std::uint16_t>(lastReceived);
     std::uint32_t mask = 0;
-    std::int32_t* end = received_.data() + received_.size();
-    std::int32_t target = static_cast<std::int32_t>(lastReceived_);
+    std::int32_t* end = received.data() + received.size();
+    std::int32_t target = static_cast<std::int32_t>(lastReceived);
     for (int k = 1; k <= 32; ++k) {
         --target;
-        std::int32_t* it = received_.data();
+        std::int32_t* it = received.data();
         while (it != end && *it != target) ++it;
         if (it != end) mask |= 1u << (k - 1);
     }
@@ -72,43 +72,43 @@ void Connection::WriteAcks(std::uint8_t** p) {
     lib::StoreBytes(*p, mask);
     *p += 4;
     // Forget sequences more than 32 behind (from the back, shifting the rest down).
-    for (std::int32_t i = static_cast<std::int32_t>(received_.size()) - 1; i >= 0; --i) {
-        std::int32_t* at = received_.data() + i;
-        if (static_cast<std::uint32_t>(*at) + 0x20 < lastReceived_) {
-            received_.erase(received_.begin() + i);
+    for (std::int32_t i = static_cast<std::int32_t>(received.size()) - 1; i >= 0; --i) {
+        std::int32_t* at = received.data() + i;
+        if (static_cast<std::uint32_t>(*at) + 0x20 < lastReceived) {
+            received.erase(received.begin() + i);
         }
     }
 }
 
 void Connection::QueueHeader(int budget) {
-    if (headers_.empty()) {
+    if (headers.empty()) {
         int size = budget < 0xFF ? budget : 0xFF;
-        std::uint8_t* chunk = headers_.emplace_back().bytes;
-        int available = BufferedSize(&reliableOut_);
+        std::uint8_t* chunk = headers.emplace_back().bytes;
+        int available = BufferedSize(&reliableOut);
         if (size >= available) size = available;
         chunk[2] = static_cast<std::uint8_t>(size);
-        std::memcpy(chunk, &headerSequence_, 2);
-        std::memcpy(chunk + 3, reliableOut_.begin, static_cast<std::size_t>(size));
-        int remaining = BufferedSize(&reliableOut_) - size;
-        std::memmove(reliableOut_.begin, reliableOut_.begin + size, static_cast<std::size_t>(remaining));
-        reliableOut_.cur = reliableOut_.begin;
-        reliableOut_.high = reliableOut_.begin + remaining;
-        if (reliableOut_.high > reliableOut_.end) reliableOut_.Grow(static_cast<std::uint32_t>(remaining));
-        headerSequence_ = static_cast<std::uint16_t>(headerSequence_ + size);
+        std::memcpy(chunk, &headerSequence, 2);
+        std::memcpy(chunk + 3, reliableOut.begin, static_cast<std::size_t>(size));
+        int remaining = BufferedSize(&reliableOut) - size;
+        std::memmove(reliableOut.begin, reliableOut.begin + size, static_cast<std::size_t>(remaining));
+        reliableOut.cur = reliableOut.begin;
+        reliableOut.high = reliableOut.begin + remaining;
+        if (reliableOut.high > reliableOut.end) reliableOut.Grow(static_cast<std::uint32_t>(remaining));
+        headerSequence = static_cast<std::uint16_t>(headerSequence + size);
         return;
     }
     // The oldest waiting chunk (sequence order with wrap-around) moves to the front.
-    auto best = headers_.begin();
+    auto best = headers.begin();
     std::uint16_t bestSeq = best->Sequence();
-    for (auto n = best; n != headers_.end(); ++n) {
+    for (auto n = best; n != headers.end(); ++n) {
         std::uint16_t seq = n->Sequence();
         if (static_cast<std::uint16_t>(seq - bestSeq) > 0x8000) {
             best = n;
             bestSeq = seq;
         }
     }
-    if (best == headers_.begin()) return;
-    headers_.splice(headers_.begin(), headers_, best);
+    if (best == headers.begin()) return;
+    headers.splice(headers.begin(), headers, best);
 }
 
 void Connection::RollBack(SentPacket* packet) {
@@ -117,19 +117,19 @@ void Connection::RollBack(SentPacket* packet) {
         // Unreliable sends are forgotten (the entry is sent again); a reliable change only when
         // the entry still carries the version this packet sent.
         if (item.action == SentItem::kChanged) {
-            if (item.entry->version_ == item.version) item.entry->version_ = 0;
+            if (item.entry->version == item.version) item.entry->version = 0;
         } else if (item.action == SentItem::kRemoved) {
-            item.entry->version_ = 0;
+            item.entry->version = 0;
         }
     }
-    if (packet->header.Size() != 0) headers_.push_back(packet->header);
+    if (packet->header.Size() != 0) headers.push_back(packet->header);
     packet->rolledBack = 1;
 }
 
 void Connection::AttachRecord(CRefObject* object, std::uint32_t type, std::int32_t key) {
-    AttachedId& attached = attached_[object];
-    attached.id = static_cast<std::uint16_t>(key);
-    attached.type = static_cast<std::uint8_t>(type);
+    AttachedId& newAttached = attached[object];
+    newAttached.id = static_cast<std::uint16_t>(key);
+    newAttached.type = static_cast<std::uint8_t>(type);
 }
 
 bool Connection::SendUpdate(int budget) {
@@ -144,7 +144,7 @@ bool Connection::SendUpdate(int budget) {
 
     *c.p = 0;   // packet kind: update
     std::uint8_t* payload = c.p + 1;
-    std::uint16_t sequence = sendSequence_++;
+    std::uint16_t sequence = sendSequence++;
     c.p = payload;
     std::memcpy(c.p, &sequence, 2);
     c.p += 2;
@@ -152,54 +152,54 @@ bool Connection::SendUpdate(int budget) {
     QueueHeader(budget - 0x10);
 
     // The reliable chunk at the front of the queue goes into the packet and into its history entry.
-    const ReliableChunk& chunk = headers_.front();
+    const ReliableChunk& chunk = headers.front();
     std::size_t chunkSize = static_cast<std::size_t>(chunk.Size()) + 3;
     std::memcpy(c.p, chunk.bytes, chunkSize);
     c.p += chunkSize;
-    SentPacket& sent = history_.emplace_back();
-    sent.time = clock_;
+    SentPacket& sent = history.emplace_back();
+    sent.time = clock;
     sent.sequence = sequence;
     sent.header = chunk;
-    headers_.pop_front();
+    headers.pop_front();
 
     std::uint8_t* count = c.p++;
     *count = 0;
     for (int priority = 10; priority >= 0; --priority) {
         // In the order the entries were tracked (the original: by the entry's address).
-        std::map<std::uint32_t, EntryRef>& map = priorities_[priority];
+        std::map<std::uint32_t, EntryRef>& map = priorities[priority];
         for (auto& it : map) {
             ReplicaEntry* entry = it.second.Get();
             Message* object = entry->Object();
             bool alive;
-            if (object && !(object->flags7_ & CRefObject::kDetached)) {
+            if (object && !(object->flags7 & CRefObject::kDetached)) {
                 alive = true;
-                if (entry->version_ == object->version_) continue;
-                if (entry->id_ == 0) {
-                    entry->id_ = idPools_[entry->type_].Allocate();
-                    std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
-                    bySentId_[key] = entry;
+                if (entry->version == object->version) continue;
+                if (entry->id == 0) {
+                    entry->id = idPools[entry->type].Allocate();
+                    std::int32_t key = (static_cast<std::int32_t>(entry->type) << 16) + entry->id;
+                    bySentId[key] = entry;
                 }
                 c.PutBits(1, 1);
-                std::uint32_t id = entry->id_;
-                *c.p = entry->type_;
+                std::uint32_t entryId = entry->id;
+                *c.p = entry->type;
                 ++c.p;
-                c.WriteBytes(&id, 2);
+                c.WriteBytes(&entryId, 2);
                 entry->Object()->Write(&c);
             } else {
                 alive = false;
-                if (entry->id_ == 0) continue;
-                if (entry->object_.Get()) {
-                    CRefObject* key = entry->object_.Get();
-                    byObject_.erase(key);
-                    entry->object_.Assign(nullptr);
-                    entry->version_ = 0;
+                if (entry->id == 0) continue;
+                if (entry->object.Get()) {
+                    CRefObject* key = entry->object.Get();
+                    byObject.erase(key);
+                    entry->object.Assign(nullptr);
+                    entry->version = 0;
                 }
-                if (entry->version_ != 0) continue;
+                if (entry->version != 0) continue;
                 c.PutBits(0, 1);
-                std::uint32_t id = entry->id_;
-                *c.p = entry->type_;
+                std::uint32_t entryId = entry->id;
+                *c.p = entry->type;
                 ++c.p;
-                c.WriteBytes(&id, 2);
+                c.WriteBytes(&entryId, 2);
             }
             if (budget < static_cast<int>(c.p - payload)) {
                 // Over the budget: this priority's other entries wait (the entry just written
@@ -210,29 +210,29 @@ bool Connection::SendUpdate(int budget) {
             ++*count;
             SentItem& item = sent.items.emplace_back();
             item.entry = entry;
-            if (entry->flags_ & 1) {
+            if (entry->flags & 1) {
                 if (alive) {
                     item.action = SentItem::kChangedReliable;
-                    item.version = entry->Object()->version_;
+                    item.version = entry->Object()->version;
                 } else {
                     item.action = SentItem::kRemovedReliable;
                 }
             } else if (alive) {
-                entry->version_ = entry->Object()->version_;
+                entry->version = entry->Object()->version;
                 item.action = SentItem::kChanged;
-                item.version = entry->Object()->version_;
+                item.version = entry->Object()->version;
             } else {
-                entry->version_ = 1;
+                entry->version = 1;
                 item.action = SentItem::kRemoved;
             }
         }
     }
     c.End();
 
-    if (g_currentSession->socket_.SendTo(&address_, out)) return complete;
+    if (g_currentSession->socket.SendTo(&address, out)) return complete;
     // Not sent: undo what the history entry recorded and drop it.
-    RollBack(&history_.back());
-    history_.pop_back();
+    RollBack(&history.back());
+    history.pop_back();
     return false;
 }
 
@@ -240,16 +240,16 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     std::uint32_t created = cursor->GetBit();
     std::uint32_t type = 0;
     cursor->ReadBytes(&type, 1);
-    std::uint32_t id = 0;
-    cursor->ReadBytes(&id, 2);
-    std::int32_t key = static_cast<std::int32_t>(((type & 0xFF) << 16) + (id & 0xFFFF));
-    auto found = records_.find(key);
+    std::uint32_t objectId = 0;
+    cursor->ReadBytes(&objectId, 2);
+    std::int32_t key = static_cast<std::int32_t>(((type & 0xFF) << 16) + (objectId & 0xFFFF));
+    auto found = records.find(key);
     SessionBase* session = g_currentSession;
 
     if (!created) {
         // Removal.
-        if (found == records_.end()) {
-            records_[key].version = version;
+        if (found == records.end()) {
+            records[key].version = version;
             return true;
         }
         if (found->second.version >= version) {
@@ -259,7 +259,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
         Ref<CRefObject>* slot = &found->second.object;
         if (slot->Get()) {
             CRefObject* object = slot->Get();
-            attached_.erase(object);
+            attached.erase(object);
             object = slot->Get();
             session = g_currentSession;
             CallHandlers(session, 2, type, object);
@@ -269,10 +269,10 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
         return true;
     }
 
-    if (found == records_.end()) {
+    if (found == records.end()) {
         // A new object.
-        Record& record = records_[key];
-        CRefObject* object = session->types_.Create(type & 0xFF);
+        Record& record = records[key];
+        CRefObject* object = session->types.Create(type & 0xFF);
         if (!object) return false;
         ShareAssignOwned(record.object, object);
         record.version = 0;
@@ -286,14 +286,14 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     if (found->second.version >= version) {
         // Older than what was applied: read it into a throwaway object to skip its bytes.
         LogLine(game::nettexts::SkipUpdate());
-        SharedRef<CRefObject> scratch(g_currentSession->types_.Create(type & 0xFF));
+        SharedRef<CRefObject> scratch(g_currentSession->types.Create(type & 0xFF));
         ReadObject(scratch, cursor);
         return true;
     }
 
     Ref<CRefObject>* slot = &found->second.object;
     if (!slot->Get()) {
-        CRefObject* object = g_currentSession->types_.Create(type & 0xFF);
+        CRefObject* object = g_currentSession->types.Create(type & 0xFF);
         if (object) {
             ShareAssignOwned(*slot, object);
             found->second.version = 0;
@@ -311,28 +311,28 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
 
 void Connection::Track(Replicated* item) {
     Message* object = item->object;
-    if (!object || (object->flags7_ & CRefObject::kDetached)) return;
-    auto found = g_currentSession->types_.byVtable.find(TypeRegistry::KeyOf(object));
-    std::int32_t type = found != g_currentSession->types_.byVtable.end() ? static_cast<std::int32_t>(found->second) : -1;
+    if (!object || (object->flags7 & CRefObject::kDetached)) return;
+    auto found = g_currentSession->types.byVtable.find(TypeRegistry::KeyOf(object));
+    std::int32_t type = found != g_currentSession->types.byVtable.end() ? static_cast<std::int32_t>(found->second) : -1;
 
     // A new entry with no version and no id yet.
     auto* entry = NewCounted<ReplicaEntry>();
 
-    entry->serial_ = ++entriesTracked_;
-    byObject_[item->object] = entry;
-    priorities_[static_cast<std::int8_t>(item->priority)][entry->serial_] = entry;
-    entry->type_ = static_cast<std::uint8_t>(type);
-    entry->object_.Assign(item->object);
-    entry->flags_ = static_cast<std::uint8_t>((entry->flags_ & 1) | (item->priority << 1));
-    std::uint8_t reliable = g_currentSession->reliable_[type];
-    entry->flags_ = static_cast<std::uint8_t>(((reliable ^ entry->flags_) & 1) ^ entry->flags_);
+    entry->serial = ++entriesTracked;
+    byObject[item->object] = entry;
+    priorities[static_cast<std::int8_t>(item->priority)][entry->serial] = entry;
+    entry->type = static_cast<std::uint8_t>(type);
+    entry->object.Assign(item->object);
+    entry->flags = static_cast<std::uint8_t>((entry->flags & 1) | (item->priority << 1));
+    std::uint8_t reliable = g_currentSession->reliable[type];
+    entry->flags = static_cast<std::uint8_t>(((reliable ^ entry->flags) & 1) ^ entry->flags);
 }
 
 void Connection::CollectChanges() {
     std::vector<Replicated> items;
     std::vector<Replicated>* target = &items;
     g_currentSession->CollectReplicated(&target);
-    // The original sorts the list by the object's address and merges it with byObject_ (also by address), so
+    // The original sorts the list by the object's address and merges it with byObject (also by address), so
     // it tracks new objects, and its entries get their addresses, in address order. Ours goes by the list's
     // order (the session's lists), so entries are tracked, and their serials handed out, in an order no
     // allocation decides. An object listed twice would be tracked once (the original's merge tracks the second
@@ -342,22 +342,22 @@ void Connection::CollectChanges() {
 
     // Tracked but no longer listed: never sent -> forgotten; sent -> marked gone. In serial order.
     std::vector<ReplicaEntry*> gone;
-    for (const auto& [object, entry] : byObject_)
+    for (const auto& [object, entry] : byObject)
         if (!listed.contains(object)) gone.push_back(entry.Get());
-    std::sort(gone.begin(), gone.end(), [](const ReplicaEntry* a, const ReplicaEntry* b) { return a->serial_ < b->serial_; });
+    std::sort(gone.begin(), gone.end(), [](const ReplicaEntry* a, const ReplicaEntry* b) { return a->serial < b->serial; });
     for (ReplicaEntry* entry : gone) {
-        auto node = byObject_.find(entry->object_.Get());
-        if (entry->id_ == 0) {
-            priorities_[entry->flags_ >> 1].erase(entry->serial_);
+        auto node = byObject.find(entry->object.Get());
+        if (entry->id == 0) {
+            priorities[entry->flags >> 1].erase(entry->serial);
         } else {
-            entry->object_.Assign(nullptr);
-            entry->version_ = 0;
+            entry->object.Assign(nullptr);
+            entry->version = 0;
         }
-        byObject_.erase(node);
+        byObject.erase(node);
     }
 
     for (Replicated& item : items)
-        if (!byObject_.contains(item.object)) Track(&item);
+        if (!byObject.contains(item.object)) Track(&item);
 }
 
 } // namespace net
@@ -385,28 +385,28 @@ namespace net {
 
 void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
     if (IsLive(object)) {
-        auto found = byObject_.find(object);
-        if (found != byObject_.end()) {
+        auto found = byObject.find(object);
+        if (found != byObject.end()) {
             ReplicaEntry* entry = found->second.Get();
-            if (entry->id_ == 0) {
-                entry->id_ = idPools_[entry->type_].Allocate();
-                std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
-                bySentId_[key] = entry;
+            if (entry->id == 0) {
+                entry->id = idPools[entry->type].Allocate();
+                std::int32_t key = (static_cast<std::int32_t>(entry->type) << 16) + entry->id;
+                bySentId[key] = entry;
             }
-            std::uint16_t id = entry->id_;
-            std::uint8_t type = entry->type_;
+            std::uint16_t entryId = entry->id;
+            std::uint8_t type = entry->type;
             cursor->PutBit(0);
             cursor->WriteBytes(&type, 1);
-            cursor->WriteBytes(&id, 2);
+            cursor->WriteBytes(&entryId, 2);
             return;
         }
-        auto node = attached_.find(object);
-        if (node != attached_.end()) {
-            std::uint16_t id = node->second.id;
+        auto node = attached.find(object);
+        if (node != attached.end()) {
+            std::uint16_t secondId = node->second.id;
             std::uint8_t type = node->second.type;
             cursor->PutBit(1);
             *cursor->p++ = type;
-            std::memcpy(cursor->p, &id, 2);
+            std::memcpy(cursor->p, &secondId, 2);
             cursor->p += 2;
             return;
         }
@@ -423,19 +423,19 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     std::uint32_t sent = cursor->GetBit();
     std::uint32_t type = 0;
     cursor->ReadBytes(&type, 1);
-    std::uint32_t id = 0;
-    cursor->ReadBytes(&id, 2);
-    std::int32_t key = static_cast<std::int32_t>(((type & 0xFF) << 16) + (id & 0xFFFF));
-    if ((id & 0xFFFF) == 0) return nullptr;
+    std::uint32_t objectId = 0;
+    cursor->ReadBytes(&objectId, 2);
+    std::int32_t key = static_cast<std::int32_t>(((type & 0xFF) << 16) + (objectId & 0xFFFF));
+    if ((objectId & 0xFFFF) == 0) return nullptr;
     if (sent) {
-        auto node = bySentId_.find(key);
-        if (node == bySentId_.end()) return nullptr;
-        return node->second->object_.Get();
+        auto node = bySentId.find(key);
+        if (node == bySentId.end()) return nullptr;
+        return node->second->object.Get();
     }
-    auto found = records_.find(key);
-    if (found == records_.end()) {
-        Record* record = &records_[key];
-        CRefObject* object = g_currentSession->types_.Create(type & 0xFF);
+    auto found = records.find(key);
+    if (found == records.end()) {
+        Record* record = &records[key];
+        CRefObject* object = g_currentSession->types.Create(type & 0xFF);
         if (!object) return nullptr;
         ShareAssignOwned(record->object, object);
         record->version = 0;
@@ -444,13 +444,13 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     }
     if (IsLive(found->second.object.Get())) return found->second.object.Get();
     std::uint32_t typeKey = type & 0xFF;
-    MessageFactory factory = g_currentSession->types_.byType[typeKey];
+    MessageFactory factory = g_currentSession->types.byType[typeKey];
     CRefObject* object = factory ? factory() : nullptr;
     if (!object) return nullptr;
     Ref<CRefObject>* slot = &found->second.object;
     ShareAssignOwned(*slot, object);
     found->second.version = 0;
-    AttachedId* attachedId = &attached_[object];
+    AttachedId* attachedId = &attached[object];
     attachedId->id = static_cast<std::uint16_t>(key);
     attachedId->type = static_cast<std::uint8_t>(type);
     return object;
@@ -461,7 +461,7 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
 namespace net {
 
 void Connection::Acknowledge(std::uint16_t sequence) {
-    for (std::list<SentPacket>* packets : {&history_, &acknowledged_}) {
+    for (std::list<SentPacket>* packets : {&history, &acknowledged}) {
         for (auto packet = packets->begin(); packet != packets->end(); ++packet) {
             if (packet->sequence == sequence) {
                 Delivered(&*packet);
@@ -472,7 +472,7 @@ void Connection::Acknowledge(std::uint16_t sequence) {
     }
 }
 
-// ackMask_ shifts along when the peer's newest acknowledged sequence moves.
+// ackMask shifts along when the peer's newest acknowledged sequence moves.
 void Connection::ReadAcks(BufferCursor* cursor) {
     std::uint16_t sequence;
     std::memcpy(&sequence, cursor->p, 2);
@@ -480,20 +480,20 @@ void Connection::ReadAcks(BufferCursor* cursor) {
     std::uint32_t mask;
     lib::LoadBytes(mask, cursor->p);
     cursor->p += 4;
-    std::int32_t moved = static_cast<std::int32_t>((static_cast<std::uint32_t>(sequence) - ackBase_) & 0xFFFF);
+    std::int32_t moved = static_cast<std::int32_t>((static_cast<std::uint32_t>(sequence) - ackBase) & 0xFFFF);
     if (moved > 0x8000) moved -= 0x10000;
     if (moved <= 0) {
-        if (moved < -0x20) ackMask_ = 0;
-        else ackMask_ >>= (-moved) & 31;   // SHR by CL: a shift of 32 leaves it as it is
+        if (moved < -0x20) ackMask = 0;
+        else ackMask >>= (-moved) & 31;    // SHR by CL: a shift of 32 leaves it as it is
     } else {
-        std::uint32_t shifted = (ackMask_ << 1) | 1;
-        ackMask_ = shifted;
-        if (moved - 1 < 0x20) ackMask_ = shifted << ((moved - 1) & 31);
-        else ackMask_ = 0;
+        std::uint32_t shifted = (ackMask << 1) | 1;
+        ackMask = shifted;
+        if (moved - 1 < 0x20) ackMask = shifted << ((moved - 1) & 31);
+        else ackMask = 0;
     }
-    std::uint32_t fresh = ~ackMask_ & mask;
-    ackBase_ = sequence;
-    ackMask_ |= fresh;
+    std::uint32_t fresh = ~ackMask & mask;
+    ackBase = sequence;
+    ackMask |= fresh;
     Acknowledge(sequence);
     std::uint16_t older = sequence;
     for (int k = 1; k <= 32; ++k) {
@@ -503,17 +503,17 @@ void Connection::ReadAcks(BufferCursor* cursor) {
 }
 
 bool Connection::Accept(std::uint32_t sequence) {
-    std::uint32_t newest = lastReceived_;
+    std::uint32_t newest = lastReceived;
     if (sequence + 0x20 < newest) {
         if (console::Stream* log = g_netLog) console::EndLine(*log << game::nettexts::TooOld() << newest - sequence);
         return false;
     }
     if (!(newest > sequence)) newest = sequence;
-    lastReceived_ = newest;
-    for (auto& it : received_) {
+    lastReceived = newest;
+    for (auto& it : received) {
         if (it == static_cast<std::int32_t>(sequence)) {
             if (g_netLog) {
-                std::string peer = address_.ToString();
+                std::string peer = address.ToString();
                 const char* text = peer.data();
                 console::EndLine(*g_netLog << game::nettexts::Duplicate() << text);
             }
@@ -521,7 +521,7 @@ bool Connection::Accept(std::uint32_t sequence) {
         }
     }
     auto value = static_cast<std::int32_t>(sequence);
-    received_.push_back(value);
+    received.push_back(value);
     return true;
 }
 
@@ -529,11 +529,11 @@ void Connection::ProcessHeaders() {
     bool progress;
     do {
         progress = false;
-        auto node = incoming_.begin();
-        if (node == incoming_.end()) return;
+        auto node = incoming.begin();
+        if (node == incoming.end()) return;
         do {
-            if (node->Sequence() == incomingSequence_) {
-                GameBuffer* in = &reliableIn_;
+            if (node->Sequence() == incomingSequence) {
+                GameBuffer* in = &reliableIn;
                 if (in->cur > in->high) in->high = in->cur;
                 in->Seek(in->PositionOf(in->high));
                 std::uint32_t size = node->Size();
@@ -545,30 +545,30 @@ void Connection::ProcessHeaders() {
                     std::memcpy(in->cur, from, size);
                     in->cur += size;
                 }
-                incomingSequence_ = static_cast<std::uint16_t>(incomingSequence_ + node->Size());
-                node = incoming_.erase(node);
+                incomingSequence = static_cast<std::uint16_t>(incomingSequence + node->Size());
+                node = incoming.erase(node);
                 progress = true;
             } else {
                 ++node;
             }
-        } while (node != incoming_.end());
+        } while (node != incoming.end());
     } while (progress);
 }
 
 bool Connection::ReadUpdate(BufferCursor* cursor) {
     g_currentConnection = this;
-    idleTime_ = 0.0f;
+    idleTime = 0.0f;
     std::uint16_t low;
     std::memcpy(&low, cursor->p, 2);
     cursor->p += 2;
-    std::uint32_t sequence = low + sequenceHigh_;
-    if (lastReceived_ == 0) lastReceived_ = sequence;
-    std::int32_t step = static_cast<std::int32_t>(sequence - lastReceived_);
+    std::uint32_t sequence = low + sequenceHigh;
+    if (lastReceived == 0) lastReceived = sequence;
+    std::int32_t step = static_cast<std::int32_t>(sequence - lastReceived);
     if (step > 0x8000) {
         sequence -= 0x10000;
     } else if (step < -0x8000) {
         sequence += 0x10000;
-        sequenceHigh_ += 0x10000;
+        sequenceHigh += 0x10000;
     }
     if (!Accept(sequence)) {
         g_currentConnection = nullptr;
@@ -581,8 +581,8 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
     cursor->p = from;
     std::memcpy(header.bytes + 3, from, header.Size());
     cursor->p = from + header.Size();
-    if (static_cast<std::uint16_t>(header.Sequence() - incomingSequence_) <= 0x8000 && header.Size() != 0) {
-        incoming_.push_back(header);
+    if (static_cast<std::uint16_t>(header.Sequence() - incomingSequence) <= 0x8000 && header.Size() != 0) {
+        incoming.push_back(header);
         ProcessHeaders();
     }
     std::uint8_t count = *cursor->p++;
@@ -598,12 +598,12 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
 
 void Connection::Close() {
     g_currentConnection = this;
-    for (auto& it : records_) {
+    for (auto& it : records) {
         Ref<CRefObject>* slot = &it.second.object;
         if (CRefObject* object = slot->Get()) {
             SessionBase* session = g_currentSession;
-            auto found = session->types_.byVtable.find(TypeRegistry::KeyOf(object));
-            std::uint32_t type = found != session->types_.byVtable.end() ? found->second : 0xFFFFFFFFu;
+            auto found = session->types.byVtable.find(TypeRegistry::KeyOf(object));
+            std::uint32_t type = found != session->types.byVtable.end() ? found->second : 0xFFFFFFFFu;
             CallHandlers(session, 2, type, object);
         }
         DestroyOwned(*slot);

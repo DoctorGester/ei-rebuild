@@ -11,7 +11,7 @@ class CTextureDevice;
 
 namespace present_window {
 
-// Each present without DirectDraw: a full-screen device (flags_ bit 0) gets its window
+// Each present without DirectDraw: a full-screen device (flags bit 0) gets its window
 // over the whole monitor it is on (not while minimised; again after a display mode change), and
 // the cursor imports are mapped from the first call.
 void Update(CTextureDevice* device);

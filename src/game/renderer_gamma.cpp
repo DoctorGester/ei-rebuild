@@ -44,17 +44,17 @@ void BuildRamp(std::uint16_t (&ramp)[kLevels], float brightness, float contrast,
 
 } // namespace
 
-bool CSceneRenderer::SetGamma(float brightness, float contrast, float gamma) {
-    CTextureDevice* device = device_;
-    if (!device) return false;
+bool CSceneRenderer::SetGamma(float newBrightness, float newContrast, float newGamma) {
+    CTextureDevice* currentDevice = device;
+    if (!currentDevice) return false;
     // The renderer applies the ramp as the frame goes to the window (render::SetGammaRamp), so there is
     // always gamma control.
-    brightness_ = brightness;
-    contrast_ = contrast;
-    gamma_ = gamma;
+    brightness = newBrightness;
+    contrast = newContrast;
+    gamma = newGamma;
     std::uint16_t ramp[kLevels];
-    BuildRamp(ramp, Clamp(brightness, -1.0f, 1.0f) * 0.5f, Clamp(contrast, -1.0f, 1.0f) * 0.5f,
-              Clamp(gamma, -1.0f, 1.0f) * 0.5f);
+    BuildRamp(ramp, Clamp(newBrightness, -1.0f, 1.0f) * 0.5f, Clamp(newContrast, -1.0f, 1.0f) * 0.5f,
+              Clamp(newGamma, -1.0f, 1.0f) * 0.5f);
     render::SetGammaRamp(ramp, ramp, ramp);
     return true;
 }

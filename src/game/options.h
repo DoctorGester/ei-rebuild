@@ -52,122 +52,122 @@ public:
     void SaveToRegistry(const char* path);
 
     // The registry subkeys.
-    std::string keyStatistics_;     // "Statistics Output Settings"
-    std::string keyGame_;           // "Game Specific Settings"
-    std::string keyTerrain_;        // "Terrain Settings"
-    std::string keyGeneral_;        // "General Settings" (video and audio)
-    std::string keyCamera_;         // "Camera Settings"
-    std::string keyShadows_;        // "Shadow Settings"
-    std::string keyPaths_;          // "Path Settings"
-    std::string keyNetwork_;        // "Network Settings"
-    std::string workPath_;          // Work path
-    std::string resourcesPath_;     // Resources path
-    std::string cdRomPath_;         // CD-ROM Path
-    int driverIndex_;                // DrawingTarget: the Direct3D driver (-1: the first hardware one)
-    int resolutionX_;                // VideoResolution
-    int resolutionY_;
-    int colourDepth_;                // VideoColorDepthInBits
-    int zBufferDepth_;               // VideoZBufferDepthInBits
-    int refreshRate_;                // VideoRefreshRate
-    int fullScreen_;                 // FullScreen
-    int joystick_;
-    int video_;
-    int audio_;
-    int audioStreaming_;
-    int audioSfx_;
-    int audioSpeech_;
-    int dithering_;                  // Dithering
-    int specular_;                   // Specular
-    int antialiasing_;               // Antialiasing
-    int textureQuality_;             // TextureQuality
-    int mipmapping_;                 // Mipmapping (cleared when the driver has no mipmaps)
-    int filtering_;                  // Filtering: 0 point, 1 / 2 linear
-    int perspectiveCorrection_;      // PerspectiveCorrection
-    int showParticles_;
-    int fpsIndependentCursor_;
-    int automaticQuantization_;
-    int movieCapturingFps_;
-    float brightness_;
-    float contrast_;
-    float gamma_;
-    int reverseStereo_;              // "Reverse Stereo"
-    int shadowQuality_;
-    int heroShadow_;
-    int unitShadow_;
-    int buildingShadow_;
-    int floraShadow_;
-    int otherShadow_;
-    int shadowLightingFreq_;         // LightingFreq of the shadow settings
-    int floraSpecialLight_;
-    float lod1_;
-    float lod2_;
-    float borderFogDistance_;
-    int enableWaterWaves_;
-    int enableSelfShadowing_;
-    int enableDynamicLights_;
-    int lightingFreq_;               // LightingFreq of the terrain settings: loaded and saved, read by nothing
-    int shadowingFreq_;
-    int enableFootprints_;
-    int enableBloodprints_;
-    int enableFireprints_;
-    int enableBloodprintsRelight_;
-    int createOutputInfo_;
-    int numberOfFrames_;
-    float cameraFlipX_;              // CameraFlipXAxis: -1 or 1
-    float cameraFlipY_;
-    float cameraMinHeight_;
-    float cameraMaxHeight_;
-    float cameraDefaultHeight_;
-    float cameraDefaultXDeploy_;
-    float cameraDefaultYDeploy_;
-    float cameraMinDistance_;        // CameraMinDistanceToCarrier
-    float cameraMaxDistance_;
-    float cameraMinLimitDistance_;   // CameraMinLimitDistanceToCarrier
-    float cameraMaxLimitDistance_;
-    float cameraDefaultDistance_;    // CameraDefaultDistanceToCarrier
-    float briefingMinDistance_;      // CameraBriefingMinDistanceToCarrier
-    float briefingMaxDistance_;
-    float briefingMinLimitDistance_;
-    float briefingMaxLimitDistance_;
-    float briefingMinPitch_;         // CameraBriefingMinPitch
-    float briefingMaxPitch_;
-    int cameraBorderScrollArea_;
-    int cameraFrameSelectionArea_;   // CameraFrameSelectionSensetiveArea
-    float cameraTerrainArea_;        // CameraTerrainSensetiveArea
-    CameraMotionOptions cameraScroll_;
-    CameraMotionOptions cameraRotate_;
-    CameraMotionOptions cameraPitch_;
-    CameraMotionOptions cameraZoom_;
-    CameraShortcutOptions cameraShortcuts_[4];
-    float cameraDefaultMinPitch_;
-    float cameraDefaultMaxPitch_;
-    float nearClipDistance_;
-    float farClipDistance_;          // FarClipDistance
-    float defaultWindForce_;
-    int defaultTimeScale_;
-    int useSwCursors_;               // UseSWCursors
-    int selectionType_;
-    float cornerSize_;
-    int drawVisibleOnly_;
-    int drawPath_;
-    int drawFlyingHp_;               // DrawFlyingHP
-    int showTutorial_;
-    int autosave_;
-    float toolTipTime_;              // "ToolTip Time"
-    int switchFilters_;
-    std::string cdLabels_[3];       // "CD1 Label" ..
-    std::string fontCharSet_;       // "Font CharSet"
-    int keyboardLayout_;             // "Keyboard Layout"
-    float objectsLightingCoeff_;
-    LightOptions heroLight_;
-    LightOptions questLight_;
-    int difficulty_;                 // "Difficulty Level"
-    int difficultyStored_;           // the same value: the one that is written back
-    std::string defaultMapName_;
-    std::string defaultStreamingSound_;
-    float fogNightStartDistance_;
-    float fogDayStartDistance_;      // FogDayStartDistance
-    std::string masterServerName_;  // "Master Server Name"
+    std::string keyStatistics;      // "Statistics Output Settings"
+    std::string keyGame;            // "Game Specific Settings"
+    std::string keyTerrain;         // "Terrain Settings"
+    std::string keyGeneral;         // "General Settings" (video and audio)
+    std::string keyCamera;          // "Camera Settings"
+    std::string keyShadows;         // "Shadow Settings"
+    std::string keyPaths;           // "Path Settings"
+    std::string keyNetwork;         // "Network Settings"
+    std::string workPath;           // Work path
+    std::string resourcesPath;      // Resources path
+    std::string cdRomPath;          // CD-ROM Path
+    int driverIndex;                 // DrawingTarget: the Direct3D driver (-1: the first hardware one)
+    int resolutionX;                 // VideoResolution
+    int resolutionY;
+    int colourDepth;                 // VideoColorDepthInBits
+    int zBufferDepth;                // VideoZBufferDepthInBits
+    int refreshRate;                 // VideoRefreshRate
+    int fullScreen;                  // FullScreen
+    int joystick;
+    int video;
+    int audio;
+    int audioStreaming;
+    int audioSfx;
+    int audioSpeech;
+    int dithering;                   // Dithering
+    int specular;                    // Specular
+    int antialiasing;                // Antialiasing
+    int textureQuality;              // TextureQuality
+    int mipmapping;                  // Mipmapping (cleared when the driver has no mipmaps)
+    int filtering;                   // Filtering: 0 point, 1 / 2 linear
+    int perspectiveCorrection;       // PerspectiveCorrection
+    int showParticles;
+    int fpsIndependentCursor;
+    int automaticQuantization;
+    int movieCapturingFps;
+    float brightness;
+    float contrast;
+    float gamma;
+    int reverseStereo;               // "Reverse Stereo"
+    int shadowQuality;
+    int heroShadow;
+    int unitShadow;
+    int buildingShadow;
+    int floraShadow;
+    int otherShadow;
+    int shadowLightingFreq;          // LightingFreq of the shadow settings
+    int floraSpecialLight;
+    float lod1;
+    float lod2;
+    float borderFogDistance;
+    int enableWaterWaves;
+    int enableSelfShadowing;
+    int enableDynamicLights;
+    int lightingFreq;                // LightingFreq of the terrain settings: loaded and saved, read by nothing
+    int shadowingFreq;
+    int enableFootprints;
+    int enableBloodprints;
+    int enableFireprints;
+    int enableBloodprintsRelight;
+    int createOutputInfo;
+    int numberOfFrames;
+    float cameraFlipX;               // CameraFlipXAxis: -1 or 1
+    float cameraFlipY;
+    float cameraMinHeight;
+    float cameraMaxHeight;
+    float cameraDefaultHeight;
+    float cameraDefaultXDeploy;
+    float cameraDefaultYDeploy;
+    float cameraMinDistance;         // CameraMinDistanceToCarrier
+    float cameraMaxDistance;
+    float cameraMinLimitDistance;    // CameraMinLimitDistanceToCarrier
+    float cameraMaxLimitDistance;
+    float cameraDefaultDistance;     // CameraDefaultDistanceToCarrier
+    float briefingMinDistance;       // CameraBriefingMinDistanceToCarrier
+    float briefingMaxDistance;
+    float briefingMinLimitDistance;
+    float briefingMaxLimitDistance;
+    float briefingMinPitch;          // CameraBriefingMinPitch
+    float briefingMaxPitch;
+    int cameraBorderScrollArea;
+    int cameraFrameSelectionArea;    // CameraFrameSelectionSensetiveArea
+    float cameraTerrainArea;         // CameraTerrainSensetiveArea
+    CameraMotionOptions cameraScroll;
+    CameraMotionOptions cameraRotate;
+    CameraMotionOptions cameraPitch;
+    CameraMotionOptions cameraZoom;
+    CameraShortcutOptions cameraShortcuts[4];
+    float cameraDefaultMinPitch;
+    float cameraDefaultMaxPitch;
+    float nearClipDistance;
+    float farClipDistance;           // FarClipDistance
+    float defaultWindForce;
+    int defaultTimeScale;
+    int useSwCursors;                // UseSWCursors
+    int selectionType;
+    float cornerSize;
+    int drawVisibleOnly;
+    int drawPath;
+    int drawFlyingHp;                // DrawFlyingHP
+    int showTutorial;
+    int autosave;
+    float toolTipTime;               // "ToolTip Time"
+    int switchFilters;
+    std::string cdLabels[3];        // "CD1 Label" ..
+    std::string fontCharSet;        // "Font CharSet"
+    int keyboardLayout;              // "Keyboard Layout"
+    float objectsLightingCoeff;
+    LightOptions heroLight;
+    LightOptions questLight;
+    int difficulty;                  // "Difficulty Level"
+    int difficultyStored;            // the same value: the one that is written back
+    std::string defaultMapName;
+    std::string defaultStreamingSound;
+    float fogNightStartDistance;
+    float fogDayStartDistance;       // FogDayStartDistance
+    std::string masterServerName;   // "Master Server Name"
 };
 // The game's options (options_construct.cpp).
 extern GameOptions g_options;

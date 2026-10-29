@@ -1,5 +1,5 @@
 // The help / message window's page (CHelpWindow::ShowPage): everything the
-// window shows is rebuilt from the texts for page page_ (see ui.h).
+// window shows is rebuilt from the texts for page page (see ui.h).
 // Rebirth's WideScreen patches it (a context hook: the pulsing frames of some tutorial messages follow the
 // battle screen's panels to the screen's edges), reproduced here. Rebirth-patched callees: the surface's
 // text, the sprites' Place, SetRectangle and SetFrame, the regions' SetRect. See docs/notes/items_spells.md.
@@ -64,12 +64,12 @@ struct PageEntry {
     std::string text;
 };
 
-void SetTint(CUiMesh* sprite, float value) { sprite->tint_[0] = sprite->tint_[1] = sprite->tint_[2] = value; }
+void SetTint(CUiMesh* sprite, float value) { sprite->tint[0] = sprite->tint[1] = sprite->tint[2] = value; }
 
 void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
-    sprite->texture_ = nullptr;
-    sprite->flags_ |= FigureMeshFlag::Flat;
-    sprite->flatColour_ = colour;
+    sprite->texture = nullptr;
+    sprite->flags |= FigureMeshFlag::Flat;
+    sprite->flatColour = colour;
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
@@ -83,7 +83,7 @@ void SetRectangle(CUiMesh* sprite, const RECT& rect, int u0, int v0, int u1, int
 }
 
 // Rebirth's WideScreen (addon's handler, a context hook over the first AddSprite of a
-// "#rectangle" line): on a message window (message_), the page "<text_>:<page_>" of the
+// "#rectangle" line): on a message window (message), the page "<text>:<page>" of the
 // zone tutorials whose frames point at the battle screen's left panels moves them left by the
 // layout's extra units, of those pointing at its right panels right (addon's two string sets, built
 // once from its literals; the frame's left and right, the original's locals, change; top and bottom do not).
@@ -97,8 +97,8 @@ bool Listed(const std::string& page, const char* const* names, std::size_t count
 }
 
 int TutorialFrameShift(const CHelpWindow* window) {
-    if (!widescreen::Active() || !window->message_) return 0;
-    const std::string page = std::string(window->text_) + ':' + std::to_string(window->page_);
+    if (!widescreen::Active() || !window->message) return 0;
+    const std::string page = std::string(window->text) + ':' + std::to_string(window->page);
     if (Listed(page, kLeftPanelPages, std::size(kLeftPanelPages))) return -widescreen::EdgeShift();
     if (Listed(page, kRightPanelPages, std::size(kRightPanelPages))) return widescreen::EdgeShift();
     return 0;
@@ -107,22 +107,22 @@ int TutorialFrameShift(const CHelpWindow* window) {
 } // namespace
 
 void CHelpWindow::ShowPage() {
-    pulsing_.clear();
-    pictures_.clear();
+    pulsing.clear();
+    pictures.clear();
     ClearSurfaces();
     ClearRegions();
     ClearSceneObjects();
 
-    CTextManager* texts = g_clientWorld.texts_;
+    CTextManager* texts = g_clientWorld.texts;
     std::vector<std::string> words;
-    if (!texts->Open(std::string(kTutorialSection) + text_)) {
-        interface_->SetPendingValue(0);
+    if (!texts->Open(std::string(kTutorialSection) + text)) {
+        ui->SetPendingValue(0);
         return;
     }
     // The page's "#screen" line; the line after it is the page's title key.
-    for (int i = page_ + 1; i != 0; --i) {
+    for (int i = page + 1; i != 0; --i) {
         if (!texts->FindLine(kScreenLine)) {
-            interface_->SetPendingValue(0);
+            ui->SetPendingValue(0);
             return;
         }
         texts->NextLine();
@@ -131,51 +131,51 @@ void CHelpWindow::ShowPage() {
 
     // The page's rectangle. "#position" is looked for from here on (not only in this page), and
     // the reading goes on from here afterwards.
-    RECT page{200, 50, 600, 560};
+    RECT pageArea{200, 50, 600, 560};
     bool rowsGiven = false;
-    const char* resume = texts->cursor_;
+    const char* resume = texts->cursor;
     if (texts->FindLine(kPositionLine)) {
         words = texts->Split(true);
         if (words.size() > 3) {
-            page.left = str::ToInt(words[1]);
-            page.top = str::ToInt(words[2]);
-            page.right = str::ToInt(words[3]);
+            pageArea.left = str::ToInt(words[1]);
+            pageArea.top = str::ToInt(words[2]);
+            pageArea.right = str::ToInt(words[3]);
             int rows = 1;
             if (words.size() > 4) {
                 rows = str::ToInt(words[4]);
                 rowsGiven = true;
             }
-            if (page.right - page.left < 300) page.right = page.left + 300;
-            page.bottom = rows * kRowHeight + page.top + 2 * kStripHeight;
-            if (page.bottom - page.top > 600) page.bottom = page.top + 600;
+            if (pageArea.right - pageArea.left < 300) pageArea.right = pageArea.left + 300;
+            pageArea.bottom = rows * kRowHeight + pageArea.top + 2 * kStripHeight;
+            if (pageArea.bottom - pageArea.top > 600) pageArea.bottom = pageArea.top + 600;
         }
     }
-    texts->cursor_ = resume;
+    texts->cursor = resume;
 
     // Scene objects 0 the background, 1 the frame, 2-4 the previous, OK and next buttons.
     CUiMesh* back = AddBlankSprite();
-    SetPlain(back, message_ ? 0xFF282313 : 0xFF211B11);
+    SetPlain(back, message ? 0xFF282313 : 0xFF211B11);
     CUiMesh* frame = AddBlankSprite();
-    if (message_) frame->textureOffsetV_ = 0.02734375f;
+    if (message) frame->textureOffsetV = 0.02734375f;
     CUiMesh* previous = AddBlankSprite();
-    if (page_ <= 0) previous->visible_ = false;
+    if (page <= 0) previous->visible = false;
     SetTint(previous, 0.6f);
     CUiMesh* ok = AddBlankSprite();
-    if (page_ < static_cast<int>(lines_.size()) - 1) SetTint(ok, 0.6f);
+    if (page < static_cast<int>(lines.size()) - 1) SetTint(ok, 0.6f);
     CUiMesh* next = AddBlankSprite();
-    if (page_ >= static_cast<int>(lines_.size()) - 1) next->visible_ = false;
+    if (page >= static_cast<int>(lines.size()) - 1) next->visible = false;
 
     // Surface 0: the page's title and the topic's with the page's number.
-    std::string text;
-    const int width = page.right - page.left;
-    CUiSurface* header = NewSurface(interface_, page.left, page.top, page.right, page.top + kStripHeight);
+    std::string titleText;
+    const int width = pageArea.right - pageArea.left;
+    CUiSurface* header = NewSurface(ui, pageArea.left, pageArea.top, pageArea.right, pageArea.top + kStripHeight);
     AddSurface(header);
     header->Clear();
     RECT line{0, 8, width, 30};
-    header->DrawTextIn(lines_[page_], &line, 2, kTitleColour, DT_CENTER, 1);
+    header->DrawTextIn(lines[page], &line, 2, kTitleColour, DT_CENTER, 1);
     line = RECT{0, 30, width, 50};
-    text = str::Format(kTitleFormat, title_, page_ + 1, static_cast<int>(lines_.size()));
-    header->DrawTextIn(text, &line, 1, kTitleColour, DT_CENTER, 1);
+    titleText = str::Format(kTitleFormat, title, page + 1, static_cast<int>(lines.size()));
+    header->DrawTextIn(titleText, &line, 1, kTitleColour, DT_CENTER, 1);
 
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
     std::list<PageEntry> entries;
@@ -192,7 +192,7 @@ void CHelpWindow::ShowPage() {
             mark->SetFrame(3.0f, 100.0f, static_cast<float>(left), static_cast<float>(top), static_cast<float>(right),
                            static_cast<float>(bottom), 5.0f, 0, 0, 256, 256);
             SetPlain(mark, 0x82FF0000);
-            pulsing_.push_back(mark);
+            pulsing.push_back(mark);
         } else if (text::CompareIgnoringCase(words[0], kTextLine) == 0) {
             std::string picture;
             if (words.size() > 1) {
@@ -222,43 +222,43 @@ void CHelpWindow::ShowPage() {
     int block = 0;
     for (const PageEntry& entry : entries) {
         const int left = entry.picture.size() != 0 && madePictures < kMaxPictures ? kPictureTextLeft : kTextLeft;
-        for (std::string wrapped : interface_->WrapText(entry.text, width - kTextRightMargin - left, 1)) {
+        for (std::string wrapped : ui->WrapText(entry.text, width - kTextRightMargin - left, 1)) {
             str::TrimRight(wrapped, ' ');
-            block = (std::max)(block, left - kTextLeft + static_cast<int>(interface_->TextExtent(wrapped, 1).cx));
+            block = (std::max)(block, left - kTextLeft + static_cast<int>(ui->TextExtent(wrapped, 1).cx));
         }
     }
     const int shift = (std::max)(0, (width - block) / 2 - kTextLeft);
 
     // Surface 1: the texts, one under the other. Without a row count the first pass makes the
     // pictures and measures; its surface is dropped and the page's bottom follows the height.
-    int pictures = 0;
+    int pictureCount = 0;
     for (int pass = rowsGiven ? 1 : 0; pass < 2; ++pass) {
-        CUiSurface* body = NewSurface(interface_, page.left, page.top + kStripHeight, page.right, page.bottom - kStripHeight);
+        CUiSurface* body = NewSurface(ui, pageArea.left, pageArea.top + kStripHeight, pageArea.right, pageArea.bottom - kStripHeight);
         AddSurface(body);
         RECT row{kTextLeft + shift, 0, width - kTextRightMargin + shift, kRowHeight};
         int y = 0;
         body->Clear();
         for (const PageEntry& entry : entries) {
             bool withPicture = false;
-            if (entry.picture.size() != 0 && pictures < kMaxPictures) {
+            if (entry.picture.size() != 0 && pictureCount < kMaxPictures) {
                 if (pass == 0) {
                     // The picture's cell in referenced object 1, four to a column.
-                    const int cellX = pictures / 4 * kPictureSize;
-                    const int cellY = pictures % 4 * kPictureSize;
+                    const int cellX = pictureCount / 4 * kPictureSize;
+                    const int cellY = pictureCount % 4 * kPictureSize;
                     {
                         std::string name = std::string(kPicturePrefix) + entry.picture.data();
-                        CopyImage(objects_[1], name, kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
+                        CopyImage(objects[1], name, kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
                                   cellY);
                     }
                     CUiMesh* picture = AddBlankSprite();
                     picture->SetRectangle(3.0f, 100.0f, 0.0f, 0.0f, 64.0f, 64.0f, 0, 0, kPictureSize, kPictureSize);
-                    picture->textureOffsetU_ = static_cast<float>(cellX) * kTexel;
-                    picture->textureOffsetV_ = static_cast<float>(cellY + kPictureSize) * kTexel;
-                    picture->Place(static_cast<float>(page.left + 47 + shift),
-                                        static_cast<float>(y + page.top + 95), 3.0f);
-                    picture->texture_ = objects_[1];
-                    pictures_.push_back(picture);
-                    ++pictures;
+                    picture->textureOffsetU = static_cast<float>(cellX) * kTexel;
+                    picture->textureOffsetV = static_cast<float>(cellY + kPictureSize) * kTexel;
+                    picture->Place(static_cast<float>(pageArea.left + 47 + shift),
+                                        static_cast<float>(y + pageArea.top + 95), 3.0f);
+                    picture->texture = objects[1];
+                    pictures.push_back(picture);
+                    ++pictureCount;
                 }
                 row.left = kPictureTextLeft + shift;
                 withPicture = true;
@@ -274,18 +274,18 @@ void CHelpWindow::ShowPage() {
         }
         if (pass == 0) {
             RemoveSurfaceAt(1);
-            page.bottom = y + page.top + 2 * kStripHeight;
+            pageArea.bottom = y + pageArea.top + 2 * kStripHeight;
         }
     }
 
-    SetRectangle(back, page, 0, 0, 256, 256);
-    frame->SetFrame(3.0f, 100.0f, static_cast<float>(page.left - 5), static_cast<float>(page.top - 5),
-                    static_cast<float>(page.right + 5), static_cast<float>(page.bottom + 5), 5.0f, 2, 0xF5, 0xB4, 0xF0);
+    SetRectangle(back, pageArea, 0, 0, 256, 256);
+    frame->SetFrame(3.0f, 100.0f, static_cast<float>(pageArea.left - 5), static_cast<float>(pageArea.top - 5),
+                    static_cast<float>(pageArea.right + 5), static_cast<float>(pageArea.bottom + 5), 5.0f, 2, 0xF5, 0xB4, 0xF0);
 
     // The three buttons along the bottom, each with its region.
-    RECT button{0, page.bottom - 30, 50, page.bottom - 10};
+    RECT button{0, pageArea.bottom - 30, 50, pageArea.bottom - 10};
     const int gap = (width - 150) / 6;
-    gameapi::OffsetRect(&button, gap + page.left, 0);
+    gameapi::OffsetRect(&button, gap + pageArea.left, 0);
     const int step = 2 * gap - button.left + button.right;
     AddRegion()->SetRectFrom(button);
     SetRectangle(previous, button, 2, 0x33, 0x34, 0x47);
@@ -299,13 +299,13 @@ void CHelpWindow::ShowPage() {
     SetRectangle(next, button, 2, 0x48, 0x34, 0x5C);
 
     // Surface 2: the neighbouring pages' titles under the arrows and the help key's name.
-    CUiSurface* footer = NewSurface(interface_, page.left, page.bottom - kStripHeight, page.right, page.bottom);
+    CUiSurface* footer = NewSurface(ui, pageArea.left, pageArea.bottom - kStripHeight, pageArea.right, pageArea.bottom);
     AddSurface(footer);
     footer->Clear();
-    if (page_ > 0) {
+    if (page > 0) {
         RECT label{0, 5, width / 3, 25};
-        footer->DrawTextIn(lines_[page_ - 1], &label, 0, kTitleColour, DT_CENTER, 1);
-        regions_[0]->SetTip(0x7595);
+        footer->DrawTextIn(lines[page - 1], &label, 0, kTitleColour, DT_CENTER, 1);
+        regions[0]->SetTip(0x7595);
     }
     if (const char* key = static_cast<const char*>(FindCommandByKey(kHelpAction))) {
         std::string hint = texts->GetString(kHelpKeyText);
@@ -314,10 +314,10 @@ void CHelpWindow::ShowPage() {
         RECT label{width / 3, 5, 2 * width / 3, 25};
         footer->DrawTextIn(hint, &label, 0, kTitleColour, DT_CENTER, 1);
     }
-    if (page_ < static_cast<int>(lines_.size()) - 1) {
+    if (page < static_cast<int>(lines.size()) - 1) {
         RECT label{2 * width / 3, 5, width, 25};
-        footer->DrawTextIn(lines_[page_ + 1], &label, 0, kTitleColour, DT_CENTER, 1);
-        regions_[2]->SetTip(0x7596);
+        footer->DrawTextIn(lines[page + 1], &label, 0, kTitleColour, DT_CENTER, 1);
+        regions[2]->SetTip(0x7596);
     }
 
     entries.clear();

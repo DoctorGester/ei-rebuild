@@ -21,72 +21,72 @@
 
 // --- The weapon bar's unit -----------------------------------------------------------
 
-void CHudWeaponBar::SetUnit(CUnit* unit) {
+void CHudWeaponBar::SetUnit(CUnit* newUnit) {
     std::string tip;
     std::string description;
     std::string line;
-    unit_ = unit;
+    unit = newUnit;
     ClearSceneObjects();
-    count_ = 0;
-    selected_ = -1;
-    for (int i = 0; i < 4; ++i) regions_[i]->SetTip(0);
-    if (!unit_) return;
+    count = 0;
+    selected = -1;
+    for (int i = 0; i < 4; ++i) regions[i]->SetTip(0);
+    if (!unit) return;
 
     for (unsigned slot = 0; slot < 4; ++slot) {
-        CItemWeapon* weapon = unit_->GetWeapon(slot);
+        CItemWeapon* weapon = unit->GetWeapon(slot);
         if (!weapon) continue;
         {
             std::string image = weapon->FigureName();
             std::string model = weapon->PictureName();
             AddWeapon(model, image);
         }
-        tip = g_clientWorld.texts_->GetItemTexts(weapon).name;
+        tip = g_clientWorld.texts->GetItemTexts(weapon).name;
         tip += "\n";
 
         // The damage type: the first of the seven weights that is not zero (a NaN counts as zero).
         float types[7];
         weapon->GetDamageTypes(types);
         const float zero = 0.0f;
-        unsigned type = 0;
+        unsigned tipType = 0;
         EI_NAN_AUDIT(types[0], types[1], types[2], types[3], types[4], types[5], types[6]);
-        while (type < 7 && types[type] == zero) ++type;
+        while (tipType < 7 && types[tipType] == zero) ++tipType;
         description = "Unknown";
-        if (type < 7) {
-            line = std::format("damage_{}", type);
-            description = g_clientWorld.texts_->GetString(line);
+        if (tipType < 7) {
+            line = std::format("damage_{}", tipType);
+            description = g_clientWorld.texts->GetString(line);
         }
-        line = std::format("{} {}-{} {}\n", labels_[0], Truncate(weapon->damage_),
-                    Truncate(weapon->damageSpread_ + weapon->damage_), description);
+        line = std::format("{} {}-{} {}\n", labels[0], Truncate(weapon->damage),
+                    Truncate(weapon->damageSpread + weapon->damage), description);
         tip += line;
-        float value = weapon->reach_;
+        float value = weapon->reach;
         int category = static_cast<int>(weapon->GetPrototype()->category);
-        line = std::format("{} {}  {} {}\n", labels_[1], category, labels_[2], Truncate(value));
+        line = std::format("{} {}  {} {}\n", labels[1], category, labels[2], Truncate(value));
         tip += line;
 
         // A weapon with a spell: the spell's name ("spell <name>").
-        if (CSpell* spell = weapon->spell_) {
+        if (CSpell* spell = weapon->spell) {
             description = "Unknown";
-            if (g_clientWorld.texts_->CTextManager::Open(std::string("spell ") + spell->GetPrototype()->code))
-                description = g_clientWorld.texts_->ReadLine(true);
-            line = std::format("{} {}\n", labels_[3], description);
+            if (g_clientWorld.texts->CTextManager::Open(std::string("spell ") + spell->GetPrototype()->code))
+                description = g_clientWorld.texts->ReadLine(true);
+            line = std::format("{} {}\n", labels[3], description);
             tip += line;
         }
-        regions_[slot]->SetTipString(tip, static_cast<int>(slot) + 0x26);
+        regions[slot]->SetTipString(tip, static_cast<int>(slot) + 0x26);
     }
-    selected_ = static_cast<int>(unit_->pendingWeapon);
-    if (selected_ >= count_) selected_ = -1;
-    Highlight(selected_, true);
+    selected = static_cast<int>(unit->pendingWeapon);
+    if (selected >= count) selected = -1;
+    Highlight(selected, true);
 }
 
 // --- A quick item's tooltip ----------------------------------------------------------
 
 std::string CHudQuickItems::ItemTip(unsigned index) {
     std::string text;
-    CItem* item = unit_->GetQuickItem(index);
+    CItem* item = unit->GetQuickItem(index);
     if (!item) return text;
-    text = g_clientWorld.texts_->GetItemTexts(item).name;
+    text = g_clientWorld.texts->GetItemTexts(item).name;
     std::string line;
-    CSpell* data = item->spell_;
+    CSpell* data = item->spell;
     if (!data) return text;
     const float one = 1.0f;
     const float pi = 3.1415927f;
@@ -95,59 +95,59 @@ std::string CHudQuickItems::ItemTip(unsigned index) {
     if (item->GetCategory() == QuickItemCategory::Wand) {
         // A wand: level and charges, mana, duration, range, area, time, the last number.
         text += " \n";
-        float charges = item->chargeMax_;
-        float level = data->manaCost_;
-        int now = Truncate(item->charge_);
+        float charges = item->chargeMax;
+        float level = data->manaCost;
+        int now = Truncate(item->charge);
         int maximum = Truncate(charges);
-        line = std::format("{} {}/{} ({})\n", labels_[0], Truncate(level), maximum, now);
+        line = std::format("{} {}/{} ({})\n", labels[0], Truncate(level), maximum, now);
         text += line;
         if (data->GetPrototype()->allowedModifiers[3] == 0)
-            line = std::format("{} {}  ", labels_[1], labels_[11]);
+            line = std::format("{} {}  ", labels[1], labels[11]);
         else
-            line = std::format("{} {}  ", labels_[1], Truncate(data->damage_));
+            line = std::format("{} {}  ", labels[1], Truncate(data->damage));
         text += line;
-        float duration = data->speed_;
+        float duration = data->speed;
         EI_NAN_AUDIT(duration);
         if (duration < one)
-            line = std::format("{} {} \n", labels_[2], labels_[7]);
+            line = std::format("{} {} \n", labels[2], labels[7]);
         else
-            line = std::format("{} {} \n", labels_[2], Truncate(duration));
+            line = std::format("{} {} \n", labels[2], Truncate(duration));
         text += line;
-        line = std::format("{} {}{}  ", labels_[3], Truncate(data->range_), labels_[9]);
+        line = std::format("{} {}{}  ", labels[3], Truncate(data->range), labels[9]);
         text += line;
-        if (data->targetFlags_ & SpellTargetFlag::AtUnits) {
-            line = std::format("{} {} \n", labels_[4], labels_[8]);
+        if (data->targetFlags & SpellTargetFlag::AtUnits) {
+            line = std::format("{} {} \n", labels[4], labels[8]);
         } else {
-            float radius = data->radius_;
+            float radius = data->radius;
             double area = static_cast<double>(radius) * radius * pi;
-            line = str::Format("%s %.1f%s \n", labels_[4], area, labels_[9]);
+            line = str::Format("%s %.1f%s \n", labels[4], area, labels[9]);
         }
         text += line;
-        std::uint32_t ticks = data->duration_;
+        std::uint32_t ticks = data->duration;
         if (ticks < 2) {
-            line = std::format("{} {}  ", labels_[5], labels_[7]);
+            line = std::format("{} {}  ", labels[5], labels[7]);
         } else {
             double seconds = x87::FromUnsigned(ticks) * perTick;
-            line = str::Format("%s %.1f%s  ", labels_[5], seconds, labels_[10]);
+            line = str::Format("%s %.1f%s  ", labels[5], seconds, labels[10]);
         }
         text += line;
-        line = std::format("{} {} \n", labels_[6], static_cast<int>(data->targetCount_));
+        line = std::format("{} {} \n", labels[6], static_cast<int>(data->targetCount));
         text += line;
     }
     if (item->GetCategory() == QuickItemCategory::Potion) {
         // A potion: mana and time.
         text += " \n";
         if (data->GetPrototype()->allowedModifiers[3] == 0)
-            line = std::format("{} {}\n", labels_[1], labels_[11]);
+            line = std::format("{} {}\n", labels[1], labels[11]);
         else
-            line = std::format("{} {}\n", labels_[1], Truncate(data->damage_));
+            line = std::format("{} {}\n", labels[1], Truncate(data->damage));
         text += line;
-        std::uint32_t ticks = data->duration_;
+        std::uint32_t ticks = data->duration;
         if (ticks < 2) {
-            line = std::format("{} {}\n", labels_[5], labels_[7]);
+            line = std::format("{} {}\n", labels[5], labels[7]);
         } else {
             double seconds = x87::FromUnsigned(ticks) * perTick;
-            line = str::Format("%s %.1f%s\n", labels_[5], seconds, labels_[10]);
+            line = str::Format("%s %.1f%s\n", labels[5], seconds, labels[10]);
         }
         text += line;
     }
@@ -156,18 +156,18 @@ std::string CHudQuickItems::ItemTip(unsigned index) {
 
 // --- The action column's unit --------------------------------------------------------
 
-void CHudActionColumn::SetUnit(CUnit* unit, bool extra) {
-    unit_ = unit;
+void CHudActionColumn::SetUnit(CUnit* newUnit, bool extra) {
+    unit = newUnit;
     ClearSceneObjects();
-    actions_.clear();
-    count_ = 0;
-    selected_ = -1;
-    for (int i = 0; i < 6; ++i) regions_[i]->SetTip(0);
+    actions.clear();
+    count = 0;
+    selected = -1;
+    for (int i = 0; i < 6; ++i) regions[i]->SetTip(0);
     if (extra) {
         AddAction("initqi1item", "skill0011", -1);
-        regions_[count_ - 1]->SetTip(0x290E, 0x1C);
+        regions[count - 1]->SetTip(0x290E, 0x1C);
     }
-    CUnit* shown = unit_;
+    CUnit* shown = unit;
     if (!shown) return;
 
     // The science button (the original loops once over a switch of three buttons).
@@ -176,9 +176,9 @@ void CHudActionColumn::SetUnit(CUnit* unit, bool extra) {
     std::string hint;
     AddAction("initqi1item", "skill0009", 0);
     title = "Science";
-    if (g_clientWorld.texts_->CTextManager::Open(std::string("perk ") + title)) tip = g_clientWorld.texts_->ReadLine(true);
-    title = std::format("{} {}\n", labels_[0], shown->params.attributes[0]);
-    if (g_clientWorld.texts_->CTextManager::Open("tip 10511") != 0) hint = g_clientWorld.texts_->ReadToHash();
+    if (g_clientWorld.texts->CTextManager::Open(std::string("perk ") + title)) tip = g_clientWorld.texts->ReadLine(true);
+    title = std::format("{} {}\n", labels[0], shown->params.attributes[0]);
+    if (g_clientWorld.texts->CTextManager::Open("tip 10511") != 0) hint = g_clientWorld.texts->ReadToHash();
     tip = tip + "\n" + title + hint;
-    regions_[count_ - 1]->SetTipString(tip, 0x1D);
+    regions[count - 1]->SetTipString(tip, 0x1D);
 }

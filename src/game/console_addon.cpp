@@ -29,7 +29,7 @@ namespace console {
 
 namespace {
 
-int* const kSpectator = &options::g_options.drawVisibleOnly_;
+int* const kSpectator = &options::g_options.drawVisibleOnly;
 
 // addon's state.
 CommandHandler g_gameHelp = nullptr;   // the game's "help", saved at each registration
@@ -61,7 +61,7 @@ std::string ObjectText(const ScriptObjectRef& ref) {
     if (!object) return "null";
     const char* name = object->ClassName();
     char id[16];
-    std::snprintf(id, sizeof(id), "%d", object->id_);
+    std::snprintf(id, sizeof(id), "%d", object->id);
     return std::string("<") + name + ":" + id + ">";
 }
 // A group: "empty" or the objects joined by ", ".
@@ -128,12 +128,12 @@ void Execs(std::vector<std::string>* args) {
         ScriptTick(TheMissionScript());
         return;
     }
-    SayFormat("Script error: line %d: %s", TheMissionScript()->errorLine_, TheMissionScript()->errorText_);
+    SayFormat("Script error: line %d: %s", TheMissionScript()->errorLine, TheMissionScript()->errorText);
 }
 
 // listgvar: the global script variables (floats, strings, objects, groups).
 void ListGlobals(std::vector<std::string>*) {
-    const ScriptVars& globals = TheMissionScript()->globals_;
+    const ScriptVars& globals = TheMissionScript()->globals;
     auto name = [](const std::vector<std::string>& names, int i) { return names[static_cast<std::size_t>(i)].c_str(); };
     for (int i = 0; i < std::ssize(globals.floats.values); ++i)
         SayFormat("%s : float = %f", name(globals.floats.names, i), static_cast<double>(globals.floats.values[i]));
@@ -225,7 +225,7 @@ void RegisterAddonCommands() {
 
 void ApplyAddonGuiVisibility(CUiContainer* screen) {
     if (!g_applyGui) return;
-    for (int i = 0; i < std::ssize(screen->children_); ++i) screen->children_[i]->SetEnabled(g_guiShown, false);
+    for (int i = 0; i < std::ssize(screen->children); ++i) screen->children[i]->SetEnabled(g_guiShown, false);
     g_applyGui = !g_guiShown;
 }
 

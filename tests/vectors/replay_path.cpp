@@ -53,8 +53,8 @@ CUnit* MakeUnit(const UnitState& s) {
     void* vtable = g_unitVtable;
     std::memcpy(g_unitBytes, &vtable, sizeof(vtable));
     auto* unit = reinterpret_cast<CUnit*>(g_unitBytes);
-    std::memcpy(&unit->localPosition_, s.position, sizeof(s.position));
-    std::memcpy(&unit->localRotation_, s.orientation, sizeof(s.orientation));
+    std::memcpy(&unit->localPosition, s.position, sizeof(s.position));
+    std::memcpy(&unit->localRotation, s.orientation, sizeof(s.orientation));
     unit->sizeClass = s.sizeClass;
     unit->standingHeight = s.standingHeight;
     unit->altPassCosts = s.altPassCosts;
@@ -491,7 +491,7 @@ bool CheckFindPath(Reader& r, char* d, std::size_t n) {
         BuildMap(empty);
     }
     CUnit* u = MakeUnit(unit);
-    g_serverWorld.tick_ = tick;   // the search reads the world tick the record gave
+    g_serverWorld.tick = tick;    // the search reads the world tick the record gave
     bool actual = false;
     auto call = [&] { actual = g_map->FindPath(u, target, &path, range, minDistance); };
     if (!Guarded(call, d, n, "FindPath")) return false;

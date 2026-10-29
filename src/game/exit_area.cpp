@@ -54,7 +54,7 @@ void ZoneExit::Read(CStream* stream) {
     hasDeployAngle = 0;
     deployAngle = 0;
     angle = 0;
-    if (static_cast<int>(stream->version_) >= static_cast<int>(kVersionExitExtras)) {
+    if (static_cast<int>(stream->version) >= static_cast<int>(kVersionExitExtras)) {
         stream->ReadValue(hasDeployAngle);
         stream->ReadValue(deployAngle);
         stream->ReadValue(angle);

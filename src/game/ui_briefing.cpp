@@ -39,26 +39,26 @@ constexpr int kTopicNameParts = 3;
 } // namespace
 
 void CBriefingScreen::CloseScreen() {
-    options::g_options.borderFogDistance_ = savedEdgeFade_;
+    options::g_options.borderFogDistance = savedEdgeFade;
     GameStopSounds(1);
     GameStopAmbience();
-    std::uint32_t& flags = g_camera.flags_;
-    flags = (flags & ~(CCamera::kBounded | CCamera::kAlternate)) | CCamera::kFree;
+    std::uint32_t& cameraFlags = g_camera.flags;
+    cameraFlags = (cameraFlags & ~(CCamera::kBounded | CCamera::kAlternate)) | CCamera::kFree;
 }
 
 void CBriefingScreen::MessageResult(int result) {
     switch (result) {
     case kLeaveZoneYes:
-        GameLeaveThroughExit(exit_);
+        GameLeaveThroughExit(exit);
         break;
     case kGameOverLoad: {
-        interface_->PushWindow(new CSaveLoadWindow(interface_, false, false), true, true);
+        ui->PushWindow(new CSaveLoadWindow(ui, false, false), true, true);
         break;
     }
     case kGameOverQuit:
     case kLeaveAnswer:
     case kLoadWindowClosed:
-        interface_->closeAll_ = true;
+        ui->closeAll = true;
         g_gameFlow.DropSessions();
         g_gameFlow.CloseSessions();
         break;
@@ -70,35 +70,35 @@ void CBriefingScreen::MessageResult(int result) {
 
 void CBriefingScreen::UnitJoined(CUnit* unit) {
     CParty* player = LocalPlayerData();
-    int count = std::ssize(player->members_);
+    int count = std::ssize(player->members);
     if (count == 0) return;
     int place = 0;
     int record = 0;
     for (; record < count; ++record) {
-        int id = static_cast<int>(player->members_[record].unitId);
-        if (unit->id_ == id) break;
-        if (place < std::ssize(party_) && party_[place]->id_ == id) ++place;
+        int unitId = static_cast<int>(player->members[record].unitId);
+        if (unit->id == unitId) break;
+        if (place < std::ssize(party) && party[place]->id == unitId) ++place;
     }
     if (record < count) {
         // Insert `unit` at `place` (the slot is zeroed, then written); the
         // original then looks the unit up in the server world without using the result.
-        int size = std::ssize(party_);
+        int size = std::ssize(party);
         if (place >= size) {
-            party_.resize(place + 1);
+            party.resize(place + 1);
         } else {
-            party_.resize(size + 1);
-            std::memmove(&party_[place + 1], &party_[place], (size - place) * sizeof(party_[0]));
+            party.resize(size + 1);
+            std::memmove(&party[place + 1], &party[place], (size - place) * sizeof(party[0]));
         }
-        party_[place] = unit;
+        party[place] = unit;
     } else {
         // SetAtGrow(size, unit).
-        int size = std::ssize(party_);
-        party_.resize(size + 1);
-        party_[size] = unit;
+        int size = std::ssize(party);
+        party.resize(size + 1);
+        party[size] = unit;
     }
-    if (unit->id_ != static_cast<int>(player->members_[0].unitId)) return;
+    if (unit->id != static_cast<int>(player->members[0].unitId)) return;
 
-    leader_ = unit;
+    leader = unit;
     g_clientWorld.Select(unit);
     g_camera.SetTarget(unit);
     MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
@@ -112,37 +112,37 @@ void CBriefingScreen::UnitJoined(CUnit* unit) {
         if (bits != kOneBits) continue;
         parts = text::Split(node.first, '.');
         if (parts.size() != kTopicNameParts) continue;
-        topic_ = parts[2];
-        briefingStarted_ = true;
+        topic = parts[2];
+        briefingStarted = true;
         StartDialogue(true, true);
         break;
     }
 }
 
 void CBriefingScreen::UnitLeft(CUnit* unit) {
-    if (unit == leader_) leader_ = nullptr;
-    int count = std::ssize(party_);
+    if (unit == leader) leader = nullptr;
+    int count = std::ssize(party);
     int index = 0;
-    while (index < count && party_[index]->id_ != unit->id_) ++index;
+    while (index < count && party[index]->id != unit->id) ++index;
     if (index >= count) return;
     int after = count - index - 1;
-    if (after != 0) std::memmove(&party_[index], &party_[index + 1], after * sizeof(party_[0]));
-    party_.pop_back();
+    if (after != 0) std::memmove(&party[index], &party[index + 1], after * sizeof(party[0]));
+    party.pop_back();
 }
 
 void CBriefingScreen::GameOver(bool) {
-    interface_->PlaySound("buttons\\gameover.wav");
-    CMessageBox* box = new CMessageBox(interface_, "game_over", "game_over_msg", kGameOverResult, 3, 1);
-    interface_->PushWindow(box, true, true);
+    ui->PlaySound("buttons\\gameover.wav");
+    CMessageBox* box = new CMessageBox(ui, "game_over", "game_over_msg", kGameOverResult, 3, 1);
+    ui->PushWindow(box, true, true);
 }
 
 void CBriefingScreen::ShowBriefing(std::string_view name) {
-    topic_ = std::string(name);
+    topic = std::string(name);
     StartDialogue(true, true);
 }
 
 void CBriefingScreen::PlayersChanged(int show) {
-    if (IsMultiplayerClient() && show && chat_) chat_->ShowPlayers();
+    if (IsMultiplayerClient() && show && chat) chat->ShowPlayers();
 }
 
 void CBriefingScreen::SaveState() {

@@ -30,32 +30,32 @@ bool QueryValue(void* root, const char* subkey, const char* name, DWORD* type, v
 
 bool CWinRegistry::Open(const char* path) {
     Close();
-    key_ = settings_file::CreateKey(path);
+    key = settings_file::CreateKey(path);
     return true;
 }
 
 void CWinRegistry::Close() {
-    if (!key_) return;
+    if (!key) return;
     settings_file::Flush();   // what the key's writes changed
-    key_ = nullptr;
+    key = nullptr;
 }
 
 bool CWinRegistry::SetInt(const char* subkey, const char* name, int value) {
-    return SetValue(key_, subkey, name, REG_DWORD, &value, 4);
+    return SetValue(key, subkey, name, REG_DWORD, &value, 4);
 }
 
 bool CWinRegistry::SetFloat(const char* subkey, const char* name, std::uint32_t bits) {
-    return SetValue(key_, subkey, name, REG_BINARY, &bits, 4);
+    return SetValue(key, subkey, name, REG_BINARY, &bits, 4);
 }
 
 bool CWinRegistry::SetString(const char* subkey, const char* name, const std::string& value) {
-    return SetValue(key_, subkey, name, REG_SZ, value.c_str(), static_cast<DWORD>(static_cast<int>(value.size()) + 1));
+    return SetValue(key, subkey, name, REG_SZ, value.c_str(), static_cast<DWORD>(static_cast<int>(value.size()) + 1));
 }
 
 int CWinRegistry::GetInt(const char* subkey, const char* name, int defaultValue) {
     DWORD type;
     int value;   // left as it was when the value is shorter (not reproduced: the game's is uninitialised)
-    if (!QueryValue(key_, subkey, name, &type, &value)) return defaultValue;
+    if (!QueryValue(key, subkey, name, &type, &value)) return defaultValue;
     if (type != REG_DWORD) {
         game::DebugLog("CWinRegistry::GetDWordInt().\nRegistry data type is not DWORD.\n");
         return defaultValue;
@@ -68,7 +68,7 @@ double CWinRegistry::GetFloat(const char* subkey, const char* name, std::uint32_
     // remaining bytes.
     std::uint32_t bits = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(subkey));
     DWORD type;
-    if (!QueryValue(key_, subkey, name, &type, &bits)) {
+    if (!QueryValue(key, subkey, name, &type, &bits)) {
         bits = defaultBits;
     } else if (type != REG_BINARY) {
         game::DebugLog("CWinRegistry::GetBinInt().\nRegistry data type is not BINARY.\n");
@@ -84,10 +84,10 @@ std::string CWinRegistry::GetString(const char* subkey, const char* name, const 
     DWORD size = sizeof(buffer);
     DWORD type;
     std::vector<char> longValue;
-    LONG status = settings_file::Query(key_, subkey, name, &type, buffer, &size);
+    LONG status = settings_file::Query(key, subkey, name, &type, buffer, &size);
     if (status == ERROR_MORE_DATA) {
         longValue.resize(size);
-        status = settings_file::Query(key_, subkey, name, &type, longValue.data(), &size);
+        status = settings_file::Query(key, subkey, name, &type, longValue.data(), &size);
     }
     if (status == 0 && type != REG_SZ) game::DebugLog("CWinRegistry::GetStringInt().\nRegistry data type is not SZ.\n");
     if (status != 0 || type != REG_SZ) return defaultValue;

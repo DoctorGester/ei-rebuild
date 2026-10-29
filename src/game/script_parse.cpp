@@ -26,9 +26,9 @@ using namespace scriptparse;
 int scriptparse::ScriptErrorV(CScript* script, int line, int code, const char* format, va_list args) {
     char text[0x400];
     gameapi::wvsprintfA(text, format, args);
-    script->errorLine_ = line;
-    script->errorText_ = text;
-    script->errorCode_ = code;
+    script->errorLine = line;
+    script->errorText = text;
+    script->errorCode = code;
     return 0;
 }
 
@@ -430,13 +430,13 @@ bool CScript::ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<Scrip
 }
 
 std::string CScript::QualifyName(const std::string& name) {
-    if (fileCount_ == 0) return name;
-    return std::format("!{}!{}", fileCount_, name);
+    if (fileCount == 0) return name;
+    return std::format("!{}!{}", fileCount, name);
 }
 
 int CScript::FindScript(std::string_view name) {
     for (;;) {
-        const std::vector<ScriptDefinition>& scripts = definitions_;
+        const std::vector<ScriptDefinition>& scripts = definitions;
         for (std::size_t i = 0; i < scripts.size(); ++i)
             if (str::Compare(scripts[i].name, name) == 0) return static_cast<int>(i);
         // Not found: retry without the leading "!<file>!" qualification.

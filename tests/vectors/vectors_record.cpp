@@ -54,14 +54,14 @@ bool Recording() {
     return on;
 }
 
-Sampler::Sampler(const char* family, const char* function, std::uint32_t payloadSize, std::uint32_t cap,
-                 unsigned buckets)
-    : family_(family), function_(function), payloadSize_(payloadSize), cap_(cap), buckets_(buckets), next_(g_samplers) {
+Sampler::Sampler(const char* newFamily, const char* newFunction, std::uint32_t newPayloadSize, std::uint32_t newCap,
+                 unsigned newBuckets)
+    : family(newFamily), function(newFunction), payloadSize(newPayloadSize), cap(newCap), buckets(newBuckets), next(g_samplers) {
     g_samplers = this;
 }
 
 void Sampler::Offer(const void* payload, std::uint16_t controlWord, unsigned bucket, bool dedupe) {
-    Keep(payload, payloadSize_, controlWord, bucket, dedupe);
+    Keep(payload, payloadSize, controlWord, bucket, dedupe);
 }
 
 void Sampler::OfferBytes(const void* payload, std::uint32_t size, std::uint16_t controlWord, unsigned bucket,
@@ -71,15 +71,15 @@ void Sampler::OfferBytes(const void* payload, std::uint32_t size, std::uint16_t 
 
 // A record: the RecordHeader, the byte count for a variable-size sampler, then the payload.
 void Sampler::Keep(const void* payload, std::uint32_t size, std::uint16_t controlWord, unsigned bucket, bool dedupe) {
-    if (bucket >= buckets_) bucket = buckets_ - 1;
+    if (bucket >= buckets) bucket = buckets - 1;
     RecordHeader header{controlWord, static_cast<std::uint8_t>(bucket), 0};
-    const bool variable = payloadSize_ == kVariableSize;
+    const bool variable = payloadSize == kVariableSize;
     AcquireSRWLockExclusive(&g_lock);
-    if (!state_) {
-        state_ = new State;
-        state_->buckets.resize(buckets_);
+    if (!state) {
+        state = new State;
+        state->buckets.resize(buckets);
     }
-    State& s = *state_;
+    State& s = *state;
     ++s.calls;
     bool fresh = true;
     if (dedupe) {
@@ -95,8 +95,8 @@ void Sampler::Keep(const void* payload, std::uint32_t size, std::uint16_t contro
         State::Bucket& b = s.buckets[bucket];
         ++b.offered;
         std::size_t slot = b.kept.size();
-        if (slot >= cap_) slot = static_cast<std::size_t>(s.Next() % b.offered);
-        if (slot < cap_) {
+        if (slot >= cap) slot = static_cast<std::size_t>(s.Next() % b.offered);
+        if (slot < cap) {
             const std::size_t prefix = sizeof(header) + (variable ? sizeof(size) : 0);
             std::vector<unsigned char> record(prefix + size);
             std::memcpy(record.data(), &header, sizeof(header));
@@ -117,15 +117,15 @@ void Flush() {
     OutputPath("vectors", folder);
     CreateDirectoryA(folder, nullptr);
     AcquireSRWLockExclusive(&g_lock);
-    for (Sampler* sampler = g_samplers; sampler; sampler = sampler->next_) {
-        Sampler::State* s = sampler->state_;
+    for (Sampler* sampler = g_samplers; sampler; sampler = sampler->next) {
+        Sampler::State* s = sampler->state;
         if (!s) continue;
         FileHeader header{};
         header.magic = kMagic;
         header.version = kVersion;
-        header.payloadSize = sampler->payloadSize_;
-        header.cap = sampler->cap_;
-        strncpy_s(header.function, sampler->function_, _TRUNCATE);
+        header.payloadSize = sampler->payloadSize;
+        header.cap = sampler->cap;
+        strncpy_s(header.function, sampler->function, _TRUNCATE);
         std::uint64_t distinct = 0;
         for (const Sampler::State::Bucket& b : s->buckets) {
             header.count += static_cast<std::uint32_t>(b.kept.size());
@@ -134,12 +134,12 @@ void Flush() {
         // File names: the function name with "::" as "__".
         char name[96] = "";
         std::size_t n = 0;
-        for (const char* c = sampler->function_; *c && n + 6 < sizeof(name); ++c) name[n++] = *c == ':' ? '_' : *c;
+        for (const char* c = sampler->function; *c && n + 6 < sizeof(name); ++c) name[n++] = *c == ':' ? '_' : *c;
         std::snprintf(name + n, sizeof(name) - n, ".vec");
         char path[MAX_PATH];
-        std::snprintf(path, sizeof(path), "%s\\%s", folder, sampler->family_);
+        std::snprintf(path, sizeof(path), "%s\\%s", folder, sampler->family);
         CreateDirectoryA(path, nullptr);
-        std::snprintf(path, sizeof(path), "%s\\%s\\%s", folder, sampler->family_, name);
+        std::snprintf(path, sizeof(path), "%s\\%s\\%s", folder, sampler->family, name);
         FILE* f = nullptr;
         if (fopen_s(&f, path, "wb") != 0 || !f) {
             Log("vectors: cannot write %s", path);
@@ -149,7 +149,7 @@ void Flush() {
         for (const Sampler::State::Bucket& b : s->buckets)
             for (const std::vector<unsigned char>& record : b.kept) std::fwrite(record.data(), record.size(), 1, f);
         std::fclose(f);
-        Log("vectors: %s/%s: %u records of %llu calls (%llu distinct)", sampler->family_, sampler->function_, header.count,
+        Log("vectors: %s/%s: %u records of %llu calls (%llu distinct)", sampler->family, sampler->function, header.count,
             static_cast<unsigned long long>(s->calls), static_cast<unsigned long long>(distinct));
     }
     ReleaseSRWLockExclusive(&g_lock);

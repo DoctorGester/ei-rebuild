@@ -69,7 +69,7 @@ bool SetUpCasting(CParticleSource* s) {
     s->AttachmentOffset(&offset, &radius);
     radius = static_cast<float>(D(radius) * D(EI_POINT_EIGHT));
     double scale = s->attachedTo->GetClassId() == ClassId::Unit ? UnitScale(s->attachedTo) : D(radius);
-    if (ParticleTypeOf(s->type_) == ParticleType::CastingDivination) scale = scale + scale;
+    if (ParticleTypeOf(s->type) == ParticleType::CastingDivination) scale = scale + scale;
     else scale = scale * D(EI_THREE);
     float extent = static_cast<float>(scale);
     s->elements.resize(s->lifetime + 1);
@@ -77,7 +77,7 @@ bool SetUpCasting(CParticleSource* s) {
     e->cast.alpha = 0xFF;
     e->ticks = 6;
     e->cast.radius = extent;
-    if (ParticleTypeOf(s->type_) == ParticleType::CastingDivination) {
+    if (ParticleTypeOf(s->type) == ParticleType::CastingDivination) {
         e->cast.size = 0.07f;     // 0.07
         e->cast.growth = 1.05f;     // 1.05
     } else {
@@ -162,7 +162,7 @@ bool FollowCarrier(CParticleSource* s) {
     e->pos.z = static_cast<float>(D(e->pos.z) * D(EI_KEEP_0_9) + D(height) * D(EI_TAKE_0_1));
     float* sphereRadius = &s->elements[0].sphere.radius;
     *sphereRadius = static_cast<float>(D(radius) * D(EI_TAKE_0_1) + D(*sphereRadius) * D(EI_KEEP_0_9));
-    float rate = static_cast<float>(D(s->size) * D(ParticleTypeOf(s->type_) == ParticleType::Antimagic ? EI_ANTIMAGIC_RATE : EI_SPHERE_RATE));
+    float rate = static_cast<float>(D(s->size) * D(ParticleTypeOf(s->type) == ParticleType::Antimagic ? EI_ANTIMAGIC_RATE : EI_SPHERE_RATE));
     s->emitCount = x87::fistp(rate);
     Vector3& smoothed = s->elements[1].pos;
     double mx = D(smoothed.x) * D(EI_MOTION_KEEP);
@@ -220,7 +220,7 @@ void PlaceRings(CParticleSource* s, int countdown) {
     float diameter = static_cast<float>(fullRadius + fullRadius);
     double rise = D(radius) * D(EI_PER_36);
     s->height = static_cast<float>(rise + rise);
-    if (ParticleTypeOf(s->type_) == ParticleType::Healing) s->growth = static_cast<float>((D(s->size) + D(EI_P_ONE)) * D(EI_HEAL_GROWTH));
+    if (ParticleTypeOf(s->type) == ParticleType::Healing) s->growth = static_cast<float>((D(s->size) + D(EI_P_ONE)) * D(EI_HEAL_GROWTH));
     if (s->emitCount > 0) {
         float low = static_cast<float>(D(diameter) * D(EI_RISE_LOW));
         float high = static_cast<float>(D(diameter) * D(EI_RISE_HIGH));
@@ -260,7 +260,7 @@ bool EmitRingFlame(CParticleSource* s, Particle* p, int& result) {
     p->pos.x = static_cast<float>(D(ring.pos.x) + D(s->origin.x));
     p->pos.y = static_cast<float>(D(ring.pos.y) + D(s->origin.y));
     p->pos.z = static_cast<float>(D(ring.pos.z) + D(s->origin.z));
-    if (ParticleTypeOf(s->type_) == ParticleType::Healing) p->size = static_cast<float>((D(s->size) + D(EI_P_ONE)) * D(EI_TENTH_B));
+    if (ParticleTypeOf(s->type) == ParticleType::Healing) p->size = static_cast<float>((D(s->size) + D(EI_P_ONE)) * D(EI_TENTH_B));
     else p->size = static_cast<float>(D(s->size) * D(EI_FLAME_SIZE));
     result = 1;
     return true;
@@ -345,7 +345,7 @@ int AddOrbiter(CParticleSource* s, Particle* p) {
     float lift = static_cast<float>(D(carrier) * D(EI_POINT_FOUR_C));
     float sign = 1.0f;
     double turn;
-    switch (s->type_ - static_cast<int>(ParticleType::CastingIllusion)) {
+    switch (s->type - static_cast<int>(ParticleType::CastingIllusion)) {
     case 0:
     case 2:
         turn = EI_SWIRL_TURN_SLOW;
@@ -718,7 +718,7 @@ void SetUpCylinder(CParticleSource* s) {
     float radius;
     s->AttachmentOffset(&offset, &radius);
     double turn = static_cast<float>(static_cast<float>(D(EI_CYL_TURN) * D(EI_CYL_PI)) * D(EI_CYL_TURN_SCALE));   // each product rounded to 24 bits, as the FPU does
-    if (ParticleTypeOf(s->type_) == ParticleType::Cylinder2) turn = -turn;
+    if (ParticleTypeOf(s->type) == ParticleType::Cylinder2) turn = -turn;
     float c = static_cast<float>(x87::fcos(turn));
     float sn = static_cast<float>(x87::fsin(turn));
     int count = std::ssize(s->elements);
@@ -914,7 +914,7 @@ bool Same(float a, float b) {
 int CParticleSource::EmitCasting(Particle* p, int) {
     if (std::ssize(elements) == 0) {
         if (!SetUpCasting(this)) return 0;
-        if (ParticleTypeOf(type_) == ParticleType::CastingDivination) {
+        if (ParticleTypeOf(type) == ParticleType::CastingDivination) {
             p->color = 0xFFFFFF;
             p->frame = 0;
             p->state = 1;
@@ -959,7 +959,7 @@ int CParticleSource::EmitCasting(Particle* p, int) {
     ParticleElement* state = elements.data();
     double reach = D(state->cast.radius) * D(EI_POINT_SIX);
     p->aux0 = static_cast<float>(reach);
-    p->aux1 = static_cast<float>(reach * D(ParticleTypeOf(type_) == ParticleType::CastingDivination ? EI_TWENTY_SIXTH : EI_THIRTEENTH));
+    p->aux1 = static_cast<float>(reach * D(ParticleTypeOf(type) == ParticleType::CastingDivination ? EI_TWENTY_SIXTH : EI_THIRTEENTH));
     p->aux2 = state->cast.growth;
     double r = D(p->aux0);
     float ox = static_cast<float>(r * D(p->velocity.x));
@@ -994,12 +994,12 @@ int CParticleSource::UpdateCasting(Particle* p) {
     int life = --p->life;
     if (life == 0) return 0;
     // Past the end of its life (the update after death): the countdown table's last entry, or the wide table's.
-    std::int32_t fade = ParticleTypeOf(type_) == ParticleType::CastingDivination ? ByLife(kCastAlphaByLifeWide, life, kCastAlphaByCountdown[6])
+    std::int32_t fade = ParticleTypeOf(type) == ParticleType::CastingDivination ? ByLife(kCastAlphaByLifeWide, life, kCastAlphaByCountdown[6])
                                         : ByLife(kCastAlphaByLife, life, kCastAlphaByLifeWide[14]);
     std::int32_t cap = elements[0].cast.alpha;
     if (cap < fade) fade = cap;
     p->color = (static_cast<std::uint32_t>(fade) << 24) | 0xFFFFFF;
-    if (ParticleTypeOf(type_) == ParticleType::CastingFire && (life & 3) == 0) ++p->frame;
+    if (ParticleTypeOf(type) == ParticleType::CastingFire && (life & 3) == 0) ++p->frame;
     double oldSize = D(p->size);
     double reach = D(p->aux0) - D(p->aux1);
     --p->frame;
@@ -1023,7 +1023,7 @@ int CParticleSource::UpdateCasting(Particle* p) {
 void CParticleSource::TickCasting(ParticleElement* e) {
     EI_NAN_AUDIT(e->pos.x);
     if (e->pos.x != 0.0f) {
-        if ((flags_ & ParticleSourceFlag::Emitting) && attachedTo) return;
+        if ((flags & ParticleSourceFlag::Emitting) && attachedTo) return;
         if (e->ticks > 0) --e->ticks;
         e->cast.alpha = kCastAlphaByCountdown[elements[0].ticks];
         return;
@@ -1050,7 +1050,7 @@ int CParticleSource::EmitOrbit(Particle* p, int index) {
     radius = elements[0].sphere.radius;
     double big;
     if (Next() % 11 == 0) {
-        float base = ParticleTypeOf(type_) == ParticleType::Antimagic ? EI_BIG_ANTIMAGIC : ParticleTypeOf(type_) == ParticleType::SphereElectricity ? EI_BIG_EARTH : EI_BIG_SPHERE;
+        float base = ParticleTypeOf(type) == ParticleType::Antimagic ? EI_BIG_ANTIMAGIC : ParticleTypeOf(type) == ParticleType::SphereElectricity ? EI_BIG_EARTH : EI_BIG_SPHERE;
         big = Unsigned(Next()) * EI_P_SCALE_1 + D(base);
     } else {
         big = Unsigned(Next()) * EI_SCALE_0_03 + D(EI_MOTION_KEEP);
@@ -1097,12 +1097,12 @@ int CParticleSource::EmitOrbit(Particle* p, int index) {
     p->pos.y = py;
     p->pos.x = static_cast<float>(px);
     p->pos.z = pz;
-    if (ParticleTypeOf(type_) == ParticleType::SphereFire) {
+    if (ParticleTypeOf(type) == ParticleType::SphereFire) {
         double s = D(kSphereSizeByLife[p->life]) * D(p->drift.x) * D(radius);
         p->size = static_cast<float>(s + s);
-    } else if (ParticleTypeOf(type_) == ParticleType::Antimagic) {
+    } else if (ParticleTypeOf(type) == ParticleType::Antimagic) {
         p->size = static_cast<float>(D(kAntimagicSizeByLife[p->life]) * D(p->drift.x) * D(radius));
-    } else if (ParticleTypeOf(type_) == ParticleType::SphereElectricity) {
+    } else if (ParticleTypeOf(type) == ParticleType::SphereElectricity) {
         p->size = static_cast<float>(D(kSphereSizeByLife[p->life]) * D(p->drift.x) * D(radius));
     } else {
         p->size = static_cast<float>(D(kSphereSizeByLife[p->life]) * D(p->drift.x) * D(radius) * D(EI_AIR_SIZE));
@@ -1199,7 +1199,7 @@ int CParticleSource::UpdateCastRing(Particle* p) {
 void CParticleSource::TickCastRing(ParticleElement* e) {
     int t = --e->ticks;
     if (t == 0) {
-        flags_ &= ~ParticleSourceFlag::Emitting;
+        flags &= ~ParticleSourceFlag::Emitting;
         return;
     }
     float* radius = &e->flames.radius;
@@ -1272,7 +1272,7 @@ int CParticleSource::UpdateHealing(Particle* p) {
 void CParticleSource::TickHealing(ParticleElement* e) {
     int t = --e->ticks;
     if (t == 0) {
-        flags_ &= ~ParticleSourceFlag::Emitting;
+        flags &= ~ParticleSourceFlag::Emitting;
         return;
     }
     float* radius = &e->flames.radius;
@@ -1347,7 +1347,7 @@ int CParticleSource::UpdateCastSwirl(Particle* p) {
         p->size = 1.0f;
         p->size = static_cast<float>((Unsigned(Next()) * EI_MARKER_SIZE_SCALE + D(EI_MARKER_SIZE_BASE)) * D(size) *
                         D(EI_POINT_FOUR_C));
-        if ((flags_ & ParticleSourceFlag::Emitting) && attachedTo) return 1;
+        if ((flags & ParticleSourceFlag::Emitting) && attachedTo) return 1;
         int life = p->life;
         if (life < 0) return 0;
         p->color = (static_cast<std::uint32_t>(kRiseFallAlpha[life + 1]) << 24) | 0xFFFFFF;
@@ -1485,7 +1485,7 @@ int CParticleSource::UpdateLink(Particle* p) {
 // Link element 0: once the source stops emitting the alpha cap falls by 16 per tick
 // (not below 0). (The other elements' caps are unused.)
 void CParticleSource::TickLink(ParticleElement* e) {
-    if (!(flags_ & ParticleSourceFlag::Emitting)) e->ticks -= 16;
+    if (!(flags & ParticleSourceFlag::Emitting)) e->ticks -= 16;
     std::int32_t cap = e->ticks;
     e->ticks = cap < 0 ? 0 : cap;
 }
@@ -1640,7 +1640,7 @@ void CParticleSource::TickBlast(ParticleElement* e) {
     *radius = static_cast<float>(D(*radius) + D(*growthRate));
     int age = ++e->fragment.age;
     *growthRate = static_cast<float>(D(e->fragment.decay) * D(*growthRate));
-    if (age > 6) flags_ &= ~ParticleSourceFlag::Emitting;
+    if (age > 6) flags &= ~ParticleSourceFlag::Emitting;
     double scale = D(size);
     float* velocity = &e->fragment.velocity.x;
     float dx = static_cast<float>(scale * D(velocity[0]));
@@ -1678,14 +1678,14 @@ int CParticleSource::EmitPoisonFog(Particle*, int) {
             if (yu * D(y) + D(x) * D(x) >= D(radiusSquared)) continue;
             Particle* q = Manager()->AcquireParticle();
             if (!q) continue;
-            double px = D(x) + D(localPosition_.x);
+            double px = D(x) + D(localPosition.x);
             x = static_cast<float>(px);
-            y = static_cast<float>(D(y) + D(localPosition_.y));
+            y = static_cast<float>(D(y) + D(localPosition.y));
             q->pos.x = static_cast<float>(px);
             q->pos.y = y;
             q->size = static_cast<float>(Unsigned(Next()) * EI_FOG_SIZE_SCALE + D(EI_FOG_SIZE_BASE) - D(EI_FOG_QUARTER));
             q->pos.z = static_cast<float>(GroundHeight(x, y) + D(q->size));
-            if (ParticleTypeOf(type_) == ParticleType::PoisonCloud) {
+            if (ParticleTypeOf(type) == ParticleType::PoisonCloud) {
                 q->color = 0xFFFFAF7F;
             } else {
                 int a = x87::fistp(static_cast<float>(D(alpha) * D(EI_FOG_ALPHA)));
@@ -1768,7 +1768,7 @@ int CParticleSource::EmitGeyser(Particle* p, int) {
 // shrink by 0.9 (velocity.x holds the size) and cycle 4 frames.
 int CParticleSource::UpdateGeyser(Particle* p) {
     if (p->state != 0) {
-        if (!(flags_ & ParticleSourceFlag::Emitting)) {
+        if (!(flags & ParticleSourceFlag::Emitting)) {
             p->size = 0.0f;
             return 0;
         }
@@ -1870,7 +1870,7 @@ int CParticleSource::UpdateShower(Particle* p) {
 // Shower directions age; after 5 ticks the source stops emitting and lets go of its carrier.
 void CParticleSource::TickShower(ParticleElement* e) {
     if (++e->ray.age > 5) {
-        flags_ &= ~ParticleSourceFlag::Emitting;
+        flags &= ~ParticleSourceFlag::Emitting;
         Attach(nullptr);
     }
 }
@@ -2397,7 +2397,7 @@ void CParticleSource::TickTornado(ParticleElement* e) {
         b = elements[0].funnel.bend;
         EI_NAN_AUDIT(b);
         if (b == 0.0f && !particles.empty()) {
-            flags_ &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
+            flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
             Attach(nullptr);
         }
     }
@@ -2417,7 +2417,7 @@ int CParticleSource::EmitPortalStar(Particle* p, int) {
 // PortalStar: while the source emits, full colour and a random size of 0.8-1.2 times
 // the source's; dropped once it stops.
 int CParticleSource::UpdatePortalStar(Particle* p) {
-    if (!(flags_ & ParticleSourceFlag::Emitting)) return 0;
+    if (!(flags & ParticleSourceFlag::Emitting)) return 0;
     p->color = 0xFFFFFFFF;
     p->size = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 + D(0.8f)) * D(size));
     return 1;
@@ -2480,7 +2480,7 @@ int CParticleSource::EmitCylinder(Particle* p, int) {
 int CParticleSource::UpdateCylinder(Particle* p) {
     int state = p->state;
     if (state >= 0) {
-        if (!(flags_ & ParticleSourceFlag::Emitting)) {
+        if (!(flags & ParticleSourceFlag::Emitting)) {
             p->size = 0.0f;
             p->color = 0xFFFFFF;
             return 0;
@@ -2535,7 +2535,7 @@ void CParticleSource::TickCylinder(ParticleElement* e) {
     }
     int t = e->ticks--;
     if (t <= 0) {
-        flags_ &= ~ParticleSourceFlag::Emitting;
+        flags &= ~ParticleSourceFlag::Emitting;
         return;
     }
     float* rotation = e->star.rotation;
@@ -2550,7 +2550,7 @@ void CParticleSource::TickCylinder(ParticleElement* e) {
     *rise = static_cast<float>(D(*rise) * D(EI_CYL_RISE_UP));
     e->pos = {nx, ny, nz};
     double twist = static_cast<float>(D(EI_CYL_PI) * D(EI_CYL_TWIST));   // rounded to 24 bits, as the FPU does
-    if (ParticleTypeOf(type_) == ParticleType::Cylinder2) twist = -twist;
+    if (ParticleTypeOf(type) == ParticleType::Cylinder2) twist = -twist;
     float c = static_cast<float>(x87::fcos(twist));
     double s = x87::fsin(twist);
     double a = s * D(rotation[1]) + D(c) * D(rotation[0]);
@@ -2692,7 +2692,7 @@ int CParticleSource::UpdateArrowSmoke(Particle* p) {
         p->pos.y = static_cast<float>(D(motion.y) + D(origin.y));
         p->pos.z = static_cast<float>(D(motion.z) + D(origin.z));
         p->frame = static_cast<int>(Next() % 3);
-        return static_cast<int>(flags_ & ParticleSourceFlag::Emitting);
+        return static_cast<int>(flags & ParticleSourceFlag::Emitting);
     }
     if (--p->life == 0) return 0;
     if (--p->frameTimer == 0) {
@@ -2778,7 +2778,7 @@ int CParticleSource::UpdateBanshee(Particle* p) {
 // 30 times the source's height.
 void CParticleSource::TickBanshee(ParticleElement* e) {
     if (--e->ticks == 0) {
-        flags_ &= ~ParticleSourceFlag::Emitting;
+        flags &= ~ParticleSourceFlag::Emitting;
         return;
     }
     double target = D(height) * D(EI_BANSHEE_REACH);
@@ -2887,10 +2887,10 @@ int CParticleSource::EmitAcidRay(Particle* p, int) {
 int CParticleSource::UpdateAcidRay(Particle* p) {
     int life = --p->life;
     if (life == 0) return 0;
-    double size_ = D(size);
-    float sx = static_cast<float>(size_ * D(p->velocity.x));
-    float sy = static_cast<float>(size_ * D(p->velocity.y));
-    double sz = size_ * D(p->velocity.z);
+    double wideSize = D(size);
+    float sx = static_cast<float>(wideSize * D(p->velocity.x));
+    float sy = static_cast<float>(wideSize * D(p->velocity.y));
+    double sz = wideSize * D(p->velocity.z);
     double k = D(kAcidSpread[lifetime - life]);
     float ax = static_cast<float>(D(sx) * k);
     float ay = static_cast<float>(D(sy) * k);
@@ -2924,7 +2924,7 @@ int CParticleSource::EmitSparks(Particle* p, int) {
         p->state = 1;
         return 1;
     }
-    flags_ &= ~ParticleSourceFlag::Emitting;
+    flags &= ~ParticleSourceFlag::Emitting;
     p->color = 0xFFFFFFFF;
     float speed = static_cast<float>(Unsigned(Next()) * 1.3969837789817515e-10 + D(0.8f));
     float x, y, z;
@@ -3045,7 +3045,7 @@ int CParticleSource::UpdateClayRing(Particle* p) {
 void CParticleSource::TickClayRing(ParticleElement* e) {
     int t = --e->ticks;
     if (t < 0) {
-        flags_ &= ~ParticleSourceFlag::Emitting;
+        flags &= ~ParticleSourceFlag::Emitting;
         return;
     }
     float* previous = &e->clay.previous.x;
@@ -3113,7 +3113,7 @@ void CParticleSource::TickFalling(ParticleElement* e) {
         age = e->wind.age;
     }
     if (age > 0) {
-        flags_ &= ~ParticleSourceFlag::Emitting;
+        flags &= ~ParticleSourceFlag::Emitting;
         Attach(nullptr);
     }
     ++e->wind.age;
@@ -3189,7 +3189,7 @@ int CParticleSource::UpdateVulkan(Particle* p) {
 // FireStar: a single flash at the source (the source stops emitting at once) with the
 // source's lifetime as its frame and its size kept in velocity.x.
 int CParticleSource::EmitFireStar(Particle* p, int) {
-    flags_ &= ~ParticleSourceFlag::Emitting;
+    flags &= ~ParticleSourceFlag::Emitting;
     p->color = 0xFFFFFF;
     p->life = 3;
     p->frame = lifetime;
@@ -3227,10 +3227,10 @@ int CParticleSource::EmitRegeneration(Particle* p, int) {
 
 // Regeneration: once the source no longer emits (or has no carrier) its size shrinks by
 // a quarter per tick and the particles go below 0.02. Each particle eases (0.7 / 0.3) towards a
-// point beside the carrier: its own x axis (from localRotation_) scaled by the carrier's radius, the
+// point beside the carrier: its own x axis (from localRotation) scaled by the carrier's radius, the
 // particle's side and 0.65; a little above, by 0.4 of the source's size. Its size flickers at random.
 int CParticleSource::UpdateRegeneration(Particle* p) {
-    if (!(flags_ & ParticleSourceFlag::Emitting) || !attachedTo) {
+    if (!(flags & ParticleSourceFlag::Emitting) || !attachedTo) {
         double shrunk = D(size) * D(0.75f);
         size = static_cast<float>(shrunk);
         EI_NAN_AUDIT(shrunk);
@@ -3245,7 +3245,7 @@ int CParticleSource::UpdateRegeneration(Particle* p) {
     target = origin;
     if (attachedTo) {
         const CObject3D* carrier = attachedTo;
-        const Quaternion& turn = carrier->localRotation_;
+        const Quaternion& turn = carrier->localRotation;
         double w = D(turn.w), x = D(turn.x), y = D(turn.y), z = D(turn.z);
         double xx = x * x;
         double axisX = w * w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z) + (xx + xx);
@@ -3323,12 +3323,12 @@ int CParticleSource::UpdateVisionStar(Particle* p) {
         p->pos.y = static_cast<float>(D(p->velocity.y) + D(p->pos.y));
         p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
     }
-    if (ParticleTypeOf(type_) == ParticleType::VisionStar4) p->pos.z = static_cast<float>(D(p->pos.z) + D(0.7f));
+    if (ParticleTypeOf(type) == ParticleType::VisionStar4) p->pos.z = static_cast<float>(D(p->pos.z) + D(0.7f));
     double eased = (Unsigned(Next()) * 4.190951527764837e-10 + D(0.1f)) * D(size) * D(flicker) *
                        D(0.05f) +
                    D(oldSize) * D(0.95f);
     p->size = static_cast<float>(eased);
-    if ((flags_ & ParticleSourceFlag::Emitting) && attachedTo) return 1;
+    if ((flags & ParticleSourceFlag::Emitting) && attachedTo) return 1;
     p->size = static_cast<float>(eased * D(0.95f));
     size = 0.0f;
     EI_NAN_AUDIT(p->size);
@@ -3394,7 +3394,7 @@ int CParticleSource::UpdateFeebleMind(Particle* p) {
 int CParticleSource::UpdateFeetCloud(Particle* p) {
     int life = --p->life;
     if (life < 0) return 0;
-    if (!(flags_ & ParticleSourceFlag::Emitting) || !attachedTo) {
+    if (!(flags & ParticleSourceFlag::Emitting) || !attachedTo) {
         if (life > 8) life = 8;
         p->life = life;
     }
@@ -3443,7 +3443,7 @@ void CParticleSource::TickFeetCloud(ParticleElement* e) {
             FigurePartPosition(unit, &at, part);
             e->pos = at;
         } else {
-            const float* place = &unit->localPosition_.x;
+            const float* place = &unit->localPosition.x;
             float raise = unit->bounds.boxMax.z;
             std::memcpy(&e->pos, place, 2 * sizeof(float));
             e->pos.z = static_cast<float>(D(place[2]) + D(raise));
@@ -3522,7 +3522,7 @@ int CParticleSource::EmitSilence(Particle* p, int) {
 // tilted circle (radius: half the carrier's, kept in aux2), half a radius up, keeping its step in
 // drift and flickering in size. A wisp shows velocity.x (shrinking by 0.8) for its life.
 int CParticleSource::UpdateSilence(Particle* p) {
-    if (!(flags_ & ParticleSourceFlag::Emitting) || !attachedTo) {
+    if (!(flags & ParticleSourceFlag::Emitting) || !attachedTo) {
         if (p->state) size = static_cast<float>(D(size) * D(0.85f));
         EI_NAN_AUDIT(size);
         if (size < 0.02f) {
@@ -3629,7 +3629,7 @@ int CParticleSource::UpdateModifier(Particle* p) {
 void CParticleSource::TickModifier(ParticleElement* e) {
     int tick = e->ticks++;
     if (tick >= 10) {
-        flags_ &= ~ParticleSourceFlag::Emitting;
+        flags &= ~ParticleSourceFlag::Emitting;
         return;
     }
     e->ring.start = e->pos;
@@ -3698,7 +3698,7 @@ void CParticleSource::TickLightning(ParticleElement* e) {
     e->pos.y = static_cast<float>(D(speed[1]) + D(e->pos.y));
     e->pos.z = static_cast<float>(D(speed[2]) + D(e->pos.z));
     e->bolt.fork.z = static_cast<float>(D(speed[2]) - D(0.075f));
-    if (tick >= 10) flags_ &= ~ParticleSourceFlag::Emitting;
+    if (tick >= 10) flags &= ~ParticleSourceFlag::Emitting;
 }
 
 // --- Teleport (0x2019) -----------------------------------------------------------------------------
@@ -3774,7 +3774,7 @@ int CParticleSource::UpdateTeleport(Particle* p) {
 }
 
 void CParticleSource::TickTeleport(ParticleElement* e) {
-    if (++e->ticks > 35) flags_ &= ~ParticleSourceFlag::Emitting;
+    if (++e->ticks > 35) flags &= ~ParticleSourceFlag::Emitting;
 }
 
 // --- CurseStars (0x2050) and StartTrans (0x2051) -------------------------------------------------
@@ -3843,7 +3843,7 @@ int CParticleSource::UpdateCurseStars(Particle* p) {
     p->drift.y = static_cast<float>(D(p->drift.y) * slow);
     p->drift.z = static_cast<float>(D(p->drift.z) * slow);
     if (!attachedTo) {
-        flags_ &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
+        flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
         Attach(nullptr);
     }
     return 1;
@@ -4030,7 +4030,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     if (!unit) return 0;
     if (static_cast<double>(index) > D(typeParam)) return 0;
     Vector3 scratch;
-    Vector3 point = *Carrier(unit)->PositionAt(&scratch, index + g_clientWorld.tick_);
+    Vector3 point = *Carrier(unit)->PositionAt(&scratch, index + g_clientWorld.tick);
     float* mark = &elements[0].glow.mark.x;
     if (Same(mark[0], point.x) && Same(mark[1], point.y) && Same(mark[2], point.z)) return 0;
     elements[0].glow.mark = point;
@@ -4039,7 +4039,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     under.y = point.y;
     under.z = 0.0f;
     float ground = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(point.x, point.y));
-    double top = g_clientWorld.platforms_.SurfaceHeight(under, ground);
+    double top = g_clientWorld.platforms.SurfaceHeight(under, ground);
     p->pos.y = point.y;
     p->size = 0.07f;     // 0.07
     p->pos.x = point.x;
@@ -4052,7 +4052,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
 }
 
 void CParticleSource::TickGlow(ParticleElement*) {
-    flags_ &= ~ParticleSourceFlag::Emitting;
+    flags &= ~ParticleSourceFlag::Emitting;
 }
 
 // --- Stun (0x204D) -------------------------------------------------------------------------------
@@ -4093,7 +4093,7 @@ int CParticleSource::EmitStun(Particle* p, int) {
     p->velocity.x = static_cast<float>(Unsigned(Next()) * 1.3969837789817515e-10 + D(0.7f));
     auto* unit = static_cast<CUnit*>(attachedTo);   // the carrier is taken as a unit
     if (!unit) {
-        flags_ &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
+        flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
         Attach(nullptr);
         return 0;
     }
@@ -4104,7 +4104,7 @@ int CParticleSource::EmitStun(Particle* p, int) {
         emitCount = 1;
     }
     if (unit->IsDead()) {
-        flags_ &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
+        flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
         Attach(nullptr);
     }
     return 1;
@@ -4122,7 +4122,7 @@ int CParticleSource::UpdateStun(Particle* p) {
     p->size = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 + D(0.8f)) * D(size) *
                     D(p->velocity.x));
     if (!attachedTo) {
-        flags_ &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
+        flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
         Attach(nullptr);
     }
     return 1;

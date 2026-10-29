@@ -68,19 +68,19 @@ bool MpHeroRecord::ReadFile(const std::string& folder) {
     streams.file.Open(InFolder(folder, file), netlink::FileStream::kOpenRead, 1);
     if (!SaveFileRead(&streams.data, kPartyFileMagic, &streams.file)) return false;
     Party()->LoadParty(&streams.data, 1);
-    return streams.data.ok_ != 0;
+    return streams.data.ok != 0;
 }
 
 void SavedParties::SaveAll() {
-    if (str::Compare(folder_, game::kEmptyText) == 0)
+    if (str::Compare(folder, game::kEmptyText) == 0)
         return;
-    ClearSaveFolder(folder_);
+    ClearSaveFolder(folder);
     // The count is read again after each write.
-    for (unsigned i = 0; i < static_cast<unsigned>(entries_.size()); ++i) entries_[i].WriteFile(folder_);
+    for (unsigned i = 0; i < static_cast<unsigned>(entries.size()); ++i) entries[i].WriteFile(folder);
 }
 
 void SavedParties::ReserveOne() {
-    if (entries_.size() == entries_.capacity()) entries_.reserve(entries_.empty() ? 1 : 2 * entries_.size());
+    if (entries.size() == entries.capacity()) entries.reserve(entries.empty() ? 1 : 2 * entries.size());
 }
 
 // The saved parties.

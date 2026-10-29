@@ -54,7 +54,7 @@ constexpr float kTile = 0.25f;
 int CVisibilityFog::Draw(CSceneRenderer* renderer) {
     if (cells.size() == 0) return 1;
     if (cells.size() > kBoundsCells && !boundsValid) ComputeBounds();
-    if (renderer->pipeline_->ClipTest(&bounds) == kOutOfView) return 1;
+    if (renderer->pipeline->ClipTest(&bounds) == kOutOfView) return 1;
 
     g_sprites.resize(kWorkRecords);
     g_points.resize(kWorkRecords);

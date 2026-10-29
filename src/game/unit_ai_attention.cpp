@@ -18,7 +18,7 @@ AITargetChoice AIBrain::CurrentAttack() {
 
 void AIBrain::LookAround() {
     UnitList candidates;
-    Vector3 from = owner->unit->localPosition_;
+    Vector3 from = owner->unit->localPosition;
     AITargetChoice best = Choose(&candidates, from, true, false);
     ApplyAttack(&best);
 }

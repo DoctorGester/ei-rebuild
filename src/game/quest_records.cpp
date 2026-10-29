@@ -16,7 +16,7 @@ void QuestRecord::Serialize(ChunkArchive* ar) {
     ar->Field(6, &order);
     if (!ar->EnterChunk(7)) return;
     int count;
-    if (ar->loading_) {
+    if (ar->loading) {
         // erase(begin, end), then resize(count, 0.0f): the vector is empty, so a fill insert.
         places.clear();
         count = ar->CountChunks(1);

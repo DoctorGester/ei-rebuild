@@ -21,20 +21,20 @@ void* TopWindow() {
 
 int WindowRegionCount(void* window) {
     if (ei::Standalone()) return image::RegionCount(window);
-    return static_cast<const exe::CUiWindow*>(window)->regions_.size;
+    return static_cast<const exe::CUiWindow*>(window)->regions.size;
 }
 
 bool WindowRegion(void* window, int index, image::RegionInfo* region) {
     if (ei::Standalone()) return image::Region(window, index, region);
-    const exe::CUiRegion* found = static_cast<const exe::CUiWindow*>(window)->regions_.data[index];
+    const exe::CUiRegion* found = static_cast<const exe::CUiWindow*>(window)->regions.data[index];
     if (!found) return false;
-    region->left = found->bounds_.left;
-    region->top = found->bounds_.top;
-    region->right = found->bounds_.right;
-    region->bottom = found->bounds_.bottom;
-    region->offsetX = found->offsetX_;
-    region->offsetY = found->offsetY_;
-    region->enabled = found->enabled_;
+    region->left = found->bounds.left;
+    region->top = found->bounds.top;
+    region->right = found->bounds.right;
+    region->bottom = found->bounds.bottom;
+    region->offsetX = found->offsetX;
+    region->offsetY = found->offsetY;
+    region->enabled = found->enabled;
     return true;
 }
 

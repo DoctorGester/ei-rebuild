@@ -21,7 +21,7 @@ FigureModel::~FigureModel() {
 // The figure manager's destructor: every cached model destroyed and freed, the base's clean-up, the model map
 // cleared and its buckets freed (the map's inline destructor), then the base destructor.
 CFigureManager::~CFigureManager() {
-    for (auto& [name, model] : models_) {
+    for (auto& [name, model] : models) {
         delete model;
     }
     CResourceManager::Destroy();   // the base's clean-up

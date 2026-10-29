@@ -501,7 +501,7 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
     if (type < 5 || type == 5 || type == 6) {
         int skill = type >= 5 ? 1 : 0;
         float level = LevelAsFloat(this, type);
-        if (!IsTextKey(unit->id_)) return static_cast<double>(static_cast<int>(skills[skill])) + level;
+        if (!IsTextKey(unit->id)) return static_cast<double>(static_cast<int>(skills[skill])) + level;
         float weapon = WeaponBonus(unit, skill);
         float value = static_cast<float>(static_cast<int>(skills[skill]));
         const SkillRecord* record = unitdb::SkillAt(static_cast<std::uint32_t>(skill));
@@ -514,7 +514,7 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
         return ((base + value) + weapon) + level;
     }
     if (type == 8) {
-        if (!IsTextKey(unit->id_)) return static_cast<double>(static_cast<int>(skills[0]));
+        if (!IsTextKey(unit->id)) return static_cast<double>(static_cast<int>(skills[0]));
         float weapon = WeaponBonus(unit, 0);
         return SkillWithBonus(0) + weapon;
     }
@@ -563,8 +563,8 @@ void CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& na
             object->SetStats(&stats);
         }
         object->ScaleEffectChanged(false);
-        object->prototypeId_ = 0;
-        game::DebugLog("Can't find prototype \"%s\" for object %d.\n", name, object->id_);
+        object->prototypeId = 0;
+        game::DebugLog("Can't find prototype \"%s\" for object %d.\n", name, object->id);
         return;
     }
     const UnitModelRecord* model = ModelOf(prototype);
@@ -588,16 +588,16 @@ void CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& na
         UnitOrNull(object)->SetSecondPrototype(prototype);
     }
     UnitPrototypeRecord* record = g_unitDatabase.prototypes.FindByName(name);
-    object->prototypeId_ = record ? static_cast<std::uint32_t>(record - g_unitDatabase.prototypes.records.data()) : 0xFFFFFFFFu;
+    object->prototypeId = record ? static_cast<std::uint32_t>(record - g_unitDatabase.prototypes.records.data()) : 0xFFFFFFFFu;
 }
 
 // --- The factory ------------------------------------------------------------------------------
 
 // Every object starts zeroed (kZeroed): the units' constructors leave exposure and the
 // motion's turn fields, which the saves write.
-CEngineObject* CMapObjectManager::NewObject(int type) {
+CEngineObject* CMapObjectManager::NewObject(int objectType) {
     for (const FactoryEntry& entry : kFactory) {
-        if (entry.type != static_cast<MapObjectType>(type)) continue;
+        if (entry.type != static_cast<MapObjectType>(objectType)) continue;
         return entry.create();
     }
     return nullptr;

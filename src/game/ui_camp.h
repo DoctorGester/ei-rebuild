@@ -96,9 +96,9 @@ public:
     // Renders the pick picture (the zone markers alone in plain colours 0xFF181818 + 0x101010 * i) into the
     // backdrop; a click reads the zone back from its pixel. Nothing without a backdrop.
     void RefreshSelection();
-    // The way search, recursive: arrivals_ keeps the shortest time per exit into target_; the way goes on
+    // The way search, recursive: arrivals keeps the shortest time per exit into target; the way goes on
     // through a zone the player may pass ("z.<zone>" 2 for a game zone, not 1 for an edge, not 0 for a brief
-    // zone), pathTime_ growing by the exit's "#passtime".
+    // zone), pathTime growing by the exit's "#passtime".
     void FindPaths(MapRecord* from);
     // The ways from the local player's zone to `target`, the earlier results dropped.
     void SearchWays(const std::string& target);
@@ -119,7 +119,7 @@ public:
     void KeyDown(int key, int repeat, int flags) override;
     // A window above closed.
     void MessageResult(int result) override;
-    const char* HelpTopic() override { return noCamp_ ? "global_map_nocamp" : "global_map"; }
+    const char* HelpTopic() override { return noCamp ? "global_map_nocamp" : "global_map"; }
     // Ends a turn by a turn button.
     void LeftUp(int buttons, int x, int y) override;
     // Zones, then quests, then links, then the three layers.
@@ -127,39 +127,39 @@ public:
     // Scene objects 0..2 and those after the zone markers.
     void ShowAllButZones(bool visible);
     // Zones + quests + links: the layers and the rest follow them.
-    int MarkerCount() const { return static_cast<int>(zones_.size() + quests_.size() + links_.size()); }
+    int MarkerCount() const { return static_cast<int>(zones.size() + quests.size() + links.size()); }
 
-    int turning_ = 0;                // -1 / +1 while a turn button is held
-    float bobTime_ = 0.0f;           // seconds, for the arrow's bobbing and the layers' frames
-    std::string allodTitle_;
-    Vector3 position_{};             // the current zone on the map model
-    std::vector<GlobalMapZone> zones_;
-    std::vector<GlobalMapPlace> links_;
-    std::vector<GlobalMapPlace> quests_;
-    // The way search from the current zone to target_: the zones on the way so far and their summed
+    int turning = 0;                 // -1 / +1 while a turn button is held
+    float bobTime = 0.0f;            // seconds, for the arrow's bobbing and the layers' frames
+    std::string allodTitle;
+    Vector3 position{};              // the current zone on the map model
+    std::vector<GlobalMapZone> zones;
+    std::vector<GlobalMapPlace> links;
+    std::vector<GlobalMapPlace> quests;
+    // The way search from the current zone to target: the zones on the way so far and their summed
     // "#passtime".
-    std::vector<GlobalMapStep> path_;
-    float pathTime_ = 0.0f;
-    std::string target_;
-    bool found_ = false;             // a way reached the target
-    bool beyondTarget_ = false;      // the search goes on through the target zone itself
-    std::map<int, float> arrivals_; // target exit -> shortest time (-1: next to the current zone)
-    Quaternion turn_{1.0f, 0.0f, 0.0f, 0.0f};   // the model's orientation (the identity until built)
-    float angle_ = 0.0f;             // the model's turn about z (mod kGlobalMapFullTurn)
-    float depth_ = 10.0f;
-    float centreX_ = 400.0f;         // layout
-    float centreY_ = 280.0f;
-    bool selectPending_ = false;     // the zone selection is refreshed on the next update
-    CUiSurface* backdrop_ = nullptr; // a full-screen surface (not in the surface list)
-    CGlobalMapClouds* weather_ = nullptr;
-    bool dragging_ = false;          // the map is turned with the mouse
-    POINT dragStart_{};              // where the drag began (layout)
-    float dragAngle_ = 0.0f;         // angle_ when the drag began
-    std::string shownName_;         // the zone or link whose tip is shown
-    bool gipat_ = false;             // the allod is gipat
-    bool noCamp_ = false;            // the player's "i.nocamp" is 1: no camp button
-    float fog_[3] = {0.0f, 1.0f, 0.0f};   // the selected zone's tint, by allod
-    int windSound_ = 0;
+    std::vector<GlobalMapStep> path;
+    float pathTime = 0.0f;
+    std::string target;
+    bool found = false;              // a way reached the target
+    bool beyondTarget = false;       // the search goes on through the target zone itself
+    std::map<int, float> arrivals; // target exit -> shortest time (-1: next to the current zone)
+    Quaternion turn{1.0f, 0.0f, 0.0f, 0.0f};    // the model's orientation (the identity until built)
+    float angle = 0.0f;              // the model's turn about z (mod kGlobalMapFullTurn)
+    float depth = 10.0f;
+    float centreX = 400.0f;          // layout
+    float centreY = 280.0f;
+    bool selectPending = false;      // the zone selection is refreshed on the next update
+    CUiSurface* backdrop = nullptr; // a full-screen surface (not in the surface list)
+    CGlobalMapClouds* weather = nullptr;
+    bool dragging = false;           // the map is turned with the mouse
+    POINT dragStart{};               // where the drag began (layout)
+    float dragAngle = 0.0f;          // angle when the drag began
+    std::string shownName;          // the zone or link whose tip is shown
+    bool gipat = false;              // the allod is gipat
+    bool noCamp = false;             // the player's "i.nocamp" is 1: no camp button
+    float fog[3] = {0.0f, 1.0f, 0.0f};    // the selected zone's tint, by allod
+    int windSound = 0;
 };
 
 // --- Camp trade panel (the level-up page) ---
@@ -203,9 +203,9 @@ public:
     // Regions 4-9 the schools (Skill), 10 science (Science), 11 up the perks (Perk: the perk's record name
     // without its level digits, plus "0"; held ones with their level).
     ItemHoverInfo HoverInfo(int x, int y);
-    // One record per party member (recordIndex_ is left at the last).
+    // One record per party member (recordIndex is left at the last).
     void ResetRecords();
-    // Record recordIndex_ (when >= 0) from the party member's statistics; bought cleared.
+    // Record recordIndex (when >= 0) from the party member's statistics; bought cleared.
     void SnapshotRecord();
     // The reverse; when the hit point maximum was and is above 1, the slots are healed by what keeps the hit
     // points in proportion.
@@ -230,20 +230,20 @@ public:
     // bought) until it cannot. The hold time is not reset after a purchase.
     void Update() override;
     bool Bought() const { return Record().bought; }
-    const TradeStatsRecord& Record() const { return records_[recordIndex_]; }
+    const TradeStatsRecord& Record() const { return records[recordIndex]; }
 
-    int recordIndex_ = 0;
-    int learnableTop_ = 0;           // first learnable row shown
-    int perkTop_ = 0;                // first held perk shown
-    std::vector<TradeRow> learnable_;
-    std::vector<TradeRow> perks_;
-    std::vector<TradeRow> schools_;              // six
-    std::vector<TradeRow> science_;              // one
-    int experience_ = 0;             // experience the hero can spend
-    std::vector<TradeStatsRecord> records_;   // one per party member
-    int heldRegion_ = -1;            // the school / science row held after a purchase
-    float holdTime_ = 0.0f;          // from -0.5 s
-    std::vector<std::string> texts_; // the titles
+    int recordIndex = 0;
+    int learnableTop = 0;            // first learnable row shown
+    int perkTop = 0;                 // first held perk shown
+    std::vector<TradeRow> learnable;
+    std::vector<TradeRow> perks;
+    std::vector<TradeRow> schools;               // six
+    std::vector<TradeRow> science;               // one
+    int experience = 0;              // experience the hero can spend
+    std::vector<TradeStatsRecord> records;    // one per party member
+    int heldRegion = -1;             // the school / science row held after a purchase
+    float holdTime = 0.0f;           // from -0.5 s
+    std::vector<std::string> texts; // the titles
 };
 
 // --- Camp pages ---
@@ -252,7 +252,7 @@ public:
 // spell constructor, 3 its second page, 4 item constructor, 5 and 6 its other pages, 7 leave the camp.
 class CCampPages : public CItemScreen {
 public:
-    CCampPages(CInterface3D* ui, bool fromHeroScreen) : CItemScreen(ui), fromHeroScreen_(fromHeroScreen) {}
+    CCampPages(CInterface3D* ui, bool newFromHeroScreen) : CItemScreen(ui), fromHeroScreen(newFromHeroScreen) {}
     // Hands the local player's unit records back (their ids were raised by 100000000 for the call) and
     // deletes the constructors' part lists except the first of each.
     void CloseScreen() override;
@@ -260,12 +260,12 @@ public:
     void MessageResult(int result) override;
     // What an item strip or a panel calls with its action mode: 0 off the hero, 1 PutOnFromStrip, 2 / 3 into
     // a constructor's slots, 4 / 5 out of a constructor's trade lists, 6 / 7 out of the makers' slots, 8 out
-    // of itemExtra_. Refused by CanEquip: the cancel sound.
+    // of itemExtra. Refused by CanEquip: the cancel sound.
     void TakeItem(CItem* item, int mode) override;
     // Camp page `page` (1-21).
     void TopicClicked(int page) override;
     // Not checked.
-    CUnit* HeroUnit(int index) override { return heroes_[index]; }
+    CUnit* HeroUnit(int index) override { return heroes[index]; }
     // Over the party's heroes, the best skill in spell school `school` (rounded to nearest) and the most
     // mana units (maximum mana / period, truncated).
     PartySkill BestPartySkill(int school) override;
@@ -284,7 +284,7 @@ public:
     bool CanEquip(CItem* item, int mode) override;
     // The page's action and its cost against the money (experience on the trade page).
     void UpdateAction();
-    // Keeps what the constructor makes in spellMade_ (itemMade_); true when it can be made.
+    // Keeps what the constructor makes in spellMade (itemMade); true when it can be made.
     bool CanMakeSpell();
     bool CanMakeItem();
     // The item's base price times the camp's multiplier for deal `kind`; weapons and armour also lose the
@@ -319,8 +319,8 @@ public:
     void KeyDown(int key, int repeat, int flags) override;
     const char* HelpTopic() override;
     // By page: 0 repairs the hero's weapons and armour, 1 settles the trade (the money is left alone), 2 / 4
-    // a constructor buys its third list, 3 / 5 the made spell / item (or the parts while deconstructing_),
-    // 6 the repairs. Then the money goes down by cost_.
+    // a constructor buys its third list, 3 / 5 the made spell / item (or the parts while deconstructing),
+    // 6 the repairs. Then the money goes down by cost.
     void DoAction();
     // By page: 1 the trade settled with (0, 0); 2-6 the lists given back.
     void UndoAction();
@@ -334,44 +334,44 @@ public:
     // first lists.
     void DebugFill() override;
 
-    int page_ = 0;
-    bool fromHeroScreen_;            // opened from the multiplayer hero screen (closes with a pending value)
-    bool spellConstructor_ = false;  // the spell constructor's pages are offered
-    bool itemConstructor_ = false;   // the item constructor's pages are offered
-    ClassTemplate* constructor_ = nullptr;   // the constructor's class template ("constr.current"), or null
+    int page = 0;
+    bool fromHeroScreen;             // opened from the multiplayer hero screen (closes with a pending value)
+    bool spellConstructor = false;   // the spell constructor's pages are offered
+    bool itemConstructor = false;    // the item constructor's pages are offered
+    ClassTemplate* constructor = nullptr;    // the constructor's class template ("constr.current"), or null
     // A unit per party record, null for other classes.
-    std::vector<CUnit*> heroes_;
-    int hero_ = -1;                  // the hero shown
+    std::vector<CUnit*> heroes;
+    int hero = -1;                   // the hero shown
     // The constructors' parts and what they made.
-    CParty* itemParts_[3] = {};
-    CParty* itemResults_ = nullptr;
-    CParty* itemExtra_ = nullptr;
-    CParty* spellParts_[3] = {};
-    CParty* spellResults_ = nullptr;
-    CHeroStatsPanel* statsPanel_ = nullptr;
-    CItemInfoPanel* helpPanel_ = nullptr;
-    CUiItemStrip* itemStrip_ = nullptr;
-    CHeroEquipPanel* equipment_ = nullptr;
-    CHeroQuickStrip* equipment2_ = nullptr;
-    CUiItemStrip* spellStrip_ = nullptr;
-    CUiItemStrip* partStrip_ = nullptr;
-    CTradePanel* trade_ = nullptr;
-    CTradeGrid* spellConstructor1_ = nullptr;
-    CSpellMakerPage* spellConstructor2_ = nullptr;
-    CTradeGrid* itemConstructor1_ = nullptr;
-    CConstructorPage* itemConstructor2_ = nullptr;
-    CRepairGrid* itemConstructor3_ = nullptr;
-    int cost_ = 0;                   // what the action costs (negative: earns)
-    bool actionEnabled_ = false;     // the action button can be pressed
-    bool actionShown_ = false;
-    bool deconstructing_ = false;    // the constructor takes an item apart
-    Ref<CItem> itemMade_;            // the item the item constructor would make, or null
-    Ref<CItem> spellMade_;           // the spell container the spell constructor would make, or null
-    float priceWeights_[9] = {};     // ClassTemplate::weights
-    std::vector<std::string> pageTitles_;   // the seven pages' titles and "quit"
-    bool noConstructor_ = false;     // the player's "i.noconstr" = 1: second pages hidden
-    float heroTurn_ = 0.0f;          // the hero preview's turn (radians)
-    int turning_ = 0;                // 1 / 2 while a turn button is held (Update turns the hero)
+    CParty* itemParts[3] = {};
+    CParty* itemResults = nullptr;
+    CParty* itemExtra = nullptr;
+    CParty* spellParts[3] = {};
+    CParty* spellResults = nullptr;
+    CHeroStatsPanel* statsPanel = nullptr;
+    CItemInfoPanel* helpPanel = nullptr;
+    CUiItemStrip* itemStrip = nullptr;
+    CHeroEquipPanel* equipment = nullptr;
+    CHeroQuickStrip* equipment2 = nullptr;
+    CUiItemStrip* spellStrip = nullptr;
+    CUiItemStrip* partStrip = nullptr;
+    CTradePanel* trade = nullptr;
+    CTradeGrid* spellConstructor1 = nullptr;
+    CSpellMakerPage* spellConstructor2 = nullptr;
+    CTradeGrid* itemConstructor1 = nullptr;
+    CConstructorPage* itemConstructor2 = nullptr;
+    CRepairGrid* itemConstructor3 = nullptr;
+    int cost = 0;                    // what the action costs (negative: earns)
+    bool actionEnabled = false;      // the action button can be pressed
+    bool actionShown = false;
+    bool deconstructing = false;     // the constructor takes an item apart
+    Ref<CItem> itemMade;             // the item the item constructor would make, or null
+    Ref<CItem> spellMade;            // the spell container the spell constructor would make, or null
+    float priceWeights[9] = {};      // ClassTemplate::weights
+    std::vector<std::string> pageTitles;    // the seven pages' titles and "quit"
+    bool noConstructor = false;      // the player's "i.noconstr" = 1: second pages hidden
+    float heroTurn = 0.0f;           // the hero preview's turn (radians)
+    int turning = 0;                 // 1 / 2 while a turn button is held (Update turns the hero)
 };
 
 // --- Hero statistics panel ---
@@ -388,7 +388,7 @@ public:
     // encumbrance, 10 the magic skills; other pages the attributes (page 10: row 14 the points left, row 5
     // the height).
     ItemHoverInfo HoverInfo(int x, int y);
-    // `title` may be null; the hero arrows show only for a party of more than one; points_ = the hero's
+    // `title` may be null; the hero arrows show only for a party of more than one; points = the hero's
     // height * 100 (truncated).
     void SetHero(int heroIndex, std::optional<std::string_view> title);
     // On page 10 a -/+ button (regions 6-13) steps a point and is held; elsewhere region 0 / 1 show the
@@ -400,8 +400,8 @@ public:
     // Lets the mouse go unconditionally and ends the hold.
     void LeftUp(int buttons, int x, int y) override;
     // Regions 6-8 take a point from strength, dexterity, intelligence (above 15), 9 the height down
-    // (points_ >= 1), 10-12 give one (below 35, while the three add up to under 75), 13 the height up
-    // (points_ <= 99; height = points_ * 0.01). True when it changed something.
+    // (points >= 1), 10-12 give one (below 35, while the three add up to under 75), 13 the height up
+    // (points <= 99; height = points * 0.01). True when it changed something.
     bool StepPoint(int region);
     // The text of "perk <label>" (else `label` itself), `value` as "%d", or "%d/%d" with a maximum >= 0.
     void DrawRow(const RECT& rect, std::string_view label, int value, int maximum);
@@ -410,13 +410,13 @@ public:
     // Per damage type the three layers' absorption summed (stored as float); the largest of the first six.
     float PartArmour(int part);
 
-    int heroIndex_ = 0;
-    std::string title_;
-    int page_ = 0;
-    std::vector<std::string> texts_;
-    int points_ = 0;                 // skill points left (page 10); SetHero puts the height * 100 here
-    int heldRegion_ = -1;            // the -/+ button held on page 10 (-1 none)
-    float holdTime_ = 0.0f;          // seconds it has been held (from -0.5)
+    int heroIndex = 0;
+    std::string title;
+    int page = 0;
+    std::vector<std::string> texts;
+    int points = 0;                  // skill points left (page 10); SetHero puts the height * 100 here
+    int heldRegion = -1;             // the -/+ button held on page 10 (-1 none)
+    float holdTime = 0.0f;           // seconds it has been held (from -0.5)
 };
 
 // --- Hero equipment panel ---
@@ -438,8 +438,8 @@ public:
     // worn at body part region - 8 (topic region - 4).
     CItem* ItemAt(int x, int y, int* topic) override;
 
-    bool body_ = false;
-    int selected_ = -1;
+    bool body = false;
+    int selected = -1;
 };
 
 // The 4 x 4 grid of item cells on the constructors' first pages.
@@ -454,11 +454,11 @@ public:
     // 0x11 for the spell one), 8-15 the sold list (0x1D / 0x0C / 0x12).
     CItem* ItemAt(int x, int y, int* topic) override;
 
-    std::vector<CItem*>* bought_ = nullptr;
-    std::vector<CItem*>* sold_ = nullptr;
-    int buyKind_ = 0;
-    int sellKind_ = 0;
-    bool exchange_ = false;
+    std::vector<CItem*>* bought = nullptr;
+    std::vector<CItem*>* sold = nullptr;
+    int buyKind = 0;
+    int sellKind = 0;
+    bool exchange = false;
 };
 
 // The repair page's grid: the same cells as the trade grid with textures repair1..4.
@@ -471,7 +471,7 @@ public:
     // Topic 0x19 on the 16 cells.
     CItem* ItemAt(int x, int y, int* topic) override;
 
-    std::vector<CItem*>* items_ = nullptr;
+    std::vector<CItem*>* items = nullptr;
 };
 
 // The quick item strip of the hero panels: eight cells along the top (camp) or the bottom of the screen.
@@ -486,8 +486,8 @@ public:
     CItem* ItemAt(int x, int y, int* topic) override;
     void Draw(CSceneRenderer* pass) override;
 
-    int y_ = 0;
-    int selected_ = -1;
+    int y = 0;
+    int selected = -1;
 };
 
 // The constructors' second pages: the spell maker and the item maker: the slots of what is being made beside
@@ -502,8 +502,8 @@ public:
     // container (0x10), from 3 material region - 3 (0xF).
     CItem* ItemAt(int x, int y, int* topic) override;
 
-    CParty* slots_ = nullptr;
-    float pulse_ = 0.0f;             // the highlight's time
+    CParty* slots = nullptr;
+    float pulse = 0.0f;              // the highlight's time
 };
 class CSpellMakerPage : public CConstructorPage {
 public:
@@ -517,5 +517,5 @@ public:
     // next part goes.
     void Draw(CSceneRenderer* pass) override;
 
-    std::vector<std::string> texts_; // the cost texts ("infoitem_35", "infoitem_36")
+    std::vector<std::string> texts; // the cost texts ("infoitem_35", "infoitem_36")
 };

@@ -58,27 +58,27 @@ inline bool HarnessActive() {
     return ei::Standalone() ? ei::verify::image::AppActive() : ei::OriginalGameData<std::uint8_t>(0x0079BC5C) != 0;
 }
 
-// The game flow's request (GameFlow::state_: 0 none, 2 load, 3 new game) and the load request's slot.
+// The game flow's request (GameFlow::state: 0 none, 2 load, 3 new game) and the load request's slot.
 inline int& HarnessFlowState() {
-    return ei::Standalone() ? ei::verify::image::FlowState() : harness_objects::Flow()->state_;
+    return ei::Standalone() ? ei::verify::image::FlowState() : harness_objects::Flow()->state;
 }
 inline void HarnessSetLoadTarget(const char* slot) {
     if (ei::Standalone()) ei::verify::image::SetLoadTarget(slot);
-    else harness_objects::SetString(&harness_objects::Flow()->requestTarget_, slot);
+    else harness_objects::SetString(&harness_objects::Flow()->requestTarget, slot);
 }
 
 // The options the harness sets: the tutorial windows off, the master server's host, the water's waves.
 inline void HarnessClearShowTutorial() {
     if (ei::Standalone()) ei::verify::image::ClearShowTutorial();
-    else harness_objects::Options()->showTutorial_ = 0;
+    else harness_objects::Options()->showTutorial = 0;
 }
 inline void HarnessSetMasterHost(const char* host) {
     if (ei::Standalone()) ei::verify::image::SetMasterHost(host);
-    else harness_objects::SetString(&harness_objects::Options()->masterServerName_, host);
+    else harness_objects::SetString(&harness_objects::Options()->masterServerName, host);
 }
 inline void HarnessSetWaterWaves(bool on) {
     if (ei::Standalone()) ei::verify::image::SetWaterWaves(on);
-    else harness_objects::Options()->enableWaterWaves_ = on;
+    else harness_objects::Options()->enableWaterWaves = on;
 }
 
 // The cursor's state the cursor check logs and compares.
@@ -86,10 +86,10 @@ inline ei::verify::image::CursorState HarnessCursor() {
     if (ei::Standalone()) return ei::verify::image::Cursor();
     const ei::verify::exe::CCursor* cursor = harness_objects::Cursor();
     ei::verify::image::CursorState state;
-    state.mode = cursor->mode_;
-    state.thread = cursor->thread_ != nullptr;
-    state.imageShown = cursor->imageShown_;
-    if (const ei::verify::exe::CursorImage* image = cursor->image_) {
+    state.mode = cursor->mode;
+    state.thread = cursor->thread != nullptr;
+    state.imageShown = cursor->imageShown;
+    if (const ei::verify::exe::CursorImage* image = cursor->image) {
         state.image = true;
         state.hotX = image->hotX;
         state.hotY = image->hotY;
@@ -100,23 +100,23 @@ inline ei::verify::image::CursorState HarnessCursor() {
 // The interface's window queued to come on top (null: none), its pending close-all, its screen fade (false without
 // one) and its layout size.
 inline void* HarnessQueuedWindow() {
-    return ei::Standalone() ? ei::verify::image::QueuedWindow() : harness_objects::Interface()->queuedWindow_;
+    return ei::Standalone() ? ei::verify::image::QueuedWindow() : harness_objects::Interface()->queuedWindow;
 }
 inline bool HarnessCloseAllPending() {
-    return ei::Standalone() ? ei::verify::image::CloseAllPending() : harness_objects::Interface()->closeAll_;
+    return ei::Standalone() ? ei::verify::image::CloseAllPending() : harness_objects::Interface()->closeAll;
 }
 inline bool HarnessScreenFade(bool* running, float* alpha) {
     if (ei::Standalone()) return ei::verify::image::ScreenFade(running, alpha);
-    const ei::verify::exe::CScreenFade* fade = harness_objects::Interface()->fade_;
+    const ei::verify::exe::CScreenFade* fade = harness_objects::Interface()->fade;
     if (!fade) return false;
-    *running = fade->active_ != 0;
-    *alpha = fade->alpha_;
+    *running = fade->active != 0;
+    *alpha = fade->alpha;
     return true;
 }
 
 // The server world's campaign mode: its session kind (007C2CC4), which GameFlow::StartZone sets.
 inline int HarnessCampaignMode() {
-    return ei::Standalone() ? ei::verify::image::CampaignMode() : ei::verify::exe::ServerWorld()->sessionKind_;
+    return ei::Standalone() ? ei::verify::image::CampaignMode() : ei::verify::exe::ServerWorld()->sessionKind;
 }
 
 // The client world (for the game's picks; null-checked by them).
@@ -126,7 +126,7 @@ inline void* HarnessClientWorld() {
 
 // The scene renderer's device (null before it is made) and the device's lock.
 inline void* HarnessSceneDevice() {
-    return ei::Standalone() ? ei::verify::image::SceneDevice() : harness_objects::SceneRenderer()->device_.device;
+    return ei::Standalone() ? ei::verify::image::SceneDevice() : harness_objects::SceneRenderer()->device.device;
 }
 inline _RTL_CRITICAL_SECTION* HarnessDeviceLock() {
     return ei::Standalone() ? static_cast<_RTL_CRITICAL_SECTION*>(ei::verify::image::DeviceLock())

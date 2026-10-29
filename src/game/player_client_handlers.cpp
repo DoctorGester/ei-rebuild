@@ -45,29 +45,29 @@ constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};
 } // namespace
 
 int CPlayerClient::OnLoginAccepted() {
-    int id;
-    in_.ReadValue(id);
-    state_ = kStateLoggedIn;
-    CPlayer* player = player_;
-    static_cast<CPlayerManager*>(player->owner_)->ChangeId(player, id);
+    int objectId;
+    in.ReadValue(objectId);
+    state = kStateLoggedIn;
+    CPlayer* currentPlayer = player;
+    static_cast<CPlayerManager*>(currentPlayer->owner)->ChangeId(currentPlayer, objectId);
     return 1;
 }
 
 int CPlayerClient::OnDisconnect() {
-    player_->Disconnect();
+    player->Disconnect();
     return 1;
 }
 
 int CPlayerClient::OnCameraPlacement() {
     Vector3 point;
-    in_.ReadValue(point);
+    in.ReadValue(point);
     float heading;
-    in_.ReadValue(heading);
+    in.ReadValue(heading);
     int mode;
-    const int result = static_cast<int>(in_.Read(&mode, 4));
+    const int result = static_cast<int>(in.Read(&mode, 4));
     g_clientWorld.CentreOn(point);
     CCamera* camera = &g_camera;
-    if (player_->Party()->zone_ == FixedViewZone()) {
+    if (player->Party()->zone == FixedViewZone()) {
         CameraView view;
         view.distance = kSpecialZoneDistance;
         view.rotation = kFixedViewRotation;
@@ -81,21 +81,21 @@ int CPlayerClient::OnCameraPlacement() {
 }
 
 int CPlayerClient::OnGameState() {
-    CPlayer* player = player_;
-    player->lastScreen_ = static_cast<std::uint32_t>(player->sessionKind_);
-    int state;
-    in_.ReadValue(state);
+    CPlayer* currentPlayer = player;
+    currentPlayer->lastScreen = static_cast<std::uint32_t>(currentPlayer->sessionKind);
+    int gameState;
+    in.ReadValue(gameState);
     int tick;
-    in_.ReadValue(tick);
-    if (localSession_) {
+    in.ReadValue(tick);
+    if (localSession) {
         g_interface.OnKeyDown(-1, kKeyEnter, 0);
         return 1;
     }
-    player->sessionKind_ = state;
-    g_interface.CreateScreen(state);
-    g_clientWorld.tick_ = tick;
-    if (state == kGameStateBetweenZones) g_clientWorld.LoadUnitFaces();
-    for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node)
+    currentPlayer->sessionKind = gameState;
+    g_interface.CreateScreen(gameState);
+    g_clientWorld.tick = tick;
+    if (gameState == kGameStateBetweenZones) g_clientWorld.LoadUnitFaces();
+    for (auto node = currentPlayer->units.begin(); node != currentPlayer->units.end() && node->second; ++node)
         UnitChanged(node->second);
     if (IsMultiplayerClient()) g_gameFlow.UpdateFromServer();
     return 1;
@@ -108,32 +108,32 @@ int CPlayerClient::OnGameLost() {
 
 int CPlayerClient::OnUnitSpeech() {
     int values[2];
-    in_.Read(values, 8);
+    in.Read(values, 8);
     g_interface.OnUnitSpeech(values[0], static_cast<AckKind>(values[1]));
     return 1;
 }
 
 int CPlayerClient::OnObjectValues() {
     for (;;) {
-        int id;
-        in_.ReadValue(id);
-        if (id == -1) return 1;
-        if (!in_.ok_) return 0;
-        CItem* item = FindItem(g_clientWorld.itemManager_, static_cast<unsigned>(id));
+        int objectId;
+        in.ReadValue(objectId);
+        if (objectId == -1) return 1;
+        if (!in.ok) return 0;
+        CItem* item = FindItem(g_clientWorld.itemManager, static_cast<unsigned>(objectId));
         if (!item) continue;   // the value is then read as the next id (kept)
         float value;
-        in_.ReadValue(value);
-        item->charge_ = value;
+        in.ReadValue(value);
+        item->charge = value;
     }
 }
 
 int CPlayerClient::OnFreeCamera() {
     Vector3 from;
-    in_.ReadValue(from);
+    in.ReadValue(from);
     Vector3 to;
-    in_.ReadValue(to);
+    in.ReadValue(to);
     std::uint8_t free = 0;
-    in_.ReadValue(free);
+    in.ReadValue(free);
     g_camera.LookFrom(from, to);
     g_camera.SetFree(free != 0);
     return 1;
@@ -141,34 +141,34 @@ int CPlayerClient::OnFreeCamera() {
 
 int CPlayerClient::OnWorldValue() {
     std::uint8_t bytes[5];
-    in_.Read(bytes, 5);
+    in.Read(bytes, 5);
     int value;
     lib::LoadBytes(value, bytes + 1);
-    player_->ClientWorld()->SetWorldValue(value);
+    player->ClientWorld()->SetWorldValue(value);
     return 1;
 }
 
 int CPlayerClient::OnItemValue() {
-    int id;
-    in_.ReadValue(id);
+    int objectId;
+    in.ReadValue(objectId);
     float value;
-    in_.ReadValue(value);
-    CPlayer* player = player_;
-    CItem* item = FindItem(player->Party()->ItemFactory(), static_cast<unsigned>(id));
+    in.ReadValue(value);
+    CPlayer* currentPlayer = player;
+    CItem* item = FindItem(currentPlayer->Party()->ItemFactory(), static_cast<unsigned>(objectId));
     if (item) {
-        item->charge_ = value;
-        player->ItemUsed(item);
+        item->charge = value;
+        currentPlayer->ItemUsed(item);
     }
     return 1;
 }
 
 int CPlayerClient::OnWeaponRemoved() {
     int unitId;
-    in_.ReadValue(unitId);
+    in.ReadValue(unitId);
     int index;
-    in_.ReadValue(index);
+    in.ReadValue(index);
     // The party (an embedded CParty) seen as its record array.
-    PartyUnitRecord* record = player_->Party()->Find(unitId);
+    PartyUnitRecord* record = player->Party()->Find(unitId);
     if (record && std::ssize(record->weapons) > index)
         record->RemoveWeapon(record->weapons[index]);
     if (CUnit* unit = g_clientWorld.FindUnit(unitId)) unit->Controller()->ShowWeapon(0xFFFFFFFFu);
@@ -177,9 +177,9 @@ int CPlayerClient::OnWeaponRemoved() {
 
 int CPlayerClient::OnUnitControl() {
     int kind = 0;
-    in_.Read(&kind, 1);
+    in.Read(&kind, 1);
     int unitId;
-    in_.ReadValue(unitId);
+    in.ReadValue(unitId);
     auto* unit = g_clientWorld.FindUnit(unitId);
     switch (kind) {
     case 0:
@@ -187,10 +187,10 @@ int CPlayerClient::OnUnitControl() {
         return 1;
     case 1:
     case 2: {
-        if (!unit || (unit->flags_ & kUnitFlagHidden)) return 1;
-        const bool lit = (unit->flags_ & kUnitFlagLit) != 0;
+        if (!unit || (unit->flags & kUnitFlagHidden)) return 1;
+        const bool lit = (unit->flags & kUnitFlagLit) != 0;
         if (lit == (kind == 1)) return 1;
-        unit->flags_ ^= kUnitFlagLit;
+        unit->flags ^= kUnitFlagLit;
         unit->Object3D()->attached->SetLit(kind == 1);
         return 1;
     }
@@ -203,13 +203,13 @@ int CPlayerClient::OnUnitControl() {
 }
 
 int CPlayerClient::OnObjectChanged() {
-    int id;
-    in_.ReadValue(id);
-    CPlayer::MapObjectMap& known = player_->knownObjects_;
-    auto node = known.find(id);
+    int objectId;
+    in.ReadValue(objectId);
+    CPlayer::MapObjectMap& known = player->knownObjects;
+    auto node = known.find(objectId);
     if (node == known.end()) return 0;
     CMapObject* object = node->second;
-    if (object->ReadState(1, &in_) == 0) return 0;
+    if (object->ReadState(1, &in) == 0) return 0;
     const ClassId classId = object->GetClassId();
     if (classId == ClassId::Building || classId == ClassId::Lever)
         ClientWorld()->RefreshPlatforms(object);   // the client's own
@@ -217,76 +217,76 @@ int CPlayerClient::OnObjectChanged() {
 }
 
 int CPlayerClient::OnObjectRemoved() {
-    int id;
-    in_.ReadValue(id);
-    CPlayer* player = player_;
-    if (auto unit = player->units_.find(id); unit != player->units_.end()) unit->second->SetPlayer(nullptr);
-    auto node = player->knownObjects_.find(id);
-    if (node == player->knownObjects_.end()) return 0;
+    int objectId;
+    in.ReadValue(objectId);
+    CPlayer* currentPlayer = player;
+    if (auto unit = currentPlayer->units.find(objectId); unit != currentPlayer->units.end()) unit->second->SetPlayer(nullptr);
+    auto node = currentPlayer->knownObjects.find(objectId);
+    if (node == currentPlayer->knownObjects.end()) return 0;
     CMapObject* object = node->second;
-    player->knownObjects_.erase(id);
-    object->flags_ |= MapObjectFlag::Removed;
+    currentPlayer->knownObjects.erase(objectId);
+    object->flags |= MapObjectFlag::Removed;
     object->Release();
-    g_clientWorld.RemoveObject(object->id_);
+    g_clientWorld.RemoveObject(object->id);
     return 1;
 }
 
 int CPlayerClient::OnUnitDied() {
-    int id;
-    in_.ReadValue(id);
-    CEngineObject* object = g_clientWorld.objectManager_->FindObject(static_cast<unsigned>(id));
+    int objectId;
+    in.ReadValue(objectId);
+    CEngineObject* object = g_clientWorld.objectManager->FindObject(static_cast<unsigned>(objectId));
     if (CUnit* unit = UnitOrNull(object)) unit->Controller()->Died();
     return 1;
 }
 
 int CPlayerClient::OnTimedObjectAdded() {
     int message[2];   // id, type
-    in_.Read(message, 8);
-    const int id = message[0];
-    CPlayer* player = player_;
-    CBaseManager* manager = player->WorldContext()->TimedObjectManager();
-    auto* object = manager->CreateObjectAs<CEffect>(message[1], id);
+    in.Read(message, 8);
+    const int objectId = message[0];
+    CPlayer* currentPlayer = player;
+    CBaseManager* manager = currentPlayer->WorldContext()->TimedObjectManager();
+    auto* object = manager->CreateObjectAs<CEffect>(message[1], objectId);
     if (!object) return 0;
-    if (!object->Receive(0, &in_)) return 0;
-    if (id > player->maxTimedId_) player->maxTimedId_ = id;
-    player->knownTimed_[id] = object;
+    if (!object->Receive(0, &in)) return 0;
+    if (objectId > currentPlayer->maxTimedId) currentPlayer->maxTimedId = objectId;
+    currentPlayer->knownTimed[objectId] = object;
     object->AddRef();
     return 1;
 }
 
 int CPlayerClient::OnTimedObjectChanged() {
-    int id;
-    in_.ReadValue(id);
-    CPlayer::TimedObjectMap& known = player_->knownTimed_;
-    auto node = known.find(id);
+    int objectId;
+    in.ReadValue(objectId);
+    CPlayer::TimedObjectMap& known = player->knownTimed;
+    auto node = known.find(objectId);
     if (node == known.end()) return 0;
-    return node->second->Receive(1, &in_) != 0 ? 1 : 0;
+    return node->second->Receive(1, &in) != 0 ? 1 : 0;
 }
 
 int CPlayerClient::OnTimedObjectRemoved() {
-    int id;
-    in_.ReadValue(id);
-    CPlayer* player = player_;
-    auto node = player->knownTimed_.find(id);
-    if (node == player->knownTimed_.end()) return 0;
+    int objectId;
+    in.ReadValue(objectId);
+    CPlayer* currentPlayer = player;
+    auto node = currentPlayer->knownTimed.find(objectId);
+    if (node == currentPlayer->knownTimed.end()) return 0;
     CEffect* object = node->second;
-    player->knownTimed_.erase(id);
-    object->flags_ |= MapObjectFlag::Removed;
+    currentPlayer->knownTimed.erase(objectId);
+    object->flags |= MapObjectFlag::Removed;
     object->Release();
     return 1;
 }
 
 int CPlayerClient::OnWeather() {
     std::uint8_t bytes[3];
-    in_.Read(bytes, 3);
+    in.Read(bytes, 3);
     const int strength = bytes[1] | (bytes[2] << 8);
-    g_clientWorld.rainSnow_.Start(bytes[0], static_cast<float>(strength));
+    g_clientWorld.rainSnow.Start(bytes[0], static_cast<float>(strength));
     return 1;
 }
 
 int CPlayerClient::OnWorldTime() {
     float values[2];   // time, speed
-    in_.Read(values, 8);
+    in.Read(values, 8);
     CWorldClient* world = &g_clientWorld;
     world->CWorld::SetTimeSpeed(values[1]);
     world->CWorld::SetTime(values[0]);
@@ -296,15 +296,15 @@ int CPlayerClient::OnWorldTime() {
 
 int CPlayerClient::OnWorldPoint() {
     Vector3 point;
-    in_.ReadValue(point);
+    in.ReadValue(point);
     int value;
-    in_.ReadValue(value);
+    in.ReadValue(value);
     g_clientWorld.ApplyWind(point, std::bit_cast<float>(value));
     return 1;
 }
 
 int CPlayerClient::OnWorldStream() {
-    g_clientWorld.ReadWaterLevels(&in_);
+    g_clientWorld.ReadWaterLevels(&in);
     return 1;
 }
 
@@ -312,9 +312,9 @@ void CPlayerClient::NotifyUnitChanged(CUnit* unit) {
     if (unit->player) g_interface.OnUnitJoined(unit);
     else g_interface.OnUnitLeft(unit);
     if (!IsMultiplayerClient()) return;
-    CParty* party = player_->Party();
-    if (std::ssize(party->members_) != 1 || static_cast<int>(party->members_[0].unitId) != unit->id_) return;
-    auto* login = net::g_gameClient->player_.Get();
-    login->id_ = unit->player ? unit->id_ : -1;
-    ++login->version_;
+    CParty* party = player->Party();
+    if (std::ssize(party->members) != 1 || static_cast<int>(party->members[0].unitId) != unit->id) return;
+    auto* login = net::g_gameClient->player.Get();
+    login->id = unit->player ? unit->id : -1;
+    ++login->version;
 }

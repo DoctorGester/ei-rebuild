@@ -64,16 +64,16 @@ void SetHand(CUiMesh* sprite) {
 
 // --- The clock ---------------------------------------------------------------------------
 
-void CHudClock::Setup(bool fast) {
+void CHudClock::Setup(bool newFast) {
     widescreen::EnterRightPanel();   // addon's 1002332C; 100233E0 at the end
     const int shift = widescreen::EdgeShift();
-    rect_ = RECT{720 + shift, 520, kLayoutRight + shift, kLayoutBottom};   // WideScreen
+    rect = RECT{720 + shift, 520, kLayoutRight + shift, kLayoutBottom};    // WideScreen
     AddBlankSprite()->Disc(10.0f, 80.0f, 800.0f, 600.0f, 65.0f, kDiscPoints, 0xAE, 0x51, 0x41);
     SetHand(AddBlankSprite());
     for (int i = 0; i < 4; ++i) {
         CUiMesh* arrow = AddSprite(kArrowSprite);
-        arrow->textureOffsetU_ = 0.22265625f;
-        arrow->textureOffsetV_ = 0.140625f;
+        arrow->textureOffsetU = 0.22265625f;
+        arrow->textureOffsetV = 0.140625f;
         arrow->Place(1000.0f, 1000.0f, kArrowDepth);
         arrow->SetScale(0.4f);
     }
@@ -87,10 +87,10 @@ void CHudClock::Setup(bool fast) {
                                      OnArc(i, kSixth, kOuterRadius), OnArc(i + 1, kSixth, kOuterRadius)};
         for (const ArcPoint& corner : corners) sector->AddPoint(kLayoutRight - corner.across, kLayoutBottom - corner.up);
     }
-    regions_[0]->SetTip(0x28A0, 1);
+    regions[0]->SetTip(0x28A0, 1);
     if (!IsMultiplayerClient()) {
-        regions_[1]->SetTip(0x28A2, 2);
-        regions_[2]->SetTip(0x28A3, 3);
+        regions[1]->SetTip(0x28A2, 2);
+        regions[2]->SetTip(0x28A3, 3);
     }
     // The objectives button: the quarter disc in the corner.
     CUiRegion* middle = AddRegion();
@@ -101,12 +101,12 @@ void CHudClock::Setup(bool fast) {
     }
     middle->SetTip(0x28A1, 4);
 
-    fast_ = fast;
-    blink_ = 0.0f;
-    worlddata::g_updatePeriod = fast ? kFastPeriod : kNormalPeriod;
-    interface_->fastGame_ = fast_;
-    highlight_ = false;
-    dial_ = 0.0f;
+    fast = newFast;
+    blink = 0.0f;
+    worlddata::g_updatePeriod = newFast ? kFastPeriod : kNormalPeriod;
+    ui->fastGame = fast;
+    highlight = false;
+    dial = 0.0f;
     widescreen::LeavePanel();
 }
 
@@ -115,7 +115,7 @@ void CHudClock::Setup(bool fast) {
 void CHudMovePanel::Build() {
     widescreen::EnterLeftPanel();    // addon's 10023394; 100233AF at the end
     const int shift = widescreen::EdgeShift();
-    rect_ = RECT{-shift, 520, 80 - shift, kLayoutBottom};   // WideScreen
+    rect = RECT{-shift, 520, 80 - shift, kLayoutBottom};    // WideScreen
     // The flag button: the quarter disc in the corner.
     CUiRegion* middle = AddRegion();
     middle->AddPoint(0, kLayoutBottom);
@@ -125,35 +125,35 @@ void CHudMovePanel::Build() {
     }
     middle->SetTip(0x2904, 0x1B);
     // The four movement modes' sectors.
-    for (int mode = 0; mode < 4; ++mode) {
+    for (int moveMode = 0; moveMode < 4; ++moveMode) {
         CUiRegion* sector = AddRegion();
-        const ArcPoint corners[4] = {OnArc(mode, kEighth, kInnerRadius), OnArc(mode + 1, kEighth, kInnerRadius),
-                                     OnArc(mode + 1, kEighth, kOuterRadius), OnArc(mode, kEighth, kOuterRadius)};
+        const ArcPoint corners[4] = {OnArc(moveMode, kEighth, kInnerRadius), OnArc(moveMode + 1, kEighth, kInnerRadius),
+                                     OnArc(moveMode + 1, kEighth, kOuterRadius), OnArc(moveMode, kEighth, kOuterRadius)};
         for (const ArcPoint& corner : corners) sector->AddPoint(corner.across, kLayoutBottom - corner.up);
-        sector->SetTip(0x2905 + mode, 0x17 + mode);
+        sector->SetTip(0x2905 + moveMode, 0x17 + moveMode);
     }
 
     SetHand(AddBlankSprite());
     // The sectors' pictures: triangles from the corner, the texels following the layout points.
-    for (int mode = 0; mode < 4; ++mode) {
+    for (int moveMode = 0; moveMode < 4; ++moveMode) {
         CUiMesh* sector = AddBlankSprite();
-        const float endAngle = ArcAngle(mode + 1, kEighth);
+        const float endAngle = ArcAngle(moveMode + 1, kEighth);
         const float endUp = static_cast<float>(ArcSin(endAngle) * kSectorRadius);
         const float endAcross = static_cast<float>(ArcCos(endAngle) * kSectorRadius);
-        const float startAngle = ArcAngle(mode, kEighth);
+        const float startAngle = ArcAngle(moveMode, kEighth);
         const float startUp = static_cast<float>(ArcSin(startAngle) * kSectorRadius);
         const float startAcross = static_cast<float>(ArcCos(startAngle) * kSectorRadius);
         sector->SetTriangle(10.0f, 100.0f, 0.0f, 600.0f, startAcross, static_cast<float>(kLayoutBottomY - startUp), endAcross,
                             static_cast<float>(kLayoutBottomY - endUp), 2.0f, 254.0f, static_cast<float>(startAcross + kTexelLeft),
                             static_cast<float>(kTexelBottom - startUp), static_cast<float>(endAcross + kTexelLeft),
                             static_cast<float>(kTexelBottom - endUp));
-        sector->tint_[0] = kSectorTint;
-        sector->tint_[1] = kSectorTint;
-        sector->tint_[2] = kSectorTint;
+        sector->tint[0] = kSectorTint;
+        sector->tint[1] = kSectorTint;
+        sector->tint[2] = kSectorTint;
     }
     AddBlankSprite()->Disc(8.0f, 80.0f, 0.0f, 600.0f, 32.0f, kDiscPoints, 2, 0xFE, 0x20);
     ShowMode(-1);
-    flag_ = -1;
-    SceneMesh(5)->textureOffsetU_ = 0.48046875f;
+    flag = -1;
+    SceneMesh(5)->textureOffsetU = 0.48046875f;
     widescreen::LeavePanel();
 }

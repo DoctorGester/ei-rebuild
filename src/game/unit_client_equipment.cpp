@@ -24,8 +24,8 @@ CTexture* SkinTexture(const TextureParts* set) { return set ? set->texture : nul
 
 // `texture` takes `name` and is loaded again (the common tail).
 void Reload(CTexture* texture, const std::string& name) {
-    texture->name_ = name;
-    texture->flags_ &= ~TextureFlag::Loaded;
+    texture->name = name;
+    texture->flags &= ~TextureFlag::Loaded;
     texture->Manager()->LoadTexture(texture);
 }
 
@@ -61,28 +61,28 @@ int CUnitClientSpecific::RefreshModel() {
 
 void CUnitClientSpecific::SetArmourModels(const std::uint32_t* ids) {
     for (int slot = 0; slot < kArmourSlots; ++slot) ArmourTakenOff(static_cast<std::uint32_t>(slot));
-    for (std::uint32_t& id : armourIds) id = kNoItemId;
+    for (std::uint32_t& armourId : armourIds) armourId = kNoItemId;
     for (int i = 0; i < kArmourSlots; ++i) ArmourPutOn(ids[i]);
 }
 
 void CUnitClientSpecific::SetWeaponModels(const std::uint32_t* ids) {
-    for (std::uint32_t& id : weaponIds) id = kNoItemId;
+    for (std::uint32_t& weaponId : weaponIds) weaponId = kNoItemId;
     for (int i = 0; i < kWeaponSlots; ++i) WeaponAdded(ids[i]);
 }
 
-bool CUnitClientSpecific::WeaponAdded(std::uint32_t id) {
-    if (id == kNoItemId) return false;
+bool CUnitClientSpecific::WeaponAdded(std::uint32_t modelId) {
+    if (modelId == kNoItemId) return false;
     int slot = 0;
     while (slot < kWeaponSlots && weaponIds[slot] != kNoItemId) ++slot;
     if (slot == kWeaponSlots) return false;
-    if ((id & 0xFFFF0000u) == 0xFFFF0000u || (id & 0xFFFFu) == 0xFFFFu) return false;
-    weaponIds[slot] = id;
+    if ((modelId & 0xFFFF0000u) == 0xFFFF0000u || (modelId & 0xFFFFu) == 0xFFFFu) return false;
+    weaponIds[slot] = modelId;
     return true;
 }
 
-bool CUnitClientSpecific::RemoveWeaponModel(std::uint32_t id) {
+bool CUnitClientSpecific::RemoveWeaponModel(std::uint32_t modelId) {
     for (std::uint32_t& slot : weaponIds) {
-        if (slot == id) {
+        if (slot == modelId) {
             slot = kNoItemId;
             return true;
         }

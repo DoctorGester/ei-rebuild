@@ -26,13 +26,13 @@ int ReadInt(CStream* stream) {
 std::size_t ReadCount(CStream* stream) { return static_cast<std::size_t>(ReadInt(stream)); }
 
 // Areas are saved from 0x57 on.
-int StreamVersion(const CStream* stream) { return static_cast<int>(stream->version_); }
+int StreamVersion(const CStream* stream) { return static_cast<int>(stream->version); }
 
 // -1 is none, else the registry's object.
 template <class T>
 T* FindById(int id) {
     if (id == -1) return nullptr;
-    return g_serverWorld.timedObjectManager_->FindObjectAs<T>(id);
+    return g_serverWorld.timedObjectManager->FindObjectAs<T>(id);
 }
 
 // The world's first script (the only script a savegame holds): block
@@ -107,7 +107,7 @@ void LoadRuns(std::list<ScriptRun>* list, CStream* stream) {
         const int instanceIndex = ReadInt(stream);
         run.killFlag = nullptr;
         int k = 0;
-        for (ScriptDefinition& instance : g_streamedScript->instances_) {
+        for (ScriptDefinition& instance : g_streamedScript->instances) {
             if (k++ == instanceIndex) {
                 run.killFlag = &instance.index;   // an instance's index is its killed flag
                 break;
@@ -209,7 +209,7 @@ void ScriptIfThen::Load(CStream* stream) {
 
 // Negative ids are WorldScript blocks.
 ScriptDecl* CScript::FindBlock(int id) const {
-    const auto& list = id < 0 ? worldBlocks_ : blocks_;
+    const auto& list = id < 0 ? worldBlocks : blocks;
     for (const ScriptDecl& block : list)
         if (block.id == id) return const_cast<ScriptDecl*>(&block);
     return nullptr;
@@ -229,30 +229,30 @@ void ScriptVars::Load(CStream* stream) {
 void CScript::LoadState(CStream* stream) {
     g_streamedScript = this;
 
-    pointLights_.resize(ReadCount(stream));
-    for (ScriptPointLight& light : pointLights_) light.Load(stream);
+    pointLights.resize(ReadCount(stream));
+    for (ScriptPointLight& light : pointLights) light.Load(stream);
 
-    LoadParticles(&particles_, stream);
-    LoadList(&fxSources_, stream, [stream](ScriptFxSource& source) { source.Load(stream); });
-    LoadLightning(&lightning_, stream);
-    stream->ReadValue(nextParticleId_);
-    stream->ReadValue(nextFxId_);
+    LoadParticles(&particles, stream);
+    LoadList(&fxSources, stream, [stream](ScriptFxSource& source) { source.Load(stream); });
+    LoadLightning(&lightning, stream);
+    stream->ReadValue(nextParticleId);
+    stream->ReadValue(nextFxId);
 
     // Command blocks: created empty, then each block's id and commands.
-    const int blocks = ReadInt(stream);
-    for (int i = 0; i < blocks; ++i) NewCommandList();
-    for (ScriptDecl& block : blocks_) {
+    const int blockCount = ReadInt(stream);
+    for (int i = 0; i < blockCount; ++i) NewCommandList();
+    for (ScriptDecl& block : blocks) {
         stream->ReadValue(block.id);
         LoadBlockCommands(&block, stream);
     }
     // WorldScript blocks: id, count, each SSCCmd.
-    LoadList(&worldBlocks_, stream, [stream](ScriptDecl& block) {
+    LoadList(&worldBlocks, stream, [stream](ScriptDecl& block) {
         stream->ReadValue(block.id);
         LoadBlockCommands(&block, stream);
     });
 
-    definitions_.resize(ReadCount(stream));
-    for (ScriptDefinition& definition : definitions_) {
+    definitions.resize(ReadCount(stream));
+    for (ScriptDefinition& definition : definitions) {
         stream->ReadValue(definition.index);
         definition.name = stream->ReadString();
         definition.params = stream->ReadString();
@@ -261,16 +261,16 @@ void CScript::LoadState(CStream* stream) {
         definition.vars.Load(stream);
     }
 
-    LoadVariables(&globals_, stream);
-    LoadInstances(&instances_, stream);
-    LoadRuns(&runs_, stream);
-    stream->ReadValue(loaded_);
-    stream->ReadValue(fileCount_);
+    LoadVariables(&globals, stream);
+    LoadInstances(&instances, stream);
+    LoadRuns(&runs, stream);
+    stream->ReadValue(loaded);
+    stream->ReadValue(fileCount);
     g_streamedScript = nullptr;
 
     if (StreamVersion(stream) < kVersionScriptAreas) return;
-    areas_.resize(ReadCount(stream));
-    for (ScriptArea& area : areas_) {
+    areas.resize(ReadCount(stream));
+    for (ScriptArea& area : areas) {
         stream->ReadValue(area.id);
         area.parts.resize(ReadCount(stream));
         for (ScriptAreaPart& part : area.parts) stream->ReadValue(part);

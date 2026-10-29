@@ -44,7 +44,7 @@ void CSpellEffect::HitUnit(DamageInfo* hit, CMapObject* unit) { Deliver(this, hi
 void CSpellEffect::HitUnitsInRadius() {
     DamageInfo hit;
     GetDamage(&hit);
-    std::list<CUnit*> list = world->aiMap_.sectorMap.FindUnitsInRadius(position, Spell()->radius_);
+    std::list<CUnit*> list = world->aiMap.sectorMap.FindUnitsInRadius(position, Spell()->radius);
     for (auto node = list.begin(); node != list.end();) {
         CUnit* unit = *node;
         ++node;
@@ -66,14 +66,14 @@ void CSpellEffect::HitUnitsAlong(const Vector3& direction) {
     float normalY = scale * x;
     float normalZ = 0.0f;
 
-    std::list<CUnit*> list = world->aiMap_.sectorMap.FindUnitsInRadius(position, Spell()->radius_);
+    std::list<CUnit*> list = world->aiMap.sectorMap.FindUnitsInRadius(position, Spell()->radius);
     for (auto node = list.begin(); node != list.end();) {
         CUnit* unit = *node;
         ++node;
         const CUnit* at = unit;
-        double dz = at->localPosition_.z - position.z;
-        double dy = at->localPosition_.y - position.y;
-        double dx = at->localPosition_.x - position.x;
+        double dz = at->localPosition.z - position.z;
+        double dy = at->localPosition.y - position.y;
+        double dx = at->localPosition.x - position.x;
         float distance = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(dx, dy, dz, normalX, normalY, normalZ));
         distance = AbsBits(distance);
         if (distance > kWallHalfWidth) continue;

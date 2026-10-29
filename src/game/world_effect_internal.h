@@ -23,10 +23,10 @@ namespace effect {
 
 // --- Globals -------------------------------------------------------------------------------------
 
-// The light and particle managers are g_clientWorld.terrain_, g_clientWorld.lightFactory_ and g_clientWorld.particleManager_ (game_singletons.h).
+// The light and particle managers are g_clientWorld.terrain, g_clientWorld.lightFactory and g_clientWorld.particleManager (game_singletons.h).
 
 
-inline std::uint8_t FrameCounter() { return static_cast<std::uint8_t>(g_serverWorld.tick_); }
+inline std::uint8_t FrameCounter() { return static_cast<std::uint8_t>(g_serverWorld.tick); }
 
 // Constants read from memory, as the original does, so that nothing is folded.
 inline float ConstAt(const float& constant) { return *reinterpret_cast<const volatile float*>(&constant); }
@@ -79,5 +79,5 @@ inline bool SnapshotReadToEnd() {
 
 inline void Read(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
 inline void Write(CStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
-inline int Version(const CStream* stream) { return static_cast<int>(stream->version_); }
+inline int Version(const CStream* stream) { return static_cast<int>(stream->version); }
 } // namespace effect

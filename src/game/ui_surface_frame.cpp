@@ -11,35 +11,35 @@ namespace {
 render::Rect ToRect(const RECT& rect) { return render::Rect{rect.left, rect.top, rect.right, rect.bottom}; }
 } // namespace
 
-void CUiSurface::FrameRect(const RECT* rect, COLORREF colour) {
-    if (!holder_) return;
+void CUiSurface::FrameRect(const RECT* area, COLORREF colour) {
+    if (!holder) return;
     RECT frame;
-    if (gameapi::IsRectEmpty(rect)) {
-        frame = {0, 0, rect_.right - rect_.left, rect_.bottom - rect_.top};
+    if (gameapi::IsRectEmpty(area)) {
+        frame = {0, 0, rect.right - rect.left, rect.bottom - rect.top};
     } else {
-        frame = *rect;
-        interface_->ScaleRectToScreenEntry(&frame);   // (Rebirth-patched)
+        frame = *area;
+        ui->ScaleRectToScreenEntry(&frame);           // (Rebirth-patched)
     }
-    render::ui::FrameRect(holder_, ToRect(frame), colour);
+    render::ui::FrameRect(holder, ToRect(frame), colour);
 }
 
 void CUiSurface::Fill(COLORREF colour) {
-    if (!holder_) return;
-    RECT whole = rect_;
+    if (!holder) return;
+    RECT whole = rect;
     gameapi::OffsetRect(&whole, -whole.left, -whole.top);
     FillRect(whole, colour);
 }
 
-void CUiSurface::Clear() { Fill(background_); }
+void CUiSurface::Clear() { Fill(background); }
 
-void CUiSurface::FillRect(const RECT& rect, COLORREF colour) {
-    if (holder_) render::ui::Fill(holder_, ToRect(rect), colour);
+void CUiSurface::FillRect(const RECT& area, COLORREF colour) {
+    if (holder) render::ui::Fill(holder, ToRect(area), colour);
 }
 
-void CUiSurface::Line(int x0, int y0, int x1, int y1, int width, COLORREF colour) {
-    if (holder_) render::ui::Line(holder_, x0, y0, x1, y1, width, colour);
+void CUiSurface::Line(int x0, int y0, int x1, int y1, int lineWidth, COLORREF colour) {
+    if (holder) render::ui::Line(holder, x0, y0, x1, y1, lineWidth, colour);
 }
 
 void CUiSurface::Dot(int x, int y, COLORREF colour) {
-    if (holder_) render::ui::Pixel(holder_, x, y, colour);
+    if (holder) render::ui::Pixel(holder, x, y, colour);
 }

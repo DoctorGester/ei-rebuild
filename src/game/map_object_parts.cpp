@@ -68,9 +68,9 @@ float* CObject3D::PartWorldPosition(float* out, const CFigureMesh* part) {
     float scaleX, scaleY, scaleZ;
     attached->GetScale(&scaleX, &scaleY, &scaleZ);
     // v' = 2 (u.v) u + (w^2 - u.u) v + 2 w (u x v) for the quaternion (w, u).
-    const float w = localRotation_.w;
-    const float ux = localRotation_.x, uy = localRotation_.y, uz = localRotation_.z;
-    const float vx = part->localPosition_.x, vy = part->localPosition_.y, vz = part->localPosition_.z;
+    const float w = localRotation.w;
+    const float ux = localRotation.x, uy = localRotation.y, uz = localRotation.z;
+    const float vx = part->localPosition.x, vy = part->localPosition.y, vz = part->localPosition.z;
     // 2(u.v) with the doubling on u, as /fp:fast spreads it over the written-out sum (an inlined
     // 2.0f * Dot regroups to (2xx + s) + s).
     float twiceDot = DotUnrounded<Sum3::ZYX>(ux * 2.0f, uy * 2.0f, uz * 2.0f, vx, vy, vz);
@@ -82,19 +82,19 @@ float* CObject3D::PartWorldPosition(float* out, const CFigureMesh* part) {
     float x = (along * vx + twiceW * crossX) + twiceDot * ux;
     float y = (along * vy + twiceW * crossY) + twiceDot * uy;
     float z = (along * vz + twiceW * crossZ) + twiceDot * uz;
-    out[0] = x * scaleX + localPosition_.x;
-    out[1] = y * scaleY + localPosition_.y;
-    out[2] = z * scaleZ + localPosition_.z;
+    out[0] = x * scaleX + localPosition.x;
+    out[1] = y * scaleY + localPosition.y;
+    out[2] = z * scaleZ + localPosition.z;
     return out;
 }
 
 // --- The animation database -------------------------------------------------------------------
 
 AnimationDatabase* CObject3D::Animations() {
-    if (!animations && owner_) {
+    if (!animations && owner) {
         std::string file = name;
         file += ".adb";
-        animations = static_cast<AnimationDatabase*>(owner_->GetFile(file, nullptr));
+        animations = static_cast<AnimationDatabase*>(owner->GetFile(file, nullptr));
     }
     return animations;
 }

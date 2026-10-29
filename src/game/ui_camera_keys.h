@@ -6,7 +6,7 @@
 #include "ui.h"
 
 // The battle camera's input side (one of the battle screen's extra input sides). Keys move the camera along
-// x_ / y_ / z_ (set by the key-down, cleared by the key-up); the right button turns the view while held.
+// x / y / z (set by the key-down, cleared by the key-up); the right button turns the view while held.
 class CCameraInput final : public UiInputSide {
 public:
     explicit CCameraInput(CInterface3D* ui) : UiInputSide(ui) {}
@@ -15,14 +15,14 @@ public:
     // or save it with Ctrl / Alt. Then, when used, the camera's motion is set from the axes as KeyUp does.
     void KeyDown(int key, int repeat, int flags) override;
     // A direction key released clears its axis and marks the key used; then, when used, the camera's motion
-    // is set again from the axes: without Ctrl / Alt it pans along (y_, -x_) at the pan speed (the speed
-    // options multiplied, stored as float), turns and tilts not, and climbs at the climb speed * z_; with one
-    // it does not pan, turns at the turn speed * y_, climbs, and tilts at the tilt speed * x_.
+    // is set again from the axes: without Ctrl / Alt it pans along (y, -x) at the pan speed (the speed
+    // options multiplied, stored as float), turns and tilts not, and climbs at the climb speed * z; with one
+    // it does not pan, turns at the turn speed * y, climbs, and tilts at the tilt speed * x.
     void KeyUp(int key, int repeat, int flags) override;
-    // The right button went down: the point kept in screen and layout coordinates, turning_ set, the mouse
+    // The right button went down: the point kept in screen and layout coordinates, turning set, the mouse
     // motion cleared, the cursor held; the button used.
     void RightDown(int buttons, int x, int y) override;
-    // Released: turning_ cleared, the camera stops turning, tilting and panning, the motion cleared, the
+    // Released: turning cleared, the camera stops turning, tilting and panning, the motion cleared, the
     // cursor let go and put back at the mouse position; used.
     void RightUp(int buttons, int x, int y) override;
     // Rebirth-patched (WideScreen: the drag scaled without the margin). While turning: the drag motion (in
@@ -39,10 +39,10 @@ public:
     // The wheel zooms the camera by the zoom speed * (the delta's low word) * the step size.
     void Wheel(int flags, int delta, int x, int y) override;
 
-    POINT pressScreen_;              // where the right button went down (screen)
-    POINT pressLayout_;              // the same in layout coordinates
-    bool turning_ = false;           // the right button is held
-    float x_ = 0.0f;                 // right (+1) / left (-1)
-    float y_ = 0.0f;                 // forward / back
-    float z_ = 0.0f;                 // up / down
+    POINT pressScreen;               // where the right button went down (screen)
+    POINT pressLayout;               // the same in layout coordinates
+    bool turning = false;            // the right button is held
+    float x = 0.0f;                  // right (+1) / left (-1)
+    float y = 0.0f;                  // forward / back
+    float z = 0.0f;                  // up / down
 };

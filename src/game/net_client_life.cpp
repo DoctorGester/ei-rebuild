@@ -11,25 +11,25 @@ namespace net {
 
 // The client base's part and the session base follow (their destructors).
 ClientSession::~ClientSession() {
-    parties_[1].Get()->CParty::~CParty();
-    parties_[0].Get()->CParty::~CParty();
-    trade_.Reset();
-    tradeRecords_.clear();   // here, where the original destroys it
-    offers_.clear();
-    DestroyOwned(party_);
-    awards_.clear();
-    timers_.clear();
-    DestroyOwned(player_);
-    variables_.clear();
-    zones_.clear();
-    map_.Reset();
-    binding_.Reset();
-    info_.Reset();
-    fileRequests_.clear();
-    chunks_.clear();
-    files_.clear();
-    lines_.clear();
-    players_.clear();
+    parties[1].Get()->CParty::~CParty();
+    parties[0].Get()->CParty::~CParty();
+    trade.Reset();
+    tradeRecords.clear();    // here, where the original destroys it
+    offers.clear();
+    DestroyOwned(party);
+    awards.clear();
+    timers.clear();
+    DestroyOwned(player);
+    variables.clear();
+    zones.clear();
+    map.Reset();
+    binding.Reset();
+    info.Reset();
+    fileRequests.clear();
+    chunks.clear();
+    files.clear();
+    lines.clear();
+    players.clear();
 }
 
 ClientBase::~ClientBase() {}

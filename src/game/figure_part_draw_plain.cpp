@@ -28,7 +28,7 @@ void AddOffset(const float* offset, float* target) { *target = *offset + *target
 // The world time: whole ticks plus the fraction of the current one, rounded to a float.
 void TickTime(float* out) {
     const CWorldClient* world = &g_clientWorld;
-    *out = static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
+    *out = static_cast<float>(static_cast<double>(world->tick) + world->tickFraction);
 }
 
 void Fill(std::vector<std::uint32_t>& a, std::uint32_t value) {
@@ -37,11 +37,11 @@ void Fill(std::vector<std::uint32_t>& a, std::uint32_t value) {
 
 const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
     std::vector<VertexPacket>& moved = g_movedPositions;
-    int blocks = mesh->buffers_.vertexCount;
+    int blocks = mesh->buffers.vertexCount;
     moved.resize(blocks);
-    if (blocks) std::memcpy(moved.data(), mesh->buffers_.vertices, static_cast<std::size_t>(blocks) * 64);
-    for (int i = 0; i < std::ssize(mesh->offsets_); ++i) {
-        const float* offset = &mesh->offsets_[i].x;
+    if (blocks) std::memcpy(moved.data(), mesh->buffers.vertices, static_cast<std::size_t>(blocks) * 64);
+    for (int i = 0; i < std::ssize(mesh->offsets); ++i) {
+        const float* offset = &mesh->offsets[i].x;
         VertexPacket& packet = moved[i >> 2];
         AddOffset(&offset[0], &packet.block[0][i & 3]);
         AddOffset(&offset[1], &packet.block[1][i & 3]);
@@ -56,53 +56,53 @@ const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
 // (empty when off screen). Returns 1.
 int FigureMeshDrawer::DrawPlain(CTextureDevice* device, CMaterial*, int alpha,
                                    RECT* rect) {
-    if (mesh_->flags_ & FigureMeshFlag::Hidden) return 1;
+    if (mesh->flags & FigureMeshFlag::Hidden) return 1;
     int drawFlags = 0;
-    mesh_->flags_ &= ~FigureMeshFlag::Drawn;
-    int visibility = device->pipeline_->ClipTest(&mesh_->box_.bounds);
+    mesh->flags &= ~FigureMeshFlag::Drawn;
+    int visibility = device->pipeline->ClipTest(&mesh->box.bounds);
     if (visibility == 2) return 1;
-    int type = static_cast<int>(mesh_->meshType_);
-    if (type >= 13 && type <= 16) {
+    int meshType = static_cast<int>(mesh->meshType);
+    if (meshType >= 13 && meshType <= 16) {
         float time;
         TickTime(&time);
-        flags_ |= kAnimatedDrawerFlags;
+        flags |= kAnimatedDrawerFlags;
         Animate(time);
     }
 
-    std::uint32_t meshFlags = mesh_->flags_;
+    std::uint32_t meshFlags = mesh->flags;
     if (meshFlags & FigureMeshFlag::Flat) {
-        Fill(mesh_->colorsA_, mesh_->flatColour_);
-        Fill(mesh_->colorsB_, mesh_->flatSpecular_);
+        Fill(mesh->colorsA, mesh->flatColour);
+        Fill(mesh->colorsB, mesh->flatSpecular);
     } else if (!(meshFlags & FigureMeshFlag::Lit)) {
         drawFlags = 4;
     }
     if (visibility == 1) drawFlags |= 2;
     if (rect) drawFlags |= 1;
 
-    const VertexPacket* positions = mesh_->buffers_.vertices;
-    int blocks = mesh_->buffers_.vertexCount;
-    if (!mesh_->offsets_.empty()) positions = MovedPositionsOf(mesh_);
-    CFigureMesh* m = mesh_;
-    const MeshBuffers& b = m->buffers_;
+    const VertexPacket* positions = mesh->buffers.vertices;
+    int blocks = mesh->buffers.vertexCount;
+    if (!mesh->offsets.empty()) positions = MovedPositionsOf(mesh);
+    CFigureMesh* m = mesh;
+    const MeshBuffers& b = m->buffers;
     // The new renderer keeps the mesh on the GPU: what the device's draw below draws.
-    const render::MeshSource source{m, nullptr, !m->offsets_.empty(), lib::Has(meshFlags, FigureMeshFlag::Flat)};
+    const render::MeshSource source{m, nullptr, !m->offsets.empty(), lib::Has(meshFlags, FigureMeshFlag::Flat)};
     render::SetMeshSource(&source);
-    int result = device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, m->colorsA_.data(), m->colorsB_.data(),
+    int result = device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, m->colorsA.data(), m->colorsB.data(),
                                         b.texCoords, b.texCoordCount, b.corners, b.cornerCount, b.words, b.wordCount,
-                                        b.indices, b.indexCount, m->textureOffsetU_,
-                                        m->textureOffsetV_, alpha, drawFlags);
+                                        b.indices, b.indexCount, m->textureOffsetU,
+                                        m->textureOffsetV, alpha, drawFlags);
     render::SetMeshSource(nullptr);
     if (rect) {
-        RECT* own = &screen_;
+        RECT* own = &screen;
         if (result == 2) {
             gameapi::SetRectEmpty(own);
             gameapi::SetRectEmpty(rect);
         } else {
-            gameapi::CopyRect(own, &device->drawnRect_);
+            gameapi::CopyRect(own, &device->drawnRect);
             *rect = *own;
         }
     }
-    if (result != 2) mesh_->flags_ |= FigureMeshFlag::Drawn;
+    if (result != 2) mesh->flags |= FigureMeshFlag::Drawn;
     DrawBounds(&g_sceneRenderer);
     return 1;
 }

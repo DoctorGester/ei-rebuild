@@ -38,34 +38,34 @@ void CWorldServer::Create() {
     bool opened;
     {
         std::string path = folder + kMessagesFileName;
-        opened = messages_.Open(path);
+        opened = messages.Open(path);
     }
     if (!opened) {
         game::FatalError(CantOpenText());
         return;
     }
 
-    specificManager_ = new CServerSpecificManager();
-    specificManager_->AddRef();   // the reference is counted without testing the pointer
-    specificManager_->SetContext(this);
-    hoover_ = new CHoover();
-    hoover_->AddRef();
+    specificManager = new CServerSpecificManager();
+    specificManager->AddRef();    // the reference is counted without testing the pointer
+    specificManager->SetContext(this);
+    hoover = new CHoover();
+    hoover->AddRef();
 
     // The wind: along x, no strength yet (three dwords), then 0.4.
     const float direction[3] = {1.0f, 0.0f, 0.0f};
-    std::memcpy(windDirection_, direction, sizeof(direction));
-    windStrength_ = std::bit_cast<std::uint32_t>(kWindStrength);
-    sessionKind_ = 0;
-    scriptsActive_ = 0;
-    exits_.clear();
-    climate_ = 1;
-    cave_ = 0;
-    sendsStartPosition_ = 0;
-    loadedFresh_ = 1;
-    keepsState_ = 1;
-    zoneName_ = game::kEmptyText;
-    gameResult_ = 0;
-    mobFiles_.clear();
+    std::memcpy(windDirection, direction, sizeof(direction));
+    windStrength = std::bit_cast<std::uint32_t>(kWindStrength);
+    sessionKind = 0;
+    scriptsActive = 0;
+    exits.clear();
+    climate = 1;
+    cave = 0;
+    sendsStartPosition = 0;
+    loadedFresh = 1;
+    keepsState = 1;
+    zoneName = game::kEmptyText;
+    gameResult = 0;
+    mobFiles.clear();
 }
 
 void CWorldServer::Destroy() {
@@ -79,16 +79,16 @@ void CWorldServer::Destroy() {
         }
     }
 
-    if (hoover_) {
-        --hoover_->refCount_;
-        if (hoover_) delete hoover_;   // the virtual destructor
-        hoover_ = nullptr;
+    if (hoover) {
+        --hoover->refCount;
+        if (hoover) delete hoover;     // the virtual destructor
+        hoover = nullptr;
     }
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
     ResetState();
-    messages_.Close();
+    messages.Close();
 
-    exits_ = {};
+    exits = {};
     CWorld::Destroy();
 }

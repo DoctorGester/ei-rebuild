@@ -163,7 +163,7 @@ kept), 2D distances and dots, 3D lengths, quaternions, matrix x point, particles
 order matches (keeping the all-loads-before-stores aliasing); rewritten callers use the inline helper instead of calling Dot /
 Length / CrossProduct (same bits). Not vectors, skipped by the counter (`_VEC_NOT_VECTOR`, reasons in check_cleanup.py):
 `VertexPacket::block` (the SoA rows of four vertices; PositionBlock folded into it) and per-corner `*distances` arrays; stat
-and weight names (`link_figure.h` `morph_` is `morphWeights_`).
+and weight names (`link_figure.h` `morph_` is `morphWeights`).
 
 **Rules that came out of the batches** (each batch compared the release objects function by function with dumpbin, later with a
 symbolic x87 comparison of every store, call argument, compare and return; the differences left were stack slots, scheduling,
@@ -206,8 +206,8 @@ register choice, commuted FADD / FMUL operands, compare operand order with the s
   AIPathStartOriginal 005C7B00, MotionSample 005C7430, the CAIMap lookups (originals_ai.h), MarkerDraw 00503A40, IsLit 006CB020
   (originals_effects.h), LightSet 0068D0A0; callers use LineOfSightOriginal / SectorMapMove. Others still get `&v.x`.
 - Field types now vecmath: `SectorPosition : Vector3`, `ProjectedVertex : Vector4` (device_buffers.h), `CObject3D`
-  worldMatrix (its position / rotation fields are CTransformObject's), CUiMesh placement_ / scaleMatrix_ Matrix4, CGlobalMap
-  `position_` Vector3 and `turn_` Quaternion (w first), sound.h positions, script.h steps, the new renderer's matrices
+  worldMatrix (its position / rotation fields are CTransformObject's), CUiMesh placement_ / scaleMatrix Matrix4, CGlobalMap
+  `position` Vector3 and `turn` Quaternion (w first), sound.h positions, script.h steps, the new renderer's matrices
   (`MeshDraw::matrix` is `const Matrix4*`, shaders' uniform blocks hold a `Matrix4 matrix`).
 - tests/verify/verify_vecmath.cpp checks the unrounded forms alone, `(2a) . b`, `RotatedAxis* * 2` and `OffsetDot2DUnrounded`
   against one-rounding-per-operation references on inputs that separate the three dots / squares (24 each, 2904 checks).

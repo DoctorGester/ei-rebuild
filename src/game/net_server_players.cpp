@@ -1,6 +1,6 @@
 // The game server's players and their connections: lookups ( ), admission and the password, kicking and
 // banning the departure reports and the lines to every guest. See net_classes.h and docs/notes/network.md.
-// Players (players_) are PlayerMessages, bindings (bindings_) BindingMessages (net_server_join.cpp).
+// Players (players) are PlayerMessages, bindings (bindings) BindingMessages (net_server_join.cpp).
 #include "core_refcount.h"
 #include "net_connection.h"
 #include "net_messages.h"
@@ -21,54 +21,54 @@ PlayerMessage* PlayerOf(BindingMessage* binding) { return binding->Player(); }
 Connection* HostConnection(const std::list<SharedRef<BindingMessage>>& bindings) {
     for (auto& node : bindings) {
         PlayerMessage* player = PlayerOf(node.Get());
-        if (IsLive(player) && player->host_) return node.Get()->ConnectionRef().Get();
+        if (IsLive(player) && player->host) return node.Get()->ConnectionRef().Get();
     }
     return nullptr;
 }
 
 // The common tail of kicking and banning: the client is told to leave and removed.
 void DropClient(ServerSession* self, Connection* connection) {
-    self->SendLeave(&connection->address_, connection->id_);
-    self->RemoveClient(self->FindClient(&connection->address_));
+    self->SendLeave(&connection->address, connection->id);
+    self->RemoveClient(self->FindClient(&connection->address));
 }
 
 } // namespace
 
 // The id of the first host player, -1 without one.
 int ServerSession::LeaderId() {
-    const auto& players = players_;
-    for (auto node = players.begin(); node != players.end(); ++node)
-        if (node->Get()->host_) return node->Get()->id_;
+    const auto& currentPlayers = players;
+    for (auto node = currentPlayers.begin(); node != currentPlayers.end(); ++node)
+        if (node->Get()->host) return node->Get()->id;
     return -1;
 }
 
 // Whether a client from `from` may join. Refused when the address is banned (reason 2), when a password is
 // set and the 20 bytes at `*password` differ (reason 3; the pointer moves past them either way), or when the
 // clients and the pending joins reach the maximum (reason 1).
-bool ServerSession::Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) {
+bool ServerSession::Admit(const NetAddress* from, std::uint8_t** passwordOut, std::uint8_t* reason) {
     *reason = 2;
     // find_if over the banned addresses: the host compared, not the port.
-    auto banned = banned_.begin();
-    while (banned != banned_.end() && banned->ip != from->ip) ++banned;
-    if (banned != banned_.end()) return false;
+    auto newBanned = banned.begin();
+    while (newBanned != banned.end() && newBanned->ip != from->ip) ++newBanned;
+    if (newBanned != banned.end()) return false;
 
-    const char* stored = password_;
+    const char* stored = password;
     if (stored[0]) {
         *reason = 3;
         std::uint8_t given[kPasswordSize] = {};
-        std::memcpy(given, *password, kPasswordSize);
-        *password += kPasswordSize;
+        std::memcpy(given, *passwordOut, kPasswordSize);
+        *passwordOut += kPasswordSize;
         if (std::memcmp(given, stored, kPasswordSize) != 0) return false;
     }
     *reason = 1;
-    std::uint32_t clients = ClientCount();
-    const auto pending = static_cast<std::uint32_t>(joins_.size());
-    return pending + clients < maxPlayers_;
+    std::uint32_t clientCount = ClientCount();
+    const auto pending = static_cast<std::uint32_t>(joins.size());
+    return pending + clientCount < maxPlayers;
 }
 
 // The join password (at most 20 bytes, zero-filled).
 void ServerSession::SetPassword(const char* text) {
-    char* stored = password_;
+    char* stored = password;
     std::memset(stored, 0, kPasswordSize);
     #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
     std::strncpy(stored, text, kPasswordSize);
@@ -76,21 +76,21 @@ void ServerSession::SetPassword(const char* text) {
 
 // The connection of the first player whose name starts with `name` (case-insensitive)
 // and whose connection is not also the host's; null without one.
-Connection* ServerSession::FindGuestConnection(const std::string* name) {
-    const std::size_t length = name->size();
-    for (auto& node : players_) {
+Connection* ServerSession::FindGuestConnection(const std::string* guestName) {
+    const std::size_t length = guestName->size();
+    for (auto& node : players) {
         PlayerMessage* player = node.Get();
-        if (text::CompareIgnoringCase(player->name_.data(), name->data(), length) != 0) continue;
-        const auto& bindings = bindings_;
-        auto first = bindings.begin();
-        for (auto binding = first; binding != bindings.end(); ++binding) {
+        if (text::CompareIgnoringCase(player->name.data(), guestName->data(), length) != 0) continue;
+        const auto& currentBindings = bindings;
+        auto first = currentBindings.begin();
+        for (auto binding = first; binding != currentBindings.end(); ++binding) {
             if (PlayerOf(binding->Get()) != player) continue;
             Connection* connection = binding->Get()->ConnectionRef().Get();
             bool hostsToo = false;
-            for (auto other = first; other != bindings.end(); ++other) {
+            for (auto other = first; other != currentBindings.end(); ++other) {
                 if (other->Get()->ConnectionRef().Get() != connection) continue;
                 PlayerMessage* owner = PlayerOf(other->Get());
-                if (owner && !(owner->flags7_ & CRefObject::kDetached) && owner->host_) {
+                if (owner && !(owner->flags7 & CRefObject::kDetached) && owner->host) {
                     hostsToo = true;
                     break;
                 }
@@ -104,25 +104,25 @@ Connection* ServerSession::FindGuestConnection(const std::string* name) {
 
 // The connection of the player with serial `serial`, or null.
 Connection* ServerSession::FindConnectionBySerial(int serial) {
-    const auto& bindings = bindings_;
-    for (auto node = bindings.begin(); node != bindings.end(); ++node)
-        if (PlayerOf(node->Get())->serial_ == serial) return node->Get()->ConnectionRef().Get();
+    const auto& currentBindings = bindings;
+    for (auto node = currentBindings.begin(); node != currentBindings.end(); ++node)
+        if (PlayerOf(node->Get())->serial == serial) return node->Get()->ConnectionRef().Get();
     return nullptr;
 }
 
 // The player with id `id`, or null.
 PlayerMessage* ServerSession::FindPlayer(int id) {
-    const auto& players = players_;
-    for (auto node = players.begin(); node != players.end(); ++node)
-        if (node->Get()->id_ == id) return node->Get();
+    const auto& currentPlayers = players;
+    for (auto node = currentPlayers.begin(); node != currentPlayers.end(); ++node)
+        if (node->Get()->id == id) return node->Get();
     return nullptr;
 }
 
 // A line (text `kind` with `text`) for every player that is not the host.
-void ServerSession::AnnounceToGuests(int kind, const char* text) {
-    for (auto& node : players_) {
+void ServerSession::AnnounceToGuests(int textKind, const char* text) {
+    for (auto& node : players) {
         PlayerMessage* player = node.Get();
-        if (!player->host_) AnnounceText(kind, text, player);
+        if (!player->host) AnnounceText(textKind, text, player);
     }
 }
 
@@ -130,15 +130,15 @@ void ServerSession::AnnounceToGuests(int kind, const char* text) {
 // (text 2), then the client is told to leave and removed.
 void ServerSession::Kick(Connection* connection) {
     if (!IsLive(connection)) return;
-    const auto& bindings = bindings_;
-    Connection* host = HostConnection(bindings);
+    const auto& currentBindings = bindings;
+    Connection* host = HostConnection(currentBindings);
     if (connection == host) return;
-    for (auto& node : bindings) {
+    for (auto& node : currentBindings) {
         if (node.Get()->ConnectionRef().Get() != connection) continue;
         BindingMessage* binding = node.Get();
         if (binding) {
             PlayerMessage* player = PlayerOf(binding);
-            if (IsLive(player)) AnnounceText(2, player->name_.data(), nullptr);
+            if (IsLive(player)) AnnounceText(2, player->name.data(), nullptr);
         }
         break;
     }
@@ -149,34 +149,34 @@ void ServerSession::Kick(Connection* connection) {
 // (text 3), its address added to the banned list, then the client is told to leave and removed.
 void ServerSession::Ban(Connection* connection) {
     if (!IsLive(connection)) return;
-    const auto& bindings = bindings_;
-    Connection* host = HostConnection(bindings);
+    const auto& currentBindings = bindings;
+    Connection* host = HostConnection(currentBindings);
     if (connection == host) return;
-    for (auto& node : bindings) {
+    for (auto& node : currentBindings) {
         if (node.Get()->ConnectionRef().Get() != connection) continue;
         BindingMessage* binding = node.Get();
         if (binding) {
             PlayerMessage* player = PlayerOf(binding);
-            if (IsLive(player)) AnnounceText(3, player->name_.data(), nullptr);
+            if (IsLive(player)) AnnounceText(3, player->name.data(), nullptr);
         }
         break;
     }
-    const NetAddress* address = &connection->address_;
-    banned_.push_back(*address);
+    const NetAddress* address = &connection->address;
+    banned.push_back(*address);
     DropClient(this, connection);
 }
 
 // A client lost and a client left: the client's player is announced (text 4 / text 1).
 void ServerSession::ReportDeparture(Connection* connection, int text) {
     if (!IsLive(connection)) return;
-    const auto& bindings = bindings_;
-    for (auto& node : bindings) {
+    const auto& currentBindings = bindings;
+    for (auto& node : currentBindings) {
         if (node.Get()->ConnectionRef().Get() != connection) continue;
         BindingMessage* binding = node.Get();
         if (!IsLive(binding)) return;
         PlayerMessage* player = PlayerOf(binding);
         if (!IsLive(player)) return;
-        AnnounceText(text, player->name_.data(), nullptr);
+        AnnounceText(text, player->name.data(), nullptr);
         return;
     }
 }

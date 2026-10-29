@@ -59,13 +59,13 @@ void ReadRecords(Chunk* parent, MobRecords* records) {
     Chunk chunk(parent);
     do {
         chunk.ReadHeader();
-        if (Spec* spec = NewRecord(chunk.id_)) {
-            spec->parent_ = &chunk;
+        if (Spec* spec = NewRecord(chunk.id)) {
+            spec->parent = &chunk;
             spec->ForEachChild();
             if (records->maxId < spec->id) records->maxId = spec->id;
             records->byId[spec->id] = spec;
         }
-    } while (parent->size_ != parent->consumed_);
+    } while (parent->size != parent->consumed);
 }
 
 // 0xABD0: wind direction and strength and the time of day (two more values are read and unused).
@@ -84,7 +84,7 @@ void ReadWeather(Chunk* parent) {
     chunk.ReadFloat();
     CWorldServer* server = &g_serverWorld;
     server->CWorldServer::SetTime(time);
-    float limit = options::g_options.defaultWindForce_;
+    float limit = options::g_options.defaultWindForce;
     server->ChangeWind(direction, limit >= strength ? strength : limit);
 }
 
@@ -110,9 +110,9 @@ bool MobFile::ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, std::str
     Chunk child(this);
     do {
         child.ReadHeader();
-        const std::uint32_t id = child.id_;
-        if (child.size_ != child.consumed_) {
-            switch (id) {
+        const std::uint32_t childId = child.id;
+        if (child.size != child.consumed) {
+            switch (childId) {
             case kChunkScripts: ReadScripts(&child, scripts, false); break;
             case kChunkEncodedScripts: ReadScripts(&child, scripts, true); break;
             case kChunkWeather: ReadWeather(&child); break;
@@ -121,10 +121,10 @@ bool MobFile::ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, std::str
             default: break;
             }
         }
-        if (id == kChunkFlagOn) flag = true;
-        else if (id == kChunkFlagOff) flag = false;
+        if (childId == kChunkFlagOn) flag = true;
+        else if (childId == kChunkFlagOff) flag = false;
         child.SkipContent();
-    } while (size_ != consumed_);
+    } while (size != consumed);
     return flag;
 }
 
@@ -136,7 +136,7 @@ bool MobFile::Load(int keepIds) {
     std::string scripts;
 
     if (ReadChunks(&records, diplomacy, &scripts)) {
-        CDiplomacy* table = &g_serverWorld.diplomacy_;
+        CDiplomacy* table = &g_serverWorld.diplomacy;
         for (int i = 0; i < 32; ++i)
             for (int j = 0; j < 32; ++j) table->SetRelation(i, j, diplomacy->relations[i][j]);
     }

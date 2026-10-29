@@ -30,10 +30,10 @@ struct LocalResource {
 
 // The file's bytes into `stream`, which is left at its start for reading.
 inline void FillStream(CMemoryStream& stream, const void* data, std::uint32_t size) {
-    stream.reading_ = 0;
+    stream.reading = 0;
     stream.CMemoryStream::Write(data, size);
     stream.CMemoryStream::Seek(0);
-    stream.reading_ = 1;
+    stream.reading = 1;
 }
 
 // The loads that take only a folder (quests, prints, acks) open `folder` + "database.res"; false

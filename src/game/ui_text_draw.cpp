@@ -33,28 +33,28 @@ int DrawRun(const Surface* holder, render::text::TextFont& font, std::u32string_
 
 // --- DrawTextIn ---------------------------------------------------------------------------------------
 
-int CUiSurface::DrawTextIn(std::string_view text, const RECT* rect, int font, COLORREF colour, UINT format, bool shadow) {
-    if (!holder_) return 0;
+int CUiSurface::DrawTextIn(std::string_view text, const RECT* area, int font, COLORREF colour, UINT format, bool shadow) {
+    if (!holder) return 0;
     RECT frame;
-    if (gameapi::IsRectEmpty(rect)) {
-        frame = {0, 0, rect_.right - rect_.left, rect_.bottom - rect_.top};
+    if (gameapi::IsRectEmpty(area)) {
+        frame = {0, 0, rect.right - rect.left, rect.bottom - rect.top};
     } else {
-        frame = *rect;
+        frame = *area;
         // WideScreen (addon replaces the interface argument by 0): without the margin.
-        interface_->CallScaleRectToScreenNoMargin(&frame);
+        ui->CallScaleRectToScreenNoMargin(&frame);
         frame.right += kRectSlack;
         frame.bottom += kRectSlack;
     }
     // The original scales a point whose x is an unwritten local; only y is used.
-    POINT extent{0, DrawTextPixels(interface_->fonts_[font], text, frame, format, colour, shadow)};
-    interface_->ScalePointFromScreenCopyEntry(&extent);
+    POINT extent{0, DrawTextPixels(ui->fonts[font], text, frame, format, colour, shadow)};
+    ui->ScalePointFromScreenCopyEntry(&extent);
     return extent.y;
 }
 
-int CUiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const RECT& rect, UINT format, COLORREF colour,
+int CUiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const RECT& area, UINT format, COLORREF colour,
                                bool shadow) {
     render::text::TextFont* drawn = TextFontOf(font);
-    if (!holder_ || !drawn) return 0;
+    if (!holder || !drawn) return 0;
     format &= ~kModifyString;
     if (format & ~render::text::kSupportedFormats) {
         static bool logged = false;
@@ -64,19 +64,19 @@ int CUiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const 
     }
     const std::u32string points = CodePoints(text);
     if (shadow) {
-        RECT shifted = rect;
+        RECT shifted = area;
         gameapi::OffsetRect(&shifted, 1, 1);
-        DrawRun(holder_, *drawn, points, shifted, format, kShadowColour);
+        DrawRun(holder, *drawn, points, shifted, format, kShadowColour);
     }
-    return DrawRun(holder_, *drawn, points, rect, format, colour);
+    return DrawRun(holder, *drawn, points, area, format, colour);
 }
 
 // --- TextExtent ---------------------------------------------------------------------------------------
 
 SIZE CInterface3D::TextExtent(std::string_view text, int font) const {
-    const SIZE size = ::TextExtent(fonts_[font], text);
+    const SIZE size = ::TextExtent(fonts[font], text);
     // WideScreen (addon's replacement): by the 4:3 part's width and the mode's height.
     if (widescreen::Active()) return widescreen::TextExtentToLayout(size);
-    return SIZE{static_cast<int>(static_cast<unsigned>(size.cx) * kLayoutWidth) / width_,
-                static_cast<int>(static_cast<unsigned>(size.cy) * kLayoutHeight) / height_};
+    return SIZE{static_cast<int>(static_cast<unsigned>(size.cx) * kLayoutWidth) / width,
+                static_cast<int>(static_cast<unsigned>(size.cy) * kLayoutHeight) / height};
 }

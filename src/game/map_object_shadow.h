@@ -70,7 +70,7 @@ public:
     // Draws the object (`dirty` receives the screen rectangle the parts flagged 0x40 covered, or null): its
     // state and animation updated, the lights within their range + 10 collected, and every part of the two
     // part sets within sqrt(1e9) drawn with those lights. A figure whose parts are all static (part flags 0x10)
-    // becomes static (object flags 0x400, flags_ bit 8). Returns 1, or a fatal error's result.
+    // becomes static (object flags 0x400, flags bit 8). Returns 1, or a fatal error's result.
     int Draw(CSceneRenderer* context, tagRECT* dirty);
 
     // Walk the materials: the first (cursor 0; with none the cursor is -1) / the next; null at the end.
@@ -78,11 +78,11 @@ public:
     CMaterial* NextMaterial();
 
     // The pulse of an invisible or stunned unit: the clock moves on by `frames`, its phase fmod(clock, 30)
-    // folded at 15 gives 0.2..0.7. Every drawn part takes it as its alpha / its tint (pulse, 0, 0) and flags_
+    // folded at 15 gives 0.2..0.7. Every drawn part takes it as its alpha / its tint (pulse, 0, 0) and flags
     // 0x10.
     void InvisiblePulse(float frames);
     void StunnedPulse(float frames);
-    // Undo the pulses: every drawn part's alpha back to 1 / tint and flags_ 0x10 cleared.
+    // Undo the pulses: every drawn part's alpha back to 1 / tint and flags 0x10 cleared.
     void ResetPartAlpha();
     void ClearPartTints();
     // The wounds texture and its material are taken off and released.
@@ -94,9 +94,9 @@ public:
     int ShowWounds(const char* name);
     // x, y, z = figureScale.
     void GetScale(float* x, float* y, float* z) override;
-    // Each drawn part registers its material with the world's material manager (with the part's type_).
+    // Each drawn part registers its material with the world's material manager (with the part's type).
     void RegisterPartMaterials();
-    // Screen picking (a shown object only, flags_ 0x20 of the 3D object): whether the point (x, y) is in the
+    // Screen picking (a shown object only, flags 0x20 of the 3D object): whether the point (x, y) is in the
     // object's dirtyRect; in the screen rectangle of one of its parts with their own mesh (part flags 0x40);
     // whether `rect` meets such a part's rectangle.
     int BoundsContainPoint(const long* point) override;

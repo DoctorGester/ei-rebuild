@@ -10,14 +10,14 @@
 #include <cstdint>
 
 int CSceneRenderer::BeginScene() {
-    if (!(flags_ & 1)) return 0;
+    if (!(flags & 1)) return 0;
     std::uint32_t now = gameapi::timeGetTime();
-    frameStart_ = now;
-    frameTime_ = now - lastFrameStart_;
+    frameStart = now;
+    frameTime = now - lastFrameStart;
     return 1;
 }
 
 int CSceneRenderer::EndScene() {
-    lastFrameStart_ = frameStart_;
+    lastFrameStart = frameStart;
     return 1;
 }

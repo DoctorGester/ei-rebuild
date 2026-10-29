@@ -18,7 +18,7 @@ public:
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
 
-    // A new CPlayer (0x134 bytes, CPlayer::Construct) whose type_ is `type`; null when the allocation fails.
+    // A new CPlayer (0x134 bytes, CPlayer::Construct) whose type is `type`; null when the allocation fails.
     CEngineObject* NewPlayer(int type);
     // A new player (type 0x300A, a free id) with a new connection from the
     // world's side-specific manager (SideObjectType::Player: a CPlayerServer or a CPlayerClient), one reference
@@ -28,8 +28,8 @@ public:
     // `player`'s Release; `this` is not used.
     void ReleasePlayer(CEngineObject* player);
     // Called for the client's message 0x00 and the server's player id. `object` is filed
-    // under `id`: its old id's entry erased, its id_ set, maxId_ raised, the table entry set
-    // (positions_ and the object list are left alone).
+    // under `id`: its old id's entry erased, its id set, maxId raised, the table entry set
+    // (positions and the object list are left alone).
     void ChangeId(CEngineObject* object, int id);
     // Every player's connection (a CPlayerServer) gets message
     // 0x12 (SendValue12 through its address: a byte, then `value`) / 0x13 (SendText13, `text`).

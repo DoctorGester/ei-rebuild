@@ -126,7 +126,7 @@ int SortBackToFront() {
 
 // The batch's triangle list through the device object (fogged by distance when it says so). True.
 bool Draw(CSceneRenderer* renderer, int vertexCount, int indexCount) {
-    return renderer->device_->DrawTlTriangles(g_corners.data(), vertexCount, g_indices.data(), indexCount) != 0;
+    return renderer->device->DrawTlTriangles(g_corners.data(), vertexCount, g_indices.data(), indexCount) != 0;
 }
 
 void SetTriangle(std::uint16_t* tri, int a, int b, int c) {
@@ -208,8 +208,8 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
     const char additive = static_cast<char>(additiveArgument);   // only its low byte counts
     const auto* points = static_cast<const std::vector<SpritePoint>*>(pointArray);
     const auto* sprites = static_cast<const std::vector<Sprite>*>(spriteArray);
-    const CTransformPipeline* pipeline = pipeline_;
-    const Matrix4& clip = *pipeline->Top(CTransformPipeline::kClipStack);
+    const CTransformPipeline* currentPipeline = pipeline;
+    const Matrix4& clip = *currentPipeline->Top(CTransformPipeline::kClipStack);
 
     const SpritePoint* point = points->data();
     int remaining = std::ssize(*points);
@@ -228,7 +228,7 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
         FillCorners(sprite, count);
         sprite += count;
         remaining -= count;
-        pipeline->ProjectSprites(clip, point, g_corners.data(), count);
+        currentPipeline->ProjectSprites(clip, point, g_corners.data(), count);
         point += count;
         if (!DrawQuads(this, SortBackToFront())) return 0;
     }

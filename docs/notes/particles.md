@@ -17,7 +17,7 @@ game.exe for the callbacks.
 
 - `CParticleSource` (vtable 0073CFD0, class id 0xC, 0x1F0 bytes, made by `NewParticleSource` 004981B0; a CTransformObject in the game,
   declared as a `CEngineObject` subclass, so sources are engine objects without casts). Slot 2 `Create`
-  fills the per-type parameters by `type_` (0x2000-0x2052; names in the table at 0078B120: name, type, lifetime) and
+  fills the per-type parameters by `type` (0x2000-0x2052; names in the table at 0078B120: name, type, lifetime) and
   stores three callbacks (all `__thiscall` on the source): +0x1E0 emit one particle `(Particle*, int)`, +0x1E4 update one
   particle (0 drops it), +0x1E8 update one element of the array at +0x154 (0x38-byte elements). Slot 6 `Tick`
   00496EB0 computes the source motion, runs the element callback per element and the update callback per particle
@@ -41,7 +41,7 @@ Every function carries its address in its source comment (grep it); the per-func
   no elements, no emission), `Draw` 004976B0, `AddParticle` 00496A20, `ParticleSpriteArray::SetSize` 00497D50, pool Release / Acquire 004987C0
   / 00498870, `AllocateElements` 00497EB0, `BindParticleTexture` 00497CE0, `NewParticleSource` 004981B0, `Destruct` 00498310, `DrawAll`
   00498940 with the depth sort (`SetAtGrow` 00499200, introsort 00499380, final sort 004994E0, pop heap 00499C20, make heap 00499CD0).
-- `CParticleManager` (vtable 0073F644, 0xE8: free particles +0xB0, `held_` hash_map<id, source> +0xCC, its highest id +0xE0, flag +0xE4)
+- `CParticleManager` (vtable 0073F644, 0xE8: free particles +0xB0, `held` hash_map<id, source> +0xCC, its highest id +0xE0, flag +0xE4)
   00497FC0-00498630: slot 2 `Create`, slot 3 `Destroy` (held sources released, pooled particles deleted, then the base's), `CreateSource`
   (CreateObject(type, -1), one reference held; flag +0xE4 stops 0x2001/3/4), `TickSources` (slot 6 of every source; paused: only flag 8; a
   held source whose tick returned 0 is released), `ReleaseUnheld` (held sources with refCount 1; the client's zone load). 004981A0, the

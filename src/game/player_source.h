@@ -17,9 +17,9 @@ class NetLink;
 class CPlayerSource : public CRefObject {
 public:
     CPlayerSource() {
-        refs_ = 0;
-        flags6_ = 0;
-        flags7_ = 0;
+        refs = 0;
+        flags6 = 0;
+        flags7 = 0;
     }
     ~CPlayerSource() override;   // The destructor; the base has no fields
 

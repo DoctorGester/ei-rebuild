@@ -29,8 +29,8 @@ namespace {
 bool StaysInside(MagicTrap* trap, CMapObject* unit) {
     int count = std::ssize(trap->area);
     const TrapCircle* circle = trap->area.data();
-    float x = unit->localPosition_.x;
-    float y = unit->localPosition_.y;
+    float x = unit->localPosition.x;
+    float y = unit->localPosition.y;
     for (int i = 0; i < count; ++i, ++circle) {
         float dx = x - circle->x;
         float dy = y - circle->y;
@@ -88,7 +88,7 @@ void MagicTrap::UpdateVictims() {
         node = next;
     }
 
-    if (!(flags_ & MapObjectFlag::Armed)) return;
+    if (!(flags & MapObjectFlag::Armed)) return;
     CWorldServer* context = ServerWorld();
     std::list<CUnit*> found;
     std::list<CUnit*> newcomers;
@@ -113,7 +113,7 @@ void MagicTrap::UpdateVictims() {
 void FindTrapVictims(CWorldServer* context, const std::vector<TrapCircle>* area, std::uint32_t sides,
                                 std::list<CUnit*>* out) {
     out->clear();
-    CSectorMap* sectors = &context->aiMap_.sectorMap;
+    CSectorMap* sectors = &context->aiMap.sectorMap;
     for (int i = 0; i < std::ssize(*area); ++i) {
         const TrapCircle& circle = (*area)[i];
         Vector3 point = {circle.x, circle.y, 0.0f};
@@ -130,11 +130,11 @@ void FindTrapVictims(CWorldServer* context, const std::vector<TrapCircle>* area,
 
 void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
     if (units->empty() || !spell) return;
-    const Vector3& origin = localPosition_;
+    const Vector3& origin = localPosition;
     Vector3 from = {origin.x, origin.y, origin.z};
     auto* world = World();
     from.z = static_cast<float>(world->RawSurfaceHeightAt(from.x, from.y) + from.z);
-    if (!(spell->targetFlags_ & SpellTargetFlag::AtUnits) && std::ssize(points) != 0) {
+    if (!(spell->targetFlags & SpellTargetFlag::AtUnits) && std::ssize(points) != 0) {
         for (int i = 0; i < std::ssize(points); ++i) {
             const TrapPoint& point = points[i];
             Vector3 at = {point.x, point.y, 0.0f};
@@ -146,9 +146,9 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
             CUnit* closest = nullptr;
             for (auto node = units->begin(); node != units->end(); ++node) {
                 CUnit* unit = *node;
-                float dx = unit->localPosition_.x - origin.x;
-                float dy = unit->localPosition_.y - origin.y;
-                float dz = unit->localPosition_.z - origin.z;
+                float dx = unit->localPosition.x - origin.x;
+                float dy = unit->localPosition.y - origin.y;
+                float dz = unit->localPosition.z - origin.z;
                 EI_NAN_AUDIT(dx, dy, dz);
                 if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) < kFar) closest = unit;
             }
@@ -160,7 +160,7 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
             auto next = std::next(node);
             CUnit* unit = *node;
             g_serverWorld.CastSpell(spell, nullptr, from, unit,
-                                   unit->localPosition_, 0);
+                                   unit->localPosition, 0);
             node = next;
         }
     }
@@ -172,7 +172,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     CSpellManager* manager = WorldContext()->SpellManager();
     CSpell* made = manager->CreateSpellFromText(record->spell);
     spell.Assign(made);
-    std::memcpy(&localPosition_.x, &record->position, sizeof(record->position));   // bit for bit
+    std::memcpy(&localPosition.x, &record->position, sizeof(record->position));    // bit for bit
 
     area = record->area;
     points = record->points;
@@ -189,7 +189,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
 MagicTrap::MagicTrap() {
     CreateMapObject();
     sides = 0xFFFFFFFFu;
-    flags_ |= kTrapFlags;
+    flags |= kTrapFlags;
     SetSpell(this, nullptr);
     area.clear();
     points.clear();
@@ -214,7 +214,7 @@ void MagicTrap::Save(CStream* stream) { SaveTrap(stream); }
 
 void MagicTrap::SaveTrap(CStream* stream) {
     SaveMapObject(stream);
-    std::int32_t value = spell ? spell->id_ : -1;
+    std::int32_t value = spell ? spell->id : -1;
     stream->WriteValue(value);
     value = std::ssize(area);
     stream->WriteValue(value);
@@ -257,7 +257,7 @@ void MagicTrap::LoadTrap(CStream* stream) {
 void MagicTrap::Create() {
     CreateMapObject();
     sides = 0xFFFFFFFFu;
-    flags_ |= kTrapFlags;
+    flags |= kTrapFlags;
     SetSpell(this, nullptr);
     area = {};
     points.clear();
@@ -291,7 +291,7 @@ bool MagicTrap::RunTick() {
 void MagicTrap::FireAtOccupants() {
     CWorldServer* context = ServerWorld();
     std::list<CUnit*> found;
-    if (flags_ & MapObjectFlag::Armed) {
+    if (flags & MapObjectFlag::Armed) {
         FindTrapVictims(context, &area, sides, &found);
         if (!found.empty()) CastAtUnits(&found);
     }

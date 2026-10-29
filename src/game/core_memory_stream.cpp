@@ -19,80 +19,80 @@ constexpr std::int32_t kShortSizeLimit = 30000;
 
 // --- CMemoryStream slots -----------------------------------------------------------------------
 
-std::uint32_t CMemoryStream::Read(void* buffer, std::uint32_t size) {
-    if (position_ + size > size_) {
-        std::uint32_t left = size_ - position_;
-        ok_ = 0;
-        std::memset(buffer, 0, size);
+std::uint32_t CMemoryStream::Read(void* buffer, std::uint32_t byteCount) {
+    if (position + byteCount > size) {
+        std::uint32_t left = size - position;
+        ok = 0;
+        std::memset(buffer, 0, byteCount);
         if (static_cast<std::int32_t>(left) < 0) return 0;
-        size = left;
+        byteCount = left;
     }
-    std::memcpy(buffer, data_.data() + position_, size);
-    position_ += size;
-    return size;
+    std::memcpy(buffer, data.data() + position, byteCount);
+    position += byteCount;
+    return byteCount;
 }
 
-void CMemoryStream::Write(const void* buffer, std::uint32_t size) {
+void CMemoryStream::Write(const void* buffer, std::uint32_t byteCount) {
     if (g_memoryStreamWriteObserver)
-        g_memoryStreamWriteObserver(this, size, static_cast<void* const*>(_AddressOfReturnAddress()));
-    if (position_ + size > data_.size()) data_.resize((static_cast<std::uint32_t>(data_.size()) + size) * 2);
-    std::memcpy(data_.data() + position_, buffer, size);
-    position_ += size;
-    if (!(size_ > position_)) size_ = position_;
+        g_memoryStreamWriteObserver(this, byteCount, static_cast<void* const*>(_AddressOfReturnAddress()));
+    if (position + byteCount > data.size()) data.resize((static_cast<std::uint32_t>(data.size()) + byteCount) * 2);
+    std::memcpy(data.data() + position, buffer, byteCount);
+    position += byteCount;
+    if (!(size > position)) size = position;
 }
 
-void CMemoryStream::Seek(std::uint32_t position) {
-    position_ = position;
+void CMemoryStream::Seek(std::uint32_t newPosition) {
+    position = newPosition;
     EndBits();
 }
 
 void CMemoryStream::CopyFrom(CStream* source) {
     source->Seek(0);
     Resize(source->Size());
-    source->Read(data_.data(), size_);
+    source->Read(data.data(), size);
     Seek(0);
 }
 
 // --- CMemoryStream sizes and bits --------------------------------------------------------------
 
-void CMemoryStream::Resize(std::uint32_t size) {
-    if (size <= data_.size()) {
-        size_ = size;
-        position_ = 0;
+void CMemoryStream::Resize(std::uint32_t byteCount) {
+    if (byteCount <= data.size()) {
+        size = byteCount;
+        position = 0;
         return;
     }
-    data_.resize((size >> 1) + size + 0x10);
-    position_ = 0;
-    if (bitsIndex_ >= 0) data_[bitsIndex_] = bits_;
-    bitsIndex_ = -1;
-    size_ = size;
-    bitMask_ = 0x80;
+    data.resize((byteCount >> 1) + byteCount + 0x10);
+    position = 0;
+    if (bitsIndex >= 0) data[bitsIndex] = bits;
+    bitsIndex = -1;
+    size = byteCount;
+    bitMask = 0x80;
 }
 
-void CMemoryStream::SetSize(std::uint32_t size) {
-    if (size <= data_.size()) {
-        size_ = size;
-        position_ = 0;
+void CMemoryStream::SetSize(std::uint32_t newSize) {
+    if (newSize <= data.size()) {
+        size = newSize;
+        position = 0;
         return;
     }
-    data_.assign(size, 0);
-    size_ = size;
-    position_ = 0;
-    bitMask_ = 0x80;
+    data.assign(newSize, 0);
+    size = newSize;
+    position = 0;
+    bitMask = 0x80;
 }
 
 void CMemoryStream::StartByte() {
-    if (bitsIndex_ >= 0) data_[bitsIndex_] = bits_;
-    bitsIndex_ = static_cast<std::int32_t>(position_);
-    bits_ = 0;
-    WriteValue(bits_);
-    bitMask_ = 1;
+    if (bitsIndex >= 0) data[bitsIndex] = bits;
+    bitsIndex = static_cast<std::int32_t>(position);
+    bits = 0;
+    WriteValue(bits);
+    bitMask = 1;
 }
 
 void CMemoryStream::EndBits() {
-    if (bitsIndex_ >= 0) data_[bitsIndex_] = bits_;
-    bitsIndex_ = -1;
-    bitMask_ = 0x80;
+    if (bitsIndex >= 0) data[bitsIndex] = bits;
+    bitsIndex = -1;
+    bitMask = 0x80;
 }
 
 // --- CStream helpers ---------------------------------------------------------------------------
@@ -100,8 +100,8 @@ void CMemoryStream::EndBits() {
 void CStream::CopyFrom(CStream* source) {
     std::uint8_t chunk[0x400];
     source->Seek(0);
-    source->reading_ = 1;
-    reading_ = 0;
+    source->reading = 1;
+    reading = 0;
     for (;;) {
         std::uint32_t read = source->Read(chunk, sizeof(chunk));
         if (!read) break;
@@ -145,12 +145,12 @@ bool CStream::ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::i
     ReadValue(value);
     if (value > newestVersion) return false;
     if (value < oldestVersion) return false;
-    version_ = static_cast<std::uint32_t>(value);
+    version = static_cast<std::uint32_t>(value);
     return true;
 }
 
-void CStream::WriteHeader(std::uint32_t magic, std::uint32_t version) {
+void CStream::WriteHeader(std::uint32_t magic, std::uint32_t headerVersion) {
     WriteValue(magic);
-    WriteValue(version);
-    version_ = version;
+    WriteValue(headerVersion);
+    version = headerVersion;
 }

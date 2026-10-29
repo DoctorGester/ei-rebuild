@@ -74,7 +74,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Save(CStream* stream) const {
     }
 }
 
-// A definition (CScript::definitions_) or an instance (instances_). The pairs' blocks are not null-checked.
+// A definition (CScript::definitions) or an instance (instances). The pairs' blocks are not null-checked.
 void ScriptDefinition::Save(CStream* stream) const {
     stream->WriteValue(index);
     stream->WriteString(name);
@@ -87,7 +87,7 @@ void ScriptDefinition::Save(CStream* stream) const {
     WriteVars(stream, &vars);
 }
 
-// A run (CScript::runs_). Its instance is found by the address of the killed flag (the instance's
+// A run (CScript::runs). Its instance is found by the address of the killed flag (the instance's
 // index) in the list of the script being saved; the WorldScript's runs (no flag) write -1.
 void ScriptRun::Save(CStream* stream) const {
     stream->WriteValue(block->id);
@@ -96,7 +96,7 @@ void ScriptRun::Save(CStream* stream) const {
     stream->WriteValue(sleepStart);
     int instance = 0;
     bool found = false;
-    for (const ScriptDefinition& candidate : g_streamedScript->instances_) {
+    for (const ScriptDefinition& candidate : g_streamedScript->instances) {
         if (killFlag == &candidate.index) {
             found = true;
             break;
@@ -110,29 +110,29 @@ void ScriptRun::Save(CStream* stream) const {
 void CScript::SaveState(CStream* stream) {
     g_streamedScript = this;
 
-    WriteList(stream, pointLights_);
-    WriteList(stream, particles_);
-    WriteList(stream, fxSources_);
-    WriteList(stream, lightning_);
-    stream->WriteValue(nextParticleId_);
-    stream->WriteValue(nextFxId_);
-    WriteList(stream, blocks_);
-    WriteList(stream, worldBlocks_);
-    WriteList(stream, definitions_);
+    WriteList(stream, pointLights);
+    WriteList(stream, particles);
+    WriteList(stream, fxSources);
+    WriteList(stream, lightning);
+    stream->WriteValue(nextParticleId);
+    stream->WriteValue(nextFxId);
+    WriteList(stream, blocks);
+    WriteList(stream, worldBlocks);
+    WriteList(stream, definitions);
 
-    WriteVars(stream, &globals_);
+    WriteVars(stream, &globals);
 
     // Instances (copies of definitions) and runs.
-    WriteList(stream, instances_);
-    WriteList(stream, runs_);
+    WriteList(stream, instances);
+    WriteList(stream, runs);
 
-    stream->WriteValue(loaded_);
-    stream->WriteValue(fileCount_);
+    stream->WriteValue(loaded);
+    stream->WriteValue(fileCount);
     g_streamedScript = nullptr;
 
     // The areas: count, then per area its id, part count and parts.
-    stream->WriteValue(static_cast<int>(areas_.size()));
-    for (const ScriptArea& area : areas_) {
+    stream->WriteValue(static_cast<int>(areas.size()));
+    for (const ScriptArea& area : areas) {
         stream->WriteValue(area.id);
         stream->WriteValue(static_cast<int>(area.parts.size()));
         for (const ScriptAreaPart& part : area.parts) stream->WriteValue(part);

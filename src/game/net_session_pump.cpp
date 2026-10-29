@@ -1,5 +1,5 @@
 // The connection pump of a network session and its start: a driver link (net_link.h) per remote player. The
-// session keeps two lists of the drivers (owning, and holders_). See docs/notes/network.md.
+// session keeps two lists of the drivers (owning, and holders). See docs/notes/network.md.
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "net_classes.h"
@@ -16,8 +16,8 @@ namespace {
 // A new driver for `player`, put at the end of the owning list (shared there).
 DriverLink* NewDriver(DriverSession* self, net::Connection* player) {
     auto* driver = net::NewCounted<DriverLink>();
-    driver->player_.Assign(player);
-    self->drivers_.emplace_back(driver);
+    driver->player.Assign(player);
+    self->drivers.emplace_back(driver);
     return driver;
 }
 
@@ -27,17 +27,17 @@ DriverLink* NewDriver(DriverSession* self, net::Connection* player) {
 // and the game server knows it; then each driver pumped, and those whose player is gone or detached erased.
 void DriverSession::PumpDrivers(net::SessionBase* session) {
     if (!IsLive(session)) return;
-    for (auto& node : session->clients_) {
+    for (auto& node : session->clients) {
         net::Connection* player = node.Get();
         bool known = false;
-        for (auto& it : drivers_) {
-            if (it.Get()->player_.Get() == player) {
+        for (auto& it : drivers) {
+            if (it.Get()->player.Get() == player) {
                 known = true;
                 break;
             }
         }
         if (known) continue;
-        GameBuffer* in = &node.Get()->reliableIn_;
+        GameBuffer* in = &node.Get()->reliableIn;
         net::BufferUpdateHigh(in);
         if (in->PositionOf(in->high) <= 0) continue;
         net::ServerSession* server = net::g_gameServer;
@@ -45,14 +45,14 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {
         if (!server->PlayerStateIs3(node.Get())) continue;
         player = node.Get();
         DriverLink* driver = NewDriver(this, player);
-        holders_.emplace_back(driver);
+        holders.emplace_back(driver);
     }
-    for (auto it = drivers_.begin(); it != drivers_.end();) {
+    for (auto it = drivers.begin(); it != drivers.end();) {
         it->Get()->Pump();
-        if (IsLive(it->Get()->player_.Get())) {
+        if (IsLive(it->Get()->player.Get())) {
             ++it;
         } else {
-            it = drivers_.erase(it);
+            it = drivers.erase(it);
         }
     }
 }
@@ -60,8 +60,8 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {
 // Both lists emptied, then one driver for `player`: started, and its pending output
 // drained into throwaway memory streams while its virtual check answers true. Returns the driver.
 DriverLink* DriverSession::Start(net::Connection* player) {
-    drivers_.clear();
-    holders_.clear();
+    drivers.clear();
+    holders.clear();
     DriverLink* driver = NewDriver(this, player);
     driver->Pump();
     while (driver->HasIncoming()) {

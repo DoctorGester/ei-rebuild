@@ -176,12 +176,12 @@ void CItemConstructor::Create() {
 }
 
 void CItemConstructor::Destroy() {
-    if (manager_) manager_->ForgetReference();
-    manager_ = nullptr;
-    item_.Reset();
-    material_ = nullptr;
-    prototype_ = nullptr;
-    spell_ = nullptr;
+    if (manager) manager->ForgetReference();
+    manager = nullptr;
+    item.Reset();
+    material = nullptr;
+    prototype = nullptr;
+    spell = nullptr;
 }
 
 CItemConstructor::~CItemConstructor() { CItemConstructor::Destroy(); }
@@ -189,80 +189,80 @@ CItemConstructor::~CItemConstructor() { CItemConstructor::Destroy(); }
 const char* CItemConstructor::ClassName() { return "CItemConstructor"; }
 ClassId CItemConstructor::GetClassId() { return ClassId::ItemConstructor; }
 
-CItem* CItemConstructor::BuildItem(CBaseManager* manager, ItemKind kind, ItemRecordHead* prototype,
-                                   MaterialRecordHead* material, CSpell* spell, int count) {
-    SetManager(manager);
+CItem* CItemConstructor::BuildItem(CBaseManager* objectManager, ItemKind kind, ItemRecordHead* record,
+                                   MaterialRecordHead* materialRecord, CSpell* itemSpell, int itemCount) {
+    SetManager(objectManager);
     if (!BeginCreateItem(kind)) {
         SetManager(nullptr);
         return nullptr;
     }
-    prototype_ = prototype;
-    material_ = material;
-    spell_ = spell;
-    count_ = count;
-    CItem* item = EndCreateItem();
+    prototype = record;
+    material = materialRecord;
+    spell = itemSpell;
+    count = itemCount;
+    CItem* newItem = EndCreateItem();
     SetManager(nullptr);
-    return item;
+    return newItem;
 }
 
-void CItemConstructor::SetManager(CBaseManager* manager) {
-    if (manager_) manager_->ForgetReference();
-    manager_ = manager;
-    if (manager) manager->AddRef();
+void CItemConstructor::SetManager(CBaseManager* newManager) {
+    if (manager) manager->ForgetReference();
+    manager = newManager;
+    if (newManager) newManager->AddRef();
 }
 
 bool CItemConstructor::BeginCreateItem(ItemKind kind) {
-    CItem* item = manager_->CreateObjectAs<CItem>(kind, kNoObjectId);
-    if (!item) return game::FatalError(kCantCreateItem);
-    item_.Assign(item);
-    material_ = nullptr;
-    prototype_ = nullptr;
-    count_ = 1;
-    flags_ |= kFlagConstructing;
+    CItem* newItem = manager->CreateObjectAs<CItem>(kind, kNoObjectId);
+    if (!newItem) return game::FatalError(kCantCreateItem);
+    item.Assign(newItem);
+    material = nullptr;
+    prototype = nullptr;
+    count = 1;
+    flags |= kFlagConstructing;
     return true;
 }
 
 CItem* CItemConstructor::EndCreateItem() {
     if (!FillItem()) {
-        item_.Reset();
+        item.Reset();
         return nullptr;
     }
-    flags_ &= ~kFlagConstructing;
-    CItem* item = item_.Take();
-    item->ForgetReference();
-    spell_ = nullptr;
-    count_ = 0;
-    return item;
+    flags &= ~kFlagConstructing;
+    CItem* newItem = item.Take();
+    newItem->ForgetReference();
+    spell = nullptr;
+    count = 0;
+    return newItem;
 }
 
 void CItemConstructor::Cancel() {
-    item_.Reset();
-    spell_ = nullptr;
-    material_ = nullptr;
-    prototype_ = nullptr;
+    item.Reset();
+    spell = nullptr;
+    material = nullptr;
+    prototype = nullptr;
 }
 
 bool CItemConstructor::FillItem() {
-    ItemKind kind = item_->Kind();
-    if (NeedsMaterial(kind) && !material_) return false;
+    ItemKind kind = item->Kind();
+    if (NeedsMaterial(kind) && !material) return false;
 
     std::unique_ptr<ItemRecordHead> record = NewRecord(kind);
-    FillCommon(record.get(), prototype_, material_);
-    std::uint32_t index = FillKind(kind, record.get(), prototype_, material_);
+    FillCommon(record.get(), prototype, material);
+    std::uint32_t index = FillKind(kind, record.get(), prototype, material);
 
-    item_->InitFromRecord(record.get());
-    if (kind == ItemKind::Quick && static_cast<QuickItemCategory>(prototype_->category) == QuickItemCategory::Potion) {
+    item->InitFromRecord(record.get());
+    if (kind == ItemKind::Quick && static_cast<QuickItemCategory>(prototype->category) == QuickItemCategory::Potion) {
         // A potion casts the spell its prototype's text makes (a given spell is not attached).
-        CSpellManager* spellManager = manager_->context_->SpellManager();
-        CSpell* spell = spellManager->CreateSpellFromText(RecordAs<QuickItemRecord>(prototype_)->spellText);
-        spell_ = spell;
-        item_->spell_.Assign(spell);
-    } else if (spell_) {
-        item_->AttachSpell(spell_);
+        CSpellManager* spellManager = manager->context->SpellManager();
+        CSpell* newSpell = spellManager->CreateSpellFromText(RecordAs<QuickItemRecord>(prototype)->spellText);
+        spell = newSpell;
+        item->spell.Assign(newSpell);
+    } else if (spell) {
+        item->AttachSpell(spell);
     }
 
-    item_->prototypeId_ = PackItemId(index, material_ ? material_->number : 0);
-    item_->count_ = static_cast<std::uint32_t>(count_);
+    item->prototypeId = PackItemId(index, material ? material->number : 0);
+    item->count = static_cast<std::uint32_t>(count);
     return true;
 }
 
@@ -286,7 +286,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
     for (std::string& part : parts) str::MakeLower(part);
 
     // "spell container[spell text]": a scroll holding that spell.
-    if (parts[0] == kSpellContainer) return CreateSpellItem(extra, context_->SpellManager());
+    if (parts[0] == kSpellContainer) return CreateSpellItem(extra, context->SpellManager());
 
     // "prototype[.material]".
     const std::string& prototypeName = parts[0];
@@ -310,9 +310,9 @@ CItem* CItemManager::CreateItem(std::string_view name) {
         if (prototype->name == kMaterialType)
             count = str::ToInt(extra);
         else
-            spell = context_->SpellManager()->CreateSpellFromText(extra);
+            spell = context->SpellManager()->CreateSpellFromText(extra);
     }
-    CItem* item = context_->ItemConstructor()->BuildItem(this, prototype->Kind(), prototype, material, spell, count);
+    CItem* item = context->ItemConstructor()->BuildItem(this, prototype->Kind(), prototype, material, spell, count);
     if (!item) {
         // Rebirth's FixCreateItem: logged, and no item. Without it the error is reported and the code goes on
         // with the null item (and crashes).
@@ -321,7 +321,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
     }
     if (item->GetClassId() == ClassId::ItemLoot && parts.size() > 1) {
         auto* loot = AsLoot(item);
-        if (loot->kind_ == LootKind::Record) loot->index_ = static_cast<std::uint32_t>(LootTableIndex(loot->recordType_, parts[1]));
+        if (loot->kind == LootKind::Record) loot->index = static_cast<std::uint32_t>(LootTableIndex(loot->recordType, parts[1]));
     }
     return item;
 }
@@ -329,7 +329,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
 CItem* CItemManager::MakeItem(ItemKind kind, std::uint32_t index, std::uint32_t material) {
     if ((index & 0xFFFF) == kNoIndex) index = 0;
     MaterialRecordHead* materialRecord = NeedsMaterial(kind) ? MaterialAt(material) : nullptr;
-    return context_->ItemConstructor()->BuildItem(this, kind, PrototypeAt(kind, index), materialRecord);
+    return context->ItemConstructor()->BuildItem(this, kind, PrototypeAt(kind, index), materialRecord);
 }
 
 // The "spell container" record is looked up by name each time; without one the index is that of a
@@ -368,6 +368,6 @@ CEngineObject* CItemManager::NewObject(int kind) {
     case ItemKind::Quest: object = new CItemQuest; break;
     default: return nullptr;
     }
-    object->type_ = kind;
+    object->type = kind;
     return object;
 }

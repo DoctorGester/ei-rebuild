@@ -39,8 +39,8 @@ void CMpHeroScreen::ChooseFigure(std::string_view prototype) {
     float dexterity = kDefaultAttribute;
     float intelligence = kDefaultAttribute;
     float height = kDefaultHeight;
-    if (!player->members_.empty()) {
-        PartyUnitRecord* first = player->members_.data();
+    if (!player->members.empty()) {
+        PartyUnitRecord* first = player->members.data();
         const auto* stats = &first->stats;
         strength = stats->strength;
         dexterity = stats->dexterity;
@@ -51,10 +51,10 @@ void CMpHeroScreen::ChooseFigure(std::string_view prototype) {
     }
     player->Clear(1, 0);
     player->AddMember(kHeroName, prototype, prototype);
-    player->EquipFromPrototype(player->members_.data());
-    PartyUnitRecord* hero = player->members_.data();
+    player->EquipFromPrototype(player->members.data());
+    PartyUnitRecord* hero = player->members.data();
     auto* stats = &hero->stats;
-    if (mode_ == kModeList) {
+    if (mode == kModeList) {
         stats->strengthBase = stats->strength = kDefaultAttribute;
         stats->dexterityBase = stats->dexterity = kDefaultAttribute;
         stats->intelligenceBase = stats->intelligence = kDefaultAttribute;
@@ -66,28 +66,28 @@ void CMpHeroScreen::ChooseFigure(std::string_view prototype) {
         hero->height = height;
     }
     // Each strip selects the figure when its list has it; the second list decides the voices.
-    figureStrips_[1]->selected_ = -1;
-    figureStrips_[0]->selected_ = -1;
-    int index = IndexOf(defaults_, prototype);
-    if (index >= 0) figureStrips_[0]->selected_ = index;
-    index = IndexOf(names_, prototype);
+    figureStrips[1]->selected = -1;
+    figureStrips[0]->selected = -1;
+    int index = IndexOf(defaults, prototype);
+    if (index >= 0) figureStrips[0]->selected = index;
+    index = IndexOf(names, prototype);
     bool firstVoices = index < 0;
-    if (index >= 0) figureStrips_[1]->selected_ = index;
+    if (index >= 0) figureStrips[1]->selected = index;
 
     ShowFirstEquipment();
     MakePreview(false);
-    statsPanel_->SetHero(0, std::nullopt);
-    tradePanel_->ResetRecords();
-    tradePanel_->SelectHero(0);
-    text_ = prototype;
-    voiceIndex_ = 0;
-    voiceTop_ = 0;
-    voices_ = firstVoices ? &voiceLists_[0] : &voiceLists_[1];
-    const std::vector<MpVoiceEntry>& voices = *voices_;
+    statsPanel->SetHero(0, std::nullopt);
+    tradePanel->ResetRecords();
+    tradePanel->SelectHero(0);
+    text = prototype;
+    voiceIndex = 0;
+    voiceTop = 0;
+    voices = firstVoices ? &voiceLists[0] : &voiceLists[1];
+    const std::vector<MpVoiceEntry>& currentVoices = *voices;
     // The first entry's file (the original read it even from an empty list; ours leaves the text then).
-    if (!voices.empty()) hero->texts[6] = voices.front().file;
-    const int count = static_cast<int>(voices.size());
-    voiceScroll_->SetMaximum(count > kVoiceRows ? count - kVoiceRows : 0);
-    voiceScroll_->SetPosition(0);
-    if (mode_ == kModeNewHero) DrawVoices();
+    if (!currentVoices.empty()) hero->texts[6] = currentVoices.front().file;
+    const int count = static_cast<int>(currentVoices.size());
+    voiceScroll->SetMaximum(count > kVoiceRows ? count - kVoiceRows : 0);
+    voiceScroll->SetPosition(0);
+    if (mode == kModeNewHero) DrawVoices();
 }

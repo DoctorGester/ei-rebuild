@@ -28,38 +28,38 @@ bool LockKey::AcceptedByTrap() const { return true; }
 
 CTrapObject::CTrapObject() {
     CreateMapObject();
-    flags_ &= ~MapObjectFlag::NotDrawn;
+    flags &= ~MapObjectFlag::NotDrawn;
 }
 
 void CTrapObject::Create() {
     CreateMapObject();
-    flags_ &= ~MapObjectFlag::NotDrawn;
+    flags &= ~MapObjectFlag::NotDrawn;
 }
 
 bool CTrapObject::RunTick() {
     Update();
-    if (!(flags_ & MapObjectFlag::Armed)) return false;
+    if (!(flags & MapObjectFlag::Armed)) return false;
     if (!WorldContext()->IsServer()) return false;
     auto* world = ServerWorld();
-    std::list<CUnit*> units = world->aiMap_.sectorMap.FindUnitsInRadius(localPosition_, kTriggerRadius);
-    if ((flags_ & MapObjectFlag::ArmedFresh) && units.empty()) {
-        flags_ &= ~MapObjectFlag::ArmedFresh;
+    std::list<CUnit*> units = world->aiMap.sectorMap.FindUnitsInRadius(localPosition, kTriggerRadius);
+    if ((flags & MapObjectFlag::ArmedFresh) && units.empty()) {
+        flags &= ~MapObjectFlag::ArmedFresh;
     } else if (!units.empty()) {
         std::string line;
-        float x = localPosition_.x;
-        float y = localPosition_.y;
+        float x = localPosition.x;
+        float y = localPosition.y;
         double z = world->RawSurfaceHeightAt(x, y);
         line = str::Format(kTrapScript, static_cast<double>(x), static_cast<double>(y), z);
         TheMissionScript()->Load(&line, 1);
-        flags_ &= ~MapObjectFlag::Armed;
+        flags &= ~MapObjectFlag::Armed;
     }
     units.clear();
     return false;
 }
 
 bool CTrapObject::Disarm(const LockKey* key) {
-    if (!(flags_ & MapObjectFlag::Armed) || !key->AcceptedByTrap()) return false;
-    flags_ &= ~MapObjectFlag::Armed;
+    if (!(flags & MapObjectFlag::Armed) || !key->AcceptedByTrap()) return false;
+    flags &= ~MapObjectFlag::Armed;
     return true;
 }
 
@@ -67,12 +67,12 @@ int CTrapObject::KeyFits(const LockKey* key) { return key->AcceptedByTrap(); }
 
 void CTrapObject::LoadTrapObject(CStream* stream) {
     LoadMapObject(stream);
-    stream->ReadValue(savedValue_);
+    stream->ReadValue(savedValue);
 }
 
 void CTrapObject::SaveTrapObject(CStream* stream) {
     SaveMapObject(stream);
-    std::uint32_t value = savedValue_;
+    std::uint32_t value = savedValue;
     stream->WriteValue(value);
 }
 

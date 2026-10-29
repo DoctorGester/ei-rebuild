@@ -266,8 +266,8 @@ void Terrain::ClearMap() {
 
 Terrain::Terrain() {
     // Identity rotations (w first); the positions are not initialised.
-    localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
-    worldRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+    localRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+    worldRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     Reset();
 }
 
@@ -278,13 +278,13 @@ void Terrain::Create() {
     BuildVertexTiles();
     BuildWavePhases();
     for (int i = 0; i < 512; ++i) sine[i] = static_cast<float>(x87::fsin(i * kPiDouble * kSineStep));
-    localPosition_ = kZeroPosition;
-    localRotation_ = kIdentityRotation;
+    localPosition = kZeroPosition;
+    localRotation = kIdentityRotation;
 }
 
 void Terrain::Destroy() {
     ClearMap();
-    for (auto& [id, light] : lights) light->Release();
+    for (auto& [objectId, light] : lights) light->Release();
     lights.clear();
     Reset();
 }
@@ -379,13 +379,13 @@ int Terrain::SetupPages(int count) {
             name = std::format("{}{:03}", mapName, i);
         } else {
             name = std::format("{}L{:02}", mapName, i - count);
-            if (!g_clientWorld.textureManager_->HasFile((name + ".mmp"))) return 1;
+            if (!g_clientWorld.textureManager->HasFile((name + ".mmp"))) return 1;
             pageTextures.push_back(nullptr);
         }
-        CTexture* texture = g_clientWorld.textureManager_->FindOrCreate(kPageTexture, name);
+        CTexture* texture = g_clientWorld.textureManager->FindOrCreate(kPageTexture, name);
         pageTextures[i] = texture;
         texture->AddRef();
-        if (!g_clientWorld.textureManager_->LoadTexture(pageTextures[i])) return 0;
+        if (!g_clientWorld.textureManager->LoadTexture(pageTextures[i])) return 0;
     }
     return 1;
 }
@@ -497,12 +497,12 @@ void Terrain::BuildUvTables(int tileSize) {
 void Terrain::AddLight(CLight* light) {
     if (!mapLoaded) return;
     light->AddRef();
-    lights[light->id_] = light;
+    lights[light->id] = light;
 }
 
 void Terrain::RemoveLight(CLight* light) {
     if (!mapLoaded) return;
-    lights.erase(light->id_);
+    lights.erase(light->id);
     light->Release();
 }
 

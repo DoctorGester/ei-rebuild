@@ -87,21 +87,21 @@ image::CameraState OriginalCamera(const void* camera) {
     const auto* c = static_cast<const exe::CCamera*>(camera);
     image::CameraState state;
     image::CameraPose& pose = state.own;
-    pose.focusX = c->focus_.x;
-    pose.focusY = c->focus_.y;
-    pose.focusZ = c->focus_.z;
-    pose.turnZ = c->viewRotation_.z;
-    pose.turnW = c->viewRotation_.w;
-    pose.distance = c->distance_;
-    pose.position[0] = c->localPosition_.x;
-    pose.position[1] = c->localPosition_.y;
-    pose.position[2] = c->localPosition_.z;
-    pose.rotation[0] = c->localRotation_.w;
-    pose.rotation[1] = c->localRotation_.x;
-    pose.rotation[2] = c->localRotation_.y;
-    pose.rotation[3] = c->localRotation_.z;
+    pose.focusX = c->focus.x;
+    pose.focusY = c->focus.y;
+    pose.focusZ = c->focus.z;
+    pose.turnZ = c->viewRotation.z;
+    pose.turnW = c->viewRotation.w;
+    pose.distance = c->distance;
+    pose.position[0] = c->localPosition.x;
+    pose.position[1] = c->localPosition.y;
+    pose.position[2] = c->localPosition.z;
+    pose.rotation[0] = c->localRotation.w;
+    pose.rotation[1] = c->localRotation.x;
+    pose.rotation[2] = c->localRotation.y;
+    pose.rotation[3] = c->localRotation.z;
     state.drawn = pose;
-    state.flags = c->flags_;
+    state.flags = c->flags;
     return state;
 }
 

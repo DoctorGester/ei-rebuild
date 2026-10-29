@@ -569,9 +569,9 @@ kinds given.
     g_currentSession, g_currentConnection, g_gameClient / g_gameServer 0079B5D8 / 0079B5DC (counted pointers: their
     static initialisers 00412230 / 00412280 and exit functions 00412250 / 004122A0 are ported in net_session.cpp,
     rows in config/extra_function_sizes.csv), the pump time, the player / variable serials, the select timeout and net_delta.h's keep / read state. **The "campaign mode" 007C2CC4 is not
-    a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
+    a global**: it is the server world's `sessionKind` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
     left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
-    readers take `g_serverWorld.sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
+    readers take `g_serverWorld.sessionKind`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
     CRT's "C" locale since C26 (nothing reads it since C35b), the old iostream's shared lock and ios count and ostream's virtual base table (C35d: console::Stream has none;
     crt_file's zero mode constants went with C35a). **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
@@ -633,15 +633,15 @@ kinds given.
         plain global of ours (below, "Plain globals and locals instead") and its initialiser is UNUSED_INITIALISERS.
       - C18k4 named whole class objects the same way: a class with game.exe's vtable stays with C19, a class
         without one was a zero-storage object its initialiser constructed (lib::StaticObject, gone in C50b3: all are
-        plain globals now). Every access goes through the name or a member (`options::g_options.difficulty_`). Named: ui_objectives' last quest string 007C8178, the
+        plain globals now). Every access goes through the name or a member (`options::g_options.difficulty`). Named: ui_objectives' last quest string 007C8178, the
         protection checks / driver / deferred-unit lists (static_lists.cpp), the spell / item / quest / print / speech
         databases (database_globals.cpp), the lever table, the unit and skill databases (unit_db_globals.cpp; plain globals
         since C50c1), the party manager 007AA5A0, saved parties 007C82A0, the spell footprint set 007C8478, the party id set 007C8370
         and the unread set 007AB8D8. C18k5 (1,717 -> 1,651 game data addresses) named the last four without a vtable: the options
         0079BC70 (options_construct.cpp: the vector replay links it with its constructor), GameFlow 007AFE20 (world_game.cpp), CCursor 007C7BD8 (ui_cursor_setup.cpp) and CInterface3D 007C7D50
         (ui_small_members.cpp). Their raw reads became members: the options' 80 reads (camera speeds, shadows, prints,
-        volumes, difficulty, paths, master server ...), the mouse position and drag motion (CCursor::position_ /
-        motion_: 007C7C50 and 007C7C60 were lone ints before C18k5 named the cursor), the interface's window stack
+        volumes, difficulty, paths, master server ...), the mouse position and drag motion (CCursor::position /
+        motion: 007C7C50 and 007C7C60 were lone ints before C18k5 named the cursor), the interface's window stack
         (007C7D84 was misnamed PeerList), close-all and sessions flags. The objects whose header only forward-declares
         their class (g_gameFlow, g_partyManager, g_interface and g_cursor: plain globals since C54g / C54g1) are declared
         extern in game_singletons.h. **The harness** reads
@@ -718,7 +718,7 @@ kinds given.
   - **The remaining objects** (C18, 2026-10-22; 247 -> 130):
     - **Singletons' fields read as members**: what was left of the client / server worlds', the scene renderer's and
       the camera's fields (managers, tick and its fraction, terrain, scripts, diplomacy, flags, wind, platforms) is
-      read through the object (`g_clientWorld.figureManager_`); the accessors that need world.h are out of line in
+      read through the object (`g_clientWorld.figureManager`); the accessors that need world.h are out of line in
       world_singletons.cpp (game_singletons.h declares them; replay_path.cpp defines CurrentWorldTick for the path
       vectors). TheMatrixDevice was the scene pipeline (ScenePipeline()), 007AFDB0 the origin (worlddata::kOrigin),
       007C5488 / 007C548C the logic settings' considerModifier / considerLogBase. Check a lone address with
@@ -911,7 +911,7 @@ destructor, the slot bodies the virtual overrides (base calls qualified), class 
 - Members must be trivially default-constructible or initialised in the constructor's list as the original does: a
   constructor default-initialises what it does not name.
 
-The window base (ui.h): `UiInputSide` (007401D0: the input slots 1-12 as virtuals, `handled_`) and
+The window base (ui.h): `UiInputSide` (007401D0: the input slots 1-12 as virtuals, `handled`) and
 `CUiWindow : CUiWindowBase, UiInputSide` (CUiWindowBase is CTransformObject plus the 0x40 bytes before +0x94, so
 the input side lands at +0x94 and the compiler's adjustor thunks are game.exe's SUB ECX,0x94; JMP) with slots 18-24
 as virtuals; `CUiContainer` adds 25-41 (25 / 26 `_purecall`) and its input dispatch as the input-side overrides
@@ -1542,7 +1542,7 @@ bytes compared and copied whole) or display text (fixed for UTF-8).
   at a character's end); `CStream::ReadText` cuts its UTF-8 at a character's end; `DrawTextA`'s UTF-8 route with
   `DT_MODIFYSTRING` (the server list's ellipsis) gives `DrawTextW` the four characters of room it writes past the
   text. The chat line also stays within 200 bytes (`CChatOverlay::Char`): a client's update carries 220 bytes
-  (`Connection::updateBudget_`) and an entry past that is never counted, so a longer SayMessage would never arrive.
+  (`Connection::updateBudget`) and an entry past that is never counted, so a longer SayMessage would never arrive.
   Save names are std::strings (no buffer).
 - **Byte indexing**: about 37 sites. Left: ASCII prefixes, markers and separators (`Left(1)`, `Left(2)`, `Mid` past
   "pers_", "constr", '|', "^<digit>", the text splitters and tokenizers that stop at ASCII bytes; a UTF-8 byte

@@ -45,10 +45,10 @@ struct EyeFrame {
 
 EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord* model) {
     EyeFrame frame;
-    float scale = static_cast<float>(x87::FromUnsigned(skin->width_) * kEyeUnit);
+    float scale = static_cast<float>(x87::FromUnsigned(skin->width) * kEyeUnit);
     frame.scale = scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);
-    frame.offset = (x87::FromUnsigned(face->height_) / frame.scale - (eyeHeight + eyeHeight)) / frame.scale;
+    frame.offset = (x87::FromUnsigned(face->height) / frame.scale - (eyeHeight + eyeHeight)) / frame.scale;
     frame.at[0] = Truncate(static_cast<int>(model->eyeLeft) * static_cast<double>(frame.scale));
     int fromBottom = kSkinUnits - static_cast<int>(model->eyeBottom) - eyeHeight;
     frame.at[1] = Truncate(fromBottom * static_cast<double>(frame.scale));
@@ -63,7 +63,7 @@ EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord
 void BlitMipChain(CTexture* target, const int* at, CTexture* source, const RECT* from) {
     const int to[4] = {at[0], at[1], at[0] + (from->right - from->left), at[1] + (from->bottom - from->top)};
     const int rectangle[4] = {from->left, from->top, from->right, from->bottom};
-    render::TexturePatch(target->surface_, to, source->surface_, rectangle);
+    render::TexturePatch(target->surface, to, source->surface, rectangle);
 }
 
 void CUnitClientSpecific::BlinkClose(bool force) {

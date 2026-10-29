@@ -24,8 +24,8 @@ struct LocalResource {
 // A file's bytes into `stream` (a memory stream a loader copies a file into), left at its start for
 // reading.
 inline void FillStream(CMemoryStream& stream, const void* data, std::uint32_t size) {
-    stream.reading_ = 0;
+    stream.reading = 0;
     stream.Write(data, size);
     stream.Seek(0);
-    stream.reading_ = 1;
+    stream.reading = 1;
 }

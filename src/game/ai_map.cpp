@@ -73,13 +73,13 @@ bool CAIMap::CanStandAtFromHere(CUnit* unit, int x, int y, int* reason) {
     *reason = 1;
     // The unit's own cell is not bounds-checked, like the original.
     if (cells[y][x].level > static_cast<std::uint8_t>(level)) {
-        int ux = WorldToCell(unit->localPosition_.x), uy = WorldToCell(unit->localPosition_.y);
+        int ux = WorldToCell(unit->localPosition.x), uy = WorldToCell(unit->localPosition.y);
         if (cells[y][x].level > cells[uy][ux].level) return false;
     }
     level &= 0xFF;
     *reason = 2;
     if (waterDepth[y][x] > level) {
-        int ux = WorldToCell(unit->localPosition_.x), uy = WorldToCell(unit->localPosition_.y);
+        int ux = WorldToCell(unit->localPosition.x), uy = WorldToCell(unit->localPosition.y);
         if (waterDepth[y][x] > waterDepth[uy][ux]) return false;
     }
     *reason = 0;
@@ -102,7 +102,7 @@ bool CAIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3& position) {
 }
 
 bool CAIMap::IsUnitCellPassable(CUnit* unit) {
-    int x = WorldToCell(unit->localPosition_.x), y = WorldToCell(unit->localPosition_.y);
+    int x = WorldToCell(unit->localPosition.x), y = WorldToCell(unit->localPosition.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return cells[y][x].Passability(unit->sizeClass * 4) != 0;
 }
@@ -115,7 +115,7 @@ bool CAIMap::IsPassableForClass(std::uint8_t sizeClass, const Vector3& position)
 
 bool CAIMap::CanLeaveCell(CUnit* unit) {
     static const int kOffsets[9][2] = {{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-    int x = WorldToCell(unit->localPosition_.x), y = WorldToCell(unit->localPosition_.y);
+    int x = WorldToCell(unit->localPosition.x), y = WorldToCell(unit->localPosition.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     int sizeClass = unit->sizeClass;
     const std::vector<int>& table = sizeClass == 0 ? climbSmall : climbLarge;
@@ -202,7 +202,7 @@ AITerrainType* CAIMap::MaterialRecordAt(const Vector3& position) {
 void CAIMap::TurnObject(CMapObject* object, const Quaternion* rotation) {
     CSectorMap* map = &sectorMap;
     map->Remove(object);
-    object->localRotation_ = *rotation;
+    object->localRotation = *rotation;
     map->Add(object);
 }
 

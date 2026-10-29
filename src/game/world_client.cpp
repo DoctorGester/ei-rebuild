@@ -45,18 +45,18 @@
 float CWorldClient::ClampedGroundHeight(float x, float y) {
     // Branch-free (the comparison turned into a select mask); NaN picks the first operand of each comparison.
     float cx = 0.0f >= x ? 0.0f : x;
-    float maxX = static_cast<float>(terrain_->width - 1.0f);
+    float maxX = static_cast<float>(terrain->width - 1.0f);
     cx = maxX >= cx ? cx : maxX;
     float cy = 0.0f >= y ? 0.0f : y;
-    float maxY = static_cast<float>(terrain_->height - 1.0f);
+    float maxY = static_cast<float>(terrain->height - 1.0f);
     cy = maxY >= cy ? cy : maxY;
-    return terrain_->HeightAt(cx, cy, terrain::Layer::Ground);
+    return terrain->HeightAt(cx, cy, terrain::Layer::Ground);
 }
 
-double CWorldClient::RawSurfaceHeightAt(float x, float y) { return terrain_->SurfaceHeight(x, y); }
+double CWorldClient::RawSurfaceHeightAt(float x, float y) { return terrain->SurfaceHeight(x, y); }
 
 const char* CWorldClient::AmbienceTimeOfDay() const {
-    float hour = static_cast<float>(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, 24.0));
+    float hour = static_cast<float>(std::fmod(static_cast<double>(tick) * secondsPerTick + timeBase, 24.0));
     if (!(hour < 6.0f || hour > 18.0f)) return "day";   // also NaN
     if (hour >= 22.0f || hour <= 2.0f) return "night";
     return hour < 6.0f ? "morning" : "evening";
@@ -140,14 +140,14 @@ CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
     if (!view || !unit) return nullptr;
     float best = 1e38f;
     CUnit* nearest = nullptr;
-    for (int i = 0; i < std::ssize(view->partyUnitIds_); ++i) {
-        CUnit* found = FindUnit(view->partyUnitIds_[i]);
+    for (int i = 0; i < std::ssize(view->partyUnitIds); ++i) {
+        CUnit* found = FindUnit(view->partyUnitIds[i]);
         if (!found || found->GetClassId() != ClassId::Unit) continue;
         if (found->IsDead() != 0) continue;
         std::uint32_t side = 1u << (unit->side & 31);
         if ((found->relationsA & (side & found->relationsB)) == 0) continue;
-        float dy = found->localPosition_.y - unit->localPosition_.y;
-        float dx = found->localPosition_.x - unit->localPosition_.x;
+        float dy = found->localPosition.y - unit->localPosition.y;
+        float dx = found->localPosition.x - unit->localPosition.x;
         float distance = LengthSquared2DUnrounded(dx, dy);
         EI_NAN_AUDIT(distance, best);
         if (distance < best) {
@@ -159,35 +159,35 @@ CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
 }
 
 FootprintPart* CObject3D::PartBox(int index) {
-    return &parts[index]->box_;
+    return &parts[index]->box;
 }
 
 CPlayerClient* CWorldClient::LocalView() {
-    if (session_) return static_cast<CPlayerClient*>(session_->connection_);
+    if (session) return static_cast<CPlayerClient*>(session->connection);
     return nullptr;
 }
 
 bool CWorldClient::IsLocalViewMode2() {
     CPlayerClient* view = LocalView();
     if (!view) return false;
-    return view->state_ == 2;
+    return view->state == 2;
 }
 
 bool CWorldClient::IsLocalPlayerIdle() {
-    if (!session_) return false;
-    CPlayerConnection* view = session_->connection_;
+    if (!session) return false;
+    CPlayerConnection* view = session->connection;
     if (!view) return false;
-    netlink::NetLink* link = view->player_->link_;
-    if (link && !(link->flags7_ & CRefObject::kDetached) && link->Alive()) return false;
+    netlink::NetLink* link = view->player->link;
+    if (link && !(link->flags7 & CRefObject::kDetached) && link->Alive()) return false;
     return true;
 }
 
 // ---- Exits ---------------------------------------------------------------------------------------
 
 bool CWorldClient::FindExitAt(const float* point, int* index) {
-    for (int i = 0; i < std::ssize(exits_); ++i) {
-        if (!exits_[i].Contains(point[0], point[1])) continue;
-        if (str::Compare(exits_[i].target, "none") == 0) continue;
+    for (int i = 0; i < std::ssize(exits); ++i) {
+        if (!exits[i].Contains(point[0], point[1])) continue;
+        if (str::Compare(exits[i].target, "none") == 0) continue;
         if (index) *index = i;
         return true;
     }
@@ -212,7 +212,7 @@ void RunEffects(std::list<T>& list) {
 
 void EndWalk(ObjectListIterator& it) {
     if (it.manager) {
-        --it.manager->refCount_;
+        --it.manager->refCount;
         it.manager = nullptr;
     }
 }
@@ -220,22 +220,22 @@ void EndWalk(ObjectListIterator& it) {
 } // namespace
 
 void CWorldClient::CreateExitMarkers() {
-    exitMarkers_.clear();
-    exitMarkers_.resize(exits_.size());
-    for (int i = 0; i < std::ssize(exits_); ++i) {
-        if (text::CompareIgnoringCase(exits_[i].target,
+    exitMarkers.clear();
+    exitMarkers.resize(exits.size());
+    for (int i = 0; i < std::ssize(exits); ++i) {
+        if (text::CompareIgnoringCase(exits[i].target,
                             game::NoneText()) == 0) {
             continue;
         }
-        auto* source = g_clientWorld.particleManager_->CreateSource(kExitParticles);
-        exitMarkers_[i] = source;
-        const ZoneExit& exit = exits_[i];
-        source->localPosition_ = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
+        auto* source = g_clientWorld.particleManager->CreateSource(kExitParticles);
+        exitMarkers[i] = source;
+        const ZoneExit& exit = exits[i];
+        source->localPosition = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
         source->alpha = (exit.x2 - exit.x1) * kOneHalf;   // half extents, read by EmitZoneExit
         source->typeParam = (exit.y2 - exit.y1) * kOneHalf;
         source->turnCos = static_cast<float>(x87::fcos(static_cast<double>(exit.angle)));
         source->turnSin = static_cast<float>(x87::fsin(static_cast<double>(exit.angle)));
-        for (int tick = 0; tick < kExitWarmUpTicks; ++tick) source->RunTick();
+        for (int warmUpTick = 0; warmUpTick < kExitWarmUpTicks; ++warmUpTick) source->RunTick();
     }
     UpdateExitMarkers();
 }
@@ -251,7 +251,7 @@ bool CWorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int
         if (!found || found->IsDead() != 0) continue;
         ++living;
         int index = 0;
-        if (!FindExitAt(&found->localPosition_.x, &index) || index != exit) {
+        if (!FindExitAt(&found->localPosition.x, &index) || index != exit) {
             result = 0;
             continue;
         }
@@ -265,10 +265,10 @@ bool CWorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int
 // ---- The bird and quest variables ----------------------------------------------------------------
 
 void CWorldClient::SummonBird() {
-    if (!bird_) bird_ = new CEffectMoshka();
-    bird_->Reset();
-    auto* leader = session_->Party()->members_.data();
-    bird_->Follow(static_cast<int>(leader->unitId));
+    if (!bird) bird = new CEffectMoshka();
+    bird->Reset();
+    auto* leader = session->Party()->members.data();
+    bird->Follow(static_cast<int>(leader->unitId));
 }
 
 void CWorldClient::OnQuestVariable(std::string_view variable, float value) {
@@ -277,7 +277,7 @@ void CWorldClient::OnQuestVariable(std::string_view variable, float value) {
     const int length = name.size();
     const int second = str::Find(name, dot, str::Find(name, dot) + 1);
     name = str::Right(name, length - second - 1);
-    for (CMapObject* object : objects_) {
+    for (CMapObject* object : objects) {
         if (str::Compare(name, object->name2) == 0) object->SetVisibilityLevel(value);
     }
     // The original's test counts a NaN as equal; the audit checks that none arrives.
@@ -294,8 +294,8 @@ std::string CWorldClient::ObjectVariableName(std::string_view name) {
 }
 
 void CWorldClient::ApplyObjectVariables() {
-    NamedFloatTable* variables = &session_->Party()->variables_;
-    for (CMapObject* object : objects_) {
+    NamedFloatTable* variables = &session->Party()->variables;
+    for (CMapObject* object : objects) {
         const std::string& name = object->name2;
         if (name.empty()) continue;
         object->SetVisibilityLevel(variables->Get(ObjectVariableName(name)));
@@ -303,7 +303,7 @@ void CWorldClient::ApplyObjectVariables() {
 }
 
 float* CWorldClient::ExitCentre(float* out, int index) {
-    const ZoneExit& exit = exits_[index];
+    const ZoneExit& exit = exits[index];
     float y = (exit.y2 + exit.y1) * 0.5f;
     float x = (exit.x2 + exit.x1) * 0.5f;
     out[0] = x;
@@ -312,115 +312,115 @@ float* CWorldClient::ExitCentre(float* out, int index) {
 }
 
 std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
-    std::uint32_t flags = 0;
+    std::uint32_t stateFlags = 0;
     switch (static_cast<std::uint32_t>(unit->moveMode2)) {
-    case 0: flags = lib::Bits(EnvironmentFlag::MoveMode0); break;
-    case 1: flags = lib::Bits(EnvironmentFlag::Walk); break;
-    case 2: flags = lib::Bits(EnvironmentFlag::Run); break;
-    case 3: flags = lib::Bits(EnvironmentFlag::MoveMode3); break;
+    case 0: stateFlags = lib::Bits(EnvironmentFlag::MoveMode0); break;
+    case 1: stateFlags = lib::Bits(EnvironmentFlag::Walk); break;
+    case 2: stateFlags = lib::Bits(EnvironmentFlag::Run); break;
+    case 3: stateFlags = lib::Bits(EnvironmentFlag::MoveMode3); break;
     }
-    if (str::Compare(zoneName_, "gipat") == 0) flags |= EnvironmentFlag::Gipat;
-    else if (str::Compare(zoneName_, "ingos") == 0) flags |= EnvironmentFlag::Ingos;
-    else if (str::Compare(zoneName_, "suslanger") == 0) flags |= EnvironmentFlag::Suslanger;
-    flags |= IsNight() ? EnvironmentFlag::Night : EnvironmentFlag::Day;
-    flags |= cave_ == 1 ? EnvironmentFlag::Cave : EnvironmentFlag::Outdoors;
-    const int weather = rainSnow_.mode;
-    if (weather == 1) return flags | EnvironmentFlag::Rain;
-    if (weather == 2) return flags | EnvironmentFlag::Snow;
-    return flags | EnvironmentFlag::NoWeather;
+    if (str::Compare(zoneName, "gipat") == 0) stateFlags |= EnvironmentFlag::Gipat;
+    else if (str::Compare(zoneName, "ingos") == 0) stateFlags |= EnvironmentFlag::Ingos;
+    else if (str::Compare(zoneName, "suslanger") == 0) stateFlags |= EnvironmentFlag::Suslanger;
+    stateFlags |= IsNight() ? EnvironmentFlag::Night : EnvironmentFlag::Day;
+    stateFlags |= cave == 1 ? EnvironmentFlag::Cave : EnvironmentFlag::Outdoors;
+    const int weather = rainSnow.mode;
+    if (weather == 1) return stateFlags | EnvironmentFlag::Rain;
+    if (weather == 2) return stateFlags | EnvironmentFlag::Snow;
+    return stateFlags | EnvironmentFlag::NoWeather;
 }
 
 // ---- Segment --------------------------------------------------------------------------
 
 bool CWorldClient::RunTick() {
     ObjectListIterator objectsIt{nullptr, {}};
-    int frames = ++ticksRun_;
+    int frames = ++ticksRun;
     if (frames == 10) {
         g_interface.OnStringEvent(worlddata::AutosaveEventText());
-        sounds_->SetEffectsVolume(options::g_options.audioSfx_);
-        sounds_->SetSpeechVolume(options::g_options.audioSpeech_);
-        sounds_->SetMusicVolume(options::g_options.audioStreaming_);
-    } else if (frames == 90 || (frames < 90 && g_clientWorld.partyDanger_ == 2)) {
-        music_->holding = 0;
+        sounds->SetEffectsVolume(options::g_options.audioSfx);
+        sounds->SetSpeechVolume(options::g_options.audioSpeech);
+        sounds->SetMusicVolume(options::g_options.audioStreaming);
+    } else if (frames == 90 || (frames < 90 && g_clientWorld.partyDanger == 2)) {
+        music->holding = 0;
     }
-    if (terrain_) terrain_->RunTick();
-    if (music_) music_->RunTick();
-    if (sounds_) sounds_->Tick();
-    if (!paused_) {
-        if (arrayManager_) arrayManager_->RunTick();
+    if (terrain) terrain->RunTick();
+    if (music) music->RunTick();
+    if (sounds) sounds->Tick();
+    if (!paused) {
+        if (arrayManager) arrayManager->RunTick();
     }
-    if (CWorldHandle* source = worldHandle_.Get()) source->Pump();
-    if (CClientHandle* source = handle_.Get()) source->Pump();
-    if (netlink::DriverSession* session = netSession_.Get()) session->PumpDrivers(net::g_gameClient);
-    if (CPlayer* session = session_) {
-        CPlayerConnection* view = session->connection_;
-        if (!paused_) session->Tick();
+    if (CWorldHandle* source = worldHandle.Get()) source->Pump();
+    if (CClientHandle* source = handle.Get()) source->Pump();
+    if (netlink::DriverSession* driver = netSession.Get()) driver->PumpDrivers(net::g_gameClient);
+    if (CPlayer* currentSession = session) {
+        CPlayerConnection* view = currentSession->connection;
+        if (!paused) currentSession->Tick();
         if (view->Receive() == 0) {
             // The connection is gone. Rebirth's DisableExitOnCrashReport
             // keeps the session: only the error is reported.
-            if (!ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport)) SessionDisconnect(session_);
+            if (!ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport)) SessionDisconnect(session);
             game::FatalError(worlddata::SegmentDisconnectedText());
             EndWalk(objectsIt);
             return false;
         }
         view->RunTick();
     }
-    if (!paused_) {
-        ++tick_;
-        // The objects (dynamicObjects_) whose update returns 0 leave dynamicNodes_ and the list.
-        for (auto node = dynamicObjects_.begin(); node != dynamicObjects_.end();) {
+    if (!paused) {
+        ++tick;
+        // The objects (dynamicObjects) whose update returns 0 leave dynamicNodes and the list.
+        for (auto node = dynamicObjects.begin(); node != dynamicObjects.end();) {
             auto current = node;
             ++node;
             CMapObject* object = *current;
             if (object->RunTick()) continue;
-            auto key = static_cast<std::uint32_t>(object->id_);
+            auto key = static_cast<std::uint32_t>(object->id);
             std::list<CMapObject*>::iterator position{};
-            if (dynamicNodes_.Lookup(&key, &position)) {
-                dynamicObjects_.erase(position);
-                hash400::RemoveKey(dynamicNodes_, key);
+            if (dynamicNodes.Lookup(&key, &position)) {
+                dynamicObjects.erase(position);
+                hash400::RemoveKey(dynamicNodes, key);
             }
         }
         for (CEngineObject* object = objectsIt.First(TimedObjectManager()); object; object = objectsIt.Next())
             object->RunTick();
-        if (bird_) bird_->RunTick();
+        if (bird) bird->RunTick();
     }
     if (IsMultiplayerClient()) {
-        if (static_cast<int>(std::ssize(g_interface.stack_)) > 1) {
-            float time = static_cast<float>(tick_) + tickFraction_;
+        if (static_cast<int>(std::ssize(g_interface.stack)) > 1) {
+            float time = static_cast<float>(tick) + tickFraction;
             float now = time;
-            for (auto node = dynamicObjects_.begin(); node != dynamicObjects_.end();) {
+            for (auto node = dynamicObjects.begin(); node != dynamicObjects.end();) {
                 auto current = node;
                 ++node;
                 (*current)->AdvanceTime(now);
             }
         }
     }
-    if (particleManager_) particleManager_->TickSources(static_cast<char>(paused_));
-    if (!paused_) {
+    if (particleManager) particleManager->TickSources(static_cast<char>(paused));
+    if (!paused) {
         // The three print lists: finished ones (tick returns 0) go.
-        RunEffects(bloodPrints_);
-        RunEffects(footprints_);
-        RunEffects(scorchMarks_);
-        if (!paused_ && options::g_options.enableBloodprintsRelight_ != 0) {
-            lightLevelsCountdown_ -= worlddata::g_updatePeriod;
-            if (lightLevelsCountdown_ <= 0) {
-                lightLevelsCountdown_ = options::g_options.shadowLightingFreq_;
+        RunEffects(bloodPrints);
+        RunEffects(footprints);
+        RunEffects(scorchMarks);
+        if (!paused && options::g_options.enableBloodprintsRelight != 0) {
+            lightLevelsCountdown -= worlddata::g_updatePeriod;
+            if (lightLevelsCountdown <= 0) {
+                lightLevelsCountdown = options::g_options.shadowLightingFreq;
                 // Each blood print gets a grey level: the brightest of the sun at
                 // the reference point and the lights whose range reaches the effect's point.
-                CLight* sun = g_sceneRenderer.sun_;
-                for (BloodPrint& effect : bloodPrints_) {
+                CLight* sun = g_sceneRenderer.sun;
+                for (BloodPrint& effect : bloodPrints) {
                     float level = sun->GetIntensityAt(worlddata::kOrigin);
                     ObjectListIteratorOf<CLight> lights{};
                     for (CLight* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
-                        if (light == sun || (light->flags_ & LightFlag::Hidden)) continue;
-                        float nodeX = effect.position_.x, nodeY = effect.position_.y;
-                        double dy = static_cast<double>(light->localPosition_.y) - nodeY;
-                        double dx = static_cast<double>(light->localPosition_.x) - nodeX;
+                        if (light == sun || (light->flags & LightFlag::Hidden)) continue;
+                        float nodeX = effect.position.x, nodeY = effect.position.y;
+                        double dy = static_cast<double>(light->localPosition.y) - nodeY;
+                        double dx = static_cast<double>(light->localPosition.x) - nodeX;
                         double squared = LengthSquared2DUnrounded(dx, dy);
-                        double radius = light->rangeSquared_;
+                        double radius = light->rangeSquared;
                         if (squared > radius) continue;
                         Vector3 point = {nodeX, nodeY, 0.0f};
-                        point.z = static_cast<float>(terrain_->HeightAt(nodeX, nodeY, terrain::Layer::Ground));
+                        point.z = static_cast<float>(terrain->HeightAt(nodeX, nodeY, terrain::Layer::Ground));
                         float intensity = light->GetIntensityAt(point);
                         level = SelectLess(level, intensity, intensity, level);
                     }
@@ -429,13 +429,13 @@ bool CWorldClient::RunTick() {
                     float scaled = floor * worlddata::kColourScale;
                     std::uint32_t grey = static_cast<std::uint32_t>(x87::fistp(scaled));
                     std::uint32_t colour = ((((grey | 0xFFFFFF00u) << 8) | grey) << 8) | grey;
-                    effect.colour_ = colour;
+                    effect.colour = colour;
                     EndWalk(lights);
                 }
             }
         }
     }
-    if (tick_ % 32 == 0) TextureManager()->TrimCache();
+    if (tick % 32 == 0) TextureManager()->TrimCache();
     EndWalk(objectsIt);
     return true;
 }

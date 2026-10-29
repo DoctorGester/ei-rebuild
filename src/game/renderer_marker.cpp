@@ -68,6 +68,6 @@ int CSceneRenderer::DrawSelectionMarker(const Vector3& point, float size, const 
     float uvs[kVertices][2] = {};
     std::uint16_t indices[18];
     for (int i = 0; i < 18; ++i) indices[i] = kIndices[i];
-    device_->DrawFlatBlocks(blocks, uvs, kBlocks, indices, 18, kColour, kSpecular);
+    device->DrawFlatBlocks(blocks, uvs, kBlocks, indices, 18, kColour, kSpecular);
     return 1;
 }

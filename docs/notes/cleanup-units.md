@@ -42,8 +42,8 @@ is still left. The units themselves are in `units.md`; the conventions are those
 - `carried` (+0x49C..+0x4AF) and PartyUnitRecord's four item lists are `std::vector`s.
 - `UnequipArmour` / `ReleaseAllItems` call controller slot 27 as `ArmourTakenOff`: the original reads the vtable before
   the item's GetType, the virtual call after it; GetType reads the item only, so nothing can tell.
-- Item fields used as floats through the item family's names: condition `CItem::condition_` / `conditionMax_` are floats
-  (unit_hits' WearItem and ApplyHit / DamageSlot take the `CItem*`), count `count_`, spell cost `CSpell::unknown_40`; `UnitPrototypeRecord::unknown_24` is
+- Item fields used as floats through the item family's names: condition `CItem::condition` / `conditionMax` are floats
+  (unit_hits' WearItem and ApplyHit / DamageSlot take the `CItem*`), count `count`, spell cost `CSpell::unknown_40`; `UnitPrototypeRecord::unknown_24` is
   a height (compared with 1.5 for size class 0). They belong to their families' tickets.
 - `CMapObjectManager` (unit_create.h) reads its world at +0xAC by hand.
 - Unknowns still unnamed in CUnit: `unknown_438` (copied to the party record's +0x780), `unknown_43C` (cell flag 0x80),
@@ -91,7 +91,7 @@ them renamed to unused_ and the verify build run with `-k 0`; each compile error
   (model field 5; 2 = on the water), +0x44 `sightCone`, +0x48 `peripheralRange` (prototype field 0x18). The
   prototype's +0x24 (field 0x23) is the unit's `height` (panel view, reach checks); +0x54 `experienceValue`.
   AIBrain +0xF4 `nearby`, +0x12C `seenCorpses`, +0x36 `alarmSlot`, +0x37 `alwaysUpdated`, +0x44/+0x48
-  `nearX`/`nearY`. Stream +0x04 is CStream::reading_ (`reading`).
+  `nearX`/`nearY`. Stream +0x04 is CStream::reading (`reading`).
 - Archive fields nothing reads keep the archive's field number as their name (`field4`, `field1F`, ...), the
   item records' partly used byte gaps are split the same way (WeaponRecord `field16` / `field1B`, ArmorRecord
   `field19` / `field1A`, QuickItemRecord `field17` / `field18` / `field1B`).
@@ -121,7 +121,7 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
 - **What stays a shim**: shims on aliases of library templates (no member can be added); `void*` / `uint8_t*` selfs
   and pointer-to-pointer selfs; the `!self` tests of the CInterface3D scale entries (ECX 0 is reachable with Rebirth's
   code); `EquipBuild` / `QuickStripBuild` (`int` against `bool`); shims whose return value differs from the slot's
-  (CMemoryStream::Write returns `position_`, DriverLink::SendBytes `bool ? 1 : 0`); Rebirth-patched input handlers
+  (CMemoryStream::Write returns `position`, DriverLink::SendBytes `bool ? 1 : 0`); Rebirth-patched input handlers
   (0063A560, 00630010, 0062F950: check_patched_calls resolves them by symbol name); the `XxxOriginal(a0, nullptr, a2)`
   call-through blocks (no body to move). UI input shims are registered as `InputForward<&Class::Method>::Call` and
   `UiInput::DeleteWindow<&Class::Delete>` (ui_screens.h: the self is the input sub-object, the window found with

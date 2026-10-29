@@ -41,25 +41,25 @@ const BlankFormat* FormatOfKind(TextureKind kind) {
 } // namespace
 
 
-void CTexture::TakeBlankHolder(CTextureDevice* device, int width, int height, bool mipmapped) {
-    const render::PixelFormat format = TextureFormat(format_);
+void CTexture::TakeBlankHolder(CTextureDevice* device, int newWidth, int newHeight, bool mipmapped) {
+    const render::PixelFormat pixelFormat = TextureFormat(format);
     // Without a format (another kind's texture) the error for a surface that cannot be made ends the game.
-    Surface* holder = format.bitsPerPixel ? NewDecodedTextureHolder(device, width, height, format.bitsPerPixel) : nullptr;
+    Surface* holder = pixelFormat.bitsPerPixel ? NewDecodedTextureHolder(device, newWidth, newHeight, pixelFormat.bitsPerPixel) : nullptr;
     if (!holder) ThrowSurfaceNotMade(0, 0);
-    const render::BlankAlpha alpha = !format.alphaMask           ? render::BlankAlpha::None
-                                     : format.alphaMask == 0x8000 ? render::BlankAlpha::OneBit
+    const render::BlankAlpha alpha = !pixelFormat.alphaMask           ? render::BlankAlpha::None
+                                     : pixelFormat.alphaMask == 0x8000 ? render::BlankAlpha::OneBit
                                                                   : render::BlankAlpha::Full;
-    render::BlankTexture(holder, width, height, alpha, mipmapped);
-    surface_.Assign(holder);
+    render::BlankTexture(holder, newWidth, newHeight, alpha, mipmapped);
+    surface.Assign(holder);
 }
 
 int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
     // A square of header->width (the height is not read). The atlases keep one level, as the original's every blank
     // texture (a level below would mix neighbouring cells); the others get their levels made after each draw.
     const auto size = static_cast<int>(header->width);
-    TakeBlankHolder(device, size, size, format_ != kAtlasFormat);
+    TakeBlankHolder(device, size, size, format != kAtlasFormat);
     // The original meant bits * width * height / 8 but took the bits from a field its channel split never writes.
-    uploadResult_ = 0;
+    uploadResult = 0;
     return 1;
 }
 
@@ -67,10 +67,10 @@ CTexture* CTextureManager::NewTexture(int width, int height, TextureKind kind) {
     CTexture* texture = NewTextureOfType(static_cast<int>(kind));
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
-    texture->width_ = static_cast<std::uint32_t>(width);
-    texture->height_ = static_cast<std::uint32_t>(height);
+    texture->width = static_cast<std::uint32_t>(width);
+    texture->height = static_cast<std::uint32_t>(height);
     if (const BlankFormat* f = FormatOfKind(kind)) {
-        texture->format_ = f->id;
+        texture->format = f->id;
         header.alphaMask = f->alpha.mask;
         header.alphaShift = f->alpha.shift;
         header.alphaKind = f->alpha.bits;
@@ -90,7 +90,7 @@ CTexture* CTextureManager::NewTexture(int width, int height, TextureKind kind) {
     header.width = static_cast<std::uint32_t>(width);
     header.height = static_cast<std::uint32_t>(height);
     header.mipCount = 1;
-    if (!texture->CreateBlank(device_, &header)) {
+    if (!texture->CreateBlank(device, &header)) {
         texture->Release();
         return nullptr;
     }

@@ -8,7 +8,7 @@ namespace {
 
 // The iterator destructor: the manager's count drops without a release.
 void EndWalk(ObjectListIterator& it) {
-    if (it.manager) --it.manager->refCount_;
+    if (it.manager) --it.manager->refCount;
 }
 
 template <typename Pick>
@@ -18,13 +18,13 @@ void ReleaseHeld(CParticleManager* manager, Pick drop) {
     std::list<int> ids;
     for (; object; object = it.Next()) {
         if (!drop(object)) continue;
-        int id = object->id_;
-        if (!manager->held_.contains(id)) continue;
+        int id = object->id;
+        if (!manager->held.contains(id)) continue;
         ids.push_back(id);
         object->Release();
     }
     for (auto& n : ids) {
-        if (auto node = manager->held_.find(n); node != manager->held_.end()) manager->held_.erase(node);
+        if (auto node = manager->held.find(n); node != manager->held.end()) manager->held.erase(node);
     }
     EndWalk(it);
 }
@@ -40,10 +40,10 @@ void CParticleManager::Create() {
 // for_each); the table is cleared (count and highest id 0); every pooled particle is deleted (taken off the list one by one,
 // which frees the list's blocks with the last node).
 void CParticleManager::Destroy() {
-    for (auto node = held_.begin(); node != held_.end() && node->second; ++node)
+    for (auto node = held.begin(); node != held.end() && node->second; ++node)
         node->second->Release();
-    held_.clear();
-    maxHeldId_ = 0;
+    held.clear();
+    maxHeldId = 0;
     while (!freeParticles.empty()) {
         Particle* p = freeParticles.front();
         freeParticles.pop_front();
@@ -53,15 +53,15 @@ void CParticleManager::Destroy() {
     quietStart = 0;
 }
 
-CParticleSource* CParticleManager::CreateSource(int type) {
-    CParticleSource* source = CreateObjectAs<CParticleSource>(type, -1);
+CParticleSource* CParticleManager::CreateSource(int newType) {
+    CParticleSource* source = CreateObjectAs<CParticleSource>(newType, -1);
     source->AddRef();
-    int id = source->id_;
-    if (id > maxHeldId_) maxHeldId_ = id;
-    held_[id] = source;
+    int sourceId = source->id;
+    if (sourceId > maxHeldId) maxHeldId = sourceId;
+    held[sourceId] = source;
     if (quietStart != 0) {
         // CampFire, Fire and Smoke start without emitting.
-        const ParticleType kind = ParticleTypeOf(source->type_);
+        const ParticleType kind = ParticleTypeOf(source->type);
         if (kind == ParticleType::CampFire || kind == ParticleType::Smoke || kind == ParticleType::Fire) source->StopEmitting();
     }
     return source;
@@ -72,12 +72,12 @@ CParticleSource* CParticleManager::CreateSource(int type) {
 
 int CParticleManager::TickSources(char paused) {
     ReleaseHeld(this, [paused](CEngineObject* object) {
-        if (paused != 0 && !(object->flags_ & ParticleSourceFlag::TicksWhilePaused)) return false;
+        if (paused != 0 && !(object->flags & ParticleSourceFlag::TicksWhilePaused)) return false;
         return !object->RunTick();
     });
     return 0;
 }
 
 void CParticleManager::ReleaseUnheld() {
-    ReleaseHeld(this, [](CEngineObject* object) { return object->refCount_ == 1; });
+    ReleaseHeld(this, [](CEngineObject* object) { return object->refCount == 1; });
 }

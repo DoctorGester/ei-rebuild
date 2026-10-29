@@ -95,13 +95,13 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 
 float DifficultyAttackFactor() {
-    int difficulty = options::g_options.difficulty_;
+    int difficulty = options::g_options.difficulty;
     return g_logicSettings.attack[difficulty];
 }
 
 float ServerMana(const CUnit* unit) { return unit->ServerCompanion()->vitals.mana; }
 
-std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode_; }
+std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode; }
 
 void AttackParamsOf(CUnitServer* controller, AttackParams* out) { controller->GetAttackParams(out); }
 
@@ -112,9 +112,9 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-float SpellDamage(const CSpell* spell) { return spell->damage_; }
-float SpellRange(const CSpell* spell) { return spell->range_; }
-float SpellCost(const CSpell* spell) { return spell->manaCost_; }
+float SpellDamage(const CSpell* spell) { return spell->damage; }
+float SpellRange(const CSpell* spell) { return spell->range; }
+float SpellCost(const CSpell* spell) { return spell->manaCost; }
 
 const char* HitLocationName(int location) {
     switch (static_cast<std::uint32_t>(location)) {
@@ -148,7 +148,7 @@ std::int16_t SizeClassOf(double size, float load) {
 
 float CUnitServer::AttackRange() {
     CItemWeapon* weapon = unit->ActiveWeapon();
-    if (weapon) return weapon->reach_;
+    if (weapon) return weapon->reach;
     return stats.combat[UnitStats::kReach];
 }
 
@@ -172,7 +172,7 @@ void CUnitServer::GetDamageByType(DamageWords* out) {
     CItemWeapon* weapon;
     if (self->player && self->activeWeapon < 4 &&
         (weapon = AsWeapon(self->weapons[self->activeWeapon])) != nullptr) {
-        float total = weapon->damageSpread_ + weapon->damage_;
+        float total = weapon->damageSpread + weapon->damage;
         float scale = ScaleDamageByEffects(self, total);   // (not read)
         float weights[7];
         weapon->GetDamageTypes(weights);
@@ -195,8 +195,8 @@ void CUnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
     *out = DamageWords{};
     if (spell) {
         auto value = static_cast<std::uint16_t>(libcrt::Ftol(SpellDamage(spell)));
-        int type = spell->GetDamageType();
-        out->words[1 + type] = value;
+        int damageType = spell->GetDamageType();
+        out->words[1 + damageType] = value;
     }
     out->words[0] = 0x7FFF;
 }
@@ -222,7 +222,7 @@ CSpell* CUnitServer::SpellOfSource(std::uint32_t source) {
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item || item->GetClassId() != ClassId::ItemQuick) return nullptr;
     if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return nullptr;
-    return item->spell_;
+    return item->spell;
 }
 
 bool CUnitServer::IsFighting() {
@@ -231,15 +231,15 @@ bool CUnitServer::IsFighting() {
         if (action.source & kQuickItemSource) {
             auto* item = unit->GetQuickItem(action.source & ~kQuickItemSource);
             if (item && item->GetClassId() == ClassId::ItemQuick && (item->GetCategory() == QuickItemCategory::Wand || item->GetCategory() == QuickItemCategory::Potion))
-                spell = item->spell_;
+                spell = item->spell;
         } else {
             spell = unit->GetSpellObject(action.source);
         }
         if (spell) {
-            SpellType type = spell->Type();
-            if (type <= SpellType::AcidFog) return true;
+            SpellType spellType = spell->Type();
+            if (spellType <= SpellType::AcidFog) return true;
             // Rebirth's FixPlaingBattleMusicFromAntimagic skips the Antimagic test.
-            if (type == SpellType::Antimagic && !ei::rebirth::Enabled(ei::rebirth::Patch::FixPlaingBattleMusicFromAntimagic))
+            if (spellType == SpellType::Antimagic && !ei::rebirth::Enabled(ei::rebirth::Patch::FixPlaingBattleMusicFromAntimagic))
                 return true;
         }
     }
@@ -252,11 +252,11 @@ bool CUnitServer::CanCast(const AIOrder* order) {
         auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
         if (!item || item->GetClassId() != ClassId::ItemQuick) return false;
         if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return false;
-        CSpell* spell = item->spell_;
+        CSpell* spell = item->spell;
         if (!spell) return false;
         if (item->GetCategory() != QuickItemCategory::Wand) return true;
         // The charge against the cost: less (or unordered) refuses.
-        return item->charge_ >= SpellCost(spell);
+        return item->charge >= SpellCost(spell);
     }
     CSpell* spell = unit->GetSpellObject(source);
     if (!spell) return false;
@@ -292,7 +292,7 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
         if (source & kQuickItemSource) {
             CItem* carrier = SpellCarrier(source);
             if (!carrier) return kTen;
-            spell = carrier->spell_;
+            spell = carrier->spell;
         } else {
             spell = unit->GetSpellObject(source);
         }
@@ -314,12 +314,12 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
         float floor = kMeleeFloor;
         if (other->player && unit->player) floor = kMeleeFloorParty;
         CItemWeapon* weapon = unit->ActiveWeapon();
-        float range = weapon ? weapon->reach_ : stats.combat[UnitStats::kReach];
+        float range = weapon ? weapon->reach : stats.combat[UnitStats::kReach];
         float reach = range >= floor ? range : floor;
         return static_cast<float>((static_cast<double>(unit->standingHeight) + other->standingHeight) + reach);
     }
     CItemWeapon* weapon = unit->ActiveWeapon();
-    float range = weapon ? weapon->reach_ : stats.combat[UnitStats::kReach];
+    float range = weapon ? weapon->reach : stats.combat[UnitStats::kReach];
     float own = unit->Radius();
     return static_cast<float>((target->Radius() + static_cast<double>(own)) + range);
 }
@@ -335,7 +335,7 @@ bool CUnitServer::CanReachTarget(const AIOrder* order) {
         if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
     }
     float offset = other->GetPrototype()->height;
-    double height = static_cast<double>(offset) + other->localPosition_.z;
+    double height = static_cast<double>(offset) + other->localPosition.z;
     EI_NAN_AUDIT(height);
     return height < kOnePointFive;
 }
@@ -370,27 +370,27 @@ int CUnitServer::Level() {
 }
 
 void CUnitServer::EffectsChanged() {
-    if (unit->HasEffect(SpellType::Feeblemind) && stats.naturalWeapon != kNoNaturalWeapon) unit->flags_ |= MapObjectFlag::NoCasting;
-    else unit->flags_ &= ~MapObjectFlag::NoCasting;
+    if (unit->HasEffect(SpellType::Feeblemind) && stats.naturalWeapon != kNoNaturalWeapon) unit->flags |= MapObjectFlag::NoCasting;
+    else unit->flags &= ~MapObjectFlag::NoCasting;
 }
 
 void CUnitServer::GetAttackParams(AttackParams* out) {
     CUnit* self = unit;
-    int keyed = IsTextKey(self->id_);
+    int keyed = IsTextKey(self->id);
     CItemWeapon* weapon = self->ActiveWeapon();
     if (keyed && weapon) {
-        out->damageMin = weapon->damage_;
-        out->damageMax = weapon->damageSpread_ + weapon->damage_;
+        out->damageMin = weapon->damage;
+        out->damageMax = weapon->damageSpread + weapon->damage;
         out->weaponType = weapon->GetType();
-        out->damageType = WeaponDamageType(weapon->prototypeId_);
-        out->speed = weapon->weight_;
-        float base = WeaponAttackBonus(weapon->prototypeId_);
+        out->damageType = WeaponDamageType(weapon->prototypeId);
+        out->speed = weapon->weight;
+        float base = WeaponAttackBonus(weapon->prototypeId);
         double bonus = stats.WeaponSkillBonus(out->weaponType, self);
         out->attack = static_cast<int>(libcrt::Ftol(bonus + base));
-        base = WeaponDefenceBonus(weapon->prototypeId_);
+        base = WeaponDefenceBonus(weapon->prototypeId);
         bonus = stats.WeaponSkillBonus(out->weaponType, self);
         out->defence = static_cast<int>(libcrt::Ftol(bonus + base));
-        out->damageType = WeaponDamageType(weapon->prototypeId_);
+        out->damageType = WeaponDamageType(weapon->prototypeId);
     } else {
         out->damageMin = stats.damage;
         out->damageMax = stats.damageSpread + stats.damage;
@@ -399,7 +399,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
         out->speed = stats.combat[UnitStats::kSpeed];
         if (weapon) {
             out->weaponType = weapon->GetType();
-            out->damageType = WeaponDamageType(weapon->prototypeId_);
+            out->damageType = WeaponDamageType(weapon->prototypeId);
         } else {
             out->weaponType = stats.naturalWeapon;
             const auto* model = self->GetPrototypeModel();
@@ -429,9 +429,9 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     float speedRatio = static_cast<float>(theirs.speed / (static_cast<double>(kSpeedScale) * mine.speed));
     const CUnit* self = unit;
     const CUnit* other = attacker->unit;
-    double dx = static_cast<double>(self->localPosition_.x) - other->localPosition_.x;
-    double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
-    double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
+    double dx = static_cast<double>(self->localPosition.x) - other->localPosition.x;
+    double dy = static_cast<double>(self->localPosition.y) - other->localPosition.y;
+    double dz = static_cast<double>(self->localPosition.z) - other->localPosition.z;
     double distance = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz));
     float twice = static_cast<float>(distance + distance);
     double radius = unit->Radius() * static_cast<double>(kDistanceScale);
@@ -473,14 +473,14 @@ bool CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
 
 void CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot) {
     CUnit* self = unit;
-    int keyed = IsTextKey(self->id_);
+    int keyed = IsTextKey(self->id);
     std::memset(out, 0, sizeof(DamageInfo));
     out->multiplier = 1.0f;
     CItemWeapon* weapon = nullptr;
     if (keyed && self->activeWeapon < 4) weapon = AsWeapon(self->weapons[self->activeWeapon]);
     if (weapon) {
         weapon->GetDamageTypes(out->typeWeights);
-        out->weaponValue = weapon->actionValue_;
+        out->weaponValue = weapon->actionValue;
         int sides = static_cast<int>(libcrt::Ftol(kFive));
         int drawn = libcrt::Rand();
         int face = ((drawn * sides) / 0x7FFF) % sides;
@@ -525,9 +525,9 @@ bool CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     if (!dead) {
         world->AddToUpdateMap(unit);
         if (attacker) {
-            kCombatLog << "Unit " << static_cast<long>(unit->id_) << " was attacked by " << static_cast<long>(attacker->id_);
+            kCombatLog << "Unit " << static_cast<long>(unit->id) << " was attacked by " << static_cast<long>(attacker->id);
         } else {
-            kCombatLog << "Unit " << static_cast<long>(unit->id_) << " was attacked by xz";
+            kCombatLog << "Unit " << static_cast<long>(unit->id) << " was attacked by xz";
         }
         kCombatLog << " skill=" << hit->attackRoll;
         float amount = hit->amount;
@@ -558,7 +558,7 @@ bool CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         if (stats.ApplyHit(unit, ServerStatsOf(unit), hit, weapon)) {
             if (attacker && !HasElementalDamage(hit)) {
                 if (attacker->MapType() != MapObjectType::Hero) {
-                    LastDamageSource(unit) = static_cast<std::int16_t>(attacker->prototypeId_ + 0x10);
+                    LastDamageSource(unit) = static_cast<std::int16_t>(attacker->prototypeId + 0x10);
                 } else {
                     auto* controller = attacker->ServerController();
                     CItemWeapon* own = controller->unit->ActiveWeapon();
@@ -587,7 +587,7 @@ bool CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         }
     }
     if (attacker && attacker->GetClassId() == ClassId::Unit) {
-        auto* diplomacy = &ServerWorld()->diplomacy_;
+        auto* diplomacy = &ServerWorld()->diplomacy;
         diplomacy->OnAttack(attacker, unit);
     }
     brain.SetSeen(attacker);
@@ -615,14 +615,14 @@ void CUnitServer::UpdateSizeClasses() {
 
 void CUnitServer::UpdateMoveFactors() {
     const CWorldServer* world = ServerWorld();
-    double factor = world->nightLevel_;
+    double factor = world->nightLevel;
     double scaled = (factor * stats.perception[1].current) * kWorldFactorScale;
     moveFactors[0] = 1.0f;
     moveFactors[2] = 1.0f;
     moveFactors[1] = 1.0f;
     double sum = scaled + (1.0f - factor);
     moveFactors[3] = static_cast<float>(sum);
-    moveFactors[3] = static_cast<float>(std::bit_cast<float>(world->weatherFactor_) * sum);
+    moveFactors[3] = static_cast<float>(std::bit_cast<float>(world->weatherFactor) * sum);
     if (unit->moveMode == 0) {
         moveFactors[2] = kMode0Factor2;
         moveFactors[3] = kMode0Factor3 * moveFactors[3];

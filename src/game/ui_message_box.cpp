@@ -23,7 +23,7 @@ const char* ExitMovie() { return "Movies\\Exit.bik"; }
 constexpr std::uint32_t kExitResult = 0xFFFF0000;
 constexpr std::uint32_t kEditField = 4;
 // The callers' buffer for the edit field's text: every box with one is the connection screen's (its address and
-// password boxes, CMpConnectScreen::boxText_).
+// password boxes, CMpConnectScreen::boxText).
 constexpr std::size_t kEditTextSize = 0x80;
 constexpr std::uint32_t kAnswerOk = 1;
 constexpr std::uint32_t kAnswerCancel = 2;
@@ -43,45 +43,45 @@ void PlayExitMovieAndQuit() {
 void CMessageBox::CopyEditText() {
     // The text is copied through a temporary string (strcpy into the caller's buffer).
     // The field's 50 characters can take up to 200 bytes in UTF-8; cut to the buffer at a character's end.
-    text::CopyFitting(editText_, kEditTextSize, edit_->text_);
+    text::CopyFitting(editText, kEditTextSize, edit->text);
 }
 
 void CMessageBox::LeftDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     if (region == 0) {
-        if (result_ == kExitResult) {
+        if (result == kExitResult) {
             PlayExitMovieAndQuit();
             return;
         }
-        interface_->PlaySound(OkSound());
-        if (flags_ & kEditField) CopyEditText();
+        ui->PlaySound(OkSound());
+        if (flags & kEditField) CopyEditText();
     } else if (region == 1) {
-        interface_->PlaySound(CancelSound());
+        ui->PlaySound(CancelSound());
     } else if (region < 0) {
         return;
     }
-    interface_->SetPendingValue(result_ | static_cast<std::uint32_t>(region + 1));
+    ui->SetPendingValue(result | static_cast<std::uint32_t>(region + 1));
 }
 
-void CMessageBox::KeyDown(int key, int repeat, int flags) {
-    CUiContainer::KeyDown(key, repeat, flags);
-    if (handled_) return;
+void CMessageBox::KeyDown(int key, int repeat, int modifiers) {
+    CUiContainer::KeyDown(key, repeat, modifiers);
+    if (handled) return;
     if (key == VK_RETURN) {
-        if (result_ == kExitResult) {
+        if (result == kExitResult) {
             PlayExitMovieAndQuit();
         } else {
-            if (flags_ & kEditField) CopyEditText();
-            interface_->PlaySound(OkSound());
-            interface_->SetPendingValue(result_ | kAnswerOk);
+            if (flags & kEditField) CopyEditText();
+            ui->PlaySound(OkSound());
+            ui->SetPendingValue(result | kAnswerOk);
         }
     } else if (key == VK_ESCAPE) {
-        interface_->PlaySound(CancelSound());
-        interface_->SetPendingValue(result_ | kAnswerCancel);
+        ui->PlaySound(CancelSound());
+        ui->SetPendingValue(result | kAnswerCancel);
     } else {
         return;
     }
-    handled_ = true;
+    handled = true;
 }
 
 // --- CDifficultyBox ------------------------------------------------------------------------------
@@ -89,41 +89,41 @@ void CMessageBox::KeyDown(int key, int repeat, int flags) {
 void CDifficultyBox::LeftDown(int, int x, int y) {
     switch (RegionAt(x, y)) {
     case 0:
-        options::g_options.difficulty_ = easy_;
-        interface_->PlaySound(OkSound());
-        interface_->SetPendingValue(result_ | kAnswerOk);
+        options::g_options.difficulty = easy;
+        ui->PlaySound(OkSound());
+        ui->SetPendingValue(result | kAnswerOk);
         break;
     case 1:
-        interface_->PlaySound(CancelSound());
-        interface_->SetPendingValue(result_ | kAnswerCancel);
+        ui->PlaySound(CancelSound());
+        ui->SetPendingValue(result | kAnswerCancel);
         break;
     case 2:
-        EasyBox()->textureOffsetU_ = kCheckedOffset;
-        HardBox()->textureOffsetU_ = 0.0f;
-        easy_ = 1;
+        EasyBox()->textureOffsetU = kCheckedOffset;
+        HardBox()->textureOffsetU = 0.0f;
+        easy = 1;
         break;
     case 3:
-        HardBox()->textureOffsetU_ = kCheckedOffset;
-        EasyBox()->textureOffsetU_ = 0.0f;
-        easy_ = 0;
+        HardBox()->textureOffsetU = kCheckedOffset;
+        EasyBox()->textureOffsetU = 0.0f;
+        easy = 0;
         break;
     default:
         break;
     }
 }
 
-void CDifficultyBox::KeyDown(int key, int repeat, int flags) {
-    CUiContainer::KeyDown(key, repeat, flags);
-    if (handled_) return;
+void CDifficultyBox::KeyDown(int key, int repeat, int modifiers) {
+    CUiContainer::KeyDown(key, repeat, modifiers);
+    if (handled) return;
     if (key == VK_RETURN) {
-        options::g_options.difficulty_ = easy_;
-        interface_->PlaySound(OkSound());
-        interface_->SetPendingValue(result_ | kAnswerOk);
+        options::g_options.difficulty = easy;
+        ui->PlaySound(OkSound());
+        ui->SetPendingValue(result | kAnswerOk);
     } else if (key == VK_ESCAPE) {
-        interface_->PlaySound(CancelSound());
-        interface_->SetPendingValue(result_ | kAnswerCancel);
+        ui->PlaySound(CancelSound());
+        ui->SetPendingValue(result | kAnswerCancel);
     } else {
         return;
     }
-    handled_ = true;
+    handled = true;
 }

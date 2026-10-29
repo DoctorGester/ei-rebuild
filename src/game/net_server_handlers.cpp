@@ -42,25 +42,25 @@ std::uint32_t TakeDword(BufferCursor* cursor) {
 void ServerSession::AnnounceToMaster() {
     GrowingBuffer buffer;
     GameInfoRecord info;
-    std::string& name = info.name;
+    std::string& infoName = info.name;
     std::string& description = info.description;
 
-    name = name_;
-    info.hasPassword = password_[0] != 0;
-    info.masterKey = masterKey_;
-    info.kind = static_cast<std::uint8_t>(kind_);
+    infoName = name;
+    info.hasPassword = password[0] != 0;
+    info.masterKey = masterKey;
+    info.kind = static_cast<std::uint8_t>(kind);
     const char* empty = game::kEmptyText;
     description.assign(empty);
-    CRefObject* map = map_.Get();
-    if (map && !(map->flags7_ & CRefCounted::kDetached)) description.assign(SessionMapName());
+    CRefObject* newMap = map.Get();
+    if (newMap && !(newMap->flags7 & CRefCounted::kDetached)) description.assign(SessionMapName());
     info.players = static_cast<std::uint8_t>(ClientCount());
-    info.maxPlayers = static_cast<std::uint8_t>(maxPlayers_);
-    info.masterToken = masterToken_;
+    info.maxPlayers = static_cast<std::uint8_t>(maxPlayers);
+    info.masterToken = masterToken;
     info.magic = kSessionMagic;
     info.Write(&buffer);
-    socket_.SendTo(&masterAddress_, &buffer);
+    socket.SendTo(&masterAddress, &buffer);
     // EI_Plugin's NewMaster (its call sends as SendTo does, then the copy).
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) second_master::CopyAnnouncement(socket_.socket, buffer);
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) second_master::CopyAnnouncement(socket.socket, buffer);
 
 }
 
@@ -69,11 +69,11 @@ void ServerSession::AnnounceToMaster() {
 // must be the session's +0x25FC; the second is then kept (the next announcement sends it back). The first
 // dword is consumed either way.
 void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
-    if (std::memcmp(from, &masterAddress_, sizeof(NetAddress)) != 0 &&
+    if (std::memcmp(from, &masterAddress, sizeof(NetAddress)) != 0 &&
         !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
         return;
-    if (TakeDword(cursor) != masterKey_) return;
-    masterToken_ = TakeDword(cursor);
+    if (TakeDword(cursor) != masterKey) return;
+    masterToken = TakeDword(cursor);
 }
 
 // A chat line from the connection being read
@@ -82,16 +82,16 @@ void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
 // everybody as "^<number><name>^7: <text>".
 void ServerOnSay(ServerSession* server, SayMessage* message) {
     Connection* connection = g_currentConnection;
-    if (!connection || (connection->flags7_ & CRefCounted::kDetached)) return;
-    const auto& bindings = server->bindings_;
+    if (!connection || (connection->flags7 & CRefCounted::kDetached)) return;
+    const auto& bindings = server->bindings;
     for (auto& node : bindings) {
         auto* binding = node.Get();
         if (binding->ConnectionRef().Get() != connection) continue;
         // (The original also tests the binding for null here, after having read it.)
-        if (binding->flags7_ & CRefCounted::kDetached) return;
+        if (binding->flags7 & CRefCounted::kDetached) return;
         auto* player = binding->Player();
         std::string line;
-        line = std::format("^{}{}^7: {}", player->number_, player->name_.data(), message->text_.data());
+        line = std::format("^{}{}^7: {}", player->number, player->name.data(), message->text.data());
         server->Announce(line, nullptr);
         return;
     }
@@ -99,6 +99,6 @@ void ServerOnSay(ServerSession* server, SayMessage* message) {
 
 // The handler of the party members' channels 0 and 1 (ServerSession::Construct). The member message's version
 // moves on, so the connections send it again.
-void ServerOnMemberChanged(ServerSession*, Message* message) { ++message->version_; }
+void ServerOnMemberChanged(ServerSession*, Message* message) { ++message->version; }
 
 } // namespace net

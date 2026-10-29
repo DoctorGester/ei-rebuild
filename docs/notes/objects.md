@@ -29,17 +29,17 @@ range are in `network.md`, `app.md` and `core.md`; the party (CParty, party reco
 
 ## Facts
 
-- CEngineObject inline constructor pattern: refCount_ = 0, id_ = -1, unknown_18 = type_ = flags_ = owner_ = 0. `owner_` is the
-  manager; the manager's +0xAC (`CBaseManager::context_`) is what `ManagerContext` returns (00455950 calls its slot 13). Base vtable
+- CEngineObject inline constructor pattern: refCount = 0, id_ = -1, unknown_18 = type = flags = owner = 0. `owner` is the
+  manager; the manager's +0xAC (`CBaseManager::context`) is what `ManagerContext` returns (00455950 calls its slot 13). Base vtable
   0073B8E0 (13 slots), restored by 00455930. `ObjectListIterator` {manager, position} walks a manager's CPtrList at +0x34 (00404920
   / 00404960); the world object manager is the pointer at 007AFFA0.
 - CUnit (0073EA8C, 77 slots): slot 7 GetName (+0x238 CString), 29 / 43 true, 31 / 56 / 57 / 58 forward to the
   controller at +0x240 (its slots 20, 42, 53, 31), 47 forwards to +0x170 slot 19, 54 returns +0x278 ("large unit"), 55 +0x274 (skip
   unit layers), 59 calls 0052F920, 60 float +0x328, 61 assigns the name. CFigure slot 7 GetName = +0x120 (also CSkyObject,
   CI3DFigure). CUnit +0x244 hostile mask (bit p: hostile to player p; set by 0052E970, or-ed by
-  0052E940, both also set flags_ 0x80000), +0x24C party (members in a hash_map at +0x40). CMapObjectVirtuals slots 30
+  0052E940, both also set flags 0x80000), +0x24C party (members in a hash_map at +0x40). CMapObjectVirtuals slots 30
   ApplyBaseScale, 34 TakePrototype, 61 SetScriptName; `CUnit::modelHeight` (+0xF4).
-- CDiplomacy (global 007C2BC4, 0x100 bytes): `allied_[32]` (+0), `hostile_[32]` (+0x80), bit q of row p; relation codes 0 allied, 1
+- CDiplomacy (global 007C2BC4, 0x100 bytes): `allied[32]` (+0), `hostile[32]` (+0x80), bit q of row p; relation codes 0 allied, 1
   neutral, 2 hostile (script GetDiplomacy maps them to 1 / 0 / -1). CMemoryStream (vtable 0073BD90, 0x28 bytes): +5 ok, +0x10 grow
   step, +0x18 data, +0x20 read position, +0x24 end; slot 1 Read (004A5380), slot 2 Write. CMapDatabase (global 0079BF00, ctor
   0045E820): allods (0x2C) at +0, maps (0x5C) at +0x14.
@@ -95,20 +95,20 @@ original (`stolenBytes` 0).
 Layout: CPlayer (the world player, `player_messages.h`, 0x134 bytes) +0x1C link, +0x24 id, +0x28 / +0x58 hash_maps of the map /
 timed objects the client knows (each counted once; +0x3C / +0x6C the highest id), +0x40 the player's units (hash_map; max id
 +0x54), +0x70..+0xE0 an embedded CParty (slot 18 its item manager), +0xE0 the given items (CPtrList of counted items), +0x100
-`sessionKind_`, +0x10C log flag (Flush prints both sizes to cout), +0x114 the recharge id list (vtable 00743138).
+`sessionKind`, +0x10C log flag (Flush prints both sizes to cout), +0x114 the recharge id list (vtable 00743138).
 `CPlayerConnection` (its own vtable 007431E0) names the connection's slots 13..23 and is the C++ base of CPlayerServer (00743280) and
 CPlayerClient (00743180, not 00743188: Pump is slot 6, ReceiveMessages slot 23); their slot bodies have their own names
 (`ClearServerState`, `ReleaseSentObjects`, `LeaveAndFlush`; rewrite guide rule 4). `CPlayer::Server()` and `CWorldClient::LocalView()`
-are the static_casts of `connection_`. CPlayerServer +0x44 an int (-1 after Create), +0x74 the unit placements
+are the static_casts of `connection`. CPlayerServer +0x44 an int (-1 after Create), +0x74 the unit placements
 (`CArray<UnitPlacement>`, SetSize 0059C3D0 = `PlacementsSetSizeOriginal` in originals_gameplay.h), +0x88 / +0x28B0 send /
 receive coders, +0x50D8 / +0x50E8 sent object arrays, +0x50F8 / +0x510C script groups, +0x5120 refresh flag, +0x5124 timer.
 CPlayerClient +0x1C player, +0x20 state, +0x24 / +0x28 handler table (00667230), +0x34 received stream, +0x5C requests, +0x85
 send-party flag, +0x88 / +0x28B0 coders, +0x50D8 `array50D8_` (unit ids). Both handler tables store the handlers' game
-addresses (40 client types, 25 server types), so rewritten handlers run through their hooks; handlers_ is a AlignedArray
+addresses (40 client types, 25 server types), so rewritten handlers run through their hooks; handlers is a AlignedArray
 (allocators 0066BE00 / 00671240 are AllocAligned32). 0047B670 (object map clear) is `ObjectMapClearOriginal` in
 originals_world.h.
 
-The "changed" senders compare the object's stamp with the world's update count; a pending delta (flags_ bit 1) is written first
+The "changed" senders compare the object's stamp with the world's update count; a pending delta (flags bit 1) is written first
 (0050EA70 for map objects, `CEffect::SendDelta` for timed ones). world_sync.cpp names the six senders by the DiffObjectSets output
 they get: its "Kept" array gets the removals, "Removed" the changes. Receive errors go through 00664B70 (fatal) with the previous
 and current type. `CUnitServer::IsFighting` (0054B580) is Rebirth-patched: called through its address.
@@ -136,7 +136,7 @@ Rewritten (grep the address; the per-function table is gone). Facts a worker nee
 - OnLeaderDied 0066F4C0 (slot 20, from CUnitServer::RunTick when the dead unit IsLeader): single player 0x09 + 0x0B (hero id,
   0xFF); a network game revives a one-hero party (money / experience shares 007C5490 / 007C5494 over the NPC record's +0x54
   `experienceFloor`, shared object, new id, CollectParty / SendParty / Redeploy, the old brain's +0x12C units and the old hero into
-  the new one's; partyDeployed_ 1, lastPosition_.z -1313 (hero_death)).
+  the new one's; partyDeployed 1, lastPosition.z -1313 (hero_death)).
 - OnUseOrder 00670310 (0x36: units, flag, kind, value, object; the nearest unit asked by CheckOrder / CheckOrderAt from its path
   end; Player mode CommandUse), UseOrderDistanceSquared, AIPath's constructor / TargetPoint, AIOrder::MakeUse / AimPoint
   (ui_battle_commands' dead-wolf clicks). Server handlers 0x02 refresh party 0066FAA0, 0x03 take exit, 0x05 joined, 0x06 leave to
@@ -164,14 +164,14 @@ Rewritten (grep the address; the per-function table is gone). Facts a worker nee
   -1), SendLeave04 (state 3), SendResume (0x09), SendPartyUpdate (0x50, SaveParty draws an ISAAC key), TakeExit (0x03), RequestZone
   (0x06), Rejoin (state 3 only: ReturnLocalParty, 0x50, 0x05, state 2); the zone requests return the stream position (004A53F0's EAX).
 
-Verify rule for the changed-sender wrappers: `CEffect::SendDelta` leaves flags_ bit 1 set, so the original's second run would
+Verify rule for the changed-sender wrappers: `CEffect::SendDelta` leaves flags bit 1 set, so the original's second run would
 pack the effects again against snapshots ours just updated. The wrapper runs ours, restores the stream, runs the original with
-flags_ bit 1 cleared on every listed object, puts the flags back and compares (skipped when ours grew the stream or an effect
+flags bit 1 cleared on every listed object, puts the flags back and compares (skipped when ours grew the stream or an effect
 is listed twice).
 
 Kept: the login's two 64-byte text buffers are sent with uninitialised bytes after the texts (ours zeroes them); 0x06's flag
 byte goes out zero-extended (the original's upper three bytes are stack garbage); OnNewObject reads the world's slot 19 as its
-`objectManager_` (the client world's empty 00566310 / 00566320 are not called) and a figure or state that cannot be read returns 0
+`objectManager` (the client world's empty 00566310 / 00566320 are not called) and a figure or state that cannot be read returns 0
 with the object made and unreleased; OnLeaderDied in a network game with a party of more than one record reads two
 uninitialised stack ids (ours: -1, no object); the 0x36 unit array is `CArray<CUnit*>` (vtable 007402AC; 00671200 RemoveAt
 in library.csv); the AIPath is destroyed through 00546100; CPlayer::Clear's unit loop stops at the first map entry without a

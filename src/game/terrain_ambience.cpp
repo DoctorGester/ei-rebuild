@@ -140,7 +140,7 @@ void PlayOneShot(CSoundManager* sounds, const Cell (&cells)[3][3], int soundClas
 } // namespace
 
 void Terrain::PlayAmbience() {
-    CSoundManager* sounds = g_clientWorld.sounds_;
+    CSoundManager* sounds = g_clientWorld.sounds;
     Vector3 listener = {sounds->listener.x, sounds->listener.y, sounds->listener.z};
     Vector3 axis = {sounds->listenerAxis.x, sounds->listenerAxis.y, sounds->listenerAxis.z};
     int centreX = SectorOf(listener.x);
@@ -249,7 +249,7 @@ void Terrain::StopAmbience() {
 
 void Terrain::StopAmbientLoops() {
     for (AmbientLoop& loop : ambientLoops) {
-        loop.sound = g_clientWorld.sounds_->StopSound(loop.sound);
+        loop.sound = g_clientWorld.sounds->StopSound(loop.sound);
         loop.soundClass = -1;
     }
 }
@@ -262,7 +262,7 @@ void Terrain::CountAmbientVariants() {
             char name[260];
             std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\day\\%i.wav", ambientSet.c_str(), kAmbientSounds[i].name,
                           variants + 1);
-            if (g_clientWorld.sounds_->LoadWaveFile(name, nullptr, nullptr) == nullptr) break;
+            if (g_clientWorld.sounds->LoadWaveFile(name, nullptr, nullptr) == nullptr) break;
             ++variants;
         }
     }

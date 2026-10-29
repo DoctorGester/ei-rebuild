@@ -73,16 +73,16 @@ one value per field chunk (IntListField, InlineStrings).
 ## Item classes
 
 - `CItem : CEngineObject` and six classes: weapon, armour, quick item, quest item, loot, scroll (`CItemScroll`, a "spell
-  container"; it derives from the quick item for its actionValue_ and its InitFromRecord / IsSameAs / CopyTo / Load /
+  container"; it derives from the quick item for its actionValue and its InitFromRecord / IsSameAs / CopyTo / Load /
   Save). item.h holds the classes and the weapon stats by packed id, item_manager.h the item constructor and the item
   manager (the factory), item_names.h the name builders by record index; their code is item.cpp, item_manager.cpp and
   item_names.cpp.
-- `CItem::unreadValue_` is the prototype's unreadValue (archive field 9): saved, loaded and compared by IsSameAs; nothing
+- `CItem::unreadValue` is the prototype's unreadValue (archive field 9): saved, loaded and compared by IsSameAs; nothing
   else reads it, and its meaning is unknown.
 - The original's slot 18 (FirstListName) is not in our CItem: nothing called it, and the record lists it read were never
   filled.
 - Decided (user 2026-10-29): the six item subclasses stay (L26 declined: the kinds differ in data and behaviour; revisit
-  later). Open (style review, build/style_review/items.md): the member naming mix (`CItem::count_`,
+  later). Open (style review, build/style_review/items.md): the member naming mix (`CItem::count`,
   `CItemLink::value`, `ItemStock::party`). The scroll class is `CItemScroll` / `ItemKind::Scroll` / `ClassId::ItemScroll`
   (C61b; `ClassName()` is only the console's listing, never saved).
 
@@ -99,7 +99,7 @@ streams; Load O, then the original Save must write back the bytes read (every ne
 ui_saveload).
 
 Load / Save: the base writes +0x18, +0x20..+0x3C, the spell's id (-1 none; Load looks it up in the context's spell manager),
-+0x48, +0x40; armour adds its two absorption rows (not layerMask_). The loot's Load reads kind_ / recordType_ through the
++0x48, +0x40; armour adds its two absorption rows (not layerMask). The loot's Load reads kind / recordType through the
 stack slot of its stream argument, CItem's the spell id likewise (kept). Constructors leave +0x40 (CItem) and the quick,
 quest, loot and scroll fields (+0x4C..) as they are; +0x20..+0x3C start at -1.0. The link at +0x1C is a CRefCounted (16-bit
 count) that Destroy deletes at 0. IsSameAs compares the base floats (+0x20..+0x2C, +0x34..+0x3C) as "equal or unordered"
@@ -119,7 +119,7 @@ CManagerContext; O).
   sequence (SetManager, BeginCreateItem, the records, EndCreateItem, SetManager(null)) in one call. Only the trader
   stock's GenerateItems still runs the steps itself: it creates the item before it draws the material, and a cancelled
   draw has used up an object id (moving the creation after the draw would shift every later item id). Object ids are
-  per manager and come from maxId_ + 1 (the random fallback needs 2e9 ids), so creating an item before or after a
+  per manager and come from maxId + 1 (the random fallback needs 2e9 ids), so creating an item before or after a
   spell (spell manager) or a CRT draw changes nothing. Kept quirk dropped: the original left a failed build's spell in
   the constructor for the next build (only CreateItem of a weapon with a spell and no material under Rebirth's
   FixCreateItem); BuildItem sets the spell every time.
@@ -145,7 +145,7 @@ list minus class 0x14; every new game), `ReleaseAllItems` (multiplayer exchange 
 +0x760).
 
 Clone = the owning manager's CreateObject(kind, -1) (slot 23), then the source's slot 15; on failure the new item gets a
-reference and is released. CopyTo (item.cpp) destroys the target, gives it the packed id, condition_..magicLevel_
+reference and is released. CopyTo (item.cpp) destroys the target, gives it the packed id, condition..magicLevel
 (the floats bit for bit through `x87::CopyBits`, as the original's dword copy: a loaded item's values may be any bit
 pattern), a CSpell::Clone (0068B410) of the attached spell or none, count 1; the overrides add their own fields the same
 way. The
@@ -245,7 +245,7 @@ is this spell's duration (named `targetCount`; for attack spells it may be a tar
 radius. Build's `d` / `t` truncation and the area sqrt are small naked helpers (FILD qword / FMUL / `_ftol`; FLD / FDIV
 [00743A7C] / FSQRT); its double verify run is safe because it empties the code string first.
 
-Quirks: LoadSpell reads flags_ through the stream argument's stack slot. Build leaves the target flags alone when the
+Quirks: LoadSpell reads flags through the stream argument's stack slot. Build leaves the target flags alone when the
 prototype kind is neither 'u' nor 't', so they accumulate across rebuilds until Reset; a modifier whose code is not found
 becomes code 0, which sorts first and empties the modifier list; BeginConstruct writes the prototype into the new container
 without checking the manager returned one; the container's AddModifier reports a null record as "Invalid rune" (007959F0).
@@ -380,7 +380,7 @@ they move to (never released; the wrappers drop their second run's); a DXT file 
 mip level as the mode.
 
 **Texture manager lifetime (A-H23; texture_manager_lifetime.cpp, verify_texture_manager_lifetime: O, names P).** 00691140
-constructor, 00691250 / 00691230 destructors, 00691630 Destroy (slot 3), 00691AA0 CreateObject (slot 23: flags_ |= 0x80 /
+constructor, 00691250 / 00691230 destructors, 00691630 Destroy (slot 3), 00691AA0 CreateObject (slot 23: flags |= 0x80 /
 0x100 / 0x200 for types 0x3E / 0x3F / 0x40, else 0x40; no null check), 00691200 slot 25 ("textures"). Destroy and the
 destructor release the shadow surface, destroy and delete every cached texture, delete the composed textures and drop the
 device; the destructor adds SetDevice(null).
@@ -459,7 +459,7 @@ Construct (the original into a scratch block) S, SetText S, DrawLines O (OnMouse
 all their destructors O.
 
 The scroll text constructor's float is the bar's depth, not a line height. Tokenize, Layout and DrawLines are called through
-their addresses (originals_ui.h). CUiTooltip is a CUiWindow (fields from +0x148: lines_, lineHeight_, keyWidth_, keyName_).
+their addresses (originals_ui.h). CUiTooltip is a CUiWindow (fields from +0x148: lines, lineHeight, keyWidth, keyName).
 Shared: 005FCDD0 (CUiSurface over a RECT) in originals_ui.h; CString::FindOneOf (00700ECC) is `str::FindOneOf`; gamecrt::isprint
 (006E944C). Quirks: SetPosition divides by the maximum without a check (0 gives the integer indefinite); the edit field's
 constructor leaves caret / editing / changed unset; NextToken's unknown BEL symbol takes the token's data pointer as its
@@ -471,7 +471,7 @@ unwritten for an empty text. Risks: the constructor wrappers are ours only; Layo
 
 CMaterial constructor (names "none", alpha 1, an empty deque; colours unwritten; S), destructor body and slot 0 (O), slots 2
 (reset, 1), 3 (deque emptied), 11, 12 (P); CMaterialManager constructor (colour table of NextPrime(100) buckets), destructor
-body, slot 0, NewObject (slot 14), NewMaterial (slot 23, flags_ 8, the table's colours for type_; O), FillMaterial (RET 8; S),
+body, slot 0, NewObject (slot 14), NewMaterial (slot 23, flags 8, the table's colours for type; O), FillMaterial (RET 8; S),
 slots 25 "materials", 11, 12 (P).
 
 CMaterial (0x9C). The manager's
@@ -524,7 +524,7 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   window constructor is 0063B5D0; O), `CHudUnitPanel::ShowBodyPart` (tints the four part buttons 3..6: 1 the chosen one, 0.5
   the rest; S), `CHudUnitPanel::ShowEffects` 00646B90 (Ghidra splits it at 00646C25; the unit's first six effects: the "spell
   <code>" text and ticks / 15 as two lines each, the spell's picture "spell%04d" (SpellRecord +0x60, now `icon`) copied into
-  one of six places of the panel's icon texture, the places kept in +0x184 `effectIcons_`; scene objects 26 + i show them, 9
+  one of six places of the panel's icon texture, the places kept in +0x184 `effectIcons`; scene objects 26 + i show them, 9
   when there are more than six; S, needs a shown unit with an effect), `NextSpellContainer` (a hash_map iterator's step; P, no
   live caller left).
 - Sound: `CSoundManager::OpenStream / CloseStream` 006BAAC0 / 006BAC90 (on the manager's +0x100): the ASI codec for ".mp3"
@@ -575,10 +575,10 @@ obvious.
   alpha 1, ambient 0.7, specular 0.2, power 5 without the file; magic's emissive is 1.
 - HUD ports (ui_hud*.cpp, ui_hud_slide.cpp, ui_hud_setup.cpp; the code is the description): 00648D70 `CHudClock::LeftUp`
   (regions 0 pause, 1 / 2 normal / fast speed, not on a network client, update period 55 / 27 ms at 0078FF34, 3 the
-  objectives; O, no scenario clicks the clock); 00649910 `CHudMovePanel::ShowMode` (+0x14C `mode_`; S); 00642930 /
+  objectives; O, no scenario clicks the clock); 00649910 `CHudMovePanel::ShowMode` (+0x14C `mode`; S); 00642930 /
   00645F80 map and unit panel `Layout` (sprites, text surface and regions after the first at the slide offset:
-  `offset_`, `travel_`, `slide_`; S); 00647FB0 `CHudUnitPanel::Update` and 00642B40 `CHudMap::Update` (slot 24:
-  the slide time x direction / 0.3 s, eased, _ftol of travel x eased; the map's zoom x or / 2.5^time towards zoomMax_ / 1,
+  `offset`, `travel`, `slide`; S); 00647FB0 `CHudUnitPanel::Update` and 00642B40 `CHudMap::Update` (slot 24:
+  the slide time x direction / 0.3 s, eased, _ftol of travel x eased; the map's zoom x or / 2.5^time towards zoomMax / 1,
   UpdateView, BuildMarkers, "camera north" time and tint; the map's is O because it rebuilds meshes, no scenario slides the
   map); 00645210 `CHudMap::LeftUp` (O; ui_hud reaches only the view buttons' release, no scenario clicks the map, its
   sling or the north button; a click on the map goes through 005F7E00 relative to (700, 80) by the map's scale
@@ -587,22 +587,22 @@ obvious.
   0x28A2 / 0x28A3 not on a network client, 0x28A1), 00649190 move panel (slot 18; rectangle (0, 520)-(80, 600); tips
   0x2904..0x2908, keys 0x1B, 0x17..0x1A), 006456E0 unit panel (rectangle (0, 0)-(185, 225), the slide at its far end when
   `slid`, offset 180; tips 0x2775.., keys 0x2E..; "infounit_0..17" and the four "hl_" labels), 00641F20 map (+0x174
-  `halfSide_`, +0x178 `viewPolygon_`; rectangle (615, 0)-(800, 165); the world's extent is the zone record's size x 32,
+  `halfSide`, +0x178 `viewPolygon`; rectangle (615, 0)-(800, 165); the world's extent is the zone record's size x 32,
   picture referenced object 1, 32 x 32 and "battle00" without a record; scale 2 / size, zoom up to size x 0.05; the round
   map is sixteen points of radius 65 about (700, 80); a 5 x 5 surface with one white pixel; the picture's reference and
   place are given back without a release so the second run finds the same texture).
-- Other windows: 0065E580 `CUiTooltip::OnMouseMove` (ui_tooltip.cpp; +0x17C `timer_`; O: it makes the surface): state 1
+- Other windows: 0065E580 `CUiTooltip::OnMouseMove` (ui_tooltip.cpp; +0x17C `timer`; O: it makes the surface): state 1
   (hovered) gives 0 with no lines or a zero delay (setting 20, 0079BE80), else the timer runs up to the delay, then the
-  command's key (FindCommandByKey of `extra_`) is measured with the first line, state 2, a surface (format 5) at the mouse +
+  command's key (FindCommandByKey of `extra`) is measured with the first line, state 2, a surface (format 5) at the mouse +
   the cursor offset ((24, 24) screen pixels at 007C8258, set by the static initialiser 0065E310), pushed left off the right
   edge and above the mouse at the bottom; state 2 draws and becomes 4 (the appearing time 00742F2C is 0); state 3 never
-  runs. 0065C2E0 `CUiEditField::DrawContentsVanilla` (ui_edit_field.cpp; +0x15C `centred_`; S on the clamped caret, pixels
+  runs. 0065C2E0 `CUiEditField::DrawContentsVanilla` (ui_edit_field.cpp; +0x15C `centred`; S on the clamped caret, pixels
   not compared). 006567A0 `CSaveLoadWindow::RefreshListVanilla` (ui_saveload_list.cpp; S; ui_saveload, ui_saveload_delete,
   ui_hud): up to sixteen rows from the scroll position (title, or the typed name for the selected row of a save window; the
   date "%d/%m, %H:%M" through CTime::Format 006FE795 but for a save window's new save), the caret (not for "saveq" / "savea" /
   "saveb"), the marker (scene object 4); then the selected save's allod, zone, day and time (_ftol(gameTime x 60) minutes: day
-  + 1, h:mm) and folder. 00659420 `CHelpWindow::ShowPage` (ui_help_page.cpp; +0x18C `pictures_`; S, the function
-  empties the window itself; ui_help): "tutorial <text_>" opened, the page's "#screen" found; rectangle (200, 50)-(600, 560)
+  + 1, h:mm) and folder. 00659420 `CHelpWindow::ShowPage` (ui_help_page.cpp; +0x18C `pictures`; S, the function
+  empties the window itself; ui_help): "tutorial <text>" opened, the page's "#screen" found; rectangle (200, 50)-(600, 560)
   or "#position left top right [rows]" (searched from the page on; at least 300 wide, rows x 16 + 110 high, at most 600);
   surface 0 title, surface 1 the entries' "tutor <key>" texts (laid out twice unless rows are given: the first pass copies
   "tutorial_<picture>" into 64-pixel cells of referenced object 1, at most 16), surface 2 neighbours' titles and

@@ -1,4 +1,4 @@
-// The model named `name`, loaded on first use. The models are cached in CFigureManager::models_ (nodes {next,
+// The model named `name`, loaded on first use. The models are cached in CFigureManager::models (nodes {next,
 // key, value}; the key hashed h = h * 5 + c). A missing model opens "<name>.mod", ".bon" and ".anm" through
 // the manager's GetFile; without the .mod nothing is created and null is returned. Otherwise a FigureModel is
 // stored under the name, its mesh, bones and animation archives load from the files (OpenFromMemory; the .bon
@@ -26,7 +26,7 @@ CMappedResource** AnimationSlot(std::unordered_map<std::string, CMappedResource*
 } // namespace
 
 FigureModel* CFigureManager::FindModel(const std::string* name) {
-    std::unordered_map<std::string, FigureModel*>* map = &models_;
+    std::unordered_map<std::string, FigureModel*>* map = &models;
     if (auto found = map->find(*name); found != map->end()) return found->second;
 
     void* mesh = OpenPart(this, name, ".mod");

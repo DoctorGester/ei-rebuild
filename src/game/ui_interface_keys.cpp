@@ -32,29 +32,29 @@ void WindowKeyDown(CUiWindow* window, int key, int repeat, int flags) {
 } // namespace
 
 void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
-    console::ConsoleWindow* consoleWindow = console_;
+    console::ConsoleWindow* consoleWindow = console;
     int scan = flags & 0x1FF;
     switch (scan) {
     case 0x1D:
     case 0x11D:   // Ctrl
         if (flags & kRepeat) return;
-        ctrlDown_ = true;
+        ctrlDown = true;
         break;
     case 0x2A:
     case 0x36:    // Shift
         if (flags & kRepeat) return;
-        shiftDown_ = 1;
+        shiftDown = 1;
         break;
     case 0x38:
     case 0x138:   // Alt
         if (flags & kRepeat) return;
-        altDown_ = true;
+        altDown = true;
         break;
     case 0x29:    // the key under Esc
-        consoleWindow->Show(!consoleWindow->shown_);
+        consoleWindow->Show(!consoleWindow->shown);
         return;
     case 0x46: {  // Scroll Lock: a screenshot
-        CDib* picture = CaptureScreen(g_sceneRenderer.device_);
+        CDib* picture = CaptureScreen(g_sceneRenderer.device);
         if (!picture) return;
         std::string name;
         name = std::format("shot{:04}.bmp", g_shotCounter);
@@ -69,17 +69,17 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         break;
     }
 
-    if (consoleWindow->shown_) {
+    if (consoleWindow->shown) {
         consoleWindow->OnKeyDown(key, repeat, flags);
         return;
     }
-    CChatOverlay* chat = root_;
-    if (IsMultiplayerClient() && chat->chatOpen_) {
+    CChatOverlay* chat = root;
+    if (IsMultiplayerClient() && chat->chatOpen) {
         WindowKeyDown(chat, key, repeat, flags);
         return;
     }
-    if (!stack_.empty()) WindowKeyDown(stack_.back(), key, repeat, flags);
-    if (!stack_.empty() && !stack_.back()->Input()->handled_ &&
+    if (!stack.empty()) WindowKeyDown(stack.back(), key, repeat, flags);
+    if (!stack.empty() && !stack.back()->Input()->handled &&
         KeyCharacter(scan) == ';') {
         OpenHelp(true);
     }

@@ -29,7 +29,7 @@ void LoadLooks(std::vector<AILook>* looks, CStream* stream) {
         stream->ReadValue(look.angle);
         stream->ReadValue(look.time);
         stream->ReadValue(look.wait);
-        if (stream->version_ >= kVersionLookStopFlag) stream->ReadValue(look.stopFirst);
+        if (stream->version >= kVersionLookStopFlag) stream->ReadValue(look.stopFirst);
     }
 }
 

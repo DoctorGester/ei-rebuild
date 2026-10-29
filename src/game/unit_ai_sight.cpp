@@ -42,14 +42,14 @@ bool IsZero(double v) {
 
 // "Unit <self> <text> <other>" (no line end).
 console::Stream& LogPair(CUnit* self, const char* text, CEngineObject* other) {
-    return kAiLog << "Unit " << self->id_ << text << other->id_;
+    return kAiLog << "Unit " << self->id << text << other->id;
 }
 
 // The noticed point taken over without Notice's checks.
 void NoticeAt(AIMemory* memory, CUnit* at, int level, int decay) {
-    memory->noticedX = at->localPosition_.x;
+    memory->noticedX = at->localPosition.x;
     memory->noticedLevel = level;
-    memory->noticedY = at->localPosition_.y;
+    memory->noticedY = at->localPosition.y;
     memory->noticedDecay = decay;
 }
 
@@ -59,14 +59,14 @@ void AIViewer::Prepare(CUnit* self) {
     if (cellX >= 0 && cellY >= 0 && cellX < map->cells.width && cellY < map->cells.height)
         eye.z = static_cast<float>(static_cast<double>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z);
     eye.z = static_cast<float>(static_cast<double>(self->bounds.boxMax.z) * kEyeHeightFactor + self->eyeHeight + self->bounds.center.z + eye.z);
-    Vector3 axis = RotatedAxisY(self->localRotation_);
+    Vector3 axis = RotatedAxisY(self->localRotation);
     ready = 1;
     facing = -axis;
 }
 
 void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     if (--memory->nearbyCountdown > 0) return;
-    self->flags_ |= kFlagNearbyListed;
+    self->flags |= kFlagNearbyListed;
     memory->nearbyCountdown = (libcrt::Rand() & 3) + 8;
     int blockX = cellX / 32;
     int blockY = cellY / 32;
@@ -93,8 +93,8 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
 
 void AIViewer::See(CUnit* self, AIMemory* memory) {
     CUnitServer* ours = self->ServerController();
-    bool seesAll = self->player != nullptr || (self->flags_ & MapObjectFlag::SeeAll) != 0;
-    self->flags_ &= ~MapObjectFlag::SeeAll;
+    bool seesAll = self->player != nullptr || (self->flags & MapObjectFlag::SeeAll) != 0;
+    self->flags &= ~MapObjectFlag::SeeAll;
     for (auto node = memory->nearby.begin(); node != memory->nearby.end();) {
         CUnit* other = *node;
         ++node;
@@ -143,14 +143,14 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         if (seen && dead) {
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
             memory->seenCorpses.push_back(other);
-            if (g_serverWorld.diplomacy_.IsAllied(self->side, other->side)) memory->corpses.push_back(other);
+            if (g_serverWorld.diplomacy.IsAllied(self->side, other->side)) memory->corpses.push_back(other);
             continue;
         }
         if (alive) {
             memory->visible.push_front(other);
-            double dx = static_cast<double>(self->localPosition_.x) - other->localPosition_.x;
-            double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
-            double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
+            double dx = static_cast<double>(self->localPosition.x) - other->localPosition.x;
+            double dy = static_cast<double>(self->localPosition.y) - other->localPosition.y;
+            double dz = static_cast<double>(self->localPosition.z) - other->localPosition.z;
             LogPair(self, " sees unit ", other) << " from ";
             console::EndLine(kAiLog << std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) << "m distance");
         }
@@ -163,7 +163,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
     float reachFactor = hasPlayer ? 1.0f : kNonPlayerReach;
     if (!self) return;
     ready = 0;
-    eye = *&self->localPosition_;
+    eye = *&self->localPosition;
     float scale = 2.0f;
     cellX = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.x) - 0.5f));
     cellY = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.y) - 0.5f));
@@ -172,19 +172,19 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
         auto current = node;
         ++node;
         CUnit* other = *current;
-        Vector3 d{static_cast<float>(static_cast<double>(other->localPosition_.x) - self->localPosition_.x),
-                  static_cast<float>(static_cast<double>(other->localPosition_.y) - self->localPosition_.y),
-                  static_cast<float>(static_cast<double>(other->localPosition_.z) - self->localPosition_.z)};
+        Vector3 d{static_cast<float>(static_cast<double>(other->localPosition.x) - self->localPosition.x),
+                  static_cast<float>(static_cast<double>(other->localPosition.y) - self->localPosition.y),
+                  static_cast<float>(static_cast<double>(other->localPosition.z) - self->localPosition.z)};
         float distance = LengthZYX(d);
         if (other->IsDead()) {
-            if (g_serverWorld.diplomacy_.IsAllied(self->side, other->side)) {
+            if (g_serverWorld.diplomacy.IsAllied(self->side, other->side)) {
                 // AddTail (a second copy follows below).
                 memory->seenCorpses.push_back(other);
                 if (memory->noticedLevel < kNoticeCorpseLevel) NoticeAt(memory, other, kNoticeCorpseLevel, kNoticeCorpseDecay);
             }
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
             memory->seenCorpses.push_back(other);
-            if (g_serverWorld.diplomacy_.IsAllied(self->side, other->side)) memory->corpses.push_back(other);
+            if (g_serverWorld.diplomacy.IsAllied(self->side, other->side)) memory->corpses.push_back(other);
         } else {
             if (self->IsHostileTo(other) && !hasPlayer) continue;
             CUnitServer* theirs = other->ServerController();
@@ -207,7 +207,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
 
 void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     Vector3 axis;
-    seer->localRotation_.AxisY(&axis);
+    seer->localRotation.AxisY(&axis);
     Vector3 look{-axis.x, -axis.y, -axis.z};
     Vector3 eye;
     seer->EyePoint(&eye);
@@ -225,7 +225,7 @@ void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     EI_NAN_AUDIT(sight);
     float radius = 0.0f < sight ? sight : 0.0f;
     float height = static_cast<float>(observer->ModeSpeed());
-    CAIMap* map = &g_serverWorld.aiMap_;
+    CAIMap* map = &g_serverWorld.aiMap;
     map->MarkVisibleCells(eye, radius, look, cone, height, grid);
     double hearing = static_cast<double>(mine->stats.perception[2].current) * theirs->stats.conspicuity[2].current;
     if (!IsZero(hearing)) map->MarkVisibleCells(eye, static_cast<float>(hearing), look, kNoCone, kNoLineOfSight, grid);

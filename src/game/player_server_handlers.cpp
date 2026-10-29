@@ -47,11 +47,11 @@ constexpr std::uint8_t kMessageGameOver = 0x09;
 constexpr int kRevivedIdBase = 1001000000;            // OnLeaderDied: ids below it are moved up
 constexpr int kRevivedIdStep = 1000000;
 constexpr int kNoId = -1;                             // see OnLeaderDied: the original's uninitialised ids
-constexpr float kUnknownZ = -1313.0f;                 // lastPosition_.z after a revival
+constexpr float kUnknownZ = -1313.0f;                 // lastPosition.z after a revival
 constexpr float kPathRange = 1000000.0f;              // FindPath's range for the use order
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
 
-// The game mode (1 single player, 2 multiplayer); the campaign mode is CWorldServer::sessionKind_ (1 and 3 end
+// The game mode (1 single player, 2 multiplayer); the campaign mode is CWorldServer::sessionKind (1 and 3 end
 // the game when the leader is gone).
 // The next object id for a new party's record (the party manager stores the party).
 int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
@@ -68,7 +68,7 @@ void ReadUnits(CMemoryStream& in, std::vector<CUnit*>* units) {
         int id = 0;
         in.ReadValue(id);
         CUnit* unit = g_serverWorld.FindUnit(id);
-        if (unit && !(unit->flags_ & MapObjectFlag::Blocked)) lib::SetAtGrow(*units, std::ssize(*units), unit);
+        if (unit && !(unit->flags & MapObjectFlag::Blocked)) lib::SetAtGrow(*units, std::ssize(*units), unit);
     }
 }
 
@@ -108,12 +108,12 @@ CMemoryStream g_receivedMessages;
 // --- The leader died ----------------------------------------------------------------------
 
 void CPlayerServer::OnLeaderDied() {
-    CPlayer* player = player_;
-    CParty* party = player->Party();
+    CPlayer* currentPlayer = player;
+    CParty* party = currentPlayer->Party();
     if (!IsMultiplayerClient()) {
-        std::uint8_t type = kMessageGameOver;
-        out_.WriteValue(type);
-        CUnit* hero = g_serverWorld.FindUnit(static_cast<int>(party->members_[0].unitId));
+        std::uint8_t messageType = kMessageGameOver;
+        out.WriteValue(messageType);
+        CUnit* hero = g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
         if (hero) SendObject0B(hero, AckKind::StopSpeech);
         return;
     }
@@ -122,24 +122,24 @@ void CPlayerServer::OnLeaderDied() {
     // here they are -1, which no object has.
     int oldId = kNoId;
     int newId = kNoId;
-    if (std::ssize(party->members_) == 1) {
-        int lost = x87::RoundToInt(static_cast<float>(static_cast<float>(party->money_) * g_logicSettings.lostMoney));
-        party->money_ -= lost;
-        oldId = static_cast<int>(party->members_[0].unitId);
+    if (std::ssize(party->members) == 1) {
+        int lost = x87::RoundToInt(static_cast<float>(static_cast<float>(party->money) * g_logicSettings.lostMoney));
+        party->money -= lost;
+        oldId = static_cast<int>(party->members[0].unitId);
         CUnit* hero = g_serverWorld.FindUnit(oldId);
         if (hero) SendObject0B(hero, AckKind::StopSpeech);
         newId = oldId;
         if (newId < kRevivedIdBase) newId += kRevivedIdStep;
         while (g_serverWorld.FindObject(static_cast<unsigned>(newId))) ++newId;
-        g_serverWorld.AddSharedObject(oldId, static_cast<std::uint32_t>(lost), &player->items_);
-        player->TakeAllItems();
+        g_serverWorld.AddSharedObject(oldId, static_cast<std::uint32_t>(lost), &currentPlayer->items);
+        currentPlayer->TakeAllItems();
     }
-    if (partyDeployed_) {
-        g_serverWorld.CollectParty(player, nullptr);
-        partyDeployed_ = 0;
+    if (partyDeployed) {
+        g_serverWorld.CollectParty(currentPlayer, nullptr);
+        partyDeployed = 0;
     }
-    if (std::ssize(party->members_) == 1) {
-        PartyUnitRecord& record = party->members_[0];
+    if (std::ssize(party->members) == 1) {
+        PartyUnitRecord& record = party->members[0];
         record.unitId = static_cast<std::uint32_t>(newId);
         auto* stats = &record.stats;
         stats->RestoreSlots();
@@ -152,10 +152,10 @@ void CPlayerServer::OnLeaderDied() {
         stats->TakePendingExperience(g_logicSettings.lostXp * experience);
     }
     SendParty();
-    lastPosition_.z = kUnknownZ;
-    if (!partyDeployed_) {
-        g_serverWorld.Redeploy(player, nullptr, 1);
-        partyDeployed_ = 1;
+    lastPosition.z = kUnknownZ;
+    if (!partyDeployed) {
+        g_serverWorld.Redeploy(currentPlayer, nullptr, 1);
+        partyDeployed = 1;
     }
     CUnit* revived = g_serverWorld.FindUnit(newId);
     CUnit* dead = g_serverWorld.FindUnit(oldId);
@@ -212,10 +212,10 @@ int CPlayerServer::OnUseOrder() {
     int count = 0;
     in.ReadValue(count);
     for (int i = 0; i < count; ++i) {
-        int id = 0;
-        in.ReadValue(id);
-        CUnit* unit = g_serverWorld.FindUnit(id);
-        if (unit && !(unit->flags_ & MapObjectFlag::Blocked)) lib::SetAtGrow(units, std::ssize(units), unit);
+        int objectId = 0;
+        in.ReadValue(objectId);
+        CUnit* unit = g_serverWorld.FindUnit(objectId);
+        if (unit && !(unit->flags & MapObjectFlag::Blocked)) lib::SetAtGrow(units, std::ssize(units), unit);
     }
     int flag = 0, value = 0, objectId = 0;
     int skillWord = 0;
@@ -242,7 +242,7 @@ int CPlayerServer::OnUseOrder() {
             CUnit* nearest = nullptr;
             int nearestIndex = 0;
             for (int i = 0; i < std::ssize(units); ++i) {
-                double distance = UseOrderDistanceSquared(aim, units[i]->localPosition_);
+                double distance = UseOrderDistanceSquared(aim, units[i]->localPosition);
                 EI_NAN_AUDIT(distance, best);
                 if (distance < best) {
                     best = static_cast<float>(distance);
@@ -259,11 +259,11 @@ int CPlayerServer::OnUseOrder() {
                 break;
             }
             Vector3 from;
-            if (g_serverWorld.aiMap_.FindPath(nearest, aim, &path, kPathRange, 0.0f)) {
+            if (g_serverWorld.aiMap.FindPath(nearest, aim, &path, kPathRange, 0.0f)) {
                 Vector3 end;
                 from = *path.TargetPoint(&end);
             } else {
-                from = nearest->localPosition_;
+                from = nearest->localPosition;
             }
             if (controller->CanReachAndPlanFrom(&order, from)) {
                 chosen = nearest;
@@ -299,7 +299,7 @@ void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* of
     float sumX = 0.0f;
     float sumY = 0.0f;
     for (int i = 0; i < count; ++i) {
-        const Vector3* at = &(*units)[i]->localPosition_;
+        const Vector3* at = &(*units)[i]->localPosition;
         sumX = static_cast<float>(static_cast<double>(sumX) + at->x);
         sumY = static_cast<float>(static_cast<double>(sumY) + at->y);
     }
@@ -308,7 +308,7 @@ void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* of
     float centreY = static_cast<float>(static_cast<double>(sumY) / n);
     offsets->resize(count);
     for (int i = 0; i < std::ssize(*units); ++i) {
-        const Vector3* at = &(*units)[i]->localPosition_;
+        const Vector3* at = &(*units)[i]->localPosition;
         float dx = static_cast<float>(static_cast<double>(at->x) - centreX);
         float dy = static_cast<float>(static_cast<double>(at->y) - centreY);
         double length = std::sqrt(LengthSquared2DUnrounded<double>(dx, dy));
@@ -322,56 +322,56 @@ void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* of
 }
 
 void CPlayerServer::LeaveToZone(std::string_view zone, int entrance) {
-    if (state_ != 1) return;
-    CPlayer* player = player_;
-    CParty* party = player->Party();
-    int campaign = g_serverWorld.sessionKind_;
+    if (state != 1) return;
+    CPlayer* currentPlayer = player;
+    CParty* party = currentPlayer->Party();
+    int campaign = g_serverWorld.sessionKind;
     if (campaign == 1 || campaign == 3) {
-        CUnit* leader = g_serverWorld.FindUnit(static_cast<int>(party->members_[0].unitId));
+        CUnit* leader = g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
         if (leader == nullptr || leader->IsDead() != 0) {
             LeaderDied();
             if (!IsMultiplayerClient()) return;
         }
     }
-    if (partyDeployed_) {
-        g_serverWorld.CollectParty(player, nullptr);
-        partyDeployed_ = 0;
+    if (partyDeployed) {
+        g_serverWorld.CollectParty(currentPlayer, nullptr);
+        partyDeployed = 0;
     }
-    state_ = 3;
-    party->entrance_ = static_cast<std::uint32_t>(entrance);
-    party->zone_ = zone;
-    int mode = g_serverWorld.gameResult_;
+    state = 3;
+    party->entrance = static_cast<std::uint32_t>(entrance);
+    party->zone = zone;
+    int mode = g_serverWorld.gameResult;
     if (mode == 1) {
         g_partyManager.BeginRedeploy(party);
     } else if (mode == 2) {
-        if (std::ssize(party->members_) == 1) party->members_[0].unitId = kLoneHeroRecordId;
+        if (std::ssize(party->members) == 1) party->members[0].unitId = kLoneHeroRecordId;
         SendParty();
     }
-    std::uint8_t type = kMessageZone;
-    out_.WriteValue(type);
-    out_.WriteString(zone);
-    out_.WriteValue(entrance);
+    std::uint8_t messageType = kMessageZone;
+    out.WriteValue(messageType);
+    out.WriteString(zone);
+    out.WriteValue(entrance);
     Flush();
 }
 
 void CPlayerServer::LeaveAndFlush() {
-    if (state_ == 1) {
-        if (partyDeployed_) {
-            g_serverWorld.CollectParty(player_, nullptr);
-            partyDeployed_ = 0;
+    if (state == 1) {
+        if (partyDeployed) {
+            g_serverWorld.CollectParty(player, nullptr);
+            partyDeployed = 0;
         }
-        if (g_serverWorld.gameResult_ == 2) SendParty();
+        if (g_serverWorld.gameResult == 2) SendParty();
     }
-    if (state_ != 3) {
-        state_ = 3;
-        std::uint8_t type = 0x01;
-        out_.WriteValue(type);
+    if (state != 3) {
+        state = 3;
+        std::uint8_t messageType = 0x01;
+        out.WriteValue(messageType);
     }
     Flush();
 }
 
 int CPlayerServer::OnRefreshParty() {
-    player_->ForgetKnownObjects();
+    player->ForgetKnownObjects();
     SendParty();
     return 1;
 }
@@ -387,12 +387,12 @@ int CPlayerServer::OnTakeExit() {
 }
 
 int CPlayerServer::OnJoined() {
-    if (state_ != 2) return 0;
-    state_ = 1;
-    CPlayer* player = player_;
-    player->sessionKind_ = player->ServerWorld()->sessionKind_;
-    g_serverWorld.Redeploy(player, &placements_, 1);
-    player->dirty_ |= PlayerDirty::GameState;
+    if (state != 2) return 0;
+    state = 1;
+    CPlayer* currentPlayer = player;
+    currentPlayer->sessionKind = currentPlayer->ServerWorld()->sessionKind;
+    g_serverWorld.Redeploy(currentPlayer, &placements, 1);
+    currentPlayer->dirty |= PlayerDirty::GameState;
     return 1;
 }
 
@@ -406,7 +406,7 @@ int CPlayerServer::OnLeaveToZone() {
 
 int CPlayerServer::OnBriefingDone() {
     std::string name = g_receivedMessages.ReadString();
-    g_serverWorld.CompleteBriefing(player_->playerId_, name);
+    g_serverWorld.CompleteBriefing(player->playerId, name);
     return 1;
 }
 
@@ -414,23 +414,23 @@ int CPlayerServer::OnNewParty() {
     CParty local;
     CParty* party = &local;
     party->LoadParty(&g_receivedMessages, 1);
-    if (std::ssize(party->members_) != 1) return 0;
-    int* key = &player_->partyId_;
+    if (std::ssize(party->members) != 1) return 0;
+    int* key = &player->partyId;
     PartyNextId(key);
     int& next = g_nextRecordObjectId;
     while (g_serverWorld.FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
-    party->members_[0].unitId = static_cast<std::uint32_t>(next);
+    party->members[0].unitId = static_cast<std::uint32_t>(next);
     ++next;
     g_partyManager.StoreParty(key, party);
     return 1;
 }
 
 int CPlayerServer::OnResume() {
-    if (state_ != 4) return 0;
-    state_ = 1;
-    if (!partyDeployed_) {
-        g_serverWorld.Redeploy(player_, nullptr, 1);
-        partyDeployed_ = 1;
+    if (state != 4) return 0;
+    state = 1;
+    if (!partyDeployed) {
+        g_serverWorld.Redeploy(player, nullptr, 1);
+        partyDeployed = 1;
     }
     return 1;
 }
@@ -461,7 +461,7 @@ int CPlayerServer::OnPartyUpdate() {
     CMemoryStream& in = g_receivedMessages;
     in.ReadSized(&block);
     block.CMemoryStream::Seek(0);
-    if (in.ok_) player_->Party()->LoadParty(&block, 0);
+    if (in.ok) player->Party()->LoadParty(&block, 0);
     return 1;
 }
 
@@ -484,33 +484,33 @@ int CPlayerServer::OnLogin() {
     PlayerLoginMessage login;
     login.partyId = 0;
     g_receivedMessages.ReadValue(login);
-    if (state_ != 0) return 0;
-    CPlayer* player = player_;
+    if (state != 0) return 0;
+    CPlayer* currentPlayer = player;
     if (login.version != kClientVersion) {
         int length = 0x100;
         char format[0x100];
-        auto* world = player->ServerWorld();
-        world->messages_.GetStringBuffer("SrvErrMsg", "WrongClientVersion", format, &length, "");
+        auto* world = currentPlayer->ServerWorld();
+        world->messages.GetStringBuffer("SrvErrMsg", "WrongClientVersion", format, &length, "");
         const std::string text = str::Format(format, 1, 0);
-        std::uint8_t type = kMessageError;
-        out_.WriteValue(type);
-        out_.WriteString(text);
-        state_ = 3;
+        std::uint8_t messageType = kMessageError;
+        out.WriteValue(messageType);
+        out.WriteString(text);
+        state = 3;
         return 0;
     }
     if (!IsPrintableText(login.name)) return 0;
     if (!IsPrintableText(login.password)) return 0;
     login.name[kLoginTextLength] = 0;
     login.password[kLoginTextLength] = 0;
-    CParty* party = player->Party();
-    switch (g_serverWorld.gameResult_) {
+    CParty* party = currentPlayer->Party();
+    switch (g_serverWorld.gameResult) {
     case 1:
         g_partyManager.EndRedeploy(party);
         party->OpenEdgeExits();
         break;
     case 2:
     case 3:
-        if (!g_partyManager.LoadParty(&player->partyId_, party))
+        if (!g_partyManager.LoadParty(&currentPlayer->partyId, party))
             return 0;
         break;
     case 4:
@@ -519,12 +519,12 @@ int CPlayerServer::OnLogin() {
     default:
         break;
     }
-    std::uint8_t type = kMessageLogin;
-    int id = player->id_;
-    out_.WriteValue(type);
-    out_.WriteValue(id);
+    std::uint8_t messageType = kMessageLogin;
+    int playerId = currentPlayer->id;
+    out.WriteValue(messageType);
+    out.WriteValue(playerId);
     SendParty();
-    state_ = 1;
+    state = 1;
     return 1;
 }
 
@@ -532,24 +532,24 @@ int CPlayerServer::OnLogin() {
 
 void CPlayerServer::SendPartyUpdate() {
     CMemoryStream block;
-    player_->Party()->SaveParty(&block, 0);
-    std::uint8_t type = kMessagePartyUpdate;
-    out_.WriteValue(type);
-    out_.WriteSized(&block);
+    player->Party()->SaveParty(&block, 0);
+    std::uint8_t messageType = kMessagePartyUpdate;
+    out.WriteValue(messageType);
+    out.WriteSized(&block);
 }
 
 void CPlayerServer::ResendParty() {
-    if (state_ != 1 || !partyDeployed_) return;
-    CPlayer* player = player_;
-    console::EndLine(console::g_netLogOut << kResendingParty << player->playerId_);
-    g_serverWorld.SyncPartyRecords(player);
+    if (state != 1 || !partyDeployed) return;
+    CPlayer* currentPlayer = player;
+    console::EndLine(console::g_netLogOut << kResendingParty << currentPlayer->playerId);
+    g_serverWorld.SyncPartyRecords(currentPlayer);
     SendParty();
-    g_serverWorld.ClearPlayerItems(player);
+    g_serverWorld.ClearPlayerItems(currentPlayer);
 }
 
 void CPlayerServer::SendPair19(std::uint8_t a, std::uint32_t b) {
-    std::uint8_t type = kMessage19;
-    out_.WriteValue(type);
-    out_.WriteValue(a);
-    out_.WriteValue(b);
+    std::uint8_t messageType = kMessage19;
+    out.WriteValue(messageType);
+    out.WriteValue(a);
+    out.WriteValue(b);
 }

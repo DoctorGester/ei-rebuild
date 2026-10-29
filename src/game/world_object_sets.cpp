@@ -15,8 +15,8 @@
 #include <vector>
 
 bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b) {
-    int ia = a->id_;
-    int ib = b->id_;
+    int ia = a->id;
+    int ib = b->id;
     if (ia != ib) return ia < ib;
     return std::less<const CEngineObject*>()(a, b);   // the address (an unsigned compare in the game)
 }

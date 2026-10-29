@@ -29,9 +29,9 @@ int Setting(const int& setting) { return static_cast<const volatile int&>(settin
 // The switch for the class of `object`.
 int ShadowSwitchOf(CObject3D* object) {
     ClassId classId = object->GetClassId();
-    if (classId == ClassId::Unit) return Setting(options::g_options.unitShadow_);
-    if (classId == ClassId::Tree) return Setting(options::g_options.floraShadow_);
-    return Setting(options::g_options.buildingShadow_);
+    if (classId == ClassId::Unit) return Setting(options::g_options.unitShadow);
+    if (classId == ClassId::Tree) return Setting(options::g_options.floraShadow);
+    return Setting(options::g_options.buildingShadow);
 }
 
 } // namespace
@@ -58,13 +58,13 @@ void CObject3DClientSpecific::ClearShadow() {
 
 bool CObject3DClientSpecific::ShadowInView() {
     if (worlddata::ShadowSetting() <= 0 || ShadowSwitchOf(object) == 0) return false;
-    if (flags_ & kHalfShown) return true;
-    const Vector3& at = object->localPosition_;
+    if (flags & kHalfShown) return true;
+    const Vector3& at = object->localPosition;
     sphere.center.x = sphere.center.x + at.x;
     sphere.center.y = at.y + sphere.center.y;
     sphere.center.z = at.z + sphere.center.z;
-    int side = g_sceneRenderer.pipeline_->ClipTest(&sphere);
-    const Vector3& back = object->localPosition_;
+    int side = g_sceneRenderer.pipeline->ClipTest(&sphere);
+    const Vector3& back = object->localPosition;
     sphere.center.x = sphere.center.x - back.x;
     sphere.center.y = sphere.center.y - back.y;
     sphere.center.z = sphere.center.z - back.z;

@@ -101,13 +101,13 @@ struct DeltaField {
 
 // The fields of one object.
 struct DeltaState {
-    std::vector<DeltaField> fields_;
-    std::uint16_t sentMask_ = 0;
-    std::uint16_t lastMask_ = 0;
-    std::uint16_t mask_ = 0;     // fields to write / read
-    CMemoryStream* reader_ = nullptr;
-    int mode_ = 4;           // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
-    CMemoryStream header_[2];
+    std::vector<DeltaField> fields;
+    std::uint16_t sentMask = 0;
+    std::uint16_t lastMask = 0;
+    std::uint16_t mask = 0;      // fields to write / read
+    CMemoryStream* reader = nullptr;
+    int mode = 4;            // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
+    CMemoryStream header[2];
 
     // No fields, idle; the field array's vtable in place. The destructor destroys the fields.
     DeltaState();
@@ -122,15 +122,15 @@ struct DeltaState {
     // The fields' SetSize(count, -1) (new fields constructed, dropped ones destroyed;
     // recordarrays::DeltaFields).
     void SetFieldCount(int count);
-    // Prepares field `index` for the current mode; null when it is not in mask_.
+    // Prepares field `index` for the current mode; null when it is not in mask.
     DeltaField* BeginField(int index);
-    // Writing: 0 writes every field (mask_ = 0xFFFF), anything else only the dirty ones.
+    // Writing: 0 writes every field (mask = 0xFFFF), anything else only the dirty ones.
     void SetWriteMode(int deltaOnly);
     // Reading: takes the field mask from `reader`; returns `second`.
     int BeginRead(int second, CMemoryStream* reader);
     // Ends a write or a read. After a delta write the written fields join
-    // sentMask_ and become lastMask_, and each header is rebuilt: its mask (sentMask_ for channel
-    // 0, lastMask_ for channel 1), then the channel's output of every field in the mask. After a
+    // sentMask and become lastMask, and each header is rebuilt: its mask (sentMask for channel
+    // 0, lastMask for channel 1), then the channel's output of every field in the mask. After a
     // full write the headers and the masks are emptied. The state goes idle without a reader.
     void Finish();
 };

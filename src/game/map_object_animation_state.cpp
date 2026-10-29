@@ -16,7 +16,7 @@ constexpr std::uint32_t kKeyLoops = AnimationKeyOf(AnimationKeyFlag::Looped);
 // The bone's animator, made by its manager (counted) on first use.
 AnimationTrack* AnimatorOf(FigureBone* bone) {
     if (!bone->animator) {
-        auto* made = bone->owner_->CreateObjectAs<AnimationTrack>(FigureObjectType::AnimationTrack, -1);
+        auto* made = bone->owner->CreateObjectAs<AnimationTrack>(FigureObjectType::AnimationTrack, -1);
         bone->animator = made;
         made->AddRef();
         bone->animator->bone = bone;

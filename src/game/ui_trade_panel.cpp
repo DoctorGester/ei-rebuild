@@ -60,42 +60,42 @@ void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, const TradeRow&
     gameapi::OffsetRect(&levelRect, -40, 0);
     draw->DrawTextIn(std::format("{}", school.level), &levelRect, 0, kBright, 2, 1);
     if (school.level < 100) {
-        draw->DrawTextIn(CTradePanel::FormatPrice(school.price), row, 0, PriceColour(school.price, panel->experience_), 2, 1);
+        draw->DrawTextIn(CTradePanel::FormatPrice(school.price), row, 0, PriceColour(school.price, panel->experience), 2, 1);
         PriceSprite(panel, *row, 350.0f, 390.0f);
     }
 }
 
-UnitStats* PartyMemberStats(int index) { return &LocalPlayerData()->members_[index].stats; }
+UnitStats* PartyMemberStats(int index) { return &LocalPlayerData()->members[index].stats; }
 
 } // namespace
 
 void CTradePanel::BuildLists() {
-    UnitStats* stats = &owner_->HeroRecord()->stats;
+    UnitStats* stats = &owner->HeroRecord()->stats;
     stats->ResetToBase(0.0f);
-    owner_->RefreshStats();
-    CTextManager* texts = g_clientWorld.texts_;
+    owner->RefreshStats();
+    CTextManager* clientWorldTexts = g_clientWorld.texts;
     std::vector<SkillLevelRecord>& levels = g_skillDatabase.levels;
-    perks_.clear();
-    learnable_.clear();
-    schools_.clear();
-    science_.clear();
+    perks.clear();
+    learnable.clear();
+    schools.clear();
+    science.clear();
     // The rows are pushed empty. The original's row has uninitialised price, level and flag (stack bytes, all
     // overwritten except the flag of the non-learnable rows); ours are 0.
     const char* const* names = SkillNames();
     for (int i = 0; i < 6; ++i) {
-        TradeRow& row = schools_.emplace_back();
-        row.name = OpenPerkText(texts, names[i]) ? ReadPerkLine(texts) : names[i];
+        TradeRow& row = schools.emplace_back();
+        row.name = OpenPerkText(clientWorldTexts, names[i]) ? ReadPerkLine(clientWorldTexts) : names[i];
         row.level = stats->skills[i];
         row.price = SchoolPrice(row.level, row.level + 1);
     }
     {
-        TradeRow& row = science_.emplace_back();
-        row.name = OpenPerkText(texts, names[6]) ? ReadPerkLine(texts) : names[6];
+        TradeRow& row = science.emplace_back();
+        row.name = OpenPerkText(clientWorldTexts, names[6]) ? ReadPerkLine(clientWorldTexts) : names[6];
         row.level = stats->attributes[0];
         row.price = SchoolPrice(row.level, row.level + 1);
     }
 
-    std::string perkLevel = texts->CTextManager::GetString("perk_level");
+    std::string perkLevel = clientWorldTexts->CTextManager::GetString("perk_level");
 
     for (unsigned group = 0; group < 0x6C; group += 3) {
         int level = stats->skillLevels[group / 3];
@@ -103,10 +103,10 @@ void CTradePanel::BuildLists() {
         unsigned index = group + level - 1;
         if (index >= levels.size()) continue;
         SkillLevelRecord* record = &levels[index];
-        TradeRow& row = perks_.emplace_back();
+        TradeRow& row = perks.emplace_back();
         std::string text = PerkBaseName(record);
-        if (OpenPerkText(texts, text))
-            text = texts->ReadLine(true);
+        if (OpenPerkText(clientWorldTexts, text))
+            text = clientWorldTexts->ReadLine(true);
         else
             text = record->displayName;
         row.name = level > 1 ? std::format("{} ({}{})", text, perkLevel, level) : text;
@@ -127,8 +127,8 @@ void CTradePanel::BuildLists() {
     for (unsigned index = 0; index < levels.size(); index += 3) {
         SkillLevelRecord* record = &levels[index];
         if (!stats->CanLearn(&g_skillDatabase, record)) continue;
-        TradeRow& row = learnable_.emplace_back();
-        row.name = OpenPerkText(texts, PerkBaseName(record)) ? ReadPerkLine(texts) : record->displayName;
+        TradeRow& row = learnable.emplace_back();
+        row.name = OpenPerkText(clientWorldTexts, PerkBaseName(record)) ? ReadPerkLine(clientWorldTexts) : record->displayName;
         row.price = stats->SkillPrice(record);
         row.key = record->name;
         row.learnable = true;
@@ -136,7 +136,7 @@ void CTradePanel::BuildLists() {
     }
 
     // Experience left: pending plus earned minus spent, truncated (the game's _ftol).
-    experience_ = static_cast<int>(static_cast<double>(stats->pendingExperience) + stats->experience -
+    experience = static_cast<int>(static_cast<double>(stats->pendingExperience) + stats->experience -
                                    stats->spentExperience);
 
     ClampScroll();
@@ -144,16 +144,16 @@ void CTradePanel::BuildLists() {
 }
 
 void CTradePanel::DrawLists() {
-    CUiSurface* draw = surfaces_[0];
+    CUiSurface* draw = surfaces[0];
     draw->Clear();
-    while (std::ssize(sceneObjects_) > 4) RemoveSceneObjectAt(std::ssize(sceneObjects_) - 1);
+    while (std::ssize(sceneObjects) > 4) RemoveSceneObjectAt(std::ssize(sceneObjects) - 1);
 
     RECT title = {0, 10, 200, 25};
-    draw->DrawTextIn(texts_[0], &title, 0, 0xFFFFFF, 1, 1);
+    draw->DrawTextIn(texts[0], &title, 0, 0xFFFFFF, 1, 1);
     title = {0, 205, 200, 220};
-    draw->DrawTextIn(texts_[1], &title, 0, 0xFFFFFF, 1, 1);
+    draw->DrawTextIn(texts[1], &title, 0, 0xFFFFFF, 1, 1);
     title = {200, 10, 400, 25};
-    draw->DrawTextIn(texts_[2], &title, 0, 0xFFFFFF, 1, 1);
+    draw->DrawTextIn(texts[2], &title, 0, 0xFFFFFF, 1, 1);
 
     RECT row = {15, 35, 180, 50};
     for (unsigned i = 0; i < 6; ++i) {
@@ -162,33 +162,33 @@ void CTradePanel::DrawLists() {
             Down(&row);
             continue;
         }
-        DrawSchool(this, draw, &row, schools_[i]);
+        DrawSchool(this, draw, &row, schools[i]);
         Down(&row);
     }
     row = {15, 65, 180, 80};
-    DrawSchool(this, draw, &row, science_[0]);
+    DrawSchool(this, draw, &row, science[0]);
 
     row = {15, 230, 180, 245};
-    unsigned index = static_cast<unsigned>(perkTop_);
-    for (int shown = 0; shown < 10 && index < perks_.size(); ++shown, ++index) {
-        const TradeRow& perk = perks_[index];
+    unsigned index = static_cast<unsigned>(perkTop);
+    for (int shown = 0; shown < 10 && index < perks.size(); ++shown, ++index) {
+        const TradeRow& perk = perks[index];
         draw->DrawTextIn(perk.name, &row, 0, kBright, 0, 1);
         if (!perk.nextKey.empty()) {
-            draw->DrawTextIn(FormatPrice(perk.price), &row, 0, PriceColour(perk.price, experience_), 2, 1);
+            draw->DrawTextIn(FormatPrice(perk.price), &row, 0, PriceColour(perk.price, experience), 2, 1);
             PriceSprite(this, row, 350.0f, 390.0f);
         }
         Down(&row);
     }
 
     row = {215, 35, 380, 50};
-    index = static_cast<unsigned>(learnableTop_);
-    for (int shown = 0; shown < 23 && index < learnable_.size(); ++shown, ++index) {
-        const TradeRow& perk = learnable_[index];
+    index = static_cast<unsigned>(learnableTop);
+    for (int shown = 0; shown < 23 && index < learnable.size(); ++shown, ++index) {
+        const TradeRow& perk = learnable[index];
         std::uint32_t textColour = kGrey;
         std::uint32_t priceColour = kGrey;
         if (perk.learnable) {
             textColour = kBright;
-            priceColour = PriceColour(perk.price, experience_);
+            priceColour = PriceColour(perk.price, experience);
         }
         draw->DrawTextIn(perk.name, &row, 0, textColour, 0, 1);
         draw->DrawTextIn(FormatPrice(perk.price), &row, 0, priceColour, 2, 1);
@@ -198,8 +198,8 @@ void CTradePanel::DrawLists() {
 }
 
 void CTradePanel::Build() {
-    rect_ = RECT{200, 100, 600, 500};
-    AddSurface(new CUiSurface(interface_, 200, 100, 600, 500, SurfaceBlend::Keyed, true));
+    rect = RECT{200, 100, 600, 500};
+    AddSurface(new CUiSurface(ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true));
 
     AddRegion()->SetRect(360, 320, 380, 330);
     AddRegion()->SetRect(360, 480, 380, 490);
@@ -227,11 +227,11 @@ void CTradePanel::Build() {
     AddBlankSprite()->SetRectangle(6.0f, 100.0f, 560.0f, 125.0f, 580.0f, 135.0f, 0x82, 3, 0x96, 0xD);
     AddBlankSprite()->SetRectangle(6.0f, 100.0f, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
 
-    CTextManager* texts = g_clientWorld.texts_;
+    CTextManager* clientWorldTexts = g_clientWorld.texts;
     std::string text;
     for (const char* key : {"skills", "perks", "perks_av"}) {
-        text = texts->CTextManager::GetString(key);
-        texts_.push_back(text);
+        text = clientWorldTexts->CTextManager::GetString(key);
+        texts.push_back(text);
     }
     ResetRecords();
 }
@@ -241,10 +241,10 @@ void CTradePanel::Build() {
 void CTradePanel::ResetRecords() {
     // The vector emptied first (the records hold no resources). The original pushes uninitialised stack bytes;
     // its record filler writes all but a few bytes. Ours pushes zeros.
-    records_.clear();
-    for (int i = 0; i < std::ssize(LocalPlayerData()->members_); ++i) {
-        records_.emplace_back();
-        recordIndex_ = i;
+    records.clear();
+    for (int i = 0; i < std::ssize(LocalPlayerData()->members); ++i) {
+        records.emplace_back();
+        recordIndex = i;
         SnapshotRecord();
     }
 }
@@ -252,9 +252,9 @@ void CTradePanel::ResetRecords() {
 // --- The record from the hero ------------------------------------------------------------------------
 
 void CTradePanel::SnapshotRecord() {
-    if (recordIndex_ < 0) return;
-    TradeStatsRecord& record = records_[recordIndex_];
-    const UnitStats* stats = PartyMemberStats(recordIndex_);
+    if (recordIndex < 0) return;
+    TradeStatsRecord& record = records[recordIndex];
+    const UnitStats* stats = PartyMemberStats(recordIndex);
     for (int i = 0; i < 6; ++i) record.schools[i] = stats->skills[i];
     record.science = stats->attributes[0];
     for (int i = 0; i < 36; ++i) record.perks[i] = stats->skillLevels[i];
@@ -268,9 +268,9 @@ void CTradePanel::SnapshotRecord() {
 // --- The hero's statistics back from the record -------------------------------------------------------
 
 void CTradePanel::RestoreRecord() {
-    if (recordIndex_ < 0) return;
-    TradeStatsRecord& record = records_[recordIndex_];
-    UnitStats* stats = PartyMemberStats(recordIndex_);
+    if (recordIndex < 0) return;
+    TradeStatsRecord& record = records[recordIndex];
+    UnitStats* stats = PartyMemberStats(recordIndex);
     // The hit point maximum and the hit points the slots allow, before (both stored as float).
     const float oldMaximum = static_cast<float>(stats->HitPointCurve());
     const float oldHitPoints = static_cast<float>(stats->Reduce(oldMaximum));
@@ -294,19 +294,19 @@ void CTradePanel::RestoreRecord() {
 
 void CTradePanel::Settle(bool keep, bool all) {
     if (all) {
-        int saved = recordIndex_;
-        for (int i = 0; i < std::ssize(records_); ++i) {
-            if (!records_[i].bought) continue;
-            recordIndex_ = i;
+        int saved = recordIndex;
+        for (int i = 0; i < std::ssize(records); ++i) {
+            if (!records[i].bought) continue;
+            recordIndex = i;
             if (keep)
                 SnapshotRecord();
             else
                 RestoreRecord();
         }
-        recordIndex_ = saved;
+        recordIndex = saved;
         return;
     }
-    if (!records_[recordIndex_].bought) return;
+    if (!records[recordIndex].bought) return;
     if (keep)
         SnapshotRecord();
     else
@@ -315,9 +315,9 @@ void CTradePanel::Settle(bool keep, bool all) {
 }
 
 void CTradePanel::SelectHero(int index) {
-    recordIndex_ = index;
-    perkTop_ = 0;
-    learnableTop_ = 0;
+    recordIndex = index;
+    perkTop = 0;
+    learnableTop = 0;
     BuildLists();
 }
 

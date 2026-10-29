@@ -76,7 +76,7 @@ Facts not in the code comments:
   lighting only).
 - **Layouts** (C9): the figure at CObject3D +0xF0 is a `CLinkMesh` (slots 7-12 draw a mesh part, 13 / 14 project /
   rasterise its shadow); 005A7A70's `this` is a `FigureMeshDrawer` (+0x1C the CFigureMesh, +0x20 its screen rect);
-  CFigureMesh +0x94 drawer, +0x98 owner, +0xD4 / +0xD8 flat colour / specular; CLight (a CTransformObject) +0x28 worldPosition_ / +0x108 position / direction
+  CFigureMesh +0x94 drawer, +0x98 owner, +0xD4 / +0xD8 flat colour / specular; CLight (a CTransformObject) +0x28 worldPosition / +0x108 position / direction
   in the lit mesh's space, +0xD4 the direction; *007AF748 is `CLightFactory` (spell.h). FigurePart (map_object_figures.h)
   and CFigureMesh describe the same objects (bounds +0x188, +0x158 / +0x15C); not merged. map_object_shadow.cpp (C9b): the ground quads are `VertexPacket`s, the texture's name `CTexture::Name()`. (The
   shadow rasteriser's `RasterTarget`, the DLL's keyed triangle path and `keyTexels` are gone, R27e; R28 removed 2DintMMX's interface.) The unit's
@@ -233,7 +233,7 @@ dead 006D6800 (config/dead_code.csv).
 
 Ground prints (A-X5; ground_print.h / .cpp, wrappers in verify_ground_print.cpp): `GroundPrint` (scorch marks, 0x8C,
 vtable 0073F76C; list copies get 0073F778), `Footprint` (0x94, 0073F760), `BloodPrint` (0x9C, 0073F754) in the client lists
-+0x1B8 blood, +0x1BC footprints, +0x1C0 scorch (world.h `bloodPrints_` / `footprints_` / `scorchMarks_`). prints.db
++0x1B8 blood, +0x1BC footprints, +0x1C0 scorch (world.h `bloodPrints` / `footprints` / `scorchMarks`). prints.db
 (`PrintsDatabase`, model.h, 007C89C8): chunk 1 blood and bloody footprints, 2 footprints, 3 scorch; chunks 2 / 3 of a record
 are {alpha, life, lifetime} (`PrintLook`), the client's +0x7A8 picks the second.
 
@@ -245,7 +245,7 @@ Rewritten (grep the address): `GroundPrint::Tick` 006CECD0, `BloodPrint::Tick` 0
 Facts: Draw's uv loop is unrolled four times in the original: the fourth vertex rounds its u part to a float, the others
 their v part (kept). Blood: spin = 30 / life degrees per tick, spreads min(life / 2, 45) ticks (rebuilt each tick), angle a
 random multiple of 0.001 below 2 pi; footprints take the kind of a death's blood print they step into (fresh hits' are
-skipped) and return it. Kept: Load does not restore alpha_ (the next tick does). Risks: Draw's corners use FCOS / FSIN through
+skipped) and return it. Kept: Load does not restore alpha (the next tick does). Risks: Draw's corners use FCOS / FSIN through
 x87::fcos / fsin and plain double maths (CheckNear-level differences possible); the footprint's blood test compares
 `limit >= d2` (NaN positions would differ).
 

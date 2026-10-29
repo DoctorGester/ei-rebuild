@@ -73,28 +73,28 @@ void CItemIconWindow::PlaceBars(int y) {
 // --- The item screens' base Create ------------------------------------------------------
 
 void CItemScreen::CreateBase() {
-    CItemIconWindow* icons = new CItemIconWindow(interface_);
-    iconWindow_ = icons;
+    CItemIconWindow* icons = new CItemIconWindow(ui);
+    iconWindow = icons;
     AddChild(icons);
-    iconWindow_->AddObject(objects_[0]);
-    iconWindow_->Build();
+    iconWindow->AddObject(objects[0]);
+    iconWindow->Build();
     LoadTexture("modifiers2", TextureKind::Interface);
     LoadTexture("campslots", TextureKind::Interface);
-    g_sceneRenderer.fogColour_ = 0;
-    g_sceneRenderer.pipeline_->SetDepthRange(99.0f, 100.0f);
+    g_sceneRenderer.fogColour = 0;
+    g_sceneRenderer.pipeline->SetDepthRange(99.0f, 100.0f);
     // The caches keep 30 entries (the game's 20 were for a card with little texture memory).
-    textures_.limit = 30;
-    TrimItemCache(&textures_);
-    models_.limit = 30;
-    TrimItemCache(&models_);
+    textures.limit = 30;
+    TrimItemCache(&textures);
+    models.limit = 30;
+    TrimItemCache(&models);
 }
 
 // --- The item screens' destructor ---------------------------------------------------
 
 // The caches' objects released, in key order; the maps go with the screen.
 CItemScreen::~CItemScreen() {
-    ReleaseCachedObjects(&textures_);
-    ReleaseCachedObjects(&models_);
+    ReleaseCachedObjects(&textures);
+    ReleaseCachedObjects(&models);
 }
 
 // --- The turning state's Clone -----------------------------------------------------
@@ -111,10 +111,10 @@ ItemTurn* ItemTurn::Clone() {
 // --- Moving items between lists ----------------------------------------------------
 
 CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, bool merge, bool turning) {
-    bool whole = merge && interface_->shiftDown_ != 0;
-    if (limit > 0 && std::ssize(to->items_) >= limit) {
+    bool whole = merge && ui->shiftDown != 0;
+    if (limit > 0 && std::ssize(to->items) >= limit) {
         for (int i = 0; i < limit; ++i) {
-            if (!item->IsSameAs(to->items_[i])) continue;
+            if (!item->IsSameAs(to->items[i])) continue;
             CItem* moved = to->AddItem(item, whole, merge);
             from->RemoveItem(item, whole);
             return moved;
@@ -125,7 +125,7 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, b
     from->RemoveItem(item, whole);
     if (turning) {
         if (!ItemTurnOf(moved)) {   // a null item faults here, like the original
-            moved->link_.Assign(new ItemTurn());
+            moved->link.Assign(new ItemTurn());
         }
         ItemTurnOf(moved)->flag = true;
     }
@@ -134,8 +134,8 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, b
 
 CItem* CItemScreen::ReturnAll(CParty* to, CParty* from) {
     CItem* moved = nullptr;
-    while (!from->items_.empty()) {
-        CItem* first = from->items_[0];
+    while (!from->items.empty()) {
+        CItem* first = from->items[0];
         moved = to->AddItem(first, 1, 1);
         from->RemoveItem(first, 1);
     }
