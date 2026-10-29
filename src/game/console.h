@@ -3,7 +3,7 @@
 // The developer console: the streambuf that collects console output, the command executor with its two
 // command maps, the "@"/"#"/"$" script lines and the command handlers. See docs/notes/console.md.
 
-#include "lib/gdi.h"
+#include "ui_font.h"
 #include "lib/static_object.h"
 #include "lib/str.h"
 
@@ -135,7 +135,7 @@ public:
 
     CInterface3D* screen_;           // the 3D interface (its width_ and height_ in pixels)
     CUiSurface* surface_;            // while shown
-    gdi::Font font_;                 // selected into the surface's DC
+    UiFont font_;                    // the console's text
     std::vector<std::string> commands_;   // commands entered (input history), the newest first
     int commandIndex_;               // the one shown by up/down (-1 or size: none)
     std::string input_;              // the line being typed

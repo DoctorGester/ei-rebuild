@@ -8,7 +8,6 @@
 #include "ui.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
-#include "ui_native.h"
 #include "ui_screens.h"
 #include "world.h"
 
@@ -40,7 +39,6 @@ constexpr int kGridMode = 5;
 
 CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
     CUiSurface* surface = new CUiSurface(ui, 0, top, 200, bottom, kSurfaceFormat, 1);
-    ui_native::Adopt(surface, "exchange");
     return surface;
 }
 
@@ -231,7 +229,6 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
 
     // Surface 0: our money and the accept caption.
     CUiSurface* surface = surfaces_[0];
-    UiSurfaceGetDC(surface);
     surface->Clear();
     texts->GetString("xch_current_money", &text);
     line = str::Format("%s %d", text, LocalParty()->money_);
@@ -240,20 +237,16 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     texts->GetString("xch_accept", &text);
     rect = RECT{0, 0x14, 200, 0x28};
     surface->DrawTextIn(text, &rect, kAlignLeft, kWhite, 1, 1);
-    UiSurfaceReleaseDC(surface);
 
     // Surface 1: the money offer's caption.
     surface = surfaces_[1];
-    UiSurfaceGetDC(surface);
     surface->Clear();
     texts->GetString("xch_money_offer", &text);
     rect = RECT{0x14, 0, 0xB4, 0x14};
     surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
-    UiSurfaceReleaseDC(surface);
 
     // Surface 2: the partner's money, while its offer pairs with ours.
     surface = surfaces_[2];
-    UiSurfaceGetDC(surface);
     surface->Clear();
     net::PartyMessage* partner = net::ClientFindParty(client);
     if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
@@ -264,11 +257,9 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
         rect = RECT{0, 0x28, 200, 0x3C};
         surface->DrawTextIn(line, &rect, kAlignLeft, kWhite, 1, 1);
     }
-    UiSurfaceReleaseDC(surface);
 
     // Surface 3: whether the partner accepted.
     surface = surfaces_[3];
-    UiSurfaceGetDC(surface);
     surface->Clear();
     partner = net::ClientFindParty(client);
     if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
@@ -281,7 +272,6 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
         rect = RECT{0, 0x28, 200, 0x3C};
         surface->DrawTextIn(text, &rect, kAlignLeft, kGrey, 1, 1);
     }
-    UiSurfaceReleaseDC(surface);
 
     // The accept button greyed and take-back lit while our offer is accepted, else the reverse;
     // the third one lit while the partner accepted.

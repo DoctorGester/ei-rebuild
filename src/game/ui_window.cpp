@@ -242,29 +242,20 @@ void CUiWindow::ClearObjects() {
 
 // Returns `surface`, which the original leaves as its result; the titles' Create freezes the surface through
 // it.
-void (*g_uiSurfaceOwnerObserver)(const CUiWindow* window, const CUiSurface* surface, bool added) = nullptr;
-
 CUiSurface* CUiWindow::AddSurface(CUiSurface* surface) {
     if (!surface) return nullptr;
     surfaces_.push_back(surface);
-    if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, true);
     return surface;
 }
 
 void CUiWindow::RemoveSurfaceAt(int index) {
-    if (CUiSurface* surface = surfaces_[index]) {
-        if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, false);
-        DestroySurface(surface);
-    }
+    if (CUiSurface* surface = surfaces_[index]) DestroySurface(surface);
     surfaces_.erase(surfaces_.begin() + index);
 }
 
 void CUiWindow::ClearSurfaces() {
     for (int i = 0; i < std::ssize(surfaces_); ++i) {
-        if (CUiSurface* surface = surfaces_[i]) {
-            if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, false);
-            DestroySurface(surface);
-        }
+        if (CUiSurface* surface = surfaces_[i]) DestroySurface(surface);
     }
     surfaces_.clear();
 }
@@ -439,10 +430,7 @@ CUiWindow::~CUiWindow() {
     for (int i = 0; i < std::ssize(sceneObjects_); ++i) sceneObjects_[i]->Release();
     sceneObjects_.clear();
     for (int i = 0; i < std::ssize(surfaces_); ++i) {
-        if (CUiSurface* surface = surfaces_[i]) {
-            if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, false);
-            DestroySurface(surface);
-        }
+        if (CUiSurface* surface = surfaces_[i]) DestroySurface(surface);
     }
     surfaces_.clear();
     for (int i = 0; i < std::ssize(regions_); ++i) {

@@ -124,7 +124,6 @@ void TurnQuarter(CUiMesh* sprite) {
 
 void COptionsWindow::RefreshRows() {
     CUiSurface* surface = surfaces_[0];
-    UiSurfaceGetDC(surface);
     surface->Clear();
     SceneSprite(this, kHighlightSprite)->visible_ = 0;
 
@@ -159,7 +158,6 @@ void COptionsWindow::RefreshRows() {
         gameapi::OffsetRect(&name, 0, 24);
         gameapi::OffsetRect(&keys, 0, 24);
     }
-    UiSurfaceReleaseDC(surface);
 }
 
 void COptionsWindow::ShowGroup(int group) {

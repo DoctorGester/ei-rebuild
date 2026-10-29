@@ -356,13 +356,6 @@
 //   digest water              (a line for the whole run) the records and dumps hold the water layer too:
 //                             hashes of each cached sector's water vertices as the waves move them (R16c3)
 //   dump <name>               the whole game state now into dump_<name>.txt (harness_digest.h)
-//   uicensus                  count how the interface draws into its window surfaces (GDI calls per
-//                             surface, call sites, readers, drawing no hook explains) and write
-//                             ui_census.csv with the report (ui_census.cpp; also EI_UI_CENSUS=1;
-//                             wants "render new,cpuwindows")
-//   uipath, uimask, uidiff, uidiffcheck, uimirror, uifault
-//                             the interface's GDI and canvas paths compared under "render ...,uiboth"
-//                             (harness_ui.h)
 //   # comment
 //
 // Everything the console prints is captured into the report. The report ends with "RESULT: PASS"
@@ -406,9 +399,7 @@
 #include "harness_net.h"
 #include "harness_pair.h"
 #include "harness_timing.h"
-#include "harness_ui.h"
 #include "harness_utf8.h"
-#include "ui_census.h"
 #include "../vectors/vectors.h"
 
 #include "../../src/hook/log.h"
@@ -1085,14 +1076,20 @@ LONG WINAPI SkippedRegSetValue(HKEY, LPCSTR name, DWORD, DWORD, const BYTE*, DWO
 // Font smoothing is a setting of the whole desktop: the credits screen (0062B7D0 / 0062BD00) switches
 // it off and "restores" a value it never read (off), so a harness game left it off for every program
 // on the machine, and text in runs before and after differed (GDI's grey edges or none: the
-// widescreen comparison of two runs). Harness runs leave the setting alone, and the game's fonts are
-// created without smoothing (NONANTIALIASED_QUALITY), as they look once the titles have switched it
-// off, whatever the desktop's setting and other programs do to it during the run.
+// widescreen comparison of two runs). Harness runs leave the setting alone, and the game's text is drawn
+// without smoothing, as it looks once the titles have switched it off, whatever the desktop's setting and
+// other programs do to it during the run: game.exe's fonts are created with NONANTIALIASED_QUALITY, and
+// the image, whose interface text asks the setting (ui_font.cpp), reads it as off.
+constexpr UINT kGetFontSmoothing = 0x4A;                             // SPI_GETFONTSMOOTHING
 constexpr UINT kSetFontSmoothing = 0x4B;                             // SPI_SETFONTSMOOTHING
 decltype(&::SystemParametersInfoA) g_systemParametersInfo;
 decltype(&::CreateFontIndirectA) g_createFontIndirect;
 
 BOOL WINAPI HarnessSystemParametersInfo(UINT action, UINT uiParam, PVOID pvParam, UINT winIni) {
+    if (action == kGetFontSmoothing && pvParam) {
+        *static_cast<BOOL*>(pvParam) = FALSE;
+        return TRUE;
+    }
     if (action != kSetFontSmoothing) return g_systemParametersInfo(action, uiParam, pvParam, winIni);
     static bool logged = false;
     if (!logged) Log("harness: font smoothing left as the desktop has it (the game asked for %u)", uiParam);
@@ -1250,7 +1247,6 @@ void WriteReport() {
     clock::FlushRandomTrace();
     digest::Flush();
     ei::vectors::Flush();
-    if (census::Enabled()) census::Write();
     FILE* f = nullptr;
     if (fopen_s(&f, g_reportPath, "w") != 0 || !f) return;
     if (!g_capturedFrames.empty()) std::fprintf(f, "\nframes captured:\n");
@@ -1261,7 +1257,6 @@ void WriteReport() {
     pair::Report(f);
     input::Report(f);
     timing::Report(f);
-    uicompare::Report(f);
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     std::vector<std::string> failures = g_failures;
@@ -1270,10 +1265,6 @@ void WriteReport() {
     if (std::string pinned = settings::Failure(); !pinned.empty()) failures.push_back(pinned);   // harness_settings.h
     if (std::string written = install::Failure(); !written.empty()) failures.push_back(written);   // harness_install.h
     if (std::string patched = addon::Failure(); !patched.empty()) failures.push_back("addon: " + patched);   // harness_addon.h
-    if (std::string differed = uicompare::Failure(); !differed.empty()) failures.push_back(differed);   // harness_ui.h
-    const char* missed = "";
-    if (const int count = ei::Standalone() ? image::MissedSurfaceWrites(&missed) : 0)   // a writer without a mark (R16a, R16b)
-        failures.push_back(std::to_string(count) + " window surface or memory texture change(s) without a SurfaceWritten mark, the first: " + missed);
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
         failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -3454,11 +3445,6 @@ void RunSteps() {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
             }
-        } else if (std::string uiError; uicompare::Step(s.verb, s.argument, &uiError)) {   // harness_ui.h
-            if (!uiError.empty()) {
-                Log("harness: %s", uiError.c_str());
-                g_failures.push_back(uiError);
-            }
         } else if (s.verb == "reject") {
             g_rejected.push_back(s.argument);
         } else if (s.verb == "diskfull") {
@@ -3843,8 +3829,6 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
                             ei::mainloop::g_site == ei::mainloop::Site::PeekAfterFrame;
     if (afterFrame) {
         ++g_frames;
-        if (census::Enabled()) census::Frame();
-        uicompare::Frame();
         timing::FrameEnd();
         timing::Scope scope(timing::PairWait);
         pair::FrameDone(g_frames);   // a pair's games take turns a frame at a time (harness_pair.h)
@@ -3870,8 +3854,8 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
 }
 
 // EI_RENDER_EXTRA: words added to the renderer's settings of every run (the scenario's "render" step, or
-// EI_RENDER), e.g. "uiboth" (the interface's canvases compared with GDI; harness_ui.h). Set it in the
-// environment of `work.py test` (a batch keeps its EI_* variables).
+// EI_RENDER), e.g. a debugging word of docs/notes/renderer.md. Set it in the environment of `work.py test` (a batch
+// keeps its EI_* variables).
 std::string ExtraRenderWords() {
     char extra[128];
     DWORD n = GetEnvironmentVariableA("EI_RENDER_EXTRA", extra, sizeof(extra));
@@ -3921,11 +3905,6 @@ bool LoadScenario(const char* path) {
         }
         if (g_steps.back().verb == "digest" && g_steps.back().argument == "water") {
             digest::WithWater();   // named in the digest's title, written before the main menu's first record
-            g_steps.pop_back();
-            continue;
-        }
-        if (g_steps.back().verb == "uicensus") {
-            census::Enable();
             g_steps.pop_back();
             continue;
         }
@@ -4039,8 +4018,6 @@ struct Harness {
         shadow_turn::Install();   // the shadow's turn undone exactly in the original too (harness_shadow_turn.h, SV7b4a)
         if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
         path_cells::Install();   // the original's path cells get plain speed words too (harness_path_cells.h, SV7d2)
-        if (census::Enabled()) census::Install();   // "uicensus" or EI_UI_CENSUS (ui_census.cpp)
-        uicompare::Install();   // after the census: it chains the surface owner observer (harness_ui.h)
         PatchImport(&ImportTable::AIL_waveOutOpen, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchImport(&ImportTable::PeekMessageA, &PeekMessageHook, g_peekMessage);
         PatchImport(&ImportTable::TranslateMessage, &HarnessTranslateMessage, g_translateMessage);

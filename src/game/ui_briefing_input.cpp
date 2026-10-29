@@ -169,11 +169,9 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         auto node = personTexts_.find(id);
         if (node == personTexts_.end()) return;
         CUiSurface* label = surfaces_[1];
-        UiSurfaceGetDC(label);
         label->Clear();
         RECT rect{0, 0, 0, 0};
         label->DrawTextIn(node->second, &rect, kTextFormat, kLabelColour, 1, 1);
-        UiSurfaceReleaseDC(label);
         POINT at{x, y};
         interface_->ScalePointFromScreenEntry(&at);
         label->MoveTo(at.x - kLabelOffsetX, at.y - kLabelOffsetY);
@@ -243,7 +241,6 @@ void CBriefingScreen::DrawTopics() {
     std::string prefix;
     g_clientWorld->texts_->GetString(TopicPrefixKey(), &prefix);
     CUiSurface* surface = surfaces_[0];
-    UiSurfaceGetDC(surface);
     surface->Clear();
     int row = topicTop_;
     for (int bottom = kRowTextFirstBottom; bottom < kRowTextEnd; bottom += kRowHeight, ++row) {
@@ -257,5 +254,4 @@ void CBriefingScreen::DrawTopics() {
         text += title;
         surface->DrawTextIn(text, &rect, kTextFormat, colour, 0, 1);
     }
-    UiSurfaceReleaseDC(surface);
 }

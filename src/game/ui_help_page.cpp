@@ -8,8 +8,6 @@
 #include "item_db_text.h"
 #include "object_tables.h"      // FindCommandByKey
 #include "text_reader.h"
-#include "ui_native.h"
-#include "ui_gdi.h"
 #include "ui_widescreen.h"
 
 #include "ei/rebirth.h"
@@ -76,7 +74,6 @@ void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
     CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
-    ui_native::Adopt(surface, "help");
     return surface;
 }
 
@@ -180,14 +177,12 @@ void CHelpWindow::ShowPage() {
     const int width = page.right - page.left;
     CUiSurface* header = NewSurface(interface_, page.left, page.top, page.right, page.top + kStripHeight);
     AddSurface(header);
-    UiSurfaceGetDC(header);
     header->Clear();
     RECT line{0, 8, width, 30};
     header->DrawTextIn(lines_[page_], &line, 2, kTitleColour, DT_CENTER, 1);
     line = RECT{0, 30, width, 50};
     text = str::Format(kTitleFormat, title_, page_ + 1, static_cast<int>(lines_.size()));
     header->DrawTextIn(text, &line, 1, kTitleColour, DT_CENTER, 1);
-    UiSurfaceReleaseDC(header);
 
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
     std::list<PageEntry> entries;
@@ -227,7 +222,6 @@ void CHelpWindow::ShowPage() {
         AddSurface(body);
         RECT row{15, 0, width - 30, kRowHeight};
         int y = 0;
-        UiSurfaceGetDC(body);
         body->Clear();
         for (const PageEntry& entry : entries) {
             bool withPicture = false;
@@ -271,7 +265,6 @@ void CHelpWindow::ShowPage() {
             if (withPicture && height <= 80) height = 80;
             y += height;
         }
-        UiSurfaceReleaseDC(body);
         if (pass == 0) {
             RemoveSurfaceAt(1);
             page.bottom = y + page.top + 2 * kStripHeight;
@@ -301,7 +294,6 @@ void CHelpWindow::ShowPage() {
     // Surface 2: the neighbouring pages' titles under the arrows and the help key's name.
     CUiSurface* footer = NewSurface(interface_, page.left, page.bottom - kStripHeight, page.right, page.bottom);
     AddSurface(footer);
-    UiSurfaceGetDC(footer);
     footer->Clear();
     if (page_ > 0) {
         RECT label{0, 5, width / 3, 25};
@@ -321,7 +313,6 @@ void CHelpWindow::ShowPage() {
         footer->DrawTextIn(lines_[page_ + 1], &label, 0, kTitleColour, DT_CENTER, 1);
         regions_[2]->SetTip(0x7596, 1, 0);
     }
-    UiSurfaceReleaseDC(footer);
 
     entries.clear();
 }

@@ -14,7 +14,6 @@
 #include "text_reader.h"
 #include "text_split.h"
 #include "ui.h"
-#include "ui_native.h"
 #include "world.h"
 #include "world_glue.h"
 
@@ -122,9 +121,7 @@ CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) 
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, 5, 1);
-    ui_native::Adopt(surface, "objectives");
-    return surface;
+    return new CUiSurface(ui, left, top, right, bottom, 5, 1);
 }
 
 
@@ -333,13 +330,11 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
                 g_clientWorld->texts_->ReadLine(&title, 1);
                 g_clientWorld->texts_->ReadToHash(&text, 1);
                 CUiSurface* surface = surfaces_[1];
-                UiSurfaceGetDC(surface);
                 surface->Clear();
                 RECT titleRect = {0, 5, 340, 25};
                 SurfaceText(surface, title, &titleRect, 1, 0x31B3FF, 1, 1);
                 RECT textRect = {10, 25, 330, 140};
                 SurfaceText(surface, text, &textRect, 1, 0xA7D7E4, 0x11, 1);
-                UiSurfaceReleaseDC(surface);
             }
         }
 
@@ -474,9 +469,8 @@ void CObjectivesWindow::CreateScreen() {
         objectiveTexts_.push_back(text);
     }
 
-    // The text column (the scroll text draws nothing before its first Draw).
+    // The text column.
     CUiScrollText* column = new CUiScrollText(interface_, game::kEmptyText, RECT{60, 190, 384, 510}, 10.0f);
-    ui_native::Adopt(column->surfaces_[0], "objectives");
     AddChild(column);
     bar_ = new CUiScrollbar(interface_, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f);
     AddChild(bar_);
@@ -622,7 +616,6 @@ void CObjectivesWindow::DrawQuestList() {
     auto mesh = [this](int index) { return SceneMesh(index); };
     mesh(2)->visible_ = 0;
     auto* surface = surfaces_[0];
-    UiSurfaceGetDC(surface);
     surface->Clear();
     for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;
     std::vector<std::string>& quests = quests_;
@@ -651,7 +644,6 @@ void CObjectivesWindow::DrawQuestList() {
         RECT rect{36, y, 320, y + 21};
         surface->DrawTextIn(title, &rect, 1, 0xA7D7E4, 0, 1);
     }
-    UiSurfaceReleaseDC(surface);
 }
 
 // --- What the window is opened for, and its help topic --------------------

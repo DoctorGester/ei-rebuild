@@ -65,7 +65,6 @@ bool FrameInWindow(int* width, int* height) {
 void FrameToWindow(int* x, int* y) { render::FrameToWindow(x, y); }
 void WindowToFrame(int* x, int* y) { render::WindowToFrame(x, y); }
 bool PresentsItself() { return render::PresentsItself(); }
-int MissedSurfaceWrites(const char** first) { return render::MissedSurfaceWrites(first); }
 void ConfigureRenderer(const char* spec) { render::Configure(spec); }
 void SetWaitForVsync(bool on) { render::SetWaitForVsync(on); }
 void LoseDevice() { render::LoseDevice(); }
@@ -300,9 +299,8 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             "%.0f / %.0f, %.0f meshes share another's geometry; upload KB "
             "terrain %.1f v + %.1f i, meshes %.1f v + %.1f i, uniforms %.1f; %.1f passes, %.0f draws, pipelines %.0f "
             "applied / %.0f changed, bindings %.0f (first texture changed %.0f); images made (count / KB): mmp %.2f / "
-            "%.1f, window surfaces %.2f / %.1f, movie %.2f / %.1f, "
-            "small %.2f / %.1f; largest image KB: window surface %.1f; memory compared %.1f KB; "
-            "CPU ms terrain %.3f, hand-over %.3f, textures %.3f (window surfaces %.3f), end of frame %.3f (counting %.3f), device mesh draws %.3f; "
+            "%.1f, movie %.2f / %.1f, small %.2f / %.1f; "
+            "CPU ms terrain %.3f, hand-over %.3f, textures %.3f, end of frame %.3f (counting %.3f), device mesh draws %.3f; "
             "decals projected: %.1f shadows %.3f ms, %.1f prints %.3f ms (%.0f vertices); flat draws: %.1f, %.3f ms "
             "(%.0f vertices); shadow builds %.1f, %.3f ms; "
             "shadow map %.1f draws, CPU ms %.3f; GPU ms (%u frames) frame %.3f, shadow map %.3f; morphed meshes %.1f "
@@ -316,10 +314,8 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             kb(t.terrainVertexBytes), kb(t.terrainIndexBytes), kb(t.meshVertexBytes), kb(t.meshIndexBytes), kb(t.uniformBytes),
             per(t.passes), per(t.draws), per(t.pipelineApplies), per(t.pipelineChanges), per(t.bindings),
             per(t.textureChanges), per(t.uploads[F::Mmp]), kb(t.uploadBytes[F::Mmp]),
-            per(t.uploads[F::WindowSurface]), kb(t.uploadBytes[F::WindowSurface]), per(t.uploads[F::Movie]),
-            kb(t.uploadBytes[F::Movie]), per(t.uploads[F::Small]), kb(t.uploadBytes[F::Small]),
-            static_cast<double>(t.largestUpload[F::WindowSurface]) / 1024.0, kb(t.comparedBytes),
-            t.terrainMs / n, t.handOverMs / n, (t.textureMs + t.windowMs) / n, t.windowMs / n, t.endFrameMs / n, t.statsMs / n, t.deviceMeshMs / n,
+            per(t.uploads[F::Movie]), kb(t.uploadBytes[F::Movie]), per(t.uploads[F::Small]), kb(t.uploadBytes[F::Small]),
+            t.terrainMs / n, t.handOverMs / n, t.textureMs / n, t.endFrameMs / n, t.statsMs / n, t.deviceMeshMs / n,
             per(t.decalShadows), t.decalShadowMs / n, per(t.decalPrints), t.decalPrintMs / n, per(t.decalVertices),
             per(t.flatDraws), t.flatMs / n, per(t.flatDrawVertices), per(t.shadowBuilds), t.shadowBuildMs / n,
             per(t.shadowDraws), t.shadowMs / n, t.gpuFrames, t.gpuFrames ? t.gpuFrameMs / t.gpuFrames : 0.0,

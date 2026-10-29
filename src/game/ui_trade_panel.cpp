@@ -3,7 +3,6 @@
 #include "item_db_text.h"
 #include "world.h"
 #include "ui_camp.h"
-#include "ui_native.h"
 #include "party.h"
 #include "unit.h"
 
@@ -207,7 +206,6 @@ void CTradePanel::BuildLists() {
 
 void CTradePanel::DrawLists() {
     CUiSurface* draw = surfaces_[0];
-    draw->GetDC();
     draw->Clear();
     std::string value;
     while (std::ssize(sceneObjects_) > 4) RemoveSceneObjectAt(std::ssize(sceneObjects_) - 1);
@@ -264,13 +262,11 @@ void CTradePanel::DrawLists() {
         PriceSprite(this, row, 550.0f, 590.0f);
         Down(&row);
     }
-    draw->ReleaseDC();
 }
 
 void CTradePanel::Build() {
     rect_ = RECT{200, 100, 600, 500};
     CUiSurface* surface = new CUiSurface(interface_, 200, 100, 600, 500, 5, 1);
-    ui_native::Adopt(surface, "trade");
     AddSurface(surface);
     recordIndex_ = 0;
     perkTop_ = 0;

@@ -9,7 +9,6 @@
 #include "game_strings.h"
 #include "text_split.h"
 #include "texture.h"
-#include "ui_gdi.h"
 #include "ui_widescreen.h"
 
 #include "ei/rebirth.h"
@@ -33,9 +32,9 @@ const char* FontFace() { return "Times New Roman"; }
 constexpr int kMeasureSize = 750;
 constexpr int kFontShares[3] = {104, 112, 144};
 
-// A font of `size` tenths of a point, kept in `font`; false (and the fatal error) when it cannot be made.
-bool CreateFont(gdi::Font& font, int size) {
-    font = gdi::PointFont(size, FontFace());
+// A font of `size` tenths of a point, kept in `font`; false (and the fatal error) when it has no size.
+bool MakeFont(UiFont& font, int size) {
+    font = PointFont(size, FontFace());
     if (font) return true;
     game::FatalError("CInterface3D::Create.\n Cannot create font.\n");
     return false;
@@ -83,15 +82,11 @@ void CInterface3D::Create(CTextureDevice* device) {
     height_ = device->screen_.bottom;
 
     // The scale: what a 75-point font is high here, in pixels / 100.
-    if (!CreateFont(fonts_[0], kMeasureSize)) return;
-    LOGFONTA measured;
-    gameapi::GetObjectA(fonts_[0].get(), sizeof(measured), &measured);
-    const int pixels = measured.lfHeight < 0 ? -measured.lfHeight : measured.lfHeight;
-    const float scale = static_cast<float>(static_cast<float>(pixels) * widescreen::FontScale());   // 0.01
-    fonts_[0].reset();
+    if (!MakeFont(fonts_[0], kMeasureSize)) return;
+    const float scale = static_cast<float>(static_cast<float>(fonts_[0].pixels) * widescreen::FontScale());   // 0.01
     for (int i = 0; i < 3; ++i) {
         float size = static_cast<float>(width_ * kFontShares[i]) / scale * 0.00125f;   // 1 / 800
-        if (!CreateFont(fonts_[i], static_cast<int>(libcrt::Ftol(size)))) return;
+        if (!MakeFont(fonts_[i], static_cast<int>(libcrt::Ftol(size)))) return;
     }
 
     ChooseKeyboardLayout();

@@ -111,8 +111,6 @@ const Route kRoutes[] = {
     // handled wide, so WM_CHAR carries UTF-16.
     TEXT_ROUTE(RegisterClassExA),  TEXT_ROUTE(DefWindowProcA),        TEXT_ROUTE(GetMessageA),
     TEXT_ROUTE(PeekMessageA),      TEXT_ROUTE(DispatchMessageA),
-    // The interface's text draw and extent and its fonts: Unicode text drawn and measured as itself.
-    TEXT_ROUTE(DrawTextA),         TEXT_ROUTE(GetTextExtentPoint32A), TEXT_ROUTE(CreateFontIndirectA),
     // Case: UTF-8 by lib/text_case.h's table, not by the ANSI code page's bytes.
     TEXT_ROUTE(CharUpperA),        TEXT_ROUTE(CharLowerA),
 };
@@ -400,47 +398,6 @@ int WINAPI LoadStringA(HINSTANCE instance, UINT id, LPSTR buffer, int size) {
     }
     return CopyOut(std::wstring_view(resource, static_cast<std::size_t>(length)), buffer, size);
 }
-
-// ---- Text drawing and fonts -----------------------------------------------------------------------
-
-int WINAPI DrawTextA(HDC dc, LPCSTR text, int length, LPRECT rect, UINT format) {
-    if (!text) return ::DrawTextW(dc, nullptr, length, rect, format);
-    std::wstring wide = Wide(length < 0 ? std::string_view(text) : std::string_view(text, static_cast<std::size_t>(length)));
-    const int count = static_cast<int>(wide.size());
-    // DT_MODIFYSTRING (with DT_END_ELLIPSIS: the server list's names) writes the shortened text back, up to
-    // four characters past the string's own: room for them. The game reads none of it back, so the
-    // UTF-8 text is left as it was.
-    if (format & DT_MODIFYSTRING) wide.resize(wide.size() + 5, L'\0');
-    return ::DrawTextW(dc, wide.data(), count, rect, format);
-}
-
-BOOL WINAPI GetTextExtentPoint32A(HDC dc, LPCSTR text, int length, LPSIZE size) {
-    if (!text || length < 0) return ::GetTextExtentPoint32A(dc, text, length, size);
-    const std::wstring wide = Wide(std::string_view(text, static_cast<std::size_t>(length)));
-    return ::GetTextExtentPoint32W(dc, wide.c_str(), static_cast<int>(wide.size()), size);
-}
-
-HFONT WINAPI CreateFontIndirectA(const LOGFONTA* font) {
-    if (!font) return ::CreateFontIndirectW(nullptr);
-    LOGFONTW wide{};
-    wide.lfHeight = font->lfHeight;
-    wide.lfWidth = font->lfWidth;
-    wide.lfEscapement = font->lfEscapement;
-    wide.lfOrientation = font->lfOrientation;
-    wide.lfWeight = font->lfWeight;
-    wide.lfItalic = font->lfItalic;
-    wide.lfUnderline = font->lfUnderline;
-    wide.lfStrikeOut = font->lfStrikeOut;
-    wide.lfCharSet = font->lfCharSet;
-    wide.lfOutPrecision = font->lfOutPrecision;
-    wide.lfClipPrecision = font->lfClipPrecision;
-    wide.lfQuality = font->lfQuality;
-    wide.lfPitchAndFamily = font->lfPitchAndFamily;
-    const std::wstring face = Wide(std::string_view(font->lfFaceName, ::strnlen(font->lfFaceName, LF_FACESIZE)));
-    face.copy(wide.lfFaceName, LF_FACESIZE - 1);
-    return ::CreateFontIndirectW(&wide);
-}
-
 
 namespace {
 // CharUpperA / CharLowerA's two forms: a string changed in place (the pointer back), or one character in the

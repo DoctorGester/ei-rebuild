@@ -14,12 +14,14 @@
 //   copy    screen copies of a frame texture against the original's stretch (x * source / size) and packing.
 //   picture the save's 5:6:5 picture (ReadRgb565) against the original's stretch ((2 x + 1) * source / (2 size))
 //           and packing; one-pixel reads (ReadPixel); a canvas moved to another key with its queued commands
-//           (MoveCanvas); a canvas-only canvas always blitted and listed as such (CanvasOnly).
-//   image   pixels written into canvases (clipped, quantised) exactly; the switch's words and paths; the
-//           comparison's view (versions, the glyph runs' rectangles).
+//           (MoveCanvas).
+//   image   pixels written into canvases (clipped, quantised) exactly.
 //   frame   canvases blitted in the frame (keyed, stretched, a source part) against the window blit's
 //           rule, and the pass split: drawing into a canvas blitted and not drawn yet draws the frame
-//           first, so the blit shows the canvas as it was; the blits' rectangles kept for the UI mask.
+//           first, so the blit shows the canvas as it was.
+//   lost    a lost device (DropCanvases): every canvas comes back as it was from its history (fills, lines,
+//           glyph runs, pictures, a moved canvas), a screen copy's and a long history's from their pixels
+//           read back.
 // Any sokol error or warning and any ei::Log line fails the check. Exit code 0 when all pass.
 #define NOMINMAX
 #include <windows.h>
@@ -35,11 +37,9 @@
 #include <cstring>
 #include <random>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 using render::Rect;
-using render::SurfaceMemory;
 namespace ui = render::ui;
 namespace text = render::text;
 namespace detail = render::detail;
@@ -51,8 +51,6 @@ int g_problems = 0;   // sokol messages and ei::Log lines
 
 // ---- The host: what render.cpp gives render_ui.cpp -----------------------------------------------------
 
-std::unordered_map<const void*, SurfaceMemory> g_memories;
-int g_written = 0;
 sg_view g_frameTexture{};   // CopyFrame's source
 int g_frameWidth = 0, g_frameHeight = 0;
 int g_splits = 0;
@@ -115,11 +113,6 @@ void Log(const char* fmt, ...) {
 } // namespace ei
 
 namespace render {
-const SurfaceMemory* SurfaceMemoryOf(const void* holder) {
-    auto it = g_memories.find(holder);
-    return it == g_memories.end() ? nullptr : &it->second;
-}
-void SurfaceWritten(const void*, const Rect*) { ++g_written; }
 namespace detail {
 Frame g_frame;
 sg_view FrameTexture() { return g_frameTexture; }
@@ -167,33 +160,6 @@ void Check(bool ok, const std::string& what) {
     std::printf("  FAIL %s\n", what.c_str());
 }
 
-// A surface's memory for ReadBack, as NewSurfaceMemory makes it (top-down, rows 4-byte aligned).
-struct Memory {
-    std::vector<std::uint8_t> bytes;
-    SurfaceMemory memory;
-};
-std::unordered_map<const void*, Memory> g_memoryStore;
-
-void AttachMemory(const void* holder, int width, int height, const ui::PixelFormat& f) {
-    Memory& m = g_memoryStore[holder];
-    int pitch = (width * f.bitsPerPixel / 8 + 3) & ~3;
-    m.bytes.assign(static_cast<std::size_t>(pitch) * static_cast<std::size_t>(height), 0);
-    m.memory = SurfaceMemory{m.bytes.data(), nullptr, pitch, width, height, f.bitsPerPixel, f.redMask, f.greenMask, f.blueMask, 0};
-    g_memories[holder] = m.memory;
-}
-
-std::uint32_t PixelOf(const SurfaceMemory& m, int x, int y) {
-    const auto* row = static_cast<const std::uint8_t*>(m.bits) + static_cast<std::size_t>(y) * static_cast<std::size_t>(m.pitch);
-    if (m.bitsPerPixel == 16) return reinterpret_cast<const std::uint16_t*>(row)[x];
-    return reinterpret_cast<const std::uint32_t*>(row)[x];
-}
-
-// The canvas read back packed into its memory.
-const SurfaceMemory* ReadPacked(const void* holder) {
-    if (!ui::ReadBack(holder)) return nullptr;
-    return &g_memories[holder];
-}
-
 // The test's own quantising (independent of render_ui's): top bits, repeated.
 std::uint32_t RefChannel(std::uint32_t v, int bits) {
     if (bits >= 8) return v;
@@ -214,13 +180,22 @@ std::uint32_t RefQuantise(std::uint32_t rgb, const ui::PixelFormat& f) {
 }
 std::uint32_t RgbOfColorref(COLORREF c) { return ((c & 0xFF) << 16) | (c & 0xFF00) | ((c >> 16) & 0xFF); }
 
+// A canvas read back, each pixel packed in the surface format (empty when it cannot be read).
+std::vector<std::uint32_t> ReadPacked(const void* holder, const ui::PixelFormat& f) {
+    std::vector<std::uint32_t> pixels;
+    if (!ui::ReadPixels(holder, &pixels)) return {};
+    for (std::uint32_t& p : pixels) p = ui::Pack(p, f);
+    return pixels;
+}
+
 // ---- gdi: fills, frames, lines, pixels against GDI ------------------------------------------------------------
 
 struct Dib {
     HDC dc = nullptr;
     HBITMAP bitmap = nullptr;
     HGDIOBJ old = nullptr;
-    SurfaceMemory memory{};
+    const std::uint8_t* bits = nullptr;
+    int pitch = 0, bitsPerPixel = 0;
     Dib(int width, int height, const ui::PixelFormat& f) {
         struct {
             BITMAPINFOHEADER header;
@@ -235,11 +210,18 @@ struct Dib {
         info.masks[0] = f.redMask;
         info.masks[1] = f.greenMask;
         info.masks[2] = f.blueMask;
-        void* bits = nullptr;
-        bitmap = CreateDIBSection(nullptr, reinterpret_cast<BITMAPINFO*>(&info), DIB_RGB_COLORS, &bits, nullptr, 0);
+        void* memory = nullptr;
+        bitmap = CreateDIBSection(nullptr, reinterpret_cast<BITMAPINFO*>(&info), DIB_RGB_COLORS, &memory, nullptr, 0);
         dc = CreateCompatibleDC(nullptr);
         old = SelectObject(dc, bitmap);
-        memory = SurfaceMemory{bits, bitmap, (width * f.bitsPerPixel / 8 + 3) & ~3, width, height, f.bitsPerPixel, f.redMask, f.greenMask, f.blueMask, 0};
+        bits = static_cast<const std::uint8_t*>(memory);
+        pitch = (width * f.bitsPerPixel / 8 + 3) & ~3;
+        bitsPerPixel = f.bitsPerPixel;
+    }
+    std::uint32_t At(int x, int y) const {
+        const std::uint8_t* row = bits + static_cast<std::size_t>(y) * static_cast<std::size_t>(pitch);
+        if (bitsPerPixel == 16) return reinterpret_cast<const std::uint16_t*>(row)[x];
+        return reinterpret_cast<const std::uint32_t*>(row)[x];
     }
     ~Dib() {
         SelectObject(dc, old);
@@ -266,7 +248,6 @@ int CompareWithGdi(const Format& format, Shape shape, int count, unsigned seed, 
     const int w = 61, h = 47;
     const void* holder = &format;   // any address
     ui::Canvas(holder, w, h, format.format);
-    AttachMemory(holder, w, h, format.format);
     Dib dib(w, h, format.format);
     std::mt19937 random(seed);
     auto coord = [&](int size) { return static_cast<int>(random() % static_cast<unsigned>(size + 8)) - 4; };
@@ -321,14 +302,15 @@ int CompareWithGdi(const Format& format, Shape shape, int count, unsigned seed, 
         }
     }
     GdiFlush();
-    const SurfaceMemory* ours = ReadPacked(holder);
-    if (!ours) return -1;
+    const std::vector<std::uint32_t> ours = ReadPacked(holder, format.format);
+    if (ours.empty()) return -1;
+    auto canvasAt = [&](int x, int y) { return ours[static_cast<std::size_t>(y) * w + static_cast<std::size_t>(x)]; };
     int differ = 0;
     if (g_verbose && count == 1) {   // where they differ: G drawn by GDI only, C by the canvas only, X both, differently
         for (int y = 0; y < h; ++y) {
             std::string row;
             for (int x = 0; x < w; ++x) {
-                std::uint32_t a = PixelOf(dib.memory, x, y), b = PixelOf(*ours, x, y);
+                std::uint32_t a = dib.At(x, y), b = canvasAt(x, y);
                 row += a == b ? (a ? '#' : '.') : !b ? 'G' : !a ? 'C' : 'X';
             }
             if (row.find_first_not_of('.') != std::string::npos) std::printf("    %2d %s\n", y, row.c_str());
@@ -336,7 +318,7 @@ int CompareWithGdi(const Format& format, Shape shape, int count, unsigned seed, 
     }
     for (int y = 0; y < h; ++y)
         for (int x = 0; x < w; ++x) {
-            std::uint32_t a = PixelOf(dib.memory, x, y), b = PixelOf(*ours, x, y);
+            std::uint32_t a = dib.At(x, y), b = canvasAt(x, y);
             if (a != b && ++differ == 1 && example) {
                 char buffer[160];
                 std::snprintf(buffer, sizeof buffer, "first at (%d, %d): GDI %08X, canvas %08X", x, y, a, b);
@@ -436,7 +418,6 @@ void CheckGlyphs() {
         {"Clipped text that runs past the right edge of its rectangle", text::kNoPrefix, {-6, 30, 90, 44}, true, 13},
         {"Right &aligned\r\nsecond line", text::kRight, {0, 20, 175, 71}, false, 16},
     };
-    int textAreasWrong = 0;
     for (const Format& f : kFormats) {
         int caseIndex = 0;
         for (const Case& c : cases) {
@@ -467,13 +448,6 @@ void CheckGlyphs() {
             const COLORREF colour = RGB(250, 220, 120 + caseIndex * 30);
             ui::GlyphRun(holder, *font, layout, colour);
             RefGlyphRun(expected, w, h, *font, layout, colour, f.format);
-            // The comparison's text areas: the two runs' clip rectangles within the canvas.
-            std::vector<ui::CanvasInfo> canvases;
-            ui::Canvases(&canvases);
-            const Rect clip{std::max(0, layout.clip.left), std::max(0, layout.clip.top), std::min(w, layout.clip.right), std::min(h, layout.clip.bottom)};
-            textAreasWrong += !(canvases.size() == 1 && canvases[0].text.size() == 2 && layout.clipped &&
-                                canvases[0].text[1].left == clip.left && canvases[0].text[1].top == clip.top &&
-                                canvases[0].text[1].right == clip.right && canvases[0].text[1].bottom == clip.bottom);
             std::vector<std::uint32_t> got;
             std::string example;
             int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, w, &example) : -1;
@@ -484,7 +458,6 @@ void CheckGlyphs() {
             ++caseIndex;
         }
     }
-    Check(textAreasWrong == 0, "glyph runs' text areas (ui::Canvases): " + std::to_string(textAreasWrong) + " cases wrong");
     // Over black in 8:8:8 the run is ComposeAgainstBlack (render_text's CPU reference).
     {
         const void* holder = &w;
@@ -529,29 +502,26 @@ void CheckGrey() {
         const int w = 70, h = 50;
         const void* holder = &f.format;
         ui::Canvas(holder, w, h, f.format);
-        AttachMemory(holder, w, h, f.format);
         std::mt19937 random(99);
         for (int i = 0; i < 80; ++i) {
             int x = static_cast<int>(random() % w), y = static_cast<int>(random() % h);
             ui::Fill(holder, Rect{x, y, x + 1 + static_cast<int>(random() % 20), y + 1 + static_cast<int>(random() % 15)},
                      static_cast<COLORREF>(random() & 0xFFFFFF));
         }
-        const SurfaceMemory* before = ReadPacked(holder);
+        const std::vector<std::uint32_t> before = ReadPacked(holder, f.format);
         std::vector<std::uint32_t> expected;
-        for (int y = 0; y < h && before; ++y)
-            for (int x = 0; x < w; ++x) expected.push_back(GreyPacked(PixelOf(*before, x, y), f.format));
+        for (std::uint32_t pixel : before) expected.push_back(GreyPacked(pixel, f.format));
         ui::Greyscale(holder);
-        const SurfaceMemory* after = ReadPacked(holder);
+        const std::vector<std::uint32_t> after = ReadPacked(holder, f.format);
         int differ = 0;
-        for (int y = 0; y < h && after; ++y)
-            for (int x = 0; x < w; ++x) differ += PixelOf(*after, x, y) != expected[static_cast<std::size_t>(y) * w + static_cast<std::size_t>(x)];
-        Check(before && after && differ == 0, std::string(f.name) + " greyscale: " + std::to_string(differ) + " pixels differ from 005FE440's");
+        for (std::size_t i = 0; i < after.size() && i < expected.size(); ++i) differ += after[i] != expected[i];
+        Check(!before.empty() && after.size() == before.size() && differ == 0, std::string(f.name) + " greyscale: " + std::to_string(differ) + " pixels differ from 005FE440's");
         ui::DropCanvas(holder);
     }
     sg_commit();
 }
 
-// ---- image: Image, the switch, the comparison's view -------------------------------------------------------
+// ---- image: Image ----------------------------------------------------------------------------------------------
 
 void CheckImage() {
     if (g_verbose) std::printf("image:\n");
@@ -559,9 +529,6 @@ void CheckImage() {
         const int w = 37, h = 29;
         const void* holder = &f.name;
         ui::Canvas(holder, w, h, f.format);
-        std::vector<ui::CanvasInfo> canvases;
-        ui::Canvases(&canvases);
-        const unsigned made = canvases.size() == 1 ? canvases[0].version : 0;
         ui::Fill(holder, Rect{0, 0, w, h}, RGB(30, 60, 90));
         // A picture larger than the canvas, placed partly outside it: only the part inside is written.
         const int pw = 30, ph = 20;
@@ -579,27 +546,8 @@ void CheckImage() {
         std::string example;
         int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, w, &example) : -1;
         Check(differ == 0, std::string(f.name) + " image, clipped: " + std::to_string(differ) + " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
-        ui::Canvases(&canvases);
-        Check(canvases.size() == 1 && canvases[0].version > made && canvases[0].text.empty() && canvases[0].width == w,
-              std::string(f.name) + " canvas listed, its version moved by the commands");
         ui::DropCanvas(holder);
     }
-    // The switch: EI_RENDER's words, the path, which blits draw the canvas.
-    int a = 0;
-    ui::Canvas(&a, 4, 4, kFormats[2].format);
-    ui::ResetOptions();
-    bool cpu = ui::CurrentMode() == ui::Mode::Cpu && !ui::Listed("fps") && !ui::DrawsCanvas(&a);
-    bool both = ui::ParseOption("uiboth") && ui::CurrentMode() == ui::Mode::Both && ui::Listed("fps") && !ui::DrawsCanvas(&a);
-    ui::SetPath(ui::Path::Native);
-    both = both && ui::DrawsCanvas(&a) && !ui::DrawsCanvas(&cpu);
-    ui::SetPath(ui::Path::Cpu);
-    bool listed = ui::ParseOption("uinative=fps+status") && ui::CurrentMode() == ui::Mode::Native && ui::Listed("fps") &&
-                  ui::Listed("status") && !ui::Listed("backdrop") && ui::DrawsCanvas(&a);
-    bool other = !ui::ParseOption("uinatives") && !ui::ParseOption("smooth");
-    ui::ResetOptions();
-    Check(cpu && both && listed && other && ui::CurrentMode() == ui::Mode::Cpu,
-          "the switch: no word, uiboth with both paths, uinative=fps+status, other words left alone");
-    ui::DropCanvas(&a);
     sg_commit();
 }
 
@@ -637,9 +585,9 @@ void CheckCopy() {
         for (const Case& c : cases) {
             const void* holder = &c;
             ui::Canvas(holder, c.width, c.height, f.format);
-            AttachMemory(holder, c.width, c.height, f.format);
             ui::CopyFrame(holder, c.source);
-            const SurfaceMemory* got = ReadPacked(holder);
+            std::vector<std::uint32_t> pixels;
+            const bool got = ui::ReadPixels(holder, &pixels);
             Rect r{std::max(c.source.left, 0), std::max(c.source.top, 0), std::min(c.source.right, g_frameWidth), std::min(c.source.bottom, g_frameHeight)};
             int sw = r.right - r.left, sh = r.bottom - r.top, differ = 0;
             for (int y = 0; y < c.height && got; ++y)
@@ -647,7 +595,8 @@ void CheckCopy() {
                     int sx = r.left + x * sw / c.width, sy = r.top + y * sh / c.height;
                     const std::uint8_t* p = &g_frameRgba[(static_cast<std::size_t>(sy) * g_frameWidth + static_cast<std::size_t>(sx)) * 4];
                     std::uint32_t rgb = (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2];
-                    differ += PixelOf(*got, x, y) != ui::Pack(rgb, f.format);
+                    differ += ui::Pack(pixels[static_cast<std::size_t>(y) * c.width + static_cast<std::size_t>(x)], f.format) !=
+                              ui::Pack(rgb, f.format);
                 }
             Check(got && differ == 0, std::string(f.name) + " copy of (" + std::to_string(c.source.left) + ", " + std::to_string(c.source.top) + ")-(" +
                                           std::to_string(c.source.right) + ", " + std::to_string(c.source.bottom) + ") into " + std::to_string(c.width) +
@@ -660,7 +609,7 @@ void CheckCopy() {
     sg_commit();
 }
 
-// ---- picture: the save's 5:6:5 picture, one-pixel reads, moved and canvas-only canvases ---------------------
+// ---- picture: the save's 5:6:5 picture, one-pixel reads, moved canvases -----------------------------------------
 
 void CheckPicture() {
     if (g_verbose) std::printf("picture:\n");
@@ -706,16 +655,11 @@ void CheckPicture() {
     int from = 0, to = 0;
     ui::Canvas(&from, 16, 8, kFormats[2].format);
     ui::Fill(&from, Rect{0, 0, 16, 8}, RGB(10, 20, 30));
-    ui::CanvasOnly(&from);
     ui::MoveCanvas(&from, &to);
     ui::Fill(&to, Rect{0, 0, 8, 8}, RGB(200, 100, 50));
     std::vector<std::uint32_t> moved;
     bool ok = !ui::HasCanvas(&from) && ui::ReadPixels(&to, &moved) && moved.size() == 128 && moved[0] == 0xC86432 && moved[15] == 0x0A141E;
-    std::vector<ui::CanvasInfo> canvases;
-    ui::Canvases(&canvases);
-    ok = ok && canvases.size() == 1 && canvases[0].holder == &to && canvases[0].only && ui::DrawsCanvas(&to);
-    ui::ResetOptions();
-    Check(ok && ui::CurrentMode() == ui::Mode::Cpu, "a canvas moved with its queued fill, canvas-only: listed so and blitted with no word");
+    Check(ok, "a canvas moved with its queued fill");
     ui::DropCanvas(&to);
     sg_commit();
 }
@@ -835,9 +779,6 @@ void CheckFrame() {
     std::string example;
     int differ = ReadTarget(&got) ? Differ(expected, got, g_targetWidth, &example) : -1;
     Check(differ == 0, "frame with five canvas blits: " + std::to_string(differ) + " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
-    std::vector<Rect> drawn;
-    ui::DrawnCanvasRects(&drawn);
-    Check(drawn.size() == 5 && drawn[0].left == 5 && drawn[4].right == 140 && drawn[4].bottom == 90, "the frame's five canvas blit rectangles kept");
     // A canvas dropped with commands queued, and its blit, leave nothing behind.
     ui::Fill(second, Rect{0, 0, 5, 5}, RGB(9, 9, 9));
     ui::DropCanvas(second);
@@ -855,6 +796,62 @@ void CheckFrame() {
     Check(g_splits == splits + 1 && !ui::HasCanvas(first), "dropping a canvas with its blit pending splits the frame first");
     differ = ReadTarget(&got) ? Differ(expected, got, g_targetWidth, &example) : -1;
     Check(differ == 0, "and the dropped canvas's blit is drawn: " + std::to_string(differ) + " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
+    sg_commit();
+}
+
+// ---- lost: the canvases made again from their histories ---------------------------------------------------------
+
+void CheckLost() {
+    if (g_verbose) std::printf("lost:\n");
+    const ui::PixelFormat f565 = kFormats[0].format, f888 = kFormats[2].format;
+    int drawn = 0, moved = 0, copied = 0, longOne = 0, from = 0;
+    // Fills, a frame, lines, a pixel, a picture and a glyph run; one canvas moved to another key.
+    ui::Canvas(&drawn, 64, 40, f565);
+    ui::Fill(&drawn, Rect{0, 0, 64, 40}, RGB(20, 40, 60));
+    ui::Fill(&drawn, Rect{5, 5, 30, 20}, RGB(200, 10, 10));
+    ui::FrameRect(&drawn, Rect{2, 2, 60, 38}, RGB(250, 250, 0));
+    ui::Line(&drawn, 3, 30, 50, 30, 2, RGB(0, 255, 0));
+    ui::Pixel(&drawn, 62, 1, RGB(255, 255, 255));
+    std::vector<std::uint32_t> picture(10 * 6);
+    std::mt19937 random(99);
+    for (std::uint32_t& p : picture) p = random() & 0xFFFFFF;
+    ui::Image(&drawn, Rect{40, 8, 50, 14}, picture.data(), 10);
+    if (text::TextFont* font = text::GetTextFont("Times New Roman", 15, false)) {
+        text::TextLayout layout;
+        if (text::Layout(*font, text::DecodeCp1251("Lost"), text::Rect{8, 18, 60, 36}, 0, layout))
+            ui::GlyphRun(&drawn, *font, layout, RGB(255, 255, 255));
+    }
+    ui::Canvas(&from, 16, 8, f888);
+    ui::Fill(&from, Rect{0, 0, 16, 8}, RGB(10, 20, 30));
+    detail::RunCanvasCommands();
+    ui::MoveCanvas(&from, &moved);
+    ui::Fill(&moved, Rect{0, 0, 8, 4}, RGB(200, 100, 50));
+    // A screen copy, greyed after it (both kept as the pixels read back).
+    if (!g_frameTexture.id) MakeFrameTexture();
+    ui::Canvas(&copied, 50, 40, f888);
+    ui::CopyFrame(&copied, Rect{10, 10, 110, 90});
+    ui::Greyscale(&copied);
+    // More commands than the history keeps (read back too), the last ones after the read-back.
+    ui::Canvas(&longOne, 32, 32, f888);
+    for (int i = 0; i < 300; ++i) ui::Pixel(&longOne, i % 32, (i / 32) % 32, RGB(i & 0xFF, (i * 7) & 0xFF, (i * 13) & 0xFF));
+    detail::RunCanvasCommands();
+    ui::Fill(&longOne, Rect{20, 20, 24, 24}, RGB(1, 2, 3));
+    detail::RunCanvasCommands();
+    const int* const holders[] = {&drawn, &moved, &copied, &longOne};
+    const char* const names[] = {"drawn", "moved", "copied", "long"};
+    std::vector<std::uint32_t> before[4];
+    for (int i = 0; i < 4; ++i) Check(ui::ReadPixels(holders[i], &before[i]), std::string("lost: ") + names[i] + " read before");
+    detail::DropCanvases();
+    for (int i = 0; i < 4; ++i) {
+        std::vector<std::uint32_t> after;
+        std::string example;
+        const int width = i == 0 ? 64 : i == 1 ? 16 : i == 2 ? 50 : 32;
+        const int differ = ui::ReadPixels(holders[i], &after) ? Differ(before[i], after, width, &example) : -1;
+        Check(differ == 0, std::string("lost: the ") + names[i] + " canvas made again: " + std::to_string(differ) + " pixels differ" +
+                               (example.empty() ? "" : " (" + example + ")"));
+        ui::DropCanvas(holders[i]);
+    }
+    detail::RunCanvasCommands();
     sg_commit();
 }
 
@@ -901,6 +898,7 @@ int main(int argc, char** argv) {
     CheckCopy();
     CheckPicture();
     CheckFrame();
+    CheckLost();
     detail::DropCanvases();
     sg_shutdown();
     std::printf("ui_check: %d checks, %d failed, %d sokol / log problems\n", g_checks, g_failures, g_problems);

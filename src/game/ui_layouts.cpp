@@ -8,7 +8,6 @@
 #include "sound.h"
 #include "text_helpers.h"
 #include "ui.h"
-#include "ui_native.h"
 
 #include "console.h"
 #include "item_db_text.h"
@@ -147,7 +146,6 @@ void CSaveLoadWindow::CreateScreen() {
     for (int top = 108; top < 492; top += 24) AddRect(this, 108, top, 370, top + 24);
 
     CUiSurface* list = NewSurface(interface_, 100, 100, 700, 500);
-    ui_native::Adopt(list, "saveload");
     AddSurface(list);
     scrollbar_ = NewScrollbar(interface_, 108, 108, 384, 492);
     AddChild(scrollbar_);
@@ -220,7 +218,6 @@ void COptionsWindow::CreateScreen() {
     Shade(this, 5.0f, 100.0f, 100.0f, 700.0f, 500.0f);
     for (int top = 156; top < 492; top += 24) AddRect(this, 250, top, 520, top + 24);
     CUiSurface* surface = NewSurface(interface_, 100, 100, 700, 500);
-    ui_native::Adopt(surface, "options");
     AddSurface(surface);
 
     CUiModel* model = AddMenuModel(this, kOptionsTilt);
@@ -368,9 +365,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
 void CMessageBox::CreateScreen() {
     LoadTexture("saveload", 3);
     CUiSurface* surface = NewSurface(interface_, 200, 50, 600, 500);
-    ui_native::Adopt(surface, "msgbox");
     AddSurface(surface);
-    UiSurfaceGetDC(surface);
     int font = result_ != 0xFFFF0000u ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
     RECT rect = {15, 0, 385, 200};
@@ -394,7 +389,6 @@ void CMessageBox::CreateScreen() {
         rect = RECT{15, top + titleHeight - 20, 385, 450};
         BoxText(surface, text_, &rect, font, 0xA7D7E4, static_cast<int>(format_ | 0x10), 1);
     }
-    UiSurfaceReleaseDC(surface);
 
     int bottom = top + height + 0x3C;
     Shade(this, 3.0f, 200.0f, static_cast<float>(top), 600.0f, static_cast<float>(bottom));
@@ -424,9 +418,7 @@ void CMessageBox::CreateScreen() {
 void CDifficultyBox::CreateScreen() {
     LoadTexture("saveload", 3);
     CUiSurface* surface = NewSurface(interface_, 200, 100, 600, 500);
-    ui_native::Adopt(surface, "difficulty");
     AddSurface(surface);
-    UiSurfaceGetDC(surface);
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
     RECT rect = {15, 0, 385, 200};
     int titleHeight = BoxText(surface, title_, &rect, 2, 0, 0x411, 1);
@@ -458,7 +450,6 @@ void CDifficultyBox::CreateScreen() {
     BoxText(surface, easy, &rect, 2, 0xA7D7E4, 0, 1);
     rect = RECT{0xE6 - half, row - 0x4C, 385, 450};
     BoxText(surface, hard, &rect, 2, 0xA7D7E4, 0, 1);
-    UiSurfaceReleaseDC(surface);
     easy_ = 0;
 
     // The check boxes (texels 0xD1..0xE6 x 0x37..0x4C); the hard one checked (its texture shifted by
@@ -551,7 +542,6 @@ void CCreditsScreen::CreateScreen() {
     {
         RECT rect = {10, 0x6E, 0x316, 0x8C};
         headerSurface_ = AddSurface(new CUiSurface(ui, &rect, 5));
-        ui_native::Adopt(headerSurface_, "credits");
         headerSurface_->Freeze(0, 0);
     }
     if (fromGame_) GameSetServerPaused(0);

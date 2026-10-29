@@ -46,11 +46,9 @@ BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
             textSurface_->Start(0.0f, 0);
             if (line.scroll) {
                 textSurface_->Start(line.speed, 1);
-                UiSurfaceGetDC(headerSurface_);
                 headerSurface_->Clear();
                 RECT rect = {0, 0, 0, 0};
                 headerSurface_->DrawTextIn(line.text, &rect, 2, kHeaderColour, 1, 1);
-                UiSurfaceReleaseDC(headerSurface_);
                 headerSurface_->Freeze(1, 0);
             } else {
                 nextLineAt_ = GameTime() + line.speed;

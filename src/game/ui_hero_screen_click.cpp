@@ -143,9 +143,7 @@ void CMpHeroScreen::CloseRenameEdit() {
 void CMpHeroScreen::BackToNewHero() {
     uiorig::PlayUiSound(interface_, game::CancelSoundText(), 0);
     statsPanel_->SetHero(0, game::kEmptyText);
-    surfaces_[0]->GetDC();
     surfaces_[0]->Clear();
-    surfaces_[0]->ReleaseDC();
     tradePanel_->Settle(0, 0);
     SetMode(this, kModeNewHero);
     nameEdit_->SetText(HeroRecord()->texts[0]);
@@ -347,9 +345,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         ChooseFigure(defaults_[0]);
         statsPanel_->SetHero(0, game::kEmptyText);
-        surfaces_[0]->GetDC();
         surfaces_[0]->Clear();
-        surfaces_[0]->ReleaseDC();
         turn_ = 0.0f;
         SetMode(this, 10);
         nameEdit_->SetText(game::kEmptyText);
@@ -402,11 +398,9 @@ void CMpHeroScreen::Rename() {
     }
     auto* surface = surfaces_[3];
     surface->Freeze(1, 0);
-    surface->GetDC();
     surface->Clear();
     RECT rect = kRenameTitle;
     surface->DrawTextIn((name + RenameSeparator()), &rect, 1, kBright, 2, 1);
-    surface->ReleaseDC();
 }
 
 // --- The voice's sound ----------------------------------------------------------------

@@ -163,13 +163,9 @@ Every scenario reaches the frame, draw, cursor and shutdown code. Not rewritten 
 
 `DrawWrappedText` (005FDFA0) walks text + "\n" with the game's `_ismbblead` / `isleadbyte` / `_mbsinc`; 005F8340 takes a
 CString by value, which a naked forwarder cannot declare (C3068): the data pointer is handed over and the local detached
-(`TextMetricsAt::TextExtent`). Measuring uses a screen DC GetDC(0079BC28) and the font CInterface3D +0x70 + font*4, scaled to
-800x600 by integer maths; a word that did not fit before a '\n' goes on a line of its own (even an empty one).
-
-**Rule (GDI text pixel checks).** Other programs on the shared dgVoodoo desktop can disturb a draw: the check redraws the
-original until two draws agree (`ei::verify::SettleOriginal`, `tests/verify/pixel_settle.h`: up to 5 tries, 150 ms) and
-compares ours with that (never settled: not compared). Used by DrawWrappedText, the console, the item panel's
-`CompareDrawing` and `CTradePanel::DrawLists`, the only wrappers that compare surface pixels.
+(`TextMetricsAt::TextExtent`). The original measured with GDI on a screen DC (GetDC(0079BC28)) and the font CInterface3D
++0x70 + font*4; ours measures with our own font (ui_font.h, `TextExtent`; P8, docs/notes/ui-native.md "P8 done"), scaled to
+800x600 by integer maths as before; a word that did not fit before a '\n' goes on a line of its own (even an empty one).
 
 **A-I22 (2026-10): 005E0000-00640000 finished.** Every hookable game function of the range is ported, in library.csv or in
 dead_code.csv; what is left are 31 stubs of 1-3 bytes (plain RET / RET n, too short to hook). Groups verified O with the
@@ -883,9 +879,9 @@ its screen rectangle (rect_) inside the screen (the interface's width_ and heigh
 surface (holder_) onto the screen: with the matching
 source rectangle, or the whole surface stretched when bit 2 is set; with the source colour key background_
 when bit 1 is set. The new renderer (src/render)
-takes the blit (render::SurfaceBlit); the holder has no DirectDraw surface, only the new renderer's memory
-(the original's Blt is gone with the DirectDraw fallback). A native surface (ui_native.h) can draw its
-canvas instead. See docs/notes/renderer.md and docs/notes/ui-native.md.
+draws the surface's canvas there (render::ui::DrawCanvas); the holder has no DirectDraw surface and no memory
+(the original's Blt is gone with the DirectDraw fallback). See docs/notes/renderer.md section 6 and
+docs/notes/ui-native.md, "P8 done".
 
 ## Surface construction
 
@@ -894,9 +890,8 @@ picture, the destructor, one taking (interface, layout left, top, right, bottom,
 taking (interface, layout rectangle, format; always scaled). Both scale the rectangle to the screen
 (Rebirth's wide-screen patch sits there), make a surface holder of its size, add height * pitch to the
 surface-bytes total, clear the surface to 0 with a colour-fill Blt and set a flag. The holder has no
-DirectDraw surface, only the new renderer's memory (surface.cpp): the surface is already zero (a new DIB
-section), so the colour fill is left out, and the descriptions the surface-bytes total takes come from that
-memory, for picture windows as well. Making a window asks DirectDraw for nothing. (The picture constructor
+DirectDraw surface and no memory (surface.cpp): the surface's pixels are its canvas on the GPU, made black with
+it (CUiSurface::MakeCanvas, P8), so the colour fill is left out. Making a window asks DirectDraw for nothing. (The picture constructor
 has no caller in game.exe or the mods: config/dead_code.csv.) The original's unwinding when the holder's
 allocation throws (freeing the holder's memory) is not reproduced: that throw ends the game.
 
@@ -905,12 +900,11 @@ allocation throws (freeing the holder's memory) is not reproduced: that throw en
 The interface surfaces' pixel work (CUiSurface, ui.h): copying the screen into a surface, a 16-bit 5:6:5
 copy of a surface at a given size (the save game's picture) and greying a surface in place (the escape
 menu's background). The escape menu's drawing (Rebirth-patched) runs all three when the menu opens. See
-docs/notes/ui.md, "Item descriptions, item view". All three run on the GPU (R28a): the copy makes the
-surface's interface canvas its only copy (ui_native.h), the greying is a pass on it, and the 5:6:5 copy is
+docs/notes/ui.md, "Item descriptions, item view". All three run on the GPU (R28a): the copy is drawn into the
+surface's canvas (since P8 every window surface's only copy), the greying is a pass on it, and the 5:6:5 copy is
 drawn at its size and read back (docs/notes/renderer.md section 6, "Screen copies on the GPU"). PixelAt
-reads such a surface's pixel from the GPU and SwapContents puts its canvas aside on the GPU; for other
-surfaces they work on the memory (DirectPixels, no Lock), a native surface's canvas read back first. A holder
-without memory (none is made) is left alone.
+reads the surface's pixel from the GPU and SwapContents puts its canvas aside on the GPU. A surface without a
+holder is left alone.
 
 ## 12. Behaviour moved out of header comments
 

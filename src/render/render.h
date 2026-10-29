@@ -5,9 +5,8 @@
 // cannot go on (a sokol panic, a lost device not made again, no swap chain), the game ends with the reason in the
 // game's error box (renderer.md, "When the renderer fails"). Nothing calls it in game.exe's process (harness,
 // vector recorders). See docs/notes/renderer.md.
-// EI_RENDER (or the harness step "render <spec>") is a comma-separated list: "smooth", "smoothcamera",
-// "uiboth" / "uinative" (render_ui.h), the harness build's "removable"; "new", "present" and
-// "cpuwindows" are accepted and change nothing.
+// EI_RENDER (or the harness step "render <spec>") is a comma-separated list: "smooth", "smoothcamera", the
+// harness build's "removable" and "checkall"; "new", "present" and "cpuwindows" are accepted and change nothing.
 
 #include "lib/vecmath.h"
 
@@ -155,7 +154,7 @@ ShadowInfo ShadowState();
 // TakeFrameStats returns the sums since its last call (the harness's "renderstats"). The CPU times and the
 // reuse counts are the harness build's only.
 struct FrameStats {
-    enum Upload { Mmp, WindowSurface, Movie, Small, UploadKinds };
+    enum Upload { Mmp, Movie, Small, UploadKinds };
     std::uint32_t frames = 0;
     int width = 0, height = 0;   // the last frame's size
 // Hand-over: meshes are BeginMesh with corners built; stateReads are the passes' reads of the render state (ReadPassState).
@@ -171,14 +170,12 @@ struct FrameStats {
     std::uint64_t terrainVertexBytes = 0, terrainIndexBytes = 0, meshVertexBytes = 0, meshIndexBytes = 0;
     std::uint64_t uniformBytes = 0;
     std::uint64_t passes = 0, draws = 0, pipelineApplies = 0, pipelineChanges = 0, bindings = 0, textureChanges = 0;
-// Images made (or updated in place) per kind; comparedBytes: bytes compared with the snapshots of the
-// renderer's memory.
-    std::uint64_t uploads[UploadKinds] = {}, uploadBytes[UploadKinds] = {}, largestUpload[UploadKinds] = {};
-    std::uint64_t comparedBytes = 0;
+// Images made (or updated in place) per kind.
+    std::uint64_t uploads[UploadKinds] = {}, uploadBytes[UploadKinds] = {};
 // CPU times (ms). statsMs (these counts' own hashing and checks) and terrainMs (the terrain pages'
 // hand-over and uploads) are left out of the others.
     double terrainMs = 0.0;
-    double handOverMs = 0.0, textureMs = 0.0, windowMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
+    double handOverMs = 0.0, textureMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
 // The game device's mesh draws (device_mesh.cpp's DrawMesh, the BeginDeviceMeshTime timer), the hand-over in them left out.
     double deviceMeshMs = 0.0;
 // ProjectDecal for object shadows and ground prints; the device's flat draws (hand-over left out);
@@ -208,14 +205,12 @@ void EndFlatDrawTime();
 void BeginShadowBuildTime();
 void EndShadowBuildTime();
 
-// Off-screen surfaces (interface windows, the software cursor, movies) and system-memory pictures keep their
-// pixels in memory the renderer owns, with no DirectDraw surface; the renderer reads a holder's (Surface)
-// pixels there wherever it draws it. No texture has such memory (they are decoded or drawn on the GPU).
-// The memory: a zeroed top-down DIB section (GDI can draw into it through a memory DC), 16 or 32 bits a
+// The software cursor's pictures keep their pixels in memory the renderer owns (the cursor's mask is made from
+// them). No other holder has memory: an interface window's pixels are its canvas's (render_ui.h), a texture's are
+// decoded or drawn on the GPU. The memory: zeroed rows from the top, each a multiple of 4 bytes, 16 or 32 bits a
 // pixel, channels at the masks (`alphaMask` 0 without alpha).
 struct SurfaceMemory {
     void* bits = nullptr;
-    void* bitmap = nullptr;   // the DIB section (HBITMAP)
     int pitch = 0, width = 0, height = 0, bitsPerPixel = 0;
     std::uint32_t redMask = 0, greenMask = 0, blueMask = 0, alphaMask = 0;
 };
@@ -348,19 +343,10 @@ enum class Primitive { LineStrip, TriangleList };
 void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             Primitive primitive);
 
-// A window surface's blit onto the frame; `source` null: the whole surface, stretched; `key` in the
-// surface's pixel format.
+// A rectangle of the frame or of a surface, in pixels.
 struct Rect {
     int left, top, right, bottom;
 };
-void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key);
-// The game wrote `written` (null: all) of the holder's SurfaceMemory: a window surface is read again only
-// where marked, and only the rows and columns that differ. Writers: the DC release, DirectPixels for
-// writing, a canvas read back.
-void SurfaceWritten(const void* holder, const Rect* written);
-// Harness build only: window surfaces whose memory changed with no mark (stale pixels in the product; the run
-// fails), and the first one's description.
-int MissedSurfaceWrites(const char** first);
 
 // A movie's decoded frame (R, G, B, X bytes), kept for `key` (the video object) until the next one.
 void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height);

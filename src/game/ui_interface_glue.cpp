@@ -7,7 +7,6 @@
 #include "sound.h"
 #include "text_split.h"
 #include "ui.h"
-#include "ui_native.h"
 #include "world.h"
 
 #include "lib/nan_audit.h"
@@ -62,7 +61,6 @@ void CInterface3D::ShowFps(int on) {
     }
     if (fpsSurface_) return;
     fpsSurface_ = new CUiSurface(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom, kFpsFormat, 1);
-    ui_native::Adopt(fpsSurface_, "fps");
 }
 
 void CInterface3D::OnQuestVariable(std::string_view name, float value) {
@@ -115,12 +113,9 @@ void CInterface3D::SaveWindowState() {
 
 void CInterface3D::ShowStatusText(std::string_view text) {
     statusSurface_ = new CUiSurface(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, kStatusFormat, 1);
-    ui_native::Adopt(statusSurface_, "status");
-    UiSurfaceGetDC(statusSurface_);
     statusSurface_->Clear();
     RECT rect = {0, 0, kLayoutWidth, kStatusTextHeight};
     statusSurface_->DrawTextIn(text, &rect, kStatusTextFormat, kStatusColour, 1, 1);   // Rebirth-patched
-    UiSurfaceReleaseDC(statusSurface_);
     app::FrameStep(true, true);
     if (statusSurface_) {
         delete statusSurface_;

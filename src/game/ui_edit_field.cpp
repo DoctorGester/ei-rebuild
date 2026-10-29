@@ -5,8 +5,6 @@
 #include "ui_screens.h"
 
 #include "asset_text.h"
-#include "ui_gdi.h"
-#include "ui_native.h"
 
 #include "lib/gameapi.h"
 #include <cstdint>
@@ -120,7 +118,6 @@ CUiEditField::CUiEditField(CInterface3D* ui, RECT rect) : CUiWindow(ui) {
     ClearSurfaces();
     area_ = rect;
     CUiSurface* surface = new CUiSurface(interface_, &area_, kSurfaceFormat);
-    ui_native::Adopt(surface, "edit");
     AddSurface(surface);
     DrawContentsVanilla();
     focused_ = true;
@@ -181,8 +178,7 @@ void CUiEditField::DrawContentsVanilla() {
     if (caret_ > static_cast<int>(text.size())) caret_ = text.size();
     if (caret_ < 0) caret_ = 0;
     CUiSurface* surface = surfaces_[0];
-    HDC dc = UiSurfaceGetDC(surface);
-    if (!dc) return;
+    if (!surface->holder_) return;
     surface->Clear();
     const int width = area_.right - area_.left;
     const int height = area_.bottom - area_.top;
@@ -193,17 +189,11 @@ void CUiEditField::DrawContentsVanilla() {
     int caretX = TextWidth(interface_, str::Left(text, caret_), font_);
     if (centred_) caretX += width / 2 - TextWidth(interface_, text, font_) / 2;
     if (caretX >= 0 && caretX < width) {
-        gdi::Pen pen(gameapi::CreatePen(PS_SOLID, 1, caretColour_));
-        HGDIOBJ oldPen = gameapi::SelectObject(dc, pen.get());
         POINT top{caretX, 0};
         POINT bottom{caretX, height};
         // WideScreen: without the margin.
         interface_->CallScalePointToScreenNoMargin(&top);
         interface_->CallScalePointToScreenNoMargin(&bottom);
-        gameapi::MoveToEx(dc, top.x, top.y, nullptr);
-        gameapi::LineTo(dc, bottom.x, bottom.y);
-        gameapi::SelectObject(dc, oldPen);
-        ui_native::Line(surface, top.x, top.y, bottom.x, bottom.y, 1, caretColour_);
+        surface->Line(top.x, top.y, bottom.x, bottom.y, 1, caretColour_);
     }
-    UiSurfaceReleaseDC(surface);
 }

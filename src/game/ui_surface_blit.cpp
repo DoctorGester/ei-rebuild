@@ -1,12 +1,11 @@
 // A window surface's draw (CUiSurface::Blit): when the surface exists and is shown (flags_ bit 4), the part of its screen
 // rectangle inside the screen is blitted onto the render target, the whole surface stretched when bit 2 is set, with the
-// source colour key background_ when bit 1 is set; the new renderer takes the blit (render::SurfaceBlit). A native
-// surface (ui_native.h) can draw its canvas instead. See docs/notes/ui.md, "Surface blit".
+// source colour key background_ when bit 1 is set: the surface's canvas is drawn (render::ui::DrawCanvas). See
+// docs/notes/ui.md, "Surface blit".
 #include "texture.h"
 #include "ui.h"
 
 #include "lib/gameapi.h"
-#include "render/render.h"
 #include "render/render_ui.h"
 
 #include <cstdint>
@@ -28,9 +27,5 @@ void CUiSurface::Blit() {
     bool keyed = (flags & 1) != 0;
     render::Rect destination{clipped.left, clipped.top, clipped.right, clipped.bottom};
     render::Rect part{source.left, source.top, source.right, source.bottom};
-    // A native surface (ui_native.h) draws its canvas when the interface's path says so.
-    if (render::ui::DrawsCanvas(holder))
-        render::ui::DrawCanvas(holder, destination, stretched ? nullptr : &part, keyed, surface->background_);
-    else
-        render::SurfaceBlit(holder, destination, stretched ? nullptr : &part, keyed, surface->background_);
+    render::ui::DrawCanvas(holder, destination, stretched ? nullptr : &part, keyed, surface->background_);
 }

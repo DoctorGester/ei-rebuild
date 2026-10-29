@@ -21,8 +21,7 @@ usage: python tools/compare_frames.py A B [--tolerance N] [--max-fraction F] [--
   --mask-background keep only the masked pixels where M2 shows its background (clear) colour: the
                     feature with nothing in front of it (no interface panel, shadow or object)
   --mask-file M     compare only the pixels that are not black in the frame M (repeatable: where all
-                    of them are), e.g. the harness's "uimask" (<name>.uimask.bmp: where the frame
-                    blitted interface canvases) to compare the GDI and the canvas paths
+                    of them are)
   --exclude E1 E2   leave out the pixels where the frames E1 and E2 differ (repeatable; with or
                     without --mask), e.g. the old frame with and without its objects to compare
                     only the terrain around them

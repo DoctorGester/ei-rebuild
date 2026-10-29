@@ -79,6 +79,7 @@ std::string FormatName(unsigned format) {
     add(kSingleLine, "SINGLELINE");
     add(kExpandTabs, "EXPANDTABS");
     add(kNoPrefix, "NOPREFIX");
+    add(kEndEllipsis, "END_ELLIPSIS");
     add(kCalcRect, "CALCRECT");
     return name.empty() ? "0" : name;
 }
@@ -664,7 +665,7 @@ std::vector<FontSpec> FontSpecs() {
 
 const unsigned kFormats[] = {
     0, kWordBreak, kWordBreak | kCenter, kWordBreak | kRight, kWordBreak | kExpandTabs, kCenter | kVCenter, kWordBreak | kNoPrefix, kRight,
-    kCenter | kVCenter | kSingleLine, kSingleLine,
+    kCenter | kVCenter | kSingleLine, kSingleLine, kSingleLine | kEndEllipsis, kCenter | kVCenter | kSingleLine | kEndEllipsis,
 };
 const int kWidths[] = {90, 220, 420};   // in the 800 x 600 layout, scaled to the screen
 

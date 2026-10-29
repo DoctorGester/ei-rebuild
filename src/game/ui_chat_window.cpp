@@ -9,7 +9,6 @@
 #include "ui.h"
 #include "ui_briefing.h"
 #include "ui_cursor.h"
-#include "ui_native.h"
 #include "ui_screens.h"
 #include "unit_db.h"
 #include "world_glue.h"
@@ -71,7 +70,6 @@ CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
     rect_ = RECT{left, 0, 800, 0xA0};
     CUiSurface* surface = new CUiSurface(interface_, left, 0x4B, 800, 0x69, kSurfaceFormat, 1);
-    ui_native::Adopt(surface, "chat");
     AddSurface(surface);
     portraits_ = 0;
     std::string text;
@@ -183,7 +181,6 @@ void CChatWindow::Update() {
         return;
     }
     CUiSurface* surface = surfaces_[0];
-    UiSurfaceGetDC(surface);
     surface->Clear();
     std::string status, offer;
     int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? kFirstFaceLeft : kFirstStatusLeft;
@@ -217,7 +214,6 @@ void CChatWindow::Update() {
             surface->DrawTextIn(offer, &line, 0, kWhite, 1, 1);
         }
     }
-    UiSurfaceReleaseDC(surface);
 }
 
 // --- the input side's left button and mouse move -------------------------------------------------

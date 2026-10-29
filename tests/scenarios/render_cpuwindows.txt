@@ -1,5 +1,5 @@
 # frames_basic with the interface windows' surfaces in memory the new renderer owns ("render
-# new,cpuwindows", docs/notes/renderer.md, "Interface windows and holders on game memory"); the
+# new,cpuwindows", docs/notes/renderer.md section 6); the
 # windows must look as in a plain frames_basic run:
 #   python tools\compare_frames.py <frames_basic run>\frames\camp.bmp <run>\frames\camp.bmp
 # world / world_again must match. The same frames as render_present_cpuwindows; this run keeps its

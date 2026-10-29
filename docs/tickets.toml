@@ -953,7 +953,7 @@ title = "Native interface by default under present"
 group = "native-ui"
 size = 1
 depends = ["P3a", "P3b", "P3c", "P3d", "P4", "P5", "P6"]
-note = "Drop the DIB and memcmp for native surfaces; renderer.md section 6 and ui.md updated.  Text metrics: GDI's until here (user 2026-10-29); P8 switches to our own metrics in ui_native_fonts.cpp, needs P2a's fonts beside the exe.  User 2026-10-29: P8 deletes all GDI interface code and fallbacks: DIB sections, memcmp, the GDI text path, GDI metrics, and the uinative/uiboth words; grep src for GDI calls (CreateDIBSection, DrawText, TextOut, GetTextExtent, SelectObject, HFONT) and leave none."
+note = "Drop the DIB and memcmp for native surfaces; renderer.md section 6 and ui.md updated.  Text metrics: GDI's until here (user 2026-10-29); P8 switches to our own metrics in ui_native_fonts.cpp, needs P2a's fonts beside the exe.  User 2026-10-29: P8 deletes all GDI interface code and fallbacks: DIB sections, memcmp, the GDI text path, GDI metrics, and the uinative/uiboth words; grep src for GDI calls (CreateDIBSection, DrawText, TextOut, GetTextExtent, SelectObject, HFONT) and leave none. Done 2026-10-29: canvases the only path (history replay on a lost device), our own metrics, GDI interface code, census and comparison harness deleted; RichEdit titles left for P8a (docs/notes/ui-native.md, P8 done)."
 
 [[ticket]]
 id = "N0a"
@@ -1021,7 +1021,16 @@ id = "P3e"
 title = "uifault's comment in harness_ui.h"
 group = "native-ui"
 depends = ["P3d"]
-note = "P3d made uifault fall back to a native canvas (tests/verify/image/harness_ui_image.cpp) when none is mirrored; tests/verify/harness_ui.h's line still says 'one mirrored canvas'. Fix it with the next harness change (editing it alone re-keys the reference cache and needs the --no-hooks suite)."
+note = "P3d made uifault fall back to a native canvas (tests/verify/image/harness_ui_image.cpp) when none is mirrored; tests/verify/harness_ui.h's line still says 'one mirrored canvas'. Fix it with the next harness change (editing it alone re-keys the reference cache and needs the --no-hooks suite). Moot (P8): harness_ui.h and uifault were deleted with the comparison harness."
+
+[[ticket]]
+id = "P8a"
+title = "The titles' text laid out by us instead of RichEdit"
+group = "native-ui"
+size = 0.5
+depends = ["P8"]
+files = ["src/game/ui_scrolling_surface.cpp"]
+note = "The last GDI of the interface (P8): CUiScrollingSurface (0065F020) formats outro.rtf with a hidden RichEdit into a 32-bit DIB page on a memory DC and writes the pixels onto the canvas each scroll step. Needs: an RTF subset reader for the one Word-made file in outro.res (fonttbl, colortbl, par/pard, plain, b/i, fs, cf, qc/ql, li/fi, tx/tqr, tab, f; stylesheet and info skipped); paragraph layout on render::text (alignment, indents, right tab stops, sizes, colours; bold / italic drawn in the regular Liberation shapes unless bold / italic faces are embedded); the scroll in twips with the end detection (the text fitted, then the extra twips below); glyph runs on the canvas instead of the page. Removes the RichEdit library load, EM_STREAMIN / EM_FORMATRANGE and the page (CreateDIBSection, CreateCompatibleDC, SelectObject, GetDeviceCaps). Check: render_titles_present's frames and the titles' end timing."
 
 # ---------------------------------------------------------------- widescreen
 

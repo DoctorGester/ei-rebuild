@@ -6,7 +6,6 @@
 #include "options.h"
 #include "sound.h"
 #include "ui.h"
-#include "ui_native.h"
 #include "ui_screens.h"
 
 #include "base_manager.h"
@@ -83,14 +82,11 @@ void CUiRegion::SetRectFrom(RECT rect) { SetRect(rect.left, rect.top, rect.right
 
 void CMainMenu::AddVersionLine() {
     CUiSurface* surface = new CUiSurface(interface_, 100, 480, 780, 600, 5, 1);
-    ui_native::Adopt(surface, "menu");
-    UiSurfaceGetDC(surface);
     surface->Clear();
     std::string text;
     g_clientWorld->texts_->CTextManager::GetString(kVersionKey, &text);
     RECT rect = {0, 0, 675, 120};
     surface->DrawTextIn(text, &rect, 2, 0xA7D7E4, 2, 1);
-    UiSurfaceReleaseDC(surface);
     AddSurface(surface);
 }
 
