@@ -226,7 +226,7 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
 }
 
 void PlayMovie(const SSCCmd* cmd) {
-    std::string path = *g_discFolder + MoviesFolder();
+    std::string path = g_discFolder + MoviesFolder();
     std::string file = path + cmd->stringArgs[0];
     ::PlayMovie(file, 0, 1, 1, 1, 1);
 }
@@ -1031,14 +1031,14 @@ bool ScriptRun::Execute(CScript* script) {
         case ScriptFunction::QuestComplete: {   // QuestComplete(player, quest)
             if (IsMultiplayerClient()) {
                 if (FinishQuestMap(Text(cmd, 0)) != 0) {
-                    QuestRecord* quest = g_questDatabase->FindQuest(Text(cmd, 0));
+                    QuestRecord* quest = g_questDatabase.FindQuest(Text(cmd, 0));
                     if (quest) g_serverWorld->AwardExperience(nullptr, quest->exp);
                 }
                 break;
             }
             CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            QuestRecord* quest = g_questDatabase->FindQuest(Text(cmd, 0));
+            QuestRecord* quest = g_questDatabase.FindQuest(Text(cmd, 0));
             if (!quest) break;
             g_serverWorld->AwardExperience(player, quest->exp);
             ClassTemplatesQuestCompleted(&g_partyManager);

@@ -260,7 +260,7 @@ int StartFirstMap() {
     CScript* script = TheMissionScript();
     BOOL loaded;
     {
-        std::string root = *g_dataFolder;
+        std::string root = g_dataFolder;
         std::string dir = root + "Scripts\\";
         std::string path = dir + cmdScript;
         loaded = script->LoadFile(path);

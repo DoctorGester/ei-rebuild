@@ -152,7 +152,7 @@ void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
     places.clear();
     if (IsMultiplayerClient()) {
         // (The index's operator[] adds a null entry for a new name.)
-        QuestRecord* record = g_questDatabase->questsByName[std::string(name)];
+        QuestRecord* record = g_questDatabase.questsByName[std::string(name)];
         if (record == nullptr) return;
         for (std::uint32_t i = 1; i < record->places.size(); i += 2)
             places.push_back(UiPointF{record->places[i - 1], record->places[i]});

@@ -18,8 +18,8 @@ const char* const kCantBegin = "Can't begin spell construction with prototype \"
 const char* const kCantEnd = "Can't end spell construction\n";
 
 // The spells and modifiers by name; operator[] files a missing name with a null record.
-std::unordered_map<std::string, itemdb::SpellRecord*>& SpellNameMap() { return g_spellDatabase->spells.byCode; }
-std::unordered_map<std::string, itemdb::SpellModifierRecord*>& ModifierNameMap() { return g_spellDatabase->modifiers.byCode; }
+std::unordered_map<std::string, itemdb::SpellRecord*>& SpellNameMap() { return g_spellDatabase.spells.byCode; }
+std::unordered_map<std::string, itemdb::SpellModifierRecord*>& ModifierNameMap() { return g_spellDatabase.modifiers.byCode; }
 
 // Splits "name{a;b}" into the trimmed name (in `text`) and the modifier names (in `codes`).
 void ParseSpellText(std::string& text, std::vector<std::string>& codes) {

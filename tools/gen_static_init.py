@@ -778,6 +778,16 @@ UNUSED_INITIALISERS = {
     0x00578440: "the flow 007AFE20 (exit function 005784C0): world_game.cpp's g_gameFlow",
     0x00578530: "the save stream 007AFDF8 (exit function 00578550): world_game.cpp's g_saveStream",
     0x0065F2A0: "the saved parties 007C82A0 (exit function 0065F2C0): party_file.cpp's g_savedParties",
+    # C50c1 / C50e: the databases the interface reads and the disc / data folders are plain globals of ours.
+    0x0045E6C0: "the map database 0079BF00 (exit function 0045E6E0): map_database.cpp's g_mapDatabase",
+    0x0051FAF0: "the skill database 007AF268 (exit function 0051FB40): unit_db_globals.cpp's g_skillDatabase",
+    0x005399F0: "the unit database 007AF358 (exit function 0053A040): unit_db_globals.cpp's g_unitDatabase",
+    0x0055E7E0: "the data folder 007AF460 (exit function 0055E800, bit 2 of 007AF438): game_folders.cpp's g_dataFolder",
+    0x0055E860: "the disc folder 007AF458 (exit function 0055E880, bit 4 of 007AF438): game_folders.cpp's g_discFolder",
+    0x00684360: "the spell database 007C8510 (exit function 00684380): database_globals.cpp's g_spellDatabase",
+    0x006A6540: "the item database 007C86D8 (exit function 006A6560): database_globals.cpp's g_itemDatabase",
+    0x006ADF10: "the quest database 007C87A8 (exit function 006ADF30): database_globals.cpp's g_questDatabase",
+    0x006D7080: "the speeches database 007C8A60 (exit function 006D70A0): database_globals.cpp's g_ackDatabase",
     # C54g: the cursor and the interface manager are plain globals of ours.
     0x005E4DD0: "the cursor 007C7BD8 (exit function 005E4DF0): ui_cursor_setup.cpp's g_cursor",
     0x005F4680: "the interface manager 007C7D50 (exit function 005F4780): ui_small_members.cpp's g_interface",

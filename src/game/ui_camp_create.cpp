@@ -346,7 +346,7 @@ void CCampPages::BuildPages() {
     }
 
     // The music of the allod the party's zone is on.
-    const MapRecord* zone = g_mapDatabase->FindMap(LocalPlayerZone());
+    const MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
     g_clientWorld->music_->PlayConstructor(zone ? std::string_view(zone->allod) : std::string_view("gipat"));
 
 }

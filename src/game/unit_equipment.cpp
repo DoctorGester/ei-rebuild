@@ -46,7 +46,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const std::string& nam
     CWorld* world = ContextAsWorld();
     CSpellManager* spellOwner = world->SpellManager();   // passed on to the spell factory
     CItemManager* items = world->ItemFactory();
-    auto* prototype = g_unitDatabase->prototypes.FindByName(name);
+    auto* prototype = g_unitDatabase.prototypes.FindByName(name);
     if (!prototype) {
         game::FatalError(game::equipmenttexts::NoPrototype(), name);
         return 0;

@@ -234,7 +234,7 @@ void FitGrid(SectorGrid& grid, const Terrain* terrain) {
 }
 
 MapRecord* LocalZoneRecord() {
-    return g_mapDatabase->FindMap(LocalPlayerZone());
+    return g_mapDatabase.FindMap(LocalPlayerZone());
 }
 
 bool InFinalZone() {
@@ -520,8 +520,8 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
         auto* manager = MapObjectManager();
         auto* unit = manager->CreateObjectAs<CUnit>(MapObjectType::Hero, static_cast<int>(record->unitId));
         if (!unit) return;   // (leaving the loop is the same as returning here)
-        UnitPrototypeRecord* prototype = g_unitDatabase->prototypes.FindByName(record->texts[5]);
-        unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - g_unitDatabase->prototypes.records.data() : -1);
+        UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(record->texts[5]);
+        unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - g_unitDatabase.prototypes.records.data() : -1);
         unit->SetSecondPrototypeByName(record->texts[6]);
         unit->flags_ |= MapObjectFlag::Preview;
         if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
@@ -785,7 +785,7 @@ void SectorGrid::Resize(int width, int height) {
 void CWorldClient::Create() {
     CWorld::Create();
     {
-        std::string path = *g_dataFolder + worlddata::TexturesFolderText();
+        std::string path = g_dataFolder + worlddata::TexturesFolderText();
         texturePath_ = path;
     }
     LoadLights(worlddata::LightsTableText());
@@ -855,7 +855,7 @@ void CWorldClient::Create() {
     else
         flags_ &= ~WorldClientFlag::DrawShadows;
     {
-        std::string path = *g_dataFolder + worlddata::CursorFileText();
+        std::string path = g_dataFolder + worlddata::CursorFileText();
         cursor_ = text::utf8::LoadCursorFromFileA(path.c_str());
     }
 

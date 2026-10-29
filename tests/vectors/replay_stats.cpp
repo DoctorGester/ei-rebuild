@@ -153,7 +153,7 @@ constexpr std::uint32_t kMostLevelRecords = 4096;
 
 // The stand-in's level records: `count` zeroed records in the skill database's level table.
 SkillLevelRecord* Levels(std::uint32_t count) {
-    std::vector<SkillLevelRecord>& levels = g_skillDatabase->levels;
+    std::vector<SkillLevelRecord>& levels = g_skillDatabase.levels;
     levels.assign(count, SkillLevelRecord{});
     return levels.data();
 }
@@ -177,7 +177,7 @@ bool PutLevel(const LevelView& view, char* d, std::size_t n) {
 // The stand-in's skill records 0..count-1 (count at most 8): skill i's first stat name is the one
 // letter letters[i].
 void PutSkills(const char* letters, std::uint32_t count) {
-    std::vector<SkillRecord>& skills = g_skillDatabase->skills;
+    std::vector<SkillRecord>& skills = g_skillDatabase.skills;
     skills.assign(count, SkillRecord{});
     for (std::uint32_t i = 0; i < count; ++i) skills[i].statNames.assign(1, std::string(1, letters[i]));
 }
@@ -334,7 +334,7 @@ bool CheckIndexOfLevel(const IndexOfLevelCall& v, char* d, std::size_t n) {
     const std::int32_t offset = v.offset / kOriginalRecordBytes * kRecordBytes + v.offset % kOriginalRecordBytes;
     auto* record = reinterpret_cast<const SkillLevelRecord*>(reinterpret_cast<std::uintptr_t>(levels) +
                                                              static_cast<std::uintptr_t>(offset));
-    int result = g_skillDatabase->IndexOfLevel(record);
+    int result = g_skillDatabase.IndexOfLevel(record);
     if (result == v.result) return true;
     std::snprintf(d, n, "%u records, offset %d: ours %d, original %d", v.count, v.offset, result, v.result);
     return false;

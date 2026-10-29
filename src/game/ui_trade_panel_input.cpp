@@ -76,14 +76,14 @@ void CTradePanel::LeftDown(int, int x, int y) {
         if (index >= learnable_.size()) return;
         row = &learnable_[index];
         if (row->price > experience_ || !row->learnable) return;
-        stats->LearnSkill(&g_skillDatabase.Get(), g_skillDatabase->FindLevel(row->key));
+        stats->LearnSkill(&g_skillDatabase, g_skillDatabase.FindLevel(row->key));
     } else {
         // 34 and up, and (as unsigned) anything below 0: the next level of a held perk.
         std::uint32_t index = static_cast<std::uint32_t>(perkTop_ + region - kFirstHeld);
         if (index >= perks_.size()) return;
         row = &perks_[index];
         if (row->price > experience_ || row->nextKey.empty()) return;
-        stats->LearnSkill(&g_skillDatabase.Get(), g_skillDatabase->FindLevel(row->nextKey));
+        stats->LearnSkill(&g_skillDatabase, g_skillDatabase.FindLevel(row->nextKey));
     }
     stats->spentExperience = static_cast<float>(static_cast<double>(row->price) + stats->spentExperience);
     record.bought = true;

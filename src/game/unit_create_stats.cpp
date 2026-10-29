@@ -56,8 +56,8 @@ void CopyDword(To& to, const From& from) {
 
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
 
-const UnitPrototypeRecord* FindPrototype(std::string_view name) { return g_unitDatabase->prototypes.FindByName(name); }
-const UnitNpcRecord* FindNpc(std::string_view name) { return g_unitDatabase->npcs.FindByName(name); }
+const UnitPrototypeRecord* FindPrototype(std::string_view name) { return g_unitDatabase.prototypes.FindByName(name); }
+const UnitNpcRecord* FindNpc(std::string_view name) { return g_unitDatabase.npcs.FindByName(name); }
 
 // The prototype's model; its index is read even from a null prototype (that faults).
 const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
@@ -132,8 +132,8 @@ void LearnNpcSkills(UnitStats* stats, const UnitNpcRecord* npc) {
     if (!npc) return;
     stats->AddScaledExperience(npc->experience);
     for (const auto& name : npc->skillNames) {
-        ::SkillLevelRecord* skill = g_skillDatabase->FindLevel(name);
-        if (skill) stats->LearnSkill(&g_skillDatabase.Get(), skill);
+        ::SkillLevelRecord* skill = g_skillDatabase.FindLevel(name);
+        if (skill) stats->LearnSkill(&g_skillDatabase, skill);
     }
     stats->spentExperience = stats->experience;
 }
@@ -586,8 +586,8 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& nam
         object->ApplyBaseScale();
         UnitOrNull(object)->SetSecondPrototype(prototype);
     }
-    UnitPrototypeRecord* record = g_unitDatabase->prototypes.FindByName(name);
-    object->prototypeId_ = record ? static_cast<std::uint32_t>(record - g_unitDatabase->prototypes.records.data()) : 0xFFFFFFFFu;
+    UnitPrototypeRecord* record = g_unitDatabase.prototypes.FindByName(name);
+    object->prototypeId_ = record ? static_cast<std::uint32_t>(record - g_unitDatabase.prototypes.records.data()) : 0xFFFFFFFFu;
     return 1;
 }
 

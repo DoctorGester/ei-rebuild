@@ -594,7 +594,7 @@ kinds given.
         so the generator writes `d.Cdecl(address)` in its place. The object is `constinit lib::StaticObject<T>`
         (lib/static_object.h: zero storage that our CRT neither constructs nor destroys); the initialiser calls
         `Construct(...)` and registers the exit function by its address (`GameAtExit(ei::Code<...>(exit))`), which
-        calls `Destroy()`. A guarded exit function's guard byte is named with it (game_folders.cpp's 007AF438).
+        calls `Destroy()`. A guarded exit function's guard byte is named with it.
         named_data compares such a definition with game.exe's bytes (zero): a registered initialiser's stores are
         not applied (decode_all emits only its call).
       - C18k4 named whole class objects the same way: a class with game.exe's vtable stays with C19, a class
@@ -604,8 +604,8 @@ kinds given.
         access goes through the name or a member (`g_camera->`); a raw address inside the
         range is refused. Named: ui_objectives' last quest string 007C8178, the
         protection checks / driver / deferred-unit lists (static_lists.cpp), the spell / item / quest / print / speech
-        databases (database_globals.cpp), the lever table, the unit and skill databases (unit_db_globals.cpp), the
-        party manager 007AA5A0, saved parties 007C82A0, the spell footprint set 007C8478, the party id set 007C8370
+        databases (database_globals.cpp), the lever table, the unit and skill databases (unit_db_globals.cpp; plain globals
+        since C50c1), the party manager 007AA5A0, saved parties 007C82A0, the spell footprint set 007C8478, the party id set 007C8370
         and the unread set 007AB8D8. C18k5 (1,717 -> 1,651 game data addresses) named the last four without a vtable: the options
         0079BC70 (options_global.cpp holds the definition so the vector replay links it; options_construct.cpp the
         initialiser), GameFlow 007AFE20 (world_game.cpp), CCursor 007C7BD8 (ui_cursor_setup.cpp) and CInterface3D 007C7D50
@@ -708,7 +708,7 @@ kinds given.
       draw order), the lever table, the quest's objectives and name, the received messages' stream, the client's
       party id set, the zone table and the quest files / folders; the prints database, the network's send and receive
       buffers (C50c); the command line's five strings (app_main.cpp), the registry root, start and text folders
-      (game_folders.cpp; the disc and data folders stay static objects while the interface spells them with `*`), the
+      (game_folders.cpp; the disc and data folders too since C50e: plain std::string), the
       chunk archive's class registry, clip's work words and the console's command maps; the interface manager and the
       cursor (C54g: CInterface3D and CCursor construct themselves); the flow, the party manager, the saved parties and
       the save stream (C54g1); the draws' work arrays (line
@@ -724,8 +724,10 @@ kinds given.
       the trader stock's five scratch vectors (item_stock.cpp; their initialisers 00698E50-00698F90 unused). The spiral caches of PlanLongPath, FindFreeCellNear and WakeUnitsAround are
       function-local statics of ours (constant-initialised, no guard); so is UseResources' string. The plain globals are
       constructed before the static initialisers run and destroyed after their exit functions (the flow's and the
-      saved parties' CParty objects too). The databases the interface reads (spells, items, quests, acks, units, skills) construct and destroy themselves (no
-      Construct / Destruct; the resource switch assigns each a new empty one).
+      saved parties' CParty objects too). The databases
+      (spells, items, quests, acks, units, skills, maps) are plain globals since C50c1 (the resource switch assigns each
+      a new empty one); their initialisers 00684360 / 006A6540 / 006ADF10 / 006D7080 / 005399F0 / 0051FAF0 / 0045E6C0
+      and the folders' 0055E7E0 / 0055E860 are UNUSED_INITIALISERS (the guard byte 007AF438 went).
     - **gen_static_init**: REVIEWED_SPLIT splits one initialiser's stores where they are two objects (005229C0: the hit
       log pointer 007AF284 is read, the ln folds above it are not); RETIRED_STATICS lists functions whose port builds
       none of the original's function-local statics, so their runtime atexit sites never run (006BFF40, the terrain
@@ -744,7 +746,7 @@ kinds given.
       kModeLog 007C54E8; the files write to them as `console::Stream&`.
     - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the worlds (g_serverWorld 007AFF60, g_clientWorld
       007AF5B8, world_construct.cpp), the camera 0079B2A8, the scene renderer 007AF060 and the device lock 007AEE78
-      (renderer_lifetime.cpp), the map database 0079BF00, the save stream
+      (renderer_lifetime.cpp), the save stream
       007AFDF8 and the received messages 007C83D0 (with its destroyed flag 007C83C8) are `lib::StaticObject` with their
       initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
       out of line. Plain globals: the main window 0079BC28 (app::g_mainWindow, which the renderer reads too), the loading

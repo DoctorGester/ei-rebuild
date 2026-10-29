@@ -112,7 +112,7 @@ void CBriefingScreen::ShowItem(std::string_view name, int index) {
     const itemdb::ItemRecordHead* record;
     // The quest item table's (this window calls it the loot table) name index's
     // operator[] (an unknown name gets a null entry).
-    record = g_itemDatabase->questItems.Named(key);
+    record = g_itemDatabase.questItems.Named(key);
     if (!record) return;
 
     float x = static_cast<float>(kSlotXs[index % kSlots]);

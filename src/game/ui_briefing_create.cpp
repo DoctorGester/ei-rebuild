@@ -156,7 +156,7 @@ void CBriefingScreen::CreateScreen() {
         g_saveStream.Resize(0);
     else if (g_clientWorld->LocalView()->player_->lastScreen_ != kFromCamp)
         autosave_ = true;
-    MapRecord* map = g_mapDatabase->FindMap(LocalPlayerZone());
+    MapRecord* map = g_mapDatabase.FindMap(LocalPlayerZone());
     LoadPersonTexts(&personTexts_);
     LoadTexture(kSaveLoadTexture, kTextureKind);
 
@@ -196,7 +196,7 @@ void CBriefingScreen::CreateScreen() {
     savedEdgeFade_ = options::g_options->borderFogDistance_;
     options::g_options->borderFogDistance_ = kEdgeFade;
 
-    if (MapRecord* record = g_mapDatabase->FindMap(LocalPlayerZone())) {
+    if (MapRecord* record = g_mapDatabase.FindMap(LocalPlayerZone())) {
         g_clientWorld->music_->PlayBriefing(record->allod);
         noWalk_ = record->cage;
     } else {

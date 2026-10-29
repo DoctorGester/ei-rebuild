@@ -25,7 +25,7 @@ bool ModMaps() { return modfolders::Active(ei::rebirth::Patch::Maps); }
 
 std::string* MapsFolder(std::string* out) {
     // Rebirth's Maps: the folder the last site selected.
-    std::string folder(ModMaps() ? modfolders::MapsRoot(*g_dataFolder) : *g_dataFolder);
+    std::string folder(ModMaps() ? modfolders::MapsRoot(g_dataFolder) : g_dataFolder);
     *out = folder + MapsFolderName(); return out;
 }
 

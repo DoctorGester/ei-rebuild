@@ -147,7 +147,7 @@ void CPlayerServer::OnLeaderDied() {
         auto* stats = &record.stats;
         stats->RestoreSlots();
         float experience = static_cast<float>(stats->pendingExperience + stats->experience);
-        auto* npc = g_unitDatabase->npcs.FindByName(record.texts[5]);
+        auto* npc = g_unitDatabase.npcs.FindByName(record.texts[5]);
         if (npc) {
             float above = static_cast<float>(experience - npc->experienceFloor);
             experience = above <= 0.0f ? 0.0f : above;   // a NaN is kept

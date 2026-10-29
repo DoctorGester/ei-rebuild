@@ -285,7 +285,7 @@ void CSaveLoadWindow::FillEntries() {
         entry->folder_ = str::Format(game::savewords::NewFolder(), highest + 1);
         entry->gameTime_ = LocalPlayerVariable(game::savewords::GameTime());
         entry->zone_ = LocalPlayerZone();
-        if (MapRecord* record = g_mapDatabase->FindMap(entry->zone_))
+        if (MapRecord* record = g_mapDatabase.FindMap(entry->zone_))
             entry->map_ = record->allod;
         entry->MakeTitle();
         entry->broken_ = false;
@@ -340,7 +340,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     const std::int32_t savedAt = lib::CurrentTime();
     const float gameTime = LocalPlayerVariable(game::savewords::GameTime());
     const std::string zone = LocalPlayerZone();
-    if (const MapRecord* record = g_mapDatabase->FindMap(zone))
+    if (const MapRecord* record = g_mapDatabase.FindMap(zone))
         map = record->allod;
     std::string folder = SlotFolder(slot);
     netlink::FileStream info;

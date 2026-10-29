@@ -306,7 +306,7 @@ void CMainMenu::LeftDown(int buttons, int x, int y) {
     }
     case 2: {
         {
-            std::string path = *g_discFolder + "Movies\\Exit.bik";
+            std::string path = g_discFolder + "Movies\\Exit.bik";
             PlayMovie(path, 0, 0, 0, 1, 1);
         }
         app::QuitGame(0);
@@ -526,7 +526,7 @@ void CCreditsScreen::CreateScreen() {
     if (fromGame_) GameSetServerPaused(0);
     savedDisplay_ = static_cast<int>(g_sceneRenderer->fogColour_);
     g_sceneRenderer->fogColour_ = 0;
-    player_.Open((*g_discFolder + "Movies\\" + name + ".bik").c_str(),   // "<folder>Movies\<name>.bik"
+    player_.Open((g_discFolder + "Movies\\" + name + ".bik").c_str(),   // "<folder>Movies\<name>.bik"
                                              0);
     finished_ = false;
 }

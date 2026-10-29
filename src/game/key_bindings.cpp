@@ -52,7 +52,7 @@ std::string* ConcatText(std::string* a0, const std::string* a1, const char* a2) 
 // Opens the bindings file with `mode` (TextFile::Open's).
 bool OpenFile(lib::TextFile& file, const char* mode) {
     std::string path;
-    return file.Open(*ConcatText(&path, &g_dataFolder.Get(), "config\\keyboard.ini"), mode);
+    return file.Open(*ConcatText(&path, &g_dataFolder, "config\\keyboard.ini"), mode);
 }
 
 } // namespace

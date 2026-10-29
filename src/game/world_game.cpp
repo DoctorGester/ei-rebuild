@@ -73,9 +73,9 @@ constexpr unsigned kOpenRead = netlink::FileStream::kOpenRead;
 constexpr unsigned kMagicScenario = 0xDEAD;
 constexpr unsigned kMagicMission = 0x102;
 
-MapRecord* ZoneRecords() { return g_mapDatabase->maps.data(); }
-int ZoneRecordCount() { return static_cast<int>(g_mapDatabase->maps.size()); }
-MapRecord* FindZone(std::string_view name) { return g_mapDatabase->FindMap(name); }
+MapRecord* ZoneRecords() { return g_mapDatabase.maps.data(); }
+int ZoneRecordCount() { return static_cast<int>(g_mapDatabase.maps.size()); }
+MapRecord* FindZone(std::string_view name) { return g_mapDatabase.FindMap(name); }
 
 using netlink::FileStream;
 
@@ -401,7 +401,7 @@ int EnterZone(CParty* records) {
         if (str::Compare(zone,
                             kMovieZone) != 0) {
             {
-                std::string movie = *g_discFolder + kMovieFile;
+                std::string movie = g_discFolder + kMovieFile;
                 PlayMovie(movie, 0, 1, 1, 1, 1);
             }
             variables->Remove(kMovieVariable);
@@ -1046,16 +1046,16 @@ void GameFlow::StartNewGame() {
 // ---- The flow's requests -------------------------------------------------------------
 
 void SwitchResourceDatabases(const std::string& name) {
-    UnitDatabase& units = g_unitDatabase.Get();
+    UnitDatabase& units = g_unitDatabase;
     units = UnitDatabase();
     units.Load(ResourcesPath(), name);
     units.CountSoundFiles(g_clientWorld->sounds_);
-    g_skillDatabase.Get() = SkillDatabase();
-    g_skillDatabase->Load(ResourcesPath(), name);
-    g_spellDatabase.Get() = itemdb::SpellDatabase();
-    g_spellDatabase->Load(ResourcesPath(), name);
-    g_itemDatabase.Get() = itemdb::ItemDatabase();
-    g_itemDatabase->Load(ResourcesPath(), name);
+    g_skillDatabase = SkillDatabase();
+    g_skillDatabase.Load(ResourcesPath(), name);
+    g_spellDatabase = itemdb::SpellDatabase();
+    g_spellDatabase.Load(ResourcesPath(), name);
+    g_itemDatabase = itemdb::ItemDatabase();
+    g_itemDatabase.Load(ResourcesPath(), name);
 }
 
 void GameFlow::UseResources(bool network) {

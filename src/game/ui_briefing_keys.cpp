@@ -32,7 +32,7 @@ constexpr int kQuestNameParts = 3;               // "q", zone, quest
 // Action 4: the objectives window of the current zone, when a quest of a zone in its allod is
 // active.
 void OpenObjectives(CInterface3D* ui) {
-    MapRecord* zone = g_mapDatabase->FindMap(LocalPlayerZone());
+    MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
     if (!zone) return;
     std::vector<std::string> parts;
     NamedFloatTable quests;
@@ -40,7 +40,7 @@ void OpenObjectives(CInterface3D* ui) {
     for (auto& node : quests) {
         text::Split(node.first, &parts, '.');
         if (parts.size() != kQuestNameParts || std::bit_cast<std::uint32_t>(node.second) != kOneBits) continue;
-        MapRecord* questZone = g_mapDatabase->FindMap(parts[1]);
+        MapRecord* questZone = g_mapDatabase.FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;
         auto* window = new CObjectivesWindow(ui);

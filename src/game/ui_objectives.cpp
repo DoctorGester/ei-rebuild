@@ -61,8 +61,8 @@ std::string g_lastQuest;
 // game's sort's order.
 void SortQuests(std::string* first, std::string* last) {
     lib::IntroSort(first, last, [](const std::string& a, const std::string& b) {
-        const QuestRecord* quest = g_questDatabase->FindQuest(a);
-        const QuestRecord* other = g_questDatabase->FindQuest(b);
+        const QuestRecord* quest = g_questDatabase.FindQuest(a);
+        const QuestRecord* other = g_questDatabase.FindQuest(b);
         return !quest || (other && static_cast<unsigned>(quest->order) > static_cast<unsigned>(other->order));
     });
 }
@@ -101,7 +101,7 @@ constexpr float kExitTurn = /*007C8170*/ 1.5707964f;   // a static initialiser: 
 constexpr float kExitTurnDown = 3.1415927f;
 
 // The quest database's record of `name` (the index's operator[] adds a null entry for a new name).
-QuestRecord* FindQuestRecord(std::string_view name) { return g_questDatabase->questsByName[std::string(name)]; }
+QuestRecord* FindQuestRecord(std::string_view name) { return g_questDatabase.questsByName[std::string(name)]; }
 
 const char* const kGlobalMapTopic = "quest_global_map";
 const char* const kMissionTopic = "quest_mission";
@@ -118,7 +118,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
 
     // The zone's picture (picture2), its size in map cells and its exits (the deploy rectangle x1, y1, x2, y2 and the
     // target zone, "none" when it leads nowhere).
-    MapRecord* map = g_mapDatabase->FindMap(shownZone_);
+    MapRecord* map = g_mapDatabase.FindMap(shownZone_);
     if (!map) {
         interface_->SetPendingValue(0);
         return;
@@ -369,7 +369,7 @@ void CObjectivesWindow::ShowQuest() {
     texts->Close();
     static_cast<CUiScrollText*>(children_[0])->SetText(text);
 
-    MapRecord* map = g_mapDatabase->FindMap(shownZone_);
+    MapRecord* map = g_mapDatabase.FindMap(shownZone_);
     if (!map) return;
     LoadQuestPlaces(quests[selectedQuest_]);
     while (std::ssize(sceneObjects_) > std::ssize(exits_) + 0x15) RemoveSceneObjectAt(std::ssize(exits_) + 0x15);
@@ -493,7 +493,7 @@ void CObjectivesWindow::CreateScreen() {
     if (!listZones_) {
         ShowZone(zoneName_);
     } else {
-        MapRecord* allodZone = g_mapDatabase->FindMap(zoneName_);
+        MapRecord* allodZone = g_mapDatabase.FindMap(zoneName_);
         if (!allodZone) {
             interface_->SetPendingValue(0);
             return;
@@ -514,7 +514,7 @@ void CObjectivesWindow::CreateScreen() {
             std::uint32_t one;
             one = std::bit_cast<std::uint32_t>(node->second);
             if (one != 0x3F800000) continue;
-            MapRecord* zone = g_mapDatabase->FindMap(parts[1]);
+            MapRecord* zone = g_mapDatabase.FindMap(parts[1]);
             if (!zone) continue;
             if (!IsMultiplayerClient() &&
                 text::CompareIgnoringCase(zone->allod,
