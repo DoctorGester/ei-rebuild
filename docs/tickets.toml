@@ -6122,6 +6122,13 @@ model = "opus"
 note = "Step 2 of C30's plan (read C30's and C30a's notes). Only on the files C30a put on SSE2 (ei_render and CMakeLists EI_SSE2_GAME_SOURCES): static_cast<float> of an int or float dropped where plain; static_cast<float>(static_cast<double>(a) / b * k) as float maths; x87::fsin / fcos / fpatan -> std::sin / cos / atan2; x87::fistp -> std::lround; x87::CopyBits -> plain assignment or std::bit_cast; FromUnsigned -> static_cast<float>. A script does the rewrite; off-pattern sites stay for C30c. Goldens unchanged (121 / 113)."
 
 [[ticket]]
+id = "C30a3"
+title = "Interface hit tests in whole pixels; the C30a reverts back on SSE2"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-29: tests should not hang on slight rounding; use best judgement on SSE2 issues. C30a sent ui_item_strip_setup, ui_item_strip, ui_hero_screen, ui_hero_screen_click, ui_stats_buttons and ui_trade_panel_input back to x87 because the figure strip's click sum (x - 50) * 0.01 + eased scroll position, truncated, picked the neighbouring figure on a cell edge (ui_hero_screen record 11). Make such hit tests integer (pixels and cell widths, the scroll position snapped once), same for the twin in ui_screens.cpp:255 and any similar list click sums; held-button repeat counts from whole ticks. Then put the six files on SSE2. Matches the original except on an exact border pixel (accepted, as for picking); re-record the affected goldens once and name them."
+
+[[ticket]]
 id = "C30a1"
 title = "Frame time before/after C30a on R37's heavy scenes"
 group = "cleanup"
