@@ -26,7 +26,7 @@ CPlayerServer* ServerOf(CPlayer* player) { return player->Server(); }
 
 // --- State 1 -------------------------------------------------------------------------------------
 
-// 0 / 0x28 (the fire arrow) and 2 (the acid ray): the effect follows its missile; when the missile
+// FireArrow / RickMagic (the fire arrow) and AcidRay: the effect follows its missile; when the missile
 // reports a hit the target takes the damage, the missile, sound and light go, and a
 // splash, an end sound and a rising light appear at the target's height. The two spells compute
 // the light's rise differently (the arrow rounds the quotient before scaling it).
@@ -71,7 +71,7 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     e->state = 2;
 }
 
-// 3: the fireball explodes when its timer runs out: everything in the radius is hit, a blast
+// Fireball: the ball explodes when its timer runs out: everything in the radius is hit, a blast
 // (the larger of the area curve and the power), an end sound, a rising light and, with a unit
 // caster, a noise the AI hears. The missile's particle goes once the timer is below zero.
 void FireballFlight(CSpellEffect* e) {
@@ -128,7 +128,7 @@ void RiseLight(CSpellEffect* e) {
     e->light->SetVelocity(&rise);   // no null check
 }
 
-// 1 / 0x29: the lightning's bolt and sound go when the timer reaches 0, the light rises away.
+// Lightning / CurseMagic: the bolt and sound go when the timer reaches 0, the light rises away.
 void LightningFade(CSpellEffect* e) {
     if (e->timer == 0) {
         e->ReleaseVisual();
@@ -138,7 +138,7 @@ void LightningFade(CSpellEffect* e) {
     Linger(e);
 }
 
-// 4: the light strike's bolt is dropped every tick; at timer 5 a second bolt strikes from 30 above.
+// InvokeLightning: the light strike's bolt is dropped every tick; at timer 5 a second bolt strikes from 30 above.
 void LightStrikeEcho(CSpellEffect* e) {
     e->ReleaseVisual();
     if (e->timer == 5) {
@@ -151,13 +151,13 @@ void LightStrikeEcho(CSpellEffect* e) {
     CountDown(e);
 }
 
-// 5: the acid column hits once, at timer 15.
+// AcidColumn: the column hits once, at timer 15.
 void AcidColumn(CSpellEffect* e) {
     CountDown(e);
     if (e->timer == 15) HitAreaTargets(e);
 }
 
-// 6: the fire wall burns along its direction every 4th tick; at -1 it goes out.
+// FireWall: the wall burns along its direction every 4th tick; at -1 it goes out.
 void FireWall(CSpellEffect* e) {
     int ticks = e->timer;
     if (ticks >= 0) {
@@ -180,7 +180,7 @@ void FireWall(CSpellEffect* e) {
     Linger(e);
 }
 
-// 7: the light wall hits along its bolt every 4th tick; at -1 it goes out.
+// LightningWall: the light wall hits along its bolt every 4th tick; at -1 it goes out.
 void LightWall(CSpellEffect* e) {
     int ticks = e->timer;
     if (ticks >= 0) {
@@ -205,7 +205,7 @@ void LightWall(CSpellEffect* e) {
     Linger(e);
 }
 
-// 8: the poison cloud hits every 4th tick; at -1 it goes.
+// AcidFog: the poison cloud hits every 4th tick; at -1 it goes.
 void PoisonCloud(CSpellEffect* e) {
     int ticks = e->timer;
     if (ticks >= 0) {
@@ -226,14 +226,14 @@ void PoisonCloud(CSpellEffect* e) {
     Linger(e);
 }
 
-// 0x27: hits every 4th tick, counting up, forever (until something else ends it).
+// Campfire: hits every 4th tick, counting up, forever (until something else ends it).
 void CountingCloud(CSpellEffect* e) {
     int ticks = e->timer;
     e->timer = ticks + 1;
     if ((ticks & 3) == 0) HitAreaTargets(e);
 }
 
-// 0x12: fireworks wake the units around and frighten those in the radius (their AI memory notices
+// Fireworks wake the units around and frighten those in the radius (their AI memory notices
 // the point at a level falling from 300 to 50 over the duration); at -1 they end.
 void Fireworks(CSpellEffect* e, std::list<CUnit*>& units) {
     int ticks = e->timer - 1;
@@ -260,7 +260,7 @@ void Fireworks(CSpellEffect* e, std::list<CUnit*>& units) {
     if (e->timer < kEndedTimer) e->state = 3;
 }
 
-// 0x14: clairvoyance shows the caster's player every unit in the radius and wakes them; at timer
+// Clairvoyance shows the caster's player every unit in the radius and wakes them; at timer
 // 10 a closing particle and sound. Ends with the timer or without a caster.
 void Clairvoyance(CSpellEffect* e, std::list<CUnit*>& units) {
     if (IsUnit(e->caster)) {
@@ -286,7 +286,7 @@ void Clairvoyance(CSpellEffect* e, std::list<CUnit*>& units) {
     }
 }
 
-// 0x15: possession: the caster's player sees the target, its controller's two lists and its id;
+// Possession: the caster's player sees the target, its controller's two lists and its id;
 // the target is flagged (0x2000000) and the units around it wake.
 void Possession(CSpellEffect* e) {
     if (!IsUnit(e->caster)) {
@@ -315,14 +315,14 @@ void Possession(CSpellEffect* e) {
     if (ticks < 0) e->state = 3;
 }
 
-// 0x17: vision fog lasts while its target is free.
+// VisionFog lasts while its target is free.
 void VisionFog(CSpellEffect* e) {
     int ticks = e->timer;
     e->timer = ticks - 1;
     if (ticks < 0 || !e->target || e->target->IsDead() != 0) e->state = 3;
 }
 
-// 0x1B: the link lasts while both units are free; it ends with a sound (and a complaint from the
+// Link: the link lasts while both units are free; it ends with a sound (and a complaint from the
 // caster when a unit got busy).
 void Link(CSpellEffect* e) {
     bool free = e->target && e->caster && e->target->IsLargeUnit() == 0 &&
@@ -340,7 +340,7 @@ void Link(CSpellEffect* e) {
     e->state = 3;
 }
 
-// 0x1C: teleport: when the timer comes down to the spell's duration (at least 1) the caster moves
+// Teleport: when the timer comes down to the spell's duration (at least 1) the caster moves
 // to the target point at its own height, if it fits there (else it complains, 0x10); then it gets
 // the spell's buff record and its controller re-places it.
 void Teleport(CSpellEffect* e) {
@@ -387,17 +387,17 @@ int CSpellEffect::Update() {
 }
 
 void CSpellEffect::UpdateMissile(int type) {
-    switch (type) {
-    case 0x00:
-    case 0x28:
+    switch (SpellTypeOf(type)) {
+    case SpellType::FireArrow:
+    case SpellType::RickMagic:
         MissileImpact(this, static_cast<int>(ParticleType::FireStar), "magic\\Firearrow\\end.wav", true);
         CountDown(this);
         break;
-    case 0x02:
+    case SpellType::AcidRay:
         MissileImpact(this, static_cast<int>(ParticleType::AcidStar), "magic\\Acidray\\end.wav", false);
         CountDown(this);
         break;
-    case 0x03: FireballFlight(this); break;
+    case SpellType::Fireball: FireballFlight(this); break;
     default: break;
     }
 }
@@ -405,26 +405,26 @@ void CSpellEffect::UpdateMissile(int type) {
 void CSpellEffect::UpdateLasting(int type) {
     std::list<CUnit*> units;   // the list the fireworks and clairvoyance fill
 
-    switch (type) {
-    case 0x00:
-    case 0x02:
-    case 0x03:
-    case 0x18:
-    case 0x28: CountDown(this); break;
-    case 0x01:
-    case 0x29: LightningFade(this); break;
-    case 0x04: LightStrikeEcho(this); break;
-    case 0x05: AcidColumn(this); break;
-    case 0x06: FireWall(this); break;
-    case 0x07: LightWall(this); break;
-    case 0x08: PoisonCloud(this); break;
-    case 0x12: Fireworks(this, units); break;
-    case 0x14: Clairvoyance(this, units); break;
-    case 0x15: Possession(this); break;
-    case 0x17: VisionFog(this); break;
-    case 0x1B: Link(this); break;
-    case 0x1C: Teleport(this); break;
-    case 0x27: CountingCloud(this); break;
+    switch (SpellTypeOf(type)) {
+    case SpellType::FireArrow:
+    case SpellType::AcidRay:
+    case SpellType::Fireball:
+    case SpellType::Healing:
+    case SpellType::RickMagic: CountDown(this); break;
+    case SpellType::Lightning:
+    case SpellType::CurseMagic: LightningFade(this); break;
+    case SpellType::InvokeLightning: LightStrikeEcho(this); break;
+    case SpellType::AcidColumn: AcidColumn(this); break;
+    case SpellType::FireWall: FireWall(this); break;
+    case SpellType::LightningWall: LightWall(this); break;
+    case SpellType::AcidFog: PoisonCloud(this); break;
+    case SpellType::Fireworks: Fireworks(this, units); break;
+    case SpellType::Clairvoyance: Clairvoyance(this, units); break;
+    case SpellType::Possession: Possession(this); break;
+    case SpellType::VisionFog: VisionFog(this); break;
+    case SpellType::Link: Link(this); break;
+    case SpellType::Teleport: Teleport(this); break;
+    case SpellType::Campfire: CountingCloud(this); break;
     default: break;
     }
 

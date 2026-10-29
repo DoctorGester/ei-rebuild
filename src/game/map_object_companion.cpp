@@ -38,9 +38,9 @@ const char* const kStenchSoundFormat = "magic\\Stench\\%i.wav";
 
 CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
 
-bool IsScaleEffect(int type) {
-    return type == mapeffect::kStrengthen || type == mapeffect::kWeaken || type == mapeffect::kEnlarge ||
-           type == mapeffect::kShrink;
+bool IsScaleEffect(SpellType type) {
+    return type == SpellType::Strengthen || type == SpellType::Weaken || type == SpellType::Enlarge ||
+           type == SpellType::Shrink;
 }
 } // namespace
 
@@ -50,7 +50,7 @@ bool CMapObjectServer::RunTick() {
     int i = 0;
     do {
         if (!owner->effects[i].Tick()) {
-            int type = owner->effects[i].type;
+            SpellType type = SpellTypeOf(owner->effects[i].type);
             owner->effects.erase(owner->effects.begin() + i);
             bool scaleEffect = IsScaleEffect(type);
             if (scaleEffect) owner->RecomputeScale();
@@ -58,7 +58,8 @@ bool CMapObjectServer::RunTick() {
             owner->ScaleEffectChanged(scaleEffect);
             --i;
             owner->EffectsChanged();
-            if (!owner->HasEffect(mapeffect::kStun) && !owner->HasEffect(mapeffect::kStun2))
+            if (!owner->HasEffect(static_cast<std::uint32_t>(SpellType::Stun)) &&
+                !owner->HasEffect(static_cast<std::uint32_t>(SpellType::Teleport)))
                 owner->SetStunned(0);
         }
         ++i;

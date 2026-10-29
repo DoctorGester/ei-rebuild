@@ -9,6 +9,7 @@
 
 #include <bit>
 #include <initializer_list>
+#include <iterator>
 
 std::uint16_t MaxDamage(const std::uint16_t*);
 namespace {
@@ -28,8 +29,6 @@ constexpr AIOptionKind kSpellKinds[42] = {
     AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::SpellAttack, AIOptionKind::SpellAttack};
 
 double OptionWeight(const AIAttackOption*);
-
-int SpellType(const CSpell* spell) { return static_cast<int>(spell->prototypeId_ >> 16); }
 
 double OptionWeight(const AIAttackOption* option) { return option->Weight(); }
 
@@ -111,8 +110,8 @@ DamageWords* AIAttention::AddSpellOption(AIOptionKind kind, int part, float rang
 
 AIOptionKind AIAttention::SpellKind(const CSpell* spell) {
     if (!spell) return AIOptionKind::Weapon;
-    int type = SpellType(spell);
-    return static_cast<unsigned>(type) < 42 ? kSpellKinds[type] : AIOptionKind::Unused;
+    unsigned type = static_cast<unsigned>(spell->Type());
+    return type < std::size(kSpellKinds) ? kSpellKinds[type] : AIOptionKind::Unused;
 }
 
 void AIAttention::Build(CUnit* unit) {
@@ -149,7 +148,7 @@ void AIAttention::Build(CUnit* unit) {
             case AIOptionKind::Curse:
             case AIOptionKind::Protect:
             case AIOptionKind::Enhance:
-                effect = SpellType(spell);
+                effect = static_cast<int>(spell->Type());
                 break;
             case AIOptionKind::Heal:
                 radius = spell->damage_;

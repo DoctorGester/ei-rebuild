@@ -261,8 +261,10 @@ the old from the timed objects and releases it (`Assign`; the original repeats i
 Spell types: 0 / 0x28 fire arrow, 1 / 0x29 lightning, 2 acid ray, 3 fireball, 4 light strike, 5 acid column, 6 fire wall, 7
 light wall, 8 poison cloud (acid_fog), 9-0x11, 0x13, 0x19, 0x1A, 0x1D-0x22, 0x25, 0x26 buffs (the target's slot 45 gets a
 0x14-byte record: the spell's +0x1C..+0x2F with byte 1 = trunc(power x 16) and byte 0x10 = +0xA4), 0x12 fireworks, 0x14
-clairvoyance, 0x15 possession, 0x17 vision fog, 0x18 healing, 0x1B link, 0x1C teleport, 0x24 charm, 0x27 a counting area
-cloud.
+clairvoyance, 0x15 possession, 0x17 vision fog, 0x18 healing, 0x1B link, 0x1C teleport, 0x24 charm, 0x27 campfire (a
+counting area). `SpellType` (spell.h) names all 42 after the spell database's prototype names (database.res, the same
+table in 1.06 and Rebirth: 0x28 rick_magic and 0x29 curse_magic are in both; 0x16 shapechange and 0x23 comprehend start
+nothing); an active effect's type (MapEffect) is the buff's spell type.
 
 "Power" factor (inlined about twenty times): `pow(clamp(damage / prototype effect, 1, 8), 0.33) - 0.2`, or 1 when the
 prototype's effect (+0x2C) compares equal to 0 (NaN included); clamps select float bits on FCOMP's C0 (NaN passes), pow is

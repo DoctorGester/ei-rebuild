@@ -22,12 +22,10 @@ class CMapObjectClientSpecific;
 class CMapObjectCompanion;
 struct DeltaState;
 
-// An active effect (an array).
-// Effect types seen: 0x09-0x0E shields and sights, 0x0F invisibility, 0x10 silence, 0x11 lichdom,
-// 0x13 stench, 0x19 stun, 0x1A antimagic, 0x1C, 0x1D strengthen, 0x1E weaken, 0x1F regeneration,
-// 0x20 feeble mind, 0x21 speed, 0x22 slow, 0x25 enlarge, 0x26 shrink.
+// An active effect (an array): the record of a buff spell (the buffs CSpellEffect::Start applies) or of Teleport,
+// which stuns its caster like Stun. Strengthen, Weaken, Enlarge and Shrink scale the object.
 struct MapEffect {
-    std::uint8_t type;
+    std::uint8_t type;              // the spell's SpellType (spell.h)
     std::uint8_t power;
     int ticksLeft;                  // counted down once per world update; removed at 0
     std::uint32_t value;            // a float (EffectValue) or a sound handle
@@ -55,16 +53,6 @@ struct UnitVitalsPacked {
     std::int16_t protection[7];
 };
 static_assert(sizeof(UnitVitalsPacked) == 0x18);
-
-// Effect types with a special meaning for the base class.
-namespace mapeffect {
-constexpr int kStun = 0x19;
-constexpr int kStun2 = 0x1C;           // also keeps flag 0x1000000 (with kStun)
-constexpr int kStrengthen = 0x1D;      // scale up (x and z)
-constexpr int kWeaken = 0x1E;          // scale down
-constexpr int kEnlarge = 0x25;         // scale up (x, y and z)
-constexpr int kShrink = 0x26;          // scale down
-} // namespace mapeffect
 
 // The bits of CEngineObject::flags_ on the map objects (the word is saved and sent as the number). Bits that mean
 // something else per class have one name each (the same number).

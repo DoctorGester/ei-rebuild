@@ -7,6 +7,7 @@
 #include "options.h"
 #include "player_client.h"
 #include "sound.h"
+#include "spell.h"
 #include "terrain_sector.h"
 #include "unit.h"
 #include "unit_client_models.h"
@@ -70,7 +71,6 @@ constexpr float kSoundNear = 8.0f;
 constexpr float kSoundFar = 40.0f;
 constexpr float kShakeDuration = 5.0f;
 constexpr float kShakeDecay = 0.25f;
-constexpr std::uint32_t kEffectSilence = 0x10;
 constexpr int kViewNoAttackSounds = 3;       // the local view player's sessionKind_
 constexpr double kMinAxisLength = 0.0001;
 constexpr float kCrawlPrintScale = 0.5f;
@@ -235,7 +235,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         int frame = static_cast<int>(current->stepFrames[step]) - 1;
         if (frame == 0) break;
         if (!PassedFrame(frame, lastAnimationTime, now)) continue;
-        if (!unit->HasEffect(kEffectSilence)) {
+        if (!unit->HasEffect(static_cast<std::uint32_t>(SpellType::Silence))) {
             auto* world = ClientWorld();
             int ground = world->terrain_->SurfaceClass(position.x, position.y);
             FootstepSound(ground, &sound);

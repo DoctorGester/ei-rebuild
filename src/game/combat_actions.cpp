@@ -15,6 +15,7 @@
 #include "player_messages.h"
 #include "resource_manager.h"
 #include "sector_map.h"
+#include "spell.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
@@ -39,7 +40,6 @@ constexpr int kWeaponCrossbow = 6;
 // PropagateHostility's squared call radius: the original rounds it to a float through this global.
 float g_squaredCallRadius = /*007AF40C*/ {};
 constexpr std::uint32_t kSpellOnWeapon = 0x10000;       // CSpell::targetFlags_: cast by the item
-constexpr std::uint32_t kSpellNotOnHit = 0x180000;      // fires when not hit
 constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
 
 CDiplomacy* DiplomacyOf(CWorldServer* world) { return &world->diplomacy_; }
@@ -171,7 +171,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) continue;
         float cost = spell->manaCost_;
         if (cost > item->charge_) continue;
-        bool fires = (spell->prototypeId_ & 0xFFFF0000u) == kSpellNotOnHit ? onHit == 0 : onHit != 0;
+        bool fires = spell->Type() == SpellType::Healing ? onHit == 0 : onHit != 0;   // healing: when not hit
         if (!fires) continue;
         UseItemCharge(item, cost);
         CUnit* self = unit;

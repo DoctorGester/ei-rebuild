@@ -1,4 +1,5 @@
 #include "map_object.h"
+#include "spell.h"    // SpellType
 #include "unit.h"     // CMapObjectServer
 #include "world.h"    // CWorld
 
@@ -100,11 +101,11 @@ void CMapObject::AddEffect(const MapEffect* effect) {
     if (refCount_ != 0) {
         if (CWorld* world = World()) changeStamp = UpdateCount(world);
     }
-    int type = effect->type;
-    bool scales = type == mapeffect::kStrengthen || type == mapeffect::kWeaken || type == mapeffect::kEnlarge ||
-                  type == mapeffect::kShrink;
+    SpellType type = SpellTypeOf(effect->type);
+    bool scales = type == SpellType::Strengthen || type == SpellType::Weaken || type == SpellType::Enlarge ||
+                  type == SpellType::Shrink;
     ScaleEffectChanged(scales);
-    if (effect->type == mapeffect::kStun || effect->type == mapeffect::kStun2) SetStunned(1);
+    if (type == SpellType::Stun || type == SpellType::Teleport) SetStunned(1);
     EffectsChanged();
     if (scales) RecomputeScale();
     if (rebirth && effect->ticksLeft > 1) RemoveOutdatedEffects(this, effect);
@@ -138,9 +139,11 @@ float CMapObject::EffectValue(std::uint32_t type) {
 
 void CMapObject::RecomputeScale() {
     ApplyBaseScale();
-    int strength = (HasEffect(mapeffect::kStrengthen) ? 1 : 0) - (HasEffect(mapeffect::kWeaken) ? 1 : 0);
+    int strength = (HasEffect(static_cast<std::uint32_t>(SpellType::Strengthen)) ? 1 : 0) -
+                   (HasEffect(static_cast<std::uint32_t>(SpellType::Weaken)) ? 1 : 0);
     float strengthLevel = static_cast<float>(strength);   // stored as a float
-    int size = (HasEffect(mapeffect::kEnlarge) ? 1 : 0) - (HasEffect(mapeffect::kShrink) ? 1 : 0);
+    int size = (HasEffect(static_cast<std::uint32_t>(SpellType::Enlarge)) ? 1 : 0) -
+               (HasEffect(static_cast<std::uint32_t>(SpellType::Shrink)) ? 1 : 0);
     double sizeLevel = size;                               // kept unrounded
     float total = static_cast<float>(sizeLevel + strengthLevel);
     if (size == 0) {

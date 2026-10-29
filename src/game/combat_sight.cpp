@@ -52,8 +52,6 @@ constexpr std::uint32_t kSkillSource = 6;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kSpellNoTarget = 0x20000000;     // CSpell::targetFlags_: aimed at no object
-constexpr std::uint32_t kSpellKindStrike = 0x28;         // the spell's kind
-constexpr std::uint32_t kSpellKindCurse = 0x29;
 constexpr int kCastKindNone = 8;
 
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
@@ -171,9 +169,9 @@ void FillCastKind(OrderPlan* plan, CSpell* spell) {
         return;
     }
     if (spell->targetFlags_ & kSpellNoTarget) plan->targetId = -1;
-    std::uint32_t kind = spell->prototypeId_ >> 16;
-    if (kind == kSpellKindStrike) plan->castKind = 1;
-    else if (kind == kSpellKindCurse) plan->castKind = 0;
+    SpellType type = spell->Type();
+    if (type == SpellType::RickMagic) plan->castKind = 1;
+    else if (type == SpellType::CurseMagic) plan->castKind = 0;
     else plan->castKind = spell->GetPrototype()->school;
 }
 

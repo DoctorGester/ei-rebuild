@@ -3,6 +3,7 @@
 // the body slots' healing, the experience curves and experience gain. See unit.h and
 // docs/notes/units.md ("Statistics in play").
 #include "map_object.h"
+#include "spell.h"
 #include "unit.h"
 
 #include "object_tables.h"
@@ -44,9 +45,6 @@ constexpr int kRegenPeriod = 15;
 constexpr int kSlotArms = 2;
 constexpr int kSlotLegs = 3;
 
-constexpr std::uint32_t kEffectStrengthen = 0x1D;
-constexpr std::uint32_t kEffectWeaken = 0x1E;
-constexpr std::uint32_t kEffectRegeneration = 0x1F;
 constexpr int kEffectTypes = 0x28;
 
 constexpr int kSkillBodyB0 = 15;      // raises perception[1] by its percentage
@@ -100,8 +98,8 @@ double EffectScale(CUnit* unit, float k);
 
 double EffectScale(CUnit* unit, float k) {
     if (!unit) return 1.0f;
-    float strengthen = static_cast<float>(unit->EffectValue(kEffectStrengthen) * k + 1.0f);
-    return strengthen / (unit->EffectValue(kEffectWeaken) * k + 1.0f);
+    float strengthen = static_cast<float>(unit->EffectValue(static_cast<std::uint32_t>(SpellType::Strengthen)) * k + 1.0f);
+    return strengthen / (unit->EffectValue(static_cast<std::uint32_t>(SpellType::Weaken)) * k + 1.0f);
 }
 
 float ScaledAtLeastOne(CUnit* unit, float k, float value) {
@@ -208,7 +206,7 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
         double regen = hitPointRegen;
         float rate = static_cast<float>((LevelValueOf(stats, kSkillHitPointRegen) * kPercent + 1.0f) * regen);
         if (unit) {
-            double boost = unit->EffectValue(kEffectRegeneration);
+            double boost = unit->EffectValue(static_cast<std::uint32_t>(SpellType::Regeneration));
             if (boost > 0.0f) rate = static_cast<float>(boost * rate);
         }
         float scale = maxHitPoints;

@@ -28,6 +28,59 @@ class CEffect;
 class CEffectParticle;
 class CEffectPointLight;
 
+// The spell types: the spell prototype index (the order of the spell database in database.res, CSpell's
+// prototypeId_ >> 16), also an active effect's type (MapEffect::type: a buff copies its spell's). Names from the
+// prototypes' names (the code name where it differs), the sound folders under magic\ and the Start* functions. The
+// 1.06 database and Rebirth's both have all 42. Shapechange and Comprehend start nothing; Teleport's record on the
+// caster stuns it like Stun's (the client draws no particles for it). An int field holding one is read through
+// SpellTypeOf.
+enum class SpellType : int {
+    FireArrow = 0x00,               // "arrow"
+    Lightning = 0x01,               // "Lightning Arc"
+    AcidRay = 0x02,
+    Fireball = 0x03,
+    InvokeLightning = 0x04,         // "inv_lit": the light strike
+    AcidColumn = 0x05,
+    FireWall = 0x06,
+    LightningWall = 0x07,           // "litnwall" ("Smtg Lightning"): the light wall
+    AcidFog = 0x08,                 // the poison cloud
+    ProtectionFromFire = 0x09,      // "prot_fire", sounds in magic\Fireshield
+    ProtectionFromLightning = 0x0A, // "prot_electro", magic\Lightsheild
+    ProtectionFromAcid = 0x0B,      // "prot_acid", magic\PoisonShield
+    EagleSight = 0x0C,
+    Infravision = 0x0D,
+    DetectLife = 0x0E,
+    Invisibility = 0x0F,
+    Silence = 0x10,
+    Lichdom = 0x11,
+    Fireworks = 0x12,
+    Stench = 0x13,
+    Clairvoyance = 0x14,            // "clairvoyence"
+    Possession = 0x15,
+    Shapechange = 0x16,
+    VisionFog = 0x17,
+    Healing = 0x18,
+    Stun = 0x19,
+    Antimagic = 0x1A,
+    Link = 0x1B,
+    Teleport = 0x1C,
+    Strengthen = 0x1D,              // "strength"
+    Weaken = 0x1E,                  // "weak"
+    Regeneration = 0x1F,
+    Feeblemind = 0x20,
+    Speed = 0x21,
+    Slow = 0x22,
+    Comprehend = 0x23,
+    Charm = 0x24,
+    Enlarge = 0x25,
+    Shrink = 0x26,
+    Campfire = 0x27,                // StartAtGround: the effect stands at the ground point
+    RickMagic = 0x28,               // "rick_magic", school fire: a fire arrow with the RikArrowSmoke trail
+    CurseMagic = 0x29,              // "curse_magic", school lightning: lightning (CreateLightning's flag 1)
+};
+
+inline SpellType SpellTypeOf(int type) { return static_cast<SpellType>(type); }
+
 // A spell instance ("CSpell", class id 0x4F). prototypeId_ of CEngineObject is the packed id: spell
 // prototype index << 16.
 class CSpell : public CEngineObject {
@@ -49,6 +102,9 @@ public:
     // Null if the index is out of range.
     itemdb::SpellRecord* GetPrototype();
 
+    // The prototype index of the packed id.
+    SpellType Type() const { return static_cast<SpellType>(prototypeId_ >> 16); }
+
     // At most 8.
     int GetModifierCount();
 
@@ -58,8 +114,8 @@ public:
     // The elemental damage type the spell deals (3, 4 or 5), 6 for none.
     int GetDamageType();
 
-    // True for the attack spells (prototype indices 0-8, 0x11, 0x13, 0x19, 0x1E, 0x20, 0x22, 0x24, 0x26; with
-    // Rebirth's FixSpellSelfCasting also 0x28 and 0x29).
+    // True for the attack spells (FireArrow to AcidFog, Lichdom, Stench, Stun, Weaken, Feeblemind, Slow, Charm,
+    // Shrink; with Rebirth's FixSpellSelfCasting also RickMagic and CurseMagic).
     bool IsOffensive();
 
     // By the target flags in the low 16 bits of flags_; either may be null.
@@ -135,7 +191,7 @@ public:
     void Start(int type);
     // The old visual leaves the world's timed objects and is released.
     void SetVisual(CEffect* visual);
-    // The walls (6 fire wall, 7 light wall) and the area clouds (8, 0x27) block the AI map while they last.
+    // The walls (FireWall, LightningWall) and the areas (AcidFog, Campfire) block the AI map while they last.
     // Nothing without a visual or for other types.
     void UpdateFootprint(int type, int stamp);
     // It becomes the visual.
@@ -158,8 +214,8 @@ public:
 
     // One tick. Returns 0 when the effect has ended (the world then removes it) or without a world.
     int Update();
-    // State 1: the fire arrow (0, 0x28) and acid ray (2) hit their target when the missile reports a hit;
-    // the fireball (3) explodes when its timer runs out.
+    // State 1: the fire arrow (FireArrow, RickMagic) and the acid ray hit their target when the missile reports a
+    // hit; the fireball explodes when its timer runs out.
     void UpdateMissile(int type);
     // State 2: walls and clouds hit every 4th tick; every case counts the timer down and ends the effect.
     void UpdateLasting(int type);

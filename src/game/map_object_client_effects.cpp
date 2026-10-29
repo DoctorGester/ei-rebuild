@@ -31,17 +31,6 @@ constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 constexpr int kWarmUpTicks = 0x1E;                    // a source arriving with the object runs ahead
 constexpr float kPowerScale = 0.0625f;                // power / 16
 
-constexpr int kInvisibility = 0x0F;
-constexpr int kLichdom = 0x11;
-constexpr int kStench = 0x13;
-constexpr int kStun = 0x19;
-constexpr int kStun2 = 0x1C;
-constexpr int kStrengthen = 0x1D;
-constexpr int kWeaken = 0x1E;
-constexpr int kFeebleMind = 0x20;
-constexpr int kEnlarge = 0x25;
-constexpr int kShrink = 0x26;
-
 constexpr int kRingSource = static_cast<int>(ParticleType::ClayRing);        // Lichdom's ring
 constexpr int kScaleRingSource = static_cast<int>(ParticleType::Modifier1);   // strengthen / weaken
 constexpr int kFallbackSource = static_cast<int>(ParticleType::BlueGas);
@@ -52,9 +41,12 @@ constexpr float kSoundFar = 50.0f;
 
 // The effect types whose several entries share one particle source (the strongest power wins).
 bool MergesParticles(int type) {
-    switch (type) {
-    case 0x09: case 0x0A: case 0x0B: case 0x0C: case 0x0D: case 0x0E: case 0x10: case 0x13: case 0x19:
-    case 0x1A: case 0x1D: case 0x1E: case 0x1F: case 0x20: case 0x21: case 0x22:
+    switch (SpellTypeOf(type)) {
+    case SpellType::ProtectionFromFire: case SpellType::ProtectionFromLightning: case SpellType::ProtectionFromAcid:
+    case SpellType::EagleSight: case SpellType::Infravision: case SpellType::DetectLife: case SpellType::Silence:
+    case SpellType::Stench: case SpellType::Stun: case SpellType::Antimagic: case SpellType::Strengthen:
+    case SpellType::Weaken: case SpellType::Regeneration: case SpellType::Feeblemind: case SpellType::Speed:
+    case SpellType::Slow:
         return true;
     default:
         return false;
@@ -63,20 +55,20 @@ bool MergesParticles(int type) {
 
 // The particle source type of a lasting effect source; unknown types log and take 0x2013.
 int ParticleSourceType(int type) {
-    switch (type) {
-    case 0x09: return static_cast<int>(ParticleType::SphereFire);
-    case 0x0A: return static_cast<int>(ParticleType::SphereElectricity);
-    case 0x0B: return static_cast<int>(ParticleType::SphereAcid);
-    case 0x0C: return static_cast<int>(ParticleType::VisionStar1);
-    case 0x0D: return static_cast<int>(ParticleType::VisionStar2);
-    case 0x0E: return static_cast<int>(ParticleType::VisionStar3);
-    case 0x10: return static_cast<int>(ParticleType::VisionStar4);
-    case 0x13: return static_cast<int>(ParticleType::BlueGas);
-    case 0x1A: return static_cast<int>(ParticleType::Antimagic);
-    case 0x1F: return static_cast<int>(ParticleType::Silence);
-    case 0x20: return static_cast<int>(ParticleType::FeebleMind);
-    case 0x21: return static_cast<int>(ParticleType::FeetCloud2);
-    case 0x22: return static_cast<int>(ParticleType::FeetCloud1);
+    switch (SpellTypeOf(type)) {
+    case SpellType::ProtectionFromFire: return static_cast<int>(ParticleType::SphereFire);
+    case SpellType::ProtectionFromLightning: return static_cast<int>(ParticleType::SphereElectricity);
+    case SpellType::ProtectionFromAcid: return static_cast<int>(ParticleType::SphereAcid);
+    case SpellType::EagleSight: return static_cast<int>(ParticleType::VisionStar1);
+    case SpellType::Infravision: return static_cast<int>(ParticleType::VisionStar2);
+    case SpellType::DetectLife: return static_cast<int>(ParticleType::VisionStar3);
+    case SpellType::Silence: return static_cast<int>(ParticleType::VisionStar4);
+    case SpellType::Stench: return static_cast<int>(ParticleType::BlueGas);
+    case SpellType::Antimagic: return static_cast<int>(ParticleType::Antimagic);
+    case SpellType::Regeneration: return static_cast<int>(ParticleType::Silence);
+    case SpellType::Feeblemind: return static_cast<int>(ParticleType::FeebleMind);
+    case SpellType::Speed: return static_cast<int>(ParticleType::FeetCloud2);
+    case SpellType::Slow: return static_cast<int>(ParticleType::FeetCloud1);
     default:
         game::DebugLog("ERROR: Spell effect on map object with unknown particle effect");
         return kFallbackSource;
@@ -85,32 +77,32 @@ int ParticleSourceType(int type) {
 
 // The folder of an effect type's sounds ("" for types without).
 const char* SoundFolder(int type) {
-    switch (type) {
-    case 0x09: return "magic\\Fireshield";
-    case 0x0A: return "magic\\Lightsheild";
-    case 0x0B: return "magic\\PoisonShield";
-    case 0x0C: return "magic\\Eaglesight";
-    case 0x0D: return "magic\\Infravision";
-    case 0x0E: return "magic\\Detectlife";
-    case 0x0F: return "magic\\Invisibility";
-    case 0x10: return "magic\\Silence";
-    case 0x11: return "magic\\Lichdom";
-    case 0x19: return "magic\\Stun";
-    case 0x1A: return "magic\\Antimagic";
-    case 0x1D: return "magic\\Strengthen";
-    case 0x1E: return "magic\\Weaken";
-    case 0x1F: return "magic\\Regeneration";
-    case 0x21: return "magic\\Speed";
-    case 0x22: return "magic\\Slow";
-    case 0x25: return "magic\\Enlarge";
-    case 0x26: return "magic\\Shrink";
+    switch (SpellTypeOf(type)) {
+    case SpellType::ProtectionFromFire: return "magic\\Fireshield";
+    case SpellType::ProtectionFromLightning: return "magic\\Lightsheild";
+    case SpellType::ProtectionFromAcid: return "magic\\PoisonShield";
+    case SpellType::EagleSight: return "magic\\Eaglesight";
+    case SpellType::Infravision: return "magic\\Infravision";
+    case SpellType::DetectLife: return "magic\\Detectlife";
+    case SpellType::Invisibility: return "magic\\Invisibility";
+    case SpellType::Silence: return "magic\\Silence";
+    case SpellType::Lichdom: return "magic\\Lichdom";
+    case SpellType::Stun: return "magic\\Stun";
+    case SpellType::Antimagic: return "magic\\Antimagic";
+    case SpellType::Strengthen: return "magic\\Strengthen";
+    case SpellType::Weaken: return "magic\\Weaken";
+    case SpellType::Regeneration: return "magic\\Regeneration";
+    case SpellType::Speed: return "magic\\Speed";
+    case SpellType::Slow: return "magic\\Slow";
+    case SpellType::Enlarge: return "magic\\Enlarge";
+    case SpellType::Shrink: return "magic\\Shrink";
     default: return "";
     }
 }
 
 // The one-shot ring of Lichdom / strengthen / weaken, scaled by `size` (stored as a float).
 void SpawnRing(CMapObject* owner, int type, float size, bool negate) {
-    CParticleSource* ring = g_clientWorld->particleManager_->CreateSource(type == kStrengthen || type == kWeaken ? kScaleRingSource : kRingSource);
+    CParticleSource* ring = g_clientWorld->particleManager_->CreateSource(SpellTypeOf(type) == SpellType::Strengthen || SpellTypeOf(type) == SpellType::Weaken ? kScaleRingSource : kRingSource);
     ring->Attach(owner);
     float factor = size / ring->baseSize;
     ring->ScaleSize(negate ? -factor : factor);
@@ -120,7 +112,7 @@ void SpawnRing(CMapObject* owner, int type, float size, bool negate) {
 float RingSize(int type, int power) {
     float size = static_cast<float>(power) * kPowerScale;
     float value = size;
-    if (type == kWeaken) {
+    if (SpellTypeOf(type) == SpellType::Weaken) {
         size = -value;
         value = size;
     }
@@ -131,9 +123,9 @@ float RingSize(int type, int power) {
 int FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
 
 // Is there a record of `type` other than `index`?
-bool OtherRecordOfType(const std::vector<EffectParticle>& particles, int index, int type) {
+bool OtherRecordOfType(const std::vector<EffectParticle>& particles, int index, SpellType type) {
     for (int i = 0; i < std::ssize(particles); ++i)
-        if (i != index && particles[i].type == type) return true;
+        if (i != index && SpellTypeOf(particles[i].type) == type) return true;
     return false;
 }
 
@@ -167,11 +159,11 @@ void DropLight(CMapObjectClientSpecific* self) {
 void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
                                 const char* suffix) {
     CSoundManager* sounds = g_clientWorld->sounds_;
-    if (kind == kStench) {
+    if (SpellTypeOf(kind) == SpellType::Stench) {
         record->timer = 0;
         return;
     }
-    if (kind == kFeebleMind) {
+    if (SpellTypeOf(kind) == SpellType::Feeblemind) {
         if (record->handle == -1) {
             std::vector<std::string> names{"magic\\FeebleMind\\start.wav", "magic\\FeebleMind\\circle.wav"};
             record->handle = sounds->AddSequence(&names, 0, position,
@@ -254,21 +246,21 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         added.type = type;
         added.power = power;
         added.present = 1;
-        switch (type) {
-        case kInvisibility:
+        switch (SpellTypeOf(type)) {
+        case SpellType::Invisibility:
             CompanionOwner(this)->flags_ |= MapObjectFlag::Invisible;
             break;
-        case kStun:
+        case SpellType::Stun:
             CompanionOwner(this)->flags_ |= MapObjectFlag::Stunned;
             break;
-        case kLichdom:
-        case kStrengthen:
-        case kWeaken:
+        case SpellType::Lichdom:
+        case SpellType::Strengthen:
+        case SpellType::Weaken:
             if (!first) SpawnRing(CompanionOwner(this), type, RingSize(type, power), false);
             break;
-        case kStun2:
-        case kEnlarge:
-        case kShrink:
+        case SpellType::Teleport:
+        case SpellType::Enlarge:
+        case SpellType::Shrink:
             break;
         default: {
             CParticleSource* source = g_clientWorld->particleManager_->CreateSource(ParticleSourceType(type));
@@ -286,20 +278,20 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
     for (int i = 0; i < std::ssize(particles); ++i) {
         EffectParticle* record = &particles[i];
         if (record->present) continue;
-        switch (record->type) {
-        case kStun:
-            if (OtherRecordOfType(particles, i, kStun)) break;
+        switch (SpellTypeOf(record->type)) {
+        case SpellType::Stun:
+            if (OtherRecordOfType(particles, i, SpellType::Stun)) break;
             CompanionOwner(this)->flags_ &= ~MapObjectFlag::Stunned;
             CompanionOwner(this)->ClientSpecific()->ClearPartTints();
             break;
-        case kInvisibility:
-            if (OtherRecordOfType(particles, i, kInvisibility)) break;
+        case SpellType::Invisibility:
+            if (OtherRecordOfType(particles, i, SpellType::Invisibility)) break;
             CompanionOwner(this)->flags_ &= ~MapObjectFlag::Invisible;
             CompanionOwner(this)->ClientSpecific()->ResetPartAlpha();
             break;
-        case kLichdom:
-        case kStrengthen:
-        case kWeaken:
+        case SpellType::Lichdom:
+        case SpellType::Strengthen:
+        case SpellType::Weaken:
             if (!CompanionOwner(this)->IsDead())
                 SpawnRing(CompanionOwner(this), record->type, RingSize(record->type, record->power), true);
             break;

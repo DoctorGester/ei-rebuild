@@ -5451,3 +5451,10 @@ title = "C51a rest: Create/RunTick helper forwarders, Query, remaining Returns-1
 group = "cleanup"
 depends = ["C51a"]
 note = "Left by C51a. (1) The Create/RunTick overrides that only forward to a named helper (CreateTrack, CreateDrawer, CreateState, Create3D, CreateUnit, CreateTorch, CreateSpec, CreateClient, CreateBody, CreateLever, CreateTrap x2, LoadThemes, CreateWithArchives, CreateManager, CreateSprite, UiObjectCreate, VisFogManagerCreate/Tick, UpdateLever, UpdateTrap x2, UpdateCells, Pump, Segment): fold the helper into the override where nothing else calls it (C53's forwarder rule; ui_* ones wait for C54). (2) CMapObjectCompanion::Query is always 0 and CMapObject::CompanionQuery drops it: void or delete. (3) Other always-1 helpers still commented 'Returns 1' (unit_create.h, party.h Create, unit_client_models.h) to void. Not bool: CanCastSpell/CanUseQuickItem return codes, IncomingCount is a count (LoopbackLink returns the queue size), Alive is bool already."
+
+[[ticket]]
+id = "C45d4a"
+title = "SpellType parameters instead of ints"
+group = "cleanup"
+depends = ["C45d4"]
+note = "C45d4 left the int / uint32 signatures (C51's rule) and cast at the call sites: CMapObject::HasEffect / EffectValue(std::uint32_t) (static_cast<std::uint32_t>(SpellType::X) at 13 calls in map_object.cpp, map_object_companion.cpp, combat.cpp, unit.cpp, unit_client_sounds.cpp, unit_vitals.cpp), CSpellEffect::Start / UpdateMissile / UpdateLasting / UpdateFootprint(int type) and the Start* helpers' int type, map_object_client_effects.cpp's MergesParticles / ParticleSourceType / SoundFolder / SpawnRing / RingSize / PlayEffectSound(int kind), AIAttackOption::effect (int), EffectParticle::type / EffectSoundRecord::kind. Take SpellType there and drop the casts. MapEffect::type stays a byte (saved and sent). ui_camp_deals.cpp's PrototypeIndex(spell) is the P track's. Goldens unchanged."

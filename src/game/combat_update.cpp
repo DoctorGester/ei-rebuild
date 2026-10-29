@@ -13,6 +13,7 @@
 #include "map_object.h"
 #include "player_messages.h"
 #include "random.h"
+#include "spell.h"
 #include "sector_map.h"
 #include "unit.h"
 #include "unit_ai.h"
@@ -551,8 +552,8 @@ void CUnitServer::TickItemSpells() {
         auto* spell = item->spell_;
         float cost = spell->manaCost_;
         if (cost >= item->charge_) continue;   // a NaN charge or cost goes on
-        if ((spell->prototypeId_ & 0xFFFF0000u) == 0x180000) {
-            // A healing spell: only one a tick, and only when the unit is hurt.
+        if (spell->Type() == SpellType::Healing) {
+            // Only one a tick, and only when the unit is hurt.
             if (healed || unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints) continue;
             healed = true;
         }

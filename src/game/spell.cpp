@@ -92,20 +92,28 @@ bool CSpell::HasCastFlagModifier() {
 }
 
 int CSpell::GetDamageType() {
-    switch (prototypeId_ >> 16) {
-    case 0: case 3: case 6: case 0x28: return 3;
-    case 1: case 4: case 7: case 0x29: return 5;
-    case 2: case 5: case 8: return 4;
-    default: return 6;
+    switch (Type()) {
+    case SpellType::FireArrow: case SpellType::Fireball: case SpellType::FireWall: case SpellType::RickMagic:
+        return 3;
+    case SpellType::Lightning: case SpellType::InvokeLightning: case SpellType::LightningWall:
+    case SpellType::CurseMagic:
+        return 5;
+    case SpellType::AcidRay: case SpellType::AcidColumn: case SpellType::AcidFog:
+        return 4;
+    default:
+        return 6;
     }
 }
 
 bool CSpell::IsOffensive() {
-    switch (prototypeId_ >> 16) {
-    case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7: case 8:
-    case 0x11: case 0x13: case 0x19: case 0x1E: case 0x20: case 0x22: case 0x24: case 0x26:
+    switch (Type()) {
+    case SpellType::FireArrow: case SpellType::Lightning: case SpellType::AcidRay: case SpellType::Fireball:
+    case SpellType::InvokeLightning: case SpellType::AcidColumn: case SpellType::FireWall:
+    case SpellType::LightningWall: case SpellType::AcidFog:
+    case SpellType::Lichdom: case SpellType::Stench: case SpellType::Stun: case SpellType::Weaken:
+    case SpellType::Feeblemind: case SpellType::Slow: case SpellType::Charm: case SpellType::Shrink:
         return true;
-    case 0x28: case 0x29:   // Rebirth's new spells (its table runs to 0x29)
+    case SpellType::RickMagic: case SpellType::CurseMagic:
         return ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellSelfCasting);
     default:
         return false;
@@ -144,18 +152,18 @@ void CSpellEffect::GetDamage(DamageInfo* out) {
     out->calledShot = 0;
 
     const CSpell* spell = Spell();
-    switch (spell->prototypeId_ >> 16) {
-    case 0: case 3: case 0x28:
+    switch (spell->Type()) {
+    case SpellType::FireArrow: case SpellType::Fireball: case SpellType::RickMagic:
         out->typeWeights[3] = 1.0f; out->amount = spell->damage_; out->hitKind = 0; break;
-    case 1: case 4: case 0x29:
+    case SpellType::Lightning: case SpellType::InvokeLightning: case SpellType::CurseMagic:
         out->typeWeights[5] = 1.0f; out->amount = spell->damage_; out->hitKind = 0; break;
-    case 2:
+    case SpellType::AcidRay:
         out->typeWeights[4] = 1.0f; out->amount = spell->damage_; out->hitKind = 0; break;
-    case 5: case 8:
+    case SpellType::AcidColumn: case SpellType::AcidFog:
         out->typeWeights[4] = 1.0f; out->amount = spell->damage_; out->hitKind = 1; break;
-    case 6: case 0x27:
+    case SpellType::FireWall: case SpellType::Campfire:
         out->typeWeights[3] = 1.0f; out->amount = spell->damage_; out->hitKind = 1; break;
-    case 7:
+    case SpellType::LightningWall:
         out->typeWeights[5] = 1.0f; out->amount = spell->damage_; out->hitKind = 1; break;
     default:
         break;

@@ -24,15 +24,14 @@ constexpr std::uint32_t kSpellAreaFlag = 0x20000000;     // targetFlags_: also h
 constexpr std::uint32_t kSpellNoTargetFlag = 0x20000;
 constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 
-// The prototype index in the packed id.
-int SpellType(const CSpell* spell) { return static_cast<int>(spell->prototypeId_ >> 16); }
-
-// Whether the spell type turns the target against the caster (a switch over 0x13, 0x19, 0x1E, 0x20, 0x22,
-// 0x26).
-bool IsHostileType(int type) {
+// Whether the spell type turns the target against the caster.
+bool IsHostileType(SpellType type) {
     switch (type) {
-    case 0x13: case 0x19: case 0x1E: case 0x20: case 0x22: case 0x26: return true;
-    default: return false;
+    case SpellType::Stench: case SpellType::Stun: case SpellType::Weaken: case SpellType::Feeblemind:
+    case SpellType::Slow: case SpellType::Shrink:
+        return true;
+    default:
+        return false;
     }
 }
 
@@ -57,7 +56,7 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
     }
     CUnit* victim = UnitOrNull(target);
     if (victim && caster) {
-        if (IsHostileType(SpellType(spell))) {
+        if (IsHostileType(spell->Type())) {
             victim->ServerController()->brain.SetSeen(caster);
             diplomacy_.OnAttack(caster, victim);
             target->flags_ |= MapObjectFlag::RelationsChanged;
@@ -70,8 +69,8 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
                              const Vector3* to, int extra) {
     if (!spell) return;
     if (sessionKind_ != kKindSinglePlayer && caster) return;
-    int type = SpellType(spell);
-    if (type == 0x15 || type == 0x1B || type == 0x24) return;
+    SpellType type = spell->Type();
+    if (type == SpellType::Possession || type == SpellType::Link || type == SpellType::Charm) return;
     std::uint32_t flags = spell->targetFlags_;
     int targets = static_cast<int>(spell->targetCount_);
     if (!(flags & 0xFFFF) && targets <= 1) {

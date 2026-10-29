@@ -25,23 +25,23 @@ namespace {
 
 // --- The spell types ----------------------------------------------------------------------------
 
-// 0 (0x2011) and 0x28 (0x204E): the fire arrow, a missile at a unit target.
+// FireArrow (particle FireArrow) and RickMagic (RikArrowSmoke): the fire arrow, a missile at a unit target.
 Next StartFireArrow(CSpellEffect* e, int type, const Vector3& from) {
     if (!IsUnit(e->target)) return Next::Done;
     e->timer = 0x96;
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
     float power = Power(e);
-    e->CreateArrow(&from, e->target, type == 0 ? static_cast<int>(ParticleType::FireArrow) : static_cast<int>(ParticleType::RikArrowSmoke), power, "magic\\Firearrow\\circle.wav", &color, range);
+    e->CreateArrow(&from, e->target, SpellTypeOf(type) == SpellType::FireArrow ? static_cast<int>(ParticleType::FireArrow) : static_cast<int>(ParticleType::RikArrowSmoke), power, "magic\\Firearrow\\circle.wav", &color, range);
     e->CreateSound(0, "magic\\Firearrow\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
     e->state = 1;
     return Next::Set;
 }
 
-// 1 and 0x29: lightning from the caster to the target, hitting it at once.
+// Lightning and CurseMagic: lightning from the caster to the target, hitting it at once.
 Next StartLightning(CSpellEffect* e, int type, const Vector3& from) {
     float power = Power(e);
-    e->CreateLightning(&from, e->target, e->caster, power, type == 0x29 ? 1 : 0);
+    e->CreateLightning(&from, e->target, e->caster, power, SpellTypeOf(type) == SpellType::CurseMagic ? 1 : 0);
     e->CreateSound(0, "magic\\lightning\\start.wav", &e->position, &kZeroVector, kVolume, kHearing);
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
@@ -55,7 +55,7 @@ Next StartLightning(CSpellEffect* e, int type, const Vector3& from) {
     return Next::Set;
 }
 
-// 2: the acid ray, a missile (power x 0.4).
+// AcidRay: a missile (power x 0.4).
 Next StartAcidRay(CSpellEffect* e, const Vector3& from) {
     if (!IsUnit(e->target)) return Next::Done;
     e->timer = 0x96;
@@ -68,7 +68,7 @@ Next StartAcidRay(CSpellEffect* e, const Vector3& from) {
     return Next::Set;
 }
 
-// 3: the fireball, a particle source flying at the target point; it explodes in state 1.
+// Fireball: a particle source flying at the target point; it explodes in state 1.
 Next StartFireball(CSpellEffect* e, const Vector3& from) {
     float speed = e->Spell()->speed_;
     Vector3 velocity;
@@ -100,7 +100,7 @@ Next StartFireball(CSpellEffect* e, const Vector3& from) {
     return Next::Set;
 }
 
-// 4: a lightning strike from 30 above the target point, hitting every unit in the radius.
+// InvokeLightning: a lightning strike from 30 above the target point, hitting every unit in the radius.
 Next StartLightStrike(CSpellEffect* e) {
     e->targetPoint.z = GroundMinus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::StrikeDepth()));
     e->position = e->targetPoint;
@@ -124,7 +124,7 @@ Next StartLightStrike(CSpellEffect* e) {
     return Next::Set;
 }
 
-// 5: the acid column at the target point.
+// AcidColumn: the column at the target point.
 Next StartAcidColumn(CSpellEffect* e) {
     e->position = e->targetPoint;
     e->CreateParticle(0, static_cast<int>(ParticleType::Nuke), &e->targetPoint, 1.0f, 1.0f, &kZeroVector, nullptr);
@@ -148,7 +148,7 @@ Vector3 WallDirection(const Vector3& centre, const Vector3& from) {
     return d;
 }
 
-// 6: the fire wall across the line from the caster to the target point.
+// FireWall: the wall across the line from the caster to the target point.
 Next StartFireWall(CSpellEffect* e, const Vector3& from) {
     Vector3 centre = e->targetPoint;
     float alpha = Power(e);
@@ -169,7 +169,7 @@ Next StartFireWall(CSpellEffect* e, const Vector3& from) {
     return Next::Set;
 }
 
-// 7: the light wall, a lightning between the two ends of the same span.
+// LightningWall: the light wall, a lightning between the two ends of the same span.
 Next StartLightWall(CSpellEffect* e, const Vector3& from) {
     Vector3 centre = e->targetPoint;
     Vector3 direction = WallDirection(centre, from);
@@ -198,7 +198,7 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
     return Next::Set;
 }
 
-// 8: the poison cloud at the target point.
+// AcidFog: the poison cloud at the target point.
 Next StartPoisonCloud(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
@@ -212,7 +212,7 @@ Next StartPoisonCloud(CSpellEffect* e) {
     return Next::Set;   // state 2, timer = duration (the shared tail)
 }
 
-// 9-0x11, 0x13, 0x19, 0x1A, 0x1D-0x22, 0x25, 0x26: buffs. The target gets a record of the spell
+// The buffs (Start lists them). The target gets a record of the spell
 // with the strength trunc(power x 16); the effect itself ends.
 Next ApplyBuff(CSpellEffect* e) {
     if (!e->target) return Next::Done;
@@ -224,7 +224,7 @@ Next ApplyBuff(CSpellEffect* e) {
     return Next::Done;
 }
 
-// 0x12: fireworks (five numbered sounds).
+// Fireworks (five numbered sounds).
 Next StartFirework(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
@@ -236,7 +236,7 @@ Next StartFirework(CSpellEffect* e) {
     return Next::Set;
 }
 
-// 0x14: clairvoyance. The particle uses the target point as it was; the light, the ground point.
+// Clairvoyance. The particle uses the target point as it was; the light, the ground point.
 Next StartClairvoyance(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
@@ -247,7 +247,7 @@ Next StartClairvoyance(CSpellEffect* e) {
     return Next::Set;
 }
 
-// 0x15: possession (only the sound here).
+// Possession (only the sound here).
 Next StartPossession(CSpellEffect* e) {
     if (!e->target) return Next::Done;
     Vector3 scratch;
@@ -255,7 +255,7 @@ Next StartPossession(CSpellEffect* e) {
     return Next::Set;
 }
 
-// 0x17: vision fog: a CEffectShowVisibility linking the caster and the target.
+// VisionFog: a CEffectShowVisibility linking the caster and the target.
 Next StartVisionFog(CSpellEffect* e) {
     if (!e->caster || !e->target) return Next::Done;
     int targetId = e->target->id_;
@@ -269,7 +269,7 @@ Next StartVisionFog(CSpellEffect* e) {
     return Next::Set;
 }
 
-// 0x18: healing. Heals the target's controller by the effect value; the sound and the light only
+// Healing. Heals the target's controller by the effect value; the sound and the light only
 // when the target is not at full health (or +0xA4 is clear).
 Next StartHealing(CSpellEffect* e) {
     if (e->target->GetClassId() != ClassId::Unit) return Next::Done;   // no null check
@@ -291,7 +291,7 @@ Next StartHealing(CSpellEffect* e) {
     return Next::Set;
 }
 
-// 0x1B: link between two different units that are both free; otherwise the caster complains (0x18).
+// Link between two different units that are both free; otherwise the caster complains (0x18).
 Next StartLink(CSpellEffect* e) {
     if (!IsUnit(e->target) || !IsUnit(e->caster)) return Next::Done;
     bool free = e->target->IsLargeUnit() == 0 && e->caster->IsLargeUnit() == 0 &&
@@ -317,7 +317,7 @@ Next StartLink(CSpellEffect* e) {
     return Next::Set;
 }
 
-// 0x1C: teleport: a particle where the caster stands and an inverted one at the target point.
+// Teleport: a particle where the caster stands and an inverted one at the target point.
 Next StartTeleport(CSpellEffect* e) {
     const Vector3* source = e->caster ? &e->caster->localPosition_ : &e->position;
     Vector3 point = *source;
@@ -335,7 +335,7 @@ Next StartTeleport(CSpellEffect* e) {
     return Next::Set;
 }
 
-// 0x24: charm. The target's controller is tamed by the caster until their sides (controller
+// Charm. The target's controller is tamed by the caster until their sides (controller
 // +0x1C, +0x24C) agree; a failed attempt makes the caster complain (0x1A).
 Next StartCharm(CSpellEffect* e) {
     if (e->target->GetClassId() != ClassId::Unit) return Next::Leave;   // no null check
@@ -354,7 +354,7 @@ Next StartCharm(CSpellEffect* e) {
     return Next::Done;
 }
 
-// 0x27: the effect only moves to the ground point.
+// Campfire: the effect only moves to the ground point.
 Next StartAtGround(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
     centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
@@ -379,31 +379,34 @@ void CSpellEffect::Start(int type) {
     // without touching the state; the others set it themselves.
     Next next = Next::Done;
     bool durationTail = false;
-    switch (type) {
-    case 0x00:
-    case 0x28: next = StartFireArrow(this, type, from); break;
-    case 0x01:
-    case 0x29: next = StartLightning(this, type, from); break;
-    case 0x02: next = StartAcidRay(this, from); break;
-    case 0x03: next = StartFireball(this, from); break;
-    case 0x04: next = StartLightStrike(this); break;
-    case 0x05: next = StartAcidColumn(this); break;
-    case 0x06: next = StartFireWall(this, from); break;
-    case 0x07: next = StartLightWall(this, from); break;
-    case 0x08: next = StartPoisonCloud(this); durationTail = true; break;
-    case 0x09: case 0x0A: case 0x0B: case 0x0C: case 0x0D: case 0x0E: case 0x0F: case 0x10: case 0x11:
-    case 0x13: case 0x19: case 0x1A: case 0x1D: case 0x1E: case 0x1F: case 0x20: case 0x21: case 0x22:
-    case 0x25: case 0x26: next = ApplyBuff(this); break;
-    case 0x12: next = StartFirework(this); durationTail = true; break;
-    case 0x14: next = StartClairvoyance(this); durationTail = true; break;
-    case 0x15: next = StartPossession(this); durationTail = true; break;
-    case 0x17: next = StartVisionFog(this); durationTail = true; break;
-    case 0x18: next = StartHealing(this); break;
-    case 0x1B: next = StartLink(this); durationTail = true; break;
-    case 0x1C: next = StartTeleport(this); break;
-    case 0x24: next = StartCharm(this); break;
-    case 0x27: next = StartAtGround(this); durationTail = true; break;
-    default: break;   // 0x16, 0x23 and above 0x29
+    switch (SpellTypeOf(type)) {
+    case SpellType::FireArrow:
+    case SpellType::RickMagic: next = StartFireArrow(this, type, from); break;
+    case SpellType::Lightning:
+    case SpellType::CurseMagic: next = StartLightning(this, type, from); break;
+    case SpellType::AcidRay: next = StartAcidRay(this, from); break;
+    case SpellType::Fireball: next = StartFireball(this, from); break;
+    case SpellType::InvokeLightning: next = StartLightStrike(this); break;
+    case SpellType::AcidColumn: next = StartAcidColumn(this); break;
+    case SpellType::FireWall: next = StartFireWall(this, from); break;
+    case SpellType::LightningWall: next = StartLightWall(this, from); break;
+    case SpellType::AcidFog: next = StartPoisonCloud(this); durationTail = true; break;
+    case SpellType::ProtectionFromFire: case SpellType::ProtectionFromLightning: case SpellType::ProtectionFromAcid:
+    case SpellType::EagleSight: case SpellType::Infravision: case SpellType::DetectLife: case SpellType::Invisibility:
+    case SpellType::Silence: case SpellType::Lichdom: case SpellType::Stench: case SpellType::Stun:
+    case SpellType::Antimagic: case SpellType::Strengthen: case SpellType::Weaken: case SpellType::Regeneration:
+    case SpellType::Feeblemind: case SpellType::Speed: case SpellType::Slow: case SpellType::Enlarge:
+    case SpellType::Shrink: next = ApplyBuff(this); break;
+    case SpellType::Fireworks: next = StartFirework(this); durationTail = true; break;
+    case SpellType::Clairvoyance: next = StartClairvoyance(this); durationTail = true; break;
+    case SpellType::Possession: next = StartPossession(this); durationTail = true; break;
+    case SpellType::VisionFog: next = StartVisionFog(this); durationTail = true; break;
+    case SpellType::Healing: next = StartHealing(this); break;
+    case SpellType::Link: next = StartLink(this); durationTail = true; break;
+    case SpellType::Teleport: next = StartTeleport(this); break;
+    case SpellType::Charm: next = StartCharm(this); break;
+    case SpellType::Campfire: next = StartAtGround(this); durationTail = true; break;
+    default: break;   // Shapechange, Comprehend and above CurseMagic
     }
     if (next == Next::Done) {
         state = 3;
@@ -422,21 +425,21 @@ void CSpellEffect::SetVisual(CEffect* object) {
 void CSpellEffect::UpdateFootprint(int type, int stamp) {
     if (!visual) return;
     CAIMap* aiMap = &world->aiMap_;
-    switch (type) {
-    case 6: {
+    switch (SpellTypeOf(type)) {
+    case SpellType::FireWall: {
         Vector3 direction;
         direction = (Visual<CEffectWall>()->direction_);
         g_spellFootprint->AlongDirection(aiMap, &position, kHalfBits, &direction);
         break;
     }
-    case 7: {
+    case SpellType::LightningWall: {
         Vector3 half;
         HalfSpan(Visual<CEffectLightning>(), &half);
         g_spellFootprint->AlongDirection(aiMap, &position, kHalfBits, &half);
         break;
     }
-    case 8:
-    case 0x27: g_spellFootprint->DiscAt(aiMap, &position, Spell()->radius_); break;
+    case SpellType::AcidFog:
+    case SpellType::Campfire: g_spellFootprint->DiscAt(aiMap, &position, Spell()->radius_); break;
     default: return;
     }
     if (stamp) {

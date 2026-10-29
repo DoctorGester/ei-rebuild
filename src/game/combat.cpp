@@ -12,6 +12,7 @@
 #include "object_diplomacy.h"
 #include "player_messages.h"
 #include "random.h"
+#include "spell.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
@@ -239,10 +240,10 @@ bool CUnitServer::IsFighting() {
             spell = unit->GetSpellObject(action.source);
         }
         if (spell) {
-            std::uint32_t type = spell->prototypeId_ >> 16;
-            if (type <= 8) return true;
-            // Rebirth's FixPlaingBattleMusicFromAntimagic skips the 0x1A test.
-            if (type == 0x1A && !ei::rebirth::Enabled(ei::rebirth::Patch::FixPlaingBattleMusicFromAntimagic))
+            SpellType type = spell->Type();
+            if (type <= SpellType::AcidFog) return true;
+            // Rebirth's FixPlaingBattleMusicFromAntimagic skips the Antimagic test.
+            if (type == SpellType::Antimagic && !ei::rebirth::Enabled(ei::rebirth::Patch::FixPlaingBattleMusicFromAntimagic))
                 return true;
         }
     }
@@ -373,7 +374,7 @@ int CUnitServer::Level() {
 }
 
 void CUnitServer::EffectsChanged() {
-    if (unit->HasEffect(0x20) && stats.naturalWeapon != kNoNaturalWeapon) unit->flags_ |= MapObjectFlag::NoCasting;
+    if (unit->HasEffect(static_cast<std::uint32_t>(SpellType::Feeblemind)) && stats.naturalWeapon != kNoNaturalWeapon) unit->flags_ |= MapObjectFlag::NoCasting;
     else unit->flags_ &= ~MapObjectFlag::NoCasting;
 }
 
