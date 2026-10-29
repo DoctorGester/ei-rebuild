@@ -10,21 +10,18 @@
 #include <string_view>
 #include <vector>
 
-int CUiSurface::DrawWrappedText(std::string_view text, const RECT* rect, int maxLines, int font, COLORREF colour,
-                                UINT format, bool shadow) {
-    if (!holder_) return 0;
-    int width = rect->right - rect->left;
+std::vector<std::string> CInterface3D::WrapText(std::string_view text, int width, int font) const {
     std::string ch, word, line;
     std::string source(text);
     source += game::NewLineText();
     std::vector<std::string> lines;
     // Words collect characters up to a space or newline; a word that would make the line wider
-    // than the rectangle starts a new line (a newline then also ends the word's line).
+    // than the width starts a new line (a newline then also ends the word's line).
     for (const char* p = source.c_str(); *p != 0; ++p) {
         const char c = *p;
         ch.assign(1, c);
         if (c == '\n') {
-            if (interface_->TextExtent(line + word, font).cx > width) {
+            if (TextExtent(line + word, font).cx > width) {
                 lines.push_back(line);
                 lines.push_back(word);
             } else {
@@ -34,7 +31,7 @@ int CUiSurface::DrawWrappedText(std::string_view text, const RECT* rect, int max
             line.clear();
             word.clear();
         } else if (c == ' ') {
-            if (interface_->TextExtent(line + word, font).cx > width) {
+            if (TextExtent(line + word, font).cx > width) {
                 lines.push_back(line);
                 line = word + game::SpaceText();
             } else {
@@ -46,6 +43,13 @@ int CUiSurface::DrawWrappedText(std::string_view text, const RECT* rect, int max
             word += ch;
         }
     }
+    return lines;
+}
+
+int CUiSurface::DrawWrappedText(std::string_view text, const RECT* rect, int maxLines, int font, COLORREF colour,
+                                UINT format, bool shadow) {
+    if (!holder_) return 0;
+    const std::vector<std::string> lines = interface_->WrapText(text, rect->right - rect->left, font);
     RECT at = *rect;
     int height = rect->bottom - rect->top;
     const int count = static_cast<int>(lines.size());

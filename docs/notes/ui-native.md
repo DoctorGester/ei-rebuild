@@ -600,6 +600,24 @@ The frame's median time there fell from 4.7 ms to 0.24 ms (RichEdit formatted an
 Look: our glyphs are Liberation's (bold emboldened), RichEdit's were Times New Roman's; in the harness the old frames
 also had ClearType fringes, as RichEdit asked the system's smoothing rather than the harness's answer.
 
+### Justified scroll text and the help page's block (P8d, 2026-10-29)
+
+Both were the original's behaviour (game.exe's `ui_gallery_game` frames objectives / help show the same), changed
+on the user's playtest; layout and state are otherwise untouched, goldens hold no frames.
+- **Justified lines** (`CUiScrollText::DrawLines`, ui_scroll_text.cpp: the briefing, the objectives, the message
+  log). The original shared the room the words leave by the line's tokens less one, format tokens included, so a
+  line holding a colour / font token (the text's first line usually) stopped one gap short of the right edge; ours
+  divides by the words less one. A wrapped line whose gaps would pass `kMaxStretch` (3) normal gaps (a third of the
+  font's height) stays left aligned; the original stretched every line (the user's briefing: three long words to
+  gaps of 7 normal ones). 3, not 2: a cap of 2 left half the ordinary lines ragged (the objectives' second line at
+  1280x720 needs 2.8, six of the briefing's eight wrapped lines passed 2), so the paragraph read as left aligned
+  with a few stretched lines. Lines still break where the original's did (`Layout` is unchanged).
+- **The help page's text block** (`CHelpWindow::ShowPage`, ui_help_page.cpp). The original's rows ran from 15 units
+  to the page's width less 30, so with the lines' ragged ends the block sat left of centre. The texts still wrap
+  to that width (same line breaks, same page height); the block (its widest line, a text beside a picture counted
+  from the picture's place) is centred in the page, the pictures moved with it. `CInterface3D::WrapText`
+  (ui_text.cpp) is `DrawWrappedText`'s wrap, which the page measures with.
+
 ## 4. Tickets
 
 The tickets (N0-N5 preparation, P1-P8 porting) are in docs/tickets.toml (`python tools/tickets.py show N1`); this note keeps what
