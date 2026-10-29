@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -43,17 +44,13 @@ public:
     virtual void Rasterise(char32_t ch, std::uint8_t* out, int pitch) const = 0;
 };
 
-// Loads a TrueType file with stb_truetype at an em height of `pixels` (GDI's -lfHeight). Null when the
-// file cannot be read or parsed. Files are shared between sizes.
-std::unique_ptr<Font> LoadFont(const std::string& path, int pixels);
+// Loads a TrueType font from `data` (which outlives the font: FontForFace's) with stb_truetype at an em height of
+// `pixels` (GDI's -lfHeight). Null when it cannot be parsed. The parsed data is shared between sizes.
+std::unique_ptr<Font> LoadFont(std::span<const unsigned char> data, int pixels);
 
-// Where font files are looked up: by default the repository's third_party/fonts (EI_FONT_DIR, set by
-// the build); a host (the hook DLL, a standalone exe) sets its own folder once at start-up.
-void SetFontDirectory(const std::string& directory);
-std::string FontDirectory();
-// The font file standing in for a GDI face name ("Times New Roman" -> LiberationSerif-Regular.ttf,
-// "Courier New" -> LiberationMono-Regular.ttf); unknown faces get the serif one.
-const char* FontFileForFace(std::string_view face);
+// The font standing in for a GDI face name, built into the executable (render_fonts.cpp): Liberation Mono for
+// "Courier New", Liberation Serif for every other face (Times New Roman).
+std::span<const unsigned char> FontForFace(std::string_view face);
 
 // MFC's CFont::CreatePointFont: tenths of a point to the em height in pixels at `dpi`
 // (lfHeight = -(dpi * tenths / 720), integer division).
@@ -106,8 +103,8 @@ private:
     std::unordered_map<std::uint64_t, int> kerning_;
 };
 
-// The process-wide font for a GDI face name and em height in pixels (loaded on first use; null when
-// the file is missing). Not thread-safe: call it from the thread that draws the interface.
+// The process-wide font for a GDI face name and em height in pixels (loaded on first use). Not thread-safe:
+// call it from the thread that draws the interface.
 TextFont* GetTextFont(std::string_view face, int pixels, bool smoothing = true);
 
 // ---- Code page ----------------------------------------------------------------------------------------
@@ -126,12 +123,14 @@ enum Format : unsigned {
     kRight = 0x2,
     kVCenter = 0x4,
     kWordBreak = 0x10,
+    kSingleLine = 0x20,
     kExpandTabs = 0x40,
     kNoClip = 0x100,
     kCalcRect = 0x400,
     kNoPrefix = 0x800,
 };
-constexpr unsigned kSupportedFormats = kCenter | kRight | kVCenter | kWordBreak | kExpandTabs | kNoClip | kCalcRect | kNoPrefix;
+constexpr unsigned kSupportedFormats =
+    kCenter | kRight | kVCenter | kWordBreak | kSingleLine | kExpandTabs | kNoClip | kCalcRect | kNoPrefix;
 
 struct Rect {
     int left = 0, top = 0, right = 0, bottom = 0;

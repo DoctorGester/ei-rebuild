@@ -22,6 +22,7 @@
 #include "ui.h"
 #include "ui_camp.h"
 #include "ui_cursor.h"
+#include "ui_native.h"
 #include "world.h"
 #include "world_glue.h"
 
@@ -388,6 +389,7 @@ void CGlobalMap::CreateScreen() {
     }
     {
         CUiSurface* info = new CUiSurface(interface_, 400, 20, 780, 300, 5, 1);
+        ui_native::Adopt(info, "globalmap");
         AddSurface(info);
         info->Freeze(0, 0);
     }
@@ -414,6 +416,7 @@ void CGlobalMap::CreateScreen() {
     clock = str::Format("%s  %d,  %d:%02d", dayText, day + 1, hour, minutes);
     {
         CUiSurface* text = new CUiSurface(interface_, 20, 20, 170, 70, 5, 1);
+        ui_native::Adopt(text, "globalmap");
         AddSurface(text);
         UiSurfaceGetDC(text);
         RECT line1 = {0, 5, 150, 25};

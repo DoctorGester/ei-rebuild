@@ -6,6 +6,7 @@
 
 #include "asset_text.h"
 #include "ui_gdi.h"
+#include "ui_native.h"
 
 #include "lib/gameapi.h"
 #include <cstdint>
@@ -118,7 +119,9 @@ CUiEditField::CUiEditField(CInterface3D* ui, RECT rect) : CUiWindow(ui) {
     caretColour_ = 0xFF;
     ClearSurfaces();
     area_ = rect;
-    AddSurface(new CUiSurface(interface_, &area_, kSurfaceFormat));
+    CUiSurface* surface = new CUiSurface(interface_, &area_, kSurfaceFormat);
+    ui_native::Adopt(surface, "edit");
+    AddSurface(surface);
     DrawContentsVanilla();
     focused_ = true;
 }
@@ -200,6 +203,7 @@ void CUiEditField::DrawContentsVanilla() {
         gameapi::MoveToEx(dc, top.x, top.y, nullptr);
         gameapi::LineTo(dc, bottom.x, bottom.y);
         gameapi::SelectObject(dc, oldPen);
+        ui_native::Line(surface, top.x, top.y, bottom.x, bottom.y, 1, caretColour_);
     }
     UiSurfaceReleaseDC(surface);
 }

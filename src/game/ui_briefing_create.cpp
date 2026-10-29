@@ -18,6 +18,7 @@
 #include "ui.h"
 #include "ui_briefing.h"
 #include "ui_camera_keys.h"
+#include "ui_native.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_client_models.h"
@@ -34,6 +35,7 @@
 #include <bit>
 #include <cmath>
 #include <cstring>
+#include <initializer_list>
 #include <string>
 #include <vector>
 
@@ -188,12 +190,16 @@ void CBriefingScreen::CreateScreen() {
     AddBlankSprite()->SetFrame(20.0f, 100.0f, 150.0f, 411.0f, 650.0f, 585.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
 
     // Surface 0 the topic rows, 1 a person's label.
-    AddSurface(new CUiSurface(interface_, 200, 430, 600, 570, kSurfaceFormat, 1));
-    AddSurface(new CUiSurface(interface_, 0, 0, 250, 30, kSurfaceFormat, 1));
+    for (const RECT& area : {RECT{200, 430, 600, 570}, RECT{0, 0, 250, 30}}) {
+        CUiSurface* surface = new CUiSurface(interface_, area.left, area.top, area.right, area.bottom, kSurfaceFormat, 1);
+        ui_native::Adopt(surface, "briefing");
+        AddSurface(surface);
+    }
 
     topicBar_ = new CUiScrollbar(interface_, RECT{584, 440, 594, 560}, 3.0f, 0, 1.0f);
     AddChild(topicBar_);
     text_ = new CUiScrollText(interface_, game::kEmptyText, RECT{165, 426, 635, 570}, 10.0f);
+    ui_native::Adopt(text_->surfaces_[0], "briefing");   // (it draws nothing before its first Draw)
     AddChild(text_);
 
     SetMeshesVisible(this, 0);

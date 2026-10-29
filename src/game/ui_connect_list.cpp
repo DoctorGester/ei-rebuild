@@ -9,6 +9,7 @@
 
 #include "net_classes.h"
 #include "ui_gdi.h"
+#include "ui_native.h"
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
@@ -144,6 +145,7 @@ void CMpConnectScreen::DrawListVanilla() {
     interface_->CallScalePointToScreenNoMargin(&to);
     gameapi::MoveToEx(dc, from.x, from.y, nullptr);
     gameapi::LineTo(dc, to.x, to.y);
+    ui_native::Line(surface, from.x, from.y, to.x, to.y, 1, g_connectTextColour);
     Down(&row, 27);
 
     unsigned index = static_cast<unsigned>(scrollTop_);

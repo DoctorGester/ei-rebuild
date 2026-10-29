@@ -76,6 +76,7 @@ std::string FormatName(unsigned format) {
     add(kRight, "RIGHT");
     add(kVCenter, "VCENTER");
     add(kWordBreak, "WORDBREAK");
+    add(kSingleLine, "SINGLELINE");
     add(kExpandTabs, "EXPANDTABS");
     add(kNoPrefix, "NOPREFIX");
     add(kCalcRect, "CALCRECT");
@@ -663,6 +664,7 @@ std::vector<FontSpec> FontSpecs() {
 
 const unsigned kFormats[] = {
     0, kWordBreak, kWordBreak | kCenter, kWordBreak | kRight, kWordBreak | kExpandTabs, kCenter | kVCenter, kWordBreak | kNoPrefix, kRight,
+    kCenter | kVCenter | kSingleLine, kSingleLine,
 };
 const int kWidths[] = {90, 220, 420};   // in the 800 x 600 layout, scaled to the screen
 
@@ -710,7 +712,7 @@ void Work(const std::vector<TestString>& strings, const std::vector<FontSpec>& s
         TextFont gdiFont(std::make_unique<GdiFont>(hfont), false);
         std::unique_ptr<TextFont> stbFont;
         if (options.report) {
-            if (auto font = LoadFont(FontDirectory() + "/" + FontFileForFace(spec.face), pixels)) stbFont = std::make_unique<TextFont>(std::move(font), true);
+            if (auto font = LoadFont(FontForFace(spec.face), pixels)) stbFont = std::make_unique<TextFont>(std::move(font), true);
         }
         Dib measure(1, 1);
         SelectObject(measure.dc, hfont);
@@ -749,8 +751,10 @@ void Work(const std::vector<TestString>& strings, const std::vector<FontSpec>& s
                         // Pixels, for every Nth case (and every synthetic one), in rectangles of a few heights.
                         const bool pixelCase = test.synthetic || (static_cast<int>(index) + variant) % options.pixelsEvery == 0;
                         if (pixelCase && gdiResult < 4000) {
-                            const int heights[3] = {gdiResult + lineHeight, lineHeight, 2 * lineHeight + 1};
-                            for (int h = 0; h < (test.synthetic && (format & kWordBreak) ? 3 : 1); ++h) {
+                            // A single line is placed in heights that leave even, odd and negative room around it.
+                            const int heights[4] = {gdiResult + lineHeight, lineHeight, 2 * lineHeight + 1, std::max(1, lineHeight - 3)};
+                            const int cases = (format & kSingleLine) ? 4 : test.synthetic && (format & kWordBreak) ? 3 : 1;
+                            for (int h = 0; h < cases; ++h) {
                                 const Rect drawRect{8, 4, 8 + rectWidth, 4 + heights[h]};
                                 Dib gdi(rectWidth + 16, heights[h] + 8);
                                 SelectObject(gdi.dc, hfont);
@@ -849,11 +853,11 @@ int RunGdi(const std::string& textsPath, const Options& options) {
             const int pixels = PointSizeToPixels(spec.tenths);
             const HFONT hfont = MakeGdiFont(spec.face, pixels, NONANTIALIASED_QUALITY);
             GdiFont gdi(hfont);
-            auto stb = LoadFont(FontDirectory() + "/" + FontFileForFace(spec.face), pixels);
+            auto stb = LoadFont(FontForFace(spec.face), pixels);
             if (stb)
                 std::printf("  %-28s %3d px: %3d/%3d %3d/%3d %3d/%3d\n", spec.name.c_str(), pixels, gdi.Metrics().height, stb->Metrics().height,
                             gdi.Metrics().ascent, stb->Metrics().ascent, gdi.Metrics().averageWidth, stb->Metrics().averageWidth);
-            else std::printf("  %s: cannot load %s/%s\n", spec.name.c_str(), FontDirectory().c_str(), FontFileForFace(spec.face));
+            else std::printf("  %s: cannot load its font\n", spec.name.c_str());
             DeleteObject(hfont);
         }
     }
@@ -971,7 +975,7 @@ int Pictures(const std::string& outPath, const std::string& textsPath, int fontI
     const int pixels = PointSizeToPixels(spec.tenths);
     const HFONT hfont = MakeGdiFont(spec.face, pixels, NONANTIALIASED_QUALITY);
     TextFont gdiFont(std::make_unique<GdiFont>(hfont), false);
-    auto loaded = LoadFont(FontDirectory() + "/" + FontFileForFace(spec.face), pixels);
+    auto loaded = LoadFont(FontForFace(spec.face), pixels);
     if (!loaded) return 2;
     TextFont stbFont(std::move(loaded), true);
     struct Case {
@@ -1083,9 +1087,8 @@ int main(int argc, char** argv) {
         else if (arg == "--pixels-every" && i + 1 < argc) options.pixelsEvery = std::max(1, std::atoi(argv[++i]));
         else if (arg == "--examples" && i + 1 < argc) options.examples = std::atoi(argv[++i]);
         else if (arg == "--font" && i + 1 < argc) options.onlyFont = std::atoi(argv[++i]);
-        else if (arg == "--fonts" && i + 1 < argc) SetFontDirectory(argv[++i]);
         else {
-            std::printf("usage: ei_text_check [--rules] [--gdi] [--report] [--texts path] [--fonts dir] [--threads N] [--pixels-every N] [--examples N] [--font K]\n"
+            std::printf("usage: ei_text_check [--rules] [--gdi] [--report] [--texts path] [--threads N] [--pixels-every N] [--examples N] [--font K]\n"
                         "       ei_text_check --explain <text> <rect width> <format> [font K]\n"
                         "       ei_text_check --pictures <out.bmp> [font K] [count]\n");
             return 2;

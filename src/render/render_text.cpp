@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
 #include <cstring>
 #include <map>
 
@@ -16,24 +15,18 @@
 
 namespace render::text {
 
-// ---- Font files ---------------------------------------------------------------------------------------
+// ---- Fonts --------------------------------------------------------------------------------------------
 
 namespace {
-
-#ifdef EI_FONT_DIR
-std::string g_fontDirectory = EI_FONT_DIR;
-#else
-std::string g_fontDirectory = "fonts";
-#endif
 
 int RoundToInt(float value) { return static_cast<int>(std::floor(value + 0.5f)); }
 
 int ReadU16(const unsigned char* p) { return (p[0] << 8) | p[1]; }
 int ReadS16(const unsigned char* p) { return static_cast<std::int16_t>(ReadU16(p)); }
 
-// A loaded font file with the table values GDI's metrics come from.
+// A parsed font with the table values GDI's metrics come from.
 struct FontFile {
-    std::vector<unsigned char> data;
+    std::span<const unsigned char> data;
     stbtt_fontinfo info{};
     int unitsPerEm = 2048;
     int winAscent = 0, winDescent = 0;     // OS/2: GDI's tmAscent / tmDescent
@@ -84,22 +77,13 @@ struct FontFile {
     }
 };
 
-std::shared_ptr<FontFile> LoadFontFile(const std::string& path) {
-    static std::map<std::string, std::weak_ptr<FontFile>> files;
-    if (auto loaded = files[path].lock()) return loaded;
-    std::FILE* file = nullptr;
-    if (fopen_s(&file, path.c_str(), "rb") != 0 || !file) return nullptr;
+std::shared_ptr<FontFile> ParseFontFile(std::span<const unsigned char> data) {
+    static std::map<const unsigned char*, std::weak_ptr<FontFile>> files;
+    if (auto parsed = files[data.data()].lock()) return parsed;
     auto font = std::make_shared<FontFile>();
-    std::fseek(file, 0, SEEK_END);
-    const long size = std::ftell(file);
-    std::fseek(file, 0, SEEK_SET);
-    if (size > 0) {
-        font->data.resize(static_cast<std::size_t>(size));
-        if (std::fread(font->data.data(), 1, font->data.size(), file) != font->data.size()) font->data.clear();
-    }
-    std::fclose(file);
+    font->data = data;
     if (font->data.empty() || !font->Parse()) return nullptr;
-    files[path] = font;
+    files[data.data()] = font;
     return font;
 }
 
@@ -261,6 +245,10 @@ public:
     Line Next(int begin, int rectWidth) {
         const int size = static_cast<int>(text_.size());
         Line line{begin, begin, begin, false};
+        if (format_ & kSingleLine) {   // the whole text, CR and LF as characters, no word breaks
+            line.end = line.next = size;
+            return line;
+        }
         int at = begin;
         bool wrapped = false;
         if (format_ & kWordBreak) {
@@ -303,25 +291,11 @@ private:
 
 } // namespace
 
-std::unique_ptr<Font> LoadFont(const std::string& path, int pixels) {
+std::unique_ptr<Font> LoadFont(std::span<const unsigned char> data, int pixels) {
     if (pixels <= 0) return nullptr;
-    auto file = LoadFontFile(path);
+    auto file = ParseFontFile(data);
     if (!file) return nullptr;
     return std::make_unique<StbFont>(std::move(file), pixels);
-}
-
-void SetFontDirectory(const std::string& directory) { g_fontDirectory = directory; }
-std::string FontDirectory() { return g_fontDirectory; }
-
-const char* FontFileForFace(std::string_view face) {
-    auto same = [face](std::string_view name) {
-        return face.size() == name.size() &&
-               std::equal(face.begin(), face.end(), name.begin(), [](char a, char b) {
-                   return (a | 0x20) == (b | 0x20);
-               });
-    };
-    if (same("Courier New")) return "LiberationMono-Regular.ttf";
-    return "LiberationSerif-Regular.ttf";
 }
 
 int PointSizeToPixels(int tenths, int dpi) { return dpi * tenths / 720; }
@@ -409,7 +383,7 @@ TextFont* GetTextFont(std::string_view face, int pixels, bool smoothing) {
     auto found = fonts.find(key);
     if (found != fonts.end()) return found->second.get();
     std::unique_ptr<TextFont>& slot = fonts[key];
-    if (auto font = LoadFont(FontDirectory() + "/" + FontFileForFace(face), pixels))
+    if (auto font = LoadFont(FontForFace(face), pixels))
         slot = std::make_unique<TextFont>(std::move(font), smoothing);
     return slot.get();
 }
@@ -448,7 +422,7 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
     out.clip = rect;
     out.clipped = !(format & kNoClip);
     const bool calc = (format & kCalcRect) != 0;
-    if (text.empty()) {
+    if (text.empty() && !(format & kSingleLine)) {   // (a single line is one line high, empty or not)
         if (calc) {
             out.rect.right = rect.left;
             out.rect.bottom = rect.top;
@@ -463,6 +437,8 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
     GlyphAtlas& atlas = font.Atlas();
     const int size = static_cast<int>(text.size());
     int y = rect.top;
+    // One line centred in the rectangle's height: half the room left, rounded towards zero (also when negative).
+    if ((format & kSingleLine) && (format & kVCenter)) y = rect.top + (rect.bottom - rect.top - metrics.height) / 2;
     int widest = 0;
     int at = 0;
     for (;;) {

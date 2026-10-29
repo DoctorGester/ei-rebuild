@@ -8,6 +8,7 @@
 #include "item_db_text.h"
 #include "object_tables.h"      // FindCommandByKey
 #include "text_reader.h"
+#include "ui_native.h"
 #include "ui_gdi.h"
 #include "ui_widescreen.h"
 
@@ -74,7 +75,9 @@ void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    return new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
+    CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
+    ui_native::Adopt(surface, "help");
+    return surface;
 }
 
 void SetRectangle(CUiMesh* sprite, const RECT& rect, int u0, int v0, int u1, int v1) {

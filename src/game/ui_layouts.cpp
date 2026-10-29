@@ -146,7 +146,9 @@ void CSaveLoadWindow::CreateScreen() {
 
     for (int top = 108; top < 492; top += 24) AddRect(this, 108, top, 370, top + 24);
 
-    AddSurface(NewSurface(interface_, 100, 100, 700, 500));
+    CUiSurface* list = NewSurface(interface_, 100, 100, 700, 500);
+    ui_native::Adopt(list, "saveload");
+    AddSurface(list);
     scrollbar_ = NewScrollbar(interface_, 108, 108, 384, 492);
     AddChild(scrollbar_);
 
