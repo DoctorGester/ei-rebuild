@@ -329,11 +329,6 @@ address,size,name,file
 007C8388,16,kFixedViewRotation,src/game/player_client_handlers.cpp
 007C84EC,4,g_loadingProjectileWorld,src/game/world.h
 007C8510,100,g_spellDatabase,src/game/database_globals.cpp
-007C8640,12,g_takenMaterials,src/game/item_stock.cpp
-007C8650,12,g_candidates,src/game/item_stock.cpp
-007C8660,12,g_takenModifiers,src/game/item_stock.cpp
-007C8670,12,g_takenSpells,src/game/item_stock.cpp
-007C8680,12,g_takenPrototypes,src/game/item_stock.cpp
 007C86D8,192,g_itemDatabase,src/game/database_globals.cpp
 007C87A8,64,g_questDatabase,src/game/database_globals.cpp
 007C8808,4,kHalfPi,src/game/sound_manager.cpp
@@ -355,7 +350,6 @@ address,size,name,file
 007C8988,12,kZeroPosition,src/game/terrain_landscape.cpp
 007C8998,4,kTwoPi,src/game/ground_print.cpp
 007C899C,4,kHalfPi,src/game/ground_print.cpp
-007C89C8,96,g_printsDatabase,src/game/database_globals.cpp
 007C8A60,96,g_ackDatabase,src/game/database_globals.cpp
 007CAED0,20,g_processorInfo,src/game/sys_info.cpp
 007CAEE4,1,g_emptyStaticGuard,src/lib/static_object.h

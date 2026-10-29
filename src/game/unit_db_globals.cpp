@@ -1,7 +1,7 @@
 // The unit database and the skill database: the globals and the accessors of their tables (unit.h,
 // unit_create.h). Built empty by static initialisers and destroyed by exit functions that
-// unit_db_destroy.cpp defines on these names (docs/notes/standalone.md, "The static initialisers'
-// objects"). Apart from the destructors so that the vector replay (ei_vectors) links it.
+// unit_db_lifetime.cpp defines on these names (docs/notes/standalone.md, "The static initialisers'
+// objects").
 #include "unit.h"
 #include "unit_db.h"
 

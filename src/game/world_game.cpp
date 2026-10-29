@@ -1059,15 +1059,15 @@ void GameFlow::StartNewGame() {
 // ---- The flow's requests -------------------------------------------------------------
 
 void SwitchResourceDatabases(const std::string& name) {
-    UnitDatabase* units = &g_unitDatabase.Get();
-    units->Reset();
-    units->Load(ResourcesPath(), name);
-    units->CountSoundFiles(g_clientWorld->sounds_);
-    g_skillDatabase->Reset();
+    UnitDatabase& units = g_unitDatabase.Get();
+    units = UnitDatabase();
+    units.Load(ResourcesPath(), name);
+    units.CountSoundFiles(g_clientWorld->sounds_);
+    g_skillDatabase.Get() = SkillDatabase();
     g_skillDatabase->Load(ResourcesPath(), name);
-    g_spellDatabase->Reset();
+    g_spellDatabase.Get() = itemdb::SpellDatabase();
     g_spellDatabase->Load(ResourcesPath(), name);
-    g_itemDatabase->Reset();
+    g_itemDatabase.Get() = itemdb::ItemDatabase();
     g_itemDatabase->Load(ResourcesPath(), name);
 }
 

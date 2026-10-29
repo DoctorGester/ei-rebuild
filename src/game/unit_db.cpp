@@ -5,7 +5,6 @@
 
 #include "model.h"   // ChunkArchive
 
-#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/text_case.h"
 
@@ -221,12 +220,6 @@ void SkillLevelRecord::Serialize(ChunkArchive* ar) {
     for (int i = 0; i < kSkillLevelValues; ++i) Dword(ar, kFirstValueField + i, &values[i]);
     ar->Field(0x16, &learnable);
     Dword(ar, 0x17, &exclusionGroup);
-}
-
-// Both vectors emptied and their storage freed.
-void SkillDatabase::Reset() {
-    lib::FreeStorage(levels);
-    lib::FreeStorage(skills);
 }
 
 void ChunkArchive::SerializeSkills(int id, std::vector<SkillRecord>* skills) {

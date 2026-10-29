@@ -95,9 +95,6 @@ struct AckDatabase {
     // null; models: 0x2E..0x32; extras: 0x2C, 0x2D). 1; FatalError's result when the archive (reported as
     // "databases.res") or the file cannot be opened.
     int Load(const std::string& folder);
-    // Every table empty. Returns this.
-    AckDatabase* Construct();
-    void Destruct();
 
     AckTable<UnitAcks> units;
     AckTable<ModelAcks> models;
