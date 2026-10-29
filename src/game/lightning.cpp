@@ -1,5 +1,4 @@
-// Lightning bolts. Floating point follows the original's x87 code: `double` for values it keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
+// Lightning bolts.
 #include "lightning.h"
 
 #include "core_maths.h"
@@ -20,10 +19,7 @@
 
 namespace {
 
-double Unsigned(std::uint32_t value) {
-    volatile std::int64_t wide = value;
-    return static_cast<double>(wide);
-}
+float Unsigned(std::uint32_t value) { return static_cast<float>(value); }
 
 // The noise table: 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the key drawn
 // for each sample), read from gfx.res\lightning.dat by LoadLightningNoise.
@@ -35,8 +31,8 @@ float g_noiseUp[400] = /*0079C838*/ {};
 
 constexpr float kBranchFrequencies[12] = /*00787C8C*/ {2.0f, 3.0f, 2.5f, 1.8f, 0.3f, 0.8f, 1.2f, 1.3f, 3.0f, 5.1f, 2.1f, 1.76f};
 
-constexpr double kNoiseScale = 0x1.0000000100000p-31;   // about 2 / 2^32
-constexpr double kRandomScale = 0x1.0000000100000p-32;  // about 1 / 2^32
+constexpr float kNoiseScale = 4.656613e-10f;   // about 2 / 2^32
+constexpr float kRandomScale = 2.3283064e-10f;  // about 1 / 2^32
 constexpr float kSideA = -0.0666f;
 constexpr float kSideB = 0.013f;
 constexpr float kOffsetFactor = 0.05f;
@@ -55,9 +51,9 @@ void RandomizeKey(NoiseKey& key, float amplitude, bool amplitudeFirst) {
     float sum = 0.0f;
     for (int i = 0; i < 2; ++i) {
         key.index[i] = g_clientRandom.Next() & 0xF;
-        double v = Unsigned(g_clientRandom.Next()) * kNoiseScale - 1.0;
-        key.weight[i] = static_cast<float>(v);
-        sum = static_cast<float>(v * v + sum);
+        float v = Unsigned(g_clientRandom.Next()) * kNoiseScale - 1.0f;
+        key.weight[i] = v;
+        sum = v * v + sum;
     }
     float scale = 1.0f / std::sqrt(sum);
     for (int i = 0; i < 2; ++i) {
@@ -88,9 +84,9 @@ void SampleCurve(LightningSegment* segment, const NoiseKey* keys, const float* b
     int count = std::ssize(segment->points);
     const float* table = g_lightningNoise[0];
     for (int p = 0; p < count; ++p) {
-        double sum = 0.0;
-        for (int j = 0; j < 8; ++j) sum = sum + static_cast<double>(table[rows[j] * kNoiseRowLength + p]) * weights[j];
-        out[p] = static_cast<float>(sum);
+        float sum = 0.0f;
+        for (int j = 0; j < 8; ++j) sum = sum + table[rows[j] * kNoiseRowLength + p] * weights[j];
+        out[p] = sum;
     }
 }
 
@@ -110,14 +106,14 @@ void LightningSegment::SampleNoise(float time, float* outSide, float* outUp, flo
     float elapsed = time - noiseTime;
     float left = elapsed;
     bool advance;
-    if (elapsed > 100.0) {
+    if (elapsed > 100.0f) {
         left = 100.0f;
         advance = true;
     } else {
         advance = left > 1.0f;
     }
     if (advance) {
-        double next;
+        float next;
         do {
             sideKeys[2] = sideKeys[1];
             sideKeys[1] = sideKeys[0];
@@ -126,9 +122,9 @@ void LightningSegment::SampleNoise(float time, float* outSide, float* outUp, flo
             upKeys[1] = upKeys[0];
             RandomizeKey(upKeys[0], amplitude, true);
             noiseTime = noiseTime + 1.0f;
-            next = static_cast<double>(left) - 1.0;
-            left = static_cast<float>(next);
-        } while (next > 1.0);
+            next = left - 1.0f;
+            left = next;
+        } while (next > 1.0f);
     }
     // Uniform B-spline blend of the keys at the fraction `left`.
     float squared = left * left;
@@ -148,36 +144,18 @@ void LightningSegment::Animate(float time, float amplitude) {
     float* upNoise = g_noiseUp;
     SampleNoise(time, sideNoise, upNoise, amplitude);
     float countF = static_cast<float>(count);
-    double sideAt = sideNoise[0];
+    float sideAt = sideNoise[0];
     float sideSlope = (sideNoise[count - 1] - sideNoise[0]) / countF;
-    double upAt = upNoise[0];
+    float upAt = upNoise[0];
     float upSlope = (upNoise[count - 1] - upNoise[0]) / countF;
     for (int i = 0; i < std::ssize(points); ++i) {
-        double s = sideNoise[i] - sideAt;   // the curve minus its straight line from the first value
-        double u = upNoise[i] - upAt;
-        float ux = static_cast<float>(u * up.x);
-        float uy = static_cast<float>(u * up.y);
-        float uz = static_cast<float>(u * up.z);
-        float sx = static_cast<float>(s * side.x);
-        float sy = static_cast<float>(s * side.y);
-        double sz = s * side.z;
-        double fi = i;
-        float lx = static_cast<float>(fi * step.x);
-        float ly = static_cast<float>(fi * step.y);
-        double lz = fi * step.z;
-        float px = lx + start.x;
-        float py = ly + start.y;
-        double pz = lz + start.z;
-        float qx = px + sx;
-        float qy = py + sy;
-        double qz = sz + pz;
-        float rx = qx + ux;
-        float ry = qy + uy;
-        float rz = static_cast<float>(qz + uz);
+        float s = sideNoise[i] - sideAt;   // the curve minus its straight line from the first value
+        float u = upNoise[i] - upAt;
+        float along = static_cast<float>(i);
         LightningPoint& point = points[i];
-        point.x = rx;
-        point.y = ry;
-        point.z = rz;
+        point.x = along * step.x + start.x + s * side.x + u * up.x;
+        point.y = along * step.y + start.y + s * side.y + u * up.y;
+        point.z = along * step.z + start.z + s * side.z + u * up.z;
         sideAt = sideAt + sideSlope;
         upAt = upAt + upSlope;
     }
@@ -188,7 +166,7 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
     step.x = to.x - from.x;
     step.y = to.y - from.y;
     step.z = to.z - from.z;
-    float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(step)));
+    float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(step));
 
     // Point count and the length the displacement axes are scaled to.
     int count;
@@ -200,7 +178,7 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
         scale = 15.0f;
         count = 72;             // 75.0 rounded, & ~3
     } else {
-        count = std::lround(static_cast<double>(length) * 5.0) & ~3;
+        count = std::lround(length * 5.0f) & ~3;
         if (count > 400) count = 400;
         else if (count < 4) count = 4;
     }
@@ -217,12 +195,12 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
     up.z = upZ;
 
     for (Vector3* axis : {&side, &up}) {
-        double norm = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*axis));
-        if (norm > 0.0) {
-            double factor = scale / norm;
-            axis->x = static_cast<float>(factor * axis->x);
-            axis->y = static_cast<float>(factor * axis->y);
-            axis->z = static_cast<float>(factor * axis->z);
+        float norm = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(*axis));
+        if (norm > 0.0f) {
+            float factor = scale / norm;
+            axis->x = factor * axis->x;
+            axis->y = factor * axis->y;
+            axis->z = factor * axis->z;
         } else {
             axis->x = 0.0f;
             axis->y = 0.0f;
@@ -230,10 +208,7 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
         }
     }
 
-    double n = count;
-    step.x = static_cast<float>(step.x / n);
-    step.y = static_cast<float>(step.y / n);
-    step.z = static_cast<float>(step.z / n);
+    step /= static_cast<float>(count);
     points.resize(count);
 }
 
@@ -294,7 +269,7 @@ void Lightning::UpdateBounds() {
     bounds.boxMax.y = bounds.boxMax.y - bounds.center.y;
     bounds.boxMax.z = bounds.boxMax.z - bounds.center.z;
     bounds.flags = lib::Bits(BoundsFlag::Sphere | BoundsFlag::Box);
-    bounds.radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(bounds.boxMax)));
+    bounds.radius = std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(bounds.boxMax));
 }
 
 void Lightning::Animate() {
@@ -305,11 +280,7 @@ void Lightning::Animate() {
     if (power != 0.0f) {
         // The branches follow the main segment: each starts at its point of the bolt and ends near
         // the bolt's end, swaying on two sines.
-        double n = std::ssize(main.points);
-        Vector3 length;
-        length.x = static_cast<float>(n * main.step.x);
-        length.y = static_cast<float>(n * main.step.y);
-        length.z = static_cast<float>(n * main.step.z);
+        Vector3 length = main.step * static_cast<float>(std::ssize(main.points));
         Vector3 end;
         AddVectors(&end, main.start, length);
         const float* frequency = kBranchFrequencies;
@@ -331,7 +302,7 @@ void Lightning::Animate() {
             float targetY = wy + uy;
             float targetZ = wz + uz;
 
-            int index = std::lround((1.0 - branchPos[i]) * std::ssize(main.points));
+            int index = std::lround((1.0f - branchPos[i]) * std::ssize(main.points));
             int last = std::ssize(main.points) - 1;
             if (index >= last) index = last;
             const LightningPoint& origin = main.points[index];
@@ -386,12 +357,12 @@ void Lightning::SetEndpoints(const Vector3& from, const Vector3& to) {
             std::uint32_t r1 = g_clientRandom.Next();
             std::uint32_t r2 = g_clientRandom.Next();
             std::uint32_t r3 = g_clientRandom.Next();
-            float ox = static_cast<float>((static_cast<double>(reach) - low) * Unsigned(r3) * kRandomScale + low);
-            float oy = static_cast<float>((static_cast<double>(reach) - low) * Unsigned(r2) * kRandomScale + low);
-            double ozExt = (static_cast<double>(reach) - low) * Unsigned(r1) * kRandomScale + low;
-            float oz = static_cast<float>(ozExt);
+            float ox = (reach - low) * Unsigned(r3) * kRandomScale + low;
+            float oy = (reach - low) * Unsigned(r2) * kRandomScale + low;
+            float ozExt = (reach - low) * Unsigned(r1) * kRandomScale + low;
+            float oz = ozExt;
             Vector3 shiftedTo;
-            shiftedTo.z = static_cast<float>(ozExt + to.z);
+            shiftedTo.z = ozExt + to.z;
             shiftedTo.y = oy + to.y;
             shiftedTo.x = ox + to.x;
             Vector3 shiftedFrom;

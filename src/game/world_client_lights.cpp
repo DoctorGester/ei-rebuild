@@ -20,7 +20,7 @@
 
 namespace {
 
-constexpr double kHoursPerDay = 24.0;
+constexpr float kHoursPerDay = 24.0f;
 constexpr float kAmbientFromSun = 0.8f;          // a black ambient entry takes 0.8 x the sunlight
 constexpr int kHours = 24;
 // The fog start: the day's value from 6 to 18, the night's before 2 and from 22, linear between.
@@ -32,9 +32,8 @@ constexpr float kDawnLength = 4.0f, kDuskLength = 4.0f;
 constexpr float kSunrise = 4.0f, kSunset = 20.0f;
 constexpr float kDayLength = 24.0f;
 constexpr float kNightSpan = 45.0f, kBaseElevation = 30.0f;
-constexpr double kPerDegree = 1.0 / 180.0;
-// pi * (1 / 180) as the original's arithmetic leaves it at 24-bit precision (not the folded double).
-constexpr float kRadiansPerDegree = static_cast<float>(kPiDouble * kPerDegree);
+constexpr float kPerDegree = 1.0f / 180.0f;
+constexpr float kRadiansPerDegree = kPi * kPerDegree;
 constexpr float kPerHour = 0.041666668f;   // 1/24 (the sun turns once a day)
 static_assert(std::bit_cast<std::uint32_t>(kPerHour) == 0x3D2AAAABu);
 // A cave's sun: (0.5, 0.5, -0.70710677).
@@ -74,19 +73,18 @@ float Scaled(float value, float scale) {
 
 float FogStart(float hour) {
     const float day = options::g_options.fogDayStartDistance, night = options::g_options.fogNightStartDistance;
-    double fog;
+    float fog;
     if (hour >= kDayStart && hour <= kDayEnd) fog = day;
     else if (hour < kNightStart && hour > kDawnStart) {
         if (hour < kDayStart) fog = (hour - kDawnStart) / kDawnLength * (day - night) + night;
         else fog = day - (hour - kDayEnd) / kDuskLength * (day - night);
     } else fog = night;
-    float stored = static_cast<float>(fog);
-    return stored;
+    return fog;
 }
 
 // In degrees.
-double SunElevation(float hour) {
-    double night;
+float SunElevation(float hour) {
+    float night;
     EI_NAN_AUDIT(hour);
     if (hour < kSunrise) {
         if (hour <= kSunset) night = (kSunrise - hour) / kSunrise;
@@ -102,16 +100,13 @@ double SunElevation(float hour) {
     return night * kNightSpan + kBaseElevation;
 }
 
-// The time of day in hours, unrounded (fmod of the game time by 24).
-double HourOfDay(const CWorld* world) {
-    return std::fmod(static_cast<double>(world->tick) * world->secondsPerTick + world->timeBase, kHoursPerDay);
+// The time of day in hours (fmod of the game time by 24).
+float HourOfDay(const CWorld* world) {
+    return std::fmod(world->tick * world->secondsPerTick + world->timeBase, kHoursPerDay);
 }
 
-// The game's _ftol: truncation, the low half of the 64-bit conversion (NaN and overflow give 0).
-int GameFtol(double value) {
-    if (!(value > -9223372036854775808.0 && value < 9223372036854775808.0)) return 0;
-    return static_cast<int>(static_cast<long long>(value));
-}
+// The hour's row of the colour tables: the hour truncated, 0 for NaN.
+int HourIndex(float hour) { return std::isnan(hour) ? 0 : static_cast<int>(hour); }
 
 } // namespace
 
@@ -119,12 +114,11 @@ int WorldClient::UpdateLighting() {
     auto* display = &g_sceneRenderer;
     if (!(display->flags & 1)) return 1;
     UpdateExitMarkers();
-    const double now = HourOfDay(this);
+    const float now = HourOfDay(this);
     TransformPipeline* pipeline = display->pipeline;
 
     if (cave == 1) {
-        float stored = static_cast<float>(now);
-        const float hour = stored;
+        const float hour = now;
         if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
         pipeline->SetDepthRange(options::g_options.fogDayStartDistance, options::g_options.farClipDistance);
         const LightColour sun = sunlight[0];
@@ -163,27 +157,22 @@ int WorldClient::UpdateLighting() {
         return 1;
     }
 
-    float stored = static_cast<float>(now);
-    const float hour = stored;
-    const int index = GameFtol(now);
+    const float hour = now;
+    const int index = HourIndex(now);
     pipeline->SetDepthRange(FogStart(hour), options::g_options.farClipDistance);
     lightingMark = 0x80;
     if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
 
-    const double elevation = SunElevation(hour) * kRadiansPerDegree;
+    const float elevation = SunElevation(hour) * kRadiansPerDegree;
     const float turn = hour * kPerHour;
-    const double azimuth = (turn + turn) * kPiDouble;
-    const double cosElevation = std::cos(elevation);
+    const float azimuth = (turn + turn) * kPi;
+    const float cosElevation = std::cos(elevation);
     Vector3 direction;
     {
-        float x = static_cast<float>(std::cos(azimuth) * cosElevation);
-        float y = static_cast<float>(std::sin(azimuth) * cosElevation);
-        float z = static_cast<float>(-std::sin(elevation));
-        direction = {x, y, z};
+        direction = {std::cos(azimuth) * cosElevation, std::sin(azimuth) * cosElevation, -std::sin(elevation)};
     }
-    double whole;
-    float fractionStored = static_cast<float>(std::modf(static_cast<double>(hour), &whole));
-    const float fraction = fractionStored;
+    float whole;
+    const float fraction = std::modf(hour, &whole);
     const int next = (index + 1) % kHours;
 
     const LightColour sun = Lerp(sunlight[index], sunlight[next], fraction);

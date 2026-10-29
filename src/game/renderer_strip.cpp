@@ -13,6 +13,7 @@
 #include "lib/vecmath.h"
 
 #include <bit>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -44,26 +45,26 @@ void SetUv(TLVertex* vertex, const float& v) {
     vertex->v = v;
 }
 
-// The first cross section of a ribbon, at the line's first point: the direction (dx, dy) to the next point
-// rounded to floats, k = (width * rhw * 15, rounded) / hypot(dx, dy) unrounded; vertex 1 moved by (k*dy,
-// -k*dx) as in EmitSection, vertex 2 by (-(float)(k*dy), k*dx) (its x offset rounded first).
+// The first cross section of a ribbon, at the line's first point: the direction (dx, dy) to the next point,
+// k = width * rhw * 15 / hypot(dx, dy); vertex 1 moved by (k*dy, -k*dx) as in EmitSection, vertex 2 by
+// (-k*dy, k*dx).
 void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** array, int* count, std::uint32_t widthBits) {
     const float dx = next->x - first->x;
     const float dy = next->y - first->y;
     const float scale = std::bit_cast<float>(widthBits) * first->rhw * kWidthScale;
-    const double k = scale / libcrt::Hypot(dx, dy);
+    const float k = scale / std::hypot(dx, dy);
     TLVertex* top = *array + (*count)++;
     *top = *first;
-    const double acrossX = dy * k;
-    const float offsetX = static_cast<float>(acrossX);
-    top->x = static_cast<float>(acrossX + top->x);
-    const double acrossY = k * dx;
-    top->y = static_cast<float>(top->y - acrossY);
+    const float acrossX = dy * k;
+    const float offsetX = acrossX;
+    top->x = acrossX + top->x;
+    const float acrossY = k * dx;
+    top->y = top->y - acrossY;
     SetUv(top, g_topV);
     TLVertex* bottom = *array + (*count)++;
     *bottom = *first;
     bottom->x = bottom->x - offsetX;
-    bottom->y = static_cast<float>(acrossY + bottom->y);
+    bottom->y = acrossY + bottom->y;
     SetUv(bottom, g_bottomV);
 }
 
@@ -86,21 +87,21 @@ TLVertex* StripAt(int i) { return g_strip.data() + i; }
 
 } // namespace
 
-// The cross section at `src` across `direction`: k = (width * rhw * 15, rounded) / hypot(dx, dy) unrounded;
+// The cross section at `src` across `direction`: k = width * rhw * 15 / hypot(dx, dy);
 // vertex 1 = src moved by (k*dy, -k*dx) with v at the top, vertex 2 moved by (-k*dy, k*dx) with v at the
 // bottom, both with the current u. Appends both to `*array` at `*count`.
 void EmitSection(const TLVertex* src, const float* direction, TLVertex** array, int* count, float width) {
     TLVertex* top = *array + (*count)++;
     const float scale = width * src->rhw * kWidthScale;
-    const double k = scale / libcrt::Hypot(direction[0], direction[1]);
+    const float k = scale / std::hypot(direction[0], direction[1]);
     *top = *src;
-    top->x = static_cast<float>(k * direction[1] + top->x);
-    top->y = static_cast<float>(top->y - k * direction[0]);
+    top->x = k * direction[1] + top->x;
+    top->y = top->y - k * direction[0];
     SetUv(top, g_topV);
     TLVertex* bottom = *array + (*count)++;
     *bottom = *src;
-    bottom->x = static_cast<float>(bottom->x - k * direction[1]);
-    bottom->y = static_cast<float>(k * direction[0] + bottom->y);
+    bottom->x = bottom->x - k * direction[1];
+    bottom->y = k * direction[0] + bottom->y;
     SetUv(bottom, g_bottomV);
 }
 

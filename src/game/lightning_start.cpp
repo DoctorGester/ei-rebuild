@@ -1,5 +1,4 @@
-// Lightning's initialiser (called by the lightning client object's setter). Plain float maths (rule 7);
-// random words converted to double. See docs/notes/objects.md ("Rewritten").
+// Lightning's initialiser (called by the lightning client object's setter). Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "game_singletons.h"
 #include "lightning.h"
 #include "random.h"
@@ -64,9 +63,7 @@ void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bo
             origin.z = along * from.z + rest * to.z;
             branches[i].Init(origin, to);
             FreshKeys(branches[i], time, newAmplitude);
-            double random = static_cast<double>(g_clientRandom.Next());
-            branches[i].width = static_cast<float>((random * 1.8626451774202136e-10 + 0.7f) * strength *
-                                                    0.5f);
+            branches[i].width = (g_clientRandom.Next() * 1.8626452e-10f + 0.7f) * strength * 0.5f;
         }
     } else {
         main.width = 4.0f;
@@ -75,17 +72,15 @@ void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bo
             float reach = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.05f;
             float low = -reach;
             const float scale = 2.3283064e-10f;
-            float offsetY = static_cast<float>((reach - low) * static_cast<double>(g_clientRandom.Next()) * scale + low);
-            float offsetX = static_cast<float>((reach - low) * static_cast<double>(g_clientRandom.Next()) * scale + low);
-            float offsetZ = static_cast<float>((reach - low) * static_cast<double>(g_clientRandom.Next()) * scale + low);
+            float offsetY = (reach - low) * g_clientRandom.Next() * scale + low;
+            float offsetX = (reach - low) * g_clientRandom.Next() * scale + low;
+            float offsetZ = (reach - low) * g_clientRandom.Next() * scale + low;
             float newAmplitude = KeyAmplitude(power);
             Vector3 shiftedTo{offsetX + to.x, offsetY + to.y, offsetZ + to.z};
             Vector3 shiftedFrom{offsetX + from.x, offsetY + from.y, offsetZ + from.z};
             branches[i].Init(shiftedFrom, shiftedTo);
             FreshKeys(branches[i], time, newAmplitude);
-            double random = static_cast<double>(g_clientRandom.Next());
-            branches[i].width = static_cast<float>(random * 1.8626451774202136e-10 * 3.5f +
-                                                    2.45f);   // 2.45 .. 3.25
+            branches[i].width = g_clientRandom.Next() * 1.8626452e-10f * 3.5f + 2.45f;   // 2.45 .. 3.25
         }
     }
 

@@ -42,8 +42,7 @@ void ChooseDetail(const Terrain* terrain, SectorData* sector) {
     const Vector3 centre = {(sector->sx + 0.5f) * kSectorCells,
                             (sector->sy + 0.5f) * kSectorCells,
                             (sector->maxZ + sector->minZ) * 0.5f};
-    // (z^2 + y^2) + x^2. The sum is kept unrounded; the passes run on the main thread (24-bit precision),
-    // where the helper's stores change nothing.
+    // (z^2 + y^2) + x^2.
     const float distanceSquared = DistanceSquaredZYX(centre + terrain->localPosition, g_camera.localPosition);
     int level = 2;
     EI_NAN_AUDIT(distanceSquared);

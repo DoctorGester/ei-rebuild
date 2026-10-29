@@ -58,7 +58,7 @@ static_assert(std::bit_cast<std::uint32_t>(kFlakeAbove) == 0x3E99999Au);
 constexpr float kFlakeBelow = 0.7f;
 static_assert(std::bit_cast<std::uint32_t>(kFlakeBelow) == 0x3F333333u);
 constexpr float kSwayShift = 1000.0f;
-constexpr double kSwayPeriod = 50.0;
+constexpr float kSwayPeriod = 50.0f;
 constexpr int kSwayCells = 0x7C;
 
 // Set by static initialisers.
@@ -80,13 +80,13 @@ constexpr std::uint32_t kSnowSeeds[kSeedCount] = /*0078DF24*/ {
 };
 
 
-// The table's value at `at`, whose whole part (_ftol) is `cell`: 0 outside the table (as the game's helper,
-// which the draw has inline; the cubic's value is left unrounded).
-double Sway(const WeatherNoiseCurve& curve, int cell, float at) {
-    if (cell < 0 || cell >= kSwayCells) return 0.0;
+// The table's value at `at`, whose whole part is `cell`: 0 outside the table (as the game's helper, which the
+// draw has inline).
+float Sway(const WeatherNoiseCurve& curve, int cell, float at) {
+    if (cell < 0 || cell >= kSwayCells) return 0.0f;
     const WeatherNoiseSegment& segment = curve.segments[cell];
     MotionCubic cubic{segment.value, segment.slope, segment.quadratic, segment.cubic};
-    return cubic.Value(at - cell);
+    return static_cast<float>(cubic.Value(at - cell));
 }
 
 // What both draws start from.
@@ -266,14 +266,14 @@ int RainSnow::BuildSnow(SceneRenderer* renderer) {
             z = Jitter(cycle, kJitterZ) * kJitterHeight * kJitterScale + z;
 
             // The sway: by the height on all three axes, and by the place along x and y.
-            const int level = static_cast<int>(libcrt::Ftol(z));
-            const float swayX = static_cast<float>(Sway(g_swayXByHeight, level, z));
-            const float placeX = static_cast<float>(std::fmod(x + kSwayShift, kSwayPeriod));
-            x = static_cast<float>(swayX + Sway(g_swayXByPlace, static_cast<int>(libcrt::Ftol(placeX)), placeX) + x);
-            const float swayY = static_cast<float>(Sway(g_swayYByHeight, level, z));
-            const float placeY = static_cast<float>(std::fmod(y + kSwayShift, kSwayPeriod));
-            y = static_cast<float>(swayY + Sway(g_swayYByPlace, static_cast<int>(libcrt::Ftol(placeY)), placeY) + y);
-            Put(*this, x, y, static_cast<float>(Sway(g_swayZByHeight, level, z) + z));
+            const int level = static_cast<int>(z);
+            const float swayX = Sway(g_swayXByHeight, level, z);
+            const float placeX = std::fmod(x + kSwayShift, kSwayPeriod);
+            x = swayX + Sway(g_swayXByPlace, static_cast<int>(placeX), placeX) + x;
+            const float swayY = Sway(g_swayYByHeight, level, z);
+            const float placeY = std::fmod(y + kSwayShift, kSwayPeriod);
+            y = swayY + Sway(g_swayYByPlace, static_cast<int>(placeY), placeY) + y;
+            Put(*this, x, y, Sway(g_swayZByHeight, level, z) + z);
             frames[flakes] = static_cast<std::uint8_t>(cycle & 3);
             ++flakes;
         }

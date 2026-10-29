@@ -61,7 +61,7 @@ constexpr float kSoundFar = 40.0f;
 constexpr float kShakeDuration = 5.0f;
 constexpr float kShakeDecay = 0.25f;
 constexpr int kViewNoAttackSounds = 3;       // the local view player's sessionKind
-constexpr double kMinAxisLength = 0.0001;
+constexpr float kMinAxisLength = 0.0001f;
 constexpr float kCrawlPrintScale = 0.5f;
 constexpr float kWalkPrintScale = 0.75f;
 constexpr int kStepFrames = 4;
@@ -70,9 +70,9 @@ constexpr int kMaxFootPart = 9;
 // Footprints show for every unit (else only for MapObjectFlag::InParty units).
 bool AllFootprintsShown() { return options::g_options.drawVisibleOnly == 0; }
 
-// The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; the
-// callers have returned on a NaN `now`).
-bool PassedFrame(double frame, float last, float now) { return frame > last && frame <= now; }
+// The frame `frame` was passed between `last` and `now` (not for an unordered `last`; the callers have returned
+// on a NaN `now`).
+bool PassedFrame(int frame, float last, float now) { return frame > last && frame <= now; }
 
 void Shake(CUnit* unit) {
     const auto* prototype = unit->GetPrototype();
@@ -117,10 +117,9 @@ std::optional<std::string> UnitClientSpecific::ActionSound(const FigureAnimation
     const UnitModelRecord* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
     int frame = animation->soundFrame;
     if (frame == 0) return std::nullopt;
-    double at = frame;
     EI_NAN_AUDIT(from);
-    if (at < from) return std::nullopt;   // before `from`
-    if (at >= to) return std::nullopt;
+    if (frame < from) return std::nullopt;   // before `from`
+    if (frame >= to) return std::nullopt;
     if (miss) return std::string("weapons\\miss.wav");
     int count = 0;
     while (count < 4 && animation->sounds[count] != 0) ++count;
@@ -183,7 +182,7 @@ void UnitClientSpecific::PlayStepSounds() {
     case AnimationKind::Attack: {
         if (g_clientWorld.LocalView()->player->sessionKind == kViewNoAttackSounds) break;
         sounds->StopSound(idleSound);
-        if (PassedFrame(static_cast<double>(current->moment), lastAnimationTime, now)) Shake(unit);
+        if (PassedFrame(static_cast<int>(current->moment), lastAnimationTime, now)) Shake(unit);
         if (unit->MapType() == MapObjectType::Hero && unit->actionSound) {
             if (std::optional<std::string> miss = ActionSound(current, lastAnimationTime, now, static_cast<std::uint8_t>(unit->actionSound)))
                 sounds->Play3D(*miss, kPriorityAction, &position.x, kSoundNear, kSoundFar, 0);
@@ -248,14 +247,14 @@ void UnitClientSpecific::PlayStepSounds() {
         unit->Object3D()->PartWorldPosition(&footAt.x, foot);
         Vector3 facing;
         unit->localRotation.AxisY(&facing);
-        double length = std::sqrt(LengthSquared2DUnrounded(facing.y, facing.x));
+        float length = std::sqrt(LengthSquared2DUnrounded(facing.y, facing.x));
         if (kMinAxisLength > length) length = kMinAxisLength;   // a NaN length stays
-        float cosine = static_cast<float>(facing.y / length);
+        float cosine = facing.y / length;
         float clamped = cosine;
         EI_NAN_AUDIT(clamped, facing.x);
         if (clamped > 1.0f) clamped = 1.0f;
         else if (clamped < -1.0f) clamped = -1.0f;
-        float angle = static_cast<float>(kPi - std::acos(static_cast<double>(clamped)));
+        float angle = kPi - std::acos(clamped);
         float turn = angle;
         if (facing.x < 0.0f) turn = -turn;
         float sizeY = foot->box.bounds.boxMax.y;

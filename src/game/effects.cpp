@@ -14,14 +14,11 @@
 #include <cmath>
 #include <cstring>
 
-// The particle callbacks run for every live particle every frame. The order of operations in each expression is
-// fixed (the goldens depend on it): values that are rounded through a float temporary are rounded with
-// static_cast<float>, values kept on the FPU stack are written inline.
+// The particle callbacks run for every live particle every frame.
 
 namespace {
 
-// The 2^-32 scale of the random range helpers; its last bit is set (sic).
-constexpr double kRandomScale = std::bit_cast<double>(0x3DF0000000100000ull);
+constexpr float kRandomScale = 2.3283064e-10f;   // 2^-32: a random word to a fraction
 constexpr float kPointThree = 0.3f;
 static_assert(std::bit_cast<std::uint32_t>(kPointThree) == 0x3E99999Au);
 constexpr float kCloudAlpha = 4.5f;
@@ -38,24 +35,17 @@ constexpr float kDebrisGrowth = 1.13f;
 static_assert(std::bit_cast<std::uint32_t>(kDebrisGrowth) == 0x3F90A3D7u);
 constexpr float kTendrilDensity = 14.285714f;
 static_assert(std::bit_cast<std::uint32_t>(kTendrilDensity) == 0x41649249u);
-constexpr double kMushroomWidth = 0.2;
+constexpr float kMushroomWidth = 0.2f;
 constexpr float kMushroomRise = 0.12f;
 static_assert(std::bit_cast<std::uint32_t>(kMushroomRise) == 0x3DF5C28Fu);
-constexpr double kOrbitMinRadius = 0.01;
+constexpr float kOrbitMinRadius = 0.01f;
 constexpr float kSphereScale = 1.6f;
 static_assert(std::bit_cast<std::uint32_t>(kSphereScale) == 0x3FCCCCCDu);
 constexpr float kSphereBefore = 1.0f;   // the four bytes before kSphereSizeByLife in the original (ByLife)
 
 
-// Reads a float back from memory after storing it (the compiler would otherwise reuse the unrounded register
-// value).
-float ReadFloat(const float& f) { return *static_cast<const volatile float*>(&f); }
-
-// A zero-extended dword converted exactly, as a 64-bit integer.
-double Unsigned(std::uint32_t value) {
-    volatile std::int64_t wide = value;
-    return static_cast<double>(wide);
-}
+// A random word as a float.
+float Unsigned(std::uint32_t value) { return static_cast<float>(value); }
 
 
 } // namespace
@@ -146,7 +136,6 @@ int ParticleSource::UpdateSmoke(Particle* p) {
         }
         if (p->frame == 8) p->drift.z = p->drift.z * 0.5f;
     }
-    // The risen z stays on the FPU stack for the second addition (both sums are the same value).
     int frame = p->frame;
     float oldZ = p->pos.z;
     p->pos.z = p->drift.z + oldZ;
@@ -161,7 +150,7 @@ int ParticleSource::UpdateSmoke(Particle* p) {
     }
     float oldSize = p->size;
     p->size = oldSize * kSmokeGrowth;
-    float push = oldSize * kSmokeGrowth * windStrength * kSmokeDrift;   // unrounded, as on the FPU stack
+    float push = oldSize * kSmokeGrowth * windStrength * kSmokeDrift;
     p->pos.x = push * windDirection.x + p->pos.x;
     p->pos.y = push * windDirection.y + p->pos.y;
     p->pos.z = push * windDirection.z + p->pos.z;
@@ -183,22 +172,22 @@ int ParticleSource::EmitSmoke(Particle* p, int) {
     }
     float hi = extra + spreadMax.x;
     float lo = spreadMin.x - extra;
-    p->velocity.x = static_cast<float>(Unsigned(g_clientRandom.Next()) * (hi - lo) * kRandomScale + lo);
+    p->velocity.x = Unsigned(g_clientRandom.Next()) * (hi - lo) * kRandomScale + lo;
     hi = extra + spreadMax.y;
     lo = spreadMin.y - extra;
     std::uint32_t r = g_clientRandom.Next();
     p->velocity.z = 0.0f;
-    p->velocity.y = static_cast<float>(Unsigned(r) * (hi - lo) * kRandomScale + lo);
-    p->velocity.x = ReadFloat(p->velocity.x) * 0.5f;
-    p->velocity.y = ReadFloat(p->velocity.y) * 0.5f;
-    p->velocity.z = ReadFloat(p->velocity.z) * 0.5f;
-    p->pos.x = origin.x + ReadFloat(p->velocity.x);
-    p->pos.y = origin.y + ReadFloat(p->velocity.y);
+    p->velocity.y = Unsigned(r) * (hi - lo) * kRandomScale + lo;
+    p->velocity.x = p->velocity.x * 0.5f;
+    p->velocity.y = p->velocity.y * 0.5f;
+    p->velocity.z = p->velocity.z * 0.5f;
+    p->pos.x = origin.x + p->velocity.x;
+    p->pos.y = origin.y + p->velocity.y;
     float h = height;
     r = g_clientRandom.Next();
     p->drift.x = 0.0f;
     p->drift.y = 0.0f;
-    p->pos.z = static_cast<float>(Unsigned(r) * h * kRandomScale + origin.z);
+    p->pos.z = Unsigned(r) * h * kRandomScale + origin.z;
     p->drift.z = height;
     return 1;
 }
@@ -220,15 +209,14 @@ int ParticleSource::UpdateDebris(Particle* p) {
         p->color = (a << 24) | 0xFFFFFF;
         return 1;
     }
-    // The new vertical speed stays on the FPU stack for the position update.
     float oldRise = p->drift.z;
     p->drift.z = kDebrisDamping * oldRise - kDebrisGravity;
     p->pos.z = (kDebrisDamping * oldRise - kDebrisGravity) + p->pos.z;
-    std::uint32_t a = libcrt::Ftol(Unsigned(p->color >> 24) * kDebrisFadeIn);
+    std::uint32_t a = static_cast<std::uint32_t>((p->color >> 24) * kDebrisFadeIn);
     if (a > 0xFF) a = 0xFF;
     p->color = (a << 24) | 0xFFFFFF;
     EI_NAN_AUDIT(p->drift.z);
-    if (p->drift.z < 0.0f && size * 0.5 + origin.z > p->pos.z) {
+    if (p->drift.z < 0.0f && size * 0.5f + origin.z > p->pos.z) {
         float speed = AbsBits(p->drift.z);
         p->state = 1;
         p->drift.x = speed * p->drift.x;
@@ -304,7 +292,7 @@ void ParticleSource::TickNuke(ParticleElement* e) {
 // Tendril smoke: emission proportional to the length of `extent`, at least 6, at most a 16th of
 // the particle limit.
 void ParticleSource::TickTendril(ParticleElement*) {
-    int n = static_cast<int>(libcrt::Ftol(LengthXYZ(extent) * kTendrilDensity));
+    int n = static_cast<int>(LengthXYZ(extent) * kTendrilDensity);
     emitCount = n;
     int count = n < 6 ? 6 : n;
     int cap = maxParticles / 16;
@@ -317,7 +305,7 @@ void ParticleSource::TickMushroom(ParticleElement* e) {
     if (ParticleTypeOf(type) == ParticleType::Mushroom && e->ticks == 0 && e == elements.data())
         g_camera.Shake(origin, 5.0f, size, 0.25f);
     int ticks = ++e->ticks;
-    e->pos.x = static_cast<float>(std::log(ticks + 1) * size * kMushroomWidth);
+    e->pos.x = std::log(static_cast<float>(ticks + 1)) * size * kMushroomWidth;
     e->pos.z = size * kMushroomRise + e->pos.z;
     if (ticks == 30) flags &= ~ParticleSourceFlag::Emitting;
 }
