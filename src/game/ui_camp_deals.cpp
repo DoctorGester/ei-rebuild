@@ -35,20 +35,8 @@ enum CampPage {
     kRepair = 6,
 };
 
-CParty* PlayerParty() { return LocalPlayerData(); }
-CItem* ItemAt(CParty* party, int index) { return party->items_[index]; }
-int ItemCount(const CParty* party) { return std::ssize(party->items_); }
 // The prototype index an item's packed id carries (its high word).
 std::uint32_t PrototypeIndex(const CEngineObject* object) { return object->prototypeId_ >> 16; }
-// An item record marked as made by a constructor.
-bool MadeByConstructor(const CItem* item) {
-    auto* record = reinterpret_cast<const std::uint8_t*>(item->link_);
-    return record && record[0x10];
-}
-
-// The stock lists of a class template: everything and spells and modifiers.
-ItemStock* AllowedList(ClassTemplate* t) { return &t->allowed; }
-ItemStock* MagicList(ClassTemplate* t) { return &t->magic; }
 
 // Every item of `list` back to `to`, then the strip scrolled to the last one.
 void ReturnToStrip(CCampPages* camp, CParty* to, CParty* list, CUiItemStrip* strip) {
@@ -56,35 +44,35 @@ void ReturnToStrip(CCampPages* camp, CParty* to, CParty* list, CUiItemStrip* str
     strip->ScrollToItem(last);
 }
 
-// The made spell or item replaces the results: every result removed, the made one added
-// and released.
-void TakeMade(CParty* results, CItem*& made) {
-    while (ItemCount(results) != 0) results->RemoveItem(ItemAt(results, 0), 0);
+// The made spell or item replaces the results: every result removed, the made one added and dropped.
+void TakeMade(CParty* results, Ref<CItem>& made) {
+    while (!results->items_.empty()) results->RemoveItem(results->items_[0], 0);
     results->AddItem(made, 0, 0);
-    made->Release();
-    made = nullptr;
+    made.Reset();
 }
 
 // Every result moved back: made items to the constructor's first list and strip, the others to the
 // player and the item strip.
 void ReturnResults(CCampPages* camp, CParty* results, CParty* constructorList, CUiItemStrip* constructorStrip) {
-    while (ItemCount(results) != 0) {
-        CItem* item = ItemAt(results, 0);
-        bool made = MadeByConstructor(item);
-        CParty* to = made ? constructorList : PlayerParty();
-        CItem* moved = camp->CItemScreen::MoveItem(item, to, results, 0, 1, 0);
+    while (!results->items_.empty()) {
+        CItem* item = results->items_[0];
+        bool made = IsMade(item);
+        CParty* to = made ? constructorList : LocalPlayerData();
+        CItem* moved = camp->MoveItem(item, to, results, 0, 1, 0);
         (made ? constructorStrip : camp->itemStrip_)->ScrollToItem(moved);
     }
 }
 
-// A new item named `name` from the results' item manager, counted.
-CItemLoot* NewLoot(CParty* party, const char* name) {
-    auto* item = AsLoot(party->ItemFactory()->CreateItem(name));
-    ++item->refCount_;
-    return item;
+// A new item named `name` from the results' item manager as loot (null when none is made).
+CItemLoot* NewLoot(CParty* results, std::string_view name) {
+    return AsLoot(results->ItemFactory()->CreateItem(name));
 }
-void AddAndRelease(CParty* party, CItemLoot* item) {
-    party->AddItem(item, 0, 0);
+// `item` (not checked for null) added to the results, counted while it is added; its record index set first
+// when `index` is given.
+void AddLoot(CParty* results, CItemLoot* item, std::optional<std::uint32_t> index) {
+    item->AddRef();
+    if (index) item->index_ = *index;
+    results->AddItem(item, 0, 0);
     item->Release();
 }
 
@@ -97,35 +85,19 @@ const char* InstructionName(ItemKind itemClass) {
     default: return nullptr;
     }
 }
-const char* MaterialText() { return "material"; }
-const char* SpellContainerText() { return "spell container"; }
-
-// A new item named `name` from the results' item manager added to them (when one is made).
-void AddNamed(CParty* results, std::string_view name, std::uint32_t prototypeIndex, bool setIndex) {
-    auto* item = AsLoot(results->ItemFactory()->CreateItem(name));
-    if (!item) return;
-    ++item->refCount_;
-    if (setIndex) item->index_ = prototypeIndex;
-    AddAndRelease(results, item);
-}
 
 // The spell constructor's third list: each item repaired, its spell's (container), spell's or
 // modifier's record added to the template's spell stock.
 void StockSpells(CCampPages* camp, CParty* list) {
-    ItemStock* stock = MagicList(camp->constructor_);
-    for (int i = 0; i < ItemCount(list); ++i) {
-        CItem* item = ItemAt(list, i);
+    ItemStock* stock = &camp->constructor_->magic;
+    for (CItem* item : list->items_) {
         item->Repair();
-        if (static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item))) {
-            const char* name = item->spell_->GetPrototype()->code.c_str();
-            stock->AddSpell(g_spellDatabase->spells.Named(name));
-        } else if (UiItemKinds::IsSpell(item)) {
-            std::uint32_t index = AsLoot(item)->index_;
-            stock->AddSpell(itemdb::SpellAt(index));
-        } else if (UiItemKinds::IsModifier(item)) {
-            std::uint32_t index = AsLoot(item)->index_;
-            stock->AddModifier(itemdb::SpellModifierAt(index));
-        }
+        if (IsSpellContainer(item))
+            stock->AddSpell(g_spellDatabase->spells.Named(item->spell_->GetPrototype()->code.c_str()));
+        else if (IsSpell(item))
+            stock->AddSpell(itemdb::SpellAt(AsLoot(item)->index_));
+        else if (IsModifier(item))
+            stock->AddModifier(itemdb::SpellModifierAt(AsLoot(item)->index_));
     }
 }
 
@@ -133,18 +105,18 @@ void StockSpells(CCampPages* camp, CParty* list) {
 // items that can be taken apart and blueprint parts add their record to the template's stock;
 // loot priced by itself (LootKind::Self) leaves the list.
 void StockItems(CCampPages* camp, CParty* list) {
-    ItemStock* stock = AllowedList(camp->constructor_);
-    for (int i = ItemCount(list) - 1; i >= 0; --i) {
-        CItem* item = ItemAt(list, i);
+    ItemStock* stock = &camp->constructor_->allowed;
+    for (int i = std::ssize(list->items_) - 1; i >= 0; --i) {
+        CItem* item = list->items_[i];
         item->Repair();
         std::optional<LootRecordType> kind;
         std::uint32_t index = 0;
-        if (UiItemKinds::IsBuildable(item)) {
+        if (IsBuildable(item)) {
             index = PrototypeIndex(item);
             if (item->Kind() == ItemKind::Weapon) kind = LootRecordType::Weapon;
             else if (item->Kind() == ItemKind::Armor) kind = LootRecordType::Armor;
             else if (item->Kind() == ItemKind::Quick) kind = LootRecordType::Quick;
-        } else if (UiItemKinds::IsPart(item)) {
+        } else if (IsPart(item)) {
             auto* loot = AsLoot(item);
             index = loot->index_;
             if (loot->recordType_ <= LootRecordType::Quick) kind = loot->recordType_;
@@ -161,69 +133,51 @@ void StockItems(CCampPages* camp, CParty* list) {
 }
 
 void RepairAll(CParty* list) {
-    for (int i = 0; i < ItemCount(list); ++i) ItemAt(list, i)->Repair();
+    for (CItem* item : list->items_) item->Repair();
 }
 
 } // namespace
 
 // --- a spell container taken apart ---------------------------------------------------------------
 
-bool CCampPages::DeconstructSpell() {
+void CCampPages::DeconstructSpell() {
     CParty* results = spellResults_;
-    CItem* copy = results->CopyItem(ItemAt(results, 0));
-    spellMade_ = copy;
-    ++copy->refCount_;
-    results->RemoveItem(ItemAt(results, 0), 0);
+    Ref<CItem> copy;
+    copy.Assign(results->CopyItem(results->items_[0]));
+    results->RemoveItem(results->items_[0], 0);
     auto* spell = copy->spell_;
 
-    CItemLoot* prototype = NewLoot(results, kPrototypeItem);
-    prototype->index_ = PrototypeIndex(spell);
-    AddAndRelease(results, prototype);
-    for (int i = 0; i < spell->GetModifierCount(); ++i) {
-        CItemLoot* rune = NewLoot(results, kRuneItem);
-        rune->index_ = spell->modifiers_[i] - 1;
-        AddAndRelease(results, rune);
-    }
-    spellMade_->Release();
-    spellMade_ = nullptr;
-    return true;
+    AddLoot(results, NewLoot(results, kPrototypeItem), PrototypeIndex(spell));
+    for (int i = 0; i < spell->GetModifierCount(); ++i)
+        AddLoot(results, NewLoot(results, kRuneItem), spell->modifiers_[i] - 1);
 }
 // --- an item taken apart -------------------------------------------------------------------------
 
-bool CCampPages::DeconstructItem() {
+void CCampPages::DeconstructItem() {
     CParty* results = itemResults_;
-    CItem* copy = results->CopyItem(ItemAt(results, 0));
-    itemMade_ = copy;
-    ++copy->refCount_;
-    results->RemoveItem(ItemAt(results, 0), 0);
+    Ref<CItem> copy;
+    copy.Assign(results->CopyItem(results->items_[0]));
+    results->RemoveItem(results->items_[0], 0);
 
-    if (const char* instruction = InstructionName(copy->Kind()))
-        AddNamed(results, instruction, PrototypeIndex(copy), true);
+    if (const char* instruction = InstructionName(copy->Kind())) {
+        if (CItemLoot* item = NewLoot(results, instruction)) AddLoot(results, item, PrototypeIndex(copy));
+    }
     // A material per one the prototype needs; a material index out of range reads its key through null.
     for (std::uint32_t i = 0; i < copy->GetPrototype()->materialUnits; ++i) {
         const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(MaterialIndex(copy->prototypeId_));
-        // The text is "material" + '.' + key (two concatenations).
-        std::string name = MaterialText();
-        name += ".";
-        name += material->key;
-        AddNamed(results, name, 0, false);
+        if (CItemLoot* item = NewLoot(results, std::string("material.") + material->key))
+            AddLoot(results, item, std::nullopt);
     }
     if (copy->spell_) {
-        CItemManager* manager = results->ItemFactory();
         itemdb::QuickItemTable& quickItems = g_itemDatabase->quickItems;
-        int index = quickItems.IndexOf(quickItems.Named(SpellContainerText()));
-        auto* container = manager->MakeItem(ItemKind::Spell, index, 0, -1);
+        int index = quickItems.IndexOf(quickItems.Named("spell container"));
+        Ref<CItem> container;
+        container.Assign(results->ItemFactory()->MakeItem(ItemKind::Spell, index, 0, -1));
         if (container) {
-            ++container->refCount_;
-            CSpell* clone = copy->spell_->Clone(results->SpellManager());
-            container->AttachSpell(clone);
+            container->AttachSpell(copy->spell_->Clone(results->SpellManager()));
             results->AddItem(container, 0, 0);
-            container->Release();
         }
     }
-    itemMade_->Release();
-    itemMade_ = nullptr;
-    return true;
 }
 
 // --- the first action button ---------------------------------------------------------------------
@@ -239,13 +193,13 @@ void CCampPages::DoAction() {
         }
         break;
     case kTrade:
-        trade_->Settle(1, 0);
+        trade_->Settle(true, false);
         return;
     case kSpellTrade:
         constructor_->SpellsParty()->SpellManager();
         StockSpells(this, spellParts_[2]);
         ReturnToStrip(this, spellParts_[0], spellParts_[2], spellStrip_);
-        ReturnToStrip(this, PlayerParty(), spellParts_[1], itemStrip_);
+        ReturnToStrip(this, LocalPlayerData(), spellParts_[1], itemStrip_);
         break;
     case kSpellMaker:
         if (deconstructing_) {
@@ -257,7 +211,7 @@ void CCampPages::DoAction() {
     case kItemTrade:
         StockItems(this, itemParts_[2]);
         ReturnToStrip(this, itemParts_[0], itemParts_[2], partStrip_);
-        ReturnToStrip(this, PlayerParty(), itemParts_[1], itemStrip_);
+        ReturnToStrip(this, LocalPlayerData(), itemParts_[1], itemStrip_);
         break;
     case kItemMaker:
         if (deconstructing_) {
@@ -268,12 +222,12 @@ void CCampPages::DoAction() {
         break;
     case kRepair:
         RepairAll(itemExtra_);
-        ReturnToStrip(this, PlayerParty(), itemExtra_, itemStrip_);
+        ReturnToStrip(this, LocalPlayerData(), itemExtra_, itemStrip_);
         break;
     default:
         break;
     }
-    PlayerParty()->money_ -= cost_;
+    LocalPlayerData()->money_ -= cost_;
 }
 
 // --- the second action button --------------------------------------------------------------------
@@ -282,24 +236,24 @@ void CCampPages::UndoAction() {
     interface_->PlaySound(kCancelSound, 0);
     switch (page_) {
     case kTrade:
-        trade_->Settle(0, 0);
+        trade_->Settle(false, false);
         return;
     case kSpellTrade:
         ReturnToStrip(this, spellParts_[0], spellParts_[1], spellStrip_);
-        ReturnToStrip(this, PlayerParty(), spellParts_[2], itemStrip_);
+        ReturnToStrip(this, LocalPlayerData(), spellParts_[2], itemStrip_);
         break;
     case kSpellMaker:
         ReturnResults(this, spellResults_, spellParts_[0], spellStrip_);
         break;
     case kItemTrade:
         ReturnToStrip(this, itemParts_[0], itemParts_[1], partStrip_);
-        ReturnToStrip(this, PlayerParty(), itemParts_[2], itemStrip_);
+        ReturnToStrip(this, LocalPlayerData(), itemParts_[2], itemStrip_);
         break;
     case kItemMaker:
         ReturnResults(this, itemResults_, itemParts_[0], partStrip_);
         break;
     case kRepair:
-        ReturnToStrip(this, PlayerParty(), itemExtra_, itemStrip_);
+        ReturnToStrip(this, LocalPlayerData(), itemExtra_, itemStrip_);
         break;
     default:
         break;

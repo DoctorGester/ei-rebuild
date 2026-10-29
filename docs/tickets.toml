@@ -5318,7 +5318,7 @@ title = "Ref<T> for the network RefPtr family and the interface aliases"
 group = "cleanup"
 model = "opus"
 depends = ["P8"]
-note = "C49 follow-up. The RefPtr family in core_refcount.h (RefPtr, RefPtrTo, CountedRefPtr, SharedRefPtr, SharedRefTo, CountedRefTo; 35 non-interface files, mostly net_* and ScriptEffect) to Ref<T>/HeldRef<T>; the interface files read their .ptr, so after P8 (or with C54). Then drop the aliases HeldObject (engine_object.h, for ui_camp.cpp) and CountedPtr (core_refcount.h, for ui_briefing.h), move CItem::spell_ to Ref<CSpell> (ui_camp_deals.cpp reads it with auto*), and the 25 ++/-- count sites in ui_* to AddRef/Release. Goldens unchanged."
+note = "C49 follow-up. The RefPtr family in core_refcount.h (RefPtr, RefPtrTo, CountedRefPtr, SharedRefPtr, SharedRefTo, CountedRefTo; 35 non-interface files, mostly net_* and ScriptEffect) to Ref<T>/HeldRef<T>; the interface files read their .ptr, so after P8 (or with C54). Then drop the aliases HeldObject (engine_object.h, for ui_camp.cpp) and CountedPtr (core_refcount.h, for ui_briefing.h), move CItem::spell_ to Ref<CSpell> (ui_camp_deals.cpp reads it with auto*), and the 25 ++/-- count sites in ui_* to AddRef/Release. Goldens unchanged.  (C54: ui_camp.cpp no longer uses HeldObject and the alias is gone; the camp's ++refCount_ sites are Ref/AddRef.)"
 
 [[ticket]]
 id = "C49b"
@@ -5510,3 +5510,66 @@ title = "BlowSide and SkillAnimation parameters instead of uint32"
 group = "cleanup"
 depends = ["C45d5"]
 note = "Signature follow-up of C45d5: CUnitServer::HitDirection returns, BuildDeathAnimation's direction and CUnitServer::hitDirection hold a BlowSide (map_object_figures.h) as std::uint32_t; CObject3D::FindSkillAnimation(int) could take SkillAnimation for the skill callers. The saved field keeps its 4 bytes. Goldens unchanged."
+
+[[ticket]]
+id = "C54a"
+title = "C54 rest: the interface windows' virtuals (input handlers void, On* forwarders folded, Draw void)"
+group = "cleanup"
+model = "opus"
+depends = ["C54"]
+files = ["src/game/ui.h src/game/ui_*.h src/game/ui_*.cpp"]
+note = "C54 follow-up, whole interface tree, one scripted pass with the compiler as checker; run while no other worker is in ui_* (every file changes). (1) UiInputSide's LeftDown/LeftUp/MouseMove/RightDown/RightUp/LeftDouble/RightDouble/KeyDown/Char/KeyUp/Wheel and Event return int that no caller reads (ui_container.cpp, ui_interface_input.cpp, ui_interface_keys.cpp; check Wheel's 'returns 1' in CUiContainer::Wheel) -> void. (2) Then fold the ~120 'int X(...) override { return OnY(...), 0; }' forwarders in ui_*.h (ui_screens.h 21, ui_camp.h, ui_briefing.h, ui_view_screen.h, ui_camera_keys.h, ...) into the override: the On* definition renamed, the forwarder line deleted; an On* that only calls the base (CCampPages::OnKeyUp was one) goes with its override. (3) CUiWindow::Draw's BOOL (about 40 overrides, nobody reads it) -> void, with the '{ return DrawX(pass); }' forwarders (CTradeGrid::DrawGrid, CConstructorPage::DrawItemMaker, CSpellMakerPage::DrawSpellMaker, ...) folded the same way. (4) int flag parameters of the window base: CUiWindow::SetEnabled(int enabled, int notify), the region tip's SetTip(int, int, int), PlaySound(name, int): bool, or dropped where every caller passes the same constant. Goldens unchanged (golden suite + ei_ui_check)."
+
+[[ticket]]
+id = "C54b"
+title = "C54 rest: Tier 2 style in the camp's panels"
+group = "cleanup"
+model = "opus"
+depends = ["C54a"]
+files = ["src/game/ui_camp.h src/game/ui_trade_panel*.cpp src/game/ui_hero_panels.cpp src/game/ui_equip_panels.cpp src/game/ui_trade_grid_draw.cpp src/game/ui_panel_draws.cpp src/game/ui_constructor_slots.cpp src/game/ui_stats_*.cpp src/game/ui_camp_stats.cpp src/game/ui_item_screen.cpp src/game/ui_window_delete.cpp"]
+note = "C54 follow-up (C54 did CCampPages itself, see its commit for the recipe). The panels declared in ui_camp.h: CTradePanel (TradeRecord's padAfterPerks / padAfterBought on an in-memory record (G13), Bought() uint8 -> bool, FormatPrice's std::string* out -> return, the TradeSnapshotRecord/TradeRestoreRecord helpers vs the SnapshotRecord/RestoreRecord members), CHeroStatsPanel (OnLButtonUp int, DrawRow/DrawPart RECT*), CTradeGrid::Build(char spells, char flag) -> bool, CRepairGrid, CConstructorPage / CSpellMakerPage, CHeroEquipPanel, CHeroQuickStrip; the empty out-of-line destructors in ui_window_delete.cpp; ItemHoverInfo's kind numbers (ui_camp_stats.cpp constants) as an enum; CItemScreen::MoveItem(.., int merge, int turning) -> bool. G9 sites (CItem::spell_/link_) stay with C49a/C49c. Goldens unchanged: ui_camp, ui_camp_deals, ui_camp_make, ui_trade_hold, ui_trade_restore, ui_hero_stats + ei_ui_check."
+
+[[ticket]]
+id = "C54c"
+title = "C54 rest: Tier 2 style in the global map"
+group = "cleanup"
+model = "opus"
+depends = ["C54a"]
+files = ["src/game/ui_global_map*.cpp src/game/ui_camp.h src/game/text_reader.h"]
+note = "C54 follow-up. CGlobalMap (ui_camp.h, ui_global_map*.cpp, its members in ui_small_members.cpp / ui_alpha_draws.cpp): AllodTitle / ZoneTitle / QuestTitle (std::string* out returned) -> std::string; ZonePosition / QuestPosition / ReadMapPosition (Vector3* out; 'not found leaves out as it is') -> std::optional<Vector3> or a value with the caller's default; ShowAllButZones(int visible), selectPending_ / noCamp_ int flags -> bool; the one-line forwarders in ui_global_map_places.cpp; the CloseScreen / MessageResult / Deactivate / Draw forwarders after C54a. TextClose(CTextManager*) (text_reader.h; ui_global_map_places, ui_objectives, ui_objectives_input and map_database's TextReader::Close call it) -> a CTextManager member. Goldens unchanged: ui_camp, ui_global_map_pick + ei_ui_check."
+
+[[ticket]]
+id = "C54d"
+title = "C54 rest: Tier 2 style in the item screens, hero screen and exchange"
+group = "cleanup"
+model = "opus"
+depends = ["C54a"]
+files = ["src/game/ui_item_*.* src/game/ui_hero_screen*.cpp src/game/ui_hero_preview.cpp src/game/ui_hero_figure.cpp src/game/ui_exchange.cpp src/game/ui_container_draws.cpp"]
+note = "C54 follow-up. ui_item_info.* (CItemInfoPanel, CItemScreen; 5 one-line forwarders in ui_item_info.cpp, BOOL), ui_item_view.cpp (forwarders, unused parameters), ui_item_strip*.cpp (BOOL), ui_item_model / ui_item_screen, CMpHeroScreen (ui_hero_screen*.cpp: forwarders, ui_hero_screen_click's unused parameter), ui_exchange.cpp (forwarders, AsContainer casts). G10 bool/void, G12 out-params, G14 forwarders, G15 parameters; G9 (CItem::spell_, link_, the ++/-- count sites) stays with C49a/C49c. Goldens unchanged: ui_hero_screen, ui_hero_delete, ui_describe, ui_gallery_*, spells_hero + ei_ui_check."
+
+[[ticket]]
+id = "C54e"
+title = "C54 rest: Tier 2 style in the HUD and the battle screen"
+group = "cleanup"
+model = "opus"
+depends = ["C54a"]
+files = ["src/game/ui_hud*.cpp src/game/ui_battle_*.cpp src/game/ui_camera*.* src/game/ui_flying_hit_points.* src/game/ui_alpha_draws.cpp"]
+note = "C54 follow-up. ui_hud*.cpp (ui_hud.cpp 7 BOOL and 3 forwarders, ui_hud_map / ui_hud_portraits / ui_hud_frame forwarders, ui_hud_unit_info's and ui_hud_frame's unknown parameters, ui_hud_build out-params), ui_battle_*.cpp (unknown/unused parameters in ui_battle_setup and ui_battle_update, BOOL), ui_camera_input.cpp (6 forwarders), ui_camera_keys.h, ui_flying_hit_points.h. G10, G12, G14, G15 as in C54. Goldens unchanged (the battle and HUD scenarios) + ei_ui_check."
+
+[[ticket]]
+id = "C54f"
+title = "C54 rest: Tier 2 style in the menus, briefing, objectives and text screens"
+group = "cleanup"
+model = "opus"
+depends = ["C54a"]
+files = ["src/game/ui_briefing*.* src/game/ui_objectives*.cpp src/game/ui_menus.cpp src/game/ui_main_menu.cpp src/game/ui_saveload.cpp src/game/ui_options.cpp src/game/ui_connect_*.cpp src/game/ui_chat_*.cpp src/game/ui_console_window.cpp src/game/ui_help_*.cpp src/game/ui_credits.cpp src/game/ui_view_screen.* src/game/ui_create_screen.cpp src/game/ui_screens.*"]
+note = "C54 follow-up. G11: ui_objectives.cpp's g_lastQuest (StaticObject + runtime atexit) and ui_create_screen.cpp's player_.Construct/Destruct (C50 recipe: named_data --update, static_init_ports.csv row, gen_static_init RETIRED_STATICS). G10: BOOL in ui_menus (4), ui_saveload (6), ui_help_*, ui_screens.h (10). G12: out-params in ui_briefing_create / _people / _topics, ui_options, ui_scroll_text. G14/G15: forwarders (ui_screens.h, ui_briefing.h), unused parameters in ui_saveload, ui_objectives_input, ui_chat_window. CountedPtr in ui_briefing.h stays with C49a. Goldens unchanged + ei_ui_check."
+
+[[ticket]]
+id = "C54g"
+title = "C54 rest: Tier 2 style in the interface core (windows, text, meshes, cursor)"
+group = "cleanup"
+model = "opus"
+depends = ["C54a"]
+files = ["src/game/ui_window*.cpp src/game/ui_container*.cpp src/game/ui_font.cpp src/game/ui_text_draw.cpp src/game/ui_mesh_*.cpp src/game/ui_surface_*.cpp src/game/ui_cursor*.* src/game/ui_small_members.cpp src/game/ui_interface*.cpp src/game/ui_layouts.cpp src/game/ui_scroll*.cpp src/game/ui_widescreen.cpp"]
+note = "C54 follow-up. G11: g_interface (ui_small_members.cpp: StaticObject, CInterface3D::Construct, atexit DestroyInterface), g_cursor (ui_cursor_setup.cpp: StaticObject, CCursor::Construct, atexit), CUiWindow's ClearFields (ui_window.cpp) -> real constructors (C50 recipe). C51b's ui part: CUiWindow::Create's UiObjectCreate helper folded. G10: ui_window.cpp BOOL (6, ContainsPoint), ui_container. G12: ui_text_draw / ui_font out-params. G14: ui_scrolling_surface, ui_console_window, ui_input_defaults forwarders. G15: ui_layouts' unused parameters, ui_interface_frame. Goldens unchanged + ei_ui_check; leave src/render/render_ui* to R30."

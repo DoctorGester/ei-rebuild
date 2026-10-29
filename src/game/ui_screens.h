@@ -44,16 +44,14 @@ void LeaveGame();
 
 // The item predicates of the camp screens. Loot items (type ItemKind::Loot, CItemLoot) are sorted by kind and record
 // type.
-struct UiItemKinds {
-    static bool IsPart(const CItem* item);       // kind 2, record type 0-2 (blueprint parts)
-    static bool IsMaterial(const CItem* item);
-    static bool IsSpell(const CItem* item);      // kind 2, record type 3 (the spell table)
-    static bool IsModifier(const CItem* item);   // kind 2, record type 4 (spell modifier table)
-    static BOOL IsSpellContainer(const CItem* item);   // type ItemKind::Spell
-    // An item the item constructor can take apart: a weapon (ItemKind::Weapon), type ItemKind::Armor, or armour (ItemKind::Quick) whose
-    // prototype's material class is not "none"; never when the prototype exists and is not buildable.
-    static bool IsBuildable(const CItem* item);
-};
+bool IsPart(const CItem* item);             // kind 2, record type 0-2 (blueprint parts)
+bool IsMaterial(const CItem* item);
+bool IsSpell(const CItem* item);            // kind 2, record type 3 (the spell table)
+bool IsModifier(const CItem* item);         // kind 2, record type 4 (spell modifier table)
+bool IsSpellContainer(const CItem* item);   // type ItemKind::Spell
+// An item the item constructor can take apart: a weapon or armour, or a quick item whose prototype's material
+// class is not "none"; never when the prototype exists and is not buildable.
+bool IsBuildable(const CItem* item);
 
 // --- Camp item strip ------------------------------------------------------------------------
 // The horizontal strip of items (or spells) at the bottom (y 500) or top (y 0) of the camp screens: six tab regions

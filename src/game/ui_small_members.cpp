@@ -35,10 +35,7 @@ CItem* CUiItemPanel::ItemAt(int, int, int* topic) {
 
 bool CItemScreen::CanEquip(CItem*, int) { return false; }
 
-void CItemScreen::BestPartySkill(int, int* skill, int* mana) {
-    *skill = 0;
-    *mana = 0;
-}
+PartySkill CItemScreen::BestPartySkill(int) { return {}; }
 
 CUnit* CItemScreen::HeroUnit(int) { return nullptr; }
 
@@ -55,8 +52,6 @@ const char* CGlobalMap::HelpTopic() { return noCamp_ == 1 ? "global_map_nocamp" 
 void CBattleScreen::SetPortraitMode(int mode) { portraitMode_ = mode; }
 
 void CBriefingScreen::SetChatActive(int mode) { chatActive_ = mode; }
-
-CUnit* CCampPages::HeroAt(int index) { return heroes_[index]; }
 
 void CUiItemStrip::SetSlots(int slots) { slots_ = slots; }
 
@@ -118,8 +113,6 @@ void CInterface3D::ChatKeyEnter() {
 void CInterface3D::ChatKeyBackspace() {
     if (!root_->chatOpen_) root_->ClearLines();
 }
-
-void CCampPages::OnKeyUp(int key, int repeat, int flags) { CUiContainer::KeyUp(key, repeat, flags); }
 
 int CHeroStatsPanel::OnLButtonUp(int, int, int) {
     interface_->mouseCapture_ = nullptr;

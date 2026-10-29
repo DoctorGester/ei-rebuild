@@ -328,12 +328,12 @@ public:
     void SetManager(CBaseManager* manager);
 
     // Creates the item through the manager (with `kind`, `key`): counted, records cleared, count 1, flag 8
-    // set. Returns 1, or a fatal error's result.
+    // set. False after a fatal error the game carries on from (Rebirth's DisableExitOnCrashReport).
     bool BeginCreateItem(ItemKind kind, int key);
 
-    bool SetMaterial(itemdb::MaterialRecordHead* material);
-    bool SetPrototype(itemdb::ItemRecordHead* prototype);
-    bool SetSpellObject(CSpell* spell); // not counted
+    void SetMaterial(itemdb::MaterialRecordHead* material) { material_ = material; }
+    void SetPrototype(itemdb::ItemRecordHead* prototype) { prototype_ = prototype; }
+    void SetSpellObject(CSpell* spell) { spell_ = spell; }   // not counted
 
     // Builds the item. On failure releases it and returns null; otherwise hands it over
     // (its count dropped without release, flag 8 cleared) and returns it.

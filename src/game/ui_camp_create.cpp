@@ -52,17 +52,12 @@ constexpr int kActionEquip = 1, kActionSpellParts = 2, kActionItemParts = 3;
 constexpr int kModeSpellTrade = 4, kModeItemTrade = 5;
 constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 
-const TemplateTable* ClassTemplates() { return &g_partyManager->templates; }
-CParty* LocalParty() { return LocalPlayerData(); }
-CUiContainer* AsContainer(CCampPages* camp) { return camp; }
-
 // Whether the local player's variable `name` is 1. The original also takes an
 // unordered result (a NaN variable) as equal.
 bool PlayerSwitch(const char* name) { return LocalPlayerVariable(name) == 1.0f; }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    CUiSurface* surface = new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
-    return surface;
+    return new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
 }
 
 // An item list of the constructors: made through its factory (not checked).
@@ -70,11 +65,6 @@ CParty* NewItemList() {
     CParty* list = new CParty();
     list->Create();
     return list;
-}
-
-// A panel's Build.
-void BuildPanel(CUiWindow* panel) {
-    panel->Build();
 }
 
 // The time in animation frames: milliseconds / 1024 * 15.
@@ -98,7 +88,7 @@ void CCampPages::BuildPages() {
     constructor_ = nullptr;
     int constructor = static_cast<int>(libcrt::Ftol(LocalPlayerVariable("constr.current")));
     if (constructor > 0) {
-        constructor_ = ClassTemplates()->Find(constructor);
+        constructor_ = g_partyManager->templates.Find(constructor);
         if (!constructor_) {
             GameRejoin();
             return;
@@ -175,32 +165,30 @@ void CCampPages::BuildPages() {
     itemParts_[2] = NewItemList();
     itemResults_ = NewItemList();
     itemExtra_ = NewItemList();
-    itemMade_ = nullptr;
-    spellMade_ = nullptr;
 
     // The description panel on the right.
     CItemInfoPanel* info = new CItemInfoPanel(interface_, this);
     descPanel_ = info;
-    AsContainer(this)->AddChild(info);
+    AddChild(info);
     descPanel_->Build(600, 100);
 
     // The hero's statistics.
     auto* stats = new CHeroStatsPanel(interface_, this);
     statsPanel_ = stats;
-    AsContainer(this)->AddChild(stats);
+    AddChild(stats);
     statsPanel_->AddObject(objects_[0]);
-    BuildPanel(statsPanel_);
+    statsPanel_->Build();
 
     // The help panel on the left.
     info = new CItemInfoPanel(interface_, this);
     helpPanel_ = info;
-    AsContainer(this)->AddChild(info);
+    AddChild(info);
     helpPanel_->Build(0, 100);
 
     // The party's items.
     CUiItemStrip* strip = new CForwardingStrip(interface_, this);
     itemStrip_ = strip;
-    AsContainer(this)->AddChild(strip);
+    AddChild(strip);
     itemStrip_->Setup(&LocalPlayerData()->items_, 0);
     itemStrip_->mode_ = kActionEquip;
     itemStrip_->SetFilter(kFilterItems);
@@ -208,27 +196,27 @@ void CCampPages::BuildPages() {
     // The hero's equipment (with the body) and quick items.
     auto* equipment = new CHeroEquipPanel(interface_, this);
     equipment_ = equipment;
-    AsContainer(this)->AddChild(equipment);
+    AddChild(equipment);
     equipment_->AddObject(objects_[2]);
     equipment_->Build(true);
 
     auto* quick = new CHeroQuickStrip(interface_, this);
     equipment2_ = quick;
-    AsContainer(this)->AddChild(quick);
+    AddChild(quick);
     equipment2_->AddObject(objects_[2]);
     equipment2_->Build(true);
 
     // The skills for experience.
     auto* trade = new CTradePanel(interface_, this);
     trade_ = trade;
-    AsContainer(this)->AddChild(trade);
+    AddChild(trade);
     trade_->AddObject(objects_[0]);
-    BuildPanel(trade_);
+    trade_->Build();
 
     if (spellConstructor_) {
         strip = new CForwardingStrip(interface_, this);
         spellStrip_ = strip;
-        AsContainer(this)->AddChild(strip);
+        AddChild(strip);
         spellStrip_->Setup(&spellParts_[0]->items_, 1);
         spellStrip_->mode_ = kActionSpellParts;
         spellStrip_->SetFilter(kFilterSpells);
@@ -236,20 +224,20 @@ void CCampPages::BuildPages() {
 
         auto* grid = new CTradeGrid(interface_, this);
         spellConstructor1_ = grid;
-        AsContainer(this)->AddChild(grid);
+        AddChild(grid);
         spellConstructor1_->Build(&spellParts_[1]->items_, &spellParts_[2]->items_, 1, 0);
         spellConstructor1_->mode_ = kModeSpellTrade;
 
         auto* maker = new CSpellMakerPage(interface_, this);
         spellConstructor2_ = maker;
-        AsContainer(this)->AddChild(maker);
+        AddChild(maker);
         spellConstructor2_->BuildSpellMaker(spellResults_);
     }
 
     if (itemConstructor_) {
         strip = new CForwardingStrip(interface_, this);
         partStrip_ = strip;
-        AsContainer(this)->AddChild(strip);
+        AddChild(strip);
         partStrip_->Setup(&itemParts_[0]->items_, 1);
         partStrip_->mode_ = kActionItemParts;
         partStrip_->SetFilter(kFilterArmour);
@@ -257,40 +245,35 @@ void CCampPages::BuildPages() {
 
         auto* grid = new CTradeGrid(interface_, this);
         itemConstructor1_ = grid;
-        AsContainer(this)->AddChild(grid);
+        AddChild(grid);
         itemConstructor1_->Build(&itemParts_[1]->items_, &itemParts_[2]->items_, 0, 0);
         itemConstructor1_->mode_ = kModeItemTrade;
 
         auto* maker = new CConstructorPage(interface_, this);
         itemConstructor2_ = maker;
-        AsContainer(this)->AddChild(maker);
+        AddChild(maker);
         itemConstructor2_->BuildItemMaker(itemResults_);
 
         auto* repairs = new CRepairGrid(interface_, this);
         itemConstructor3_ = repairs;
-        AsContainer(this)->AddChild(repairs);
+        AddChild(repairs);
         itemConstructor3_->Build(&itemExtra_->items_);
     }
 
     // The party's heroes become units of the client world: every record's id is raised while the
     // world takes the hero records, and put back after the units were set up.
-    heroTurn_ = 0;
+    heroTurn_ = 0.0f;
     turning_ = 0;
-    std::vector<PartyUnitRecord*> records = {};
-    CParty* player = LocalParty();
+    std::vector<PartyUnitRecord*> records;
+    CParty* player = LocalPlayerData();
     const int count = std::ssize(player->members_);
-    for (int i = 0; i < count; ++i) {
-        player->members_[i].unitId += kRecordBias;
-        if (PrototypeObjectClass(player->members_[i].texts[5]) != MapObjectType::Hero) continue;
-        PartyUnitRecord* record = &player->members_[i];
-        int size = std::ssize(records);
-        records.resize(size + 1);
-        records[size] = record;
+    for (PartyUnitRecord& record : player->members_) {
+        record.unitId += kRecordBias;
+        if (PrototypeObjectClass(record.texts[5]) == MapObjectType::Hero) records.push_back(&record);
     }
     GameCreatePartyUnits(&records, 1);
 
-    heroes_.resize(count);
-    for (int i = 0; i < count; ++i) heroes_[i] = nullptr;
+    heroes_.assign(count, nullptr);
     for (int i = 0; i < count; ++i) {
         if (PrototypeObjectClass(player->members_[i].texts[5]) != MapObjectType::Hero) continue;
         auto* unit = GameFindClientUnit(player->members_[i].unitId);
@@ -350,8 +333,8 @@ void CCampPages::BuildPages() {
         for (int school = 0; school < kSchools; ++school) {
             lowest[school] = 1e20f;
             highest[school] = -1e20f;
-            for (int i = 0; i < std::ssize(LocalParty()->members_); ++i) {
-                auto* memberStats = &LocalParty()->members_[i].stats;
+            for (int i = 0; i < std::ssize(LocalPlayerData()->members_); ++i) {
+                auto* memberStats = &LocalPlayerData()->members_[i].stats;
                 float skill = static_cast<float>(memberStats->SpellSchoolSkill(school));
                 if (skill < lowest[school]) lowest[school] = skill;
                 if (highest[school] < skill) highest[school] = skill;

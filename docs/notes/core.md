@@ -83,8 +83,8 @@ File `core_refcount.cpp`, `refptr_copies.cpp`.
 - Not merged yet: the network family (`RefPtr`, `RefPtrTo<T>`, `CountedRefPtr` / `CountedRefTo<T>`, `SharedRefPtr` /
   `SharedRefTo<T>`; the interface track's files read their `.ptr`), `ScriptEffect<T>` (its reset removes the timed object
   first), and the raw counted fields the interface files read as plain pointers: CItem's `spell_` (SetSpell) and `link_`
-  (SetLink), CObject3D's `parts` (CopyFigure copies them uncounted). `HeldObject` and `CountedPtr` remain as aliases for
-  the interface files.
+  (SetLink), CObject3D's `parts` (CopyFigure copies them uncounted). `CountedPtr` remains as an alias for the
+  interface files.
 - Counted lists outside the interface: the world's missiles, a CObject3D's effect sources, the joined links (TakeNew)
   and the AI memory's four unit lists (`HeldUnits`: nearby, visible, seen corpses, corpses) are lists of `HeldRef`; a
   removal that must release after a later step moves the element out first (RemoveEffectSource detaches before the

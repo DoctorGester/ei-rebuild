@@ -123,9 +123,6 @@ CItemScreen::~CItemScreen() {
     DestroyCache(models_);
 }
 
-// The page titles, the heroes array, then the item screen's.
-CCampPages::~CCampPages() = default;
-
 // --- Screen 9's destructor ------------------------------------------
 
 CExchangeScreen::~CExchangeScreen() {}

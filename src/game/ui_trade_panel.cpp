@@ -370,14 +370,13 @@ void CTradePanel::RestoreRecord() {
 
 // --- Settling and choosing the hero ------------------------------------------------------------------
 
-void CTradePanel::Settle(int keep, int all) {
-    bool keepIt = static_cast<std::uint8_t>(keep) != 0;
-    if (static_cast<std::uint8_t>(all)) {
+void CTradePanel::Settle(bool keep, bool all) {
+    if (all) {
         int saved = recordIndex_;
         for (unsigned i = 0; i < static_cast<unsigned>(records_.size()); ++i) {
             if (!records_[i].bought) continue;
             recordIndex_ = static_cast<int>(i);
-            if (keepIt)
+            if (keep)
                 TradeSnapshotRecord(this);
             else
                 TradeRestoreRecord(this);
@@ -386,7 +385,7 @@ void CTradePanel::Settle(int keep, int all) {
         return;
     }
     if (!records_[recordIndex_].bought) return;
-    if (keepIt)
+    if (keep)
         TradeSnapshotRecord(this);
     else
         TradeRestoreRecord(this);

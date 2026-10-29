@@ -160,7 +160,7 @@ public:
     std::uint32_t materialUnits;        // units of material (the price; the trader stock takes them)
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
     // archive field 15, 1 after construction: 0 keeps the item out of the camp's item
-    // constructor (UiItemKinds::IsBuildable).
+    // constructor (IsBuildable).
     std::uint8_t buildable;
     // the category (QuickItemCategory), a quest
     // item's id, a loot item's kind; an armour's first absorption factor (float bits).

@@ -18,22 +18,12 @@
 
 namespace {
 
-const char* InstructionWeapon() { return "Instruction Weapon"; }
-const char* InstructionArmor() { return "Instruction Armor"; }
-const char* InstructionQuickItem() { return "Instruction Quick Item"; }
-const char* PrototypeWord() { return "prototype"; }
-const char* WandWord() { return "wand"; }
-const char* MaterialWord() { return "Material"; }
-const char* Dot() { return "."; }
-const char* RuneItem() { return "Rune"; }
-const char* PrototypeItem() { return "Prototype"; }
-
 constexpr std::uint32_t kInstructionCount = 10;
 constexpr std::uint32_t kMaterialCount = 20;
 
 // The list's copy of `item`: counted for the call, added (keeping its count, merged), released.
 void AddCounted(CParty* list, CItem* item) {
-    ++item->refCount_;
+    item->AddRef();
     list->AddItem(item, 1, 1);
     item->Release();
 }
@@ -82,7 +72,7 @@ void CCampPages::DebugFill() {
 
         g_clientWorld->itemManager_->ListWeaponNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
-            AddNamed(items, InstructionWeapon(), static_cast<std::uint32_t>(i), kInstructionCount);
+            AddNamed(items, "Instruction Weapon", static_cast<std::uint32_t>(i), kInstructionCount);
             CResourceManager* manager = items->ItemFactory();
             CItemConstructor* maker = items->ItemConstructor();
             itemdb::ItemRecordHead* weapon = itemdb::WeaponAt(static_cast<std::uint32_t>(i));
@@ -93,8 +83,8 @@ void CCampPages::DebugFill() {
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             CResourceManager* manager = items->ItemFactory();
             itemdb::ItemRecordHead* armor = itemdb::ArmorAt(static_cast<std::uint32_t>(i));
-            if (NameHas(armor, PrototypeWord())) continue;
-            AddNamed(items, InstructionArmor(), static_cast<std::uint32_t>(i), kInstructionCount);
+            if (NameHas(armor, "prototype")) continue;
+            AddNamed(items, "Instruction Armor", static_cast<std::uint32_t>(i), kInstructionCount);
             CItemConstructor* maker = items->ItemConstructor();
             AddInMaterials(items, manager, maker, armor, ItemKind::Armor, materialCount);
         }
@@ -102,18 +92,14 @@ void CCampPages::DebugFill() {
         g_clientWorld->itemManager_->ListQuickItemNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             itemdb::ItemRecordHead* quick = itemdb::QuickItemAt(static_cast<std::uint32_t>(i));
-            if (NameHas(quick, WandWord()))
-                AddNamed(items, InstructionQuickItem(), static_cast<std::uint32_t>(i), kInstructionCount);
+            if (NameHas(quick, "wand"))
+                AddNamed(items, "Instruction Quick Item", static_cast<std::uint32_t>(i), kInstructionCount);
         }
 
-        // "Material.<name>" (string + "." + name, two concatenations), twenty each,
-        // the record index left as made.
+        // "Material.<name>", twenty each, the record index left as made.
         g_clientWorld->itemManager_->ListMaterialNames(&names);
-        for (int i = 0; i < static_cast<int>(names.size()); ++i) {
-            std::string name = MaterialWord();
-            name += Dot();
-            name += names[i];
-            auto* item = items->ItemFactory()->CreateItem(name);
+        for (const std::string& material : names) {
+            auto* item = items->ItemFactory()->CreateItem("Material." + material);
             item->count_ = kMaterialCount;
             AddCounted(items, item);
         }
@@ -123,9 +109,9 @@ void CCampPages::DebugFill() {
         spells->Clear(1, 0);
         g_clientWorld->spellManager_->ListModifierNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i)
-            AddNamed(spells, RuneItem(), static_cast<std::uint32_t>(i), kInstructionCount);
+            AddNamed(spells, "Rune", static_cast<std::uint32_t>(i), kInstructionCount);
         g_clientWorld->spellManager_->ListSpellNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i)
-            AddNamed(spells, PrototypeItem(), static_cast<std::uint32_t>(i), kInstructionCount);
+            AddNamed(spells, "Prototype", static_cast<std::uint32_t>(i), kInstructionCount);
     }
 }

@@ -209,7 +209,6 @@ struct TradeRecord {
 class CTradePanel : public CUiItemPanel {
 public:
     CTradePanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) {}
-    ~CTradePanel() override;
     void Update() override { UpdateHeld(); }
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
     int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }
@@ -235,7 +234,7 @@ public:
     void RestoreRecord();
     // With `all`, every bought record is kept (with `keep`) or undone; otherwise only the current record when
     // bought.
-    void Settle(int keep, int all);
+    void Settle(bool keep, bool all);
     // Scroll positions 0.
     void SelectHero(int index);
     // Pending plus earned minus spent, truncated.
@@ -275,22 +274,26 @@ public:
 // spell constructor, 3 its second page, 4 item constructor, 5 and 6 its other pages, 7 leave the camp.
 class CCampPages : public CItemScreen {
 public:
-    CCampPages(CInterface3D* ui, bool fromHeroScreen);
-    ~CCampPages() override;
-    void CloseScreen() override { Close(); }
-    void MessageResult(int result) override { OnMessageResult(result); }
-    void TakeItem(CItem* item, int mode) override { MoveItem(item, mode); }
-    void TopicClicked(int page) override { ShowPageTabs(page); }
-    CUnit* HeroUnit(int index) override { return HeroAt(index); }
+    CCampPages(CInterface3D* ui, bool fromHeroScreen) : CItemScreen(ui), fromHeroScreen_(fromHeroScreen) {}
+    // Hands the local player's unit records back (their ids were raised by 100000000 for the call) and
+    // deletes the constructors' part lists except the first of each.
+    void CloseScreen() override;
+    // 0x10001 takes the shown hero's first weapon back into the party's items.
+    void MessageResult(int result) override;
+    // What an item strip or a panel calls with its action mode: 0 off the hero, 1 PutOnFromStrip, 2 / 3 into
+    // a constructor's slots, 4 / 5 out of a constructor's trade lists, 6 / 7 out of the makers' slots, 8 out
+    // of itemExtra_. Refused by CanEquip: the cancel sound.
+    void TakeItem(CItem* item, int mode) override;
+    // Camp page `page` (1-21).
+    void TopicClicked(int page) override;
+    // Not checked.
+    CUnit* HeroUnit(int index) override { return heroes_[index]; }
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
     int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }
     // Over the party's heroes, the best skill in spell school `school` (rounded to nearest) and the most
     // mana units (maximum mana / period, truncated).
-    void BestPartySkill(int school, int* skill, int* mana) override;
-    // Camp page `page` (1-21).
-    void ShowPageTabs(int page);
+    PartySkill BestPartySkill(int school) override;
     // Rebirth-patched: BuildPages, then with WideScreen the two curtains over the screen's margins.
     void CreateScreen() override;
     // Create's body. Without the player's "constr.current" class template: back to the world, nothing built.
@@ -306,7 +309,7 @@ public:
     bool CanEquip(CItem* item, int mode) override;
     // The page's action and its cost against the money (experience on the trade page).
     void UpdateAction();
-    // Keeps what the constructor makes in spellMade_ (itemMade_, with a reference); true when it can be made.
+    // Keeps what the constructor makes in spellMade_ (itemMade_); true when it can be made.
     bool CanMakeSpell();
     bool CanMakeItem();
     // The item's base price times the camp's multiplier for deal `kind`; weapons and armour also lose the
@@ -316,22 +319,15 @@ public:
     int Price(CItem* item, int kind) override;
     // Also finds what is under the mouse for the description panel.
     BOOL Draw(CSceneRenderer* pass) override;
-    // Hands the local player's unit records back (their ids were raised by 100000000 for the call) and
-    // deletes the constructors' part lists except the first of each.
-    void Close();
-    // A weapon ItemKind::Weapon or armour ItemKind::Armor, ItemKind::Quick or ItemKind::Spell off the current hero into the player's items
-    // (whose result it returns; 0 for other kinds).
+    // A weapon, armour, quick item or spell container off the current hero into the player's items (whose
+    // result it returns; null for other kinds).
     CItem* TakeOff(CItem* item);
-    // A weapon (at most 4), armour (the same body part's taken off first), a ItemKind::Quick item (at most 4) or a
-    // ItemKind::Spell item (at most 8). Other kinds and full slots do nothing.
+    // A weapon (at most 4), armour (the same body part's taken off first), a quick item (at most 4) or a
+    // spell container (at most 8). Other kinds and full slots do nothing.
     void PutOn(CItem* item);
     // Pages 0 / 1 put the item on the hero; the others move it into the page's slots (with Shift and a
-    // kind-one item the whole stack).
+    // material the whole stack).
     void PutOnFromStrip(CItem* item);
-    // What an item strip or a panel calls with its action mode: 0 off the hero, 1 PutOnFromStrip, 2 / 3 into
-    // a constructor's slots, 4 / 5 out of a constructor's trade lists, 6 / 7 out of the makers' slots, 8 out
-    // of itemExtra_. Refused by CanEquip: the cancel sound.
-    void MoveItem(CItem* item, int mode);
     void RefreshWeapons() override;
     void RefreshStats() override;
     // The hero preview turns while a turn button is held.
@@ -346,11 +342,6 @@ public:
     void OnLButtonUp(int buttons, int x, int y);
     // Esc shows page 7 (leaves); on a network client Backspace and Enter go to the chat line.
     void OnKeyDown(int key, int repeat, int flags);
-    void OnKeyUp(int key, int repeat, int flags);
-    // Not checked.
-    CUnit* HeroAt(int index);
-    // 0x10001 takes the shown hero's first weapon back into the party's items.
-    void OnMessageResult(int result);
     const char* HelpTopic() override;
     // By page: 0 repairs the hero's weapons and armour, 1 settles the trade (the money is left alone), 2 / 4
     // a constructor buys its third list, 3 / 5 the made spell / item (or the parts while deconstructing_),
@@ -359,53 +350,53 @@ public:
     // By page: 1 the trade settled with (0, 0); 2-6 the lists given back.
     void UndoAction();
     // A "Prototype" item for the container's spell and a "Rune" item per modifier.
-    bool DeconstructSpell();
+    void DeconstructSpell();
     // An "Instruction Weapon / Armor / Quick Item", a "material.<key>" per material and for an item with a
     // spell a "spell container" holding a clone of it.
-    bool DeconstructItem();
+    void DeconstructItem();
 
     // The console's "give <player> assortment": every instruction, material and rune into the constructors'
     // first lists.
     void DebugFill() override;
 
-    int page_;
+    int page_ = 0;
     bool fromHeroScreen_;            // opened from the multiplayer hero screen (closes with a pending value)
-    bool spellConstructor_;          // the spell constructor's pages are offered
-    bool itemConstructor_;           // the item constructor's pages are offered
-    ClassTemplate* constructor_;     // the constructor's class template ("constr.current"), or null
+    bool spellConstructor_ = false;  // the spell constructor's pages are offered
+    bool itemConstructor_ = false;   // the item constructor's pages are offered
+    ClassTemplate* constructor_ = nullptr;   // the constructor's class template ("constr.current"), or null
     // A unit per party record, null for other classes.
     std::vector<CUnit*> heroes_;
-    int hero_;                       // the hero shown
+    int hero_ = -1;                  // the hero shown
     // The constructors' parts and what they made.
-    CParty* itemParts_[3];
-    CParty* itemResults_;
-    CParty* itemExtra_;
-    CParty* spellParts_[3];
-    CParty* spellResults_;
-    CHeroStatsPanel* statsPanel_;
-    CItemInfoPanel* helpPanel_;
-    CUiItemStrip* itemStrip_;
-    CHeroEquipPanel* equipment_;
-    CHeroQuickStrip* equipment2_;
-    CUiItemStrip* spellStrip_;
-    CUiItemStrip* partStrip_;
-    CTradePanel* trade_;
-    CTradeGrid* spellConstructor1_;
-    CSpellMakerPage* spellConstructor2_;
-    CTradeGrid* itemConstructor1_;
-    CConstructorPage* itemConstructor2_;
-    CRepairGrid* itemConstructor3_;
-    int cost_;                       // what the action costs (negative: earns)
-    bool actionEnabled_;             // the action button can be pressed
-    bool actionShown_;
-    bool deconstructing_;            // the constructor takes an item apart
-    CItem* itemMade_;                // the item the item constructor would make, or null
-    CItem* spellMade_;               // the spell the spell constructor would make, or null
-    float priceWeights_[9];          // ClassTemplate::weights
+    CParty* itemParts_[3] = {};
+    CParty* itemResults_ = nullptr;
+    CParty* itemExtra_ = nullptr;
+    CParty* spellParts_[3] = {};
+    CParty* spellResults_ = nullptr;
+    CHeroStatsPanel* statsPanel_ = nullptr;
+    CItemInfoPanel* helpPanel_ = nullptr;
+    CUiItemStrip* itemStrip_ = nullptr;
+    CHeroEquipPanel* equipment_ = nullptr;
+    CHeroQuickStrip* equipment2_ = nullptr;
+    CUiItemStrip* spellStrip_ = nullptr;
+    CUiItemStrip* partStrip_ = nullptr;
+    CTradePanel* trade_ = nullptr;
+    CTradeGrid* spellConstructor1_ = nullptr;
+    CSpellMakerPage* spellConstructor2_ = nullptr;
+    CTradeGrid* itemConstructor1_ = nullptr;
+    CConstructorPage* itemConstructor2_ = nullptr;
+    CRepairGrid* itemConstructor3_ = nullptr;
+    int cost_ = 0;                   // what the action costs (negative: earns)
+    bool actionEnabled_ = false;     // the action button can be pressed
+    bool actionShown_ = false;
+    bool deconstructing_ = false;    // the constructor takes an item apart
+    Ref<CItem> itemMade_;            // the item the item constructor would make, or null
+    Ref<CItem> spellMade_;           // the spell container the spell constructor would make, or null
+    float priceWeights_[9] = {};     // ClassTemplate::weights
     std::vector<std::string> pageTitles_;   // the seven pages' titles and "quit"
-    bool noConstructor_;             // the player's "i.noconstr" = 1: second pages hidden
-    std::uint32_t heroTurn_;         // passed to the hero preview
-    int turning_;                    // 1 / 2 while a turn button is held (Update turns the hero)
+    bool noConstructor_ = false;     // the player's "i.noconstr" = 1: second pages hidden
+    float heroTurn_ = 0.0f;          // the hero preview's turn (radians)
+    int turning_ = 0;                // 1 / 2 while a turn button is held (Update turns the hero)
 };
 
 // --- Hero statistics panel ---

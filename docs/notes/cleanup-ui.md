@@ -6,7 +6,7 @@ The screens themselves are in `ui.md`. Calls to rewritten code still go through 
 
 ## Declarations
 
-- `CCampPages : CItemScreen`; its parties, panels and hero list are typed (`std::vector<CUnit*> heroes_`, `HeroAt`), the controller slots are
+- `CCampPages : CItemScreen`; its parties, panels and hero list are typed (`std::vector<CUnit*> heroes_`, `HeroUnit`), the controller slots are
   called on `CUnit::Controller()`. `CMpHeroScreen` has the item screens' two `ItemObjectCache`s (`models_`, `textures_`), `CUiEditField*` edit
   windows and slot 52 `VirtualChooseFigure`.
 - `CItemInfoPanel`'s text arrays are `std::vector<std::string>`; the descriptions read `itemdb` records (item heads, materials, weapons, armour,
