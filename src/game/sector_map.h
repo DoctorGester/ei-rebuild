@@ -16,6 +16,17 @@ class CAIMap;
 class CMapObject;
 class CUnit;
 
+// The kind of an AI map occluder (the occluder word's bits 9-11, FootprintCell, SectorOccluder): a figure part's
+// comes from its name (BoundsFlag). Every occluder dims lines of sight by its transparency (CAIMap::LineOfSight);
+// CAIMap::CellMark charges by kind. Kind 1 (worlddata::kOccluderCosts / kOccluderDamping 20 and 2) is given by
+// no part.
+enum class OccluderKind : std::int8_t {
+    Solid = 0,        // a plain part: adds kOccluderCosts[0] (290) to the cell's cost, damps its passage by 7
+    Crown = 2,        // a "CROWN..." part: nothing for the passability
+    SpellArea = 3,    // a spell's wall or cloud (ai_footprint_shapes.cpp): the cell's cost counts twice, units fear it
+    BridgeDeck = 4,   // a "BASE..." part once CAIMap::ApplyBridgeDecks applied it: nothing for the passability
+};
+
 // The world split into 32x32-cell sectors, each listing the objects and units inside it. Used to
 // find what is near a point and to keep the AI map's footprints in sync. Names provisional.
 // A sector's one virtual is its destructor.
@@ -24,7 +35,7 @@ class CUnit;
 struct SectorOccluder {
     std::int16_t top;
     std::int16_t bottom;
-    std::int8_t kind;
+    OccluderKind kind;
     std::int8_t transparency;
     std::int16_t next;          // the cell's next record, or the next free one; negative ends
 };

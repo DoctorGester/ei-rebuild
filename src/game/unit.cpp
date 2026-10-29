@@ -316,7 +316,7 @@ double CUnit::ScaledValue(float value) {
 }
 
 double CUnit::BaseSpeed() {
-    if (bounds.flags & 2) return bounds.boxMax.z * kFastSpeedScale;
+    if (lib::Has(bounds.flags, BoundsFlag::Box)) return bounds.boxMax.z * kFastSpeedScale;
     return bounds.radius * kWalkSpeedScale + bounds.center.z;
 }
 

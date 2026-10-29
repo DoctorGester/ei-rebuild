@@ -133,7 +133,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     for (int k = 0; k < std::ssize(blocks); ++k) {
         int xx = blocks[k].x, yy = blocks[k].y;
         std::uint8_t cell = cellRows[yy][xx];
-        if (search->CostAt((cell & 0xF) + xx * 8, (cell >> 4) + yy * 8) < kUnreached && inRegion(xx, yy)) {
+        if (search->CostAt(RepresentativeX(cell) + xx * 8, RepresentativeY(cell) + yy * 8) < kUnreached && inRegion(xx, yy)) {
             found = true;
             break;
         }
@@ -198,7 +198,7 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, std::list<
         for (int xx = bx - 1; xx < bx + 2; ++xx) {
             if (xx < 0 || xx >= BlocksWide(this)) continue;
             std::uint8_t cell = cellRows[yy][xx];
-            int cost = search->CostAt((cell & 0xF) + xx * 8, (cell >> 4) + yy * 8);
+            int cost = search->CostAt(RepresentativeX(cell) + xx * 8, RepresentativeY(cell) + yy * 8);
             if (cost >= kUnreached) continue;
             out->push_back({xx, yy, cost});
         }
@@ -287,8 +287,9 @@ void CRegionMap::SaveBlocks(CStream* stream) {
 void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
     for (int c = 0; c < 8; ++c) {
         std::uint8_t& cell = cells[c].rows[by][bx];
-        cell = static_cast<std::uint8_t>((cell & 0xF3) | 3);
-        cell = static_cast<std::uint8_t>((cell & 0x0F) | 0x30);
+        // (3, 3); the original sets only x's two low bits.
+        cell = WithRepresentativeX(cell, RepresentativeX(cell) | 3);
+        cell = WithRepresentativeY(cell, 3);
         int best = 0;
         bool found = false;
         // Square rings from the block's middle: [4, 4), [3, 5), [2, 6), [1, 7), [0, 8).
@@ -298,15 +299,15 @@ void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
                 for (int xx = lo; xx < hi; ++xx) {
                     int x = bx * 8 + xx, y = by * 8 + yy;
                     if (x < 0 || y < 0 || x >= map->cells.width || y >= map->cells.height) continue;
-                    int nibble = static_cast<int>((map->cells[y][x].passable >> (c * 4)) & 0xF);
+                    int nibble = map->cells[y][x].Passability(c * 4);
                     if (nibble == 0) continue;
                     if (!(nibble > best) && found) continue;
                     bool suits = CellSuitsBlockAt(c, bx, by, xx, yy);
                     if (!suits && found) continue;
                     found = suits;
                     best = nibble;
-                    cell = static_cast<std::uint8_t>((cell & 0xF0) | (xx & 0xF));
-                    cell = static_cast<std::uint8_t>((cell & 0x0F) | (yy << 4));
+                    cell = WithRepresentativeX(cell, xx);
+                    cell = WithRepresentativeY(cell, yy);
                 }
         }
     }
@@ -437,8 +438,8 @@ void CRegionMap::MeasureBlockEdges(int bx, int by) {
         std::int16_t** edgeRows = edges[c].rows;
         std::uint8_t own = cellRows[by][bx];
         local.backward = false;
-        search->BeginInRectForClass(c, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, (own & 0xF) + bx * 8,
-                    (own >> 4) + by * 8);
+        search->BeginInRectForClass(c, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, RepresentativeX(own) + bx * 8,
+                    RepresentativeY(own) + by * 8);
         search->ExpandAll();
         // Each direction: the search cost from the block's representative cell to the
         // neighbour's, in units of 128 (at most 0x7FFF); -1 off the map or unreached.
@@ -447,7 +448,7 @@ void CRegionMap::MeasureBlockEdges(int bx, int by) {
             std::int16_t value = -1;
             if (nx >= 0 && ny >= 0 && nx < BlocksWide(this) && ny < BlocksHigh(this)) {
                 std::uint8_t other = cellRows[ny][nx];
-                int cost = search->CostAt((other & 0xF) + nx * 8, (other >> 4) + ny * 8);
+                int cost = search->CostAt(RepresentativeX(other) + nx * 8, RepresentativeY(other) + ny * 8);
                 if (cost < kUnreached) {
                     cost /= 128;
                     if (cost > 0x7FFF) cost = 0x7FFF;

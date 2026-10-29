@@ -50,7 +50,7 @@ void AllocateCellGrid(SearchGrid<AIMapCell>* grid) {
 void AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid) {
     AllocateGrid(*grid);
     int count = grid->width * grid->height;
-    for (int i = 0; i < count; ++i) grid->data[i] = (grid->data[i] & 0xFFFFFF60) | 0x100;
+    for (int i = 0; i < count; ++i) grid->data[i] = (grid->data[i] & ~(occluder::kTypeMask | occluder::kChained)) | occluder::kNone;
 }
 
 template <> void SearchGrid<std::uint8_t>::Resize(int newWidth, int newHeight) {

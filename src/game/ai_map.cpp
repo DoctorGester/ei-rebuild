@@ -21,11 +21,7 @@ float CellToWorld(int cell) { return (static_cast<float>(cell) + 0.5f) * 0.5f; }
 
 int PositiveOrZero(int v) { return v < 0 ? 0 : v; }
 
-constexpr std::uint32_t kOccluderNone = 0x100;
-constexpr std::uint32_t kOccluderChain = 0x80;
-
-// The occluder records of the sector holding cell (x, y), for cells holding more than one: `top` is bits
-// 12-21 of a single-occluder word, `bottom` bits 22-31, `kind` bits 9-11, `transparency` bits 5-6.
+// The occluder records of the sector holding cell (x, y), for cells holding more than one (occluder::kChained).
 const SectorOccluder* OccluderRecords(const CAIMap* map, int x, int y) {
     const CSectorMap& sectors = map->sectorMap;
     return sectors.sectors[(y / 32) * sectors.width + x / 32].occluders.data();
@@ -108,7 +104,7 @@ bool CAIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3* position) {
     if (unit->GetClassId() == ClassId::Unit) {
         int reason;
         passable = CanStandAt(unit, x, y, &reason) &&
-                   ((cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;
+                   cells[y][x].Passability(unit->sizeClass * 4) != 0;
     }
     sectorMap.Add(unit);
     return passable;
@@ -117,13 +113,13 @@ bool CAIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3* position) {
 bool CAIMap::IsUnitCellPassable(CUnit* unit) {
     int x = WorldToCell(unit->localPosition_.x), y = WorldToCell(unit->localPosition_.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
-    return ((cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;
+    return cells[y][x].Passability(unit->sizeClass * 4) != 0;
 }
 
 bool CAIMap::IsPassableForClass(std::uint8_t sizeClass, const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
-    return ((cells[y][x].passable >> ((sizeClass & 7) * 4)) & 0xF) != 0;
+    return cells[y][x].Passability(sizeClass * 4) != 0;
 }
 
 bool CAIMap::CanLeaveCell(CUnit* unit) {
@@ -138,7 +134,7 @@ bool CAIMap::CanLeaveCell(CUnit* unit) {
         int nx = o[0] + x, ny = y + o[1];
         if (nx < 0 || ny < 0 || nx >= cells.width || ny >= cells.height) continue;
         const AIMapCell& cell = cells[ny][nx];
-        if (!((cell.passable >> ((sizeClass * 4) & 31)) & 0xF)) continue;
+        if (cell.Passability(sizeClass * 4) == 0) continue;
         if (climbCost[cell.groundLevel - here] > 0) return true;
     }
     return false;
@@ -154,7 +150,7 @@ float CAIMap::TopHeightAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return 0.0f;
     const AIMapCell& cell = cells[y][x];
-    return static_cast<float>((cell.flags & 0x3F) + cell.groundLevel) / heightScale;
+    return static_cast<float>(cell.WaterDepth() + cell.groundLevel) / heightScale;
 }
 
 float CAIMap::SlopeAt(const Vector3* position) {
@@ -180,16 +176,16 @@ float CAIMap::SlopeAt(const Vector3* position) {
 bool CAIMap::CellFlag80At(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
-    return (cells[y][x].flags >> 7) & 1;
+    return cells[y][x].InWater();
 }
 
 bool CAIMap::HasKind3Occluder(int x, int y) {
     std::uint32_t word = occluders[y][x];
-    if (word & kOccluderNone) return false;
-    if (!(word & kOccluderChain)) return (word & 0xE00) == 0x600;
+    if (word & occluder::kNone) return false;
+    if (!(word & occluder::kChained)) return occluder::Kind(word) == OccluderKind::SpellArea;
     const SectorOccluder* records = OccluderRecords(this, x, y);
-    for (int index = (word >> 9) & 0xFFFFF; index >= 0; index = records[index].next) {
-        if (records[index].kind == 3) return true;
+    for (int index = occluder::Head(word); index >= 0; index = records[index].next) {
+        if (records[index].kind == OccluderKind::SpellArea) return true;
     }
     return false;
 }
@@ -203,13 +199,13 @@ bool CAIMap::HasKind3OccluderAt(const Vector3* position) {
 int CAIMap::MaterialAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return -1;
-    return occluders[y][x] & 0x1F;
+    return static_cast<int>(occluder::Type(occluders[y][x]));
 }
 
 AITerrainType* CAIMap::MaterialRecordAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return materials.data();
-    return materials.data() + (occluders[y][x] & 0x1F);
+    return materials.data() + occluder::Type(occluders[y][x]);
 }
 
 void CAIMap::TurnObject(CMapObject* object, const Quaternion* rotation) {
@@ -223,17 +219,17 @@ bool CAIMap::BridgeDeckAt(int x, int y, int* deckHeight) {
     int deck = 0;
     bool found = false;
     std::uint32_t word = occluders[y][x];
-    if (!(word & kOccluderNone)) {
-        if (word & kOccluderChain) {
+    if (!(word & occluder::kNone)) {
+        if (word & occluder::kChained) {
             const SectorOccluder* records = OccluderRecords(this, x, y);
-            for (int index = (word >> 9) & 0xFFFFF; index >= 0; index = records[index].next) {
-                if (records[index].kind == 4) {
+            for (int index = occluder::Head(word); index >= 0; index = records[index].next) {
+                if (records[index].kind == OccluderKind::BridgeDeck) {
                     if (!(deck > records[index].top)) deck = records[index].top;
                     found = true;
                 }
             }
-        } else if ((word & 0xE00) == 0x800) {
-            deck = (word >> 12) & 0x3FF;
+        } else if (occluder::Kind(word) == OccluderKind::BridgeDeck) {
+            deck = occluder::Top(word);
             found = true;
         }
     }
@@ -276,19 +272,19 @@ float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
         if (cells[cy][cx].groundLevel >= cz) return 0.0f;
 
         std::uint32_t word = occluders[cy][cx];
-        if (word & kOccluderNone) continue;
-        if (!(word & kOccluderChain)) {
+        if (word & occluder::kNone) continue;
+        if (!(word & occluder::kChained)) {
             // A single occluder packed into the word.
-            int high = (word >> 12) & 0x3FF, low = static_cast<int>(word >> 22);
+            int high = occluder::Top(word), low = occluder::Bottom(word);
             if (high < cz || low > cz) continue;
-            visibility *= kTransparency[(word >> 5) & 3];
+            visibility *= kTransparency[occluder::Transparency(word)];
             EI_NAN_AUDIT(visibility);
             if (visibility < kMinVisibility) return kMinVisibility;
             continue;
         }
         // Several occluders: a chain in the sector's record list.
         const SectorOccluder* records = OccluderRecords(this, cx, cy);
-        for (int index = (word >> 9) & 0xFFFFF; index >= 0; index = records[index].next) {
+        for (int index = occluder::Head(word); index >= 0; index = records[index].next) {
             const SectorOccluder& o = records[index];
             if (o.top < cz || o.bottom > cz) continue;
             visibility *= kTransparency[o.transparency];
@@ -345,7 +341,7 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
         int cx = offset[0] + tx, cy = offset[1] + ty;
         int reason;
         if (!CanStandAt(unit, cx, cy, &reason)) continue;
-        if (!((cells[cy][cx].passable >> ((sizeClass * 4) & 31)) & 0xF)) continue;
+        if (cells[cy][cx].Passability(sizeClass * 4) == 0) continue;
         short r = static_cast<short>(regionMap.DominantRegion(sizeClass, cx, cy));
         if (region != 0 && r != region) continue;
         if (i != 0) {

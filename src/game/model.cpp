@@ -35,7 +35,7 @@ int Classify(const std::uint32_t (&codes)[8]) {
 std::uint32_t ClipBounds::SetBox(const float* min, const float* max) {
     std::memcpy(&boxMin, min, 12);
     std::memcpy(&boxMax, max, 12);
-    flags |= 2;
+    flags |= BoundsFlag::Box;
     return flags;
 }
 

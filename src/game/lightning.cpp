@@ -295,7 +295,7 @@ void CLightning::UpdateBounds() {
     bounds_.boxMax.x = static_cast<float>(static_cast<double>(bounds_.boxMax.x) - bounds_.center.x);
     bounds_.boxMax.y = static_cast<float>(static_cast<double>(bounds_.boxMax.y) - bounds_.center.y);
     bounds_.boxMax.z = static_cast<float>(static_cast<double>(bounds_.boxMax.z) - bounds_.center.z);
-    bounds_.flags = 3;
+    bounds_.flags = lib::Bits(BoundsFlag::Sphere | BoundsFlag::Box);
     bounds_.radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(bounds_.boxMax)));
 }
 

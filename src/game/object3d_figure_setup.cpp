@@ -28,16 +28,6 @@
 
 namespace {
 constexpr float kHeroHalfWidth = 0.5f;
-constexpr std::uint32_t kBoundsSphere = 1;       // bounds.flags: radius valid
-constexpr std::uint32_t kBoundsBox = 2;          // bounds.flags: box valid
-
-// FootprintPart::flags set here.
-constexpr std::uint32_t kBoxLoaded = 4;
-constexpr std::uint32_t kBoxBase = 0x400;        // a part named "BASE..."
-constexpr std::uint32_t kBoxCrown = 0x90;        // "CROWN..."
-constexpr std::uint32_t kBoxEmpty = 0x890;       // "EMPTY..."
-
-constexpr std::uint32_t kBoxEmptyMark = 0x800;
 constexpr const char* kCantLoadPart = "CObject3D::LoadFigure.\n Can't load figure \"%s\" for object \"%s\".\n";
 constexpr const char* kNoFigureManager = "CObject3D::LoadFigures.\n No valid figure manager.\n";
 constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create object \"%s\" with bodypart \"%s\".\n";
@@ -78,7 +68,7 @@ void CObject3D::SetUpAnimatedFigure(std::string_view model) {
                                             std::bit_cast<std::uint32_t>(scale.z));
             box = &partBoxes[index];
             box->pivot = {bone->position.x, bone->position.y, bone->position.z};
-            box->bounds.flags |= kBoxLoaded;
+            box->bounds.flags |= BoundsFlag::Loaded;
             partNames[index] = bone->GetName();
 
             box = &partBoxes[index];
@@ -90,9 +80,9 @@ void CObject3D::SetUpAnimatedFigure(std::string_view model) {
             low.z = MinKeepA(static_cast<float>(box->pivot.z + box->bounds.boxMin.z + box->bounds.center.z), low.z);
 
             const std::string_view partName = bone->GetName();
-            if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) box->bounds.flags |= kBoxBase;
-            if (text::CompareIgnoringCase(partName.substr(0, 5), "CROWN") == 0) box->bounds.flags |= kBoxCrown;
-            if (text::CompareIgnoringCase(partName.substr(0, 5), "EMPTY") == 0) box->bounds.flags |= kBoxEmpty;
+            if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) box->bounds.flags |= BoundsFlag::Base;
+            if (text::CompareIgnoringCase(partName.substr(0, 5), "CROWN") == 0) box->bounds.flags |= BoundsFlag::Crown;
+            if (text::CompareIgnoringCase(partName.substr(0, 5), "EMPTY") == 0) box->bounds.flags |= BoundsFlag::NoFootprint | BoundsFlag::Crown;
         }
         animation->ReleaseBones();
     }
@@ -111,9 +101,9 @@ void CObject3D::SetUpAnimatedFigure(std::string_view model) {
     bounds.boxMax.x = high.x - bounds.center.x;
     bounds.boxMax.y = high.y - bounds.center.y;
     bounds.boxMax.z = high.z - bounds.center.z;
-    bounds.flags |= kBoundsBox;
+    bounds.flags |= BoundsFlag::Box;
     bounds.radius = LengthXYZ(bounds.boxMax);
-    bounds.flags |= kBoundsSphere;
+    bounds.flags |= BoundsFlag::Sphere;
 }
 
 // --- Bounds of the placed parts -----------------------------------------------------------------
@@ -137,8 +127,8 @@ void CObject3D::UpdatePartBounds() {
     bounds.boxMin.x = lowX - centreX;
     bounds.boxMin.y = lowY - centreY;
     bounds.boxMin.z = lowZ - centreZ;
-    bounds.flags |= kBoundsBox;
-    bounds.flags |= kBoundsSphere;
+    bounds.flags |= BoundsFlag::Box;
+    bounds.flags |= BoundsFlag::Sphere;
     bounds.radius = LengthZYX(bounds.boxMin);
     bounds.center.x = centreX - localPosition_.x;
     bounds.center.y = centreY - localPosition_.y;
@@ -186,11 +176,11 @@ CFigureMesh* CObject3D::LoadPart(std::string_view partName) {
         // The box and the pivot.
         part->box_ = piece.box;
     }
-    if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) part->box_.bounds.flags |= kBoxBase;
-    if (text::CompareIgnoringCase(partName.substr(0, 5), "CROWN") == 0) part->box_.bounds.flags |= kBoxCrown;
+    if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) part->box_.bounds.flags |= BoundsFlag::Base;
+    if (text::CompareIgnoringCase(partName.substr(0, 5), "CROWN") == 0) part->box_.bounds.flags |= BoundsFlag::Crown;
     if (text::CompareIgnoringCase(partName.substr(0, 5), "EMPTY") == 0) {
-        part->box_.bounds.flags |= kBoxEmptyMark;
-        part->box_.bounds.flags |= kBoxCrown;
+        part->box_.bounds.flags |= BoundsFlag::NoFootprint;
+        part->box_.bounds.flags |= BoundsFlag::Crown;
     }
     // Joins the parts unless it is there (appended).
     bool present = false;
@@ -204,7 +194,7 @@ CFigureMesh* CObject3D::LoadPart(std::string_view partName) {
     }
     part->box_.pivot.x = part->localPosition_.x;
     part->box_.pivot.y = part->localPosition_.y;
-    part->box_.bounds.flags |= kBoxLoaded;
+    part->box_.bounds.flags |= BoundsFlag::Loaded;
     part->box_.pivot.z = part->localPosition_.z;
     return part;
 }

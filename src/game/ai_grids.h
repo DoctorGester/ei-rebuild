@@ -35,8 +35,7 @@ void AllocateZeroedByteGrid(SearchGrid<std::uint8_t>* grid);
 void AllocateRegionGrid(SearchGrid<std::uint16_t>* grid);
 // The map's cells: not passable, ground level 0, nothing on them, level 0 (unused_7 left as allocated).
 void AllocateCellGrid(SearchGrid<AIMapCell>* grid);
-// The map's occluder words: no occluder (bit 8), material 0, bit 7 clear; the other
-// bits are left as allocated.
+// The map's occluder words: occluder::kNone, terrain type 0, kChained clear; the other bits are left as allocated.
 void AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid);
 
 // The event table's cells (Rebirth patches the resize that calls it).

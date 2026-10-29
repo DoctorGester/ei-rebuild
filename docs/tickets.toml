@@ -5326,3 +5326,67 @@ title = "HeldRef for the AI memory lists; pendingParts is never filled"
 group = "cleanup"
 depends = ["C49b"]
 note = "C49b follow-up. AIMemory's nearby / visible / seenCorpses / corpses (std::list<CUnit*>, counted by hand in unit_ai_brain.cpp ReleaseAllObjects / RemoveObjectNode, combat_lifetime.cpp Init/DestroyObjectList, combat_taming ReleaseAndClear, WitnessMurder's std::list<CUnit*>*) to std::list<HeldRef<CUnit>> where the release order stays. CObject3D::pendingParts: nothing in src or tests adds to it (only reads, RemovePart, LoadFigures' sic drop, Destroy3D); check game.exe's writers and delete it with its loops if it is dead. Goldens unchanged."
+
+[[ticket]]
+id = "C45d1"
+title = "Magic numbers: AI map words"
+group = "cleanup"
+model = "opus"
+depends = ["C45d"]
+note = "C45d's first batch, done by C45d. AIMapCell::flags (water depth bits 0-5, bridge 0x40, water 0x80), the pass-code nibble per size class, the occluder word's fields, the occluder kinds, the region map's representative cells (x | y << 4), the footprint parts' flags. ai_*.cpp, ai_map.h, sector_map.h, model.h (~80). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+
+[[ticket]]
+id = "C45d2"
+title = "Magic numbers: script function ids"
+group = "cleanup"
+model = "sonnet"
+depends = ["C45d"]
+note = "Spelling only. enum class ScriptFunction in script.h named after script_parse.cpp's function table (the table then uses the enum); the case and == sites of script_exec.cpp, script_eval.cpp, script_exec_helpers.cpp (~233). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+
+[[ticket]]
+id = "C45d3"
+title = "Magic numbers: particle types"
+group = "cleanup"
+model = "sonnet"
+depends = ["C45d"]
+note = "Spelling only. enum class ParticleType (0x2000..0x2052) in effects.h, named after script_effects.cpp's kScriptParticleTypes and the texture names particle_create.cpp's SetupType returns; a type neither names gets a descriptive name and a note. particle_create.cpp, particle_callbacks.cpp, world_effect_visual.cpp, map_object_client_effects.cpp (spell to particle), spell_effect_start.cpp (~176). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+
+[[ticket]]
+id = "C45d4"
+title = "Magic numbers: spell types"
+group = "cleanup"
+model = "opus"
+depends = ["C45d"]
+note = "enum class SpellType, the spell prototype index 0..0x29 (Rebirth adds 0x28, 0x29), in spell.h; names from the spells' prototype names in the data, the magic\\ effect folders (map_object_client_effects.cpp) and the Start* functions; folds in map_object.h's namespace mapeffect. spell.cpp, spell_effect_start.cpp, spell_effect_update.cpp, world_spells.cpp, map_object_client_effects.cpp, combat.cpp, combat_update.cpp (~126). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+
+[[ticket]]
+id = "C45d5"
+title = "Magic numbers: animation keys"
+group = "cleanup"
+model = "opus"
+depends = ["C45d"]
+note = "The figure animation key and flags: action kind (key & 0x3C0000), wound bits 0x400000 / 0x800000, side bits (flags & 0x1C00000), the animation number (key >> kNumberShift & 0xFF; the skill sounds), the empty step (animation / variant 0xFF). unit.cpp, acks_db.cpp, unit_motion_tick.cpp, unit_points.cpp, combat_motion.cpp, combat_update.cpp, unit_client_animation.cpp, unit_client_sounds.cpp, map_object_parts.cpp (~46). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+
+[[ticket]]
+id = "C45d6"
+title = "Magic numbers: engine object flag words"
+group = "cleanup"
+model = "opus"
+depends = ["C45d"]
+note = "Flag words of engine objects other than map objects: CFigureMesh flags_ (0x10, 0x20 loaded, 0x40 drawn, 0x80, 0x100 flat), CMaterial 0x10, CLight (0x40 specular, 0x80, 0x100, 0x200, 0x400), CParticleSource (0x1, 0x2, 0x10, 0x20, 0x40), CTexture (0x40..0x2000, 0x4000..0x20000), the client world's flags_ (0x10..0x2000; zone bits 0x10 / 0x20 / 0x40), the objects' highlight bits 0x10 / 0x100 / 0x400. figure_mesh.cpp, figure_part_draw*.cpp, world_client*.cpp, terrain_lighting.cpp, map_object_lifetime.cpp, map_object_shadow.cpp, particle_*.cpp, texture_*.cpp, app_main.cpp, camera_object.cpp (~43 plus the writes). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+
+[[ticket]]
+id = "C45d7"
+title = "Magic numbers: unit and spell flag bits"
+group = "cleanup"
+model = "opus"
+depends = ["C45d"]
+note = "Map object and unit bits not yet in MapObjectFlag (0x400000, 0x4000000, 0x40000000; 0x10000000 is NoCasting already), UnitStats flags (0x10), CSpell::targetFlags_ (0x10, 0x20, 0x10000, 0x20000), the player's dirty_ bits, the sound sequence's 0x40000000 bit, the companion timer's sign bit. unit.cpp, unit_client_path.cpp, particle_draw.cpp, net_state.cpp, map_spec_unit.cpp, combat.cpp, spell.cpp, spell_cast.cpp, world_spells.cpp, player_messages.cpp, sound_manager.cpp, world_client_maps.cpp (~14 plus the writes). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+
+[[ticket]]
+id = "C45d8"
+title = "Magic numbers: the other kinds and none values"
+group = "cleanup"
+model = "opus"
+depends = ["C45d"]
+note = "The figure manager's object types (figure_factory.cpp, like SpellObjectType), the texture manager's types (texture_manager_lifetime.cpp), the texture kinds of the first part set (object3d_client_parts.cpp), clip outcodes (clip.cpp, model.cpp), the game's wheel message 0xCC54 (app.cpp), and the none values (0xFFFFFFFF ids, 0xFFFF materials and tiles, 0x7FFFFFFF skills) as named constants (~34). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."

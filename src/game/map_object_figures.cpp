@@ -115,8 +115,8 @@ void CObject3D::ComputeBounds() {
     bounds.boxMax.x = aboveX;
     bounds.boxMax.y = aboveY;
     bounds.boxMax.z = aboveZ;
-    bounds.flags |= 2;
-    bounds.flags |= 1;
+    bounds.flags |= BoundsFlag::Box;
+    bounds.flags |= BoundsFlag::Sphere;
     bounds.radius = static_cast<float>(length);
     bounds.center.x = centerX;
     bounds.center.y = centerY;

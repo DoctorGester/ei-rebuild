@@ -24,7 +24,7 @@ bool BeginLocalSearch(LocalSearch* search, CUnit* unit, int x0, int y0, int x1, 
 
 
 bool IsCellPassable(CAIMap* map, CUnit* unit, int x, int y) {
-    return ((map->cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;
+    return map->cells[y][x].Passability(unit->sizeClass * 4) != 0;
 }
 
 constexpr float kDiagonal = 0.707f;

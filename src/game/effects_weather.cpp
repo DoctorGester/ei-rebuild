@@ -182,7 +182,7 @@ void CVisibilityFog::ComputeBounds() {
     float z = LoadFloat(bounds.boxMax.z);
     boundsSpare = {0.0f, 0.0f, 0.0f};
     bounds.radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z)));
-    bounds.flags = 3;
+    bounds.flags = lib::Bits(BoundsFlag::Sphere | BoundsFlag::Box);
     boundsValid = 1;
 }
 

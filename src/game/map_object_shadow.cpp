@@ -180,7 +180,7 @@ int KeyedParts(const CObject3D* object) {
     for (int i = 0; i < std::ssize(object->parts); ++i) {
         const CFigureMesh* part = PartAt(object, i);
         if (PartTooFar(part)) continue;
-        keyedParts |= (part->box_.bounds.flags >> 10) & 1;
+        keyedParts |= lib::Has(part->box_.bounds.flags, BoundsFlag::Base) ? 1 : 0;
     }
     return keyedParts;
 }

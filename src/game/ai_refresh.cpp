@@ -39,7 +39,7 @@ struct MarkState {
     int passage;         // 0x400 open, damped by occluders; negative: blocked
     int cost;
     int ceiling;                        // the room above the bottom (0x7F8 on open ground)
-    std::uint8_t doubled;   // the cost counts twice (occluder type 3)
+    std::uint8_t doubled;   // the cost counts twice (OccluderKind::SpellArea)
 };
 
 // passage * e^(table * a * b) as the original's x87 sequence computes it, stored to a float and rounded.
@@ -50,14 +50,14 @@ int Damp(int table, float a, float b, int passage) {
 
 int TableInt(const int* table, int i) { return table[i]; }
 
-// One occluder of type `type` spanning heights [lowest, highest] against the cell's column.
+// One occluder of kind `type` spanning heights [lowest, highest] against the cell's column.
 // `sectorOrder`: the order of the two factors of the exponent (the two callers differ).
-void Occlude(MarkState* s, int type, int lowest, int highest, bool sectorOrder) {
+void Occlude(MarkState* s, OccluderKind type, int lowest, int highest, bool sectorOrder) {
     switch (type) {
-    case 2:
-    case 4:
+    case OccluderKind::Crown:
+    case OccluderKind::BridgeDeck:
         return;
-    case 3:
+    case OccluderKind::SpellArea:
         s->doubled = 1;
         return;
     default:
@@ -67,11 +67,11 @@ void Occlude(MarkState* s, int type, int lowest, int highest, bool sectorOrder) 
     int lo = lowest > s->bottom ? lowest : s->bottom;
     int hi = highest < s->top ? highest : s->top;
     float frac = static_cast<float>(static_cast<double>(hi - lo) / (s->top - s->bottom));
-    float added = static_cast<float>(static_cast<double>(TableInt(worlddata::kOccluderCosts, type)) * frac);
+    float added = static_cast<float>(static_cast<double>(TableInt(worlddata::kOccluderCosts, static_cast<int>(type))) * frac);
     s->cost += x87::fistp(added);
     float scale = g_dampScale;
-    s->passage = sectorOrder ? Damp(TableInt(worlddata::kOccluderDamping, type), scale, frac, s->passage)
-                             : Damp(TableInt(worlddata::kOccluderDamping, type), frac, scale, s->passage);
+    s->passage = sectorOrder ? Damp(TableInt(worlddata::kOccluderDamping, static_cast<int>(type)), scale, frac, s->passage)
+                             : Damp(TableInt(worlddata::kOccluderDamping, static_cast<int>(type)), frac, scale, s->passage);
 }
 
 // 17 cell offsets {dy, dx}; the first 4 the direct neighbours, the other 13 the cells
@@ -186,13 +186,13 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
     auto* s = static_cast<MarkState*>(scratch);
     AIMapCell* cell = &cells[y][x];
     std::uint32_t* occluder = &occluders[y][x];
-    AITerrainType* terrain = &materials[*occluder & 0x1F];
-    std::uint8_t extra = cell->flags;   // read as a word; only the low six bits are used
-    if ((*occluder & 0x100) && !(cell->flags & 0x3F)) return (terrain->openMarks >> (level * 4)) & 0xF;
+    AITerrainType* terrain = &materials[occluder::Type(*occluder)];
+    const int depth = cell->WaterDepth();   // the original reads the flags as a word and keeps the low six bits
+    if ((*occluder & occluder::kNone) && depth == 0) return (terrain->openMarks >> (level * 4)) & kPassabilityMask;
 
     int bottom = cell->groundLevel;
     if (level == 0) {
-        if (extra & 0x3F) bottom += extra & 0x3F;
+        bottom += depth;
         s->doubled = 0;
         s->passage = 0x400;
         s->cost = 1;
@@ -208,9 +208,8 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
         s->bottom = bottom;
         s->top = levelHeight + bottom;
         s->ceiling = ceiling;
-        if (extra & 0x3F) {
-            int depth = extra & 0x3F;
-            if (depth == 0x3F || depth >= ceiling - 1) {
+        if (depth != 0) {
+            if (depth == kCellDepthMask || depth >= ceiling - 1) {
                 s->passage = -1;
             } else if (ceiling < 0x400) {
                 if (depth > ceiling / 2) {
@@ -224,22 +223,22 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
     }
 
     std::uint32_t word = *occluder;
-    if (!(word & 0x100)) {
-        if (word & 0x80) {
+    if (!(word & occluder::kNone)) {
+        if (word & occluder::kChained) {
             const Sector& sector = sectorMap.sectors[(y / 32) * sectorMap.width + x / 32];
-            int index = static_cast<int>((word >> 9) & 0xFFFFF);
+            int index = occluder::Head(word);
             do {
                 const SectorOccluder& record = sector.occluders[index];
                 int lowest = record.bottom;
-                int type = record.kind;
+                OccluderKind type = record.kind;
                 int highest = record.top;
                 Occlude(s, type, lowest, highest, true);
                 index = record.next;
             } while (index >= 0);
         } else {
-            int type = static_cast<int>((word >> 9) & 7);
-            int lowest = static_cast<int>(word >> 22);
-            int highest = static_cast<int>((word >> 12) & 0x3FF);
+            OccluderKind type = occluder::Kind(word);
+            int lowest = occluder::Bottom(word);
+            int highest = occluder::Top(word);
             Occlude(s, type, lowest, highest, false);
         }
     }
