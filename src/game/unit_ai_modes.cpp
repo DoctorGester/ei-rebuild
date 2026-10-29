@@ -1,5 +1,5 @@
-// Unit AI modes: the simple virtuals of Guard, Patrol, Sentry, Follow, Suspection, Aggression, CorpseWatcher,
-// Fear and Player.
+// Unit AI modes: Guard, Patrol, Sentry, Follow, Suspection, Aggression, CorpseWatcher, and Fear's and Player's
+// small members (unit_ai_fear.cpp has Fear's Evaluate / Execute, unit_ai_player.cpp the Player mode's fighting).
 #include "combat.h"
 #include "game_singletons.h"
 #include "logic_settings.h"
@@ -46,10 +46,10 @@ void SetPositions(AIBrain* brain, const Vector3& where, float nearRange, float f
 
 // Common start of CommandWalk / CommandGoTo: the point (moved by `offset` when the way is clear), the run flag,
 // and the references dropped (the leader only while the party is not in danger).
-void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3& to, int run, const Vector3& offset) {
+void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3& to, bool run, const Vector3& offset) {
     Vector3 shifted{to.x + offset.x, to.y + offset.y, to.z + offset.z};
     self->point = self->PathClear(brain, to, shifted) ? shifted : to;
-    self->run = static_cast<std::uint8_t>(run);
+    self->runs = run;
     if (!PartyInDanger(brain->owner->unit)) self->leader.Reset();
     self->target.Reset();
 }
@@ -156,6 +156,11 @@ void PatrolMode::Execute(AIBrain* brain) {
     SetPositions(brain, order.point, kNearRange, kFarRange);
 }
 
+void PatrolMode::Detach() {
+    points.clear();
+    current = 0;
+}
+
 PatrolPoint* PatrolMode::LastPoint() { return points.empty() ? nullptr : &points.back(); }
 
 void PatrolMode::Load(CStream* stream) {
@@ -179,8 +184,6 @@ void PatrolMode::Save(CStream* stream) {
 }
 
 // --- Sentry --------------------------------------------------------------------------------------
-
-void SentryMode::Set(const Vector3& p) { point = p; }
 
 void SentryMode::Execute(AIBrain* brain) {
     AIMode::Execute(brain);
@@ -315,7 +318,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     }
     if (!brain->memory.seesEnemy) return kPriorityNone;
     UnitList candidates = brain->memory.FindEnemies(self);
-    brain->attention.Choose(brain, &chosen, &candidates, self->localPosition_, false, false);
+    chosen = brain->attention.Choose(brain, &candidates, self->localPosition_, false, false);
     enemy.Assign(chosen.object);
     return chosen.object ? kPriorityFight : kPriorityNone;
 }
@@ -343,6 +346,16 @@ void AggressionMode::Leave(AIBrain* brain) {
     brain->owner->voice.Raise(AIRemark::CalmFromAggression);
 }
 
+void AggressionMode::OnObjectDeleted(CEngineObject* object) {
+    if (enemy == object) enemy.Reset();
+}
+
+void AggressionMode::Detach() {
+    enemy.Reset();
+    chosen = AITargetChoice{};
+    fixed = false;
+}
+
 void AggressionMode::Load(CStream* stream) {
     LoadRef(enemy, stream, &g_serverWorld);
     stream->ReadValue(fixed);
@@ -366,8 +379,6 @@ int CorpseWatcherMode::Evaluate(AIBrain* brain) {
 
 // --- Fear ----------------------------------------------------------------------------------------
 
-FearMode::FearMode(std::uint8_t newFlag) : flag(newFlag) {}
-
 void FearMode::Enter(AIBrain* brain) {
     brain->owner->moveMode2.onGuard = 1;
     brain->StopAction();
@@ -375,12 +386,20 @@ void FearMode::Enter(AIBrain* brain) {
 
 void FearMode::Leave(AIBrain* brain) { brain->owner->moveMode2.onGuard = 0; }
 
+void FearMode::Detach() {
+    distance = kDefaultDistance;
+    spread = 3.0f;
+    shelter.x = kUnsetCoordinate;
+    fleePoint.z = 0.0f;
+    watchful = false;
+}
+
 void FearMode::Load(CStream* stream) {
     stream->ReadValue(distance);
     stream->ReadValue(spread);
     stream->ReadValue(shelter);
     if (stream->version_ >= kVersionFearFlag) {
-        stream->ReadValue(flag);
+        stream->ReadValue(watchful);
         if (stream->version_ >= kVersionFleePoint) stream->ReadValue(fleePoint);
     }
 }
@@ -389,7 +408,7 @@ void FearMode::Save(CStream* stream) {
     stream->WriteValue(distance);
     stream->WriteValue(spread);
     stream->WriteValue(shelter);
-    stream->WriteValue(flag);
+    stream->WriteValue(watchful);
     stream->WriteValue(fleePoint);
 }
 
@@ -448,16 +467,16 @@ void PlayerMode::Execute(AIBrain* brain) {
     brain->StopAction();
 }
 
-void PlayerMode::CommandWalk(AIBrain* brain, const Vector3& to, int inGroup, int runArg, const Vector3& offset) {
+void PlayerMode::CommandWalk(AIBrain* brain, const Vector3& to, int inGroup, bool run, const Vector3& offset) {
     state = kStateCommand;
-    PrepareWalk(this, brain, to, runArg, offset);
+    PrepareWalk(this, brain, to, run, offset);
     brain->action = AIBrain::kActionWalk;
-    brain->owner->OrderMove(point, run, inGroup, kMoveTime);
+    brain->owner->OrderMove(point, runs, inGroup, kMoveTime);
 }
 
-void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3& to, int inGroup, int runArg, const Vector3& offset) {
+void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3& to, int inGroup, bool run, const Vector3& offset) {
     state = kStateMoveTo;
-    PrepareWalk(this, brain, to, runArg, offset);
+    PrepareWalk(this, brain, to, run, offset);
     if (!PartyInDanger(brain->owner->unit) && !StaysWithParty(brain, true)) {
         point.z = 0.0f;
         brain->owner->PlanMove(point, inGroup, 0, kMoveTime);
@@ -465,7 +484,7 @@ void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3& to, int inGroup, int
     }
     point.z = kWalking;
     brain->action = AIBrain::kActionWalk;
-    brain->owner->OrderMove(point, run, inGroup, kMoveTime);
+    brain->owner->OrderMove(point, runs, inGroup, kMoveTime);
 }
 
 void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int calledShot) {
@@ -481,19 +500,19 @@ void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int 
     brain->owner->OrderAttack(brain->target, how, calledShot, AckKind::Attack);
 }
 
-void PlayerMode::CommandUse(AIBrain* brain, CMapObject* object, UseSource kind, int spot, int runArg) {
+void PlayerMode::CommandUse(AIBrain* brain, CMapObject* object, UseSource kind, int spot, bool run) {
     state = kStateFollow;
-    brain->UseOn(object, kind, spot, runArg);
+    brain->UseOn(object, kind, spot, run);
 }
 
 void PlayerMode::CommandCast(AIBrain* brain, int spell, CMapObject* object) {
     state = kStateFollow;
-    brain->CastOn(spell, object, run);
+    brain->CastOn(spell, object, runs);
 }
 
 void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3& at) {
     state = kStateFollow;
-    brain->CastAt(spell, at, run);
+    brain->CastAt(spell, at, runs);
 }
 
 void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
@@ -522,6 +541,14 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
 void PlayerMode::OnObjectDeleted(CEngineObject* object) {
     if (target == object) target.Reset();
     if (leader == object) leader.Reset();
+}
+
+void PlayerMode::Detach() {
+    leader.Reset();
+    target.Reset();
+    point = Vector3{0.0f, 0.0f, 0.0f};
+    state = kStateFollow;
+    runs = false;
 }
 
 void PlayerMode::Load(CStream* stream) {

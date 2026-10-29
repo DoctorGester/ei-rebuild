@@ -37,6 +37,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 #include "lib/text_case.h"
 
@@ -217,7 +218,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         CUnitServer* controller = unit->ServerController();
         AIBrain* brain = &controller->brain;
         brain->ClearModes();
-        brain->AddMode(new PlayerMode());
+        brain->AddMode(std::make_unique<PlayerMode>());
         brain->StopAction();
         aiMap_.sectorMap.Remove(unit);
         Vector3 free;

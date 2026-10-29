@@ -39,6 +39,12 @@ public:
         static_assert(std::is_trivially_copyable_v<T>, "a stream value is plain bytes");
         Read(&value, sizeof(T));
     }
+    // A flag saved as one byte (0 / 1); any other byte reads as set. A short read keeps the flag.
+    void ReadValue(bool& value) {
+        std::uint8_t byte = value;
+        Read(&byte, 1);
+        value = byte != 0;
+    }
     template <class T>
     void WriteValue(const T& value) {
         static_assert(std::is_trivially_copyable_v<T>, "a stream value is plain bytes");

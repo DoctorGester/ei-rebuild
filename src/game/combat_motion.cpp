@@ -53,7 +53,7 @@ void ShowHead(CUnitServer* self) {
 }
 
 // The unit stops where it is, facing its direction (the motion restarted with the reversed Y axis of its
-// rotation), then stands (0) and takes state 6.
+// rotation), then stands (0) and is Stopped.
 void FaceAndStop(CUnitServer* self) {
     self->motion.Clear();
     int now = self->World()->tick_;
@@ -538,13 +538,13 @@ void CUnitServer::ReportPath(AIPath* path, char partial) {
 void CUnitServer::ResyncWithUnit() {
     action.kind = UnitOrderKind::None;
     action.target.Reset();
-    action.pointIsUseSpot = 0;
+    action.pointIsUseSpot = false;
     action.param = 0;
     action.modifier = 0;
     if (action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote) {   // the first is always true
         action2.kind = UnitOrderKind::None;
         action2.target.Reset();
-        action2.pointIsUseSpot = 0;
+        action2.pointIsUseSpot = false;
         action2.param = 0;
         action2.modifier = 0;
         action2.kind = UnitOrderKind::Idle;
@@ -595,12 +595,12 @@ void CUnitServer::ResetController() {
     };
     action.kind = UnitOrderKind::None;
     releaseRef(action.target);
-    action.pointIsUseSpot = 0;
+    action.pointIsUseSpot = false;
     action.param = 0;
     action.modifier = 0;
     action2.kind = UnitOrderKind::None;
     releaseRef(action2.target);
-    action2.pointIsUseSpot = 0;
+    action2.pointIsUseSpot = false;
     action2.param = 0;
     action2.modifier = 0;
     frozen = 0;

@@ -16,6 +16,7 @@
 
 #include "ei/x87.h"
 
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -77,7 +78,7 @@ bool OrderAllowedFrom(AIBrain* brain, const AITargetChoice* choice, const Vector
 void AIOrder::Clear() {
     kind = UnitOrderKind::None;
     target.Reset();
-    pointIsUseSpot = 0;
+    pointIsUseSpot = false;
 }
 
 void AIOrder::MakeAttack(CMapObject* object) {
@@ -176,11 +177,13 @@ double AIAttention::Score(const Vector3& from, CUnit* self, UnitList* group, CEn
     CUnitServer* control = candidate->ServerController();
     int others = std::ssize(*group) - 1;
     int cap = option->maxCount;
-    std::uint32_t damage = 0;   // only the low 16 bits count
+    std::uint32_t damage = 0;
+    int words = 0;              // the damage's low 16 bits: all that counts
     switch (option->kind) {
     case AIOptionKind::Weapon:
         damage = option->damage.ExcessOver(&candidate->ServerController()->protection);
-        score = static_cast<float>(static_cast<double>(static_cast<int>(damage & 0xFFFF)) * kDamageWeight + score);
+        words = static_cast<int>(damage & 0xFFFF);
+        score = static_cast<float>(static_cast<double>(words) * kDamageWeight + score);
         break;
     case AIOptionKind::SpellAttack:
     case AIOptionKind::AreaAttack:
@@ -194,9 +197,9 @@ double AIAttention::Score(const Vector3& from, CUnit* self, UnitList* group, CEn
             if (option->kind == AIOptionKind::LastingArea) damage *= static_cast<std::uint32_t>(option->effect / 4 / 2);
             ++others;   // the group without the one left out
         }
-        int words = static_cast<int>(damage & 0xFFFF);
+        words = static_cast<int>(damage & 0xFFFF);
         double partial = static_cast<double>(words) * kGroupDamageWeight + score + kGroupBase;
-        int count = others < cap ? others : cap;
+        int count = (std::min)(others, cap);
         score = static_cast<float>(static_cast<double>(words * count) + partial);
         break;
     }
@@ -205,7 +208,7 @@ double AIAttention::Score(const Vector3& from, CUnit* self, UnitList* group, CEn
     case AIOptionKind::Enhance: {
         if (candidate->HasEffect(option->EffectSpell())) return kNoScore;
         double partial = static_cast<double>(score) + 1.0f;
-        int count = others < cap ? others : cap;
+        int count = (std::min)(others, cap);
         score = static_cast<float>(static_cast<double>(count) + partial);
         break;
     }
@@ -220,7 +223,7 @@ double AIAttention::Score(const Vector3& from, CUnit* self, UnitList* group, CEn
             if (self->packedVitals.hitPoints == self->packedVitals.maxHitPoints) score = static_cast<float>(static_cast<double>(score) + weight);
         } else {
             double partial = static_cast<double>(base) + kHealGroupBase;
-            int count = others < cap ? others : cap;
+            int count = (std::min)(others, cap);
             score = static_cast<float>(static_cast<double>(count * 2) + partial);
         }
         break;
@@ -242,28 +245,22 @@ double AIAttention::Score(const Vector3& from, CUnit* self, UnitList* group, CEn
     EI_NAN_AUDIT(result);
     if (result < threshold) return result;
     if (option->kind >= AIOptionKind::Weapon && option->kind <= AIOptionKind::LastingArea) {
-        int hits = (damage & 0xFFFF) == 0 ? kNoHitsKnown : candidate->packedVitals.hitPoints / static_cast<int>(damage & 0xFFFF);
+        int hits = words == 0 ? kNoHitsKnown : candidate->packedVitals.hitPoints / words;
         result -= static_cast<double>(hits) * kHitWeight;
     }
     return result;
 }
 
-void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candidates, const Vector3& from, bool alliesOnly,
-                         bool fromHere) {
-    if (spells.empty() && (candidates->empty() || weapons.empty())) {
-        choice->object = nullptr;
-        return;
-    }
+AITargetChoice AIAttention::Choose(AIBrain* brain, UnitList* candidates, const Vector3& from, bool alliesOnly,
+                                   bool fromHere) {
+    if (spells.empty() && (candidates->empty() || weapons.empty())) return {};
     AITargetChoice current = CurrentAttack(brain);
     if (!IsUsable(brain, &current)) current.object = nullptr;
     CUnit* held = current.object;
     float best = kFloorScore;
     CUnit* self = brain->owner->unit;
     if (held) {
-        if (candidates->size() == 1 && spells.empty()) {
-            *choice = current;
-            return;
-        }
+        if (candidates->size() == 1 && spells.empty()) return current;
         const AIAttackOption* option = FindOption(current.part);
         if (!option) {
             held = nullptr;
@@ -309,33 +306,32 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candi
     }
 
     while (!scored.empty()) {
-        *choice = current;
+        AITargetChoice choice = current;
         int chosen = -1;
         float top = kNoScore;
         for (int i = 0; i < static_cast<int>(scored.size()); ++i) {
             EI_NAN_AUDIT(top, scored[i].score);
             if (top < scored[i].score) {
-                choice->part = scored[i].part;
-                choice->object = scored[i].object;
+                choice = {scored[i].part, scored[i].object};
                 chosen = i;
                 top = scored[i].score;
             }
         }
-        if (chosen < 0) return;
-        if (choice->object == current.object && choice->part == current.part) return;
-        CUnit* object = choice->object;
-        if (IsUsable(brain, choice)) {
+        if (chosen < 0) return choice;
+        if (choice.object == current.object && choice.part == current.part) return choice;
+        CUnit* object = choice.object;
+        if (IsUsable(brain, &choice)) {
             // Allies only: a target off the path must be in reach from here.
             bool allowed = !alliesOnly || brain->IsNearPath(object->localPosition_, kPathNear) ||
-                           OrderAllowedFrom(brain, choice, self->localPosition_);
-            if (allowed && CanReach(brain, choice, fromHere)) return;
+                           OrderAllowedFrom(brain, &choice, self->localPosition_);
+            if (allowed && CanReach(brain, &choice, fromHere)) return choice;
         }
         // Rejected: an object scored only once (and not the current target) is reported.
         int seen = 0;
         for (const Scored& entry : scored)
             if (entry.object == object) ++seen;
-        if (seen == 1 && choice->object != current.object) brain->memory.reports.Report(object, AIReports::kRejectedTicks);
+        if (seen == 1 && object != current.object) brain->memory.reports.Report(object, AIReports::kRejectedTicks);
         scored.erase(scored.begin() + chosen);
     }
-    *choice = current;
+    return current;
 }

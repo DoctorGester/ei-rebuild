@@ -314,12 +314,12 @@ public:
     void OrderSearchBody(CMapObject* target, int run);
     // Is `target` (a body to search) taken: with flags_ bit 0x20000000, when the world does not share it with
     // this unit's id; else when a living unit of the brain's nearby list is searching it (UnitOrderKind::Use,
-    // UseSource::SearchBody) in state 5 or with its flag set.
+    // UseSource::SearchBody) while Acting or with its flag set.
     bool TargetBusy(CMapObject* target);
     // `name` from the figure's animation database as the queued order: kind 8 for keys with bit 31, else 7;
     // param = the entry's index dword.
     void PlayAnimation(const char* name);
-    // Drops everything: state 6, the effect object, the plan and both orders; the unit stands still.
+    // Drops everything: Stopped, the effect object, the plan and both orders; the unit stands still.
     void StopAction();
     // Does the unit wear an armour piece in slots 3..6 / in the first three (body, trousers, helmet)?
     // CUnit::AcceptsTarget asks for the animation bits 0x10 / 0x20 by them.
@@ -444,9 +444,9 @@ public:
     // 0x18: one a tick, when hurt).
     void TickItemSpells();
 
-    // False while an attack turns (state 2) and `ticks` from now would pass nextAttackTime.
+    // False while an attack turns (Turning) and `ticks` from now would pass nextAttackTime.
     bool CanReactFor(int ticks);
-    // Play `steps` as an animation order (state 3) / an emote (state 4): the queue takes a copy, the unit stops
+    // Play `steps` as an animation order (Animating) / an emote (Emote): the queue takes a copy, the unit stops
     // facing its direction.
     void PlayAnimationOrder(const AnimationSteps& steps);
     void PlayEmoteOrder(const AnimationSteps& steps);
@@ -471,8 +471,8 @@ public:
     // moveMode2 becomes moveMode unless the unit no longer fits its cell (message 0x0D); a transition animation
     // plays (not while attacking). True when the mode changed.
     bool ChangeMoveMode();
-    // FindPath within `range`: no path stands the unit still (state 6, stoodBlocked from the path's failed
-    // flag); a path makes it idle (state 0) with its movement animation going on.
+    // FindPath within `range`: no path stands the unit still (Stopped, stoodBlocked from the path's failed
+    // flag); a path makes it Idle with its movement animation going on.
     bool PathTo(const Vector3& point, float range);
     // The units lifted off the sector map for a path: away from `point`, those near it
     // outside the player's group; the party members that move (with `moving`) or follow this unit. Only for a
@@ -559,7 +559,7 @@ public:
     std::uint8_t orderStopped;      // set when a move order ends, cleared when one starts; saved; the AI
                                     // brain reports its target only while it is set (unit_ai.cpp)
     std::uint8_t deathReported;     // the death was reported to the world (the dead unit's update)
-    std::uint8_t searchingTarget;   // TargetBusy counts a search under way when set (or in state 5)
+    std::uint8_t searchingTarget;   // TargetBusy counts a search under way when set (or while Acting)
     UnitAction action;
     UnitAction action2;
     std::uint8_t followsLeader;     // the chase follows `followedLeader`'s target (combat_tick.cpp)
@@ -584,7 +584,7 @@ public:
     AnimationSteps moveAnimation;   // the movement animation (NextAnimation)
     std::uint32_t idleKey;          // 0x666DEAD: none yet
     AnimationSteps idleAnimation;   // extra: its time
-    void(*actionDone)(CUnit*);   // run when state 3 ends; cleared by the reset
+    void(*actionDone)(CUnit*);   // run when Animating ends; cleared by the reset
     std::uint32_t claimedHostile;   // players the unit has claimed as enemies
     AIBrain brain;
     AIAlarm voice;                  // the voice / alarm

@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstring>
+#include <memory>
 
 namespace {
 constexpr float kNoWander = -1.0f;          // pushed as 0xBF800000
@@ -58,7 +59,7 @@ void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
             double dy = static_cast<double>(waypoint.position.y) - from.y;
             if (!IsZero(dx) || !IsZero(dy)) angle = static_cast<float>(x87::fpatan(dy, dx));
             last->looks.push_back(AILook{angle, waypoint.time, static_cast<float>(waypoint.lookWait),
-                                         static_cast<std::uint8_t>(waypoint.stopFirst & 1)});
+                                         (waypoint.stopFirst & 1) != 0});
         }
     }
     if (record->loop != 0) return;
@@ -81,25 +82,25 @@ void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
 
     switch (record->type) {
     case kGuard: {
-        AddMode(new GuardMode(record->guard, record->guardRadius, kNoWander));
+        AddMode(std::make_unique<GuardMode>(record->guard, record->guardRadius, kNoWander));
         break;
     }
     case kGuardAlarm: {
         const WorldAlarm& alarmAt = g_serverWorld.alarms_[slot];
         Vector3 point{alarmAt.x, alarmAt.y, 0.0f};
-        AddMode(new GuardMode(point, record->guardRadius, kNoWander));
+        AddMode(std::make_unique<GuardMode>(point, record->guardRadius, kNoWander));
         break;
     }
     case kSentry: {
-        AddMode(new SentryMode(record->guard));
+        AddMode(std::make_unique<SentryMode>(record->guard));
         break;
     }
     case kParty: {
-        AddMode(new PlayerMode());
+        AddMode(std::make_unique<PlayerMode>());
         break;
     }
     case kPatrol: {
-        AddMode(new PatrolMode());
+        AddMode(std::make_unique<PatrolMode>());
         AddPatrolPoints(FindPatrolMode(), record);
         break;
     }
@@ -110,25 +111,25 @@ void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
     if (record->type != 0 && record->type != kParty) {
         int reaction = static_cast<int>(record->alarm);
         if (reaction == kFight || reaction == kRevenge) {
-            AddMode(reaction == kFight ? new AggressionMode() : new AggressionMode(1));
-            AddMode(new SuspectionMode());
-            AddMode(new CorpseWatcherMode());
-            AddMode(new FearMode(0));
+            AddMode(std::make_unique<AggressionMode>(reaction == kRevenge));
+            AddMode(std::make_unique<SuspectionMode>());
+            AddMode(std::make_unique<CorpseWatcherMode>());
+            AddMode(std::make_unique<FearMode>(false));
         }
         if (reaction == kWatch) {
-            AddMode(new CorpseWatcherMode());
-            AddMode(new FearMode(0));
+            AddMode(std::make_unique<CorpseWatcherMode>());
+            AddMode(std::make_unique<FearMode>(false));
         }
         if (reaction == kWatchFearful) {
-            AddMode(new CorpseWatcherMode());
-            AddMode(new FearMode(1));
+            AddMode(std::make_unique<CorpseWatcherMode>());
+            AddMode(std::make_unique<FearMode>(true));
         }
     }
 
     alarmSlot = static_cast<std::int8_t>(slot);
-    alwaysUpdated = static_cast<std::uint8_t>(lib::Has(record->flags, BehaviourFlag::AlwaysUpdated));
+    alwaysUpdated = lib::Has(record->flags, BehaviourFlag::AlwaysUpdated);
     alarm = static_cast<std::int8_t>(record->alarmKind);
-    alerted = 0;
+    alerted = false;
     int delay = static_cast<int>(record->alarmDelay);
     alarmCountdown = delay < 1 ? 1 : delay;
     target.Reset();

@@ -72,7 +72,7 @@ void ReadUnits(CMemoryStream& in, std::vector<CUnit*>* units) {
     }
 }
 
-using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3&, int, int, const Vector3&);
+using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3&, int, bool, const Vector3&);
 int MoveUnits(MoveCommand command) {
     CMemoryStream& in = g_receivedMessages;
     std::vector<CUnit*> units{};

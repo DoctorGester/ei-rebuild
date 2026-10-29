@@ -67,7 +67,7 @@ void PlayerMessage(CPlayerServer* messages, CUnit* unit, AckKind kind) {
 void CUnitServer::DropQueuedOrder() {
     action2.kind = UnitOrderKind::None;
     action2.target.Reset();
-    action2.pointIsUseSpot = 0;
+    action2.pointIsUseSpot = false;
     action2.param = 0;
     action2.modifier = 0;
     action2.kind = UnitOrderKind::Idle;
@@ -107,7 +107,7 @@ void CUnitServer::FinishAction(int location) {
         }
         action.kind = UnitOrderKind::None;
         action.target.Reset();
-        action.pointIsUseSpot = 0;
+        action.pointIsUseSpot = false;
         action.param = 0;
         action.modifier = 0;
         if (action2.kind == UnitOrderKind::None && action.kind != UnitOrderKind::Idle) DropQueuedOrder();

@@ -32,7 +32,7 @@ constexpr float kReachHeight = 1.5f;
 void ResetOrder(UnitAction* order) {
     order->kind = UnitOrderKind::None;
     order->target.Reset();
-    order->pointIsUseSpot = 0;
+    order->pointIsUseSpot = false;
     order->param = 0;
     order->modifier = 0;
 }
@@ -181,7 +181,7 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
                     TellParty(unit, AckKind::OutOfReach);
                     action2.kind = UnitOrderKind::None;
                     ReleaseTarget(&action2);
-                    action2.pointIsUseSpot = 0;
+                    action2.pointIsUseSpot = false;
                     action2.param = 0;
                     action2.modifier = 0;
                     return;
@@ -217,7 +217,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3& point, int ru
     }
     action2.kind = UnitOrderKind::None;
     ReleaseTarget(&action2);
-    action2.pointIsUseSpot = 0;
+    action2.pointIsUseSpot = false;
     action2.param = 0;
     action2.modifier = 0;
     action2.kind = UnitOrderKind::CastAt;

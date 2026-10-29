@@ -109,7 +109,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
         if (best == kNoSpot) {
             result = false;
         } else {
-            order->pointIsUseSpot = 1;
+            order->pointIsUseSpot = true;
             order->point = bestSpot;
         }
     }
@@ -226,7 +226,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
             unit->localPosition_.z = z;
             return can;
         };
-        if (order->pointIsUseSpot == 0) {
+        if (!order->pointIsUseSpot) {
             AIPath path;
             CMapObject* target = order->target;
             std::uint8_t savedFlag = 0;

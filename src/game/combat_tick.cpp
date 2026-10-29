@@ -102,7 +102,7 @@ void LeaveMoveMode(CUnitServer* self) {
 }
 
 // Stand: the idle animation (restarted at a random phase when nothing plays) and the motion
-// updates. Not while turning (state 2).
+// updates. Not while Turning.
 void StandIdle(CUnitServer* self) {
     AnimationSteps* idle = self->IdleAnimation();
     if (!self->queue.SameAs(idle)) {
@@ -180,7 +180,7 @@ UnitAction* UnitAction::Assign(const UnitAction* from) {
 void UnitAction::Reset() {
     kind = UnitOrderKind::None;
     target.Reset();
-    pointIsUseSpot = 0;
+    pointIsUseSpot = false;
     param = 0;
     modifier = 0;
 }
@@ -224,7 +224,7 @@ void CUnitServer::TakeQueuedOrder() {
     action.modifier = action2.modifier;
     action2.kind = UnitOrderKind::None;
     action2.target.Reset();
-    action2.pointIsUseSpot = 0;
+    action2.pointIsUseSpot = false;
     action2.param = 0;
     action2.modifier = 0;
     if (action.modifier && moveMode.mode != kModeRun) {
@@ -462,7 +462,7 @@ void CUnitServer::ContinueAction() {
     }
     action.kind = UnitOrderKind::None;
     action.target.Reset();
-    action.pointIsUseSpot = 0;
+    action.pointIsUseSpot = false;
     action.param = 0;
     action.modifier = 0;
     if (action2.kind == UnitOrderKind::None && action.kind != UnitOrderKind::Idle) DropQueuedOrder();

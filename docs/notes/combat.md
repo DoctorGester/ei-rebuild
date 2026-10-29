@@ -185,7 +185,7 @@ here is gone. What it covered, by file:
   the members' own destructors; the controller's constructor and destructor run ResetController, which empties the
   brain (Init) and drops every reference. Destructors through 00546230 run at zone changes. `combat_server_slots.cpp`: CUnitServer class name /
   id 005460C0 / 005460D0, DeletingDestruct 005460E0, MotionSlot, slot 16 / 17, slot 53 = UpdateMoveFactors 00552F30, the UnitAction /
-  AnimationStep constructors. Player / tamed AI mode slots 00551E10-00552180 (`unit_ai_player_mode_slots.cpp`: priorities 10 /
+  AnimationStep constructors. Player / tamed AI mode slots 00551E10-00552180 (`unit_ai.h`: priorities 10 /
   100000000, types 6 / 8).
 - World managers: CWorld::Create 0055EE40, CWorld::Destroy 0055F8E0, UnitSetEntryHead::Write 00558FA0
   (`world_unit_set.cpp`, SendZone's unit set entry head); `world_managers.cpp` CPlayerManager / CEffectManager (0073F2C4) /
@@ -232,7 +232,7 @@ here is gone. What it covered, by file:
   at 0. The standalone has no original frame to read (its callers are ours), and no golden reaches the read: an
   instrumented suite (C12b, 2026-10-21) logged no tick that consumed the value. The animation key passed to 00530240 keeps the queue count's upper 24 bits; the fall animation is assigned to the
   queue twice. Taming, CreateManagers and the mode Clones write reference counts / the new mode's +4 before testing the
-  allocations (the Clones test first in ours).
+  allocations (ours have no mode counts or clones).
 - Lifetime: TakeSteps clears isCast twice; LoadArmourSpells' new entries carry a stack byte in `worn` (ours 0) and its
   second loop reads an id and countdown for every entry of the list, old ones included; an unread step-list count is stack
   garbage (ours 0); the controller constructor sizes the movement list with SetSize(0) out of line and the idle list inline. The player

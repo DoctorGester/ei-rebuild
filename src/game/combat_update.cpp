@@ -67,7 +67,7 @@ void SetStandingFlag(CUnitServer* self, int standing) {
 void EmptyAction(UnitAction* order) {
     order->kind = UnitOrderKind::None;
     order->target.Reset();
-    order->pointIsUseSpot = 0;
+    order->pointIsUseSpot = false;
     order->param = 0;
     order->modifier = 0;
 }

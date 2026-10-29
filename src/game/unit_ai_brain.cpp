@@ -17,15 +17,16 @@
 #include <cmath>
 #include <cstdint>
 #include <list>
+#include <memory>
 #include <string>
 
 namespace {
 // The tail both standard sets share.
 void AddAlertModes(AIBrain* brain) {
-    brain->AddMode(new SuspectionMode());
-    brain->AddMode(new AggressionMode());
-    brain->AddMode(new CorpseWatcherMode());
-    brain->AddMode(new FearMode(0));
+    brain->AddMode(std::make_unique<SuspectionMode>());
+    brain->AddMode(std::make_unique<AggressionMode>());
+    brain->AddMode(std::make_unique<CorpseWatcherMode>());
+    brain->AddMode(std::make_unique<FearMode>(false));
     brain->StopAction();
 }
 
@@ -35,18 +36,18 @@ void RemoveAllOf(HeldUnits& list, CEngineObject* object) {
 }
 
 // A new mode of `type` as Load constructs it before reading its data. Null for an unknown type (9, or above 10).
-AIMode* NewModeOfType(int type) {
+std::unique_ptr<AIMode> NewModeOfType(int type) {
     switch (static_cast<AIModeType>(type)) {
-    case AIModeType::Guard: return new GuardMode();
-    case AIModeType::Patrol: return new PatrolMode();
-    case AIModeType::Sentry: return new SentryMode();
-    case AIModeType::Suspection: return new SuspectionMode();
-    case AIModeType::Aggression: return new AggressionMode();
-    case AIModeType::CorpseWatcher: return new CorpseWatcherMode();
-    case AIModeType::Player: return new PlayerMode();
-    case AIModeType::Fear: return new FearMode(0);
-    case AIModeType::Tamed: return new TamedMode();
-    case AIModeType::Follow: return new FollowMode();
+    case AIModeType::Guard: return std::make_unique<GuardMode>();
+    case AIModeType::Patrol: return std::make_unique<PatrolMode>();
+    case AIModeType::Sentry: return std::make_unique<SentryMode>();
+    case AIModeType::Suspection: return std::make_unique<SuspectionMode>();
+    case AIModeType::Aggression: return std::make_unique<AggressionMode>();
+    case AIModeType::CorpseWatcher: return std::make_unique<CorpseWatcherMode>();
+    case AIModeType::Player: return std::make_unique<PlayerMode>();
+    case AIModeType::Fear: return std::make_unique<FearMode>(false);
+    case AIModeType::Tamed: return std::make_unique<TamedMode>();
+    case AIModeType::Follow: return std::make_unique<FollowMode>();
     default: return nullptr;
     }
 }
@@ -54,26 +55,37 @@ AIMode* NewModeOfType(int type) {
 
 // --- The mode list and resets -----------------------------------------------------------------------
 
-void AIBrain::AddMode(AIMode* mode) {
-    AIModeType type = mode->GetType();
+void AIBrain::AddMode(std::unique_ptr<AIMode> mode) {
+    AIModeType type = mode->type;
     bool exclusive = mode->Exclusive();
-    auto old = std::ranges::find_if(modes, [&](const SharedRef<AIMode>& other) {
-        return other->GetType() == type || (exclusive && other->Exclusive());
+    auto old = std::ranges::find_if(modes, [&](const std::unique_ptr<AIMode>& other) {
+        return other->type == type || (exclusive && other->Exclusive());
     });
     if (old != modes.end()) {
-        if (current == *old) current.Reset();
+        if (current == old->get()) current = nullptr;
         modes.erase(old);
     }
-    modes.emplace_back(mode);
+    modes.push_back(std::move(mode));
 }
 
 void AIBrain::RemoveModesOfType(AIModeType type) {
-    std::erase_if(modes, [type](const SharedRef<AIMode>& mode) { return mode->GetType() == type; });
+    for (auto node = modes.begin(); node != modes.end();) {
+        if ((*node)->type != type) {
+            ++node;
+            continue;
+        }
+        if (node->get() == current) {
+            (*node)->Detach();
+            removedCurrent = std::move(*node);
+        }
+        node = modes.erase(node);
+    }
 }
 
 void AIBrain::ClearModes() {
     modes.clear();
-    current.Reset();
+    current = nullptr;
+    removedCurrent.reset();
     nearRange = kRangeCleared;
     farRange = kRangeCleared;
     decay = 1.0f;
@@ -91,7 +103,7 @@ void AIBrain::Reset() {
 void AIBrain::Init() {
     Reset();
     owner = nullptr;
-    alerted = 0;
+    alerted = false;
     alarm = 0;
     alarmCountdown = 1;
     alarmSlot = 0;
@@ -101,7 +113,7 @@ void AIBrain::Init() {
     callRadius = kInitialCallRadius;
     position = Vector3{0.0f, 0.0f, 0.0f};
     alertMode = 0;
-    alwaysUpdated = 0;
+    alwaysUpdated = false;
     standCooldown = 0;
     followTimer = 0;
     previousPosition = Vector3{0.0f, 0.0f, 0.0f};
@@ -125,13 +137,13 @@ void AIMemory::Reset() {
 
 void AIBrain::StandardGuard(const Vector3& point, float radius) {
     ClearModes();
-    AddMode(new GuardMode(point, radius, -1.0f));
+    AddMode(std::make_unique<GuardMode>(point, radius, -1.0f));
     AddAlertModes(this);
 }
 
 void AIBrain::StandardSentry(const Vector3& point) {
     ClearModes();
-    AddMode(new SentryMode(point));
+    AddMode(std::make_unique<SentryMode>(point));
     AddAlertModes(this);
 }
 
@@ -265,11 +277,11 @@ void AIBrain::Load(CStream* stream) {
     for (int i = 0; i < count; ++i) {
         int type;
         stream->ReadValue(type);
-        AIMode* mode = NewModeOfType(type);
+        std::unique_ptr<AIMode> mode = NewModeOfType(type);
         if (!mode) return;      // an unknown type leaves Load at once (the switch's default)
         mode->Load(stream);
-        modes.emplace_back(mode);
-        if (i == currentIndex) current.Assign(modes.back());
+        modes.push_back(std::move(mode));
+        if (i == currentIndex) current = modes.back().get();
     }
     memory.Load(stream);
     stream->ReadValue(alerted);
@@ -312,13 +324,13 @@ void AIBrain::Save(CStream* stream) {
     stream->WriteValue(static_cast<std::int32_t>(modes.size()));
     int currentIndex = -1;
     int index = 0;
-    for (AIMode* mode : modes) {
-        if (mode == current) currentIndex = index;
+    for (const std::unique_ptr<AIMode>& mode : modes) {
+        if (mode.get() == current) currentIndex = index;
         ++index;
     }
     stream->WriteValue(currentIndex);
-    for (AIMode* mode : modes) {
-        stream->WriteValue(mode->GetType());
+    for (const std::unique_ptr<AIMode>& mode : modes) {
+        stream->WriteValue(mode->type);
         mode->Save(stream);
     }
     memory.Save(stream);

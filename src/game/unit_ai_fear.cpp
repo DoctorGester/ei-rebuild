@@ -24,7 +24,7 @@ constexpr int kFlee = 15000;
 constexpr int kSeesEnemy = 3000;
 constexpr int kShelter = 350;
 constexpr int kCalmLevel = 50;              // noticed levels above it keep the unit afraid
-constexpr int kKeepLevel = 500;             // with `flag`, levels above it are not forgotten
+constexpr int kKeepLevel = 500;             // a watchful mode does not forget levels above it
 constexpr int kLargeSizeClass = 6;
 
 constexpr float kThree = 3.0f;
@@ -122,7 +122,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     if (enemy && static_cast<std::uint8_t>(owner->AttacksFromRange()) != 0 &&
         self->sizeClass < kLargeSizeClass && owner->unit->GetSpellObject(0) == nullptr &&
         owner->stats.MovementState(0) == 0 && owner->stats.loadFactor > kMaxLoadFactor) {
-        bool aggressive = brain->current && brain->current->GetType() == AIModeType::Aggression;
+        bool aggressive = brain->current && brain->current->type == AIModeType::Aggression;
         float range = aggressive ? g_logicSettings.rangedRunDist : g_logicSettings.rangedAttackDist;
         Vector3 me = self->localPosition_;
         Vector3 foe = enemy->localPosition_;
@@ -149,7 +149,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     }
     if (!IsUnset(shelter) && g_serverWorld.aiMap_.HasSpellAreaAt(shelter)) return kShelter;
 
-    if (flag) {
+    if (watchful) {
         // The nearest player unit in sight (2D).
         double best = kFar;
         Vector3 nearest{};      // left unset when there is none (then 1e30 is never inside)
@@ -201,7 +201,7 @@ void FearMode::Execute(AIBrain* brain) {
         from = *here;
     } else if (!IsUnset(shelter) && g_serverWorld.aiMap_.HasSpellAreaAt(shelter)) {
         from = shelter;
-    } else if (!flag || brain->memory.noticedLevel <= kKeepLevel) {
+    } else if (!watchful || brain->memory.noticedLevel <= kKeepLevel) {
         brain->memory.noticedLevel = 0;
         brain->memory.noticedDecay = 0;
     }
@@ -254,9 +254,8 @@ void FearMode::Execute(AIBrain* brain) {
     if (brain->action == AIBrain::kActionNone) {
         // Fight back when there is something worth it (helping allies too).
         UnitList candidates;
-        AITargetChoice best;
         Vector3 at = brain->owner->unit->localPosition_;
-        brain->attention.Choose(brain, &best, &candidates, at, true, true);
+        AITargetChoice best = brain->attention.Choose(brain, &candidates, at, true, true);
         brain->attention.ApplyAttack(brain, &best);
 
         if (brain->action == AIBrain::kActionNone) {

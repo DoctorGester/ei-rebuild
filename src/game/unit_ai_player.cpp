@@ -52,7 +52,6 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         }
     }
 
-    AITargetChoice best;
     float radius;
     if (state == kStateMoveTo) {
         radius = g_logicSettings.swarmRadius;
@@ -78,7 +77,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     }
     AddPartyTargets(brain, &candidates);
     unit->flags_ |= MapObjectFlag::ChoosingTarget;
-    brain->attention.Choose(brain, &best, &candidates, unit->localPosition_, false, false);
+    AITargetChoice best = brain->attention.Choose(brain, &candidates, unit->localPosition_, false, false);
     unit->flags_ &= ~MapObjectFlag::ChoosingTarget;
 
     CUnit* chosen = best.object;

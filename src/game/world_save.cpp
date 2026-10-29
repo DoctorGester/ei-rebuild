@@ -231,7 +231,7 @@ void CWorldServer::LoadSavedMapObjects(CStream* stream) {
             if (changed != 0 && (1u << (i & 31)) != 0) object->MarkChanged(i);
 
         CUnit* unit = UnitOrNull(object);
-        if (unit && unit->ServerController()->brain.alwaysUpdated == 0)
+        if (unit && !unit->ServerController()->brain.alwaysUpdated)
             continue;   // a unit whose controller does not ask for updates
         AddToUpdateMap(object);
     }
