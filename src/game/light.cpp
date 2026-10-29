@@ -34,7 +34,6 @@ float Lit(float base, float amount, float color) {
 // --- CLight --------------------------------------------------------------------------------------
 
 CLight::CLight() {
-    ClearFields();
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_.SetIdentity();
     std::memset(&kind_, 0, offsetof(CLight, rangeSquared_) - offsetof(CLight, kind_));

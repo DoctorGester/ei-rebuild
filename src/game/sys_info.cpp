@@ -161,7 +161,6 @@ int CSysInfo::Collect() {
 // ---- The object ------------------------------------------------------------------------------------
 
 CSysInfo::CSysInfo() {
-    ClearFields();
     Collect();   // Create, called directly
 }
 

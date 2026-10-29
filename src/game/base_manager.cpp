@@ -88,7 +88,6 @@ void ForgetPosition(CBaseManager* m, int id) {
 // --- Construction and destruction ---------------------------------------------------------------
 
 CBaseManager::CBaseManager() {
-    ClearFields();
     maxId_ = 0;
     maxPositionId_ = 0;
     maxSpareType_ = 0;

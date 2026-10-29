@@ -7,8 +7,6 @@ namespace {
 const char* const kHooverName = "CHoover";
 } // namespace
 
-CHoover::CHoover() { ClearFields(); }
-
 CHoover::~CHoover() {}
 
 void CHoover::Create() {}

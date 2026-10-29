@@ -565,7 +565,6 @@ struct Platform {
 // (AddFace adds at the head).
 class PlatformSet final : public CEngineObject {
 public:
-    PlatformSet();
     ~PlatformSet() override;
     void Create() override;
     void Destroy() override;

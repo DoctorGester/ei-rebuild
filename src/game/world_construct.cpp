@@ -29,10 +29,6 @@ constexpr std::uint32_t kClientFlags = 0x3DC0;
 
 } // namespace
 
-PlatformSet::PlatformSet() {
-    ClearFields();
-}
-
 CWorldServer::CWorldServer() {
     Messages()->Construct();
     diplomacy_.Reset();

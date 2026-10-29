@@ -13,7 +13,6 @@ namespace {
 // --- The effect base -----------------------------------------------------------------------------
 
 CEffect::CEffect() {
-    ClearFields();
     // Identity rotations (w first); the positions are not initialised.
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};

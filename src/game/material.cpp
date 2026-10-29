@@ -46,7 +46,6 @@ MaterialColors& EnterKey(std::unordered_map<unsigned, MaterialColors>& table, un
 
 
 CMaterial::CMaterial() {
-    ClearFields();
     ResetFields(this);
 }
 

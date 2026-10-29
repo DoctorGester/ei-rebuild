@@ -73,7 +73,6 @@ void CWorld::Create() {
 }
 
 CWorld::CWorld() {
-    ClearFields();
     worldHandle_.ptr = nullptr;
     netSession_.ptr = nullptr;
     players_ = nullptr;

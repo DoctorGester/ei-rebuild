@@ -250,7 +250,6 @@ int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, in
 
 // The stream reader, the strings and the archive are members the compiler constructs before the body.
 CSoundManager::CSoundManager() {
-    ClearFields();
     soundRegistry.Construct();
     musicFader.volume = kFullVolume;
     musicFader.Recalc();

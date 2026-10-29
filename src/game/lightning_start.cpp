@@ -116,7 +116,6 @@ LightningSegment::~LightningSegment() {
 }
 
 CLightning::CLightning() {
-    ClearFields();
     std::memset(static_cast<void*>(&bounds_), 0, sizeof(bounds_));
     boundsSpare_ = {};
     CLightning::Destroy();

@@ -27,7 +27,6 @@ void DropSpell(CSpell*& spell) {
 } // namespace
 
 CItem::CItem() {
-    ClearFields();
     link_ = nullptr;
     spell_ = nullptr;
     SetMinusOne(condition_);

@@ -55,7 +55,6 @@ void ClearTrack(AnimationTrack* track) {
 } // namespace
 
 CFigureAnimationState::CFigureAnimationState() {
-    ClearFields();
     Reset();
 }
 

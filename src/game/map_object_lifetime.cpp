@@ -38,16 +38,6 @@ constexpr float kHalf = 0.5f;
 // A float stored as the dword the original moves.
 void SetBits(float& field, std::uint32_t bits) { field = std::bit_cast<float>(bits); }
 
-// The engine object fields every constructor here sets (the base constructor inlined).
-void InitEngineObject(CEngineObject* object) {
-    object->refCount_ = 0;
-    object->id_ = -1;
-    object->prototypeId_ = 0;
-    object->type_ = 0;
-    object->flags_ = 0;
-    object->owner_ = nullptr;
-}
-
 } // namespace
 
 void CObject3D::ClearBounds() {
@@ -55,10 +45,7 @@ void CObject3D::ClearBounds() {
     eyeHeight = 0;
 }
 
-CObject3D::CObject3D() { SetUpObject3D(); }
-
-void CObject3D::SetUpObject3D() {
-    InitEngineObject(this);
+CObject3D::CObject3D() {
     localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
     ClearBounds();
@@ -73,15 +60,11 @@ void CObject3D::SetUpObject3D() {
 }
 
 // The name is destroyed after the body, then CEngineObject's part.
-CObject3D::~CObject3D() { TearDownObject3D(); }
-
-void CObject3D::TearDownObject3D() {
+CObject3D::~CObject3D() {
     Destroy3D();
     figure.Reset();
     lib::FreeStorage(parts);
 }
-
-CMapObject::CMapObject() { SetUpMapObject(); }
 
 DeltaState::DeltaState() { Reset(); }
 
@@ -89,7 +72,7 @@ DeltaState::~DeltaState() = default;
 
 void DeltaState::SetFieldCount(int count) { fields_.resize(count); }
 
-void CMapObject::SetUpMapObject() {
+CMapObject::CMapObject() {
     companion = nullptr;
     packedVitals.Reset();
     sectorCellX = -1;

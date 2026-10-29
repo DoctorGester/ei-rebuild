@@ -223,7 +223,6 @@ void CMusicSystem::UpdateMusic() {
 // ---- Lifetime and the engine object's virtuals ----
 
 CMusicSystem::CMusicSystem() {
-    ClearFields();
     ResetThemes();
 }
 

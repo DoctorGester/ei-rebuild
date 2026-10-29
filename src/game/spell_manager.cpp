@@ -100,7 +100,6 @@ void CSpellManager::ListModifierNames(std::vector<std::string>* names) {
 // The spell and the name are members, constructed before the body (the game builds them after the code
 // string) and destroyed after it (the game: the name and the spell before the string); neither allocates.
 CSpellContainer::CSpellContainer() {
-    ClearFields();
     // The code string: empty, with room for 8 bytes.
     CSpellContainer::Create();
 }

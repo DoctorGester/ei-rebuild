@@ -105,7 +105,6 @@ void CTextManager::RemoveSource(const std::string& path) { sources_.Remove(path)
 void CTextManager::ClearSources() { sources_.Clear(); }
 
 CTextManager::CTextManager() {
-    ClearFields();
     CTextManager::Create();
 }
 

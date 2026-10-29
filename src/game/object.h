@@ -18,7 +18,6 @@
 class CWorld;
 class CHoover final : public CEngineObject {
 public:
-    CHoover();              // the engine object's fields cleared
     ~CHoover() override;
 
     void Create() override;

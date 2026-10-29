@@ -43,7 +43,6 @@ CEngineObject* CServerSpecificManager::NewObject(int type) {
 }
 
 CTorchObjectSpec::CTorchObjectSpec() {
-    ClearFields();
     torch_ = nullptr;
     CreateSpec();
 }

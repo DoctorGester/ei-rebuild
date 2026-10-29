@@ -652,7 +652,6 @@ void CPlayerClient::Clear() {
 // --- Constructor and destructor ------------------------------------------------------------
 
 CPlayerConnection::CPlayerConnection() {
-    ClearFields();
     player_ = nullptr;
 }
 

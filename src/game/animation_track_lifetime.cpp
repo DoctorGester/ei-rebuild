@@ -21,7 +21,6 @@ int ReadCount(std::uint8_t** cursor) {
 } // namespace
 
 AnimationTrack::AnimationTrack() {
-    ClearFields();
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     DestroyTrack();
 }
