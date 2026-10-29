@@ -1,7 +1,7 @@
 // Game textures in the new renderer, keyed by their surface holder: .mmp textures from the file's levels (DXT1-5
 // uploaded as their blocks; RGB of any mask layout decoded; the file's levels only) and textures drawn on the GPU
 // (render_compose.cpp), kept as sokol images until the holder goes, with what they were made from for a new
-// device. Also the cursor pictures' pixels in memory the renderer owns (render::SurfaceMemory).
+// device. Also the cursor pictures' pixels as RGBA8 (render::PictureFromMmp).
 #include "render_internal.h"
 #include "render_ui.h"
 
@@ -113,9 +113,6 @@ int LevelCount(int width, int height) {
     }
     return levels;
 }
-
-std::unordered_map<const void*, SurfaceMemory> g_memory;   // by holder (rows: g_memoryBytes)
-std::unordered_map<const void*, std::vector<std::uint8_t>> g_memoryBytes;
 
 void Remake(Texture& t);
 
@@ -714,40 +711,10 @@ void TexturePatch(const void* target, const int to[4], const void* source, const
 
 namespace render {
 
-const SurfaceMemory* NewSurfaceMemory(const void* holder, int width, int height, int bitsPerPixel, std::uint32_t redMask,
-                                      std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
-    if (!holder || width <= 0 || height <= 0 || (bitsPerPixel != 16 && bitsPerPixel != 32)) return nullptr;
-    FreeSurfaceMemory(holder);
-    SurfaceMemory m;
-    m.pitch = ((width * bitsPerPixel / 8) + 3) & ~3;
-    std::vector<std::uint8_t>& bytes = detail::g_memoryBytes[holder];
-    bytes.assign(static_cast<std::size_t>(m.pitch) * static_cast<std::size_t>(height), 0);
-    m.bits = bytes.data();
-    m.width = width;
-    m.height = height;
-    m.bitsPerPixel = bitsPerPixel;
-    m.redMask = redMask;
-    m.greenMask = greenMask;
-    m.blueMask = blueMask;
-    m.alphaMask = alphaMask;
-    return &(detail::g_memory[holder] = m);
-}
-
-const SurfaceMemory* SurfaceMemoryOf(const void* holder) {
-    auto it = detail::g_memory.find(holder);
-    return it == detail::g_memory.end() ? nullptr : &it->second;
-}
-
-void FreeSurfaceMemory(const void* holder) {
-    detail::g_memory.erase(holder);
-    detail::g_memoryBytes.erase(holder);
-}
-
 void HolderGone(const void* holder) {
     detail::g_patches.erase(holder);
     for (auto it = detail::g_patches.begin(); it != detail::g_patches.end();)
         it = it->second.source == holder ? detail::g_patches.erase(it) : std::next(it);
-    FreeSurfaceMemory(holder);
     detail::g_pictures.erase(holder);
     // What the renderer made for it (a later holder at the same address starts afresh).
     detail::ForgetHolder(holder);

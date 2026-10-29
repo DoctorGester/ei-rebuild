@@ -139,7 +139,7 @@ its file has, DXT or RGB, as the original's (section 7, R28c, R28d).
 | Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices | `DrawParticles` (after the fog pass) -> `render::TlDraw` | drawn |
 | Interface surfaces | CUiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn |
 | Rectangle fills | renderer slot 19 (005041F0) | `renderer_rect.cpp` -> `render::ScreenDraw` | drawn |
-| Cursor | object 007C7BD8; images from 8888 pictures loaded by 004EFC60 -> `render::PictureFromMmp`, mask from game memory | frame draw 005E54A0 (`ui_cursor_frame.cpp`) -> `render::Cursor` | drawn; the cursor thread (005E5690) presents between frames (section 9, R9c2) |
+| Cursor | object 007C7BD8; images from 8888 pictures loaded by 004EFC60 -> `render::PictureFromMmp`, mask built from the file's pixels (R30b) | frame draw 005E54A0 (`ui_cursor_frame.cpp`) -> `render::Cursor` | drawn; the cursor thread (005E5690) presents between frames (section 9, R9c2) |
 | Movies | Bink: BinkCopyToBuffer (32-bit type 4) into a CPU buffer; CBinkVideo 005DBA50 opens, 005DBD80 steps and blits into a letterboxed rectangle | `bink_video.cpp` -> `render::MovieFrame` / `MovieBlit` / `SurfaceBlit`, `render::Fill` | drawn |
 | Present | 004EF610 | `device_present.cpp` -> `render::Present` (the new frame on the window's swap chain, section 9) | done |
 | Clear colour, target size, fog | renderer +0x14; device object 007AF080 -> +0x18; the render state's fog switch and colour (section 5; zone colour through slot 0 00501AB0) | EndFrame / terrain hand-over | done |
@@ -209,14 +209,15 @@ memory, no DIB section, no GDI, no comparison or upload at a blit. The readers g
 brings every canvas back from the commands drawn on it since it was last covered whole (a screen copy's and a long
 history's pixels read back instead; R9c1).
 
-**Memory** (owned by the new renderer) is left for the cursor's pictures: `render::NewSurfaceMemory / SurfaceMemoryOf /
-FreeSurfaceMemory / HolderGone` (render_textures.cpp): zeroed top-down memory per holder with pitch, size, bit count and
-channel masks, written by 004F0060 and read by 005E4EB0 through `DirectPixels` (surface.h).
+**No memory** (R30b): no holder has pixels in memory. The cursor's pictures were the last (004F0060 filled memory in
+the screen's format, 005E4EB0 read it back for the mask): the mask is built from the .mmp file's pixels
+(`ChannelLayout::ToNative` to the screen's format, ui_cursor.cpp), checked against the memory path at 16 and 32 bits
+for all 25 cursor pictures before it went; the renderer keeps the picture as RGBA8 (`render::PictureFromMmp`).
 
 **Holders without a surface**: the holder is our own `Surface` (surface.h: device, width, height, bits per pixel; R27b
 replaced `CDXSurface` and its always-null DirectDraw surface pointer): the holders of 004EF7B0 (windows 005FCC00 /
 005FCDD0 / 005FD7A0: a canvas, no memory; the cursor's background and composition surfaces 005E60B0 made are gone, R30a), the picture holders
-of 004F0060 (cursor images via 004EFC60 from 005E4EB0: the renderer's memory; dead picture windows) and the textures
+of 004F0060 (cursor images via 004EFC60 from 005E4EB0: size only, no memory; dead picture windows) and the textures
 (section 7); no Lock / Unlock, GetDC, Blt or colour fill. A window of no size is not made: the original's DDSurface
 error is thrown (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFormat` of the device object's colour depth
 (`bitsPerPixel_`: 16 bits 5:6:5, else X8R8G8B8): a canvas quantises to it. If the renderer fails later the game ends
@@ -224,9 +225,9 @@ error is thrown (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFor
 
 | Address | Name / change |
 |---|---|
-| 004EF7B0 `DXSurfaceConstruct`, 004EFD20 destructor body | memory-owning holder, no CreateSurface |
-| 004F0060 `DXSurfaceLoadPicture` (RET 8) | 8888 pictures only; fills the surface (32 bits a row copy, 16 bits each pixel cut to the screen format's channels, as 2DintMMX slots 1, 2 did); a system request with memory fills it directly; only live caller 004EFC60 from 005E4EB0 (flag byte `00784756` is 1 in the exe, never written); S on a scratch holder |
-| 005E4EB0 `CursorImage::Construct` (`ui_cursor.cpp`) | picture, holder, frames = width / height, hot spot x cursor size (007C7C90 / 94) / 32, mask (16 bits all ones where the pixel is 0; 32 bits low 24 bits 0) |
+| 004EF7B0 `DXSurfaceConstruct`, 004EFD20 destructor body | holder without memory, no CreateSurface |
+| 004F0060 `DXSurfaceLoadPicture` (RET 8) | 8888 pictures only; the holder takes the picture's size and the screen's bit count, nothing is filled (the original: 32 bits a row copy, 16 bits each pixel cut to the screen format's channels, as 2DintMMX slots 1, 2 did; R30b); only live caller 004EFC60 from 005E4EB0 (flag byte `00784756` is 1 in the exe, never written) |
+| 005E4EB0 `CursorImage::Construct` (`ui_cursor.cpp`) | picture, holder, frames = width / height, hot spot x cursor size (007C7C90 / 94) / 32, mask from the .mmp pixels in the screen's format (16 bits all ones where the 5:6:5 pixel is 0; 32 bits low 24 bits 0) |
 | 005DBA50 `CBinkVideo::Open` | no BinkDDSurfaceType (the holder has no surface): 4, the CPU copy's type |
 | 005FCC00 / 005FCDD0 / 005FCF80 / 005FD120 | the colour-fill Blt that clears a new window is left out (a new canvas is black) |
 | 005FDC00 / 005FDC60 | gone (P8): no DC; the callers' GetDC / ReleaseDC brackets are left out |
@@ -282,7 +283,7 @@ textures 00691D80 makes (kinds 0x1E, 0x20, 0x21) and the .bmp textures only the 
 **Texture formats (R27b).** A texture keeps the id of the format it is held in (`CTexture::format_`: 0x5650, 0x5551,
 0x4444, 0x8888 or a DXT1..DXT5 code; 0 none). The list is fixed (texture.cpp `IsTextureFormat`, what the old device
 offered; DXT5 must stay: Rebirth's battle00 and footprints are DXT5) and `TextureFormat(id)` gives an RGB one's
-`PixelFormat` (bits and channel masks, surface.h, what `render::NewSurfaceMemory` takes). An .mmp file is held in its
+`PixelFormat` (bits and channel masks, surface.h). An .mmp file is held in its
 own format, a DXT code outside the list in the RGB format its channel bit counts name (`MmpHeader::HeldFormat`; none:
 the original's "Can't find texture format" error); a .bmp texture by its kind (1:5:5:5, 4:4:4:4 or 5:6:5). The file
 formats (MMP, BMP, shot.sav's 5:6:5 picture) are read and written as before; the renderer uploads a DXT .mmp file's
@@ -470,8 +471,7 @@ come first, then what holds for the present path (the subsection names are cited
   removable device) validates or measures the renderer itself and has a scenario; the A/B against the old device draws
   went with R26 (meshcorners), so none was removed.
   R11d: the blink is a texture patch drawn in the shader (section 7).
-- Trimming after P8 / R28 (R30's survey, build/style_review/renderer_trim.md): R30b the cursor's pictures without
-  the renderer's memory, R30g one PixelFormat for the game and the canvases (after C54a), R30e EI_RENDER's no-op words, R30f mesh draws without the CPU clip.
+- Trimming after P8 / R28 (R30's survey, build/style_review/renderer_trim.md): R30g one PixelFormat for the game and the canvases (after C54a), R30e EI_RENDER's no-op words, R30f mesh draws without the CPU clip.
 - No ticket yet: weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU calls left in game code (bounds at figure load, the terrain's transform before

@@ -1,8 +1,7 @@
-// The cursor images' constructor (the cursor object, see docs/notes/ui.md, "Cursor"), which builds each
-// image's mask from its picture: the picture's holder has no DirectDraw surface, and the mask is built from
-// the new renderer's memory (DirectPixels). (The software cursor's blit, which combined image, mask and
-// background through Locks of the holders' surfaces, has no caller of ours since: the new renderer draws the
-// cursor, ui_cursor_frame.cpp.)
+// The cursor images' constructor (the cursor object, see docs/notes/ui.md, "Cursor"), which builds each image's mask
+// from its picture's pixels in the .mmp file (the holder has no memory). (The software cursor's blit, which combined
+// image, mask and background through Locks of the holders' surfaces, has no caller of ours since: the new renderer
+// draws the cursor, ui_cursor_frame.cpp.)
 #include "ui_cursor.h"
 
 #include "game_singletons.h"
@@ -11,9 +10,6 @@
 #include "texture.h"
 #include "world.h"
 
-#include "lib/crt.h"
-#include "lib/gameapi.h"
-
 #include <cstdint>
 #include <cstring>
 
@@ -21,15 +17,18 @@
 
 namespace {
 
-
-// The mask of `count` pixels of a row: all ones where the pixel's colour is 0 (16 bits: the whole
-// pixel; 32 bits: its low 24 bits), else 0.
-template <typename T>
-void MaskRow(const std::uint8_t* row, T* mask, std::uint32_t count, T colourBits) {
-    for (std::uint32_t x = 0; x < count; ++x) {
-        T pixel;
-        std::memcpy(&pixel, row + x * sizeof(T), sizeof(T));
-        mask[x] = (pixel & colourBits) == 0 ? static_cast<T>(~T{0}) : T{0};
+// The mask of the 8888 picture at `bitsPerPixel` (16 or 32) a pixel, its rows one after another: all ones where the
+// pixel's colour in the screen's format is 0 (16 bits 5:6:5: the whole pixel; 32 bits: its low 24 bits), else 0.
+void BuildMask(const MmpHeader* picture, int bitsPerPixel, std::uint8_t* mask) {
+    ChannelLayout layout;
+    layout.Split(ScreenFormat(bitsPerPixel));
+    const std::size_t bytes = static_cast<std::size_t>(bitsPerPixel / 8);
+    const std::uint8_t* pixels = reinterpret_cast<const std::uint8_t*>(picture) + sizeof(MmpHeader) + picture->MipOffset(0);
+    const std::size_t count = static_cast<std::size_t>(picture->width) * picture->height;
+    for (std::size_t i = 0; i < count; ++i) {
+        std::uint32_t argb;
+        std::memcpy(&argb, pixels + i * 4, sizeof(argb));
+        std::memset(mask + i * bytes, layout.ToNative(argb) == 0 ? 0xFF : 0, bytes);
     }
 }
 
@@ -40,17 +39,12 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     frame = 0;
     CTextureManager* manager = g_clientWorld->textureManager_;
     MmpHeader* picture = manager->GetFileData(name);
-    // (A throw frees the holder's memory and passes the exception on; that ends the game.)
+    // (A throw passes the exception on; that ends the game.)
     holder = new Surface(g_sceneRenderer->device_, picture);
     ++holder->refs_;
-    // (A holder kept before here would be released; there is none: it was cleared above.)
-    manager->CloseFile(picture);
 
-    // The picture's size and pixels: the new renderer's memory (DirectDraw: GetSurfaceDesc, then a
-    // Lock). gave the holder that memory or threw.
-    SurfacePixels image;
-    DirectPixels(holder, &image);
-    std::uint32_t pictureWidth = static_cast<std::uint32_t>(image.width), pictureHeight = static_cast<std::uint32_t>(image.height);
+    // The holder took the picture's size and the screen's pixel size or threw.
+    std::uint32_t pictureWidth = static_cast<std::uint32_t>(holder->width), pictureHeight = static_cast<std::uint32_t>(holder->height);
     std::uint32_t count = pictureWidth / pictureHeight;
     height = static_cast<LONG>(pictureHeight);
     frames = static_cast<int>(count);
@@ -59,19 +53,6 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     hotY = static_cast<int>(g_cursorHeight) * hotSpotY / 32;
     std::uint32_t maskBytes = (static_cast<std::uint32_t>(holder->bitsPerPixel) * pictureHeight * pictureWidth) >> 3;
     saved = new std::uint8_t[maskBytes];
-
-    // The mask, under the device lock.
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    const std::uint8_t* pixels = image.bits;
-    std::uint32_t rows = pictureHeight, columns = pictureWidth, pitch = static_cast<std::uint32_t>(image.pitch);
-    if (holder->bitsPerPixel == 16) {
-        auto* mask = reinterpret_cast<std::uint16_t*>(saved);
-        for (std::uint32_t y = 0; y < rows; ++y)
-            MaskRow<std::uint16_t>(pixels + y * ((pitch >> 1) * 2), mask + y * columns, columns, 0xFFFF);
-    } else if (holder->bitsPerPixel == 32) {
-        auto* mask = reinterpret_cast<std::uint32_t*>(saved);
-        for (std::uint32_t y = 0; y < rows; ++y)
-            MaskRow<std::uint32_t>(pixels + y * ((pitch >> 2) * 4), mask + y * columns, columns, 0xFFFFFF);
-    }
-    gameapi::LeaveCriticalSection(&g_deviceLock);
+    BuildMask(picture, holder->bitsPerPixel, saved);
+    manager->CloseFile(picture);
 }

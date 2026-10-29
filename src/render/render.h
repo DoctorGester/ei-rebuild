@@ -205,21 +205,7 @@ void EndFlatDrawTime();
 void BeginShadowBuildTime();
 void EndShadowBuildTime();
 
-// The software cursor's pictures keep their pixels in memory the renderer owns (the cursor's mask is made from
-// them). No other holder has memory: an interface window's pixels are its canvas's (render_ui.h), a texture's are
-// decoded or drawn on the GPU. The memory: zeroed rows from the top, each a multiple of 4 bytes, 16 or 32 bits a
-// pixel, channels at the masks (`alphaMask` 0 without alpha).
-struct SurfaceMemory {
-    void* bits = nullptr;
-    int pitch = 0, width = 0, height = 0, bitsPerPixel = 0;
-    std::uint32_t redMask = 0, greenMask = 0, blueMask = 0, alphaMask = 0;
-};
-// Replaces any memory `holder` had; null when it cannot be made. Valid until freed.
-const SurfaceMemory* NewSurfaceMemory(const void* holder, int width, int height, int bitsPerPixel, std::uint32_t redMask,
-                                      std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
-const SurfaceMemory* SurfaceMemoryOf(const void* holder);
-void FreeSurfaceMemory(const void* holder);
-// The holder is destroyed: its memory freed, what the renderer kept for it forgotten.
+// The holder is destroyed: what the renderer kept for it forgotten.
 void HolderGone(const void* holder);
 // A holder loaded from an 8888 .mmp picture (the software cursor's images): the renderer keeps the
 // picture's pixels from the file data.

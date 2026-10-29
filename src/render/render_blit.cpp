@@ -442,8 +442,8 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
     FpuGuard fpu;
     std::vector<std::uint8_t> rgba(static_cast<std::size_t>(w) * h * 4, 0);
     // The image loaded from its picture (render::PictureFromMmp): the colours from the
-    // file, the mask (the holder's width, in its pixel size) from the game's memory. A picture holder
-    // has no surface: without a decoded picture there is nothing to draw.
+    // file, the mask (the holder's width, in its pixel size) the cursor image built from the file. A
+    // picture holder has no surface: without a decoded picture there is nothing to draw.
     int maskWidth = holder->width;
     int maskBytes = holder->bitsPerPixel / 8;
     // The whole picture is kept with its mask for the cursor thread (render_cursor.cpp).
