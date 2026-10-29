@@ -18,7 +18,6 @@
 #include <cstdint>
 #include "lib/nan_audit.h"
 #include "logic_settings.h"
-#include "lib/static_object.h"
 #include "save_versions.h"
 
 namespace {
@@ -70,12 +69,6 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
     previous = std::bit_cast<std::uint32_t>(brain->previousPosition.x);
     if (previous == kUnsetBits) brain->previousPosition = *where;
 }
-
-// The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a list built on
-// first use and destroyed at exit.
-constinit lib::StaticObject<UnitList> g_candidates = /*007C54C8*/ {};
-std::uint8_t g_candidatesGuard = /*007C54E4*/ {};
-void DestroyCandidates() { g_candidates.Destroy(); }
 
 bool DirectControl(const AIBrain* brain) {
     const CPlayer* player = brain->owner->unit->player;
@@ -421,15 +414,10 @@ int AggressionMode::Evaluate(AIBrain* brain) {
         return kNoPriority;
     }
     if (!brain->memory.seesEnemy) return kNoPriority;
-    std::uint8_t& guard = g_candidatesGuard;
-    if (!(guard & 1)) {
-        guard |= 1;
-        g_candidates.Construct();
-        std::atexit(DestroyCandidates);
-    }
     CUnit* self = brain->owner->unit;
-    brain->memory.FindEnemies(self, &g_candidates.Get());
-    brain->ChooseTarget(&chosen, &g_candidates.Get(), &self->localPosition_, 0, 0);
+    UnitList candidates;
+    brain->memory.FindEnemies(self, &candidates);
+    brain->ChooseTarget(&chosen, &candidates, &self->localPosition_, 0, 0);
     CUnit* best = chosen.object;
     if (best != enemy) {
         enemy.Assign(best);
@@ -509,7 +497,6 @@ int CorpseWatcherMode::Evaluate(AIBrain* brain) {
         Ref<CUnit> corpse;
         Ref<CUnit>* popped = brain->PopCorpse(&corpse);
         brain->memory.Notice(&(*popped)->localPosition_, 800, -3);
-        corpse.Reset();
     }
     return kNoPriority;
 }

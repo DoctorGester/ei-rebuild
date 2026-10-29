@@ -65,7 +65,6 @@ AckKind AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
         order.MakeAttack(object);
     }
     if (brain->owner->CanReachAndPlan(&order)) flags = AckKind::None;
-    order.target.Reset();
     return flags;
 }
 

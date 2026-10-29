@@ -71,9 +71,13 @@ File `core_refcount.cpp`, `refptr_copies.cpp`.
   item, the figure's parts) are `CEngineObject::ForgetReference()`.
 - A counted field is a `Ref<T>` (src/game/ref.h): `Assign(p)` takes p's reference first, then drops the old one (nothing
   when p is held already); `Reset()` nulls the field, then drops the reference; `Take()` hands the reference on. There
-  is no store of a raw pointer, so the compiler lists every hand-counted store. A Ref has no destructor yet: the owner
-  resets it where the original did (a constructor needs no `= nullptr`: a Ref starts null).
-- A container element that holds its reference is a `HeldRef<T>`: made or copied it takes one, destroyed it drops it.
+  is no store of a raw pointer, so the compiler lists every hand-counted store. A Ref starts null and its destructor
+  drops the reference: an owner's destructor resets a Ref by hand only where the release must come before other work
+  or in an order the members' reverse declaration order does not give (the original's member destructors released
+  in that order too). Every owner that holds a Ref needs T complete where its constructor or destructor is defined
+  (the constructor's unwinding destroys the members built so far): include T's header there.
+- A container element that holds its reference is a `HeldRef<T>`: a Ref that can be copied (taking a reference) and
+  moved.
 - Ids: `SaveRef(object, stream)` writes the id (-1: none), `LoadRef(ref, stream, world)` looks it up in the world's map
   objects (engine_object.h, counted_ref.cpp).
 - Not merged yet: the network family (`RefPtr`, `RefPtrTo<T>`, `CountedRefPtr` / `CountedRefTo<T>`, `SharedRefPtr` /

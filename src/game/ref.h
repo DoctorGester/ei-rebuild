@@ -7,8 +7,8 @@
 // object with the last (CEngineObject through its owner, CRefCounted, the figures, the device materials, the render
 // presets and helper). A site that keeps a raw pointer counts by hand with the same two members.
 
-// A counted pointer field: Assign and Reset count, reads see the object. There is no plain store, and no
-// destructor until the owners have real ones: the owner resets it.
+// A counted pointer: Assign and Reset count, reads see the object, and its destructor drops the reference it
+// holds. There is no plain store.
 template <typename T>
 class Ref {
 public:
@@ -16,6 +16,7 @@ public:
     Ref(std::nullptr_t) {}
     Ref(const Ref&) = delete;
     Ref& operator=(const Ref&) = delete;
+    ~Ref() { Reset(); }
 
     // Holds `object`: it gains a reference, then the old one loses its own. Nothing when it is held already.
     void Assign(T* object) {
@@ -38,9 +39,8 @@ protected:
     T* object_ = nullptr;
 };
 
-// A Ref that holds its reference for its own lifetime (a container's element): made from a pointer or copied it
-// takes one, destroyed it drops it. An assignment takes the new reference before the old one is dropped; a move
-// hands the reference over.
+// A Ref that can be copied and moved (a container's element): made from a pointer or copied it takes a reference.
+// An assignment takes the new reference before the old one is dropped; a move hands the reference over.
 template <typename T>
 class HeldRef : public Ref<T> {
 public:
@@ -52,5 +52,4 @@ public:
         std::swap(this->object_, other.object_);
         return *this;
     }
-    ~HeldRef() { this->Reset(); }
 };

@@ -239,10 +239,7 @@ CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const s
     return spell;
 }
 
-CSpellConstructor::~CSpellConstructor() {
-    CSpellConstructor::Destroy();
-    if (container_) container_->Release();   // the container member's destructor
-}
+CSpellConstructor::~CSpellConstructor() { CSpellConstructor::Destroy(); }
 
 const char* CSpellConstructor::ClassName() { return "CSpellConstructor"; }
 ClassId CSpellConstructor::GetClassId() { return ClassId::SpellConstructor; }

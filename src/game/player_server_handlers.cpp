@@ -199,13 +199,6 @@ double UseOrderDistanceSquared(const Vector3* a, const Vector3* b) {
     return LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
 }
 
-AIPath* AIPath::Construct() {
-    steps = {};
-    cells = {};
-    Clear();
-    return this;
-}
-
 Vector3* AIPath::TargetPoint(Vector3* out) const {
     double scale = 0.5;
     out->z = 0.0f;
@@ -258,7 +251,6 @@ int CPlayerServer::OnUseOrder() {
     CUnit* chosen = nullptr;
     if (std::ssize(units) >= 2) {
         AIPath path;
-        path.Construct();
         AIOrder order;
         order.Clear();
         order.MakeUse(object, kind);
@@ -303,7 +295,6 @@ int CPlayerServer::OnUseOrder() {
         }
         if (!accepted) chosen = first;
         order.target.Reset();
-        path.Destruct();
     } else if (std::ssize(units) == 1) {
         chosen = units[0];
     }

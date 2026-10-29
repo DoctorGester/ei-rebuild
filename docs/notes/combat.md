@@ -31,7 +31,7 @@ Most of the range is **CUnitServer** (class id 0x3E, vtable 0073EF38, 54 slots, 
 
 +0x20 frozen this update, +0x21 held by a hit reaction (AdvanceAnimation shifts motion, queue and plan times by one while
 set); +0x24 `queue` (AnimationSteps: steps +0x28, count +0x2C, +0x38 time the first step started, -1 until started); +0x3C
-`motion` (AIPath, built by AIPath::Construct 006706A0 = the inlined 00545750 x2 / 00557230 / 005B23A0; its `failed` byte is
+`motion` (AIPath, the original's constructor 006706A0 = the inlined 00545750 x2 / 00557230 / 005B23A0; its `failed` byte is
 compared with 1 by MotionOver, Replan and PathTo, so the rewrites read it as a byte); +0x78 pending step list; +0x9C /
 +0xA4 point to path to and its range; +0xA9 / +0xAA path flags (+0x6D, +0x6E no player); +0xC4 plan (OrderPlan; +0xF0
 location, +0xF4 notSkill); +0x144 a hit reaction plays, +0x148 `savedQueue` (time +0x15C); +0x145 last path blocked, +0x146
@@ -178,9 +178,11 @@ here is gone. What it covered, by file:
 - AnimationSteps is a `std::vector<AnimationStep>` with `extra` (C14za); a default step is the blank step (0xFF, 0xFF, 0,
   padding 0, duration -1, kind 0). The original's by-value lists, copy-construct-then-free locals and queues assigned twice
   are plain copies and assignments.
-- Lifetime (`combat_lifetime.cpp`, every spawn): CUnitServer::Construct 00545580, AIBrain::Construct 00545990, AIMemory::Destruct
-  00545CB0 (the brain's memory, + 0xD0), AIBrain::Destruct 005457E0 (only from unwind funclets), AIPath::Destruct 00546100 (from
-  CPlayerServer::OnUseOrder); destructors through 00546230 run at zone changes. `combat_server_slots.cpp`: CUnitServer class name /
+- Lifetime (`combat_lifetime.cpp`, every spawn): the constructors CUnitServer 00545580, AIBrain 00545990 and the destructors
+  AIMemory 00545CB0 (the brain's memory, + 0xD0), AIBrain 005457E0 (only from unwind funclets), AIPath 00546100 (from
+  CPlayerServer::OnUseOrder) are ours: default member initialisers (the values AIBrain::Init and AIMemory::Reset set) and
+  the members' own destructors; the controller's constructor and destructor run ResetController, which empties the
+  brain (Init) and drops every reference. Destructors through 00546230 run at zone changes. `combat_server_slots.cpp`: CUnitServer class name /
   id 005460C0 / 005460D0, DeletingDestruct 005460E0, MotionSlot, slot 16 / 17, slot 53 = UpdateMoveFactors 00552F30, the UnitAction /
   AnimationStep constructors. Player / tamed AI mode slots 00551E10-00552180 (`unit_ai_player_mode_slots.cpp`: priorities 10 /
   100000000, types 6 / 8).

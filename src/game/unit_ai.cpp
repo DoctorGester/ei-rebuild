@@ -370,7 +370,6 @@ void AIBrain::AttackTarget(CMapObject* object) {
         order.pointIsUseSpot = 0;
         order.target.Assign(object);
         if (owner->CanReachAndPlan(&order)) flags = AckKind::None;
-        order.target.Reset();
     }
     owner->OrderAttack(target, 6, 0, flags);
 }

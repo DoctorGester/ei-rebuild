@@ -16,9 +16,9 @@
 // An order of the unit: an AIOrder and two more fields. The order checks (CanReachAndPlan and the planning
 // under it) take the AIOrder part only: the AI builds just that on the stack.
 struct UnitAction : AIOrder {
-    int param;                  // by kind: a skill's spot (6), a wait's time, an emote's animation,
+    int param = 0;              // by kind: a skill's spot (6), a wait's time, an emote's animation,
                                 // the studied item's id
-    std::uint8_t modifier;      // run (move orders) or a called shot (attacks)
+    std::uint8_t modifier = 0;  // run (move orders) or a called shot (attacks)
 
 // The target is referenced.
     UnitAction* Assign(const UnitAction* from);

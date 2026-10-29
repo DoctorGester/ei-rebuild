@@ -5319,3 +5319,35 @@ title = "HeldRef for the AI memory lists; pendingParts is never filled"
 group = "cleanup"
 depends = ["C49b"]
 note = "C49b follow-up. AIMemory's nearby / visible / seenCorpses / corpses (std::list<CUnit*>, counted by hand in unit_ai_brain.cpp ReleaseAllObjects / RemoveObjectNode, combat_lifetime.cpp Init/DestroyObjectList, combat_taming ReleaseAndClear, WitnessMurder's std::list<CUnit*>*) to std::list<HeldRef<CUnit>> where the release order stays. CObject3D::pendingParts: nothing in src or tests adds to it (only reads, RemovePart, LoadFigures' sic drop, Destroy3D); check game.exe's writers and delete it with its loops if it is dead. Goldens unchanged."
+
+[[ticket]]
+id = "C50a"
+title = "G11 constructors: AI map, paths and AI statics"
+group = "cleanup"
+model = "opus"
+depends = ["C50"]
+note = "C50 follow-up. ai_*.cpp/h and sector_map: AIEventTable / FootprintCellSet / SmoothTable / UnitShapeCache / AIPath-like Construct()/Destruct(), the CAIMap region lists, and the StaticObject / atexit statics of ai_events, ai_footprint, ai_path_smooth, ai_region_reach, ai_shape_cache, ai_water_patch (g_patch), sector_map, sector_spiral. Recipe from C50: real ctors with default member initialisers, Reset/Init kept only where the object is reused (engine-object spares are reused: their Create/Destroy stay); Ref<T> has a destructor since C50, so an owner's hand release of a Ref in its destructor goes (keep an explicit Reset only where the order differs from reverse declaration order). A StaticObject / atexit pair becomes a local, a plain global or a member: drop the address tag (python tools/named_data.py --update), its config/static_init_ports.csv row, and for a runtime atexit add the original function's range to gen_static_init.py RETIRED_STATICS (an initialiser's: UNUSED_INITIALISERS), then rerun python tools/gen_static_init.py. Goldens unchanged; leave src/game/ui_* and src/render/render_ui* to C54."
+
+[[ticket]]
+id = "C50b"
+title = "G11 constructors: world, units, players, parties, scripts"
+group = "cleanup"
+model = "opus"
+depends = ["C50"]
+note = "C50 follow-up. world_*, unit_* (but unit_ai, done in C50), map_object*, object3d*, player_*, party_*, script_*, quest_*, lever*, effects*, particle_*, lightning*, ground_print, spell_* (CSpellEffect's explicit Spell()->~CSpell()), world_effect_* (the destructors that call Reset() twice): Construct()/Destruct()/ClearFields()/Reset pseudo-constructors and their StaticObject globals (world_construct, world_game, static_lists, party_file, player_client, player_server_handlers, quest_records, lever_table, script_exec_helpers, spell_effect_internal). Recipe from C50: real ctors with default member initialisers, Reset/Init kept only where the object is reused (engine-object spares are reused: their Create/Destroy stay); Ref<T> has a destructor since C50, so an owner's hand release of a Ref in its destructor goes (keep an explicit Reset only where the order differs from reverse declaration order). A StaticObject / atexit pair becomes a local, a plain global or a member: drop the address tag (python tools/named_data.py --update), its config/static_init_ports.csv row, and for a runtime atexit add the original function's range to gen_static_init.py RETIRED_STATICS (an initialiser's: UNUSED_INITIALISERS), then rerun python tools/gen_static_init.py. Goldens unchanged; leave src/game/ui_* and src/render/render_ui* to C54."
+
+[[ticket]]
+id = "C50c"
+title = "G11 constructors: items, databases, network"
+group = "cleanup"
+model = "opus"
+depends = ["C50"]
+note = "C50 follow-up. item_*, database_*, unit_db*, acks_db, map_database, class_template_stock (Destruct() calls on the record tables) and net_* (net_session's InitGameServerPointer / ReleaseGameServer pair around the g_gameServer / g_gameClient Refs, which now have destructors; net_classes, the Destruct()-named deleting destructors of the messages). Recipe from C50: real ctors with default member initialisers, Reset/Init kept only where the object is reused (engine-object spares are reused: their Create/Destroy stay); Ref<T> has a destructor since C50, so an owner's hand release of a Ref in its destructor goes (keep an explicit Reset only where the order differs from reverse declaration order). A StaticObject / atexit pair becomes a local, a plain global or a member: drop the address tag (python tools/named_data.py --update), its config/static_init_ports.csv row, and for a runtime atexit add the original function's range to gen_static_init.py RETIRED_STATICS (an initialiser's: UNUSED_INITIALISERS), then rerun python tools/gen_static_init.py. Goldens unchanged; leave src/game/ui_* and src/render/render_ui* to C54."
+
+[[ticket]]
+id = "C50d"
+title = "G11 constructors: engine base, app, renderer, terrain, platform"
+group = "cleanup"
+model = "opus"
+depends = ["C50"]
+note = "C50 follow-up. CEngineObject has no constructor by design (engine_object.h; map_object_lifetime's InitEngineObject stores the base's fields): give it one if the spares' reuse allows; app_*, renderer_*, terrain_*, camera_object, chunk_archive, clip, buffered_file, console*, options*, sound*, resource*, registry*, ini*, sys_info, win_*, bink_*, game_*, core_*, figure_*, texture*, effects_weather_draw, particle_draw / render, renderer_lines / sprites: Construct()/Destruct()/ClearFields(), lib::StaticObject globals and std::atexit(Free...) exit functions. Recipe from C50: real ctors with default member initialisers, Reset/Init kept only where the object is reused (engine-object spares are reused: their Create/Destroy stay); Ref<T> has a destructor since C50, so an owner's hand release of a Ref in its destructor goes (keep an explicit Reset only where the order differs from reverse declaration order). A StaticObject / atexit pair becomes a local, a plain global or a member: drop the address tag (python tools/named_data.py --update), its config/static_init_ports.csv row, and for a runtime atexit add the original function's range to gen_static_init.py RETIRED_STATICS (an initialiser's: UNUSED_INITIALISERS), then rerun python tools/gen_static_init.py. Goldens unchanged; leave src/game/ui_* and src/render/render_ui* to C54."

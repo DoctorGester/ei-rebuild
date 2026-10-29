@@ -8,11 +8,6 @@
 
 namespace {
 
-// A counted pointer let go (Release); the original tests it for null first.
-void ReleaseIfSet(void* object) {
-    if (object != nullptr) static_cast<CEngineObject*>(object)->Release();
-}
-
 } // namespace
 
 // --- The effect base -----------------------------------------------------------------------------
@@ -92,10 +87,7 @@ CEffectPointLight::CEffectPointLight() {
     Reset();
 }
 
-CEffectPointLight::~CEffectPointLight() {
-    Reset();
-    ReleaseIfSet(light_);
-}
+CEffectPointLight::~CEffectPointLight() { Reset(); }
 
 // --- CEffectParticle and CEffectWall -------------------------------------------------------------
 
@@ -103,10 +95,7 @@ CEffectParticle::CEffectParticle() {
     Reset();
 }
 
-CEffectParticle::~CEffectParticle() {
-    Reset();
-    ReleaseIfSet(source_);
-}
+CEffectParticle::~CEffectParticle() { Reset(); }
 
 // The particle's constructor resets as the particle, then the wall resets as itself; the
 // destructors the other way round.
@@ -120,10 +109,7 @@ CEffectLightning::CEffectLightning() {
     flag_ = 0;
 }
 
-CEffectLightning::~CEffectLightning() {
-    Reset();
-    ReleaseIfSet(bolt_);
-}
+CEffectLightning::~CEffectLightning() { Reset(); }
 
 // --- The effect manager's factory ----------------------------------------------------------------
 

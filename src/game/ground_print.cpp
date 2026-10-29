@@ -223,10 +223,6 @@ int GroundPrint::Draw() {
                                   indices_.data(), std::ssize(indices_), colour_, static_cast<std::uint32_t>(lit_) << 24, nullptr, 1.0f);
 }
 
-GroundPrint::~GroundPrint() {
-    if (texture_.texture) texture_.texture->Release();
-}
-
 // ---- Footprint ----------------------------------------------------------------------------------
 
 Footprint::Footprint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,

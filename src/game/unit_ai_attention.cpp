@@ -45,7 +45,6 @@ void AIAttention::LookAround(AIBrain* brain, int reachArg) {
                     order.source = 6;
                     order.target.Assign(chosen);
                     if (brain->owner->CanReachAndPlan(&order)) flags = AckKind::None;
-                    order.target.Reset();
                 }
                 brain->owner->OrderAttack(brain->target, 6, 0, flags);
             } else {

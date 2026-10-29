@@ -72,13 +72,13 @@ struct AIOrder {
     // Where the order aims: the object's AimPoint, or `point` without an object. Returns `out`.
     Vector3* AimPoint(Vector3* out) const;
 
-    UnitOrderKind kind;
-    std::uint32_t source;           // the body part of an attack (6 all), the spell of a cast, the UseSource of a use
-    Ref<CMapObject> target;     // counted
-    Vector3 point;                  // target point; left uninitialised by the AI's orders
+    UnitOrderKind kind = UnitOrderKind::None;
+    std::uint32_t source = 0;       // the body part of an attack (6 all), the spell of a cast, the UseSource of a use
+    Ref<CMapObject> target;
+    Vector3 point{};                // target point
     // `point` is a use spot of the target that FindUseSpot picked: the unit walks to it and acts from there
     // (no sight or range checks against the target; reach 0.2).
-    std::uint8_t pointIsUseSpot;
+    std::uint8_t pointIsUseSpot = 0;
 };
 
 // One remembered look direction of the current move.
@@ -101,7 +101,7 @@ void SaveLooks(const std::vector<AILook>* looks, CStream* stream);
 struct AIMoveOrder {
     void Clear();
 
-    Vector3 point;
+    Vector3 point{};
     std::vector<AILook> looks;
 };
 
@@ -243,7 +243,6 @@ public:
 // Suspection: go and look where something was noticed.
 class SuspectionMode : public AIActionMode {
 public:
-    SuspectionMode() { ClearFields(); }
     ~SuspectionMode() override;
     int OnShutdown() override;
     SuspectionMode* Clone() override;
@@ -261,13 +260,8 @@ public:
     // The original leaves these unset, but Evaluate keeps a point that compares the same (a NaN always does)
     // and the lower level, so every new mode starts zeroed: a determinism fix (the harness zeroes the
     // original's alike).
-    void ClearFields() {
-        point = {};
-        level = 0;
-    }
-
-    Vector3 point;
-    int level;
+    Vector3 point{};
+    int level = 0;
 };
 
 // A target the attention chose or the brain is attacking: the part (-1 the whole unit with a weapon,
@@ -320,11 +314,10 @@ public:
 // Fear: run from an enemy.
 class FearMode : public AIActionMode {
 public:
-    // Every field is zeroed first (a determinism fix: the original leaves shelter y / z and fleePoint x / y,
-    // which the saves write; the harness zeroes the original's alike), then distance, spread 3 and an unset
-    // shelter (x = -1313).
+    // Distance, spread 3 and an unset shelter (x = -1313). The other fields start zeroed (a determinism fix: the
+    // original leaves shelter y / z and fleePoint x / y, which the saves write; the harness zeroes the original's
+    // alike).
     explicit FearMode(std::uint8_t flag);
-    void ClearFields() { std::memset(&distance, 0, sizeof(FearMode) - offsetof(FearMode, distance)); }
     ~FearMode() override;
     int OnShutdown() override;
     FearMode* Clone() override;
@@ -343,11 +336,11 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    float distance;                 // how near danger counts (10, kFearDefaultDistance)
-    float spread;                   // random spread of a flight point (3)
-    Vector3 shelter;                // the last place with a kind 3 occluder (x = -1313: unset)
-    Vector3 fleePoint;              // a checked flight point (z 1.0 while pending, else 0)
-    std::uint8_t flag;
+    float distance = 0.0f;          // how near danger counts (10, kFearDefaultDistance)
+    float spread = 0.0f;            // random spread of a flight point (3)
+    Vector3 shelter{};              // the last place with a kind 3 occluder (x = -1313: unset)
+    Vector3 fleePoint{};            // a checked flight point (z 1.0 while pending, else 0)
+    std::uint8_t flag = 0;
 
 private:
     // The constructor's stores (and OnShutdown's).
@@ -584,7 +577,6 @@ double AIDistance2(const Vector3* a, const Vector3* b);
 // The brain's perception memory: what the unit sees, has seen and heard.
 struct AIMemory {
     void Reset();
-    void Destruct();
     // Ages the reports (one tick off each; an entry below 0 is dropped), updates the heard calls and the AI
     // events' view, then adds the noticed kind to the noticed level. Both callees may set the noticed point,
     // level and kind first (900 / -3, 800 / -3, 1000 / -2).
@@ -621,20 +613,20 @@ struct AIMemory {
     void Load(CStream* stream);
     void Save(CStream* stream);
 
-    SpiralCache spareCells;         // set empty by the brain's constructor; not read
-    SpiralCache sightCells;         // the cells around the unit it looks for units in
-    float noticedX;
-    float noticedY;
-    int noticedLevel;
-    int noticedKind;
-    int nearbyCountdown;            // updates until the nearby units are listed again
+    SpiralCache spareCells{0, -1.0f};   // not read
+    SpiralCache sightCells{0, -1.0f};   // the cells around the unit it looks for units in
+    float noticedX = 0.0f;
+    float noticedY = 0.0f;
+    int noticedLevel = 0;
+    int noticedKind = 0;
+    int nearbyCountdown = 0;        // updates until the nearby units are listed again
     HeldUnits nearby;               // the units in the sight cells around
     HeldUnits visible;              // units in sight
     HeldUnits seenCorpses;          // corpses seen
     HeldUnits corpses;              // allied corpses seen
     AIReports reports;          // objects reported to the alarm code
     AIHeardCalls calls;              // calls heard
-    std::uint8_t seesEnemy;
+    std::uint8_t seesEnemy = 0;
 };
 
 // The brain, embedded in the unit controller.
@@ -651,6 +643,8 @@ struct AIBrain {
     };
     static constexpr int kNoTime = -10000;          // actionTime: no look in progress
     static constexpr int kLookStarted = -9999;      // actionTime: the first queued look is turning
+    static constexpr float kNearPointCleared = 100000.0f;   // nearX / nearY: no near point
+    static constexpr float kInitialCallRadius = 10.0f;
 
     // One AI tick: alarm countdown, decay of alertness, perception update, then every mode's Evaluate; the
     // highest (the current mode gets +100) takes over (Leave / Enter, with a "new motivation" console
@@ -679,11 +673,9 @@ struct AIBrain {
     // ClearModes, then no action, memory reset, action point and looks cleared, target and seen object
     // released (the controller's death).
     void Reset();
-    // The state of a new controller's brain: Reset's work plus owner, alert and alarm state, alarm records,
-    // positions.
+    // Back to a new brain's state (the controller is reused): Reset's work plus owner, alert and alarm state,
+    // alarm records, positions.
     void Init();
-    // Empty containers, the move order cleared, both sight caches {0, -1}, then Init. Returns this.
-    AIBrain* Construct();
     // The brain from / to a save: the action, its point, looks and time, target and seen object, the scalars,
     // the modes (count, the index of the one in charge, then each mode's type and its own data), the
     // perception memory, the alarm records, and (by file version) the attack options. Load empties the mode
@@ -752,26 +744,26 @@ struct AIBrain {
     // The corpse list's head handed to `out` with a reference (the list's own reference released). Returns `out`.
     Ref<CUnit>* PopCorpse(Ref<CUnit>* out);
 
-    CUnitServer* owner;
-    int action;
+    CUnitServer* owner = nullptr;
+    int action = kActionNone;
     AIMoveOrder move;               // the action point, and what to look at after arriving
-    int actionTime;                 // game time the current look ends (or kNoTime / kLookStarted)
+    int actionTime = kNoTime;       // game time the current look ends (or kNoTime / kLookStarted)
     Ref<CMapObject> target;
     Ref<CMapObject> seen;
-    std::uint8_t alerted;
-    std::int8_t alarm;              // alarm kind raised when the countdown ends
-    std::int8_t alarmSlot;         // the world alarm slot of the applied record (ApplyBehaviour)
-    std::uint8_t alwaysUpdated;         // the world keeps the unit in its update map (the record's flag bit 3)
-    float callRadius;               // allies within it hear a call for help (10.0 at Init)
-    int alertMode;
-    int alarmCountdown;
-    float nearX;               // near point (Guard); 100000 when cleared
-    float nearY;                        // near point y (SetPositions); 100000 when cleared
-    float decay;                    // alertness decay factor
-    Vector3 previousPosition;
-    Vector3 position;
-    int standCooldown;              // FindStandPoint fails while above 0 (one off per call)
-    int followTimer;                // UpdateFollow acts once it has counted past 8
+    std::uint8_t alerted = 0;
+    std::int8_t alarm = 0;          // alarm kind raised when the countdown ends
+    std::int8_t alarmSlot = 0;      // the world alarm slot of the applied record (ApplyBehaviour)
+    std::uint8_t alwaysUpdated = 0; // the world keeps the unit in its update map (the record's flag bit 3)
+    float callRadius = kInitialCallRadius;  // allies within it hear a call for help
+    int alertMode = 0;
+    int alarmCountdown = 1;
+    float nearX = kNearPointCleared;    // near point (Guard)
+    float nearY = kNearPointCleared;    // near point y (SetPositions)
+    float decay = 1.0f;             // alertness decay factor
+    Vector3 previousPosition{};
+    Vector3 position{};
+    int standCooldown = 0;          // FindStandPoint fails while above 0 (one off per call)
+    int followTimer = 0;            // UpdateFollow acts once it has counted past 8
     std::list<AIMode*> modes;   // (elements are counted references)
     Ref<AIMode> current;
     std::vector<mapspec::Behaviour> alarmRecords;

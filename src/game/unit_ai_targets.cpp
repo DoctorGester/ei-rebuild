@@ -144,9 +144,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
     } else {
         order.MakeCast(part, target);
     }
-    bool allowed = brain->owner->CanReachAndPlanFrom(&order, &point);
-    order.target.Reset();
-    return allowed;
+    return brain->owner->CanReachAndPlanFrom(&order, &point);
 }
 
 const AIAttackOption* AIAttention::FindOption(int part) const {
@@ -349,7 +347,6 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, UnitList* candi
                     order.MakeCast(choice->part, object);
                 }
                 allowed = brain->owner->CanReachAndPlanFrom(&order, &self->localPosition_);
-                order.target.Reset();
             }
             if (allowed && CanReach(brain, choice, reachArg)) return;
         }

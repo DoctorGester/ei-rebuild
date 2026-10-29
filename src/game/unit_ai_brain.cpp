@@ -27,9 +27,6 @@
 #include <string>
 
 namespace {
-constexpr float kNearPointCleared = 100000.0f;
-
-constexpr float kInitialCallRadius = 10.0f;
 // A new fear mode's distance (copied bit for bit).
 std::uint32_t FearDistanceBits() { return 0x41200000u; }
 
@@ -203,10 +200,7 @@ void FearMode::Init(std::uint8_t newFlag) {
     flag = newFlag;
 }
 
-FearMode::FearMode(std::uint8_t newFlag) {
-    ClearFields();   // zeroed (the original leaves what memory held)
-    Init(newFlag);
-}
+FearMode::FearMode(std::uint8_t newFlag) { Init(newFlag); }
 
 void AIBrain::AddFearMode(std::uint8_t flag) { AddMode(new FearMode(flag)); }
 

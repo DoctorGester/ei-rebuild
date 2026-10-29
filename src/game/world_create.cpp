@@ -10,6 +10,7 @@
 #include "base_manager.h"
 #include "figure_manager.h"
 #include "item.h"
+#include "net_link.h"   // netlink::NetLink: the world handle's pending link
 #include "player_manager.h"
 #include "resource_manager.h"
 #include "spell.h"

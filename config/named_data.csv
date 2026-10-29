@@ -341,8 +341,6 @@ address,size,name,file
 007C53C4,4,kAiLog,src/game/unit_ai.h
 007C53F0,4,g_freeEvents,src/game/ai_grids.cpp
 007C53F8,204,g_logicSettings,src/game/logic_settings.h
-007C54C8,28,g_candidates,src/game/unit_ai_modes.cpp
-007C54E4,1,g_candidatesGuard,src/game/unit_ai_modes.cpp
 007C54E8,4,kModeLog,src/game/unit_ai.cpp
 007C5520,16,g_loadingScreen,src/game/bink_video.cpp
 007C554C,1,g_loadingMovieOff,src/game/bink_video.cpp

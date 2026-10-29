@@ -138,7 +138,7 @@ Rewritten (grep the address; the per-function table is gone). Facts a worker nee
   `experienceFloor`, shared object, new id, CollectParty / SendParty / Redeploy, the old brain's +0x12C units and the old hero into
   the new one's; partyDeployed_ 1, lastPosition_.z -1313 (hero_death)).
 - OnUseOrder 00670310 (0x36: units, flag, kind, value, object; the nearest unit asked by CheckOrder / CheckOrderAt from its path
-  end; Player mode CommandUse), UseOrderDistanceSquared, AIPath::Construct / TargetPoint, AIOrder::MakeUse / AimPoint
+  end; Player mode CommandUse), UseOrderDistanceSquared, AIPath's constructor / TargetPoint, AIOrder::MakeUse / AimPoint
   (ui_battle_commands' dead-wolf clicks). Server handlers 0x02 refresh party 0066FAA0, 0x03 take exit, 0x05 joined, 0x06 leave to
   zone, 0x07 briefing done, 0x08 new party, 0x09 resume, 0x30 walk, 0x3A go to, 0x31 attack, 0x50 party update.
 - CPlayerManager (`player_manager.cpp`, vtable 0073F328): CreatePlayers (2), NewPlayer (14), ReleasePlayer, ChangeId (client message

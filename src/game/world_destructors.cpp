@@ -9,6 +9,7 @@
 #include "sector_map.h"
 #include "spell.h"
 #include "terrain.h"
+#include "texture.h"
 #include "world.h"
 #include "world_data.h"
 
