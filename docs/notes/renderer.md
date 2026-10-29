@@ -1620,9 +1620,9 @@ of the 0.5-1.6 ms hand-over).
     0.2-0.5 ms in forests; done, docs/notes/models.md: zone7 -0.27 ms, zone11 -0.12 ms, the same answers), R37c (caster boxes and outside casters kept: 0.2-0.4; done:
     in-frame old / new, zone1, town night, crowd: outside casters 0.07-0.12 / 0.010-0.016 ms not counting the old
     stream's upload, boxes 0.005-0.04 / 0.002-0.013), R37e (shadow casters' calls: 0.3; done, the source files'
-    render_shadows.cpp: crowd sun + point submission 0.54-0.65 -> 0.21-0.23 ms),
+    render_shadows.cpp: crowd sun + point submission 0.54-0.65 -> 0.21-0.23 ms; R37e1: the sun map's GPU time after it a wait, not overdraw),
     R37d (the fit: 0.1-0.25; done: 0.07-0.13 / 0.04-0.086 ms, most of zone1's runs are crossed by the view's sides
-    and still walked), R37h (the canvases' GPU), R37i (the overlay split per pass, for visibility).
+    and still walked), R37h (the canvases' GPU), R37i (the overlay split per pass, for visibility; done, section 15).
 
 ### Loose .bmp textures (A-I23a)
 
@@ -1779,7 +1779,10 @@ User 2026-10-22: a small performance overlay in the standalone, switched on from
   takes the rest of the frame), the time between two stamps the first one's pass, so the passes add up to the
   total exactly. A disjoint query around them; five sets in flight, read with `DONOTFLUSH` when a later frame begins
   (never waiting; a set not ready waits for a later frame, a disjoint one is dropped). A stamp is written when the
-  GPU reaches it, so work still in flight at a change counts in the next pass (what R37e1 measured: section 13).
+  GPU reaches it, so a pass's time is the GPU's time between its stamps, idle included: while the main thread is
+  the frame's limit the GPU waits for commands at some place of the frame and that pass shows the wait (R37e1: the
+  crowd's 0.5 ms in SUN, of which the draws are 0.05; the source files' render_shadows.cpp). Other games on the
+  machine sharing the GPU inflate every pass.
   The text is a built-in 5 x 7 font of capitals, digits and `.:/-+%()` drawn into an R8 image (digits brighter
   than labels), uploaded when the text changed, and drawn as one quad by whole-pixel scale (`Scale`: one per 540
   rows of the game image, so 4 at 2160) over a 60% black box, in the present's pass after the frame and the
@@ -1968,8 +1971,29 @@ each, per frame; sun map / point map): town crowd CPU 0.32-0.37 / 0.23-0.28 -> 0
 draws the same (572 / 421); town at night 0.21-0.27 / 0.07-0.10 -> 0.09-0.10 / 0.03; zone1 sun 0.10-0.14 ->
 0.04-0.05 (191-233 draws, 12-14 bindings). The GPU frame stayed the same (crowd 2.63-2.75 -> 2.63-2.66 ms), as
 did the two maps' sum (0.57-0.68 -> 0.55-0.59), but the probe's stamps now give the crowd's sun map 0.54-0.58
-and its point map 0.008 (before 0.34-0.40 / 0.22-0.28): open, the sorted order's overdraw in the sun map or the
-stamps' attribution (the town without the crowd: sun 0.09-0.15 -> 0.08-0.09).
+and its point map 0.008 (before 0.34-0.40 / 0.22-0.28).
+
+Not overdraw (R37e1): the sun map's draws cost about 0.05 ms of GPU time in the crowd; the rest of its span is a
+wait at one point of the command stream. Measured with the overlay's per-pass stamps on in a harness build made
+release-like (as R37's probe), r37f_town's town at night and crowd, one game at a time, quiet runs only (other
+games on the machine share the GPU and inflate every span up to 5x: runs whose town-at-night GPU frame was above
+2.05 ms were left out), sun map span in the crowd / town at night (ms):
+- the sorted order (main) 0.50-0.54 / 0.08; unsorted (the game's order) 0.47; sorted by texture and front to back
+  within one 0.51; front to back only 0.40-0.43. The GPU frame stays 2.5-2.7, and no order is clearly better.
+- the kept meshes' draws (all but a few of the casters) drawn a second time in the same pass: the second time
+  0.039-0.041 / 0.032-0.039, the first 0.44; the first of them alone 0.001; the frame's stream meshes' draws 0.011.
+- stamps every 24 draws: one group holds the whole cost (crowd 0.57 at draws 288-311, town at night 0.03 at
+  192-215), every other group 0.000-0.009; the two groups hold different meshes, and a Flush right after the
+  casters' draws changes nothing. The kept meshes' pool takes 0.2 writes (8 KB) a frame there, so no upload waits.
+- the point faces: the clears 0.000, the 415 caster draws 0.008-0.010: the point map's 0.22-0.28 before R37e were
+  its 836 constant buffer updates.
+So R37e's order stays (the CPU gain kept, no change made). The wait is the GPU idle at one place of the frame's
+commands, not the draws there: the main thread is the frame's limit (section 13 item 12), so the GPU's timeline
+follows what the driver hands it, and R37e's shorter command stream moved where the wait lands (from the point map
+into the sun map). Its exact cause (the driver's submission batches, by the place it lands at) is open; it costs
+nothing while the main thread is the limit. Kit: build/R37e1 (tree: the measurement tree, with the diagnostics
+added by hand after m_patch.py; timing: the logs; kit: m_patch.py (the overlay's stamps on and logged at
+renderstats, the caster orders by EI_R37E1_ORDER), timing.sh, summ.py, the scenario).
 
 ### render_terrain.cpp: the terrain
 
