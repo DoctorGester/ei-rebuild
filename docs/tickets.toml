@@ -884,6 +884,12 @@ group = "renderer"
 depends = ["R30f"]
 note = "Found by R30f: no golden scenario picks a unit or object whose mesh crosses the screen edge, so the goldens did not reach BoundsOfCrossing's difference from the original's clipped bounds (device_bounds.cpp; equal across one edge, larger past a corner). A scenario with the cursor over a unit cut by the left / bottom edge and one past a corner (golden from the original), to fix which picks the image gives there."
 
+[[ticket]]
+id = "R31"
+title = "Drop 3DfpFPU: plain C++ projection, the DLL no longer loaded"
+group = "renderer"
+note = "After R30f the GPU draws and clips everything; 3DfpFPU.dll (CTransformPipeline::transform_, model.h ITransformPipeline) is left projecting vertices: ProjectClipped (mesh bounds for the hand-over and the flag-1 picking rectangle, device_bounds.cpp), ProjectTerrain / ProjectTerrainClipped (terrain before hand-over), ProjectFlat (shadows), Project / TransformPoints (particles, weather, lightning, lines), FitBounds (figure load), SetProjection. Replace each with plain C++ on the pipeline's matrices (ClipTest is ours already), drop what only fed the old CPU draw, stop loading the DLL (render_helper TransformLibraryName, renderer_init / renderer_lifetime) and delete ITransformPipeline. Gameplay reads projected positions for picking and the selection box: goldens (and R30f1's edge scenario) decide; any golden difference is reported, not re-recorded. Notes: renderer.md sections 9 / 10 / 13. User asked 2026-10-29 whether the clipping is needed at all."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
