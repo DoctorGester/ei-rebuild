@@ -49,98 +49,31 @@ CResourceBase::~CResourceBase() {
 
 
 
-CResourceStream::CResourceStream() {
-    archive_ = nullptr;
-    file_ = nullptr;
-    offset_ = 0;
-    size_ = 0;
-}
-
-CResourceStream::~CResourceStream() { Close(); }
-
 void CResourceStream::Close() {
-    if (offset_ != 0) {
-        offset_ = 0;
-        size_ = 0;
-        if (file_ != nullptr) {
-            gameapi::mmioClose(static_cast<HMMIO>(file_), 0);
-            file_ = nullptr;
-        }
-    }
-    entries_ = nullptr;
-    names_ = nullptr;
-    header_ = ResHeader{};
-    if (archive_ != nullptr) {
-        gameapi::mmioClose(static_cast<HMMIO>(archive_), 0);
-        archive_ = nullptr;
-    }
-    if (file_ != nullptr) {
-        gameapi::mmioClose(static_cast<HMMIO>(file_), 0);
-        file_ = nullptr;
-    }
-    offset_ = 0;
-    size_ = 0;
+    if (file != nullptr) gameapi::mmioClose(file, 0);
+    file = nullptr;
 }
 
 bool CResourceStream::OpenFile(const std::string& name, std::uint32_t* size) {
-    // Close the file opened before (the archive stays open).
-    if (offset_ != 0) {
-        offset_ = 0;
-        size_ = 0;
-        if (file_ != nullptr) {
-            gameapi::mmioClose(static_cast<HMMIO>(file_), 0);
-            file_ = nullptr;
-        }
-    }
-    // A readable loose file comes first.
-    if (lib::FileExists(name)) {
-        WIN32_FIND_DATAA found{};   // the size (the original's _findfirst never closed its search)
-        const HANDLE search = gameapi::FindFirstFileA(name.c_str(), &found);
-        if (search != INVALID_HANDLE_VALUE) FindClose(search);
-        file_ = gameapi::mmioOpenA(const_cast<char*>(name.c_str()), nullptr, MMIO_DENYWRITE);
-        if (file_ != nullptr) {
-            if (size != nullptr) *size = found.nFileSizeLow;
-            offset_ = 1;
-            return true;
-        }
-    }
-    if (entries_ == nullptr || names_ == nullptr) return false;
-    int index = FindEntry(name);
-    if (index == -1) return false;
-    offset_ = static_cast<std::int32_t>(entries_[index].offset);
-    if (gameapi::mmioSeek(static_cast<HMMIO>(archive_), offset_, SEEK_SET) == -1) {
-        offset_ = 0;
-        return false;
-    }
-    if (size != nullptr) *size = entries_[index].size;
+    Close();
+    if (!lib::FileExists(name)) return false;
+    WIN32_FIND_DATAA found{};   // the size (the original's _findfirst never closed its search)
+    const HANDLE search = gameapi::FindFirstFileA(name.c_str(), &found);
+    if (search != INVALID_HANDLE_VALUE) FindClose(search);
+    file = gameapi::mmioOpenA(const_cast<char*>(name.c_str()), nullptr, MMIO_DENYWRITE);
+    if (file == nullptr) return false;
+    if (size != nullptr) *size = found.nFileSizeLow;
     return true;
 }
 
 long CResourceStream::Read(char* buffer, long size) {
-    if (offset_ == 0) return -1;
-    if (file_ != nullptr) return gameapi::mmioRead(static_cast<HMMIO>(file_), buffer, size);
-    return gameapi::mmioRead(static_cast<HMMIO>(archive_), buffer, size);
+    if (file == nullptr) return -1;
+    return gameapi::mmioRead(file, buffer, size);
 }
 
 long CResourceStream::Seek(long offset, int origin) {
-    if (offset_ == 0) return -1;
-    if (file_ != nullptr) {
-        // A loose file: only "from the end" is passed on; anything else seeks from the start.
-        return gameapi::mmioSeek(static_cast<HMMIO>(file_), offset, origin == 2 ? SEEK_END : SEEK_SET);
-    }
-    int mode;
-    if (origin == 1) {
-        mode = SEEK_CUR;
-    } else if (origin == 2) {
-        mode = SEEK_SET;
-        offset = offset + size_ + offset_;
-    } else {
-        mode = SEEK_SET;
-        offset = offset + offset_;
-    }
-    long result = gameapi::mmioSeek(static_cast<HMMIO>(archive_), offset, mode);
-    if (result == -1) return -1;
-    return result - offset_;
+    if (file == nullptr) return -1;
+    return gameapi::mmioSeek(file, offset, origin == 2 ? SEEK_END : SEEK_SET);
 }
 
 // --- Archive listing -----------------------------------------------------------------------------

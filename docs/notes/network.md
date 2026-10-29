@@ -181,7 +181,10 @@ the static initialiser 0042FAE0); bit masks at 0078DB24 are read from the exe. B
 vtable, begin, cur, end, high, base, flags): the growing buffer 0073D624 (constructor 004DA7F0, grows to
 (base - begin + cur + n) * 2 + 0x40) and the fixed view 0073CA64 over memory owned elsewhere (slots 0 / 1 / 3
 / 4 004DA580-004DA5B0, 2 the empty 0047D900, 5 deleting destructor 0047D940 (body 0047D960), 6 Seek 0047D930;
-base 0073CA48; views live on the stack, 0047D960 only runs while unwinding). A `BufferCursor` (0x18: p,
+base 0073CA48; views live on the stack, 0047D960 only runs while unwinding). Ours keep the base's members (the coder
+recorder reads game.exe's buffers through them); the growing buffer's block is its `std::vector` `block` and the
+buffered file stream's its `window` (C58a), which [begin, end) view (`GameBuffer::ResizeBlock` resizes one and keeps
+the pointers' offsets; new bytes are zero, the original's were whatever the heap held). A `BufferCursor` (0x18: p,
 reserved byte pointer, bit accumulator, bit count, sink buffer, start) is bound by 004DA450 / 004DA490 and
 commits its position to the buffer's `cur` at the end; bits go LSB first and a byte is reserved when a field
 starts in a new byte, so literal bytes and bit fields interleave.

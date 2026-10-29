@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdint>
+#include <vector>
 
 // The abstract stream. Flag bits as GameBuffer's: 0 the window holds unwritten bytes, 3 an error.
 class BufferedStream : public GameBuffer {
@@ -52,6 +53,8 @@ public:
     void Flush();
     // Flush, then the block freed (begin = null; the other pointers left).
     void ReleaseBlock();
+    // A new block of `capacity` bytes for the window (ResizeBlock).
+    void Reallocate(std::int32_t capacity) { ResizeBlock(window, static_cast<std::uint32_t>(capacity)); }
 
     // Moves the window to start at the cursor's file position (Flush, then a reload) unless it already does.
     void Rebase();
@@ -61,6 +64,8 @@ public:
     void MoveWindow(std::int32_t position);
     std::int32_t Position() const { return static_cast<std::int32_t>(cur - begin) + base; }
     std::int32_t Capacity() const { return static_cast<std::int32_t>(end - begin); }
+
+    std::vector<std::uint8_t> window;   // the bytes [begin, end); empty with begin null
 };
 
 // The file stream.

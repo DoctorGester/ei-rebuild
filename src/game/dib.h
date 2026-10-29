@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 namespace lib {
 class File;
@@ -14,24 +15,24 @@ class File;
 
 class CDib {
 public:
-    enum Owner : int { kNotOwned = 0, kNew = 1, kGlobal = 2 };
-
-    CDib();
-    // Create's bitmap (the fields are left to Create).
+    CDib() = default;
+    // Create's bitmap.
     CDib(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue);
+    CDib(const CDib&) = delete;
+    CDib& operator=(const CDib&) = delete;
+    ~CDib() { Empty(); }
 
-    virtual ~CDib();
-
-    // A new header for `width` x `height` pixels of `bitCount` bits, without a colour table and without bits
+    // The bitmap emptied, then a new header for `width` x `height` pixels of `bitCount` bits, without a colour table and without bits
     // (AllocateBits). 16 and 32 bits: BI_BITFIELDS with the three channel masks after the header.
     void Create(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue);
+    // The header, the bits and the palette freed; every field cleared.
     void Empty();
     // The header's width and height, 0 x 0 without a header. Returns `out`.
     SIZE* Size(SIZE* out) const;
     int MakePalette();
     // Memory for the pixels, width * height * planes * (bits / 8) bytes: rows without
     // padding, while `imageSize` (what Write writes) counts rows padded to four bytes. Returns
-    // `bits` (unchanged without a header).
+    // the bits (unchanged without a header).
     std::uint8_t* AllocateBits();
     // The bitmap emptied, then the file header, the info header with what follows it up to the bits (masks or
     // colours), the bits; the colour count and the palette. A short or non-"BM" file, or a lib::FileError
@@ -41,20 +42,13 @@ public:
     // bytes of bits. A lib::FileError from the writes: a message box and 0. Returns 1.
     int Write(lib::File* file);
 
-    RGBQUAD* colours;                // after the header
-    HBITMAP bitmap;
-    std::uint8_t* bits;
-    BITMAPINFOHEADER* header;
-    HGLOBAL headerMemory;            // the header's block when headerOwner is kGlobal
-    int headerOwner;
-    int bitsOwner;
-    std::uint32_t imageSize;         // bytes of bits
-    int colourCount;
-    int maskBytes;                   // bytes of channel masks after the header (0 or 12)
-    HANDLE file;                     // a mapped file, its mapping and its view
-    HANDLE mapping;
-    void* view;
-    HPALETTE palette;
+    RGBQUAD* colours = nullptr;              // after the header
+    std::vector<std::uint8_t> bits;
+    BITMAPINFOHEADER* header = nullptr;      // with what follows it (::operator new), or null
+    std::uint32_t imageSize = 0;             // bytes of bits
+    int colourCount = 0;
+    int maskBytes = 0;                       // bytes of channel masks after the header (0 or 12)
+    HPALETTE palette = nullptr;
 };
 
 // The bytes of a header's pixels: its biSizeImage, or (when that is 0) its rows padded to four bytes.

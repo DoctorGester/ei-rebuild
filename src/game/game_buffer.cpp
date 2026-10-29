@@ -1,4 +1,4 @@
-// The growing byte buffer (GrowingBuffer, net_coder.h): constructors, destructor, assignment, its virtuals and the
+// The growing byte buffer (GrowingBuffer, net_coder.h): constructors, assignment, growth, its virtuals and the
 // cursor binding. See net_coder.h and docs/notes/network.md, "Compression".
 #include "net_coder.h"
 
@@ -27,58 +27,49 @@ std::uint32_t GrownCapacity(const GameBuffer* self, std::uint32_t size) {
     return needed * 2 + kGrowthSlack;
 }
 
-void CopyContents(GameBuffer* self, const GameBuffer* from) {
-    std::uint32_t capacity = Distance(from->begin, from->end);
-    auto* block = new std::uint8_t[capacity];
-    self->begin = block;
-    self->end = block + capacity;
-    std::memcpy(block, from->begin, capacity);
-    self->high = self->begin + Distance(from->begin, from->high);
-    self->cur = self->begin + Distance(from->begin, from->cur);
-    self->flags = from->flags;
-}
-
 } // namespace
 
-// --- Construction and destruction ----------------------------------------------------------------
+// --- Construction and copies --------------------------------------------------------------------
 
-GrowingBuffer::GrowingBuffer() {
+GrowingBuffer::GrowingBuffer() : block(kInitialBytes) {
     base = 0;
     flags = kGrowingFlags;
-    auto* block = new std::uint8_t[kInitialBytes];
-    end = block + kInitialBytes;
-    begin = block;
-    high = block;
-    cur = block;
+    begin = block.data();
+    end = begin + kInitialBytes;
+    high = begin;
+    cur = begin;
 }
 
 GrowingBuffer::GrowingBuffer(const GrowingBuffer& from) {
     base = 0;
-    CopyContents(this, &from);
+    *this = from;
 }
 
 GrowingBuffer& GrowingBuffer::operator=(const GrowingBuffer& from) {
-    delete[] begin;
-    CopyContents(this, &from);
+    if (this == &from) return *this;
+    block.assign(from.begin, from.end);
+    begin = block.data();
+    end = begin + block.size();
+    high = begin + Distance(from.begin, from.high);
+    cur = begin + Distance(from.begin, from.cur);
+    flags = from.flags;
     return *this;
 }
 
-GrowingBuffer::~GrowingBuffer() { delete[] begin; }
-
 // --- Growing -------------------------------------------------------------------------------------
 
-void GameBuffer::Reallocate(std::uint32_t capacity) {
-    auto* block = new std::uint8_t[capacity];
-    std::memcpy(block, begin, Distance(begin, end));
-    delete[] begin;
-    std::uint8_t* old = begin;
-    begin = block;
-    cur += block - old;
-    high += block - old;
-    end = block + capacity;
+void GameBuffer::ResizeBlock(std::vector<std::uint8_t>& block, std::uint32_t capacity) {
+    const std::uint8_t* old = begin;
+    block.resize(capacity);
+    begin = block.data();
+    cur = begin + (cur - old);
+    high = begin + (high - old);
+    end = begin + capacity;
 }
 
-void GameBuffer::Grow(std::uint32_t size) { Reallocate(size * 2 + kGrowthSlack); }
+void GrowingBuffer::Reallocate(std::uint32_t capacity) { ResizeBlock(block, capacity); }
+
+void GrowingBuffer::Grow(std::uint32_t size) { Reallocate(size * 2 + kGrowthSlack); }
 
 void GrowingBuffer::ReserveRead(std::int32_t size) { Reallocate(GrownCapacity(this, static_cast<std::uint32_t>(size))); }
 void GrowingBuffer::ReserveWrite(std::int32_t size) { Reallocate(GrownCapacity(this, static_cast<std::uint32_t>(size))); }

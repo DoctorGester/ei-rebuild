@@ -272,7 +272,7 @@ struct SocketDriver {
     // Sends the buffer's contents to `address`; true when all of it went.
     bool SendTo(const NetAddress* address, GameBuffer* buffer);
     // The next datagram (up to 0x800 bytes) into `buffer`, its sender into `from`.
-    bool Receive(NetAddress* from, GameBuffer* buffer);
+    bool Receive(NetAddress* from, GrowingBuffer* buffer);
 };
 
 // The value of the timed lists (the client's timers, the server's awards and finished trades): the

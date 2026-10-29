@@ -76,11 +76,11 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     }
     height_ = static_cast<std::uint32_t>(height);
     width_ = static_cast<std::uint32_t>(width);
-    const std::uint8_t* alphaBits = withAlpha ? alpha.bits : nullptr;
+    const std::uint8_t* alphaBits = withAlpha ? alpha.bits.data() : nullptr;
 
     // Drawn into the texture on the GPU.
     TakeBlankHolder(device, width, height, true);
-    const std::vector<std::uint32_t> pixels = ReadPixels(width, height, colour.bits, alphaBits);
+    const std::vector<std::uint32_t> pixels = ReadPixels(width, height, colour.bits.data(), alphaBits);
     const render::TextureImage image{nullptr, pixels.data(), static_cast<std::uint32_t>(pixels.size() * 4), width, height,
                                      render::ImageLayout::Argb};
     render::DrawIntoTexture(surface_, &image, 0, 0, width, height);

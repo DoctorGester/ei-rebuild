@@ -20,20 +20,6 @@ constexpr std::uint32_t kWindowBytes = 0x400;
 constexpr int kSeekSet = 0;
 constexpr int kSeekEnd = 2;
 
-// The block replaced by one of `capacity` bytes holding the old capacity's bytes; the pointers move with it.
-void Reallocate(BufferedStream* self, std::int32_t capacity) {
-    auto* block = new std::uint8_t[static_cast<std::uint32_t>(capacity)];
-    if (self->begin) {
-        std::memcpy(block, self->begin, static_cast<std::uint32_t>(self->Capacity()));
-        delete[] self->begin;
-    }
-    std::uint8_t* old = self->begin;
-    self->begin = block;
-    self->cur = block + (self->cur - old);
-    self->high = block + (self->high - old);
-    self->end = block + capacity;
-}
-
 } // namespace
 
 // --- The window ----------------------------------------------------------------------------------
@@ -49,7 +35,7 @@ void BufferedStream::Flush() {
 
 void BufferedStream::ReleaseBlock() {
     Flush();
-    if (begin) delete[] begin;
+    window = std::vector<std::uint8_t>();
     begin = nullptr;
 }
 
@@ -92,7 +78,7 @@ void BufferedStream::ReserveReadWindow(std::int32_t size) {
         return;
     }
     std::int32_t grown = size + static_cast<std::int32_t>(kWindowBytes);
-    if (!(grown < capacity)) ::Reallocate(this, grown);
+    if (!(grown < capacity)) Reallocate(grown);
     // The window is reloaded where it starts (with min(capacity, high - cur) bytes).
     std::int32_t position = base;
     Flush();
@@ -101,7 +87,7 @@ void BufferedStream::ReserveReadWindow(std::int32_t size) {
 
 void BufferedStream::ReserveWriteWindow(std::int32_t size) {
     std::int32_t grown = size + static_cast<std::int32_t>(kWindowBytes);
-    if (!(grown < Capacity())) ::Reallocate(this, grown);
+    if (!(grown < Capacity())) Reallocate(grown);
 }
 
 int BufferedStream::ReadMoreWindow(void* to, std::uint32_t size) {
@@ -192,11 +178,11 @@ void BufferedFile::Open(const std::string& path, const char* mode, std::uint32_t
     std::fseek(file, 0, kSeekEnd);
     long size = std::ftell(file);
     flags &= ~kFlagUnwritten;
-    auto* block = new std::uint8_t[kWindowBytes];
-    end = block + kWindowBytes;
-    begin = block;
-    cur = block;
-    high = block + size;
+    window.resize(kWindowBytes);
+    begin = window.data();
+    end = begin + kWindowBytes;
+    cur = begin;
+    high = begin + size;
     base = 0;
     MoveWindow(0);
 }

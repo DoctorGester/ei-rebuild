@@ -184,7 +184,7 @@ bool SocketDriver::SendTo(const NetAddress* address, GameBuffer* buffer) {
 }
 
 // The buffer is first sought (a virtual call) to room for 0x800 bytes.
-bool SocketDriver::Receive(NetAddress* from, GameBuffer* buffer) {
+bool SocketDriver::Receive(NetAddress* from, GrowingBuffer* buffer) {
     buffer->Seek(0x800);
     int fromLength = 0x10;
     int n = gameapi::recvfrom(socket, buffer->begin, 0x800, 0, from, &fromLength);
