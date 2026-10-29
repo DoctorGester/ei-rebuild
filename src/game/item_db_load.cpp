@@ -165,14 +165,3 @@ void ChunkArchive::SerializeSpellModifiers(int id, std::vector<itemdb::SpellModi
 void ChunkArchive::SerializeSpellLists(int id, std::vector<itemdb::SpellListRecord>* records) {
     RecordChunks(this, id, records, &itemdb::SpellListRecord::Serialize);
 }
-
-// --- The database's destructor ---------------------------------------------------------------
-
-void itemdb::ItemDatabase::DestructBody() {
-    loot.Destruct();
-    questItems.Destruct();
-    quickItems.Destruct();
-    armors.Destruct();
-    weapons.Destruct();
-    materials.Destruct();
-}

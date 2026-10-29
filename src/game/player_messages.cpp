@@ -297,18 +297,15 @@ int CPlayerServer::OnMessage37() { return 0; }
 
 // --- The server's lifetime and virtuals ------------------------------------------------------
 
-// The stream is a member (constructed before the body; the original builds it after the handler table).
+// The stream and the coders are members (constructed before the body; the original builds them after the handler
+// table).
 CPlayerServer::CPlayerServer() {
-    compressor_.Construct();
-    decompressor_.Construct();
     ClearServerState();
 }
 
-// The stream is a member, destroyed after the body (the original frees it before the handler table).
+// The stream and the coders are members, destroyed after the body (the original frees them before the handler table).
 CPlayerServer::~CPlayerServer() {
     ClearServerState();
-    decompressor_.out.End();
-    compressor_.out.End();
 }
 
 const char* CPlayerServer::ClassName() { return "CPlayerServer"; }

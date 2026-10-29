@@ -1300,6 +1300,6 @@ void SaveListedObjectsEnd(CStream* stream);
 // The save screens: 1000000 plus the sizes (low dwords) of the files in saves\current.
 int CurrentSaveSize();
 
-// Every resource database (units with their sound file counts, skills, spell tables, items) destroyed
-// and constructed again in place, then loaded from `name`.
+// Every resource database (units with their sound file counts, skills, spell tables, items) emptied, then
+// loaded from `name`.
 void SwitchResourceDatabases(const std::string& name);

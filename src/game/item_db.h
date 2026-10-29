@@ -314,12 +314,6 @@ struct NamedRecordTable {
     // through an archive built on the stack (Open for loading, the vector's chunk serialiser, Close), then
     // every record filed in the index under its name.
     void Load(CStream* source, int field);
-    void Construct();
-    // The name index (its nodes, then its buckets), then the records.
-    void Destruct() {
-        std::destroy_at(&names);
-        std::destroy_at(&records);
-    }
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
     // The record at `index`, or nullptr when out of range.
@@ -352,12 +346,6 @@ struct CodeIndexedTable {
     // The record filed under `code`: the index's operator[] with a copy of the key, so an unknown code is
     // filed with null.
     Record* FindByCode(std::string_view code);
-    void Construct();
-    // The index, then the records.
-    void Destruct() {
-        std::destroy_at(&byCode);
-        std::destroy_at(&records);
-    }
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
     // The record at `index`, or nullptr when out of range.
@@ -381,12 +369,6 @@ struct SpellDatabase {
     // (chunk 2), each read through an archive of its own and filed under its code, then the three lists through
     // a third. 1; FatalError's result when the archive or the file cannot be opened.
     int Load(const std::string& folder, const std::string& archive);
-    // Run by the static initialiser, the resource switch and the reload.
-    SpellDatabase* Construct();
-    // Destruction and construction in place (the resource switch).
-    void Reset();
-    // Run at exit: the destruction half of Reset.
-    void Destruct();
 
     SpellTable spells;
     SpellModifierTable modifiers;
@@ -399,12 +381,6 @@ struct ItemDatabase {
     // name, then the quick items, quest items and loot (chunks 4-6, their loads). 1; FatalError's result when
     // the archive or the file cannot be opened.
     int Load(const std::string& folder, const std::string& archive);
-    // The tables from the last to the first.
-    void DestructBody();
-    // Run by the static initialiser, the resource switch and the reload.
-    ItemDatabase* Construct();
-    // Destruction and construction in place (the resource switch), through the library's containers.
-    void Reset();
 
     MaterialTable materials;
     WeaponTable weapons;
@@ -417,7 +393,7 @@ struct ItemDatabase {
 } // namespace itemdb
 
 // The databases: built empty by their static initialisers, destroyed by the exit functions
-// those register (docs/notes/standalone.md, "The static initialisers' objects").
+// those register (database_globals.cpp); the resource switch empties them (SwitchResourceDatabases).
 extern lib::StaticObject<itemdb::SpellDatabase> g_spellDatabase;
 extern lib::StaticObject<itemdb::ItemDatabase> g_itemDatabase;
 namespace itemdb {

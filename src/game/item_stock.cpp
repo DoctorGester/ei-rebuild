@@ -31,11 +31,6 @@
 
 namespace {
 
-using stock::g_candidates;
-using stock::g_takenMaterials;
-using stock::g_takenPrototypes;
-
-
 // The template's party object (ItemStock::context): its item constructor, item manager and spell manager.
 CParty* PartyOf(const ItemStock* stock) { return stock->context; }
 CItemConstructor* ConstructorOf(const ItemStock* stock) { return PartyOf(stock)->ItemConstructor(); }
@@ -72,10 +67,9 @@ int MaterialUnits(const itemdb::ItemRecordHead* p) { return static_cast<int>(p->
 // Picks the material of a prototype from the candidates (pointers into the stock's entries). Each candidate in
 // turn is taken with a chance by its unitPrice q against the prototype's price p: 10% outside
 // [2p/7 - p/5, p/5], else 110 - |(q - p/7) / (p/7 - p/5)| x 100 percent (truncated). Null when none was taken.
-StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
+StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype, const std::vector<StockMaterial*>& c) {
     float seventh = static_cast<float>(prototype->price * stock::kSeventhFactor);
     float fifth = static_cast<float>(prototype->price * stock::kFifthFactor);
-    std::vector<StockMaterial*>& c = g_candidates;
     if (c.begin() == c.end()) return nullptr;
     float low = static_cast<float>((seventh + seventh) - fifth);
     for (auto& q : c) {
@@ -112,7 +106,7 @@ void AddSpell(ItemStock* stock, CItemConstructor* ctor, std::list<HeldRef<CSpell
     if (spellPower <= power) ctor->SetSpellObject(spell);
 }
 
-// The common body of the three instruction generators: the source records are copied to a scratch vector, then
+// The common body of the three instruction generators: over a copy of the source records,
 // each (except one named `skip`) becomes an item of kind ItemKind::Loot with the class-0x15 prototype named at
 // `prototypeName`, no material, index_ the record's index in `table` and count_ a random count.
 template <typename Record>
@@ -121,11 +115,9 @@ void GenerateInstructions(ItemStock* stock, const std::vector<itemdb::ItemRecord
                           std::list<CItem*>* out) {
     CItemConstructor* ctor = ConstructorOf(stock);
     CItemManager* manager = PartyOf(stock)->ItemFactory();
-    std::vector<itemdb::ItemRecordHead*>& taken = g_takenPrototypes;
-    taken.clear();   // erase(begin, end)
-    taken = source;
+    const std::vector<itemdb::ItemRecordHead*> taken = source;
     itemdb::LootItemRecord* prototype = g_itemDatabase->loot.Named(prototypeName);
-    for (auto& p : taken) {
+    for (itemdb::ItemRecordHead* p : taken) {
         if (skip && str::Compare(PrototypeName(p), skip) == 0) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(ItemKind::Loot, -1);
@@ -138,7 +130,6 @@ void GenerateInstructions(ItemStock* stock, const std::vector<itemdb::ItemRecord
         AddReference(item);
         Output(out, item);
     }
-    taken.clear();
 }
 
 itemdb::SpellRecord* FindSpellPrototype(const char* name) {
@@ -219,13 +210,11 @@ int ModifierIndex(const itemdb::SpellModifierRecord* record) {
 // then an item of kind ItemKind::Loot with the class-0x15 prototype named at `prototypeName` per record, its index,
 // count_ a random count. The scratch is emptied at the end.
 template <typename Record>
-void GenerateMagicInstructions(ItemStock* stock, const std::vector<Record*>& source, std::vector<Record*>& taken,
-                               const char* prototypeName, int (*indexOf)(const Record*), int minCount, int maxCount,
+void GenerateMagicInstructions(ItemStock* stock, const std::vector<Record*>& source, const char* prototypeName, int (*indexOf)(const Record*), int minCount, int maxCount,
                                std::list<CItem*>* out) {
     CItemConstructor* ctor = ConstructorOf(stock);
     CItemManager* manager = PartyOf(stock)->ItemFactory();
-    taken.clear();
-    taken = source;
+    const std::vector<Record*> taken = source;
     itemdb::LootItemRecord* prototype = g_itemDatabase->loot.Named(prototypeName);
     for (Record* record : taken) {
         ctor->SetManager(manager);
@@ -239,7 +228,6 @@ void GenerateMagicInstructions(ItemStock* stock, const std::vector<Record*>& sou
         AddReference(item);
         Output(out, item);
     }
-    taken.clear();
 }
 
 constexpr int kScrollTries = 10;
@@ -263,17 +251,16 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
         FillSpellMaps(stock::ArmorSpellRecipes());
 
     int count = RandomCount(minCount, maxCount);
-    std::vector<itemdb::ItemRecordHead*>& taken = g_takenPrototypes;
-    taken.clear();   // erase(begin, end)
+    std::vector<itemdb::ItemRecordHead*> taken;
     if (prototypes->size() > static_cast<std::size_t>(count)) {
         Shuffle(prototypes->data(), prototypes->data() + prototypes->size());
-        taken.insert(taken.begin(), prototypes->begin(), prototypes->begin() + count);
-    } else if (prototypes != &taken) {
+        taken.assign(prototypes->begin(), prototypes->begin() + count);
+    } else {
         taken = *prototypes;
     }
 
-    std::vector<StockMaterial*>& candidates = g_candidates;
-    for (auto& p : taken) {
+    std::vector<StockMaterial*> candidates;
+    for (itemdb::ItemRecordHead* p : taken) {
         itemdb::ItemRecordHead* prototype = p;
         if (str::Compare(PrototypeName(prototype), game::WandText()) == 0) continue;
         ctor->SetManager(manager);
@@ -287,7 +274,7 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
                 candidates.push_back(e);
             }
         }
-        StockMaterial* chosen = DrawMaterial(prototype);
+        StockMaterial* chosen = DrawMaterial(prototype, candidates);
         if (!chosen) {
             if (text::CompareIgnoringCase(MaterialClass(prototype), game::NoneText()) != 0) {
                 if (candidates.end() == candidates.begin()) {
@@ -315,7 +302,6 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
             item->count_ = static_cast<std::uint32_t>(libcrt::RandBelow(30) + 20);
         Output(out, item);
     }
-    candidates.clear();
 }
 
 void ItemStock::SetLevels(const float* base, const float* scroll) {
@@ -331,11 +317,10 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>*
     CItemConstructor* ctor = ConstructorOf(this);
     CItemManager* manager = PartyOf(this)->ItemFactory();
     int count = RandomCount(minCount, maxCount);
-    std::vector<StockMaterial>& taken = g_takenMaterials;
-    taken.clear();   // erase(begin, end)
+    std::vector<StockMaterial> taken;
     if (materials.size() > static_cast<std::size_t>(count)) {
         Shuffle(materials.data(), materials.data() + materials.size());
-        taken.insert(taken.begin(), materials.begin(), materials.begin() + count);
+        taken.assign(materials.begin(), materials.begin() + count);
     } else {
         taken = materials;
     }
@@ -352,7 +337,6 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>*
         AddReference(item);
         Output(out, item);
     }
-    taken.clear();
 }
 
 void ItemStock::GenerateWeaponInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
@@ -538,11 +522,11 @@ void ItemStock::CopyMagic(const ItemStock* other) {
 }
 
 void ItemStock::GenerateSpellInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
-    GenerateMagicInstructions(this, spells, stock::g_takenSpells, game::PrototypeText(), SpellIndex, minCount, maxCount, out);
+    GenerateMagicInstructions(this, spells, game::PrototypeText(), SpellIndex, minCount, maxCount, out);
 }
 
 void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
-    GenerateMagicInstructions(this, modifiers, stock::g_takenModifiers, game::RuneText(), ModifierIndex, minCount, maxCount, out);
+    GenerateMagicInstructions(this, modifiers, game::RuneText(), ModifierIndex, minCount, maxCount, out);
 }
 
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced.
@@ -592,21 +576,3 @@ void ItemStock::AddMaterial(itemdb::MaterialRecordHead* record, int minCount, in
     entry->maxCount = maxCount;
     entry->left = maxCount;
 }
-
-// ---- The scratch vectors ---------------------------------------------------------------------------
-
-// Empty at the start; the exit functions that the static initialisers register free their storage
-// (docs/notes/standalone.md, "The static initialisers' objects").
-namespace stock {
-constinit std::vector<itemdb::ItemRecordHead*> g_takenPrototypes = /*007C8680*/ {};
-constinit std::vector<StockMaterial*> g_candidates = /*007C8650*/ {};
-constinit std::vector<StockMaterial> g_takenMaterials = /*007C8640*/ {};
-constinit std::vector<itemdb::SpellRecord*> g_takenSpells = /*007C8670*/ {};
-constinit std::vector<itemdb::SpellModifierRecord*> g_takenModifiers = /*007C8660*/ {};
-} // namespace stock
-
-void FreeTakenPrototypes() { lib::FreeStorage(stock::g_takenPrototypes); }
-void FreeTakenSpells() { lib::FreeStorage(stock::g_takenSpells); }
-void FreeTakenModifiers() { lib::FreeStorage(stock::g_takenModifiers); }
-void FreeCandidates() { lib::FreeStorage(stock::g_candidates); }
-void FreeTakenMaterials() { lib::FreeStorage(stock::g_takenMaterials); }

@@ -103,18 +103,18 @@ std::string NetAddress::Format(int resolve) const {
 // ---- The UDP driver ---------------------------------------------------------------------------------
 
 // The broadcast address is the host's first address with the host part (by its class: A, B or C) set to 0xFF.
-SocketDriver* SocketDriver::Construct() {
+SocketDriver::SocketDriver() {
     alignas(4) std::uint8_t wsa[0x190];
     gameapi::WSAStartup(0x101, wsa);
     socket = kNoSocket;
     char name[1000];
-    if (gameapi::gethostname(name, 1000) != 0) return this;
+    if (gameapi::gethostname(name, 1000) != 0) return;
     void* h = gameapi::gethostbyname(name);
-    if (!h) return this;
+    if (!h) return;
     NetAddress a{};
     a.family = 2;
     std::uint32_t ip = FirstAddress(h);
-    if (ip == 0) return this;
+    if (ip == 0) return;
     a.ip = ip;
     auto* bytes = reinterpret_cast<std::uint8_t*>(&a.ip);
     std::uint8_t first = static_cast<std::uint8_t>(ip);
@@ -122,12 +122,10 @@ SocketDriver* SocketDriver::Construct() {
     if (first >= 0x80 && first <= 0xBF) bytes[2] = bytes[3] = 0xFF;
     if (first >= 0xC0 && first <= 0xDF) bytes[3] = 0xFF;
     addresses.push_back(a);
-    return this;
 }
 
-void SocketDriver::Destruct() {
+SocketDriver::~SocketDriver() {
     if (socket != kNoSocket) gameapi::closesocket(socket);
-    socket = kNoSocket;
     gameapi::WSACleanup();
 }
 

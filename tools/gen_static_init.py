@@ -859,6 +859,22 @@ UNUSED_INITIALISERS = {
     0x004ED520: "the DirectDraw driver list 007AEE64 (never filled or read; its guard byte 007AEE60)",
     0x005DA360: "the loading movie's surface holder 007C551C (exit function 005DA380, guard byte 007C5518): the movie "
                 "players draw through the new renderer without a holder (R27f)",
+    # C50c: plain globals of ours in place of the static objects.
+    0x006D00B0: "the prints database 007C89C8 (exit function 006D00D0): database_globals.cpp's g_printsDatabase",
+    0x00698E50: "the trader stock's taken prototypes 007C8680 (exit function 00698E90): locals of item_stock.cpp's "
+                "generators",
+    0x00698EA0: "the trader stock's taken spells 007C8670 (exit function 00698EE0): a local of "
+                "GenerateMagicInstructions (item_stock.cpp)",
+    0x00698EF0: "the trader stock's taken modifiers 007C8660 (exit function 00698F30): a local of "
+                "GenerateMagicInstructions (item_stock.cpp)",
+    0x00698F40: "the trader stock's material candidates 007C8650 (exit function 00698F80): a local of "
+                "ItemStock::GenerateItems (item_stock.cpp)",
+    0x00698F90: "the trader stock's taken materials 007C8640 (exit function 00698FD0): a local of "
+                "ItemStock::GenerateMaterials (item_stock.cpp)",
+    0x00432CA0: "the network's send buffer 0079B900 (exit function 00432CC0, bit 0 of 0079B8FC): net_session.cpp's "
+                "g_sendBuffer",
+    0x00432CE0: "the network's receive buffer 0079B8E0 (exit function 00432D00, bit 1 of 0079B8FC): net_session.cpp's "
+                "g_receiveBuffer",
 }
 
 
@@ -1140,6 +1156,10 @@ RUNTIME_SITES = set()
 # Functions whose port registers none of the original's function-local statics' exit functions (C18): their
 # runtime atexit sites never run, like dead code's. begin -> (end, why).
 RETIRED_STATICS = {
+    # C50c
+    0x004346D0: (0x00434980, "Connection::CollectChanges (net_connection.cpp) lists the replicated objects in a local: "
+                             "the original's static vector 0079B8D0 (guard bit 0 of 0079B8DC, freed by 00434980) is "
+                             "never made"),
     # C50b
     0x0057C700: (0x0057CB50, "GameFlow::ProcessRequest (world_game.cpp) calls UseResources, which the original inlines "
                              "with its function-local string 007AFDEC (guard bit 0 of 007AFDF0, destroyed by 0057E6A0)"),

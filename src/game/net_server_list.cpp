@@ -33,7 +33,6 @@ void ClientSession::ReadServerList(GameBuffer* in) {
     GameInfoRecord* record = &read;
     GrowingBuffer buffer;
     CoderState coder;
-    coder.Construct();
     in->Seek(0);
     std::uint32_t size;
     ReadBytes(in, &size, 4);

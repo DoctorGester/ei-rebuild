@@ -34,11 +34,6 @@ struct StockMaterial {
 using StockRecipeMap = lib::HashMap<std::string, std::list<void*>, lib::TextHash>;
 
 namespace stock {
-extern std::vector<itemdb::ItemRecordHead*> g_takenPrototypes;
-extern std::vector<StockMaterial*> g_candidates;
-extern std::vector<StockMaterial> g_takenMaterials;
-extern std::vector<itemdb::SpellRecord*> g_takenSpells;
-extern std::vector<itemdb::SpellModifierRecord*> g_takenModifiers;
 // The spell database's recipe lists for weapons, armors and scrolls (FillSpellMaps' argument).
 inline const std::vector<itemdb::SpellListRecord>* WeaponSpellRecipes() { return &g_spellDatabase->lists[2]; }
 inline const std::vector<itemdb::SpellListRecord>* ArmorSpellRecipes() { return &g_spellDatabase->lists[1]; }
@@ -52,8 +47,11 @@ inline constexpr float kFifthFactor = 0.2f;
 } // namespace stock
 
 struct ItemStock {
+    // The owner `context` and class index 0; baseLevels and scrollLevels are not written.
+    explicit ItemStock(CParty* context) : context(context) {}
+
     CParty* context;                // the template's party object (its item constructor and item manager)
-    int classIndex;                 // bit of the records' class masks
+    int classIndex = 0;             // bit of the records' class masks
     std::vector<itemdb::ItemRecordHead*> armors;
     std::vector<itemdb::ItemRecordHead*> weapons;
     std::vector<itemdb::ItemRecordHead*> quickItems;
@@ -64,10 +62,6 @@ struct ItemStock {
     std::unordered_map<std::string, itemdb::SpellModifierRecord*> modifierMap;      // modifiers by kind key
     float baseLevels[8];            // set with scrollLevels (SetLevels)
     float scrollLevels[8];          // the spell level per school for the scrolls
-
-    // The owner and class index 0 (the members are the template's to build); baseLevels and scrollLevels are
-    // not written.
-    ItemStock* Construct(CParty* context);
 
     // `record` appended to the armors / weapons / quick items / spells / modifiers unless null or already
     // there.
@@ -146,5 +140,4 @@ struct ItemStock {
     // Writes what LoadLists reads: the armor, weapon and quick item counts and names (each text with its
     // zero), the material entries (name, the three ints), the spells' and modifiers' codes.
     void SaveLists(CStream* stream);
-    void Destruct();
 };

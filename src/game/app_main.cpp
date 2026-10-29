@@ -356,7 +356,7 @@ void LoadDatabases() {
     g_itemDatabase->Load(options->resourcesPath_, archive);
     g_leverTable.Load(options->resourcesPath_);
     g_ackDatabase->Load(options->resourcesPath_);
-    g_printsDatabase->Load(options->resourcesPath_);
+    g_printsDatabase.Load(options->resourcesPath_);
 }
 
 // ---- The main loop ---------------------------------------------------------------------------------

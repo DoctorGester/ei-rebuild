@@ -6,7 +6,7 @@
 
 #include "core_refcount.h"
 #include "item_stock.h"
-#include "party_storage.h"
+#include "party.h"
 
 struct PartyManager;
 
@@ -16,6 +16,7 @@ struct PartyManager;
 
 class ClassTemplate : public CRefCounted {
 public:
+    // Both parties made (their managers too) and each stock on its party; no class, nothing sold, restock due.
     // weightsTail is zeroed too (the game never sets it, and saves it).
     ClassTemplate();
     ~ClassTemplate() override;
@@ -25,20 +26,20 @@ public:
     // Both stocks take the 8 base and 8 scroll levels.
     void SetLevels(const float* base, const float* scroll);
 
-    CParty* ItemsParty() { return items.Get(); }
-    CParty* SpellsParty() { return spells.Get(); }
+    CParty* ItemsParty() { return &items; }
+    CParty* SpellsParty() { return &spells; }
 
-    int type;                       // class 1..5; bit (type - 1) of the records' class masks
-    std::uint8_t sellsItems;        // the constructor's trader sells items (ClassTemplateGenerateItems)
-    std::uint8_t sellsSpells;       // and spells (ClassTemplateGenerateMagic)
+    int type = -1;                  // class 1..5; bit (type - 1) of the records' class masks
+    std::uint8_t sellsItems = 0;    // the constructor's trader sells items (ClassTemplateGenerateItems)
+    std::uint8_t sellsSpells = 0;   // and spells (ClassTemplateGenerateMagic)
     float weights[9];
-    std::uint8_t weightsTail[4];        // field 4's tenth dword (archived with weights)
-    std::uint8_t restockDue;        // set by the constructor and by a quest completion; the camp restocks and clears it
+    std::uint8_t weightsTail[4] = {};   // field 4's tenth dword (archived with weights)
+    std::uint8_t restockDue = 1;    // set by the constructor and by a quest completion; the camp restocks and clears it
     // the party objects (ItemsParty / SpellsParty).
-    lib::InPlace<CParty> items;
-    lib::InPlace<CParty> spells;
-    ItemStock allowed;              // everything the class may use
-    ItemStock magic;                // the same layout: spells and modifiers only
+    CParty items;
+    CParty spells;
+    ItemStock allowed{&items};      // everything the class may use
+    ItemStock magic{&spells};       // the same layout: spells and modifiers only
 };
 // A new template with no references; the application's start registers it with the class registry as class 1.
 CRefCounted* CreateClassTemplate();

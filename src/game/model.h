@@ -549,10 +549,6 @@ struct PrintsDatabase {
     // archive of its own and filed under its records' names. 1; FatalError's result when the archive
     // (reported as "databases.res") or the file cannot be opened.
     int Load(const std::string& folder);
-    // The static initialiser's work. The three tables empty.
-    PrintsDatabase* Construct();
-    // The exit function's work: the tables from the last.
-    void Destruct();
 
     std::vector<PrintRecord> blood;
     std::unordered_map<std::string, PrintRecord*> bloodByName;
@@ -561,7 +557,7 @@ struct PrintsDatabase {
     std::vector<PrintRecord> scorch;
     std::unordered_map<std::string, PrintRecord*> scorchByName;
 };
-extern lib::StaticObject<PrintsDatabase> g_printsDatabase;
+extern PrintsDatabase g_printsDatabase;   // database_globals.cpp
 
 // A length-prefixed name (a four-byte length, then the characters) at *cursor into `out` (emptied for length
 // 0), the cursor moved past it.

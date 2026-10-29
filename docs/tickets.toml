@@ -5555,3 +5555,16 @@ title = "BlowSide and SkillAnimation parameters instead of uint32"
 group = "cleanup"
 depends = ["C45d5"]
 note = "Signature follow-up of C45d5: CUnitServer::HitDirection returns, BuildDeathAnimation's direction and CUnitServer::hitDirection hold a BlowSide (map_object_figures.h) as std::uint32_t; CObject3D::FindSkillAnimation(int) could take SkillAnimation for the skill callers. The saved field keeps its 4 bytes. Goldens unchanged."
+
+[[ticket]]
+id = "C50c1"
+title = "The interface-read databases as plain globals"
+group = "cleanup"
+depends = ["C54"]
+note = "C50c follow-up. The spell, item, quest, ack, unit, skill and map databases construct and destroy themselves since C50c but stay lib::StaticObject because ui_* files spell them with ->. After C54: retype them to plain globals (whole-tree g_x-> to g_x., g_x.Get() to g_x), add their initialisers 00684360 / 006A6540 / 006ADF10 / 006D7080 / 005399F0 / 0051FAF0 / 0045E6C0 to gen_static_init's UNUSED_INITIALISERS, drop the static_init_ports rows (database_globals.cpp, unit_db_lifetime.cpp, map_database.cpp) and named_data tags. A plain global is destroyed at our CRT's exit, after every list exit function (the worlds included): fine for data, but anything whose destructor talks to the harness or the network must keep the game's exit order (C50c: the session Refs' release sent leave packets after the harness's pair had ended, net_pair_zone failed). Goldens unchanged."
+
+[[ticket]]
+id = "C50c2"
+title = "Item records: virtual destructor, no head-only delete"
+group = "cleanup"
+note = "C50c follow-up. ItemRecordHead (item_db.h) is polymorphic (Kind) with a non-virtual out-of-line destructor; item_constructor.cpp's DeleteRecord destroys only the head of a Weapon/Armor/Quick/Quest/Loot record and frees it (the original leaks the derived members). Give the head a virtual destructor, delete the records through it (or hold the temporary record in a std::unique_ptr / a std::variant by class), drop the empty out-of-line destructors (item_db_records.cpp) so the records get implicit moves. Check: goldens unchanged (the item constructor runs in every scenario that makes items)."

@@ -43,14 +43,6 @@ std::uint32_t Checksum(const std::uint8_t* data, std::int32_t size) {
     return h;
 }
 
-struct LocalCoder {
-    CoderState state;
-    LocalCoder() { state.Construct(); }
-    ~LocalCoder() { state.out.End(); }
-    LocalCoder(const LocalCoder&) = delete;
-    LocalCoder& operator=(const LocalCoder&) = delete;
-};
-
 struct LocalBuffer {
     GrowingBuffer b;
 };
@@ -58,7 +50,7 @@ struct LocalBuffer {
 } // namespace
 
 void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* data) {
-    LocalCoder coder;
+    CoderState coder;
     // A view over the data (flags 2).
     std::uint8_t* begin = data->data_;
     std::uint8_t* last = begin + data->Size();
@@ -66,7 +58,7 @@ void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* da
     {
         LocalBuffer packed;
         std::uint8_t compressed = 1;
-        coder.state.Compress(&view, &packed.b);
+        coder.Compress(&view, &packed.b);
         file->WriteHeader(magic, static_cast<std::uint32_t>(version));
         if (version > kVersionChecksum) {
             std::uint32_t sum = Checksum(data->data_, static_cast<std::int32_t>(data->Size()));
@@ -78,8 +70,8 @@ void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* da
         packed.b.cur = packed.b.begin;
         if (packed.b.begin > packed.b.end) BufferSeek(&packed.b, 0);
         {
-            LocalCoder decoder;
-            decoder.state.Decompress(&packed.b, &check.b);
+            CoderState decoder;
+            decoder.Decompress(&packed.b, &check.b);
             UpdateHigh(check.b);
             std::int32_t size = static_cast<std::int32_t>(data->Size());
             bool same = check.b.base - reinterpret_cast<std::intptr_t>(check.b.begin) +
@@ -114,7 +106,7 @@ bool SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, 
         out->Seek(0);
     } else {
         std::uint8_t compressed = 1;
-        LocalCoder coder;
+        CoderState coder;
         LocalBuffer packed;
         LocalBuffer plain;
         std::uint32_t stored = 0;
@@ -128,7 +120,7 @@ bool SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, 
             UpdateHigh(packed.b);
             packed.b.cur = packed.b.begin;
             if (packed.b.begin > packed.b.end) BufferSeek(&packed.b, 0);
-            coder.state.Decompress(&packed.b, &plain.b);
+            coder.Decompress(&packed.b, &plain.b);
             if (VersionOf(file) > kVersionChecksum && Checksum(plain.b.begin, Length(plain.b)) != stored)
                 return false;   // the buffers and the coder's cursor go on the way out
         } else {

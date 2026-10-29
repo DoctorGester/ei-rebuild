@@ -13,24 +13,10 @@ namespace {
 // timeGetTime() at the previous pump.
 std::uint32_t g_lastPumpTime = /*0079B604*/ {};
 
-// The session pointers' exit functions: the last reference deletes the session.
+// The session pointers' exit functions: the last reference deletes the session, which sends its leave packets.
 void ReleaseGameServer() { net::g_gameServer.Reset(); }
 void ReleaseGameClient() { net::g_gameClient.Reset(); }
 
-// The two growing buffers' exit functions: each destroys its buffer once (bit 0 / bit 1 of their flags).
-std::uint8_t g_bufferFlags = /*0079B8FC*/ {};
-void DestroySendBuffer() {
-    std::uint8_t flags = g_bufferFlags;
-    if (flags & 1) return;
-    g_bufferFlags = static_cast<std::uint8_t>(flags | 1);
-    net::g_sendBuffer.Destroy();
-}
-void DestroyReceiveBuffer() {
-    std::uint8_t flags = g_bufferFlags;
-    if (flags & 2) return;
-    g_bufferFlags = static_cast<std::uint8_t>(flags | 2);
-    net::g_receiveBuffer.Destroy();
-}
 // Milliseconds to the sessions' time unit (1/1024).
 constexpr float kMillisecondsToSeconds = 0.0009765625f;
 
@@ -45,8 +31,9 @@ void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
 
 } // namespace
 
-// Their static initialisers (in the list's order): the counted pointer's constructor
-// clears it, then the exit function is registered.
+// Their static initialisers (in the list's order): the counted pointer's constructor clears it, then the exit
+// function is registered, so the sessions go in the game's exit order, not at our CRT's (the harness's network pair
+// has ended by then: net_pair_zone's leave packets went to the other game's ports).
 void InitGameServerPointer() {
     net::g_gameServer.Reset();
     std::atexit(ReleaseGameServer);
@@ -56,22 +43,10 @@ void InitGameClientPointer() {
     std::atexit(ReleaseGameClient);
 }
 
-// Their static initialisers (in the list's order).
-void ConstructSendBuffer() {
-    net::g_sendBuffer.Construct();
-    std::atexit(DestroySendBuffer);
-}
-void ConstructReceiveBuffer() {
-    net::g_receiveBuffer.Construct();
-    std::atexit(DestroyReceiveBuffer);
-}
-
 namespace net {
 
-// Zero at the start; built and destroyed by the functions above (docs/notes/standalone.md, "The static initialisers'
-// objects").
-constinit lib::StaticObject<GrowingBuffer> g_receiveBuffer = /*0079B8E0*/ {};
-constinit lib::StaticObject<GrowingBuffer> g_sendBuffer = /*0079B900*/ {};
+GrowingBuffer g_receiveBuffer;
+GrowingBuffer g_sendBuffer;
 
 void Pump() {
     std::uint32_t now = gameapi::timeGetTime();

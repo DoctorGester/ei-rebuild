@@ -155,6 +155,11 @@ struct CoderState;
 // run past the wrap. Compressed format: the uncompressed size (int32), then per item a flag bit: 0 and a
 // literal byte (byte aligned at the output position), or 1, a length code and an offset code (bit fields).
 struct CoderState {
+    // Start's state (the window's other bytes are not written).
+    CoderState() { Start(); }
+    // The output ended (out.End).
+    ~CoderState() { out.End(); }
+
     std::uint8_t window[0x800];
     std::int32_t chain[0x400];       // distance to the previous position with the same hash
     std::int32_t head[0x400];        // last position per hash ((previous byte << 2) ^ byte)
@@ -164,15 +169,19 @@ struct CoderState {
     std::int32_t matchLen;
     std::uint32_t prev;              // the previous input byte
 
-    CoderState* Construct();
     // Compresses everything in `in` (from its start) to `out` at its cursor.
     void Compress(GameBuffer* in, GameBuffer* out);
     // Decompresses `in` from its cursor to `out` at its cursor.
     void Decompress(GameBuffer* in, GameBuffer* out);
     // Writes the match in progress (length and offset codes); ends it.
     void EncodeMatch(std::int32_t at);
-    // Ends the output (out.End: pending bits stored, the sink committed), then Construct.
+    // Ends the output (out.End: pending bits stored, the sink committed), then Start.
     void Reset();
+
+private:
+    // The output cursor unbound with no pending bits, no previous byte, no match, window position 0, every hash
+    // head 0, chain[0] 0x400 and the window's first and last byte of each half 0.
+    void Start();
 };
 static_assert(offsetof(CoderState, chain) == 0x800);
 static_assert(offsetof(CoderState, head) == 0x1800);

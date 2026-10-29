@@ -21,11 +21,6 @@ namespace net {
 
 namespace {
 
-// CollectChanges's static vector of {object, priority}; its exit function frees the storage.
-constinit std::vector<Replicated> g_replicated = /*0079B8D0*/ {};
-std::uint8_t g_replicatedGuard = /*0079B8DC*/ {};
-void FreeReplicated() { lib::FreeStorage(g_replicated); }
-
 // "text\n" and a flush to the network log, when there is one.
 void LogLine(const char* text) {
     if (console::Stream* log = g_netLog) console::EndLine(*log << text);
@@ -143,7 +138,7 @@ bool Connection::SendUpdate(int budget) {
     BufferCursor c;
     c.Reset(nullptr);
     c.sink = nullptr;
-    GameBuffer* out = &g_sendBuffer.Get();
+    GameBuffer* out = &g_sendBuffer;
     out->Seek(0);
     c.BeginWrite(out, budget + 0x400);
 
@@ -345,12 +340,7 @@ void Connection::Track(Replicated* item) {
 }
 
 void Connection::CollectChanges() {
-    std::vector<Replicated>& items = g_replicated;
-    if (!(g_replicatedGuard & 1)) {
-        g_replicatedGuard |= 1;
-        std::atexit(FreeReplicated);
-    }
-    items.clear();
+    std::vector<Replicated> items;
     std::vector<Replicated>* target = &items;
     g_currentSession->CollectReplicated(&target);
     // The original sorts the list by the object's address and merges it with byObject_ (also by address), so

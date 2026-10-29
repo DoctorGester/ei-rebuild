@@ -202,9 +202,6 @@ struct UnitDatabase {
     // by name (-1 when there is none). Returns 1, or what the fatal error report returns when the archive or the file
     // cannot be opened.
     int Load(const std::string& folder, const std::string& archive);
-    // Destruction and construction in place, which the resource switch runs: every table emptied (index and
-    // records freed), then the four constructed empty.
-    void Reset();
 
     UnitPrototypeTable prototypes;
     NpcPrototypeTable npcs;
@@ -276,9 +273,6 @@ struct SkillDatabase {
     // `archive`: the skills (chunk 1) and the level records (chunk 2, one chunk 1 each). Returns 1, or what
     // the fatal error report returns when the archive or the file cannot be opened.
     int Load(const std::string& folder, const std::string& archive);
-    // Destruction and construction in place, which the resource switch runs: both vectors emptied.
-    void Reset();
-    SkillDatabase* Construct();
 
     std::vector<SkillRecord> skills;
     std::vector<SkillLevelRecord> levels;

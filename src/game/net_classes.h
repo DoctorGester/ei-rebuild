@@ -11,7 +11,6 @@
 #include "party_storage.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
-#include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstddef>
@@ -118,10 +117,10 @@ inline SessionBase* g_currentSession = /*0079B920*/ {nullptr};
 // The connection being updated or read (null outside the session code).
 inline Connection* g_currentConnection = /*0079B924*/ {nullptr};
 // The buffer every update packet is built in and the one datagrams are received into (net_session.cpp).
-extern lib::StaticObject<GrowingBuffer> g_sendBuffer;
-extern lib::StaticObject<GrowingBuffer> g_receiveBuffer;
+extern GrowingBuffer g_sendBuffer;
+extern GrowingBuffer g_receiveBuffer;
 // The game client and the game server (null when there is none): counted pointers, cleared by their static
-// initialisers and released at exit (net_session.cpp).
+// initialisers and released by the exit functions those register (net_session.cpp).
 inline Ref<ClientSession> g_gameClient = /*0079B5D8*/ {};
 inline Ref<ServerSession> g_gameServer = /*0079B5DC*/ {};
 // The game client's trade offer: publish ours, find the partner's offer that pairs with ours (a
@@ -253,13 +252,16 @@ struct TypeRegistry {
 
 // The UDP socket of a session and the broadcast addresses of the host.
 struct SocketDriver {
+    // Starts Winsock and notes the broadcast address of the host's first address.
+    SocketDriver();
+    // Closes the socket and stops Winsock.
+    ~SocketDriver();
+    SocketDriver(const SocketDriver&) = delete;
+    SocketDriver& operator=(const SocketDriver&) = delete;
+
     std::uint32_t socket;        // SOCKET (-1: none)
     std::vector<NetAddress> addresses;
 
-    // Starts Winsock and notes the broadcast address of the host's first address.
-    SocketDriver* Construct();
-    // Closes the socket, stops Winsock, frees the addresses.
-    void Destruct();
     // A new non-blocking broadcast UDP socket, bound to `port` when positive.
     bool Open(int port);
     // The `index`th broadcast address with `port` into `out`; false past the last.

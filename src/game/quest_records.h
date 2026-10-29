@@ -73,15 +73,9 @@ struct QuestDatabase {
     // records' names. 1; FatalError's result when the archive (reported as "databases.res") or the file cannot
     // be opened.
     int Load(const std::string& folder);
-    // The constructor (database_construct.cpp; run by the static initialiser). Both vectors and both indexes
-    // empty. Returns this.
-    QuestDatabase* Construct();
     // The quests of a registry file in memory (`image`) filed into the database; false when it is not a
     // registry.
     bool LoadRegistry(const void* image);
-    // The destructor (database_destruct.cpp; run by the exit function). The members from the
-    // last: each index's nodes and buckets, then its records and their storage.
-    void Destruct();
     // script_quest.cpp (and a copy of it; the script commands' quest lookup, QuestComplete awards the
     // record's +0x0C). The record of quest `name`, null if none. The index's operator[] (the game's
     // find_or_insert on a {name, null} pair) leaves a null entry for a missing name.

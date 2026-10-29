@@ -78,24 +78,3 @@ void CMemoryStream::Clear() {
     bitMask_ = 0x80;
     bitsIndex_ = -1;
 }
-
-// --- Aligned pointer arrays --------------------------------------------------------------------
-
-// --- Coder state -------------------------------------------------------------------------------
-
-CoderState* CoderState::Construct() {
-    out.p = nullptr;
-    out.bits = 0;
-    out.bytePtr = nullptr;
-    out.sink = nullptr;
-    prev = 0;
-    matchPos = -1;
-    pos = 0;
-    chain[0] = 0x400;
-    std::memset(head, 0, sizeof(head));
-    window[0] = 0;
-    window[0x400] = 0;
-    window[0x3FF] = 0;
-    window[0x7FF] = 0;
-    return this;
-}

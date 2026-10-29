@@ -24,36 +24,14 @@ void HandOver(const std::list<CItem*>& list, CParty* party) {
 
 } // namespace
 
-ItemStock* ItemStock::Construct(CParty* owner) {
-    context = owner;
-    classIndex = 0;
-    return this;
-}
-
-ClassTemplate::ClassTemplate() : weightsTail{} {
-    new (ItemsParty()) CParty();
-    new (SpellsParty()) CParty();
-    allowed.Construct(ItemsParty());
-    magic.Construct(SpellsParty());
-    ItemsParty()->Create();
-    SpellsParty()->Create();
-    type = -1;
-    sellsItems = 0;
-    sellsSpells = 0;
-    restockDue = 1;
-}
-
-void ItemStock::Destruct() {
-    context = nullptr;
+ClassTemplate::ClassTemplate() {
+    items.Create();
+    spells.Create();
 }
 
 ClassTemplate::~ClassTemplate() {
-    ItemsParty()->Destroy();
-    SpellsParty()->Destroy();
-    magic.Destruct();
-    allowed.Destruct();
-    SpellsParty()->~CParty();
-    ItemsParty()->~CParty();
+    items.Destroy();
+    spells.Destroy();
 }
 
 void ClassTemplate::SetLevels(const float* base, const float* scroll) {
