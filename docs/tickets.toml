@@ -4906,6 +4906,21 @@ group = "port"
 depends = ["A-I23"]
 note = "CTextureManager::LoadTexture 006922A0 loads <data>textures\\<name>.bmp (with a_<name>.bmp as alpha) when the file exists: LoadBmp 00690260 -> LoadBmpFiles 0068FBF0 -> CDib::Construct 006D4AA0, Read 006D5910, Size 006D4D10, MakePalette 006D54D0, all unreached (no install has a loose .bmp). A '# prepare:' tool writing a 24-bit .bmp and an 8-bit alpha for a texture zone1 loads, into the run's overlay, reaches them; golden from the original, a capture compared on the image."
 
+[[ticket]]
+id = "A1"
+title = "Replace Miles: our own audio mixer and decoders"
+group = "port"
+model = "opus"
+note = "User 2026-10-29: later, after the x87 work. Miles (mss32.dll, 39 AIL_* calls: samples, 3D-less pan/volume, streams, MIDI sequences, the ASI MP3 decoder, EOS callbacks) is a 32-bit proprietary DLL from the game folder; it blocks a 64-bit or non-Windows build. Replace with an open backend (e.g. miniaudio) plus our own WAV / IMA ADPCM / MP3 decoding and the MIDI music path (what the game's .mid / music use needs). Same volumes, pans, loops and timing as the game asks for; the harness's audio checks (if any) and play by ear. Bink's audio (BinkOpenMiles / BinkSetSoundSystem) moves with A2."
+
+[[ticket]]
+id = "A2"
+title = "Replace Bink: an open decoder for the game's videos"
+group = "port"
+model = "opus"
+depends = ["A1"]
+note = "User 2026-10-29: later. binkw32.dll (10 Bink* calls: open, frame, copy to buffer, goto, volume, wait, Miles sound) is a 32-bit proprietary DLL; replace with an open Bink 1 decoder (FFmpeg's libavcodec bink / binkaudio, or a vendored minimal decoder) drawing frames through the renderer and audio through A1's backend. Same playback (skippable intro, titles, credits), frame timing and sound. Check every .bik the installs ship decodes."
+
 # ---------------------------------------------------------------- docs
 
 [[ticket]]
