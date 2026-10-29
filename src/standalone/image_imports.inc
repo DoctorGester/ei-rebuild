@@ -104,7 +104,7 @@
 {offsetof(ei::ImportTable, GetVersionExA), "KERNEL32.dll", "GetVersionExA", 0, false},
 {offsetof(ei::ImportTable, InitializeCriticalSection), "KERNEL32.dll", "InitializeCriticalSection", 0, false},
 {offsetof(ei::ImportTable, GetComputerNameA), "KERNEL32.dll", "GetComputerNameA", 0, false},
-{offsetof(ei::ImportTable, LoadLibraryA), "KERNEL32.dll", "LoadLibraryA", 0, true},
+{offsetof(ei::ImportTable, LoadLibraryA), "KERNEL32.dll", "LoadLibraryA", 0, false},
 {offsetof(ei::ImportTable, DeleteCriticalSection), "KERNEL32.dll", "DeleteCriticalSection", 0, false},
 {offsetof(ei::ImportTable, CopyFileA), "KERNEL32.dll", "CopyFileA", 0, true},
 {offsetof(ei::ImportTable, GetLocalTime), "KERNEL32.dll", "GetLocalTime", 0, true},
