@@ -6019,7 +6019,7 @@ id = "R35b"
 title = "Camera lift when spinning low: ease the original's bob in the drawn view (user to decide)"
 group = "renderer"
 depends = ["R35a"]
-note = "R35a (renderer.md section 14, Spinning): zoomed in and tilted low, a spin swings the camera over the ground and houses behind it; CCamera::ClampAboveObjects (0040E4C0) lifts it (highest terrain within 2 units, objects within 16 fading over 10, plus CameraMinHeight) and ApplyView aims it back down at the focus, so over one turn it rose 18.98 -> 27.39 and pitched -30 -> -53 degrees and back (camera_spin 'low'). The original does exactly this (game.exe's camera matched ours over 1760 frames); the drawn view now spreads its tick steps (largest height step 0.26 of the camera's). Left: the bob itself and the game's own small within-frame kinks (objects entering the 16-unit range with a non-zero fade jump the lift). If the user wants it calmer: ease the drawn view's height and pitch toward the camera's (render-only, goldens unchanged), or not. Ask before doing."
+note = "User 2026-10-29: probably unnecessary; dropped."
 
 [[ticket]]
 id = "P8d"
