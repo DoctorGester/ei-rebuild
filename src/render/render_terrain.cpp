@@ -126,7 +126,7 @@ std::uint32_t Byte(float v) {
 }
 
 // The colour word a page vertex of record `index` is drawn with (lit on the GPU): the material
-// colour ShadeSun starts from (on the ground the water's above it, else the record's own), alpha the
+// colour the sun's light starts from (on the ground the water's above it, else the record's own), alpha the
 // material byte (the water's opacity).
 std::uint32_t ColourWord(const SectorData* s, int index) {
     const SectorVertex& record = s->records[index];
@@ -353,7 +353,7 @@ bool ReadColours(const SectorData* s, CachedPage& p, std::uint32_t from, std::ui
     bool changed = false;
     for (std::uint32_t i = from; i < to; ++i) {
         // The colour word (the material) is the one the page was built with; the game writes the
-        // specular word (the edge fade; on the water its specular lights and wave crests).
+        // specular word (the edge fade; on the water the wave crests).
         const SectorVertex& record = s->records[p.records[i]];
         std::uint32_t* kept = &p.colours[2 * static_cast<std::size_t>(i)];
         std::uint32_t colour = kept[0], specular = record.specular;

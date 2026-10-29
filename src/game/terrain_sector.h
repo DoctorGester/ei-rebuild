@@ -15,7 +15,6 @@
 
 #include "lib/vecmath.h"
 
-class CLight;
 class CSceneRenderer;
 class CTransformPipeline;
 
@@ -47,60 +46,19 @@ constexpr std::uint16_t kTileTextureMask = 0x3FFF;
 constexpr int kTileRotationShift = 14;
 constexpr std::uint16_t kNoTile = 0xFFFF;
 
-struct LightRefBlock;
-
-// One entry per lit vertex: the point lights that reach it (pooled 16-byte nodes).
-struct LightRef {
-    LightRef* next;
-    LightRef* prev;
-    LightRefBlock* block;   // the pool block it was taken from
-    CLight* light;
-};
-
-// The LightRef pool: blocks of 1000 nodes from operator new. Blocks with free nodes
-// are listed in one doubly linked list, full ones in another (newest first); a block whose nodes are all
-// free again is deleted.
-struct LightRefBlock {
-    static constexpr int kRefs = 1000;
-    int freeCount;
-    LightRefBlock* next;
-    LightRefBlock* prev;
-    LightRef* freeList;
-    LightRef refs[kRefs];
-};
-
-// A node from the pool; its next / prev / light are the caller's to set.
-LightRef* AllocLightRef();
-// Returns `ref` to its block.
-void FreeLightRef(LightRef* ref);
-
 #pragma pack(push, 1)
 // Per-vertex record (packed).
 struct SectorVertex {
-    SectorVertex() = default;
-    // Takes `from`'s light list.
-    SectorVertex(SectorVertex&& from) noexcept;
-    SectorVertex(const SectorVertex&) = delete;
-    SectorVertex& operator=(const SectorVertex&) = delete;
-    // Returns the light list's nodes to the pool.
-    ~SectorVertex() { ReleaseLights(); }
-
     Vector4 projected;                  // screen position (Project)
     std::uint8_t outcode;               // clip flags when the quarter crosses the view, else 0
-    std::uint32_t colour;               // A (materialByte) R G B, the lighting stage
-    std::uint32_t specular;             // edge fade << 24, then the specular lights' R G B
+    std::uint32_t specular;             // edge fade << 24; on the water the wave crests' R G B (Animate)
     Vector3 position;                   // water layer: the vertex position
     static constexpr std::uint16_t kNoWaterMaterial = 0xFFFF;
     std::uint16_t waterMaterial;        // water layer: material index, or kNoWaterMaterial
     float depth;                        // ground layer: water z - ground z
     Vector3 normal;
-    Vector3 lit;                        // ambient and sun light
     Vector3 materialColour;             // the water material's colour
     std::uint8_t materialByte;          // the water material's opacityByte, 0xFF none
-    LightRef* lights = nullptr;
-
-    // Returns every node of `lights` to the pool.
-    void ReleaseLights();
 };
 #pragma pack(pop)
 
@@ -138,22 +96,6 @@ inline constexpr float kWaterFalloff = /*007C8908*/ 0.06666667f;
 constexpr std::uint32_t PackArgb(std::uint32_t a, std::uint32_t r, std::uint32_t g, std::uint32_t b) {
     return a << 24 | r << 16 | g << 8 | b;
 }
-
-// The sun's ray over the vertex grid (Terrain::SunReaches) turned to rise in both directions: the steps
-// along x and y, their directions (+-1) and the height gained per step.
-struct SunRay {
-    int stepX, stepY;
-    int directionX, directionY;
-    float slopeX, slopeY;
-    // A ray that does not rise takes no step.
-    bool Flat() const;
-    int Length() const { return stepY > stepX ? stepY : stepX; }
-};
-SunRay SunRayOf(const Terrain& terrain);
-
-// `light` is removed from a vertex's list when `remove` is set or the vertex is not nearer than its range to
-// `position`; otherwise it is added at the list's head when missing.
-void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area, bool remove);
 
 struct SectorData {
     SectorStage built = SectorStage::None;
@@ -213,13 +155,10 @@ struct SectorData {
     // Page `page` to the renderer, the pending water levels applied first; nothing when culled.
     void DrawPage(const CSceneRenderer* renderer, int page);
 
-    // The vertices x0..x1, y0..y1 (inclusive, 0..32) of the water layer (where it has a material), then of
-    // the ground, with the FPU in chop rounding. Without skipSun relightCountdown becomes -1 (and the sun's ray
-    // march runs where it can change the sector cache).
-    void Light(bool skipSun, int x0, int y0, int x1, int y1);
-    // Water record `i`'s specular word: the edge fade, then per channel the maximum of the specular lights
-    // (LightFlag::Specular); the GPU lights the colours.
-    void LightSpecular(int i);
+    // Every vertex's specular word becomes its edge fade (the fog factor; the GPU lights the colours, Animate
+    // writes the wave crests over the water's colour bytes), truncated as the game's lighting stored it (on the
+    // water only where it has a material); the sector is lit and its relight countdown ends.
+    void Light();
 
     // The records and tile lists emptied (the per-quarter arrays keep their sizes); no sector (-1, -1),
     // nothing built, culled, pages / perPage -1, the rest of the scalar state 0. Build sets the boxes and
@@ -227,7 +166,7 @@ struct SectorData {
     void Clear();
     // Starts or shortens the relight countdown to `frames`.
     void ScheduleRelight(int frames);
-    // At 0 the lighting is dropped, so the next draw relights the sector.
+    // At 0 the lighting is dropped, so the next draw lights the sector again.
     void RelightTick();
     // Every third frame, with LandscapeFlag::AnimatedTiles, the animated tiles step to their next frame (one
     // whose frame is 0 and whose speed is below 1000 only when an ISAAC draw % 1000 + 1 is within the speed).

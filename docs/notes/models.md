@@ -138,7 +138,8 @@ frame counter +0x218); draw passes 006C6230 / 006C6330 / 006C6460 / 006C66E0 (fr
 `DrawSectorPage` 006BFF40; 006C68B0 map loader (Rebirth-patched); 006C8140 `Terrain::SectorAt` sector cache (grid +0x1F8, LRU
 list +0x200 / +0x204, 240-frame age limit); 006C85A0 / 006C8680 `VertexAt` / `HeightAt`; 006C8930 `GroundAndWaterDepth`;
 006C8D40 `SurfaceClass` (texture class under a point: footprints, blood, effects); 006CA5D0-006CAC10 point lights register
-with the vertices they reach (pooled 16-byte LightRef nodes, blocks of 1000 at 007C8840); 006CB020 point test (8 callers);
+with the vertices they reach (pooled 16-byte LightRef nodes, blocks of 1000 at 007C8840; not ported, R34); 006CB020 point
+test (8 callers);
 006CF370-006CFEA0 foot / blood / fire prints.
 
 Rewritten (grep the address): `SectorData::Build` 006C1C00 (the random generator and the owner's water row matter), `Load` 006C13A0,
@@ -148,10 +149,10 @@ Rewritten (grep the address): `SectorData::Build` 006C1C00 (the random generator
 `Project` 006BFC80 (RET 4: the pipeline; the pass 006C6460: per quarter not culled, positions at the LOD step through
 004F29F0 against the quarter box (a ClipBounds prefix); records +0x00 projected, +0x10 outcode), `DrawSectorPage` 006BFF40
 (`SectorData::DrawPage(renderer, page)`; the original's two unused arguments and constant return are gone), `Light` 006C3A00
-(terrain_lighting.cpp; chop rounding through `x87::ScopedRounding`; the GPU lights the colours, so `ShadeSun` /
-`LightVertex` 006C36B0 / 006C31C0 are not ported since R26: Light keeps the edge fade and the water's specular word, which
-`LightSpecular` packs for the water layer only; its specular lights' channels are 0 without one, so the original's
-"a specular light was seen" flag is not kept).
+(terrain_sector.cpp): only the edge fade (the fog factor) into each vertex's specular word, truncated (chop rounding
+through `x87::ScopedRounding`); `ShadeSun` / `LightVertex` 006C36B0 / 006C31C0 are not ported (R26: the GPU lights the
+terrain), nor the water's specular word or the sun's ray march (R34; renderer.md section 13, R16i, says what behaves
+differently and why the Lit stage and relight countdowns stay).
 
 Facts: in terrain_sector.cpp running x / y, heights in flight and bounding box intermediates are doubles. `DrawSectorPage`
 does nothing for a culled sector; the original's draw statics (007C8848..007C88C8) are never built (render_terrain.cpp
@@ -186,9 +187,10 @@ Ported (grep the address): `Terrain::SetVisibleSectors` 006CA260, `SectorAt` 006
 `acks::AckTable<UnitAcks / ModelAcks / ExtraAcks>::Find` 006D9A30 / 006D9CE0 / 006D9F80 (acks_db.cpp; index operator[], adds a null
 entry for a missing name), `acks::PickSpeech` / `PickEnvironmentSpeech` 006D8780 / 006D88E0, `SayAck` / `SayNamedAck` 006D8430 /
 006D8A40 (call the five above through their addresses), `Terrain::RunTick` 006CB1E0 (slot 6; terrain_animation.cpp), `SetSun`
-006C8ED0 (ray steps; relight countdowns of the lit cached sectors, sorted by (sy, sx) with std::sort: one per grid cell), `SectorData::Animate`
-006C3E80 (animated tiles, water waves; draws from the game's random generator), `SectorData::Clear` / `ResetFields` /
-`ScheduleRelight` / `RelightTick` 006C3C80, 006C3D70, 006C3E30, 006C3E50, `PlayAmbience` / `StopAmbience` 006CB390 / 006CBCD0
+006C8ED0 (the sun and the ambient colour; relight countdowns of the lit cached sectors, sorted by (sy, sx) with std::sort:
+one per grid cell; its ray steps are not ported, R34),
+`SectorData::Animate` 006C3E80 (animated tiles, water waves; draws from the game's random generator), `SectorData::Clear` /
+`ResetFields` / `ScheduleRelight` / `RelightTick` 006C3C80, 006C3D70, 006C3E30, 006C3E50, `PlayAmbience` / `StopAmbience` 006CB390 / 006CBCD0
 (terrain_ambience.cpp), `CWorldClient::AmbienceTimeOfDay` 006CBC00, `Terrain::AddDecalTriangles` 006CCF20 (terrain_decal.cpp;
 triangles through the unhooked original 004D8490).
 
@@ -200,10 +202,10 @@ were declared for Say (51) / StopSpeech (52). The original picks through a tempo
 indexes (same draws, no allocation).
 
 Landscape fields (terrain.h / TerrainFields): +0x94 flags (1 waves, 2 animated tiles, 8 ambient sounds); +0x21C / +0x220 light
-interval / countdown; +0x234..+0x248 the sun's ray steps; +0x274..+0x28C waves (direction, height, glow, phase, speed); +0x290
-per-vertex wave phases; +0x2A0 a 512-entry sine table. Kept: SetSun's qsort comparator (006C8E90) reads +0xC / +8 of the array
-slots, i.e. the pointers three and two slots on (past the end for the last ones), so the relight order follows pointer values.
-Animate's sine index uses 256 / pi as a double (the original divides at run time; a .5 edge may rarely differ).
+interval / countdown; +0x234..+0x248 the sun's ray steps (not kept, R34); +0x274..+0x28C waves (direction, height, glow,
+phase, speed); +0x290 per-vertex wave phases; +0x2A0 a 512-entry sine table. SetSun's qsort comparator (006C8E90) reads
++0xC / +8 of the array slots, i.e. the pointers three and two slots on, so the original's relight order follows pointer
+values; ours sorts by (sy, sx) and the harness patches the original's site to do the same (address_order.h). Animate's sine index uses 256 / pi as a double (the original divides at run time; a .5 edge may rarely differ).
 
 Ambience: sound classes at 007969D0 (16 x 0x18: name, variants, weight, class it counts as, pan limit, chance %; read from
 memory, most have variants -1, so the one-shot index is a draw % 0xFFFFFFFF + 1); loop slots +0xAC8 handles / +0xAD4 classes,
@@ -211,11 +213,12 @@ memory, most have variants -1, so the one-shot index is a draw % 0xFFFFFFFF + 1)
 
 A-X4 (terrain_landscape.cpp, terrain_lights.cpp, acks_db.cpp): `Terrain::Create` / `Destroy` 006C5430 / 006C54D0 (slots 2 / 3; Reset
 and the wave phases through their addresses), `Reset` 006C5620, `BuildWavePhases` 006C57E0, `SetWaveStrength` / `SetWaves`
-006C7D70 / 006C7EB0, `SetupPages` 006C5AA0 (texture pages from the map loader; `CMaterial`, material.h), `LightAreaOf` 006CAA70,
-`LightAreaFromBounds` 006BF580, `SetLightArea` 006BF4A0, `AddLight` / `RemoveLight` / `MoveLight` / `LightSector` /
-`RelightArea` 006CA5D0 / 006CA720 / 006CA830 / 006CA9C0 / 006CAB50, `UpdateVertexLights` 006CAC10 (each vertex of the range has
-the light once or not at all, lists linked), `FreeLightRef` / `SectorVertex::ReleaseLights` / `DestroyRecords` 006C5230 /
-006C5150 / 006C4EE0 (pool: `LightRefBlock`, terrain_sector.h), `UnitAcks` / `ModelAcks` / `ExtraAcks::Serialize` 006E3780 /
+006C7D70 / 006C7EB0, `SetupPages` 006C5AA0 (texture pages from the map loader; `CMaterial`, material.h), `AddLight` / `RemoveLight` 006CA5D0 /
+006CA720 (the table of shown lights only: held by id, released on removal, also when not registered, as the original; the
+light areas, per-vertex lists and relights are not ported, R34: `LightAreaOf` 006CAA70, `LightAreaFromBounds` 006BF580,
+`SetLightArea` 006BF4A0, `MoveLight` / `LightSector` / `RelightArea` 006CA830 / 006CA9C0 / 006CAB50, `UpdateVertexLights`
+006CAC10, the LightRef pool `FreeLightRef` / `SectorVertex::ReleaseLights` 006C5230 / 006C5150), `DestroyRecords` 006C4EE0,
+`UnitAcks` / `ModelAcks` / `ExtraAcks::Serialize` 006E3780 /
 006E3FD0 / 006E3DC0, `SpeechListField` / `EnvironmentSpeechListField` / `SpeechField` 006E42F0 / 006E4410 / 006E4F40 (archive
 helpers).
 
@@ -274,9 +277,9 @@ water change runs, loaded back) reaches SetWaterLevel; `camera` (Scroll Lock scr
 
 Rewritten (grep the address): `Terrain::DrawGround` 006C6230 / `DrawWater` 006C6330 (the landscape's matrix on pipeline stacks 2 and
 1 around the pages), `DrawPages` 006C6460 (per visible sector: detail, clip test, seams, projection; per page: texture,
-DrawSectorPage; callees through their addresses), `ChooseDetail` 006C66E0, `SectorData::SetDetail` 006C1390, `SunReaches` 006C92C0
-(the sun shadow ray over the vertex grid, from ShadeSun), `EdgeFade` 006CB020 (the map edge's fade byte), `CombineRotation`
-006C6070 (slot 14: the base's, then the world matrix +0x98, which nothing read: not overridden), `SetLightInterval` 006C9290, `SetWaterLevel` 006CC7F0,
+DrawSectorPage; callees through their addresses), `ChooseDetail` 006C66E0, `SectorData::SetDetail` 006C1390 (`SunReaches` 006C92C0,
+the sun shadow ray over the vertex grid, is not ported, R34), `EdgeFade` 006CB020 (the map edge's fade byte), `CombineRotation`
+006C6070 (slot 14: the base's, then the world matrix +0x98, which nothing read: not overridden), `SetWaterLevel` 006CC7F0,
 `BuildTileUv` 006C7940; `CDib` Create / ConstructSized / Construct / CreateObject (006D4BA0, 006D4B30, 006D4AA0, 006D49E0),
 AllocateBits 006D6AB0, MakePalette 006D54D0, Empty / Destruct / Delete (slot 1) / Serialize (slot 2), Size 006D4D10,
 GetRuntimeClass 006D4A60 (slot 0), `CaptureSurfaceRect` 006D6D40 (surface_capture.cpp), `CaptureSurface` 006D6FC0 (the whole
@@ -288,12 +291,11 @@ Facts. The two passes differ only in the page range: ground 0..LayerPages()-1, w
 sector that has tiles on it. They do not touch the device (matrix
 pushes, the renderer's SetTexture, DrawSectorPage), so they are ported; the sector's clip test 006BFB20 and seams 006BFB80
 (below 006C0000) are ported there too (A-Z1, items_spells.md). Level of detail: 0 / 1 below the squared distances 0079BD2C /
-0079BD30 from the camera to the sector's centre, else 2 (the original's `minDetail` +0xAA0 was always 0). The shadow ray: a
-crossing into the next sector in x skips that iteration's y step; a negative slope gives the sign of the sun's z.
+0079BD30 from the camera to the sector's centre, else 2 (the original's `minDetail` +0xAA0 was always 0).
 Terrain members: `materials` (+0x12C in the original), `waterLevels` (+0xAE8; per sector, per material). Gone as written
 but never read (C62): the draw and world matrices, the "Wood" page materials (each page made a material of kind 0x12 that
 nothing used), page / tile sizes, the highest light id, the extra page count, `minDetail`, the per-row visible column
-vectors (one rectangle now), and `lightingSector / X / Y` (+0x24C; SunReaches takes the sector and vertex). `CDib` (0x3C bytes, dib.h): colour table, bits,
+vectors (one rectangle now), and `lightingSector / X / Y` (+0x24C, the ray march's). `CDib` (0x3C bytes, dib.h): colour table, bits,
 header, who owns them (1 new, 2 global memory), image size, mapped file handles, palette. Kept: AllocateBits sizes the
 block without row padding while Write writes `imageSize` (rows padded to four bytes): a screenshot whose row is not a
 multiple of four bytes is written from past the block's end. The captures (`CDXSurface` holder in ECX, the rectangle in

@@ -35,19 +35,6 @@ struct VertexTiles {
 void CountAmbientVariants(const char* set);
 }
 
-// The area a point light reaches: the sectors it covers, and the first / last vertex column and row inside the
-// first / last sector.
-struct LightArea {
-    int firstSectorX, firstSectorY, lastSectorX, lastSectorY;
-    int firstX, firstY, lastX, lastY;
-};
-
-// A point light registered with the landscape (held).
-struct LandscapeLight {
-    CLight* light;
-    LightArea area;
-};
-
 // Terrain::landscapeFlags.
 enum class LandscapeFlag : std::uint32_t {
     None = 0,
@@ -66,7 +53,7 @@ enum class SectorStage : std::uint32_t {
     None = 0,
     Loaded = 1,  // the vertex positions
     Built = 2,   // the geometry
-    Lit = 4,
+    Lit = 4,     // the edge fade (SectorData::Light); dropped by the relight countdowns
 };
 template <>
 inline constexpr bool lib::kBitFlags<SectorStage> = true;
@@ -102,19 +89,11 @@ public:
     // No map: sizes -1, the ambient loops stopped.
     void ClearMap();
 
-    // Point lights: the landscape is the light manager. Nothing happens before a map is loaded.
-    // Registers the light by id with its area (held) and relights the area.
+    // The shown point lights (`lights`, the GPU lighting's). Nothing happens before a map is loaded.
+    // Registers the light by id (held).
     void AddLight(CLight* light);
+    // Takes the light off the table and releases it (also one that was not registered, as the game does).
     void RemoveLight(CLight* light);
-    // Before the light moves by `delta`: the area grows by the move and is relit with the light moved, then
-    // becomes the one at the new position (the light itself is left where it was).
-    void MoveLight(CLight* light, const Vector3* delta);
-    // Every registered light whose area covers the newly built sector.
-    void LightSector(terrain::SectorData* sector);
-    // The light's square (position +- range), widened by `delta` on the side it points to.
-    LightArea LightAreaOf(CLight* light, const Vector3* delta) const;
-    // The area's lit sectors (their point lights only).
-    void RelightArea(const LightArea* area);
 
     // Negative: no countdown, otherwise the countdown is raised to the interval.
     void SetLightInterval(int frames);
@@ -125,10 +104,6 @@ public:
     // With LandscapeFlag::EdgeFade: 255, less 255 * depth / fade for a point `depth` inside the fade band
     // (MapEdgeFade, plus one cell) of the map's borders, corners by the distance.
     std::uint8_t EdgeFade(const Vector3& point);
-    // Whether the sun reaches ground vertex (column, row) of `sector`: the ray is walked over the vertex grid,
-    // loading the sectors it crosses; false when a vertex is above the ray, true at the ray's end or the map's
-    // edge. A ray that does not rise: whether the sun points down.
-    bool SunReaches(const terrain::SectorData& sector, int column, int row);
 
     // 9 u, then 9 v.
     const float* TileUv(int rotation, int index, int page);
@@ -167,9 +142,9 @@ public:
     // visible sector. Returns true.
     bool RunTick() override;
 
-    // The shadow test's ray steps from the direction towards the sun (components below 0.01 pushed to 0.01);
-    // with a light interval the lit sectors get relight countdowns spread over it (sorted; 0 drops the
-    // lighting at once), without one every sector's lighting is dropped.
+    // The sun and the ambient colour (the GPU lighting's); with a light interval the lit sectors get relight
+    // countdowns spread over it (sorted; 0 drops the lighting at once), without one every sector's lighting is
+    // dropped.
     void SetSun(CLight* sun, const Vector4* ambient);
     // With LandscapeFlag::Ambience: the 3x3 sectors around the listener vote a sound class, weighted by
     // distance; up to three classes play a looping circle.wav and random one-shots
@@ -223,16 +198,8 @@ public:
     int lightInterval;              // frames between sun updates
     int lightCountdown;
     Vector4 ambient;
-    float sunSlopeX;                // z / x of the unit direction towards the sun
-    float sunRunX;                  // x / z
-    float sunSlopeY;                // z / y
-    float sunRunY;                  // y / z
-    int sunStepX;                   // 95 * x rounded to nearest
-    int sunStepY;
     CLight* sun;
-    // Walked in STLport's order (the lights are added up in it).
-    using LightTable = lib::HashMap<int, LandscapeLight>;
-    LightTable lights;              // by id
+    lib::HashMap<int, CLight*> lights;   // by id, held
     Vector3 waveDirection;          // unit vector; x, y: the waves' travel
     float waveHeight;
     float waveGlow;                 // scales the crests' specular colour

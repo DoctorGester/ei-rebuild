@@ -122,18 +122,7 @@ bool CEffectPointLight::RunTick() {
     localPosition_.x = x;
     localPosition_.y = y;
     localPosition_.z = z;
-    if (light_ == nullptr) return true;
-    Vector3 delta;
-    delta = velocity_;
-    if ((FrameCounter() & 0xF) == 0) {
-        // Every 16th frame the light is re-registered at its new place.
-        g_clientWorld.terrain_->RemoveLight(light_);
-        LightPosition(light_) = localPosition_;
-        g_clientWorld.terrain_->AddLight(light_);
-        return true;
-    }
-    g_clientWorld.terrain_->MoveLight(light_, &delta);
-    LightPosition(light_) = localPosition_;
+    if (light_ != nullptr) LightPosition(light_) = localPosition_;
     return true;
 }
 
@@ -162,21 +151,9 @@ void CEffectPointLight::Start(int update) {
         shownRange = light_->range_;
         float change = FromBits(Bits(static_cast<float>(shownRange - range)) & 0x7FFFFFFFu);
         EI_NAN_AUDIT(change);
-        if (change < ConstAt(worlddata::RangeEpsilon())) {
-            // The range is (nearly) the same: move the light.
-            Vector3& at = LightPosition(light_);
-            Vector3 delta;
-            delta.z = static_cast<float>(localPosition_.z - at.z);
-            delta.y = static_cast<float>(localPosition_.y - at.y);
-            delta.x = static_cast<float>(localPosition_.x - at.x);
-            g_clientWorld.terrain_->MoveLight(light_, &delta);
-            LightPosition(light_) = localPosition_;
-        } else {
-            g_clientWorld.terrain_->RemoveLight(light_);
-            LightPosition(light_) = localPosition_;
-            SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
-            g_clientWorld.terrain_->AddLight(light_);
-        }
+        LightPosition(light_) = localPosition_;
+        // A range not (nearly) the same is taken over.
+        if (!(change < ConstAt(worlddata::RangeEpsilon()))) SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
     }
     // A negative range (or NaN) sets LightFlag::Off.
     if (range_ >= ConstAt(worlddata::ZeroRef()))

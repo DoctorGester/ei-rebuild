@@ -6,7 +6,6 @@
 #include "random.h"
 #include "sound.h"
 #include "spell.h"    // CLight
-#include "terrain.h"  // Terrain::MoveLight (the light manager)
 #include "unit.h"
 
 #include <cstdint>
@@ -129,12 +128,6 @@ bool CMapObjectClientSpecific::RunTick() {
         double distance2 = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
         EI_NAN_AUDIT(distance2);
         if (distance2 != 0.0) {
-            Vector3 direction;
-            direction.x = followed->localPosition_.x - lightPosition.x;
-            direction.y = followed->localPosition_.y - lightPosition.y;
-            direction.z = followed->localPosition_.z - lightZ;
-            g_clientWorld.terrain_->MoveLight(lamp, &direction);
-            followed = CompanionOwner(this);
             float* position = &light->localPosition_.x;
             std::memcpy(position, &followed->localPosition_.x, 2 * sizeof(float));
             position[2] = static_cast<float>(static_cast<double>(kLightHeight) + followed->localPosition_.z);

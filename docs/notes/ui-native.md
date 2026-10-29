@@ -1,72 +1,74 @@
-# Native interface drawing: analysis and plan (2026-10-14)
+# Native interface drawing (N0-N5, P1-P8)
 
-Plan for drawing the interface's window surfaces on the GPU renderer instead of GDI into DIB sections (tickets N0-N5, P1-P8 in docs/tickets.md). Written before the work; update the status lines as tickets land.
+How the interface's window surfaces draw on the GPU renderer (tickets N0-N5, P1-P8: `python tools/tickets.py show P8`).
+Section 1 is what the interface draws with now; sections 2 and 3 keep the text layout's rules and each ticket's facts
+("P8 done" and "The titles' rich text" at the end of section 3 and "Overview of the surface canvases" say what is).
 
-**Status (P8, P8a, 2026-10-29): done.** Every window surface draws on its GPU canvas and nowhere else, the titles' RTF text too; the GDI path, the DIB sections, the switch words and the comparison harness are gone, and the interface measures text with our own fonts. Sections 1-3 and 5 are the plan as written; "P8 done" and "The titles' rich text" (end of section 3) and "Overview of the surface canvases" say what is.
-
-
-**Summary.** The interface's art is already drawn on the GPU: sprites, minimap, 3D previews, rectangles, fades and hit points all reach `render::BeginMesh`, `ScreenDraw` or `TlDraw`. What is still CPU-only is the window surfaces (`CUiSurface`, 0x38 bytes). These are text, fills, frames, carets and lines drawn with GDI into a DIB, and today that DIB is re-uploaded (memcmp, convert, upload) whenever it changes.
-
-The proposal is to keep each surface as a persistent GPU canvas, a render target owned by `src/render`. Drawing calls are recorded in surface pixels at the GDI boundary and replayed on the GPU. GDI stays only for metrics, so layout stays identical. The work is about 4 preparation tickets that can start now, then 7–8 porting tickets.
+**Status (P8, P8a, 2026-10-29): done.** Every window surface draws on its GPU canvas and nowhere else, the titles' RTF
+text too; the GDI path, the DIB sections, the switch words and the comparison harness are gone, and the interface
+measures text with our own fonts.
 
 ## 1. Inventory: how the interface produces pixels
 
 The frame order is this. `CInterface3D::Draw` 005F5220 (inside BeginScene..EndScene) draws the backdrop blit, then the top window's slot 20 (sprites and models), then the fade. After EndScene, `DrawOverlays` 005F5320 runs the top window's slot 22 (`RedrawBase` 005FECC0, which blits every shown surface through 005FDA80; containers recurse in 00601040), then slot 23 (tooltips 005FED00), then the status surface, FPS surface, console and the backdrop captures. The cursor 005E54A0 comes last. So every window surface is drawn above every mesh, in stack and child order.
 
-| Primitive | Functions (file) | Users / call sites | Path today |
+| Primitive | Functions (file) | Users | Path |
 |---|---|---|---|
-| Surface blit (plain, colour-keyed, stretched with flag 2) | 005FDA80 `ui_surface_blit.cpp` → `render::SurfaceBlit` → `render_textures.cpp WindowSurfaceView` (memcmp of the DIB at every blit, then convert and upload) | every surface: about 45 `AddSurface` sites in 22 files, plus the console, FPS / status surfaces and backdrops | GPU blit of a CPU texture |
-| Text | 005FDE20 `CUiSurface::DrawTextIn` (`ui_text_draw.cpp`: GDI DrawText on the surface's HDC (the original: MFC's CDC slot 26); with a shadow, first in 0x080808 at +1,+1); 005FDFA0 `DrawWrappedText` (`ui_text.cpp`) | about 71 `SurfaceDrawText` / `DrawWrappedText` sites in 35 files (most: saveload_list 7, exchange 7, hero_screen 6, help_page 6, stats_rows 4); 26 more through `SurfaceDraw::Text` in `ui_item_info.cpp`; direct `dc->DrawText` in the console (4) | CPU (GDI) |
-| Fill / Clear / FrameRect | 005FE370, 005FE2F0, 005FDCB0 (`ui_surface_frame.cpp`); `gdi::FillSolidRect` (the original's `CDC::FillSolidRect` 0070BADA / 0070BB04) | about 50 Clear lines in 27 files; Fill and FrameRect only in the tooltip (`ui_tooltip.cpp:131`); FillSolidRect in the console (3) | CPU |
-| Lines and carets (a solid pen, width 1 or 2: gdi::Pen) | MoveTo / LineTo / SelectPen | console 005E4A10, chat typed line 005E3700, edit field 0065C2E0, connect list 0061D780, save/load list (`ui_saveload_list.cpp:104`) | CPU |
-| Single pixel | `SetPixel` | minimap marker: N0 found `CHudMap::Setup` 00641F20, about 33 pixels on a 24x18 surface (18x18 under Rebirth), drawn again at each HUD setup | CPU |
-| Get / release DC (start and end of drawing) | 005FDC00 / 005FDC60 (`ui_surface_dc.cpp`: a memory DC on the DIB) | about 57 sites in 38 files | CPU |
-| Screen copy into a surface | 005FD3D0 `CaptureScreen` → the surface's canvas (`ps_copy`; R28a, canvas-only in every mode) | escape-menu backdrop (`ui_interface_draw.cpp`), global-map pick picture (`ui_global_map_places.cpp`), quick save (`ui_saveload.cpp`) | GPU |
-| Greyscale, (2r+4g+b)/16 | 005FE440 → `ps_grey` on the canvas (R28a) | escape-menu backdrop | GPU |
-| Save picture | 005FD440 `Rgb565Copy` → `ps_rgb565` into an R16_UINT target, (2x+1)·src/(2·size), read back (R28a) | escape-menu `screenCopy_` (256x192), QuickSave 006570E0, SaveGame 00655550 | GPU, 5:6:5 read-back |
-| Pixel read | 005FD240 `PixelAt` | global-map click (`ui_global_map_input.cpp:128`) and FindPaths (`ui_global_map_paths.cpp:171`): zone = (pixel>>4)&0xF − 1 | CPU, reads pixels |
-| Swap / freeze | 005FD7A0 `SwapContents`, 005FD760 `CUiSurface::Show` / `Hide` | camp, menus, backdrop mode 3/4; N0: also every window's `CUiWindow::Show` 006002C0 on each show and hide | CPU memcpy |
-| Titles' RTF text | 0065F020 `CUiScrollingSurface::RenderText` (the original: RichEdit EM_FORMATRANGE into the DIB) | titles / credits | GPU glyph runs (P8a) |
-| Sprites, shapes, minimap, portraits | `CUiMesh::Draw` 005E6D90 → 004E9010 → `render::BeginMesh`; shape builders 005E70E0/7680/7D60/99D0; `ui_mesh_build.cpp` | every panel | GPU (done) |
-| 3D previews and models | `CUiModel::Draw` 005FC2F0, hero preview 005EC300, container draws 00600EF0 / 00622420, `render::ClearDepth` | camp, hero, HUD | GPU (done) |
-| Rectangles, fades, letterbox, rubber band | slot 19 005041F0 → `render::ScreenDraw`; `CScreenFade::Draw` 005E69C0 | — | GPU (done) |
-| Flying hit points | 005E18E0 → 00501BB0 → `TlDraw` | — | GPU (done) |
-| Cursor | 005E54A0 → `render::Cursor` (`render_blit.cpp`: CPU composite plus `sg_make_image` every frame) | — | GPU draw, CPU work per frame |
-| Movies | `bink_video.cpp` → `MovieFrame` / `MovieBlit` (Bink decodes on the CPU) | — | GPU draw; the CPU decode cannot be avoided |
-| CPU-written textures used by sprites | `CopyImage` 005FFFB0 (16 sites in 8 files: portraits, HUD icons, help pictures) and `ItemFigureTexture` 005EC020 draw on the GPU (R28); the save / load pictures and the global-map clouds (`CGlobalMapClouds::Draw`, every frame: noise and blend in shaders) too (R28b) | — | GPU (done) |
+| Surface blit (plain, colour-keyed, stretched with flag 2) | 005FDA80 `CUiSurface::Blit` (`ui_surface_blit.cpp`) → `render::ui::DrawCanvas` | every surface | the canvas drawn into the frame |
+| Text | 005FDE20 `CUiSurface::DrawTextIn` / `DrawTextPixels` (`ui_text_draw.cpp`; with a shadow, first in 0x080808 at +1,+1); 005FDFA0 `DrawWrappedText` (`ui_text.cpp`); extents 005F8340 by `TextExtent` (`ui_font.h`) | every window with text, the console | glyph runs on the canvas, our fonts (P2, P2a, P8) |
+| Fill / Clear / FrameRect | 005FE370, 005FE2F0, 005FDCB0 (`ui_surface_frame.cpp`: `Fill`, `Clear`, `FillRect`, `FrameRect`) | Clear everywhere; Fill and FrameRect in the tooltip; FillRect in the console | canvas commands |
+| Lines and carets | `CUiSurface::Line` (the pen's rule, end point left out) | console 005E4A10, chat typed line 005E3700, edit field 0065C2E0, connect list 0061D780, save / load list 006567A0 | canvas commands (P5) |
+| Single pixel | `CUiSurface::Dot` | the HUD map's marker (`CHudMap::Setup` 00641F20) | canvas command |
+| Screen copy into a surface | 005FD3D0 `CaptureScreen` (`ui_surface_pixels.cpp`) | escape-menu backdrop (`ui_interface_draw.cpp`), global-map pick picture (`ui_global_map_places.cpp`) | GPU copy (`ps_copy`, R28a) |
+| Greyscale, (2r+4g+b)/16 | 005FE440 | escape-menu backdrop | GPU (`ps_grey`) |
+| Save picture | 005FD440 `Rgb565Copy` → `render::ui::ReadRgb565` | escape-menu `screenCopy_` (256x192), QuickSave 006570E0, SaveGame 00655550 | GPU, 5:6:5 read back |
+| Pixel read | 005FD240 `PixelAt` → `render::ui::ReadPixel` | global-map click (`ui_global_map_input.cpp`) and FindPaths (`ui_global_map_paths.cpp`): zone = (pixel>>4)&0xF − 1 | GPU read back of one pixel |
+| Swap / freeze | 005FD7A0 `SwapContents` → `render::ui::MoveCanvas`, 005FD760 `CUiSurface::Show` / `Hide` | camp, menus, backdrop modes 3 / 4, every window's `CUiWindow::Show` 006002C0 | the canvas moved aside and back |
+| Titles' RTF text | 0065F020 `CUiScrollingSurface::RenderText` (`render_rich_text.cpp` lays it out) | titles / credits | glyph runs (P8a) |
+| Sprites, shapes, minimap, portraits | `CUiMesh::Draw` 005E6D90 → 004E9010 → `render::BeginMesh`; shape builders 005E70E0/7680/7D60/99D0; `ui_mesh_build.cpp` | every panel | GPU meshes |
+| 3D previews and models | `CUiModel::Draw` 005FC2F0, hero preview 005EC300, container draws 00600EF0 / 00622420, `render::ClearDepth` | camp, hero, HUD | GPU meshes |
+| Rectangles, fades, letterbox, rubber band, flying hit points | slot 19 005041F0 → `render::ScreenDraw`; `CScreenFade::Draw` 005E69C0; 005E18E0 | — | GPU |
+| Cursor | 005E54A0 → `render::Cursor`; between frames `render_cursor.cpp` (renderer.md, R9c2) | — | drawn by the present |
+| Movies | `bink_video.cpp` → `MovieFrame` / `MovieBlit` (Bink decodes on the CPU) | — | GPU draw of the CPU-decoded frame |
+| Textures written by the interface | `CopyImage` 005FFFB0 (portraits, HUD icons, help pictures), `ItemFigureTexture` 005EC020, the save / load pictures, the global-map clouds (`CGlobalMapClouds::Draw`: noise and blend in shaders) | — | GPU (R28, R28b) |
 
-Notes on the inventory:
-- The `3DfpFPU.dll` work in the interface is limited to the mesh path's CPU projection for picking bounds (2DintMMX's picture and texture conversion, 004F0060 and the decoder at 007AF06C slot 5, is gone since R28). Neither does per-frame window pixel work.
-- Tooltips, edit boxes, list boxes, the console and chat are all CPU surfaces.
-- The minimap and global map are GPU meshes, except for the pick readback, the clouds texture and the one-pixel dot.
+What is left on the CPU per frame in the interface: the text layout of what is drawn again (the unit panel every frame,
+tooltips), the mesh path's projection for picking bounds, and the Bink decode.
 
 ## 2. Text
 
-**Changed 2026-10-14 (user):** the native path does not use GDI at all, for metrics or glyphs, and need not be pixel-exact. N2 loads its own font (TrueType rasteriser plus a font metric-compatible with Times New Roman) and its layout also serves the text extent, so wrapping uses the same metrics as drawing. The GDI notes below describe the original behaviour to approximate.
+The interface draws and measures text in its own fonts (`UiFont`, ui_font.h; Liberation Serif for Times New Roman,
+built into the executable), laid out by `render::text` (render_text.cpp; the DrawText layout rules at the end) and
+drawn as glyph runs on the canvases; no GDI. The user's call (2026-10-14): not pixel-exact against GDI, but wrapping
+and drawing use one set of metrics. What follows is the original's behaviour that the layout follows.
 
-**Fonts.** `CInterface3D::Create` 005F4990 (`ui_interface_create.cpp`) makes `fonts_[0..2]` with `gdi::PointFont` (the original's `CFont::CreatePointFont` 0070BBE5): "Times New Roman" at width·{104, 112, 144}/800/scale. The scale is the pixel height of a 75-point font. So the font size depends on resolution; with WideScreen the scale's 0.01 becomes width·0.0075/height (addon's float at 005F4F81, `widescreen::FontScale`; W4).
+**Fonts.** `CInterface3D::Create` 005F4990 (`ui_interface_create.cpp`) makes `fonts_[0..2]` as the original's
+`CFont::CreatePointFont` 0070BBE5 sized them: "Times New Roman" at width·{104, 112, 144}/800/scale. The scale is the
+pixel height of a 75-point font. So the font size depends on resolution; with WideScreen the scale's 0.01 becomes
+width·0.0075/height (addon's float at 005F4F81, `widescreen::FontScale`; W4).
 - The console has its own point font (`console_window_create.cpp`).
-- All text is GDI: no bitmap fonts, quality left at its default, so the system's ClearType / smoothing setting decides the look.
-- The credits switch font smoothing off for the session (the original; ours does not, P8b: "Font smoothing" in
+- The original's text was GDI's, with the system's ClearType / smoothing setting; ours is smoothed or not by
+  SPI_GETFONTSMOOTHING (P8b).
+- The credits switched font smoothing off for the session (the original; ours does not, P8b: "Font smoothing" in
   section 3).
 
 **Metrics.**
-- The text extent 005F8340 calls `GetTextExtentPoint32A` on `GetDC(game window)` and scales by 800/width and 600/height. It feeds word wrap in 005FDFA0, `CUiScrollText::Tokenize` 0065D4B0 / `DrawLines` 0065D150 (sample "W" for each font's height), tooltip sizes, the chat (wrap at 780) and the message box.
-- 005FDE20's return value (the DrawText height scaled back through 005F7E30) and DT_CALCRECT measurements (`ui_layouts.cpp:556/615`, format 0x411) decide layout.
-- **Rule: metrics must stay GDI.** In the hook build, keep calling GDI DrawText / extent on a metrics DC (a 1x1 DIB memory DC, or an empty clip region). The pixels go away; the numbers stay bit-exact.
+- The text extent 005F8340 (the original: `GetTextExtentPoint32A` on the game window's DC, scaled by 800/width and
+  600/height; ours: `TextExtent`) feeds word wrap in 005FDFA0, `CUiScrollText::Tokenize` 0065D4B0 / `DrawLines`
+  0065D150 (sample "W" for each font's height), tooltip sizes, the chat (wrap at 780) and the message box.
+- 005FDE20's return value (the text's height scaled back through 005F7E30) and DT_CALCRECT measurements
+  (`ui_layouts.cpp`, format 0x411) decide layout.
 
-**Draw semantics to reproduce.**
+**Draw semantics.**
 - Transparent background. The shadow is drawn first, in 0x080808 at +1,+1.
-- The rectangle is scaled through 005F7CA0 (W2 changes this to "no margin"), then gets +2 on right and bottom. DrawText clips to it.
-- Formats seen: 0, DT_CENTER, DT_RIGHT, 4 (DT_VCENTER without SINGLELINE, so no effect), DT_WORDBREAK, DT_EXPANDTABS (help page), DT_NOPREFIX (0x800), DT_CALCRECT. Formats without DT_NOPREFIX turn '&' into an underline prefix.
+- The rectangle is scaled through 005F7CA0 (W2 changes this to "no margin"), then gets +2 on right and bottom. The
+  text clips to it.
+- Formats seen: 0, DT_CENTER, DT_RIGHT, 4 (DT_VCENTER without SINGLELINE, so no effect), DT_WORDBREAK, DT_EXPANDTABS
+  (help page), DT_NOPREFIX (0x800), DT_CALCRECT, DT_END_ELLIPSIS (the connect list's Rebirth names). Formats without
+  DT_NOPREFIX turn '&' into an underline prefix.
 - Colours come from callers. Scroll text uses BEL 'C' r g b and BEL 'F' digit tokens.
-- Surfaces are usually keyed on black. Antialiased edges are therefore composited against black and become opaque, which is the dark fringe of today's look.
-
-**What a GPU text path needs** (`src/render`, independent of game code):
-- **Glyph atlas.** One per HFONT and smoothing state, rasterised by GDI itself: TextOut white on black into a 32-bit DIB, keeping RGB coverage so ClearType is reproduced. Advances from `GetCharABCWidths` / `GetCharWidth32`. DrawText applies no kerning.
-- **Layout.** Reproduces DrawText for the flags above: line breaking, alignment, tabs (8 × average width), '&' prefix and underline, clipping, multibyte lead bytes.
-- **Draw command.** Glyph quads drawn in "against black" mode: colour × coverage, and opaque wherever coverage > 0. This reproduces the keyed CPU look.
-- **Validation (offline, exact).** For a corpus of all game strings × 3 fonts × 800x600 / 1024x768 / 1280x720 / 1920x1080 / 3840x2160, compare the atlas composition on the CPU against GDI DrawText into a DIB. Require the same line breaks and identical pixels, except where glyphs overhang.
+- Surfaces are usually keyed on black. Antialiased edges are therefore composited against black and become opaque
+  (the keyed fringe of the original's look, kept: glyphs drawn "against black").
 
 ### N2 done (2026-10-14): `src/render/render_text.{h,cpp}` and `tools/text_check`
 
@@ -116,45 +118,17 @@ string in ten wraps at a different word than today's GDI at 800x600.
 - **The shadow** (0x080808 at +1,+1) is drawn first and can land over non-black pixels of the second pass; composite both passes in order.
 - **Quads.** `TextLayout::quads` are in rectangle pixels and still need clipping to `TextLayout::clip`, unless `clipped` is false.
 - **Atlas.** It can grow during a layout, so upload after `Layout` and check `Generation()`.
-- **Pre-existing build-check failure, not N2.** `build.cmd release` fails in check_returns on the release map, on main too: dbghelp leaves 619 names to undname, mostly from libcpmt:vector_algorithms.obj. The 200-name chunks then exceed the command-line limit (53,117 characters; WinError 206). The verify map passes.
 
-## 3. Architecture proposal
+## 3. The canvases
 
-**Model: a GPU canvas per surface.** Surfaces are retained images: they are drawn when something changes and blitted every frame. They are also incremental (drawing without a Clear adds to what is there), and some are redrawn every frame (the unit-panel name in 006462A0, tooltips). So the GPU equivalent is a render target per holder, not a per-frame draw list.
-
-- Commands queue between GetDC and ReleaseDC and are executed into the canvas in order.
-- The blit 005FDA80 draws the canvas texture at the blit's rectangle, keyed by alpha, stretched for flag 2.
-- No memcmp, no upload, no list growth. The "dirty" state is just "commands pending".
-- A canvas updated after it was already blitted in the same frame uses the existing pass split (`DrawPending` / `g_drawnCommands` in `render.cpp`). Updates made before a canvas's first blit of the frame are hoisted to the start of the frame.
-
-**API: `src/render/render_ui.{h,cpp}`** (new files; plus `render_text.{h,cpp}`):
-- `Canvas(holder, w, h, masks, key)`, `Fill(holder, rect, colour)` (a colour equal to the key, after quantising to the surface format, punches transparency), `FrameRect`, `Line(x0, y0, x1, y1, width, colour)` (GDI's end-point-exclusive rule), `Pixel`.
-- `Text(holder, font, layout, colour, clip)`.
-- `CopyFrame(holder, screenRect)`: a GPU copy of the frame drawn so far.
-- `Greyscale(holder)`: a shader pass, ping-pong.
-- `Image(holder, srcHolder or texture, src, dst, keyed)`: room for pictures later.
-- `ReadBack(holder)`: writes the canvas into the holder's DIB in the surface's format.
-- `DrawCanvas(holder, dst, src, keyed)`: a new Frame command kind.
-- Blend modes needed: opaque fill, "glyph against black", alpha-keyed blit, point-sampled stretch. Scissor equals the clip rectangle intersected with the surface. A 16-bit mode quantises in the shader so key matches and colours agree.
-
-**Game-side hand-over.** Record at the GDI boundary, in surface pixels, after the game's own scaling: 005FDE20, Fill / Clear / FrameRect, and the pen, LineTo and FillSolidRect wrappers in `ui_gdi.h`. This keeps WideScreen orthogonal: W1/W2 change the rectangles and scale functions upstream, and the 2D layer only ever sees final pixels.
-- **Native table.** Whether a surface is native is decided per surface, in a side map keyed by the surface. `CUiSurface` is game-allocated at 0x38 bytes, so no new fields can be added. The flag is set from a table of window vtables in a new `ui_native.cpp`, keyed by the window recorded in `AddSurface` 005FFA90.
-- **Switch.** `EI_RENDER` words:
-  - `uinative[=all|list]`: native surfaces skip GDI pixels; GDI is still called on the metrics DC for return values.
-  - `uiboth` (verify default): record and draw GDI, so the existing pixel wrappers (`pixel_settle.h` users) keep working, and the per-surface diff can run.
-  - Default stays CPU.
-- **Fallback.** A surface that any code we have not ported draws into stays CPU, uploaded as today. This covered RichEdit 0065F020 (until P8a), and Rebirth-patched draws that still run addon's code in a Rebirth launch (none left after W2–W4, W2a, W2b and W4a: the connect list 0061D780 and Create 0061B2C0, and the hero screen's Create 00613EA0 are ours in a Rebirth launch).
-- **Readers.**
-  - `PixelAt` and `Rgb565Copy` call `ReadBack` first, then run the original CPU code unchanged. This keeps the format round trip the global-map pick relies on.
-  - `SwapContents` keeps the canvas; the 007C7E74 / 007C7E78 totals are still computed from pitch × height.
-  - `CaptureScreen` becomes a GPU copy, with no staging readback unless someone reads it.
-
-**Caching.** Canvases live until `HolderGone`. The glyph atlas is kept per HFONT and rebuilt when the smoothing state (`SPI_GETFONTSMOOTHING`) changes. The cursor image and mask become cached textures keyed by (holder, from-rect) instead of `sg_make_image` every frame.
-
-**Verification.**
-- **(a) Per-surface diff in the verify build under `uiboth`.** After each ReleaseDC, or when a canvas changes, read the canvas back and compare it with the DIB after the key (per-channel tolerance about 24 for glyph edges, exact for fills). The log carries the window vtable, surface index and differing fraction. PNG pairs are dumped on failure, and the run fails above a limit. This is precise and per window, and it needs no capture choreography.
-- **(b) Frame A/B within one frozen moment.** Steps: `uipath cpu`, capture; `uipath native`, capture; then `samecapture` with a UI mask. The renderer writes `frames\<name>.uimask.bmp` from the native blit rectangles. Both representations exist under `uiboth`, so switching is instant.
-- **(c) Suite.** The UI scenarios run with `new,present,uiboth` on vanilla and on `run_all --native`; `--widescreen` keeps comparing against addon.
+**Model: a GPU canvas per surface.** Surfaces are retained images: they are drawn when something changes and blitted
+every frame. They are also incremental (drawing without a Clear adds to what is there), and some are redrawn every
+frame (the unit-panel name in 006462A0, tooltips). So each surface's holder has a render target (`render_ui.cpp`),
+not a per-frame draw list: the surface functions queue commands on it, the blit 005FDA80 draws it at the blit's
+rectangle (keyed by alpha, stretched for flag 2), and a canvas changed after its first blit of the frame splits the
+pass (`DrawPending`). The commands are in surface pixels after the game's own scaling, so WideScreen's rectangles and
+scale functions (W1 / W2) stay upstream. What is (P8): "Overview of the surface canvases" below; the tickets' own
+facts follow.
 
 ### N1 done (2026-10-21): `src/render/render_ui.{h,cpp}`, `shaders/ui_canvas.hlsl`, `tools/ui_check`
 
@@ -657,36 +631,26 @@ they depend on.
 
 ## 5. Risks and open questions
 
-**Things the game reads back from pixels:**
-- The global-map pick (005FD240 on a frame drawn by `FrameStepOriginal`; zone = (pixel>>4)&0xF − 1) must stay exact. The read goes canvas → DIB in the surface's format, then the original PixelAt.
+**Things the game reads back from pixels** (each a GPU read back, P8):
+- The global-map pick (005FD240 on a frame drawn by `FrameStepOriginal`; zone = (pixel>>4)&0xF − 1) must stay exact:
+  `ReadPixel` packs the canvas's pixel back to the screen format.
 - The escape-menu and QuickSave pictures (005FD440, written into shot.sav) only need to be within tolerance.
-- The verify wrappers that compare surface pixels need `uiboth`.
-- In-game screenshots (006D6D40) in the switch-over come from render::ReadFrame (R9c3, renderer.md).
+- In-game screenshots (006D6D40) come from render::ReadFrame (R9c3, renderer.md).
 
-**GDI-dependent layout.** Extent and DrawText return values must stay GDI (the metrics DC). The layout library must match GDI's line breaks exactly, or text lands on different lines; N2's corpus test is the gate. DT_VCENTER without SINGLELINE and the '&' prefix in formats without DT_NOPREFIX are easy to get wrong.
+**Layout.** Text is laid out and measured in our fonts (Liberation's metrics, not GDI's hinted Times New Roman), so
+line breaks may differ from the original in a few places ("P8 done", Checks). DT_VCENTER without SINGLELINE and the
+'&' prefix in formats without DT_NOPREFIX are the easy ones to get wrong (the DrawText layout rules below).
 
-**Font smoothing.**
-- ClearType or greyscale depends on the system, and the credits turn smoothing off at runtime (keyed in the atlas).
-- 16-bit mode quantises colours and the key test: 0x080808 survives, but near-black text colours may become transparent in the CPU path and must do so on the GPU too.
+**Font smoothing.** Smoothed or not by SPI_GETFONTSMOOTHING (the harness reports it off); the titles draw unsmoothed
+by their own layout (P8b). 16-bit mode quantises colours and the key test: 0x080808 survives, but a near-black text
+colour may become transparent, on the canvas as in the original's memory.
 
-**Rebirth.**
-- Patched draws ran addon's GDI code until W2–W4 ported them (005FDE20, 005F8340, 005E3700, 0065C2E0, 006567A0, 00659420, 0065E580, 006462A0, the backdrop in 005F5320 and the creation 005F4990 are ours in a Rebirth launch now). The connect list 0061D780 (W2a), the connect screen's Create 0061B2C0 (W2b) and the hero screen's Create 00613EA0 (W4a) are ours in a Rebirth launch too; the fallback is automatic only if N0 or the diff catches drawing we have not ported.
-- `present` under Rebirth still crashes (R9c), so native UI is validated on vanilla and `--native` first.
-- EI_Plugin's fixes (006407E0, 005ED7B0) keep original code there.
+**Lost device.** A canvas comes back from its command history or its read-back pixels ("P8 done", Lost device);
+render_device_lost compares the frames before and after a loss.
 
-**Other risks.**
-- **Performance.** Today every blit memcmps the whole DIB (1.9 MB for an 800x600 32-bit backdrop) and there is a full-frame readback per frame in `present`. Native removes the memcmp and upload. What remains on the CPU: GDI metrics calls; the global-map clouds and cursor composite, unless P7 / N5 handle them; the per-frame readback, which is R9's. Canvas updates after a blit in the same frame split the main pass; hoisting covers the common case.
-- **Not ported (keep CPU and upload):** Bink decode.
-- **Open questions:**
-  - Should the default later move to direct-to-frame glyph drawing, which looks cleaner but loses the fringe and needs a looser tolerance?
-  - Should a resolution-independent UI scale (4K) be done? It needs re-rasterised atlases and changes metrics, so it is out of scope for behaviour-exact work.
-
-### Critical files for implementation
-- E:\workspace\ei\src\render\render_blit.cpp (and new render_ui.cpp / render_text.cpp beside it; render.cpp `DrawPending`, render_internal.h `Command`)
-- E:\workspace\ei\src\render\render_textures.cpp (`WindowSurfaceView`, surface memory)
-- E:\workspace\ei\src\game\ui_text_draw.cpp (005FDE20 / 005F8340; W2 conflict) and E:\workspace\ei\src\game\ui_text.cpp (005FDFA0)
-- E:\workspace\ei\src\game\ui_surface_blit.cpp, E:\workspace\ei\src\game\ui_surface_dc.cpp, E:\workspace\ei\src\game\ui_surface_frame.cpp, E:\workspace\ei\src\game\ui_surface_pixels.cpp, E:\workspace\ei\src\game\ui_surface_create.cpp
-- E:\workspace\ei\src\game\ui_interface_draw.cpp (frame order, backdrop / greyscale / save picture), E:\workspace\ei\src\game\ui_interface_create.cpp (fonts), E:\workspace\ei\src\game\ui_global_map_places.cpp (pick picture)
+**Open questions.**
+- Direct-to-frame glyph drawing (no canvas for text) would look cleaner but loses the keyed fringe.
+- A resolution-independent interface scale (4K) needs atlases rasterised again and changes metrics.
 
 ## Overview of the surface canvases
 

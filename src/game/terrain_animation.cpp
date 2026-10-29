@@ -34,8 +34,6 @@ constexpr float kTimeScale = 0.05f;                        // the circling waves
 constexpr float kGlowScale = 50.0f;
 constexpr float kRiseScale = 0.25f;
 constexpr float kCircleScale = 3.0f;
-constexpr float kMinComponent = 0.01f;
-constexpr float kSunStepScale = /*007C8964*/ 95.0f;                     // the sun's ray steps per unit of its direction
 constexpr int kTileFrameEvery = 3;                         // animated tiles step every third frame
 constexpr int kAlwaysSteps = 1000;                         // a tile speed that steps every time
 
@@ -58,10 +56,6 @@ bool SectorBefore(const SectorData* x, const SectorData* y) {
     if (x->sy != y->sy) return x->sy < y->sy;
     return x->sx < y->sx;
 }
-
-// A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01
-// with its sign.
-float AwayFromZero(float v) { return std::fabs(v) >= kMinComponent ? v : std::copysign(kMinComponent, v); }
 
 } // namespace
 
@@ -194,19 +188,6 @@ using terrain::SectorData;
 
 void Terrain::SetSun(CLight* light, const Vector4* colour) {
     ambient = *colour;
-    float x = terrain::AwayFromZero(-light->direction_.x);
-    float y = terrain::AwayFromZero(-light->direction_.y);
-    float z = terrain::AwayFromZero(-light->direction_.z);
-    double inverse = 1.0f / vecmath::Length<Sum3::ZYX>(Vector3{x, y, z});
-    x = static_cast<float>(inverse * x);
-    y = static_cast<float>(inverse * y);
-    double up = z * inverse;
-    sunSlopeX = static_cast<float>(up / x);
-    sunSlopeY = static_cast<float>(up / y);
-    sunRunX = static_cast<float>(x / up);
-    sunRunY = static_cast<float>(y / up);
-    sunStepX = x87::fistp(static_cast<float>(terrain::kSunStepScale * x));
-    sunStepY = x87::fistp(static_cast<float>(terrain::kSunStepScale * y));
     sun = light;
     if (lightInterval <= 0) {
         for (SectorData* sector : sectorCache) sector->built &= ~SectorStage::Lit;

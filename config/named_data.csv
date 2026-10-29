@@ -234,11 +234,8 @@ address,size,name,file
 007C8388,16,kFixedViewRotation,src/game/player_client_handlers.cpp
 007C84EC,4,g_loadingProjectileWorld,src/game/world.h
 007C8808,4,kHalfPi,src/game/sound_manager.cpp
-007C8840,4,g_blocksWithFree,src/game/terrain_lights.cpp
-007C8844,4,g_fullBlocks,src/game/terrain_lights.cpp
 007C8908,4,kWaterFalloff,src/game/terrain_sector.h
 007C8930,4,kHalfPi,src/game/terrain_ambience.cpp
-007C8964,4,kSunStepScale,src/game/terrain_animation.cpp
 007C8968,4,kWaveSpeedScale,src/game/terrain_landscape.cpp
 007C896C,4,kWaveDirectionScale,src/game/terrain_landscape.cpp
 007C8970,4,kWaveHeightScale,src/game/terrain_landscape.cpp

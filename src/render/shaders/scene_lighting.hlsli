@@ -10,7 +10,7 @@ cbuffer light_params : register(b1) {
     float4 point_slots[4];     // per light (4 a vector): its point shadow's map + 1, 0 none
 };
 
-// The landscape lit as its vertex lighting lit each vertex (terrain_lighting.cpp). `m`: the material colour the
+// The landscape lit as the game's vertex lighting lit each vertex. `m`: the material colour the
 // sun and ambient light start from, `mp`: the point lights', `loss`: the light lost under the water, `hidden`:
 // how much sun the shadow map hides, `strength`: the map's darkening. See docs/notes/renderer.md, "The
 // renderer's source files".
