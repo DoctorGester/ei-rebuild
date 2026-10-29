@@ -243,8 +243,6 @@ public:
     // Save: the same fields (names with their terminators; the base scale always).
     void SaveMapObject(CStream* stream);
 
-    // The companion's Query with the first two arguments (both companions return 0).
-    int CompanionQuery(int first, int second);
     // Frees the data of `array` and empties it.
     void FreeArray(std::vector<Vector3>* array);
 
@@ -306,7 +304,6 @@ public:
     // The object's effect list changed (`first`: it arrived with the object). The server's is empty.
     virtual void EffectsChanged(bool) {}
     virtual void Unused14() {}       // empty in both
-    virtual int Query(int first, int second);   // (0) in both
     // A hit of `damage` with the hit-kind bits `kind` (UnitStatsFlag Backstab, Head, Electrical). Server: empty;
     // client: for a living MapObjectFlag::InParty object, a message with the object's id.
     virtual void Hit(int, int) {}

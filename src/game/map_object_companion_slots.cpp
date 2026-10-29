@@ -21,9 +21,6 @@ void CMapObjectCompanion::Create() {
 }
 void CMapObjectCompanion::Destroy() { owner = nullptr; }
 
-// Query (all three classes): 0.
-int CMapObjectCompanion::Query(int, int) { return 0; }
-
 // --- The client's and the server's ---------------------------------------------------------------------
 
 void CMapObjectClientSpecific::Hit(int damage, int kind) {

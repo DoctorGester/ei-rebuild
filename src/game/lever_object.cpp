@@ -49,12 +49,12 @@ Lever::Lever() {
 
 Lever::~Lever() { DestroyMapObject(); }
 
-void Lever::CreateLever() {
+void Lever::Create() {
     CreateMapObject();
     ResetLever(this);
 }
 
-bool Lever::UpdateLever() {
+bool Lever::RunTick() {
     Update();
     if (WorldContext()->IsServer()) return false;
     Vector3 shown = {scale.x, scale.y, scale.z};

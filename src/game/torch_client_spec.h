@@ -25,7 +25,8 @@ public:
     CTorchObjectClientSpec();
     ~CTorchObjectClientSpec() override;
 
-    void Create() override { CreateClient(); }
+    // CreateSpec, the light and particles dropped (released), sound_ 0.
+    void Create() override;
     void Destroy() override { DestroyClient(); }
     bool RunTick() override;                             // true
     const char* ClassName() override;                   // "CTorchObjectClientSpecific"
@@ -37,8 +38,6 @@ public:
     void SetFlameSlot(const float* colour, float value, const float* values) override { SetLightAt(colour, value, values); }
     void SetNameSlot(const char* name) override { SetSound(name); }
 
-    // CreateSpec, the light and particles dropped (released), sound_ 0.
-    void CreateClient();
     // HideEffects (through the vtable), the light dropped, the particles stopped
     // and dropped, DestroySpec.
     void DestroyClient();

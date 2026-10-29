@@ -67,8 +67,8 @@ struct NpcPrototypeTable {
 };
 
 // The statistics of an NPC of prototype `name` (a fatal error without one; a debug message without its NPC
-// record), then recomputed around a refill of the slots. Returns 1.
-int BuildNpcStats(UnitStats* stats, const std::string& name);
+// record), then recomputed around a refill of the slots.
+void BuildNpcStats(UnitStats* stats, const std::string& name);
 
 // The object class of prototype `name`'s model record; Creature without a prototype or model.
 MapObjectType PrototypeObjectClass(std::string_view name);
@@ -88,7 +88,6 @@ struct CMapObjectManager : CResourceManager {
     // The starting equipment of prototype `name`: see docs/notes/units.md, "Creation helpers".
     int GiveStartingEquipment(CUnit* unit, const std::string& name);
 
-    void CreateManager();
     // The base manager's CreateObject; a new object gets an animation state (the figure manager's) and its side
     // halves from the world's specific manager: Object3D and MapObject, then Unit for the three unit types and
     // Torch for the torch. Returns the object or null.
@@ -101,15 +100,15 @@ struct CMapObjectManager : CResourceManager {
     FigureAnimation* FindAnimation(const std::string* figure, std::uint32_t key);
     // The defaults of an object without a prototype (SetDefaults): a unit (class 0x50) gets the statistics
     // (SetStats), any other object the vitals (SetServerData); then ScaleEffectChanged(false) and no prototype
-    // index. Returns 1.
-    int GiveDefaults(CMapObject* object);
+    // index.
+    void GiveDefaults(CMapObject* object);
 
     // The builders of a creature's starting statistics from its prototype; the map objects call them on their
     // owner.
     // Defaults for an object without a prototype: with `stats`, the statistics (stats
     // 50, rates, values and body slots at 100, no layers); without, the vitals (1000 hit points
-    // and mana, regeneration 10, protection 100). Returns 1.
-    int SetDefaults(UnitVitals* vitals, UnitStats* stats);
+    // and mana, regeneration 10, protection 100).
+    void SetDefaults(UnitVitals* vitals, UnitStats* stats);
     // The vitals and statistics of a creature of prototype `name` (the NPC record of
     // the same name supplies stats, attributes, experience and skills when there is one).
     // Without a prototype: SetDefaults. Returns 0 when `vitals` or `stats` is null (after the
@@ -118,8 +117,8 @@ struct CMapObjectManager : CResourceManager {
     // Gives map object `object` the prototype `name`: units get their vitals and statistics
     // (BuildFromPrototype, SetServerData and SetStats), their height offset, scale (the base scale and
     // ApplyBaseScale) and second prototype; every object its prototype index. Without a prototype: defaults,
-    // ScaleEffectChanged(false), index 0 and a debug message. Returns 1.
-    int ApplyPrototype(CMapObject* object, const std::string& name);
+    // ScaleEffectChanged(false), index 0 and a debug message.
+    void ApplyPrototype(CMapObject* object, const std::string& name);
 };
 
 inline CMapObjectManager* MapObjectManagerOf(const CEngineObject* object) {

@@ -326,7 +326,7 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
 
 // ---- Segment --------------------------------------------------------------------------
 
-bool CWorldClient::Segment() {
+bool CWorldClient::RunTick() {
     ObjectListIterator objectsIt{nullptr, {}};
     int frames = ++ticksRun_;
     if (frames == 10) {

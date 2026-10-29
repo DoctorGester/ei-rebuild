@@ -1102,9 +1102,9 @@ void GameFlow::ProcessRequest() {
         clientWorld->SetPlayer(g_serverWorld->worldHandle_.Get());
         ClientWorldLocalView(clientWorld)->sendParty_ = 0;
         g_serverWorld->SetGameResult(1);
-        clientWorld->Segment();
+        clientWorld->RunTick();
         g_serverWorld->Update();
-        clientWorld->Segment();
+        clientWorld->RunTick();
         g_serverWorld->Update();
         LoadGame(requestTarget_);
         if (requestArg_) {

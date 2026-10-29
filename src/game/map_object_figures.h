@@ -292,7 +292,6 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    void CreateState();
     void DestroyState();
     void ReleaseBones();
     void Reset();

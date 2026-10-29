@@ -53,7 +53,7 @@ CTorchObjectClientSpec::~CTorchObjectClientSpec() {
     // The members' destructors find both null; then the spec's destructor.
 }
 
-void CTorchObjectClientSpec::CreateClient() {
+void CTorchObjectClientSpec::Create() {
     CreateSpec();
     light_.Reset();
     if (CParticleSource* old = particles_) {

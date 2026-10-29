@@ -2,7 +2,7 @@
 // plays for the game state. In a zone (state 1) it plays a combat track of the allod's theme while the
 // party fights (combat state == 2) and otherwise, after a random pause of 120..180 s, a calm track; the
 // briefing, constructor, main menu and credits states each play one file. The themes come from music.reg
-// (LoadThemes).
+// (Create).
 #include "console.h"
 #include "game_singletons.h"
 #include "game_strings.h"
@@ -67,7 +67,7 @@ const char* MusicClassNameText() { return "CMusicSystem"; }
 
 // The error message names the file without its path, and its text is FatalError's
 // format string (original).
-void CMusicSystem::LoadThemes() {
+void CMusicSystem::Create() {
     CFileRegistry reg;
     bool opened;
     {

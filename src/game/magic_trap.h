@@ -14,13 +14,17 @@ class CSpell;
 
 class MagicTrap : public CMapObject {
 public:
-    // Also runs the map object's Create and the trap's reset (as CreateTrap).
+    // Also runs the map object's Create and the trap's reset (as Create).
     MagicTrap();
     ~MagicTrap() override;
 
-    void Create() override { CreateTrap(); }
+    // The map object's Create, then sides -1, flags_ |= 0x80040, no spell, no circles, points or units, period
+    // 10, countdown and singleTarget 0.
+    void Create() override;
     void Destroy() override { DestroyTrap(); }
-    bool RunTick() override { return UpdateTrap(); }
+    // On the server world with a spell: a period not above 0 updates the units inside; otherwise the countdown
+    // goes down by one (not below 0) and, once it is not above 0, the trap fires at what is in it.
+    bool RunTick() override;
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     const char* ClassName() override;   // "CMagicTrapObject"
@@ -34,13 +38,7 @@ public:
     // Reads what SaveTrap writes (the spell found by id in the spell manager, the units resolved in the context).
     void LoadTrap(CStream* stream);
 
-    // The map object's Create, then sides -1, flags_ |= 0x80040, no spell, no circles, points or units, period
-    // 10, countdown and singleTarget 0.
-    void CreateTrap();
     void DestroyTrap();
-    // On the server world with a spell: a period not above 0 updates the units inside; otherwise the countdown
-    // goes down by one (not below 0) and, once it is not above 0, the trap fires at what is in it.
-    bool UpdateTrap();
     // An armed trap casts its spell at the living units of its sides found in its circles, when there are
     // any. The context is fetched even when the trap is not armed.
     void FireAtOccupants();

@@ -184,7 +184,7 @@ void CVisibilityFog::ComputeBounds() {
 // Per-frame fade: visible cells halve their distance to opaque, the others halve their alpha and
 // are dropped below 0.01; every cell steps its texture tile. Returns whether the fog is still
 // needed (referenced elsewhere or has cells).
-bool CVisibilityFog::UpdateCells() {
+bool CVisibilityFog::RunTick() {
     std::vector<std::uint32_t> dead;
     World();   // called and ignored
     for (auto& [key, cell] : cells) {

@@ -81,9 +81,7 @@ bool CMapObject::InvisibleSlot() { return IsInvisible() != 0; }
 void CMapObject::EffectsChanged() {}
 bool CMapObject::IsSynchronised() { return Flag20000() != 0; }
 void CMapObject::ApplyBaseScale() { ResetScale(); }
-void CMapObject::ReceiveHit(DamageInfo*, CUnit*, CUnit*) {
-    CompanionQuery(0, 0);
-}
+void CMapObject::ReceiveHit(DamageInfo*, CUnit*, CUnit*) {}
 int CMapObject::StatsChanged() { return PackVitals(); }
 void CMapObject::ScaleEffectChanged(bool) {
     ScaleEffectChangedDefault();

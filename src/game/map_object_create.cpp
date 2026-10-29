@@ -1,5 +1,5 @@
 // Create of map objects, units and torches: the map object's Create, then the object's number of network
-// fields. See unit.h (CUnit::CreateUnit), torch.h (CTorchObject::CreateTorch) and docs/notes/units.md
+// fields. See unit.h (CUnit::Create), torch.h (CTorchObject::Create) and docs/notes/units.md
 // ("Creation, databases, save").
 #include "map_object.h"
 #include "game_strings.h"
@@ -55,13 +55,13 @@ void CMapObject::DestroyMapObject() {
 
 // --- Units and torches -----------------------------------------------------------------------------
 
-void CUnit::CreateUnit() {
+void CUnit::Create() {
     CreateMapObject();
     Reset();
     MapObject()->netState_.SetFieldCount(kUnitNetFields);
 }
 
-void CTorchObject::CreateTorch() {
+void CTorchObject::Create() {
     CreateMapObject();
     CTorchObjectSpec* old = spec;
     spec = nullptr;

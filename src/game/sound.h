@@ -158,7 +158,7 @@ struct CSoundManager : CEngineObject {
     CSoundManager();
     ~CSoundManager() override;
 
-    void Create() override { CreateBody(); }
+    void Create() override;   // Reset
     void Destroy() override { Close(); }
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -264,8 +264,6 @@ struct CSoundManager : CEngineObject {
     // when bits * channels is 0. `this` is unused.
     double WaveLength(const void* data);
 
-    // Reset, then 1.
-    void CreateBody();
     void ClearWaveSources();
     // 1 (also when sound is off), 0 when the archive cannot be opened.
     int AddWaveSource(const std::string& path);
@@ -337,7 +335,9 @@ struct CMusicSystem : CEngineObject {
     CMusicSystem();
     ~CMusicSystem() override;
 
-    void Create() override { LoadThemes(); }
+    // music.reg: Common\Credits and Common\MainMenu, then per other section an open land theme (CalmOpen)
+    // and a dungeon theme (CalmDungeon). FatalError when the file cannot be opened.
+    void Create() override;
     void Destroy() override { ResetThemes(); }
     bool RunTick() override {
         UpdateMusic();
@@ -358,9 +358,6 @@ struct CMusicSystem : CEngineObject {
     std::int32_t jinglePlaying;
     std::uint32_t calmDue;              // timeGetTime() for the next calm track (0: not chosen)
 
-    // music.reg: Common\Credits and Common\MainMenu, then per other section an open land theme (CalmOpen)
-    // and a dungeon theme (CalmDungeon). Returns 1, or FatalError's result when the file cannot be opened.
-    void LoadThemes();
     void SetZoneMode(std::string_view allod, int dungeon);
     void Stop();
     void PlayBriefing(std::string_view allod);

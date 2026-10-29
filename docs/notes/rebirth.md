@@ -135,7 +135,7 @@ their flags (`modfolders::Active`: the flag on). addon's side, as the layer repr
   (aiinfo, database, databaseLmp, gfx, materials, outro, redress, sfx, speech, texts, textsLmp, textures) a value (string or array) names
   mod archives (paths relative to the mod) that `CMappedResource::GetFile` asks before the game's archive; a value starting with `-` makes
   the game's archive ignored. The key is the lower-case path the game opens: starter `Path Settings\RESOURCES PATH` (`.\Res\`) + name, speech
-  under `CD-ROM PATH` + `Res\`. figures.res / menus.res values are also extra figure archives (CFigureManager::CreateWithArchives 005AA544,
+  under `CD-ROM PATH` + `Res\`. figures.res / menus.res values are also extra figure archives (CFigureManager::Create 005AA544,
   CLinkFigureLoader::Construct 004F6952, before the game's), textures / redress / menus.res values extra texture archives (CTextureManager::Create
   006915EF, after the game's three when all opened). The mod archives open at the first OpenResource or CMaterialManager::Create (1001FD2E).
 - GetFile (13 calls of 00671B40 and the vtable slot): the mod's archives for this archive, then the archive unless ignored; a `t\` or `s\` name
