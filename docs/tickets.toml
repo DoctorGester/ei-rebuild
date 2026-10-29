@@ -890,6 +890,16 @@ title = "Drop 3DfpFPU: plain C++ projection, the DLL no longer loaded"
 group = "renderer"
 note = "After R30f the GPU draws and clips everything; 3DfpFPU.dll (CTransformPipeline::transform_, model.h ITransformPipeline) is left projecting vertices: ProjectClipped (mesh bounds for the hand-over and the flag-1 picking rectangle, device_bounds.cpp), ProjectTerrain / ProjectTerrainClipped (terrain before hand-over), ProjectFlat (shadows), Project / TransformPoints (particles, weather, lightning, lines), FitBounds (figure load), SetProjection. Replace each with plain C++ on the pipeline's matrices (ClipTest is ours already), drop what only fed the old CPU draw, stop loading the DLL (render_helper TransformLibraryName, renderer_init / renderer_lifetime) and delete ITransformPipeline. Gameplay reads projected positions for picking and the selection box: goldens (and R30f1's edge scenario) decide; any golden difference is reported, not re-recorded. Notes: renderer.md sections 9 / 10 / 13. User asked 2026-10-29 whether the clipping is needed at all."
 
+[[ticket]]
+id = "R31a"
+title = "Sprites without the CPU clipper: the GPU clips them, clip.cpp goes"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R31"]
+files = ["src/game/renderer_sprites.cpp", "src/game/clip.cpp", "src/game/clip.h", "src/game/projection.cpp"]
+note = "Left after R31: the particle sprites are the last draw clipped on the CPU. ProjectSprites still writes an outcode per corner and DrawClipped (renderer_sprites.cpp) runs every crossing sprite's two triangles through clip::ClipTriangle (clip.cpp, a screen-space six-plane clipper) before render::TlDraw; every other draw hands crossing geometry to the GPU (R30f). One uniform path: hand the corners over as DrawQuads does and let the GPU clip, drop the sprite outcodes' per-corner work if nothing else reads them, delete clip.cpp and clip.h's clipper. Sprite corners at w <= 0 need a look (behind the camera, the projection's 1 / w flips them): name the difference, do not emulate. Goldens decide; any difference is reported, not re-recorded."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
