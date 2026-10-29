@@ -30,8 +30,8 @@ constexpr float kArrivedDistanceSq = 1.0f;
 constexpr int kControllerStateInactive = 5;
 
 
-// The modes' log: the AI stream (its static initialiser stores the address).
-constexpr console::Stream* kModeLog = /*007C54E8*/ {&console::g_aiLogOut};
+// The modes' log: the AI stream.
+constexpr console::Stream& kModeLog = console::g_aiLogOut;
 
 // The mode names of the "new motivation" message (passed by address).
 const char* ModeName(AIModeType type) {
@@ -123,7 +123,7 @@ void AIBrain::Think() {
             if (const char* modeName = ModeName(best->GetType())) name = modeName;
             text = str::Format(MotivationFormat(), owner->unit->id_, name,
                         bestPriority);
-            console::EndLine(*kModeLog << text);
+            console::EndLine(kModeLog << text);
             AIModeType type = best->GetType();
             if (type >= AIModeType::Suspection && (type <= AIModeType::CorpseWatcher || type == AIModeType::Fear) && alertMode == 2 && !alerted)
                 alerted = 1;

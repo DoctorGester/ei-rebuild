@@ -455,7 +455,8 @@ them is below.
   interface's "pers *" listing (00607720, 00635250) has no known scenario.
 - 004D0AF0 `ScriptSubCallClear` (`script_blocks.cpp`): type and argument index zero, the command cleared. Only the original
   `LoadFunction` calls it (a Rebirth launch's script loads).
-- `CSysInfo` (`sys_info.cpp`; the global at 007AB8F8, vtable 0073D644, class id 0xD, five CStrings at +0x1C). Rewritten: what
+- `CSysInfo` (the global at 007AB8F8, vtable 0073D644, class id 0xD, five CStrings at +0x1C): deleted in C50d2, nothing
+  read it (nor the CPUID report 007CAED0 it wrote). Was rewritten: what
   can run after the hooks install: Create's shell 004DDF05 (it calls the collector 004DDF28 and returns 1), the empty
   Destroy 004DDF1D, the class name / id slots 004DE890 / 004DE8A0, the destructor 004DDE75, its deleting form 004DE8B0 and the
   exit handler 004DDD60 (runs on every exit). A static initialiser runs the rest before WinMain (ported by A-E2): 004DDCB0, 004DDCBA (it

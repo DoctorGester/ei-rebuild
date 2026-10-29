@@ -605,7 +605,7 @@ REVIEWED_NEAR = {
     0x007AA5E8: ('007AA5D8', 'the party manager 007AA5A0 (PartyManager, 0x44 bytes); 007AA5D8 is its class template vector'),
     0x007AA624: ('007AA620', 'the saving script pointer (dword; the CString 007AA61C below it is 4 bytes)'),
     0x007AA880: ('007AA868', 'a decal vertex (DecalVertex, 0x14 bytes)'),
-    0x007ABA10: ('007ABA08', 'the float 1 / pi (read directly)'),
+    0x007AB8F0: ('007AB8E8', "the hash_set 007AB8D8 (0x14 bytes; 007AB8E8 its element count) ends at 007AB8EC"),
     0x007ABB68: ('007ABB64', 'the fog dead cells vector 007ABB58 (12 bytes) and its guard byte'),
     0x007AEE68: ('007AEE64', 'the DirectDraw driver list 007AEE64 (gone; its unused initialiser 004ED520 still reads the cell)'),
     0x007AEE98: ('007AEE94', 'the device lock 007AEE78 (CRITICAL_SECTION, 0x18 bytes) and the holder count (dword)'),
@@ -617,6 +617,7 @@ REVIEWED_NEAR = {
     0x007C2DDC: ('007C2D60', 'the received memory stream (CMemoryStream, 0x28 bytes)'),
     0x007C2E78: ('007C2E70', 'the part draw guard byte (the moved positions array 007C2E60 is below it)'),
     0x007C2F28: ('007C2F24', 'the flood queue guard byte (the queue 007C2F10 is below it)'),
+    0x007C54E8: ('007C54E4', "the guard byte of 005D2390's function-local static 007C54C8 (0x1C bytes, below it)"),
     0x007C5530: ('007C552C', 'the loading movie screen RECT 007C5520 (16 bytes)'),
     0x007C5568: ('007C5560', 'a flag byte (read directly)'),
     0x007C7B44: ('007C7B38', 'the cheat command map (an STLport map, 0xC bytes)'),
@@ -651,6 +652,12 @@ REVIEWED_READ = {
     0x007AA890: 'CSky::Draw (ported): 004D9841 / 004D9846 push the identity rotation and the origin as the figure '
                 'draw arguments nothing read; ours passes neither (R27c)',
     0x007AA8A0: 'CSky::Draw (ported): see 007AA890',
+    # C50d1: the console log pointers; ours write to the streams by name (console::Stream& constants).
+    0x007AF284: "the hit log pointer (the rpg stream): unit_hits.cpp's kHitLog",
+    0x007AF3E8: "the combat log pointer (the AI stream): combat_internal.h's kCombatLog",
+    0x007C2EB8: "the alarm log pointer (the unitacks stream): ai_alarm.cpp's kAlarmLog",
+    0x007C53C4: "the AI's perception log pointer (the AI stream): unit_ai.h's kAiLog",
+    0x007C54E8: "the modes' log pointer (the AI stream): unit_ai.cpp's kModeLog",
 }
 
 
@@ -920,6 +927,28 @@ UNUSED_INITIALISERS = {
                 "terrain_sector.cpp's g_projectionOutput",
     0x006BFAC0: "the terrain projection's outcodes 007C88D0 (exit function 006BFAE0, bit 2 of 007C88C9): "
                 "terrain_sector.cpp's g_projectionOutcodes",
+    # C50d1: the console's streambufs and streams are plain globals of ours (console_streams.cpp).
+    **{a: f"the console's streambuf {o:08X} (exit function {e:08X}): console_streams.cpp's {n}"
+       for a, o, e, n in ((0x005DC1E0, 0x007C76D0, 0x005DC2C0, 'g_aiLogBuf'),
+                          (0x005DC2D0, 0x007C7278, 0x005DC2F0, 'g_eventLogBuf'),
+                          (0x005DC300, 0x007C6E20, 0x005DC320, 'g_graphicsLogBuf'),
+                          (0x005DC330, 0x007C69C8, 0x005DC350, 'g_rpgLogBuf'),
+                          (0x005DC360, 0x007C6570, 0x005DC380, 'g_unitAcksLogBuf'),
+                          (0x005DC390, 0x007C6118, 0x005DC3B0, 'g_netLogBuf'),
+                          (0x005DC3C0, 0x007C5CC0, 0x005DC3E0, 'g_allLogBuf'),
+                          (0x005DC3F0, 0x007C5868, 0x005DC410, 'g_consoleBuf'))},
+    **{a: f"the console's stream {o:08X} (exit function {a + 0x20:08X}): console_streams.cpp's {n}"
+       for a, o, n in ((0x005DC420, 0x007C5810, 'g_aiLogOut'), (0x005DC460, 0x007C57B8, 'g_eventLogOut'),
+                       (0x005DC4A0, 0x007C5760, 'g_graphicsLogOut'), (0x005DC4E0, 0x007C5708, 'g_rpgLogOut'),
+                       (0x005DC520, 0x007C56B0, 'g_netLogOut'), (0x005DC560, 0x007C5658, 'g_unitAcksLogOut'),
+                       (0x005DC5A0, 0x007C5600, 'g_allLogOut'), (0x005DC5E0, 0x007C55A8, 'g_consoleOut'))},
+    # C50d2: objects nothing of ours reads, and the logic settings' defaults as member initialisers.
+    0x004DDD30: "the system information 007AB8F8 (CSysInfo; exit function 004DDD60): it collected the machine's "
+                "version, memory and names, which nothing read",
+    0x004F0B10: "the device lock 007AEE78 (a CRITICAL_SECTION; exit function 004F0B30): only game.exe's DirectDraw "
+                "device took it; our renderer has no lock",
+    0x005CDFB0: "the logic settings' defaults 007C53F8 (005CDFC0): logic_settings.h's member initialisers of "
+                "g_logicSettings",
     # C54f: a plain global of ours in place of the static object.
     0x0064BE00: "the objectives window's last quest 007C8178 (exit function 0064BE20, guard bit 0 of 007C8174): "
                 "ui_objectives.cpp's g_lastQuest",
@@ -1193,10 +1222,7 @@ def match_exit(img, address, md):
 
 # The exit functions of initialisers ported by hand whose port registers nothing in their place: the object of ours
 # has no destructor to run. exit function -> why.
-UNREGISTERED_EXITS = {
-    **{fn: "a console stream's (ostream's and ios's destructors): console::Stream only names its streambuf "
-           "(console_streams.cpp)" for fn in range(0x005DC440, 0x005DC601, 0x40)},
-}
+UNREGISTERED_EXITS = {}
 
 # The call sites of runtime_atexits' registrations (render_exits says "atexit at" for them).
 RUNTIME_SITES = set()
@@ -1331,7 +1357,7 @@ def decode_exits(img, decoded):
         m = match_exit(img, fn, md)
         if m:
             out.append((fn, *m, initialisers))
-        else:
+        elif not all(i in UNUSED_INITIALISERS for i in initialisers):   # an unused initialiser's goes with it
             bad.append(f'exit function {fn:08X} (atexit by {initialisers[0]:08X}): no pattern matches')
     return out, bad
 

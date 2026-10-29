@@ -33,7 +33,6 @@ class CSectorMap;
 class CSceneRenderer;
 class CCamera;
 struct PartyManager;
-struct _RTL_CRITICAL_SECTION;   // CRITICAL_SECTION: the render device's lock
 
 extern lib::StaticObject<GameFlow> g_gameFlow;   // world_game.cpp
 
@@ -44,9 +43,8 @@ extern lib::StaticObject<CWorldClient> g_clientWorld;   // world_construct.cpp
 
 extern lib::StaticObject<CWorldServer> g_serverWorld;   // world_construct.cpp
 
-// The scene renderer and the critical section held around its device calls.
+// The scene renderer.
 extern lib::StaticObject<CSceneRenderer> g_sceneRenderer;   // renderer_lifetime.cpp
-extern _RTL_CRITICAL_SECTION g_deviceLock;   // renderer_lifetime.cpp
 
 // The cursor. The map database. The server world's mission script and sector map. The camera.
 extern CCursor g_cursor;   // ui_cursor_setup.cpp

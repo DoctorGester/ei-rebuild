@@ -2,7 +2,6 @@ address,size,name,type
 0079B2A8,0x308,g_camera,CCamera
 0079BF00,0x28,g_mapDatabase,CMapDatabase
 007AA5A0,0x44,g_partyManager,PartyManager
-007AEE78,0x18,g_deviceLock,_RTL_CRITICAL_SECTION
 007AF060,0x5C,g_sceneRenderer,CSceneRenderer
 007AF5B8,0x7E4,g_clientWorld,CWorldClient
 007AFE20,0x84,g_gameFlow,GameFlow

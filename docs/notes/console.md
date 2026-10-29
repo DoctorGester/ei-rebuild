@@ -13,8 +13,9 @@ listvar / loadvar round trip through `.\saves\` (redirected to harness_saves), g
 - **Output.** `007C55A8` is an old (pre-standard) MSVC `ostream` on the console streambuf `007C5868` (vtable `00740034`); eight
   more streambuf / ostream pairs carry the filtered categories: 1 ai (`007C76D0`, ostream `007C5810`), 2 event, 4 graphics, 8
   rpg, 0x10 unitacks, 0x20 net, -1 all (`007C5CC0`, ostream `007C5600`), all built in static init (`005DC1E0`-`005DC3F0`, the
-  ostreams `005DC420`-`005DC5E0`). Ours are named (`console_streams.cpp`, C18s): `g_consoleBuf` / `g_aiLogBuf` ... and
-  `g_consoleOut` / `g_aiLogOut` ..., with their initialisers ported on the names. Since C35d a stream is
+  ostreams `005DC420`-`005DC5E0`). Ours are plain globals (`console_streams.cpp`, C50d1): the streambufs `g_consoleBuf` /
+  `g_aiLogBuf` ... (file-local, built when ei_hook.dll loads) and the streams `g_consoleOut` / `g_aiLogOut` ...
+  (`constinit` on their streambufs); none has game.exe's address. Since C35d a stream is
   `console::Stream` (console.h: the inserters for text, char, int / long ("%d"), unsigned ("%u") and double ("%.6g"
   through str::Format, VC6's digits), Flush the streambuf's sync; `console::EndLine` is "'\n' and flush") and
   `ConsoleStreambuf` a plain class with MSVC 6's put area behaviour: the put area exists after the first overflow while

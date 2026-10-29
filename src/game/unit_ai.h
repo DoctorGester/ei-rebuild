@@ -439,8 +439,8 @@ namespace console {
 class Stream;
 extern Stream g_aiLogOut;
 }
-// The AI's perception log: the AI stream (its static initialiser stores the address).
-inline constexpr console::Stream* kAiLog = /*007C53C4*/ {&console::g_aiLogOut};
+// The AI's perception log: the AI stream.
+inline constexpr console::Stream& kAiLog = console::g_aiLogOut;
 
 // Copies x and y of a point; returns `out`.
 float* CopyPoint2(float* out, const float* point);

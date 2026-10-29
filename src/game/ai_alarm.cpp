@@ -15,7 +15,7 @@
 namespace {
 
 // The alarm's log: the unitacks stream.
-constexpr console::Stream* kAlarmLog = /*007C2EB8*/ {&console::g_unitAcksLogOut};
+constexpr console::Stream& kAlarmLog = console::g_unitAcksLogOut;
 
 } // namespace
 
@@ -27,7 +27,7 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
             state->active = state->pending;
             state->timer = 20;
             CUnit* unit = server->unit;
-            *kAlarmLog << "Unit " << static_cast<long>(unit->id_) << " acknowledges with ";
+            kAlarmLog << "Unit " << static_cast<long>(unit->id_) << " acknowledges with ";
             const char* what;
             switch (state->active) {
             case AIRemark::Idle: world->TellParties(server->unit, AckKind::Rest); what = "idleSound = AAn4XyU"; break;
@@ -41,7 +41,7 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
             case AIRemark::Kill: world->TellParties(server->unit, AckKind::Kill); what = "poluchi gadina"; break;
             default: what = "error... :)"; break;
             }
-            console::EndLine(*kAlarmLog << what);
+            console::EndLine(kAlarmLog << what);
         }
         state->pending = AIRemark::None;
     }

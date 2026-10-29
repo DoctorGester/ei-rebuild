@@ -529,19 +529,19 @@ bool CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     if (!dead) {
         world->AddToUpdateMap(unit);
         if (attacker) {
-            *kCombatLog << "Unit " << static_cast<long>(unit->id_) << " was attacked by " << static_cast<long>(attacker->id_);
+            kCombatLog << "Unit " << static_cast<long>(unit->id_) << " was attacked by " << static_cast<long>(attacker->id_);
         } else {
-            *kCombatLog << "Unit " << static_cast<long>(unit->id_) << " was attacked by xz";
+            kCombatLog << "Unit " << static_cast<long>(unit->id_) << " was attacked by xz";
         }
-        *kCombatLog << " skill=" << hit->attackRoll;
+        kCombatLog << " skill=" << hit->attackRoll;
         float amount = hit->amount;
-        *kCombatLog << " damage=" << amount;
+        kCombatLog << " damage=" << amount;
         if (hit->backstabFactor > 1.0f) {
             float power = hit->backstabFactor;
-            *kCombatLog << " backstab with power=" << power;
+            kCombatLog << " backstab with power=" << power;
         }
-        if (hit->calledShot) *kCombatLog << " called shot";
-        console::EndLine(*kCombatLog << " destHL=" << HitLocationName(hit->location));
+        if (hit->calledShot) kCombatLog << " called shot";
+        console::EndLine(kCombatLog << " destHL=" << HitLocationName(hit->location));
     }
 
     CPlayer* player = unit->player;

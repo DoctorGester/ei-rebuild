@@ -15,9 +15,9 @@
 
 namespace lib {
 
-// The once-only guard (bit 0) that game.exe's compiler gave the function-local statics with an empty destructor: 175
-// static initialisers (the generated static_init.cpp's `d.Once(lib::g_emptyStaticGuard, 1)`) and CSysInfo's
-// (sys_info.cpp) set it and register the empty exit function; nothing reads it but these tests.
+// The once-only guard (bit 0) that game.exe's compiler gave the function-local statics with an empty destructor: 176
+// static initialisers (the generated static_init.cpp's `d.Once(lib::g_emptyStaticGuard, 1)`) set it and register the
+// empty exit function; nothing reads it but these tests.
 inline constinit std::uint8_t g_emptyStaticGuard = /*007CAEE4*/ {};
 
 template <class T>

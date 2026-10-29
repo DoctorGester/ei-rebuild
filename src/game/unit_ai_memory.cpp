@@ -110,18 +110,18 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
         if (sight > distance && nearValue > distance) return;
     }
     if (IsDead(object)) {
-        console::EndLine(*kAiLog << "Unit " << self->id_ << " sees corpse of unit " << other->id_);
+        console::EndLine(kAiLog << "Unit " << self->id_ << " sees corpse of unit " << other->id_);
         seenCorpses.push_back(object);
         if (g_serverWorld->diplomacy_.IsAllied(self->side, other->side)) corpses.push_back(object);
     } else {
         visible.push_front(object);
-        *kAiLog << "Unit " << self->id_ << " is forced to see unit " << other->id_ << " from ";
-        console::EndLine(*kAiLog << distance << "m distance");
+        kAiLog << "Unit " << self->id_ << " is forced to see unit " << other->id_ << " from ";
+        console::EndLine(kAiLog << distance << "m distance");
     }
 }
 
 void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
-    console::EndLine(*kAiLog << "Unit " << self->id_ << " sees corpse of unit " << corpse->id_);
+    console::EndLine(kAiLog << "Unit " << self->id_ << " sees corpse of unit " << corpse->id_);
     seenCorpses.push_back(corpse);
     if (g_serverWorld->diplomacy_.IsAllied(self->side, corpse->side)) corpses.push_back(corpse);
 }
