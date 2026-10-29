@@ -236,8 +236,7 @@ add_executable(ei_vectors
     src/lib/text_case.cpp)
 target_include_directories(ei_vectors PRIVATE include src)
 # EI_VECTORS_REPLAY: the game's data at fixed addresses comes from the checks' stand-in (src/game/game_data.h).
-target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data" EI_VECTORS_REPLAY
-                           EI_HARNESS_REGISTRY="${CMAKE_SOURCE_DIR}/config/harness/registry.reg")
+target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data" EI_VECTORS_REPLAY)
 
 # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
 # report against GDI on the game's strings (tools/text_check; GDI only there).

@@ -863,7 +863,7 @@ Behaviour differences (one path for every sprite):
     ```
     Read once the renderer starts (`QualitySetting`, device_object.cpp, after `render::StartPresenting`); a value
     missing or not a DWORD is written with its default (8 and 16: the look play.cmd's `smooth` gave before R33), so
-    the file always shows both. `render::SetMsaa` rounds down to a power of two up to 8 (`kSmoothSamples`), and the
+    the file always shows both (a new file has them already, with "VSync" 1: settings_file::DefaultDocument, S24). `render::SetMsaa` rounds down to a power of two up to 8 (`kSmoothSamples`), and the
     target takes at most the device's samples; `render::SetAnisotropy` clamps to 1..16 (`kMostAnisotropy`). Both from
     the next frame (ST2's options screen can call them); `Msaa()` / `Anisotropy()` read them. **Never in a harness
     run**: `render::QualitySettingsSupported()` is false in the harness build (the pinned settings file lacks the
