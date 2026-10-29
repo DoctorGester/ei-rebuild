@@ -95,7 +95,7 @@ void AdvanceSlide(Panel* panel) {
         eased = 1.0 - 2.0 * (rest * rest);
     }
     panel->offset_ = static_cast<int>(libcrt::Ftol(panel->travel_ * eased));
-    if (panel->slide_ == 1.0f || panel->slide_ == 0.0f) panel->sliding_ = 0;
+    if (panel->slide_ == 1.0f || panel->slide_ == 0.0f) panel->sliding_ = false;
 }
 
 void PlaceSling(CEngineObject* sling, float angle, float x) {
@@ -166,7 +166,7 @@ void CHudMap::Layout() {
     MoveRegions(this, offset_);
 }
 
-void CHudMap::UpdateVanilla() {
+void CHudMap::Update() {
     // The zoom runs towards the chosen view's end: up to zoomMax_ (view 1) or down to 1 (view 2).
     if (view_ == 1) {
         const double zoom = std::pow(kZoomRate, CUiContainer::FrameTime()) * zoom_;
@@ -227,7 +227,7 @@ void CHudUnitPanel::Layout() {
     widescreen::LeavePanel();        // addon's 100232E9
 }
 
-void CHudUnitPanel::UpdateVanilla() {
+void CHudUnitPanel::Update() {
     if (sliding_) {
         AdvanceSlide(this);
         Layout();
@@ -244,7 +244,7 @@ void CHudUnitPanel::UpdateVanilla() {
 
 // --- The unit panel's setup ----------------------------------------------------------------
 
-void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
+void CHudUnitPanel::Setup(int bodyPart, bool slid) {
     offset_ = slid ? kUnitTravel : 0;
     slide_ = slid ? 1.0f : 0.0f;
     slideDirection_ = slid ? 1.0f : -1.0f;
@@ -253,10 +253,10 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
         // rectangle and slide state.
         widescreen::EnterLeftPanel();
         rect_ = RECT{kWideUnitLeft, 0, kWideUnitRight, 225};
-        sliding_ = 0;
+        sliding_ = false;
     } else {
         rect_ = RECT{0, 0, 185, 225};
-        sliding_ = 1;
+        sliding_ = true;
     }
     travel_ = kUnitTravel;
 
@@ -349,7 +349,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
 
 // --- The map's setup ----------------------------------------------------------------------
 
-void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
+void CHudMap::Setup(float zoom, bool slid) {
     widescreen::EnterRightPanel();   // addon's 10023344
     const int shift = widescreen::EdgeShift();
     rect_ = RECT{615 + shift, 0, 800 + shift, 165};   // WideScreen
@@ -375,7 +375,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     facingY_ = 1.0f;
     offset_ = slid ? kMapTravel : 0;
     slide_ = slid ? 1.0f : 0.0f;
-    sliding_ = 1;
+    sliding_ = true;
     travel_ = kMapTravel;
     slideDirection_ = slid ? 1.0f : -1.0f;
 

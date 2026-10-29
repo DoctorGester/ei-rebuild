@@ -21,11 +21,6 @@ namespace {
 // The original truncates through _ftol.
 int Truncate(float value) { return static_cast<int>(value); }
 
-// The spell's prototype record of a spell's data block.
-const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
-    return spell->GetPrototype();
-}
-
 } // namespace
 
 // --- The weapon bar's unit -----------------------------------------------------------
@@ -75,8 +70,8 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         // A weapon with a spell: the spell's name ("spell <name>").
         if (CSpell* spell = weapon->spell_) {
             description = "Unknown";
-            int found = g_clientWorld->texts_->CTextManager::Open((std::string("spell ") + SpellPrototype(spell)->code));
-            if (found) g_clientWorld->texts_->ReadLine(&description, 1);
+            if (g_clientWorld->texts_->CTextManager::Open(std::string("spell ") + spell->GetPrototype()->code))
+                g_clientWorld->texts_->ReadLine(&description, 1);
             line = str::Format("%s %s\n", labels_[3], description);
             tip += line;
         }
@@ -84,48 +79,47 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
     }
     selected_ = static_cast<int>(unit_->pendingWeapon);
     if (selected_ >= count_) selected_ = -1;
-    Highlight(selected_, 1);
+    Highlight(selected_, true);
 }
 
 // --- A quick item's tooltip ----------------------------------------------------------
 
-void CHudQuickItems::ItemTip(unsigned index, std::string* text) {
-    CItem* object = unit_->GetQuickItem(index);
-    if (!object) return;
-    auto* item = object;
+std::string CHudQuickItems::ItemTip(unsigned index) {
+    std::string text;
+    CItem* item = unit_->GetQuickItem(index);
+    if (!item) return text;
     std::string line;
-    text->clear();
     // (The original passes one string as the description and the kind.)
-    g_clientWorld->texts_->GetItemTexts(item, text, &line, &line);
+    g_clientWorld->texts_->GetItemTexts(item, &text, &line, &line);
     CSpell* data = item->spell_;
-    if (!data) return;
+    if (!data) return text;
     const float one = 1.0f;
     const float pi = 3.1415927f;
     const float perTick = 0.06666667f;   // 1/15
 
     if (item->GetCategory() == QuickItemCategory::Wand) {
         // A wand: level and charges, mana, duration, range, area, time, the last number.
-        *text += " \n";
+        text += " \n";
         float charges = item->chargeMax_;
         float level = data->manaCost_;
         int now = Truncate(item->charge_);
         int maximum = Truncate(charges);
         line = str::Format("%s %d/%d (%d)\n", labels_[0], Truncate(level), maximum, now);
-        *text += line;
-        if (SpellPrototype(data)->allowedModifiers[3] == 0)
+        text += line;
+        if (data->GetPrototype()->allowedModifiers[3] == 0)
             line = str::Format("%s %s  ", labels_[1], labels_[11]);
         else
             line = str::Format("%s %d  ", labels_[1], Truncate(data->damage_));
-        *text += line;
+        text += line;
         float duration = data->speed_;
         EI_NAN_AUDIT(duration);
         if (duration < one)
             line = str::Format("%s %s \n", labels_[2], labels_[7]);
         else
             line = str::Format("%s %d \n", labels_[2], Truncate(duration));
-        *text += line;
+        text += line;
         line = str::Format("%s %d%s  ", labels_[3], Truncate(data->range_), labels_[9]);
-        *text += line;
+        text += line;
         if (data->targetFlags_ & 0x10000000) {
             line = str::Format("%s %s \n", labels_[4], labels_[8]);
         } else {
@@ -133,7 +127,7 @@ void CHudQuickItems::ItemTip(unsigned index, std::string* text) {
             double area = static_cast<double>(radius) * radius * pi;
             line = str::Format("%s %.1f%s \n", labels_[4], area, labels_[9]);
         }
-        *text += line;
+        text += line;
         std::uint32_t ticks = data->duration_;
         if (ticks < 2) {
             line = str::Format("%s %s  ", labels_[5], labels_[7]);
@@ -141,18 +135,18 @@ void CHudQuickItems::ItemTip(unsigned index, std::string* text) {
             double seconds = x87::FromUnsigned(ticks) * perTick;
             line = str::Format("%s %.1f%s  ", labels_[5], seconds, labels_[10]);
         }
-        *text += line;
+        text += line;
         line = str::Format("%s %d \n", labels_[6], static_cast<int>(data->targetCount_));
-        *text += line;
+        text += line;
     }
     if (item->GetCategory() == QuickItemCategory::Potion) {
         // A potion: mana and time.
-        *text += " \n";
-        if (SpellPrototype(data)->allowedModifiers[3] == 0)
+        text += " \n";
+        if (data->GetPrototype()->allowedModifiers[3] == 0)
             line = str::Format("%s %s\n", labels_[1], labels_[11]);
         else
             line = str::Format("%s %d\n", labels_[1], Truncate(data->damage_));
-        *text += line;
+        text += line;
         std::uint32_t ticks = data->duration_;
         if (ticks < 2) {
             line = str::Format("%s %s\n", labels_[5], labels_[7]);
@@ -160,20 +154,21 @@ void CHudQuickItems::ItemTip(unsigned index, std::string* text) {
             double seconds = x87::FromUnsigned(ticks) * perTick;
             line = str::Format("%s %.1f%s\n", labels_[5], seconds, labels_[10]);
         }
-        *text += line;
+        text += line;
     }
+    return text;
 }
 
 // --- The action column's unit --------------------------------------------------------
 
-void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
+void CHudActionColumn::SetUnit(CUnit* unit, bool extra) {
     unit_ = unit;
     ClearSceneObjects();
     actions_.clear();
     count_ = 0;
     selected_ = -1;
     for (int i = 0; i < 6; ++i) regions_[i]->SetTip(0);
-    if (static_cast<std::uint8_t>(extra) != 0) {
+    if (extra) {
         AddAction("initqi1item", "skill0011", -1);
         regions_[count_ - 1]->SetTip(0x290E, 0x1C);
     }
@@ -186,8 +181,7 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     std::string hint;
     AddAction("initqi1item", "skill0009", 0);
     title = "Science";
-    int found = g_clientWorld->texts_->CTextManager::Open((std::string("perk ") + title));
-    if (found) g_clientWorld->texts_->ReadLine(&tip, 1);
+    if (g_clientWorld->texts_->CTextManager::Open(std::string("perk ") + title)) g_clientWorld->texts_->ReadLine(&tip, 1);
     title = str::Format("%s %d\n", labels_[0], shown->params.attributes[0]);
     if (g_clientWorld->texts_->CTextManager::Open("tip 10511") != 0) g_clientWorld->texts_->ReadToHash(&hint, 1);
     tip = tip + "\n" + title + hint;

@@ -74,7 +74,7 @@ void CInterface3D::OnQuestVariable(std::string_view name, float value) {
 
 // --- News for the top window -------------------------------------
 
-void CInterface3D::OnItemsPicked(void* items, int money, int crippled) {
+void CInterface3D::OnItemsPicked(std::list<CItem*>* items, int money, bool crippled) {
     if (!stack_.empty()) ScreenOf(stack_.back())->ItemsPicked(items, money, crippled);
 }
 

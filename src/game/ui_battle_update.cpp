@@ -40,7 +40,7 @@
 
 void CHudQuickItems::SetUnit(CUnit* unit) {
     std::string tip;
-    std::string unused;
+    std::string description;   // the item's other two texts, not shown
     unit_ = unit;
     ClearSceneObjects();
     shownCount_ = 0;
@@ -88,8 +88,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
             AddItem(model, image);
         }
         finish(item, true);
-        ItemTip(slot, &tip);
-        regions_[slot]->SetTipString(tip, static_cast<int>(slot) + 0x2A);
+        regions_[slot]->SetTipString(ItemTip(slot), static_cast<int>(slot) + 0x2A);
         place(static_cast<int>(slot));
     }
 
@@ -114,7 +113,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, false);
         // The same string serves as the second and third texts.
-        g_clientWorld->texts_->GetItemTexts(item, &tip, &unused, &unused);
+        g_clientWorld->texts_->GetItemTexts(item, &tip, &description, &description);
         regions_[slot]->SetTipString(tip);
         place(slot);
         ++slot;
@@ -125,26 +124,13 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
 
 namespace {
 
-// A unit's prototype record.
-static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) {
-    return unit->GetPrototype();
-}
-// The unit panel's model view for the unit it now shows, copied from the prototype bit for bit: the
-// size from `first`'s, the height from the shown unit's (+0x24; the same unit).
+// The unit panel's model view for the unit it now shows, copied from the prototype bit for bit (the size
+// from `first`'s, the height from the shown unit's: the same unit), and its name.
 void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
-    panel->viewSize_[0] = UnitPrototype(first)->panelViewSize;
-    panel->viewHeight_[0] = std::bit_cast<float>(UnitPrototype(panel->shownUnit_)->height);
+    panel->viewSize_[0] = first->GetPrototype()->panelViewSize;
+    panel->viewHeight_[0] = std::bit_cast<float>(panel->shownUnit_->GetPrototype()->height);
+    panel->strings_[0] = panel->owner_->UnitName(panel->shownUnit_);
 }
-
-// push_back of `*value`: the constructing helper, or the reallocating insert when full.
-void PushId(std::vector<int>* ids, const int* value) {
-    ids->push_back(*value);
-}
-void PushIdInline(std::vector<int>* ids, const int* value) {
-    ids->push_back(*value);
-}
-
-void SortIds(std::vector<int>* ids) { std::sort(ids->begin(), ids->end()); }
 
 // A multiplayer client: the party is the session's players' units, the camera's player first.
 void RebuildClientParty(CBattleScreen* screen) {
@@ -154,24 +140,24 @@ void RebuildClientParty(CBattleScreen* screen) {
     ids.camera = -1;
     for (auto& node : players) {
         net::PlayerMessage* player = node.Get();
-        int* unitId = &player->id_;
-        int* playerId = &player->serial_;
-        if (player->state_ == 0 && *unitId >= 0) {
-            if (!g_clientWorld->FindUnit(*unitId)) {
-                PushId(&ids.without, playerId);
+        const int unitId = player->id_;
+        const int playerId = player->serial_;
+        if (player->state_ == 0 && unitId >= 0) {
+            if (!g_clientWorld->FindUnit(unitId)) {
+                ids.without.push_back(playerId);
                 continue;
             }
-            PushId(&ids.withUnit, unitId);
+            ids.withUnit.push_back(unitId);
             net::BindingMessage* camera = session->binding_;
             if (camera && !(camera->flags7_ & CRefCounted::kDetached) &&
                 camera->first_.ptr == player)
-                ids.camera = *unitId;
+                ids.camera = unitId;
         } else {
-            PushIdInline(&ids.without, playerId);
+            ids.without.push_back(playerId);
         }
     }
-    SortIds(&ids.withUnit);
-    SortIds(&ids.without);
+    std::sort(ids.withUnit.begin(), ids.withUnit.end());
+    std::sort(ids.without.begin(), ids.without.end());
     if (!ids.Equals(screen->clientParty_)) {
         auto* party = &screen->party_;
         party->clear();
@@ -197,7 +183,7 @@ void RebuildClientParty(CBattleScreen* screen) {
                 lib::SetAtGrow(*party, std::ssize(*party), unit);
             }
         }
-        screen->portraits_->Rebuild(cameraFirst ? 1 : 0);
+        screen->portraits_->Rebuild(cameraFirst);
         if (screen->clientParty_.camera != ids.camera) {
             g_camera->SetTargetId(ids.camera);
             screen->RefreshSelection();
@@ -241,12 +227,11 @@ void CBattleScreen::Update() {
             weaponBar_->SetUnit(nullptr);
             quickItems_->SetUnit(nullptr);
             spellColumn_->SetUnit(nullptr);
-            actionColumn_->SetUnit(nullptr, 0);
+            actionColumn_->SetUnit(nullptr, false);
             CHudUnitPanel* panel = unitPanel_;
             if (first != panel->shownUnit_) {
                 panel->shownUnit_ = first;
                 ShowPanelView(panel, first);
-                panel->owner_->UnitName(panel->shownUnit_, &panel->strings_[0]);
             }
         }
     }
@@ -267,7 +252,7 @@ void CBattleScreen::Update() {
         if (GamePartyInExit(&records, pendingExit_, &second)) {
             CMessageBox* box = new CMessageBox(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
             interface_->PushWindow(box, 1, 1);
-            exitPending_ = 0;
+            exitPending_ = false;
         }
     }
 
@@ -411,13 +396,7 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
         }
         texts->CTextManager::GetString(key, &title);
         text.clear();
-        BOOL found;
-        {
-            std::string quest("quest ");
-            std::string textKey = quest + parts[2];
-            found = texts->Open(textKey);
-        }
-        if (found) texts->ReadLine(&text, 1);
+        if (texts->Open(std::string("quest ") + parts[2])) texts->ReadLine(&text, 1);
         std::string colour("\007C\356\343" "1 ");   // colour code 0x31E3EE43 and a space
         text = colour + title + " " + text;
     } else if (parts.size() == 4) {
@@ -459,12 +438,8 @@ void CBattleScreen::QuestVariable(std::string_view name, float value) {
     }
     text = text + "\007C\344\327\247\n";   // colour code and a line end
 
-    CHudTopPanel* top = topPanel_;
-    top->pageTexts_[0] += text;
-    if (top->page_ == 0) {
-        CBattleScreen* screen = top->owner_;
-        screen->MessageLog()->AddText(text);
-    }
+    topPanel_->pageTexts_[0] += text;
+    if (topPanel_->page_ == 0) messageLog_->AddText(text);
     clock_->highlight_ = true;
     int sound = static_cast<int>(value);
     if (questSound_ > sound) sound = questSound_;
@@ -490,29 +465,15 @@ void CBattleScreen::RefreshSelection() {
     weaponBar_->SetUnit(shown);
     quickItems_->SetUnit(shown);
     spellColumn_->SetUnit(shown);
-    actionColumn_->SetUnit(shown, selected > 0 ? 1 : 0);
+    actionColumn_->SetUnit(shown, selected > 0);
 
     // The unit panel shows the first selected unit (also a dead one, or the first of several).
     CHudUnitPanel* panel = unitPanel_;
     if (first != panel->shownUnit_) {
         panel->shownUnit_ = first;
-        if (first) {
-            ShowPanelView(panel, first);
-            panel->owner_->UnitName(panel->shownUnit_, &panel->strings_[0]);
-        }
+        if (first) ShowPanelView(panel, first);
     }
 
     // No pending action; every highlight cleared.
-    pendingSlot_ = -1;
-    pendingAction_ = 0;
-    pendingItem_ = -1;
-    CHudQuickItems* quick = quickItems_;
-    for (int i = 0; i < 8; ++i) quick->Highlight(i, 0);
-    quick->selected_ = -1;
-    CHudSpellColumn* spells = spellColumn_;
-    for (int i = 0; i < spells->count_; ++i) spells->Highlight(i, 0);
-    spells->selected_ = -1;
-    CHudActionColumn* actions = actionColumn_;
-    for (int i = 0; i < actions->count_; ++i) actions->Highlight(i, 0);
-    actions->selected_ = -1;
+    SetPendingAction(kPendingNone, -1, -1);
 }

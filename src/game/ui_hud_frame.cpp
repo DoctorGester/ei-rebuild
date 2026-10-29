@@ -14,7 +14,6 @@
 
 #include <bit>
 #include <cmath>
-#include <concepts>
 #include <cstdint>
 #include <cstring>
 #include "lib/crt.h"
@@ -26,13 +25,6 @@ namespace {
 
 inline double D(float f) { return f; }
 
-float FloatFromBits(std::uint32_t bits) {
-    float f;
-    f = std::bit_cast<float>(bits);
-    return f;
-}
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> float FloatFromBits(T) = delete;
 
 // The constants are read from memory at run time; Rebirth rewrites one of them (the clock's x,
 // widescreen::g_layoutWidth, for its widescreen layout).
@@ -60,10 +52,8 @@ float TimeOfDay() {
     return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
-CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
-
 void SetTint(CEngineObject* object, float value) {
-    float* tint = Sprite(object)->tint_;
+    float* tint = AsUiMesh(object)->tint_;
     tint[0] = value;
     tint[1] = value;
     tint[2] = value;
@@ -74,7 +64,7 @@ void Turn(CEngineObject* object, float axisZ, float angle) {
     Vector3 axis = {0.0f, 0.0f, axisZ};
     Quaternion q;
     q.SetAxisAngle(axis, angle);
-    Sprite(object)->localRotation_ = q;
+    AsUiMesh(object)->localRotation_ = q;
 }
 
 std::uint32_t Bits(float f) {
@@ -89,7 +79,7 @@ constexpr float kSlingOutY = 83.0f;             // y otherwise
 
 } // namespace
 
-void CUiMesh::Place(float a0, float a1, float a2) { PlaceBody(a0, a1, a2); }
+void CUiMesh::Place(float x, float y, float depth) { PlaceBody(x, y, depth); }
 
 void CHudClock::Update() {
     interface_->fastGame_ = fast_;
@@ -113,7 +103,7 @@ void CHudClock::Update() {
     if (GamePaused()) {
         SetTint(face, static_cast<float>(kBlinkBase - D(pulse)));
         handAngle = static_cast<float>(D(kPi) * kPausedHand);
-        Sprite(objects[1])->visible_ = blink_ > 0.5f ? 1 : 0;
+        AsUiMesh(objects[1])->visible_ = blink_ > 0.5f ? 1 : 0;
     } else {
         SetTint(face, 1.0f);
         double step;
@@ -125,7 +115,7 @@ void CHudClock::Update() {
             step = CUiContainer::FrameTime() * 0.5f;
         }
         dial_ = static_cast<float>(step + D(dial_));
-        Sprite(objects[1])->visible_ = 1;
+        AsUiMesh(objects[1])->visible_ = 1;
     }
 
     // The dial turns by whole notches' worth and wraps.
@@ -144,7 +134,7 @@ void CHudClock::Update() {
     double handSin = x87::fsin(handAngle);
     float handY = static_cast<float>(kCentreY - handSin * kHandRadius);
     float handX = static_cast<float>(x87::fcos(handAngle) * kHandRadius + widescreen::g_layoutWidth);
-    Sprite(objects[1])->Place(handX, handY, kHandDepth);
+    AsUiMesh(objects[1])->Place(handX, handY, kHandDepth);
 
     // The face turns with the time of day.
     Turn(face, 1.0f, static_cast<float>((D(hours) + kFaceOffset) * D(kPi) * kFaceStep));
@@ -157,7 +147,7 @@ void CHudClock::Update() {
         double c = x87::fcos(angle);
         float y = static_cast<float>(kCentreY - c * kDialRadius);
         float x = static_cast<float>(x87::fsin(angle) * kDialRadius + widescreen::g_layoutWidth);
-        Sprite(mark)->Place(x, y, kSpriteDepth);
+        AsUiMesh(mark)->Place(x, y, kSpriteDepth);
         angle = static_cast<float>(D(angle) - D(static_cast<float>(D(kPi) * kDialStep)));
     }
 
@@ -185,7 +175,7 @@ void CHudTopPanel::Update() {
         }
         offset_ = static_cast<int>(libcrt::Ftol(static_cast<double>(travel_) * eased));
         EI_NAN_AUDIT(slide_);
-        if (Bits(slide_) == 0x3F800000 || slide_ == 0.0f) sliding_ = 0;
+        if (Bits(slide_) == 0x3F800000 || slide_ == 0.0f) sliding_ = false;
         Layout();
         CEngineObject* sling = sceneObjects_[2];
         float y;
@@ -193,10 +183,10 @@ void CHudTopPanel::Update() {
             Turn(sling, 1.0f, kPi);
             y = kSlingInY;
         } else {
-            Sprite(sling)->localRotation_ = kHudRestRotation;
+            AsUiMesh(sling)->localRotation_ = kHudRestRotation;
             y = kSlingOutY;
         }
-        Sprite(sling)->Place(kSlingX, y, kSpriteDepth);
+        AsUiMesh(sling)->Place(kSlingX, y, kSpriteDepth);
     }
     interface_->hudPanelsIn_[1] = slideDirection_ > 0.0f ? 1 : 0;   // the panel is (coming) in
     interface_->hudTopPage_ = page_;

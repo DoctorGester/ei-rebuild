@@ -79,8 +79,8 @@ const char* QuestPrefix() { return "q."; }
 
 // The quest log refreshed with an empty list built and destroyed on the stack.
 void RefreshQuestLog() {
-    std::list<void*> none;
-    g_interface->OnItemsPicked(&none, 0, 0);
+    std::list<CItem*> none;
+    g_interface->OnItemsPicked(&none, 0, false);
 }
 
 // The client world shows a number over a unit (id, value, kind).
@@ -391,7 +391,7 @@ int CPlayerClient::OnItemsReceived() {
     }
     if (result != 0) {
         player_->GiveItems(&items, flag);
-        g_interface->OnItemsPicked(&items, money - before, flag);
+        g_interface->OnItemsPicked(&items, money - before, flag != 0);
     }
     items.clear();
     return result;

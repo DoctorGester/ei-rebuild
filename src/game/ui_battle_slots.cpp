@@ -44,12 +44,9 @@ constexpr std::uint32_t kLeaveAnswer = 0x90001;
 constexpr std::uint32_t kLoadWindowClosed = 0x100001;
 constexpr int kPortraitSprites = 5;   // sprites per portrait; the fifth (4) is the selection marker
 
-CHudTopPanel* TopPanel(CUiWindow* panel) { return static_cast<CHudTopPanel*>(panel); }
-CHudMap* Map(CUiWindow* map) { return static_cast<CHudMap*>(map); }
-
 } // namespace
 
-void CBattleScreen::Close() {
+void CBattleScreen::CloseScreen() {
     g_camera->flags_ |= CCamera::kFree;
     worlddata::g_updatePeriod = kDefaultUpdatePeriod;
     g_cursor->SetHeld(0);
@@ -58,7 +55,7 @@ void CBattleScreen::Close() {
     party_.clear();
 }
 
-bool CBattleScreen::PollShown() {
+bool CBattleScreen::ReadyToStopPolling() {
     if (hasHero_) {
         auto& party = party_;
         if (!party.empty()) g_camera->SetTarget(party[0]);
@@ -69,12 +66,8 @@ bool CBattleScreen::PollShown() {
     return true;
 }
 
-void CBattleScreen::OnItemsPicked(std::list<CItem*>* items, int money, int crippled) {
-    for (auto node = items->begin(); node != items->end();) {
-        auto next = std::next(node);
-        topPanel_->AddPickedUp(*node, static_cast<char>(crippled));
-        node = next;
-    }
+void CBattleScreen::ItemsPicked(std::list<CItem*>* items, int money, bool crippled) {
+    for (CItem* item : *items) topPanel_->AddPickedUp(item, crippled);
     topPanel_->AddMoney(money);
     topPanel_->ShowItems();
     RefreshSelection();
@@ -82,10 +75,8 @@ void CBattleScreen::OnItemsPicked(std::list<CItem*>* items, int money, int cripp
 
 void CBattleScreen::UnitLeft(CUnit* unit) {
     if (IsMultiplayerClient()) {
-        CHudTopPanel* panel = TopPanel(topPanel_);
-        panel->pageTexts_[0].clear();
-        if (panel->page_ == 0)
-            panel->owner_->MessageLog()->SetText(game::kEmptyText);
+        topPanel_->pageTexts_[0].clear();
+        if (topPanel_->page_ == 0) messageLog_->SetText(game::kEmptyText);
         return;
     }
     auto& party = party_;
@@ -95,7 +86,7 @@ void CBattleScreen::UnitLeft(CUnit* unit) {
     int after = std::ssize(party) - index - 1;
     if (after != 0) std::memmove(&party[index], &party[index + 1], after * sizeof(party[0]));
     party.pop_back();
-    portraits_->Rebuild(0);
+    portraits_->Rebuild(false);
     RefreshSelection();
 }
 
@@ -111,10 +102,10 @@ void CBattleScreen::SaveState() {
         auto* unit = party[i];
         if (unit->flags_ & kUnitSelected) stream->WriteValue(unit->id_);
     }
-    stream->WriteValue(Map(map_)->zoom_);
+    stream->WriteValue(map_->zoom_);
     stream->WriteValue(interface_->serverFlag_);
     stream->WriteValue(LocalPlayerData()->money_);   // the party's +0x50 (Create reads it back and drops it)
-    stream->WriteString(TopPanel(topPanel_)->pageTexts_[0]);
+    stream->WriteString(topPanel_->pageTexts_[0]);
     stream->WriteValue(exitPending_);
     stream->WriteValue(pendingExit_);
 }
@@ -129,10 +120,8 @@ void CBattleScreen::MarkPortrait(int index) {
 
 void CBattleScreen::UnitJoined(CUnit* unit) {
     if (IsMultiplayerClient()) {
-        CHudTopPanel* panel = TopPanel(topPanel_);
-        panel->pageTexts_[0].clear();
-        if (panel->page_ == 0)
-            panel->owner_->MessageLog()->SetText(game::kEmptyText);
+        topPanel_->pageTexts_[0].clear();
+        if (topPanel_->page_ == 0) messageLog_->SetText(game::kEmptyText);
         return;
     }
     CParty* player = LocalPlayerData();
@@ -165,7 +154,7 @@ void CBattleScreen::UnitJoined(CUnit* unit) {
         party.resize(count + 1);
         party[count] = unit;
     }
-    portraits_->Rebuild(0);
+    portraits_->Rebuild(false);
     if (selected) {
         g_clientWorld->Select(unit);
         MarkPortrait(place);

@@ -15,29 +15,14 @@
 namespace {
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
 constexpr const char* kSoundNoMagic = "buttons\\battle\\nomagic.wav";
-constexpr int kQuickSlots = 8;
 // Spell data flag (CSpell flags): the spell is aimed at a unit (kind 'u' in spells.sdb).
 constexpr std::uint32_t kSpellOnUnit = 0x10000000;
-
-// The pending actions these buttons start (CBattleScreen::pendingAction_).
-enum PendingAction : int {
-    kPendingNone = 0,
-    kPendingSpellOnUnit = 1,
-    kPendingSpellAtPoint = 2,
-    kPendingQuickOnUnit = 3,
-    kPendingQuickAtPoint = 4,
-    kPendingFollow = 7,
-    kPendingOrder = 8,
-};
-
-// The spell an item carries, or null.
-CSpell* SpellOf(CItem* item) { return item->spell_; }
 
 // The shared tail of the quick item and the spell use: `spell` (an item's spell) used at once by `unit`'s
 // side. An attack spell goes to the nearest unit `unit` sees (none: the "nomagic" sound and the pending
 // action dropped; false), any other to `unit` itself; then UseOnUnit for a spell aimed at a unit, else
 // UseAtPoint at the target's position, with `quick`.
-bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spell, char quick) {
+bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spell, bool quick) {
     CUnit* target = unit;
     if (spell->IsOffensive()) {
         target = g_clientWorld->NearestVisibleUnit(unit);
@@ -52,43 +37,34 @@ bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spe
     if (spell->targetFlags_ & kSpellOnUnit)
         screen->UseOnUnit(target, quick, 0);
     else
-        screen->UseAtPoint(target->localPosition_.x, target->localPosition_.y, target->localPosition_.z, unit, quick);
+        screen->UseAtPoint(target->localPosition_, unit, quick);
     return true;
 }
 } // namespace
 
-// --- Helpers -----------------------------------------------------------------------------------
-
-void CHudQuickItems::HighlightAt(int slot, int on) { Highlight(slot, on); }
-void CHudSpellColumn::HighlightAt(int index, int on) { Highlight(index, on); }
-void CHudActionColumn::HighlightAt(int index, int on) { Highlight(index, on); }
-
 // --- The pending action ------------------------------------------------------------------------
 
-void CBattleScreen::SetPendingAction(int mode, int slot, int item) {
+void CBattleScreen::SetPendingAction(PendingAction mode, int slot, int item) {
     pendingSlot_ = slot;
     pendingAction_ = mode;
     pendingItem_ = item;
-    for (int i = 0; i < kQuickSlots; ++i) quickItems_->HighlightAt(i, 0);
-    quickItems_->selected_ = -1;
-    for (int i = 0; i < spellColumn_->count_; ++i) spellColumn_->HighlightAt(i, 0);
-    spellColumn_->selected_ = -1;
-    for (int i = 0; i < actionColumn_->count_; ++i) actionColumn_->HighlightAt(i, 0);
-    actionColumn_->selected_ = -1;
+    quickItems_->ClearHighlights();
+    spellColumn_->ClearHighlights();
+    actionColumn_->ClearHighlights();
     switch (mode) {
-    case 1:
-    case 2:
-        spellColumn_->HighlightAt(slot, 1);
+    case kPendingSpellOnUnit:
+    case kPendingSpellAtPoint:
+        spellColumn_->Highlight(slot, true);
         break;
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-        quickItems_->HighlightAt(slot, 1);
+    case kPendingQuickOnUnit:
+    case kPendingQuickAtPoint:
+    case kPendingItemOnObject:
+    case kPendingKeyOnObject:
+        quickItems_->Highlight(slot, true);
         break;
-    case 7:
-    case 8:
-        actionColumn_->HighlightAt(slot, 1);
+    case kPendingFollow:
+    case kPendingOrder:
+        actionColumn_->Highlight(slot, true);
         break;
     default:
         break;
@@ -105,15 +81,14 @@ void CHudSpellColumn::Click(int index) {
         owner_->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
-    if (previous >= 0 && previous < count_) HighlightAt(previous, 0);
-    HighlightAt(index, 1);
+    if (previous >= 0 && previous < count_) Highlight(previous, false);
+    Highlight(index, true);
     interface_->PlaySound(kSoundClick);
     CItem* item = unit_->GetSpell(index);
     if (!item) return;
-    CSpell* spell = SpellOf(item);
+    CSpell* spell = item->spell_;
     if (!spell) return;
-    int mode = (spell->targetFlags_ & kSpellOnUnit) ? kPendingSpellOnUnit : kPendingSpellAtPoint;
-    owner_->SetPendingAction(mode, index, -1);
+    owner_->SetPendingAction((spell->targetFlags_ & kSpellOnUnit) ? kPendingSpellOnUnit : kPendingSpellAtPoint, index, -1);
 }
 
 // --- An action button ----------------------------------------------------------------
@@ -126,8 +101,8 @@ void CHudActionColumn::Select(int index) {
         owner_->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
-    if (previous >= 0 && previous < count_) HighlightAt(previous, 0);
-    HighlightAt(index, 1);
+    if (previous >= 0 && previous < count_) Highlight(previous, false);
+    Highlight(index, true);
     interface_->PlaySound(kSoundClick);
     int action = static_cast<int>(actions_[index]);
     owner_->SetPendingAction(action == 0 ? kPendingOrder : kPendingFollow, index, action);
@@ -149,8 +124,8 @@ void CHudQuickItems::Pick(int slot) {
     }
     QuickItemCategory category = item->GetCategory();
     if (category != QuickItemCategory::Wand && category != QuickItemCategory::Potion) return;
-    int mode = kPendingNone;
-    if (CSpell* spell = SpellOf(item))
+    PendingAction mode = kPendingNone;
+    if (CSpell* spell = item->spell_)
         mode = (spell->targetFlags_ & kSpellOnUnit) ? kPendingQuickOnUnit : kPendingQuickAtPoint;
     owner_->SetPendingAction(mode, slot, -1);
 }
@@ -163,8 +138,8 @@ void CHudQuickItems::UseNow(int slot) {
     if (!item) return;
     owner_->SetPendingAction(kPendingQuickOnUnit, slot, -1);
     QuickItemCategory category = item->GetCategory();
-    if ((category == QuickItemCategory::Wand || category == QuickItemCategory::Potion) && SpellOf(item))
-        if (!UseAtOnce(owner_, interface_, unit_, SpellOf(item), 1)) return;
+    if ((category == QuickItemCategory::Wand || category == QuickItemCategory::Potion) && item->spell_)
+        if (!UseAtOnce(owner_, interface_, unit_, item->spell_, true)) return;
     interface_->PlaySound(kSoundClick);
     owner_->SetPendingAction(kPendingNone, -1, -1);
 }
@@ -173,8 +148,8 @@ void CHudSpellColumn::ClickAlternate(int index) {
     if (!unit_ || index < 0 || index >= count_) return;
     owner_->SetPendingAction(kPendingSpellOnUnit, index, -1);
     CItem* item = unit_->GetSpell(index);
-    if (item && SpellOf(item))
-        if (!UseAtOnce(owner_, interface_, unit_, SpellOf(item), 0)) return;
+    if (item && item->spell_)
+        if (!UseAtOnce(owner_, interface_, unit_, item->spell_, false)) return;
     interface_->PlaySound(kSoundClick);
     owner_->SetPendingAction(kPendingNone, -1, -1);
 }

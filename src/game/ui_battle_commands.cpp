@@ -6,7 +6,6 @@
 #include "base_manager.h"
 #include "maths.h"
 #include "player_client.h"
-#include "random.h"
 #include "text_reader.h"
 #include "ui.h"
 #include "ui_camp.h"
@@ -15,7 +14,6 @@
 #include "party.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -28,54 +26,9 @@
 namespace {
 
 constexpr std::uint32_t kFlagSelected = 0x10;
-
-// A random value times ~-2^-34 * 0.3: the portrait's wobble delay, stored as a float.
-float PortraitDelay(std::uint32_t random) {
-    return static_cast<float>(x87::FromUnsigned(random) * (-6.984919588798148e-11));
-}
-
-inline CPlayerClient* LocalView(CWorldClient* client) { return client->LocalView(); }
-
-// A sprite's scale and opacity; the HUD's quick item slots.
-constexpr float kScaleOne = 1.0f;
-constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
-constexpr int kQuickSlots = 8;
-
-// After a spell or quick item was used: no pending action and no highlighted slot in the quick
-// item panel (per slot). The spell and action panels: resets each sprite inline
-// (scale 1, colour opaque, the highlight index walking along), calls their setters.
-template <typename Column>
-void DropColumn(Column* panel, bool inlinePanels) {
-    for (int i = 0; i < panel->count_; ++i) {
-        if (inlinePanels) {
-            CUiMesh* sprite = panel->SceneMesh(i);
-            sprite->SetScale(kScaleOne);
-            sprite->flatSpecular_ = kSpriteOpaque;
-            panel->selected_ = i;
-        } else {
-            panel->Highlight(i, 0);
-        }
-    }
-    panel->selected_ = -1;
-}
-
-void DropPendingAction(CBattleScreen* self, bool inlinePanels) {
-    CHudQuickItems* quick = self->quickItems_;
-    self->pendingSlot_ = -1;
-    self->pendingAction_ = 0;
-    self->pendingItem_ = -1;
-    for (int i = 0; i < kQuickSlots; ++i) quick->Highlight(i, 0);
-    quick->selected_ = -1;
-    DropColumn(self->spellColumn_, inlinePanels);
-    DropColumn(self->actionColumn_, inlinePanels);
-}
-
-// Member i's portrait nods after a random delay (as the orders' nod).
-void NodPortrait(CBattleScreen* self, int i) {
-    float delay = PortraitDelay(g_random.Next());
-    self->portraits_->slots_[i].wobbleTime_ = delay;
-    self->portraits_->slots_[i].wobbleKind_ = 1;
-}
+// HudPortraitSlot::wobbleKind_.
+constexpr int kWobbleNod = 1;
+constexpr int kWobbleShake = 2;
 
 } // namespace
 
@@ -139,72 +92,62 @@ void CBattleScreen::ToggleMember(int index) {
 
 // --- the selected members ordered at a unit ------------------------------------------------------
 
-void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
+void CBattleScreen::AttackUnit(CUnit* target, bool ctrl) {
     auto* party = &party_;
     auto unitAt = [party](int i) { return (*party)[i]; };
     int kind = 0;
     while (kind < 6 && orderKeys_[kind] == 0) ++kind;
 
-    std::vector<CUnit*> units{};
+    std::vector<CUnit*> units;
     for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
-        int n = std::ssize(units);
-        units.resize(n + 1);
-        units[n] = member;
-        HudPortraitSlot& slot = portraits_->slots_[i];
-        slot.wobbleTime_ = PortraitDelay(g_random.Next());
-        portraits_->slots_[i].wobbleKind_ = 1;
+        units.push_back(member);
+        portraits_->Wobble(i, kWobbleNod);
         int targetLevel = target->Level();
         int memberLevel = unitAt(i)->Level();
         if (targetLevel - memberLevel > 5) Speech(unitAt(i)->id_, AckKind::BigAttack, nullptr);
     }
-    if (!units.empty()) LocalView(&g_clientWorld.Get())->SendAttack(&units, target, kind, ctrl & 0xFF);
+    if (!units.empty()) g_clientWorld->LocalView()->SendAttack(&units, target, kind, ctrl);
 }
 
-void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
-    auto* party = &party_;
-    std::vector<CUnit*> units{};
-    for (int i = 0; i < std::ssize(*party); ++i) {
-        auto* member = (*party)[i];
+void CBattleScreen::OrderDeadUnit(CUnit* target, bool ctrl) {
+    std::vector<CUnit*> units;
+    for (int i = 0; i < std::ssize(party_); ++i) {
+        CUnit* member = party_[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;
-        int n = std::ssize(units);
-        units.resize(n + 1);
-        units[n] = member;
-        HudPortraitSlot& slot = portraits_->slots_[i];
-        slot.wobbleTime_ = PortraitDelay(g_random.Next());
-        portraits_->slots_[i].wobbleKind_ = 1;
+        units.push_back(member);
+        portraits_->Wobble(i, kWobbleNod);
     }
-    if (!units.empty()) LocalView(&g_clientWorld.Get())->SendUseDead(&units, target, ctrl & 0xFF);
+    if (!units.empty()) g_clientWorld->LocalView()->SendUseDead(&units, target, ctrl);
 }
 
 // --- the pending spell or quick item used --------------------------------------------------------
 
-void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
+void CBattleScreen::UseOnUnit(CUnit* target, bool quick, bool ctrl) {
     auto* party = &party_;
     auto unitAt = [party](int i) { return (*party)[i]; };
     for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         int refused;
-        if (quick == 0) {
-            LocalView(&g_clientWorld.Get())->SendCastOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
+        if (!quick) {
+            g_clientWorld->LocalView()->SendCastOnUnit(pendingSlot_, member, target, ctrl);
             refused = unitAt(i)->CanCastSpell(pendingSlot_);
         } else {
-            LocalView(&g_clientWorld.Get())->SendItemOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
+            g_clientWorld->LocalView()->SendItemOnUnit(pendingSlot_, member, target, ctrl);
             quickItems_->SetUnit(unitAt(i));
             refused = unitAt(i)->CanUseQuickItem(pendingSlot_);
         }
-        if (refused == 0) NodPortrait(this, i);
+        if (refused == 0) portraits_->Wobble(i, kWobbleNod);
     }
-    DropPendingAction(this, true);
+    SetPendingAction(kPendingNone, -1, -1);
 }
 
-void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quick) {
+// The shift below stays for the later members.
+void CBattleScreen::UseAtPoint(Vector3 point, CUnit* unit, bool quick) {
     auto* party = &party_;
     auto unitAt = [party](int i) { return (*party)[i]; };
-    // The shift below stays for the later members.
-    Vector3 point = {x, y, z};
     for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
@@ -217,17 +160,17 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
             point.z = point.z + -axis.z * k;
         }
         int refused;
-        if (quick != 0) {
-            LocalView(&g_clientWorld.Get())->SendItemAtPoint(pendingSlot_, unitAt(i), &point, 0);
+        if (quick) {
+            g_clientWorld->LocalView()->SendItemAtPoint(pendingSlot_, unitAt(i), &point, 0);
             quickItems_->SetUnit(unitAt(i));
             refused = unitAt(i)->CanUseQuickItem(pendingSlot_);
         } else {
-            LocalView(&g_clientWorld.Get())->SendCastAtPoint(pendingSlot_, unitAt(i), &point, 0);
+            g_clientWorld->LocalView()->SendCastAtPoint(pendingSlot_, unitAt(i), &point, 0);
             refused = unitAt(i)->CanCastSpell(pendingSlot_);
         }
-        if (refused == 0) NodPortrait(this, i);
+        if (refused == 0) portraits_->Wobble(i, kWobbleNod);
     }
-    DropPendingAction(this, false);
+    SetPendingAction(kPendingNone, -1, -1);
 }
 
 // --- a unit's speech event -----------------------------------------------------------------------
@@ -241,26 +184,16 @@ void CBattleScreen::Speech(int id, AckKind kind, char* extra) {
     if (phrase) {
         // The phrase's text.
         std::string text;
-        std::string line;
-        UnitName(unit, &line);
-        line += ":\n";
+        std::string line = UnitName(unit) + ":\n";
         CTextManager* texts = g_clientWorld->texts_;
-        const char* name = phrase->name.data();
-        BOOL found;
-        {
-            std::string say("say ");
-            std::string key = say + name;
-            found = texts->Open(key);
-        }
-        if (found) {
+        if (texts->Open(std::string("say ") + phrase->name.data())) {
             texts->ReadToHash(&text, 1);
             str::TrimRight(text, "\r\n");
             text += "\n";
-            // Both go to the top panel's text and, unless its +0x160, the message log.
+            // Both go to the top panel's page 0 and, while it shows that page, the message log.
             auto post = [this](const char* part) {
-                CHudTopPanel* top = topPanel_;
-                top->pageTexts_[0] += part;
-                if (top->page_ == 0) top->owner_->MessageLog()->AddText(part);
+                topPanel_->pageTexts_[0] += part;
+                if (topPanel_->page_ == 0) messageLog_->AddText(part);
             };
             post(line.c_str());
             post(text.c_str());
@@ -279,9 +212,7 @@ void CBattleScreen::Speech(int id, AckKind kind, char* extra) {
         }
     } else if (kind >= AckKind::NoWayToAttack && kind <= AckKind::Injured) {
         for (int i = 0; i < std::ssize(*party); ++i) {
-            if (unitAt(i)->id_ != id) continue;
-            portraits_->slots_[i].wobbleTime_ = PortraitDelay(g_random.Next());
-            portraits_->slots_[i].wobbleKind_ = 2;
+            if (unitAt(i)->id_ == id) portraits_->Wobble(i, kWobbleShake);
         }
     }
 }

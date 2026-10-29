@@ -52,7 +52,7 @@ void CBattleScreen::CreateScreen() {
     std::string savedText;
     hasHero_ = false;
     pendingExit_ = -1;
-    exitPending_ = 0;
+    exitPending_ = false;
 
     if (LoadingGame()) {
         // The screen's part of the saved game.
@@ -67,14 +67,16 @@ void CBattleScreen::CreateScreen() {
         stream->ReadValue(serverFlag);
         GameSetServerPaused(serverFlag);
         if (SaveVersion() >= kVersionBattleText) {
-            int unused;
-            stream->ReadValue(unused);
+            int money;   // the party's money (SaveState), not used
+            stream->ReadValue(money);
             std::string raw;
             std::string* text = stream->ReadString(&raw);
             savedText = *text;
         }
         if (SaveVersion() >= kVersionPendingExit) {
-            stream->ReadValue(exitPending_);
+            std::uint8_t exitPending;   // a byte
+            stream->ReadValue(exitPending);
+            exitPending_ = exitPending != 0;
             stream->ReadValue(pendingExit_);
         }
         stream->Resize(0);
@@ -123,17 +125,17 @@ void CBattleScreen::CreateScreen() {
     AddChild(unitPanel_);
     unitPanel_->AddObject(objects_[2]);
     unitPanel_->AddObject(objects_[1]);
-    unitPanel_->SetupVanilla(interface_->hudBodyPart_, interface_->hudPanelsIn_[0]);
+    unitPanel_->Setup(interface_->hudBodyPart_, interface_->hudPanelsIn_[0] != 0);
 
     map_ = new CHudMap(interface_, this);
     AddChild(map_);
     map_->AddObject(objects_[2]);
-    map_->SetupVanilla(mapZoom, interface_->hudPanelsIn_[2]);
+    map_->Setup(mapZoom, interface_->hudPanelsIn_[2] != 0);
 
     clock_ = new CHudClock(interface_, this);
     AddChild(clock_);
     clock_->AddObject(objects_[2]);
-    clock_->SetupVanilla(interface_->fastGame_);
+    clock_->Setup(interface_->fastGame_ != 0);
 
     movePanel_ = new CHudMovePanel(interface_, this);
     AddChild(movePanel_);
@@ -148,24 +150,16 @@ void CBattleScreen::CreateScreen() {
     topPanel_ = new CHudTopPanel(interface_, this);
     AddChild(topPanel_);
     topPanel_->AddObject(objects_[2]);
-    topPanel_->Build(interface_->hudTopPage_, interface_->hudPanelsIn_[1]);
-    {
-        // The saved message text goes back to the top panel and, when it shows page 0, the log.
-        auto* top = topPanel_;
-        auto& panelText = top->pageTexts_[0];
-        panelText += savedText;
-        if (top->page_ == 0) {
-            // The owner is this screen (a container; CBattleScreen declares it as a window).
-            auto* owner = top->owner_;
-            owner->MessageLog()->AddText(savedText);
-        }
-    }
+    topPanel_->Setup(interface_->hudTopPage_, interface_->hudPanelsIn_[1] != 0);
+    // The saved message text goes back to the top panel and, when it shows page 0, the log.
+    topPanel_->pageTexts_[0] += savedText;
+    if (topPanel_->page_ == 0) messageLog_->AddText(savedText);
     topPanel_->ShowItems();
 
     AddInput(new CCameraInput(interface_));
 
     g_camera->flags_ &= ~0x40u;
-    pendingAction_ = 0;
+    pendingAction_ = kPendingNone;
     pendingSlot_ = -1;
     GameSetWeather(0, 0.0f);   // clear weather
     GameStartAmbience();

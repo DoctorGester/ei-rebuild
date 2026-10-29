@@ -46,7 +46,7 @@ Counts are vanilla / Rebirth.
 | status | 62 | 31 | | no | 005F75B0 ShowStatusText |
 | main menu version line ("unowned", the menu surface before AddSurface) | 54 | 27 | | no | 006335E0 CMainMenu::AddVersionLine |
 | titles (00740C3C) #0 | | 51 / 58 | **EM_FORMATRANGE 51 / 58** (RichEdit) | **yes** while scrolling | 0065F020 RenderText |
-| CHudMap (00742660) #0, 24x18 (Rebirth 18x18) | | | **SetPixel 33 / 32** | no | 00641F20 SetupVanilla |
+| CHudMap (00742660) #0, 24x18 (Rebirth 18x18) | | | **SetPixel 33 / 32** | no | 00641F20 Setup |
 | msgbox, difficulty, objectives, briefing, map #1, CTradeGrid, CRepairGrid, titles #1 | 2-24 each | 1-58 each | DT_CALCRECT in BoxText (msgbox, difficulty) | CTradeGrid **yes** | BoxText, 0064D9B0, 0064CC10, SurfaceText, 00627390 |
 | map #0, objectives #2, briefing #0, menu #0 | 0 | 0 | | alive, never drawn | |
 | CChatWindow (00741478) #0, the briefing's player list | 112 / 100 | 56 / 50 | | **yes** (changed in 1) | 006095A0 CChatWindow::Update (Rebirth: EI_Plugin.asi's patch, so the game body) |
@@ -80,7 +80,7 @@ The verify wrappers' pixel helpers read about 11,000 times, most on the item inf
 
 ## Corrections to the ui-native.md inventory
 
-1. **SetPixel** is `CHudMap::SetupVanilla` 00641F20, about 33 pixels on a 24x18 surface (18x18 under Rebirth), drawn again at each HUD setup (the inventory had "a 5x5 surface, drawn once").
+1. **SetPixel** is `CHudMap::Setup` 00641F20, about 33 pixels on a 24x18 surface (18x18 under Rebirth), drawn again at each HUD setup (the inventory had "a 5x5 surface, drawn once").
 2. **Swap.** `SwapContents` runs for every window on every show and hide (006002C0), plus the hero screen's Freeze. P1 should swap canvas handles, not read back on each show and hide.
 3. **Every-frame surfaces** are the item info panel, the item strip (both surfaces), the unit panel, the camp page #0, the trade grid and the scrolling titles. Tooltips are not redrawn every frame (ui-native section 3 says they are). Except for the titles, 91-99% of these redraws leave the pixels unchanged: the CPU path's memcmp hides this today.
 4. **Main-menu version line.** 006335E0 draws into the menu surface before `AddSurface` gives it an owner. A native table keyed at `AddSurface` must apply to a surface's earlier drawing too, or the menu falls back to the CPU.

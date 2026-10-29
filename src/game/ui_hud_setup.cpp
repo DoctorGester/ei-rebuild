@@ -25,7 +25,7 @@ constexpr float kSectorRadius = 80.0f;
 constexpr float kTexelBottom = 254.0f;
 constexpr float kTexelLeft = 2.0f;
 constexpr float kLayoutBottomY = 600.0f;
-const char* ArrowSprite() { return "in25arrow"; }
+constexpr const char* kArrowSprite = "in25arrow";
 
 constexpr int kLayoutRight = 800;
 constexpr int kLayoutBottom = 600;
@@ -64,14 +64,14 @@ void SetHand(CUiMesh* sprite) {
 
 // --- The clock ---------------------------------------------------------------------------
 
-void CHudClock::SetupVanilla(int fast) {
+void CHudClock::Setup(bool fast) {
     widescreen::EnterRightPanel();   // addon's 1002332C; 100233E0 at the end
     const int shift = widescreen::EdgeShift();
     rect_ = RECT{720 + shift, 520, kLayoutRight + shift, kLayoutBottom};   // WideScreen
     AddBlankSprite()->Disc(10.0f, 80.0f, 800.0f, 600.0f, 65.0f, kDiscPoints, 0xAE, 0x51, 0x41);
     SetHand(AddBlankSprite());
     for (int i = 0; i < 4; ++i) {
-        CUiMesh* arrow = AddSprite(ArrowSprite());
+        CUiMesh* arrow = AddSprite(kArrowSprite);
         arrow->textureOffsetU_ = 0.22265625f;
         arrow->textureOffsetV_ = 0.140625f;
         arrow->PlaceBody(1000.0f, 1000.0f, kArrowDepth);
@@ -112,7 +112,7 @@ void CHudClock::SetupVanilla(int fast) {
 
 // --- The movement panel --------------------------------------------------------------------
 
-void CHudMovePanel::SetupVanilla() {
+void CHudMovePanel::Build() {
     widescreen::EnterLeftPanel();    // addon's 10023394; 100233AF at the end
     const int shift = widescreen::EdgeShift();
     rect_ = RECT{-shift, 520, 80 - shift, kLayoutBottom};   // WideScreen
@@ -152,7 +152,7 @@ void CHudMovePanel::SetupVanilla() {
         sector->tint_[2] = kSectorTint;
     }
     AddBlankSprite()->Disc(8.0f, 80.0f, 0.0f, 600.0f, 32.0f, kDiscPoints, 2, 0xFE, 0x20);
-    ShowModeVanilla(-1);
+    ShowMode(-1);
     flag_ = -1;
     SceneMesh(5)->textureOffsetU_ = 0.48046875f;
     widescreen::LeavePanel();

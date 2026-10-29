@@ -386,13 +386,14 @@ and so are the rewritten ones with wrappers (00637DC0, 006379E0, 00637190, 00637
 
 Entry points: `CBattleScreen::Update` (00638280, every frame, O) and `RefreshSelection` (00637DC0); the panels' `SetUnit`s
 (S); `MouseMove` (00639D60 S), `UnitName` (0063B920, RET 8), `LeftUp` / `LeftDown` (O; ui_hud, world_client,
-ui_describe); the message slots in `ui_battle_slots.cpp` (`SaveState` 40 S through a recorder, `Close` 26, `PollShown` 35 AL,
-`OnItemsPicked` 28, `UnitLeft` 30, `UnitJoined` 29: placed by the local player's record order, selected by the record's
+ui_describe); the message slots in `ui_battle_slots.cpp` (`SaveState` 40 S through a recorder, `CloseScreen` 26,
+`ReadyToStopPolling` 35 AL, `ItemsPicked` 28, `UnitLeft` 30, `UnitJoined` 29: placed by the local player's record order, selected by the record's
 +0x778, `MessageResult` 27, `GameOver` 31; 27 / 28 / 30 / 31 not reached by a scenario); orders `OrderAt` (RET 0x14),
 `ToggleMember` (RET 4), `AttackUnit`, `OrderDeadUnit` (RET 8), `UseOnUnit` (RET 0xC), `UseAtPoint` (RET 0x14); `Speech` (32),
 `QuestVariable` (33); `LeftDouble`, `KeyUp` (the order key of actions 0x11..0x16, `orderKeys_` +0x18D in the jump
 table's order 0, 1, 5, 4, 3, 2), `Wheel` (map, unit panel, message log, top panel); the columns' `Highlight` /
-`ClearHighlights`, `CUiMesh::SetScale` (callers use `HighlightAt` / `SpriteSetScaleOriginal`); `CHudSpellColumn::Click`,
+`ClearHighlights` (every drop of the pending action is `SetPendingAction(kPendingNone, -1, -1)`: the original's inlined
+copies of it do the same stores), `CUiMesh::SetScale`; `CHudSpellColumn::Click`,
 `CHudActionColumn::Select`, `CHudQuickItems::Pick` (S; 0063A560's spell keys call them by address); `ClickAlternate`,
 `UseNow` (`ui_hud_pick.cpp`: an immediate cast on the unit, or for an attack spell (0068B770) on the nearest unit it sees;
 none: "nomagic"; `dblclick` in ui_quick_items).
@@ -451,8 +452,8 @@ mana, hits; `ui_hud_portrait_setup.cpp`), `CHudMap`, `CHudUnitPanel` (ShowHealth
 the local view 0066AF30), `CHudTopPanel` (`ui_hud_top_panel.cpp`: `ShowPage` S, `Layout` S, `Build` 00649AF0 disabled in
 tests/verify/disabled.txt (X17), `AddPickedUp`, `AddMoney` (no scenario), `ShowItems` 0064A7A0 with `this` the top panel in
 ECX, which Ghidra mislabels). Per frame (S, state put back): `CHudMap::BuildMarkers` 00643DC0, `UpdateView` 00642E80,
-`CHudPortraits::Update`, `CHudClock::Update`, `CHudTopPanel::Update`. Destructor bodies are in `ui_hud_destroy.cpp` (inlined MFC
-array destructors write the array's vtable, then delete); `PartyIds::Equals` 006381E0 (P, every frame).
+`CHudPortraits::Update`, `CHudClock::Update`, `CHudTopPanel::Update`. The panels' destructors are the implicit ones;
+`PartyIds::Equals` 006381E0 (P, every frame).
 
 Rebirth-patched (vanilla-only hooks; callers use the original addresses): 00630010, 00636020, 00638EF0, 0063A560, 0063BAB0,
 0063BCC0, 0063C050, 0063C800, 0063CAE0, 0063E2A0, 0063E4B0, 0063F300, 0063F500, 00641F20, 00642930, 00642B40, 00645210, 006456E0,
@@ -475,7 +476,8 @@ Hazards and facts:
 - Portraits (`HudPortraitSlot`, 0x78 bytes): 005FF460 replaces the scene object, so the rewrite re-reads the object array after
   it; three inlined quaternion products each have their own operand order; the RNG's double scales (0073C468, 00742760, 0073C508)
   are not exact powers of two and are read from the exe; random words are loaded like FILD qword (MSVC's unsigned-to-double
-  rounding changed the wobble delay in 4 of 5304 calls). Kept: the sex letter ("m" / "f") keeps the previous portrait's value
+  rounding changed the wobble delay in 4 of 5304 calls). The orders' nods and the speech shakes, inlined at each site in the
+  original, are `CHudPortraits::Wobble(index, kind)` (the same draw and store). Kept: the sex letter ("m" / "f") keeps the previous portrait's value
   for a figure that is neither "unhuma" nor "unhufe"; AddPortrait's count % 4 switch leaves the texel offsets uninitialised for a
   negative count (ours 0) and indexes the column's frame and restB_ by count % 6. The multiplayer branch (no scenario) calls the
   name maps' find_or_insert directly (00514880 / 0053D340).

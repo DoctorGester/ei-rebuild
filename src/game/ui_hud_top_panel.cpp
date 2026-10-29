@@ -19,7 +19,6 @@
 
 namespace {
 
-
 float FloatFromBits(std::uint32_t bits) {
     float f;
     f = std::bit_cast<float>(bits);
@@ -28,20 +27,18 @@ float FloatFromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
-
 } // namespace
 
-void CHudTopPanel::Build(int page, int shown) {
-    const bool in = static_cast<char>(shown) != 0;
+void CHudTopPanel::Setup(int page, bool shown) {
     rect_.left = 0xB4;
-    offset_ = in ? 0x5F : 0;
+    offset_ = shown ? 0x5F : 0;
     rect_.top = 0;
-    slide_ = in ? 1.0f : 0.0f;
+    slide_ = shown ? 1.0f : 0.0f;
     rect_.right = 0x26C;
     rect_.bottom = 100;
-    sliding_ = 1;
+    sliding_ = true;
     travel_ = 0x5F;
-    slideDirection_ = in ? 1.0f : -1.0f;
+    slideDirection_ = shown ? 1.0f : -1.0f;
 
     CUiRegion* region = AddRegion();
     region->SetRect(0x181, 0, 0x19F, 0x14);   // the slide button
@@ -82,12 +79,11 @@ void CHudTopPanel::Build(int page, int shown) {
     Layout();
 }
 
-void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
+void CHudTopPanel::AddPickedUp(CItem* item, bool crippled) {
     std::string name;
     std::string kind;
     g_clientWorld->texts_->FormatItemName(item, &name);
-    const char* key = static_cast<char>(crippled) ? "combat_crippled"
-                                                  : "combat_picked_up";
+    const char* key = crippled ? "combat_crippled" : "combat_picked_up";
     g_clientWorld->texts_->GetString(key, &kind);
     std::string line = kind;
     line += " ";
@@ -95,7 +91,7 @@ void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     line += "\n";   // "\n"
     name = line;
     pageTexts_[0] += name;
-    if (page_ == 0) owner_->MessageLog()->AddText(name);
+    if (page_ == 0) owner_->messageLog_->AddText(name);
 }
 
 void CHudTopPanel::AddMoney(int money) {
@@ -112,5 +108,5 @@ void CHudTopPanel::AddMoney(int money) {
     line += "\n";   // "\n"
     text = line;
     pageTexts_[0] += text;
-    if (page_ == 0) owner_->MessageLog()->AddText(text);
+    if (page_ == 0) owner_->messageLog_->AddText(text);
 }

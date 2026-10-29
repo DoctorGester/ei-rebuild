@@ -162,7 +162,6 @@ src/game/ui_hero_screen_create.cpp
 src/game/ui_hero_screen_mode.cpp
 src/game/ui_hud.cpp
 src/game/ui_hud_build.cpp
-src/game/ui_hud_destroy.cpp
 src/game/ui_hud_frame.cpp
 src/game/ui_hud_highlight.cpp
 src/game/ui_hud_map.cpp
@@ -1510,7 +1509,6 @@ src/game/ui_hero_screen_create.cpp
 src/game/ui_hero_screen_mode.cpp
 src/game/ui_hud.cpp
 src/game/ui_hud_build.cpp
-src/game/ui_hud_destroy.cpp
 src/game/ui_hud_frame.cpp
 src/game/ui_hud_highlight.cpp
 src/game/ui_hud_map.cpp

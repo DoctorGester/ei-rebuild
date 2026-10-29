@@ -34,18 +34,18 @@ constexpr int kIconSize = 0x40;                    // the items', spells' and ac
 constexpr int kWeaponWidth = 0x2A, kWeaponHeight = 0x80;
 constexpr int kMaxQuickItems = 8;
 
-CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
-
-// The tooltips' labels: the texts "infoitem_<id>" appended in order.
+// The tooltips' labels: the texts "infoitem_<id>" in order.
 template <int N>
-void AddLabels(std::vector<std::string>* labels, const int (&ids)[N]) {
+std::vector<std::string> Labels(const int (&ids)[N]) {
     CTextManager* texts = g_clientWorld->texts_;
+    std::vector<std::string> labels;
     std::string text;
     for (int id : ids) {
         text = str::Format("infoitem_%d", id);
         texts->GetString(text, &text);
-        labels->push_back(text);
+        labels.push_back(text);
     }
+    return labels;
 }
 
 // Where the n-th 64 x 64 picture goes in a panel's texture: four down a column, the columns from
@@ -106,16 +106,16 @@ CHudWeaponBar::CHudWeaponBar(CInterface3D* ui, CBattleScreen* owner) : CUiWindow
     for (int i = 0; i < 4; ++i) regions_[i]->SetTip(0);
     unit_ = nullptr;
     const int ids[] = {15, 20, 10, 5};
-    AddLabels(&labels_, ids);
+    labels_ = Labels(ids);
 }
 
-void CHudWeaponBar::Highlight(int index, int on) {
+void CHudWeaponBar::Highlight(int index, bool on) {
     widescreen::EnterLeftPanel();   // addon's 100233ED; 10023406 at both returns
     if (index < 0 || index >= count_) {
         widescreen::LeavePanel();
         return;
     }
-    CUiMesh* sprite = Sprite(this, index);
+    CUiMesh* sprite = SceneMesh(index);
     const int left = (index * 5 + 10) * 8;
     const int right = (index * 5 + 15) * 8;
     if (on) {
@@ -167,7 +167,7 @@ void CHudWeaponBar::AddWeapon(std::string_view model, std::string_view image) {
     MakePlain(sprite);
     int index = count_;
     count_ = index + 1;
-    Highlight(index, 0);
+    Highlight(index, false);
 }
 
 // --- Quick items -----------------------------------------------------------------------------------------------
@@ -191,7 +191,7 @@ CHudQuickItems::CHudQuickItems(CInterface3D* ui, CBattleScreen* owner) : CUiWind
     entries_.clear();
     unit_ = nullptr;
     const int ids[] = {7, 8, 9, 10, 11, 12, 13, 21, 22, 26, 27, 28};
-    AddLabels(&labels_, ids);
+    labels_ = Labels(ids);
     widescreen::LeavePanel();
 }
 
@@ -224,7 +224,7 @@ CHudSpellColumn::CHudSpellColumn(CInterface3D* ui, CBattleScreen* owner) : CUiWi
     selected_ = -1;
     unit_ = nullptr;
     const int ids[] = {7, 18, 8, 9, 10, 11, 12, 13, 21, 22, 26, 27, 28};
-    AddLabels(&labels_, ids);
+    labels_ = Labels(ids);
 }
 
 void CHudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
@@ -237,7 +237,7 @@ void CHudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
     AddRegion()->SetRect(760, 470, 800, 510);
     for (int i = 0; i < std::ssize(sceneObjects_); ++i) {
         float y = kColumnBottom - static_cast<float>((count_ - i) * kStep);
-        Sprite(this, i)->Place(780.0f, y, 40.0f);
+        SceneMesh(i)->Place(780.0f, y, 40.0f);
     }
     const IconPlace at = IconAt(count_, 0x80);
     CopyImage(objects_[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y);
@@ -249,7 +249,7 @@ void CHudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
     MakePlain(sprite);
     int index = count_;
     count_ = index + 1;
-    CUiMesh* button = Sprite(this, index);
+    CUiMesh* button = SceneMesh(index);
     button->SetScale(1.0f);
     button->flatSpecular_ = kColourOff;
     selected_ = index;
@@ -291,7 +291,7 @@ void CHudActionColumn::AddAction(std::string_view model, std::string_view image,
     actions_[place] = static_cast<std::uint32_t>(action);
     int index = count_;
     count_ = index + 1;
-    CUiMesh* button = Sprite(this, index);
+    CUiMesh* button = SceneMesh(index);
     button->SetScale(1.0f);
     button->flatSpecular_ = kColourOff;
     selected_ = index;

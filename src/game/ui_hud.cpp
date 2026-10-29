@@ -5,7 +5,6 @@
 #include "texture.h"
 #include "ui.h"
 
-#include "random.h"
 
 #include "camera.h"
 #include "console.h"
@@ -44,9 +43,6 @@ constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
 constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";
 constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 
-CPlayerClient* LocalView() { return g_clientWorld->LocalView(); }
-
-
 // Scene objects of the panels (sprites, CUiMesh) are tinted through their three tint_ floats (the
 // original stores the constants as dwords).
 void SetTint(CEngineObject* object, std::uint32_t bits) {
@@ -81,38 +77,9 @@ void DrawWithSpecular(CUiWindow* window, CSceneRenderer* pass) {
     render::g_renderState.specular = false;
 }
 
-int PortraitMode(CInterface3D* ui) {
-    return ui->ActiveWindowAs<CBattleScreen>()->portraitMode_;
-}
-
 constexpr std::uint32_t kFlagSelected = 0x10;
-constexpr int kQuickSlots = 8;
-constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
-constexpr std::uint32_t kScaleLarge = 0x3F59999A;   // 0.85: quick slots 4..7
-constexpr std::uint32_t kScaleSmall = 0x3F0CCCCD;   // 0.55: quick slots 0..3
-constexpr float kScaleOne = 1.0f;
+constexpr int kWobbleNod = 1;   // HudPortraitSlot::wobbleKind_
 
-// The battle screen's own commands (the flag argument is a byte of the interface).
-void ScreenCastOn(CBattleScreen* screen, CUnit* target, char quick, int ctrl) {
-    screen->UseOnUnit(target, quick, ctrl);
-}
-void ScreenCastAt(CBattleScreen* screen, Vector3 at, CUnit* unit, int quick) {
-    screen->UseAtPoint(at.x, at.y, at.z, unit, static_cast<char>(quick));
-}
-
-// The factor turning a random dword into the portraits' negative start delay.
-constexpr double kPortraitDelayScale = -6.984919588798148e-11;
-// A random value times ~-2^-34 * 0.3, stored the way the original does.
-float PortraitDelay(std::uint32_t random) {
-    return static_cast<float>(x87::FromUnsigned(random) * kPortraitDelayScale);
-}
-// Portrait `index` nods (wobble kind 1) after a short random delay.
-void NodPortrait(CBattleScreen* screen, int index) {
-    HudPortraitSlot* slots = screen->portraits_->slots_.data();
-    float delay = PortraitDelay(g_random.Next());
-    slots[index].wobbleTime_ = delay;
-    screen->portraits_->slots_[index].wobbleKind_ = 1;
-}
 // Whether `x` is zero (either sign), as the FPU compare gives it.
 bool IsZero(float value) {
     EI_NAN_AUDIT(value);
@@ -137,12 +104,12 @@ void CHudWeaponBar::LeftUp(int, int x, int y) {
     handled_ = true;
     int previous = selected_;
     if (previous == region) return;
-    if (previous >= 0 && previous < count_) Highlight(previous, 0);
-    Highlight(region, 1);
+    if (previous >= 0 && previous < count_) Highlight(previous, false);
+    Highlight(region, true);
     selected_ = region;
     interface_->PlaySound(kSoundWeapon);
     // No check for a missing local view here (like the original).
-    if (CUnit* unit = unit_) LocalView()->SetWeapon(unit, region);
+    if (CUnit* unit = unit_) g_clientWorld->LocalView()->SetWeapon(unit, region);
 }
 
 void CHudWeaponBar::MouseMove(int, int x, int y) {
@@ -153,9 +120,9 @@ void CHudWeaponBar::MouseMove(int, int x, int y) {
 void CHudWeaponBar::Update() {
     CUnit* unit = unit_;
     if (!unit || selected_ == unit->pendingWeapon) return;
-    Highlight(selected_, 0);
+    Highlight(selected_, false);
     selected_ = unit_->pendingWeapon;
-    Highlight(selected_, 1);
+    Highlight(selected_, true);
 }
 
 void CHudWeaponBar::Draw(CSceneRenderer* pass) {
@@ -196,13 +163,11 @@ void CHudQuickItems::MouseMove(int, int x, int y) {
 }
 
 void CHudQuickItems::Update() {
-    std::string text;
     if (!unit_) return;
     for (unsigned i = 0; i < 4; ++i) {
         if (!unit_->GetQuickItem(i)) continue;
         if (!regions_[i]->HasActiveTip()) continue;
-        ItemTip(i, &text);
-        regions_[i]->SetTipText(text);
+        regions_[i]->SetTipText(ItemTip(i));
     }
 }
 
@@ -255,9 +220,12 @@ void CHudActionColumn::MouseMove(int, int x, int y) {
 
 // --- Portraits ---------------------------------------------------------------------------------
 
+// The portraits read the portrait mode of the interface's active screen (the battle screen while they get
+// input).
+
 void CHudPortraits::LeftDown(int, int x, int y) {
     int region = RegionAt(x, y);
-    int mode = PortraitMode(interface_);
+    const int mode = interface_->ActiveWindowAs<CBattleScreen>()->portraitMode_;
     if (mode == 0) {
         if (region < 0) return;
         handled_ = true;
@@ -292,7 +260,7 @@ void CHudPortraits::LeftDown(int, int x, int y) {
 }
 
 void CHudPortraits::LeftUp(int, int x, int y) {
-    if (PortraitMode(interface_) != 0) return;
+    if (interface_->ActiveWindowAs<CBattleScreen>()->portraitMode_ != 0) return;
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region < 0) return;
@@ -304,7 +272,7 @@ void CHudPortraits::LeftUp(int, int x, int y) {
 
 void CHudPortraits::MouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
-    if (PortraitMode(interface_) == 0) {
+    if (interface_->ActiveWindowAs<CBattleScreen>()->portraitMode_ == 0) {
         if (region < 0) return;
         handled_ = true;
         CBattleScreen* owner = owner_;
@@ -343,7 +311,7 @@ void CHudMap::LeftUp(int, int x, int y) {
     case 0:     // the sling button
         interface_->PlaySound(kSoundSling);
         slideDirection_ = -slideDirection_;
-        sliding_ = 1;
+        sliding_ = true;
         handled_ = true;
         return;
     case 1:     // the round map (zoomed)
@@ -402,7 +370,7 @@ void CHudUnitPanel::LeftUp(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region == 0) {
         interface_->PlaySound(kSoundSling);
-        sliding_ = 1;
+        sliding_ = true;
         slideDirection_ = -slideDirection_;
         handled_ = true;
         return;
@@ -449,7 +417,7 @@ void CHudClock::LeftUp(int, int x, int y) {
         // Rebirth's MPSpeedControl (the JNEs aimed at the next instruction).
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         if (g_clientWorld->paused_) GameSendFlag10(0);
-        fast_ = region - 1;
+        fast_ = region == 2;
         worlddata::g_updatePeriod = fast_ ? kFastPeriod : kNormalPeriod;
         interface_->fastGame_ = fast_;
         interface_->PlaySound(kSoundClock);
@@ -498,17 +466,17 @@ void CHudMovePanel::LeftUp(int, int x, int y) {
         interface_->PlaySound(kSoundClick);
         for (int i = 0; i < std::ssize(owner_->party_); ++i) {
             CUnit* unit = owner_->party_[i];
-            if (unit->flags_ & 0x10) LocalView()->SetMoveMode(unit, mode);
+            if (unit->flags_ & 0x10) g_clientWorld->LocalView()->SetMoveMode(unit, mode);
         }
     }
-    ShowModeVanilla(mode);
+    ShowMode(mode);
 }
 
 void CHudMovePanel::MouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
 
-void CHudMovePanel::ShowModeVanilla(int mode) {
+void CHudMovePanel::ShowMode(int mode) {
     widescreen::EnterLeftPanel();    // addon's handler; another at the end
     mode_ = mode;
     auto* marker = SceneMesh(0);
@@ -551,7 +519,7 @@ void CHudMovePanel::Update() {
         else if (flag != unit->fightAtWill)
             flag = -2;
     }
-    ShowModeVanilla(mode);
+    ShowMode(mode);
     flag_ = flag;
     // Scene object 5 shows the flag through its texture offset (textureOffsetU_).
     std::uint32_t bits = flag == 0 ? 0x3EAC0000u : flag == 1 ? 0u : 0x3EF60000u;
@@ -572,7 +540,7 @@ void CHudTopPanel::LeftUp(int, int x, int y) {
     switch (region) {
     case 0:
         interface_->PlaySound(kSoundSling);
-        sliding_ = 1;
+        sliding_ = true;
         slideDirection_ = -slideDirection_;
         handled_ = true;
         return;
@@ -600,9 +568,8 @@ void CHudTopPanel::Wheel(int, int, int x, int y) {
 // --- CBattleScreen::SelectUnit --------------------------------------------------------
 
 void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
-    auto ctrl = [this] { return static_cast<char>(interface_->doubleClick_); };
-    auto orderAt = [this](const Vector3& at, int mode, char flag) { OrderAt(at.x, at.y, at.z, mode, flag); };
-    auto unitDead = [](CUnit* u) { return u->IsDead() != 0; };
+    const bool ctrl = interface_->doubleClick_;
+    auto unitDead = [](CUnit* u) { return u->IsDead(); };
     auto pick = [x, y]() {
         Vector3 out;
         Vector3* p = g_clientWorld->PickSurface(&out, x, y);
@@ -613,31 +580,10 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         POINT point = {x, y};
         return static_cast<CUnit*>(g_clientWorld->PickAt2(&point));
     };
-    // The portrait of member `index` flashes after a short random delay.
-    auto flash = [this](int index) { NodPortrait(this, index); };
-    // Back to plain selection: the pending action and its item and spell are dropped and the
-    // panels' highlights cleared.
-    auto resetMode = [this](bool actionLoop) {
-        CHudQuickItems* quick = quickItems_;
-        pendingAction_ = 0;
-        pendingSlot_ = -1;
-        pendingItem_ = -1;
-        for (int i = 0; i < kQuickSlots; ++i) quick->Highlight(i, 0);
-        quick->selected_ = -1;
-        CHudSpellColumn* spells = spellColumn_;
-        for (int i = 0; i < spells->count_; ++i) spells->Highlight(i, 0);
-        spells->selected_ = -1;
-        CHudActionColumn* actions = actionColumn_;
-        if (!actionLoop) {
-            actions->ClearHighlights();
-            return;
-        }
-        for (int i = 0; i < actions->count_; ++i) actions->Highlight(i, 0);
-        actions->selected_ = -1;
-    };
-    auto order = [this](CUnit* first, CUnit* target, int a, int b) {
-        int flag = static_cast<std::uint8_t>(interface_->doubleClick_);
-        LocalView()->SendUseOrder(first, target, a, b, flag);
+    // The portrait of member `index` nods after a short random delay.
+    auto flash = [this](int index) { portraits_->Wobble(index, kWobbleNod); };
+    auto order = [this, ctrl](CUnit* first, CUnit* target, int kind, int value) {
+        g_clientWorld->LocalView()->SendUseOrder(first, target, kind, value, ctrl);
     };
 
     CUnit* living = (unit && !unitDead(unit)) ? unit : nullptr;
@@ -671,33 +617,25 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     }
 
     if (interface_->altDown_) {
-        orderAt(unit ? unitPosition(unit) : pick(), 0, ctrl());
+        OrderAt(unit ? unitPosition(unit) : pick(), false, ctrl);
         return;
     }
     bool anyFlag = false;
     for (int i = 0; i < 6 && !anyFlag; ++i) anyFlag = orderKeys_[i] != 0;
-    if (anyFlag) {
+    if (anyFlag || interface_->ctrlDown_) {
         if (unit && !unitDead(unit)) {
-            AttackUnit(unit, ctrl());
+            AttackUnit(unit, ctrl);
             return;
         }
-        orderAt(pick(), 1, ctrl());
-        return;
-    }
-    if (interface_->ctrlDown_) {
-        if (unit && !unitDead(unit)) {
-            AttackUnit(unit, ctrl());
-            return;
-        }
-        orderAt(pick(), 1, ctrl());
+        OrderAt(pick(), true, ctrl);
         return;
     }
 
     switch (pendingAction_) {
-    case 0:   // plain: select, attack or move
+    case kPendingNone:
         if (unit) {
             if (unitDead(unit)) {
-                OrderDeadUnit(unit, ctrl());
+                OrderDeadUnit(unit, ctrl);
                 return;
             }
             int members = std::ssize(party_);
@@ -712,10 +650,10 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 return;
             }
             if (members != 0 && party_[0] && party_[0]->IsHostileTo(unit)) {
-                AttackUnit(unit, ctrl());
+                AttackUnit(unit, ctrl);
                 return;
             }
-            orderAt(unitPosition(unit), 0, ctrl());
+            OrderAt(unitPosition(unit), false, ctrl);
             return;
         }
         if (CUnit* object = objectAt()) {
@@ -727,89 +665,58 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         }
         {
             Vector3 at = pick();
-            orderAt(at, 0, ctrl());
+            OrderAt(at, false, ctrl);
             // "Terrain Coords x y z" on the console: each float through the inline operator<<
             // (x_floatused set, printed as a double), then '\n' and flush.
             console::EndLine(console::g_graphicsLogOut << game::TerrainCoordsText() << at.x << game::SpaceText() << at.y
                                                       << game::SpaceText() << at.z);
         }
         return;
-    case 1:   // a spell on a unit
+    case kPendingSpellOnUnit:
         if (!unit || unitDead(unit) || !first) return;
-        // Rebirth's FixSpellSelfCasting #1 (MOV CL,0): the cast no longer passes the Ctrl flag.
-        ScreenCastOn(this, unit,
-                     ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellSelfCasting) ? '\0' : ctrl(), 0);
+        // The original passes the Ctrl flag as UseOnUnit's `quick`; Rebirth's FixSpellSelfCasting #1 (MOV CL,0)
+        // passes false.
+        UseOnUnit(unit, ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellSelfCasting) ? false : ctrl, false);
         return;
-    case 2:   // a spell on a point
-    case 4: {
+    case kPendingSpellAtPoint:
+    case kPendingQuickAtPoint: {
         Vector3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
         if (IsZero(at.x) && IsZero(at.y)) return;
         if (!first) return;
-        ScreenCastAt(this, at, living, pendingAction_ == 4 ? 1 : 0);
+        UseAtPoint(at, living, pendingAction_ == kPendingQuickAtPoint);
         return;
     }
-    case 3: {   // a quick item on a unit
+    case kPendingQuickOnUnit: {
         if (!unit || unitDead(unit) || !first) return;
         CItem* item = first->GetQuickItem(pendingSlot_);
         if (item && item->GetCategory() == QuickItemCategory::Potion && unit != first) return;
-        ScreenCastOn(this, unit, 1, 0);
+        UseOnUnit(unit, true, false);
         return;
     }
-    case 5: {   // use an item on an object
+    case kPendingItemOnObject:
+    case kPendingKeyOnObject: {
         CUnit* target = unit ? unit : objectAt();
         if (!target || !first) return;
         if (target->IsUsable() == 0) return;
+        if (pendingAction_ == kPendingKeyOnObject && target->AcceptsKey(&itemUseKey_) == 0) return;
         order(first, target, 0, pendingItem_);
         flash(firstIndex);
-        resetMode(false);
+        SetPendingAction(kPendingNone, -1, -1);
         return;
     }
-    case 6: {   // use a spell on an object
-        CUnit* target = unit ? unit : objectAt();
-        if (!target || !first) return;
-        if (target->IsUsable() == 0) return;
-        if (target->AcceptsKey(&itemUseKey_) == 0) return;
-        order(first, target, 0, pendingItem_);
-        flash(firstIndex);
-        resetMode(true);
-        return;
-    }
-    case 7: {   // follow: every selected member follows the unit
+    case kPendingFollow: {   // every selected member follows the unit
         if (!unit || unitDead(unit)) return;
         for (int i = 0; i < std::ssize(party_); ++i) {
             CUnit* member = party_[i];
             if (!member || !(member->flags_ & kFlagSelected)) continue;
-            LocalView()->SendFollow(member, unit);
+            g_clientWorld->LocalView()->SendFollow(member, unit);
             Speech(party_[i]->id_, AckKind::Follow, nullptr);
-            NodPortrait(this, i);
+            portraits_->Wobble(i, kWobbleNod);
         }
-        CHudQuickItems* quick = quickItems_;
-        pendingSlot_ = -1;
-        pendingItem_ = -1;
-        pendingAction_ = 0;
-        for (int i = 0; i < kQuickSlots; ++i) {
-            int slot = quick->regionItem_[i];
-            if (slot < 0 || slot >= quick->shownCount_) continue;
-            CEngineObject* sprite = quick->sceneObjects_[slot];
-            AsUiMesh(sprite)->SetScale(std::bit_cast<float>(i < 4 ? kScaleSmall : kScaleLarge));
-            AsUiMesh(sprite)->flatSpecular_ = kSpriteOpaque;
-        }
-        quick->selected_ = -1;
-        // The spell and action columns (the same layout: count_, selected_, the sprites).
-        auto unhighlight = [](auto* panel) {
-            for (int i = 0; i < panel->count_; ++i) {
-                CEngineObject* sprite = panel->sceneObjects_[i];
-                AsUiMesh(sprite)->SetScale(kScaleOne);
-                AsUiMesh(sprite)->flatSpecular_ = kSpriteOpaque;
-                panel->selected_ = i;
-            }
-            panel->selected_ = -1;
-        };
-        unhighlight(spellColumn_);
-        unhighlight(actionColumn_);
+        SetPendingAction(kPendingNone, -1, -1);
         return;
     }
-    case 8: {   // an order on an object (a unit outside the party, or the object under the mouse)
+    case kPendingOrder: {   // a unit outside the party, or the object under the mouse
         CUnit* target = unit ? unit : objectAt();
         if (!target || !first) return;
         if (unit) {
@@ -821,7 +728,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             order(first, target, 0, -1);
         }
         flash(firstIndex);
-        resetMode(true);
+        SetPendingAction(kPendingNone, -1, -1);
         return;
     }
     default:
@@ -845,43 +752,21 @@ void CHudQuickItems::LeftUp(int, int x, int y) {
             Pick(region);
         return;
     }
-    CBattleScreen* screen = owner_;
-    auto clearPanels = [screen](int value) {
-        CHudQuickItems* quick = screen->quickItems_;
-        for (int i = 0; i < kQuickSlots; ++i) quick->Highlight(i, 0);
-        quick->selected_ = value;
-        CHudSpellColumn* spells = screen->spellColumn_;
-        for (int i = 0; i < spells->count_; ++i) spells->Highlight(i, 0);
-        spells->selected_ = value;
-        CHudActionColumn* actions = screen->actionColumn_;
-        for (int i = 0; i < actions->count_; ++i) actions->Highlight(i, 0);
-        actions->selected_ = value;
-    };
+    interface_->PlaySound(kSoundClick);
     if (selected_ != region) {
-        // One of the player's items (top row): "use on an object" (mode 6) with the item's key in the
-        // screen's itemUseKey_ and its id in pendingItem_.
-        interface_->PlaySound(kSoundClick);
-        screen->itemUseKey_ = entries_[entry].item->GetUse();
-        screen->pendingItem_ = entries_[entry].id;
-        screen->pendingSlot_ = region;
-        screen->pendingAction_ = 6;
-        clearPanels(-1);
-        screen->quickItems_->Highlight(region, 1);
+        // One of the player's items (top row): used on an object, with the item's key in the screen's
+        // itemUseKey_ and its id in pendingItem_.
+        owner_->itemUseKey_ = entries_[entry].item->GetUse();
+        owner_->SetPendingAction(kPendingKeyOnObject, region, entries_[entry].id);
         return;
     }
     // The highlighted one again: back to plain selection.
-    interface_->PlaySound(kSoundClick);
-    screen->pendingSlot_ = -1;
-    screen->pendingAction_ = 0;
-    screen->pendingItem_ = -1;
-    clearPanels(-1);
+    owner_->SetPendingAction(kPendingNone, -1, -1);
 }
 
 // --- The selected units ordered to a point -------------------------------------------
 
-void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
-    // The point is the address of the argument slots, as in the original.
-    Vector3 point = {x, y, z};
+void CBattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
     int selected = 0;
     for (int i = 0; i < std::ssize(party_); ++i) {
         CUnit* member = party_[i];
@@ -890,7 +775,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
 
     // A point on a zone exit that is open ("z.<zone>" not 1; "none" is no zone): remembered for the
     // update to ask about leaving (exitPending_ and the exit).
-    exitPending_ = 0;
+    exitPending_ = false;
     int exit;
     if (GameFindExitAt(&point.x, &exit) && selected > 0) {
         std::string name = GameExitTarget(exit);
@@ -902,27 +787,25 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
             // Equal skips.
             EI_NAN_AUDIT(value);
             if (value != one) {
-                exitPending_ = 1;
+                exitPending_ = true;
                 pendingExit_ = exit;
             }
         }
     }
 
     // The selected members go; each one's portrait nods after a short random delay.
-    std::vector<CUnit*> units{};
+    std::vector<CUnit*> units;
     for (int i = 0; i < std::ssize(party_); ++i) {
         CUnit* member = party_[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;
-        int n = std::ssize(units);
-        units.resize(n + 1);
-        units[n] = member;
-        NodPortrait(this, i);
+        units.push_back(member);
+        portraits_->Wobble(i, kWobbleNod);
     }
     if (!units.empty()) {
-        CPlayerClient* view = LocalView();
-        if (static_cast<std::uint8_t>(mode) != 0)
-            view->SendGoTo(&units, &point, ctrl & 0xFF);
+        CPlayerClient* view = g_clientWorld->LocalView();
+        if (goTo)
+            view->SendGoTo(&units, &point, run);
         else
-            view->SendWalk(&units, &point, ctrl & 0xFF);
+            view->SendWalk(&units, &point, run);
     }
 }

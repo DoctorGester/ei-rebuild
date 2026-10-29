@@ -29,20 +29,15 @@ constexpr float kSeventh = 0.14285715f;         // 1 / 7
 constexpr float kThin = 0.2f;
 constexpr float kFat = 0.8f;
 
-// True when the two texts are equal (strcmp(a, b) == 0).
-bool SameText(std::string_view a, std::string_view b) { return a == b; }
-
 // The face picture's sex letter: "m" for "unhuma", "f" for "unhufe", else `sex` stays as it is.
 // EI_Plugin's Fixes: "f" when the fifth character of the name is 'f', else "m".
 void SexOf(const std::string& figure, std::string& sex) {
     const bool fixes = pluginfixes::Enabled();
-    if (fixes ? !pluginfixes::ModelIsFemale(figure) : SameText(figure, "unhuma"))
+    if (fixes ? !pluginfixes::ModelIsFemale(figure) : figure == "unhuma")
         sex = "m";
-    else if (fixes || SameText(figure, "unhufe"))
+    else if (fixes || figure == "unhufe")
         sex = "f";
 }
-
-CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 
 } // namespace
 
@@ -68,8 +63,7 @@ void CHudPortraits::ShowFace(int index, int state) {
         CopyImage(objects_[texture], slots_[index].faceName_, 0x80, 0x80, 0x80, 0x80, u, v);
 }
 
-void CHudPortraits::AddPortrait(const std::string& model, std::string_view picture, int wide, int hasPlayer) {
-    const bool player = static_cast<char>(hasPlayer) != 0;
+void CHudPortraits::AddPortrait(const std::string& model, std::string_view picture, bool wide, bool hasPlayer) {
     // EI_Plugin's NPlayers: max(players, 7) portraits to a row instead of 6.
     const int perRow = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers)
                            ? (ei::rebirth::PluginNPlayers() < 7 ? 7 : ei::rebirth::PluginNPlayers())
@@ -86,13 +80,13 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
     }
     CopyImage(objects_[std::ssize(objects_) - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v);
     slots_.emplace_back();   // identity orientations, empty strings
-    slots_[count_].hasPlayer_ = player;
+    slots_[count_].hasPlayer_ = hasPlayer;
     CUiMesh* face = AddSprite(model);
 
     int x;
     int width;
     if (IsMultiplayerClient()) {
-        width = static_cast<char>(wide) != 0 ? 0x38 : 0x28;
+        width = wide ? 0x38 : 0x28;
         int players = static_cast<int>(net::g_gameClient->players_.size());
         x = 400 - static_cast<int>(static_cast<unsigned>(width + players * 40 - 40) >> 1);
         if (column > 0) {
@@ -120,7 +114,7 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
     HudPortraitSlot& slot = slots_[count_];
     slot.current_ = slot.restA_;
     slots_[count_].wobbleKind_ = 0;
-    if (player) {
+    if (hasPlayer) {
         face->tint_[0] = 0.5f;
         face->tint_[1] = 0.5f;
         face->tint_[2] = 0.5f;
@@ -135,12 +129,12 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
     health->SetRectangle(7.0f, barScale, static_cast<float>(x + 3), 587.0f, static_cast<float>(right - 3), 592.0f, 9, 9,
                          0x49, 0x16);
     health->texture_ = objects_[0];
-    if (player) health->visible_ = 0;
+    if (hasPlayer) health->visible_ = 0;
     CUiMesh* mana = AddBlankSprite();
     mana->SetRectangle(7.0f, barScale, static_cast<float>(x + 3), 592.0f, static_cast<float>(right - 3), 597.0f, 9, 0x23,
                        0x49, 0x30);
     mana->texture_ = objects_[0];
-    if (player) mana->visible_ = 0;
+    if (hasPlayer) mana->visible_ = 0;
     CUiMesh* frame = AddBlankSprite();
     frame->SetFrame(20.0f, 80.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 600.0f, 3.0f, 0x1B, 0x60, 0x5A,
                     0x65);
@@ -152,13 +146,13 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
     flash->flags_ |= 0x100;
     flash->visible_ = 0;
 
-    Sprite(sceneObjects_[column * 5 + 4])->visible_ = 0;   // the column's frame
+    AsUiMesh(sceneObjects_[column * 5 + 4])->visible_ = 0;   // the column's frame
     slots_[column].restB_ = kHudRestRotation;
     ++count_;
     AddRegion()->SetRect(x, 510, right, 600);
 }
 
-void CHudPortraits::Rebuild(int wide) {
+void CHudPortraits::Rebuild(bool wide) {
     ClearSceneObjects();
     ClearRegions();
     while (std::ssize(objects_) > 1) RemoveObjectAt(1);
@@ -187,10 +181,10 @@ void CHudPortraits::Rebuild(int wide) {
         model = str::Format("infa%s%s%dface", figure, build,
                      unit->GetPrototype()->hair + 1);
         picture = str::Format("face%s%02d", sex, skin);
-        AddPortrait(model, picture, wide, 0);
+        AddPortrait(model, picture, wide, false);
 
         if (owner_->party_[i]->flags_ & 0x10) {
-            Sprite(sceneObjects_[i * 5 + 4])->visible_ = 1;
+            AsUiMesh(sceneObjects_[i * 5 + 4])->visible_ = 1;
             Quaternion turn;
             slots_[i].restB_ = *turn.SetAxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, kHudQuarterTurn * kSeventh);
         }
@@ -203,9 +197,8 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[i].modelSuffix_ = str::Format("%dface", hair + 1);
         slots_[i].build_ = figureBuild;
         slots_[i].playerId_ = -1;
-        owner_->UnitName(owner_->party_[i], &tip);
         const int tipId = 0x37 + i;
-        regions_[i]->SetTipString(tip, tipId < 0x3A && !IsMultiplayerClient() ? tipId : 0);
+        regions_[i]->SetTipString(owner_->UnitName(owner_->party_[i]), tipId < 0x3A && !IsMultiplayerClient() ? tipId : 0);
     }
 
     if (!IsMultiplayerClient()) return;
@@ -227,7 +220,7 @@ void CHudPortraits::Rebuild(int wide) {
         build = "me";
         model = str::Format("infa%s%s%dface", figure->figureName, build, prototype->hair + 1);
         picture = str::Format("face%s%02d", sex, prototype->skin);
-        AddPortrait(model, picture, wide, 1);
+        AddPortrait(model, picture, wide, true);
         HudPortraitSlot& slot = slots_[count_ - 1];
         slot.flash_ = 0.0f;
         slot.lastHitPoints_ = 0;

@@ -45,8 +45,6 @@ constexpr std::uint32_t kPartHighlight = 0x100;    // a part's flags_: drawn wit
 constexpr std::uint32_t kPreviewDraw = 0x800;      // the unit's flags_ while the interface draws it
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
-CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
-
 // The quaternion product a * b, inlined twice in the original: w = a.w b.w - a.b (the dot's sum
 // (y + x) + z), the vector part (a x b + b.w a) + a.w b; the first product adds z's last two terms the
 // other way round.
@@ -68,12 +66,12 @@ void CHudUnitPanel::Draw(CSceneRenderer* pass) {
     widescreen::EnterLeftPanel();    // addon's 100232F4
     Quaternion savedOrientation = {1.0f, 0.0f, 0.0f, 0.0f};
     Vector3 savedPosition = {};
-    Sprite(this, kHeightBar)->visible_ = 0;
-    Sprite(this, kMoreMark)->visible_ = 0;
+    SceneMesh(kHeightBar)->visible_ = 0;
+    SceneMesh(kMoreMark)->visible_ = 0;
     // The background alone, before anything else.
-    Sprite(this, kBackground)->visible_ = 1;
-    Sprite(this, kBackground)->Draw(pass);
-    Sprite(this, kBackground)->visible_ = 0;
+    SceneMesh(kBackground)->visible_ = 1;
+    SceneMesh(kBackground)->Draw(pass);
+    SceneMesh(kBackground)->visible_ = 0;
 
     // The unit shown while the panel is not slid away: the hover unit, else the selected one.
     CUnit* unit = nullptr;
@@ -90,7 +88,7 @@ void CHudUnitPanel::Draw(CSceneRenderer* pass) {
         if (unit) size = static_cast<float>(unit->AnimationRatio() * size);
     }
 
-    for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) Sprite(this, i)->visible_ = 0;
+    for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) SceneMesh(i)->visible_ = 0;
     surfaces_[0]->Clear();
 
     if (unit && unit->Object3D()->attached) {
@@ -161,10 +159,10 @@ void CHudUnitPanel::Draw(CSceneRenderer* pass) {
             const float barScale = static_cast<float>(kBarHeight / size);
             std::uint32_t bits;
             bits = std::bit_cast<std::uint32_t>(barScale);
-            Sprite(this, kHeightBar)->SetScaleYBits(bits);
+            SceneMesh(kHeightBar)->SetScaleYBits(bits);
             const float barY = static_cast<float>(kPanelHeight - barScale * kPanelHeight);
             SceneMesh(kHeightBar)->PlaceBody(static_cast<float>(20 - offset_), barY, 4.0f);
-            Sprite(this, kHeightBar)->visible_ = 1;
+            SceneMesh(kHeightBar)->visible_ = 1;
             break;
         }
         case 1:

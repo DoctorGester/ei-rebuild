@@ -554,9 +554,9 @@ obvious.
   alpha 1, ambient 0.7, specular 0.2, power 5 without the file; magic's emissive is 1.
 - HUD ports (ui_hud*.cpp, ui_hud_slide.cpp, ui_hud_setup.cpp; the code is the description): 00648D70 `CHudClock::LeftUp`
   (regions 0 pause, 1 / 2 normal / fast speed, not on a network client, update period 55 / 27 ms at 0078FF34, 3 the
-  objectives; O, no scenario clicks the clock); 00649910 `CHudMovePanel::ShowModeVanilla` (+0x14C `mode_`; S); 00642930 /
+  objectives; O, no scenario clicks the clock); 00649910 `CHudMovePanel::ShowMode` (+0x14C `mode_`; S); 00642930 /
   00645F80 map and unit panel `Layout` (sprites, text surface and regions after the first at the slide offset:
-  `offset_`, `travel_`, `slide_`; S); 00647FB0 `CHudUnitPanel::UpdateVanilla` and 00642B40 `CHudMap::UpdateVanilla` (slot 24:
+  `offset_`, `travel_`, `slide_`; S); 00647FB0 `CHudUnitPanel::Update` and 00642B40 `CHudMap::Update` (slot 24:
   the slide time x direction / 0.3 s, eased, _ftol of travel x eased; the map's zoom x or / 2.5^time towards zoomMax_ / 1,
   UpdateView, BuildMarkers, "camera north" time and tint; the map's is O because it rebuilds meshes, no scenario slides the
   map); 00645210 `CHudMap::LeftUp` (O; ui_hud reaches only the view buttons' release, no scenario clicks the map, its
